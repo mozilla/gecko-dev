@@ -1,4 +1,5 @@
 import sys
+import warnings
 from unittest import TestCase
 from base64 import b64decode, urlsafe_b64encode
 
@@ -7,24 +8,31 @@ from nose.tools import eq_, raises
 import six
 
 from . import Receiver, Sender
-from .base import Resource
+from .base import Resource, EmptyValue
 from .exc import (AlreadyProcessed,
                   BadHeaderValue,
                   CredentialsLookupError,
+                  HawkFail,
                   InvalidCredentials,
                   MacMismatch,
                   MisComputedContentHash,
                   MissingAuthorization,
                   TokenExpired,
-                  InvalidBewit)
+                  InvalidBewit,
+                  MissingContent)
 from .util import (parse_authorization_header,
                    utc_now,
+                   calculate_payload_hash,
                    calculate_ts_mac,
                    validate_credentials)
 from .bewit import (get_bewit,
                     check_bewit,
                     strip_bewit,
                     parse_bewit)
+
+
+# Ensure deprecation warnings are turned to exceptions
+warnings.filterwarnings('error')
 
 
 class Base(TestCase):
@@ -136,29 +144,64 @@ class TestSender(Base):
         self.receive(sn.request_header, method=method, content=content,
                      content_type='application/json; charset=other')
 
-    @raises(ValueError)
+    @raises(MissingContent)
     def test_missing_payload_details(self):
-        self.Sender(method='POST', content=None, content_type=None)
+        self.Sender(method='POST', content=EmptyValue,
+                    content_type=EmptyValue)
 
     def test_skip_payload_hashing(self):
         method = 'POST'
         content = '{"bar": "foobs"}'
         content_type = 'application/json'
-        sn = self.Sender(method=method, content=None, content_type=None,
+        sn = self.Sender(method=method, content=EmptyValue,
+                         content_type=EmptyValue,
                          always_hash_content=False)
+        self.assertFalse('hash="' in sn.request_header)
         self.receive(sn.request_header, method=method, content=content,
                      content_type=content_type,
                      accept_untrusted_content=True)
 
-    @raises(ValueError)
+    def test_empty_payload_hashing(self):
+        method = 'GET'
+        content = None
+        content_type = None
+        sn = self.Sender(method=method, content=content,
+                         content_type=content_type)
+        self.assertTrue('hash="' in sn.request_header)
+        self.receive(sn.request_header, method=method, content=content,
+                     content_type=content_type)
+
+    def test_empty_payload_hashing_always_hash_false(self):
+        method = 'GET'
+        content = None
+        content_type = None
+        sn = self.Sender(method=method, content=content,
+                         content_type=content_type,
+                         always_hash_content=False)
+        self.assertTrue('hash="' in sn.request_header)
+        self.receive(sn.request_header, method=method, content=content,
+                     content_type=content_type)
+
+    def test_empty_payload_hashing_accept_untrusted(self):
+        method = 'GET'
+        content = None
+        content_type = None
+        sn = self.Sender(method=method, content=content,
+                         content_type=content_type)
+        self.assertTrue('hash="' in sn.request_header)
+        self.receive(sn.request_header, method=method, content=content,
+                     content_type=content_type,
+                     accept_untrusted_content=True)
+
+    @raises(MissingContent)
     def test_cannot_skip_content_only(self):
-        self.Sender(method='POST', content=None,
+        self.Sender(method='POST', content=EmptyValue,
                     content_type='application/json')
 
-    @raises(ValueError)
+    @raises(MissingContent)
     def test_cannot_skip_content_type_only(self):
         self.Sender(method='POST', content='{"foo": "bar"}',
-                    content_type=None)
+                    content_type=EmptyValue)
 
     @raises(MacMismatch)
     def test_tamper_with_host(self):
@@ -308,17 +351,21 @@ class TestSender(Base):
         header = sn.request_header.replace('my external data', 'TAMPERED')
         self.receive(header)
 
+    @raises(BadHeaderValue)
+    def test_duplicate_keys(self):
+        sn = self.Sender(ext='someext')
+        header = sn.request_header + ', ext="otherext"'
+        self.receive(header)
+
+    @raises(BadHeaderValue)
     def test_ext_with_quotes(self):
         sn = self.Sender(ext='quotes=""')
         self.receive(sn.request_header)
-        parsed = parse_authorization_header(sn.request_header)
-        eq_(parsed['ext'], 'quotes=""')
 
+    @raises(BadHeaderValue)
     def test_ext_with_new_line(self):
         sn = self.Sender(ext="new line \n in the middle")
         self.receive(sn.request_header)
-        parsed = parse_authorization_header(sn.request_header)
-        eq_(parsed['ext'], "new line \n in the middle")
 
     def test_ext_with_equality_sign(self):
         sn = self.Sender(ext="foo=bar&foo2=bar2;foo3=bar3")
@@ -326,19 +373,47 @@ class TestSender(Base):
         parsed = parse_authorization_header(sn.request_header)
         eq_(parsed['ext'], "foo=bar&foo2=bar2;foo3=bar3")
 
+    @raises(HawkFail)
+    def test_non_hawk_scheme(self):
+        parse_authorization_header('Basic user:base64pw')
+
+    @raises(HawkFail)
+    def test_invalid_key(self):
+        parse_authorization_header('Hawk mac="validmac" unknownkey="value"')
+
+    def test_ext_with_all_valid_characters(self):
+        valid_characters = "!#$%&'()*+,-./:;<=>?@[]^_`{|}~ azAZ09_"
+        sender = self.Sender(ext=valid_characters)
+        parsed = parse_authorization_header(sender.request_header)
+        eq_(parsed['ext'], valid_characters)
+
     @raises(BadHeaderValue)
     def test_ext_with_illegal_chars(self):
         self.Sender(ext="something like \t is illegal")
+
+    def test_unparseable_header(self):
+        try:
+            parse_authorization_header('Hawk mac="somemac", unparseable')
+        except BadHeaderValue as exc:
+            error_msg = str(exc)
+            self.assertTrue("Couldn't parse Hawk header" in error_msg)
+            self.assertTrue("unparseable" in error_msg)
+        else:
+            self.fail('should raise')
 
     @raises(BadHeaderValue)
     def test_ext_with_illegal_unicode(self):
         self.Sender(ext=u'Ivan Kristi\u0107')
 
     @raises(BadHeaderValue)
+    def test_too_long_header(self):
+        sn = self.Sender(ext='a'*5000)
+        self.receive(sn.request_header)
+
+    @raises(BadHeaderValue)
     def test_ext_with_illegal_utf8(self):
         # This isn't allowed because the escaped byte chars are out of
-        # range. It's a little odd but this is what the Node lib does
-        # implicitly with its regex.
+        # range.
         self.Sender(ext=u'Ivan Kristi\u0107'.encode('utf8'))
 
     def test_app_ok(self):
@@ -368,6 +443,25 @@ class TestSender(Base):
         sn = self.Sender(dlg=dlg, app='some-app')
         header = sn.request_header.replace(dlg, 'TAMPERED-WITH')
         self.receive(header)
+
+    def test_file_content(self):
+        method = "POST"
+        content = six.BytesIO(b"FILE CONTENT")
+        sn = self.Sender(method, content=content)
+        self.receive(sn.request_header, method=method, content=content.getvalue())
+
+    def test_binary_file_content(self):
+        method = "POST"
+        content = six.BytesIO(b"\x00\xffCONTENT\xff\x00")
+        sn = self.Sender(method, content=content)
+        self.receive(sn.request_header, method=method, content=content.getvalue())
+
+    @raises(MisComputedContentHash)
+    def test_bad_file_content(self):
+        method = "POST"
+        content = six.BytesIO(b"FILE CONTENT")
+        sn = self.Sender(method, content=content)
+        self.receive(sn.request_header, method=method, content="BAD FILE CONTENT")
 
 
 class TestReceiver(Base):
@@ -560,24 +654,125 @@ class TestReceiver(Base):
         wrong_sender = self.sender
         self.receive(content='TAMPERED WITH', sender=wrong_sender)
 
-    @raises(MisComputedContentHash)
-    def test_unexpected_unhashed_content(self):
-        self.receive(sender_kw=dict(content=None, content_type=None,
+    def test_expected_unhashed_empty_content(self):
+        # This test sets up a scenario where the receiver will receive empty
+        # strings for content and content_type and no content hash in the auth
+        # header.
+        # This is to account for callers that might provide empty strings for
+        # the payload when in fact there is literally no content. In this case,
+        # mohawk depends on the presence of the content hash in the auth header
+        # to determine how to treat the empty strings: no hash in the header
+        # implies that no hashing is expected to occur on the server.
+        self.receive(content='',
+                     content_type='',
+                     sender_kw=dict(content=EmptyValue,
+                                    content_type=EmptyValue,
                                     always_hash_content=False))
 
-    @raises(ValueError)
+    @raises(MisComputedContentHash)
+    def test_expected_unhashed_empty_content_with_content_type(self):
+        # This test sets up a scenario where the receiver will receive an
+        # empty content string and no content hash in the auth header, but
+        # some value for content_type.
+        # This is to confirm that the hash is calculated and compared (to the
+        # hash of mock empty payload, which should fail) when it appears that
+        # the sender has sent a 0-length payload body.
+        self.receive(content='',
+                     content_type='text/plain',
+                     sender_kw=dict(content=EmptyValue,
+                                    content_type=EmptyValue,
+                                    always_hash_content=False))
+
+    @raises(MisComputedContentHash)
+    def test_expected_unhashed_content_with_empty_content_type(self):
+        # This test sets up a scenario where the receiver will receive some
+        # content but the empty string for the content_type and no content hash
+        # in the auth header.
+        # This is to confirm that the hash is calculated and compared (to the
+        # hash of mock empty payload, which should fail) when the sender has
+        # sent unhashed content.
+        self.receive(content='some content',
+                     content_type='',
+                     sender_kw=dict(content=EmptyValue,
+                                    content_type=EmptyValue,
+                                    always_hash_content=False))
+
+    def test_empty_content_with_content_type(self):
+        # This test sets up a scenario where the receiver will receive an
+        # empty content string, some value for content_type and a content hash.
+        # This is to confirm that the hash is calculated and compared correctly
+        # when the sender has sent a hashed 0-length payload body.
+        self.receive(content='',
+                     content_type='text/plain',
+                     sender_kw=dict(content='',
+                                    content_type='text/plain'))
+
+    def test_expected_unhashed_no_content(self):
+        # This test sets up a scenario where the receiver will receive None for
+        # content and content_type and no content hash in the auth header.
+        # This is like test_expected_unhashed_empty_content(), but tests for
+        # the less ambiguous case where the caller has explicitly passed in None
+        # to indicate that there is no content to hash.
+        self.receive(content=None,
+                     content_type=None,
+                     sender_kw=dict(content=EmptyValue,
+                                    content_type=EmptyValue,
+                                    always_hash_content=False))
+
+    @raises(MisComputedContentHash)
+    def test_expected_unhashed_no_content_with_content_type(self):
+        # This test sets up a scenario where the receiver will receive None for
+        # content and no content hash in the auth header, but some value for
+        # content_type.
+        # In this case, the content will be coerced to the empty string for
+        # hashing purposes. The request should fail, as the there is no content
+        # hash in the request to compare against. While this may not be in
+        # accordance with the js reference spec, it's the safest (ie. most
+        # secure) way of handling this bizarre set of circumstances.
+        self.receive(content=None,
+                     content_type='text/plain',
+                     sender_kw=dict(content=EmptyValue,
+                                    content_type=EmptyValue,
+                                    always_hash_content=False))
+
+    @raises(MisComputedContentHash)
+    def test_expected_unhashed_content_with_no_content_type(self):
+        # This test sets up a scenario where the receiver will receive some
+        # content but no value for the content_type and no content hash in
+        # the auth header.
+        # This is to confirm that the hash is calculated and compared (to the
+        # hash of mock empty payload, which should fail) when the sender has
+        # sent unhashed content.
+        self.receive(content='some content',
+                     content_type=None,
+                     sender_kw=dict(content=EmptyValue,
+                                    content_type=EmptyValue,
+                                    always_hash_content=False))
+
+    def test_no_content_with_content_type(self):
+        # This test sets up a scenario where the receiver will receive None for
+        # the content string, some value for content_type and a content hash.
+        # This is to confirm that coercing None to the empty string when a hash
+        # is expected allows the hash to be calculated and compared correctly
+        # as if the sender has sent a hashed 0-length payload body.
+        self.receive(content=None,
+                     content_type='text/plain',
+                     sender_kw=dict(content='',
+                                    content_type='text/plain'))
+
+    @raises(MissingContent)
     def test_cannot_receive_empty_content_only(self):
         content_type = 'text/plain'
         self.receive(sender_kw=dict(content='<content>',
                                     content_type=content_type),
-                     content=None, content_type=content_type)
+                     content=EmptyValue, content_type=content_type)
 
-    @raises(ValueError)
+    @raises(MissingContent)
     def test_cannot_receive_empty_content_type_only(self):
         content = '<content>'
         self.receive(sender_kw=dict(content=content,
                                     content_type='text/plain'),
-                     content=content, content_type=None)
+                     content=content, content_type=EmptyValue)
 
     @raises(MisComputedContentHash)
     def test_receive_wrong_content_type(self):
@@ -684,19 +879,24 @@ class TestBewit(Base):
         expected = '123456\\1356420707\\kscxwNR2tJpP1T1zDLNPbB5UiKIU9tOSJXTUdG7X9h8=\\xandyandz'
         eq_(b64decode(bewit).decode('ascii'), expected)
 
-    def test_bewit_with_ext_and_backslashes(self):
+    @raises(BadHeaderValue)
+    def test_bewit_with_invalid_ext(self):
+        res = Resource(url='https://example.com/somewhere/over/the/rainbow',
+                       method='GET', credentials=self.credentials,
+                       timestamp=1356420407 + 300,
+                       nonce='',
+                       ext='xand\\yandz')
+        get_bewit(res)
+
+    @raises(BadHeaderValue)
+    def test_bewit_with_backslashes_in_id(self):
         credentials = self.credentials
         credentials['id'] = '123\\456'
         res = Resource(url='https://example.com/somewhere/over/the/rainbow',
                        method='GET', credentials=self.credentials,
                        timestamp=1356420407 + 300,
-                       nonce='',
-                       ext='xand\\yandz'
-                       )
-        bewit = get_bewit(res)
-
-        expected = '123456\\1356420707\\b82LLIxG5UDkaChLU953mC+SMrbniV1sb8KiZi9cSsc=\\xand\\yandz'
-        eq_(b64decode(bewit).decode('ascii'), expected)
+                       nonce='')
+        get_bewit(res)
 
     def test_bewit_with_port(self):
         res = Resource(url='https://example.com:8080/somewhere/over/the/rainbow',
@@ -728,8 +928,8 @@ class TestBewit(Base):
         url = "https://example.com/somewhere/over/the/rainbow?bewit={bewit}".format(bewit=bewit)
 
         raw_bewit, stripped_url = strip_bewit(url)
-        self.assertEquals(raw_bewit, bewit)
-        self.assertEquals(stripped_url, "https://example.com/somewhere/over/the/rainbow")
+        self.assertEqual(raw_bewit, bewit)
+        self.assertEqual(stripped_url, "https://example.com/somewhere/over/the/rainbow")
 
     @raises(InvalidBewit)
     def test_strip_url_without_bewit(self):
@@ -740,28 +940,25 @@ class TestBewit(Base):
         bewit = b'123456\\1356420707\\IGYmLgIqLrCe8CxvKPs4JlWIA+UjWJJouwgARiVhCAg=\\'
         bewit = urlsafe_b64encode(bewit).decode('ascii')
         bewit = parse_bewit(bewit)
-        self.assertEquals(bewit.id, '123456')
-        self.assertEquals(bewit.expiration, '1356420707')
-        self.assertEquals(bewit.mac, 'IGYmLgIqLrCe8CxvKPs4JlWIA+UjWJJouwgARiVhCAg=')
-        self.assertEquals(bewit.ext, '')
+        self.assertEqual(bewit.id, '123456')
+        self.assertEqual(bewit.expiration, '1356420707')
+        self.assertEqual(bewit.mac, 'IGYmLgIqLrCe8CxvKPs4JlWIA+UjWJJouwgARiVhCAg=')
+        self.assertEqual(bewit.ext, '')
 
     def test_parse_bewit_with_ext(self):
         bewit = b'123456\\1356420707\\IGYmLgIqLrCe8CxvKPs4JlWIA+UjWJJouwgARiVhCAg=\\xandyandz'
         bewit = urlsafe_b64encode(bewit).decode('ascii')
         bewit = parse_bewit(bewit)
-        self.assertEquals(bewit.id, '123456')
-        self.assertEquals(bewit.expiration, '1356420707')
-        self.assertEquals(bewit.mac, 'IGYmLgIqLrCe8CxvKPs4JlWIA+UjWJJouwgARiVhCAg=')
-        self.assertEquals(bewit.ext, 'xandyandz')
+        self.assertEqual(bewit.id, '123456')
+        self.assertEqual(bewit.expiration, '1356420707')
+        self.assertEqual(bewit.mac, 'IGYmLgIqLrCe8CxvKPs4JlWIA+UjWJJouwgARiVhCAg=')
+        self.assertEqual(bewit.ext, 'xandyandz')
 
+    @raises(InvalidBewit)
     def test_parse_bewit_with_ext_and_backslashes(self):
         bewit = b'123456\\1356420707\\IGYmLgIqLrCe8CxvKPs4JlWIA+UjWJJouwgARiVhCAg=\\xand\\yandz'
         bewit = urlsafe_b64encode(bewit).decode('ascii')
-        bewit = parse_bewit(bewit)
-        self.assertEquals(bewit.id, '123456')
-        self.assertEquals(bewit.expiration, '1356420707')
-        self.assertEquals(bewit.mac, 'IGYmLgIqLrCe8CxvKPs4JlWIA+UjWJJouwgARiVhCAg=')
-        self.assertEquals(bewit.ext, 'xand\\yandz')
+        parse_bewit(bewit)
 
     @raises(InvalidBewit)
     def test_parse_invalid_bewit_with_only_one_part(self):
@@ -793,6 +990,7 @@ class TestBewit(Base):
         })
         self.assertTrue(check_bewit(url, credential_lookup=credential_lookup, now=1356420407 + 10))
 
+    @raises(InvalidBewit)
     def test_validate_bewit_with_ext_and_backslashes(self):
         bewit = b'123456\\1356420707\\b82LLIxG5UDkaChLU953mC+SMrbniV1sb8KiZi9cSsc=\\xand\\yandz'
         bewit = urlsafe_b64encode(bewit).decode('ascii')
@@ -800,7 +998,7 @@ class TestBewit(Base):
         credential_lookup = self.make_credential_lookup({
             self.credentials['id']: self.credentials,
         })
-        self.assertTrue(check_bewit(url, credential_lookup=credential_lookup, now=1356420407 + 10))
+        check_bewit(url, credential_lookup=credential_lookup, now=1356420407 + 10)
 
     @raises(TokenExpired)
     def test_validate_expired_bewit(self):
@@ -821,3 +1019,12 @@ class TestBewit(Base):
             'other_id': self.credentials,
         })
         check_bewit(url, credential_lookup=credential_lookup, now=1356420407 + 10)
+
+
+class TestPayloadHash(Base):
+    def test_hash_file_read_blocks(self):
+        payload = six.BytesIO(b"\x00\xffhello world\xff\x00")
+        h1 = calculate_payload_hash(payload, 'sha256', 'application/json', block_size=1)
+        payload.seek(0)
+        h2 = calculate_payload_hash(payload, 'sha256', 'application/json', block_size=1024)
+        self.assertEqual(h1, h2)

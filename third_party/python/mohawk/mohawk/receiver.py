@@ -1,7 +1,10 @@
 import logging
 import sys
 
-from .base import default_ts_skew_in_seconds, HawkAuthority, Resource
+from .base import (default_ts_skew_in_seconds,
+                   HawkAuthority,
+                   Resource,
+                   EmptyValue)
 from .exc import CredentialsLookupError, MissingAuthorization
 from .util import (calculate_mac,
                    parse_authorization_header,
@@ -33,17 +36,15 @@ class Receiver(HawkAuthority):
     :param method: Method of the request. E.G. POST, GET
     :type method: str
 
-    :param content=None: Byte string of request body.
-    :type content=None: str
+    :param content=EmptyValue: Byte string of request body.
+    :type content=EmptyValue: str
 
-    :param content_type=None: content-type header value for request.
-    :type content_type=None: str
+    :param content_type=EmptyValue: content-type header value for request.
+    :type content_type=EmptyValue: str
 
     :param accept_untrusted_content=False:
-        When True, allow requests that do not hash their content or
-        allow None type ``content`` and ``content_type``
-        arguments. Read :ref:`skipping-content-checks`
-        to learn more.
+        When True, allow requests that do not hash their content.
+        Read :ref:`skipping-content-checks` to learn more.
     :type accept_untrusted_content=False: bool
 
     :param localtime_offset_in_seconds=0:
@@ -65,8 +66,8 @@ class Receiver(HawkAuthority):
                  request_header,
                  url,
                  method,
-                 content=None,
-                 content_type=None,
+                 content=EmptyValue,
+                 content_type=EmptyValue,
                  seen_nonce=None,
                  localtime_offset_in_seconds=0,
                  accept_untrusted_content=False,
@@ -120,8 +121,8 @@ class Receiver(HawkAuthority):
         self.resource = resource
 
     def respond(self,
-                content=None,
-                content_type=None,
+                content=EmptyValue,
+                content_type=EmptyValue,
                 always_hash_content=True,
                 ext=None):
         """
@@ -130,14 +131,14 @@ class Receiver(HawkAuthority):
         This generates the :attr:`mohawk.Receiver.response_header`
         attribute.
 
-        :param content=None: Byte string of response body that will be sent.
-        :type content=None: str
+        :param content=EmptyValue: Byte string of response body that will be sent.
+        :type content=EmptyValue: str
 
-        :param content_type=None: content-type header value for response.
-        :type content_type=None: str
+        :param content_type=EmptyValue: content-type header value for response.
+        :type content_type=EmptyValue: str
 
         :param always_hash_content=True:
-            When True, ``content`` and ``content_type`` cannot be None.
+            When True, ``content`` and ``content_type`` must be provided.
             Read :ref:`skipping-content-checks` to learn more.
         :type always_hash_content=True: bool
 

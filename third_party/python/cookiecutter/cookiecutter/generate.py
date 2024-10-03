@@ -1,4 +1,5 @@
 """Functions for generating a project from a project template."""
+
 import fnmatch
 import json
 import logging
@@ -6,22 +7,25 @@ import os
 import shutil
 import warnings
 from collections import OrderedDict
+from pathlib import Path
 
 from binaryornot.check import is_binary
-from jinja2 import FileSystemLoader
+from jinja2 import Environment, FileSystemLoader
 from jinja2.exceptions import TemplateSyntaxError, UndefinedError
 
-from cookiecutter.environment import StrictEnvironment
 from cookiecutter.exceptions import (
     ContextDecodingException,
-    FailedHookException,
-    NonTemplatedInputDirException,
     OutputDirExistsException,
     UndefinedVariableInTemplate,
 )
 from cookiecutter.find import find_template
-from cookiecutter.hooks import run_hook
-from cookiecutter.utils import make_sure_path_exists, rmtree, work_in
+from cookiecutter.hooks import run_hook_from_repo_dir
+from cookiecutter.utils import (
+    create_env_with_context,
+    make_sure_path_exists,
+    rmtree,
+    work_in,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,28 +50,52 @@ def is_copy_only_path(path, context):
     return False
 
 
-def apply_overwrites_to_context(context, overwrite_context):
+def apply_overwrites_to_context(
+    context, overwrite_context, *, in_dictionary_variable=False
+):
     """Modify the given context in place based on the overwrite_context."""
     for variable, overwrite in overwrite_context.items():
         if variable not in context:
-            # Do not include variables which are not used in the template
-            continue
+            if not in_dictionary_variable:
+                # We are dealing with a new variable on first level, ignore
+                continue
+            # We are dealing with a new dictionary variable in a deeper level
+            context[variable] = overwrite
 
         context_value = context[variable]
-
         if isinstance(context_value, list):
-            # We are dealing with a choice variable
-            if overwrite in context_value:
-                # This overwrite is actually valid for the given context
-                # Let's set it as default (by definition first item in list)
-                # see ``cookiecutter.prompt.prompt_choice_for_config``
-                context_value.remove(overwrite)
-                context_value.insert(0, overwrite)
+            if in_dictionary_variable:
+                context[variable] = overwrite
+                continue
+            if isinstance(overwrite, list):
+                # We are dealing with a multichoice variable
+                # Let's confirm all choices are valid for the given context
+                if set(overwrite).issubset(set(context_value)):
+                    context[variable] = overwrite
+                else:
+                    raise ValueError(
+                        f"{overwrite} provided for multi-choice variable "
+                        f"{variable}, but valid choices are {context_value}"
+                    )
             else:
-                raise ValueError(
-                    "{} provided for choice variable {}, but the "
-                    "choices are {}.".format(overwrite, variable, context_value)
-                )
+                # We are dealing with a choice variable
+                if overwrite in context_value:
+                    # This overwrite is actually valid for the given context
+                    # Let's set it as default (by definition first item in list)
+                    # see ``cookiecutter.prompt.prompt_choice_for_config``
+                    context_value.remove(overwrite)
+                    context_value.insert(0, overwrite)
+                else:
+                    raise ValueError(
+                        f"{overwrite} provided for choice variable "
+                        f"{variable}, but the choices are {context_value}."
+                    )
+        elif isinstance(context_value, dict) and isinstance(overwrite, dict):
+            # Partially overwrite some keys in original dict
+            apply_overwrites_to_context(
+                context_value, overwrite, in_dictionary_variable=True
+            )
+            context[variable] = context_value
         else:
             # Simply overwrite the value for this variable
             context[variable] = overwrite
@@ -96,10 +124,10 @@ def generate_context(
         full_fpath = os.path.abspath(context_file)
         json_exc_message = str(e)
         our_exc_message = (
-            'JSON decoding error while loading "{}".  Decoding'
-            ' error details: "{}"'.format(full_fpath, json_exc_message)
+            f"JSON decoding error while loading '{full_fpath}'. "
+            f"Decoding error details: '{json_exc_message}'"
         )
-        raise ContextDecodingException(our_exc_message)
+        raise ContextDecodingException(our_exc_message) from e
 
     # Add the Python object to the context dictionary
     file_name = os.path.split(context_file)[1]
@@ -111,8 +139,8 @@ def generate_context(
     if default_context:
         try:
             apply_overwrites_to_context(obj, default_context)
-        except ValueError as ex:
-            warnings.warn("Invalid default received: " + str(ex))
+        except ValueError as error:
+            warnings.warn(f"Invalid default received: {error}")
     if extra_context:
         apply_overwrites_to_context(obj, extra_context)
 
@@ -163,55 +191,63 @@ def generate_file(project_dir, infile, context, env, skip_if_file_exists=False):
     if is_binary(infile):
         logger.debug('Copying binary %s to %s without rendering', infile, outfile)
         shutil.copyfile(infile, outfile)
+        shutil.copymode(infile, outfile)
+        return
+
+    # Force fwd slashes on Windows for get_template
+    # This is a by-design Jinja issue
+    infile_fwd_slashes = infile.replace(os.path.sep, '/')
+
+    # Render the file
+    try:
+        tmpl = env.get_template(infile_fwd_slashes)
+    except TemplateSyntaxError as exception:
+        # Disable translated so that printed exception contains verbose
+        # information about syntax error location
+        exception.translated = False
+        raise
+    rendered_file = tmpl.render(**context)
+
+    if context['cookiecutter'].get('_new_lines', False):
+        # Use `_new_lines` from context, if configured.
+        newline = context['cookiecutter']['_new_lines']
+        logger.debug('Using configured newline character %s', repr(newline))
     else:
-        # Force fwd slashes on Windows for get_template
-        # This is a by-design Jinja issue
-        infile_fwd_slashes = infile.replace(os.path.sep, '/')
+        # Detect original file newline to output the rendered file.
+        # Note that newlines can be a tuple if file contains mixed line endings.
+        # In this case, we pick the first line ending we detected.
+        with open(infile, encoding='utf-8') as rd:
+            rd.readline()  # Read only the first line to load a 'newlines' value.
+        newline = rd.newlines[0] if isinstance(rd.newlines, tuple) else rd.newlines
+        logger.debug('Using detected newline character %s', repr(newline))
 
-        # Render the file
-        try:
-            tmpl = env.get_template(infile_fwd_slashes)
-        except TemplateSyntaxError as exception:
-            # Disable translated so that printed exception contains verbose
-            # information about syntax error location
-            exception.translated = False
-            raise
-        rendered_file = tmpl.render(**context)
+    logger.debug('Writing contents to file %s', outfile)
 
-        # Detect original file newline to output the rendered file
-        # note: newline='' ensures newlines are not converted
-        with open(infile, encoding='utf-8', newline='') as rd:
-            rd.readline()  # Read the first line to load 'newlines' value
-
-            # Use `_new_lines` overwrite from context, if configured.
-            newline = rd.newlines
-            if context['cookiecutter'].get('_new_lines', False):
-                newline = context['cookiecutter']['_new_lines']
-                logger.debug('Overwriting end line character with %s', newline)
-
-        logger.debug('Writing contents to file %s', outfile)
-
-        with open(outfile, 'w', encoding='utf-8', newline=newline) as fh:
-            fh.write(rendered_file)
+    with open(outfile, 'w', encoding='utf-8', newline=newline) as fh:
+        fh.write(rendered_file)
 
     # Apply file permissions to output file
     shutil.copymode(infile, outfile)
 
 
 def render_and_create_dir(
-    dirname, context, output_dir, environment, overwrite_if_exists=False
+    dirname: str,
+    context: dict,
+    output_dir: "os.PathLike[str]",
+    environment: Environment,
+    overwrite_if_exists: bool = False,
 ):
     """Render name of a directory, create the directory, return its path."""
     name_tmpl = environment.from_string(dirname)
     rendered_dirname = name_tmpl.render(**context)
 
-    dir_to_create = os.path.normpath(os.path.join(output_dir, rendered_dirname))
+    dir_to_create = Path(output_dir, rendered_dirname)
 
     logger.debug(
         'Rendered dir %s must exist in output_dir %s', dir_to_create, output_dir
     )
 
-    output_dir_exists = os.path.exists(dir_to_create)
+    output_dir_exists = dir_to_create.exists()
 
     if output_dir_exists:
         if overwrite_if_exists:
@@ -227,14 +263,6 @@ def render_and_create_dir(
     return dir_to_create, not output_dir_exists
 
 
-def ensure_dir_is_templated(dirname):
-    """Ensure that dirname is a templated directory name."""
-    if '{{' in dirname and '}}' in dirname:
-        return True
-    else:
-        raise NonTemplatedInputDirException
-
-
 def _run_hook_from_repo_dir(
     repo_dir, hook_name, project_dir, context, delete_project_on_failure
 ):
@@ -247,18 +275,15 @@ def _run_hook_from_repo_dir(
     :param delete_project_on_failure: Delete the project directory on hook
         failure?
     """
-    with work_in(repo_dir):
-        try:
-            run_hook(hook_name, project_dir, context)
-        except FailedHookException:
-            if delete_project_on_failure:
-                rmtree(project_dir)
-            logger.error(
-                "Stopping generation because %s hook "
-                "script didn't exit successfully",
-                hook_name,
-            )
-            raise
+    warnings.warn(
+        "The '_run_hook_from_repo_dir' function is deprecated, "
+        "use 'cookiecutter.hooks.run_hook_from_repo_dir' instead",
+        DeprecationWarning,
+        2,
+    )
+    run_hook_from_repo_dir(
+        repo_dir, hook_name, project_dir, context, delete_project_on_failure
+    )
 
 
 def generate_files(
@@ -268,6 +293,7 @@ def generate_files(
     overwrite_if_exists=False,
     skip_if_file_exists=False,
     accept_hooks=True,
+    keep_project_on_failure=False,
 ):
     """Render the templates and saves them to files.
 
@@ -276,24 +302,27 @@ def generate_files(
     :param output_dir: Where to output the generated project dir into.
     :param overwrite_if_exists: Overwrite the contents of the output directory
         if it exists.
+    :param skip_if_file_exists: Skip the files in the corresponding directories
+        if they already exist
     :param accept_hooks: Accept pre and post hooks if set to `True`.
+    :param keep_project_on_failure: If `True` keep generated project directory even when
+        generation fails
     """
-    template_dir = find_template(repo_dir)
-    logger.debug('Generating project from %s...', template_dir)
     context = context or OrderedDict([])
 
-    envvars = context.get('cookiecutter', {}).get('_jinja2_env_vars', {})
+    env = create_env_with_context(context)
+
+    template_dir = find_template(repo_dir, env)
+    logger.debug('Generating project from %s...', template_dir)
 
     unrendered_dir = os.path.split(template_dir)[1]
-    ensure_dir_is_templated(unrendered_dir)
-    env = StrictEnvironment(context=context, keep_trailing_newline=True, **envvars)
     try:
         project_dir, output_directory_created = render_and_create_dir(
             unrendered_dir, context, output_dir, env, overwrite_if_exists
         )
     except UndefinedError as err:
         msg = f"Unable to create project directory '{unrendered_dir}'"
-        raise UndefinedVariableInTemplate(msg, err, context)
+        raise UndefinedVariableInTemplate(msg, err, context) from err
 
     # We want the Jinja path and the OS paths to match. Consequently, we'll:
     #   + CD to the template folder
@@ -307,15 +336,15 @@ def generate_files(
 
     # if we created the output directory, then it's ok to remove it
     # if rendering fails
-    delete_project_on_failure = output_directory_created
+    delete_project_on_failure = output_directory_created and not keep_project_on_failure
 
     if accept_hooks:
-        _run_hook_from_repo_dir(
+        run_hook_from_repo_dir(
             repo_dir, 'pre_gen_project', project_dir, context, delete_project_on_failure
         )
 
     with work_in(template_dir):
-        env.loader = FileSystemLoader('.')
+        env.loader = FileSystemLoader(['.', '../templates'])
 
         for root, dirs, files in os.walk('.'):
             # We must separate the two types of dirs into different lists.
@@ -330,6 +359,7 @@ def generate_files(
                 # specified in the ``_copy_without_render`` setting, but
                 # we store just the dir name
                 if is_copy_only_path(d_, context):
+                    logger.debug('Found copy only path %s', d)
                     copy_dirs.append(d)
                 else:
                     render_dirs.append(d)
@@ -339,6 +369,12 @@ def generate_files(
                 outdir = os.path.normpath(os.path.join(project_dir, indir))
                 outdir = env.from_string(outdir).render(**context)
                 logger.debug('Copying dir %s to %s without rendering', indir, outdir)
+
+                # The outdir is not the root dir, it is the dir which marked as copy
+                # only in the config file. If the program hits this line, which means
+                # the overwrite_if_exists = True, and root dir exists
+                if os.path.isdir(outdir):
+                    shutil.rmtree(outdir)
                 shutil.copytree(indir, outdir)
 
             # We mutate ``dirs``, because we only want to go through these dirs
@@ -355,7 +391,7 @@ def generate_files(
                         rmtree(project_dir)
                     _dir = os.path.relpath(unrendered_dir, output_dir)
                     msg = f"Unable to create directory '{_dir}'"
-                    raise UndefinedVariableInTemplate(msg, err, context)
+                    raise UndefinedVariableInTemplate(msg, err, context) from err
 
             for f in files:
                 infile = os.path.normpath(os.path.join(root, f))
@@ -377,10 +413,10 @@ def generate_files(
                     if delete_project_on_failure:
                         rmtree(project_dir)
                     msg = f"Unable to create file '{infile}'"
-                    raise UndefinedVariableInTemplate(msg, err, context)
+                    raise UndefinedVariableInTemplate(msg, err, context) from err
 
     if accept_hooks:
-        _run_hook_from_repo_dir(
+        run_hook_from_repo_dir(
             repo_dir,
             'post_gen_project',
             project_dir,

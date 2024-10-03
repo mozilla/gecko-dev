@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2019 - 2021 Avram Lubkin, All Rights Reserved
+# Copyright 2019 - 2022 Avram Lubkin, All Rights Reserved
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,6 +8,7 @@
 """
 Utility objects
 """
+
 
 import os
 import platform
@@ -18,11 +19,8 @@ if sys.version_info[:2] < (3, 3):  # pragma: no branch
 else:
     from unittest import mock  # noqa: F401  # pylint: disable=unused-import
 
-if sys.version_info[0] < 3:  # pragma: no branch
-    BASESTRING = basestring  # pragma: no cover  # noqa: F821 # pylint: disable=undefined-variable
-else:
-    BASESTRING = str
-
+# pylint: disable-next=undefined-variable
+BASESTRING = basestring if sys.version_info[0] < 3 else str  # noqa: F821
 IS_WINDOWS = platform.system() == 'Windows'
 
 

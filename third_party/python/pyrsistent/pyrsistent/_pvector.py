@@ -1,9 +1,12 @@
 from abc import abstractmethod, ABCMeta
-from ._compat import Sequence, Hashable
+from collections.abc import Sequence, Hashable
 from numbers import Integral
 import operator
-import six
+from typing import TypeVar, Generic
+
 from pyrsistent._transformations import transform
+
+T_co = TypeVar('T_co', covariant=True)
 
 
 def _bitcount(val):
@@ -411,8 +414,7 @@ class PythonPVector(object):
         l.remove(value)
         return _EMPTY_PVECTOR.extend(l)
 
-@six.add_metaclass(ABCMeta)
-class PVector(object):
+class PVector(Generic[T_co],metaclass=ABCMeta):
     """
     Persistent vector implementation. Meant as a replacement for the cases where you would normally
     use a Python list.

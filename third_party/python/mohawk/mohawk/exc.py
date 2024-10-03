@@ -1,6 +1,11 @@
 """
 If you want to catch any exception that might be raised,
 catch :class:`mohawk.exc.HawkFail`.
+
+.. important::
+
+    Never expose an exception message publicly, say, in an HTTP
+    response, as it may provide hints to an attacker.
 """
 
 
@@ -95,4 +100,12 @@ class InvalidBewit(HawkFail):
     """
     The bewit is invalid; e.g. it doesn't contain the right number of
     parameters.
+    """
+
+
+class MissingContent(HawkFail):
+    """
+    A payload's `content` or `content_type` were not provided.
+
+    See :ref:`skipping-content-checks` for details.
     """

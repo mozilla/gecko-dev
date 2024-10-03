@@ -1,4 +1,5 @@
 """Global configuration handling."""
+
 import collections
 import copy
 import logging
@@ -60,11 +61,15 @@ def get_config(config_path):
     logger.debug('config_path is %s', config_path)
     with open(config_path, encoding='utf-8') as file_handle:
         try:
-            yaml_dict = yaml.safe_load(file_handle)
+            yaml_dict = yaml.safe_load(file_handle) or {}
         except yaml.YAMLError as e:
             raise InvalidConfiguration(
                 f'Unable to parse YAML file {config_path}.'
             ) from e
+        if not isinstance(yaml_dict, dict):
+            raise InvalidConfiguration(
+                f'Top-level element of YAML file {config_path} should be an object.'
+            )
 
     config_dict = merge_configs(DEFAULT_CONFIG, yaml_dict)
 
@@ -83,6 +88,9 @@ def get_user_config(config_file=None, default_config=False):
     If ``default_config`` is True, ignore ``config_file`` and return default
     values for the config parameters.
 
+    If ``default_config`` is a dict, merge values with default values and return them
+    for the config parameters.
+
     If a path to a ``config_file`` is given, that is different from the default
     location, load the user config from that.
 
@@ -93,6 +101,10 @@ def get_user_config(config_file=None, default_config=False):
     If the environment variable is not set, try the default config file path
     before falling back to the default config values.
     """
+    # Do NOT load a config. Merge provided values with defaults and return them instead
+    if default_config and isinstance(default_config, dict):
+        return merge_configs(DEFAULT_CONFIG, default_config)
+
     # Do NOT load a config. Return defaults instead.
     if default_config:
         logger.debug("Force ignoring user config with default_config switch.")

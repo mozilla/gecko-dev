@@ -1,10 +1,16 @@
-from ._compat import Iterable
-import six
+from enum import Enum
 
-from pyrsistent._compat import Enum, string_types
+from abc import abstractmethod, ABCMeta
+from collections.abc import Iterable
+from typing import TypeVar, Generic
+
 from pyrsistent._pmap import PMap, pmap
 from pyrsistent._pset import PSet, pset
 from pyrsistent._pvector import PythonPVector, python_pvector
+
+T_co = TypeVar('T_co', covariant=True)
+KT = TypeVar('KT')
+VT_co = TypeVar('VT_co', covariant=True)
 
 
 class CheckedType(object):
@@ -14,9 +20,11 @@ class CheckedType(object):
     __slots__ = ()
 
     @classmethod
+    @abstractmethod
     def create(cls, source_data, _factory_fields=None):
         raise NotImplementedError()
 
+    @abstractmethod
     def serialize(self, format=None):
         raise NotImplementedError()
 
@@ -48,7 +56,7 @@ class InvariantException(Exception):
 
 
 _preserved_iterable_types = (
-        Enum,
+    Enum,
 )
 """Some types are themselves iterable, but we want to use the type itself and
 not its members for the type specification. This defines a set of such types
@@ -69,7 +77,7 @@ def maybe_parse_user_type(t):
     """
     is_type = isinstance(t, type)
     is_preserved = isinstance(t, type) and issubclass(t, _preserved_iterable_types)
-    is_string = isinstance(t, string_types)
+    is_string = isinstance(t, str)
     is_iterable = isinstance(t, Iterable)
 
     if is_preserved:
@@ -159,7 +167,7 @@ def store_invariants(dct, bases, destination_name, source_name):
     dct[destination_name] = tuple(wrap_invariant(inv) for inv in invariants)
 
 
-class _CheckedTypeMeta(type):
+class _CheckedTypeMeta(ABCMeta):
     def __new__(mcs, name, bases, dct):
         _store_types(dct, bases, '_checked_types', '__type__')
         store_invariants(dct, bases, '_checked_invariants', '__invariant__')
@@ -268,8 +276,7 @@ def _checked_type_create(cls, source_data, _factory_fields=None, ignore_extra=Fa
 
     return cls(source_data)
 
-@six.add_metaclass(_CheckedTypeMeta)
-class CheckedPVector(PythonPVector, CheckedType):
+class CheckedPVector(Generic[T_co], PythonPVector, CheckedType, metaclass=_CheckedTypeMeta):
     """
     A CheckedPVector is a PVector which allows specifying type and invariant checks.
 
@@ -355,8 +362,7 @@ class CheckedPVector(PythonPVector, CheckedType):
         return CheckedPVector.Evolver(self.__class__, self)
 
 
-@six.add_metaclass(_CheckedTypeMeta)
-class CheckedPSet(PSet, CheckedType):
+class CheckedPSet(PSet[T_co], CheckedType, metaclass=_CheckedTypeMeta):
     """
     A CheckedPSet is a PSet which allows specifying type and invariant checks.
 
@@ -454,8 +460,7 @@ class _CheckedMapTypeMeta(type):
 _UNDEFINED_CHECKED_PMAP_SIZE = object()
 
 
-@six.add_metaclass(_CheckedMapTypeMeta)
-class CheckedPMap(PMap, CheckedType):
+class CheckedPMap(PMap[KT, VT_co], CheckedType, metaclass=_CheckedMapTypeMeta):
     """
     A CheckedPMap is a PMap which allows specifying type and invariant checks.
 

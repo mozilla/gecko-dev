@@ -1,13 +1,13 @@
 # cython: language_level=3
 
+from cpython.exc cimport PyErr_NoMemory
+from cpython.mem cimport PyMem_Free, PyMem_Malloc, PyMem_Realloc
+from cpython.unicode cimport PyUnicode_DecodeASCII, PyUnicode_DecodeUTF8Stateful
 from libc.stdint cimport uint8_t, uint64_t
 from libc.string cimport memcpy, memset
 
-from cpython.exc cimport PyErr_NoMemory
-from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
-from cpython.unicode cimport PyUnicode_DecodeASCII, PyUnicode_DecodeUTF8Stateful
-
 from string import ascii_letters, digits
+
 
 cdef str GEN_DELIMS = ":/?#[]@"
 cdef str SUB_DELIMS_WITHOUT_QS = "!$'()*,"
@@ -145,7 +145,7 @@ cdef inline int _write_utf8(Writer* writer, Py_UCS4 symbol):
         if _write_pct(writer, <uint8_t>(0xe0 | (utf >> 12)), True) < 0:
             return -1
         if _write_pct(writer, <uint8_t>(0x80 | ((utf >> 6) & 0x3f)),
-                       True) < 0:
+                      True) < 0:
             return -1
         return _write_pct(writer, <uint8_t>(0x80 | (utf & 0x3f)), True)
     elif utf > 0x10FFFF:
@@ -155,10 +155,10 @@ cdef inline int _write_utf8(Writer* writer, Py_UCS4 symbol):
         if _write_pct(writer,  <uint8_t>(0xf0 | (utf >> 18)), True) < 0:
             return -1
         if _write_pct(writer,  <uint8_t>(0x80 | ((utf >> 12) & 0x3f)),
-                       True) < 0:
-           return -1
+                      True) < 0:
+            return -1
         if _write_pct(writer,  <uint8_t>(0x80 | ((utf >> 6) & 0x3f)),
-                       True) < 0:
+                      True) < 0:
             return -1
         return _write_pct(writer, <uint8_t>(0x80 | (utf & 0x3f)), True)
 
@@ -269,12 +269,14 @@ cdef class _Quoter:
 
 
 cdef class _Unquoter:
+    cdef str _ignore
     cdef str _unsafe
     cdef bint _qs
     cdef _Quoter _quoter
     cdef _Quoter _qs_quoter
 
-    def __init__(self, *, unsafe='', qs=False):
+    def __init__(self, *, ignore="", unsafe="", qs=False):
+        self._ignore = ignore
         self._unsafe = unsafe
         self._qs = qs
         self._quoter = _Quoter()
@@ -336,7 +338,7 @@ cdef class _Unquoter:
                     buflen = 0
                     if self._qs and unquoted in '+=&;':
                         ret.append(self._qs_quoter(unquoted))
-                    elif unquoted in self._unsafe:
+                    elif unquoted in self._unsafe or unquoted in self._ignore:
                         ret.append(self._quoter(unquoted))
                     else:
                         ret.append(unquoted)

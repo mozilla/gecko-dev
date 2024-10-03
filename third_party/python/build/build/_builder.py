@@ -116,7 +116,9 @@ def _parse_build_system_table(pyproject_toml: Mapping[str, Any]) -> Mapping[str,
 
 
 def _wrap_subprocess_runner(runner: SubprocessRunner, env: env.IsolatedEnv) -> SubprocessRunner:
-    def _invoke_wrapped_runner(cmd: Sequence[str], cwd: str | None, extra_environ: Mapping[str, str] | None) -> None:
+    def _invoke_wrapped_runner(
+        cmd: Sequence[str], cwd: str | None = None, extra_environ: Mapping[str, str] | None = None
+    ) -> None:
         runner(cmd, cwd, {**(env.make_extra_environ() or {}), **(extra_environ or {})})
 
     return _invoke_wrapped_runner
@@ -203,7 +205,11 @@ class ProjectBuilder:
         """
         return set(self._build_system['requires'])
 
-    def get_requires_for_build(self, distribution: Distribution, config_settings: ConfigSettings | None = None) -> set[str]:
+    def get_requires_for_build(
+        self,
+        distribution: Distribution,
+        config_settings: ConfigSettings | None = None,
+    ) -> set[str]:
         """
         Return the dependencies defined by the backend in addition to
         :attr:`build_system_requires` for a given distribution.
@@ -220,7 +226,9 @@ class ProjectBuilder:
             return set(get_requires(config_settings))
 
     def check_dependencies(
-        self, distribution: Distribution, config_settings: ConfigSettings | None = None
+        self,
+        distribution: Distribution,
+        config_settings: ConfigSettings | None = None,
     ) -> set[tuple[str, ...]]:
         """
         Return the dependencies which are not satisfied from the combined set of

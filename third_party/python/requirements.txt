@@ -65,7 +65,7 @@ aiohttp==3.8.5 \
 aiosignal==1.3.1 \
     --hash=sha256:54cd96e15e1649b75d6c87526a6ff0b6c1b0dd3459f43d9ca11d48c339b68cfc \
     --hash=sha256:f8376fb07dd1e86a584e4fcdec80b36b7f81aac666ebc724e2c090300dd83b17
-ansicon==1.89.0 ; platform_system == 'Windows' \
+ansicon==1.89.0  \
     --hash=sha256:e4d039def5768a47e4afec8e89e83ec3ae5a26bf00ad851f914d1240b444d2b1 \
     --hash=sha256:f1def52d17f65c2c9682cf8370c03f541f410c1752d6a14029f97318e4b9dfec
 appdirs==1.4.4 \
@@ -301,13 +301,13 @@ idna==3.10 \
 importlib-metadata==6.0.0 \
     --hash=sha256:e354bedeb60efa6affdcc8ae121b73544a7aa74156d047311948f6d711cd378d \
     --hash=sha256:7efb448ec9a5e313a57655d35aa54cd3e01b7e1fbcf72dce1bf06119420f5bad
-importlib-resources==6.4.5 ; python_full_version < '3.9' \
+importlib-resources==6.4.5  \
     --hash=sha256:980862a1d16c9e147a59603677fa2aa5fd82b87f223b6cb870695bcfce830065 \
     --hash=sha256:ac29d5f956f01d5e4bb63102a5a19957f1b9175e45649977264a1416783bb717
 jinja2==3.1.2 \
     --hash=sha256:31351a702a408a9e7595a8fc6150fc3f43bb6bf7e319770cbc0db9df9437e852 \
     --hash=sha256:6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61
-jinxed==1.3.0 ; platform_system == 'Windows' \
+jinxed==1.3.0  \
     --hash=sha256:1593124b18a41b7a3da3b078471442e51dbad3d77b4d4f2b0c26ab6f7d660dbf \
     --hash=sha256:b993189f39dc2d7504d802152671535b06d380b26d78070559551cbf92df4fc5
 jsmin==3.0.0 \
@@ -486,7 +486,7 @@ pip==24.0 \
 pip-tools==7.4.1 \
     --hash=sha256:864826f5073864450e24dbeeb85ce3920cdfb09848a3d69ebf537b521f14bcc9 \
     --hash=sha256:4c690e5fbae2f21e87843e89c26191f0d9454f362d8acdbd695716493ec8b3a9
-pkgutil-resolve-name==1.3.10 ; python_full_version < '3.9' \
+pkgutil-resolve-name==1.3.10  \
     --hash=sha256:357d6c9e6a755653cfd78893817c0853af365dd51ec97f3d358a819373bbd174 \
     --hash=sha256:ca27cc078d25c5ad71a9de0a7a330146c4e014c2462d9af19c6b828280649c5e
 ply==3.10 \
@@ -631,7 +631,7 @@ text-unidecode==1.3 \
 toml==0.10.2 \
     --hash=sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f \
     --hash=sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b
-tomli==2.0.1 ; python_full_version < '3.11' \
+tomli==2.0.1  \
     --hash=sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f \
     --hash=sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc
 tomlkit==0.12.3 \

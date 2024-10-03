@@ -1,5 +1,4 @@
 """Core disk and file backed cache API.
-
 """
 
 import codecs
@@ -10,66 +9,31 @@ import io
 import json
 import os
 import os.path as op
+import pickle
 import pickletools
 import sqlite3
 import struct
-import sys
 import tempfile
 import threading
 import time
 import warnings
 import zlib
 
-############################################################################
-# BEGIN Python 2/3 Shims
-############################################################################
-
-if sys.hexversion < 0x03000000:
-    import cPickle as pickle  # pylint: disable=import-error
-    # ISSUE #25 Fix for http://bugs.python.org/issue10211
-    from cStringIO import StringIO as BytesIO  # pylint: disable=import-error
-    from thread import get_ident  # pylint: disable=import-error,no-name-in-module
-    TextType = unicode  # pylint: disable=invalid-name,undefined-variable
-    BytesType = str
-    INT_TYPES = int, long  # pylint: disable=undefined-variable
-    range = xrange  # pylint: disable=redefined-builtin,invalid-name,undefined-variable
-    io_open = io.open  # pylint: disable=invalid-name
-else:
-    import pickle
-    from io import BytesIO  # pylint: disable=ungrouped-imports
-    from threading import get_ident
-    TextType = str
-    BytesType = bytes
-    INT_TYPES = (int,)
-    io_open = open  # pylint: disable=invalid-name
 
 def full_name(func):
-    "Return full name of `func` by adding the module and function name."
-    try:
-        # The __qualname__ attribute is only available in Python 3.3 and later.
-        # GrantJ 2019-03-29 Remove after support for Python 2 is dropped.
-        name = func.__qualname__
-    except AttributeError:
-        name = func.__name__
-    return func.__module__ + '.' + name
+    """Return full name of `func` by adding the module and function name."""
+    return func.__module__ + '.' + func.__qualname__
 
-############################################################################
-# END Python 2/3 Shims
-############################################################################
-
-try:
-    WindowsError
-except NameError:
-    class WindowsError(Exception):
-        "Windows error place-holder on platforms without support."
 
 class Constant(tuple):
-    "Pretty display of immutable constant."
+    """Pretty display of immutable constant."""
+
     def __new__(cls, name):
         return tuple.__new__(cls, (name,))
 
     def __repr__(self):
         return '%s' % self[0]
+
 
 DBNAME = 'cache.db'
 ENOVAL = Constant('ENOVAL')
@@ -82,25 +46,25 @@ MODE_TEXT = 3
 MODE_PICKLE = 4
 
 DEFAULT_SETTINGS = {
-    u'statistics': 0,  # False
-    u'tag_index': 0,   # False
-    u'eviction_policy': u'least-recently-stored',
-    u'size_limit': 2 ** 30,  # 1gb
-    u'cull_limit': 10,
-    u'sqlite_auto_vacuum': 1,        # FULL
-    u'sqlite_cache_size': 2 ** 13,   # 8,192 pages
-    u'sqlite_journal_mode': u'wal',
-    u'sqlite_mmap_size': 2 ** 26,    # 64mb
-    u'sqlite_synchronous': 1,        # NORMAL
-    u'disk_min_file_size': 2 ** 15,  # 32kb
-    u'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
+    'statistics': 0,  # False
+    'tag_index': 0,  # False
+    'eviction_policy': 'least-recently-stored',
+    'size_limit': 2**30,  # 1gb
+    'cull_limit': 10,
+    'sqlite_auto_vacuum': 1,  # FULL
+    'sqlite_cache_size': 2**13,  # 8,192 pages
+    'sqlite_journal_mode': 'wal',
+    'sqlite_mmap_size': 2**26,  # 64mb
+    'sqlite_synchronous': 1,  # NORMAL
+    'disk_min_file_size': 2**15,  # 32kb
+    'disk_pickle_protocol': pickle.HIGHEST_PROTOCOL,
 }
 
 METADATA = {
-    u'count': 0,
-    u'size': 0,
-    u'hits': 0,
-    u'misses': 0,
+    'count': 0,
+    'size': 0,
+    'hits': 0,
+    'misses': 0,
 }
 
 EVICTION_POLICY = {
@@ -136,8 +100,9 @@ EVICTION_POLICY = {
 }
 
 
-class Disk(object):
-    "Cache key and value serialization for SQLite database and files."
+class Disk:
+    """Cache key and value serialization for SQLite database and files."""
+
     def __init__(self, directory, min_file_size=0, pickle_protocol=0):
         """Initialize disk instance.
 
@@ -149,7 +114,6 @@ class Disk(object):
         self._directory = directory
         self.min_file_size = min_file_size
         self.pickle_protocol = pickle_protocol
-
 
     def hash(self, key):
         """Compute portable hash for `key`.
@@ -164,14 +128,13 @@ class Disk(object):
 
         if type_disk_key is sqlite3.Binary:
             return zlib.adler32(disk_key) & mask
-        elif type_disk_key is TextType:
-            return zlib.adler32(disk_key.encode('utf-8')) & mask  # pylint: disable=no-member
-        elif type_disk_key in INT_TYPES:
+        elif type_disk_key is str:
+            return zlib.adler32(disk_key.encode('utf-8')) & mask  # noqa
+        elif type_disk_key is int:
             return disk_key % mask
         else:
             assert type_disk_key is float
             return zlib.adler32(struct.pack('!d', disk_key)) & mask
-
 
     def put(self, key):
         """Convert `key` to fields key and raw for Cache table.
@@ -180,21 +143,24 @@ class Disk(object):
         :return: (database key, raw boolean) pair
 
         """
-        # pylint: disable=bad-continuation,unidiomatic-typecheck
+        # pylint: disable=unidiomatic-typecheck
         type_key = type(key)
 
-        if type_key is BytesType:
+        if type_key is bytes:
             return sqlite3.Binary(key), True
-        elif ((type_key is TextType)
-                or (type_key in INT_TYPES
-                    and -9223372036854775808 <= key <= 9223372036854775807)
-                or (type_key is float)):
+        elif (
+            (type_key is str)
+            or (
+                type_key is int
+                and -9223372036854775808 <= key <= 9223372036854775807
+            )
+            or (type_key is float)
+        ):
             return key, True
         else:
             data = pickle.dumps(key, protocol=self.pickle_protocol)
             result = pickletools.optimize(data)
             return sqlite3.Binary(result), False
-
 
     def get(self, key, raw):
         """Convert fields `key` and `raw` from Cache table to key.
@@ -204,12 +170,11 @@ class Disk(object):
         :return: corresponding Python key
 
         """
-        # pylint: disable=no-self-use,unidiomatic-typecheck
+        # pylint: disable=unidiomatic-typecheck
         if raw:
-            return BytesType(key) if type(key) is sqlite3.Binary else key
+            return bytes(key) if type(key) is sqlite3.Binary else key
         else:
-            return pickle.load(BytesIO(key))
-
+            return pickle.load(io.BytesIO(key))
 
     def store(self, value, read, key=UNKNOWN):
         """Convert `value` to fields size, mode, filename, and value for Cache
@@ -225,39 +190,32 @@ class Disk(object):
         type_value = type(value)
         min_file_size = self.min_file_size
 
-        if ((type_value is TextType and len(value) < min_file_size)
-                or (type_value in INT_TYPES
-                    and -9223372036854775808 <= value <= 9223372036854775807)
-                or (type_value is float)):
+        if (
+            (type_value is str and len(value) < min_file_size)
+            or (
+                type_value is int
+                and -9223372036854775808 <= value <= 9223372036854775807
+            )
+            or (type_value is float)
+        ):
             return 0, MODE_RAW, None, value
-        elif type_value is BytesType:
+        elif type_value is bytes:
             if len(value) < min_file_size:
                 return 0, MODE_RAW, None, sqlite3.Binary(value)
             else:
                 filename, full_path = self.filename(key, value)
-
-                with open(full_path, 'wb') as writer:
-                    writer.write(value)
-
+                self._write(full_path, io.BytesIO(value), 'xb')
                 return len(value), MODE_BINARY, filename, None
-        elif type_value is TextType:
+        elif type_value is str:
             filename, full_path = self.filename(key, value)
-
-            with io_open(full_path, 'w', encoding='UTF-8') as writer:
-                writer.write(value)
-
+            self._write(full_path, io.StringIO(value), 'x', 'UTF-8')
             size = op.getsize(full_path)
             return size, MODE_TEXT, filename, None
         elif read:
-            size = 0
-            reader = ft.partial(value.read, 2 ** 22)
+            reader = ft.partial(value.read, 2**22)
             filename, full_path = self.filename(key, value)
-
-            with open(full_path, 'wb') as writer:
-                for chunk in iter(reader, b''):
-                    size += len(chunk)
-                    writer.write(chunk)
-
+            iterator = iter(reader, b'')
+            size = self._write(full_path, iterator, 'xb')
             return size, MODE_BINARY, filename, None
         else:
             result = pickle.dumps(value, protocol=self.pickle_protocol)
@@ -266,12 +224,32 @@ class Disk(object):
                 return 0, MODE_PICKLE, None, sqlite3.Binary(result)
             else:
                 filename, full_path = self.filename(key, value)
-
-                with open(full_path, 'wb') as writer:
-                    writer.write(result)
-
+                self._write(full_path, io.BytesIO(result), 'xb')
                 return len(result), MODE_PICKLE, filename, None
 
+    def _write(self, full_path, iterator, mode, encoding=None):
+        full_dir, _ = op.split(full_path)
+
+        for count in range(1, 11):
+            with cl.suppress(OSError):
+                os.makedirs(full_dir)
+
+            try:
+                # Another cache may have deleted the directory before
+                # the file could be opened.
+                writer = open(full_path, mode, encoding=encoding)
+            except OSError:
+                if count == 10:
+                    # Give up after 10 tries to open the file.
+                    raise
+                continue
+
+            with writer:
+                size = 0
+                for chunk in iterator:
+                    size += len(chunk)
+                    writer.write(chunk)
+                return size
 
     def fetch(self, mode, filename, value, read):
         """Convert fields `mode`, `filename`, and `value` from Cache table to
@@ -282,11 +260,12 @@ class Disk(object):
         :param value: database value
         :param bool read: when True, return an open file handle
         :return: corresponding Python value
+        :raises: IOError if the value cannot be read
 
         """
-        # pylint: disable=no-self-use,unidiomatic-typecheck
+        # pylint: disable=unidiomatic-typecheck,consider-using-with
         if mode == MODE_RAW:
-            return BytesType(value) if type(value) is sqlite3.Binary else value
+            return bytes(value) if type(value) is sqlite3.Binary else value
         elif mode == MODE_BINARY:
             if read:
                 return open(op.join(self._directory, filename), 'rb')
@@ -295,15 +274,14 @@ class Disk(object):
                     return reader.read()
         elif mode == MODE_TEXT:
             full_path = op.join(self._directory, filename)
-            with io_open(full_path, 'r', encoding='UTF-8') as reader:
+            with open(full_path, 'r', encoding='UTF-8') as reader:
                 return reader.read()
         elif mode == MODE_PICKLE:
             if value is None:
                 with open(op.join(self._directory, filename), 'rb') as reader:
                     return pickle.load(reader)
             else:
-                return pickle.load(BytesIO(value))
-
+                return pickle.load(io.BytesIO(value))
 
     def filename(self, key=UNKNOWN, value=UNKNOWN):
         """Return filename and full-path tuple for file storage.
@@ -327,43 +305,35 @@ class Disk(object):
         hex_name = codecs.encode(os.urandom(16), 'hex').decode('utf-8')
         sub_dir = op.join(hex_name[:2], hex_name[2:4])
         name = hex_name[4:] + '.val'
-        directory = op.join(self._directory, sub_dir)
-
-        try:
-            os.makedirs(directory)
-        except OSError as error:
-            if error.errno != errno.EEXIST:
-                raise
-
         filename = op.join(sub_dir, name)
         full_path = op.join(self._directory, filename)
         return filename, full_path
 
+    def remove(self, file_path):
+        """Remove a file given by `file_path`.
 
-    def remove(self, filename):
-        """Remove a file given by `filename`.
+        This method is cross-thread and cross-process safe. If an OSError
+        occurs, it is suppressed.
 
-        This method is cross-thread and cross-process safe. If an "error no
-        entry" occurs, it is suppressed.
-
-        :param str filename: relative path to file
+        :param str file_path: relative path to file
 
         """
-        full_path = op.join(self._directory, filename)
+        full_path = op.join(self._directory, file_path)
+        full_dir, _ = op.split(full_path)
 
-        try:
+        # Suppress OSError that may occur if two caches attempt to delete the
+        # same file or directory at the same time.
+
+        with cl.suppress(OSError):
             os.remove(full_path)
-        except WindowsError:
-            pass
-        except OSError as error:
-            if error.errno != errno.ENOENT:
-                # ENOENT may occur if two caches attempt to delete the same
-                # file at the same time.
-                raise
+
+        with cl.suppress(OSError):
+            os.removedirs(full_dir)
 
 
 class JSONDisk(Disk):
-    "Cache key and value using JSON serialization with zlib compression."
+    """Cache key and value using JSON serialization with zlib compression."""
+
     def __init__(self, directory, compress_level=1, **kwargs):
         """Initialize JSON disk instance.
 
@@ -378,60 +348,58 @@ class JSONDisk(Disk):
 
         """
         self.compress_level = compress_level
-        super(JSONDisk, self).__init__(directory, **kwargs)
-
+        super().__init__(directory, **kwargs)
 
     def put(self, key):
         json_bytes = json.dumps(key).encode('utf-8')
         data = zlib.compress(json_bytes, self.compress_level)
-        return super(JSONDisk, self).put(data)
-
+        return super().put(data)
 
     def get(self, key, raw):
-        data = super(JSONDisk, self).get(key, raw)
+        data = super().get(key, raw)
         return json.loads(zlib.decompress(data).decode('utf-8'))
-
 
     def store(self, value, read, key=UNKNOWN):
         if not read:
             json_bytes = json.dumps(value).encode('utf-8')
             value = zlib.compress(json_bytes, self.compress_level)
-        return super(JSONDisk, self).store(value, read, key=key)
-
+        return super().store(value, read, key=key)
 
     def fetch(self, mode, filename, value, read):
-        data = super(JSONDisk, self).fetch(mode, filename, value, read)
+        data = super().fetch(mode, filename, value, read)
         if not read:
             data = json.loads(zlib.decompress(data).decode('utf-8'))
         return data
 
 
 class Timeout(Exception):
-    "Database timeout expired."
+    """Database timeout expired."""
 
 
 class UnknownFileWarning(UserWarning):
-    "Warning used by Cache.check for unknown files."
+    """Warning used by Cache.check for unknown files."""
 
 
 class EmptyDirWarning(UserWarning):
-    "Warning used by Cache.check for empty directories."
+    """Warning used by Cache.check for empty directories."""
 
 
-def args_to_key(base, args, kwargs, typed):
+def args_to_key(base, args, kwargs, typed, ignore):
     """Create cache key out of function arguments.
 
     :param tuple base: base of key
     :param tuple args: function arguments
     :param dict kwargs: function keyword arguments
     :param bool typed: include types in cache key
+    :param set ignore: positional or keyword args to ignore
     :return: cache key tuple
 
     """
-    key = base + args
+    args = tuple(arg for index, arg in enumerate(args) if index not in ignore)
+    key = base + args + (None,)
 
     if kwargs:
-        key += (ENOVAL,)
+        kwargs = {key: val for key, val in kwargs.items() if key not in ignore}
         sorted_items = sorted(kwargs.items())
 
         for item in sorted_items:
@@ -446,9 +414,9 @@ def args_to_key(base, args, kwargs, typed):
     return key
 
 
-class Cache(object):
-    "Disk and file backed cache."
-    # pylint: disable=bad-continuation
+class Cache:
+    """Disk and file backed cache."""
+
     def __init__(self, directory=None, timeout=60, disk=Disk, **settings):
         """Initialize cache instance.
 
@@ -461,10 +429,11 @@ class Cache(object):
         try:
             assert issubclass(disk, Disk)
         except (TypeError, AssertionError):
-            raise ValueError('disk must subclass diskcache.Disk')
+            raise ValueError('disk must subclass diskcache.Disk') from None
 
         if directory is None:
             directory = tempfile.mkdtemp(prefix='diskcache-')
+        directory = str(directory)
         directory = op.expanduser(directory)
         directory = op.expandvars(directory)
 
@@ -481,17 +450,17 @@ class Cache(object):
                     raise EnvironmentError(
                         error.errno,
                         'Cache directory "%s" does not exist'
-                        ' and could not be created' % self._directory
-                    )
+                        ' and could not be created' % self._directory,
+                    ) from None
 
         sql = self._sql_retry
 
         # Setup Settings table.
 
         try:
-            current_settings = dict(sql(
-                'SELECT key, value FROM Settings'
-            ).fetchall())
+            current_settings = dict(
+                sql('SELECT key, value FROM Settings').fetchall()
+            )
         except sqlite3.OperationalError:
             current_settings = {}
 
@@ -508,7 +477,8 @@ class Cache(object):
             if key.startswith('sqlite_'):
                 self.reset(key, value, update=False)
 
-        sql('CREATE TABLE IF NOT EXISTS Settings ('
+        sql(
+            'CREATE TABLE IF NOT EXISTS Settings ('
             ' key TEXT NOT NULL UNIQUE,'
             ' value)'
         )
@@ -516,7 +486,8 @@ class Cache(object):
         # Setup Disk object (must happen after settings initialized).
 
         kwargs = {
-            key[5:]: value for key, value in sets.items()
+            key[5:]: value
+            for key, value in sets.items()
             if key.startswith('disk_')
         }
         self._disk = disk(directory, **kwargs)
@@ -533,11 +504,12 @@ class Cache(object):
             sql(query, (key, value))
             self.reset(key)
 
-        (self._page_size,), = sql('PRAGMA page_size').fetchall()
+        ((self._page_size,),) = sql('PRAGMA page_size').fetchall()
 
         # Setup Cache table.
 
-        sql('CREATE TABLE IF NOT EXISTS Cache ('
+        sql(
+            'CREATE TABLE IF NOT EXISTS Cache ('
             ' rowid INTEGER PRIMARY KEY,'
             ' key BLOB,'
             ' raw INTEGER,'
@@ -552,11 +524,13 @@ class Cache(object):
             ' value BLOB)'
         )
 
-        sql('CREATE UNIQUE INDEX IF NOT EXISTS Cache_key_raw ON'
+        sql(
+            'CREATE UNIQUE INDEX IF NOT EXISTS Cache_key_raw ON'
             ' Cache(key, raw)'
         )
 
-        sql('CREATE INDEX IF NOT EXISTS Cache_expire_time ON'
+        sql(
+            'CREATE INDEX IF NOT EXISTS Cache_expire_time ON'
             ' Cache (expire_time)'
         )
 
@@ -567,32 +541,37 @@ class Cache(object):
 
         # Use triggers to keep Metadata updated.
 
-        sql('CREATE TRIGGER IF NOT EXISTS Settings_count_insert'
+        sql(
+            'CREATE TRIGGER IF NOT EXISTS Settings_count_insert'
             ' AFTER INSERT ON Cache FOR EACH ROW BEGIN'
             ' UPDATE Settings SET value = value + 1'
             ' WHERE key = "count"; END'
         )
 
-        sql('CREATE TRIGGER IF NOT EXISTS Settings_count_delete'
+        sql(
+            'CREATE TRIGGER IF NOT EXISTS Settings_count_delete'
             ' AFTER DELETE ON Cache FOR EACH ROW BEGIN'
             ' UPDATE Settings SET value = value - 1'
             ' WHERE key = "count"; END'
         )
 
-        sql('CREATE TRIGGER IF NOT EXISTS Settings_size_insert'
+        sql(
+            'CREATE TRIGGER IF NOT EXISTS Settings_size_insert'
             ' AFTER INSERT ON Cache FOR EACH ROW BEGIN'
             ' UPDATE Settings SET value = value + NEW.size'
             ' WHERE key = "size"; END'
         )
 
-        sql('CREATE TRIGGER IF NOT EXISTS Settings_size_update'
+        sql(
+            'CREATE TRIGGER IF NOT EXISTS Settings_size_update'
             ' AFTER UPDATE ON Cache FOR EACH ROW BEGIN'
             ' UPDATE Settings'
             ' SET value = value + NEW.size - OLD.size'
             ' WHERE key = "size"; END'
         )
 
-        sql('CREATE TRIGGER IF NOT EXISTS Settings_size_delete'
+        sql(
+            'CREATE TRIGGER IF NOT EXISTS Settings_size_delete'
             ' AFTER DELETE ON Cache FOR EACH ROW BEGIN'
             ' UPDATE Settings SET value = value - OLD.size'
             ' WHERE key = "size"; END'
@@ -611,24 +590,20 @@ class Cache(object):
         self._timeout = timeout
         self._sql  # pylint: disable=pointless-statement
 
-
     @property
     def directory(self):
         """Cache directory."""
         return self._directory
-
 
     @property
     def timeout(self):
         """SQLite connection timeout value in seconds."""
         return self._timeout
 
-
     @property
     def disk(self):
         """Disk used for serialization."""
         return self._disk
-
 
     @property
     def _con(self):
@@ -668,11 +643,9 @@ class Cache(object):
 
         return con
 
-
     @property
     def _sql(self):
         return self._con.execute
-
 
     @property
     def _sql_retry(self):
@@ -700,7 +673,6 @@ class Cache(object):
                     time.sleep(0.001)
 
         return _execute_with_retry
-
 
     @cl.contextmanager
     def transact(self, retry=False):
@@ -733,13 +705,12 @@ class Cache(object):
         with self._transact(retry=retry):
             yield
 
-
     @cl.contextmanager
     def _transact(self, retry=False, filename=None):
         sql = self._sql
         filenames = []
         _disk_remove = self._disk.remove
-        tid = get_ident()
+        tid = threading.get_ident()
         txn_id = self._txn_id
 
         if tid == txn_id:
@@ -756,7 +727,7 @@ class Cache(object):
                         continue
                     if filename is not None:
                         _disk_remove(filename)
-                    raise Timeout
+                    raise Timeout from None
 
         try:
             yield sql, filenames.append
@@ -774,7 +745,6 @@ class Cache(object):
             for name in filenames:
                 if name is not None:
                     _disk_remove(name)
-
 
     def set(self, key, value, expire=None, read=False, tag=None, retry=False):
         """Set `key` and `value` item in cache.
@@ -831,7 +801,7 @@ class Cache(object):
             ).fetchall()
 
             if rows:
-                (rowid, old_filename), = rows
+                ((rowid, old_filename),) = rows
                 cleanup(old_filename)
                 self._row_update(rowid, now, columns)
             else:
@@ -840,7 +810,6 @@ class Cache(object):
             self._cull(now, sql, cleanup)
 
             return True
-
 
     def __setitem__(self, key, value):
         """Set corresponding `value` for `key` in cache.
@@ -853,11 +822,11 @@ class Cache(object):
         """
         self.set(key, value, retry=True)
 
-
     def _row_update(self, rowid, now, columns):
         sql = self._sql
         expire_time, tag, size, mode, filename, value = columns
-        sql('UPDATE Cache SET'
+        sql(
+            'UPDATE Cache SET'
             ' store_time = ?,'
             ' expire_time = ?,'
             ' access_time = ?,'
@@ -867,11 +836,12 @@ class Cache(object):
             ' mode = ?,'
             ' filename = ?,'
             ' value = ?'
-            ' WHERE rowid = ?', (
-                now,          # store_time
+            ' WHERE rowid = ?',
+            (
+                now,  # store_time
                 expire_time,
-                now,          # access_time
-                0,            # access_count
+                now,  # access_time
+                0,  # access_count
                 tag,
                 size,
                 mode,
@@ -881,20 +851,21 @@ class Cache(object):
             ),
         )
 
-
     def _row_insert(self, key, raw, now, columns):
         sql = self._sql
         expire_time, tag, size, mode, filename, value = columns
-        sql('INSERT INTO Cache('
+        sql(
+            'INSERT INTO Cache('
             ' key, raw, store_time, expire_time, access_time,'
             ' access_count, tag, size, mode, filename, value'
-            ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (
+            ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (
                 key,
                 raw,
-                now,         # store_time
+                now,  # store_time
                 expire_time,
-                now,         # access_time
-                0,           # access_count
+                now,  # access_time
+                0,  # access_count
                 tag,
                 size,
                 mode,
@@ -902,7 +873,6 @@ class Cache(object):
                 value,
             ),
         )
-
 
     def _cull(self, now, sql, cleanup, limit=None):
         cull_limit = self.cull_limit if limit is None else limit
@@ -922,13 +892,12 @@ class Cache(object):
         rows = sql(select_expired, (now, cull_limit)).fetchall()
 
         if rows:
-            delete_expired = (
-                'DELETE FROM Cache WHERE rowid IN (%s)'
-                % (select_expired_template % 'rowid')
+            delete_expired = 'DELETE FROM Cache WHERE rowid IN (%s)' % (
+                select_expired_template % 'rowid'
             )
             sql(delete_expired, (now, cull_limit))
 
-            for filename, in rows:
+            for (filename,) in rows:
                 cleanup(filename)
 
             cull_limit -= len(rows)
@@ -947,15 +916,13 @@ class Cache(object):
         rows = sql(select_filename, (cull_limit,)).fetchall()
 
         if rows:
-            delete = (
-                'DELETE FROM Cache WHERE rowid IN (%s)'
-                % (select_policy.format(fields='rowid', now=now))
+            delete = 'DELETE FROM Cache WHERE rowid IN (%s)' % (
+                select_policy.format(fields='rowid', now=now)
             )
             sql(delete, (cull_limit,))
 
-            for filename, in rows:
+            for (filename,) in rows:
                 cleanup(filename)
-
 
     def touch(self, key, expire=None, retry=False):
         """Touch `key` in cache and update `expire` time.
@@ -983,16 +950,16 @@ class Cache(object):
             ).fetchall()
 
             if rows:
-                (rowid, old_expire_time), = rows
+                ((rowid, old_expire_time),) = rows
 
                 if old_expire_time is None or old_expire_time > now:
-                    sql('UPDATE Cache SET expire_time = ? WHERE rowid = ?',
+                    sql(
+                        'UPDATE Cache SET expire_time = ? WHERE rowid = ?',
                         (expire_time, rowid),
                     )
                     return True
 
         return False
-
 
     def add(self, key, value, expire=None, read=False, tag=None, retry=False):
         """Add `key` and `value` item to cache.
@@ -1033,7 +1000,7 @@ class Cache(object):
             ).fetchall()
 
             if rows:
-                (rowid, old_filename, old_expire_time), = rows
+                ((rowid, old_filename, old_expire_time),) = rows
 
                 if old_expire_time is None or old_expire_time > now:
                     cleanup(filename)
@@ -1047,7 +1014,6 @@ class Cache(object):
             self._cull(now, sql, cleanup)
 
             return True
-
 
     def incr(self, key, delta=1, default=0, retry=False):
         """Increment value by delta for item with key.
@@ -1089,19 +1055,23 @@ class Cache(object):
                     raise KeyError(key)
 
                 value = default + delta
-                columns = (None, None) + self._disk.store(value, False, key=key)
+                columns = (None, None) + self._disk.store(
+                    value, False, key=key
+                )
                 self._row_insert(db_key, raw, now, columns)
                 self._cull(now, sql, cleanup)
                 return value
 
-            (rowid, expire_time, filename, value), = rows
+            ((rowid, expire_time, filename, value),) = rows
 
             if expire_time is not None and expire_time < now:
                 if default is None:
                     raise KeyError(key)
 
                 value = default + delta
-                columns = (None, None) + self._disk.store(value, False, key=key)
+                columns = (None, None) + self._disk.store(
+                    value, False, key=key
+                )
                 self._row_update(rowid, now, columns)
                 self._cull(now, sql, cleanup)
                 cleanup(filename)
@@ -1119,7 +1089,6 @@ class Cache(object):
             sql(update, (now, value, rowid))
 
             return value
-
 
     def decr(self, key, delta=1, default=0, retry=False):
         """Decrement value by delta for item with key.
@@ -1151,9 +1120,15 @@ class Cache(object):
         """
         return self.incr(key, -delta, default, retry)
 
-
-    def get(self, key, default=None, read=False, expire_time=False, tag=False,
-            retry=False):
+    def get(
+        self,
+        key,
+        default=None,
+        read=False,
+        expire_time=False,
+        tag=False,
+        retry=False,
+    ):
         """Retrieve value from cache. If `key` is missing, return `default`.
 
         Raises :exc:`Timeout` error when database timeout occurs and `retry` is
@@ -1192,7 +1167,7 @@ class Cache(object):
             if not rows:
                 return default
 
-            (rowid, db_expire_time, db_tag, mode, filename, db_value), = rows
+            ((rowid, db_expire_time, db_tag, mode, filename, db_value),) = rows
 
             try:
                 value = self._disk.fetch(mode, filename, db_value, read)
@@ -1216,19 +1191,17 @@ class Cache(object):
                         sql(cache_miss)
                     return default
 
-                (rowid, db_expire_time, db_tag,
-                     mode, filename, db_value), = rows
+                (
+                    (rowid, db_expire_time, db_tag, mode, filename, db_value),
+                ) = rows  # noqa: E127
 
                 try:
                     value = self._disk.fetch(mode, filename, db_value, read)
-                except IOError as error:
-                    if error.errno == errno.ENOENT:
-                        # Key was deleted before we could retrieve result.
-                        if self.statistics:
-                            sql(cache_miss)
-                        return default
-                    else:
-                        raise
+                except IOError:
+                    # Key was deleted before we could retrieve result.
+                    if self.statistics:
+                        sql(cache_miss)
+                    return default
 
                 if self.statistics:
                     sql(cache_hit)
@@ -1248,7 +1221,6 @@ class Cache(object):
         else:
             return value
 
-
     def __getitem__(self, key):
         """Return corresponding value for `key` from cache.
 
@@ -1261,7 +1233,6 @@ class Cache(object):
         if value is ENOVAL:
             raise KeyError(key)
         return value
-
 
     def read(self, key, retry=False):
         """Return file handle value corresponding to `key` from cache.
@@ -1280,7 +1251,6 @@ class Cache(object):
         if handle is ENOVAL:
             raise KeyError(key)
         return handle
-
 
     def __contains__(self, key):
         """Return `True` if `key` matching item is found in cache.
@@ -1301,8 +1271,9 @@ class Cache(object):
 
         return bool(rows)
 
-
-    def pop(self, key, default=None, expire_time=False, tag=False, retry=False):
+    def pop(
+        self, key, default=None, expire_time=False, tag=False, retry=False
+    ):  # noqa: E501
         """Remove corresponding item for `key` from cache and return value.
 
         If `key` is missing, return `default`.
@@ -1340,18 +1311,15 @@ class Cache(object):
             if not rows:
                 return default
 
-            (rowid, db_expire_time, db_tag, mode, filename, db_value), = rows
+            ((rowid, db_expire_time, db_tag, mode, filename, db_value),) = rows
 
             sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
 
         try:
             value = self._disk.fetch(mode, filename, db_value, False)
-        except IOError as error:
-            if error.errno == errno.ENOENT:
-                # Key was deleted before we could retrieve result.
-                return default
-            else:
-                raise
+        except IOError:
+            # Key was deleted before we could retrieve result.
+            return default
         finally:
             if filename is not None:
                 self._disk.remove(filename)
@@ -1364,7 +1332,6 @@ class Cache(object):
             return value, db_tag
         else:
             return value
-
 
     def __delitem__(self, key, retry=True):
         """Delete corresponding item for `key` from cache.
@@ -1391,12 +1358,11 @@ class Cache(object):
             if not rows:
                 raise KeyError(key)
 
-            (rowid, filename), = rows
+            ((rowid, filename),) = rows
             sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
             cleanup(filename)
 
             return True
-
 
     def delete(self, key, retry=False):
         """Delete corresponding item for `key` from cache.
@@ -1412,14 +1378,22 @@ class Cache(object):
         :raises Timeout: if database timeout occurs
 
         """
+        # pylint: disable=unnecessary-dunder-call
         try:
             return self.__delitem__(key, retry=retry)
         except KeyError:
             return False
 
-
-    def push(self, value, prefix=None, side='back', expire=None, read=False,
-             tag=None, retry=False):
+    def push(
+        self,
+        value,
+        prefix=None,
+        side='back',
+        expire=None,
+        read=False,
+        tag=None,
+        retry=False,
+    ):
         """Push `value` onto `side` of queue identified by `prefix` in cache.
 
         When prefix is None, integer keys are used. Otherwise, string keys are
@@ -1485,10 +1459,10 @@ class Cache(object):
             rows = sql(select, (min_key, max_key, raw)).fetchall()
 
             if rows:
-                (key,), = rows
+                ((key,),) = rows
 
                 if prefix is not None:
-                    num = int(key[(key.rfind('-') + 1):])
+                    num = int(key[(key.rfind('-') + 1) :])
                 else:
                     num = key
 
@@ -1510,9 +1484,15 @@ class Cache(object):
 
             return db_key
 
-
-    def pull(self, prefix=None, default=(None, None), side='front',
-             expire_time=False, tag=False, retry=False):
+    def pull(
+        self,
+        prefix=None,
+        default=(None, None),
+        side='front',
+        expire_time=False,
+        tag=False,
+        retry=False,
+    ):
         """Pull key and value item pair from `side` of queue in cache.
 
         When prefix is None, integer keys are used. Otherwise, string keys are
@@ -1593,8 +1573,9 @@ class Cache(object):
                     if not rows:
                         return default
 
-                    (rowid, key, db_expire, db_tag, mode, name,
-                     db_value), = rows
+                    (
+                        (rowid, key, db_expire, db_tag, mode, name, db_value),
+                    ) = rows
 
                     sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
 
@@ -1605,12 +1586,9 @@ class Cache(object):
 
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
-            except IOError as error:
-                if error.errno == errno.ENOENT:
-                    # Key was deleted before we could retrieve result.
-                    continue
-                else:
-                    raise
+            except IOError:
+                # Key was deleted before we could retrieve result.
+                continue
             finally:
                 if name is not None:
                     self._disk.remove(name)
@@ -1625,9 +1603,15 @@ class Cache(object):
         else:
             return key, value
 
-
-    def peek(self, prefix=None, default=(None, None), side='front',
-             expire_time=False, tag=False, retry=False):
+    def peek(
+        self,
+        prefix=None,
+        default=(None, None),
+        side='front',
+        expire_time=False,
+        tag=False,
+        retry=False,
+    ):
         """Peek at key and value item pair from `side` of queue in cache.
 
         When prefix is None, integer keys are used. Otherwise, string keys are
@@ -1704,8 +1688,9 @@ class Cache(object):
                     if not rows:
                         return default
 
-                    (rowid, key, db_expire, db_tag, mode, name,
-                     db_value), = rows
+                    (
+                        (rowid, key, db_expire, db_tag, mode, name, db_value),
+                    ) = rows
 
                     if db_expire is not None and db_expire < time.time():
                         sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
@@ -1715,15 +1700,9 @@ class Cache(object):
 
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
-            except IOError as error:
-                if error.errno == errno.ENOENT:
-                    # Key was deleted before we could retrieve result.
-                    continue
-                else:
-                    raise
-            finally:
-                if name is not None:
-                    self._disk.remove(name)
+            except IOError:
+                # Key was deleted before we could retrieve result.
+                continue
             break
 
         if expire_time and tag:
@@ -1734,7 +1713,6 @@ class Cache(object):
             return (key, value), db_tag
         else:
             return key, value
-
 
     def peekitem(self, last=True, expire_time=False, tag=False, retry=False):
         """Peek at key and value item pair in cache based on iteration order.
@@ -1777,8 +1755,18 @@ class Cache(object):
                     if not rows:
                         raise KeyError('dictionary is empty')
 
-                    (rowid, db_key, raw, db_expire, db_tag, mode, name,
-                     db_value), = rows
+                    (
+                        (
+                            rowid,
+                            db_key,
+                            raw,
+                            db_expire,
+                            db_tag,
+                            mode,
+                            name,
+                            db_value,
+                        ),
+                    ) = rows
 
                     if db_expire is not None and db_expire < time.time():
                         sql('DELETE FROM Cache WHERE rowid = ?', (rowid,))
@@ -1790,12 +1778,9 @@ class Cache(object):
 
             try:
                 value = self._disk.fetch(mode, name, db_value, False)
-            except IOError as error:
-                if error.errno == errno.ENOENT:
-                    # Key was deleted before we could retrieve result.
-                    continue
-                else:
-                    raise
+            except IOError:
+                # Key was deleted before we could retrieve result.
+                continue
             break
 
         if expire_time and tag:
@@ -1807,8 +1792,9 @@ class Cache(object):
         else:
             return key, value
 
-
-    def memoize(self, name=None, typed=False, expire=None, tag=None):
+    def memoize(
+        self, name=None, typed=False, expire=None, tag=None, ignore=()
+    ):
         """Memoizing cache decorator.
 
         Decorator to wrap callable with memoizing function using cache.
@@ -1867,6 +1853,7 @@ class Cache(object):
         :param float expire: seconds until arguments expire
             (default None, no expiry)
         :param str tag: text to associate with arguments (default None)
+        :param set ignore: positional or keyword args to ignore (default ())
         :return: callable decorator
 
         """
@@ -1875,12 +1862,12 @@ class Cache(object):
             raise TypeError('name cannot be callable')
 
         def decorator(func):
-            "Decorator created by memoize() for callable `func`."
+            """Decorator created by memoize() for callable `func`."""
             base = (full_name(func),) if name is None else (name,)
 
             @ft.wraps(func)
             def wrapper(*args, **kwargs):
-                "Wrapper for callable to cache arguments and return values."
+                """Wrapper for callable to cache arguments and return values."""
                 key = wrapper.__cache_key__(*args, **kwargs)
                 result = self.get(key, default=ENOVAL, retry=True)
 
@@ -1892,14 +1879,13 @@ class Cache(object):
                 return result
 
             def __cache_key__(*args, **kwargs):
-                "Make key for cache given function arguments."
-                return args_to_key(base, args, kwargs, typed)
+                """Make key for cache given function arguments."""
+                return args_to_key(base, args, kwargs, typed, ignore)
 
             wrapper.__cache_key__ = __cache_key__
             return wrapper
 
         return decorator
-
 
     def check(self, fix=False, retry=False):
         """Check database and file system consistency.
@@ -1929,8 +1915,8 @@ class Cache(object):
 
             rows = sql('PRAGMA integrity_check').fetchall()
 
-            if len(rows) != 1 or rows[0][0] != u'ok':
-                for message, in rows:
+            if len(rows) != 1 or rows[0][0] != 'ok':
+                for (message,) in rows:
                     warnings.warn(message)
 
             if fix:
@@ -1961,7 +1947,8 @@ class Cache(object):
                             warnings.warn(message % args)
 
                             if fix:
-                                sql('UPDATE Cache SET size = ?'
+                                sql(
+                                    'UPDATE Cache SET size = ?'
                                     ' WHERE rowid = ?',
                                     (real_size, rowid),
                                 )
@@ -2002,14 +1989,15 @@ class Cache(object):
                 # Check Settings.count against count of Cache rows.
 
                 self.reset('count')
-                (count,), = sql('SELECT COUNT(key) FROM Cache').fetchall()
+                ((count,),) = sql('SELECT COUNT(key) FROM Cache').fetchall()
 
                 if self.count != count:
                     message = 'Settings.count != COUNT(Cache.key); %d != %d'
                     warnings.warn(message % (self.count, count))
 
                     if fix:
-                        sql('UPDATE Settings SET value = ? WHERE key = ?',
+                        sql(
+                            'UPDATE Settings SET value = ? WHERE key = ?',
                             (count, 'count'),
                         )
 
@@ -2017,19 +2005,19 @@ class Cache(object):
 
                 self.reset('size')
                 select_size = 'SELECT COALESCE(SUM(size), 0) FROM Cache'
-                (size,), = sql(select_size).fetchall()
+                ((size,),) = sql(select_size).fetchall()
 
                 if self.size != size:
                     message = 'Settings.size != SUM(Cache.size); %d != %d'
                     warnings.warn(message % (self.size, size))
 
                     if fix:
-                        sql('UPDATE Settings SET value = ? WHERE key =?',
+                        sql(
+                            'UPDATE Settings SET value = ? WHERE key =?',
                             (size, 'size'),
                         )
 
             return warns
-
 
     def create_tag_index(self):
         """Create tag index on cache database.
@@ -2043,7 +2031,6 @@ class Cache(object):
         sql('CREATE INDEX IF NOT EXISTS Cache_tag_rowid ON Cache(tag, rowid)')
         self.reset('tag_index', 1)
 
-
     def drop_tag_index(self):
         """Drop tag index on cache database.
 
@@ -2053,7 +2040,6 @@ class Cache(object):
         sql = self._sql
         sql('DROP INDEX IF EXISTS Cache_tag_rowid')
         self.reset('tag_index', 0)
-
 
     def evict(self, tag, retry=False):
         """Remove items with matching `tag` from cache.
@@ -2082,7 +2068,6 @@ class Cache(object):
         args = [tag, 0, 100]
         return self._select_delete(select, args, arg_index=1, retry=retry)
 
-
     def expire(self, now=None, retry=False):
         """Remove expired items from cache.
 
@@ -2109,7 +2094,6 @@ class Cache(object):
         )
         args = [0, now or time.time(), 100]
         return self._select_delete(select, args, row_index=1, retry=retry)
-
 
     def cull(self, retry=False):
         """Cull items from cache until volume is less than size limit.
@@ -2140,7 +2124,7 @@ class Cache(object):
         select_policy = EVICTION_POLICY[self.eviction_policy]['cull']
 
         if select_policy is None:
-            return
+            return 0
 
         select_filename = select_policy.format(fields='filename', now=now)
 
@@ -2159,13 +2143,12 @@ class Cache(object):
                     )
                     sql(delete, (10,))
 
-                    for filename, in rows:
+                    for (filename,) in rows:
                         cleanup(filename)
         except Timeout:
-            raise Timeout(count)
+            raise Timeout(count) from None
 
         return count
-
 
     def clear(self, retry=False):
         """Remove all items from cache.
@@ -2193,9 +2176,9 @@ class Cache(object):
         args = [0, 100]
         return self._select_delete(select, args, retry=retry)
 
-
-    def _select_delete(self, select, args, row_index=0, arg_index=0,
-                       retry=False):
+    def _select_delete(
+        self, select, args, row_index=0, arg_index=0, retry=False
+    ):
         count = 0
         delete = 'DELETE FROM Cache WHERE rowid IN (%s)'
 
@@ -2215,10 +2198,9 @@ class Cache(object):
                         cleanup(row[-1])
 
         except Timeout:
-            raise Timeout(count)
+            raise Timeout(count) from None
 
         return count
-
 
     def iterkeys(self, reverse=False):
         """Iterate Cache keys in database sort order.
@@ -2263,7 +2245,7 @@ class Cache(object):
         row = sql(select).fetchall()
 
         if row:
-            (key, raw), = row
+            ((key, raw),) = row
         else:
             return
 
@@ -2278,11 +2260,10 @@ class Cache(object):
             for key, raw in rows:
                 yield _disk_get(key, raw)
 
-
     def _iter(self, ascending=True):
         sql = self._sql
         rows = sql('SELECT MAX(rowid) FROM Cache').fetchall()
-        (max_rowid,), = rows
+        ((max_rowid,),) = rows
         yield  # Signal ready.
 
         if max_rowid is None:
@@ -2312,20 +2293,17 @@ class Cache(object):
             for rowid, key, raw in rows:
                 yield _disk_get(key, raw)
 
-
     def __iter__(self):
-        "Iterate keys in cache including expired items."
+        """Iterate keys in cache including expired items."""
         iterator = self._iter()
         next(iterator)
         return iterator
 
-
     def __reversed__(self):
-        "Reverse iterate keys in cache including expired items."
+        """Reverse iterate keys in cache including expired items."""
         iterator = self._iter(ascending=False)
         next(iterator)
         return iterator
-
 
     def stats(self, enable=True, reset=False):
         """Return cache statistics hits and misses.
@@ -2346,22 +2324,18 @@ class Cache(object):
 
         return result
 
-
     def volume(self):
         """Return estimated total size of cache on disk.
 
         :return: size in bytes
 
         """
-        (page_count,), = self._sql('PRAGMA page_count').fetchall()
+        ((page_count,),) = self._sql('PRAGMA page_count').fetchall()
         total_size = self._page_size * page_count + self.reset('size')
         return total_size
 
-
     def close(self):
-        """Close database connection.
-
-        """
+        """Close database connection."""
         con = getattr(self._local, 'con', None)
 
         if con is None:
@@ -2374,29 +2348,24 @@ class Cache(object):
         except AttributeError:
             pass
 
-
     def __enter__(self):
         # Create connection in thread.
-        connection = self._con  # pylint: disable=unused-variable
+        # pylint: disable=unused-variable
+        connection = self._con  # noqa
         return self
-
 
     def __exit__(self, *exception):
         self.close()
 
-
     def __len__(self):
-        "Count of items in cache including expired items."
+        """Count of items in cache including expired items."""
         return self.reset('count')
-
 
     def __getstate__(self):
         return (self.directory, self.timeout, type(self.disk))
 
-
     def __setstate__(self, state):
         self.__init__(*state)
-
 
     def reset(self, key, value=ENOVAL, update=True):
         """Reset `key` and `value` item from Settings table.
@@ -2431,7 +2400,7 @@ class Cache(object):
 
         if value is ENOVAL:
             select = 'SELECT value FROM Settings WHERE key = ?'
-            (value,), = sql_retry(select, (key,)).fetchall()
+            ((value,),) = sql_retry(select, (key,)).fetchall()
             setattr(self, key, value)
             return value
 
@@ -2459,7 +2428,9 @@ class Cache(object):
             while True:
                 try:
                     try:
-                        (old_value,), = sql('PRAGMA %s' % (pragma)).fetchall()
+                        ((old_value,),) = sql(
+                            'PRAGMA %s' % (pragma)
+                        ).fetchall()
                         update = old_value != value
                     except ValueError:
                         update = True

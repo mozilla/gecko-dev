@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import re
-import sys
 import unicodedata
+from collections.abc import Iterable
 from html.entities import name2codepoint
 
 try:
@@ -22,7 +24,13 @@ NUMBERS_PATTERN = re.compile(r'(?<=\d),(?=\d)')
 DEFAULT_SEPARATOR = '-'
 
 
-def smart_truncate(string, max_length=0, word_boundary=False, separator=' ', save_order=False):
+def smart_truncate(
+    string: str,
+    max_length: int = 0,
+    word_boundary: bool = False,
+    separator: str = " ",
+    save_order: bool = False,
+) -> str:
     """
     Truncate a string.
     :param string (str): string for modification
@@ -64,9 +72,21 @@ def smart_truncate(string, max_length=0, word_boundary=False, separator=' ', sav
     return truncated.strip(separator)
 
 
-def slugify(text, entities=True, decimal=True, hexadecimal=True, max_length=0, word_boundary=False,
-            separator=DEFAULT_SEPARATOR, save_order=False, stopwords=(), regex_pattern=None, lowercase=True,
-            replacements=(), allow_unicode=False):
+def slugify(
+    text: str,
+    entities: bool = True,
+    decimal: bool = True,
+    hexadecimal: bool = True,
+    max_length: int = 0,
+    word_boundary: bool = False,
+    separator: str = DEFAULT_SEPARATOR,
+    save_order: bool = False,
+    stopwords: Iterable[str] = (),
+    regex_pattern: re.Pattern[str] | str | None = None,
+    lowercase: bool = True,
+    replacements: Iterable[Iterable[str]] = (),
+    allow_unicode: bool = False,
+) -> str:
     """
     Make a slug from the given text.
     :param text (str): initial text
@@ -97,8 +117,11 @@ def slugify(text, entities=True, decimal=True, hexadecimal=True, max_length=0, w
     # replace quotes with dashes - pre-process
     text = QUOTE_PATTERN.sub(DEFAULT_SEPARATOR, text)
 
-    # decode unicode
-    if not allow_unicode:
+    # normalize text, convert to unicode if required
+    if allow_unicode:
+        text = unicodedata.normalize('NFKC', text)
+    else:
+        text = unicodedata.normalize('NFKD', text)
         text = unidecode.unidecode(text)
 
     # ensure text is still in unicode
@@ -123,14 +146,11 @@ def slugify(text, entities=True, decimal=True, hexadecimal=True, max_length=0, w
         except Exception:
             pass
 
-    # translate
+    # re normalize text
     if allow_unicode:
         text = unicodedata.normalize('NFKC', text)
     else:
         text = unicodedata.normalize('NFKD', text)
-
-    if sys.version_info < (3,):
-        text = text.encode('ascii', 'ignore')
 
     # make the text lowercase (optional)
     if lowercase:

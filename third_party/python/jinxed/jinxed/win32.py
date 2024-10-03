@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2019 - 2021 Avram Lubkin, All Rights Reserved
+# Copyright 2019 - 2024 Avram Lubkin, All Rights Reserved
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -90,7 +90,7 @@ def _check_bool(result, func, args):  # pylint: disable=unused-argument
 KERNEL32 = ctypes.WinDLL('kernel32', use_last_error=True)
 
 KERNEL32.GetConsoleCP.errcheck = _check_bool
-KERNEL32.GetConsoleCP.argtypes = tuple()
+KERNEL32.GetConsoleCP.argtypes = ()
 
 KERNEL32.GetConsoleMode.errcheck = _check_bool
 KERNEL32.GetConsoleMode.argtypes = (wintypes.HANDLE, LPDWORD)
@@ -258,11 +258,11 @@ def get_terminal_size(fd):  # pylint:  disable=invalid-name
     return TerminalSize(window.Right - window.Left + 1, window.Bottom - window.Top + 1)
 
 
-def flush_and_set_console(fd, mode):  # pylint:  disable=invalid-name
+def flush_and_set_console(fd, mode=None):  # pylint:  disable=invalid-name
     """
     Args:
         filehandle(int): Windows filehandle object as returned by :py:func:`msvcrt.get_osfhandle`
-        mode(int): Desired console mode
+        mode(int): Desired console mode. If None, mode is not changed
 
     Attempts to set console to specified mode, but will not raise on failure
 
@@ -276,11 +276,13 @@ def flush_and_set_console(fd, mode):  # pylint:  disable=invalid-name
     except (AttributeError, TypeError, io.UnsupportedOperation):
         pass
 
-    try:
-        filehandle = msvcrt.get_osfhandle(fd)
-        set_console_mode(filehandle, mode)
-    except OSError:
-        pass
+    if mode is not None:
+
+        try:
+            filehandle = msvcrt.get_osfhandle(fd)
+            set_console_mode(filehandle, mode)
+        except OSError:
+            pass
 
 
 def get_term(fd, fallback=True):  # pylint:  disable=invalid-name
@@ -326,9 +328,16 @@ def get_term(fd, fallback=True):  # pylint:  disable=invalid-name
             except OSError:
                 term = 'unknown'
             else:
-                atexit.register(flush_and_set_console, fd, mode)
-                # pylint: disable=unsupported-binary-operation
-                set_console_mode(filehandle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+                # Proceed if VT mode is already enabled
+                if mode & ENABLE_VIRTUAL_TERMINAL_PROCESSING:
+                    atexit.register(flush_and_set_console, fd, None)
+
+                # Otherwise, enable VT mode
+                else:
+                    atexit.register(flush_and_set_console, fd, mode)
+                    # pylint: disable=unsupported-binary-operation
+                    set_console_mode(filehandle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+
                 term = 'vtwin10'
 
         # Currently falling back to Ansicon for older versions of Windows

@@ -1,11 +1,12 @@
-from ._compat import Set, Hashable
+from collections.abc import Set, Hashable
 import sys
+from typing import TypeVar, Generic
 from pyrsistent._pmap import pmap
 
-PY2 = sys.version_info[0] < 3
+T_co = TypeVar('T_co', covariant=True)
 
 
-class PSet(object):
+class PSet(Generic[T_co]):
     """
     Persistent set implementation. Built on top of the persistent map. The set supports all operations
     in the Set protocol and is Hashable.
@@ -44,7 +45,7 @@ class PSet(object):
         return len(self._map)
 
     def __repr__(self):
-        if PY2 or not self:
+        if not self:
             return 'p' + str(set(self))
 
         return 'pset([{0}])'.format(str(set(self))[1:-1])
@@ -98,7 +99,7 @@ class PSet(object):
         if element in self._map:
             return self.evolver().remove(element).persistent()
 
-        raise KeyError("Element '%s' not present in PSet" % element)
+        raise KeyError("Element '%s' not present in PSet" % repr(element))
 
     def discard(self, element):
         """

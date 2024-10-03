@@ -1,1 +1,1 @@
-"Command line interface to disk cache."
+"""Command line interface to disk cache."""

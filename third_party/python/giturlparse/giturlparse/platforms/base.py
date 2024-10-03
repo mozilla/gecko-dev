@@ -4,17 +4,16 @@ import re
 
 class BasePlatform:
     FORMATS = {
-        "ssh": r"(?P<protocols>(git\+)?(?P<protocol>ssh))?(://)?%(_user)s@%(host)s:%(repo)s.git",
-        "http": r"(?P<protocols>(git\+)?(?P<protocol>http))://%(host)s/%(repo)s.git",
-        "https": r"(?P<protocols>(git\+)?(?P<protocol>https))://%(host)s/%(repo)s.git",
-        "git": r"(?P<protocols>(?P<protocol>git))://%(host)s/%(repo)s.git",
+        "https": r"https://%(domain)s/%(repo)s%(dot_git)s",
+        "ssh": r"git@%(domain)s:%(repo)s%(dot_git)s%(path_raw)s",
+        "git": r"git://%(domain)s/%(repo)s%(dot_git)s%(path_raw)s",
     }
 
     PATTERNS = {
-        "ssh": r"(?P<_user>.+)@(?P<domain>[^/]+?):(?P<repo>.+).git",
-        "http": r"http://(?P<domain>[^/]+?)/(?P<repo>.+).git",
-        "https": r"https://(?P<domain>[^/]+?)/(?P<repo>.+).git",
-        "git": r"git://(?P<domain>[^/]+?)/(?P<repo>.+).git",
+        "ssh": r"(?P<_user>.+)@(?P<domain>[^/]+?):(?P<repo>.+)(?:(\.git)?(/)?)",
+        "http": r"(?P<protocols>(?P<protocol>http))://(?P<domain>[^/]+?)/(?P<repo>.+)(?:(\.git)?(/)?)",
+        "https": r"(?P<protocols>(?P<protocol>https))://(?P<domain>[^/]+?)/(?P<repo>.+)(?:(\.git)?(/)?)",
+        "git": r"(?P<protocols>(?P<protocol>git))://(?P<domain>[^/]+?)/(?P<repo>.+)(?:(\.git)?(/)?)",
     }
 
     # None means it matches all domains
@@ -38,6 +37,6 @@ class BasePlatform:
     def clean_data(data):
         data["path"] = ""
         data["branch"] = ""
-        data["protocols"] = list(filter(lambda x: x, data["protocols"].split("+")))
-        data["pathname"] = data["pathname"].strip(":")
+        data["protocols"] = list(filter(lambda x: x, data.get("protocols", "").split("+")))
+        data["pathname"] = data.get("pathname", "").strip(":").rstrip("/")
         return data

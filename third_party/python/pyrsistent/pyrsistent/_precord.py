@@ -1,4 +1,3 @@
-import six
 from pyrsistent._checked_types import CheckedType, _restore_pickle, InvariantException, store_invariants
 from pyrsistent._field_common import (
     set_fields, check_type, is_field_ignore_extra_complaint, PFIELD_NO_INITIAL, serialize, check_global_invariants
@@ -23,8 +22,7 @@ class _PRecordMeta(type):
         return super(_PRecordMeta, mcs).__new__(mcs, name, bases, dct)
 
 
-@six.add_metaclass(_PRecordMeta)
-class PRecord(PMap, CheckedType):
+class PRecord(PMap, CheckedType, metaclass=_PRecordMeta):
     """
     A PRecord is a PMap with a fixed set of specified fields. Records are declared as python classes inheriting
     from PRecord. Because it is a PMap it has full support for all Mapping methods such as iteration and element
@@ -48,7 +46,7 @@ class PRecord(PMap, CheckedType):
                                   for k, v in cls._precord_initial_values.items())
             initial_values.update(kwargs)
 
-        e = _PRecordEvolver(cls, pmap(), _factory_fields=factory_fields, _ignore_extra=ignore_extra)
+        e = _PRecordEvolver(cls, pmap(pre_size=len(cls._precord_fields)), _factory_fields=factory_fields, _ignore_extra=ignore_extra)
         for k, v in initial_values.items():
             e[k] = v
 

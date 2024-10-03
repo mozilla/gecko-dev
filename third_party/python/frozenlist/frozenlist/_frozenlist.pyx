@@ -1,7 +1,16 @@
+import sys
+import types
 from collections.abc import MutableSequence
 
 
 cdef class FrozenList:
+
+    if sys.version_info >= (3, 9):
+        __class_getitem__ = classmethod(types.GenericAlias)
+    else:
+        @classmethod
+        def __class_getitem__(cls):
+            return cls
 
     cdef readonly bint frozen
     cdef list _items

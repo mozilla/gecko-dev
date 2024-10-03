@@ -1,4 +1,3 @@
-import six
 from pyrsistent._checked_types import (InvariantException, CheckedType, _restore_pickle, store_invariants)
 from pyrsistent._field_common import (
     set_fields, check_type, is_field_ignore_extra_complaint, PFIELD_NO_INITIAL, serialize, check_global_invariants
@@ -35,8 +34,7 @@ def _check_and_set_attr(cls, field, name, value, result, invariant_errors):
         setattr(result, name, value)
 
 
-@six.add_metaclass(PClassMeta)
-class PClass(CheckedType):
+class PClass(CheckedType, metaclass=PClassMeta):
     """
     A PClass is a python class with a fixed set of specified fields. PClasses are declared as python classes inheriting
     from PClass. It is defined the same way that PRecords are and behaves like a PRecord in all aspects except that it

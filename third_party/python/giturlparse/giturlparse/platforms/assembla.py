@@ -8,7 +8,7 @@ class AssemblaPlatform(BasePlatform):
         "git": r"(?P<protocols>(?P<protocol>git))://(?P<domain>.+?)/(?P<pathname>(?P<repo>.+)).git",
     }
     FORMATS = {
-        "ssh": r"git@%(domain)s:%(repo)s.git",
-        "git": r"git://%(domain)s/%(repo)s.git",
+        "ssh": r"git@%(domain)s:%(repo)s%(dot_git)s",
+        "git": r"git://%(domain)s/%(repo)s%(dot_git)s",
     }
     DEFAULTS = {"_user": "git"}

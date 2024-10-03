@@ -8,7 +8,8 @@ from six.moves.urllib.parse import urlparse
 from .exc import (AlreadyProcessed,
                   MacMismatch,
                   MisComputedContentHash,
-                  TokenExpired)
+                  TokenExpired,
+                  MissingContent)
 from .util import (calculate_mac,
                    calculate_payload_hash,
                    calculate_ts_mac,
@@ -19,6 +20,26 @@ from .util import (calculate_mac,
 
 default_ts_skew_in_seconds = 60
 log = logging.getLogger(__name__)
+
+
+class HawkEmptyValue(object):
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__)
+
+    def __ne__(self, other):
+        return (not self.__eq__(other))
+
+    def __nonzero__(self):
+        return False
+
+    def __bool__(self):
+        return False
+
+    def __repr__(self):
+        return 'EmptyValue'
+
+EmptyValue = HawkEmptyValue()
 
 
 class HawkAuthority:
@@ -39,20 +60,30 @@ class HawkAuthority:
                               'theirs: {theirs}'
                               .format(ours=mac, theirs=their_mac))
 
-        if 'hash' not in parsed_header and accept_untrusted_content:
-            # The request did not hash its content.
-            log.debug('NOT calculating/verifiying payload hash '
-                      '(no hash in header)')
-            check_hash = False
-            content_hash = None
-        else:
-            check_hash = True
-            content_hash = resource.gen_content_hash()
+        check_hash = True
 
-        if check_hash and not their_hash:
-            log.info('request unexpectedly did not hash its content')
+        if 'hash' not in parsed_header:
+            # The request did not hash its content.
+            if not resource.content and not resource.content_type:
+                # It is acceptable to not receive a hash if there is no content
+                # to hash.
+                log.debug('NOT calculating/verifying payload hash '
+                          '(no hash in header, request body is empty)')
+                check_hash = False
+            elif accept_untrusted_content:
+                # Allow the request, even if it has content. Missing content or
+                # content_type values will be coerced to the empty string for
+                # hashing purposes.
+                log.debug('NOT calculating/verifying payload hash '
+                          '(no hash in header, accept_untrusted_content=True)')
+                check_hash = False
 
         if check_hash:
+            if not their_hash:
+                log.info('request unexpectedly did not hash its content')
+
+            content_hash = resource.gen_content_hash()
+
             if not strings_match(content_hash, their_hash):
                 # The hash declared in the header is incorrect.
                 # Content could have been tampered with.
@@ -77,8 +108,8 @@ class HawkAuthority:
                                                ts=parsed_header['ts'],
                                                id=resource.credentials['id']))
         else:
-            log.warn('seen_nonce was None; not checking nonce. '
-                     'You may be vulnerable to replay attacks')
+            log.warning('seen_nonce was None; not checking nonce. '
+                        'You may be vulnerable to replay attacks')
 
         their_ts = int(their_timestamp or parsed_header['ts'])
 
@@ -147,14 +178,67 @@ class HawkAuthority:
 
 class Resource:
     """
-    Normalized request/response resource.
+    Normalized request / response resource.
+
+    :param credentials:
+        A dict of credentials; it must have the keys:
+        ``id``, ``key``, and ``algorithm``.
+        See :ref:`sending-request` for an example.
+    :type credentials_map: dict
+
+    :param url: Absolute URL of the request / response.
+    :type url: str
+
+    :param method: Method of the request / response. E.G. POST, GET
+    :type method: str
+
+    :param content=EmptyValue: Byte string of request / response body.
+    :type content=EmptyValue: str
+
+    :param content_type=EmptyValue: content-type header value for request / response.
+    :type content_type=EmptyValue: str
+
+    :param always_hash_content=True:
+        When True, ``content`` and ``content_type`` must be provided.
+        Read :ref:`skipping-content-checks` to learn more.
+    :type always_hash_content=True: bool
+
+    :param ext=None:
+        An external `Hawk`_ string. If not None, this value will be
+        signed so that the sender can trust it.
+    :type ext=None: str
+
+    :param app=None:
+        A `Hawk`_ string identifying an external application.
+    :type app=None: str
+
+    :param dlg=None:
+        A `Hawk`_ string identifying a "delegated by" value.
+    :type dlg=None: str
+
+    :param timestamp=utc_now():
+        A unix timestamp integer, in UTC
+    :type timestamp: int
+
+    :param nonce=None:
+        A string that when coupled with the timestamp will
+        uniquely identify this request / response.
+    :type nonce=None: str
+
+    :param seen_nonce=None:
+        A callable that returns True if a nonce has been seen.
+        See :ref:`nonce` for details.
+    :type seen_nonce=None: callable
+
+    .. _`Hawk`: https://github.com/hueniverse/hawk
     """
 
     def __init__(self, **kw):
         self.credentials = kw.pop('credentials')
+        self.credentials['id'] = prepare_header_val(self.credentials['id'])
         self.method = kw.pop('method').upper()
-        self.content = kw.pop('content', None)
-        self.content_type = kw.pop('content_type', None)
+        self.content = kw.pop('content', EmptyValue)
+        self.content_type = kw.pop('content_type', EmptyValue)
         self.always_hash_content = kw.pop('always_hash_content', True)
         self.ext = kw.pop('ext', None)
         self.app = kw.pop('app', None)
@@ -192,14 +276,14 @@ class Resource:
         return self._content_hash
 
     def gen_content_hash(self):
-        if self.content is None or self.content_type is None:
+        if self.content == EmptyValue or self.content_type == EmptyValue:
             if self.always_hash_content:
                 # Be really strict about allowing developers to skip content
                 # hashing. If they get this far they may be unintentiionally
                 # skipping it.
-                raise ValueError(
+                raise MissingContent(
                     'payload content and/or content_type cannot be '
-                    'empty without an explicit allowance')
+                    'empty when always_hash_content is True')
             log.debug('NOT hashing content')
             self._content_hash = None
         else:

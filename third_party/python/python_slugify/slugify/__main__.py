@@ -1,11 +1,13 @@
-from __future__ import print_function, absolute_import
+from __future__ import annotations
+
 import argparse
 import sys
+from typing import Any
 
 from .slugify import slugify, DEFAULT_SEPARATOR
 
 
-def parse_args(argv):
+def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Slug string")
 
     input_group = parser.add_argument_group(description="Input")
@@ -63,7 +65,7 @@ def parse_args(argv):
     return args
 
 
-def slugify_params(args):
+def slugify_params(args: argparse.Namespace) -> dict[str, Any]:
     return dict(
         text=args.input_string,
         entities=args.entities,
@@ -80,7 +82,7 @@ def slugify_params(args):
     )
 
 
-def main(argv=None):  # pragma: no cover
+def main(argv: list[str] | None = None):  # pragma: no cover
     """ Run this program """
     if argv is None:
         argv = sys.argv

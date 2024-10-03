@@ -1,6 +1,9 @@
 import logging
 
-from .base import default_ts_skew_in_seconds, HawkAuthority, Resource
+from .base import (default_ts_skew_in_seconds,
+                   HawkAuthority,
+                   Resource,
+                   EmptyValue)
 from .util import (calculate_mac,
                    parse_authorization_header,
                    validate_credentials)
@@ -23,14 +26,14 @@ class Sender(HawkAuthority):
     :param method: Method of the request. E.G. POST, GET
     :type method: str
 
-    :param content=None: Byte string of request body.
-    :type content=None: str
+    :param content=EmptyValue: Byte string of request body or a file-like object.
+    :type content=EmptyValue: str or file-like object
 
-    :param content_type=None: content-type header value for request.
-    :type content_type=None: str
+    :param content_type=EmptyValue: content-type header value for request.
+    :type content_type=EmptyValue: str
 
     :param always_hash_content=True:
-        When True, ``content`` and ``content_type`` cannot be None.
+        When True, ``content`` and ``content_type`` must be provided.
         Read :ref:`skipping-content-checks` to learn more.
     :type always_hash_content=True: bool
 
@@ -68,8 +71,8 @@ class Sender(HawkAuthority):
     def __init__(self, credentials,
                  url,
                  method,
-                 content=None,
-                 content_type=None,
+                 content=EmptyValue,
+                 content_type=EmptyValue,
                  always_hash_content=True,
                  nonce=None,
                  ext=None,
@@ -102,8 +105,8 @@ class Sender(HawkAuthority):
 
     def accept_response(self,
                         response_header,
-                        content=None,
-                        content_type=None,
+                        content=EmptyValue,
+                        content_type=EmptyValue,
                         accept_untrusted_content=False,
                         localtime_offset_in_seconds=0,
                         timestamp_skew_in_seconds=default_ts_skew_in_seconds,
@@ -116,18 +119,16 @@ class Sender(HawkAuthority):
             such as one created by :class:`mohawk.Receiver`.
         :type response_header: str
 
-        :param content=None: Byte string of the response body received.
-        :type content=None: str
+        :param content=EmptyValue: Byte string of the response body received.
+        :type content=EmptyValue: str
 
-        :param content_type=None:
+        :param content_type=EmptyValue:
             Content-Type header value of the response received.
-        :type content_type=None: str
+        :type content_type=EmptyValue: str
 
         :param accept_untrusted_content=False:
-            When True, allow responses that do not hash their content or
-            allow None type ``content`` and ``content_type``
-            arguments. Read :ref:`skipping-content-checks`
-            to learn more.
+            When True, allow responses that do not hash their content.
+            Read :ref:`skipping-content-checks` to learn more.
         :type accept_untrusted_content=False: bool
 
         :param localtime_offset_in_seconds=0:

@@ -1,22 +1,29 @@
 import os
+import sys
+import types
 from collections.abc import MutableSequence
 from functools import total_ordering
-from typing import Tuple
+from typing import Type
 
-__version__ = '1.1.1'
+__version__ = "1.4.1"
 
-__all__ = (
-    'FrozenList', 'PyFrozenList'
-)  # type: Tuple[str, ...]
+__all__ = ("FrozenList", "PyFrozenList")  # type: Tuple[str, ...]
 
 
-NO_EXTENSIONS = bool(os.environ.get('FROZENLIST_NO_EXTENSIONS'))  # type: bool
+NO_EXTENSIONS = bool(os.environ.get("FROZENLIST_NO_EXTENSIONS"))  # type: bool
 
 
 @total_ordering
 class FrozenList(MutableSequence):
+    __slots__ = ("_frozen", "_items")
 
-    __slots__ = ('_frozen', '_items')
+    if sys.version_info >= (3, 9):
+        __class_getitem__ = classmethod(types.GenericAlias)
+    else:
+
+        @classmethod
+        def __class_getitem__(cls: Type["FrozenList"]) -> Type["FrozenList"]:
+            return cls
 
     def __init__(self, items=None):
         self._frozen = False
@@ -67,8 +74,7 @@ class FrozenList(MutableSequence):
         self._items.insert(pos, item)
 
     def __repr__(self):
-        return '<FrozenList(frozen={}, {!r})>'.format(self._frozen,
-                                                      self._items)
+        return f"<FrozenList(frozen={self._frozen}, {self._items!r})>"
 
     def __hash__(self):
         if self._frozen:
@@ -80,9 +86,10 @@ class FrozenList(MutableSequence):
 PyFrozenList = FrozenList
 
 
-try:
-    from ._frozenlist import FrozenList as CFrozenList  # type: ignore
-    if not NO_EXTENSIONS:  # pragma: no cover
+if not NO_EXTENSIONS:
+    try:
+        from ._frozenlist import FrozenList as CFrozenList  # type: ignore
+    except ImportError:  # pragma: no cover
+        pass
+    else:
         FrozenList = CFrozenList  # type: ignore
-except ImportError:  # pragma: no cover
-    pass

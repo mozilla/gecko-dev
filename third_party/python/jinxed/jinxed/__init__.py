@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2019 - 2021 Avram Lubkin, All Rights Reserved
+# Copyright 2019 - 2024 Avram Lubkin, All Rights Reserved
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,7 +27,7 @@ else:
     from jinxed._util import get_term
 
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
 COLOR_BLACK = 0
 COLOR_RED = 1

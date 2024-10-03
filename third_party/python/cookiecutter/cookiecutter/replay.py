@@ -3,6 +3,7 @@ cookiecutter.replay.
 
 -------------------
 """
+
 import json
 import os
 
@@ -16,10 +17,9 @@ def get_file_name(replay_dir, template_name):
     return os.path.join(replay_dir, file_name)
 
 
-def dump(replay_dir, template_name, context):
+def dump(replay_dir: "os.PathLike[str]", template_name: str, context: dict):
     """Write json data to file."""
-    if not make_sure_path_exists(replay_dir):
-        raise OSError(f'Unable to create replay dir at {replay_dir}')
+    make_sure_path_exists(replay_dir)
 
     if not isinstance(template_name, str):
         raise TypeError('Template name is required to be of type str')
@@ -32,7 +32,7 @@ def dump(replay_dir, template_name, context):
 
     replay_file = get_file_name(replay_dir, template_name)
 
-    with open(replay_file, 'w') as outfile:
+    with open(replay_file, 'w', encoding="utf-8") as outfile:
         json.dump(context, outfile, indent=2)
 
 
@@ -43,7 +43,7 @@ def load(replay_dir, template_name):
 
     replay_file = get_file_name(replay_dir, template_name)
 
-    with open(replay_file) as infile:
+    with open(replay_file, encoding="utf-8") as infile:
         context = json.load(infile)
 
     if 'cookiecutter' not in context:

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright 2019 Avram Lubkin, All Rights Reserved
+# Copyright 2019 - 2022 Avram Lubkin, All Rights Reserved
 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -76,12 +76,12 @@ class TParm(object):  # pylint: disable=useless-object-inheritance
                                 type(param).__name__)
         self.params = list(params)
 
-        static = kwargs.get('static', None)
+        static = kwargs.get('static')
         self.static = {} if static is None else static
-        dynamic = kwargs.get('static', None)
-        self.dynamic = {} if dynamic is None else dynamic
+        self.dynamic = {}
 
     def __call__(self, string, *params):
+        self.dynamic = {}  # As of ncurses 6.3, dynamic variables do not persist between calls
         return self.child(*params).parse(string)
 
     def _literal_percent(self, group):  # pylint: disable=unused-argument

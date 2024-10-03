@@ -10,5 +10,5 @@ class FriendCodePlatform(BasePlatform):
         ),
     }
     FORMATS = {
-        "https": r"https://%(domain)s/%(owner)s@user/%(repo)s.git",
+        "https": r"https://%(domain)s/%(owner)s@user/%(repo)s%(dot_git)s",
     }

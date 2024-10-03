@@ -1,6 +1,9 @@
-from ._compat import Sequence, Hashable
+from collections.abc import Sequence, Hashable
 from numbers import Integral
 from functools import reduce
+from typing import Generic, TypeVar
+
+T_co = TypeVar('T_co', covariant=True)
 
 
 class _PListBuilder(object):
@@ -143,7 +146,7 @@ class _PListBase(object):
     def __eq__(self, other):
         """
         Traverses the lists, checking equality of elements.
-        
+
         This is an O(n) operation, but preserves the standard semantics of list equality.
         """
         if not isinstance(other, _PListBase):
@@ -179,8 +182,8 @@ class _PListBase(object):
 
         try:
             return self._drop(index).first
-        except AttributeError:
-            raise IndexError("PList index out of range")
+        except AttributeError as e:
+            raise IndexError("PList index out of range") from e
 
     def _drop(self, count):
         if count < 0:
@@ -219,7 +222,7 @@ class _PListBase(object):
         raise ValueError('{0} not found in PList'.format(elem))
 
 
-class PList(_PListBase):
+class PList(Generic[T_co], _PListBase):
     """
     Classical Lisp style singly linked list. Adding elements to the head using cons is O(1).
     Element access is O(k) where k is the position of the element in the list. Taking the

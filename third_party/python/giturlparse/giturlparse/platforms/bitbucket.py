@@ -13,8 +13,8 @@ class BitbucketPlatform(BasePlatform):
         ),
     }
     FORMATS = {
-        "https": r"https://%(owner)s@%(domain)s/%(owner)s/%(repo)s.git",
-        "ssh": r"git@%(domain)s:%(owner)s/%(repo)s.git",
+        "https": r"https://%(owner)s@%(domain)s/%(owner)s/%(repo)s%(dot_git)s",
+        "ssh": r"git@%(domain)s:%(owner)s/%(repo)s%(dot_git)s",
     }
     DOMAINS = ("bitbucket.org",)
     DEFAULTS = {"_user": "git"}

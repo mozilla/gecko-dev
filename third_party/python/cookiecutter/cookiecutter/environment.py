@@ -1,4 +1,5 @@
 """Jinja2 environment and extensions loading."""
+
 from jinja2 import Environment, StrictUndefined
 
 from cookiecutter.exceptions import UnknownExtension
@@ -26,15 +27,15 @@ class ExtensionLoaderMixin:
             'cookiecutter.extensions.JsonifyExtension',
             'cookiecutter.extensions.RandomStringExtension',
             'cookiecutter.extensions.SlugifyExtension',
+            'cookiecutter.extensions.TimeExtension',
             'cookiecutter.extensions.UUIDExtension',
-            'jinja2_time.TimeExtension',
         ]
         extensions = default_extensions + self._read_extensions(context)
 
         try:
             super().__init__(extensions=extensions, **kwargs)
         except ImportError as err:
-            raise UnknownExtension(f'Unable to load extension: {err}')
+            raise UnknownExtension(f'Unable to load extension: {err}') from err
 
     def _read_extensions(self, context):
         """Return list of extensions as str to be passed on to the Jinja2 env.
