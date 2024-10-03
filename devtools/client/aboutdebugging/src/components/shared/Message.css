@@ -45,6 +45,9 @@
   margin: calc(var(--base-unit) * 2) 0;
   padding: var(--base-unit);
   -moz-context-properties: fill;
+  /* Messages always have a background color that is suited for light scheme, so force
+     the color scheme to avoid contrast issues on other elements (e.g. links) */
+  color-scheme: light;
 }
 
 .message__icon {
