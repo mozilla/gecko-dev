@@ -175,6 +175,15 @@ add_task(async function test_fog_event_works() {
     /DataError/,
     "Should throw because of a recording error."
   );
+
+  // Supplying extras when there aren't any defined results in the event not
+  // being recorded, but an error is.
+  Glean.testOnlyIpc.noExtraEvent.record(extra3);
+  Assert.throws(
+    () => Glean.testOnlyIpc.eventWithExtra.testGetValue(),
+    /DataError/,
+    "Should throw because of a recording error."
+  );
 });
 
 add_task(async function test_fog_memory_distribution_works() {
