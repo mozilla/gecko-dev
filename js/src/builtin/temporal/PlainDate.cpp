@@ -1705,7 +1705,7 @@ static bool DifferenceTemporalPlainDate(JSContext* cx,
     auto dateTime = PlainDateTime{ToPlainDate(temporalDate), {}};
 
     // Step 12.c.
-    Rooted<TimeZoneRecord> timeZone(cx, TimeZoneRecord{});
+    Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
     RoundedRelativeDuration relative;
     if (!RoundRelativeDuration(
             cx, duration, destEpochNs, dateTime, calendar, timeZone,

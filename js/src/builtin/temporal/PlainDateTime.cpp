@@ -971,7 +971,7 @@ static bool DifferencePlainDateTimeWithRounding(
   auto destEpochNs = GetUTCEpochNanoseconds(two);
 
   // Step 8.
-  Rooted<TimeZoneRecord> timeZone(cx, TimeZoneRecord{});
+  Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
   RoundedRelativeDuration relative;
   if (!RoundRelativeDuration(cx, diff, destEpochNs, dateTime, calendar,
                              timeZone, settings.largestUnit,
@@ -1046,7 +1046,7 @@ bool js::temporal::DifferencePlainDateTimeWithRounding(
   auto destEpochNs = GetUTCEpochNanoseconds(two);
 
   // Step 8.
-  Rooted<TimeZoneRecord> timeZone(cx, TimeZoneRecord{});
+  Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
   RoundedRelativeDuration relative;
   if (!RoundRelativeDuration(cx, diff, destEpochNs, dateTime, calendar,
                              timeZone, unit, Increment{1}, unit,

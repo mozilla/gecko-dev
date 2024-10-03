@@ -96,7 +96,7 @@ static int64_t RoundNanosecondsToMinutesIncrement(int64_t offsetNanoseconds) {
 bool js::temporal::InterpretISODateTimeOffset(
     JSContext* cx, const PlainDateTime& dateTime,
     OffsetBehaviour offsetBehaviour, int64_t offsetNanoseconds,
-    Handle<TimeZoneRecord> timeZone, TemporalDisambiguation disambiguation,
+    Handle<TimeZoneValue> timeZone, TemporalDisambiguation disambiguation,
     TemporalOffset offsetOption, MatchBehaviour matchBehaviour,
     Instant* result) {
   MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
@@ -478,16 +478,10 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
     }
   }
 
-  // Step 9.
-  Rooted<TimeZoneRecord> timeZoneRec(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, timeZone, &timeZoneRec)) {
-    return false;
-  }
-
   // Step 10.
   Instant epochNanoseconds;
   if (!InterpretISODateTimeOffset(
-          cx, dateTime, offsetBehaviour, offsetNanoseconds, timeZoneRec,
+          cx, dateTime, offsetBehaviour, offsetNanoseconds, timeZone,
           disambiguation, offsetOption, matchBehaviour, &epochNanoseconds)) {
     return false;
   }
@@ -600,7 +594,7 @@ struct PlainDateTimeAndInstant {
  */
 static bool AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
                                    const PlainDateTime& dateTime,
-                                   Handle<TimeZoneRecord> timeZone,
+                                   Handle<TimeZoneValue> timeZone,
                                    Handle<CalendarValue> calendar, int64_t days,
                                    TemporalOverflow overflow,
                                    PlainDateTimeAndInstant* result) {
@@ -645,7 +639,7 @@ static bool AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
  */
 bool js::temporal::AddDaysToZonedDateTime(
     JSContext* cx, const Instant& instant, const PlainDateTime& dateTime,
-    Handle<TimeZoneRecord> timeZone, Handle<CalendarValue> calendar,
+    Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
     int64_t days, TemporalOverflow overflow, Instant* result) {
   // Steps 1-7.
   PlainDateTimeAndInstant dateTimeAndInstant;
@@ -664,7 +658,7 @@ bool js::temporal::AddDaysToZonedDateTime(
  */
 bool js::temporal::AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
                                           const PlainDateTime& dateTime,
-                                          Handle<TimeZoneRecord> timeZone,
+                                          Handle<TimeZoneValue> timeZone,
                                           Handle<CalendarValue> calendar,
                                           int64_t days, Instant* result) {
   // Step 2.
@@ -680,7 +674,7 @@ bool js::temporal::AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
  * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
  */
 static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
-                             Handle<TimeZoneRecord> timeZone,
+                             Handle<TimeZoneValue> timeZone,
                              Handle<CalendarRecord> calendar,
                              const NormalizedDuration& duration,
                              mozilla::Maybe<const PlainDateTime&> dateTime,
@@ -782,7 +776,7 @@ static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
  * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
  */
 static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
-                             Handle<TimeZoneRecord> timeZone,
+                             Handle<TimeZoneValue> timeZone,
                              Handle<CalendarRecord> calendar,
                              const NormalizedDuration& duration,
                              Handle<JSObject*> maybeOptions, Instant* result) {
@@ -796,7 +790,7 @@ static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
  */
 bool js::temporal::AddZonedDateTime(JSContext* cx,
                                     const Instant& epochNanoseconds,
-                                    Handle<TimeZoneRecord> timeZone,
+                                    Handle<TimeZoneValue> timeZone,
                                     Handle<CalendarRecord> calendar,
                                     const NormalizedDuration& duration,
                                     Instant* result) {
@@ -810,7 +804,7 @@ bool js::temporal::AddZonedDateTime(JSContext* cx,
  */
 bool js::temporal::AddZonedDateTime(JSContext* cx,
                                     const Instant& epochNanoseconds,
-                                    Handle<TimeZoneRecord> timeZone,
+                                    Handle<TimeZoneValue> timeZone,
                                     Handle<CalendarRecord> calendar,
                                     const NormalizedDuration& duration,
                                     const PlainDateTime& dateTime,
@@ -825,7 +819,7 @@ bool js::temporal::AddZonedDateTime(JSContext* cx,
  */
 bool js::temporal::AddZonedDateTime(JSContext* cx,
                                     const Instant& epochNanoseconds,
-                                    Handle<TimeZoneRecord> timeZone,
+                                    Handle<TimeZoneValue> timeZone,
                                     Handle<CalendarRecord> calendar,
                                     const DateDuration& duration,
                                     Instant* result) {
@@ -840,7 +834,7 @@ bool js::temporal::AddZonedDateTime(JSContext* cx,
  */
 bool js::temporal::AddZonedDateTime(JSContext* cx,
                                     const Instant& epochNanoseconds,
-                                    Handle<TimeZoneRecord> timeZone,
+                                    Handle<TimeZoneValue> timeZone,
                                     Handle<CalendarRecord> calendar,
                                     const DateDuration& duration,
                                     const PlainDateTime& dateTime,
@@ -856,7 +850,7 @@ bool js::temporal::AddZonedDateTime(JSContext* cx,
  */
 static bool DifferenceZonedDateTime(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
-    Handle<TimeZoneRecord> timeZone, Handle<CalendarRecord> calendar,
+    Handle<TimeZoneValue> timeZone, Handle<CalendarRecord> calendar,
     TemporalUnit largestUnit, Handle<PlainObject*> maybeOptions,
     const PlainDateTime& startDateTime, NormalizedDuration* result) {
   MOZ_ASSERT(IsValidEpochInstant(ns1));
@@ -977,7 +971,7 @@ static bool DifferenceZonedDateTime(
  */
 bool js::temporal::DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
                                            const Instant& ns2,
-                                           Handle<TimeZoneRecord> timeZone,
+                                           Handle<TimeZoneValue> timeZone,
                                            Handle<CalendarRecord> calendar,
                                            TemporalUnit largestUnit,
                                            const PlainDateTime& startDateTime,
@@ -1031,7 +1025,7 @@ static bool TimeZoneEqualsOrThrow(JSContext* cx, Handle<TimeZoneValue> one,
  */
 static bool DifferenceZonedDateTimeWithRounding(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
-    Handle<TimeZoneRecord> timeZone, Handle<CalendarRecord> calendar,
+    Handle<TimeZoneValue> timeZone, Handle<CalendarRecord> calendar,
     const PlainDateTime& precalculatedPlainDateTime,
     Handle<PlainObject*> maybeResolvedOptions,
     const DifferenceSettings& settings, Duration* result) {
@@ -1141,7 +1135,7 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
  */
 bool js::temporal::DifferenceZonedDateTimeWithRounding(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
-    Handle<TimeZoneRecord> timeZone, Handle<CalendarRecord> calendar,
+    Handle<TimeZoneValue> timeZone, Handle<CalendarRecord> calendar,
     const PlainDateTime& precalculatedPlainDateTime,
     const DifferenceSettings& settings, Duration* result) {
   return ::DifferenceZonedDateTimeWithRounding(cx, ns1, ns2, timeZone, calendar,
@@ -1156,7 +1150,7 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
  */
 bool js::temporal::DifferenceZonedDateTimeWithRounding(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
-    Handle<TimeZoneRecord> timeZone, Handle<CalendarRecord> calendar,
+    Handle<TimeZoneValue> timeZone, Handle<CalendarRecord> calendar,
     const PlainDateTime& precalculatedPlainDateTime, TemporalUnit unit,
     double* result) {
   // Step 1.
@@ -1313,10 +1307,7 @@ static bool DifferenceTemporalZonedDateTime(JSContext* cx,
   }
 
   // Step 10.
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
-    return false;
-  }
+  auto timeZone = zonedDateTime.timeZone();
 
   // Step 11.
   Rooted<CalendarRecord> calendar(cx);
@@ -1392,10 +1383,7 @@ static bool AddDurationToOrSubtractDurationFromZonedDateTime(
   }
 
   // Step 4.
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
-    return false;
-  }
+  auto timeZone = zonedDateTime.timeZone();
 
   // Step 5.
   Rooted<CalendarRecord> calendar(cx);
@@ -1422,8 +1410,8 @@ static bool AddDurationToOrSubtractDurationFromZonedDateTime(
   MOZ_ASSERT(IsValidEpochInstant(resultInstant));
 
   // Step 8.
-  auto* result = CreateTemporalZonedDateTime(
-      cx, resultInstant, timeZone.receiver(), calendar.receiver());
+  auto* result = CreateTemporalZonedDateTime(cx, resultInstant, timeZone,
+                                             calendar.receiver());
   if (!result) {
     return false;
   }
@@ -2151,10 +2139,7 @@ static bool ZonedDateTime_hoursInDay(JSContext* cx, const CallArgs& args) {
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
   // Step 3.
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
-    return false;
-  }
+  auto timeZone = zonedDateTime.timeZone();
 
   // Step 4.
   const auto& instant = zonedDateTime.instant();
@@ -2481,10 +2466,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 6.
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
-    return false;
-  }
+  auto timeZone = zonedDateTime.timeZone();
 
   // Step 7.
   const auto& instant = zonedDateTime.instant();
@@ -2634,8 +2616,8 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 30.
-  auto* result = CreateTemporalZonedDateTime(
-      cx, epochNanoseconds, timeZone.receiver(), calendar.receiver());
+  auto* result = CreateTemporalZonedDateTime(cx, epochNanoseconds, timeZone,
+                                             calendar.receiver());
   if (!result) {
     return false;
   }
@@ -2670,10 +2652,7 @@ static bool ZonedDateTime_withPlainTime(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 4.
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
-    return false;
-  }
+  auto timeZone = zonedDateTime.timeZone();
 
   // Steps 5 and 7.
   PlainDateTime plainDateTime;
@@ -2700,8 +2679,7 @@ static bool ZonedDateTime_withPlainTime(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 10.
-  auto* result =
-      CreateTemporalZonedDateTime(cx, instant, timeZone.receiver(), calendar);
+  auto* result = CreateTemporalZonedDateTime(cx, instant, timeZone, calendar);
   if (!result) {
     return false;
   }
@@ -2950,10 +2928,7 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 14.
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
-    return false;
-  }
+  auto timeZone = zonedDateTime.timeZone();
 
   // Step 16. (Reordered)
   auto calendar = zonedDateTime.calendar();
@@ -3066,8 +3041,8 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
   MOZ_ASSERT(IsValidEpochInstant(epochNanoseconds));
 
   // Step 22.
-  auto* result = CreateTemporalZonedDateTime(cx, epochNanoseconds,
-                                             timeZone.receiver(), calendar);
+  auto* result =
+      CreateTemporalZonedDateTime(cx, epochNanoseconds, timeZone, calendar);
   if (!result) {
     return false;
   }
@@ -3285,10 +3260,7 @@ static bool ZonedDateTime_startOfDay(JSContext* cx, const CallArgs& args) {
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
   // Step 3.
-  Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
-    return false;
-  }
+  auto timeZone = zonedDateTime.timeZone();
 
   // Step 4.
   auto calendar = zonedDateTime.calendar();
@@ -3317,8 +3289,8 @@ static bool ZonedDateTime_startOfDay(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 9.
-  auto* result = CreateTemporalZonedDateTime(cx, startInstant,
-                                             timeZone.receiver(), calendar);
+  auto* result =
+      CreateTemporalZonedDateTime(cx, startInstant, timeZone, calendar);
   if (!result) {
     return false;
   }
