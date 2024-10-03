@@ -111,6 +111,7 @@ object Versions {
         const val androidx_test_uiautomator = "2.3.0"
         const val junit = "5.11.1"
         const val mockito = "5.14.1"
+        const val mockk = "1.13.12"
     }
 }
 
@@ -128,6 +129,8 @@ object ComponentsDependencies {
 
     const val testing_robolectric = "org.robolectric:robolectric:${Versions.robolectric}"
     const val testing_mockito = "org.mockito:mockito-core:${Versions.Testing.mockito}"
+    const val testing_mockk = "io.mockk:mockk:${Versions.Testing.mockk}"
+    const val testing_mockk_android = "io.mockk:mockk-android:${Versions.Testing.mockk}"
     const val testing_mockwebserver = "com.squareup.okhttp3:mockwebserver:${Versions.okhttp}"
     const val testing_coroutines = "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.coroutines}"
     const val testing_maven_ant_tasks = "org.apache.maven:maven-ant-tasks:${Versions.maven_ant_tasks}"

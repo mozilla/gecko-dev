@@ -748,8 +748,8 @@ dependencies {
     testImplementation ComponentsDependencies.testing_maven_ant_tasks
     implementation project(':support-rusthttp')
 
-    androidTestImplementation FenixDependencies.mockk_android
-    testImplementation FenixDependencies.mockk
+    androidTestImplementation ComponentsDependencies.testing_mockk_android
+    testImplementation ComponentsDependencies.testing_mockk
 
     // For the initial release of Glean 19, we require consumer applications to
     // depend on a separate library for unit tests. This will be removed in future releases.
