@@ -249,14 +249,6 @@ JSString* CanonicalizeTimeZoneName(JSContext* cx,
                                    JS::Handle<JSLinearString*> timeZone);
 
 /**
- * IsValidTimeZoneName ( timeZone )
- * IsAvailableTimeZoneName ( timeZone )
- * CanonicalizeTimeZoneName ( timeZone )
- */
-JSString* ValidateAndCanonicalizeTimeZoneName(JSContext* cx,
-                                              JS::Handle<JSString*> timeZone);
-
-/**
  * CreateTemporalTimeZone ( identifier [ , newTarget ] )
  */
 BuiltinTimeZoneObject* CreateTemporalTimeZone(JSContext* cx,

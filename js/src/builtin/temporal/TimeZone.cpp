@@ -230,7 +230,7 @@ JSString* js::temporal::CanonicalizeTimeZoneName(
  * IsAvailableTimeZoneName ( timeZone )
  * CanonicalizeTimeZoneName ( timeZone )
  */
-JSString* js::temporal::ValidateAndCanonicalizeTimeZoneName(
+static JSString* ValidateAndCanonicalizeTimeZoneName(
     JSContext* cx, Handle<JSString*> timeZone) {
   Rooted<JSAtom*> validatedTimeZone(cx);
   if (!IsValidTimeZoneName(cx, timeZone, &validatedTimeZone)) {
