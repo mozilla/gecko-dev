@@ -2721,45 +2721,36 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
   if (args.get(0).isObject()) {
     Rooted<JSObject*> item(cx, &args[0].toObject());
 
-    // Steps 3.a-b.
-    if (item->canUnwrapAs<TimeZoneObject>()) {
-      // Step 3.a.i.
-      timeZone.set(TimeZoneValue(item));
+    // Step 3.a.
+    Rooted<Value> timeZoneLike(cx);
+    if (!GetProperty(cx, item, item, cx->names().timeZone, &timeZoneLike)) {
+      return false;
+    }
 
-      // Step 3.a.ii. (Not applicable in our implementation.)
-    } else {
+    // Steps 3.b-c.
+    if (timeZoneLike.isUndefined()) {
       // Step 3.b.i.
-      Rooted<Value> timeZoneLike(cx);
-      if (!GetProperty(cx, item, item, cx->names().timeZone, &timeZoneLike)) {
+      if (!ToTemporalTimeZone(cx, args[0], &timeZone)) {
         return false;
       }
 
-      // Steps 3.b.ii-iii.
-      if (timeZoneLike.isUndefined()) {
-        // Step 3.b.ii.1.
-        if (!ToTemporalTimeZone(cx, args[0], &timeZone)) {
-          return false;
-        }
+      // Step 3.b.ii.  (Not applicable in our implementation.)
+    } else {
+      // Step 3.c.i.
+      if (!ToTemporalTimeZone(cx, timeZoneLike, &timeZone)) {
+        return false;
+      }
 
-        // Step 3.b.ii.2.  (Not applicable in our implementation.)
-      } else {
-        // Step 3.b.iii.1.
-        if (!ToTemporalTimeZone(cx, timeZoneLike, &timeZone)) {
-          return false;
-        }
+      // Step 3.c.ii.
+      Rooted<Value> temporalTime(cx);
+      if (!GetProperty(cx, item, item, cx->names().plainTime, &temporalTime)) {
+        return false;
+      }
 
-        // Step 3.b.iii.2.
-        Rooted<Value> temporalTime(cx);
-        if (!GetProperty(cx, item, item, cx->names().plainTime,
-                         &temporalTime)) {
+      // Step 5. (Inlined ToTemporalTimeOrMidnight)
+      if (!temporalTime.isUndefined()) {
+        if (!ToTemporalTime(cx, temporalTime, &time)) {
           return false;
-        }
-
-        // Step 5. (Inlined ToTemporalTimeOrMidnight)
-        if (!temporalTime.isUndefined()) {
-          if (!ToTemporalTime(cx, temporalTime, &time)) {
-            return false;
-          }
         }
       }
     }
@@ -2772,7 +2763,7 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
     // Step 4.b. (Not applicable in our implementation.)
   }
 
-  // Step 5. (Moved next to step 3.b.iii.2.)
+  // Step 5. (Moved next to step 3.c.ii.)
 
   // Step 6.
   Rooted<PlainDateTimeWithCalendar> temporalDateTime(cx);
@@ -2780,14 +2771,14 @@ static bool PlainDate_toZonedDateTime(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  // Steps 7-8.
+  // Step 7.
   Instant instant;
   if (!GetInstantFor(cx, timeZone, temporalDateTime,
                      TemporalDisambiguation::Compatible, &instant)) {
     return false;
   }
 
-  // Step 9.
+  // Step 8.
   auto* result = CreateTemporalZonedDateTime(cx, instant, timeZone, calendar);
   if (!result) {
     return false;
