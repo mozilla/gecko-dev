@@ -1,59 +1,15 @@
 // META: global=window,dedicatedworker
 // META: script=/webcodecs/utils.js
-// META: variant=?adts_aac
-// META: variant=?mp4_aac
-// META: variant=?mp3
-// META: variant=?opus
-// META: variant=?pcm_alaw
-// META: variant=?pcm_ulaw
-// META: variant=?pcm_u8
-// META: variant=?pcm_s16
-// META: variant=?pcm_s24
-// META: variant=?pcm_s32
-// META: variant=?pcm_f32
-// META: variant=?flac
+// META: variant=?mp4_raw_aac_no_desc
 
-const ADTS_AAC_DATA = {
-  src: 'sfx.adts',
-  config: {
-    codec: 'mp4a.40.2',
-    sampleRate: 48000,
-    numberOfChannels: 1,
-  },
-  chunks: [
-    {offset: 0, size: 248}, {offset: 248, size: 280}, {offset: 528, size: 258},
-    {offset: 786, size: 125}, {offset: 911, size: 230},
-    {offset: 1141, size: 148}, {offset: 1289, size: 224},
-    {offset: 1513, size: 166}, {offset: 1679, size: 216},
-    {offset: 1895, size: 183}
-  ],
-  duration: 24000
-};
-
-const MP3_DATA = {
-  src: 'sfx.mp3',
-  config: {
-    codec: 'mp3',
-    sampleRate: 48000,
-    numberOfChannels: 1,
-  },
-  chunks: [
-    {offset: 333, size: 288}, {offset: 621, size: 288},
-    {offset: 909, size: 288}, {offset: 1197, size: 288},
-    {offset: 1485, size: 288}, {offset: 1773, size: 288},
-    {offset: 2061, size: 288}, {offset: 2349, size: 288},
-    {offset: 2637, size: 288}, {offset: 2925, size: 288}
-  ],
-  duration: 24000
-};
-
-const MP4_AAC_DATA = {
+// By spec, if the description is absent, the bitstream defaults to ADTS format.
+// However, this is added to ensure compatibility and handle potential misuse cases.
+const MP4_AAC_DATA_NO_DESCRIPTION = {
   src: 'sfx-aac.mp4',
   config: {
     codec: 'mp4a.40.2',
     sampleRate: 48000,
     numberOfChannels: 1,
-    description: {offset: 2552, size: 5},
   },
   chunks: [
     {offset: 44, size: 241},
@@ -69,64 +25,6 @@ const MP4_AAC_DATA = {
   ],
   duration: 21333
 };
-
-const OPUS_DATA = {
-  src: 'sfx-opus.ogg',
-  config: {
-    codec: 'opus',
-    sampleRate: 48000,
-    numberOfChannels: 1,
-    description: {offset: 28, size: 19},
-  },
-  chunks: [
-    {offset: 185, size: 450}, {offset: 635, size: 268},
-    {offset: 903, size: 285}, {offset: 1188, size: 296},
-    {offset: 1484, size: 287}, {offset: 1771, size: 308},
-    {offset: 2079, size: 289}, {offset: 2368, size: 286},
-    {offset: 2654, size: 296}, {offset: 2950, size: 294}
-  ],
-  duration: 20000
-};
-
-const FLAC_DATA = {
-  src: 'sfx.flac',
-  config: {
-    codec: 'flac',
-    sampleRate: 48000,
-    numberOfChannels: 1,
-    description: { offset: 0, size: 8287 }
-  },
-  chunks: [
-    { offset: 8288, size: 2276 },
-    { offset: 10564, size: 2038 },
-    { offset: 12602, size: 521 },
-  ],
-  duration: 20000
-};
-
-function pcm(codec, dataOffset) {
-  return {
-    src: `sfx-${codec}.wav`,
-    config: {
-      codec: codec,
-      sampleRate: 48000,
-      numberOfChannels: 1,
-    },
-
-    // Chunk are arbitrary and will be generated lazily
-    chunks: [],
-    offset: dataOffset,
-    duration: 0
-  }
-}
-
-const PCM_ULAW_DATA = pcm("ulaw", 0x5c);
-const PCM_ALAW_DATA = pcm("alaw", 0x5c);
-const PCM_U8_DATA = pcm("pcm-u8", 0x4e);
-const PCM_S16_DATA = pcm("pcm-s16", 0x4e);
-const PCM_S24_DATA = pcm("pcm-s24", 0x66);
-const PCM_S32_DATA = pcm("pcm-s32", 0x66);
-const PCM_F32_DATA = pcm("pcm-f32", 0x72);
 
 // Allows mutating `callbacks` after constructing the AudioDecoder, wraps calls
 // in t.step().
@@ -159,18 +57,7 @@ let CHUNK_DATA = null;
 let CHUNKS = null;
 promise_setup(async () => {
   const data = {
-    '?adts_aac': ADTS_AAC_DATA,
-    '?mp3': MP3_DATA,
-    '?mp4_aac': MP4_AAC_DATA,
-    '?opus': OPUS_DATA,
-    '?pcm_alaw': PCM_ALAW_DATA,
-    '?pcm_ulaw': PCM_ULAW_DATA,
-    '?pcm_u8': PCM_U8_DATA,
-    '?pcm_s16': PCM_S16_DATA,
-    '?pcm_s24': PCM_S24_DATA,
-    '?pcm_s32': PCM_S32_DATA,
-    '?pcm_f32': PCM_F32_DATA,
-    '?flac': FLAC_DATA,
+    '?mp4_raw_aac_no_desc': MP4_AAC_DATA_NO_DESCRIPTION,
   }[location.search];
 
   // Don't run any tests if the codec is not supported.
