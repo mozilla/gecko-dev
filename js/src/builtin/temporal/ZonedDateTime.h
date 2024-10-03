@@ -121,61 +121,22 @@ ZonedDateTimeObject* CreateTemporalZonedDateTime(
     JS::Handle<CalendarValue> calendar);
 
 /**
- * AddDaysToZonedDateTime ( instant, dateTime, timeZoneRec, calendar, days [ ,
- * overflow ] )
- */
-bool AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
-                            const PlainDateTime& dateTime,
-                            JS::Handle<TimeZoneValue> timeZone,
-                            JS::Handle<CalendarValue> calendar, int64_t days,
-                            TemporalOverflow overflow, Instant* result);
-
-/**
- * AddDaysToZonedDateTime ( instant, dateTime, timeZoneRec, calendar, days [ ,
- * overflow ] )
- */
-bool AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
-                            const PlainDateTime& dateTime,
-                            JS::Handle<TimeZoneValue> timeZone,
-                            JS::Handle<CalendarValue> calendar, int64_t days,
-                            Instant* result);
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
+ * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
+ * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
  */
 bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
                       JS::Handle<TimeZoneValue> timeZone,
-                      JS::Handle<CalendarRecord> calendar,
+                      JS::Handle<CalendarValue> calendar,
                       const NormalizedDuration& duration, Instant* result);
 
 /**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
+ * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
+ * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
  */
 bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
                       JS::Handle<TimeZoneValue> timeZone,
-                      JS::Handle<CalendarRecord> calendar,
+                      JS::Handle<CalendarValue> calendar,
                       const NormalizedDuration& duration,
-                      const PlainDateTime& dateTime, Instant* result);
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
- */
-bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
-                      JS::Handle<TimeZoneValue> timeZone,
-                      JS::Handle<CalendarRecord> calendar,
-                      const DateDuration& duration, Instant* result);
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
- */
-bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
-                      JS::Handle<TimeZoneValue> timeZone,
-                      JS::Handle<CalendarRecord> calendar,
-                      const DateDuration& duration,
                       const PlainDateTime& dateTime, Instant* result);
 
 /**

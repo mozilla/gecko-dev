@@ -102,109 +102,105 @@ bool js::temporal::InterpretISODateTimeOffset(
   MOZ_ASSERT(std::abs(offsetNanoseconds) < ToNanoseconds(TemporalUnit::Day));
 
   // Step 1.
-  MOZ_ASSERT(IsValidISODate(dateTime.date));
+  MOZ_ASSERT(IsValidISODateTime(dateTime));
 
-  // Step 4.
-  Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
-  Rooted<PlainDateTimeWithCalendar> temporalDateTime(cx);
-  if (!CreateTemporalDateTime(cx, dateTime, calendar, &temporalDateTime)) {
+  // Step 2.
+  if (!ISODateTimeWithinLimits(dateTime)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_PLAIN_DATE_TIME_INVALID);
     return false;
   }
 
-  // Step 5.
+  // Step 3.
   if (offsetBehaviour == OffsetBehaviour::Wall ||
       (offsetBehaviour == OffsetBehaviour::Option &&
        offsetOption == TemporalOffset::Ignore)) {
-    // Steps 5.a-b.
-    return GetInstantFor(cx, timeZone, temporalDateTime, disambiguation,
-                         result);
+    // Steps 3.a-b.
+    return GetInstantFor(cx, timeZone, dateTime, disambiguation, result);
   }
 
-  // Step 6.
+  // Step 4.
   if (offsetBehaviour == OffsetBehaviour::Exact ||
       (offsetBehaviour == OffsetBehaviour::Option &&
        offsetOption == TemporalOffset::Use)) {
-    // Step 6.a.
+    // Step 4.a.
     auto epochNanoseconds = GetUTCEpochNanoseconds(
         dateTime, InstantSpan::fromNanoseconds(offsetNanoseconds));
 
-    // Step 6.b.
+    // Step 4.b.
     if (!IsValidEpochInstant(epochNanoseconds)) {
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                                 JSMSG_TEMPORAL_INSTANT_INVALID);
       return false;
     }
 
-    // Step 6.c.
+    // Step 4.c.
     *result = epochNanoseconds;
     return true;
   }
 
-  // Step 7.
+  // Step 5.
   MOZ_ASSERT(offsetBehaviour == OffsetBehaviour::Option);
 
-  // Step 8.
+  // Step 6.
   MOZ_ASSERT(offsetOption == TemporalOffset::Prefer ||
              offsetOption == TemporalOffset::Reject);
 
-  // Step 9.
+  // Step 7.
   PossibleInstants possibleInstants;
-  if (!GetPossibleInstantsFor(cx, timeZone, temporalDateTime,
-                              &possibleInstants)) {
+  if (!GetPossibleInstantsFor(cx, timeZone, dateTime, &possibleInstants)) {
     return false;
   }
 
-  // Step 10.
-  if (!possibleInstants.empty()) {
-    // Step 10.a.
-    for (const auto& candidate : possibleInstants) {
-      // Step 10.a.i.
-      int64_t candidateNanoseconds;
-      if (!GetOffsetNanosecondsFor(cx, timeZone, candidate,
-                                   &candidateNanoseconds)) {
-        return false;
-      }
-      MOZ_ASSERT(std::abs(candidateNanoseconds) <
-                 ToNanoseconds(TemporalUnit::Day));
+  // FIXME: spec issue - extra test for empty `possibleInstants` not needed
 
-      // Step 10.a.ii.
-      if (candidateNanoseconds == offsetNanoseconds) {
+  // Step 8.a.
+  for (const auto& candidate : possibleInstants) {
+    // Step 8.a.i.
+    int64_t candidateNanoseconds;
+    if (!GetOffsetNanosecondsFor(cx, timeZone, candidate,
+                                 &candidateNanoseconds)) {
+      return false;
+    }
+    MOZ_ASSERT(std::abs(candidateNanoseconds) <
+               ToNanoseconds(TemporalUnit::Day));
+
+    // Step 8.a.ii.
+    if (candidateNanoseconds == offsetNanoseconds) {
+      *result = candidate;
+      return true;
+    }
+
+    // Step 8.a.iii.
+    if (matchBehaviour == MatchBehaviour::MatchMinutes) {
+      // Step 8.a.iii.1.
+      int64_t roundedCandidateNanoseconds =
+          RoundNanosecondsToMinutesIncrement(candidateNanoseconds);
+
+      // Step 8.a.iii.2.
+      if (roundedCandidateNanoseconds == offsetNanoseconds) {
+        // Step 8.a.iii.2.a.
         *result = candidate;
         return true;
-      }
-
-      // Step 10.a.iii.
-      if (matchBehaviour == MatchBehaviour::MatchMinutes) {
-        // Step 10.a.iii.1.
-        int64_t roundedCandidateNanoseconds =
-            RoundNanosecondsToMinutesIncrement(candidateNanoseconds);
-
-        // Step 10.a.iii.2.
-        if (roundedCandidateNanoseconds == offsetNanoseconds) {
-          // Step 10.a.iii.2.a.
-          *result = candidate;
-          return true;
-        }
       }
     }
   }
 
-  // Step 11.
+  // Step 9.
   if (offsetOption == TemporalOffset::Reject) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_TEMPORAL_ZONED_DATE_TIME_NO_TIME_FOUND);
     return false;
   }
 
-  // Step 12.
+  // Step 10.
   Instant instant;
-  if (!DisambiguatePossibleInstants(cx, possibleInstants, timeZone,
-                                    ToPlainDateTime(temporalDateTime),
+  if (!DisambiguatePossibleInstants(cx, possibleInstants, timeZone, dateTime,
                                     disambiguation, &instant)) {
     return false;
   }
 
-  // Step 13.
+  // Step 11.
   *result = instant;
   return true;
 }
@@ -512,179 +508,118 @@ static auto* CreateTemporalZonedDateTime(JSContext* cx,
                                      zonedDateTime.calendar());
 }
 
-struct PlainDateTimeAndInstant {
-  PlainDateTime dateTime;
-  Instant instant;
-};
-
 /**
- * AddDaysToZonedDateTime ( instant, dateTime, timeZoneRec, calendar, days [ ,
+ * AddDaysToZonedDateTime ( instant, dateTime, timeZone, calendar, days [ ,
  * overflow ] )
  */
 static bool AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
                                    const PlainDateTime& dateTime,
                                    Handle<TimeZoneValue> timeZone,
                                    Handle<CalendarValue> calendar, int64_t days,
-                                   TemporalOverflow overflow,
-                                   PlainDateTimeAndInstant* result) {
+                                   TemporalOverflow overflow, Instant* result) {
+  // FIXME: spec issue - always called with `overflow`, so no need for optional
+  // FIXME: spec issue - return type can be simplified, `dateTime` not used
+  // FIXME: spec issue - inline into AddZonedDateTime to share more steps
+
   // Step 1. (Not applicable in our implementation.)
 
-  // Step 2. (Not applicable)
-
-  // Step 3.
+  // Step 2.
   if (days == 0) {
-    *result = {dateTime, instant};
+    *result = instant;
     return true;
   }
 
-  // Step 4.
+  // Step 3.
   PlainDate addedDate;
   if (!AddISODate(cx, dateTime.date, {0, 0, 0, days}, overflow, &addedDate)) {
     return false;
   }
 
-  // Step 5.
+  // Step 4.
   Rooted<PlainDateTimeWithCalendar> dateTimeResult(cx);
   if (!CreateTemporalDateTime(cx, {addedDate, dateTime.time}, calendar,
                               &dateTimeResult)) {
     return false;
   }
 
-  // Step 6.
-  Instant instantResult;
-  if (!GetInstantFor(cx, timeZone, dateTimeResult,
-                     TemporalDisambiguation::Compatible, &instantResult)) {
-    return false;
-  }
-
-  // Step 7.
-  *result = {ToPlainDateTime(dateTimeResult), instantResult};
-  return true;
+  // Steps 5-6.
+  return GetInstantFor(cx, timeZone, dateTimeResult,
+                       TemporalDisambiguation::Compatible, result);
 }
 
 /**
- * AddDaysToZonedDateTime ( instant, dateTime, timeZoneRec, calendar, days [ ,
- * overflow ] )
- */
-bool js::temporal::AddDaysToZonedDateTime(
-    JSContext* cx, const Instant& instant, const PlainDateTime& dateTime,
-    Handle<TimeZoneValue> timeZone, Handle<CalendarValue> calendar,
-    int64_t days, TemporalOverflow overflow, Instant* result) {
-  // Steps 1-7.
-  PlainDateTimeAndInstant dateTimeAndInstant;
-  if (!::AddDaysToZonedDateTime(cx, instant, dateTime, timeZone, calendar, days,
-                                overflow, &dateTimeAndInstant)) {
-    return false;
-  }
-
-  *result = dateTimeAndInstant.instant;
-  return true;
-}
-
-/**
- * AddDaysToZonedDateTime ( instant, dateTime, timeZoneRec, calendar, days [ ,
- * overflow ] )
- */
-bool js::temporal::AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
-                                          const PlainDateTime& dateTime,
-                                          Handle<TimeZoneValue> timeZone,
-                                          Handle<CalendarValue> calendar,
-                                          int64_t days, Instant* result) {
-  // Step 2.
-  auto overflow = TemporalOverflow::Constrain;
-
-  // Steps 1 and 3-7.
-  return AddDaysToZonedDateTime(cx, instant, dateTime, timeZone, calendar, days,
-                                overflow, result);
-}
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
+ * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
+ * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
  */
 static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
                              Handle<TimeZoneValue> timeZone,
-                             Handle<CalendarRecord> calendar,
+                             Handle<CalendarValue> calendar,
                              const NormalizedDuration& duration,
                              mozilla::Maybe<const PlainDateTime&> dateTime,
-                             Handle<JSObject*> maybeOptions, Instant* result) {
+                             TemporalOverflow overflow, Instant* result) {
   MOZ_ASSERT(IsValidEpochInstant(epochNanoseconds));
   MOZ_ASSERT(IsValidDuration(duration));
 
-  // Steps 4-5. (Not applicable in our implementation)
+  // Steps 1-2. (Not applicable in our implementation)
 
-  // Step 6.
+  // Step 3.
   if (duration.date == DateDuration{}) {
-    // Step 6.a.
+    // Step 3.a.
     return AddInstant(cx, epochNanoseconds, duration.time, result);
   }
 
-  // Step 7. (Not applicable in our implementation)
+  // Step 4. (Not applicable in our implementation)
 
-  // Steps 8-9.
+  // Steps 5-6.
   PlainDateTime temporalDateTime;
   if (dateTime) {
-    // Step 8.a.
+    // Step 5.a.
     temporalDateTime = *dateTime;
   } else {
-    // Step 9.a.
+    // Step 6.a.
     if (!GetPlainDateTimeFor(cx, timeZone, epochNanoseconds,
                              &temporalDateTime)) {
       return false;
     }
   }
-  auto& [date, time] = temporalDateTime;
+  const auto& [date, time] = temporalDateTime;
 
-  // Step 10.
+  // Step 7.
   if (duration.date.years == 0 && duration.date.months == 0 &&
       duration.date.weeks == 0) {
-    // Step 10.a.
-    auto overflow = TemporalOverflow::Constrain;
-    if (maybeOptions) {
-      if (!GetTemporalOverflowOption(cx, maybeOptions, &overflow)) {
-        return false;
-      }
-    }
-
-    // Step 10.b.
+    // Step 7.b.
     Instant intermediate;
     if (!AddDaysToZonedDateTime(cx, epochNanoseconds, temporalDateTime,
-                                timeZone, calendar.receiver(),
-                                duration.date.days, overflow, &intermediate)) {
+                                timeZone, calendar, duration.date.days,
+                                overflow, &intermediate)) {
       return false;
     }
 
-    // Step 10.c.
+    // Step 7.c.
     return AddInstant(cx, intermediate, duration.time, result);
   }
 
-  // Step 12.
+  // Step 8.
   const auto& datePart = date;
 
-  // Step 13.
+  // Step 9.
   const auto& dateDuration = duration.date;
 
-  // Step 14.
+  // Step 10.
   PlainDate addedDate;
-  if (maybeOptions) {
-    if (!temporal::CalendarDateAdd(cx, calendar, datePart, dateDuration,
-                                   maybeOptions, &addedDate)) {
-      return false;
-    }
-  } else {
-    if (!CalendarDateAdd(cx, calendar, datePart, dateDuration, &addedDate)) {
-      return false;
-    }
+  if (!CalendarDateAdd(cx, calendar, datePart, dateDuration, overflow,
+                       &addedDate)) {
+    return false;
   }
 
-  // Step 15.
+  // Step 11.
   Rooted<PlainDateTimeWithCalendar> intermediateDateTime(cx);
-  if (!CreateTemporalDateTime(cx, {addedDate, time}, calendar.receiver(),
+  if (!CreateTemporalDateTime(cx, {addedDate, time}, calendar,
                               &intermediateDateTime)) {
     return false;
   }
 
-  // Step 16.
+  // Step 12.
   Instant intermediateInstant;
   if (!GetInstantFor(cx, timeZone, intermediateDateTime,
                      TemporalDisambiguation::Compatible,
@@ -692,81 +627,52 @@ static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
     return false;
   }
 
-  // Step 17.
+  // Step 13.
   return AddInstant(cx, intermediateInstant, duration.time, result);
 }
 
 /**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
+ * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
+ * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
  */
 static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
                              Handle<TimeZoneValue> timeZone,
-                             Handle<CalendarRecord> calendar,
+                             Handle<CalendarValue> calendar,
                              const NormalizedDuration& duration,
-                             Handle<JSObject*> maybeOptions, Instant* result) {
+                             TemporalOverflow overflow, Instant* result) {
   return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar, duration,
-                            mozilla::Nothing(), maybeOptions, result);
+                            mozilla::Nothing(), overflow, result);
 }
 
 /**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
+ * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
+ * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
  */
 bool js::temporal::AddZonedDateTime(JSContext* cx,
                                     const Instant& epochNanoseconds,
                                     Handle<TimeZoneValue> timeZone,
-                                    Handle<CalendarRecord> calendar,
+                                    Handle<CalendarValue> calendar,
                                     const NormalizedDuration& duration,
                                     Instant* result) {
   return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar, duration,
-                            mozilla::Nothing(), nullptr, result);
-}
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
- */
-bool js::temporal::AddZonedDateTime(JSContext* cx,
-                                    const Instant& epochNanoseconds,
-                                    Handle<TimeZoneValue> timeZone,
-                                    Handle<CalendarRecord> calendar,
-                                    const NormalizedDuration& duration,
-                                    const PlainDateTime& dateTime,
-                                    Instant* result) {
-  return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar, duration,
-                            mozilla::SomeRef(dateTime), nullptr, result);
-}
-
-/**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
- */
-bool js::temporal::AddZonedDateTime(JSContext* cx,
-                                    const Instant& epochNanoseconds,
-                                    Handle<TimeZoneValue> timeZone,
-                                    Handle<CalendarRecord> calendar,
-                                    const DateDuration& duration,
-                                    Instant* result) {
-  return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar,
-                            {duration, {}}, mozilla::Nothing(), nullptr,
+                            mozilla::Nothing(), TemporalOverflow::Constrain,
                             result);
 }
 
 /**
- * AddZonedDateTime ( epochNanoseconds, timeZoneRec, calendarRec, years, months,
- * weeks, days, norm [ , precalculatedPlainDateTime [ , options ] ] )
+ * AddZonedDateTime ( epochNanoseconds, timeZone, calendar, years, months,
+ * weeks, days, norm [ , precalculatedPlainDateTime [ , overflow ] ] )
  */
 bool js::temporal::AddZonedDateTime(JSContext* cx,
                                     const Instant& epochNanoseconds,
                                     Handle<TimeZoneValue> timeZone,
-                                    Handle<CalendarRecord> calendar,
-                                    const DateDuration& duration,
+                                    Handle<CalendarValue> calendar,
+                                    const NormalizedDuration& duration,
                                     const PlainDateTime& dateTime,
                                     Instant* result) {
-  return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar,
-                            {duration, {}}, mozilla::SomeRef(dateTime), nullptr,
-                            result);
+  return ::AddZonedDateTime(cx, epochNanoseconds, timeZone, calendar, duration,
+                            mozilla::SomeRef(dateTime),
+                            TemporalOverflow::Constrain, result);
 }
 
 /**
@@ -1213,45 +1119,48 @@ static bool AddDurationToOrSubtractDurationFromZonedDateTime(
     return false;
   }
 
-  // Step 3.
-  Rooted<JSObject*> options(cx);
+  // Steps 3-4.
+  auto overflow = TemporalOverflow::Constrain;
   if (args.hasDefined(1)) {
     const char* name =
         operation == ZonedDateTimeDuration::Add ? "add" : "subtract";
-    options = RequireObjectArg(cx, "options", name, args[1]);
-  } else {
-    options = NewPlainObjectWithProto(cx, nullptr);
-  }
-  if (!options) {
-    return false;
-  }
 
-  // Step 4.
-  auto timeZone = zonedDateTime.timeZone();
+    // Step 3.
+    Rooted<JSObject*> options(cx,
+                              RequireObjectArg(cx, "options", name, args[1]));
+    if (!options) {
+      return false;
+    }
+
+    // Step 4.
+    if (!GetTemporalOverflowOption(cx, options, &overflow)) {
+      return false;
+    }
+  }
 
   // Step 5.
-  Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(), &calendar)) {
-    return false;
-  }
+  auto calendar = zonedDateTime.calendar();
 
   // Step 6.
+  auto timeZone = zonedDateTime.timeZone();
+
+  // Step 7.
   if (operation == ZonedDateTimeDuration::Subtract) {
     duration = duration.negate();
   }
   auto normalized = CreateNormalizedDurationRecord(duration);
 
-  // Step 7.
+  // Step 8.
   Instant resultInstant;
   if (!::AddZonedDateTime(cx, zonedDateTime.instant(), timeZone, calendar,
-                          normalized, options, &resultInstant)) {
+                          normalized, overflow, &resultInstant)) {
     return false;
   }
   MOZ_ASSERT(IsValidEpochInstant(resultInstant));
 
-  // Step 8.
-  auto* result = CreateTemporalZonedDateTime(cx, resultInstant, timeZone,
-                                             calendar.receiver());
+  // Step 9.
+  auto* result =
+      CreateTemporalZonedDateTime(cx, resultInstant, timeZone, calendar);
   if (!result) {
     return false;
   }

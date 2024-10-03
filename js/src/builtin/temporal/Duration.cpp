@@ -3496,18 +3496,16 @@ static bool Duration_compare(JSContext* cx, unsigned argc, Value* vp) {
     // Step 10.f.
     const auto& normalized2 = normTwo;
 
-    Rooted<CalendarRecord> calendarRec(cx, calendar);
-
     // Step 10.g.
     Instant after1;
-    if (!AddZonedDateTime(cx, instant, timeZone, calendarRec, normalized1,
+    if (!AddZonedDateTime(cx, instant, timeZone, calendar, normalized1,
                           dateTime, &after1)) {
       return false;
     }
 
     // Step 10.h.
     Instant after2;
-    if (!AddZonedDateTime(cx, instant, timeZone, calendarRec, normalized2,
+    if (!AddZonedDateTime(cx, instant, timeZone, calendar, normalized2,
                           dateTime, &after2)) {
       return false;
     }
@@ -4150,9 +4148,8 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
     // Steps 35.e-f.
     if (precalculatedPlainDateTime) {
       // Step 35.e.
-      Rooted<CalendarRecord> calendarRec(cx, calendar);
       Instant targetEpochNs;
-      if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendarRec,
+      if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendar,
                             normDuration, *precalculatedPlainDateTime,
                             &targetEpochNs)) {
         return false;
@@ -4173,9 +4170,8 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
       }
     } else {
       // Step 35.e.
-      Rooted<CalendarRecord> calendarRec(cx, calendar);
       Instant targetEpochNs;
-      if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendarRec,
+      if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendar,
                             normDuration, &targetEpochNs)) {
         return false;
       }
@@ -4385,15 +4381,13 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
     // Step 15.e.
     Instant targetEpochNs;
     if (precalculatedPlainDateTime) {
-      Rooted<CalendarRecord> calendarRec(cx, calendar);
-      if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendarRec,
+      if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendar,
                             normDuration, *precalculatedPlainDateTime,
                             &targetEpochNs)) {
         return false;
       }
     } else {
-      Rooted<CalendarRecord> calendarRec(cx, calendar);
-      if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendarRec,
+      if (!AddZonedDateTime(cx, relativeInstant, timeZone, calendar,
                             normDuration, &targetEpochNs)) {
         return false;
       }
