@@ -10,7 +10,7 @@
 #include "jsapi.h"
 #include "nsClassHashtable.h"
 #include "nsCOMArray.h"
-#include "nsIAndroidBridge.h"
+#include "nsIGeckoViewBridge.h"
 #include "nsHashKeys.h"
 #include "nsPIDOMWindow.h"
 

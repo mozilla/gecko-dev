@@ -15,7 +15,7 @@
 #include "nsIMutableArray.h"
 #include "nsIMIMEInfo.h"
 
-#include "nsIAndroidBridge.h"
+#include "nsIGeckoViewBridge.h"
 
 #include "mozilla/jni/Utils.h"
 #include "nsTHashMap.h"

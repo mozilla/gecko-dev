@@ -21,7 +21,7 @@
 #include "mozilla/jni/Natives.h"
 #include "nsBaseAppShell.h"
 #include "nsCOMPtr.h"
-#include "nsIAndroidBridge.h"
+#include "nsIGeckoViewBridge.h"
 #include "nsInterfaceHashtable.h"
 #include "nsTArray.h"
 

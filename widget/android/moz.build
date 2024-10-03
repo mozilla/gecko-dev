@@ -16,12 +16,6 @@ DIRS += [
     "jni",
 ]
 
-XPIDL_SOURCES += [
-    "nsIAndroidBridge.idl",
-]
-
-XPIDL_MODULE = "widget_android"
-
 EXPORTS += [
     "AndroidBridge.h",
 ]

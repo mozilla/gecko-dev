@@ -91,6 +91,10 @@ elif toolkit == "windows":
         "nsIWindowsUIUtils.idl",
         "nsIWinTaskbar.idl",
     ]
+elif toolkit in ("android", "uikit"):
+    XPIDL_SOURCES += [
+        "nsIGeckoViewBridge.idl",
+    ]
 
 if CONFIG["NS_PRINTING"]:
     # Needs to go before the XPIDL_MODULE line.
