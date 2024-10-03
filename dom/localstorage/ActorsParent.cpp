@@ -5311,6 +5311,7 @@ Database::Database(const PrincipalInfo& aPrincipalInfo,
 }
 
 Database::~Database() {
+  AssertIsOnOwningThread();
   MOZ_ASSERT_IF(mActorWasAlive, mAllowedToClose);
   MOZ_ASSERT_IF(mActorWasAlive, mActorDestroyed);
 }
