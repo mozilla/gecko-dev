@@ -197,11 +197,11 @@ void LSRequestChild::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 mozilla::ipc::IPCResult LSRequestChild::Recv__delete__(
-    const LSRequestResponse& aResponse) {
+    LSRequestResponse&& aResponse) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mCallback);
 
-  mCallback->OnResponse(aResponse);
+  mCallback->OnResponse(std::move(aResponse));
 
   mCallback = nullptr;
 

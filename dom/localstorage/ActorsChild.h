@@ -175,7 +175,7 @@ class LSRequestChild final : public PBackgroundLSRequestChild {
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
   mozilla::ipc::IPCResult Recv__delete__(
-      const LSRequestResponse& aResponse) override;
+      LSRequestResponse&& aResponse) override;
 
   mozilla::ipc::IPCResult RecvReady() override;
 };
@@ -184,7 +184,7 @@ class NS_NO_VTABLE LSRequestChildCallback {
  public:
   NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING
 
-  virtual void OnResponse(const LSRequestResponse& aResponse) = 0;
+  virtual void OnResponse(LSRequestResponse&& aResponse) = 0;
 
  protected:
   virtual ~LSRequestChildCallback() = default;

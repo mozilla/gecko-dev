@@ -184,7 +184,7 @@ class RequestHelper final : public Runnable, public LSRequestChildCallback {
   NS_DECL_NSIRUNNABLE
 
   // LSRequestChildCallback
-  void OnResponse(const LSRequestResponse& aResponse) override;
+  void OnResponse(LSRequestResponse&& aResponse) override;
 };
 
 void AssertExplicitSnapshotInvariants(const LSObject& aObject) {
@@ -922,10 +922,11 @@ nsresult LSObject::EnsureDatabase() {
   MOZ_ASSERT(response.type() ==
              LSRequestResponse::TLSRequestPrepareDatastoreResponse);
 
-  const LSRequestPrepareDatastoreResponse& prepareDatastoreResponse =
-      response.get_LSRequestPrepareDatastoreResponse();
+  LSRequestPrepareDatastoreResponse prepareDatastoreResponse =
+      std::move(response.get_LSRequestPrepareDatastoreResponse());
 
-  uint64_t datastoreId = prepareDatastoreResponse.datastoreId();
+  auto childEndpoint =
+      std::move(prepareDatastoreResponse.databaseChildEndpoint());
 
   // The datastore is now ready on the parent side (prepared by the asynchronous
   // request on the RemoteLazyInputStream thread).
@@ -938,16 +939,7 @@ nsresult LSObject::EnsureDatabase() {
 
   RefPtr<LSDatabaseChild> actor = new LSDatabaseChild(database);
 
-  mozilla::ipc::Endpoint<PBackgroundLSDatabaseParent> parentEndpoint;
-  mozilla::ipc::Endpoint<PBackgroundLSDatabaseChild> childEndpoint;
-  MOZ_ALWAYS_SUCCEEDS(
-      PBackgroundLSDatabase::CreateEndpoints(&parentEndpoint, &childEndpoint));
-
   MOZ_ALWAYS_TRUE(childEndpoint.Bind(actor));
-
-  MOZ_ALWAYS_TRUE(backgroundActor->SendCreateBackgroundLSDatabaseParent(
-      *mStoragePrincipalInfo, mPrivateBrowsingId, datastoreId,
-      std::move(parentEndpoint)));
 
   database->SetActor(actor);
 
@@ -1165,7 +1157,7 @@ RequestHelper::Run() {
   }
 }
 
-void RequestHelper::OnResponse(const LSRequestResponse& aResponse) {
+void RequestHelper::OnResponse(LSRequestResponse&& aResponse) {
   AssertIsOnDOMFileThread();
 
   MonitorAutoLock lock(mMonitor);
@@ -1174,7 +1166,7 @@ void RequestHelper::OnResponse(const LSRequestResponse& aResponse) {
 
   mActor = nullptr;
 
-  mResponse = aResponse;
+  mResponse = std::move(aResponse);
 
   mState = State::Complete;
 

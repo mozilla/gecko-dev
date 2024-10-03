@@ -6,7 +6,6 @@ include protocol PBackgroundDataBridge;
 include protocol PBackgroundIDBFactory;
 include protocol PBackgroundIndexedDBUtils;
 include protocol PBackgroundSDBConnection;
-include protocol PBackgroundLSDatabase;
 include protocol PBackgroundLSObserver;
 include protocol PBackgroundLSRequest;
 include protocol PBackgroundLSSimpleRequest;
@@ -137,12 +136,6 @@ parent:
 
   async PBackgroundSDBConnection(PersistenceType persistenceType,
                                  PrincipalInfo principalInfo);
-
-  async CreateBackgroundLSDatabaseParent(
-      PrincipalInfo principalInfo,
-      uint32_t privateBrowsingId,
-      uint64_t datastoreId,
-      Endpoint<PBackgroundLSDatabaseParent> aParentEndpoint);
 
   async PBackgroundLSObserver(uint64_t observerId);
 

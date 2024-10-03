@@ -274,23 +274,6 @@ BackgroundParentImpl::RecvPBackgroundSDBConnectionConstructor(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvCreateBackgroundLSDatabaseParent(
-    const PrincipalInfo& aPrincipalInfo, const uint32_t& aPrivateBrowsingId,
-    const uint64_t& aDatastoreId,
-    Endpoint<PBackgroundLSDatabaseParent>&& aParentEndpoint) {
-  AssertIsInMainProcess();
-  AssertIsOnBackgroundThread();
-
-  if (!mozilla::dom::RecvCreateBackgroundLSDatabaseParent(
-          aPrincipalInfo, aPrivateBrowsingId, aDatastoreId,
-          std::move(aParentEndpoint))) {
-    return IPC_FAIL_NO_REASON(this);
-  }
-
-  return IPC_OK();
-}
-
 BackgroundParentImpl::PBackgroundLSObserverParent*
 BackgroundParentImpl::AllocPBackgroundLSObserverParent(
     const uint64_t& aObserverId) {

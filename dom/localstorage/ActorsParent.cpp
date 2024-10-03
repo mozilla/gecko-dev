@@ -3208,6 +3208,8 @@ void InitializeLocalStorage() {
 
 namespace {
 
+// XXX Merge these three methods into a new factory method Database::Create
+
 already_AddRefed<PBackgroundLSDatabaseParent> AllocPBackgroundLSDatabaseParent(
     const PrincipalInfo& aPrincipalInfo, const uint32_t& aPrivateBrowsingId,
     const uint64_t& aDatastoreId) {
@@ -3274,8 +3276,6 @@ bool RecvPBackgroundLSDatabaseConstructor(PBackgroundLSDatabaseParent* aActor,
   return true;
 }
 
-}  // namespace
-
 bool RecvCreateBackgroundLSDatabaseParent(
     const PrincipalInfo& aPrincipalInfo, const uint32_t& aPrivateBrowsingId,
     const uint64_t& aDatastoreId,
@@ -3292,6 +3292,8 @@ bool RecvCreateBackgroundLSDatabaseParent(
   return RecvPBackgroundLSDatabaseConstructor(parent, aPrincipalInfo,
                                               aPrivateBrowsingId, aDatastoreId);
 }
+
+}  // namespace
 
 PBackgroundLSObserverParent* AllocPBackgroundLSObserverParent(
     const uint64_t& aObserverId) {
@@ -6426,7 +6428,8 @@ void LSRequestBase::SendResults() {
       response = ResultCode();
     }
 
-    Unused << PBackgroundLSRequestParent::Send__delete__(this, response);
+    Unused << PBackgroundLSRequestParent::Send__delete__(this,
+                                                         std::move(response));
   }
 
   Cleanup();
@@ -7517,10 +7520,28 @@ void PrepareDatastoreOp::GetResponse(LSRequestResponse& aResponse) {
 
     aResponse = preloadDatastoreResponse;
   } else {
-    LSRequestPrepareDatastoreResponse prepareDatastoreResponse;
-    prepareDatastoreResponse.datastoreId() = mDatastoreId;
+    const LSRequestCommonParams& commonParams =
+        mParams.get_LSRequestPrepareDatastoreParams().commonParams();
 
-    aResponse = prepareDatastoreResponse;
+    const PrincipalInfo& storagePrincipalInfo =
+        commonParams.storagePrincipalInfo();
+
+    Endpoint<PBackgroundLSDatabaseParent> parentEndpoint;
+    Endpoint<PBackgroundLSDatabaseChild> childEndpoint;
+    MOZ_ALWAYS_SUCCEEDS(PBackgroundLSDatabase::CreateEndpoints(&parentEndpoint,
+                                                               &childEndpoint));
+
+    if (!RecvCreateBackgroundLSDatabaseParent(storagePrincipalInfo,
+                                              mPrivateBrowsingId, mDatastoreId,
+                                              std::move(parentEndpoint))) {
+      aResponse = NS_ERROR_FAILURE;
+    } else {
+      LSRequestPrepareDatastoreResponse prepareDatastoreResponse;
+      prepareDatastoreResponse.databaseChildEndpoint() =
+          std::move(childEndpoint);
+
+      aResponse = std::move(prepareDatastoreResponse);
+    }
   }
 }
 
