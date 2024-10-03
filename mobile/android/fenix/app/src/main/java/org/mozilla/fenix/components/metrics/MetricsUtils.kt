@@ -93,6 +93,7 @@ object MetricsUtils {
      * Get the default salt to use for hashing. This is a convenience
      * function to help with unit tests.
      */
+    @Suppress("FunctionOnlyReturningConstant")
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun getHashingSalt(): String = "org.mozilla.fenix-salt"
 

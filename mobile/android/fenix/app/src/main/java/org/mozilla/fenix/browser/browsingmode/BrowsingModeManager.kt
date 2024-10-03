@@ -35,15 +35,13 @@ interface BrowsingModeManager {
  * Wraps a [BrowsingMode] and executes a callback whenever [mode] is updated.
  */
 class DefaultBrowsingModeManager(
-    private var _mode: BrowsingMode,
+    private var initialMode: BrowsingMode,
     private val settings: Settings,
     private val modeDidChange: (BrowsingMode) -> Unit,
 ) : BrowsingModeManager {
-
-    override var mode: BrowsingMode
-        get() = _mode
+    override var mode: BrowsingMode = initialMode
         set(value) {
-            _mode = value
+            field = value
             modeDidChange(value)
             settings.lastKnownMode = value
         }

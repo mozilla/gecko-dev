@@ -107,9 +107,10 @@ class TrackingProtectionPolicyFactory(
     }
 }
 
-@Suppress("MaxLineLength")
 @VisibleForTesting
-internal fun TrackingProtectionPolicyForSessionTypes.applyTCPIfNeeded(settings: Settings): TrackingProtectionPolicyForSessionTypes {
+internal fun TrackingProtectionPolicyForSessionTypes.applyTCPIfNeeded(
+    settings: Settings,
+): TrackingProtectionPolicyForSessionTypes {
     val updatedCookiePolicy = if (settings.enabledTotalCookieProtection) {
         CookiePolicy.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS
     } else {

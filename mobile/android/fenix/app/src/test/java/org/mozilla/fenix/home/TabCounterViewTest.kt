@@ -58,7 +58,7 @@ class TabCounterViewTest {
         tabCounter = spyk(TabCounter(testContext))
 
         browsingModeManager = DefaultBrowsingModeManager(
-            _mode = BrowsingMode.Normal,
+            initialMode = BrowsingMode.Normal,
             settings = settings,
             modeDidChange = modeDidChange,
         )

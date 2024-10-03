@@ -858,9 +858,9 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             .show()
     }
 
-    @Suppress("MaxLineLength")
     private fun findPreviousDialogFragment(): DownloadCancelDialogFragment? {
-        return parentFragmentManager.findFragmentByTag(DOWNLOAD_CANCEL_DIALOG_FRAGMENT_TAG) as? DownloadCancelDialogFragment
+        return parentFragmentManager
+            .findFragmentByTag(DOWNLOAD_CANCEL_DIALOG_FRAGMENT_TAG) as? DownloadCancelDialogFragment
     }
 
     private fun getSnackbarAnchor(): View? = when {

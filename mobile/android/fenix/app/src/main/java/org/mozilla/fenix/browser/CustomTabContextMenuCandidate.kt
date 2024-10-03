@@ -11,31 +11,29 @@ import mozilla.components.feature.contextmenu.ContextMenuUseCases
 import mozilla.components.ui.widgets.DefaultSnackbarDelegate
 import mozilla.components.ui.widgets.SnackbarDelegate
 
-class CustomTabContextMenuCandidate {
-    companion object {
-        /**
-         * Returns the default list of context menu candidates for custom tabs/external apps.
-         *
-         */
-        fun defaultCandidates(
-            context: Context,
-            contextMenuUseCases: ContextMenuUseCases,
-            snackBarParentView: View,
-            snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate(),
-        ): List<ContextMenuCandidate> = listOf(
-            ContextMenuCandidate.createCopyLinkCandidate(
-                context,
-                snackBarParentView,
-                snackbarDelegate,
-            ),
-            ContextMenuCandidate.createShareLinkCandidate(context),
-            ContextMenuCandidate.createSaveImageCandidate(context, contextMenuUseCases),
-            ContextMenuCandidate.createSaveVideoAudioCandidate(context, contextMenuUseCases),
-            ContextMenuCandidate.createCopyImageLocationCandidate(
-                context,
-                snackBarParentView,
-                snackbarDelegate,
-            ),
-        )
-    }
+object CustomTabContextMenuCandidate {
+    /**
+     * Returns the default list of context menu candidates for custom tabs/external apps.
+     *
+     */
+    fun defaultCandidates(
+        context: Context,
+        contextMenuUseCases: ContextMenuUseCases,
+        snackBarParentView: View,
+        snackbarDelegate: SnackbarDelegate = DefaultSnackbarDelegate(),
+    ): List<ContextMenuCandidate> = listOf(
+        ContextMenuCandidate.createCopyLinkCandidate(
+            context,
+            snackBarParentView,
+            snackbarDelegate,
+        ),
+        ContextMenuCandidate.createShareLinkCandidate(context),
+        ContextMenuCandidate.createSaveImageCandidate(context, contextMenuUseCases),
+        ContextMenuCandidate.createSaveVideoAudioCandidate(context, contextMenuUseCases),
+        ContextMenuCandidate.createCopyImageLocationCandidate(
+            context,
+            snackBarParentView,
+            snackbarDelegate,
+        ),
+    )
 }

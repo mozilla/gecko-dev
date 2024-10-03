@@ -158,32 +158,32 @@ class FenixSnackbar private constructor(
 
         // Use the same implementation of `Snackbar`
         @Suppress("ReturnCount")
-        private fun findSuitableParent(_view: View?): ViewGroup? {
-            var view = _view
+        private fun findSuitableParent(view: View?): ViewGroup? {
+            var currentView = view
             var fallback: ViewGroup? = null
 
             do {
-                if (view is CoordinatorLayout) {
-                    return view
+                if (currentView is CoordinatorLayout) {
+                    return currentView
                 }
 
-                if (view is FrameLayout) {
-                    if (view.id == android.R.id.content) {
-                        return view
+                if (currentView is FrameLayout) {
+                    if (currentView.id == android.R.id.content) {
+                        return currentView
                     }
 
-                    if (view.id == R.id.dynamicSnackbarContainer) {
-                        return view
+                    if (currentView.id == R.id.dynamicSnackbarContainer) {
+                        return currentView
                     }
 
-                    fallback = view
+                    fallback = currentView
                 }
 
-                if (view != null) {
-                    val parent = view.parent
-                    view = if (parent is View) parent else null
+                if (currentView != null) {
+                    val parent = currentView.parent
+                    currentView = if (parent is View) parent else null
                 }
-            } while (view != null)
+            } while (currentView != null)
 
             return fallback
         }

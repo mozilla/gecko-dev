@@ -81,7 +81,6 @@ fun bindBiometricsCredentialsPromptOrShowWarning(
     }
 }
 
-@Suppress("MaxLineLength")
 private fun showPinDialogWarning(
     activity: FragmentActivity,
     onIgnorePinWarning: () -> Unit,
@@ -92,11 +91,15 @@ private fun showPinDialogWarning(
             context.resources.getString(R.string.logins_warning_dialog_message_2),
         )
 
-        setNegativeButton(context.resources.getString(R.string.logins_warning_dialog_later)) { _: DialogInterface, _ ->
+        setNegativeButton(
+            context.resources.getString(R.string.logins_warning_dialog_later),
+        ) { _: DialogInterface, _ ->
             onIgnorePinWarning()
         }
 
-        setPositiveButton(context.resources.getString(R.string.logins_warning_dialog_set_up_now)) { it: DialogInterface, _ ->
+        setPositiveButton(
+            context.resources.getString(R.string.logins_warning_dialog_set_up_now),
+        ) { it: DialogInterface, _ ->
             it.dismiss()
             val intent = Intent(Settings.ACTION_SECURITY_SETTINGS)
             context.startActivity(intent)

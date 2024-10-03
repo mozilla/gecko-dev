@@ -171,9 +171,7 @@ class TranslationsDialogBinding(
      * @param sessionTranslationsState The session state to consider when dispatching errors.
      * @param browserTranslationsState The browser state to consider when dispatching errors.
      * @param browserState The browser state to consider when fetching information for errors.
-
      */
-    @Suppress("MaxLineLength")
     private fun updateTranslationError(
         sessionTranslationsState: TranslationsState,
         browserTranslationsState: TranslationsBrowserState,

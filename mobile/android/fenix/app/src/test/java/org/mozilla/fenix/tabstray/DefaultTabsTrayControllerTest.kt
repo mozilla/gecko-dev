@@ -1039,7 +1039,7 @@ class DefaultTabsTrayControllerTest {
         )
         browsingModeManager = spyk(
             DefaultBrowsingModeManager(
-                _mode = BrowsingMode.Private,
+                initialMode = BrowsingMode.Private,
                 settings = settings,
                 modeDidChange = mockk(relaxed = true),
             ),
