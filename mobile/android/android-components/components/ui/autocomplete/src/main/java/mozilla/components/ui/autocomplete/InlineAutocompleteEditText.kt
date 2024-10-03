@@ -175,7 +175,7 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
 
     private val inputMethodManger get() = context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager?
 
-    @SuppressWarnings("ReturnCount")
+    @Suppress("FunctionParameterNaming", "ReturnCount", "UnusedParameter")
     private val onKeyPreIme = fun (_: View, keyCode: Int, event: KeyEvent): Boolean {
         // We only want to process one event per tap
         if (event.action != KeyEvent.ACTION_DOWN) {
@@ -200,6 +200,7 @@ open class InlineAutocompleteEditText @JvmOverloads constructor(
         return false
     }
 
+    @Suppress("FunctionParameterNaming", "UnusedParameter")
     private val onKey = fun (_: View, keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
             if (event.action != KeyEvent.ACTION_DOWN) {

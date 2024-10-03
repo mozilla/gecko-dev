@@ -32,6 +32,7 @@ class CustomTabIntentProcessor(
     }
 
     @VisibleForTesting
+    @Suppress("UseRequire")
     internal fun getAdditionalHeaders(intent: SafeIntent): Map<String, String>? {
         val pairs = intent.getBundleExtra(Browser.EXTRA_HEADERS)
         val headers = mutableMapOf<String, String>()

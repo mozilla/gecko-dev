@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. */
 
+// This was originally based on AOSP code, hence not being MPL 2.0.
+// See https://github.com/mozilla-mobile/android-components/pull/2532
+@file:Suppress("AbsentOrWrongFileLicense")
+
 package mozilla.components.feature.qr
 
 import android.Manifest.permission

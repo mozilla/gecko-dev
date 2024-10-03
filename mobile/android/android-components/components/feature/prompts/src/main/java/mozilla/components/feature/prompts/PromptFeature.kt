@@ -172,7 +172,7 @@ internal const val FRAGMENT_TAG = "mozac_feature_prompt_dialog"
  * need to be requested before a prompt (e.g. a file picker) can be displayed.
  * Once the request is completed, [onPermissionsResult] needs to be invoked.
  */
-@Suppress("LargeClass", "LongParameterList", "MaxLineLength")
+@Suppress("LargeClass", "LongParameterList")
 class PromptFeature private constructor(
     private val container: PromptContainer,
     private val store: BrowserStore,
@@ -198,9 +198,8 @@ class PromptFeature private constructor(
     private val onFirstTimeEngagedWithSignup: () -> Unit = {},
     private val onSaveLoginWithStrongPassword: (String, String) -> Unit = { _, _ -> },
     private val onSaveLogin: (Boolean) -> Unit = { _ -> },
-    private val passwordGeneratorColorsProvider: PasswordGeneratorDialogColorsProvider = PasswordGeneratorDialogColorsProvider {
-        PasswordGeneratorDialogColors.default()
-    },
+    private val passwordGeneratorColorsProvider: PasswordGeneratorDialogColorsProvider =
+        PasswordGeneratorDialogColorsProvider { PasswordGeneratorDialogColors.default() },
     private val hideUpdateFragmentAfterSavingGeneratedPassword: (String, String) -> Boolean = { _, _ -> true },
     private val removeLastSavedGeneratedPassword: () -> Unit = {},
     private val creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},
@@ -255,9 +254,8 @@ class PromptFeature private constructor(
         onFirstTimeEngagedWithSignup: () -> Unit = {},
         onSaveLoginWithStrongPassword: (String, String) -> Unit = { _, _ -> },
         onSaveLogin: (Boolean) -> Unit = { _ -> },
-        passwordGeneratorColorsProvider: PasswordGeneratorDialogColorsProvider = PasswordGeneratorDialogColorsProvider {
-            PasswordGeneratorDialogColors.default()
-        },
+        passwordGeneratorColorsProvider: PasswordGeneratorDialogColorsProvider =
+            PasswordGeneratorDialogColorsProvider { PasswordGeneratorDialogColors.default() },
         hideUpdateFragmentAfterSavingGeneratedPassword: (String, String) -> Boolean = { _, _ -> true },
         removeLastSavedGeneratedPassword: () -> Unit = {},
         creditCardDelegate: CreditCardDelegate = object : CreditCardDelegate {},

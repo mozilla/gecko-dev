@@ -190,7 +190,12 @@ object WebExtensionSupport {
 
         runtime.registerWebExtensionDelegate(
             object : WebExtensionDelegate {
-                override fun onNewTab(extension: WebExtension, engineSession: EngineSession, active: Boolean, url: String) {
+                override fun onNewTab(
+                    extension: WebExtension,
+                    engineSession: EngineSession,
+                    active: Boolean,
+                    url: String,
+                ) {
                     openTab(store, onNewTabOverride, onSelectTabOverride, extension, engineSession, url, active)
                 }
 
@@ -221,7 +226,13 @@ object WebExtensionSupport {
                             }
                             null
                         } else {
-                            val sessionId = openTab(store, onNewTabOverride, onSelectTabOverride, extension, engineSession)
+                            val sessionId = openTab(
+                                store,
+                                onNewTabOverride,
+                                onSelectTabOverride,
+                                extension,
+                                engineSession,
+                            )
                             store.dispatch(WebExtensionAction.UpdatePopupSessionAction(extension.id, sessionId))
                             engineSession
                         }

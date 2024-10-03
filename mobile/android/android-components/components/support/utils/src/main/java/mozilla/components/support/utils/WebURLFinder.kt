@@ -22,24 +22,24 @@ class WebURLFinder {
     private val candidates: List<String>
 
     constructor(string: String?) {
-        if (string == null) {
-            throw IllegalArgumentException("string must not be null")
+        requireNotNull(string) {
+            "string must not be null"
         }
         this.candidates = candidateWebURLs(string)
     }
 
     // package-private
     internal constructor(string: String?, explicitUnicode: Boolean) {
-        if (string == null) {
-            throw IllegalArgumentException("strings must not be null")
+        requireNotNull(string) {
+            "string must not be null"
         }
         this.candidates = candidateWebURLs(string, explicitUnicode)
     }
 
     // package-private
     internal constructor(strings: List<String>?, explicitUnicode: Boolean) {
-        if (strings == null) {
-            throw IllegalArgumentException("strings must not be null")
+        requireNotNull(strings) {
+            "strings must not be null"
         }
         this.candidates = candidateWebURLs(strings, explicitUnicode)
     }

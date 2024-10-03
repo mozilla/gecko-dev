@@ -511,7 +511,6 @@ data class Addon(
             return updatedAt
         }
 
-        @Suppress("MaxLineLength")
         internal fun localizedURLAccessPermissions(context: Context, accessPermissions: List<String>): List<String> {
             val localizedSiteAccessPermissions = mutableListOf<String>()
             val permissionsToTranslations = mutableMapOf<String, Int>()
@@ -524,7 +523,9 @@ data class Addon(
             }
 
             if (permissionsToTranslations.values.any { it.isAllURLsPermission() }) {
-                localizedSiteAccessPermissions.add(context.getString(R.string.mozac_feature_addons_permissions_all_urls_description))
+                localizedSiteAccessPermissions.add(
+                    context.getString(R.string.mozac_feature_addons_permissions_all_urls_description),
+                )
             } else {
                 formatURLAccessPermission(permissionsToTranslations, localizedSiteAccessPermissions, context)
             }

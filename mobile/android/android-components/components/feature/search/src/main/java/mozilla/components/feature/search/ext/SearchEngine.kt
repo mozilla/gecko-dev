@@ -15,7 +15,6 @@ import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.feature.search.internal.SearchUrlBuilder
 import mozilla.components.feature.search.storage.SearchEngineReader
 import java.io.InputStream
-import java.lang.IllegalArgumentException
 import java.util.UUID
 
 /**
@@ -29,8 +28,8 @@ fun createSearchEngine(
     suggestUrl: String? = null,
     isGeneral: Boolean = false,
 ): SearchEngine {
-    if (!url.contains(OS_SEARCH_ENGINE_TERMS_PARAM)) {
-        throw IllegalArgumentException("URL does not contain search terms placeholder")
+    require(url.contains(OS_SEARCH_ENGINE_TERMS_PARAM)) {
+        "URL does not contain search terms placeholder"
     }
 
     return SearchEngine(

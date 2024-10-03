@@ -19,6 +19,7 @@ import java.lang.IllegalArgumentException
  *
  * The only way to change the [BrowserState] inside [BrowserStore] is to dispatch an [Action] on it.
  */
+@Suppress("UseRequire")
 class BrowserStore(
     initialState: BrowserState = BrowserState(),
     middleware: List<Middleware<BrowserState, BrowserAction>> = emptyList(),

@@ -46,8 +46,8 @@ class UrlMatcher {
         this.categories = categoryMap
 
         for ((key) in categoryMap) {
-            if (!supportedCategories.contains(key)) {
-                throw IllegalArgumentException("$key categoryMap contains undeclared category")
+            require(supportedCategories.contains(key)) {
+                "$key categoryMap contains undeclared category"
             }
         }
 

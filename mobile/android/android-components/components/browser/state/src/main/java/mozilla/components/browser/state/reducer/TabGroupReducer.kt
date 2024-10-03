@@ -72,8 +72,8 @@ internal object TabGroupReducer {
 private fun BrowserState.addTabGroup(partitionId: String, group: TabGroup): BrowserState {
     val partition = tabPartitions[partitionId]
     val updatedPartition = if (partition != null) {
-        if (partition.getGroupById(group.id) != null) {
-            throw IllegalArgumentException("Tab group with same ID already exists")
+        require(partition.getGroupById(group.id) == null) {
+            "Tab group with same ID already exists"
         }
         partition.copy(tabGroups = partition.tabGroups + group)
     } else {

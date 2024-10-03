@@ -13,6 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. */
 
+// This was originally based on AOSP code, hence not being MPL 2.0.
+// See https://github.com/mozilla-mobile/android-components/pull/2532
+@file:Suppress("AbsentOrWrongFileLicense")
+
 package mozilla.components.feature.qr.views
 
 import android.content.Context
@@ -46,8 +50,8 @@ open class AutoFitTextureView @JvmOverloads constructor(
      * @param height Relative vertical size
      */
     fun setAspectRatio(width: Int, height: Int) {
-        if (width < 0 || height < 0) {
-            throw IllegalArgumentException("Size cannot be negative.")
+        require(width >= 0 && height >= 0) {
+            "Size cannot be negative."
         }
         mRatioWidth = width
         mRatioHeight = height

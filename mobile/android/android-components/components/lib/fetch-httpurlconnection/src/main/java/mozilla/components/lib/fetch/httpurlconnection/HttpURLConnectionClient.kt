@@ -32,8 +32,8 @@ class HttpURLConnectionClient : Client() {
 
     @Throws(IOException::class)
     override fun fetch(request: Request): Response {
-        if (request.private) {
-            throw IllegalArgumentException("Client doesn't support private request")
+        require(!request.private) {
+            "Client doesn't support private request"
         }
         if (request.isDataUri()) {
             return fetchDataUri(request)

@@ -113,9 +113,9 @@ fun <S : State, A : Action> Store<S, A>.observeForever(
 fun <S : State, A : Action> Store<S, A>.channel(
     owner: LifecycleOwner = ProcessLifecycleOwner.get(),
 ): ReceiveChannel<S> {
-    if (owner.lifecycle.currentState == Lifecycle.State.DESTROYED) {
-        // This owner is already destroyed. No need to register.
-        throw IllegalArgumentException("Lifecycle is already DESTROYED")
+    // This owner is already destroyed. No need to register.
+    require(owner.lifecycle.currentState != Lifecycle.State.DESTROYED) {
+        "Lifecycle is already DESTROYED"
     }
 
     val channel = Channel<S>(Channel.CONFLATED)

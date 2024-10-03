@@ -177,8 +177,8 @@ open class FxaAccountManager(
     init {
         syncConfig?.let {
             // Initialize sync manager with the passed-in config.
-            if (syncConfig.supportedEngines.isEmpty()) {
-                throw IllegalArgumentException("Set of supported engines can't be empty")
+            require(syncConfig.supportedEngines.isNotEmpty()) {
+                "Set of supported engines can't be empty"
             }
 
             syncManager = createSyncManager(syncConfig).also {

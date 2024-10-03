@@ -47,7 +47,7 @@ data class WebPushSubscription(
     val publicKey: ByteArray,
     val authSecret: ByteArray,
 ) {
-    @Suppress("ComplexMethod")
+    @Suppress("BracesOnIfStatements", "ComplexMethod")
     override fun equals(other: Any?): Boolean {
         /* auto-generated */
         if (this === other) return true

@@ -594,11 +594,12 @@ internal class AddonUpdaterWorker(
     @VisibleForTesting
     internal var attemptScope = CoroutineScope(Dispatchers.IO)
 
-    @Suppress("TooGenericExceptionCaught", "MaxLineLength")
+    @Suppress("TooGenericExceptionCaught")
     override suspend fun doWork(): Result = withContext(Dispatchers.Main) {
         val extensionId = params.inputData.getString(KEY_DATA_EXTENSIONS_ID) ?: ""
         logger.info("Trying to update extension $extensionId")
-        // We need to guarantee that we are not trying to update without all the required state being initialized first.
+        // We need to guarantee that we are not trying to update without
+        // all the required state being initialized first.
         WebExtensionSupport.awaitInitialization()
 
         return@withContext suspendCoroutine { continuation ->
@@ -608,15 +609,15 @@ internal class AddonUpdaterWorker(
                 manager.updateAddon(extensionId) { status ->
                     val result = when (status) {
                         AddonUpdater.Status.NotInstalled -> {
-                            logger.error("Not installed extension with id $extensionId removing from the updating queue")
+                            logger.error("Not installed extension with id $extensionId removed from the update queue")
                             Result.failure()
                         }
                         AddonUpdater.Status.NoUpdateAvailable -> {
-                            logger.info("There is no new updates for the $extensionId")
+                            logger.info("There is no update available for $extensionId")
                             Result.success()
                         }
                         AddonUpdater.Status.SuccessfullyUpdated -> {
-                            logger.info("Extension $extensionId SuccessFullyUpdated")
+                            logger.info("Extension $extensionId successfully updated")
                             Result.success()
                         }
                         is AddonUpdater.Status.Error -> {

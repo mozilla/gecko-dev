@@ -163,8 +163,8 @@ class SystemEngineSession(
      * See [EngineSession.restoreState]
      */
     override fun restoreState(state: EngineSessionState): Boolean {
-        if (state !is SystemEngineSessionState) {
-            throw IllegalArgumentException("Can only restore from SystemEngineSessionState")
+        require(state is SystemEngineSessionState) {
+            "Can only restore from SystemEngineSessionState"
         }
 
         return state.bundle?.let { webView.restoreState(it) } != null

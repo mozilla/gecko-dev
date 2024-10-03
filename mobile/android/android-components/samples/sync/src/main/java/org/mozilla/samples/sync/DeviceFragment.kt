@@ -45,12 +45,11 @@ class DeviceFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        if (context is OnDeviceListInteractionListener) {
-            listenerDevice = context
-            adapter.mListenerDevice = context
-        } else {
-            throw IllegalArgumentException("$context must implement OnDeviceListInteractionListener")
+        require(context is OnDeviceListInteractionListener) {
+            "$context must implement OnDeviceListInteractionListener"
         }
+        listenerDevice = context
+        adapter.mListenerDevice = context
     }
 
     override fun onDetach() {

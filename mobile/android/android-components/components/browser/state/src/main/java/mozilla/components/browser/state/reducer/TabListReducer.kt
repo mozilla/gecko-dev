@@ -26,8 +26,8 @@ internal object TabListReducer {
 
                 val updatedTabList = if (action.tab.parentId != null) {
                     val parentIndex = state.tabs.indexOfFirst { it.id == action.tab.parentId }
-                    if (parentIndex == -1) {
-                        throw IllegalArgumentException("The parent does not exist")
+                    require(parentIndex != -1) {
+                        "The parent does not exist"
                     }
 
                     // Add the child tab next to its parent

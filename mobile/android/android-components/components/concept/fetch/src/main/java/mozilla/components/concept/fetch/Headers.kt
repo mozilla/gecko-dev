@@ -79,8 +79,8 @@ data class Header(
     val value: String,
 ) {
     init {
-        if (name.isEmpty()) {
-            throw IllegalArgumentException("Header name cannot be empty")
+        require(name.isNotEmpty()) {
+            "Header name cannot be empty"
         }
     }
 }
