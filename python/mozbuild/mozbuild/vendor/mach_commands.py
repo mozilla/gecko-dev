@@ -214,8 +214,8 @@ def vendor_rust(command_context, **kwargs):
     "python",
     description="Vendor Python packages from pypi.org into third_party/python. "
     "Some extra files like docs and tests will automatically be excluded."
-    "Installs the packages listed in third_party/python/requirements.in and "
-    "their dependencies.",
+    "Downloads the packages listed in third_party/python/pyproject.toml, along "
+    "with their transitive dependencies, and adds them to version control.",
     virtualenv_name="vendor",
 )
 @CommandArgument(
