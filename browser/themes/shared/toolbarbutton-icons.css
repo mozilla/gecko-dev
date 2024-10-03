@@ -203,12 +203,50 @@
 }
 
 #sidebar-button {
-  list-style-image: url("chrome://browser/skin/sidebars-right.svg");
-}
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not (-moz-bool-pref: "sidebar.revamp") {
+    list-style-image: url("chrome://browser/skin/sidebars-right.svg");
 
-#sidebar-button:-moz-locale-dir(ltr):not([positionend]),
-#sidebar-button:-moz-locale-dir(rtl)[positionend] {
-  list-style-image: url("chrome://browser/skin/sidebars.svg");
+    &:-moz-locale-dir(ltr):not([positionend]),
+    &:-moz-locale-dir(rtl)[positionend] {
+      list-style-image: url("chrome://browser/skin/sidebars.svg");
+    }
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
+    list-style-image: url("chrome://browser/skin/sidebar-collapsed-right.svg");
+
+    &:hover {
+      list-style-image: url("chrome://browser/skin/sidebar-expanded-right.svg");
+    }
+
+    &[expanded] {
+      list-style-image: url("chrome://browser/skin/sidebar-expanded-right.svg");
+
+      &:hover {
+        list-style-image: url("chrome://browser/skin/sidebar-collapsed-right.svg");
+      }
+    }
+
+    &:-moz-locale-dir(ltr):not([positionend]),
+    &:-moz-locale-dir(rtl)[positionend] {
+      list-style-image: url("chrome://browser/skin/sidebar-collapsed.svg");
+
+      &:hover {
+        list-style-image: url("chrome://browser/skin/sidebar-expanded.svg");
+      }
+
+      &[expanded] {
+        list-style-image: url("chrome://browser/skin/sidebar-expanded.svg");
+
+        /* stylelint-disable max-nesting-depth */
+        &:hover {
+          list-style-image: url("chrome://browser/skin/sidebar-collapsed.svg");
+        }
+      }
+    }
+  }
 }
 
 #panic-button {

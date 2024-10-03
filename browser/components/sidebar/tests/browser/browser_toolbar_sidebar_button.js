@@ -100,6 +100,12 @@ add_task(async function test_expanded_state_for_always_show() {
       },
       "Toolbar button has the correct tooltip."
     );
+    await TestUtils.waitForCondition(
+      () => button.hasAttribute("expanded") == expanded,
+      expanded
+        ? "Toolbar button expanded attribute is present."
+        : "Toolbar button expanded attribute is absent."
+    );
   };
 
   info("Check default expanded state.");
@@ -184,6 +190,12 @@ add_task(async function test_states_for_hide_sidebar() {
         args: null,
       },
       "Toolbar button has the correct tooltip."
+    );
+    await TestUtils.waitForCondition(
+      () => button.hasAttribute("expanded") == expanded,
+      expanded
+        ? "Toolbar button expanded attribute is present."
+        : "Toolbar button expanded attribute is absent."
     );
   };
 
