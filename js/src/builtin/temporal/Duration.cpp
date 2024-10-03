@@ -4286,7 +4286,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
 
     // Step 39.d.
     if (!DifferencePlainDateTimeWithRounding(cx, sourceDateTime, targetDateTime,
-                                             calendar,
+                                             calendar.receiver(),
                                              {
                                                  smallestUnit,
                                                  largestUnit,
@@ -4510,7 +4510,8 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
 
     // Step 19.d.
     if (!::DifferencePlainDateTimeWithRounding(
-            cx, sourceDateTime, targetDateTime, calendar, unit, &total)) {
+            cx, sourceDateTime, targetDateTime, calendar.receiver(), unit,
+            &total)) {
       return false;
     }
   } else {
