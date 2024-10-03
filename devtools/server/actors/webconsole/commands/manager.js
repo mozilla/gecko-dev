@@ -871,13 +871,13 @@ WebConsoleCommandsManager.register({
       throw new Error(":trace command isn't supported in workers");
     }
 
-    if (!owner.consoleActor.parentActor.isTracerFeatureEnabled) {
+    if (!owner.consoleActor.targetActor.isTracerFeatureEnabled) {
       throw new Error(
         ":trace requires 'devtools.debugger.features.javascript-tracing' preference to be true"
       );
     }
     const tracerActor =
-      owner.consoleActor.parentActor.getTargetScopedActor("tracer");
+      owner.consoleActor.targetActor.getTargetScopedActor("tracer");
     const logMethod = args.logMethod || "console";
     let traceDOMMutations = null;
     if ("dom-mutations" in args) {

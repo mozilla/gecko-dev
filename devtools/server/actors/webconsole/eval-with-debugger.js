@@ -706,7 +706,7 @@ function getDbgGlobal(options, dbg, webConsole) {
   // are emitted by the Target Actor.
   const actor =
     webConsole.getActorByID(options.selectedObjectActor) ||
-    webConsole.parentActor.getActorByID(options.selectedObjectActor);
+    webConsole.targetActor.getActorByID(options.selectedObjectActor);
 
   if (!actor) {
     return { bindSelf: null, dbgGlobal };
