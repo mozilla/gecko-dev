@@ -279,7 +279,6 @@ def configure(
 )
 @CommandArgument(
     "--browser",
-    default="firefox",
     help="Web browser to automatically open. See webbrowser Python module.",
 )
 @CommandArgument("--url", help="URL of a build profile to display")
