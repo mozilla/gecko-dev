@@ -159,15 +159,15 @@ assert.compareArray = function(actual, expected, message) {
     message = message.toString();
   }
 
-  assert(actual != null, `Actual argument shouldn't be nullish. ${message}`);
-  assert(expected != null, `Expected argument shouldn't be nullish. ${message}`);
+  assert(actual != null, `First argument shouldn't be nullish. ${message}`);
+  assert(expected != null, `Second argument shouldn't be nullish. ${message}`);
   var format = compareArray.format;
   var result = compareArray(actual, expected);
 
   // The following prevents actual and expected from being iterated and evaluated
   // more than once unless absolutely necessary.
   if (!result) {
-    assert(false, `Actual ${format(actual)} and expected ${format(expected)} should have the same contents. ${message}`);
+    assert(false, `Expected ${format(actual)} and ${format(expected)} to have the same contents. ${message}`);
   }
 };
 
@@ -190,16 +190,6 @@ defines:
 ---*/
 
 // @ts-check
-
-// Capture primordial functions and receiver-uncurried primordial methods that
-// are used in verification but might be destroyed *by* that process itself.
-var __isArray = Array.isArray;
-var __defineProperty = Object.defineProperty;
-var __join = Function.prototype.call.bind(Array.prototype.join);
-var __push = Function.prototype.call.bind(Array.prototype.push);
-var __hasOwnProperty = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
-var __propertyIsEnumerable = Function.prototype.call.bind(Object.prototype.propertyIsEnumerable);
-var nonIndexNumericPropertyName = Math.pow(2, 32) - 1;
 
 /**
  * @param {object} obj
@@ -230,7 +220,7 @@ function verifyProperty(obj, name, desc, options) {
   }
 
   assert(
-    __hasOwnProperty(obj, name),
+    Object.prototype.hasOwnProperty.call(obj, name),
     "obj should have an own property " + nameStr
   );
 
@@ -261,48 +251,47 @@ function verifyProperty(obj, name, desc, options) {
 
   var failures = [];
 
-  if (__hasOwnProperty(desc, 'value')) {
+  if (Object.prototype.hasOwnProperty.call(desc, 'value')) {
     if (!isSameValue(desc.value, originalDesc.value)) {
-      __push(failures, "descriptor value should be " + desc.value);
+      failures.push("descriptor value should be " + desc.value);
     }
     if (!isSameValue(desc.value, obj[name])) {
-      __push(failures, "object value should be " + desc.value);
+      failures.push("object value should be " + desc.value);
     }
   }
 
-  if (__hasOwnProperty(desc, 'enumerable')) {
+  if (Object.prototype.hasOwnProperty.call(desc, 'enumerable')) {
     if (desc.enumerable !== originalDesc.enumerable ||
         desc.enumerable !== isEnumerable(obj, name)) {
-      __push(failures, 'descriptor should ' + (desc.enumerable ? '' : 'not ') + 'be enumerable');
+      failures.push('descriptor should ' + (desc.enumerable ? '' : 'not ') + 'be enumerable');
     }
   }
 
-  // Operations past this point are potentially destructive!
-
-  if (__hasOwnProperty(desc, 'writable')) {
+  if (Object.prototype.hasOwnProperty.call(desc, 'writable')) {
     if (desc.writable !== originalDesc.writable ||
         desc.writable !== isWritable(obj, name)) {
-      __push(failures, 'descriptor should ' + (desc.writable ? '' : 'not ') + 'be writable');
+      failures.push('descriptor should ' + (desc.writable ? '' : 'not ') + 'be writable');
     }
   }
 
-  if (__hasOwnProperty(desc, 'configurable')) {
+  if (Object.prototype.hasOwnProperty.call(desc, 'configurable')) {
     if (desc.configurable !== originalDesc.configurable ||
         desc.configurable !== isConfigurable(obj, name)) {
-      __push(failures, 'descriptor should ' + (desc.configurable ? '' : 'not ') + 'be configurable');
+      failures.push('descriptor should ' + (desc.configurable ? '' : 'not ') + 'be configurable');
     }
   }
 
-  assert(!failures.length, __join(failures, '; '));
+  assert(!failures.length, failures.join('; '));
 
   if (options && options.restore) {
-    __defineProperty(obj, name, originalDesc);
+    Object.defineProperty(obj, name, originalDesc);
   }
 
   return true;
 }
 
 function isConfigurable(obj, name) {
+  var hasOwnProperty = Object.prototype.hasOwnProperty;
   try {
     delete obj[name];
   } catch (e) {
@@ -310,7 +299,7 @@ function isConfigurable(obj, name) {
       throw new Test262Error("Expected TypeError, got " + e);
     }
   }
-  return !__hasOwnProperty(obj, name);
+  return !hasOwnProperty.call(obj, name);
 }
 
 function isEnumerable(obj, name) {
@@ -328,7 +317,9 @@ function isEnumerable(obj, name) {
     stringCheck = true;
   }
 
-  return stringCheck && __hasOwnProperty(obj, name) && __propertyIsEnumerable(obj, name);
+  return stringCheck &&
+    Object.prototype.hasOwnProperty.call(obj, name) &&
+    Object.prototype.propertyIsEnumerable.call(obj, name);
 }
 
 function isSameValue(a, b) {
@@ -338,18 +329,15 @@ function isSameValue(a, b) {
   return a === b;
 }
 
+var __isArray = Array.isArray;
 function isWritable(obj, name, verifyProp, value) {
   var unlikelyValue = __isArray(obj) && name === "length" ?
-    nonIndexNumericPropertyName :
+    Math.pow(2, 32) - 1 :
     "unlikelyValue";
   var newValue = value || unlikelyValue;
-  var hadValue = __hasOwnProperty(obj, name);
+  var hadValue = Object.prototype.hasOwnProperty.call(obj, name);
   var oldValue = obj[name];
   var writeSucceeded;
-
-  if (arguments.length < 4 && newValue === oldValue) {
-    newValue = newValue + "2";
-  }
 
   try {
     obj[name] = newValue;

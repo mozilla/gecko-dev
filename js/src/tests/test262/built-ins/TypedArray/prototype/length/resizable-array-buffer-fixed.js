@@ -37,7 +37,7 @@ testWithTypedArrayConstructors(function(TA) {
 
   var expected;
   try {
-    ab.resize(BPE * 3 - 1);
+    ab.resize(BPE * 2);
     expected = 0;
   } catch (_) {
     expected = 2;
