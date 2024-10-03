@@ -120,8 +120,7 @@ class CalendarObject : public NativeObject {
 };
 
 /**
- * Calendar value, which is either a string containing a canonical calendar
- * identifier or an object.
+ * Calendar value, which is a string containing a canonical calendar identifier.
  */
 class MOZ_STACK_CLASS CalendarValue final {
   JS::Value value_{};
@@ -157,26 +156,11 @@ class MOZ_STACK_CLASS CalendarValue final {
   JS::Value toSlotValue() const { return value_; }
 
   /**
-   * Return true if this CalendarValue is a string.
-   */
-  bool isString() const { return value_.isInt32(); }
-
-  /**
-   * Return true if this CalendarValue is an object.
-   */
-  bool isObject() const { return value_.isObject(); }
-
-  /**
    * Return the calendar identifier.
    */
-  CalendarId toString() const {
+  CalendarId identifier() const {
     return static_cast<CalendarId>(value_.toInt32());
   }
-
-  /**
-   * Return the calendar object.
-   */
-  JSObject* toObject() const { return &value_.toObject(); }
 
   void trace(JSTracer* trc);
 
@@ -872,14 +856,6 @@ bool CreateCalendarMethodsRecord(JSContext* cx,
                                  JS::Handle<CalendarValue> calendar,
                                  JS::MutableHandle<CalendarRecord> result);
 
-/**
- * CalendarMethodsRecordIsBuiltin ( calendarRec )
- */
-inline bool CalendarMethodsRecordIsBuiltin(const CalendarRecord& calendar) {
-  // Steps 1-2.
-  return calendar.receiver().isString();
-}
-
 // Helper for MutableWrappedPtrOperations.
 bool WrapCalendarValue(JSContext* cx, JS::MutableHandle<JS::Value> calendar);
 
@@ -901,19 +877,7 @@ class WrappedPtrOperations<temporal::CalendarValue, Wrapper> {
         container().valueDoNotUse());
   }
 
-  JS::Handle<JS::Value> toObjectValue() const {
-    MOZ_ASSERT(isObject());
-    return JS::Handle<JS::Value>::fromMarkedLocation(
-        container().valueDoNotUse());
-  }
-
-  bool isString() const { return container().isString(); }
-
-  bool isObject() const { return container().isObject(); }
-
-  temporal::CalendarId toString() const { return container().toString(); }
-
-  JSObject* toObject() const { return container().toObject(); }
+  temporal::CalendarId identifier() const { return container().identifier(); }
 };
 
 template <typename Wrapper>

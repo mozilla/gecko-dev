@@ -121,7 +121,7 @@ void js::temporal::CalendarRecord::trace(JSTracer* trc) {
 
 bool js::temporal::WrapCalendarValue(JSContext* cx,
                                      MutableHandle<JS::Value> calendar) {
-  MOZ_ASSERT(calendar.isInt32() || calendar.isObject());
+  MOZ_ASSERT(calendar.isInt32());
   return cx->compartment()->wrap(cx, calendar);
 }
 
@@ -825,38 +825,13 @@ static JSLinearString* ToTemporalCalendarIdentifier(JSContext* cx,
  */
 JSLinearString* js::temporal::ToTemporalCalendarIdentifier(
     JSContext* cx, Handle<CalendarValue> calendar) {
-  // Step 1.
-  if (calendar.isString()) {
-    return ToTemporalCalendarIdentifier(cx, calendar.toString());
-  }
-
-  // Step 2.
-  Rooted<JSObject*> calendarObj(cx, calendar.toObject());
-  Rooted<Value> identifier(cx);
-  if (!GetProperty(cx, calendarObj, calendarObj, cx->names().id, &identifier)) {
-    return nullptr;
-  }
-
-  // Step 3.
-  if (!identifier.isString()) {
-    ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK, identifier,
-                     nullptr, "not a string");
-    return nullptr;
-  }
-
-  // Step 4.
-  return identifier.toString()->ensureLinear(cx);
+  return ToTemporalCalendarIdentifier(cx, calendar.identifier());
 }
 
 bool js::temporal::ToTemporalCalendar(JSContext* cx,
                                       const CalendarValue& calendar,
                                       MutableHandle<Value> result) {
-  if (calendar.isObject()) {
-    result.setObject(*calendar.toObject());
-    return true;
-  }
-
-  auto* str = ToTemporalCalendarIdentifier(cx, calendar.toString());
+  auto* str = ToTemporalCalendarIdentifier(cx, calendar.identifier());
   if (!str) {
     return false;
   }
@@ -876,10 +851,7 @@ bool js::temporal::CreateCalendarMethodsRecord(
 }
 
 static CalendarId BuiltinCalendarId(const CalendarValue& calendar) {
-  if (calendar.isString()) {
-    return calendar.toString();
-  }
-  MOZ_CRASH("invalid calendar");
+  return calendar.identifier();
 }
 
 static auto ToAnyCalendarKind(CalendarId id) {
@@ -5664,12 +5636,6 @@ bool js::temporal::CalendarDateUntil(JSContext* cx,
  */
 bool js::temporal::CalendarEquals(JSContext* cx, Handle<CalendarValue> one,
                                   Handle<CalendarValue> two, bool* equals) {
-  // Step 1.
-  if (one.isObject() && two.isObject() && one.toObject() == two.toObject()) {
-    *equals = true;
-    return true;
-  }
-
   // Step 2.
   Rooted<JSLinearString*> calendarOne(cx,
                                       ToTemporalCalendarIdentifier(cx, one));
@@ -5694,11 +5660,6 @@ bool js::temporal::CalendarEquals(JSContext* cx, Handle<CalendarValue> one,
 bool js::temporal::CalendarEqualsOrThrow(JSContext* cx,
                                          Handle<CalendarValue> one,
                                          Handle<CalendarValue> two) {
-  // Step 1.
-  if (one.isObject() && two.isObject() && one.toObject() == two.toObject()) {
-    return true;
-  }
-
   // Step 2.
   Rooted<JSLinearString*> calendarOne(cx,
                                       ToTemporalCalendarIdentifier(cx, one));
