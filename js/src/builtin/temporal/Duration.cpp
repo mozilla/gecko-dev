@@ -2733,9 +2733,8 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   }
 
   // Step 6.
-  Rooted<PlainDateTimeWithCalendar> endDateTime(cx);
-  if (!CreateTemporalDateTime(cx, {end, dateTime.time}, calendar,
-                              &endDateTime)) {
+  PlainDateTime endDateTime;
+  if (!CreateTemporalDateTime(cx, end, dateTime.time, &endDateTime)) {
     return false;
   }
 

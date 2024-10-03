@@ -198,6 +198,13 @@ bool CreateTemporalDateTime(
     JS::MutableHandle<PlainDateTimeWithCalendar> result);
 
 /**
+ * CreateTemporalDateTime ( isoYear, isoMonth, isoDay, hour, minute, second,
+ * millisecond, microsecond, nanosecond, calendar [ , newTarget ] )
+ */
+bool CreateTemporalDateTime(JSContext* cx, const PlainDate& date,
+                            const PlainTime& time, PlainDateTime* result);
+
+/**
  * InterpretTemporalDateTimeFields ( calendar, fields, overflow )
  */
 bool InterpretTemporalDateTimeFields(JSContext* cx,

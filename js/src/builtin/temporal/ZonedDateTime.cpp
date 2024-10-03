@@ -518,9 +518,8 @@ static bool AddDaysToZonedDateTime(JSContext* cx, const Instant& instant,
   }
 
   // Step 4.
-  Rooted<PlainDateTimeWithCalendar> dateTimeResult(cx);
-  if (!CreateTemporalDateTime(cx, {addedDate, dateTime.time}, calendar,
-                              &dateTimeResult)) {
+  PlainDateTime dateTimeResult;
+  if (!CreateTemporalDateTime(cx, addedDate, dateTime.time, &dateTimeResult)) {
     return false;
   }
 
@@ -595,9 +594,8 @@ static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
   }
 
   // Step 11.
-  Rooted<PlainDateTimeWithCalendar> intermediateDateTime(cx);
-  if (!CreateTemporalDateTime(cx, {addedDate, time}, calendar,
-                              &intermediateDateTime)) {
+  PlainDateTime intermediateDateTime;
+  if (!CreateTemporalDateTime(cx, addedDate, time, &intermediateDateTime)) {
     return false;
   }
 
@@ -701,7 +699,6 @@ static bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
   }
 
   // Steps 9-10.
-  Rooted<PlainDateTimeWithCalendar> intermediateDateTime(cx);
   while (dayCorrection <= maxDayCorrection) {
     // Step 10.a.
     auto intermediateDate =
@@ -712,8 +709,9 @@ static bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
     // https://github.com/tc39/proposal-temporal/issues/2824
 
     // Step 10.b.
-    if (!CreateTemporalDateTime(cx, {intermediateDate, startDateTime.time},
-                                calendar, &intermediateDateTime)) {
+    PlainDateTime intermediateDateTime;
+    if (!CreateTemporalDateTime(cx, intermediateDate, startDateTime.time,
+                                &intermediateDateTime)) {
       return false;
     }
 
@@ -1880,11 +1878,10 @@ static bool ZonedDateTime_hoursInDay(JSContext* cx, const CallArgs& args) {
 
   // Steps 6-8.
   const auto& date = temporalDateTime.date;
-  Rooted<CalendarValue> isoCalendar(cx, CalendarValue(CalendarId::ISO8601));
 
   // Step 9.
-  Rooted<PlainDateTimeWithCalendar> today(cx);
-  if (!CreateTemporalDateTime(cx, {date, {}}, isoCalendar, &today)) {
+  PlainDateTime today;
+  if (!CreateTemporalDateTime(cx, date, {}, &today)) {
     return false;
   }
 
@@ -1892,9 +1889,8 @@ static bool ZonedDateTime_hoursInDay(JSContext* cx, const CallArgs& args) {
   auto tomorrowFields = BalanceISODate(date.year, date.month, date.day + 1);
 
   // Step 11.
-  Rooted<PlainDateTimeWithCalendar> tomorrow(cx);
-  if (!CreateTemporalDateTime(cx, {tomorrowFields, {}}, isoCalendar,
-                              &tomorrow)) {
+  PlainDateTime tomorrow;
+  if (!CreateTemporalDateTime(cx, tomorrowFields, {}, &tomorrow)) {
     return false;
   }
 
@@ -2345,8 +2341,8 @@ static bool ZonedDateTime_withPlainTime(JSContext* cx, const CallArgs& args) {
   auto calendar = zonedDateTime.calendar();
 
   // Step 8.
-  Rooted<PlainDateTimeWithCalendar> resultPlainDateTime(cx);
-  if (!CreateTemporalDateTime(cx, {plainDateTime.date, time}, calendar,
+  PlainDateTime resultPlainDateTime;
+  if (!CreateTemporalDateTime(cx, plainDateTime.date, time,
                               &resultPlainDateTime)) {
     return false;
   }
@@ -2629,10 +2625,8 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
   Instant epochNanoseconds;
   if (smallestUnit == TemporalUnit::Day) {
     // Step 19.a.
-    Rooted<CalendarValue> isoCalendar(cx, CalendarValue(CalendarId::ISO8601));
-    Rooted<PlainDateTimeWithCalendar> dtStart(cx);
-    if (!CreateTemporalDateTime(cx, {temporalDateTime.date, {}}, isoCalendar,
-                                &dtStart)) {
+    PlainDateTime dtStart;
+    if (!CreateTemporalDateTime(cx, temporalDateTime.date, {}, &dtStart)) {
       return false;
     }
 
@@ -2642,8 +2636,8 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
                        temporalDateTime.date.day + 1);
 
     // Step 19.c.
-    Rooted<PlainDateTimeWithCalendar> dtEnd(cx);
-    if (!CreateTemporalDateTime(cx, {dateEnd, {}}, isoCalendar, &dtEnd)) {
+    PlainDateTime dtEnd;
+    if (!CreateTemporalDateTime(cx, dateEnd, {}, &dtEnd)) {
       return false;
     }
 
@@ -2954,9 +2948,8 @@ static bool ZonedDateTime_startOfDay(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 7.
-  Rooted<PlainDateTimeWithCalendar> startDateTime(cx);
-  if (!CreateTemporalDateTime(cx, {temporalDateTime.date, {}}, calendar,
-                              &startDateTime)) {
+  PlainDateTime startDateTime;
+  if (!CreateTemporalDateTime(cx, temporalDateTime.date, {}, &startDateTime)) {
     return false;
   }
 
