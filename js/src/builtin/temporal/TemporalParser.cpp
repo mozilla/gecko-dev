@@ -986,7 +986,7 @@ mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
   }
 
   // Optional: -
-  character('-');
+  bool hasMonthSeparator = character('-');
 
   // DateMonth :::
   //   0 NonzeroDigit
@@ -1003,7 +1003,12 @@ mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
   }
 
   // Optional: -
-  character('-');
+  bool hasDaySeparator = character('-');
+
+  // Date separators must be consistent.
+  if (hasMonthSeparator != hasDaySeparator) {
+    return mozilla::Err(JSMSG_TEMPORAL_PARSER_INCONSISTENT_DATE_SEPARATOR);
+  }
 
   // DateDay :::
   //   0 NonzeroDigit
@@ -1053,7 +1058,7 @@ mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::timeSpec() {
   }
 
   // Optional: :
-  bool needsMinutes = character(':');
+  bool hasMinuteSeparator = character(':');
 
   // TimeMinute :::
   //   MinuteSecond
@@ -1072,7 +1077,7 @@ mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::timeSpec() {
     }
 
     // Optional: :
-    bool needsSeconds = needsMinutes && character(':');
+    bool hasSecondSeparator = character(':');
 
     // TimeSecond :::
     //   MinuteSecond
@@ -1083,6 +1088,11 @@ mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::timeSpec() {
         return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_LEAPSECOND);
       }
 
+      // Time separators must be consistent.
+      if (hasMinuteSeparator != hasSecondSeparator) {
+        return mozilla::Err(JSMSG_TEMPORAL_PARSER_INCONSISTENT_TIME_SEPARATOR);
+      }
+
       // TimeFraction :::
       //   Fraction
       if (auto f = fraction()) {
@@ -1091,10 +1101,10 @@ mozilla::Result<PlainTime, ParserError> TemporalParser<CharT>::timeSpec() {
         result.microsecond = (fractionalPart % 1'000'000) / 1'000;
         result.nanosecond = fractionalPart % 1'000;
       }
-    } else if (needsSeconds) {
+    } else if (hasSecondSeparator) {
       return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_SECOND);
     }
-  } else if (needsMinutes) {
+  } else if (hasMinuteSeparator) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MINUTE);
   }
 
@@ -1231,7 +1241,7 @@ TemporalParser<CharT>::utcOffsetSubMinutePrecision() {
   // TimeSeparator[Extended] :::
   //   [+Extended] :
   //   [~Extended] [empty]
-  bool needsMinutes = character(':');
+  bool hasMinuteSeparator = character(':');
 
   // MinuteSecond :::
   //   0 DecimalDigit
@@ -1249,7 +1259,7 @@ TemporalParser<CharT>::utcOffsetSubMinutePrecision() {
     // TimeSeparator[Extended] :::
     //   [+Extended] :
     //   [~Extended] [empty]
-    bool needsSeconds = needsMinutes && character(':');
+    bool hasSecondSeparator = character(':');
 
     // MinuteSecond :::
     //   0 DecimalDigit
@@ -1264,15 +1274,20 @@ TemporalParser<CharT>::utcOffsetSubMinutePrecision() {
         return mozilla::Err(JSMSG_TEMPORAL_PARSER_INVALID_SECOND);
       }
 
+      // Time separators must be consistent.
+      if (hasMinuteSeparator != hasSecondSeparator) {
+        return mozilla::Err(JSMSG_TEMPORAL_PARSER_INCONSISTENT_TIME_SEPARATOR);
+      }
+
       if (auto fractionalPart = fraction()) {
         result.fractionalPart = fractionalPart.value();
       }
 
       result.subMinutePrecision = true;
-    } else if (needsSeconds) {
+    } else if (hasSecondSeparator) {
       return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_SECOND);
     }
-  } else if (needsMinutes) {
+  } else if (hasMinuteSeparator) {
     return mozilla::Err(JSMSG_TEMPORAL_PARSER_MISSING_MINUTE);
   }
 
