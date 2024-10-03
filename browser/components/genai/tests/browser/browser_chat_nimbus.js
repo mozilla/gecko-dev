@@ -111,3 +111,101 @@ add_task(async function test_nimbus_default_prefs() {
   Services.prefs.clearUserPref("browser.ml.chat.nimbus");
   Services.prefs.getDefaultBranch("").setBoolPref(pref, true);
 });
+
+/**
+ * Check that rollout sets prefs then prefer experiment
+ */
+add_task(async function test_nimbus_rollout_experiment() {
+  const foo = "browser.ml.chat.foo";
+  const nimbus = "browser.ml.chat.nimbus";
+  const cleanRollout = await ExperimentFakes.enrollWithFeatureConfig(
+    {
+      featureId: "chatbot",
+      value: {
+        prefs: {
+          foo: { value: "roll" },
+        },
+      },
+    },
+    { isRollout: true }
+  );
+
+  Assert.equal(
+    Services.prefs.getStringPref(foo),
+    "roll",
+    "Set user pref with rollout"
+  );
+  const nimbusValue = Services.prefs.getStringPref(nimbus);
+  Assert.ok(nimbusValue, "Set some nimbus slug");
+
+  const cleanExperiment = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "chatbot",
+    value: {
+      prefs: {
+        foo: { value: "exp" },
+      },
+    },
+  });
+
+  Assert.equal(
+    Services.prefs.getStringPref(foo),
+    "exp",
+    "Set user pref with experiment"
+  );
+  Assert.notEqual(
+    Services.prefs.getStringPref(nimbus),
+    nimbusValue,
+    "nimbus pref changed by experiment"
+  );
+
+  cleanRollout();
+  cleanExperiment();
+  Services.prefs.clearUserPref(nimbus);
+  Services.prefs.clearUserPref(foo);
+});
+
+/**
+ * Check that minimum versions get enforced
+ */
+add_task(async function test_nimbus_minimum_version() {
+  const foo = "browser.ml.chat.foo";
+  const nimbus = "browser.ml.chat.nimbus";
+  let cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "chatbot",
+    value: {
+      minVersion: AppConstants.MOZ_APP_VERSION_DISPLAY + ".1",
+      prefs: {
+        foo: { value: "ver" },
+      },
+    },
+  });
+
+  Assert.ok(
+    !Services.prefs.prefHasUserValue(foo),
+    "foo pref not set for version"
+  );
+  Assert.ok(!Services.prefs.prefHasUserValue(nimbus), "nimbus pref not set");
+
+  cleanup();
+
+  cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "chatbot",
+    value: {
+      minVersion: AppConstants.MOZ_APP_VERSION_DISPLAY,
+      prefs: {
+        foo: { value: "ver" },
+      },
+    },
+  });
+
+  Assert.equal(
+    Services.prefs.getStringPref(foo),
+    "ver",
+    "pref set for version"
+  );
+  Assert.ok(Services.prefs.getStringPref(nimbus), "nimbus pref set");
+
+  cleanup();
+  Services.prefs.clearUserPref(nimbus);
+  Services.prefs.clearUserPref(foo);
+});

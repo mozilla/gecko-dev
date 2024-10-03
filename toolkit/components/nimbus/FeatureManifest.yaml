@@ -3777,6 +3777,9 @@ chatbot:
   owner: elee@mozilla.com
   hasExposure: false
   variables:
+    minVersion:
+      type: string
+      description: Minimum Firefox version to apply prefs
     prefs:
       type: json
       description: >-
