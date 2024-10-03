@@ -12681,7 +12681,9 @@ bool InitOptionParser(OptionParser& op) {
                         "Enable WebAssembly tail-calls proposal.") ||
       !op.addBoolOption('\0', "wasm-js-string-builtins",
                         "Enable WebAssembly js-string-builtins proposal.") ||
-      !op.addBoolOption('\0', "enable-promise-try", "Enable Promise.try")) {
+      !op.addBoolOption('\0', "enable-promise-try", "Enable Promise.try") ||
+      !op.addBoolOption('\0', "enable-math-sumprecise",
+                        "Enable Math.sumPrecise")) {
     return false;
   }
 
@@ -12759,6 +12761,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-promise-try")) {
     JS::Prefs::setAtStartup_experimental_promise_try(true);
+  }
+  if (op.getBoolOption("enable-math-sumprecise")) {
+    JS::Prefs::setAtStartup_experimental_math_sumprecise(true);
   }
 #endif
   if (op.getBoolOption("enable-json-parse-with-source")) {
