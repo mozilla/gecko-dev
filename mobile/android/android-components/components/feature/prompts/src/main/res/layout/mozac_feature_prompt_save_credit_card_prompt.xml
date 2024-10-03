@@ -45,7 +45,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
-        android:text="@string/mozac_feature_prompts_save_credit_card_prompt_body"
+        android:text="@string/mozac_feature_prompts_save_credit_card_prompt_body_2"
         android:textColor="?android:textColorSecondary"
         android:textSize="14sp"
         android:visibility="gone"

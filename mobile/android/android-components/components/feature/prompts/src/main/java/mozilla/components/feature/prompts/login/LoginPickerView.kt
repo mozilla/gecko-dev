@@ -133,9 +133,9 @@ private fun LoginPickerHeader(
     modifier: Modifier = Modifier,
 ) {
     val headerContentDescription = if (isExpanded) {
-        stringResource(id = R.string.mozac_feature_prompts_collapse_logins_content_description)
+        stringResource(id = R.string.mozac_feature_prompts_collapse_logins_content_description_2)
     } else {
-        stringResource(id = R.string.mozac_feature_prompts_expand_logins_content_description)
+        stringResource(id = R.string.mozac_feature_prompts_expand_logins_content_description_2)
     }
 
     val chevronResourceId = if (isExpanded) {

@@ -250,7 +250,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                         setViewState(
                             loginValid = false,
                             passwordErrorText =
-                            context?.getString(R.string.mozac_feature_prompt_error_empty_password),
+                            context?.getString(R.string.mozac_feature_prompt_error_empty_password_2),
                         )
                     } else {
                         setViewState(
@@ -343,7 +343,7 @@ internal class SaveLoginDialogFragment : PromptDialogFragment() {
                             } else {
                                 context?.getString(R.string.mozac_feature_prompt_login_update_headline_2)
                             },
-                            negativeText = context?.getString(R.string.mozac_feature_prompt_dont_update),
+                            negativeText = context?.getString(R.string.mozac_feature_prompt_dont_update_2),
                             confirmText =
                             context?.getString(R.string.mozac_feature_prompt_update_confirmation),
                         )

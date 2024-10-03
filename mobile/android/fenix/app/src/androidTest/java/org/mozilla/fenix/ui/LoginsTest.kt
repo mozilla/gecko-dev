@@ -560,7 +560,7 @@ class LoginsTest : TestSetup() {
             waitForAppWindowToBeUpdated()
             clickPageObject(itemWithResId("submit"))
             verifySaveLoginPromptIsDisplayed()
-            clickPageObject(itemWithText("Don’t update"))
+            clickPageObject(itemWithText("Not now"))
         }.openThreeDotMenu {
         }.openSettings {
         }.openLoginsAndPasswordSubMenu {

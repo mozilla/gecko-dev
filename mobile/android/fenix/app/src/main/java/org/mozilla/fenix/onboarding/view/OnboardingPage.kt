@@ -191,21 +191,21 @@ private fun OnboardingPagePreview() {
             pageState = OnboardingPageState(
                 imageRes = R.drawable.ic_notification_permission,
                 title = stringResource(
-                    id = R.string.onboarding_home_enable_notifications_title,
+                    id = R.string.onboarding_home_welcome_title_2,
                     formatArgs = arrayOf(stringResource(R.string.app_name)),
                 ),
                 description = stringResource(
-                    id = R.string.onboarding_home_enable_notifications_description,
+                    id = R.string.onboarding_home_welcome_description,
                     formatArgs = arrayOf(stringResource(R.string.app_name)),
                 ),
                 primaryButton = Action(
                     text = stringResource(
-                        id = R.string.onboarding_home_enable_notifications_positive_button,
+                        id = R.string.onboarding_home_get_started_button,
                     ),
                     onClick = {},
                 ),
                 secondaryButton = Action(
-                    text = stringResource(id = R.string.onboarding_home_enable_notifications_negative_button),
+                    text = stringResource(id = R.string.onboarding_home_skip_button),
                     onClick = {},
                 ),
                 onRecordImpressionEvent = {},
