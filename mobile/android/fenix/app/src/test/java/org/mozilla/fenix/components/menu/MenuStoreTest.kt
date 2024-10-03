@@ -324,12 +324,12 @@ class MenuStoreTest {
         }
 
     @Test
-    fun `WHEN update web extension menu items is dispatched THEN extension state is updated`() =
+    fun `WHEN update browser web extension menu items is dispatched THEN extension state is updated`() =
         runTest {
             val initialState = MenuState()
             val store = MenuStore(initialState = initialState)
             val webExtensionMenuItemList = listOf(
-                WebExtensionMenuItem(
+                WebExtensionMenuItem.WebExtensionBrowserMenuItem(
                     label = "label",
                     enabled = true,
                     icon = null,
@@ -340,10 +340,35 @@ class MenuStoreTest {
                     },
                 ),
             )
-            store.dispatch(MenuAction.UpdateWebExtensionMenuItems(webExtensionMenuItemList)).join()
+            store.dispatch(MenuAction.UpdateWebExtensionBrowserMenuItems(webExtensionMenuItemList)).join()
 
             assertEquals(
-                store.state.extensionMenuState.webExtensionMenuItems,
+                store.state.extensionMenuState.browserWebExtensionMenuItem,
+                webExtensionMenuItemList,
+            )
+        }
+
+    @Test
+    fun `WHEN update page web extension menu items is dispatched THEN extension state is updated`() =
+        runTest {
+            val initialState = MenuState()
+            val store = MenuStore(initialState = initialState)
+            val webExtensionMenuItemList = listOf(
+                WebExtensionMenuItem.WebExtensionPageMenuItem(
+                    label = "label",
+                    enabled = true,
+                    icon = null,
+                    badgeText = "1",
+                    badgeTextColor = Color.White.toArgb(),
+                    badgeBackgroundColor = Color.Gray.toArgb(),
+                    onClick = {
+                    },
+                ),
+            )
+            store.dispatch(MenuAction.UpdateWebExtensionPageMenuItems(webExtensionMenuItemList)).join()
+
+            assertEquals(
+                store.state.toolsMenuState.pageWebExtensionMenuItem,
                 webExtensionMenuItemList,
             )
         }

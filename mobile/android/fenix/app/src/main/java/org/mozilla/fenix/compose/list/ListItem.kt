@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -67,6 +68,7 @@ private const val TOAST_LENGTH = Toast.LENGTH_SHORT
  *
  * @param label The label in the list item.
  * @param iconPainter [Painter] used to display an [Icon] at the beginning of the list item.
+ * @param iconTint Tint color to be applied on the [Icon].
  * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
  * be clickable.
  * @param modifier [Modifier] to be applied to the layout.
@@ -77,6 +79,7 @@ private const val TOAST_LENGTH = Toast.LENGTH_SHORT
 fun ImageListItem(
     label: String,
     iconPainter: Painter,
+    iconTint: Color? = null,
     enabled: Boolean,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
@@ -92,6 +95,7 @@ fun ImageListItem(
                 painter = iconPainter,
                 contentDescription = null,
                 modifier = Modifier.size(ICON_SIZE),
+                colorFilter = iconTint?.let { ColorFilter.tint(it) },
             )
 
             Spacer(modifier = Modifier.width(16.dp))

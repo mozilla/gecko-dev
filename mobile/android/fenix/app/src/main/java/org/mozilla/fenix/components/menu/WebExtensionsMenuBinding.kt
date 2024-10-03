@@ -13,8 +13,10 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.WebExtensionState
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.helpers.AbstractBinding
+import org.mozilla.fenix.components.menu.compose.WebExtensionMenuItem
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
@@ -58,50 +60,96 @@ class WebExtensionsMenuBinding(
                 )
             }
             .collect { webExtensionsFlowState ->
-                val webExtensionMenuItems = ArrayList<WebExtensionMenuItem>()
-                webExtensionsFlowState.browserState.extensions.values.filter { it.enabled }
-                    .sortedBy { it.name }
-                    .forEach { extension ->
-                        if (!extension.allowedInPrivateBrowsing &&
+                val eligibleExtensions = webExtensionsFlowState.browserState.extensions.values
+                    .filter { it.enabled }
+                    .filterNot {
+                        !it.allowedInPrivateBrowsing &&
                             webExtensionsFlowState.sessionState.content.private
-                        ) {
-                            return@forEach
-                        }
-
-                        extension.browserAction?.let { extensionBrowserAction ->
-                            var browserAction = extensionBrowserAction
-
-                            val tabPageAction =
-                                webExtensionsFlowState.sessionState.extensionState[extension.id]?.browserAction
-
-                            tabPageAction?.let {
-                                browserAction = browserAction.copyWithOverride(it)
-                            }
-
-                            if (browserAction.title == null || browserAction.enabled == false) {
-                                return@collect
-                            }
-
-                            val loadIcon = browserAction.loadIcon?.invoke(iconSize)
-
-                            webExtensionMenuItems.add(
-                                WebExtensionMenuItem(
-                                    label = browserAction.title!!,
-                                    enabled = browserAction.enabled,
-                                    icon = loadIcon,
-                                    badgeText = browserAction.badgeText,
-                                    badgeTextColor = browserAction.badgeTextColor,
-                                    badgeBackgroundColor = browserAction.badgeBackgroundColor,
-                                    onClick = {
-                                        onDismiss()
-                                        browserAction.onClick()
-                                    },
-                                ),
-                            )
-                        }
                     }
-                menuStore.dispatch(MenuAction.UpdateWebExtensionMenuItems(webExtensionMenuItems))
+                    .sortedBy { it.name }
+
+                val pageWebExtensionMenuItems = eligibleExtensions.mapNotNull { extension ->
+                    extension.pageAction?.let { pageAction ->
+                        getWebExtensionMenuItem(
+                            extension = extension,
+                            webExtensionsFlowState = webExtensionsFlowState,
+                            globalAction = pageAction,
+                            isPageAction = true,
+                        ) as WebExtensionMenuItem.WebExtensionPageMenuItem
+                    }
+                }
+
+                val browserWebExtensionMenuItems = eligibleExtensions.mapNotNull { extension ->
+                    extension.browserAction?.let { browserAction ->
+                        getWebExtensionMenuItem(
+                            extension = extension,
+                            webExtensionsFlowState = webExtensionsFlowState,
+                            globalAction = browserAction,
+                        ) as WebExtensionMenuItem.WebExtensionBrowserMenuItem
+                    }
+                }
+
+                menuStore.dispatch(
+                    MenuAction.UpdateWebExtensionBrowserMenuItems(browserWebExtensionMenuItems),
+                )
+                menuStore.dispatch(
+                    MenuAction.UpdateWebExtensionPageMenuItems(pageWebExtensionMenuItems),
+                )
             }
+    }
+
+    private suspend fun getWebExtensionMenuItem(
+        extension: WebExtensionState,
+        webExtensionsFlowState: WebExtensionsFlowState,
+        globalAction: Action,
+        isPageAction: Boolean = false,
+    ): Any? {
+        val tabAction = if (isPageAction) {
+            webExtensionsFlowState.sessionState.extensionState[extension.id]?.pageAction
+        } else {
+            webExtensionsFlowState.sessionState.extensionState[extension.id]?.browserAction
+        }
+
+        // Apply tab-specific override of browser/page action
+        val action = tabAction?.let {
+            globalAction.copyWithOverride(it)
+        } ?: globalAction
+
+        if (isPageAction && action.enabled == false) {
+            return null
+        }
+
+        val title = action.title ?: return null
+
+        val loadIcon = action.loadIcon?.invoke(iconSize)
+
+        return if (isPageAction) {
+            WebExtensionMenuItem.WebExtensionPageMenuItem(
+                label = title,
+                enabled = action.enabled,
+                icon = loadIcon,
+                badgeText = action.badgeText,
+                badgeTextColor = action.badgeTextColor,
+                badgeBackgroundColor = action.badgeBackgroundColor,
+                onClick = {
+                    onDismiss()
+                    action.onClick()
+                },
+            )
+        } else {
+            WebExtensionMenuItem.WebExtensionBrowserMenuItem(
+                label = title,
+                enabled = action.enabled,
+                icon = loadIcon,
+                badgeText = action.badgeText,
+                badgeTextColor = action.badgeTextColor,
+                badgeBackgroundColor = action.badgeBackgroundColor,
+                onClick = {
+                    onDismiss()
+                    action.onClick()
+                },
+            )
+        }
     }
 }
 
