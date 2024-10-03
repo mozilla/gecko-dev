@@ -39,8 +39,12 @@ describe("MomentsPageHub", () => {
           getStringPref: getStringPrefStub,
           setStringPref: setStringPrefStub,
         },
-        telemetry: {
-          recordEvent: () => {},
+      },
+      Glean: {
+        messagingExperiments: {
+          reachMomentsPage: {
+            record: () => {},
+          },
         },
       },
     });
@@ -180,12 +184,14 @@ describe("MomentsPageHub", () => {
         ...momentsMessages,
       ];
       handleMessageRequestStub.resolves(messages);
-      sandbox.spy(global.Services.telemetry, "recordEvent");
+      sandbox.spy(global.Glean.messagingExperiments.reachMomentsPage, "record");
       sandbox.spy(instance, "executeAction");
 
       await instance.messageRequest({ triggerId: "trigger" });
 
-      assert.calledOnce(global.Services.telemetry.recordEvent);
+      assert.calledOnce(
+        global.Glean.messagingExperiments.reachMomentsPage.record
+      );
       assert.calledOnce(instance.executeAction);
     });
     it("should not record the Reach event if it's already sent", async () => {
@@ -197,11 +203,13 @@ describe("MomentsPageHub", () => {
         },
       ];
       handleMessageRequestStub.resolves(messages);
-      sandbox.spy(global.Services.telemetry, "recordEvent");
+      sandbox.spy(global.Glean.messagingExperiments.reachMomentsPage, "record");
 
       await instance.messageRequest({ triggerId: "trigger" });
 
-      assert.notCalled(global.Services.telemetry.recordEvent);
+      assert.notCalled(
+        global.Glean.messagingExperiments.reachMomentsPage.record
+      );
     });
     it("should not trigger the action if it's only for the Reach event", async () => {
       const messages = [
@@ -212,12 +220,14 @@ describe("MomentsPageHub", () => {
         },
       ];
       handleMessageRequestStub.resolves(messages);
-      sandbox.spy(global.Services.telemetry, "recordEvent");
+      sandbox.spy(global.Glean.messagingExperiments.reachMomentsPage, "record");
       sandbox.spy(instance, "executeAction");
 
       await instance.messageRequest({ triggerId: "trigger" });
 
-      assert.calledOnce(global.Services.telemetry.recordEvent);
+      assert.calledOnce(
+        global.Glean.messagingExperiments.reachMomentsPage.record
+      );
       assert.notCalled(instance.executeAction);
     });
   });

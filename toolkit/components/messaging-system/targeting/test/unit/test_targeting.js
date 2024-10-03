@@ -99,7 +99,7 @@ add_task(async function log_targeting_error_events() {
   let {
     args: [{ event, value }],
   } = stub.firstCall;
-  Assert.equal(event, "attribute_error", "Correct error message");
+  Assert.equal(event, "AttributeError", "Correct error message");
   Assert.equal(value, "foo", "Correct attribute name");
 });
 
@@ -138,7 +138,7 @@ add_task(async function log_targeting_error_events_in_namespace() {
   let {
     args: [{ event, value }],
   } = stub.firstCall;
-  Assert.equal(event, "attribute_error", "Correct error message");
+  Assert.equal(event, "AttributeError", "Correct error message");
   Assert.equal(value, "ctx.foo", "Correct attribute name");
   Assert.ok(catchStub.calledOnce, "eval throws errors");
 });
@@ -166,7 +166,7 @@ add_task(async function log_timeout_errors() {
   let {
     args: [{ event, value }],
   } = stub.firstCall;
-  Assert.equal(event, "attribute_timeout", "Correct error message");
+  Assert.equal(event, "AttributeTimeout", "Correct error message");
   Assert.equal(value, "ctx.foo", "Correct attribute name");
 });
 

@@ -425,7 +425,6 @@ const TEST_GLOBAL = {
     },
     telemetry: {
       setEventRecordingEnabled: () => {},
-      recordEvent: _eventDetails => {},
       scalarSet: () => {},
       keyedScalarAdd: () => {},
     },
@@ -605,6 +604,11 @@ const TEST_GLOBAL = {
   getFxAccountsSingleton() {},
   AboutNewTab: {},
   Glean: {
+    messagingExperiments: {
+      reachCfr: {
+        record() {},
+      },
+    },
     newtab: {
       opened: {
         record() {},

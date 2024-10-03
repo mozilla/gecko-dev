@@ -21,11 +21,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const TARGETING_EVENT_CATEGORY = "messaging_experiments";
-const TARGETING_EVENT_METHOD = "targeting";
 const DEFAULT_TIMEOUT = 5000;
 const ERROR_TYPES = {
-  ATTRIBUTE_ERROR: "attribute_error",
-  TIMEOUT: "attribute_timeout",
+  ATTRIBUTE_ERROR: "AttributeError",
+  TIMEOUT: "AttributeTimeout",
 };
 
 const TargetingEnvironment = {
@@ -93,23 +92,13 @@ export class TargetingContext {
     }
   }
 
-  _sendUndesiredEvent(eventData) {
+  _sendUndesiredEvent({ event, value }) {
+    let extra = { value };
     if (this.#telemetrySource) {
-      Services.telemetry.recordEvent(
-        TARGETING_EVENT_CATEGORY,
-        TARGETING_EVENT_METHOD,
-        eventData.event,
-        eventData.value,
-        { source: this.#telemetrySource }
-      );
-    } else {
-      Services.telemetry.recordEvent(
-        TARGETING_EVENT_CATEGORY,
-        TARGETING_EVENT_METHOD,
-        eventData.event,
-        eventData.value
-      );
+      extra.source = this.#telemetrySource;
     }
+
+    Glean.messagingExperiments["targeting" + event].record(extra);
   }
 
   /**
