@@ -13,9 +13,6 @@ class FenixDependenciesPlugin : Plugin<Settings> {
 }
 
 object FenixVersions {
-    const val falcon = "2.2.0"
-    const val fastlane = "2.1.1"
-
     const val adjust = "4.38.2"
     const val installreferrer = "2.2"
 }
@@ -24,9 +21,6 @@ object FenixVersions {
 object FenixDependencies {
     const val adjust = "com.adjust.sdk:adjust-android:${FenixVersions.adjust}"
     const val installreferrer = "com.android.installreferrer:installreferrer:${FenixVersions.installreferrer}"
-
-    const val falcon = "com.jraska:falcon:${FenixVersions.falcon}"
-    const val fastlane = "tools.fastlane:screengrab:${FenixVersions.fastlane}"
 }
 
 /**

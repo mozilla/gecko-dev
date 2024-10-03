@@ -716,9 +716,8 @@ dependencies {
         }
     }
 
-    androidTestImplementation FenixDependencies.fastlane
-    // This Falcon version is added to maven central now required for Screengrab
-    androidTestImplementation FenixDependencies.falcon
+    androidTestImplementation ComponentsDependencies.testing_fastlane
+    androidTestImplementation ComponentsDependencies.testing_falcon
 
     androidTestImplementation(ComponentsDependencies.androidx_espresso_contrib) {
         exclude module: 'protobuf-lite'

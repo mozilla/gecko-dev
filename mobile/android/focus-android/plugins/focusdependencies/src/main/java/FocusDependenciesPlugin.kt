@@ -17,17 +17,9 @@ object FocusVersions {
         const val adjust = "4.38.2"
         const val install_referrer = "2.2"
     }
-
-    object Testing {
-        const val falcon = "2.2.0"
-        const val fastlane = "2.1.1"
-    }
 }
 
 object FocusDependencies {
     const val adjust = "com.adjust.sdk:adjust-android:${FocusVersions.Adjust.adjust}"
     const val install_referrer = "com.android.installreferrer:installreferrer:${FocusVersions.Adjust.install_referrer}"
-
-    const val falcon = "com.jraska:falcon:${FocusVersions.Testing.falcon}"
-    const val fastlane = "tools.fastlane:screengrab:${FocusVersions.Testing.fastlane}"
 }

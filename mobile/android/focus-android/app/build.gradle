@@ -359,8 +359,8 @@ dependencies {
     testImplementation ComponentsDependencies.testing_mockwebserver
     testImplementation project(':lib-fetch-okhttp')
 
-    androidTestImplementation FocusDependencies.fastlane
-    androidTestImplementation FocusDependencies.falcon // Required by fastlane
+    androidTestImplementation ComponentsDependencies.testing_fastlane
+    androidTestImplementation ComponentsDependencies.testing_falcon
 
     constraints {
         implementation (ComponentsDependencies.androidx_tracing) {
