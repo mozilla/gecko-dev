@@ -719,13 +719,24 @@ static bool PlainYearMonthConstructor(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Step 5.
-  Rooted<CalendarValue> calendar(cx);
-  if (!ToTemporalCalendarWithISODefault(cx, args.get(2), &calendar)) {
-    return false;
+  // Steps 5-8.
+  Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
+  if (args.hasDefined(2)) {
+    // Step 6.
+    if (!args[2].isString()) {
+      ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK, args[2],
+                       nullptr, "not a string");
+      return false;
+    }
+
+    // Steps 7-8.
+    Rooted<JSString*> calendarString(cx, args[2].toString());
+    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+      return false;
+    }
   }
 
-  // Steps 2 and 6.
+  // Steps 2 and 9.
   double isoDay = 1;
   if (args.hasDefined(3)) {
     if (!ToIntegerWithTruncation(cx, args[3], "day", &isoDay)) {
@@ -733,7 +744,7 @@ static bool PlainYearMonthConstructor(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  // Step 7.
+  // Step 10.
   auto* yearMonth =
       CreateTemporalYearMonth(cx, args, isoYear, isoMonth, isoDay, calendar);
   if (!yearMonth) {

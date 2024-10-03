@@ -1175,13 +1175,24 @@ static bool PlainDateTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  // Step 11.
-  Rooted<CalendarValue> calendar(cx);
-  if (!ToTemporalCalendarWithISODefault(cx, args.get(9), &calendar)) {
-    return false;
+  // Steps 11-14.
+  Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
+  if (args.hasDefined(9)) {
+    // Step 12.
+    if (!args[9].isString()) {
+      ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK, args[9],
+                       nullptr, "not a string");
+      return false;
+    }
+
+    // Steps 13-14.
+    Rooted<JSString*> calendarString(cx, args[9].toString());
+    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+      return false;
+    }
   }
 
-  // Step 12.
+  // Step 15.
   auto* temporalDateTime = CreateTemporalDateTime(
       cx, args, isoYear, isoMonth, isoDay, hour, minute, second, millisecond,
       microsecond, nanosecond, calendar);

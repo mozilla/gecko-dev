@@ -1177,15 +1177,40 @@ static bool ZonedDateTimeConstructor(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 4.
-  Rooted<TimeZoneValue> timeZone(cx);
-  if (!ToTemporalTimeZone(cx, args.get(1), &timeZone)) {
+  if (!args.get(1).isString()) {
+    ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK, args.get(1),
+                     nullptr, "not a string");
     return false;
   }
 
   // Step 5.
-  Rooted<CalendarValue> calendar(cx);
-  if (!ToTemporalCalendarWithISODefault(cx, args.get(2), &calendar)) {
+  Rooted<JSString*> timeZoneString(cx, args[1].toString());
+  Rooted<ParsedTimeZone> timeZoneParse(cx);
+  if (!ParseTimeZoneIdentifier(cx, timeZoneString, &timeZoneParse)) {
     return false;
+  }
+
+  // Steps 6-7.
+  Rooted<TimeZoneValue> timeZone(cx);
+  if (!ToTemporalTimeZone(cx, timeZoneParse, &timeZone)) {
+    return false;
+  }
+
+  // Steps 8-11.
+  Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
+  if (args.hasDefined(2)) {
+    // Step 9.
+    if (!args[2].isString()) {
+      ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK, args[2],
+                       nullptr, "not a string");
+      return false;
+    }
+
+    // Steps 10-11.
+    Rooted<JSString*> calendarString(cx, args[2].toString());
+    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+      return false;
+    }
   }
 
   // Step 6.

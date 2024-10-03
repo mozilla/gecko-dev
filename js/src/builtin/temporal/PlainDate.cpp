@@ -1322,13 +1322,24 @@ static bool PlainDateConstructor(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // Step 5.
-  Rooted<CalendarValue> calendar(cx);
-  if (!ToTemporalCalendarWithISODefault(cx, args.get(3), &calendar)) {
-    return false;
+  // Steps 5-8.
+  Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
+  if (args.hasDefined(3)) {
+    // Step 6.
+    if (!args[3].isString()) {
+      ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK, args[3],
+                       nullptr, "not a string");
+      return false;
+    }
+
+    // Steps 7-8.
+    Rooted<JSString*> calendarString(cx, args[3].toString());
+    if (!ToBuiltinCalendar(cx, calendarString, &calendar)) {
+      return false;
+    }
   }
 
-  // Step 6.
+  // Step 9.
   auto* temporalDate =
       CreateTemporalDate(cx, args, isoYear, isoMonth, isoDay, calendar);
   if (!temporalDate) {
