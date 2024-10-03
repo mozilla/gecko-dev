@@ -934,8 +934,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     var shouldUseBottomToolbar by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_toolbar_bottom),
+        key = appContext.getPreferenceKey(R.string.pref_key_toolbar_bottom),
         default = false,
+        persistDefaultIfNotExists = true,
     )
 
     val toolbarPosition: ToolbarPosition
