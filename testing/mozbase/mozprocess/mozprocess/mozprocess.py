@@ -6,6 +6,7 @@ import os
 import subprocess
 import threading
 import time
+from queue import Empty, Queue
 
 
 def run_and_wait(
@@ -42,29 +43,6 @@ def run_and_wait(
     :param output_line_handler: function to be called for every line of process output
     """
     is_win = os.name == "nt"
-    context = {"output_timer": None, "proc_timer": None, "timed_out": False}
-
-    def base_timeout_handler():
-        context["timed_out"] = True
-        if context["output_timer"]:
-            context["output_timer"].cancel()
-        if timeout_handler:
-            timeout_handler(proc)
-
-    def base_output_timeout_handler():
-        seconds_since_last_output = time.time() - output_time
-        next_possible_output_timeout = output_timeout - seconds_since_last_output
-        if next_possible_output_timeout <= 0:
-            context["timed_out"] = True
-            if context["proc_timer"]:
-                context["proc_timer"].cancel()
-            if output_timeout_handler:
-                output_timeout_handler(proc)
-        else:
-            context["output_timer"] = threading.Timer(
-                next_possible_output_timeout, base_output_timeout_handler
-            )
-            context["output_timer"].start()
 
     if env is None:
         env = os.environ.copy()
@@ -78,6 +56,23 @@ def run_and_wait(
             "preexec_fn": os.setsid,
         }
 
+    start_time = time.time()
+    if timeout is not None:
+        timeout += start_time
+
+    queue = Queue()
+
+    def get_line():
+        queue_timeout = None
+        if timeout:
+            queue_timeout = timeout - time.time()
+        if output_timeout:
+            if queue_timeout:
+                queue_timeout = min(queue_timeout, output_timeout)
+            else:
+                queue_timeout = output_timeout
+        return queue.get(timeout=queue_timeout)
+
     proc = subprocess.Popen(
         args,
         cwd=cwd,
@@ -88,32 +83,34 @@ def run_and_wait(
         **kwargs
     )
 
-    if timeout:
-        context["proc_timer"] = threading.Timer(timeout, base_timeout_handler)
-        context["proc_timer"].start()
+    def reader(fh, queue):
+        for line in iter(fh.readline, "" if text else b""):
+            queue.put(line)
+        # Give a chance to the reading loop to exit without a timeout.
+        queue.put(b"")
 
-    if output_timeout:
-        output_time = time.time()
-        context["output_timer"] = threading.Timer(
-            output_timeout, base_output_timeout_handler
-        )
-        context["output_timer"].start()
+    threading.Thread(
+        name="reader",
+        target=reader,
+        args=(
+            proc.stdout,
+            queue,
+        ),
+        daemon=True,
+    ).start()
 
-    for line in proc.stdout:
-        output_time = time.time()
-        if output_line_handler:
-            output_line_handler(proc, line)
-        else:
-            print(line)
-        if context["timed_out"]:
-            break
-
-    if not context["timed_out"]:
+    try:
+        for line in iter(get_line, b""):
+            if output_line_handler:
+                output_line_handler(proc, line)
+            else:
+                print(line)
         proc.wait()
-
-    if timeout:
-        context["proc_timer"].cancel()
-    if output_timeout:
-        context["output_timer"].cancel()
+    except Empty:
+        if timeout and time.time() < timeout or not timeout:
+            if output_timeout_handler:
+                output_timeout_handler(proc)
+        elif timeout_handler:
+            timeout_handler(proc)
 
     return proc

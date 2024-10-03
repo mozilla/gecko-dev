@@ -1159,7 +1159,7 @@ class ProcessReader(object):
             except Exception:
                 traceback.print_exc()
         except Empty:
-            if timeout and time.time() < timeout:
+            if timeout and time.time() < timeout or not timeout:
                 self.didOutputTimeout = True
             try:
                 self.timeout_callback()
