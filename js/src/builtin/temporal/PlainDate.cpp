@@ -893,6 +893,23 @@ static bool HasYearsMonthsOrWeeks(const DateDuration& duration) {
 }
 
 /**
+ * AddDate ( plainDate, duration, overflow )
+ */
+bool js::temporal::AddDate(JSContext* cx, Handle<CalendarValue> calendar,
+                           const PlainDate& date, const DateDuration& duration,
+                           TemporalOverflow overflow, PlainDate* result) {
+  // Step 1.
+  if (HasYearsMonthsOrWeeks(duration)) {
+    return CalendarDateAdd(cx, calendar, date, duration, overflow, result);
+  }
+
+  // Steps 2-4. (Not applicable)
+
+  // Steps 5-6.
+  return AddISODate(cx, date, duration, overflow, result);
+}
+
+/**
  * AddDate ( calendarRec, plainDate, duration [ , options ] )
  */
 static bool AddDate(JSContext* cx, const PlainDate& date,

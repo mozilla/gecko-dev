@@ -11,6 +11,7 @@
 
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/TemporalTypes.h"
+#include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
 #include "vm/NativeObject.h"
@@ -54,12 +55,71 @@ inline PlainDate ToPlainDate(const PlainYearMonthObject* yearMonth) {
 }
 
 /**
+ * ISOYearMonthWithinLimits ( year, month )
+ */
+bool ISOYearMonthWithinLimits(int32_t year, int32_t month);
+
+class MOZ_STACK_CLASS PlainYearMonthWithCalendar final {
+  PlainDate date_;
+  CalendarValue calendar_;
+
+ public:
+  PlainYearMonthWithCalendar() = default;
+
+  PlainYearMonthWithCalendar(const PlainDate& date,
+                             const CalendarValue& calendar)
+      : date_(date), calendar_(calendar) {
+    MOZ_ASSERT(ISOYearMonthWithinLimits(date.year, date.month));
+  }
+
+  const auto& date() const { return date_; }
+  const auto& calendar() const { return calendar_; }
+
+  // Allow implicit conversion to a calendar-less PlainDate.
+  operator const PlainDate&() const { return date(); }
+
+  void trace(JSTracer* trc) { calendar_.trace(trc); }
+
+  const auto* calendarDoNotUse() const { return &calendar_; }
+};
+
+/**
  * CreateTemporalYearMonth ( isoYear, isoMonth, calendar, referenceISODay [ ,
  * newTarget ] )
  */
 PlainYearMonthObject* CreateTemporalYearMonth(
     JSContext* cx, const PlainDate& date, JS::Handle<CalendarValue> calendar);
 
+/**
+ * CreateTemporalYearMonth ( isoYear, isoMonth, calendar, referenceISODay [ ,
+ * newTarget ] )
+ */
+bool CreateTemporalYearMonth(
+    JSContext* cx, const PlainDate& date, JS::Handle<CalendarValue> calendar,
+    JS::MutableHandle<PlainYearMonthWithCalendar> result);
+
 } /* namespace js::temporal */
+
+namespace js {
+
+template <typename Wrapper>
+class WrappedPtrOperations<temporal::PlainYearMonthWithCalendar, Wrapper> {
+  const auto& container() const {
+    return static_cast<const Wrapper*>(this)->get();
+  }
+
+ public:
+  const auto& date() const { return container().date(); }
+
+  JS::Handle<temporal::CalendarValue> calendar() const {
+    return JS::Handle<temporal::CalendarValue>::fromMarkedLocation(
+        container().calendarDoNotUse());
+  }
+
+  // Allow implicit conversion to a calendar-less PlainDate.
+  operator const temporal::PlainDate&() const { return date(); }
+};
+
+}  // namespace js
 
 #endif /* builtin_temporal_PlainYearMonth_h */

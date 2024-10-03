@@ -200,6 +200,7 @@ class PlainMonthDayObject;
 class PlainYearMonthObject;
 class PlainDateWithCalendar;
 class PlainMonthDayWithCalendar;
+class PlainYearMonthWithCalendar;
 enum class ShowCalendar;
 enum class TemporalOverflow;
 enum class TemporalUnit;
@@ -354,6 +355,13 @@ bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarRecord> calendar,
 bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarRecord> calendar,
                      JS::Handle<Wrapped<PlainDateObject*>> date,
                      const DateDuration& duration, PlainDate* result);
+
+/**
+ * CalendarDateAdd ( date, duration, overflow )
+ */
+bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarValue> calendar,
+                     const PlainDate& date, const DateDuration& duration,
+                     TemporalOverflow overflow, PlainDate* result);
 
 /**
  * CalendarDateUntil ( one, two, largestUnit )
@@ -536,6 +544,14 @@ Wrapped<PlainYearMonthObject*> CalendarYearMonthFromFields(
 Wrapped<PlainYearMonthObject*> CalendarYearMonthFromFields(
     JSContext* cx, JS::Handle<CalendarRecord> calendar,
     JS::Handle<PlainObject*> fields, JS::Handle<PlainObject*> options);
+
+/**
+ * CalendarYearMonthFromFields ( calendar, fields, overflow )
+ */
+bool CalendarYearMonthFromFields(
+    JSContext* cx, JS::Handle<CalendarValue> calendar,
+    JS::Handle<JSObject*> fields, TemporalOverflow overflow,
+    JS::MutableHandle<PlainYearMonthWithCalendar> result);
 
 /**
  * CalendarMonthDayFromFields ( calendarRec, fields [ , options ] )
