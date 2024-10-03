@@ -1571,8 +1571,7 @@ bool js::temporal::BalanceTimeDuration(JSContext* cx,
 }
 
 /**
- * UnbalanceDateDurationRelative ( years, months, weeks, days, plainRelativeTo,
- * calendarRec )
+ * UnbalanceDateDurationRelative ( years, months, weeks, days, plainRelativeTo )
  */
 static bool UnbalanceDateDurationRelative(
     JSContext* cx, const DateDuration& duration,
@@ -1932,11 +1931,6 @@ static bool GetTemporalRelativeToOption(
       return false;
     }
 
-    Rooted<CalendarRecord> calendarRec(cx);
-    if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
-      return false;
-    }
-
     // Step 5.e.
     Rooted<PlainObject*> fields(
         cx, PrepareCalendarFields(cx, calendar, obj,
@@ -1960,19 +1954,9 @@ static bool GetTemporalRelativeToOption(
       return false;
     }
 
-    Rooted<PlainObject*> dateOptions(cx, NewPlainObjectWithProto(cx, nullptr));
-    if (!dateOptions) {
-      return false;
-    }
-
-    Rooted<Value> overflow(cx, StringValue(cx->names().constrain));
-    if (!DefineDataProperty(cx, dateOptions, cx->names().overflow, overflow)) {
-      return false;
-    }
-
     // Step 5.f.
-    if (!InterpretTemporalDateTimeFields(cx, calendarRec, fields, dateOptions,
-                                         &dateTime)) {
+    if (!InterpretTemporalDateTimeFields(
+            cx, calendar, fields, TemporalOverflow::Constrain, &dateTime)) {
       return false;
     }
 
@@ -2458,8 +2442,8 @@ struct DurationNudge {
 };
 
 /**
- * NudgeToCalendarUnit ( sign, duration, destEpochNs, dateTime, calendarRec,
- * timeZoneRec, increment, unit, roundingMode )
+ * NudgeToCalendarUnit ( sign, duration, destEpochNs, dateTime, calendar,
+ * timeZone, increment, unit, roundingMode )
  */
 static bool NudgeToCalendarUnit(
     JSContext* cx, const NormalizedDuration& duration,
@@ -2755,8 +2739,8 @@ static bool NudgeToCalendarUnit(
 }
 
 /**
- * NudgeToZonedTime ( sign, duration, dateTime, calendarRec, timeZoneRec,
- * increment, unit, roundingMode )
+ * NudgeToZonedTime ( sign, duration, dateTime, calendar, timeZone, increment,
+ * unit, roundingMode )
  */
 static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
                              const PlainDateTime& dateTime,
@@ -2988,8 +2972,8 @@ static bool NudgeToDayOrTime(JSContext* cx, const NormalizedDuration& duration,
 }
 
 /**
- * BubbleRelativeDuration ( sign, duration, nudgedEpochNs, dateTime,
- * calendarRec, timeZoneRec, largestUnit, smallestUnit )
+ * BubbleRelativeDuration ( sign, duration, nudgedEpochNs, dateTime, calendar,
+ * timeZone, largestUnit, smallestUnit )
  */
 static bool BubbleRelativeDuration(
     JSContext* cx, const NormalizedDuration& duration,
@@ -3129,8 +3113,8 @@ static bool BubbleRelativeDuration(
 }
 
 /**
- * RoundRelativeDuration ( duration, destEpochNs, dateTime, calendarRec,
- * timeZoneRec, largestUnit, increment, smallestUnit, roundingMode )
+ * RoundRelativeDuration ( duration, destEpochNs, dateTime, calendar, timeZone,
+ * largestUnit, increment, smallestUnit, roundingMode )
  */
 bool js::temporal::RoundRelativeDuration(
     JSContext* cx, const NormalizedDuration& duration,

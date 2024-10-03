@@ -208,23 +208,6 @@ bool InterpretTemporalDateTimeFields(JSContext* cx,
                                      PlainDateTime* result);
 
 /**
- * InterpretTemporalDateTimeFields ( calendarRec, fields, options )
- */
-bool InterpretTemporalDateTimeFields(JSContext* cx,
-                                     JS::Handle<CalendarRecord> calendar,
-                                     JS::Handle<PlainObject*> fields,
-                                     JS::Handle<PlainObject*> options,
-                                     PlainDateTime* result);
-
-/**
- * InterpretTemporalDateTimeFields ( calendarRec, fields, options )
- */
-bool InterpretTemporalDateTimeFields(JSContext* cx,
-                                     JS::Handle<CalendarRecord> calendar,
-                                     JS::Handle<PlainObject*> fields,
-                                     PlainDateTime* result);
-
-/**
  * RoundISODateTime ( year, month, day, hour, minute, second, millisecond,
  * microsecond, nanosecond, increment, unit, roundingMode )
  */

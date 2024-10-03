@@ -167,27 +167,6 @@ class MOZ_STACK_CLASS CalendarValue final {
   JS::Value const* valueDoNotUse() const { return &value_; }
 };
 
-class MOZ_STACK_CLASS CalendarRecord final {
-  CalendarValue receiver_;
-
- public:
-  /**
-   * Default initialize this CalendarRecord.
-   */
-  CalendarRecord() = default;
-
-  explicit CalendarRecord(const CalendarValue& receiver)
-      : receiver_(receiver) {}
-
-  const auto& receiver() const { return receiver_; }
-
-  // Helper methods for (Mutable)WrappedPtrOperations.
-  auto* receiverDoNotUse() const { return &receiver_; }
-
-  // Trace implementation.
-  void trace(JSTracer* trc);
-};
-
 struct DateDuration;
 struct Duration;
 struct PlainDate;
@@ -447,13 +426,6 @@ inline bool CalendarEquals(const CalendarValue& one, const CalendarValue& two) {
   return one.identifier() == two.identifier();
 }
 
-/**
- * CreateCalendarMethodsRecord ( calendar, methods )
- */
-bool CreateCalendarMethodsRecord(JSContext* cx,
-                                 JS::Handle<CalendarValue> calendar,
-                                 JS::MutableHandle<CalendarRecord> result);
-
 // Helper for MutableWrappedPtrOperations.
 bool WrapCalendarValue(JSContext* cx, JS::MutableHandle<JS::Value> calendar);
 
@@ -491,19 +463,6 @@ class MutableWrappedPtrOperations<temporal::CalendarValue, Wrapper>
  public:
   bool wrap(JSContext* cx) {
     return temporal::WrapCalendarValue(cx, toMutableValue());
-  }
-};
-
-template <typename Wrapper>
-class WrappedPtrOperations<temporal::CalendarRecord, Wrapper> {
-  const auto& container() const {
-    return static_cast<const Wrapper*>(this)->get();
-  }
-
- public:
-  JS::Handle<temporal::CalendarValue> receiver() const {
-    return JS::Handle<temporal::CalendarValue>::fromMarkedLocation(
-        container().receiverDoNotUse());
   }
 };
 
