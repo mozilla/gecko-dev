@@ -29,6 +29,7 @@ import mozilla.components.support.ktx.android.content.appVersionName
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.ThemeManager
 
 /**
@@ -39,6 +40,7 @@ class WebExtensionPromptFeature(
     private val context: Context,
     private val addonManager: AddonManager = context.components.addonManager,
     private val fragmentManager: FragmentManager,
+    private val onLearnMoreClicked: (String) -> Unit,
 ) : LifecycleAwareFeature {
 
     /**
@@ -265,6 +267,15 @@ class WebExtensionPromptFeature(
                     privateBrowsingAllowed = false,
                 )
             },
+            onLearnMoreClicked = {
+                onLearnMoreClicked.invoke(
+                    // Bug 1920564 - add finalized Learn More SUMO link for the install dialog
+                    SupportUtils.getSumoURLForTopic(
+                        context,
+                        SupportUtils.SumoTopic.MANAGE_OPTIONAL_EXTENSION_PERMISSIONS,
+                    ),
+                )
+            },
         )
         dialog.show(
             fragmentManager,
@@ -287,6 +298,19 @@ class WebExtensionPromptFeature(
                 store.state.webExtensionPromptRequest?.let { promptRequest ->
                     if (promptRequest is WebExtensionPromptRequest.AfterInstallation.Permissions) {
                         handlePermissions(promptRequest, granted = false, privateBrowsingAllowed = false)
+                    }
+                }
+            }
+            dialog.onLearnMoreClicked = {
+                store.state.webExtensionPromptRequest?.let { promptRequest ->
+                    if (promptRequest is WebExtensionPromptRequest.AfterInstallation.Permissions) {
+                        onLearnMoreClicked.invoke(
+                            // Bug 1920564 - add finalized Learn More SUMO link for the install dialog
+                            SupportUtils.getSumoURLForTopic(
+                                context,
+                                SupportUtils.SumoTopic.MANAGE_OPTIONAL_EXTENSION_PERMISSIONS,
+                            ),
+                        )
                     }
                 }
             }
