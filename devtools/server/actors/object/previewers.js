@@ -172,8 +172,27 @@ const previewers = {
   ],
 
   RegExp: [
-    function({ obj, hooks }, grip) {
-      const str = DevToolsUtils.callPropertyOnObject(obj, "toString");
+    function(objectActor, grip, rawObj) {
+      const { obj, hooks } = objectActor;
+      let str;
+      if (isWorker) {
+        // For some reason, the following incantation on the worker thread returns "/undefined/undefined"
+        // str = RegExp.prototype.toString.call(objectActor.obj.unsafeDereference());
+        //
+        // The following method will throw in case of method being overloaded by the page,
+        // and a more generic previewer will render the object.
+        try {
+          str = DevToolsUtils.callPropertyOnObject(obj, "toString");
+        } catch(e) {
+          // Ensure displaying something in case of error.
+          // Otherwise this would render an object with an empty label
+          grip.displayString = "RegExp with overloaded toString";
+        }
+      } else {
+        const { RegExp } = objectActor.targetActor.targetGlobal;
+        str = RegExp.prototype.toString.call(rawObj);
+      }
+
       if (typeof str != "string") {
         return false;
       }
@@ -184,8 +203,20 @@ const previewers = {
   ],
 
   Date: [
-    function({ obj, hooks }, grip) {
-      const time = DevToolsUtils.callPropertyOnObject(obj, "getTime");
+    function(objectActor, grip, rawObj) {
+      const { obj, hooks } = objectActor;
+      let time;
+      if (isWorker) {
+        // In worker rawObj is considered unsafe and is null,
+        // so retrieve the raw object directly from Debugger.Object.unsafeDereference
+        const raw = objectActor.obj.unsafeDereference();
+        // Also, targetGlobal is an opaque wrapper, from which we can't access its Date object,
+        // so fallback to the privileged one
+        time = Date.prototype.getTime.call(raw);
+      } else {
+        const { Date } = objectActor.targetActor.targetGlobal;
+        time = Date.prototype.getTime.call(rawObj);
+      }
       if (typeof time != "number") {
         return false;
       }

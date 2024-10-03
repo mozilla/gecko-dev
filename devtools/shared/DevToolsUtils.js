@@ -967,6 +967,12 @@ function callPropertyOnObject(object, name, ...args) {
     throw new Error("Not a callable object.");
   }
 
+  if (value.script !== undefined) {
+    throw new Error(
+      "The property isn't a native function and will execute code in the debuggee"
+    );
+  }
+
   // Call the property.
   const result = value.call(object, ...args);
   if (result === null) {

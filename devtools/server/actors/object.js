@@ -120,6 +120,7 @@ class ObjectActor extends Actor {
     );
 
     this.obj = obj;
+    this.targetActor = threadActor.targetActor;
     this.threadActor = threadActor;
     this.hooks = {
       createValueGrip: createValueGripHook,
