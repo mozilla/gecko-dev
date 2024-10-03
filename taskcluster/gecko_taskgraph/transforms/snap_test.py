@@ -32,8 +32,13 @@ def fill_template(config, tasks):
 
         # Disambiguate the treeherder symbol.
         full_platform_collection = (
-            task_platform + "-snap-" + task.get("label").split("-")[-1]
+            task_platform
+            + "-snap-"
+            + task.get("label").split("-")[-2]
+            + "-"
+            + task.get("label").split("-")[-1]
         )
+
         (platform, collection) = full_platform_collection.split("/")
         task["task"]["extra"]["treeherder"]["collection"] = {collection: True}
         task["task"]["extra"]["treeherder"]["machine"]["platform"] = platform

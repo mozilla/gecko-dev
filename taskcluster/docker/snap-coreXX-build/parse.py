@@ -13,27 +13,30 @@ def has_pkg_section(p, section):
     has_section = section in p.keys()
     if has_section:
         for pkg in p[section]:
-            yield pkg
+            if type(pkg) == str:
+                yield pkg
+            else:
+                yield from has_pkg_section(pkg, next(iter(pkg.keys())))
 
 
-def iter_pkgs(part, all_pkgs):
-    for pkg in has_pkg_section(part, "build-packages"):
-        if pkg not in all_pkgs:
-            all_pkgs.append(pkg)
-    for pkg in has_pkg_section(part, "stage-packages"):
-        if pkg not in all_pkgs:
-            all_pkgs.append(pkg)
+def iter_pkgs(part, all_pkgs, arch):
+    for section in ["build-packages", "stage-packages"]:
+        for pkg in has_pkg_section(part, section):
+            if pkg not in all_pkgs:
+                if ":" in pkg and pkg.split(":")[1] != arch:
+                    continue
+                all_pkgs.append(pkg)
 
 
-def parse(yaml_file):
+def parse(yaml_file, arch):
     all_pkgs = []
     with open(yaml_file, "r") as inp:
         snap = yaml.safe_load(inp)
         parts = snap["parts"]
         for p in parts:
-            iter_pkgs(parts[p], all_pkgs)
+            iter_pkgs(parts[p], all_pkgs, arch)
     return " ".join(all_pkgs)
 
 
 if __name__ == "__main__":
-    print(parse(sys.argv[1]))
+    print(parse(sys.argv[1], sys.argv[2]))
