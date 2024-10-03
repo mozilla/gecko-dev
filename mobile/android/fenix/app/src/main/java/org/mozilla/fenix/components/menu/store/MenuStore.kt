@@ -53,12 +53,10 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
             )
         }
 
-        is MenuAction.UpdateWebExtensionBrowserMenuItems -> state.copyWithExtensionMenuState {
-            it.copy(browserWebExtensionMenuItem = action.webExtensionBrowserMenuItem)
-        }
-
-        is MenuAction.UpdateWebExtensionPageMenuItems -> state.copyWithToolsMenuState {
-            it.copy(pageWebExtensionMenuItem = action.webExtensionPageMenuItem)
+        is MenuAction.UpdateWebExtensionMenuItems -> state.copyWithExtensionMenuState {
+            it.copy(
+                webExtensionMenuItems = action.webExtensionMenuItems,
+            )
         }
 
         is MenuAction.UpdateBookmarkState -> state.copyWithBrowserMenuState {
@@ -98,11 +96,4 @@ internal inline fun MenuState.copyWithExtensionMenuState(
     crossinline update: (ExtensionMenuState) -> ExtensionMenuState,
 ): MenuState {
     return this.copy(extensionMenuState = update(this.extensionMenuState))
-}
-
-@VisibleForTesting
-internal inline fun MenuState.copyWithToolsMenuState(
-    crossinline update: (ToolsMenuState) -> ToolsMenuState,
-): MenuState {
-    return this.copy(toolsMenuState = update(this.toolsMenuState))
 }

@@ -102,23 +102,12 @@ sealed class MenuAction : Action {
     ) : MenuAction()
 
     /**
-     * [MenuAction] dispatched when browser web extension items list is updated.
+     * [MenuAction] dispatched when web extension items list is updated.
      *
-     * @property webExtensionBrowserMenuItem browserMenuItem The list of [WebExtensionMenuItem.WebExtensionBrowserMenuItem]
-     * to be shown in the menu.
+     * @property webExtensionMenuItems The list of [WebExtensionMenuItem] to be shown in the menu.
      */
-    data class UpdateWebExtensionBrowserMenuItems(
-        val webExtensionBrowserMenuItem: List<WebExtensionMenuItem.WebExtensionBrowserMenuItem>,
-    ) : MenuAction()
-
-    /**
-     * [MenuAction] dispatched when page web extension items list is updated.
-     *
-     * @property webExtensionPageMenuItem The list of [WebExtensionMenuItem.WebExtensionPageMenuItem]
-     * to be shown in the menu.
-     */
-    data class UpdateWebExtensionPageMenuItems(
-        val webExtensionPageMenuItem: List<WebExtensionMenuItem.WebExtensionPageMenuItem>,
+    data class UpdateWebExtensionMenuItems(
+        val webExtensionMenuItems: List<WebExtensionMenuItem>,
     ) : MenuAction()
 
     /**
