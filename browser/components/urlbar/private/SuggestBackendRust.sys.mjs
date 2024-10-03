@@ -136,7 +136,7 @@ export class SuggestBackendRust extends BaseFeature {
       }
     }
 
-    let suggestions = await this.#store.query(
+    const { suggestions, queryTimes } = await this.#store.queryWithMetrics(
       new lazy.SuggestionQuery({
         providers,
         keyword: searchString,
@@ -145,6 +145,10 @@ export class SuggestBackendRust extends BaseFeature {
         ),
       })
     );
+
+    for (let { label, value } of queryTimes) {
+      Glean.suggest.queryTime[label].accumulateSingleSample(value);
+    }
 
     for (let suggestion of suggestions) {
       let type = getSuggestionType(suggestion);
@@ -377,7 +381,7 @@ export class SuggestBackendRust extends BaseFeature {
       this.logger.debug("Starting ingest: " + type);
       try {
         timerId = Glean.urlbar.quickSuggestIngestTime.start();
-        await this.#store.ingest(
+        const metrics = await this.#store.ingest(
           new lazy.SuggestIngestionConstraints({
             providers: [provider],
             providerConstraints: providerConstraints
@@ -386,6 +390,12 @@ export class SuggestBackendRust extends BaseFeature {
           })
         );
         Glean.urlbar.quickSuggestIngestTime.stopAndAccumulate(timerId);
+        for (let { label, value } of metrics.downloadTimes) {
+          Glean.suggest.ingestDownloadTime[label].accumulateSingleSample(value);
+        }
+        for (let { label, value } of metrics.ingestionTimes) {
+          Glean.suggest.ingestTime[label].accumulateSingleSample(value);
+        }
       } catch (error) {
         // Ingest can throw a `SuggestApiError` subclass called `Other` with a
         // `reason` message, which is very helpful for diagnosing problems with
