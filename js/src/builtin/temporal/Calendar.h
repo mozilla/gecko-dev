@@ -195,13 +195,9 @@ struct PlainDate;
 struct PlainDateTime;
 class DurationObject;
 class PlainDateObject;
-class PlainDateTimeObject;
-class PlainMonthDayObject;
-class PlainYearMonthObject;
 class PlainDateWithCalendar;
 class PlainMonthDayWithCalendar;
 class PlainYearMonthWithCalendar;
-enum class ShowCalendar;
 enum class TemporalOverflow;
 enum class TemporalUnit;
 
@@ -508,20 +504,6 @@ bool CalendarMonthsInYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
 bool CalendarInLeapYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
                         const PlainDate& date,
                         JS::MutableHandle<JS::Value> result);
-
-/**
- * CalendarDateFromFields ( calendarRec, fields [ , options ] )
- */
-Wrapped<PlainDateObject*> CalendarDateFromFields(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<PlainObject*> fields);
-
-/**
- * CalendarDateFromFields ( calendarRec, fields [ , options ] )
- */
-Wrapped<PlainDateObject*> CalendarDateFromFields(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<PlainObject*> fields, JS::Handle<PlainObject*> options);
 
 /**
  * CalendarDateFromFields ( calendar, fields, overflow )
