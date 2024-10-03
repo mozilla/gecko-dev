@@ -505,3 +505,20 @@ mingw32-rust-nightly:
             by-project:
                 toolchains: mingw32-rust
                 default: null
+
+# Searchfox uses Rust 1.82.0-beta.5 to index all vendored crates.
+# Revert this to use stable once 1.82.0 is released.
+linux64-rust-searchfox:
+    treeherder:
+        symbol: TL(rust-searchfox)
+    run:
+        arguments: [
+            '--channel', '1.82.0-beta.5',
+            '--host', 'x86_64-unknown-linux-gnu',
+            '--target', 'x86_64-unknown-linux-gnu',
+            '--target', 'aarch64-linux-android',
+            '--target', 'x86_64-apple-darwin',
+            '--target', 'aarch64-apple-darwin',
+            '--target', 'aarch64-apple-ios',
+            '--target', 'x86_64-pc-windows-msvc',
+        ]
