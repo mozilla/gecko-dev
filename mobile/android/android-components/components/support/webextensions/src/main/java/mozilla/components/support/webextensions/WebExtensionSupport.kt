@@ -28,6 +28,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.concept.engine.webextension.ActionHandler
+import mozilla.components.concept.engine.webextension.PermissionPromptResponse
 import mozilla.components.concept.engine.webextension.TabHandler
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.concept.engine.webextension.WebExtensionDelegate
@@ -295,14 +296,14 @@ object WebExtensionSupport {
                 override fun onInstallPermissionRequest(
                     extension: WebExtension,
                     permissions: List<String>,
-                    onPermissionsGranted: (Boolean) -> Unit,
+                    onConfirm: (PermissionPromptResponse) -> Unit,
                 ) {
                     store.dispatch(
                         WebExtensionAction.UpdatePromptRequestWebExtensionAction(
                             WebExtensionPromptRequest.AfterInstallation.Permissions.Required(
                                 extension,
                                 permissions,
-                                onPermissionsGranted,
+                                onConfirm,
                             ),
                         ),
                     )

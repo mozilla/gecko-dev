@@ -8,6 +8,8 @@ import android.view.Gravity.TOP
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.appcompat.widget.AppCompatCheckBox
+import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.recyclerview.widget.RecyclerView
@@ -17,9 +19,11 @@ import mozilla.components.feature.addons.R
 import mozilla.components.feature.addons.ui.AddonDialogFragment.PromptsStyling
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.utils.ext.getParcelableCompat
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,12 +54,15 @@ class PermissionsDialogFragmentTest {
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
         val permissionList = fragment.buildPermissionsList()
         val optionalOrRequiredText = fragment.buildOptionalOrRequiredText(hasPermissions = permissionList.isNotEmpty())
+        val allowedInPrivateBrowsing =
+            dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
 
         assertTrue(titleTextView.text.contains(name))
         assertTrue(optionalOrRequiredText.contains(testContext.getString(R.string.mozac_feature_addons_permissions_dialog_subtitle)))
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_privacy_description)))
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_all_urls_description)))
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_tabs_description)))
+        assertTrue(allowedInPrivateBrowsing.isVisible)
 
         assertTrue(optionalOrRequiredTextView.text.contains(testContext.getString(R.string.mozac_feature_addons_permissions_dialog_subtitle)))
         Assert.assertNotNull(recyclerAdapter)
@@ -73,7 +80,7 @@ class PermissionsDialogFragmentTest {
         var allowedWasExecuted = false
         var denyWasExecuted = false
 
-        fragment.onPositiveButtonClicked = {
+        fragment.onPositiveButtonClicked = { _, _ ->
             allowedWasExecuted = true
         }
 
@@ -218,6 +225,37 @@ class PermissionsDialogFragmentTest {
 
         assertEquals(allowButton.text, testContext.getString(R.string.mozac_feature_addons_permissions_dialog_allow))
         assertEquals(denyButton.text, testContext.getString(R.string.mozac_feature_addons_permissions_dialog_deny))
+    }
+
+    @Test
+    fun `hide private browsing checkbox when the add-on does not allow running in private windows`() {
+        val permissions = listOf("privacy", "<all_urls>", "tabs")
+        val addon = Addon(
+            "id",
+            translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"),
+            permissions = permissions,
+            incognito = Addon.Incognito.NOT_ALLOWED,
+        )
+        val fragment = createPermissionsDialogFragment(addon, permissions)
+
+        assertSame(
+            addon,
+            fragment.arguments?.getParcelableCompat(KEY_ADDON, Addon::class.java),
+        )
+
+        doReturn(testContext).`when`(fragment).requireContext()
+
+        val dialog = fragment.onCreateDialog(null)
+
+        dialog.show()
+
+        val name = addon.translateName(testContext)
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
+        val allowedInPrivateBrowsing =
+            dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
+
+        assertTrue(titleTextView.text.contains(name))
+        assertFalse(allowedInPrivateBrowsing.isVisible)
     }
 
     private fun createPermissionsDialogFragment(

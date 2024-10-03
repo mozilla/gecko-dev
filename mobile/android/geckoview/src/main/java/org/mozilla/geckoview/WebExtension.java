@@ -2965,4 +2965,29 @@ public class WebExtension {
       this.initData = initData;
     }
   }
+
+  /**
+   * Holds all the information which the user has submited as part of a confirmation of a
+   * permissions prompt request.
+   */
+  public static class PermissionPromptResponse {
+    /** Whether the user granted permissions or not. */
+    @Nullable public final Boolean isPermissionsGranted;
+
+    /** Whether the user granted access in private mode or not. */
+    @Nullable public final Boolean isPrivateModeGranted;
+
+    /**
+     * Creates a new PermissionPromptResponse with the given fields.
+     *
+     * @param isPermissionsGranted Whether the user granted permissions or not.
+     * @param isPrivateModeGranted Whether the user granted access in private mode or not.
+     */
+    public PermissionPromptResponse(
+        final @Nullable Boolean isPermissionsGranted,
+        final @Nullable Boolean isPrivateModeGranted) {
+      this.isPermissionsGranted = isPermissionsGranted;
+      this.isPrivateModeGranted = isPrivateModeGranted;
+    }
+  }
 }

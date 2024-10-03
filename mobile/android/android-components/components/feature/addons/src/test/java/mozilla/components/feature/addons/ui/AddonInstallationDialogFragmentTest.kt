@@ -6,10 +6,7 @@ package mozilla.components.feature.addons.ui
 
 import android.view.Gravity
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.TextView
-import androidx.appcompat.widget.AppCompatCheckBox
-import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,7 +16,6 @@ import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.utils.ext.getParcelableCompat
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -54,53 +50,15 @@ class AddonInstallationDialogFragmentTest {
         val name = addon.translateName(testContext)
         val titleTextView = dialog.findViewById<TextView>(R.id.title)
         val description = dialog.findViewById<TextView>(R.id.description)
-        val allowedInPrivateBrowsing = dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
 
         assertTrue(titleTextView.text.contains(name))
         assertTrue(description.text.contains(name))
-        assertTrue(allowedInPrivateBrowsing.isVisible)
-        assertTrue(allowedInPrivateBrowsing.text.contains(testContext.getString(R.string.mozac_feature_addons_settings_allow_in_private_browsing)))
-    }
-
-    @Test
-    fun `clicking on confirm dialog buttons notifies lambda with private browsing boolean`() {
-        val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
-
-        val fragment = createAddonInstallationDialogFragment(addon)
-        var confirmationWasExecuted = false
-        var allowInPrivateBrowsing = false
-
-        fragment.onConfirmButtonClicked = { _, allow ->
-            confirmationWasExecuted = true
-            allowInPrivateBrowsing = allow
-        }
-
-        doReturn(testContext).`when`(fragment).requireContext()
-
-        val dialog = fragment.onCreateDialog(null)
-        dialog.show()
-        val confirmButton = dialog.findViewById<Button>(R.id.confirm_button)
-        val allowedInPrivateBrowsing = dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
-        confirmButton.performClick()
-        assertTrue(confirmationWasExecuted)
-        assertFalse(allowInPrivateBrowsing)
-
-        dialog.show()
-        allowedInPrivateBrowsing.performClick()
-        confirmButton.performClick()
-        assertTrue(confirmationWasExecuted)
-        assertTrue(allowInPrivateBrowsing)
     }
 
     @Test
     fun `dismissing the dialog notifies nothing`() {
         val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
         val fragment = createAddonInstallationDialogFragment(addon)
-        var confirmationWasExecuted = false
-
-        fragment.onConfirmButtonClicked = { _, _ ->
-            confirmationWasExecuted = true
-        }
 
         doReturn(testContext).`when`(fragment).requireContext()
 
@@ -109,7 +67,6 @@ class AddonInstallationDialogFragmentTest {
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
         fragment.onDismiss(mock())
-        assertFalse(confirmationWasExecuted)
     }
 
     @Test
@@ -157,30 +114,6 @@ class AddonInstallationDialogFragmentTest {
 
         fragment.show(fragmentManager, "test")
         verify(fragmentTransaction).commitAllowingStateLoss()
-    }
-
-    @Test
-    fun `hide private browsing checkbox when the add-on does not allow running in private windows`() {
-        val addon = Addon(
-            "id",
-            translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"),
-            permissions = listOf("privacy", "<all_urls>", "tabs"),
-            incognito = Addon.Incognito.NOT_ALLOWED,
-        )
-        val fragment = createAddonInstallationDialogFragment(addon)
-        assertSame(addon, fragment.arguments?.getParcelableCompat(KEY_INSTALLED_ADDON, Addon::class.java))
-
-        doReturn(testContext).`when`(fragment).requireContext()
-        val dialog = fragment.onCreateDialog(null)
-        dialog.show()
-        val name = addon.translateName(testContext)
-        val titleTextView = dialog.findViewById<TextView>(R.id.title)
-        val description = dialog.findViewById<TextView>(R.id.description)
-        val allowedInPrivateBrowsing = dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
-
-        assertTrue(titleTextView.text.contains(name))
-        assertTrue(description.text.contains(name))
-        assertFalse(allowedInPrivateBrowsing.isVisible)
     }
 
     private fun createAddonInstallationDialogFragment(

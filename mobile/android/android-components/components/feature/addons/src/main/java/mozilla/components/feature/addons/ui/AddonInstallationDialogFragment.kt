@@ -20,9 +20,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
-import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.content.ContextCompat
-import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
@@ -46,7 +44,7 @@ class AddonInstallationDialogFragment : AddonDialogFragment() {
     /**
      * A lambda called when the confirm button is clicked.
      */
-    var onConfirmButtonClicked: ((Addon, Boolean) -> Unit)? = null
+    var onConfirmButtonClicked: ((Addon) -> Unit)? = null
 
     /**
      * A lambda called when the dialog is dismissed.
@@ -54,7 +52,6 @@ class AddonInstallationDialogFragment : AddonDialogFragment() {
     var onDismissed: (() -> Unit)? = null
 
     internal val addon get() = requireNotNull(safeArguments.getParcelableCompat(KEY_INSTALLED_ADDON, Addon::class.java))
-    private var allowPrivateBrowsing: Boolean = false
 
     internal val confirmButtonRadius
         get() =
@@ -153,18 +150,9 @@ class AddonInstallationDialogFragment : AddonDialogFragment() {
 
         loadIcon(addon = addon, iconView = binding.icon)
 
-        val allowedInPrivateBrowsing = rootView.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
-        if (addon.incognito == Addon.Incognito.NOT_ALLOWED) {
-            allowedInPrivateBrowsing.isVisible = false
-        } else {
-            allowedInPrivateBrowsing.setOnCheckedChangeListener { _, isChecked ->
-                allowPrivateBrowsing = isChecked
-            }
-        }
-
         val confirmButton = rootView.findViewById<Button>(R.id.confirm_button)
         confirmButton.setOnClickListener {
-            onConfirmButtonClicked?.invoke(addon, allowPrivateBrowsing)
+            onConfirmButtonClicked?.invoke(addon)
             dismiss()
         }
 
@@ -223,7 +211,7 @@ class AddonInstallationDialogFragment : AddonDialogFragment() {
                 shouldWidthMatchParent = true,
             ),
             onDismissed: (() -> Unit)? = null,
-            onConfirmButtonClicked: ((Addon, Boolean) -> Unit)? = null,
+            onConfirmButtonClicked: ((Addon) -> Unit)? = null,
         ): AddonInstallationDialogFragment {
             val fragment = AddonInstallationDialogFragment()
             val arguments = fragment.arguments ?: Bundle()

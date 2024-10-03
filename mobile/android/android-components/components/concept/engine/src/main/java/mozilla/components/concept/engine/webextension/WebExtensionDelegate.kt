@@ -115,13 +115,13 @@ interface WebExtensionDelegate {
      *
      * @param extension the extension being installed. The required permissions can be accessed using
      * [WebExtension.getMetadata] and [Metadata.requiredPermissions]/[Metadata.requiredOrigins]/.
-     * @param onPermissionsGranted A callback to indicate whether the user has granted the [extension] permissions.
+     * @param onConfirm A callback to indicate the user's selection on the prompt.
      * @return whether or not installation should process i.e. the permissions have been granted.
      */
     fun onInstallPermissionRequest(
         extension: WebExtension,
         permissions: List<String>,
-        onPermissionsGranted: (Boolean) -> Unit,
+        onConfirm: (PermissionPromptResponse) -> Unit,
     ) = Unit
 
     /**
