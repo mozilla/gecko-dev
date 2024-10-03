@@ -17,7 +17,7 @@ TEST_HARNESS_FILES.xpcshell.dom.localstorage.test.unit += [
     "test/unit/databaseShadowing-shared.js",
 ]
 
-TEST_DIRS += ["test/gtest"]
+TEST_DIRS += ["test"]
 
 XPIDL_SOURCES += [
     "nsILocalStorageManager.idl",
