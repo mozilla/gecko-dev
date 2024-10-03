@@ -32,6 +32,8 @@ run-if = ["os == 'mac'"] # Mac only feature
 
 ["browser_sidebar_panel_header.js"]
 
+["browser_sidebar_panel_states.js"]
+
 ["browser_sidebar_panel_switcher.js"]
 
 ["browser_sidebar_position.js"]

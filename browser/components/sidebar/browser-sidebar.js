@@ -688,9 +688,8 @@ var SidebarController = {
     // revamped sidebar.
     if (this.sidebarRevampEnabled && sourceController.revampComponentsLoaded) {
       this.promiseInitialized.then(() => {
-        this.toggleExpanded(sourceController.sidebarMain.expanded);
         this.sidebarContainer.hidden = sourceController.sidebarContainer.hidden;
-        this.updateToolbarButton();
+        this.toggleExpanded(sourceController.sidebarMain.expanded);
       });
     }
 
@@ -1030,8 +1029,8 @@ var SidebarController = {
    */
   toggleExpanded(force) {
     const expanded =
-      typeof force == "boolean" ? force : !this._sidebarMain.expanded;
-    this._sidebarMain.expanded = expanded;
+      typeof force == "boolean" ? force : !this.sidebarMain.expanded;
+    this.sidebarMain.expanded = expanded;
     if (expanded) {
       Glean.sidebar.expand.record();
     }
@@ -1039,7 +1038,7 @@ var SidebarController = {
     // and selectors considerably.
     gBrowser.tabContainer.toggleAttribute(
       "expanded",
-      this._sidebarMain.expanded
+      this.sidebarMain.expanded
     );
     this.updateToolbarButton();
   },
@@ -1571,7 +1570,7 @@ var SidebarController = {
     }
 
     if (toVerticalTabs) {
-      this.toggleExpanded(this._sidebarMain.expanded);
+      this.toggleExpanded(this.sidebarMain.expanded);
       arrowScrollbox.setAttribute("orient", "vertical");
       tabStrip.setAttribute("orient", "vertical");
     } else {
