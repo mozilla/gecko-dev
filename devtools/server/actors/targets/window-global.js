@@ -474,6 +474,10 @@ class WindowGlobalTargetActor extends BaseTargetActor {
       : null;
   }
 
+  get targetGlobal() {
+    return this.window;
+  }
+
   get outerWindowID() {
     if (this.docShell) {
       return this.docShell.outerWindowID;

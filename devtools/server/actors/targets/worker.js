@@ -47,7 +47,7 @@ class WorkerTargetActor extends BaseTargetActor {
     super(conn, Targets.TYPES.WORKER, workerTargetSpec);
 
     // workerGlobal is needed by the console actor for evaluations.
-    this.workerGlobal = workerGlobal;
+    this.#workerGlobal = workerGlobal;
     this.sessionContext = sessionContext;
 
     // We don't have access to Ci from worker thread
@@ -84,6 +84,12 @@ class WorkerTargetActor extends BaseTargetActor {
     this.manage(this._consoleActor);
     this.manage(this.tracerActor);
     this.manage(this.objectsManagerActor);
+  }
+
+  #workerGlobal = null;
+
+  get targetGlobal() {
+    return this.#workerGlobal;
   }
 
   // Expose the worker URL to the thread actor.
@@ -134,7 +140,7 @@ class WorkerTargetActor extends BaseTargetActor {
       this._sourcesManager = null;
     }
 
-    this.workerGlobal = null;
+    this.#workerGlobal = null;
     this._dbg = null;
     this._consoleActor = null;
     this.threadActor = null;

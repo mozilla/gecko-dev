@@ -119,6 +119,10 @@ class ContentProcessTargetActor extends BaseTargetActor {
     return this._consoleScope;
   }
 
+  get targetGlobal() {
+    return this._consoleScope;
+  }
+
   get sourcesManager() {
     if (!this._sourcesManager) {
       assert(

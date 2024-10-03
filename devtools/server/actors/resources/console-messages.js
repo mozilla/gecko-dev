@@ -81,7 +81,7 @@ class ConsoleMessageWatcher {
     listener.init();
 
     // It can happen that the targetActor does not have a window reference (e.g. in worker
-    // thread, targetActor exposes a workerGlobal property)
+    // thread, targetActor exposes a targetGlobal property which isn't a Window object)
     const winStartTime =
       targetActor.window?.performance?.timing?.navigationStart || 0;
 

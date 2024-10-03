@@ -594,9 +594,7 @@ class ThreadActor extends Actor {
   }
 
   getAvailableEventBreakpoints() {
-    return getAvailableEventBreakpoints(
-      this.targetActor.window || this.targetActor.workerGlobal
-    );
+    return getAvailableEventBreakpoints(this.targetActor.targetGlobal);
   }
   getActiveEventBreakpoints() {
     return Array.from(this._activeEventBreakpoints);

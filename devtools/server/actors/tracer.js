@@ -185,7 +185,7 @@ class TracerActor extends Actor {
     this.traceValues = !!options.traceValues;
     try {
       lazy.JSTracer.startTracing({
-        global: this.targetActor.window || this.targetActor.workerGlobal,
+        global: this.targetActor.targetGlobal,
         prefix: options.prefix || "",
         // Enable receiving the `currentDOMEvent` being passed to `onTracingFrame`
         traceDOMEvents: true,

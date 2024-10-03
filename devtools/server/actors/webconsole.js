@@ -195,7 +195,7 @@ class WebConsoleActor extends Actor {
     if (this.targetActor.isRootActor) {
       return this._getWindowForBrowserConsole();
     }
-    return this.targetActor.window || this.targetActor.workerGlobal;
+    return this.targetActor.targetGlobal;
   }
 
   /**
