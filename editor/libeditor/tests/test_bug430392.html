@@ -33,50 +33,87 @@ function test() {
   // and the test will be marked as an expected fail if the textContent changes
   // to expectedValue, and an unexpected fail if it's neither the original value
   // nor expectedValue.
-  let tests = [["adding returns", () => {
-    getSelection().collapse(edit.firstChild, 0);
-    synthesizeKey("KEY_ArrowRight");
-    synthesizeKey("KEY_Enter");
-    synthesizeKey("KEY_Enter");
-    synthesizeKey("KEY_Backspace");
-    synthesizeKey("KEY_Backspace");
-  }, [
-    "insertParagraph",
-    "insertParagraph",
-    "deleteContentBackward",
-    "deleteContentBackward",
-  ],
-  // Blink does nothing in this case, but WebKit does insert paragraph.
-  [/* no input events for NOOP */]],
-  ["adding shift-returns", () => {
-    getSelection().collapse(edit.firstChild, 0);
-    synthesizeKey("KEY_ArrowRight");
-    synthesizeKey("KEY_Enter", {shiftKey: true});
-    synthesizeKey("KEY_Enter", {shiftKey: true});
-    synthesizeKey("KEY_Backspace");
-    synthesizeKey("KEY_Backspace");
-  }, [
-    "insertLineBreak",
-    "insertLineBreak",
-    "deleteContentBackward",
-    "deleteContentBackward",
-  ],
-  // Blink does nothing in this case, but WebKit inserts `<br>` element.
-  [/* no input events for NOOP */]],
+  let tests = [
+    [
+      "adding returns",
+      () => {
+        getSelection().collapse(edit.firstChild, 0); // [] <span contenteditable=false>A</span> ; <span
+        synthesizeKey("KEY_ArrowRight");             //  <span contenteditable=false>A</span>[] ; <span
+        synthesizeKey("KEY_Enter");
+        synthesizeKey("KEY_Enter");
+        synthesizeKey("KEY_Backspace");
+        synthesizeKey("KEY_Backspace");
+      }, [
+        "insertParagraph",
+        "insertParagraph",
+        "deleteContentBackward",
+        "deleteContentBackward",
+      ],
+      [
+        "insertParagraph",
+        "insertParagraph",
+        "deleteContentBackward",
+        "deleteContentBackward",
+      ],
+      aSeparator => {
+        switch (aSeparator) {
+          case "div":
+          case "p":
+            // After insertParagraph, the space after "A" becomes a preceding
+            // white space in the paragraph.  Therefore, it's removed when
+            // joining the block boundary by Backspace.
+            // So, this is actual expected result for the cases.
+            return " A; B ; C ";
+          case "br":
+            // After insertLineBreak, the first white-space should be replaced
+            // with &nbsp; and it should not be reconverted at Backspace.
+            // Therefore, the actual expected result is " A&nbsp;; B ; C ".
+            return undefined;
+        }
+        throw new Error("handle all cases!");
+      },
+    ],
+    [
+      "adding shift-returns",
+      () => {
+        getSelection().collapse(edit.firstChild, 0); // [] <span contenteditable=false>A</span> ; <span
+        synthesizeKey("KEY_ArrowRight");             //  <span contenteditable=false>A</span>[] ; <span
+        synthesizeKey("KEY_Enter", {shiftKey: true});
+        synthesizeKey("KEY_Enter", {shiftKey: true});
+        synthesizeKey("KEY_Backspace");
+        synthesizeKey("KEY_Backspace");
+      }, [
+        "insertLineBreak",
+        "insertLineBreak",
+        "deleteContentBackward",
+        "deleteContentBackward",
+      ], [
+        "insertLineBreak",
+        "insertLineBreak",
+        "deleteContentBackward",
+        "deleteContentBackward",
+      ],
+      // Actual expected result should be "A&nbsp;; B ; C " because when first
+      // <br> is inserted, the following white-space should be preserved as
+      // an &nbsp;.  Then, it should not be reconverted to a white-space after
+      // Backspace.
+      " ; AB ; C ",
+    ],
   ];
+
   [
     ["insertorderedlist", "insertOrderedList"],
     ["insertunorderedlist", "insertUnorderedList"],
     ["formatblock", "", "p"],
-  ]
-  .forEach(item => {
-      let cmd = item[0];
-      let param = item[2];
-      let inputType = item[1];
-      tests.push([cmd, () => { document.execCommand(cmd, false, param); },
-                  [/* execCommand shouldn't cause beforeinput event */],
-                  [inputType]]);
-   });
+  ].forEach(item => {
+    let cmd = item[0];
+    let param = item[2];
+    let inputType = item[1];
+    tests.push([cmd, () => { document.execCommand(cmd, false, param); },
+                [/* execCommand shouldn't cause beforeinput event */],
+                [inputType]]);
+  });
+
   // These are all TODO -- they don't move the non-editable elements
   [
     ["bold", "formatBold"],
@@ -93,16 +130,16 @@ function test() {
     ["justifyright", "formatJustifyRight"],
     ["justifycenter", "formatJustifyCenter"],
     ["justifyfull", "formatJustifyFull"],
-  ]
-  .forEach(item => {
-      let cmd = item[0];
-      let param = item[2];
-      let inputType = item[1];
-      tests.push([cmd, () => { document.execCommand(cmd, false, param); },
-                  [/* execCommand shouldn't cause beforeinput event */],
-                  [inputType],
-                  " A ;  ; BC "]);
+  ].forEach(item => {
+    let cmd = item[0];
+    let param = item[2];
+    let inputType = item[1];
+    tests.push([cmd, () => { document.execCommand(cmd, false, param); },
+                [/* execCommand shouldn't cause beforeinput event */],
+                [inputType],
+                " A ;  ; BC "]);
    });
+
   tests.push(["indent", () => { document.execCommand("indent"); },
               [/* execCommand shouldn't cause beforeinput event */],
               ["formatIndent"],
@@ -116,7 +153,7 @@ function test() {
     ["div", "br", "p"].forEach(sep => {
       document.execCommand("defaultParagraphSeparator", false, sep);
 
-      let expectedFailText = typeof arr[4] == "function" ? arr[4]() : arr[4];
+      let expectedFailText = typeof arr[4] == "function" ? arr[4](sep) : arr[4];
 
       edit.innerHTML = html;
       edit.focus();
@@ -124,17 +161,14 @@ function test() {
       beforeinputTypes = [];
       inputTypes = [];
       arr[1]();
-      if (typeof expectedFailText != "undefined") {
-        todo_is(edit.textContent, expectedText,
-                arr[0] + " should not change text (" + sep + ")");
-        if (edit.textContent !== expectedText &&
-            edit.textContent !== expectedFailText) {
-          is(edit.textContent, expectedFailText,
-             arr[0] + " changed to different failure (" + sep + ")");
+      const resultText = edit.textContent;
+      if (expectedFailText !== undefined) {
+        todo_is(resultText, expectedText, `${arr[0]} should not change text (${sep})`);
+        if (resultText !== expectedText && resultText !== expectedFailText) {
+          is(resultText, expectedFailText, `${arr[0]} changed to different failure (${sep})`);
         }
       } else {
-        is(edit.textContent, expectedText,
-           arr[0] + " should not change text (" + sep + ")");
+        is(resultText, expectedText, `${arr[0]} should not change text (${sep})`);
       }
       is(beforeinputTypes.length, arr[2].length, `${arr[0]}: number of beforeinput events should be ${arr[2].length} (${sep})`);
       for (let i = 0; i < Math.max(beforeinputTypes.length, arr[2].length); i++) {
