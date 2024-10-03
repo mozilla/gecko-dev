@@ -51,7 +51,8 @@ class MOZ_STACK_CLASS ContentPlaybackController {
   void SeekTo(double aSeekTime, bool aFastSeek);
 
  private:
-  void NotifyContentMediaControlKeyReceiver(MediaControlKey aKey);
+  void NotifyContentMediaControlKeyReceiver(
+      MediaControlKey aKey, Maybe<SeekDetails> aDetails = Nothing());
   void NotifyMediaSession(MediaSessionAction aAction);
   void NotifyMediaSession(const MediaSessionActionDetails& aDetails);
   void NotifyMediaSessionWhenActionIsSupported(MediaSessionAction aAction);

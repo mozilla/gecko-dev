@@ -480,19 +480,43 @@ class HTMLMediaElement::MediaControlKeyListener final
     }
   }
 
-  void HandleMediaKey(MediaControlKey aKey) override {
+  void HandleMediaKey(MediaControlKey aKey,
+                      Maybe<SeekDetails> aDetails) override {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(IsStarted());
     MEDIACONTROL_LOG("HandleEvent '%s'", GetEnumString(aKey).get());
-    if (aKey == MediaControlKey::Play) {
-      Owner()->Play();
-    } else if (aKey == MediaControlKey::Pause) {
-      Owner()->Pause();
-    } else {
-      MOZ_ASSERT(aKey == MediaControlKey::Stop,
-                 "Not supported key for media element!");
-      Owner()->Pause();
-      StopIfNeeded();
+    switch (aKey) {
+      case MediaControlKey::Play:
+        Owner()->Play();
+        break;
+      case MediaControlKey::Pause:
+        Owner()->Pause();
+        break;
+      case MediaControlKey::Stop:
+        Owner()->Pause();
+        StopIfNeeded();
+        break;
+      case MediaControlKey::Seekto:
+        MOZ_ASSERT(aDetails->mAbsolute);
+        if (aDetails->mAbsolute->mFastSeek) {
+          Owner()->FastSeek(aDetails->mAbsolute->mSeekTime, IgnoreErrors());
+        } else {
+          Owner()->SetCurrentTime(aDetails->mAbsolute->mSeekTime);
+        }
+        break;
+      case MediaControlKey::Seekforward:
+        MOZ_ASSERT(aDetails->mRelativeSeekOffset);
+        Owner()->SetCurrentTime(Owner()->CurrentTime() +
+                                aDetails->mRelativeSeekOffset.value());
+        break;
+      case MediaControlKey::Seekbackward:
+        MOZ_ASSERT(aDetails->mRelativeSeekOffset);
+        Owner()->SetCurrentTime(Owner()->CurrentTime() -
+                                aDetails->mRelativeSeekOffset.value());
+        break;
+      default:
+        MOZ_ASSERT_UNREACHABLE(
+            "Unsupported media control key for media element!");
     }
   }
 

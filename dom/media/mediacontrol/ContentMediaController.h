@@ -24,7 +24,8 @@ class ContentMediaControlKeyReceiver {
   static ContentMediaControlKeyReceiver* Get(BrowsingContext* aBC);
 
   // Use this method to handle the event from `ContentMediaAgent`.
-  virtual void HandleMediaKey(MediaControlKey aKey) = 0;
+  virtual void HandleMediaKey(MediaControlKey aKey,
+                              Maybe<SeekDetails> aDetails = Nothing()) = 0;
 
   virtual bool IsPlaying() const = 0;
 };
@@ -94,7 +95,8 @@ class ContentMediaController final : public ContentMediaAgent,
   void RemoveReceiver(ContentMediaControlKeyReceiver* aListener) override;
 
   // ContentMediaControlKeyReceiver method
-  void HandleMediaKey(MediaControlKey aKey) override;
+  void HandleMediaKey(MediaControlKey aKey,
+                      Maybe<SeekDetails> aDetails = Nothing()) override;
 
  private:
   ~ContentMediaController() = default;

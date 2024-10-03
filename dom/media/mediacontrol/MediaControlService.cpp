@@ -53,10 +53,11 @@ RefPtr<MediaControlService> MediaControlService::GetService() {
 
 /* static */
 void MediaControlService::GenerateMediaControlKey(const GlobalObject& global,
-                                                  MediaControlKey aKey) {
+                                                  MediaControlKey aKey,
+                                                  double aSeekTime) {
   RefPtr<MediaControlService> service = MediaControlService::GetService();
   if (service) {
-    service->GenerateTestMediaControlKey(aKey);
+    service->GenerateTestMediaControlKey(aKey, aSeekTime);
   }
 }
 
@@ -245,20 +246,21 @@ MediaController* MediaControlService::GetMainController() const {
   return mControllerManager->GetMainController();
 }
 
-void MediaControlService::GenerateTestMediaControlKey(MediaControlKey aKey) {
+void MediaControlService::GenerateTestMediaControlKey(MediaControlKey aKey,
+                                                      double aSeekValue) {
   if (!StaticPrefs::media_mediacontrol_testingevents_enabled()) {
     return;
   }
   // Generate seek details when necessary
   switch (aKey) {
     case MediaControlKey::Seekto:
-      mMediaKeysHandler->OnActionPerformed(
-          MediaControlAction(aKey, SeekDetails(0.0, false /* fast seek */)));
+      mMediaKeysHandler->OnActionPerformed(MediaControlAction(
+          aKey, SeekDetails(aSeekValue, false /* fast seek */)));
       break;
     case MediaControlKey::Seekbackward:
     case MediaControlKey::Seekforward:
       mMediaKeysHandler->OnActionPerformed(
-          MediaControlAction(aKey, SeekDetails(0.0)));
+          MediaControlAction(aKey, SeekDetails(aSeekValue)));
       break;
     default:
       mMediaKeysHandler->OnActionPerformed(MediaControlAction(aKey));

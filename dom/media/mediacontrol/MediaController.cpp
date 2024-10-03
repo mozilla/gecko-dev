@@ -75,9 +75,10 @@ void MediaController::GetMetadata(MediaMetadataInit& aMetadata,
 }
 
 static const MediaControlKey sDefaultSupportedKeys[] = {
-    MediaControlKey::Focus,     MediaControlKey::Play, MediaControlKey::Pause,
-    MediaControlKey::Playpause, MediaControlKey::Stop,
-};
+    MediaControlKey::Focus,       MediaControlKey::Play,
+    MediaControlKey::Pause,       MediaControlKey::Playpause,
+    MediaControlKey::Stop,        MediaControlKey::Seekto,
+    MediaControlKey::Seekforward, MediaControlKey::Seekbackward};
 
 static void GetDefaultSupportedKeys(nsTArray<MediaControlKey>& aKeys) {
   for (const auto& key : sDefaultSupportedKeys) {
@@ -183,13 +184,23 @@ bool MediaController::IsActive() const { return mIsActive; };
 
 bool MediaController::ShouldPropagateActionToAllContexts(
     const MediaControlAction& aAction) const {
-  // These three actions have default action handler for each frame, so we
+  // These actions have default action handler for each frame, so we
   // need to propagate to all contexts. We would handle default handlers in
   // `ContentMediaController::HandleMediaKey`.
-  return aAction.mKey.isSome() &&
-         (aAction.mKey.value() == MediaControlKey::Play ||
-          aAction.mKey.value() == MediaControlKey::Pause ||
-          aAction.mKey.value() == MediaControlKey::Stop);
+  if (aAction.mKey.isSome()) {
+    switch (aAction.mKey.value()) {
+      case MediaControlKey::Play:
+      case MediaControlKey::Pause:
+      case MediaControlKey::Stop:
+      case MediaControlKey::Seekto:
+      case MediaControlKey::Seekforward:
+      case MediaControlKey::Seekbackward:
+        return true;
+      default:
+        return false;
+    }
+  }
+  return false;
 }
 
 void MediaController::UpdateMediaControlActionToContentMediaIfNeeded(

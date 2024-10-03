@@ -24275,7 +24275,7 @@ declare namespace L10nOverlays {
 }
 
 declare namespace MediaControlService {
-    function generateMediaControlKey(aKey: MediaControlKey): void;
+    function generateMediaControlKey(aKey: MediaControlKey, aSeekValue?: double): void;
     function getCurrentActiveMediaMetadata(): MediaMetadataInit;
     function getCurrentMediaSessionPlaybackState(): MediaSessionPlaybackState;
 }

@@ -2,7 +2,16 @@ const PAGE_NON_AUTOPLAY =
   "https://example.com/browser/dom/media/mediacontrol/tests/browser/file_non_autoplay.html";
 
 const testVideoId = "video";
-const sDefaultSupportedKeys = ["focus", "play", "pause", "playpause", "stop"];
+const sDefaultSupportedKeys = [
+  "focus",
+  "play",
+  "pause",
+  "playpause",
+  "stop",
+  "seekto",
+  "seekforward",
+  "seekbackward",
+];
 
 add_task(async function setupTestingPref() {
   await SpecialPowers.pushPrefEnv({
@@ -80,12 +89,7 @@ add_task(async function testSettingActionsWhichAreNotDefaultKeys() {
   await playMedia(tab, testVideoId);
 
   info(`create media session but not set any action handler`);
-  let nonDefaultActions = [
-    "seekbackward",
-    "seekforward",
-    "previoustrack",
-    "nexttrack",
-  ];
+  let nonDefaultActions = ["previoustrack", "nexttrack"];
   await setMediaSessionSupportedAction(tab, nonDefaultActions);
 
   info(

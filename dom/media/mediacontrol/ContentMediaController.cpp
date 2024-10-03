@@ -351,27 +351,30 @@ void ContentMediaController::RemoveReceiver(
   mReceivers.RemoveElement(aListener);
 }
 
-void ContentMediaController::HandleMediaKey(MediaControlKey aKey) {
+void ContentMediaController::HandleMediaKey(MediaControlKey aKey,
+                                            Maybe<SeekDetails> aDetails) {
   MOZ_ASSERT(NS_IsMainThread());
   if (mReceivers.IsEmpty()) {
     return;
   }
   LOG("Handle '%s' event, receiver num=%zu", GetEnumString(aKey).get(),
       mReceivers.Length());
-  // We have default handlers for play, pause and stop.
+  // We have default handlers for these actions
   // https://w3c.github.io/mediasession/#ref-for-dom-mediasessionaction-play%E2%91%A3
   switch (aKey) {
     case MediaControlKey::Pause:
       PauseOrStopMedia();
       return;
     case MediaControlKey::Play:
-      [[fallthrough]];
     case MediaControlKey::Stop:
+    case MediaControlKey::Seekto:
+    case MediaControlKey::Seekforward:
+    case MediaControlKey::Seekbackward:
       // When receiving `Stop`, the amount of receiver would vary during the
       // iteration, so we use the backward iteration to avoid accessing the
       // index which is over the array length.
       for (auto& receiver : Reversed(mReceivers)) {
-        receiver->HandleMediaKey(aKey);
+        receiver->HandleMediaKey(aKey, aDetails);
       }
       return;
     default:
