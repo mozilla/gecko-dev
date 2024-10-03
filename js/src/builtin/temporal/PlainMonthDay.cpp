@@ -160,7 +160,7 @@ PlainMonthDayObject* js::temporal::CreateTemporalMonthDay(
  * CreateTemporalMonthDay ( isoMonth, isoDay, calendar, referenceISOYear [ ,
  * newTarget ] )
  */
-static auto* CreateTemporalMonthDay(
+PlainMonthDayObject* js::temporal::CreateTemporalMonthDay(
     JSContext* cx, Handle<PlainMonthDayWithCalendar> monthDay) {
   MOZ_ASSERT(ISODateTimeWithinLimits(monthDay));
   return CreateTemporalMonthDay(cx, monthDay, monthDay.calendar());

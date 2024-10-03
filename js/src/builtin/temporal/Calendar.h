@@ -561,27 +561,6 @@ bool CalendarYearMonthFromFields(
     JS::MutableHandle<PlainYearMonthWithCalendar> result);
 
 /**
- * CalendarMonthDayFromFields ( calendarRec, fields [ , options ] )
- */
-Wrapped<PlainMonthDayObject*> CalendarMonthDayFromFields(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<PlainObject*> fields);
-
-/**
- * CalendarMonthDayFromFields ( calendarRec, fields [ , options ] )
- */
-Wrapped<PlainMonthDayObject*> CalendarMonthDayFromFields(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<PlainMonthDayObject*> fields);
-
-/**
- * CalendarMonthDayFromFields ( calendarRec, fields [ , options ] )
- */
-Wrapped<PlainMonthDayObject*> CalendarMonthDayFromFields(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<PlainObject*> fields, JS::Handle<PlainObject*> options);
-
-/**
  * CalendarMonthDayFromFields ( calendar, fields, overflow )
  */
 bool CalendarMonthDayFromFields(
