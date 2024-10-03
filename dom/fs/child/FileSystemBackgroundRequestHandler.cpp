@@ -68,7 +68,7 @@ FileSystemBackgroundRequestHandler::FileSystemManagerChildStrongRef() const {
   return mFileSystemManagerChild;
 }
 
-RefPtr<BoolPromise>
+RefPtr<FileSystemManagerChild::ActorPromise>
 FileSystemBackgroundRequestHandler::CreateFileSystemManagerChild(
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
   MOZ_ASSERT(!mFileSystemManagerChild);
@@ -82,7 +82,8 @@ FileSystemBackgroundRequestHandler::CreateFileSystemManagerChild(
     PBackgroundChild* backgroundChild =
         BackgroundChild::GetOrCreateForCurrentThread();
     if (NS_WARN_IF(!backgroundChild)) {
-      return BoolPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
+      return FileSystemManagerChild::ActorPromise::CreateAndReject(
+          NS_ERROR_FAILURE, __func__);
     }
 
     // Create a new IPC connection
@@ -93,7 +94,8 @@ FileSystemBackgroundRequestHandler::CreateFileSystemManagerChild(
 
     RefPtr<FileSystemManagerChild> child = mChildFactory->Create();
     if (!childEndpoint.Bind(child)) {
-      return BoolPromise::CreateAndReject(NS_ERROR_FAILURE, __func__);
+      return FileSystemManagerChild::ActorPromise::CreateAndReject(
+          NS_ERROR_FAILURE, __func__);
     }
 
     mCreatingFileSystemManagerChild = true;
@@ -104,7 +106,7 @@ FileSystemBackgroundRequestHandler::CreateFileSystemManagerChild(
         ->Then(
             GetCurrentSerialEventTarget(), __func__,
             [self = RefPtr<FileSystemBackgroundRequestHandler>(this),
-             child](nsresult rv) {
+             child](nsresult rv) mutable {
               self->mCreateFileSystemManagerParentPromiseRequestHolder
                   .Complete();
 
@@ -120,7 +122,7 @@ FileSystemBackgroundRequestHandler::CreateFileSystemManagerChild(
                     self);
 
                 self->mCreateFileSystemManagerChildPromiseHolder
-                    .ResolveIfExists(true, __func__);
+                    .ResolveIfExists(std::move(child), __func__);
               }
             },
             [self = RefPtr<FileSystemBackgroundRequestHandler>(this)](

@@ -17,6 +17,9 @@ class FileSystemBackgroundRequestHandler;
 
 class FileSystemManagerChild : public PFileSystemManagerChild {
  public:
+  using ActorPromise =
+      MozPromise<RefPtr<FileSystemManagerChild>, nsresult, false>;
+
   NS_INLINE_DECL_REFCOUNTING_WITH_DESTROY(FileSystemManagerChild, Destroy(),
                                           override)
 

@@ -53,9 +53,9 @@ TEST_F(TestFileSystemBackgroundRequestHandler,
   bool done = false;
   auto testable = GetFileSystemBackgroundRequestHandler();
   testable->CreateFileSystemManagerChild(mPrincipalInfo)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [&done](bool) { done = true; }, [&done](nsresult) { done = true; });
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [&done](const FileSystemManagerChild::ActorPromise::
+                         ResolveOrRejectValue&) { done = true; });
   // MozPromise should be rejected
   SpinEventLoopUntil("Promise is fulfilled or timeout"_ns,
                      [&done]() { return done; });

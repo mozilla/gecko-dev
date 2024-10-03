@@ -11,6 +11,7 @@
 
 #include "mozilla/MozPromise.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/FileSystemManagerChild.h"
 #include "mozilla/dom/FlippedOnce.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "nsCOMPtr.h"
@@ -26,7 +27,6 @@ class ErrorResult;
 
 namespace dom {
 
-class FileSystemManagerChild;
 class FileSystemBackgroundRequestHandler;
 class StorageManager;
 
@@ -70,13 +70,14 @@ class FileSystemManager : public nsISupports {
 
   const RefPtr<FileSystemManagerChild>& ActorStrongRef() const;
 
-  void RegisterPromiseRequestHolder(PromiseRequestHolder<BoolPromise>* aHolder);
+  void RegisterPromiseRequestHolder(
+      PromiseRequestHolder<FileSystemManagerChild::ActorPromise>* aHolder);
 
   void UnregisterPromiseRequestHolder(
-      PromiseRequestHolder<BoolPromise>* aHolder);
+      PromiseRequestHolder<FileSystemManagerChild::ActorPromise>* aHolder);
 
   void BeginRequest(
-      std::function<void(const RefPtr<FileSystemManagerChild>&)>&& aSuccess,
+      std::function<void(RefPtr<FileSystemManagerChild>)>&& aSuccess,
       std::function<void(nsresult)>&& aFailure);
 
   already_AddRefed<Promise> GetDirectory(ErrorResult& aError);
@@ -91,7 +92,8 @@ class FileSystemManager : public nsISupports {
   const RefPtr<FileSystemBackgroundRequestHandler> mBackgroundRequestHandler;
   const UniquePtr<fs::FileSystemRequestHandler> mRequestHandler;
 
-  nsTObserverArray<PromiseRequestHolder<BoolPromise>*> mPromiseRequestHolders;
+  nsTObserverArray<PromiseRequestHolder<FileSystemManagerChild::ActorPromise>*>
+      mPromiseRequestHolders;
 
   FlippedOnce<false> mShutdown;
 };

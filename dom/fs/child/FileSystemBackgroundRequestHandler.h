@@ -9,6 +9,7 @@
 
 #include "mozilla/MozPromise.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/FileSystemManagerChild.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 
@@ -22,8 +23,6 @@ class PrincipalInfo;
 }  // namespace ipc
 
 namespace dom {
-
-class FileSystemManagerChild;
 
 namespace fs {
 class FileSystemChildFactory;
@@ -47,7 +46,8 @@ class FileSystemBackgroundRequestHandler {
 
   const RefPtr<FileSystemManagerChild>& FileSystemManagerChildStrongRef() const;
 
-  virtual RefPtr<mozilla::BoolPromise> CreateFileSystemManagerChild(
+  virtual RefPtr<FileSystemManagerChild::ActorPromise>
+  CreateFileSystemManagerChild(
       const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
  protected:
@@ -58,7 +58,8 @@ class FileSystemBackgroundRequestHandler {
   MozPromiseRequestHolder<
       mozilla::ipc::PBackgroundChild::CreateFileSystemManagerParentPromise>
       mCreateFileSystemManagerParentPromiseRequestHolder;
-  MozPromiseHolder<BoolPromise> mCreateFileSystemManagerChildPromiseHolder;
+  MozPromiseHolder<FileSystemManagerChild::ActorPromise>
+      mCreateFileSystemManagerChildPromiseHolder;
 
   RefPtr<FileSystemManagerChild> mFileSystemManagerChild;
 
