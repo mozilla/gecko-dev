@@ -813,46 +813,6 @@ static CalendarObject* CreateTemporalCalendar(JSContext* cx,
   return obj;
 }
 
-/**
- * ObjectImplementsTemporalCalendarProtocol ( object )
- */
-static bool ObjectImplementsTemporalCalendarProtocol(JSContext* cx,
-                                                     Handle<JSObject*> object,
-                                                     bool* result) {
-  // Step 1. (Not applicable in our implementation.)
-  MOZ_ASSERT(!object->canUnwrapAs<CalendarObject>(),
-             "Calendar objects handled in the caller");
-
-  // Step 2.
-  for (auto key : {
-           &JSAtomState::dateAdd,      &JSAtomState::dateFromFields,
-           &JSAtomState::dateUntil,    &JSAtomState::day,
-           &JSAtomState::dayOfWeek,    &JSAtomState::dayOfYear,
-           &JSAtomState::daysInMonth,  &JSAtomState::daysInWeek,
-           &JSAtomState::daysInYear,   &JSAtomState::fields,
-           &JSAtomState::id,           &JSAtomState::inLeapYear,
-           &JSAtomState::mergeFields,  &JSAtomState::month,
-           &JSAtomState::monthCode,    &JSAtomState::monthDayFromFields,
-           &JSAtomState::monthsInYear, &JSAtomState::weekOfYear,
-           &JSAtomState::year,         &JSAtomState::yearMonthFromFields,
-           &JSAtomState::yearOfWeek,
-       }) {
-    // Step 2.a.
-    bool has;
-    if (!HasProperty(cx, object, cx->names().*key, &has)) {
-      return false;
-    }
-    if (!has) {
-      *result = false;
-      return true;
-    }
-  }
-
-  // Step 3.
-  *result = true;
-  return true;
-}
-
 template <typename T, typename... Ts>
 static bool ToTemporalCalendar(JSContext* cx, Handle<JSObject*> object,
                                MutableHandle<CalendarValue> result) {
@@ -878,15 +838,8 @@ bool js::temporal::ToTemporalCalendar(JSContext* cx,
   // Step 1. (Not applicable)
 
   // Step 2.
-  Rooted<Value> calendarLike(cx, temporalCalendarLike);
-  if (calendarLike.isObject()) {
-    Rooted<JSObject*> obj(cx, &calendarLike.toObject());
-
-    // Step 2.b. (Partial)
-    if (obj->canUnwrapAs<CalendarObject>()) {
-      result.set(CalendarValue(obj));
-      return true;
-    }
+  if (temporalCalendarLike.isObject()) {
+    Rooted<JSObject*> obj(cx, &temporalCalendarLike.toObject());
 
     // Step 2.a.
     Rooted<CalendarValue> calendar(cx);
@@ -899,32 +852,15 @@ bool js::temporal::ToTemporalCalendar(JSContext* cx,
       result.set(calendar);
       return true;
     }
-
-    // Step 2.b.
-    bool implementsCalendarProtocol;
-    if (!ObjectImplementsTemporalCalendarProtocol(
-            cx, obj, &implementsCalendarProtocol)) {
-      return false;
-    }
-    if (!implementsCalendarProtocol) {
-      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                               JSMSG_TEMPORAL_INVALID_OBJECT,
-                               "Temporal.Calendar", obj->getClass()->name);
-      return false;
-    }
-
-    // Step 2.c.
-    result.set(CalendarValue(obj));
-    return true;
   }
 
   // Step 3.
-  if (!calendarLike.isString()) {
+  if (!temporalCalendarLike.isString()) {
     ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_IGNORE_STACK,
-                     calendarLike, nullptr, "not a string");
+                     temporalCalendarLike, nullptr, "not a string");
     return false;
   }
-  Rooted<JSString*> str(cx, calendarLike.toString());
+  Rooted<JSString*> str(cx, temporalCalendarLike.toString());
 
   // Step 4.
   Rooted<JSLinearString*> id(cx, ParseTemporalCalendarString(cx, str));

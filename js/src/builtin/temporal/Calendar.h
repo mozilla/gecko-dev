@@ -136,7 +136,7 @@ class MOZ_STACK_CLASS CalendarValue final {
    * Default initialize this CalendarValue.
    */
   explicit CalendarValue(const JS::Value& value) : value_(value) {
-    MOZ_ASSERT(value.isInt32() || value.isObject());
+    MOZ_ASSERT(value.isInt32());
   }
 
   /**
@@ -144,12 +144,6 @@ class MOZ_STACK_CLASS CalendarValue final {
    */
   explicit CalendarValue(CalendarId calendarId)
       : value_(JS::Int32Value(static_cast<int32_t>(calendarId))) {}
-
-  /**
-   * Initialize this CalendarValue with a calendar object.
-   */
-  explicit CalendarValue(JSObject* calendar)
-      : value_(JS::ObjectValue(*calendar)) {}
 
   /**
    * Return true iff this CalendarValue is initialized with either a canonical
