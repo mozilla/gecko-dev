@@ -233,21 +233,6 @@ class alignas(16) Instance {
   TableInstanceData& tableInstanceData(uint32_t tableIndex) const;
   TagInstanceData& tagInstanceData(uint32_t tagIndex) const;
 
-#ifdef ENABLE_WASM_JSPI
- public:
-  struct WasmJSPICallImportData {
-    Instance* instance;
-    int32_t funcImportIndex;
-    int32_t argc;
-    uint64_t* argv;
-    static bool Call(WasmJSPICallImportData* data);
-  };
-
- private:
-  bool isImportAllowedOnSuspendableStack(JSContext* cx,
-                                         int32_t funcImportIndex);
-#endif
-
   // Only WasmInstanceObject can call the private trace function.
   friend class js::WasmInstanceObject;
   void tracePrivate(JSTracer* trc);
