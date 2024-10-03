@@ -27,6 +27,17 @@ void FileSystemManagerChild::CloseAllWritables(
   nsTArray<RefPtr<BoolPromise>> promises;
   CloseAllWritablesImpl(promises);
 
+  // FileSystemManagerChild::CloseAllWritables is sometimes called from
+  // FileSystemManager::Shutdown which can be called late in app shutdown
+  // when GetCurrentSerialEventTarget returns null. At that point there
+  // are no writable file streams. The problem with GetCurrentSerialEventTarget
+  // returning null can be solved by calling the callback directly without
+  // dispatching a new runnable.
+  if (promises.IsEmpty()) {
+    aCallback();
+    return;
+  }
+
   BoolPromise::AllSettled(GetCurrentSerialEventTarget(), promises)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [callback = std::move(aCallback)](
