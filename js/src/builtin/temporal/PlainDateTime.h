@@ -185,22 +185,6 @@ PlainDateTimeObject* CreateTemporalDateTime(JSContext* cx,
  * CreateTemporalDateTime ( isoYear, isoMonth, isoDay, hour, minute, second,
  * millisecond, microsecond, nanosecond, calendar [ , newTarget ] )
  */
-PlainDateTimeObject* CreateTemporalDateTime(
-    JSContext* cx, JS::Handle<PlainDateTimeWithCalendar> dateTime);
-
-/**
- * CreateTemporalDateTime ( isoYear, isoMonth, isoDay, hour, minute, second,
- * millisecond, microsecond, nanosecond, calendar [ , newTarget ] )
- */
-bool CreateTemporalDateTime(
-    JSContext* cx, const PlainDateTime& dateTime,
-    JS::Handle<CalendarValue> calendar,
-    JS::MutableHandle<PlainDateTimeWithCalendar> result);
-
-/**
- * CreateTemporalDateTime ( isoYear, isoMonth, isoDay, hour, minute, second,
- * millisecond, microsecond, nanosecond, calendar [ , newTarget ] )
- */
 bool CreateTemporalDateTime(JSContext* cx, const PlainDate& date,
                             const PlainTime& time, PlainDateTime* result);
 
@@ -220,16 +204,6 @@ bool InterpretTemporalDateTimeFields(JSContext* cx,
 PlainDateTime RoundISODateTime(const PlainDateTime& dateTime,
                                Increment increment, TemporalUnit unit,
                                TemporalRoundingMode roundingMode);
-
-/**
- * DifferenceISODateTime ( y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2,
- * d2, h2, min2, s2, ms2, mus2, ns2, calendar, largestUnit )
- */
-bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
-                           const PlainDateTime& two,
-                           JS::Handle<CalendarValue> calendar,
-                           TemporalUnit largestUnit,
-                           NormalizedDuration* result);
 
 /**
  * DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1,

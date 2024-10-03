@@ -406,7 +406,7 @@ PlainDateTimeObject* js::temporal::CreateTemporalDateTime(
  * CreateTemporalDateTime ( isoYear, isoMonth, isoDay, hour, minute, second,
  * millisecond, microsecond, nanosecond, calendar [ , newTarget ] )
  */
-PlainDateTimeObject* js::temporal::CreateTemporalDateTime(
+static PlainDateTimeObject* CreateTemporalDateTime(
     JSContext* cx, Handle<PlainDateTimeWithCalendar> dateTime) {
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
   return CreateTemporalDateTime(cx, dateTime, dateTime.calendar());
@@ -416,7 +416,7 @@ PlainDateTimeObject* js::temporal::CreateTemporalDateTime(
  * CreateTemporalDateTime ( isoYear, isoMonth, isoDay, hour, minute, second,
  * millisecond, microsecond, nanosecond, calendar [ , newTarget ] )
  */
-bool js::temporal::CreateTemporalDateTime(
+static bool CreateTemporalDateTime(
     JSContext* cx, const PlainDateTime& dateTime,
     Handle<CalendarValue> calendar,
     MutableHandle<PlainDateTimeWithCalendar> result) {
@@ -730,12 +730,11 @@ static bool AddDateTime(JSContext* cx, const PlainDateTime& dateTime,
  * DifferenceISODateTime ( y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2,
  * d2, h2, min2, s2, ms2, mus2, ns2, calendar, largestUnit )
  */
-bool js::temporal::DifferenceISODateTime(JSContext* cx,
-                                         const PlainDateTime& one,
-                                         const PlainDateTime& two,
-                                         Handle<CalendarValue> calendar,
-                                         TemporalUnit largestUnit,
-                                         NormalizedDuration* result) {
+static bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
+                                  const PlainDateTime& two,
+                                  Handle<CalendarValue> calendar,
+                                  TemporalUnit largestUnit,
+                                  NormalizedDuration* result) {
   // Steps 1-2.
   MOZ_ASSERT(IsValidISODateTime(one));
   MOZ_ASSERT(IsValidISODateTime(two));
