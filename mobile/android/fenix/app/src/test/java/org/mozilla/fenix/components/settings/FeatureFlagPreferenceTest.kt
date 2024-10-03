@@ -4,60 +4,56 @@
 
 package org.mozilla.fenix.components.settings
 
+import android.content.Context
 import android.content.SharedPreferences
-import io.mockk.Called
-import io.mockk.MockKAnnotations
-import io.mockk.Runs
-import io.mockk.every
-import io.mockk.impl.annotations.MockK
-import io.mockk.just
-import io.mockk.verify
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.support.ktx.android.content.PreferencesHolder
+import mozilla.components.support.test.robolectric.testContext
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.mockito.Mockito.spy
 
+@RunWith(AndroidJUnit4::class)
 class FeatureFlagPreferenceTest {
-
-    @MockK private lateinit var prefs: SharedPreferences
-
-    @MockK private lateinit var editor: SharedPreferences.Editor
+    private lateinit var testPreferences: SharedPreferences
 
     @Before
     fun setup() {
-        MockKAnnotations.init(this)
-        every { prefs.getBoolean("key", false) } returns true
-        every { prefs.edit() } returns editor
-        every { editor.putBoolean("key", any()) } returns editor
-        every { editor.apply() } just Runs
+        testPreferences = testContext.getSharedPreferences("test", Context.MODE_PRIVATE)
+    }
+
+    @After
+    fun tearDown() {
+        testPreferences.edit().clear().apply()
     }
 
     @Test
-    fun `acts like boolean preference if feature flag is true`() {
-        val holder = FeatureFlagHolder(featureFlag = true)
+    fun `WHEN feature flag if true THEN feature acts like boolean preference`() {
+        testPreferences.edit().putBoolean("key", true).apply()
+        val holder = spy(FeatureFlagHolder(featureFlag = true))
 
         assertTrue(holder.property)
-        verify { prefs.getBoolean("key", false) }
 
         holder.property = false
-        verify { editor.putBoolean("key", false) }
+        assertFalse(testPreferences.getBoolean("key", true))
     }
 
     @Test
-    fun `no-op if feature flag is false`() {
+    fun `WHEN feature flag if false THEN feature flag always return false`() {
+        testPreferences.edit().putBoolean("key", true).apply()
         val holder = FeatureFlagHolder(featureFlag = false)
 
         assertFalse(holder.property)
         holder.property = true
-        holder.property = false
-
-        verify { prefs wasNot Called }
-        verify { editor wasNot Called }
+        assertFalse(holder.property)
     }
 
     private inner class FeatureFlagHolder(featureFlag: Boolean) : PreferencesHolder {
-        override val preferences = prefs
+        override val preferences = testPreferences
 
         var property by featureFlagPreference(
             "key",

@@ -8,10 +8,8 @@ import android.content.SharedPreferences
 import mozilla.components.support.test.any
 import mozilla.components.support.test.eq
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyFloat
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyLong
@@ -31,45 +29,11 @@ class SharedPreferencesTest {
         openMocks(this)
 
         `when`(sharedPrefs.edit()).thenReturn(editor)
-        `when`(editor.putBoolean(anyString(), anyBoolean())).thenReturn(editor)
         `when`(editor.putFloat(anyString(), anyFloat())).thenReturn(editor)
         `when`(editor.putInt(anyString(), anyInt())).thenReturn(editor)
         `when`(editor.putLong(anyString(), anyLong())).thenReturn(editor)
         `when`(editor.putString(anyString(), anyString())).thenReturn(editor)
         `when`(editor.putStringSet(anyString(), any())).thenReturn(editor)
-    }
-
-    @Test
-    fun `getter returns boolean from shared preferences`() {
-        val holder = MockPreferencesHolder()
-        `when`(sharedPrefs.getBoolean(eq("boolean"), anyBoolean())).thenReturn(true)
-
-        assertTrue(holder.boolean)
-        verify(sharedPrefs).getBoolean("boolean", false)
-    }
-
-    @Test
-    fun `setter applies boolean to shared preferences`() {
-        val holder = MockPreferencesHolder(defaultBoolean = true)
-        holder.boolean = false
-
-        verify(editor).putBoolean("boolean", false)
-        verify(editor).apply()
-    }
-
-    @Test
-    fun `getter uses default boolean value`() {
-        val holderFalse = MockPreferencesHolder(defaultBoolean = false)
-        // Call the getter for the test
-        holderFalse.boolean
-
-        verify(sharedPrefs).getBoolean("boolean", false)
-
-        val holderTrue = MockPreferencesHolder(defaultBoolean = true)
-        // Call the getter for the test
-        holderTrue.boolean
-
-        verify(sharedPrefs).getBoolean("boolean", true)
     }
 
     @Test
@@ -205,7 +169,6 @@ class SharedPreferencesTest {
     }
 
     private inner class MockPreferencesHolder(
-        defaultBoolean: Boolean = false,
         defaultFloat: Float = 0f,
         defaultInt: Int = 0,
         defaultLong: Long = 0L,
@@ -213,8 +176,6 @@ class SharedPreferencesTest {
         defaultSet: Set<String> = emptySet(),
     ) : PreferencesHolder {
         override val preferences = sharedPrefs
-
-        var boolean by booleanPreference("boolean", default = defaultBoolean)
 
         var float by floatPreference("float", default = defaultFloat)
 
