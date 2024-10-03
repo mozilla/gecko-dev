@@ -327,9 +327,21 @@ class StyleRuleActor extends Actor {
     }
 
     const { selectedElement } = this.pageStyle;
+
+    // We can be in one of two cases:
+    // - we are selecting a pseudo element, and that pseudo element is referenced
+    //   by `selectedElement`
+    // - we are selecting the pseudo element "parent".
+    // implementPseudoElement returns the pseudo-element string if this element represents
+    // a pseudo-element, or null otherwise. See https://searchfox.org/mozilla-central/rev/1b90936792b2c71ef931cb1b8d6baff9d825592e/dom/webidl/Element.webidl#102-107
+    const isPseudoElementParentSelected =
+      selectedElement.implementedPseudoElement !== this._pseudoElement;
+
     return selectedElement.ownerGlobal.getComputedStyle(
       selectedElement,
-      this._pseudoElement
+      // If we are selecting the pseudo element parent, we need to pass the pseudo element
+      // to getComputedStyle to actually get the computed style of the pseudo element.
+      isPseudoElementParentSelected ? this._pseudoElement : null
     );
   }
 
