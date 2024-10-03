@@ -1778,13 +1778,18 @@ class Database final
            const Maybe<ContentParentId>& aContentParentId,
            const nsACString& aOrigin, uint32_t aPrivateBrowsingId);
 
-  Datastore* GetDatastore() const {
+  void AssertIsOnOwningThread() const {
     AssertIsOnBackgroundThread();
+    NS_ASSERT_OWNINGTHREAD(mozilla::dom::Database);
+  }
+
+  Datastore* GetDatastore() const {
+    AssertIsOnOwningThread();
     return mDatastore;
   }
 
   Maybe<Datastore&> MaybeDatastoreRef() const {
-    AssertIsOnBackgroundThread();
+    AssertIsOnOwningThread();
 
     return ToMaybeRef(mDatastore.get());
   }
@@ -1806,7 +1811,7 @@ class Database final
   void UnregisterSnapshot(Snapshot* aSnapshot);
 
   Snapshot* GetSnapshot() const {
-    AssertIsOnBackgroundThread();
+    AssertIsOnOwningThread();
     return mSnapshot;
   }
 
@@ -5302,7 +5307,7 @@ Database::Database(const PrincipalInfo& aPrincipalInfo,
       mActorWasAlive(false)
 #endif
 {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
 }
 
 Database::~Database() {
@@ -5311,7 +5316,7 @@ Database::~Database() {
 }
 
 void Database::SetActorAlive(Datastore* aDatastore) {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
   MOZ_ASSERT(!mActorWasAlive);
   MOZ_ASSERT(!mActorDestroyed);
 
@@ -5331,7 +5336,7 @@ void Database::SetActorAlive(Datastore* aDatastore) {
 }
 
 void Database::RegisterSnapshot(Snapshot* aSnapshot) {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
   MOZ_ASSERT(aSnapshot);
   MOZ_ASSERT(!mSnapshot);
   MOZ_ASSERT(!mAllowedToClose);
@@ -5352,7 +5357,7 @@ void Database::UnregisterSnapshot(Snapshot* aSnapshot) {
 }
 
 void Database::RequestAllowToClose() {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
 
   if (mRequestedAllowToClose) {
     return;
@@ -5377,7 +5382,7 @@ void Database::RequestAllowToClose() {
 }
 
 void Database::ForceKill() {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
 
   if (mActorDestroyed) {
     MOZ_ASSERT(mAllowedToClose);
@@ -5388,7 +5393,7 @@ void Database::ForceKill() {
 }
 
 void Database::Stringify(nsACString& aResult) const {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
 
   aResult.AppendLiteral("SnapshotRegistered:");
   aResult.AppendInt(!!mSnapshot);
@@ -5419,7 +5424,7 @@ void Database::Stringify(nsACString& aResult) const {
 }
 
 void Database::AllowToClose() {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
   MOZ_ASSERT(!mAllowedToClose);
   MOZ_ASSERT(mDatastore);
   MOZ_ASSERT(!mSnapshot);
@@ -5442,7 +5447,7 @@ void Database::AllowToClose() {
 }
 
 void Database::ActorDestroy(ActorDestroyReason aWhy) {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
   MOZ_ASSERT(!mActorDestroyed);
 
   mActorDestroyed = true;
@@ -5453,7 +5458,7 @@ void Database::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 mozilla::ipc::IPCResult Database::RecvDeleteMe() {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
   MOZ_ASSERT(!mActorDestroyed);
 
   IProtocol* mgr = Manager();
@@ -5464,7 +5469,7 @@ mozilla::ipc::IPCResult Database::RecvDeleteMe() {
 }
 
 mozilla::ipc::IPCResult Database::RecvAllowToClose() {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
 
   if (NS_WARN_IF(mAllowedToClose)) {
     return IPC_FAIL(this, "mAllowedToClose already set!");
@@ -5479,7 +5484,7 @@ PBackgroundLSSnapshotParent* Database::AllocPBackgroundLSSnapshotParent(
     const nsAString& aDocumentURI, const nsAString& aKey,
     const bool& aIncreasePeakUsage, const int64_t& aMinSize,
     LSSnapshotInitInfo* aInitInfo) {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
 
   if (NS_WARN_IF(aIncreasePeakUsage && aMinSize < 0)) {
     MOZ_ASSERT_UNLESS_FUZZING(false);
@@ -5501,7 +5506,7 @@ mozilla::ipc::IPCResult Database::RecvPBackgroundLSSnapshotConstructor(
     PBackgroundLSSnapshotParent* aActor, const nsAString& aDocumentURI,
     const nsAString& aKey, const bool& aIncreasePeakUsage,
     const int64_t& aMinSize, LSSnapshotInitInfo* aInitInfo) {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
   MOZ_ASSERT_IF(aIncreasePeakUsage, aMinSize >= 0);
   MOZ_ASSERT(aInitInfo);
   MOZ_ASSERT(!mAllowedToClose);
@@ -5557,7 +5562,7 @@ mozilla::ipc::IPCResult Database::RecvPBackgroundLSSnapshotConstructor(
 
 bool Database::DeallocPBackgroundLSSnapshotParent(
     PBackgroundLSSnapshotParent* aActor) {
-  AssertIsOnBackgroundThread();
+  AssertIsOnOwningThread();
   MOZ_ASSERT(aActor);
 
   // Transfer ownership back from IPDL.
