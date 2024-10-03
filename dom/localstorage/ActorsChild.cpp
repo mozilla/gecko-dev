@@ -38,14 +38,14 @@ LSDatabaseChild::~LSDatabaseChild() {
   MOZ_COUNT_DTOR(LSDatabaseChild);
 }
 
-void LSDatabaseChild::SendDeleteMeInternal() {
+void LSDatabaseChild::SendDelete() {
   AssertIsOnOwningThread();
 
   if (mDatabase) {
     mDatabase->ClearActor();
     mDatabase = nullptr;
 
-    MOZ_ALWAYS_TRUE(PBackgroundLSDatabaseChild::SendDeleteMe());
+    MOZ_ALWAYS_TRUE(PBackgroundLSDatabaseChild::Send__delete__(this));
   }
 }
 

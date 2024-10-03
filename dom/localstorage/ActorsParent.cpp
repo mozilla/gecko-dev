@@ -1832,8 +1832,6 @@ class Database final
   // IPDL methods are only called by IPDL.
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  mozilla::ipc::IPCResult RecvDeleteMe() override;
-
   mozilla::ipc::IPCResult RecvAllowToClose() override;
 
   PBackgroundLSSnapshotParent* AllocPBackgroundLSSnapshotParent(
@@ -5455,17 +5453,6 @@ void Database::ActorDestroy(ActorDestroyReason aWhy) {
   if (!mAllowedToClose) {
     AllowToClose();
   }
-}
-
-mozilla::ipc::IPCResult Database::RecvDeleteMe() {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(!mActorDestroyed);
-
-  IProtocol* mgr = Manager();
-  if (!PBackgroundLSDatabaseParent::Send__delete__(this)) {
-    return IPC_FAIL(mgr, "Send__delete__ failed!");
-  }
-  return IPC_OK();
 }
 
 mozilla::ipc::IPCResult Database::RecvAllowToClose() {
