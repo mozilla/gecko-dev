@@ -1800,6 +1800,10 @@ class Database final
     return mContentParentId && mContentParentId.value() == aContentParentId;
   }
 
+  const Maybe<ContentParentId>& ContentParentIdRef() const {
+    return mContentParentId;
+  }
+
   uint32_t PrivateBrowsingId() const { return mPrivateBrowsingId; }
 
   const nsCString& Origin() const { return mOrigin; }
@@ -2077,12 +2081,18 @@ class Snapshot final : public PBackgroundLSSnapshotParent {
 };
 
 class Observer final : public PBackgroundLSObserverParent {
+  const Maybe<ContentParentId> mContentParentId;
   nsCString mOrigin;
   bool mActorDestroyed;
 
  public:
   // Created in AllocPBackgroundLSObserverParent.
-  explicit Observer(const nsACString& aOrigin);
+  Observer(const Maybe<ContentParentId>& aContentParentId,
+           const nsACString& aOrigin);
+
+  const Maybe<ContentParentId>& ContentParentIdRef() const {
+    return mContentParentId;
+  }
 
   const nsCString& Origin() const { return mOrigin; }
 
@@ -4518,10 +4528,8 @@ void Datastore::NoteFinishedPreparedDatastore(
 bool Datastore::HasOtherProcessDatabases(Database* aDatabase) {
   AssertIsOnBackgroundThread();
 
-  PBackgroundParent* databaseBackgroundActor = aDatabase->Manager();
-
   for (Database* database : mDatabases) {
-    if (database->Manager() != databaseBackgroundActor) {
+    if (database->ContentParentIdRef() != aDatabase->ContentParentIdRef()) {
       return true;
     }
   }
@@ -5028,10 +5036,8 @@ bool Datastore::HasOtherProcessObservers(Database* aDatabase) {
 
   MOZ_ASSERT(array);
 
-  PBackgroundParent* databaseBackgroundActor = aDatabase->Manager();
-
   for (Observer* observer : *array) {
-    if (observer->Manager() != databaseBackgroundActor) {
+    if (observer->ContentParentIdRef() != aDatabase->ContentParentIdRef()) {
       return true;
     }
   }
@@ -5060,10 +5066,9 @@ void Datastore::NotifyOtherProcessObservers(Database* aDatabase,
 
   // We do not want to send information about events back to the content process
   // that caused the change.
-  PBackgroundParent* databaseBackgroundActor = aDatabase->Manager();
 
   for (Observer* observer : *array) {
-    if (observer->Manager() != databaseBackgroundActor) {
+    if (observer->ContentParentIdRef() != aDatabase->ContentParentIdRef()) {
       observer->Observe(aDatabase, aDocumentURI, aKey, aOldValue, aNewValue);
     }
   }
@@ -5083,10 +5088,8 @@ void Datastore::NoteChangedObserverArray(
 
     bool hasOtherProcessObservers = false;
 
-    PBackgroundParent* databaseBackgroundActor = database->Manager();
-
     for (Observer* observer : aObservers) {
-      if (observer->Manager() != databaseBackgroundActor) {
+      if (observer->ContentParentIdRef() != database->ContentParentIdRef()) {
         hasOtherProcessObservers = true;
         break;
       }
@@ -6060,8 +6063,11 @@ mozilla::ipc::IPCResult Snapshot::RecvIncreasePeakUsage(const int64_t& aMinSize,
  * Observer
  ******************************************************************************/
 
-Observer::Observer(const nsACString& aOrigin)
-    : mOrigin(aOrigin), mActorDestroyed(false) {
+Observer::Observer(const Maybe<ContentParentId>& aContentParentId,
+                   const nsACString& aOrigin)
+    : mContentParentId(aContentParentId),
+      mOrigin(aOrigin),
+      mActorDestroyed(false) {
   AssertIsOnBackgroundThread();
 }
 
@@ -7859,7 +7865,7 @@ void PrepareObserverOp::GetResponse(LSRequestResponse& aResponse) {
 
   uint64_t observerId = ++gLastObserverId;
 
-  RefPtr<Observer> observer = new Observer(mOrigin);
+  RefPtr<Observer> observer = new Observer(mContentParentId, mOrigin);
 
   if (!gPreparedObsevers) {
     gPreparedObsevers = new PreparedObserverHashtable();
