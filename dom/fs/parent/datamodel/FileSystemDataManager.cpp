@@ -13,6 +13,7 @@
 #include "FileSystemFileManager.h"
 #include "FileSystemHashSource.h"
 #include "FileSystemParentTypes.h"
+#include "NotifyUtils.h"
 #include "ResultStatement.h"
 #include "SchemaVersion001.h"
 #include "SchemaVersion002.h"
@@ -546,6 +547,8 @@ RefPtr<BoolPromise> FileSystemDataManager::BeginOpen() {
             if (self->mDirectoryLock->Invalidated()) {
               return BoolPromise::CreateAndReject(NS_ERROR_ABORT, __func__);
             }
+
+            NotifyDatabaseWorkStarted();
 
             return BoolPromise::CreateAndResolve(true, __func__);
           })

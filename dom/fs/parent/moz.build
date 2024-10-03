@@ -33,6 +33,7 @@ UNIFIED_SOURCES += [
     "FileSystemQuotaClientFactory.cpp",
     "FileSystemStreamCallbacks.cpp",
     "FileSystemWritableFileStreamParent.cpp",
+    "NotifyUtils.cpp",
     "ResultStatement.cpp",
     "StartedTransaction.cpp",
 ]
