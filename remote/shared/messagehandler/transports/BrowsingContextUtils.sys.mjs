@@ -4,10 +4,16 @@
 
 function isExtensionContext(browsingContext) {
   let principal;
-  if (CanonicalBrowsingContext.isInstance(browsingContext)) {
-    principal = browsingContext.currentWindowGlobal.documentPrincipal;
-  } else {
-    principal = browsingContext.window.document.nodePrincipal;
+  try {
+    if (CanonicalBrowsingContext.isInstance(browsingContext)) {
+      principal = browsingContext.currentWindowGlobal.documentPrincipal;
+    } else {
+      principal = browsingContext.window.document.nodePrincipal;
+    }
+  } catch (e) {
+    throw new Error(
+      `Could not retrieve principal for browsingContext (${e.message})`
+    );
   }
 
   // In practice, note that the principal will never be an expanded principal.
@@ -68,6 +74,15 @@ export function isBrowsingContextCompatible(browsingContext, options = {}) {
   // If a browserId was provided, skip browsing contexts which are not
   // associated with this browserId.
   if (browserId !== undefined && browsingContext.browserId !== browserId) {
+    return false;
+  }
+
+  // If this is a CanonicalBrowsingContext but the currentWindowGlobal is not
+  // attached yet, skip it.
+  if (
+    CanonicalBrowsingContext.isInstance(browsingContext) &&
+    !browsingContext.currentWindowGlobal
+  ) {
     return false;
   }
 
