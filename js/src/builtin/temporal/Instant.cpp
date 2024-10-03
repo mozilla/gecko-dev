@@ -427,33 +427,8 @@ static InstantObject* CreateTemporalInstant(JSContext* cx, const CallArgs& args,
 /**
  * ToTemporalInstant ( item )
  */
-Wrapped<InstantObject*> js::temporal::ToTemporalInstant(JSContext* cx,
-                                                        Handle<Value> item) {
-  // Step 1.
-  if (item.isObject()) {
-    JSObject* itemObj = &item.toObject();
-
-    // Step 1.a.
-    if (itemObj->canUnwrapAs<InstantObject>()) {
-      return itemObj;
-    }
-  }
-
-  // Steps 1.b-d and 3-7
-  Instant epochNanoseconds;
-  if (!ToTemporalInstant(cx, item, &epochNanoseconds)) {
-    return nullptr;
-  }
-
-  // Step 8.
-  return CreateTemporalInstant(cx, epochNanoseconds);
-}
-
-/**
- * ToTemporalInstant ( item )
- */
-bool js::temporal::ToTemporalInstant(JSContext* cx, Handle<Value> item,
-                                     Instant* result) {
+static bool ToTemporalInstant(JSContext* cx, Handle<Value> item,
+                              Instant* result) {
   // Step 1.
   Rooted<Value> primitiveValue(cx, item);
   if (item.isObject()) {
