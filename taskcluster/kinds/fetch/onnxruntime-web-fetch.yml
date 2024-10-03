@@ -25,3 +25,10 @@ ort.wasm:
         url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240827-1d059b8702/dist/ort-wasm-simd-threaded.wasm
         sha256: 23f9328b96edfd86238773f0ffe8ccf6d2e15b8932ff9863963973b48b97eb2b
         size: 11105821
+
+xenova.all-minilm-l6-v2:
+    description: feature extraction model
+    fetch:
+        type: git
+        repo: https://huggingface.co/Xenova/all-MiniLM-L6-v2
+        revision: cb3d680149bf9a3209564e1b27ab3bb355b65707
