@@ -98,7 +98,7 @@ function createChromeScript() {
 function requestDocument() {
   // GeckoView shows an error page for CSP errors, which breaks this test, so just skip in that case.
   try {
-    if (!SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(SpecialPowers.Ci.nsIAndroidBridge).isFennec) {
+    if (!SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(SpecialPowers.Ci.nsIGeckoViewBridge).isFennec) {
       return false;
     }
   } catch (e){}

@@ -292,7 +292,7 @@ nsresult UnboxData(jni::String::Param aEvent, JSContext* aCx,
   return NS_ERROR_INVALID_ARG;
 }
 
-class JavaCallbackDelegate final : public nsIAndroidEventCallback {
+class JavaCallbackDelegate final : public nsIGeckoViewEventCallback {
   const java::EventCallback::GlobalRef mCallback;
 
   virtual ~JavaCallbackDelegate() {}
@@ -328,7 +328,7 @@ class JavaCallbackDelegate final : public nsIAndroidEventCallback {
   }
 };
 
-NS_IMPL_ISUPPORTS(JavaCallbackDelegate, nsIAndroidEventCallback)
+NS_IMPL_ISUPPORTS(JavaCallbackDelegate, nsIGeckoViewEventCallback)
 
 class NativeCallbackDelegateSupport final
     : public java::EventDispatcher::NativeCallbackDelegate ::Natives<
@@ -336,13 +336,13 @@ class NativeCallbackDelegateSupport final
   using CallbackDelegate = java::EventDispatcher::NativeCallbackDelegate;
   using Base = CallbackDelegate::Natives<NativeCallbackDelegateSupport>;
 
-  const nsCOMPtr<nsIAndroidEventCallback> mCallback;
-  const nsCOMPtr<nsIAndroidEventFinalizer> mFinalizer;
+  const nsCOMPtr<nsIGeckoViewEventCallback> mCallback;
+  const nsCOMPtr<nsIGeckoViewEventFinalizer> mFinalizer;
   const nsCOMPtr<nsIGlobalObject> mGlobalObject;
 
   void Call(jni::Object::Param aData,
-            nsresult (nsIAndroidEventCallback::*aCall)(JS::Handle<JS::Value>,
-                                                       JSContext*)) {
+            nsresult (nsIGeckoViewEventCallback::*aCall)(JS::Handle<JS::Value>,
+                                                         JSContext*)) {
     MOZ_ASSERT(NS_IsMainThread());
 
     // Use either the attached window's realm or a default realm.
@@ -376,8 +376,8 @@ class NativeCallbackDelegateSupport final
     DisposeNative(aInstance);
   }
 
-  NativeCallbackDelegateSupport(nsIAndroidEventCallback* callback,
-                                nsIAndroidEventFinalizer* finalizer,
+  NativeCallbackDelegateSupport(nsIGeckoViewEventCallback* callback,
+                                nsIGeckoViewEventFinalizer* finalizer,
                                 nsIGlobalObject* globalObject)
       : mCallback(callback),
         mFinalizer(finalizer),
@@ -390,17 +390,17 @@ class NativeCallbackDelegateSupport final
   }
 
   void SendSuccess(jni::Object::Param aData) {
-    Call(aData, &nsIAndroidEventCallback::OnSuccess);
+    Call(aData, &nsIGeckoViewEventCallback::OnSuccess);
   }
 
   void SendError(jni::Object::Param aData) {
-    Call(aData, &nsIAndroidEventCallback::OnError);
+    Call(aData, &nsIGeckoViewEventCallback::OnError);
   }
 };
 
-class FinalizingCallbackDelegate final : public nsIAndroidEventCallback {
-  const nsCOMPtr<nsIAndroidEventCallback> mCallback;
-  const nsCOMPtr<nsIAndroidEventFinalizer> mFinalizer;
+class FinalizingCallbackDelegate final : public nsIGeckoViewEventCallback {
+  const nsCOMPtr<nsIGeckoViewEventCallback> mCallback;
+  const nsCOMPtr<nsIGeckoViewEventFinalizer> mFinalizer;
 
   virtual ~FinalizingCallbackDelegate() {
     if (mFinalizer) {
@@ -409,21 +409,21 @@ class FinalizingCallbackDelegate final : public nsIAndroidEventCallback {
   }
 
  public:
-  FinalizingCallbackDelegate(nsIAndroidEventCallback* aCallback,
-                             nsIAndroidEventFinalizer* aFinalizer)
+  FinalizingCallbackDelegate(nsIGeckoViewEventCallback* aCallback,
+                             nsIGeckoViewEventFinalizer* aFinalizer)
       : mCallback(aCallback), mFinalizer(aFinalizer) {}
 
   NS_DECL_ISUPPORTS
-  NS_FORWARD_NSIANDROIDEVENTCALLBACK(mCallback->);
+  NS_FORWARD_NSIGECKOVIEWEVENTCALLBACK(mCallback->);
 };
 
-NS_IMPL_ISUPPORTS(FinalizingCallbackDelegate, nsIAndroidEventCallback)
+NS_IMPL_ISUPPORTS(FinalizingCallbackDelegate, nsIGeckoViewEventCallback)
 
 }  // namespace detail
 
 using namespace detail;
 
-NS_IMPL_ISUPPORTS(EventDispatcher, nsIAndroidEventDispatcher)
+NS_IMPL_ISUPPORTS(EventDispatcher, nsIGeckoViewEventDispatcher)
 
 nsIGlobalObject* EventDispatcher::GetGlobalObject() {
   if (mDOMWindow) {
@@ -432,10 +432,9 @@ nsIGlobalObject* EventDispatcher::GetGlobalObject() {
   return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
 }
 
-nsresult EventDispatcher::DispatchOnGecko(ListenersList* list,
-                                          const nsAString& aEvent,
-                                          JS::Handle<JS::Value> aData,
-                                          nsIAndroidEventCallback* aCallback) {
+nsresult EventDispatcher::DispatchOnGecko(
+    ListenersList* list, const nsAString& aEvent, JS::Handle<JS::Value> aData,
+    nsIGeckoViewEventCallback* aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
   dom::AutoNoJSAPI nojsapi;
 
@@ -469,8 +468,8 @@ nsresult EventDispatcher::DispatchOnGecko(ListenersList* list,
 }
 
 java::EventDispatcher::NativeCallbackDelegate::LocalRef
-EventDispatcher::WrapCallback(nsIAndroidEventCallback* aCallback,
-                              nsIAndroidEventFinalizer* aFinalizer) {
+EventDispatcher::WrapCallback(nsIGeckoViewEventCallback* aCallback,
+                              nsIGeckoViewEventFinalizer* aFinalizer) {
   if (!aCallback) {
     return java::EventDispatcher::NativeCallbackDelegate::LocalRef(
         jni::GetGeckoThreadEnv());
@@ -497,8 +496,8 @@ bool EventDispatcher::HasListener(const char16_t* aEvent) {
 NS_IMETHODIMP
 EventDispatcher::Dispatch(JS::Handle<JS::Value> aEvent,
                           JS::Handle<JS::Value> aData,
-                          nsIAndroidEventCallback* aCallback,
-                          nsIAndroidEventFinalizer* aFinalizer,
+                          nsIGeckoViewEventCallback* aCallback,
+                          nsIGeckoViewEventFinalizer* aFinalizer,
                           JSContext* aCx) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -519,7 +518,7 @@ EventDispatcher::Dispatch(JS::Handle<JS::Value> aEvent,
     if (!aCallback || !aFinalizer) {
       return DispatchOnGecko(list, event, aData, aCallback);
     }
-    nsCOMPtr<nsIAndroidEventCallback> callback(
+    nsCOMPtr<nsIGeckoViewEventCallback> callback(
         new FinalizingCallbackDelegate(aCallback, aFinalizer));
     return DispatchOnGecko(list, event, aData, callback);
   }
@@ -545,7 +544,7 @@ EventDispatcher::Dispatch(JS::Handle<JS::Value> aEvent,
 
 nsresult EventDispatcher::Dispatch(const char16_t* aEvent,
                                    java::GeckoBundle::Param aData,
-                                   nsIAndroidEventCallback* aCallback) {
+                                   nsIGeckoViewEventCallback* aCallback) {
   nsDependentString event(aEvent);
 
   ListenersList* list = mListenersMap.Get(event);
@@ -571,7 +570,7 @@ nsresult EventDispatcher::Dispatch(const char16_t* aEvent,
 nsresult EventDispatcher::IterateEvents(JSContext* aCx,
                                         JS::Handle<JS::Value> aEvents,
                                         IterateEventsCallback aCallback,
-                                        nsIAndroidEventListener* aListener) {
+                                        nsIGeckoViewEventListener* aListener) {
   MOZ_ASSERT(NS_IsMainThread());
 
   MutexAutoLock lock(mLock);
@@ -613,7 +612,7 @@ nsresult EventDispatcher::IterateEvents(JSContext* aCx,
 }
 
 nsresult EventDispatcher::RegisterEventLocked(
-    const nsAString& aEvent, nsIAndroidEventListener* aListener) {
+    const nsAString& aEvent, nsIGeckoViewEventListener* aListener) {
   ListenersList* list = mListenersMap.GetOrInsertNew(aEvent);
 
 #ifdef DEBUG
@@ -628,7 +627,7 @@ nsresult EventDispatcher::RegisterEventLocked(
 }
 
 NS_IMETHODIMP
-EventDispatcher::RegisterListener(nsIAndroidEventListener* aListener,
+EventDispatcher::RegisterListener(nsIGeckoViewEventListener* aListener,
                                   JS::Handle<JS::Value> aEvents,
                                   JSContext* aCx) {
   return IterateEvents(aCx, aEvents, &EventDispatcher::RegisterEventLocked,
@@ -636,7 +635,7 @@ EventDispatcher::RegisterListener(nsIAndroidEventListener* aListener,
 }
 
 nsresult EventDispatcher::UnregisterEventLocked(
-    const nsAString& aEvent, nsIAndroidEventListener* aListener) {
+    const nsAString& aEvent, nsIGeckoViewEventListener* aListener) {
   ListenersList* list = mListenersMap.Get(aEvent);
 #ifdef DEBUG
   NS_ENSURE_TRUE(list, NS_ERROR_NOT_INITIALIZED);
@@ -666,7 +665,7 @@ nsresult EventDispatcher::UnregisterEventLocked(
 }
 
 NS_IMETHODIMP
-EventDispatcher::UnregisterListener(nsIAndroidEventListener* aListener,
+EventDispatcher::UnregisterListener(nsIGeckoViewEventListener* aListener,
                                     JS::Handle<JS::Value> aEvents,
                                     JSContext* aCx) {
   return IterateEvents(aCx, aEvents, &EventDispatcher::UnregisterEventLocked,
@@ -747,7 +746,7 @@ void EventDispatcher::DispatchToGecko(jni::String::Param aEvent,
                           /* BundleOnly */ true);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  nsCOMPtr<nsIAndroidEventCallback> callback;
+  nsCOMPtr<nsIGeckoViewEventCallback> callback;
   if (aCallback) {
     callback =
         new JavaCallbackDelegate(java::EventCallback::Ref::From(aCallback));

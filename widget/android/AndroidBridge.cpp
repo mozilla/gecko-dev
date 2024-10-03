@@ -284,7 +284,8 @@ jobject AndroidBridge::GetGlobalContextRef() {
 }
 
 /* Implementation file */
-NS_IMPL_ISUPPORTS(nsAndroidBridge, nsIAndroidEventDispatcher, nsIAndroidBridge)
+NS_IMPL_ISUPPORTS(nsAndroidBridge, nsIGeckoViewEventDispatcher,
+                  nsIGeckoViewBridge)
 
 nsAndroidBridge::nsAndroidBridge() {
   if (jni::IsAvailable()) {
@@ -297,7 +298,7 @@ nsAndroidBridge::nsAndroidBridge() {
 
 NS_IMETHODIMP
 nsAndroidBridge::GetDispatcherByName(const char* aName,
-                                     nsIAndroidEventDispatcher** aResult) {
+                                     nsIGeckoViewEventDispatcher** aResult) {
   if (!jni::IsAvailable()) {
     return NS_ERROR_FAILURE;
   }

@@ -49,7 +49,7 @@ XPCOMUtils.defineLazyScriptGetter(
  */
 var ModuleManager = {
   get _initData() {
-    return window.arguments[0].QueryInterface(Ci.nsIAndroidView).initData;
+    return window.arguments[0].QueryInterface(Ci.nsIGeckoViewView).initData;
   },
 
   init(aBrowser, aModules) {

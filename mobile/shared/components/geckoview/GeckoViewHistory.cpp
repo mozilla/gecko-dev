@@ -195,7 +195,7 @@ void GeckoViewHistory::StartPendingVisitedQueries(
  * Called from the session handler for the history delegate, after the new
  * visit is recorded.
  */
-class OnVisitedCallback final : public nsIAndroidEventCallback {
+class OnVisitedCallback final : public nsIGeckoViewEventCallback {
  public:
   explicit OnVisitedCallback(GeckoViewHistory* aHistory, nsIURI* aURI)
       : mHistory(aHistory), mURI(aURI) {}
@@ -233,7 +233,7 @@ class OnVisitedCallback final : public nsIAndroidEventCallback {
   nsCOMPtr<nsIURI> mURI;
 };
 
-NS_IMPL_ISUPPORTS(OnVisitedCallback, nsIAndroidEventCallback)
+NS_IMPL_ISUPPORTS(OnVisitedCallback, nsIGeckoViewEventCallback)
 
 NS_IMETHODIMP
 GeckoViewHistory::VisitURI(nsIWidget* aWidget, nsIURI* aURI,
@@ -331,7 +331,7 @@ GeckoViewHistory::VisitURI(nsIWidget* aWidget, nsIURI* aURI,
   }
   auto bundle = java::GeckoBundle::New(bundleKeys, bundleValues);
 
-  nsCOMPtr<nsIAndroidEventCallback> callback =
+  nsCOMPtr<nsIGeckoViewEventCallback> callback =
       new OnVisitedCallback(this, aURI);
 
   Unused << NS_WARN_IF(
@@ -349,7 +349,7 @@ GeckoViewHistory::SetURITitle(nsIURI* aURI, const nsAString& aTitle) {
  * Called from the session handler for the history delegate, with visited
  * statuses for all requested URIs.
  */
-class GetVisitedCallback final : public nsIAndroidEventCallback {
+class GetVisitedCallback final : public nsIGeckoViewEventCallback {
  public:
   explicit GetVisitedCallback(GeckoViewHistory* aHistory,
                               ContentParent* aInterestedProcess,
@@ -437,7 +437,7 @@ class GetVisitedCallback final : public nsIAndroidEventCallback {
   nsTArray<RefPtr<nsIURI>> mURIs;
 };
 
-NS_IMPL_ISUPPORTS(GetVisitedCallback, nsIAndroidEventCallback)
+NS_IMPL_ISUPPORTS(GetVisitedCallback, nsIGeckoViewEventCallback)
 
 /**
  * Queries the history delegate to find which URIs have been visited. This
@@ -483,7 +483,7 @@ void GeckoViewHistory::QueryVisitedState(nsIWidget* aWidget,
 
   auto bundle = java::GeckoBundle::New(bundleKeys, bundleValues);
 
-  nsCOMPtr<nsIAndroidEventCallback> callback =
+  nsCOMPtr<nsIGeckoViewEventCallback> callback =
       new GetVisitedCallback(this, aInterestedProcess, std::move(aURIs));
 
   Unused << NS_WARN_IF(

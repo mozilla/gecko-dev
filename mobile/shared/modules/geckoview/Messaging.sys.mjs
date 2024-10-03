@@ -58,7 +58,7 @@ DispatcherDelegate.prototype = {
   /**
    * Register a listener to be notified of event(s).
    *
-   * @param aListener Target listener implementing nsIAndroidEventListener.
+   * @param aListener Target listener implementing nsIGeckoViewEventListener.
    * @param aEvents   String or array of strings of events to listen to.
    */
   registerListener(aListener, aEvents) {
@@ -71,7 +71,7 @@ DispatcherDelegate.prototype = {
   /**
    * Unregister a previously-registered listener.
    *
-   * @param aListener Registered listener implementing nsIAndroidEventListener.
+   * @param aListener Registered listener implementing nsIGeckoViewEventListener.
    * @param aEvents   String or array of strings of events to stop listening to.
    */
   unregisterListener(aListener, aEvents) {
@@ -88,8 +88,8 @@ DispatcherDelegate.prototype = {
    *
    * @param aEvent     Name of event to dispatch.
    * @param aData      Optional object containing data for the event.
-   * @param aCallback  Optional callback implementing nsIAndroidEventCallback.
-   * @param aFinalizer Optional finalizer implementing nsIAndroidEventFinalizer.
+   * @param aCallback  Optional callback implementing nsIGeckoViewEventCallback.
+   * @param aFinalizer Optional finalizer implementing nsIGeckoViewEventFinalizer.
    */
   dispatch(aEvent, aData, aCallback, aFinalizer) {
     if (this._dispatcher) {
@@ -120,7 +120,7 @@ DispatcherDelegate.prototype = {
    * Sends a request to Java.
    *
    * @param aMsg      Message to send; must be an object with a "type" property
-   * @param aCallback Optional callback implementing nsIAndroidEventCallback.
+   * @param aCallback Optional callback implementing nsIGeckoViewEventCallback.
    */
   sendRequest(aMsg, aCallback) {
     const type = aMsg.type;
@@ -215,7 +215,7 @@ export var EventDispatcher = {
       aWindow &&
       aWindow.arguments &&
       aWindow.arguments[0] &&
-      aWindow.arguments[0].QueryInterface(Ci.nsIAndroidView);
+      aWindow.arguments[0].QueryInterface(Ci.nsIGeckoViewView);
 
     if (!view) {
       const mm = !IS_PARENT_PROCESS && aWindow && aWindow.messageManager;

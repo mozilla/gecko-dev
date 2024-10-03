@@ -55,7 +55,7 @@
         const isLinux = AppConstants.platform == "linux";
         const isInsecureContext = !window.isSecureContext;
         // Currently, MOZ_APP_NAME is always "fennec" for all mobile builds, so we can't use AppConstants for this
-        const isFennec = isAndroid && SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(SpecialPowers.Ci.nsIAndroidBridge).isFennec;
+        const isFennec = isAndroid && SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(SpecialPowers.Ci.nsIGeckoViewBridge).isFennec;
 
         const result = {
           isNightly, isEarlyBetaOrEarlier, isRelease, isDesktop, isMac,

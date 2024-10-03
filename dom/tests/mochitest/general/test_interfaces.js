@@ -49,7 +49,7 @@ const isInsecureContext = !window.isSecureContext;
 const isFennec =
   isAndroid &&
   SpecialPowers.Cc["@mozilla.org/android/bridge;1"].getService(
-    SpecialPowers.Ci.nsIAndroidBridge
+    SpecialPowers.Ci.nsIGeckoViewBridge
   ).isFennec;
 const isCrossOriginIsolated = window.crossOriginIsolated;
 

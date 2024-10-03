@@ -7,7 +7,7 @@
 interface mozIDOMWindowProxy;
 
 [scriptable, uuid(e64c39b8-b8ec-477d-aef5-89d517ff9219)]
-interface nsIAndroidEventCallback : nsISupports
+interface nsIGeckoViewEventCallback : nsISupports
 {
   [implicit_jscontext]
   void onSuccess([optional] in jsval data);
@@ -16,43 +16,43 @@ interface nsIAndroidEventCallback : nsISupports
 };
 
 [scriptable, function, uuid(819ee2db-d3b8-46dd-a476-40f89c49133c)]
-interface nsIAndroidEventFinalizer : nsISupports
+interface nsIGeckoViewEventFinalizer : nsISupports
 {
   void onFinalize();
 };
 
 [scriptable, function, uuid(73569a75-78eb-4c7f-82b9-2d4f5ccf44c3)]
-interface nsIAndroidEventListener : nsISupports
+interface nsIGeckoViewEventListener : nsISupports
 {
   void onEvent(in AString event,
                [optional] in jsval data,
-               [optional] in nsIAndroidEventCallback callback);
+               [optional] in nsIGeckoViewEventCallback callback);
 };
 
 [scriptable, uuid(e98bf792-4145-411e-b298-8219d9b03817)]
-interface nsIAndroidEventDispatcher : nsISupports
+interface nsIGeckoViewEventDispatcher : nsISupports
 {
   [implicit_jscontext]
   void dispatch(in jsval event,
                 [optional] in jsval data,
-                [optional] in nsIAndroidEventCallback callback,
-                [optional] in nsIAndroidEventFinalizer finalizer);
+                [optional] in nsIGeckoViewEventCallback callback,
+                [optional] in nsIGeckoViewEventFinalizer finalizer);
   [implicit_jscontext]
-  void registerListener(in nsIAndroidEventListener listener,
+  void registerListener(in nsIGeckoViewEventListener listener,
                         in jsval events);
   [implicit_jscontext]
-  void unregisterListener(in nsIAndroidEventListener listener,
+  void unregisterListener(in nsIGeckoViewEventListener listener,
                           in jsval events);
 };
 
 [scriptable, uuid(60a78a94-6117-432f-9d49-304913a931c5)]
-interface nsIAndroidView : nsIAndroidEventDispatcher
+interface nsIGeckoViewView : nsIGeckoViewEventDispatcher
 {
   [implicit_jscontext] readonly attribute jsval initData;
 };
 
 [scriptable, uuid(1beb70d3-70f3-4742-98cc-a3d301b26c0c)]
-interface nsIAndroidBridge : nsIAndroidEventDispatcher
+interface nsIGeckoViewBridge : nsIGeckoViewEventDispatcher
 {
-  nsIAndroidEventDispatcher getDispatcherByName(in string name);
+  nsIGeckoViewEventDispatcher getDispatcherByName(in string name);
 };

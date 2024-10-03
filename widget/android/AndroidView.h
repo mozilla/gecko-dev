@@ -12,7 +12,7 @@
 namespace mozilla {
 namespace widget {
 
-class AndroidView final : public nsIAndroidView {
+class AndroidView final : public nsIGeckoViewView {
   virtual ~AndroidView() {}
 
  public:
@@ -22,9 +22,9 @@ class AndroidView final : public nsIAndroidView {
   AndroidView() {}
 
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIANDROIDVIEW
+  NS_DECL_NSIGECKOVIEWVIEW
 
-  NS_FORWARD_NSIANDROIDEVENTDISPATCHER(mEventDispatcher->)
+  NS_FORWARD_NSIGECKOVIEWEVENTDISPATCHER(mEventDispatcher->)
 
   mozilla::java::GeckoBundle::GlobalRef mInitData;
 };

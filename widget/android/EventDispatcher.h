@@ -27,13 +27,13 @@ namespace widget {
  * side may notify event listeners on the Gecko side, and vice versa.
  */
 class EventDispatcher final
-    : public nsIAndroidEventDispatcher,
+    : public nsIGeckoViewEventDispatcher,
       public java::EventDispatcher::Natives<EventDispatcher> {
   using NativesBase = java::EventDispatcher::Natives<EventDispatcher>;
 
  public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIANDROIDEVENTDISPATCHER
+  NS_DECL_NSIGECKOVIEWEVENTDISPATCHER
 
   EventDispatcher() {}
 
@@ -43,7 +43,7 @@ class EventDispatcher final
 
   nsresult Dispatch(const char16_t* aEvent,
                     java::GeckoBundle::Param aData = nullptr,
-                    nsIAndroidEventCallback* aCallback = nullptr);
+                    nsIGeckoViewEventCallback* aCallback = nullptr);
 
   bool HasListener(const char16_t* aEvent);
   bool HasGeckoListener(jni::String::Param aEvent);
@@ -68,7 +68,7 @@ class EventDispatcher final
   void Shutdown();
 
   struct ListenersList {
-    nsCOMArray<nsIAndroidEventListener> listeners{/* count */ 1};
+    nsCOMArray<nsIGeckoViewEventListener> listeners{/* count */ 1};
     // 0 if the list can be modified
     uint32_t lockCount{0};
     // true if this list has a listener that is being unregistered
@@ -80,22 +80,22 @@ class EventDispatcher final
   Mutex mLock MOZ_UNANNOTATED{"mozilla::widget::EventDispatcher"};
   ListenersMap mListenersMap;
 
-  using IterateEventsCallback =
-      nsresult (EventDispatcher::*)(const nsAString&, nsIAndroidEventListener*);
+  using IterateEventsCallback = nsresult (EventDispatcher::*)(
+      const nsAString&, nsIGeckoViewEventListener*);
 
   nsresult IterateEvents(JSContext* aCx, JS::Handle<JS::Value> aEvents,
                          IterateEventsCallback aCallback,
-                         nsIAndroidEventListener* aListener);
-  nsresult RegisterEventLocked(const nsAString&, nsIAndroidEventListener*);
-  nsresult UnregisterEventLocked(const nsAString&, nsIAndroidEventListener*);
+                         nsIGeckoViewEventListener* aListener);
+  nsresult RegisterEventLocked(const nsAString&, nsIGeckoViewEventListener*);
+  nsresult UnregisterEventLocked(const nsAString&, nsIGeckoViewEventListener*);
 
   nsresult DispatchOnGecko(ListenersList* list, const nsAString& aEvent,
                            JS::Handle<JS::Value> aData,
-                           nsIAndroidEventCallback* aCallback);
+                           nsIGeckoViewEventCallback* aCallback);
 
   java::EventDispatcher::NativeCallbackDelegate::LocalRef WrapCallback(
-      nsIAndroidEventCallback* aCallback,
-      nsIAndroidEventFinalizer* aFinalizer = nullptr);
+      nsIGeckoViewEventCallback* aCallback,
+      nsIGeckoViewEventFinalizer* aFinalizer = nullptr);
 };
 
 }  // namespace widget

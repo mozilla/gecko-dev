@@ -54,8 +54,8 @@ const platformSpecificInterfaces = new Map([
   ["amIFoo", "any"],
   ["nsIMeh", "any"],
   // Can't easily detect android builds from ESLint at the moment.
-  ["nsIAndroidBridge", "any"],
-  ["nsIAndroidView", "any"],
+  ["nsIGeckoViewBridge", "any"],
+  ["nsIGeckoViewView", "any"],
   // Code coverage is enabled only for certain builds (MOZ_CODE_COVERAGE).
   ["nsICodeCoverage", "any"],
   // Layout debugging is enabled only for certain builds (MOZ_LAYOUT_DEBUGGER).

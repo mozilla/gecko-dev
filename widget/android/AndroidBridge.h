@@ -255,19 +255,19 @@ class AutoLocalJNIFrame {
     }                                                \
   }
 
-class nsAndroidBridge final : public nsIAndroidBridge {
+class nsAndroidBridge final : public nsIGeckoViewBridge {
  public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIANDROIDBRIDGE
+  NS_DECL_NSIGECKOVIEWBRIDGE
 
-  NS_FORWARD_SAFE_NSIANDROIDEVENTDISPATCHER(mEventDispatcher)
+  NS_FORWARD_SAFE_NSIGECKOVIEWEVENTDISPATCHER(mEventDispatcher)
 
   nsAndroidBridge();
 
  private:
   ~nsAndroidBridge();
 
-  nsCOMPtr<nsIAndroidEventDispatcher> mEventDispatcher;
+  nsCOMPtr<nsIGeckoViewEventDispatcher> mEventDispatcher;
 
  protected:
 };

@@ -1037,7 +1037,7 @@ class NPZCSupport final
   }
 };
 
-NS_IMPL_ISUPPORTS(AndroidView, nsIAndroidEventDispatcher, nsIAndroidView)
+NS_IMPL_ISUPPORTS(AndroidView, nsIGeckoViewEventDispatcher, nsIGeckoViewView)
 
 nsresult AndroidView::GetInitData(JSContext* aCx,
                                   JS::MutableHandle<JS::Value> aOut) {
@@ -1787,7 +1787,7 @@ void GeckoViewSupport::Open(
     }
   }
 
-  // Prepare an nsIAndroidView to pass as argument to the window.
+  // Prepare an nsIGeckoViewView to pass as argument to the window.
   RefPtr<AndroidView> androidView = new AndroidView();
   androidView->mEventDispatcher->Attach(
       java::EventDispatcher::Ref::From(aDispatcher), nullptr);

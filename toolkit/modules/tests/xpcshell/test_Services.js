@@ -56,8 +56,8 @@ function run_test() {
   if ("nsISearchService" in Ci) {
     checkService("search", Ci.nsISearchService);
   }
-  if ("nsIAndroidBridge" in Ci) {
-    checkService("androidBridge", Ci.nsIAndroidBridge);
+  if ("nsIGeckoViewBridge" in Ci) {
+    checkService("androidBridge", Ci.nsIGeckoViewBridge);
   }
   if ("@mozilla.org/enterprisepolicies;1" in Cc) {
     checkService("policies", Ci.nsIEnterprisePolicies);
