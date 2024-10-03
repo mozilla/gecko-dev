@@ -31,6 +31,7 @@
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/ThreadUtils.h"
 #include "mozilla/dom/quota/UsageInfo.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "nsBaseHashtable.h"
@@ -552,20 +553,24 @@ RefPtr<BoolPromise> FileSystemDataManager::BeginOpen() {
 
             return BoolPromise::CreateAndResolve(true, __func__);
           })
-      ->Then(mQuotaManager->IOThread(), __func__,
-             [self = RefPtr<FileSystemDataManager>(this)](
-                 const BoolPromise::ResolveOrRejectValue& value) {
-               if (value.IsReject()) {
-                 return BoolPromise::CreateAndReject(value.RejectValue(),
-                                                     __func__);
-               }
+      ->Then(
+          mQuotaManager->IOThread(), __func__,
+          [self = RefPtr<FileSystemDataManager>(this)](
+              const BoolPromise::ResolveOrRejectValue& value) {
+            if (value.IsReject()) {
+              return BoolPromise::CreateAndReject(value.RejectValue(),
+                                                  __func__);
+            }
 
-               QM_TRY(MOZ_TO_RESULT(
-                          EnsureFileSystemDirectory(self->mOriginMetadata)),
-                      CreateAndRejectBoolPromise);
+            QM_TRY(
+                MOZ_TO_RESULT(EnsureFileSystemDirectory(self->mOriginMetadata)),
+                CreateAndRejectBoolPromise);
 
-               return BoolPromise::CreateAndResolve(true, __func__);
-             })
+            quota::SleepIfEnabled(
+                StaticPrefs::dom_fs_databaseInitialization_pauseOnIOThreadMs());
+
+            return BoolPromise::CreateAndResolve(true, __func__);
+          })
       ->Then(
           MutableIOTaskQueuePtr(), __func__,
           [self = RefPtr<FileSystemDataManager>(this)](

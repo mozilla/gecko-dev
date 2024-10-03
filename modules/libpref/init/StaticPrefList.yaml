@@ -4250,6 +4250,12 @@
   value: false
   mirror: always
 
+# A pref that is used to slow down database initialization for testing purposes.
+- name: dom.fs.databaseInitialization.pauseOnIOThreadMs
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
 # LocalStorage data limit as determined by summing up the lengths of all string
 # keys and values. This is consistent with the legacy implementation and other
 # browser engines. This value should really only ever change in unit testing
