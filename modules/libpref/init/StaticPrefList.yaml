@@ -2284,7 +2284,7 @@
 # limit.
 - name: dom.popup_maximum
   type: int32_t
-  value: -1
+  value: 20
   mirror: always
 
 # Enable experimental popup blocker changes.
