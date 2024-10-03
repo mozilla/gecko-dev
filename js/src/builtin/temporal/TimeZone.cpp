@@ -2113,17 +2113,13 @@ bool js::temporal::GetInstantFor(JSContext* cx, Handle<TimeZoneValue> timeZone,
  *   UTCOffsetMinutePrecision
  *
  * UTCOffsetMinutePrecision :
- *   Sign Hour[+Padded]
- *   Sign Hour[+Padded] TimeSeparator[+Extended] MinuteSecond
- *   Sign Hour[+Padded] TimeSeparator[~Extended] MinuteSecond
- *
- * Sign :
- *   ASCIISign
- *   U+2212
+ *   ASCIISign Hour[+Padded]
+ *   ASCIISign Hour[+Padded] TimeSeparator[+Extended] MinuteSecond
+ *   ASCIISign Hour[+Padded] TimeSeparator[~Extended] MinuteSecond
  *
  * ASCIISign : one of + -
  *
- * NOTE: IANA time zone identifiers can't start with |Sign|.
+ * NOTE: IANA time zone identifiers can't start with |ASCIISign|.
  */
 static bool IsOffsetTimeZoneIdentifierPrefix(JSLinearString* offsetString) {
   // Empty string can't be the prefix of |TimeZoneUTCOffsetName|.
@@ -2131,9 +2127,9 @@ static bool IsOffsetTimeZoneIdentifierPrefix(JSLinearString* offsetString) {
     return false;
   }
 
-  // Return true iff |offsetString| starts with |Sign|.
+  // Return true iff |offsetString| starts with |ASCIISign|.
   char16_t ch = offsetString->latin1OrTwoByteChar(0);
-  return ch == '+' || ch == '-' || ch == 0x2212;
+  return ch == '+' || ch == '-';
 }
 
 /**

@@ -679,13 +679,9 @@ class TemporalParser final {
     return true;
   }
 
-  // Sign :::
-  //   ASCIISign
-  //   U+2212
-  //
   // ASCIISign ::: one of
   //   + -
-  bool hasSign() const { return hasOneOf({'+', '-', 0x2212}); }
+  bool hasSign() const { return hasOneOf({'+', '-'}); }
 
   /**
    * Consumes the current character, which must be a sign character, and returns
@@ -858,9 +854,7 @@ class TemporalParser final {
   }
 
   // Return true when |DateTimeUTCOffset| can start at the current position.
-  bool hasDateTimeUTCOffsetStart() {
-    return hasOneOf({'Z', 'z', '+', '-', 0x2212});
-  }
+  bool hasDateTimeUTCOffsetStart() { return hasOneOf({'Z', 'z', '+', '-'}); }
 
   mozilla::Result<TimeZoneString, ParserError> dateTimeUTCOffset();
 
@@ -968,7 +962,7 @@ mozilla::Result<PlainDate, ParserError> TemporalParser<CharT>::date() {
 
   // DateYear :::
   //  DecimalDigit{4}
-  //  Sign DecimalDigit{6}
+  //  ASCIISign DecimalDigit{6}
   if (auto year = digits(4)) {
     result.year = year.value();
   } else if (hasSign()) {
@@ -1140,9 +1134,9 @@ TemporalParser<CharT>::timeZoneUTCOffsetName() {
   //   UTCOffsetMinutePrecision
   //
   // UTCOffsetMinutePrecision :::
-  //   Sign Hour
-  //   Sign Hour TimeSeparator[+Extended] MinuteSecond
-  //   Sign Hour TimeSeparator[~Extended] MinuteSecond
+  //   ASCIISign Hour
+  //   ASCIISign Hour TimeSeparator[+Extended] MinuteSecond
+  //   ASCIISign Hour TimeSeparator[~Extended] MinuteSecond
 
   TimeZoneUTCOffset result = {};
 
@@ -1206,12 +1200,12 @@ TemporalParser<CharT>::utcOffsetSubMinutePrecision() {
   //   UTCOffsetWithSubMinuteComponents[~Extended]
   //
   // UTCOffsetMinutePrecision :::
-  //   Sign Hour
-  //   Sign Hour TimeSeparator[+Extended] MinuteSecond
-  //   Sign Hour TimeSeparator[~Extended] MinuteSecond
+  //   ASCIISign Hour
+  //   ASCIISign Hour TimeSeparator[+Extended] MinuteSecond
+  //   ASCIISign Hour TimeSeparator[~Extended] MinuteSecond
   //
   // UTCOffsetWithSubMinuteComponents[Extended] :::
-  //   Sign Hour TimeSeparator[?Extended] MinuteSecond TimeSeparator[?Extended] MinuteSecond Fraction?
+  //   ASCIISign Hour TimeSeparator[?Extended] MinuteSecond TimeSeparator[?Extended] MinuteSecond Fraction?
   //
   // clang-format on
 
@@ -1835,8 +1829,8 @@ TemporalParser<CharT>::parseTemporalDurationString(JSContext* cx) {
   //   Duration
   //
   // Duration :::
-  //   Sign? DurationDesignator DurationDate
-  //   Sign? DurationDesignator DurationTime
+  //   ASCIISign? DurationDesignator DurationDate
+  //   ASCIISign? DurationDesignator DurationTime
 
   if (hasSign()) {
     result.sign = sign();
@@ -2574,7 +2568,7 @@ TemporalParser<CharT>::dateSpecYearMonth() {
 
   // DateYear :::
   //  DecimalDigit{4}
-  //  Sign DecimalDigit{6}
+  //  ASCIISign DecimalDigit{6}
   if (auto year = digits(4)) {
     result.year = year.value();
   } else if (hasSign()) {
