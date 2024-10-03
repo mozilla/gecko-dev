@@ -4226,7 +4226,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
 
       // Step 38.d.
       if (!DifferenceZonedDateTimeWithRounding(
-              cx, relativeEpochNs, targetEpochNs, timeZone, calendar,
+              cx, relativeEpochNs, targetEpochNs, timeZone, calendar.receiver(),
               *precalculatedPlainDateTime,
               {
                   smallestUnit,
@@ -4474,7 +4474,7 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
     // Step 18.d.
     if (unit <= TemporalUnit::Day) {
       if (!DifferenceZonedDateTimeWithRounding(
-              cx, relativeEpochNs, targetEpochNs, timeZone, calendar,
+              cx, relativeEpochNs, targetEpochNs, timeZone, calendar.receiver(),
               *precalculatedPlainDateTime, unit, &total)) {
         return false;
       }

@@ -179,32 +179,20 @@ bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
                       const PlainDateTime& dateTime, Instant* result);
 
 /**
- * DifferenceZonedDateTime ( ns1, ns2, timeZoneRec, calendarRec, largestUnit,
- * options, startDateTime )
- */
-bool DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
-                             const Instant& ns2,
-                             JS::Handle<TimeZoneValue> timeZone,
-                             JS::Handle<CalendarRecord> calendar,
-                             TemporalUnit largestUnit,
-                             const PlainDateTime& startDateTime,
-                             NormalizedDuration* result);
-
-/**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
- * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
- * smallestUnit, roundingMode )
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendar, timeZone,
+ * precalculatedPlainDateTime, largestUnit, roundingIncrement, smallestUnit,
+ * roundingMode )
  */
 bool DifferenceZonedDateTimeWithRounding(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
-    JS::Handle<TimeZoneValue> timeZone, JS::Handle<CalendarRecord> calendar,
+    JS::Handle<TimeZoneValue> timeZone, JS::Handle<CalendarValue> calendar,
     const PlainDateTime& precalculatedPlainDateTime,
     const DifferenceSettings& settings, Duration* result);
 
 /**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
- * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
- * smallestUnit, roundingMode )
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendar, timeZone,
+ * precalculatedPlainDateTime, largestUnit, roundingIncrement, smallestUnit,
+ * roundingMode )
  */
 bool DifferenceZonedDateTimeWithRounding(JSContext* cx, const Instant& ns1,
                                          const Instant& ns2,
@@ -212,20 +200,20 @@ bool DifferenceZonedDateTimeWithRounding(JSContext* cx, const Instant& ns1,
                                          Duration* result);
 
 /**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
- * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
- * smallestUnit, roundingMode )
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendar, timeZone,
+ * precalculatedPlainDateTime, largestUnit, roundingIncrement, smallestUnit,
+ * roundingMode )
  */
 bool DifferenceZonedDateTimeWithRounding(
     JSContext* cx, const Instant& ns1, const Instant& ns2,
-    JS::Handle<TimeZoneValue> timeZone, JS::Handle<CalendarRecord> calendar,
+    JS::Handle<TimeZoneValue> timeZone, JS::Handle<CalendarValue> calendar,
     const PlainDateTime& precalculatedPlainDateTime, TemporalUnit unit,
     double* result);
 
 /**
- * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
- * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
- * smallestUnit, roundingMode )
+ * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendar, timeZone,
+ * precalculatedPlainDateTime, largestUnit, roundingIncrement, smallestUnit,
+ * roundingMode )
  */
 double DifferenceZonedDateTimeWithRounding(const Instant& ns1,
                                            const Instant& ns2,
