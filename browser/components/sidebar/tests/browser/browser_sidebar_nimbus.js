@@ -164,3 +164,42 @@ add_task(async function test_nimbus_multi_feature() {
   Services.prefs.clearUserPref("browser.ml.chat.nimbus");
   Services.prefs.clearUserPref("sidebar.nimbus");
 });
+
+/**
+ * Check that minimum versions get enforced
+ */
+add_task(async function test_nimbus_minimum_version() {
+  const revamp = "sidebar.revamp";
+  const nimbus = "sidebar.nimbus";
+  await SpecialPowers.pushPrefEnv({ clear: [[revamp]] });
+  let cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "sidebar",
+    value: {
+      minVersion: AppConstants.MOZ_APP_VERSION_DISPLAY + ".1",
+      revamp: true,
+    },
+  });
+
+  Assert.ok(
+    !Services.prefs.getBoolPref(revamp),
+    "revamp pref not set for version"
+  );
+  Assert.ok(!Services.prefs.prefHasUserValue(nimbus), "nimbus pref not set");
+
+  cleanup();
+
+  cleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "sidebar",
+    value: {
+      minVersion: AppConstants.MOZ_APP_VERSION_DISPLAY,
+      revamp: true,
+    },
+  });
+
+  Assert.ok(Services.prefs.getBoolPref(revamp), "revamp pref set for version");
+  Assert.ok(Services.prefs.getStringPref(nimbus), "nimbus pref set");
+
+  cleanup();
+  Services.prefs.clearUserPref(nimbus);
+  Services.prefs.clearUserPref(revamp);
+});
