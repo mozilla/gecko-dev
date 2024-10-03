@@ -592,8 +592,10 @@ class WebExtensionTest : BaseSessionTest() {
         blocklistDisabled: Boolean = false,
         signatureDisabled: Boolean = false,
         appVersionDisabled: Boolean = false,
+        softBlocklistDisabled: Boolean = false,
     ) {
-        val enabled = !userDisabled && !appDisabled && !blocklistDisabled && !signatureDisabled && !appVersionDisabled
+        val enabled =
+            !userDisabled && !appDisabled && !blocklistDisabled && !signatureDisabled && !appVersionDisabled && !softBlocklistDisabled
 
         mainSession.reload()
         sessionRule.waitForPageStop()
@@ -634,6 +636,11 @@ class WebExtensionTest : BaseSessionTest() {
             "appVersionDisabled should match",
             extension.metaData.disabledFlags and DisabledFlags.APP_VERSION > 0,
             equalTo(appVersionDisabled),
+        )
+        assertThat(
+            "softBlocklistDisabled should match",
+            extension.metaData.disabledFlags and DisabledFlags.SOFT_BLOCKLIST > 0,
+            equalTo(softBlocklistDisabled),
         )
     }
 
