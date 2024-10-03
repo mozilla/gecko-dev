@@ -4223,6 +4223,32 @@ JSObject* js::temporal::CalendarMergeFields(
 /**
  * CalendarDateAdd ( date, duration, overflow )
  */
+bool js::temporal::CalendarDateAdd(
+    JSContext* cx, Handle<CalendarValue> calendar, const PlainDate& date,
+    const Duration& duration, TemporalOverflow overflow, PlainDate* result) {
+  MOZ_ASSERT(IsValidISODate(date));
+  MOZ_ASSERT(IsValidDuration(duration));
+
+  // Step 1.
+  auto normalized = CreateNormalizedDurationRecord(duration);
+
+  // Step 2.
+  auto balanceResult = BalanceTimeDuration(normalized.time, TemporalUnit::Day);
+
+  auto addDuration = DateDuration{
+      normalized.date.years,
+      normalized.date.months,
+      normalized.date.weeks,
+      normalized.date.days + balanceResult.days,
+  };
+
+  // Steps 3-5.
+  return CalendarDateAdd(cx, calendar, date, addDuration, overflow, result);
+}
+
+/**
+ * CalendarDateAdd ( date, duration, overflow )
+ */
 bool js::temporal::CalendarDateAdd(JSContext* cx,
                                    Handle<CalendarValue> calendar,
                                    const PlainDate& date,

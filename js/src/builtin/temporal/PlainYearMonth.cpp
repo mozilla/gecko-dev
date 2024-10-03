@@ -495,7 +495,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
     Rooted<TimeZoneValue> timeZone(cx, TimeZoneValue{});
     RoundedRelativeDuration relative;
     if (!RoundRelativeDuration(
-            cx, duration, destEpochNs, dateTime, calendarRec, timeZone,
+            cx, duration, destEpochNs, dateTime, calendar, timeZone,
             settings.largestUnit, settings.roundingIncrement,
             settings.smallestUnit, settings.roundingMode, &relative)) {
       return false;

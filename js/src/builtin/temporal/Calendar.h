@@ -360,6 +360,13 @@ bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarRecord> calendar,
  * CalendarDateAdd ( date, duration, overflow )
  */
 bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarValue> calendar,
+                     const PlainDate& date, const Duration& duration,
+                     TemporalOverflow overflow, PlainDate* result);
+
+/**
+ * CalendarDateAdd ( date, duration, overflow )
+ */
+bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarValue> calendar,
                      const PlainDate& date, const DateDuration& duration,
                      TemporalOverflow overflow, PlainDate* result);
 

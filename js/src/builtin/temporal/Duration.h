@@ -74,7 +74,7 @@ inline Duration ToDuration(const DurationObject* duration) {
 }
 
 class Increment;
-class CalendarRecord;
+class CalendarValue;
 class PlainDateObject;
 class TimeZoneValue;
 class ZonedDateTime;
@@ -311,7 +311,7 @@ struct RoundedRelativeDuration {
 bool RoundRelativeDuration(
     JSContext* cx, const NormalizedDuration& duration,
     const Instant& destEpochNs, const PlainDateTime& dateTime,
-    JS::Handle<CalendarRecord> calendar, JS::Handle<TimeZoneValue> timeZone,
+    JS::Handle<CalendarValue> calendar, JS::Handle<TimeZoneValue> timeZone,
     TemporalUnit largestUnit, Increment increment, TemporalUnit smallestUnit,
     TemporalRoundingMode roundingMode, RoundedRelativeDuration* result);
 

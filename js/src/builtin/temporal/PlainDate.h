@@ -93,8 +93,6 @@ inline PlainDate ToPlainDate(const PlainDateObject* date) {
 
 enum class TemporalOverflow;
 enum class TemporalUnit;
-class DurationObject;
-class ZonedDateTimeObject;
 
 #ifdef DEBUG
 /**
@@ -167,46 +165,15 @@ bool AddISODate(JSContext* cx, const PlainDate& date,
  * AddDate ( plainDate, duration, overflow )
  */
 bool AddDate(JSContext* cx, JS::Handle<CalendarValue> calendar,
-             const PlainDate& date, const DateDuration& duration,
+             const PlainDate& date, const Duration& duration,
              TemporalOverflow overflow, PlainDate* result);
 
 /**
- * AddDate ( calendarRec, plainDate, duration [ , options ] )
+ * AddDate ( plainDate, duration, overflow )
  */
-Wrapped<PlainDateObject*> AddDate(JSContext* cx,
-                                  JS::Handle<CalendarRecord> calendar,
-                                  JS::Handle<Wrapped<PlainDateObject*>> date,
-                                  const DateDuration& duration);
-
-/**
- * AddDate ( calendarRec, plainDate, duration [ , options ] )
- */
-Wrapped<PlainDateObject*> AddDate(JSContext* cx,
-                                  JS::Handle<CalendarRecord> calendar,
-                                  JS::Handle<Wrapped<PlainDateObject*>> date,
-                                  const DateDuration& duration,
-                                  JS::Handle<JSObject*> options);
-
-/**
- * AddDate ( calendarRec, plainDate, duration [ , options ] )
- */
-bool AddDate(JSContext* cx, JS::Handle<CalendarRecord> calendar,
+bool AddDate(JSContext* cx, JS::Handle<CalendarValue> calendar,
              const PlainDate& date, const DateDuration& duration,
-             JS::Handle<JSObject*> options, PlainDate* result);
-
-/**
- * AddDate ( calendarRec, plainDate, duration [ , options ] )
- */
-bool AddDate(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-             const PlainDate& date, const DateDuration& duration,
-             PlainDate* result);
-
-/**
- * AddDate ( calendarRec, plainDate, duration [ , options ] )
- */
-bool AddDate(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-             JS::Handle<Wrapped<PlainDateObject*>> date,
-             const DateDuration& duration, PlainDate* result);
+             TemporalOverflow overflow, PlainDate* result);
 
 /**
  * DifferenceISODate ( y1, m1, d1, y2, m2, d2, largestUnit )

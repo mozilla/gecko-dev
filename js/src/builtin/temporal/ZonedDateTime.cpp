@@ -943,10 +943,9 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
   }
 
   // Steps 5-6.
-  Rooted<CalendarRecord> calendarRec(cx, calendar);
   RoundedRelativeDuration relative;
   if (!RoundRelativeDuration(cx, difference, ns2, precalculatedPlainDateTime,
-                             calendarRec, timeZone, settings.largestUnit,
+                             calendar, timeZone, settings.largestUnit,
                              settings.roundingIncrement, settings.smallestUnit,
                              settings.roundingMode, &relative)) {
     return false;
@@ -1012,10 +1011,9 @@ bool js::temporal::DifferenceZonedDateTimeWithRounding(
   // Steps 3-4. (Not applicable)
 
   // Steps 5-6.
-  Rooted<CalendarRecord> calendarRec(cx, calendar);
   RoundedRelativeDuration rounded;
   if (!RoundRelativeDuration(cx, difference, ns2, precalculatedPlainDateTime,
-                             calendarRec, timeZone, unit, Increment{1}, unit,
+                             calendar, timeZone, unit, Increment{1}, unit,
                              TemporalRoundingMode::Trunc, &rounded)) {
     return false;
   }
