@@ -1154,38 +1154,12 @@ bool js::temporal::ToTemporalDurationRecord(JSContext* cx,
 /**
  * ToTemporalDuration ( item )
  */
-Wrapped<DurationObject*> js::temporal::ToTemporalDuration(JSContext* cx,
-                                                          Handle<Value> item) {
-  // Step 1.
-  if (item.isObject()) {
-    JSObject* itemObj = &item.toObject();
-    if (itemObj->canUnwrapAs<DurationObject>()) {
-      return itemObj;
-    }
-  }
+static bool ToTemporalDuration(JSContext* cx, Handle<Value> item,
+                               Duration* result) {
+  // FIXME: spec issue - Merge with ToTemporalDurationRecord.
 
-  // Step 2.
-  Duration result;
-  if (!ToTemporalDurationRecord(cx, item, &result)) {
-    return nullptr;
-  }
-
-  // Step 3.
-  return CreateTemporalDuration(cx, result);
-}
-
-/**
- * ToTemporalDuration ( item )
- */
-bool js::temporal::ToTemporalDuration(JSContext* cx, Handle<Value> item,
-                                      Duration* result) {
-  auto obj = ToTemporalDuration(cx, item);
-  if (!obj) {
-    return false;
-  }
-
-  *result = ToDuration(&obj.unwrap());
-  return true;
+  // Steps 1-3.
+  return ToTemporalDurationRecord(cx, item, result);
 }
 
 /**
@@ -3366,28 +3340,18 @@ static bool DurationConstructor(JSContext* cx, unsigned argc, Value* vp) {
 static bool Duration_from(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  Handle<Value> item = args.get(0);
-
-  // Step 1.
-  if (item.isObject()) {
-    if (auto* duration = item.toObject().maybeUnwrapIf<DurationObject>()) {
-      auto* result = CreateTemporalDuration(cx, ToDuration(duration));
-      if (!result) {
-        return false;
-      }
-
-      args.rval().setObject(*result);
-      return true;
-    }
-  }
-
-  // Step 2.
-  auto result = ToTemporalDuration(cx, item);
-  if (!result) {
+  // Steps 1-2.
+  Duration result;
+  if (!ToTemporalDuration(cx, args.get(0), &result)) {
     return false;
   }
 
-  args.rval().setObject(*result);
+  auto* obj = CreateTemporalDuration(cx, result);
+  if (!obj) {
+    return false;
+  }
+
+  args.rval().setObject(*obj);
   return true;
 }
 

@@ -262,18 +262,6 @@ NormalizedTimeDuration NormalizedTimeDurationFromEpochNanosecondsDifference(
 DurationObject* CreateTemporalDuration(JSContext* cx, const Duration& duration);
 
 /**
- * ToTemporalDuration ( item )
- */
-Wrapped<DurationObject*> ToTemporalDuration(JSContext* cx,
-                                            JS::Handle<JS::Value> item);
-
-/**
- * ToTemporalDuration ( item )
- */
-bool ToTemporalDuration(JSContext* cx, JS::Handle<JS::Value> item,
-                        Duration* result);
-
-/**
  * ToTemporalDurationRecord ( temporalDurationLike )
  */
 bool ToTemporalDurationRecord(JSContext* cx,
