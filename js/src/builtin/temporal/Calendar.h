@@ -374,38 +374,6 @@ bool CalendarDateUntil(JSContext* cx, JS::Handle<CalendarValue> calendar,
                        TemporalUnit largestUnit, DateDuration* result);
 
 /**
- * CalendarDateUntil ( calendarRec, one, two, options )
- */
-bool CalendarDateUntil(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-                       const PlainDate& one, const PlainDate& two,
-                       TemporalUnit largestUnit, DateDuration* result);
-
-/**
- * CalendarDateUntil ( calendarRec, one, two, options )
- */
-bool CalendarDateUntil(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-                       const PlainDate& one, const PlainDate& two,
-                       TemporalUnit largestUnit,
-                       JS::Handle<PlainObject*> options, DateDuration* result);
-
-/**
- * CalendarDateUntil ( calendarRec, one, two, options )
- */
-bool CalendarDateUntil(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-                       JS::Handle<Wrapped<PlainDateObject*>> one,
-                       JS::Handle<Wrapped<PlainDateObject*>> two,
-                       TemporalUnit largestUnit, DateDuration* result);
-
-/**
- * CalendarDateUntil ( calendarRec, one, two, options )
- */
-bool CalendarDateUntil(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-                       JS::Handle<Wrapped<PlainDateObject*>> one,
-                       JS::Handle<Wrapped<PlainDateObject*>> two,
-                       TemporalUnit largestUnit,
-                       JS::Handle<PlainObject*> options, DateDuration* result);
-
-/**
  * CalendarEra ( dateLike )
  */
 bool CalendarEra(JSContext* cx, JS::Handle<CalendarValue> calendar,
