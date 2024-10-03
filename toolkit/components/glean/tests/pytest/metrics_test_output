@@ -792,20 +792,10 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) fn record_event_by_id(metric_id: u32, extra: HashMap<String, String>) -> Result<(), EventRecordingError> {
         match metric_id {
           18 => {
-              assert!(
-                  extra_keys_len(&super::test_nested::event_metric) != 0 || extra.is_empty(),
-                  "No extra keys allowed, but some were passed"
-              );
-
               super::test_nested::event_metric.record_raw(extra);
               Ok(())
           }
           19 => {
-              assert!(
-                  extra_keys_len(&super::test_nested::event_metric_with_extra) != 0 || extra.is_empty(),
-                  "No extra keys allowed, but some were passed"
-              );
-
               super::test_nested::event_metric_with_extra.record_raw(extra);
               Ok(())
           }
