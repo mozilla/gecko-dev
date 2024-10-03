@@ -74,10 +74,7 @@ inline Duration ToDuration(const DurationObject* duration) {
 
 class Increment;
 class CalendarValue;
-class PlainDateObject;
 class TimeZoneValue;
-class ZonedDateTime;
-class ZonedDateTimeObject;
 enum class TemporalRoundingMode;
 enum class TemporalUnit;
 
@@ -85,19 +82,7 @@ enum class TemporalUnit;
  * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
  */
-int32_t DurationSign(const Duration& duration);
-
-/**
- * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
- */
 int32_t DurationSign(const DateDuration& duration);
-
-/**
- * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
- * milliseconds, microseconds, nanoseconds )
- */
-int32_t DurationSign(const NormalizedDuration& duration);
 
 /**
  * IsValidDuration ( years, months, weeks, days, hours, minutes, seconds,
@@ -307,11 +292,6 @@ bool RoundRelativeDuration(
  */
 double DivideNormalizedTimeDuration(const NormalizedTimeDuration& duration,
                                     TemporalUnit unit);
-
-/**
- * DaysUntil ( earlier, later )
- */
-int32_t DaysUntil(const PlainDate& earlier, const PlainDate& later);
 
 } /* namespace js::temporal */
 

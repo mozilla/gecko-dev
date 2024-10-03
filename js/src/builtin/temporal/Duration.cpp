@@ -115,7 +115,7 @@ static constexpr bool IsSafeInteger(int64_t x) {
  * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
  */
-int32_t js::temporal::DurationSign(const Duration& duration) {
+static int32_t DurationSign(const Duration& duration) {
   MOZ_ASSERT(IsIntegerOrInfinityDuration(duration));
 
   const auto& [years, months, weeks, days, hours, minutes, seconds,
@@ -167,7 +167,7 @@ int32_t js::temporal::DurationSign(const DateDuration& duration) {
  * DurationSign ( years, months, weeks, days, hours, minutes, seconds,
  * milliseconds, microseconds, nanoseconds )
  */
-int32_t js::temporal::DurationSign(const NormalizedDuration& duration) {
+static int32_t DurationSign(const NormalizedDuration& duration) {
   MOZ_ASSERT(IsValidDuration(duration));
 
   if (int32_t sign = DurationSign(duration.date)) {
@@ -567,7 +567,7 @@ bool js::temporal::IsValidDuration(const Duration& duration) {
                milliseconds, microseconds, nanoseconds] = duration;
 
   // Step 1.
-  int32_t sign = DurationSign(duration);
+  int32_t sign = ::DurationSign(duration);
 
   // Step 2.
   for (auto v : {years, months, weeks, days, hours, minutes, seconds,
@@ -661,7 +661,7 @@ bool js::temporal::ThrowIfInvalidDuration(JSContext* cx,
                milliseconds, microseconds, nanoseconds] = duration;
 
   // Step 1.
-  int32_t sign = DurationSign(duration);
+  int32_t sign = ::DurationSign(duration);
 
   auto throwIfInvalid = [&](double v, const char* name) {
     // Step 2.a.
@@ -1164,8 +1164,7 @@ static bool ToTemporalDuration(JSContext* cx, Handle<Value> item,
 /**
  * DaysUntil ( earlier, later )
  */
-int32_t js::temporal::DaysUntil(const PlainDate& earlier,
-                                const PlainDate& later) {
+static int32_t DaysUntil(const PlainDate& earlier, const PlainDate& later) {
   MOZ_ASSERT(ISODateTimeWithinLimits(earlier));
   MOZ_ASSERT(ISODateTimeWithinLimits(later));
 
