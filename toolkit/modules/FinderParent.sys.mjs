@@ -344,7 +344,13 @@ FinderParent.prototype = {
       }
 
       // If the search term was found, stop iterating.
-      if (response.result != Ci.nsITypeAheadFind.FIND_NOTFOUND) {
+      //
+      // If the BC doesn't have a window global we can return an empty object. We should treat that
+      // as "not found" and continue looking in the rest of the list of BCs.
+      if (
+        Object.hasOwn(response, "result") &&
+        response.result != Ci.nsITypeAheadFind.FIND_NOTFOUND
+      ) {
         if (
           this._lastFoundBrowsingContext &&
           this._lastFoundBrowsingContext != currentBC
