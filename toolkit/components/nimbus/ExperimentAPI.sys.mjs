@@ -26,8 +26,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   COLLECTION_ID_FALLBACK
 );
 const EXPOSURE_EVENT_CATEGORY = "normandy";
-const EXPOSURE_EVENT_METHOD = "expose";
-const EXPOSURE_EVENT_OBJECT = "nimbus_experiment";
 
 function parseJSON(value) {
   if (value) {
@@ -270,20 +268,11 @@ export const ExperimentAPI = {
 
   recordExposureEvent({ featureId, experimentSlug, branchSlug }) {
     Services.telemetry.setEventRecordingEnabled(EXPOSURE_EVENT_CATEGORY, true);
-    try {
-      Services.telemetry.recordEvent(
-        EXPOSURE_EVENT_CATEGORY,
-        EXPOSURE_EVENT_METHOD,
-        EXPOSURE_EVENT_OBJECT,
-        experimentSlug,
-        {
-          branchSlug,
-          featureId,
-        }
-      );
-    } catch (e) {
-      console.error(e);
-    }
+    Glean.normandy.exposeNimbusExperiment.record({
+      value: experimentSlug,
+      branchSlug,
+      featureId,
+    });
     Glean.nimbusEvents.exposure.record({
       experiment: experimentSlug,
       branch: branchSlug,

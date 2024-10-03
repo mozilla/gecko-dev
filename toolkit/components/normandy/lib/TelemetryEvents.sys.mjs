@@ -17,12 +17,17 @@ export const TelemetryEvents = {
         );
       }
     }
-    Services.telemetry.recordEvent(
-      TELEMETRY_CATEGORY,
-      method,
-      object,
-      value,
-      extra
-    );
+    let words = (method + "_" + object).split("_");
+    let name =
+      words[0] +
+      words
+        .slice(1)
+        .map(word => word[0].toUpperCase() + word.slice(1))
+        .join("");
+    if (value !== undefined) {
+      extra = Object.assign({}, extra);
+      extra.value = value;
+    }
+    Glean.normandy[name]?.record(extra);
   },
 };
