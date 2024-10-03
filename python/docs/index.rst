@@ -65,14 +65,39 @@ To add a ``pip install``-d package dependency, add it to your site's
 Vendoring Python packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To vendor a Python package, add it to ``third_party/python/requirements.in``
-and then run ``mach vendor python``. This will update the tree of pinned
-dependencies in ``third_party/python/requirements.txt`` and download them all
-into the ``third_party/python`` directory.
+To vendor a Python package run ``./mach vendor python --add
+<package>~=<major>.<minor>``. This will add your dependency to
+``third_party/python/pyproject.toml`` then begin the re-vendoring process
+for all dependencies. The `pyproject.toml` is used by ``uv`` to create a
+lockfile (``uv.lock``) that ensures all the dependencies are compatible.
+This lockfile is then used to generate a ``third_party/python/requirements.txt``
+which is then used by ``pip`` to download all dependencies into the
+``third_party/python`` directory.
 
-Next, add that package and any new transitive dependencies (you'll see them added in
-``third_party/python/requirements.txt``) to the associated site's dependency manifest in
-``python/sites/<site>.txt``:
+.. note::
+    The dependency you are attempting to add may not be compatible with what's
+    already vendored. In this case, the lockfile generation/dependency
+    resolution will fail with an error message along the lines of ``No
+    solution found when resolving dependencies:``. You may be able to get
+    around this by pinning your dependency to a newer or older version. If
+    that doesn't work you can try modifying the pin(s) of the already vendored
+    dependency(ies) that are causing the conflict(s).
+
+    Beware that this is a rather painful process. Changing the version of an
+    already vendored dependency may break functionality somewhere in the codebase.
+    This means that even if you get ``uv`` to make a compatible lockfile, you
+    may have caused a breakage somewhere else that ``uv`` cannot foresee. It is
+    your responsibility to fix anything you break, otherwise your changes will be
+    rejected or backed out if the issue isn't discovered until after landing.
+
+    If you change pins for packages to workaround issues, please add comments in the
+    ``third_party/python/pyproject.toml`` for each necessary pin indicating why it's
+    needed and which dependency(ies) need it. Doing so will make it much easier for
+    the next person that comes along trying to do the same thing.
+
+After the ``./mach vendor python`` completes successfully, you'll need to add that package
+and any new transitive dependencies (you'll see them added in ``third_party/python/requirements.txt``)
+to the associated site's dependency manifest in ``python/sites/<site>.txt``:
 
 .. code:: text
 
@@ -81,6 +106,17 @@ Next, add that package and any new transitive dependencies (you'll see them adde
     vendored:third_party/python/new-package-dependency-foo
     vendored:third_party/python/new-package-dependency-bar
     ...
+
+To remove a vendored package run ``./mach vendor python --remove <package>``. This re-creates the lockfile
+with that dependency removed (along with any transitive dependencies that aren't shared) and re-vendor
+everything.
+
+.. note::
+    - You can add or remove multiple packages at the same time: ``./mach vendor python --add <package_one> --add <package_two>``
+    - If desired, you can add/remove dependencies manually in the ``third_party/python/pyproject.toml``. Once you've made your changes, just run ``./mach vendor python`` without the ``--add`` and/or ``--remove`` arguments.
+
+After the ``./mach vendor python`` completes successfully you'll need to remove the package and transitive
+dependencies from all the site manifest files (``python/sites/<site>.txt``) that used the removed package(s).
 
 .. note::
 
@@ -102,6 +138,27 @@ Next, add that package and any new transitive dependencies (you'll see them adde
     DoS against PyPI or a random package maintainer removing an old tarball to delay
     a Firefox chemspill. Therefore, packages required by Mach core logic or for building
     Firefox itself must be vendored.
+
+If the vendored dependencies in the ``third_party/python/pyproject.toml`` are not pinned with
+``==``, they can be automatically upgraded. You can upgrade either a single package,
+or all packages.
+
+To upgrade an individual unpinned package just run ``./mach vendor python --upgrade-package <package>``. You can also update
+multiple specific packages at the same time: ``./mach vendor python --upgrade-package <package_one> --upgrade-package <package_two>``
+
+To upgrade all unpinned packages just run ``./mach vendor python --upgrade``.
+
+For both cases the process is essentially the same. ``uv`` is invoked and it will determine if there is/are
+newer versions available. If there aren't any compatible upgrades available then nothing will be vendored. If
+there are, then everything will be re-vendored.
+
+.. note::
+    If an upgrade adds new transitive dependencies, you will need to add them to the site(s) manifest files
+    (the same as you need to when adding a new package).
+
+By default ``./mach vendor python`` only fully runs if changes are detected in the ``uv.lock`` file. If you
+want to force the full vendor to run, just add ``--force``.
+
 
 .. _mach-and-build-native-dependencies:
 
