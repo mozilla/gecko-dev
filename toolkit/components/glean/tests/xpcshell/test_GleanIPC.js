@@ -61,6 +61,7 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
 
   Glean.testOnly.whatTimeIsIt.stopAndAccumulate(t2); // 10ms
   Glean.testOnly.whatTimeIsIt.stopAndAccumulate(t3); // 5ms
+  // Note: Sample-based APIs don't have non-main-process impls.
 
   Glean.testOnlyIpc.aCustomDist.accumulateSamples([3, 4]);
 

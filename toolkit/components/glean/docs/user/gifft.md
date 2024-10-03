@@ -231,6 +231,11 @@ This shouldn't affect analysis, but it can affect testing, so please
 [bear this difference in mind](./instrumentation_tests.md#general-things-to-bear-in-mind)
 in testing.
 
+#### `timing_distribution` mirrors: sample-based APIs are not recorded
+
+Values stored with `accumulate_samples` and `accumulate_single_sample` are not
+passed to the Telemetry mirror histogram with GIFFT.
+
 ### App Shutdown
 
 Telemetry only works up to

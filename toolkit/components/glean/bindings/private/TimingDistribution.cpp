@@ -369,6 +369,16 @@ void GleanTimingDistribution::Cancel(uint64_t aId) {
   mTimingDist.Cancel(std::move(aId));
 }
 
+void GleanTimingDistribution::AccumulateSamples(
+    const nsTArray<int64_t>& aSamples) {
+  impl::fog_timing_distribution_accumulate_samples(mTimingDist.mId, &aSamples);
+}
+
+void GleanTimingDistribution::AccumulateSingleSample(int64_t aSample) {
+  impl::fog_timing_distribution_accumulate_single_sample(mTimingDist.mId,
+                                                         aSample);
+}
+
 void GleanTimingDistribution::TestGetValue(
     const nsACString& aPingName,
     dom::Nullable<dom::GleanDistributionData>& aRetval, ErrorResult& aRv) {

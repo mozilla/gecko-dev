@@ -334,6 +334,9 @@ add_task(async function test_jog_timing_distribution_works() {
 
   Glean.jogCat.jogTimingDist.stopAndAccumulate(t2); // 10ms
   Glean.jogCat.jogTimingDist.stopAndAccumulate(t3); // 5ms
+  // samples are measured in microseconds, since that's the unit listed in metrics.yaml
+  Glean.jogCat.jogTimingDist.accumulateSingleSample(5000); // 5ms
+  Glean.jogCat.jogTimingDist.accumulateSamples([2000, 8000]); // 10ms
 
   let data = Glean.jogCat.jogTimingDist.testGetValue();
   const NANOS_IN_MILLIS = 1e6;
@@ -341,14 +344,14 @@ add_task(async function test_jog_timing_distribution_works() {
   const EPSILON = 40000;
 
   // Variance in timing makes getting the sum impossible to know.
-  Assert.greater(data.sum, 15 * NANOS_IN_MILLIS - EPSILON);
+  Assert.greater(data.sum, 30 * NANOS_IN_MILLIS - EPSILON);
 
   // No guarantees from timers means no guarantees on buckets.
-  // But we can guarantee it's only two samples.
+  // But we can guarantee it's only five samples.
   Assert.equal(
-    2,
+    5,
     Object.entries(data.values).reduce((acc, [, count]) => acc + count, 0),
-    "Only two buckets with samples"
+    "Only five buckets with samples"
   );
 });
 
