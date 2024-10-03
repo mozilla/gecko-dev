@@ -28,56 +28,56 @@ formautofill.creditcards:
     telemetry_mirror: FORMAUTOFILL_CREDITCARDS_AUTOFILL_PROFILES_COUNT
 
   form_detected:
-      type: event
-      description: >
-        Recorded when a form is recognized as a credit card form.
-        The possible value of cc_* are "autocomplete", "undetected", "regexp" or an integer between 0-100:
-          - When the value is "autocomplete", the field is identified via autocomplete attribute
-          - When the value is "undetected", the field is not detected in the form
-          - When the value is "regexp", then the field is identified by regexp-based heuristic
-          - When the value is an integer greater than 0, the value indicates the confidence value from fathom (normalized to 0-100)
-        The flow id points to an interaction session with a credit card form and is shared across cc_form events .
-      bugs:
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1653162
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1653073
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1720608
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1767907
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1757731
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1834570
-      data_reviews:
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1653073#c5
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1653073#c7
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1720608#c5
-        - https://bugzilla.mozilla.org/show_bug.cgi?id=1757731#c5
-      notification_emails:
-        - autofill@lists.mozilla.org
-        - passwords-dev@mozilla.org
-      expires: never
-      extra_keys:
-        flow_id:
-          description: Flow id of an interaction session with a credit card form
-          type: string
-        cc_name:
-          description: Credit card cardholder name field result
-          type: string
-        cc_number:
-          description: Credit card number field result
-          type: string
-        cc_type:
-          description: Credit card type result
-          type: string
-        cc_exp:
-          description: Credit card expiration date result
-          type: string
-        cc_exp_month:
-          description: Credit card expiration month result
-          type: string
-        cc_exp_year:
-          description: Credit card expiration year result
-          type: string
-        cc_number_multi_parts:
-          description: The count of input fields for splitting the Credit Card Number
-          type: quantity
+    type: event
+    description: >
+      Recorded when a form is recognized as a credit card form.
+      The possible value of cc_* are "autocomplete", "undetected", "regexp" or an integer between 0-100:
+        - When the value is "autocomplete", the field is identified via autocomplete attribute
+        - When the value is "undetected", the field is not detected in the form
+        - When the value is "regexp", then the field is identified by regexp-based heuristic
+        - When the value is an integer greater than 0, the value indicates the confidence value from fathom (normalized to 0-100)
+      The flow id points to an interaction session with a credit card form and is shared across cc_form events .
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1653162
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1653073
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1720608
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1767907
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1757731
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1834570
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1653073#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1653073#c7
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1720608#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1757731#c5
+    notification_emails:
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys:
+      flow_id:
+        description: Flow id of an interaction session with a credit card form
+        type: string
+      cc_name:
+        description: Credit card cardholder name field result
+        type: string
+      cc_number:
+        description: Credit card number field result
+        type: string
+      cc_type:
+        description: Credit card type result
+        type: string
+      cc_exp:
+        description: Credit card expiration date result
+        type: string
+      cc_exp_month:
+        description: Credit card expiration month result
+        type: string
+      cc_exp_year:
+        description: Credit card expiration year result
+        type: string
+      cc_number_multi_parts:
+        description: The count of input fields for splitting the Credit Card Number
+        type: quantity
 
   form_popup_shown:
     type: event
@@ -323,3 +323,1105 @@ formautofill:
           String that contains a comma-separated list of fields located in a sandbox
           iframe.
         type: string
+
+address:
+  show_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.show#capture_doorhanger.
+    bugs: &address_show_bugs
+      - https://bugzil.la/1801039
+    data_reviews: &address_show_data_reviews
+      - https://bugzil.la/1801039
+    notification_emails: &address_show_emails
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &address_show_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Show_CaptureDoorhanger
+
+  show_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.show#update_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Show_UpdateDoorhanger
+
+  show_edit_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.show#edit_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Show_EditDoorhanger
+
+  save_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.save#capture_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Save_CaptureDoorhanger
+
+  save_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.save#update_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Save_UpdateDoorhanger
+
+  save_edit_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.save#edit_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Save_EditDoorhanger
+
+  update_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.update#capture_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Update_CaptureDoorhanger
+
+  update_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.update#update_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Update_UpdateDoorhanger
+
+  update_edit_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.update#edit_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Update_EditDoorhanger
+
+  cancel_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.cancel#capture_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Cancel_CaptureDoorhanger
+
+  cancel_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.cancel#update_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Cancel_UpdateDoorhanger
+
+  cancel_edit_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.cancel#edit_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Cancel_EditDoorhanger
+
+  disable_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.disable#capture_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Disable_CaptureDoorhanger
+
+  disable_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.disable#update_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Disable_UpdateDoorhanger
+
+  disable_edit_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.disable#edit_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Disable_EditDoorhanger
+
+  pref_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.pref#capture_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Pref_CaptureDoorhanger
+
+  pref_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.pref#update_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Pref_UpdateDoorhanger
+
+  pref_edit_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.pref#edit_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_Pref_EditDoorhanger
+
+  learn_more_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.learn_more#capture_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_LearnMore_CaptureDoorhanger
+
+  learn_more_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.learn_more#update_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_LearnMore_UpdateDoorhanger
+
+  learn_more_edit_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser address autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.learn_more#edit_doorhanger.
+    bugs: *address_show_bugs
+    data_reviews: *address_show_data_reviews
+    notification_emails: *address_show_emails
+    expires: never
+    extra_keys: *address_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Address_LearnMore_EditDoorhanger
+
+  show_manage:
+    type: event
+    description: >
+      User interactions for address autofill preferences management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.show#manage.
+    bugs: &address_manage_bugs
+      - https://bugzil.la/1801039
+    data_reviews: &address_manage_data_reviews
+      - https://bugzil.la/1801039
+    notification_emails: &address_manage_emails
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &address_manage_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Address_Show_Manage
+
+  add_manage:
+    type: event
+    description: >
+      User interactions for address autofill preferences management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.add#manage.
+    bugs: *address_manage_bugs
+    data_reviews: *address_manage_data_reviews
+    notification_emails: *address_manage_emails
+    expires: never
+    extra_keys: *address_manage_extra
+    telemetry_mirror: Address_Add_Manage
+
+  delete_manage:
+    type: event
+    description: >
+      User interactions for address autofill preferences management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.delete#manage.
+    bugs: *address_manage_bugs
+    data_reviews: *address_manage_data_reviews
+    notification_emails: *address_manage_emails
+    expires: never
+    extra_keys: *address_manage_extra
+    telemetry_mirror: Address_Delete_Manage
+
+  show_entry_manage:
+    type: event
+    description: >
+      User interactions for address autofill preferences management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.show_entry#manage.
+    bugs: *address_manage_bugs
+    data_reviews: *address_manage_data_reviews
+    notification_emails: *address_manage_emails
+    expires: never
+    extra_keys: *address_manage_extra
+    telemetry_mirror: Address_ShowEntry_Manage
+
+  edit_manage:
+    type: event
+    description: >
+      User interactions for address autofill preferences management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      address.edit#manage.
+    bugs: *address_manage_bugs
+    data_reviews: *address_manage_data_reviews
+    notification_emails: *address_manage_emails
+    expires: never
+    extra_keys: *address_manage_extra
+    telemetry_mirror: Address_Edit_Manage
+
+  detected_address_form:
+    type: event
+    description: >
+      Recorded when a form is recognized as an address form.
+      The possible values in the extra_keys are "true", "false", or 0.
+      When the value is "true", the field is identified via autocomplete attribute.
+      When the value is "false", the field is not detected in the form.
+      When the value is an 0, then the field is identified by regexp-based heuristic.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      address.detected#address_form.
+    bugs: &address_detected_bugs
+      - https://bugzil.la/1804901
+    data_reviews: &address_detected_data_reviews
+      - https://bugzil.la/1804901
+    notification_emails: &address_detected_emails
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+      street_address:
+        description: >
+          street address result
+        type: string
+      address_line1:
+        description: >
+          address_line1 result
+        type: string
+      address_line2:
+        description: >
+          address_line2 result
+        type: string
+      address_line3:
+        description: >
+          address_line3 result
+        type: string
+      address_level1:
+        description: >
+          address_level1 result
+        type: string
+      address_level2:
+        description: >
+          address_level2 result
+        type: string
+      postal_code:
+        description: >
+          postal_code result
+        type: string
+      country:
+        description: >
+          country result
+        type: string
+    telemetry_mirror: Address_Detected_AddressForm
+
+  popup_shown_address_form:
+    type: event
+    description: >
+      Recorded when autofill popup is shown. Using field_name to record the field that triggers this event.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      address.popup_shown#address_form.
+    bugs: *address_detected_bugs
+    data_reviews: *address_detected_data_reviews
+    notification_emails: *address_detected_emails
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+      field_name:
+        description: >
+          Name of the field being affected by the method, filled when method is `popup_shown` or `filled_modified`.
+        type: string
+    telemetry_mirror: Address_PopupShown_AddressForm
+
+  filled_address_form:
+    type: event
+    description: >
+      Recorded when a form is autofiled. Possible values are `filled`, `not_filled`, `user_filled` or `unavailable`.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      address.filled#address_form.
+    bugs: *address_detected_bugs
+    data_reviews: *address_detected_data_reviews
+    notification_emails: *address_detected_emails
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+      street_address:
+        description: >
+          street address result
+        type: string
+      address_line1:
+        description: >
+          address_line1 result
+        type: string
+      address_line2:
+        description: >
+          address_line2 result
+        type: string
+      address_line3:
+        description: >
+          address_line3 result
+        type: string
+      address_level1:
+        description: >
+          address_level1 result
+        type: string
+      address_level2:
+        description: >
+          address_level2 result
+        type: string
+      postal_code:
+        description: >
+          postal_code result
+        type: string
+      country:
+        description: >
+          country result
+        type: string
+    telemetry_mirror: Address_Filled_AddressForm
+
+  filled_modified_address_form:
+    type: event
+    description: >
+      Recorded when a field is autofilled and then modified by the user.
+      Using field_name to record the field that triggers this event.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      address.filled_modified#address_form.
+    bugs: *address_detected_bugs
+    data_reviews: *address_detected_data_reviews
+    notification_emails: *address_detected_emails
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+      street_address:
+        description: >
+          street address result
+        type: string
+      address_line1:
+        description: >
+          address_line1 result
+        type: string
+      address_line2:
+        description: >
+          address_line2 result
+        type: string
+      address_line3:
+        description: >
+          address_line3 result
+        type: string
+      address_level1:
+        description: >
+          address_level1 result
+        type: string
+      address_level2:
+        description: >
+          address_level2 result
+        type: string
+      postal_code:
+        description: >
+          postal_code result
+        type: string
+      country:
+        description: >
+          country result
+        type: string
+      field_name:
+        description: >
+          Name of the field being affected by the method
+        type: string
+    telemetry_mirror: Address_FilledModified_AddressForm
+
+  submitted_address_form:
+    type: event
+    description: >
+      Recorded when a form is submitted.
+      Possible values are `autofilled`, `not_filled`, `user_filled` or `unavailable`.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      address.submitted#address_form.
+    bugs: *address_detected_bugs
+    data_reviews: *address_detected_data_reviews
+    notification_emails: *address_detected_emails
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+      street_address:
+        description: >
+          street address result
+        type: string
+      address_line1:
+        description: >
+          address_line1 result
+        type: string
+      address_line2:
+        description: >
+          address_line2 result
+        type: string
+      address_line3:
+        description: >
+          address_line3 result
+        type: string
+      address_level1:
+        description: >
+          address_level1 result
+        type: string
+      address_level2:
+        description: >
+          address_level2 result
+        type: string
+      postal_code:
+        description: >
+          postal_code result
+        type: string
+      country:
+        description: >
+          country result
+        type: string
+    telemetry_mirror: Address_Submitted_AddressForm
+
+  cleared_address_form:
+    type: event
+    description: >
+      Recorded when a form is cleared. Using field_name to record the field that triggers this event
+
+      This event was generated to correspond to the Legacy Telemetry event
+      address.cleared#address_form.
+    bugs: *address_detected_bugs
+    data_reviews: *address_detected_data_reviews
+    notification_emails: *address_detected_emails
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+      field_name:
+        description: >
+          Name of the field being affected by the method
+        type: string
+    telemetry_mirror: Address_Cleared_AddressForm
+
+  detected_address_form_ext:
+    type: event
+    description: >
+      Address has too many fields so we cannot cover them all in the above
+      `address_form` telemetry This telemetry is used to record address
+      fields that are not listed in `address_form`
+      This event was generated to correspond to the Legacy Telemetry event
+      address.detected#address_form_ext.
+    bugs: &address_detected_ext_bugs
+      - https://bugzil.la/1804901
+    data_reviews: &address_detected_ext_data_reviews
+      - https://bugzil.la/1804901
+    notification_emails: &address_detected_ext_emails
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &address_detected_ext_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+      name:
+        description: >
+          name
+        type: string
+      given_name:
+        description: >
+          give_name
+        type: string
+      additional_name:
+        description: >
+          additional_name
+        type: string
+      family_name:
+        description: >
+          family_name
+        type: string
+      email:
+        description: >
+          email
+        type: string
+      organization:
+        description: >
+          organization
+        type: string
+      tel:
+        description: >
+          telephone
+        type: string
+    telemetry_mirror: Address_Detected_AddressFormExt
+
+  filled_address_form_ext:
+    type: event
+    description: >
+      Address has too many fields so we cannot cover them all in the above
+      `address_form` telemetry This telemetry is used to record address
+      fields that are not listed in `address_form`
+      This event was generated to correspond to the Legacy Telemetry event
+      address.filled#address_form_ext.
+    bugs: *address_detected_ext_bugs
+    data_reviews: *address_detected_ext_data_reviews
+    notification_emails: *address_detected_ext_emails
+    expires: never
+    extra_keys: *address_detected_ext_extra
+    telemetry_mirror: Address_Filled_AddressFormExt
+
+  submitted_address_form_ext:
+    type: event
+    description: >
+      Address has too many fields so we cannot cover them all in the above
+      `address_form` telemetry This telemetry is used to record address
+      fields that are not listed in `address_form`
+      This event was generated to correspond to the Legacy Telemetry event
+      address.submitted#address_form_ext.
+    bugs: *address_detected_ext_bugs
+    data_reviews: *address_detected_ext_data_reviews
+    notification_emails: *address_detected_ext_emails
+    expires: never
+    extra_keys: *address_detected_ext_extra
+    telemetry_mirror: Address_Submitted_AddressFormExt
+
+creditcard:
+  show_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.show#capture_doorhanger.
+    bugs: &creditcard_show_bugs
+      - https://bugzil.la/1653073
+      - https://bugzil.la/1653083
+      - https://bugzil.la/1720608
+      - https://bugzil.la/1767907
+    data_reviews: &creditcard_show_data_reviews
+      - https://bugzil.la/1653073
+      - https://bugzil.la/1653083
+      - https://bugzil.la/1720608
+      - https://bugzil.la/1767907
+    notification_emails: &creditcard_show_emails
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &creditcard_show_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Show_CaptureDoorhanger
+
+  show_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.show#update_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Show_UpdateDoorhanger
+
+  save_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.save#capture_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Save_CaptureDoorhanger
+
+  save_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.save#update_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Save_UpdateDoorhanger
+
+  update_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.update#capture_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Update_CaptureDoorhanger
+
+  update_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.update#update_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Update_UpdateDoorhanger
+
+  cancel_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.cancel#capture_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Cancel_CaptureDoorhanger
+
+  cancel_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.cancel#update_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Cancel_UpdateDoorhanger
+
+  disable_capture_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.disable#capture_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Disable_CaptureDoorhanger
+
+  disable_update_doorhanger:
+    type: event
+    description: >
+      User interactions for the browser credit card autofill doorhanger.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.disable#update_doorhanger.
+    bugs: *creditcard_show_bugs
+    data_reviews: *creditcard_show_data_reviews
+    notification_emails: *creditcard_show_emails
+    expires: never
+    extra_keys: *creditcard_show_extra
+    no_lint: [COMMON_PREFIX]
+    telemetry_mirror: Creditcard_Disable_UpdateDoorhanger
+
+  show_manage:
+    type: event
+    description: >
+      User interactions for credit card autofill preferences management
+      UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.show#manage.
+    bugs: &creditcard_manage_bugs
+      - https://bugzil.la/1653073
+      - https://bugzil.la/1654167
+      - https://bugzil.la/1720608
+      - https://bugzil.la/1767907
+    data_reviews: &creditcard_manage_data_reviews
+      - https://bugzil.la/1653073
+      - https://bugzil.la/1654167
+      - https://bugzil.la/1720608
+      - https://bugzil.la/1767907
+    notification_emails: &creditcard_manage_emails
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &creditcard_manage_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Creditcard_Show_Manage
+
+  add_manage:
+    type: event
+    description: >
+      User interactions for credit card autofill preferences management
+      UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.add#manage.
+    bugs: *creditcard_manage_bugs
+    data_reviews: *creditcard_manage_data_reviews
+    notification_emails: *creditcard_manage_emails
+    expires: never
+    extra_keys: *creditcard_manage_extra
+    telemetry_mirror: Creditcard_Add_Manage
+
+  delete_manage:
+    type: event
+    description: >
+      User interactions for credit card autofill preferences management
+      UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.delete#manage.
+    bugs: *creditcard_manage_bugs
+    data_reviews: *creditcard_manage_data_reviews
+    notification_emails: *creditcard_manage_emails
+    expires: never
+    extra_keys: *creditcard_manage_extra
+    telemetry_mirror: Creditcard_Delete_Manage
+
+  show_entry_manage:
+    type: event
+    description: >
+      User interactions for credit card autofill preferences management
+      UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.show_entry#manage.
+    bugs: *creditcard_manage_bugs
+    data_reviews: *creditcard_manage_data_reviews
+    notification_emails: *creditcard_manage_emails
+    expires: never
+    extra_keys: *creditcard_manage_extra
+    telemetry_mirror: Creditcard_ShowEntry_Manage
+
+  edit_manage:
+    type: event
+    description: >
+      User interactions for credit card autofill preferences management
+      UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.edit#manage.
+    bugs: *creditcard_manage_bugs
+    data_reviews: *creditcard_manage_data_reviews
+    notification_emails: *creditcard_manage_emails
+    expires: never
+    extra_keys: *creditcard_manage_extra
+    telemetry_mirror: Creditcard_Edit_Manage
+
+  detected_cc_form_v2:
+    type: event
+    description: >
+      Recorded when a form is recognized as a credit card form.
+      The possible value of cc_* in extra_keys are "true", "false", or an integer between 0-100.
+      When the value is "true", the field is identified via autocomplete attribute.
+      When the value is "false", the field is not detected in the form.
+      When the value is an integer greater than 0, the value indicates the confidence value from fathom (normalized to 0-100).
+      When the value is an 0, then the field is identified by regexp-based heuristic.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.detected#cc_form_v2.
+    bugs: &creditcard_detected_bugs
+      - https://bugzil.la/1757731
+    data_reviews: &creditcard_detected_data_reviews
+      - https://bugzil.la/1757731
+    notification_emails: &creditcard_detected_emails
+      - autofill@lists.mozilla.org
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &creditcard_detected_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The flowId.
+        type: string
+      cc_name:
+        description: >
+          cardholder name field result. Used by `detected`, `filled`, and `filled_modified` methods.
+        type: string
+      cc_number:
+        description: >
+          credit card number field result
+        type: string
+      cc_type:
+        description: >
+          credit card type result
+        type: string
+      cc_exp:
+        description: >
+          credit card expiration date
+        type: string
+      cc_exp_month:
+        description: >
+          credit card expiration month
+        type: string
+      cc_exp_year:
+        description: >
+          credit card expiration year
+        type: string
+      field_name:
+        description: >
+          Name of the field being affected by the method. Used by `popup_shown` and `filled_modified` methods.
+        type: string
+    telemetry_mirror: Creditcard_Detected_CcFormV2
+
+  popup_shown_cc_form_v2:
+    type: event
+    description: >
+      Recorded when autofill popup is shown. Using field_name to record the field that triggers this event.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.popup_shown#cc_form_v2.
+    bugs: *creditcard_detected_bugs
+    data_reviews: *creditcard_detected_data_reviews
+    notification_emails: *creditcard_detected_emails
+    expires: never
+    extra_keys: *creditcard_detected_extra
+    telemetry_mirror: Creditcard_PopupShown_CcFormV2
+
+  filled_cc_form_v2:
+    type: event
+    description: >
+      Recorded when a form is autofiled. Possible values are `filled`, `not_filled`, `user_filled` or `unavailable`.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.filled#cc_form_v2.
+    bugs: *creditcard_detected_bugs
+    data_reviews: *creditcard_detected_data_reviews
+    notification_emails: *creditcard_detected_emails
+    expires: never
+    extra_keys: *creditcard_detected_extra
+    telemetry_mirror: Creditcard_Filled_CcFormV2
+
+  filled_modified_cc_form_v2:
+    type: event
+    description: >
+      Recorded when a field is autofilled and then modified by the user.
+      Using field_name to record the field that triggers this event.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.filled_modified#cc_form_v2.
+    bugs: *creditcard_detected_bugs
+    data_reviews: *creditcard_detected_data_reviews
+    notification_emails: *creditcard_detected_emails
+    expires: never
+    extra_keys: *creditcard_detected_extra
+    telemetry_mirror: Creditcard_FilledModified_CcFormV2
+
+  submitted_cc_form_v2:
+    type: event
+    description: >
+      Recorded when a form is submitted. Possible values are `autofilled`, `user_filled` or `unavailable`.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.submitted#cc_form_v2.
+    bugs: *creditcard_detected_bugs
+    data_reviews: *creditcard_detected_data_reviews
+    notification_emails: *creditcard_detected_emails
+    expires: never
+    extra_keys: *creditcard_detected_extra
+    telemetry_mirror: Creditcard_Submitted_CcFormV2
+
+  cleared_cc_form_v2:
+    type: event
+    description: >
+      Recorded when a form is cleared. Using field_name to record the field that triggers this event.
+
+      This event was generated to correspond to the Legacy Telemetry event
+      creditcard.cleared#cc_form_v2.
+    bugs: *creditcard_detected_bugs
+    data_reviews: *creditcard_detected_data_reviews
+    notification_emails: *creditcard_detected_emails
+    expires: never
+    extra_keys: *creditcard_detected_extra
+    telemetry_mirror: Creditcard_Cleared_CcFormV2
