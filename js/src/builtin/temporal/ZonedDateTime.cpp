@@ -991,11 +991,6 @@ bool js::temporal::DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
  */
 static bool TimeZoneEqualsOrThrow(JSContext* cx, Handle<TimeZoneValue> one,
                                   Handle<TimeZoneValue> two) {
-  // Step 1.
-  if (one.isObject() && two.isObject() && one.toObject() == two.toObject()) {
-    return true;
-  }
-
   // Step 2.
   Rooted<JSString*> timeZoneOne(cx, ToTemporalTimeZoneIdentifier(cx, one));
   if (!timeZoneOne) {
@@ -3352,13 +3347,6 @@ static bool ZonedDateTime_getTimeZoneTransition(JSContext* cx,
 
   // Step 3.
   auto timeZone = zonedDateTime.timeZone();
-  if (!timeZone.isString()) {
-    JS_ReportErrorASCII(cx, "Temporal.TimeZone is slated for removal");
-    return false;
-  }
-
-  // Step 4.
-  auto timeZoneId = timeZone.toString();
 
   // Steps 5-8.
   auto direction = Direction::Next;
@@ -3385,7 +3373,7 @@ static bool ZonedDateTime_getTimeZoneTransition(JSContext* cx,
   }
 
   // Step 9.
-  if (!timeZoneId->offsetMinutes().isUndefined()) {
+  if (timeZone.isOffset()) {
     args.rval().setNull();
     return true;
   }
@@ -3393,7 +3381,7 @@ static bool ZonedDateTime_getTimeZoneTransition(JSContext* cx,
   // FIXME: spec issue - why is this special case needed?
   // https://github.com/tc39/proposal-temporal/issues/2951
 
-  auto* linearTimeZoneId = timeZoneId->identifier()->ensureLinear(cx);
+  auto* linearTimeZoneId = timeZone.identifier()->ensureLinear(cx);
   if (!linearTimeZoneId) {
     return false;
   }
@@ -3405,13 +3393,13 @@ static bool ZonedDateTime_getTimeZoneTransition(JSContext* cx,
   // Steps 10-11.
   mozilla::Maybe<Instant> transition;
   if (direction == Direction::Next) {
-    if (!GetNamedTimeZoneNextTransition(cx, timeZoneId, zonedDateTime.instant(),
+    if (!GetNamedTimeZoneNextTransition(cx, timeZone, zonedDateTime.instant(),
                                         &transition)) {
       return false;
     }
   } else {
     if (!GetNamedTimeZonePreviousTransition(
-            cx, timeZoneId, zonedDateTime.instant(), &transition)) {
+            cx, timeZone, zonedDateTime.instant(), &transition)) {
       return false;
     }
   }
