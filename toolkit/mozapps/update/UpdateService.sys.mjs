@@ -788,48 +788,19 @@ function getCanApplyUpdates() {
     return false;
   }
 
-  if (AppConstants.platform == "macosx") {
+  if (AppConstants.platform == "macosx" || AppConstants.platform == "win") {
     LOG(
       "getCanApplyUpdates - bypass the write since elevation can be used " +
-        "on Mac OS X"
+        "on macOS and Windows"
     );
     return true;
   }
 
-  if (shouldUseService()) {
+  if (!isAppBaseDirWritable()) {
     LOG(
-      "getCanApplyUpdates - bypass the write checks because the Windows " +
-        "Maintenance Service can be used"
+      "getCanApplyUpdates - unable to apply updates, because the base " +
+        "directory is not writable."
     );
-    return true;
-  }
-
-  try {
-    if (AppConstants.platform == "win") {
-      // On Windows when the maintenance service isn't used updates can still be
-      // performed in a location requiring admin privileges by the client
-      // accepting a UAC prompt from an elevation request made by the updater.
-      // Whether the client can elevate (e.g. has a split token) is determined
-      // in nsXULAppInfo::GetUserCanElevate which is located in nsAppRunner.cpp.
-      let userCanElevate = Services.appinfo.QueryInterface(
-        Ci.nsIWinAppHelper
-      ).userCanElevate;
-      if (lazy.gIsBackgroundTaskMode) {
-        LOG(
-          "getCanApplyUpdates - in background task mode, assuming user can't elevate"
-        );
-        userCanElevate = false;
-      }
-      if (!userCanElevate && !isAppBaseDirWritable) {
-        LOG(
-          "getCanApplyUpdates - unable to apply updates, because the base " +
-            "directory is not writable."
-        );
-      }
-    }
-  } catch (e) {
-    LOG("getCanApplyUpdates - unable to apply updates. Exception: " + e);
-    // No write access to the installation directory
     return false;
   }
 
