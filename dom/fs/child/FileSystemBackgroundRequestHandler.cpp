@@ -112,6 +112,12 @@ FileSystemBackgroundRequestHandler::CreateFileSystemManagerChild(
 
               self->mCreatingFileSystemManagerChild = false;
 
+              if (child->CloseAllReceived()) {
+                self->mCreateFileSystemManagerChildPromiseHolder.RejectIfExists(
+                    NS_ERROR_ABORT, __func__);
+                return;
+              }
+
               if (NS_FAILED(rv)) {
                 self->mCreateFileSystemManagerChildPromiseHolder.RejectIfExists(
                     rv, __func__);

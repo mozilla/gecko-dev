@@ -92,6 +92,8 @@ FileSystemManagerChild::AllocPFileSystemWritableFileStreamChild() {
 
 ::mozilla::ipc::IPCResult FileSystemManagerChild::RecvCloseAll(
     CloseAllResolver&& aResolver) {
+  mCloseAllReceived = true;
+
   nsTArray<RefPtr<BoolPromise>> promises;
 
   // NOTE: getFile() creates blobs that read the data from the child;
