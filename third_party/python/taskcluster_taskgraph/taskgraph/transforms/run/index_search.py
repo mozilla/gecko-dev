@@ -8,7 +8,6 @@ current taskgraph.  The transform takes a list of indexes, and the optimization
 phase will replace the task with the task from the other graph.
 """
 
-
 from voluptuous import Required
 
 from taskgraph.transforms.base import TransformSequence

@@ -7,6 +7,7 @@ Add notifications to tasks via Taskcluster's notify service.
 See https://docs.taskcluster.net/docs/reference/core/notify/usage for
 more information.
 """
+
 from voluptuous import ALLOW_EXTRA, Any, Exclusive, Optional, Required
 
 from taskgraph.transforms.base import TransformSequence

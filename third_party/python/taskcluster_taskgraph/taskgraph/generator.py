@@ -295,7 +295,7 @@ class TaskGraphGenerator:
         for kind in kinds.values():
             for dep in kind.config.get("kind-dependencies", []):
                 edges.add((kind.name, dep, "kind-dependency"))
-        kind_graph = Graph(set(kinds), edges)  # type: ignore
+        kind_graph = Graph(frozenset(kinds), frozenset(edges))
 
         if target_kinds:
             kind_graph = kind_graph.transitive_closure(
@@ -321,7 +321,7 @@ class TaskGraphGenerator:
                     raise Exception("duplicate tasks with label " + task.label)
                 all_tasks[task.label] = task
             logger.info(f"Generated {len(new_tasks)} tasks for kind {kind_name}")
-        full_task_set = TaskGraph(all_tasks, Graph(set(all_tasks), set()))  # type: ignore
+        full_task_set = TaskGraph(all_tasks, Graph(frozenset(all_tasks), frozenset()))
         yield self.verify("full_task_set", full_task_set, graph_config, parameters)
 
         logger.info("Generating full task graph")
@@ -334,7 +334,9 @@ class TaskGraphGenerator:
                     )
                 edges.add((t.label, dep, depname))
 
-        full_task_graph = TaskGraph(all_tasks, Graph(full_task_set.graph.nodes, edges))  # type: ignore
+        full_task_graph = TaskGraph(
+            all_tasks, Graph(frozenset(full_task_set.graph.nodes), frozenset(edges))
+        )
         logger.info(
             "Full task graph contains %d tasks and %d dependencies"
             % (len(full_task_set.graph.nodes), len(edges))
@@ -343,13 +345,15 @@ class TaskGraphGenerator:
 
         logger.info("Generating target task set")
         target_task_set = TaskGraph(
-            dict(all_tasks), Graph(set(all_tasks.keys()), set())  # type: ignore
+            dict(all_tasks),
+            Graph(frozenset(all_tasks.keys()), frozenset()),
         )
         for fltr in filters:
             old_len = len(target_task_set.graph.nodes)
             target_tasks = set(fltr(target_task_set, parameters, graph_config))
             target_task_set = TaskGraph(
-                {l: all_tasks[l] for l in target_tasks}, Graph(target_tasks, set())  # type: ignore
+                {l: all_tasks[l] for l in target_tasks},
+                Graph(frozenset(target_tasks), frozenset()),
             )
             logger.info(
                 "Filter %s pruned %d tasks (%d remain)"
@@ -377,7 +381,8 @@ class TaskGraphGenerator:
         requested_tasks = target_tasks | always_target_tasks  # type: ignore
         target_graph = full_task_graph.graph.transitive_closure(requested_tasks)
         target_task_graph = TaskGraph(
-            {l: all_tasks[l] for l in target_graph.nodes}, target_graph  # type: ignore
+            {l: all_tasks[l] for l in target_graph.nodes},
+            target_graph,  # type: ignore
         )
         yield self.verify(
             "target_task_graph", target_task_graph, graph_config, parameters

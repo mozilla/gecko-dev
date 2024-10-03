@@ -9,7 +9,6 @@ the task at a higher level, using a "run" field that can be interpreted by
 run-using handlers in `taskcluster/taskgraph/transforms/run`.
 """
 
-
 import copy
 import json
 import logging
