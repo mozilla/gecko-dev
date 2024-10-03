@@ -284,35 +284,48 @@ detekt {
 }
 
 tasks.withType(Detekt).configureEach() {
-    // Custom detekt rules should be build before
-    // See https://arturbosch.github.io/detekt/extensions.html#pitfalls
+    // Custom detekt rules should be built before.
+    // See https://detekt.dev/docs/introduction/extensions#pitfalls
     dependsOn(":tooling-detekt:assemble")
 
     autoCorrect = true
 
     exclude "**/build.gradle.kts"
+    exclude "**/build/**"
+    exclude "**/docs/**"
+    exclude "**/resources/**"
     exclude "**/src/androidTest/**"
     exclude "**/src/iosTest/**"
+    exclude "**/src/main/assets/extensions/**"
     exclude "**/src/test/**"
     exclude "**/test/src/**"
-    exclude "**/build/**"
-    exclude "**/resources/**"
     exclude "**/tmp/**"
-    exclude "**/tooling/fetch/tests/**"
     exclude "**/tooling/fetch-tests/**"
-    exclude "**/src/main/assets/extensions/**"
-    exclude "**/docs/**"
 }
 
 // Apply same path exclusions as for the main task
 tasks.withType(DetektCreateBaselineTask).configureEach() {
+    dependsOn(":browser-icons:updateBuiltInExtensionVersion")
+    dependsOn(":feature-accounts:updateBuiltInExtensionVersion")
+    dependsOn(":feature-readerview:updateBuiltInExtensionVersion")
+    dependsOn(":feature-search:updateAdsExtensionVersion")
+    dependsOn(":feature-search:updateCookiesExtensionVersion")
+    dependsOn(":samples-browser:updateBorderifyExtensionVersion")
+    dependsOn(":samples-browser:updateTestExtensionVersion")
+    dependsOn(":samples-compose-browser:updateBorderifyExtensionVersion")
+    dependsOn(":samples-compose-browser:updateTestExtensionVersion")
+    dependsOn(":tooling-detekt:assemble")
+
+    exclude "**/build.gradle.kts"
+    exclude "**/build/**"
+    exclude "**/docs/**"
+    exclude "**/resources/**"
     exclude "**/src/androidTest/**"
+    exclude "**/src/iosTest/**"
+    exclude "**/src/main/assets/extensions/**"
     exclude "**/src/test/**"
     exclude "**/test/src/**"
-    exclude "**/build/**"
-    exclude "**/resources/**"
     exclude "**/tmp/**"
-    exclude "**/tooling/fetch/tests/**"
     exclude "**/tooling/fetch-tests/**"
 }
 

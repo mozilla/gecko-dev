@@ -155,6 +155,7 @@ tasks.register('clean', Delete) {
 detekt {
     input = files("$projectDir/app/src")
     config = files("$projectDir/config/detekt.yml")
+    baseline = file("$projectDir/config/detekt-baseline.xml")
 
     reports {
         html {
