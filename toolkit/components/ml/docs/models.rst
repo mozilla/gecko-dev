@@ -1,42 +1,6 @@
 Models management
 =================
 
-
-Prepare a model for Firefox
-:::::::::::::::::::::::::::
-
-Models that can be used with Firefox should have ONNX weights at different quantization levels.
-
-In order to make sure we are compatible with Transformers.js, we use the conversion script
-provided by that project, which checks that the model arhitecture will work and has
-been tested.
-
-To do this, follow these steps:
-
-- make sure your model is published in Hugging Face with PyTorch or SafeTensor weights.
-- clone https://github.com/xenova/transformers.js and checkout branch `v3`
-- go into `scripts/`
-- create a virtualenv there and install requirements from the local `requirements.txt` file
-
-Then you can run:
-
-.. code-block:: bash
-
-  python convert.py --model_id organizationId/modelId --quantize --modes fp16 q8 q4 --task the-inference-task
-
-You will get a new directory in `models/organizationId/modelId` that includes an `onnx` directory and
-other files. Upload everything into Hugging Face.
-
-Congratulations! you have a Firefox-compatible model. You can now try it in `about:inference`.
-
-Notice that for the encoder-decoder models with two files, you may need to rename `decoder_model_quantized.onnx`
-to `decoder_model_merged_quantized.onnx`, and make similar changes to the fp16, q4 versions.
-You do not need to rename the encoder models.
-
-
-Lifecycle
-:::::::::
-
 When Firefox uses a model, it will
 
 1. read metadata stored in Remote Settings
@@ -45,7 +9,7 @@ When Firefox uses a model, it will
 
 
 1. Remote Settings
-------------------
+::::::::::::::::::
 
 We have two collections in Remote Settings:
 
@@ -62,7 +26,7 @@ setting a new revision for a model in Remote Settings will trigger a new downloa
 
 
 2. Model Hub
-------------
+::::::::::::
 
 Our Model hub follows the same structure than Hugging Face, each file for a model is under
 a unique URL:
@@ -74,13 +38,8 @@ Where:
 - `revision` is the branch or version
 - `path` is the path to the file.
 
-
-Model files downloaded from the hub are stored in IndexDB so users don't need to download them again.
-
-Model files
-:::::::::::
-
-Models consists of several files like its configuration, tokenizer, training metadata, and weights.
+When a model is stored in the Mozilla or Hugging Face Model Hub, it typically consists of several
+files that define the model, its configuration, tokenizer, and training metadata.
 
 Below are the most common files you’ll encounter:
 
@@ -130,3 +89,9 @@ This allows the Hugging Face library to reconstruct the model exactly as it was 
 
 - ``merges.txt``: For byte pair encoding (BPE) tokenizers, this file contains the merge operations used to split words into subwords.
 - ``preprocessor_config.json``: Contains configuration details for any pre-processing or feature extraction steps applied to the input before passing it to the model.
+
+
+3. IndexDB
+::::::::::
+
+Model files are stored in IndexDB so users don't need to download them again.
