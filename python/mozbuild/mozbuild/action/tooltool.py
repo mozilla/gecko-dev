@@ -549,7 +549,7 @@ class FileRecordJSONEncoder(json.JSONEncoder):
                 "FileRecordJSONEncoder is only for FileRecord and lists of FileRecords, "
                 "not %s" % obj.__class__.__name__
             )
-            log.warn(err)
+            log.warning(err)
             raise FileRecordJSONEncoderException(err)
         else:
             rv = {
@@ -860,7 +860,7 @@ def touch(f):
     try:
         os.utime(f, None)
     except OSError:
-        log.warn("impossible to update utime of file %s" % f)
+        log.warning("impossible to update utime of file %s" % f)
 
 
 def _urlopen(req):
@@ -1138,7 +1138,7 @@ def fetch_files(
                 else:
                     # the file copied from the cache is invalid, better to
                     # clean up the cache version itself as well
-                    log.warn(
+                    log.warning(
                         "File %s retrieved from cache is invalid! I am deleting it from the "
                         "cache as well" % f.filename
                     )
@@ -1347,9 +1347,7 @@ def _s3_upload(filename, file):
     try:
         req_path = "%s?%s" % (url.path, url.query) if url.query else url.path
         with open(filename, "rb") as f:
-            content = f.read()
-            content_length = len(content)
-            f.seek(0)
+            content_length = file["size"]
             conn.request(
                 "PUT",
                 req_path,
@@ -1568,7 +1566,7 @@ def process_command(options, args):
         )
     elif cmd == "delete":
         if not options.get("digest"):
-            log.critical("change-visibility command requires a digest option")
+            log.critical("delete command requires a digest option")
             return False
         return delete_instances(
             options.get("base_url"),
@@ -1582,7 +1580,18 @@ def process_command(options, args):
 
 def main(argv, _skip_logging=False):
     # Set up option parsing
-    parser = optparse.OptionParser()
+    usage = """usage: %prog [options] command [FILES]
+
+Supported commands are:
+    - list: list files in the manifest
+    - validate: validate the manifest
+    - add: add records for FILES to the manifest
+    - purge: cleans up the cache folder
+    - fetch: retrieve files listed in the manifest (or FILES if specified)
+    - upload: upload files listed in the manifest; message is required
+    - change-visibility: sets the visibility of the file identified by the given digest
+    - delete: deletes the file identified by the given digest"""
+    parser = optparse.OptionParser(usage=usage)
     parser.add_option(
         "-q",
         "--quiet",
