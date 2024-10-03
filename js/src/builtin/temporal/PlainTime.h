@@ -139,12 +139,6 @@ struct TemporalTimeLike final {
 };
 
 /**
- * ToTemporalTimeRecord ( temporalTimeLike [ , completeness ] )
- */
-bool ToTemporalTimeRecord(JSContext* cx, JS::Handle<JSObject*> temporalTimeLike,
-                          TemporalTimeLike* result);
-
-/**
  * RegulateTime ( hour, minute, second, millisecond, microsecond, nanosecond,
  * overflow )
  */
