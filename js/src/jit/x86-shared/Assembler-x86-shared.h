@@ -273,6 +273,8 @@ class CPUInfo {
   }
   static void SetAVXEnabled() {
     MOZ_ASSERT(!FlagsHaveBeenComputed());
+    MOZ_ASSERT(maxEnabledSSEVersion == UnknownSSE,
+               "Can't enable AVX when SSE has been restricted");
     avxEnabled = true;
   }
 };
