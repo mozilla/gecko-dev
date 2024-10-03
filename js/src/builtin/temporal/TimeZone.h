@@ -36,8 +36,10 @@ class TimeZone;
 
 namespace js::temporal {
 
-class TimeZoneObjectMaybeBuiltin : public NativeObject {
+class BuiltinTimeZoneObject : public NativeObject {
  public:
+  static const JSClass class_;
+
   static constexpr uint32_t IDENTIFIER_SLOT = 0;
   static constexpr uint32_t OFFSET_MINUTES_SLOT = 1;
   static constexpr uint32_t INTL_TIMEZONE_SLOT = 2;
@@ -66,24 +68,13 @@ class TimeZoneObjectMaybeBuiltin : public NativeObject {
     setFixedSlot(INTL_TIMEZONE_SLOT, JS::PrivateValue(timeZone));
   }
 
- protected:
+ private:
+  static const JSClassOps classOps_;
+
   static void finalize(JS::GCContext* gcx, JSObject* obj);
 };
 
-class BuiltinTimeZoneObject : public TimeZoneObjectMaybeBuiltin {
- public:
-  static const JSClass class_;
-
- private:
-  static const JSClassOps classOps_;
-};
-
 } /* namespace js::temporal */
-
-template <>
-inline bool JSObject::is<js::temporal::TimeZoneObjectMaybeBuiltin>() const {
-  return is<js::temporal::BuiltinTimeZoneObject>();
-}
 
 namespace js::temporal {
 
@@ -182,7 +173,7 @@ class MOZ_STACK_CLASS TimeZoneValue final {
    * Return true if this TimeZoneValue holds a TimeZoneObjectMaybeBuiltin.
    */
   bool isTimeZoneObjectMaybeBuiltin() const {
-    return object_ && object_->is<TimeZoneObjectMaybeBuiltin>();
+    return object_ && object_->is<BuiltinTimeZoneObject>();
   }
 
   /**
@@ -206,7 +197,7 @@ class MOZ_STACK_CLASS TimeZoneValue final {
    */
   auto* toTimeZoneObjectMaybeBuiltin() const {
     MOZ_ASSERT(isTimeZoneObjectMaybeBuiltin());
-    return &object_->as<TimeZoneObjectMaybeBuiltin>();
+    return &object_->as<BuiltinTimeZoneObject>();
   }
 
   /**
@@ -479,15 +470,16 @@ bool DisambiguatePossibleInstants(
 /**
  * GetNamedTimeZoneNextTransition ( timeZoneIdentifier, epochNanoseconds )
  */
-bool GetNamedTimeZoneNextTransition(
-    JSContext* cx, JS::Handle<TimeZoneObjectMaybeBuiltin*> timeZone,
-    const Instant& epochInstant, mozilla::Maybe<Instant>* result);
+bool GetNamedTimeZoneNextTransition(JSContext* cx,
+                                    JS::Handle<BuiltinTimeZoneObject*> timeZone,
+                                    const Instant& epochInstant,
+                                    mozilla::Maybe<Instant>* result);
 
 /**
  * GetNamedTimeZonePreviousTransition ( timeZoneIdentifier, epochNanoseconds )
  */
 bool GetNamedTimeZonePreviousTransition(
-    JSContext* cx, JS::Handle<TimeZoneObjectMaybeBuiltin*> timeZone,
+    JSContext* cx, JS::Handle<BuiltinTimeZoneObject*> timeZone,
     const Instant& epochInstant, mozilla::Maybe<Instant>* result);
 
 /**
@@ -549,11 +541,11 @@ class WrappedPtrOperations<temporal::TimeZoneValue, Wrapper> {
     return JS::Handle<JSObject*>::fromMarkedLocation(container().address());
   }
 
-  JS::Handle<temporal::TimeZoneObjectMaybeBuiltin*>
-  toTimeZoneObjectMaybeBuiltin() const {
+  JS::Handle<temporal::BuiltinTimeZoneObject*> toTimeZoneObjectMaybeBuiltin()
+      const {
     MOZ_ASSERT(container().isTimeZoneObjectMaybeBuiltin());
     auto h = JS::Handle<JSObject*>::fromMarkedLocation(container().address());
-    return h.template as<temporal::TimeZoneObjectMaybeBuiltin>();
+    return h.template as<temporal::BuiltinTimeZoneObject>();
   }
 
   JS::Value toValue() const { return container().toValue(); }
