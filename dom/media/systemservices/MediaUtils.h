@@ -28,12 +28,6 @@ class nsIEventTarget;
 
 namespace mozilla::media {
 
-/* Utility function, given a string pref and an URI, returns whether or not
- * the URI occurs in the pref. Wildcards are supported (e.g. *.example.com)
- * and multiple hostnames can be present, separated by commas.
- */
-bool HostnameInPref(const char* aPrefList, const nsCString& aHostName);
-
 /* media::NewRunnableFrom() - Create a Runnable from a lambda.
  *
  * Passing variables (closures) to an async function is clunky with Runnable:

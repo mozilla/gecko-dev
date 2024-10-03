@@ -11473,14 +11473,6 @@
   value: false
   mirror: always
 
-# Turns on legacy (non-spec) exposure of camera and microphone information
-# from enumerateDevices and devicechange ahead of successful getUserMedia
-# calls only for certain domains (ignored if above pref is true).
-- name: media.devices.enumerate.legacy.allowlist
-  type: String
-  value: "slack.com,*.slack.com"
-  mirror: never
-
 # WebRTC prefs follow
 
 # Enables auto refresh of peerconnection stats by default
