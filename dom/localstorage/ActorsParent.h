@@ -14,6 +14,8 @@ namespace mozilla {
 
 namespace ipc {
 
+template <class T>
+class Endpoint;
 class PBackgroundParent;
 class PrincipalInfo;
 
@@ -36,14 +38,10 @@ class Client;
 
 void InitializeLocalStorage();
 
-already_AddRefed<PBackgroundLSDatabaseParent> AllocPBackgroundLSDatabaseParent(
+bool RecvCreateBackgroundLSDatabaseParent(
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-    const uint32_t& aPrivateBrowsingId, const uint64_t& aDatastoreId);
-
-bool RecvPBackgroundLSDatabaseConstructor(
-    PBackgroundLSDatabaseParent* aActor,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-    const uint32_t& aPrivateBrowsingId, const uint64_t& aDatastoreId);
+    const uint32_t& aPrivateBrowsingId, const uint64_t& aDatastoreId,
+    mozilla::ipc::Endpoint<PBackgroundLSDatabaseParent>&& aParentEndpoint);
 
 PBackgroundLSObserverParent* AllocPBackgroundLSObserverParent(
     const uint64_t& aObserverId);

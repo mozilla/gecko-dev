@@ -274,29 +274,20 @@ BackgroundParentImpl::RecvPBackgroundSDBConnectionConstructor(
   return IPC_OK();
 }
 
-already_AddRefed<BackgroundParentImpl::PBackgroundLSDatabaseParent>
-BackgroundParentImpl::AllocPBackgroundLSDatabaseParent(
-    const PrincipalInfo& aPrincipalInfo, const uint32_t& aPrivateBrowsingId,
-    const uint64_t& aDatastoreId) {
-  AssertIsInMainProcess();
-  AssertIsOnBackgroundThread();
-
-  return mozilla::dom::AllocPBackgroundLSDatabaseParent(
-      aPrincipalInfo, aPrivateBrowsingId, aDatastoreId);
-}
-
 mozilla::ipc::IPCResult
-BackgroundParentImpl::RecvPBackgroundLSDatabaseConstructor(
-    PBackgroundLSDatabaseParent* aActor, const PrincipalInfo& aPrincipalInfo,
-    const uint32_t& aPrivateBrowsingId, const uint64_t& aDatastoreId) {
+BackgroundParentImpl::RecvCreateBackgroundLSDatabaseParent(
+    const PrincipalInfo& aPrincipalInfo, const uint32_t& aPrivateBrowsingId,
+    const uint64_t& aDatastoreId,
+    Endpoint<PBackgroundLSDatabaseParent>&& aParentEndpoint) {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aActor);
 
-  if (!mozilla::dom::RecvPBackgroundLSDatabaseConstructor(
-          aActor, aPrincipalInfo, aPrivateBrowsingId, aDatastoreId)) {
+  if (!mozilla::dom::RecvCreateBackgroundLSDatabaseParent(
+          aPrincipalInfo, aPrivateBrowsingId, aDatastoreId,
+          std::move(aParentEndpoint))) {
     return IPC_FAIL_NO_REASON(this);
   }
+
   return IPC_OK();
 }
 

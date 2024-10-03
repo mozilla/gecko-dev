@@ -56,15 +56,10 @@ class BackgroundParentImpl : public PBackgroundParent {
       const PersistenceType& aPersistenceType,
       const PrincipalInfo& aPrincipalInfo) override;
 
-  already_AddRefed<PBackgroundLSDatabaseParent>
-  AllocPBackgroundLSDatabaseParent(const PrincipalInfo& aPrincipalInfo,
-                                   const uint32_t& aPrivateBrowsingId,
-                                   const uint64_t& aDatastoreId) override;
-
-  mozilla::ipc::IPCResult RecvPBackgroundLSDatabaseConstructor(
-      PBackgroundLSDatabaseParent* aActor, const PrincipalInfo& aPrincipalInfo,
-      const uint32_t& aPrivateBrowsingId,
-      const uint64_t& aDatastoreId) override;
+  mozilla::ipc::IPCResult RecvCreateBackgroundLSDatabaseParent(
+      const PrincipalInfo& aPrincipalInfo, const uint32_t& aPrivateBrowsingId,
+      const uint64_t& aDatastoreId,
+      Endpoint<PBackgroundLSDatabaseParent>&& aParentEndpoint) override;
 
   PBackgroundLSObserverParent* AllocPBackgroundLSObserverParent(
       const uint64_t& aObserverId) override;

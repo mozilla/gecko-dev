@@ -45,16 +45,16 @@ class LSSnapshot;
  * Most of the interesting bits happen via PBackgroundLSSnapshot.
  *
  * Mutual raw pointers are maintained between LSDatabase and this class that are
- * cleared at either (expected) when the child starts the deletion process
- * (SendDelete) or unexpected actor death (ActorDestroy).
+ * cleared at either (expected) when the child starts the shutdown process
+ * (Shutdown) or unexpected actor death (ActorDestroy).
  *
  * See `PBackgroundLSDatabase.ipdl` for more information.
  *
  *
  * ## Low-Level Lifecycle ##
  * - Created by LSObject::EnsureDatabase if it had to create a database.
- * - Deletion begun by LSDatabase's destructor invoking SendDelete which sends
- *   __delete__ which destroys the actor.
+ * - Shutdown begun by LSDatabase's destructor invoking Shutdown which destroys
+ *   the actor.
  */
 class LSDatabaseChild final : public PBackgroundLSDatabaseChild {
   friend class mozilla::ipc::BackgroundChildImpl;
@@ -76,7 +76,7 @@ class LSDatabaseChild final : public PBackgroundLSDatabaseChild {
 
   ~LSDatabaseChild();
 
-  void SendDelete();
+  void Shutdown();
 
   // IPDL methods are only called by IPDL.
   void ActorDestroy(ActorDestroyReason aWhy) override;

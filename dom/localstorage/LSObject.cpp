@@ -938,8 +938,16 @@ nsresult LSObject::EnsureDatabase() {
 
   RefPtr<LSDatabaseChild> actor = new LSDatabaseChild(database);
 
-  MOZ_ALWAYS_TRUE(backgroundActor->SendPBackgroundLSDatabaseConstructor(
-      actor, *mStoragePrincipalInfo, mPrivateBrowsingId, datastoreId));
+  mozilla::ipc::Endpoint<PBackgroundLSDatabaseParent> parentEndpoint;
+  mozilla::ipc::Endpoint<PBackgroundLSDatabaseChild> childEndpoint;
+  MOZ_ALWAYS_SUCCEEDS(
+      PBackgroundLSDatabase::CreateEndpoints(&parentEndpoint, &childEndpoint));
+
+  MOZ_ALWAYS_TRUE(childEndpoint.Bind(actor));
+
+  MOZ_ALWAYS_TRUE(backgroundActor->SendCreateBackgroundLSDatabaseParent(
+      *mStoragePrincipalInfo, mPrivateBrowsingId, datastoreId,
+      std::move(parentEndpoint)));
 
   database->SetActor(actor);
 

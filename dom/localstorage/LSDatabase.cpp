@@ -98,8 +98,8 @@ LSDatabase::~LSDatabase() {
   }
 
   if (mActor) {
-    mActor->SendDelete();
-    MOZ_ASSERT(!mActor, "SendDelete should have cleared!");
+    mActor->Shutdown();
+    MOZ_ASSERT(!mActor, "Shutdown should have cleared!");
   }
 }
 

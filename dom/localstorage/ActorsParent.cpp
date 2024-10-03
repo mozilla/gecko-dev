@@ -2791,6 +2791,10 @@ using PrivateDatastoreHashtable =
 // window actually goes away.
 UniquePtr<PrivateDatastoreHashtable> gPrivateDatastores;
 
+using DatabaseArray = nsTArray<Database*>;
+
+StaticAutoPtr<DatabaseArray> gDatabases;
+
 using LiveDatabaseArray = nsTArray<NotNull<CheckedUnsafePtr<Database>>>;
 
 StaticAutoPtr<LiveDatabaseArray> gLiveDatabases;
@@ -3202,6 +3206,8 @@ void InitializeLocalStorage() {
 #endif
 }
 
+namespace {
+
 already_AddRefed<PBackgroundLSDatabaseParent> AllocPBackgroundLSDatabaseParent(
     const PrincipalInfo& aPrincipalInfo, const uint32_t& aPrivateBrowsingId,
     const uint64_t& aDatastoreId) {
@@ -3225,14 +3231,14 @@ already_AddRefed<PBackgroundLSDatabaseParent> AllocPBackgroundLSDatabaseParent(
   // If we ever decide to return null from this point on, we need to make sure
   // that the datastore is closed and the prepared datastore is removed from the
   // gPreparedDatastores hashtable.
-  // We also assume that IPDL must call RecvPBackgroundLSDatabaseConstructor
-  // once we return a valid actor in this method.
+  // We also assume that RecvCreateBackgroundLSDatabaseParent must call
+  // RecvPBackgroundLSDatabaseConstructor once we return a valid actor in this
+  // method.
 
   RefPtr<Database> database =
       new Database(aPrincipalInfo, preparedDatastore->GetContentParentId(),
                    preparedDatastore->Origin(), aPrivateBrowsingId);
 
-  // Transfer ownership to IPDL.
   return database.forget();
 }
 
@@ -3246,8 +3252,8 @@ bool RecvPBackgroundLSDatabaseConstructor(PBackgroundLSDatabaseParent* aActor,
   MOZ_ASSERT(gPreparedDatastores->Get(aDatastoreId));
   MOZ_ASSERT(!QuotaClient::IsShuttingDownOnBackgroundThread());
 
-  // The actor is now completely built (it has a manager, channel and it's
-  // registered as a subprotocol).
+  // The actor is now completely built (it has a channel and it's registered
+  // as a top level protocol).
   // ActorDestroy will be called if we fail here.
 
   mozilla::UniquePtr<PreparedDatastore> preparedDatastore;
@@ -3266,6 +3272,25 @@ bool RecvPBackgroundLSDatabaseConstructor(PBackgroundLSDatabaseParent* aActor,
   }
 
   return true;
+}
+
+}  // namespace
+
+bool RecvCreateBackgroundLSDatabaseParent(
+    const PrincipalInfo& aPrincipalInfo, const uint32_t& aPrivateBrowsingId,
+    const uint64_t& aDatastoreId,
+    Endpoint<PBackgroundLSDatabaseParent>&& aParentEndpoint) {
+  RefPtr<PBackgroundLSDatabaseParent> parent = AllocPBackgroundLSDatabaseParent(
+      aPrincipalInfo, aPrivateBrowsingId, aDatastoreId);
+  if (!parent) {
+    return false;
+  }
+
+  // Transfer ownership to IPDL.
+  MOZ_ALWAYS_TRUE(aParentEndpoint.Bind(parent));
+
+  return RecvPBackgroundLSDatabaseConstructor(parent, aPrincipalInfo,
+                                              aPrivateBrowsingId, aDatastoreId);
 }
 
 PBackgroundLSObserverParent* AllocPBackgroundLSObserverParent(
@@ -5305,12 +5330,25 @@ Database::Database(const PrincipalInfo& aPrincipalInfo,
 #endif
 {
   AssertIsOnOwningThread();
+
+  if (!gDatabases) {
+    gDatabases = new DatabaseArray();
+  }
+
+  gDatabases->AppendElement(this);
 }
 
 Database::~Database() {
   AssertIsOnOwningThread();
   MOZ_ASSERT_IF(mActorWasAlive, mAllowedToClose);
   MOZ_ASSERT_IF(mActorWasAlive, mActorDestroyed);
+
+  MOZ_ASSERT(gDatabases);
+  gDatabases->RemoveElement(this);
+
+  if (gDatabases->IsEmpty()) {
+    gDatabases = nullptr;
+  }
 }
 
 void Database::SetActorAlive(Datastore* aDatastore) {
@@ -5387,7 +5425,7 @@ void Database::ForceKill() {
     return;
   }
 
-  Unused << PBackgroundLSDatabaseParent::Send__delete__(this);
+  Close();
 }
 
 void Database::Stringify(nsACString& aResult) const {
@@ -5398,7 +5436,7 @@ void Database::Stringify(nsACString& aResult) const {
   aResult.Append(kQuotaGenericDelimiter);
 
   aResult.AppendLiteral("OtherProcessActor:");
-  aResult.AppendInt(BackgroundParent::IsOtherProcessActor(Manager()));
+  aResult.AppendInt(mContentParentId.isSome());
   aResult.Append(kQuotaGenericDelimiter);
 
   aResult.AppendLiteral("Origin:");
@@ -8858,6 +8896,18 @@ void QuotaClient::FinalizeShutdown() {
     gConnectionThread->Shutdown();
 
     gConnectionThread = nullptr;
+  }
+
+  if (gDatabases) {
+    nsTArray<RefPtr<Database>> databases;
+
+    for (const auto& database : *gDatabases) {
+      databases.AppendElement(database);
+    }
+
+    for (const auto& database : databases) {
+      database->Close();
+    }
   }
 }
 

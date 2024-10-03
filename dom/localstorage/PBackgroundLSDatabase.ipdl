@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-include protocol PBackground;
 include protocol PBackgroundLSSnapshot;
 
 include PBackgroundLSSharedTypes;
@@ -92,10 +91,9 @@ struct LSSnapshotInitInfo
  * ContentParent::AboutToLoadHttpDocumentForChild, the central place
  * for pre-loading.)
  */
-[ChildImpl=virtual, ParentImpl=virtual]
+[ChildImpl=virtual, ParentImpl=virtual, ChildProc=anydom]
 sync protocol PBackgroundLSDatabase
 {
-  manager PBackground;
   manages PBackgroundLSSnapshot;
 
 parent:
@@ -153,9 +151,6 @@ child:
    * ContentParent::ShutDownProcess.
    */
   async RequestAllowToClose();
-
-both:
-  async __delete__();
 };
 
 } // namespace dom
