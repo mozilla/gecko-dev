@@ -2660,77 +2660,87 @@ static bool NudgeToCalendarUnit(
     endDuration = {duration.date.years, duration.date.months,
                    duration.date.weeks, r2};
   }
-  MOZ_ASSERT_IF(sign > 0, r1 >= 0 && r1 < r2);
-  MOZ_ASSERT_IF(sign < 0, r1 <= 0 && r1 > r2);
 
   // Step 5.
+  MOZ_ASSERT_IF(sign > 0, r1 >= 0 && r1 < r2);
+
+  // Step 6.
+  MOZ_ASSERT_IF(sign < 0, r1 <= 0 && r1 > r2);
+
+  // Steps 7-8.
   PlainDate start;
   if (!AddDate(cx, calendar, dateTime.date, startDuration, &start)) {
     return false;
   }
 
-  // Step 6.
+  // Steps 9-10.
   PlainDate end;
   if (!AddDate(cx, calendar, dateTime.date, endDuration, &end)) {
     return false;
   }
 
-  // Steps 7-8.
+  // Steps 11-12.
   Instant startEpochNs;
   Instant endEpochNs;
   if (!timeZone.receiver()) {
-    // Step 7.a.
+    // Step 11.a.
     startEpochNs = GetUTCEpochNanoseconds({start, dateTime.time});
 
-    // Step 7.b.
+    // Step 11.b.
     endEpochNs = GetUTCEpochNanoseconds({end, dateTime.time});
   } else {
-    // Step 8.a.
+    // Step 12.a.
     Rooted<PlainDateTimeWithCalendar> startDateTime(
         cx,
         PlainDateTimeWithCalendar{{start, dateTime.time}, calendar.receiver()});
 
-    // Steps 8.b-c.
+    // Steps 12.b-c.
     if (!GetInstantFor(cx, timeZone, startDateTime,
                        TemporalDisambiguation::Compatible, &startEpochNs)) {
       return false;
     }
 
-    // Step 8.d.
+    // Step 12.d.
     Rooted<PlainDateTimeWithCalendar> endDateTime(
         cx,
         PlainDateTimeWithCalendar{{end, dateTime.time}, calendar.receiver()});
 
-    // Steps 8.e-f.
+    // Steps 12.e-f.
     if (!GetInstantFor(cx, timeZone, endDateTime,
                        TemporalDisambiguation::Compatible, &endEpochNs)) {
       return false;
     }
   }
 
+  // Steps 13-14.
   if (sign > 0) {
+    // Step 13.a.
     if (startEpochNs > destEpochNs || destEpochNs >= endEpochNs) {
       JS_ReportErrorNumberASCII(
           cx, GetErrorMessage, nullptr,
           JSMSG_TEMPORAL_ZONED_DATE_TIME_INCONSISTENT_INSTANT);
       return false;
     }
+
+    // Step 13.b.
     MOZ_ASSERT(startEpochNs <= destEpochNs && destEpochNs < endEpochNs);
   } else {
+    // Step 14.a.
     if (endEpochNs >= destEpochNs || destEpochNs > startEpochNs) {
       JS_ReportErrorNumberASCII(
           cx, GetErrorMessage, nullptr,
           JSMSG_TEMPORAL_ZONED_DATE_TIME_INCONSISTENT_INSTANT);
       return false;
     }
+
+    // Step 14.b.
     MOZ_ASSERT(endEpochNs < destEpochNs && destEpochNs <= startEpochNs);
   }
+
+  // Step 15.
   MOZ_ASSERT(startEpochNs != endEpochNs);
 
-  // Steps 10-11.
-  auto unsignedRoundingMode = GetUnsignedRoundingMode(roundingMode, sign < 0);
-
-  // Step 12.
+  // Step 16.
   auto numerator = (destEpochNs - startEpochNs).toNanoseconds();
   auto denominator = (endEpochNs - startEpochNs).toNanoseconds();
   MOZ_ASSERT(denominator != Int128{0});
@@ -2745,6 +2755,8 @@ static bool NudgeToCalendarUnit(
     denominator = -denominator;
   }
 
+  // Steps 17-19.
+  //
   // |total| must only be computed when called from Duration.prototype.total,
   // which always passes "trunc" rounding mode with an increment of one.
   double total = mozilla::UnspecifiedNaN<double>();
@@ -2764,7 +2776,10 @@ static bool NudgeToCalendarUnit(
     total = FractionToDouble(n, denominator);
   }
 
-  // Step 15. (Inlined ApplyUnsignedRoundingMode)
+  // Steps 20-21.
+  auto unsignedRoundingMode = GetUnsignedRoundingMode(roundingMode, sign < 0);
+
+  // Steps 22-23. (Inlined ApplyUnsignedRoundingMode)
   //
   // clang-format off
   //
@@ -2812,10 +2827,7 @@ static bool NudgeToCalendarUnit(
     didExpandCalendarUnit = true;
   }
 
-  // FIXME: spec bug - zero progress case incorrect
-  // https://github.com/tc39/proposal-temporal/issues/2893
-
-  // Steps 16-19.
+  // Steps 24-27.
   auto resultDuration = didExpandCalendarUnit ? endDuration : startDuration;
   auto resultEpochNs = didExpandCalendarUnit ? endEpochNs : startEpochNs;
   *result = {{resultDuration, {}}, resultEpochNs, total, didExpandCalendarUnit};
@@ -2841,102 +2853,103 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
   // Step 1.
   MOZ_ASSERT(unit >= TemporalUnit::Hour);
 
-  // Step 2.
+  // Steps 2-3.
   PlainDate start;
   if (!AddDate(cx, calendar, dateTime.date, duration.date, &start)) {
     return false;
   }
 
-  // Step 3.
+  // Step 4.
   Rooted<PlainDateTimeWithCalendar> startDateTime(
       cx,
       PlainDateTimeWithCalendar{{start, dateTime.time}, calendar.receiver()});
   MOZ_ASSERT(ISODateTimeWithinLimits(startDateTime));
 
-  // Step 4.
+  // Step 5.
   PlainDate end;
   if (!BalanceISODate(cx, start, sign, &end)) {
     return false;
   }
 
-  // Step 5.
+  // Step 6.
   Rooted<PlainDateTimeWithCalendar> endDateTime(cx);
   if (!CreateTemporalDateTime(cx, {end, dateTime.time}, calendar.receiver(),
                               &endDateTime)) {
     return false;
   }
 
-  // Steps 6-7.
+  // Steps 7-8.
   Instant startEpochNs;
   if (!GetInstantFor(cx, timeZone, startDateTime,
                      TemporalDisambiguation::Compatible, &startEpochNs)) {
     return false;
   }
 
-  // Steps 8-9.
+  // Steps 9-10.
   Instant endEpochNs;
   if (!GetInstantFor(cx, timeZone, endDateTime,
                      TemporalDisambiguation::Compatible, &endEpochNs)) {
     return false;
   }
 
-  // Step 10.
+  // Step 11.
   auto daySpan = NormalizedTimeDurationFromEpochNanosecondsDifference(
       endEpochNs, startEpochNs);
 
   // FIXME: spec bug - how can this assert be valid for custom time zones?
+  // https://github.com/tc39/proposal-temporal/issues/2888
 
-  // Step 11.
+  // Step 12.
   MOZ_ASSERT(NormalizedTimeDurationSign(daySpan) == sign);
 
   // FIXME: spec issue - Use DifferenceInstant?
   // FIXME: spec issue - Is this call really fallible?
 
-  // Steps 12-13.
+  // Steps 13-14.
   NormalizedTimeDuration roundedTime;
   if (!RoundNormalizedTimeDurationToIncrement(
           cx, duration.time, unit, increment, roundingMode, &roundedTime)) {
     return false;
   }
 
-  // Step 14.
+  // Step 15.
   NormalizedTimeDuration beyondDaySpan;
   if (!SubtractNormalizedTimeDuration(cx, roundedTime, daySpan,
                                       &beyondDaySpan)) {
     return false;
   }
 
-  // Steps 15-16.
+  // Steps 16-17.
   bool didRoundBeyondDay;
   int32_t dayDelta;
   Instant nudgedEpochNs;
   if (NormalizedTimeDurationSign(beyondDaySpan) != -sign) {
-    // Step 15.a.
+    // Step 16.a.
     didRoundBeyondDay = true;
 
-    // Step 15.b.
+    // Step 16.b.
     dayDelta = sign;
 
-    // Step 15.c.
+    // Step 16.c.
     if (!RoundNormalizedTimeDurationToIncrement(
             cx, beyondDaySpan, unit, increment, roundingMode, &roundedTime)) {
       return false;
     }
 
-    // Step 15.d. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
+    // Step 16.d. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
     nudgedEpochNs = endEpochNs + roundedTime.to<InstantSpan>();
   } else {
-    // Step 16.a.
+    // Step 17.a.
     didRoundBeyondDay = false;
 
-    // Step 16.b.
+    // Step 17.b.
     dayDelta = 0;
 
-    // Step 16.c. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
+    // Step 17.c. (Inlined AddNormalizedTimeDurationToEpochNanoseconds)
     nudgedEpochNs = startEpochNs + roundedTime.to<InstantSpan>();
   }
 
-  // Step 17.
+  // Step 18.
   NormalizedDuration resultDuration;
   if (!CreateNormalizedDurationRecord(cx,
                                       {
@@ -2949,7 +2962,7 @@ static bool NudgeToZonedTime(JSContext* cx, const NormalizedDuration& duration,
     return false;
   }
 
-  // Step 18.
+  // Step 19.
   *result = {
       resultDuration,
       nudgedEpochNs,
@@ -3141,41 +3154,41 @@ static bool BubbleRelativeDuration(
                        dateDuration.weeks, days};
       }
 
-      // Step 8.b.v.
+      // Steps 8.b.v-vi.
       PlainDate end;
       if (!AddDate(cx, calendar, dateTime.date, endDuration, &end)) {
         return false;
       }
 
-      // Steps 8.b.vi-vii.
+      // Steps 8.b.vii-viii.
       Instant endEpochNs;
       if (!timeZone.receiver()) {
-        // Step 8.b.vi.1.
+        // Step 8.b.vii.1.
         endEpochNs = GetUTCEpochNanoseconds({end, dateTime.time});
       } else {
-        // Step 8.b.vii.1.
+        // Step 8.b.viii.1.
         Rooted<PlainDateTimeWithCalendar> endDateTime(
             cx, PlainDateTimeWithCalendar{{end, dateTime.time},
                                           calendar.receiver()});
 
-        // Steps 8.b.vii.2-3.
+        // Steps 8.b.viii.2-3.
         if (!GetInstantFor(cx, timeZone, endDateTime,
                            TemporalDisambiguation::Compatible, &endEpochNs)) {
           return false;
         }
       }
 
-      // Step 8.b.viii.
+      // Step 8.b.ix.
       //
       // NB: |nudge.epochNs| can be outside the valid epoch nanoseconds limits.
       auto beyondEnd = nudge.epochNs - endEpochNs;
 
-      // Step 8.b.ix.
+      // Step 8.b.x.
       int32_t beyondEndSign = beyondEnd < InstantSpan{}   ? -1
                               : beyondEnd > InstantSpan{} ? 1
                                                           : 0;
 
-      // Steps 8.b.x-xi.
+      // Steps 8.b.xi-xii.
       if (beyondEndSign != -sign) {
         dateDuration = endDuration;
         timeDuration = {};
