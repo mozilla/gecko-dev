@@ -1900,13 +1900,7 @@ static bool GetTemporalRelativeToOption(
 
       // Step 5.a.i.
       Rooted<TimeZoneRecord> timeZoneRec(cx);
-      if (!CreateTimeZoneMethodsRecord(
-              cx, timeZone,
-              {
-                  TimeZoneMethod::GetOffsetNanosecondsFor,
-                  TimeZoneMethod::GetPossibleInstantsFor,
-              },
-              &timeZoneRec)) {
+      if (!CreateTimeZoneMethodsRecord(cx, timeZone, &timeZoneRec)) {
         return false;
       }
 
@@ -2134,12 +2128,7 @@ static bool GetTemporalRelativeToOption(
 
   // Step 10.
   Rooted<TimeZoneRecord> timeZoneRec(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, timeZone,
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZoneRec)) {
+  if (!CreateTimeZoneMethodsRecord(cx, timeZone, &timeZoneRec)) {
     return false;
   }
 

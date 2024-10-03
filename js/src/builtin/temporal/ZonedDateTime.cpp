@@ -104,14 +104,6 @@ bool js::temporal::InterpretISODateTimeOffset(
   // Step 1.
   MOZ_ASSERT(IsValidISODate(dateTime.date));
 
-  // Step 2.
-  MOZ_ASSERT(TimeZoneMethodsRecordHasLookedUp(
-      timeZone, TimeZoneMethod::GetOffsetNanosecondsFor));
-
-  // Step 3.
-  MOZ_ASSERT(TimeZoneMethodsRecordHasLookedUp(
-      timeZone, TimeZoneMethod::GetPossibleInstantsFor));
-
   // Step 4.
   Rooted<CalendarValue> calendar(cx, CalendarValue(CalendarId::ISO8601));
   Rooted<PlainDateTimeWithCalendar> temporalDateTime(cx);
@@ -488,12 +480,7 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
 
   // Step 9.
   Rooted<TimeZoneRecord> timeZoneRec(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, timeZone,
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZoneRec)) {
+  if (!CreateTimeZoneMethodsRecord(cx, timeZone, &timeZoneRec)) {
     return false;
   }
 
@@ -700,15 +687,6 @@ static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
                              Handle<JSObject*> maybeOptions, Instant* result) {
   MOZ_ASSERT(IsValidEpochInstant(epochNanoseconds));
   MOZ_ASSERT(IsValidDuration(duration));
-
-  // Step 1.
-  MOZ_ASSERT(TimeZoneMethodsRecordHasLookedUp(
-      timeZone, TimeZoneMethod::GetPossibleInstantsFor));
-
-  // Steps 2-3.
-  MOZ_ASSERT_IF(!dateTime,
-                TimeZoneMethodsRecordHasLookedUp(
-                    timeZone, TimeZoneMethod::GetOffsetNanosecondsFor));
 
   // Steps 4-5. (Not applicable in our implementation)
 
@@ -1341,12 +1319,7 @@ static bool DifferenceTemporalZonedDateTime(JSContext* cx,
 
   // Step 10.
   Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(),
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZone)) {
+  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
     return false;
   }
 
@@ -1425,12 +1398,7 @@ static bool AddDurationToOrSubtractDurationFromZonedDateTime(
 
   // Step 4.
   Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(),
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZone)) {
+  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
     return false;
   }
 
@@ -2189,12 +2157,7 @@ static bool ZonedDateTime_hoursInDay(JSContext* cx, const CallArgs& args) {
 
   // Step 3.
   Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(),
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZone)) {
+  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
     return false;
   }
 
@@ -2524,12 +2487,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
 
   // Step 6.
   Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(),
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZone)) {
+  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
     return false;
   }
 
@@ -2718,12 +2676,7 @@ static bool ZonedDateTime_withPlainTime(JSContext* cx, const CallArgs& args) {
 
   // Step 4.
   Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(),
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZone)) {
+  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
     return false;
   }
 
@@ -3003,12 +2956,7 @@ static bool ZonedDateTime_round(JSContext* cx, const CallArgs& args) {
 
   // Step 14.
   Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(),
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZone)) {
+  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
     return false;
   }
 
@@ -3343,12 +3291,7 @@ static bool ZonedDateTime_startOfDay(JSContext* cx, const CallArgs& args) {
 
   // Step 3.
   Rooted<TimeZoneRecord> timeZone(cx);
-  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(),
-                                   {
-                                       TimeZoneMethod::GetOffsetNanosecondsFor,
-                                       TimeZoneMethod::GetPossibleInstantsFor,
-                                   },
-                                   &timeZone)) {
+  if (!CreateTimeZoneMethodsRecord(cx, zonedDateTime.timeZone(), &timeZone)) {
     return false;
   }
 

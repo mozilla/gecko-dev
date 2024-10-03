@@ -228,21 +228,8 @@ class MOZ_STACK_CLASS TimeZoneValue final {
   void trace(JSTracer* trc);
 };
 
-enum class TimeZoneMethod {
-  GetOffsetNanosecondsFor,
-  GetPossibleInstantsFor,
-};
-
 class MOZ_STACK_CLASS TimeZoneRecord final {
   TimeZoneValue receiver_;
-
-  // Null unless non-builtin time zone methods are used.
-  JSObject* getOffsetNanosecondsFor_ = nullptr;
-  JSObject* getPossibleInstantsFor_ = nullptr;
-
-#ifdef DEBUG
-  mozilla::EnumSet<TimeZoneMethod> lookedUp_{};
-#endif
 
  public:
   /**
@@ -254,24 +241,9 @@ class MOZ_STACK_CLASS TimeZoneRecord final {
       : receiver_(receiver) {}
 
   const auto& receiver() const { return receiver_; }
-  auto* getOffsetNanosecondsFor() const { return getOffsetNanosecondsFor_; }
-  auto* getPossibleInstantsFor() const { return getPossibleInstantsFor_; }
-
-#ifdef DEBUG
-  auto& lookedUp() const { return lookedUp_; }
-  auto& lookedUp() { return lookedUp_; }
-#endif
 
   // Helper methods for (Mutable)WrappedPtrOperations.
   auto* receiverDoNotUse() const { return &receiver_; }
-  auto* getOffsetNanosecondsForDoNotUse() const {
-    return &getOffsetNanosecondsFor_;
-  }
-  auto* getOffsetNanosecondsForDoNotUse() { return &getOffsetNanosecondsFor_; }
-  auto* getPossibleInstantsForDoNotUse() const {
-    return &getPossibleInstantsFor_;
-  }
-  auto* getPossibleInstantsForDoNotUse() { return &getPossibleInstantsFor_; }
 
   // Trace implementation.
   void trace(JSTracer* trc);
@@ -487,27 +459,7 @@ bool GetNamedTimeZonePreviousTransition(
  */
 bool CreateTimeZoneMethodsRecord(JSContext* cx,
                                  JS::Handle<TimeZoneValue> timeZone,
-                                 mozilla::EnumSet<TimeZoneMethod> methods,
                                  JS::MutableHandle<TimeZoneRecord> result);
-
-#ifdef DEBUG
-/**
- * TimeZoneMethodsRecordHasLookedUp ( timeZoneRec, methodName )
- */
-inline bool TimeZoneMethodsRecordHasLookedUp(const TimeZoneRecord& timeZone,
-                                             TimeZoneMethod methodName) {
-  // Steps 1-4.
-  return timeZone.lookedUp().contains(methodName);
-}
-#endif
-
-/**
- * TimeZoneMethodsRecordIsBuiltin ( timeZoneRec )
- */
-inline bool TimeZoneMethodsRecordIsBuiltin(const TimeZoneRecord& timeZone) {
-  // Steps 1-2.
-  return timeZone.receiver().isString();
-}
 
 // Helper for MutableWrappedPtrOperations.
 bool WrapTimeZoneValueObject(JSContext* cx,
@@ -580,33 +532,6 @@ class WrappedPtrOperations<temporal::TimeZoneRecord, Wrapper> {
   JS::Handle<temporal::TimeZoneValue> receiver() const {
     return JS::Handle<temporal::TimeZoneValue>::fromMarkedLocation(
         container().receiverDoNotUse());
-  }
-
-  JS::Handle<JSObject*> getOffsetNanosecondsFor() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().getOffsetNanosecondsForDoNotUse());
-  }
-
-  JS::Handle<JSObject*> getPossibleInstantsFor() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().getPossibleInstantsForDoNotUse());
-  }
-};
-
-template <typename Wrapper>
-class MutableWrappedPtrOperations<temporal::TimeZoneRecord, Wrapper>
-    : public WrappedPtrOperations<temporal::TimeZoneRecord, Wrapper> {
-  auto& container() { return static_cast<Wrapper*>(this)->get(); }
-
- public:
-  JS::MutableHandle<JSObject*> getOffsetNanosecondsFor() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().getOffsetNanosecondsForDoNotUse());
-  }
-
-  JS::MutableHandle<JSObject*> getPossibleInstantsFor() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().getPossibleInstantsForDoNotUse());
   }
 };
 
