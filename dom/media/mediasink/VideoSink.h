@@ -131,6 +131,10 @@ class VideoSink : public MediaSink {
   // The presentation end time of the last video frame which has been displayed.
   media::TimeUnit mVideoFrameEndTime;
 
+  // Total duration of sequential frames that have been dropped in this sink
+  // without any sent to the compositor
+  media::TimeUnit mDroppedInSinkSequenceDuration;
+  // Accounting for frames dropped in the compositor
   uint32_t mOldCompositorDroppedCount;
   uint32_t mPendingDroppedCount;
 

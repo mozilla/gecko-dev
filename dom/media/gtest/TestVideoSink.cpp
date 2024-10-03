@@ -120,12 +120,14 @@ TEST(TestVideoSink, FrameThrottling)
   // Run UpdateRenderedVideoFrames() via OnVideoQueuePushed().
   NS_ProcessPendingEvents(nullptr);
   EXPECT_EQ(container->CurrentIntrinsicSize().value(), size3);
+  EXPECT_EQ(frameStatistics->GetDroppedSinkFrames(), 0u);
 
-  // Advance time to expire the two frames in the queue and the next.
+  // Advance time to expire the two frames in the queue and the next three.
   stream->ManualDataCallback(static_cast<long>(
-      nextFrameTime.ToTicksAtRate(audioRate) + 2 - stream->Position()));
+      nextFrameTime.ToTicksAtRate(audioRate) + 11 - stream->Position()));
+  // This frame has a longer duration and is late.
   gfx::IntSize size5{1, 5};
-  PushVideoFrame(size5, TimeUnit(1, audioRate));
+  PushVideoFrame(size5, TimeUnit(8, audioRate));
   // The most recent frame was late, and so is not rendered yet because it may
   // be dropped.
   //
@@ -136,10 +138,26 @@ TEST(TestVideoSink, FrameThrottling)
       "the intrinsic size is updated to that of frame 4"_ns,
       [&] { return container->CurrentIntrinsicSize().value() == size4; });
 
+  // This frame is also late.
+  gfx::IntSize size6{1, 6};
+  PushVideoFrame(size6, TimeUnit(1, audioRate));
+  NS_ProcessPendingEvents(nullptr);
+  // One frame was dropped, but the most recent frame was rendered because its
+  // lateness was less than the duration of the dropped frame.
+  EXPECT_EQ(frameStatistics->GetDroppedSinkFrames(), 1u);
+  EXPECT_EQ(container->CurrentIntrinsicSize().value(), size6);
+
+  gfx::IntSize size7{1, 7};
+  PushVideoFrame(size7, TimeUnit(1, audioRate));
+  NS_ProcessPendingEvents(nullptr);
+  // The most recent frame was late, and so is not rendered yet because it may
+  // be dropped.
+  EXPECT_EQ(container->CurrentIntrinsicSize().value(), size6);
+
   // On playback pause, the most recent frame is rendered.
   videoSink->SetPlaying(false);
-  EXPECT_EQ(container->CurrentIntrinsicSize().value(), size5);
-  EXPECT_EQ(frameStatistics->GetDroppedSinkFrames(), 0u);
+  EXPECT_EQ(container->CurrentIntrinsicSize().value(), size7);
+  EXPECT_EQ(frameStatistics->GetDroppedSinkFrames(), 1u);
   videoSink->Stop();
   videoSink->Shutdown();
 }

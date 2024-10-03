@@ -534,6 +534,7 @@ void VideoSink::UpdateRenderedVideoFrames() {
       sentToCompositorCount++;
     } else {
       droppedInSink++;
+      mDroppedInSinkSequenceDuration += frame->mDuration;
       VSINK_LOG_V("discarding video frame mTime=%" PRId64
                   " clock_time=%" PRId64,
                   frame->mTime.ToMicroseconds(), clockTime.ToMicroseconds());
@@ -598,12 +599,10 @@ void VideoSink::UpdateRenderedVideoFrames() {
 
     // Gecko doesn't support VideoPlaybackQuality.totalFrameDelay
     // (bug 962353), and so poor video quality from presenting frames late
-    // would not be reported to content.  Present the current frame only if it
-    // is on time, so that otherwise it can be reported in droppedVideoFrames.
-    // If content does not provide replacement media that is faster to decode,
-    // then the effect is stalled playback (bug 1316571) instead of poor A/V
-    // sync (bug 1258870).  Perhaps the reduced number of frames composited
-    // might free up some resources for decode.
+    // would not be reported to content.  If frames are late, then throttle
+    // the number of frames sent to the compositor, so that the
+    // droppedVideoFrames are reported.  Perhaps the reduced number of frames
+    // composited might free up some resources for decode.
     if (  // currentFrame is on time, or almost so, or
         currentFrame->GetEndTime() >= clockTime ||
         // there is only one frame in the VideoQueue() because the current
@@ -613,11 +612,16 @@ void VideoSink::UpdateRenderedVideoFrames() {
         // drop references to any preceding frames and update the intrinsic
         // size on the VideoFrameContainer.
         currentFrame->IsSentToCompositor() ||
-        // Talos tests for the compositor require that the most recently
-        // decoded frame is passed to the compositor so that the compositor
-        // has something to composite during the talos test when the decode is
-        // stressed.
+        // Send this frame if its lateness is less than the duration that has
+        // been skipped for throttling, or
+        clockTime - currentFrame->GetEndTime() <
+            mDroppedInSinkSequenceDuration ||
+        // in a talos test for the compositor, which requires that the most
+        // recently decoded frame is passed to the compositor so that the
+        // compositor has something to composite during the talos test when the
+        // decode is stressed.
         StaticPrefs::media_ruin_av_sync_enabled()) {
+      mDroppedInSinkSequenceDuration = media::TimeUnit::Zero();
       VideoQueue().GetFirstElements(
           std::max(2u, mVideoQueueSendToCompositorSize), &frames);
     } else if (lastExpiredFrameInCompositor) {
