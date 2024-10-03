@@ -19,6 +19,7 @@ import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_CORR
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_INCOMPATIBLE
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_NETWORK_FAILURE
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_SIGNEDSTATE_REQUIRED
+import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_SOFT_BLOCKED
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_UNSUPPORTED_ADDON_TYPE
 import org.mozilla.geckoview.WebExtension.InstallException.ErrorCodes.ERROR_USER_CANCELED
 
@@ -126,5 +127,18 @@ class GeckoWebExtensionExceptionTest {
         val webExtensionException = GeckoWebExtensionException.createWebExtensionException(geckoException)
 
         assertTrue(webExtensionException is WebExtensionInstallException.AdminInstallOnly)
+    }
+
+    @Test
+    fun `Handles a SoftBlocked exception`() {
+        val geckoException = mock<WebExtension.InstallException>()
+        ReflectionUtils.setField(
+            geckoException,
+            "code",
+            ERROR_SOFT_BLOCKED,
+        )
+        val webExtensionException = GeckoWebExtensionException.createWebExtensionException(geckoException)
+
+        assertTrue(webExtensionException is WebExtensionInstallException.SoftBlocked)
     }
 }

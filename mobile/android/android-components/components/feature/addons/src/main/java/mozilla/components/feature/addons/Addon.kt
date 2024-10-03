@@ -198,6 +198,11 @@ data class Addon(
          * The [Addon] was disabled because it isn't compatible with the application version.
          */
         INCOMPATIBLE,
+
+        /**
+         * The [Addon] was disabled because it is soft-blocked.
+         */
+        SOFT_BLOCKED,
     }
 
     /**

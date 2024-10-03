@@ -70,6 +70,7 @@ class WebExtensionTest {
         assertFalse(extension.isBlockListed())
         assertFalse(extension.isDisabledUnsigned())
         assertFalse(extension.isDisabledIncompatible())
+        assertFalse(extension.isSoftBlocked())
 
         val metadata: Metadata = mock()
         whenever(extension.getMetadata()).thenReturn(metadata)
@@ -77,29 +78,41 @@ class WebExtensionTest {
         assertFalse(extension.isBlockListed())
         assertFalse(extension.isDisabledUnsigned())
         assertFalse(extension.isDisabledIncompatible())
+        assertFalse(extension.isSoftBlocked())
 
         whenever(metadata.disabledFlags).thenReturn(DisabledFlags.select(DisabledFlags.BLOCKLIST))
         assertFalse(extension.isUnsupported())
         assertTrue(extension.isBlockListed())
         assertFalse(extension.isDisabledUnsigned())
         assertFalse(extension.isDisabledIncompatible())
+        assertFalse(extension.isSoftBlocked())
 
         whenever(metadata.disabledFlags).thenReturn(DisabledFlags.select(DisabledFlags.APP_SUPPORT))
         assertTrue(extension.isUnsupported())
         assertFalse(extension.isBlockListed())
         assertFalse(extension.isDisabledUnsigned())
         assertFalse(extension.isDisabledIncompatible())
+        assertFalse(extension.isSoftBlocked())
 
         whenever(metadata.disabledFlags).thenReturn(DisabledFlags.select(DisabledFlags.SIGNATURE))
         assertFalse(extension.isUnsupported())
         assertFalse(extension.isBlockListed())
         assertTrue(extension.isDisabledUnsigned())
         assertFalse(extension.isDisabledIncompatible())
+        assertFalse(extension.isSoftBlocked())
 
         whenever(metadata.disabledFlags).thenReturn(DisabledFlags.select(DisabledFlags.APP_VERSION))
         assertFalse(extension.isUnsupported())
         assertFalse(extension.isBlockListed())
         assertFalse(extension.isDisabledUnsigned())
         assertTrue(extension.isDisabledIncompatible())
+        assertFalse(extension.isSoftBlocked())
+
+        whenever(metadata.disabledFlags).thenReturn(DisabledFlags.select(DisabledFlags.SOFT_BLOCKLIST))
+        assertFalse(extension.isUnsupported())
+        assertFalse(extension.isBlockListed())
+        assertFalse(extension.isDisabledUnsigned())
+        assertFalse(extension.isDisabledIncompatible())
+        assertTrue(extension.isSoftBlocked())
     }
 }

@@ -6,6 +6,9 @@ permalink: /changelog/
 
 # 133.0 (In Development)
 
+* **browser-engine-gecko**
+  * Added `WebExtensionInstallException.SoftBlocked` to handle the `ERROR_SOFT_BLOCKED` error returned by Gecko.
+
 # 132.0
 * **feature-awesomebar**
   * The `onCancelEditing` now returns a result based on the `onStartEditing` and `onStopEditing` callback. [Bug 1917496](https://bugzilla.mozilla.org/show_bug.cgi?id=1917496)

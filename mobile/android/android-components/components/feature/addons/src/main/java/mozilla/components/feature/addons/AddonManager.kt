@@ -29,6 +29,7 @@ import mozilla.components.concept.engine.webextension.WebExtensionRuntime
 import mozilla.components.concept.engine.webextension.isBlockListed
 import mozilla.components.concept.engine.webextension.isDisabledIncompatible
 import mozilla.components.concept.engine.webextension.isDisabledUnsigned
+import mozilla.components.concept.engine.webextension.isSoftBlocked
 import mozilla.components.concept.engine.webextension.isUnsupported
 import mozilla.components.feature.addons.update.AddonUpdater
 import mozilla.components.feature.addons.update.AddonUpdater.Status
@@ -511,9 +512,23 @@ class AddonManager(
  */
 class AddonManagerException(throwable: Throwable) : Exception(throwable)
 
+/**
+ * This method returns a single [Addon.DisabledReason] from a [WebExtension] instance, which
+ * can have more that 1 disabled flag. This is fine as long as we use this method in UI and
+ * we don't need to know that an [Addon] is disabled for multiple reasons.
+ *
+ * A concrete example is when an [Addon] is soft-blocked and the user has enabled/disabled
+ * this [Addon] manually (which is possible for soft-blocked add-ons). When that happens,
+ * the [Addon] is soft-blocked per the `BlocklistState` as well as user-disabled. This
+ * method would only return `Addon.DisabledReason.SOFT_BLOCKED` in this case. That's fine
+ * for now because we want to always show the error message to the users, but it might not
+ * always be desirable.
+ */
 internal fun WebExtension.getDisabledReason(): Addon.DisabledReason? {
     return if (isBlockListed()) {
         Addon.DisabledReason.BLOCKLISTED
+    } else if (isSoftBlocked()) {
+        Addon.DisabledReason.SOFT_BLOCKED
     } else if (isDisabledUnsigned()) {
         Addon.DisabledReason.NOT_CORRECTLY_SIGNED
     } else if (isDisabledIncompatible()) {

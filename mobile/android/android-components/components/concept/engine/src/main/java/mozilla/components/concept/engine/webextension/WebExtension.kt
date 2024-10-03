@@ -538,6 +538,7 @@ class DisabledFlags internal constructor(val value: Int) {
         const val APP_SUPPORT: Int = 1 shl 3
         const val SIGNATURE: Int = 1 shl 4
         const val APP_VERSION: Int = 1 shl 5
+        const val SOFT_BLOCKLIST: Int = 1 shl 6
 
         /**
          * Selects a combination of flags.
@@ -604,6 +605,14 @@ fun WebExtension.isUnsupported(): Boolean {
 fun WebExtension.isBlockListed(): Boolean {
     val flags = getMetadata()?.disabledFlags
     return flags?.contains(DisabledFlags.BLOCKLIST) == true
+}
+
+/**
+ * Returns whether the extension is soft-blocked.
+ */
+fun WebExtension.isSoftBlocked(): Boolean {
+    val flags = getMetadata()?.disabledFlags
+    return flags?.contains(DisabledFlags.SOFT_BLOCKLIST) == true
 }
 
 /**
@@ -689,5 +698,11 @@ sealed class WebExtensionInstallException(
      * The extension can only be installed via Enterprise Policies.
      */
     class AdminInstallOnly(override val extensionName: String? = null, throwable: Throwable) :
+        WebExtensionInstallException(throwable = throwable)
+
+    /**
+     * The extension install was cancelled because the extension is soft-blocked.
+     */
+    class SoftBlocked(override val extensionName: String? = null, throwable: Throwable) :
         WebExtensionInstallException(throwable = throwable)
 }
