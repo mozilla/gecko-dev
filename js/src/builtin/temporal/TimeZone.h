@@ -70,16 +70,6 @@ class TimeZoneObjectMaybeBuiltin : public NativeObject {
   static void finalize(JS::GCContext* gcx, JSObject* obj);
 };
 
-class TimeZoneObject : public TimeZoneObjectMaybeBuiltin {
- public:
-  static const JSClass class_;
-  static const JSClass& protoClass_;
-
- private:
-  static const JSClassOps classOps_;
-  static const ClassSpec classSpec_;
-};
-
 class BuiltinTimeZoneObject : public TimeZoneObjectMaybeBuiltin {
  public:
   static const JSClass class_;
@@ -92,8 +82,7 @@ class BuiltinTimeZoneObject : public TimeZoneObjectMaybeBuiltin {
 
 template <>
 inline bool JSObject::is<js::temporal::TimeZoneObjectMaybeBuiltin>() const {
-  return is<js::temporal::TimeZoneObject>() ||
-         is<js::temporal::BuiltinTimeZoneObject>();
+  return is<js::temporal::BuiltinTimeZoneObject>();
 }
 
 namespace js::temporal {
@@ -345,12 +334,6 @@ bool ToTemporalTimeZone(JSContext* cx,
  */
 bool ToTemporalTimeZone(JSContext* cx, JS::Handle<ParsedTimeZone> string,
                         JS::MutableHandle<TimeZoneValue> result);
-
-/**
- * ToTemporalTimeZoneObject ( timeZoneSlotValue )
- */
-JSObject* ToTemporalTimeZoneObject(JSContext* cx,
-                                   JS::Handle<TimeZoneValue> timeZone);
 
 /**
  * ToTemporalTimeZoneIdentifier ( timeZoneSlotValue )

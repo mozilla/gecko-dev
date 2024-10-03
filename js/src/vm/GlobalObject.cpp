@@ -44,7 +44,6 @@
 #  include "builtin/temporal/PlainYearMonth.h"
 #  include "builtin/temporal/Temporal.h"
 #  include "builtin/temporal/TemporalNow.h"
-#  include "builtin/temporal/TimeZone.h"
 #  include "builtin/temporal/ZonedDateTime.h"
 #endif
 #include "builtin/WeakMapObject.h"
@@ -238,7 +237,6 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_PlainTime:
     case JSProto_PlainYearMonth:
     case JSProto_TemporalNow:
-    case JSProto_TimeZone:
     case JSProto_ZonedDateTime:
       return false;
 #endif
