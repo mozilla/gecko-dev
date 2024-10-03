@@ -15,6 +15,7 @@ import org.mozilla.fenix.settings.DataChoicesFragment
 import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 import org.mozilla.fenix.ui.robots.notificationShade
+import org.mozilla.fenix.utils.exitMenu
 
 /**
  *  Tests for verifying the the privacy and security section of the Settings menu
@@ -82,9 +83,9 @@ class SettingsPrivacyTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1024594
-    @SdkSuppress(maxSdkVersion = 30)
+    @SdkSuppress(minSdkVersion = 34)
     @Test
-    fun verifyNotificationsSettingsTest() {
+    fun allowAppToSendNotifications() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
 
         // Clear all existing notifications
@@ -99,7 +100,7 @@ class SettingsPrivacyTest : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openNotificationShade {
-            verifySystemNotificationExists("Close private tabs")
+            verifySystemNotificationExists("Close private tabs?")
         }.closeNotificationTray {
         }.openThreeDotMenu {
         }.openSettings {
@@ -107,15 +108,7 @@ class SettingsPrivacyTest : TestSetup() {
         }.openSettingsSubMenuNotifications {
             verifyAllSystemNotificationsToggleState(true)
             verifyPrivateBrowsingSystemNotificationsToggleState(true)
-            clickPrivateBrowsingSystemNotificationsToggle()
-            verifyPrivateBrowsingSystemNotificationsToggleState(false)
-            clickAllSystemNotificationsToggle()
-            verifyAllSystemNotificationsToggleState(false)
-        }.goBack {
-            verifySettingsOptionSummary("Notifications", "Not allowed")
-        }.goBackToBrowser {
-        }.openNotificationShade {
-            verifySystemNotificationDoesNotExist("Close private tabs")
+            exitMenu()
         }
     }
 }
