@@ -260,10 +260,10 @@ enum class CalendarField {
 };
 
 /**
- * CalendarFields ( calendar, fieldNames )
+ * CalendarFieldDescriptors ( calendar, type )
  */
-mozilla::EnumSet<TemporalField> CalendarFields(
-    const CalendarValue& calendar, mozilla::EnumSet<CalendarField> fieldNames);
+mozilla::EnumSet<TemporalField> CalendarFieldDescriptors(
+    const CalendarValue& calendar, mozilla::EnumSet<CalendarField> type);
 
 /**
  * CalendarMergeFields ( calendar, fields, additionalFields )

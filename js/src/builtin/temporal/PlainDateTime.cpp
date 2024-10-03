@@ -1722,7 +1722,7 @@ static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
 
   // Step 7.
   Rooted<PlainObject*> fields(cx);
-  JS::RootedVector<PropertyKey> fieldNames(cx);
+  mozilla::EnumSet<TemporalField> fieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, dateTime,
                                           {
                                               CalendarField::Day,
@@ -1760,17 +1760,11 @@ static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 14.
-  if (!AppendSorted(cx, fieldNames.get(),
-                    {
-                        TemporalField::Hour,
-                        TemporalField::Microsecond,
-                        TemporalField::Millisecond,
-                        TemporalField::Minute,
-                        TemporalField::Nanosecond,
-                        TemporalField::Second,
-                    })) {
-    return false;
-  }
+  fieldNames += {
+      TemporalField::Hour,        TemporalField::Minute,
+      TemporalField::Second,      TemporalField::Millisecond,
+      TemporalField::Microsecond, TemporalField::Nanosecond,
+  };
 
   // Step 15.
   Rooted<PlainObject*> partialDateTime(

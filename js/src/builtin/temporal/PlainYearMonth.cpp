@@ -413,7 +413,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
 
   // Step 8.
   Rooted<PlainObject*> thisFields(cx);
-  JS::RootedVector<PropertyKey> thisFieldNames(cx);
+  mozilla::EnumSet<TemporalField> thisFieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
                                               CalendarField::MonthCode,
@@ -573,7 +573,7 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
 
   // Step 10.
   Rooted<PlainObject*> fields(cx);
-  JS::RootedVector<PropertyKey> fieldNames(cx);
+  mozilla::EnumSet<TemporalField> fieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
                                               CalendarField::MonthCode,
@@ -1066,7 +1066,7 @@ static bool PlainYearMonth_with(JSContext* cx, const CallArgs& args) {
 
   // Step 7.
   Rooted<PlainObject*> fields(cx);
-  JS::RootedVector<PropertyKey> fieldNames(cx);
+  mozilla::EnumSet<TemporalField> fieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
                                               CalendarField::Month,
@@ -1354,7 +1354,7 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<PlainObject*> receiverFields(cx);
-  JS::RootedVector<PropertyKey> receiverFieldNames(cx);
+  mozilla::EnumSet<TemporalField> receiverFieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
                                               CalendarField::MonthCode,
@@ -1367,7 +1367,7 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
 
   // Step 6.
   Rooted<PlainObject*> inputFields(cx);
-  JS::RootedVector<PropertyKey> inputFieldNames(cx);
+  mozilla::EnumSet<TemporalField> inputFieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, item,
                                           {
                                               CalendarField::Day,
@@ -1384,11 +1384,7 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 8.
-  JS::RootedVector<PropertyKey> concatenatedFieldNames(cx);
-  if (!ConcatTemporalFieldNames(receiverFieldNames, inputFieldNames,
-                                concatenatedFieldNames.get())) {
-    return false;
-  }
+  auto concatenatedFieldNames = receiverFieldNames + inputFieldNames;
 
   // Step 9.
   Rooted<PlainObject*> mergedFromConcatenatedFields(

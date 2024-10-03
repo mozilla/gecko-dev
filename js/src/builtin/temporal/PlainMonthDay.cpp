@@ -529,7 +529,7 @@ static bool PlainMonthDay_with(JSContext* cx, const CallArgs& args) {
 
   // Step 7.
   Rooted<PlainObject*> fields(cx);
-  JS::RootedVector<PropertyKey> fieldNames(cx);
+  mozilla::EnumSet<TemporalField> fieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, monthDay,
                                           {
                                               CalendarField::Day,
@@ -740,7 +740,7 @@ static bool PlainMonthDay_toPlainDate(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<PlainObject*> receiverFields(cx);
-  JS::RootedVector<PropertyKey> receiverFieldNames(cx);
+  mozilla::EnumSet<TemporalField> receiverFieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, monthDay,
                                           {
                                               CalendarField::Day,
@@ -753,7 +753,7 @@ static bool PlainMonthDay_toPlainDate(JSContext* cx, const CallArgs& args) {
 
   // Step 6.
   Rooted<PlainObject*> inputFields(cx);
-  JS::RootedVector<PropertyKey> inputFieldNames(cx);
+  mozilla::EnumSet<TemporalField> inputFieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, item,
                                           {
                                               CalendarField::Year,
@@ -770,11 +770,7 @@ static bool PlainMonthDay_toPlainDate(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 8.
-  JS::RootedVector<PropertyKey> concatenatedFieldNames(cx);
-  if (!ConcatTemporalFieldNames(receiverFieldNames, inputFieldNames,
-                                concatenatedFieldNames.get())) {
-    return false;
-  }
+  auto concatenatedFieldNames = receiverFieldNames + inputFieldNames;
 
   // Step 9.
   mergedFields =

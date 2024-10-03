@@ -2995,20 +2995,17 @@ static FieldDescriptors CalendarFieldDescriptors(CalendarId calendar,
 /**
  * CalendarFieldDescriptors ( calendar, type )
  */
-static FieldDescriptors CalendarFieldDescriptors(
-    CalendarId calendar, mozilla::EnumSet<CalendarField> type) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
-  mozilla::EnumSet<TemporalField> relevant;
-  mozilla::EnumSet<TemporalField> required;
+mozilla::EnumSet<TemporalField> js::temporal::CalendarFieldDescriptors(
+    const CalendarValue& calendar, mozilla::EnumSet<CalendarField> type) {
+  auto calendarId = calendar.identifier();
+  MOZ_ASSERT(calendarId != CalendarId::ISO8601);
 
   // "era" and "eraYear" are relevant for calendars with multiple eras when
   // "year" is present.
-  if (type.contains(CalendarField::Year) && CalendarEraRelevant(calendar)) {
-    relevant += {TemporalField::Era, TemporalField::EraYear};
+  if (type.contains(CalendarField::Year) && CalendarEraRelevant(calendarId)) {
+    return {TemporalField::Era, TemporalField::EraYear};
   }
-
-  return {relevant, required};
+  return {};
 }
 
 /**
@@ -3130,47 +3127,6 @@ static bool CalendarResolveFields(JSContext* cx, CalendarId calendar,
   // checked, but inconsistent eraYear/year are ignored. Is this intentional?
 
   return true;
-}
-
-static TemporalField ToTemporalField(CalendarField field) {
-  switch (field) {
-    case CalendarField::Year:
-      return TemporalField::Year;
-    case CalendarField::Month:
-      return TemporalField::Month;
-    case CalendarField::MonthCode:
-      return TemporalField::MonthCode;
-    case CalendarField::Day:
-      return TemporalField::Day;
-  }
-  MOZ_CRASH("invalid calendar field name");
-}
-
-/**
- * CalendarFields ( calendar, fieldNames )
- */
-mozilla::EnumSet<TemporalField> js::temporal::CalendarFields(
-    const CalendarValue& calendar, mozilla::EnumSet<CalendarField> fieldNames) {
-  auto calendarId = calendar.identifier();
-
-  // Steps 1-2. (Not applicable.)
-
-  // Step 3.
-  mozilla::EnumSet<TemporalField> temporalFields{};
-  for (auto fieldName : fieldNames) {
-    temporalFields += ::ToTemporalField(fieldName);
-  }
-
-  // Steps 4.
-  if (calendarId != CalendarId::ISO8601) {
-    auto extraFieldDescriptors =
-        CalendarFieldDescriptors(calendarId, fieldNames);
-
-    temporalFields += extraFieldDescriptors.relevant;
-    temporalFields += extraFieldDescriptors.required;
-  }
-
-  return temporalFields;
 }
 
 /**

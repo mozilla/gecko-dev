@@ -2192,7 +2192,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
 
   // Step 10.
   Rooted<PlainObject*> fields(cx);
-  JS::RootedVector<PropertyKey> fieldNames(cx);
+  mozilla::EnumSet<TemporalField> fieldNames{};
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, dateTimeObj,
                                           {
                                               CalendarField::Day,
@@ -2241,18 +2241,12 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 18.
-  if (!AppendSorted(cx, fieldNames.get(),
-                    {
-                        TemporalField::Hour,
-                        TemporalField::Microsecond,
-                        TemporalField::Millisecond,
-                        TemporalField::Minute,
-                        TemporalField::Nanosecond,
-                        TemporalField::Offset,
-                        TemporalField::Second,
-                    })) {
-    return false;
-  }
+  fieldNames += {
+      TemporalField::Hour,        TemporalField::Minute,
+      TemporalField::Second,      TemporalField::Millisecond,
+      TemporalField::Microsecond, TemporalField::Nanosecond,
+      TemporalField::Offset,
+  };
 
   // Step 19.
   Rooted<PlainObject*> partialZonedDateTime(
