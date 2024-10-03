@@ -1576,34 +1576,6 @@ static bool PlainYearMonth_getISOFields(JSContext* cx, unsigned argc,
       cx, args);
 }
 
-/**
- * Temporal.PlainYearMonth.prototype.getCalendar ( )
- */
-static bool PlainYearMonth_getCalendar(JSContext* cx, const CallArgs& args) {
-  auto* yearMonth = &args.thisv().toObject().as<PlainYearMonthObject>();
-  Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
-
-  // Step 3.
-  auto* obj = ToTemporalCalendarObject(cx, calendar);
-  if (!obj) {
-    return false;
-  }
-
-  args.rval().setObject(*obj);
-  return true;
-}
-
-/**
- * Temporal.PlainYearMonth.prototype.getCalendar ( )
- */
-static bool PlainYearMonth_getCalendar(JSContext* cx, unsigned argc,
-                                       Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsPlainYearMonth, PlainYearMonth_getCalendar>(
-      cx, args);
-}
-
 const JSClass PlainYearMonthObject::class_ = {
     "Temporal.PlainYearMonth",
     JSCLASS_HAS_RESERVED_SLOTS(PlainYearMonthObject::SLOT_COUNT) |
@@ -1633,7 +1605,6 @@ static const JSFunctionSpec PlainYearMonth_prototype_methods[] = {
     JS_FN("valueOf", PlainYearMonth_valueOf, 0, 0),
     JS_FN("toPlainDate", PlainYearMonth_toPlainDate, 1, 0),
     JS_FN("getISOFields", PlainYearMonth_getISOFields, 0, 0),
-    JS_FN("getCalendar", PlainYearMonth_getCalendar, 0, 0),
     JS_FS_END,
 };
 

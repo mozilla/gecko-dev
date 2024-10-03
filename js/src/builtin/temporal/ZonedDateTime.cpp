@@ -3756,60 +3756,6 @@ static bool ZonedDateTime_getISOFields(JSContext* cx, unsigned argc,
       cx, args);
 }
 
-/**
- * Temporal.ZonedDateTime.prototype.getCalendar ( )
- */
-static bool ZonedDateTime_getCalendar(JSContext* cx, const CallArgs& args) {
-  auto* zonedDateTime = &args.thisv().toObject().as<ZonedDateTimeObject>();
-  Rooted<CalendarValue> calendar(cx, zonedDateTime->calendar());
-
-  // Step 3.
-  auto* obj = ToTemporalCalendarObject(cx, calendar);
-  if (!obj) {
-    return false;
-  }
-
-  args.rval().setObject(*obj);
-  return true;
-}
-
-/**
- * Temporal.ZonedDateTime.prototype.getCalendar ( )
- */
-static bool ZonedDateTime_getCalendar(JSContext* cx, unsigned argc, Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsZonedDateTime, ZonedDateTime_getCalendar>(cx,
-                                                                          args);
-}
-
-/**
- * Temporal.ZonedDateTime.prototype.getTimeZone ( )
- */
-static bool ZonedDateTime_getTimeZone(JSContext* cx, const CallArgs& args) {
-  auto* zonedDateTime = &args.thisv().toObject().as<ZonedDateTimeObject>();
-  Rooted<TimeZoneValue> timeZone(cx, zonedDateTime->timeZone());
-
-  // Step 3.
-  auto* obj = ToTemporalTimeZoneObject(cx, timeZone);
-  if (!obj) {
-    return false;
-  }
-
-  args.rval().setObject(*obj);
-  return true;
-}
-
-/**
- * Temporal.ZonedDateTime.prototype.getTimeZone ( )
- */
-static bool ZonedDateTime_getTimeZone(JSContext* cx, unsigned argc, Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsZonedDateTime, ZonedDateTime_getTimeZone>(cx,
-                                                                          args);
-}
-
 const JSClass ZonedDateTimeObject::class_ = {
     "Temporal.ZonedDateTime",
     JSCLASS_HAS_RESERVED_SLOTS(ZonedDateTimeObject::SLOT_COUNT) |
@@ -3848,8 +3794,6 @@ static const JSFunctionSpec ZonedDateTime_prototype_methods[] = {
     JS_FN("toPlainTime", ZonedDateTime_toPlainTime, 0, 0),
     JS_FN("toPlainDateTime", ZonedDateTime_toPlainDateTime, 0, 0),
     JS_FN("getISOFields", ZonedDateTime_getISOFields, 0, 0),
-    JS_FN("getCalendar", ZonedDateTime_getCalendar, 0, 0),
-    JS_FN("getTimeZone", ZonedDateTime_getTimeZone, 0, 0),
     JS_FS_END,
 };
 
