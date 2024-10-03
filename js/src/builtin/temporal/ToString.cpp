@@ -347,40 +347,21 @@ static bool MaybeFormatCalendarAnnotation(TemporalStringBuilder& result,
 }
 
 static bool FormatTimeZoneAnnotation(TemporalStringBuilder& result,
-                                     const JSLinearString* id,
+                                     const TimeZoneValue& timeZone,
                                      ShowTimeZoneName showTimeZone) {
   switch (showTimeZone) {
     case ShowTimeZoneName::Never:
       return true;
 
     case ShowTimeZoneName::Auto:
-      return result.appendTimeZoneAnnnotation(id, Critical::No);
+      return result.appendTimeZoneAnnnotation(timeZone.identifier(),
+                                              Critical::No);
 
     case ShowTimeZoneName::Critical:
-      return result.appendTimeZoneAnnnotation(id, Critical::Yes);
+      return result.appendTimeZoneAnnnotation(timeZone.identifier(),
+                                              Critical::Yes);
   }
   MOZ_CRASH("bad time zone option");
-}
-
-static bool MaybeFormatTimeZoneAnnotation(JSContext* cx,
-                                          TemporalStringBuilder& result,
-                                          Handle<TimeZoneValue> timeZone,
-                                          ShowTimeZoneName showTimeZone) {
-  if (showTimeZone == ShowTimeZoneName::Never) {
-    return true;
-  }
-
-  JSString* timeZoneIdentifier = ToTemporalTimeZoneIdentifier(cx, timeZone);
-  if (!timeZoneIdentifier) {
-    return false;
-  }
-
-  JSLinearString* linearTimeZoneId = timeZoneIdentifier->ensureLinear(cx);
-  if (!linearTimeZoneId) {
-    return false;
-  }
-
-  return FormatTimeZoneAnnotation(result, linearTimeZoneId, showTimeZone);
 }
 
 /**
@@ -603,7 +584,7 @@ JSString* js::temporal::TemporalZonedDateTimeToString(
   }
 
   // Steps 12-13.
-  if (!MaybeFormatTimeZoneAnnotation(cx, result, timeZone, showTimeZone)) {
+  if (!FormatTimeZoneAnnotation(result, timeZone, showTimeZone)) {
     return nullptr;
   }
 

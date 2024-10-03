@@ -71,7 +71,7 @@ static bool SystemTimeZoneOffset(JSContext* cx, int32_t* offset) {
  *
  * ES2017 Intl draft rev 4a23f407336d382ed5e3471200c690c9b020b5f3
  */
-static JSString* SystemTimeZoneIdentifier(JSContext* cx) {
+static JSLinearString* SystemTimeZoneIdentifier(JSContext* cx) {
   intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> formatBuffer(cx);
   auto result = DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
                                          formatBuffer);
@@ -80,7 +80,7 @@ static JSString* SystemTimeZoneIdentifier(JSContext* cx) {
     return nullptr;
   }
 
-  Rooted<JSString*> timeZone(cx, formatBuffer.toString(cx));
+  Rooted<JSLinearString*> timeZone(cx, formatBuffer.toString(cx));
   if (!timeZone) {
     return nullptr;
   }
@@ -141,7 +141,7 @@ static JSString* SystemTimeZoneIdentifier(JSContext* cx) {
 }
 
 static BuiltinTimeZoneObject* SystemTimeZoneObject(JSContext* cx) {
-  Rooted<JSString*> timeZoneIdentifier(cx, SystemTimeZoneIdentifier(cx));
+  Rooted<JSLinearString*> timeZoneIdentifier(cx, SystemTimeZoneIdentifier(cx));
   if (!timeZoneIdentifier) {
     return nullptr;
   }

@@ -22,6 +22,7 @@
 #include "js/Value.h"
 #include "vm/JSObject.h"
 #include "vm/NativeObject.h"
+#include "vm/StringType.h"
 
 class JSLinearString;
 class JS_PUBLIC_API JSTracer;
@@ -49,8 +50,8 @@ class BuiltinTimeZoneObject : public NativeObject {
   // Estimated memory use for intl::TimeZone (see IcuMemoryUsage).
   static constexpr size_t EstimatedMemoryUse = 6840;
 
-  JSString* identifier() const {
-    return getFixedSlot(IDENTIFIER_SLOT).toString();
+  JSLinearString* identifier() const {
+    return &getFixedSlot(IDENTIFIER_SLOT).toString()->asLinear();
   }
 
   const auto& offsetMinutes() const {
@@ -239,20 +240,20 @@ enum class TemporalDisambiguation;
  * IsValidTimeZoneName ( timeZone )
  * IsAvailableTimeZoneName ( timeZone )
  */
-bool IsValidTimeZoneName(JSContext* cx, JS::Handle<JSString*> timeZone,
+bool IsValidTimeZoneName(JSContext* cx, JS::Handle<JSLinearString*> timeZone,
                          JS::MutableHandle<JSAtom*> validatedTimeZone);
 
 /**
  * CanonicalizeTimeZoneName ( timeZone )
  */
-JSString* CanonicalizeTimeZoneName(JSContext* cx,
-                                   JS::Handle<JSLinearString*> timeZone);
+JSLinearString* CanonicalizeTimeZoneName(JSContext* cx,
+                                         JS::Handle<JSLinearString*> timeZone);
 
 /**
  * CreateTemporalTimeZone ( identifier [ , newTarget ] )
  */
-BuiltinTimeZoneObject* CreateTemporalTimeZone(JSContext* cx,
-                                              JS::Handle<JSString*> identifier);
+BuiltinTimeZoneObject* CreateTemporalTimeZone(
+    JSContext* cx, JS::Handle<JSLinearString*> identifier);
 
 /**
  * ToTemporalTimeZoneSlotValue ( temporalTimeZoneLike )
@@ -268,16 +269,9 @@ bool ToTemporalTimeZone(JSContext* cx, JS::Handle<ParsedTimeZone> string,
                         JS::MutableHandle<TimeZoneValue> result);
 
 /**
- * ToTemporalTimeZoneIdentifier ( timeZoneSlotValue )
- */
-JSString* ToTemporalTimeZoneIdentifier(JSContext* cx,
-                                       JS::Handle<TimeZoneValue> timeZone);
-
-/**
  * TimeZoneEquals ( one, two )
  */
-bool TimeZoneEquals(JSContext* cx, JS::Handle<TimeZoneValue> one,
-                    JS::Handle<TimeZoneValue> two, bool* equals);
+bool TimeZoneEquals(const TimeZoneValue& one, const TimeZoneValue& two);
 
 /**
  * GetPlainDateTimeFor ( timeZoneRec, instant, calendar [ ,
