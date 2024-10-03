@@ -14,7 +14,6 @@
 #include <initializer_list>
 #include <stdint.h>
 
-#include "builtin/temporal/Wrapped.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
@@ -193,8 +192,6 @@ struct DateDuration;
 struct Duration;
 struct PlainDate;
 struct PlainDateTime;
-class DurationObject;
-class PlainDateObject;
 class PlainDateWithCalendar;
 class PlainMonthDayWithCalendar;
 class PlainYearMonthWithCalendar;
@@ -298,59 +295,6 @@ PlainObject* CalendarMergeFields(JSContext* cx,
                                  JS::Handle<CalendarValue> calendar,
                                  JS::Handle<PlainObject*> fields,
                                  JS::Handle<PlainObject*> additionalFields);
-
-/**
- * CalendarDateAdd ( calendarRec, date, duration [ , options ] )
- */
-Wrapped<PlainDateObject*> CalendarDateAdd(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<Wrapped<PlainDateObject*>> date, const DateDuration& duration);
-
-/**
- * CalendarDateAdd ( calendarRec, date, duration [ , options ] )
- */
-Wrapped<PlainDateObject*> CalendarDateAdd(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<Wrapped<PlainDateObject*>> date, const Duration& duration,
-    JS::Handle<JSObject*> options);
-
-/**
- * CalendarDateAdd ( calendarRec, date, duration [ , options ] )
- */
-Wrapped<PlainDateObject*> CalendarDateAdd(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<Wrapped<PlainDateObject*>> date,
-    JS::Handle<Wrapped<DurationObject*>> duration);
-
-/**
- * CalendarDateAdd ( calendarRec, date, duration [ , options ] )
- */
-Wrapped<PlainDateObject*> CalendarDateAdd(
-    JSContext* cx, JS::Handle<CalendarRecord> calendar,
-    JS::Handle<Wrapped<PlainDateObject*>> date,
-    JS::Handle<Wrapped<DurationObject*>> duration,
-    JS::Handle<JSObject*> options);
-
-/**
- * CalendarDateAdd ( calendarRec, date, duration [ , options ] )
- */
-bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-                     const PlainDate& date, const DateDuration& duration,
-                     PlainDate* result);
-
-/**
- * CalendarDateAdd ( calendarRec, date, duration [ , options ] )
- */
-bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-                     const PlainDate& date, const DateDuration& duration,
-                     JS::Handle<JSObject*> options, PlainDate* result);
-
-/**
- * CalendarDateAdd ( calendarRec, date, duration [ , options ] )
- */
-bool CalendarDateAdd(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-                     JS::Handle<Wrapped<PlainDateObject*>> date,
-                     const DateDuration& duration, PlainDate* result);
 
 /**
  * CalendarDateAdd ( date, duration, overflow )
