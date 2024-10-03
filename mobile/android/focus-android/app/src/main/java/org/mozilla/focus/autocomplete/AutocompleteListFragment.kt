@@ -72,7 +72,9 @@ open class AutocompleteListFragment : BaseSettingsLikeFragment(), CoroutineScope
                 return true
             }
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                // empty on purpose
+            }
 
             override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
                 if (viewHolder is AddActionViewHolder) {

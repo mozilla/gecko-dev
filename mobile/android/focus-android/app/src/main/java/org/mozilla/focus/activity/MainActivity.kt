@@ -100,11 +100,9 @@ open class MainActivity : LocaleAwareAppCompatActivity() {
         // Checks if Activity is currently in PiP mode if launched from external intents, then exits it
         checkAndExitPiP()
 
-        if (!isTaskRoot) {
-            if (intent.hasCategory(Intent.CATEGORY_LAUNCHER) && Intent.ACTION_MAIN == intent.action) {
-                finish()
-                return
-            }
+        if (!isTaskRoot && intent.hasCategory(Intent.CATEGORY_LAUNCHER) && Intent.ACTION_MAIN == intent.action) {
+            finish()
+            return
         }
 
         @Suppress("DEPRECATION") // https://github.com/mozilla-mobile/focus-android/issues/5016

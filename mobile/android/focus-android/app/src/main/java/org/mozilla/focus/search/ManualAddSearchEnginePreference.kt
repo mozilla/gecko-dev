@@ -119,8 +119,8 @@ class ManualAddSearchEnginePreference(context: Context, attrs: AttributeSet) :
     }
 
     companion object {
-        private val SUPER_STATE_KEY = "super-state"
-        private val SEARCH_ENGINE_NAME_KEY = "search-engine-name"
-        private val SEARCH_QUERY_KEY = "search-query"
+        private const val SUPER_STATE_KEY = "super-state"
+        private const val SEARCH_ENGINE_NAME_KEY = "search-engine-name"
+        private const val SEARCH_QUERY_KEY = "search-query"
     }
 }

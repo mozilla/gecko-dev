@@ -33,7 +33,7 @@ class CrashReporterFragment : Fragment(R.layout.fragment_crash_reporter) {
     }
 
     companion object {
-        val FRAGMENT_TAG = "crash-reporter"
+        const val FRAGMENT_TAG = "crash-reporter"
 
         fun create() = CrashReporterFragment()
     }

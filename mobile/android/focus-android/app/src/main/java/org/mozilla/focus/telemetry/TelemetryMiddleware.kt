@@ -11,7 +11,6 @@ import mozilla.components.browser.state.action.DownloadAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.BrowserState
-import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.content.DownloadState
@@ -107,31 +106,6 @@ class TelemetryMiddleware : Middleware<BrowserState, BrowserAction> {
                 // For other session types we create events at the place where we create the sessions.
             }
         }
-    }
-
-    /**
-     * This method creates a list of options used to share with Telemetry and was migrated from A-C.
-     *
-     * @param customTabConfig The customTabConfig to use
-     * @return A list of strings representing the customTabConfig
-     */
-    @Suppress("ComplexMethod")
-    private fun generateOptions(customTabConfig: CustomTabConfig): List<String> {
-        val options = mutableListOf<String>()
-
-        if (customTabConfig.colorSchemes?.defaultColorSchemeParams?.toolbarColor != null) {
-            options.add(TOOLBAR_COLOR_OPTION)
-        }
-        if (customTabConfig.closeButtonIcon != null) options.add(CLOSE_BUTTON_OPTION)
-        if (customTabConfig.enableUrlbarHiding) options.add(DISABLE_URLBAR_HIDING_OPTION)
-        if (customTabConfig.actionButtonConfig != null) options.add(ACTION_BUTTON_OPTION)
-        if (customTabConfig.showShareMenuItem) options.add(SHARE_MENU_ITEM_OPTION)
-        if (customTabConfig.menuItems.isNotEmpty()) options.add(CUSTOMIZED_MENU_OPTION)
-        if (customTabConfig.actionButtonConfig?.tint == true) options.add(ACTION_BUTTON_TINT_OPTION)
-        if (customTabConfig.exitAnimations != null) options.add(EXIT_ANIMATION_OPTION)
-        if (customTabConfig.titleVisible) options.add(PAGE_TITLE_OPTION)
-
-        return options
     }
 
     companion object {

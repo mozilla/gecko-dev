@@ -11,7 +11,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
 import org.mozilla.focus.FocusApplication
-import org.mozilla.focus.appreview.AppReviewUtils.Companion.addAppOpenings
+import org.mozilla.focus.appreview.AppReviewUtils
 
 /**
  * This ActivityLifecycleCallbacks implementations tracks if there is at least one activity in the
@@ -47,7 +47,7 @@ class VisibilityLifeCycleCallback(private val context: Context) : ActivityLifecy
     override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
         if (!appInForeground) {
             appInForeground = true
-            addAppOpenings(context)
+            AppReviewUtils.addAppOpenings(context)
         }
     }
 
