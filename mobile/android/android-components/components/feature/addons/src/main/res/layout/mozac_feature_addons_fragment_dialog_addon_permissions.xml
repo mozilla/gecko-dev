@@ -56,16 +56,6 @@
             android:textColor="?android:attr/textColorPrimary"
             tools:text="It requires your permission to:" />
 
-        <TextView
-            android:id="@+id/learn_more_link"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/allow_in_private_browsing"
-            android:layout_alignStart="@id/title"
-            android:layout_marginTop="30dp"
-            android:text="@string/mozac_feature_addons_permissions_dialog_learn_more"
-            android:textColor="@color/photonViolet70" />
-
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/permissions"
             android:layout_width="match_parent"

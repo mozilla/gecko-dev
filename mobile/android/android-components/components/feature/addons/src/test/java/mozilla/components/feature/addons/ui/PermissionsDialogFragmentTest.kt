@@ -79,7 +79,6 @@ class PermissionsDialogFragmentTest {
         val fragment = createPermissionsDialogFragment(addon, permissions = emptyList())
         var allowedWasExecuted = false
         var denyWasExecuted = false
-        var learnMoreWasExecuted = false
 
         fragment.onPositiveButtonClicked = { _, _ ->
             allowedWasExecuted = true
@@ -89,10 +88,6 @@ class PermissionsDialogFragmentTest {
             denyWasExecuted = true
         }
 
-        fragment.onLearnMoreClicked = {
-            learnMoreWasExecuted = true
-        }
-
         doReturn(testContext).`when`(fragment).requireContext()
 
         val dialog = fragment.onCreateDialog(null)
@@ -100,15 +95,12 @@ class PermissionsDialogFragmentTest {
 
         val positiveButton = dialog.findViewById<Button>(R.id.allow_button)
         val negativeButton = dialog.findViewById<Button>(R.id.deny_button)
-        val learnMoreLink = dialog.findViewById<TextView>(R.id.learn_more_link)
 
         positiveButton.performClick()
         negativeButton.performClick()
-        learnMoreLink.performClick()
 
         assertTrue(allowedWasExecuted)
         assertTrue(denyWasExecuted)
-        assertTrue(learnMoreWasExecuted)
     }
 
     @Test

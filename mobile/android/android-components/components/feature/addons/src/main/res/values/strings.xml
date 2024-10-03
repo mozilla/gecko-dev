@@ -133,8 +133,6 @@
     <string name="mozac_feature_addons_permissions_dialog_allow">Allow</string>
     <!-- This is a button to deny the optional permissions requested by an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_deny">Deny</string>
-    <!-- Text link to learn more about permission requests on the addon permissions dialog . -->
-    <string name="mozac_feature_addons_permissions_dialog_learn_more">Learn more</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Cancel</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
