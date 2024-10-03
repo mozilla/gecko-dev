@@ -138,6 +138,7 @@
   MACRO_(deleteProperty, "deleteProperty")                                     \
   MACRO_(detached, "detached")                                                 \
   MACRO_(difference, "difference")                                             \
+  MACRO_(direction, "direction")                                               \
   MACRO_(disambiguation, "disambiguation")                                     \
   MACRO_(displayURL, "displayURL")                                             \
   MACRO2(do_, "do")                                                            \

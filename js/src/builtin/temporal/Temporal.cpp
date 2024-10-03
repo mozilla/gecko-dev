@@ -1195,6 +1195,52 @@ bool js::temporal::GetTemporalShowOffsetOption(JSContext* cx,
   return true;
 }
 
+/**
+ * GetDirectionOption ( options )
+ */
+bool js::temporal::GetDirectionOption(JSContext* cx,
+                                      Handle<JSString*> direction,
+                                      Direction* result) {
+  JSLinearString* linear = direction->ensureLinear(cx);
+  if (!linear) {
+    return false;
+  }
+
+  if (StringEqualsLiteral(linear, "next")) {
+    *result = Direction::Next;
+  } else if (StringEqualsLiteral(linear, "previous")) {
+    *result = Direction::Previous;
+  } else {
+    if (auto chars = QuoteString(cx, linear, '"')) {
+      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                               JSMSG_INVALID_OPTION_VALUE, "direction",
+                               chars.get());
+    }
+    return false;
+  }
+  return true;
+}
+
+/**
+ * GetDirectionOption ( options )
+ */
+bool js::temporal::GetDirectionOption(JSContext* cx, Handle<JSObject*> options,
+                                      Direction* result) {
+  // Step 1.
+  Rooted<JSString*> direction(cx);
+  if (!GetStringOption(cx, options, cx->names().direction, &direction)) {
+    return false;
+  }
+
+  if (!direction) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_MISSING_OPTION, "direction");
+    return false;
+  }
+
+  return GetDirectionOption(cx, direction, result);
+}
+
 template <typename T, typename... Ts>
 static JSObject* MaybeUnwrapIf(JSObject* object) {
   if (auto* unwrapped = object->maybeUnwrapIf<T>()) {

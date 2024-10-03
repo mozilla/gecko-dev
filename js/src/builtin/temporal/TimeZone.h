@@ -494,6 +494,20 @@ bool DisambiguatePossibleInstants(
     JS::MutableHandle<Wrapped<InstantObject*>> result);
 
 /**
+ * GetNamedTimeZoneNextTransition ( timeZoneIdentifier, epochNanoseconds )
+ */
+bool GetNamedTimeZoneNextTransition(
+    JSContext* cx, JS::Handle<TimeZoneObjectMaybeBuiltin*> timeZone,
+    const Instant& epochInstant, mozilla::Maybe<Instant>* result);
+
+/**
+ * GetNamedTimeZonePreviousTransition ( timeZoneIdentifier, epochNanoseconds )
+ */
+bool GetNamedTimeZonePreviousTransition(
+    JSContext* cx, JS::Handle<TimeZoneObjectMaybeBuiltin*> timeZone,
+    const Instant& epochInstant, mozilla::Maybe<Instant>* result);
+
+/**
  * CreateTimeZoneMethodsRecord ( timeZone, methods )
  */
 bool CreateTimeZoneMethodsRecord(JSContext* cx,
