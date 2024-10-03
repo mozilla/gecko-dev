@@ -7,6 +7,7 @@ package org.mozilla.fenix.ui.robots
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.os.Build.VERSION.SDK_INT
 import android.util.Log
 import androidx.test.uiautomator.UiObject
 import androidx.test.uiautomator.UiScrollable
@@ -131,22 +132,31 @@ class NotificationRobot {
     fun verifyMediaSystemNotificationButtonState(action: String) =
         assertUIObjectExists(mediaSystemNotificationButton(action))
 
-    fun expandNotificationMessage() {
-        while (!notificationHeader().exists()) {
-            Log.i(TAG, "expandNotificationMessage: Waiting for $appName notification to exist")
-            scrollToEnd()
-        }
-
-        if (notificationHeader().exists()) {
-            Log.i(TAG, "expandNotificationMessage: $appName notification exists")
+    fun expandNotificationMessage(notificationItem: String = "") {
+        if (SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Log.i(TAG, "expandNotificationMessage: Trying to expand notification: $notificationItem using a swipe down action")
+            mDevice.findObject(
+                UiSelector().resourceId("android:id/status_bar_latest_event_content")
+                    .childSelector(UiSelector().resourceId("android:id/notification_headerless_view_row"))
+                    .childSelector(UiSelector().resourceId("android:id/notification_headerless_view_column"))
+                    .childSelector(UiSelector().resourceId("android:id/notification_top_line"))
+                    .childSelector(UiSelector().textContains(notificationItem)),
+            ).swipeDown(10)
+            Log.i(TAG, "expandNotificationMessage: Expanded notification: $notificationItem using a swipe down action")
+        } else {
+            verifySystemNotificationExists(appName)
+            while (!notificationHeader().exists()) {
+                Log.i(TAG, "expandNotificationMessage: Waiting for $appName notification to exist")
+                scrollToEnd()
+            }
             // expand the notification
             Log.i(TAG, "expandNotificationMessage: Trying to click $appName notification")
             notificationHeader().click()
             Log.i(TAG, "expandNotificationMessage: Clicked $appName notification")
 
             // double check if notification actions are viewable by checking for action existence; otherwise scroll again
-            while (!mDevice.findObject(UiSelector().resourceId("android:id/action0")).exists() &&
-                !mDevice.findObject(UiSelector().resourceId("android:id/actions_container")).exists()
+            while (!mDevice.findObject(UiSelector().resourceId("android:id/action0"))
+                    .exists()
             ) {
                 Log.i(TAG, "expandNotificationMessage: App notification action buttons do not exist")
                 scrollToEnd()
@@ -159,10 +169,15 @@ class NotificationRobot {
         direction: String,
         shouldDismissNotification: Boolean,
         canExpandNotification: Boolean = true,
+        notificationItem: String = "",
     ) {
         // In case it fails, retry max 3x the swipe action on download system notifications
         for (i in 1..RETRY_COUNT) {
             Log.i(TAG, "swipeDownloadNotification: Started try #$i")
+            if (SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                expandNotificationMessage(notificationItem)
+                assertUIObjectExists(itemContainingText(appName), waitingTime = waitingTimeShort)
+            }
             try {
                 var retries = 0
                 while (itemContainingText(appName).exists() && retries++ < 3) {
@@ -192,11 +207,22 @@ class NotificationRobot {
                 }
                 // Not all download related system notifications can be dismissed
                 if (shouldDismissNotification) {
-                    Log.i(TAG, "swipeDownloadNotification: $appName notification can't be dismissed: $shouldDismissNotification")
-                    assertUIObjectExists(itemContainingText(appName), exists = false)
+                    if (SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        Log.i(TAG, "swipeDownloadNotification: $notificationItem notification can be dismissed: $shouldDismissNotification")
+                        assertUIObjectIsGone(itemContainingText(notificationItem), waitingTime = waitingTimeShort)
+                        assertUIObjectExists(itemContainingText(notificationItem), exists = false)
+                    } else {
+                        Log.i(TAG, "swipeDownloadNotification: $appName notification can be dismissed: $shouldDismissNotification")
+                        assertUIObjectExists(itemContainingText(appName), exists = false)
+                    }
                 } else {
-                    Log.i(TAG, "swipeDownloadNotification: $appName notification can be dismissed: $shouldDismissNotification")
-                    assertUIObjectExists(itemContainingText(appName))
+                    if (SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                        Log.i(TAG, "swipeDownloadNotification: $notificationItem notification can't be dismissed: $shouldDismissNotification")
+                        assertUIObjectExists(itemContainingText(notificationItem))
+                    } else {
+                        Log.i(TAG, "swipeDownloadNotification: $appName notification can't be dismissed: $shouldDismissNotification")
+                        assertUIObjectExists(itemContainingText(appName))
+                    }
                 }
 
                 break
@@ -211,9 +237,10 @@ class NotificationRobot {
                         // The download complete system notification can't be expanded
                         if (canExpandNotification) {
                             Log.i(TAG, "swipeDownloadNotification: $appName notification can be expanded: $canExpandNotification")
-                            // In all cases the download system notification title will be the app name
-                            verifySystemNotificationExists(appName)
-                            expandNotificationMessage()
+                            if (SDK_INT != Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                verifySystemNotificationExists(appName)
+                                expandNotificationMessage()
+                            }
                         } else {
                             Log.i(TAG, "swipeDownloadNotification: $appName notification can't be expanded: $canExpandNotification")
                             // Using the download completed system notification summary to bring in to view an properly verify it
