@@ -25,6 +25,8 @@ skip-if = ["true"] # bug 1831518 covers re-enabling
 ["browser_Finder_hidden_textarea.js"]
 skip-if = ["verify && debug"]
 
+["browser_Finder_null_global.js"]
+
 ["browser_Finder_offscreen_text.js"]
 
 ["browser_Finder_overflowed_onscreen.js"]
