@@ -204,13 +204,6 @@ PlainDate BalanceISODate(int32_t year, int32_t month, int32_t day);
  */
 PlainDate BalanceISODateNew(int32_t year, int32_t month, int32_t day);
 
-/**
- * Return true when accessing the calendar fields |fieldNames| can be optimized.
- * Otherwise returns false.
- */
-bool IsBuiltinAccess(JSContext* cx, JS::Handle<PlainDateObject*> date,
-                     std::initializer_list<CalendarField> fieldNames);
-
 } /* namespace js::temporal */
 
 namespace js {
