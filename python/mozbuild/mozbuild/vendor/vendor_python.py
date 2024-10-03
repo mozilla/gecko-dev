@@ -46,7 +46,15 @@ class VendorPython(MozbuildObject):
     def __init__(self, *args, **kwargs):
         MozbuildObject.__init__(self, *args, virtualenv_name="vendor", **kwargs)
 
-    def vendor(self, keep_extra_files=False, add=None, remove=None, force=False):
+    def vendor(
+        self,
+        keep_extra_files=False,
+        add=None,
+        remove=None,
+        upgrade=False,
+        upgrade_package=None,
+        force=False,
+    ):
         self.populate_logger()
         self.log_manager.enable_unstructured()
 
@@ -66,7 +74,16 @@ class VendorPython(MozbuildObject):
             for package in remove:
                 subprocess.check_call(["uv", "remove", package], cwd=vendor_dir)
 
-        subprocess.check_call(["uv", "lock"], cwd=vendor_dir)
+        lock_command = ["uv", "lock"]
+
+        if upgrade:
+            lock_command.extend(["-U"])
+
+        if upgrade_package:
+            for package in upgrade_package:
+                lock_command.extend(["-P", package])
+
+        subprocess.check_call(lock_command, cwd=vendor_dir)
 
         if not force:
             vendored_lock_file_hash_value = vendored_lock_file_hash_file.read_text(
