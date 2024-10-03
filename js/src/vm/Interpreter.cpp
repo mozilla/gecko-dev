@@ -435,9 +435,8 @@ static MOZ_ALWAYS_INLINE bool MaybeEnterInterpreterTrampoline(JSContext* cx,
 static void AssertExceptionResult(JSContext* cx) {
   // If this assertion fails, a JSNative or code in the VM returned false
   // without throwing an exception or calling JS::ReportUncatchableException.
-  MOZ_ASSERT_IF(cx->shouldAssertExceptionOnFalseReturn(),
-                cx->isExceptionPending() || cx->isPropagatingForcedReturn() ||
-                    cx->hadUncatchableException());
+  MOZ_ASSERT(cx->isExceptionPending() || cx->isPropagatingForcedReturn() ||
+             cx->hadUncatchableException());
 }
 
 // MSVC with PGO inlines a lot of functions in RunScript, resulting in large
