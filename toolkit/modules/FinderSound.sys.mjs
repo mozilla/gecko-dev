@@ -26,6 +26,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 let gSound = null;
 
+export function resetSound() {
+  gSound = null;
+}
+
 export function initNotFoundSound() {
   if (!gSound && lazy.isSoundEnabled && lazy.notFoundSoundURL) {
     try {

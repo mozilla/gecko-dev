@@ -14,6 +14,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MockFilePicker: "resource://testing-common/MockFilePicker.sys.mjs",
   MockPermissionPrompt:
     "resource://testing-common/MockPermissionPrompt.sys.mjs",
+  MockSound: "resource://testing-common/MockSound.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   PerTestCoverageUtils:
     "resource://testing-common/PerTestCoverageUtils.sys.mjs",
@@ -443,6 +444,10 @@ export class SpecialPowersChild extends JSWindowActorChild {
 
   get MockPermissionPrompt() {
     return lazy.MockPermissionPrompt;
+  }
+
+  get MockSound() {
+    return lazy.MockSound;
   }
 
   quit() {

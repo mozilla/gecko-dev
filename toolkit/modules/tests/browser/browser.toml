@@ -22,6 +22,8 @@ skip-if = ["true"] # bug 1831518 covers re-enabling
 ["browser_FinderHighlighter2.js"]
 skip-if = ["true"] # bug 1831518 covers re-enabling
 
+["browser_FinderSound.js"]
+
 ["browser_Finder_hidden_textarea.js"]
 skip-if = ["verify && debug"]
 
@@ -39,6 +41,8 @@ skip-if = [
 ["browser_Finder_pointer_events_none.js"]
 
 ["browser_Finder_skip_invisible_and_option.js"]
+
+["browser_Finder_sound.js"]
 
 ["browser_Finder_vertical_text.js"]
 
