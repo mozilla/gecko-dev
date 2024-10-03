@@ -64,10 +64,6 @@ class OnboardingSecondFragment : Fragment() {
                             Onboarding.skipButton.record(NoExtras())
                             onboardingInteractor.onFinishOnBoarding()
                         },
-                        onCloseButtonClick = {
-                            Onboarding.secondScreenCloseButton.record(NoExtras())
-                            onboardingInteractor.onFinishOnBoarding()
-                        },
                     )
                 }
             }

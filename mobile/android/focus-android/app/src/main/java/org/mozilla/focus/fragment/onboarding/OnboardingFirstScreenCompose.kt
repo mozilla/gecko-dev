@@ -13,12 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -36,14 +33,13 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.focus.R
 import org.mozilla.focus.ui.theme.FocusTheme
-import org.mozilla.focus.ui.theme.focusColors
 import org.mozilla.focus.ui.theme.focusTypography
 
 @Composable
 @Preview
 private fun OnBoardingFirstScreenComposePreview() {
     FocusTheme {
-        OnBoardingFirstScreenCompose({}, {})
+        OnBoardingFirstScreenCompose {}
     }
 }
 
@@ -51,12 +47,10 @@ private fun OnBoardingFirstScreenComposePreview() {
  * Displays the first onBoarding screen
  *
  * @param onGetStartedButtonClicked Will be called when the user clicks on get started button.
- * @param onCloseButtonClick The lambda to be invoked when close button icon is pressed.
  */
 @Composable
 fun OnBoardingFirstScreenCompose(
     onGetStartedButtonClicked: () -> Unit,
-    onCloseButtonClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -76,14 +70,6 @@ fun OnBoardingFirstScreenCompose(
                 ),
             ),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 60.dp, end = 20.dp),
-            horizontalAlignment = Alignment.End,
-        ) {
-            CloseButton(onCloseButtonClick)
-        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -120,25 +106,6 @@ fun OnBoardingFirstScreenCompose(
                 onGetStartedButtonClicked()
             }
         }
-    }
-}
-
-@Composable
-private fun CloseButton(onCloseButtonClick: () -> Unit) {
-    IconButton(
-        modifier = Modifier
-            .size(48.dp)
-            .background(
-                colorResource(R.color.onboardingCloseButtonColor),
-                shape = CircleShape,
-            ),
-        onClick = onCloseButtonClick,
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.mozac_ic_cross_24),
-            contentDescription = stringResource(R.string.onboarding_close_button_content_description),
-            tint = focusColors.closeIcon,
-        )
     }
 }
 

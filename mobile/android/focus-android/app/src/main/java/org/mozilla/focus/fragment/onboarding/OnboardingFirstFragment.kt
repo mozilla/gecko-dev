@@ -49,10 +49,6 @@ class OnboardingFirstFragment : Fragment() {
                             Onboarding.getStartedButton.record(NoExtras())
                             onboardingInteractor.onGetStartedButtonClicked()
                         },
-                        onCloseButtonClick = {
-                            Onboarding.firstScreenCloseButton.record(NoExtras())
-                            onboardingInteractor.onFinishOnBoarding()
-                        },
                     )
                 }
             }
