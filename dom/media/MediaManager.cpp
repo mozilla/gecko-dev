@@ -245,7 +245,8 @@ struct DeviceState {
   // disabled. When the timer fires we initiate Stop()ing mDevice.
   // If set we allow dynamically stopping and starting mDevice.
   // Any thread.
-  const RefPtr<MediaTimer> mDisableTimer = new MediaTimer();
+  const RefPtr<MediaTimer<TimeStamp>> mDisableTimer =
+      new MediaTimer<TimeStamp>();
 
   // The underlying device we keep state for. Always non-null.
   // Threadsafe access, but see method declarations for individual constraints.
@@ -2619,7 +2620,7 @@ void MediaManager::DeviceListChanged() {
   if (mDeviceChangeTimer) {
     mDeviceChangeTimer->Cancel();
   } else {
-    mDeviceChangeTimer = MakeRefPtr<MediaTimer>();
+    mDeviceChangeTimer = MakeRefPtr<MediaTimer<TimeStamp>>();
   }
   // However, if this would cause a delay of over 1000ms in handling the
   // oldest unhandled event, then respond now and set the timer to run

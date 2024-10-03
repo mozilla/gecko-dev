@@ -144,7 +144,7 @@ TEST(DelayedRunnable, TimerFiresBeforeRunnableRuns)
         tailTaskQueue2->DelayedDispatch(
             NS_NewRunnableFunction(__func__, [&] {}), 1);
         MonitorAutoLock lock(monitor);
-        auto timer = MakeRefPtr<mozilla::MediaTimer>();
+        auto timer = MakeRefPtr<mozilla::MediaTimer<mozilla::TimeStamp>>();
         timer->WaitFor(mozilla::TimeDuration::FromMilliseconds(1), __func__)
             ->Then(noTailTaskQueue, __func__, [&] {
               MonitorAutoLock lock(monitor);

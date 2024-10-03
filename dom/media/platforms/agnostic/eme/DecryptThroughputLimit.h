@@ -86,7 +86,7 @@ class DecryptThroughputLimit {
   }
 
  private:
-  DelayedScheduler mThrottleScheduler;
+  DelayedScheduler<TimeStamp> mThrottleScheduler;
   MozPromiseHolder<ThrottlePromise> mPromiseHolder;
 
   double mMaxThroughput;
