@@ -224,8 +224,26 @@ def vendor_rust(command_context, **kwargs):
     default=False,
     help="Keep all files, including tests and documentation.",
 )
-def vendor_python(command_context, keep_extra_files):
+@CommandArgument(
+    "--add",
+    action="append",
+    default=[],
+    help="Specify one or more dependencies to vendor.\nUse the format: '<dependency>==<version>' (e.g. '--add pip==24.1.1')",
+)
+@CommandArgument(
+    "--remove",
+    action="append",
+    default=[],
+    help="Remove one or more vendored dependencies.\nUse the format: '<dependency>' (e.g. '--remove pip')",
+)
+@CommandArgument(
+    "-f",
+    "--force",
+    action="store_true",
+    help="Force a re-vendor even if we're up to date.",
+)
+def vendor_python(command_context, keep_extra_files, add, remove, force):
     from mozbuild.vendor.vendor_python import VendorPython
 
     vendor_command = command_context._spawn(VendorPython)
-    vendor_command.vendor(keep_extra_files)
+    vendor_command.vendor(keep_extra_files, add, remove, force)

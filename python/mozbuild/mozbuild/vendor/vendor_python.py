@@ -2,6 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import hashlib
 import os
 import shutil
 import subprocess
@@ -29,6 +30,7 @@ EXCLUDED_PACKAGES = {
     "moz.build",
     # Support files needed for vendoring
     "uv.lock",
+    "uv.lock.hash",
     "pyproject.toml",
     "requirements.txt",
     # The ansicon package contains DLLs and we don't want to arbitrarily vendor
@@ -44,17 +46,43 @@ class VendorPython(MozbuildObject):
     def __init__(self, *args, **kwargs):
         MozbuildObject.__init__(self, *args, virtualenv_name="vendor", **kwargs)
 
-    def vendor(self, keep_extra_files=False):
+    def vendor(self, keep_extra_files=False, add=None, remove=None, force=False):
         self.populate_logger()
         self.log_manager.enable_unstructured()
 
         vendor_dir = Path(self.topsrcdir) / "third_party" / "python"
         requirements_txt = vendor_dir / "requirements.txt"
+        uv_lock_file = vendor_dir / "uv.lock"
+        vendored_lock_file_hash_file = vendor_dir / "uv.lock.hash"
 
         # Make the venv used by UV match the one set my Mach for the 'vendor' site
         os.environ["UV_PROJECT_ENVIRONMENT"] = os.environ.get("VIRTUAL_ENV", None)
 
+        if add:
+            for package in add:
+                subprocess.check_call(["uv", "add", package], cwd=vendor_dir)
+
+        if remove:
+            for package in remove:
+                subprocess.check_call(["uv", "remove", package], cwd=vendor_dir)
+
         subprocess.check_call(["uv", "lock"], cwd=vendor_dir)
+
+        if not force:
+            vendored_lock_file_hash_value = vendored_lock_file_hash_file.read_text(
+                encoding="utf-8"
+            ).strip()
+            new_lock_file_hash_value = hash_file_text(uv_lock_file)
+
+            if vendored_lock_file_hash_value == new_lock_file_hash_value:
+                print(
+                    "No changes detected in `uv.lock` since last vendor. Nothing to do. (You can re-run this command with '--force' to force vendoring)"
+                )
+                return
+
+            print("Changes detected in `uv.lock`.")
+
+        print("Re-vendoring all dependencies.")
 
         # Add "-q" so that the contents of the "requirements.txt" aren't printed
         subprocess.check_call(
@@ -108,6 +136,10 @@ class VendorPython(MozbuildObject):
         egg_info_files = list(vendor_dir.glob("**/*.egg-info/*"))
         if egg_info_files:
             self.repository.add_remove_files(*egg_info_files)
+
+        vendored_lock_file_hash_file.write_text(
+            encoding="utf-8", data=hash_file_text(uv_lock_file)
+        )
 
     def _extract(self, src, dest, keep_extra_files=False):
         """extract source distribution into vendor directory"""
@@ -205,3 +237,10 @@ def _denormalize_symlinks(target):
             link_target = os.path.realpath(f.path)
             os.unlink(f.path)
             shutil.copyfile(link_target, f.path)
+
+
+def hash_file_text(file_path):
+    hash_func = hashlib.new("sha256")
+    file_content = file_path.read_text(encoding="utf-8")
+    hash_func.update(file_content.encode("utf-8"))
+    return hash_func.hexdigest()
