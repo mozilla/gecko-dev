@@ -155,7 +155,6 @@
   IF_EXPLICIT_RESOURCE_MANAGEMENT(                                          \
       REAL(AsyncDisposableStack, OCLASP(AsyncDisposableStack)))             \
   REAL_IF_TEMPORAL(Temporal, OCLASP(temporal::Temporal))                    \
-  REAL_IF_TEMPORAL(Calendar, OCLASP(temporal::Calendar))                    \
   REAL_IF_TEMPORAL(Duration, OCLASP(temporal::Duration))                    \
   REAL_IF_TEMPORAL(Instant, OCLASP(temporal::Instant))                      \
   REAL_IF_TEMPORAL(PlainDate, OCLASP(temporal::PlainDate))                  \

@@ -341,12 +341,6 @@ bool GetTemporalCalendarWithISODefault(JSContext* cx,
 JSLinearString* ToTemporalCalendarIdentifier(
     JSContext* cx, JS::Handle<CalendarValue> calendar);
 
-/**
- * ToTemporalCalendarObject ( calendarSlotValue )
- */
-JSObject* ToTemporalCalendarObject(JSContext* cx,
-                                   JS::Handle<CalendarValue> calendar);
-
 bool ToTemporalCalendar(JSContext* cx, const CalendarValue& calendar,
                         JS::MutableHandle<JS::Value> result);
 
