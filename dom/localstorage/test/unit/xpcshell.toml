@@ -10,6 +10,7 @@ support-files = [
   "schema3upgrade_profile.zip",
   "schema4upgrade_profile.zip",
   "slowDatabaseInitialization_child.js",
+  "slowRequestFinalization_child.js",
   "somedata_profile.zip",
   "stringLength2_profile.zip",
   "stringLength_profile.zip",
@@ -90,6 +91,9 @@ support-files = ["migration_emptyValue_profile.zip",]
 ["test_schema4upgrade.js"]
 
 ["test_slowDatabaseInitialization.js"]
+
+["test_slowRequestFinalization.js"]
+skip-if = ["true"]
 
 ["test_slowStorageInitialization.js"]
 
