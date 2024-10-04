@@ -1517,6 +1517,11 @@ nsresult nsUrlClassifierLookupCallback::CacheMisses() {
   return NS_OK;
 }
 
+struct LiteralProvider {
+  nsLiteralCString name;
+  uint8_t priority;
+};
+
 struct Provider {
   nsCString name;
   uint8_t priority;
@@ -1524,7 +1529,7 @@ struct Provider {
 
 // Order matters
 // Provider which is not included in this table has the lowest priority 0
-static const Provider kBuiltInProviders[] = {
+static constexpr LiteralProvider kBuiltInProviders[] = {
     {"mozilla"_ns, 1},
     {"google4"_ns, 2},
     {"google"_ns, 3},
@@ -1615,9 +1620,9 @@ nsUrlClassifierClassifyCallback::HandleResult(const nsACString& aTable,
 
   matchedInfo->provider.name = NS_SUCCEEDED(rv) ? provider : ""_ns;
   matchedInfo->provider.priority = 0;
-  for (uint8_t i = 0; i < ArrayLength(kBuiltInProviders); i++) {
-    if (kBuiltInProviders[i].name.Equals(matchedInfo->provider.name)) {
-      matchedInfo->provider.priority = kBuiltInProviders[i].priority;
+  for (auto const& BuiltInProvider : kBuiltInProviders) {
+    if (BuiltInProvider.name.Equals(matchedInfo->provider.name)) {
+      matchedInfo->provider.priority = BuiltInProvider.priority;
     }
   }
   matchedInfo->errorCode = TablesToResponse(aTable);
