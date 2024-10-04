@@ -154,6 +154,38 @@ struct RAIITracer {
 
 #define TRACEFUNC RAIITracer tracer(__FUNCTION__);
 
+// Sets variable to value on creation then resets variable to its original
+// value on destruction
+template<typename T>
+class ValueRollback {
+public:
+  template<typename U = T>
+  ValueRollback(T &variable, U &&value)
+    : mVariable{&variable}
+    , mSavedValue{std::exchange(variable, std::forward<U>(value))}
+  {
+  }
+
+  ValueRollback(ValueRollback &&other) noexcept
+    : mVariable{std::exchange(other.mVariable, nullptr)}
+    , mSavedValue{std::move(other.mSavedValue)}
+  {
+  }
+
+  ValueRollback(const ValueRollback &) = delete;
+  ValueRollback &operator=(ValueRollback &&) = delete;
+  ValueRollback &operator=(const ValueRollback &) = delete;
+
+  ~ValueRollback() {
+    if (mVariable)
+      *mVariable = std::move(mSavedValue);
+  }
+
+private:
+  T *mVariable;
+  T mSavedValue;
+};
+
 class IndexConsumer;
 
 bool isPure(FunctionDecl* D) {
@@ -847,6 +879,7 @@ public:
     // the definition inside the scope of the template or else we won't properly
     // handle member access on the templated type.
     if (TemplateStack && D->isDefined(Def) && Def && D != Def) {
+      const auto _ = ValueRollback(CurDeclContext, nullptr);
       TraverseFunctionDecl(const_cast<FunctionDecl *>(Def));
     }
     return Super::TraverseFunctionDecl(D);
@@ -856,6 +889,7 @@ public:
     const FunctionDecl *Def;
     // See TraverseFunctionDecl.
     if (TemplateStack && D->isDefined(Def) && Def && D != Def) {
+      const auto _ = ValueRollback(CurDeclContext, nullptr);
       TraverseFunctionDecl(const_cast<FunctionDecl *>(Def));
     }
     return Super::TraverseCXXMethodDecl(D);
@@ -865,6 +899,7 @@ public:
     const FunctionDecl *Def;
     // See TraverseFunctionDecl.
     if (TemplateStack && D->isDefined(Def) && Def && D != Def) {
+      const auto _ = ValueRollback(CurDeclContext, nullptr);
       TraverseFunctionDecl(const_cast<FunctionDecl *>(Def));
     }
     return Super::TraverseCXXConstructorDecl(D);
@@ -874,6 +909,7 @@ public:
     const FunctionDecl *Def;
     // See TraverseFunctionDecl.
     if (TemplateStack && D->isDefined(Def) && Def && D != Def) {
+      const auto _ = ValueRollback(CurDeclContext, nullptr);
       TraverseFunctionDecl(const_cast<FunctionDecl *>(Def));
     }
     return Super::TraverseCXXConversionDecl(D);
@@ -883,6 +919,7 @@ public:
     const FunctionDecl *Def;
     // See TraverseFunctionDecl.
     if (TemplateStack && D->isDefined(Def) && Def && D != Def) {
+      const auto _ = ValueRollback(CurDeclContext, nullptr);
       TraverseFunctionDecl(const_cast<FunctionDecl *>(Def));
     }
     return Super::TraverseCXXDestructorDecl(D);
