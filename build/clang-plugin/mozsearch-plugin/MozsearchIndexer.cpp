@@ -925,6 +925,11 @@ public:
     return Super::TraverseCXXDestructorDecl(D);
   }
 
+  bool TraverseLambdaExpr(LambdaExpr *E) {
+    AutoSetContext Asc(this, nullptr, true);
+    return Super::TraverseLambdaExpr(E);
+  }
+
   // Used to keep track of the context in which a token appears.
   struct Context {
     // Ultimately this becomes the "context" JSON property.
@@ -972,7 +977,7 @@ public:
 
     AutoSetContext *Ctxt = CurDeclContext;
     while (Ctxt) {
-      if (Ctxt->Decl != D) {
+      if (Ctxt->Decl && Ctxt->Decl != D) {
         return translateContext(Ctxt->Decl);
       }
       Ctxt = Ctxt->Prev;
