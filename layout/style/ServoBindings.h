@@ -103,23 +103,6 @@ BASIC_RULE_FUNCS_LOCKED(NestedDeclarations)
 #undef BASIC_RULE_FUNCS_WITHOUT_GETTER_UNLOCKED
 #undef BASIC_RULE_FUNCS_WITHOUT_GETTER_WITH_PREFIX
 
-#define BASIC_SERDE_FUNCS(type_)                                            \
-  bool Servo_##type_##_Deserialize(mozilla::ipc::ByteBuf* input, type_* v); \
-  bool Servo_##type_##_Serialize(const type_* v, mozilla::ipc::ByteBuf* output);
-
-BASIC_SERDE_FUNCS(LengthPercentage)
-BASIC_SERDE_FUNCS(StyleRotate)
-BASIC_SERDE_FUNCS(StyleScale)
-BASIC_SERDE_FUNCS(StyleTranslate)
-BASIC_SERDE_FUNCS(StyleTransform)
-BASIC_SERDE_FUNCS(StyleOffsetPath)
-BASIC_SERDE_FUNCS(StyleOffsetRotate)
-BASIC_SERDE_FUNCS(StylePositionOrAuto)
-BASIC_SERDE_FUNCS(StyleOffsetPosition)
-BASIC_SERDE_FUNCS(StyleComputedTimingFunction)
-
-#undef BASIC_SERDE_FUNCS
-
 void Servo_CounterStyleRule_GetDescriptorCssText(
     const StyleLockedCounterStyleRule* rule, nsCSSCounterDesc desc,
     nsACString* result);

@@ -2,28 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-extern crate bincode;
-extern crate cssparser;
 #[macro_use]
 extern crate cstr;
-extern crate dom;
 #[macro_use]
 extern crate gecko_profiler;
-extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate malloc_size_of;
-extern crate nsstring;
-extern crate num_traits;
-extern crate selectors;
-extern crate servo_arc;
-extern crate smallvec;
 #[macro_use]
 extern crate style;
-extern crate style_traits;
-extern crate thin_vec;
-extern crate to_shmem;
-extern crate lazy_static;
 
 mod error_reporter;
 #[allow(non_snake_case)]

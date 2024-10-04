@@ -4,7 +4,6 @@
 
 use super::error_reporter::ErrorReporter;
 use super::stylesheet_loader::{AsyncStylesheetParser, StylesheetLoader};
-use bincode::{deserialize, serialize};
 use cssparser::ToCss as ParserToCss;
 use cssparser::{
     BasicParseError, ParseError as CssParseError, Parser, ParserInput, ParserState, SourceLocation,
@@ -60,7 +59,6 @@ use style::gecko_bindings::bindings::Gecko_HaveSeenPtr;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::gfx::FontPaletteValueSet;
 use style::gecko_bindings::structs::gfxFontFeatureValueSet;
-use style::gecko_bindings::structs::ipc::ByteBuf;
 use style::gecko_bindings::structs::nsAtom;
 use style::gecko_bindings::structs::nsCSSCounterDesc;
 use style::gecko_bindings::structs::nsCSSFontDesc;
@@ -994,110 +992,64 @@ pub extern "C" fn Servo_AnimationValue_Uncompute(
     .into()
 }
 
-#[inline]
-fn create_byte_buf_from_vec(mut v: Vec<u8>) -> ByteBuf {
-    let w = ByteBuf {
-        mData: v.as_mut_ptr(),
-        mLen: v.len(),
-        mCapacity: v.capacity(),
-    };
-    std::mem::forget(v);
-    w
-}
-
-#[inline]
-fn view_byte_buf(b: &ByteBuf) -> &[u8] {
-    if b.mData.is_null() {
-        debug_assert_eq!(b.mCapacity, 0);
-        return &[];
-    }
-    unsafe { std::slice::from_raw_parts(b.mData, b.mLen) }
-}
-
-macro_rules! impl_basic_serde_funcs {
-    ($ser_name:ident, $de_name:ident, $computed_type:ty) => {
-        #[no_mangle]
-        pub extern "C" fn $ser_name(v: &$computed_type, output: &mut ByteBuf) -> bool {
-            let buf = match serialize(v) {
-                Ok(buf) => buf,
-                Err(..) => return false,
-            };
-
-            *output = create_byte_buf_from_vec(buf);
-            true
-        }
-
-        #[no_mangle]
-        pub unsafe extern "C" fn $de_name(input: &ByteBuf, v: *mut $computed_type) -> bool {
-            let buf = match deserialize(view_byte_buf(input)) {
-                Ok(buf) => buf,
-                Err(..) => return false,
-            };
-
-            std::ptr::write(v, buf);
-            true
-        }
-    };
-}
-
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::LengthPercentage,
     Servo_LengthPercentage_Serialize,
-    Servo_LengthPercentage_Deserialize,
-    computed::LengthPercentage
+    Servo_LengthPercentage_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::transform::Rotate,
     Servo_StyleRotate_Serialize,
-    Servo_StyleRotate_Deserialize,
-    computed::transform::Rotate
+    Servo_StyleRotate_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::transform::Scale,
     Servo_StyleScale_Serialize,
-    Servo_StyleScale_Deserialize,
-    computed::transform::Scale
+    Servo_StyleScale_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::transform::Translate,
     Servo_StyleTranslate_Serialize,
-    Servo_StyleTranslate_Deserialize,
-    computed::transform::Translate
+    Servo_StyleTranslate_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::transform::Transform,
     Servo_StyleTransform_Serialize,
-    Servo_StyleTransform_Deserialize,
-    computed::transform::Transform
+    Servo_StyleTransform_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::motion::OffsetPath,
     Servo_StyleOffsetPath_Serialize,
-    Servo_StyleOffsetPath_Deserialize,
-    computed::motion::OffsetPath
+    Servo_StyleOffsetPath_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::motion::OffsetRotate,
     Servo_StyleOffsetRotate_Serialize,
-    Servo_StyleOffsetRotate_Deserialize,
-    computed::motion::OffsetRotate
+    Servo_StyleOffsetRotate_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::position::PositionOrAuto,
     Servo_StylePositionOrAuto_Serialize,
-    Servo_StylePositionOrAuto_Deserialize,
-    computed::position::PositionOrAuto
+    Servo_StylePositionOrAuto_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    computed::motion::OffsetPosition,
     Servo_StyleOffsetPosition_Serialize,
-    Servo_StyleOffsetPosition_Deserialize,
-    computed::motion::OffsetPosition
+    Servo_StyleOffsetPosition_Deserialize
 );
 
-impl_basic_serde_funcs!(
+ipdl_utils::define_ffi_serializer!(
+    ComputedTimingFunction,
     Servo_StyleComputedTimingFunction_Serialize,
-    Servo_StyleComputedTimingFunction_Deserialize,
-    ComputedTimingFunction
+    Servo_StyleComputedTimingFunction_Deserialize
 );
 
 // Return the ComputedValues by a base ComputedValues and the rules.

@@ -21,6 +21,7 @@
 #include "mozilla/dom/WebGLIpdl.h"
 #include "mozilla/ipc/ByteBuf.h"
 #include "mozilla/ipc/ProtocolMessageUtils.h"
+#include "mozilla/ipc/RustMessageUtils.h"
 #include "mozilla/layers/APZInputBridge.h"
 #include "mozilla/layers/AsyncDragMetrics.h"
 #include "mozilla/layers/CompositorOptions.h"
@@ -1159,44 +1160,23 @@ struct ParamTraits<mozilla::layers::DoubleTapToZoomMetrics> {
   }
 };
 
-#define IMPL_PARAMTRAITS_BY_SERDE(type_)                                    \
-  template <>                                                               \
-  struct ParamTraits<mozilla::type_> {                                      \
-    typedef mozilla::type_ paramType;                                       \
-    static void Write(MessageWriter* aWriter, const paramType& aParam) {    \
-      mozilla::ipc::ByteBuf v;                                              \
-      mozilla::DebugOnly<bool> rv = Servo_##type_##_Serialize(&aParam, &v); \
-      MOZ_ASSERT(rv, "Serialize ##type_## failed");                         \
-      WriteParam(aWriter, std::move(v));                                    \
-    }                                                                       \
-    static ReadResult<paramType> Read(MessageReader* aReader) {             \
-      mozilla::ipc::ByteBuf in;                                             \
-      ReadResult<paramType> result;                                         \
-      if (!ReadParam(aReader, &in) || !in.mData) {                          \
-        return result;                                                      \
-      }                                                                     \
-      /* TODO: Should be able to initialize `result` in-place instead */    \
-      mozilla::AlignedStorage2<paramType> value;                            \
-      if (!Servo_##type_##_Deserialize(&in, value.addr())) {                \
-        return result;                                                      \
-      }                                                                     \
-      result = std::move(*value.addr());                                    \
-      value.addr()->~paramType();                                           \
-      return result;                                                        \
-    }                                                                       \
-  };
-
-IMPL_PARAMTRAITS_BY_SERDE(LengthPercentage)
-IMPL_PARAMTRAITS_BY_SERDE(StyleOffsetPath)
-IMPL_PARAMTRAITS_BY_SERDE(StyleOffsetRotate)
-IMPL_PARAMTRAITS_BY_SERDE(StylePositionOrAuto)
-IMPL_PARAMTRAITS_BY_SERDE(StyleOffsetPosition)
-IMPL_PARAMTRAITS_BY_SERDE(StyleRotate)
-IMPL_PARAMTRAITS_BY_SERDE(StyleScale)
-IMPL_PARAMTRAITS_BY_SERDE(StyleTranslate)
-IMPL_PARAMTRAITS_BY_SERDE(StyleTransform)
-IMPL_PARAMTRAITS_BY_SERDE(StyleComputedTimingFunction)
-
 } /* namespace IPC */
+
+#define DEFINE_SERVO_PARAMTRAITS(ty_)                                \
+  MOZ_DEFINE_RUST_PARAMTRAITS(mozilla::ty_, Servo_##ty_##_Serialize, \
+                              Servo_##ty_##_Deserialize)
+
+DEFINE_SERVO_PARAMTRAITS(LengthPercentage)
+DEFINE_SERVO_PARAMTRAITS(StyleOffsetPath)
+DEFINE_SERVO_PARAMTRAITS(StyleOffsetRotate)
+DEFINE_SERVO_PARAMTRAITS(StylePositionOrAuto)
+DEFINE_SERVO_PARAMTRAITS(StyleOffsetPosition)
+DEFINE_SERVO_PARAMTRAITS(StyleRotate)
+DEFINE_SERVO_PARAMTRAITS(StyleScale)
+DEFINE_SERVO_PARAMTRAITS(StyleTranslate)
+DEFINE_SERVO_PARAMTRAITS(StyleTransform)
+DEFINE_SERVO_PARAMTRAITS(StyleComputedTimingFunction)
+
+#undef DEFINE_SERVO_PARAMTRAITS
 
 #endif /* mozilla_layers_LayersMessageUtils */

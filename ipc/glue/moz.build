@@ -54,6 +54,7 @@ EXPORTS.mozilla.ipc += [
     "ProtocolUtils.h",
     "RandomAccessStreamUtils.h",
     "RawShmem.h",
+    "RustMessageUtils.h",
     "ScopedPort.h",
     "SerializedStructuredCloneBuffer.h",
     "SharedMemory.h",

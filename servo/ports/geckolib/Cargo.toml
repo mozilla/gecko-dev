@@ -3,6 +3,7 @@ name = "geckoservo"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2021"
 
 [lib]
 name = "geckoservo"
@@ -14,10 +15,10 @@ gecko_refcount_logging = ["style/gecko_refcount_logging", "servo_arc/gecko_refco
 
 [dependencies]
 atomic_refcell = "0.1"
-bincode = "1.0"
 cssparser = "0.34"
 cstr = "0.2"
 dom = { path = "../../../dom/base/rust" }
+ipdl_utils = { path = "../../../ipc/rust/ipdl_utils" }
 gecko-profiler = { path = "../../../tools/profiler/rust-api" }
 libc = "0.2"
 log = {version = "0.4", features = ["release_max_level_info"]}

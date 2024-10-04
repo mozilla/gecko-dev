@@ -2273,11 +2273,11 @@ name = "geckoservo"
 version = "0.0.1"
 dependencies = [
  "atomic_refcell",
- "bincode",
  "cssparser",
  "cstr",
  "dom",
  "gecko-profiler",
+ "ipdl_utils",
  "lazy_static",
  "libc",
  "log",
@@ -2402,6 +2402,7 @@ dependencies = [
  "gkrust_utils",
  "http_sfv",
  "idna_glue",
+ "ipdl_utils",
  "jog",
  "jsrust_shared",
  "kvstore",
@@ -3189,6 +3190,13 @@ dependencies = [
  "pkcs11-bindings",
  "rsclientcerts",
  "sha2",
+]
+
+[[package]]
+name = "ipdl_utils"
+version = "0.1.0"
+dependencies = [
+ "bincode",
 ]
 
 [[package]]

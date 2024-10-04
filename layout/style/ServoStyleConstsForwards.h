@@ -125,10 +125,6 @@ class ImageTracker;
 
 }  // namespace dom
 
-namespace ipc {
-class ByteBuf;
-}  // namespace ipc
-
 // Replacement for a Rust Box<T> for a non-dynamically-sized-type.
 //
 // TODO(emilio): If this was some sort of nullable box then this could be made
