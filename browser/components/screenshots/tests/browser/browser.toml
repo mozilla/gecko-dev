@@ -20,7 +20,11 @@ prefs = [
 ]
 
 ["browser_iframe_test.js"]
-skip-if = ["os == 'linux'"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'win' && os_version == '11.2009' && processor == 'x86' && opt", # Bug 1879673
+  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && opt", # Bug 1879673
+]
 
 ["browser_keyboard_shortcuts.js"]
 run-if = ["!headless"]
