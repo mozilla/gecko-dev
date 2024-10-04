@@ -47,8 +47,10 @@ union PackedTypeCode {
   static constexpr size_t TypeCodeBits = 8;
   static constexpr size_t TypeDefBits = 48;
   static constexpr size_t PointerTagBits = 2;
+  static constexpr size_t UnusedBits = 5;
 
-  static_assert(NullableBits + TypeCodeBits + TypeDefBits + PointerTagBits <=
+  static_assert(NullableBits + TypeCodeBits + TypeDefBits + PointerTagBits +
+                        UnusedBits ==
                     (sizeof(PackedRepr) * 8),
                 "enough bits");
 
@@ -64,21 +66,32 @@ union PackedTypeCode {
     // and ResultType, which can encode a ValType inside themselves in special
     // cases.
     PackedRepr pointerTag_ : PointerTagBits;
+    // The remaining bits are unused, but still need to be explicitly
+    // initialized to zero.
+    PackedRepr unused_ : UnusedBits;
   };
 
+  explicit constexpr PackedTypeCode(PackedRepr bits) : bits_(bits) {}
+
+  constexpr PackedTypeCode(PackedRepr nullable, PackedRepr typeCode,
+                           PackedRepr typeDef)
+      : nullable_(nullable),
+        typeCode_(typeCode),
+        typeDef_(typeDef),
+        pointerTag_(0),
+        unused_(0) {}
+
  public:
+  PackedTypeCode() = default;
+
   static constexpr PackedRepr NoTypeCode = ((uint64_t)1 << TypeCodeBits) - 1;
 
-  static PackedTypeCode invalid() {
-    PackedTypeCode ptc = {};
-    ptc.typeCode_ = NoTypeCode;
-    return ptc;
+  static constexpr PackedTypeCode invalid() {
+    return PackedTypeCode{false, NoTypeCode, 0};
   }
 
   static constexpr PackedTypeCode fromBits(PackedRepr bits) {
-    PackedTypeCode ptc = {};
-    ptc.bits_ = bits;
-    return ptc;
+    return PackedTypeCode{bits};
   }
 
   static PackedTypeCode pack(TypeCode tc, const TypeDef* typeDef,
@@ -86,27 +99,25 @@ union PackedTypeCode {
     MOZ_ASSERT(uint32_t(tc) <= ((1 << TypeCodeBits) - 1));
     MOZ_ASSERT_IF(tc != AbstractTypeRefCode, typeDef == nullptr);
     MOZ_ASSERT_IF(tc == AbstractTypeRefCode, typeDef != nullptr);
+    auto tydef = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(typeDef));
 #if defined(JS_64BIT) && defined(DEBUG)
     // Double check that `typeDef` only has 48 significant bits, with the top
     // 16 being zero.  This is necessary since we will only store the lowest
     // 48 bits of it, as noted above.  There's no equivalent check on 32 bit
     // targets since we can store the whole pointer.
     static_assert(sizeof(int64_t) == sizeof(uintptr_t));
-    uint64_t w = (uint64_t)(uintptr_t)typeDef;
-    MOZ_ASSERT((w >> TypeDefBits) == 0);
+    MOZ_ASSERT((tydef >> TypeDefBits) == 0);
 #endif
-    PackedTypeCode ptc = {};
-    ptc.typeCode_ = PackedRepr(tc);
-    ptc.typeDef_ = (uint64_t)(uintptr_t)typeDef;
-    ptc.nullable_ = isNullable;
-    return ptc;
+    return PackedTypeCode{isNullable, PackedRepr(tc), tydef};
   }
 
-  static PackedTypeCode pack(TypeCode tc, bool nullable) {
-    return pack(tc, nullptr, nullable);
+  static constexpr PackedTypeCode pack(TypeCode tc, bool nullable) {
+    MOZ_ASSERT(uint32_t(tc) <= ((1 << TypeCodeBits) - 1));
+    MOZ_ASSERT(tc != AbstractTypeRefCode);
+    return PackedTypeCode{nullable, PackedRepr(tc), 0};
   }
 
-  static PackedTypeCode pack(TypeCode tc) { return pack(tc, nullptr, false); }
+  static constexpr PackedTypeCode pack(TypeCode tc) { return pack(tc, false); }
 
   constexpr bool isValid() const { return typeCode_ != NoTypeCode; }
 
@@ -542,7 +553,7 @@ class ValTypeTraits {
     Ref = uint8_t(AbstractReferenceTypeCode),
   };
 
-  static bool isValidTypeCode(TypeCode tc) {
+  static constexpr bool isValidTypeCode(TypeCode tc) {
     switch (tc) {
       case TypeCode::I32:
       case TypeCode::I64:
@@ -623,9 +634,10 @@ class PackedType : public T {
   }
 
  public:
-  PackedType() : tc_(PackedTypeCode::invalid()) {}
+  constexpr PackedType() : tc_(PackedTypeCode::invalid()) {}
 
-  MOZ_IMPLICIT PackedType(Kind c) : tc_(PackedTypeCode::pack(TypeCode(c))) {
+  MOZ_IMPLICIT constexpr PackedType(Kind c)
+      : tc_(PackedTypeCode::pack(TypeCode(c))) {
     MOZ_ASSERT(c != Kind::Ref);
     MOZ_ASSERT(isValid());
   }
@@ -634,7 +646,9 @@ class PackedType : public T {
     MOZ_ASSERT(isValid());
   }
 
-  explicit PackedType(PackedTypeCode ptc) : tc_(ptc) { MOZ_ASSERT(isValid()); }
+  explicit constexpr PackedType(PackedTypeCode ptc) : tc_(ptc) {
+    MOZ_ASSERT(isValid());
+  }
 
   inline void AddRef() const;
   inline void Release() const;
@@ -690,7 +704,7 @@ class PackedType : public T {
     return PackedType(PackedTypeCode::fromBits(bits));
   }
 
-  bool isValid() const {
+  constexpr bool isValid() const {
     if (!tc_.isValid()) {
       return false;
     }
