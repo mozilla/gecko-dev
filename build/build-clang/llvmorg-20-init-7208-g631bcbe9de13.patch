@@ -1,0 +1,46 @@
+From b31ad413e1f1220320179853d019c8b9283fdf3f Mon Sep 17 00:00:00 2001
+From: Mike Hommey <mh@glandium.org>
+Date: Fri, 27 Sep 2024 15:15:55 +0900
+Subject: [PATCH] [llvm][cmake] Properly place clang runtime directory on
+ linker command line when WinMsvc.cmake is involved (#110084)
+
+WinMsvc.cmake, used for cross-compiling LLVM, targetting Windows, puts
+-libpath flags on the linker command line for the MSVC directories.
+Those may contain clang runtime libraries that come from MSVC, and may
+be incompatible with the clang compiler in use when it doesn't come from
+MSVC (which is obviously the case on cross-compiles). By prioritizing
+the clang runtime directory on the linker command line, we avoid those
+libraries being picked up by the linker.
+---
+ llvm/cmake/modules/HandleLLVMOptions.cmake | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/llvm/cmake/modules/HandleLLVMOptions.cmake b/llvm/cmake/modules/HandleLLVMOptions.cmake
+index 0699a8586fcc..e4dae07f071d 100644
+--- a/llvm/cmake/modules/HandleLLVMOptions.cmake
++++ b/llvm/cmake/modules/HandleLLVMOptions.cmake
+@@ -293,6 +293,12 @@ function(append value)
+   endforeach(variable)
+ endfunction()
+ 
++function(prepend value)
++  foreach(variable ${ARGN})
++    set(${variable} "${value} ${${variable}}" PARENT_SCOPE)
++  endforeach(variable)
++endfunction()
++
+ function(append_if condition value)
+   if (${condition})
+     foreach(variable ${ARGN})
+@@ -1178,7 +1184,7 @@ if (CLANG_CL AND (LLVM_BUILD_INSTRUMENTED OR LLVM_USE_SANITIZER))
+   endif()
+   file(TO_CMAKE_PATH "${clang_compiler_rt_file}" clang_compiler_rt_file)
+   get_filename_component(clang_runtime_dir "${clang_compiler_rt_file}" DIRECTORY)
+-  append("/libpath:\"${clang_runtime_dir}\""
++  prepend("/libpath:\"${clang_runtime_dir}\""
+     CMAKE_EXE_LINKER_FLAGS
+     CMAKE_MODULE_LINKER_FLAGS
+     CMAKE_SHARED_LINKER_FLAGS)
+-- 
+2.46.1.1.gad55fb22ef
+
