@@ -95,9 +95,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Veçoria jonë më e fuqishme deri sot për privatësinë izolon gjurmues që ndjekin nga sajte në sajte.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Veçoria jonë më e fuqishme deri sot për privatësinë izolon gjurmues që ndjekin nga sajte në sajte.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Mësoni mbi Mbrojtje Tërësore Nga Cookie-t</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Mësoni mbi Mbrojtje Tërësore Nga Cookie-t</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -214,8 +214,11 @@
     <string name="browser_menu_manage_extensions">Administroni zgjerime</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">Zgjerime të rekomanduara</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Shtoni %1$s</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description">Shtoni zgjerim</string>
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Shtoni zgjerim</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Zbuloni më tepër zgjerime</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -2882,11 +2885,22 @@
     <!-- The title of the CFR Tools feature in the Debug Drawer -->
     <string name="debug_drawer_cfr_tools_title">Mjete CFR</string>
 
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Mjete Diagnostikimi Glean</string>
+
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
     <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Që të dilet nga mënyra “sa krejt ekrani”, tërhiqeni që nga kreu dhe përdorni gjestin për mbrapsht</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
     <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Që të dilet nga mënyra “sa krejt ekrani”, tërhiqeni që nga kreu dhe shtypni tastin për mbrapsht</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Që të dilet, tërhiqni që nga sipër &amp; përdorni gjestin për mbrapsht</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Që të dilet, tërhiqni që nga sipër &amp; shtypni për mbrapsht</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

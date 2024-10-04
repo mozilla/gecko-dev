@@ -125,6 +125,13 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">استخدام كلمة سر قوية؟</string>
 
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">احمِ حساباتك باستخدام كلمة مرور قوية يتم إنشاؤها عشوائيًا. واحصل على وصول سريع إلى كلمات مرورك عن طريق حفظها في حسابك.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">احمِ حساباتك باستخدام كلمة مرور قوية يتم إنشاؤها عشوائيًا. سيتم حفظها في حسابك لاستخدامها في المستقبل.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">احمِ حسابك باستخدام كلمة مرور قوية يتم إنشاؤها عشوائيًا. سيتم حفظها في حسابك لاستخدامها في المستقبل.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">استخدام كلمة السر</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -159,6 +166,8 @@
     <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">اطو البطاقات المحفوظة</string>
     <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards" moz:removedIn="125" tools:ignore="UnusedResources">أدِر بطاقات الائتمان</string>
+    <!-- Option in the expanded select card prompt that links to cards settings. -->
+    <string name="mozac_feature_prompts_manage_credit_cards_2">إدارة البطاقات</string>
     <!-- Text for the title of a save credit card dialog. -->
     <string name="mozac_feature_prompts_save_credit_card_prompt_title">أأحفظ هذه البطاقة بأمان؟</string>
     <!-- Text for the title of an update credit card dialog. -->
@@ -166,13 +175,20 @@
     <!-- Subtitle text displayed under the title of the save credit card dialog. -->
     <string name="mozac_feature_prompts_save_credit_card_prompt_body" moz:removedIn="125" tools:ignore="UnusedResources">سيُعمّى رقم البطاقة. لن يُحفظ رمز الأمان.</string>
 
+    <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
+    <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">يشفر %s رقم بطاقتك، ولن يحفظ رمز أمانك.</string>
+
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
     <string name="mozac_feature_prompts_select_address_2">اختر العنوان</string>
     <!-- Content description for expanding the select addresses options in the select address prompt. -->
     <string name="mozac_feature_prompts_expand_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">وسِّع العناوين المقترحة</string>
+    <!-- Content description for expanding the saved addresses options in the select address prompt. -->
+    <string name="mozac_feature_prompts_expand_address_content_description_2">وسّع العناوين المحفوظة</string>
     <!-- Content description for collapsing the select address options in the select address prompt. -->
     <string name="mozac_feature_prompts_collapse_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">اطوِ العناوين المقترحة</string>
+    <!-- Content description for collapsing the saved address options in the select address prompt. -->
+    <string name="mozac_feature_prompts_collapse_address_content_description_2">اطو العناوين المحفوظة</string>
     <!-- Text for the manage addresses button. -->
     <string name="mozac_feature_prompts_manage_address">أدر العناوين</string>
 
@@ -181,6 +197,14 @@
     <string name="mozac_feature_prompts_account_picture">صورة الحساب</string>
     <!-- Title of the Identity Credential provider dialog chooser. -->
     <string name="mozac_feature_prompts_identity_credentials_choose_provider">اختر مزود ولوج</string>
+    <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
+    <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">لُج بحساب %1$s</string>
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">استخدم %1$s كمزود ولوج</string>
-    </resources>
+    <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[الولوج إلى %1$s مستخدما حساب %2$s يخضع <a href="%3$s">لسياسة الخصوصية</a> و<a href="%4$s">شروط الخدمة</a>]]></string>
+    <!-- Text for the positive button of the Identity Credential dialogs. -->
+    <string name="mozac_feature_prompts_identity_credentials_continue">واصِل</string>
+    <!-- Text for the cancel button of the Identity Credential dialogs. -->
+    <string name="mozac_feature_prompts_identity_credentials_cancel">ألغِ</string>
+</resources>

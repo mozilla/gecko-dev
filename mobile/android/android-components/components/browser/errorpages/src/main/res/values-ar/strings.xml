@@ -36,6 +36,15 @@
     <!-- The document title and heading of the error page shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">يتطلب هذا الموقع اتصالاً آمنًا.</string>
 
+    <!-- The error message shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[
+    <ul>
+        <li> لا يمكن عرض الصفحة التي تحاول فتحها لأن موقع الويب هذا يتطلب اتصالاً آمنًا.</li>
+        <li> يترجَّح أن تكون المشكلة متعلقة بموقع الوِب، ولا يمكنك فعل أي شيء لحلِّها.</li>
+        <li> يمكنك إخطار مسؤول الموقع بالمشكلة.</li>
+    </ul>
+        ]]></string>
+
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">متقدم…</string>
 
