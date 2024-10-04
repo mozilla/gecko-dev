@@ -2207,6 +2207,15 @@ class PrepareDatastoreOp
     // CheckExistingOperations.
     BeforeNesting,
 
+    // Starting directory opening on the PBackground thread. The next step is
+    // DirectoryOpenPending.
+    OpenDirectory,
+
+    // Waiting for directory open allowed on the PBackground thread. The next
+    // step is either SendingReadyMessage if directory lock failed to acquire,
+    // or CheckExistingOperations if directory lock is acquired.
+    DirectoryOpenPending,
+
     // Checking if a prepare datastore operation is already running for given
     // origin on the PBackground thread. Next step is CheckClosingDatastore.
     CheckExistingOperations,
@@ -2217,15 +2226,10 @@ class PrepareDatastoreOp
 
     // Ensuring quota manager is created and opening directory on the
     // PBackground thread. Next step is either SendingResults if quota manager
-    // is not available or DirectoryOpenPending if quota manager is available.
-    // If a datastore already exists for given origin then the next state is
+    // is not available or DatabaseWorkOpen if quota manager is available. If
+    // a datastore already exists for given origin then the next state is
     // SendingReadyMessage.
     PreparationPending,
-
-    // Waiting for directory open allowed on the PBackground thread. The next
-    // step is either SendingReadyMessage if directory lock failed to acquire,
-    // or DatabaseWorkOpen if directory lock is acquired.
-    DirectoryOpenPending,
 
     // Waiting to do/doing work on the QuotaManager IO thread. Its next step is
     // BeginLoadData.
@@ -2248,6 +2252,7 @@ class PrepareDatastoreOp
   RefPtr<PrepareDatastoreOp> mDelayedOp;
   RefPtr<ClientDirectoryLock> mPendingDirectoryLock;
   RefPtr<DirectoryLock> mDirectoryLock;
+  RefPtr<DirectoryLock> mExtraDirectoryLock;
   RefPtr<Connection> mConnection;
   RefPtr<Datastore> mDatastore;
   UniquePtr<ArchivedOriginScope> mArchivedOriginScope;
@@ -2317,6 +2322,8 @@ class PrepareDatastoreOp
   ~PrepareDatastoreOp() override;
 
   nsresult Start() override;
+
+  nsresult OpenDirectory();
 
   nsresult CheckExistingOperations();
 
@@ -6719,18 +6726,20 @@ nsresult PrepareDatastoreOp::Start() {
   }
 
   mState = State::Nesting;
-  mNestedState = NestedState::CheckExistingOperations;
+  mNestedState = NestedState::OpenDirectory;
 
+  // XXX We could call OpenDirectory directly here or even fold it here instead
+  // of dispatching to the same event target.
   MOZ_ALWAYS_SUCCEEDS(OwningEventTarget()->Dispatch(this, NS_DISPATCH_NORMAL));
 
   return NS_OK;
 }
 
-nsresult PrepareDatastoreOp::CheckExistingOperations() {
+nsresult PrepareDatastoreOp::OpenDirectory() {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mState == State::Nesting);
-  MOZ_ASSERT(mNestedState == NestedState::CheckExistingOperations);
-  MOZ_ASSERT(gPrepareDatastoreOps);
+  MOZ_ASSERT(mNestedState == NestedState::OpenDirectory);
+  MOZ_ASSERT(!mDirectoryLock);
 
   if (NS_WARN_IF(QuotaClient::IsShuttingDownOnBackgroundThread()) ||
       !MayProceed()) {
@@ -6777,6 +6786,41 @@ nsresult PrepareDatastoreOp::CheckExistingOperations() {
   MOZ_ASSERT(OriginIsKnown());
 
   mPrivateBrowsingId = privateBrowsingId;
+
+  QuotaManager* quotaManager = QuotaManager::Get();
+  MOZ_ASSERT(quotaManager);
+
+  mNestedState = NestedState::DirectoryOpenPending;
+
+  quotaManager
+      ->OpenClientDirectory({mOriginMetadata, mozilla::dom::quota::Client::LS},
+                            SomeRef(mPendingDirectoryLock))
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self = RefPtr(this)](
+              const ClientDirectoryLockPromise::ResolveOrRejectValue& aValue) {
+            self->mPendingDirectoryLock = nullptr;
+
+            if (aValue.IsResolve()) {
+              self->DirectoryLockAcquired(aValue.ResolveValue());
+            } else {
+              self->DirectoryLockFailed();
+            }
+          });
+
+  return NS_OK;
+}
+
+nsresult PrepareDatastoreOp::CheckExistingOperations() {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mState == State::Nesting);
+  MOZ_ASSERT(mNestedState == NestedState::CheckExistingOperations);
+  MOZ_ASSERT(gPrepareDatastoreOps);
+
+  if (NS_WARN_IF(QuotaClient::IsShuttingDownOnBackgroundThread()) ||
+      !MayProceed()) {
+    return NS_ERROR_ABORT;
+  }
 
   mNestedState = NestedState::CheckClosingDatastore;
 
@@ -6862,7 +6906,6 @@ nsresult PrepareDatastoreOp::BeginDatastorePreparationInternal() {
   MOZ_ASSERT(!QuotaClient::IsShuttingDownOnBackgroundThread());
   MOZ_ASSERT(MayProceed());
   MOZ_ASSERT(OriginIsKnown());
-  MOZ_ASSERT(!mDirectoryLock);
 
   if ((mDatastore = GetDatastore(Origin()))) {
     MOZ_ASSERT(!mDatastore->IsClosed());
@@ -6874,26 +6917,7 @@ nsresult PrepareDatastoreOp::BeginDatastorePreparationInternal() {
     return NS_OK;
   }
 
-  QuotaManager* quotaManager = QuotaManager::Get();
-  MOZ_ASSERT(quotaManager);
-
-  mNestedState = NestedState::DirectoryOpenPending;
-
-  quotaManager
-      ->OpenClientDirectory({mOriginMetadata, mozilla::dom::quota::Client::LS},
-                            SomeRef(mPendingDirectoryLock))
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr(this)](
-              const ClientDirectoryLockPromise::ResolveOrRejectValue& aValue) {
-            self->mPendingDirectoryLock = nullptr;
-
-            if (aValue.IsResolve()) {
-              self->DirectoryLockAcquired(aValue.ResolveValue());
-            } else {
-              self->DirectoryLockFailed();
-            }
-          });
+  SendToIOThread();
 
   return NS_OK;
 }
@@ -6901,7 +6925,7 @@ nsresult PrepareDatastoreOp::BeginDatastorePreparationInternal() {
 void PrepareDatastoreOp::SendToIOThread() {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mState == State::Nesting);
-  MOZ_ASSERT(mNestedState == NestedState::DirectoryOpenPending);
+  MOZ_ASSERT(mNestedState == NestedState::PreparationPending);
   MOZ_ASSERT(!QuotaClient::IsShuttingDownOnBackgroundThread());
   MOZ_ASSERT(MayProceed());
 
@@ -7387,6 +7411,10 @@ nsresult PrepareDatastoreOp::NestedRun() {
   nsresult rv;
 
   switch (mNestedState) {
+    case NestedState::OpenDirectory:
+      rv = OpenDirectory();
+      break;
+
     case NestedState::CheckExistingOperations:
       rv = CheckExistingOperations();
       break;
@@ -7437,7 +7465,9 @@ void PrepareDatastoreOp::GetResponse(LSRequestResponse& aResponse) {
     return;
   }
 
-  if (!mDatastore) {
+  if (mDatastore) {
+    mExtraDirectoryLock = std::move(mDirectoryLock);
+  } else {
     MOZ_ASSERT(mUsage == mDEBUGUsage);
 
     RefPtr<QuotaObject> quotaObject;
@@ -7587,12 +7617,15 @@ void PrepareDatastoreOp::Cleanup() {
 
     mDatastore = nullptr;
 
+    SafeDropDirectoryLock(mExtraDirectoryLock);
+
     CleanupMetadata();
   } else if (mConnection) {
     // If we have a connection then the operation must have failed and there
     // must be a directory lock too.
     MOZ_ASSERT(NS_FAILED(ResultCode()));
     MOZ_ASSERT(mDirectoryLock);
+    MOZ_ASSERT(!mExtraDirectoryLock);
 
     // We must close the connection on the connection thread before releasing
     // it on this thread. The directory lock can't be released either.
@@ -7607,6 +7640,7 @@ void PrepareDatastoreOp::Cleanup() {
     // was no physical database on disk.
     MOZ_ASSERT_IF(mDirectoryLock,
                   NS_FAILED(ResultCode()) || mDatabaseNotAvailable);
+    MOZ_ASSERT(!mExtraDirectoryLock);
 
     // There's no connection, so it's safe to release the directory lock and
     // unregister itself from the array.
@@ -7682,7 +7716,11 @@ void PrepareDatastoreOp::DirectoryLockAcquired(DirectoryLock* aLock) {
     return;
   }
 
-  SendToIOThread();
+  mNestedState = NestedState::CheckExistingOperations;
+
+  // XXX We could call CheckExistingOperations directly here or even fold it
+  // here instead of dispatching to the same event target
+  MOZ_ALWAYS_SUCCEEDS(OwningEventTarget()->Dispatch(this, NS_DISPATCH_NORMAL));
 }
 
 void PrepareDatastoreOp::DirectoryLockFailed() {

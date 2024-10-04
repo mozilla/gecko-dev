@@ -93,7 +93,6 @@ support-files = ["migration_emptyValue_profile.zip",]
 ["test_slowDatabaseInitialization.js"]
 
 ["test_slowRequestFinalization.js"]
-skip-if = ["true"]
 
 ["test_slowStorageInitialization.js"]
 
