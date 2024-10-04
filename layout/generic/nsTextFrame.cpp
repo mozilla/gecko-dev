@@ -5472,7 +5472,7 @@ gfxFloat nsTextFrame::ComputeDescentLimitForSelectionUnderline(
 }
 
 // Make sure this stays in sync with DrawSelectionDecorations below
-static const SelectionTypeMask kSelectionTypesWithDecorations =
+static constexpr SelectionTypeMask kSelectionTypesWithDecorations =
     ToSelectionTypeMask(SelectionType::eSpellCheck) |
     ToSelectionTypeMask(SelectionType::eURLStrikeout) |
     ToSelectionTypeMask(SelectionType::eIMERawClause) |

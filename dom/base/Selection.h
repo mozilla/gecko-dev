@@ -1228,28 +1228,28 @@ class MOZ_RAII AutoHideSelectionChanges final {
 
 }  // namespace dom
 
-inline bool IsValidRawSelectionType(RawSelectionType aRawSelectionType) {
+constexpr bool IsValidRawSelectionType(RawSelectionType aRawSelectionType) {
   return aRawSelectionType >= nsISelectionController::SELECTION_NONE &&
          aRawSelectionType <= nsISelectionController::SELECTION_URLSTRIKEOUT;
 }
 
-inline SelectionType ToSelectionType(RawSelectionType aRawSelectionType) {
+constexpr SelectionType ToSelectionType(RawSelectionType aRawSelectionType) {
   if (!IsValidRawSelectionType(aRawSelectionType)) {
     return SelectionType::eInvalid;
   }
   return static_cast<SelectionType>(aRawSelectionType);
 }
 
-inline RawSelectionType ToRawSelectionType(SelectionType aSelectionType) {
+constexpr RawSelectionType ToRawSelectionType(SelectionType aSelectionType) {
   MOZ_ASSERT(aSelectionType != SelectionType::eInvalid);
   return static_cast<RawSelectionType>(aSelectionType);
 }
 
-inline RawSelectionType ToRawSelectionType(TextRangeType aTextRangeType) {
+constexpr RawSelectionType ToRawSelectionType(TextRangeType aTextRangeType) {
   return ToRawSelectionType(ToSelectionType(aTextRangeType));
 }
 
-inline SelectionTypeMask ToSelectionTypeMask(SelectionType aSelectionType) {
+constexpr SelectionTypeMask ToSelectionTypeMask(SelectionType aSelectionType) {
   MOZ_ASSERT(aSelectionType != SelectionType::eInvalid);
   return aSelectionType == SelectionType::eNone
              ? 0

@@ -137,12 +137,6 @@ enum class TextRangeType : RawTextRangeType {
   eSelectedClause = nsITextInputProcessor::ATTR_SELECTED_CLAUSE
 };
 
-bool IsValidRawTextRangeValue(RawTextRangeType aRawTextRangeValue);
-RawTextRangeType ToRawTextRangeType(TextRangeType aTextRangeType);
-TextRangeType ToTextRangeType(RawTextRangeType aRawTextRangeType);
-const char* ToChar(TextRangeType aTextRangeType);
-SelectionType ToSelectionType(TextRangeType aTextRangeType);
-
 struct TextRange {
   TextRange()
       : mStartOffset(0),
@@ -177,6 +171,64 @@ struct TextRange {
     }
   }
 };
+
+constexpr bool IsValidRawTextRangeValue(RawTextRangeType aRawTextRangeType) {
+  switch (static_cast<TextRangeType>(aRawTextRangeType)) {
+    case TextRangeType::eUninitialized:
+    case TextRangeType::eCaret:
+    case TextRangeType::eRawClause:
+    case TextRangeType::eSelectedRawClause:
+    case TextRangeType::eConvertedClause:
+    case TextRangeType::eSelectedClause:
+      return true;
+    default:
+      return false;
+  }
+}
+
+constexpr RawTextRangeType ToRawTextRangeType(TextRangeType aTextRangeType) {
+  return static_cast<RawTextRangeType>(aTextRangeType);
+}
+
+constexpr TextRangeType ToTextRangeType(RawTextRangeType aRawTextRangeType) {
+  MOZ_ASSERT(IsValidRawTextRangeValue(aRawTextRangeType));
+  return static_cast<TextRangeType>(aRawTextRangeType);
+}
+
+constexpr const char* ToChar(TextRangeType aTextRangeType) {
+  switch (aTextRangeType) {
+    case TextRangeType::eUninitialized:
+      return "TextRangeType::eUninitialized";
+    case TextRangeType::eCaret:
+      return "TextRangeType::eCaret";
+    case TextRangeType::eRawClause:
+      return "TextRangeType::eRawClause";
+    case TextRangeType::eSelectedRawClause:
+      return "TextRangeType::eSelectedRawClause";
+    case TextRangeType::eConvertedClause:
+      return "TextRangeType::eConvertedClause";
+    case TextRangeType::eSelectedClause:
+      return "TextRangeType::eSelectedClause";
+    default:
+      return "Invalid TextRangeType";
+  }
+}
+
+constexpr SelectionType ToSelectionType(TextRangeType aTextRangeType) {
+  switch (aTextRangeType) {
+    case TextRangeType::eRawClause:
+      return SelectionType::eIMERawClause;
+    case TextRangeType::eSelectedRawClause:
+      return SelectionType::eIMESelectedRawClause;
+    case TextRangeType::eConvertedClause:
+      return SelectionType::eIMEConvertedClause;
+    case TextRangeType::eSelectedClause:
+      return SelectionType::eIMESelectedClause;
+    default:
+      MOZ_CRASH("TextRangeType is invalid");
+      return SelectionType::eNormal;
+  }
+}
 
 /******************************************************************************
  * mozilla::TextRangeArray

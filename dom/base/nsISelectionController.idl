@@ -339,10 +339,10 @@ static const SelectionType kPresentSelectionTypes[] = {
 };
 
 // Please include mozilla/dom/Selection.h for the following APIs.
-inline bool IsValidRawSelectionType(RawSelectionType aRawSelectionType);
-inline SelectionType ToSelectionType(RawSelectionType aRawSelectionType);
-inline RawSelectionType ToRawSelectionType(SelectionType aSelectionType);
-inline SelectionTypeMask ToSelectionTypeMask(SelectionType aSelectionType);
+constexpr bool IsValidRawSelectionType(RawSelectionType aRawSelectionType);
+constexpr SelectionType ToSelectionType(RawSelectionType aRawSelectionType);
+constexpr RawSelectionType ToRawSelectionType(SelectionType aSelectionType);
+constexpr SelectionTypeMask ToSelectionTypeMask(SelectionType aSelectionType);
 
 } // namespace mozilla
 %}

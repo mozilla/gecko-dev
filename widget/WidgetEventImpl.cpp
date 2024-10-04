@@ -256,64 +256,6 @@ const nsCString GetDOMKeyCodeName(uint32_t aKeyCode) {
   }
 }
 
-bool IsValidRawTextRangeValue(RawTextRangeType aRawTextRangeType) {
-  switch (static_cast<TextRangeType>(aRawTextRangeType)) {
-    case TextRangeType::eUninitialized:
-    case TextRangeType::eCaret:
-    case TextRangeType::eRawClause:
-    case TextRangeType::eSelectedRawClause:
-    case TextRangeType::eConvertedClause:
-    case TextRangeType::eSelectedClause:
-      return true;
-    default:
-      return false;
-  }
-}
-
-RawTextRangeType ToRawTextRangeType(TextRangeType aTextRangeType) {
-  return static_cast<RawTextRangeType>(aTextRangeType);
-}
-
-TextRangeType ToTextRangeType(RawTextRangeType aRawTextRangeType) {
-  MOZ_ASSERT(IsValidRawTextRangeValue(aRawTextRangeType));
-  return static_cast<TextRangeType>(aRawTextRangeType);
-}
-
-const char* ToChar(TextRangeType aTextRangeType) {
-  switch (aTextRangeType) {
-    case TextRangeType::eUninitialized:
-      return "TextRangeType::eUninitialized";
-    case TextRangeType::eCaret:
-      return "TextRangeType::eCaret";
-    case TextRangeType::eRawClause:
-      return "TextRangeType::eRawClause";
-    case TextRangeType::eSelectedRawClause:
-      return "TextRangeType::eSelectedRawClause";
-    case TextRangeType::eConvertedClause:
-      return "TextRangeType::eConvertedClause";
-    case TextRangeType::eSelectedClause:
-      return "TextRangeType::eSelectedClause";
-    default:
-      return "Invalid TextRangeType";
-  }
-}
-
-SelectionType ToSelectionType(TextRangeType aTextRangeType) {
-  switch (aTextRangeType) {
-    case TextRangeType::eRawClause:
-      return SelectionType::eIMERawClause;
-    case TextRangeType::eSelectedRawClause:
-      return SelectionType::eIMESelectedRawClause;
-    case TextRangeType::eConvertedClause:
-      return SelectionType::eIMEConvertedClause;
-    case TextRangeType::eSelectedClause:
-      return SelectionType::eIMESelectedClause;
-    default:
-      MOZ_CRASH("TextRangeType is invalid");
-      return SelectionType::eNormal;
-  }
-}
-
 /******************************************************************************
  * non class method implementation
  ******************************************************************************/
