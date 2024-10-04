@@ -2232,21 +2232,22 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
                                              boxSizingAdjust.ISize(aWM);
 
   nscoord iSize, minISize, maxISize, bSize, minBSize, maxBSize;
-  enum class Stretch {
-    // stretch to fill the CB (preserving intrinsic ratio) in the relevant axis
-    StretchPreservingRatio,
-    // stretch to fill the CB in the relevant axis
+  enum class FillCB {
+    // No stretching or clamping in the relevant axis.
+    No,
+    // Stretch to fill the containing block size in the relevant axis while
+    // preserving the aspect-ratio. If both axes are stretched, the aspect-ratio
+    // will be disregarded.
     Stretch,
-    // no stretching in the relevant axis
-    NoStretch,
+    // Clamp to fill the containing block size in the relevant axis while
+    // preserving the aspect-ratio. If both axes are clamped, the aspect-ratio
+    // is respected, and the dimensions do not overflow the containing block
+    // size.
+    Clamp,
   };
-  // just to avoid having to type these out everywhere:
-  const auto eStretchPreservingRatio = Stretch::StretchPreservingRatio;
-  const auto eStretch = Stretch::Stretch;
-  const auto eNoStretch = Stretch::NoStretch;
 
-  Stretch stretchI = eNoStretch;  // stretch behavior in the inline axis
-  Stretch stretchB = eNoStretch;  // stretch behavior in the block axis
+  FillCB inlineFillCB = FillCB::No;  // fill CB behavior in the inline axis
+  FillCB blockFillCB = FillCB::No;   // fill CB behavior in the block axis
 
   const bool isOrthogonal = aWM.IsOrthogonalTo(parentFrame->GetWritingMode());
   const LogicalSize fallbackIntrinsicSize(aWM, kFallbackIntrinsicSize);
@@ -2277,10 +2278,10 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
             isOrthogonal ? stylePos->UsedAlignSelf(GetParent()->Style())._0
                          : stylePos->UsedJustifySelf(GetParent()->Style())._0;
         if (inlineAxisAlignment == StyleAlignFlags::STRETCH) {
-          stretchI = eStretch;
+          inlineFillCB = FillCB::Stretch;
         }
       }
-      if (stretchI != eNoStretch ||
+      if (inlineFillCB != FillCB::No ||
           aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize)) {
         iSizeToFillCB.emplace(std::max(
             0, cbSize - aBorderPadding.ISize(aWM) - aMargin.ISize(aWM)));
@@ -2337,10 +2338,10 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
             !isOrthogonal ? stylePos->UsedAlignSelf(GetParent()->Style())._0
                           : stylePos->UsedJustifySelf(GetParent()->Style())._0;
         if (blockAxisAlignment == StyleAlignFlags::STRETCH) {
-          stretchB = eStretch;
+          blockFillCB = FillCB::Stretch;
         }
       }
-      if (stretchB != eNoStretch ||
+      if (blockFillCB != FillCB::No ||
           aFlags.contains(ComputeSizeFlag::BClampMarginBoxMinSize)) {
         bSizeToFillCB.emplace(std::max(
             0, cbSize - aBorderPadding.BSize(aWM) - aMargin.BSize(aWM)));
@@ -2378,12 +2379,12 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
 
   NS_ASSERTION(aCBSize.ISize(aWM) != NS_UNCONSTRAINEDSIZE,
                "Our containing block must not have unconstrained inline-size!");
-  MOZ_ASSERT(!(stretchI != eNoStretch ||
+  MOZ_ASSERT(!(inlineFillCB != FillCB::No ||
                aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize)) ||
                  iSizeToFillCB,
              "iSizeToFillCB must be valid when stretching or clamping in the "
              "inline axis!");
-  MOZ_ASSERT(!(stretchB != eNoStretch ||
+  MOZ_ASSERT(!(blockFillCB != FillCB::No ||
                aFlags.contains(ComputeSizeFlag::BClampMarginBoxMinSize)) ||
                  bSizeToFillCB,
              "bSizeToFillCB must be valid when stretching or clamping in the "
@@ -2417,8 +2418,9 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
       // or 'normal' codepath.  We use the ratio-preserving 'normal' codepath
       // unless we have 'stretch' in the other axis.
       if (aFlags.contains(ComputeSizeFlag::IClampMarginBoxMinSize) &&
-          stretchI != eStretch && tentISize > *iSizeToFillCB) {
-        stretchI = (stretchB == eStretch ? eStretch : eStretchPreservingRatio);
+          inlineFillCB != FillCB::Stretch && tentISize > *iSizeToFillCB) {
+        inlineFillCB =
+            (blockFillCB == FillCB::Stretch ? FillCB::Stretch : FillCB::Clamp);
       }
 
       if (hasIntrinsicBSize) {
@@ -2432,37 +2434,38 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
 
       // (ditto the comment about clamping the inline size above)
       if (aFlags.contains(ComputeSizeFlag::BClampMarginBoxMinSize) &&
-          stretchB != eStretch && tentBSize > *bSizeToFillCB) {
-        stretchB = (stretchI == eStretch ? eStretch : eStretchPreservingRatio);
+          blockFillCB != FillCB::Stretch && tentBSize > *bSizeToFillCB) {
+        blockFillCB =
+            (inlineFillCB == FillCB::Stretch ? FillCB::Stretch : FillCB::Clamp);
       }
 
       // The slash notation is the used value of "align-self / justify-self".
-      if (stretchI == eStretch) {
+      if (inlineFillCB == FillCB::Stretch) {
         tentISize = *iSizeToFillCB;  // * / 'stretch'
-        if (stretchB == eStretch) {
+        if (blockFillCB == FillCB::Stretch) {
           tentBSize = *bSizeToFillCB;  // 'stretch' / 'stretch'
         } else if (aspectRatio) {
           // * (except 'stretch') / 'stretch'
           tentBSize = aspectRatio.ComputeRatioDependentSize(
               LogicalAxis::Block, aWM, *iSizeToFillCB, boxSizingAdjust);
         }
-      } else if (stretchB == eStretch) {
+      } else if (blockFillCB == FillCB::Stretch) {
         tentBSize = *bSizeToFillCB;  // 'stretch' / * (except 'stretch')
         if (aspectRatio) {
           tentISize = aspectRatio.ComputeRatioDependentSize(
               LogicalAxis::Inline, aWM, *bSizeToFillCB, boxSizingAdjust);
         }
-      } else if (stretchI == eStretchPreservingRatio && aspectRatio) {
+      } else if (inlineFillCB == FillCB::Clamp && aspectRatio) {
         tentISize = *iSizeToFillCB;  // * (except 'stretch') / 'normal'
         tentBSize = aspectRatio.ComputeRatioDependentSize(
             LogicalAxis::Block, aWM, *iSizeToFillCB, boxSizingAdjust);
-        if (stretchB == eStretchPreservingRatio && tentBSize > *bSizeToFillCB) {
-          // Stretch within the CB size with preserved intrinsic ratio.
+        if (blockFillCB == FillCB::Clamp && tentBSize > *bSizeToFillCB) {
+          // Clamp within the CB size with preserved aspect ratio.
           tentBSize = *bSizeToFillCB;  // 'normal' / 'normal'
           tentISize = aspectRatio.ComputeRatioDependentSize(
               LogicalAxis::Inline, aWM, *bSizeToFillCB, boxSizingAdjust);
         }
-      } else if (stretchB == eStretchPreservingRatio && aspectRatio) {
+      } else if (blockFillCB == FillCB::Clamp && aspectRatio) {
         // 'normal' / * (except 'normal' and 'stretch')
         tentBSize = *bSizeToFillCB;
         tentISize = aspectRatio.ComputeRatioDependentSize(
@@ -2473,7 +2476,8 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
       // applying the min/max-size.  We don't want that when we have 'stretch'
       // in either axis because tentISize/tentBSize is likely not according to
       // ratio now.
-      if (aspectRatio && stretchI != eStretch && stretchB != eStretch) {
+      if (aspectRatio && inlineFillCB != FillCB::Stretch &&
+          blockFillCB != FillCB::Stretch) {
         nsSize autoSize = nsLayoutUtils::ComputeAutoSizeWithIntrinsicDimensions(
             minISize, minBSize, maxISize, maxBSize, tentISize, tentBSize);
         // The nsSize that ComputeAutoSizeWithIntrinsicDimensions returns will
@@ -2490,7 +2494,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
     } else {
       // 'auto' iSize, non-'auto' bSize
       bSize = CSSMinMax(bSize, minBSize, maxBSize);
-      if (stretchI == eStretch) {
+      if (inlineFillCB == FillCB::Stretch) {
         iSize = *iSizeToFillCB;
       } else if (aspectRatio) {
         iSize = aspectRatio.ComputeRatioDependentSize(LogicalAxis::Inline, aWM,
@@ -2509,7 +2513,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
     if (isAutoBSize) {
       // non-'auto' iSize, 'auto' bSize
       iSize = CSSMinMax(iSize, minISize, maxISize);
-      if (stretchB == eStretch) {
+      if (blockFillCB == FillCB::Stretch) {
         bSize = *bSizeToFillCB;
       } else if (aspectRatio) {
         bSize = aspectRatio.ComputeRatioDependentSize(LogicalAxis::Block, aWM,
