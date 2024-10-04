@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-10-02T16:01:22.525107+00:00'
+updated_at: '2024-10-03T08:17:40.248312+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -4276,11 +4276,11 @@ modules:
           - toolkit/profile/**/*
           - toolkit/components/remote/**/*
           - toolkit/xre/**/*
-        meta: {}
         owners:
           - *mossop
-        peers:
-          - *froydnj
+        meta:
+          peers_emeritus:
+            - *froydnj
         machine_name: application_startup
 
       - name: Telemetry
@@ -4439,5 +4439,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: d230aac53a99098a219aff7776a1eb269ff6fa26
-  export: 8879d093cdfcf74d478a2af9a135791b625ca5fd
+  config: a6a7a8823e67e62d8df73e6f68b5421f0c9ff65f
+  export: 9ca8b3d4e1ab12713bf13df06cc1e18d2ba459b3
