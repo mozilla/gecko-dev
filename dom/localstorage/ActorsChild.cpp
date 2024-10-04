@@ -13,9 +13,11 @@
 #include "LocalStorageCommon.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Result.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/LSValue.h"
 #include "mozilla/dom/Storage.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
+#include "mozilla/dom/quota/ThreadUtils.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "nsCOMPtr.h"
 
@@ -212,6 +214,9 @@ mozilla::ipc::IPCResult LSRequestChild::RecvReady() {
   AssertIsOnOwningThread();
 
   mFinishing = true;
+
+  quota::SleepIfEnabled(
+      StaticPrefs::dom_storage_requestFinalization_pauseOnDOMFileThreadMs());
 
   // We only expect this to return false if the channel has been closed, but
   // PBackground's channel never gets shutdown.

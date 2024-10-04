@@ -4338,6 +4338,12 @@
   value: 0
   mirror: always
 
+# A pref that is used to slow down request finalization for testing purposes.
+- name: dom.storage.requestFinalization.pauseOnDOMFileThreadMs
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
 # For area and anchor elements with target=_blank and no rel set to
 # opener/noopener.
 - name: dom.targetBlankNoOpener.enabled
