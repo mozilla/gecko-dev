@@ -206,11 +206,15 @@ nsIFrame* SelectionMovementUtils::GetFrameForNodeOffset(
     return nullptr;
   }
 
-  nsIFrame* returnFrame = nullptr;
+  nsIFrame *returnFrame = nullptr, *lastFrame = aNode->GetPrimaryFrame();
   nsCOMPtr<nsIContent> theNode;
-  uint32_t offsetInFrameContent;
+  uint32_t offsetInFrameContent, offsetInLastFrameContent = 0;
 
   while (true) {
+    if (returnFrame) {
+      lastFrame = returnFrame;
+      offsetInLastFrameContent = offsetInFrameContent;
+    }
     offsetInFrameContent = aOffset;
 
     theNode = aNode;
@@ -322,7 +326,11 @@ nsIFrame* SelectionMovementUtils::GetFrameForNodeOffset(
   }  // end while
 
   if (!returnFrame) {
-    return nullptr;
+    if (!lastFrame) {
+      return nullptr;
+    }
+    returnFrame = lastFrame;
+    offsetInFrameContent = offsetInLastFrameContent;
   }
 
   // If we ended up here and were asked to position the caret after a visible
