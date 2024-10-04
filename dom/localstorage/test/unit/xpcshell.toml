@@ -83,6 +83,8 @@ support-files = ["migration_emptyValue_profile.zip",]
 
 ["test_preloading.js"]
 
+["test_requestFinalizationStarted.js"]
+
 ["test_schema3upgrade.js"]
 
 ["test_schema4upgrade.js"]

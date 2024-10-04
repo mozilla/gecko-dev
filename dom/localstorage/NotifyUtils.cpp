@@ -19,4 +19,13 @@ void NotifyDatabaseWorkStarted() {
   quota::NotifyObserversOnMainThread("LocalStorage::DatabaseWorkStarted");
 }
 
+void NotifyRequestFinalizationStarted() {
+  if (!StaticPrefs::dom_storage_testing()) {
+    return;
+  }
+
+  quota::NotifyObserversOnMainThread(
+      "LocalStorage::RequestFinalizationStarted");
+}
+
 }  // namespace mozilla::dom::localstorage

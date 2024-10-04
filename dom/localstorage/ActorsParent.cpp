@@ -6372,6 +6372,8 @@ nsresult LSRequestBase::SendReadyMessageInternal() {
     return NS_ERROR_FAILURE;
   }
 
+  localstorage::NotifyRequestFinalizationStarted();
+
   mState = State::WaitingForFinish;
 
   mWaitingForFinish = true;
