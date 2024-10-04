@@ -293,8 +293,6 @@
     <string name="preferences_override_sync_tokenserver">అభిమత సింక్ సర్వరు</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">ఖాతా</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">పనిముట్ల పట్టీ</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">అలంకారం</string>
     <!-- Preference for customizing the home screen -->
@@ -413,7 +411,7 @@
     <string name="fxa_received_tab_channel_name">అందుకన్న ట్యాబులు</string>
 
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">ఇతర Firefox పరికరాల నుంచి వచ్చిన ట్యాబుల గమనింపులు.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">ఇతర Firefox పరికరాల నుంచి వచ్చిన ట్యాబుల గమనింపులు.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">ట్యాబు వచ్చింది</string>
     <!-- %s is the device name -->
@@ -621,7 +619,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">సేకరణ పేరు</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">పేరుమార్చు</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">పేరుమార్చు</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">తీసివేయి</string>
 
@@ -683,6 +681,9 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">ట్యాబును పునరుద్ధరించు</string>
 
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">మూసివేయి</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">మీరు నిజంగానే ఈ సంచయాన్ని తొలగించాలనుకుంటున్నారా?</string>
@@ -726,6 +727,8 @@
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">పేరు</string>
 
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">పేరు</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">సంచయం చేర్చు</string>
     <!-- Bookmark select folder screen title -->
@@ -901,7 +904,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">మరొక పరికరాన్ని అనుసంధానించు</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">ట్యాబును పంపడానికి, కనీసం మరొక పరికరంలో Firefox లోనికి ప్రవేశించండి.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">ట్యాబును పంపడానికి, కనీసం మరొక పరికరంలో Firefox లోనికి ప్రవేశించండి.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">అర్థమైంది</string>
     <!-- Share error message -->
@@ -1045,7 +1048,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">కోడును స్కాను చేయండి</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[మీ కంప్యూటర్‌లో Firefox తెరిచి <b>https://firefox.com/pair</b>కు వెళ్లండి]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[మీ కంప్యూటర్‌లో Firefox తెరిచి <b>https://firefox.com/pair</b>కు వెళ్లండి]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">స్కాన్ చేయడానికి సిద్ధంగా ఉంది</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1053,7 +1056,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">లేదా ఈమెయిలు వాడండి</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[ఖాతా లేదా? Firefoxను పరికరాల మధ్య సమకాలీకరించడానికి <u>ఒక ఖాతాను సృష్టించుకోండి</u>.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[ఖాతా లేదా? Firefoxను పరికరాల మధ్య సమకాలీకరించడానికి <u>ఒక ఖాతాను సృష్టించుకోండి</u>.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s మీ ఖాతాను సింక్రనించడం ఆపివేస్తుంది, కానీ ఈ పరికరంలోని మీ విహరణ డేటాను తొలగించదు.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1418,7 +1421,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">దయచేసి ట్యాబు సింకింగును చేతనం చేయండి.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">మీ ఇతర పరికరాల్లో తెరిచివున్న Firefox ట్యాబులు ఏమీ లేవు.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">మీ ఇతర పరికరాల్లో తెరిచివున్న Firefox ట్యాబులు ఏమీ లేవు.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">మీ ఇతర పరికరాల నుండి ట్యాబుల జాబితాను చూడండి.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -1433,12 +1436,15 @@
     <!-- Title text displayed in the rename top site dialog. -->
     <string name="top_sites_rename_dialog_title">పేరు</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">సరే</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">సరే</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">రద్దుచేయి</string>
 
     <!-- Text for the menu button to open the homepage settings. -->
     <string name="top_sites_menu_settings">అమరికలు</string>
+
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">భద్రపరుచు</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
@@ -1478,7 +1484,7 @@
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ఇప్పుడు కాదు</string>
 
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
     <string name="review_quality_check_highlights_show_less">కొన్నే చూపించు</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->
@@ -1536,5 +1542,26 @@
     <string name="download_languages_available_languages_preference">అందుబాటులో ఉన్న భాషలు</string>
 
     <!-- Micro survey -->
+
+    <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
+    <string name="download_languages_item_content_description_downloaded_state">తొలగించు</string>
+
+    <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
+    <string name="delete_language_file_dialog_positive_button_text">తొలగించు</string>
+    <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
+    <string name="delete_language_file_dialog_negative_button_text">రద్దుచేయి</string>
+
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">అవును</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">కాదు</string>
+
+    <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
+    <string name="download_language_file_dialog_negative_button_text">రద్దుచేయి</string>
+
+    <!-- The continue button label -->
+    <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">కొనసాగించు</string>
+    <!-- Content description for "X" button that is closing microsurvey. -->
+    <string name="microsurvey_close_button_content_description">మూసివేయి</string>
 
     </resources>

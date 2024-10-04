@@ -1124,7 +1124,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">A teljes képernyőből való kilépéshez húzza le felülről, és használja a Vissza gesztust</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">A teljes képernyőből való kilépéshez húzza le felülről, és használja a Vissza gesztust</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">A teljes képernyőből való kilépéshez húzza le felülről, és nyomja meg a Vissza gombot</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">A teljes képernyőből való kilépéshez húzza le felülről, és nyomja meg a Vissza gombot</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Húzza felülről és használja a vissza gesztust a kilépéshez</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Húzza felülről és nyomja meg a vissza gombot a kilépéshez</string>
 </resources>
