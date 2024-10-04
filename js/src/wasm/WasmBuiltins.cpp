@@ -88,331 +88,334 @@ static const unsigned BUILTIN_THUNK_LIFO_SIZE = 64 * 1024;
 namespace js {
 namespace wasm {
 
-const SymbolicAddressSignature SASigSinNativeD = {
+constexpr SymbolicAddressSignature SASigSinNativeD = {
     SymbolicAddress::SinNativeD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigSinFdlibmD = {
+constexpr SymbolicAddressSignature SASigSinFdlibmD = {
     SymbolicAddress::SinFdlibmD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigCosNativeD = {
+constexpr SymbolicAddressSignature SASigCosNativeD = {
     SymbolicAddress::CosNativeD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigCosFdlibmD = {
+constexpr SymbolicAddressSignature SASigCosFdlibmD = {
     SymbolicAddress::CosFdlibmD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigTanNativeD = {
+constexpr SymbolicAddressSignature SASigTanNativeD = {
     SymbolicAddress::TanNativeD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigTanFdlibmD = {
+constexpr SymbolicAddressSignature SASigTanFdlibmD = {
     SymbolicAddress::TanFdlibmD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigASinD = {
+constexpr SymbolicAddressSignature SASigASinD = {
     SymbolicAddress::ASinD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigACosD = {
+constexpr SymbolicAddressSignature SASigACosD = {
     SymbolicAddress::ACosD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigATanD = {
+constexpr SymbolicAddressSignature SASigATanD = {
     SymbolicAddress::ATanD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigCeilD = {
+constexpr SymbolicAddressSignature SASigCeilD = {
     SymbolicAddress::CeilD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigCeilF = {
+constexpr SymbolicAddressSignature SASigCeilF = {
     SymbolicAddress::CeilF, _F32, _Infallible, 1, {_F32, _END}};
-const SymbolicAddressSignature SASigFloorD = {
+constexpr SymbolicAddressSignature SASigFloorD = {
     SymbolicAddress::FloorD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigFloorF = {
+constexpr SymbolicAddressSignature SASigFloorF = {
     SymbolicAddress::FloorF, _F32, _Infallible, 1, {_F32, _END}};
-const SymbolicAddressSignature SASigTruncD = {
+constexpr SymbolicAddressSignature SASigTruncD = {
     SymbolicAddress::TruncD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigTruncF = {
+constexpr SymbolicAddressSignature SASigTruncF = {
     SymbolicAddress::TruncF, _F32, _Infallible, 1, {_F32, _END}};
-const SymbolicAddressSignature SASigNearbyIntD = {
+constexpr SymbolicAddressSignature SASigNearbyIntD = {
     SymbolicAddress::NearbyIntD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigNearbyIntF = {
+constexpr SymbolicAddressSignature SASigNearbyIntF = {
     SymbolicAddress::NearbyIntF, _F32, _Infallible, 1, {_F32, _END}};
-const SymbolicAddressSignature SASigExpD = {
+constexpr SymbolicAddressSignature SASigExpD = {
     SymbolicAddress::ExpD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigLogD = {
+constexpr SymbolicAddressSignature SASigLogD = {
     SymbolicAddress::LogD, _F64, _Infallible, 1, {_F64, _END}};
-const SymbolicAddressSignature SASigPowD = {
+constexpr SymbolicAddressSignature SASigPowD = {
     SymbolicAddress::PowD, _F64, _Infallible, 2, {_F64, _F64, _END}};
-const SymbolicAddressSignature SASigATan2D = {
+constexpr SymbolicAddressSignature SASigATan2D = {
     SymbolicAddress::ATan2D, _F64, _Infallible, 2, {_F64, _F64, _END}};
-const SymbolicAddressSignature SASigMemoryGrowM32 = {
+constexpr SymbolicAddressSignature SASigMemoryGrowM32 = {
     SymbolicAddress::MemoryGrowM32,
     _I32,
     _Infallible,
     3,
     {_PTR, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigMemoryGrowM64 = {
+constexpr SymbolicAddressSignature SASigMemoryGrowM64 = {
     SymbolicAddress::MemoryGrowM64,
     _I64,
     _Infallible,
     3,
     {_PTR, _I64, _I32, _END}};
-const SymbolicAddressSignature SASigMemorySizeM32 = {
+constexpr SymbolicAddressSignature SASigMemorySizeM32 = {
     SymbolicAddress::MemorySizeM32, _I32, _Infallible, 2, {_PTR, _I32, _END}};
-const SymbolicAddressSignature SASigMemorySizeM64 = {
+constexpr SymbolicAddressSignature SASigMemorySizeM64 = {
     SymbolicAddress::MemorySizeM64, _I64, _Infallible, 2, {_PTR, _I32, _END}};
-const SymbolicAddressSignature SASigWaitI32M32 = {
+constexpr SymbolicAddressSignature SASigWaitI32M32 = {
     SymbolicAddress::WaitI32M32,
     _I32,
     _FailOnNegI32,
     5,
     {_PTR, _I32, _I32, _I64, _I32, _END}};
-const SymbolicAddressSignature SASigWaitI32M64 = {
+constexpr SymbolicAddressSignature SASigWaitI32M64 = {
     SymbolicAddress::WaitI32M64,
     _I32,
     _FailOnNegI32,
     5,
     {_PTR, _I64, _I32, _I64, _I32, _END}};
-const SymbolicAddressSignature SASigWaitI64M32 = {
+constexpr SymbolicAddressSignature SASigWaitI64M32 = {
     SymbolicAddress::WaitI64M32,
     _I32,
     _FailOnNegI32,
     5,
     {_PTR, _I32, _I64, _I64, _I32, _END}};
-const SymbolicAddressSignature SASigWaitI64M64 = {
+constexpr SymbolicAddressSignature SASigWaitI64M64 = {
     SymbolicAddress::WaitI64M64,
     _I32,
     _FailOnNegI32,
     5,
     {_PTR, _I64, _I64, _I64, _I32, _END}};
-const SymbolicAddressSignature SASigWakeM32 = {SymbolicAddress::WakeM32,
-                                               _I32,
-                                               _FailOnNegI32,
-                                               4,
-                                               {_PTR, _I32, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigWakeM64 = {SymbolicAddress::WakeM64,
-                                               _I32,
-                                               _FailOnNegI32,
-                                               4,
-                                               {_PTR, _I64, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigMemCopyM32 = {
+constexpr SymbolicAddressSignature SASigWakeM32 = {
+    SymbolicAddress::WakeM32,
+    _I32,
+    _FailOnNegI32,
+    4,
+    {_PTR, _I32, _I32, _I32, _END}};
+constexpr SymbolicAddressSignature SASigWakeM64 = {
+    SymbolicAddress::WakeM64,
+    _I32,
+    _FailOnNegI32,
+    4,
+    {_PTR, _I64, _I32, _I32, _END}};
+constexpr SymbolicAddressSignature SASigMemCopyM32 = {
     SymbolicAddress::MemCopyM32,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I32, _I32, _I32, _PTR, _END}};
-const SymbolicAddressSignature SASigMemCopySharedM32 = {
+constexpr SymbolicAddressSignature SASigMemCopySharedM32 = {
     SymbolicAddress::MemCopySharedM32,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I32, _I32, _I32, _PTR, _END}};
-const SymbolicAddressSignature SASigMemCopyM64 = {
+constexpr SymbolicAddressSignature SASigMemCopyM64 = {
     SymbolicAddress::MemCopyM64,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I64, _I64, _I64, _PTR, _END}};
-const SymbolicAddressSignature SASigMemCopySharedM64 = {
+constexpr SymbolicAddressSignature SASigMemCopySharedM64 = {
     SymbolicAddress::MemCopySharedM64,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I64, _I64, _I64, _PTR, _END}};
-const SymbolicAddressSignature SASigMemCopyAny = {
+constexpr SymbolicAddressSignature SASigMemCopyAny = {
     SymbolicAddress::MemCopyAny,
     _VOID,
     _FailOnNegI32,
     6,
     {_PTR, _I64, _I64, _I64, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigDataDrop = {
+constexpr SymbolicAddressSignature SASigDataDrop = {
     SymbolicAddress::DataDrop, _VOID, _FailOnNegI32, 2, {_PTR, _I32, _END}};
-const SymbolicAddressSignature SASigMemFillM32 = {
+constexpr SymbolicAddressSignature SASigMemFillM32 = {
     SymbolicAddress::MemFillM32,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I32, _I32, _I32, _PTR, _END}};
-const SymbolicAddressSignature SASigMemFillSharedM32 = {
+constexpr SymbolicAddressSignature SASigMemFillSharedM32 = {
     SymbolicAddress::MemFillSharedM32,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I32, _I32, _I32, _PTR, _END}};
-const SymbolicAddressSignature SASigMemFillM64 = {
+constexpr SymbolicAddressSignature SASigMemFillM64 = {
     SymbolicAddress::MemFillM64,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I64, _I32, _I64, _PTR, _END}};
-const SymbolicAddressSignature SASigMemFillSharedM64 = {
+constexpr SymbolicAddressSignature SASigMemFillSharedM64 = {
     SymbolicAddress::MemFillSharedM64,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I64, _I32, _I64, _PTR, _END}};
-const SymbolicAddressSignature SASigMemDiscardM32 = {
+constexpr SymbolicAddressSignature SASigMemDiscardM32 = {
     SymbolicAddress::MemDiscardM32,
     _VOID,
     _FailOnNegI32,
     4,
     {_PTR, _I32, _I32, _PTR, _END}};
-const SymbolicAddressSignature SASigMemDiscardSharedM32 = {
+constexpr SymbolicAddressSignature SASigMemDiscardSharedM32 = {
     SymbolicAddress::MemDiscardSharedM32,
     _VOID,
     _FailOnNegI32,
     4,
     {_PTR, _I32, _I32, _PTR, _END}};
-const SymbolicAddressSignature SASigMemDiscardM64 = {
+constexpr SymbolicAddressSignature SASigMemDiscardM64 = {
     SymbolicAddress::MemDiscardM64,
     _VOID,
     _FailOnNegI32,
     4,
     {_PTR, _I64, _I64, _PTR, _END}};
-const SymbolicAddressSignature SASigMemDiscardSharedM64 = {
+constexpr SymbolicAddressSignature SASigMemDiscardSharedM64 = {
     SymbolicAddress::MemDiscardSharedM64,
     _VOID,
     _FailOnNegI32,
     4,
     {_PTR, _I64, _I64, _PTR, _END}};
-const SymbolicAddressSignature SASigMemInitM32 = {
+constexpr SymbolicAddressSignature SASigMemInitM32 = {
     SymbolicAddress::MemInitM32,
     _VOID,
     _FailOnNegI32,
     6,
     {_PTR, _I32, _I32, _I32, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigMemInitM64 = {
+constexpr SymbolicAddressSignature SASigMemInitM64 = {
     SymbolicAddress::MemInitM64,
     _VOID,
     _FailOnNegI32,
     6,
     {_PTR, _I64, _I32, _I32, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigTableCopy = {
+constexpr SymbolicAddressSignature SASigTableCopy = {
     SymbolicAddress::TableCopy,
     _VOID,
     _FailOnNegI32,
     6,
     {_PTR, _I32, _I32, _I32, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigElemDrop = {
+constexpr SymbolicAddressSignature SASigElemDrop = {
     SymbolicAddress::ElemDrop, _VOID, _FailOnNegI32, 2, {_PTR, _I32, _END}};
-const SymbolicAddressSignature SASigTableFill = {
+constexpr SymbolicAddressSignature SASigTableFill = {
     SymbolicAddress::TableFill,
     _VOID,
     _FailOnNegI32,
     5,
     {_PTR, _I32, _RoN, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigTableGet = {SymbolicAddress::TableGet,
-                                                _RoN,
-                                                _FailOnInvalidRef,
-                                                3,
-                                                {_PTR, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigTableGrow = {
+constexpr SymbolicAddressSignature SASigTableGet = {SymbolicAddress::TableGet,
+                                                    _RoN,
+                                                    _FailOnInvalidRef,
+                                                    3,
+                                                    {_PTR, _I32, _I32, _END}};
+constexpr SymbolicAddressSignature SASigTableGrow = {
     SymbolicAddress::TableGrow,
     _I32,
     _Infallible,
     4,
     {_PTR, _RoN, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigTableInit = {
+constexpr SymbolicAddressSignature SASigTableInit = {
     SymbolicAddress::TableInit,
     _VOID,
     _FailOnNegI32,
     6,
     {_PTR, _I32, _I32, _I32, _I32, _I32, _END}};
-const SymbolicAddressSignature SASigTableSet = {SymbolicAddress::TableSet,
-                                                _VOID,
-                                                _FailOnNegI32,
-                                                4,
-                                                {_PTR, _I32, _RoN, _I32, _END}};
-const SymbolicAddressSignature SASigTableSize = {
+constexpr SymbolicAddressSignature SASigTableSet = {
+    SymbolicAddress::TableSet,
+    _VOID,
+    _FailOnNegI32,
+    4,
+    {_PTR, _I32, _RoN, _I32, _END}};
+constexpr SymbolicAddressSignature SASigTableSize = {
     SymbolicAddress::TableSize, _I32, _Infallible, 2, {_PTR, _I32, _END}};
-const SymbolicAddressSignature SASigRefFunc = {
+constexpr SymbolicAddressSignature SASigRefFunc = {
     SymbolicAddress::RefFunc, _RoN, _FailOnInvalidRef, 2, {_PTR, _I32, _END}};
-const SymbolicAddressSignature SASigPostBarrier = {
+constexpr SymbolicAddressSignature SASigPostBarrier = {
     SymbolicAddress::PostBarrier, _VOID, _Infallible, 2, {_PTR, _PTR, _END}};
-const SymbolicAddressSignature SASigPostBarrierPrecise = {
+constexpr SymbolicAddressSignature SASigPostBarrierPrecise = {
     SymbolicAddress::PostBarrierPrecise,
     _VOID,
     _Infallible,
     3,
     {_PTR, _PTR, _RoN, _END}};
-const SymbolicAddressSignature SASigPostBarrierPreciseWithOffset = {
+constexpr SymbolicAddressSignature SASigPostBarrierPreciseWithOffset = {
     SymbolicAddress::PostBarrierPreciseWithOffset,
     _VOID,
     _Infallible,
     4,
     {_PTR, _PTR, _I32, _RoN, _END}};
-const SymbolicAddressSignature SASigExceptionNew = {
+constexpr SymbolicAddressSignature SASigExceptionNew = {
     SymbolicAddress::ExceptionNew, _RoN, _FailOnNullPtr, 2, {_PTR, _RoN, _END}};
-const SymbolicAddressSignature SASigThrowException = {
+constexpr SymbolicAddressSignature SASigThrowException = {
     SymbolicAddress::ThrowException,
     _VOID,
     _FailOnNegI32,
     2,
     {_PTR, _RoN, _END}};
-const SymbolicAddressSignature SASigStructNewIL_true = {
+constexpr SymbolicAddressSignature SASigStructNewIL_true = {
     SymbolicAddress::StructNewIL_true,
     _RoN,
     _FailOnNullPtr,
     2,
     {_PTR, _PTR, _END}};
-const SymbolicAddressSignature SASigStructNewIL_false = {
+constexpr SymbolicAddressSignature SASigStructNewIL_false = {
     SymbolicAddress::StructNewIL_false,
     _RoN,
     _FailOnNullPtr,
     2,
     {_PTR, _PTR, _END}};
-const SymbolicAddressSignature SASigStructNewOOL_true = {
+constexpr SymbolicAddressSignature SASigStructNewOOL_true = {
     SymbolicAddress::StructNewOOL_true,
     _RoN,
     _FailOnNullPtr,
     2,
     {_PTR, _PTR, _END}};
-const SymbolicAddressSignature SASigStructNewOOL_false = {
+constexpr SymbolicAddressSignature SASigStructNewOOL_false = {
     SymbolicAddress::StructNewOOL_false,
     _RoN,
     _FailOnNullPtr,
     2,
     {_PTR, _PTR, _END}};
-const SymbolicAddressSignature SASigArrayNew_true = {
+constexpr SymbolicAddressSignature SASigArrayNew_true = {
     SymbolicAddress::ArrayNew_true,
     _RoN,
     _FailOnNullPtr,
     3,
     {_PTR, _I32, _PTR, _END}};
-const SymbolicAddressSignature SASigArrayNew_false = {
+constexpr SymbolicAddressSignature SASigArrayNew_false = {
     SymbolicAddress::ArrayNew_false,
     _RoN,
     _FailOnNullPtr,
     3,
     {_PTR, _I32, _PTR, _END}};
-const SymbolicAddressSignature SASigArrayNewData = {
+constexpr SymbolicAddressSignature SASigArrayNewData = {
     SymbolicAddress::ArrayNewData,
     _RoN,
     _FailOnNullPtr,
     5,
     {_PTR, _I32, _I32, _PTR, _I32, _END}};
-const SymbolicAddressSignature SASigArrayNewElem = {
+constexpr SymbolicAddressSignature SASigArrayNewElem = {
     SymbolicAddress::ArrayNewElem,
     _RoN,
     _FailOnNullPtr,
     5,
     {_PTR, _I32, _I32, _PTR, _I32, _END}};
-const SymbolicAddressSignature SASigArrayInitData = {
+constexpr SymbolicAddressSignature SASigArrayInitData = {
     SymbolicAddress::ArrayInitData,
     _VOID,
     _FailOnNegI32,
     7,
     {_PTR, _RoN, _I32, _I32, _I32, _PTR, _I32, _END}};
-const SymbolicAddressSignature SASigArrayInitElem = {
+constexpr SymbolicAddressSignature SASigArrayInitElem = {
     SymbolicAddress::ArrayInitElem,
     _VOID,
     _FailOnNegI32,
     7,
     {_PTR, _RoN, _I32, _I32, _I32, _PTR, _I32, _END}};
-const SymbolicAddressSignature SASigArrayCopy = {
+constexpr SymbolicAddressSignature SASigArrayCopy = {
     SymbolicAddress::ArrayCopy,
     _VOID,
     _FailOnNegI32,
     7,
     {_PTR, _RoN, _I32, _RoN, _I32, _I32, _I32, _END}};
 
-#define VISIT_BUILTIN_FUNC(op, export, sa_name, ...)   \
-  const SymbolicAddressSignature SASig##sa_name = {    \
-      SymbolicAddress::sa_name,                        \
-      DECLARE_BUILTIN_MODULE_FUNC_RESULT_MIRTYPE_##op, \
-      DECLARE_BUILTIN_MODULE_FUNC_FAILMODE_##op,       \
+#define VISIT_BUILTIN_FUNC(op, export, sa_name, ...)    \
+  constexpr SymbolicAddressSignature SASig##sa_name = { \
+      SymbolicAddress::sa_name,                         \
+      DECLARE_BUILTIN_MODULE_FUNC_RESULT_MIRTYPE_##op,  \
+      DECLARE_BUILTIN_MODULE_FUNC_FAILMODE_##op,        \
       DECLARE_BUILTIN_MODULE_FUNC_PARAM_MIRTYPES_##op};
 
 FOR_EACH_BUILTIN_MODULE_FUNC(VISIT_BUILTIN_FUNC)
 #undef VISIT_BUILTIN_FUNC
 
 #ifdef ENABLE_WASM_JSPI
-const SymbolicAddressSignature SASigUpdateSuspenderState = {
+constexpr SymbolicAddressSignature SASigUpdateSuspenderState = {
     SymbolicAddress::UpdateSuspenderState,
     _VOID,
     _Infallible,
