@@ -12,7 +12,6 @@
 #include <sstream>
 
 #include "base/command_line.h"
-#include "base/compiler_specific.h"
 #include "base/logging.h"
 #include "base/process.h"
 #include "base/process_util.h"
