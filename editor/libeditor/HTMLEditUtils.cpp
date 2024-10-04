@@ -22,6 +22,7 @@
 #include "mozilla/RangeUtils.h"           // for RangeUtils
 #include "mozilla/dom/DocumentInlines.h"  // for GetBodyElement()
 #include "mozilla/dom/Element.h"          // for Element, nsINode
+#include "mozilla/dom/ElementInlines.h"  // for IsContentEditablePlainTextOnly()
 #include "mozilla/dom/HTMLAnchorElement.h"
 #include "mozilla/dom/HTMLBodyElement.h"
 #include "mozilla/dom/HTMLInputElement.h"
@@ -1076,6 +1077,13 @@ bool HTMLEditUtils::ShouldInsertLinefeedCharacter(
 
   if (!aPointToInsert.IsInContentNode()) {
     return false;
+  }
+
+  // If in contenteditable=plaintext-only, we should use linefeed when it's
+  // preformatted.
+  if (aEditingHost.IsContentEditablePlainTextOnly()) {
+    return EditorUtils::IsNewLinePreformatted(
+        *aPointToInsert.ContainerAs<nsIContent>());
   }
 
   // closestEditableBlockElement can be nullptr if aEditingHost is an inline

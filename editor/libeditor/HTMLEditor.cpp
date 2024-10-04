@@ -1426,12 +1426,25 @@ nsresult HTMLEditor::HandleKeyPressEvent(WidgetKeyboardEvent* aKeyboardEvent) {
                            "EditorBase::OnInputText(\\t) failed");
       return EditorBase::ToGenericNSResult(rv);
     }
-    case NS_VK_RETURN:
+    case NS_VK_RETURN: {
       if (!aKeyboardEvent->IsInputtingLineBreak()) {
         return NS_OK;
       }
-      aKeyboardEvent->PreventDefault();  // consumed
-      if (aKeyboardEvent->IsShift()) {
+      // Anyway consume the event even if we cannot handle it actually because
+      // we've already checked whether the an editing host has focus.
+      aKeyboardEvent->PreventDefault();
+      const RefPtr<Element> editingHost =
+          ComputeEditingHost(LimitInBodyElement::No);
+      if (NS_WARN_IF(!editingHost)) {
+        return NS_ERROR_UNEXPECTED;
+      }
+      // Shift + Enter should insert a <br> or a LF instead of splitting current
+      // paragraph.  Additionally, if we're in plaintext-only mode, we should
+      // do so because Chrome does so, but execCommand("insertParagraph") keeps
+      // working as contenteditable=true.  So, we cannot redirect in
+      // InsertParagraphSeparatorAsAction().
+      if (aKeyboardEvent->IsShift() ||
+          editingHost->IsContentEditablePlainTextOnly()) {
         // Only inserts a <br> element.
         nsresult rv = InsertLineBreakAsAction();
         NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
@@ -1444,6 +1457,7 @@ nsresult HTMLEditor::HandleKeyPressEvent(WidgetKeyboardEvent* aKeyboardEvent) {
           NS_SUCCEEDED(rv),
           "HTMLEditor::InsertParagraphSeparatorAsAction() failed");
       return EditorBase::ToGenericNSResult(rv);
+    }
   }
 
   if (!aKeyboardEvent->IsInputtingText()) {
