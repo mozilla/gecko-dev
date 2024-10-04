@@ -580,17 +580,15 @@ VectorImage::GetIntrinsicSize(nsSize* aSize) {
 }
 
 //******************************************************************************
-Maybe<AspectRatio> VectorImage::GetIntrinsicRatio() {
+AspectRatio VectorImage::GetIntrinsicRatio() {
   if (mError || !mIsFullyLoaded) {
-    return Nothing();
+    return {};
   }
-
   nsIFrame* rootFrame = mSVGDocumentWrapper->GetRootLayoutFrame();
   if (!rootFrame) {
-    return Nothing();
+    return {};
   }
-
-  return Some(rootFrame->GetIntrinsicRatio());
+  return rootFrame->GetIntrinsicRatio();
 }
 
 NS_IMETHODIMP_(Orientation)

@@ -21,9 +21,12 @@ webidl Document;
 #include "limits.h"
 
 class gfxContext;
+class nsIFrame;
 
 namespace mozilla {
-struct AspectRatio;
+class TimeStamp;
+class SVGImageContext;
+struct MediaFeatureChange;
 
 namespace gfx {
 class SourceSurface;
@@ -33,31 +36,19 @@ class WindowRenderer;
 namespace layers {
 class ImageContainer;
 }
-}
 
-class nsIFrame;
-
-namespace mozilla {
-class TimeStamp;
-class SVGImageContext;
-struct MediaFeatureChange;
-}
-
-namespace mozilla {
 namespace image {
-
 class ImageRegion;
 class ImageIntRegion;
 class WebRenderImageProvider;
 struct Orientation;
 struct Resolution;
-
 }
 }
 
 %}
 
-native MaybeAspectRatio(mozilla::Maybe<mozilla::AspectRatio>);
+native AspectRatio(mozilla::AspectRatio);
 native ImgDrawResult(mozilla::image::ImgDrawResult);
 [ptr] native gfxContext(gfxContext);
 [ref] native gfxMatrix(gfxMatrix);
@@ -115,10 +106,11 @@ interface imgIContainer : nsISupports
   [noscript] readonly attribute nsSize intrinsicSize;
 
   /**
-   * The (dimensionless) intrinsic ratio of this image. In the case of any
-   * error, Nothing() will be returned.
+   * The (dimensionless) intrinsic ratio of this image. Might return a
+   * degenerate ratio (one that returns 'false' when coerced to a bool)
+   * if the image is in an error state, or there's no ratio.
    */
-  [notxpcom, nostdcall] readonly attribute MaybeAspectRatio intrinsicRatio;
+  [notxpcom, nostdcall] readonly attribute AspectRatio intrinsicRatio;
 
   /**
    * The x coordinate of the image's hotspot, or 0 if there is no hotspot.
