@@ -11,8 +11,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Surface
@@ -54,7 +58,7 @@ fun TopSites(
     Row(
         modifier = Modifier
             .padding(horizontal = 10.dp)
-            .size(width = 324.dp, height = 84.dp),
+            .size(width = 324.dp, height = 86.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(28.dp),
     ) {
@@ -102,14 +106,16 @@ private fun TopSiteItem(
                     onClick = { onTopSiteClick(topSite) },
                     onLongClick = { menuExpanded = true },
                 )
-                .size(width = 60.dp, height = 84.dp),
+                .width(60.dp)
+                .fillMaxHeight(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TopSiteFaviconCard(topSite = topSite)
 
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = topSite.title ?: topSite.url,
-                modifier = Modifier.padding(top = 8.dp),
                 color = focusColors.topSiteTitle,
                 fontSize = 12.sp,
                 overflow = TextOverflow.Ellipsis,
