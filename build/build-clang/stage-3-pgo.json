@@ -1,0 +1,6 @@
+{
+    "skip_stages": "2",
+    "stages": "3",
+    "pgo": true,
+    "llvm-profdata": "{MOZ_FETCHES_DIR}/clang/bin/llvm-profdata"
+}
