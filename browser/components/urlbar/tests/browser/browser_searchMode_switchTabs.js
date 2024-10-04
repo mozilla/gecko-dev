@@ -293,7 +293,6 @@ async function doUserTypedValueTest(searchString) {
   await UrlbarTestUtils.assertSearchMode(window, {
     source: UrlbarUtils.RESULT_SOURCE.BOOKMARKS,
     entry: "typed",
-    restrictType: "symbol",
   });
   Assert.equal(
     gURLBar.value,
@@ -307,7 +306,6 @@ async function doUserTypedValueTest(searchString) {
   await UrlbarTestUtils.assertSearchMode(window, {
     source: UrlbarUtils.RESULT_SOURCE.BOOKMARKS,
     entry: "typed",
-    restrictType: "symbol",
   });
   Assert.equal(
     gURLBar.value,

@@ -1912,13 +1912,7 @@ export class UrlbarInput {
       }
     }
 
-    let {
-      engineName,
-      source,
-      entry,
-      restrictType,
-      isPreview = true,
-    } = searchMode || {};
+    let { engineName, source, entry, isPreview = true } = searchMode || {};
 
     searchMode = null;
 
@@ -1966,10 +1960,6 @@ export class UrlbarInput {
       }
     } else {
       delete state.searchModes;
-    }
-
-    if (restrictType) {
-      searchMode.restrictType = restrictType;
     }
 
     // Enter search mode if the browser is selected.
@@ -3606,13 +3596,6 @@ export class UrlbarInput {
     }
 
     if (searchMode) {
-      if (result.type == lazy.UrlbarUtils.RESULT_TYPE.RESTRICT) {
-        searchMode.restrictType = "keyword";
-      } else if (
-        lazy.UrlbarTokenizer.SEARCH_MODE_RESTRICT.has(result.payload.keyword)
-      ) {
-        searchMode.restrictType = "symbol";
-      }
       if (entry) {
         searchMode.entry = entry;
       } else {
