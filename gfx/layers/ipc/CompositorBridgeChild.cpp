@@ -364,7 +364,7 @@ bool CompositorBridgeChild::SendFlushRenderingAsync(
   if (!mCanSend) {
     return false;
   }
-  return PCompositorBridgeChild::SendFlushRendering(aReasons);
+  return PCompositorBridgeChild::SendFlushRenderingAsync(aReasons);
 }
 
 void CompositorBridgeChild::SetForceSyncFlushRendering(
