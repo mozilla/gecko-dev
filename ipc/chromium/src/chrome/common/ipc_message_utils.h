@@ -10,20 +10,15 @@
 #include <cstdint>
 #include <iterator>
 #include <map>
-#include <unordered_map>
 #include <string>
 #include <type_traits>
 #include <utility>
-#include <vector>
 #include "ErrorList.h"
-#include "base/basictypes.h"
 #include "base/compiler_specific.h"
 #include "base/logging.h"
 #include "base/pickle.h"
-#include "base/string_util.h"
 #include "chrome/common/ipc_message.h"
 #include "mozilla/CheckedInt.h"
-#include "mozilla/IntegerRange.h"
 
 #if defined(XP_WIN)
 #  include <windows.h>
@@ -473,7 +468,7 @@ inline constexpr auto ParamTraitsReadUsesOutParam()
 }  // namespace detail
 
 template <typename P>
-inline bool WARN_UNUSED_RESULT ReadParam(MessageReader* reader, P* p) {
+[[nodiscard]] inline bool ReadParam(MessageReader* reader, P* p) {
   if constexpr (!detail::ParamTraitsReadUsesOutParam<P>()) {
     auto maybe = ParamTraits<P>::Read(reader);
     if (maybe) {
@@ -487,7 +482,7 @@ inline bool WARN_UNUSED_RESULT ReadParam(MessageReader* reader, P* p) {
 }
 
 template <typename P>
-inline ReadResult<P> WARN_UNUSED_RESULT ReadParam(MessageReader* reader) {
+[[nodiscard]] inline ReadResult<P> ReadParam(MessageReader* reader) {
   if constexpr (!detail::ParamTraitsReadUsesOutParam<P>()) {
     return ParamTraits<P>::Read(reader);
   } else {
@@ -679,8 +674,7 @@ bool ReadSequenceParamImpl(MessageReader* reader, mozilla::Maybe<I>&& data,
  * If the type satisfies kUseWriteBytes, output iterators are not supported.
  */
 template <typename P, typename F>
-bool WARN_UNUSED_RESULT ReadSequenceParam(MessageReader* reader,
-                                          F&& allocator) {
+[[nodiscard]] bool ReadSequenceParam(MessageReader* reader, F&& allocator) {
   uint32_t length = 0;
   if (!reader->ReadUInt32(&length)) {
     reader->FatalError("failed to read byte length in ReadSequenceParam");
