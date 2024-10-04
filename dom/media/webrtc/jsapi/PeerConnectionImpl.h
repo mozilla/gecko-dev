@@ -534,11 +534,6 @@ class PeerConnectionImpl final
     return mTimestampMaker;
   }
 
-  // Utility function, given a string pref and an URI, returns whether or not
-  // the URI occurs in the pref. Wildcards are supported (e.g. *.example.com)
-  // and multiple hostnames can be present, separated by commas.
-  static bool HostnameInPref(const char* aPrefList, const nsCString& aHostName);
-
   void StampTimecard(const char* aEvent);
 
   bool RelayOnly() const {

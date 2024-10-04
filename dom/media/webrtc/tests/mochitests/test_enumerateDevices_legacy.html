@@ -47,12 +47,9 @@ function validateDevice({kind, label, deviceId, groupId}) {
   isnot(groupId, "", "groupId must be present.");
 }
 
-runTest(async () => {
-  await pushPrefs(["media.navigator.streams.fake", true],
-                  ["media.devices.enumerate.legacy.enabled", true]);
+// Validate enumerated devices before gUM (legacy).
 
-  // Validate enumerated devices before gUM (legacy).
-
+async function testLegacyEnumerateDevices() {
   let devices = await navigator.mediaDevices.enumerateDevices();
   ok(devices.length, "At least one device found");
   const jsoned = JSON.parse(JSON.stringify(devices));
@@ -140,7 +137,17 @@ runTest(async () => {
                   ["media.video_loopback_dev", "none"]);
   devices = await navigator.mediaDevices.enumerateDevices();
   is(devices.length, 0, "No devices");
+}
+
+runTest(async () => {
+  await withPrefs([["media.navigator.streams.fake", true],
+                   ["media.devices.enumerate.legacy.allowlist", "example.com,*.example.com"]],
+                  testLegacyEnumerateDevices);
+  await withPrefs([["media.navigator.streams.fake", true],
+                   ["media.devices.enumerate.legacy.enabled", true]],
+                  testLegacyEnumerateDevices);
 });
+
 </script>
 </pre>
 </body>
