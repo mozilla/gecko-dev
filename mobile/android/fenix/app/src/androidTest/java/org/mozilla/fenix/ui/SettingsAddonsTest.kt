@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.ui
 
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
@@ -131,7 +130,6 @@ class SettingsAddonsTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/561594
     @SmokeTest
-    @Ignore("Intermittent test https://bugzilla.mozilla.org/show_bug.cgi?id=1827180")
     @Test
     fun verifyUBlockWorksInPrivateModeTest() {
         TestHelper.appContext.settings().shouldShowCookieBannersCFR = false
