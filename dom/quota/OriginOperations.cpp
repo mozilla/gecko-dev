@@ -2028,10 +2028,7 @@ uint64_t GetCachedOriginUsageOp::GetResolveValue() {
 void GetCachedOriginUsageOp::CloseDirectory() {
   AssertIsOnOwningThread();
 
-  if (mDirectoryLock) {
-    mDirectoryLock->Drop();
-    mDirectoryLock = nullptr;
-  }
+  SafeDropDirectoryLock(mDirectoryLock);
 }
 
 ClearStorageOp::ClearStorageOp(

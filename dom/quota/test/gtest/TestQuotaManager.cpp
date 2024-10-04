@@ -1591,7 +1591,7 @@ TEST_F(TestQuotaManager,
 
     SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
 
-    directoryLock->Drop();
+    DropDirectoryLock(directoryLock);
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
