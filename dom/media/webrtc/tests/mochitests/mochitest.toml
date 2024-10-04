@@ -51,6 +51,10 @@ scheme = "http"
 ["test_enumerateDevices_getUserMediaFake.html"]
 
 ["test_enumerateDevices_legacy.html"]
+support-files = ["testLegacyEnumerateDevices.js"]
+
+["test_enumerateDevices_legacy_allowlist.html"]
+support-files = ["testLegacyEnumerateDevices.js"]
 
 ["test_enumerateDevices_navigation.html"]
 skip-if = ["true"] # Disabled because it is a racy test and causes timeouts, see bug 1650932

@@ -7,11 +7,11 @@
 <body>
 <pre id="test">
 <script type="application/javascript">
-createHTML({ title: "Run enumerateDevices legacy code", bug: "1528042" });
+createHTML({ title: "Run legacy enumerateDevices allowlist", bug: "1908056" });
 
 runTest(async () => {
   await withPrefs([["media.navigator.streams.fake", true],
-                   ["media.devices.enumerate.legacy.enabled", true]],
+                   ["media.devices.enumerate.legacy.allowlist", "example.com,*.example.com"]],
                   testLegacyEnumerateDevices);
 });
 </script>
