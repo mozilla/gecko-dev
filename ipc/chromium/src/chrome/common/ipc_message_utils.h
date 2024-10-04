@@ -14,7 +14,6 @@
 #include <type_traits>
 #include <utility>
 #include "ErrorList.h"
-#include "base/compiler_specific.h"
 #include "base/logging.h"
 #include "base/pickle.h"
 #include "chrome/common/ipc_message.h"

@@ -49,8 +49,8 @@ Channel::ChannelImpl::ChannelImpl(ChannelHandle pipe, Mode mode,
                                   base::ProcessId other_pid)
     : chan_cap_("ChannelImpl::SendMutex",
                 MessageLoopForIO::current()->SerialEventTarget()),
-      ALLOW_THIS_IN_INITIALIZER_LIST(input_state_(this)),
-      ALLOW_THIS_IN_INITIALIZER_LIST(output_state_(this)),
+      input_state_(this),
+      output_state_(this),
       other_pid_(other_pid) {
   Init(mode);
 

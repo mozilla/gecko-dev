@@ -6,7 +6,6 @@
 
 #include <algorithm>
 
-#include "base/compiler_specific.h"
 #include "base/logging.h"
 #include "mojo/core/ports/message_filter.h"
 #include "mozilla/Likely.h"
