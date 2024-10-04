@@ -15,6 +15,7 @@
 #include "SVGGeometryProperty.h"
 #include "SVGPathElement.h"
 #include "SVGRectElement.h"
+#include "nsStyleTransformMatrix.h"
 #include "mozilla/dom/DOMPointBinding.h"
 #include "mozilla/dom/SVGLengthBinding.h"
 #include "mozilla/gfx/2D.h"
@@ -248,9 +249,15 @@ gfx::Matrix SVGGeometryElement::LocalTransform() const {
   if (!f || !f->IsTransformed()) {
     return result;
   }
-  Matrix4x4Flagged matrix = nsDisplayTransform::GetResultingTransformMatrix(
-      f, nsPoint(), f->PresContext()->AppUnitsPerDevPixel(),
-      nsDisplayTransform::INCLUDE_PERSPECTIVE);
+  nsStyleTransformMatrix::TransformReferenceBox refBox(f);
+  const float a2d = f->PresContext()->AppUnitsPerDevPixel();
+  nsDisplayTransform::FrameTransformProperties props(f, refBox, a2d);
+  if (!props.HasTransform()) {
+    return result;
+  }
+  auto matrix = nsStyleTransformMatrix::ReadTransforms(
+      props.mTranslate, props.mRotate, props.mScale,
+      props.mMotion.ptrOr(nullptr), props.mTransform, refBox, a2d);
   if (!matrix.IsIdentity()) {
     std::ignore = matrix.CanDraw2D(&result);
   }
