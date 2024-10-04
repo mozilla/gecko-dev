@@ -43,7 +43,10 @@ async function checkFaviconDataConversion(
   });
   let faviconURI = NetUtil.newURI("http://places.test/icon/" + aFileName);
   let fileData = readFileOfLength(aFileName, aFileLength);
-  let fileDataURL = await fileDataToDataURL(fileData, aFileMimeType);
+  let fileDataURL = await PlacesTestUtils.fileDataToDataURL(
+    fileData,
+    aFileMimeType
+  );
   await PlacesTestUtils.setFaviconForPage(
     pageURI.spec,
     faviconURI.spec,

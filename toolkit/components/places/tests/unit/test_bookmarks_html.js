@@ -232,14 +232,16 @@ add_task(async function test_import_chromefavicon() {
   });
 
   info("Set favicon");
+  let dataURL = await PlacesTestUtils.getFaviconDataURLFromNetwork(
+    CHROME_FAVICON_URI
+  );
   await new Promise(resolve => {
-    PlacesUtils.favicons.setAndFetchFaviconForPage(
+    PlacesUtils.favicons.setFaviconForPage(
       PAGE_URI,
       CHROME_FAVICON_URI,
-      true,
-      PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-      resolve,
-      Services.scriptSecurityManager.getSystemPrincipal()
+      dataURL,
+      null,
+      resolve
     );
   });
 
@@ -266,14 +268,16 @@ add_task(async function test_import_chromefavicon() {
 
   info("Set favicon");
   // Change the favicon to check it's really imported again later.
+  let dataURL_2 = await PlacesTestUtils.getFaviconDataURLFromNetwork(
+    CHROME_FAVICON_URI_2
+  );
   await new Promise(resolve => {
-    PlacesUtils.favicons.setAndFetchFaviconForPage(
+    PlacesUtils.favicons.setFaviconForPage(
       PAGE_URI,
       CHROME_FAVICON_URI_2,
-      true,
-      PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-      resolve,
-      Services.scriptSecurityManager.getSystemPrincipal()
+      dataURL_2,
+      null,
+      resolve
     );
   });
 

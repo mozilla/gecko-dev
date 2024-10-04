@@ -9,21 +9,28 @@ add_task(async function () {
   });
 
   await new Promise(resolve => {
-    function onSetComplete(aURI, aDataLen, aData, aMimeType, aWidth) {
-      equal(aURI.spec, SMALLSVG_DATA_URI.spec, "setFavicon aURI check");
-      equal(aDataLen, 263, "setFavicon aDataLen check");
-      equal(aMimeType, "image/svg+xml", "setFavicon aMimeType check");
-      dump(aWidth);
-      resolve();
-    }
-
-    PlacesUtils.favicons.setAndFetchFaviconForPage(
+    PlacesUtils.favicons.setFaviconForPage(
       PAGEURI,
       SMALLSVG_DATA_URI,
-      false,
-      PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-      onSetComplete,
-      Services.scriptSecurityManager.getSystemPrincipal()
+      SMALLSVG_DATA_URI,
+      null,
+      resolve
+    );
+  });
+
+  await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(
+      PAGEURI,
+      function (aURI, aDataLen, aData, aMimeType) {
+        Assert.equal(
+          aURI.spec,
+          SMALLSVG_DATA_URI.spec,
+          "setFavicon aURI check"
+        );
+        Assert.equal(aDataLen, 263, "setFavicon aDataLen check");
+        Assert.equal(aMimeType, "image/svg+xml", "setFavicon aMimeType check");
+        resolve();
+      }
     );
   });
 
