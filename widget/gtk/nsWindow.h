@@ -258,6 +258,7 @@ class nsWindow final : public nsBaseWidget {
   gboolean OnKeyReleaseEvent(GdkEventKey* aEvent);
 
   void OnScrollEvent(GdkEventScroll* aEvent);
+  void OnSmoothScrollEvent(uint32_t aTime, float aDeltaX, float aDeltaY);
 
   void OnVisibilityNotifyEvent(GdkVisibilityState aState);
   void OnWindowStateEvent(GtkWidget* aWidget, GdkEventWindowState* aEvent);
@@ -902,14 +903,31 @@ class nsWindow final : public nsBaseWidget {
   RefPtr<nsWindow> mWaylandPopupNext;
   RefPtr<nsWindow> mWaylandPopupPrev;
 
-#ifdef MOZ_ENABLE_DBUS
-  RefPtr<mozilla::widget::DBusMenuBar> mDBusMenuBar;
-#endif
-
   // When popup is resized by Gtk by move-to-rect callback,
   // we store final popup size here. Then we use mMoveToRectPopupSize size
   // in following popup operations unless mLayoutPopupSizeCleared is set.
   LayoutDeviceIntSize mMoveToRectPopupSize;
+
+#ifdef MOZ_ENABLE_DBUS
+  RefPtr<mozilla::widget::DBusMenuBar> mDBusMenuBar;
+#endif
+
+  struct LastMouseCoordinates {
+    template <typename Event>
+    void Set(Event* aEvent) {
+      mX = aEvent->x;
+      mY = aEvent->y;
+      mRootX = aEvent->x_root;
+      mRootY = aEvent->y_root;
+    }
+
+    float mX = 0.0f, mY = 0.0f;
+    float mRootX = 0.0f, mRootY = 0.0f;
+  } mLastMouseCoordinates;
+
+  // We don't want to fire scroll event with the same timestamp as
+  // smooth scroll event.
+  guint32 mLastSmoothScrollEventTime = GDK_CURRENT_TIME;
 
   /**
    * |mIMContext| takes all IME related stuff.
