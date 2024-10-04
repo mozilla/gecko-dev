@@ -11,7 +11,7 @@ support-files = [
 ["test_subprocess.js"]
 skip-if = [
   "verify",
-  "apple_silicon", # bug 1729546
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # bug 1729546
 ]
 run-sequentially = "very high failure rate in parallel"
 

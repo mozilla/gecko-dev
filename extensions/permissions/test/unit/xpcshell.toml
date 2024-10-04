@@ -51,7 +51,7 @@ skip-if = ["os == 'android'"] # Android doesn't use places
 
 ["test_permmanager_migrate_4-7_no_history.js"]
 skip-if = [
-  "apple_silicon", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "os == 'android'"
 ]
 

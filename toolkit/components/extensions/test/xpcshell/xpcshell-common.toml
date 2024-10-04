@@ -94,7 +94,8 @@ skip-if = ["appname == 'thunderbird'"]
 skip-if = [
   "appname == 'thunderbird'",
   "os == 'android'", # CP service is disabled on Android
-  "os == 'mac' && debug", # macosx1014/debug due to 1564534
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1564534
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug", # Bug 1564534
 ]
 run-sequentially = "node server exceptions dont replay well"
 
@@ -103,7 +104,8 @@ run-sequentially = "node server exceptions dont replay well"
 skip-if = [
   "appname == 'thunderbird'",
   "os == 'android'", # CP service is disabled on Android,
-  "os == 'mac' && debug", # macosx1014/debug due to 1564534
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1564534
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug", # Bug 1564534
 ]
 run-sequentially = "node server exceptions dont replay well"
 
@@ -121,14 +123,14 @@ skip-if = [
 ["test_ext_contentscript_context.js"]
 skip-if = [
   "tsan", # Bug 1683730
-  "apple_silicon", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "sessionHistoryInParent", # Bug 1762638
 ]
 
 ["test_ext_contentscript_context_isolation.js"]
 skip-if = [
   "tsan", # Bug 1683730
-  "apple_silicon", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "sessionHistoryInParent", # Bug 1762638
 ]
 
@@ -140,7 +142,8 @@ run-sequentially = "very high failure rate in parallel"
 ["test_ext_contentscript_css.js"]
 skip-if = [
   "os == 'linux' && fission", # Bug 1762638
-  "os == 'mac' && debug", # Bug 1762638
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1762638
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug", # Bug 1762638
 ]
 
 ["test_ext_contentscript_dynamic_registration.js"]
@@ -186,7 +189,7 @@ skip-if = [
 requesttimeoutfactor = 3 # deleteDatabase may take several minutes in slow environments, Android (bug 1896262)
 skip-if = [
   "appname == 'thunderbird'",
-  "apple_silicon", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "tsan", # Bug 1683730
 ]
 
@@ -497,7 +500,8 @@ run-sequentially = "very high failure rate in parallel"
 ["test_ext_scripting_contentScripts_css.js"]
 skip-if = [
   "os == 'linux' && debug && fission", # Bug 1762638
-  "os == 'mac' && debug && fission",  # Bug 1762638
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1762638
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug", # Bug 1762638
 ]
 run-sequentially = "very high failure rate in parallel"
 

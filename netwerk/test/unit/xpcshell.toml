@@ -555,7 +555,8 @@ skip-if = ["verify"]
 
 ["test_dns_retry.js"]
 skip-if = [
-  "os == 'mac'", # server on a local ipv6 is not started on mac
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # server on a local ipv6 is not started on mac
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # server on a local ipv6 is not started on mac
   "socketprocess_networking",
 ] # bug 1760106
 run-sequentially = "node server exceptions dont replay well"
@@ -678,7 +679,7 @@ skip-if = [
   "os == 'android'",
   "socketprocess_networking",
   "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-  "apple_silicon", # https://bugzilla.mozilla.org/show_bug.cgi?id=1866067
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1866067
 ]
 run-sequentially = "node server exceptions dont replay well"
 
@@ -806,7 +807,8 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_httpssvc_ech_with_alpn.js"]
 skip-if = [
   "os == 'android'", # bug 1622901
-  "os == 'mac' && !debug",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
   "asan",
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808048
 ]
@@ -823,7 +825,8 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_httpssvc_retry_with_ech.js"]
 skip-if = [
   "os == 'android'", # bug 1622901
-  "os == 'mac' && !debug",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
   "asan",
   "os == 'win'", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808048
 ]
@@ -968,7 +971,7 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_protocolproxyservice.js"]
 skip-if = [
-  "apple_silicon", # bug 1707738
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # bug 1707738
   "tsan && socketprocess_networking", # Bug 1808235
 ]
 
@@ -1099,7 +1102,8 @@ skip-if = ["os != 'win'"]
 
 ["test_socks.js"]
 skip-if = [
-  "os == 'mac' && debug", #Bug 1140656
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", #Bug 1140656
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug", #Bug 1140656
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
 ]
 # Bug 675039: test fails consistently on Android

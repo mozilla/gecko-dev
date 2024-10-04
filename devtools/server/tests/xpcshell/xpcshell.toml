@@ -410,7 +410,7 @@ skip-if = ["true"] # breakpoint sliding is not supported bug 1525685
 ["test_watchpoint-03.js"]
 
 ["test_watchpoint-04.js"]
-skip-if = ["apple_silicon"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64'"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
 
 ["test_watchpoint-05.js"]
 

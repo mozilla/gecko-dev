@@ -3,15 +3,15 @@ tags = "os_integration"
 
 ["test_TaskScheduler.js"]
 skip-if = [
-  "apple_silicon",  # bug 1707753
-  "apple_catalina", # Bug 1713329
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713329
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1707753
 ]
 
 ["test_TaskSchedulerMacOSImpl.js"]
 run-if = ["os == 'mac'"] # Test of macOS backend
 skip-if = [
-  "apple_silicon",  # bug 1707753
-  "apple_catalina", # Bug 1713329
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713329
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1707753
 ]
 
 ["test_TaskSchedulerWinImpl.js"]

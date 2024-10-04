@@ -48,8 +48,8 @@ tags = "addons"
 
 ["test_ModulesPing.js"]
 skip-if = [
-  "apple_silicon",  # bug 1707747
-  "apple_catalina", # Bug 1713329
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713329
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1707747
 ]
 
 ["test_PingAPI.js"]
@@ -165,8 +165,8 @@ skip-if = [
   "tsan",
   "os == 'android'",
   "release_or_beta",
-  "apple_catalina", # Bug 1713329
-  "apple_silicon",  # bug 1707747
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713329
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1707747
   "win11_2009 && bits == 32 && !debug",  # Bug 1781452
   "os == 'linux' && !debug",  # Bug 1781452
 ]

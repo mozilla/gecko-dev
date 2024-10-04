@@ -28,8 +28,8 @@ skip-if = ["socketprocess_networking"] # Bug 1759035
 support-files = ["data/font.woff"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && !debug", # Bug 1760086
-  "apple_silicon", # bug 1729551
-  "apple_catalina && !debug", # Bug 1652119
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1652119
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1729551
   "win10_2009 && bits == 64 && !debug", # Bug 1652119
   "win11_2009 && bits == 64 && !debug", # Bug 1652119
   "socketprocess_networking", # Bug 1759035
