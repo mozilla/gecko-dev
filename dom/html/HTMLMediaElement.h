@@ -14,12 +14,14 @@
 #include "MediaElementEventRunners.h"
 #include "MediaPlaybackDelayPolicy.h"
 #include "MediaPromiseDefs.h"
+#include "MediaTimer.h"
 #include "TelemetryProbesReporter.h"
 #include "nsCycleCollectionParticipant.h"
 #include "Visibility.h"
 #include "mozilla/CORSMode.h"
 #include "DecoderTraits.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/AwakeTimeStamp.h"
 #include "mozilla/StateWatching.h"
 #include "mozilla/WeakPtr.h"
 #include "mozilla/dom/DecoderDoctorNotificationBinding.h"
@@ -879,6 +881,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
 
   void CreateAudioWakeLockIfNeeded();
   void ReleaseAudioWakeLockIfExists();
+  void ReleaseAudioWakeLockInternal();
   RefPtr<WakeLock> mWakeLock;
 
   /**
@@ -1936,6 +1939,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   // It's used to record telemetry probe for WMFCDM playback.
   bool mIsUsingWMFCDM = false;
 #endif
+
+  Maybe<DelayedScheduler<AwakeTimeStamp>> mAudioWakelockReleaseScheduler;
 };
 
 // Check if the context is chrome or has the debugger or tabs permission

@@ -11041,6 +11041,12 @@
   value: true
   mirror: always
 
+# The delay time (ms) before releasing an audio wakelock.
+-   name: media.wakelock.audio.delay-releasing.ms
+    type: RelaxedAtomicUint32
+    value: 10000
+    mirror: always
+
 # When video continues later than the current media time for this period of
 # time, then it will trigger skip-to-next-keyframe mechanism. As this aims to
 # solve the drop frames issue where video decoding too slow for high

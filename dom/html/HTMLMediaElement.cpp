@@ -2379,6 +2379,7 @@ void HTMLMediaElement::ShutdownDecoder() {
 }
 
 void HTMLMediaElement::AbortExistingLoads() {
+  MOZ_ASSERT(NS_IsMainThread());
   // Abort any already-running instance of the resource selection algorithm.
   mLoadWaitStatus = NOT_WAITING;
 
@@ -4766,14 +4767,22 @@ void HTMLMediaElement::UpdateWakeLock() {
 }
 
 void HTMLMediaElement::CreateAudioWakeLockIfNeeded() {
+  MOZ_ASSERT(NS_IsMainThread());
   if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
+    return;
+  }
+  if (mAudioWakelockReleaseScheduler) {
+    LOG(LogLevel::Debug,
+        ("%p Reuse existing audio wakelock, cancel scheduler", this));
+    mAudioWakelockReleaseScheduler->Reset();
+    mAudioWakelockReleaseScheduler.reset();
     return;
   }
   if (!mWakeLock) {
     RefPtr<power::PowerManagerService> pmService =
         power::PowerManagerService::GetInstance();
     NS_ENSURE_TRUE_VOID(pmService);
-
+    LOG(LogLevel::Debug, ("%p creating audio wakelock", this));
     ErrorResult rv;
     mWakeLock = pmService->NewWakeLock(u"audio-playing"_ns,
                                        OwnerDoc()->GetInnerWindow(), rv);
@@ -4781,15 +4790,58 @@ void HTMLMediaElement::CreateAudioWakeLockIfNeeded() {
 }
 
 void HTMLMediaElement::ReleaseAudioWakeLockIfExists() {
+  MOZ_ASSERT(NS_IsMainThread());
   if (mWakeLock) {
-    ErrorResult rv;
-    mWakeLock->Unlock(rv);
-    rv.SuppressException();
-    mWakeLock = nullptr;
+    const uint32_t delayMs =
+        StaticPrefs::media_wakelock_audio_delay_releasing_ms();
+    // Already in shutdown or no delay, release wakelock directly.
+    if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed) ||
+        delayMs == 0) {
+      ReleaseAudioWakeLockInternal();
+      return;
+    }
+    if (mAudioWakelockReleaseScheduler) {
+      return;
+    }
+    LOG(LogLevel::Debug,
+        ("%p Delaying audio wakelock release by %u ms", this, delayMs));
+    AwakeTimeStamp target =
+        AwakeTimeStamp ::Now() + AwakeTimeDuration::FromMilliseconds(delayMs);
+    mAudioWakelockReleaseScheduler.emplace(
+        DelayedScheduler<AwakeTimeStamp>{GetMainThreadSerialEventTarget()});
+    mAudioWakelockReleaseScheduler->Ensure(
+        target,
+        [self = RefPtr<HTMLMediaElement>(this), this]() {
+          mAudioWakelockReleaseScheduler->CompleteRequest();
+          ReleaseAudioWakeLockInternal();
+        },
+        [self = RefPtr<HTMLMediaElement>(this), this]() {
+          LOG(LogLevel::Debug,
+              ("%p Fail to delay audio wakelock releasing?!", this));
+          mAudioWakelockReleaseScheduler->CompleteRequest();
+          ReleaseAudioWakeLockInternal();
+        });
   }
 }
 
-void HTMLMediaElement::WakeLockRelease() { ReleaseAudioWakeLockIfExists(); }
+void HTMLMediaElement::ReleaseAudioWakeLockInternal() {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mAudioWakelockReleaseScheduler) {
+    mAudioWakelockReleaseScheduler->Reset();
+    mAudioWakelockReleaseScheduler.reset();
+  }
+  LOG(LogLevel::Debug, ("%p release audio wakelock", this));
+  ErrorResult rv;
+  mWakeLock->Unlock(rv);
+  rv.SuppressException();
+  mWakeLock = nullptr;
+}
+
+void HTMLMediaElement::WakeLockRelease() {
+  if (mWakeLock) {
+    ReleaseAudioWakeLockInternal();
+  }
+}
 
 void HTMLMediaElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   if (!this->Controls() || !aVisitor.mEvent->mFlags.mIsTrusted) {
