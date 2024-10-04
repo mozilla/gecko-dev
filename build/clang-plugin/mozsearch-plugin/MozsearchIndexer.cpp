@@ -2534,17 +2534,37 @@ public:
   }
 
   void endMacroExpansion() {
-    const auto replacements = clang::format::reformat(
-      clang::format::getMozillaStyle(),
-      MacroExpansionState->Expansion,
-      {tooling::Range(0, MacroExpansionState->Expansion.length())}
-    );
-    auto formatted = clang::tooling::applyAllReplacements(MacroExpansionState->Expansion, replacements);
-    if (formatted) {
-      for (auto &[k, v] : MacroExpansionState->TokenLocations) {
-        v = replacements.getShiftedCodePosition(v);
+    // large macros are too slow to reformat, don't reformat macros larger than those arbitrary thresholds
+    static constexpr auto includedFileExpansionReformatThreshold = 20'000;
+    static constexpr auto mainFileExpansionReformatThreshold = 200'000;
+
+    const auto expansionLocation = SM.getExpansionLoc(MacroExpansionState->MacroNameToken.getLocation());
+    const auto expansionFilename = SM.getFilename(expansionLocation);
+    const auto includedExtensions = std::array{".h", ".hpp", ".hxx", ".inc", ".def"};
+    const auto isIncludedFile = std::any_of(includedExtensions.begin(), includedExtensions.end(), [&](const auto *extension) {
+      return expansionFilename.ends_with_insensitive(extension);
+    });
+    const auto expansionReformatThreshold = isIncludedFile ? includedFileExpansionReformatThreshold : mainFileExpansionReformatThreshold;
+
+    if (MacroExpansionState->Expansion.length() < expansionReformatThreshold) {
+      // large macros are too memory-hungry to reformat with ColumnLimit != 0
+      // see https://github.com/llvm/llvm-project/issues/107434
+      auto style = clang::format::getMozillaStyle();
+      if (MacroExpansionState->Expansion.length() > includedFileExpansionReformatThreshold)
+        style.ColumnLimit = 0;
+
+      const auto replacements = clang::format::reformat(
+        style,
+        MacroExpansionState->Expansion,
+        {tooling::Range(0, MacroExpansionState->Expansion.length())}
+      );
+      auto formatted = clang::tooling::applyAllReplacements(MacroExpansionState->Expansion, replacements);
+      if (formatted) {
+        for (auto &[k, v] : MacroExpansionState->TokenLocations) {
+          v = replacements.getShiftedCodePosition(v);
+        }
+        MacroExpansionState->Expansion = std::move(formatted.get());
       }
-      MacroExpansionState->Expansion = std::move(formatted.get());
     }
 
     IdentifierInfo *Ident = MacroExpansionState->MacroNameToken.getIdentifierInfo();
