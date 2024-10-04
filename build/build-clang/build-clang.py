@@ -778,9 +778,15 @@ def main():
             cc = stage1_inst_dir + "/bin/%s%s" % (cc_name, exe_ext)
             cxx = stage1_inst_dir + "/bin/%s%s" % (cxx_name, exe_ext)
             asm = stage1_inst_dir + "/bin/%s%s" % (cc_name, exe_ext)
+        name_compression = []
+        if is_windows(target) and is_cross_compile(target) and pgo:
+            # native llvm-profdata.exe on Windows can't read profile data
+            # if name compression is enabled (which cross-compiling enables
+            # by default)
+            name_compression = ["-mllvm", "--enable-name-compression=false"]
         build_one_stage(
-            [cc] + extra_cflags2,
-            [cxx] + extra_cxxflags2,
+            [cc] + extra_cflags2 + name_compression,
+            [cxx] + extra_cxxflags2 + name_compression,
             [asm] + extra_asmflags,
             ar,
             ranlib,
