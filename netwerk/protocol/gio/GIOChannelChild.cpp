@@ -13,7 +13,6 @@
 #include "nsIBrowserChild.h"
 #include "nsStringStream.h"
 #include "nsNetUtil.h"
-#include "base/compiler_specific.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "SerializedLoadContext.h"

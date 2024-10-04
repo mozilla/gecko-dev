@@ -11,7 +11,6 @@
 #include "ScrollPositionUpdate.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "nsIXULRuntime.h"
-#include "base/compiler_specific.h"
 #include "DisplayItemClip.h"
 #include "nsCOMPtr.h"
 #include "nsIDocumentViewer.h"

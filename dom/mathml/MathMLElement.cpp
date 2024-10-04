@@ -6,7 +6,6 @@
 
 #include "mozilla/dom/MathMLElement.h"
 
-#include "base/compiler_specific.h"
 #include "mozilla/FocusModel.h"
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/ArrayUtils.h"
@@ -54,13 +53,11 @@ static nsresult ReportParseErrorNoTag(const nsString& aValue, nsAtom* aAtom,
 
 MathMLElement::MathMLElement(
     already_AddRefed<mozilla::dom::NodeInfo>& aNodeInfo)
-    : MathMLElementBase(std::move(aNodeInfo)),
-      ALLOW_THIS_IN_INITIALIZER_LIST(Link(this)) {}
+    : MathMLElementBase(std::move(aNodeInfo)), Link(this) {}
 
 MathMLElement::MathMLElement(
     already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
-    : MathMLElementBase(std::move(aNodeInfo)),
-      ALLOW_THIS_IN_INITIALIZER_LIST(Link(this)) {}
+    : MathMLElementBase(std::move(aNodeInfo)), Link(this) {}
 
 nsresult MathMLElement::BindToTree(BindContext& aContext, nsINode& aParent) {
   nsresult rv = MathMLElementBase::BindToTree(aContext, aParent);

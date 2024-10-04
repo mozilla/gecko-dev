@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WebSocketLog.h"
-#include "base/compiler_specific.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/net/NeckoChild.h"
 #include "WebSocketChannelChild.h"
