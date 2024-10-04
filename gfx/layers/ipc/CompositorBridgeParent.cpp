@@ -435,7 +435,7 @@ CompositorBridgeParent::RecvWaitOnTransactionProcessed() {
 mozilla::ipc::IPCResult CompositorBridgeParent::RecvFlushRendering(
     const wr::RenderReasons& aReasons) {
   if (mWrBridge) {
-    mWrBridge->FlushRendering(aReasons);
+    mWrBridge->FlushRendering(aReasons, /* aBlocking */ true);
     return IPC_OK();
   }
   return IPC_OK();
@@ -449,7 +449,7 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvNotifyMemoryPressure() {
 mozilla::ipc::IPCResult CompositorBridgeParent::RecvFlushRenderingAsync(
     const wr::RenderReasons& aReasons) {
   if (mWrBridge) {
-    mWrBridge->FlushRendering(aReasons, false);
+    mWrBridge->FlushRendering(aReasons, /* aBlocking */ false);
     return IPC_OK();
   }
   return IPC_OK();
@@ -719,7 +719,7 @@ bool CompositorBridgeParent::SetTestSampleTime(const LayersId& aId,
   }
 
   if (mWrBridge) {
-    mWrBridge->FlushRendering(wr::RenderReasons::TESTING);
+    mWrBridge->FlushRendering(wr::RenderReasons::TESTING, /* aBlocking */ true);
     return true;
   }
 
