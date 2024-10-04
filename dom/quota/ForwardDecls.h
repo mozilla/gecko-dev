@@ -51,9 +51,10 @@ using BoolResponsePromise =
 using UInt64ResponsePromise =
     MozPromise<UInt64Response, ResponseRejectReason, true>;
 
+using NSResultResolver = std::function<void(const nsresult&)>;
+
 using BoolResponseResolver = std::function<void(const BoolResponse&)>;
 using UInt64ResponseResolver = std::function<void(const UInt64Response&)>;
-using NSResultResponseResolver = std::function<void(const nsresult&)>;
 
 }  // namespace ipc
 

@@ -20781,10 +20781,9 @@ mozilla::ipc::IPCResult Utils::RecvDoMaintenance(
   AssertIsOnBackgroundThread();
 
   QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
-         ResolveNSResultResponseAndReturn(aResolver));
+         ResolveNSResultAndReturn(aResolver));
 
-  QM_TRY(QuotaManager::EnsureCreated(),
-         ResolveNSResultResponseAndReturn(aResolver));
+  QM_TRY(QuotaManager::EnsureCreated(), ResolveNSResultAndReturn(aResolver));
 
   QuotaClient* quotaClient = QuotaClient::GetInstance();
   QM_TRY(MOZ_TO_RESULT(quotaClient), QM_IPC_FAIL(this));
