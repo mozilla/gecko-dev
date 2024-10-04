@@ -189,6 +189,16 @@ class HistoryRobot {
             return BrowserRobot.Transition()
         }
 
+        fun openWebsiteFromSearchGroup(url: Uri, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+            assertUIObjectExists(itemWithResId("$packageName:id/history_metadata_group_list"))
+            Log.i(TAG, "openWebsiteFromSearchGroup: Trying to click group item with url: $url")
+            onView(withText(url.toString())).click()
+            Log.i(TAG, "openWebsiteFromSearchGroup: Clicked group item with url: $url")
+
+            BrowserRobot().interact()
+            return BrowserRobot.Transition()
+        }
+
         fun openRecentlyClosedTabs(interact: RecentlyClosedTabsRobot.() -> Unit): RecentlyClosedTabsRobot.Transition {
             Log.i(TAG, "openRecentlyClosedTabs: Waiting for $waitingTime ms for \"Recently closed tabs\" button to exist")
             recentlyClosedTabsListButton().waitForExists(waitingTime)

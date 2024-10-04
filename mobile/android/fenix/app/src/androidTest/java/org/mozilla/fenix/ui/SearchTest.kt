@@ -356,7 +356,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1591782
-    @Ignore("Failing due to known bug, see https://github.com/mozilla-mobile/fenix/issues/23818")
+    @Ignore("Failing due to known bug, see https://bugzilla.mozilla.org/show_bug.cgi?id=1807294")
     @Test
     fun searchGroupIsGeneratedWhenNavigatingInTheSameTabTest() {
         // setting our custom mockWebServer search URL
@@ -454,7 +454,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1592242
-    @Ignore("Test run timing out: https://github.com/mozilla-mobile/fenix/issues/27704")
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1922538")
     @Test
     fun deleteSearchGroupFromHomeScreenTest() {
         val firstPageUrl = TestAssetHelper.getGenericAsset(searchMockServer, 1).url
@@ -495,7 +495,6 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1592235
-    @Ignore("Test run timing out: https://github.com/mozilla-mobile/fenix/issues/27704")
     @Test
     fun openAPageFromHomeScreenSearchGroupTest() {
         val firstPageUrl = TestAssetHelper.getGenericAsset(searchMockServer, 1).url
@@ -523,7 +522,7 @@ class SearchTest : TestSetup() {
         }.closeAllTabs {
             verifyRecentlyVisitedSearchGroupDisplayed(shouldBeDisplayed = true, searchTerm = queryString, groupSize = 3)
         }.openRecentlyVisitedSearchGroupHistoryList(queryString) {
-        }.openWebsite(firstPageUrl) {
+        }.openWebsiteFromSearchGroup(firstPageUrl) {
             verifyUrl(firstPageUrl.toString())
         }.goToHomescreen {
         }.openRecentlyVisitedSearchGroupHistoryList(queryString) {
