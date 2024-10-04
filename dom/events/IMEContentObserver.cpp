@@ -1953,16 +1953,13 @@ void IMEContentObserver::IMENotificationSender::SendFocusSet() {
   }
 
   observer->mIMEHasFocus = true;
-  // Initialize selection cache with the first selection data.
-#ifdef XP_MACOSX
-  // We need to flush layout only on macOS because character coordinates are
-  // cached by cocoa with this call, but we don't have a way to update them
-  // after that.  Therefore, we need the latest layout information right now.
+  // Initialize selection cache with the first selection data.  However, this
+  // may be handled synchronously when the editor gets focus.  In that case,
+  // some frames may be dirty and they may be required to get caret frame in
+  // ContentEventHandler::Init() to get the nearest widget from the selection.
+  // Therefore, we need to update selection cache with flushing the pending
+  // notifications.
   observer->UpdateSelectionCache(true);
-#else
-  // We avoid flushing for focus in the general case.
-  observer->UpdateSelectionCache(false);
-#endif  // #ifdef XP_MACOSX #else
   MOZ_LOG(sIMECOLog, LogLevel::Info,
           ("0x%p IMENotificationSender::SendFocusSet(), sending "
            "NOTIFY_IME_OF_FOCUS...",
