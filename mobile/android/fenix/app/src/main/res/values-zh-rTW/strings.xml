@@ -279,14 +279,14 @@
     <!-- Browser menu button to put the current page in reader mode -->
     <string name="browser_menu_read">閱讀畫面</string>
     <!-- Browser menu button content description to close reader mode and return the user to the regular browser -->
-    <string name="browser_menu_read_close">關閉閱讀模式</string>
+    <string name="browser_menu_read_close">關閉閱讀畫面</string>
     <!-- Browser menu button to open the current page in an external app -->
     <string name="browser_menu_open_app_link">在應用程式中開啟</string>
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
-    <string name="browser_menu_customize_reader_view">自訂閱讀模式</string>
+    <string name="browser_menu_customize_reader_view">自訂閱讀畫面</string>
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
-    <string name="browser_menu_customize_reader_view_2">自訂閱讀模式</string>
+    <string name="browser_menu_customize_reader_view_2">自訂閱讀畫面</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">新增</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -338,9 +338,9 @@
     <!-- Browser menu label that the saves the currently visited page as a PDF -->
     <string name="browser_menu_save_as_pdf">儲存為 PDF…</string>
     <!-- Browser menu label for turning ON reader view of the current visited page -->
-    <string name="browser_menu_turn_on_reader_view">開啟閱讀模式</string>
+    <string name="browser_menu_turn_on_reader_view">開啟閱讀畫面</string>
     <!-- Browser menu label for turning OFF reader view of the current visited page -->
-    <string name="browser_menu_turn_off_reader_view">關閉閱讀模式</string>
+    <string name="browser_menu_turn_off_reader_view">關閉閱讀畫面</string>
     <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
     <string name="browser_menu_translate_page">翻譯此頁…</string>
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
