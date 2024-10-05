@@ -959,8 +959,12 @@ public:
       return Context();
     }
 
-    if (CurDeclContext) {
-      return translateContext(CurDeclContext->Decl);
+    AutoSetContext *Ctxt = CurDeclContext;
+    while (Ctxt) {
+      if (Ctxt->Decl) {
+        return translateContext(Ctxt->Decl);
+      }
+      Ctxt = Ctxt->Prev;
     }
     return Context();
   }
