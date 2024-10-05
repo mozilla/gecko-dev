@@ -113,47 +113,17 @@ namespace widget {
 
 enum class OperatingSystem : uint8_t {
   Unknown,
-  Windows,
-  WindowsXP,
-  WindowsServer2003,
-  WindowsVista,
-  Windows7,
-  Windows8,
-  Windows8_1,
-  Windows10,
-  RecentWindows10,
-  NotRecentWindows10,
-  Linux,
-  OSX,
-  OSX10_5,
-  OSX10_6,
-  OSX10_7,
-  OSX10_8,
-  OSX10_9,
-  OSX10_10,
-  OSX10_11,
-  OSX10_12,
-  OSX10_13,
-  OSX10_14,
-  OSX10_15,
-  OSX11_0,
-  Android,
-  Ios
+#define GFXINFO_OS(id, name) id,
+#include "mozilla/widget/GfxInfoOperatingSystemDefs.h"
+#undef GFXINFO_OS
+  Count
 };
 
 enum VersionComparisonOp {
-  DRIVER_LESS_THAN,                    // driver <  version
-  DRIVER_BUILD_ID_LESS_THAN,           // driver build id <  version
-  DRIVER_LESS_THAN_OR_EQUAL,           // driver <= version
-  DRIVER_BUILD_ID_LESS_THAN_OR_EQUAL,  // driver build id <= version
-  DRIVER_GREATER_THAN,                 // driver >  version
-  DRIVER_GREATER_THAN_OR_EQUAL,        // driver >= version
-  DRIVER_EQUAL,                        // driver == version
-  DRIVER_NOT_EQUAL,                    // driver != version
-  DRIVER_BETWEEN_EXCLUSIVE,        // driver > version && driver < versionMax
-  DRIVER_BETWEEN_INCLUSIVE,        // driver >= version && driver <= versionMax
-  DRIVER_BETWEEN_INCLUSIVE_START,  // driver >= version && driver < versionMax
-  DRIVER_COMPARISON_IGNORED
+#define GFXINFO_DRIVER_VERSION_CMP(id) DRIVER_##id,
+#include "mozilla/widget/GfxInfoDriverVersionCmpDefs.h"
+#undef GFXINFO_DRIVER_VERSION_CMP
+  DRIVER_COUNT
 };
 
 enum class DeviceFamily : uint8_t {
@@ -202,65 +172,23 @@ enum class DeviceFamily : uint8_t {
 };
 
 enum class DeviceVendor : uint8_t {
-  All,  // There is an assumption that this is the first enum
-  Intel,
-  NVIDIA,
-  ATI,
-  Microsoft,
-  Parallels,
-  VMWare,
-  VirtualBox,
-  Qualcomm,
-  MicrosoftBasic,
-  MicrosoftHyperV,
-  Apple,
-  Amazon,
-
+#define GFXINFO_DEVICE_VENDOR(id, name) id,
+#include "mozilla/widget/GfxInfoDeviceVendorDefs.h"
+#undef GFXINFO_DEVICE_VENDOR
   Max
 };
 
 enum DriverVendor : uint8_t {
-  All,  // There is an assumption that this is the first enum
-  // Wildcard for all Mesa drivers.
-  MesaAll,
-  // Note that the following list of Mesa drivers is not comprehensive; we pull
-  // the DRI driver at runtime. These drivers are provided for convenience when
-  // populating the local blocklist.
-  MesaLLVMPipe,
-  MesaSoftPipe,
-  MesaSWRast,
-  MesaSWUnknown,
-  // AMD
-  MesaR600,
-  MesaRadeonsi,
-  // Nouveau: Open-source nvidia
-  MesaNouveau,
-  // A generic ID to be provided when we can't determine the DRI driver on Mesa.
-  MesaUnknown,
-  // Wildcard for all non-Mesa drivers.
-  NonMesaAll,
-  // Wildcard for all hardware Mesa drivers.
-  HardwareMesaAll,
-  // Wildcard for all software Mesa drivers.
-  SoftwareMesaAll,
-  // Wildcard for all non-Intel/NVIDIA/ATI Mesa drivers.
-  MesaNonIntelNvidiaAtiAll,
-  // Running in VM.
-  MesaVM,
-
+#define GFXINFO_DRIVER_VENDOR(id, name) id,
+#include "mozilla/widget/GfxInfoDriverVendorDefs.h"
+#undef GFXINFO_DRIVER_VENDOR
   Max
 };
 
 enum class WindowProtocol : uint8_t {
-  All,  // There is an assumption that this is the first enum
-  X11,
-  XWayland,
-  Wayland,
-  WaylandDRM,
-  // Wildcard for all Wayland variants, excluding XWayland.
-  WaylandAll,
-  // Wildcard for all X11 variants, including XWayland.
-  X11All,
+#define GFXINFO_WINDOW_PROTOCOL(id, name) id,
+#include "mozilla/widget/GfxInfoWindowProtocolDefs.h"
+#undef GFXINFO_WINDOW_PROTOCOL
   Max
 };
 

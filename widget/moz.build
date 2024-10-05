@@ -204,6 +204,13 @@ EXPORTS.mozilla += [
 
 EXPORTS.mozilla.widget += [
     "CompositorWidget.h",
+    "GfxInfoDeviceVendorDefs.h",
+    "GfxInfoDriverVendorDefs.h",
+    "GfxInfoDriverVersionCmpDefs.h",
+    "GfxInfoFeatureDefs.h",
+    "GfxInfoFeatureStatusDefs.h",
+    "GfxInfoOperatingSystemDefs.h",
+    "GfxInfoWindowProtocolDefs.h",
     "IconLoader.h",
     "IMEData.h",
     "InitData.h",

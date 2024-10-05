@@ -2,9 +2,9 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// Test whether a machine which differs only on device ID, but otherwise
-// exactly matches the blacklist entry, is not blocked.
-// Uses test_gfxBlacklist.json
+// Test whether a new-enough driver bypasses the blocklist, even if the rest of
+// the attributes match the blocklist entry.
+// Uses test_gfxBlocklist.json
 
 // Performs the initial setup
 async function run_test() {
@@ -22,24 +22,23 @@ async function run_test() {
   switch (Services.appinfo.OS) {
     case "WINNT":
       gfxInfo.spoofVendorID("0xabcd");
-      gfxInfo.spoofDeviceID("0x9876");
-      gfxInfo.spoofDriverVersion("8.52.322.2201");
+      gfxInfo.spoofDeviceID("0x1234");
+      gfxInfo.spoofDriverVersion("8.52.322.2202");
       // Windows 7
       gfxInfo.spoofOSVersion(0x60001);
       break;
     case "Linux":
-      gfxInfo.spoofVendorID("0xabcd");
-      gfxInfo.spoofDeviceID("0x9876");
-      break;
+      // We don't support driver versions on Linux.
+      do_test_finished();
+      return;
     case "Darwin":
-      gfxInfo.spoofVendorID("0xabcd");
-      gfxInfo.spoofDeviceID("0x9876");
-      gfxInfo.spoofOSVersion(0xa0900);
-      break;
+      // We don't support driver versions on Darwin.
+      do_test_finished();
+      return;
     case "Android":
       gfxInfo.spoofVendorID("abcd");
-      gfxInfo.spoofDeviceID("aabb");
-      gfxInfo.spoofDriverVersion("5");
+      gfxInfo.spoofDeviceID("wxyz");
+      gfxInfo.spoofDriverVersion("6");
       break;
   }
 
@@ -48,17 +47,12 @@ async function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "3", "8");
   await promiseStartupManager();
 
-  function checkBlacklist() {
-    var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
-    Assert.equal(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
+  function checkBlocklist() {
+    var status = gfxInfo.getFeatureStatusStr("DIRECT2D");
+    Assert.equal(status, "STATUS_OK");
 
-    status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
-    Assert.equal(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
-
-    status = gfxInfo.getFeatureStatus(
-      Ci.nsIGfxInfo.FEATURE_CANVAS2D_ACCELERATION
-    );
-    Assert.equal(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
+    status = gfxInfo.getFeatureStatusStr("DIRECT3D_9_LAYERS");
+    Assert.equal(status, "STATUS_OK");
 
     do_test_finished();
   }
@@ -66,8 +60,8 @@ async function run_test() {
   Services.obs.addObserver(function () {
     // If we wait until after we go through the event loop, gfxInfo is sure to
     // have processed the gfxItems event.
-    executeSoon(checkBlacklist);
+    executeSoon(checkBlocklist);
   }, "blocklist-data-gfxItems");
 
-  mockGfxBlocklistItemsFromDisk("../data/test_gfxBlacklist.json");
+  mockGfxBlocklistItemsFromDisk("../data/test_gfxBlocklist.json");
 }

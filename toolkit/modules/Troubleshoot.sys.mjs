@@ -575,26 +575,26 @@ var dataProviders = {
       // a string in some cases and an object in others, return an object always.
       let msg = { key: "" };
       try {
-        var status = gfxInfo.getFeatureStatus(feature);
+        var status = gfxInfo.getFeatureStatusStr(feature);
       } catch (e) {}
       switch (status) {
-        case Ci.nsIGfxInfo.FEATURE_BLOCKED_DEVICE:
-        case Ci.nsIGfxInfo.FEATURE_DISCOURAGED:
+        case "BLOCKED_DEVICE":
+        case "DISCOURAGED":
           msg = { key: "blocked-gfx-card" };
           break;
-        case Ci.nsIGfxInfo.FEATURE_BLOCKED_OS_VERSION:
+        case "BLOCKED_OS_VERSION":
           msg = { key: "blocked-os-version" };
           break;
-        case Ci.nsIGfxInfo.FEATURE_BLOCKED_DRIVER_VERSION:
+        case "BLOCKED_DRIVER_VERSION":
           try {
             var driverVersion =
-              gfxInfo.getFeatureSuggestedDriverVersion(feature);
+              gfxInfo.getFeatureSuggestedDriverVersionStr(feature);
           } catch (e) {}
           msg = driverVersion
             ? { key: "try-newer-driver", args: { driverVersion } }
             : { key: "blocked-driver" };
           break;
-        case Ci.nsIGfxInfo.FEATURE_BLOCKED_MISMATCHED_VERSION:
+        case "BLOCKED_MISMATCHED_VERSION":
           msg = { key: "blocked-mismatched-version" };
           break;
       }
@@ -646,9 +646,7 @@ var dataProviders = {
 
     if (!data.numAcceleratedWindows && gfxInfo) {
       let win = AppConstants.platform == "win";
-      let feature = win
-        ? gfxInfo.FEATURE_DIRECT3D_9_LAYERS
-        : gfxInfo.FEATURE_OPENGL_LAYERS;
+      let feature = win ? "DIRECT3D_9_LAYERS" : "OPENGL_LAYERS";
       data.numAcceleratedWindowsMessage = statusMsgForFeature(feature);
     }
 
@@ -695,9 +693,7 @@ var dataProviders = {
       }
 
       if ("direct2DEnabled" in data && !data.direct2DEnabled) {
-        data.direct2DEnabledMessage = statusMsgForFeature(
-          Ci.nsIGfxInfo.FEATURE_DIRECT2D
-        );
+        data.direct2DEnabledMessage = statusMsgForFeature("DIRECT2D");
       }
     }
 

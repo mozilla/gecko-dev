@@ -69,37 +69,37 @@ skip-if = ["os == 'android' && verify"] # times out because it takes too much ti
 requesttimeoutfactor = 2
 skip-if = ["os == 'android' && verify"] # times out in chaos mode on Android because several minutes are spent waiting at https://hg.mozilla.org/mozilla-central/file/3350b680/toolkit/mozapps/extensions/Blocklist.jsm#l698
 
-["test_gfxBlacklist_Device.js"]
+["test_gfxBlocklist_Device.js"]
 
-["test_gfxBlacklist_DriverNew.js"]
+["test_gfxBlocklist_DriverNew.js"]
 
-["test_gfxBlacklist_Equal_DriverNew.js"]
+["test_gfxBlocklist_Equal_DriverNew.js"]
 
-["test_gfxBlacklist_Equal_DriverOld.js"]
+["test_gfxBlocklist_Equal_DriverOld.js"]
 
-["test_gfxBlacklist_Equal_OK.js"]
+["test_gfxBlocklist_Equal_OK.js"]
 
-["test_gfxBlacklist_GTE_DriverOld.js"]
+["test_gfxBlocklist_GTE_DriverOld.js"]
 
-["test_gfxBlacklist_GTE_OK.js"]
+["test_gfxBlocklist_GTE_OK.js"]
 
-["test_gfxBlacklist_No_Comparison.js"]
+["test_gfxBlocklist_No_Comparison.js"]
 
-["test_gfxBlacklist_OK.js"]
+["test_gfxBlocklist_OK.js"]
 
-["test_gfxBlacklist_OS.js"]
+["test_gfxBlocklist_OS.js"]
 
-["test_gfxBlacklist_OSVersion_match.js"]
+["test_gfxBlocklist_OSVersion_match.js"]
 
-["test_gfxBlacklist_OSVersion_mismatch_DriverVersion.js"]
+["test_gfxBlocklist_OSVersion_mismatch_DriverVersion.js"]
 
-["test_gfxBlacklist_OSVersion_mismatch_OSVersion.js"]
+["test_gfxBlocklist_OSVersion_mismatch_OSVersion.js"]
 
-["test_gfxBlacklist_Vendor.js"]
+["test_gfxBlocklist_Vendor.js"]
 
-["test_gfxBlacklist_Version.js"]
+["test_gfxBlocklist_Version.js"]
 
-["test_gfxBlacklist_prefs.js"]
+["test_gfxBlocklist_prefs.js"]
 # Bug 1248787 - consistently fails
 skip-if = ["true"]
 

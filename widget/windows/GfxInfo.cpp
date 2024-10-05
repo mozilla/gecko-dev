@@ -1619,19 +1619,6 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         V(8, 17, 12, 5730), V(8, 17, 12, 6901), "FEATURE_FAILURE_BUG_1137716",
         "Nvidia driver > 8.17.12.6901");
 
-    /* Bug 1336710: Crash in rx::Blit9::initialize. */
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::WindowsXP, DeviceFamily::IntelGMAX4500HD,
-        nsIGfxInfo::FEATURE_WEBGL_ANGLE, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-        DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions,
-        "FEATURE_FAILURE_BUG_1336710");
-
-    APPEND_TO_DRIVER_BLOCKLIST2(
-        OperatingSystem::WindowsXP, DeviceFamily::IntelHDGraphicsToSandyBridge,
-        nsIGfxInfo::FEATURE_WEBGL_ANGLE, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
-        DRIVER_LESS_THAN, GfxDriverInfo::allDriverVersions,
-        "FEATURE_FAILURE_BUG_1336710");
-
     /* Bug 1304360: Graphical artifacts with D3D9 on Windows 7. */
     APPEND_TO_DRIVER_BLOCKLIST2(OperatingSystem::Windows7,
                                 DeviceFamily::IntelGMAX3000,

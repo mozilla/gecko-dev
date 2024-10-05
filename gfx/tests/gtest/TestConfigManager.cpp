@@ -121,6 +121,17 @@ class MockGfxInfo final : public nsIGfxInfo {
   }
 
   // The following methods we don't need for testing gfxConfigManager.
+  NS_IMETHOD GetFeatureStatusStr(const nsAString& aFeature,
+                                 nsACString& aFailureId,
+                                 nsAString& _retval) override {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
+  NS_IMETHOD GetFeatureSuggestedDriverVersionStr(const nsAString& aFeature,
+                                                 nsAString& _retval) override {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
+
   NS_IMETHOD GetFeatureSuggestedDriverVersion(int32_t aFeature,
                                               nsAString& _retval) override {
     return NS_ERROR_NOT_IMPLEMENTED;

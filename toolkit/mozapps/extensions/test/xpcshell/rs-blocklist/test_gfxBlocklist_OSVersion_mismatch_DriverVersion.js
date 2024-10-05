@@ -4,7 +4,7 @@
 
 // Test whether blocklists specifying new OSes correctly don't block if driver
 // versions are appropriately up-to-date.
-// Uses test_gfxBlacklist_OSVersion.json
+// Uses test_gfxBlocklist_OSVersion.json
 
 // Performs the initial setup
 async function run_test() {
@@ -48,13 +48,13 @@ async function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "3", "8");
   await promiseStartupManager();
 
-  function checkBlacklist() {
+  function checkBlocklist() {
     if (Services.appinfo.OS == "WINNT") {
-      var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
-      Assert.equal(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
+      var status = gfxInfo.getFeatureStatusStr("DIRECT2D");
+      Assert.equal(status, "STATUS_OK");
     } else if (Services.appinfo.OS == "Darwin") {
-      status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_OPENGL_LAYERS);
-      Assert.equal(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
+      status = gfxInfo.getFeatureStatusStr("OPENGL_LAYERS");
+      Assert.equal(status, "STATUS_OK");
     }
 
     do_test_finished();
@@ -63,8 +63,8 @@ async function run_test() {
   Services.obs.addObserver(function () {
     // If we wait until after we go through the event loop, gfxInfo is sure to
     // have processed the gfxItems event.
-    executeSoon(checkBlacklist);
+    executeSoon(checkBlocklist);
   }, "blocklist-data-gfxItems");
 
-  mockGfxBlocklistItemsFromDisk("../data/test_gfxBlacklist_OSVersion.json");
+  mockGfxBlocklistItemsFromDisk("../data/test_gfxBlocklist_OSVersion.json");
 }

@@ -53,6 +53,11 @@ class GfxInfoBase : public nsIGfxInfo,
                               int32_t* _retval) override;
   NS_IMETHOD GetFeatureSuggestedDriverVersion(int32_t aFeature,
                                               nsAString& _retval) override;
+  NS_IMETHOD GetFeatureStatusStr(const nsAString& aFeature,
+                                 nsACString& aFailureId,
+                                 nsAString& _retval) override;
+  NS_IMETHOD GetFeatureSuggestedDriverVersionStr(const nsAString& aFeature,
+                                                 nsAString& _retval) override;
 
   NS_IMETHOD GetMonitors(JSContext* cx,
                          JS::MutableHandle<JS::Value> _retval) override;

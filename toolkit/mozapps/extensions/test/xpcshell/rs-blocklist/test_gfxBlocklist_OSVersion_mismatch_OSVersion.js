@@ -2,9 +2,9 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-// Test whether a machine which is older than the equal
-// blacklist entry is correctly allowed.
-// Uses test_gfxBlacklist.json
+// Test whether old OS versions are not matched when the blocklist contains
+// only new OS versions.
+// Uses test_gfxBlocklist_OSVersion.json
 
 // Performs the initial setup
 async function run_test() {
@@ -19,27 +19,29 @@ async function run_test() {
   gfxInfo.QueryInterface(Ci.nsIGfxInfoDebug);
 
   // Set the vendor/device ID, etc, to match the test file.
+  gfxInfo.spoofDriverVersion("8.52.322.2201");
+  gfxInfo.spoofVendorID("0xabcd");
+  gfxInfo.spoofDeviceID("0x1234");
+
+  // Spoof the version of the OS appropriately to test the test file.
   switch (Services.appinfo.OS) {
     case "WINNT":
-      gfxInfo.spoofVendorID("0xdcdc");
-      gfxInfo.spoofDeviceID("0x1234");
-      gfxInfo.spoofDriverVersion("8.52.322.1110");
       // Windows 7
       gfxInfo.spoofOSVersion(0x60001);
       break;
     case "Linux":
-      // We don't support driver versions on Linux.
+      // We don't have any OS versions on Linux, just "Linux".
       do_test_finished();
       return;
     case "Darwin":
-      // We don't support driver versions on Darwin.
+      // Lion
+      gfxInfo.spoofOSVersion(0xa0800);
+      break;
+    case "Android":
+      // On Android, the driver version is used as the OS version (because
+      // there's so many of them).
       do_test_finished();
       return;
-    case "Android":
-      gfxInfo.spoofVendorID("dcdc");
-      gfxInfo.spoofDeviceID("uiop");
-      gfxInfo.spoofDriverVersion("4");
-      break;
   }
 
   do_test_pending();
@@ -47,13 +49,14 @@ async function run_test() {
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "3", "8");
   await promiseStartupManager();
 
-  function checkBlacklist() {
-    var status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT2D);
-    Assert.equal(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
-
-    // Make sure unrelated features aren't affected
-    status = gfxInfo.getFeatureStatus(Ci.nsIGfxInfo.FEATURE_DIRECT3D_9_LAYERS);
-    Assert.equal(status, Ci.nsIGfxInfo.FEATURE_STATUS_OK);
+  function checkBlocklist() {
+    if (Services.appinfo.OS == "WINNT") {
+      var status = gfxInfo.getFeatureStatusStr("DIRECT2D");
+      Assert.equal(status, "STATUS_OK");
+    } else if (Services.appinfo.OS == "Darwin") {
+      status = gfxInfo.getFeatureStatusStr("OPENGL_LAYERS");
+      Assert.equal(status, "STATUS_OK");
+    }
 
     do_test_finished();
   }
@@ -61,8 +64,8 @@ async function run_test() {
   Services.obs.addObserver(function () {
     // If we wait until after we go through the event loop, gfxInfo is sure to
     // have processed the gfxItems event.
-    executeSoon(checkBlacklist);
+    executeSoon(checkBlocklist);
   }, "blocklist-data-gfxItems");
 
-  mockGfxBlocklistItemsFromDisk("../data/test_gfxBlacklist.json");
+  mockGfxBlocklistItemsFromDisk("../data/test_gfxBlocklist_OSVersion.json");
 }

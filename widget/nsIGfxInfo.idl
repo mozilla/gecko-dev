@@ -120,139 +120,32 @@ interface nsIGfxInfo : nsISupports
   Array<ACString> getFailures(out Array<long> indices);
 
   [noscript, notxpcom] void logFailure(in ACString failure);
+
+%{C++
   /*
    * A set of constants for features that we can ask this GfxInfo object
    * about via GetFeatureStatus
    */
-  /* Don't assign any value <= 0 */
-  /* Values must be contiguous */
-  /* Whether Direct2D is supported for content rendering. */
-  const long FEATURE_DIRECT2D = 1;
-  /* Whether Direct3D 9 is supported for layers. */
-  const long FEATURE_DIRECT3D_9_LAYERS = 2;
-  /* Whether Direct3D 10.0 is supported for layers. */
-  const long FEATURE_DIRECT3D_10_LAYERS = 3;
-  /* Whether Direct3D 10.1 is supported for layers. */
-  const long FEATURE_DIRECT3D_10_1_LAYERS = 4;
-  /* Whether OpenGL is supported for layers */
-  const long FEATURE_OPENGL_LAYERS = 5;
-  /* Whether WebGL is supported via OpenGL. */
-  const long FEATURE_WEBGL_OPENGL = 6;
-  /* Whether WebGL is supported via ANGLE (D3D9 -- does not check for the presence of ANGLE libs). */
-  const long FEATURE_WEBGL_ANGLE = 7;
-  /* (Unused) Whether WebGL antialiasing is supported. */
-  const long UNUSED_FEATURE_WEBGL_MSAA = 8;
-  /* Whether Stagefright is supported, starting in 17. */
-  const long FEATURE_STAGEFRIGHT = 9;
-  /* Whether Webrtc Hardware H.264 acceleration is supported, starting in 71. */
-  const long FEATURE_WEBRTC_HW_ACCELERATION_H264 = 10;
-  /* Whether Direct3D 11 is supported for layers, starting in 32. */
-  const long FEATURE_DIRECT3D_11_LAYERS = 11;
-  /* Whether hardware accelerated video decoding is supported, starting in 36. */
-  const long FEATURE_HARDWARE_VIDEO_DECODING = 12;
-  /* Whether Direct3D 11 is supported for ANGLE, starting in 38. */
-  const long FEATURE_DIRECT3D_11_ANGLE = 13;
-  /* Whether Webrtc Hardware acceleration is supported, starting in 42. */
-  const long FEATURE_WEBRTC_HW_ACCELERATION_ENCODE = 14;
-  /* Whether Webrtc Hardware acceleration is supported, starting in 42. */
-  const long FEATURE_WEBRTC_HW_ACCELERATION_DECODE = 15;
-  /* Whether Canvas acceleration is supported, starting in 45 */
-  const long FEATURE_CANVAS2D_ACCELERATION = 16;
-  /* Whether hardware VP8 decoding is supported, starting in 48; not for downloadable blocking. */
-  const long FEATURE_VP8_HW_DECODE = 17;
-  /* Whether hardware VP9 decoding is supported, starting in 48; not for downloadable blocking. */
-  const long FEATURE_VP9_HW_DECODE = 18;
-  /* Whether NV_dx_interop2 is supported, starting in 50; downloadable blocking in 58. */
-  const long FEATURE_DX_INTEROP2 = 19;
-  /* Whether the GPU process is supported, starting in 52; downloadable blocking in 58. */
-  const long FEATURE_GPU_PROCESS = 20;
-  /* Whether the WebGL2 is supported, starting in 54 */
-  const long FEATURE_WEBGL2 = 21;
-  /* Whether D3D11 keyed mutex is supported, starting in 56 */
-  const long FEATURE_D3D11_KEYED_MUTEX = 22;
-  /* Whether WebRender is supported, starting in 62 */
-  const long FEATURE_WEBRENDER = 23;
-  /* Whether WebRender is supported, starting in 62 */
-  const long FEATURE_DX_NV12 = 24;
-  const long FEATURE_DX_P010 = 25;
-  const long FEATURE_DX_P016 = 26;
-  /* Whether OpenGL swizzle configuration of texture units is supported, starting in 70 */
-  const long FEATURE_GL_SWIZZLE = 27;
-  /* Whether WebRender native compositor is supported, starting in 73 */
-  const long FEATURE_WEBRENDER_COMPOSITOR = 28;
-  /* Whether WebRender can use scissored clears for cached surfaces, staring in 79 */
-  const long FEATURE_WEBRENDER_SCISSORED_CACHE_CLEARS = 29;
-  /* Support webgl.out-of-process: true (starting in 83) */
-  const long FEATURE_ALLOW_WEBGL_OUT_OF_PROCESS = 30;
-  /* Is OpenGL threadsafe (starting in 83) */
-  const long FEATURE_THREADSAFE_GL = 31;
-  /* Whether webrender uses pre-optimized shaders, starting in 87. */
-  const long FEATURE_WEBRENDER_OPTIMIZED_SHADERS = 32;
-  /* Whether we prefer EGL over GLX with X11, starting in 88. */
-  const long FEATURE_X11_EGL = 33;
-  /* Whether DMABUF is supported, starting in 88. */
-  const long FEATURE_DMABUF = 34;
-  /* Whether webrender caches shader program binaries to disk, starting in 89. */
-  const long FEATURE_WEBRENDER_SHADER_CACHE = 35;
-  /* Whether partial present is allowed with WebRender, starting in 98. */
-  const long FEATURE_WEBRENDER_PARTIAL_PRESENT = 36;
-  /* Whether WebGPU is supported, starting in 100. */
-  const long FEATURE_WEBGPU = 37;
-  /* Whether video overlay of hardware decoded video is supported, starting in 100. */
-  const long FEATURE_VIDEO_OVERLAY = 38;
-  /* Whether hardware decoded video zero copy is supported, starting in 101. */
-  const long FEATURE_HW_DECODED_VIDEO_ZERO_COPY = 39;
-  /* Whether DMABUF export is supported, starting in 103. */
-  const long FEATURE_DMABUF_SURFACE_EXPORT = 40;
-  /* Whether reuse decoder device is supported, starting in 104. */
-  const long FEATURE_REUSE_DECODER_DEVICE = 41;
-  /* Whether to allow backdrop filter, starting in 105. */
-  const long FEATURE_BACKDROP_FILTER = 42;
-  /* Whether to use Accelerated Canvas2D, starting in 110. */
-  const long FEATURE_ACCELERATED_CANVAS2D = 43;
-  /* Whether hardware H264 decoding is supported, starting in 114; not for downloadable blocking. */
-  const long FEATURE_H264_HW_DECODE = 44;
-  /* Whether hardware AV1 decoding is supported, starting in 114; not for downloadable blocking. */
-  const long FEATURE_AV1_HW_DECODE = 45;
-  /* Whether video overlay of software decoded video is supported, starting in 116. */
-  const long FEATURE_VIDEO_SOFTWARE_OVERLAY = 46;
-  /* Whether WebGL is allowed to use hardware rendering, otherwise software fallbacks. */
-  const long FEATURE_WEBGL_USE_HARDWARE = 47;
-  /* Whether overlay is allowed to VideoProcessor-HDR on SDR content */
-  const long FEATURE_OVERLAY_VP_AUTO_HDR = 48;
-  /* Whether overlay is allowed to VideoProcessor Super Resolution */
-  const long FEATURE_OVERLAY_VP_SUPER_RESOLUTION = 49;
-  /* the maximum feature value. */
-  const long FEATURE_MAX_VALUE = FEATURE_OVERLAY_VP_SUPER_RESOLUTION;
+  enum FeatureType : uint8_t {
+    FEATURE_INVALID = 0,
+#define GFXINFO_FEATURE(id, name, pref) FEATURE_##id,
+#include "mozilla/widget/GfxInfoFeatureDefs.h"
+#undef GFXINFO_FEATURE
+    FEATURE_COUNT,
+    /* This must be the first value after INVALID/ALL/OPTIONAL. */
+    FEATURE_START = FEATURE_DIRECT2D
+  };
 
   /*
    * A set of return values from GetFeatureStatus
    */
-
-  /* The driver is safe to the best of our knowledge */
-  const long FEATURE_STATUS_OK = 1;
-  /* We don't know the status of the feature yet. The analysis probably hasn't finished yet. */
-  const long FEATURE_STATUS_UNKNOWN = 2;
-  /* This feature is blocked on this driver version. Updating driver will typically unblock it. */
-  const long FEATURE_BLOCKED_DRIVER_VERSION = 3;
-  /* This feature is blocked on this device, regardless of driver version.
-   * Typically means we hit too many driver crashes without a good reason to hope for them to
-   * get fixed soon. */
-  const long FEATURE_BLOCKED_DEVICE = 4;
-  /* This feature is available and can be used, but is not suggested (e.g. shouldn't be used by default */
-  const long FEATURE_DISCOURAGED = 5;
-  /* This feature is blocked on this OS version. */
-  const long FEATURE_BLOCKED_OS_VERSION = 6;
-  /* This feature is blocked because of mismatched driver versions. */
-  const long FEATURE_BLOCKED_MISMATCHED_VERSION = 7;
-  /* This feature is blocked due to not being on the allowlist. */
-  const long FEATURE_DENIED = 8;
-  /* This feature is safe to be on this device due to the allowlist. */
-  const long FEATURE_ALLOW_ALWAYS = 9;
-  /* This feature is safe to be on this device due to the allowlist, depending on qualified/experiment status. */
-  const long FEATURE_ALLOW_QUALIFIED = 10;
-  /* This feature failed in a startup test, e.g. due to a crashing driver. */
-  const long FEATURE_BLOCKED_PLATFORM_TEST = 11;
+  enum FeatureStatusType : uint8_t {
+    FEATURE_STATUS_INVALID = 0,
+#define GFXINFO_FEATURE_STATUS(id) FEATURE_##id,
+#include "mozilla/widget/GfxInfoFeatureStatusDefs.h"
+#undef GFXINFO_FEATURE_STATUS
+  };
+%}
 
   /**
    * Ask about a feature, and return the status of that feature.
@@ -260,12 +153,14 @@ interface nsIGfxInfo : nsISupports
    * otherwise it will be empty.
    */
   long getFeatureStatus(in long aFeature, [optional] out ACString aFailureId);
+  AString getFeatureStatusStr(in AString aFeature, [optional] out ACString aFailureId);
 
   /*
    * Ask about a feature, return the minimum driver version required for it if its status is
    * FEATURE_BLOCKED_DRIVER_VERSION, otherwise return an empty string.
    */
   AString getFeatureSuggestedDriverVersion(in long aFeature);
+  AString getFeatureSuggestedDriverVersionStr(in AString aFeature);
 
   // only useful on X11
   [noscript, notxpcom] void GetData();
