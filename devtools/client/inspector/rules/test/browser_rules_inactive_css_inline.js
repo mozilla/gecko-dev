@@ -25,6 +25,8 @@ const TEST_URI = `
     content: 'hello';
     vertical-align: middle;
     height: 10px;
+    position: relative;
+    top: 20px;
   }
 </style>
 <h1 style="vertical-align:text-bottom;">browser_rules_inactive_css_inline.js</h1>
@@ -77,7 +79,7 @@ const TEST_DATA = [
     selector: "main",
     activeDeclarations: [
       {
-        declarations: { "vertical-align": "middle" },
+        declarations: { "vertical-align": "middle", top: "20px" },
         // The ::before rule in the pseudo-element section
         ruleIndex: [1, 0],
       },
@@ -104,7 +106,7 @@ const TEST_DATA = [
     },
     activeDeclarations: [
       {
-        declarations: { "vertical-align": "middle" },
+        declarations: { "vertical-align": "middle", top: "20px" },
         ruleIndex: 0,
       },
     ],
