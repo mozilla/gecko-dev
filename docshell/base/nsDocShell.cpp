@@ -9407,10 +9407,8 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   // Don't stop current network activity for javascript: URL's since they might
   // not result in any data, and thus nothing should be stopped in those cases.
   // In the case where they do result in data, the javascript: URL channel takes
-  // care of stopping current network activity. Similarly, downloads and
-  // external protocols don't unload this document...
-  // NOTE(emilio): This logic needs to be in sync with
-  // DocumentChannelChild::AsyncOpen.
+  // care of stopping current network activity. Similarly, downloads don't
+  // unload this document...
   if (!isJavaScript && !isDownload && !isExternalProtocol) {
     // Stop any current network activity.
     // Also stop content if this is a zombie doc. otherwise

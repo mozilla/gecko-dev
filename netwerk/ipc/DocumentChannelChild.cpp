@@ -77,18 +77,13 @@ DocumentChannelChild::AsyncOpen(nsIStreamListener* aListener) {
   rv = NS_CheckPortSafety(mURI);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (mLoadGroup) {
-    const bool isDownload = !mLoadState->FileName().IsVoid();
-    const bool isExternalProtocol =
-        nsContentUtils::IsExternalProtocol(mLoadState->URI());
-    // If we stopped network activity (and are going to replace the current
-    // document), add ourselves to the load group. Note that javascript: URIs
-    // don't get here because DocumentChannel doesn't deal with them.
-    if (!isDownload && !isExternalProtocol) {
-      // During this call, we can re-enter back into the DocumentChannelChild to
-      // call SetNavigationTiming.
-      mLoadGroup->AddRequest(this, nullptr);
-    }
+  bool isNotDownload = mLoadState->FileName().IsVoid();
+
+  // If not a download, add ourselves to the load group
+  if (isNotDownload && mLoadGroup) {
+    // During this call, we can re-enter back into the DocumentChannelChild to
+    // call SetNavigationTiming.
+    mLoadGroup->AddRequest(this, nullptr);
   }
 
   if (mCanceled) {
