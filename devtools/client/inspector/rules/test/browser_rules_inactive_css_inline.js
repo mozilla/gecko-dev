@@ -126,3 +126,45 @@ add_task(async function () {
 
   await runInactiveCSSTests(view, inspector, TEST_DATA);
 });
+
+add_task(async function () {
+  await pushPref("devtools.inspector.inactive.css.enabled", true);
+  await addTab(
+    "data:text/html;charset=utf-8," +
+      encodeURIComponent(`
+        <style>
+          button::before {
+            content: "Hello ";
+            position: relative;
+            top: 10px;
+          }
+        </style>
+        <button>World</button>`)
+  );
+  const { inspector, view } = await openRuleView();
+
+  info(
+    "First, select the button::before node, without selecting button before"
+  );
+  // It's important not to select "button" before selecting the pseudo element node,
+  // otherwise we won't trigger the codepath this is asserting.
+  const node = await getNodeFront("button", inspector);
+  const children = await inspector.markup.walker.children(node);
+  const beforeElement = children.nodes[0];
+  await selectNode(beforeElement, inspector);
+
+  // We also need to do an actual check to trigger the codepath
+  await checkDeclarationIsActive(view, 0, {
+    top: "10px",
+  });
+
+  info("Then select the button node");
+  await selectNode("button", inspector);
+
+  info("Set an inactive property on the element style");
+  const inlineStyleRuleIndex = 3;
+  await addProperty(view, inlineStyleRuleIndex, "left", "10px");
+  await checkDeclarationIsInactive(view, inlineStyleRuleIndex, {
+    left: "10px",
+  });
+});
