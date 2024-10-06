@@ -1,3 +1,61 @@
+3.0.4
+=====
+
+### Significant changes relative to 3.0.3:
+
+1. Fixed an issue whereby the CPU usage of the default marker processor in the
+decompressor grew exponentially with the number of markers.  This caused an
+unreasonable slow-down in `jpeg_read_header()` if an application called
+`jpeg_save_markers()` to save markers of a particular type and then attempted
+to decompress a JPEG image containing an excessive number of markers of that
+type.
+
+2. Hardened the default marker processor in the decompressor to guard against
+an issue (exposed by 3.0 beta2[6]) whereby attempting to decompress a
+specially-crafted malformed JPEG image (specifically an image with a complete
+12-bit-per-sample Start Of Frame segment followed by an incomplete
+8-bit-per-sample Start Of Frame segment) using buffered-image mode and input
+prefetching caused a segfault if the `fill_input_buffer()` method in the
+calling application's custom source manager incorrectly returned `FALSE` in
+response to a prematurely-terminated JPEG data stream.
+
+3. Fixed an issue in cjpeg whereby, when generating a 12-bit-per-sample or
+16-bit-per-sample lossless JPEG image, specifying a point transform value
+greater than 7 resulted in an error ("Invalid progressive/lossless parameters")
+unless the `-precision` option was specified before the `-lossless` option.
+
+4. Fixed a regression introduced by 3.0.3[3] that made it impossible for
+calling applications to generate 12-bit-per-sample arithmetic-coded lossy JPEG
+images using the TurboJPEG API.
+
+5. Fixed an error ("Destination buffer is not large enough") that occurred when
+attempting to generate a full-color lossless JPEG image using the TurboJPEG
+Java API's `byte[] TJCompressor.compress()` method if the value of
+`TJ.PARAM_SUBSAMP` was not `TJ.SAMP_444`.
+
+6. Fixed a segfault in djpeg that occurred if a negative width was specified
+with the `-crop` option.  Since the cropping region width was read into an
+unsigned 32-bit integer, a negative width was interpreted as a very large
+value.  With certain negative width and positive left boundary values, the
+bounds checks in djpeg and `jpeg_crop_scanline()` overflowed and did not detect
+the out-of-bounds width, which caused a buffer overrun in the upsampling or
+color conversion routine.  Both bounds checks now use 64-bit integers to guard
+against overflow, and djpeg now checks for negative numbers when it parses the
+crop specification from the command line.
+
+7. Fixed an issue whereby the TurboJPEG lossless transformation function and
+methods checked the specified cropping region against the source image
+dimensions and level of chrominance subsampling rather than the destination
+image dimensions and level of chrominance subsampling, which caused some
+cropping regions to be unduly rejected when performing 90-degree rotation,
+270-degree rotation, transposition, transverse transposition, or grayscale
+conversion.
+
+8. Fixed an issue whereby the TurboJPEG lossless transformation function and
+methods did not honor `TJXOPT_COPYNONE`/`TJTransform.OPT_COPYNONE` unless it
+was specified for all lossless transforms.
+
+
 3.0.3
 =====
 
@@ -38,10 +96,10 @@ easier to detect actual security issues, should they arise in the future.
 `TJ.PARAM_MAXMEMORY` in the TurboJPEG Java API) and a corresponding TJBench
 option (`-maxmemory`) for specifying the maximum amount of memory (in
 megabytes) that will be allocated for intermediate buffers, which are used with
-progressive JPEG compression and decompression, optimized baseline entropy
-coding, lossless JPEG compression, and lossless transformation.  The new
-parameter and option serve the same purpose as the `max_memory_to_use` field in
-the `jpeg_memory_mgr` struct in the libjpeg API, the `JPEGMEM` environment
+progressive JPEG compression and decompression, Huffman table optimization,
+lossless JPEG compression, and lossless transformation.  The new parameter and
+option serve the same purpose as the `max_memory_to_use` field in the
+`jpeg_memory_mgr` struct in the libjpeg API, the `JPEGMEM` environment
 variable, and the cjpeg/djpeg/jpegtran `-maxmemory` option.
 
 3. Introduced a new parameter (`TJPARAM_MAXPIXELS` in the TurboJPEG C API and
@@ -68,7 +126,7 @@ within the functions.
 
 2. Fixed two minor issues in the interblock smoothing algorithm that caused
 mathematical (but not necessarily perceptible) edge block errors when
-decompressing progressive JPEG images exactly two MCU blocks in width or that
+decompressing progressive JPEG images exactly two DCT blocks in width or that
 use vertical chrominance subsampling.
 
 3. Fixed a regression introduced by 3.0 beta2[6] that, in rare cases, caused
@@ -179,11 +237,10 @@ through pointer arguments.
      - `TJFLAG_LIMITSCANS`/`TJ.FLAG_LIMITSCANS` has been reimplemented as an
 API parameter (`TJPARAM_SCANLIMIT`/`TJ.PARAM_SCANLIMIT`) that allows the number
 of scans to be specified.
-     - Optimized baseline entropy coding (the computation of optimal Huffman
-tables, as opposed to using the default Huffman tables) can now be specified,
-using a new API parameter (`TJPARAM_OPTIMIZE`/`TJ.PARAM_OPTIMIZE`), a new
-transform option (`TJXOPT_OPTIMIZE`/`TJTransform.OPT_OPTIMIZE`), and a new
-TJBench option (`-optimize`.)
+     - Huffman table optimization can now be specified using a new API
+parameter (`TJPARAM_OPTIMIZE`/`TJ.PARAM_OPTIMIZE`), a new transform option
+(`TJXOPT_OPTIMIZE`/`TJTransform.OPT_OPTIMIZE`), and a new TJBench option
+(`-optimize`.)
      - Arithmetic entropy coding can now be specified or queried, using a new
 API parameter (`TJPARAM_ARITHMETIC`/`TJ.PARAM_ARITHMETIC`), a new transform
 option (`TJXOPT_ARITHMETIC`/`TJTransform.OPT_ARITHMETIC`), and a new TJBench
@@ -426,9 +483,9 @@ prevented libjpeg-turbo from working properly with other linkers and also
 represented a potential security risk.
 
 2. Fixed an issue whereby the `tjTransform()` function incorrectly computed the
-MCU block size for 4:4:4 JPEG images with non-unary sampling factors and thus
-unduly rejected some cropping regions, even though those regions aligned with
-8x8 MCU block boundaries.
+iMCU size for 4:4:4 JPEG images with non-unary sampling factors and thus unduly
+rejected some cropping regions, even though those regions aligned with 8x8 iMCU
+boundaries.
 
 3. Fixed a regression introduced by 2.1 beta1[13] that caused the build system
 to enable the Arm Neon SIMD extensions when targetting Armv6 and other legacy
@@ -1010,16 +1067,15 @@ encounters a warning from the underlying libjpeg API (the default behavior is
 to allow the operation to complete unless a fatal error is encountered.)
 
 5. Introduced a new flag in the TurboJPEG C and Java APIs (`TJFLAG_PROGRESSIVE`
-and `TJ.FLAG_PROGRESSIVE`, respectively) that causes the library to use
-progressive entropy coding in JPEG images generated by compression and
-transform operations.  Additionally, a new transform option
-(`TJXOPT_PROGRESSIVE` in the C API and `TJTransform.OPT_PROGRESSIVE` in the
-Java API) has been introduced, allowing progressive entropy coding to be
-enabled for selected transforms in a multi-transform operation.
+and `TJ.FLAG_PROGRESSIVE`, respectively) that causes compression and transform
+operations to generate progressive JPEG images.  Additionally, a new transform
+option (`TJXOPT_PROGRESSIVE` in the C API and `TJTransform.OPT_PROGRESSIVE` in
+the Java API) has been introduced, allowing progressive JPEG images to be
+generated by selected transforms in a multi-transform operation.
 
 6. Introduced a new transform option in the TurboJPEG API (`TJXOPT_COPYNONE` in
 the C API and `TJTransform.OPT_COPYNONE` in the Java API) that allows the
-copying of markers (including EXIF and ICC profile data) to be disabled for a
+copying of markers (including Exif and ICC profile data) to be disabled for a
 particular transform.
 
 7. Added two functions to the TurboJPEG C API (`tjLoadImage()` and
@@ -1150,13 +1206,13 @@ bug that has existed since the introduction of libjpeg v7/v8 API/ABI emulation
 in libjpeg-turbo v1.1.
 
 7. The lossless transform features in jpegtran and the TurboJPEG API will now
-always attempt to adjust the EXIF image width and height tags if the image size
+always attempt to adjust the Exif image width and height tags if the image size
 changed as a result of the transform.  This behavior has always existed when
 using libjpeg v8 API/ABI emulation.  It was supposed to be available with
 libjpeg v7 API/ABI emulation as well but did not work properly due to a bug.
 Furthermore, there was never any good reason not to enable it with libjpeg v6b
 API/ABI emulation, since the behavior is entirely internal.  Note that
-`-copy all` must be passed to jpegtran in order to transfer the EXIF tags from
+`-copy all` must be passed to jpegtran in order to transfer the Exif tags from
 the source image to the destination image.
 
 8. Fixed several memory leaks in the TurboJPEG API library that could occur
@@ -1178,7 +1234,7 @@ for two reasons:  it allows testers to more easily work around the 2 GB limit
 in libFuzzer, and it allows developers of security-sensitive applications to
 more easily defend against one of the progressive JPEG exploits (LJT-01-004)
 identified in
-[this report](http://www.libjpeg-turbo.org/pmwiki/uploads/About/TwoIssueswiththeJPEGStandard.pdf).
+[this report](https://libjpeg-turbo.org/pmwiki/uploads/About/TwoIssueswiththeJPEGStandard.pdf).
 
 10. TJBench will now run each benchmark for 1 second prior to starting the
 timer, in order to improve the consistency of the results.  Furthermore, the
