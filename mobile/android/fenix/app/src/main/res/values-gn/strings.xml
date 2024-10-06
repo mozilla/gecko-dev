@@ -210,6 +210,8 @@
     <string name="browser_menu_extensions_banner_learn_more">Eikuaave</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Eñangareko jepysokuére</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Jepysokue je’eporãpyre</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">Embojuaju %1$s</string>
@@ -1207,6 +1209,8 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Embojevy tendayke</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s oñemoñepyrũ jey</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">Mboty</string>
     <!-- Unsubmitted crash dialog positive button to submit crash report -->
@@ -1299,6 +1303,8 @@
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Poravoha ítem %s peg̃uarã</string>
 
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Ndaipóri gueteri techaukaha</string>
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">Eike embojuehe hag̃ua</string>
 
@@ -2900,6 +2906,10 @@
     <string name="debug_drawer_cfr_tools_title">Tembiporu CFR</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Eguerujey CFRs</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Tembiporu mopotĩha Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
