@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+    <!-- The button that appears at the bottom of an error page. -->
+    <string name="mozac_browser_errorpages_page_refresh">Ka\'a k\'aax</string>
+
+    <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
+    <string name="mozac_browser_errorpages_generic_title">Ma\' páajchaj u ts\'o\'oksa\'al le k\'áat chi\'o\'</string>
+
+    <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
+    <string name="mozac_browser_errorpages_generic_message"><![CDATA[
+	<p>Bejla\'e\' mina\'an uláak\' a\'almaj t\'aan uti\'al le talamila\' wa le ba\'alo\'.</p>
+	]]></string>
+
+    <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_ssl_title">Ma\' béeyak u conexión segura</string>
+
+    <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[
+	<ul>
+		<li>Ma\' táan u páajtal u ye\'esa\'al le linki abas kaambal ka k\'áat a wile\' tumen ma\' páajchaj u yila\'al u jaajil le datos ts\'o\'ok a k\'amik.</li>
+		<li>Béet t\'aan yéetel u yuumil le ts\'ono\'oto\' web uti\'al a ts\'áaik ojéeltbil ti\'ob le talamila\'.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_title">Ma\' béeyak u conexión segura</string>
+    <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[
+    <ul>
+		<li>Je\'el u páajtal u yantal jump\'éel talamil ti\' u configuración le servidor, wa je\'el u páajtal u yaantal máax táan u yilik u beetik bey le servidor.</li>
+		<li>Wa ka\'ache\' ts\'o\'ok a conectar yéetel belal ti\' le servidor je\'ela\', le ba\'alo\' je\'el u páajtal u yantal jump\'éel k\'iini\', bey u ka\'a ilawil jump\'íit k\'iin.</li>
+	</ul>
+	]]></string>
+
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_advanced">Áabansado…</string>
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_back">Suut (recomendado)</string>
+    <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">K\'aam le riesgo yéetel t\'u\'uchpachtik</string>
+
+    <!-- The document title and heading of the error page shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Le ts\'ono\'oto\' web k\'a\'abet jump\'éel conexión segura.</string>
+
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">Áabansado…</string>
+
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Suut</string>
+
+    <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
+    <string name="mozac_browser_errorpages_net_interrupt_title">Le conexión ts\'o\'ok u je\'elel</string>
+
+    <!-- The document title and heading of the error page shown when a website takes too long to load. -->
+    <string name="mozac_browser_errorpages_net_timeout_title">Ts\'o\'ok u xu\'ulul u k\'iinil le conexión</string>
+
+    <!-- The document title and heading of the error page shown when a website could not be reached. -->
+    <string name="mozac_browser_errorpages_connection_failure_title">Ma’ u beytal u nuupul</string>
+
+    <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
+    <string name="mozac_browser_errorpages_unknown_socket_type_title">Núukik ma\' páa\'ta\'an ti\' le servidor, yéetel le navegador ma\' je\'el u páajtal u t\'u\'uchpachtik</string>
+
+    <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
+    <string name="mozac_browser_errorpages_redirect_loop_title">Le linki abas kaambal ma\' táan u k\'e\'exel belil</string>
+
+    <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
+    <string name="mozac_browser_errorpages_offline_title">Modo xma\' conexión</string>
+
+    <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
+    <string name="mozac_browser_errorpages_port_blocked_title">Puerto restringido, tumen razones ti\' seguridad</string>
+    <!-- The error message shown when the browser prevents loading a website on a restricted port. -->
+    <string name="mozac_browser_errorpages_port_blocked_message"><![CDATA[
+	<p>Le dirección solicitada especificaba jump\'éel puerto (e.g., <q>mozilla.org:80</q> utia\'al u puerto 80 ti\' mozilla.org) ku meyajtiko\'ob típicamente utia\'al u propósitos <em>uláak\'</em> u navegar ti\' Internet . Le navegador ts\'o\'ok u xu\'ulsik le k\'áat chi\'o\' uti\'al a kanáanil yéetel a kanáanil.</p>
+	]]></string>
+
+    <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
+    <string name="mozac_browser_errorpages_net_reset_title">Le conexión ts\'o\'ok u ka\'a káajsa\'al</string>
+
+    <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
+    <string name="mozac_browser_errorpages_unsafe_content_type_title">Bin yano\'ob archivo ma\' seguro</string>
+
+    </resources>
