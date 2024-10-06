@@ -58,9 +58,6 @@ TEST_F(TestFileOutputStream, extendFileStreamWithSetEOF) {
       auto originMetadata = GetOutputStreamTestOriginMetadata();
 
       {
-        ASSERT_NS_SUCCEEDED(
-            quotaManager->EnsureTemporaryStorageIsInitializedInternal());
-
         auto res = quotaManager->EnsureTemporaryOriginIsInitializedInternal(
             originMetadata);
         ASSERT_TRUE(res.isOk());

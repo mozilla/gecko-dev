@@ -15181,8 +15181,6 @@ nsresult OpenDatabaseOp::DoDatabaseWork() {
                   mOriginMetadata));
         }
 
-        QM_TRY(MOZ_TO_RESULT(
-            quotaManager->EnsureTemporaryStorageIsInitializedInternal()));
         QM_TRY_RETURN(quotaManager->EnsureTemporaryOriginIsInitializedInternal(
             mOriginMetadata));
       }()
@@ -16722,11 +16720,6 @@ nsresult GetDatabasesOp::DoDatabaseWork() {
 
   QuotaManager* const quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
-
-  if (mPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
-    QM_TRY(MOZ_TO_RESULT(
-        quotaManager->EnsureTemporaryStorageIsInitializedInternal()));
-  }
 
   {
     QM_TRY_INSPECT(const bool& exists,

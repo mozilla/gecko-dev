@@ -6975,11 +6975,6 @@ nsresult PrepareDatastoreOp::DatabaseWork() {
     QuotaManager* quotaManager = QuotaManager::Get();
     MOZ_ASSERT(quotaManager);
 
-    // This ensures that usages for existings origin directories are cached in
-    // memory.
-    QM_TRY(MOZ_TO_RESULT(
-        quotaManager->EnsureTemporaryStorageIsInitializedInternal()));
-
     const UsageInfo usageInfo = quotaManager->GetUsageForClient(
         PERSISTENCE_TYPE_DEFAULT, mOriginMetadata,
         mozilla::dom::quota::Client::LS);
