@@ -127,17 +127,6 @@ internal class FxaAccountObserver(
         store.dispatch(SyncAction.UpdateAccount(account = null))
         store.dispatch(SyncAction.UpdateAccountState(accountState = AccountState.NotAuthenticated))
     }
-
-    override fun onProfileUpdated(profile: Profile) {
-        val currentAccount = store.state.account ?: return
-        val updatedAccount = currentAccount.copy(
-            uid = profile.uid,
-            email = profile.email,
-            avatar = profile.avatar,
-            displayName = profile.displayName,
-        )
-        store.dispatch(SyncAction.UpdateAccount(updatedAccount))
-    }
 }
 
 /**
