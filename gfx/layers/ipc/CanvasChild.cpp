@@ -406,6 +406,8 @@ void CanvasChild::DropFreeBuffersWhenDormant() {
   // Drop any free buffers if we have not had any non-empty transactions.
   if (mDormant && mRecorder) {
     mRecorder->DropFreeBuffers();
+    // Notify CanvasTranslator it is dormant.
+    SendDropFreeBuffersWhenDormant();
   }
 }
 

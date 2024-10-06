@@ -59,6 +59,11 @@ parent:
    */
   async ClearCachedResources();
 
+  /**
+   * Notify CanvasTranslator when it is dormant.
+   */
+  async DropFreeBuffersWhenDormant();
+
   async __delete__();
 
 child:

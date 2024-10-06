@@ -756,6 +756,9 @@ void CanvasTranslator::HandleCanvasTranslatorEvents() {
       case CanvasTranslatorEvent::Tag::ClearCachedResources:
         ClearCachedResources();
         break;
+      case CanvasTranslatorEvent::Tag::DropFreeBuffersWhenDormant:
+        DropFreeBuffersWhenDormant();
+        break;
     }
 
     event.reset(nullptr);
@@ -1029,23 +1032,30 @@ void CanvasTranslator::PrepareShmem(int64_t aTextureId) {
   }
 }
 
-void CanvasTranslator::ClearCachedResources() {
-  mUsedDataSurfaceForSurfaceDescriptor = nullptr;
-  mUsedWrapperForSurfaceDescriptor = nullptr;
-  mUsedSurfaceDescriptorForSurfaceDescriptor = Nothing();
-
+void CanvasTranslator::CacheDataSnapshots() {
   if (mSharedContext) {
     // If there are any DrawTargetWebgls, then try to cache their framebuffers
     // in software surfaces, just in case the GL context is lost. So long as
     // there is a software copy of the framebuffer, it can be copied into a
     // fallback TextureData later even if the GL context goes away.
-    mSharedContext->OnMemoryPressure();
     for (auto const& entry : mTextureInfo) {
       if (gfx::DrawTargetWebgl* webgl = entry.second.GetDrawTargetWebgl()) {
         webgl->EnsureDataSnapshot();
       }
     }
   }
+}
+
+void CanvasTranslator::ClearCachedResources() {
+  mUsedDataSurfaceForSurfaceDescriptor = nullptr;
+  mUsedWrapperForSurfaceDescriptor = nullptr;
+  mUsedSurfaceDescriptorForSurfaceDescriptor = Nothing();
+
+  if (mSharedContext) {
+    mSharedContext->OnMemoryPressure();
+  }
+
+  CacheDataSnapshots();
 }
 
 ipc::IPCResult CanvasTranslator::RecvClearCachedResources() {
@@ -1063,6 +1073,27 @@ ipc::IPCResult CanvasTranslator::RecvClearCachedResources() {
     DispatchToTaskQueue(
         NewRunnableMethod("CanvasTranslator::ClearCachedResources", this,
                           &CanvasTranslator::ClearCachedResources));
+  }
+  return IPC_OK();
+}
+
+void CanvasTranslator::DropFreeBuffersWhenDormant() { CacheDataSnapshots(); }
+
+ipc::IPCResult CanvasTranslator::RecvDropFreeBuffersWhenDormant() {
+  if (mDeactivated) {
+    // The other side might have sent a message before we deactivated.
+    return IPC_OK();
+  }
+
+  if (UsePendingCanvasTranslatorEvents()) {
+    MutexAutoLock lock(mCanvasTranslatorEventsLock);
+    mPendingCanvasTranslatorEvents.emplace_back(
+        CanvasTranslatorEvent::DropFreeBuffersWhenDormant());
+    PostCanvasTranslatorEvents(lock);
+  } else {
+    DispatchToTaskQueue(
+        NewRunnableMethod("CanvasTranslator::DropFreeBuffersWhenDormant", this,
+                          &CanvasTranslator::DropFreeBuffersWhenDormant));
   }
   return IPC_OK();
 }
