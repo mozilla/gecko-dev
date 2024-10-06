@@ -5115,9 +5115,11 @@ RefPtr<BoolPromise> QuotaManager::TemporaryStorageInitialized() {
 RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
     const PersistenceScope& aPersistenceScope, const OriginScope& aOriginScope,
     const Nullable<Client::Type>& aClientType, bool aExclusive,
-    DirectoryLockCategory aCategory,
+    bool aInitializeOrigins, DirectoryLockCategory aCategory,
     Maybe<RefPtr<UniversalDirectoryLock>&> aPendingDirectoryLockOut) {
   AssertIsOnOwningThread();
+
+  nsTArray<RefPtr<BoolPromise>> promises;
 
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
       CreateDirectoryLockInternal(PersistenceScope::CreateFromNull(),
@@ -5125,14 +5127,30 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
                                   Nullable<Client::Type>(),
                                   /* aExclusive */ false);
 
-  RefPtr<BoolPromise> storageDirectoryLockPromise;
-
   if (mStorageInitialized &&
       !IsDirectoryLockBlockedByUninitStorageOperation(storageDirectoryLock)) {
     storageDirectoryLock = nullptr;
-    storageDirectoryLockPromise = BoolPromise::CreateAndResolve(true, __func__);
   } else {
-    storageDirectoryLockPromise = storageDirectoryLock->Acquire();
+    promises.AppendElement(storageDirectoryLock->Acquire());
+  }
+
+  RefPtr<UniversalDirectoryLock> temporaryStorageDirectoryLock;
+
+  if (aInitializeOrigins &&
+      MatchesBestEffortPersistenceScope(aPersistenceScope)) {
+    temporaryStorageDirectoryLock = CreateDirectoryLockInternal(
+        PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
+                                        PERSISTENCE_TYPE_DEFAULT),
+        OriginScope::FromNull(), Nullable<Client::Type>(),
+        /* aExclusive */ false);
+
+    if (mTemporaryStorageInitialized &&
+        !IsDirectoryLockBlockedByUninitStorageOperation(
+            temporaryStorageDirectoryLock)) {
+      temporaryStorageDirectoryLock = nullptr;
+    } else {
+      promises.AppendElement(temporaryStorageDirectoryLock->Acquire());
+    }
   }
 
   RefPtr<UniversalDirectoryLock> universalDirectoryLock =
@@ -5146,7 +5164,15 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
     aPendingDirectoryLockOut.ref() = universalDirectoryLock;
   }
 
-  return storageDirectoryLockPromise
+  return BoolPromise::All(GetCurrentSerialEventTarget(), promises)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [](const CopyableTArray<bool>& aResolveValues) {
+            return BoolPromise::CreateAndResolve(true, __func__);
+          },
+          [](nsresult aRejectValue) {
+            return BoolPromise::CreateAndReject(aRejectValue, __func__);
+          })
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = RefPtr(this),
               storageDirectoryLock = std::move(storageDirectoryLock)](
@@ -5164,6 +5190,26 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
 
                return self->InitializeStorage(std::move(storageDirectoryLock));
              })
+
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self = RefPtr(this), temporaryStorageDirectoryLock =
+                                    std::move(temporaryStorageDirectoryLock)](
+              const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+            if (aValue.IsReject()) {
+              SafeDropDirectoryLockIfNotDropped(temporaryStorageDirectoryLock);
+
+              return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                  __func__);
+            }
+
+            if (!temporaryStorageDirectoryLock) {
+              return BoolPromise::CreateAndResolve(true, __func__);
+            }
+
+            return self->InitializeTemporaryStorage(
+                std::move(temporaryStorageDirectoryLock));
+          })
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [universalDirectoryLockPromise =
                   std::move(universalDirectoryLockPromise)](

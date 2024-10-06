@@ -13044,7 +13044,8 @@ nsresult Maintenance::OpenDirectory() {
       ->OpenStorageDirectory(
           PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
           Nullable<Client::Type>(Client::IDB), /* aExclusive */ false,
-          DirectoryLockCategory::None, SomeRef(mPendingDirectoryLock))
+          /* aInitializeOrigins */ false, DirectoryLockCategory::None,
+          SomeRef(mPendingDirectoryLock))
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [self = RefPtr(this)](
                  const UniversalDirectoryLockPromise::ResolveOrRejectValue&

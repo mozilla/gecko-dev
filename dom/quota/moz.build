@@ -121,6 +121,7 @@ UNIFIED_SOURCES += [
     "OriginOperationBase.cpp",
     "OriginOperations.cpp",
     "OriginParser.cpp",
+    "PersistenceScope.cpp",
     "PersistenceType.cpp",
     "PromiseUtils.cpp",
     "QMResult.cpp",
