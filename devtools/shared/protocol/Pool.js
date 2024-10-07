@@ -98,6 +98,8 @@ class Pool extends EventEmitter {
         parent.unmanage(actor);
       }
     }
+    // Duplicate the ID into another field as `actorID` will be cleared on destruction
+    actor.persistedActorID = actor.actorID;
 
     this._poolMap.set(actor.actorID, actor);
     actor.parentPool = this;
