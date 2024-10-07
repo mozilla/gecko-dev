@@ -150,12 +150,16 @@ class AsyncSetIconForPage final : public Runnable {
    *        Page to which associate the icon.
    * @param aCallback
    *        Function to be called when the associate process finishes.
+   * @param aPromise
+   *        Promise that returns the result.
    */
   AsyncSetIconForPage(const IconData& aIcon, const PageData& aPage,
-                      PlacesCompletionCallback* aCallback);
+                      PlacesCompletionCallback* aCallback,
+                      dom::Promise* aPromise);
 
  private:
   nsMainThreadPtrHandle<PlacesCompletionCallback> mCallback;
+  nsMainThreadPtrHandle<dom::Promise> mPromise;
   IconData mIcon;
   PageData mPage;
 };

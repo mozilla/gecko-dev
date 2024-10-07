@@ -291,7 +291,7 @@ BookmarkImporter.prototype = {
       ).length;
 
       // Now add any favicons.
-      insertFaviconsForTree(node).catch(console.warn);
+      insertFaviconsForTree(node);
     }
     return bookmarkCount;
   },
@@ -498,7 +498,7 @@ function translateTreeTypes(node) {
  *
  * @param {Object} node The bookmark node for icons to be inserted.
  */
-async function insertFaviconForNode(node) {
+function insertFaviconForNode(node) {
   if (!node.icon && !node.iconUri) {
     // No favicon information.
     return;
@@ -511,19 +511,14 @@ async function insertFaviconForNode(node) {
       return;
     }
 
-    let result = await new Promise(resolve => {
-      PlacesUtils.favicons.setFaviconForPage(
+    PlacesUtils.favicons
+      .setFaviconForPage(
         Services.io.newURI(node.url),
         // Use iconUri otherwise create a fake favicon URI to use (FIXME: bug 523932)
         Services.io.newURI(node.iconUri ?? "fake-favicon-uri:" + node.url),
-        faviconDataURI,
-        null,
-        resolve
-      );
-    });
-    if (!Components.isSuccessCode(result)) {
-      throw new Error("Failed to call setFaviconForPage():", node.url);
-    }
+        faviconDataURI
+      )
+      .catch(console.error);
   } catch (ex) {
     console.error("Failed to import favicon data:", ex);
   }
@@ -538,12 +533,12 @@ async function insertFaviconForNode(node) {
  *
  * @param {Object} nodeTree The bookmark node tree for icons to be inserted.
  */
-async function insertFaviconsForTree(nodeTree) {
-  await insertFaviconForNode(nodeTree);
+function insertFaviconsForTree(nodeTree) {
+  insertFaviconForNode(nodeTree);
 
   if (nodeTree.children) {
     for (let child of nodeTree.children) {
-      await insertFaviconsForTree(child);
+      insertFaviconsForTree(child);
     }
   }
 }
