@@ -649,10 +649,10 @@ AsyncAssociateIconToPage::Run() {
 
 AsyncSetIconForPage::AsyncSetIconForPage(const IconData& aIcon,
                                          const PageData& aPage,
-                                         dom::Promise* aPromise)
+                                         PlacesCompletionCallback* aCallback)
     : Runnable("places::AsyncSetIconForPage"),
-      mPromise(new nsMainThreadPtrHolder<dom::Promise>(
-          "AsyncSetIconForPage::Promise", aPromise, false)),
+      mCallback(new nsMainThreadPtrHolder<PlacesCompletionCallback>(
+          "AsyncSetIconForPage::mCallback", aCallback, false)),
       mIcon(aIcon),
       mPage(aPage) {}
 
@@ -665,14 +665,13 @@ AsyncSetIconForPage::Run() {
 
   nsresult rv = NS_OK;
   auto guard = MakeScopeExit([&]() {
-    NS_DispatchToMainThread(NS_NewRunnableFunction(
-        "AsyncSetIconForPage::Promise", [rv, promise = std::move(mPromise)]() {
-          if (NS_SUCCEEDED(rv)) {
-            promise->MaybeResolveWithUndefined();
-          } else {
-            promise->MaybeReject(rv);
-          }
-        }));
+    if (mCallback) {
+      NS_DispatchToMainThread(
+          NS_NewRunnableFunction("AsyncSetIconForPage::Callback",
+                                 [rv, callback = std::move(mCallback)]() {
+                                   (void)callback->Complete(rv);
+                                 }));
+    }
   });
 
   // Fetch the page data.

@@ -247,13 +247,11 @@ DistributionCustomizer.prototype = {
 
           if (item.icon && item.iconData) {
             try {
-              lazy.PlacesUtils.favicons
-                .setFaviconForPage(
-                  Services.io.newURI(item.link),
-                  Services.io.newURI(item.icon),
-                  Services.io.newURI(item.iconData)
-                )
-                .catch(console.error);
+              lazy.PlacesUtils.favicons.setFaviconForPage(
+                Services.io.newURI(item.link),
+                Services.io.newURI(item.icon),
+                Services.io.newURI(item.iconData)
+              );
             } catch (e) {
               console.error(e);
             }

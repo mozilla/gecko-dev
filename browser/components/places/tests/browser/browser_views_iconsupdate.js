@@ -41,8 +41,7 @@ add_task(async function () {
     parentGuid: PlacesUtils.bookmarks.toolbarGuid,
   });
   registerCleanupFunction(async function () {
-    await PlacesUtils.bookmarks.eraseEverything();
-    await PlacesUtils.history.clear();
+    await PlacesUtils.bookmarks.remove(bm);
   });
 
   // The icon is read asynchronously from the network, we don't have an easy way
@@ -60,7 +59,15 @@ add_task(async function () {
   info("Sidebar: " + sidebarShot1);
 
   let dataURL = await PlacesTestUtils.getFaviconDataURLFromNetwork(ICON_URI);
-  await PlacesTestUtils.setFaviconForPage(PAGE_URI, ICON_URI, dataURL);
+  await new Promise(resolve => {
+    PlacesUtils.favicons.setFaviconForPage(
+      PAGE_URI,
+      ICON_URI,
+      dataURL,
+      null,
+      resolve
+    );
+  });
   let dataURLInDB = await PlacesTestUtils.getFaviconDataURLFromDB(ICON_URI);
   Assert.ok(dataURLInDB.equals(dataURL), "Succesfully set the icon");
 

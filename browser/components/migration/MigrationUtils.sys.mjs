@@ -886,6 +886,8 @@ class MigrationUtils {
     );
 
     for (let faviconDataItem of favicons) {
+      let dataURL;
+
       try {
         // getMIMETypeFromContent throws error if could not get the mime type
         // from the data.
@@ -895,7 +897,7 @@ class MigrationUtils {
           faviconDataItem.faviconData.length
         );
 
-        let dataURL = await new Promise((resolve, reject) => {
+        dataURL = await new Promise((resolve, reject) => {
           let buffer = new Uint8ClampedArray(faviconDataItem.faviconData);
           let blob = new Blob([buffer], { type: mimeType });
           let reader = new FileReader();
@@ -907,16 +909,15 @@ class MigrationUtils {
         let fakeFaviconURI = Services.io.newURI(
           "fake-favicon-uri:" + faviconDataItem.uri.spec
         );
-        lazy.PlacesUtils.favicons
-          .setFaviconForPage(
-            faviconDataItem.uri,
-            fakeFaviconURI,
-            Services.io.newURI(dataURL)
-          )
-          .catch(console.warn);
+        lazy.PlacesUtils.favicons.setFaviconForPage(
+          faviconDataItem.uri,
+          fakeFaviconURI,
+          Services.io.newURI(dataURL)
+        );
       } catch (e) {
         // Even if error happens for favicon, continue the process.
         console.warn(e);
+        continue;
       }
     }
   }

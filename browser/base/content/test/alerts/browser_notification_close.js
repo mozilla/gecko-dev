@@ -23,7 +23,15 @@ add_task(async function test_notificationClose() {
   let dataURL = makeURI(
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12P4//8/AAX+Av7czFnnAAAAAElFTkSuQmCC"
   );
-  await PlacesTestUtils.setFaviconForPage(notificationURI, dataURL, dataURL);
+  await new Promise(resolve => {
+    PlacesUtils.favicons.setFaviconForPage(
+      notificationURI,
+      dataURL,
+      dataURL,
+      null,
+      resolve
+    );
+  });
 
   await BrowserTestUtils.withNewTab(
     {

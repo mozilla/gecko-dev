@@ -95,7 +95,7 @@ add_task(async function test_fetchIcon_with_valid_favicon() {
     .resolves({ domain: TEST_DOMAIN, image_url: TEST_FAVICON_URL.spec });
 
   info("Setup valid favicon data in DB");
-  await PlacesUtils.favicons.setFaviconForPage(
+  PlacesUtils.favicons.setFaviconForPage(
     TEST_PAGE_URL,
     TEST_FAVICON_URL,
     TEST_SVG_DATA_URL
@@ -166,7 +166,7 @@ add_task(async function test_fetchIconFromRedirects_with_valid_favicon() {
     ]);
 
   info("Setup valid favicon data in DB");
-  await PlacesUtils.favicons.setFaviconForPage(
+  PlacesUtils.favicons.setFaviconForPage(
     TEST_PAGE_URL,
     TEST_FAVICON_URL,
     TEST_SVG_DATA_URL

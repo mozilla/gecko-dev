@@ -137,15 +137,14 @@ export class LinkHandlerParent extends JSWindowActorParent {
     }
     if (canStoreIcon) {
       try {
-        lazy.PlacesUtils.favicons
-          .setFaviconForPage(
-            Services.io.newURI(pageURL),
-            Services.io.newURI(originalURL),
-            iconURI,
-            expiration && lazy.PlacesUtils.toPRTime(expiration),
-            isRichIcon
-          )
-          .catch(console.error);
+        lazy.PlacesUtils.favicons.setFaviconForPage(
+          Services.io.newURI(pageURL),
+          Services.io.newURI(originalURL),
+          iconURI,
+          expiration && lazy.PlacesUtils.toPRTime(expiration),
+          null,
+          isRichIcon
+        );
       } catch (ex) {
         console.error(ex);
       }

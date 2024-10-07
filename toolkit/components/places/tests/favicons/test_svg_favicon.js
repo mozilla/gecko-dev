@@ -8,11 +8,15 @@ add_task(async function () {
     visitDate: Date.now() * 1000,
   });
 
-  await PlacesUtils.favicons.setFaviconForPage(
-    PAGEURI,
-    SMALLSVG_DATA_URI,
-    SMALLSVG_DATA_URI
-  );
+  await new Promise(resolve => {
+    PlacesUtils.favicons.setFaviconForPage(
+      PAGEURI,
+      SMALLSVG_DATA_URI,
+      SMALLSVG_DATA_URI,
+      null,
+      resolve
+    );
+  });
 
   await new Promise(resolve => {
     PlacesUtils.favicons.getFaviconDataForPage(

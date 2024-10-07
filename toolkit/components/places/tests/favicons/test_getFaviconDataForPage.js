@@ -19,7 +19,15 @@ add_task(async function test_normal() {
 
   await PlacesTestUtils.addVisits(pageURI);
 
-  await PlacesUtils.favicons.setFaviconForPage(pageURI, FAVICON_URI, dataURL);
+  await new Promise(resolve => {
+    PlacesUtils.favicons.setFaviconForPage(
+      pageURI,
+      FAVICON_URI,
+      dataURL,
+      null,
+      resolve
+    );
+  });
 
   await new Promise(resolve => {
     PlacesUtils.favicons.getFaviconDataForPage(

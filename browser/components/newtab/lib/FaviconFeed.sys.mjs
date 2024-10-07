@@ -129,15 +129,11 @@ export class FaviconFeed {
       const redirectedUri = Services.io.newURI(lastVisit.url);
       const iconInfo = await this.getFaviconInfo(redirectedUri);
       if (iconInfo?.faviconSize >= MIN_FAVICON_SIZE) {
-        try {
-          lazy.PlacesUtils.favicons.copyFavicons(
-            redirectedUri,
-            Services.io.newURI(url),
-            lazy.PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE
-          );
-        } catch (ex) {
-          console.error(`Failed to copy favicon [${ex}]`);
-        }
+        lazy.PlacesUtils.favicons.copyFavicons(
+          redirectedUri,
+          Services.io.newURI(url),
+          lazy.PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE
+        );
       }
     }
   }
@@ -200,9 +196,11 @@ export class FaviconFeed {
     try {
       // If the given faviconURI is data URL, set it as is.
       if (faviconURI.schemeIs("data")) {
-        lazy.PlacesUtils.favicons
-          .setFaviconForPage(pageURI, faviconURI, faviconURI)
-          .catch(console.error);
+        lazy.PlacesUtils.favicons.setFaviconForPage(
+          pageURI,
+          faviconURI,
+          faviconURI
+        );
         return;
       }
 
@@ -215,13 +213,11 @@ export class FaviconFeed {
       }
 
       // Otherwise, fetch from network.
-      lazy.PlacesUtils.favicons
-        .setFaviconForPage(
-          pageURI,
-          faviconURI,
-          await this.getFaviconDataURLFromNetwork(faviconURI)
-        )
-        .catch(console.error);
+      lazy.PlacesUtils.favicons.setFaviconForPage(
+        pageURI,
+        faviconURI,
+        await this.getFaviconDataURLFromNetwork(faviconURI)
+      );
     } catch (ex) {
       console.error(`Failed to set favicon for page:${ex}`);
     }

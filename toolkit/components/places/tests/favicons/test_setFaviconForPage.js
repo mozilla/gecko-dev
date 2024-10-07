@@ -94,11 +94,15 @@ add_task(async function test_twiceReplace() {
   let secondFavicon = await createFavicon("favicon10.png");
 
   let firstFaviconDataURL = await createDataURLForFavicon(firstFavicon);
-  await PlacesUtils.favicons.setFaviconForPage(
-    pageURI,
-    firstFavicon.uri,
-    firstFaviconDataURL
-  );
+  await new Promise(resolve => {
+    PlacesUtils.favicons.setFaviconForPage(
+      pageURI,
+      firstFavicon.uri,
+      firstFaviconDataURL,
+      null,
+      resolve
+    );
+  });
 
   await doTestSetFaviconForPage({
     pageURI,
@@ -153,35 +157,17 @@ add_task(async function test_invalidPageURI() {
   await PlacesTestUtils.addVisits(uri("http://example.com/"));
   let favicon = await createFavicon("favicon-invalidPageURI.png");
 
-  const TEST_DATA = [
-    {
-      pageURI: null,
-      expected: "NS_ERROR_ILLEGAL_VALUE",
-    },
-    {
-      pageURI: "",
-      expected: "NS_ERROR_XPC_BAD_CONVERT_JS",
-    },
-    {
-      pageURI: "http://example.com",
-      expected: "NS_ERROR_XPC_BAD_CONVERT_JS",
-    },
-  ];
-  for (let { pageURI, expected } of TEST_DATA) {
+  for (let invalidURI of [null, "", "http://example.com"]) {
     try {
-      info(`Invalid page URI test for [${pageURI}]`);
-      await PlacesUtils.favicons.setFaviconForPage(
-        pageURI,
+      info(`Invalid page URI test for [${invalidURI}]`);
+      PlacesUtils.favicons.setFaviconForPage(
+        invalidURI,
         favicon.uri,
         await createDataURLForFavicon(favicon)
       );
       Assert.ok(false, "Error should happened");
     } catch (e) {
-      Assert.equal(
-        e.name,
-        expected,
-        `Expected error happened for [${pageURI}]`
-      );
+      Assert.ok(true, `Expected error happend [${e.message}]`);
     }
   }
 });
@@ -191,36 +177,17 @@ add_task(async function test_invalidFaviconURI() {
   await PlacesTestUtils.addVisits(pageURI);
   let favicon = await createFavicon("favicon-invalidFaviconURI.png");
 
-  const TEST_DATA = [
-    {
-      faviconURI: null,
-      expected: "NS_ERROR_ILLEGAL_VALUE",
-    },
-    {
-      faviconURI: "",
-      expected: "NS_ERROR_XPC_BAD_CONVERT_JS",
-    },
-    {
-      faviconURI: "favicon.uri.spec",
-      expected: "NS_ERROR_XPC_BAD_CONVERT_JS",
-    },
-  ];
-
-  for (let { faviconURI, expected } of TEST_DATA) {
+  for (let invalidURI of [null, "", favicon.uri.spec]) {
     try {
-      info(`Invalid favicon URI test for [${faviconURI}]`);
-      await PlacesUtils.favicons.setFaviconForPage(
+      info(`Invalid favicon URI test for [${invalidURI}]`);
+      PlacesUtils.favicons.setFaviconForPage(
         pageURI,
-        faviconURI,
+        invalidURI,
         await createDataURLForFavicon(favicon)
       );
       Assert.ok(false, "Error should happened");
     } catch (e) {
-      Assert.equal(
-        e.name,
-        expected,
-        `Expected error happened for [${faviconURI}]`
-      );
+      Assert.ok(true, `Expected error happend [${e.message}]`);
     }
   }
 });
@@ -230,65 +197,21 @@ add_task(async function test_invalidFaviconDataURI() {
   await PlacesTestUtils.addVisits(pageURI);
   let faviconURI = uri("http://example.com/favicon.svg");
 
-  const TEST_DATA = [
-    {
-      faviconDataURI: null,
-      expected: "NS_ERROR_ILLEGAL_VALUE",
-    },
-    {
-      faviconDataURI: "",
-      expected: "NS_ERROR_XPC_BAD_CONVERT_JS",
-    },
-    {
-      faviconDataURI: "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==",
-      expected: "NS_ERROR_XPC_BAD_CONVERT_JS",
-    },
-    {
-      // nsIFaviconService::MAX_FAVICON_BUFFER_SIZE = 65536
-      faviconDataURI: uri(
-        `data:image/svg+xml;utf8,<svg><text>${Array(65536)}</text></svg>`
-      ),
-      expected: "NS_ERROR_FILE_TOO_BIG",
-    },
-  ];
-
-  for (let { faviconDataURI, expected } of TEST_DATA) {
+  for (let invalidURI of [
+    null,
+    "",
+    "data:text/plain;base64,SGVsbG8sIFdvcmxkIQ==",
+    // nsIFaviconService::MAX_FAVICON_BUFFER_SIZE = 65536
+    uri(`data:image/svg+xml;utf8,<svg><text>${Array(65536)}</text></svg>`),
+  ]) {
     try {
-      info(`Invalid favicon data URI test for [${faviconDataURI}]`);
-      await PlacesUtils.favicons.setFaviconForPage(
-        pageURI,
-        faviconURI,
-        faviconDataURI
-      );
+      info(`Invalid favicon data URI test for [${invalidURI}]`);
+      PlacesUtils.favicons.setFaviconForPage(pageURI, faviconURI, invalidURI);
       Assert.ok(false, "Error should happened");
     } catch (e) {
-      Assert.equal(
-        e.name,
-        expected,
-        `Expected error happened for [${faviconDataURI}]`
-      );
+      Assert.ok(true, `Expected error happend [${e.message}]`);
     }
   }
-});
-
-// Error handled by this test will fire from AsyncSetIconForPage Runnable.
-add_task(async function test_noVisitData() {
-  let pageURI = uri("http://test1.bar/");
-  let favicon = await createFavicon("favicon1.png");
-
-  try {
-    await PlacesUtils.favicons.setFaviconForPage(
-      pageURI,
-      favicon.uri,
-      await createDataURLForFavicon(favicon)
-    );
-    Assert.ok(false, "Error should happened");
-  } catch (e) {
-    Assert.equal(e.name, "NS_ERROR_NOT_AVAILABLE", "Expected error happened");
-  }
-
-  await IOUtils.remove(favicon.file.path);
-  await PlacesUtils.history.clear();
 });
 
 add_task(async function test_sameHostRedirect() {
@@ -313,7 +236,7 @@ add_task(async function test_sameHostRedirect() {
     events.some(e => e.url == srcUrl && e.faviconUrl == SMALLPNG_DATA_URI.spec)
   );
 
-  await PlacesUtils.favicons.setFaviconForPage(
+  PlacesUtils.favicons.setFaviconForPage(
     Services.io.newURI(destUrl),
     SMALLPNG_DATA_URI,
     SMALLPNG_DATA_URI
@@ -374,14 +297,18 @@ async function doTestSetFaviconForPage({
   expectedFaviconData,
   expectedFaviconMimeType,
 }) {
-  let result = await PlacesUtils.favicons.setFaviconForPage(
-    pageURI,
-    faviconURI,
-    dataURL
-  );
+  let result = await new Promise(resolve => {
+    PlacesUtils.favicons.setFaviconForPage(
+      pageURI,
+      faviconURI,
+      dataURL,
+      null,
+      resolve
+    );
+  });
 
   info("Check the result of setFaviconForPage");
-  Assert.equal(result, null, "If succeeded, the promise has no data");
+  Assert.equal(result, 0);
 
   await new Promise(resolve => {
     checkFaviconDataForPage(
@@ -423,9 +350,8 @@ add_task(async function test_pageURIProtocols() {
     "https://example.com/",
   ];
   for (let pageURI of invalidPageURIs) {
-    await PlacesTestUtils.addBookmarkWithDetails({ uri: pageURI });
     try {
-      await PlacesUtils.favicons.setFaviconForPage(
+      PlacesUtils.favicons.setFaviconForPage(
         uri(pageURI),
         favicon.uri,
         await createDataURLForFavicon(favicon)
@@ -434,12 +360,10 @@ add_task(async function test_pageURIProtocols() {
     } catch (e) {
       Assert.ok(true, `Expected error [${e.message}]`);
     }
-    await PlacesUtils.bookmarks.eraseEverything();
   }
   for (let pageURI of validPageURIs) {
-    await PlacesTestUtils.addBookmarkWithDetails({ uri: pageURI });
     try {
-      await PlacesUtils.favicons.setFaviconForPage(
+      PlacesUtils.favicons.setFaviconForPage(
         uri(pageURI),
         favicon.uri,
         await createDataURLForFavicon(favicon)
@@ -448,6 +372,5 @@ add_task(async function test_pageURIProtocols() {
     } catch (e) {
       Assert.ok(false, `Unexpected error [${e.message}]`);
     }
-    await PlacesUtils.bookmarks.eraseEverything();
   }
 });

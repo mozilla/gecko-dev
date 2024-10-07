@@ -14,6 +14,7 @@
  */
 
 #include "nsFaviconService.h"
+#include "PlacesCompletionCallback.h"
 
 #include "nsNavHistory.h"
 #include "nsPlacesMacros.h"
@@ -223,41 +224,24 @@ void nsFaviconService::ClearImageCache(nsIURI* aImageURI) {
 }
 
 NS_IMETHODIMP
-nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
-                                    nsIURI* aDataURL, PRTime aExpiration = 0,
-                                    bool isRichIcon = false,
-                                    JSContext* aContext = nullptr,
-                                    Promise** aPromise = nullptr) {
+nsFaviconService::SetFaviconForPage(
+    nsIURI* aPageURI, nsIURI* aFaviconURI, nsIURI* aDataURL,
+    PRTime aExpiration = 0, PlacesCompletionCallback* aCallback = nullptr,
+    bool isRichIcon = false) {
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_ARG(aPageURI);
   NS_ENSURE_ARG(aFaviconURI);
   NS_ENSURE_ARG(aDataURL);
 
   MOZ_DIAGNOSTIC_ASSERT(aDataURL->SchemeIs("data"));
-
-  ErrorResult result;
-  RefPtr<Promise> promise =
-      Promise::Create(xpc::CurrentNativeGlobal(aContext), result);
-  if (NS_WARN_IF(result.Failed())) {
-    return result.StealNSResult();
-  }
-
-  nsresult rv = NS_OK;
-  auto guard = MakeScopeExit([&]() {
-    if (NS_SUCCEEDED(rv)) {
-      promise->MaybeResolveWithUndefined();
-      promise.forget(aPromise);
-    }
-  });
-
   if (!aDataURL->SchemeIs("data")) {
-    return (rv = NS_ERROR_INVALID_ARG);
+    return NS_ERROR_INVALID_ARG;
   }
 
   NS_ENSURE_ARG(canStoreIconForPage(aPageURI));
 
   if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
-    return (rv = NS_OK);
+    return NS_OK;
   }
 
   PRTime now = PR_Now();
@@ -265,6 +249,14 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
     // Invalid input, just use the default.
     aExpiration = now + MAX_FAVICON_EXPIRATION;
   }
+
+  // Use the data: protocol handler to convert the data.
+  nsresult rv = NS_OK;
+  auto guard = MakeScopeExit([&]() {
+    if (aCallback) {
+      aCallback->Complete(rv);
+    }
+  });
 
   nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -403,7 +395,7 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
   }
 
   RefPtr<AsyncSetIconForPage> event =
-      new AsyncSetIconForPage(icon, page, promise);
+      new AsyncSetIconForPage(icon, page, aCallback);
   RefPtr<Database> DB = Database::GetDatabase();
   if (MOZ_UNLIKELY(!DB)) {
     return (rv = NS_ERROR_UNEXPECTED);
@@ -412,7 +404,6 @@ nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
   DB->DispatchToAsyncThread(event);
 
   guard.release();
-  promise.forget(aPromise);
   return NS_OK;
 }
 

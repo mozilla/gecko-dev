@@ -143,7 +143,19 @@ export var PlacesTestUtils = Object.freeze({
       }
 
       faviconPromises.push(
-        lazy.PlacesUtils.favicons.setFaviconForPage(uri, faviconURI, faviconURI)
+        new Promise((resolve, reject) => {
+          try {
+            lazy.PlacesUtils.favicons.setFaviconForPage(
+              uri,
+              faviconURI,
+              faviconURI,
+              null,
+              resolve
+            );
+          } catch (ex) {
+            reject(ex);
+          }
+        })
       );
     }
     await Promise.all(faviconPromises);
@@ -167,17 +179,30 @@ export var PlacesTestUtils = Object.freeze({
     expiration = 0,
     isRichIcon = false
   ) {
-    return lazy.PlacesUtils.favicons.setFaviconForPage(
-      pageURI instanceof Ci.nsIURI ? pageURI : Services.io.newURI(pageURI),
-      faviconURI instanceof Ci.nsIURI
-        ? faviconURI
-        : Services.io.newURI(faviconURI),
-      faviconDataURL instanceof Ci.nsIURI
-        ? faviconDataURL
-        : Services.io.newURI(faviconDataURL),
-      expiration,
-      isRichIcon
-    );
+    return new Promise((resolve, reject) => {
+      lazy.PlacesUtils.favicons.setFaviconForPage(
+        pageURI instanceof Ci.nsIURI ? pageURI : Services.io.newURI(pageURI),
+        faviconURI instanceof Ci.nsIURI
+          ? faviconURI
+          : Services.io.newURI(faviconURI),
+        faviconDataURL instanceof Ci.nsIURI
+          ? faviconDataURL
+          : Services.io.newURI(faviconDataURL),
+        expiration,
+        status => {
+          if (Components.isSuccessCode(status)) {
+            resolve(status);
+          } else {
+            reject(
+              new Error(
+                `Failed to process setFaviconForPage(): status code = ${status}`
+              )
+            );
+          }
+        },
+        isRichIcon
+      );
+    });
   },
 
   /**
