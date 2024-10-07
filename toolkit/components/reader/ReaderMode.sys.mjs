@@ -42,6 +42,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const gIsFirefoxDesktop =
   Services.appinfo.ID == "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
 
+Services.telemetry.setEventRecordingEnabled("readermode", true);
+
 export var ReaderMode = {
   DEBUG: 0,
 

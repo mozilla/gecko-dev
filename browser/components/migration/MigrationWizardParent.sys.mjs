@@ -43,6 +43,11 @@ let gHasOpenedBefore = false;
  * the associated MigrationWizardChild.
  */
 export class MigrationWizardParent extends JSWindowActorParent {
+  constructor() {
+    super();
+    Services.telemetry.setEventRecordingEnabled("browser.migration", true);
+  }
+
   didDestroy() {
     Services.obs.notifyObservers(this, "MigrationWizard:Destroyed");
     MigrationUtils.finishMigration();

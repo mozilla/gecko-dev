@@ -85,6 +85,8 @@ const DEFAULT_COLORS = {
   "selection-highlight": "#FFFFCC",
 };
 
+Services.telemetry.setEventRecordingEnabled("readermode", true);
+
 const zoomOnCtrl =
   Services.prefs.getIntPref("mousewheel.with_control.action", 3) == 3;
 const zoomOnMeta =

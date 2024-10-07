@@ -48,6 +48,7 @@ const PROXY_CONFIG_TYPES = [
 
 function recordEvent(service, source = {}) {
   try {
+    Services.telemetry.setEventRecordingEnabled("service_request", true);
     source.value = service;
     Glean.serviceRequest.bypassProxyInfo.record(source);
   } catch (err) {

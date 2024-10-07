@@ -135,6 +135,11 @@ Instead, use :doc:`Glean event definitions <../../glean/user/glean_for_legacy_ev
 ``setEventRecordingEnabled``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Deprecated since Firefox 133 by bug 1920562.
+.. code-block:: js
 
-Instead, use :doc:`Glean event definitions <../../glean/user/glean_for_legacy_events>` for your extension's events.
+  browser.telemetry.setEventRecordingEnabled(category, enabled);
+
+Enable recording of events in a category. Events default to recording disabled. This allows to toggle recording for all events in the specified category.
+
+* ``category`` - *(string)* The category name.
+* ``enabled`` - *(boolean)* Whether recording is enabled for events in that category.

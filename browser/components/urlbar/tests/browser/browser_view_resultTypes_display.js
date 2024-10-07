@@ -292,6 +292,7 @@ add_task(async function test_remote_tab_result() {
     SyncedTabs._internal = originalSyncedTabsInternal;
     await PlacesUtils.history.clear();
     await PlacesUtils.bookmarks.eraseEverything();
+    Services.telemetry.setEventRecordingEnabled("navigation", false);
   });
 
   await BrowserTestUtils.withNewTab({ gBrowser }, async () => {

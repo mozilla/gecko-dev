@@ -264,8 +264,14 @@ add_setup(async function () {
     ],
   });
 
+  Services.telemetry.setEventRecordingEnabled(EVENT_CATEGORY, true);
+
   Services.telemetry.clearEvents();
   Services.telemetry.clearScalars();
+
+  registerCleanupFunction(() => {
+    Services.telemetry.setEventRecordingEnabled(EVENT_CATEGORY, false);
+  });
 });
 
 add_task(async function test_popup_opened() {

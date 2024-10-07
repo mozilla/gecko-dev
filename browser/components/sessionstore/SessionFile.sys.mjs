@@ -195,6 +195,7 @@ var SessionFileInternal = {
   },
 
   async _readInternal(useOldExtension) {
+    Services.telemetry.setEventRecordingEnabled("session_restore", true);
     let result;
     let noFilesFound = true;
     this._usingOldExtension = useOldExtension;

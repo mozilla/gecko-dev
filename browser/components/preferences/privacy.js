@@ -882,6 +882,8 @@ var gPrivacyPane = {
    * Init DoH corresponding prefs
    */
   initDoH() {
+    Services.telemetry.setEventRecordingEnabled("security.doh.settings", true);
+
     setEventListener("dohDefaultArrow", "command", this.toggleExpansion);
     setEventListener("dohEnabledArrow", "command", this.toggleExpansion);
     setEventListener("dohStrictArrow", "command", this.toggleExpansion);
@@ -989,6 +991,10 @@ var gPrivacyPane = {
     this.networkCookieBehaviorReadPrefs();
     this._initTrackingProtectionExtensionControl();
     this._initThirdPartyCertsToggle();
+
+    Services.telemetry.setEventRecordingEnabled("privacy.ui.fpp", true);
+
+    Services.telemetry.setEventRecordingEnabled("pwmgr", true);
 
     Preferences.get("privacy.trackingprotection.enabled").on(
       "change",

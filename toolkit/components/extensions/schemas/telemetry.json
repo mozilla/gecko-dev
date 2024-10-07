@@ -363,9 +363,8 @@
       },
       {
         "name": "setEventRecordingEnabled",
-        "deprecated": "`setEventRecordingEnabled` has been deprecated since Firefox 133 (see bug 1920562)",
         "type": "function",
-        "description": "Enable recording of events in a category. Events default to recording enabled. This allows to toggle recording for all events in the specified category.",
+        "description": "Enable recording of events in a category. Events default to recording disabled. This allows to toggle recording for all events in the specified category.",
         "async": true,
         "parameters": [
           {

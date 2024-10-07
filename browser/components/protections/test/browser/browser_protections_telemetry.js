@@ -102,6 +102,8 @@ add_task(async function checkTelemetryLoadEvents() {
     return !events || !events.length;
   });
 
+  Services.telemetry.setEventRecordingEnabled("security.ui.protections", true);
+
   let tab = await BrowserTestUtils.openNewForegroundTab({
     url: "about:protections",
     gBrowser,
@@ -196,6 +198,8 @@ add_task(async function checkTelemetryClickEvents() {
     ).content;
     return !events || !events.length;
   });
+
+  Services.telemetry.setEventRecordingEnabled("security.ui.protections", true);
 
   let tab = await BrowserTestUtils.openNewForegroundTab({
     url: "about:protections",
@@ -800,6 +804,8 @@ add_task(async function checkTelemetryLoadEventForEntrypoint() {
     return !events || !events.length;
   });
 
+  Services.telemetry.setEventRecordingEnabled("security.ui.protections", true);
+
   info("Typo in 'entrypoint' should not be recorded");
   let tab = await BrowserTestUtils.openNewForegroundTab({
     url: "about:protections?entryPoint=newPage",
@@ -882,6 +888,8 @@ add_task(async function checkTelemetryClickEventsVPN() {
     ).content;
     return !events || !events.length;
   });
+  Services.telemetry.setEventRecordingEnabled("security.ui.protections", true);
+
   // user is not subscribed to VPN, and is in the us
   AboutProtectionsParent.setTestOverride(getVPNOverrides(false, "us"));
   await SpecialPowers.pushPrefEnv({
@@ -1047,6 +1055,7 @@ add_task(async function checkTelemetryEventsVPNBanner() {
     return !events || !events.length;
   });
 
+  Services.telemetry.setEventRecordingEnabled("security.ui.protections", true);
   // User is not subscribed to VPN
   AboutProtectionsParent.setTestOverride(getVPNOverrides(false, "us"));
 

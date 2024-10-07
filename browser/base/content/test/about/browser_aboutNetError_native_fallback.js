@@ -50,6 +50,7 @@ async function verifyError(url, fallbackWarning, testName) {
     ).content;
     return !events || !events.length;
   });
+  Services.telemetry.setEventRecordingEnabled("security.doh.neterror", true);
 
   let browser;
   let pageLoaded;

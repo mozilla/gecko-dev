@@ -161,6 +161,58 @@ add_task(async function test_event_summary_limit() {
   );
 });
 
+add_task(async function test_recording_state() {
+  Telemetry.clearEvents();
+  Telemetry.clearScalars();
+
+  const events = [
+    ["telemetry.test", "test1", "object1"],
+    ["telemetry.test.second", "test", "object1"],
+  ];
+
+  // Both test categories should be off by default.
+  events.forEach(e => Telemetry.recordEvent(...e));
+  TelemetryTestUtils.assertEvents([]);
+  checkEventSummary(
+    events.map(e => ["parent", e, 1]),
+    true
+  );
+
+  // Enable one test category and see that we record correctly.
+  Telemetry.setEventRecordingEnabled("telemetry.test", true);
+  events.forEach(e => Telemetry.recordEvent(...e));
+  TelemetryTestUtils.assertEvents([events[0]]);
+  checkEventSummary(
+    events.map(e => ["parent", e, 1]),
+    true
+  );
+
+  // Also enable the other test category and see that we record correctly.
+  Telemetry.setEventRecordingEnabled("telemetry.test.second", true);
+  events.forEach(e => Telemetry.recordEvent(...e));
+  TelemetryTestUtils.assertEvents(events);
+  checkEventSummary(
+    events.map(e => ["parent", e, 1]),
+    true
+  );
+
+  // Now turn of one category again and check that this works as expected.
+  Telemetry.setEventRecordingEnabled("telemetry.test", false);
+  events.forEach(e => Telemetry.recordEvent(...e));
+  TelemetryTestUtils.assertEvents([events[1]]);
+  checkEventSummary(
+    events.map(e => ["parent", e, 1]),
+    true
+  );
+});
+
+add_task(async function recording_setup() {
+  // Make sure both test categories are enabled for the remaining tests.
+  // Otherwise their event recording won't work.
+  Telemetry.setEventRecordingEnabled("telemetry.test", true);
+  Telemetry.setEventRecordingEnabled("telemetry.test.second", true);
+});
+
 add_task(async function test_recording() {
   Telemetry.clearScalars();
   Telemetry.clearEvents();

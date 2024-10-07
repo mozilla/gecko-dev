@@ -31,6 +31,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 let gSearchBannerShownThisSession;
 
 export class AboutPrivateBrowsingParent extends JSWindowActorParent {
+  constructor() {
+    super();
+    Services.telemetry.setEventRecordingEnabled("aboutprivatebrowsing", true);
+  }
   // Used by tests
   static setShownThisSession(shown) {
     gSearchBannerShownThisSession = shown;

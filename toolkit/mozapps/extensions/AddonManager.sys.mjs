@@ -595,6 +595,9 @@ var AddonManagerInternal = {
 
       this.recordTimestamp("AMI_startup_begin");
 
+      // Enable the addonsManager telemetry event category.
+      AMTelemetry.init();
+
       // Enable the AMRemoteSettings client.
       AMRemoteSettings.init();
 
@@ -4675,6 +4678,13 @@ AMRemoteSettings = {
  */
 AMTelemetry = {
   telemetrySetupDone: false,
+
+  init() {
+    // Enable the addonsManager telemetry event category before the AddonManager
+    // has completed its startup, otherwise telemetry events recorded during the
+    // AddonManager/XPIProvider startup will not be recorded.
+    Services.telemetry.setEventRecordingEnabled("addonsManager", true);
+  },
 
   // This method is called by the AddonManager, once it has been started, so that we can
   // init the telemetry event category and start listening for the events related to the

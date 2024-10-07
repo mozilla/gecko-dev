@@ -191,6 +191,10 @@ async function openTabAndUseCreditCard(
 }
 
 add_setup(async function () {
+  Services.telemetry.setEventRecordingEnabled("creditcard", true);
+  registerCleanupFunction(async function () {
+    Services.telemetry.setEventRecordingEnabled("creditcard", false);
+  });
   await clearGleanTelemetry();
 });
 

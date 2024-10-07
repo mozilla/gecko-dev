@@ -6,8 +6,11 @@
 const ISSUED_BY_CCA_SITE = "https://issued-by-cca.example.com";
 const UNKNOWN_ISSUER_SITE = "https://untrusted.example.com";
 
+Services.telemetry.setEventRecordingEnabled("security.ui.certerror", true);
+
 registerCleanupFunction(async () => {
   await resetTelemetry();
+  Services.telemetry.setEventRecordingEnabled("security.ui.certerror", false);
 });
 
 async function resetTelemetry() {

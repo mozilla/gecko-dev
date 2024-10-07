@@ -83,6 +83,8 @@ add_task(async function () {
   await TelemetryController.testSetup();
   // Make sure we don't generate unexpected pings due to pref changes.
   await setEmptyPrefWatchlist();
+  // Enable recording for the test event category.
+  Telemetry.setEventRecordingEnabled("telemetry.test", true);
 
   // Register dynamic test events.
   Telemetry.registerEvents("telemetry.test.dynamic", {

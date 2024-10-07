@@ -673,6 +673,9 @@ class Dav1dDecoder final : AVIFDecoderInterface {
     // the easiest way to see if we're getting unexpected behavior to
     // investigate.
     if (aShouldSendTelemetry && r != 0) {
+      // Uncomment once bug 1691156 is fixed
+      // mozilla::Telemetry::SetEventRecordingEnabled("avif"_ns, true);
+
       mozilla::glean::avif::Dav1dGetPictureReturnValueExtra extra = {
           .value = Some(nsPrintfCString("%d", r)),
       };

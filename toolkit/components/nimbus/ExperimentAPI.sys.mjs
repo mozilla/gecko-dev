@@ -25,6 +25,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   COLLECTION_ID_PREF,
   COLLECTION_ID_FALLBACK
 );
+const EXPOSURE_EVENT_CATEGORY = "normandy";
 
 function parseJSON(value) {
   if (value) {
@@ -266,6 +267,7 @@ export const ExperimentAPI = {
   },
 
   recordExposureEvent({ featureId, experimentSlug, branchSlug }) {
+    Services.telemetry.setEventRecordingEnabled(EXPOSURE_EVENT_CATEGORY, true);
     Glean.normandy.exposeNimbusExperiment.record({
       value: experimentSlug,
       branchSlug,

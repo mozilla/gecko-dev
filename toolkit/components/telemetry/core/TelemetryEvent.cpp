@@ -334,6 +334,9 @@ nsTHashMap<nsCStringHashKey, EventKey> gEventNameIDMap(kEventCount);
 // The CategoryName set.
 nsTHashSet<nsCString> gCategoryNames;
 
+// This tracks the IDs of the categories for which recording is enabled.
+nsTHashSet<nsCString> gEnabledCategories;
+
 // The main event storage. Events are inserted here, keyed by process id and
 // in recording order.
 typedef nsUint32HashKey ProcessIDHashKey;
@@ -369,6 +372,19 @@ unsigned int GetDataset(const StaticMutexAutoLock& lock,
   return (*gDynamicEventInfo)[eventKey.id].recordOnRelease
              ? nsITelemetry::DATASET_ALL_CHANNELS
              : nsITelemetry::DATASET_PRERELEASE_CHANNELS;
+}
+
+nsCString GetCategory(const StaticMutexAutoLock& lock,
+                      const EventKey& eventKey) {
+  if (!eventKey.dynamic) {
+    return gEventInfo[eventKey.id].common_info.category();
+  }
+
+  if (!gDynamicEventInfo) {
+    return ""_ns;
+  }
+
+  return (*gDynamicEventInfo)[eventKey.id].category;
 }
 
 bool CanRecordEvent(const StaticMutexAutoLock& lock, const EventKey& eventKey,
@@ -481,9 +497,15 @@ RecordEventResult RecordEvent(const StaticMutexAutoLock& lock,
     return RecordEventResult::CannotRecord;
   }
 
-  // Count the number of times this event has been recorded.
+  // Count the number of times this event has been recorded, even if its
+  // category does not have recording enabled.
   TelemetryScalar::SummarizeEvent(UniqueEventName(category, method, object),
                                   processType, dynamicNonBuiltin);
+
+  // Check whether this event's category has recording enabled
+  if (!gEnabledCategories.Contains(GetCategory(lock, eventKey))) {
+    return RecordEventResult::Ok;
+  }
 
   EventRecordArray* eventRecords = GetEventRecordsForProcess(lock, processType);
   eventRecords->AppendElement(EventRecord(timestamp, eventKey, value, extra));
@@ -559,6 +581,12 @@ void RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
   // If it is a builtin, add the category name in order to enable it later.
   if (aBuiltin) {
     gCategoryNames.Insert(category);
+  }
+
+  if (!aBuiltin) {
+    // Now after successful registration enable recording for this category
+    // (if not a dynamic builtin).
+    gEnabledCategories.Insert(category);
   }
 }
 
@@ -722,6 +750,9 @@ void TelemetryEvent::InitializeGlobalState(bool aCanRecordBase,
     gCategoryNames.Insert(info.common_info.category());
   }
 
+  // A hack until bug 1691156 is fixed
+  gEnabledCategories.Insert("avif"_ns);
+
   gInitDone = true;
 }
 
@@ -734,6 +765,7 @@ void TelemetryEvent::DeInitializeGlobalState() {
 
   gEventNameIDMap.Clear();
   gCategoryNames.Clear();
+  gEnabledCategories.Clear();
   gEventRecords.Clear();
 
   gDynamicEventInfo = nullptr;
@@ -1348,6 +1380,27 @@ void TelemetryEvent::ClearEvents() {
   gEventRecords.Clear();
 }
 
+void TelemetryEvent::SetEventRecordingEnabled(const nsACString& category,
+                                              bool enabled) {
+  StaticMutexAutoLock locker(gTelemetryEventsMutex);
+
+  if (!gCategoryNames.Contains(category)) {
+    LogToBrowserConsole(
+        nsIScriptError::warningFlag,
+        NS_ConvertUTF8toUTF16(
+            nsLiteralCString(
+                "Unknown category for SetEventRecordingEnabled: ") +
+            category));
+    return;
+  }
+
+  if (enabled) {
+    gEnabledCategories.Insert(category);
+  } else {
+    gEnabledCategories.Remove(category);
+  }
+}
+
 size_t TelemetryEvent::SizeOfIncludingThis(
     mozilla::MallocSizeOf aMallocSizeOf) {
   StaticMutexAutoLock locker(gTelemetryEventsMutex);
@@ -1374,6 +1427,7 @@ size_t TelemetryEvent::SizeOfIncludingThis(
   }
 
   n += gCategoryNames.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  n += gEnabledCategories.ShallowSizeOfExcludingThis(aMallocSizeOf);
 
   if (gDynamicEventInfo) {
     n += gDynamicEventInfo->ShallowSizeOfIncludingThis(aMallocSizeOf);

@@ -15,6 +15,11 @@
  * usable network until a full set of results has been captured. We stop retrying
  * after 5 attempts.
  */
+Services.telemetry.setEventRecordingEnabled(
+  "security.doh.trrPerformance",
+  true
+);
+
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};

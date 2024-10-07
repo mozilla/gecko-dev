@@ -166,6 +166,7 @@
 #include "mozilla/net/CookieKey.h"
 #include "mozilla/net/TRRService.h"
 #include "mozilla/TelemetryComms.h"
+#include "mozilla/TelemetryEventEnums.h"
 #include "mozilla/RemoteLazyInputStreamParent.h"
 #include "mozilla/widget/RemoteLookAndFeel.h"
 #include "mozilla/widget/ScreenManager.h"
@@ -1203,9 +1204,17 @@ IPCResult ContentParent::RecvAttributionConversion(
   return IPC_OK();
 }
 
+Atomic<bool, mozilla::Relaxed> sContentParentTelemetryEventEnabled(false);
+
 /*static*/
 void ContentParent::LogAndAssertFailedPrincipalValidationInfo(
     nsIPrincipal* aPrincipal, const char* aMethod) {
+  // nsContentSecurityManager may also enable this same event, but that's okay
+  if (!sContentParentTelemetryEventEnabled.exchange(true)) {
+    sContentParentTelemetryEventEnabled = true;
+    Telemetry::SetEventRecordingEnabled("security"_ns, true);
+  }
+
   // Send Telemetry
   nsAutoCString principalScheme, principalType, spec;
   mozilla::glean::security::FissionPrincipalsExtra extra = {};

@@ -806,6 +806,8 @@ function updateFxaToolbarMenu(enable, isInitialUpdate = false) {
 
   fxaPanelEl.addEventListener("ViewShowing", gSync.updateSendToDeviceTitle);
 
+  Services.telemetry.setEventRecordingEnabled("fxa_app_menu", true);
+
   if (enable && syncEnabled) {
     mainWindowEl.setAttribute("fxatoolbarmenu", "visible");
 
@@ -815,6 +817,8 @@ function updateFxaToolbarMenu(enable, isInitialUpdate = false) {
     if (!isInitialUpdate) {
       gSync.maybeUpdateUIState();
     }
+
+    Services.telemetry.setEventRecordingEnabled("fxa_avatar_menu", true);
   } else {
     mainWindowEl.removeAttribute("fxatoolbarmenu");
   }
@@ -7603,6 +7607,7 @@ var FirefoxViewHandler = {
       let viewCount = Services.prefs.getIntPref(PREF_NAME, 0);
 
       // Record telemetry
+      Services.telemetry.setEventRecordingEnabled("firefoxview_next", true);
       Glean.firefoxviewNext.tabSelectedToolbarbutton.record();
 
       if (viewCount < MAX_VIEW_COUNT) {

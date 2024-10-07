@@ -37,6 +37,7 @@ function withStubInits() {
       withStub(PreferenceRollouts, "init"),
       withStub(PreferenceExperiments, "init"),
       withStub(RecipeRunner, "init"),
+      withStub(TelemetryEvents, "init"),
       testFunction
     );
   };
@@ -246,6 +247,7 @@ decorate_task(withStubInits(), async function testStartupPrefInitFail() {
     "startup calls PreferenceExperiments.init"
   );
   ok(RecipeRunner.init.called, "startup calls RecipeRunner.init");
+  ok(TelemetryEvents.init.called, "startup calls TelemetryEvents.init");
   ok(PreferenceRollouts.init.called, "startup calls PreferenceRollouts.init");
 });
 
@@ -262,6 +264,25 @@ decorate_task(
       "startup calls PreferenceExperiments.init"
     );
     ok(RecipeRunner.init.called, "startup calls RecipeRunner.init");
+    ok(TelemetryEvents.init.called, "startup calls TelemetryEvents.init");
+    ok(PreferenceRollouts.init.called, "startup calls PreferenceRollouts.init");
+  }
+);
+
+decorate_task(
+  withStubInits(),
+  async function testStartupTelemetryEventsInitFail() {
+    TelemetryEvents.init.throws();
+
+    await Normandy.finishInit();
+    ok(AddonStudies.init.called, "startup calls AddonStudies.init");
+    ok(AddonRollouts.init.called, "startup calls AddonRollouts.init");
+    ok(
+      PreferenceExperiments.init.called,
+      "startup calls PreferenceExperiments.init"
+    );
+    ok(RecipeRunner.init.called, "startup calls RecipeRunner.init");
+    ok(TelemetryEvents.init.called, "startup calls TelemetryEvents.init");
     ok(PreferenceRollouts.init.called, "startup calls PreferenceRollouts.init");
   }
 );
@@ -279,6 +300,7 @@ decorate_task(
       "startup calls PreferenceExperiments.init"
     );
     ok(RecipeRunner.init.called, "startup calls RecipeRunner.init");
+    ok(TelemetryEvents.init.called, "startup calls TelemetryEvents.init");
     ok(PreferenceRollouts.init.called, "startup calls PreferenceRollouts.init");
   }
 );

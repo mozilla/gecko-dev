@@ -743,6 +743,7 @@ class RelayDisabled {}
 class RelayFeature extends OptInFeature {
   constructor() {
     super(RelayOffered, RelayEnabled, RelayDisabled, gConfig.relayFeaturePref);
+    Services.telemetry.setEventRecordingEnabled("relay_integration", true);
     // Update the config when the signon.firefoxRelay.base_url pref is changed.
     // This is added mainly for tests.
     Services.prefs.addObserver(

@@ -37,6 +37,10 @@ function assertGleanTelemetry(events, expected_number_of_flowid = 1) {
 }
 
 add_setup(async function () {
+  Services.telemetry.setEventRecordingEnabled("creditcard", true);
+  registerCleanupFunction(async function () {
+    Services.telemetry.setEventRecordingEnabled("creditcard", false);
+  });
   await clearGleanTelemetry();
 });
 

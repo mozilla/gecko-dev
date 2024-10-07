@@ -1510,6 +1510,8 @@ QuotaManager::Observer::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
+    Telemetry::SetEventRecordingEnabled("dom.quota.try"_ns, true);
+
     gBasePath = new nsString();
 
     nsCOMPtr<nsIFile> baseDir;
@@ -1595,6 +1597,8 @@ QuotaManager::Observer::Observe(nsISupports* aSubject, const char* aTopic,
     gStorageName = nullptr;
 
     gBuildId = nullptr;
+
+    Telemetry::SetEventRecordingEnabled("dom.quota.try"_ns, false);
 
     return NS_OK;
   }

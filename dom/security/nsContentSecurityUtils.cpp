@@ -45,17 +45,20 @@
 #include "LoadInfo.h"
 #include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/Telemetry.h"
 #include "nsIConsoleService.h"
 #include "nsIStringBundle.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
+using namespace mozilla::Telemetry;
 
 extern mozilla::LazyLogModule sCSMLog;
 extern Atomic<bool, mozilla::Relaxed> sJSHacksChecked;
 extern Atomic<bool, mozilla::Relaxed> sJSHacksPresent;
 extern Atomic<bool, mozilla::Relaxed> sCSSHacksChecked;
 extern Atomic<bool, mozilla::Relaxed> sCSSHacksPresent;
+extern Atomic<bool, mozilla::Relaxed> sTelemetryEventEnabled;
 
 // Helper function for IsConsideredSameOriginForUIR which makes
 // Principals of scheme 'http' return Principals of scheme 'https'.
@@ -741,6 +744,10 @@ void nsContentSecurityUtils::NotifyEvalUsage(bool aIsSystemPrincipal,
                                              uint32_t aColumnNumber) {
   FilenameTypeAndDetails fileNameTypeAndDetails =
       FilenameToFilenameType(aFileName, false);
+  if (!sTelemetryEventEnabled.exchange(true)) {
+    sTelemetryEventEnabled = true;
+    Telemetry::SetEventRecordingEnabled("security"_ns, true);
+  }
   auto fileinfo = fileNameTypeAndDetails.second;
   auto value = Some(fileNameTypeAndDetails.first);
   if (aIsSystemPrincipal) {
@@ -1567,6 +1574,10 @@ bool nsContentSecurityUtils::ValidateScriptFilename(JSContext* cx,
   FilenameTypeAndDetails fileNameTypeAndDetails =
       FilenameToFilenameType(filename, true);
 
+  if (!sTelemetryEventEnabled.exchange(true)) {
+    sTelemetryEventEnabled = true;
+    Telemetry::SetEventRecordingEnabled("security"_ns, true);
+  }
   glean::security::JavascriptLoadParentProcessExtra extra = {
       .fileinfo = fileNameTypeAndDetails.second,
       .value = Some(fileNameTypeAndDetails.first),

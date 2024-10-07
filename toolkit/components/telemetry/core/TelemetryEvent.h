@@ -47,6 +47,7 @@ nsresult RecordEvent(const nsACString& aCategory, const nsACString& aMethod,
                      JS::Handle<JS::Value> aExtra, JSContext* aCx,
                      uint8_t optional_argc);
 
+void SetEventRecordingEnabled(const nsACString& aCategory, bool aEnabled);
 nsresult RegisterEvents(const nsACString& aCategory,
                         JS::Handle<JS::Value> aEventData, bool aBuiltin,
                         JSContext* cx);

@@ -122,6 +122,8 @@ export function JSONFile(config) {
     this._finalizeInternalBound,
     () => ({ sanitizedBasename: this.sanitizedBasename })
   );
+
+  Services.telemetry.setEventRecordingEnabled("jsonfile", true);
 }
 
 JSONFile.prototype = {

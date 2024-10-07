@@ -51,6 +51,9 @@ sinon.assert.fail = function (message) {
   ok(false, message);
 };
 
+// Prep Telemetry to receive events from tests
+TelemetryEvents.init();
+
 this.TEST_XPI_URL = (function () {
   const dir = getChromeDir(getResolvedURI(gTestPath));
   dir.append("addons");

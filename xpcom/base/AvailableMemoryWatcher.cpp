@@ -12,6 +12,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/Telemetry.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "nsExceptionHandler.h"
 #include "nsMemoryPressure.h"
@@ -162,6 +163,7 @@ void nsAvailableMemoryWatcherBase::UpdateLowMemoryTimeStamp() {
 
 void nsAvailableMemoryWatcherBase::RecordTelemetryEventOnHighMemory(
     const MutexAutoLock&) {
+  Telemetry::SetEventRecordingEnabled("memory_watcher"_ns, true);
   glean::memory_watcher::on_high_memory_stats.Record(
       Some(glean::memory_watcher::OnHighMemoryStatsExtra{
           Some(nsPrintfCString(

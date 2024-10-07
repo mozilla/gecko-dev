@@ -19,6 +19,8 @@ const { TelemetryEnvironment } = ChromeUtils.importESModule(
 );
 const WeakMapMap = require("resource://devtools/client/shared/WeakMapMap.js");
 
+const CATEGORY = "devtools.main";
+
 // Object to be shared among all instances.
 const PENDING_EVENT_PROPERTIES = new WeakMapMap();
 const PENDING_EVENTS = new WeakMapMap();
@@ -48,6 +50,7 @@ class Telemetry {
     this.keyedScalarAdd = this.keyedScalarAdd.bind(this);
     this.keyedScalarSet = this.keyedScalarSet.bind(this);
     this.recordEvent = this.recordEvent.bind(this);
+    this.setEventRecordingEnabled = this.setEventRecordingEnabled.bind(this);
     this.preparePendingEvent = this.preparePendingEvent.bind(this);
     this.addEventProperty = this.addEventProperty.bind(this);
     this.addEventProperties = this.addEventProperties.bind(this);
@@ -384,6 +387,17 @@ class Telemetry {
           `CALLER: ${getCaller()}`
       );
     }
+  }
+
+  /**
+   * Event telemetry is disabled by default. Use this method to enable or
+   * disable it.
+   *
+   * @param {Boolean} enabled
+   *        Enabled: true or false.
+   */
+  setEventRecordingEnabled(enabled) {
+    return Services.telemetry.setEventRecordingEnabled(CATEGORY, enabled);
   }
 
   /**

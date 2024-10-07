@@ -161,6 +161,8 @@ static void ShutdownAlwaysPrefs();
 // Low-level types and operations
 //===========================================================================
 
+Atomic<bool, mozilla::Relaxed> sPrefTelemetryEventEnabled(false);
+
 typedef nsTArray<nsCString> PrefSaveData;
 
 // 1 MB should be enough for everyone.
@@ -661,6 +663,10 @@ class Pref {
 
 #define CHECK_SANITIZATION()                                                \
   if (IsPreferenceSanitized(this)) {                                        \
+    if (!sPrefTelemetryEventEnabled.exchange(true)) {                       \
+      sPrefTelemetryEventEnabled = true;                                    \
+      Telemetry::SetEventRecordingEnabled("security"_ns, true);             \
+    }                                                                       \
     glean::security::pref_usage_content_process.Record(                     \
         Some(glean::security::PrefUsageContentProcessExtra{Some(Name())})); \
     if (sCrashOnBlocklistedPref) {                                          \
@@ -1170,6 +1176,11 @@ class MOZ_STACK_CLASS PrefWrapper : public PrefWrapperBase {
         // This check will be performed in the above functions; but for NoneType
         // we need to do it explicitly, then fall-through.
         if (IsPreferenceSanitized(Name())) {
+          if (!sPrefTelemetryEventEnabled.exchange(true)) {
+            sPrefTelemetryEventEnabled = true;
+            Telemetry::SetEventRecordingEnabled("security"_ns, true);
+          }
+
           glean::security::pref_usage_content_process.Record(Some(
               glean::security::PrefUsageContentProcessExtra{Some(Name())}));
 
@@ -1192,6 +1203,11 @@ class MOZ_STACK_CLASS PrefWrapper : public PrefWrapperBase {
     // WantValueKind may short-circuit GetValue functions and cause them to
     // return early, before this check occurs in GetFooValue()
     if (this->is<Pref*>() && IsPreferenceSanitized(this->as<Pref*>())) {
+      if (!sPrefTelemetryEventEnabled.exchange(true)) {
+        sPrefTelemetryEventEnabled = true;
+        Telemetry::SetEventRecordingEnabled("security"_ns, true);
+      }
+
       glean::security::pref_usage_content_process.Record(
           Some(glean::security::PrefUsageContentProcessExtra{Some(Name())}));
 
@@ -5401,6 +5417,11 @@ int32_t Preferences::GetType(const char* aPrefName) {
 
     case PrefType::None:
       if (IsPreferenceSanitized(aPrefName)) {
+        if (!sPrefTelemetryEventEnabled.exchange(true)) {
+          sPrefTelemetryEventEnabled = true;
+          Telemetry::SetEventRecordingEnabled("security"_ns, true);
+        }
+
         glean::security::pref_usage_content_process.Record(Some(
             glean::security::PrefUsageContentProcessExtra{Some(aPrefName)}));
 

@@ -20,6 +20,9 @@ const { PanelTestProvider } = ChromeUtils.importESModule(
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
+const { TelemetryEvents } = ChromeUtils.importESModule(
+  "resource://normandy/lib/TelemetryEvents.sys.mjs"
+);
 
 add_setup(async function setup() {
   do_get_profile();
@@ -508,6 +511,8 @@ add_task(async function test_updateRecipes_simpleFeatureInvalidAfterUpdate() {
 });
 
 add_task(async function test_updateRecipes_validationTelemetry() {
+  TelemetryEvents.init();
+
   Services.telemetry.snapshotEvents(
     Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
     /* clear = */ true
@@ -1031,6 +1036,7 @@ add_task(async function test_updateRecipes_invalidFeature_mismatch() {
 });
 
 add_task(async function test_updateRecipes_rollout_bucketing() {
+  TelemetryEvents.init();
   Services.fog.testResetFOG();
   Services.telemetry.snapshotEvents(
     Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
