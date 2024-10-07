@@ -182,7 +182,7 @@ TestArray.addTest(
     Promise.all([
       crypto.subtle.importKey("jwk", tv.ecdh_p256.jwk_priv, alg, false, ["deriveBits"])
         .then(setPriv, error(that)),
-      crypto.subtle.importKey("jwk", tv.ecdh_p256.jwk_pub, alg, false, [])
+      crypto.subtle.importKey("jwk", tv.ecdh_p256.jwk_pub, alg, false, ["deriveBits"])
         .then(setPub, error(that)),
     ]).then(doDerive, error(that))
       .then(memcmp_complete(that, tv.ecdh_p256.secret), error(that));
@@ -207,7 +207,7 @@ TestArray.addTest(
     Promise.all([
       crypto.subtle.importKey("jwk", tv.ecdh_p384.jwk_priv, alg, false, ["deriveBits"])
         .then(setPriv, error(that)),
-      crypto.subtle.importKey("jwk", tv.ecdh_p384.jwk_pub, alg, false, [])
+      crypto.subtle.importKey("jwk", tv.ecdh_p384.jwk_pub, alg, false, ["deriveBits"])
         .then(setPub, error(that)),
     ]).then(doDerive, error(that))
       .then(memcmp_complete(that, tv.ecdh_p384.secret), error(that));
@@ -232,7 +232,7 @@ TestArray.addTest(
     Promise.all([
       crypto.subtle.importKey("jwk", tv.ecdh_p521.jwk_priv, alg, false, ["deriveBits"])
         .then(setPriv, error(that)),
-      crypto.subtle.importKey("jwk", tv.ecdh_p521.jwk_pub, alg, false, [])
+      crypto.subtle.importKey("jwk", tv.ecdh_p521.jwk_pub, alg, false, ["deriveBits"])
         .then(setPub, error(that)),
     ]).then(doDerive, error(that))
       .then(memcmp_complete(that, tv.ecdh_p521.secret), error(that));
@@ -260,7 +260,7 @@ TestArray.addTest(
     Promise.all([
       crypto.subtle.importKey("jwk", tv.ecdh_p256.jwk_priv, alg, true, ["deriveBits"])
         .then(setPriv, error(that)),
-      crypto.subtle.importKey("jwk", tv.ecdh_p256.jwk_pub, alg, true, [])
+      crypto.subtle.importKey("jwk", tv.ecdh_p256.jwk_pub, alg, true, ["deriveBits"])
         .then(setPub, error(that)),
     ]).then(doExportPub, error(that))
       .then(function(x) {
@@ -396,7 +396,7 @@ TestArray.addTest(
     Promise.all([
       crypto.subtle.importKey("jwk", tv.ecdh_p521.jwk_priv, alg, false, ["deriveKey"])
         .then(setPriv),
-      crypto.subtle.importKey("jwk", tv.ecdh_p521.jwk_pub, alg, false, [])
+      crypto.subtle.importKey("jwk", tv.ecdh_p521.jwk_pub, alg, false, ["deriveKey"])
         .then(setPub),
     ]).then(doDerive)
       .then(doSignAndVerify)
@@ -435,7 +435,7 @@ TestArray.addTest(
     var keys = ["spki", "spki_id_ecpk"];
 
     function doImport(key) {
-      return crypto.subtle.importKey("spki", tv.ecdh_p256[key], alg, true, []);
+      return crypto.subtle.importKey("spki", tv.ecdh_p256[key], alg, true, ["deriveBits"]);
     }
 
     function doExport(x) {
@@ -479,7 +479,7 @@ TestArray.addTest(
     }
 
     Promise.all([
-      crypto.subtle.importKey("spki", tv.ecdh_p256.spki, alg, false, [])
+      crypto.subtle.importKey("spki", tv.ecdh_p256.spki, alg, false, ["deriveBits"])
         .then(setPub),
       crypto.subtle.importKey("jwk", tv.ecdh_p256.jwk_priv, alg, false, ["deriveBits"])
         .then(setPriv),
@@ -499,7 +499,7 @@ TestArray.addTest(
       return crypto.subtle.exportKey("raw", x);
     }
 
-    crypto.subtle.importKey("raw", tv.ecdh_p256.raw, alg, true, [])
+    crypto.subtle.importKey("raw", tv.ecdh_p256.raw, alg, true, ["deriveBits"])
       .then(doExport)
       .then(memcmp_complete(that, tv.ecdh_p256.raw), error(that));
   }
@@ -581,7 +581,7 @@ TestArray.addTest(
     }
 
     Promise.all([
-      crypto.subtle.importKey("raw", tv.ecdh_p256.raw, alg, false, [])
+      crypto.subtle.importKey("raw", tv.ecdh_p256.raw, alg, false, ["deriveBits"])
         .then(setPub),
       crypto.subtle.importKey("jwk", tv.ecdh_p256.jwk_priv, alg, false, ["deriveBits"])
         .then(setPriv),
