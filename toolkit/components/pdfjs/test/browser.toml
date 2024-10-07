@@ -76,6 +76,8 @@ support-files = [
   "file_pdfjs_object_stream.pdf^headers^",
 ]
 
+["browser_pdfjs_properties.js"]
+
 ["browser_pdfjs_saveas.js"]
 support-files = [
   "!/toolkit/content/tests/browser/common/mockTransfer.js",
