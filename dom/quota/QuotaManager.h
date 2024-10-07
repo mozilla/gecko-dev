@@ -86,6 +86,7 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class DirectoryLockImpl;
   friend class GroupInfo;
   friend class InitOp;
+  friend class InitTemporaryStorageOp;
   friend class OriginInfo;
   friend class ShutdownStorageOp;
 
@@ -421,8 +422,10 @@ class QuotaManager final : public BackgroundThreadObject {
     return mTemporaryStorageInitialized;
   }
 
+ private:
   nsresult EnsureTemporaryStorageIsInitializedInternal();
 
+ public:
   RefPtr<OriginUsageMetadataArrayPromise> GetUsage(
       bool aGetAll, RefPtr<BoolPromise> aOnCancelPromise = nullptr);
 
