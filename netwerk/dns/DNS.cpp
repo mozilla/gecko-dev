@@ -241,7 +241,8 @@ bool NetAddr::IsIPAddrV4Mapped() const {
 
 static bool isLocalIPv4(uint32_t networkEndianIP) {
   uint32_t addr32 = ntohl(networkEndianIP);
-  return addr32 >> 24 == 0x0A ||    // 10/8 prefix (RFC 1918).
+  return addr32 >> 24 == 0x00 ||    // 0/8 prefix (RFC 1122).
+         addr32 >> 24 == 0x0A ||    // 10/8 prefix (RFC 1918).
          addr32 >> 20 == 0xAC1 ||   // 172.16/12 prefix (RFC 1918).
          addr32 >> 16 == 0xC0A8 ||  // 192.168/16 prefix (RFC 1918).
          addr32 >> 16 == 0xA9FE;    // 169.254/16 prefix (Link Local).
@@ -249,6 +250,11 @@ static bool isLocalIPv4(uint32_t networkEndianIP) {
 
 bool NetAddr::IsIPAddrLocal() const {
   const NetAddr* addr = this;
+
+  // An IPv4/6 any address.
+  if (IsIPAddrAny()) {
+    return true;
+  }
 
   // IPv4 RFC1918 and Link Local Addresses.
   if (addr->raw.family == AF_INET) {
