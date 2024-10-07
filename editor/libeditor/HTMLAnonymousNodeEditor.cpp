@@ -20,6 +20,7 @@
 #include "nsComputedDOMStyle.h"
 #include "nsDebug.h"
 #include "nsError.h"
+#include "nsFocusManager.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsAtom.h"
@@ -380,7 +381,8 @@ nsresult HTMLEditor::RefreshEditingUI() {
   if (editingHost && editingHost->IsContentEditablePlainTextOnly()) {
     return NS_OK;
   }
-  MOZ_ASSERT(editingHost == selectionContainerElement->GetEditingHost());
+  MOZ_ASSERT_IF(editingHost,
+                editingHost == selectionContainerElement->GetEditingHost());
 
   // what's its tag?
   RefPtr<Element> focusElement = std::move(selectionContainerElement);

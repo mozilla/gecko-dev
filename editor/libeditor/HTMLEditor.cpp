@@ -7033,12 +7033,28 @@ Element* HTMLEditor::ComputeEditingHostInternal(
     if (aContent) {
       return aContent;
     }
-    // If the selection has focus node, let's look for its editing host because
-    // selection ranges may be visible for users.
-    nsIContent* const selectionFocusNode = nsIContent::FromNodeOrNull(
-        SelectionRef().GetMayCrossShadowBoundaryFocusNode());
-    if (selectionFocusNode) {
-      return selectionFocusNode;
+    // If there are selection ranges, let's look for their common ancestor's
+    // editing host because selection ranges may be visible for users.
+    nsIContent* selectionCommonAncestor = nullptr;
+    for (uint32_t i : IntegerRange(SelectionRef().RangeCount())) {
+      nsRange* range = SelectionRef().GetRangeAt(i);
+      MOZ_ASSERT(range);
+      nsIContent* commonAncestor =
+          nsIContent::FromNodeOrNull(range->GetCommonAncestorContainer(
+              IgnoreErrors(), AllowRangeCrossShadowBoundary::Yes));
+      if (MOZ_UNLIKELY(!commonAncestor)) {
+        continue;
+      }
+      if (!selectionCommonAncestor) {
+        selectionCommonAncestor = commonAncestor;
+      } else {
+        selectionCommonAncestor =
+            nsContentUtils::GetCommonFlattenedTreeAncestorForSelection(
+                commonAncestor, selectionCommonAncestor);
+      }
+    }
+    if (selectionCommonAncestor) {
+      return selectionCommonAncestor;
     }
     // Otherwise, let's use the focused element in the window.
     nsPIDOMWindowInner* const innerWindow = document->GetInnerWindow();
