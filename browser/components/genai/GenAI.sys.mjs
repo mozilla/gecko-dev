@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
@@ -257,6 +258,10 @@ export const GenAI = {
    * Handle startup tasks like telemetry, adding listeners.
    */
   init() {
+    // Allow other callers to init even though we now automatically init
+    if (this._initialized) return;
+    this._initialized = true;
+
     // Access getters for side effects of observing pref changes
     lazy.chatEnabled;
     lazy.chatHideLocalhost;
@@ -272,23 +277,38 @@ export const GenAI = {
     // Handle nimbus feature pref setting
     const featureId = "chatbot";
     lazy.NimbusFeatures[featureId].onUpdate(() => {
+      // Prefer experiments over rollouts
       const feature = { featureId };
       const enrollment =
-        lazy.ExperimentAPI.getRolloutMetaData(feature) ??
-        lazy.ExperimentAPI.getExperimentMetaData(feature);
-      if (!enrollment?.slug) {
+        lazy.ExperimentAPI.getExperimentMetaData(feature) ??
+        lazy.ExperimentAPI.getRolloutMetaData(feature);
+      if (!enrollment) {
+        return;
+      }
+
+      // Enforce minimum version by skipping pref changes until Firefox restarts
+      // with the appropriate version
+      if (
+        Services.vc.compare(
+          // Support betas, e.g., 132.0b1, instead of MOZ_APP_VERSION
+          AppConstants.MOZ_APP_VERSION_DISPLAY,
+          // Check configured version or compare with unset handled as 0
+          lazy.NimbusFeatures[featureId].getVariable("minVersion")
+        ) < 0
+      ) {
         return;
       }
 
       // Set prefs on any branch if we have a new enrollment slug, otherwise
       // only set default branch as those only last for the session
-      const anyBranch = enrollment.slug != lazy.chatNimbus;
+      const slug = enrollment.slug + ":" + enrollment.branch.slug;
+      const anyBranch = slug != lazy.chatNimbus;
       const setPref = ([pref, { branch = "user", value = null }]) => {
         if (anyBranch || branch == "default") {
           lazy.PrefUtils.setPref("browser.ml.chat." + pref, value, { branch });
         }
       };
-      setPref(["nimbus", { value: enrollment.slug }]);
+      setPref(["nimbus", { value: slug }]);
       Object.entries(
         lazy.NimbusFeatures[featureId].getVariable("prefs")
       ).forEach(setPref);
@@ -310,10 +330,6 @@ export const GenAI = {
     Glean.genaiChatbot.shortcuts.set(lazy.chatShortcuts);
     Glean.genaiChatbot.shortcutsCustom.set(lazy.chatShortcutsCustom);
     Glean.genaiChatbot.sidebar.set(lazy.chatSidebar);
-  },
-
-  uninit() {
-    Services.obs.removeObserver(this, "experimental-pane-loaded");
   },
 
   /**
@@ -891,3 +907,6 @@ function updateIgnoredInputs() {
     lazy.chatShortcutsIgnoreFields.split(",").filter(v => v)
   );
 }
+
+// Initialize on first import
+GenAI.init();

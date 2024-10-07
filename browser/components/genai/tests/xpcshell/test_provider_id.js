@@ -38,7 +38,6 @@ add_task(async function test_provider_id() {
  * Check that providers can be hidden
  */
 add_task(async function test_hide_providers() {
-  GenAI.init();
   const chatgpt = GenAI.chatProviders.get("https://chatgpt.com");
 
   Assert.ok(!chatgpt.hidden, "ChatGPT shown by default");

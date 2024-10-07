@@ -62,9 +62,8 @@ add_task(async function test_preferences_observer() {
 
     GenAI.init();
 
-    Assert.equal(stub.callCount, 2, "Would have handled existing tab");
+    Assert.equal(stub.callCount, 1, "Repeat init unnecessary so skipped");
   });
 
-  GenAI.uninit();
   sandbox.restore();
 });
