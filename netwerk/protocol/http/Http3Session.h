@@ -320,6 +320,9 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
 
   RefPtr<HttpConnectionUDP> mUdpConn;
 
+  // The underlying socket transport object is needed to propogate some events
+  RefPtr<nsISocketTransport> mSocketTransport;
+
   nsCOMPtr<nsITimer> mTimer;
 
   nsTHashMap<nsCStringHashKey, bool> mJoinConnectionCache;
