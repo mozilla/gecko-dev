@@ -768,10 +768,9 @@ search-show-suggestions-url-bar-option =
 
 
 # With this option enabled, on the search results page
-# the URL will be replaced by the search terms in the address bar
-# when using the current default search engine.
-search-show-search-term-option =
-    .label = Show search terms instead of URL on default search engine results page
+# the URL will be replaced by the search terms in the address bar.
+search-show-search-term-option-2 =
+    .label = Show search terms in the address bar on results pages
 
 
 # This string describes what the user will observe when the system
