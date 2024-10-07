@@ -35,6 +35,11 @@ namespace xsimd
     {
     };
 
+    template <class T, class A>
+    struct has_simd_register<std::complex<T>, A> : has_simd_register<T, A>
+    {
+    };
+
     namespace detail
     {
         template <class T, bool>

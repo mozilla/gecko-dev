@@ -14,6 +14,8 @@
 
 #include "./xsimd_generic_details.hpp"
 
+#include <climits>
+
 namespace xsimd
 {
 
@@ -21,6 +23,49 @@ namespace xsimd
     {
 
         using namespace types;
+
+        // count
+        template <class A, class T>
+        XSIMD_INLINE size_t count(batch_bool<T, A> const& self, requires_arch<generic>) noexcept
+        {
+            uint64_t m = self.mask();
+            XSIMD_IF_CONSTEXPR(batch_bool<T, A>::size < 14)
+            {
+                // https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
+                return (m * 0x200040008001ULL & 0x111111111111111ULL) % 0xf;
+            }
+            else
+            {
+#if defined __has_builtin
+#if __has_builtin(__builtin_popcountg)
+#define builtin_popcount(v) __builtin_popcountg(v)
+#endif
+#endif
+
+#ifdef builtin_popcount
+                return builtin_popcount(m);
+#else
+                // FIXME: we could do better by dispatching to the appropriate
+                // popcount instruction depending on the arch...
+                XSIMD_IF_CONSTEXPR(batch_bool<T, A>::size <= 32)
+                {
+                    uint32_t m32 = m;
+                    // https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+                    m32 = m32 - ((m32 >> 1) & 0x55555555); // reuse input as temporary
+                    m32 = (m32 & 0x33333333) + ((m32 >> 2) & 0x33333333); // temp
+                    return (((m32 + (m32 >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24; // count
+                }
+                else
+                {
+                    // https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+                    m = m - ((m >> 1) & (uint64_t) ~(uint64_t)0 / 3); // temp
+                    m = (m & (uint64_t) ~(uint64_t)0 / 15 * 3) + ((m >> 2) & (uint64_t) ~(uint64_t)0 / 15 * 3); // temp
+                    m = (m + (m >> 4)) & (uint64_t) ~(uint64_t)0 / 255 * 15; // temp
+                    return (m * ((uint64_t) ~(uint64_t)0 / 255)) >> (sizeof(uint64_t) - 1) * CHAR_BIT; // count
+                }
+#endif
+            }
+        }
 
         // from  mask
         template <class A, class T>

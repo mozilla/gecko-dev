@@ -632,6 +632,20 @@ namespace xsimd
     }
 
     /**
+     * @ingroup batch_reducers
+     *
+     * Count the number of values set to true in the batch \c x
+     * @param x boolean or batch of boolean
+     * @return the result of the counting.
+     */
+    template <class T, class A>
+    XSIMD_INLINE size_t count(batch_bool<T, A> const& x) noexcept
+    {
+        detail::static_check_supported_config<T, A>();
+        return kernel::count<A>(x, A {});
+    }
+
+    /**
      * @ingroup batch_arithmetic
      *
      * Subtract 1 to batch \c x.

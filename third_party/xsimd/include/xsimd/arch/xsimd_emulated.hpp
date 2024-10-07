@@ -230,6 +230,20 @@ namespace xsimd
             return r;
         }
 
+#if 0
+        // count
+        template <class A, class T, size_t N = 8 * sizeof(T) * batch<T, A>::size>
+        XSIMD_INLINE size_t count(batch_bool<T, A> const& x, requires_arch<emulated<N>>) noexcept
+        {
+            uint64_t m = x.mask();
+            // https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+            m = m - ((m >> 1) & (uint64_t) ~(uint64_t)0 / 3); // temp
+            m = (m & (uint64_t) ~(uint64_t)0 / 15 * 3) + ((m >> 2) & (uint64_t) ~(uint64_t)0 / 15 * 3); // temp
+            m = (m + (m >> 4)) & (uint64_t) ~(uint64_t)0 / 255 * 15; // temp
+            return (m * ((uint64_t) ~(uint64_t)0 / 255)) >> (sizeof(uint64_t) - 1) * CHAR_BIT; // count
+        }
+#endif
+
         // store_complex
         namespace detail
         {

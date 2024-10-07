@@ -1442,7 +1442,7 @@ namespace xsimd
             using type = void;
         };
 
-        template <typename T, class Arch, bool BatchExists = xsimd::types::has_simd_register<T, Arch>::value>
+        template <typename T, class Arch, bool BatchExists = xsimd::has_simd_register<T, Arch>::value>
         struct batch_trait;
 
         template <typename T, class Arch>
