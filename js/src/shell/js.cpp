@@ -128,6 +128,7 @@
 #include "js/Equality.h"        // JS::SameValue
 #include "js/ErrorReport.h"     // JS::PrintError
 #include "js/Exception.h"       // JS::StealPendingExceptionStack
+#include "js/experimental/BindingAllocs.h"  // JS_NewObjectWithGivenProtoAndUseAllocSite
 #include "js/experimental/CodeCoverage.h"   // js::EnableCodeCoverage
 #include "js/experimental/CompileScript.h"  // JS::NewFrontendContext, JS::DestroyFrontendContext, JS::HadFrontendErrors, JS::ConvertFrontendErrorsToRuntimeErrors, JS::CompileGlobalScriptToStencil, JS::CompileModuleScriptToStencil
 #include "js/experimental/CTypes.h"         // JS::InitCTypesClass
@@ -10315,7 +10316,9 @@ static ExtraGlobalBindingWithHelp extraGlobalBindingsWithHelp[] = {
 "    FakeDOMObject.prototype.global\n"
 "      Getter/setter with JSJitInfo::AliasEverything\n"
 "    FakeDOMObject.prototype.doFoo()\n"
-"      Method with JSJitInfo"},
+"      Method with JSJitInfo\n"
+"    FakeDOMObject.prototype.getObject()\n"
+"      Method with JSJitInfo that returns an object."},
 };
 // clang-format on
 
@@ -10794,6 +10797,26 @@ static bool dom_doFoo(JSContext* cx, HandleObject obj, void* self,
   return true;
 }
 
+static bool dom_doBar(JSContext* cx, HandleObject obj, void* self,
+                      const JSJitMethodCallArgs& args) {
+  MOZ_ASSERT(JS::GetClass(obj) == GetDomClass());
+  MOZ_ASSERT(self == DOM_PRIVATE_VALUE);
+  MOZ_ASSERT(cx->realm() == args.callee().as<JSFunction>().realm());
+
+  static const JSClass barClass = {
+      "BarObj",
+  };
+
+  JSObject* retObj =
+      JS_NewObjectWithGivenProtoAndUseAllocSite(cx, &barClass, nullptr);
+  if (!retObj) {
+    return false;
+  }
+
+  args.rval().setObject(*retObj);
+  return true;
+}
+
 static const JSJitInfo dom_x_getterinfo = {
     {(JSJitGetterOp)dom_get_x},
     {0}, /* protoID */
@@ -10893,6 +10916,22 @@ static const JSJitInfo doFoo_methodinfo = {
     0                           /* slotIndex */
 };
 
+static const JSJitInfo doBar_methodinfo = {
+    {(JSJitGetterOp)dom_doBar},
+    {0}, /* protoID */
+    {0}, /* depth */
+    JSJitInfo::Method,
+    JSJitInfo::AliasEverything, /* aliasSet */
+    JSVAL_TYPE_OBJECT,          /* returnType */
+    false,                      /* isInfallible. False in setters. */
+    false,                      /* isMovable */
+    false,                      /* isEliminatable */
+    false,                      /* isAlwaysInSlot */
+    false,                      /* isLazilyCachedInSlot */
+    false,                      /* isTypedMethod */
+    0                           /* slotIndex */
+};
+
 static const JSPropertySpec dom_props[] = {
     JSPropertySpec::nativeAccessors("x", JSPROP_ENUMERATE, dom_genericGetter,
                                     &dom_x_getterinfo, dom_genericSetter,
@@ -10907,6 +10946,8 @@ static const JSPropertySpec dom_props[] = {
 
 static const JSFunctionSpec dom_methods[] = {
     JS_FNINFO("doFoo", dom_genericMethod, &doFoo_methodinfo, 3,
+              JSPROP_ENUMERATE),
+    JS_FNINFO("doBar", dom_genericMethod, &doBar_methodinfo, 3,
               JSPROP_ENUMERATE),
     JS_FS_END,
 };

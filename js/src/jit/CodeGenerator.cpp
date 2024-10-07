@@ -6127,8 +6127,16 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
     masm.switchToObjectRealm(argJSContext, argJSContext);
   }
 
+  bool preTenureWrapperAllocation =
+      call->mir()->to<MCallDOMNative>()->initialHeap() == gc::Heap::Tenured;
+  if (preTenureWrapperAllocation) {
+    auto ptr = ImmPtr(mirGen().realm->zone()->tenuringAllocSite());
+    masm.storeLocalAllocSite(ptr, argJSContext);
+  }
+
   // Construct native exit frame.
   uint32_t safepointOffset = masm.buildFakeExitFrame(argJSContext);
+
   masm.loadJSContext(argJSContext);
   masm.enterFakeExitFrame(argJSContext, argJSContext,
                           ExitFrameType::IonDOMMethod);
@@ -6167,6 +6175,12 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
     static_assert(!JSReturnOperand.aliases(ReturnReg),
                   "Clobbering ReturnReg should not affect the return value");
     masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  // Wipe out the preTenuring bit from the local alloc site
+  // On exception we handle this in C++
+  if (preTenureWrapperAllocation) {
+    masm.storeLocalAllocSite(ImmPtr(nullptr), argJSContext);
   }
 
   // Until C++ code is instrumented against Spectre, prevent speculative

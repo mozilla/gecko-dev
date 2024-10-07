@@ -80,13 +80,14 @@ MDefinition* WarpBuilderShared::unboxObjectInfallible(MDefinition* def,
 }
 
 MCall* WarpBuilderShared::makeCall(CallInfo& callInfo, bool needsThisCheck,
-                                   WrappedFunction* target, bool isDOMCall) {
+                                   WrappedFunction* target, bool isDOMCall,
+                                   gc::Heap initialHeap) {
   auto addUndefined = [this]() -> MConstant* {
     return constant(UndefinedValue());
   };
 
   return MakeCall(alloc(), addUndefined, callInfo, needsThisCheck, target,
-                  isDOMCall);
+                  isDOMCall, initialHeap);
 }
 
 MInstruction* WarpBuilderShared::makeSpreadCall(CallInfo& callInfo,

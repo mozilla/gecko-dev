@@ -2043,6 +2043,22 @@
     target: RawPointerField
 #endif
 
+- name: CallDOMFunctionWithAllocSite
+  shared: false
+  transpile: true
+  cost_estimate: 4
+  custom_writer: true
+  args:
+    callee: ObjId
+    argc: Int32Id
+    thisObj: ObjId
+    flags: CallFlagsImm
+    argcFixed: UInt32Imm
+    site: AllocSiteField
+#ifdef JS_SIMULATOR
+    target: RawPointerField
+#endif
+
 - name: CallClassHook
   shared: false
   transpile: true
