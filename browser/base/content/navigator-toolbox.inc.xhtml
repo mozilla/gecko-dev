@@ -82,9 +82,6 @@
                        data-l10n-id="tabs-toolbar-new-tab"
                        command="cmd_newNavigatorTab"
                        tooltip="dynamic-shortcut-tooltip"
-                       ondrop="newTabButtonObserver.onDrop(event)"
-                       ondragover="newTabButtonObserver.onDragOver(event)"
-                       ondragenter="newTabButtonObserver.onDragOver(event)"
                        cui-areatype="toolbar"
                        removable="true"/>
 
@@ -197,8 +194,7 @@
             </box>
             <box id="identity-box"
                  class="identity-box"
-                 pageproxystate="invalid"
-                 ondragstart="gIdentityHandler.onDragStart(event);">
+                 pageproxystate="invalid">
               <box id="identity-icon-box"
                    role="button"
                    align="center"
@@ -432,9 +428,6 @@
                      delegatesanchor="true"
                      badged="true"
                      key="key_openDownloads"
-                     ondrop="DownloadsIndicatorView.onDrop(event);"
-                     ondragover="DownloadsIndicatorView.onDragOver(event);"
-                     ondragenter="DownloadsIndicatorView.onDragOver(event);"
                      data-l10n-id="navbar-downloads"
                      removable="true"
                      overflows="false"
@@ -573,10 +566,7 @@
     <toolbarbutton id="new-window-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                    data-l10n-id="appmenuitem-new-window"
                    command="cmd_newNavigator"
-                   tooltip="dynamic-shortcut-tooltip"
-                   ondrop="newWindowButtonObserver.onDrop(event)"
-                   ondragover="newWindowButtonObserver.onDragOver(event)"
-                   ondragenter="newWindowButtonObserver.onDragOver(event)"/>
+                   tooltip="dynamic-shortcut-tooltip"/>
 
     <toolbarbutton id="fullscreen-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                    observes="View:FullScreen"
@@ -589,11 +579,7 @@
                    delegatesanchor="true"
                    type="menu"
                    data-l10n-id="bookmarks-menu-button"
-                   tooltip="dynamic-shortcut-tooltip"
-                   ondragenter="PlacesMenuDNDHandler.onDragEnter(event);"
-                   ondragover="PlacesMenuDNDHandler.onDragOver(event);"
-                   ondragleave="PlacesMenuDNDHandler.onDragLeave(event);"
-                   ondrop="PlacesMenuDNDHandler.onDrop(event);">
+                   tooltip="dynamic-shortcut-tooltip">
       <menupopup id="BMB_bookmarksPopup"
                  is="places-popup-arrow"
                  class="toolbar-menupopup animatable-menupopup"
@@ -676,9 +662,6 @@
     <toolbarbutton id="home-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
                    removable="true"
                    data-l10n-id="navbar-home"
-                   ondragover="homeButtonObserver.onDragOver(event)"
-                   ondragenter="homeButtonObserver.onDragOver(event)"
-                   ondrop="homeButtonObserver.onDrop(event)"
                    key="goHome"
                    cui-areatype="toolbar"/>
 

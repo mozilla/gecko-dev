@@ -389,6 +389,88 @@ document.addEventListener(
       capture: true,
     });
     widgetOverflow.addEventListener("keypress", onKeyPress, { capture: true });
+
+    function onDragAndDrop(event) {
+      let element = event.target.closest(`
+        #new-tab-button,
+        #downloads-button,
+        #new-window-button,
+        #bookmarks-menu-button,
+        #home-button
+      `);
+      if (!element) {
+        return;
+      }
+
+      switch (element.id) {
+        case "new-tab-button":
+          if (event.type === "dragenter" || event.type === "dragover") {
+            newTabButtonObserver.onDragOver(event);
+          } else if (event.type === "drop") {
+            newTabButtonObserver.onDrop(event);
+          }
+          break;
+
+        case "downloads-button":
+          if (event.type === "dragenter" || event.type === "dragover") {
+            DownloadsIndicatorView.onDragOver(event);
+          } else if (event.type === "drop") {
+            DownloadsIndicatorView.onDrop(event);
+          }
+          break;
+
+        case "new-window-button":
+          if (event.type === "dragenter" || event.type === "dragover") {
+            newWindowButtonObserver.onDragOver(event);
+          } else if (event.type === "drop") {
+            newWindowButtonObserver.onDrop(event);
+          }
+          break;
+
+        case "bookmarks-menu-button":
+          switch (event.type) {
+            case "dragenter":
+              PlacesMenuDNDHandler.onDragEnter(event);
+              break;
+            case "dragover":
+              PlacesMenuDNDHandler.onDragOver(event);
+              break;
+            case "dragleave":
+              PlacesMenuDNDHandler.onDragLeave(event);
+              break;
+            case "drop":
+              PlacesMenuDNDHandler.onDrop(event);
+              break;
+          }
+          break;
+
+        case "home-button":
+          if (event.type === "dragenter" || event.type === "dragover") {
+            homeButtonObserver.onDragOver(event);
+          } else if (event.type == "drop") {
+            homeButtonObserver.onDrop(event);
+          }
+          break;
+
+        default:
+          throw new Error(`Missing case for #${element.id}`);
+      }
+    }
+
+    navigatorToolbox.addEventListener("dragenter", onDragAndDrop);
+    widgetOverflow.addEventListener("dragenter", onDragAndDrop);
+    navigatorToolbox.addEventListener("dragover", onDragAndDrop);
+    widgetOverflow.addEventListener("dragover", onDragAndDrop);
+    navigatorToolbox.addEventListener("dragleave", onDragAndDrop);
+    widgetOverflow.addEventListener("dragleave", onDragAndDrop);
+    navigatorToolbox.addEventListener("drop", onDragAndDrop);
+    widgetOverflow.addEventListener("drop", onDragAndDrop);
+
+    document
+      .getElementById("identity-box")
+      .addEventListener("dragstart", event => {
+        gIdentityHandler.onDragStart(event);
+      });
   },
   { once: true }
 );
