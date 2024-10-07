@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-// Test that (real) files can be pasted into chrome/content.
+// Test that (real) files and directories can be pasted into chrome/content.
 // Pasting files should also hide all other data from content.
 
 function setClipboard(path) {
@@ -103,6 +103,7 @@ async function testClipboardPasteFileWithContentAnalysis(allowPaste) {
         resolve(event.detail.result);
       });
       content.document.getElementById("pasteAllowed").checked = allowPaste;
+      content.document.getElementById("pasteIsDir").checked = false;
     });
   });
 
@@ -199,4 +200,149 @@ add_task(async function testClipboardPasteFileWithContentAnalysisAllow() {
 
 add_task(async function testClipboardPasteFileWithContentAnalysisBlock() {
   await testClipboardPasteFileWithContentAnalysis(false);
+});
+
+// ----------------------------------------------------------------------------
+
+async function testClipboardPasteDirectoryWithContentAnalysis(allowPaste) {
+  mockCA.setupForTest(allowPaste);
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.events.dataTransfer.mozFile.enabled", true]],
+  });
+
+  // Create a temporary folder and files that will be pasted.
+  let innerTempDir = PathUtils.join(PathUtils.tempDir, "folder_paste_test");
+  await IOUtils.makeDirectory(innerTempDir);
+  registerCleanupFunction(async function () {
+    try {
+      await IOUtils.remove(innerTempDir, { recursive: true });
+    } catch (e) {
+      ok(false, e);
+    }
+  });
+
+  const file1 = await IOUtils.createUniqueFile(
+    innerTempDir,
+    "test-file-1.txt",
+    0o600
+  );
+  const file2 = await IOUtils.createUniqueFile(
+    innerTempDir,
+    "test-file-2.txt",
+    0o600
+  );
+  const FILE_TEXT = "Hello World!";
+  await IOUtils.writeUTF8(file1, FILE_TEXT);
+  await IOUtils.writeUTF8(file2, FILE_TEXT);
+
+  // Data is folder name
+  setClipboard(innerTempDir);
+
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE_URL);
+  let browser = tab.linkedBrowser;
+
+  let resultPromise = SpecialPowers.spawn(browser, [allowPaste], allowPaste => {
+    return new Promise(resolve => {
+      content.document.addEventListener("testresult", event => {
+        resolve(event.detail.result);
+      });
+      content.document.getElementById("pasteAllowed").checked = allowPaste;
+      content.document.getElementById("pasteIsDir").checked = true;
+    });
+  });
+
+  // Focus <input> in content
+  await SpecialPowers.spawn(browser, [], async function () {
+    content.document.getElementById("input").focus();
+  });
+
+  // Paste folder into <input> in content
+  await BrowserTestUtils.synthesizeKey("v", { accelKey: true }, browser);
+
+  let result = await resultPromise;
+  is(
+    result,
+    allowPaste ? PathUtils.filename(innerTempDir) : "",
+    "Correctly pasted folder in content"
+  );
+  is(
+    mockCA.calls.length,
+    4,
+    "Content Analysis ran one directory, two file and one text check"
+  );
+  assertContentAnalysisRequestFile(mockCA.calls[0], innerTempDir);
+  assertContentAnalysisRequestFile(mockCA.calls[1], file1);
+  assertContentAnalysisRequestFile(mockCA.calls[2], file2);
+  assertContentAnalysisRequestText(mockCA.calls[3], "Alternate");
+  mockCA.clearCalls();
+
+  // The following part of the test is done in-process (note the use of document here instead of
+  // content.document) so none of this should go through content analysis.
+  var input = document.createElement("input");
+  document.documentElement.appendChild(input);
+  input.focus();
+
+  await new Promise((resolve, _reject) => {
+    input.addEventListener(
+      "paste",
+      function (event) {
+        let dt = event.clipboardData;
+        is(dt.types.length, 3, "number of types");
+        ok(dt.types.includes("text/plain"), "text/plain exists in types");
+        ok(
+          dt.types.includes("application/x-moz-file"),
+          "application/x-moz-file exists in types"
+        );
+        is(dt.types[2], "Files", "Last type should be 'Files'");
+        ok(
+          dt.mozTypesAt(0).contains("text/plain"),
+          "text/plain exists in mozTypesAt"
+        );
+        is(
+          dt.getData("text/plain"),
+          "Alternate",
+          "text/plain returned in getData"
+        );
+        is(
+          dt.mozGetDataAt("text/plain", 0),
+          "Alternate",
+          "text/plain returned in mozGetDataAt"
+        );
+
+        ok(
+          dt.mozTypesAt(0).contains("application/x-moz-file"),
+          "application/x-moz-file exists in mozTypesAt"
+        );
+        let mozFile = dt.mozGetDataAt("application/x-moz-file", 0);
+
+        ok(
+          mozFile instanceof Ci.nsIFile,
+          "application/x-moz-file returned nsIFile with mozGetDataAt"
+        );
+
+        is(mozFile.path, innerTempDir, "nsIFile has correct folder path");
+
+        resolve();
+      },
+      { capture: true, once: true }
+    );
+
+    EventUtils.synthesizeKey("v", { accelKey: true });
+  });
+  is(mockCA.calls.length, 0, "Correct number of calls to Content Analysis");
+
+  input.remove();
+
+  BrowserTestUtils.removeTab(tab);
+
+  await IOUtils.remove(file2);
+  await IOUtils.remove(file1);
+}
+
+add_task(async function testClipboardPasteDirectoryWithContentAnalysisAllow() {
+  await testClipboardPasteDirectoryWithContentAnalysis(true);
+});
+
+add_task(async function testClipboardPasteDirectoryWithContentAnalysisBlock() {
+  await testClipboardPasteDirectoryWithContentAnalysis(false);
 });

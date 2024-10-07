@@ -181,12 +181,30 @@ function makeMockContentAnalysis() {
       if (this.errorValue) {
         throw this.errorValue;
       }
-      let response = makeContentAnalysisResponse(
-        this.getAction(),
-        request.requestToken
-      );
-      // Use setTimeout to simulate an async activity
-      setTimeout(() => {
+
+      // Use setTimeout to simulate an async activity (and because IOUtils.stat
+      // is async).
+      setTimeout(async () => {
+        let isDir = false;
+        try {
+          isDir = (await IOUtils.stat(request.filePath)).type == "directory";
+        } catch {}
+        if (isDir) {
+          // Folder requests are re-issued as file requests for each file in the
+          // folder. Allow the real CA service to do this.  New requests will be
+          // sent to the mock CA.
+          this.realCAService.analyzeContentRequestCallback(
+            request,
+            autoAcknowledge,
+            callback
+          );
+          return;
+        }
+
+        let response = makeContentAnalysisResponse(
+          this.getAction(),
+          request.requestToken
+        );
         callback.contentResult(response);
       }, 0);
     },
