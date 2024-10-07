@@ -12374,15 +12374,6 @@ AttachDecision CallIRGenerator::tryAttachCallNative(HandleFunction calleeFunc) {
                        mode_)) {
     MOZ_ASSERT(!isConstructing, "DOM functions are not constructors");
 
-    gc::AllocSite* allocSite = nullptr;
-    if (calleeFunc->jitInfo()->returnType() == JSVAL_TYPE_OBJECT &&
-        JS::Prefs::dom_alloc_site()) {
-      allocSite = maybeCreateAllocSite();
-      if (!allocSite) {
-        return AttachDecision::NoAction;
-      }
-    }
-
     // Guard that |this| is an object.
     ValOperandId thisValId =
         writer.loadArgumentDynamicSlot(ArgumentKind::This, argcId, flags);
@@ -12394,15 +12385,8 @@ AttachDecision CallIRGenerator::tryAttachCallNative(HandleFunction calleeFunc) {
 
     // Ensure callee matches this stub's callee
     writer.guardSpecificFunction(calleeObjId, calleeFunc);
-
-    if (allocSite) {
-      writer.callDOMFunctionWithAllocSite(calleeObjId, argcId, thisObjId,
-                                          calleeFunc, flags,
-                                          ClampFixedArgc(argc_), allocSite);
-    } else {
-      writer.callDOMFunction(calleeObjId, argcId, thisObjId, calleeFunc, flags,
-                             ClampFixedArgc(argc_));
-    }
+    writer.callDOMFunction(calleeObjId, argcId, thisObjId, calleeFunc, flags,
+                           ClampFixedArgc(argc_));
 
     trackAttached("Call.CallDOM");
   } else if (isSpecialized) {

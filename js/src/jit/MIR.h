@@ -2344,8 +2344,7 @@ class MCall : public MCallBase {
   static MCall* New(TempAllocator& alloc, WrappedFunction* target,
                     size_t maxArgc, size_t numActualArgs, bool construct,
                     bool ignoresReturnValue, bool isDOMCall,
-                    mozilla::Maybe<DOMObjectKind> objectKind,
-                    mozilla::Maybe<gc::Heap> initialHeap);
+                    mozilla::Maybe<DOMObjectKind> objectKind);
 
   bool needsClassCheck() const { return needsClassCheck_; }
   void disableClassCheck() { needsClassCheck_ = false; }
@@ -2388,14 +2387,9 @@ class MCallDOMNative : public MCall {
 
   DOMObjectKind objectKind_;
 
-  // Allow wrapper pre-tenuring
-  gc::Heap initialHeap_ = gc::Heap::Default;
-
   MCallDOMNative(WrappedFunction* target, uint32_t numActualArgs,
-                 DOMObjectKind objectKind, gc::Heap initialHeap)
-      : MCall(target, numActualArgs, false, false),
-        objectKind_(objectKind),
-        initialHeap_(initialHeap) {
+                 DOMObjectKind objectKind)
+      : MCall(target, numActualArgs, false, false), objectKind_(objectKind) {
     MOZ_ASSERT(getJitInfo()->type() != JSJitInfo::InlinableNative);
 
     // If our jitinfo is not marked eliminatable, that means that our C++
@@ -2412,8 +2406,7 @@ class MCallDOMNative : public MCall {
   friend MCall* MCall::New(TempAllocator& alloc, WrappedFunction* target,
                            size_t maxArgc, size_t numActualArgs, bool construct,
                            bool ignoresReturnValue, bool isDOMCall,
-                           mozilla::Maybe<DOMObjectKind> objectKind,
-                           mozilla::Maybe<gc::Heap> initalHeap);
+                           mozilla::Maybe<DOMObjectKind> objectKind);
 
   const JSJitInfo* getJitInfo() const;
 
@@ -2427,8 +2420,6 @@ class MCallDOMNative : public MCall {
   virtual bool isCallDOMNative() const override { return true; }
 
   virtual void computeMovable() override;
-
-  gc::Heap initialHeap() { return initialHeap_; }
 };
 
 // Used to invoke a JSClass call/construct hook.

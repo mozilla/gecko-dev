@@ -7976,13 +7976,6 @@
 #endif
   mirror: always
 
-# Use the realm local dom alloc site.
-- name: javascript.options.dom_alloc_site
-  type: bool
-  value: true
-  mirror: always
-  set_spidermonkey_pref: always
-
 # Use better error message when accessing property of null or undefined.
 - name: javascript.options.property_error_message_fix
   type: bool

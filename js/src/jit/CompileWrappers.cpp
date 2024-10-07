@@ -185,10 +185,6 @@ gc::AllocSite* CompileZone::catchAllAllocSite(JS::TraceKind traceKind,
   return zone()->unknownAllocSite(traceKind);
 }
 
-gc::AllocSite* CompileZone::tenuringAllocSite() {
-  return zone()->tenuringAllocSite();
-}
-
 JS::Realm* CompileRealm::realm() { return reinterpret_cast<JS::Realm*>(this); }
 
 /* static */

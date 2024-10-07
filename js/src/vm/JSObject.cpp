@@ -740,8 +740,7 @@ bool js::TestIntegrityLevel(JSContext* cx, HandleObject obj,
 
 static MOZ_ALWAYS_INLINE NativeObject* NewObject(
     JSContext* cx, const JSClass* clasp, Handle<TaggedProto> proto,
-    gc::AllocKind kind, NewObjectKind newKind, ObjectFlags objFlags,
-    gc::AllocSite* allocSite = nullptr) {
+    gc::AllocKind kind, NewObjectKind newKind, ObjectFlags objFlags) {
   MOZ_ASSERT(clasp->isNativeObject());
 
   // Some classes have specialized allocation functions and shouldn't end up
@@ -749,8 +748,6 @@ static MOZ_ALWAYS_INLINE NativeObject* NewObject(
   MOZ_ASSERT(clasp != &ArrayObject::class_);
   MOZ_ASSERT(clasp != &PlainObject::class_);
   MOZ_ASSERT(!clasp->isJSFunction());
-
-  MOZ_ASSERT_IF(allocSite, allocSite->zone() == cx->zone());
 
   // Computing nfixed based on the AllocKind isn't right for objects which can
   // store fixed data inline (TypedArrays and ArrayBuffers) so for simplicity
@@ -769,8 +766,8 @@ static MOZ_ALWAYS_INLINE NativeObject* NewObject(
     return nullptr;
   }
 
-  gc::Heap heap = GetInitialHeap(newKind, clasp, allocSite);
-  NativeObject* obj = NativeObject::create(cx, kind, heap, shape, allocSite);
+  gc::Heap heap = GetInitialHeap(newKind, clasp);
+  NativeObject* obj = NativeObject::create(cx, kind, heap, shape);
   if (!obj) {
     return nullptr;
   }
@@ -783,13 +780,6 @@ NativeObject* js::NewObjectWithGivenTaggedProto(
     JSContext* cx, const JSClass* clasp, Handle<TaggedProto> proto,
     gc::AllocKind allocKind, NewObjectKind newKind, ObjectFlags objFlags) {
   return NewObject(cx, clasp, proto, allocKind, newKind, objFlags);
-}
-
-NativeObject* js::NewObjectWithGivenTaggedProtoAndAllocSite(
-    JSContext* cx, const JSClass* clasp, Handle<TaggedProto> proto,
-    gc::AllocKind allocKind, NewObjectKind newKind, ObjectFlags objFlags,
-    gc::AllocSite* site) {
-  return NewObject(cx, clasp, proto, allocKind, newKind, objFlags, site);
 }
 
 NativeObject* js::NewObjectWithClassProto(JSContext* cx, const JSClass* clasp,

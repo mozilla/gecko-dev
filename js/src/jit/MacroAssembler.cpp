@@ -2650,16 +2650,6 @@ void MacroAssembler::switchToWasmInstanceRealm(Register scratch1,
   storePtr(scratch2, Address(scratch1, JSContext::offsetOfRealm()));
 }
 
-template <typename ValueType>
-void MacroAssembler::storeLocalAllocSite(ValueType value, Register scratch) {
-  loadPtr(AbsoluteAddress(ContextRealmPtr(runtime())), scratch);
-  storePtr(value, Address(scratch, JS::Realm::offsetOfLocalAllocSite()));
-}
-
-template void MacroAssembler::storeLocalAllocSite(Register, Register);
-template void MacroAssembler::storeLocalAllocSite(ImmWord, Register);
-template void MacroAssembler::storeLocalAllocSite(ImmPtr, Register);
-
 void MacroAssembler::debugAssertContextRealm(const void* realm,
                                              Register scratch) {
 #ifdef DEBUG

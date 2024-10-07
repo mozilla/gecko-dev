@@ -5153,9 +5153,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void switchToWasmInstanceRealm(Register scratch1, Register scratch2);
   void debugAssertContextRealm(const void* realm, Register scratch);
 
-  template <typename ValueType>
-  void storeLocalAllocSite(ValueType value, Register scratch);
-
   void loadJitActivation(Register dest);
 
   void guardSpecificAtom(Register str, JSAtom* atom, Register scratch,

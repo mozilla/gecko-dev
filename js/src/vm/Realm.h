@@ -809,16 +809,6 @@ class JS::Realm : public JS::shadow::Realm {
 
   js::RealmFuses realmFuses;
 
-  // Allocation site used by binding code to provide feedback
-  // on allocation heap for DOM allocation functions.
-  //
-  // See  CallIRGenerator::tryAttachCallNative
-  js::gc::AllocSite* localAllocSite = nullptr;
-
-  static size_t offsetOfLocalAllocSite() {
-    return offsetof(JS::Realm, localAllocSite);
-  }
-
  private:
   void purgeForOfPicChain();
 };

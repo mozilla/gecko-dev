@@ -1920,23 +1920,6 @@ JS_PUBLIC_API JSObject* JS_NewObjectWithGivenProto(JSContext* cx,
   return NewObjectWithGivenProto(cx, clasp, proto);
 }
 
-JS_PUBLIC_API JSObject* JS_NewObjectWithGivenProtoAndUseAllocSite(
-    JSContext* cx, const JSClass* clasp, HandleObject proto) {
-  MOZ_ASSERT(!cx->zone()->isAtomsZone());
-  AssertHeapIsIdle();
-  CHECK_THREAD(cx);
-  cx->check(proto);
-
-  MOZ_ASSERT(clasp);
-  MOZ_ASSERT(!clasp->isJSFunction());
-  MOZ_ASSERT(clasp != &PlainObject::class_);
-  MOZ_ASSERT(clasp != &ArrayObject::class_);
-  MOZ_ASSERT(!(clasp->flags & JSCLASS_IS_GLOBAL));
-
-  return NewObjectWithGivenProtoAndAllocSite(cx, clasp, proto,
-                                             cx->realm()->localAllocSite);
-}
-
 JS_PUBLIC_API JSObject* JS_NewPlainObject(JSContext* cx) {
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
   AssertHeapIsIdle();

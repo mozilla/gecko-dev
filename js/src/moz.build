@@ -238,7 +238,6 @@ EXPORTS.js += [
 # change, but they're at least plausible first passes at designing something.
 # We expose them as-is, buyer beware.
 EXPORTS.js.experimental += [
-    "../public/experimental/BindingAllocs.h",
     "../public/experimental/CodeCoverage.h",
     "../public/experimental/CompileScript.h",
     "../public/experimental/CTypes.h",

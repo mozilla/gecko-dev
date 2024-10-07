@@ -285,10 +285,10 @@ class MOZ_RAII WarpCacheIRTranspiler : public WarpBuilderShared {
 
   [[nodiscard]] bool updateCallInfo(MDefinition* callee, CallFlags flags);
 
-  [[nodiscard]] bool emitCallFunction(
-      ObjOperandId calleeId, Int32OperandId argcId,
-      mozilla::Maybe<ObjOperandId> thisObjId, CallFlags flags, CallKind kind,
-      mozilla::Maybe<uint32_t> siteOffset = mozilla::Nothing());
+  [[nodiscard]] bool emitCallFunction(ObjOperandId calleeId,
+                                      Int32OperandId argcId,
+                                      mozilla::Maybe<ObjOperandId> thisObjId,
+                                      CallFlags flags, CallKind kind);
   [[nodiscard]] bool emitFunApplyArgsObj(WrappedFunction* wrappedTarget,
                                          CallFlags flags);
 
@@ -5816,8 +5816,7 @@ bool WarpCacheIRTranspiler::maybeCreateThis(MDefinition* callee,
 
 bool WarpCacheIRTranspiler::emitCallFunction(
     ObjOperandId calleeId, Int32OperandId argcId,
-    mozilla::Maybe<ObjOperandId> thisObjId, CallFlags flags, CallKind kind,
-    mozilla::Maybe<uint32_t> siteOffset) {
+    mozilla::Maybe<ObjOperandId> thisObjId, CallFlags flags, CallKind kind) {
   MDefinition* callee = getOperand(calleeId);
   if (kind == CallKind::Scripted && callInfo_ && callInfo_->isInlined()) {
     // We are transpiling to generate the correct guards. We also
@@ -5886,14 +5885,8 @@ bool WarpCacheIRTranspiler::emitCallFunction(
 
   switch (callInfo_->argFormat()) {
     case CallInfo::ArgFormat::Standard: {
-      gc::Heap initialHeap = gc::Heap::Default;
-      if (siteOffset) {
-        MOZ_ASSERT(kind == CallKind::DOM);
-        MOZ_ASSERT(readStubWord(*siteOffset) <= (uintptr_t)(gc::Heap::Tenured));
-        initialHeap = static_cast<gc::Heap>(readStubWord(*siteOffset));
-      }
       MCall* call = makeCall(*callInfo_, needsThisCheck, wrappedTarget,
-                             kind == CallKind::DOM, initialHeap);
+                             kind == CallKind::DOM);
       if (!call) {
         return false;
       }
@@ -5974,13 +5967,6 @@ bool WarpCacheIRTranspiler::emitCallDOMFunction(ObjOperandId calleeId,
   return emitCallFunction(calleeId, argcId, mozilla::Some(thisObjId), flags,
                           CallKind::DOM);
 }
-
-bool WarpCacheIRTranspiler::emitCallDOMFunctionWithAllocSite(
-    ObjOperandId calleeId, Int32OperandId argcId, ObjOperandId thisObjId,
-    CallFlags flags, uint32_t argcFixed, uint32_t siteOffset) {
-  return emitCallFunction(calleeId, argcId, mozilla::Some(thisObjId), flags,
-                          CallKind::DOM, mozilla::Some(siteOffset));
-}
 #else
 bool WarpCacheIRTranspiler::emitCallNativeFunction(ObjOperandId calleeId,
                                                    Int32OperandId argcId,
@@ -5996,14 +5982,6 @@ bool WarpCacheIRTranspiler::emitCallDOMFunction(
     CallFlags flags, uint32_t argcFixed, uint32_t targetOffset) {
   return emitCallFunction(calleeId, argcId, mozilla::Some(thisObjId), flags,
                           CallKind::DOM);
-}
-
-bool WarpCacheIRTranspiler::emitCallDOMFunctionWithAllocSite(
-    ObjOperandId calleeId, Int32OperandId argcId, ObjOperandId thisObjId,
-    CallFlags flags, uint32_t argcFixed, uint32_t siteOffset,
-    uint32_t targetOffset) {
-  return emitCallFunction(calleeId, argcId, mozilla::Some(thisObjId), flags,
-                          CallKind::DOM, mozilla::Some(siteOffset));
 }
 #endif
 
@@ -6707,9 +6685,10 @@ bool WarpCacheIRTranspiler::emitCloseIterScriptedResult(ObjOperandId iterId,
   bool constructing = false;
   bool ignoresRval = false;
   bool needsThisCheck = false;
+  bool isDOMCall = false;
   CallInfo callInfo(alloc(), constructing, ignoresRval);
   callInfo.initForCloseIter(iter, callee);
-  MCall* call = makeCall(callInfo, needsThisCheck, wrappedTarget);
+  MCall* call = makeCall(callInfo, needsThisCheck, wrappedTarget, isDOMCall);
   if (!call) {
     return false;
   }

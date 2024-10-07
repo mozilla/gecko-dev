@@ -868,9 +868,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   js::gc::AllocSite* optimizedAllocSite() {
     return &pretenuring.optimizedAllocSite;
   }
-  js::gc::AllocSite* tenuringAllocSite() {
-    return &pretenuring.tenuringAllocSite;
-  }
   uint32_t nurseryAllocCount(JS::TraceKind kind) const {
     return pretenuring.nurseryAllocCount(kind);
   }
