@@ -29,6 +29,9 @@ support-files = [
 ["browser_httpsonly_speculative_connect.js"]
 support-files = ["file_httpsonly_speculative_connect.html"]
 
+["browser_iframe_buttons.js"]
+support-files = ["file_iframe_buttons.html"]
+
 ["browser_iframe_test.js"]
 skip-if = [
   "os == 'linux' && bits == 64", # Bug 1735565

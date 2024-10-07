@@ -12,6 +12,7 @@ about-httpsonly-explanation-question = What could be causing this?
 about-httpsonly-explanation-nosupport = Most likely, the website simply does not support HTTPS.
 about-httpsonly-explanation-risk = It’s also possible that an attacker is involved. If you decide to visit the website, you should not enter any sensitive information like passwords, emails, or credit card details.
 about-httpsonly-explanation-continue = If you continue, HTTPS-Only Mode will be turned off temporarily for this site.
+about-httpsonly-explanation-iframe = Due to mixed content blocking, it is not possible to manually allow this frame to load.
 
 about-httpsonly-button-continue-to-site = Continue to HTTP Site
 about-httpsonly-button-go-back = Go Back

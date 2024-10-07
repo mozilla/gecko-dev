@@ -1379,18 +1379,11 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvReloadWithHttpsOnlyException() {
     return IPC_FAIL(this, "HTTPS-only mode: Illegal state");
   }
 
-  // If the error page is within an iFrame, we create an exception for whatever
-  // scheme the top-level site is currently on, because the user wants to
-  // unbreak the iFrame and not the top-level page. When the error page shows up
-  // on a top-level request, then we replace the scheme with http, because the
-  // user wants to unbreak the whole page.
+  // We replace the scheme with http, because the user wants to unbreak the
+  // whole page.
   nsCOMPtr<nsIURI> newURI;
-  if (!BrowsingContext()->IsTop()) {
-    newURI = innerURI;
-  } else {
-    Unused << NS_MutateURI(innerURI).SetScheme("http"_ns).Finalize(
-        getter_AddRefs(newURI));
-  }
+  Unused << NS_MutateURI(innerURI).SetScheme("http"_ns).Finalize(
+      getter_AddRefs(newURI));
 
   OriginAttributes originAttributes =
       TopWindowContext()->DocumentPrincipal()->OriginAttributesRef();
