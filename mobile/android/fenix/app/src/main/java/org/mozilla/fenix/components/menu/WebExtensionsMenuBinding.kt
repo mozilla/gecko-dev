@@ -75,7 +75,7 @@ class WebExtensionsMenuBinding(
                             webExtensionsFlowState = webExtensionsFlowState,
                             globalAction = pageAction,
                             isPageAction = true,
-                        ) as WebExtensionMenuItem.WebExtensionPageMenuItem
+                        ) as WebExtensionMenuItem.WebExtensionPageMenuItem?
                     }
                 }
 
@@ -85,7 +85,7 @@ class WebExtensionsMenuBinding(
                             extension = extension,
                             webExtensionsFlowState = webExtensionsFlowState,
                             globalAction = browserAction,
-                        ) as WebExtensionMenuItem.WebExtensionBrowserMenuItem
+                        ) as WebExtensionMenuItem.WebExtensionBrowserMenuItem?
                     }
                 }
 
@@ -103,7 +103,7 @@ class WebExtensionsMenuBinding(
         webExtensionsFlowState: WebExtensionsFlowState,
         globalAction: Action,
         isPageAction: Boolean = false,
-    ): Any? {
+    ): WebExtensionMenuItem? {
         val tabAction = if (isPageAction) {
             webExtensionsFlowState.sessionState.extensionState[extension.id]?.pageAction
         } else {

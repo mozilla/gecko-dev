@@ -162,6 +162,62 @@ class WebExtensionsMenuBindingTest {
             assertEquals(pageItemsUpdateCaptor.value.webExtensionPageMenuItem[0].badgeBackgroundColor, 0)
         }
 
+    @Test
+    fun `WHEN web extension page state disabled gets updated in the browserStore THEN web extension page menu items list should be empty`() =
+        runTestOnMain {
+            val defaultPageAction = createWebExtensionPageAction("default_page_action_title")
+
+            val overriddenPageAction = createWebExtensionPageAction("overridden_page_action_title")
+
+            val extensions: Map<String, WebExtensionState> = mapOf(
+                "id" to WebExtensionState(
+                    id = "id",
+                    url = "url",
+                    name = "name",
+                    enabled = false,
+                    pageAction = defaultPageAction,
+                ),
+            )
+            val overriddenExtensions: Map<String, WebExtensionState> = mapOf(
+                "id" to WebExtensionState(
+                    id = "id",
+                    url = "url",
+                    name = "name",
+                    enabled = false,
+                    pageAction = overriddenPageAction,
+                ),
+            )
+
+            menuStore = spy(MenuStore(MenuState()))
+            browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(
+                        createTab(
+                            url = "https://www.example.org",
+                            id = "tab1",
+                            extensions = overriddenExtensions,
+                        ),
+                    ),
+                    selectedTabId = "tab1",
+                    extensions = extensions,
+                ),
+            )
+
+            val binding = WebExtensionsMenuBinding(
+                browserStore = browserStore,
+                menuStore = menuStore,
+                iconSize = 24.dpToPx(testContext.resources.displayMetrics),
+                onDismiss = {},
+            )
+            binding.start()
+
+            val pageItemsUpdateCaptor = argumentCaptor<MenuAction.UpdateWebExtensionPageMenuItems>()
+
+            verify(menuStore).dispatch(pageItemsUpdateCaptor.capture())
+
+            assertTrue(pageItemsUpdateCaptor.value.webExtensionPageMenuItem.isEmpty())
+        }
+
     private fun createWebExtensionPageAction(title: String) = WebExtensionPageAction(
         title = title,
         enabled = true,
