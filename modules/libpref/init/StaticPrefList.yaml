@@ -8567,7 +8567,7 @@
 
 - name: layers.force-synchronous-resize
   type: RelaxedAtomicBool
-#ifdef MOZ_WAYLAND
+#if defined(MOZ_WAYLAND) || defined(XP_WIN)
   # We want to control it by nsWindow::SynchronouslyRepaintOnResize() on Linux/Wayland.
   value: false
 #else
