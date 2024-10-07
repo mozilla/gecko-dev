@@ -1089,12 +1089,13 @@ nsresult nsHttpChannel::Connect() {
   LOG(("nsHttpChannel::Connect [this=%p]\n", this));
 
   if (mAPIRedirectTo) {
-    LOG(("nsHttpChannel::Connect [internal=%d]\n", mAPIRedirectTo->second()));
+    LOG(("nsHttpChannel::Connect [transparent=%d]\n",
+         mAPIRedirectTo->second()));
 
     nsresult rv = StartRedirectChannelToURI(
         mAPIRedirectTo->first(),
         mAPIRedirectTo->second() ? nsIChannelEventSink::REDIRECT_PERMANENT |
-                                       nsIChannelEventSink::REDIRECT_INTERNAL
+                                       nsIChannelEventSink::REDIRECT_TRANSPARENT
                                  : nsIChannelEventSink::REDIRECT_PERMANENT);
     mAPIRedirectTo = Nothing();
     if (NS_SUCCEEDED(rv)) {
@@ -2783,7 +2784,7 @@ nsresult nsHttpChannel::ContinueProcessResponse2(nsresult rv) {
     rv = StartRedirectChannelToURI(
         mAPIRedirectTo->first(),
         mAPIRedirectTo->second() ? nsIChannelEventSink::REDIRECT_TEMPORARY |
-                                       nsIChannelEventSink::REDIRECT_INTERNAL
+                                       nsIChannelEventSink::REDIRECT_TRANSPARENT
                                  : nsIChannelEventSink::REDIRECT_TEMPORARY);
     mAPIRedirectTo = Nothing();
     if (NS_SUCCEEDED(rv)) {
@@ -3351,10 +3352,10 @@ void nsHttpChannel::HandleAsyncAPIRedirect() {
   }
 
   nsresult rv = StartRedirectChannelToURI(
-      mAPIRedirectTo->first(), mAPIRedirectTo->second()
-                                   ? nsIChannelEventSink::REDIRECT_PERMANENT |
-                                         nsIChannelEventSink::REDIRECT_INTERNAL
-                                   : nsIChannelEventSink::REDIRECT_PERMANENT);
+      mAPIRedirectTo->first(),
+      mAPIRedirectTo->second() ? nsIChannelEventSink::REDIRECT_PERMANENT |
+                                     nsIChannelEventSink::REDIRECT_TRANSPARENT
+                               : nsIChannelEventSink::REDIRECT_PERMANENT);
   if (NS_FAILED(rv)) {
     rv = ContinueAsyncRedirectChannelToURI(rv);
     if (NS_FAILED(rv)) {
@@ -7957,7 +7958,7 @@ nsresult nsHttpChannel::ContinueOnStartRequest1(nsresult result) {
     rv = StartRedirectChannelToURI(
         mAPIRedirectTo->first(),
         mAPIRedirectTo->second() ? nsIChannelEventSink::REDIRECT_TEMPORARY |
-                                       nsIChannelEventSink::REDIRECT_INTERNAL
+                                       nsIChannelEventSink::REDIRECT_TRANSPARENT
                                  : nsIChannelEventSink::REDIRECT_TEMPORARY);
     mAPIRedirectTo = Nothing();
     if (NS_SUCCEEDED(rv)) {

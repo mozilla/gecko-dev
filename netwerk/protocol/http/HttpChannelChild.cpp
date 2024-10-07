@@ -2586,7 +2586,7 @@ HttpChannelChild::RedirectTo(nsIURI* newURI) {
 }
 
 NS_IMETHODIMP
-HttpChannelChild::InternalRedirectTo(nsIURI* newURI) {
+HttpChannelChild::TransparentRedirectTo(nsIURI* newURI) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

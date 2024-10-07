@@ -542,9 +542,9 @@ interface nsIHttpChannelInternal : nsISupports
 
     /**
      * Same as redirectTo in nsIHttpChannel, but handles internal redirect
-     * so that we add REDIRECT_INTERNAL to the flag.
+     * so that we add REDIRECT_TRANSPARENT to the flag.
      */
-    [must_use] void internalRedirectTo(in nsIURI aTargetURI);
+    [must_use] void transparentRedirectTo(in nsIURI aTargetURI);
 
 
     /**

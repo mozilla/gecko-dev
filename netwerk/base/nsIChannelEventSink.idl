@@ -61,6 +61,14 @@ interface nsIChannelEventSink : nsISupports
     const unsigned long REDIRECT_AUTH_RETRY = 1 << 4;
 
     /**
+     * This is a special-case internal redirect triggered by
+     * transparentRedirectTo. The URL bar and window.location.href
+     * must remain unchanged, preserving the original request URI,
+     * while the content is served from the redirected URI.
+     */
+    const unsigned long REDIRECT_TRANSPARENT = 1 << 5;
+
+    /**
      * Called when a redirect occurs. This may happen due to an HTTP 3xx status
      * code. The purpose of this method is to notify the sink that a redirect
      * is about to happen, but also to give the sink the right to veto the

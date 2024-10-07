@@ -29,10 +29,6 @@ function onBeforeConnect(callback) {
 }
 
 class EventSinkListener {
-  constructor(internalRedirect) {
-    this.internalRedirect = internalRedirect;
-  }
-
   getInterface(iid) {
     if (iid.equals(Ci.nsIChannelEventSink)) {
       return this;
@@ -40,13 +36,8 @@ class EventSinkListener {
     throw Components.Exception("", Cr.NS_ERROR_NO_INTERFACE);
   }
   asyncOnChannelRedirect(oldChan, newChan, flags, callback) {
-    Assert.ok(
-      !!(flags & Ci.nsIChannelEventSink.REDIRECT_INTERNAL) ===
-        this.internalRedirect,
-      `REDIRECT_INTERNAL flag should ${
-        this.internalRedirect ? "be" : "not be"
-      } set`
-    );
+    // if transparent, asyncOnChannelRedirect should not be called.
+    Assert.ok(false);
     callback.onRedirectVerifyCallback(Cr.NS_OK);
   }
 }
@@ -56,7 +47,7 @@ EventSinkListener.prototype.QueryInterface = ChromeUtils.generateQI([
   "nsIChannelEventSink",
 ]);
 
-async function test_redirect(internalRedirect) {
+add_task(async function test_transparent_redirect() {
   var server = new HttpServer();
   await server.start(-1);
   registerCleanupFunction(async () => {
@@ -72,11 +63,7 @@ async function test_redirect(internalRedirect) {
     chan.suspend();
     Promise.resolve().then(() => {
       try {
-        if (internalRedirect) {
-          chan.internalRedirectTo(Services.io.newURI(successUrl));
-        } else {
-          chan.redirectTo(Services.io.newURI(successUrl));
-        }
+        chan.transparentRedirectTo(Services.io.newURI(successUrl));
       } catch (e) {
         do_throw(e);
       }
@@ -88,7 +75,7 @@ async function test_redirect(internalRedirect) {
     uri: baseUrl,
     loadUsingSystemPrincipal: true,
   }).QueryInterface(Ci.nsIHttpChannelInternal);
-  let listener = new EventSinkListener(internalRedirect);
+  let listener = new EventSinkListener();
   chan.notificationCallbacks = listener;
 
   await new Promise(resolve => {
@@ -104,12 +91,4 @@ async function test_redirect(internalRedirect) {
       )
     );
   });
-}
-
-add_task(async function test_internal_redirect() {
-  await test_redirect(true);
-});
-
-add_task(async function test_normal_redirect() {
-  await test_redirect(false);
 });

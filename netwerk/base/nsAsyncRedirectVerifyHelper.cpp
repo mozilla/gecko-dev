@@ -67,7 +67,8 @@ nsresult nsAsyncRedirectVerifyHelper::Init(
                              : GetCurrentSerialEventTarget();
 
   if (!(flags & (nsIChannelEventSink::REDIRECT_INTERNAL |
-                 nsIChannelEventSink::REDIRECT_STS_UPGRADE))) {
+                 nsIChannelEventSink::REDIRECT_STS_UPGRADE |
+                 nsIChannelEventSink::REDIRECT_TRANSPARENT))) {
     nsCOMPtr<nsILoadInfo> loadInfo = oldChan->LoadInfo();
     if (loadInfo->GetDontFollowRedirects()) {
       ExplicitCallback(NS_BINDING_ABORTED);
@@ -239,6 +240,12 @@ nsAsyncRedirectVerifyHelper::Run() {
    */
   if (IsOldChannelCanceled()) {
     ExplicitCallback(NS_BINDING_ABORTED);
+    return NS_OK;
+  }
+
+  // If transparent, avoid notifying the observers.
+  if (mFlags & nsIChannelEventSink::REDIRECT_TRANSPARENT) {
+    ExplicitCallback(NS_OK);
     return NS_OK;
   }
 

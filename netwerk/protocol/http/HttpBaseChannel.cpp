@@ -2300,8 +2300,8 @@ HttpBaseChannel::RedirectTo(nsIURI* targetURI) {
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::InternalRedirectTo(nsIURI* targetURI) {
-  LOG(("HttpBaseChannel::InternalRedirectTo [this=%p]", this));
+HttpBaseChannel::TransparentRedirectTo(nsIURI* targetURI) {
+  LOG(("HttpBaseChannel::TransparentRedirectTo [this=%p]", this));
   RedirectTo(targetURI);
   MOZ_ASSERT(mAPIRedirectTo, "How did this happen?");
   mAPIRedirectTo->second() = true;
