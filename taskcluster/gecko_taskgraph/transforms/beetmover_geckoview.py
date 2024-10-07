@@ -115,7 +115,7 @@ def make_task_description(config, jobs):
         assert not dep_symbol or (
             dep_symbol.startswith("B") and dep_symbol.endswith("s")
         )
-        symbol_suffix = f"-{dep_symbol[1:-1]}" if dep_symbol else ""
+        symbol_suffix = f"-{dep_symbol[1:-1]}" if dep_symbol[1:-1] else ""
         treeherder.setdefault("platform", f"{dep_th_platform}/opt")
         treeherder.setdefault("tier", 2)
         treeherder.setdefault("kind", "build")
