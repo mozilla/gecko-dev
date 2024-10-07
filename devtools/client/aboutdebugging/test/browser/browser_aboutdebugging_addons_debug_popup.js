@@ -170,6 +170,7 @@ async function installTestAddon(doc) {
         browser_action: {
           default_title: "WebExtension Popup Debugging",
           default_popup: "popup.html",
+          default_area: "navbar",
         },
       },
       files: {

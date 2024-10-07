@@ -34,6 +34,7 @@ add_task(async function testNodePickerInExtensionPopup() {
         browser_action: {
           default_title: "WebExtension with popup",
           default_popup: "popup.html",
+          default_area: "navbar",
         },
       },
       files: {
