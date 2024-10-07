@@ -173,7 +173,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -193,7 +193,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -213,7 +213,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -232,7 +232,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -251,7 +251,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -270,7 +270,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -289,7 +289,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -308,7 +308,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -328,7 +328,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -348,7 +348,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
@@ -368,7 +368,7 @@ installation.firstSeen:
     products:
       - 'firefox'
     record_in_processes:
-      - 'all'
+      - 'main'
     record_into_store:
       - 'new-profile'
 
