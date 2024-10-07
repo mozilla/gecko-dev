@@ -505,7 +505,7 @@ struct RealmFuseDependency final : public CompilationDependency {
       return false;
     }
 
-    return static_cast<RealmFuseDependency<FuseMember>*>(&dep)->realm != realm;
+    return static_cast<RealmFuseDependency<FuseMember>*>(&dep)->realm == realm;
   }
 };
 
