@@ -61,6 +61,11 @@ struct AttrAtomArray {
     return mArray == aOther.mArray;
   }
 
+  size_t ShallowSizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
+    return aMallocSizeOf(this) +
+           mArray.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  }
+
  private:
   UniquePtr<AttrAtomArray> CreateDeduplicatedCopyIfDifferentImpl() const;
 };

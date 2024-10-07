@@ -2131,7 +2131,7 @@ size_t nsAttrValue::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const {
       n += aMallocSizeOf(container);
 
       // We only count the size of the object pointed by otherPtr if it's a
-      // string. When it's an atom, it's counted separatly.
+      // string. When it's an atom, it's counted separately.
       if (mozilla::StringBuffer* buf = container->GetStoredStringBuffer()) {
         n += buf->SizeOfIncludingThisIfUnshared(aMallocSizeOf);
       }
@@ -2143,8 +2143,8 @@ size_t nsAttrValue::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const {
         // need a way to call the Servo heap_size_of function.
         // n += container->mCSSDeclaration->SizeOfIncludingThis(aMallocSizeOf);
       } else if (Type() == eAtomArray && container->mValue.mAtomArray) {
-        // Don't measure each nsAtom, they are measured separatly.
-        n += container->mValue.mAtomArray->mArray.ShallowSizeOfIncludingThis(
+        // Don't measure each nsAtom, because they are measured separately.
+        n += container->mValue.mAtomArray->ShallowSizeOfIncludingThis(
             aMallocSizeOf);
       }
       break;
