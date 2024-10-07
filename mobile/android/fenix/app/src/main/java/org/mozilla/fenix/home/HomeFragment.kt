@@ -525,8 +525,6 @@ class HomeFragment : Fragment() {
 
         disableAppBarDragging()
 
-        activity.themeManager.applyStatusBarTheme(activity)
-
         FxNimbus.features.homescreen.recordExposure()
 
         // DO NOT MOVE ANYTHING BELOW THIS addMarker CALL!

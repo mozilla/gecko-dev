@@ -719,6 +719,10 @@
         <item name="android:statusBarColor">?attr/layer1</item>
     </style>
 
+    <style name="SearchDialogStyleTabStrip" parent="SearchDialogStyle">
+        <item name="android:statusBarColor">?attr/layer3</item>
+    </style>
+
     <style name="SearchSelectorIconStyle">
         <item name="cornerFamily">rounded</item>
         <item name="elevation">0dp</item>

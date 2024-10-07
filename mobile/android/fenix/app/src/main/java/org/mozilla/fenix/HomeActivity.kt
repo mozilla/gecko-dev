@@ -148,6 +148,7 @@ import org.mozilla.fenix.shortcut.NewTabShortcutIntentProcessor.Companion.ACTION
 import org.mozilla.fenix.tabhistory.TabHistoryDialogFragment
 import org.mozilla.fenix.tabstray.TabsTrayFragment
 import org.mozilla.fenix.theme.DefaultThemeManager
+import org.mozilla.fenix.theme.StatusBarColorManager
 import org.mozilla.fenix.theme.ThemeManager
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.changeAppLauncherIconBackgroundColor
@@ -416,6 +417,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         }
 
         components.core.requestInterceptor.setNavigationController(navHost.navController)
+
+        supportFragmentManager.registerFragmentLifecycleCallbacks(
+            StatusBarColorManager(themeManager, this),
+            true,
+        )
 
         if (settings().showContileFeature) {
             components.core.contileTopSitesUpdater.startPeriodicWork()

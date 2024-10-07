@@ -383,11 +383,6 @@ abstract class BaseBrowserFragment :
         _binding = FragmentBrowserBinding.inflate(inflater, container, false)
 
         val activity = activity as HomeActivity
-        // ExternalAppBrowserActivity exclusively handles it's own theming unless in private mode.
-        if (activity !is ExternalAppBrowserActivity || activity.browsingModeManager.mode.isPrivate) {
-            activity.themeManager.applyStatusBarTheme(activity)
-        }
-
         val originalContext = ActivityContextWrapper.getOriginalContext(activity)
         binding.engineView.setActivityContext(originalContext)
 
@@ -2386,7 +2381,7 @@ abstract class BaseBrowserFragment :
             (activity as? HomeActivity)?.let { homeActivity ->
                 // ExternalAppBrowserActivity exclusively handles it's own theming unless in private mode.
                 if (homeActivity !is ExternalAppBrowserActivity || homeActivity.browsingModeManager.mode.isPrivate) {
-                    homeActivity.themeManager.applyStatusBarTheme(homeActivity)
+                    homeActivity.themeManager.applyStatusBarTheme(homeActivity, homeActivity.isTabStripEnabled())
                 }
             }
             if (webAppToolbarShouldBeVisible) {
