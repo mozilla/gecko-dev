@@ -6,7 +6,7 @@
   <body>
     <button>Add Image</button>
     <script>
-      /* Test to ensure http-on-image-cache-response should only be notified
+      /* Test to ensure http-on-resource-cache-response should only be notified
        * once per image
        */
 
@@ -27,7 +27,7 @@
       const cb = SpecialPowers.wrapCallback(() => {
         imageCacheCallbackRunCount += 1;
       });
-      SpecialPowers.addObserver(cb, "http-on-image-cache-response");
+      SpecialPowers.addObserver(cb, "http-on-resource-cache-response");
 
       async function runTest() {
         await addImage();

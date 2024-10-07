@@ -6,7 +6,8 @@
 /**
  * Tests if the statistics panel displays correctly for a page containing
  * requests which have been known to create issues in the past for this Panel:
- * - cached image (http-on-image-cache-response) requests in the content process
+ * - cached image (http-on-resource-cache-response) requests in the content
+ *   process
  * - long polling requests remaining open for a long time
  */
 
