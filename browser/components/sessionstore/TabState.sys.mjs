@@ -47,7 +47,7 @@ var TabStateInternal = {
    * @param [extData]
    *        optional dictionary object, containing custom tab values.
    *
-   * @returns {TabData} An object with the data for this tab.  If the
+   * @returns {TabStateData} An object with the data for this tab.  If the
    * tab has not been invalidated since the last call to
    * collect(aTab), the same object is returned.
    */
@@ -81,7 +81,7 @@ var TabStateInternal = {
    *        {extData: object} optional dictionary object, containing custom tab values
    *        {includePrivateData: true} to always include private data
    *
-   * @returns {object} An object with the basic data for this tab.
+   * @returns {TabStateData} An object with the basic data for this tab.
    */
   _collectBaseTabData(tab, options) {
     let tabData = { entries: [], lastAccessed: tab.lastAccessed };
@@ -96,6 +96,10 @@ var TabStateInternal = {
     if (browser.audioMuted) {
       tabData.muted = true;
       tabData.muteReason = tab.muteReason;
+    }
+
+    if (tab.group) {
+      tabData.groupId = tab.group.id;
     }
 
     tabData.searchMode = tab.ownerGlobal.gURLBar.getSearchMode(browser, true);
