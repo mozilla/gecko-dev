@@ -180,8 +180,9 @@ class ProcessExecutionMixin(LoggingMixin):
                     if sig is None:
                         sig = signal.SIGINT
                     elif sig == signal.SIGINT:
-                        # If we've already tried SIGINT, escalate.
-                        sig = signal.SIGKILL
+                        # If we've already tried SIGINT, escalate (if possible).
+                        # Note: SIGKILL is not available on Windows.
+                        getattr(signal, "SIGKILL", sig)
 
         if ensure_exit_code is False:
             return status
