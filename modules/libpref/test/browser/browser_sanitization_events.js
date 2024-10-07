@@ -44,7 +44,6 @@ add_task(async function sanitized_pref_test() {
     ],
   });
 
-  Services.telemetry.setEventRecordingEnabled("security", true);
   Services.telemetry.clearEvents();
 
   TelemetryTestUtils.assertNumberOfEvents(0, { process: "content" });

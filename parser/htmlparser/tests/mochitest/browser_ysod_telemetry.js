@@ -6,7 +6,6 @@ const { TelemetryTestUtils } = ChromeUtils.importESModule(
 
 add_task(async function test_popup_opened() {
   Services.telemetry.clearEvents();
-  Services.telemetry.setEventRecordingEnabled("ysod", true);
 
   const PAGE_URL = getRootDirectory(gTestPath) + "broken_xml.xhtml";
   let viewSourceTab = await BrowserTestUtils.openNewForegroundTab(

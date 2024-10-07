@@ -93,9 +93,6 @@ export let FormAutofillStatus = {
     if (FormAutofill.isAutofillCreditCardsAvailable) {
       Services.prefs.addObserver(ENABLED_AUTOFILL_CREDITCARDS_PREF, this);
     }
-
-    Services.telemetry.setEventRecordingEnabled("creditcard", true);
-    Services.telemetry.setEventRecordingEnabled("address", true);
   },
 
   /**

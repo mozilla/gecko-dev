@@ -170,7 +170,6 @@ add_setup(async function () {
   const canRecordExtendedOld = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
   Services.telemetry.clearEvents();
-  Services.telemetry.setEventRecordingEnabled("relay_integration", true);
 
   gRelayACOptionsTitles = await new Localization([
     "browser/firefoxRelay.ftl",
@@ -186,7 +185,6 @@ add_setup(async function () {
         resolve();
       });
     });
-    Services.telemetry.setEventRecordingEnabled("relay_integration", false);
     Services.telemetry.clearEvents();
     Services.telemetry.canRecordExtended = canRecordExtendedOld;
     sinon.restore();

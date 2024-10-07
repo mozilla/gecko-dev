@@ -125,7 +125,6 @@ add_setup(async function () {
   registerCleanupFunction(async function () {
     Services.telemetry.canRecordExtended = oldCanRecord;
     await PlacesUtils.history.clear();
-    Services.telemetry.setEventRecordingEnabled("navigation", false);
   });
 });
 

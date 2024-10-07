@@ -936,7 +936,6 @@ var gBrowserInit = {
               "resource:///modules/DownloadsMacFinderProgress.sys.mjs"
             ).DownloadsMacFinderProgress.register();
           }
-          Services.telemetry.setEventRecordingEnabled("downloads", true);
         } catch (ex) {
           console.error(ex);
         }

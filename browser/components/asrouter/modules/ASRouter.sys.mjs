@@ -689,7 +689,6 @@ export class _ASRouter {
     this._onExperimentEnrollmentsUpdated =
       this._onExperimentEnrollmentsUpdated.bind(this);
     this.forcePBWindow = this.forcePBWindow.bind(this);
-    Services.telemetry.setEventRecordingEnabled("messaging_experiments", true);
     this.messagesEnabledInAutomation = [];
   }
 

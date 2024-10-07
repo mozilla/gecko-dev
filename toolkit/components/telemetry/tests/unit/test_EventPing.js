@@ -56,7 +56,6 @@ add_task(async function setup() {
 
   await TelemetryController.testSetup();
   TelemetryEventPing.testReset();
-  Telemetry.setEventRecordingEnabled("telemetry.test", true);
 });
 
 // Tests often take the form of faking policy within faked policy.

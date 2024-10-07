@@ -1499,11 +1499,6 @@ export class TelemetryFeed {
       // init has finished setting up the observer
     }
 
-    // Only uninit if the getter has initialized it
-    if (Object.prototype.hasOwnProperty.call(this, "utEvents")) {
-      this.utEvents.uninit();
-    }
-
     // TODO: Send any unfinished sessions
   }
 }

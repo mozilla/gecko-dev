@@ -92,7 +92,6 @@ export var ProcessHangMonitor = {
     Services.obs.addObserver(this, "quit-application-granted");
     Services.obs.addObserver(this, "xpcom-shutdown");
     Services.ww.registerNotification(this);
-    Services.telemetry.setEventRecordingEnabled("slow_script_warning", true);
   },
 
   /**

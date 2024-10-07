@@ -330,7 +330,6 @@ DevToolsStartup.prototype = {
   get telemetry() {
     if (!this._telemetry) {
       this._telemetry = new lazy.Telemetry();
-      this._telemetry.setEventRecordingEnabled(true);
     }
     return this._telemetry;
   },

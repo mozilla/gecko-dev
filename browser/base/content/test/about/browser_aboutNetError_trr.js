@@ -89,7 +89,6 @@ add_task(async function TRROnlyExceptionButtonTelemetry() {
     ).content;
     return !events || !events.length;
   });
-  Services.telemetry.setEventRecordingEnabled("security.doh.neterror", true);
 
   let browser = await loadErrorPage();
 

@@ -76,8 +76,6 @@ export let HomePage = {
       return;
     }
 
-    Services.telemetry.setEventRecordingEnabled("homepage", true);
-
     // Now we have the values, listen for future updates.
     this._ignoreListListener = this._handleIgnoreListUpdated.bind(this);
 

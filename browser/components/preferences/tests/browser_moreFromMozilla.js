@@ -141,7 +141,6 @@ add_task(async function testwhenPrefDisabled() {
 
 add_task(async function test_aboutpreferences_event_telemetry() {
   Services.telemetry.clearEvents();
-  Services.telemetry.setEventRecordingEnabled("aboutpreferences", true);
 
   await SpecialPowers.pushPrefEnv({
     set: [["browser.preferences.moreFromMozilla", true]],

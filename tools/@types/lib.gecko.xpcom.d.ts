@@ -10500,7 +10500,6 @@ interface nsITelemetry extends nsISupports {
   clearScalars(): void;
   flushBatchedChildTelemetry(): void;
   recordEvent(aCategory: string, aMethod: string, aObject: string, aValue?: any, extra?: any): void;
-  setEventRecordingEnabled(aCategory: string, aEnabled: boolean): void;
   snapshotEvents(aDataset: u32, aClear?: boolean, aEventLimit?: u32): any;
   registerEvents(aCategory: string, aEventData: any): void;
   registerBuiltinEvents(aCategory: string, aEventData: any): void;

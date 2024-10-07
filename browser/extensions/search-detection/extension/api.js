@@ -27,7 +27,6 @@ const SEARCH_TOPIC_ENGINE_MODIFIED = "browser-search-engine-modified";
 
 this.addonsSearchDetection = class extends ExtensionAPI {
   getAPI(context) {
-    Services.telemetry.setEventRecordingEnabled("addonsSearchDetection", true);
     const { extension } = context;
 
     // We want to temporarily store the first monitored URLs that have been

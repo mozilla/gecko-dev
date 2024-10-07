@@ -1361,10 +1361,6 @@ BrowserGlue.prototype = {
           // If we don't start with last profile, the user
           // likely sees the profile selector on launch.
           if (Services.prefs.getBoolPref(launchOnLoginPref)) {
-            Services.telemetry.setEventRecordingEnabled(
-              "launch_on_login",
-              true
-            );
             Glean.launchOnLogin.lastProfileDisableStartup.record();
           }
           Services.prefs.setBoolPref(launchOnLoginPref, false);
@@ -1950,13 +1946,6 @@ BrowserGlue.prototype = {
 
     lazy.NewTabUtils.init();
 
-    Services.telemetry.setEventRecordingEnabled(
-      "security.ui.protections",
-      true
-    );
-
-    Services.telemetry.setEventRecordingEnabled("security.doh.neterror", true);
-
     lazy.PageActions.init();
 
     lazy.DoHController.init();
@@ -2099,13 +2088,6 @@ BrowserGlue.prototype = {
   },
 
   _recordContentBlockingTelemetry() {
-    Services.telemetry.setEventRecordingEnabled(
-      "security.ui.protectionspopup",
-      Services.prefs.getBoolPref(
-        "security.protectionspopup.recordEventTelemetry"
-      )
-    );
-
     let tpEnabled = Services.prefs.getBoolPref(
       "privacy.trackingprotection.enabled"
     );
@@ -2613,24 +2595,6 @@ BrowserGlue.prototype = {
         name: "BrowserGlue._recordDataSanitizationPrefs",
         task: () => {
           this._recordDataSanitizationPrefs();
-        },
-      },
-
-      {
-        name: "enableCertErrorUITelemetry",
-        task: () => {
-          let enableCertErrorUITelemetry = Services.prefs.getBoolPref(
-            "security.certerrors.recordEventTelemetry",
-            true
-          );
-          Services.telemetry.setEventRecordingEnabled(
-            "security.ui.certerror",
-            enableCertErrorUITelemetry
-          );
-          Services.telemetry.setEventRecordingEnabled(
-            "security.ui.tlserror",
-            enableCertErrorUITelemetry
-          );
         },
       },
 
@@ -4747,7 +4711,6 @@ BrowserGlue.prototype = {
     })();
 
     // Record why the dialog is showing or not.
-    Services.telemetry.setEventRecordingEnabled("upgrade_dialog", true);
     Glean.upgradeDialog.triggerReason.record({
       value: dialogReason || "satisfied",
     });
@@ -5211,12 +5174,6 @@ BrowserGlue.prototype = {
   },
 
   _collectTelemetryPiPEnabled() {
-    Services.telemetry.setEventRecordingEnabled(
-      "pictureinpicture.settings",
-      true
-    );
-    Services.telemetry.setEventRecordingEnabled("pictureinpicture", true);
-
     const TOGGLE_ENABLED_PREF =
       "media.videocontrols.picture-in-picture.video-toggle.enabled";
 

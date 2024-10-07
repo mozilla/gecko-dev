@@ -110,9 +110,6 @@ const NATIVE_FALLBACK_WARNING_PREF = "network.trr.display_fallback_warning";
 const NATIVE_FALLBACK_WARNING_HEURISTIC_LIST_PREF =
   "network.trr.fallback_warning_heuristic_list";
 
-const HEURISTICS_TELEMETRY_CATEGORY = "doh";
-const TRRSELECT_TELEMETRY_CATEGORY = "security.doh.trrPerformance";
-
 const kLinkStatusChangedTopic = "network:link-status-changed";
 const kConnectivityTopic = "network:captive-portal-connectivity-changed";
 const kPrefChangedTopic = "nsPref:changed";
@@ -143,15 +140,6 @@ export const DoHController = {
   _heuristicsAreEnabled: false,
 
   async init() {
-    Services.telemetry.setEventRecordingEnabled(
-      HEURISTICS_TELEMETRY_CATEGORY,
-      true
-    );
-    Services.telemetry.setEventRecordingEnabled(
-      TRRSELECT_TELEMETRY_CATEGORY,
-      true
-    );
-
     await lazy.DoHConfigController.initComplete;
 
     Services.obs.addObserver(this, lazy.DoHConfigController.kConfigUpdateTopic);

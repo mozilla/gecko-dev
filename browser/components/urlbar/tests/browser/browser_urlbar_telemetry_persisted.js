@@ -28,14 +28,10 @@ add_setup(async () => {
   let cleanup = await installPersistTestEngines();
   testEngine = Services.search.getEngineByName("Example");
 
-  // Enable event recording for the events.
-  Services.telemetry.setEventRecordingEnabled("navigation", true);
-
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
     Services.telemetry.clearScalars();
     Services.telemetry.clearEvents();
-    Services.telemetry.setEventRecordingEnabled("navigation", false);
     cleanup();
   });
 });

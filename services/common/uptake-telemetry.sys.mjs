@@ -24,9 +24,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "services.common.uptake.sampleRate"
 );
 
-// Telemetry events id (see Events.yaml).
-const TELEMETRY_EVENTS_ID = "uptake.remotecontent.result";
-
 /**
  * A wrapper around certain low-level operations that can be substituted for testing.
  */
@@ -161,14 +158,6 @@ export class UptakeTelemetry {
 
     if (!Object.values(UptakeTelemetry.STATUS).includes(status)) {
       throw new Error(`Unknown status '${status}'`);
-    }
-
-    // Report event for real-time monitoring. See Events.yaml for registration.
-    // Contrary to histograms, Telemetry Events are not enabled by default.
-    // Enable them on first call to `report()`.
-    if (!this._eventsEnabled) {
-      Services.telemetry.setEventRecordingEnabled(TELEMETRY_EVENTS_ID, true);
-      this._eventsEnabled = true;
     }
 
     const hash = await UptakeTelemetry.Policy.getClientIDHash();
