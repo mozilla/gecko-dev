@@ -6,6 +6,9 @@ package org.mozilla.fenix.experiments
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.put
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
@@ -23,16 +26,38 @@ class RecordedNimbusContextTest {
     val gleanTestRule = GleanTestRule(testContext)
 
     @Test
-    fun `GIVEN an instance of RecordedNimbusContext WHEN record called THEN its JSON structure and the value recorded to Glean should be the same`() {
+    fun `GIVEN an instance of RecordedNimbusContext WHEN serialized to JSON THEN its JSON structure matches the expected value`() {
         val context = RecordedNimbusContext(
             isFirstRun = true,
         )
 
-        context.record()
+        // RecordedNimbusContext.toJson() returns
+        // org.mozilla.experiments.nimbus.internal.JsonObject, which is a
+        // different type.
+        val contextAsJson = Json.decodeFromString<JsonObject>(context.toJson().toString())
 
-        val value = GleanNimbus.recordedNimbusContext.testGetValue()
+        assertEquals(
+            contextAsJson,
+            buildJsonObject {
+                put("is_first_run", true)
+            },
+        )
+    }
 
-        assertNotNull(value)
-        assertEquals(Json.decodeFromString<JsonObject>(context.toJson().toString()), value)
+    @Test
+    fun `GIVEN an instance of RecordedNimbusContext WHEN record called THEN the value recorded to Glean should match the expected value`() {
+        RecordedNimbusContext(
+            isFirstRun = true,
+        ).record()
+
+        val recordedValue = GleanNimbus.recordedNimbusContext.testGetValue()
+
+        assertNotNull(recordedValue)
+        assertEquals(
+            recordedValue?.jsonObject,
+            buildJsonObject {
+                put("isFirstRun", true)
+            },
+        )
     }
 }

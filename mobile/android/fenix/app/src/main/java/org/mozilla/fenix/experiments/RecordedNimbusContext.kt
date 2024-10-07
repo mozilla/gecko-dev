@@ -30,7 +30,7 @@ class RecordedNimbusContext(
 
     override fun toJson(): JsonObject {
         val obj = JSONObject()
-        obj.put("isFirstRun", isFirstRun)
+        obj.put("is_first_run", isFirstRun)
         return obj
     }
 }
