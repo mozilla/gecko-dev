@@ -53,6 +53,9 @@ class BaseBrowserFragmentTest {
         settings = mockk(relaxed = true)
         testContext = mockk(relaxed = true)
 
+        every {
+            testContext.components.core.geckoRuntime.isInteractiveWidgetDefaultResizesVisual
+        } returns false
         every { testContext.components.settings } returns settings
         every { testContext.settings() } returns settings
         every { fragment.isAdded } returns true
@@ -373,6 +376,37 @@ class BaseBrowserFragmentTest {
     }
 
     @Test
+    fun `GIVEN default engine view resize behavior and only a top toolbar WHEN setting engine view insets THEN don't update current values`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
+        every {
+            testContext.components.core.geckoRuntime.isInteractiveWidgetDefaultResizesVisual
+        } returns true
+        every { fragment.view } returns mockk {
+            every { context } returns testContext
+        }
+        every { settings.getTopToolbarHeight(any()) } returns 11
+        every { settings.getBottomToolbarHeight(any()) } returns 0
+        every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
+
+        safeMockkStatic(
+            View::isKeyboardVisible,
+            Context::isTabStripEnabled,
+        ) {
+            every { any<View>().isKeyboardVisible() } returns false
+            every { testContext.isTabStripEnabled() } returns false
+
+            fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
+        }
+
+        verify(exactly = 0) { engineView.setDynamicToolbarMaxHeight(any()) }
+    }
+
+    @Test
     fun `GIVEN a pdf shown with a dynamic top toolbar WHEN setting engine view insets THEN set none`() {
         var currentTab = createTab("https://example.com")
         currentTab = currentTab.copy(
@@ -470,6 +504,37 @@ class BaseBrowserFragmentTest {
     }
 
     @Test
+    fun `GIVEN default engine view resize behavior and only a bottom toolbar WHEN setting engine view insets THEN don't update current values`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
+        every {
+            testContext.components.core.geckoRuntime.isInteractiveWidgetDefaultResizesVisual
+        } returns true
+        every { fragment.view } returns mockk {
+            every { context } returns testContext
+        }
+        every { settings.getTopToolbarHeight(any()) } returns 0
+        every { settings.getBottomToolbarHeight(any()) } returns 22
+        every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
+
+        safeMockkStatic(
+            View::isKeyboardVisible,
+            Context::isTabStripEnabled,
+        ) {
+            every { any<View>().isKeyboardVisible() } returns false
+            every { testContext.isTabStripEnabled() } returns false
+
+            fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
+        }
+
+        verify(exactly = 0) { engineView.setDynamicToolbarMaxHeight(any()) }
+    }
+
+    @Test
     fun `GIVEN addressbar and navbar shown WHEN setting engine view insets THEN use both toolbars' heights`() {
         val currentTab = createTab("https://example.com")
         every { testContext.components.core.store.state } returns BrowserState(
@@ -499,6 +564,38 @@ class BaseBrowserFragmentTest {
     }
 
     @Test
+    fun `GIVEN default engine view resize behavior and addressbar and navbar shown WHEN setting engine view insets THEN use don't update current values`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
+        every {
+            testContext.components.core.geckoRuntime.isInteractiveWidgetDefaultResizesVisual
+        } returns true
+        every { fragment.view } returns mockk {
+            every { context } returns testContext
+        }
+        every { settings.getTopToolbarHeight(any()) } returns 11
+        every { settings.getBottomToolbarHeight(any()) } returns 22
+        every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
+        every { testContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height) } returns 10
+
+        safeMockkStatic(
+            View::isKeyboardVisible,
+            Context::isTabStripEnabled,
+        ) {
+            every { any<View>().isKeyboardVisible() } returns false
+            every { testContext.isTabStripEnabled() } returns false
+
+            fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
+        }
+
+        verify(exactly = 0) { engineView.setDynamicToolbarMaxHeight(any()) }
+    }
+
+    @Test
     fun `GIVEN keyboard shown WHEN setting engine view insets THEN use both toolbars' heights`() {
         val currentTab = createTab("https://example.com")
         every { testContext.components.core.store.state } returns BrowserState(
@@ -525,6 +622,38 @@ class BaseBrowserFragmentTest {
         }
 
         verify { engineView.setDynamicToolbarMaxHeight(23) }
+    }
+
+    @Test
+    fun `GIVEN default engine view resize behavior and keyboard shown WHEN setting engine view insets THEN don't update current values`() {
+        val currentTab = createTab("https://example.com")
+        every { testContext.components.core.store.state } returns BrowserState(
+            tabs = listOf(currentTab),
+            selectedTabId = currentTab.id,
+        )
+        every {
+            testContext.components.core.geckoRuntime.isInteractiveWidgetDefaultResizesVisual
+        } returns true
+        every { fragment.view } returns mockk {
+            every { context } returns testContext
+        }
+        every { settings.getTopToolbarHeight(any()) } returns 11
+        every { settings.getBottomToolbarHeight(any()) } returns 22
+        every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
+        every { testContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height) } returns 10
+
+        safeMockkStatic(
+            View::isKeyboardVisible,
+            Context::isTabStripEnabled,
+        ) {
+            every { any<View>().isKeyboardVisible() } returns true
+            every { testContext.isTabStripEnabled() } returns false
+
+            fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
+        }
+
+        verify(exactly = 0) { engineView.setDynamicToolbarMaxHeight(any()) }
     }
 }
 

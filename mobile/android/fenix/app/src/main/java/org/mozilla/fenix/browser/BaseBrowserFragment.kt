@@ -2144,9 +2144,11 @@ abstract class BaseBrowserFragment :
         if (findInPageIntegration.get()?.isFeatureActive == true) return
         val toolbarHeights = view?.let { probeToolbarHeights(it) } ?: return
 
-        context?.let {
+        context?.also {
             if (isToolbarDynamic(it)) {
-                getEngineView().setDynamicToolbarMaxHeight(toolbarHeights.first + toolbarHeights.second)
+                if (!requireComponents.core.geckoRuntime.isInteractiveWidgetDefaultResizesVisual) {
+                    getEngineView().setDynamicToolbarMaxHeight(toolbarHeights.first + toolbarHeights.second)
+                }
             } else {
                 (getSwipeRefreshLayout().layoutParams as? CoordinatorLayout.LayoutParams)?.apply {
                     bottomMargin = toolbarHeights.second
