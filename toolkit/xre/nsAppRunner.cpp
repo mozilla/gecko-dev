@@ -352,11 +352,6 @@ std::unique_ptr<WaylandProxy> gWaylandProxy;
 
 #include "BinaryPath.h"
 
-#ifdef MOZ_LOGGING
-#  include "mozilla/Logging.h"
-extern mozilla::LazyLogModule gWidgetWaylandLog;
-#endif /* MOZ_LOGGING */
-
 #ifdef FUZZING
 #  include "FuzzerRunner.h"
 
@@ -4753,11 +4748,8 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
       auto* proxyEnv = getenv("MOZ_DISABLE_WAYLAND_PROXY");
       bool disableWaylandProxy = proxyEnv && *proxyEnv;
       if (!disableWaylandProxy && XRE_IsParentProcess() && waylandEnabled) {
-#    ifdef MOZ_LOGGING
-        if (MOZ_LOG_TEST(gWidgetWaylandLog, mozilla::LogLevel::Debug)) {
-          WaylandProxy::SetVerbose(true);
-        }
-#    endif
+        auto* proxyLog = getenv("WAYLAND_PROXY_LOG");
+        WaylandProxy::SetVerbose(proxyLog && *proxyLog);
         gWaylandProxy = WaylandProxy::Create();
         if (gWaylandProxy) {
           gWaylandProxy->RunThread();
