@@ -1775,13 +1775,16 @@ static nscoord LetterSpacing(nsIFrame* aFrame, const nsStyleText& aStyleText) {
     // SVG text can have a scaling factor applied so that very small or very
     // large font-sizes don't suffer from poor glyph placement due to app unit
     // rounding. The used letter-spacing value must be scaled by the same
-    // factor.
-    Length spacing = aStyleText.mLetterSpacing;
-    spacing.ScaleBy(GetSVGFontSizeScaleFactor(aFrame));
-    return spacing.ToAppUnits();
+    // factor. Unlike word-spacing (below), this applies to both lengths and
+    // percentages, as the percentage basis is 1em, not an already-scaled glyph
+    // dimension.
+    return GetSVGFontSizeScaleFactor(aFrame) *
+           aStyleText.mLetterSpacing.Resolve(
+               [&] { return aFrame->StyleFont()->mSize.ToAppUnits(); });
   }
 
-  return aStyleText.mLetterSpacing.ToAppUnits();
+  return aStyleText.mLetterSpacing.Resolve(
+      [&] { return aFrame->StyleFont()->mSize.ToAppUnits(); });
 }
 
 // This function converts non-coord values (e.g. percentages) to nscoord.
@@ -1815,7 +1818,7 @@ static gfx::ShapedTextFlags GetSpacingFlags(
   // IsDefinitelyZero() is false, in which case we'll return
   // TEXT_ENABLE_SPACING unnecessarily. That's ok because such cases are likely
   // to be rare, and avoiding TEXT_ENABLE_SPACING is just an optimization.
-  bool nonStandardSpacing = !ls.IsZero() || !ws.IsDefinitelyZero();
+  bool nonStandardSpacing = !ls.IsDefinitelyZero() || !ws.IsDefinitelyZero();
   return nonStandardSpacing ? gfx::ShapedTextFlags::TEXT_ENABLE_SPACING
                             : gfx::ShapedTextFlags();
 }
@@ -3697,8 +3700,9 @@ static gfxFloat ComputeTabWidthAppUnits(const nsIFrame* aFrame) {
                                            : nsFontMetrics::eHorizontal);
   nscoord spaceWidth = nscoord(
       NS_round(metrics.spaceWidth * cb->PresContext()->AppUnitsPerDevPixel()));
-  return spaces * (spaceWidth + styleText->mLetterSpacing.ToAppUnits() +
-                   styleText->mWordSpacing.Resolve(spaceWidth));
+  return spaces *
+         (spaceWidth + styleText->mLetterSpacing.Resolve(fm->EmHeight()) +
+          styleText->mWordSpacing.Resolve(spaceWidth));
 }
 
 void nsTextFrame::PropertyProvider::GetSpacingInternal(Range aRange,

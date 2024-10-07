@@ -210,9 +210,10 @@ LogicalSize nsTextControlFrame::CalcIntrinsicSize(gfxContext* aRenderingContext,
 
   // Increment width with cols * letter-spacing.
   {
-    const StyleLength& letterSpacing = StyleText()->mLetterSpacing;
-    if (!letterSpacing.IsZero()) {
-      intrinsicSize.ISize(aWM) += cols * letterSpacing.ToAppUnits();
+    const auto& letterSpacing = StyleText()->mLetterSpacing;
+    if (!letterSpacing.IsDefinitelyZero()) {
+      intrinsicSize.ISize(aWM) +=
+          cols * letterSpacing.Resolve(fontMet->EmHeight());
     }
   }
 

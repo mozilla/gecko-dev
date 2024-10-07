@@ -2885,12 +2885,17 @@ void CanvasRenderingContext2D::ParseSpacing(const nsACString& aSpacing,
     if (!GetPresShell()) {
       return;
     }
+    // This will parse aSpacing as a <length-percentage>...
     RefPtr<const ComputedStyle> style =
         ResolveStyleForProperty(eCSSProperty_letter_spacing, aSpacing);
     if (!style) {
       return;
     }
-    value = style->StyleText()->mLetterSpacing.ToCSSPixels();
+    // ...but only <length> is allowed according to the canvas spec.
+    if (!style->StyleText()->mLetterSpacing.IsLength()) {
+      return;
+    }
+    value = style->StyleText()->mLetterSpacing.AsLength().ToCSSPixels();
   }
   aNormalized = normalized;
   *aValue = value;

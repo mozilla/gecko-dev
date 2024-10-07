@@ -6,10 +6,9 @@
 
 #[cfg(feature = "servo")]
 use crate::properties::StyleBuilder;
-use crate::values::computed::length::{Length, LengthPercentage};
-use crate::values::computed::{Context, ToComputedValue};
+use crate::values::computed::length::LengthPercentage;
 use crate::values::generics::text::{
-    GenericInitialLetter, GenericTextDecorationLength, GenericTextIndent, Spacing,
+    GenericInitialLetter, GenericTextDecorationLength, GenericTextIndent,
 };
 use crate::values::specified::text as specified;
 use crate::values::specified::text::{TextEmphasisFillMode, TextEmphasisShapeKeyword};
@@ -52,13 +51,13 @@ pub type TextIndent = GenericTextIndent<LengthPercentage>;
 )]
 pub struct GenericLetterSpacing<L>(pub L);
 /// This is generic just to make the #[derive()] code do the right thing for lengths.
-pub type LetterSpacing = GenericLetterSpacing<Length>;
+pub type LetterSpacing = GenericLetterSpacing<LengthPercentage>;
 
 impl LetterSpacing {
     /// Return the `normal` computed value, which is just zero.
     #[inline]
     pub fn normal() -> Self {
-        Self(Length::zero())
+        Self(LengthPercentage::zero())
     }
 }
 
@@ -78,40 +77,8 @@ impl ToCss for LetterSpacing {
     }
 }
 
-impl ToComputedValue for specified::LetterSpacing {
-    type ComputedValue = LetterSpacing;
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            Spacing::Normal => GenericLetterSpacing(Length::zero()),
-            Spacing::Value(ref v) => GenericLetterSpacing(v.to_computed_value(context)),
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        if computed.0.is_zero() {
-            return Spacing::Normal;
-        }
-        Spacing::Value(ToComputedValue::from_computed_value(&computed.0))
-    }
-}
-
 /// A computed value for the `word-spacing` property.
 pub type WordSpacing = LengthPercentage;
-
-impl ToComputedValue for specified::WordSpacing {
-    type ComputedValue = WordSpacing;
-
-    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
-        match *self {
-            Spacing::Normal => LengthPercentage::zero(),
-            Spacing::Value(ref v) => v.to_computed_value(context),
-        }
-    }
-
-    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
-        Spacing::Value(ToComputedValue::from_computed_value(computed))
-    }
-}
 
 impl WordSpacing {
     /// Return the `normal` computed value, which is just zero.
