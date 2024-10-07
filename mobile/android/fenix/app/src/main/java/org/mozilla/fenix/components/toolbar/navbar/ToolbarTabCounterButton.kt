@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -75,11 +76,13 @@ fun ToolbarTabCounterButton(
                     )
                 }
             },
-            // The IconButton composable has a 48dp size and it's own ripple with a 24dp radius.
-            // The TabCounter view has it's own inherent ripple that has a bigger radius
-            // so based on manual testing we set a size of 34dp for this View which would
-            // ensure it's ripple matches the composable one. Otherwise there is a visible mismatch.
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier
+                // The IconButton composable has a 48dp size and it's own ripple with a 24dp radius.
+                // The TabCounter view has it's own inherent ripple that has a bigger radius
+                // so based on manual testing we set a size of 34dp for this View which would
+                // ensure it's ripple matches the composable one. Otherwise there is a visible mismatch.
+                .size(34.dp)
+                .testTag(NavBarTestTags.tabCounterButton),
             update = { tabCounter ->
                 tabCounter.setCount(tabCount)
             },

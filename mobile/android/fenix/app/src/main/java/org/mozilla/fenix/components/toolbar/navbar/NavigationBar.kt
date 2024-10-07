@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -337,7 +338,8 @@ private fun NavBar(
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() },
-                ) {},
+                ) {}
+                .testTag(NavBarTestTags.navbar),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
             content = content,
@@ -359,7 +361,9 @@ private fun BackButton(
         onClick = onBackButtonClick,
         onLongClick = onBackButtonLongPress,
         enabled = enabled,
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier
+            .size(48.dp)
+            .testTag(NavBarTestTags.backButton),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_back_24),
@@ -381,7 +385,9 @@ private fun ForwardButton(
         onClick = onForwardButtonClick,
         onLongClick = onForwardButtonLongPress,
         enabled = enabled,
-        modifier = Modifier.size(48.dp),
+        modifier = Modifier
+            .size(48.dp)
+            .testTag(NavBarTestTags.forwardButton),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_forward_24),
@@ -397,6 +403,8 @@ private fun SearchWebButton(
 ) {
     IconButton(
         onClick = onSearchButtonClick,
+        modifier = Modifier
+            .testTag(NavBarTestTags.searchButton),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_search_24),
@@ -416,7 +424,9 @@ private fun MenuButton(
     if (isMenuRedesignEnabled) {
         IconButton(
             onClick = onMenuButtonClick,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier
+                .size(48.dp)
+                .testTag(NavBarTestTags.menuButton),
         ) {
             Icon(
                 painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
@@ -426,7 +436,9 @@ private fun MenuButton(
         }
     } else {
         AndroidView(
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier
+                .size(48.dp)
+                .testTag(NavBarTestTags.menuButton),
             factory = { _ -> menuButton },
         )
     }
@@ -439,6 +451,8 @@ private fun OpenInBrowserButton(
 ) {
     IconButton(
         onClick = onOpenInBrowserButtonClick,
+        modifier = Modifier
+            .testTag(NavBarTestTags.openInBrowserButton),
     ) {
         Icon(
             painter = painterResource(R.drawable.mozac_ic_open_in),
