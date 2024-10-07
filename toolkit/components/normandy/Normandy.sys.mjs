@@ -21,7 +21,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   ShieldPreferences: "resource://normandy/lib/ShieldPreferences.sys.mjs",
-  TelemetryEvents: "resource://normandy/lib/TelemetryEvents.sys.mjs",
 });
 
 const UI_AVAILABLE_NOTIFICATION = "sessionstore-windows-restored";
@@ -86,12 +85,6 @@ export var Normandy = {
   },
 
   async finishInit() {
-    try {
-      lazy.TelemetryEvents.init();
-    } catch (err) {
-      log.error("Failed to initialize telemetry events:", err);
-    }
-
     await lazy.PreferenceRollouts.recordOriginalValues(
       this.rolloutPrefsChanged
     );

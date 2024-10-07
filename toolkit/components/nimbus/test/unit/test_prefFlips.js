@@ -12,9 +12,6 @@ const { JsonSchema } = ChromeUtils.importESModule(
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
-const { TelemetryEvents } = ChromeUtils.importESModule(
-  "resource://normandy/lib/TelemetryEvents.sys.mjs"
-);
 
 const USER = "user";
 const DEFAULT = "default";
@@ -148,7 +145,6 @@ function checkExpectedPrefBranches(prefs) {
 add_setup(function setup() {
   do_get_profile();
   Services.fog.initializeFOG();
-  TelemetryEvents.init();
 
   const cleanupFeatures = ExperimentTestUtils.addTestFeatures(
     PREF_FEATURES[USER],

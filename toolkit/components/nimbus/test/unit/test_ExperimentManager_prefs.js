@@ -11,9 +11,6 @@ const { PrefUtils } = ChromeUtils.importESModule(
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
-const { TelemetryEvents } = ChromeUtils.importESModule(
-  "resource://normandy/lib/TelemetryEvents.sys.mjs"
-);
 
 /**
  * Pick a single entry from an object and return a new object containing only
@@ -1660,8 +1657,6 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
 });
 
 add_task(async function test_prefChange() {
-  TelemetryEvents.init();
-
   const LEGACY_FILTER = {
     category: "normandy",
     method: "unenroll",
@@ -2713,8 +2708,6 @@ add_task(async function test_prefChanged_noPrefSet() {
 });
 
 add_task(async function test_restorePrefs_manifestChanged() {
-  TelemetryEvents.init();
-
   const LEGACY_FILTER = {
     category: "normandy",
     method: "unenroll",
