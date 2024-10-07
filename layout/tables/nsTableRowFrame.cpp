@@ -443,15 +443,13 @@ void nsTableRowFrame::UpdateBSize(nscoord aBSize, nscoord aAscent,
   if (aBSize == NS_UNCONSTRAINEDSIZE) {
     return;
   }
-  if (!aCellFrame->HasVerticalAlignBaseline()) {
-    // only the cell's height matters
-    if (GetInitialBSize() < aBSize) {
-      int32_t rowSpan = aTableFrame->GetEffectiveRowSpan(*aCellFrame);
-      if (rowSpan == 1) {
-        SetContentBSize(aBSize);
-      }
-    }
-  } else {  // the alignment on the baseline can change the bsize
+
+  if (GetInitialBSize() < aBSize &&
+      aTableFrame->GetEffectiveRowSpan(*aCellFrame) == 1) {
+    SetContentBSize(aBSize);
+  }
+
+  if (aCellFrame->HasVerticalAlignBaseline()) {
     NS_ASSERTION(
         aAscent != NS_UNCONSTRAINEDSIZE && aDescent != NS_UNCONSTRAINEDSIZE,
         "invalid call");
@@ -461,14 +459,9 @@ void nsTableRowFrame::UpdateBSize(nscoord aBSize, nscoord aAscent,
     }
     // see if this is a long descender and without rowspan
     if (mMaxCellDescent < aDescent) {
-      int32_t rowSpan = aTableFrame->GetEffectiveRowSpan(*aCellFrame);
-      if (rowSpan == 1) {
+      if (aTableFrame->GetEffectiveRowSpan(*aCellFrame) == 1) {
         mMaxCellDescent = aDescent;
       }
-    }
-    // keep the tallest bsize in sync
-    if (GetInitialBSize() < mMaxCellAscent + mMaxCellDescent) {
-      SetContentBSize(mMaxCellAscent + mMaxCellDescent);
     }
   }
 }

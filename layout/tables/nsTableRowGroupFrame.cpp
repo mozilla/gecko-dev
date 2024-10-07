@@ -655,14 +655,6 @@ void nsTableRowGroupFrame::CalculateRowBSizes(nsPresContext* aPresContext,
             cellDesSize.BSize(wm) = rowFrame->CalcCellActualBSize(
                 cellFrame, cellDesSize.BSize(wm), wm);
             cellFrameSize.BSize(wm) = cellDesSize.BSize(wm);
-            if (cellFrame->HasVerticalAlignBaseline()) {
-              // to ensure that a spanning cell with a long descender doesn't
-              // collide with the next row, we need to take into account the
-              // shift that will be done to align the cell on the baseline of
-              // the row.
-              cellFrameSize.BSize(wm) +=
-                  rowFrame->GetMaxCellAscent() - cellFrame->GetCellBaseline();
-            }
 
             if (bsizeOfAreaSpanned < cellFrameSize.BSize(wm)) {
               // the cell's bsize is larger than the available space of the rows
