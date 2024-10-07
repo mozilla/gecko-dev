@@ -1756,7 +1756,6 @@ static void captureDisasmText(const char* text) {
 
 static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-  args.rval().setUndefined();
 
   if (args.length() < 1) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
@@ -1782,9 +1781,8 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
 
   if (fun->isAsmJSNative() || fun->isWasmWithJitEntry()) {
     if (fun->isAsmJSNative()) {
-      return false;
+      sprinter.printf("; backend=asmjs\n");
     }
-    sprinter.printf("; backend=asmjs\n");
     sprinter.printf("; backend=wasm\n");
 
     js::wasm::Instance& inst = fun->wasmInstance();
@@ -1797,25 +1795,14 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
 
     jit_begin = segment.base() + codeRange.begin();
     jit_end = segment.base() + codeRange.end();
-  } else if (fun->hasJitScript()) {
-    JSScript* script = fun->nonLazyScript();
-    if (script == nullptr) {
-      return false;
-    }
-
-    js::jit::IonScript* ion =
-        script->hasIonScript() ? script->ionScript() : nullptr;
-    js::jit::BaselineScript* baseline =
-        script->hasBaselineScript() ? script->baselineScript() : nullptr;
-    if (ion && ion->method()) {
-      sprinter.printf("; backend=ion\n");
-      jit_begin = ion->method()->raw();
-      jit_end = ion->method()->rawEnd();
-    } else if (baseline) {
-      sprinter.printf("; backend=baseline\n");
-      jit_begin = baseline->method()->raw();
-      jit_end = baseline->method()->rawEnd();
-    }
+  } else if (fun->hasJitScript() && fun->nonLazyScript()->hasIonScript()) {
+    sprinter.printf("; backend=ion\n");
+    jit_begin = fun->nonLazyScript()->ionScript()->method()->raw();
+    jit_end = fun->nonLazyScript()->ionScript()->method()->rawEnd();
+  } else if (fun->hasJitScript() && fun->nonLazyScript()->hasBaselineScript()) {
+    sprinter.printf("; backend=baseline\n");
+    jit_begin = fun->nonLazyScript()->baselineScript()->method()->raw();
+    jit_end = fun->nonLazyScript()->baselineScript()->method()->rawEnd();
   } else {
     JS_ReportErrorASCII(cx,
                         "The function hasn't been warmed up, hence no JIT code "
@@ -1823,9 +1810,8 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  if (jit_begin == nullptr || jit_end == nullptr) {
-    return false;
-  }
+  MOZ_ASSERT(jit_begin);
+  MOZ_ASSERT(jit_end);
 
 #ifdef JS_CODEGEN_ARM
   // The ARM32 disassembler is currently not fuzzing-safe because it doesn't
@@ -1886,9 +1872,7 @@ static bool DisassembleNative(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  args[0].setUndefined();
   args.rval().setString(str);
-
   return true;
 }
 
