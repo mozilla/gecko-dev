@@ -89,7 +89,6 @@ fn parse_bitflags(bitflags: &CssBitflagAttrs) -> TokenStream {
 
 fn parse_non_keyword_variant(
     where_clause: &mut Option<syn::WhereClause>,
-    name: &syn::Ident,
     variant: &VariantInfo,
     variant_attrs: &CssVariantAttrs,
     parse_attrs: &ParseVariantAttrs,
@@ -104,7 +103,6 @@ fn parse_non_keyword_variant(
         1,
         "We only support deriving parse for simple variants"
     );
-    let variant_name = &variant.ast().ident;
     let binding_ast = &bindings[0].ast();
     let ty = &binding_ast.ty;
 
@@ -131,15 +129,21 @@ fn parse_non_keyword_variant(
         quote! { <#ty as crate::parser::Parse>::parse(context, input) }
     };
 
+    let variant_name = &variant.ast().ident;
+    let variant_name = match variant.prefix {
+        Some(p) => quote! { #p::#variant_name },
+        None => quote! { #variant_name },
+    };
+
     parse = if skip_try {
         quote! {
             let v = #parse?;
-            return Ok(#name::#variant_name(v));
+            return Ok(#variant_name(v));
         }
     } else {
         quote! {
             if let Ok(v) = input.try(|input| #parse) {
-                return Ok(#name::#variant_name(v));
+                return Ok(#variant_name(v));
             }
         }
     };
@@ -242,7 +246,6 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
         let skip_try = !has_keywords && i == non_keywords.len() - 1;
         let parse_variant = parse_non_keyword_variant(
             &mut where_clause,
-            name,
             variant,
             css_attrs,
             parse_attrs,
