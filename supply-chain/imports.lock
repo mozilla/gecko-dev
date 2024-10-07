@@ -687,15 +687,15 @@ user-login = "BurntSushi"
 user-name = "Andrew Gallant"
 
 [[publisher.thiserror]]
-version = "1.0.63"
-when = "2024-07-17"
+version = "1.0.64"
+when = "2024-09-22"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"
 
 [[publisher.thiserror-impl]]
-version = "1.0.63"
-when = "2024-07-17"
+version = "1.0.64"
+when = "2024-09-22"
 user-id = 3618
 user-login = "dtolnay"
 user-name = "David Tolnay"

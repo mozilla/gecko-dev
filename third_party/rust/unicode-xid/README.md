@@ -26,6 +26,10 @@ on std, and instead uses equivalent functions from core.
 
 # changelog
 
+## 0.2.6
+
+- Update to Unicode 16.0.0.
+
 ## 0.2.5
 
 - Update to Unicode 15.1.0.

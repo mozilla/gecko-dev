@@ -1302,7 +1302,7 @@ pub unsafe extern "C" fn wgpu_server_queue_submit(
     let result = global.queue_submit(self_id, command_buffers);
 
     match result {
-        Err(err) => {
+        Err((_index, err)) => {
             error_buf.init(err);
             return 0;
         }

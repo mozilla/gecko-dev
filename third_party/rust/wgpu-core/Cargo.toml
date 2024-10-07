@@ -58,7 +58,6 @@ version = "2.6"
 
 [dependencies.bytemuck]
 version = "1.18"
-features = ["derive"]
 optional = true
 
 [dependencies.document-features]
@@ -110,7 +109,7 @@ optional = true
 version = "1"
 
 [dependencies.thiserror]
-version = "1.0.63"
+version = "1.0.64"
 
 [dependencies.wgt]
 version = "22.0.0"

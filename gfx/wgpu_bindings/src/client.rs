@@ -10,8 +10,8 @@ use crate::{
 
 use crate::SwapChainId;
 
-use wgc::{id, identity::IdentityManager};
-use wgt::TextureFormat;
+use wgc::{command::RenderBundleEncoder, id, identity::IdentityManager};
+use wgt::{BufferAddress, BufferSize, DynamicOffset, IndexFormat, TextureFormat};
 
 use wgc::id::markers;
 
@@ -1286,4 +1286,147 @@ pub extern "C" fn wgpu_client_use_external_texture_in_swapChain(
     };
 
     supported
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_render_bundle_set_bind_group(
+    bundle: &mut RenderBundleEncoder,
+    index: u32,
+    bind_group_id: Option<id::BindGroupId>,
+    offsets: *const DynamicOffset,
+    offset_length: usize,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_set_bind_group(
+        bundle,
+        index,
+        bind_group_id,
+        offsets,
+        offset_length,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_render_bundle_set_pipeline(
+    bundle: &mut RenderBundleEncoder,
+    pipeline_id: id::RenderPipelineId,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_set_pipeline(bundle, pipeline_id)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_render_bundle_set_vertex_buffer(
+    bundle: &mut RenderBundleEncoder,
+    slot: u32,
+    buffer_id: id::BufferId,
+    offset: BufferAddress,
+    size: Option<BufferSize>,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_set_vertex_buffer(
+        bundle, slot, buffer_id, offset, size,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_render_bundle_set_index_buffer(
+    encoder: &mut RenderBundleEncoder,
+    buffer: id::BufferId,
+    index_format: IndexFormat,
+    offset: BufferAddress,
+    size: Option<BufferSize>,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_set_index_buffer(
+        encoder,
+        buffer,
+        index_format,
+        offset,
+        size,
+    )
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_render_bundle_set_push_constants(
+    pass: &mut RenderBundleEncoder,
+    stages: wgt::ShaderStages,
+    offset: u32,
+    size_bytes: u32,
+    data: *const u8,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_set_push_constants(
+        pass, stages, offset, size_bytes, data,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_render_bundle_draw(
+    bundle: &mut RenderBundleEncoder,
+    vertex_count: u32,
+    instance_count: u32,
+    first_vertex: u32,
+    first_instance: u32,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_draw(
+        bundle,
+        vertex_count,
+        instance_count,
+        first_vertex,
+        first_instance,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_render_bundle_draw_indexed(
+    bundle: &mut RenderBundleEncoder,
+    index_count: u32,
+    instance_count: u32,
+    first_index: u32,
+    base_vertex: i32,
+    first_instance: u32,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_draw_indexed(
+        bundle,
+        index_count,
+        instance_count,
+        first_index,
+        base_vertex,
+        first_instance,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_render_bundle_draw_indirect(
+    bundle: &mut RenderBundleEncoder,
+    buffer_id: id::BufferId,
+    offset: BufferAddress,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_draw_indirect(bundle, buffer_id, offset)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_render_bundle_draw_indexed_indirect(
+    bundle: &mut RenderBundleEncoder,
+    buffer_id: id::BufferId,
+    offset: BufferAddress,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_draw_indexed_indirect(bundle, buffer_id, offset)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_render_bundle_push_debug_group(
+    _bundle: &mut RenderBundleEncoder,
+    _label: RawString,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_push_debug_group(_bundle, _label)
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_render_bundle_pop_debug_group(_bundle: &mut RenderBundleEncoder) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_pop_debug_group(_bundle)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_render_bundle_insert_debug_marker(
+    _bundle: &mut RenderBundleEncoder,
+    _label: RawString,
+) {
+    wgc::command::bundle_ffi::wgpu_render_bundle_insert_debug_marker(_bundle, _label)
 }

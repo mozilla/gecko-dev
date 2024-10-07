@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.56"
 name = "thiserror"
-version = "1.0.63"
+version = "1.0.64"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 build = "build.rs"
 autobins = false
@@ -93,7 +93,7 @@ name = "test_transparent"
 path = "tests/test_transparent.rs"
 
 [dependencies.thiserror-impl]
-version = "=1.0.63"
+version = "=1.0.64"
 
 [dev-dependencies.anyhow]
 version = "1.0.73"

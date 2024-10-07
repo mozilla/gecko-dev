@@ -70,6 +70,10 @@ version = "0.7"
 [dependencies.bitflags]
 version = "2.6"
 
+[dependencies.bytemuck]
+version = "1.18"
+optional = true
+
 [dependencies.glow]
 version = "0.14.1"
 optional = true
@@ -98,7 +102,7 @@ version = "0.6"
 version = "1.1.0"
 
 [dependencies.thiserror]
-version = "1.0.63"
+version = "1.0.64"
 
 [dependencies.wgt]
 version = "22.0.0"
@@ -151,6 +155,7 @@ dx12 = [
 fragile-send-sync-non-atomic-wasm = ["wgt/fragile-send-sync-non-atomic-wasm"]
 gles = [
     "naga/glsl-out",
+    "dep:bytemuck",
     "dep:glow",
     "dep:glutin_wgl_sys",
     "dep:khronos-egl",

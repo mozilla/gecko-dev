@@ -96,10 +96,10 @@ optional = true
 version = "1.4.1"
 
 [dependencies.thiserror]
-version = "1.0.63"
+version = "1.0.64"
 
 [dependencies.unicode-xid]
-version = "0.2.5"
+version = "0.2.6"
 optional = true
 
 [dev-dependencies]

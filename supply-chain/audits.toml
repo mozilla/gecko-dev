@@ -3237,12 +3237,12 @@ delta = "0.20.0 -> 22.0.0"
 
 [[audits.naga]]
 who = [
-    "Jim Blandy <jimb@red-bean.com>",
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:3fda684eb9e69c78b16312a3e927e3ea82e853d1"
+delta = "22.0.0 -> 22.0.0@git:ee0d1703e5f4a267ce9b87d50b824190b45b5a79"
 importable = false
 
 [[audits.net2]]
@@ -4848,6 +4848,11 @@ who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.2.4 -> 0.2.5"
 
+[[audits.unicode-xid]]
+who = "Jim Blandy <jimb@red-bean.com>"
+criteria = "safe-to-deploy"
+delta = "0.2.5 -> 0.2.6"
+
 [[audits.uniffi]]
 who = "Travis Long <tlong@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -5275,12 +5280,12 @@ delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-core]]
 who = [
-    "Jim Blandy <jimb@red-bean.com>",
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:3fda684eb9e69c78b16312a3e927e3ea82e853d1"
+delta = "22.0.0 -> 22.0.0@git:ee0d1703e5f4a267ce9b87d50b824190b45b5a79"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -5348,12 +5353,12 @@ delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-hal]]
 who = [
-    "Jim Blandy <jimb@red-bean.com>",
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:3fda684eb9e69c78b16312a3e927e3ea82e853d1"
+delta = "22.0.0 -> 22.0.0@git:ee0d1703e5f4a267ce9b87d50b824190b45b5a79"
 importable = false
 
 [[audits.wgpu-types]]
@@ -5421,12 +5426,12 @@ delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-types]]
 who = [
-    "Jim Blandy <jimb@red-bean.com>",
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:3fda684eb9e69c78b16312a3e927e3ea82e853d1"
+delta = "22.0.0 -> 22.0.0@git:ee0d1703e5f4a267ce9b87d50b824190b45b5a79"
 importable = false
 
 [[audits.whatsys]]
