@@ -158,8 +158,7 @@ class QuotaManagerDependencyFixture : public testing::Test {
   static typename MozPromise<ResolveValueT, RejectValueT,
                              IsExclusive>::ResolveOrRejectValue
   Await(RefPtr<MozPromise<ResolveValueT, RejectValueT, IsExclusive>> aPromise) {
-    using PromiseType = MozPromise<ResolveValueT, RejectValueT,
-                                   /* IsExclusive */ false>;
+    using PromiseType = MozPromise<ResolveValueT, RejectValueT, IsExclusive>;
     using ResolveOrRejectValue = typename PromiseType::ResolveOrRejectValue;
 
     ResolveOrRejectValue value;

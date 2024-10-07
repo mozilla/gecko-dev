@@ -6,7 +6,6 @@
 
 #include "gtest/gtest.h"
 #include "mozilla/BasePrincipal.h"
-#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
@@ -113,26 +112,13 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_OngoingWithScheduledShutdown) {
                      return BoolPromise::CreateAndResolve(true, __func__);
                    }));
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -205,26 +191,13 @@ TEST_F(TestQuotaManager,
                      return BoolPromise::CreateAndResolve(true, __func__);
                    }));
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -243,59 +216,33 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_Finished) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value = Await(quotaManager->OpenStorageDirectory(
+          PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
+          OriginScope::FromNull(), Nullable<Client::Type>(),
+          /* aExclusive */ false));
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager
-        ->OpenStorageDirectory(
-            PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
-            /* aExclusive */ false)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](
-                UniversalDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
+      RefPtr<UniversalDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-              RefPtr<UniversalDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
+    {
+      auto value = Await(quotaManager->OpenStorageDirectory(
+          PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
+          OriginScope::FromNull(), Nullable<Client::Type>(),
+          /* aExclusive */ false));
+      ASSERT_TRUE(value.IsResolve());
 
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      RefPtr<UniversalDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
-
-    done = false;
-
-    quotaManager
-        ->OpenStorageDirectory(
-            PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
-            /* aExclusive */ false)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](
-                UniversalDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
-
-              RefPtr<UniversalDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
-
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -314,32 +261,19 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_FinishedWithScheduledShutdown) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value = Await(quotaManager->OpenStorageDirectory(
+          PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
+          OriginScope::FromNull(), Nullable<Client::Type>(),
+          /* aExclusive */ false));
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager
-        ->OpenStorageDirectory(
-            PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
-            /* aExclusive */ false)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](
-                UniversalDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
+      RefPtr<UniversalDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-              RefPtr<UniversalDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
-
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     nsTArray<RefPtr<BoolPromise>> promises;
 
@@ -365,26 +299,13 @@ TEST_F(TestQuotaManager, OpenStorageDirectory_FinishedWithScheduledShutdown) {
                      return BoolPromise::CreateAndResolve(true, __func__);
                    }));
 
-    done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -405,73 +326,42 @@ TEST_F(TestQuotaManager,
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value = Await(quotaManager->OpenStorageDirectory(
+          PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
+          OriginScope::FromNull(), Nullable<Client::Type>(),
+          /* aExclusive */ false));
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager
-        ->OpenStorageDirectory(
-            PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
-            /* aExclusive */ false)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](
-                UniversalDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
+      RefPtr<UniversalDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-              RefPtr<UniversalDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
-
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     RefPtr<ClientDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLock(GetTestClientMetadata(),
                                           /* aExclusive */ true);
 
-    done = false;
+    {
+      auto value = Await(directoryLock->Acquire());
+      ASSERT_TRUE(value.IsResolve());
+    }
 
-    directoryLock->Acquire()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          done = true;
-        });
+    {
+      auto value = Await(quotaManager->OpenStorageDirectory(
+          PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
+          OriginScope::FromNull(), Nullable<Client::Type>(),
+          /* aExclusive */ false));
+      ASSERT_TRUE(value.IsResolve());
 
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      RefPtr<UniversalDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-    done = false;
-
-    quotaManager
-        ->OpenStorageDirectory(
-            PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
-            OriginScope::FromNull(), Nullable<Client::Type>(),
-            /* aExclusive */ false)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](
-                UniversalDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
-
-              RefPtr<UniversalDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
-
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     DropDirectoryLock(directoryLock);
   });
@@ -560,26 +450,13 @@ TEST_F(TestQuotaManager, OpenClientDirectory_OngoingWithScheduledShutdown) {
                   return BoolPromise::CreateAndResolve(true, __func__);
                 }));
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -644,26 +521,13 @@ TEST_F(TestQuotaManager,
                   return BoolPromise::CreateAndResolve(true, __func__);
                 }));
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -682,49 +546,29 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Finished) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value =
+          Await(quotaManager->OpenClientDirectory(GetTestClientMetadata()));
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager->OpenClientDirectory(GetTestClientMetadata())
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](ClientDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
+      RefPtr<ClientDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-              RefPtr<ClientDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
+    {
+      auto value =
+          Await(quotaManager->OpenClientDirectory(GetTestClientMetadata()));
+      ASSERT_TRUE(value.IsResolve());
 
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      RefPtr<ClientDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
-
-    done = false;
-
-    quotaManager->OpenClientDirectory(GetTestClientMetadata())
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](ClientDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
-
-              RefPtr<ClientDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
-
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -743,27 +587,17 @@ TEST_F(TestQuotaManager, OpenClientDirectory_FinishedWithScheduledShutdown) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value =
+          Await(quotaManager->OpenClientDirectory(GetTestClientMetadata()));
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager->OpenClientDirectory(GetTestClientMetadata())
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](ClientDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
+      RefPtr<ClientDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-              RefPtr<ClientDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
-
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     nsTArray<RefPtr<BoolPromise>> promises;
 
@@ -785,26 +619,13 @@ TEST_F(TestQuotaManager, OpenClientDirectory_FinishedWithScheduledShutdown) {
                   return BoolPromise::CreateAndResolve(true, __func__);
                 }));
 
-    done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -825,63 +646,38 @@ TEST_F(TestQuotaManager,
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value =
+          Await(quotaManager->OpenClientDirectory(GetTestClientMetadata()));
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager->OpenClientDirectory(GetTestClientMetadata())
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](ClientDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
+      RefPtr<ClientDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-              RefPtr<ClientDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
-
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     RefPtr<ClientDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLock(GetOtherTestClientMetadata(),
                                           /* aExclusive */ true);
 
-    done = false;
+    {
+      auto value = Await(directoryLock->Acquire());
+      ASSERT_TRUE(value.IsResolve());
+    }
 
-    directoryLock->Acquire()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          done = true;
-        });
+    {
+      auto value =
+          Await(quotaManager->OpenClientDirectory(GetTestClientMetadata()));
+      ASSERT_TRUE(value.IsResolve());
 
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      RefPtr<ClientDirectoryLock> directoryLock =
+          std::move(value.ResolveValue());
+      DropDirectoryLock(directoryLock);
 
-    done = false;
-
-    quotaManager->OpenClientDirectory(GetTestClientMetadata())
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](ClientDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
-              ASSERT_TRUE(aValue.IsResolve());
-
-              RefPtr<ClientDirectoryLock> directoryLock =
-                  std::move(aValue.ResolveValue());
-              DropDirectoryLock(directoryLock);
-
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     DropDirectoryLock(directoryLock);
   });
@@ -901,20 +697,12 @@ TEST_F(TestQuotaManager, InitializeStorage_Simple) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value = Await(quotaManager->InitializeStorage());
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager->InitializeStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          QuotaManager* quotaManager = QuotaManager::Get();
-          ASSERT_TRUE(quotaManager);
-
-          ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -937,26 +725,13 @@ TEST_F(TestQuotaManager, InitializeStorage_Ongoing) {
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(quotaManager->InitializeStorage());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -981,26 +756,13 @@ TEST_F(TestQuotaManager, InitializeStorage_OngoingWithScheduledShutdown) {
     promises.AppendElement(quotaManager->ShutdownStorage());
     promises.AppendElement(quotaManager->InitializeStorage());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -1041,26 +803,13 @@ TEST_F(TestQuotaManager,
               [quotaManager]() { return quotaManager->InitializeStorage(); });
         }));
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -1104,26 +853,13 @@ TEST_F(TestQuotaManager, InitializeStorage_OngoingWithExclusiveDirectoryLock) {
     promises.AppendElement(directoryLock->Acquire());
     promises.AppendElement(quotaManager->InitializeStorage());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -1158,26 +894,13 @@ TEST_F(TestQuotaManager, InitializeStorage_OngoingWithClientDirectoryLocks) {
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(directoryLock2->Acquire());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     DropDirectoryLock(directoryLock);
     DropDirectoryLock(directoryLock2);
@@ -1220,26 +943,13 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(directoryLock2->Acquire());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     DropDirectoryLock(directoryLock2);
   });
@@ -1259,35 +969,19 @@ TEST_F(TestQuotaManager, InitializeStorage_Finished) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value = Await(quotaManager->InitializeStorage());
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager->InitializeStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          QuotaManager* quotaManager = QuotaManager::Get();
-          ASSERT_TRUE(quotaManager);
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
-          ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    {
+      auto value = Await(quotaManager->InitializeStorage());
+      ASSERT_TRUE(value.IsResolve());
 
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
-
-    done = false;
-
-    quotaManager->InitializeStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          QuotaManager* quotaManager = QuotaManager::Get();
-          ASSERT_TRUE(quotaManager);
-
-          ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -1306,46 +1000,25 @@ TEST_F(TestQuotaManager, InitializeStorage_FinishedWithScheduledShutdown) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value = Await(quotaManager->InitializeStorage());
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager->InitializeStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          QuotaManager* quotaManager = QuotaManager::Get();
-          ASSERT_TRUE(quotaManager);
-
-          ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     nsTArray<RefPtr<BoolPromise>> promises;
 
     promises.AppendElement(quotaManager->ShutdownStorage());
     promises.AppendElement(quotaManager->InitializeStorage());
 
-    done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -1374,26 +1047,13 @@ TEST_F(TestQuotaManager, InitializeStorage_FinishedWithClientDirectoryLocks) {
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(directoryLock->Acquire());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     RefPtr<ClientDirectoryLock> directoryLock2 =
         quotaManager->CreateDirectoryLock(GetTestClientMetadata(),
@@ -1404,26 +1064,13 @@ TEST_F(TestQuotaManager, InitializeStorage_FinishedWithClientDirectoryLocks) {
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(directoryLock2->Acquire());
 
-    done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     DropDirectoryLock(directoryLock);
     DropDirectoryLock(directoryLock2);
@@ -1461,41 +1108,20 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(directoryLock->Acquire());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    {
+      auto value = Await(quotaManager->ShutdownStorage());
+      ASSERT_TRUE(value.IsResolve());
 
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
-
-    done = false;
-
-    quotaManager->ShutdownStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          QuotaManager* quotaManager = QuotaManager::Get();
-          ASSERT_TRUE(quotaManager);
-
-          ASSERT_FALSE(quotaManager->IsStorageInitialized());
-
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_FALSE(quotaManager->IsStorageInitialized());
+    }
 
     RefPtr<ClientDirectoryLock> directoryLock2 =
         quotaManager->CreateDirectoryLock(GetTestClientMetadata(),
@@ -1506,26 +1132,13 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(directoryLock2->Acquire());
 
-    done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     DropDirectoryLock(directoryLock2);
   });
@@ -1545,20 +1158,12 @@ TEST_F(TestQuotaManager,
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value = Await(quotaManager->InitializeStorage());
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager->InitializeStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          QuotaManager* quotaManager = QuotaManager::Get();
-          ASSERT_TRUE(quotaManager);
-
-          ASSERT_TRUE(quotaManager->IsStorageInitialized());
-
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
 
     RefPtr<UniversalDirectoryLock> directoryLock =
         quotaManager->CreateDirectoryLockInternal(
@@ -1566,30 +1171,17 @@ TEST_F(TestQuotaManager,
             OriginScope::FromNull(), Nullable<Client::Type>(),
             /* aExclusive */ true);
 
-    done = false;
+    {
+      auto value = Await(directoryLock->Acquire());
+      ASSERT_TRUE(value.IsResolve());
+    }
 
-    directoryLock->Acquire()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          done = true;
-        });
+    {
+      auto value = Await(quotaManager->InitializeTemporaryStorage());
+      ASSERT_TRUE(value.IsResolve());
 
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
-
-    done = false;
-
-    quotaManager->InitializeTemporaryStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          QuotaManager* quotaManager = QuotaManager::Get();
-          ASSERT_TRUE(quotaManager);
-
-          ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+    }
 
     DropDirectoryLock(directoryLock);
   });
@@ -1614,27 +1206,14 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryStorage());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-              ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+    }
 
     promises.Clear();
 
@@ -1642,27 +1221,14 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(quotaManager->InitializeTemporaryStorage());
 
-    done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-              ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -1696,28 +1262,15 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(
         quotaManager->InitializePersistentOrigin(principalInfo));
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-              // XXX Assert IsPersistentOriginInitialized once the method is
-              // available.
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      // XXX Assert IsPersistentOriginInitialized once the method is
+      // available.
+    }
 
     promises.Clear();
 
@@ -1726,28 +1279,15 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(
         quotaManager->InitializePersistentOrigin(principalInfo));
 
-    done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-              // XXX Assert IsPersistentOriginInitialized once the method is
-              // available.
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      // XXX Assert IsPersistentOriginInitialized once the method is
+      // available.
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -1782,29 +1322,16 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeTemporaryOrigin(
         testOriginMetadata.mPersistenceType, principalInfo));
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-              ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-              // XXX Assert IsTemporaryOriginInitialized once the method is
-              // available.
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      // XXX Assert IsTemporaryOriginInitialized once the method is
+      // available.
+    }
 
     promises.Clear();
 
@@ -1814,29 +1341,16 @@ TEST_F(TestQuotaManager,
     promises.AppendElement(quotaManager->InitializeTemporaryOrigin(
         testOriginMetadata.mPersistenceType, principalInfo));
 
-    done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_TRUE(quotaManager->IsStorageInitialized());
-              ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-              // XXX Assert IsTemporaryOriginInitialized once the method is
-              // available.
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      // XXX Assert IsTemporaryOriginInitialized once the method is
+      // available.
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
@@ -1858,20 +1372,12 @@ TEST_F(TestQuotaManager, ShutdownStorage_Simple) {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    bool done = false;
+    {
+      auto value = Await(quotaManager->ShutdownStorage());
+      ASSERT_TRUE(value.IsResolve());
 
-    quotaManager->ShutdownStorage()->Then(
-        GetCurrentSerialEventTarget(), __func__,
-        [&done](const BoolPromise::ResolveOrRejectValue& aValue) {
-          QuotaManager* quotaManager = QuotaManager::Get();
-          ASSERT_TRUE(quotaManager);
-
-          ASSERT_FALSE(quotaManager->IsStorageInitialized());
-
-          done = true;
-        });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_FALSE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
@@ -1898,26 +1404,13 @@ TEST_F(TestQuotaManager, ShutdownStorage_Ongoing) {
     promises.AppendElement(quotaManager->ShutdownStorage());
     promises.AppendElement(quotaManager->ShutdownStorage());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_FALSE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_FALSE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
@@ -1946,26 +1439,13 @@ TEST_F(TestQuotaManager, ShutdownStorage_OngoingWithScheduledInitialization) {
     promises.AppendElement(quotaManager->InitializeStorage());
     promises.AppendElement(quotaManager->ShutdownStorage());
 
-    bool done = false;
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
 
-    BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](const CopyableTArray<bool>& aResolveValues) {
-              QuotaManager* quotaManager = QuotaManager::Get();
-              ASSERT_TRUE(quotaManager);
-
-              ASSERT_FALSE(quotaManager->IsStorageInitialized());
-
-              done = true;
-            },
-            [&done](nsresult aRejectValue) {
-              ASSERT_TRUE(false);
-
-              done = true;
-            });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+      ASSERT_FALSE(quotaManager->IsStorageInitialized());
+    }
   });
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
@@ -1999,20 +1479,15 @@ TEST_F(TestQuotaManager, ShutdownStorage_OngoingWithClientDirectoryLock) {
 
     // This second ShutdownStorage invalidates the directoryLock, so that
     // directory lock can't ever be successfully acquired, the promise for it
-    // will be rejected when the first ShutdownStorage is finished (it releases
-    // its exclusive directory lock);
+    // will be rejected when the first ShutdownStorage is finished (it
+    // releases its exclusive directory lock);
     promises.AppendElement(quotaManager->ShutdownStorage());
 
-    bool done = false;
-
-    BoolPromise::AllSettled(GetCurrentSerialEventTarget(), promises)
-        ->Then(
-            GetCurrentSerialEventTarget(), __func__,
-            [&done](
-                const BoolPromise::AllSettledPromiseType::ResolveOrRejectValue&
-                    aValues) { done = true; });
-
-    SpinEventLoopUntil("Promise is fulfilled"_ns, [&done]() { return done; });
+    {
+      auto value = Await(
+          BoolPromise::AllSettled(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+    }
   });
 }
 
