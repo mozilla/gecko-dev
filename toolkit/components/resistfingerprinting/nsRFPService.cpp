@@ -2361,10 +2361,12 @@ void nsRFPService::GetMediaDeviceGroup(nsString& aGroup,
 
 /* static */
 uint16_t nsRFPService::ViewportSizeToAngle(int32_t aWidth, int32_t aHeight) {
+  // Note that, if screen is square, we return portrait-primary.
+  // That's why we use > on non-android and >= on Android.
 #ifdef MOZ_WIDGET_ANDROID
   bool neutral = aHeight >= aWidth;
 #else
-  bool neutral = aWidth >= aHeight;
+  bool neutral = aWidth > aHeight;
 #endif
   if (neutral) {
     return 0;
@@ -2375,7 +2377,7 @@ uint16_t nsRFPService::ViewportSizeToAngle(int32_t aWidth, int32_t aHeight) {
 /* static */
 dom::OrientationType nsRFPService::ViewportSizeToOrientationType(
     int32_t aWidth, int32_t aHeight) {
-  if (aWidth >= aHeight) {
+  if (aWidth > aHeight) {
     return dom::OrientationType::Landscape_primary;
   }
   return dom::OrientationType::Portrait_primary;
