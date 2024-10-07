@@ -764,7 +764,7 @@ tags = "cloneelementvisually"
 ["test_cloneElementVisually_resource_change.html"]
 skip-if = [
   "os == 'linux' && !(debug || asan || tsan)",  # Bug 1559308 - lower frequency intermittent
-  "os == 'mac' && os_version == '14.40'",  # Bug 1909908
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",  # Bug 1909908
 ]
 tags = "cloneelementvisually os_integration"
 

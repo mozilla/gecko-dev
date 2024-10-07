@@ -123,6 +123,7 @@ def guess_mozinfo_from_task(task, repo="", app_version="", test_tags=[]):
         ("macosx", "1015"): "10.15",
         ("macosx", "1100"): "11.20",
         ("macosx", "1400"): "14.40",
+        ("macosx", "1470"): "14.70",
         ("windows", "10"): "10.2009",
         ("windows", "11"): "11.2009",
     }

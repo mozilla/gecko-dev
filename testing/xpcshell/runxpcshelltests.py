@@ -1587,7 +1587,7 @@ class XPCShellTests(object):
             (release, versioninfo, machine) = platform.mac_ver()
             versionNums = release.split(".")[:2]
             os_version = "%s.%s" % (versionNums[0], versionNums[1].ljust(2, "0"))
-            if os_version == "14.40" and self.mozInfo["arch"] == "aarch64":
+            if os_version.split(".")[0] == "14":
                 self.mozInfo["crashreporter"] = False
 
         # we default to false for e10s on xpcshell

@@ -1782,7 +1782,7 @@ toolbar#nav-bar {
                 noDefaultFilters = True
 
             # TODO: remove this when crashreporter is fixed on mac via bug 1910777
-            if info["os"] == "mac" and info["os_version"] == "14.40":
+            if info["os"] == "mac" and info["os_version"].split(".")[0] == "14":
                 info["crashreporter"] = False
 
             tests = manifest.active_tests(
