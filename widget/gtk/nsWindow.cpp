@@ -755,10 +755,6 @@ void nsWindow::SetParent(nsIWidget* aNewParent) {
 }
 
 bool nsWindow::WidgetTypeSupportsAcceleration() {
-  if (mWindowType == WindowType::Invisible) {
-    return false;
-  }
-
   if (IsSmallPopup()) {
     return false;
   }
@@ -2969,7 +2965,7 @@ void nsWindow::MoveToWorkspace(const nsAString& workspaceIDStr) {
 
 void nsWindow::SetUserTimeAndStartupTokenForActivatedWindow() {
   nsGTKToolkit* toolkit = nsGTKToolkit::GetToolkit();
-  if (!toolkit || MOZ_UNLIKELY(mWindowType == WindowType::Invisible)) {
+  if (!toolkit) {
     return;
   }
 
@@ -5876,12 +5872,14 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                           widget::InitData* aInitData) {
   LOG("nsWindow::Create\n");
 
+  MOZ_DIAGNOSTIC_ASSERT(!aInitData ||
+                        aInitData->mWindowType != WindowType::Invisible);
+
   // only set the base parent if we're going to be a dialog or a
   // toplevel
   nsIWidget* baseParent =
       aInitData && (aInitData->mWindowType == WindowType::Dialog ||
-                    aInitData->mWindowType == WindowType::TopLevel ||
-                    aInitData->mWindowType == WindowType::Invisible)
+                    aInitData->mWindowType == WindowType::TopLevel)
           ? nullptr
           : aParent;
 
@@ -5914,9 +5912,9 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   ConstrainSize(&mBounds.width, &mBounds.height);
   mLastSizeRequest = mBounds.Size();
 
-  bool popupNeedsAlphaVisual = mWindowType == WindowType::Popup &&
-                               (aInitData && aInitData->mTransparencyMode ==
-                                                 TransparencyMode::Transparent);
+  bool popupNeedsAlphaVisual =
+      mWindowType == WindowType::Popup && aInitData &&
+      aInitData->mTransparencyMode == TransparencyMode::Transparent;
 
   // Figure out our parent window - only used for WindowType::Child
   nsWindow* parentnsWindow = nullptr;
@@ -5946,8 +5944,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   MOZ_ASSERT_IF(mWindowType == WindowType::Popup, parentnsWindow);
 
   if (mWindowType != WindowType::Dialog && mWindowType != WindowType::Popup &&
-      mWindowType != WindowType::TopLevel &&
-      mWindowType != WindowType::Invisible) {
+      mWindowType != WindowType::TopLevel) {
     MOZ_ASSERT_UNREACHABLE("Unexpected eWindowType");
     return NS_ERROR_FAILURE;
   }

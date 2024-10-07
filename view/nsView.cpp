@@ -502,17 +502,12 @@ struct DefaultWidgetInitData : public widget::InitData {
   }
 };
 
-nsresult nsView::CreateWidget(widget::InitData* aWidgetInitData,
-                              bool aEnableDragDrop, bool aResetVisibility) {
+nsresult nsView::CreateWidget(bool aEnableDragDrop, bool aResetVisibility) {
   AssertNoWindow();
-  MOZ_ASSERT(
-      !aWidgetInitData || aWidgetInitData->mWindowType != WindowType::Popup,
-      "Use CreateWidgetForPopup");
 
-  DefaultWidgetInitData defaultInitData;
-  aWidgetInitData = aWidgetInitData ? aWidgetInitData : &defaultInitData;
-  LayoutDeviceIntRect trect = CalcWidgetBounds(
-      aWidgetInitData->mWindowType, aWidgetInitData->mTransparencyMode);
+  DefaultWidgetInitData initData;
+  LayoutDeviceIntRect trect =
+      CalcWidgetBounds(initData.mWindowType, initData.mTransparencyMode);
 
   nsIWidget* parentWidget =
       GetParent() ? GetParent()->GetNearestWidget(nullptr) : nullptr;
@@ -523,7 +518,7 @@ nsresult nsView::CreateWidget(widget::InitData* aWidgetInitData,
 
   // XXX: using aForceUseIWidgetParent=true to preserve previous
   // semantics.  It's not clear that it's actually needed.
-  mWindow = parentWidget->CreateChild(trect, aWidgetInitData, true);
+  mWindow = parentWidget->CreateChild(trect, &initData, true);
   if (!mWindow) {
     return NS_ERROR_FAILURE;
   }
@@ -534,22 +529,16 @@ nsresult nsView::CreateWidget(widget::InitData* aWidgetInitData,
 }
 
 nsresult nsView::CreateWidgetForParent(nsIWidget* aParentWidget,
-                                       widget::InitData* aWidgetInitData,
                                        bool aEnableDragDrop,
                                        bool aResetVisibility) {
   AssertNoWindow();
-  MOZ_ASSERT(
-      !aWidgetInitData || aWidgetInitData->mWindowType != WindowType::Popup,
-      "Use CreateWidgetForPopup");
   MOZ_ASSERT(aParentWidget, "Parent widget required");
 
-  DefaultWidgetInitData defaultInitData;
-  aWidgetInitData = aWidgetInitData ? aWidgetInitData : &defaultInitData;
+  DefaultWidgetInitData initData;
+  LayoutDeviceIntRect trect =
+      CalcWidgetBounds(initData.mWindowType, initData.mTransparencyMode);
 
-  LayoutDeviceIntRect trect = CalcWidgetBounds(
-      aWidgetInitData->mWindowType, aWidgetInitData->mTransparencyMode);
-
-  mWindow = aParentWidget->CreateChild(trect, aWidgetInitData);
+  mWindow = aParentWidget->CreateChild(trect, &initData);
   if (!mWindow) {
     return NS_ERROR_FAILURE;
   }
@@ -622,7 +611,7 @@ void nsView::SetNeedsWindowPropertiesSync() {
 
 // Attach to a top level widget and start receiving mirrored events.
 nsresult nsView::AttachToTopLevelWidget(nsIWidget* aWidget) {
-  MOZ_ASSERT(nullptr != aWidget, "null widget ptr");
+  MOZ_ASSERT(aWidget, "null widget ptr");
 
   /// XXXjimm This is a temporary workaround to an issue w/document
   // viewer (bug 513162).

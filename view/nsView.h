@@ -280,12 +280,9 @@ class nsView final : public nsIWidgetListener {
    * CreateWidget*() will look around in the view hierarchy for an
    * appropriate parent widget for the view.
    *
-   * @param aWidgetInitData data used to initialize this view's widget before
-   *        its create is called.
    * @return error status
    */
-  nsresult CreateWidget(mozilla::widget::InitData* aWidgetInitData = nullptr,
-                        bool aEnableDragDrop = true,
+  nsresult CreateWidget(bool aEnableDragDrop = true,
                         bool aResetVisibility = true);
 
   /**
@@ -294,7 +291,6 @@ class nsView final : public nsIWidgetListener {
    * as for |CreateWidget()|.
    */
   nsresult CreateWidgetForParent(nsIWidget* aParentWidget,
-                                 mozilla::widget::InitData* = nullptr,
                                  bool aEnableDragDrop = true,
                                  bool aResetVisibility = true);
 

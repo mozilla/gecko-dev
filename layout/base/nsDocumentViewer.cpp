@@ -2216,8 +2216,7 @@ nsresult nsDocumentViewer::MakeWindow(const nsSize& aSize,
     return NS_OK;
   }
 
-  bool shouldAttach = ShouldAttachToTopLevel();
-
+  const bool shouldAttach = ShouldAttachToTopLevel();
   if (shouldAttach) {
     // If the old view is already attached to our parent, detach
     DetachFromTopLevelWidget();
@@ -2242,27 +2241,14 @@ nsresult nsDocumentViewer::MakeWindow(const nsSize& aSize,
   // because when they're displayed, they're painted into *another* document's
   // widget.
   if (!mDocument->IsResourceDoc() && (mParentWidget || !aContainerView)) {
-    // pass in a native widget to be the parent widget ONLY if the view
-    // hierarchy will stand alone. otherwise the view will find its own parent
-    // widget and "do the right thing" to establish a parent/child widget
-    // relationship
-    widget::InitData initData;
-    widget::InitData* initDataPtr;
-    if (!mParentWidget) {
-      initDataPtr = &initData;
-      initData.mWindowType = widget::WindowType::Invisible;
-    } else {
-      initDataPtr = nullptr;
-    }
-
     if (shouldAttach) {
       // Reuse the top level parent widget.
       rv = view->AttachToTopLevelWidget(mParentWidget);
       mAttachedToParent = true;
-    } else if (!aContainerView && mParentWidget) {
-      rv = view->CreateWidgetForParent(mParentWidget, initDataPtr, true, false);
+    } else if (!mParentWidget || aContainerView) {
+      rv = view->CreateWidget(true, false);
     } else {
-      rv = view->CreateWidget(initDataPtr, true, false);
+      rv = view->CreateWidgetForParent(mParentWidget, true, false);
     }
     if (NS_FAILED(rv)) return rv;
   }
@@ -3252,7 +3238,7 @@ bool nsDocumentViewer::ShouldAttachToTopLevel() {
     return true;
   }
 
-  // FIXME(emilio): Can we unify this between macOS and aother platforms?
+  // TODO(emilio, bug 1919165): Unify this between macOS and other platforms?
 #ifdef XP_MACOSX
   return false;
 #else

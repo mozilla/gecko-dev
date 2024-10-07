@@ -2241,6 +2241,9 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   mBounds = rect;
   SetSizeConstraints(SizeConstraints());
 
+  MOZ_DIAGNOSTIC_ASSERT(!aInitData ||
+                        aInitData->mWindowType != WindowType::Invisible);
+
   BaseCreate(nullptr, aInitData);
 
   NS_ASSERTION(IsTopLevel() || parent,
