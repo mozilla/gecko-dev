@@ -12,7 +12,6 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/BrowsingContext.h"
-#include "mozilla/dom/GetFilesHelper.h"
 #include "nsIContentAnalysis.h"
 #include "nsIFile.h"
 #include "nsISimpleEnumerator.h"

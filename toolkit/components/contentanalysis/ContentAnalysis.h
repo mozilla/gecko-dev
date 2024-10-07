@@ -272,6 +272,15 @@ class ContentAnalysis final : public nsIContentAnalysis {
   UrlFilterResult FilterByUrlLists(nsIContentAnalysisRequest* aRequest);
   void EnsureParsedUrlFilters();
 
+  // Expand a request to analyze a folder into N requests to scan the files
+  // in the folder (recursively).  Approve the request if all files are
+  // approved.
+  // Returns true if the request was for a folder and spawned new requests,
+  // false if the request was not a folder scan, or an nsresult on error.
+  Result<bool, nsresult> MaybeExpandAndAnalyzeFolderContentRequest(
+      nsIContentAnalysisRequest* aRequest, bool aAutoAcknowledge,
+      nsIContentAnalysisCallback* aCallback);
+
   using ClientPromise =
       MozPromise<std::shared_ptr<content_analysis::sdk::Client>, nsresult,
                  false>;
@@ -381,6 +390,7 @@ class ContentAnalysis final : public nsIContentAnalysis {
   bool mParsedUrlLists = false;
 
   friend class ContentAnalysisResponse;
+  friend class AnalyzeFilesInDirectoryCallback;
   friend class ::ContentAnalysisTest;
 };
 

@@ -31,6 +31,8 @@ class GetFilesCallback {
  public:
   NS_INLINE_DECL_REFCOUNTING(GetFilesCallback);
 
+  // This is called once per directory scan and is passed an array of all
+  // of the files found.
   virtual void Callback(nsresult aStatus,
                         const FallibleTArray<RefPtr<BlobImpl>>& aBlobImpls) = 0;
 

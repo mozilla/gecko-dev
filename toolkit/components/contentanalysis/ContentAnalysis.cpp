@@ -14,7 +14,9 @@
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/DataTransfer.h"
+#include "mozilla/dom/Directory.h"
 #include "mozilla/dom/DragEvent.h"
+#include "mozilla/dom/GetFilesHelper.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/Logging.h"
@@ -1509,6 +1511,207 @@ void ContentAnalysis::IssueResponse(RefPtr<ContentAnalysisResponse>& response) {
   callbackHolder->ContentResult(response);
 }
 
+// Counts the number of times it receives an "allow content" and (1) calls
+// ContentResult on mCallback when all requests are approved, (2) calls
+// ContentResult when any one request is rejected, or (3) calls Error when any
+// one fails.
+class AnalyzeFilesInDirectoryCallback final
+    : public mozilla::dom::GetFilesCallback,
+      public nsIContentAnalysisCallback {
+ public:
+  NS_INLINE_DECL_REFCOUNTING_INHERITED(AnalyzeFilesInDirectoryCallback,
+                                       mozilla::dom::GetFilesCallback)
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
+
+  AnalyzeFilesInDirectoryCallback(nsIContentAnalysisRequest* aRequest,
+                                  bool aAutoAcknowledge,
+                                  nsIContentAnalysisCallback* aCallback)
+      : mRequest(aRequest),
+        mAutoAcknowledge(aAutoAcknowledge),
+        mCallback(aCallback) {}
+
+  // -------------------
+  // GetFilesCallback
+  // -------------------
+
+  void Callback(nsresult aStatus,
+                const FallibleTArray<RefPtr<mozilla::dom::BlobImpl>>&
+                    aBlobImpls) override {
+    nsresult rv = aStatus;
+    // Make sure we respond for CA on error.
+    auto failedToGenerateCARequests = MakeScopeExit([this, &rv]() {
+      // If we submit some CA requests, but hit an error that causes us to
+      // stop sending more before we are done, then we don't cancel the
+      // earlier requests -- their callbacks will be counted but ignored.
+      Error(rv);
+    });
+    NS_ENSURE_SUCCESS_VOID(rv);
+
+    RefPtr<nsIContentAnalysis> contentAnalysis =
+        mozilla::components::nsIContentAnalysis::Service(&rv);
+    NS_ENSURE_SUCCESS_VOID(rv);
+    NS_ENSURE_TRUE_VOID(contentAnalysis);
+    nsCOMPtr<nsIURI> url;
+    rv = mRequest->GetUrl(getter_AddRefs(url));
+    NS_ENSURE_SUCCESS_VOID(rv);
+    nsIContentAnalysisRequest::AnalysisType analysisType;
+    rv = mRequest->GetAnalysisType(&analysisType);
+    NS_ENSURE_SUCCESS_VOID(rv);
+    nsIContentAnalysisRequest::OperationType operationType;
+    rv = mRequest->GetOperationTypeForDisplay(&operationType);
+    NS_ENSURE_SUCCESS_VOID(rv);
+    RefPtr<dom::WindowGlobalParent> windowGlobal;
+    rv = mRequest->GetWindowGlobalParent(getter_AddRefs(windowGlobal));
+    NS_ENSURE_SUCCESS_VOID(rv);
+
+    for (const auto& blob : aBlobImpls) {
+      if (blob->IsFile()) {
+        nsAutoString pathString;
+        mozilla::ErrorResult error;
+        blob->GetMozFullPathInternal(pathString, error);
+        rv = error.StealNSResult();
+        NS_ENSURE_SUCCESS_VOID(rv);
+
+        // Create and submit a new CA request for pathString.
+        nsCString emptyDigestString;
+        RefPtr<ContentAnalysisRequest> request = new ContentAnalysisRequest(
+            analysisType, pathString, true, std::move(emptyDigestString), url,
+            operationType, windowGlobal);
+        rv = contentAnalysis->AnalyzeContentRequestCallback(
+            request, mAutoAcknowledge, this);
+        NS_ENSURE_SUCCESS_VOID(rv);
+        ++mNumCARequestsRemaining;
+      } else {
+        NS_WARNING("Got a non-file blob, can't do content analysis on it");
+      }
+    }
+
+    failedToGenerateCARequests.release();
+  }
+
+  // -------------------
+  // nsIContentAnalysisCallback
+  // -------------------
+
+  NS_IMETHOD ContentResult(nsIContentAnalysisResponse* aResponse) override {
+    // TODO: When replying to a deny or an error, we should block the dialogs
+    // for the remaining verdicts.
+    if (mResponded) {
+      return NS_OK;
+    }
+
+    bool allow;
+    nsresult rv = aResponse->GetShouldAllowContent(&allow);
+    if (NS_FAILED(rv)) {
+      mResponded = true;
+      mCallback->Error(rv);
+      return NS_OK;
+    }
+
+    --mNumCARequestsRemaining;
+    if (allow && mNumCARequestsRemaining > 0) {
+      return NS_OK;
+    }
+
+    mResponded = true;
+    nsCString token;
+    rv = mRequest->GetRequestToken(token);
+    if (NS_FAILED(rv)) {
+      mCallback->Error(rv);
+      return NS_OK;
+    }
+
+    auto action = allow ? nsIContentAnalysisResponse::Action::eAllow
+                        : nsIContentAnalysisResponse::Action::eBlock;
+    auto response = ContentAnalysisResponse::FromAction(action, token);
+    mCallback->ContentResult(response);
+    return NS_OK;
+  }
+
+  NS_IMETHOD Error(nsresult aRv) override {
+    if (mResponded) {
+      return NS_OK;
+    }
+    mResponded = true;
+    mCallback->Error(aRv);
+    return NS_OK;
+  }
+
+ private:
+  virtual ~AnalyzeFilesInDirectoryCallback() = default;
+
+  RefPtr<nsIContentAnalysisRequest> mRequest;
+  bool mAutoAcknowledge;
+  RefPtr<nsIContentAnalysisCallback> mCallback;
+
+  // Number of file scans remaining for this folder scan.
+  size_t mNumCARequestsRemaining = 0;
+
+  // True if we have issued a response for the folder that this file request
+  // came from.
+  bool mResponded = false;
+};
+
+NS_IMPL_QUERY_INTERFACE(AnalyzeFilesInDirectoryCallback,
+                        nsIContentAnalysisCallback)
+
+Result<bool, nsresult>
+ContentAnalysis::MaybeExpandAndAnalyzeFolderContentRequest(
+    nsIContentAnalysisRequest* aRequest, bool aAutoAcknowledge,
+    nsIContentAnalysisCallback* aCallback) {
+  nsAutoString filename;
+  nsresult rv = aRequest->GetFilePath(filename);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+  NS_ENSURE_TRUE(!filename.IsEmpty(), false);
+
+#ifdef DEBUG
+  // Confirm that there is no text content to analyze.  See comment on
+  // mFilePath.
+  nsAutoString textContent;
+  rv = aRequest->GetTextContent(textContent);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+  MOZ_ASSERT(textContent.IsEmpty());
+#endif
+
+  RefPtr<nsIFile> file;
+  rv = NS_NewLocalFile(filename, false, getter_AddRefs(file));
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+
+  bool exists;
+  rv = file->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+  NS_ENSURE_TRUE(exists, false);
+
+  bool isDir;
+  rv = file->IsDirectory(&isDir);
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+  if (!isDir) {
+    return false;
+  }
+
+  // We just need to iterate over the directory, so use the junk scope
+  RefPtr<mozilla::dom::Directory> directory = mozilla::dom::Directory::Create(
+      xpc::NativeGlobal(xpc::PrivilegedJunkScope()), file);
+  NS_ENSURE_TRUE(directory, Err(NS_ERROR_FAILURE));
+
+  mozilla::dom::OwningFileOrDirectory owningDirectory;
+  owningDirectory.SetAsDirectory() = directory;
+  nsTArray<mozilla::dom::OwningFileOrDirectory> directoryArray{
+      std::move(owningDirectory)};
+
+  mozilla::ErrorResult error;
+  RefPtr<mozilla::dom::GetFilesHelper> helper =
+      mozilla::dom::GetFilesHelper::Create(directoryArray, true, error);
+  rv = error.StealNSResult();
+  NS_ENSURE_SUCCESS(rv, Err(rv));
+
+  auto analyzeFilesCallback =
+      mozilla::MakeRefPtr<AnalyzeFilesInDirectoryCallback>(
+          aRequest, aAutoAcknowledge, aCallback);
+  helper->AddCallback(analyzeFilesCallback);
+  return true;
+}
+
 NS_IMETHODIMP
 ContentAnalysis::AnalyzeContentRequest(nsIContentAnalysisRequest* aRequest,
                                        bool aAutoAcknowledge, JSContext* aCx,
@@ -1544,6 +1747,13 @@ ContentAnalysis::AnalyzeContentRequestCallback(
 nsresult ContentAnalysis::AnalyzeContentRequestCallbackPrivate(
     nsIContentAnalysisRequest* aRequest, bool aAutoAcknowledge,
     nsIContentAnalysisCallback* aCallback) {
+  bool wasFolder;
+  MOZ_TRY_VAR(wasFolder, MaybeExpandAndAnalyzeFolderContentRequest(
+                             aRequest, aAutoAcknowledge, aCallback));
+  if (wasFolder) {
+    return NS_OK;
+  }
+
   // Make sure we send the notification first, so if we later return
   // an error the JS will handle it correctly.
   nsCOMPtr<nsIObserverService> obsServ =

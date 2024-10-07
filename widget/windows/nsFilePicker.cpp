@@ -776,49 +776,6 @@ void nsFilePicker::ClearFiles() {
   mFiles.Clear();
 }
 
-namespace {
-class GetFilesInDirectoryCallback final
-    : public mozilla::dom::GetFilesCallback {
- public:
-  explicit GetFilesInDirectoryCallback(
-      RefPtr<mozilla::MozPromise<nsTArray<mozilla::PathString>, nsresult,
-                                 true>::Private>
-          aPromise)
-      : mPromise(std::move(aPromise)) {}
-  void Callback(
-      nsresult aStatus,
-      const FallibleTArray<RefPtr<mozilla::dom::BlobImpl>>& aBlobImpls) {
-    if (NS_FAILED(aStatus)) {
-      mPromise->Reject(aStatus, __func__);
-      return;
-    }
-    nsTArray<mozilla::PathString> filePaths;
-    filePaths.SetCapacity(aBlobImpls.Length());
-    for (const auto& blob : aBlobImpls) {
-      if (blob->IsFile()) {
-        mozilla::PathString pathString;
-        mozilla::ErrorResult error;
-        blob->GetMozFullPathInternal(pathString, error);
-        nsresult rv = error.StealNSResult();
-        if (NS_WARN_IF(NS_FAILED(rv))) {
-          mPromise->Reject(rv, __func__);
-          return;
-        }
-        filePaths.AppendElement(pathString);
-      } else {
-        NS_WARNING("Got a non-file blob, can't do content analysis on it");
-      }
-    }
-    mPromise->Resolve(std::move(filePaths), __func__);
-  }
-
- private:
-  RefPtr<mozilla::MozPromise<nsTArray<mozilla::PathString>, nsresult,
-                             true>::Private>
-      mPromise;
-};
-}  // anonymous namespace
-
 RefPtr<nsFilePicker::ContentAnalysisResponse>
 nsFilePicker::CheckContentAnalysisService() {
   nsresult rv;
@@ -843,6 +800,23 @@ nsFilePicker::CheckContentAnalysisService() {
   if (!uri) {
     return nsFilePicker::ContentAnalysisResponse::CreateAndReject(
         NS_ERROR_FAILURE, __func__);
+  }
+
+  // Entries may be files or folders.  Folder contents will be recursively
+  // checked.
+  nsTArray<mozilla::PathString> filePaths;
+  if (mMode == modeGetFolder || !mUnicodeFile.IsEmpty()) {
+    RefPtr<nsIFile> folderOrFile;
+    nsresult rv = GetFile(getter_AddRefs(folderOrFile));
+    if (NS_WARN_IF(NS_FAILED(rv) || !folderOrFile)) {
+      return nsFilePicker::ContentAnalysisResponse::CreateAndReject(rv,
+                                                                    __func__);
+    }
+    filePaths.AppendElement(folderOrFile->NativePath());
+  } else {
+    // multiple selections
+    std::transform(mFiles.begin(), mFiles.end(), MakeBackInserter(filePaths),
+                   [](auto* entry) { return entry->NativePath(); });
   }
 
   auto processOneItem = [self = RefPtr{this},
@@ -882,77 +856,8 @@ nsFilePicker::CheckContentAnalysisService() {
     return promise;
   };
 
-  // Since getting the files to analyze might be asynchronous, use a MozPromise
-  // to unify the logic below.
-  RefPtr<mozilla::MozPromise<nsTArray<mozilla::PathString>, nsresult,
-                             true>::Private>
-      getFilesToAnalyzePromise = nullptr;
-  if (mMode == modeGetFolder) {
-    nsCOMPtr<nsIFile> file;
-    nsresult rv = GetFile(getter_AddRefs(file));
-    if (NS_WARN_IF(NS_FAILED(rv) || !file)) {
-      return nsFilePicker::ContentAnalysisResponse::CreateAndReject(rv,
-                                                                    __func__);
-    }
-    // We just need to iterate over the directory, so use the junk scope
-    RefPtr<mozilla::dom::Directory> directory = mozilla::dom::Directory::Create(
-        xpc::NativeGlobal(xpc::PrivilegedJunkScope()), file);
-    if (!directory) {
-      // The directory may have been deleted
-      return nsFilePicker::ContentAnalysisResponse::CreateAndReject(rv,
-                                                                    __func__);
-    }
-    mozilla::dom::OwningFileOrDirectory owningDirectory;
-    owningDirectory.SetAsDirectory() = directory;
-    nsTArray<mozilla::dom::OwningFileOrDirectory> directoryArray{
-        std::move(owningDirectory)};
-
-    mozilla::ErrorResult error;
-    RefPtr<mozilla::dom::GetFilesHelper> helper =
-        mozilla::dom::GetFilesHelper::Create(directoryArray, true, error);
-    rv = error.StealNSResult();
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return nsFilePicker::ContentAnalysisResponse::CreateAndReject(rv,
-                                                                    __func__);
-    }
-
-    getFilesToAnalyzePromise = mozilla::MakeRefPtr<mozilla::MozPromise<
-        nsTArray<mozilla::PathString>, nsresult, true>::Private>(__func__);
-    auto getFilesCallback = mozilla::MakeRefPtr<GetFilesInDirectoryCallback>(
-        getFilesToAnalyzePromise);
-    helper->AddCallback(getFilesCallback);
-  } else {
-    nsCOMArray<nsIFile> files;
-    if (!mUnicodeFile.IsEmpty()) {
-      nsCOMPtr<nsIFile> file;
-      rv = GetFile(getter_AddRefs(file));
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return nsFilePicker::ContentAnalysisResponse::CreateAndReject(rv,
-                                                                      __func__);
-      }
-      files.AppendElement(file);
-    } else {
-      files.AppendElements(mFiles);
-    }
-    nsTArray<mozilla::PathString> paths(files.Length());
-    std::transform(files.begin(), files.end(), MakeBackInserter(paths),
-                   [](auto* entry) { return entry->NativePath(); });
-    getFilesToAnalyzePromise = mozilla::MakeRefPtr<mozilla::MozPromise<
-        nsTArray<mozilla::PathString>, nsresult, true>::Private>(__func__);
-    getFilesToAnalyzePromise->Resolve(std::move(paths), __func__);
-  }
-
-  MOZ_ASSERT(getFilesToAnalyzePromise);
-  return getFilesToAnalyzePromise->Then(
-      mozilla::GetMainThreadSerialEventTarget(), __func__,
-      [processOneItem](nsTArray<mozilla::PathString> aPaths) mutable {
-        return mozilla::detail::AsyncAll<mozilla::PathString>(std::move(aPaths),
-                                                              processOneItem);
-      },
-      [](nsresult aError) {
-        return nsFilePicker::ContentAnalysisResponse::CreateAndReject(aError,
-                                                                      __func__);
-      });
+  return mozilla::detail::AsyncAll<mozilla::PathString>(std::move(filePaths),
+                                                        processOneItem);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
