@@ -98,7 +98,7 @@
 }
 
 #prefs {
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   color: var(--in-content-text-color);
   margin: 10px;
   table-layout: fixed;

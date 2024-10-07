@@ -1037,7 +1037,7 @@ label[for="tab-cryptominer"]:hover ~ #highlight-hover {
   height: 110px;
   width: 765px;
   content: "";
-  background-image: linear-gradient(to right, var(--in-content-box-background) 0%, var(--protection-report-loader-color-stop) 30%, var(--in-content-box-background) 40%, var(--in-content-box-background) 100%);
+  background-image: linear-gradient(to right, var(--background-color-box) 0%, var(--protection-report-loader-color-stop) 30%, var(--background-color-box) 40%, var(--background-color-box) 100%);
   background-repeat: no-repeat;
   animation-duration: 2s;
   animation-iteration-count: infinite;
@@ -1049,7 +1049,7 @@ label[for="tab-cryptominer"]:hover ~ #highlight-hover {
 
 .monitor-card.loading:dir(rtl)::after,
 .lockwise-card.loading:dir(rtl)::after {
-  background-image: linear-gradient(to left, var(--in-content-box-background) 0%, var(--protection-report-loader-color-stop) 30%, var(--in-content-box-background) 40%, var(--in-content-box-background) 100%);
+  background-image: linear-gradient(to left, var(--background-color-box) 0%, var(--protection-report-loader-color-stop) 30%, var(--background-color-box) 40%, var(--background-color-box) 100%);
   animation-name: loading-rtl;
 }
 

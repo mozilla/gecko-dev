@@ -98,14 +98,14 @@ button:disabled {
 }
 
 .trr-message-container {
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 4px;
   padding: 10px;
 }
 
 #badCertAdvancedPanel {
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-box-border-color);
 }
 

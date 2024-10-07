@@ -23,7 +23,7 @@
 /* Sanitize everything warning box */
 #sanitizeEverythingWarningBox {
   /* Fallback colors are used when the dialog is open outside of in-content prefs */
-  background-color: var(--in-content-box-background, Window);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-box-border-color, ThreeDDarkShadow);
   border-radius: 5px;
   padding: 16px;

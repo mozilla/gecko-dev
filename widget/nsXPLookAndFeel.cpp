@@ -757,7 +757,7 @@ Maybe<nscolor> nsXPLookAndFeel::GenericDarkColor(ColorID aID) {
 
     case ColorID::MozEventreerow:
     case ColorID::MozOddtreerow:
-    case ColorID::MozDialog:  // --in-content-box-background
+    case ColorID::MozDialog:  // --background-color-box
       color = NS_RGB(35, 34, 43);
       break;
     case ColorID::Windowtext:  // --in-content-page-color

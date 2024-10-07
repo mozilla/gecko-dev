@@ -18,7 +18,7 @@ h1 {
 .info-groups {
   display: none;
   outline: none;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   box-shadow: var(--card-shadow);
   margin-bottom: 2em;
   border-radius: 0 0 4px 4px;
@@ -35,7 +35,7 @@ h1 {
   padding-bottom: 15px; /* compensate for border-bottom below */
   border: none;
   border-bottom: 3px solid transparent;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   color: var(--in-content-text-color);
   flex: 1 1 auto;
   text-overflow: ellipsis;

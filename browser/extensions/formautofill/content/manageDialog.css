@@ -24,7 +24,7 @@ fieldset {
     box-sizing: border-box;
     width: 100%;
     padding: 0.4em 0.7em;
-    background-color: var(--in-content-box-background);
+    background-color: var(--background-color-box);
     border: 1px solid var(--in-content-box-border-color);
     border-radius: 2px 2px 0 0;
     user-select: none;

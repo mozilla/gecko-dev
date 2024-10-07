@@ -175,7 +175,7 @@
   margin: 0;
 }
 .asrouter-admin .sourceLabel:not(:empty) {
-  background: var(--in-content-box-background);
+  background: var(--background-color-box);
   padding: 2px 5px;
   border-radius: 3px;
 }

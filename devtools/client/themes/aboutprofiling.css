@@ -126,7 +126,7 @@
   margin: 0;
   padding: 0;
   overflow-y: auto;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
 }
 
 .perf-settings-dir-list:hover {

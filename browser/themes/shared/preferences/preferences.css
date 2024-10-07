@@ -1456,7 +1456,7 @@ richlistitem .text-link:hover {
 #translations-manage-install-list {
   height: 220px;
   overflow: auto;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 4px;
   resize: vertical;

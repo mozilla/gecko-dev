@@ -22,7 +22,7 @@
   inset-inline-end: 0;
   margin: 0;
   padding: 5px 0;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 4px;
   box-shadow: var(--shadow-30);

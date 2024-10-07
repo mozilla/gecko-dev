@@ -17,7 +17,7 @@
 
 .timeline > svg {
   grid-row: 1 / 1;
-  fill: var(--in-content-box-background);
+  fill: var(--background-color-box);
 }
 
 .timeline > .line {

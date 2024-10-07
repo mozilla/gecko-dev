@@ -134,7 +134,7 @@ tbody:nth-child(4n + 1) {
 }
 
 .content-style {
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   color: var(--blue-50);
 }
 

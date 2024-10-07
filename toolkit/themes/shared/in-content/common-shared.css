@@ -13,7 +13,6 @@
   --in-content-page-color: rgb(21, 20, 26);
   --in-content-page-background: var(--background-color-canvas);
   --in-content-text-color: var(--in-content-page-color);
-  --in-content-box-background: var(--background-color-box);
   --in-content-box-background-odd: rgba(12, 12, 13, 0.05); /* grey 90 a05 */
   --in-content-box-border-color: color-mix(in srgb, currentColor 41%, transparent);
   --in-content-box-info-background: #f0f0f4;
@@ -150,9 +149,9 @@
   :root {
     --in-content-page-color: CanvasText;
 
-    --in-content-box-background-odd: var(--in-content-box-background);
+    --in-content-box-background-odd: var(--background-color-box);
     --in-content-box-border-color: -moz-DialogText;
-    --in-content-box-info-background: var(--in-content-box-background);
+    --in-content-box-info-background: var(--background-color-box);
 
     --in-content-item-hover: SelectedItem;
     --in-content-item-hover-text: SelectedItemText;
@@ -397,7 +396,7 @@ html|select:not([size], [multiple]):dir(rtl) {
 }
 
 html|select:not([size], [multiple]) > html|option {
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   color: var(--in-content-text-color);
 }
 
@@ -526,7 +525,7 @@ xul|menulist > xul|menupopup {
 
   --panel-border-color: var(--in-content-box-border-color);
   --panel-border-radius: 2px;
-  --panel-background: var(--in-content-box-background);
+  --panel-background: var(--background-color-box);
   --panel-color: var(--in-content-text-color);
   --panel-padding: 0;
 }
@@ -576,7 +575,7 @@ xul|search-textbox {
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 4px;
   color: inherit;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
 }
 
 xul|search-textbox {
@@ -901,7 +900,7 @@ xul|listheader,
 xul|richlistbox {
   appearance: none;
   margin-inline: 0;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 4px;
   color: var(--in-content-text-color);
@@ -972,7 +971,7 @@ xul|richlistitem[selected] xul|menulist:focus-visible {
 }
 
 xul|panel[type="autocomplete-richlistbox"] {
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-box-border-color);
   color: var(--in-content-text-color);
 }
@@ -984,7 +983,7 @@ xul|tree {
   font-size: 1em;
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 4px;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   color: inherit;
   margin: 0;
 }
@@ -1130,7 +1129,7 @@ input[type="text"][warning]:enabled:not(:focus) {
 /* Cards */
 
 .card {
-  background: var(--in-content-box-background);
+  background: var(--background-color-box);
   /* Needed for high-contrast where the border will appear. */
   border: 1px solid transparent;
   border-radius: 4px;

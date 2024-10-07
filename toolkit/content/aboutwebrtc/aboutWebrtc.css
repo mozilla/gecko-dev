@@ -41,7 +41,7 @@ table {
   margin: 1em 0;
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 10px;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
 }
 
 .autorefresh {

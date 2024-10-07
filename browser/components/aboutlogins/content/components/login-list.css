@@ -4,7 +4,7 @@
 
 :host {
   border-inline-end: 1px solid var(--in-content-border-color);
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   display: flex;
   flex-direction: column;
   overflow: auto;
@@ -15,7 +15,7 @@
   align-items: center;
   padding: 0 16px 16px;
   border-bottom: 1px solid var(--in-content-border-color);
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
 }
 
 .meta > label > span {
@@ -110,7 +110,7 @@ ol {
   font-weight: var(--font-weight-bold);
   padding: 4px 16px;
   border-bottom: 1px solid var(--in-content-border-color);
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   margin-block-start: 2px;
   margin-inline: 2px;
 }

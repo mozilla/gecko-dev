@@ -252,7 +252,7 @@ virtualized-list {
   display: grid;
   padding: 16px 32px;
   color: var(--in-content-text-color);
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-border-color);
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
 }

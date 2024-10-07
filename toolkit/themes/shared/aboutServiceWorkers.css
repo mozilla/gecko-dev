@@ -20,7 +20,7 @@
   border: 1px solid var(--in-content-box-border-color);
   border-radius: 10px;
   padding: 3em;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   text-align: center;
 }
 

@@ -18,7 +18,7 @@
 :host .arrow-box {
   position: relative;
   padding: 12px;
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
   border: 1px solid var(--in-content-border-color);
   border-radius: 4px;
 }
@@ -36,7 +36,7 @@
 }
 
 :host .arrow-box::after {
-  border-inline-end-color: var(--in-content-box-background);
+  border-inline-end-color: var(--background-color-box);
   border-width: 10px;
   margin-top: -10px;
 }

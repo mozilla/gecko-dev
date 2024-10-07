@@ -33,7 +33,7 @@ div.section {
   margin: 1em 0em;
   border: 1px solid var(--in-content-border-color);
   border-radius: var(--border-radius-small);
-  background: var(--in-content-box-background);
+  background: var(--background-color-box);
 }
 
 div.outputContainer {
@@ -60,7 +60,7 @@ div.sidebarItem {
   margin: 1em 0em;
   border: 1px solid var(--in-content-border-color);
   border-radius: var(--border-radius-small);
-  background: var(--in-content-box-background);
+  background: var(--background-color-box);
   user-select: none;  /* no need to include this when cutting+pasting */
 }
 
@@ -84,7 +84,7 @@ div.opsRow {
   margin-top: 0.5em;
   border: 1px solid var(--in-content-border-color);
   border-radius: var(--border-radius-small);
-  background: var(--in-content-box-background);
+  background: var(--background-color-box);
   display: inline-block;
 }
 

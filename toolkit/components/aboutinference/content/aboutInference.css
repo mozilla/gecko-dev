@@ -48,7 +48,7 @@ td {
 }
 
 tr:nth-child(even) td {
-  background-color: var(--in-content-box-background);
+  background-color: var(--background-color-box);
 }
 
 tr:nth-child(odd) td {
