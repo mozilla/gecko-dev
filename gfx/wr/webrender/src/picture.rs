@@ -3347,6 +3347,18 @@ impl TileCacheInstance {
                             break;
                         }
 
+                        // We couldn't promote, but did we give up because the slice is marked
+                        // atomic? If that was the reason, and the YuvImage is wide color,
+                        // failing to promote will flatten the colors and look terrible. Let's
+                        // ignore the atomic slice restriction in such a case.
+                        if let Err(SliceAtomic) = promotion_result {
+                            if prim_data.kind. color_depth != ColorDepth::Color8 {
+                                // Let's promote with the attempted kind.
+                                promotion_result = Ok(kind);
+                                break;
+                            }
+                        }
+
                         self.maybe_report_promotion_failure(promotion_result, pic_coverage_rect, &mut promotion_failure_reported);
                     }
 
