@@ -118,6 +118,7 @@ impl Connection {
                 // invariants that our version might not uphold.
                 tx.execute_batch(&format!("PRAGMA user_version = {};", M::MAX_SCHEMA_VERSION))?;
                 tx.commit()?;
+                let _ = conn.execute_batch("PRAGMA optimize(0x10002);");
                 Ok(Self::with_connection(conn))
             }
         }
@@ -174,10 +175,13 @@ impl Connection {
         self.interrupt_handle.interrupt()
     }
 
-    /// Consumes this [`Connection`] and returns the inner
-    /// [`rusqlite::Connection`].
-    pub fn into_inner(self) -> rusqlite::Connection {
-        Mutex::into_inner(self.conn).unwrap()
+    /// Closes this database connection.
+    pub fn close(self) {
+        let conn = Mutex::into_inner(self.conn).unwrap();
+        let _ = conn.execute_batch("PRAGMA optimize;");
+        // We can't meaningfully recover from failing to close
+        // a connection, so ignore errors.
+        let _ = conn.close();
     }
 
     /// Accesses the database and reports any incidents that occur.

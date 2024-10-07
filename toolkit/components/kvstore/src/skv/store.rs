@@ -495,10 +495,8 @@ impl OpenStore {
     }
 
     fn close(self) {
-        // We can't meaningfully recover from failing to close
-        // either connection, so ignore errors.
-        let _ = self.reader.into_inner().close();
-        let _ = self.writer.into_inner().close();
+        self.reader.close();
+        self.writer.close();
     }
 }
 
