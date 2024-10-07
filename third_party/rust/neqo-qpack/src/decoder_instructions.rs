@@ -89,7 +89,7 @@ impl DecoderInstructionReader {
     /// 2) `ClosedCriticalStream`
     /// 3) other errors will be translated to `DecoderStream` by the caller of this function.
     pub fn read_instructions<R: ReadByte>(&mut self, recv: &mut R) -> Res<DecoderInstruction> {
-        qdebug!([self], "read a new instraction");
+        qdebug!([self], "read a new instruction");
         loop {
             match &mut self.state {
                 DecoderInstructionReaderState::ReadInstruction => {

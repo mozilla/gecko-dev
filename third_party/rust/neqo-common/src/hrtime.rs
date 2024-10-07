@@ -374,7 +374,9 @@ impl Drop for Time {
 // inaccuracies are too high to pass the tests.
 #[cfg(all(
     test,
-    not(all(any(target_os = "macos", target_os = "windows"), feature = "ci"))
+    not(all(any(target_os = "macos", target_os = "windows"), feature = "ci")),
+    // Sanitizers are too slow to uphold timing assumptions.
+    not(neqo_sanitize),
 ))]
 mod test {
     use std::{

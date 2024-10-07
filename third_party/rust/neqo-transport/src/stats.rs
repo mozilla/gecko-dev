@@ -24,7 +24,6 @@ pub const MAX_PTO_COUNTS: usize = 16;
 #[cfg_attr(test, derive(PartialEq, Eq))]
 #[allow(clippy::module_name_repetitions)]
 pub struct FrameStats {
-    pub all: usize,
     pub ack: usize,
     pub largest_acknowledged: PacketNumber,
 
@@ -94,6 +93,34 @@ impl Debug for FrameStats {
             self.path_response,
         )?;
         writeln!(f, "    ack_frequency {}", self.ack_frequency)
+    }
+}
+
+#[cfg(test)]
+impl FrameStats {
+    pub const fn all(&self) -> usize {
+        self.ack
+            + self.crypto
+            + self.stream
+            + self.reset_stream
+            + self.stop_sending
+            + self.ping
+            + self.padding
+            + self.max_streams
+            + self.streams_blocked
+            + self.max_data
+            + self.data_blocked
+            + self.max_stream_data
+            + self.stream_data_blocked
+            + self.new_connection_id
+            + self.retire_connection_id
+            + self.path_challenge
+            + self.path_response
+            + self.connection_close
+            + self.handshake_done
+            + self.new_token
+            + self.ack_frequency
+            + self.datagram
     }
 }
 

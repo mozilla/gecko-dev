@@ -150,11 +150,11 @@ impl QuicDatagrams {
     /// not fit into the packet.
     pub fn add_datagram(
         &mut self,
-        buf: &[u8],
+        data: Vec<u8>,
         tracking: DatagramTracking,
         stats: &mut Stats,
     ) -> Res<()> {
-        if u64::try_from(buf.len())? > self.remote_datagram_size {
+        if u64::try_from(data.len())? > self.remote_datagram_size {
             return Err(Error::TooMuchData);
         }
         if self.datagrams.len() == self.max_queued_outgoing_datagrams {
@@ -167,10 +167,7 @@ impl QuicDatagrams {
             );
             stats.datagram_tx.dropped_queue_full += 1;
         }
-        self.datagrams.push_back(QuicDatagram {
-            data: buf.to_vec(),
-            tracking,
-        });
+        self.datagrams.push_back(QuicDatagram { data, tracking });
         Ok(())
     }
 

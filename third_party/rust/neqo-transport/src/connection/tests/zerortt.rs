@@ -66,11 +66,11 @@ fn zero_rtt_send_recv() {
     let server_hs = server.process(client_hs.as_dgram_ref(), now());
     assert!(server_hs.as_dgram_ref().is_some()); // ServerHello, etc...
 
-    let all_frames = server.stats().frame_tx.all;
+    let all_frames = server.stats().frame_tx.all();
     let ack_frames = server.stats().frame_tx.ack;
     let server_process_0rtt = server.process(client_0rtt.as_dgram_ref(), now());
     assert!(server_process_0rtt.as_dgram_ref().is_some());
-    assert_eq!(server.stats().frame_tx.all, all_frames + 1);
+    assert_eq!(server.stats().frame_tx.all(), all_frames + 1);
     assert_eq!(server.stats().frame_tx.ack, ack_frames + 1);
 
     let server_stream_id = server

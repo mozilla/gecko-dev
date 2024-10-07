@@ -275,12 +275,12 @@ fn overflow_crypto() {
 }
 
 #[test]
-fn handshake_xyber() {
+fn handshake_mlkem768x25519() {
     let mut client = default_client();
     let mut server = default_server();
 
     client
-        .set_groups(&[neqo_crypto::TLS_GRP_KEM_XYBER768D00])
+        .set_groups(&[neqo_crypto::TLS_GRP_KEM_MLKEM768X25519])
         .ok();
     client.send_additional_key_shares(0).ok();
 
@@ -289,10 +289,10 @@ fn handshake_xyber() {
     assert_eq!(*server.state(), State::Confirmed);
     assert_eq!(
         client.tls_info().unwrap().key_exchange(),
-        neqo_crypto::TLS_GRP_KEM_XYBER768D00
+        neqo_crypto::TLS_GRP_KEM_MLKEM768X25519
     );
     assert_eq!(
         server.tls_info().unwrap().key_exchange(),
-        neqo_crypto::TLS_GRP_KEM_XYBER768D00
+        neqo_crypto::TLS_GRP_KEM_MLKEM768X25519
     );
 }

@@ -191,11 +191,11 @@ fn migrate_immediate() {
     assert_v6_path(&server2, true);
 
     // The second packet has no real effect, it just elicits an ACK.
-    let all_before = server.stats().frame_tx.all;
+    let all_before = server.stats().frame_tx.all();
     let ack_before = server.stats().frame_tx.ack;
     let server3 = server.process(Some(&client2), now).dgram();
     assert!(server3.is_some());
-    assert_eq!(server.stats().frame_tx.all, all_before + 1);
+    assert_eq!(server.stats().frame_tx.all(), all_before + 1);
     assert_eq!(server.stats().frame_tx.ack, ack_before + 1);
 
     // Receiving a packet sent by the server before migration doesn't change path.
@@ -249,14 +249,14 @@ fn migrate_immediate_fail() {
         let after = client.stats().frame_tx;
         assert_eq!(after.path_challenge, before.path_challenge + 1);
         assert_eq!(after.padding, before.padding + 1);
-        assert_eq!(after.all, before.all + 2);
+        assert_eq!(after.all(), before.all() + 2);
 
         // This might be a PTO, which will result in sending a probe.
         if let Some(probe) = client.process_output(now).dgram() {
             assert_v4_path(&probe, false); // Contains PATH_CHALLENGE.
             let after = client.stats().frame_tx;
             assert_eq!(after.ping, before.ping + 1);
-            assert_eq!(after.all, before.all + 3);
+            assert_eq!(after.all(), before.all() + 3);
         }
     }
 
@@ -325,14 +325,14 @@ fn migrate_same_fail() {
         let after = client.stats().frame_tx;
         assert_eq!(after.path_challenge, before.path_challenge + 1);
         assert_eq!(after.padding, before.padding + 1);
-        assert_eq!(after.all, before.all + 2);
+        assert_eq!(after.all(), before.all() + 2);
 
         // This might be a PTO, which will result in sending a probe.
         if let Some(probe) = client.process_output(now).dgram() {
             assert_v6_path(&probe, false); // Contains PATH_CHALLENGE.
             let after = client.stats().frame_tx;
             assert_eq!(after.ping, before.ping + 1);
-            assert_eq!(after.all, before.all + 3);
+            assert_eq!(after.all(), before.all() + 3);
         }
     }
 

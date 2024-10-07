@@ -48,7 +48,7 @@ use crate::{
     quic_datagrams::{DatagramTracking, QuicDatagrams},
     recovery::{LossRecovery, RecoveryToken, SendProfile, SentPacket},
     recv_stream::RecvStreamStats,
-    rtt::{RttEstimate, GRANULARITY},
+    rtt::{RttEstimate, GRANULARITY, INITIAL_RTT},
     send_stream::SendStream,
     stats::{Stats, StatsCell},
     stream_id::StreamType,
@@ -594,9 +594,25 @@ impl Connection {
     fn make_resumption_token(&mut self) -> ResumptionToken {
         debug_assert_eq!(self.role, Role::Client);
         debug_assert!(self.crypto.has_resumption_token());
+        // Values less than GRANULARITY are ignored when using the token, so use 0 where needed.
         let rtt = self.paths.primary().map_or_else(
-            || RttEstimate::default().estimate(),
-            |p| p.borrow().rtt().estimate(),
+            // If we don't have a path, we don't have an RTT.
+            || Duration::from_millis(0),
+            |p| {
+                let rtt = p.borrow().rtt().estimate();
+                if p.borrow().rtt().is_guesstimate() {
+                    // When we have no actual RTT sample, do not encode a guestimated RTT larger
+                    // than the default initial RTT. (The guess can be very large under lossy
+                    // conditions.)
+                    if rtt < INITIAL_RTT {
+                        rtt
+                    } else {
+                        Duration::from_millis(0)
+                    }
+                } else {
+                    rtt
+                }
+            },
         );
 
         self.crypto
@@ -613,13 +629,17 @@ impl Connection {
             .unwrap()
     }
 
+    fn confirmed(&self) -> bool {
+        self.state == State::Confirmed
+    }
+
     /// Get the simplest PTO calculation for all those cases where we need
     /// a value of this approximate order.  Don't use this for loss recovery,
     /// only use it where a more precise value is not important.
     fn pto(&self) -> Duration {
         self.paths.primary().map_or_else(
-            || RttEstimate::default().pto(PacketNumberSpace::ApplicationData),
-            |p| p.borrow().rtt().pto(PacketNumberSpace::ApplicationData),
+            || RttEstimate::default().pto(self.confirmed()),
+            |p| p.borrow().rtt().pto(self.confirmed()),
         )
     }
 
@@ -1033,7 +1053,7 @@ impl Connection {
             return timeout.duration_since(now);
         }
 
-        let mut delays = SmallVec::<[_; 6]>::new();
+        let mut delays = SmallVec::<[_; 7]>::new();
         if let Some(ack_time) = self.acks.ack_time(now) {
             qtrace!([self], "Delayed ACK timer {:?}", ack_time);
             delays.push(ack_time);
@@ -1042,11 +1062,18 @@ impl Connection {
         if let Some(p) = self.paths.primary() {
             let path = p.borrow();
             let rtt = path.rtt();
-            let pto = rtt.pto(PacketNumberSpace::ApplicationData);
+            let pto = rtt.pto(self.confirmed());
 
             let idle_time = self.idle_timeout.expiry(now, pto);
-            qtrace!([self], "Idle/keepalive timer {:?}", idle_time);
+            qtrace!([self], "Idle timer {:?}", idle_time);
             delays.push(idle_time);
+
+            if self.streams.need_keep_alive() {
+                if let Some(keep_alive_time) = self.idle_timeout.next_keep_alive(now, pto) {
+                    qtrace!([self], "Keep alive timer {:?}", keep_alive_time);
+                    delays.push(keep_alive_time);
+                }
+            }
 
             if let Some(lr_time) = self.loss_recovery.next_timeout(&path) {
                 qtrace!([self], "Loss recovery timer {:?}", lr_time);
@@ -1396,12 +1423,14 @@ impl Connection {
                 // that Initial packets were lost.
                 // Resend Initial CRYPTO frames immediately a few times just
                 // in case.  As we don't have an RTT estimate yet, this helps
-                // when there is a short RTT and losses.
+                // when there is a short RTT and losses. Also mark all 0-RTT
+                // data as lost.
                 if dcid.is_none()
                     && self.cid_manager.is_valid(packet.dcid())
                     && self.stats.borrow().saved_datagrams <= EXTRA_INITIALS
                 {
                     self.crypto.resend_unacked(PacketNumberSpace::Initial);
+                    self.resend_0rtt(now);
                 }
             }
             (PacketType::VersionNegotiation | PacketType::Retry | PacketType::OtherVersion, ..) => {
@@ -1507,7 +1536,7 @@ impl Connection {
         let mut dcid = None;
 
         qtrace!([self], "{} input {}", path.borrow(), hex(&**d));
-        let pto = path.borrow().rtt().pto(PacketNumberSpace::ApplicationData);
+        let pto = path.borrow().rtt().pto(self.confirmed());
 
         // Handle each packet in the datagram.
         while !slc.is_empty() {
@@ -2000,7 +2029,10 @@ impl Connection {
         // Count how many bytes in this range are non-zero.
         let pn_len = mem::size_of::<PacketNumber>()
             - usize::try_from(unacked_range.leading_zeros() / 8).unwrap();
-        // pn_len can't be zero (unacked_range is > 0)
+        assert!(
+            pn_len > 0,
+            "pn_len can't be zero as unacked_range should be > 0, pn {pn}, largest_acknowledged {largest_acknowledged:?}, tx {tx}"
+        );
         // TODO(mt) also use `4*path CWND/path MTU` to set a minimum length.
         builder.pn(pn, pn_len);
         pn
@@ -2120,7 +2152,7 @@ impl Connection {
             // or the PTO timer fired: probe.
             true
         } else {
-            let pto = path.borrow().rtt().pto(PacketNumberSpace::ApplicationData);
+            let pto = path.borrow().rtt().pto(self.confirmed());
             if !builder.packet_empty() {
                 // The packet only contains an ACK.  Check whether we want to
                 // force an ACK with a PING so we can stop tracking packets.
@@ -2139,7 +2171,6 @@ impl Connection {
             builder.encode_varint(crate::frame::FRAME_TYPE_PING);
             let stats = &mut self.stats.borrow_mut().frame_tx;
             stats.ping += 1;
-            stats.all += 1;
         }
         probe
     }
@@ -2226,13 +2257,11 @@ impl Connection {
         let stats = &mut self.stats.borrow_mut().frame_tx;
         let padded = if ack_eliciting && full_mtu && builder.pad() {
             stats.padding += 1;
-            stats.all += 1;
             true
         } else {
             false
         };
 
-        stats.all += tokens.len();
         (tokens, ack_eliciting, padded)
     }
 
@@ -2799,7 +2828,6 @@ impl Connection {
             qinfo!("frame not allowed: {:?} {:?}", frame, packet_type);
             return Err(Error::ProtocolViolation);
         }
-        self.stats.borrow_mut().frame_rx.all += 1;
         let space = PacketNumberSpace::from(packet_type);
         if frame.is_stream() {
             return self
@@ -2853,8 +2881,13 @@ impl Connection {
                     self.handshake(now, packet_version, space, Some(&buf))?;
                     self.create_resumption_token(now);
                 } else {
-                    // If we get a useless CRYPTO frame send outstanding CRYPTO frames again.
+                    // If we get a useless CRYPTO frame send outstanding CRYPTO frames and 0-RTT
+                    // data again.
                     self.crypto.resend_unacked(space);
+                    if space == PacketNumberSpace::Initial {
+                        self.crypto.resend_unacked(PacketNumberSpace::Handshake);
+                        self.resend_0rtt(now);
+                    }
                 }
             }
             Frame::NewToken { token } => {
@@ -3066,21 +3099,22 @@ impl Connection {
         stats.largest_acknowledged = max(stats.largest_acknowledged, largest_acknowledged);
     }
 
+    /// Tell 0-RTT packets that they were "lost".
+    fn resend_0rtt(&mut self, now: Instant) {
+        if let Some(path) = self.paths.primary() {
+            let dropped = self.loss_recovery.drop_0rtt(&path, now);
+            self.handle_lost_packets(&dropped);
+        }
+    }
+
     /// When the server rejects 0-RTT we need to drop a bunch of stuff.
     fn client_0rtt_rejected(&mut self, now: Instant) {
         if !matches!(self.zero_rtt_state, ZeroRttState::Sending) {
             return;
         }
         qdebug!([self], "0-RTT rejected");
-
-        // Tell 0-RTT packets that they were "lost".
-        if let Some(path) = self.paths.primary() {
-            let dropped = self.loss_recovery.drop_0rtt(&path, now);
-            self.handle_lost_packets(&dropped);
-        }
-
+        self.resend_0rtt(now);
         self.streams.zero_rtt_rejected();
-
         self.crypto.states.discard_0rtt_keys();
         self.events.client_0rtt_rejected();
     }
@@ -3405,7 +3439,7 @@ impl Connection {
         };
         let path = self.paths.primary().ok_or(Error::NotAvailable)?;
         let mtu = path.borrow().plpmtu();
-        let encoder = Encoder::with_capacity(mtu);
+        let encoder = Encoder::default();
 
         let (_, mut builder) = Self::build_packet_header(
             &path.borrow(),
@@ -3440,7 +3474,7 @@ impl Connection {
     /// to check the estimated max datagram size and to use smaller datagrams.
     /// `max_datagram_size` is just a current estimate and will change over
     /// time depending on the encoded size of the packet number, ack frames, etc.
-    pub fn send_datagram(&mut self, buf: &[u8], id: impl Into<DatagramTracking>) -> Res<()> {
+    pub fn send_datagram(&mut self, buf: Vec<u8>, id: impl Into<DatagramTracking>) -> Res<()> {
         self.quic_datagrams
             .add_datagram(buf, id.into(), &mut self.stats.borrow_mut())
     }

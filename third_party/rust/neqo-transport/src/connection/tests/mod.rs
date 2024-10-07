@@ -28,6 +28,7 @@ use crate::{
     pmtud::Pmtud,
     recovery::ACK_ONLY_SIZE_LIMIT,
     stats::{FrameStats, Stats, MAX_PTO_COUNTS},
+    tparams::{DISABLE_MIGRATION, GREASE_QUIC_BIT},
     ConnectionIdDecoder, ConnectionIdGenerator, ConnectionParameters, Error, StreamId, StreamType,
     Version,
 };
@@ -677,4 +678,22 @@ fn create_server() {
     assert_default_stats(&stats);
     // Server won't have a default path, so no RTT.
     assert_eq!(stats.rtt, Duration::from_secs(0));
+}
+
+#[test]
+fn tp_grease() {
+    for enable in [true, false] {
+        let client = new_client(ConnectionParameters::default().grease(enable));
+        let grease = client.tps.borrow_mut().local.get_empty(GREASE_QUIC_BIT);
+        assert_eq!(enable, grease);
+    }
+}
+
+#[test]
+fn tp_disable_migration() {
+    for disable in [true, false] {
+        let client = new_client(ConnectionParameters::default().disable_migration(disable));
+        let disable_migration = client.tps.borrow_mut().local.get_empty(DISABLE_MIGRATION);
+        assert_eq!(disable, disable_migration);
+    }
 }

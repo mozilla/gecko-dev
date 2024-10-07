@@ -27,10 +27,9 @@ use crate::{
     packet::PacketBuilder,
     pmtud::Pmtud,
     recovery::{RecoveryToken, SentPacket},
-    rtt::RttEstimate,
+    rtt::{RttEstimate, RttSource},
     sender::PacketSender,
     stats::FrameStats,
-    tracking::PacketNumberSpace,
     Stats,
 };
 
@@ -811,9 +810,7 @@ impl Path {
             builder.encode(&challenge[..]);
 
             // These frames are not retransmitted in the usual fashion.
-            // There is no token, therefore we need to count `all` specially.
             stats.path_response += 1;
-            stats.all += 1;
 
             if builder.remaining() < 9 {
                 return true;
@@ -832,7 +829,6 @@ impl Path {
 
             // As above, no recovery token.
             stats.path_challenge += 1;
-            stats.all += 1;
 
             self.state = ProbeState::Probing {
                 probe_count,
@@ -987,7 +983,7 @@ impl Path {
                 &self.qlog,
                 now - sent.time_sent(),
                 Duration::new(0, 0),
-                false,
+                RttSource::Guesstimate,
                 now,
             );
         }
@@ -1023,7 +1019,7 @@ impl Path {
     pub fn on_packets_lost(
         &mut self,
         prev_largest_acked_sent: Option<Instant>,
-        space: PacketNumberSpace,
+        confirmed: bool,
         lost_packets: &[SentPacket],
         stats: &mut Stats,
         now: Instant,
@@ -1033,7 +1029,7 @@ impl Path {
         let cwnd_reduced = self.sender.on_packets_lost(
             self.rtt.first_sample_time(),
             prev_largest_acked_sent,
-            self.rtt.pto(space), // Important: the base PTO, not adjusted.
+            self.rtt.pto(confirmed), // Important: the base PTO, not adjusted.
             lost_packets,
             stats,
             now,

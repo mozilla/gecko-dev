@@ -126,7 +126,6 @@ impl Pmtud {
         // seems OK to burn one byte here to simply include a PING.
         builder.encode_varint(FRAME_TYPE_PING);
         stats.frame_tx.ping += 1;
-        stats.frame_tx.all += 1;
         stats.pmtud_tx += 1;
         self.probe_count += 1;
         self.probe_state = Probe::Sent;
