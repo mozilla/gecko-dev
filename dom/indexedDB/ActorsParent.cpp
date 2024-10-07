@@ -5050,6 +5050,7 @@ class Maintenance final : public Runnable {
   nsTHashMap<nsStringHashKey, DatabaseMaintenance*> mDatabaseMaintenances;
   nsresult mResultCode;
   Atomic<bool> mAborted;
+  bool mInitializeOriginsFailed;
   State mState;
 
  public:
@@ -5059,6 +5060,7 @@ class Maintenance final : public Runnable {
         mStartTime(PR_Now()),
         mResultCode(NS_OK),
         mAborted(false),
+        mInitializeOriginsFailed(false),
         mState(State::Initial) {
     AssertIsOnBackgroundThread();
     MOZ_ASSERT(aQuotaClient);
@@ -5125,6 +5127,9 @@ class Maintenance final : public Runnable {
   // Runs on the main thread. Once IndexedDatabaseManager is created it will
   // dispatch to the PBackground thread on which OpenDirectory() is called.
   nsresult CreateIndexedDatabaseManager();
+
+  RefPtr<UniversalDirectoryLockPromise> OpenStorageDirectory(
+      bool aInitializeOrigins);
 
   // Runs on the PBackground thread. Once QuotaManager has given a lock it will
   // call DirectoryOpen().
@@ -13021,6 +13026,25 @@ nsresult Maintenance::CreateIndexedDatabaseManager() {
   return NS_OK;
 }
 
+RefPtr<UniversalDirectoryLockPromise> Maintenance::OpenStorageDirectory(
+    bool aInitializeOrigins) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(!QuotaClient::IsShuttingDownOnBackgroundThread());
+  MOZ_ASSERT(!mDirectoryLock);
+  MOZ_ASSERT(!mAborted);
+  MOZ_ASSERT(mState == State::DirectoryOpenPending);
+
+  QuotaManager* quotaManager = QuotaManager::Get();
+  MOZ_ASSERT(quotaManager);
+
+  // Return a shared lock for <profile>/storage/*/*/idb
+  return quotaManager->OpenStorageDirectory(
+      PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
+      Nullable<Client::Type>(Client::IDB),
+      /* aExclusive */ false, aInitializeOrigins, DirectoryLockCategory::None,
+      SomeRef(mPendingDirectoryLock));
+}
+
 nsresult Maintenance::OpenDirectory() {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(mState == State::Initial ||
@@ -13033,29 +13057,46 @@ nsresult Maintenance::OpenDirectory() {
     return NS_ERROR_ABORT;
   }
 
-  QuotaManager* quotaManager = QuotaManager::Get();
-  MOZ_ASSERT(quotaManager);
-
-  // Get a shared lock for <profile>/storage/*/*/idb
-
   mState = State::DirectoryOpenPending;
 
-  quotaManager
-      ->OpenStorageDirectory(
-          PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
-          Nullable<Client::Type>(Client::IDB), /* aExclusive */ false,
-          /* aInitializeOrigins */ false, DirectoryLockCategory::None,
-          SomeRef(mPendingDirectoryLock))
-      ->Then(GetCurrentSerialEventTarget(), __func__,
-             [self = RefPtr(this)](
-                 const UniversalDirectoryLockPromise::ResolveOrRejectValue&
-                     aValue) {
-               if (aValue.IsResolve()) {
-                 self->DirectoryLockAcquired(aValue.ResolveValue());
-               } else {
-                 self->DirectoryLockFailed();
-               }
-             });
+  // Since idle maintenance may occur before temporary storage is initialized,
+  // make sure it's initialized here (all non-persistent origins need to be
+  // cleaned up and quota info needs to be loaded for them).
+
+  OpenStorageDirectory(/* aInitializeOrigins */ true)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self = RefPtr(this)](
+              const UniversalDirectoryLockPromise::ResolveOrRejectValue&
+                  aValue) {
+            if (aValue.IsResolve()) {
+              self->DirectoryLockAcquired(aValue.ResolveValue());
+              return;
+            }
+
+            // Don't fail whole idle maintenance in case of an error, the
+            // persistent repository can still be processed.
+
+            self->mPendingDirectoryLock = nullptr;
+            self->mInitializeOriginsFailed = true;
+
+            if (NS_WARN_IF(QuotaClient::IsShuttingDownOnBackgroundThread()) ||
+                self->IsAborted()) {
+              self->DirectoryLockFailed();
+              return;
+            }
+
+            self->OpenStorageDirectory(/* aInitializeOrigins */ false)
+                ->Then(GetCurrentSerialEventTarget(), __func__,
+                       [self](const UniversalDirectoryLockPromise::
+                                  ResolveOrRejectValue& aValue) {
+                         if (aValue.IsResolve()) {
+                           self->DirectoryLockAcquired(aValue.ResolveValue());
+                         } else {
+                           self->DirectoryLockFailed();
+                         }
+                       });
+          });
 
   return NS_OK;
 }
@@ -13100,20 +13141,6 @@ nsresult Maintenance::DirectoryWork() {
 
   QuotaManager* const quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
-
-  // Since idle maintenance may occur before temporary storage is initialized,
-  // make sure it's initialized here (all non-persistent origins need to be
-  // cleaned up and quota info needs to be loaded for them).
-
-  // Don't fail whole idle maintenance in case of an error, the persistent
-  // repository can still
-  // be processed.
-  const bool initTemporaryStorageFailed = [&quotaManager] {
-    QM_TRY(MOZ_TO_RESULT(
-               quotaManager->EnsureTemporaryStorageIsInitializedInternal()),
-           true);
-    return false;
-  }();
 
   const nsCOMPtr<nsIFile> storageDir =
       GetFileForPath(quotaManager->GetStoragePath());
@@ -13164,7 +13191,7 @@ nsresult Maintenance::DirectoryWork() {
 
     const bool persistent = persistenceType == PERSISTENCE_TYPE_PERSISTENT;
 
-    if (!persistent && initTemporaryStorageFailed) {
+    if (!persistent && mInitializeOriginsFailed) {
       // Non-persistent (best effort) repositories can't be processed if
       // temporary storage initialization failed.
       continue;
