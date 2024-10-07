@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
@@ -30,6 +31,19 @@ export const SidebarManager = {
       }
       const slug = enrollment.slug + ":" + enrollment.branch.slug;
       if (slug == lazy.sidebarNimbus) {
+        return;
+      }
+
+      // Enforce minimum version by skipping pref changes until Firefox restarts
+      // with the appropriate version
+      if (
+        Services.vc.compare(
+          // Support betas, e.g., 132.0b1, instead of MOZ_APP_VERSION
+          AppConstants.MOZ_APP_VERSION_DISPLAY,
+          // Check configured version or compare with unset handled as 0
+          lazy.NimbusFeatures[featureId].getVariable("minVersion")
+        ) < 0
+      ) {
         return;
       }
 
