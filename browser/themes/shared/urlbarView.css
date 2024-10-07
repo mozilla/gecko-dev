@@ -722,7 +722,11 @@
     margin-inline-start: 8px;
 
     :root[uidensity=compact] & {
-      padding: 3px 6px;
+      padding-block: 3px;
+
+      .urlbarView-row[type=remotetab] & {
+        padding-inline: 6px;
+      }
     }
 
     /* stylelint-disable-next-line media-query-no-invalid */
