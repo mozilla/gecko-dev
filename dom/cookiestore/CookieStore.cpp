@@ -427,7 +427,7 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
              operationID](
                 const CookieStoreChild::SetRequestPromise::ResolveOrRejectValue&
                     aResult) {
-              if (!aResult.ResolveValue()) {
+              if (!aResult.IsResolve() || !aResult.ResolveValue()) {
                 self->mNotificationWatcher->ForgetOperationID(operationID);
                 promise->MaybeResolveWithUndefined();
               }
@@ -542,8 +542,7 @@ already_AddRefed<Promise> CookieStore::Delete(
             [promise = RefPtr<dom::Promise>(promise), self = RefPtr(self),
              operationID](const CookieStoreChild::DeleteRequestPromise::
                               ResolveOrRejectValue& aResult) {
-              MOZ_ASSERT(aResult.IsResolve());
-              if (!aResult.ResolveValue()) {
+              if (!aResult.IsResolve() || !aResult.ResolveValue()) {
                 self->mNotificationWatcher->ForgetOperationID(operationID);
                 promise->MaybeResolveWithUndefined();
               }
@@ -741,9 +740,12 @@ already_AddRefed<Promise> CookieStore::GetInternal(
             [promise = RefPtr<dom::Promise>(promise), aOnlyTheFirstMatch](
                 const CookieStoreChild::GetRequestPromise::ResolveOrRejectValue&
                     aResult) {
-              nsTArray<CookieListItem> list;
-              MOZ_ASSERT(aResult.IsResolve());
+              if (!aResult.IsResolve()) {
+                promise->MaybeResolveWithUndefined();
+                return;
+              }
 
+              nsTArray<CookieListItem> list;
               CookieDataToList(aResult.ResolveValue(), list);
 
               if (!aOnlyTheFirstMatch) {
