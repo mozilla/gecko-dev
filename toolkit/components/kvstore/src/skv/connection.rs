@@ -9,7 +9,9 @@
 
 use std::{borrow::Cow, fmt::Debug, num::NonZeroU32, path::Path, sync::Mutex};
 
-use rusqlite::{InterruptHandle, OpenFlags, Transaction, TransactionBehavior};
+use rusqlite::{config::DbConfig, InterruptHandle, OpenFlags, Transaction, TransactionBehavior};
+
+use crate::skv;
 
 /// A path to a physical SQLite database, and optional [`OpenFlags`] for
 /// interpreting that path.
@@ -24,27 +26,17 @@ pub trait ToConnectionIncident {
     fn to_incident(&self) -> Option<ConnectionIncident>;
 }
 
-/// Sets up an SQLite database connection, and either
-/// initializes an empty physical database with the latest schema, or
-/// upgrades an existing physical database to the latest schema.
-pub trait ConnectionOpener {
-    /// The highest schema version that we support.
+/// Migrates an SQLite database to the highest supported schema version.
+pub trait ConnectionMigrator {
+    /// The highest supported schema version.
     const MAX_SCHEMA_VERSION: u32;
 
-    type Error: From<rusqlite::Error>;
+    type Error;
 
-    /// Sets up an opened connection for use. This is a good place to
-    /// set pragmas and configuration options, register functions, and
-    /// load extensions.
-    fn setup(_conn: &mut rusqlite::Connection) -> Result<(), Self::Error> {
-        Ok(())
-    }
-
-    /// Initializes an empty physical database with the latest schema.
+    /// Initializes an SQLite database with the latest schema.
     fn create(tx: &mut Transaction<'_>) -> Result<(), Self::Error>;
 
-    /// Upgrades an existing physical database to the schema with
-    /// the given version.
+    /// Upgrades an SQLite database to the schema with the given version.
     fn upgrade(tx: &mut Transaction<'_>, to_version: NonZeroU32) -> Result<(), Self::Error>;
 }
 
@@ -73,16 +65,37 @@ pub struct Connection {
 }
 
 impl Connection {
-    /// Opens a connection to a physical database at the given path.
-    pub fn new<O>(path: &impl ConnectionPath, type_: ConnectionType) -> Result<Self, O::Error>
+    /// Opens a connection to an SQLite database at the given path.
+    pub fn new<M>(path: &impl ConnectionPath, type_: ConnectionType) -> Result<Self, M::Error>
     where
-        O: ConnectionOpener,
+        M: ConnectionMigrator,
+        M::Error: From<rusqlite::Error>,
     {
         let mut conn = rusqlite::Connection::open_with_flags(
             path.as_path(),
             path.flags().union(type_.flags()),
         )?;
-        O::setup(&mut conn)?;
+
+        conn.execute_batch(
+            "PRAGMA journal_mode = WAL;
+             PRAGMA journal_size_limit = 524288; -- 512 KB.
+             PRAGMA foreign_keys = ON;
+             PRAGMA temp_store = MEMORY;
+             PRAGMA secure_delete = ON;
+             PRAGMA auto_vacuum = INCREMENTAL;
+            ",
+        )?;
+
+        // Set hardening flags.
+        conn.set_db_config(DbConfig::SQLITE_DBCONFIG_DEFENSIVE, true)?;
+
+        // Turn off misfeatures: double-quoted strings and untrusted schemas.
+        conn.set_db_config(DbConfig::SQLITE_DBCONFIG_DQS_DML, false)?;
+        conn.set_db_config(DbConfig::SQLITE_DBCONFIG_DQS_DDL, false)?;
+        conn.set_db_config(DbConfig::SQLITE_DBCONFIG_TRUSTED_SCHEMA, true)?;
+
+        skv::functions::register(&mut conn)?;
+
         match type_ {
             ConnectionType::ReadOnly => Ok(Self::with_connection(conn)),
             ConnectionType::ReadWrite => {
@@ -91,19 +104,19 @@ impl Connection {
                 let mut tx = conn.transaction_with_behavior(TransactionBehavior::Exclusive)?;
                 match tx.query_row_and_then("PRAGMA user_version", [], |row| row.get(0)) {
                     Ok(mut version @ 1..) => {
-                        while version < O::MAX_SCHEMA_VERSION {
-                            O::upgrade(&mut tx, NonZeroU32::new(version + 1).unwrap())?;
+                        while version < M::MAX_SCHEMA_VERSION {
+                            M::upgrade(&mut tx, NonZeroU32::new(version + 1).unwrap())?;
                             version += 1;
                         }
                     }
-                    Ok(0) => O::create(&mut tx)?,
+                    Ok(0) => M::create(&mut tx)?,
                     Err(err) => Err(err)?,
                 }
                 // Set the schema version to the highest that we support.
                 // If the current version is higher than ours, downgrade it,
                 // so that upgrading to it again in the future can fix up any
                 // invariants that our version might not uphold.
-                tx.execute_batch(&format!("PRAGMA user_version = {}", O::MAX_SCHEMA_VERSION))?;
+                tx.execute_batch(&format!("PRAGMA user_version = {};", M::MAX_SCHEMA_VERSION))?;
                 tx.commit()?;
                 Ok(Self::with_connection(conn))
             }

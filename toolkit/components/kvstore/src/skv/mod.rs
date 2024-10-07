@@ -17,6 +17,7 @@ pub mod checker;
 pub mod connection;
 mod coordinator;
 mod database;
+mod functions;
 mod importer;
 mod interface;
 mod key;
