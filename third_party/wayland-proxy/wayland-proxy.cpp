@@ -801,7 +801,7 @@ bool WaylandProxy::RunThread() {
 
   sched_param param;
   if (pthread_attr_getschedparam(&attr, &param) == 0) {
-    param.sched_priority = sched_get_priority_min(SCHED_RR);
+    param.sched_priority = sched_get_priority_min(SCHED_FIFO);
     pthread_attr_setschedparam(&attr, &param);
   }
 
