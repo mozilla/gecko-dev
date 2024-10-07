@@ -14,10 +14,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 export const BookmarksBarButton = {
   async showBookmarksBarButton(browser, message) {
-    const { label, action } = message.content;
+    const { label, action, logo } = message.content;
     let { gBrowser } = browser.ownerGlobal;
     const surfaceName = "fxms-bmb-button";
     const widgetId = message.id;
+    const supportedActions = ["OPEN_URL", "SET_PREF", "MULTI_ACTION"];
 
     const fxmsBookmarksBarBtn = {
       id: widgetId,
@@ -29,6 +30,9 @@ export const BookmarksBarButton = {
 
       onCreated(aNode) {
         aNode.className = `bookmark-item chromeclass-toolbar-additional ${surfaceName}`;
+        if (logo?.imageURL) {
+          aNode.style.listStyleImage = `url(${logo.imageURL})`;
+        }
 
         lazy.BrowserUsageTelemetry.recordWidgetChange(
           widgetId,
@@ -39,12 +43,26 @@ export const BookmarksBarButton = {
       },
 
       onCommand() {
-        // Currently only supports OPEN_URL action
-        if (action.type === "OPEN_URL") {
-          // Click telemetry is handled in BrowserUsageTelemetry, see
-          // _recordCommand()
-          lazy.SpecialMessageActions.handleAction(action, gBrowser);
+        // Click telemetry is handled in BrowserUsageTelemetry, see
+        // _recordCommand()
+        if (supportedActions.includes(action.type)) {
+          switch (action.type) {
+            case "OPEN_URL":
+            case "SET_PREF":
+              lazy.SpecialMessageActions.handleAction(action, gBrowser);
+              break;
+            case "MULTI_ACTION":
+              if (
+                action.data.actions.every(iAction =>
+                  supportedActions.includes(iAction.type)
+                )
+              ) {
+                lazy.SpecialMessageActions.handleAction(action, gBrowser);
+                break;
+              }
+          }
         }
+
         if (action.navigate || action.dismiss) {
           lazy.CustomizableUI.destroyWidget(widgetId);
         }

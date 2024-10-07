@@ -130,3 +130,88 @@ add_task(async function clickButton() {
   await BrowserTestUtils.closeWindow(win);
   sandbox.restore();
 });
+
+add_task(async function supportedActionsOnly() {
+  const message = getTestMessage();
+  const Id3 = "TEST_BMB_BAR_BUTTON_3";
+  message.id = Id3;
+  message.content.action = {
+    type: "MULTI_ACTION",
+    navigate: true,
+    data: {
+      actions: [
+        {
+          type: "SET_PREF",
+          data: {
+            pref: {
+              name: "testpref.test.test",
+              value: true,
+            },
+          },
+        },
+        {
+          type: "DUMMY_ACTION",
+          data: {
+            args: "https://www.mozilla.org",
+            where: "tab",
+          },
+        },
+      ],
+    },
+  };
+
+  const sandbox = sinon.createSandbox();
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const browser = win.gBrowser.selectedBrowser;
+  const doc = win.document;
+  const handleActionStub = sandbox.stub(SpecialMessageActions, "handleAction");
+
+  await BookmarksBarButton.showBookmarksBarButton(browser, message);
+
+  info("WAITING TO SHOW BOOKMARKS BAR BUTTON");
+
+  ok(doc.querySelector(".fxms-bmb-button"), "Bookmarks Bar Button exists");
+
+  win.document.querySelector(".fxms-bmb-button").click();
+
+  ok(
+    handleActionStub.notCalled,
+    "handleAction should not be called if invalid action type was provided"
+  );
+
+  CustomizableUI.destroyWidget(Id3);
+  await CustomizableUI.reset();
+  await BrowserTestUtils.closeWindow(win);
+  sandbox.restore();
+});
+
+add_task(async function customizableIconLogo() {
+  const message = getTestMessage();
+  const Id4 = "TEST_BMB_BAR_BUTTON_4";
+  message.id = Id4;
+  let iconUrl = "chrome://browser/content/callout-tab-pickup.svg";
+  message.content.logo = {
+    imageURL: iconUrl,
+  };
+
+  const sandbox = sinon.createSandbox();
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const browser = win.gBrowser.selectedBrowser;
+  const doc = win.document;
+
+  await BookmarksBarButton.showBookmarksBarButton(browser, message);
+
+  info("WAITING TO SHOW BOOKMARKS BAR BUTTON");
+
+  ok(doc.querySelector(".fxms-bmb-button"), "Bookmarks Bar Button exists");
+  Assert.strictEqual(
+    doc.querySelector(".fxms-bmb-button").style.listStyleImage,
+    'url("chrome://browser/content/callout-tab-pickup.svg")',
+    `Should use customizable logo URL`
+  );
+
+  CustomizableUI.destroyWidget(Id4);
+  await CustomizableUI.reset();
+  await BrowserTestUtils.closeWindow(win);
+  sandbox.restore();
+});

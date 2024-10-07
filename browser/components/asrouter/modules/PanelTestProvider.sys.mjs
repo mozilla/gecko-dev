@@ -103,13 +103,32 @@ const MESSAGES = () => [
         raw: "Getting Started",
         tooltiptext: "Getting started with Firefox",
       },
+      logo: {
+        imageURL: "chrome://browser/content/assets/focus-logo.svg",
+      },
       action: {
-        type: "OPEN_URL",
-        data: {
-          args: "https://www.mozilla.org",
-          where: "tab",
-        },
+        type: "MULTI_ACTION",
         navigate: true,
+        data: {
+          actions: [
+            {
+              type: "SET_PREF",
+              data: {
+                pref: {
+                  name: "testpref.test.test",
+                  value: true,
+                },
+              },
+            },
+            {
+              type: "OPEN_URL",
+              data: {
+                args: "https://www.mozilla.org",
+                where: "tab",
+              },
+            },
+          ],
+        },
       },
     },
     frequency: { lifetime: 100 },
