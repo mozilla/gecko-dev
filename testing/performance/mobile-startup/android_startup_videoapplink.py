@@ -13,49 +13,78 @@ sys.path.insert(0, os.environ["PYTHON_PACKAGES"])
 import cv2
 import numpy as np
 
+APP_LINK_STARTUP_WEBSITE = "https://theme-crave-demo.myshopify.com/"
 PROD_FENIX = "fenix"
 PROD_CHRM = "chrome-m"
+BACKGROUND_TABS = [
+    "https://www.google.com/search?q=toronto+weather",
+    "https://en.m.wikipedia.org/wiki/Anemone_hepatica",
+    "https://www.amazon.ca/gp/aw/gb?ref_=navm_cs_gb&discounts-widget",
+    "https://www.espn.com/nfl/game/_/gameId/401671793/chiefs-falcons",
+]
+ITERATIONS = 5
 
 
 class ImageAnalzer:
     def __init__(self, browser):
         self.video = None
         self.browser = browser
-        self.intent = ""
         self.width = 0
         self.height = 0
         self.video_name = ""
         self.package_name = os.environ["BROWSER_BINARY"]
+        if self.browser == PROD_FENIX:
+            self.intent = "org.mozilla.fenix/org.mozilla.fenix.IntentReceiverActivity"
+        elif self.browser == PROD_CHRM:
+            self.intent = (
+                "com.android.chrome/com.google.android.apps.chrome.IntentDispatcher"
+            )
+        else:
+            raise Exception("Bad browser name")
+        self.nav_start_command = (
+            f"am start-activity -W -n {self.intent} -a "
+            f"android.intent.action.VIEW -d "
+        )
 
         adb_shell("mkdir -p /sdcard/Download")
+        adb_shell("settings put global window_animation_scale 1")
+        adb_shell("settings put global transition_animation_scale 1")
+        adb_shell("settings put global animator_duration_scale 1")
 
-        if self.browser == PROD_FENIX:
-            self.intent = "org.mozilla.fenix/.IntentReceiverActivity"
+    def app_setup(self):
+        adb_shell(f"pm clear {self.package_name}")
+        time.sleep(3)
+        self.skip_onboarding()
+        adb_shell(
+            f"pm grant {self.package_name} android.permission.POST_NOTIFICATIONS"
+        )  # enabling notifications
+        self.create_background_tabs()
+        force_stop(self.package_name)
+
+    def skip_onboarding(self):
+        # Skip onboarding for chrome and fenix
+        if self.browser == PROD_CHRM:
+            adb_shell(
+                '\'echo "chrome --no-default-browser-check --no-first-run --disable-fre" '
+                "> /data/local/tmp/chrome-command-line'"
+            )
+            adb_shell("am set-debug-app --persistent com.android.chrome")
+        elif self.browser == PROD_FENIX:
             adb_shell(
                 "am start-activity -W -a android.intent.action.MAIN --ez "
                 "performancetest true -n org.mozilla.fenix/org.mozilla.fenix.App"
             )
-        elif self.browser == PROD_CHRM:
-            self.intent = "com.android.chrome/com.google.android.apps.chrome.Main"
-            adb_shell(f"am start-activity -W -n {self.intent}")
-            time.sleep(5)
-            adb_shell("input tap 500 1900")  # tap on the skip account creation
-            time.sleep(5)
-        else:
-            raise Exception("bad browser name")
-        adb_shell(
-            f"pm grant {self.package_name} android.permission.POST_NOTIFICATIONS"
-        )  # enable notifications
-        time.sleep(10)  # allow enable notifications to propagate
-        force_stop(self.package_name)
-        time.sleep(1)
+
+    def create_background_tabs(self):
+        # Add background tabs that allow us to see the impact of having background tabs open
+        # when we do the cold applink startup test. This makes the test workload more realistic
+        # and will also help catch regressions that affect per-open-tab startup work.
+        for website in BACKGROUND_TABS:
+            adb_shell(self.nav_start_command + website)
+            time.sleep(3)
 
     def get_video(self, run):
-        self.video_name = f"vid{run}_{browser}.mp4"
-        nav_start_command = (
-            f"am start-activity -W -n {self.intent} -a "
-            "android.intent.action.VIEW -d https://theme-crave-demo.myshopify.com/"
-        )
+        self.video_name = f"vid{run}_{self.browser}.mp4"
         video_location = f"/sdcard/Download/{self.video_name}"
 
         # Start Recording
@@ -64,17 +93,18 @@ class ImageAnalzer:
                 "adb",
                 "shell",
                 "screenrecord",
+                "--bugreport",
                 video_location,
             ]
         )
         time.sleep(1)
 
         # Navigate to a page
-        adb_shell(nav_start_command)
+        adb_shell(self.nav_start_command + APP_LINK_STARTUP_WEBSITE)
         time.sleep(5)
         recording.kill()
 
-        time.sleep(10)
+        time.sleep(5)
         subprocess.Popen(
             [
                 "adb",
@@ -98,7 +128,9 @@ class ImageAnalzer:
         ret, frame = self.video.read()
         if not ret:
             raise Exception("Frame not read")
-        return frame
+        # We crop out the top 100 pixels in each image as when we have --bug-report in the
+        # screen-recording command it displays a timestamp which interferes with the image comparisons
+        return frame[100 : int(self.height), 0 : int(self.width)]
 
     def error(self, img1, img2):
         h = img1.shape[0]
@@ -138,7 +170,7 @@ class ImageAnalzer:
 
 
 def adb_shell(args):
-    subprocess.getoutput([f"adb shell {args}"])
+    print(subprocess.getoutput([f"adb shell {args}"]))
 
 
 def force_stop(package_name):
@@ -152,13 +184,14 @@ if __name__ == "__main__":
     start_video_timestamp = []
 
     ImageObject = ImageAnalzer(browser)
-    for iteration in range(50):
+    for iteration in range(ITERATIONS):
+        ImageObject.app_setup()
         ImageObject.get_video(iteration)
         nav_done_frame = ImageObject.get_cold_view_nav_end_frame()
         start_video_timestamp += [ImageObject.get_time_from_frame_num(nav_done_frame)]
     print(
         'perfMetrics: {"values": ',
         start_video_timestamp,
-        ', "name": "cold_view_nav_end", "shouldAlert": true',
+        ', "name": "applink_startup", "shouldAlert": true',
         "}",
     )
