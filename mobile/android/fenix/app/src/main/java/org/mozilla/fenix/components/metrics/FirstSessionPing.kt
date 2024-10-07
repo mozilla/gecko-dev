@@ -15,13 +15,17 @@ import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.GleanMetrics.FirstSession
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.distributions.getDistributionId
 import org.mozilla.fenix.ext.application
 
-class FirstSessionPing(private val context: Context) {
+class FirstSessionPing(
+    private val context: Context,
+    private val browserStore: BrowserStore,
+) {
 
     private val prefs: SharedPreferences by lazy {
         context.getSharedPreferences(
@@ -64,7 +68,7 @@ class FirstSessionPing(private val context: Context) {
         FirstSession.installSource.set(installSourcePackage())
 
         CoroutineScope(Dispatchers.IO).launch {
-            FirstSession.distributionId.set(getDistributionId())
+            FirstSession.distributionId.set(getDistributionId(browserStore))
 
             Pings.firstSession.submit()
             markAsTriggered()
