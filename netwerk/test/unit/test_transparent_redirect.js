@@ -28,6 +28,18 @@ function onBeforeConnect(callback) {
   );
 }
 
+function onExamineResponse(callback) {
+  Services.obs.addObserver(
+    {
+      observe(subject) {
+        Services.obs.removeObserver(this, "http-on-examine-response");
+        callback(subject.QueryInterface(Ci.nsIHttpChannel));
+      },
+    },
+    "http-on-examine-response"
+  );
+}
+
 class EventSinkListener {
   getInterface(iid) {
     if (iid.equals(Ci.nsIChannelEventSink)) {
@@ -69,6 +81,16 @@ add_task(async function test_transparent_redirect() {
       }
       chan.resume();
     });
+  });
+
+  onExamineResponse(chan => {
+    chan.QueryInterface(Ci.nsITimedChannel);
+    Assert.equal(chan.redirectCount, 0, "redirectCount should be 0");
+    Assert.equal(
+      chan.internalRedirectCount,
+      1,
+      "internalRedirectCount should be 1"
+    );
   });
 
   let chan = NetUtil.newChannel({
