@@ -404,7 +404,8 @@ impl Zoom {
     /// Returns the un-zoomed value.
     #[inline]
     pub fn unzoom(self, value: f32) -> f32 {
-        if self == Self::ONE {
+        // Avoid division by zero if our effective zoom computation ends up being zero.
+        if self == Self::ONE || self.0.value == 0 {
             return value;
         }
         value / self.value()
