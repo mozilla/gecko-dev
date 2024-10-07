@@ -38,6 +38,8 @@ MOZ_EXPORT struct wl_proxy* wl_proxy_marshal_flags(
 MOZ_EXPORT void wl_proxy_destroy(struct wl_proxy* proxy);
 MOZ_EXPORT void* wl_proxy_create_wrapper(void* proxy);
 MOZ_EXPORT void wl_proxy_wrapper_destroy(void* proxy_wrapper);
+MOZ_EXPORT void wl_display_set_max_buffer_size(struct wl_display* display,
+                                               size_t max_buffer_size);
 
 #ifndef WL_MARSHAL_FLAG_DESTROY
 #  define WL_MARSHAL_FLAG_DESTROY (1 << 0)

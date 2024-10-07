@@ -51,6 +51,11 @@ nsWaylandDisplay* WaylandDisplayGet() {
     if (!waylandDisplay) {
       return nullptr;
     }
+    // We're setting Wayland client buffer size here (i.e. our write buffer).
+    // Server buffer size is set by compositor and we may use the same buffer
+    // sizes on both sides. Mutter uses 1024 * 1024 (1M) so let's use the same
+    // value.
+    wl_display_set_max_buffer_size(waylandDisplay, 1024 * 1024);
     gWaylandDisplay = new nsWaylandDisplay(waylandDisplay);
   }
   return gWaylandDisplay;

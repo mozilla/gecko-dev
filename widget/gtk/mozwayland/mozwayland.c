@@ -230,6 +230,9 @@ MOZ_EXPORT struct wl_display* gdk_wayland_display_get_wl_display(
   return NULL;
 }
 
+MOZ_EXPORT void wl_display_set_max_buffer_size(struct wl_display* display,
+                                               size_t max_buffer_size) {}
+
 MOZ_EXPORT struct xkb_context* xkb_context_new(enum xkb_context_flags flags) {
   return NULL;
 }
