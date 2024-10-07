@@ -48,7 +48,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_security.h"
-#include "mozilla/Telemetry.h"
 #include "xpcpublic.h"
 #include "nsMimeTypes.h"
 
@@ -57,7 +56,6 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
-using namespace mozilla::Telemetry;
 
 NS_IMPL_ISUPPORTS(nsContentSecurityManager, nsIContentSecurityManager,
                   nsIChannelEventSink)
@@ -71,7 +69,6 @@ Atomic<bool, mozilla::Relaxed> sJSHacksChecked(false);
 Atomic<bool, mozilla::Relaxed> sJSHacksPresent(false);
 Atomic<bool, mozilla::Relaxed> sCSSHacksChecked(false);
 Atomic<bool, mozilla::Relaxed> sCSSHacksPresent(false);
-Atomic<bool, mozilla::Relaxed> sTelemetryEventEnabled(false);
 
 /* static */
 bool nsContentSecurityManager::AllowTopLevelNavigationToDataURI(
@@ -837,11 +834,6 @@ void nsContentSecurityManager::MeasureUnexpectedPrivilegedLoads(
           ("- fileDetails: %s\n", loggedFileDetails.get()));
   MOZ_LOG(sCSMLog, LogLevel::Debug,
           ("- redirects: %s\n\n", loggedRedirects.get()));
-
-  // Send Telemetry
-  if (!sTelemetryEventEnabled.exchange(true)) {
-    Telemetry::SetEventRecordingEnabled("security"_ns, true);
-  }
 
   glean::security::UnexpectedLoadExtra extra = {
       .contenttype = Some(loggedContentType),

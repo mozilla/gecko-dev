@@ -2012,10 +2012,6 @@ void ScalarSetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
   TelemetryScalar::SetMaximum(aId, aKey, aVal);
 }
 
-void SetEventRecordingEnabled(const nsACString& aCategory, bool aEnabled) {
-  TelemetryEvent::SetEventRecordingEnabled(aCategory, aEnabled);
-}
-
 void ShutdownTelemetry() { TelemetryImpl::ShutdownTelemetry(); }
 
 }  // namespace mozilla::Telemetry
