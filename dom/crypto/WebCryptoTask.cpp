@@ -1599,12 +1599,12 @@ class ImportSymmetricKeyTask : public ImportKeyTask {
         mAlgName.EqualsLiteral(WEBCRYPTO_ALG_AES_KW)) {
       if (mKey->HasUsageOtherThan(CryptoKey::ENCRYPT | CryptoKey::DECRYPT |
                                   CryptoKey::WRAPKEY | CryptoKey::UNWRAPKEY)) {
-        return NS_ERROR_DOM_DATA_ERR;
+        return NS_ERROR_DOM_SYNTAX_ERR;
       }
 
       if (mAlgName.EqualsLiteral(WEBCRYPTO_ALG_AES_KW) &&
           mKey->HasUsageOtherThan(CryptoKey::WRAPKEY | CryptoKey::UNWRAPKEY)) {
-        return NS_ERROR_DOM_DATA_ERR;
+        return NS_ERROR_DOM_SYNTAX_ERR;
       }
 
       if ((length != 128) && (length != 192) && (length != 256)) {
@@ -1620,7 +1620,7 @@ class ImportSymmetricKeyTask : public ImportKeyTask {
                mAlgName.EqualsLiteral(WEBCRYPTO_ALG_PBKDF2)) {
       if (mKey->HasUsageOtherThan(CryptoKey::DERIVEKEY |
                                   CryptoKey::DERIVEBITS)) {
-        return NS_ERROR_DOM_DATA_ERR;
+        return NS_ERROR_DOM_SYNTAX_ERR;
       }
       mKey->Algorithm().MakeKDF(mAlgName);
 
@@ -1630,7 +1630,7 @@ class ImportSymmetricKeyTask : public ImportKeyTask {
       };
     } else if (mAlgName.EqualsLiteral(WEBCRYPTO_ALG_HMAC)) {
       if (mKey->HasUsageOtherThan(CryptoKey::SIGN | CryptoKey::VERIFY)) {
-        return NS_ERROR_DOM_DATA_ERR;
+        return NS_ERROR_DOM_SYNTAX_ERR;
       }
 
       mKey->Algorithm().MakeHmac(length, mHashName);
@@ -1808,7 +1808,7 @@ class ImportRsaKeyTask : public ImportKeyTask {
           (mKey->GetKeyType() == CryptoKey::PRIVATE &&
            mKey->HasUsageOtherThan(CryptoKey::DECRYPT |
                                    CryptoKey::UNWRAPKEY))) {
-        return NS_ERROR_DOM_DATA_ERR;
+        return NS_ERROR_DOM_SYNTAX_ERR;
       }
     } else if (mAlgName.EqualsLiteral(WEBCRYPTO_ALG_RSASSA_PKCS1) ||
                mAlgName.EqualsLiteral(WEBCRYPTO_ALG_RSA_PSS)) {
@@ -1816,7 +1816,7 @@ class ImportRsaKeyTask : public ImportKeyTask {
            mKey->HasUsageOtherThan(CryptoKey::VERIFY)) ||
           (mKey->GetKeyType() == CryptoKey::PRIVATE &&
            mKey->HasUsageOtherThan(CryptoKey::SIGN))) {
-        return NS_ERROR_DOM_DATA_ERR;
+        return NS_ERROR_DOM_SYNTAX_ERR;
       }
     }
 
@@ -2000,7 +2000,7 @@ class ImportEcKeyTask : public ImportKeyTask {
     uint32_t privateAllowedUsages = 0, publicAllowedUsages = 0;
     if (mAlgName.EqualsLiteral(WEBCRYPTO_ALG_ECDH)) {
       privateAllowedUsages = CryptoKey::DERIVEBITS | CryptoKey::DERIVEKEY;
-      publicAllowedUsages = CryptoKey::DERIVEBITS | CryptoKey::DERIVEKEY;
+      publicAllowedUsages = 0;
     } else if (mAlgName.EqualsLiteral(WEBCRYPTO_ALG_ECDSA)) {
       privateAllowedUsages = CryptoKey::SIGN;
       publicAllowedUsages = CryptoKey::VERIFY;
@@ -2011,7 +2011,7 @@ class ImportEcKeyTask : public ImportKeyTask {
          mKey->HasUsageOtherThan(privateAllowedUsages)) ||
         (mKey->GetKeyType() == CryptoKey::PUBLIC &&
          mKey->HasUsageOtherThan(publicAllowedUsages))) {
-      return NS_ERROR_DOM_DATA_ERR;
+      return NS_ERROR_DOM_SYNTAX_ERR;
     }
 
     if (mKey->GetKeyType() == CryptoKey::PRIVATE && !mKey->HasAnyUsage()) {
