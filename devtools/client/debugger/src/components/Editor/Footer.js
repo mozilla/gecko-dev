@@ -413,10 +413,9 @@ const mapStateToProps = state => {
   const sourceTextContent = getSelectedSourceTextContent(state);
 
   const areSourceMapsEnabledProp = areSourceMapsEnabled(state);
-  const isSourceActorWithSourceMapProp = isSourceActorWithSourceMap(
-    state,
-    selectedLocation?.sourceActor.id
-  );
+  const isSourceActorWithSourceMapProp = selectedLocation?.sourceActor
+    ? isSourceActorWithSourceMap(state, selectedLocation?.sourceActor.id)
+    : false;
   const sourceMapError = selectedLocation?.sourceActor
     ? getSourceMapErrorForSourceActor(state, selectedLocation.sourceActor.id)
     : null;
