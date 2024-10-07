@@ -1191,6 +1191,105 @@ TEST_F(TestQuotaManager,
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 }
 
+// Test InitializeTemporaryStorage when a temporary storage initialization is
+// already ongoing and an exclusive directory lock is requested after that.
+TEST_F(TestQuotaManager,
+       InitializeTemporaryStorage_OngoingWithExclusiveDirectoryLock) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  PerformOnBackgroundThread([]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    RefPtr<UniversalDirectoryLock> directoryLock =
+        quotaManager->CreateDirectoryLockInternal(
+            PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
+            Nullable<Client::Type>(),
+            /* aExclusive */ true);
+
+    nsTArray<RefPtr<BoolPromise>> promises;
+
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage()->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [&directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) {
+          // The exclusive directory lock must be dropped when the first
+          // temporary storage initialization is finished, otherwise it would
+          // endlessly block the second temporary storage initialization.
+          DropDirectoryLock(directoryLock);
+
+          if (aValue.IsReject()) {
+            return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
+          }
+
+          return BoolPromise::CreateAndResolve(true, __func__);
+        }));
+    promises.AppendElement(directoryLock->Acquire());
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test InitializeTemporaryStorage when a temporary storage initialization
+// already finished.
+TEST_F(TestQuotaManager, InitializeTemporaryStorage_Finished) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  PerformOnBackgroundThread([]() {
+    nsTArray<RefPtr<BoolPromise>> promises;
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+    }
+
+    promises.Clear();
+
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
 TEST_F(TestQuotaManager,
        InitializeTemporaryStorage_FinishedWithScheduledShutdown) {
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
