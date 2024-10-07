@@ -50,7 +50,7 @@ be brought up to our design systems standards.
 ## Basic usage
 
 The source for `panel-list` can be found under
-[toolkit/content/widgets/panel-list.js](https://searchfox.org/mozilla-central/source/toolkit/content/widgets/panel-list.js).
+[toolkit/content/widgets/panel-list/panel-list.js](https://searchfox.org/mozilla-central/source/toolkit/content/widgets/panel-list/panel-list.js).
 You can find an examples of `panel-list` in use in the Firefox codebase in both
 [about:addons](https://searchfox.org/mozilla-central/source/toolkit/mozapps/extensions/content/aboutaddons.html#87,102,114)
 and the
