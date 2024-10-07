@@ -864,6 +864,7 @@ dom.getContainer = function (el) {
  */
 dom.isInView = function (el) {
   let originalPointerEvents = el.style.pointerEvents;
+  let originalStyleAttrValue = el.getAttribute("style");
 
   try {
     el.style.pointerEvents = "auto";
@@ -878,6 +879,11 @@ dom.isInView = function (el) {
     return tree.includes(el);
   } finally {
     el.style.pointerEvents = originalPointerEvents;
+    if (originalStyleAttrValue === null) {
+      el.removeAttribute("style");
+    } else if (el.getAttribute("style") != originalStyleAttrValue) {
+      el.setAttribute("style", originalStyleAttrValue);
+    }
   }
 };
 
