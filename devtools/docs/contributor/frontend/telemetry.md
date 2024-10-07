@@ -239,9 +239,6 @@ this._telemetry = new Telemetry();
 And use the instance to report e.g. tool opening...
 
 ```js
-// Event telemetry is disabled by default so enable it for your category.
-this._telemetry.setEventRecordingEnabled(true);
-
 // If you already have all the properties for the event you can send the
 // telemetry event using:
 // this._telemetry.recordEvent(method, object, value, extra) e.g.

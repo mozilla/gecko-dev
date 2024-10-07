@@ -244,7 +244,8 @@ add_task(async function test_dynamicBuiltinEventsDisabledByDefault() {
   });
 
   // Record some events.
-  // Explicitely _don't_ enable the category
+  // Explicitely disable the category
+  Telemetry.setEventRecordingEnabled(TEST_EVENT_NAME, false);
   Telemetry.recordEvent(TEST_EVENT_NAME, "test1", "object1");
 
   // Now check that the snapshot contains the expected data.

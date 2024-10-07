@@ -40,6 +40,9 @@ TEST_F(TelemetryTestFixture, RecordEventNative) {
       "this extra value is much too long and must be truncated to fit in the "
       "limit which at time of writing was 80 bytes.");
 
+  // Ensure "telemetry.test" is disabled
+  Telemetry::SetEventRecordingEnabled(category, false);
+
   // Try recording before category's enabled.
   TelemetryEvent::RecordEventNative(
       Telemetry::EventID::TelemetryTest_Test1_Object1, Nothing(), Nothing());
@@ -133,7 +136,6 @@ TEST_F(TelemetryTestFixture, GIFFTValue) {
   const nsCString category("telemetry.test");
   const nsCString method("mirror_with_extra");
   const nsCString object("object1");
-  Telemetry::SetEventRecordingEnabled(category, true);
 
   // Record in Glean.
   // We include an extra extra key (extra1, here) to ensure there's always six

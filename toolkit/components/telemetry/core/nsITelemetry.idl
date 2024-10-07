@@ -531,7 +531,7 @@ interface nsITelemetry : nsISupports
 
   /**
    * Enable recording of events in a category.
-   * Events default to recording disabled. This allows to toggle recording for all events
+   * Events default to recording enabled. This allows to toggle recording for all events
    * in the specified category.
    *
    * @param aCategory The category name.
