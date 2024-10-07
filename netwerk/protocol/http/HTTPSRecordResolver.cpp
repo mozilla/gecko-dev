@@ -7,6 +7,8 @@
 #include "HttpLog.h"
 
 #include "HTTPSRecordResolver.h"
+#include "mozilla/Components.h"
+#include "mozilla/StaticPrefs_network.h"
 #include "nsIDNSByTypeRecord.h"
 #include "nsIDNSAdditionalInfo.h"
 #include "nsIDNSService.h"
@@ -36,7 +38,7 @@ nsresult HTTPSRecordResolver::FetchHTTPSRRInternal(
     return NS_ERROR_FAILURE;
   }
 
-  nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
+  nsCOMPtr<nsIDNSService> dns = mozilla::components::DNS::Service();
   if (!dns) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -52,45 +54,114 @@ nsresult HTTPSRecordResolver::FetchHTTPSRRInternal(
     dns->NewAdditionalInfo(""_ns, mConnInfo->OriginPort(),
                            getter_AddRefs(info));
   }
-  return dns->AsyncResolveNative(
+
+  MutexAutoLock lock(mMutex);
+
+  nsresult rv = dns->AsyncResolveNative(
       mConnInfo->GetOrigin(), nsIDNSService::RESOLVE_TYPE_HTTPSSVC, flags, info,
-      this, aTarget, mConnInfo->GetOriginAttributes(), aDNSRequest);
+      this, aTarget, mConnInfo->GetOriginAttributes(),
+      getter_AddRefs(mHTTPSRecordRequest));
+
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  nsCOMPtr<nsICancelable> request = mHTTPSRecordRequest;
+  request.forget(aDNSRequest);
+
+  if (!StaticPrefs::network_dns_https_rr_check_record_with_cname()) {
+    return rv;
+  }
+
+  rv = dns->AsyncResolveNative(
+      mConnInfo->GetOrigin(), nsIDNSService::RESOLVE_TYPE_DEFAULT,
+      flags | nsIDNSService::RESOLVE_CANONICAL_NAME, nullptr, this, aTarget,
+      mConnInfo->GetOriginAttributes(), getter_AddRefs(mCnameRequest));
+  return rv;
 }
 
 NS_IMETHODIMP HTTPSRecordResolver::OnLookupComplete(nsICancelable* aRequest,
                                                     nsIDNSRecord* aRecord,
                                                     nsresult aStatus) {
-  nsCOMPtr<nsIDNSAddrRecord> addrRecord = do_QueryInterface(aRecord);
-  // This will be called again when receving the result of speculatively loading
-  // the addr records of the target name. In this case, just return NS_OK.
-  if (addrRecord) {
+  MutexAutoLock lock(mMutex);
+  if (!mTransaction || mDone) {
+    // The transaction is not interesed in a response anymore.
+    mCnameRequest = nullptr;
+    mHTTPSRecordRequest = nullptr;
     return NS_OK;
   }
 
-  if (!mTransaction) {
-    // The connecttion is not interesed in a response anymore.
-    return NS_OK;
+  if (aRequest == mHTTPSRecordRequest) {
+    mHTTPSRecordRequest = nullptr;
+    nsCOMPtr<nsIDNSHTTPSSVCRecord> record = do_QueryInterface(aRecord);
+
+    if (!record || NS_FAILED(aStatus)) {
+      // When failed, we don't want to wait for the CNAME.
+      mCnameRequest = nullptr;
+      MutexAutoUnlock unlock(mMutex);
+      return InvokeCallback(nullptr, nullptr, ""_ns);
+    }
+
+    mHTTPSRecord = record;
+    // Waiting for the address record.
+    if (mCnameRequest) {
+      return NS_OK;
+    }
+
+    nsCOMPtr<nsISVCBRecord> svcbRecord;
+    if (NS_FAILED(mHTTPSRecord->GetServiceModeRecordWithCname(
+            mCaps & NS_HTTP_DISALLOW_SPDY, mCaps & NS_HTTP_DISALLOW_HTTP3,
+            ""_ns, getter_AddRefs(svcbRecord)))) {
+      MutexAutoUnlock unlock(mMutex);
+      return InvokeCallback(mHTTPSRecord, nullptr, ""_ns);
+    }
+
+    MutexAutoUnlock unlock(mMutex);
+    return InvokeCallback(mHTTPSRecord, svcbRecord, ""_ns);
   }
 
-  nsCOMPtr<nsIDNSHTTPSSVCRecord> record = do_QueryInterface(aRecord);
-  if (!record || NS_FAILED(aStatus)) {
-    return mTransaction->OnHTTPSRRAvailable(nullptr, nullptr);
+  // Having mCnameRequest indicates that we are interested in the address
+  // record.
+  if (mCnameRequest && aRequest == mCnameRequest) {
+    mCnameRequest = nullptr;
+    nsCOMPtr<nsIDNSAddrRecord> addrRecord = do_QueryInterface(aRecord);
+
+    if (!addrRecord || !mHTTPSRecord || NS_FAILED(aStatus)) {
+      MutexAutoUnlock unlock(mMutex);
+      return InvokeCallback(nullptr, nullptr, ""_ns);
+    }
+
+    nsCString cname;
+    Unused << addrRecord->GetCanonicalName(cname);
+    nsCOMPtr<nsISVCBRecord> svcbRecord;
+    if (NS_FAILED(mHTTPSRecord->GetServiceModeRecordWithCname(
+            mCaps & NS_HTTP_DISALLOW_SPDY, mCaps & NS_HTTP_DISALLOW_HTTP3,
+            cname, getter_AddRefs(svcbRecord)))) {
+      MutexAutoUnlock unlock(mMutex);
+      return InvokeCallback(mHTTPSRecord, nullptr, cname);
+    }
+
+    MutexAutoUnlock unlock(mMutex);
+    return InvokeCallback(mHTTPSRecord, svcbRecord, cname);
   }
 
-  nsCOMPtr<nsISVCBRecord> svcbRecord;
-  if (NS_FAILED(record->GetServiceModeRecord(mCaps & NS_HTTP_DISALLOW_SPDY,
-                                             mCaps & NS_HTTP_DISALLOW_HTTP3,
-                                             getter_AddRefs(svcbRecord)))) {
-    return mTransaction->OnHTTPSRRAvailable(record, nullptr);
-  }
+  return NS_OK;
+}
 
-  return mTransaction->OnHTTPSRRAvailable(record, svcbRecord);
+nsresult HTTPSRecordResolver::InvokeCallback(
+    nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
+    nsISVCBRecord* aHighestPriorityRecord, const nsACString& aCname) {
+  MOZ_ASSERT(!mDone);
+
+  mDone = true;
+  return mTransaction->OnHTTPSRRAvailable(aHTTPSSVCRecord,
+                                          aHighestPriorityRecord, aCname);
 }
 
 void HTTPSRecordResolver::PrefetchAddrRecord(const nsACString& aTargetName,
                                              bool aRefreshDNS) {
   MOZ_ASSERT(mTransaction);
-  nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
+  nsCOMPtr<nsIDNSService> dns = mozilla::components::DNS::Service();
   if (!dns) {
     return;
   }
@@ -111,7 +182,18 @@ void HTTPSRecordResolver::PrefetchAddrRecord(const nsACString& aTargetName,
       getter_AddRefs(tmpOutstanding));
 }
 
-void HTTPSRecordResolver::Close() { mTransaction = nullptr; }
+void HTTPSRecordResolver::Close() {
+  mTransaction = nullptr;
+  MutexAutoLock lock(mMutex);
+  if (mCnameRequest) {
+    mCnameRequest->Cancel(NS_ERROR_ABORT);
+    mCnameRequest = nullptr;
+  }
+  if (mHTTPSRecordRequest) {
+    mHTTPSRecordRequest->Cancel(NS_ERROR_ABORT);
+    mHTTPSRecordRequest = nullptr;
+  }
+}
 
 }  // namespace net
 }  // namespace mozilla

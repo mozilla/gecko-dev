@@ -226,7 +226,8 @@ class nsAHttpTransaction : public nsSupportsWeakReference {
 
   virtual nsresult FetchHTTPSRR() { return NS_ERROR_NOT_IMPLEMENTED; }
   virtual nsresult OnHTTPSRRAvailable(nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
-                                      nsISVCBRecord* aHighestPriorityRecord) {
+                                      nsISVCBRecord* aHighestPriorityRecord,
+                                      const nsACString& aCname) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 };
