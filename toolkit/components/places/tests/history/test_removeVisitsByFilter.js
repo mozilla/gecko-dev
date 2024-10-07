@@ -377,16 +377,11 @@ add_task(async function test_error_cases() {
 add_task(async function test_orphans() {
   let uri = NetUtil.newURI("http://moz.org/");
   await PlacesTestUtils.addVisits({ uri });
-
-  await new Promise(resolve => {
-    PlacesUtils.favicons.setFaviconForPage(
-      uri,
-      SMALLPNG_DATA_URI,
-      SMALLPNG_DATA_URI,
-      null,
-      resolve
-    );
-  });
+  await PlacesTestUtils.setFaviconForPage(
+    uri,
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
 
   await PlacesUtils.history.update({
     url: uri,

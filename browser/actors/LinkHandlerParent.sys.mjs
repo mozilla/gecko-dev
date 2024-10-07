@@ -143,7 +143,6 @@ export class LinkHandlerParent extends JSWindowActorParent {
             Services.io.newURI(originalURL),
             iconURI,
             expiration && lazy.PlacesUtils.toPRTime(expiration),
-            null,
             isRichIcon
           )
           .catch(console.error);

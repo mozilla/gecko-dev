@@ -313,7 +313,7 @@ add_task(async function test_sameHostRedirect() {
     events.some(e => e.url == srcUrl && e.faviconUrl == SMALLPNG_DATA_URI.spec)
   );
 
-  PlacesUtils.favicons.setFaviconForPage(
+  await PlacesUtils.favicons.setFaviconForPage(
     Services.io.newURI(destUrl),
     SMALLPNG_DATA_URI,
     SMALLPNG_DATA_URI

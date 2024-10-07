@@ -7,16 +7,11 @@ add_task(async function test_normal() {
   let pageURI = NetUtil.newURI("http://example.com/normal");
 
   await PlacesTestUtils.addVisits(pageURI);
-
-  await new Promise(resolve => {
-    PlacesUtils.favicons.setFaviconForPage(
-      pageURI,
-      SMALLPNG_DATA_URI,
-      SMALLPNG_DATA_URI,
-      null,
-      resolve
-    );
-  });
+  await PlacesTestUtils.setFaviconForPage(
+    pageURI,
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
 
   await new Promise(resolve => {
     PlacesUtils.favicons.getFaviconDataForPage(

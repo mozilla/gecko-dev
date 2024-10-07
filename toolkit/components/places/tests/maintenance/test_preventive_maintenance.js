@@ -2610,15 +2610,11 @@ tests.push({
     });
 
     PlacesUtils.tagging.tagURI(this._uri1, ["testtag"]);
-    await new Promise(resolve => {
-      PlacesUtils.favicons.setFaviconForPage(
-        this._uri2,
-        SMALLPNG_DATA_URI,
-        SMALLPNG_DATA_URI,
-        null,
-        resolve
-      );
-    });
+    await PlacesUtils.favicons.setFaviconForPage(
+      this._uri2,
+      SMALLPNG_DATA_URI,
+      SMALLPNG_DATA_URI
+    );
     await PlacesUtils.keywords.insert({
       url: this._uri1.spec,
       keyword: "testkeyword",
