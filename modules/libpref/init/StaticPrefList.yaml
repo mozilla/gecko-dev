@@ -5097,13 +5097,6 @@
   value: "#FFFFFF"
   mirror: never
 
-# Whether HTMLEditor consides block or inline element with computed style or
-# only with the default style of HTML definition.
-- name: editor.block_inline_check.use_computed_style
-  type: bool
-  value: true
-  mirror: always
-
 # Delay to mask last input character in password fields.
 # If negative value, to use platform's default behavior.
 # If 0, no delay to mask password.

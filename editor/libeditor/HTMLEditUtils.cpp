@@ -231,8 +231,7 @@ bool HTMLEditUtils::IsBlockElement(const nsIContent& aContent,
   if (aContent.IsHTMLElement(nsGkAtoms::br)) {
     return false;
   }
-  if (!StaticPrefs::editor_block_inline_check_use_computed_style() ||
-      aBlockInlineCheck == BlockInlineCheck::UseHTMLDefaultStyle) {
+  if (aBlockInlineCheck == BlockInlineCheck::UseHTMLDefaultStyle) {
     return IsHTMLBlockElementByDefault(aContent);
   }
   // Let's treat the document element and the body element is a block to avoid
@@ -284,8 +283,7 @@ bool HTMLEditUtils::IsInlineContent(const nsIContent& aContent,
   if (aContent.IsHTMLElement(nsGkAtoms::br)) {
     return true;
   }
-  if (!StaticPrefs::editor_block_inline_check_use_computed_style() ||
-      aBlockInlineCheck == BlockInlineCheck::UseHTMLDefaultStyle) {
+  if (aBlockInlineCheck == BlockInlineCheck::UseHTMLDefaultStyle) {
     return !IsHTMLBlockElementByDefault(aContent);
   }
   // Let's treat the document element and the body element is a block to avoid
@@ -963,9 +961,6 @@ bool HTMLEditUtils::IsEmptyNode(nsPresContext* aPresContext,
 
   const auto [isListItem, isTableCell, hasAppearance] =
       [&]() MOZ_NEVER_INLINE_DEBUG -> std::tuple<bool, bool, bool> {
-    if (!StaticPrefs::editor_block_inline_check_use_computed_style()) {
-      return {IsListItem(&aNode), IsTableCell(&aNode), false};
-    }
     // Let's stop treating the document element and the <body> as a list item
     // nor a table cell to avoid tricky cases.
     if (aNode.OwnerDoc()->GetDocumentElement() == &aNode ||

@@ -7606,8 +7606,7 @@ HTMLEditor::AutoDeleteRangesHandler::ExtendOrShrinkRangeToDelete(
       }
       // Don't cross flex-item/grid-item boundary to make new content inserted
       // into it.
-      if (StaticPrefs::editor_block_inline_check_use_computed_style() &&
-          backwardScanFromStartResult.ContentIsElement() &&
+      if (backwardScanFromStartResult.ContentIsElement() &&
           HTMLEditUtils::IsFlexOrGridItem(
               *backwardScanFromStartResult.ElementPtr())) {
         break;
@@ -7674,8 +7673,7 @@ HTMLEditor::AutoDeleteRangesHandler::ExtendOrShrinkRangeToDelete(
         }
         // Don't cross flex-item/grid-item boundary to make new content inserted
         // into it.
-        if (StaticPrefs::editor_block_inline_check_use_computed_style() &&
-            HTMLEditUtils::IsFlexOrGridItem(
+        if (HTMLEditUtils::IsFlexOrGridItem(
                 *forwardScanFromEndResult.ElementPtr())) {
           break;
         }

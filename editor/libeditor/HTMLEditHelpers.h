@@ -46,8 +46,6 @@ enum class BlockInlineCheck : uint8_t {
   UseHTMLDefaultStyle,
   // Refer the element's computed style of display-outside at considering
   // whether block or inline.
-  // FYI: If editor.block_inline_check.use_computed_style pref is set to false,
-  // this is same as HTMLDefaultStyle.
   UseComputedDisplayOutsideStyle,
   // Refer the element's computed style of display at considering whether block
   // or inline.  I.e., this is a good value to look for any block boundary.
@@ -55,8 +53,6 @@ enum class BlockInlineCheck : uint8_t {
   // * Checking visibility of collapsible white-spaces or <br>
   // * Looking for whether a padding <br> is required
   // * Looking for a caret position
-  // FYI: If editor.block_inline_check.use_computed_style pref is set to false,
-  // this is same as HTMLDefaultStyle.
   UseComputedDisplayStyle,
 };
 

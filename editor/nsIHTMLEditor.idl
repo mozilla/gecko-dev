@@ -93,9 +93,8 @@ interface nsIHTMLEditor : nsISupports
   /* ------------ HTML content methods -------------- */
 
   /**
-   * Tests if a node is a BLOCK element.  It's depend on
-   * `editor.block_inline_check.use_computed_style` pref whether this refers
-   * the computed style or the default style.
+   * Tests if a node is a BLOCK element.  This checks whether the computed
+   * style of the element is block or not.
    *
    * @param aNode      the node to test
    */

@@ -157,10 +157,9 @@ class HTMLEditUtils final {
    * Returns true if aContent is an element and it should be treated as a block.
    *
    * @param aBlockInlineCheck
-   *  - If UseHTMLDefaultStyle or `editor.block_inline_check.use_computed_style`
-   * pref is false, this returns true only for HTML elements which are defined
-   * as a block by the default style.  I.e., non-HTML elements are always
-   * treated as inline.
+   *  - If UseHTMLDefaultStyle, this returns true only for HTML elements which
+   * are defined as a block by the default style.  I.e., non-HTML elements are
+   * always treated as inline.
    *  - If UseComputedDisplayOutsideStyle, this returns true for element nodes
    * whose display-outside is not inline nor ruby.  This is useful to get
    * inclusive ancestor block element.
