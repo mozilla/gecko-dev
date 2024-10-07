@@ -30,7 +30,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BinarySearch: "resource://gre/modules/BinarySearch.sys.mjs",
 });
 
-export function initialSourcesTreeState() {
+export function initialSourcesTreeState({ isWebExtension } = {}) {
   return {
     // List of all Thread Tree Items.
     // All other item types are children of these and aren't store in
@@ -55,9 +55,9 @@ export function initialSourcesTreeState() {
     // The name is displayed in Source Tree header
     projectDirectoryRootName: prefs.projectDirectoryRootName,
 
-    // Reports if the top level target is a web extension.
+    // Reports if the debugged context is a web extension.
     // If so, we should display all web extension sources.
-    isWebExtension: false,
+    isWebExtension,
 
     /**
      * Boolean, to be set to true in order to display WebExtension's content scripts
@@ -205,11 +205,6 @@ export default function update(state = initialSourcesTreeState(), action) {
 
 function addThread(state, thread) {
   const threadActorID = thread.actor;
-  // When processing the top level target,
-  // see if we are debugging an extension.
-  if (thread.isTopLevel) {
-    state.isWebExtension = thread.isWebExtension;
-  }
   let threadItem = state.threadItems.find(item => {
     return item.threadActorID == threadActorID;
   });

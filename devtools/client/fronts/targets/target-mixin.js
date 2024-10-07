@@ -299,6 +299,9 @@ function TargetMixin(parentClass) {
       );
     }
 
+    // @backward-compat { version 133 } Once 133 is released, this attribute can be removed.
+    // This will never be true anymore. Instead the usage in 'name' getter will be irrelevant
+    // as 'title' served by the backend will be correct for WebExtensions.
     get isWebExtension() {
       return !!(
         this.targetForm &&
@@ -328,25 +331,6 @@ function TargetMixin(parentClass) {
         this.targetForm.actor &&
         this.targetForm.actor.match(/conn\d+\.parentProcessTarget\d+/)
       );
-    }
-
-    getExtensionPathName(url) {
-      // Return the url if the target is not a webextension.
-      if (!this.isWebExtension) {
-        throw new Error("Target is not a WebExtension");
-      }
-
-      try {
-        const parsedURL = new URL(url);
-        // Only moz-extension URL should be shortened into the URL pathname.
-        if (parsedURL.protocol !== "moz-extension:") {
-          return url;
-        }
-        return parsedURL.pathname;
-      } catch (e) {
-        // Return the url if unable to resolve the pathname.
-        return url;
-      }
     }
 
     /**

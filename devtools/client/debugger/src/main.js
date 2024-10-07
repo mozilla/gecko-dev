@@ -18,6 +18,7 @@ import {
 
 import { initialBreakpointsState } from "./reducers/breakpoints";
 import { initialSourcesState } from "./reducers/sources";
+import { initialSourcesTreeState } from "./reducers/sources-tree";
 import { initialUIState } from "./reducers/ui";
 import { initialSourceBlackBoxState } from "./reducers/source-blackbox";
 import { initialEventListenerState } from "./reducers/event-listeners";
@@ -67,7 +68,7 @@ function setPauseOnExceptions() {
   );
 }
 
-async function loadInitialState() {
+async function loadInitialState(commands) {
   const pendingBreakpoints = sanitizeBreakpoints(
     await asyncStore.pendingBreakpoints
   );
@@ -83,6 +84,9 @@ async function loadInitialState() {
   const breakpoints = initialBreakpointsState(xhrBreakpoints);
   const sourceBlackBox = initialSourceBlackBoxState({ blackboxedRanges });
   const sources = initialSourcesState();
+  const sourcesTree = initialSourcesTreeState({
+    isWebExtension: commands.descriptorFront.isWebExtensionDescriptor,
+  });
   const ui = initialUIState();
 
   return {
@@ -91,6 +95,7 @@ async function loadInitialState() {
     breakpoints,
     eventListenerBreakpoints,
     sources,
+    sourcesTree,
     sourceBlackBox,
     ui,
   };
@@ -109,7 +114,7 @@ export async function bootstrap({
   // record events.
   setToolboxTelemetry(panel.toolbox.telemetry);
 
-  const initialState = await loadInitialState();
+  const initialState = await loadInitialState(commands);
   const workers = bootstrapWorkers(panelWorkers);
 
   const { store, actions, selectors } = bootstrapStore(

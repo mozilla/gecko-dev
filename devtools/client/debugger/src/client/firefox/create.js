@@ -401,7 +401,6 @@ export function createThread(targetFront) {
     targetType: targetFront.targetType,
     name,
     serviceWorkerStatus: targetFront.debuggerServiceWorkerStatus,
-    isWebExtension: targetFront.isWebExtension,
     processID: targetFront.processID,
   };
 }

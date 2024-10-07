@@ -587,8 +587,13 @@ class WindowGlobalTargetActor extends BaseTargetActor {
 
   /**
    * Getter for the window global's title.
+   * For Web Extension it will ignore the document title and refer to the addon one.
    */
   get title() {
+    if (this.sessionContext.type == "webextension") {
+      const policy = WebExtensionPolicy.getByID(this.sessionContext.addonId);
+      return policy.name;
+    }
     return this.contentDocument.title;
   }
 
