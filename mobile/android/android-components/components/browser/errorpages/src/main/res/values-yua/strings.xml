@@ -34,6 +34,12 @@
 
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_advanced">Áabansado…</string>
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>Yaan máax je\'el u páajtal u yilik u beetik le ts\'ono\'oto\' yéetel ma\' unaj a bin táanil. </label>
+         <br><br>
+         <label>Le ts\'ono\'oto\'ob web ku ye\'esik u identidad yéetel certificados. %1$s ma\' u k\'ubik u yóol ti\' <b>%2$s</b> tumen ma\' k\'ajóolta\'an máax ts\'áa le certificadoo\', le certificadoo\' ku firmarta\'al tu juunal, wa le servidor ma\' tu túuxtik le certificados intermedios correctos.</label>
+        ]]></string>
     <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_cert_back">Suut (recomendado)</string>
     <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
@@ -42,29 +48,85 @@
     <!-- The document title and heading of the error page shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Le ts\'ono\'oto\' web k\'a\'abet jump\'éel conexión segura.</string>
 
+    <!-- The error message shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[
+      <ul>
+            <li>Ma\' tu páajtal u ye\'esa\'al le linki abas kaambal ka k\'áat a wile\' tumen le ts\'ono\'oto\' web k\'a\'abet jump\'éel ma\'alob conexión.</li>
+             <li>Le talamilo\' yaan ti\' le ts\'ono\'oto\' web, yéetel mina\'an mixba\'al je\'el u páajtal a beetik uti\'al a yutskíintik.</li>
+             <li>Je\'el u páajtal a ts\'áaik ojéeltbil ti\' u administrador le ts\'ono\'oto\' web yóok\'ol le talamilo\'.</li>
+       </ul>
+    ]]></string>
+
     <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">Áabansado…</string>
 
+    <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2"><![CDATA[
+        <label> <b>%1$s</b> yaan ti\' jump\'éel política ti\' seguridad ku k\'aaba\'tik HTTP Strict Transport Security (HSTS), u k\'áat u ya\'ale\' <b>%2$s</b> chéen je\'el u páajtal u conectar u yéetel seguridad. Ma\' je\'el u páajtal a ts\'áik jump\'éel excepción uti\'al a xíimbaltik le ts\'ono\'oto\'. </label>
+    ]]></string>
     <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
     <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Suut</string>
 
     <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
     <string name="mozac_browser_errorpages_net_interrupt_title">Le conexión ts\'o\'ok u je\'elel</string>
 
+    <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
+    <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[<p>Le navegadoro\' tu nup\'aj u jóok\'ol, ba\'ale\' tu je\'elsaj le conexión ka\' jo\'op\' u transfería le a\'alajil t\'aano\'. Vuelva a intentarlo.</p>
+	<ul>
+		<li>El sitio podía no estar disponible temporalmente o estar decisión ocupado. Vuelva jump\'éel intentarlo ti\' jump\'éel minutos.</li>
+		<li>Wa ma\' je\'el u páajtal u bisik mix jump\'éel página, revisar le conexión wifi wa le datos ti\' u dispositivo móvil.</li>
+	</ul>]]></string>
+
     <!-- The document title and heading of the error page shown when a website takes too long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_title">Ts\'o\'ok u xu\'ulul u k\'iinil le conexión</string>
+
+    <!-- The error message shown when a website took long to load. -->
+    <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[<p>Le kúuchil tu k\'áataj ma\' tu núukaj jump\'éel k\'áat chi\' ti\' conexión yéetel le navegador ts\'o\'ok u dejado u pa\'atik jump\'éel núukik.</p>
+	<ul>
+		<li>¿¿Podría estar experimentando le servidor jump\'éel alta demanda wa jump\'éel corte temporal? Vuelva a intentarlo más tarde.</li>
+		<li>¿Ma\' je\'el u páajtal u xíimbal ti\' uláak\' kúuchilo\'ob? Compruebe le conexión de rojo del equipo.</li>
+		<li>¿¿Ba\'ax le equipo yaan u kanáanta\'al tumen juntúul cortafuegos wa juntúul proxy? jump\'éel configuración ma\' ma\'alob je\'el u páajtal u interferir ti\' le navegación web.</li>
+		<li>¿Aun con problemas? Utia\'al u yantal áantaj técnica, k\'áatik ti\' le administrador ti\' internet ichil.</li>
+	</ul>]]></string>
 
     <!-- The document title and heading of the error page shown when a website could not be reached. -->
     <string name="mozac_browser_errorpages_connection_failure_title">Ma’ u beytal u nuupul</string>
 
+    <!-- The error message shown when a website could not be reached. -->
+    <string name="mozac_browser_errorpages_connection_failure_message"><![CDATA[
+	<ul>
+		<li>Le ts\'ono\'oto\' je\'el u páajtal u temporalmente ma\' disponible wa jach ocupado. Beet uts a wilik tu ka\'atéen ichil wa jayp\'éel minutos.</li>
+		<li>Wa ma\' tu páajtal a kuuch mix jump\'éel linki abas kaambal, ilawil u conexión Wi-Fi wa datos ti\' a nu\'ukul t\'aan.</li>
+	</ul>
+	]]></string>
+
     <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
     <string name="mozac_browser_errorpages_unknown_socket_type_title">Núukik ma\' páa\'ta\'an ti\' le servidor, yéetel le navegador ma\' je\'el u páajtal u t\'u\'uchpachtik</string>
+
+    <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
+    <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[
+	<p>Le ts\'ono\'oto\' tu núukaj le k\'áat chi\'o\' ti\' jump\'éel bix ma\' táan u páa\'ta\'al yéetel le navegadoro\' ma\' tu páajtal u bin táanil.</p>
+	]]></string>
 
     <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
     <string name="mozac_browser_errorpages_redirect_loop_title">Le linki abas kaambal ma\' táan u k\'e\'exel belil</string>
 
+    <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
+    <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[<p>Le navegador ts\'o\'ok u p\'atik u k\'aax u k\'amik le elemento k\'áata\'ano\'. Le ts\'ono\'oto\' táan u túuxtik le k\'áat chi\'o\' ti\' jump\'éel bix mixbik\'in kun ts\'o\'okol.</p>
+	<ul>
+		<li>Yaan wáaj le cookies k\'a\'abeto\'ob ti\' le ts\'ono\'oto\' ts\'o\'ok u k\'a\'alal wa ts\'o\'ok u k\'a\'alal?</li>
+		<li>Wa u k\'a\'amal le cookies ti\' le ts\'ono\'oto\' ma\' tu yutskíintik le talamilo\', ma\' xaane\' jump\'éel talamil u configuración le servidor yéetel ma\' u computadora.</li>
+	</ul>]]></string>
+
     <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
     <string name="mozac_browser_errorpages_offline_title">Modo xma\' conexión</string>
+
+    <!-- The error message shown when a website cannot be loaded because the browser is in offline mode. -->
+    <string name="mozac_browser_errorpages_offline_message"><![CDATA[<p>Le navegadora\' táan u meyaj ma\' táan u meyaj yéetel ma\' páajchaj u nupikubáa yéetel le elemento k\'áata\'ano\'.</p>
+	<ul>
+		<li>Le ordenador táan conectado ti\' jump\'éel páawo\'ob activa?</li>
+		<li>Pulse "Try Again" uti\'al a k\'exik ti\' modo ti\' internet yéetel u ka\'a kuuch le linki abas kaambal.</li>
+	</ul>]]></string>
 
     <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
     <string name="mozac_browser_errorpages_port_blocked_title">Puerto restringido, tumen razones ti\' seguridad</string>
@@ -76,7 +138,180 @@
     <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
     <string name="mozac_browser_errorpages_net_reset_title">Le conexión ts\'o\'ok u ka\'a káajsa\'al</string>
 
+    <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
+    <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[
+	<p>Le enlace páawo\'ob bin interrumpido ka\' jo\'op\' u jump\'éel conexión bin u negociada. Beet uts a wilik tu ka\'atéen.</p>
+	<ul>
+		<li>Le ts\'ono\'oto\' je\'el u páajtal u temporalmente ma\' disponible wa jach ocupado. Beet uts a wilik tu ka\'atéen ichil wa jayp\'éel minutos.</li>
+		<li>Wa ma\' tu páajtal a kuuch mix jump\'éel linki abas kaambal, ilawil u conexión Wi-Fi wa datos ti\' a nu\'ukul t\'aan.</li>
+  	</ul>
+	]]></string>
+
     <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
     <string name="mozac_browser_errorpages_unsafe_content_type_title">Bin yano\'ob archivo ma\' seguro</string>
 
-    </resources>
+    <!-- The error message shown when the browser refuses to load a type of file that is considered unsafe. -->
+    <string name="mozac_browser_errorpages_unsafe_content_type_message"><![CDATA[
+	<ul>
+		<li>Béet t\'aan yéetel u yuumil le ts\'ono\'oto\' web uti\'al a ts\'áaik ojéeltbil ti\'ob le talamila\'.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of the error page shown when a file cannot be loaded because of a detected data corruption. -->
+    <string name="mozac_browser_errorpages_corrupted_content_title">Ba\'alo\' k\'askúunta\'an ti\' le contenido</string>
+
+    <!-- The error message shown when shown when a file cannot be loaded because of a detected data corruption. -->
+    <string name="mozac_browser_errorpages_corrupted_content_message"><![CDATA[
+	<p>Ma\' tu páajtal u chíikpajal le linki abas kaambal ka k\'áat a wile\' tumen ts\'o\'ok u yila\'al jump\'éel ba\'alo\'ob ichil u túuxta\'al datos.</p>
+	<ul>
+		<li>Béet t\'aan yéetel u yuumil le ts\'ono\'oto\' web uti\'al a ts\'áaik ojéeltbil ti\'ob le talamila\'.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_content_crashed_title">Contenido bloqueado</string>
+    <string name="mozac_browser_errorpages_content_crashed_message"><![CDATA[
+	<p>Ma\' tu páajtal u chíikpajal le linki abas kaambal ka k\'áat a wile\' tumen ts\'o\'ok u yila\'al jump\'éel ba\'alo\'ob ichil u túuxta\'al datos.</p>
+  	<ul>
+		<li>Béet t\'aan yéetel u yuumil le ts\'ono\'oto\' web uti\'al a ts\'áaik ojéeltbil ti\'ob le talamila\'.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_invalid_content_encoding_title">Ba\'alo\' ti\' codificación ti\' le contenido</string>
+
+    <string name="mozac_browser_errorpages_invalid_content_encoding_message"><![CDATA[
+	<p>Ma\' tu páajtal u ye\'esa\'al le linki abas kaambal ka k\'áat a wile\' tumen ku meyajtik jump\'éel bix u t\'o\'oxol ma\' jach ma\'alob wa ma\' tu yáanta\'al.</p>
+	<ul>
+		<li>Béet t\'aan yéetel u yuumil le ts\'ono\'oto\' web uti\'al a ts\'áaik ojéeltbil ti\'ob le talamila\'.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_unknown_host_title">Ma\' kaxta\'ab u dirección</string>
+
+    <!-- In the example, the two URLs in markup do not need to be translated. -->
+    <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[
+	<p>Le navegadoro\' ma\' páajchaj u kaxtik le servidor uti\'al le dirección ts\'a\'aba\'.</p>
+	<ul>
+		<li>Ilawil wa yaan errores ti\' le dirección, je\'ebix, <strong>ww</strong>.example.com kúuchil <strong>www</strong>.example.com.</li>
+		<li>Wa ma\' tu páajtal a kuuch mix jump\'éel linki abas kaambal, ilawil u conexión Wi-Fi wa datos ti\' a nu\'ukul t\'aan.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title">Mina\'an mix jump\'éel conexión ti\' internet</string>
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message">Béet wilik a conexión páawo\'ob wa k\'aax u k\'a\' kuuch le linki abas kaambal ti\' jump\'éel pocos súutuko\'ob.</string>
+    <!-- Text that will show up on the button at the bottom of the error page -->
+    <string name="mozac_browser_errorpages_no_internet_refresh_button">Ka\'a kuuch</string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_malformed_uri_title">Le direccióno\' ma\' jach jaaj</string>
+    <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
+	<p>Le dirección ts\'a\'aba\' ma\' ti\' yaan ti\' jump\'éel formato reconocido. Ilawil wa mina\'an ba\'alo\'ob ti\' le barra direcciones ka ka\'a ilawil.</p>
+	]]></string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_malformed_uri_title_alternative">Le k’áaba’ ta ts’íibtiko’ ma’ utsi’</string>
+
+    <!-- This string contains markup. The URL should not be localized. -->
+    <string name="mozac_browser_errorpages_malformed_uri_message_alternative"><![CDATA[
+	<ul>
+		<li>Le dirección web ku ts\'íibta\'al beya\': <strong>http://www.example.com/</strong></li>
+		<li>Asegurar u táan u utilizando barras tak táanil (e.g. <strong>/</strong>).</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_unknown_protocol_title">Protocolo ma\' k\'ajóolta\'an</string>
+
+    <string name="mozac_browser_errorpages_unknown_protocol_message"><![CDATA[
+	<p>Le direccióno\' ku ya\'alik jump\'éel protocolo (je\'ebix, <q>wxyz://</q>) ma\' u k\'aj óoltik le navegadoro\', le beetike\' le navegadoro\' ma\' tu páajtal u nupikubáaj ma\'alob ti\' le ts\'ono\'oto\'.</p>
+	<ul>
+		<li>¿Táan a wilik a wokol ichil contenido multimedia wa uláak\' áantajo\'ob ma\' analte\'o\'? Ilawil uláak\' ba\'ax k\'a\'abéet ti\' le ts\'ono\'oto\'.</li>
+		<li>Yaan protocolos je\'el u páajtal u k\'a\'abetkuunsik software wa plugins terceros bey ma\' u páajtal u k\'ajóolta\'alo\'ob tumen le navegador.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_file_not_found_title">Ma\' kaxta\'ab archivo</string>
+
+    <string name="mozac_browser_errorpages_file_not_found_message"><![CDATA[
+	<ul>
+		<li>Je\'el u páajtal u k\'e\'exel u k\'aaba\' le ba\'alo\', u tselik wa u k\'e\'exel u k\'aaba\'?</li>
+		<li>Yaan wáaj ba\'ax ma\' ma\'alob ts\'íibta\'an, mayúsculas wáaj uláak\' ba\'alo\'ob te\' direccióno\'?</li>
+		<li>Yaan wáaj tech suficiente privilegios muuk\' utia\'al le elemento k\'áata\'al?</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_file_access_denied_title">Ts\'o\'ok u p\'atik u muuk\' le archivoo\'</string>
+    <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[
+	<ul>
+		<li>Je\'el u páajtal u ts\'o\'ok u tselik wa u péeksa\'al, wa u páajtalil u ts\'íibil ju\'uno\'obe\' táan u beetik u ma\' u yokol máak.</li>
+  	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_proxy_connection_refused_title">Le servidor proxy tu p\'ataj u conexión</string>
+
+    <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[
+	<p>Le navegadoro\' ts\'o\'ok u configurarta\'al uti\'al u meyajtik jump\'éel servidor proxy, ba\'ale\' le proxy tu p\'ataj le conexión.</p>
+	<ul>
+		<li>¿Ma\'alob wa u configuración le proxy ti\' le navegador? Ilawil a configuración yéetel ka\'a ilawil.</li>
+		<li>Le mayaj proxy ku cha\'ik u yantal conexiones ti\' le páawo\'oba\'?</li>
+		<li>Láayli\' yaantech talamilo\'ob? T\'aan ti\' a administrador páawo\'ob wa ti\' le proveedor Internet uti\'al u yáanta\'al técnico.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_unknown_proxy_host_title">Ma\' u kaxta\'al u servidor proxy</string>
+
+    <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[
+	<p>Le navegadora\' ts\'o\'ok u configurarta\'al uti\'al u meyajtik jump\'éel servidor proxy, ba\'ale\' ma\' páajchaj u kaxta\'al le servidor proxy.</p>
+	<ul>
+		<li>¿Ma\'alob wa u configuración le proxy ti\' le navegador? Ilawil a configuración yéetel ka\'a ilawil.</li>
+		<li>Le ordenador táan conectado ti\' jump\'éel páawo\'ob activa?</li>
+		<li>Láayli\' yaantech talamilo\'ob? T\'aan ti\' a administrador páawo\'ob wa ti\' le proveedor Internet uti\'al u yáanta\'al técnico.</li>
+	</ul>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_browsing_malware_uri_title">Talamil ti\' le ts\'ono\'oto\' malware</string>
+
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_browsing_malware_uri_message"><![CDATA[
+	<p>Le ts\'ono\'oto\' yaan ti\' %1$s ts\'o\'ok u k\'ajóolta\'al bey jump\'éel ts\'ono\'oto\' ku atacar yéetel ts\'o\'ok u k\'a\'alal je\'el bix a k\'áat ti\' seguridad.</p>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">Talamil ti\' le ts\'ono\'oto\' ma\' k\'áata\'ano\'</string>
+
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[
+	<p>Le ts\'ono\'oto\' yaan %1$s ts\'o\'ok u k\'ajóolta\'al bey jump\'éel ts\'ono\'oto\' ku k\'u\'ubul software ma\' k\'áata\'an yéetel ts\'o\'ok u k\'a\'alal je\'el bix a k\'áat ti\' seguridad.</p>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_harmful_uri_title">Talamil ts\'ono\'oto\' k\'aas</string>
+
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_harmful_uri_message"><![CDATA[
+	<p>Le ts\'ono\'oto\' yaan %1$s ts\'o\'ok u yila\'al bey jump\'éel ts\'ono\'oto\' je\'el u páajtal u beetik loob yéetel ts\'o\'ok u k\'a\'alal je\'el bix a k\'áat ti\' seguridad.</p>
+	]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_phishing_uri_title">Tuus beya\' talamilo\'ob ts\'ono\'oto\'</string>
+
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_phishing_uri_message"><![CDATA[
+	<p>Le linki abas kaambal ti\' %1$s ts\'o\'ok u yila\'al bey jump\'éel ts\'ono\'oto\' tuus yéetel ts\'o\'ok u k\'a\'alal je\'el bix a k\'áat ti\' seguridad.</p>
+	]]></string>
+
+    <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
+    <string name="mozac_browser_errorpages_httpsonly_title">Le ts\'ono\'oto\' ma\' yaan</string>
+    <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will be replaced with the URL of the website. -->
+    <string name="mozac_browser_errorpages_httpsonly_message"><![CDATA[Ts\'o\'ok a activar le modo chéen HTTPS uti\'al u ma\'alo\'obtal le seguridad, yéetel jump\'éel versión HTTPS ti\' <em>%1$s</em> ma\' táan disponible.]]></string>
+    <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
+    <string name="mozac_browser_errorpages_httpsonly_button">T\'u\'uchpachtik tak le ts\'ono\'oto\' HTTP</string>
+</resources>

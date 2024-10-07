@@ -97,9 +97,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Gure pribatutasun-eginbiderik ahaltsuenak guneen arteko jarraipen-elementuak isolatzen ditu.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Gure pribatutasun-eginbiderik ahaltsuenak guneen arteko jarraipen-elementuak isolatzen ditu.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Cookien erabateko babesari buruzko argibide gehiago</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Cookien erabateko babesari buruzko argibide gehiago</string>
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -119,9 +119,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Berria: behin sakatuta atzera eta aurrera egiteko geziak</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Berria: behin sakatuta atzera eta aurrera egiteko geziak</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Gozatu nabigazio azkarragoaz esku-eskura.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Gozatu nabigazio azkarragoaz esku-eskura.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kamerarako sarbidea behar da. Joan Androideko ezarpenetara, sakatu baimenetan eta sakatu baimendu.</string>
@@ -213,6 +213,13 @@
     <string name="browser_menu_extensions_banner_learn_more">Argibide gehiago</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Kudeatu hedapenak</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Gomendatutako hedapenak</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Gehitu %1$s</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Gehitu hedapena</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Deskubritu hedapen gehiago</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -235,6 +242,8 @@
     <string name="browser_menu_add_to_homescreen">Gehitu hasierako pantailan</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Gehitu hasierako pantailan…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi gailuek aparteko baimenak behar litzakete hasierako pantailan lasterbideak gehitzeko. Egiaztatu zure ezarpenak mesedez.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Sinkronizatu berriro</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -304,7 +313,7 @@
     <string name="browser_menu_switch_to_mobile_site">Aldatu mugikorrerako gunera</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Tresnak</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Itzuli menu nagusira</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Irakurtzeko ikuspegia, Itzuli, Inprimatu, Partekatu, Ireki aplikazioa</string>
@@ -403,7 +412,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Ezagut ezazu zure hasiera-orri pertsonalizatua. Azken fitxak, laster-markak eta bilaketa-emaitzak hemen agertuko dira.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Ezagut ezazu zure hasiera-orri pertsonalizatua. Azken fitxak, laster-markak eta bilaketa-emaitzak hemen agertuko dira.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Ongi etorri Internet pertsonalago batera</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -577,13 +586,9 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Utzi</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Bidali eskaera</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Eskatu gunea gehitzea</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Bidali eskaera</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Eskatu gune honetarako euskarria?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">Eskatu %1$s(r)i cookieak automatikoki ukatzeko</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Eskatu gune honetarako euskarria?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Eskaera bidalita</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -591,18 +596,14 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Euskarri-eskaera bidalita</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Une honetan gune honetarako euskarririk ez</string>
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">Gune honetarako euskarririk ez</string>
+    <string name="reduce_cookie_banner_unsupported_site">Une honetan gune honetarako euskarririk ez</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Aktibatu cookie iragarki-banden blokeatzailea %1$s gunerako?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Desaktibatu cookie iragarki-banden blokeatzailea %1$s gunerako?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s(e)k ezin ditu cookie-eskaerak automatikoki baztertu gune honetan. Etorkizunean gune honetarako euskarria gehitzeko eskaera bidal dezakezu.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s(e)k ezin ditu cookie-eskaerak automatikoki baztertu gune honetan. Etorkizunean gune honetarako euskarria gehitzeko eskaera bidal dezakezu.</string>
 
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Une honetan ezin dugu gune honetako cookie laster-leihorik automatikoki baztertu.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Desaktibatu eta %1$s(e)k gune honetako cookieak garbitu eta orria berrituko du. Saioa amaitu edo erosketa-orgak hustu litezke.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -911,6 +912,10 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="preferences_marketing_data">Marketing datuak</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Oinarrizko erabilpen-datuak partekatzen ditu Adjust-ekin, mugikorretarako gure marketing hornitzailearekin</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Bidali automatikoki hutsegite-txostenak</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Hutsegiteak gertatu ondorengoko abioan, hutsegite-datuak automatikoki partekatzen ditu Mozillarekin</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Esperimentuak</string>
     <!-- Summary for studies preferences -->
@@ -1205,6 +1210,15 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Berreskuratu fitxa</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s berrabiarazi egin behar izan da</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Bidali automatikoki hutsegite-txostenak</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Itxi</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Bidali hutsegite-txostena</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Ziur zaude karpeta hau ezabatu nahi duzula?</string>
@@ -1251,8 +1265,12 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="bookmark_url_label">URLa</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">KARPETA</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Gorde hemen</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">IZENA</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Izena</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Gehitu karpeta</string>
     <!-- Bookmark select folder screen title -->
@@ -1281,11 +1299,22 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Gehitu karpeta berria</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Itxi laster-markak</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Itxi laster-markak</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Bilatu laster-markak</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">%s laster-markarako menu-elementua</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Laster-markarik ez oraindik</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Gorde guneak nabigatu ahala. Hasi saioa sinkronizatutako beste gailuetatik laster-markak hartzeko.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Hasi saioa sinkronizatzeko</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Gorde guneak nabigatu ahala. Sinkronizatutako beste gailuetatik laster-markak ere hartuko ditugu.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Gehitu laster-markak nabigatu ahala zure gune gogokoenak geroago aurki ditzazun.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2465,13 +2494,13 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Une honetan ez</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Ikusi ea produktu honen balorazioak fidagarriak diren — erosi aurretik.</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Ikusi ea produktu honen balorazioak fidagarriak diren — erosi aurretik.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Probatu balorazioen egiaztatzailea</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Probatu balorazioen egiaztatzailea</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Fidagarriak dira balorazio hauek? Egiaztatu orain egokitutako balorazioa ikusteko.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Fidagarriak dira balorazio hauek? Egiaztatu orain egokitutako balorazioa ikusteko.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Ireki balorazioen egiaztatzailea</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Ireki balorazioen egiaztatzailea</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2823,16 +2852,24 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ez dut erabiltzen</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Ez du bilatzailea erabiltzen Firefoxen</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Ez dut sync erabiltzen</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Zenbateraino zaude pozik zure Firefoxen hasiera-orriarekin?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Lagundu Firefoxen inprimatzeko eginbidea hobetzen. Momentutxo bat bakarrik izango da</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Lagundu Firefoxeko bilaketa hobetzen. Minutu bat bakarrik izango da</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Lagundu Firefoxeko sinkronizazioa hobetzen. Minutu bat bakarrik izango da</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Zenbateraino zaude gustura Firefoxen inprimatzeko eginbidearekin?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Zenbateraino zaude pozik zure Firefoxen hasiera-orriarekin?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Zenbateraino zaude gustura Firefoxen bilaketaren esperientziarekin?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Zenbateraino zaude gustura Firefoxen sinkronizatzeko esperientziarekin?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefoxen logoa</string>
@@ -2860,6 +2897,10 @@ zure pasahitzak, laster-markak eta gehiago zifratzen du.</string>
     <string name="debug_drawer_cfr_tools_title">CFR Tresnak</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Berrezarri CFRak</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Glean arazketa-tresnak</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

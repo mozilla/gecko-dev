@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The tile for the list of external apps to open the link in -->
+    <string name="mozac_feature_applinks_open_in">Je\'e ti\'…</string>
+    <!-- The description to warn users that their private browsing session changes  -->
+    <string name="mozac_feature_applinks_confirm_dialog_title">Je\'e ti\' app? A meyaj je\'el u páajtal u p\'áatal ma\' privado.</string>
+    <!-- The title of the prompt that warns users their normal browsing session is trying to open another app  -->
+    <string name="mozac_feature_applinks_normal_confirm_dialog_title">Je\'e ti\' uláak\' app</string>
+    <!-- The message of the prompt to confirm with users that they want to open the link in another app
+    %s is a placeholder that will be replaced by the app name -->
+    <string name="mozac_feature_applinks_normal_confirm_dialog_message">A k\'áat wa a p\'atik %s uti\'al a wilik le ba\'ala\'?</string>
+    <!-- Opens the selected time -->
+    <string name="mozac_feature_applinks_confirm_dialog_confirm">Waach</string>
+    <!-- Cancels the prompt -->
+    <string name="mozac_feature_applinks_confirm_dialog_deny">Tuup</string>
+</resources>

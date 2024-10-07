@@ -85,6 +85,12 @@
 
     <string name="notification_erase_title_android_14">أأمسح سجل التصفح؟</string>
 
+    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">انقر أو امسح هذا الإشعار لمسح سجل تصفحك بأمان.</string>
+
+    <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
+    for Android 14+. -->
+    <string name="notification_erase_text_android_14_1">انقر أو مرّر هذا الإشعار لمسح سجل تصفحك بأمان.</string>
+
     <string name="notification_erase_text">امسح تأريخ التصفح</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -705,6 +711,9 @@
     <!--  Title preference inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
     <string name="cookie_banner_reject_all_option_title">تقليل لافتات ملفات تعريف الارتباط</string>
 
+    <!--  Preference summary inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
+    <string name="cookie_banner_reject_all_option_summary">شاهد عددًا أقل من اللافتات برفض طلبات ملفات تعريف الارتباط تلقائيًا، عندما يمكن ذلك.</string>
+
     <!-- Preference for removing cookie/consent banners from sites automatically, this is shown as part of the protections panel with the tracking protection toggle. -->--&gt;
     <string name="cookie_banner_exception_item_title">تقليل لافتات ملفات تعريف الارتباط</string>
 
@@ -732,6 +741,15 @@
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
     <string name="cookie_banner_exception_panel_title_state_off_for_site">أأطفئ تقليل لافتات ملفات تعريف الارتباط لـ%1$s؟</string>
 
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+    <string name="cookie_banner_exception_panel_description_state_on_for_site">سيمسح %1$s كعكات هذا الموقع ويحدث الصفحة. مسحك لكل الكعكات قد يخرجك من حساباتك أو يمسح سلال التسوق.</string>
+
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+    <string name="cookie_banner_exception_panel_description_state_off_for_site2">يمكن لـ%1$s محاولة رفض طلبات ملفات تعريف الارتباط تلقائيًا.</string>
+
+    <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
+    <string name="cookie_banner_exception_panel_description_site_is_not_supported">لا يدعم هذا الموقع حاليًا ميزة تقليل لافتات ملفات تعريف الارتباط. هل ترغب في طلب مراجعة فريقنا لهذا الموقع وإضافة الدعم في المستقبل؟</string>
+
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
     <string name="cookie_banner_exception_panel_site_is_not_supported_cancel_button">ألغِ</string>
 
@@ -744,6 +762,9 @@
     <!-- Label for cookie banner item from tracking protection, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_the_site_was_reported">تم إرسال طلب دعم الموقع.</string>
 
+    <!-- Contextual Feature Recommendation Popups -->
+    <!-- CFR for Cookie Banner (Banner Info Message). %1$s will be replaced by the app name, %2$s will be an active link using the string cfr_cookie_banner_link as text. -->
+    <string name="cfr_cookie_banner">يحاول %1$s رفض طلبات ملفات تعريف الارتباط لإغلاق لافتات ملفات تعريف الارتباط المزعجة.\n\nأدر تفضيلات لافتات ملفات تعريف الارتباط في %2$s.</string>
     <!-- CFR for Cookie Banner (Banner Info Message). This string is used as text for a link in cfr_cookie_banner and takes the user to the app settings. -->
     <string name="cfr_cookie_banner_link">الإعدادات</string>
 
@@ -1009,8 +1030,27 @@
      <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on  -->
     <string name="errorpage_httpsonly_title2">هذا الموقع لا يدعم HTTPS</string>
 
+    <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
+        Contains a button that will redirect the user to Privacy & Security Screen-->
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[يحاول %1$s استخدام اتصال HTTPS كلما أمكن ذلك لزيادة الأمان.
+<a href="%2$s">تعرف على المزيد</a> <br/><br/>
+يمكنك تغيير هذا الإعداد في الإعدادات > الخصوصية والأمان > الأمان.]]></string>
+
     <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
     <string name="mozac_browser_errorpages_security_bad_cert_title">الاتصال غير آمن</string>
+
+     <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[
+    قد تكون هذه مشكلة في تكوين الخادم، أو قد يوجد من يحاول انتحال شخصية الخادم.<br/><br/>
+    إذا اتصلت بهذا الخادم بنجاح مسبقًا، فقد يكون الخطأ مؤقتًا.
+    ]]></string>
+
+    <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>قد يحاول أحد ما انتحال هوية الموقع، فالاستمرار هنا محفوفٌ بالمخاطر.</label>
+        <br><br>
+        <label>لا يثق %1$s بـ<b>%2$s</b> لأن الجهة المصدرة للشهادة غير معروفة، أو لأن الشهادة موقعة ذاتيًا، أو لأن الخادم لم يرسل الشهادات الوسيطة الصحيحة.</label>
+]]></string>
 
      <!-- Sessions List -->
     <!-- Content description (not visible, for screen readers etc.): Button that closes a tab n the sessions list -->
@@ -1031,6 +1071,9 @@
     <!-- Tool Tip "X" button Content description (not visible, for screen readers etc.) :Button that closes the tool tip -->
     <string name="tool_tip_dismiss_button_content_description">أهمِل</string>
 
+    <!-- CFR for Toolbar Delete Icon (Banner Info Message) -->
+    <string name="cfr_for_toolbar_delete_icon2">انقر هنا لحذف كل شيء - التاريخ وملفات تعريف الارتباط وكل شيء - وابدأ بانتعاشة في لسان جديد.</string>
+
     <!-- Promote SearchWidget Dialog -->
 
     <!-- Content description (not visible, for screen readers etc.): This is the description for the
@@ -1040,4 +1083,23 @@
     <!-- This is the title of promote search widget dialog. -->
     <string name="promote_search_widget_dialog_title">مُسح تأريخ التصفح! 🎉</string>
 
-    </resources>
+    <!-- Banner Info Message than will appear when user first enters in the app. The location is at the toolbar. -->
+    <string name="cfr_for_start_browsing">ابدأ جلسة التصفح الخاصة، وسنقوم بحظر أدوات التتبع والأشياء السيئة الأخرى أثناء تصفحك.</string>
+
+    <!-- This is the subtitle of promote search widget dialog. %1$s will get replaced with the name
+    of the app (e.g. "Focus") -->
+    <string name="promote_search_widget_dialog_subtitle">سنتركك لتصفحك الخاص ، ولكن ابدأ بشكل أسرع في المرة القادمة باستخدام ودجت %1$s على شاشتك الرئيسية.</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">للخروج من وضع ملء الشاشة، اسحب من الأعلى واستخدم إيماء الرجوع</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">للخروج من وضع ملء الشاشة، اسحب من الأعلى واضغط زر الحذف</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">اسحب من الأعلى واستخدم إيماء الرجوع للخروج</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">اسحب من الأعلى واضغط على زر الحذف للخروج</string>
+</resources>
