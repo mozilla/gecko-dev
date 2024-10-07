@@ -13,7 +13,7 @@ In this document, you'll find all the information needed regarding the basics of
 Help! I have a regression. What do I do?
 ----------------------------------------
 
-Most people will first be introduced to performance testing at Mozilla through an alert like so:
+Most people will first be introduced to performance testing at Mozilla through a bug like this:
 
  .. image:: ./perf_alert_bug.png
    :alt: Performance Alert Bug
@@ -23,7 +23,9 @@ Most people will first be introduced to performance testing at Mozilla through a
 
 The title of the bug will include the tests, and subtests that caused the largest change, the platform(s) the changes were detected on, and the date. It will also be prefixed with a range of the size (in percentage) of the changes. In the bug details, the bug which triggered the alert will also be found in the ``Regressed by`` field, and there will be a needinfo for the patch author.
 
-An alert summary will be found below in comment zero for this bug. It provides all the info required to understand what regressed, and provides info on the next steps for debugging it.
+**Bug overview and the first comment (aka comment 0):**
+
+An alert summary table will always be found in the first comment (comment 0) of a performance regression bug, it provides all the information required to understand what regressed.
 
  .. image:: ./perf_alert_comment_zero.png
    :alt: Comment Zero from a Performance Alert Bug
@@ -40,9 +42,9 @@ An alert summary will be found below in comment zero for this bug. It provides a
     * ``Platform``: The name of the platform that the change was detected on.
     * ``Options``: Specify the conditions in which the test was run (e.g. cold, warm, bytecode-cached).
     * ``Absolute Values``: The absolute values of the change.
-    * ``Performance Profiles``: Before, and after Gecko profiles of the test.
+    * ``Performance Profiles``: Before, and after Gecko profiles of the test (this is not available for all test frameworks yet).
 
- * Below the table, an ``alert summary`` link can be found which provides a different view of this table. Some additional debugging information such as ``side-by-side`` videos can be found here. It will also include any additional tests that alerted after this bug was filed.
+ * Below the table, an ``alert summary`` link can be found which provides a different view of this table, a full in-depth explanation of the alert summary link can be found here `Perfherder Alerts View`_. Some additional debugging information such as ``side-by-side`` videos can be found here. It will also include any additional tests that alerted after this bug was filed.
  * Then some information on what we expect from the patch author is provided regarding how long they have to respond to the alert before it gets backed out along with links to the guidelines for handling regressions.
  * Finally, a helpful command to run these tests on try is provided using ``./mach try perf --alert <ALERT-NUM>``. :ref:`See here for more information about mach try perf <Mach Try Perf>`.
 
@@ -62,6 +64,27 @@ The second is requesting a confirmation from the performance sheriff that the pa
  #. A ``FIXED`` resolution which implies that a change was detected, and a fix was made to resolve it.
 
 If there are any questions about the alert, or additional help is needed with debugging the alert feel free to needinfo the performance sheriff that reported the bug. The performance sheriff most suitable for adding a needinfo to can be identified on the regression bug via the user who added a ``status-firefox [X]: --- → affected`` comment. In the future, this person `will be identified in comment zero <ttps://bugzilla.mozilla.org/show_bug.cgi?id=1914174>`_.
+
+Perfherder Alerts View
+----------------------
+When you click on the "Alerts Summary" hyperlink it will take you to an alert summary table on Perfherder which looks like the following screenshot:
+
+ .. image:: ./perfherder_alertsview.png
+   :alt: Sample Perfherder Alert Summary
+   :scale: 75%
+   :align: center
+
+ * The table has 1 performance metric per row that has either improved or regressed a metric.
+ * From left to right, the columns and icons you need to be concerned about as a developer are:
+
+    * ``Graph icon``: Takes you to a graph that shows the history of the metric.
+    * ``Test``: A hyperlink to all the test settings, test owner, and their contact information. As well as the name of the subtest (in our case SpeedIndex, and loadtime).
+    * ``Platform``: Platform of metric which regressed.
+    * ``Debug Tools``: Tools available to help visualize and debug regressions.
+    * ``Information``: Historical data distribution (modal, ok, or n/a if not enough information is  available).
+    * ``Tags & Options``: Specify the conditions in which the test was run (e.g. cold, warm, bytecode-cached).
+    * ``Magnitude of Change``: How much the metric improved or regressed (green colour indicates an improvement and red indicates a regression).
+    * ``Confidence``: Confidence value of metric (number is not out of 100) higher number means higher confidence.
 
 Running Performance Tests
 -------------------------
