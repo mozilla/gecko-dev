@@ -295,34 +295,34 @@ class nsChildView final : public nsBaseWidget {
   nsChildView();
 
   // nsIWidget interface
-  [[nodiscard]] virtual nsresult Create(nsIWidget* aParent,
-                                        const LayoutDeviceIntRect& aRect,
-                                        InitData* = nullptr) override;
+  [[nodiscard]] nsresult Create(nsIWidget* aParent,
+                                const LayoutDeviceIntRect& aRect,
+                                InitData* = nullptr) override;
 
-  virtual void Destroy() override;
+  void Destroy() override;
 
-  virtual void Show(bool aState) override;
-  virtual bool IsVisible() const override;
+  void Show(bool aState) override;
+  bool IsVisible() const override;
 
-  virtual void SetParent(nsIWidget* aNewParent) override;
-  virtual nsIWidget* GetParent(void) override;
-  virtual float GetDPI() override;
+  void SetParent(nsIWidget* aNewParent) override;
+  nsIWidget* GetParent(void) override;
+  float GetDPI() override;
 
-  virtual void Move(double aX, double aY) override;
-  virtual void Resize(double aWidth, double aHeight, bool aRepaint) override;
-  virtual void Resize(double aX, double aY, double aWidth, double aHeight,
-                      bool aRepaint) override;
+  void Move(double aX, double aY) override;
+  void Resize(double aWidth, double aHeight, bool aRepaint) override;
+  void Resize(double aX, double aY, double aWidth, double aHeight,
+              bool aRepaint) override;
 
-  virtual void Enable(bool aState) override;
-  virtual bool IsEnabled() const override;
+  void Enable(bool aState) override;
+  bool IsEnabled() const override;
 
-  virtual nsSizeMode SizeMode() override { return mSizeMode; }
-  virtual void SetSizeMode(nsSizeMode aMode) override { mSizeMode = aMode; }
+  nsSizeMode SizeMode() override { return mSizeMode; }
+  void SetSizeMode(nsSizeMode aMode) override { mSizeMode = aMode; }
 
-  virtual void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
-  virtual LayoutDeviceIntRect GetBounds() override;
-  virtual LayoutDeviceIntRect GetClientBounds() override;
-  virtual LayoutDeviceIntRect GetScreenBounds() override;
+  void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
+  LayoutDeviceIntRect GetBounds() override;
+  LayoutDeviceIntRect GetClientBounds() override;
+  LayoutDeviceIntRect GetScreenBounds() override;
 
   // Refresh mBounds with up-to-date values from [mView frame].
   // Only called if this nsChildView is the popup content view of a popup
@@ -348,87 +348,84 @@ class nsChildView final : public nsBaseWidget {
   // between HiDPI and non-HiDPI screens
   void BackingScaleFactorChanged();
 
-  virtual double GetDefaultScaleInternal() override;
+  double GetDefaultScaleInternal() override;
 
-  virtual int32_t RoundsWidgetCoordinatesTo() override;
+  int32_t RoundsWidgetCoordinatesTo() override;
 
-  virtual void Invalidate(const LayoutDeviceIntRect& aRect) override;
+  void Invalidate(const LayoutDeviceIntRect& aRect) override;
   void EnsureContentLayerForMainThreadPainting();
 
-  virtual void* GetNativeData(uint32_t aDataType) override;
-  virtual LayoutDeviceIntPoint WidgetToScreenOffset() override;
-  virtual bool ShowsResizeIndicator(
-      LayoutDeviceIntRect* aResizerRect) override {
+  void* GetNativeData(uint32_t aDataType) override;
+  LayoutDeviceIntPoint WidgetToScreenOffset() override;
+  bool ShowsResizeIndicator(LayoutDeviceIntRect* aResizerRect) override {
     return false;
   }
 
-  virtual nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
-                                 nsEventStatus& aStatus) override;
+  nsresult DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
+                         nsEventStatus& aStatus) override;
 
-  virtual bool WidgetTypeSupportsAcceleration() override;
-  virtual bool ShouldUseOffMainThreadCompositing() override;
+  bool WidgetTypeSupportsAcceleration() override;
+  bool ShouldUseOffMainThreadCompositing() override;
 
-  virtual void SetCursor(const Cursor&) override;
+  void SetCursor(const Cursor&) override;
 
-  virtual nsresult SetTitle(const nsAString& title) override;
+  nsresult SetTitle(const nsAString& title) override;
 
-  [[nodiscard]] virtual nsresult GetAttention(int32_t aCycleCount) override;
+  [[nodiscard]] nsresult GetAttention(int32_t aCycleCount) override;
 
-  virtual bool HasPendingInputEvent() override;
+  bool HasPendingInputEvent() override;
 
   bool SendEventToNativeMenuSystem(NSEvent* aEvent);
-  virtual void PostHandleKeyEvent(
-      mozilla::WidgetKeyboardEvent* aEvent) override;
-  virtual nsresult ActivateNativeMenuItemAt(
-      const nsAString& indexString) override;
-  virtual nsresult ForceUpdateNativeMenuAt(
-      const nsAString& indexString) override;
-  [[nodiscard]] virtual nsresult GetSelectionAsPlaintext(
-      nsAString& aResult) override;
+  void PostHandleKeyEvent(mozilla::WidgetKeyboardEvent* aEvent) override;
+  nsresult ActivateNativeMenuItemAt(const nsAString& indexString) override;
+  nsresult ForceUpdateNativeMenuAt(const nsAString& indexString) override;
+  [[nodiscard]] nsresult GetSelectionAsPlaintext(nsAString& aResult) override;
 
-  virtual void SetInputContext(const InputContext& aContext,
-                               const InputContextAction& aAction) override;
-  virtual InputContext GetInputContext() override;
-  virtual TextEventDispatcherListener* GetNativeTextEventDispatcherListener()
-      override;
-  [[nodiscard]] virtual nsresult AttachNativeKeyEvent(
+  void SetInputContext(const InputContext& aContext,
+                       const InputContextAction& aAction) override;
+  InputContext GetInputContext() override;
+  TextEventDispatcherListener* GetNativeTextEventDispatcherListener() override;
+  [[nodiscard]] nsresult AttachNativeKeyEvent(
       mozilla::WidgetKeyboardEvent& aEvent) override;
-  MOZ_CAN_RUN_SCRIPT virtual bool GetEditCommands(
+  MOZ_CAN_RUN_SCRIPT bool GetEditCommands(
       mozilla::NativeKeyBindingsType aType,
       const mozilla::WidgetKeyboardEvent& aEvent,
       nsTArray<mozilla::CommandInt>& aCommands) override;
 
-  virtual void SuppressAnimation(bool aSuppress) override;
+  void SuppressAnimation(bool aSuppress) override;
 
-  virtual nsresult SynthesizeNativeKeyEvent(
-      int32_t aNativeKeyboardLayout, int32_t aNativeKeyCode,
-      uint32_t aModifierFlags, const nsAString& aCharacters,
-      const nsAString& aUnmodifiedCharacters, nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
+                                    int32_t aNativeKeyCode,
+                                    uint32_t aModifierFlags,
+                                    const nsAString& aCharacters,
+                                    const nsAString& aUnmodifiedCharacters,
+                                    nsIObserver* aObserver) override;
 
-  virtual nsresult SynthesizeNativeMouseEvent(
-      LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
-      mozilla::MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
-      nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
+                                      NativeMouseMessage aNativeMessage,
+                                      mozilla::MouseButton aButton,
+                                      nsIWidget::Modifiers aModifierFlags,
+                                      nsIObserver* aObserver) override;
 
-  virtual nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                             nsIObserver* aObserver) override {
+  nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
+                                     nsIObserver* aObserver) override {
     return SynthesizeNativeMouseEvent(
         aPoint, NativeMouseMessage::Move, mozilla::MouseButton::eNotPressed,
         nsIWidget::Modifiers::NO_MODIFIERS, aObserver);
   }
-  virtual nsresult SynthesizeNativeMouseScrollEvent(
+  nsresult SynthesizeNativeMouseScrollEvent(
       LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage, double aDeltaX,
       double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
       uint32_t aAdditionalFlags, nsIObserver* aObserver) override;
-  virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                              TouchPointerState aPointerState,
-                                              LayoutDeviceIntPoint aPoint,
-                                              double aPointerPressure,
-                                              uint32_t aPointerOrientation,
-                                              nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
+                                      TouchPointerState aPointerState,
+                                      LayoutDeviceIntPoint aPoint,
+                                      double aPointerPressure,
+                                      uint32_t aPointerOrientation,
+                                      nsIObserver* aObserver) override;
 
-  virtual nsresult SynthesizeNativeTouchpadDoubleTap(
-      LayoutDeviceIntPoint aPoint, uint32_t aModifierFlags) override;
+  nsresult SynthesizeNativeTouchpadDoubleTap(LayoutDeviceIntPoint aPoint,
+                                             uint32_t aModifierFlags) override;
 
   // Mac specific methods
   void WillPaintWindow();
@@ -444,30 +441,27 @@ class nsChildView final : public nsBaseWidget {
   already_AddRefed<mozilla::a11y::LocalAccessible> GetDocumentAccessible();
 #endif
 
-  virtual void CreateCompositor() override;
+  void CreateCompositor() override;
 
-  virtual bool WidgetPaintsBackground() override { return true; }
+  bool WidgetPaintsBackground() override { return true; }
 
-  virtual bool PreRender(
-      mozilla::widget::WidgetRenderingContext* aContext) override;
-  virtual void PostRender(
-      mozilla::widget::WidgetRenderingContext* aContext) override;
-  virtual RefPtr<mozilla::layers::NativeLayerRoot> GetNativeLayerRoot()
-      override;
+  bool PreRender(mozilla::widget::WidgetRenderingContext* aContext) override;
+  void PostRender(mozilla::widget::WidgetRenderingContext* aContext) override;
+  RefPtr<mozilla::layers::NativeLayerRoot> GetNativeLayerRoot() override;
 
-  virtual void UpdateThemeGeometries(
+  void UpdateThemeGeometries(
       const nsTArray<ThemeGeometry>& aThemeGeometries) override;
 
-  virtual void UpdateWindowDraggingRegion(
+  void UpdateWindowDraggingRegion(
       const LayoutDeviceIntRegion& aRegion) override;
   LayoutDeviceIntRegion GetNonDraggableRegion() {
     return mNonDraggableRegion.Region();
   }
 
-  virtual void LookUpDictionary(
-      const nsAString& aText,
-      const nsTArray<mozilla::FontRange>& aFontRangeArray,
-      const bool aIsVertical, const LayoutDeviceIntPoint& aPoint) override;
+  void LookUpDictionary(const nsAString& aText,
+                        const nsTArray<mozilla::FontRange>& aFontRangeArray,
+                        const bool aIsVertical,
+                        const LayoutDeviceIntPoint& aPoint) override;
 
   void ResetParent();
 
@@ -479,7 +473,7 @@ class nsChildView final : public nsBaseWidget {
 
   nsCocoaWindow* GetAppWindowWidget() const;
 
-  virtual void ReparentNativeWidget(nsIWidget* aNewParent) override;
+  void ReparentNativeWidget(nsIWidget* aNewParent) override;
 
   mozilla::widget::TextInputHandler* GetTextInputHandler() {
     return mTextInputHandler;
@@ -507,7 +501,7 @@ class nsChildView final : public nsBaseWidget {
     return nsCocoaUtils::DevPixelsToCocoaPoints(aRect, BackingScaleFactor());
   }
 
-  virtual LayoutDeviceIntPoint GetClientOffset() override;
+  LayoutDeviceIntPoint GetClientOffset() override;
 
   void DispatchAPZWheelInputEvent(mozilla::InputData& aEvent);
   nsEventStatus DispatchAPZInputEvent(mozilla::InputData& aEvent);
@@ -538,8 +532,8 @@ class nsChildView final : public nsBaseWidget {
 
 #ifdef DEBUG
   // test only.
-  virtual nsresult SetHiDPIMode(bool aHiDPI) override;
-  virtual nsresult RestoreHiDPIMode() override;
+  nsresult SetHiDPIMode(bool aHiDPI) override;
+  nsresult RestoreHiDPIMode() override;
 #endif
 
  protected:
@@ -550,7 +544,7 @@ class nsChildView final : public nsBaseWidget {
 
   void TearDownView();
 
-  virtual already_AddRefed<nsIWidget> AllocateChildPopupWidget() override {
+  already_AddRefed<nsIWidget> AllocateChildPopupWidget() override {
     return nsIWidget::CreateTopLevelWindow();
   }
 

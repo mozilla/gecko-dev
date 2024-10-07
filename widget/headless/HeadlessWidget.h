@@ -50,92 +50,93 @@ class HeadlessWidget : public nsBaseWidget {
     return nullptr;
   }
 
-  virtual nsresult Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
-                          widget::InitData* aInitData = nullptr) override;
+  nsresult Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
+                  widget::InitData* aInitData = nullptr) override;
   using nsBaseWidget::Create;  // for Create signature not overridden here
 
   nsIWidget* GetTopLevelWidget() override;
 
-  virtual void GetCompositorWidgetInitData(
+  void GetCompositorWidgetInitData(
       mozilla::widget::CompositorWidgetInitData* aInitData) override;
 
-  virtual void Destroy() override;
-  virtual void Show(bool aState) override;
-  virtual bool IsVisible() const override;
-  virtual void Move(double aX, double aY) override;
-  virtual void Resize(double aWidth, double aHeight, bool aRepaint) override;
-  virtual void Resize(double aX, double aY, double aWidth, double aHeight,
-                      bool aRepaint) override;
-  virtual nsSizeMode SizeMode() override { return mSizeMode; }
-  virtual void SetSizeMode(nsSizeMode aMode) override;
-  virtual nsresult MakeFullScreen(bool aFullScreen) override;
-  virtual void Enable(bool aState) override;
-  virtual bool IsEnabled() const override;
-  virtual void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
-  virtual void Invalidate(const LayoutDeviceIntRect& aRect) override {
+  void Destroy() override;
+  void Show(bool aState) override;
+  bool IsVisible() const override;
+  void Move(double aX, double aY) override;
+  void Resize(double aWidth, double aHeight, bool aRepaint) override;
+  void Resize(double aX, double aY, double aWidth, double aHeight,
+              bool aRepaint) override;
+  nsSizeMode SizeMode() override { return mSizeMode; }
+  void SetSizeMode(nsSizeMode aMode) override;
+  nsresult MakeFullScreen(bool aFullScreen) override;
+  void Enable(bool aState) override;
+  bool IsEnabled() const override;
+  void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
+  void Invalidate(const LayoutDeviceIntRect& aRect) override {
     // TODO: see if we need to do anything here.
   }
-  virtual nsresult SetTitle(const nsAString& title) override {
+  nsresult SetTitle(const nsAString& title) override {
     // Headless widgets have no title, so just ignore it.
     return NS_OK;
   }
-  virtual nsresult SetNonClientMargins(
-      const LayoutDeviceIntMargin& margins) override {
+  nsresult SetNonClientMargins(const LayoutDeviceIntMargin& margins) override {
     // Headless widgets have no chrome margins, so just ignore the call.
     return NS_OK;
   }
-  virtual LayoutDeviceIntPoint WidgetToScreenOffset() override;
-  virtual void SetInputContext(const InputContext& aContext,
-                               const InputContextAction& aAction) override {
+  LayoutDeviceIntPoint WidgetToScreenOffset() override;
+  void SetInputContext(const InputContext& aContext,
+                       const InputContextAction& aAction) override {
     mInputContext = aContext;
   }
-  virtual InputContext GetInputContext() override { return mInputContext; }
+  InputContext GetInputContext() override { return mInputContext; }
 
-  virtual WindowRenderer* GetWindowRenderer() override;
+  WindowRenderer* GetWindowRenderer() override;
 
   void SetCompositorWidgetDelegate(CompositorWidgetDelegate* delegate) override;
 
-  [[nodiscard]] virtual nsresult AttachNativeKeyEvent(
+  [[nodiscard]] nsresult AttachNativeKeyEvent(
       WidgetKeyboardEvent& aEvent) override;
-  MOZ_CAN_RUN_SCRIPT virtual bool GetEditCommands(
+  MOZ_CAN_RUN_SCRIPT bool GetEditCommands(
       NativeKeyBindingsType aType, const WidgetKeyboardEvent& aEvent,
       nsTArray<CommandInt>& aCommands) override;
 
-  virtual nsresult DispatchEvent(WidgetGUIEvent* aEvent,
-                                 nsEventStatus& aStatus) override;
+  nsresult DispatchEvent(WidgetGUIEvent* aEvent,
+                         nsEventStatus& aStatus) override;
 
-  virtual nsresult SynthesizeNativeMouseEvent(
-      LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
-      mozilla::MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
-      nsIObserver* aObserver) override;
-  virtual nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                             nsIObserver* aObserver) override {
+  nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
+                                      NativeMouseMessage aNativeMessage,
+                                      mozilla::MouseButton aButton,
+                                      nsIWidget::Modifiers aModifierFlags,
+                                      nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
+                                     nsIObserver* aObserver) override {
     return SynthesizeNativeMouseEvent(
         aPoint, NativeMouseMessage::Move, mozilla::MouseButton::eNotPressed,
         nsIWidget::Modifiers::NO_MODIFIERS, aObserver);
   };
 
-  virtual nsresult SynthesizeNativeMouseScrollEvent(
+  nsresult SynthesizeNativeMouseScrollEvent(
       LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage, double aDeltaX,
       double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
       uint32_t aAdditionalFlags, nsIObserver* aObserver) override;
 
-  virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                              TouchPointerState aPointerState,
-                                              LayoutDeviceIntPoint aPoint,
-                                              double aPointerPressure,
-                                              uint32_t aPointerOrientation,
-                                              nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
+                                      TouchPointerState aPointerState,
+                                      LayoutDeviceIntPoint aPoint,
+                                      double aPointerPressure,
+                                      uint32_t aPointerOrientation,
+                                      nsIObserver* aObserver) override;
 
-  virtual nsresult SynthesizeNativeTouchPadPinch(
-      TouchpadGesturePhase aEventPhase, float aScale,
-      LayoutDeviceIntPoint aPoint, int32_t aModifierFlags) override;
+  nsresult SynthesizeNativeTouchPadPinch(TouchpadGesturePhase aEventPhase,
+                                         float aScale,
+                                         LayoutDeviceIntPoint aPoint,
+                                         int32_t aModifierFlags) override;
 
-  virtual nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
-                                               LayoutDeviceIntPoint aPoint,
-                                               double aDeltaX, double aDeltaY,
-                                               int32_t aModifierFlags,
-                                               nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
+                                       LayoutDeviceIntPoint aPoint,
+                                       double aDeltaX, double aDeltaY,
+                                       int32_t aModifierFlags,
+                                       nsIObserver* aObserver) override;
 
  private:
   ~HeadlessWidget();

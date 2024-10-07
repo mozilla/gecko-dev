@@ -41,9 +41,9 @@ namespace widget {
 
 struct AutoCacheNativeKeyCommands;
 
-class PuppetWidget : public nsBaseWidget,
-                     public TextEventDispatcherListener,
-                     public layers::MemoryPressureListener {
+class PuppetWidget final : public nsBaseWidget,
+                           public TextEventDispatcherListener,
+                           public layers::MemoryPressureListener {
   typedef mozilla::CSSRect CSSRect;
   typedef mozilla::dom::BrowserChild BrowserChild;
   typedef mozilla::gfx::DrawTarget DrawTarget;
@@ -76,18 +76,18 @@ class PuppetWidget : public nsBaseWidget,
 
   void InitIMEState();
 
-  virtual void Destroy() override;
+  void Destroy() override;
 
-  virtual void Show(bool aState) override;
+  void Show(bool aState) override;
 
-  virtual bool IsVisible() const override { return mVisible; }
+  bool IsVisible() const override { return mVisible; }
 
   // Widget position is controlled by the parent process via BrowserChild.
-  virtual void Move(double aX, double aY) override {}
+  void Move(double aX, double aY) override {}
 
-  virtual void Resize(double aWidth, double aHeight, bool aRepaint) override;
-  virtual void Resize(double aX, double aY, double aWidth, double aHeight,
-                      bool aRepaint) override {
+  void Resize(double aWidth, double aHeight, bool aRepaint) override;
+  void Resize(double aX, double aY, double aWidth, double aHeight,
+              bool aRepaint) override {
     if (!mBounds.IsEqualXY(aX, aY)) {
       NotifyWindowMoved(aX, aY);
     }
@@ -97,30 +97,30 @@ class PuppetWidget : public nsBaseWidget,
 
   // XXX/cjones: copying gtk behavior here; unclear what disabling a
   // widget is supposed to entail
-  virtual void Enable(bool aState) override { mEnabled = aState; }
-  virtual bool IsEnabled() const override { return mEnabled; }
+  void Enable(bool aState) override { mEnabled = aState; }
+  bool IsEnabled() const override { return mEnabled; }
 
-  virtual nsSizeMode SizeMode() override { return mSizeMode; }
-  virtual void SetSizeMode(nsSizeMode aMode) override { mSizeMode = aMode; }
+  nsSizeMode SizeMode() override { return mSizeMode; }
+  void SetSizeMode(nsSizeMode aMode) override { mSizeMode = aMode; }
 
-  virtual void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
+  void SetFocus(Raise, mozilla::dom::CallerType aCallerType) override;
 
-  virtual void Invalidate(const LayoutDeviceIntRect& aRect) override;
+  void Invalidate(const LayoutDeviceIntRect& aRect) override;
 
   // PuppetWidgets don't have native data, as they're purely nonnative.
-  virtual void* GetNativeData(uint32_t aDataType) override { return nullptr; }
+  void* GetNativeData(uint32_t aDataType) override { return nullptr; }
 
   // PuppetWidgets don't have any concept of titles.
-  virtual nsresult SetTitle(const nsAString& aTitle) override {
+  nsresult SetTitle(const nsAString& aTitle) override {
     return NS_ERROR_UNEXPECTED;
   }
 
-  virtual mozilla::LayoutDeviceToLayoutDeviceMatrix4x4
-  WidgetToTopLevelWidgetTransform() override;
+  mozilla::LayoutDeviceToLayoutDeviceMatrix4x4 WidgetToTopLevelWidgetTransform()
+      override;
 
-  virtual LayoutDeviceIntPoint WidgetToScreenOffset() override;
+  LayoutDeviceIntPoint WidgetToScreenOffset() override;
 
-  virtual LayoutDeviceIntPoint TopLevelWidgetToScreenOffset() override {
+  LayoutDeviceIntPoint TopLevelWidgetToScreenOffset() override {
     return GetWindowPosition();
   }
 
@@ -129,8 +129,8 @@ class PuppetWidget : public nsBaseWidget,
   void InitEvent(WidgetGUIEvent& aEvent,
                  LayoutDeviceIntPoint* aPoint = nullptr);
 
-  virtual nsresult DispatchEvent(WidgetGUIEvent* aEvent,
-                                 nsEventStatus& aStatus) override;
+  nsresult DispatchEvent(WidgetGUIEvent* aEvent,
+                         nsEventStatus& aStatus) override;
   ContentAndAPZEventStatus DispatchInputEvent(
       WidgetInputEvent* aEvent) override;
   void SetConfirmedTargetAPZC(
@@ -141,7 +141,7 @@ class PuppetWidget : public nsBaseWidget,
       const mozilla::Maybe<ZoomConstraints>& aConstraints) override;
   bool AsyncPanZoomEnabled() const override;
 
-  MOZ_CAN_RUN_SCRIPT virtual bool GetEditCommands(
+  MOZ_CAN_RUN_SCRIPT bool GetEditCommands(
       NativeKeyBindingsType aType, const mozilla::WidgetKeyboardEvent& aEvent,
       nsTArray<mozilla::CommandInt>& aCommands) override;
 
@@ -157,11 +157,11 @@ class PuppetWidget : public nsBaseWidget,
   // same-process subdocuments, we force the widget here to be
   // transparent, which in turn will cause layout to use a transparent
   // backstop background color.
-  virtual TransparencyMode GetTransparencyMode() override {
+  TransparencyMode GetTransparencyMode() override {
     return TransparencyMode::Transparent;
   }
 
-  virtual WindowRenderer* GetWindowRenderer() override;
+  WindowRenderer* GetWindowRenderer() override;
 
   // This is used for creating remote layer managers and for re-creating
   // them after a compositor reset. The lambda aInitializeFunc is used to
@@ -171,10 +171,10 @@ class PuppetWidget : public nsBaseWidget,
   bool CreateRemoteLayerManager(
       const std::function<bool(WebRenderLayerManager*)>& aInitializeFunc);
 
-  virtual void SetInputContext(const InputContext& aContext,
-                               const InputContextAction& aAction) override;
-  virtual InputContext GetInputContext() override;
-  virtual NativeIMEContext GetNativeIMEContext() override;
+  void SetInputContext(const InputContext& aContext,
+                       const InputContextAction& aAction) override;
+  InputContext GetInputContext() override;
+  NativeIMEContext GetNativeIMEContext() override;
   TextEventDispatcherListener* GetNativeTextEventDispatcherListener() override {
     return mNativeTextEventDispatcherListener
                ? mNativeTextEventDispatcherListener.get()
@@ -185,19 +185,17 @@ class PuppetWidget : public nsBaseWidget,
     mNativeTextEventDispatcherListener = aListener;
   }
 
-  virtual void SetCursor(const Cursor&) override;
+  void SetCursor(const Cursor&) override;
 
   float GetDPI() override { return mDPI; }
   double GetDefaultScaleInternal() override { return mDefaultScale; }
 
-  virtual bool NeedsPaint() override;
+  bool NeedsPaint() override;
 
   // Paint the widget immediately if any paints are queued up.
   void PaintNowIfNeeded();
 
-  virtual BrowserChild* GetOwningBrowserChild() override {
-    return mBrowserChild;
-  }
+  BrowserChild* GetOwningBrowserChild() override { return mBrowserChild; }
 
   void UpdateBackingScaleCache(float aDpi, int32_t aRounding, double aScale) {
     mDPI = aDpi;
@@ -206,7 +204,7 @@ class PuppetWidget : public nsBaseWidget,
   }
 
   // safe area insets support
-  virtual ScreenIntMargin GetSafeAreaInsets() const override;
+  ScreenIntMargin GetSafeAreaInsets() const override;
   void UpdateSafeAreaInsets(const ScreenIntMargin& aSafeAreaInsets);
 
   // Get the offset to the chrome of the window that this tab belongs to.
@@ -219,70 +217,71 @@ class PuppetWidget : public nsBaseWidget,
   // Get the screen position of the application window.
   LayoutDeviceIntPoint GetWindowPosition();
 
-  virtual LayoutDeviceIntRect GetScreenBounds() override;
+  LayoutDeviceIntRect GetScreenBounds() override;
 
-  virtual nsresult SynthesizeNativeKeyEvent(
-      int32_t aNativeKeyboardLayout, int32_t aNativeKeyCode,
-      uint32_t aModifierFlags, const nsAString& aCharacters,
-      const nsAString& aUnmodifiedCharacters, nsIObserver* aObserver) override;
-  virtual nsresult SynthesizeNativeMouseEvent(
-      LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
-      MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
-      nsIObserver* aObserver) override;
-  virtual nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                             nsIObserver* aObserver) override;
-  virtual nsresult SynthesizeNativeMouseScrollEvent(
+  nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
+                                    int32_t aNativeKeyCode,
+                                    uint32_t aModifierFlags,
+                                    const nsAString& aCharacters,
+                                    const nsAString& aUnmodifiedCharacters,
+                                    nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
+                                      NativeMouseMessage aNativeMessage,
+                                      MouseButton aButton,
+                                      nsIWidget::Modifiers aModifierFlags,
+                                      nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
+                                     nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeMouseScrollEvent(
       LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage, double aDeltaX,
       double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
       uint32_t aAdditionalFlags, nsIObserver* aObserver) override;
-  virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                              TouchPointerState aPointerState,
-                                              LayoutDeviceIntPoint aPoint,
-                                              double aPointerPressure,
-                                              uint32_t aPointerOrientation,
-                                              nsIObserver* aObserver) override;
-  virtual nsresult SynthesizeNativeTouchPadPinch(
-      TouchpadGesturePhase aEventPhase, float aScale,
-      LayoutDeviceIntPoint aPoint, int32_t aModifierFlags) override;
-  virtual nsresult SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint,
-                                            bool aLongTap,
-                                            nsIObserver* aObserver) override;
-  virtual nsresult ClearNativeTouchSequence(nsIObserver* aObserver) override;
-  virtual uint32_t GetMaxTouchPoints() const override;
-  virtual nsresult SynthesizeNativePenInput(uint32_t aPointerId,
-                                            TouchPointerState aPointerState,
-                                            LayoutDeviceIntPoint aPoint,
-                                            double aPressure,
-                                            uint32_t aRotation, int32_t aTiltX,
-                                            int32_t aTiltY, int32_t aButton,
-                                            nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
+                                      TouchPointerState aPointerState,
+                                      LayoutDeviceIntPoint aPoint,
+                                      double aPointerPressure,
+                                      uint32_t aPointerOrientation,
+                                      nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchPadPinch(TouchpadGesturePhase aEventPhase,
+                                         float aScale,
+                                         LayoutDeviceIntPoint aPoint,
+                                         int32_t aModifierFlags) override;
+  nsresult SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint, bool aLongTap,
+                                    nsIObserver* aObserver) override;
+  nsresult ClearNativeTouchSequence(nsIObserver* aObserver) override;
+  uint32_t GetMaxTouchPoints() const override;
+  nsresult SynthesizeNativePenInput(uint32_t aPointerId,
+                                    TouchPointerState aPointerState,
+                                    LayoutDeviceIntPoint aPoint,
+                                    double aPressure, uint32_t aRotation,
+                                    int32_t aTiltX, int32_t aTiltY,
+                                    int32_t aButton,
+                                    nsIObserver* aObserver) override;
 
-  virtual nsresult SynthesizeNativeTouchpadDoubleTap(
-      LayoutDeviceIntPoint aPoint, uint32_t aModifierFlags) override;
+  nsresult SynthesizeNativeTouchpadDoubleTap(LayoutDeviceIntPoint aPoint,
+                                             uint32_t aModifierFlags) override;
 
-  virtual nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
-                                               LayoutDeviceIntPoint aPoint,
-                                               double aDeltaX, double aDeltaY,
-                                               int32_t aModifierFlags,
-                                               nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
+                                       LayoutDeviceIntPoint aPoint,
+                                       double aDeltaX, double aDeltaY,
+                                       int32_t aModifierFlags,
+                                       nsIObserver* aObserver) override;
 
-  virtual void LockNativePointer() override;
-  virtual void UnlockNativePointer() override;
+  void LockNativePointer() override;
+  void UnlockNativePointer() override;
 
-  virtual void StartAsyncScrollbarDrag(
-      const AsyncDragMetrics& aDragMetrics) override;
+  void StartAsyncScrollbarDrag(const AsyncDragMetrics& aDragMetrics) override;
 
-  virtual void ZoomToRect(const uint32_t& aPresShellId,
-                          const ScrollableLayerGuid::ViewID& aViewId,
-                          const CSSRect& aRect,
-                          const uint32_t& aFlags) override;
+  void ZoomToRect(const uint32_t& aPresShellId,
+                  const ScrollableLayerGuid::ViewID& aViewId,
+                  const CSSRect& aRect, const uint32_t& aFlags) override;
 
-  virtual bool HasPendingInputEvent() override;
+  bool HasPendingInputEvent() override;
 
-  virtual void LookUpDictionary(
-      const nsAString& aText,
-      const nsTArray<mozilla::FontRange>& aFontRangeArray,
-      const bool aIsVertical, const LayoutDeviceIntPoint& aPoint) override;
+  void LookUpDictionary(const nsAString& aText,
+                        const nsTArray<mozilla::FontRange>& aFontRangeArray,
+                        const bool aIsVertical,
+                        const LayoutDeviceIntPoint& aPoint) override;
 
   nsresult SetSystemFont(const nsCString& aFontName) override;
   nsresult GetSystemFont(nsCString& aFontName) override;
@@ -299,7 +298,7 @@ class PuppetWidget : public nsBaseWidget,
                             WidgetKeyboardEvent& aKeyboardEvent,
                             uint32_t aIndexOfKeypress, void* aData) override;
 
-  virtual void OnMemoryPressure(layers::MemoryPressureReason aWhy) override;
+  void OnMemoryPressure(layers::MemoryPressureReason aWhy) override;
 
  private:
   void Paint();
