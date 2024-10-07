@@ -10,13 +10,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://devtools/shared/network-observer/NetworkUtils.sys.mjs",
 });
 
-const OBSERVER_TOPIC_STYLESHEET_CACHE_RESPONSE =
-  "http-on-stylesheet-cache-response";
+const OBSERVER_TOPIC_RESOURCE_CACHE_RESPONSE =
+  "http-on-resource-cache-response";
 
 /**
  * The CachedResourceListener can be used to listen for
- * http-on-stylesheet-cache-response notifications emitted for stylesheets
- * which are served by the CSSLoader cache.
+ * http-on-resource-cache-response notifications emitted for resources
+ * which are served by the image/CSS/JS cache.
  * This notification needs to be monitored in content processes.
  *
  * Example:
@@ -61,7 +61,7 @@ export class CachedResourceListener {
 
   observe(subject, topic) {
     switch (topic) {
-      case OBSERVER_TOPIC_STYLESHEET_CACHE_RESPONSE: {
+      case OBSERVER_TOPIC_RESOURCE_CACHE_RESPONSE: {
         const channel = subject.QueryInterface(Ci.nsIHttpChannel);
         const id = lazy.NetworkUtils.getChannelBrowsingContextID(channel);
         const browsingContext = BrowsingContext.get(id);
@@ -82,7 +82,7 @@ export class CachedResourceListener {
       return;
     }
 
-    Services.obs.addObserver(this, OBSERVER_TOPIC_STYLESHEET_CACHE_RESPONSE);
+    Services.obs.addObserver(this, OBSERVER_TOPIC_RESOURCE_CACHE_RESPONSE);
 
     this.#listening = true;
   }
@@ -92,7 +92,7 @@ export class CachedResourceListener {
       return;
     }
 
-    Services.obs.removeObserver(this, OBSERVER_TOPIC_STYLESHEET_CACHE_RESPONSE);
+    Services.obs.removeObserver(this, OBSERVER_TOPIC_RESOURCE_CACHE_RESPONSE);
 
     this.#listening = false;
   }

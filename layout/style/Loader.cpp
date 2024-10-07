@@ -2349,7 +2349,7 @@ void Loader::NotifyOfCachedLoad(RefPtr<SheetLoadData> aLoadData) {
 void Loader::NotifyObserversForCachedSheet(SheetLoadData& aLoadData) {
   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
 
-  if (!obsService->HasObservers("http-on-stylesheet-cache-response")) {
+  if (!obsService->HasObservers("http-on-resource-cache-response")) {
     return;
   }
 
@@ -2370,7 +2370,7 @@ void Loader::NotifyObserversForCachedSheet(SheetLoadData& aLoadData) {
 
   // TODO: Populate other fields (bug 1915626).
 
-  obsService->NotifyObservers(channel, "http-on-stylesheet-cache-response",
+  obsService->NotifyObservers(channel, "http-on-resource-cache-response",
                               nullptr);
 }
 

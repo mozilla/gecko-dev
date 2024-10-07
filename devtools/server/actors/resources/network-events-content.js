@@ -57,12 +57,6 @@ class NetworkEventContentWatcher {
       "http-on-failed-opening-request"
     );
 
-    // TODO: Use the same notification for all resources (bug 1919218).
-    Services.obs.addObserver(
-      this.httpOnResourceCacheResponse,
-      "http-on-stylesheet-cache-response"
-    );
-
     Services.obs.addObserver(
       this.httpOnResourceCacheResponse,
       "http-on-resource-cache-response"
@@ -102,8 +96,7 @@ class NetworkEventContentWatcher {
 
   httpOnResourceCacheResponse(subject, topic) {
     if (
-      (topic != "http-on-stylesheet-cache-response" &&
-        topic != "http-on-resource-cache-response") ||
+      topic != "http-on-resource-cache-response" ||
       !(subject instanceof Ci.nsIHttpChannel)
     ) {
       return;
@@ -273,11 +266,6 @@ class NetworkEventContentWatcher {
     Services.obs.removeObserver(
       this.httpFailedOpeningRequest,
       "http-on-failed-opening-request"
-    );
-
-    Services.obs.removeObserver(
-      this.httpOnResourceCacheResponse,
-      "http-on-stylesheet-cache-response"
     );
 
     Services.obs.removeObserver(

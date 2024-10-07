@@ -185,8 +185,6 @@ nsresult nsObserverService::FilterHttpOnTopics(const char* aTopic) {
   if (mozilla::net::IsNeckoChild() && !strncmp(aTopic, "http-on-", 8) &&
       strcmp(aTopic, "http-on-before-stop-request") &&
       strcmp(aTopic, "http-on-failed-opening-request") &&
-      // TODO: Merge cache response notifications (bug 1919218)
-      strcmp(aTopic, "http-on-stylesheet-cache-response") &&
       strcmp(aTopic, "http-on-resource-cache-response") &&
       strcmp(aTopic, "http-on-opening-request") &&
       strcmp(aTopic, "http-on-stop-request")) {
