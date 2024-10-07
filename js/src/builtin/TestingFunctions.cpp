@@ -2066,6 +2066,10 @@ static bool WasmFunctionTier(JSContext* cx, unsigned argc, Value* vp) {
   if (func && wasm::IsWasmExportedFunction(func)) {
     uint32_t funcIndex = wasm::ExportedFunctionToFuncIndex(func);
     wasm::Instance& instance = wasm::ExportedFunctionToInstance(func);
+    if (funcIndex < instance.code().funcImports().length()) {
+      JS_ReportErrorASCII(cx, "argument is an imported function");
+      return false;
+    }
     wasm::Tier tier = instance.code().funcTier(funcIndex);
     RootedString tierString(cx, JS_NewStringCopyZ(cx, wasm::ToString(tier)));
     if (!tierString) {
@@ -10069,10 +10073,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE)
 "  from being used then this returns a truthy string describing the features that\n."
 "  are disabling it.  Otherwise it returns false."),
 
-    JS_FN_HELP("wasmFunctionTier", WasmFunctionTier, 1, 0,
-"wasmFunctionTier(wasmFunc)\n",
-"  Returns the best compiled tier for a function. Either 'baseline' or 'optimized'."),
-
     JS_FN_HELP("wasmHasTier2CompilationCompleted", WasmHasTier2CompilationCompleted, 1, 0,
 "wasmHasTier2CompilationCompleted(module)",
 "  Returns a boolean indicating whether a given module has finished compiled code for tier2. \n"
@@ -10692,6 +10692,10 @@ JS_FN_HELP("getEnvironmentObjectType", GetEnvironmentObjectType, 1, 0,
 "    `mir` | `unopt-mir`: Unoptimized MIR (the default)"
 "    `opt-mir`: Optimized MIR"
 "    `lir`: LIR"),
+
+    JS_FN_HELP("wasmFunctionTier", WasmFunctionTier, 1, 0,
+"wasmFunctionTier(wasmFunc)\n",
+"  Returns the best compiled tier for a function. Either 'baseline' or 'optimized'."),
 
     JS_FS_HELP_END
 };
