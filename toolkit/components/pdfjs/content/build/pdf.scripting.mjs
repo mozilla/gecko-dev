@@ -22,7 +22,7 @@
 
 var __webpack_exports__ = {};
 
-;// CONCATENATED MODULE: ./src/scripting_api/constants.js
+;// ./src/scripting_api/constants.js
 const Border = Object.freeze({
   s: "solid",
   d: "dashed",
@@ -147,7 +147,7 @@ const GlobalConstants = Object.freeze({
   RE_SSN_COMMIT: ["\\d{3}(\\.|[- ])?\\d{2}(\\.|[- ])?\\d{4}"]
 });
 
-;// CONCATENATED MODULE: ./src/scripting_api/common.js
+;// ./src/scripting_api/common.js
 const FieldType = {
   none: 0,
   number: 1,
@@ -186,7 +186,7 @@ function getFieldType(actions) {
   return FieldType.none;
 }
 
-;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
+;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
   return Math.floor(Math.max(0, Math.min(1, n)) * 255).toString(16).padStart(2, "0");
 }
@@ -245,7 +245,7 @@ class ColorConverters {
   }
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/pdf_object.js
+;// ./src/scripting_api/pdf_object.js
 class PDFObject {
   constructor(data) {
     this._expandos = Object.create(null);
@@ -254,7 +254,7 @@ class PDFObject {
   }
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/color.js
+;// ./src/scripting_api/color.js
 
 
 class Color extends PDFObject {
@@ -342,7 +342,7 @@ class Color extends PDFObject {
   }
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/field.js
+;// ./src/scripting_api/field.js
 
 
 
@@ -921,7 +921,7 @@ class CheckboxField extends RadioButtonField {
   }
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/aform.js
+;// ./src/scripting_api/aform.js
 
 class AForm {
   constructor(document, app, util, color) {
@@ -1455,7 +1455,7 @@ class AForm {
   }
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/app_utils.js
+;// ./src/scripting_api/app_utils.js
 const VIEWER_TYPE = "PDF.js";
 const VIEWER_VARIATION = "Full";
 const VIEWER_VERSION = 21.00720099;
@@ -1470,7 +1470,7 @@ function serializeError(error) {
   };
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/event.js
+;// ./src/scripting_api/event.js
 
 class Event {
   constructor(data) {
@@ -1756,7 +1756,7 @@ class EventDispatcher {
   }
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/fullscreen.js
+;// ./src/scripting_api/fullscreen.js
 
 
 class FullScreen extends PDFObject {
@@ -1821,7 +1821,7 @@ class FullScreen extends PDFObject {
   set useTimer(_) {}
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/thermometer.js
+;// ./src/scripting_api/thermometer.js
 
 class Thermometer extends PDFObject {
   constructor(data) {
@@ -1859,7 +1859,7 @@ class Thermometer extends PDFObject {
   end() {}
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/app.js
+;// ./src/scripting_api/app.js
 
 
 
@@ -2308,7 +2308,7 @@ class App extends PDFObject {
   trustPropagatorFunction() {}
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/console.js
+;// ./src/scripting_api/console.js
 
 class Console extends PDFObject {
   clear() {
@@ -2328,7 +2328,7 @@ class Console extends PDFObject {
   show() {}
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/print_params.js
+;// ./src/scripting_api/print_params.js
 class PrintParams {
   constructor(data) {
     this.binaryOk = true;
@@ -2459,7 +2459,7 @@ class PrintParams {
   }
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/doc.js
+;// ./src/scripting_api/doc.js
 
 
 
@@ -3317,7 +3317,7 @@ class Doc extends PDFObject {
   syncAnnotScan() {}
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/proxy.js
+;// ./src/scripting_api/proxy.js
 class ProxyHandler {
   constructor() {
     this.nosend = new Set(["delay"]);
@@ -3413,7 +3413,7 @@ class ProxyHandler {
   }
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/util.js
+;// ./src/scripting_api/util.js
 
 class Util extends PDFObject {
   constructor(data) {
@@ -3848,7 +3848,7 @@ class Util extends PDFObject {
   xmlToSpans() {}
 }
 
-;// CONCATENATED MODULE: ./src/scripting_api/initialization.js
+;// ./src/scripting_api/initialization.js
 
 
 
@@ -4028,10 +4028,10 @@ function initSandbox(params) {
   };
 }
 
-;// CONCATENATED MODULE: ./src/pdf.scripting.js
+;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.7.18";
-const pdfjsBuild = "9735a840a";
+const pdfjsVersion = "4.7.78";
+const pdfjsBuild = "81cf42df4";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };

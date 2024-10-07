@@ -51,7 +51,7 @@ __webpack_require__.d(__webpack_exports__, {
   PDFViewerApplicationOptions: () => (/* reexport */ AppOptions)
 });
 
-;// CONCATENATED MODULE: ./web/ui_utils.js
+;// ./web/ui_utils.js
 const DEFAULT_SCALE_VALUE = "auto";
 const DEFAULT_SCALE = 1.0;
 const DEFAULT_SCALE_DELTA = 1.1;
@@ -524,7 +524,7 @@ function toggleExpandedBtn(button, toggle, view = null) {
 }
 const calcRound = Math.fround;
 
-;// CONCATENATED MODULE: ./web/app_options.js
+;// ./web/app_options.js
 const OptionKind = {
   BROWSER: 0x01,
   VIEWER: 0x02,
@@ -864,7 +864,7 @@ class AppOptions {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_link_service.js
+;// ./web/pdf_link_service.js
 
 const DEFAULT_LINK_REL = "noopener noreferrer nofollow";
 const LinkTarget = {
@@ -1213,7 +1213,7 @@ class SimpleLinkService extends PDFLinkService {
   setDocument(pdfDocument, baseUrl = null) {}
 }
 
-;// CONCATENATED MODULE: ./web/pdfjs.js
+;// ./web/pdfjs.js
 const {
   AbortException,
   AnnotationEditorLayer,
@@ -1261,7 +1261,7 @@ const {
   XfaLayer
 } = globalThis.pdfjsLib;
 
-;// CONCATENATED MODULE: ./web/event_utils.js
+;// ./web/event_utils.js
 const WaitOnType = {
   EVENT: "event",
   TIMEOUT: "timeout"
@@ -1409,7 +1409,7 @@ class FirefoxEventBus extends EventBus {
   }
 }
 
-;// CONCATENATED MODULE: ./web/external_services.js
+;// ./web/external_services.js
 class BaseExternalServices {
   updateFindControlState(data) {}
   updateFindMatchesCount(data) {}
@@ -1427,7 +1427,7 @@ class BaseExternalServices {
   dispatchGlobalEvent(_event) {}
 }
 
-;// CONCATENATED MODULE: ./web/preferences.js
+;// ./web/preferences.js
 
 class BasePreferences {
   #defaults = Object.freeze({
@@ -1516,7 +1516,7 @@ class BasePreferences {
   }
 }
 
-;// CONCATENATED MODULE: ./web/l10n.js
+;// ./web/l10n.js
 class L10n {
   #dir;
   #elements = new Set();
@@ -1607,7 +1607,7 @@ class L10n {
 }
 const GenericL10n = null;
 
-;// CONCATENATED MODULE: ./web/firefoxcom.js
+;// ./web/firefoxcom.js
 
 
 
@@ -2051,7 +2051,7 @@ class ExternalServices extends BaseExternalServices {
   }
 }
 
-;// CONCATENATED MODULE: ./web/new_alt_text_manager.js
+;// ./web/new_alt_text_manager.js
 
 class NewAltTextManager {
   #boundCancel = this.#cancel.bind(this);
@@ -2596,7 +2596,7 @@ class ImageAltTextSettings {
   }
 }
 
-;// CONCATENATED MODULE: ./web/alt_text_manager.js
+;// ./web/alt_text_manager.js
 
 class AltTextManager {
   #boundUpdateUIState = this.#updateUIState.bind(this);
@@ -2843,7 +2843,7 @@ class AltTextManager {
   }
 }
 
-;// CONCATENATED MODULE: ./web/annotation_editor_params.js
+;// ./web/annotation_editor_params.js
 
 class AnnotationEditorParams {
   constructor(options, eventBus) {
@@ -2935,16 +2935,31 @@ class AnnotationEditorParams {
   }
 }
 
-;// CONCATENATED MODULE: ./web/caret_browsing.js
+;// ./web/caret_browsing.js
 const PRECISION = 1e-1;
 class CaretBrowsingMode {
   #mainContainer;
-  #toolBarHeight;
+  #toolBarHeight = 0;
   #viewerContainer;
-  constructor(mainContainer, viewerContainer, toolbarContainer) {
+  constructor(abortSignal, mainContainer, viewerContainer, toolbarContainer) {
     this.#mainContainer = mainContainer;
     this.#viewerContainer = viewerContainer;
-    this.#toolBarHeight = toolbarContainer?.getBoundingClientRect().height ?? 0;
+    if (!toolbarContainer) {
+      return;
+    }
+    this.#toolBarHeight = toolbarContainer.getBoundingClientRect().height;
+    const toolbarObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        if (entry.target === toolbarContainer) {
+          this.#toolBarHeight = Math.floor(entry.borderBoxSize[0].blockSize);
+          break;
+        }
+      }
+    });
+    toolbarObserver.observe(toolbarContainer);
+    abortSignal.addEventListener("abort", () => toolbarObserver.disconnect(), {
+      once: true
+    });
   }
   #isOnSameLine(rect1, rect2) {
     const top1 = rect1.y;
@@ -3126,7 +3141,7 @@ class CaretBrowsingMode {
   }
 }
 
-;// CONCATENATED MODULE: ./web/overlay_manager.js
+;// ./web/overlay_manager.js
 class OverlayManager {
   #overlays = new WeakMap();
   #active = null;
@@ -3174,7 +3189,7 @@ class OverlayManager {
   }
 }
 
-;// CONCATENATED MODULE: ./web/password_prompt.js
+;// ./web/password_prompt.js
 
 class PasswordPrompt {
   #activeCapability = null;
@@ -3246,7 +3261,7 @@ class PasswordPrompt {
   }
 }
 
-;// CONCATENATED MODULE: ./web/base_tree_viewer.js
+;// ./web/base_tree_viewer.js
 
 const TREEITEM_OFFSET_TOP = -100;
 const TREEITEM_SELECTED_CLASS = "selected";
@@ -3342,7 +3357,7 @@ class BaseTreeViewer {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_attachment_viewer.js
+;// ./web/pdf_attachment_viewer.js
 
 
 class PDFAttachmentViewer extends BaseTreeViewer {
@@ -3439,7 +3454,7 @@ class PDFAttachmentViewer extends BaseTreeViewer {
   }
 }
 
-;// CONCATENATED MODULE: ./web/grab_to_pan.js
+;// ./web/grab_to_pan.js
 const CSS_CLASS_GRAB = "grab-to-pan-grab";
 class GrabToPan {
   constructor({
@@ -3531,7 +3546,7 @@ class GrabToPan {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_cursor_tools.js
+;// ./web/pdf_cursor_tools.js
 
 
 
@@ -3557,7 +3572,17 @@ class PDFCursorTools {
     if (this.#prevActive !== null) {
       return;
     }
+    this.#switchTool(tool);
+  }
+  #switchTool(tool, disabled = false) {
     if (tool === this.#active) {
+      if (this.#prevActive !== null) {
+        this.eventBus.dispatch("cursortoolchanged", {
+          source: this,
+          tool,
+          disabled
+        });
+      }
       return;
     }
     const disableActiveTool = () => {
@@ -3586,7 +3611,8 @@ class PDFCursorTools {
     this.#active = tool;
     this.eventBus.dispatch("cursortoolchanged", {
       source: this,
-      tool
+      tool,
+      disabled
     });
   }
   #addEventListeners() {
@@ -3602,15 +3628,13 @@ class PDFCursorTools {
     let annotationEditorMode = AnnotationEditorType.NONE,
       presentationModeState = PresentationModeState.NORMAL;
     const disableActive = () => {
-      const prevActive = this.#active;
-      this.switchTool(CursorTool.SELECT);
-      this.#prevActive ??= prevActive;
+      this.#prevActive ??= this.#active;
+      this.#switchTool(CursorTool.SELECT, true);
     };
     const enableActive = () => {
-      const prevActive = this.#prevActive;
-      if (prevActive !== null && annotationEditorMode === AnnotationEditorType.NONE && presentationModeState === PresentationModeState.NORMAL) {
+      if (this.#prevActive !== null && annotationEditorMode === AnnotationEditorType.NONE && presentationModeState === PresentationModeState.NORMAL) {
+        this.#switchTool(this.#prevActive);
         this.#prevActive = null;
-        this.switchTool(prevActive);
       }
     };
     this.eventBus._on("annotationeditormodechanged", ({
@@ -3641,7 +3665,7 @@ class PDFCursorTools {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_document_properties.js
+;// ./web/pdf_document_properties.js
 
 
 const NON_METRIC_LOCALES = ["en-us", "en-lr", "my"];
@@ -3820,7 +3844,7 @@ class PDFDocumentProperties {
   async #parseDate(inputDate) {
     const dateObj = PDFDateString.toDateObject(inputDate);
     return dateObj ? this.l10n.get("pdfjs-document-properties-date-time-string", {
-      dateObj
+      dateObj: dateObj.valueOf()
     }) : undefined;
   }
   #parseLinearization(isLinearized) {
@@ -3828,7 +3852,7 @@ class PDFDocumentProperties {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_find_utils.js
+;// ./web/pdf_find_utils.js
 const CharacterType = {
   SPACE: 0,
   ALPHA_LETTER: 1,
@@ -3902,7 +3926,7 @@ function getNormalizeWithNFKC() {
   return NormalizeWithNFKC;
 }
 
-;// CONCATENATED MODULE: ./web/pdf_find_controller.js
+;// ./web/pdf_find_controller.js
 
 
 const FindState = {
@@ -4643,7 +4667,7 @@ class PDFFindController {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_find_bar.js
+;// ./web/pdf_find_bar.js
 
 
 const MATCHES_COUNT_LIMIT = 1000;
@@ -4810,7 +4834,7 @@ class PDFFindBar {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_history.js
+;// ./web/pdf_history.js
 
 
 const HASH_CHANGE_TIMEOUT = 1000;
@@ -5277,7 +5301,7 @@ function isDestArraysEqual(firstDest, secondDest) {
   return true;
 }
 
-;// CONCATENATED MODULE: ./web/pdf_layer_viewer.js
+;// ./web/pdf_layer_viewer.js
 
 class PDFLayerViewer extends BaseTreeViewer {
   constructor(options) {
@@ -5293,7 +5317,8 @@ class PDFLayerViewer extends BaseTreeViewer {
   reset() {
     super.reset();
     this._optionalContentConfig = null;
-    this._optionalContentHash = null;
+    this._optionalContentVisibility?.clear();
+    this._optionalContentVisibility = null;
   }
   _dispatchEvent(layersCount) {
     this.eventBus.dispatch("layersloaded", {
@@ -5306,8 +5331,12 @@ class PDFLayerViewer extends BaseTreeViewer {
     input
   }) {
     const setVisibility = () => {
-      this._optionalContentConfig.setVisibility(groupId, input.checked);
-      this._optionalContentHash = this._optionalContentConfig.getHash();
+      const visible = input.checked;
+      this._optionalContentConfig.setVisibility(groupId, visible);
+      const cached = this._optionalContentVisibility.get(groupId);
+      if (cached) {
+        cached.visible = visible;
+      }
       this.eventBus.dispatch("optionalcontentconfig", {
         source: this,
         promise: Promise.resolve(this._optionalContentConfig)
@@ -5361,7 +5390,7 @@ class PDFLayerViewer extends BaseTreeViewer {
       this._dispatchEvent(0);
       return;
     }
-    this._optionalContentHash = optionalContentConfig.getHash();
+    this._optionalContentVisibility = new Map();
     const fragment = document.createDocumentFragment(),
       queue = [{
         parent: fragment,
@@ -5396,6 +5425,10 @@ class PDFLayerViewer extends BaseTreeViewer {
           });
           input.type = "checkbox";
           input.checked = group.visible;
+          this._optionalContentVisibility.set(groupId, {
+            input,
+            visible: input.checked
+          });
           const label = document.createElement("label");
           label.textContent = this._normalizeTextContent(group.name);
           label.append(input);
@@ -5419,15 +5452,18 @@ class PDFLayerViewer extends BaseTreeViewer {
       return;
     }
     if (promise) {
-      if (optionalContentConfig.getHash() === this._optionalContentHash) {
-        return;
+      for (const [groupId, cached] of this._optionalContentVisibility) {
+        const group = optionalContentConfig.getGroup(groupId);
+        if (group && cached.visible !== group.visible) {
+          cached.input.checked = cached.visible = !cached.visible;
+        }
       }
-    } else {
-      this.eventBus.dispatch("optionalcontentconfig", {
-        source: this,
-        promise: Promise.resolve(optionalContentConfig)
-      });
+      return;
     }
+    this.eventBus.dispatch("optionalcontentconfig", {
+      source: this,
+      promise: Promise.resolve(optionalContentConfig)
+    });
     this.render({
       optionalContentConfig,
       pdfDocument: this._pdfDocument
@@ -5435,7 +5471,7 @@ class PDFLayerViewer extends BaseTreeViewer {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_outline_viewer.js
+;// ./web/pdf_outline_viewer.js
 
 
 class PDFOutlineViewer extends BaseTreeViewer {
@@ -5697,7 +5733,7 @@ class PDFOutlineViewer extends BaseTreeViewer {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_presentation_mode.js
+;// ./web/pdf_presentation_mode.js
 
 
 const DELAY_BEFORE_HIDING_CONTROLS = 3000;
@@ -5990,7 +6026,7 @@ class PDFPresentationMode {
   }
 }
 
-;// CONCATENATED MODULE: ./web/xfa_layer_builder.js
+;// ./web/xfa_layer_builder.js
 
 class XfaLayerBuilder {
   constructor({
@@ -6056,7 +6092,7 @@ class XfaLayerBuilder {
   }
 }
 
-;// CONCATENATED MODULE: ./web/print_utils.js
+;// ./web/print_utils.js
 
 
 
@@ -6082,7 +6118,7 @@ function getXfaHtmlForPrinting(printContainer, pdfDocument) {
   }
 }
 
-;// CONCATENATED MODULE: ./web/firefox_print_service.js
+;// ./web/firefox_print_service.js
 
 
 function composePage(pdfDocument, pageNumber, size, printContainer, printResolution, optionalContentConfigPromise, printAnnotationStoragePromise) {
@@ -6209,7 +6245,7 @@ class PDFPrintServiceFactory {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_rendering_queue.js
+;// ./web/pdf_rendering_queue.js
 
 
 const CLEANUP_TIMEOUT = 30000;
@@ -6321,7 +6357,7 @@ class PDFRenderingQueue {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_scripting_manager.js
+;// ./web/pdf_scripting_manager.js
 
 
 class PDFScriptingManager {
@@ -6686,7 +6722,7 @@ class PDFScriptingManager {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_sidebar.js
+;// ./web/pdf_sidebar.js
 
 const SIDEBAR_WIDTH_VAR = "--sidebar-width";
 const SIDEBAR_MIN_WIDTH = 200;
@@ -7003,7 +7039,7 @@ class PDFSidebar {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_thumbnail_view.js
+;// ./web/pdf_thumbnail_view.js
 
 
 const DRAW_UPSCALE_FACTOR = 2;
@@ -7297,7 +7333,7 @@ class PDFThumbnailView {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_thumbnail_viewer.js
+;// ./web/pdf_thumbnail_viewer.js
 
 
 const THUMBNAIL_SCROLL_MARGIN = -19;
@@ -7509,13 +7545,14 @@ class PDFThumbnailViewer {
   }
 }
 
-;// CONCATENATED MODULE: ./web/annotation_editor_layer_builder.js
+;// ./web/annotation_editor_layer_builder.js
 
 
 class AnnotationEditorLayerBuilder {
   #annotationLayer = null;
   #drawLayer = null;
   #onAppend = null;
+  #structTreeLayer = null;
   #textLayer = null;
   #uiManager;
   constructor(options) {
@@ -7530,6 +7567,7 @@ class AnnotationEditorLayerBuilder {
     this.#textLayer = options.textLayer || null;
     this.#drawLayer = options.drawLayer || null;
     this.#onAppend = options.onAppend || null;
+    this.#structTreeLayer = options.structTreeLayer || null;
   }
   async render(viewport, intent = "display") {
     if (intent !== "display") {
@@ -7556,6 +7594,7 @@ class AnnotationEditorLayerBuilder {
     this.annotationEditorLayer = new AnnotationEditorLayer({
       uiManager: this.#uiManager,
       div,
+      structTreeLayer: this.#structTreeLayer,
       accessibilityManager: this.accessibilityManager,
       pageIndex: this.pdfPage.pageNumber - 1,
       l10n: this.l10n,
@@ -7594,7 +7633,7 @@ class AnnotationEditorLayerBuilder {
   }
 }
 
-;// CONCATENATED MODULE: ./web/annotation_layer_builder.js
+;// ./web/annotation_layer_builder.js
 
 
 class AnnotationLayerBuilder {
@@ -7729,7 +7768,7 @@ class AnnotationLayerBuilder {
   }
 }
 
-;// CONCATENATED MODULE: ./web/draw_layer_builder.js
+;// ./web/draw_layer_builder.js
 
 class DrawLayerBuilder {
   #drawLayer = null;
@@ -7760,7 +7799,7 @@ class DrawLayerBuilder {
   }
 }
 
-;// CONCATENATED MODULE: ./web/struct_tree_layer_builder.js
+;// ./web/struct_tree_layer_builder.js
 
 const PDF_ROLE_TO_HTML_ROLE = {
   Document: null,
@@ -7961,7 +8000,7 @@ class StructTreeLayerBuilder {
   }
 }
 
-;// CONCATENATED MODULE: ./web/text_accessibility.js
+;// ./web/text_accessibility.js
 
 class TextAccessibilityManager {
   #enabled = false;
@@ -8113,7 +8152,7 @@ class TextAccessibilityManager {
   }
 }
 
-;// CONCATENATED MODULE: ./web/text_highlighter.js
+;// ./web/text_highlighter.js
 class TextHighlighter {
   #eventAbortController = null;
   constructor({
@@ -8333,7 +8372,7 @@ class TextHighlighter {
   }
 }
 
-;// CONCATENATED MODULE: ./web/text_layer_builder.js
+;// ./web/text_layer_builder.js
 
 
 class TextLayerBuilder {
@@ -8501,7 +8540,7 @@ class TextLayerBuilder {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_page_view.js
+;// ./web/pdf_page_view.js
 
 
 
@@ -9204,9 +9243,7 @@ class PDFPageView {
     const resultPromise = renderTask.promise.then(async () => {
       showCanvas?.(true);
       await this.#finishRenderTask(renderTask);
-      if (this.textLayer || this.annotationLayer) {
-        this.structTreeLayer ||= new StructTreeLayerBuilder(pdfPage, viewport.rawDims);
-      }
+      this.structTreeLayer ||= new StructTreeLayerBuilder(pdfPage, viewport.rawDims);
       this.#renderTextLayer();
       if (this.annotationLayer) {
         await this.#renderAnnotationLayer();
@@ -9226,6 +9263,7 @@ class PDFPageView {
         uiManager: annotationEditorUIManager,
         pdfPage,
         l10n,
+        structTreeLayer: this.structTreeLayer,
         accessibilityManager: this._accessibilityManager,
         annotationLayer: this.annotationLayer?.annotationLayer,
         textLayer: this.textLayer,
@@ -9283,7 +9321,7 @@ class PDFPageView {
   }
 }
 
-;// CONCATENATED MODULE: ./web/pdf_viewer.js
+;// ./web/pdf_viewer.js
 
 
 
@@ -9362,7 +9400,7 @@ class PDFViewer {
   #enableNewAltTextWhenAddingImage = false;
   #eventAbortController = null;
   #mlManager = null;
-  #onPageRenderedCallback = null;
+  #switchAnnotationEditorModeAC = null;
   #switchAnnotationEditorModeTimeoutId = null;
   #getAllTextInProgress = false;
   #hiddenCopyElement = null;
@@ -9373,7 +9411,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.7.18";
+    const viewerVersion = "4.7.78";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -10780,10 +10818,8 @@ class PDFViewer {
     return this.#containerTopLeft ||= [this.container.offsetTop, this.container.offsetLeft];
   }
   #cleanupSwitchAnnotationEditorMode() {
-    if (this.#onPageRenderedCallback) {
-      this.eventBus._off("pagerendered", this.#onPageRenderedCallback);
-      this.#onPageRenderedCallback = null;
-    }
+    this.#switchAnnotationEditorModeAC?.abort();
+    this.#switchAnnotationEditorModeAC = null;
     if (this.#switchAnnotationEditorModeTimeoutId !== null) {
       clearTimeout(this.#switchAnnotationEditorModeTimeoutId);
       this.#switchAnnotationEditorModeTimeoutId = null;
@@ -10835,18 +10871,16 @@ class PDFViewer {
       const idsToRefresh = this.#switchToEditAnnotationMode();
       if (isEditing && idsToRefresh) {
         this.#cleanupSwitchAnnotationEditorMode();
-        this.#onPageRenderedCallback = ({
+        this.#switchAnnotationEditorModeAC = new AbortController();
+        const signal = AbortSignal.any([this.#eventAbortController.signal, this.#switchAnnotationEditorModeAC.signal]);
+        eventBus._on("pagerendered", ({
           pageNumber
         }) => {
           idsToRefresh.delete(pageNumber);
           if (idsToRefresh.size === 0) {
             this.#switchAnnotationEditorModeTimeoutId = setTimeout(updater, 0);
           }
-        };
-        const {
-          signal
-        } = this.#eventAbortController;
-        eventBus._on("pagerendered", this.#onPageRenderedCallback, {
+        }, {
           signal
         });
         return;
@@ -10871,7 +10905,7 @@ class PDFViewer {
   }
 }
 
-;// CONCATENATED MODULE: ./web/secondary_toolbar.js
+;// ./web/secondary_toolbar.js
 
 
 class SecondaryToolbar {
@@ -11065,7 +11099,8 @@ class SecondaryToolbar {
     eventBus._on("spreadmodechanged", this.#spreadModeChanged.bind(this));
   }
   #cursorToolChanged({
-    tool
+    tool,
+    disabled
   }) {
     const {
       cursorSelectToolButton,
@@ -11073,6 +11108,8 @@ class SecondaryToolbar {
     } = this.#opts;
     toggleCheckedBtn(cursorSelectToolButton, tool === CursorTool.SELECT);
     toggleCheckedBtn(cursorHandToolButton, tool === CursorTool.HAND);
+    cursorSelectToolButton.disabled = disabled;
+    cursorHandToolButton.disabled = disabled;
   }
   #scrollModeChanged({
     mode
@@ -11143,7 +11180,7 @@ class SecondaryToolbar {
   }
 }
 
-;// CONCATENATED MODULE: ./web/toolbar.js
+;// ./web/toolbar.js
 
 
 class Toolbar {
@@ -11436,7 +11473,7 @@ class Toolbar {
   }
 }
 
-;// CONCATENATED MODULE: ./web/view_history.js
+;// ./web/view_history.js
 const DEFAULT_VIEW_HISTORY_CACHE_SIZE = 20;
 class ViewHistory {
   constructor(fingerprint, cacheSize = DEFAULT_VIEW_HISTORY_CACHE_SIZE) {
@@ -11503,7 +11540,7 @@ class ViewHistory {
   }
 }
 
-;// CONCATENATED MODULE: ./web/app.js
+;// ./web/app.js
 
 
 
@@ -11645,13 +11682,13 @@ const PDFViewerApplication = {
       }
       const {
         PDFBug
-      } = await import( /*webpackIgnore: true*/AppOptions.get("debuggerSrc"));
+      } = await import(/*webpackIgnore: true*/AppOptions.get("debuggerSrc"));
       this._PDFBug = PDFBug;
     };
     if (params.get("disableworker") === "true") {
       try {
         GlobalWorkerOptions.workerSrc ||= AppOptions.get("workerSrc");
-        await import( /*webpackIgnore: true*/PDFWorker.workerSrc);
+        await import(/*webpackIgnore: true*/PDFWorker.workerSrc);
       } catch (ex) {
         console.error(`_parseHashParams: "${ex.message}".`);
       }
@@ -11709,10 +11746,9 @@ const PDFViewerApplication = {
       externalServices,
       l10n
     } = this;
-    let eventBus;
-    eventBus = AppOptions.eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
+    const eventBus = new FirefoxEventBus(AppOptions.get("allowedGlobalEvents"), externalServices, AppOptions.get("isInAutomation"));
+    this.eventBus = AppOptions.eventBus = eventBus;
     this.mlManager?.setEventBus(eventBus, this._globalAbortController.signal);
-    this.eventBus = eventBus;
     this.overlayManager = new OverlayManager();
     const pdfRenderingQueue = new PDFRenderingQueue();
     pdfRenderingQueue.onIdle = this._cleanup.bind(this);
@@ -11982,7 +12018,7 @@ const PDFViewerApplication = {
     return AppOptions.get("supportsCaretBrowsingMode");
   },
   moveCaret(isUp, select) {
-    this._caretBrowsing ||= new CaretBrowsingMode(this.appConfig.mainContainer, this.appConfig.viewerContainer, this.appConfig.toolbar?.container);
+    this._caretBrowsing ||= new CaretBrowsingMode(this._globalAbortController.signal, this.appConfig.mainContainer, this.appConfig.viewerContainer, this.appConfig.toolbar?.container);
     this._caretBrowsing.moveCaret(isUp, select);
   },
   setTitleUsingUrl(url = "", downloadUrl = null) {
@@ -13289,7 +13325,7 @@ function onClick(evt) {
     return;
   }
   const appConfig = this.appConfig;
-  if (this.pdfViewer.containsElement(evt.target) || appConfig.toolbar?.container.contains(evt.target) && evt.target !== appConfig.secondaryToolbar?.toggleButton) {
+  if (this.pdfViewer.containsElement(evt.target) || appConfig.toolbar?.container.contains(evt.target) && !appConfig.secondaryToolbar?.toggleButton.contains(evt.target)) {
     this.secondaryToolbar.close();
   }
 }
@@ -13560,13 +13596,13 @@ function beforeUnload(evt) {
   return false;
 }
 
-;// CONCATENATED MODULE: ./web/viewer.js
+;// ./web/viewer.js
 
 
 
 
-const pdfjsVersion = "4.7.18";
-const pdfjsBuild = "9735a840a";
+const pdfjsVersion = "4.7.78";
+const pdfjsBuild = "81cf42df4";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
@@ -13578,7 +13614,7 @@ function getViewerConfiguration() {
     mainContainer: document.getElementById("viewerContainer"),
     viewerContainer: document.getElementById("viewer"),
     toolbar: {
-      container: document.getElementById("toolbarViewer"),
+      container: document.getElementById("toolbarContainer"),
       numPages: document.getElementById("numPages"),
       pageNumber: document.getElementById("pageNumber"),
       scaleSelect: document.getElementById("scaleSelect"),
