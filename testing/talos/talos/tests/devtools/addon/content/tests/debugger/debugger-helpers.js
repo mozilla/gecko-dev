@@ -187,7 +187,9 @@ async function waitForPaused(
     return getSelectedScope(state, thread) && getIsPaused(state, thread);
   });
   promises.push(onStateChange);
-  return Promise.all(promises);
+
+  await Promise.all(promises);
+  await waitForSymbols(dbg);
 }
 exports.waitForPaused = waitForPaused;
 
@@ -267,9 +269,7 @@ async function selectSource(dbg, url) {
         return false;
       }
 
-      // wait for symbols -- a flat map of all named variables in a file -- to be calculated.
-      // this is a slow process and becomes slower the larger the file is
-      return dbg.selectors.getSymbols(state, location);
+      return true;
     },
     "selected source"
   );
@@ -303,7 +303,6 @@ async function openDebuggerAndLog(label, expected, isCm6Enabled) {
     await waitForSource(dbg, expected.sourceURL);
     await selectSource(dbg, expected.file);
     await waitForText(dbg, expected.text, isCm6Enabled);
-    await waitForSymbols(dbg);
   };
 
   const toolbox = await openToolboxAndLog(
@@ -329,7 +328,6 @@ async function reloadDebuggerAndLog(label, toolbox, expected, isCm6Enabled) {
     await waitForSources(dbg, expected.sources);
     await waitForSource(dbg, expected.sourceURL);
     await waitForText(dbg, expected.text, isCm6Enabled);
-    await waitForSymbols(dbg);
   };
   await reloadPageAndLog(`${label}.jsdebugger`, toolbox, onReload);
 }
