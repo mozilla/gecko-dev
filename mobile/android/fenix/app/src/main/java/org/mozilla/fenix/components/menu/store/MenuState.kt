@@ -45,12 +45,14 @@ data class BrowserMenuState(
  * Value type that represents the state of the extension submenu.
  *
  * @property recommendedAddons A list of recommended [Addon]s to suggest.
+ * @property showExtensionsOnboarding Show extensions promotion banner onboarding.
  * @property addonInstallationInProgress The [Addon] that is currently being installed.
  * @property browserWebExtensionMenuItem A list of [WebExtensionMenuItem.WebExtensionBrowserMenuItem]s
  * to be shown in the menu.
  */
 data class ExtensionMenuState(
     val recommendedAddons: List<Addon> = emptyList(),
+    val showExtensionsOnboarding: Boolean = false,
     val addonInstallationInProgress: Addon? = null,
     val browserWebExtensionMenuItem: List<WebExtensionMenuItem.WebExtensionBrowserMenuItem> = emptyList(),
 )

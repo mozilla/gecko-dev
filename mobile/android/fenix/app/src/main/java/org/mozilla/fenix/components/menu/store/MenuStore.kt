@@ -83,6 +83,10 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
                 addonInstallationInProgress = null,
             )
         }
+
+        is MenuAction.UpdateShowExtensionsOnboarding -> state.copyWithExtensionMenuState { extensionState ->
+            extensionState.copy(showExtensionsOnboarding = action.showExtensionsOnboarding)
+        }
     }
 }
 

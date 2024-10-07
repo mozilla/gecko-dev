@@ -299,6 +299,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         state.toolsMenuState.pageWebExtensionMenuItem
                     }
 
+                    val showExtensionsOnboarding by store.observeAsState(initialValue = false) { state ->
+                        state.extensionMenuState.showExtensionsOnboarding
+                    }
+
                     val initRoute = when (args.accesspoint) {
                         MenuAccessPoint.Browser,
                         MenuAccessPoint.Home,
@@ -541,7 +545,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 ExtensionsSubmenu(
                                     recommendedAddons = recommendedAddons,
                                     addonInstallationInProgress = addonInstallationInProgress,
-                                    showExtensionsOnboarding = recommendedAddons.isNotEmpty(),
+                                    showExtensionsOnboarding = showExtensionsOnboarding,
                                     webExtensionMenuItems = browserWebExtensionMenuItem,
                                     onBackButtonClick = {
                                         contentState = Route.MainMenu
