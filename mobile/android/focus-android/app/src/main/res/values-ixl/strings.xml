@@ -54,6 +54,7 @@
     <!-- Menu item: Remove the current site as a shortcut from the Home screen -->
     <string name="menu_remove_from_shortcuts">La sojsa el unq´a eexhlale´ uve´ jik kuxh alejata´</string>
 
+    <!-- Menu item: Shows information about features and changes that are new to this version -->
     <string name="menu_settings">B\'an tuche\'</string>
     <string name="menu_about">Ti\' uvaa\'</string>
     <string name="menu_help">Lochb\'al</string>
@@ -84,10 +85,14 @@
          sharing an URL. -->
     <string name="share_dialog_title">La jatxb\'en tuk\'</string>
 
-    <!-- While a browsing session is active (in the foreground or background) we will show a notification
-         so that the user doesn't forget about the website still being open. This text is shown in
-         the notification. Clicking the notification will have the same effect as clicking the "erase"
-         button in the application. -->
+    <string name="notification_erase_title_android_14">La sojsa unq’a vee’ chukeltu ve’te’?</string>
+
+    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Kana moj sojsa unq’a vaa’ ni alon see uva’ pajlat kuxh la sojsa unq’a vee’ chukeltu ve’te’.</string>
+
+    <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
+    for Android 14+. -->
+    <string name="notification_erase_text_android_14_1">Kana moj sojsa unq’a vaa’ ni alon see uva’ pajlat kuxh la sojsa unq’a vee’ chukeltu ve’te’.</string>
+
     <string name="notification_erase_text">Sojsa kaajayil unq\'a vee\' chukel ve\'te\'</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -121,23 +126,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">La chuk tu Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">La chuk tu Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">La chuk tu Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">La chuk tu Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">La chuk tu Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">La chuk tu Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">La chuk tu Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">La chuk tu Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s ni taq’ teq’ol isuuchil.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ni taq’ teq’ol isuuchil.</p>
 <p>B’anb’e u chukb’al uva’ eetz kuxhtu’:
   <ul>
     <li>Chuka as ti kuxh u aplicación la atin kat axh</li>
@@ -491,7 +496,10 @@
 
 
 
-  <string name="error_hostLookup_title">Ye\' kat ilej umaj jajon tetz</string>
+  <!-- Snackbar that will be displayed after a website has been added to shortcuts. -->
+    <string name="snackbar_added_to_shortcuts">At ve’t ok xo’l unq’a vee’ uva’ jik kuxh la lej ve’te’!</string>
+
+    <string name="error_hostLookup_title">Ye\' kat ilej umaj jajon tetz</string>
 
 
 
@@ -606,9 +614,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Sojsa kaajayil unq\'a vee\' kat achukla</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Jup ka’t unq’a vee’ jajle’le</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Eq\'o ku\'tzan u Firefoxe</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Eq\'o ku\'tzan u Firefoxe</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -620,23 +631,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s ile’ ni tx’eb’on ve’t see’ aq’al la b’anb’e ta’ne’ tan la ootzi <a href="%2$s">kam yol xo’l tenam ti u Mozilla at sti’</a> as atkan unka’ta yol ti’ unq’a lochb’al tetz uva’ jajlu kan.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ile’ ni tx’eb’on ve’t see’ aq’al la b’anb’e ta’ne’ tan la ootzi <a href="%2$s">kam yol xo’l tenam ti u Mozilla at sti’</a> as atkan unka’ta yol ti’ unq’a lochb’al tetz uva’ jajlu kan.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Ye’l umaj yol aq’axoj see’ ti’ b’anb’el unq’a texhlale’ uve’ ni xaansale’ ta’n u Mozilla moj tu jalte, echkole’ u texhlale’, vi b’ii u Mozilla, Firefox moj unq’a %1$s. La uch alejat ka’ta yol sti’ <a href="%2$s">tzitza’</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Ye’l umaj yol aq’axoj see’ ti’ b’anb’el unq’a texhlale’ uve’ ni xaansale’ ta’n u Mozilla moj tu jalte, echkole’ u texhlale’, vi b’ii u Mozilla, Firefox moj unq’a %1$s. La uch alejat ka’ta yol sti’ <a href="%2$s">tzitza’</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Kat u texhlale’ uve’ tetz %1$s ile’ at ve’te’ ta’n ka’t <a href="%2$s">unq’a tu’aale’</a> uve’ jajlu kan kuxhtu’.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Kat u texhlale’ uve’ tetz %1$s ile’ at ve’te’ ta’n ka’t <a href="%2$s">unq’a tu’aale’</a> uve’ jajlu kan kuxhtu’.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s ni b’anb’e tachul majb’al uva’ ileltu ta’n u Mozilla. Echkole’ unq’a aq’one’ uve’ jatxel ivatz as a’ kuxh ni taq’onvu sijunal ta’n u <a href="%2$s">GNU General Public License v3</a>, as ile’ at ve’t <a href="%3$s">tzitza’</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ni b’anb’e tachul majb’al uva’ ileltu ta’n u Mozilla. Echkole’ unq’a aq’one’ uve’ jatxel ivatz as a’ kuxh ni taq’onvu sijunal ta’n u <a href="%2$s">GNU General Public License v3</a>, as ile’ at ve’t <a href="%3$s">tzitza’</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Ab\'ii la ooksa kan</string>
@@ -827,7 +838,7 @@
     <string name="preference_studies">Chusb’al</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">U Firefox la uch taq’at kan as ib’anax chusb’al tul uva’ la uchi.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">U Firefox la uch taq’at kan as ib’anax chusb’al tul uva’ la uchi.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Ootzi ka´te</string>
@@ -923,7 +934,7 @@
     <string name="open_new_tab_snackbar">Jalpu</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">La eel kaajayil chitu’</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">La eel kaajayil chitu’</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Oora kuxh la jalpu tatinb’al tu uma’t ilb’al tetz</string>
@@ -1027,7 +1038,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s nisa’ tok ti’ u HTTPS as la chit ilaxi asoj la uchi aq’al uva’ b’a’n tatine’
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s nisa’ tok ti’ u HTTPS as la chit ilaxi asoj la uchi aq’al uva’ b’a’n tatine’
  <a href="%2$s">La ootzi ka’te</a> <br/><br/>
  Jalpu u vaa’ uve’ ni b’anax kat tuche’ > Eetz kuxhtu’ &amp; Kach’ub’al tetz > Kach’ub’al tetz.]]></string>
 
@@ -1100,4 +1111,17 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Widget ile’ at ve’t ku’ ti xe’teb’al aq’on</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Aq’al uva’ la el axh pajlat kuxh tu kaajayil vi vatze’, eq’o kutzan stiib’a as a’ la jiti kat ti iqul</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Aq’al uva’ la el axh tu kaajayil vi vatze’, jiti ku’tzan stiib’a as la laa u tecla uve’ ni q’aavisan ti’ iqul</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Jiti ku’tzan stiib’a as laa ti’ iq’aav ti’ iqul aq’al la el ch’u’l axh</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Jiti ku’tzan stiib’a as laa ti’ iqul aq’al la elch’u’l axh</string>
 </resources>

@@ -96,9 +96,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Öflugasti persónuverndareiginleikinn okkar til þessa einangrar vefkökur sem tengja á milli vefsvæða.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Öflugasti persónuverndareiginleikinn okkar til þessa einangrar vefkökur sem tengja á milli vefsvæða.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Lærððu meira um allsherjar-vefkökuvarnir</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Lærððu meira um allsherjar-vefkökuvarnir</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -120,9 +120,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Nýtt: einnar-snertingar örvar áfram og til baka</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nýtt: einnar-snertingar örvar áfram og til baka</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Njóttu fljótlegs flakks sem er alltaf innan seilingar.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Njóttu fljótlegs flakks sem er alltaf innan seilingar.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Aðgangur að myndavél er nauðsynlegur. Farðu í stillingar Android, farðu í Heimildir og gefðu leyfi.</string>
@@ -213,6 +213,13 @@
     <string name="browser_menu_extensions_banner_learn_more">Kanna nánar</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Sýsla með forritsauka</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Forritsaukar sem mælt er með</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Bæta við %1$s</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Bæta við forritsauka</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Uppgötvaðu fleiri forritsauka</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -307,7 +314,7 @@
     <string name="browser_menu_switch_to_mobile_site">Skipta yfir á vefsvæði farsíma</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Verkfæri</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Til baka í aðalvalmynd</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Leshamur, Þýða, Prenta, Deila, Opna forrit</string>
@@ -407,7 +414,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Kynntu þér persónulegu upphafssíðuna þína. Nýlegir flipar, bókamerki og leitarniðurstöður munu birtast hér.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Kynntu þér persónulegu upphafssíðuna þína. Nýlegir flipar, bókamerki og leitarniðurstöður munu birtast hér.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Velkomin á persónulegra internet</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -899,6 +906,10 @@
     <string name="preferences_marketing_data">Markaðsgögn</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Deilir grunnnotkunargögnum með Adjust, söluaðila farsímamarkaðssetningar okkar</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Senda hrunskýrslur sjálfkrafa</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Deilir hrungögnum sjálfkrafa með Mozilla við ræsingu eftir hrun</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Kannanir</string>
     <!-- Summary for studies preferences -->
@@ -1190,6 +1201,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Endurheimta flipa</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s þurfti að endurræsa</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Senda hrunskýrslur inn sjálfkrafa</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Loka</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Senda hrunskýrslu</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Ertu viss um að þú viljir eyða þessari möppu?</string>
@@ -1270,11 +1290,23 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Bæta við nýrri möppu</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Loka bókamerkjum</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Loka bókamerkjum</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Leita í bókamerkjum</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Atriðavalmynd fyrir %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Engin bókamerki ennþá</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Vistaðu vefsvæði þegar þú vafrar. Skráðu þig inn til að sækja bókamerki úr öðrum samstilltum tækjum.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Skráðu þig inn til að samstilla</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Vistaðu vefsvæði þegar þú vafrar. Við sækjum einnig bókamerki úr öðrum samstilltum tækjum.</string>
+
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Bættu við bókamerkjum á meðan þú vafrar svo þú getir fundið uppáhaldsvefina þína síðar.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2448,13 +2480,13 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ekki núna</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Sjáðu hvort þú getur treyst umsögnum þessarar vöru - áður en þú kaupir.</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Sjáðu hvort þú getur treyst umsögnum þessarar vöru - áður en þú kaupir.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Prófaðu umsagnaskoðun</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Prófaðu umsagnaskoðun</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Eru þessar umsagnir áreiðanlegar? Athugaðu núna aðlagaða einkunn.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Eru þessar umsagnir áreiðanlegar? Athugaðu núna aðlagaða einkunn.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Opna umsagnaskoðun</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Opna umsagnaskoðun</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2807,16 +2839,24 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ég nota þetta ekki</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Ég nota ekki leit í Firefox</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Ég nota ekki samstillingu</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Hversu ánægð/ur ertu með Firefox-heimasíðuna þína?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Hjálpaðu til við að bæta prentun í Firefox. Það tekur aðeins örstutta stund</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Hjálpaðu okkur að gera leitina Firefox betri. Það tekur aðeins eina mínútu</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Hjálpaðu okkur að gera samstillinguna Firefox betri. Það tekur aðeins eina mínútu</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Hversu ánægð/ur ertu með útprentun í Firefox?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Hversu ánægð/ur ertu með Firefox-heimasíðuna þína?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Hversu ánægð/ur ertu með leitareiginleika í Firefox?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Hversu ánægð/ur ertu með samstillingareiginleikana í Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox-táknmerki</string>
@@ -2844,6 +2884,10 @@
     <string name="debug_drawer_cfr_tools_title">CFR-verkfæri</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Endurstilla CFR-verkfæri</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Glean villuleitarverkfæri</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
