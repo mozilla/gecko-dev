@@ -2164,8 +2164,9 @@ nsresult nsDocShell::Now(DOMHighResTimeStamp* aWhen) {
 
 NS_IMETHODIMP
 nsDocShell::SetWindowDraggingAllowed(bool aValue) {
-  RefPtr<nsDocShell> parent = GetInProcessParentDocshell();
-  if (!aValue && mItemType == typeChrome && !parent) {
+  RefPtr<nsDocShell> parent;
+  if (!aValue && mItemType == typeChrome &&
+      !(parent = GetInProcessParentDocshell())) {
     // Window dragging is always allowed for top level
     // chrome docshells.
     return NS_ERROR_FAILURE;
@@ -2179,8 +2180,8 @@ nsDocShell::GetWindowDraggingAllowed(bool* aValue) {
   // window dragging regions in CSS (-moz-window-drag:drag)
   // can be slow. Default behavior is to only allow it for
   // chrome top level windows.
-  RefPtr<nsDocShell> parent = GetInProcessParentDocshell();
-  if (mItemType == typeChrome && !parent) {
+  RefPtr<nsDocShell> parent;
+  if (mItemType == typeChrome && !(parent = GetInProcessParentDocshell())) {
     // Top level chrome window
     *aValue = true;
   } else {
