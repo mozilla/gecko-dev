@@ -38,8 +38,7 @@ mkdir -p /builds/worker/.mozbuild
 chown -R worker:worker /builds/worker/
 export GOPATH=/builds/worker/go
 
-# nodejs 16 for pdfjs
-. install-node.sh
+. install-node-for-pdfjs.sh
 
 # pdf.js setup
 # We want to aviod downloading a ton of packages all the time, so
