@@ -7,13 +7,9 @@
 #ifndef HTTPSRecordResolver_h__
 #define HTTPSRecordResolver_h__
 
-#include "mozilla/Mutex.h"
 #include "nsICancelable.h"
 #include "nsIDNSListener.h"
 #include "nsHttpConnectionInfo.h"
-
-class nsIDNSAddrRecord;
-class nsIDNSHTTPSSVCRecord;
 
 namespace mozilla {
 namespace net {
@@ -37,19 +33,9 @@ class HTTPSRecordResolver : public nsIDNSListener {
   virtual ~HTTPSRecordResolver();
 
  private:
-  nsresult InvokeCallback(nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
-                          nsISVCBRecord* aHighestPriorityRecord,
-                          const nsACString& aCname);
-
-  mozilla::Mutex mMutex{"HTTPSRecordResolver::mMutex"};
   RefPtr<nsAHttpTransaction> mTransaction;
   RefPtr<nsHttpConnectionInfo> mConnInfo;
-  nsCOMPtr<nsICancelable> mCnameRequest MOZ_GUARDED_BY(mMutex);
-  nsCOMPtr<nsICancelable> mHTTPSRecordRequest MOZ_GUARDED_BY(mMutex);
-  nsCOMPtr<nsIDNSAddrRecord> mAddrRecord;
-  nsCOMPtr<nsIDNSHTTPSSVCRecord> mHTTPSRecord;
   uint32_t mCaps;
-  bool mDone = false;
 };
 
 }  // namespace net

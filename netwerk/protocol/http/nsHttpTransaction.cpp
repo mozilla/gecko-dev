@@ -1114,7 +1114,7 @@ bool nsHttpTransaction::PrepareSVCBRecordsForRetry(
   bool unused;
   nsTArray<RefPtr<nsISVCBRecord>> records;
   Unused << mHTTPSSVCRecord->GetAllRecordsWithEchConfig(
-      mCaps & NS_HTTP_DISALLOW_SPDY, noHttp3, mCname, &aAllRecordsHaveEchConfig,
+      mCaps & NS_HTTP_DISALLOW_SPDY, noHttp3, &aAllRecordsHaveEchConfig,
       &unused, records);
 
   // Note that it's possible that we can't get any usable record here. For
@@ -1156,9 +1156,8 @@ nsHttpTransaction::PrepareFastFallbackConnInfo(bool aEchConfigUsed) {
 
   RefPtr<nsHttpConnectionInfo> fallbackConnInfo;
   nsCOMPtr<nsISVCBRecord> fastFallbackRecord;
-  Unused << mHTTPSSVCRecord->GetServiceModeRecordWithCname(
-      mCaps & NS_HTTP_DISALLOW_SPDY, true, mCname,
-      getter_AddRefs(fastFallbackRecord));
+  Unused << mHTTPSSVCRecord->GetServiceModeRecord(
+      mCaps & NS_HTTP_DISALLOW_SPDY, true, getter_AddRefs(fastFallbackRecord));
 
   if (fastFallbackRecord && aEchConfigUsed) {
     nsAutoCString echConfig;
@@ -3227,7 +3226,7 @@ void nsHttpTransaction::UpdateConnectionInfo(nsHttpConnectionInfo* aConnInfo) {
 
 nsresult nsHttpTransaction::OnHTTPSRRAvailable(
     nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
-    nsISVCBRecord* aHighestPriorityRecord, const nsACString& aCname) {
+    nsISVCBRecord* aHighestPriorityRecord) {
   LOG(("nsHttpTransaction::OnHTTPSRRAvailable [this=%p] mActivated=%d", this,
        mActivated));
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
@@ -3288,9 +3287,9 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
     if (allRecordsExcluded &&
         StaticPrefs::network_dns_httpssvc_reset_exclustion_list() && dns) {
       Unused << dns->ResetExcludedSVCDomainName(mConnInfo->GetOrigin());
-      if (NS_FAILED(record->GetServiceModeRecordWithCname(
-              mCaps & NS_HTTP_DISALLOW_SPDY, mCaps & NS_HTTP_DISALLOW_HTTP3,
-              aCname, getter_AddRefs(svcbRecord)))) {
+      if (NS_FAILED(record->GetServiceModeRecord(mCaps & NS_HTTP_DISALLOW_SPDY,
+                                                 mCaps & NS_HTTP_DISALLOW_HTTP3,
+                                                 getter_AddRefs(svcbRecord)))) {
         return NS_ERROR_FAILURE;
       }
     } else {
@@ -3301,8 +3300,6 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
   // Remember this RR set. In the case that the connection establishment failed,
   // we will use other records to retry.
   mHTTPSSVCRecord = record;
-  mCname = aCname;
-  LOG(("has cname:%s", mCname.get()));
 
   RefPtr<nsHttpConnectionInfo> newInfo =
       mConnInfo->CloneAndAdoptHTTPSSVCRecord(svcbRecord);

@@ -144,15 +144,13 @@ class DNSHTTPSSVCRecordBase {
 
   already_AddRefed<nsISVCBRecord> GetServiceModeRecordInternal(
       bool aNoHttp2, bool aNoHttp3, const nsTArray<SVCB>& aRecords,
-      bool& aRecordsAllExcluded, bool aCheckHttp3ExcludedList,
-      const nsACString& aCname);
+      bool& aRecordsAllExcluded, bool aCheckHttp3ExcludedList = true);
 
   bool HasIPAddressesInternal(const nsTArray<SVCB>& aRecords);
 
   void GetAllRecordsWithEchConfigInternal(
-      bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
-      const nsTArray<SVCB>& aRecords, bool* aAllRecordsHaveEchConfig,
-      bool* aAllRecordsInH3ExcludedList,
+      bool aNoHttp2, bool aNoHttp3, const nsTArray<SVCB>& aRecords,
+      bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,
       nsTArray<RefPtr<nsISVCBRecord>>& aResult,
       bool aCheckHttp3ExcludedList = true);
 
