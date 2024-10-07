@@ -2245,10 +2245,8 @@ nsresult nsDocumentViewer::MakeWindow(const nsSize& aSize,
       // Reuse the top level parent widget.
       rv = view->AttachToTopLevelWidget(mParentWidget);
       mAttachedToParent = true;
-    } else if (!mParentWidget || aContainerView) {
-      rv = view->CreateWidget(true, false);
     } else {
-      rv = view->CreateWidgetForParent(mParentWidget, true, false);
+      rv = view->CreateWidget(mParentWidget, true, false);
     }
     if (NS_FAILED(rv)) return rv;
   }
@@ -3234,7 +3232,7 @@ bool nsDocumentViewer::ShouldAttachToTopLevel() {
   }
 
   // We always attach when using puppet widgets
-  if (nsIWidget::UsePuppetWidgets()) {
+  if (nsIWidget::UsePuppetWidgets() || mParentWidget->IsPuppetWidget()) {
     return true;
   }
 

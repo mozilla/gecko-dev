@@ -186,16 +186,17 @@ nsCocoaWindow::~nsCocoaWindow() {
   // childView->ResetParent() can change our list of children while it's
   // being iterated, so the way we iterate the list must allow for this.
   for (nsIWidget* kid = mLastChild; kid;) {
-    WindowType kidType = kid->GetWindowType();
+    const WindowType kidType = kid->GetWindowType();
     if (kidType == WindowType::Child) {
-      nsChildView* childView = static_cast<nsChildView*>(kid);
+      RefPtr<nsChildView> childView = static_cast<nsChildView*>(kid);
       kid = kid->GetPrevSibling();
       childView->ResetParent();
     } else {
-      nsCocoaWindow* childWindow = static_cast<nsCocoaWindow*>(kid);
+      RefPtr<nsCocoaWindow> childWindow = static_cast<nsCocoaWindow*>(kid);
+      kid = kid->GetPrevSibling();
+      RemoveChild(childWindow);
       childWindow->mParent = nullptr;
       childWindow->mAncestorLink = mAncestorLink;
-      kid = kid->GetPrevSibling();
     }
   }
 
@@ -227,14 +228,9 @@ static NSScreen* FindTargetScreenForRect(const DesktopIntRect& aRect) {
   return targetScreen;
 }
 
-DesktopToLayoutDeviceScale ParentBackingScaleFactor(nsIWidget* aParent,
-                                                    NSView* aParentView) {
+DesktopToLayoutDeviceScale ParentBackingScaleFactor(nsIWidget* aParent) {
   if (aParent) {
     return aParent->GetDesktopToDeviceScale();
-  }
-  NSWindow* parentWindow = [aParentView window];
-  if (parentWindow) {
-    return DesktopToLayoutDeviceScale(parentWindow.backingScaleFactor);
   }
   return DesktopToLayoutDeviceScale(1.0);
 }
@@ -242,41 +238,20 @@ DesktopToLayoutDeviceScale ParentBackingScaleFactor(nsIWidget* aParent,
 // Returns the screen rectangle for the given widget.
 // Child widgets are positioned relative to this rectangle.
 // Exactly one of the arguments must be non-null.
-static DesktopRect GetWidgetScreenRectForChildren(nsIWidget* aWidget,
-                                                  NSView* aView) {
-  if (aWidget) {
-    mozilla::DesktopToLayoutDeviceScale scale =
-        aWidget->GetDesktopToDeviceScale();
-    if (aWidget->GetWindowType() == WindowType::Child) {
-      return aWidget->GetScreenBounds() / scale;
-    }
-    return aWidget->GetClientBounds() / scale;
+static DesktopRect GetWidgetScreenRectForChildren(nsIWidget* aWidget) {
+  mozilla::DesktopToLayoutDeviceScale scale =
+      aWidget->GetDesktopToDeviceScale();
+  if (aWidget->GetWindowType() == WindowType::Child) {
+    return aWidget->GetScreenBounds() / scale;
   }
-
-  MOZ_RELEASE_ASSERT(aView);
-
-  // 1. Transform the view rect into window coords.
-  // The returned rect is in "origin bottom-left" coordinates.
-  NSRect rectInWindowCoordinatesOBL = [aView convertRect:[aView bounds]
-                                                  toView:nil];
-
-  // 2. Turn the window-coord rect into screen coords, still origin bottom-left.
-  NSRect rectInScreenCoordinatesOBL =
-      [[aView window] convertRectToScreen:rectInWindowCoordinatesOBL];
-
-  // 3. Convert the NSRect to a DesktopRect. This will convert to coordinates
-  // with the origin in the top left corner of the primary screen.
-  return DesktopRect(
-      nsCocoaUtils::CocoaRectToGeckoRect(rectInScreenCoordinatesOBL));
+  return aWidget->GetClientBounds() / scale;
 }
 
 // aRect here is specified in desktop pixels
 //
-// For child windows (where either aParent or aNativeParent is non-null),
-// aRect.{x,y} are offsets from the origin of the parent window and not an
-// absolute position.
-nsresult nsCocoaWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                               const DesktopIntRect& aRect,
+// For child windows aRect.{x,y} are offsets from the origin of the parent
+// window and not an absolute position.
+nsresult nsCocoaWindow::Create(nsIWidget* aParent, const DesktopIntRect& aRect,
                                widget::InitData* aInitData) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
@@ -304,9 +279,8 @@ nsresult nsCocoaWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   DesktopIntPoint parentOrigin;
 
   // Do we have a parent widget?
-  if (aParent || aNativeParent) {
-    DesktopRect parentDesktopRect =
-        GetWidgetScreenRectForChildren(aParent, (NSView*)aNativeParent);
+  if (aParent) {
+    DesktopRect parentDesktopRect = GetWidgetScreenRectForChildren(aParent);
     parentOrigin = gfx::RoundedToInt(parentDesktopRect.TopLeft());
   }
 
@@ -332,12 +306,12 @@ nsresult nsCocoaWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   NS_OBJC_END_TRY_BLOCK_RETURN(NS_ERROR_FAILURE);
 }
 
-nsresult nsCocoaWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
+nsresult nsCocoaWindow::Create(nsIWidget* aParent,
                                const LayoutDeviceIntRect& aRect,
                                widget::InitData* aInitData) {
-  DesktopIntRect desktopRect = RoundedToInt(
-      aRect / ParentBackingScaleFactor(aParent, (NSView*)aNativeParent));
-  return Create(aParent, aNativeParent, desktopRect, aInitData);
+  DesktopIntRect desktopRect =
+      RoundedToInt(aRect / ParentBackingScaleFactor(aParent));
+  return Create(aParent, desktopRect, aInitData);
 }
 
 static unsigned int WindowMaskForBorderStyle(BorderStyle aBorderStyle) {
@@ -551,8 +525,7 @@ nsresult nsCocoaWindow::CreatePopupContentView(const LayoutDeviceIntRect& aRect,
   NS_ADDREF(mPopupContentView);
 
   nsIWidget* thisAsWidget = static_cast<nsIWidget*>(this);
-  nsresult rv =
-      mPopupContentView->Create(thisAsWidget, nullptr, aRect, aInitData);
+  nsresult rv = mPopupContentView->Create(thisAsWidget, aRect, aInitData);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

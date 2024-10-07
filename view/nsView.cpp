@@ -502,43 +502,23 @@ struct DefaultWidgetInitData : public widget::InitData {
   }
 };
 
-nsresult nsView::CreateWidget(bool aEnableDragDrop, bool aResetVisibility) {
+nsresult nsView::CreateWidget(nsIWidget* aParent, bool aEnableDragDrop,
+                              bool aResetVisibility) {
   AssertNoWindow();
 
   DefaultWidgetInitData initData;
   LayoutDeviceIntRect trect =
       CalcWidgetBounds(initData.mWindowType, initData.mTransparencyMode);
 
-  nsIWidget* parentWidget =
-      GetParent() ? GetParent()->GetNearestWidget(nullptr) : nullptr;
-  if (!parentWidget) {
+  if (!aParent && GetParent()) {
+    aParent = GetParent()->GetNearestWidget(nullptr);
+  }
+  if (!aParent) {
     NS_ERROR("nsView::CreateWidget without suitable parent widget??");
     return NS_ERROR_FAILURE;
   }
 
-  // XXX: using aForceUseIWidgetParent=true to preserve previous
-  // semantics.  It's not clear that it's actually needed.
-  mWindow = parentWidget->CreateChild(trect, &initData, true);
-  if (!mWindow) {
-    return NS_ERROR_FAILURE;
-  }
-
-  InitializeWindow(aEnableDragDrop, aResetVisibility);
-
-  return NS_OK;
-}
-
-nsresult nsView::CreateWidgetForParent(nsIWidget* aParentWidget,
-                                       bool aEnableDragDrop,
-                                       bool aResetVisibility) {
-  AssertNoWindow();
-  MOZ_ASSERT(aParentWidget, "Parent widget required");
-
-  DefaultWidgetInitData initData;
-  LayoutDeviceIntRect trect =
-      CalcWidgetBounds(initData.mWindowType, initData.mTransparencyMode);
-
-  mWindow = aParentWidget->CreateChild(trect, &initData);
+  mWindow = aParent->CreateChild(trect, initData);
   if (!mWindow) {
     return NS_ERROR_FAILURE;
   }
@@ -549,7 +529,7 @@ nsresult nsView::CreateWidgetForParent(nsIWidget* aParentWidget,
 }
 
 nsresult nsView::CreateWidgetForPopup(widget::InitData* aWidgetInitData,
-                                      nsIWidget* aParentWidget) {
+                                      nsIWidget* aParent) {
   AssertNoWindow();
   MOZ_ASSERT(aWidgetInitData, "Widget init data required");
   MOZ_ASSERT(aWidgetInitData->mWindowType == WindowType::Popup,
@@ -558,31 +538,20 @@ nsresult nsView::CreateWidgetForPopup(widget::InitData* aWidgetInitData,
   LayoutDeviceIntRect trect = CalcWidgetBounds(
       aWidgetInitData->mWindowType, aWidgetInitData->mTransparencyMode);
 
-  // XXX/cjones: having these two separate creation cases seems ... um
-  // ... unnecessary, but it's the way the old code did it.  Please
-  // unify them by first finding a suitable parent nsIWidget, then
-  // getting rid of aForceUseIWidgetParent.
-  if (aParentWidget) {
-    // XXX: using aForceUseIWidgetParent=true to preserve previous
-    // semantics.  It's not clear that it's actually needed.
-    mWindow = aParentWidget->CreateChild(trect, aWidgetInitData, true);
-  } else {
-    nsIWidget* nearestParent =
-        GetParent() ? GetParent()->GetNearestWidget(nullptr) : nullptr;
-    if (!nearestParent) {
-      // Without a parent, we can't make a popup.  This can happen
-      // when printing
-      return NS_ERROR_FAILURE;
-    }
-
-    mWindow = nearestParent->CreateChild(trect, aWidgetInitData);
+  if (!aParent && GetParent()) {
+    aParent = GetParent()->GetNearestWidget(nullptr);
   }
+  if (!aParent) {
+    NS_ERROR("nsView::CreateWidgetForPopup without suitable parent widget??");
+    // Without a parent, we can't make a popup. This used to be able to happen
+    // when printing, apparently.
+    return NS_ERROR_FAILURE;
+  }
+  mWindow = aParent->CreateChild(trect, *aWidgetInitData);
   if (!mWindow) {
     return NS_ERROR_FAILURE;
   }
-
   InitializeWindow(/* aEnableDragDrop = */ true, /* aResetVisibility = */ true);
-
   return NS_OK;
 }
 

@@ -218,8 +218,7 @@ static inline void FlipCocoaScreenCoordinate(NSPoint& inPoint) {
 #pragma mark -
 
 nsChildView::nsChildView()
-    : nsBaseWidget(),
-      mView(nullptr),
+    : mView(nullptr),
       mParentView(nil),
       mParentWidget(nullptr),
       mCompositingLock("ChildViewCompositing"),
@@ -234,9 +233,18 @@ nsChildView::~nsChildView() {
   // our list of children while it's being iterated, so the way we iterate the
   // list must allow for this.
   for (nsIWidget* kid = mLastChild; kid;) {
-    nsChildView* childView = static_cast<nsChildView*>(kid);
-    kid = kid->GetPrevSibling();
-    childView->ResetParent();
+    const WindowType kidType = kid->GetWindowType();
+    if (kidType == WindowType::Child) {
+      RefPtr<nsChildView> childView = static_cast<nsChildView*>(kid);
+      kid = kid->GetPrevSibling();
+      childView->ResetParent();
+    } else {
+      RefPtr<nsCocoaWindow> childWindow = static_cast<nsCocoaWindow*>(kid);
+      kid = kid->GetPrevSibling();
+      RemoveChild(childWindow);
+      childWindow->mParent = nullptr;
+      childWindow->mAncestorLink = nullptr;
+    }
   }
 
   NS_WARNING_ASSERTION(
@@ -261,7 +269,7 @@ nsChildView::~nsChildView() {
   TearDownView();  // Safe if called twice.
 }
 
-nsresult nsChildView::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
+nsresult nsChildView::Create(nsIWidget* aParent,
                              const LayoutDeviceIntRect& aRect,
                              widget::InitData* aInitData) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
@@ -278,19 +286,13 @@ nsresult nsChildView::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 
   BaseCreate(aParent, aInitData);
 
+  mParentWidget = nil;
   mParentView = nil;
   if (aParent) {
     // This is the popup window case. aParent is the nsCocoaWindow for the
     // popup window, and mParentView will be its content view.
-    mParentView = (NSView*)aParent->GetNativeData(NS_NATIVE_WIDGET);
     mParentWidget = aParent;
-  } else {
-    // This is the top-level window case.
-    // aNativeParent will be the contentView of our window, since that's what
-    // nsCocoaWindow returns when asked for an NS_NATIVE_VIEW.
-    // We do not have a direct "parent widget" association with the top level
-    // window's nsCocoaWindow object.
-    mParentView = reinterpret_cast<NSView*>(aNativeParent);
+    mParentView = (NSView*)aParent->GetNativeData(NS_NATIVE_WIDGET);
   }
 
   // create our parallel NSView and hook it up to our parent. Recall

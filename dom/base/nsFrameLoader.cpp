@@ -1004,8 +1004,7 @@ bool nsFrameLoader::Show(nsSubDocumentFrame* aFrame) {
   }
 
   RefPtr<nsDocShell> baseWindow = GetDocShell();
-  baseWindow->InitWindow(nullptr, view->GetWidget(), 0, 0, size.width,
-                         size.height);
+  baseWindow->InitWindow(view->GetWidget(), 0, 0, size.width, size.height);
   baseWindow->SetVisibility(true);
   NS_ENSURE_TRUE(GetDocShell(), false);
 

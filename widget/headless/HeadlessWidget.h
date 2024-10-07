@@ -50,15 +50,11 @@ class HeadlessWidget : public nsBaseWidget {
     return nullptr;
   }
 
-  virtual nsresult Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                          const LayoutDeviceIntRect& aRect,
+  virtual nsresult Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
                           widget::InitData* aInitData = nullptr) override;
   using nsBaseWidget::Create;  // for Create signature not overridden here
-  virtual already_AddRefed<nsIWidget> CreateChild(
-      const LayoutDeviceIntRect& aRect, widget::InitData* aInitData = nullptr,
-      bool aForceUseIWidgetParent = false) override;
 
-  virtual nsIWidget* GetTopLevelWidget() override;
+  nsIWidget* GetTopLevelWidget() override;
 
   virtual void GetCompositorWidgetInitData(
       mozilla::widget::CompositorWidgetInitData* aInitData) override;

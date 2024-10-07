@@ -2210,23 +2210,12 @@ bool nsWindow::IsTopLevel() {
          mWindowType == WindowType::Invisible;
 }
 
-nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                          const LayoutDeviceIntRect& aRect,
+nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
                           InitData* aInitData) {
   ALOG("nsWindow[%p]::Create %p [%d %d %d %d]", (void*)this, (void*)aParent,
        aRect.x, aRect.y, aRect.width, aRect.height);
 
   nsWindow* parent = (nsWindow*)aParent;
-  if (aNativeParent) {
-    if (parent) {
-      ALOG(
-          "Ignoring native parent on Android window [%p], "
-          "since parent was specified (%p %p)",
-          (void*)this, (void*)aNativeParent, (void*)aParent);
-    } else {
-      parent = (nsWindow*)aNativeParent;
-    }
-  }
 
   // A default size of 1x1 confuses MobileViewportManager, so
   // use 0x0 instead. This is also a little more fitting since
@@ -2244,6 +2233,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   MOZ_DIAGNOSTIC_ASSERT(!aInitData ||
                         aInitData->mWindowType != WindowType::Invisible);
 
+  // FIXME(emilio): Seems we should pass aParent here, but I don't think we can
+  // have child widgets on android.
   BaseCreate(nullptr, aInitData);
 
   NS_ASSERTION(IsTopLevel() || parent,
@@ -2251,7 +2242,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 
   if (IsTopLevel()) {
     gTopLevelWindows.AppendElement(this);
-
   } else if (parent) {
     parent->mChildren.AppendElement(this);
     mParent = parent;

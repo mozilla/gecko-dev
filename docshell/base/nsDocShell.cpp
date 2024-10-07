@@ -4322,13 +4322,11 @@ bool nsDocShell::FillLoadStateFromCurrentEntry(
 //*****************************************************************************
 
 NS_IMETHODIMP
-nsDocShell::InitWindow(nativeWindow aParentNativeWindow,
-                       nsIWidget* aParentWidget, int32_t aX, int32_t aY,
+nsDocShell::InitWindow(nsIWidget* aParentWidget, int32_t aX, int32_t aY,
                        int32_t aWidth, int32_t aHeight) {
   SetParentWidget(aParentWidget);
   SetPositionAndSize(aX, aY, aWidth, aHeight, 0);
   NS_ENSURE_TRUE(Initialize(), NS_ERROR_FAILURE);
-
   return NS_OK;
 }
 
@@ -4608,24 +4606,6 @@ nsDocShell::SetParentWidget(nsIWidget* aParentWidget) {
   mParentWidget = aParentWidget;
 
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetParentNativeWindow(nativeWindow* aParentNativeWindow) {
-  NS_ENSURE_ARG_POINTER(aParentNativeWindow);
-
-  if (mParentWidget) {
-    *aParentNativeWindow = mParentWidget->GetNativeData(NS_NATIVE_WIDGET);
-  } else {
-    *aParentNativeWindow = nullptr;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::SetParentNativeWindow(nativeWindow aParentNativeWindow) {
-  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP

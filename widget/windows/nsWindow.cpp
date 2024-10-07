@@ -858,8 +858,7 @@ void SetWindowStyles(HWND aWnd, const WindowStyles& aStyles) {
 }  // namespace mozilla::widget
 
 // Create the proper widget
-nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                          const LayoutDeviceIntRect& aRect,
+nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
                           widget::InitData* aInitData) {
   // Historical note: there was once some belief and/or intent that nsWindows
   // could be created on arbitrary threads, and this may still be reflected in
@@ -890,12 +889,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 
   HWND parent = nullptr;
   if (aParent) {  // has a nsIWidget parent
-    parent = aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : nullptr;
+    parent = (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW);
     mParent = aParent;
-  } else {  // has a nsNative parent
-    parent = (HWND)aNativeParent;
-    mParent =
-        aNativeParent ? WinUtils::GetNSWindowPtr((HWND)aNativeParent) : nullptr;
   }
 
   mIsRTL = aInitData->mRTL;
@@ -909,12 +904,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       .ex = static_cast<LONG_PTR>(WindowExStyle()),
   };
 
-  if (mWindowType == WindowType::Popup) {
-    if (!aParent) {
-      parent = nullptr;
-    }
-  } else {
-    // See if the caller wants to explictly set clip children and clip siblings
+  if (mWindowType != WindowType::Popup) {
+    // See if the caller wants to explicitly set clip children and clip siblings
     if (aInitData->mClipChildren) {
       desiredStyles.style |= WS_CLIPCHILDREN;
     } else {

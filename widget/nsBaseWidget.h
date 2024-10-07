@@ -287,9 +287,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
       const LayoutDeviceIntRect& aButtonRect) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
-  already_AddRefed<nsIWidget> CreateChild(
-      const LayoutDeviceIntRect& aRect, InitData* aInitData = nullptr,
-      bool aForceUseIWidgetParent = false) override;
+  already_AddRefed<nsIWidget> CreateChild(const LayoutDeviceIntRect& aRect,
+                                          InitData&) final;
   void AttachViewToTopLevel(bool aUseAttachedEvents) override;
   nsIWidgetListener* GetAttachedWidgetListener() const override;
   void SetAttachedWidgetListener(nsIWidgetListener* aListener) override;

@@ -59,7 +59,6 @@ nsWebBrowser::nsWebBrowser(int aItemType)
     : mContentType(aItemType),
       mShouldEnableHistory(true),
       mWillChangeProcess(false),
-      mParentNativeWindow(nullptr),
       mProgressListener(nullptr),
       mWidgetListenerDelegate(this),
       mBackgroundColor(0),
@@ -89,8 +88,7 @@ nsIWidget* nsWebBrowser::EnsureWidget() {
   LayoutDeviceIntRect bounds(0, 0, 0, 0);
 
   mInternalWidget->SetWidgetListener(&mWidgetListenerDelegate);
-  NS_ENSURE_SUCCESS(mInternalWidget->Create(nullptr, mParentNativeWindow,
-                                            bounds, &widgetInit),
+  NS_ENSURE_SUCCESS(mInternalWidget->Create(mParentWidget, bounds, &widgetInit),
                     nullptr);
 
   return mInternalWidget;
@@ -149,8 +147,7 @@ already_AddRefed<nsWebBrowser> nsWebBrowser::Create(
   // events from subframes. To solve that we install our own chrome event
   // handler that always gets called (even for subframes) for any bubbling
   // event.
-
-  nsresult rv = docShell->InitWindow(nullptr, docShellParentWidget, 0, 0, 0, 0);
+  nsresult rv = docShell->InitWindow(docShellParentWidget, 0, 0, 0, 0);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return nullptr;
   }
@@ -860,8 +857,7 @@ nsWebBrowser::Cancel(nsresult aReason) {
 //*****************************************************************************
 
 NS_IMETHODIMP
-nsWebBrowser::InitWindow(nativeWindow aParentNativeWindow,
-                         nsIWidget* aParentWidget, int32_t aX, int32_t aY,
+nsWebBrowser::InitWindow(nsIWidget* aParentWidget, int32_t aX, int32_t aY,
                          int32_t aCX, int32_t aCY) {
   // nsIBaseWindow::InitWindow and nsIBaseWindow::Create
   // implementations have been merged into nsWebBrowser::Create
@@ -1013,32 +1009,7 @@ nsWebBrowser::GetParentWidget(nsIWidget** aParentWidget) {
 NS_IMETHODIMP
 nsWebBrowser::SetParentWidget(nsIWidget* aParentWidget) {
   NS_ENSURE_STATE(!mDocShell);
-
   mParentWidget = aParentWidget;
-  if (mParentWidget) {
-    mParentNativeWindow = mParentWidget->GetNativeData(NS_NATIVE_WIDGET);
-  } else {
-    mParentNativeWindow = nullptr;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWebBrowser::GetParentNativeWindow(nativeWindow* aParentNativeWindow) {
-  NS_ENSURE_ARG_POINTER(aParentNativeWindow);
-
-  *aParentNativeWindow = mParentNativeWindow;
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWebBrowser::SetParentNativeWindow(nativeWindow aParentNativeWindow) {
-  NS_ENSURE_STATE(!mDocShell);
-
-  mParentNativeWindow = aParentNativeWindow;
-
   return NS_OK;
 }
 

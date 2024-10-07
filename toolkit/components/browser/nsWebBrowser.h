@@ -141,7 +141,6 @@ class nsWebBrowser final : public nsIWebBrowser,
   const uint32_t mContentType;
   bool mShouldEnableHistory;
   bool mWillChangeProcess;
-  nativeWindow mParentNativeWindow;
   nsIWebProgressListener* mProgressListener;
 
   nsCOMPtr<nsIPrintSettings> mPrintSettings;

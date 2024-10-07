@@ -186,18 +186,16 @@ enum class NativeKeyBindingsType : uint8_t;
 
 class nsCocoaWindow final : public nsBaseWidget {
  private:
+  friend class nsChildView;
   typedef nsBaseWidget Inherited;
 
  public:
   nsCocoaWindow();
 
-  [[nodiscard]] nsresult Create(nsIWidget* aParent,
-                                nsNativeWidget aNativeParent,
-                                const DesktopIntRect& aRect,
+  [[nodiscard]] nsresult Create(nsIWidget* aParent, const DesktopIntRect& aRect,
                                 InitData* = nullptr) override;
 
   [[nodiscard]] nsresult Create(nsIWidget* aParent,
-                                nsNativeWidget aNativeParent,
                                 const LayoutDeviceIntRect& aRect,
                                 InitData* = nullptr) override;
 

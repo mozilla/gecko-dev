@@ -34,13 +34,11 @@ class MockWinWidget : public nsBaseWidget {
 
   void* GetNativeData(uint32_t aDataType) override { return nullptr; }
 
-  virtual nsresult Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                          const LayoutDeviceIntRect& aRect,
+  virtual nsresult Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
                           InitData* aInitData = nullptr) override {
     return NS_OK;
   }
-  virtual nsresult Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                          const DesktopIntRect& aRect,
+  virtual nsresult Create(nsIWidget* aParent, const DesktopIntRect& aRect,
                           InitData* aInitData = nullptr) override {
     return NS_OK;
   }

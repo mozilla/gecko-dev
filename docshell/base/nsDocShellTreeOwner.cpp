@@ -505,8 +505,7 @@ nsDocShellTreeOwner::GetHasPrimaryContent(bool* aResult) {
 //*****************************************************************************
 
 NS_IMETHODIMP
-nsDocShellTreeOwner::InitWindow(nativeWindow aParentNativeWindow,
-                                nsIWidget* aParentWidget, int32_t aX,
+nsDocShellTreeOwner::InitWindow(nsIWidget* aParentWidget, int32_t aX,
                                 int32_t aY, int32_t aCX, int32_t aCY) {
   return NS_ERROR_NULL_POINTER;
 }
@@ -620,20 +619,6 @@ nsDocShellTreeOwner::GetParentWidget(nsIWidget** aParentWidget) {
 
 NS_IMETHODIMP
 nsDocShellTreeOwner::SetParentWidget(nsIWidget* aParentWidget) {
-  return NS_ERROR_NULL_POINTER;
-}
-
-NS_IMETHODIMP
-nsDocShellTreeOwner::GetParentNativeWindow(nativeWindow* aParentNativeWindow) {
-  nsCOMPtr<nsIBaseWindow> ownerWin = GetOwnerWin();
-  if (ownerWin) {
-    return ownerWin->GetParentNativeWindow(aParentNativeWindow);
-  }
-  return NS_ERROR_NULL_POINTER;
-}
-
-NS_IMETHODIMP
-nsDocShellTreeOwner::SetParentNativeWindow(nativeWindow aParentNativeWindow) {
   return NS_ERROR_NULL_POINTER;
 }
 

@@ -10590,7 +10590,7 @@ bool PresShell::VerifyIncrementalReflow() {
   NS_ENSURE_TRUE(view, false);
 
   // now create the widget for the view
-  rv = view->CreateWidgetForParent(parentWidget, true);
+  rv = view->CreateWidget(parentWidget, true);
   NS_ENSURE_SUCCESS(rv, false);
 
   // Setup hierarchical relationship in view manager

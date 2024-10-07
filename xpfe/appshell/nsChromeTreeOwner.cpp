@@ -243,13 +243,11 @@ nsChromeTreeOwner::GetHasPrimaryContent(bool* aResult) {
 // nsChromeTreeOwner::nsIBaseWindow
 //*****************************************************************************
 
-NS_IMETHODIMP nsChromeTreeOwner::InitWindow(nativeWindow aParentNativeWindow,
-                                            nsIWidget* parentWidget, int32_t x,
+NS_IMETHODIMP nsChromeTreeOwner::InitWindow(nsIWidget* parentWidget, int32_t x,
                                             int32_t y, int32_t cx, int32_t cy) {
-  // Ignore widget parents for now.  Don't think those are a vaild thing to
+  // Ignore widget parents for now.  Don't think those are a valid thing to
   // call.
   NS_ENSURE_SUCCESS(SetPositionAndSize(x, y, cx, cy, 0), NS_ERROR_FAILURE);
-
   return NS_OK;
 }
 
@@ -342,18 +340,6 @@ NS_IMETHODIMP nsChromeTreeOwner::GetParentWidget(nsIWidget** aParentWidget) {
 }
 
 NS_IMETHODIMP nsChromeTreeOwner::SetParentWidget(nsIWidget* aParentWidget) {
-  NS_ASSERTION(false, "You can't call this");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP nsChromeTreeOwner::GetParentNativeWindow(
-    nativeWindow* aParentNativeWindow) {
-  NS_ENSURE_STATE(mAppWindow);
-  return mAppWindow->GetParentNativeWindow(aParentNativeWindow);
-}
-
-NS_IMETHODIMP nsChromeTreeOwner::SetParentNativeWindow(
-    nativeWindow aParentNativeWindow) {
   NS_ASSERTION(false, "You can't call this");
   return NS_ERROR_NOT_IMPLEMENTED;
 }

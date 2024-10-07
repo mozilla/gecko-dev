@@ -66,6 +66,8 @@ static bool IsPopup(const widget::InitData* aInitData) {
 static bool MightNeedIMEFocus(const widget::InitData* aInitData) {
   // In the puppet-widget world, popup widgets are just dummies and
   // shouldn't try to mess with IME state.
+  //
+  // FIXME(emilio): Pretty sure we no longer have puppet popups.
 #ifdef MOZ_CROSS_PROCESS_IME
   return !IsPopup(aInitData);
 #else
@@ -84,6 +86,7 @@ PuppetWidget::PuppetWidget(BrowserChild* aBrowserChild)
       mSizeMode(nsSizeMode_Normal),
       mNeedIMEStateInit(false),
       mIgnoreCompositionEvents(false) {
+  mWidgetType = WidgetType::Puppet;
   // Setting 'Unknown' means "not yet cached".
   mInputContext.mIMEState.mEnabled = IMEEnabled::Unknown;
 }
@@ -91,12 +94,11 @@ PuppetWidget::PuppetWidget(BrowserChild* aBrowserChild)
 PuppetWidget::~PuppetWidget() { Destroy(); }
 
 void PuppetWidget::InfallibleCreate(nsIWidget* aParent,
-                                    nsNativeWidget aNativeParent,
                                     const LayoutDeviceIntRect& aRect,
                                     widget::InitData* aInitData) {
-  MOZ_ASSERT(!aNativeParent, "got a non-Puppet native parent");
-
-  BaseCreate(nullptr, aInitData);
+  // FIXME(emilio): Why aParent = nullptr? Can we even get here with non-null
+  // aParent?
+  BaseCreate(/* aParent = */ nullptr, aInitData);
 
   mBounds = aRect;
   mEnabled = true;
@@ -117,10 +119,10 @@ void PuppetWidget::InfallibleCreate(nsIWidget* aParent,
   mMemoryPressureObserver = MemoryPressureObserver::Create(this);
 }
 
-nsresult PuppetWidget::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
+nsresult PuppetWidget::Create(nsIWidget* aParent,
                               const LayoutDeviceIntRect& aRect,
                               widget::InitData* aInitData) {
-  InfallibleCreate(aParent, aNativeParent, aRect, aInitData);
+  InfallibleCreate(aParent, aRect, aInitData);
   return NS_OK;
 }
 
@@ -132,17 +134,6 @@ void PuppetWidget::InitIMEState() {
     mIMENotificationRequestsOfParent = IMENotificationRequests();
     mNeedIMEStateInit = false;
   }
-}
-
-already_AddRefed<nsIWidget> PuppetWidget::CreateChild(
-    const LayoutDeviceIntRect& aRect, widget::InitData* aInitData,
-    bool aForceUseIWidgetParent) {
-  bool isPopup = IsPopup(aInitData);
-  nsCOMPtr<nsIWidget> widget = nsIWidget::CreatePuppetWidget(mBrowserChild);
-  return ((widget && NS_SUCCEEDED(widget->Create(isPopup ? nullptr : this,
-                                                 nullptr, aRect, aInitData)))
-              ? widget.forget()
-              : nullptr);
 }
 
 void PuppetWidget::Destroy() {

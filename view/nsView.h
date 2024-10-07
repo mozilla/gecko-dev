@@ -282,17 +282,8 @@ class nsView final : public nsIWidgetListener {
    *
    * @return error status
    */
-  nsresult CreateWidget(bool aEnableDragDrop = true,
+  nsresult CreateWidget(nsIWidget* aParent, bool aEnableDragDrop = true,
                         bool aResetVisibility = true);
-
-  /**
-   * Create a widget for this view with an explicit parent widget.
-   * |aParentWidget| must be nonnull.  The other params are the same
-   * as for |CreateWidget()|.
-   */
-  nsresult CreateWidgetForParent(nsIWidget* aParentWidget,
-                                 bool aEnableDragDrop = true,
-                                 bool aResetVisibility = true);
 
   /**
    * Create a popup widget for this view.  Pass |aParentWidget| to
@@ -301,8 +292,7 @@ class nsView final : public nsIWidgetListener {
    * other params are the same as for |CreateWidget()|, except that
    * |aWidgetInitData| must be nonnull.
    */
-  nsresult CreateWidgetForPopup(mozilla::widget::InitData*,
-                                nsIWidget* aParentWidget = nullptr);
+  nsresult CreateWidgetForPopup(mozilla::widget::InitData*, nsIWidget* aParent);
 
   /**
    * Destroys the associated widget for this view.  If this method is

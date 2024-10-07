@@ -701,16 +701,11 @@ bool nsWindow::IsTopLevel() {
 // nsIWidget
 //
 
-nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                          const LayoutDeviceIntRect& aRect,
+nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
                           widget::InitData* aInitData) {
-  ALOG("nsWindow[%p]::Create %p/%p [%d %d %d %d]", (void*)this, (void*)aParent,
-       (void*)aNativeParent, aRect.x, aRect.y, aRect.width, aRect.height);
+  ALOG("nsWindow[%p]::Create %p [%d %d %d %d]", (void*)this, (void*)aParent,
+       aRect.x, aRect.y, aRect.width, aRect.height);
   nsWindow* parent = (nsWindow*)aParent;
-  ChildView* nativeParent = (ChildView*)aNativeParent;
-
-  if (parent == nullptr && nativeParent) parent = nativeParent->mGeckoChild;
-  if (parent && nativeParent == nullptr) nativeParent = parent->mNativeView;
 
   mBounds = aRect;
 
@@ -736,8 +731,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
     mParent = parent;
   }
 
-  if (nativeParent) {
-    [nativeParent addSubview:mNativeView];
+  if (parent && parent->mNativeView) {
+    [parent->mNativeView addSubview:mNativeView];
   } else if (nsAppShell::gWindow) {
     [nsAppShell::gWindow.rootViewController.view addSubview:mNativeView];
   } else {

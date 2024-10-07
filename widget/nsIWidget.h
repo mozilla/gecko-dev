@@ -421,8 +421,7 @@ class nsIWidget : public nsISupports {
    * calling code must handle paint messages and clear the background
    * itself.
    *
-   * In practice at least one of aParent and aNativeParent will be null. If
-   * both are null the widget isn't parented (e.g. context menus or
+   * If aParent is null, the widget isn't parented (e.g. context menus or
    * independent top level windows).
    *
    * The dimensions given in aRect are specified in the parent's
@@ -432,13 +431,11 @@ class nsIWidget : public nsISupports {
    * method is provided for these.
    *
    * @param     aParent       parent nsIWidget
-   * @param     aNativeParent native parent widget
    * @param     aRect         the widget dimension
    * @param     aInitData     data that is used for widget initialization
    *
    */
   [[nodiscard]] virtual nsresult Create(nsIWidget* aParent,
-                                        nsNativeWidget aNativeParent,
                                         const LayoutDeviceIntRect& aRect,
                                         InitData* = nullptr) = 0;
 
@@ -451,12 +448,11 @@ class nsIWidget : public nsISupports {
    * desktop pixel values directly.
    */
   [[nodiscard]] virtual nsresult Create(nsIWidget* aParent,
-                                        nsNativeWidget aNativeParent,
                                         const DesktopIntRect& aRect,
                                         InitData* aInitData = nullptr) {
     LayoutDeviceIntRect devPixRect =
         RoundedToInt(aRect * GetDesktopToDeviceScale());
-    return Create(aParent, aNativeParent, devPixRect, aInitData);
+    return Create(aParent, devPixRect, aInitData);
   }
 
   /**
@@ -469,15 +465,9 @@ class nsIWidget : public nsISupports {
    * This interface exists to support the PuppetWidget backend,
    * which is entirely non-native.  All other params are the same as
    * for |Create()|.
-   *
-   * |aForceUseIWidgetParent| forces |CreateChild()| to only use the
-   * |nsIWidget*| this, not its native widget (if it exists), when
-   * calling |Create()|.  This is a timid hack around poorly
-   * understood code, and shouldn't be used in new code.
    */
   virtual already_AddRefed<nsIWidget> CreateChild(
-      const LayoutDeviceIntRect& aRect, InitData* = nullptr,
-      bool aForceUseIWidgetParent = false) = 0;
+      const LayoutDeviceIntRect& aRect, InitData&) = 0;
 
   /**
    * Attach to a top level widget.
@@ -2064,6 +2054,16 @@ class nsIWidget : public nsISupports {
    */
   virtual double GetDefaultScaleInternal() { return 1.0; }
 
+  // On a given platform, we might have three kinds of widgets:
+  //   In the parent process, we might have native, puppet, or headless widgets.
+  //   In child processes, we only have Puppet widgets.
+  enum class WidgetType : uint8_t {
+    Native,
+    Headless,
+    Puppet,
+  };
+  bool IsPuppetWidget() const { return mWidgetType == WidgetType::Puppet; }
+
   using WindowButtonType = mozilla::WindowButtonType;
 
   /**
@@ -2096,6 +2096,7 @@ class nsIWidget : public nsISupports {
   // When Destroy() is called, the sub class should set this true.
   bool mOnDestroyCalled;
   WindowType mWindowType;
+  WidgetType mWidgetType = WidgetType::Native;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget, NS_IWIDGET_IID)

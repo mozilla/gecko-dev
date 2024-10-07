@@ -5867,8 +5867,7 @@ void nsWindow::ConfigureCompositor() {
   }
 }
 
-nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
-                          const LayoutDeviceIntRect& aRect,
+nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
                           widget::InitData* aInitData) {
   LOG("nsWindow::Create\n");
 
@@ -5918,25 +5917,14 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 
   // Figure out our parent window - only used for WindowType::Child
   nsWindow* parentnsWindow = nullptr;
-
   if (aParent) {
     parentnsWindow = static_cast<nsWindow*>(aParent);
-  } else if (aNativeParent && GDK_IS_WINDOW(aNativeParent)) {
-    parentnsWindow = get_window_for_gdk_window(GDK_WINDOW(aNativeParent));
-    if (!parentnsWindow) {
-      return NS_ERROR_FAILURE;
-    }
   }
 
   if (mWindowType == WindowType::Child) {
     // We don't support WindowType::Child directly but emulate it by popup
     // windows.
     mWindowType = WindowType::Popup;
-    if (!parentnsWindow) {
-      if (aNativeParent && GTK_IS_CONTAINER(aNativeParent)) {
-        parentnsWindow = get_window_for_gtk_widget(GTK_WIDGET(aNativeParent));
-      }
-    }
     mIsChildWindow = true;
     LOG("  child widget, switch to popup. parent nsWindow %p", parentnsWindow);
   }
