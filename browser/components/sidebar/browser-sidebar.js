@@ -1003,7 +1003,7 @@ var SidebarController = {
       // For the non-revamped sidebar, this is handled by CustomizableWidgets.
       return;
     }
-    this.toolbarButton.toggleAttribute("expanded", this.sidebarMain.expanded);
+    toolbarButton.toggleAttribute("expanded", this.sidebarMain.expanded);
     switch (this.sidebarRevampVisibility) {
       case "always-show":
         // Toolbar button controls expanded state.
