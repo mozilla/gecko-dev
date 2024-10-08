@@ -62,7 +62,7 @@ export class NetworkRequest {
         ? this.#channel.QueryInterface(Ci.nsITimedChannel)
         : {
             redirectCount: 0,
-            channelCreationTime: currentTimeStamp,
+            asyncOpenTime: currentTimeStamp,
             redirectStartTime: 0,
             redirectEndTime: 0,
             domainLookupStartTime: currentTimeStamp,
@@ -349,7 +349,7 @@ export class NetworkRequest {
    */
   #getFetchTimings() {
     const {
-      channelCreationTime,
+      asyncOpenTime,
       redirectStartTime,
       redirectEndTime,
       dispatchFetchEventStartTime,
@@ -379,7 +379,7 @@ export class NetworkRequest {
 
     return {
       timeOrigin,
-      requestTime: this.#convertTimestamp(channelCreationTime, timeOrigin),
+      requestTime: this.#convertTimestamp(asyncOpenTime, timeOrigin),
       redirectStart: this.#convertTimestamp(redirectStartTime, timeOrigin),
       redirectEnd: this.#convertTimestamp(redirectEndTime, timeOrigin),
       fetchStart: this.#convertTimestamp(fetchStartTime, timeOrigin),
