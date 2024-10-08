@@ -5,9 +5,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=342448
 -->
 <head>
   <title>Test for Bug 342448</title>
-  <script type="text/javascript" src="/MochiKit/Base.js"></script>
-  <script type="text/javascript" src="/MochiKit/Async.js"></script>
-  <script src="/tests/SimpleTest/SimpleTest.js"></script>        
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -25,7 +23,7 @@ SimpleTest.requestFlakyTimeout("untriaged");
 try {
 setTimeout(1, 0);
 } catch (ex) {}
-callLater(.1, function() { ok(true, "shouldn't crash when passing a number as the first arg to setTimeout"); SimpleTest.finish(); })
+setTimeout(function() { ok(true, "shouldn't crash when passing a number as the first arg to setTimeout"); SimpleTest.finish(); }, 100);
 
 
 
