@@ -28,9 +28,10 @@ class ObjectsManagerActor extends Actor {
   releaseObjects(actorIDs) {
     for (const actorID of actorIDs) {
       const actor = this.conn.getActor(actorID);
-      // Note that release will also typically call Actor's destroy and unregister the actor from its Pool
       if (actor) {
         actor.release();
+        // The release method won't destroy the actor and unregister it from its parent pool
+        actor.destroy();
       }
     }
   }
