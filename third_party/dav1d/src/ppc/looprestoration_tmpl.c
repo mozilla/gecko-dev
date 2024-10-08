@@ -305,7 +305,7 @@ void dav1d_wiener_filter_vsx(uint8_t *p, const ptrdiff_t stride,
                              const uint8_t *lpf,
                              const int w, const int h,
                              const LooprestorationParams *const params,
-                             const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX)
+                             const enum LrEdgeFlags edges)
 {
     const int16_t (*const filter)[8] = params->filter;
 

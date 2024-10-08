@@ -137,7 +137,7 @@ static inline int pthread_cond_broadcast(pthread_cond_t *const cond) {
 #define _SYS_PARAM_H_
 #include <sys/types.h>
 #endif
-#ifdef HAVE_PTHREAD_NP_H
+#if HAVE_PTHREAD_NP_H
 #include <pthread_np.h>
 #endif
 
@@ -153,25 +153,25 @@ static inline void dav1d_set_thread_name(const char *const name) {
     prctl(PR_SET_NAME, name);
 }
 
-#elif defined(HAVE_PTHREAD_SETNAME_NP) && defined(__APPLE__)
+#elif HAVE_PTHREAD_SETNAME_NP && defined(__APPLE__)
 
 static inline void dav1d_set_thread_name(const char *const name) {
     pthread_setname_np(name);
 }
 
-#elif defined(HAVE_PTHREAD_SETNAME_NP) && defined(__NetBSD__)
+#elif HAVE_PTHREAD_SETNAME_NP && defined(__NetBSD__)
 
 static inline void dav1d_set_thread_name(const char *const name) {
     pthread_setname_np(pthread_self(), "%s", (void*)name);
 }
 
-#elif defined(HAVE_PTHREAD_SETNAME_NP)
+#elif HAVE_PTHREAD_SETNAME_NP
 
 static inline void dav1d_set_thread_name(const char *const name) {
     pthread_setname_np(pthread_self(), name);
 }
 
-#elif defined(HAVE_PTHREAD_SET_NAME_NP)
+#elif HAVE_PTHREAD_SET_NAME_NP
 
 static inline void dav1d_set_thread_name(const char *const name) {
     pthread_set_name_np(pthread_self(), name);

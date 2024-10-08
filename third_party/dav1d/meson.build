@@ -1,4 +1,4 @@
-# Copyright © 2018-2022, VideoLAN and dav1d authors
+# Copyright © 2018-2024, VideoLAN and dav1d authors
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -23,18 +23,12 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 project('dav1d', ['c'],
-    version: '1.4.2',
+    version: '1.5.0',
     default_options: ['c_std=c99',
                       'warning_level=2',
                       'buildtype=release',
                       'b_ndebug=if-release'],
     meson_version: '>= 0.49.0')
-
-dav1d_soname_version       = '7.0.0'
-dav1d_api_version_array    = dav1d_soname_version.split('.')
-dav1d_api_version_major    = dav1d_api_version_array[0]
-dav1d_api_version_minor    = dav1d_api_version_array[1]
-dav1d_api_version_revision = dav1d_api_version_array[2]
 
 dav1d_src_root = meson.current_source_dir()
 cc = meson.get_compiler('c')
@@ -48,7 +42,18 @@ cdata_asm = configuration_data()
 # Include directories
 dav1d_inc_dirs = include_directories(['.', 'include/dav1d', 'include'])
 
-
+dav1d_api_version_major    = cc.get_define('DAV1D_API_VERSION_MAJOR',
+                                           prefix: '#include "dav1d/version.h"',
+                                           include_directories: dav1d_inc_dirs).strip()
+dav1d_api_version_minor    = cc.get_define('DAV1D_API_VERSION_MINOR',
+                                           prefix: '#include "dav1d/version.h"',
+                                           include_directories: dav1d_inc_dirs).strip()
+dav1d_api_version_revision = cc.get_define('DAV1D_API_VERSION_PATCH',
+                                           prefix: '#include "dav1d/version.h"',
+                                           include_directories: dav1d_inc_dirs).strip()
+dav1d_soname_version       = '@0@.@1@.@2@'.format(dav1d_api_version_major,
+                                                  dav1d_api_version_minor,
+                                                  dav1d_api_version_revision)
 
 #
 # Option handling
@@ -98,6 +103,10 @@ if host_machine.system() in ['linux', 'gnu', 'emscripten']
     add_project_arguments('-D_GNU_SOURCE', language: 'c')
 endif
 
+have_clock_gettime = false
+have_posix_memalign = false
+have_memalign = false
+have_aligned_alloc = false
 if host_machine.system() == 'windows'
     cdata.set('_WIN32_WINNT',           '0x0601')
     cdata.set('UNICODE',                1) # Define to 1 for Unicode (Wide Chars) APIs
@@ -145,25 +154,24 @@ else
 
     rt_dependency = []
     if cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args)
-        cdata.set('HAVE_CLOCK_GETTIME', 1)
+        have_clock_gettime = true
     elif host_machine.system() not in ['darwin', 'ios', 'tvos']
         rt_dependency = cc.find_library('rt', required: false)
         if not cc.has_function('clock_gettime', prefix : '#include <time.h>', args : test_args, dependencies : rt_dependency)
             error('clock_gettime not found')
         endif
-        cdata.set('HAVE_CLOCK_GETTIME', 1)
+        have_clock_gettime = true
     endif
 
-    if cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args)
-        cdata.set('HAVE_POSIX_MEMALIGN', 1)
-    endif
-    if cc.has_function('memalign', prefix : '#include <malloc.h>', args : test_args)
-        cdata.set('HAVE_MEMALIGN', 1)
-    endif
-    if cc.has_function('aligned_alloc', prefix : '#include <stdlib.h>', args : test_args)
-        cdata.set('HAVE_ALIGNED_ALLOC', 1)
-    endif
+    have_posix_memalign = cc.has_function('posix_memalign', prefix : '#include <stdlib.h>', args : test_args)
+    have_memalign = cc.has_function('memalign', prefix : '#include <malloc.h>', args : test_args)
+    have_aligned_alloc = cc.has_function('aligned_alloc', prefix : '#include <stdlib.h>', args : test_args)
 endif
+
+cdata.set10('HAVE_CLOCK_GETTIME', have_clock_gettime)
+cdata.set10('HAVE_POSIX_MEMALIGN', have_posix_memalign)
+cdata.set10('HAVE_MEMALIGN', have_memalign)
+cdata.set10('HAVE_ALIGNED_ALLOC', have_aligned_alloc)
 
 # check for fseeko on android. It is not always available if _FILE_OFFSET_BITS is defined to 64
 have_fseeko = true
@@ -181,12 +189,12 @@ if host_machine.system() == 'android'
 endif
 
 libdl_dependency = []
+have_dlsym = false
 if host_machine.system() == 'linux'
     libdl_dependency = cc.find_library('dl', required : false)
-    if cc.has_function('dlsym', prefix : '#include <dlfcn.h>', args : test_args, dependencies : libdl_dependency)
-        cdata.set('HAVE_DLSYM', 1)
-    endif
+    have_dlsym = cc.has_function('dlsym', prefix : '#include <dlfcn.h>', args : test_args, dependencies : libdl_dependency)
 endif
+cdata.set10('HAVE_DLSYM', have_dlsym)
 
 libm_dependency = cc.find_library('m', required: false)
 
@@ -215,23 +223,13 @@ if host_machine.cpu_family().startswith('wasm')
     stdatomic_dependencies += thread_dependency.partial_dependency(compile_args: true)
 endif
 
-if cc.check_header('sys/types.h')
-    cdata.set('HAVE_SYS_TYPES_H', 1)
-endif
+cdata.set10('HAVE_SYS_TYPES_H', cc.check_header('sys/types.h'))
+cdata.set10('HAVE_UNISTD_H', cc.check_header('unistd.h'))
+cdata.set10('HAVE_IO_H', cc.check_header('io.h'))
 
-if cc.check_header('unistd.h')
-    cdata.set('HAVE_UNISTD_H', 1)
-endif
-
-if cc.check_header('io.h')
-    cdata.set('HAVE_IO_H', 1)
-endif
-
-if cc.check_header('pthread_np.h')
-    cdata.set('HAVE_PTHREAD_NP_H', 1)
-    test_args += '-DHAVE_PTHREAD_NP_H'
-endif
-
+have_pthread_np = cc.check_header('pthread_np.h')
+cdata.set10('HAVE_PTHREAD_NP_H', have_pthread_np)
+test_args += '-DHAVE_PTHREAD_NP_H=' + (have_pthread_np ? '1' : '0')
 
 # Function checks
 
@@ -244,41 +242,32 @@ else
     getopt_dependency = []
 endif
 
+have_getauxval = false
+have_elf_aux_info = false
 if (host_machine.cpu_family() == 'aarch64' or
     host_machine.cpu_family().startswith('arm') or
     host_machine.cpu_family().startswith('loongarch') or
     host_machine.cpu() == 'ppc64le' or
     host_machine.cpu_family().startswith('riscv'))
-    if cc.has_function('getauxval', prefix : '#include <sys/auxv.h>', args : test_args)
-        cdata.set('HAVE_GETAUXVAL', 1)
-    endif
-    if cc.has_function('elf_aux_info', prefix : '#include <sys/auxv.h>', args : test_args)
-        cdata.set('HAVE_ELF_AUX_INFO', 1)
-    endif
+    have_getauxval = cc.has_function('getauxval', prefix : '#include <sys/auxv.h>', args : test_args)
+    have_elf_aux_info = cc.has_function('elf_aux_info', prefix : '#include <sys/auxv.h>', args : test_args)
 endif
+
+cdata.set10('HAVE_GETAUXVAL', have_getauxval)
+cdata.set10('HAVE_ELF_AUX_INFO', have_elf_aux_info)
 
 pthread_np_prefix = '''
 #include <pthread.h>
-#ifdef HAVE_PTHREAD_NP_H
+#if HAVE_PTHREAD_NP_H
 #include <pthread_np.h>
 #endif
 '''
-if cc.has_function('pthread_getaffinity_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
-    cdata.set('HAVE_PTHREAD_GETAFFINITY_NP', 1)
-endif
-if cc.has_function('pthread_setaffinity_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
-    cdata.set('HAVE_PTHREAD_SETAFFINITY_NP', 1)
-endif
-if cc.has_function('pthread_setname_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
-    cdata.set('HAVE_PTHREAD_SETNAME_NP', 1)
-endif
-if cc.has_function('pthread_set_name_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency)
-    cdata.set('HAVE_PTHREAD_SET_NAME_NP', 1)
-endif
+cdata.set10('HAVE_PTHREAD_GETAFFINITY_NP', cc.has_function('pthread_getaffinity_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency))
+cdata.set10('HAVE_PTHREAD_SETAFFINITY_NP', cc.has_function('pthread_setaffinity_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency))
+cdata.set10('HAVE_PTHREAD_SETNAME_NP', cc.has_function('pthread_setname_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency))
+cdata.set10('HAVE_PTHREAD_SET_NAME_NP', cc.has_function('pthread_set_name_np', prefix : pthread_np_prefix, args : test_args, dependencies : thread_dependency))
 
-if cc.compiles('int x = _Generic(0, default: 0);', name: '_Generic', args: test_args)
-    cdata.set('HAVE_C11_GENERIC', 1)
-endif
+cdata.set10('HAVE_C11_GENERIC', cc.compiles('int x = _Generic(0, default: 0);', name: '_Generic', args: test_args))
 
 # Compiler flag tests
 
@@ -359,6 +348,17 @@ endif
 
 cdata.set10('ARCH_AARCH64', host_machine.cpu_family() == 'aarch64' or host_machine.cpu() == 'arm64')
 cdata.set10('ARCH_ARM',     host_machine.cpu_family().startswith('arm') and host_machine.cpu() != 'arm64')
+
+have_as_func = false
+have_as_arch = false
+aarch64_extensions = {
+    'dotprod': 'udot v0.4s, v0.16b, v0.16b',
+    'i8mm':    'usdot v0.4s, v0.16b, v0.16b',
+    'sve':     'whilelt p0.s, x0, x1',
+    'sve2':    'sqrdmulh z0.s, z0.s, z0.s',
+}
+supported_aarch64_archexts = []
+supported_aarch64_instructions = []
 if (is_asm_enabled and
     (host_machine.cpu_family() == 'aarch64' or
      host_machine.cpu_family().startswith('arm')))
@@ -369,7 +369,6 @@ if (is_asm_enabled and
 );
 '''
     have_as_func = cc.compiles(as_func_code)
-    cdata.set10('HAVE_AS_FUNC', have_as_func)
 
     # fedora package build infrastructure uses a gcc specs file to enable
     # '-fPIE' by default. The chosen way only adds '-fPIE' to the C compiler
@@ -390,7 +389,6 @@ if (is_asm_enabled and
 
     if host_machine.cpu_family() == 'aarch64'
         have_as_arch = cc.compiles('''__asm__ (".arch armv8-a");''')
-        cdata.set10('HAVE_AS_ARCH_DIRECTIVE', have_as_arch)
         as_arch_str = ''
         if have_as_arch
             as_arch_level = 'armv8-a'
@@ -419,13 +417,7 @@ if (is_asm_enabled and
             cdata.set('AS_ARCH_LEVEL', as_arch_level)
             as_arch_str = '".arch ' + as_arch_level + '\\n"'
         endif
-        extensions = {
-            'dotprod': 'udot v0.4s, v0.16b, v0.16b',
-            'i8mm':    'usdot v0.4s, v0.16b, v0.16b',
-            'sve':     'whilelt p0.s, x0, x1',
-            'sve2':    'sqrdmulh z0.s, z0.s, z0.s',
-        }
-        foreach name, instr : extensions
+        foreach name, instr : aarch64_extensions
             # Test for support for the various extensions. First test if
             # the assembler supports the .arch_extension directive for
             # enabling/disabling the extension, then separately check whether
@@ -436,18 +428,26 @@ if (is_asm_enabled and
             code += '".arch_extension ' + name + '\\n"'
             code += ');'
             supports_archext = cc.compiles(code)
-            cdata.set10('HAVE_AS_ARCHEXT_' + name.to_upper() + '_DIRECTIVE', supports_archext)
             code = '__asm__ (' + as_arch_str
             if supports_archext
+                supported_aarch64_archexts += name
                 code += '".arch_extension ' + name + '\\n"'
             endif
             code += '"' + instr + '\\n"'
             code += ');'
-            supports_instr = cc.compiles(code, name: name.to_upper())
-            cdata.set10('HAVE_' + name.to_upper(), supports_instr)
+            if cc.compiles(code, name: name.to_upper())
+                supported_aarch64_instructions += name
+            endif
         endforeach
     endif
 endif
+
+cdata.set10('HAVE_AS_FUNC', have_as_func)
+cdata.set10('HAVE_AS_ARCH_DIRECTIVE', have_as_arch)
+foreach name, _ : aarch64_extensions
+    cdata.set10('HAVE_AS_ARCHEXT_' + name.to_upper() + '_DIRECTIVE', name in supported_aarch64_archexts)
+    cdata.set10('HAVE_' + name.to_upper(), name in supported_aarch64_instructions)
+endforeach
 
 cdata.set10('ARCH_X86', host_machine.cpu_family().startswith('x86'))
 cdata.set10('ARCH_X86_64', host_machine.cpu_family() == 'x86_64')

@@ -64,18 +64,15 @@ static void decomp_tx(uint8_t (*const txa)[2 /* txsz, step */][32 /* y */][32 /*
     } else {
         const int lw = imin(2, t_dim->lw), lh = imin(2, t_dim->lh);
 
-#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
+#define set_ctx(rep_macro) \
         for (int y = 0; y < t_dim->h; y++) { \
-            rep_macro(type, txa[0][0][y], off, mul * lw); \
-            rep_macro(type, txa[1][0][y], off, mul * lh); \
+            rep_macro(txa[0][0][y], 0, lw); \
+            rep_macro(txa[1][0][y], 0, lh); \
             txa[0][1][y][0] = t_dim->w; \
         }
-        case_set_upto16(t_dim->w,,, 0);
+        case_set_upto16(t_dim->lw);
 #undef set_ctx
-#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
-        rep_macro(type, txa[1][1][0], off, mul * t_dim->h)
-        case_set_upto16(t_dim->w,,, 0);
-#undef set_ctx
+        dav1d_memset_pow2[t_dim->lw](txa[1][1][0], t_dim->h);
     }
 }
 
@@ -196,20 +193,8 @@ static inline void mask_edges_intra(uint16_t (*const masks)[32][3][2],
         if (inner2) masks[1][by4 + y][thl4c][1] |= inner2;
     }
 
-#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
-    rep_macro(type, a, off, mul * thl4c)
-#define default_memset(dir, diridx, off, var) \
-    memset(a, thl4c, var)
-    case_set_upto32_with_default(w4,,, 0);
-#undef default_memset
-#undef set_ctx
-#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
-    rep_macro(type, l, off, mul * twl4c)
-#define default_memset(dir, diridx, off, var) \
-    memset(l, twl4c, var)
-    case_set_upto32_with_default(h4,,, 0);
-#undef default_memset
-#undef set_ctx
+    dav1d_memset_likely_pow2(a, thl4c, w4);
+    dav1d_memset_likely_pow2(l, twl4c, h4);
 }
 
 static void mask_edges_chroma(uint16_t (*const masks)[32][2][2],
@@ -267,20 +252,8 @@ static void mask_edges_chroma(uint16_t (*const masks)[32][2][2],
         }
     }
 
-#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
-    rep_macro(type, a, off, mul * thl4c)
-#define default_memset(dir, diridx, off, var) \
-    memset(a, thl4c, var)
-    case_set_upto32_with_default(cw4,,, 0);
-#undef default_memset
-#undef set_ctx
-#define set_ctx(type, dir, diridx, off, mul, rep_macro) \
-    rep_macro(type, l, off, mul * twl4c)
-#define default_memset(dir, diridx, off, var) \
-    memset(l, twl4c, var)
-    case_set_upto32_with_default(ch4,,, 0);
-#undef default_memset
-#undef set_ctx
+    dav1d_memset_likely_pow2(a, thl4c, cw4);
+    dav1d_memset_likely_pow2(l, twl4c, ch4);
 }
 
 void dav1d_create_lf_mask_intra(Av1Filter *const lflvl,

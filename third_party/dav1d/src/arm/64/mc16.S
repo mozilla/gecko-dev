@@ -1618,8 +1618,7 @@ L(\type\()_\taps\()_h):
 20:     // 2xN h
         AARCH64_VALID_JUMP_TARGET
 .ifc \type, put
-        add             \xmx,  \xmx,  #2
-        ldr             s0,  [\xmx]
+        ldur            s0,  [\xmx, #2]
         sub             \src,  \src,  #2
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
@@ -1651,8 +1650,7 @@ L(\type\()_\taps\()_h):
 
 40:     // 4xN h
         AARCH64_VALID_JUMP_TARGET
-        add             \xmx,  \xmx,  #2
-        ldr             s0,  [\xmx]
+        ldur            s0,  [\xmx, #2]
         sub             \src,  \src,  #2
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
@@ -1859,8 +1857,7 @@ function L(\type\()_\taps\()_v)
         b.gt            28f
 
         cmp             \h,  #2
-        add             \xmy, \xmy, #2
-        ldr             s0,  [\xmy]
+        ldur            s0,  [\xmy, #2]
         sub             \src,  \src,  \s_strd
         add             \ds2,  \dst,  \d_strd
         add             \sr2,  \src,  \s_strd
@@ -1937,8 +1934,7 @@ function L(\type\()_\taps\()_v)
 
         // 4x2, 4x4 v
         cmp             \h,  #2
-        add             \xmy, \xmy, #2
-        ldr             s0,  [\xmy]
+        ldur            s0,  [\xmy, #2]
         sub             \src, \src, \s_strd
         add             \ds2, \dst, \d_strd
         add             \sr2, \src, \s_strd
@@ -2002,8 +1998,7 @@ function L(\type\()_\taps\()_v)
 
         // 8x2, 8x4 v
         cmp             \h,  #2
-        add             \xmy, \xmy, #2
-        ldr             s0,  [\xmy]
+        ldur            s0,  [\xmy, #2]
         sub             \src, \src, \s_strd
         add             \ds2, \dst, \d_strd
         add             \sr2, \src, \s_strd
@@ -2091,8 +2086,7 @@ function L(\type\()_\taps\()_v)
         b.gt            1680b
 
         // 16x2, 16x4 v
-        add             \xmy, \xmy, #2
-        ldr             s0,  [\xmy]
+        ldur            s0,  [\xmy, #2]
         sub             \src, \src, \s_strd
         sxtl            v0.8h,   v0.8b
 
@@ -2154,11 +2148,9 @@ function L(\type\()_\taps\()_hv)
 20:
         AARCH64_VALID_JUMP_TARGET
 .ifc \type, put
-        add             \xmx,  \xmx,  #2
-        ldr             s0,  [\xmx]
+        ldur            s0,  [\xmx, #2]
         b.gt            280f
-        add             \xmy,  \xmy,  #2
-        ldr             s1,  [\xmy]
+        ldur            s1,  [\xmy, #2]
 
         // 2x2, 2x4 hv
         sub             \sr2, \src, #2
@@ -2301,11 +2293,9 @@ L(\type\()_\taps\()_filter_2):
 
 40:
         AARCH64_VALID_JUMP_TARGET
-        add             \xmx, \xmx, #2
-        ldr             s0,  [\xmx]
+        ldur            s0,  [\xmx, #2]
         b.gt            480f
-        add             \xmy, \xmy,  #2
-        ldr             s1,  [\xmy]
+        ldur            s1,  [\xmy, #2]
         sub             \sr2, \src, #2
         sub             \src, \sr2, \s_strd
         add             \ds2, \dst, \d_strd
@@ -2501,9 +2491,8 @@ L(\type\()_\taps\()_filter_4):
 320:
         AARCH64_VALID_JUMP_TARGET
         b.gt            880f
-        add             \xmy,  \xmy,  #2
         ld1             {v0.8b},  [\xmx]
-        ldr             s1,  [\xmy]
+        ldur            s1,  [\xmy, #2]
 .ifc \taps, 6tap
         sub             \src,  \src,  #4
 .else

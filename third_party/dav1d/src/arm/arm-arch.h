@@ -1,6 +1,5 @@
 /*
- * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2024, VideoLAN and dav1d authors
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,60 +24,45 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAV1D_COMMON_INTOPS_H
-#define DAV1D_COMMON_INTOPS_H
+#ifndef ARM_ARM_ARCH_H
+#define ARM_ARM_ARCH_H
 
-#include <stdint.h>
+/* Compatibility header to define __ARM_ARCH with older compilers */
+#ifndef __ARM_ARCH
 
-#include "common/attributes.h"
+#ifdef _M_ARM
+#define __ARM_ARCH _M_ARM
 
-static inline int imax(const int a, const int b) {
-    return a > b ? a : b;
-}
+#elif defined(__ARM_ARCH_8A__) || defined(_M_ARM64)
+#define __ARM_ARCH 8
 
-static inline int imin(const int a, const int b) {
-    return a < b ? a : b;
-}
+#elif defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) || \
+      defined(__ARM_ARCH_7EM__) || defined(__ARM_ARCH_7R__) || \
+      defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
+#define __ARM_ARCH 7
 
-static inline unsigned umax(const unsigned a, const unsigned b) {
-    return a > b ? a : b;
-}
+#elif defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || \
+      defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__) || \
+      defined(__ARM_ARCH_6Z__) || defined(__ARM_ARCH_6ZK__)
+#define __ARM_ARCH 6
 
-static inline unsigned umin(const unsigned a, const unsigned b) {
-    return a < b ? a : b;
-}
+#elif defined(__ARM_ARCH_5__) || defined(__ARM_ARCH_5T__) || \
+      defined(__ARM_ARCH_5E__) || defined(__ARM_ARCH_5TE__)
+#define __ARM_ARCH 5
 
-static inline int iclip(const int v, const int min, const int max) {
-    return v < min ? min : v > max ? max : v;
-}
+#elif defined(__ARM_ARCH_4__) || defined(__ARM_ARCH_4T__)
+#define __ARM_ARCH 4
 
-static inline int iclip_u8(const int v) {
-    return iclip(v, 0, 255);
-}
+#elif defined(__ARM_ARCH_3__) || defined(__ARM_ARCH_3M__)
+#define __ARM_ARCH 3
 
-static inline int apply_sign(const int v, const int s) {
-    return s < 0 ? -v : v;
-}
+#elif defined(__ARM_ARCH_2__)
+#define __ARM_ARCH 2
 
-static inline int apply_sign64(const int v, const int64_t s) {
-    return s < 0 ? -v : v;
-}
+#else
+#error Unknown ARM architecture version
+#endif
 
-static inline int ulog2(const unsigned v) {
-    return 31 ^ clz(v);
-}
+#endif /* !__ARM_ARCH */
 
-static inline int u64log2(const uint64_t v) {
-    return 63 ^ clzll(v);
-}
-
-static inline unsigned inv_recenter(const unsigned r, const unsigned v) {
-    if (v > (r << 1))
-        return v;
-    else if ((v & 1) == 0)
-        return (v >> 1) + r;
-    else
-        return r - ((v + 1) >> 1);
-}
-
-#endif /* DAV1D_COMMON_INTOPS_H */
+#endif /* ARM_ARM_ARCH_H */

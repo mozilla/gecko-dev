@@ -1,6 +1,6 @@
 /*
  * Copyright © 2018, VideoLAN and dav1d authors
- * Copyright © 2018, Two Orioles, LLC
+ * Copyright © 2023, Luca Barbato
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,60 +25,41 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAV1D_COMMON_INTOPS_H
-#define DAV1D_COMMON_INTOPS_H
+#include "src/cpu.h"
+#include "src/itx.h"
 
-#include <stdint.h>
+decl_itx17_fns( 4,  4, pwr9);
+decl_itx16_fns( 4,  8, pwr9);
+decl_itx16_fns( 4, 16, pwr9);
+decl_itx16_fns( 8,  4, pwr9);
+decl_itx16_fns( 8,  8, pwr9);
+decl_itx16_fns( 8, 16, pwr9);
+decl_itx2_fns ( 8, 32, pwr9);
+decl_itx16_fns(16,  4, pwr9);
+decl_itx16_fns(16,  8, pwr9);
+decl_itx12_fns(16, 16, pwr9);
+decl_itx2_fns (16, 32, pwr9);
+decl_itx2_fns (32,  8, pwr9);
+decl_itx2_fns (32, 16, pwr9);
+decl_itx2_fns (32, 32, pwr9);
 
-#include "common/attributes.h"
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_16x64, pwr9));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_32x64, pwr9));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x16, pwr9));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x32, pwr9));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x64, pwr9));
 
-static inline int imax(const int a, const int b) {
-    return a > b ? a : b;
+static ALWAYS_INLINE void itx_dsp_init_ppc(Dav1dInvTxfmDSPContext *const c, const int bpc) {
+    const unsigned flags = dav1d_get_cpu_flags();
+
+    if (!(flags & DAV1D_PPC_CPU_FLAG_PWR9)) return;
+
+#if BITDEPTH == 8
+    assign_itx17_fn( ,  4,  4, pwr9);
+    assign_itx16_fn(R,  4,  8, pwr9);
+    assign_itx16_fn(R,  8,  4, pwr9);
+    assign_itx16_fn(,   8,  8, pwr9);
+    assign_itx16_fn(R,  4, 16, pwr9);
+    assign_itx16_fn(R,  16, 4, pwr9);
+#endif
 }
-
-static inline int imin(const int a, const int b) {
-    return a < b ? a : b;
-}
-
-static inline unsigned umax(const unsigned a, const unsigned b) {
-    return a > b ? a : b;
-}
-
-static inline unsigned umin(const unsigned a, const unsigned b) {
-    return a < b ? a : b;
-}
-
-static inline int iclip(const int v, const int min, const int max) {
-    return v < min ? min : v > max ? max : v;
-}
-
-static inline int iclip_u8(const int v) {
-    return iclip(v, 0, 255);
-}
-
-static inline int apply_sign(const int v, const int s) {
-    return s < 0 ? -v : v;
-}
-
-static inline int apply_sign64(const int v, const int64_t s) {
-    return s < 0 ? -v : v;
-}
-
-static inline int ulog2(const unsigned v) {
-    return 31 ^ clz(v);
-}
-
-static inline int u64log2(const uint64_t v) {
-    return 63 ^ clzll(v);
-}
-
-static inline unsigned inv_recenter(const unsigned r, const unsigned v) {
-    if (v > (r << 1))
-        return v;
-    else if ((v & 1) == 0)
-        return (v >> 1) + r;
-    else
-        return r - ((v + 1) >> 1);
-}
-
-#endif /* DAV1D_COMMON_INTOPS_H */

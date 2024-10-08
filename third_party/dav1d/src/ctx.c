@@ -1,5 +1,6 @@
 /*
- * Copyright © 2019, VideoLAN and dav1d authors
+ * Copyright © 2024, VideoLAN and dav1d authors
+ * Copyright © 2024, Two Orioles, LLC
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,27 +25,41 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DAV1D_VERSION_H
-#define DAV1D_VERSION_H
+#include "config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <string.h>
 
-#define DAV1D_API_VERSION_MAJOR @DAV1D_API_VERSION_MAJOR@
-#define DAV1D_API_VERSION_MINOR @DAV1D_API_VERSION_MINOR@
-#define DAV1D_API_VERSION_PATCH @DAV1D_API_VERSION_PATCH@
+#include "ctx.h"
 
-/**
- * Extract version components from the value returned by
- * dav1d_version_int()
- */
-#define DAV1D_API_MAJOR(v) (((v) >> 16) & 0xFF)
-#define DAV1D_API_MINOR(v) (((v) >>  8) & 0xFF)
-#define DAV1D_API_PATCH(v) (((v) >>  0) & 0xFF)
+static void memset_w1(void *const ptr, const int value) {
+    set_ctx1((uint8_t *) ptr, 0, value);
+}
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
+static void memset_w2(void *const ptr, const int value) {
+    set_ctx2((uint8_t *) ptr, 0, value);
+}
 
-#endif /* DAV1D_VERSION_H */
+static void memset_w4(void *const ptr, const int value) {
+    set_ctx4((uint8_t *) ptr, 0, value);
+}
+
+static void memset_w8(void *const ptr, const int value) {
+    set_ctx8((uint8_t *) ptr, 0, value);
+}
+
+static void memset_w16(void *const ptr, const int value) {
+    set_ctx16((uint8_t *) ptr, 0, value);
+}
+
+static void memset_w32(void *const ptr, const int value) {
+    set_ctx32((uint8_t *) ptr, 0, value);
+}
+
+const dav1d_memset_pow2_fn dav1d_memset_pow2[6] = {
+    memset_w1,
+    memset_w2,
+    memset_w4,
+    memset_w8,
+    memset_w16,
+    memset_w32
+};

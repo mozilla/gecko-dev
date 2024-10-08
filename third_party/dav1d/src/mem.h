@@ -32,7 +32,7 @@
 
 #include <stdlib.h>
 
-#if defined(_WIN32) || defined(HAVE_MEMALIGN)
+#if defined(_WIN32) || HAVE_MEMALIGN
 #include <malloc.h>
 #endif
 
@@ -90,13 +90,13 @@ static inline void *dav1d_alloc_aligned_internal(const size_t sz, const size_t a
     assert(!(align & (align - 1)));
 #ifdef _WIN32
     return _aligned_malloc(sz, align);
-#elif defined(HAVE_POSIX_MEMALIGN)
+#elif HAVE_POSIX_MEMALIGN
     void *ptr;
     if (posix_memalign(&ptr, align, sz)) return NULL;
     return ptr;
-#elif defined(HAVE_MEMALIGN)
+#elif HAVE_MEMALIGN
     return memalign(align, sz);
-#elif defined(HAVE_ALIGNED_ALLOC)
+#elif HAVE_ALIGNED_ALLOC
     // The C11 standard specifies that the size parameter
     // must be an integral multiple of alignment.
     return aligned_alloc(align, ROUND_UP(sz, align));

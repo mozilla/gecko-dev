@@ -32,7 +32,7 @@
 #include "src/cpu.h"
 #include "src/arm/cpu.h"
 
-#if defined(HAVE_GETAUXVAL) || defined(HAVE_ELF_AUX_INFO)
+#if HAVE_GETAUXVAL || HAVE_ELF_AUX_INFO
 #include <sys/auxv.h>
 
 #if ARCH_AARCH64
@@ -43,7 +43,7 @@
 #define HWCAP2_AARCH64_I8MM   (1 << 13)
 
 COLD unsigned dav1d_get_cpu_flags_arm(void) {
-#ifdef HAVE_GETAUXVAL
+#if HAVE_GETAUXVAL
     unsigned long hw_cap = getauxval(AT_HWCAP);
     unsigned long hw_cap2 = getauxval(AT_HWCAP2);
 #else
@@ -69,7 +69,7 @@ COLD unsigned dav1d_get_cpu_flags_arm(void) {
 #define HWCAP_ARM_I8MM    (1 << 27)
 
 COLD unsigned dav1d_get_cpu_flags_arm(void) {
-#ifdef HAVE_GETAUXVAL
+#if HAVE_GETAUXVAL
     unsigned long hw_cap = getauxval(AT_HWCAP);
 #else
     unsigned long hw_cap = 0;

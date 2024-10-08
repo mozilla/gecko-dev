@@ -31,67 +31,18 @@
 #include "src/cpu.h"
 #include "src/itx.h"
 
-decl_itx_fn(BF(dav1d_inv_txfm_add_wht_wht_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_identity_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_adst_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_adst_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_flipadst_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_adst_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_flipadst_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_dct_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_flipadst_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_identity_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_dct_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_identity_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_flipadst_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_adst_4x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_identity_4x4, lsx));
+decl_itx17_fns( 4,  4, lsx);
+decl_itx16_fns( 4,  8, lsx);
+decl_itx16_fns( 4, 16, lsx);
+decl_itx16_fns( 8,  4, lsx);
+decl_itx16_fns( 8,  8, lsx);
+decl_itx16_fns( 8, 16, lsx);
+decl_itx2_fns ( 8, 32, lsx);
+decl_itx16_fns(16,  8, lsx);
 
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_4x8, lsx));
-
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_identity_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_adst_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_adst_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_adst_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_flipadst_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_dct_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_flipadst_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_flipadst_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_identity_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_dct_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_identity_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_flipadst_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_identity_8x4, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_adst_8x4, lsx));
-
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_identity_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_adst_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_adst_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_adst_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_flipadst_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_dct_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_flipadst_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_adst_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_identity_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_identity_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_dct_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_flipadst_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_identity_8x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_flipadst_8x8, lsx));
-
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_8x16, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_identity_identity_8x16, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_8x16, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_adst_8x16, lsx));
-
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_16x8, lsx));
-decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_16x8, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_16x4, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_identity_identity_16x4, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_16x4, lsx));
 
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_16x16, lsx));
 decl_itx_fn(BF(dav1d_inv_txfm_add_adst_adst_16x16, lsx));
@@ -99,13 +50,22 @@ decl_itx_fn(BF(dav1d_inv_txfm_add_adst_dct_16x16, lsx));
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_adst_16x16, lsx));
 decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_dct_16x16, lsx));
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_flipadst_16x16, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_adst_flipadst_16x16, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_flipadst_adst_16x16, lsx));
 
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_8x32, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_16x32, lsx));
+
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_32x8, lsx));
+
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_32x16, lsx));
+
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_32x32, lsx));
 
-decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_32x32, lsx));
+decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x32, lsx));
 
 decl_itx_fn(BF(dav1d_inv_txfm_add_dct_dct_64x64, lsx));
+
+decl_itx_fn(BF(dav1d_inv_txfm_add_adst_adst_16x16, lasx));
 
 static ALWAYS_INLINE void itx_dsp_init_loongarch(Dav1dInvTxfmDSPContext *const c, int bpc) {
 #if BITDEPTH == 8
@@ -115,67 +75,20 @@ static ALWAYS_INLINE void itx_dsp_init_loongarch(Dav1dInvTxfmDSPContext *const c
 
     if (BITDEPTH != 8 ) return;
 
-    c->itxfm_add[TX_4X4][WHT_WHT]  = dav1d_inv_txfm_add_wht_wht_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][DCT_DCT]  = dav1d_inv_txfm_add_dct_dct_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][IDTX] = dav1d_inv_txfm_add_identity_identity_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][DCT_ADST] = dav1d_inv_txfm_add_adst_dct_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][ADST_DCT] = dav1d_inv_txfm_add_dct_adst_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][ADST_ADST] = dav1d_inv_txfm_add_adst_adst_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][FLIPADST_DCT] = dav1d_inv_txfm_add_dct_flipadst_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][ADST_FLIPADST] = dav1d_inv_txfm_add_flipadst_adst_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][FLIPADST_ADST] = dav1d_inv_txfm_add_adst_flipadst_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][DCT_FLIPADST] = dav1d_inv_txfm_add_flipadst_dct_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][FLIPADST_FLIPADST] = dav1d_inv_txfm_add_flipadst_flipadst_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][H_DCT] = dav1d_inv_txfm_add_dct_identity_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][V_DCT] = dav1d_inv_txfm_add_identity_dct_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][H_FLIPADST] = dav1d_inv_txfm_add_flipadst_identity_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][V_FLIPADST] = dav1d_inv_txfm_add_identity_flipadst_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][V_ADST] = dav1d_inv_txfm_add_identity_adst_4x4_8bpc_lsx;
-    c->itxfm_add[TX_4X4][H_ADST] = dav1d_inv_txfm_add_adst_identity_4x4_8bpc_lsx;
+    assign_itx17_fn( ,  4,  4, lsx);
+    assign_itx16_fn(R,  4,  8, lsx);
+    assign_itx16_fn(R,  4, 16, lsx);
+    assign_itx16_fn(R,  8,  4, lsx);
+    assign_itx16_fn( ,  8,  8, lsx);
+    assign_itx16_fn(R,  8, 16, lsx);
+    assign_itx2_fn (R,  8, 32, lsx);
+    assign_itx16_fn(R, 16,  8, lsx);
+    assign_itx1_fn (R, 64, 32, lsx);
+    assign_itx1_fn ( , 64, 64, lsx);
 
-    c->itxfm_add[RTX_4X8][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_4x8_8bpc_lsx;
-
-    c->itxfm_add[RTX_8X4][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][IDTX] = dav1d_inv_txfm_add_identity_identity_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][DCT_ADST] = dav1d_inv_txfm_add_adst_dct_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][ADST_DCT] = dav1d_inv_txfm_add_dct_adst_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][ADST_ADST] = dav1d_inv_txfm_add_adst_adst_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][ADST_FLIPADST] = dav1d_inv_txfm_add_flipadst_adst_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][FLIPADST_ADST] = dav1d_inv_txfm_add_adst_flipadst_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][DCT_FLIPADST] = dav1d_inv_txfm_add_flipadst_dct_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][FLIPADST_DCT] = dav1d_inv_txfm_add_dct_flipadst_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][FLIPADST_FLIPADST] = dav1d_inv_txfm_add_flipadst_flipadst_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][H_DCT] = dav1d_inv_txfm_add_dct_identity_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][V_DCT] = dav1d_inv_txfm_add_identity_dct_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][H_FLIPADST] = dav1d_inv_txfm_add_flipadst_identity_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][V_FLIPADST] = dav1d_inv_txfm_add_identity_flipadst_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][H_ADST] = dav1d_inv_txfm_add_adst_identity_8x4_8bpc_lsx;
-    c->itxfm_add[RTX_8X4][V_ADST] = dav1d_inv_txfm_add_identity_adst_8x4_8bpc_lsx;
-
-    c->itxfm_add[TX_8X8][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][IDTX] = dav1d_inv_txfm_add_identity_identity_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][DCT_ADST] = dav1d_inv_txfm_add_adst_dct_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][ADST_DCT] = dav1d_inv_txfm_add_dct_adst_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][ADST_ADST] = dav1d_inv_txfm_add_adst_adst_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][ADST_FLIPADST] = dav1d_inv_txfm_add_flipadst_adst_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][FLIPADST_ADST] = dav1d_inv_txfm_add_adst_flipadst_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][DCT_FLIPADST] = dav1d_inv_txfm_add_flipadst_dct_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][FLIPADST_DCT] = dav1d_inv_txfm_add_dct_flipadst_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][FLIPADST_FLIPADST] = dav1d_inv_txfm_add_flipadst_flipadst_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][H_DCT] = dav1d_inv_txfm_add_dct_identity_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][V_DCT] = dav1d_inv_txfm_add_identity_dct_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][H_FLIPADST] = dav1d_inv_txfm_add_flipadst_identity_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][V_FLIPADST] = dav1d_inv_txfm_add_identity_flipadst_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][H_ADST] = dav1d_inv_txfm_add_adst_identity_8x8_8bpc_lsx;
-    c->itxfm_add[TX_8X8][V_ADST] = dav1d_inv_txfm_add_identity_adst_8x8_8bpc_lsx;
-
-    c->itxfm_add[RTX_8X16][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_8x16_8bpc_lsx;
-    c->itxfm_add[RTX_8X16][IDTX] = dav1d_inv_txfm_add_identity_identity_8x16_8bpc_lsx;
-    c->itxfm_add[RTX_8X16][DCT_ADST] = dav1d_inv_txfm_add_adst_dct_8x16_8bpc_lsx;
-    c->itxfm_add[RTX_8X16][ADST_DCT] = dav1d_inv_txfm_add_dct_adst_8x16_8bpc_lsx;
-
-    c->itxfm_add[RTX_16X8][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_16x8_8bpc_lsx;
-    c->itxfm_add[RTX_16X8][DCT_ADST] = dav1d_inv_txfm_add_adst_dct_16x8_8bpc_lsx;
+    c->itxfm_add[RTX_16X4][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_16x4_8bpc_lsx;
+    c->itxfm_add[RTX_16X4][IDTX] = dav1d_inv_txfm_add_identity_identity_16x4_8bpc_lsx;
+    c->itxfm_add[RTX_16X4][DCT_ADST] = dav1d_inv_txfm_add_adst_dct_16x4_8bpc_lsx;
 
     c->itxfm_add[TX_16X16][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_16x16_8bpc_lsx;
     c->itxfm_add[TX_16X16][ADST_ADST] = dav1d_inv_txfm_add_adst_adst_16x16_8bpc_lsx;
@@ -183,12 +96,23 @@ static ALWAYS_INLINE void itx_dsp_init_loongarch(Dav1dInvTxfmDSPContext *const c
     c->itxfm_add[TX_16X16][ADST_DCT] = dav1d_inv_txfm_add_dct_adst_16x16_8bpc_lsx;
     c->itxfm_add[TX_16X16][DCT_FLIPADST] = dav1d_inv_txfm_add_flipadst_dct_16x16_8bpc_lsx;
     c->itxfm_add[TX_16X16][FLIPADST_DCT] = dav1d_inv_txfm_add_dct_flipadst_16x16_8bpc_lsx;
+    c->itxfm_add[TX_16X16][FLIPADST_ADST] = dav1d_inv_txfm_add_adst_flipadst_16x16_8bpc_lsx;
+    c->itxfm_add[TX_16X16][ADST_FLIPADST] = dav1d_inv_txfm_add_flipadst_adst_16x16_8bpc_lsx;
 
-    c->itxfm_add[RTX_8X32][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_8x32_8bpc_lsx;
+    c->itxfm_add[RTX_16X32][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_16x32_8bpc_lsx;
+
+    c->itxfm_add[RTX_32X8][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_32x8_8bpc_lsx;
+
+    c->itxfm_add[RTX_32X16][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_32x16_8bpc_lsx;
 
     c->itxfm_add[TX_32X32][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_32x32_8bpc_lsx;
 
-    c->itxfm_add[TX_64X64][DCT_DCT] = dav1d_inv_txfm_add_dct_dct_64x64_8bpc_lsx;
+    if (!(flags & DAV1D_LOONGARCH_CPU_FLAG_LASX)) return;
+
+    if (BITDEPTH != 8 ) return;
+
+    c->itxfm_add[TX_16X16][ADST_ADST] = dav1d_inv_txfm_add_adst_adst_16x16_8bpc_lasx;
+
 #endif
 }
 

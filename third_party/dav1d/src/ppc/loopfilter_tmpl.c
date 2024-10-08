@@ -342,8 +342,7 @@ static inline void store_h_8(u8x16 outa, u8x16 outb, uint8_t *dst, int stridea)
 
 static inline void
 loop_filter_h_4_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
-                const ptrdiff_t stridea, b32x4 apply
-                HIGHBD_DECL_SUFFIX)
+                const ptrdiff_t stridea, b32x4 apply)
 {
     dst -= 2;
     uint8_t *dst2 = dst;
@@ -428,8 +427,7 @@ loop_filter_h_4_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
 
 static inline void
 loop_filter_h_6_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
-                    const ptrdiff_t stridea, b32x4 apply, b32x4 m6
-                    HIGHBD_DECL_SUFFIX)
+                    const ptrdiff_t stridea, b32x4 apply, b32x4 m6)
 {
     uint8_t *dst2 = dst - 2;
     dst -= 3;
@@ -572,8 +570,7 @@ loop_filter_h_6_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
 
 static inline void
 loop_filter_h_8_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
-                    const ptrdiff_t stridea, b32x4 apply, b32x4 m8
-                    HIGHBD_DECL_SUFFIX)
+                    const ptrdiff_t stridea, b32x4 apply, b32x4 m8)
 {
     uint8_t *dst2 = dst - 3;
     dst -= 4;
@@ -718,8 +715,7 @@ loop_filter_h_8_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
 
 static inline void
 loop_filter_h_16_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
-                    const ptrdiff_t stridea, b32x4 apply, b32x4 m8, b32x4 m16
-                    HIGHBD_DECL_SUFFIX)
+                    const ptrdiff_t stridea, b32x4 apply, b32x4 m8, b32x4 m16)
 {
     uint8_t *dst2 = dst -6 ;
     dst -= 7;
@@ -960,8 +956,7 @@ loop_filter_h_16_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
 
 static inline void
 loop_filter_v_4_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
-                    const ptrdiff_t strideb, b32x4 apply
-                    HIGHBD_DECL_SUFFIX)
+                    const ptrdiff_t strideb, b32x4 apply)
 {
     uint8_t *p1d = dst + strideb * -2;
     uint8_t *p0d = dst + strideb * -1;
@@ -1007,8 +1002,7 @@ loop_filter_v_4_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
 
 static inline void
 loop_filter_v_6_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
-                    const ptrdiff_t strideb, b32x4 apply, b32x4 m6
-                    HIGHBD_DECL_SUFFIX)
+                    const ptrdiff_t strideb, b32x4 apply, b32x4 m6)
 {
     uint8_t *p2d = dst + strideb * -3;
     uint8_t *p1d = dst + strideb * -2;
@@ -1114,9 +1108,7 @@ loop_filter_v_6_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
 
 static inline void
 loop_filter_v_8_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
-                    const ptrdiff_t strideb, b32x4 apply, b32x4 m8
-                    HIGHBD_DECL_SUFFIX)
-
+                    const ptrdiff_t strideb, b32x4 apply, b32x4 m8)
 {
 
     uint8_t *p3d = dst + strideb * -4;
@@ -1216,9 +1208,7 @@ loop_filter_v_8_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
 
 static inline void
 loop_filter_v_16_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
-                    const ptrdiff_t strideb, b32x4 apply, b32x4 m8, b32x4 m16
-                    HIGHBD_DECL_SUFFIX)
-
+                    const ptrdiff_t strideb, b32x4 apply, b32x4 m8, b32x4 m16)
 {
 
     uint8_t *p6d = dst + strideb * -7;
@@ -1373,8 +1363,7 @@ loop_filter_v_16_all(uint8_t *dst, u8x16 E, u8x16 I, u8x16 H,
 void LPF(h_sb_y)(pixel *dst, const ptrdiff_t stride,
                  const uint32_t *const vmask,
                  const uint8_t (*l)[4], ptrdiff_t b4_stride,
-                 const Av1FilterLUT *lut, const int h
-                 HIGHBD_DECL_SUFFIX)
+                 const Av1FilterLUT *lut, const int h)
 {
     unsigned vm = vmask[0] | vmask[1] | vmask[2];
 
@@ -1449,11 +1438,11 @@ void LPF(h_sb_y)(pixel *dst, const ptrdiff_t stride,
         apply = vec_and(m4, apply);
 
         if (vec_any_ne(wd16, zero)) {
-            loop_filter_h_16_all(dst, E, I, H, PXSTRIDE(stride), apply, m8, m16 HIGHBD_TAIL_SUFFIX);
+            loop_filter_h_16_all(dst, E, I, H, PXSTRIDE(stride), apply, m8, m16);
         } else if (vec_any_ne(wd8, zero)) {
-            loop_filter_h_8_all(dst, E, I, H, PXSTRIDE(stride), apply, m8 HIGHBD_TAIL_SUFFIX);
+            loop_filter_h_8_all(dst, E, I, H, PXSTRIDE(stride), apply, m8);
         } else { // wd4 == 0 already tested
-            loop_filter_h_4_all(dst, E, I, H, PXSTRIDE(stride), apply HIGHBD_TAIL_SUFFIX);
+            loop_filter_h_4_all(dst, E, I, H, PXSTRIDE(stride), apply);
         }
     }
 }
@@ -1461,8 +1450,7 @@ void LPF(h_sb_y)(pixel *dst, const ptrdiff_t stride,
 void LPF(v_sb_y)(pixel *dst, const ptrdiff_t stride,
                  const uint32_t *const vmask,
                  const uint8_t (*l)[4], ptrdiff_t b4_stride,
-                 const Av1FilterLUT *lut, const int w
-                 HIGHBD_DECL_SUFFIX)
+                 const Av1FilterLUT *lut, const int w)
 {
     unsigned vm = vmask[0] | vmask[1] | vmask[2];
 
@@ -1530,11 +1518,11 @@ void LPF(v_sb_y)(pixel *dst, const ptrdiff_t stride,
         apply = vec_and(apply, m4);
 
         if (vec_any_ne(wd16, zero)) {
-            loop_filter_v_16_all(dst, E, I, H, PXSTRIDE(stride), apply, m8, m16 HIGHBD_TAIL_SUFFIX);
+            loop_filter_v_16_all(dst, E, I, H, PXSTRIDE(stride), apply, m8, m16);
         } else if (vec_any_ne(wd8, zero)) {
-            loop_filter_v_8_all(dst, E, I, H, PXSTRIDE(stride), apply, m8 HIGHBD_TAIL_SUFFIX);
+            loop_filter_v_8_all(dst, E, I, H, PXSTRIDE(stride), apply, m8);
         } else {
-            loop_filter_v_4_all(dst, E, I, H, PXSTRIDE(stride), apply HIGHBD_TAIL_SUFFIX);
+            loop_filter_v_4_all(dst, E, I, H, PXSTRIDE(stride), apply);
         }
 
     }
@@ -1543,8 +1531,7 @@ void LPF(v_sb_y)(pixel *dst, const ptrdiff_t stride,
 void LPF(h_sb_uv)(pixel *dst, const ptrdiff_t stride,
                   const uint32_t *const vmask,
                   const uint8_t (*l)[4], ptrdiff_t b4_stride,
-                  const Av1FilterLUT *lut, const int h
-                  HIGHBD_DECL_SUFFIX)
+                  const Av1FilterLUT *lut, const int h)
 {
     unsigned vm = vmask[0] | vmask[1];
     u32x4 vm0 = vec_splats(vm);
@@ -1614,10 +1601,10 @@ void LPF(h_sb_uv)(pixel *dst, const ptrdiff_t stride,
         apply = vec_and(m4, apply);
 
         if (vec_any_ne(wd6, zero)) {
-            loop_filter_h_6_all(dst, E, I, H, PXSTRIDE(stride), apply, m6 HIGHBD_TAIL_SUFFIX);
+            loop_filter_h_6_all(dst, E, I, H, PXSTRIDE(stride), apply, m6);
             // loop_filter_h_8
         } else { // wd4 == 0 already tested
-            loop_filter_h_4_all(dst, E, I, H, PXSTRIDE(stride), apply HIGHBD_TAIL_SUFFIX);
+            loop_filter_h_4_all(dst, E, I, H, PXSTRIDE(stride), apply);
 
             // loop_filter_h_4
         }
@@ -1628,8 +1615,7 @@ void LPF(h_sb_uv)(pixel *dst, const ptrdiff_t stride,
 void LPF(v_sb_uv)(pixel *dst, const ptrdiff_t stride,
                   const uint32_t *const vmask,
                   const uint8_t (*l)[4], ptrdiff_t b4_stride,
-                  const Av1FilterLUT *lut, const int w
-                  HIGHBD_DECL_SUFFIX)
+                  const Av1FilterLUT *lut, const int w)
 {
     unsigned vm = vmask[0] | vmask[1];
 
@@ -1694,9 +1680,9 @@ void LPF(v_sb_uv)(pixel *dst, const ptrdiff_t stride,
         apply = vec_and(apply, m4);
 
         if (vec_any_ne(wd6, zero)) {
-            loop_filter_v_6_all(dst, E, I, H, PXSTRIDE(stride), apply, m6 HIGHBD_TAIL_SUFFIX);
+            loop_filter_v_6_all(dst, E, I, H, PXSTRIDE(stride), apply, m6);
         } else {
-            loop_filter_v_4_all(dst, E, I, H, PXSTRIDE(stride), apply HIGHBD_TAIL_SUFFIX);
+            loop_filter_v_4_all(dst, E, I, H, PXSTRIDE(stride), apply);
         }
     }
 }

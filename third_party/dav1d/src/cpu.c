@@ -38,13 +38,13 @@
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #endif
-#ifdef HAVE_UNISTD_H
+#if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
-#ifdef HAVE_PTHREAD_GETAFFINITY_NP
+#if HAVE_PTHREAD_GETAFFINITY_NP
 #include <pthread.h>
-#ifdef HAVE_PTHREAD_NP_H
+#if HAVE_PTHREAD_NP_H
 #include <pthread_np.h>
 #endif
 #if defined(__FreeBSD__)
@@ -91,7 +91,7 @@ COLD int dav1d_num_logical_processors(Dav1dContext *const c) {
     GetNativeSystemInfo(&system_info);
     return system_info.dwNumberOfProcessors;
 #endif
-#elif defined(HAVE_PTHREAD_GETAFFINITY_NP) && defined(CPU_COUNT)
+#elif HAVE_PTHREAD_GETAFFINITY_NP && defined(CPU_COUNT)
     cpu_set_t affinity;
     if (!pthread_getaffinity_np(pthread_self(), sizeof(affinity), &affinity))
         return CPU_COUNT(&affinity);

@@ -35,7 +35,7 @@ void dav1d_wiener_filter_vsx(uint8_t *p, const ptrdiff_t stride,
                              const uint8_t *lpf,
                              const int w, const int h,
                              const LooprestorationParams *const params,
-                             const enum LrEdgeFlags edges HIGHBD_DECL_SUFFIX);
+                             const enum LrEdgeFlags edges);
 
 static ALWAYS_INLINE void loop_restoration_dsp_init_ppc(Dav1dLoopRestorationDSPContext *const c, const int bpc) {
     const unsigned flags = dav1d_get_cpu_flags();

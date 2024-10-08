@@ -6,6 +6,9 @@ FILMGRAIN=1
 CPUMASK=-1
 THREADS=1
 JOBS=0
+WRAP=""
+FAIL_FAST=0
+
 
 usage() {
     NAME=$(basename "$0")
@@ -15,12 +18,14 @@ usage() {
         printf "Used to verify that dav1d can decode the Argon AV1 test vectors correctly.\n\n"
         printf " DIRECTORY one or more dirs in the argon folder to check against\n"
         printf "             (default: everything except large scale tiles and stress files)\n"
+        printf " -f        fail fast\n"
         printf " -d dav1d  path to dav1d executable (default: tools/dav1d)\n"
         printf " -a dir    path to argon dir (default: 'tests/argon' if found; '.' otherwise)\n"
         printf " -g \$num   enable filmgrain (default: 1)\n"
         printf " -c \$mask  use restricted cpumask (default: -1)\n"
         printf " -t \$num   number of threads per dav1d (default: 1)\n"
-        printf " -j \$num   number of parallel dav1d processes (default: 0)\n\n"
+        printf " -j \$num   number of parallel dav1d processes (default: 0)\n"
+        printf " -w tool   execute dav1d with a wrapper tool\n\n"
     } >&2
     exit 1
 }
@@ -32,6 +37,7 @@ error() {
 
 fail() {
     printf "\033[1K\rMismatch in %s\n" "$1"
+    [[ $FAIL_FAST = 1 ]] && exit 1
     (( failed++ ))
 }
 
@@ -79,8 +85,11 @@ if [ -d "$tests_dir/argon" ]; then
     ARGON_DIR="$tests_dir/argon"
 fi
 
-while getopts ":d:a:g:c:t:j:" opt; do
+while getopts ":d:a:g:c:t:j:w:f" opt; do
     case "$opt" in
+        f)
+            FAIL_FAST=1
+            ;;
         d)
             DAV1D="$OPTARG"
             ;;
@@ -98,6 +107,9 @@ while getopts ":d:a:g:c:t:j:" opt; do
             ;;
         j)
             JOBS="$OPTARG"
+            ;;
+        w)
+            WRAP="$OPTARG"
             ;;
         \?)
             printf "Error! Invalid option: -%s\n" "$OPTARG" >&2
@@ -158,7 +170,7 @@ for i in "${!files[@]}"; do
     md5=${md5/ */}
 
     printf '\033[1K\r[%3d%% %*d/%d] Verifying %s' "$(((i+1)*100/num_files))" "${#num_files}" "$((i+1))" "$num_files" "${f#"$ARGON_DIR"/}"
-    cmd=("$DAV1D" -i "$f" --filmgrain "$FILMGRAIN" --verify "$md5" --cpumask "$CPUMASK" --threads "$THREADS" -q)
+    cmd=($WRAP "$DAV1D" -i "$f" --filmgrain "$FILMGRAIN" --verify "$md5" --cpumask "$CPUMASK" --threads "$THREADS" -q)
     if [ "$JOBS" -gt 1 ]; then
         "${cmd[@]}" 2>/dev/null &
         p=$!
