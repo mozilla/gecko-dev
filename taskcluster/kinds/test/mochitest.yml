@@ -713,6 +713,7 @@ mochitest-media:
     variants:
         - media-gpu
         - no-fission
+        - no-gpu-process
         - socketprocess+no-fission
         - socketprocess
         - webrender-sw+no-fission
