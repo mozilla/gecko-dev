@@ -3820,7 +3820,7 @@ class PDFDocumentProperties {
   async #parseDate(inputDate) {
     const dateObj = PDFDateString.toDateObject(inputDate);
     return dateObj ? this.l10n.get("pdfjs-document-properties-date-time-string", {
-      dateObj
+      dateObj: dateObj.valueOf(),
     }) : undefined;
   }
   #parseLinearization(isLinearized) {
