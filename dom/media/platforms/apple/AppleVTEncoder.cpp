@@ -16,6 +16,9 @@
 
 #include "AppleUtils.h"
 
+#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/ImageUtils.h"
+
 namespace mozilla {
 extern LazyLogModule sPEMLog;
 #define LOGE(fmt, ...)                       \
@@ -726,9 +729,9 @@ static size_t NumberOfPlanes(dom::ImageBitmapFormat aPixelFormat) {
 
 using namespace layers;
 
-static void ReleaseImageInterleaved(void* aReleaseRef,
-                                    const void* aBaseAddress) {
-  (static_cast<Image*>(aReleaseRef))->Release();
+static void ReleaseSurface(void* aReleaseRef, const void* aBaseAddress) {
+  RefPtr<gfx::DataSourceSurface> released =
+      dont_AddRef(static_cast<gfx::DataSourceSurface*>(aReleaseRef));
 }
 
 static void ReleaseImage(void* aImageGrip, const void* aDataPtr,
@@ -797,32 +800,57 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
     image->Release();
     return nullptr;
   }
-  if (aSource->GetFormat() == ImageFormat::MOZ2D_SURFACE) {
-    RefPtr<gfx::SourceSurface> surface = aSource->GetAsSourceSurface();
-    RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
-    gfx::DataSourceSurface::ScopedMap map(dataSurface,
-                                          gfx::DataSourceSurface::READ);
-    if (NS_WARN_IF(!map.IsMapped())) {
-      LOGE("Error scopedmap");
-      return nullptr;
-    }
-    OSType format = MapPixelFormat(mConfig.mSourcePixelFormat).ref();
-    CVPixelBufferRef buffer = nullptr;
-    aSource->AddRef();
 
-    CVReturn rv = CVPixelBufferCreateWithBytes(
-        kCFAllocatorDefault, aSource->GetSize().Width(),
-        aSource->GetSize().Height(), format, map.GetData(), map.GetStride(),
-        ReleaseImageInterleaved, aSource, nullptr, &buffer);
-    if (rv == kCVReturnSuccess) {
-      return buffer;
-      // |source| will be released in |ReleaseImageInterleaved()|.
-    }
-    LOGE("CVPIxelBufferCreateWithBytes error");
-    aSource->Release();
+  RefPtr<gfx::SourceSurface> surface = aSource->GetAsSourceSurface();
+  if (!surface) {
+    LOGE("Failed to get SourceSurface");
     return nullptr;
   }
-  LOGE("Image conversion not implemented in AppleVTEncoder");
+
+  RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
+  if (!dataSurface) {
+    LOGE("Failed to get DataSurface");
+    return nullptr;
+  }
+
+  gfx::DataSourceSurface::ScopedMap map(dataSurface,
+                                        gfx::DataSourceSurface::READ);
+  if (NS_WARN_IF(!map.IsMapped())) {
+    LOGE("Failed to map DataSurface");
+    return nullptr;
+  }
+
+  const dom::ImageUtils imageUtils(aSource);
+  Maybe<dom::ImageBitmapFormat> format = imageUtils.GetFormat();
+  if (format.isNothing()) {
+    LOGE("Image conversion not implemented in AppleVTEncoder");
+    return nullptr;
+  }
+
+  if (format.ref() != mConfig.mSourcePixelFormat) {
+    LOGV("Encode image in %s format, even though config's source format is %s",
+         dom::GetEnumString(format.ref()).get(),
+         dom::GetEnumString(mConfig.mSourcePixelFormat).get());
+  }
+
+  Maybe<OSType> imgFormat = MapPixelFormat(format.ref());
+  if (imgFormat.isNothing()) {
+    LOGE("Failed to get kCVPixelFormatType");
+    return nullptr;
+  }
+
+  CVPixelBufferRef buffer = nullptr;
+  gfx::DataSourceSurface* dss = dataSurface.forget().take();
+  CVReturn rv = CVPixelBufferCreateWithBytes(
+      kCFAllocatorDefault, dss->GetSize().Width(), dss->GetSize().Height(),
+      imgFormat.value(), map.GetData(), map.GetStride(), ReleaseSurface, dss,
+      nullptr, &buffer);
+  if (rv == kCVReturnSuccess) {
+    return buffer;
+    // |dss| will be released in |ReleaseSurface()|.
+  }
+  LOGE("CVPIxelBufferCreateWithBytes error: %d", rv);
+  RefPtr<gfx::DataSourceSurface> released = dont_AddRef(dss);
   return nullptr;
 }
 
