@@ -57,6 +57,56 @@ add_task(async function () {
       requestData.uri,
       requestData.details
     );
+
+    EventUtils.sendMouseEvent({ type: "mousedown" }, request);
+
+    const wait = waitForDOM(document, "#responseHeaders");
+    clickOnSidebarTab(document, "headers");
+    await wait;
+
+    const responseScope = document.querySelectorAll(
+      "#headers-panel .accordion tr[id^='/Response Headers']"
+    );
+
+    const responseHeaders = [
+      {
+        name: "cache-control",
+        value: "max-age=10000",
+        index: 1,
+      },
+      {
+        name: "connection",
+        value: "close",
+        index: 2,
+      },
+      {
+        name: "content-length",
+        value: "29",
+        index: 3,
+      },
+      {
+        name: "content-type",
+        value: "text/javascript",
+        index: 4,
+      },
+      {
+        name: "server",
+        value: "httpd.js",
+        index: 6,
+      },
+    ];
+    responseHeaders.forEach(header => {
+      is(
+        responseScope[header.index - 1].querySelector(".treeLabel").innerHTML,
+        header.name,
+        `${header.name} label`
+      );
+      is(
+        responseScope[header.index - 1].querySelector(".objectBox").innerHTML,
+        `${header.value}`,
+        `${header.name} value`
+      );
+    });
   }
   await teardown(monitor);
 });
