@@ -1,7 +1,12 @@
 diff --git a/src/ots.cc b/src/ots.cc
 --- a/src/ots.cc
 +++ b/src/ots.cc
-@@ -14,7 +14,7 @@
+@@ -9,17 +9,17 @@
+ 
+ #include <algorithm>
+ #include <cstdlib>
+ #include <cstring>
+ #include <limits>
  #include <map>
  #include <vector>
  
@@ -10,7 +15,17 @@ diff --git a/src/ots.cc b/src/ots.cc
  
  // The OpenType Font File
  // http://www.microsoft.com/typography/otspec/otff.htm
-@@ -511,43 +511,9 @@ bool ProcessWOFF(ots::FontFile *header,
+ 
+ #include "avar.h"
+ #include "cff.h"
+ #include "cmap.h"
+ #include "colr.h"
+@@ -513,54 +513,19 @@ bool ProcessWOFF(ots::FontFile *header,
+   }
+   if (block_end != ots::Round4(length)) {
+     return OTS_FAILURE_MSG_HDR("File length mismatch (trailing junk?)");
+   }
+ 
    return ProcessGeneric(header, font, woff_tag, output, data, length, tables, file);
  }
  
@@ -40,6 +55,7 @@ diff --git a/src/ots.cc b/src/ots.cc
 -
 -  std::string buf(decompressed_size, 0);
 -  woff2::WOFF2StringOut out(&buf);
+-  out.SetMaxSize(decompressed_size);
 -  if (!woff2::ConvertWOFF2ToTTF(data, length, &out)) {
 -    return OTS_FAILURE_MSG_HDR("Failed to convert WOFF 2.0 font to SFNT");
 -  }
@@ -57,4 +73,8 @@ diff --git a/src/ots.cc b/src/ots.cc
  }
  
  ots::TableAction GetTableAction(const ots::FontFile *header, uint32_t tag) {
-
+   ots::TableAction action = header->context->GetTableAction(tag);
+ 
+   if (action == ots::TABLE_ACTION_DEFAULT) {
+     action = ots::TABLE_ACTION_DROP;
+ 

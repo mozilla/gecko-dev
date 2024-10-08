@@ -1,7 +1,10 @@
 diff --git a/include/opentype-sanitiser.h b/include/opentype-sanitiser.h
 --- a/include/opentype-sanitiser.h
 +++ b/include/opentype-sanitiser.h
-@@ -4,8 +4,28 @@
+@@ -1,15 +1,35 @@
+ // Copyright (c) 2009-2017 The OTS Authors. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
  
  #ifndef OPENTYPE_SANITISER_H_
  #define OPENTYPE_SANITISER_H_
@@ -30,7 +33,15 @@ diff --git a/include/opentype-sanitiser.h b/include/opentype-sanitiser.h
  #include <stdlib.h>
  typedef signed char int8_t;
  typedef unsigned char uint8_t;
-@@ -164,9 +184,9 @@ enum TableAction {
+ typedef short int16_t;
+ typedef unsigned short uint16_t;
+ typedef int int32_t;
+ typedef unsigned int uint32_t;
+@@ -170,17 +190,17 @@ class OTSStream {
+ 
+ enum TableAction {
+   TABLE_ACTION_DEFAULT,  // Use OTS's default action for that table
+   TABLE_ACTION_SANITIZE, // Sanitize the table, potentially dropping it
    TABLE_ACTION_PASSTHRU, // Serialize the table unchanged
    TABLE_ACTION_DROP      // Drop the table
  };
@@ -41,3 +52,7 @@ diff --git a/include/opentype-sanitiser.h b/include/opentype-sanitiser.h
      OTSContext() {}
      virtual ~OTSContext() {}
  
+     // Process a given OpenType file and write out a sanitized version
+     //   output: a pointer to an object implementing the OTSStream interface. The
+     //     sanitisied output will be written to this. In the even of a failure,
+     //     partial output may have been written.

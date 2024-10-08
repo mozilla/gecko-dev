@@ -1,7 +1,10 @@
 diff --git a/src/glat.cc b/src/glat.cc
 --- a/src/glat.cc
 +++ b/src/glat.cc
-@@ -4,9 +4,9 @@
+@@ -1,16 +1,16 @@
+ // Copyright (c) 2009-2017 The OTS Authors. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
  
  #include "glat.h"
  
@@ -12,7 +15,15 @@ diff --git a/src/glat.cc b/src/glat.cc
  #include <memory>
  
  namespace ots {
-@@ -214,16 +214,17 @@ bool OpenTypeGLAT_v3::Parse(const uint8_
+ 
+ // -----------------------------------------------------------------------------
+ // OpenTypeGLAT_v1
+ // -----------------------------------------------------------------------------
+@@ -212,24 +212,25 @@ bool OpenTypeGLAT_v3::Parse(const uint8_
+       }
+       // decompressed table must be <= OTS_MAX_DECOMPRESSED_TABLE_SIZE
+       if (decompressed_size > OTS_MAX_DECOMPRESSED_TABLE_SIZE) {
+         return DropGraphite("Decompressed size exceeds %gMB: %gMB",
                              OTS_MAX_DECOMPRESSED_TABLE_SIZE / (1024.0 * 1024.0),
                              decompressed_size / (1024.0 * 1024.0));
        }
@@ -35,10 +46,17 @@ diff --git a/src/glat.cc b/src/glat.cc
        return this->Parse(decompressed.get(), decompressed_size, true);
      }
      default:
+       return DropGraphite("Unknown compression scheme");
+   }
+   if (this->compHead & RESERVED) {
+     Warning("Nonzero reserved");
 diff --git a/src/silf.cc b/src/silf.cc
 --- a/src/silf.cc
 +++ b/src/silf.cc
-@@ -4,9 +4,9 @@
+@@ -1,16 +1,16 @@
+ // Copyright (c) 2009-2017 The OTS Authors. All rights reserved.
+ // Use of this source code is governed by a BSD-style license that can be
+ // found in the LICENSE file.
  
  #include "silf.h"
  
@@ -49,7 +67,15 @@ diff --git a/src/silf.cc b/src/silf.cc
  #include <memory>
  
  namespace ots {
-@@ -49,16 +49,17 @@ bool OpenTypeSILF::Parse(const uint8_t* 
+ 
+ bool OpenTypeSILF::Parse(const uint8_t* data, size_t length,
+                          bool prevent_decompression) {
+   Buffer table(data, length);
+@@ -45,24 +45,25 @@ bool OpenTypeSILF::Parse(const uint8_t* 
+         }
+         // decompressed table must be <= OTS_MAX_DECOMPRESSED_TABLE_SIZE
+         if (decompressed_size > OTS_MAX_DECOMPRESSED_TABLE_SIZE) {
+           return DropGraphite("Decompressed size exceeds %gMB: %gMB",
                                OTS_MAX_DECOMPRESSED_TABLE_SIZE / (1024.0 * 1024.0),
                                decompressed_size / (1024.0 * 1024.0));
          }
@@ -72,3 +98,7 @@ diff --git a/src/silf.cc b/src/silf.cc
          return this->Parse(decompressed.get(), decompressed_size, true);
        }
        default:
+         return DropGraphite("Unknown compression scheme");
+     }
+   }
+   if (!table.ReadU16(&this->numSub)) {

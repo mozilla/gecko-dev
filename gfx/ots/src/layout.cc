@@ -1145,11 +1145,15 @@ bool ParseConditionTable(const ots::Font *font,
     return OTS_FAILURE_MSG("Axis index out of range in condition");
   }
 
-  // Check min/max values are within range -1.0 .. 1.0 and properly ordered
+  // Check min/max values are within range -1.0 .. 1.0.
   if (filter_range_min_value < -0x4000 || // -1.0 in F2DOT14 format
-      filter_range_max_value > 0x4000 || // +1.0 in F2DOT14 format
-      filter_range_min_value > filter_range_max_value) {
+      filter_range_max_value > 0x4000) { // +1.0 in F2DOT14 format
     return OTS_FAILURE_MSG("Invalid filter range in condition");
+  }
+
+  // Warn if range is improperly ordered (and therefore useless).
+  if (filter_range_min_value > filter_range_max_value) {
+    OTS_WARNING("Misordered filter range in condition table");
   }
 
   return true;
