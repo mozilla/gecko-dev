@@ -19,6 +19,7 @@
 
 #include "mozilla/dom/PlacesFavicon.h"
 #include "mozilla/dom/PlacesObservers.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/storage.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Telemetry.h"
@@ -649,10 +650,13 @@ AsyncAssociateIconToPage::Run() {
 
 AsyncSetIconForPage::AsyncSetIconForPage(const IconData& aIcon,
                                          const PageData& aPage,
-                                         PlacesCompletionCallback* aCallback)
+                                         PlacesCompletionCallback* aCallback,
+                                         dom::Promise* aPromise)
     : Runnable("places::AsyncSetIconForPage"),
       mCallback(new nsMainThreadPtrHolder<PlacesCompletionCallback>(
           "AsyncSetIconForPage::mCallback", aCallback, false)),
+      mPromise(new nsMainThreadPtrHolder<dom::Promise>(
+          "AsyncSetIconForPage::Promise", aPromise, false)),
       mIcon(aIcon),
       mPage(aPage) {}
 
@@ -672,6 +676,15 @@ AsyncSetIconForPage::Run() {
                                    (void)callback->Complete(rv);
                                  }));
     }
+
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+        "AsyncSetIconForPage::Promise", [rv, promise = std::move(mPromise)]() {
+          if (NS_SUCCEEDED(rv)) {
+            promise->MaybeResolveWithUndefined();
+          } else {
+            promise->MaybeReject(rv);
+          }
+        }));
   });
 
   // Fetch the page data.

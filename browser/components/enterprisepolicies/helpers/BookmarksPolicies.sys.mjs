@@ -211,11 +211,13 @@ function setFaviconForBookmark(bookmark) {
     return;
   }
 
-  lazy.PlacesUtils.favicons.setFaviconForPage(
-    bookmark.URL.URI,
-    Services.io.newURI("fake-favicon-uri:" + bookmark.URL.href),
-    bookmark.Favicon.URI
-  );
+  lazy.PlacesUtils.favicons
+    .setFaviconForPage(
+      bookmark.URL.URI,
+      Services.io.newURI("fake-favicon-uri:" + bookmark.URL.href),
+      bookmark.Favicon.URI
+    )
+    .catch(lazy.log.error);
 }
 
 // Cache of folder names to guids to be used by the getParentGuid
