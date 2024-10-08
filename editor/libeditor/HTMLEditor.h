@@ -1051,7 +1051,7 @@ class HTMLEditor final : public EditorBase,
    *       ignore those types of selections.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  EnsureCaretNotAfterInvisibleBRElement();
+  EnsureCaretNotAfterInvisibleBRElement(const Element& aEditingHost);
 
   /**
    * MaybeCreatePaddingBRElementForEmptyEditor() creates padding <br> element
@@ -3163,11 +3163,12 @@ class HTMLEditor final : public EditorBase,
    *                        source.
    *                        false if aQuotedText should be treated as plain
    *                        text.
+   * @param aEditingHost    The editing host.
    * @param aNodeInserted   [OUT] The new <blockquote> element.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertAsCitedQuotationInternal(
       const nsAString& aQuotedText, const nsAString& aCitation,
-      bool aInsertHTML, nsINode** aNodeInserted);
+      bool aInsertHTML, const Element& aEditingHost, nsINode** aNodeInserted);
 
   /**
    * InsertNodeIntoProperAncestorWithTransaction() attempts to insert aNode
@@ -3409,7 +3410,8 @@ class HTMLEditor final : public EditorBase,
     MOZ_CAN_RUN_SCRIPT BlobReader(dom::BlobImpl* aBlob, HTMLEditor* aHTMLEditor,
                                   SafeToInsertData aSafeToInsertData,
                                   const EditorDOMPoint& aPointToInsert,
-                                  DeleteSelectedContent aDeleteSelectedContent);
+                                  DeleteSelectedContent aDeleteSelectedContent,
+                                  const Element& aEditingHost);
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(BlobReader)
     NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(BlobReader)
@@ -3422,6 +3424,7 @@ class HTMLEditor final : public EditorBase,
 
     RefPtr<dom::BlobImpl> mBlob;
     RefPtr<HTMLEditor> mHTMLEditor;
+    RefPtr<const Element> mEditingHost;
     RefPtr<dom::DataTransfer> mDataTransfer;
     EditorDOMPoint mPointToInsert;
     EditAction mEditAction;
@@ -3750,7 +3753,8 @@ class HTMLEditor final : public EditorBase,
   MOZ_CAN_RUN_SCRIPT nsresult InsertObject(
       const nsACString& aType, nsISupports* aObject,
       SafeToInsertData aSafeToInsertData, const EditorDOMPoint& aPointToInsert,
-      DeleteSelectedContent aDeleteSelectedContent);
+      DeleteSelectedContent aDeleteSelectedContent,
+      const Element& aEditingHost);
 
   class HTMLTransferablePreparer;
   nsresult PrepareHTMLTransferable(nsITransferable** aTransferable,
@@ -3759,7 +3763,8 @@ class HTMLEditor final : public EditorBase,
   enum class HavePrivateHTMLFlavor { No, Yes };
   MOZ_CAN_RUN_SCRIPT nsresult InsertFromTransferableAtSelection(
       nsITransferable* aTransferable, const nsAString& aContextStr,
-      const nsAString& aInfoStr, HavePrivateHTMLFlavor aHavePrivateHTMLFlavor);
+      const nsAString& aInfoStr, HavePrivateHTMLFlavor aHavePrivateHTMLFlavor,
+      const Element& aEditingHost);
 
   /**
    * InsertFromDataTransfer() is called only when user drops data into
@@ -4015,7 +4020,8 @@ class HTMLEditor final : public EditorBase,
       const nsAString& aInfoStr, const nsAString& aFlavor,
       SafeToInsertData aSafeToInsertData, const EditorDOMPoint& aPointToInsert,
       DeleteSelectedContent aDeleteSelectedContent,
-      InlineStylesAtInsertionPoint aInlineStylesAtInsertionPoint);
+      InlineStylesAtInsertionPoint aInlineStylesAtInsertionPoint,
+      const Element& aEditingHost);
 
   /**
    * sets the position of an element; warning it does NOT check if the
