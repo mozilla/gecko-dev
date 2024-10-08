@@ -264,6 +264,7 @@ skip-if = [
 ]
 
 ["browser_rules_preview-tooltips-sizes.js"]
+skip-if = ["os == 'linux' && opt"] # Bug 1905529
 
 ["browser_rules_print_media_simulation.js"]
 
