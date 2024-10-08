@@ -63,7 +63,7 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
   if (masm.oom()) {
     return fail(cx);
   }
-  awjcf.emplace(code);
+  awjcf.emplace(result, bytesNeeded);
   if (!awjcf->makeWritable()) {
     return fail(cx);
   }
