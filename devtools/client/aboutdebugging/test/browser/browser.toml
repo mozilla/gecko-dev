@@ -42,7 +42,7 @@ tags = "webextensions"
 ["browser_aboutdebugging_addons_debug_popup.js"]
 skip-if = [
   "verify && debug", # verify: crashes on shutdown, timeouts
-  "os == 'linux' && debug", # linux debug Bug 1299001
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # linux debug Bug 1299001
 ]
 tags = "webextensions"
 
@@ -62,7 +62,7 @@ tags = "webextensions"
 tags = "webextensions"
 
 ["browser_aboutdebugging_addons_manifest_url.js"]
-skip-if = ["os == 'mac' && debug"] # ADB start() fails on linux 32, see Bug 1499638, macosx1014 debug due to 1514751
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # ADB start() fails on linux 32, see Bug 1499638, macosx1014 debug due to 1514751
 
 ["browser_aboutdebugging_addons_popup_picker.js"]
 
@@ -119,19 +119,19 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_aboutdebugging_devtoolstoolbox_navigate_reload_button.js"]
 
 ["browser_aboutdebugging_devtoolstoolbox_navigate_to_url.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_aboutdebugging_devtoolstoolbox_reload.js"]
 skip-if = [
   "verify",
   "ccov",
-  "os == 'linux' && debug", #bug 1544828, test loads the toolbox 2 times for each panel, might timeout or OOM
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", #bug 1544828, test loads the toolbox 2 times for each panel, might timeout or OOM
 ]
 
 ["browser_aboutdebugging_devtoolstoolbox_shortcuts.js"]
 skip-if = [
   "ccov",
-  "os == 'linux'", # Bug 1521349, Bug 1548015, Bug 1544828
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1521349, Bug 1548015, Bug 1544828
 ]
 
 ["browser_aboutdebugging_devtoolstoolbox_splitconsole_key.js"]
@@ -148,10 +148,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_aboutdebugging_devtoolstoolbox_zoom.js"]
 
 ["browser_aboutdebugging_fenix_runtime_display.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_aboutdebugging_fenix_runtime_node_picker.js"]
-skip-if = ["a11y_checks"] # Bug 1849028, 1858041, and 1849179 for causing crashes
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028, 1858041, and 1849179 for causing crashes
 
 ["browser_aboutdebugging_hidden_addons.js"]
 
@@ -197,8 +197,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_aboutdebugging_serviceworker_fetch_flag.js"]
 skip-if = [
   "os == 'win' && debug",
-  "os == 'mac'",
-  "os == 'linux'", #Bug 1529824
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", #Bug 1529824
 ]
 
 ["browser_aboutdebugging_serviceworker_not_compatible.js"]
@@ -206,6 +206,8 @@ skip-if = [
 ["browser_aboutdebugging_serviceworker_push.js"]
 
 ["browser_aboutdebugging_serviceworker_pushservice_url.js"]
+
+["browser_aboutdebugging_serviceworker_runtime-page-origin.js"]
 
 ["browser_aboutdebugging_serviceworker_runtime-page.js"]
 
@@ -222,7 +224,7 @@ skip-if = [
 ["browser_aboutdebugging_serviceworker_unregister.js"]
 
 ["browser_aboutdebugging_sidebar_connection_state.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_aboutdebugging_sidebar_network_runtimes.js"]
 
@@ -251,10 +253,10 @@ skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 ["browser_aboutdebugging_telemetry_basic.js"]
 
 ["browser_aboutdebugging_telemetry_connection_attempt.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_aboutdebugging_telemetry_inspect.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_aboutdebugging_telemetry_navigate.js"]
 
@@ -275,5 +277,3 @@ skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 ["browser_aboutdebugging_thisfirefox_worker_inspection.js"]
 
 ["browser_aboutdebugging_workers_remote_runtime.js"]
-
-["browser_aboutdebugging_serviceworker_runtime-page-origin.js"]

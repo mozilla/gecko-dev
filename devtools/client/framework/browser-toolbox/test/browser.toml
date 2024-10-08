@@ -20,12 +20,12 @@ prefs = ["security.allow_unsafe_parent_loads=true"] # This is far from ideal. Bu
 ["browser_browser_toolbox.js"]
 
 ["browser_browser_toolbox_debugger.js"]
-skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1756616
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug"] # Bug 1756616
 
 ["browser_browser_toolbox_evaluation_context.js"]
 
 ["browser_browser_toolbox_fission_contentframe_inspector.js"]
-skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1604751
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug"] # Bug 1604751
 
 ["browser_browser_toolbox_fission_inspector.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -37,14 +37,14 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_browser_toolbox_navigate_tab.js"]
 
 ["browser_browser_toolbox_netmonitor.js"]
-skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1777831
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && !debug"] # Bug 1777831
 
 ["browser_browser_toolbox_print_preview.js"]
 
 ["browser_browser_toolbox_rtl.js"]
 
 ["browser_browser_toolbox_ruleview_stylesheet.js"]
-skip-if = ["os == 'mac' && fission"] # high frequency intermittent
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"] # high frequency intermittent
 
 ["browser_browser_toolbox_shouldprocessupdates.js"]
 

@@ -60,10 +60,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_animation_animation-target_highlight.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 skip-if = [
-  "apple_catalina && !debug", # Disabled in Bug 1713158. Intemittent bug: Bug 1665011
-  "os == 'linux' && !debug && !asan && !swgl && !ccov", # Bug 1665011
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Disabled in Bug 1713158. Intemittent bug: Bug 1665011
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1665011
   "win11_2009", # Bug 1798331
-  "a11y_checks && debug", # Bugs 1849028 and 1858041 for causing intermittent test results
 ]
 
 ["browser_animation_animation-target_select.js"]
@@ -78,7 +77,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_animation_current-time-scrubber-rtl.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["os == 'linux' && debug"] # Bug 1721716
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug"] # Bug 1721716
 
 ["browser_animation_current-time-scrubber-with-negative-delay.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -94,7 +93,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_animation_fission_switch-target.js"]
 
 ["browser_animation_indication-bar.js"]
-skip-if = ["a11y_checks"] # Bugs 1858041 and 1849028 for causing intermittent a11y_checks results
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bugs 1858041 and 1849028 for causing intermittent a11y_checks results
 
 ["browser_animation_infinity-duration_current-time-scrubber.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -114,7 +113,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_animation_keyframes-graph_computed-value-path_easing-hint.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["verify && !debug"]
+skip-if = ["verify && opt"]
 
 ["browser_animation_keyframes-graph_keyframe-marker-rtl.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -152,7 +151,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = [
   "debug",
   "win11_2009' && bits == 32", # Bug 1567800
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1567800
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1567800
 ]
 
 ["browser_animation_logic_mutations_properties.js"]
@@ -167,7 +166,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_animation_pause-resume-button_end-time.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1767699
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug"] # Bug 1767699
 
 ["browser_animation_pause-resume-button_respectively.js"]
 

@@ -93,7 +93,7 @@ skip-if = [
 https_first_disabled = true
 skip-if = [
   "os == 'win'",   # Bug 1640234
-  "os == 'linux'", # Bug 1640234
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1640234
 ]
 
 ["browser_application_panel_telemetry-debug-worker.js"]
@@ -101,7 +101,7 @@ https_first_disabled = true
 skip-if = [
   "asan",   # Bug 1559487
   "debug",  # Bug 1559591
-  "os == 'linux' && bits == 64 && !debug", # Bug 1654354
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1654354
 ]
 
 ["browser_application_panel_telemetry-select-page.js"]

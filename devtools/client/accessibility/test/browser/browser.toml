@@ -13,16 +13,16 @@ support-files = [
 
 ["browser_accessibility_context_menu_inspector.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713392
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713392
 ]
 
 ["browser_accessibility_fission_switch_target.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && asan"] # bug 1666940
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan"] # bug 1666940
 
 ["browser_accessibility_mutations.js"]
 skip-if = [
-  "os == 'linux' && bits == 64 && fission", # Bug 1675445
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1675445
 ]
 
 ["browser_accessibility_panel_audit_hidden_iframe.js"]
@@ -43,7 +43,7 @@ skip-if = ["true"] # bug 1674060
 ["browser_accessibility_sidebar.js"]
 
 ["browser_accessibility_sidebar_checks.js"]
-skip-if = ["os == 'linux' && !debug"]  # Bug 1767748
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt"]  # Bug 1767748
 
 ["browser_accessibility_sidebar_dom_nodes.js"]
 

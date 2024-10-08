@@ -101,19 +101,16 @@ skip-if = [
 ["browser_source_map-no-race.js"]
 skip-if = [
   "http3", # Bug 1829298
-  "http2",
 ]
 
 ["browser_source_map-pub-sub.js"]
 skip-if = [
   "http3", # Bug 1829298
-  "http2",
 ]
 
 ["browser_source_map-reload.js"]
 skip-if = [
   "http3", # Bug 1829298
-  "http2",
 ]
 
 ["browser_tab_commands_factory.js"]
@@ -141,8 +138,8 @@ skip-if = ["tsan"] # bug 1807041
 
 ["browser_toolbox_backward_forward_navigation.js"]
 skip-if = [
-  "os == 'linux' && bits == 64", # Bug 1770314
-  "os == 'mac'", # Bug 1770314
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1770314
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1770314
 ]
 
 ["browser_toolbox_browsertoolbox_host.js"]
@@ -159,7 +156,7 @@ skip-if = [
 
 ["browser_toolbox_fission_navigation.js"]
 skip-if = [
-  "os == 'linux'", # Bug 1742672
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1742672
 ]
 
 ["browser_toolbox_frames_list.js"]
@@ -180,7 +177,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_toolbox_keyboard_navigation_notification_box.js"]
 skip-if = [
   "http3", # Bug 1829298
-  "http2",
 ]
 
 ["browser_toolbox_many_toggles.js"]
@@ -191,7 +187,7 @@ skip-if = ["os == 'win'"] # Content process killing throws on Window
 ["browser_toolbox_options.js"]
 
 ["browser_toolbox_options_disable_buttons.js"]
-skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 
 ["browser_toolbox_options_disable_cache-01.js"]
 
@@ -200,7 +196,6 @@ skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 ["browser_toolbox_options_disable_cache-03.js"]
 skip-if = [
   "http3", # Bug 1829298
-  "http2",
 ]
 
 ["browser_toolbox_options_disable_js.js"]
@@ -208,7 +203,6 @@ skip-if = [
 ["browser_toolbox_options_enable_serviceworkers_testing.js"]
 skip-if = [
   "http3", # Bug 1829298
-  "http2",
 ]
 
 ["browser_toolbox_options_frames_button.js"]
@@ -229,7 +223,7 @@ disabled = "Bug 962258"
 ["browser_toolbox_remoteness_change.js"]
 
 ["browser_toolbox_screenshot_tool.js"]
-skip-if = ["a11y_checks"] # Bugs 1858041 and 1849028 for causing intermittent crashes
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bugs 1858041 and 1849028 for causing intermittent crashes
 
 ["browser_toolbox_select_event.js"]
 
@@ -314,5 +308,5 @@ skip-if = ["os == 'win' && !debug"] # bug 1683265
 ["browser_webextension_descriptor.js"]
 
 ["browser_webextension_dropdown.js"]
-skip-if = ["os == 'linux' && !debug"] # Bug 1714106
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt"] # Bug 1714106
 # We want these tests to run for mochitest-dt as well, so we include them here:

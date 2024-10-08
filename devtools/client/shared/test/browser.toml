@@ -69,8 +69,8 @@ support-files = [
 
 ["browser_cubic-bezier-02.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_cubic-bezier-03.js"]
@@ -81,8 +81,8 @@ skip-if = [
 
 ["browser_cubic-bezier-06.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_cubic-bezier-07.js"]
@@ -121,7 +121,7 @@ skip-if = ["verify"]
 ["browser_filter-editor-06.js"]
 
 ["browser_filter-editor-07.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_filter-editor-08.js"]
 
@@ -139,32 +139,31 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_html_tooltip-02.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
-  "a11y_checks && debug", # Bugs 1849028 and 1858041 for causing intermittent test results
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_html_tooltip-03.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_html_tooltip-04.js"]
-skip-if = ["os == 'linux' && !asan && !debug && !swgl && !ccov"] # Bug 1721159
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt"] # Bug 1721159
 
 ["browser_html_tooltip-05.js"]
 
 ["browser_html_tooltip_arrow-01.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_html_tooltip_arrow-02.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_html_tooltip_consecutive-show.js"]
@@ -179,8 +178,8 @@ skip-if = [
 
 ["browser_html_tooltip_offset.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_html_tooltip_resize.js"]
@@ -191,14 +190,14 @@ skip-if = [
 
 ["browser_html_tooltip_variable-height.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_html_tooltip_width-auto.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_html_tooltip_xul-wrapper.js"]
@@ -209,38 +208,38 @@ skip-if = [
 
 ["browser_inplace-editor-02.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_inplace-editor_autoclose_parentheses.js"]
 
 ["browser_inplace-editor_autocomplete_01.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_inplace-editor_autocomplete_02.js"]
 
 ["browser_inplace-editor_autocomplete_css_variable.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_inplace-editor_autocomplete_offset.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_inplace-editor_focus_closest_editor.js"]
 
 ["browser_inplace-editor_maxwidth.js"]
 skip-if = [
-  "apple_catalina", # Bug 1713158
-  "os == 'linux' && !asan && !debug && !swgl && !ccov", # Bug 1721159
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1713158
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1721159
 ]
 
 ["browser_inplace-editor_stop_on_key.js"]
@@ -281,7 +280,11 @@ skip-if = [
 ["browser_tableWidget_keyboard_interaction.js"]
 
 ["browser_tableWidget_mouse_interaction.js"]
-skip-if = ["(os == 'linux' && os_version == '18.04' && bits == 64) && (!debug && !asan)"] #Bug 1118592
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1118592
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1118592
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && ccov", # Bug 1118592
+]
 
 ["browser_telemetry_button_eyedropper.js"]
 
@@ -317,7 +320,7 @@ skip-if = ["os == 'win'"] # Win: bug 1404197
 ["browser_treeWidget_basic.js"]
 
 ["browser_treeWidget_keyboard_interaction.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_treeWidget_mouse_interaction.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
