@@ -729,23 +729,6 @@ struct Padded {
   auto operator->() { return &val; }
   auto operator->() const { return &val; }
 };
-template <class T>
-struct Padded<T, sizeof(T)> {
- private:
-  T val = {};
-
- public:
-  operator T&() { return val; }
-  operator const T&() const { return val; }
-
-  auto& operator=(const T& rhs) { return val = rhs; }
-  auto& operator=(T&& rhs) { return val = std::move(rhs); }
-
-  auto& operator*() { return val; }
-  auto& operator*() const { return val; }
-  auto operator->() { return &val; }
-  auto operator->() const { return &val; }
-};
 
 // -
 
