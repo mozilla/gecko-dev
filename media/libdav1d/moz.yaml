@@ -57,7 +57,6 @@ vendoring:
 
   generated:
     - '{yaml_dir}/vcs_version.h'
-    - '{yaml_dir}/version.h'
 
   update-actions:
     - action: copy-file
@@ -67,7 +66,6 @@ vendoring:
       pattern: '@VCS_TAG@'
       with: '{revision}'
       file: '{yaml_dir}/vcs_version.h'
-    - action: run-script
-      script: '{yaml_dir}/update-version.sh'
-      cwd: '{vendor_dir}'
-      args: ['{yaml_dir}/version.h']
+    - action: copy-file
+      from: include/dav1d/version.h
+      to: '{yaml_dir}/version.h'
