@@ -544,13 +544,17 @@ open class FxaAccountManager(
         }
         AccountState.Authenticated -> when (via) {
             is Event.Progress.CompletedAuthentication -> {
+                val ignoreCache = when (via.authType) {
+                    AuthType.Existing -> false
+                    else -> true
+                }
                 val operation = when (via.authType) {
                     AuthType.Existing -> "CompletingAuthentication:accountRestored"
                     else -> "CompletingAuthentication:AuthData"
                 }
                 if (authenticationSideEffects(operation)) {
                     notifyObservers { onAuthenticated(account, via.authType) }
-                    refreshProfile(ignoreCache = false)
+                    refreshProfile(ignoreCache = ignoreCache)
                     Unit
                 } else {
                     throw AccountManagerException.AuthenticationSideEffectsFailed()

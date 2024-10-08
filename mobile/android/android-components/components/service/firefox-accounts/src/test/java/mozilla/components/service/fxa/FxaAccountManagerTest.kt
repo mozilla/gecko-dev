@@ -1181,7 +1181,7 @@ class FxaAccountManagerTest {
         }
 
         lateinit var waitFor: Job
-        `when`(mockAccount.getProfile(ignoreCache = false)).then {
+        `when`(mockAccount.getProfile(ignoreCache = anyBoolean())).then {
             // Hit an auth error.
             waitFor = CoroutineScope(coroutineContext).launch { manager.encounteredAuthError("a test") }
             null
@@ -1241,7 +1241,7 @@ class FxaAccountManagerTest {
         }
 
         lateinit var waitFor: Job
-        `when`(mockAccount.getProfile(ignoreCache = false)).then {
+        `when`(mockAccount.getProfile(ignoreCache = anyBoolean())).then {
             // Hit an auth error.
             waitFor = CoroutineScope(coroutineContext).launch { manager.encounteredAuthError("a test") }
             null
@@ -1323,7 +1323,7 @@ class FxaAccountManagerTest {
             }
         }
         // Upon recovery, we'll hit an 'ignore cache' path.
-        `when`(mockAccount.getProfile(ignoreCache = true)).thenReturn(profile)
+        `when`(mockAccount.getProfile(ignoreCache = anyBoolean())).thenReturn(profile)
 
         val accountObserver: AccountObserver = mock()
 
@@ -1369,7 +1369,7 @@ class FxaAccountManagerTest {
         `when`(constellation.finalizeDevice(any(), any())).thenReturn(ServiceResult.Ok)
         doAnswer {
             throw FxaPanicException("500")
-        }.`when`(mockAccount).getProfile(ignoreCache = false)
+        }.`when`(mockAccount).getProfile(ignoreCache = anyBoolean())
         `when`(mockAccount.beginOAuthFlow(any(), any())).thenReturn(testAuthFlowUrl())
         `when`(mockAccount.completeOAuthFlow(anyString(), anyString())).thenReturn(true)
         // There's no account at the start.
@@ -1503,7 +1503,7 @@ class FxaAccountManagerTest {
             System.currentTimeMillis() + 1000 * 10,
         )
 
-        `when`(mockAccount.getProfile(ignoreCache = false)).thenReturn(profile)
+        `when`(mockAccount.getProfile(ignoreCache = anyBoolean())).thenReturn(profile)
         `when`(mockAccount.beginOAuthFlow(any(), any())).thenReturn(testAuthFlowUrl(entrypoint = "home-menu"))
         `when`(mockAccount.beginPairingFlow(anyString(), any(), any())).thenReturn(testAuthFlowUrl(entrypoint = "home-menu"))
         `when`(mockAccount.completeOAuthFlow(anyString(), anyString())).thenReturn(true)
@@ -1538,7 +1538,7 @@ class FxaAccountManagerTest {
         accountObserver: AccountObserver,
         coroutineContext: CoroutineContext,
     ): FxaAccountManager {
-        `when`(mockAccount.getProfile(ignoreCache = false)).thenReturn(profile)
+        `when`(mockAccount.getProfile(ignoreCache = anyBoolean())).thenReturn(profile)
         `when`(mockAccount.deviceConstellation()).thenReturn(mock())
         `when`(mockAccount.beginOAuthFlow(any(), any())).thenReturn(null)
         `when`(mockAccount.beginPairingFlow(anyString(), any(), any())).thenReturn(null)
