@@ -183,6 +183,7 @@ add_task(async function enter_action_search_mode() {
   await UrlbarTestUtils.assertSearchMode(window, {
     source: UrlbarUtils.RESULT_SOURCE.ACTIONS,
     entry: "typed",
+    restrictType: "symbol",
   });
   let { result } = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
   Assert.equal(
