@@ -24,12 +24,6 @@ To record your new event, use [the Glean `record(...)` API][glean-event-api].
 
 To test your new event, use [the Glean `testGetValue()` API][glean-test-api].
 
-```{admonition} Don't Forget!
-Though you're using Glean, there's still a Legacy Telemetry event underneath.
-You must call `Services.telemetry.setEventRecordingEnabled("myCategory", true);`
-in order for the Legacy Telemetry event to be recorded.
-```
-
 Your Legacy Telemetry event will appear in `about:telemetry`
 when your code is triggered as confirmation this is all working as you expect.
 

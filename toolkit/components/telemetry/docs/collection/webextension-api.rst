@@ -139,7 +139,7 @@ Instead, use :doc:`Glean event definitions <../../glean/user/glean_for_legacy_ev
 
   browser.telemetry.setEventRecordingEnabled(category, enabled);
 
-Enable recording of events in a category. Events default to recording disabled. This allows to toggle recording for all events in the specified category.
+Enable recording of events in a category. Events default to recording enabled. This allows to toggle recording for all events in the specified category.
 
 * ``category`` - *(string)* The category name.
 * ``enabled`` - *(boolean)* Whether recording is enabled for events in that category.

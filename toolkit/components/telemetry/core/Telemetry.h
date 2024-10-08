@@ -551,7 +551,7 @@ class MOZ_RAII AutoScalarTimer {
 
 /**
  * Enables recording of events in a category.
- * Events default to recording disabled.
+ * Events default to recording enabled.
  * This toggles recording for all events in the specified category.
  *
  * @param aCategory The category name.

@@ -364,7 +364,7 @@
       {
         "name": "setEventRecordingEnabled",
         "type": "function",
-        "description": "Enable recording of events in a category. Events default to recording disabled. This allows to toggle recording for all events in the specified category.",
+        "description": "Enable recording of events in a category. Events default to recording enabled. This allows to toggle recording for all events in the specified category.",
         "async": true,
         "parameters": [
           {

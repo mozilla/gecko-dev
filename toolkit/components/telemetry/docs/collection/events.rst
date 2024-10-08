@@ -164,16 +164,14 @@ events in Firefox Desktop are
 
   Services.telemetry.setEventRecordingEnabled(category, enabled);
 
-Event recording is currently disabled by default for events registered in Events.yaml.
-Dynamically-registered events (those registered using ``registerEvents()``) are enabled by default, and cannot be disabled.
+Event recording is currently enabled by default for events registered in Events.yaml.
+Dynamically-registered events (those registered using ``registerEvents()``) cannot be disabled.
 Privileged add-ons and Firefox code can enable & disable recording events for specific categories using this function.
 
 Example:
 
 .. code-block:: js
 
-  Services.telemetry.setEventRecordingEnabled("ui", true);
-  // ... now events in the "ui" category will be recorded.
   Services.telemetry.setEventRecordingEnabled("ui", false);
   // ... now "ui" events will not be recorded anymore.
 
@@ -181,6 +179,11 @@ Example:
 
   Even if your event category isn't enabled, counts of events that attempted to be recorded will
   be :ref:`summarized <events.event-summary>`.
+
+.. note::
+  Events can be expensive to store, submit, and query.
+  You are responsible for ensuring that you don't submit too many events.
+  When your new events land in Nightly, consult with the Data Org about whether they are too "chatty".
 
 Internal API
 ------------
@@ -240,14 +243,12 @@ the dynamic-process scalar ``telemetry.dynamic_event_counts`` would have a key
 Testing
 =======
 
-Tests involving Event Telemetry often follow this four-step form:
+Tests involving Event Telemetry often follow this three-step form:
 
 1. ``Services.telemetry.clearEvents();`` To minimize the effects of prior code and tests.
-2. ``Services.telemetry.setEventRecordingEnabled(myCategory, true);`` To enable the collection of
-   your events. (May or may not be relevant in your case)
-3. ``runTheCode();`` This is part of the test where you call the code that's supposed to collect
+2. ``runTheCode();`` This is part of the test where you call the code that's supposed to collect
    Event Telemetry.
-4. ``TelemetryTestUtils.assertEvents(expected, filter, options);`` This will check the
+3. ``TelemetryTestUtils.assertEvents(expected, filter, options);`` This will check the
    events recorded by Event Telemetry against your provided list of expected events.
    If you only need to check the number of events recorded, you can use
    ``TelemetryTestUtils.assertNumberOfEvents(expectedNum, filter, options);``.

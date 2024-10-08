@@ -334,8 +334,8 @@ nsTHashMap<nsCStringHashKey, EventKey> gEventNameIDMap(kEventCount);
 // The CategoryName set.
 nsTHashSet<nsCString> gCategoryNames;
 
-// This tracks the IDs of the categories for which recording is enabled.
-nsTHashSet<nsCString> gEnabledCategories;
+// This tracks the IDs of the categories for which recording is disabled.
+nsTHashSet<nsCString> gDisabledCategories;
 
 // The main event storage. Events are inserted here, keyed by process id and
 // in recording order.
@@ -503,7 +503,7 @@ RecordEventResult RecordEvent(const StaticMutexAutoLock& lock,
                                   processType, dynamicNonBuiltin);
 
   // Check whether this event's category has recording enabled
-  if (!gEnabledCategories.Contains(GetCategory(lock, eventKey))) {
+  if (gDisabledCategories.Contains(GetCategory(lock, eventKey))) {
     return RecordEventResult::Ok;
   }
 
@@ -581,12 +581,6 @@ void RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
   // If it is a builtin, add the category name in order to enable it later.
   if (aBuiltin) {
     gCategoryNames.Insert(category);
-  }
-
-  if (!aBuiltin) {
-    // Now after successful registration enable recording for this category
-    // (if not a dynamic builtin).
-    gEnabledCategories.Insert(category);
   }
 }
 
@@ -750,9 +744,6 @@ void TelemetryEvent::InitializeGlobalState(bool aCanRecordBase,
     gCategoryNames.Insert(info.common_info.category());
   }
 
-  // A hack until bug 1691156 is fixed
-  gEnabledCategories.Insert("avif"_ns);
-
   gInitDone = true;
 }
 
@@ -765,7 +756,7 @@ void TelemetryEvent::DeInitializeGlobalState() {
 
   gEventNameIDMap.Clear();
   gCategoryNames.Clear();
-  gEnabledCategories.Clear();
+  gDisabledCategories.Clear();
   gEventRecords.Clear();
 
   gDynamicEventInfo = nullptr;
@@ -1394,10 +1385,10 @@ void TelemetryEvent::SetEventRecordingEnabled(const nsACString& category,
     return;
   }
 
-  if (enabled) {
-    gEnabledCategories.Insert(category);
+  if (!enabled) {
+    gDisabledCategories.Insert(category);
   } else {
-    gEnabledCategories.Remove(category);
+    gDisabledCategories.Remove(category);
   }
 }
 
@@ -1427,7 +1418,7 @@ size_t TelemetryEvent::SizeOfIncludingThis(
   }
 
   n += gCategoryNames.ShallowSizeOfExcludingThis(aMallocSizeOf);
-  n += gEnabledCategories.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  n += gDisabledCategories.ShallowSizeOfExcludingThis(aMallocSizeOf);
 
   if (gDynamicEventInfo) {
     n += gDynamicEventInfo->ShallowSizeOfIncludingThis(aMallocSizeOf);

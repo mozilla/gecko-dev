@@ -170,7 +170,10 @@ add_task(async function test_recording_state() {
     ["telemetry.test.second", "test", "object1"],
   ];
 
-  // Both test categories should be off by default.
+  Telemetry.setEventRecordingEnabled("telemetry.test", false);
+  Telemetry.setEventRecordingEnabled("telemetry.test.second", false);
+
+  // Both test categories should now be off.
   events.forEach(e => Telemetry.recordEvent(...e));
   TelemetryTestUtils.assertEvents([]);
   checkEventSummary(

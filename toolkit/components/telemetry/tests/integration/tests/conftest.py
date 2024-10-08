@@ -105,20 +105,6 @@ class Browser(object):
         )
         self.marionette.set_pref("datareporting.healthreport.uploadEnabled", False)
 
-    def enable_search_events(self):
-        """
-        Event Telemetry categories are disabled by default.
-        Search events are in the "navigation" category and are not enabled by
-        default in builds of Firefox, so we enable them here.
-        """
-
-        script = """\
-        Services.telemetry.setEventRecordingEnabled("navigation", true);
-        """
-
-        with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
-            self.marionette.execute_script(textwrap.dedent(script))
-
     def enable_telemetry(self):
         self.marionette.instance.profile.set_persistent_preferences(
             {"datareporting.healthreport.uploadEnabled": True}
