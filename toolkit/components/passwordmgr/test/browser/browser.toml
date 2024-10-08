@@ -245,9 +245,14 @@ skip-if = [
 ["browser_proxyAuth_prompt.js"]
 skip-if = ["os == 'android'"]
 
-["browser_relay_telemetry.js"]
+["browser_relay_signup_flow.js"]
+support-files = ["browser_relay_utils.js"]
 
-["browser_relay_visibility.js"]
+["browser_relay_signup_flow_showToAllBrowsers.js"]
+support-files = ["browser_relay_utils.js"]
+
+["browser_relay_telemetry.js"]
+support-files = ["browser_relay_utils.js"]
 
 ["browser_telemetry_SignUpFormRuleset.js"]
 

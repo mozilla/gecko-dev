@@ -613,9 +613,9 @@ class RelayOffered {
         removeOnDismissal: true,
         learnMoreURL: gConfig.learnMoreURL,
         eventCallback: event => {
-          const document = notification.owner.panel.ownerDocument;
           switch (event) {
-            case "shown":
+            case "shown": {
+              const document = notification.owner.panel.ownerDocument;
               customizeNotificationHeader(notification);
               document.getElementById("firefox-relay-offer-tos-url").href =
                 gConfig.termsOfServiceUrl;
@@ -623,6 +623,7 @@ class RelayOffered {
                 gConfig.privacyPolicyUrl;
               Glean.relayIntegration.shownOptInPanel.record({ value: gFlowId });
               break;
+            }
           }
         },
       }
@@ -674,9 +675,9 @@ class RelayOffered {
         removeOnDismissal: true,
         learnMoreURL: gConfig.learnMoreURL,
         eventCallback: event => {
-          const document = notification.owner.panel.ownerDocument;
           switch (event) {
-            case "shown":
+            case "shown": {
+              const document = notification.owner.panel.ownerDocument;
               customizeNotificationHeader(notification);
               document.getElementById("firefox-relay-offer-tos-url").href =
                 gConfig.termsOfServiceUrl;
@@ -697,6 +698,7 @@ class RelayOffered {
               );
               Glean.relayIntegration.shownOptInPanel.record({ value: gFlowId });
               break;
+            }
           }
         },
       }

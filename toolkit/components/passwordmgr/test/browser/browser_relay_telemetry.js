@@ -1,76 +1,9 @@
-const { sinon } = ChromeUtils.importESModule(
-  "resource://testing-common/Sinon.sys.mjs"
+Services.scriptloader.loadSubScript(
+  "chrome://mochitests/content/browser/toolkit/components/passwordmgr/test/browser/browser_relay_utils.js",
+  this
 );
-const { HttpServer } = ChromeUtils.importESModule(
-  "resource://testing-common/httpd.sys.mjs"
-);
-const { getFxAccountsSingleton } = ChromeUtils.importESModule(
-  "resource://gre/modules/FxAccounts.sys.mjs"
-);
-
-const gFxAccounts = getFxAccountsSingleton();
-let gRelayACOptionsTitles;
-let gHttpServer;
 
 const TEST_URL_PATH = `https://example.org${DIRECTORY_PATH}form_basic_signup.html`;
-
-const MOCK_MASKS = [
-  {
-    full_address: "email1@mozilla.com",
-    description: "Email 1 Description",
-    enabled: true,
-  },
-  {
-    full_address: "email2@mozilla.com",
-    description: "Email 2 Description",
-    enabled: false,
-  },
-  {
-    full_address: "email3@mozilla.com",
-    description: "Email 3 Description",
-    enabled: true,
-  },
-];
-
-const SERVER_SCENARIOS = {
-  free_tier_limit: {
-    "/relayaddresses/": {
-      POST: (request, response) => {
-        response.setStatusLine(request.httpVersion, 403);
-        response.write(JSON.stringify({ error_code: "free_tier_limit" }));
-      },
-      GET: (_, response) => {
-        response.write(JSON.stringify(MOCK_MASKS));
-      },
-    },
-  },
-  unknown_error: {
-    "/relayaddresses/": {
-      default: (request, response) => {
-        response.setStatusLine(request.httpVersion, 408);
-      },
-    },
-  },
-
-  default: {
-    default: (request, response) => {
-      response.setStatusLine(request.httpVersion, 200);
-      response.write(JSON.stringify({ foo: "bar" }));
-    },
-  },
-};
-
-const simpleRouter = scenarioName => (request, response) => {
-  const routeHandler =
-    SERVER_SCENARIOS[scenarioName][request._path] ?? SERVER_SCENARIOS.default;
-  const methodHandler =
-    routeHandler?.[request._method] ??
-    routeHandler.default ??
-    SERVER_SCENARIOS.default.default;
-  methodHandler(request, response);
-};
-const setupServerScenario = (scenarioName = "default") =>
-  gHttpServer.registerPrefixHandler("/", simpleRouter(scenarioName));
 
 const setupRelayScenario = async scenarioName => {
   await SpecialPowers.pushPrefEnv({
@@ -145,52 +78,20 @@ async function openRelayAC(browser) {
 requestLongerTimeout(2);
 
 add_setup(async function () {
-  gHttpServer = new HttpServer();
-  setupServerScenario();
-
-  gHttpServer.start(-1);
-
-  const API_ENDPOINT = `http://localhost:${gHttpServer.identity.primaryPort}/`;
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["signon.firefoxRelay.feature", "available"],
-      ["signon.firefoxRelay.base_url", API_ENDPOINT],
-    ],
-  });
-
-  sinon.stub(gFxAccounts, "hasLocalSession").returns(true);
-  sinon
-    .stub(gFxAccounts.constructor.config, "isProductionConfig")
-    .returns(true);
-  sinon.stub(gFxAccounts, "getOAuthToken").returns("MOCK_TOKEN");
-  sinon.stub(gFxAccounts, "getSignedInUser").returns({
-    email: "example@mozilla.com",
-  });
+  await setUpMockRelayServer();
 
   const canRecordExtendedOld = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
   Services.telemetry.clearEvents();
-  Services.telemetry.setEventRecordingEnabled("relay_integration", true);
-
-  gRelayACOptionsTitles = await new Localization([
-    "browser/firefoxRelay.ftl",
-    "toolkit/branding/brandings.ftl",
-  ]).formatMessages([
-    "firefox-relay-opt-in-title-1",
-    "firefox-relay-use-mask-title",
-  ]);
 
   registerCleanupFunction(async () => {
-    await new Promise(resolve => {
-      gHttpServer.stop(function () {
-        resolve();
-      });
-    });
     Services.telemetry.setEventRecordingEnabled("relay_integration", false);
     Services.telemetry.clearEvents();
     Services.telemetry.canRecordExtended = canRecordExtendedOld;
     sinon.restore();
   });
+
+  stubFxAccountsToSimulateSignedIn();
 });
 
 add_task(async function test_pref_toggle() {
@@ -216,6 +117,7 @@ add_task(async function test_pref_toggle() {
 
 add_task(async function test_popup_option_optin_enabled() {
   await setupRelayScenario("available");
+  setupServerScenario();
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
