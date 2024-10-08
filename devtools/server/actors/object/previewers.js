@@ -68,8 +68,6 @@ const OBJECT_WITH_URL_CLASSNAMES = new Set([
  * arguments:
  *   - the ObjectActor instance and its hooks to make a preview for,
  *   - the grip object being prepared for the client,
- *   - the object class (result of objectActor.obj.class). This is passed so we don't have
- *   to access it on each previewer, which can add some overhead.
  *
  * Functions must return false if they cannot provide preview
  * information for the debugger object, or true otherwise.
@@ -78,7 +76,6 @@ const previewers = {
   String: [
     function(objectActor, grip) {
       return wrappedPrimitivePreviewer(
-        "String",
         String,
         objectActor,
         grip
@@ -89,7 +86,6 @@ const previewers = {
   Boolean: [
     function(objectActor, grip ) {
       return wrappedPrimitivePreviewer(
-        "Boolean",
         Boolean,
         objectActor,
         grip
@@ -100,7 +96,6 @@ const previewers = {
   Number: [
     function(objectActor, grip) {
       return wrappedPrimitivePreviewer(
-        "Number",
         Number,
         objectActor,
         grip
@@ -111,7 +106,6 @@ const previewers = {
   Symbol: [
     function(objectActor, grip) {
       return wrappedPrimitivePreviewer(
-        "Symbol",
         Symbol,
         objectActor,
         grip
@@ -669,8 +663,6 @@ const previewers = {
  * Generic previewer for classes wrapping primitives, like String,
  * Number and Boolean.
  *
- * @param string className
- *        Class name to expect.
  * @param object classObj
  *        The class to expect, eg. String. The valueOf() method of the class is
  *        invoked on the given object.
@@ -681,7 +673,6 @@ const previewers = {
  * @return Booolean true if the object was handled, false otherwise
  */
 function wrappedPrimitivePreviewer(
-  className,
   classObj,
   objectActor,
   grip
@@ -701,7 +692,7 @@ function wrappedPrimitivePreviewer(
 
   const { obj, hooks } = objectActor;
 
-  const canHandle = GenericObject(objectActor, grip, className);
+  const canHandle = GenericObject(objectActor, grip);
   if (!canHandle) {
     return false;
   }
@@ -716,10 +707,9 @@ function wrappedPrimitivePreviewer(
  * @param {ObjectActor} objectActor
  * @param {Object} grip: The grip built by the objectActor, for which we need to populate
  *                       the `preview` property.
- * @param {String} className: objectActor.obj.class
  * @returns
  */
-function GenericObject(objectActor, grip, className) {
+function GenericObject(objectActor, grip) {
   const { obj, hooks, safeRawObj } = objectActor;
   if (grip.preview || grip.displayString || hooks.getGripDepth() > 1) {
     return false;
@@ -735,7 +725,7 @@ function GenericObject(objectActor, grip, className) {
 
   let length,
     i = 0;
-  let specialStringBehavior = className === "String";
+  let specialStringBehavior = objectActor.className === "String";
   if (specialStringBehavior) {
     length = DevToolsUtils.getProperty(obj, "length");
     if (typeof length != "number") {
@@ -878,8 +868,8 @@ previewers.Object = [
     return true;
   },
 
-  function Error(objectActor, grip, className) {
-    if (!ERROR_CLASSNAMES.has(className)) {
+  function Error(objectActor, grip) {
+    if (!ERROR_CLASSNAMES.has(objectActor.className)) {
       return false;
     }
 
@@ -914,9 +904,9 @@ previewers.Object = [
     return true;
   },
 
-  function CSSMediaRule(objectActor, grip, className) {
+  function CSSMediaRule(objectActor, grip) {
     const { safeRawObj } = objectActor;
-    if (!safeRawObj || className != "CSSMediaRule" || isWorker) {
+    if (!safeRawObj || objectActor.className != "CSSMediaRule" || isWorker) {
       return false;
     }
     const { hooks } = objectActor;
@@ -927,9 +917,9 @@ previewers.Object = [
     return true;
   },
 
-  function CSSStyleRule(objectActor, grip, className) {
+  function CSSStyleRule(objectActor, grip) {
     const { safeRawObj } = objectActor;
-    if (!safeRawObj || className != "CSSStyleRule" || isWorker) {
+    if (!safeRawObj || objectActor.className != "CSSStyleRule" || isWorker) {
       return false;
     }
     const { hooks } = objectActor;
@@ -940,14 +930,14 @@ previewers.Object = [
     return true;
   },
 
-  function ObjectWithURL(objectActor, grip, className) {
+  function ObjectWithURL(objectActor, grip) {
     const { safeRawObj } = objectActor;
     if (isWorker || !safeRawObj) {
       return false;
     }
 
     const isWindow = Window.isInstance(safeRawObj);
-    if (!OBJECT_WITH_URL_CLASSNAMES.has(className) && !isWindow) {
+    if (!OBJECT_WITH_URL_CLASSNAMES.has(objectActor.className) && !isWindow) {
       return false;
     }
 
@@ -978,11 +968,11 @@ previewers.Object = [
     return true;
   },
 
-  function ArrayLike(objectActor, grip, className) {
+  function ArrayLike(objectActor, grip) {
     const { safeRawObj } = objectActor;
     if (
       !safeRawObj ||
-      !ARRAY_LIKE_CLASSNAMES.has(className) ||
+      !ARRAY_LIKE_CLASSNAMES.has(objectActor.className) ||
       typeof safeRawObj.length != "number" ||
       isWorker
     ) {
@@ -1013,8 +1003,8 @@ previewers.Object = [
     return true;
   },
 
-  function CSSStyleDeclaration(objectActor, grip, className) {
-    const { safeRawObj } = objectActor;
+  function CSSStyleDeclaration(objectActor, grip) {
+    const { safeRawObj, className } = objectActor;
     if (
       !safeRawObj ||
       (className != "CSSStyleDeclaration" && className != "CSS2Properties") ||
@@ -1040,10 +1030,10 @@ previewers.Object = [
     return true;
   },
 
-  function DOMNode(objectActor, grip, className) {
+  function DOMNode(objectActor, grip) {
     const { safeRawObj } = objectActor;
     if (
-      className == "Object" ||
+      objectActor.className == "Object" ||
       !safeRawObj ||
       !Node.isInstance(safeRawObj) ||
       isWorker
@@ -1051,7 +1041,7 @@ previewers.Object = [
       return false;
     }
 
-    const { obj, hooks } = objectActor;
+    const { obj, className, hooks } = objectActor;
 
     const preview = (grip.preview = {
       kind: "DOMNode",
@@ -1062,7 +1052,7 @@ previewers.Object = [
 
     if (safeRawObj.nodeType == safeRawObj.DOCUMENT_NODE && safeRawObj.location) {
       preview.location = hooks.createValueGrip(safeRawObj.location.href);
-    } else if (obj.class == "DocumentFragment") {
+    } else if (className == "DocumentFragment") {
       preview.childNodesLength = safeRawObj.childNodes.length;
 
       if (hooks.getGripDepth() < 2) {
@@ -1090,12 +1080,12 @@ previewers.Object = [
       for (const attr of safeRawObj.attributes) {
         preview.attributes[attr.nodeName] = hooks.createValueGrip(attr.value);
       }
-    } else if (obj.class == "Attr") {
+    } else if (className == "Attr") {
       preview.value = hooks.createValueGrip(safeRawObj.value);
     } else if (
-      obj.class == "Text" ||
-      obj.class == "CDATASection" ||
-      obj.class == "Comment"
+      className == "Text" ||
+      className == "CDATASection" ||
+      className == "Comment"
     ) {
       preview.textContent = hooks.createValueGrip(safeRawObj.textContent);
     }
@@ -1109,7 +1099,7 @@ previewers.Object = [
       return false;
     }
 
-    const { obj, hooks } = objectActor;
+    const { obj, className, hooks } = objectActor;
     const preview = (grip.preview = {
       kind: "DOMEvent",
       type: safeRawObj.type,
@@ -1121,12 +1111,12 @@ previewers.Object = [
       preview.target = hooks.createValueGrip(target);
     }
 
-    if (obj.class == "KeyboardEvent") {
+    if (className == "KeyboardEvent") {
       preview.eventKind = "key";
       preview.modifiers = ObjectUtils.getModifiersForEvent(safeRawObj);
     }
 
-    const props = ObjectUtils.getPropsForEvent(obj.class);
+    const props = ObjectUtils.getPropsForEvent(className);
 
     // Add event-specific properties.
     for (const prop of props) {
@@ -1170,9 +1160,9 @@ previewers.Object = [
     return true;
   },
 
-  function DOMException(objectActor, grip, className) {
+  function DOMException(objectActor, grip) {
     const { safeRawObj } = objectActor;
-    if (!safeRawObj || className !== "DOMException" || isWorker) {
+    if (!safeRawObj || objectActor.className !== "DOMException" || isWorker) {
       return false;
     }
 
@@ -1192,8 +1182,8 @@ previewers.Object = [
     return true;
   },
 
-  function Object(objectActor, grip, className) {
-    return GenericObject(objectActor, grip, className);
+  function Object(objectActor, grip) {
+    return GenericObject(objectActor, grip);
   },
 ];
 

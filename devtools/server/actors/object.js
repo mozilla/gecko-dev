@@ -130,6 +130,11 @@ class ObjectActor extends Actor {
     this.threadActor = threadActor;
     this.rawObj = obj.unsafeDereference();
     this.safeRawObj = this.#getSafeRawObject();
+
+    // Cache obj.class as it can be costly when queried from previewers if this is in a hot path
+    // (e.g. logging objects within a for loops).
+    this.className = this.obj.class;
+
     this.hooks = {
       createValueGrip: createValueGripHook,
       getGripDepth,
@@ -165,7 +170,7 @@ class ObjectActor extends Actor {
     if (unwrapped === undefined) {
       // Objects belonging to an invisible-to-debugger compartment might be proxies,
       // so just in case they shouldn't be accessed.
-      g.class = "InvisibleToDebugger: " + this.obj.class;
+      g.class = "InvisibleToDebugger: " + this.className;
       return g;
     }
 
@@ -199,7 +204,7 @@ class ObjectActor extends Actor {
       // If the debuggee does not subsume the object's compartment, most properties won't
       // be accessible. Cross-orgin Window and Location objects might expose some, though.
       // Change the displayed class, but when creating the preview use the original one.
-      class: unwrapped === null ? "Restricted" : this.obj.class,
+      class: unwrapped === null ? "Restricted" : this.className,
       ownPropertyLength: Number.isFinite(ownPropertyLength)
         ? ownPropertyLength
         : undefined,
@@ -280,12 +285,9 @@ class ObjectActor extends Actor {
    * Populate the `preview` property on `grip` given its type.
    */
   _populateGripPreview(grip) {
-    // Cache obj.class as it can be costly if this is in a hot path (e.g. logging objects
-    // within a for loop).
-    const className = this.obj.class;
-    for (const previewer of previewers[className] || previewers.Object) {
+    for (const previewer of previewers[this.className] || previewers.Object) {
       try {
-        const previewerResult = previewer(this, grip, className);
+        const previewerResult = previewer(this, grip);
         if (previewerResult) {
           return;
         }
@@ -432,7 +434,11 @@ class ObjectActor extends Actor {
     // prototype. Avoid calling getOwnPropertyNames on objects that may have
     // many properties like Array, strings or js objects. That to avoid
     // freezing firefox when doing so.
-    if (isArray(this.obj) || ["Object", "String"].includes(this.obj.class)) {
+    if (
+      this.className == "Object" ||
+      this.className == "String" ||
+      isArray(this.obj)
+    ) {
       obj = obj.proto;
       level++;
     }

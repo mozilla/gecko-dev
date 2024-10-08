@@ -58,7 +58,7 @@ class PropertyIteratorActor extends Actor {
           propertyDescription: index => undefined,
         };
       } else if (options.enumEntries) {
-        const cls = objectActor.obj.class;
+        const cls = objectActor.className;
         if (cls == "Map") {
           this.iterator = enumMapEntries(objectActor);
         } else if (cls == "WeakMap") {
