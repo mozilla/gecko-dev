@@ -21,9 +21,12 @@ JSObject* GleanEvent::WrapObject(JSContext* aCx,
   return dom::GleanEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 
+using mozilla::dom::Nullable;
+using mozilla::dom::Optional;
+
 void GleanEvent::Record(
-    const dom::Optional<dom::Record<nsCString, nsCString>>& aExtra) {
-  if (!aExtra.WasPassed()) {
+    const Optional<Nullable<dom::Record<nsCString, nsCString>>>& aExtra) {
+  if (!aExtra.WasPassed() || aExtra.Value().IsNull()) {
     mEvent.Record();
     return;
   }
@@ -32,7 +35,7 @@ void GleanEvent::Record(
   nsTArray<nsCString> extraValues;
   CopyableTArray<Telemetry::EventExtraEntry> telExtras;
   nsCString telValue(VoidCString());
-  for (const auto& entry : aExtra.Value().Entries()) {
+  for (const auto& entry : aExtra.Value().Value().Entries()) {
     if (entry.mValue.IsVoid()) {
       // Someone passed undefined/null for this value.
       // Pretend it wasn't here.
@@ -65,7 +68,7 @@ void GleanEvent::Record(
 
 void GleanEvent::TestGetValue(
     const nsACString& aPingName,
-    dom::Nullable<nsTArray<dom::GleanEventRecord>>& aResult, ErrorResult& aRv) {
+    Nullable<nsTArray<dom::GleanEventRecord>>& aResult, ErrorResult& aRv) {
   auto resEvents = mEvent.TestGetValue(aPingName);
   if (resEvents.isErr()) {
     aRv.ThrowDataError(resEvents.unwrapErr());

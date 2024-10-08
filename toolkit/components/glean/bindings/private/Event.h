@@ -8,6 +8,7 @@
 #define mozilla_glean_GleanEvent_h
 
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/Record.h"
 #include "mozilla/glean/bindings/EventGIFFTMap.h"
 #include "mozilla/glean/bindings/GleanMetric.h"
@@ -178,7 +179,9 @@ class GleanEvent final : public GleanMetric {
   virtual JSObject* WrapObject(
       JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override final;
 
-  void Record(const dom::Optional<dom::Record<nsCString, nsCString>>& aExtra);
+  void Record(
+      const dom::Optional<dom::Nullable<dom::Record<nsCString, nsCString>>>&
+          aExtra);
 
   void TestGetValue(const nsACString& aPingName,
                     dom::Nullable<nsTArray<dom::GleanEventRecord>>& aResult,

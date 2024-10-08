@@ -164,6 +164,12 @@ add_task(async function test_fog_event_works() {
   };
   Assert.deepEqual(expectedExtra, events[1].extra);
 
+  // Passing `null` works.
+  Glean.testOnlyIpc.eventWithExtra.record(null);
+  events = Glean.testOnlyIpc.eventWithExtra.testGetValue();
+  Assert.equal(3, events.length, "Recorded another event.");
+  Assert.equal(events[2].extra, null);
+
   // Invalid extra keys don't crash, the event is not recorded,
   // but an error is recorded.
   let extra3 = {
