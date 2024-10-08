@@ -91,7 +91,6 @@ support-files = ["migration_emptyValue_profile.zip",]
 ["test_schema4upgrade.js"]
 
 ["test_shutdownDuringRequestFinalization.js"]
-skip-if = ["true"]
 
 ["test_slowDatabaseInitialization.js"]
 
