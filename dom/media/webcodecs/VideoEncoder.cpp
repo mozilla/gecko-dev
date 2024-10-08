@@ -276,7 +276,8 @@ EncoderConfig VideoEncoderConfigInternal::ToEncoderConfig() const {
         ));
   }
   return EncoderConfig(codecType, {mWidth, mHeight}, usage,
-                       ImageBitmapFormat::RGBA32, ImageBitmapFormat::RGBA32,
+                       // Gecko favors BGRA
+                       ImageBitmapFormat::BGRA32, ImageBitmapFormat::BGRA32,
                        AssertedCast<uint8_t>(mFramerate.refOr(0.f)), 0,
                        mBitrate.refOr(0), 0, 0,
                        mBitrateMode == VideoEncoderBitrateMode::Constant

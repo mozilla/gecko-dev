@@ -318,6 +318,7 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
 static Maybe<OSType> MapPixelFormat(dom::ImageBitmapFormat aFormat) {
   switch (aFormat) {
     case dom::ImageBitmapFormat::RGBA32:
+      return Some(kCVPixelFormatType_32RGBA);
     case dom::ImageBitmapFormat::BGRA32:
       return Some(kCVPixelFormatType_32BGRA);
     case dom::ImageBitmapFormat::RGB24:
