@@ -31,6 +31,8 @@ support-files = [
 
 ["browser_address_doorhanger_not_shown.js"]
 
+["browser_address_doorhanger_postalcode.js"]
+
 ["browser_address_doorhanger_required_fields.js"]
 
 ["browser_address_doorhanger_state.js"]

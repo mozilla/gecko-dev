@@ -306,7 +306,7 @@ class PostalCode extends AddressField {
     const { postalCodePattern } = lazy.FormAutofillUtils.getFormFormat(
       this.region
     );
-    const regexp = new RegExp(`^${postalCodePattern}$`);
+    const regexp = new RegExp(`^${postalCodePattern}$`, "i");
     return regexp.test(this.userValue);
   }
 
