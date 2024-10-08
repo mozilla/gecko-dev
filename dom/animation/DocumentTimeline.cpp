@@ -196,10 +196,6 @@ void DocumentTimeline::WillRefresh() {
   }
 }
 
-void DocumentTimeline::RemoveAnimation(Animation* aAnimation) {
-  AnimationTimeline::RemoveAnimation(aAnimation);
-}
-
 void DocumentTimeline::NotifyAnimationContentVisibilityChanged(
     Animation* aAnimation, bool aIsVisible) {
   AnimationTimeline::NotifyAnimationContentVisibilityChanged(aAnimation,

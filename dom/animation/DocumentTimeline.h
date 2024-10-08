@@ -51,7 +51,6 @@ class DocumentTimeline final : public AnimationTimeline,
 
   void NotifyAnimationUpdated(Animation& aAnimation) override;
 
-  void RemoveAnimation(Animation* aAnimation) override;
   void NotifyAnimationContentVisibilityChanged(Animation* aAnimation,
                                                bool aIsVisible) override;
 
