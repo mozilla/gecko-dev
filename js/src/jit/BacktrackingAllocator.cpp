@@ -2086,11 +2086,14 @@ bool BacktrackingAllocator::tryMergeReusedRegister(VirtualRegister& def,
   // copies before def's instruction is crucial for generated code quality
   // (MUST_REUSE_INPUT is used for all arithmetic on x86/x64).
 
-  if (def.rangeFor(inputOf(def.ins()))) {
+  // Don't try to merge if the definition starts at the input point of the
+  // instruction.
+  if (def.firstRange()->from() == inputOf(def.ins())) {
     MOZ_ASSERT(def.isTemp());
     def.setMustCopyInput();
     return true;
   }
+  MOZ_ASSERT(def.firstRange()->from() == outputOf(def.ins()));
 
   if (!CanMergeTypesInBundle(def.type(), input.type())) {
     def.setMustCopyInput();
@@ -4123,8 +4126,8 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
       MOZ_ASSERT(phi->numDefs() == 1);
       LDefinition* def = phi->getDef(0);
       VirtualRegister& reg = vreg(def);
-      LiveRange* to = reg.rangeFor(entryOf(successor));
-      MOZ_ASSERT(to);
+      LiveRange* to = reg.firstRange();
+      MOZ_ASSERT(to->from() == entryOf(successor));
 
       for (size_t k = 0; k < mSuccessor->numPredecessors(); k++) {
         LBlock* predecessor = mSuccessor->getPredecessor(k)->lir();
@@ -4326,7 +4329,8 @@ bool BacktrackingAllocator::installAllocationsInLIR() {
         // add copies if the use and def have different allocations.
         LNode* ins = insData[iter->pos];
         if (LDefinition* def = FindReusingDefOrTemp(ins, alloc)) {
-          LiveRange* outputRange = vreg(def).rangeFor(outputOf(ins));
+          LiveRange* outputRange = vreg(def).firstRange();
+          MOZ_ASSERT(outputRange->covers(outputOf(ins)));
           LAllocation res = outputRange->bundle()->allocation();
           LAllocation sourceAlloc = range->bundle()->allocation();
 
