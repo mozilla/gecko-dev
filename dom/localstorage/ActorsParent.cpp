@@ -6571,7 +6571,8 @@ PrepareDatastoreOp::PrepareDatastoreOp(
 }
 
 PrepareDatastoreOp::~PrepareDatastoreOp() {
-  MOZ_ASSERT(!mDirectoryLock);
+  MOZ_DIAGNOSTIC_ASSERT(!mDirectoryLock);
+  MOZ_DIAGNOSTIC_ASSERT(!mExtraDirectoryLock);
   MOZ_ASSERT_IF(MayProceedOnNonOwningThread(),
                 mState == State::Initial || mState == State::Completed);
   MOZ_ASSERT(!mLoadDataOp);
