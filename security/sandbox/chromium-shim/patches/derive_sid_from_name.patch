@@ -28,11 +28,11 @@ diff --git a/sandbox/win/src/broker_services.h b/sandbox/win/src/broker_services
 --- a/sandbox/win/src/broker_services.h
 +++ b/sandbox/win/src/broker_services.h
 @@ -57,16 +57,19 @@ class BrokerServicesBase final : public 
-   // target processes.  We use this method for the specific purpose of
-   // checking if we can safely duplicate a handle to the supplied process
-   // in DuplicateHandleProxyAction.
-   bool IsSafeDuplicationTarget(DWORD process_id);
- 
+                          scoped_refptr<TargetPolicy> policy,
+                          ResultCode* last_warning,
+                          DWORD* last_error,
+                          PROCESS_INFORMATION* target) override;
+   ResultCode WaitForAllTargets() override;
    ResultCode GetPolicyDiagnostics(
        std::unique_ptr<PolicyDiagnosticsReceiver> receiver) override;
  

@@ -227,47 +227,6 @@ diff --git a/sandbox/win/src/filesystem_interception.cc b/sandbox/win/src/filesy
  }
  
  }  // namespace sandbox
-diff --git a/sandbox/win/src/handle_interception.cc b/sandbox/win/src/handle_interception.cc
---- a/sandbox/win/src/handle_interception.cc
-+++ b/sandbox/win/src/handle_interception.cc
-@@ -5,16 +5,17 @@
- #include "sandbox/win/src/handle_interception.h"
- 
- #include "sandbox/win/src/crosscall_client.h"
- #include "sandbox/win/src/ipc_tags.h"
- #include "sandbox/win/src/sandbox_factory.h"
- #include "sandbox/win/src/sandbox_nt_util.h"
- #include "sandbox/win/src/sharedmem_ipc_client.h"
- #include "sandbox/win/src/target_services.h"
-+#include "mozilla/sandboxing/sandboxLogging.h"
- 
- namespace sandbox {
- 
- ResultCode DuplicateHandleProxy(HANDLE source_handle,
-                                 DWORD target_process_id,
-                                 HANDLE* target_handle,
-                                 DWORD desired_access,
-                                 DWORD options) {
-@@ -29,17 +30,19 @@ ResultCode DuplicateHandleProxy(HANDLE s
-   ResultCode code = CrossCall(ipc, IpcTag::DUPLICATEHANDLEPROXY,
-                               source_handle, target_process_id,
-                               desired_access, options, &answer);
-   if (SBOX_ALL_OK != code)
-     return code;
- 
-   if (answer.win32_result) {
-     ::SetLastError(answer.win32_result);
-+    mozilla::sandboxing::LogBlocked("DuplicateHandle");
-     return SBOX_ERROR_GENERIC;
-   }
- 
-   *target_handle = answer.handle;
-+  mozilla::sandboxing::LogAllowed("DuplicateHandle");
-   return SBOX_ALL_OK;
- }
- 
- }  // namespace sandbox
- 
 diff --git a/sandbox/win/src/named_pipe_interception.cc b/sandbox/win/src/named_pipe_interception.cc
 --- a/sandbox/win/src/named_pipe_interception.cc
 +++ b/sandbox/win/src/named_pipe_interception.cc

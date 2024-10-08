@@ -82,9 +82,9 @@ diff --git a/sandbox/win/src/broker_services.h b/sandbox/win/src/broker_services
                           DWORD* last_error,
                           PROCESS_INFORMATION* target) override;
    ResultCode WaitForAllTargets() override;
-   ResultCode AddTargetPeer(HANDLE peer_process) override;
+   ResultCode GetPolicyDiagnostics(
+       std::unique_ptr<PolicyDiagnosticsReceiver> receiver) override;
  
-   // Checks if the supplied process ID matches one of the broker's active
 diff --git a/sandbox/win/src/sandbox.h b/sandbox/win/src/sandbox.h
 --- a/sandbox/win/src/sandbox.h
 +++ b/sandbox/win/src/sandbox.h

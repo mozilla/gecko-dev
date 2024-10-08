@@ -260,14 +260,14 @@ diff --git a/sandbox/win/src/policy_params.h b/sandbox/win/src/policy_params.h
 diff --git a/sandbox/win/src/sandbox.h b/sandbox/win/src/sandbox.h
 --- a/sandbox/win/src/sandbox.h
 +++ b/sandbox/win/src/sandbox.h
-@@ -176,16 +176,19 @@ class TargetServices {
-   //   If the return is ERROR_GENERIC, you can call ::GetLastError() to get
-   //   more information.
-   virtual ResultCode DuplicateHandle(HANDLE source_handle,
-                                      DWORD target_process_id,
-                                      HANDLE* target_handle,
-                                      DWORD desired_access,
-                                      DWORD options) = 0;
+@@ -154,16 +154,19 @@ class TargetServices {
+   // fails the current process could be terminated immediately.
+   virtual void LowerToken() = 0;
+ 
+   // Returns the ProcessState object. Through that object it's possible to have
+   // information about the current state of the process, such as whether
+   // LowerToken has been called or not.
+   virtual ProcessState* GetState() = 0;
  
 +  virtual ResultCode GetComplexLineBreaks(const WCHAR* text, uint32_t length,
 +                                          uint8_t* break_before) = 0;
@@ -284,13 +284,13 @@ diff --git a/sandbox/win/src/sandbox_policy.h b/sandbox/win/src/sandbox_policy.h
 --- a/sandbox/win/src/sandbox_policy.h
 +++ b/sandbox/win/src/sandbox_policy.h
 @@ -27,17 +27,18 @@ class TargetPolicy {
+   // process_thread_dispatcher.cc for more details.
    enum SubSystem {
      SUBSYS_FILES,            // Creation and opening of files and pipes.
      SUBSYS_NAMED_PIPES,      // Creation of named pipes.
      SUBSYS_PROCESS,          // Creation of child processes.
      SUBSYS_REGISTRY,         // Creation and opening of registry keys.
      SUBSYS_SYNC,             // Creation of named sync objects.
-     SUBSYS_HANDLES,          // Duplication of handles to other processes.
      SUBSYS_WIN32K_LOCKDOWN,  // Win32K Lockdown related policy.
 -    SUBSYS_SIGNED_BINARY     // Signed binary policy.
 +    SUBSYS_SIGNED_BINARY,    // Signed binary policy.
@@ -327,12 +327,12 @@ diff --git a/sandbox/win/src/sandbox_policy_base.cc b/sandbox/win/src/sandbox_po
 --- a/sandbox/win/src/sandbox_policy_base.cc
 +++ b/sandbox/win/src/sandbox_policy_base.cc
 @@ -15,16 +15,17 @@
+ #include "base/stl_util.h"
  #include "base/strings/stringprintf.h"
  #include "base/win/win_util.h"
  #include "base/win/windows_version.h"
  #include "sandbox/win/src/acl.h"
  #include "sandbox/win/src/filesystem_policy.h"
- #include "sandbox/win/src/handle_policy.h"
  #include "sandbox/win/src/interception.h"
  #include "sandbox/win/src/job.h"
 +#include "sandbox/win/src/line_break_policy.h"
@@ -372,13 +372,13 @@ diff --git a/sandbox/win/src/target_services.cc b/sandbox/win/src/target_service
 --- a/sandbox/win/src/target_services.cc
 +++ b/sandbox/win/src/target_services.cc
 @@ -9,16 +9,17 @@
+ 
  #include <process.h>
  #include <stdint.h>
  
  #include "base/win/windows_version.h"
  #include "sandbox/win/src/crosscall_client.h"
  #include "sandbox/win/src/handle_closer_agent.h"
- #include "sandbox/win/src/handle_interception.h"
  #include "sandbox/win/src/heap_helper.h"
 +#include "sandbox/win/src/line_break_interception.h"
  #include "sandbox/win/src/ipc_tags.h"
@@ -389,23 +389,13 @@ diff --git a/sandbox/win/src/target_services.cc b/sandbox/win/src/target_service
  #include "sandbox/win/src/sandbox_types.h"
  #include "sandbox/win/src/sharedmem_ipc_client.h"
  
-@@ -240,19 +241,24 @@ void ProcessState::SetRevertedToSelf() {
+@@ -240,9 +241,15 @@ void ProcessState::SetRevertedToSelf() {
    if (process_state_ < ProcessStateInternal::REVERTED_TO_SELF)
      process_state_ = ProcessStateInternal::REVERTED_TO_SELF;
  }
  
  void ProcessState::SetCsrssConnected(bool csrss_connected) {
    csrss_connected_ = csrss_connected;
- }
- 
--
- ResultCode TargetServicesBase::DuplicateHandle(HANDLE source_handle,
-                                                DWORD target_process_id,
-                                                HANDLE* target_handle,
-                                                DWORD desired_access,
-                                                DWORD options) {
-   return sandbox::DuplicateHandleProxy(source_handle, target_process_id,
-                                        target_handle, desired_access, options);
  }
  
 +ResultCode TargetServicesBase::GetComplexLineBreaks(const WCHAR* text,
@@ -418,15 +408,15 @@ diff --git a/sandbox/win/src/target_services.cc b/sandbox/win/src/target_service
 diff --git a/sandbox/win/src/target_services.h b/sandbox/win/src/target_services.h
 --- a/sandbox/win/src/target_services.h
 +++ b/sandbox/win/src/target_services.h
-@@ -45,16 +45,18 @@ class TargetServicesBase : public Target
+@@ -40,16 +40,18 @@ class TargetServicesBase : public Target
+ class TargetServicesBase : public TargetServices {
+  public:
+   TargetServicesBase();
+ 
+   // Public interface of TargetServices.
    ResultCode Init() override;
    void LowerToken() override;
    ProcessState* GetState() override;
-   ResultCode DuplicateHandle(HANDLE source_handle,
-                              DWORD target_process_id,
-                              HANDLE* target_handle,
-                              DWORD desired_access,
-                              DWORD options) override;
 +  ResultCode GetComplexLineBreaks(const WCHAR* text, uint32_t length,
 +                                  uint8_t* break_before) final;
  
@@ -440,12 +430,12 @@ diff --git a/sandbox/win/src/target_services.h b/sandbox/win/src/target_services
 diff --git a/sandbox/win/src/top_level_dispatcher.cc b/sandbox/win/src/top_level_dispatcher.cc
 --- a/sandbox/win/src/top_level_dispatcher.cc
 +++ b/sandbox/win/src/top_level_dispatcher.cc
-@@ -9,16 +9,17 @@
+@@ -8,16 +8,17 @@
+ #include <string.h>
  
  #include "base/logging.h"
  #include "sandbox/win/src/crosscall_server.h"
  #include "sandbox/win/src/filesystem_dispatcher.h"
- #include "sandbox/win/src/handle_dispatcher.h"
  #include "sandbox/win/src/interception.h"
  #include "sandbox/win/src/internal_types.h"
  #include "sandbox/win/src/ipc_tags.h"
