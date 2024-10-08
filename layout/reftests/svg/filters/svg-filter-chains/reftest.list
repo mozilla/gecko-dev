@@ -1,7 +1,7 @@
 # These tests verify that SVG filter chains behave properly.
 # e.g. filter: url(#f1) url(#f2) url(#f3)
 
-fuzzy-if(Android13&&aarch64,128-128,10000-10000) == clip-input.svg clip-input-ref.svg # bug 1918599
+fuzzy-if(!nogpu&&Android13&&aarch64,128-128,10000-10000) == clip-input.svg clip-input-ref.svg # bug 1918599
 == clip-original-SourceGraphic.svg clip-original-SourceGraphic-ref.svg
 == clip-output.svg clip-output-ref.svg
 fuzzy(0-5,0-20300) fuzzy-if(Android&&device&&!swgl,5-5,21751-21751) fuzzy-if(gfxSVGFE,0-9,0-1000000) == default-subregion.svg default-subregion-ref.svg
