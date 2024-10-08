@@ -158,7 +158,7 @@ class AutofillTelemetryBase {
     const extra = this.#initFormEventExtra("unavailable");
 
     for (const fieldDetail of fieldDetails) {
-      let { filledState, filledValue } = data.get(fieldDetail.elementId);
+      let { filledState, filledValue } = data.get(fieldDetail.elementId) ?? {};
       switch (filledState) {
         case FIELD_STATES.AUTO_FILLED:
           filledState = "autofilled";

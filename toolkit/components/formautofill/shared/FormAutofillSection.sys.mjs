@@ -294,8 +294,7 @@ export class FormAutofillSection {
       if (detail.fieldName == "cc-csc") {
         continue;
       }
-
-      const { filledValue } = formFilledData.get(detail.elementId);
+      const { filledValue } = formFilledData.get(detail.elementId) ?? {};
 
       if (
         !filledValue ||
