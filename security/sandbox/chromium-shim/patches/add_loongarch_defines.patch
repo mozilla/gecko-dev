@@ -10,9 +10,9 @@ Fix firefox for loongarch64 building issue.
 
 Differential Revision: https://phabricator.services.mozilla.com/D178435
 
-diff --git a/security/sandbox/chromium/build/build_config.h b/security/sandbox/chromium/build/build_config.h
---- a/security/sandbox/chromium/build/build_config.h
-+++ b/security/sandbox/chromium/build/build_config.h
+diff --git a/build/build_config.h b/build/build_config.h
+--- a/build/build_config.h
++++ b/build/build_config.h
 @@ -170,6 +170,16 @@
  #define ARCH_CPU_RISCV64 1
  #define ARCH_CPU_64_BITS 1

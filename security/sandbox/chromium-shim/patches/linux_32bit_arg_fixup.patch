@@ -4,10 +4,10 @@ Date:   Mon Apr 18 18:00:10 2022 -0600
 
     Make the sandbox fix up non-extended 32-bit types.
 
-diff --git a/security/sandbox/chromium/sandbox/linux/bpf_dsl/policy_compiler.cc b/security/sandbox/chromium/sandbox/linux/bpf_dsl/policy_compiler.cc
+diff --git a/sandbox/linux/bpf_dsl/policy_compiler.cc b/sandbox/linux/bpf_dsl/policy_compiler.cc
 index 347304889eae4..b909fc37f6174 100644
---- a/security/sandbox/chromium/sandbox/linux/bpf_dsl/policy_compiler.cc
-+++ b/security/sandbox/chromium/sandbox/linux/bpf_dsl/policy_compiler.cc
+--- a/sandbox/linux/bpf_dsl/policy_compiler.cc
++++ b/sandbox/linux/bpf_dsl/policy_compiler.cc
 @@ -19,6 +19,7 @@
  #include "sandbox/linux/bpf_dsl/policy.h"
  #include "sandbox/linux/bpf_dsl/seccomp_macros.h"
@@ -63,10 +63,10 @@ index 347304889eae4..b909fc37f6174 100644
  }
  
  CodeGen::Node PolicyCompiler::Return(uint32_t ret) {
-diff --git a/security/sandbox/chromium/sandbox/linux/bpf_dsl/policy_compiler.h b/security/sandbox/chromium/sandbox/linux/bpf_dsl/policy_compiler.h
+diff --git a/sandbox/linux/bpf_dsl/policy_compiler.h b/sandbox/linux/bpf_dsl/policy_compiler.h
 index 48b1d780d956f..2acf878474a7d 100644
---- a/security/sandbox/chromium/sandbox/linux/bpf_dsl/policy_compiler.h
-+++ b/security/sandbox/chromium/sandbox/linux/bpf_dsl/policy_compiler.h
+--- a/sandbox/linux/bpf_dsl/policy_compiler.h
++++ b/sandbox/linux/bpf_dsl/policy_compiler.h
 @@ -132,9 +132,11 @@ class SANDBOX_EXPORT PolicyCompiler {
                                  CodeGen::Node passed,
                                  CodeGen::Node failed);

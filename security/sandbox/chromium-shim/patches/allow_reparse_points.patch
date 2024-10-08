@@ -8,9 +8,9 @@ Bug 1695556 p1: Allow reparse points in chromium sandbox code.
 
 Differential Revision: https://phabricator.services.mozilla.com/D135692
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/filesystem_dispatcher.cc b/security/sandbox/chromium/sandbox/win/src/filesystem_dispatcher.cc
---- a/security/sandbox/chromium/sandbox/win/src/filesystem_dispatcher.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/filesystem_dispatcher.cc
+diff --git a/sandbox/win/src/filesystem_dispatcher.cc b/sandbox/win/src/filesystem_dispatcher.cc
+--- a/sandbox/win/src/filesystem_dispatcher.cc
++++ b/sandbox/win/src/filesystem_dispatcher.cc
 @@ -87,17 +87,16 @@ bool FilesystemDispatcher::NtCreateFile(
                                          std::wstring* name,
                                          uint32_t attributes,
@@ -101,9 +101,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/filesystem_dispatcher.cc 
    const wchar_t* filename = name.c_str();
    CountedParameterSet<FileName> params;
    params[FileName::NAME] = ParamPickerMake(filename);
-diff --git a/security/sandbox/chromium/sandbox/win/src/filesystem_policy.cc b/security/sandbox/chromium/sandbox/win/src/filesystem_policy.cc
---- a/security/sandbox/chromium/sandbox/win/src/filesystem_policy.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/filesystem_policy.cc
+diff --git a/sandbox/win/src/filesystem_policy.cc b/sandbox/win/src/filesystem_policy.cc
+--- a/sandbox/win/src/filesystem_policy.cc
++++ b/sandbox/win/src/filesystem_policy.cc
 @@ -1,16 +1,17 @@
  // Copyright (c) 2011 The Chromium Authors. All rights reserved.
  // Use of this source code is governed by a BSD-style license that can be

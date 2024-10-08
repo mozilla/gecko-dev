@@ -10,9 +10,9 @@ error: invalid conversion from 'FARPROC {aka int (__attribute__((__stdcall__)) *
 
 According to http://stackoverflow.com/questions/13958081/, msvc does the fixup
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/target_process.cc b/security/sandbox/chromium/sandbox/win/src/target_process.cc
---- a/security/sandbox/chromium/sandbox/win/src/target_process.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/target_process.cc
+diff --git a/sandbox/win/src/target_process.cc b/sandbox/win/src/target_process.cc
+--- a/sandbox/win/src/target_process.cc
++++ b/sandbox/win/src/target_process.cc
 @@ -231,17 +231,17 @@ ResultCode TargetProcess::TransferVariab
  
    void* child_var = address;

@@ -4,9 +4,9 @@
 #      Mon Feb 27 12:12:03 2023 +0000
 Expose Sid::FromNamedCapability through broker services.
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/broker_services.cc b/security/sandbox/chromium/sandbox/win/src/broker_services.cc
---- a/security/sandbox/chromium/sandbox/win/src/broker_services.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/broker_services.cc
+diff --git a/sandbox/win/src/broker_services.cc b/sandbox/win/src/broker_services.cc
+--- a/sandbox/win/src/broker_services.cc
++++ b/sandbox/win/src/broker_services.cc
 @@ -730,9 +730,16 @@ ResultCode BrokerServicesBase::GetPolicy
      return SBOX_ERROR_GENERIC;
    }
@@ -24,9 +24,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/broker_services.cc b/secu
 +}
 +
  }  // namespace sandbox
-diff --git a/security/sandbox/chromium/sandbox/win/src/broker_services.h b/security/sandbox/chromium/sandbox/win/src/broker_services.h
---- a/security/sandbox/chromium/sandbox/win/src/broker_services.h
-+++ b/security/sandbox/chromium/sandbox/win/src/broker_services.h
+diff --git a/sandbox/win/src/broker_services.h b/sandbox/win/src/broker_services.h
+--- a/sandbox/win/src/broker_services.h
++++ b/sandbox/win/src/broker_services.h
 @@ -57,16 +57,19 @@ class BrokerServicesBase final : public 
    // target processes.  We use this method for the specific purpose of
    // checking if we can safely duplicate a handle to the supplied process
@@ -47,9 +47,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/broker_services.h b/secur
    // The completion port used by the job objects to communicate events to
    // the worker thread.
    base::win::ScopedHandle job_port_;
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox.h b/security/sandbox/chromium/sandbox/win/src/sandbox.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox.h
+diff --git a/sandbox/win/src/sandbox.h b/sandbox/win/src/sandbox.h
+--- a/sandbox/win/src/sandbox.h
++++ b/sandbox/win/src/sandbox.h
 @@ -117,16 +117,21 @@ class BrokerServices {
    //   called to accept the results of the call.
    // Returns:

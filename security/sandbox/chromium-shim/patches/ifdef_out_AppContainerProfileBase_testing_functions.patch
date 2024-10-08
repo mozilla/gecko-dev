@@ -6,9 +6,9 @@
 # Parent  3ec022faaf83642e3c1894d83ff99926bada990c
 Hash if out testing functions that cause dependency creep. r=aklotz
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/app_container_profile_base.cc b/security/sandbox/chromium/sandbox/win/src/app_container_profile_base.cc
---- a/security/sandbox/chromium/sandbox/win/src/app_container_profile_base.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/app_container_profile_base.cc
+diff --git a/sandbox/win/src/app_container_profile_base.cc b/sandbox/win/src/app_container_profile_base.cc
+--- a/sandbox/win/src/app_container_profile_base.cc
++++ b/sandbox/win/src/app_container_profile_base.cc
 @@ -3,17 +3,19 @@
  // found in the LICENSE file.
  

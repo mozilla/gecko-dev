@@ -4,10 +4,10 @@ Date:   Wed Apr 17 13:52:26 2024 -0700
 
     Bug 1889045 - Update Linux sandbox syscall defs to v6.8
 
-diff --git a/security/sandbox/chromium/sandbox/linux/system_headers/arm64_linux_syscalls.h b/security/sandbox/chromium/sandbox/linux/system_headers/arm64_linux_syscalls.h
+diff --git a/sandbox/linux/system_headers/arm64_linux_syscalls.h b/sandbox/linux/system_headers/arm64_linux_syscalls.h
 index 2224d324383f7..b8efe0da2f897 100644
---- a/security/sandbox/chromium/sandbox/linux/system_headers/arm64_linux_syscalls.h
-+++ b/security/sandbox/chromium/sandbox/linux/system_headers/arm64_linux_syscalls.h
+--- a/sandbox/linux/system_headers/arm64_linux_syscalls.h
++++ b/sandbox/linux/system_headers/arm64_linux_syscalls.h
 @@ -3,7 +3,7 @@
  // found in the LICENSE file.
  
@@ -117,10 +117,10 @@ index 2224d324383f7..b8efe0da2f897 100644
 +#endif
 +
  #endif  // SANDBOX_LINUX_SYSTEM_HEADERS_ARM64_LINUX_SYSCALLS_H_
-diff --git a/security/sandbox/chromium/sandbox/linux/system_headers/arm_linux_syscalls.h b/security/sandbox/chromium/sandbox/linux/system_headers/arm_linux_syscalls.h
+diff --git a/sandbox/linux/system_headers/arm_linux_syscalls.h b/sandbox/linux/system_headers/arm_linux_syscalls.h
 index 5b7f4e511a61d..06d0a6d5801e1 100644
---- a/security/sandbox/chromium/sandbox/linux/system_headers/arm_linux_syscalls.h
-+++ b/security/sandbox/chromium/sandbox/linux/system_headers/arm_linux_syscalls.h
+--- a/sandbox/linux/system_headers/arm_linux_syscalls.h
++++ b/sandbox/linux/system_headers/arm_linux_syscalls.h
 @@ -3,7 +3,7 @@
  // found in the LICENSE file.
  
@@ -232,10 +232,10 @@ index 5b7f4e511a61d..06d0a6d5801e1 100644
  // ARM private syscalls.
  #if !defined(__ARM_NR_BASE)
  #define __ARM_NR_BASE (__NR_SYSCALL_BASE + 0xF0000)
-diff --git a/security/sandbox/chromium/sandbox/linux/system_headers/x86_32_linux_syscalls.h b/security/sandbox/chromium/sandbox/linux/system_headers/x86_32_linux_syscalls.h
+diff --git a/sandbox/linux/system_headers/x86_32_linux_syscalls.h b/sandbox/linux/system_headers/x86_32_linux_syscalls.h
 index dc846ee7ad1ab..edcfd05004139 100644
---- a/security/sandbox/chromium/sandbox/linux/system_headers/x86_32_linux_syscalls.h
-+++ b/security/sandbox/chromium/sandbox/linux/system_headers/x86_32_linux_syscalls.h
+--- a/sandbox/linux/system_headers/x86_32_linux_syscalls.h
++++ b/sandbox/linux/system_headers/x86_32_linux_syscalls.h
 @@ -3,7 +3,7 @@
  // found in the LICENSE file.
  
@@ -350,10 +350,10 @@ index dc846ee7ad1ab..edcfd05004139 100644
 +
  
  #endif  // SANDBOX_LINUX_SYSTEM_HEADERS_X86_32_LINUX_SYSCALLS_H_
-diff --git a/security/sandbox/chromium/sandbox/linux/system_headers/x86_64_linux_syscalls.h b/security/sandbox/chromium/sandbox/linux/system_headers/x86_64_linux_syscalls.h
+diff --git a/sandbox/linux/system_headers/x86_64_linux_syscalls.h b/sandbox/linux/system_headers/x86_64_linux_syscalls.h
 index ab51703464aa0..6767d88702f3d 100644
---- a/security/sandbox/chromium/sandbox/linux/system_headers/x86_64_linux_syscalls.h
-+++ b/security/sandbox/chromium/sandbox/linux/system_headers/x86_64_linux_syscalls.h
+--- a/sandbox/linux/system_headers/x86_64_linux_syscalls.h
++++ b/sandbox/linux/system_headers/x86_64_linux_syscalls.h
 @@ -3,7 +3,7 @@
  // found in the LICENSE file.
  

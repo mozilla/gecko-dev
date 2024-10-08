@@ -8,9 +8,9 @@ Bug 1461421 Use OffsetOf to calculate the location of parameters_ rather than ma
 
 MozReview-Commit-ID: D7REZiAIMpN
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_params.h b/security/sandbox/chromium/sandbox/win/src/crosscall_params.h
---- a/security/sandbox/chromium/sandbox/win/src/crosscall_params.h
-+++ b/security/sandbox/chromium/sandbox/win/src/crosscall_params.h
+diff --git a/sandbox/win/src/crosscall_params.h b/sandbox/win/src/crosscall_params.h
+--- a/sandbox/win/src/crosscall_params.h
++++ b/sandbox/win/src/crosscall_params.h
 @@ -78,16 +78,17 @@ union MultiType {
    ULONG_PTR ulong_ptr;
  };
@@ -48,9 +48,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_params.h b/secu
  
  }  // namespace sandbox
  
-diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc b/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc
---- a/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc
+diff --git a/sandbox/win/src/crosscall_server.cc b/sandbox/win/src/crosscall_server.cc
+--- a/sandbox/win/src/crosscall_server.cc
++++ b/sandbox/win/src/crosscall_server.cc
 @@ -28,30 +28,31 @@ namespace {
  
  // The buffer for a message must match the max channel size.

@@ -11,9 +11,9 @@ level on our access token is dropped.
 
 Differential Revision: https://phabricator.services.mozilla.com/D206784
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
---- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
+diff --git a/sandbox/win/src/restricted_token_utils.cc b/sandbox/win/src/restricted_token_utils.cc
+--- a/sandbox/win/src/restricted_token_utils.cc
++++ b/sandbox/win/src/restricted_token_utils.cc
 @@ -302,16 +302,22 @@ DWORD SetTokenIntegrityLevel(HANDLE toke
  DWORD SetProcessIntegrityLevel(IntegrityLevel integrity_level) {
    // We don't check for an invalid level here because we'll just let it

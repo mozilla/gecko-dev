@@ -6,9 +6,9 @@
 # Parent  c64ea5b2e26b203eff2f0b9d85fef99ae3a094f9
 Bug 1431825 Map _Copy_s to copy for basic_string compatibility on MinGW r?bobowen
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_types.h b/security/sandbox/chromium/sandbox/win/src/sandbox_types.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_types.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_types.h
+diff --git a/sandbox/win/src/sandbox_types.h b/sandbox/win/src/sandbox_types.h
+--- a/sandbox/win/src/sandbox_types.h
++++ b/sandbox/win/src/sandbox_types.h
 @@ -5,16 +5,22 @@
  #ifndef SANDBOX_WIN_SRC_SANDBOX_TYPES_H_
  #define SANDBOX_WIN_SRC_SANDBOX_TYPES_H_

@@ -6,9 +6,9 @@
 # Parent  37557864a6845bb8068904e44e8a7dd16746d211
 Bug 1716024 p1: Add MITIGATION_CET_COMPAT_MODE to chromium sandbox code. r=handyman!
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc b/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
---- a/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
+diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
+--- a/sandbox/win/src/process_mitigations.cc
++++ b/sandbox/win/src/process_mitigations.cc
 @@ -80,16 +80,37 @@ bool IsRunning32bitEmulatedOnArm64() {
    if (!retval)
      return false;
@@ -73,9 +73,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc b/
    *policy_value_1 = *policy_value_1 & supported[0];
    *policy_value_2 = *policy_value_2 & supported[1];
  
-diff --git a/security/sandbox/chromium/sandbox/win/src/security_level.h b/security/sandbox/chromium/sandbox/win/src/security_level.h
---- a/security/sandbox/chromium/sandbox/win/src/security_level.h
-+++ b/security/sandbox/chromium/sandbox/win/src/security_level.h
+diff --git a/sandbox/win/src/security_level.h b/sandbox/win/src/security_level.h
+--- a/sandbox/win/src/security_level.h
++++ b/sandbox/win/src/security_level.h
 @@ -286,11 +286,15 @@ const MitigationFlags MITIGATION_RESTRIC
  // Working down from the high bit to avoid conflict with new upstream flags.
  

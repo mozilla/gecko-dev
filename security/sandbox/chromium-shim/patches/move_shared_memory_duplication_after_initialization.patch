@@ -8,9 +8,9 @@ Bug 1605867: Don't duplicate IPC shared memory when we might fail to launch the 
 
 Differential Revision: https://phabricator.services.mozilla.com/D58271
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/target_process.cc b/security/sandbox/chromium/sandbox/win/src/target_process.cc
---- a/security/sandbox/chromium/sandbox/win/src/target_process.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/target_process.cc
+diff --git a/sandbox/win/src/target_process.cc b/sandbox/win/src/target_process.cc
+--- a/sandbox/win/src/target_process.cc
++++ b/sandbox/win/src/target_process.cc
 @@ -286,45 +286,28 @@ ResultCode TargetProcess::Init(Dispatche
    shared_section_.Set(::CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr,
                                             PAGE_READWRITE | SEC_COMMIT, 0,

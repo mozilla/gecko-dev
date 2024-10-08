@@ -9,9 +9,9 @@ Bug 1564899: Make CloseHandleWrapper CHECK a DCHECK on non-Nightly builds. r=han
 This is because we are hitting it frequently during PolicyBase::OnJobEmpty and
 currently we can't work out how this can happen.
 
-diff --git a/security/sandbox/chromium/base/win/scoped_handle_verifier.cc b/security/sandbox/chromium/base/win/scoped_handle_verifier.cc
---- a/security/sandbox/chromium/base/win/scoped_handle_verifier.cc
-+++ b/security/sandbox/chromium/base/win/scoped_handle_verifier.cc
+diff --git a/base/win/scoped_handle_verifier.cc b/base/win/scoped_handle_verifier.cc
+--- a/base/win/scoped_handle_verifier.cc
++++ b/base/win/scoped_handle_verifier.cc
 @@ -65,17 +65,23 @@ ScopedHandleVerifier* ScopedHandleVerifi
    if (!g_active_verifier)
      ScopedHandleVerifier::InstallVerifier();

@@ -8,9 +8,9 @@ Bug 1591117 - Report ENOSYS on statx, but allow membarrier. r=jld
 
 Differential Revision: https://phabricator.services.mozilla.com/D50623
 
-diff --git a/security/sandbox/chromium/sandbox/linux/system_headers/x86_64_linux_syscalls.h b/security/sandbox/chromium/sandbox/linux/system_headers/x86_64_linux_syscalls.h
---- a/security/sandbox/chromium/sandbox/linux/system_headers/x86_64_linux_syscalls.h
-+++ b/security/sandbox/chromium/sandbox/linux/system_headers/x86_64_linux_syscalls.h
+diff --git a/sandbox/linux/system_headers/x86_64_linux_syscalls.h b/sandbox/linux/system_headers/x86_64_linux_syscalls.h
+--- a/sandbox/linux/system_headers/x86_64_linux_syscalls.h
++++ b/sandbox/linux/system_headers/x86_64_linux_syscalls.h
 @@ -1,13 +1,17 @@
  // Copyright (c) 2012 The Chromium Authors. All rights reserved.
  // Use of this source code is governed by a BSD-style license that can be

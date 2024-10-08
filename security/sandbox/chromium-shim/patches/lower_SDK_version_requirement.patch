@@ -8,9 +8,9 @@ Lower SDK version requirement from 19H1 to RS4. r=bobowen
 
 We still use 10.0.17134.0 SDK while Chromium requires 10.0.18362.0 or higher.
 
-diff --git a/security/sandbox/chromium/base/win/windows_version.cc b/security/sandbox/chromium/base/win/windows_version.cc
---- a/security/sandbox/chromium/base/win/windows_version.cc
-+++ b/security/sandbox/chromium/base/win/windows_version.cc
+diff --git a/base/win/windows_version.cc b/base/win/windows_version.cc
+--- a/base/win/windows_version.cc
++++ b/base/win/windows_version.cc
 @@ -17,18 +17,18 @@
  #include "base/strings/string_util.h"
  #include "base/strings/utf_string_conversions.h"

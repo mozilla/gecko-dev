@@ -1,7 +1,7 @@
-diff --git a/security/sandbox/chromium/base/strings/string_number_conversions.cc b/security/sandbox/chromium/base/strings/string_number_conversions.cc
+diff --git a/base/strings/string_number_conversions.cc b/base/strings/string_number_conversions.cc
 index 8b71b0ae11363..3b5eda1fe3eb6 100644
---- a/security/sandbox/chromium/base/strings/string_number_conversions.cc
-+++ b/security/sandbox/chromium/base/strings/string_number_conversions.cc
+--- a/base/strings/string_number_conversions.cc
++++ b/base/strings/string_number_conversions.cc
 @@ -17,7 +17,7 @@
  #include "base/numerics/safe_math.h"
  #include "base/strings/string_util.h"

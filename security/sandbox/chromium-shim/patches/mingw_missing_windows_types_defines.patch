@@ -6,9 +6,9 @@
 # Parent  e71e4e7a914c2d2515bf84be6ad045febabb6dfc
 Bug 1552160: Add missing defines from concurrencysal.h and specstrings.h in windows_type.h on MinGW.
 
-diff --git a/security/sandbox/chromium/base/win/windows_types.h b/security/sandbox/chromium/base/win/windows_types.h
---- a/security/sandbox/chromium/base/win/windows_types.h
-+++ b/security/sandbox/chromium/base/win/windows_types.h
+diff --git a/base/win/windows_types.h b/base/win/windows_types.h
+--- a/base/win/windows_types.h
++++ b/base/win/windows_types.h
 @@ -4,17 +4,25 @@
  
  // This file contains defines and typedefs that allow popular Windows types to

@@ -8,9 +8,9 @@ Bug 1565848: Revert latest change to MITIGATION_DLL_SEARCH_ORDER. r=handyman!
 
 This is until any regressions can be fixed, see bug 1568850.
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc b/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
---- a/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
+diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
+--- a/sandbox/win/src/process_mitigations.cc
++++ b/sandbox/win/src/process_mitigations.cc
 @@ -72,26 +72,17 @@ bool ApplyProcessMitigationsToCurrentPro
  
    if (flags & MITIGATION_DLL_SEARCH_ORDER) {
@@ -39,9 +39,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc b/
  
    // Set the heap to terminate on corruption
    if (flags & MITIGATION_HEAP_TERMINATE) {
-diff --git a/security/sandbox/chromium/sandbox/win/src/security_level.h b/security/sandbox/chromium/sandbox/win/src/security_level.h
---- a/security/sandbox/chromium/sandbox/win/src/security_level.h
-+++ b/security/sandbox/chromium/sandbox/win/src/security_level.h
+diff --git a/sandbox/win/src/security_level.h b/sandbox/win/src/security_level.h
+--- a/sandbox/win/src/security_level.h
++++ b/sandbox/win/src/security_level.h
 @@ -192,25 +192,20 @@ const MitigationFlags MITIGATION_BOTTOM_
  // PROCESS_CREATION_MITIGATION_POLICY_HIGH_ENTROPY_ASLR_ALWAYS_ON
  const MitigationFlags MITIGATION_HIGH_ENTROPY_ASLR = 0x00000080;

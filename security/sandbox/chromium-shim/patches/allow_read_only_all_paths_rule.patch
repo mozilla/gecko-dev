@@ -10,9 +10,9 @@ This also changes the read only related status checks in filesystem_interception
 to include STATUS_NETWORK_OPEN_RESTRICTION (0xC0000201), which gets returned in
 some cases and fails because we never ask the broker.
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/filesystem_interception.cc b/security/sandbox/chromium/sandbox/win/src/filesystem_interception.cc
---- a/security/sandbox/chromium/sandbox/win/src/filesystem_interception.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/filesystem_interception.cc
+diff --git a/sandbox/win/src/filesystem_interception.cc b/sandbox/win/src/filesystem_interception.cc
+--- a/sandbox/win/src/filesystem_interception.cc
++++ b/sandbox/win/src/filesystem_interception.cc
 @@ -11,16 +11,20 @@
  #include "sandbox/win/src/ipc_tags.h"
  #include "sandbox/win/src/policy_params.h"
@@ -114,9 +114,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/filesystem_interception.c
  
    do {
      if (!ValidParameter(file_attributes, sizeof(FILE_NETWORK_OPEN_INFORMATION),
-diff --git a/security/sandbox/chromium/sandbox/win/src/filesystem_policy.cc b/security/sandbox/chromium/sandbox/win/src/filesystem_policy.cc
---- a/security/sandbox/chromium/sandbox/win/src/filesystem_policy.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/filesystem_policy.cc
+diff --git a/sandbox/win/src/filesystem_policy.cc b/sandbox/win/src/filesystem_policy.cc
+--- a/sandbox/win/src/filesystem_policy.cc
++++ b/sandbox/win/src/filesystem_policy.cc
 @@ -77,17 +77,21 @@ namespace sandbox {
  bool FileSystemPolicy::GenerateRules(const wchar_t* name,
                                       TargetPolicy::Semantics semantics,

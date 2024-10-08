@@ -11,9 +11,9 @@ This has a dependency on nspr, which causes issues.
 Originally landed in changeset:
 https://hg.mozilla.org/mozilla-central/rev/477b991bf6fa7b4511768649c9bf37c7275d30d9
 
-diff --git a/security/sandbox/chromium/base/time/time.cc b/security/sandbox/chromium/base/time/time.cc
---- a/security/sandbox/chromium/base/time/time.cc
-+++ b/security/sandbox/chromium/base/time/time.cc
+diff --git a/base/time/time.cc b/base/time/time.cc
+--- a/base/time/time.cc
++++ b/base/time/time.cc
 @@ -281,16 +281,17 @@ Time Time::Midnight(bool is_local) const
      if (FromExploded(is_local, exploded, &out_time))
        return out_time;

@@ -6,9 +6,9 @@
 # Parent  6413cb580dccd986c61e6dbdc72fc370765b8f10
 Bug 1431797 Correct the capitalization of headers inside the chromium code so MinGW can compile
 
-diff --git a/security/sandbox/chromium/base/rand_util_win.cc b/security/sandbox/chromium/base/rand_util_win.cc
---- a/security/sandbox/chromium/base/rand_util_win.cc
-+++ b/security/sandbox/chromium/base/rand_util_win.cc
+diff --git a/base/rand_util_win.cc b/base/rand_util_win.cc
+--- a/base/rand_util_win.cc
++++ b/base/rand_util_win.cc
 @@ -7,17 +7,17 @@
  #include <windows.h>
  #include <stddef.h>
@@ -28,9 +28,9 @@ diff --git a/security/sandbox/chromium/base/rand_util_win.cc b/security/sandbox/
  #include "base/logging.h"
  
  namespace base {
-diff --git a/security/sandbox/chromium/base/win/pe_image.h b/security/sandbox/chromium/base/win/pe_image.h
---- a/security/sandbox/chromium/base/win/pe_image.h
-+++ b/security/sandbox/chromium/base/win/pe_image.h
+diff --git a/base/win/pe_image.h b/base/win/pe_image.h
+--- a/base/win/pe_image.h
++++ b/base/win/pe_image.h
 @@ -14,17 +14,17 @@
  #include <windows.h>
  
@@ -50,9 +50,9 @@ diff --git a/security/sandbox/chromium/base/win/pe_image.h b/security/sandbox/ch
  // Its main purpose is to provide an easy way to work with imports and exports
  // from a file, mapped in memory as image.
  class PEImage {
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_rand.cc b/security/sandbox/chromium/sandbox/win/src/sandbox_rand.cc
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_rand.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_rand.cc
+diff --git a/sandbox/win/src/sandbox_rand.cc b/sandbox/win/src/sandbox_rand.cc
+--- a/sandbox/win/src/sandbox_rand.cc
++++ b/sandbox/win/src/sandbox_rand.cc
 @@ -5,17 +5,17 @@
  #include "sandbox/win/src/sandbox_rand.h"
  

@@ -8,9 +8,9 @@ This removes sequence checking on RefCountedBase in DEBUG builds. r=aklotz
 
 We don't currently make use of it and it brings in many dependencies.
 
-diff --git a/security/sandbox/chromium/base/memory/ref_counted.cc b/security/sandbox/chromium/base/memory/ref_counted.cc
---- a/security/sandbox/chromium/base/memory/ref_counted.cc
-+++ b/security/sandbox/chromium/base/memory/ref_counted.cc
+diff --git a/base/memory/ref_counted.cc b/base/memory/ref_counted.cc
+--- a/base/memory/ref_counted.cc
++++ b/base/memory/ref_counted.cc
 @@ -53,18 +53,22 @@ bool RefCountedThreadSafeBase::Release()
  }
  void RefCountedThreadSafeBase::AddRefWithCheck() const {

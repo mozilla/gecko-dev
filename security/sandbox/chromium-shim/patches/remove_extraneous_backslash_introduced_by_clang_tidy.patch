@@ -10,9 +10,9 @@ Need the following commit to compile with Mingw, which has not reached
 the stable channel yet.
 https://chromium.googlesource.com/chromium/src.git/+/1620fe70c299f1f18b2f2c652d16739f6e3c5f78
 
-diff --git a/security/sandbox/chromium/base/win/scoped_handle.h b/security/sandbox/chromium/base/win/scoped_handle.h
---- a/security/sandbox/chromium/base/win/scoped_handle.h
-+++ b/security/sandbox/chromium/base/win/scoped_handle.h
+diff --git a/base/win/scoped_handle.h b/base/win/scoped_handle.h
+--- a/base/win/scoped_handle.h
++++ b/base/win/scoped_handle.h
 @@ -15,17 +15,17 @@
  #include "base/macros.h"
  

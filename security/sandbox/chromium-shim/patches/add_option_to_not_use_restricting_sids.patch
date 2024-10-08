@@ -9,9 +9,9 @@ Bug 1366701 - Add option to Windows chromium sandbox policy to not use restricti
 This originally landed in changeset:
 https://hg.mozilla.org/mozilla-central/rev/14374cd9497a
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
---- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
+diff --git a/sandbox/win/src/restricted_token_utils.cc b/sandbox/win/src/restricted_token_utils.cc
+--- a/sandbox/win/src/restricted_token_utils.cc
++++ b/sandbox/win/src/restricted_token_utils.cc
 @@ -51,16 +51,17 @@ DWORD GetObjectSecurityDescriptor(HANDLE
  
  }  // namespace
@@ -154,9 +154,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
    DWORD err_code = ERROR_SUCCESS;
    if (deny_sids) {
      err_code = restricted_token.AddAllSidsForDenyOnly(&sid_exceptions);
-diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
---- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
-+++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
+diff --git a/sandbox/win/src/restricted_token_utils.h b/sandbox/win/src/restricted_token_utils.h
+--- a/sandbox/win/src/restricted_token_utils.h
++++ b/sandbox/win/src/restricted_token_utils.h
 @@ -33,16 +33,17 @@ enum TokenType { IMPERSONATION = 0, PRIM
  // If the function succeeds, the return value is ERROR_SUCCESS. If the
  // function fails, the return value is the win32 error code corresponding to
@@ -175,9 +175,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h 
                                const wchar_t* ace_access,
                                const wchar_t* integrity_level_sid);
  
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h b/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
+diff --git a/sandbox/win/src/sandbox_policy.h b/sandbox/win/src/sandbox_policy.h
+--- a/sandbox/win/src/sandbox_policy.h
++++ b/sandbox/win/src/sandbox_policy.h
 @@ -101,16 +101,21 @@ class TargetPolicy {
    virtual ResultCode SetTokenLevel(TokenLevel initial, TokenLevel lockdown) = 0;
  
@@ -200,9 +200,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h b/securi
    //   level in the JobLevel definition.
    // ui_exceptions: specify what specific rights that are disabled in the
    //   chosen job_level that need to be granted. Use this parameter to avoid
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
+diff --git a/sandbox/win/src/sandbox_policy_base.cc b/sandbox/win/src/sandbox_policy_base.cc
+--- a/sandbox/win/src/sandbox_policy_base.cc
++++ b/sandbox/win/src/sandbox_policy_base.cc
 @@ -152,16 +152,20 @@ ResultCode PolicyBase::SetTokenLevel(Tok
  TokenLevel PolicyBase::GetInitialTokenLevel() const {
    return initial_level_;
@@ -264,9 +264,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc b/
  
  PSID PolicyBase::GetLowBoxSid() const {
    return lowbox_sid_;
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
+diff --git a/sandbox/win/src/sandbox_policy_base.h b/sandbox/win/src/sandbox_policy_base.h
+--- a/sandbox/win/src/sandbox_policy_base.h
++++ b/sandbox/win/src/sandbox_policy_base.h
 @@ -41,16 +41,17 @@ class PolicyBase final : public TargetPo
    PolicyBase();
  

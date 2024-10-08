@@ -6,9 +6,9 @@
 # Parent  a89071894b4904a0130139a03147d4a6cb5c3bfc
 Bug 1297740.
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/broker_services.cc b/security/sandbox/chromium/sandbox/win/src/broker_services.cc
---- a/security/sandbox/chromium/sandbox/win/src/broker_services.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/broker_services.cc
+diff --git a/sandbox/win/src/broker_services.cc b/sandbox/win/src/broker_services.cc
+--- a/sandbox/win/src/broker_services.cc
++++ b/sandbox/win/src/broker_services.cc
 @@ -414,16 +414,17 @@ DWORD WINAPI BrokerServicesBase::TargetE
    NOTREACHED();
    return 0;
@@ -46,9 +46,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/broker_services.cc b/secu
  
    if (lowbox_token.IsValid()) {
      *last_warning = target->AssignLowBoxToken(lowbox_token);
-diff --git a/security/sandbox/chromium/sandbox/win/src/broker_services.h b/security/sandbox/chromium/sandbox/win/src/broker_services.h
---- a/security/sandbox/chromium/sandbox/win/src/broker_services.h
-+++ b/security/sandbox/chromium/sandbox/win/src/broker_services.h
+diff --git a/sandbox/win/src/broker_services.h b/sandbox/win/src/broker_services.h
+--- a/sandbox/win/src/broker_services.h
++++ b/sandbox/win/src/broker_services.h
 @@ -7,16 +7,17 @@
  
  #include <list>
@@ -85,9 +85,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/broker_services.h b/secur
    ResultCode AddTargetPeer(HANDLE peer_process) override;
  
    // Checks if the supplied process ID matches one of the broker's active
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox.h b/security/sandbox/chromium/sandbox/win/src/sandbox.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox.h
+diff --git a/sandbox/win/src/sandbox.h b/sandbox/win/src/sandbox.h
+--- a/sandbox/win/src/sandbox.h
++++ b/sandbox/win/src/sandbox.h
 @@ -84,16 +84,17 @@ class BrokerServices {
    //   parameter will hold the last Win32 error value.
    //   target: returns the resulting target process information such as process
@@ -106,9 +106,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox.h b/security/sand
    // This call blocks (waits) for all the targets to terminate.
    // Returns:
    //   ALL_OK if successful. All other return values imply failure.
-diff --git a/security/sandbox/chromium/sandbox/win/src/target_process.cc b/security/sandbox/chromium/sandbox/win/src/target_process.cc
---- a/security/sandbox/chromium/sandbox/win/src/target_process.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/target_process.cc
+diff --git a/sandbox/win/src/target_process.cc b/sandbox/win/src/target_process.cc
+--- a/sandbox/win/src/target_process.cc
++++ b/sandbox/win/src/target_process.cc
 @@ -9,16 +9,17 @@
  
  #include <memory>
@@ -176,9 +176,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/target_process.cc b/secur
    }
    base::win::ScopedProcessInformation process_info(temp_process_info);
  
-diff --git a/security/sandbox/chromium/sandbox/win/src/target_process.h b/security/sandbox/chromium/sandbox/win/src/target_process.h
---- a/security/sandbox/chromium/sandbox/win/src/target_process.h
-+++ b/security/sandbox/chromium/sandbox/win/src/target_process.h
+diff --git a/sandbox/win/src/target_process.h b/sandbox/win/src/target_process.h
+--- a/sandbox/win/src/target_process.h
++++ b/sandbox/win/src/target_process.h
 @@ -9,16 +9,17 @@
  
  #include <stddef.h>

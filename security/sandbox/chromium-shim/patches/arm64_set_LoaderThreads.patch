@@ -6,9 +6,9 @@
 # Parent  5ef34aa8c8918649528048dd60907862a4355e29
 Bug 1515088 Part 2: Set LoaderThreads to 1 in the RTL_USER_PROCESS_PARAMETERS structure on child process start-up. r=aklotz
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/win_utils.cc b/security/sandbox/chromium/sandbox/win/src/win_utils.cc
---- a/security/sandbox/chromium/sandbox/win/src/win_utils.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/win_utils.cc
+diff --git a/sandbox/win/src/win_utils.cc b/sandbox/win/src/win_utils.cc
+--- a/sandbox/win/src/win_utils.cc
++++ b/sandbox/win/src/win_utils.cc
 @@ -456,20 +456,21 @@ bool GetNtPathFromWin32Path(const std::w
    bool rv = GetPathFromHandle(file, nt_path);
    ::CloseHandle(file);
@@ -74,9 +74,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/win_utils.cc b/security/s
                            std::unique_ptr<BYTE[]>* buffer) {
    // Get the required buffer size.
    DWORD size = 0;
-diff --git a/security/sandbox/chromium/sandbox/win/src/win_utils.h b/security/sandbox/chromium/sandbox/win/src/win_utils.h
---- a/security/sandbox/chromium/sandbox/win/src/win_utils.h
-+++ b/security/sandbox/chromium/sandbox/win/src/win_utils.h
+diff --git a/sandbox/win/src/win_utils.h b/sandbox/win/src/win_utils.h
+--- a/sandbox/win/src/win_utils.h
++++ b/sandbox/win/src/win_utils.h
 @@ -111,17 +111,18 @@ HKEY GetReservedKeyFromName(const std::w
  bool ResolveRegistryName(std::wstring name, std::wstring* resolved_name);
  

@@ -15,9 +15,9 @@ but we'll limp along.
 
 MozReview-Commit-ID: JRKY4wp7sdu
 
-diff --git a/security/sandbox/chromium/base/threading/platform_thread_win.cc b/security/sandbox/chromium/base/threading/platform_thread_win.cc
---- a/security/sandbox/chromium/base/threading/platform_thread_win.cc
-+++ b/security/sandbox/chromium/base/threading/platform_thread_win.cc
+diff --git a/base/threading/platform_thread_win.cc b/base/threading/platform_thread_win.cc
+--- a/base/threading/platform_thread_win.cc
++++ b/base/threading/platform_thread_win.cc
 @@ -32,27 +32,30 @@ typedef struct tagTHREADNAME_INFO {
  } THREADNAME_INFO;
  

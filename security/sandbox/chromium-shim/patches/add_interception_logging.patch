@@ -9,9 +9,9 @@ Re-apply - Logging changes to the Chromium interception code. r=tabraldes
 Originally landed as changset:
 https://hg.mozilla.org/mozilla-central/rev/0f763c186855
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/filesystem_interception.cc b/security/sandbox/chromium/sandbox/win/src/filesystem_interception.cc
---- a/security/sandbox/chromium/sandbox/win/src/filesystem_interception.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/filesystem_interception.cc
+diff --git a/sandbox/win/src/filesystem_interception.cc b/sandbox/win/src/filesystem_interception.cc
+--- a/sandbox/win/src/filesystem_interception.cc
++++ b/sandbox/win/src/filesystem_interception.cc
 @@ -10,16 +10,17 @@
  #include "sandbox/win/src/filesystem_policy.h"
  #include "sandbox/win/src/ipc_tags.h"
@@ -227,9 +227,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/filesystem_interception.c
  }
  
  }  // namespace sandbox
-diff --git a/security/sandbox/chromium/sandbox/win/src/handle_interception.cc b/security/sandbox/chromium/sandbox/win/src/handle_interception.cc
---- a/security/sandbox/chromium/sandbox/win/src/handle_interception.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/handle_interception.cc
+diff --git a/sandbox/win/src/handle_interception.cc b/sandbox/win/src/handle_interception.cc
+--- a/sandbox/win/src/handle_interception.cc
++++ b/sandbox/win/src/handle_interception.cc
 @@ -5,16 +5,17 @@
  #include "sandbox/win/src/handle_interception.h"
  
@@ -268,9 +268,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/handle_interception.cc b/
  
  }  // namespace sandbox
  
-diff --git a/security/sandbox/chromium/sandbox/win/src/named_pipe_interception.cc b/security/sandbox/chromium/sandbox/win/src/named_pipe_interception.cc
---- a/security/sandbox/chromium/sandbox/win/src/named_pipe_interception.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/named_pipe_interception.cc
+diff --git a/sandbox/win/src/named_pipe_interception.cc b/sandbox/win/src/named_pipe_interception.cc
+--- a/sandbox/win/src/named_pipe_interception.cc
++++ b/sandbox/win/src/named_pipe_interception.cc
 @@ -7,16 +7,17 @@
  #include "sandbox/win/src/crosscall_client.h"
  #include "sandbox/win/src/ipc_tags.h"
@@ -326,9 +326,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/named_pipe_interception.c
  }
  
  }  // namespace sandbox
-diff --git a/security/sandbox/chromium/sandbox/win/src/process_thread_interception.cc b/security/sandbox/chromium/sandbox/win/src/process_thread_interception.cc
---- a/security/sandbox/chromium/sandbox/win/src/process_thread_interception.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/process_thread_interception.cc
+diff --git a/sandbox/win/src/process_thread_interception.cc b/sandbox/win/src/process_thread_interception.cc
+--- a/sandbox/win/src/process_thread_interception.cc
++++ b/sandbox/win/src/process_thread_interception.cc
 @@ -10,16 +10,17 @@
  #include "sandbox/win/src/crosscall_client.h"
  #include "sandbox/win/src/ipc_tags.h"
@@ -529,9 +529,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/process_thread_intercepti
  }
  
  HANDLE WINAPI TargetCreateThread(CreateThreadFunction orig_CreateThread,
-diff --git a/security/sandbox/chromium/sandbox/win/src/registry_interception.cc b/security/sandbox/chromium/sandbox/win/src/registry_interception.cc
---- a/security/sandbox/chromium/sandbox/win/src/registry_interception.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/registry_interception.cc
+diff --git a/sandbox/win/src/registry_interception.cc b/sandbox/win/src/registry_interception.cc
+--- a/sandbox/win/src/registry_interception.cc
++++ b/sandbox/win/src/registry_interception.cc
 @@ -9,16 +9,17 @@
  #include "sandbox/win/src/crosscall_client.h"
  #include "sandbox/win/src/ipc_tags.h"
@@ -652,9 +652,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/registry_interception.cc 
  }
  
  }  // namespace sandbox
-diff --git a/security/sandbox/chromium/sandbox/win/src/signed_interception.cc b/security/sandbox/chromium/sandbox/win/src/signed_interception.cc
---- a/security/sandbox/chromium/sandbox/win/src/signed_interception.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/signed_interception.cc
+diff --git a/sandbox/win/src/signed_interception.cc b/sandbox/win/src/signed_interception.cc
+--- a/sandbox/win/src/signed_interception.cc
++++ b/sandbox/win/src/signed_interception.cc
 @@ -9,16 +9,17 @@
  #include "sandbox/win/src/crosscall_client.h"
  #include "sandbox/win/src/ipc_tags.h"
@@ -710,9 +710,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/signed_interception.cc b/
  
    // Fall back to the original API in all failure cases.
    return orig_CreateSection(section_handle, desired_access, object_attributes,
-diff --git a/security/sandbox/chromium/sandbox/win/src/sync_interception.cc b/security/sandbox/chromium/sandbox/win/src/sync_interception.cc
---- a/security/sandbox/chromium/sandbox/win/src/sync_interception.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/sync_interception.cc
+diff --git a/sandbox/win/src/sync_interception.cc b/sandbox/win/src/sync_interception.cc
+--- a/sandbox/win/src/sync_interception.cc
++++ b/sandbox/win/src/sync_interception.cc
 @@ -9,16 +9,17 @@
  #include "sandbox/win/src/crosscall_client.h"
  #include "sandbox/win/src/ipc_tags.h"

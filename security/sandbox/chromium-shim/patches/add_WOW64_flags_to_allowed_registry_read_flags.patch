@@ -9,9 +9,9 @@ Add KEY_WOW64_64Key and KEY_WOW64_32KEY to the Chromium sandbox allowed registry
 Originally landed as changeset:
 https://hg.mozilla.org/mozilla-central/rev/d24db55deb85
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/registry_policy.cc b/security/sandbox/chromium/sandbox/win/src/registry_policy.cc
---- a/security/sandbox/chromium/sandbox/win/src/registry_policy.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/registry_policy.cc
+diff --git a/sandbox/win/src/registry_policy.cc b/sandbox/win/src/registry_policy.cc
+--- a/sandbox/win/src/registry_policy.cc
++++ b/sandbox/win/src/registry_policy.cc
 @@ -15,17 +15,18 @@
  #include "sandbox/win/src/sandbox_types.h"
  #include "sandbox/win/src/sandbox_utils.h"

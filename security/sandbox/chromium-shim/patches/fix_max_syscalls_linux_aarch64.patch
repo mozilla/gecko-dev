@@ -8,9 +8,9 @@ Bug 1866396 - Hard code the number of system calls for Linux on aarch64 r=jld
 
 Differential Revision: https://phabricator.services.mozilla.com/D202293
 
-diff --git a/security/sandbox/chromium/sandbox/linux/bpf_dsl/linux_syscall_ranges.h b/security/sandbox/chromium/sandbox/linux/bpf_dsl/linux_syscall_ranges.h
---- a/security/sandbox/chromium/sandbox/linux/bpf_dsl/linux_syscall_ranges.h
-+++ b/security/sandbox/chromium/sandbox/linux/bpf_dsl/linux_syscall_ranges.h
+diff --git a/sandbox/linux/bpf_dsl/linux_syscall_ranges.h b/sandbox/linux/bpf_dsl/linux_syscall_ranges.h
+--- a/sandbox/linux/bpf_dsl/linux_syscall_ranges.h
++++ b/sandbox/linux/bpf_dsl/linux_syscall_ranges.h
 @@ -51,9 +51,9 @@
  
  #elif defined(__aarch64__)

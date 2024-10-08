@@ -14,9 +14,9 @@ access check works.
 This shouldn't weaken the sandbox, because the user's SID is not in the
 restricted list and both checks have to pass.
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
---- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
+diff --git a/sandbox/win/src/restricted_token_utils.cc b/sandbox/win/src/restricted_token_utils.cc
+--- a/sandbox/win/src/restricted_token_utils.cc
++++ b/sandbox/win/src/restricted_token_utils.cc
 @@ -157,30 +157,32 @@ DWORD CreateRestrictedToken(HANDLE effec
          restricted_token.AddRestrictingSidLogonSession();
        } else {

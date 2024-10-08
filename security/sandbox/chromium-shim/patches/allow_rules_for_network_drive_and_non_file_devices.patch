@@ -9,9 +9,9 @@ Change to allow network drives in sandbox rules with non-file device fix. r=aklo
 Originally landed in changeset:
 https://hg.mozilla.org/mozilla-central/rev/c70d06fa5302
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/win_utils.cc b/security/sandbox/chromium/sandbox/win/src/win_utils.cc
---- a/security/sandbox/chromium/sandbox/win/src/win_utils.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/win_utils.cc
+diff --git a/sandbox/win/src/win_utils.cc b/sandbox/win/src/win_utils.cc
+--- a/sandbox/win/src/win_utils.cc
++++ b/sandbox/win/src/win_utils.cc
 @@ -194,61 +194,66 @@ bool ResolveRegistryName(std::wstring na
  
    return false;

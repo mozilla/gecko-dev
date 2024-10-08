@@ -11,9 +11,9 @@ SetLockdownDefaultDacl, apart from when we are running from a network drive.
 
 Differential Revision: https://phabricator.services.mozilla.com/D66610
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token.cc b/security/sandbox/chromium/sandbox/win/src/restricted_token.cc
---- a/security/sandbox/chromium/sandbox/win/src/restricted_token.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/restricted_token.cc
+diff --git a/sandbox/win/src/restricted_token.cc b/sandbox/win/src/restricted_token.cc
+--- a/sandbox/win/src/restricted_token.cc
++++ b/sandbox/win/src/restricted_token.cc
 @@ -141,16 +141,24 @@ DWORD RestrictedToken::GetRestrictedToke
    } else {
      // Modify the default dacl on the token to contain Restricted.
@@ -60,9 +60,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token.cc b/sec
 +}
 +
  }  // namespace sandbox
-diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token.h b/security/sandbox/chromium/sandbox/win/src/restricted_token.h
---- a/security/sandbox/chromium/sandbox/win/src/restricted_token.h
-+++ b/security/sandbox/chromium/sandbox/win/src/restricted_token.h
+diff --git a/sandbox/win/src/restricted_token.h b/sandbox/win/src/restricted_token.h
+--- a/sandbox/win/src/restricted_token.h
++++ b/sandbox/win/src/restricted_token.h
 @@ -2,16 +2,17 @@
  // Use of this source code is governed by a BSD-style license that can be
  // found in the LICENSE file.
@@ -113,9 +113,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token.h b/secu
    bool init_;
    // Lockdown the default DACL when creating new tokens.
    bool lockdown_default_dacl_;
-diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
---- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
+diff --git a/sandbox/win/src/restricted_token_utils.cc b/sandbox/win/src/restricted_token_utils.cc
+--- a/sandbox/win/src/restricted_token_utils.cc
++++ b/sandbox/win/src/restricted_token_utils.cc
 @@ -51,22 +51,29 @@ DWORD GetObjectSecurityDescriptor(HANDLE
  
  }  // namespace
@@ -207,9 +207,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.cc
  
    DWORD err_code = ERROR_SUCCESS;
    if (deny_sids) {
-diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
---- a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
-+++ b/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h
+diff --git a/sandbox/win/src/restricted_token_utils.h b/sandbox/win/src/restricted_token_utils.h
+--- a/sandbox/win/src/restricted_token_utils.h
++++ b/sandbox/win/src/restricted_token_utils.h
 @@ -33,16 +33,17 @@ enum TokenType { IMPERSONATION = 0, PRIM
  // If the function succeeds, the return value is ERROR_SUCCESS. If the
  // function fails, the return value is the win32 error code corresponding to
@@ -228,9 +228,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/restricted_token_utils.h 
                                SE_OBJECT_TYPE type,
                                const wchar_t* ace_access,
                                const wchar_t* integrity_level_sid);
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h b/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
+diff --git a/sandbox/win/src/sandbox_policy.h b/sandbox/win/src/sandbox_policy.h
+--- a/sandbox/win/src/sandbox_policy.h
++++ b/sandbox/win/src/sandbox_policy.h
 @@ -256,16 +256,20 @@ class TargetPolicy {
    // ownership of the handle.
    virtual void AddHandleToShare(HANDLE handle) = 0;
@@ -252,9 +252,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h b/securi
    // Configure policy to use an AppContainer profile. |package_name| is the
    // name of the profile to use. Specifying True for |create_profile| ensures
    // the profile exists, if set to False process creation will fail if the
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
+diff --git a/sandbox/win/src/sandbox_policy_base.cc b/sandbox/win/src/sandbox_policy_base.cc
+--- a/sandbox/win/src/sandbox_policy_base.cc
++++ b/sandbox/win/src/sandbox_policy_base.cc
 @@ -105,16 +105,17 @@ PolicyBase::PolicyBase()
        delayed_integrity_level_(INTEGRITY_LEVEL_LAST),
        mitigations_(0),
@@ -349,9 +349,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc b/
  
  PSID PolicyBase::GetLowBoxSid() const {
    return lowbox_sid_;
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h
+diff --git a/sandbox/win/src/sandbox_policy_base.h b/sandbox/win/src/sandbox_policy_base.h
+--- a/sandbox/win/src/sandbox_policy_base.h
++++ b/sandbox/win/src/sandbox_policy_base.h
 @@ -69,16 +69,17 @@ class PolicyBase final : public TargetPo
    ResultCode AddRule(SubSystem subsystem,
                       Semantics semantics,
@@ -388,9 +388,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.h b/s
    static IntegrityLevel
        alternate_desktop_local_winstation_integrity_level_label_;
  
-diff --git a/security/sandbox/chromium/sandbox/win/src/sid.cc b/security/sandbox/chromium/sandbox/win/src/sid.cc
---- a/security/sandbox/chromium/sandbox/win/src/sid.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/sid.cc
+diff --git a/sandbox/win/src/sid.cc b/sandbox/win/src/sid.cc
+--- a/sandbox/win/src/sid.cc
++++ b/sandbox/win/src/sid.cc
 @@ -2,18 +2,20 @@
  // Use of this source code is governed by a BSD-style license that can be
  // found in the LICENSE file.
@@ -437,9 +437,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sid.cc b/security/sandbox
    return !!::IsValidSid(GetPSID());
  }
  
-diff --git a/security/sandbox/chromium/sandbox/win/src/sid.h b/security/sandbox/chromium/sandbox/win/src/sid.h
---- a/security/sandbox/chromium/sandbox/win/src/sid.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sid.h
+diff --git a/sandbox/win/src/sid.h b/sandbox/win/src/sid.h
+--- a/sandbox/win/src/sid.h
++++ b/sandbox/win/src/sid.h
 @@ -47,16 +47,18 @@ class Sid {
    // Create a Sid from a SDDL format string, such as S-1-1-0.
    static Sid FromSddlString(const wchar_t* sddl_sid);

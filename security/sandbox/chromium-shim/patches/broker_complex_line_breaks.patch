@@ -21,9 +21,9 @@ passed and we can use an empty parameter set.
 New files are in chromium-shim as these are most likely to require changes and
 this means we will not have to update the main chromium patch.
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_client.h b/security/sandbox/chromium/sandbox/win/src/crosscall_client.h
---- a/security/sandbox/chromium/sandbox/win/src/crosscall_client.h
-+++ b/security/sandbox/chromium/sandbox/win/src/crosscall_client.h
+diff --git a/sandbox/win/src/crosscall_client.h b/sandbox/win/src/crosscall_client.h
+--- a/sandbox/win/src/crosscall_client.h
++++ b/sandbox/win/src/crosscall_client.h
 @@ -39,20 +39,16 @@
  //             interpretation of the answer is private to client and server.
  //
@@ -88,9 +88,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_client.h b/secu
  
    // Returns the pointer to the start of the string.
    const void* GetStart() const { return t_.Buffer(); }
-diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_params.h b/security/sandbox/chromium/sandbox/win/src/crosscall_params.h
---- a/security/sandbox/chromium/sandbox/win/src/crosscall_params.h
-+++ b/security/sandbox/chromium/sandbox/win/src/crosscall_params.h
+diff --git a/sandbox/win/src/crosscall_params.h b/sandbox/win/src/crosscall_params.h
+--- a/sandbox/win/src/crosscall_params.h
++++ b/sandbox/win/src/crosscall_params.h
 @@ -41,16 +41,20 @@
  // them are not supported.
  //
@@ -134,9 +134,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_params.h b/secu
      return previous_size;
    }
  
-diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc b/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc
---- a/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc
+diff --git a/sandbox/win/src/crosscall_server.cc b/sandbox/win/src/crosscall_server.cc
+--- a/sandbox/win/src/crosscall_server.cc
++++ b/sandbox/win/src/crosscall_server.cc
 @@ -301,17 +301,17 @@ bool CrossCallParamsEx::GetParameterStr(
  
  bool CrossCallParamsEx::GetParameterPtr(uint32_t index,
@@ -156,9 +156,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/crosscall_server.cc b/sec
    *pointer = start;
    return true;
  }
-diff --git a/security/sandbox/chromium/sandbox/win/src/ipc_args.cc b/security/sandbox/chromium/sandbox/win/src/ipc_args.cc
---- a/security/sandbox/chromium/sandbox/win/src/ipc_args.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/ipc_args.cc
+diff --git a/sandbox/win/src/ipc_args.cc b/sandbox/win/src/ipc_args.cc
+--- a/sandbox/win/src/ipc_args.cc
++++ b/sandbox/win/src/ipc_args.cc
 @@ -15,16 +15,17 @@ namespace sandbox {
  void ReleaseArgs(const IPCParams* ipc_params, void* args[kMaxIpcParams]) {
    for (size_t i = 0; i < kMaxIpcParams; i++) {
@@ -195,9 +195,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/ipc_args.cc b/security/sa
            CountedBuffer* buffer = new CountedBuffer(args[i], size);
            args[i] = buffer;
            break;
-diff --git a/security/sandbox/chromium/sandbox/win/src/ipc_tags.h b/security/sandbox/chromium/sandbox/win/src/ipc_tags.h
---- a/security/sandbox/chromium/sandbox/win/src/ipc_tags.h
-+++ b/security/sandbox/chromium/sandbox/win/src/ipc_tags.h
+diff --git a/sandbox/win/src/ipc_tags.h b/sandbox/win/src/ipc_tags.h
+--- a/sandbox/win/src/ipc_tags.h
++++ b/sandbox/win/src/ipc_tags.h
 @@ -41,16 +41,17 @@ enum class IpcTag {
    GDI_GETCERTIFICATESIZE,
    GDI_DESTROYOPMPROTECTEDOUTPUT,
@@ -216,9 +216,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/ipc_tags.h b/security/san
  static_assert(kMaxIpcTag <= kMaxServiceCount, "kMaxServiceCount is too low");
  
  }  // namespace sandbox
-diff --git a/security/sandbox/chromium/sandbox/win/src/policy_engine_opcodes.cc b/security/sandbox/chromium/sandbox/win/src/policy_engine_opcodes.cc
---- a/security/sandbox/chromium/sandbox/win/src/policy_engine_opcodes.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/policy_engine_opcodes.cc
+diff --git a/sandbox/win/src/policy_engine_opcodes.cc b/sandbox/win/src/policy_engine_opcodes.cc
+--- a/sandbox/win/src/policy_engine_opcodes.cc
++++ b/sandbox/win/src/policy_engine_opcodes.cc
 @@ -78,17 +78,17 @@ EvalResult OpcodeEval<OP_ALWAYS_TRUE>(Po
  }
  
@@ -238,9 +238,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/policy_engine_opcodes.cc 
  
  template <>
  EvalResult OpcodeEval<OP_ACTION>(PolicyOpcode* opcode,
-diff --git a/security/sandbox/chromium/sandbox/win/src/policy_params.h b/security/sandbox/chromium/sandbox/win/src/policy_params.h
---- a/security/sandbox/chromium/sandbox/win/src/policy_params.h
-+++ b/security/sandbox/chromium/sandbox/win/src/policy_params.h
+diff --git a/sandbox/win/src/policy_params.h b/sandbox/win/src/policy_params.h
+--- a/sandbox/win/src/policy_params.h
++++ b/sandbox/win/src/policy_params.h
 @@ -56,11 +56,15 @@ POLPARAMS_BEGIN(OpenKey)
  POLPARAMS_END(OpenKey)
  
@@ -257,9 +257,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/policy_params.h b/securit
  }  // namespace sandbox
  
  #endif  // SANDBOX_SRC_POLICY_PARAMS_H__
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox.h b/security/sandbox/chromium/sandbox/win/src/sandbox.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox.h
+diff --git a/sandbox/win/src/sandbox.h b/sandbox/win/src/sandbox.h
+--- a/sandbox/win/src/sandbox.h
++++ b/sandbox/win/src/sandbox.h
 @@ -176,16 +176,19 @@ class TargetServices {
    //   If the return is ERROR_GENERIC, you can call ::GetLastError() to get
    //   more information.
@@ -280,9 +280,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox.h b/security/sand
   public:
    // Returns a JSON representation of the policy snapshot.
    // This pointer has the same lifetime as this PolicyInfo object.
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h b/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h
+diff --git a/sandbox/win/src/sandbox_policy.h b/sandbox/win/src/sandbox_policy.h
+--- a/sandbox/win/src/sandbox_policy.h
++++ b/sandbox/win/src/sandbox_policy.h
 @@ -27,17 +27,18 @@ class TargetPolicy {
    enum SubSystem {
      SUBSYS_FILES,            // Creation and opening of files and pipes.
@@ -323,9 +323,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy.h b/securi
  
    // Decrements the reference count of this object. When the reference count
    // is zero the object is automatically destroyed.
-diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
---- a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc
+diff --git a/sandbox/win/src/sandbox_policy_base.cc b/sandbox/win/src/sandbox_policy_base.cc
+--- a/sandbox/win/src/sandbox_policy_base.cc
++++ b/sandbox/win/src/sandbox_policy_base.cc
 @@ -15,16 +15,17 @@
  #include "base/strings/stringprintf.h"
  #include "base/win/win_util.h"
@@ -368,9 +368,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/sandbox_policy_base.cc b/
  }
  
  }  // namespace sandbox
-diff --git a/security/sandbox/chromium/sandbox/win/src/target_services.cc b/security/sandbox/chromium/sandbox/win/src/target_services.cc
---- a/security/sandbox/chromium/sandbox/win/src/target_services.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/target_services.cc
+diff --git a/sandbox/win/src/target_services.cc b/sandbox/win/src/target_services.cc
+--- a/sandbox/win/src/target_services.cc
++++ b/sandbox/win/src/target_services.cc
 @@ -9,16 +9,17 @@
  #include <process.h>
  #include <stdint.h>
@@ -415,9 +415,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/target_services.cc b/secu
 +}
 +
  }  // namespace sandbox
-diff --git a/security/sandbox/chromium/sandbox/win/src/target_services.h b/security/sandbox/chromium/sandbox/win/src/target_services.h
---- a/security/sandbox/chromium/sandbox/win/src/target_services.h
-+++ b/security/sandbox/chromium/sandbox/win/src/target_services.h
+diff --git a/sandbox/win/src/target_services.h b/sandbox/win/src/target_services.h
+--- a/sandbox/win/src/target_services.h
++++ b/sandbox/win/src/target_services.h
 @@ -45,16 +45,18 @@ class TargetServicesBase : public Target
    ResultCode Init() override;
    void LowerToken() override;
@@ -437,9 +437,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/target_services.h b/secur
    // if the IPC was successful and false otherwise. There are 2 versions of
    // this test: 1 and 2. The first one send a simple message while the
    // second one send a message with an in/out param.
-diff --git a/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc b/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc
---- a/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc
+diff --git a/sandbox/win/src/top_level_dispatcher.cc b/sandbox/win/src/top_level_dispatcher.cc
+--- a/sandbox/win/src/top_level_dispatcher.cc
++++ b/sandbox/win/src/top_level_dispatcher.cc
 @@ -9,16 +9,17 @@
  
  #include "base/logging.h"
@@ -479,9 +479,9 @@ diff --git a/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.cc b
  // of IPC dispatchers which are keyed on the IPC tag so we normally delegate
  // to the appropriate dispatcher unless we can handle the IPC call ourselves.
  Dispatcher* TopLevelDispatcher::OnMessageReady(IPCParams* ipc,
-diff --git a/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.h b/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.h
---- a/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.h
-+++ b/security/sandbox/chromium/sandbox/win/src/top_level_dispatcher.h
+diff --git a/sandbox/win/src/top_level_dispatcher.h b/sandbox/win/src/top_level_dispatcher.h
+--- a/sandbox/win/src/top_level_dispatcher.h
++++ b/sandbox/win/src/top_level_dispatcher.h
 @@ -38,16 +38,17 @@ class TopLevelDispatcher : public Dispat
    std::unique_ptr<Dispatcher> filesystem_dispatcher_;
    std::unique_ptr<Dispatcher> named_pipe_dispatcher_;

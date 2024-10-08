@@ -7,9 +7,9 @@
 Bug 1620114 - Allow an NT path string to be passed to SignedPolicy::GenerateRules.  r=bobowen
 so that our SandboxBroker can add a policy rule with an NT path directly.
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/signed_policy.cc b/security/sandbox/chromium/sandbox/win/src/signed_policy.cc
---- a/security/sandbox/chromium/sandbox/win/src/signed_policy.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/signed_policy.cc
+diff --git a/sandbox/win/src/signed_policy.cc b/sandbox/win/src/signed_policy.cc
+--- a/sandbox/win/src/signed_policy.cc
++++ b/sandbox/win/src/signed_policy.cc
 @@ -7,39 +7,63 @@
  #include <stdint.h>
  

@@ -10,9 +10,9 @@ This patch removes the use of base::ScopedNativeLibrary from
 sandbox::ApplyMitigationsToCurrentThread because to avoid
 new dependencies.
 
-diff --git a/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc b/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
---- a/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
-+++ b/security/sandbox/chromium/sandbox/win/src/process_mitigations.cc
+diff --git a/sandbox/win/src/process_mitigations.cc b/sandbox/win/src/process_mitigations.cc
+--- a/sandbox/win/src/process_mitigations.cc
++++ b/sandbox/win/src/process_mitigations.cc
 @@ -5,18 +5,16 @@
  #include "sandbox/win/src/process_mitigations.h"
  

@@ -9,9 +9,9 @@ Don't include delayimp.h twice from //base/win/pe_image.cc to compile with Mingw
 The second include was introduced by
 https://chromium.googlesource.com/chromium/src.git/+/5c23d46846111ea16aaf2a9b45355cca5ddbf6d8
 
-diff --git a/security/sandbox/chromium/base/win/pe_image.cc b/security/sandbox/chromium/base/win/pe_image.cc
---- a/security/sandbox/chromium/base/win/pe_image.cc
-+++ b/security/sandbox/chromium/base/win/pe_image.cc
+diff --git a/base/win/pe_image.cc b/base/win/pe_image.cc
+--- a/base/win/pe_image.cc
++++ b/base/win/pe_image.cc
 @@ -2,17 +2,16 @@
  // Use of this source code is governed by a BSD-style license that can be
  // found in the LICENSE file.

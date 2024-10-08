@@ -9,9 +9,9 @@ Revert chromium's ffe1d0eb42d1d75f2b6a3b4145eff69f235a19ee. r=bobowen
 Undoing the following commit as it brings more dependency but unused in our code.
 https://chromium.googlesource.com/chromium/src.git/+/ffe1d0eb42d1d75f2b6a3b4145eff69f235a19ee
 
-diff --git a/security/sandbox/chromium/base/token.cc b/security/sandbox/chromium/base/token.cc
---- a/security/sandbox/chromium/base/token.cc
-+++ b/security/sandbox/chromium/base/token.cc
+diff --git a/base/token.cc b/base/token.cc
+--- a/base/token.cc
++++ b/base/token.cc
 @@ -1,17 +1,16 @@
  // Copyright 2018 The Chromium Authors. All rights reserved.
  // Use of this source code is governed by a BSD-style license that can be
@@ -57,9 +57,9 @@ diff --git a/security/sandbox/chromium/base/token.cc b/security/sandbox/chromium
 -}
 -
  }  // namespace base
-diff --git a/security/sandbox/chromium/base/token.h b/security/sandbox/chromium/base/token.h
---- a/security/sandbox/chromium/base/token.h
-+++ b/security/sandbox/chromium/base/token.h
+diff --git a/base/token.h b/base/token.h
+--- a/base/token.h
++++ b/base/token.h
 @@ -7,17 +7,16 @@
  
  #include <stdint.h>
