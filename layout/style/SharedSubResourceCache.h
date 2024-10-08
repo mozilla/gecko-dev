@@ -38,6 +38,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/Document.h"
 #include "nsContentUtils.h"
+#include "nsHttpResponseHead.h"
 #include "nsISupportsImpl.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/dom/CacheablePerformanceTimingData.h"
@@ -64,14 +65,17 @@ class SubResourceNetworkMetadataHolder {
     return mPerfData.ptrOr(nullptr);
   }
 
+  const net::nsHttpResponseHead* GetResponseHead() const {
+    return mResponseHead.get();
+  }
+
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SubResourceNetworkMetadataHolder)
 
  private:
   ~SubResourceNetworkMetadataHolder() = default;
 
   mozilla::Maybe<dom::CacheablePerformanceTimingData> mPerfData;
-
-  // TODO: Add HTTP headers for DevTools/WebDriver notifications (bug 1915626).
+  mozilla::UniquePtr<net::nsHttpResponseHead> mResponseHead;
 };
 
 enum class CachedSubResourceState {

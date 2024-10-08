@@ -2363,7 +2363,11 @@ void Loader::NotifyObserversForCachedSheet(SheetLoadData& aLoadData) {
 
   RefPtr<HttpBaseChannel> httpBaseChannel = do_QueryObject(channel);
   if (httpBaseChannel) {
-    httpBaseChannel->SetDummyChannelForCachedResource();
+    const net::nsHttpResponseHead* responseHead = nullptr;
+    if (aLoadData.GetNetworkMetadata()) {
+      responseHead = aLoadData.GetNetworkMetadata()->GetResponseHead();
+    }
+    httpBaseChannel->SetDummyChannelForCachedResource(responseHead);
   }
 
   channel->SetContentType("text/css"_ns);

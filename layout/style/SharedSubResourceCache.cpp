@@ -6,6 +6,7 @@
 
 #include "SharedSubResourceCache.h"
 
+#include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/CacheablePerformanceTimingData.h"
 #include "mozilla/dom/Document.h"
@@ -13,12 +14,14 @@
 #include "mozilla/dom/PerformanceResourceTimingBinding.h"
 #include "mozilla/dom/PerformanceStorage.h"
 #include "mozilla/dom/PerformanceTiming.h"
+#include "mozilla/net/HttpBaseChannel.h"
 #include "nsCOMPtr.h"
 #include "nsDOMNavigationTiming.h"
 #include "nsIHttpChannel.h"
 #include "nsIRequest.h"
 #include "nsITimedChannel.h"
 #include "nsPIDOMWindow.h"
+#include "nsQueryObject.h"
 
 namespace mozilla {
 
@@ -64,6 +67,11 @@ SubResourceNetworkMetadataHolder::SubResourceNetworkMetadataHolder(
   if (timedChannel) {
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest);
     mPerfData.emplace(timedChannel, httpChannel);
+  }
+
+  RefPtr<net::HttpBaseChannel> httpBaseChannel = do_QueryObject(aRequest);
+  if (httpBaseChannel) {
+    mResponseHead = httpBaseChannel->MaybeCloneResponseHeadForCachedResource();
   }
 }
 
