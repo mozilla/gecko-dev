@@ -170,6 +170,7 @@ linux1804-tests:
     # - jittest  # See comment in linux1804-ccov-tests set.
     - jsreftest
     - marionette
+    - marionette-unittest
     - mochitest-a11y
     - mochitest-browser-a11y
     - mochitest-browser-chrome
@@ -207,6 +208,7 @@ linux2204-wayland-tests:
     - gtest
     - jsreftest
     - marionette
+    - marionette-unittest
     - mochitest-a11y
     - mochitest-browser-a11y
     - mochitest-browser-chrome
@@ -238,6 +240,7 @@ windows32-2009-tests:
     - firefox-ui-functional
     - jsreftest
     - marionette
+    - marionette-unittest
     - mochitest-a11y
     - mochitest-browser-a11y
     - mochitest-browser-chrome
@@ -282,6 +285,7 @@ windows11-2009-tests:
     - gtest
     - jsreftest
     - marionette
+    - marionette-unittest
     - mochitest-a11y
     - mochitest-browser-a11y
     - mochitest-browser-chrome
@@ -400,6 +404,7 @@ macosx1015-64-qr-tests:
     - jittest
     - jsreftest
     - marionette
+    - marionette-unittest
     - mochitest-a11y
     - mochitest-browser-a11y
     - mochitest-browser-chrome
