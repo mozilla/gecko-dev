@@ -245,6 +245,10 @@ WorkerGlobalScopeBase::WorkerGlobalScopeBase(
     : mWorkerPrivate(aWorkerPrivate),
       mClientSource(std::move(aClientSource)),
       mSerialEventTarget(aWorkerPrivate->HybridEventTarget()) {
+  if (StaticPrefs::dom_workers_throttling_enabled() && XRE_IsContentProcess()) {
+    mTimeoutManager =
+        MakeUnique<dom::TimeoutManager>(*this, /* not used on workers */ 0);
+  }
   LOG(("WorkerGlobalScopeBase::WorkerGlobalScopeBase [%p]", this));
   MOZ_ASSERT(mWorkerPrivate);
 #ifdef DEBUG
