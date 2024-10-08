@@ -924,7 +924,7 @@ add_task(async function test_tabsContainNoTabGroups() {
   });
 
   let group1 = gBrowser.addTabGroup("red", "test", [tab]);
-  let group2 = gBrowser.addTabGroup("blue", "test", [tab]);
+  gBrowser.addTabGroup("blue", "test", [tab]);
 
   Assert.equal(
     gBrowser.tabs.length,
@@ -940,8 +940,7 @@ add_task(async function test_tabsContainNoTabGroups() {
   });
 
   BrowserTestUtils.removeTab(tab);
-  gBrowser.removeTabGroup(group1, { animate: false });
-  gBrowser.removeTabGroup(group2, { animate: false });
+  await removeTabGroup(group1);
 });
 
 /**
@@ -1003,5 +1002,5 @@ add_task(async function test_tabGroupCreatePanel() {
   Assert.ok(group.label == "Shopping");
   Assert.ok(group.color == "red");
 
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
 });
