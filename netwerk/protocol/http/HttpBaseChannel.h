@@ -485,7 +485,17 @@ class HttpBaseChannel : public nsHashPropertyBag,
     return mResponseTrailers.get();
   }
 
-  void SetDummyChannelForCachedResource();
+  // Return the cloned HTTP Headers if available.
+  // The returned headers can be passed to SetDummyChannelForCachedResource
+  // to create a dummy channel with the same HTTP headers.
+  UniquePtr<nsHttpResponseHead> MaybeCloneResponseHeadForCachedResource();
+
+  // Set this channel as a dummy channel for cached resources.
+  //
+  // If aMaybeResponseHead is provided, this uses the given HTTP headers.
+  // Otherwise this uses an empty HTTP headers.
+  void SetDummyChannelForCachedResource(
+      const nsHttpResponseHead* aMaybeResponseHead = nullptr);
 
   const NetAddr& GetSelfAddr() { return mSelfAddr; }
   const NetAddr& GetPeerAddr() { return mPeerAddr; }
