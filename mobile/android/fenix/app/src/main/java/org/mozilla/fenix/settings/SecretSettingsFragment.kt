@@ -162,7 +162,6 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        // This is only available in Debug builds for verification.
         requirePreference<SwitchPreference>(
             R.string.pref_key_set_as_default_browser_prompt_enabled,
         ).apply {
