@@ -40,8 +40,21 @@ task-defaults:
                     default: built-projects
     virtualization: virtual
 
-marionette:
+marionette-unittest:
     description: "Marionette unittest run"
+    treeherder-symbol: Mn-unit
+    max-run-time: 1800
+    instance-size: default
+    chunks: 1
+    suite: marionette
+    test-manifest-loader: null  # don't load in taskgraph
+    mozharness:
+        extra-options:
+            - --subsuite=unittest
+            - --test-manifest=unit/unit-tests.toml
+
+marionette:
+    description: "Marionette integration run"
     treeherder-symbol: Mn
     max-run-time:
         by-test-platform:

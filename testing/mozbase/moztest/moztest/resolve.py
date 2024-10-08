@@ -76,6 +76,13 @@ TEST_SUITES = {
         "kwargs": {"tests": None},
         "task_regex": ["marionette($|.*(-1|[^0-9])$)"],
     },
+    "marionette-unittest": {
+        "aliases": ("mnself",),
+        "build_flavor": "marionette",
+        "mach_command": "marionette-test",
+        "kwargs": {"tests": None},
+        "task_regex": ["marionette($|.*(-1|[^0-9])$)"],
+    },
     "mochitest-a11y": {
         "aliases": ("a11y", "ally"),
         "build_flavor": "a11y",
@@ -741,6 +748,11 @@ class TestResolver(MozbuildObject):
                         continue
                     if flavor != "devtools" and test.get("flavor") != flavor:
                         continue
+
+                    # Marionette subsuite 'unittest' runs unit-tests.toml
+                    if flavor == "marionette" and test.get("subtest", "") != "unittest":
+                        if "unit-tests.toml" in test.get("manifest", ""):
+                            continue
 
                 test_subsuite = test.get("subsuite", "undefined")
                 if not test_subsuite:  # sometimes test['subsuite'] == ''
