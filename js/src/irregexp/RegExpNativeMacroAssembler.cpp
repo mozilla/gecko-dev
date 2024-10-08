@@ -1152,8 +1152,8 @@ void SMRegExpMacroAssembler::initFrameAndRegs() {
     masm_.storePtr(inputStartMinusOneReg, BaseIndex(masm_.getStackPointer(),
                                                     temp1_, js::jit::TimesOne));
     masm_.addPtr(ImmWord(sizeof(void*)), temp1_);
-    masm_.branchPtr(Assembler::LessThan, temp1_,
-                    ImmWord(register_offset(num_capture_registers_)),
+    masm_.branchPtr(Assembler::LessThanOrEqual, temp1_,
+                    ImmWord(register_offset(num_capture_registers_ - 1)),
                     &init_loop);
   } else {
     // Unroll the loop
