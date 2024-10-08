@@ -1634,13 +1634,6 @@ TelemetryImpl::ClearEvents() {
 }
 
 NS_IMETHODIMP
-TelemetryImpl::SetEventRecordingEnabled(const nsACString& aCategory,
-                                        bool aEnabled) {
-  TelemetryEvent::SetEventRecordingEnabled(aCategory, aEnabled);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 TelemetryImpl::FlushBatchedChildTelemetry() {
   TelemetryIPCAccumulator::IPCTimerFired(nullptr, nullptr);
   return NS_OK;
