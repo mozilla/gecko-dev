@@ -62,6 +62,11 @@ export class CachedResourceListener {
   observe(subject, topic) {
     switch (topic) {
       case OBSERVER_TOPIC_RESOURCE_CACHE_RESPONSE: {
+        // file channels are not supported:
+        //   https://bugzilla.mozilla.org/show_bug.cgi?id=1826210
+        if (!(subject instanceof Ci.nsIHttpChannel)) {
+          return;
+        }
         const channel = subject.QueryInterface(Ci.nsIHttpChannel);
         const id = lazy.NetworkUtils.getChannelBrowsingContextID(channel);
         const browsingContext = BrowsingContext.get(id);
