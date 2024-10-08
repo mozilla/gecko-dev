@@ -125,6 +125,7 @@ const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
 const CONTILE_CACHE_PREF = "browser.topsites.contile.cachedTiles";
 const CONTILE_CACHE_VALID_FOR_PREF = "browser.topsites.contile.cacheValidFor";
 const CONTILE_CACHE_LAST_FETCH_PREF = "browser.topsites.contile.lastFetch";
+const CONTILE_CACHE_VALID_FOR_FALLBACK = 3 * 60 * 60; // 3 hours in seconds
 
 // Partners of sponsored tiles.
 const SPONSORED_TILE_PARTNER_AMP = "amp";
@@ -417,7 +418,10 @@ export class ContileIntegration {
       CONTILE_CACHE_LAST_FETCH_PREF,
       0
     );
-    const validFor = Services.prefs.getIntPref(CONTILE_CACHE_VALID_FOR_PREF, 0);
+    const validFor = Services.prefs.getIntPref(
+      CONTILE_CACHE_VALID_FOR_PREF,
+      CONTILE_CACHE_VALID_FOR_FALLBACK
+    );
     this._topSitesFeed._telemetryUtility.setSponsoredTilesConfigured();
     if (now <= lastFetch + validFor) {
       try {
@@ -638,6 +642,11 @@ export class ContileIntegration {
               response.headers.get("cache-control") ||
                 response.headers.get("Cache-Control")
             )
+          );
+        } else {
+          Services.prefs.setIntPref(
+            CONTILE_CACHE_VALID_FOR_PREF,
+            CONTILE_CACHE_VALID_FOR_FALLBACK
           );
         }
 
@@ -2000,6 +2009,7 @@ export class TopSitesFeed {
         this.init();
         this.updateCustomSearchShortcuts(true /* isStartup */);
         break;
+      case at.DISCOVERY_STREAM_DEV_SYSTEM_TICK:
       case at.SYSTEM_TICK:
         this.refresh({ broadcast: false });
         this._contile.periodicUpdate();
