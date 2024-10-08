@@ -490,13 +490,13 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             //     Applies layout containment, style containment, and inline-size
             //     containment to the principal box.
             ContainerType::InlineSize => {
-                new_contain.insert(Contain::LAYOUT | Contain::STYLE | Contain::INLINE_SIZE)
+                new_contain.insert(Contain::STYLE | Contain::INLINE_SIZE)
             },
             // https://drafts.csswg.org/css-contain-3/#valdef-container-type-size:
             //     Applies layout containment, style containment, and size
             //     containment to the principal box.
             ContainerType::Size => {
-                new_contain.insert(Contain::LAYOUT | Contain::STYLE | Contain::SIZE)
+                new_contain.insert(Contain::STYLE | Contain::SIZE)
             },
         }
         if new_contain == old_contain {
