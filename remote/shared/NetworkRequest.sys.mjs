@@ -188,6 +188,16 @@ export class NetworkRequest {
   }
 
   /**
+   * Redirect the request to another provided URL.
+   *
+   * @param {string} url
+   *     The URL to redirect to.
+   */
+  redirectTo(url) {
+    this.#channel.transparentRedirectTo(Services.io.newURI(url));
+  }
+
+  /**
    * Set the request post body
    *
    * @param {string} body
