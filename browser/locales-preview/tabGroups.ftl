@@ -22,3 +22,7 @@ tab-context-move-tab-to-group =
            *[other] Add Tabs to Group
         }
     .accesskey = G
+
+tab-group-editor-done =
+  .label = Done
+  .accessKey = D

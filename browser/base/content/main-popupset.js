@@ -17,7 +17,6 @@ document.addEventListener(
           gBrowser.addAdjacentNewTab(TabContextMenu.contextTab);
           break;
         case "context_moveTabToNewGroup":
-        case "context_moveTabToGroupNewGroup":
           TabContextMenu.moveTabsToNewGroup();
           break;
         case "context_reloadTab":

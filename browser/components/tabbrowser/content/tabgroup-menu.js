@@ -25,7 +25,6 @@
         class="panel tab-group-editor-panel"
         orient="vertical"
         role="menu"
-        noautohide="true"
         norolluponanchor="true">
       <html:div class="panel-header">
         <html:h1 data-l10n-id="tab-group-editor-title-create"></html:h1>
@@ -39,7 +38,7 @@
       </html:div>
       <html:moz-button-group class="panel-body tab-group-editor-actions">
         <html:moz-button id="tab-group-editor-button-cancel" data-l10n-id="tab-group-editor-cancel"></html:moz-button>
-        <html:moz-button type="primary" id="tab-group-editor-button-create" data-l10n-id="tab-group-editor-create"></html:moz-button>
+        <html:moz-button type="primary" id="tab-group-editor-button-create" data-l10n-id="tab-group-editor-done"></html:moz-button>
       </html:moz-button-group>
     </panel>
        `;
