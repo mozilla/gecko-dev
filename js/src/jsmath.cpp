@@ -941,6 +941,17 @@ static bool math_toSource(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+#ifdef NIGHTLY_BUILD
+/**
+ * Math.sumPrecise ( items )
+ *
+ * https://tc39.es/proposal-math-sum/#sec-math.sumprecise
+ */
+static bool math_sumPrecise(JSContext* cx, unsigned argc, Value* vp) {
+  return false;
+}
+#endif
+
 UnaryMathFunctionType js::GetUnaryMathFunctionPtr(UnaryMathFunction fun) {
   switch (fun) {
     case UnaryMathFunction::SinNative:
@@ -1095,6 +1106,9 @@ static const JSFunctionSpec math_static_methods[] = {
     JS_INLINABLE_FN("trunc", math_trunc, 1, 0, MathTrunc),
     JS_INLINABLE_FN("sign", math_sign, 1, 0, MathSign),
     JS_INLINABLE_FN("cbrt", math_cbrt, 1, 0, MathCbrt),
+#ifdef NIGHTLY_BUILD
+    JS_FN("sumPrecise", math_sumPrecise, 1, 0),
+#endif
     JS_FS_END,
 };
 

@@ -548,6 +548,7 @@
   MACRO_(String_split, "String_split")                                         \
   MACRO_(StructType, "StructType")                                             \
   MACRO_(style, "style")                                                       \
+  MACRO_(sumPrecise, "sumPrecise")                                             \
   MACRO_(super, "super")                                                       \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(MACRO_(suppressed, "suppressed"))            \
   MACRO_(switch_, "switch")                                                    \
