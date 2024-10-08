@@ -9,9 +9,6 @@ const { ExperimentFakes, ExperimentTestUtils } = ChromeUtils.importESModule(
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
-const { TelemetryEvents } = ChromeUtils.importESModule(
-  "resource://normandy/lib/TelemetryEvents.sys.mjs"
-);
 
 const LOCALIZATIONS = {
   "en-US": {
@@ -122,7 +119,6 @@ add_setup(function setup() {
   do_get_profile();
 
   Services.fog.initializeFOG();
-  TelemetryEvents.init();
 
   registerCleanupFunction(ExperimentTestUtils.addTestFeatures(FEATURE));
   registerCleanupFunction(resetTelemetry);

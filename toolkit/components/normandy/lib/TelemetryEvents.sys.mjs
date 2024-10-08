@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 export const TelemetryEvents = {
-  init() {},
-
   sendEvent(method, object, value, extra) {
     for (const val of Object.values(extra)) {
       if (val == null) {

@@ -10,9 +10,6 @@ const { BranchedAddonStudyAction } = ChromeUtils.importESModule(
 const { BaseAction } = ChromeUtils.importESModule(
   "resource://normandy/actions/BaseAction.sys.mjs"
 );
-const { TelemetryEvents } = ChromeUtils.importESModule(
-  "resource://normandy/lib/TelemetryEvents.sys.mjs"
-);
 const { AddonManager } = ChromeUtils.importESModule(
   "resource://gre/modules/AddonManager.sys.mjs"
 );
@@ -39,8 +36,6 @@ add_task(async () => {
   );
   AddonTestUtils.overrideCertDB();
   await AddonTestUtils.promiseStartupManager();
-
-  TelemetryEvents.init();
 });
 
 decorate_task(
