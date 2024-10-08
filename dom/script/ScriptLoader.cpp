@@ -1053,7 +1053,8 @@ RequestPriority FetchPriorityToRequestPriority(
 
 void ScriptLoader::NotifyObserversForCachedScript(
     nsIURI* aURI, nsINode* aContext, nsIPrincipal* aTriggeringPrincipal,
-    nsSecurityFlags aSecurityFlags, nsContentPolicyType aContentPolicyType) {
+    nsSecurityFlags aSecurityFlags, nsContentPolicyType aContentPolicyType,
+    SubResourceNetworkMetadataHolder* aNetworkMetadata) {
   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
 
   if (!obsService->HasObservers("http-on-resource-cache-response")) {
@@ -1070,7 +1071,11 @@ void ScriptLoader::NotifyObserversForCachedScript(
 
   RefPtr<net::HttpBaseChannel> httpBaseChannel = do_QueryObject(channel);
   if (httpBaseChannel) {
-    httpBaseChannel->SetDummyChannelForCachedResource();
+    const net::nsHttpResponseHead* responseHead = nullptr;
+    if (aNetworkMetadata) {
+      responseHead = aNetworkMetadata->GetResponseHead();
+    }
+    httpBaseChannel->SetDummyChannelForCachedResource(responseHead);
   }
 
   // TODO: Populate fields.
@@ -1118,7 +1123,8 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
 
         NotifyObserversForCachedScript(aURI, context, aTriggeringPrincipal,
                                        CORSModeToSecurityFlags(aCORSMode),
-                                       nsIContentPolicy::TYPE_INTERNAL_SCRIPT);
+                                       nsIContentPolicy::TYPE_INTERNAL_SCRIPT,
+                                       cacheResult.mNetworkMetadata);
 
         {
           nsAutoCString name;
