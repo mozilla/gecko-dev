@@ -75,7 +75,7 @@ struct nsMediaSnifferFtypEntry : nsMediaSnifferEntry {
 };
 
 // For a complete list of file types, see http://www.ftyps.com/index.html
-nsMediaSnifferFtypEntry sFtypEntries[] = {
+MOZ_RUNINIT nsMediaSnifferFtypEntry sFtypEntries[] = {
     {PATTERN_ENTRY("\xFF\xFF\xFF", "mp4", VIDEO_MP4),
      PatternLabel::ftyp_mp4},  // Could be mp41 or mp42.
     {PATTERN_ENTRY("\xFF\xFF\xFF", "avc", VIDEO_MP4),

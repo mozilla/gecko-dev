@@ -86,7 +86,7 @@ static constexpr EmptyObjectSlots emptyObjectSlotsHeaders[17] = {
 static_assert(std::size(emptyObjectSlotsHeaders) ==
               NativeObject::MAX_FIXED_SLOTS + 1);
 
-HeapSlot* const js::emptyObjectSlotsForDictionaryObject[17] = {
+MOZ_RUNINIT HeapSlot* const js::emptyObjectSlotsForDictionaryObject[17] = {
     emptyObjectSlotsHeaders[0].slots(),  emptyObjectSlotsHeaders[1].slots(),
     emptyObjectSlotsHeaders[2].slots(),  emptyObjectSlotsHeaders[3].slots(),
     emptyObjectSlotsHeaders[4].slots(),  emptyObjectSlotsHeaders[5].slots(),
@@ -100,7 +100,8 @@ HeapSlot* const js::emptyObjectSlotsForDictionaryObject[17] = {
 static_assert(std::size(emptyObjectSlotsForDictionaryObject) ==
               NativeObject::MAX_FIXED_SLOTS + 1);
 
-HeapSlot* const js::emptyObjectSlots = emptyObjectSlotsForDictionaryObject[0];
+MOZ_RUNINIT HeapSlot* const js::emptyObjectSlots =
+    emptyObjectSlotsForDictionaryObject[0];
 
 #ifdef DEBUG
 

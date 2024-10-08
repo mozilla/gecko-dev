@@ -66,4 +66,5 @@ void js::StencilCache::clearAndDisable() {
   enabled = false;
 }
 
-/* static */ js::DelazificationCache js::DelazificationCache::singleton;
+MOZ_RUNINIT /* static */ js::DelazificationCache
+    js::DelazificationCache::singleton;

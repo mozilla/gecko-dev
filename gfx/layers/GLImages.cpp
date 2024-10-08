@@ -20,7 +20,7 @@ using namespace mozilla::gl;
 
 namespace mozilla::layers {
 
-static RefPtr<GLContext> sSnapshotContext;
+MOZ_RUNINIT static RefPtr<GLContext> sSnapshotContext;
 
 nsresult GLImage::ReadIntoBuffer(uint8_t* aData, int32_t aStride,
                                  const gfx::IntSize& aSize,

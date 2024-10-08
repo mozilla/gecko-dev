@@ -19,7 +19,7 @@ using namespace mozilla::pkix;
 // Returns the number of embedded SCTs required to be present in a certificate.
 // For certificates with a lifetime of less than or equal to 180 days, only 2
 // embedded SCTs are required. Otherwise 3 are required.
-const Duration ONE_HUNDRED_AND_EIGHTY_DAYS =
+MOZ_RUNINIT const Duration ONE_HUNDRED_AND_EIGHTY_DAYS =
     Duration(180 * Time::ONE_DAY_IN_SECONDS);
 size_t GetRequiredEmbeddedSctsCount(Duration certLifetime) {
   // pkix::Duration doesn't define operator<=, hence phrasing this comparison

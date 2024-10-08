@@ -1427,7 +1427,7 @@ class ArenaCollection {
   Maybe<ThreadId> mMainThreadId;
 };
 
-static ArenaCollection gArenas;
+MOZ_RUNINIT static ArenaCollection gArenas;
 
 // ******
 // Chunks.

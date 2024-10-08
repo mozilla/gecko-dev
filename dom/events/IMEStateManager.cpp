@@ -79,12 +79,12 @@ nsIWidget* IMEStateManager::sActiveInputContextWidget = nullptr;
 StaticRefPtr<IMEContentObserver> IMEStateManager::sActiveIMEContentObserver;
 TextCompositionArray* IMEStateManager::sTextCompositions = nullptr;
 InputContext::Origin IMEStateManager::sOrigin = InputContext::ORIGIN_MAIN;
-InputContext IMEStateManager::sActiveChildInputContext;
+MOZ_RUNINIT InputContext IMEStateManager::sActiveChildInputContext;
 bool IMEStateManager::sInstalledMenuKeyboardListener = false;
 bool IMEStateManager::sIsGettingNewIMEState = false;
 bool IMEStateManager::sCleaningUpForStoppingIMEStateManagement = false;
 bool IMEStateManager::sIsActive = false;
-Maybe<IMEStateManager::PendingFocusedBrowserSwitchingData>
+MOZ_RUNINIT Maybe<IMEStateManager::PendingFocusedBrowserSwitchingData>
     IMEStateManager::sPendingFocusedBrowserSwitchingData;
 
 class PseudoFocusChangeRunnable : public Runnable {

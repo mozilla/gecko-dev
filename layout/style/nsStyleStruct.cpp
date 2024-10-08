@@ -51,7 +51,8 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-static const nscoord kMediumBorderWidth = nsPresContext::CSSPixelsToAppUnits(3);
+MOZ_RUNINIT static const nscoord kMediumBorderWidth =
+    nsPresContext::CSSPixelsToAppUnits(3);
 
 // We set the size limit of style structs to 504 bytes so that when they
 // are allocated by Servo side with Arc, the total size doesn't exceed

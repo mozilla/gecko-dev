@@ -70,14 +70,14 @@ class MOZ_RAII AutoChangePreserveAspectRatioNotifier {
   bool mDoSetAttr;
 };
 
-static SVGAttrTearoffTable<SVGAnimatedPreserveAspectRatio,
-                           DOMSVGAnimatedPreserveAspectRatio>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedPreserveAspectRatio,
+                                       DOMSVGAnimatedPreserveAspectRatio>
     sSVGAnimatedPAspectRatioTearoffTable;
-static SVGAttrTearoffTable<SVGAnimatedPreserveAspectRatio,
-                           DOMSVGPreserveAspectRatio>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedPreserveAspectRatio,
+                                       DOMSVGPreserveAspectRatio>
     sBaseSVGPAspectRatioTearoffTable;
-static SVGAttrTearoffTable<SVGAnimatedPreserveAspectRatio,
-                           DOMSVGPreserveAspectRatio>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedPreserveAspectRatio,
+                                       DOMSVGPreserveAspectRatio>
     sAnimSVGPAspectRatioTearoffTable;
 
 already_AddRefed<DOMSVGPreserveAspectRatio>

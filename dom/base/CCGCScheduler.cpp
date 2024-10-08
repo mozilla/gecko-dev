@@ -15,20 +15,25 @@
 /* Globally initialized constants
  */
 namespace mozilla {
-const TimeDuration kOneMinute = TimeDuration::FromSeconds(60.0f);
-const TimeDuration kCCDelay = TimeDuration::FromSeconds(6);
-const TimeDuration kCCSkippableDelay = TimeDuration::FromMilliseconds(250);
-const TimeDuration kTimeBetweenForgetSkippableCycles =
+MOZ_RUNINIT const TimeDuration kOneMinute = TimeDuration::FromSeconds(60.0f);
+MOZ_RUNINIT const TimeDuration kCCDelay = TimeDuration::FromSeconds(6);
+MOZ_RUNINIT const TimeDuration kCCSkippableDelay =
+    TimeDuration::FromMilliseconds(250);
+MOZ_RUNINIT const TimeDuration kTimeBetweenForgetSkippableCycles =
     TimeDuration::FromSeconds(2);
-const TimeDuration kForgetSkippableSliceDuration =
+MOZ_RUNINIT const TimeDuration kForgetSkippableSliceDuration =
     TimeDuration::FromMilliseconds(2);
-const TimeDuration kICCIntersliceDelay = TimeDuration::FromMilliseconds(250);
-const TimeDuration kICCSliceBudget = TimeDuration::FromMilliseconds(3);
-const TimeDuration kIdleICCSliceBudget = TimeDuration::FromMilliseconds(2);
-const TimeDuration kMaxICCDuration = TimeDuration::FromSeconds(2);
+MOZ_RUNINIT const TimeDuration kICCIntersliceDelay =
+    TimeDuration::FromMilliseconds(250);
+MOZ_RUNINIT const TimeDuration kICCSliceBudget =
+    TimeDuration::FromMilliseconds(3);
+MOZ_RUNINIT const TimeDuration kIdleICCSliceBudget =
+    TimeDuration::FromMilliseconds(2);
+MOZ_RUNINIT const TimeDuration kMaxICCDuration = TimeDuration::FromSeconds(2);
 
-const TimeDuration kCCForced = kOneMinute * 2;
-const TimeDuration kMaxCCLockedoutTime = TimeDuration::FromSeconds(30);
+MOZ_RUNINIT const TimeDuration kCCForced = kOneMinute * 2;
+MOZ_RUNINIT const TimeDuration kMaxCCLockedoutTime =
+    TimeDuration::FromSeconds(30);
 }  // namespace mozilla
 
 /*

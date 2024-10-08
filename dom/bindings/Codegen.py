@@ -2618,7 +2618,7 @@ class PropertyDefiner:
         specType = "const " + specType
         arrays = fill(
             """
-            static ${specType} ${name}_specs[] = {
+            MOZ_RUNINIT  MOZ_GENERATED static ${specType} ${name}_specs[] = {
             ${specs}
             };
 

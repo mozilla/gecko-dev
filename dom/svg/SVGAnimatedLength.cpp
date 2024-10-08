@@ -68,7 +68,7 @@ class MOZ_RAII AutoChangeLengthNotifier {
   bool mDoSetAttr;
 };
 
-static SVGAttrTearoffTable<SVGAnimatedLength, DOMSVGAnimatedLength>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedLength, DOMSVGAnimatedLength>
     sSVGAnimatedLengthTearoffTable;
 
 /* Helper functions */

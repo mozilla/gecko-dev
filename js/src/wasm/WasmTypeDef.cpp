@@ -582,7 +582,7 @@ class TypeIdSet {
   }
 };
 
-ExclusiveData<TypeIdSet> typeIdSet(mutexid::WasmTypeIdSet);
+MOZ_RUNINIT ExclusiveData<TypeIdSet> typeIdSet(mutexid::WasmTypeIdSet);
 
 void wasm::PurgeCanonicalTypes() {
   ExclusiveData<TypeIdSet>::Guard locked = typeIdSet.lock();

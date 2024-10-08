@@ -57,7 +57,7 @@ static EnumeratedArray<RemoteDecodeIn, StaticRefPtr<GenericNonExclusivePromise>,
 // Only modified on the main-thread, read on any thread. While it could be read
 // on the main thread directly, for clarity we force access via the DataMutex
 // wrapper.
-static StaticDataMutex<StaticRefPtr<nsIThread>>
+MOZ_RUNINIT static StaticDataMutex<StaticRefPtr<nsIThread>>
     sRemoteDecoderManagerChildThread("sRemoteDecoderManagerChildThread");
 
 // Only accessed from sRemoteDecoderManagerChildThread

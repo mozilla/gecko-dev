@@ -1294,7 +1294,7 @@ nsresult gfxFontUtils::ReadCanonicalName(const char* aNameData,
 // on the first search.
 
 const uint16_t ANY = 0xffff;
-const gfxFontUtils::MacFontNameCharsetMapping
+MOZ_RUNINIT const gfxFontUtils::MacFontNameCharsetMapping
     gfxFontUtils::gMacFontNameCharsets[] = {
         {ENCODING_ID_MAC_ROMAN, LANG_ID_MAC_ENGLISH, MACINTOSH_ENCODING},
         {ENCODING_ID_MAC_ROMAN, LANG_ID_MAC_ICELANDIC, X_USER_DEFINED_ENCODING},
@@ -1325,14 +1325,14 @@ const gfxFontUtils::MacFontNameCharsetMapping
          GB18030_ENCODING},
         {ENCODING_ID_MAC_SIMP_CHINESE, ANY, GB18030_ENCODING}};
 
-const Encoding* gfxFontUtils::gISOFontNameCharsets[] = {
+MOZ_RUNINIT const Encoding* gfxFontUtils::gISOFontNameCharsets[] = {
     /* 0 */ WINDOWS_1252_ENCODING, /* US-ASCII */
     /* 1 */ nullptr, /* spec says "ISO 10646" but does not specify encoding
                         form! */
     /* 2 */ WINDOWS_1252_ENCODING /* ISO-8859-1 */
 };
 
-const Encoding* gfxFontUtils::gMSFontNameCharsets[] = {
+MOZ_RUNINIT const Encoding* gfxFontUtils::gMSFontNameCharsets[] = {
     /* [0] ENCODING_ID_MICROSOFT_SYMBOL */ UTF_16BE_ENCODING,
     /* [1] ENCODING_ID_MICROSOFT_UNICODEBMP */ UTF_16BE_ENCODING,
     /* [2] ENCODING_ID_MICROSOFT_SHIFTJIS */ SHIFT_JIS_ENCODING,

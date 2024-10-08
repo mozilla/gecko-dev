@@ -27,13 +27,14 @@ using namespace mozilla::dom::SVGMarkerElement_Binding;
 
 namespace mozilla {
 
-static SVGAttrTearoffTable<SVGAnimatedOrient, DOMSVGAnimatedEnumeration>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedOrient,
+                                       DOMSVGAnimatedEnumeration>
     sSVGAnimatedEnumTearoffTable;
-static SVGAttrTearoffTable<SVGAnimatedOrient, DOMSVGAnimatedAngle>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedOrient, DOMSVGAnimatedAngle>
     sSVGAnimatedAngleTearoffTable;
-static SVGAttrTearoffTable<SVGAnimatedOrient, DOMSVGAngle>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedOrient, DOMSVGAngle>
     sBaseSVGAngleTearoffTable;
-static SVGAttrTearoffTable<SVGAnimatedOrient, DOMSVGAngle>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedOrient, DOMSVGAngle>
     sAnimSVGAngleTearoffTable;
 
 /* Helper functions */

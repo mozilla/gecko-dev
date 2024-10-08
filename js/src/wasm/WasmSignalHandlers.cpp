@@ -802,7 +802,7 @@ struct InstallState {
   InstallState() : tried(false), success(false) {}
 };
 
-static ExclusiveData<InstallState> sEagerInstallState(
+MOZ_RUNINIT static ExclusiveData<InstallState> sEagerInstallState(
     mutexid::WasmSignalInstallState);
 
 #endif  // !(JS_CODEGEN_NONE)
@@ -884,7 +884,7 @@ void wasm::EnsureEagerProcessSignalHandlers() {
 }
 
 #ifndef JS_CODEGEN_NONE
-static ExclusiveData<InstallState> sLazyInstallState(
+MOZ_RUNINIT static ExclusiveData<InstallState> sLazyInstallState(
     mutexid::WasmSignalInstallState);
 
 static bool EnsureLazyProcessSignalHandlers() {

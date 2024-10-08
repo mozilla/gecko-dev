@@ -12,7 +12,8 @@
 namespace mozilla {
 namespace layers {
 
-const TimeDuration kOvershootInterval = TimeDuration::FromMilliseconds(500);
+MOZ_RUNINIT const TimeDuration kOvershootInterval =
+    TimeDuration::FromMilliseconds(500);
 
 static Maybe<Side> GetScrollDirection(const ScrollWheelInput& aInput) {
   // If the wheel input is scrolling on both axes, we just take the y-axis.

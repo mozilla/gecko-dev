@@ -44,8 +44,8 @@ class MOZ_RAII AutoChangeEnumNotifier {
   bool mDoSetAttr;
 };
 
-static SVGAttrTearoffTable<SVGAnimatedEnumeration,
-                           SVGAnimatedEnumeration::DOMAnimatedEnum>
+MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedEnumeration,
+                                       SVGAnimatedEnumeration::DOMAnimatedEnum>
     sSVGAnimatedEnumTearoffTable;
 
 const SVGEnumMapping* SVGAnimatedEnumeration::GetMapping(

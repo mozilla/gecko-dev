@@ -29,7 +29,7 @@ void TelemetryIOInterposeObserver::AddPath(const nsAString& aPath,
 }
 
 // Threshold for reporting slow main-thread I/O (50 milliseconds).
-const TimeDuration kTelemetryReportThreshold =
+MOZ_RUNINIT const TimeDuration kTelemetryReportThreshold =
     TimeDuration::FromMilliseconds(50);
 
 void TelemetryIOInterposeObserver::Observe(Observation& aOb) {

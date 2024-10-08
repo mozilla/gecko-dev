@@ -154,9 +154,9 @@ static const size_t MinVirtualMemoryLimitForHugeMemory =
     size_t(1) << MinAddressBitsForHugeMemory;
 #endif
 
-ExclusiveData<ReadLockFlag> sHugeMemoryEnabled32(
+MOZ_RUNINIT ExclusiveData<ReadLockFlag> sHugeMemoryEnabled32(
     mutexid::WasmHugeMemoryEnabled);
-ExclusiveData<ReadLockFlag> sHugeMemoryEnabled64(
+MOZ_RUNINIT ExclusiveData<ReadLockFlag> sHugeMemoryEnabled64(
     mutexid::WasmHugeMemoryEnabled);
 
 static MOZ_NEVER_INLINE bool IsHugeMemoryEnabledHelper32() {

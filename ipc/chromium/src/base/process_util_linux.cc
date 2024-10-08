@@ -39,7 +39,7 @@
 
 namespace {
 
-static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
+MOZ_RUNINIT static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
 
 }  // namespace
 

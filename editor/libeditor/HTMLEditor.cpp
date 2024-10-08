@@ -135,25 +135,27 @@ HTMLEditor::InsertNodeIntoProperAncestorWithTransaction(
     Text& aContentToInsert, const EditorDOMPoint& aPointToInsert,
     SplitAtEdges aSplitAtEdges);
 
-HTMLEditor::InitializeInsertingElement HTMLEditor::DoNothingForNewElement =
-    [](HTMLEditor&, Element&, const EditorDOMPoint&) { return NS_OK; };
+MOZ_RUNINIT HTMLEditor::InitializeInsertingElement
+    HTMLEditor::DoNothingForNewElement =
+        [](HTMLEditor&, Element&, const EditorDOMPoint&) { return NS_OK; };
 
-HTMLEditor::InitializeInsertingElement HTMLEditor::InsertNewBRElement =
-    [](HTMLEditor& aHTMLEditor, Element& aNewElement, const EditorDOMPoint&)
-        MOZ_CAN_RUN_SCRIPT_BOUNDARY {
-          MOZ_ASSERT(!aNewElement.IsInComposedDoc());
-          Result<CreateElementResult, nsresult> createBRElementResult =
-              aHTMLEditor.InsertBRElement(WithTransaction::No,
-                                          EditorDOMPoint(&aNewElement, 0u));
-          if (MOZ_UNLIKELY(createBRElementResult.isErr())) {
-            NS_WARNING_ASSERTION(
-                createBRElementResult.isOk(),
-                "HTMLEditor::InsertBRElement(WithTransaction::No) failed");
-            return createBRElementResult.unwrapErr();
-          }
-          createBRElementResult.unwrap().IgnoreCaretPointSuggestion();
-          return NS_OK;
-        };
+MOZ_RUNINIT HTMLEditor::InitializeInsertingElement
+    HTMLEditor::InsertNewBRElement =
+        [](HTMLEditor& aHTMLEditor, Element& aNewElement, const EditorDOMPoint&)
+            MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+              MOZ_ASSERT(!aNewElement.IsInComposedDoc());
+              Result<CreateElementResult, nsresult> createBRElementResult =
+                  aHTMLEditor.InsertBRElement(WithTransaction::No,
+                                              EditorDOMPoint(&aNewElement, 0u));
+              if (MOZ_UNLIKELY(createBRElementResult.isErr())) {
+                NS_WARNING_ASSERTION(
+                    createBRElementResult.isOk(),
+                    "HTMLEditor::InsertBRElement(WithTransaction::No) failed");
+                return createBRElementResult.unwrapErr();
+              }
+              createBRElementResult.unwrap().IgnoreCaretPointSuggestion();
+              return NS_OK;
+            };
 
 // static
 Result<CreateElementResult, nsresult>
@@ -186,25 +188,27 @@ HTMLEditor::AppendNewElementWithBRToInsertingElement(
   return createNewElementWithBRResult;
 }
 
-HTMLEditor::AttributeFilter HTMLEditor::CopyAllAttributes =
+MOZ_RUNINIT HTMLEditor::AttributeFilter HTMLEditor::CopyAllAttributes =
     [](HTMLEditor&, const Element&, const Element&, int32_t, const nsAtom&,
        nsString&) { return true; };
-HTMLEditor::AttributeFilter HTMLEditor::CopyAllAttributesExceptId =
+MOZ_RUNINIT HTMLEditor::AttributeFilter HTMLEditor::CopyAllAttributesExceptId =
     [](HTMLEditor&, const Element&, const Element&, int32_t aNamespaceID,
        const nsAtom& aAttrName, nsString&) {
       return aNamespaceID != kNameSpaceID_None || &aAttrName != nsGkAtoms::id;
     };
-HTMLEditor::AttributeFilter HTMLEditor::CopyAllAttributesExceptDir =
+MOZ_RUNINIT HTMLEditor::AttributeFilter HTMLEditor::CopyAllAttributesExceptDir =
     [](HTMLEditor&, const Element&, const Element&, int32_t aNamespaceID,
        const nsAtom& aAttrName, nsString&) {
       return aNamespaceID != kNameSpaceID_None || &aAttrName != nsGkAtoms::dir;
     };
-HTMLEditor::AttributeFilter HTMLEditor::CopyAllAttributesExceptIdAndDir =
-    [](HTMLEditor&, const Element&, const Element&, int32_t aNamespaceID,
-       const nsAtom& aAttrName, nsString&) {
-      return !(aNamespaceID == kNameSpaceID_None &&
-               (&aAttrName == nsGkAtoms::id || &aAttrName == nsGkAtoms::dir));
-    };
+MOZ_RUNINIT HTMLEditor::AttributeFilter
+    HTMLEditor::CopyAllAttributesExceptIdAndDir =
+        [](HTMLEditor&, const Element&, const Element&, int32_t aNamespaceID,
+           const nsAtom& aAttrName, nsString&) {
+          return !(
+              aNamespaceID == kNameSpaceID_None &&
+              (&aAttrName == nsGkAtoms::id || &aAttrName == nsGkAtoms::dir));
+        };
 
 HTMLEditor::HTMLEditor(const Document& aDocument)
     : EditorBase(EditorBase::EditorType::HTML),

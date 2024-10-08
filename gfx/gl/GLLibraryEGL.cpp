@@ -389,7 +389,7 @@ class AngleErrorReporting {
   nsACString* mFailureId;
 };
 
-AngleErrorReporting gAngleErrorReporter;
+MOZ_RUNINIT AngleErrorReporting gAngleErrorReporter;
 
 static std::shared_ptr<EglDisplay> GetAndInitDisplayForAccelANGLE(
     GLLibraryEGL& egl, nsACString* const out_failureId,

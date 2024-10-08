@@ -1979,7 +1979,7 @@ struct BuiltinThunks {
   }
 };
 
-Mutex initBuiltinThunks(mutexid::WasmInitBuiltinThunks);
+MOZ_RUNINIT Mutex initBuiltinThunks(mutexid::WasmInitBuiltinThunks);
 mozilla::Atomic<const BuiltinThunks*> builtinThunks;
 
 bool wasm::EnsureBuiltinThunksInitialized() {

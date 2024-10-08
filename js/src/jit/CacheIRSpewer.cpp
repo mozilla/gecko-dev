@@ -297,7 +297,7 @@ class MOZ_RAII CacheIROpsJSONSpewer {
   }
 };
 
-CacheIRSpewer CacheIRSpewer::cacheIRspewer;
+MOZ_RUNINIT CacheIRSpewer CacheIRSpewer::cacheIRspewer;
 
 CacheIRSpewer::CacheIRSpewer()
     : outputLock_(mutexid::CacheIRSpewer), guardCount_(0) {

@@ -81,7 +81,7 @@ class MOZ_CAPABILITY("mutex") TraceLogMutex
   }
 };
 
-static TraceLogMutex gTraceLog;
+MOZ_RUNINIT static TraceLogMutex gTraceLog;
 
 class MOZ_RAII AutoTraceLogLock {
  public:

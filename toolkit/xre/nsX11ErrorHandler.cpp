@@ -24,7 +24,7 @@ struct XExtension {
   XExtension(const char* aName, int aCode) : name(aName), major_opcode(aCode) {}
 };
 
-static nsTArray<XExtension> sXExtensions;
+MOZ_RUNINIT static nsTArray<XExtension> sXExtensions;
 
 // man XSetErrorHandler says "the error handler should not call any
 // functions (directly or indirectly) on the display that will generate

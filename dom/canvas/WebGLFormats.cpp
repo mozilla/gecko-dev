@@ -85,8 +85,9 @@ static inline auto FindPtrOrNull(C& container, const K2& key) {
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-std::map<EffectiveFormat, const CompressedFormatInfo> gCompressedFormatInfoMap;
-std::map<EffectiveFormat, FormatInfo> gFormatInfoMap;
+MOZ_RUNINIT std::map<EffectiveFormat, const CompressedFormatInfo>
+    gCompressedFormatInfoMap;
+MOZ_RUNINIT std::map<EffectiveFormat, FormatInfo> gFormatInfoMap;
 
 static inline const CompressedFormatInfo* GetCompressedFormatInfo(
     EffectiveFormat format) {

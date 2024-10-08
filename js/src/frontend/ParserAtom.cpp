@@ -1214,7 +1214,7 @@ bool InstantiateMarkedAtomsAsPermanent(JSContext* cx, FrontendContext* fc,
 }
 
 /* static */
-WellKnownParserAtoms WellKnownParserAtoms::singleton_;
+MOZ_RUNINIT WellKnownParserAtoms WellKnownParserAtoms::singleton_;
 
 template <typename CharT>
 TaggedParserAtomIndex WellKnownParserAtoms::lookupChar16Seq(

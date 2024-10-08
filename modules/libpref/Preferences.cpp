@@ -2062,7 +2062,7 @@ static void TestParseErrorHandlePref(const char* aPrefName, PrefType aType,
                                      PrefValueKind aKind, PrefValue aValue,
                                      bool aIsSticky, bool aIsLocked) {}
 
-static nsCString gTestParseErrorMsgs;
+MOZ_RUNINIT static nsCString gTestParseErrorMsgs;
 
 static void TestParseErrorHandleError(const char* aMsg) {
   gTestParseErrorMsgs.Append(aMsg);
@@ -5794,7 +5794,7 @@ void MaybeInitOncePrefs() {
 #define ALWAYS_PREF(name, base_id, full_id, cpp_type, default_value) \
   cpp_type sMirror_##full_id(default_value);
 #define ALWAYS_DATAMUTEX_PREF(name, base_id, full_id, cpp_type, default_value) \
-  cpp_type sMirror_##full_id("DataMutexString");
+  MOZ_RUNINIT cpp_type sMirror_##full_id("DataMutexString");
 #define ONCE_PREF(name, base_id, full_id, cpp_type, default_value) \
   cpp_type sMirror_##full_id(default_value);
 #include "mozilla/StaticPrefListAll.h"

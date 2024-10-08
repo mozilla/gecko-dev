@@ -130,7 +130,7 @@ class ProcessCrashMonitor final {
   }
 
   static inline StaticMutex sMutex;
-  static inline UniquePtr<ProcessCrashMonitor> sCrashMonitor;
+  static inline MOZ_RUNINIT UniquePtr<ProcessCrashMonitor> sCrashMonitor;
   static inline Atomic<bool> sIsShutdown{false};
 
   uint32_t mCrashNums;

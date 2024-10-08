@@ -1775,7 +1775,7 @@ bool gfxUtils::DumpDisplayList() {
           XRE_IsContentProcess());
 }
 
-FILE* gfxUtils::sDumpPaintFile = stderr;
+MOZ_RUNINIT FILE* gfxUtils::sDumpPaintFile = stderr;
 
 namespace mozilla {
 namespace gfx {
