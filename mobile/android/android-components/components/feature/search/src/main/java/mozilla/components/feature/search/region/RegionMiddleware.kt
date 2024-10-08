@@ -15,7 +15,6 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.BrowserAction
 import mozilla.components.browser.state.action.InitAction
 import mozilla.components.browser.state.action.SearchAction
-import mozilla.components.browser.state.action.UpdateDistribution
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.lib.state.Middleware
@@ -43,7 +42,7 @@ class RegionMiddleware(
         next: (BrowserAction) -> Unit,
         action: BrowserAction,
     ) {
-        if (action is InitAction || action is SearchAction.RefreshSearchEnginesAction || action is UpdateDistribution) {
+        if (action is InitAction || action is SearchAction.RefreshSearchEnginesAction) {
             updateJob = determineRegion(context.store)
         }
 
@@ -56,19 +55,18 @@ class RegionMiddleware(
     ) = GlobalScope.launch(ioDispatcher) {
         // Get the region state from the RegionManager. If there's none then dispatch the default
         // region to be used.
-        val distributionId = store.state.distributionId
         val region = regionManager.region()
         if (region != null) {
-            store.dispatch(SearchAction.SetRegionAction(region, distributionId))
+            store.dispatch(SearchAction.SetRegionAction(region))
         } else {
-            store.dispatch(SearchAction.SetRegionAction(RegionState.Default, distributionId))
+            store.dispatch(SearchAction.SetRegionAction(RegionState.Default))
         }
 
         // Ask the RegionManager to perform an update. If the "home" region changed then it will
         // return a new RegionState.
         val update = regionManager.update()
         if (update != null) {
-            store.dispatch(SearchAction.SetRegionAction(update, distributionId))
+            store.dispatch(SearchAction.SetRegionAction(update))
         }
     }
 }
