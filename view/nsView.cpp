@@ -400,7 +400,7 @@ void nsView::NotifyEffectiveVisibilityChanged(bool aEffectivelyVisible) {
 
   SetForcedRepaint(true);
 
-  if (nullptr != mWindow) {
+  if (mWindow) {
     ResetWidgetBounds(false, false);
   }
 
