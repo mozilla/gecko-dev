@@ -1397,12 +1397,6 @@ var gMainPane = {
   },
 
   initPrimaryBrowserLanguageUI() {
-    // Enable telemetry.
-    Services.telemetry.setEventRecordingEnabled(
-      "intl.ui.browserLanguage",
-      true
-    );
-
     // This will register the "command" listener.
     let menulist = document.getElementById("primaryBrowserLocale");
     new SelectionChangedMenulist(menulist, event => {

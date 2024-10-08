@@ -402,7 +402,6 @@ export var SyncedTabs = {
   },
 
   recordSyncedTabsTelemetry(object, tabEvent, extraOptions) {
-    Services.telemetry.setEventRecordingEnabled("synced_tabs", true);
     if (
       !["fxa_avatar_menu", "fxa_app_menu", "synced_tabs_sidebar"].includes(
         object

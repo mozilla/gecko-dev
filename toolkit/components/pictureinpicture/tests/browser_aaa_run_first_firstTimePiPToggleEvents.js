@@ -223,7 +223,6 @@ add_task(async function test_eventTelemetry() {
       url: TEST_PAGE,
     },
     async browser => {
-      Services.telemetry.setEventRecordingEnabled("pictureinpicture", true);
       let videoID = "no-controls";
 
       const PIP_PREF =

@@ -1346,10 +1346,6 @@ nsDefaultCommandLineHandler.prototype = {
           }
 
           if (notificationData?.privilegedName) {
-            Services.telemetry.setEventRecordingEnabled(
-              "browser.launched_to_handle",
-              true
-            );
             Glean.browserLaunchedToHandle.systemNotification.record({
               name: notificationData.privilegedName,
             });

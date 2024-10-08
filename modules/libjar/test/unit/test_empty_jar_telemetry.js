@@ -93,7 +93,6 @@ function makeChan() {
 add_task(async function test_empty_jar_file_async() {
   var chan = makeChan();
 
-  Services.telemetry.setEventRecordingEnabled("zero_byte_load", true);
   Services.telemetry.clearEvents();
 
   await new Promise(resolve => {
@@ -127,7 +126,6 @@ add_task(async function test_empty_jar_file_async() {
 add_task(async function test_empty_jar_file_sync() {
   var chan = makeChan();
 
-  Services.telemetry.setEventRecordingEnabled("zero_byte_load", true);
   Services.telemetry.clearEvents();
 
   await new Promise(resolve => {

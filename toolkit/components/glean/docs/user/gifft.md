@@ -156,14 +156,6 @@ Assert.equal(true, snapshot["telemetry.test.mirror_for_labeled_bool"]["1".repeat
 ### Telemetry Events
 
 A Glean event can be mirrored to a Telemetry Event.
-If the Telemetry Event is disabled
-(by calling `Services.telemetry.setEventRecordingEnabled("event.category", false);`),
-recording to the Glean event will still work,
-and the event will be Summarized in Telemetry as all disabled events are.
-
-See
-[the Telemetry Event docs](/toolkit/components/telemetry/collection/events.rst)
-for details on how disabled Telemetry Events behave.
 
 In order to make use of the `value` field in Telemetry Events, you must
 first define an event extra in the metrics.yaml file with the name "value".

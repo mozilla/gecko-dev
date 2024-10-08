@@ -1567,7 +1567,6 @@ export let BrowserUsageTelemetry = {
         let { installer_type, extra } = data;
 
         // Record the event (mirrored to legacy telemetry using GIFFT)
-        Services.telemetry.setEventRecordingEnabled("installation", true);
         if (installer_type == "full") {
           Glean.installation.firstSeenFull.record(extra);
         } else if (installer_type == "stub") {

@@ -35,7 +35,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 export class FxAccountsTelemetry {
   constructor(fxai) {
     this._fxai = fxai;
-    Services.telemetry.setEventRecordingEnabled("fxa", true);
   }
 
   // Records an event *in the Fxa/Sync ping*.

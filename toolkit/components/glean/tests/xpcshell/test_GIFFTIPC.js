@@ -134,8 +134,6 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
 add_task(
   { skip_if: () => !runningInParent },
   async function test_child_metrics() {
-    Telemetry.setEventRecordingEnabled("telemetry.test", true);
-
     // Clear any stray Telemetry data
     Telemetry.clearScalars();
     Telemetry.getSnapshotForHistograms("main", true);

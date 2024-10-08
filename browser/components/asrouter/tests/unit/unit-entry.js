@@ -424,7 +424,6 @@ const TEST_GLOBAL = {
       notifyObservers() {},
     },
     telemetry: {
-      setEventRecordingEnabled: () => {},
       scalarSet: () => {},
       keyedScalarAdd: () => {},
     },

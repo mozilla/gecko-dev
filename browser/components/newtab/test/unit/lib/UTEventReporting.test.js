@@ -48,7 +48,6 @@ describe("UTEventReporting", () => {
   beforeEach(() => {
     globals = new GlobalOverrider();
     sandbox = globals.sandbox;
-    sandbox.stub(global.Services.telemetry, "setEventRecordingEnabled");
 
     utEvents = new UTEventReporting();
   });
@@ -82,29 +81,6 @@ describe("UTEventReporting", () => {
 
       let ping = global.Glean.activityStream.endSession.record.firstCall.args;
       assert.validate(ping, UTSessionPing);
-    });
-  });
-
-  describe("#uninit()", () => {
-    it("should call setEventRecordingEnabled with a false value", () => {
-      assert.equal(
-        global.Services.telemetry.setEventRecordingEnabled.firstCall.args[0],
-        "activity_stream"
-      );
-      assert.equal(
-        global.Services.telemetry.setEventRecordingEnabled.firstCall.args[1],
-        true
-      );
-
-      utEvents.uninit();
-      assert.equal(
-        global.Services.telemetry.setEventRecordingEnabled.secondCall.args[0],
-        "activity_stream"
-      );
-      assert.equal(
-        global.Services.telemetry.setEventRecordingEnabled.secondCall.args[1],
-        false
-      );
     });
   });
 });

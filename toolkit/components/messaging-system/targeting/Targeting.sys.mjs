@@ -20,7 +20,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
-const TARGETING_EVENT_CATEGORY = "messaging_experiments";
 const DEFAULT_TIMEOUT = 5000;
 const ERROR_TYPES = {
   ATTRIBUTE_ERROR: "AttributeError",
@@ -81,9 +80,6 @@ export class TargetingContext {
 
     // Used in telemetry to report where the targeting expression is coming from
     this.#telemetrySource = options.source;
-
-    // Enable event recording
-    Services.telemetry.setEventRecordingEnabled(TARGETING_EVENT_CATEGORY, true);
   }
 
   setTelemetrySource(source) {

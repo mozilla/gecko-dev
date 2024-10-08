@@ -61,8 +61,6 @@ add_task(async function test_setup() {
       expired: true,
     },
   });
-  Telemetry.setEventRecordingEnabled(TEST_STATIC_EVENT_NAME, true);
-  Telemetry.setEventRecordingEnabled(TEST_EVENT_NAME, true);
 
   Telemetry.recordEvent(TEST_EVENT_NAME, "dynamic", "builtin");
   Telemetry.recordEvent(TEST_STATIC_EVENT_NAME, "main_and_content", "object1");

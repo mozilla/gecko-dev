@@ -218,8 +218,6 @@ add_task(function test_gifft_string_list_works() {
 });
 
 add_task(function test_gifft_events() {
-  Telemetry.setEventRecordingEnabled("telemetry.test", true);
-
   Glean.testOnlyIpc.noExtraEvent.record();
   var events = Glean.testOnlyIpc.noExtraEvent.testGetValue();
   Assert.equal(1, events.length);

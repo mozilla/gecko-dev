@@ -407,8 +407,6 @@ export const LoginHelper = {
     // Watch for pref changes to update cached pref values.
     Services.prefs.addObserver("signon.", () => this.updateSignonPrefs());
     this.updateSignonPrefs();
-    Services.telemetry.setEventRecordingEnabled("pwmgr", true);
-    Services.telemetry.setEventRecordingEnabled("form_autocomplete", true);
 
     // Watch for FXA Logout to reset signon.firefoxRelay to 'available'
     // Using hard-coded value for FxAccountsCommon.ONLOGOUT_NOTIFICATION because

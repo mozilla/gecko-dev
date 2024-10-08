@@ -45,7 +45,6 @@ async function resetTelemetry() {
     ).content;
     return !events || !events.length;
   });
-  Services.telemetry.setEventRecordingEnabled("security.ui.tlserror", true);
 }
 
 async function checkTelemetry(errorString, nssError) {

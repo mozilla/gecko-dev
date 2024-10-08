@@ -16,7 +16,6 @@ const EXTRAS_FIELD_NAMES = [
 
 export class UTEventReporting {
   constructor() {
-    Services.telemetry.setEventRecordingEnabled("activity_stream", true);
     this.sendUserEvent = this.sendUserEvent.bind(this);
     this.sendSessionEndEvent = this.sendSessionEndEvent.bind(this);
   }
@@ -47,9 +46,5 @@ export class UTEventReporting {
     Glean.activityStream.endSession.record(
       this._createExtras(data, data.session_duration)
     );
-  }
-
-  uninit() {
-    Services.telemetry.setEventRecordingEnabled("activity_stream", false);
   }
 }

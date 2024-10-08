@@ -40,11 +40,6 @@ add_task(async function checkTelemetryClickEvents() {
     return !events || !events.length;
   });
 
-  // Now enable recording our telemetry. Even if this is disabled, content
-  // processes will send event telemetry to the parent, thus we needed to ensure
-  // we waited and cleared first. Sigh.
-  Services.telemetry.setEventRecordingEnabled("security.ui.certerror", true);
-
   for (let useFrame of [false, true]) {
     let recordedObjects = [
       "advanced_button",
@@ -153,12 +148,4 @@ add_task(async function checkTelemetryClickEvents() {
       BrowserTestUtils.removeTab(gBrowser.selectedTab);
     }
   }
-
-  let enableCertErrorUITelemetry = Services.prefs.getBoolPref(
-    "security.certerrors.recordEventTelemetry"
-  );
-  Services.telemetry.setEventRecordingEnabled(
-    "security.ui.certerror",
-    enableCertErrorUITelemetry
-  );
 });

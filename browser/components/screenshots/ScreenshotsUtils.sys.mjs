@@ -176,7 +176,6 @@ export var ScreenshotsUtils = {
         return;
       }
       this.resetMethodsUsed();
-      Services.telemetry.setEventRecordingEnabled("screenshots", true);
       Services.obs.addObserver(this, "menuitem-screenshot");
       this.initialized = true;
       if (Cu.isInAutomation) {

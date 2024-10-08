@@ -157,29 +157,6 @@ Since Firefox 132 (see `bug 1863031 <https://bugzilla.mozilla.org/show_bug.cgi?i
 events in Firefox Desktop are
 :doc:`recorded using the Glean API <../../glean/user/glean_for_legacy_events>`.
 
-``setEventRecordingEnabled()``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: js
-
-  Services.telemetry.setEventRecordingEnabled(category, enabled);
-
-Event recording is currently enabled by default for events registered in Events.yaml.
-Dynamically-registered events (those registered using ``registerEvents()``) cannot be disabled.
-Privileged add-ons and Firefox code can enable & disable recording events for specific categories using this function.
-
-Example:
-
-.. code-block:: js
-
-  Services.telemetry.setEventRecordingEnabled("ui", false);
-  // ... now "ui" events will not be recorded anymore.
-
-.. note::
-
-  Even if your event category isn't enabled, counts of events that attempted to be recorded will
-  be :ref:`summarized <events.event-summary>`.
-
 .. note::
   Events can be expensive to store, submit, and query.
   You are responsible for ensuring that you don't submit too many events.

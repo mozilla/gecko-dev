@@ -652,7 +652,6 @@ add_task(async function test_DownloadSummary_notifications() {
  */
 add_task(async function test_downloadAddedTelemetry() {
   Services.telemetry.clearEvents();
-  Services.telemetry.setEventRecordingEnabled("downloads", true);
 
   let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
 

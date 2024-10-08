@@ -103,7 +103,6 @@ function DevTools() {
 
   EventEmitter.decorate(this);
   this._telemetry = new Telemetry();
-  this._telemetry.setEventRecordingEnabled(true);
 
   // List of all commands of debugged local Web Extension.
   this._commandsPromiseByWebExtId = new Map(); // Map<extensionId, commands>

@@ -33,7 +33,6 @@ export var PartnerLinkAttribution = {
   async makeRequest({ targetURL, source, campaignID }) {
     let partner = targetURL.match(/^https?:\/\/(?:www.)?([^.]*)/)[1];
 
-    Services.telemetry.setEventRecordingEnabled("partner_link", true);
     let extra = { value: partner };
     if (source == "newtab") {
       Glean.partnerLink.clickNewtab.record(extra);
