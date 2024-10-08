@@ -291,6 +291,12 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         state.extensionMenuState.addonInstallationInProgress
                     }
 
+                    val updateManageExtensionsMenuItemVisibility by store.observeAsState(
+                        initialValue = false,
+                    ) { state ->
+                        state.extensionMenuState.shouldShowManageExtensionsMenuItem
+                    }
+
                     val browserWebExtensionMenuItem by store.observeAsState(initialValue = emptyList()) { state ->
                         state.extensionMenuState.browserWebExtensionMenuItem
                     }
@@ -546,6 +552,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     recommendedAddons = recommendedAddons,
                                     addonInstallationInProgress = addonInstallationInProgress,
                                     showExtensionsOnboarding = showExtensionsOnboarding,
+                                    showManageExtensions = updateManageExtensionsMenuItemVisibility,
                                     webExtensionMenuItems = browserWebExtensionMenuItem,
                                     onBackButtonClick = {
                                         contentState = Route.MainMenu

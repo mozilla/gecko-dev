@@ -46,6 +46,7 @@ internal fun ExtensionsSubmenu(
     recommendedAddons: List<Addon>,
     webExtensionMenuItems: List<WebExtensionMenuItem.WebExtensionBrowserMenuItem>,
     showExtensionsOnboarding: Boolean,
+    showManageExtensions: Boolean,
     addonInstallationInProgress: Addon?,
     onBackButtonClick: () -> Unit,
     onExtensionsLearnMoreClick: () -> Unit,
@@ -96,12 +97,14 @@ internal fun ExtensionsSubmenu(
             }
         }
 
-        MenuGroup {
-            MenuItem(
-                label = stringResource(id = R.string.browser_menu_manage_extensions),
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_extension_cog_24),
-                onClick = onManageExtensionsMenuClick,
-            )
+        if (showManageExtensions) {
+            MenuGroup {
+                MenuItem(
+                    label = stringResource(id = R.string.browser_menu_manage_extensions),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_extension_cog_24),
+                    onClick = onManageExtensionsMenuClick,
+                )
+            }
         }
 
         RecommendedAddons(
@@ -194,6 +197,7 @@ private fun ExtensionsSubmenuPreview() {
                     ),
                 ),
                 showExtensionsOnboarding = true,
+                showManageExtensions = true,
                 addonInstallationInProgress = Addon(
                     id = "id",
                     translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
@@ -264,6 +268,7 @@ private fun ExtensionsSubmenuPrivatePreview() {
                     ),
                 ),
                 showExtensionsOnboarding = true,
+                showManageExtensions = false,
                 addonInstallationInProgress = null,
                 onBackButtonClick = {},
                 onExtensionsLearnMoreClick = {},

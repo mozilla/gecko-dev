@@ -173,6 +173,7 @@ class MenuDialogMiddleware(
 
             if (addons.any { it.isInstalled() }) {
                 store.dispatch(MenuAction.UpdateShowExtensionsOnboarding(false))
+                store.dispatch(MenuAction.UpdateManageExtensionsMenuItemVisibility(true))
                 return@launch
             }
 
@@ -348,6 +349,7 @@ class MenuDialogMiddleware(
             onSuccess = {
                 store.dispatch(MenuAction.InstallAddonSuccess(addon = addon))
                 store.dispatch(MenuAction.UpdateShowExtensionsOnboarding(false))
+                store.dispatch(MenuAction.UpdateManageExtensionsMenuItemVisibility(true))
             },
             onError = { e ->
                 store.dispatch(MenuAction.InstallAddonFailed(addon = addon))

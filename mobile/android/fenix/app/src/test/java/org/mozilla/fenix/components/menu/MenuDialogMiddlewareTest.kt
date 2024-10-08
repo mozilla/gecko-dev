@@ -220,6 +220,7 @@ class MenuDialogMiddlewareTest {
 
             assertTrue(store.state.extensionMenuState.recommendedAddons.isEmpty())
             assertFalse(store.state.extensionMenuState.showExtensionsOnboarding)
+            assertTrue(store.state.extensionMenuState.shouldShowManageExtensionsMenuItem)
         }
 
     @Test

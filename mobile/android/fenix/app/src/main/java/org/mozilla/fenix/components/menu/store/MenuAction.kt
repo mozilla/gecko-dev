@@ -138,6 +138,16 @@ sealed class MenuAction : Action {
     ) : MenuAction()
 
     /**
+     * [MenuAction] dispatched when we what to show manage extensions menu item.
+     *
+     * @property isVisible Indicates if manage extensions menu item
+     * should be displayed to the user.
+     */
+    data class UpdateManageExtensionsMenuItemVisibility(
+        val isVisible: Boolean,
+    ) : MenuAction()
+
+    /**
      * [MenuAction] dispatched when an addon installation was completed with success.
      *
      * @property addon The [Addon] that was installed.
