@@ -93,21 +93,21 @@ support-files = [
 ["test_WebAudioMemoryReporting.html"]
 
 ["test_analyserNode.html"]
-skip-if = ["!asan && os != android"] # These are tested in web-platform-tests, except on ASan and Android which don't run WPT.
+run-if = ["os == 'android'"] # These are tested in web-platform-tests, except on Android which don't run WPT.
 
 ["test_analyserNodeMinimum.html"]
-skip-if = ["!asan && os != android"] # These are tested in web-platform-tests, except on ASan and Android which don't run WPT.
+run-if = ["os == 'android'"] # These are tested in web-platform-tests, except on Android which don't run WPT.
 
 ["test_analyserNodeOutput.html"]
-skip-if = ["!asan && os != android"] # These are tested in web-platform-tests, except on ASan and Android which don't run WPT.
+run-if = ["os == 'android'"] # These are tested in web-platform-tests, except on Android which don't run WPT.
 
 ["test_analyserNodePassThrough.html"]
 
 ["test_analyserNodeWithGain.html"]
-skip-if = ["!asan && os != android"] # These are tested in web-platform-tests, except on ASan and Android which don't run WPT.
+run-if = ["os == 'android'"] # These are tested in web-platform-tests, except on Android which don't run WPT.
 
 ["test_analyserScale.html"]
-skip-if = ["!asan && os != android"] # These are tested in web-platform-tests, except on ASan and Android which don't run WPT.
+run-if = ["os == 'android'"] # These are tested in web-platform-tests, except on Android which don't run WPT.
 
 ["test_audioContextParams_recordNonDefaultSampleRate.html"]
 
@@ -124,8 +124,8 @@ skip-if = ["!asan && os != android"] # These are tested in web-platform-tests, e
 ["test_convolver-upmixing-1-channel-response.html"]
 # This is a copy of
 # testing/web-platform/tests/webaudio/the-audio-api/the-convolvernode-interface/convolver-upmixing-1-channel-response.html,
-# but WPT are not run with ASan or Android builds.
-skip-if = ["!asan && os != android"]
+# but WPT are not run with Android builds.
+run-if = ["os == 'android'"]
 
 ["test_convolverNode.html"]
 
@@ -190,8 +190,8 @@ skip-if = [
 ["test_delaynode-channel-count-1.html"]
 # This is a copy of
 # testing/web-platform/tests/webaudio/the-audio-api/the-delaynode-interface/delaynode-channel-count-1.html
-# but WPT are not run with ASan or Android builds.
-skip-if = ["!asan && os != android"]
+# but WPT are not run with Android builds.
+run-if = ["os == 'android'"]
 
 ["test_disconnectAll.html"]
 
