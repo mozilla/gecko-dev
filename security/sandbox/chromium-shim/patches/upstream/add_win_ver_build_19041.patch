@@ -1,0 +1,50 @@
+# HG changeset patch
+# User Bob Owen <bobowencode@gmail.com>
+Add windows version build 19041. r=handyman
+
+Patch for the chromium changes to windows_version that weren't included in
+original patch as they were upstream.
+
+diff --git a/base/win/windows_version.cc b/base/win/windows_version.cc
+--- a/base/win/windows_version.cc
++++ b/base/win/windows_version.cc
+@@ -252,16 +252,18 @@ OSInfo::WOW64Status OSInfo::GetWOW64Stat
+   return is_wow64 ? WOW64_ENABLED : WOW64_DISABLED;
+ }
+ 
+ // With the exception of Server 2003, server variants are treated the same as
+ // the corresponding workstation release.
+ // static
+ Version OSInfo::MajorMinorBuildToVersion(int major, int minor, int build) {
+   if (major == 10) {
++    if (build >= 19041)
++      return Version::WIN10_20H1;
+     if (build >= 18362)
+       return Version::WIN10_19H1;
+     if (build >= 17763)
+       return Version::WIN10_RS5;
+     if (build >= 17134)
+       return Version::WIN10_RS4;
+     if (build >= 16299)
+       return Version::WIN10_RS3;
+diff --git a/base/win/windows_version.h b/base/win/windows_version.h
+--- a/base/win/windows_version.h
++++ b/base/win/windows_version.h
+@@ -45,16 +45,17 @@ enum class Version {
+   WIN10 = 7,        // Threshold 1: Version 1507, Build 10240.
+   WIN10_TH2 = 8,    // Threshold 2: Version 1511, Build 10586.
+   WIN10_RS1 = 9,    // Redstone 1: Version 1607, Build 14393.
+   WIN10_RS2 = 10,   // Redstone 2: Version 1703, Build 15063.
+   WIN10_RS3 = 11,   // Redstone 3: Version 1709, Build 16299.
+   WIN10_RS4 = 12,   // Redstone 4: Version 1803, Build 17134.
+   WIN10_RS5 = 13,   // Redstone 5: Version 1809, Build 17763.
+   WIN10_19H1 = 14,  // 19H1: Version 1903, Build 18362.
++  WIN10_20H1 = 15,  // 20H1: Version 2004, Build 19041.
+   // On edit, update tools\metrics\histograms\enums.xml "WindowsVersion" and
+   // "GpuBlacklistFeatureTestResultsWindows2".
+   WIN_LAST,  // Indicates error condition.
+ };
+ 
+ // A rough bucketing of the available types of versions of Windows. This is used
+ // to distinguish enterprise enabled versions from home versions and potentially
+ // server versions. Keep these values in the same order, since they are used as

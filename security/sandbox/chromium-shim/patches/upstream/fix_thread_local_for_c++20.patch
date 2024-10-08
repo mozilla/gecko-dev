@@ -1,0 +1,79 @@
+
+# HG changeset patch
+# User Emilio Cobos Álvarez <emilio@crisal.io>
+# Date 1707232976 0
+# Node ID 9e9263ad5cf7d929f846d417860f179aa942282a
+# Parent  19f8c667d6af426c851b0de3f6c17a4b03f78b47
+Bug 1878492 - Fix some C++20 gcc build errors in the sandbox code. r=bobowen
+
+GCC doesn't allow this in C++20 mode, see
+https://godbolt.org/z/cshP9KfaM
+
+This has been fixed upstream in the Chromium code already.
+
+Differential Revision: https://phabricator.services.mozilla.com/D200563
+
+diff --git a/base/threading/thread_local.h b/base/threading/thread_local.h
+--- a/base/threading/thread_local.h
++++ b/base/threading/thread_local.h
+@@ -68,17 +68,17 @@ class ThreadLocalPointer {
+ 
+   void Set(T* ptr) {
+     slot_.Set(const_cast<void*>(static_cast<const void*>(ptr)));
+   }
+ 
+  private:
+   ThreadLocalStorage::Slot slot_;
+ 
+-  DISALLOW_COPY_AND_ASSIGN(ThreadLocalPointer<T>);
++  DISALLOW_COPY_AND_ASSIGN(ThreadLocalPointer);
+ };
+ 
+ // A ThreadLocalOwnedPointer<T> is like a ThreadLocalPointer<T> except that
+ // pointers handed to it are owned and automatically deleted during their
+ // associated thread's exit phase (or when replaced if Set() is invoked multiple
+ // times on the same thread).
+ // The ThreadLocalOwnedPointer instance itself can only be destroyed when no
+ // threads, other than the one it is destroyed on, have remaining state set in
+@@ -107,17 +107,17 @@ class ThreadLocalOwnedPointer {
+     slot_.Set(const_cast<void*>(static_cast<const void*>(ptr.release())));
+   }
+ 
+  private:
+   static void DeleteTlsPtr(void* ptr) { delete static_cast<T*>(ptr); }
+ 
+   ThreadLocalStorage::Slot slot_{&DeleteTlsPtr};
+ 
+-  DISALLOW_COPY_AND_ASSIGN(ThreadLocalOwnedPointer<T>);
++  DISALLOW_COPY_AND_ASSIGN(ThreadLocalOwnedPointer);
+ };
+ #endif  // DCHECK_IS_ON()
+ 
+ class ThreadLocalBoolean {
+  public:
+   ThreadLocalBoolean() = default;
+   ~ThreadLocalBoolean() = default;
+ 
+diff --git a/base/threading/thread_local_internal.h b/base/threading/thread_local_internal.h
+--- a/base/threading/thread_local_internal.h
++++ b/base/threading/thread_local_internal.h
+@@ -64,17 +64,17 @@ class CheckedThreadLocalOwnedPointer {
+   };
+ 
+   static void DeleteTlsPtr(void* ptr) { delete static_cast<PtrTracker*>(ptr); }
+ 
+   ThreadLocalStorage::Slot slot_{&DeleteTlsPtr};
+ 
+   std::atomic_int num_assigned_threads_{0};
+ 
+-  DISALLOW_COPY_AND_ASSIGN(CheckedThreadLocalOwnedPointer<T>);
++  DISALLOW_COPY_AND_ASSIGN(CheckedThreadLocalOwnedPointer);
+ };
+ 
+ }  // namespace internal
+ }  // namespace base
+ 
+ #endif  // DCHECK_IS_ON()
+ 
+ #endif  // BASE_THREADING_THREAD_LOCAL_INTERNAL_H_
+

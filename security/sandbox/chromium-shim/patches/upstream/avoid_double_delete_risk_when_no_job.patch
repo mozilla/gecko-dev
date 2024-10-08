@@ -1,0 +1,30 @@
+
+# HG changeset patch
+# User Bob Owen <bobowencode@gmail.com>
+# Date 1692352136 0
+# Node ID 9a3b35d5918261c557f525c14dd8f14578e7b270
+# Parent  1a70fe59788ebb6726f5a33139c73315a652f6d5
+Bug 1848454: Ensure an attempt is made to terminate the child when SpawnTarget fails and there is no job. r=handyman
+
+diff --git a/sandbox/win/src/broker_services.cc b/sandbox/win/src/broker_services.cc
+--- a/sandbox/win/src/broker_services.cc
++++ b/sandbox/win/src/broker_services.cc
+@@ -661,17 +661,17 @@ ResultCode BrokerServicesBase::SpawnTarg
+     // something valid to wait on in the tracking thread.
+     HANDLE tmp_process_handle = INVALID_HANDLE_VALUE;
+     if (!::DuplicateHandle(::GetCurrentProcess(), process_info.process_handle(),
+                            ::GetCurrentProcess(), &tmp_process_handle,
+                            SYNCHRONIZE, false, 0 /*no options*/)) {
+       *last_error = ::GetLastError();
+       // This may fail in the same way as Job associated processes.
+       // crbug.com/480639.
+-      SpawnCleanup(target);
++      target->Terminate();
+       return SBOX_ERROR_CANNOT_DUPLICATE_PROCESS_HANDLE;
+     }
+     base::win::ScopedHandle dup_process_handle(tmp_process_handle);
+     ProcessTracker* tracker = new ProcessTracker(
+         policy_base, process_info.process_id(), std::move(dup_process_handle));
+     // The tracker and policy will leak if this call fails.
+     ::PostQueuedCompletionStatus(job_port_.Get(), 0,
+                                  THREAD_CTRL_NEW_PROCESS_TRACKER,

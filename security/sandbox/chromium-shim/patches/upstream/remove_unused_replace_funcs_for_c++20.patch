@@ -1,0 +1,198 @@
+
+# HG changeset patch
+# User Chris Peterson <cpeterson@mozilla.com>
+# Date 1707873877 0
+# Node ID 6406a92f4a33def5a8efdfcdde232b828c4d5f90
+# Parent  03db92453f60e3798e341c8a86cc9e1ad0555163
+Bug 1880015 - Remove some unused chromium/base/strings functions to fix C++20 build. r=bobowen
+
+Attempting to compile security/sandbox with -std=c++20 hits this build error:
+
+> base/strings/string_util.cc:1043:53: error: overload resolution selected deleted operator '<<'
+> |             DLOG(ERROR) << "Invalid placeholder: $" << *i;
+
+This error is caused because C++20 removed basic_string's `operator<<` overloads for char types because the overloads didn't behave as callers expected: instead of printing the character value ('A'), they treated the char as an integer value (65):
+
+https://en.cppreference.com/w/cpp/io/basic_ostream/operator_ltlt2
+
+mozilla-central's security/sandbox code doesn't actually use these `ReplaceStringPlaceholders` functions, so just remove them instead of cherry picking Chromium's upstream fix.
+
+Differential Revision: https://phabricator.services.mozilla.com/D201675
+
+diff --git a/base/strings/string_util.cc b/base/strings/string_util.cc
+--- a/base/strings/string_util.cc
++++ b/base/strings/string_util.cc
+@@ -27,35 +27,16 @@
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/third_party/icu/icu_utf.h"
+ #include "build/build_config.h"
+ 
+ namespace base {
+ 
+ namespace {
+ 
+-// Used by ReplaceStringPlaceholders to track the position in the string of
+-// replaced parameters.
+-struct ReplacementOffset {
+-  ReplacementOffset(uintptr_t parameter, size_t offset)
+-      : parameter(parameter),
+-        offset(offset) {}
+-
+-  // Index of the parameter.
+-  uintptr_t parameter;
+-
+-  // Starting position in the string.
+-  size_t offset;
+-};
+-
+-static bool CompareParameter(const ReplacementOffset& elem1,
+-                             const ReplacementOffset& elem2) {
+-  return elem1.parameter < elem2.parameter;
+-}
+-
+ // Overloaded function to append one string onto the end of another. Having a
+ // separate overload for |source| as both string and StringPiece allows for more
+ // efficient usage from functions templated to work with either type (avoiding a
+ // redundant call to the BasicStringPiece constructor in both cases).
+ template <typename string_type>
+ inline void AppendToString(string_type* target, const string_type& source) {
+   target->append(source);
+ }
+@@ -1007,97 +988,16 @@ std::string JoinString(std::initializer_
+   return JoinStringT(parts, separator);
+ }
+ 
+ string16 JoinString(std::initializer_list<StringPiece16> parts,
+                     StringPiece16 separator) {
+   return JoinStringT(parts, separator);
+ }
+ 
+-template<class FormatStringType, class OutStringType>
+-OutStringType DoReplaceStringPlaceholders(
+-    const FormatStringType& format_string,
+-    const std::vector<OutStringType>& subst,
+-    std::vector<size_t>* offsets) {
+-  size_t substitutions = subst.size();
+-  DCHECK_LT(substitutions, 10U);
+-
+-  size_t sub_length = 0;
+-  for (const auto& cur : subst)
+-    sub_length += cur.length();
+-
+-  OutStringType formatted;
+-  formatted.reserve(format_string.length() + sub_length);
+-
+-  std::vector<ReplacementOffset> r_offsets;
+-  for (auto i = format_string.begin(); i != format_string.end(); ++i) {
+-    if ('$' == *i) {
+-      if (i + 1 != format_string.end()) {
+-        ++i;
+-        if ('$' == *i) {
+-          while (i != format_string.end() && '$' == *i) {
+-            formatted.push_back('$');
+-            ++i;
+-          }
+-          --i;
+-        } else {
+-          if (*i < '1' || *i > '9') {
+-            DLOG(ERROR) << "Invalid placeholder: $" << *i;
+-            continue;
+-          }
+-          uintptr_t index = *i - '1';
+-          if (offsets) {
+-            ReplacementOffset r_offset(index,
+-                                       static_cast<int>(formatted.size()));
+-            r_offsets.insert(
+-                std::upper_bound(r_offsets.begin(), r_offsets.end(), r_offset,
+-                                 &CompareParameter),
+-                r_offset);
+-          }
+-          if (index < substitutions)
+-            formatted.append(subst.at(index));
+-        }
+-      }
+-    } else {
+-      formatted.push_back(*i);
+-    }
+-  }
+-  if (offsets) {
+-    for (const auto& cur : r_offsets)
+-      offsets->push_back(cur.offset);
+-  }
+-  return formatted;
+-}
+-
+-string16 ReplaceStringPlaceholders(const string16& format_string,
+-                                   const std::vector<string16>& subst,
+-                                   std::vector<size_t>* offsets) {
+-  return DoReplaceStringPlaceholders(format_string, subst, offsets);
+-}
+-
+-std::string ReplaceStringPlaceholders(StringPiece format_string,
+-                                      const std::vector<std::string>& subst,
+-                                      std::vector<size_t>* offsets) {
+-  return DoReplaceStringPlaceholders(format_string, subst, offsets);
+-}
+-
+-string16 ReplaceStringPlaceholders(const string16& format_string,
+-                                   const string16& a,
+-                                   size_t* offset) {
+-  std::vector<size_t> offsets;
+-  std::vector<string16> subst;
+-  subst.push_back(a);
+-  string16 result = ReplaceStringPlaceholders(format_string, subst, &offsets);
+-
+-  DCHECK_EQ(1U, offsets.size());
+-  if (offset)
+-    *offset = offsets[0];
+-  return result;
+-}
+-
+ #if defined(OS_WIN) && defined(BASE_STRING16_IS_STD_U16STRING)
+ 
+ TrimPositions TrimWhitespace(WStringPiece input,
+                              TrimPositions positions,
+                              std::wstring* output) {
+   return TrimStringT(input, WStringPiece(kWhitespaceWide), positions, output);
+ }
+ 
+diff --git a/base/strings/string_util.h b/base/strings/string_util.h
+--- a/base/strings/string_util.h
++++ b/base/strings/string_util.h
+@@ -512,35 +512,16 @@ BASE_EXPORT string16 JoinString(const st
+ // Explicit initializer_list overloads are required to break ambiguity when used
+ // with a literal initializer list (otherwise the compiler would not be able to
+ // decide between the string and StringPiece overloads).
+ BASE_EXPORT std::string JoinString(std::initializer_list<StringPiece> parts,
+                                    StringPiece separator);
+ BASE_EXPORT string16 JoinString(std::initializer_list<StringPiece16> parts,
+                                 StringPiece16 separator);
+ 
+-// Replace $1-$2-$3..$9 in the format string with values from |subst|.
+-// Additionally, any number of consecutive '$' characters is replaced by that
+-// number less one. Eg $$->$, $$$->$$, etc. The offsets parameter here can be
+-// NULL. This only allows you to use up to nine replacements.
+-BASE_EXPORT string16 ReplaceStringPlaceholders(
+-    const string16& format_string,
+-    const std::vector<string16>& subst,
+-    std::vector<size_t>* offsets);
+-
+-BASE_EXPORT std::string ReplaceStringPlaceholders(
+-    StringPiece format_string,
+-    const std::vector<std::string>& subst,
+-    std::vector<size_t>* offsets);
+-
+-// Single-string shortcut for ReplaceStringHolders. |offset| may be NULL.
+-BASE_EXPORT string16 ReplaceStringPlaceholders(const string16& format_string,
+-                                               const string16& a,
+-                                               size_t* offset);
+-
+ #if defined(OS_WIN) && defined(BASE_STRING16_IS_STD_U16STRING)
+ BASE_EXPORT TrimPositions TrimWhitespace(WStringPiece input,
+                                          TrimPositions positions,
+                                          std::wstring* output);
+ 
+ BASE_EXPORT WStringPiece TrimWhitespace(WStringPiece input,
+                                         TrimPositions positions);
+ 
+

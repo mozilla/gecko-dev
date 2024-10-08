@@ -1,0 +1,41 @@
+
+# HG changeset patch
+# User Bob Owen <bobowencode@gmail.com>
+# Date 1603468919 0
+# Node ID a149f99359116b95dbbe42c1d03d7e1438e5241b
+# Parent  1980f87855fc557e7ef6bb24b66c4d2df5606afa
+Bug 1668876: Take chromium commit b8479b16bfe703cb09147f4d5cff0cfa3bd91366. r=tkikuchi
+
+diff --git a/sandbox/win/src/broker_services.cc b/sandbox/win/src/broker_services.cc
+--- a/sandbox/win/src/broker_services.cc
++++ b/sandbox/win/src/broker_services.cc
+@@ -353,25 +353,25 @@ DWORD WINAPI BrokerServicesBase::TargetE
+       processes.push_back(std::move(tracker));
+ 
+     } else if (THREAD_CTRL_PROCESS_SIGNALLED == key) {
+       ProcessTracker* tracker =
+           static_cast<ProcessTracker*>(reinterpret_cast<void*>(ovl));
+ 
+       ::UnregisterWait(tracker->wait_handle);
+       tracker->wait_handle = INVALID_HANDLE_VALUE;
+-
++      // Copy process_id so that we can legally reference it even after we have
++      // found the ProcessTracker object to delete.
++      const DWORD process_id = tracker->process_id;
+       // PID is unique until the process handle is closed in dtor.
+       processes.erase(std::remove_if(processes.begin(), processes.end(),
+                                      [&](auto&& p) -> bool {
+-                                       return p->process_id ==
+-                                              tracker->process_id;
++                                       return p->process_id == process_id;
+                                      }),
+                       processes.end());
+-
+     } else if (THREAD_CTRL_GET_POLICY_INFO == key) {
+       // Clone the policies for sandbox diagnostics.
+       std::unique_ptr<PolicyDiagnosticsReceiver> receiver;
+       receiver.reset(static_cast<PolicyDiagnosticsReceiver*>(
+           reinterpret_cast<void*>(ovl)));
+       // The PollicyInfo ctor copies essential information from the trackers.
+       auto policy_list = std::make_unique<PolicyDiagnosticList>();
+       for (auto&& process_tracker : processes) {

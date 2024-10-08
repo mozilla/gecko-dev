@@ -14,7 +14,7 @@ Differential Revision: https://phabricator.services.mozilla.com/D206784
 diff --git a/sandbox/win/src/restricted_token_utils.cc b/sandbox/win/src/restricted_token_utils.cc
 --- a/sandbox/win/src/restricted_token_utils.cc
 +++ b/sandbox/win/src/restricted_token_utils.cc
-@@ -302,16 +302,22 @@ DWORD SetTokenIntegrityLevel(HANDLE toke
+@@ -302,16 +302,24 @@ DWORD SetTokenIntegrityLevel(HANDLE toke
  DWORD SetProcessIntegrityLevel(IntegrityLevel integrity_level) {
    // We don't check for an invalid level here because we'll just let it
    // fail on the SetTokenIntegrityLevel call later on.
@@ -26,8 +26,10 @@ diff --git a/sandbox/win/src/restricted_token_utils.cc b/sandbox/win/src/restric
 +  // Set integrity level for our process ACL, so we retain access to it.
 +  // We ignore failures because this is not a security measure, but some
 +  // functionality may fail later in the process.
-+  SetObjectIntegrityLabel(::GetCurrentProcess(), SE_KERNEL_OBJECT, L"",
-+                          GetIntegrityLevelString(integrity_level));
++  DWORD rv =
++      SetObjectIntegrityLabel(::GetCurrentProcess(), SE_KERNEL_OBJECT, L"",
++                              GetIntegrityLevelString(integrity_level));
++  DCHECK(rv == ERROR_SUCCESS);
 +
    HANDLE token_handle;
    if (!::OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_DEFAULT,

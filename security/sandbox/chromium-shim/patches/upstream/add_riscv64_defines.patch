@@ -1,0 +1,36 @@
+
+# HG changeset patch
+# User Makoto Kato <m_kato@ga2.so-net.ne.jp>
+# Date 1625558740 0
+# Node ID 0a50e1e22d534ec779165a1f129045bb672a1309
+# Parent  f30a074261c97ef60efe270ab34d9088cb6fb0b2
+Bug 1719115 - Add riscv64 defines to build/build_config.h. r=firefox-build-system-reviewers,andi
+
+mozilla-central has some imported files of build_config.h from Chromium.
+Actually although they doesn't have riscv64 defines yet, I would like to
+add it to build Firefox for riscv64.
+
+diff --git a/build/build_config.h b/build/build_config.h
+--- a/build/build_config.h
++++ b/build/build_config.h
+@@ -161,16 +161,20 @@
+ #define ARCH_CPU_64_BITS 1
+ #define ARCH_CPU_BIG_ENDIAN 1
+ #else
+ #define ARCH_CPU_MIPS_FAMILY 1
+ #define ARCH_CPU_MIPS 1
+ #define ARCH_CPU_32_BITS 1
+ #define ARCH_CPU_BIG_ENDIAN 1
+ #endif
++#elif defined(__riscv) && __riscv_xlen == 64
++#define ARCH_CPU_RISCV64 1
++#define ARCH_CPU_64_BITS 1
++#define ARCH_CPU_LITTLE_ENDIAN 1
+ #else
+ #error Please add support for your architecture in build/build_config.h
+ #endif
+ 
+ // Type detection for wchar_t.
+ #if defined(OS_WIN)
+ #define WCHAR_T_IS_UTF16
+ #elif defined(OS_FUCHSIA)
