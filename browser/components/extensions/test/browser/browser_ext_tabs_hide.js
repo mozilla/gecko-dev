@@ -158,7 +158,7 @@ const doorHangerDisable = (
     );
     ok(
       images.some(img =>
-        getComputedStyle(img).backgroundImage.includes("view-opentabs.svg")
+        getComputedStyle(img).backgroundImage.includes("arrow-down.svg")
       ),
       "There's an icon for the all tabs menu"
     );
