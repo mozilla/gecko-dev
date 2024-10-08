@@ -14572,7 +14572,6 @@ interface nsIXULRuntime extends nsISupports, Enums<typeof nsIXULRuntime.Experime
   readonly PROCESS_TYPE_VR: 6;
   readonly PROCESS_TYPE_RDD: 7;
   readonly PROCESS_TYPE_SOCKET: 8;
-  readonly PROCESS_TYPE_REMOTESANDBOXBROKER: 9;
   readonly PROCESS_TYPE_FORKSERVER: 10;
   readonly PROCESS_TYPE_UTILITY: 11;
   readonly E10S_MULTI_EXPERIMENT: 1;

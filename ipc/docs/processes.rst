@@ -523,12 +523,8 @@ Windows Sandbox
 _______________
 
 - Introduce a new ``SandboxBroker::SetSecurityLevelForXXXProcess()`` that
-  defines the new sandbox in both
-
-  + the sandbox broker basing yourself on that `example
-    <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/security/sandbox/win/src/sandboxbroker/sandboxBroker.cpp#1241-1344>`_
-  + the remote sandbox broker getting `inspired by
-    <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/security/sandbox/win/src/remotesandboxbroker/remoteSandboxBroker.cpp#161-165>`_
+  defines the new sandbox in the sandbox broker basing yourself on this
+  `example <https://searchfox.org/mozilla-central/rev/d4b9c457db637fde655592d9e2048939b7ab2854/security/sandbox/win/src/sandboxbroker/sandboxBroker.cpp#1241-1344>`_
 
 - Add new case handling in ``WindowsProcessLauncher::DoSetup()`` calling
   ``SandboxBroker::SetSecurityLevelForXXXProcess()`` in `GeckoChildProcessHost

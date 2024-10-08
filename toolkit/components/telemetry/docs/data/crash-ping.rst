@@ -129,8 +129,6 @@ are sent only for the ones below:
 +---------------+-------------------------------------------------------------------------------+
 | socket        | :ref:`Network socket process <network-socket-process>`                        |
 +---------------+-------------------------------------------------------------------------------+
-| sandboxbroker | :ref:`Remote sandbox broker <remote-sandbox-process>`                         |
-+---------------+-------------------------------------------------------------------------------+
 | forkserver    | :ref:`Fork server <fork-server>`                                              |
 +---------------+-------------------------------------------------------------------------------+
 | utility       | :ref:`Utility process <utility-process>`                                      |

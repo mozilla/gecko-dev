@@ -519,9 +519,6 @@ var View = {
         case "socket":
           fluentName = "about-processes-socket-process";
           break;
-        case "remoteSandboxBroker":
-          fluentName = "about-processes-remote-sandbox-broker-process";
-          break;
         case "forkServer":
           fluentName = "about-processes-fork-server-process";
           break;

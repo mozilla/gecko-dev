@@ -91,7 +91,6 @@
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
 #  include "mozilla/sandboxTarget.h"
 #  include "mozilla/sandboxing/loggingCallbacks.h"
-#  include "mozilla/RemoteSandboxBrokerProcessChild.h"
 #endif
 
 #if defined(MOZ_SANDBOX)
@@ -484,22 +483,12 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
                        ? MessageLoop::TYPE_MOZILLA_CHILD
                        : MessageLoop::TYPE_DEFAULT;
       break;
-    case GeckoProcessType_RemoteSandboxBroker:
-      uiLoopType = MessageLoop::TYPE_DEFAULT;
-      break;
     default:
       uiLoopType = MessageLoop::TYPE_UI;
       break;
   }
 
 #if defined(XP_WIN)
-#  if defined(MOZ_SANDBOX)
-  if (aChildData->sandboxBrokerServices) {
-    SandboxBroker::Initialize(aChildData->sandboxBrokerServices, u""_ns);
-    SandboxBroker::GeckoDependentInitialize();
-  }
-#  endif  // defined(MOZ_SANDBOX)
-
   {
     DebugOnly<bool> result = mozilla::WindowsBCryptInitialization();
     MOZ_ASSERT(result);
@@ -567,13 +556,6 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
               std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
-#if defined(MOZ_SANDBOX) && defined(XP_WIN)
-        case GeckoProcessType_RemoteSandboxBroker:
-          process = MakeUnique<RemoteSandboxBrokerProcessChild>(
-              std::move(*clientChannel), *parentPID, messageChannelId);
-          break;
-#endif
-
 #if defined(MOZ_ENABLE_FORKSERVER)
         case GeckoProcessType_ForkServer:
           MOZ_CRASH("Fork server should not go here");
@@ -604,12 +586,8 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
       mozilla::sandboxing::InitLoggingIfRequired(
           aChildData->ProvideLogFunction);
 #endif
-      if (XRE_GetProcessType() != GeckoProcessType_RemoteSandboxBroker) {
-        // Remote sandbox launcher process doesn't have prerequisites for
-        // these...
-        mozilla::FilePreferences::InitDirectoriesAllowlist();
-        mozilla::FilePreferences::InitPrefs();
-      }
+      mozilla::FilePreferences::InitDirectoriesAllowlist();
+      mozilla::FilePreferences::InitPrefs();
 
 #if defined(MOZ_SANDBOX)
       AddContentSandboxLevelAnnotation();
