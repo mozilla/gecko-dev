@@ -2315,8 +2315,15 @@ void nsRefreshDriver::DetermineProximityToViewportAndNotifyResizeObservers() {
 }
 
 static CallState UpdateAndReduceAnimations(Document& aDocument) {
-  for (DocumentTimeline* timeline : aDocument.Timelines()) {
-    timeline->WillRefresh();
+  {
+    AutoTArray<RefPtr<DocumentTimeline>, 32> timelinesToTick;
+    for (DocumentTimeline* timeline : aDocument.Timelines()) {
+      timelinesToTick.AppendElement(timeline);
+    }
+
+    for (DocumentTimeline* tl : timelinesToTick) {
+      tl->WillRefresh();
+    }
   }
 
   if (nsPresContext* pc = aDocument.GetPresContext()) {
@@ -2346,7 +2353,8 @@ void nsRefreshDriver::UpdateAnimationsAndSendEvents() {
     // [1]:
     // https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events
     nsAutoMicroTask mt;
-    UpdateAndReduceAnimations(*mPresContext->Document());
+    RefPtr doc = mPresContext->Document();
+    UpdateAndReduceAnimations(*doc);
   }
 
   // Hold all AnimationEventDispatcher in mAnimationEventFlushObservers as
