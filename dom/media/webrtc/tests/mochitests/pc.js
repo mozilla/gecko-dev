@@ -1605,6 +1605,7 @@ PeerConnectionWrapper.prototype = {
     var resolveEndOfTrickle;
     this.endOfTrickleIce = new Promise(r => (resolveEndOfTrickle = r));
     this.holdIceCandidates = new Promise(r => (this.releaseIceCandidates = r));
+    this._new_local_ice_candidates = [];
 
     this._pc.onicecandidate = anEvent => {
       if (!anEvent.candidate) {
@@ -1636,6 +1637,7 @@ PeerConnectionWrapper.prototype = {
         "SDP MLine Index needs to exist"
       );
       this._local_ice_candidates.push(anEvent.candidate);
+      this._new_local_ice_candidates.push(anEvent.candidate);
       candidateHandler(this.label, anEvent.candidate);
     };
   },
