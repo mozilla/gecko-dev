@@ -1126,14 +1126,6 @@ nsCookieBannerService::OnLocationChange(nsIWebProgress* aWebProgress,
       return NS_OK;
     }
 
-    // The static value to track if we have enabled the event telemetry for
-    // cookie banner.
-    static bool sTelemetryEventEnabled = false;
-    if (!sTelemetryEventEnabled) {
-      sTelemetryEventEnabled = true;
-      Telemetry::SetEventRecordingEnabled("cookie_banner"_ns, true);
-    }
-
     glean::cookie_banners::ReloadExtra extra = {
         .hasClickRule = Some(hasClickRuleInData),
         .hasCookieRule = Some(hasCookieRuleInData),

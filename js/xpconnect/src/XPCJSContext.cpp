@@ -586,7 +586,6 @@ AutoScriptActivity::~AutoScriptActivity() {
 }
 
 static const double sChromeSlowScriptTelemetryCutoff(10.0);
-static bool sTelemetryEventEnabled(false);
 
 // static
 bool XPCJSContext::InterruptCallback(JSContext* cx) {
@@ -1444,11 +1443,6 @@ void XPCJSContext::AfterProcessTask(uint32_t aNewRecursionDepth) {
       }
     }
     if (hangDuration > limit) {
-      if (!sTelemetryEventEnabled) {
-        sTelemetryEventEnabled = true;
-        Telemetry::SetEventRecordingEnabled("slow_script_warning"_ns, true);
-      }
-
       // Use AppendFloat to avoid printf-type APIs using locale-specific
       // decimal separators, when we definitely want a `.`.
       nsCString durationStr;

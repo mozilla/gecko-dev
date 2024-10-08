@@ -34,7 +34,6 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/IntegerTypeTraits.h"
 #include "mozilla/NullPrincipal.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/glean/GleanMetrics.h"
 
 #include "nsThreadUtils.h"
@@ -1108,7 +1107,6 @@ nsresult nsExpatDriver::HandleError() {
       docShellDestroyed.Assign(destroyed ? "true"_ns : "false"_ns);
     }
 
-    mozilla::Telemetry::SetEventRecordingEnabled("ysod"_ns, true);
     mozilla::glean::ysod::ShownYsodExtra extra = {
         .destroyed = mozilla::Some(docShellDestroyed),
         .errorCode = mozilla::Some(code),

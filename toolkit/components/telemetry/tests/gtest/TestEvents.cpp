@@ -40,17 +40,7 @@ TEST_F(TelemetryTestFixture, RecordEventNative) {
       "this extra value is much too long and must be truncated to fit in the "
       "limit which at time of writing was 80 bytes.");
 
-  // Ensure "telemetry.test" is disabled
-  Telemetry::SetEventRecordingEnabled(category, false);
-
-  // Try recording before category's enabled.
-  TelemetryEvent::RecordEventNative(
-      Telemetry::EventID::TelemetryTest_Test1_Object1, Nothing(), Nothing());
-
-  // Ensure "telemetry.test" is enabled
-  Telemetry::SetEventRecordingEnabled(category, true);
-
-  // Try recording after it's enabled.
+  // Try recording.
   TelemetryEvent::RecordEventNative(
       Telemetry::EventID::TelemetryTest_Test2_Object1, Nothing(), Nothing());
 

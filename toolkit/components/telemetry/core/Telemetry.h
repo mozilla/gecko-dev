@@ -549,16 +549,6 @@ class MOZ_RAII AutoScalarTimer {
   const nsString key;
 };
 
-/**
- * Enables recording of events in a category.
- * Events default to recording enabled.
- * This toggles recording for all events in the specified category.
- *
- * @param aCategory The category name.
- * @param aEnabled Whether recording should be enabled or disabled.
- */
-void SetEventRecordingEnabled(const nsACString& aCategory, bool aEnabled);
-
 }  // namespace Telemetry
 }  // namespace mozilla
 
