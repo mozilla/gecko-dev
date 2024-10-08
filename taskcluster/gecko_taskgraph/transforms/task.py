@@ -18,6 +18,7 @@ import time
 import attr
 from mozbuild.util import memoize
 from taskcluster.utils import fromNow
+from taskgraph import MAX_DEPENDENCIES
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.copy import deepcopy
 from taskgraph.util.keyed_by import evaluate_keyed_by
@@ -31,7 +32,7 @@ from taskgraph.util.schema import (
 from taskgraph.util.treeherder import split_symbol
 from voluptuous import All, Any, Extra, Match, NotIn, Optional, Required
 
-from gecko_taskgraph import GECKO, MAX_DEPENDENCIES
+from gecko_taskgraph import GECKO
 from gecko_taskgraph.optimize.schema import OptimizationSchema
 from gecko_taskgraph.transforms.job.common import get_expiration
 from gecko_taskgraph.util import docker as dockerutil
