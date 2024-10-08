@@ -84,6 +84,11 @@ Template ``moz.yaml`` file
         # gitlab, angle, googlesource, codeberg, github or git. The later is
         # more generic but less efficient.
 
+        flavor: regular
+        # Type of Vendoring
+        # This is either 'regular', 'individual-files', or 'rust'
+        # If omitted, will default to 'regular'
+
         patches:
             - file
             - path/to/file
@@ -99,7 +104,7 @@ Template ``moz.yaml`` file
             - path/to/file
             - another/path
             - *.mozilla
-        # optional
+        # optional and regular flavor only
         # List of files in mozilla-central that are not deleted while vendoring
         # Implicitly contains "moz.yaml", any files referenced as patches
 
@@ -109,7 +114,7 @@ Template ``moz.yaml`` file
             - another/path
             - docs
             - src/*.test
-        # optional
+        # optional and regular flavor only
         # Files/paths that will not be vendored from source repository
         # Implicitly contains ".git", and ".gitignore"
 
@@ -118,7 +123,7 @@ Template ``moz.yaml`` file
             - path/to/file
             - another/path
             - docs/LICENSE.*
-        # optional
+        # optional and regular flavor only
         # Files/paths that will always be vendored, even if they would
         # otherwise be excluded by "exclude".
 
@@ -129,6 +134,28 @@ Template ``moz.yaml`` file
 
         # All three file/path parameters ("keep", "exclude", and "include") support filenames,
         # directory names, and globs/wildcards.
+
+        individual-files:
+            - upstream: src_file
+              destination: dest_file
+            - upstream: src_path/to/src_file
+              destination: dest_path/to/dest_file
+        # optional and individual-files flavor only
+        # Full list of individual upstream files and the destination to which they should be copied
+
+        individual-files-default-upstream: "src/"
+        individual-files-default-destination: "{vendor_dir}/"
+        individual-files-list:
+            - file
+            - path/to/file
+            - another/path
+        # optional and individual-files flavor only
+        # Full list of individual files which will be copied from individual-files-default-upstream
+        # to individual-files-default-destination
+        # individual-files-default-upstream and individual-files-default-destination are required
+
+        # For individual-files flavor either individual-files or individual-files-default-upstream
+        # but not both must be set
 
         update-actions:
             - action: move-file
