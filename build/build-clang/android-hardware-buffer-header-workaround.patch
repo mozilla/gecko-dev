@@ -1,0 +1,34 @@
+From 3e5c4b07f9413822ec2dc82174a13abc59a7b6d2 Mon Sep 17 00:00:00 2001
+From: Mike Hommey <mh@glandium.org>
+Date: Tue, 8 Oct 2024 13:33:53 +0900
+Subject: [PATCH] [clang] Don't emit IntegerConstantExpression error on Android
+ NDK headers
+
+The Android NDK versions before r28 have an enum value with a large
+shift count in hardware_buffer.h, which is undefined behavior and that
+is now caught as of #70307, and can't be overridden.
+
+This change relaxes the check to not apply to system headers on Android.
+---
+ clang/lib/Sema/SemaExpr.cpp | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/clang/lib/Sema/SemaExpr.cpp b/clang/lib/Sema/SemaExpr.cpp
+index f930a21ea870..31b1a6e5292b 100644
+--- a/clang/lib/Sema/SemaExpr.cpp
++++ b/clang/lib/Sema/SemaExpr.cpp
+@@ -17192,7 +17192,10 @@ Sema::VerifyIntegerConstantExpression(Expr *E, llvm::APSInt *Result,
+   }
+ 
+   if (!Folded || !CanFold) {
+-    if (!Diagnoser.Suppress) {
++    if (!Diagnoser.Suppress &&
++        (!EvalResult.HasUndefinedBehavior ||
++         !Context.getTargetInfo().getTriple().isAndroid() ||
++         !getSourceManager().isInSystemHeader(DiagLoc))) {
+       Diagnoser.diagnoseNotICE(*this, DiagLoc) << E->getSourceRange();
+       for (const PartialDiagnosticAt &Note : Notes)
+         Diag(Note.first, Note.second);
+-- 
+2.47.0.1.g59ce1bf855
+
