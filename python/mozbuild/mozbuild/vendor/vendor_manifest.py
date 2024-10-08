@@ -211,38 +211,28 @@ class VendorManifest(MozbuildObject):
         # blame.  So really all we can do is just download and replace the
         # files and see if they changed...
 
-        def download_and_write_file(url, destination):
+        def download_file_revision(upstream_path, revision, destination):
+            url = self.source_host.upstream_path_to_file(revision, upstream_path)
             self.logInfo(
                 {"local_file": destination, "url": url},
                 "Downloading {local_file} from {url}...",
             )
 
-            with mozfile.NamedTemporaryFile() as tmpfile:
-                try:
-                    req = requests.get(url, stream=True)
-                    for data in req.iter_content(4096):
-                        tmpfile.write(data)
-                    tmpfile.seek(0)
-
-                    shutil.copy2(tmpfile.name, destination)
-                except Exception as e:
-                    raise (e)
+            self.source_host.download_single_file(url, destination)
 
         # Only one of these loops will have content, so just do them both
         for f in self.manifest["vendoring"].get("individual-files", []):
-            url = self.source_host.upstream_path_to_file(new_revision, f["upstream"])
             destination = self.get_full_path(f["destination"])
-            download_and_write_file(url, destination)
+            download_file_revision(f["upstream"], new_revision, destination)
 
         for f in self.manifest["vendoring"].get("individual-files-list", []):
-            url = self.source_host.upstream_path_to_file(
-                new_revision,
-                self.manifest["vendoring"]["individual-files-default-upstream"] + f,
+            upstream_path = (
+                self.manifest["vendoring"]["individual-files-default-upstream"] + f
             )
             destination = self.get_full_path(
                 self.manifest["vendoring"]["individual-files-default-destination"] + f
             )
-            download_and_write_file(url, destination)
+            download_file_revision(upstream_path, new_revision, destination)
 
     def process_regular_or_individual(
         self, is_individual, new_revision, timestamp, ignore_modified, add_to_exports

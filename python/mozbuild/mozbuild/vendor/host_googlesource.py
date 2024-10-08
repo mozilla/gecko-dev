@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import base64
+
 import requests
 
 from mozbuild.vendor.host_base import BaseHost
@@ -30,3 +32,14 @@ class GoogleSourceHost(BaseHost):
         return "/".join(
             [self.manifest["vendoring"]["url"], "+archive", revision + ".tar.gz"]
         )
+
+    def upstream_path_to_file(self, revision, filepath):
+        return (
+            "/".join([self.manifest["vendoring"]["url"], "+", revision, filepath])
+            + "?format=TEXT"
+        )
+
+    def _transform_single_file_to_destination(self, from_file, destination):
+        # googlesource only supports a base64 encoded raw file
+        with open(destination, "wb") as destFile:
+            destFile.write(base64.b64decode(from_file.read()))

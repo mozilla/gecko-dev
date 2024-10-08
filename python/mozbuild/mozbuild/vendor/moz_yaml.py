@@ -468,7 +468,7 @@ def _schema_1():
                         Required("destination"): All(str, Length(min=1)),
                     }
                 ],
-                "individual-files-default-upstream": All(str, Length(min=1)),
+                "individual-files-default-upstream": str,
                 "individual-files-default-destination": All(str, Length(min=1)),
                 "individual-files-list": Unique([str]),
                 "update-actions": All(

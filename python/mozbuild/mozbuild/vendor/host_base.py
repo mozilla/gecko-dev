@@ -3,9 +3,13 @@
 # file, # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import shutil
 import subprocess
 import tempfile
 import urllib
+
+import mozfile
+import requests
 
 
 class BaseHost:
@@ -77,3 +81,16 @@ class BaseHost:
 
     def upstream_release_artifact(self, revision, release_artifact):
         raise Exception("Unimplemented for this subclass...")
+
+    def _transform_single_file_to_destination(self, from_file, destination):
+        shutil.copy2(from_file.name, destination)
+
+    def download_single_file(self, url, destination):
+        with mozfile.NamedTemporaryFile() as tmpfile:
+            req = requests.get(url, stream=True)
+            for data in req.iter_content(4096):
+                tmpfile.write(data)
+
+            tmpfile.seek(0)
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            self._transform_single_file_to_destination(tmpfile, destination)
