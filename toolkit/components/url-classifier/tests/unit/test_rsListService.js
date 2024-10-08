@@ -223,7 +223,9 @@ add_task(async function test_update() {
   let expected = "n:" + SBRS_UPDATE_MINIMUM_DELAY + "\n";
   for (const table of TEST_TABLES) {
     if (["content-fingerprinting-track-digest256"].includes(table[0])) {
-      expected += `i:${table[0]}\n` + readFileToString(`data/${table[0]}`);
+      expected += `i:${table[0]}\n`;
+      expected += `ad:${1575583456 - 1}\n`;
+      expected += readFileToString(`data/${table[0]}`);
     }
   }
 
@@ -411,7 +413,9 @@ add_task(async function test_update_large_file() {
   let expected = "n:" + SBRS_UPDATE_MINIMUM_DELAY + "\n";
   for (const table of TEST_TABLES) {
     if (["google-trackwhite-digest256"].includes(table[0])) {
-      expected += `i:${table[0]}\n` + readFileToString(`data/${table[0]}`);
+      expected += `i:${table[0]}\n`;
+      expected += `ad:${1575583456 - 1}\n`;
+      expected += readFileToString(`data/${table[0]}`);
     }
   }
 
