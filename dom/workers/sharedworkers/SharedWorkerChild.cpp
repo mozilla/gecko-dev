@@ -102,6 +102,11 @@ IPCResult SharedWorkerChild::RecvError(const ErrorValue& aValue) {
     return IPC_OK();
   }
 
+  if (aValue.type() == ErrorValue::TErrorMismatchOptions) {
+    WorkerErrorReport::LogErrorToConsole(
+        u"Failed to connect an existing shared worker because the type or credentials given on the SharedWorker constructor do not match the existing shared worker's type or credentials"_ns);
+  }
+
   if (aValue.type() == ErrorValue::TErrorData &&
       aValue.get_ErrorData().isWarning()) {
     // Don't fire any events for warnings. Just log to console.
@@ -138,7 +143,8 @@ IPCResult SharedWorkerChild::RecvError(const ErrorValue& aValue) {
   }
 
   if (aValue.type() != ErrorValue::TErrorData) {
-    MOZ_ASSERT(aValue.type() == ErrorValue::Tvoid_t);
+    MOZ_ASSERT(aValue.type() == ErrorValue::Tvoid_t ||
+               aValue.type() == ErrorValue::TErrorMismatchOptions);
     return IPC_OK();
   }
 

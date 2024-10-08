@@ -440,6 +440,17 @@ void WorkerErrorReport::LogErrorToConsole(const ErrorData& aReport,
 }
 
 /* static */
+void WorkerErrorReport::LogErrorToConsole(const nsAString& aMessage) {
+  AssertIsOnMainThread();
+
+  nsCOMPtr<nsIConsoleService> consoleService =
+      do_GetService(NS_CONSOLESERVICE_CONTRACTID);
+  NS_WARNING_ASSERTION(consoleService, "Failed to get console service!");
+
+  consoleService->LogStringMessage(aMessage.BeginReading());
+}
+
+/* static */
 void WorkerErrorReport::CreateAndDispatchGenericErrorRunnableToParent(
     WorkerPrivate* aWorkerPrivate) {
   ReportGenericErrorRunnable::CreateAndDispatch(aWorkerPrivate);

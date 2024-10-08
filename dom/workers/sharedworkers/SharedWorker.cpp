@@ -62,6 +62,22 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
     const StringOrWorkerOptions& aOptions, ErrorResult& aRv) {
   AssertIsOnMainThread();
 
+  if (aOptions.IsString()) {
+    WorkerOptions options;
+    options.mName = aOptions.GetAsString();
+    return SharedWorker::Constructor(aGlobal, aScriptURL, options, aRv);
+  }
+
+  return SharedWorker::Constructor(aGlobal, aScriptURL,
+                                   aOptions.GetAsWorkerOptions(), aRv);
+}
+
+// static
+already_AddRefed<SharedWorker> SharedWorker::Constructor(
+    const GlobalObject& aGlobal, const nsAString& aScriptURL,
+    const WorkerOptions& aOptions, ErrorResult& aRv) {
+  AssertIsOnMainThread();
+
   nsCOMPtr<nsPIDOMWindowInner> window =
       do_QueryInterface(aGlobal.GetAsSupports());
   MOZ_ASSERT(window);
@@ -112,24 +128,12 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
     return nullptr;
   }
 
-  nsAutoString name;
-  WorkerType workerType = WorkerType::Classic;
-  RequestCredentials credentials = RequestCredentials::Omit;
-  if (aOptions.IsString()) {
-    name = aOptions.GetAsString();
-  } else {
-    MOZ_ASSERT(aOptions.IsWorkerOptions());
-    name = aOptions.GetAsWorkerOptions().mName;
-    workerType = aOptions.GetAsWorkerOptions().mType;
-    credentials = aOptions.GetAsWorkerOptions().mCredentials;
-  }
-
   JSContext* cx = aGlobal.Context();
 
   WorkerLoadInfo loadInfo;
   aRv = WorkerPrivate::GetLoadInfo(
-      cx, window, nullptr, aScriptURL, workerType, credentials, false,
-      WorkerPrivate::OverrideLoadGroup, WorkerKindShared, &loadInfo);
+      cx, window, nullptr, aScriptURL, aOptions.mType, aOptions.mCredentials,
+      false, WorkerPrivate::OverrideLoadGroup, WorkerKindShared, &loadInfo);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -243,12 +247,11 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
   }
 
   RemoteWorkerData remoteWorkerData(
-      nsString(aScriptURL), baseURL, resolvedScriptURL, name, workerType,
-      credentials, loadingPrincipalInfo, principalInfo,
-      partitionedPrincipalInfo, loadInfo.mUseRegularPrincipal,
-      loadInfo.mUsingStorageAccess, cjsData, loadInfo.mDomain, isSecureContext,
-      ipcClientInfo, loadInfo.mReferrerInfo, storageAllowed,
-      AntiTrackingUtils::IsThirdPartyWindow(window, nullptr),
+      nsString(aScriptURL), baseURL, resolvedScriptURL, aOptions,
+      loadingPrincipalInfo, principalInfo, partitionedPrincipalInfo,
+      loadInfo.mUseRegularPrincipal, loadInfo.mUsingStorageAccess, cjsData,
+      loadInfo.mDomain, isSecureContext, ipcClientInfo, loadInfo.mReferrerInfo,
+      storageAllowed, AntiTrackingUtils::IsThirdPartyWindow(window, nullptr),
       loadInfo.mShouldResistFingerprinting, overriddenFingerprintingSettingsArg,
       OriginTrials::FromWindow(nsGlobalWindowInner::Cast(window)),
       void_t() /* OptionalServiceWorkerData */, agentClusterId,

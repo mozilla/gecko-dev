@@ -83,10 +83,10 @@ class SharedWorkerManager final : public RemoteWorkerObserver {
   // Returns a holder if this manager matches. The holder blocks the shutdown of
   // the manager.
   already_AddRefed<SharedWorkerManagerHolder> MatchOnMainThread(
-      SharedWorkerService* aService, const nsACString& aDomain,
-      nsIURI* aScriptURL, const nsAString& aName,
-      nsIPrincipal* aLoadingPrincipal,
-      const OriginAttributes& aEffectiveStoragePrincipalAttrs);
+      SharedWorkerService* aService, const RemoteWorkerData& aData,
+      nsIURI* aScriptURL, nsIPrincipal* aLoadingPrincipal,
+      const OriginAttributes& aEffectiveStoragePrincipalAttrs,
+      bool* aMatchNameButNotOptions);
 
   // RemoteWorkerObserver
 
@@ -141,7 +141,7 @@ class SharedWorkerManager final : public RemoteWorkerObserver {
   const nsCString mDomain;
   const OriginAttributes mEffectiveStoragePrincipalAttrs;
   const nsCOMPtr<nsIURI> mResolvedScriptURL;
-  const nsString mName;
+  const WorkerOptions mWorkerOptions;
   const bool mIsSecureContext;
   bool mSuspended;
   bool mFrozen;

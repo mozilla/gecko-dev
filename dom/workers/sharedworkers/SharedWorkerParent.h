@@ -39,6 +39,8 @@ class SharedWorkerParent final
 
   void ErrorPropagation(nsresult aError);
 
+  void MismatchOptionsErrorPropagation();
+
   mozilla::ipc::IPCResult RecvClose();
 
   mozilla::ipc::IPCResult RecvSuspend();

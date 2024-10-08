@@ -202,11 +202,20 @@ void SharedWorkerService::GetOrCreateWorkerManagerOnMainThread(
   nsCOMPtr<nsIURI> resolvedScriptURL =
       DeserializeURI(aData.resolvedScriptURL());
   for (SharedWorkerManager* workerManager : mWorkerManagers) {
+    bool matchNameButNotOptions = false;
+
     managerHolder = workerManager->MatchOnMainThread(
-        this, aData.domain(), resolvedScriptURL, aData.name(), loadingPrincipal,
-        BasePrincipal::Cast(effectiveStoragePrincipal)->OriginAttributesRef());
+        this, aData, resolvedScriptURL, loadingPrincipal,
+        BasePrincipal::Cast(effectiveStoragePrincipal)->OriginAttributesRef(),
+        &matchNameButNotOptions);
     if (managerHolder) {
       break;
+    }
+
+    if (matchNameButNotOptions) {
+      MismatchOptionsErrorPropagationOnMainThread(aBackgroundEventTarget,
+                                                  aActor);
+      return;
     }
   }
 
@@ -246,6 +255,21 @@ void SharedWorkerService::ErrorPropagationOnMainThread(
   RefPtr<ErrorPropagationRunnable> r =
       new ErrorPropagationRunnable(aActor, aError);
   aBackgroundEventTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL);
+}
+
+void SharedWorkerService::MismatchOptionsErrorPropagationOnMainThread(
+    nsIEventTarget* aBackgroundEventTarget, SharedWorkerParent* aActor) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aBackgroundEventTarget);
+  MOZ_ASSERT(aActor);
+
+  aBackgroundEventTarget->Dispatch(
+      NS_NewRunnableFunction(__func__,
+                             [aActor = RefPtr(aActor)] {
+                               AssertIsOnBackgroundThread();
+                               aActor->MismatchOptionsErrorPropagation();
+                             }),
+      NS_DISPATCH_NORMAL);
 }
 
 void SharedWorkerService::RemoveWorkerManagerOnMainThread(

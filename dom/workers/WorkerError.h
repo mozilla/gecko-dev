@@ -69,6 +69,8 @@ class WorkerErrorReport : public WorkerErrorBase, public SerializedStackHolder {
                                 JS::Handle<JSObject*> aStack = nullptr,
                                 JS::Handle<JSObject*> aStackGlobal = nullptr);
 
+  static void LogErrorToConsole(const nsAString& aMessage);
+
   static void CreateAndDispatchGenericErrorRunnableToParent(
       WorkerPrivate* aWorkerPrivate);
 };

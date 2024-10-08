@@ -64,6 +64,9 @@ class SharedWorkerService final {
                                     SharedWorkerParent* aActor,
                                     nsresult aError);
 
+  void MismatchOptionsErrorPropagationOnMainThread(
+      nsIEventTarget* aBackgroundEventTarget, SharedWorkerParent* aActor);
+
   // Touched on main-thread only.
   nsTArray<RefPtr<SharedWorkerManager>> mWorkerManagers;
 };

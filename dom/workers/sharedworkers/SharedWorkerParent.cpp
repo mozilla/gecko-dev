@@ -161,5 +161,17 @@ void SharedWorkerParent::ErrorPropagation(nsresult aError) {
   Unused << SendError(aError);
 }
 
+void SharedWorkerParent::MismatchOptionsErrorPropagation() {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(mStatus == ePending || mStatus == eClosed);
+
+  // Already gone.
+  if (mStatus == eClosed) {
+    return;
+  }
+
+  Unused << SendError(ErrorMismatchOptions());
+}
+
 }  // namespace dom
 }  // namespace mozilla
