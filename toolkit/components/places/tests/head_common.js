@@ -758,15 +758,7 @@ async function setFaviconForPage(page, icon, forceReload = true) {
     dataURL = await PlacesTestUtils.getFaviconDataURLFromNetwork(iconURI);
   }
 
-  await new Promise(resolve => {
-    PlacesUtils.favicons.setFaviconForPage(
-      pageURI,
-      iconURI,
-      dataURL,
-      null,
-      resolve
-    );
-  });
+  await PlacesUtils.favicons.setFaviconForPage(pageURI, iconURI, dataURL);
 }
 
 function getFaviconUrlForPage(page, width = 0) {

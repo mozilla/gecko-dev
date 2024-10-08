@@ -68,15 +68,11 @@ add_setup(async () => {
     reader.readAsDataURL(blob);
   });
 
-  return new Promise(resolve => {
-    PlacesUtils.favicons.setFaviconForPage(
-      TEST_PAGE_URI,
-      TEST_FAVICON_URI,
-      Services.io.newURI(dataURL),
-      undefined,
-      resolve
-    );
-  });
+  await PlacesUtils.favicons.setFaviconForPage(
+    TEST_PAGE_URI,
+    TEST_FAVICON_URI,
+    Services.io.newURI(dataURL)
+  );
 });
 
 /**

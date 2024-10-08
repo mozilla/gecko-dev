@@ -14,7 +14,6 @@
  */
 
 #include "nsFaviconService.h"
-#include "PlacesCompletionCallback.h"
 
 #include "nsNavHistory.h"
 #include "nsPlacesMacros.h"
@@ -225,11 +224,11 @@ void nsFaviconService::ClearImageCache(nsIURI* aImageURI) {
 }
 
 NS_IMETHODIMP
-nsFaviconService::SetFaviconForPage(
-    nsIURI* aPageURI, nsIURI* aFaviconURI, nsIURI* aDataURL,
-    PRTime aExpiration = 0, PlacesCompletionCallback* aCallback = nullptr,
-    bool isRichIcon = false, JSContext* aContext = nullptr,
-    dom::Promise** aPromise = nullptr) {
+nsFaviconService::SetFaviconForPage(nsIURI* aPageURI, nsIURI* aFaviconURI,
+                                    nsIURI* aDataURL, PRTime aExpiration = 0,
+                                    bool isRichIcon = false,
+                                    JSContext* aContext = nullptr,
+                                    dom::Promise** aPromise = nullptr) {
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_ARG(aPageURI);
   NS_ENSURE_ARG(aFaviconURI);
@@ -246,10 +245,6 @@ nsFaviconService::SetFaviconForPage(
 
   nsresult rv = NS_OK;
   auto guard = MakeScopeExit([&]() {
-    if (aCallback) {
-      aCallback->Complete(rv);
-    }
-
     if (NS_SUCCEEDED(rv)) {
       promise->MaybeResolveWithUndefined();
       promise.forget(aPromise);
@@ -409,7 +404,7 @@ nsFaviconService::SetFaviconForPage(
   }
 
   RefPtr<AsyncSetIconForPage> event =
-      new AsyncSetIconForPage(icon, page, aCallback, promise);
+      new AsyncSetIconForPage(icon, page, promise);
   RefPtr<Database> DB = Database::GetDatabase();
   if (MOZ_UNLIKELY(!DB)) {
     return (rv = NS_ERROR_UNEXPECTED);
