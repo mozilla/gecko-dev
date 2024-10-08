@@ -81,4 +81,4 @@ nimbus {
     applicationServicesDir = gradle.hasProperty('localProperties.autoPublish.application-services.dir')
         ? gradle.getProperty('localProperties.autoPublish.application-services.dir') : null
 }
-ext.configurePublish(config.componentsGroupId, archivesBaseName, project.ext.description)
+ext.configurePublish(config.componentsGroupId, project.name, project.ext.description)
