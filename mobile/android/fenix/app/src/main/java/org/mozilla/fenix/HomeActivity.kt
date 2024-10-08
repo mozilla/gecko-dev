@@ -185,6 +185,15 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             store = components.core.store,
             context = this@HomeActivity,
             fragmentManager = supportFragmentManager,
+            onLinkClicked = { url, shouldOpenInBrowser ->
+                if (shouldOpenInBrowser) {
+                    openToBrowserAndLoad(
+                        searchTermOrURL = url,
+                        newTab = true,
+                        from = BrowserDirection.FromGlobal,
+                    )
+                }
+            },
         )
     }
 

@@ -1258,7 +1258,8 @@ class WebExtensionTest : BaseSessionTest() {
                     // Make sure the extension is present when it should be.
                     assertEquals(expectedExtension, extension != null)
                     assertEquals(expectedExtensionID, extension?.id)
-                    assertEquals(installException.code, expectedError)
+                    assertEquals(expectedError, installException.code)
+                    assertEquals(expectedExtensionID, installException.extensionId)
                 }
             },
         )

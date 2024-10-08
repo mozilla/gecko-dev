@@ -641,6 +641,7 @@ open class WebExtensionException(throwable: Throwable, open val isRecoverable: B
  * An unexpected event that occurs when installing an extension.
  */
 sealed class WebExtensionInstallException(
+    open val extensionId: String? = null,
     open val extensionName: String? = null,
     throwable: Throwable,
     override val isRecoverable: Boolean = true,
@@ -654,7 +655,11 @@ sealed class WebExtensionInstallException(
     /**
      * The extension install was cancelled because the extension is blocklisted.
      */
-    class Blocklisted(override val extensionName: String? = null, throwable: Throwable) :
+    class Blocklisted(
+        override val extensionId: String? = null,
+        override val extensionName: String? = null,
+        throwable: Throwable,
+    ) :
         WebExtensionInstallException(throwable = throwable)
 
     /**
@@ -703,6 +708,10 @@ sealed class WebExtensionInstallException(
     /**
      * The extension install was cancelled because the extension is soft-blocked.
      */
-    class SoftBlocked(override val extensionName: String? = null, throwable: Throwable) :
+    class SoftBlocked(
+        override val extensionId: String? = null,
+        override val extensionName: String? = null,
+        throwable: Throwable,
+    ) :
         WebExtensionInstallException(throwable = throwable)
 }

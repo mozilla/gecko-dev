@@ -600,6 +600,7 @@ class AddonInstallObserver {
     lazy.EventDispatcher.instance.sendRequest({
       type: "GeckoView:WebExtension:OnInstallationFailed",
       extension,
+      addonId: aAddon?.id,
       addonName: aAddonName,
       error: aError,
     });

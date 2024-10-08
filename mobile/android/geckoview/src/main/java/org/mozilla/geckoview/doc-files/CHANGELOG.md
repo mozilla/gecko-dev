@@ -20,6 +20,7 @@ exclude: true
 - Added [`WebExtension.onInstallPromptRequest`][133.4] Delegate notified when install prompt needs to be shown.
 - ⚠️ [`WebExtensionController.PromptDelegate.onInstallPrompt`][133.5] is deprecated, and it will be deleted in version 134 see https://bugzilla.mozilla.org/show_bug.cgi?id=1919374.
 - Added [`ERROR_SOFT_BLOCKED`][133.6] to `WebExtension.InstallException.ErrorCodes`, and [`SOFT_BLOCKLIST`][133.7] to`WebExtension.DisabledFlags`. ([bug 1917852]({{bugzilla}}1917852))
+- Added [`InstallException.extensionId`][133.8], which indicates the ID of the extension that caused the exception.
 
 [133.1]: {{javadoc_uri}}/GeckoSession.html#getWebCompatInfo()
 [133.2]: {{javadoc_uri}}/GeckoRuntime.html#isInteractiveWidgetDefaultResizesVisual()
@@ -28,6 +29,7 @@ exclude: true
 [133.5]: {{javadoc_uri}}/WebExtensionController.PromptDelegate.html#onInstallPrompt
 [133.6]: {{javadoc_uri}}/WebExtension.InstallException.ErrorCodes.html#ERROR_BLOCKLISTED
 [133.7]: {{javadoc_uri}}/WebExtension.DisabledFlags.html#SOFT_BLOCKLIST
+[133.8]: {{javadoc_uri}}/WebExtension.InstallException.html#extensionId
 
 ## v132
 -Added [`getDisableShip`][132.1] to get the setting for Session History in Parent (SHIP)) and [`disableShip`][132.2] to set the status of SHIP on the `GeckoRuntimeSettings` builder.
@@ -1631,4 +1633,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 8475a5718cefb3d828395b655ed6e451023525b8
+[api-version]: 8041c649156e8e847b0b1fcc4f71d078ce52304a

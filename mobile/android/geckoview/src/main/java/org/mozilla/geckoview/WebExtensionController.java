@@ -1324,13 +1324,14 @@ public class WebExtensionController {
     final int errorCode = bundle.getInt("error");
     final GeckoBundle extensionBundle = bundle.getBundle("extension");
     WebExtension extension = null;
+    final String extensionId = bundle.getString("addonId");
     final String extensionName = bundle.getString("addonName");
 
     if (extensionBundle != null) {
       extension = new WebExtension(mDelegateControllerProvider, extensionBundle);
     }
     mAddonManagerDelegate.onInstallationFailed(
-        extension, new InstallException(errorCode, extensionName));
+        extension, new InstallException(errorCode, extensionId, extensionName));
   }
 
   private void onDisabling(final GeckoBundle bundle) {

@@ -35,6 +35,7 @@ class GeckoWebExtensionException(throwable: Throwable) : WebExtensionException(t
                     )
 
                     ERROR_BLOCKLISTED -> WebExtensionInstallException.Blocklisted(
+                        extensionId = throwable.extensionId,
                         extensionName = throwable.extensionName,
                         throwable,
                     )
@@ -67,6 +68,7 @@ class GeckoWebExtensionException(throwable: Throwable) : WebExtensionException(t
                     )
 
                     ERROR_SOFT_BLOCKED -> WebExtensionInstallException.SoftBlocked(
+                        extensionId = throwable.extensionId,
                         extensionName = throwable.extensionName,
                         throwable,
                     )

@@ -2627,6 +2627,7 @@ package org.mozilla.geckoview {
   public static class WebExtension.InstallException extends Exception {
     ctor protected InstallException();
     field public final int code;
+    field @Nullable public final String extensionId;
     field @Nullable public final String extensionName;
   }
 

@@ -1642,12 +1642,16 @@ public class WebExtension {
     /** One of {@link ErrorCodes} that provides more information about this exception. */
     public final @Codes int code;
 
+    /** An optional ID of the extension that caused the exception. */
+    public final @Nullable String extensionId;
+
     /** An optional name of the extension that caused the exception. */
     public final @Nullable String extensionName;
 
     /** For testing */
     protected InstallException() {
       this.code = ErrorCodes.ERROR_NETWORK_FAILURE;
+      this.extensionId = null;
       this.extensionName = null;
     }
 
@@ -1656,13 +1660,24 @@ public class WebExtension {
       return "InstallException: " + code;
     }
 
+    /* package */ InstallException(
+        final @Codes int code,
+        final @Nullable String extensionId,
+        final @Nullable String extensionName) {
+      this.code = code;
+      this.extensionId = extensionId;
+      this.extensionName = extensionName;
+    }
+
     /* package */ InstallException(final @Codes int code, final @Nullable String extensionName) {
       this.code = code;
+      this.extensionId = null;
       this.extensionName = extensionName;
     }
 
     /* package */ InstallException(final @Codes int code) {
       this.code = code;
+      this.extensionId = null;
       this.extensionName = null;
     }
   }
