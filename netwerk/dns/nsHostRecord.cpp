@@ -539,6 +539,12 @@ TypeHostRecord::GetServiceModeRecordWithCname(bool aNoHttp2, bool aNoHttp3,
 }
 
 NS_IMETHODIMP
+TypeHostRecord::IsTRR(bool* aResult) {
+  *aResult = (mResolverType == DNSResolverType::TRR);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 TypeHostRecord::GetAllRecordsWithEchConfig(
     bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
     bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,

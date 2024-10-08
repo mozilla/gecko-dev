@@ -433,6 +433,10 @@ add_task(
 
     let [, inRecord, inStatus] = await listener;
     equal(inStatus, Cr.NS_OK);
+    Assert.ok(
+      !inRecord.QueryInterface(Ci.nsIDNSHTTPSSVCRecord).IsTRR(),
+      "resolved by Native"
+    );
     let answer = inRecord.QueryInterface(Ci.nsIDNSHTTPSSVCRecord).records;
     equal(answer[0].priority, 1);
     equal(answer[0].name, "service.com");

@@ -51,6 +51,10 @@ add_task(async function testHTTPSSVC() {
   let { inRecord } = await new TRRDNSListener("test.httpssvc.com", {
     type: Ci.nsIDNSService.RESOLVE_TYPE_HTTPSSVC,
   });
+  Assert.ok(
+    inRecord.QueryInterface(Ci.nsIDNSHTTPSSVCRecord).IsTRR(),
+    "resolved by TRR"
+  );
   let answer = inRecord.QueryInterface(Ci.nsIDNSHTTPSSVCRecord).records;
   Assert.equal(answer[0].priority, 1);
   Assert.equal(answer[0].name, "h3pool");
