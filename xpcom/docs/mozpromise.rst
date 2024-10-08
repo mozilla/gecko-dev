@@ -1,6 +1,11 @@
 MozPromise: C++ promises in Gecko
 =================================
 
+.. contents:: Table of Contents
+    :depth: 2
+    :local:
+    :backlinks: none
+
 MozPromise is a powerful and flexible promise implementation in C++ designed to
 manage asynchronous operations within Gecko. Its set of feature mirror the
 spirit of JavaScript promises, including the ability to attach resolve and

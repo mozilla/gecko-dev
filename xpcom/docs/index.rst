@@ -17,6 +17,7 @@ Consuming XPCOM functionality
    collections
    hashtables
    hashtables_detailed
+   mozpromise
    sorting.md
    xpcomutils
 
