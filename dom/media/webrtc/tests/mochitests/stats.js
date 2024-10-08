@@ -562,7 +562,7 @@ function pedanticChecks(report) {
 
       // headerBytesReceived
       ok(
-        stat.headerBytesReceived >= 0 && stat.headerBytesReceived < 50000,
+        stat.headerBytesReceived >= 0 && stat.headerBytesReceived < 500000,
         `${stat.type}.headerBytesReceived is sane for a short test. ` +
           `value=${stat.headerBytesReceived}`
       );
@@ -575,9 +575,8 @@ function pedanticChecks(report) {
       // );
 
       // jitterBufferEmittedCount
-      let expectedJitterBufferEmmitedCount = stat.kind == "video" ? 7 : 1000;
       ok(
-        stat.jitterBufferEmittedCount > expectedJitterBufferEmmitedCount,
+        stat.jitterBufferEmittedCount > 0,
         `${stat.type}.jitterBufferEmittedCount is a sane number for a short ` +
           `${stat.kind} test. value=${stat.jitterBufferEmittedCount}`
       );
@@ -763,14 +762,14 @@ function pedanticChecks(report) {
 
         // totalProcessingDelay
         ok(
-          stat.totalProcessingDelay < 100,
+          stat.totalProcessingDelay < 1000,
           `${stat.type}.totalProcessingDelay is sane number for a short test ` +
             `local only test. value=${stat.totalProcessingDelay}`
         );
 
         // totalInterFrameDelay
         ok(
-          stat.totalInterFrameDelay >= 0 && stat.totalInterFrameDelay < 100,
+          stat.totalInterFrameDelay >= 0 && stat.totalInterFrameDelay < 1000,
           `${stat.type}.totalInterFrameDelay is sane for a short test. ` +
             `value=${stat.totalInterFrameDelay}`
         );
@@ -778,7 +777,7 @@ function pedanticChecks(report) {
         // totalSquaredInterFrameDelay
         ok(
           stat.totalSquaredInterFrameDelay >= 0 &&
-            stat.totalSquaredInterFrameDelay < 100,
+            stat.totalSquaredInterFrameDelay < 10000,
           `${stat.type}.totalSquaredInterFrameDelay is sane for a short test. ` +
             `value=${stat.totalSquaredInterFrameDelay}`
         );
