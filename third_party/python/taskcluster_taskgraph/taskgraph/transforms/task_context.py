@@ -9,6 +9,7 @@ from taskgraph.util.yaml import load_yaml
 
 SCHEMA = Schema(
     {
+        Optional("name"): str,
         Required(
             "task-context",
             description=dedent(
@@ -108,6 +109,8 @@ def render_task(config, tasks):
         # substitution key/value pairs.
         subs.update(sub_config.pop("from-object", {}))
         subs.update(params_context)
+        if "name" in task:
+            subs.setdefault("name", task["name"])
 
         # Now that we have our combined context, we can substitute.
         for field in fields:

@@ -8,7 +8,6 @@ transformations is generic to any kind of task, but abstracts away some of the
 complexities of worker implementations, scopes, and treeherder annotations.
 """
 
-
 import functools
 import hashlib
 import os
@@ -586,7 +585,8 @@ def build_docker_worker_payload(config, task, task_def):
         # on Windows, each command is a string, on OS X and Linux, each command is
         # a string array
         Required("command"): Any(
-            [taskref_or_string], [[taskref_or_string]]  # Windows  # Linux / OS X
+            [taskref_or_string],
+            [[taskref_or_string]],  # Windows  # Linux / OS X
         ),
         # artifacts to extract from the task image after completion; note that artifacts
         # for the generic worker cannot have names
@@ -1114,6 +1114,8 @@ def build_task(config, tasks):
                 "createdForUser": config.params["owner"],
                 "kind": config.kind,
                 "label": task["label"],
+                "project": config.params["project"],
+                "trust-domain": config.graph_config["trust-domain"],
             }
         )
 
@@ -1160,9 +1162,9 @@ def build_task(config, tasks):
                     config.params["project"] + th_project_suffix, branch_rev
                 )
             )
-            task_def["metadata"][
-                "description"
-            ] += f" ([Treeherder push]({th_push_link}))"
+            task_def["metadata"]["description"] += (
+                f" ([Treeherder push]({th_push_link}))"
+            )
 
         # add the payload and adjust anything else as required (e.g., scopes)
         payload_builders[task["worker"]["implementation"]].builder(

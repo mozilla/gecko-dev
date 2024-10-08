@@ -7,7 +7,6 @@ worker implementation they operate on, and take the same three parameters, for
 consistency.
 """
 
-
 import hashlib
 import json
 

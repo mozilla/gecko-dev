@@ -72,7 +72,6 @@ class IndexSearch(OptimizationStrategy):
 
 @register_strategy("skip-unless-changed")
 class SkipUnlessChanged(OptimizationStrategy):
-
     def check(self, files_changed, patterns):
         for pattern in patterns:
             for path in files_changed:

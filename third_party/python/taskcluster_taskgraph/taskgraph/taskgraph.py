@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from dataclasses import dataclass
-from typing import List
+from typing import Dict
 
 from .graph import Graph
 from .task import Task
@@ -21,7 +21,7 @@ class TaskGraph:
     tasks are "linked from" their dependents.
     """
 
-    tasks: List[Task]
+    tasks: Dict[str, Task]
     graph: Graph
 
     def __post_init__(self):

@@ -6,7 +6,6 @@
 Tools for interacting with existing taskgraphs.
 """
 
-
 from taskgraph.util.taskcluster import find_task_id, get_artifact
 
 

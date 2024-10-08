@@ -13,7 +13,7 @@ See ``taskcluster/docs/optimization.rst`` for more information.
 
 import datetime
 import logging
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
 from slugid import nice as slugid
@@ -28,10 +28,12 @@ logger = logging.getLogger("optimization")
 registry = {}
 
 
-def register_strategy(name, args=()):
+def register_strategy(name, args=(), kwargs=None):
+    kwargs = kwargs or {}
+
     def wrap(cls):
         if name not in registry:
-            registry[name] = cls(*args)
+            registry[name] = cls(*args, **kwargs)
             if not hasattr(registry[name], "description"):
                 registry[name].description = name
         return cls
@@ -333,7 +335,8 @@ def replace_tasks(
         if dependents:
             now = datetime.datetime.utcnow()
             deadline = max(
-                resolve_timestamps(now, task.task["deadline"]) for task in dependents  # type: ignore
+                resolve_timestamps(now, task.task["deadline"])
+                for task in dependents  # type: ignore
             )
 
         if isinstance(opt, IndexSearch):
@@ -494,7 +497,8 @@ class CompositeStrategy(OptimizationStrategy, metaclass=ABCMeta):
         if kwargs:
             raise TypeError("unexpected keyword args")
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def description(self):
         """A textual description of the combined substrategies."""
 

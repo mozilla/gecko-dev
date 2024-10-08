@@ -165,15 +165,12 @@ def generic_worker_run_task(config, task, taskdesc):
     run = task["run"]
     worker = taskdesc["worker"] = task["worker"]
     is_win = worker["os"] == "windows"
-    is_mac = worker["os"] == "macosx"
     is_bitbar = worker["os"] == "linux-bitbar"
 
     command = run.pop("run-task-command", None)
     if not command:
         if is_win:
             command = ["C:/mozilla-build/python3/python3.exe", "run-task"]
-        elif is_mac:
-            command = ["/tools/python36/bin/python3", "run-task"]
         else:
             command = ["./run-task"]
 

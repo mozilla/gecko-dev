@@ -106,6 +106,9 @@ class GraphConfig:
     def __contains__(self, name):
         return name in self._config
 
+    def get(self, name):
+        return self._config.get(name)
+
     def register(self):
         """
         Add the project's taskgraph directory to the python path, and register

@@ -462,7 +462,13 @@ def list_task_group_incomplete_tasks(task_group_id):
 def _get_deps(task_ids, use_proxy):
     upstream_tasks = {}
     for task_id in task_ids:
-        task_def = get_task_definition(task_id, use_proxy)
+        try:
+            task_def = get_task_definition(task_id, use_proxy)
+        except requests.HTTPError as e:
+            if e.response.status_code == 404:
+                continue
+            raise e
+
         upstream_tasks[task_def["metadata"]["name"]] = task_id
 
         upstream_tasks.update(_get_deps(tuple(task_def["dependencies"]), use_proxy))
@@ -488,7 +494,15 @@ def get_ancestors(
         task_ids = [task_ids]
 
     for task_id in task_ids:
-        task_def = get_task_definition(task_id, use_proxy)
+        try:
+            task_def = get_task_definition(task_id, use_proxy)
+        except requests.HTTPError as e:
+            # Task has most likely expired, which means it's no longer a
+            # dependency for the purposes of this function.
+            if e.response.status_code == 404:
+                continue
+
+            raise e
 
         upstream_tasks.update(_get_deps(tuple(task_def["dependencies"]), use_proxy))
 
