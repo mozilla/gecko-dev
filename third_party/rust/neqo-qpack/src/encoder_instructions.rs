@@ -32,7 +32,7 @@ pub enum EncoderInstruction<'a> {
     NoInstruction,
 }
 
-impl<'a> EncoderInstruction<'a> {
+impl EncoderInstruction<'_> {
     pub(crate) fn marshal(&self, enc: &mut QpackData, use_huffman: bool) {
         match self {
             Self::Capacity { value } => {

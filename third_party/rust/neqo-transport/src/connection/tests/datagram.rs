@@ -399,10 +399,11 @@ fn dgram_no_allowed() {
     let mut client = default_client();
     let mut server = default_server();
     connect_force_idle(&mut client, &mut server);
-    server.test_frame_writer = Some(Box::new(InsertDatagram { data: DATA_MTU }));
-    let out = server.process_output(now()).dgram().unwrap();
-    server.test_frame_writer = None;
 
+    let out = server
+        .test_write_frames(InsertDatagram { data: DATA_MTU }, now())
+        .dgram()
+        .unwrap();
     client.process_input(&out, now());
 
     assert_error(&client, &CloseReason::Transport(Error::ProtocolViolation));
@@ -415,10 +416,10 @@ fn dgram_too_big() {
     let mut server = default_server();
     connect_force_idle(&mut client, &mut server);
 
-    server.test_frame_writer = Some(Box::new(InsertDatagram { data: DATA_MTU }));
-    let out = server.process_output(now()).dgram().unwrap();
-    server.test_frame_writer = None;
-
+    let out = server
+        .test_write_frames(InsertDatagram { data: DATA_MTU }, now())
+        .dgram()
+        .unwrap();
     client.process_input(&out, now());
 
     assert_error(&client, &CloseReason::Transport(Error::ProtocolViolation));

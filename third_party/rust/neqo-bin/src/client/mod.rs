@@ -298,10 +298,10 @@ impl Args {
 
 fn get_output_file(
     url: &Url,
-    output_dir: &Option<PathBuf>,
+    output_dir: Option<&PathBuf>,
     all_paths: &mut Vec<PathBuf>,
 ) -> Option<BufWriter<File>> {
-    if let Some(ref dir) = output_dir {
+    if let Some(dir) = output_dir {
         let mut out_path = dir.clone();
 
         let url_path = if url.path() == "/" {

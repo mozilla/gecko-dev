@@ -578,7 +578,6 @@ impl LossRecovery {
         &mut self,
         primary_path: &PathRef,
         pn_space: PacketNumberSpace,
-        largest_acked: PacketNumber,
         acked_ranges: R,
         ack_ecn: Option<EcnCount>,
         ack_delay: Duration,
@@ -588,13 +587,6 @@ impl LossRecovery {
         R: IntoIterator<Item = RangeInclusive<PacketNumber>>,
         R::IntoIter: ExactSizeIterator,
     {
-        qdebug!(
-            [self],
-            "ACK for {} - largest_acked={}.",
-            pn_space,
-            largest_acked
-        );
-
         let Some(space) = self.spaces.get_mut(pn_space) else {
             qinfo!("ACK on discarded space");
             return (Vec::new(), Vec::new());
@@ -609,8 +601,8 @@ impl LossRecovery {
 
         // Track largest PN acked per space
         let prev_largest_acked = space.largest_acked_sent_time;
-        if Some(largest_acked) > space.largest_acked {
-            space.largest_acked = Some(largest_acked);
+        if Some(largest_acked_pkt.pn()) > space.largest_acked {
+            space.largest_acked = Some(largest_acked_pkt.pn());
 
             // If the largest acknowledged is newly acked and any newly acked
             // packet was ack-eliciting, update the RTT. (-recovery 5.1)
@@ -624,6 +616,13 @@ impl LossRecovery {
                 );
             }
         }
+
+        qdebug!(
+            [self],
+            "ACK for {} - largest_acked={}",
+            pn_space,
+            largest_acked_pkt.pn()
+        );
 
         // Perform loss detection.
         // PTO is used to remove lost packets from in-flight accounting.
@@ -978,21 +977,13 @@ mod tests {
         pub fn on_ack_received(
             &mut self,
             pn_space: PacketNumberSpace,
-            largest_acked: PacketNumber,
             acked_ranges: Vec<RangeInclusive<PacketNumber>>,
             ack_ecn: Option<EcnCount>,
             ack_delay: Duration,
             now: Instant,
         ) -> (Vec<SentPacket>, Vec<SentPacket>) {
-            self.lr.on_ack_received(
-                &self.path,
-                pn_space,
-                largest_acked,
-                acked_ranges,
-                ack_ecn,
-                ack_delay,
-                now,
-            )
+            self.lr
+                .on_ack_received(&self.path, pn_space, acked_ranges, ack_ecn, ack_delay, now)
         }
 
         pub fn on_packet_sent(&mut self, sent_packet: SentPacket) {
@@ -1145,7 +1136,6 @@ mod tests {
     fn ack(lr: &mut Fixture, pn: u64, delay: Duration) {
         lr.on_ack_received(
             PacketNumberSpace::ApplicationData,
-            pn,
             vec![pn..=pn],
             None,
             ACK_DELAY,
@@ -1299,7 +1289,6 @@ mod tests {
         ));
         let (_, lost) = lr.on_ack_received(
             PacketNumberSpace::ApplicationData,
-            1,
             vec![1..=1],
             None,
             ACK_DELAY,
@@ -1323,7 +1312,6 @@ mod tests {
 
         let (_, lost) = lr.on_ack_received(
             PacketNumberSpace::ApplicationData,
-            2,
             vec![2..=2],
             None,
             ACK_DELAY,
@@ -1353,7 +1341,6 @@ mod tests {
         assert_eq!(super::PACKET_THRESHOLD, 3);
         let (_, lost) = lr.on_ack_received(
             PacketNumberSpace::ApplicationData,
-            4,
             vec![2..=4],
             None,
             ACK_DELAY,
@@ -1375,7 +1362,6 @@ mod tests {
         lr.discard(PacketNumberSpace::Initial, now());
         let (acked, lost) = lr.on_ack_received(
             PacketNumberSpace::Initial,
-            0,
             vec![],
             None,
             Duration::from_millis(0),
@@ -1435,7 +1421,6 @@ mod tests {
             lr.on_packet_sent(sent_pkt);
             lr.on_ack_received(
                 pn_space,
-                1,
                 vec![1..=1],
                 None,
                 Duration::from_secs(0),
@@ -1488,7 +1473,6 @@ mod tests {
         let rtt = lr.path.borrow().rtt().estimate();
         lr.on_ack_received(
             PacketNumberSpace::Initial,
-            0,
             vec![0..=0],
             None,
             Duration::new(0, 0),

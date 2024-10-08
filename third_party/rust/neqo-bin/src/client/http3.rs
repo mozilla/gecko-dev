@@ -155,7 +155,7 @@ impl super::Client for Http3Client {
     }
 }
 
-impl<'a> Handler<'a> {
+impl Handler<'_> {
     fn reinit(&mut self) {
         for url in self.url_handler.handled_urls.drain(..) {
             self.url_handler.url_queue.push_front(url);
@@ -165,7 +165,7 @@ impl<'a> Handler<'a> {
     }
 }
 
-impl<'a> super::Handler for Handler<'a> {
+impl super::Handler for Handler<'_> {
     type Client = Http3Client;
 
     fn handle(&mut self, client: &mut Http3Client) -> Res<bool> {
@@ -286,7 +286,7 @@ impl StreamHandlerType {
     ) -> Box<dyn StreamHandler> {
         match handler_type {
             Self::Download => {
-                let out_file = get_output_file(url, &args.output_dir, all_paths);
+                let out_file = get_output_file(url, args.output_dir.as_ref(), all_paths);
                 client.stream_close_send(client_stream_id).unwrap();
                 Box::new(DownloadStreamHandler { out_file })
             }
@@ -406,7 +406,7 @@ struct UrlHandler<'a> {
     args: &'a Args,
 }
 
-impl<'a> UrlHandler<'a> {
+impl UrlHandler<'_> {
     fn stream_handler(&mut self, stream_id: StreamId) -> Option<&mut Box<dyn StreamHandler>> {
         self.stream_handlers.get_mut(&stream_id)
     }

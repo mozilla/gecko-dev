@@ -132,7 +132,7 @@ fn reorder_server_initial() {
     assert_eq!(*client.state(), State::Confirmed);
 }
 
-fn set_payload(server_packet: &Option<Datagram>, client_dcid: &[u8], payload: &[u8]) -> Datagram {
+fn set_payload(server_packet: Option<&Datagram>, client_dcid: &[u8], payload: &[u8]) -> Datagram {
     let (server_initial, _server_hs) = split_datagram(server_packet.as_ref().unwrap());
     let (protected_header, _, _, orig_payload) =
         decode_initial_header(&server_initial, Role::Server).unwrap();
@@ -175,7 +175,7 @@ fn packet_without_frames() {
         decode_initial_header(client_initial.as_dgram_ref().unwrap(), Role::Client).unwrap();
 
     let server_packet = server.process(client_initial.as_dgram_ref(), now()).dgram();
-    let modified = set_payload(&server_packet, client_dcid, &[]);
+    let modified = set_payload(server_packet.as_ref(), client_dcid, &[]);
     client.process_input(&modified, now());
     assert_eq!(
         client.state(),
@@ -196,7 +196,7 @@ fn packet_with_only_padding() {
         decode_initial_header(client_initial.as_dgram_ref().unwrap(), Role::Client).unwrap();
 
     let server_packet = server.process(client_initial.as_dgram_ref(), now()).dgram();
-    let modified = set_payload(&server_packet, client_dcid, &[0]);
+    let modified = set_payload(server_packet.as_ref(), client_dcid, &[0]);
     client.process_input(&modified, now());
     assert_eq!(client.state(), &State::WaitInitial);
 }

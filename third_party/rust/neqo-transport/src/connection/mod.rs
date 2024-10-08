@@ -1146,6 +1146,19 @@ impl Connection {
         }
     }
 
+    /// A test-only output function that uses the provided writer to
+    /// pack something extra into the output.
+    #[cfg(test)]
+    pub fn test_write_frames<W>(&mut self, writer: W, now: Instant) -> Output
+    where
+        W: test_internal::FrameWriter + 'static,
+    {
+        self.test_frame_writer = Some(Box::new(writer));
+        let res = self.process_output(now);
+        self.test_frame_writer = None;
+        res
+    }
+
     /// Process input and generate output.
     #[must_use = "Output of the process function must be handled"]
     pub fn process(&mut self, dgram: Option<&Datagram>, now: Instant) -> Output {
@@ -1663,6 +1676,17 @@ impl Connection {
         // on the assert for doesn't exist.
         // OK, we have a valid packet.
 
+        // Get the next packet number we'll send, for ACK verification.
+        // TODO: Once PR #2118 lands, this can move to `input_frame`. For now, it needs to be here,
+        // because we can drop packet number spaces as we parse throught the packet, and if an ACK
+        // frame follows a CRYPTO frame that makes us drop a space, we need to know this
+        // packet number to verify the ACK against.
+        let next_pn = self
+            .crypto
+            .states
+            .select_tx(self.version, PacketNumberSpace::from(packet.packet_type()))
+            .map_or(0, |(_, tx)| tx.next_pn());
+
         let mut ack_eliciting = false;
         let mut probing = true;
         let mut d = Decoder::from(&packet[..]);
@@ -1675,7 +1699,14 @@ impl Connection {
             ack_eliciting |= f.ack_eliciting();
             probing &= f.path_probing();
             let t = f.get_type();
-            if let Err(e) = self.input_frame(path, packet.version(), packet.packet_type(), f, now) {
+            if let Err(e) = self.input_frame(
+                path,
+                packet.version(),
+                packet.packet_type(),
+                f,
+                next_pn,
+                now,
+            ) {
                 self.capture_error(Some(Rc::clone(path)), now, t, Err(e))?;
             }
         }
@@ -1958,7 +1989,7 @@ impl Connection {
             | State::Confirmed => self.paths.select_path().map_or_else(
                 || Ok(SendOption::default()),
                 |path| {
-                    let res = self.output_path(&path, now, &None);
+                    let res = self.output_path(&path, now, None);
                     self.capture_error(Some(path), now, 0, res)
                 },
             ),
@@ -1975,7 +2006,7 @@ impl Connection {
                             qerror!([self], "Attempting to close with a temporary path");
                             Err(Error::InternalError)
                         } else {
-                            self.output_path(&path, now, &Some(details))
+                            self.output_path(&path, now, Some(&details))
                         };
                         self.capture_error(Some(path), now, 0, res)
                     },
@@ -2306,7 +2337,7 @@ impl Connection {
         &mut self,
         path: &PathRef,
         now: Instant,
-        closing_frame: &Option<ClosingFrame>,
+        closing_frame: Option<&ClosingFrame>,
     ) -> Res<SendOption> {
         let mut initial_sent = None;
         let mut needs_padding = false;
@@ -2367,7 +2398,7 @@ impl Connection {
             // Add frames to the packet.
             let payload_start = builder.len();
             let (mut tokens, mut ack_eliciting, mut padded) = (Vec::new(), false, false);
-            if let Some(ref close) = closing_frame {
+            if let Some(close) = closing_frame {
                 self.write_closing_frames(close, &mut builder, *space, now, path, &mut tokens);
             } else {
                 (tokens, ack_eliciting, padded) =
@@ -2822,6 +2853,7 @@ impl Connection {
         packet_version: Version,
         packet_type: PacketType,
         frame: Frame,
+        next_pn: PacketNumber,
         now: Instant,
     ) -> Res<()> {
         if !frame.is_allowed(packet_type) {
@@ -2853,16 +2885,17 @@ impl Connection {
                 ack_ranges,
                 ecn_count,
             } => {
+                // Ensure that the largest acknowledged packet number was actually sent.
+                // (If we ever start using non-contiguous packet numbers, we need to check all the
+                // packet numbers in the ACKed ranges.)
+                if largest_acknowledged >= next_pn {
+                    qwarn!("Largest ACKed {} was never sent", largest_acknowledged);
+                    return Err(Error::AckedUnsentPacket);
+                }
+
                 let ranges =
                     Frame::decode_ack_frame(largest_acknowledged, first_ack_range, &ack_ranges)?;
-                self.handle_ack(
-                    space,
-                    largest_acknowledged,
-                    ranges,
-                    ecn_count,
-                    ack_delay,
-                    now,
-                );
+                self.handle_ack(space, ranges, ecn_count, ack_delay, now);
             }
             Frame::Crypto { offset, data } => {
                 qtrace!(
@@ -3050,7 +3083,6 @@ impl Connection {
     fn handle_ack<R>(
         &mut self,
         space: PacketNumberSpace,
-        largest_acknowledged: PacketNumber,
         ack_ranges: R,
         ack_ecn: Option<EcnCount>,
         ack_delay: u64,
@@ -3067,12 +3099,12 @@ impl Connection {
         let (acked_packets, lost_packets) = self.loss_recovery.on_ack_received(
             &path,
             space,
-            largest_acknowledged,
             ack_ranges,
             ack_ecn,
             self.decode_ack_delay(ack_delay),
             now,
         );
+        let largest_acknowledged = acked_packets.first().map(SentPacket::pn);
         for acked in acked_packets {
             for token in acked.tokens() {
                 match token {
@@ -3096,7 +3128,9 @@ impl Connection {
         qlog::packets_lost(&self.qlog, &lost_packets);
         let stats = &mut self.stats.borrow_mut().frame_rx;
         stats.ack += 1;
-        stats.largest_acknowledged = max(stats.largest_acknowledged, largest_acknowledged);
+        if let Some(largest_acknowledged) = largest_acknowledged {
+            stats.largest_acknowledged = max(stats.largest_acknowledged, largest_acknowledged);
+        }
     }
 
     /// Tell 0-RTT packets that they were "lost".

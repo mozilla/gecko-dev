@@ -127,6 +127,7 @@ pub enum Error {
     KeyUpdateBlocked,
     NoAvailablePath,
     NoMoreData,
+    NotAvailable,
     NotConnected,
     PacketNumberOverlap,
     PeerApplicationError(AppError),
@@ -138,7 +139,6 @@ pub enum Error {
     UnknownFrameType,
     VersionNegotiation,
     WrongRole,
-    NotAvailable,
 }
 
 impl Error {

@@ -39,7 +39,7 @@ pub struct Handler<'a> {
     read_buffer: Vec<u8>,
 }
 
-impl<'a> Handler<'a> {
+impl Handler<'_> {
     fn reinit(&mut self) {
         for url in self.handled_urls.drain(..) {
             self.url_queue.push_front(url);
@@ -49,7 +49,7 @@ impl<'a> Handler<'a> {
     }
 }
 
-impl<'a> super::Handler for Handler<'a> {
+impl super::Handler for Handler<'_> {
     type Client = Connection;
 
     fn handle(&mut self, client: &mut Self::Client) -> Res<bool> {
@@ -255,7 +255,8 @@ impl<'b> Handler<'b> {
                     .stream_send(client_stream_id, req.as_bytes())
                     .unwrap();
                 client.stream_close_send(client_stream_id).unwrap();
-                let out_file = get_output_file(&url, &self.args.output_dir, &mut self.all_paths);
+                let out_file =
+                    get_output_file(&url, self.args.output_dir.as_ref(), &mut self.all_paths);
                 self.streams.insert(client_stream_id, out_file);
                 self.handled_urls.push(url);
                 true

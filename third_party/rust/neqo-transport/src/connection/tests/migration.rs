@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     cid::LOCAL_ACTIVE_CID_LIMIT,
-    connection::tests::send_something_paced,
+    connection::tests::{send_something_paced, send_with_extra},
     frame::FRAME_TYPE_NEW_CONNECTION_ID,
     packet::PacketBuilder,
     path::MAX_PATH_PROBES,
@@ -810,9 +810,7 @@ fn retire_all() {
 
     let original_cid = ConnectionId::from(get_cid(&send_something(&mut client, now())));
 
-    server.test_frame_writer = Some(Box::new(RetireAll { cid_gen }));
-    let ncid = send_something(&mut server, now());
-    server.test_frame_writer = None;
+    let ncid = send_with_extra(&mut server, RetireAll { cid_gen }, now());
 
     let new_cid_before = client.stats().frame_rx.new_connection_id;
     let retire_cid_before = client.stats().frame_tx.retire_connection_id;
@@ -861,9 +859,7 @@ fn retire_prior_to_migration_failure() {
 
     // Have the server receive the probe, but separately have it decide to
     // retire all of the available connection IDs.
-    server.test_frame_writer = Some(Box::new(RetireAll { cid_gen }));
-    let retire_all = send_something(&mut server, now());
-    server.test_frame_writer = None;
+    let retire_all = send_with_extra(&mut server, RetireAll { cid_gen }, now());
 
     let resp = server.process(Some(&probe), now()).dgram().unwrap();
     assert_v4_path(&resp, true);
@@ -916,9 +912,7 @@ fn retire_prior_to_migration_success() {
 
     // Have the server receive the probe, but separately have it decide to
     // retire all of the available connection IDs.
-    server.test_frame_writer = Some(Box::new(RetireAll { cid_gen }));
-    let retire_all = send_something(&mut server, now());
-    server.test_frame_writer = None;
+    let retire_all = send_with_extra(&mut server, RetireAll { cid_gen }, now());
 
     let resp = server.process(Some(&probe), now()).dgram().unwrap();
     assert_v4_path(&resp, true);
@@ -956,13 +950,11 @@ fn error_on_new_path_with_no_connection_id() {
 
     let cid_gen: Rc<RefCell<dyn ConnectionIdGenerator>> =
         Rc::new(RefCell::new(CountingConnectionIdGenerator::default()));
-    server.test_frame_writer = Some(Box::new(RetireAll { cid_gen }));
-    let retire_all = send_something(&mut server, now());
+    let retire_all = send_with_extra(&mut server, RetireAll { cid_gen }, now());
 
     client.process_input(&retire_all, now());
 
-    server.test_frame_writer = Some(Box::new(GarbageWriter {}));
-    let garbage = send_something(&mut server, now());
+    let garbage = send_with_extra(&mut server, GarbageWriter {}, now());
 
     let dgram = change_path(&garbage, DEFAULT_ADDR_V4);
     client.process_input(&dgram, now());

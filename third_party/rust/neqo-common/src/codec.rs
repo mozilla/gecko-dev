@@ -163,7 +163,7 @@ impl<'a> AsRef<[u8]> for Decoder<'a> {
     }
 }
 
-impl<'a> Debug for Decoder<'a> {
+impl Debug for Decoder<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.write_str(&hex_with_len(self.as_ref()))
     }
@@ -186,7 +186,7 @@ where
     }
 }
 
-impl<'a, 'b> PartialEq<Decoder<'b>> for Decoder<'a> {
+impl<'b> PartialEq<Decoder<'b>> for Decoder<'_> {
     #[must_use]
     fn eq(&self, other: &Decoder<'b>) -> bool {
         self.buf == other.buf

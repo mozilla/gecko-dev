@@ -17,7 +17,7 @@ use neqo_common::{event::Provider, qdebug, qtrace, Datagram, Decoder, Role};
 use neqo_crypto::{random, AllowZeroRtt, AuthenticationStatus, ResumptionToken};
 use test_fixture::{fixture_init, new_neqo_qlog, now, DEFAULT_ADDR};
 
-use super::{CloseReason, Connection, ConnectionId, Output, State};
+use super::{test_internal, CloseReason, Connection, ConnectionId, Output, State};
 use crate::{
     addr_valid::{AddressValidation, ValidateAddress},
     cc::CWND_INITIAL_PKTS,
@@ -613,6 +613,17 @@ fn send_something_with_modifier(
 /// Return the resulting datagram.
 fn send_something(sender: &mut Connection, now: Instant) -> Datagram {
     send_something_with_modifier(sender, now, Some)
+}
+
+/// Send something, but add a little something extra into the output.
+fn send_with_extra<W>(sender: &mut Connection, writer: W, now: Instant) -> Datagram
+where
+    W: test_internal::FrameWriter + 'static,
+{
+    sender.test_frame_writer = Some(Box::new(writer));
+    let res = send_something_with_modifier(sender, now, Some);
+    sender.test_frame_writer = None;
+    res
 }
 
 /// Send something on a stream from `sender` through a modifier to `receiver`.
