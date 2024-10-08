@@ -114,6 +114,7 @@ async function testCachingPerPlatform(accessible, attribute, queryCb) {
       attribute == "style" ||
       attribute == "viewport")
   ) {
+    queryCb();
     await verifyAttributeCached(accessible, attribute);
   } else if (
     AppConstants.platform == "macosx" &&
