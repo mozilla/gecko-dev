@@ -16,7 +16,6 @@
 #  include "mozilla/gfx/gfxVars.h"
 #  include "mozilla/ipc/UtilityProcessManager.h"
 #  include "mozilla/layers/PVideoBridge.h"
-#  include "mozilla/layers/VideoBridgeParent.h"
 #  include "mozilla/layers/VideoBridgeUtils.h"
 #endif
 
@@ -163,9 +162,6 @@ void UtilityAudioDecoderChild::OnCompositorUnexpectedShutdown() {
 
 bool UtilityAudioDecoderChild::CreateVideoBridge() {
   MOZ_ASSERT(NS_IsMainThread());
-  ipc::Endpoint<layers::PVideoBridgeParent> parentPipe;
-  ipc::Endpoint<layers::PVideoBridgeChild> childPipe;
-
   MOZ_ASSERT(mSandbox == SandboxingKind::MF_MEDIA_ENGINE_CDM);
 
   // Creating or already created, avoiding reinit a bridge.
@@ -174,26 +170,30 @@ bool UtilityAudioDecoderChild::CreateVideoBridge() {
   }
   mHasCreatedVideoBridge = State::Creating;
 
-  gfx::GPUProcessManager* gpuManager = gfx::GPUProcessManager::Get();
-  ipc::EndpointProcInfo gpuProcessInfo = gpuManager
-                                             ? gpuManager->GPUEndpointProcInfo()
-                                             : ipc::EndpointProcInfo::Invalid();
-
   // Build content device data first; this ensure that the GPU process is fully
   // ready.
   gfx::ContentDeviceData contentDeviceData;
   gfxPlatform::GetPlatform()->BuildContentDeviceData(&contentDeviceData);
+
+  gfx::GPUProcessManager* gpuManager = gfx::GPUProcessManager::Get();
+  if (!gpuManager) {
+    NS_WARNING("Failed to get a gpu mananger!");
+    return false;
+  }
 
   // The child end is the producer of video frames; the parent end is the
   // consumer.
   EndpointProcInfo childInfo = UtilityProcessManager::GetSingleton()
                                    ->GetProcessParent(mSandbox)
                                    ->OtherEndpointProcInfo();
-  EndpointProcInfo parentInfo =
-      gpuProcessInfo != ipc::EndpointProcInfo::Invalid()
-          ? gpuProcessInfo
-          : ipc::EndpointProcInfo::Current();
+  EndpointProcInfo parentInfo = gpuManager->GPUEndpointProcInfo();
+  if (parentInfo == EndpointProcInfo::Invalid()) {
+    NS_WARNING("GPU process Id is invald!");
+    return false;
+  }
 
+  ipc::Endpoint<layers::PVideoBridgeParent> parentPipe;
+  ipc::Endpoint<layers::PVideoBridgeChild> childPipe;
   nsresult rv = layers::PVideoBridge::CreateEndpoints(parentInfo, childInfo,
                                                       &parentPipe, &childPipe);
   if (NS_FAILED(rv)) {
@@ -201,16 +201,9 @@ bool UtilityAudioDecoderChild::CreateVideoBridge() {
     return false;
   }
 
-  if (gpuProcessInfo != ipc::EndpointProcInfo::Invalid()) {
-    gpuManager->InitVideoBridge(
-        std::move(parentPipe),
-        layers::VideoBridgeSource::MFMediaEngineCDMProcess);
-  } else {
-    layers::VideoBridgeParent::Open(
-        std::move(parentPipe),
-        layers::VideoBridgeSource::MFMediaEngineCDMProcess);
-  }
-
+  gpuManager->InitVideoBridge(
+      std::move(parentPipe),
+      layers::VideoBridgeSource::MFMediaEngineCDMProcess);
   SendInitVideoBridge(std::move(childPipe), contentDeviceData);
   return true;
 }
