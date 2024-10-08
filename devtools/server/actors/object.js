@@ -12,6 +12,12 @@ const { assert } = DevToolsUtils;
 
 loader.lazyRequireGetter(
   this,
+  "propertyDescriptor",
+  "resource://devtools/server/actors/object/property-descriptor.js",
+  true
+);
+loader.lazyRequireGetter(
+  this,
   "PropertyIteratorActor",
   "resource://devtools/server/actors/object/property-iterator.js",
   true
@@ -379,13 +385,13 @@ class ObjectActor extends Actor {
     const ownSymbols = [];
 
     for (const name of names) {
-      ownProperties[name] = this._propertyDescriptor(name);
+      ownProperties[name] = propertyDescriptor(this, name);
     }
 
     for (const sym of symbols) {
       ownSymbols.push({
         name: sym.toString(),
-        descriptor: this._propertyDescriptor(sym),
+        descriptor: propertyDescriptor(this, sym),
       });
     }
 
@@ -594,7 +600,7 @@ class ObjectActor extends Actor {
       );
     }
 
-    return { descriptor: this._propertyDescriptor(name) };
+    return { descriptor: propertyDescriptor(this, name) };
   }
 
   /**
@@ -709,76 +715,6 @@ class ObjectActor extends Actor {
     }
 
     return completionGrip;
-  }
-
-  /**
-   * A helper method that creates a property descriptor for the provided object,
-   * properly formatted for sending in a protocol response.
-   *
-   * @private
-   * @param string name
-   *        The property that the descriptor is generated for.
-   * @param boolean [onlyEnumerable]
-   *        Optional: true if you want a descriptor only for an enumerable
-   *        property, false otherwise.
-   * @return object|undefined
-   *         The property descriptor, or undefined if this is not an enumerable
-   *         property and onlyEnumerable=true.
-   */
-  _propertyDescriptor(name, onlyEnumerable) {
-    if (!DevToolsUtils.isSafeDebuggerObject(this.obj)) {
-      return undefined;
-    }
-
-    let desc;
-    try {
-      desc = this.obj.getOwnPropertyDescriptor(name);
-    } catch (e) {
-      // Calling getOwnPropertyDescriptor on wrapped native prototypes is not
-      // allowed (bug 560072). Inform the user with a bogus, but hopefully
-      // explanatory, descriptor.
-      return {
-        configurable: false,
-        writable: false,
-        enumerable: false,
-        value: e.name,
-      };
-    }
-
-    if (isStorage(this.obj)) {
-      if (name === "length") {
-        return undefined;
-      }
-      return desc;
-    }
-
-    if (!desc || (onlyEnumerable && !desc.enumerable)) {
-      return undefined;
-    }
-
-    const retval = {
-      configurable: desc.configurable,
-      enumerable: desc.enumerable,
-    };
-    const obj = this.rawValue();
-
-    if ("value" in desc) {
-      retval.writable = desc.writable;
-      retval.value = this.hooks.createValueGrip(desc.value);
-    } else if (this.threadActor.getWatchpoint(obj, name.toString())) {
-      const watchpoint = this.threadActor.getWatchpoint(obj, name.toString());
-      retval.value = this.hooks.createValueGrip(watchpoint.desc.value);
-      retval.watchpoint = watchpoint.watchpointType;
-    } else {
-      if ("get" in desc) {
-        retval.get = this.hooks.createValueGrip(desc.get);
-      }
-
-      if ("set" in desc) {
-        retval.set = this.hooks.createValueGrip(desc.set);
-      }
-    }
-    return retval;
   }
 
   /**

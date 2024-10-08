@@ -11,6 +11,13 @@ const {
 
 const DevToolsUtils = require("resource://devtools/shared/DevToolsUtils.js");
 
+loader.lazyRequireGetter(
+  this,
+  "propertyDescriptor",
+  "resource://devtools/server/actors/object/property-descriptor.js",
+  true
+);
+
 /**
  * Creates an actor to iterate over an object's private properties.
  *
@@ -38,7 +45,7 @@ class PrivatePropertiesIteratorActor extends Actor {
           const symbol = privateProperties[index];
           return {
             name: symbol.description,
-            descriptor: objectActor._propertyDescriptor(symbol),
+            descriptor: propertyDescriptor(objectActor, symbol),
           };
         },
       };

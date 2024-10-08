@@ -5,6 +5,7 @@
 DevToolsModules(
     "previewers.js",
     "private-properties-iterator.js",
+    "property-descriptor.js",
     "property-iterator.js",
     "symbol-iterator.js",
     "symbol.js",

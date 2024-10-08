@@ -15,6 +15,12 @@ loader.lazyRequireGetter(
   "ObjectUtils",
   "resource://devtools/server/actors/object/utils.js"
 );
+loader.lazyRequireGetter(
+  this,
+  "propertyDescriptor",
+  "resource://devtools/server/actors/object/property-descriptor.js",
+  true
+);
 
 /**
  * Creates an actor to iterate over an object's property names and values.
@@ -151,7 +157,7 @@ function enumArrayProperties(objectActor, options) {
       return index;
     },
     propertyDescription(index) {
-      return objectActor._propertyDescriptor(index);
+      return propertyDescriptor(objectActor, index);
     },
   };
 }
@@ -250,7 +256,7 @@ function enumObjectProperties(objectActor, options) {
     },
     propertyDescription(index) {
       const name = names[index];
-      let desc = objectActor._propertyDescriptor(name);
+      let desc = propertyDescriptor(objectActor, name);
       if (!desc) {
         desc = safeGetterValues[name];
       } else if (name in safeGetterValues) {

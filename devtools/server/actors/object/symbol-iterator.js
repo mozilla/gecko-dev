@@ -9,6 +9,13 @@ const { symbolIteratorSpec } = require("resource://devtools/shared/specs/symbol-
 
 const DevToolsUtils = require("resource://devtools/shared/DevToolsUtils.js");
 
+loader.lazyRequireGetter(
+  this,
+  "propertyDescriptor",
+  "resource://devtools/server/actors/object/property-descriptor.js",
+  true
+);
+
 /**
  * Creates an actor to iterate over an object's symbols.
  *
@@ -35,7 +42,7 @@ class SymbolIteratorActor extends Actor {
         const symbol = symbols[index];
         return {
           name: symbol.toString(),
-          descriptor: objectActor._propertyDescriptor(symbol),
+          descriptor: propertyDescriptor(objectActor, symbol),
         };
       },
     };

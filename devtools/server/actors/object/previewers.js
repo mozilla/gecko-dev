@@ -16,6 +16,12 @@ loader.lazyRequireGetter(
   "PropertyIterators",
   "resource://devtools/server/actors/object/property-iterator.js"
 );
+loader.lazyRequireGetter(
+  this,
+  "propertyDescriptor",
+  "resource://devtools/server/actors/object/property-descriptor.js",
+  true
+);
 
 // Number of items to preview in objects, arrays, maps, sets, lists,
 // collections, etc.
@@ -756,7 +762,7 @@ function GenericObject(objectActor, grip, rawObj, className) {
       }
     }
 
-    const desc = objectActor._propertyDescriptor(name, true);
+    const desc = propertyDescriptor(objectActor, name, true);
     if (!desc) {
       continue;
     }
@@ -786,7 +792,7 @@ function GenericObject(objectActor, grip, rawObj, className) {
       ) {
         continue;
       }
-      const descriptor = objectActor._propertyDescriptor(privateProperty);
+      const descriptor = propertyDescriptor(objectActor, privateProperty);
       if (!descriptor) {
         continue;
       }
@@ -816,7 +822,7 @@ function GenericObject(objectActor, grip, rawObj, className) {
     preview.ownSymbols = [];
 
     for (const symbol of symbols) {
-      const descriptor = objectActor._propertyDescriptor(symbol, true);
+      const descriptor = propertyDescriptor(objectActor, symbol, true);
       if (!descriptor) {
         continue;
       }
