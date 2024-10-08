@@ -182,7 +182,7 @@ skip-if = [
 ["test_worker_xhrAbort.html"]
 skip-if = [
   "os == 'win'",
-  "os == 'mac'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
 ]
 
 ["test_worker_xhr_3rdparty.html"]

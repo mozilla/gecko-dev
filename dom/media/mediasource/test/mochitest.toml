@@ -216,6 +216,8 @@ support-files = [
   "whitenoise-he-aac-5s.mp4",
 ]
 
+["test_BufferedSeekCanPlayThrough.html"]
+
 ["test_BufferingWait.html"]
 
 ["test_BufferingWait_mp4.html"]
@@ -230,14 +232,12 @@ support-files = [
 
 ["test_Eviction_mp4.html"]
 
-["test_eviction_target_not_in_buffered_range.html"]
-
 ["test_ExperimentalAsync.html"]
 
 ["test_FrameSelection_mp4.html"]
 skip-if = [
   "os == 'win'", # bug 1487973,
-  "os == 'mac'", # mac due to bug 1487973
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # mac due to bug 1487973
   "os == 'android' && processor == 'aarch64' && debug", # Bug 1776960 - android aarch64 debug
 ]
 
@@ -273,4 +273,4 @@ skip-if = [
 
 ["test_WaitingToEndedTransition_mp4.html"]
 
-["test_BufferedSeekCanPlayThrough.html"]
+["test_eviction_target_not_in_buffered_range.html"]

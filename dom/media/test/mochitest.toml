@@ -735,9 +735,9 @@ support-files = [
 ["test_capture_stream_av_sync.html"]
 skip-if = [
   "os == 'android'", # 1712598 (canvas error)
-  "os == 'mac'", # 1517199 (timeout-on-osx)
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # 1517199 (timeout-on-osx)
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "os == 'linux'", # 1713397, 1719881 (high intermittent failure on linux tsan), 1776937
-  "apple_silicon", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "mda_gpu", # Disabled because high intermittent failure
 ]
 
@@ -839,7 +839,8 @@ tags = "hls"
 ["test_played.html"]
 skip-if = [
   "os == 'android' && is_emulator", # Times out on android-em, Bug 1613946
-  "os == 'mac'", # Bug 1110922
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1110922
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1110922
   "os == 'win'", # Bug 1110922
   "os == 'android' && processor == 'aarch64'", # Bug 1110922
 ]

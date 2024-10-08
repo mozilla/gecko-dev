@@ -39,7 +39,7 @@ support-files = [
 ["test_fullscreen-api-race.html"]
 skip-if = [
   "os == 'android'", # same as test_fullscreen-api.html, 1356570
-  "os == 'mac' && debug",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug",
 ]
 
 ["test_fullscreen-api-rapid-cycle.html"]
@@ -48,7 +48,7 @@ skip-if = [
 allow_xul_xbl = true  # XUL is used in file_fullscreen-api.html
 skip-if = [
   "os == 'android'",
-  "os == 'mac'", # Bug 1579623, 1776996
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1579623, 1776996
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857240
   "http3",
   "http2",

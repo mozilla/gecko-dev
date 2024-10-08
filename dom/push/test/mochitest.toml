@@ -19,10 +19,7 @@ skip-if = [
 scheme = "https"
 
 ["test_error_reporting.html"]
-skip-if = [
-  "true",
-  "os == 'android'",
-]
+skip-if = ["true"]
 
 ["test_has_permissions.html"]
 skip-if = ["os == 'android'"]
@@ -34,12 +31,7 @@ skip-if = ["os == 'android'"]
 skip-if = ["os == 'android'"]
 
 ["test_multiple_register_during_service_activation.html"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win'",
-  "os == 'linux'",
-  "os == 'mac'", #Bug 1274773
-]
+skip-if = ["true"]
 
 ["test_permission_granted.html"]
 scheme = "https"
@@ -58,13 +50,7 @@ skip-if = ["os == 'android'"]
 scheme = "https"
 
 ["test_serviceworker_lifetime.html"]
-skip-if = [
-  "true",
-  "os == 'android'",
-  "os == 'win'", # Bug 1373346
-  "os == 'linux' && bits == 64", # Bug 1578374
-  "os == 'mac'", # Bug 1578333
-]
+skip-if = ["true"]
 
 ["test_subscription_change.html"]
 skip-if = [

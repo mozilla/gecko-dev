@@ -1183,17 +1183,17 @@ skip-if = [
   "headless", #bug 904183
 ]
 
-["test_copypaste_shadow_dom.html"]
-skip-if = [
-  "os == 'android'",
-  "headless", #bug 904183
-]
-
 ["test_copypaste.xhtml"]
 skip-if = ["headless"]  #bug 904183
 
 ["test_copypaste_disabled.html"]
 support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_utils.js"]
+
+["test_copypaste_shadow_dom.html"]
+skip-if = [
+  "os == 'android'",
+  "headless", #bug 904183
+]
 
 ["test_createHTMLDocument.html"]
 
@@ -1411,7 +1411,7 @@ skip-if = [
 
 ["test_lock_orientation_with_pending_fullscreen.html"]
 skip-if = [
-  "os == 'mac'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'linux'",
   "headless",
 ]
