@@ -9856,6 +9856,9 @@ void CodeGenerator::visitWasmStackSwitchToSuspendable(
   const Register ScratchReg1 = ScratchReg;
 #  elif defined(JS_CODEGEN_ARM)
   const Register ScratchReg1 = ABINonArgReturnVolatileReg;
+#  elif defined(JS_CODEGEN_LOONG64)
+  SecondScratchRegisterScope scratch2(masm);
+  const Register ScratchReg1 = scratch2;
 #  else
 #    error "NYI: scratch register"
 #  endif
@@ -9936,7 +9939,11 @@ void CodeGenerator::visitWasmStackSwitchToSuspendable(
 
   // Call wasm function fast.
 #  ifdef JS_USE_LINK_REGISTER
+#    if defined(JS_CODEGEN_LOONG64)
+  masm.mov(ReturnAddressReg, ra);
+#    else
   masm.mov(ReturnAddressReg, lr);
+#    endif
 #  else
   masm.Push(ReturnAddressReg);
 #  endif
@@ -9998,6 +10005,9 @@ void CodeGenerator::visitWasmStackSwitchToMain(LWasmStackSwitchToMain* lir) {
   const Register ScratchReg1 = ScratchReg;
 #  elif defined(JS_CODEGEN_ARM)
   const Register ScratchReg1 = ABINonArgReturnVolatileReg;
+#  elif defined(JS_CODEGEN_LOONG64)
+  SecondScratchRegisterScope scratch2(masm);
+  const Register ScratchReg1 = scratch2;
 #  else
 #    error "NYI: scratch register"
 #  endif
@@ -10107,7 +10117,11 @@ void CodeGenerator::visitWasmStackSwitchToMain(LWasmStackSwitchToMain* lir) {
 
   // Call wasm function fast.
 #  ifdef JS_USE_LINK_REGISTER
+#    if defined(JS_CODEGEN_LOONG64)
+  masm.mov(ReturnAddressReg, ra);
+#    else
   masm.mov(ReturnAddressReg, lr);
+#    endif
 #  else
   masm.Push(ReturnAddressReg);
 #  endif
@@ -10168,6 +10182,9 @@ void CodeGenerator::visitWasmStackContinueOnSuspendable(
   const Register ScratchReg1 = ScratchReg;
 #  elif defined(JS_CODEGEN_ARM)
   const Register ScratchReg1 = ABINonArgReturnVolatileReg;
+#  elif defined(JS_CODEGEN_LOONG64)
+  SecondScratchRegisterScope scratch2(masm);
+  const Register ScratchReg1 = scratch2;
 #  else
 #    error "NYI: scratch register"
 #  endif
