@@ -22,7 +22,6 @@
 #include "nsIReflowCallback.h"
 #include "nsIScrollbarMediator.h"
 #include "nsIStatefulFrame.h"
-#include "nsLayoutUtils.h"
 #include "nsQueryFrame.h"
 #include "nsThreadUtils.h"
 #include "ScrollVelocityQueue.h"
@@ -302,14 +301,7 @@ class ScrollContainerFrame : public nsContainerFrame,
     }
     return rect;
   }
-  nsRect GetScrollPortRectAccountingForMaxDynamicToolbar() const {
-    auto rect = mScrollPort;
-    if (mIsRoot && PresContext()->HasDynamicToolbar()) {
-      rect.SizeTo(nsLayoutUtils::ExpandHeightForDynamicToolbar(PresContext(),
-                                                               rect.Size()));
-    }
-    return rect;
-  }
+  nsRect GetScrollPortRectAccountingForMaxDynamicToolbar() const;
 
   /**
    * Get the offset of the scrollport origin relative to the scrolled

@@ -6899,6 +6899,16 @@ nsRect ScrollContainerFrame::GetScrolledRect() const {
   return result;
 }
 
+nsRect ScrollContainerFrame::GetScrollPortRectAccountingForMaxDynamicToolbar()
+    const {
+  auto rect = mScrollPort;
+  if (mIsRoot && PresContext()->HasDynamicToolbar()) {
+    rect.SizeTo(nsLayoutUtils::ExpandHeightForDynamicToolbar(PresContext(),
+                                                             rect.Size()));
+  }
+  return rect;
+}
+
 StyleDirection ScrollContainerFrame::GetScrolledFrameDir() const {
   return GetScrolledFrameDir(mScrolledFrame);
 }
