@@ -24,10 +24,10 @@ class SymbolActor extends Actor {
     super(threadActor.conn, symbolSpec);
     this.threadActor = threadActor;
     this.symbol = symbol;
-  }
 
-  rawValue() {
-    return this.symbol;
+    // Align with Object Actor interface
+    // (this is used from eval-with-debugger)
+    this.rawObj = this.symbol;
   }
 
   destroy() {

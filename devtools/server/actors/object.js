@@ -128,6 +128,8 @@ class ObjectActor extends Actor {
     this.obj = obj;
     this.targetActor = threadActor.targetActor;
     this.threadActor = threadActor;
+    this.rawObj = obj.unsafeDereference();
+    this.safeRawObj = this.#getSafeRawObject();
     this.hooks = {
       createValueGrip: createValueGripHook,
       getGripDepth,
@@ -136,10 +138,6 @@ class ObjectActor extends Actor {
       customFormatterObjectTagDepth,
       customFormatterConfigDbgObj,
     };
-  }
-
-  rawValue() {
-    return this.obj.unsafeDereference();
   }
 
   addWatchpoint(property, label, watchpointType) {
@@ -217,18 +215,21 @@ class ObjectActor extends Actor {
       g.isClassConstructor = this.obj.isClassConstructor;
     }
 
-    const raw = this.getRawObject();
-    this._populateGripPreview(g, raw);
+    this._populateGripPreview(g);
     this.hooks.decrementGripDepth();
 
-    if (raw && Node.isInstance(raw) && lazy.ContentDOMReference) {
+    if (
+      this.safeRawObj &&
+      Node.isInstance(this.safeRawObj) &&
+      lazy.ContentDOMReference
+    ) {
       // ContentDOMReference.get takes a DOM element and returns an object with
       // its browsing context id, as well as a unique identifier. We are putting it in
       // the grip here in order to be able to retrieve the node later, potentially from a
       // different DevToolsServer running in the same process.
       // If ContentDOMReference.get throws, we simply don't add the property to the grip.
       try {
-        g.contentDomReference = lazy.ContentDOMReference.get(raw);
+        g.contentDomReference = lazy.ContentDOMReference.get(this.safeRawObj);
       } catch (e) {}
     }
 
@@ -259,8 +260,8 @@ class ObjectActor extends Actor {
     return null;
   }
 
-  getRawObject() {
-    let raw = this.obj.unsafeDereference();
+  #getSafeRawObject() {
+    let raw = this.rawObj;
 
     // If Cu is not defined, we are running on a worker thread, where xrays
     // don't exist.
@@ -278,13 +279,13 @@ class ObjectActor extends Actor {
   /**
    * Populate the `preview` property on `grip` given its type.
    */
-  _populateGripPreview(grip, raw) {
+  _populateGripPreview(grip) {
     // Cache obj.class as it can be costly if this is in a hot path (e.g. logging objects
     // within a for loop).
     const className = this.obj.class;
     for (const previewer of previewers[className] || previewers.Object) {
       try {
-        const previewerResult = previewer(this, grip, raw, className);
+        const previewerResult = previewer(this, grip, className);
         if (previewerResult) {
           return;
         }
@@ -747,6 +748,8 @@ class ObjectActor extends Actor {
     }
     this._customFormatterItem = null;
     this.obj = null;
+    this.rawObj = null;
+    this.safeRawObj = null;
     this.threadActor = null;
   }
 }

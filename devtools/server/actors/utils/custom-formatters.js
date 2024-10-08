@@ -52,8 +52,8 @@ class FormatterError extends Error {
  *                               the object.
  */
 function customFormatterHeader(objectActor) {
-  const rawValue = objectActor.rawValue();
-  const globalWrapper = Cu.getGlobalForObject(rawValue);
+  const { rawObj } = objectActor;
+  const globalWrapper = Cu.getGlobalForObject(rawObj);
   const global = globalWrapper?.wrappedJSObject;
 
   // We expect a `devtoolsFormatters` global attribute and it to be an array
@@ -134,7 +134,7 @@ exports.customFormatterHeader = customFormatterHeader;
  * @param {BrowsingContextTargetActor} options.targetActor
  *        See buildJsonMlFromCustomFormatterHookResult JSDoc.
  * @param {Debugger.Object} options.valueDbgObj
- *        The Debugger.Object of rawValue.
+ *        The Debugger.Object of rawObj.
  *
  * @returns {Object} See customFormatterHeader jsdoc, it returns the same object.
  */
@@ -247,8 +247,8 @@ function processFormatterForHeader({
  *          - {*} customFormatterBody Data of the custom formatter body.
  */
 async function customFormatterBody(objectActor, formatter) {
-  const rawValue = objectActor.rawValue();
-  const globalWrapper = Cu.getGlobalForObject(rawValue);
+  const { rawObj } = objectActor;
+  const globalWrapper = Cu.getGlobalForObject(rawObj);
   const global = globalWrapper?.wrappedJSObject;
 
   const customFormatterIndex = global.devtoolsFormatters.indexOf(formatter);

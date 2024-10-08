@@ -12,11 +12,16 @@ class WatchpointMap {
 
   _setWatchpoint(objActor, data) {
     const { property, label, watchpointType } = data;
-    const obj = objActor.rawValue();
+    const { rawObj } = objActor;
 
     const desc = objActor.obj.getOwnPropertyDescriptor(property);
 
-    if (this.has(obj, property) || desc.set || desc.get || !desc.configurable) {
+    if (
+      this.has(rawObj, property) ||
+      desc.set ||
+      desc.get ||
+      !desc.configurable
+    ) {
       return null;
     }
 
@@ -101,11 +106,10 @@ class WatchpointMap {
       return;
     }
 
-    const objWatchpoints =
-      this._watchpoints.get(objActor.rawValue()) || new Map();
+    const objWatchpoints = this._watchpoints.get(objActor.rawObj) || new Map();
 
     objWatchpoints.set(data.property, { ...data, desc });
-    this._watchpoints.set(objActor.rawValue(), objWatchpoints);
+    this._watchpoints.set(objActor.rawObj, objWatchpoints);
   }
 
   has(obj, property) {
@@ -119,37 +123,37 @@ class WatchpointMap {
   }
 
   remove(objActor, property) {
-    const obj = objActor.rawValue();
+    const { rawObj } = objActor;
 
     // This should remove watchpoints on all of the object's properties if
     // a property isn't passed in as an argument
     if (!property) {
-      for (const objProperty in obj) {
+      for (const objProperty in rawObj) {
         this.remove(objActor, objProperty);
       }
     }
 
-    if (!this.has(obj, property)) {
+    if (!this.has(rawObj, property)) {
       return;
     }
 
-    const objWatchpoints = this._watchpoints.get(obj);
+    const objWatchpoints = this._watchpoints.get(rawObj);
     const { desc } = objWatchpoints.get(property);
 
     objWatchpoints.delete(property);
-    this._watchpoints.set(obj, objWatchpoints);
+    this._watchpoints.set(rawObj, objWatchpoints);
 
     // We should stop keeping track of an object if it no longer
     // has a watchpoint
     if (objWatchpoints.size == 0) {
-      this._watchpoints.delete(obj);
+      this._watchpoints.delete(rawObj);
     }
 
     objActor.obj.defineProperty(property, desc);
   }
 
   removeAll(objActor) {
-    const objWatchpoints = this._watchpoints.get(objActor.rawValue());
+    const objWatchpoints = this._watchpoints.get(objActor.rawObj);
     if (!objWatchpoints) {
       return;
     }

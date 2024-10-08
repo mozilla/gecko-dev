@@ -49,5 +49,5 @@ function test_SA_form() {
 
 function test_SA_raw() {
   const actor = makeMockSymbolActor();
-  strictEqual(actor.rawValue(), TEST_SYMBOL);
+  strictEqual(actor.rawObj, TEST_SYMBOL);
 }

@@ -58,13 +58,13 @@ function propertyDescriptor(objectActor, name, onlyEnumerable) {
     configurable: desc.configurable,
     enumerable: desc.enumerable,
   };
-  const obj = objectActor.rawValue();
+  const { rawObj } = objectActor;
 
   if ("value" in desc) {
     retval.writable = desc.writable;
     retval.value = objectActor.hooks.createValueGrip(desc.value);
-  } else if (objectActor.threadActor.getWatchpoint(obj, name.toString())) {
-    const watchpoint = objectActor.threadActor.getWatchpoint(obj, name.toString());
+  } else if (objectActor.threadActor.getWatchpoint(rawObj, name.toString())) {
+    const watchpoint = objectActor.threadActor.getWatchpoint(rawObj, name.toString());
     retval.value = objectActor.hooks.createValueGrip(watchpoint.desc.value);
     retval.watchpoint = watchpoint.watchpointType;
   } else {

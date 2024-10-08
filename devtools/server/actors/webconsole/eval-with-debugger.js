@@ -712,7 +712,7 @@ function getDbgGlobal(options, dbg, webConsole) {
     return { bindSelf: null, dbgGlobal };
   }
 
-  const jsVal = actor instanceof LongStringActor ? actor.str : actor.rawValue();
+  const jsVal = actor instanceof LongStringActor ? actor.str : actor.rawObj;
   if (!isObject(jsVal)) {
     return { bindSelf: jsVal, dbgGlobal };
   }
