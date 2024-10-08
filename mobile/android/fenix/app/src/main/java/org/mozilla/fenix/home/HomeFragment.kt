@@ -90,6 +90,7 @@ import mozilla.components.lib.state.ext.consumeFlow
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
+import mozilla.components.support.utils.BrowsersCache
 import mozilla.components.ui.colors.PhotonColors
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import mozilla.telemetry.glean.private.NoExtras
@@ -1058,7 +1059,9 @@ class HomeFragment : Fragment() {
         homeViewModel.sessionToDelete = null
 
         // Determine if we should show the "Set as Default Browser" prompt
-        if (requireContext().settings().shouldShowSetAsDefaultPrompt) {
+        if (requireContext().settings().shouldShowSetAsDefaultPrompt &&
+            !BrowsersCache.all(requireContext().applicationContext).isDefaultBrowser
+        ) {
             // This is to avoid disk read violations on some devices such as samsung and pixel for android 9/10
             requireComponents.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
                 showSetAsDefaultBrowserPrompt()
