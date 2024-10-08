@@ -62,7 +62,7 @@ class AppleVTEncoder final : public MediaDataEncoder {
   RefPtr<ShutdownPromise> ProcessShutdown();
 
   CFDictionaryRef BuildSourceImageBufferAttributes();
-  CVPixelBufferRef CreateCVPixelBuffer(const layers::Image* aSource);
+  CVPixelBufferRef CreateCVPixelBuffer(layers::Image* aSource);
   bool WriteExtraData(MediaRawData* aDst, CMSampleBufferRef aSrc,
                       const bool aAsAnnexB);
   void AssertOnTaskQueue() { MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn()); }

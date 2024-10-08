@@ -737,11 +737,11 @@ static void ReleaseImage(void* aImageGrip, const void* aDataPtr,
   (static_cast<PlanarYCbCrImage*>(aImageGrip))->Release();
 }
 
-CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(const Image* aSource) {
+CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(Image* aSource) {
   AssertOnTaskQueue();
 
   if (aSource->GetFormat() == ImageFormat::PLANAR_YCBCR) {
-    PlanarYCbCrImage* image = const_cast<Image*>(aSource)->AsPlanarYCbCrImage();
+    PlanarYCbCrImage* image = aSource->AsPlanarYCbCrImage();
     if (!image || !image->GetData()) {
       return nullptr;
     }
@@ -798,8 +798,7 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(const Image* aSource) {
     return nullptr;
   }
   if (aSource->GetFormat() == ImageFormat::MOZ2D_SURFACE) {
-    Image* source = const_cast<Image*>(aSource);
-    RefPtr<gfx::SourceSurface> surface = source->GetAsSourceSurface();
+    RefPtr<gfx::SourceSurface> surface = aSource->GetAsSourceSurface();
     RefPtr<gfx::DataSourceSurface> dataSurface = surface->GetDataSurface();
     gfx::DataSourceSurface::ScopedMap map(dataSurface,
                                           gfx::DataSourceSurface::READ);
@@ -809,18 +808,18 @@ CVPixelBufferRef AppleVTEncoder::CreateCVPixelBuffer(const Image* aSource) {
     }
     OSType format = MapPixelFormat(mConfig.mSourcePixelFormat).ref();
     CVPixelBufferRef buffer = nullptr;
-    source->AddRef();
+    aSource->AddRef();
 
     CVReturn rv = CVPixelBufferCreateWithBytes(
         kCFAllocatorDefault, aSource->GetSize().Width(),
         aSource->GetSize().Height(), format, map.GetData(), map.GetStride(),
-        ReleaseImageInterleaved, source, nullptr, &buffer);
+        ReleaseImageInterleaved, aSource, nullptr, &buffer);
     if (rv == kCVReturnSuccess) {
       return buffer;
       // |source| will be released in |ReleaseImageInterleaved()|.
     }
     LOGE("CVPIxelBufferCreateWithBytes error");
-    source->Release();
+    aSource->Release();
     return nullptr;
   }
   LOGE("Image conversion not implemented in AppleVTEncoder");
