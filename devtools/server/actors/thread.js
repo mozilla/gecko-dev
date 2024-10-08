@@ -48,12 +48,6 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "PauseScopedObjectActor",
-  "resource://devtools/server/actors/pause-scoped.js",
-  true
-);
-loader.lazyRequireGetter(
-  this,
   "EventLoop",
   "resource://devtools/server/actors/utils/event-loop.js",
   true
@@ -223,8 +217,6 @@ class ThreadActor extends Actor {
     this.createCompletionGrip = this.createCompletionGrip.bind(this);
     this.onDebuggerStatement = this.onDebuggerStatement.bind(this);
     this.onNewScript = this.onNewScript.bind(this);
-    this.objectGrip = this.objectGrip.bind(this);
-    this.pauseObjectGrip = this.pauseObjectGrip.bind(this);
     this._onOpeningRequest = this._onOpeningRequest.bind(this);
     this._onNewDebuggee = this._onNewDebuggee.bind(this);
     this._onExceptionUnwind = this._onExceptionUnwind.bind(this);
@@ -270,6 +262,10 @@ class ThreadActor extends Actor {
   // XXX: soon to be equivalent to !isDestroyed once the thread actor is initialized on target creation.
   get attached() {
     return this.state == STATES.RUNNING || this.state == STATES.PAUSED;
+  }
+
+  get pauseLifetimePool() {
+    return this._pausePool;
   }
 
   get threadLifetimePool() {
@@ -1760,56 +1756,11 @@ class ThreadActor extends Actor {
    *        Primitive JS type, Object actor Form JSON object, or a JSON object to describe the value.
    */
   createValueGrip(value) {
-    if (this._pausePool) {
-      return createValueGrip(value, this._pausePool, this.pauseObjectGrip);
-    }
-    return createValueGrip(value, this.threadLifetimePool, this.objectGrip);
-  }
+    // When the thread is paused, all objects are stored in a transient pool
+    // which will be cleared on resume (which also happens when we step).
+    const pool = this._pausePool || this.threadLifetimePool;
 
-  /**
-   * Create a grip for the given debuggee object.
-   *
-   * @param value Debugger.Object
-   *        The debuggee object value.
-   * @param pool Pool
-   *        The actor pool where the new object actor will be added.
-   */
-  objectGrip(value, pool) {
-    if (!pool.objectActors) {
-      pool.objectActors = new WeakMap();
-    }
-
-    if (pool.objectActors.has(value)) {
-      return pool.objectActors.get(value).form();
-    }
-
-    if (this.threadLifetimePool.objectActors.has(value)) {
-      return this.threadLifetimePool.objectActors.get(value).form();
-    }
-
-    const actor = new PauseScopedObjectActor(this, value, {
-      getGripDepth: () => this._gripDepth,
-      incrementGripDepth: () => this._gripDepth++,
-      decrementGripDepth: () => this._gripDepth--,
-      createValueGrip: v => this.createValueGrip(v),
-    });
-    pool.manage(actor);
-    pool.objectActors.set(value, actor);
-    return actor.form();
-  }
-
-  /**
-   * Create a grip for the given debuggee object with a pause lifetime.
-   *
-   * @param value Debugger.Object
-   *        The debuggee object value.
-   */
-  pauseObjectGrip(value) {
-    if (!this._pausePool) {
-      throw new Error("Object grip requested while not paused.");
-    }
-
-    return this.objectGrip(value, this._pausePool);
+    return createValueGrip(this, value, pool);
   }
 
   _onWindowReady({ isTopLevel, isBFCache }) {
@@ -1916,10 +1867,11 @@ class ThreadActor extends Actor {
         message: `DOM Mutation: '${mutationType}'`,
       },
       pkt => {
-        // We have to add this here because `_pausePool` is `null` beforehand.
-        pkt.why.nodeGrip = this.objectGrip(targetObj, this._pausePool);
+        // We have to create the object actors late, from here because `_pausePool` is `null` beforehand,
+        // and the actors created by createValueGrip would otherwise be registered in the thread lifetime pool
+        pkt.why.nodeGrip = this.createValueGrip(targetObj);
         pkt.why.ancestorGrip = ancestorObj
-          ? this.objectGrip(ancestorObj, this._pausePool)
+          ? this.createValueGrip(ancestorObj)
           : null;
         pkt.why.action = action;
         return pkt;

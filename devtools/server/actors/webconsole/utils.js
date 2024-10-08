@@ -66,55 +66,6 @@ var WebConsoleUtils = {
   },
 
   /**
-   * Create a grip for the given value. If the value is an object,
-   * an object wrapper will be created.
-   *
-   * @param mixed value
-   *        The value you want to create a grip for, before sending it to the
-   *        client.
-   * @param function objectWrapper
-   *        If the value is an object then the objectWrapper function is
-   *        invoked to give us an object grip. See this.getObjectGrip().
-   * @return mixed
-   *         The value grip.
-   */
-  createValueGrip(value, objectWrapper) {
-    switch (typeof value) {
-      case "boolean":
-        return value;
-      case "string":
-        return objectWrapper(value);
-      case "number":
-        if (value === Infinity) {
-          return { type: "Infinity" };
-        } else if (value === -Infinity) {
-          return { type: "-Infinity" };
-        } else if (Number.isNaN(value)) {
-          return { type: "NaN" };
-        } else if (!value && 1 / value === -Infinity) {
-          return { type: "-0" };
-        }
-        return value;
-      case "undefined":
-        return { type: "undefined" };
-      case "object":
-        if (value === null) {
-          return { type: "null" };
-        }
-      // Fall through.
-      case "function":
-      case "record":
-      case "tuple":
-        return objectWrapper(value);
-      default:
-        console.error(
-          "Failed to provide a grip for value of " + typeof value + ": " + value
-        );
-        return null;
-    }
-  },
-
-  /**
    * Remove any frames in a stack that are above a debugger-triggered evaluation
    * and will correspond with devtools server code, which we never want to show
    * to the user.

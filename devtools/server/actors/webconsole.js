@@ -12,7 +12,6 @@ const {
 } = require("resource://devtools/shared/specs/webconsole.js");
 
 const { ThreadActor } = require("resource://devtools/server/actors/thread.js");
-const { ObjectActor } = require("resource://devtools/server/actors/object.js");
 const {
   LongStringActor,
 } = require("resource://devtools/server/actors/string.js");
@@ -148,7 +147,6 @@ class WebConsoleActor extends Actor {
     this._listeners = new Set();
     this._lastConsoleInputEvaluation = undefined;
 
-    this.objectGrip = this.objectGrip.bind(this);
     this._onWillNavigate = this._onWillNavigate.bind(this);
     this._onChangedToplevelDocument =
       this._onChangedToplevelDocument.bind(this);
@@ -348,7 +346,7 @@ class WebConsoleActor extends Actor {
    * @return object
    */
   createValueGrip(value) {
-    return createValueGrip(value, this, this.objectGrip);
+    return createValueGrip(this.targetActor.threadActor, value, this);
   }
 
   /**
@@ -375,27 +373,6 @@ class WebConsoleActor extends Actor {
     }
     const dbgGlobal = this.dbg.makeGlobalObjectReference(this.global);
     return dbgGlobal.makeDebuggeeValue(value);
-  }
-
-  /**
-   * Create a grip for the given object.
-   *
-   * @param object object
-   *        The object you want.
-   * @param object pool
-   *        A Pool where the new actor instance is added.
-   * @param object
-   *        The object grip.
-   */
-  objectGrip(object, pool) {
-    const actor = new ObjectActor(this.targetActor.threadActor, object, {
-      getGripDepth: () => this._gripDepth,
-      incrementGripDepth: () => this._gripDepth++,
-      decrementGripDepth: () => this._gripDepth--,
-      createValueGrip: v => this.createValueGrip(v),
-    });
-    pool.manage(actor);
-    return actor.form();
   }
 
   /**
