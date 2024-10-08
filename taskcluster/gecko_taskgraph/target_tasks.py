@@ -947,9 +947,6 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
             # Ignore all fennec tests here, we run those weekly
             if "fennec" in try_name:
                 return False
-            # Only run webrender tests
-            if "chrome-m" not in try_name and "-qr" not in platform:
-                return False
             # Select live site tests
             if "-live" in try_name:
                 return True
