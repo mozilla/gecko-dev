@@ -16,16 +16,6 @@ const INVALID_ADDRESS = {
   "postal-code": "1234", // Invalid: too short
 };
 
-async function expectSavedAddresses(expectedCount) {
-  const addresses = await getAddresses();
-  is(
-    addresses.length,
-    expectedCount,
-    `${addresses.length} address in the storage`
-  );
-  return addresses;
-}
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -41,7 +31,7 @@ add_setup(async function () {
  * save address fields that are valid
  */
 add_task(async function test_do_not_save_invalid_fields() {
-  let addresses = await expectSavedAddresses(0);
+  let addresses = await expectSavedAddressesCount(0);
 
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: ADDRESS_FORM_URL },
@@ -68,7 +58,7 @@ add_task(async function test_do_not_save_invalid_fields() {
     }
   );
 
-  addresses = await expectSavedAddresses(1);
+  addresses = await expectSavedAddressesCount(1);
   for (const [key, value] of Object.entries(VALID_ADDRESS)) {
     Assert.equal(addresses[0][key] ?? "", value, `${key} field is saved`);
   }
@@ -114,7 +104,7 @@ add_task(async function test_do_not_update_invalid_fields() {
     }
   );
 
-  const addresses = await expectSavedAddresses(1);
+  const addresses = await expectSavedAddressesCount(1);
 
   Assert.equal(
     addresses[0]["family-name"],
@@ -167,7 +157,7 @@ add_task(async function test_do_not_remove_invalid_fields_of_exising_address() {
     }
   );
 
-  const addresses = await expectSavedAddresses(1);
+  const addresses = await expectSavedAddressesCount(1);
   Assert.equal(
     addresses[0]["family-name"],
     "Doe",
@@ -212,7 +202,7 @@ add_task(async function test_do_not_show_invalid_fields_in_edit_doorhanger() {
     }
   );
 
-  const addresses = await expectSavedAddresses(1);
+  const addresses = await expectSavedAddressesCount(1);
   Assert.equal(
     addresses[0]["family-name"],
     "Doe",

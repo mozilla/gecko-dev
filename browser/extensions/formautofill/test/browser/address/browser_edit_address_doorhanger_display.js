@@ -1,15 +1,5 @@
 "use strict";
 
-async function expectSavedAddresses(expectedCount) {
-  const addresses = await getAddresses();
-  is(
-    addresses.length,
-    expectedCount,
-    `${addresses.length} address in the storage`
-  );
-  return addresses;
-}
-
 function recordToFormSelector(record) {
   let obj = {};
   for (const [key, value] of Object.entries(record)) {
@@ -30,7 +20,7 @@ add_setup(async function () {
 
 // Test different scenarios when we change something in the edit address dorhanger
 add_task(async function test_save_edited_fields() {
-  await expectSavedAddresses(0);
+  await expectSavedAddressesCount(0);
 
   const initRecord = {
     "given-name": "John",
@@ -107,7 +97,7 @@ add_task(async function test_save_edited_fields() {
       ...TEST.editedFields,
     });
 
-    const addresses = await expectSavedAddresses(1);
+    const addresses = await expectSavedAddressesCount(1);
     for (const [key, value] of Object.entries(expectedRecord)) {
       is(addresses[0][key] ?? "", value, `${key} field is saved`);
     }
@@ -120,7 +110,7 @@ add_task(async function test_save_edited_fields() {
 // when the edit doorhanger is triggered in an save doorhanger
 add_task(async function test_edit_doorhanger_triggered_by_save_doorhanger() {
   for (const CLICKED_BUTTON of [MAIN_BUTTON, SECONDARY_BUTTON]) {
-    await expectSavedAddresses(0);
+    await expectSavedAddressesCount(0);
 
     const initRecord = {
       "given-name": "John",
@@ -156,7 +146,7 @@ add_task(async function test_edit_doorhanger_triggered_by_save_doorhanger() {
       }
     );
 
-    await expectSavedAddresses(CLICKED_BUTTON == MAIN_BUTTON ? 1 : 0);
+    await expectSavedAddressesCount(CLICKED_BUTTON == MAIN_BUTTON ? 1 : 0);
     await removeAllRecords();
   }
 });
@@ -167,7 +157,7 @@ add_task(async function test_edit_doorhanger_triggered_by_update_doorhanger() {
   for (const CLICKED_BUTTON of [MAIN_BUTTON, SECONDARY_BUTTON]) {
     // TEST_ADDRESS_2 doesn't contain email field
     await setStorage(TEST_ADDRESS_2);
-    await expectSavedAddresses(1);
+    await expectSavedAddressesCount(1);
 
     const initRecord = {
       "given-name": TEST_ADDRESS_2["given-name"],
@@ -202,7 +192,7 @@ add_task(async function test_edit_doorhanger_triggered_by_update_doorhanger() {
       }
     );
 
-    const addresses = await expectSavedAddresses(1);
+    const addresses = await expectSavedAddressesCount(1);
     const expectedRecord =
       CLICKED_BUTTON == MAIN_BUTTON
         ? { ...initRecord, ...editRecord }

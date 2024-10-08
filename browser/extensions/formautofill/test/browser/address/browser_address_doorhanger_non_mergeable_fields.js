@@ -1,15 +1,5 @@
 "use strict";
 
-async function expectSavedAddresses(expectedCount) {
-  const addresses = await getAddresses();
-  is(
-    addresses.length,
-    expectedCount,
-    `${addresses.length} address in the storage`
-  );
-  return addresses;
-}
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -59,7 +49,7 @@ add_task(async function test_do_not_update_non_mergeable_fields() {
     }
   );
 
-  const addresses = await expectSavedAddresses(1);
+  const addresses = await expectSavedAddressesCount(1);
 
   Assert.equal(addresses[0]["given-name"], "John", `given-name is added`);
   Assert.equal(addresses[0]["family-name"], "Doe", `family-name is added`);

@@ -46,16 +46,6 @@ const TEST_CASE = [
   },
 ];
 
-async function expectSavedAddresses(expectedCount) {
-  const addresses = await getAddresses();
-  is(
-    addresses.length,
-    expectedCount,
-    `${addresses.length} address in the storage`
-  );
-  return addresses;
-}
-
 function recordToFormSelector(record) {
   let obj = {};
   for (const [key, value] of Object.entries(record)) {
@@ -76,7 +66,7 @@ add_setup(async function () {
 
 // Test different scenarios when we change something in the edit address dorhanger
 add_task(async function test_save_edited_fields() {
-  await expectSavedAddresses(0);
+  await expectSavedAddressesCount(0);
 
   for (const TEST of TEST_CASE) {
     await BrowserTestUtils.withNewTab(
@@ -108,7 +98,7 @@ add_task(async function test_save_edited_fields() {
       ...TEST.editedFields,
     });
 
-    const addresses = await expectSavedAddresses(1);
+    const addresses = await expectSavedAddressesCount(1);
     for (const [key, value] of Object.entries(expectedRecord)) {
       is(addresses[0][key] ?? "", value, `${key} field is saved`);
     }

@@ -1,22 +1,6 @@
 "use strict";
 requestLongerTimeout(3);
 
-async function expectSavedAddresses(expectedAddresses) {
-  const addresses = await getAddresses();
-  is(
-    addresses.length,
-    expectedAddresses.length,
-    `${addresses.length} address in the storage`
-  );
-
-  for (let i = 0; i < expectedAddresses.length; i++) {
-    for (const [key, value] of Object.entries(expectedAddresses[i])) {
-      is(addresses[i][key] ?? "", value, `field ${key} should be equal`);
-    }
-  }
-  return addresses;
-}
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [

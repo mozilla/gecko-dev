@@ -1107,6 +1107,29 @@ async function verifyCaptureRecord(guid, expectedRecord) {
   }
 }
 
+// Compare the saved addresses with the expected addresses.
+async function expectSavedAddresses(expectedAddresses) {
+  const addresses = await expectSavedAddressesCount(expectedAddresses.length);
+
+  for (let i = 0; i < expectedAddresses.length; i++) {
+    for (const [key, value] of Object.entries(expectedAddresses[i])) {
+      is(addresses[i][key] ?? "", value, `field ${key} should be equal`);
+    }
+  }
+  return addresses;
+}
+
+// Compare the number of saved addresses with the expected saved address count.
+async function expectSavedAddressesCount(expectedCount) {
+  const addresses = await getAddresses();
+  is(
+    addresses.length,
+    expectedCount,
+    `${addresses.length} address in the storage`
+  );
+  return addresses;
+}
+
 async function verifyPreviewResult(browser, section, expectedSection) {
   info(`Verify preview result`);
   const fieldDetails = section.fieldDetails;

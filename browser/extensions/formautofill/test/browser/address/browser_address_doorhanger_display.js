@@ -1,15 +1,5 @@
 "use strict";
 
-async function expectSavedAddresses(expectedCount) {
-  const addresses = await getAddresses();
-  is(
-    addresses.length,
-    expectedCount,
-    `${addresses.length} address in the storage`
-  );
-  return addresses;
-}
-
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
@@ -21,7 +11,7 @@ add_setup(async function () {
 });
 
 add_task(async function test_save_doorhanger_shown_no_profile() {
-  await expectSavedAddresses(0);
+  await expectSavedAddressesCount(0);
 
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: ADDRESS_FORM_URL },
@@ -44,13 +34,13 @@ add_task(async function test_save_doorhanger_shown_no_profile() {
     }
   );
 
-  await expectSavedAddresses(1);
+  await expectSavedAddressesCount(1);
   await removeAllRecords();
 });
 
 add_task(async function test_save_doorhanger_shown_different_address() {
   await setStorage(TEST_ADDRESS_1);
-  await expectSavedAddresses(1);
+  await expectSavedAddressesCount(1);
 
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: ADDRESS_FORM_URL },
@@ -71,14 +61,14 @@ add_task(async function test_save_doorhanger_shown_different_address() {
     }
   );
 
-  await expectSavedAddresses(2);
+  await expectSavedAddressesCount(2);
   await removeAllRecords();
 });
 
 add_task(
   async function test_update_doorhanger_shown_change_non_mergeable_given_name() {
     await setStorage(TEST_ADDRESS_1);
-    await expectSavedAddresses(1);
+    await expectSavedAddressesCount(1);
 
     await BrowserTestUtils.withNewTab(
       { gBrowser, url: ADDRESS_FORM_URL },
@@ -100,7 +90,7 @@ add_task(
       }
     );
 
-    await expectSavedAddresses(2);
+    await expectSavedAddressesCount(2);
     await removeAllRecords();
   }
 );
@@ -108,7 +98,7 @@ add_task(
 add_task(async function test_update_doorhanger_shown_add_email_field() {
   // TEST_ADDRESS_2 doesn't contain email field
   await setStorage(TEST_ADDRESS_2);
-  await expectSavedAddresses(1);
+  await expectSavedAddressesCount(1);
 
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: ADDRESS_FORM_URL },
@@ -129,7 +119,7 @@ add_task(async function test_update_doorhanger_shown_add_email_field() {
     }
   );
 
-  const addresses = await expectSavedAddresses(1);
+  const addresses = await expectSavedAddressesCount(1);
   is(addresses[0].email, "test@mozilla.org", "Email field is saved");
 
   await removeAllRecords();
@@ -137,7 +127,7 @@ add_task(async function test_update_doorhanger_shown_add_email_field() {
 
 add_task(async function test_doorhanger_not_shown_when_autofill_untouched() {
   await setStorage(TEST_ADDRESS_2);
-  await expectSavedAddresses(1);
+  await expectSavedAddressesCount(1);
 
   let onUsed = waitForStorageChangedEvents("notifyUsed");
   await BrowserTestUtils.withNewTab(
@@ -162,14 +152,14 @@ add_task(async function test_doorhanger_not_shown_when_autofill_untouched() {
   );
   await onUsed;
 
-  const addresses = await expectSavedAddresses(1);
+  const addresses = await expectSavedAddressesCount(1);
   is(addresses[0].timesUsed, 1, "timesUsed field set to 1");
   await removeAllRecords();
 });
 
 add_task(async function test_doorhanger_not_shown_when_fill_duplicate() {
   await setStorage(TEST_ADDRESS_4);
-  await expectSavedAddresses(1);
+  await expectSavedAddressesCount(1);
 
   let onUsed = waitForStorageChangedEvents("notifyUsed");
   await BrowserTestUtils.withNewTab(
@@ -190,7 +180,7 @@ add_task(async function test_doorhanger_not_shown_when_fill_duplicate() {
   );
   await onUsed;
 
-  const addresses = await expectSavedAddresses(1);
+  const addresses = await expectSavedAddressesCount(1);
   is(
     addresses[0]["given-name"],
     TEST_ADDRESS_4["given-name"],
@@ -203,7 +193,7 @@ add_task(async function test_doorhanger_not_shown_when_fill_duplicate() {
 add_task(
   async function test_doorhanger_not_shown_when_autofill_then_fill_everything_duplicate() {
     await setStorage(TEST_ADDRESS_2, TEST_ADDRESS_3);
-    await expectSavedAddresses(2);
+    await expectSavedAddressesCount(2);
 
     let onUsed = waitForStorageChangedEvents("notifyUsed");
     await BrowserTestUtils.withNewTab(
@@ -234,7 +224,7 @@ add_task(
     );
     await onUsed;
 
-    await expectSavedAddresses(2);
+    await expectSavedAddressesCount(2);
     await removeAllRecords();
   }
 );
