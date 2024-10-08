@@ -803,10 +803,10 @@ class BrowserRobot {
             try {
                 // Wait for the blocker to kick-in and make the cookie banner disappear
                 Log.i(TAG, "verifyCookieBannerExists: Waiting for $waitingTime ms for cookie banner to be gone")
-                itemWithResId("CybotCookiebotDialog").waitUntilGone(waitingTime)
+                itemWithResId("cookieConsentBanner").waitUntilGone(waitingTime)
                 Log.i(TAG, "verifyCookieBannerExists: Waited for $waitingTime ms for cookie banner to be gone")
                 // Assert that the blocker properly dismissed the cookie banner
-                assertUIObjectExists(itemWithResId("CybotCookiebotDialog"), exists = exists)
+                assertUIObjectExists(itemWithResId("cookieConsentBanner"), exists = exists)
 
                 break
             } catch (e: AssertionError) {

@@ -56,7 +56,7 @@ class CookieBannerBlockerTest : TestSetup() {
             }.togglePrivateBrowsingMode()
 
             navigationToolbar {
-            }.enterURLAndEnterToBrowser("voetbal24.be".toUri()) {
+            }.enterURLAndEnterToBrowser("materiel.net".toUri()) {
                 waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
                 verifyCookieBannerExists(exists = false)
                 verifyCookieBannerBlockerCFRExists(exists = true)
