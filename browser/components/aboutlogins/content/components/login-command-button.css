@@ -22,7 +22,7 @@
 }
 
 :host([data-copied]) button {
-  color: var(--in-content-success-icon-color) !important;
+  color: var(--icon-color-success) !important;
   background-color: transparent;
   opacity: 1;
   /* override common.css fading out disabled buttons */
