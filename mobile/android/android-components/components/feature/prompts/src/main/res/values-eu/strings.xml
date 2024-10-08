@@ -49,8 +49,6 @@
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">Eguneratu pasahitza?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">Gehitu erabiltzaile-izena gordetako pasahitzari?</string>
-    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_add_username_headline_2">Erabiltzaile-izena eguneratu?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
@@ -127,9 +125,10 @@
 
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Babestu zure kontuak ausaz sortutako pasahitz sendoa erabiliz. Gorde pasahitzak zure kontuan eta izan itzazu esku-eskura.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Babestu zure kontuak ausaz sortutako pasahitz sendoa erabiliz. Zure kontuan gordeko da etorkizunean erabili ahal izateko.</string>
+
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Babestu zure kontuak ausaz sortutako pasahitz sendoa erabiliz. Zure kontuan gordeko da etorkizunean erabili ahal izateko.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Babestu zure kontua ausaz sortutako pasahitz sendoa erabiliz. Zure kontuan gordeko da etorkizunean erabili ahal izateko.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Erabili pasahitza</string>
@@ -203,7 +202,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Erabili %1$s saio-hasiera hornitzaile gisa</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[%1$s hornitzailean %2$s kontuarekin saioa hastea bere <a href="%3$s">pribatutasun-politika</a> eta <a href="%4$s">zerbitzuaren baldintzen</a> menpe dago]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s hornitzailean %2$s kontuarekin saioa hastea bere <a href="%3$s">pribatutasun-politika</a> eta <a href="%4$s">zerbitzuaren baldintzen</a> menpe dago]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Jarraitu</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

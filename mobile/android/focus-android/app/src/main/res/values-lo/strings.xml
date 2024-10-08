@@ -609,6 +609,9 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">ລຶບປະຫວັດການທ່ອງເວັບ</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">ປິດແທັບອື່ນໆ</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
     <string name="download_firefox" tools:ignore="BrandUsage">ດາວໂຫລດ Firefox</string>
@@ -1121,7 +1124,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">ຫາກຕ້ອງການອອກຈາກການສະແດງເຕັມຈໍ, ໃຫ້ລາກຈາກດ້ານເທິງແລ້ວໃຊ້ທ່າທາງກັບຄືນ</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">ຫາກຕ້ອງການອອກຈາກການສະແດງເຕັມຈໍ, ໃຫ້ລາກຈາກດ້ານເທິງແລ້ວໃຊ້ທ່າທາງກັບຄືນ</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">ຫາກຕ້ອງການອອກຈາກການສະແດງເຕັມຈໍ, ໃຫ້ລາກຈາກດ້ານເທິງ ແລະ ກົດກັບຄືນ</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">ຫາກຕ້ອງການອອກຈາກການສະແດງເຕັມຈໍ, ໃຫ້ລາກຈາກດ້ານເທິງ ແລະ ກົດກັບຄືນ</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">ລາກຈາກທາງເທິງ ແລະ ໃຊ້ທ່າທາງຍ້ອນກັບຄືນເພື່ອອອກ</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">ລາກຈາກທາງເທິງ ແລະ ກົດກັບຄືນເພື່ອອອກ</string>
 </resources>
