@@ -42,7 +42,7 @@ class SymbolIteratorActor extends Actor {
         const symbol = symbols[index];
         return {
           name: symbol.toString(),
-          descriptor: propertyDescriptor(objectActor, symbol),
+          descriptor: propertyDescriptor(objectActor, symbol, 0),
         };
       },
     };

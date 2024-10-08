@@ -581,10 +581,6 @@ function createObjectGrip(
   const actor = new ActorClass(threadActor, object, {
     // custom formatters are injecting their own attributes here
     ...objectActorAttributes,
-
-    // Consider that all nested values created for that new object actor instance are immediate children attributes
-    // and so have a depth increased by 1.
-    createValueGrip: value => createValueGrip(threadActor, value, pool, depth + 1, objectActorAttributes),
   });
   pool.manage(actor);
 

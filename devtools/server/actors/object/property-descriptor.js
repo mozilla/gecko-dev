@@ -14,8 +14,12 @@ const {
  * A helper method that creates a property descriptor for the provided object,
  * properly formatted for sending in a protocol response.
  *
+ * @param ObjectActor objectActor
+ *        The object actor of the object we are current listing properties.
  * @param string name
  *        The property that the descriptor is generated for.
+ * @param {Number} depth
+ *                 Current depth in the generated preview object sent to the client.
  * @param boolean [onlyEnumerable]
  *        Optional: true if you want a descriptor only for an enumerable
  *        property, false otherwise.
@@ -23,7 +27,7 @@ const {
  *         The property descriptor, or undefined if objectActor is not an enumerable
  *         property and onlyEnumerable=true.
  */
-function propertyDescriptor(objectActor, name, onlyEnumerable) {
+function propertyDescriptor(objectActor, name, depth, onlyEnumerable) {
   if (!DevToolsUtils.isSafeDebuggerObject(objectActor.obj)) {
     return undefined;
   }
@@ -62,18 +66,18 @@ function propertyDescriptor(objectActor, name, onlyEnumerable) {
 
   if ("value" in desc) {
     retval.writable = desc.writable;
-    retval.value = objectActor.hooks.createValueGrip(desc.value);
+    retval.value = objectActor.createValueGrip(desc.value, depth);
   } else if (objectActor.threadActor.getWatchpoint(rawObj, name.toString())) {
     const watchpoint = objectActor.threadActor.getWatchpoint(rawObj, name.toString());
-    retval.value = objectActor.hooks.createValueGrip(watchpoint.desc.value);
+    retval.value = objectActor.createValueGrip(watchpoint.desc.value, depth);
     retval.watchpoint = watchpoint.watchpointType;
   } else {
     if ("get" in desc) {
-      retval.get = objectActor.hooks.createValueGrip(desc.get);
+      retval.get = objectActor.createValueGrip(desc.get, depth);
     }
 
     if ("set" in desc) {
-      retval.set = objectActor.hooks.createValueGrip(desc.set);
+      retval.set = objectActor.createValueGrip(desc.set, depth);
     }
   }
   return retval;

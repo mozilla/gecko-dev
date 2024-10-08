@@ -83,6 +83,7 @@ const {
   isArray,
   isStorage,
   isTypedArray,
+  createValueGrip,
 } = require("resource://devtools/server/actors/object/utils.js");
 
 class ObjectActor extends Actor {
@@ -97,17 +98,13 @@ class ObjectActor extends Actor {
    *        A collection of abstract methods that are implemented by the caller.
    *        ObjectActor requires the following functions to be implemented by
    *        the caller:
-   *          - createValueGrip
-   *              Creates a value grip for the given object
+   *        - {Number} customFormatterObjectTagDepth: See `processObjectTag`
+   *        - {Debugger.Object} customFormatterConfigDbgObj
    */
   constructor(
     threadActor,
     obj,
-    {
-      createValueGrip: createValueGripHook,
-      customFormatterObjectTagDepth,
-      customFormatterConfigDbgObj,
-    }
+    { customFormatterObjectTagDepth, customFormatterConfigDbgObj }
   ) {
     super(threadActor.conn, objectSpec);
 
@@ -127,7 +124,6 @@ class ObjectActor extends Actor {
     this.className = this.obj.class;
 
     this.hooks = {
-      createValueGrip: createValueGripHook,
       customFormatterObjectTagDepth,
       customFormatterConfigDbgObj,
     };
@@ -143,6 +139,20 @@ class ObjectActor extends Actor {
 
   removeWatchpoints() {
     this.threadActor.removeWatchpoint(this);
+  }
+
+  createValueGrip(value, depth) {
+    if (typeof depth != "number") {
+      throw new Error("Missing 'depth' argument to createValeuGrip()");
+    }
+    return createValueGrip(
+      this.threadActor,
+      value,
+      // Register any nested object actor in the same pool as their parent object actor
+      this.getParent(),
+      depth,
+      this.hooks
+    );
   }
 
   /**
@@ -298,9 +308,9 @@ class ObjectActor extends Actor {
     const promiseState = { state };
 
     if (state == "fulfilled") {
-      promiseState.value = this.hooks.createValueGrip(value);
+      promiseState.value = this.createValueGrip(value, 0);
     } else if (state == "rejected") {
-      promiseState.reason = this.hooks.createValueGrip(reason);
+      promiseState.reason = this.createValueGrip(reason, 0);
     }
 
     promiseState.creationTimestamp = Date.now() - this.obj.promiseLifetime;
@@ -379,21 +389,21 @@ class ObjectActor extends Actor {
     const ownSymbols = [];
 
     for (const name of names) {
-      ownProperties[name] = propertyDescriptor(this, name);
+      ownProperties[name] = propertyDescriptor(this, name, 0);
     }
 
     for (const sym of symbols) {
       ownSymbols.push({
         name: sym.toString(),
-        descriptor: propertyDescriptor(this, sym),
+        descriptor: propertyDescriptor(this, sym, 0),
       });
     }
 
     return {
-      prototype: this.hooks.createValueGrip(objProto),
+      prototype: this.createValueGrip(objProto, 0),
       ownProperties,
       ownSymbols,
-      safeGetterValues: this._findSafeGetterValues(names),
+      safeGetterValues: this._findSafeGetterValues(names, 0),
     };
   }
 
@@ -404,13 +414,15 @@ class ObjectActor extends Actor {
    * @param array ownProperties
    *        The array that holds the list of known ownProperties names for
    *        |this.obj|.
+   * @param {Number} depth
+   *                 Current depth in the generated preview object sent to the client.
    * @param number [limit=Infinity]
    *        Optional limit of getter values to find.
    * @return object
    *         An object that maps property names to safe getter descriptors as
    *         defined by the remote debugging protocol.
    */
-  _findSafeGetterValues(ownProperties, limit = Infinity) {
+  _findSafeGetterValues(ownProperties, depth, limit = Infinity) {
     const safeGetterValues = Object.create(null);
     let obj = this.obj;
     let level = 0,
@@ -478,7 +490,7 @@ class ObjectActor extends Actor {
         // WebIDL attributes specified with the LenientThis extended attribute
         // return undefined and should be ignored.
         safeGetterValues[name] = {
-          getterValue: this.hooks.createValueGrip(getterValue),
+          getterValue: this.createValueGrip(getterValue, depth),
           getterPrototypeLevel: level,
           enumerable: desc.enumerable,
           writable: level == 0 ? desc.writable : true,
@@ -580,7 +592,7 @@ class ObjectActor extends Actor {
     if (DevToolsUtils.isSafeDebuggerObject(this.obj)) {
       objProto = this.obj.proto;
     }
-    return { prototype: this.hooks.createValueGrip(objProto) };
+    return { prototype: this.createValueGrip(objProto, 0) };
   }
 
   /**
@@ -598,7 +610,7 @@ class ObjectActor extends Actor {
       );
     }
 
-    return { descriptor: propertyDescriptor(this, name) };
+    return { descriptor: propertyDescriptor(this, name, 0) };
   }
 
   /**
@@ -705,10 +717,10 @@ class ObjectActor extends Actor {
     if (value) {
       completionGrip = {};
       if ("return" in value) {
-        completionGrip.return = this.hooks.createValueGrip(value.return);
+        completionGrip.return = this.createValueGrip(value.return, 0);
       }
       if ("throw" in value) {
-        completionGrip.throw = this.hooks.createValueGrip(value.throw);
+        completionGrip.throw = this.createValueGrip(value.throw, 0);
       }
     }
 
@@ -730,8 +742,8 @@ class ObjectActor extends Actor {
       );
     }
     return {
-      proxyTarget: this.hooks.createValueGrip(this.obj.proxyTarget),
-      proxyHandler: this.hooks.createValueGrip(this.obj.proxyHandler),
+      proxyTarget: this.createValueGrip(this.obj.proxyTarget, 0),
+      proxyHandler: this.createValueGrip(this.obj.proxyHandler, 0),
     };
   }
 

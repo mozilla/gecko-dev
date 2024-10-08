@@ -60,29 +60,29 @@ class PropertyIteratorActor extends Actor {
       } else if (options.enumEntries) {
         const cls = objectActor.className;
         if (cls == "Map") {
-          this.iterator = enumMapEntries(objectActor);
+          this.iterator = enumMapEntries(objectActor, 0);
         } else if (cls == "WeakMap") {
-          this.iterator = enumWeakMapEntries(objectActor);
+          this.iterator = enumWeakMapEntries(objectActor, 0);
         } else if (cls == "Set") {
-          this.iterator = enumSetEntries(objectActor);
+          this.iterator = enumSetEntries(objectActor, 0);
         } else if (cls == "WeakSet") {
-          this.iterator = enumWeakSetEntries(objectActor);
+          this.iterator = enumWeakSetEntries(objectActor, 0);
         } else if (cls == "Storage") {
-          this.iterator = enumStorageEntries(objectActor);
+          this.iterator = enumStorageEntries(objectActor, 0);
         } else if (cls == "URLSearchParams") {
-          this.iterator = enumURLSearchParamsEntries(objectActor);
+          this.iterator = enumURLSearchParamsEntries(objectActor, 0);
         } else if (cls == "Headers") {
-          this.iterator = enumHeadersEntries(objectActor);
+          this.iterator = enumHeadersEntries(objectActor, 0);
         } else if (cls == "HighlightRegistry") {
-          this.iterator = enumHighlightRegistryEntries(objectActor);
+          this.iterator = enumHighlightRegistryEntries(objectActor, 0);
         } else if (cls == "FormData") {
-          this.iterator = enumFormDataEntries(objectActor);
+          this.iterator = enumFormDataEntries(objectActor, 0);
         } else if (cls == "MIDIInputMap") {
-          this.iterator = enumMidiInputMapEntries(objectActor);
+          this.iterator = enumMidiInputMapEntries(objectActor, 0);
         } else if (cls == "MIDIOutputMap") {
-          this.iterator = enumMidiOutputMapEntries(objectActor);
+          this.iterator = enumMidiOutputMapEntries(objectActor, 0);
         } else if (cls == "CustomStateSet") {
-          this.iterator = enumCustomStateSetEntries(objectActor);
+          this.iterator = enumCustomStateSetEntries(objectActor, 0);
         } else {
           throw new Error(
             "Unsupported class to enumerate entries from: " + cls
@@ -93,9 +93,9 @@ class PropertyIteratorActor extends Actor {
         options.ignoreNonIndexedProperties &&
         !options.query
       ) {
-        this.iterator = enumArrayProperties(objectActor, options);
+        this.iterator = enumArrayProperties(objectActor, options, 0);
       } else {
-        this.iterator = enumObjectProperties(objectActor, options);
+        this.iterator = enumObjectProperties(objectActor, options, 0);
       }
     }
 
@@ -143,26 +143,27 @@ function unwaiveXrays(obj) {
 /**
  * Helper function to create a grip from a Map/Set entry
  */
-function gripFromEntry({ obj, hooks }, entry) {
+function gripFromEntry(objectActor, entry, depth) {
   entry = unwaiveXrays(entry);
-  return hooks.createValueGrip(
-    ObjectUtils.makeDebuggeeValueIfNeeded(obj, entry)
+  return objectActor.createValueGrip(
+    ObjectUtils.makeDebuggeeValueIfNeeded(objectActor.obj, entry),
+    depth
   );
 }
 
-function enumArrayProperties(objectActor, options) {
+function enumArrayProperties(objectActor, options, depth) {
   return {
     size: ObjectUtils.getArrayLength(objectActor.obj),
     propertyName(index) {
       return index;
     },
     propertyDescription(index) {
-      return propertyDescriptor(objectActor, index);
+      return propertyDescriptor(objectActor, index, depth);
     },
   };
 }
 
-function enumObjectProperties(objectActor, options) {
+function enumObjectProperties(objectActor, options, depth) {
   let names = [];
   try {
     names = objectActor.obj.getOwnPropertyNames();
@@ -213,7 +214,7 @@ function enumObjectProperties(objectActor, options) {
     }
   }
 
-  const safeGetterValues = objectActor._findSafeGetterValues(names);
+  const safeGetterValues = objectActor._findSafeGetterValues(names, depth);
   const safeGetterNames = Object.keys(safeGetterValues);
   // Merge the safe getter values into the existing properties list.
   for (const name of safeGetterNames) {
@@ -256,7 +257,7 @@ function enumObjectProperties(objectActor, options) {
     },
     propertyDescription(index) {
       const name = names[index];
-      let desc = propertyDescriptor(objectActor, name);
+      let desc = propertyDescriptor(objectActor, name, depth);
       if (!desc) {
         desc = safeGetterValues[name];
       } else if (name in safeGetterValues) {
@@ -294,13 +295,13 @@ function getMapEntries(objectActor) {
   });
 }
 
-function enumMapEntries(objectActor) {
+function enumMapEntries(objectActor, depth) {
   const entries = getMapEntries(objectActor);
 
   return {
     [Symbol.iterator]: function*() {
       for (const [key, value] of entries) {
-        yield [key, value].map(val => gripFromEntry(objectActor, val));
+        yield [key, value].map(val => gripFromEntry(objectActor, val, depth));
       }
     },
     size: entries.length,
@@ -314,8 +315,8 @@ function enumMapEntries(objectActor) {
         value: {
           type: "mapEntry",
           preview: {
-            key: gripFromEntry(objectActor, key),
-            value: gripFromEntry(objectActor, val),
+            key: gripFromEntry(objectActor, key, depth),
+            value: gripFromEntry(objectActor, val, depth),
           },
         },
       };
@@ -323,7 +324,7 @@ function enumMapEntries(objectActor) {
   };
 }
 
-function enumStorageEntries(objectActor) {
+function enumStorageEntries(objectActor, depth) {
   // Iterating over local / sessionStorage entries goes through various
   // intermediate objects - an Iterator object, then a 2-element Array object,
   // then the actual values we care about. We don't have Xrays to Iterator
@@ -337,7 +338,7 @@ function enumStorageEntries(objectActor) {
     [Symbol.iterator]: function*() {
       for (const key of keys) {
         const value = rawObj.getItem(key);
-        yield [key, value].map(val => gripFromEntry(objectActor, val));
+        yield [key, value].map(val => gripFromEntry(objectActor, val, depth));
       }
     },
     size: keys.length,
@@ -352,8 +353,8 @@ function enumStorageEntries(objectActor) {
         value: {
           type: "storageEntry",
           preview: {
-            key: gripFromEntry(objectActor, key),
-            value: gripFromEntry(objectActor, val),
+            key: gripFromEntry(objectActor, key, depth),
+            value: gripFromEntry(objectActor, val, depth),
           },
         },
       };
@@ -361,7 +362,7 @@ function enumStorageEntries(objectActor) {
   };
 }
 
-function enumURLSearchParamsEntries(objectActor) {
+function enumURLSearchParamsEntries(objectActor, depth) {
   const entries = [...waiveXrays(URLSearchParams.prototype.entries.call(objectActor.rawObj))];
 
   return {
@@ -384,8 +385,8 @@ function enumURLSearchParamsEntries(objectActor) {
         value: {
           type: "urlSearchParamsEntry",
           preview: {
-            key: gripFromEntry(objectActor, key),
-            value: gripFromEntry(objectActor, value),
+            key: gripFromEntry(objectActor, key, depth),
+            value: gripFromEntry(objectActor, value, depth),
           },
         },
       };
@@ -393,7 +394,7 @@ function enumURLSearchParamsEntries(objectActor) {
   };
 }
 
-function enumFormDataEntries(objectActor) {
+function enumFormDataEntries(objectActor, depth) {
   const entries = [...waiveXrays(FormData.prototype.entries.call(objectActor.rawObj))];
 
   return {
@@ -414,8 +415,8 @@ function enumFormDataEntries(objectActor) {
         value: {
           type: "formDataEntry",
           preview: {
-            key: gripFromEntry(objectActor, key),
-            value: gripFromEntry(objectActor, value),
+            key: gripFromEntry(objectActor, key, depth),
+            value: gripFromEntry(objectActor, value, depth),
           },
         },
       };
@@ -423,7 +424,7 @@ function enumFormDataEntries(objectActor) {
   };
 }
 
-function enumHeadersEntries(objectActor) {
+function enumHeadersEntries(objectActor, depth) {
   const entries = [...waiveXrays(Headers.prototype.entries.call(objectActor.rawObj))];
 
   return {
@@ -439,13 +440,13 @@ function enumHeadersEntries(objectActor) {
     propertyDescription(index) {
       return {
         enumerable: true,
-        value: gripFromEntry(objectActor, entries[index][1]),
+        value: gripFromEntry(objectActor, entries[index][1], depth),
       };
     },
   };
 }
 
-function enumHighlightRegistryEntries(objectActor) {
+function enumHighlightRegistryEntries(objectActor, depth) {
   const entriesFuncDbgObj = objectActor.obj.getProperty("entries").return;
   const entriesDbgObj = entriesFuncDbgObj ? entriesFuncDbgObj.call(objectActor.obj).return : null;
   const entries = entriesDbgObj
@@ -455,7 +456,7 @@ function enumHighlightRegistryEntries(objectActor) {
   return {
     [Symbol.iterator]: function*() {
       for (const [key, value] of entries) {
-        yield [key, gripFromEntry(objectActor, value)];
+        yield [key, gripFromEntry(objectActor, value, depth)];
       }
     },
     size: entries.length,
@@ -470,7 +471,7 @@ function enumHighlightRegistryEntries(objectActor) {
           type: "highlightRegistryEntry",
           preview: {
             key: key,
-            value: gripFromEntry(objectActor, value),
+            value: gripFromEntry(objectActor, value, depth),
           },
         },
       };
@@ -478,7 +479,7 @@ function enumHighlightRegistryEntries(objectActor) {
   };
 }
 
-function enumMidiInputMapEntries(objectActor) {
+function enumMidiInputMapEntries(objectActor, depth) {
   // We need to waive `rawObj` as we can't get the iterator from the Xray for MapLike (See Bug 1173651).
   // We also need to waive Xrays on the result of the call to `entries` as we don't have
   // Xrays to Iterator objects (see Bug 1023984)
@@ -489,7 +490,7 @@ function enumMidiInputMapEntries(objectActor) {
   return {
     [Symbol.iterator]: function*() {
       for (const [key, value] of entries) {
-        yield [key, gripFromEntry(objectActor, value)];
+        yield [key, gripFromEntry(objectActor, value, depth)];
       }
     },
     size: entries.length,
@@ -499,13 +500,13 @@ function enumMidiInputMapEntries(objectActor) {
     propertyDescription(index) {
       return {
         enumerable: true,
-        value: gripFromEntry(objectActor, entries[index][1]),
+        value: gripFromEntry(objectActor, entries[index][1], depth),
       };
     },
   };
 }
 
-function enumMidiOutputMapEntries(objectActor) {
+function enumMidiOutputMapEntries(objectActor, depth) {
   // We need to waive `rawObj` as we can't get the iterator from the Xray for MapLike (See Bug 1173651).
   // We also need to waive Xrays on the result of the call to `entries` as we don't have
   // Xrays to Iterator objects (see Bug 1023984)
@@ -516,7 +517,7 @@ function enumMidiOutputMapEntries(objectActor) {
   return {
     [Symbol.iterator]: function*() {
       for (const [key, value] of entries) {
-        yield [key, gripFromEntry(objectActor, value)];
+        yield [key, gripFromEntry(objectActor, value, depth)];
       }
     },
     size: entries.length,
@@ -526,7 +527,7 @@ function enumMidiOutputMapEntries(objectActor) {
     propertyDescription(index) {
       return {
         enumerable: true,
-        value: gripFromEntry(objectActor, entries[index][1]),
+        value: gripFromEntry(objectActor, entries[index][1], depth),
       };
     },
   };
@@ -548,13 +549,13 @@ function getWeakMapEntries(rawObj) {
   return keys.map(k => [k, WeakMap.prototype.get.call(rawObj, k)]);
 }
 
-function enumWeakMapEntries(objectActor) {
+function enumWeakMapEntries(objectActor, depth) {
   const entries = getWeakMapEntries(objectActor.rawObj);
 
   return {
     [Symbol.iterator]: function*() {
       for (let i = 0; i < entries.length; i++) {
-        yield entries[i].map(val => gripFromEntry(objectActor, val));
+        yield entries[i].map(val => gripFromEntry(objectActor, val, depth));
       }
     },
     size: entries.length,
@@ -568,8 +569,8 @@ function enumWeakMapEntries(objectActor) {
         value: {
           type: "mapEntry",
           preview: {
-            key: gripFromEntry(objectActor, key),
-            value: gripFromEntry(objectActor, val),
+            key: gripFromEntry(objectActor, key, depth),
+            value: gripFromEntry(objectActor, val, depth),
           },
         },
       };
@@ -594,7 +595,7 @@ function getSetValues(objectActor) {
   return [...DevToolsUtils.makeDebuggeeIterator(iterator)];
 }
 
-function enumSetEntries(objectActor) {
+function enumSetEntries(objectActor, depth) {
   const values = getSetValues(objectActor).map(v =>
     waiveXrays(ObjectUtils.unwrapDebuggeeValue(v))
   );
@@ -602,7 +603,7 @@ function enumSetEntries(objectActor) {
   return {
     [Symbol.iterator]: function*() {
       for (const item of values) {
-        yield gripFromEntry(objectActor, item);
+        yield gripFromEntry(objectActor, item, depth);
       }
     },
     size: values.length,
@@ -613,7 +614,7 @@ function enumSetEntries(objectActor) {
       const val = values[index];
       return {
         enumerable: true,
-        value: gripFromEntry(objectActor, val),
+        value: gripFromEntry(objectActor, val, depth),
       };
     },
   };
@@ -633,13 +634,13 @@ function getWeakSetEntries(rawObj) {
   return waiveXrays(ChromeUtils.nondeterministicGetWeakSetKeys(rawObj));
 }
 
-function enumWeakSetEntries(objectActor) {
+function enumWeakSetEntries(objectActor, depth) {
   const keys = getWeakSetEntries(objectActor.rawObj);
 
   return {
     [Symbol.iterator]: function*() {
       for (const item of keys) {
-        yield gripFromEntry(objectActor, item);
+        yield gripFromEntry(objectActor, item, depth);
       }
     },
     size: keys.length,
@@ -650,13 +651,13 @@ function enumWeakSetEntries(objectActor) {
       const val = keys[index];
       return {
         enumerable: true,
-        value: gripFromEntry(objectActor, val),
+        value: gripFromEntry(objectActor, val, depth),
       };
     },
   };
 }
 
-function enumCustomStateSetEntries(objectActor) {
+function enumCustomStateSetEntries(objectActor, depth) {
   let { rawObj } = objectActor;
   // We need to waive `rawObj` as we can't get the iterator from the Xray for SetLike (See Bug 1173651).
   // We also need to waive Xrays on the result of the call to `values` as we don't have
@@ -668,7 +669,7 @@ function enumCustomStateSetEntries(objectActor) {
   return {
     [Symbol.iterator]: function*() {
       for (const item of values) {
-        yield gripFromEntry(objectActor, item);
+        yield gripFromEntry(objectActor, item, depth);
       }
     },
     size: values.length,
@@ -679,7 +680,7 @@ function enumCustomStateSetEntries(objectActor) {
       const val = values[index];
       return {
         enumerable: true,
-        value: gripFromEntry(objectActor, val),
+        value: gripFromEntry(objectActor, val, depth),
       };
     },
   };

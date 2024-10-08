@@ -120,7 +120,8 @@ const previewers = {
   ],
 
   Function: [
-    function({ obj, hooks }, grip, depth) {
+    function(objectActor, grip, depth) {
+      const { obj } = objectActor;
       if (obj.name) {
         grip.name = obj.name;
       }
@@ -148,7 +149,7 @@ const previewers = {
         typeof userDisplayName.value == "string" &&
         userDisplayName.value
       ) {
-        grip.userDisplayName = hooks.createValueGrip(userDisplayName.value);
+        grip.userDisplayName = objectActor.createValueGrip(userDisplayName.value, depth);
       }
 
       grip.isAsync = obj.isAsyncFunction;
@@ -195,7 +196,7 @@ const previewers = {
         return false;
       }
 
-      grip.displayString = objectActor.hooks.createValueGrip(str);
+      grip.displayString = objectActor.createValueGrip(str, depth);
       return true;
     },
   ],
@@ -219,15 +220,15 @@ const previewers = {
       }
 
       grip.preview = {
-        timestamp: objectActor.hooks.createValueGrip(time),
+        timestamp: objectActor.createValueGrip(time, depth),
       };
       return true;
     },
   ],
 
   Array: [
-    function({ obj, rawObj, hooks }, grip, depth) {
-      const length = ObjectUtils.getArrayLength(obj);
+    function(objectActor, grip, depth) {
+      const length = ObjectUtils.getArrayLength(objectActor.obj);
 
       grip.preview = {
         kind: "ArrayLike",
@@ -238,6 +239,7 @@ const previewers = {
         return true;
       }
 
+      const { obj, rawObj } = objectActor;
       const items = (grip.preview.items = []);
 
       for (let i = 0; i < length; ++i) {
@@ -252,7 +254,7 @@ const previewers = {
           if (desc && !desc.get && !desc.set) {
             let value = Cu.unwaiveXrays(desc.value);
             value = ObjectUtils.makeDebuggeeValueIfNeeded(obj, value);
-            items.push(hooks.createValueGrip(value));
+            items.push(objectActor.createValueGrip(value, depth));
           } else if (!desc) {
             items.push(null);
           } else {
@@ -260,12 +262,12 @@ const previewers = {
             if (desc.get) {
               let getter = Cu.unwaiveXrays(desc.get);
               getter = ObjectUtils.makeDebuggeeValueIfNeeded(obj, getter);
-              item.get = hooks.createValueGrip(getter);
+              item.get = objectActor.createValueGrip(getter, depth);
             }
             if (desc.set) {
               let setter = Cu.unwaiveXrays(desc.set);
               setter = ObjectUtils.makeDebuggeeValueIfNeeded(obj, setter);
-              item.set = hooks.createValueGrip(setter);
+              item.set = objectActor.createValueGrip(setter, depth);
             }
             items.push(item);
           }
@@ -274,7 +276,7 @@ const previewers = {
         } else {
           // Workers do not have access to Cu.
           const value = DevToolsUtils.getProperty(obj, i);
-          items.push(hooks.createValueGrip(value));
+          items.push(objectActor.createValueGrip(value, depth));
         }
 
         if (items.length == OBJECT_PREVIEW_MAX_ITEMS) {
@@ -304,7 +306,7 @@ const previewers = {
       }
 
       const items = (grip.preview.items = []);
-      for (const item of PropertyIterators.enumSetEntries(objectActor)) {
+      for (const item of PropertyIterators.enumSetEntries(objectActor, depth)) {
         items.push(item);
         if (items.length == OBJECT_PREVIEW_MAX_ITEMS) {
           break;
@@ -317,7 +319,7 @@ const previewers = {
 
   WeakSet: [
     function(objectActor, grip, depth) {
-      const enumEntries = PropertyIterators.enumWeakSetEntries(objectActor);
+      const enumEntries = PropertyIterators.enumWeakSetEntries(objectActor, depth);
 
       grip.preview = {
         kind: "ArrayLike",
@@ -358,7 +360,7 @@ const previewers = {
       }
 
       const entries = (grip.preview.entries = []);
-      for (const entry of PropertyIterators.enumMapEntries(objectActor)) {
+      for (const entry of PropertyIterators.enumMapEntries(objectActor, depth)) {
         entries.push(entry);
         if (entries.length == OBJECT_PREVIEW_MAX_ITEMS) {
           break;
@@ -371,7 +373,7 @@ const previewers = {
 
   WeakMap: [
     function(objectActor, grip, depth) {
-      const enumEntries = PropertyIterators.enumWeakMapEntries(objectActor);
+      const enumEntries = PropertyIterators.enumWeakMapEntries(objectActor, depth);
 
       grip.preview = {
         kind: "MapLike",
@@ -396,7 +398,7 @@ const previewers = {
 
   URLSearchParams: [
     function(objectActor, grip, depth) {
-      const enumEntries = PropertyIterators.enumURLSearchParamsEntries(objectActor);
+      const enumEntries = PropertyIterators.enumURLSearchParamsEntries(objectActor, depth);
 
       grip.preview = {
         kind: "MapLike",
@@ -421,7 +423,7 @@ const previewers = {
 
   FormData: [
     function(objectActor, grip, depth) {
-      const enumEntries = PropertyIterators.enumFormDataEntries(objectActor);
+      const enumEntries = PropertyIterators.enumFormDataEntries(objectActor, depth);
 
       grip.preview = {
         kind: "MapLike",
@@ -450,7 +452,7 @@ const previewers = {
       if (isWorker) {
         return false;
       }
-      const enumEntries = PropertyIterators.enumHeadersEntries(objectActor);
+      const enumEntries = PropertyIterators.enumHeadersEntries(objectActor, depth);
 
       grip.preview = {
         kind: "MapLike",
@@ -476,7 +478,7 @@ const previewers = {
 
   HighlightRegistry: [
     function(objectActor, grip, depth) {
-      const enumEntries = PropertyIterators.enumHighlightRegistryEntries(objectActor);
+      const enumEntries = PropertyIterators.enumHighlightRegistryEntries(objectActor, depth);
 
       grip.preview = {
         kind: "MapLike",
@@ -502,7 +504,8 @@ const previewers = {
   MIDIInputMap: [
     function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumMidiInputMapEntries(
-        objectActor
+        objectActor,
+        depth
       );
 
       grip.preview = {
@@ -529,7 +532,8 @@ const previewers = {
   MIDIOutputMap: [
     function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumMidiOutputMapEntries(
-        objectActor
+        objectActor,
+        depth
       );
 
       grip.preview = {
@@ -554,7 +558,8 @@ const previewers = {
   ],
 
   DOMStringMap: [
-    function({ obj, hooks, safeRawObj }, grip, depth) {
+    function(objectActor, grip, depth) {
+      const { obj, safeRawObj } = objectActor;
       if (!safeRawObj) {
         return false;
       }
@@ -572,7 +577,7 @@ const previewers = {
       const entries = (grip.preview.entries = []);
       for (const key of keys) {
         const value = ObjectUtils.makeDebuggeeValueIfNeeded(obj, safeRawObj[key]);
-        entries.push([key, hooks.createValueGrip(value)]);
+        entries.push([key, objectActor.createValueGrip(value, depth)]);
         if (entries.length == OBJECT_PREVIEW_MAX_ITEMS) {
           break;
         }
@@ -583,8 +588,8 @@ const previewers = {
   ],
 
   Promise: [
-    function({ obj, hooks }, grip, depth) {
-      const { state, value, reason } = ObjectUtils.getPromiseState(obj);
+    function(objectActor, grip, depth) {
+      const { state, value, reason } = ObjectUtils.getPromiseState(objectActor.obj);
       const ownProperties = Object.create(null);
       ownProperties["<state>"] = { value: state };
       let ownPropertiesLength = 1;
@@ -593,10 +598,10 @@ const previewers = {
       // <state> is not problematic because it's a string.
       if (depth === 1) {
         if (state == "fulfilled") {
-          ownProperties["<value>"] = { value: hooks.createValueGrip(value) };
+          ownProperties["<value>"] = { value: objectActor.createValueGrip(value, depth) };
           ++ownPropertiesLength;
         } else if (state == "rejected") {
-          ownProperties["<reason>"] = { value: hooks.createValueGrip(reason) };
+          ownProperties["<reason>"] = { value: objectActor.createValueGrip(reason, depth) };
           ++ownPropertiesLength;
         }
       }
@@ -612,12 +617,14 @@ const previewers = {
   ],
 
   Proxy: [
-    function({ obj, hooks }, grip, depth) {
+    function(objectActor, grip, depth) {
       // Only preview top-level proxies, avoiding recursion. Otherwise, since both the
       // target and handler can also be proxies, we could get an exponential behavior.
       if (depth > 1) {
         return true;
       }
+
+      const { obj } = objectActor;
 
       // The `isProxy` getter of the debuggee object only detects proxies without
       // security wrappers. If false, the target and handler are not available.
@@ -631,8 +638,8 @@ const previewers = {
 
       if (hasTargetAndHandler) {
         Object.assign(grip.preview.ownProperties, {
-          "<target>": { value: hooks.createValueGrip(obj.proxyTarget) },
-          "<handler>": { value: hooks.createValueGrip(obj.proxyHandler) },
+          "<target>": { value: objectActor.createValueGrip(obj.proxyTarget, depth) },
+          "<handler>": { value: objectActor.createValueGrip(obj.proxyHandler, depth) },
         });
       }
 
@@ -653,7 +660,7 @@ const previewers = {
       };
 
       const items = (grip.preview.items = []);
-      for (const item of PropertyIterators.enumCustomStateSetEntries(objectActor)) {
+      for (const item of PropertyIterators.enumCustomStateSetEntries(objectActor, depth)) {
         items.push(item);
         if (items.length == OBJECT_PREVIEW_MAX_ITEMS) {
           break;
@@ -700,15 +707,14 @@ function wrappedPrimitivePreviewer(
     return false;
   }
 
-  const { obj, hooks } = objectActor;
-
   const canHandle = GenericObject(objectActor, grip, depth);
   if (!canHandle) {
     return false;
   }
 
-  grip.preview.wrappedValue = hooks.createValueGrip(
-    ObjectUtils.makeDebuggeeValueIfNeeded(obj, v)
+  grip.preview.wrappedValue = objectActor.createValueGrip(
+    ObjectUtils.makeDebuggeeValueIfNeeded(objectActor.obj, v),
+    depth
   );
   return true;
 }
@@ -723,7 +729,7 @@ function wrappedPrimitivePreviewer(
  * @returns
  */
 function GenericObject(objectActor, grip, depth) {
-  const { obj, hooks, safeRawObj } = objectActor;
+  const { obj, safeRawObj } = objectActor;
   if (grip.preview || grip.displayString || depth > 1) {
     return false;
   }
@@ -754,7 +760,7 @@ function GenericObject(objectActor, grip, depth) {
       }
     }
 
-    const desc = propertyDescriptor(objectActor, name, true);
+    const desc = propertyDescriptor(objectActor, name, depth, true);
     if (!desc) {
       continue;
     }
@@ -784,7 +790,7 @@ function GenericObject(objectActor, grip, depth) {
       ) {
         continue;
       }
-      const descriptor = propertyDescriptor(objectActor, privateProperty);
+      const descriptor = propertyDescriptor(objectActor, privateProperty, depth);
       if (!descriptor) {
         continue;
       }
@@ -794,7 +800,7 @@ function GenericObject(objectActor, grip, depth) {
           {
             descriptor,
           },
-          hooks.createValueGrip(privateProperty)
+          objectActor.createValueGrip(privateProperty, depth)
         )
       );
 
@@ -814,7 +820,7 @@ function GenericObject(objectActor, grip, depth) {
     preview.ownSymbols = [];
 
     for (const symbol of symbols) {
-      const descriptor = propertyDescriptor(objectActor, symbol, true);
+      const descriptor = propertyDescriptor(objectActor, symbol, depth, true);
       if (!descriptor) {
         continue;
       }
@@ -824,7 +830,7 @@ function GenericObject(objectActor, grip, depth) {
           {
             descriptor,
           },
-          hooks.createValueGrip(symbol)
+          objectActor.createValueGrip(symbol, depth)
         )
       );
 
@@ -840,6 +846,7 @@ function GenericObject(objectActor, grip, depth) {
 
   const safeGetterValues = objectActor._findSafeGetterValues(
     Object.keys(preview.ownProperties),
+    depth,
     OBJECT_PREVIEW_MAX_ITEMS - i
   );
   if (Object.keys(safeGetterValues).length) {
@@ -886,7 +893,7 @@ previewers.Object = [
       return false;
     }
 
-    const { hooks, obj } = objectActor;
+    const { obj } = objectActor;
 
     // The name and/or message could be getters, and even if it's unsafe, we do want
     // to show it to the user (See Bug 1710694).
@@ -899,18 +906,19 @@ previewers.Object = [
 
     grip.preview = {
       kind: "Error",
-      name: hooks.createValueGrip(name),
-      message: hooks.createValueGrip(msg),
-      stack: hooks.createValueGrip(stack),
-      fileName: hooks.createValueGrip(fileName),
-      lineNumber: hooks.createValueGrip(lineNumber),
-      columnNumber: hooks.createValueGrip(columnNumber),
+      name: objectActor.createValueGrip(name, depth),
+      message: objectActor.createValueGrip(msg, depth),
+      stack: objectActor.createValueGrip(stack, depth),
+      fileName: objectActor.createValueGrip(fileName, depth),
+      lineNumber: objectActor.createValueGrip(lineNumber, depth),
+      columnNumber: objectActor.createValueGrip(columnNumber, depth),
     };
 
     const errorHasCause = obj.getOwnPropertyNames().includes("cause");
     if (errorHasCause) {
-      grip.preview.cause = hooks.createValueGrip(
-        DevToolsUtils.getProperty(obj, "cause", true)
+      grip.preview.cause = objectActor.createValueGrip(
+        DevToolsUtils.getProperty(obj, "cause", true),
+        depth
       );
     }
 
@@ -922,10 +930,9 @@ previewers.Object = [
     if (!safeRawObj || objectActor.className != "CSSMediaRule" || isWorker) {
       return false;
     }
-    const { hooks } = objectActor;
     grip.preview = {
       kind: "ObjectWithText",
-      text: hooks.createValueGrip(safeRawObj.conditionText),
+      text: objectActor.createValueGrip(safeRawObj.conditionText, depth),
     };
     return true;
   },
@@ -935,10 +942,9 @@ previewers.Object = [
     if (!safeRawObj || objectActor.className != "CSSStyleRule" || isWorker) {
       return false;
     }
-    const { hooks } = objectActor;
     grip.preview = {
       kind: "ObjectWithText",
-      text: hooks.createValueGrip(safeRawObj.selectorText),
+      text: objectActor.createValueGrip(safeRawObj.selectorText, depth),
     };
     return true;
   },
@@ -953,8 +959,6 @@ previewers.Object = [
     if (!OBJECT_WITH_URL_CLASSNAMES.has(objectActor.className) && !isWindow) {
       return false;
     }
-
-    const { hooks } = objectActor;
 
     let url;
     if (isWindow && safeRawObj.location) {
@@ -975,7 +979,7 @@ previewers.Object = [
 
     grip.preview = {
       kind: "ObjectWithURL",
-      url: hooks.createValueGrip(url),
+      url: objectActor.createValueGrip(url, depth),
     };
 
     return true;
@@ -992,7 +996,6 @@ previewers.Object = [
       return false;
     }
 
-    const { obj, hooks } = objectActor;
     grip.preview = {
       kind: "ArrayLike",
       length: safeRawObj.length,
@@ -1009,8 +1012,8 @@ previewers.Object = [
       i < safeRawObj.length && items.length < OBJECT_PREVIEW_MAX_ITEMS;
       i++
     ) {
-      const value = ObjectUtils.makeDebuggeeValueIfNeeded(obj, safeRawObj[i]);
-      items.push(hooks.createValueGrip(value));
+      const value = ObjectUtils.makeDebuggeeValueIfNeeded(objectActor.obj, safeRawObj[i]);
+      items.push(objectActor.createValueGrip(value, depth));
     }
 
     return true;
@@ -1026,7 +1029,6 @@ previewers.Object = [
       return false;
     }
 
-    const { hooks } = objectActor;
     grip.preview = {
       kind: "MapLike",
       size: safeRawObj.length,
@@ -1037,7 +1039,7 @@ previewers.Object = [
     for (let i = 0; i < OBJECT_PREVIEW_MAX_ITEMS && i < safeRawObj.length; i++) {
       const prop = safeRawObj[i];
       const value = safeRawObj.getPropertyValue(prop);
-      entries.push([prop, hooks.createValueGrip(value)]);
+      entries.push([prop, objectActor.createValueGrip(value, depth)]);
     }
 
     return true;
@@ -1054,7 +1056,7 @@ previewers.Object = [
       return false;
     }
 
-    const { obj, className, hooks } = objectActor;
+    const { obj, className } = objectActor;
 
     const preview = (grip.preview = {
       kind: "DOMNode",
@@ -1064,14 +1066,14 @@ previewers.Object = [
     });
 
     if (safeRawObj.nodeType == safeRawObj.DOCUMENT_NODE && safeRawObj.location) {
-      preview.location = hooks.createValueGrip(safeRawObj.location.href);
+      preview.location = objectActor.createValueGrip(safeRawObj.location.href, depth);
     } else if (className == "DocumentFragment") {
       preview.childNodesLength = safeRawObj.childNodes.length;
 
       if (depth < 2) {
         preview.childNodes = [];
         for (const node of safeRawObj.childNodes) {
-          const actor = hooks.createValueGrip(obj.makeDebuggeeValue(node));
+          const actor = objectActor.createValueGrip(obj.makeDebuggeeValue(node), depth);
           preview.childNodes.push(actor);
           if (preview.childNodes.length == OBJECT_PREVIEW_MAX_ITEMS) {
             break;
@@ -1091,16 +1093,16 @@ previewers.Object = [
       preview.attributes = {};
       preview.attributesLength = safeRawObj.attributes.length;
       for (const attr of safeRawObj.attributes) {
-        preview.attributes[attr.nodeName] = hooks.createValueGrip(attr.value);
+        preview.attributes[attr.nodeName] = objectActor.createValueGrip(attr.value, depth);
       }
     } else if (className == "Attr") {
-      preview.value = hooks.createValueGrip(safeRawObj.value);
+      preview.value = objectActor.createValueGrip(safeRawObj.value, depth);
     } else if (
       className == "Text" ||
       className == "CDATASection" ||
       className == "Comment"
     ) {
-      preview.textContent = hooks.createValueGrip(safeRawObj.textContent);
+      preview.textContent = objectActor.createValueGrip(safeRawObj.textContent, depth);
     }
 
     return true;
@@ -1112,7 +1114,7 @@ previewers.Object = [
       return false;
     }
 
-    const { obj, className, hooks } = objectActor;
+    const { obj, className } = objectActor;
     const preview = (grip.preview = {
       kind: "DOMEvent",
       type: safeRawObj.type,
@@ -1121,7 +1123,7 @@ previewers.Object = [
 
     if (depth < 2) {
       const target = obj.makeDebuggeeValue(safeRawObj.target);
-      preview.target = hooks.createValueGrip(target);
+      preview.target = objectActor.createValueGrip(target, depth);
     }
 
     if (className == "KeyboardEvent") {
@@ -1141,7 +1143,7 @@ previewers.Object = [
         }
         value = obj.makeDebuggeeValue(value);
       }
-      preview.properties[prop] = hooks.createValueGrip(value);
+      preview.properties[prop] = objectActor.createValueGrip(value, depth);
     }
 
     // Add any properties we find on the event object.
@@ -1163,7 +1165,7 @@ previewers.Object = [
           }
           value = obj.makeDebuggeeValue(value);
         }
-        preview.properties[prop] = hooks.createValueGrip(value);
+        preview.properties[prop] = objectActor.createValueGrip(value, depth);
         if (++i == OBJECT_PREVIEW_MAX_ITEMS) {
           break;
         }
@@ -1179,17 +1181,16 @@ previewers.Object = [
       return false;
     }
 
-    const { hooks } = objectActor;
     grip.preview = {
       kind: "DOMException",
-      name: hooks.createValueGrip(safeRawObj.name),
-      message: hooks.createValueGrip(safeRawObj.message),
-      code: hooks.createValueGrip(safeRawObj.code),
-      result: hooks.createValueGrip(safeRawObj.result),
-      filename: hooks.createValueGrip(safeRawObj.filename),
-      lineNumber: hooks.createValueGrip(safeRawObj.lineNumber),
-      columnNumber: hooks.createValueGrip(safeRawObj.columnNumber),
-      stack: hooks.createValueGrip(safeRawObj.stack),
+      name: objectActor.createValueGrip(safeRawObj.name, depth),
+      message: objectActor.createValueGrip(safeRawObj.message, depth),
+      code: objectActor.createValueGrip(safeRawObj.code, depth),
+      result: objectActor.createValueGrip(safeRawObj.result, depth),
+      filename: objectActor.createValueGrip(safeRawObj.filename, depth),
+      lineNumber: objectActor.createValueGrip(safeRawObj.lineNumber, depth),
+      columnNumber: objectActor.createValueGrip(safeRawObj.columnNumber, depth),
+      stack: objectActor.createValueGrip(safeRawObj.stack, depth),
     };
 
     return true;
