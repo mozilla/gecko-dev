@@ -394,21 +394,26 @@ class VendorManifest(MozbuildObject):
         for pattern in patterns:
             pattern_full_path = mozpath.join(directory, pattern)
             # If pattern is a directory recursively add contents of directory
+            # Sort the list to ensure we preserve 01_, 02_ ordering
             if os.path.isdir(pattern_full_path):
                 # Append double asterisk to the end to make glob.iglob recursively match
                 # contents of directory
                 paths.extend(
-                    iglob_hidden(mozpath.join(pattern_full_path, "**"), recursive=True)
+                    sorted(
+                        iglob_hidden(
+                            mozpath.join(pattern_full_path, "**"), recursive=True
+                        )
+                    )
                 )
             # Otherwise pattern is a file or wildcard expression so add it without altering it
+            # Sort the list to ensure we preserve 01_, 02_ ordering for e.g. *.patch globs
             else:
-                paths.extend(iglob_hidden(pattern_full_path, recursive=True))
+                paths.extend(sorted(iglob_hidden(pattern_full_path, recursive=True)))
         # Remove folder names from list of paths in order to avoid prematurely
         # truncating directories elsewhere
-        # Sort the final list to ensure we preserve 01_, 02_ ordering for e.g. *.patch globs
-        final_paths = sorted(
-            [mozpath.normsep(path) for path in paths if not os.path.isdir(path)]
-        )
+        final_paths = [
+            mozpath.normsep(path) for path in paths if not os.path.isdir(path)
+        ]
         return final_paths
 
     def fetch_and_unpack(self, revision):
