@@ -76,6 +76,7 @@ if CONFIG['OS_TARGET'] == 'Linux':
 SOURCES += [
     '../../third_party/dav1d/src/cdf.c',
     '../../third_party/dav1d/src/cpu.c',
+    '../../third_party/dav1d/src/ctx.c',
     '../../third_party/dav1d/src/data.c',
     '../../third_party/dav1d/src/decode.c',
     '../../third_party/dav1d/src/dequant_tables.c',
