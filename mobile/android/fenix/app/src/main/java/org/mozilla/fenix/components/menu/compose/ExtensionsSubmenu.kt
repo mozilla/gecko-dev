@@ -82,6 +82,10 @@ internal fun ExtensionsSubmenu(
         if (webExtensionMenuItems.isNotEmpty()) {
             MenuGroup {
                 for (webExtensionMenuItem in webExtensionMenuItems) {
+                    if (webExtensionMenuItem != webExtensionMenuItems[0]) {
+                        Divider(color = FirefoxTheme.colors.borderSecondary)
+                    }
+
                     WebExtensionMenuItem(
                         label = webExtensionMenuItem.label,
                         iconPainter = webExtensionMenuItem.icon?.let { icon ->
