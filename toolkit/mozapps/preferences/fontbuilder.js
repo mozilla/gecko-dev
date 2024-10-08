@@ -43,6 +43,7 @@ var FontBuilder = {
 
     // Build the UI for the Default Font and Fonts for this CSS type.
     const popup = document.createXULElement("menupopup");
+    let popupFrag = document.createDocumentFragment();
     let separator;
     if (fonts.length) {
       let menuitem = document.createXULElement("menuitem");
@@ -54,16 +55,16 @@ var FontBuilder = {
         document.l10n.setAttributes(menuitem, "fonts-label-default-unnamed");
       }
       menuitem.setAttribute("value", ""); // Default Font has a blank value
-      popup.appendChild(menuitem);
+      popupFrag.appendChild(menuitem);
 
       separator = document.createXULElement("menuseparator");
-      popup.appendChild(separator);
+      popupFrag.appendChild(separator);
 
       for (let font of fonts) {
         menuitem = document.createXULElement("menuitem");
         menuitem.setAttribute("value", font);
         menuitem.setAttribute("label", font);
-        popup.appendChild(menuitem);
+        popupFrag.appendChild(menuitem);
       }
     }
 
@@ -73,24 +74,25 @@ var FontBuilder = {
       // Both lists are sorted, and the Fonts-By-Type list is a subset of the
       // All-Fonts list, so walk both lists side-by-side, skipping values we've
       // already created menu items for.
-      let builtItem = separator ? separator.nextSibling : popup.firstChild;
+      let builtItem = separator ? separator.nextSibling : popupFrag.firstChild;
       let builtItemValue = builtItem ? builtItem.getAttribute("value") : null;
 
       separator = document.createXULElement("menuseparator");
-      popup.appendChild(separator);
+      popupFrag.appendChild(separator);
 
       for (let font of this._allFonts) {
         if (font != builtItemValue) {
           const menuitem = document.createXULElement("menuitem");
           menuitem.setAttribute("value", font);
           menuitem.setAttribute("label", font);
-          popup.appendChild(menuitem);
+          popupFrag.appendChild(menuitem);
         } else {
           builtItem = builtItem.nextSibling;
           builtItemValue = builtItem ? builtItem.getAttribute("value") : null;
         }
       }
     }
+    popup.appendChild(popupFrag);
     aMenuList.appendChild(popup);
   },
 
