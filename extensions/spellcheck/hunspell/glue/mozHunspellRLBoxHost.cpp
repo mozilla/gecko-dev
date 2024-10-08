@@ -77,10 +77,10 @@ uint32_t mozHunspellCallbacks::sCurrentFreshId = 0;
 /* static */
 mozilla::StaticRWLock mozHunspellCallbacks::sFileMgrMapLock;
 /* static */
-MOZ_RUNINIT std::map<uint32_t, std::unique_ptr<mozHunspellFileMgrHost>>
+std::map<uint32_t, std::unique_ptr<mozHunspellFileMgrHost>>
     mozHunspellCallbacks::sFileMgrMap;
 /* static */
-MOZ_RUNINIT std::set<nsCString> mozHunspellCallbacks::sFileMgrAllowList;
+std::set<nsCString> mozHunspellCallbacks::sFileMgrAllowList;
 
 /* static */
 void mozHunspellCallbacks::AllowFile(const nsCString& aFilename) {

@@ -1186,18 +1186,18 @@ bool gCanRecordBase;
 bool gCanRecordExtended;
 
 // The Name -> ID cache map.
-MOZ_RUNINIT ScalarMapType gScalarNameIDMap(kScalarCount);
+ScalarMapType gScalarNameIDMap(kScalarCount);
 
 // The (Process Id -> (Scalar ID -> Scalar Object)) map. This is a
 // nsClassHashtable, it owns the scalar instances and takes care of deallocating
 // them when they are removed from the map.
-MOZ_RUNINIT ProcessesScalarsMapType gScalarStorageMap;
+ProcessesScalarsMapType gScalarStorageMap;
 // As above, for the keyed scalars.
-MOZ_RUNINIT ProcessesKeyedScalarsMapType gKeyedScalarStorageMap;
+ProcessesKeyedScalarsMapType gKeyedScalarStorageMap;
 // Provide separate storage for "dynamic builtin" plain and keyed scalars,
 // needed to support "build faster" in local developer builds.
-MOZ_RUNINIT ProcessesScalarsMapType gDynamicBuiltinScalarStorageMap;
-MOZ_RUNINIT ProcessesKeyedScalarsMapType gDynamicBuiltinKeyedScalarStorageMap;
+ProcessesScalarsMapType gDynamicBuiltinScalarStorageMap;
+ProcessesKeyedScalarsMapType gDynamicBuiltinKeyedScalarStorageMap;
 }  // namespace
 
 ////////////////////////////////////////////////////////////////////////

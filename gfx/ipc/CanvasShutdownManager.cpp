@@ -17,7 +17,7 @@ using namespace mozilla::dom;
 namespace mozilla::gfx {
 
 StaticMutex CanvasShutdownManager::sManagersMutex;
-MOZ_RUNINIT std::set<CanvasShutdownManager*> CanvasShutdownManager::sManagers;
+std::set<CanvasShutdownManager*> CanvasShutdownManager::sManagers;
 
 // The owning thread will tell us to close when it is shutdown, either via
 // CanvasShutdownManager::Shutdown for the main thread, or via a shutdown

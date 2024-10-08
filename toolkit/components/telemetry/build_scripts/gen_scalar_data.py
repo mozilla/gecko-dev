@@ -91,7 +91,7 @@ def write_scalar_tables(scalars, output):
     keys_table = []
     total_key_count = 0
 
-    print("MOZ_RUNINIT const ScalarInfo gScalars[] = {", file=output)
+    print("const ScalarInfo gScalars[] = {", file=output)
     for s in scalars:
         # We add both the scalar label and the expiration string to the strings
         # table.

@@ -37,8 +37,7 @@ class MOZ_RAII AutoChangePointNotifier {
   DOMSVGPoint* const mValue;
 };
 
-MOZ_RUNINIT static SVGAttrTearoffTable<SVGPoint, DOMSVGPoint>
-    sSVGTranslateTearOffTable;
+static SVGAttrTearoffTable<SVGPoint, DOMSVGPoint> sSVGTranslateTearOffTable;
 
 // We could use NS_IMPL_CYCLE_COLLECTION(, except that in Unlink() we need to
 // clear our list's weak ref to us to be safe. (The other option would be to

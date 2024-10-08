@@ -1200,7 +1200,7 @@ static void AddOpenTypeFeature(uint32_t aTag, uint32_t aValue, void* aUserArg) {
 static hb_font_funcs_t* sHBFontFuncs = nullptr;
 static hb_font_funcs_t* sNominalGlyphFunc = nullptr;
 static hb_unicode_funcs_t* sHBUnicodeFuncs = nullptr;
-MOZ_RUNINIT static const hb_script_t sMathScript =
+static const hb_script_t sMathScript =
     hb_ot_tag_to_script(HB_TAG('m', 'a', 't', 'h'));
 
 bool gfxHarfBuzzShaper::Initialize() {

@@ -159,7 +159,7 @@ void PromiseDebugging::GetFullfillmentStack(GlobalObject& aGlobal,
 }
 
 /*static */
-MOZ_RUNINIT nsString PromiseDebugging::sIDPrefix;
+nsString PromiseDebugging::sIDPrefix;
 
 /* static */
 void PromiseDebugging::Init() {

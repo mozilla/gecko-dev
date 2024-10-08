@@ -255,7 +255,7 @@ class GradientCache final
   nsTArray<UniquePtr<GradientCacheData>> mRemovedGradientData;
 };
 
-MOZ_RUNINIT GradientCacheMutex GradientCache::sInstanceMutex("GradientCache");
+GradientCacheMutex GradientCache::sInstanceMutex("GradientCache");
 
 void gfxGradientCache::Init() {
   MOZ_RELEASE_ASSERT(GradientCache::EnsureInstance(),

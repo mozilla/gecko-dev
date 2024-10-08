@@ -104,12 +104,11 @@ static std::atomic<PerfModeType> PerfMode = PerfModeType::None;
 
 // Mutex to guard access to the profiler vectors and jitdump file if perf
 // profiling is enabled.
-MOZ_RUNINIT static js::Mutex PerfMutex(mutexid::PerfSpewer);
+static js::Mutex PerfMutex(mutexid::PerfSpewer);
 
-MOZ_RUNINIT static PersistentRooted<
-    GCVector<JitCode*, 0, js::SystemAllocPolicy>>
+static PersistentRooted<GCVector<JitCode*, 0, js::SystemAllocPolicy>>
     jitCodeVector;
-MOZ_RUNINIT static ProfilerJitCodeVector profilerData;
+static ProfilerJitCodeVector profilerData;
 
 static bool IsGeckoProfiling() { return geckoProfiling; }
 #ifdef JS_ION_PERF

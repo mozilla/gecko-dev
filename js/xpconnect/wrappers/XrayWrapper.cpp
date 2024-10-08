@@ -2333,8 +2333,8 @@ bool XrayWrapper<Base, Traits>::getPropertyKeys(
  */
 
 template <typename Base, typename Traits>
-MOZ_RUNINIT MOZ_GENERATED const xpc::XrayWrapper<Base, Traits>
-    xpc::XrayWrapper<Base, Traits>::singleton(0);
+const xpc::XrayWrapper<Base, Traits> xpc::XrayWrapper<Base, Traits>::singleton(
+    0);
 
 template class PermissiveXrayDOM;
 template class PermissiveXrayJS;

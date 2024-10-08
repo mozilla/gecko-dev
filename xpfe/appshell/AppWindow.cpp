@@ -2868,7 +2868,7 @@ static bool sWaitingForHiddenWindowToLoadNativeMenus =
 #  endif
     ;
 
-MOZ_RUNINIT static nsTArray<LoadNativeMenusListener> sLoadNativeMenusListeners;
+static nsTArray<LoadNativeMenusListener> sLoadNativeMenusListeners;
 
 static void BeginLoadNativeMenus(Document* aDoc, nsIWidget* aParentWindow);
 

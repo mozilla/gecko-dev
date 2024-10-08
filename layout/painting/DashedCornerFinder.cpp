@@ -29,7 +29,7 @@ struct BestDashLength {
 };
 
 static const size_t DashedCornerCacheSize = 256;
-MOZ_RUNINIT nsTHashMap<FourFloatsHashKey, BestDashLength> DashedCornerCache;
+nsTHashMap<FourFloatsHashKey, BestDashLength> DashedCornerCache;
 
 DashedCornerFinder::DashedCornerFinder(const Bezier& aOuterBezier,
                                        const Bezier& aInnerBezier,

@@ -138,8 +138,8 @@ nsresult CreatePrincipalInfo(nsILineInputStream* aStream,
   return NS_OK;
 }
 
-MOZ_RUNINIT const IPCNavigationPreloadState
-    gDefaultNavigationPreloadState(false, "true"_ns);
+const IPCNavigationPreloadState gDefaultNavigationPreloadState(false,
+                                                               "true"_ns);
 
 }  // namespace
 

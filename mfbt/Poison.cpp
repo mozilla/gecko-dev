@@ -198,9 +198,8 @@ static uintptr_t GetPoisonValue(uintptr_t aBase, uintptr_t aSize) {
 // specifically comes before libxul, so nearly all gecko code runs strictly
 // after this.)
 extern "C" {
-MOZ_RUNINIT uintptr_t gMozillaPoisonSize = GetDesiredRegionSize();
-MOZ_RUNINIT uintptr_t gMozillaPoisonBase =
-    ReservePoisonArea(gMozillaPoisonSize);
-MOZ_RUNINIT uintptr_t gMozillaPoisonValue =
+uintptr_t gMozillaPoisonSize = GetDesiredRegionSize();
+uintptr_t gMozillaPoisonBase = ReservePoisonArea(gMozillaPoisonSize);
+uintptr_t gMozillaPoisonValue =
     GetPoisonValue(gMozillaPoisonBase, gMozillaPoisonSize);
 }

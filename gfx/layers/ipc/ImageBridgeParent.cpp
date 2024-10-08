@@ -47,7 +47,7 @@ using namespace mozilla::ipc;
 using namespace mozilla::gfx;
 using namespace mozilla::media;
 
-MOZ_RUNINIT ImageBridgeParent::ImageBridgeMap ImageBridgeParent::sImageBridges;
+ImageBridgeParent::ImageBridgeMap ImageBridgeParent::sImageBridges;
 
 StaticAutoPtr<mozilla::Monitor> sImageBridgesLock;
 

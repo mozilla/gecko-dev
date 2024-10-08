@@ -67,8 +67,7 @@ class WebrtcContentParents {
   static std::vector<RefPtr<WebrtcGlobalParent>> sContentParents;
 };
 
-MOZ_RUNINIT std::vector<RefPtr<WebrtcGlobalParent>>
-    WebrtcContentParents::sContentParents;
+std::vector<RefPtr<WebrtcGlobalParent>> WebrtcContentParents::sContentParents;
 
 WebrtcGlobalParent* WebrtcContentParents::Alloc() {
   RefPtr<WebrtcGlobalParent> cp = new WebrtcGlobalParent;
@@ -534,7 +533,7 @@ void WebrtcGlobalInformation::GetLogging(
 }
 
 static bool sLastAECDebug = false;
-MOZ_RUNINIT static Maybe<nsCString> sAecDebugLogDir;
+static Maybe<nsCString> sAecDebugLogDir;
 
 void WebrtcGlobalInformation::SetAecDebug(const GlobalObject& aGlobal,
                                           bool aEnable) {

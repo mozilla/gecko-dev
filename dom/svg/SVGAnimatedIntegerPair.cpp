@@ -58,11 +58,11 @@ class MOZ_RAII AutoChangeIntegerPairNotifier {
   bool mDoSetAttr;
 };
 
-MOZ_RUNINIT static SVGAttrTearoffTable<
-    SVGAnimatedIntegerPair, SVGAnimatedIntegerPair::DOMAnimatedInteger>
+static SVGAttrTearoffTable<SVGAnimatedIntegerPair,
+                           SVGAnimatedIntegerPair::DOMAnimatedInteger>
     sSVGFirstAnimatedIntegerTearoffTable;
-MOZ_RUNINIT static SVGAttrTearoffTable<
-    SVGAnimatedIntegerPair, SVGAnimatedIntegerPair::DOMAnimatedInteger>
+static SVGAttrTearoffTable<SVGAnimatedIntegerPair,
+                           SVGAnimatedIntegerPair::DOMAnimatedInteger>
     sSVGSecondAnimatedIntegerTearoffTable;
 
 /* Implementation */

@@ -1208,7 +1208,7 @@ nsresult GfxInfoBase::GetInfo(JSContext* aCx,
   return NS_OK;
 }
 
-MOZ_RUNINIT nsAutoCString gBaseAppVersion;
+nsAutoCString gBaseAppVersion;
 
 const nsCString& GfxInfoBase::GetApplicationVersion() {
   static bool versionInitialized = false;

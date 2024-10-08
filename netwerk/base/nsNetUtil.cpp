@@ -1806,7 +1806,7 @@ class TlsAutoIncrement {
   T& mVar;
 };
 
-MOZ_RUNINIT static nsTHashSet<nsCString> sSimpleURISchemes;
+static nsTHashSet<nsCString> sSimpleURISchemes;
 static StaticRWLock sSchemeLock;
 
 namespace mozilla::net {

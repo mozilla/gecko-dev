@@ -24,8 +24,7 @@ namespace layers {
 
 StaticMonitor CompositorManagerParent::sMonitor;
 StaticRefPtr<CompositorManagerParent> CompositorManagerParent::sInstance;
-MOZ_RUNINIT CompositorManagerParent::ManagerMap
-    CompositorManagerParent::sManagers;
+CompositorManagerParent::ManagerMap CompositorManagerParent::sManagers;
 
 /* static */
 already_AddRefed<CompositorManagerParent>

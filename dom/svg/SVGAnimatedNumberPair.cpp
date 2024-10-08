@@ -54,11 +54,11 @@ class MOZ_RAII AutoChangeNumberPairNotifier {
   bool mDoSetAttr;
 };
 
-MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedNumberPair,
-                                       SVGAnimatedNumberPair::DOMAnimatedNumber>
+static SVGAttrTearoffTable<SVGAnimatedNumberPair,
+                           SVGAnimatedNumberPair::DOMAnimatedNumber>
     sSVGFirstAnimatedNumberTearoffTable;
-MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedNumberPair,
-                                       SVGAnimatedNumberPair::DOMAnimatedNumber>
+static SVGAttrTearoffTable<SVGAnimatedNumberPair,
+                           SVGAnimatedNumberPair::DOMAnimatedNumber>
     sSVGSecondAnimatedNumberTearoffTable;
 
 static nsresult ParseNumberOptionalNumber(const nsAString& aValue,

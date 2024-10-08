@@ -20,8 +20,7 @@ namespace mozilla::ipc {
 base::SharedMemory* IdleSchedulerParent::sActiveChildCounter = nullptr;
 std::bitset<NS_IDLE_SCHEDULER_COUNTER_ARRAY_LENGHT>
     IdleSchedulerParent::sInUseChildCounters;
-MOZ_RUNINIT LinkedList<IdleSchedulerParent>
-    IdleSchedulerParent::sIdleAndGCRequests;
+LinkedList<IdleSchedulerParent> IdleSchedulerParent::sIdleAndGCRequests;
 int32_t IdleSchedulerParent::sMaxConcurrentIdleTasksInChildProcesses = 1;
 uint32_t IdleSchedulerParent::sMaxConcurrentGCs = 1;
 uint32_t IdleSchedulerParent::sActiveGCs = 0;

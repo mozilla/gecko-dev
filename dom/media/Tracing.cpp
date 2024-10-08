@@ -12,7 +12,7 @@ using namespace mozilla;
 
 using TracingPhase = mozilla::AsyncLogger::TracingPhase;
 
-MOZ_RUNINIT mozilla::AsyncLogger gAudioCallbackTraceLogger;
+mozilla::AsyncLogger gAudioCallbackTraceLogger;
 static std::atomic<int> gTracingStarted(0);
 
 void StartAudioCallbackTracing() {

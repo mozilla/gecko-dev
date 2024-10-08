@@ -138,7 +138,7 @@ using namespace mozilla;
 namespace mozilla::phc {
 
 // Global instance that is retrieved by the process generating the crash report
-MOZ_RUNINIT mozilla::phc::AddrInfo gAddrInfo;
+mozilla::phc::AddrInfo gAddrInfo;
 
 }  // namespace mozilla::phc
 
@@ -201,20 +201,20 @@ static const XP_CHAR dumpFileExtension[] = XP_TEXT(".dmp");
 
 static const XP_CHAR extraFileExtension[] = XP_TEXT(".extra");
 static const XP_CHAR memoryReportExtension[] = XP_TEXT(".memory.json.gz");
-MOZ_RUNINIT static std::optional<xpstring> defaultMemoryReportPath = {};
+static std::optional<xpstring> defaultMemoryReportPath = {};
 
 static const char kCrashMainID[] = "crash.main.3\n";
 
 static google_breakpad::ExceptionHandler* gExceptionHandler = nullptr;
 static mozilla::Atomic<bool> gEncounteredChildException(false);
-MOZ_RUNINIT static nsCString gServerURL;
+static nsCString gServerURL;
 
-MOZ_RUNINIT static xpstring pendingDirectory;
-MOZ_RUNINIT static xpstring crashReporterPath;
-MOZ_RUNINIT static xpstring memoryReportPath;
+static xpstring pendingDirectory;
+static xpstring crashReporterPath;
+static xpstring memoryReportPath;
 
 // Where crash events should go.
-MOZ_RUNINIT static xpstring eventsDirectory;
+static xpstring eventsDirectory;
 
 // If this is false, we don't launch the crash reporter
 static bool doReport = true;
@@ -369,7 +369,7 @@ static void SetJitExceptionHandler() {
 #  endif
 #endif  // defined(XP_WIN)
 
-MOZ_RUNINIT static struct ReservedResources {
+static struct ReservedResources {
 #if defined(XP_WIN) && !defined(HAVE_64BIT_BUILD)
   // This should be bigger than xul.dll plus a bit of extra space for
   // MinidumpWriteDump allocations.

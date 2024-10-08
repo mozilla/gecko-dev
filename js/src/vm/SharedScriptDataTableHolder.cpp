@@ -10,11 +10,10 @@
 
 using namespace js;
 
-MOZ_RUNINIT js::Mutex AutoLockGlobalScriptData::mutex_(
-    mutexid::SharedImmutableScriptData);
+js::Mutex AutoLockGlobalScriptData::mutex_(mutexid::SharedImmutableScriptData);
 
 AutoLockGlobalScriptData::AutoLockGlobalScriptData() { mutex_.lock(); }
 
 AutoLockGlobalScriptData::~AutoLockGlobalScriptData() { mutex_.unlock(); }
 
-MOZ_RUNINIT SharedScriptDataTableHolder js::globalSharedScriptDataTableHolder;
+SharedScriptDataTableHolder js::globalSharedScriptDataTableHolder;

@@ -29,7 +29,7 @@ namespace ipc {
 
 ProcessChild* ProcessChild::gProcessChild;
 StaticMutex ProcessChild::gIPCShutdownStateLock;
-MOZ_RUNINIT nsCString ProcessChild::gIPCShutdownStateAnnotation;
+nsCString ProcessChild::gIPCShutdownStateAnnotation;
 
 static Atomic<bool> sExpectingShutdown(false);
 

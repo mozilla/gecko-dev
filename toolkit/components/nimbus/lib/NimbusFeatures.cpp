@@ -15,7 +15,7 @@
 
 namespace mozilla {
 
-MOZ_RUNINIT static nsTHashSet<nsCString> sExposureFeatureSet;
+static nsTHashSet<nsCString> sExposureFeatureSet;
 
 void NimbusFeatures::GetPrefName(const nsACString& branchPrefix,
                                  const nsACString& aFeatureId,

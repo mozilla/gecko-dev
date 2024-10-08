@@ -49,8 +49,7 @@ enum {
 };
 #undef HTTP_ATOM
 
-MOZ_RUNINIT static StaticDataMutex<
-    nsTHashtable<nsCStringASCIICaseInsensitiveHashKey>>
+static StaticDataMutex<nsTHashtable<nsCStringASCIICaseInsensitiveHashKey>>
     sAtomTable("nsHttp::sAtomTable");
 
 // This is set to true in DestroyAtomTable so we don't try to repopulate the

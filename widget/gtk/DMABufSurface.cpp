@@ -79,7 +79,7 @@ static LazyLogModule gDmabufRefLog("DmabufRef");
 
 #define BUFFER_FLAGS 0
 
-MOZ_RUNINIT static RefPtr<GLContext> sSnapshotContext;
+static RefPtr<GLContext> sSnapshotContext;
 static StaticMutex sSnapshotContextMutex MOZ_UNANNOTATED;
 static Atomic<int> gNewSurfaceUID(1);
 

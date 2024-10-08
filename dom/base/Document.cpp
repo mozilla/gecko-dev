@@ -14766,7 +14766,7 @@ class PendingFullscreenChangeList {
 };
 
 /* static */
-MOZ_RUNINIT LinkedList<FullscreenChange> PendingFullscreenChangeList::sList;
+LinkedList<FullscreenChange> PendingFullscreenChangeList::sList;
 
 size_t Document::CountFullscreenElements() const {
   size_t count = 0;

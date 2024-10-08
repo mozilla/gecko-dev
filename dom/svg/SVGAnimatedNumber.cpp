@@ -42,8 +42,8 @@ class MOZ_RAII AutoChangeNumberNotifier {
   SVGElement* const mSVGElement;
 };
 
-MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedNumber,
-                                       SVGAnimatedNumber::DOMAnimatedNumber>
+static SVGAttrTearoffTable<SVGAnimatedNumber,
+                           SVGAnimatedNumber::DOMAnimatedNumber>
     sSVGAnimatedNumberTearoffTable;
 
 static bool GetValueFromString(const nsAString& aString,

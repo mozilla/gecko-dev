@@ -874,8 +874,7 @@ struct InterfaceProperty {
   const char* interface;
   const char* property;
 };
-MOZ_RUNINIT static const std::unordered_map<dom::MediaControlKey,
-                                            InterfaceProperty>
+static const std::unordered_map<dom::MediaControlKey, InterfaceProperty>
     gKeyProperty = {
         {dom::MediaControlKey::Focus, {DBUS_MPRIS_INTERFACE, "CanRaise"}},
         {dom::MediaControlKey::Nexttrack,

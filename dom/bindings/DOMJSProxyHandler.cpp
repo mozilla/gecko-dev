@@ -71,7 +71,7 @@ struct SetDOMProxyInformation {
   }
 };
 
-MOZ_RUNINIT SetDOMProxyInformation gSetDOMProxyInformation;
+SetDOMProxyInformation gSetDOMProxyInformation;
 
 static inline void CheckExpandoObject(JSObject* proxy,
                                       const JS::Value& expando) {

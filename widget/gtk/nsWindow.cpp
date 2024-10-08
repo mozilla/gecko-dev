@@ -347,7 +347,7 @@ static uint32_t gLastTouchID = 0;
 // event is a correct one when we get it.
 // Store it and issue it later from enter notify event if it's correct,
 // throw it away otherwise.
-MOZ_RUNINIT static GUniquePtr<GdkEventCrossing> sStoredLeaveNotifyEvent;
+static GUniquePtr<GdkEventCrossing> sStoredLeaveNotifyEvent;
 
 #define NS_WINDOW_TITLE_MAX_LENGTH 4095
 

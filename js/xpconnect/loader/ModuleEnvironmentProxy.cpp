@@ -124,8 +124,7 @@ struct ModuleEnvironmentProxyHandler : public js::BaseProxyHandler {
   static const ModuleEnvironmentProxyHandler gHandler;
 };
 
-MOZ_RUNINIT const ModuleEnvironmentProxyHandler
-    ModuleEnvironmentProxyHandler::gHandler;
+const ModuleEnvironmentProxyHandler ModuleEnvironmentProxyHandler::gHandler;
 const char ModuleEnvironmentProxyHandler::gFamily = 0;
 
 bool ModuleEnvironmentProxyHandler::getOwnPropertyDescriptor(

@@ -21,8 +21,7 @@ namespace layers {
 // delta can be really small, which can make the velocity computation very
 // volatile. To avoid this we impose a minimum time delta below which we do
 // not recompute the velocity.
-MOZ_RUNINIT const TimeDuration MIN_VELOCITY_SAMPLE_TIME =
-    TimeDuration::FromMilliseconds(5);
+const TimeDuration MIN_VELOCITY_SAMPLE_TIME = TimeDuration::FromMilliseconds(5);
 
 extern StaticAutoPtr<StyleComputedTimingFunction> gVelocityCurveFunction;
 

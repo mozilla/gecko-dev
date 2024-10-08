@@ -88,8 +88,7 @@ typedef mozilla::layers::PlanarYCbCrImage PlanarYCbCrImage;
 namespace mozilla {
 
 #ifdef MOZ_USE_HWDECODE
-MOZ_RUNINIT nsTArray<AVCodecID>
-    FFmpegVideoDecoder<LIBAV_VER>::mAcceleratedFormats;
+nsTArray<AVCodecID> FFmpegVideoDecoder<LIBAV_VER>::mAcceleratedFormats;
 #endif
 
 using media::TimeUnit;

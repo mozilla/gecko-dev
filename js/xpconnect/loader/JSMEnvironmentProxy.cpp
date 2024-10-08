@@ -116,8 +116,7 @@ struct JSMEnvironmentProxyHandler : public js::BaseProxyHandler {
   static const JSMEnvironmentProxyHandler gHandler;
 };
 
-MOZ_RUNINIT const JSMEnvironmentProxyHandler
-    JSMEnvironmentProxyHandler::gHandler;
+const JSMEnvironmentProxyHandler JSMEnvironmentProxyHandler::gHandler;
 const char JSMEnvironmentProxyHandler::gFamily = 0;
 
 JSObject* ResolveModuleObjectPropertyById(JSContext* aCx,

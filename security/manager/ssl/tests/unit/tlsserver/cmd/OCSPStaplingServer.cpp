@@ -112,7 +112,7 @@ struct CTHost {
   SCTsVia mSCTsVia;
 };
 
-MOZ_RUNINIT const CTHost sCTHosts[] = {
+const CTHost sCTHosts[] = {
     {"ct-via-ocsp.example.com",
      {"test_ct/ct-via-ocsp-1.sct", "test_ct/ct-via-ocsp-2.sct"},
      SCTsVia::OCSP},

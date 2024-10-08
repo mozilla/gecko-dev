@@ -655,7 +655,7 @@ class JSStreamConsumer final : public nsIInputStreamCallback,
 NS_IMPL_ISUPPORTS(JSStreamConsumer, nsIInputStreamCallback)
 
 // static
-MOZ_RUNINIT const nsCString FetchUtil::WasmAltDataType;
+const nsCString FetchUtil::WasmAltDataType;
 
 // static
 void FetchUtil::InitWasmAltDataType() {

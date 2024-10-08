@@ -2802,7 +2802,7 @@ using PrivateDatastoreHashtable =
 // event of an (unlikely) race where the private browsing windows are still
 // being torn down, will cause the Datastore to be discarded when the last
 // window actually goes away.
-MOZ_RUNINIT UniquePtr<PrivateDatastoreHashtable> gPrivateDatastores;
+UniquePtr<PrivateDatastoreHashtable> gPrivateDatastores;
 
 using DatabaseArray = nsTArray<Database*>;
 

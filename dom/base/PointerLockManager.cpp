@@ -34,10 +34,10 @@ using mozilla::dom::Element;
 using mozilla::dom::WindowContext;
 
 // Reference to the pointer locked element.
-MOZ_RUNINIT static nsWeakPtr sLockedElement;
+static nsWeakPtr sLockedElement;
 
 // Reference to the document which requested pointer lock.
-MOZ_RUNINIT static nsWeakPtr sLockedDoc;
+static nsWeakPtr sLockedDoc;
 
 // Reference to the BrowserParent requested pointer lock.
 static BrowserParent* sLockedRemoteTarget = nullptr;

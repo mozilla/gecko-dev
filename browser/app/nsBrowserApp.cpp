@@ -159,7 +159,7 @@ static bool IsArg(const char* arg, const char* s) {
   return false;
 }
 
-MOZ_RUNINIT Bootstrap::UniquePtr gBootstrap;
+Bootstrap::UniquePtr gBootstrap;
 
 static int do_main(int argc, char* argv[], char* envp[]) {
   // Allow firefox.exe to launch XULRunner apps via -app <application.ini>

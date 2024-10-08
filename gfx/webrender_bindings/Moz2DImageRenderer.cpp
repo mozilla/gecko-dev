@@ -78,9 +78,8 @@ struct FontInstanceData {
 };
 
 StaticMutex sFontDataTableLock;
-MOZ_RUNINIT std::unordered_map<WrFontKey, FontTemplate> sFontDataTable;
-MOZ_RUNINIT std::unordered_map<WrFontInstanceKey, FontInstanceData>
-    sBlobFontTable;
+std::unordered_map<WrFontKey, FontTemplate> sFontDataTable;
+std::unordered_map<WrFontInstanceKey, FontInstanceData> sBlobFontTable;
 
 // Fixed-size ring buffer logging font deletion events to aid debugging.
 static struct FontDeleteLog {

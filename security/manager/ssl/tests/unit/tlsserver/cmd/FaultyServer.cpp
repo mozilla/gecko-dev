@@ -49,7 +49,7 @@ const char* kCertWildcard = "default-ee";
  * the "default-ee" cert has a SAN for *.example.com
  * the "no-san-ee" cert is signed by the test-ca, but it doesn't have any SANs.
  */
-MOZ_RUNINIT const FaultyServerHost sFaultyServerHosts[]{
+const FaultyServerHost sFaultyServerHosts[]{
     {kHostOk, kCertWildcard, None},
     {kHostUnknown, kCertWildcard, UnknownSNI},
     {kHostZeroRttAlertBadMac, kCertWildcard, ZeroRtt},

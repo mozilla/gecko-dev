@@ -43,7 +43,7 @@ struct TimeStampInitialization {
   ~TimeStampInitialization() { TimeStamp::Shutdown(); }
 };
 
-MOZ_RUNINIT static TimeStampInitialization sInitOnce;
+static TimeStampInitialization sInitOnce;
 
 MFBT_API TimeStamp TimeStamp::ProcessCreation() {
   if (sInitOnce.mProcessCreation.IsNull()) {

@@ -48,8 +48,6 @@
 #include <numeric>
 #include <vector>
 
-#define MOZ_RUNINIT __attribute__((annotate("moz_global_var")))
-
 //---------------------------------------------------------------------------
 // Utilities
 //---------------------------------------------------------------------------
@@ -606,7 +604,7 @@ static double gSampleInterval_sec;
 static RAPL* gRapl;
 
 // All the sampled "total" values, in Watts.
-MOZ_RUNINIT static std::vector<double> gTotals_W;
+static std::vector<double> gTotals_W;
 
 // Power = Energy / Time, where power is measured in Watts, Energy is measured
 // in Joules, and Time is measured in seconds.

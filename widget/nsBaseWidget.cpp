@@ -116,7 +116,7 @@ int32_t nsIWidget::sPointerIdCounter = 0;
 // Some statics from nsIWidget.h
 /*static*/
 uint64_t AutoObserverNotifier::sObserverId = 0;
-MOZ_RUNINIT /*static*/ nsTHashMap<uint64_t, nsCOMPtr<nsIObserver>>
+/*static*/ nsTHashMap<uint64_t, nsCOMPtr<nsIObserver>>
     AutoObserverNotifier::sSavedObservers;
 
 // The maximum amount of time to let the EnableDragDrop runnable wait in the

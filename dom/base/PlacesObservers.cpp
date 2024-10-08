@@ -54,11 +54,9 @@ struct ListenerCollection {
 };
 
 template <class T>
-MOZ_RUNINIT MOZ_GENERATED StaticAutoPtr<FlaggedArray<T>>
-    ListenerCollection<T>::gListeners;
+StaticAutoPtr<FlaggedArray<T>> ListenerCollection<T>::gListeners;
 template <class T>
-MOZ_RUNINIT MOZ_GENERATED StaticAutoPtr<FlaggedArray<T>>
-    ListenerCollection<T>::gListenersToRemove;
+StaticAutoPtr<FlaggedArray<T>> ListenerCollection<T>::gListenersToRemove;
 
 using JSListeners = ListenerCollection<RefPtr<PlacesEventCallback>>;
 using WeakJSListeners = ListenerCollection<WeakPtr<PlacesWeakCallbackWrapper>>;
@@ -68,8 +66,7 @@ using WeakNativeListeners =
 // Even if NotifyListeners is called any timing, we mange the notifications with
 // adding to this queue, then sending in sequence. This avoids sending nested
 // notifications while previous ones are still being sent.
-MOZ_RUNINIT static nsTArray<Sequence<OwningNonNull<PlacesEvent>>>
-    gNotificationQueue;
+static nsTArray<Sequence<OwningNonNull<PlacesEvent>>> gNotificationQueue;
 
 uint32_t GetEventTypeFlag(PlacesEventType aEventType) {
   if (aEventType == PlacesEventType::None) {

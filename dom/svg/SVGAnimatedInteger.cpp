@@ -45,8 +45,8 @@ class MOZ_RAII AutoChangeIntegerNotifier {
   bool mDoSetAttr;
 };
 
-MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedInteger,
-                                       SVGAnimatedInteger::DOMAnimatedInteger>
+static SVGAttrTearoffTable<SVGAnimatedInteger,
+                           SVGAnimatedInteger::DOMAnimatedInteger>
     sSVGAnimatedIntegerTearoffTable;
 
 nsresult SVGAnimatedInteger::SetBaseValueString(const nsAString& aValueAsString,

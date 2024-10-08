@@ -55,7 +55,7 @@ static float GetFPS(TimeDuration aVsyncRate) {
   return 1000.0f / float(aVsyncRate.ToMilliseconds());
 }
 
-MOZ_RUNINIT static nsTArray<WaylandVsyncSource*> gWaylandVsyncSources;
+static nsTArray<WaylandVsyncSource*> gWaylandVsyncSources;
 
 Maybe<TimeDuration> WaylandVsyncSource::GetFastestVsyncRate() {
   Maybe<TimeDuration> retVal;

@@ -17,8 +17,7 @@ using namespace mozilla;
 
 namespace {
 
-MOZ_RUNINIT UniquePtr<
-    nsTArray<SettingsChangeObserver::AntiTrackingSettingsChangedCallback>>
+UniquePtr<nsTArray<SettingsChangeObserver::AntiTrackingSettingsChangedCallback>>
     gSettingsChangedCallbacks;
 
 }

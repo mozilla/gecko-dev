@@ -884,7 +884,7 @@ void ProcessExecutableMemory::deallocate(void* addr, size_t bytes,
   }
 }
 
-MOZ_RUNINIT static ProcessExecutableMemory execMemory;
+static ProcessExecutableMemory execMemory;
 
 void* js::jit::AllocateExecutableMemory(size_t bytes,
                                         ProtectionSetting protection,

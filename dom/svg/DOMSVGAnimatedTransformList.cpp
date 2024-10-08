@@ -13,8 +13,8 @@
 
 namespace mozilla::dom {
 
-MOZ_RUNINIT static SVGAttrTearoffTable<SVGAnimatedTransformList,
-                                       DOMSVGAnimatedTransformList>
+static SVGAttrTearoffTable<SVGAnimatedTransformList,
+                           DOMSVGAnimatedTransformList>
     sSVGAnimatedTransformListTearoffTable;
 
 NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedTransformList,
