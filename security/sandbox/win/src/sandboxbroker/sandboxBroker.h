@@ -26,7 +26,52 @@ class TargetPolicy;
 
 namespace mozilla {
 
-class SandboxBroker {
+class AbstractSandboxBroker {
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AbstractSandboxBroker)
+
+  virtual void Shutdown() = 0;
+  virtual Result<Ok, mozilla::ipc::LaunchError> LaunchApp(
+      const wchar_t* aPath, const wchar_t* aArguments,
+      base::EnvironmentMap& aEnvironment, GeckoProcessType aProcessType,
+      const bool aEnableLogging, const IMAGE_THUNK_DATA* aCachedNtdllThunk,
+      void** aProcessHandle) = 0;
+
+  // Security levels for different types of processes
+  virtual void SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
+                                                 bool aIsFileProcess) = 0;
+
+  virtual void SetSecurityLevelForGPUProcess(int32_t aSandboxLevel) = 0;
+  virtual bool SetSecurityLevelForRDDProcess() = 0;
+  virtual bool SetSecurityLevelForSocketProcess() = 0;
+  virtual bool SetSecurityLevelForUtilityProcess(
+      mozilla::ipc::SandboxingKind aSandbox) = 0;
+
+  enum SandboxLevel { LockDown, Restricted };
+  virtual bool SetSecurityLevelForGMPlugin(SandboxLevel aLevel,
+                                           bool aIsRemoteLaunch = false) = 0;
+
+  // File system permissions
+  virtual bool AllowReadFile(wchar_t const* file) = 0;
+
+  /**
+   * Share a HANDLE with the child process. The HANDLE will be made available
+   * in the child process at the memory address
+   * |reinterpret_cast<uintptr_t>(aHandle)|. It is the caller's responsibility
+   * to communicate this address to the child.
+   */
+  virtual void AddHandleToShare(HANDLE aHandle) = 0;
+
+  /**
+   * @return true if policy has win32k locked down, otherwise false
+   */
+  virtual bool IsWin32kLockedDown() = 0;
+
+ protected:
+  virtual ~AbstractSandboxBroker() {}
+};
+
+class SandboxBroker : public AbstractSandboxBroker {
  public:
   SandboxBroker();
 
@@ -34,6 +79,8 @@ class SandboxBroker {
                          const nsAString& aBinDir);
 
   static void EnsureLpacPermsissionsOnDir(const nsString& aDir);
+
+  void Shutdown() override {}
 
   /**
    * Do initialization that depends on parts of the Gecko machinery having been
@@ -45,24 +92,23 @@ class SandboxBroker {
       const wchar_t* aPath, const wchar_t* aArguments,
       base::EnvironmentMap& aEnvironment, GeckoProcessType aProcessType,
       const bool aEnableLogging, const IMAGE_THUNK_DATA* aCachedNtdllThunk,
-      void** aProcessHandle);
-  ~SandboxBroker();
+      void** aProcessHandle) override;
+  virtual ~SandboxBroker();
 
   // Security levels for different types of processes
   void SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
-                                         bool aIsFileProcess);
+                                         bool aIsFileProcess) override;
 
-  void SetSecurityLevelForGPUProcess(int32_t aSandboxLevel);
-  bool SetSecurityLevelForRDDProcess();
-  bool SetSecurityLevelForSocketProcess();
-
-  enum SandboxLevel { LockDown, Restricted };
+  void SetSecurityLevelForGPUProcess(int32_t aSandboxLevel) override;
+  bool SetSecurityLevelForRDDProcess() override;
+  bool SetSecurityLevelForSocketProcess() override;
   bool SetSecurityLevelForGMPlugin(SandboxLevel aLevel,
-                                   bool aIsRemoteLaunch = false);
-  bool SetSecurityLevelForUtilityProcess(mozilla::ipc::SandboxingKind aSandbox);
+                                   bool aIsRemoteLaunch = false) override;
+  bool SetSecurityLevelForUtilityProcess(
+      mozilla::ipc::SandboxingKind aSandbox) override;
 
   // File system permissions
-  bool AllowReadFile(wchar_t const* file);
+  bool AllowReadFile(wchar_t const* file) override;
 
   /**
    * Share a HANDLE with the child process. The HANDLE will be made available
@@ -70,9 +116,9 @@ class SandboxBroker {
    * |reinterpret_cast<uintptr_t>(aHandle)|. It is the caller's responsibility
    * to communicate this address to the child.
    */
-  void AddHandleToShare(HANDLE aHandle);
+  void AddHandleToShare(HANDLE aHandle) override;
 
-  bool IsWin32kLockedDown();
+  bool IsWin32kLockedDown() final;
 
   // Set up dummy interceptions via the broker, so we can log calls.
   void ApplyLoggingPolicy();

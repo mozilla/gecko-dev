@@ -18,6 +18,7 @@ public enum GeckoProcessType {
   VR("vr"),
   RDD("rdd"),
   SOCKET("socket"),
+  REMOTESANDBOXBROKER("sandboxbroker"),
   FORKSERVER("forkserver"),
   UTILITY("utility");
 

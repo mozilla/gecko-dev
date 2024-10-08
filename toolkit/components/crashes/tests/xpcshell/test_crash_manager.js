@@ -82,6 +82,7 @@ add_task(async function test_process_ping() {
   Assert.ok(m.isPingAllowed("gpu"));
   Assert.ok(m.isPingAllowed("main"));
   Assert.ok(m.isPingAllowed("rdd"));
+  Assert.ok(m.isPingAllowed("sandboxbroker"));
   Assert.ok(m.isPingAllowed("socket"));
   Assert.ok(m.isPingAllowed("utility"));
   Assert.ok(m.isPingAllowed("vr"));
@@ -706,6 +707,7 @@ add_task(async function test_child_process_crash_ping() {
     m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_VR],
     m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_RDD],
     m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_SOCKET],
+    m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_REMOTESANDBOXBROKER],
     m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_FORKSERVER],
     m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_UTILITY],
   ];

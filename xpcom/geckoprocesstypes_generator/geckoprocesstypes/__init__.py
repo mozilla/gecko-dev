@@ -168,6 +168,17 @@ process_types = [
         True,
     ),
     GeckoProcessType(
+        9,
+        "RemoteSandboxBroker",
+        "sandboxbroker",
+        "RemoteSandboxBroker",
+        "PluginContainer",
+        "RemoteSandboxBroker",
+        "RemoteSandboxBroker",
+        "REMOTESANDBOXBROKER",
+        True,
+    ),
+    GeckoProcessType(
         10,
         "ForkServer",
         "forkserver",

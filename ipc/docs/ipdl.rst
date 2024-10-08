@@ -753,6 +753,7 @@ process type:
 ``VR``                        VR process
 ``RDD``                       Remote Data Decoder (RDD) process
 ``Socket``                    Socket/Networking process
+``RemoteSandboxBroker``       Remote Sandbox Broker process
 ``ForkServer``                Fork Server process
 ``Utility``                   Utility process
 ============================= =================================================
