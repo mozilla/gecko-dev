@@ -68,53 +68,59 @@ const OBJECT_WITH_URL_CLASSNAMES = new Set([
  * arguments:
  *   - the ObjectActor instance and its hooks to make a preview for,
  *   - the grip object being prepared for the client,
+ *   - the depth of the object compared to the top level object,
+ *     when we are inspecting nested attributes.
  *
  * Functions must return false if they cannot provide preview
  * information for the debugger object, or true otherwise.
  */
 const previewers = {
   String: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       return wrappedPrimitivePreviewer(
         String,
         objectActor,
-        grip
+        grip,
+        depth
       );
     },
   ],
 
   Boolean: [
-    function(objectActor, grip ) {
+    function(objectActor, grip, depth) {
       return wrappedPrimitivePreviewer(
         Boolean,
         objectActor,
-        grip
+        grip,
+        depth
       );
     },
   ],
 
   Number: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       return wrappedPrimitivePreviewer(
         Number,
         objectActor,
-        grip
+        grip,
+        depth
       );
     },
   ],
 
   Symbol: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       return wrappedPrimitivePreviewer(
         Symbol,
         objectActor,
-        grip
+        grip,
+        depth
       );
     },
   ],
 
   Function: [
-    function({ obj, hooks }, grip) {
+    function({ obj, hooks }, grip, depth) {
       if (obj.name) {
         grip.name = obj.name;
       }
@@ -165,7 +171,7 @@ const previewers = {
   ],
 
   RegExp: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       let str;
       if (isWorker) {
         // For some reason, the following incantation on the worker thread returns "/undefined/undefined"
@@ -195,7 +201,7 @@ const previewers = {
   ],
 
   Date: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       let time;
       if (isWorker) {
         // Also, targetGlobal is an opaque wrapper, from which we can't access its Date object,
@@ -220,7 +226,7 @@ const previewers = {
   ],
 
   Array: [
-    function({ obj, rawObj, hooks }, grip) {
+    function({ obj, rawObj, hooks }, grip, depth) {
       const length = ObjectUtils.getArrayLength(obj);
 
       grip.preview = {
@@ -228,7 +234,7 @@ const previewers = {
         length: length,
       };
 
-      if (hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -281,7 +287,7 @@ const previewers = {
   ],
 
   Set: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const size = DevToolsUtils.getProperty(objectActor.obj, "size");
       if (typeof size != "number") {
         return false;
@@ -293,7 +299,7 @@ const previewers = {
       };
 
       // Avoid recursive object grips.
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -310,7 +316,7 @@ const previewers = {
   ],
 
   WeakSet: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumWeakSetEntries(objectActor);
 
       grip.preview = {
@@ -319,7 +325,7 @@ const previewers = {
       };
 
       // Avoid recursive object grips.
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -336,7 +342,7 @@ const previewers = {
   ],
 
   Map: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const size = DevToolsUtils.getProperty(objectActor.obj, "size");
       if (typeof size != "number") {
         return false;
@@ -347,7 +353,7 @@ const previewers = {
         size: size,
       };
 
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -364,7 +370,7 @@ const previewers = {
   ],
 
   WeakMap: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumWeakMapEntries(objectActor);
 
       grip.preview = {
@@ -372,7 +378,7 @@ const previewers = {
         size: enumEntries.size,
       };
 
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -389,7 +395,7 @@ const previewers = {
   ],
 
   URLSearchParams: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumURLSearchParamsEntries(objectActor);
 
       grip.preview = {
@@ -397,7 +403,7 @@ const previewers = {
         size: enumEntries.size,
       };
 
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -414,7 +420,7 @@ const previewers = {
   ],
 
   FormData: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumFormDataEntries(objectActor);
 
       grip.preview = {
@@ -422,7 +428,7 @@ const previewers = {
         size: enumEntries.size,
       };
 
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -439,7 +445,7 @@ const previewers = {
   ],
 
   Headers: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       // Bug 1863776: Headers can't be yet previewed from workers
       if (isWorker) {
         return false;
@@ -451,7 +457,7 @@ const previewers = {
         size: enumEntries.size,
       };
 
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -469,7 +475,7 @@ const previewers = {
 
 
   HighlightRegistry: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumHighlightRegistryEntries(objectActor);
 
       grip.preview = {
@@ -477,7 +483,7 @@ const previewers = {
         size: enumEntries.size,
       };
 
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -494,7 +500,7 @@ const previewers = {
   ],
 
   MIDIInputMap: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumMidiInputMapEntries(
         objectActor
       );
@@ -504,7 +510,7 @@ const previewers = {
         size: enumEntries.size,
       };
 
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -521,7 +527,7 @@ const previewers = {
   ],
 
   MIDIOutputMap: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const enumEntries = PropertyIterators.enumMidiOutputMapEntries(
         objectActor
       );
@@ -531,7 +537,7 @@ const previewers = {
         size: enumEntries.size,
       };
 
-      if (objectActor.hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -548,7 +554,7 @@ const previewers = {
   ],
 
   DOMStringMap: [
-    function({ obj, hooks, safeRawObj }, grip) {
+    function({ obj, hooks, safeRawObj }, grip, depth) {
       if (!safeRawObj) {
         return false;
       }
@@ -559,7 +565,7 @@ const previewers = {
         size: keys.length,
       };
 
-      if (hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -577,7 +583,7 @@ const previewers = {
   ],
 
   Promise: [
-    function({ obj, hooks }, grip) {
+    function({ obj, hooks }, grip, depth) {
       const { state, value, reason } = ObjectUtils.getPromiseState(obj);
       const ownProperties = Object.create(null);
       ownProperties["<state>"] = { value: state };
@@ -585,7 +591,7 @@ const previewers = {
 
       // Only expose <value> or <reason> in top-level promises, to avoid recursion.
       // <state> is not problematic because it's a string.
-      if (hooks.getGripDepth() === 1) {
+      if (depth === 1) {
         if (state == "fulfilled") {
           ownProperties["<value>"] = { value: hooks.createValueGrip(value) };
           ++ownPropertiesLength;
@@ -606,10 +612,10 @@ const previewers = {
   ],
 
   Proxy: [
-    function({ obj, hooks }, grip) {
+    function({ obj, hooks }, grip, depth) {
       // Only preview top-level proxies, avoiding recursion. Otherwise, since both the
       // target and handler can also be proxies, we could get an exponential behavior.
-      if (hooks.getGripDepth() > 1) {
+      if (depth > 1) {
         return true;
       }
 
@@ -635,7 +641,7 @@ const previewers = {
   ],
 
   CustomStateSet: [
-    function(objectActor, grip) {
+    function(objectActor, grip, depth) {
       const size = DevToolsUtils.getProperty(objectActor.obj, "size");
       if (typeof size != "number") {
         return false;
@@ -670,12 +676,16 @@ const previewers = {
  *        The object actor
  * @param Object grip
  *        The result grip to fill in
+ * @param Number depth
+ *        Depth of the object compared to the top level object,
+ *        when we are inspecting nested attributes.
  * @return Booolean true if the object was handled, false otherwise
  */
 function wrappedPrimitivePreviewer(
   classObj,
   objectActor,
-  grip
+  grip,
+  depth
 ) {
   const { safeRawObj } = objectActor;
   let v = null;
@@ -692,7 +702,7 @@ function wrappedPrimitivePreviewer(
 
   const { obj, hooks } = objectActor;
 
-  const canHandle = GenericObject(objectActor, grip);
+  const canHandle = GenericObject(objectActor, grip, depth);
   if (!canHandle) {
     return false;
   }
@@ -707,11 +717,14 @@ function wrappedPrimitivePreviewer(
  * @param {ObjectActor} objectActor
  * @param {Object} grip: The grip built by the objectActor, for which we need to populate
  *                       the `preview` property.
+ * @param {Number} depth
+ *        Depth of the object compared to the top level object,
+ *        when we are inspecting nested attributes.
  * @returns
  */
-function GenericObject(objectActor, grip) {
+function GenericObject(objectActor, grip, depth) {
   const { obj, hooks, safeRawObj } = objectActor;
-  if (grip.preview || grip.displayString || hooks.getGripDepth() > 1) {
+  if (grip.preview || grip.displayString || depth > 1) {
     return false;
   }
 
@@ -838,7 +851,7 @@ function GenericObject(objectActor, grip) {
 
 // Preview functions that do not rely on the object class.
 previewers.Object = [
-  function TypedArray({ obj, hooks }, grip) {
+  function TypedArray({ obj }, grip, depth) {
     if (!ObjectUtils.isTypedArray(obj)) {
       return false;
     }
@@ -848,7 +861,7 @@ previewers.Object = [
       length: ObjectUtils.getArrayLength(obj),
     };
 
-    if (hooks.getGripDepth() > 1) {
+    if (depth > 1) {
       return true;
     }
 
@@ -868,7 +881,7 @@ previewers.Object = [
     return true;
   },
 
-  function Error(objectActor, grip) {
+  function Error(objectActor, grip, depth) {
     if (!ERROR_CLASSNAMES.has(objectActor.className)) {
       return false;
     }
@@ -904,7 +917,7 @@ previewers.Object = [
     return true;
   },
 
-  function CSSMediaRule(objectActor, grip) {
+  function CSSMediaRule(objectActor, grip, depth) {
     const { safeRawObj } = objectActor;
     if (!safeRawObj || objectActor.className != "CSSMediaRule" || isWorker) {
       return false;
@@ -917,7 +930,7 @@ previewers.Object = [
     return true;
   },
 
-  function CSSStyleRule(objectActor, grip) {
+  function CSSStyleRule(objectActor, grip, depth) {
     const { safeRawObj } = objectActor;
     if (!safeRawObj || objectActor.className != "CSSStyleRule" || isWorker) {
       return false;
@@ -930,7 +943,7 @@ previewers.Object = [
     return true;
   },
 
-  function ObjectWithURL(objectActor, grip) {
+  function ObjectWithURL(objectActor, grip, depth) {
     const { safeRawObj } = objectActor;
     if (isWorker || !safeRawObj) {
       return false;
@@ -968,7 +981,7 @@ previewers.Object = [
     return true;
   },
 
-  function ArrayLike(objectActor, grip) {
+  function ArrayLike(objectActor, grip, depth) {
     const { safeRawObj } = objectActor;
     if (
       !safeRawObj ||
@@ -985,7 +998,7 @@ previewers.Object = [
       length: safeRawObj.length,
     };
 
-    if (hooks.getGripDepth() > 1) {
+    if (depth > 1) {
       return true;
     }
 
@@ -1003,7 +1016,7 @@ previewers.Object = [
     return true;
   },
 
-  function CSSStyleDeclaration(objectActor, grip) {
+  function CSSStyleDeclaration(objectActor, grip, depth) {
     const { safeRawObj, className } = objectActor;
     if (
       !safeRawObj ||
@@ -1030,7 +1043,7 @@ previewers.Object = [
     return true;
   },
 
-  function DOMNode(objectActor, grip) {
+  function DOMNode(objectActor, grip, depth) {
     const { safeRawObj } = objectActor;
     if (
       objectActor.className == "Object" ||
@@ -1055,7 +1068,7 @@ previewers.Object = [
     } else if (className == "DocumentFragment") {
       preview.childNodesLength = safeRawObj.childNodes.length;
 
-      if (hooks.getGripDepth() < 2) {
+      if (depth < 2) {
         preview.childNodes = [];
         for (const node of safeRawObj.childNodes) {
           const actor = hooks.createValueGrip(obj.makeDebuggeeValue(node));
@@ -1093,7 +1106,7 @@ previewers.Object = [
     return true;
   },
 
-  function DOMEvent(objectActor, grip) {
+  function DOMEvent(objectActor, grip, depth) {
     const { safeRawObj } = objectActor;
     if (!safeRawObj || !Event.isInstance(safeRawObj) || isWorker) {
       return false;
@@ -1106,7 +1119,7 @@ previewers.Object = [
       properties: Object.create(null),
     });
 
-    if (hooks.getGripDepth() < 2) {
+    if (depth < 2) {
       const target = obj.makeDebuggeeValue(safeRawObj.target);
       preview.target = hooks.createValueGrip(target);
     }
@@ -1123,7 +1136,7 @@ previewers.Object = [
       let value = safeRawObj[prop];
       if (ObjectUtils.isObjectOrFunction(value)) {
         // Skip properties pointing to objects.
-        if (hooks.getGripDepth() > 1) {
+        if (depth > 1) {
           continue;
         }
         value = obj.makeDebuggeeValue(value);
@@ -1145,7 +1158,7 @@ previewers.Object = [
           continue;
         }
         if (value && typeof value == "object") {
-          if (hooks.getGripDepth() > 1) {
+          if (depth > 1) {
             continue;
           }
           value = obj.makeDebuggeeValue(value);
@@ -1160,7 +1173,7 @@ previewers.Object = [
     return true;
   },
 
-  function DOMException(objectActor, grip) {
+  function DOMException(objectActor, grip, depth) {
     const { safeRawObj } = objectActor;
     if (!safeRawObj || objectActor.className !== "DOMException" || isWorker) {
       return false;
@@ -1182,8 +1195,8 @@ previewers.Object = [
     return true;
   },
 
-  function Object(objectActor, grip) {
-    return GenericObject(objectActor, grip);
+  function Object(objectActor, grip, depth) {
+    return GenericObject(objectActor, grip, depth);
   },
 ];
 

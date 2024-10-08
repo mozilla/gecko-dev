@@ -99,21 +99,12 @@ class ObjectActor extends Actor {
    *        the caller:
    *          - createValueGrip
    *              Creates a value grip for the given object
-   *          - getGripDepth
-   *              An actor's grip depth getter
-   *          - incrementGripDepth
-   *              Increment the actor's grip depth
-   *          - decrementGripDepth
-   *              Decrement the actor's grip depth
    */
   constructor(
     threadActor,
     obj,
     {
       createValueGrip: createValueGripHook,
-      getGripDepth,
-      incrementGripDepth,
-      decrementGripDepth,
       customFormatterObjectTagDepth,
       customFormatterConfigDbgObj,
     }
@@ -137,9 +128,6 @@ class ObjectActor extends Actor {
 
     this.hooks = {
       createValueGrip: createValueGripHook,
-      getGripDepth,
-      incrementGripDepth,
-      decrementGripDepth,
       customFormatterObjectTagDepth,
       customFormatterConfigDbgObj,
     };
@@ -159,8 +147,11 @@ class ObjectActor extends Actor {
 
   /**
    * Returns a grip for this actor for returning in a protocol message.
+   *
+   * @param {Number} depth
+   *                 Current depth in the generated preview object sent to the client.
    */
-  form() {
+  form({ depth = 0 } = {}) {
     const g = {
       type: "object",
       actor: this.actorID,
@@ -192,9 +183,7 @@ class ObjectActor extends Actor {
       // Proxy objects can run traps when accessed, so just create a preview with
       // the target and the handler.
       g.class = "Proxy";
-      this.hooks.incrementGripDepth();
-      previewers.Proxy[0](this, g, null);
-      this.hooks.decrementGripDepth();
+      previewers.Proxy[0](this, g, depth + 1);
       return g;
     }
 
@@ -214,14 +203,11 @@ class ObjectActor extends Actor {
       isError: this.obj.isError,
     });
 
-    this.hooks.incrementGripDepth();
-
     if (g.class == "Function") {
       g.isClassConstructor = this.obj.isClassConstructor;
     }
 
-    this._populateGripPreview(g);
-    this.hooks.decrementGripDepth();
+    this._populateGripPreview(g, depth + 1);
 
     if (
       this.safeRawObj &&
@@ -283,11 +269,16 @@ class ObjectActor extends Actor {
 
   /**
    * Populate the `preview` property on `grip` given its type.
+   *
+   * @param {Object} grip
+   *                 Object onto which preview data attribute should be added.
+   * @param {Number} depth
+   *                 Current depth in the generated preview object sent to the client.
    */
-  _populateGripPreview(grip) {
+  _populateGripPreview(grip, depth) {
     for (const previewer of previewers[this.className] || previewers.Object) {
       try {
-        const previewerResult = previewer(this, grip);
+        const previewerResult = previewer(this, grip, depth);
         if (previewerResult) {
           return;
         }

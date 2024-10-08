@@ -139,7 +139,7 @@ function createValueGrip(threadActor, value, pool, depth = 0, objectActorAttribu
       return value;
 
     case "string":
-      return createStringGrip(pool, value, depth);
+      return createStringGrip(pool, value);
 
     case "number":
       if (value === Infinity) {
@@ -565,28 +565,26 @@ function createObjectGrip(
     }
 
     if (pool.objectActors.has(object)) {
-      return pool.objectActors.get(object).form();
+      return pool.objectActors.get(object).form({ depth });
     }
 
     // Even if we are currently creating objects actors while being paused,
     // in threadActor.pauseLifetimePool, we are looking into threadLifetimePool
     // in case we created an actor for that object *before* pausing.
     if (threadActor.threadLifetimePool.objectActors.has(object)) {
-      return threadActor.threadLifetimePool.objectActors.get(object).form();
+      return threadActor.threadLifetimePool.objectActors.get(object).form({ depth });
     }
   }
 
   const ActorClass = isGripForThreadActor ? PauseScopedObjectActor : ObjectActor;
 
-  let gripDepth = depth;
   const actor = new ActorClass(threadActor, object, {
     // custom formatters are injecting their own attributes here
     ...objectActorAttributes,
 
-    getGripDepth: () => gripDepth,
-    incrementGripDepth: () => gripDepth++,
-    decrementGripDepth: () => gripDepth--,
-    createValueGrip: value => createValueGrip(threadActor, value, pool, gripDepth, objectActorAttributes),
+    // Consider that all nested values created for that new object actor instance are immediate children attributes
+    // and so have a depth increased by 1.
+    createValueGrip: value => createValueGrip(threadActor, value, pool, depth + 1, objectActorAttributes),
   });
   pool.manage(actor);
 
@@ -594,7 +592,9 @@ function createObjectGrip(
     pool.objectActors.set(object, actor);
   }
 
-  return actor.form();
+  // Pass the current depth to form method so that it can communicate it to the previewers.
+  // So that the actor form output may change depending on the current depth of the object within the requested preview.
+  return actor.form({ depth });
 }
 
 module.exports = {
