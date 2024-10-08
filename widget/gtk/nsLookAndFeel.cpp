@@ -114,31 +114,144 @@ static nsDependentCString GVariantGetString(GVariant* aVariant) {
   return nsDependentCString(v, len);
 }
 
+static void UnboxVariant(RefPtr<GVariant>& aVariant) {
+  while (aVariant && g_variant_is_of_type(aVariant, G_VARIANT_TYPE_VARIANT)) {
+    // Unbox the return value.
+    aVariant = dont_AddRef(g_variant_get_variant(aVariant));
+  }
+}
+
 static void settings_changed_signal_cb(GDBusProxy* proxy, gchar* sender_name,
                                        gchar* signal_name, GVariant* parameters,
                                        gpointer user_data) {
   LOGLNF("Settings Change sender=%s signal=%s params=%s\n", sender_name,
          signal_name, GVariantToString(parameters).get());
   if (strcmp(signal_name, "SettingChanged")) {
-    NS_WARNING("Unknown change signal for settings");
+    NS_WARNING(
+        nsPrintfCString("Unknown change signal for settings: %s", signal_name)
+            .get());
     return;
   }
   RefPtr<GVariant> ns = dont_AddRef(g_variant_get_child_value(parameters, 0));
   RefPtr<GVariant> key = dont_AddRef(g_variant_get_child_value(parameters, 1));
+  RefPtr<GVariant> value =
+      dont_AddRef(g_variant_get_child_value(parameters, 2));
   // Third parameter is the value, but we don't care about it.
-  if (!ns || !key || !g_variant_is_of_type(ns, G_VARIANT_TYPE_STRING) ||
+  if (!ns || !key || !value ||
+      !g_variant_is_of_type(ns, G_VARIANT_TYPE_STRING) ||
       !g_variant_is_of_type(key, G_VARIANT_TYPE_STRING)) {
     MOZ_ASSERT(false, "Unexpected setting change signal parameters");
     return;
   }
 
   auto* lnf = static_cast<nsLookAndFeel*>(user_data);
-
   auto nsStr = GVariantGetString(ns);
+  if (!nsStr.Equals("org.freedesktop.appearance"_ns)) {
+    return;
+  }
+
+  UnboxVariant(value);
+
   auto keyStr = GVariantGetString(key);
-  if (nsStr.Equals("org.freedesktop.appearance"_ns) &&
-      keyStr.Equals("color-scheme"_ns)) {
-    lnf->OnColorSchemeSettingChanged();
+  if (lnf->RecomputeDBusAppearanceSetting(keyStr, value)) {
+    OnSettingsChange();
+  }
+}
+
+bool nsLookAndFeel::RecomputeDBusAppearanceSetting(const nsACString& aKey,
+                                                   GVariant* aValue) {
+  LOGLNF("RecomputeDBusAppearanceSetting(%s, %s)",
+         PromiseFlatCString(aKey).get(), GVariantToString(aValue).get());
+  if (aKey.EqualsLiteral("contrast")) {
+    const bool old = mDBusSettings.mPrefersContrast;
+    mDBusSettings.mPrefersContrast = g_variant_get_uint32(aValue) == 1;
+    return mDBusSettings.mPrefersContrast != old;
+  }
+  if (aKey.EqualsLiteral("color-scheme")) {
+    const auto old = mDBusSettings.mColorScheme;
+    mDBusSettings.mColorScheme = [&] {
+      switch (g_variant_get_uint32(aValue)) {
+        default:
+          MOZ_FALLTHROUGH_ASSERT("Unexpected color-scheme query return value");
+        case 0:
+          break;
+        case 1:
+          return Some(ColorScheme::Dark);
+        case 2:
+          return Some(ColorScheme::Light);
+      }
+      return Maybe<ColorScheme>{};
+    }();
+    return mDBusSettings.mColorScheme != old;
+  }
+  if (aKey.EqualsLiteral("accent-color")) {
+    auto old = mDBusSettings.mAccentColor;
+    mDBusSettings.mAccentColor.mBg = mDBusSettings.mAccentColor.mFg =
+        NS_TRANSPARENT;
+    gdouble r = -1.0, g = -1.0, b = -1.0;
+    g_variant_get(aValue, "(ddd)", &r, &g, &b);
+    if (r >= 0.0f && g >= 0.0f && b >= 0.0f) {
+      mDBusSettings.mAccentColor.mBg = gfx::sRGBColor(r, g, b, 1.0).ToABGR();
+      mDBusSettings.mAccentColor.mFg =
+          ThemeColors::ComputeCustomAccentForeground(
+              mDBusSettings.mAccentColor.mBg);
+    }
+    return mDBusSettings.mAccentColor != old;
+  }
+  return false;
+}
+
+void nsLookAndFeel::RecomputeDBusSettings() {
+  if (!mDBusSettingsProxy) {
+    return;
+  }
+
+  GVariantBuilder namespacesBuilder;
+  g_variant_builder_init(&namespacesBuilder, G_VARIANT_TYPE("as"));
+  g_variant_builder_add(&namespacesBuilder, "s", "org.freedesktop.appearance");
+
+  GUniquePtr<GError> error;
+  RefPtr<GVariant> variant = dont_AddRef(g_dbus_proxy_call_sync(
+      mDBusSettingsProxy, "ReadAll", g_variant_new("(as)", &namespacesBuilder),
+      G_DBUS_CALL_FLAGS_NONE,
+      StaticPrefs::widget_gtk_settings_portal_timeout_ms(), nullptr,
+      getter_Transfers(error)));
+  if (!variant) {
+    LOGLNF("dbus settings query error: %s\n", error->message);
+    return;
+  }
+
+  LOGLNF("dbus settings query result: %s\n", GVariantToString(variant).get());
+  variant = dont_AddRef(g_variant_get_child_value(variant, 0));
+  UnboxVariant(variant);
+  LOGLNF("dbus settings query result after unbox: %s\n",
+         GVariantToString(variant).get());
+  if (!variant || !g_variant_is_of_type(variant, G_VARIANT_TYPE_DICTIONARY)) {
+    MOZ_ASSERT(false, "Unexpected dbus settings query return value");
+    return;
+  }
+
+  // We expect one dictionary with (right now) one namespace for appearance,
+  // with another dictionary inside for the actual values.
+  {
+    gchar* ns;
+    GVariantIter outerIter;
+    GVariantIter* innerIter;
+    g_variant_iter_init(&outerIter, variant);
+    while (g_variant_iter_loop(&outerIter, "{sa{sv}}", &ns, &innerIter)) {
+      LOGLNF("Got namespace %s", ns);
+      if (!strcmp(ns, "org.freedesktop.appearance")) {
+        gchar* appearanceKey;
+        GVariant* innerValue;
+        while (g_variant_iter_loop(innerIter, "{sv}", &appearanceKey,
+                                   &innerValue)) {
+          LOGLNF(" > %s: %s", appearanceKey,
+                 GVariantToString(innerValue).get());
+          RecomputeDBusAppearanceSetting(nsDependentCString(appearanceKey),
+                                         innerValue);
+        }
+      }
+    }
   }
 }
 
@@ -148,18 +261,20 @@ void nsLookAndFeel::WatchDBus() {
       G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, nullptr,
       "org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop",
       "org.freedesktop.portal.Settings", nullptr, getter_Transfers(error)));
-  if (mDBusSettingsProxy) {
-    g_signal_connect(mDBusSettingsProxy, "g-signal",
-                     G_CALLBACK(settings_changed_signal_cb), this);
-  } else {
+  if (!mDBusSettingsProxy) {
     LOGLNF("Can't create DBus proxy for settings: %s\n", error->message);
     return;
   }
 
-  // DBus interface was started after L&F init so we need to load
-  // our settings from DBus explicitly.
+  g_signal_connect(mDBusSettingsProxy, "g-signal",
+                   G_CALLBACK(settings_changed_signal_cb), this);
+
+  RecomputeDBusSettings();
+
+  // DBus interface was started after L&F init so we need to load our settings
+  // from DBus explicitly.
   if (!sIgnoreChangedSettings) {
-    OnColorSchemeSettingChanged();
+    OnSettingsChange();
   }
 }
 
@@ -1033,7 +1148,7 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     // query as well as there is no dedicated option.
     case IntID::PrefersReducedTransparency:
       EnsureInit();
-      aResult = mSystemTheme.mHighContrast;
+      aResult = mDBusSettings.mPrefersContrast || mSystemTheme.mHighContrast;
       break;
     case IntID::InvertedColors:
       // No GTK API for checking if inverted colors is enabled
@@ -1347,12 +1462,26 @@ void nsLookAndFeel::MaybeApplyAdwaitaOverrides() {
   // proper accent colors, so we use the selected background colors. Those
   // colors, however, don't have much contrast in dark mode (see bug 1741293).
   if (dark.mFamily == ThemeFamily::Adwaita) {
-    dark.mAccent = {NS_RGB(0x35, 0x84, 0xe4), NS_RGB(0xff, 0xff, 0xff)};
+    if (mDBusSettings.HasAccentColor()) {
+      dark.mAccent = mDBusSettings.mAccentColor;
+      dark.mSelectedItem = dark.mMenuHover = dark.mAccent;
+      dark.mNativeHyperLinkText = dark.mNativeVisitedHyperLinkText =
+          dark.mAccent.mBg;
+    } else {
+      dark.mAccent = {NS_RGB(0x35, 0x84, 0xe4), NS_RGB(0xff, 0xff, 0xff)};
+    }
     dark.mSelectedText = dark.mAccent;
   }
 
   if (light.mFamily == ThemeFamily::Adwaita) {
-    light.mAccent = {NS_RGB(0x35, 0x84, 0xe4), NS_RGB(0xff, 0xff, 0xff)};
+    if (mDBusSettings.HasAccentColor()) {
+      light.mAccent = mDBusSettings.mAccentColor;
+      light.mSelectedItem = light.mMenuHover = light.mAccent;
+      light.mNativeHyperLinkText = light.mNativeVisitedHyperLinkText =
+          light.mAccent.mBg;
+    } else {
+      light.mAccent = {NS_RGB(0x35, 0x84, 0xe4), NS_RGB(0xff, 0xff, 0xff)};
+    }
     light.mSelectedText = light.mAccent;
   }
 
@@ -1475,41 +1604,7 @@ Maybe<ColorScheme> nsLookAndFeel::ComputeColorSchemeSetting() {
     }
   }
 
-  if (!mDBusSettingsProxy) {
-    return Nothing();
-  }
-  GUniquePtr<GError> error;
-  RefPtr<GVariant> variant = dont_AddRef(g_dbus_proxy_call_sync(
-      mDBusSettingsProxy, "Read",
-      g_variant_new("(ss)", "org.freedesktop.appearance", "color-scheme"),
-      G_DBUS_CALL_FLAGS_NONE,
-      StaticPrefs::widget_gtk_settings_portal_timeout_ms(), nullptr,
-      getter_Transfers(error)));
-  if (!variant) {
-    LOGLNF("color-scheme query error: %s\n", error->message);
-    return Nothing();
-  }
-  LOGLNF("color-scheme query result: %s\n", GVariantToString(variant).get());
-  variant = dont_AddRef(g_variant_get_child_value(variant, 0));
-  while (variant && g_variant_is_of_type(variant, G_VARIANT_TYPE_VARIANT)) {
-    // Unbox the return value.
-    variant = dont_AddRef(g_variant_get_variant(variant));
-  }
-  if (!variant || !g_variant_is_of_type(variant, G_VARIANT_TYPE_UINT32)) {
-    MOZ_ASSERT(false, "Unexpected color-scheme query return value");
-    return Nothing();
-  }
-  switch (g_variant_get_uint32(variant)) {
-    default:
-      MOZ_FALLTHROUGH_ASSERT("Unexpected color-scheme query return value");
-    case 0:
-      break;
-    case 1:
-      return Some(ColorScheme::Dark);
-    case 2:
-      return Some(ColorScheme::Light);
-  }
-  return Nothing();
+  return mDBusSettings.mColorScheme;
 }
 
 void nsLookAndFeel::Initialize() {
@@ -1552,15 +1647,6 @@ void nsLookAndFeel::Initialize() {
   ConfigureFinalEffectiveTheme();
 
   RecordTelemetry();
-}
-
-void nsLookAndFeel::OnColorSchemeSettingChanged() {
-  if (NS_WARN_IF(mColorSchemePreference == ComputeColorSchemeSetting())) {
-    // We sometimes get duplicate color-scheme changes from dbus, avoid doing
-    // extra work if not needed.
-    return;
-  }
-  OnSettingsChange();
 }
 
 void nsLookAndFeel::InitializeGlobalSettings() {

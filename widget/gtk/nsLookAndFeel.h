@@ -19,6 +19,7 @@ typedef struct _GDBusProxy GDBusProxy;
 typedef struct _GtkCssProvider GtkCssProvider;
 typedef struct _GFile GFile;
 typedef struct _GFileMonitor GFileMonitor;
+typedef struct _GVariant GVariant;
 
 namespace mozilla {
 enum class StyleGtkThemeFamily : uint8_t;
@@ -51,11 +52,20 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
 
   static const nscolor kBlack = NS_RGB(0, 0, 0);
   static const nscolor kWhite = NS_RGB(255, 255, 255);
-  void OnColorSchemeSettingChanged();
+  void RecomputeDBusSettings();
+  // Returns whether the setting really changed.
+  bool RecomputeDBusAppearanceSetting(const nsACString& aKey, GVariant* aValue);
 
   struct ColorPair {
     nscolor mBg = kWhite;
     nscolor mFg = kBlack;
+
+    bool operator==(const ColorPair& aOther) const {
+      return mBg == aOther.mBg && mFg == aOther.mFg;
+    }
+    bool operator!=(const ColorPair& aOther) const {
+      return !(*this == aOther);
+    }
   };
 
   using ThemeFamily = mozilla::StyleGtkThemeFamily;
@@ -169,10 +179,22 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   }
 
   uint32_t mDBusID = 0;
-  RefPtr<GDBusProxy> mDBusSettingsProxy;
   RefPtr<GFile> mKdeColors;
   RefPtr<GFileMonitor> mKdeColorsMonitor;
+
   mozilla::Maybe<ColorScheme> mColorSchemePreference;
+  RefPtr<GDBusProxy> mDBusSettingsProxy;
+  // DBus settings from:
+  // https://github.com/flatpak/xdg-desktop-portal/blob/main/data/org.freedesktop.portal.Settings.xml
+  struct DBusSettings {
+    mozilla::Maybe<ColorScheme> mColorScheme;
+    bool mPrefersContrast = false;
+    // Transparent means no accent-color. Note that the real accent color cannot
+    // have transparency.
+    ColorPair mAccentColor{NS_TRANSPARENT, NS_TRANSPARENT};
+
+    bool HasAccentColor() const { return NS_GET_A(mAccentColor.mBg); }
+  } mDBusSettings;
   int32_t mCaretBlinkTime = 0;
   int32_t mCaretBlinkCount = -1;
   bool mCSDMaximizeButton = false;
