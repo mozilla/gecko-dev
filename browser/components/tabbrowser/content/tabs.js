@@ -13,6 +13,9 @@
 
   class MozTabbrowserTabs extends MozElements.TabsBase {
     static observedAttributes = ["orient"];
+
+    #maxTabsPerRow;
+
     constructor() {
       super();
 
@@ -535,6 +538,26 @@
     }
 
     startTabDrag(event, tab, { fromTabList = false } = {}) {
+      if (this.#isContainerVerticalPinnedExpanded(tab)) {
+        // In expanded vertical mode, the max number of pinned tabs per row is dynamic
+        // Set this before adjusting dragged tab's position
+        let pinnedTabs = this._getVisibleTabs().slice(
+          0,
+          gBrowser._numPinnedTabs
+        );
+        let tabsPerRow = 0;
+        let position = 0;
+        for (let pinnedTab of pinnedTabs) {
+          let tabPosition =
+            window.windowUtils.getBoundsWithoutFlushing(pinnedTab).left;
+          if (tabPosition < position) {
+            break;
+          }
+          tabsPerRow++;
+          position = tabPosition;
+        }
+        this.#maxTabsPerRow = tabsPerRow;
+      }
       let selectedTabs = gBrowser.selectedTabs;
       let otherSelectedTabs = selectedTabs.filter(
         selectedTab => selectedTab != tab
@@ -1760,20 +1783,21 @@
       draggedTab._dragData.tabWidth = tabWidth;
       draggedTab._dragData.tabHeight = tabHeight;
 
-      // In expanded vertical mode, 6 is the max number of pinned tabs per row
-      const maxTabsPerRow = 6;
-
       // Move the dragged tab based on the mouse position.
       let firstTabInRow;
       let lastTabInRow;
       if (RTL_UI) {
         firstTabInRow =
-          tabs.length >= maxTabsPerRow ? tabs[maxTabsPerRow - 1] : tabs.at(-1);
+          tabs.length >= this.#maxTabsPerRow
+            ? tabs[this.#maxTabsPerRow - 1]
+            : tabs.at(-1);
         lastTabInRow = tabs[0];
       } else {
         firstTabInRow = tabs[0];
         lastTabInRow =
-          tabs.length >= maxTabsPerRow ? tabs[maxTabsPerRow - 1] : tabs.at(-1);
+          tabs.length >= this.#maxTabsPerRow
+            ? tabs[this.#maxTabsPerRow - 1]
+            : tabs.at(-1);
       }
       let firstMovingTabScreenX = movingTabs.at(-1).screenX;
       let firstMovingTabScreenY = movingTabs.at(-1).screenY;
@@ -1829,20 +1853,21 @@
 
       let low = 0;
       let high = tabs.length - 1;
-      let shiftNumber = maxTabsPerRow - movingTabs.length;
+      let shiftNumber = this.#maxTabsPerRow - movingTabs.length;
 
       let getTabShift = (tab, dropIndex) => {
+        const additionalShift = this.#maxTabsPerRow % 2 ? 0 : tabWidth / 2;
         if (tab._tPos < draggedTab._tPos && tab._tPos >= dropIndex) {
           // If tab is at the end of a row, shift back and down
-          let tabRow = Math.ceil((tab._tPos + 1) / maxTabsPerRow);
+          let tabRow = Math.ceil((tab._tPos + 1) / this.#maxTabsPerRow);
           let shiftedTabRow = Math.ceil(
-            (tab._tPos + 1 + movingTabs.length) / maxTabsPerRow
+            (tab._tPos + 1 + movingTabs.length) / this.#maxTabsPerRow
           );
           if (tab._tPos && tabRow != shiftedTabRow) {
             return [
               RTL_UI
-                ? tabWidth * shiftNumber + tabWidth / 2
-                : -tabWidth * shiftNumber - tabWidth / 2,
+                ? tabWidth * shiftNumber + additionalShift
+                : -tabWidth * shiftNumber - additionalShift,
               shiftSizeY,
             ];
           }
@@ -1850,15 +1875,15 @@
         }
         if (tab._tPos > draggedTab._tPos && tab._tPos < dropIndex) {
           // If tab is not index 0 and at the start of a row, shift across and up
-          let tabRow = Math.floor(tab._tPos / maxTabsPerRow);
+          let tabRow = Math.floor(tab._tPos / this.#maxTabsPerRow);
           let shiftedTabRow = Math.floor(
-            (tab._tPos - movingTabs.length) / maxTabsPerRow
+            (tab._tPos - movingTabs.length) / this.#maxTabsPerRow
           );
           if (tab._tPos && tabRow != shiftedTabRow) {
             return [
               RTL_UI
-                ? -tabWidth * shiftNumber - tabWidth / 2
-                : tabWidth * shiftNumber + tabWidth / 2,
+                ? -tabWidth * shiftNumber - additionalShift
+                : tabWidth * shiftNumber + additionalShift,
               -shiftSizeY,
             ];
           }
