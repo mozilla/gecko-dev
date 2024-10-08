@@ -254,7 +254,7 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
   void InitWindowsGroupID();
   nsString mGroupId;
 #  ifdef MOZ_SANDBOX
-  RefPtr<AbstractSandboxBroker> mSandboxBroker;
+  UniquePtr<SandboxBroker> mSandboxBroker;
   std::vector<std::wstring> mAllowedFilesRead;
   bool mEnableSandboxLogging;
   int32_t mSandboxLevel;
