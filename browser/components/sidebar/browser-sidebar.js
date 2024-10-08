@@ -867,6 +867,18 @@ var SidebarController = {
     return this.show(commandID, triggerNode);
   },
 
+  _toggleHideSidebar() {
+    const isHidden = this.sidebarContainer.hidden;
+    if (!isHidden && this.isOpen) {
+      // Sidebar is currently visible, but now we want to hide it.
+      this.hide();
+    } else if (isHidden) {
+      // Sidebar is currently hidden, but now we want to show it.
+      this.toggleExpanded(true);
+    }
+    this.sidebarContainer.hidden = !isHidden;
+  },
+
   async _animateSidebarMain() {
     let tabbox = document.getElementById("tabbrowser-tabbox");
     let animatingElements = [
@@ -894,7 +906,11 @@ var SidebarController = {
     };
     let fromRects = getRects();
 
-    this.toggleExpanded();
+    if (this.sidebarRevampVisibility === "hide-sidebar") {
+      this._toggleHideSidebar();
+    } else {
+      this.toggleExpanded();
+    }
 
     // We need to wait for rAF for lit to re-render, and us to get the final
     // width. This is a bit unfortunate but alas...
@@ -971,27 +987,13 @@ var SidebarController = {
     }
   },
 
-  handleToolbarButtonClick() {
-    switch (this.sidebarRevampVisibility) {
-      case "always-show":
-        if (this._animationEnabled && !window.gReduceMotion) {
-          this._animateSidebarMain();
-        } else {
-          this.toggleExpanded();
-        }
-        break;
-      case "hide-sidebar": {
-        const isHidden = this.sidebarContainer.hidden;
-        if (!isHidden && this.isOpen) {
-          // Sidebar is currently visible, but now we want to hide it.
-          this.hide();
-        }
-        // Sidebar is currently hidden, but now we want to show it.
-        this.toggleExpanded(isHidden);
-        this.sidebarContainer.hidden = !isHidden;
-        this.updateToolbarButton();
-        break;
-      }
+  async handleToolbarButtonClick() {
+    if (this._animationEnabled && !window.gReduceMotion) {
+      this._animateSidebarMain();
+    } else if (this.sidebarRevampVisibility === "hide-sidebar") {
+      this._toggleHideSidebar();
+    } else {
+      this.toggleExpanded();
     }
   },
 
