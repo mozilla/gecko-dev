@@ -7,9 +7,9 @@ package org.mozilla.fenix.debugsettings.gleandebugtools
 import mozilla.telemetry.glean.Glean
 
 /**
- * A service used to access the Glean APIs.
+ * A storage used to access the Glean APIs.
  */
-interface GleanDebugToolsService {
+interface GleanDebugToolsStorage {
 
     /**
      * Toggle whether to log pings to console.
@@ -33,9 +33,9 @@ interface GleanDebugToolsService {
 }
 
 /**
- * The default service, used by the [GleanDebugToolsMiddleware] to access the Glean APIs.
+ * The default storage, used by the [GleanDebugToolsMiddleware] to access the Glean APIs.
  */
-class DefaultGleanDebugToolsService : GleanDebugToolsService {
+class DefaultGleanDebugToolsStorage : GleanDebugToolsStorage {
     override fun setLogPings(enabled: Boolean) {
         Glean.setLogPings(enabled)
     }

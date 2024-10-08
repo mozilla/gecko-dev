@@ -19,7 +19,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
-import org.mozilla.fenix.debugsettings.gleandebugtools.DefaultGleanDebugToolsService
+import org.mozilla.fenix.debugsettings.gleandebugtools.DefaultGleanDebugToolsStorage
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsMiddleware
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsState
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
@@ -55,7 +55,7 @@ fun FenixOverlay(
         gleanDebugToolsStore = GleanDebugToolsStore(
             middlewares = listOf(
                 GleanDebugToolsMiddleware(
-                    gleanDebugToolsService = DefaultGleanDebugToolsService(),
+                    gleanDebugToolsStorage = DefaultGleanDebugToolsStorage(),
                     clipboardHandler = context.components.clipboardHandler,
                     openDebugView = { debugViewLink ->
                         val intent = Intent(Intent.ACTION_VIEW)

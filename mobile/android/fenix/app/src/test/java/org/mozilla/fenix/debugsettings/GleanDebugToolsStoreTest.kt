@@ -17,8 +17,8 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsAction
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsMiddleware
-import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsService
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsState
+import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStorage
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.PING_PREVIEW_URL
 import org.mozilla.fenix.utils.ClipboardHandler
@@ -26,12 +26,12 @@ import org.mozilla.fenix.utils.ClipboardHandler
 @RunWith(AndroidJUnit4::class)
 class GleanDebugToolsStoreTest {
 
-    private lateinit var gleanDebugToolsService: GleanDebugToolsService
+    private lateinit var gleanDebugToolsStorage: FakeGleanDebugToolsStorage
     private lateinit var clipboardHandler: ClipboardHandler
 
     @Before
     fun setup() {
-        gleanDebugToolsService = FakeGleanDebugToolsService()
+        gleanDebugToolsStorage = FakeGleanDebugToolsStorage()
         clipboardHandler = ClipboardHandler(testContext)
     }
 
@@ -61,42 +61,42 @@ class GleanDebugToolsStoreTest {
 
     @Test
     fun `GIVEN the log pings to console preference is off WHEN said preference is toggled THEN the preference should be enabled`() {
-        gleanDebugToolsService = FakeGleanDebugToolsService(isSetLogPingsEnabled = false)
+        gleanDebugToolsStorage = FakeGleanDebugToolsStorage(isSetLogPingsEnabled = false)
         val store = GleanDebugToolsStore(
             initialState = GleanDebugToolsState(
                 logPingsToConsoleEnabled = false,
             ),
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                 ),
             ),
         )
         assertFalse(store.state.logPingsToConsoleEnabled)
-        assertFalse((gleanDebugToolsService as FakeGleanDebugToolsService).isSetLogPingsEnabled)
+        assertFalse(gleanDebugToolsStorage.isSetLogPingsEnabled)
         store.dispatch(GleanDebugToolsAction.LogPingsToConsoleToggled)
         assertTrue(store.state.logPingsToConsoleEnabled)
-        assertTrue((gleanDebugToolsService as FakeGleanDebugToolsService).isSetLogPingsEnabled)
+        assertTrue(gleanDebugToolsStorage.isSetLogPingsEnabled)
     }
 
     @Test
     fun `GIVEN the log pings to console preference is on WHEN said preference is toggled THEN the preference should be enabled`() {
-        gleanDebugToolsService = FakeGleanDebugToolsService(isSetLogPingsEnabled = true)
+        gleanDebugToolsStorage = FakeGleanDebugToolsStorage(isSetLogPingsEnabled = true)
         val store = GleanDebugToolsStore(
             initialState = GleanDebugToolsState(
                 logPingsToConsoleEnabled = true,
             ),
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                 ),
             ),
         )
         assertTrue(store.state.logPingsToConsoleEnabled)
-        assertTrue((gleanDebugToolsService as FakeGleanDebugToolsService).isSetLogPingsEnabled)
+        assertTrue(gleanDebugToolsStorage.isSetLogPingsEnabled)
         store.dispatch(GleanDebugToolsAction.LogPingsToConsoleToggled)
         assertFalse(store.state.logPingsToConsoleEnabled)
-        assertFalse((gleanDebugToolsService as FakeGleanDebugToolsService).isSetLogPingsEnabled)
+        assertFalse(gleanDebugToolsStorage.isSetLogPingsEnabled)
     }
 
     @Test
@@ -134,15 +134,15 @@ class GleanDebugToolsStoreTest {
             initialState = initialState,
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                 ),
             ),
         )
         assertEquals(initialState, store.state)
-        assertFalse((gleanDebugToolsService as FakeGleanDebugToolsService).baselinePingSent)
+        assertFalse(gleanDebugToolsStorage.baselinePingSent)
         store.dispatch(GleanDebugToolsAction.SendBaselinePing)
         assertEquals(initialState, store.state)
-        assertTrue((gleanDebugToolsService as FakeGleanDebugToolsService).baselinePingSent)
+        assertTrue(gleanDebugToolsStorage.baselinePingSent)
     }
 
     @Test
@@ -151,7 +151,7 @@ class GleanDebugToolsStoreTest {
         val store = GleanDebugToolsStore(
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                     showToast = { resId ->
                         assertEquals(
                             R.string.glean_debug_tools_send_baseline_ping_toast_message,
@@ -174,15 +174,15 @@ class GleanDebugToolsStoreTest {
             initialState = initialState,
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                 ),
             ),
         )
         assertEquals(initialState, store.state)
-        assertFalse((gleanDebugToolsService as FakeGleanDebugToolsService).metricsPingSent)
+        assertFalse(gleanDebugToolsStorage.metricsPingSent)
         store.dispatch(GleanDebugToolsAction.SendMetricsPing)
         assertEquals(initialState, store.state)
-        assertTrue((gleanDebugToolsService as FakeGleanDebugToolsService).metricsPingSent)
+        assertTrue(gleanDebugToolsStorage.metricsPingSent)
     }
 
     @Test
@@ -191,7 +191,7 @@ class GleanDebugToolsStoreTest {
         val store = GleanDebugToolsStore(
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                     showToast = { resId ->
                         assertEquals(
                             R.string.glean_debug_tools_send_metrics_ping_toast_message,
@@ -214,15 +214,15 @@ class GleanDebugToolsStoreTest {
             initialState = initialState,
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                 ),
             ),
         )
         assertEquals(initialState, store.state)
-        assertFalse((gleanDebugToolsService as FakeGleanDebugToolsService).pendingEventPingSent)
+        assertFalse(gleanDebugToolsStorage.pendingEventPingSent)
         store.dispatch(GleanDebugToolsAction.SendPendingEventPing)
         assertEquals(initialState, store.state)
-        assertTrue((gleanDebugToolsService as FakeGleanDebugToolsService).pendingEventPingSent)
+        assertTrue(gleanDebugToolsStorage.pendingEventPingSent)
     }
 
     @Test
@@ -231,7 +231,7 @@ class GleanDebugToolsStoreTest {
         val store = GleanDebugToolsStore(
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                     showToast = { resId ->
                         assertEquals(
                             R.string.glean_debug_tools_send_baseline_ping_toast_message,
@@ -259,7 +259,7 @@ class GleanDebugToolsStoreTest {
             initialState = initialState,
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                     openDebugView = { debugViewLink ->
                         assertEquals(expectedDebugViewLink, debugViewLink)
                         openDebugViewInvoked = true
@@ -282,7 +282,7 @@ class GleanDebugToolsStoreTest {
             initialState = initialState,
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                     openDebugView = { debugViewLink ->
                         TestCase.assertEquals(PING_PREVIEW_URL, debugViewLink)
                         openDebugViewInvoked = true
@@ -309,7 +309,7 @@ class GleanDebugToolsStoreTest {
             initialState = initialState,
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                 ),
             ),
         )
@@ -328,7 +328,7 @@ class GleanDebugToolsStoreTest {
             initialState = initialState,
             middlewares = listOf(
                 createMiddleware(
-                    gleanDebugToolsService = gleanDebugToolsService,
+                    gleanDebugToolsStorage = gleanDebugToolsStorage,
                 ),
             ),
         )
@@ -340,13 +340,38 @@ class GleanDebugToolsStoreTest {
     }
 
     private fun createMiddleware(
-        gleanDebugToolsService: GleanDebugToolsService,
+        gleanDebugToolsStorage: GleanDebugToolsStorage,
         openDebugView: (String) -> Unit = { _ -> },
         showToast: (Int) -> Unit = { _ -> },
     ) = GleanDebugToolsMiddleware(
-        gleanDebugToolsService = gleanDebugToolsService,
+        gleanDebugToolsStorage = gleanDebugToolsStorage,
         clipboardHandler = clipboardHandler,
         openDebugView = openDebugView,
         showToast = showToast,
     )
+
+    class FakeGleanDebugToolsStorage(
+        var isSetLogPingsEnabled: Boolean = false,
+    ) : GleanDebugToolsStorage {
+
+        var baselinePingSent = false
+        var metricsPingSent = false
+        var pendingEventPingSent = false
+
+        override fun setLogPings(enabled: Boolean) {
+            isSetLogPingsEnabled = enabled
+        }
+
+        override fun sendBaselinePing(debugViewTag: String) {
+            baselinePingSent = true
+        }
+
+        override fun sendMetricsPing(debugViewTag: String) {
+            metricsPingSent = true
+        }
+
+        override fun sendPendingEventPing(debugViewTag: String) {
+            pendingEventPingSent = true
+        }
+    }
 }
