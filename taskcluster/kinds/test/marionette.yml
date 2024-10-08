@@ -43,7 +43,10 @@ task-defaults:
 marionette-unittest:
     description: "Marionette unittest run"
     treeherder-symbol: Mn-unit
-    max-run-time: 1800
+    max-run-time:
+        by-test-platform:
+            .*asan.*: 3600
+            default: 1800
     instance-size: default
     chunks: 1
     suite: marionette
