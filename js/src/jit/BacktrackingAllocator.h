@@ -10,6 +10,7 @@
 #include "mozilla/Array.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Maybe.h"
 
 #include "ds/AvlTree.h"
 #include "ds/PriorityQueue.h"
@@ -711,27 +712,10 @@ class BacktrackingAllocator : protected RegisterAllocator {
   // should be prioritized.
   LiveRangeSet hotcode;
 
-  struct CallRange : public TempObject, public InlineListNode<CallRange> {
-    LiveRange::Range range;
-
-    CallRange(CodePosition from, CodePosition to) : range(from, to) {}
-
-    // Comparator for use in AVL trees.
-    static int compare(CallRange* v0, CallRange* v1) {
-      if (v0->range.to <= v1->range.from) {
-        return -1;
-      }
-      if (v0->range.from >= v1->range.to) {
-        return 1;
-      }
-      return 0;
-    }
-  };
-
-  // Ranges where all registers must be spilled due to call instructions.
-  using CallRangeList = InlineList<CallRange>;
-  CallRangeList callRangesList;
-  AvlTree<CallRange*, CallRange> callRanges;
+  // Output positions of all call instructions (where all registers must be
+  // spilled). This vector is sorted in ascending order and doesn't contain
+  // duplicate values.
+  Vector<CodePosition, 16, BackgroundSystemAllocPolicy> callPositions;
 
   // Information about an allocated stack slot.
   struct SpillSlot : public TempObject,
@@ -837,6 +821,10 @@ class BacktrackingAllocator : protected RegisterAllocator {
                                           CodePosition to);
   [[nodiscard]] bool buildLivenessInfo();
 
+  // Call positions.
+  mozilla::Maybe<size_t> lookupFirstCallPositionInRange(CodePosition from,
+                                                        CodePosition to);
+
   // Merging and queueing of LiveRange groups
   [[nodiscard]] bool tryMergeBundles(LiveBundle* bundle0, LiveBundle* bundle1);
   void allocateStackDefinition(VirtualRegister& reg);
@@ -929,8 +917,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
       : RegisterAllocator(mir, lir, graph),
         testbed(testbed),
         liveIn(mir->alloc()),
-        vregs(mir->alloc()),
-        callRanges(nullptr) {}
+        vregs(mir->alloc()) {}
 
   [[nodiscard]] bool go();
 };

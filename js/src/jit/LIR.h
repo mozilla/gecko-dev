@@ -1922,6 +1922,9 @@ class LIRGraph {
   uint32_t numVirtualRegisters_;
   uint32_t numInstructions_;
 
+  // Number of call-instructions in this LIR graph.
+  uint32_t numCallInstructions_ = 0;
+
   // Size of stack slots needed for local spills.
   uint32_t localSlotsSize_;
   // Number of JS::Value stack slots needed for argument construction for calls.
@@ -1955,6 +1958,10 @@ class LIRGraph {
   }
   uint32_t getInstructionId() { return numInstructions_++; }
   uint32_t numInstructions() const { return numInstructions_; }
+
+  void incNumCallInstructions() { numCallInstructions_++; }
+  uint32_t numCallInstructions() const { return numCallInstructions_; }
+
   void setLocalSlotsSize(uint32_t localSlotsSize) {
     localSlotsSize_ = localSlotsSize;
   }

@@ -678,6 +678,7 @@ void LIRGeneratorShared::add(T* ins, MInstruction* mir) {
   }
   annotate(ins);
   if (ins->isCall()) {
+    lirGraph_.incNumCallInstructions();
     gen->setNeedsOverrecursedCheck();
     gen->setNeedsStaticStackAlignment();
   }
