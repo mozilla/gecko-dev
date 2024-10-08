@@ -56,7 +56,7 @@ async function checkSearchString(searchString, isIpv6) {
     `There should not be a userTypedValue for ${searchString}`
   );
   let state = window.gURLBar.getBrowserState(window.gBrowser.selectedBrowser);
-  Assert.equal(state.searchTerms, "", "searchTerms should be empty.");
+  Assert.equal(state.persist.searchTerms, "", "searchTerms should be empty.");
 }
 
 add_task(async function unsafe_search_strings() {

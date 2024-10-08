@@ -130,9 +130,7 @@ add_task(async function select_non_default_engine_and_search() {
   EventUtils.synthesizeKey("KEY_Enter");
   await browserLoadedPromise;
 
-  assertSearchStringIsInUrlbar(SEARCH_STRING, {
-    userTypedValue: SEARCH_STRING,
-  });
+  assertSearchStringIsInUrlbar(SEARCH_STRING);
 
   BrowserTestUtils.removeTab(tab);
 });
@@ -242,7 +240,7 @@ add_task(async function select_non_default_engine_and_blur_and_switch_tab() {
     entry: "searchbutton",
   });
   Assert.ok(
-    gURLBar.hasAttribute("persistsearchterms"),
+    !gURLBar.hasAttribute("persistsearchterms"),
     "Urlbar does not has persistsearchterms attribute."
   );
   Assert.equal(

@@ -109,10 +109,7 @@ class _UrlbarSearchTermsPersistence {
    * Determines if the URIs represent an application provided search
    * engine results page (SERP) and retrieves the search terms used.
    *
-   * @param {nsIURI} originalURI
-   *   The fallback URI to check. Used if `currentURI` is not provided or if
-   *   conditions require fallback.
-   * @param {nsIURI} currentURI
+   * @param {nsIURI} uri
    *   The primary URI that is checked to determine if it matches the expected
    *   structure of a default SERP.
    * @returns {string}
@@ -121,32 +118,13 @@ class _UrlbarSearchTermsPersistence {
    *   looks too similar to a URL, the string exceeds the maximum characters,
    *   or the default engine hasn't been initialized.
    */
-  getSearchTerm(originalURI, currentURI) {
-    if (
-      !Services.search.hasSuccessfullyInitialized ||
-      (!originalURI && !currentURI)
-    ) {
+  getSearchTerm(uri) {
+    if (!Services.search.hasSuccessfullyInitialized || !uri?.spec) {
       return "";
-    }
-
-    if (!originalURI) {
-      originalURI = currentURI;
-    }
-
-    if (!currentURI) {
-      currentURI = originalURI;
     }
 
     // Avoid inspecting URIs if they are non-http(s).
-    if (!/^https?:\/\//.test(originalURI.spec)) {
-      return "";
-    }
-
-    // Since we may have to use both URIs ensure they are similar.
-    if (
-      originalURI.prePath !== currentURI.prePath ||
-      originalURI.filePath !== currentURI.filePath
-    ) {
+    if (!/^https?:\/\//.test(uri.spec)) {
       return "";
     }
 
@@ -154,25 +132,19 @@ class _UrlbarSearchTermsPersistence {
 
     // If we have a provider, we have specific rules for dealing and can
     // understand changes to params.
-    let provider = this.#getProviderInfoForURL(currentURI.spec);
+    let provider = this.#getProviderInfoForURL(uri.spec);
     if (provider) {
-      let result = Services.search.parseSubmissionURL(currentURI.spec);
-      if (
-        !result.engine?.isAppProvided ||
-        !this.#shouldPersist(currentURI, provider)
-      ) {
+      let result = Services.search.parseSubmissionURL(uri.spec);
+      if (!result.engine?.isAppProvided || !this.isDefaultPage(uri, provider)) {
         return "";
       }
       searchTerm = result.terms;
     } else {
-      // For all other providers, we use originalURI, because it doesn't change
-      // and if it matches what the Engine would've generated, it means it's
-      // a SERP.
-      let result = Services.search.parseSubmissionURL(originalURI.spec);
+      let result = Services.search.parseSubmissionURL(uri.spec);
       if (!result.engine?.isAppProvided) {
         return "";
       }
-      searchTerm = result.engine.searchTermFromResult(originalURI);
+      searchTerm = result.engine.searchTermFromResult(uri);
     }
 
     if (!searchTerm || searchTerm.length > UrlbarUtils.MAX_TEXT_LENGTH) {
@@ -213,6 +185,130 @@ class _UrlbarSearchTermsPersistence {
     return "";
   }
 
+  shouldPersist(state, { uri, isSameDocument, userTypedValue, firstView }) {
+    let persist = state.persist;
+    if (!persist) {
+      return false;
+    }
+
+    // Don't persist if there are no search terms to show.
+    if (!persist.searchTerms) {
+      return false;
+    }
+
+    // If there is a userTypedValue and it differs from the search terms, the
+    // user must've modified the text.
+    if (userTypedValue && userTypedValue !== persist.searchTerms) {
+      return false;
+    }
+
+    // For some search engines, particularly single page applications, check
+    // if the URL matches a default search results page as page changes will
+    // occur within the same document.
+    if (
+      isSameDocument &&
+      state.persist.provider &&
+      !this.isDefaultPage(uri, state.persist.provider)
+    ) {
+      return false;
+    }
+
+    // The first page view will set the search mode but after that, the search
+    // mode could differ. Since persisting the search guarantees the correct
+    // search mode is shown, we don't want to undo changes the user could've
+    // done, like removing/adding the search mode.
+    if (
+      !firstView &&
+      !this.searchModeMatchesState(state.searchModes?.confirmed, state)
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  // Resets and assigns initial values for Search Terms Persistence state.
+  setPersistenceState(state, uri) {
+    state.persist = {
+      // Whether the engine that loaded the URI is the default search engine.
+      isDefaultEngine: null,
+
+      // The name of the engine that was used to load the URI.
+      originalEngineName: null,
+
+      // The search provider associated with the URI. If one exists, it means
+      // we have custom rules for this search provider to determine whether or
+      // not the URI corresponds to a default search engine results page.
+      provider: null,
+
+      // The search string within the URI.
+      searchTerms: this.getSearchTerm(uri),
+
+      // Whether the search terms should persist.
+      shouldPersist: null,
+    };
+
+    if (!state.persist.searchTerms) {
+      return;
+    }
+
+    let provider = this.#getProviderInfoForURL(uri?.spec);
+    // If we have specific Remote Settings defined providers for the URL,
+    // it's because changing the page won't clear the search terms unless we
+    // observe changes of the params in the URL.
+    if (provider) {
+      state.persist.provider = provider;
+    }
+
+    let result = this.#searchModeForUrl(uri.spec);
+    state.persist.originalEngineName = result.engineName;
+    state.persist.isDefaultEngine = result.isDefaultEngine;
+  }
+
+  /**
+   * Determines if search mode is in alignment with the persisted
+   * search state. Returns true in either of these cases:
+   *
+   * - The search mode engine is the same as the persisted engine.
+   * - There's no search mode, but the persisted engine is a default engine.
+   *
+   * @param {object} searchMode
+   *   The search mode for the address bar.
+   * @param {object} state
+   *   The address bar state associated with the browser.
+   * @returns {boolean}
+   */
+  searchModeMatchesState(searchMode, state) {
+    if (searchMode?.engineName === state.persist?.originalEngineName) {
+      return true;
+    }
+    if (!searchMode && state.persist?.isDefaultEngine) {
+      return true;
+    }
+    return false;
+  }
+
+  onSearchModeChanged(window) {
+    let urlbar = window.gURLBar;
+    if (!urlbar) {
+      return;
+    }
+    let state = urlbar.getBrowserState(window.gBrowser.selectedBrowser);
+    if (!state?.persist) {
+      return;
+    }
+
+    // Exit search terms persistence when search mode changes and it's not
+    // consistent with the persisted engine.
+    if (
+      state.persist.shouldPersist &&
+      !this.searchModeMatchesState(state.searchModes?.confirmed, state)
+    ) {
+      state.persist.shouldPersist = false;
+      urlbar.removeAttribute("persistsearchterms");
+    }
+  }
+
   async #onSettingsSync(event) {
     let current = event.data?.current;
     if (current) {
@@ -225,6 +321,21 @@ class _UrlbarSearchTermsPersistence {
       );
     }
     Services.obs.notifyObservers(null, "urlbar-persisted-search-terms-synced");
+  }
+
+  #searchModeForUrl(url) {
+    // If there's no default engine, no engines are available.
+    if (!Services.search.defaultEngine) {
+      return null;
+    }
+    let result = Services.search.parseSubmissionURL(url);
+    if (!result.engine?.isAppProvided) {
+      return null;
+    }
+    return {
+      engineName: result.engine.name,
+      isDefaultEngine: result.engine === Services.search.defaultEngine,
+    };
   }
 
   /**
@@ -260,7 +371,7 @@ class _UrlbarSearchTermsPersistence {
 
   /**
    * Determines whether the search terms in the provided URL should be persisted
-   * based on predefined criteria.
+   * based on whether we find it's a default web SERP.
    *
    * @param {nsIURI} currentURI
    *   The current URI
@@ -270,7 +381,7 @@ class _UrlbarSearchTermsPersistence {
    *   empty string if search terms should not be persisted, or the value of the
    *   first matched query parameter to be persisted.
    */
-  #shouldPersist(currentURI, provider) {
+  isDefaultPage(currentURI, provider) {
     let searchParams;
     try {
       searchParams = new URL(currentURI.spec).searchParams;

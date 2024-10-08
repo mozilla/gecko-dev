@@ -74,7 +74,7 @@ add_task(async function focus_and_unfocus() {
   EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
   Assert.ok(
     gURLBar.hasAttribute("persistsearchterms"),
-    "Urlbar does not have persistsearchterms attribute."
+    "Urlbar has persistsearchterms attribute."
   );
 
   gURLBar.blur();
@@ -192,7 +192,7 @@ add_task(async function focus_after_top_sites() {
   );
   let state = window.gURLBar.getBrowserState(window.gBrowser.selectedBrowser);
   Assert.equal(
-    state.searchTerms,
+    state.persist.searchTerms,
     SEARCH_STRING,
     "The search term should be in the Urlbar."
   );

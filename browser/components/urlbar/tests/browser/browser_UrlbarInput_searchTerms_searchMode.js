@@ -48,15 +48,13 @@ async function searchWithNonDefaultSearchMode(tab) {
   EventUtils.synthesizeKey("KEY_Enter");
   await browserLoadedPromise;
 
-  assertSearchStringIsInUrlbar(SEARCH_STRING, {
-    userTypedValue: SEARCH_STRING,
-  });
+  assertSearchStringIsInUrlbar(SEARCH_STRING);
   await UrlbarTestUtils.assertSearchMode(window, {
     engineName: "MochiSearch",
     isGeneralPurposeEngine: true,
     source: UrlbarUtils.RESULT_SOURCE.SEARCH,
     isPreview: false,
-    entry: "other",
+    entry: "oneoff",
   });
 
   return { expectedSearchUrl };
@@ -67,6 +65,67 @@ async function searchWithNonDefaultSearchMode(tab) {
 add_task(async function non_default_search() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await searchWithNonDefaultSearchMode(tab);
+  BrowserTestUtils.removeTab(tab);
+});
+
+// Load default SERP, enter search mode.
+add_task(async function different_search_mode_from_default_serp() {
+  let { tab } = await searchWithTab(SEARCH_STRING);
+
+  info("Click on address bar.");
+  EventUtils.synthesizeMouseAtCenter(window.gURLBar.inputField, {});
+  await TestUtils.waitForCondition(() => window.gURLBar.focused);
+
+  info("Enter search mode.");
+  let engine = Services.search.getEngineByName("MochiSearch");
+  Assert.notEqual(
+    engine.name,
+    Services.search.defaultEngine.name,
+    "Engine is non-default."
+  );
+  await UrlbarTestUtils.enterSearchMode(window, {
+    engineName: engine.name,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+  });
+  Assert.ok(
+    !window.gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
+  );
+
+  info("Blur address bar.");
+  gURLBar.blur();
+  await TestUtils.waitForCondition(() => !window.gURLBar.focused);
+  Assert.ok(
+    !window.gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
+  );
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+// Load non-default SERP, escape search mode.
+add_task(async function escape_search_mode_from_non_default_serp() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  await searchWithNonDefaultSearchMode(tab);
+
+  info("Exit search mode.");
+  await UrlbarTestUtils.exitSearchMode(window, {
+    clickClose: true,
+    waitForSearch: false,
+  });
+  Assert.ok(
+    !window.gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
+  );
+
+  info("Blur address bar.");
+  gURLBar.blur();
+  await TestUtils.waitForCondition(() => !window.gURLBar.focused);
+  Assert.ok(
+    !window.gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
+  );
+
   BrowserTestUtils.removeTab(tab);
 });
 
@@ -124,6 +183,10 @@ add_task(async function clear_search_mode_switch_tab() {
     waitForSearch: false,
   });
   await UrlbarTestUtils.promisePopupClose(window);
+  assertSearchStringIsInUrlbar(SEARCH_STRING, {
+    userTypedValue: SEARCH_STRING,
+    persistSearchTerms: false,
+  });
   await UrlbarTestUtils.assertSearchMode(window, null);
 
   let tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
@@ -132,6 +195,7 @@ add_task(async function clear_search_mode_switch_tab() {
   // UserTypedValue is set when the search mode has to be recovered.
   assertSearchStringIsInUrlbar(SEARCH_STRING, {
     userTypedValue: SEARCH_STRING,
+    persistSearchTerms: false,
   });
   await UrlbarTestUtils.assertSearchMode(window, null);
 

@@ -411,89 +411,112 @@ export class UrlbarInput {
     ) {
       this._updateSearchModeUI(this.searchMode);
     }
+
     let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
-    if (!this.window.gBrowser.userTypedValue) {
-      state.searchTerms = "";
-      if (
-        !hideSearchTerms &&
-        lazy.UrlbarPrefs.isPersistedSearchTermsEnabled()
-      ) {
-        state.searchTerms = lazy.UrlbarSearchTermsPersistence.getSearchTerm(
-          this.window.gBrowser.selectedBrowser.originalURI,
-          uri
+    if (lazy.UrlbarPrefs.isPersistedSearchTermsEnabled()) {
+      // The first time the browser URI has been loaded to the input. If
+      // persist is not defined, it is likely due to the tab being created in
+      // the background or an existing tab moved to a new window and we have to
+      // do the work for the first time.
+      let firstView = (!isSameDocument && !dueToTabSwitch) || !state.persist;
+      if (firstView) {
+        lazy.UrlbarSearchTermsPersistence.setPersistenceState(
+          state,
+          this.window.gBrowser.selectedBrowser.originalURI
         );
       }
+      let shouldPersist =
+        !hideSearchTerms &&
+        lazy.UrlbarSearchTermsPersistence.shouldPersist(state, {
+          dueToTabSwitch,
+          isSameDocument,
+          uri,
+          userTypedValue: this.window.gBrowser.userTypedValue,
+          firstView,
+        });
+
+      // When persisting, userTypedValue should have a value consistent with the
+      // search terms to mimic a user typing the search terms.
+      // When turning off persist, check if the userTypedValue needs to be
+      // removed in order for the URL to return to the address bar. Single page
+      // application SERPs will load secondary search pages (e.g. Maps, Images)
+      // with the same document, which won't unset userTypedValue.
+      if (shouldPersist) {
+        this.window.gBrowser.userTypedValue = state.persist.searchTerms;
+      } else if (
+        isSameDocument &&
+        state.persist.shouldPersist &&
+        !shouldPersist
+      ) {
+        this.window.gBrowser.userTypedValue = null;
+      }
+      state.persist.shouldPersist = shouldPersist;
+      this.toggleAttribute("persistsearchterms", state.persist.shouldPersist);
+      if (state.persist.shouldPersist && !isSameDocument) {
+        Services.telemetry.scalarAdd(
+          "urlbar.persistedsearchterms.view_count",
+          1
+        );
+      }
+    } else if (state.persist) {
+      // Ensure the persist search state is unloaded for tabs that had state
+      // related to Persisted Search but disabled the feature.
+      this.removeAttribute("persistsearchterms");
+      delete state.persist;
     }
 
     let value = this.window.gBrowser.userTypedValue;
     let valid = false;
-    let showPersistedState = false;
 
     // If `value` is null or if it's an empty string and we're switching tabs
-    // or the userTypedValue equals the search terms, set value to either
-    // search terms or the browser's current URI. When a user empties the input,
+    // set value to the browser's current URI. When a user empties the input,
     // switches tabs, and switches back, we want the URI to become visible again
     // so the user knows what URI they're viewing.
     // An exception to this is made in case of an auth request from a different
     // base domain. To avoid auth prompt spoofing we already display the url of
     // the cross domain resource, although the page is not loaded yet.
     // This url will be set/unset by PromptParent. See bug 791594 for reference.
-    if (
-      value === null ||
-      (!value && dueToTabSwitch) ||
-      (value && value === state.searchTerms)
-    ) {
-      if (state.searchTerms) {
-        value = state.searchTerms;
-        showPersistedState = true;
-        if (!isSameDocument) {
-          Services.telemetry.scalarAdd(
-            "urlbar.persistedsearchterms.view_count",
-            1
-          );
-        }
+    if (value === null || (!value && dueToTabSwitch)) {
+      uri =
+        this.window.gBrowser.selectedBrowser.currentAuthPromptURI ||
+        uri ||
+        this.#isOpenedPageInBlankTargetLoading ||
+        this.window.gBrowser.currentURI;
+      // Strip off usernames and passwords for the location bar
+      try {
+        uri = Services.io.createExposableURI(uri);
+      } catch (e) {}
+
+      let isInitialPageControlledByWebContent = false;
+
+      // Replace initial page URIs with an empty string
+      // only if there's no opener (bug 370555).
+      if (
+        this.window.isInitialPage(uri) &&
+        lazy.BrowserUIUtils.checkEmptyPageOrigin(
+          this.window.gBrowser.selectedBrowser,
+          uri
+        )
+      ) {
+        value = "";
       } else {
-        uri =
-          this.window.gBrowser.selectedBrowser.currentAuthPromptURI ||
-          uri ||
-          this.#isOpenedPageInBlankTargetLoading ||
-          this.window.gBrowser.currentURI;
-        // Strip off usernames and passwords for the location bar
+        isInitialPageControlledByWebContent = true;
+
+        // We should deal with losslessDecodeURI throwing for exotic URIs
         try {
-          uri = Services.io.createExposableURI(uri);
-        } catch (e) {}
-
-        let isInitialPageControlledByWebContent = false;
-
-        // Replace initial page URIs with an empty string
-        // only if there's no opener (bug 370555).
-        if (
-          this.window.isInitialPage(uri) &&
-          lazy.BrowserUIUtils.checkEmptyPageOrigin(
-            this.window.gBrowser.selectedBrowser,
-            uri
-          )
-        ) {
-          value = "";
-        } else {
-          isInitialPageControlledByWebContent = true;
-
-          // We should deal with losslessDecodeURI throwing for exotic URIs
-          try {
-            value = losslessDecodeURI(uri);
-          } catch (ex) {
-            value = "about:blank";
-          }
+          value = losslessDecodeURI(uri);
+        } catch (ex) {
+          value = "about:blank";
         }
-        // If we update the URI while restoring a session, set the proxyState to
-        // invalid, because we don't have a valid security state to show via site
-        // identity yet. See Bug 1746383.
-        valid =
-          !dueToSessionRestore &&
-          (!this.window.isBlankPageURL(uri.spec) ||
-            uri.schemeIs("moz-extension") ||
-            isInitialPageControlledByWebContent);
       }
+      // If we update the URI while restoring a session, set the proxyState to
+      // invalid, because we don't have a valid security state to show via site
+      // identity yet. See Bug 1746383.
+      valid =
+        !dueToSessionRestore &&
+        (!this.window.isBlankPageURL(uri.spec) ||
+          uri.schemeIs("moz-extension") ||
+          isInitialPageControlledByWebContent);
     } else if (
       this.window.isInitialPage(value) &&
       lazy.BrowserUIUtils.checkEmptyPageOrigin(
@@ -515,7 +538,6 @@ export class UrlbarInput {
 
     this._setValue(value, { allowTrim: true, valueIsTyped: !valid });
     this.toggleAttribute("usertyping", !valid && value);
-    this.toggleAttribute("persistsearchterms", showPersistedState);
 
     if (this.focused && value != previousUntrimmedValue) {
       if (
@@ -555,26 +577,32 @@ export class UrlbarInput {
     // search mode depends on it.
     this.setPageProxyState(valid ? "valid" : "invalid", dueToTabSwitch);
 
-    // If search terms are enabled, ensure search mode is accurate on initial
-    // page loads. If we're switching tabs, restore the tab's search mode.
-    // Otherwise, if the URI is valid, exit search mode.  This must happen
-    // after setting proxystate above because search mode depends on it.
-    if (state.searchTerms && !isSameDocument && !dueToTabSwitch) {
-      let result = this.#searchModeForUrl(uri?.spec);
-      if (result && this.searchMode?.name != result.engineName) {
-        if (result.isDefaultEngine) {
+    if (state.persist?.shouldPersist) {
+      // When search terms persist, on non-default engine search result pages
+      // the address bar should show the same search mode. For default engines,
+      // search mode should not persist.
+      if (
+        !lazy.UrlbarSearchTermsPersistence.searchModeMatchesState(
+          this.searchMode,
+          state
+        )
+      ) {
+        if (state.persist.isDefaultEngine) {
           this.searchMode = null;
         } else {
           this.searchMode = {
-            engineName: result.engineName,
+            engineName: state.persist.originalEngineName,
             source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
             isPreview: false,
           };
         }
       }
     } else if (dueToTabSwitch && !valid) {
+      // If we're switching tabs, restore the tab's search mode.
       this.restoreSearchModeState();
     } else if (valid && this.#shouldExitSearchMode(uri)) {
+      // If the URI is valid, exit search mode.  This must happen
+      // after setting proxystate above because search mode depends on it.
       this.searchMode = null;
     }
 
@@ -907,7 +935,7 @@ export class UrlbarInput {
 
   maybeHandleRevertFromPopup(anchorElement) {
     let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
-    if (anchorElement?.closest("#urlbar") && state.searchTerms) {
+    if (anchorElement?.closest("#urlbar") && state.persist?.shouldPersist) {
       this.handleRevert();
       Services.telemetry.scalarAdd(
         "urlbar.persistedsearchterms.revert_by_popup_count",
@@ -2058,6 +2086,7 @@ export class UrlbarInput {
   set searchMode(searchMode) {
     this.setSearchMode(searchMode, this.window.gBrowser.selectedBrowser);
     this.searchModeSwitcher.onSearchModeChanged();
+    lazy.UrlbarSearchTermsPersistence.onSearchModeChanged(this.window);
   }
 
   getBrowserState(browser) {
@@ -2276,7 +2305,11 @@ export class UrlbarInput {
     }
 
     let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
-    if (state.searchTerms && !isOneOff) {
+    if (state.persist?.searchTerms && !isOneOff) {
+      // Normally, we use state.persist.shouldPersist to check if search terms
+      // persisted. However when the user modifies the search term, the boolean
+      // will become false. Thus, we check the presence of the search terms to
+      // know whether or not search terms ever persisted in the address bar.
       return "urlbar-persisted";
     }
 
@@ -3744,8 +3777,10 @@ export class UrlbarInput {
     this._isHandoffSession = false;
     this.removeAttribute("focused");
 
-    let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
-    if (this._revertOnBlurValue == this.value && !state.searchTerms) {
+    if (
+      this._revertOnBlurValue == this.value &&
+      !this.window.gBrowser.userTypedValue
+    ) {
       this.handleRevert();
     } else if (
       this._autofillPlaceholder &&
@@ -4042,9 +4077,10 @@ export class UrlbarInput {
 
     let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
     if (
-      state.searchTerms &&
-      this.value != this.window.gBrowser.selectedBrowser.searchTerms
+      state.persist?.shouldPersist &&
+      this.value !== state.persist.searchTerms
     ) {
+      state.persist.shouldPersist = false;
       this.removeAttribute("persistsearchterms");
     }
 
@@ -4647,21 +4683,6 @@ export class UrlbarInput {
         event.keyCode == KeyEvent.DOM_VK_META &&
         this._isKeyDownWithMetaAndLeft)
     );
-  }
-
-  #searchModeForUrl(url) {
-    // If there's no default engine, no engines are available.
-    if (!Services.search.defaultEngine) {
-      return null;
-    }
-    let result = Services.search.parseSubmissionURL(url);
-    if (!result.engine?.isAppProvided) {
-      return null;
-    }
-    return {
-      engineName: result.engine.name,
-      isDefaultEngine: result.engine === Services.search.defaultEngine,
-    };
   }
 }
 

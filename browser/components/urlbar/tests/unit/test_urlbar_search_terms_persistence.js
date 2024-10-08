@@ -53,93 +53,78 @@ const TESTS = [
     cases: [
       {
         title: "Non-existent URI",
-        currentURI: null,
         originalURI: null,
         expected: "",
       },
       {
         title: "Empty URI",
-        currentURI: "",
         originalURI: "",
         expected: "",
       },
       {
         title: "Non-url",
-        currentURI: "about:blank",
         originalURI: "about:blank",
         expected: "",
       },
       {
         title: "Non-url 1",
-        currentURI: "about:home",
         originalURI: "about:home",
         expected: "",
       },
       {
         title: "Non-url 2",
-        currentURI: "about:newtab",
         originalURI: "about:newtab",
         expected: "",
       },
       {
         title: "Non-url 3",
-        currentURI: "not://a/supported/protocol",
         originalURI: "not://a/supported/protocol",
         expected: "",
       },
       {
         title: "Non-url 4",
-        currentURI: "view-source:http://www.example.com/",
         originalURI: "view-source:http://www.example.com/",
         expected: "",
       },
       {
         title: "No search parameters",
-        currentURI: "https://example.com/",
         originalURI: "https://example.com/",
         expected: "",
       },
       {
         title: "No search query param value",
-        currentURI: "https://example.com/?q",
         originalURI: "https://example.com/?q",
         expected: "",
       },
       {
         title: "With search query param value",
-        currentURI: "https://example.com/?q=foo",
         originalURI: "https://example.com/?q=foo",
         expected: "foo",
       },
       {
         title: "With search query param value and a fake value key-value pair",
-        currentURI: "https://example.com/?q=foo&page=fake_code",
         originalURI: "https://example.com/?q=foo&page=fake_code",
         expected: "",
       },
       {
         title: "With search query param value and valid key-value pair",
-        currentURI: "https://example.com/?q=foo&page=web",
         originalURI: "https://example.com/?q=foo&page=web",
         expected: "foo",
       },
       {
         title: "With search query param value and unknown key-value pair",
-        currentURI: "https://example.com/?q=foo&key=unknown",
         originalURI: "https://example.com/?q=foo&key=unknown",
         expected: "foo",
       },
       {
         title:
           "With search query param value and valid excludeParams key-value pair",
-        currentURI: "https://example.com/?q=foo&excludeKey=hello",
         originalURI: "https://example.com/?q=foo&excludeKey=hello",
         expected: "",
       },
       {
         title:
           "With search query param value and invalid excludeParams key-value pair",
-        currentURI: "https://example.com/?q=foo&page=web&excludeKey=hi",
         originalURI: "https://example.com/?q=foo&page=web&excludeKey=hi",
         expected: "foo",
       },
@@ -151,31 +136,26 @@ const TESTS = [
     cases: [
       {
         title: "With search query param",
-        currentURI: "https://example1.com/?q=foo",
         originalURI: "https://example1.com/?q=foo",
         expected: "",
       },
       {
         title: "No search parameters",
-        currentURI: "https://example1.com/",
         originalURI: "https://example1.com/",
         expected: "",
       },
       {
         title: "No search query param value",
-        currentURI: "https://example1.com/?q",
         originalURI: "https://example1.com/?q",
         expected: "",
       },
       {
         title: "With search query param value and unknown key-value pair",
-        currentURI: "https://example1.com/?q=foo&key=unknown",
         originalURI: "https://example1.com/?q=foo&key=unknown",
         expected: "",
       },
       {
         title: "with search query param value and default key-value pair",
-        currentURI: "https://example1.com/?q=foo&default=all",
         originalURI: "https://example1.com/?q=foo&default=all",
         expected: "foo",
       },
@@ -187,26 +167,22 @@ const TESTS = [
     cases: [
       {
         title: "With search query param value",
-        currentURI: "https://example2.com/?q=foo",
         originalURI: "https://example2.com/?q=foo",
         expected: "",
       },
       {
         title: "With search query param value",
-        currentURI: "https://example2.com/?q=foo&page=web",
         originalURI: "https://example2.com/?q=foo&page=web",
         expected: "foo",
       },
       {
         title: "With search query param value and excludeParams key-value pair",
-        currentURI: "https://example2.com/?q=foo&page=web&excludeKey=web",
         originalURI: "https://example2.com/?q=foo&page=web&excludeKey=web",
         expected: "",
       },
       {
         title:
           "With search query param value and presence of excludeParams key",
-        currentURI: "https://example2.com/?q=foo&excludeKey",
         originalURI: "https://example2.com/?q=foo&excludeKey",
         expected: "",
       },
@@ -276,18 +252,15 @@ add_setup(async function () {
 
 add_task(async function test_parsing_extracted_urls() {
   for (let test of TESTS) {
-    for (let { title, currentURI, originalURI, expected } of test.cases) {
+    for (let { title, originalURI, expected } of test.cases) {
       info(`${test.name} - ${title}`);
 
-      if (currentURI) {
-        currentURI = Services.io.newURI(currentURI);
-      }
       if (originalURI) {
         originalURI = Services.io.newURI(originalURI);
       }
 
       Assert.equal(
-        UrlbarSearchTermsPersistence.getSearchTerm(originalURI, currentURI),
+        UrlbarSearchTermsPersistence.getSearchTerm(originalURI),
         expected
       );
     }

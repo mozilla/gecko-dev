@@ -545,7 +545,6 @@ add_task(async function test_fresh_search_with_urlbar_persisted() {
   let adImpressionPromise = waitForPageWithAdImpressions();
   await loadSearchPage();
   await adImpressionPromise;
-  // await new Promise(resolve => setTimeout(resolve, 50000));
   await assertSearchSourcesTelemetry(
     {
       "Example.urlbar": 1,
