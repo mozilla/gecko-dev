@@ -543,7 +543,7 @@ class BookmarksMiddlewareTest {
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(
-                bookmarksSelectFolderState = BookmarksSelectFolderState(),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
             ),
         )
 
@@ -559,7 +559,7 @@ class BookmarksMiddlewareTest {
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(
-                bookmarksSelectFolderState = BookmarksSelectFolderState(),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
             ),
         )
 
@@ -576,7 +576,7 @@ class BookmarksMiddlewareTest {
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(
                 isSignedIntoSync = true,
-                bookmarksSelectFolderState = BookmarksSelectFolderState(),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
             ),
         )
 
@@ -590,7 +590,7 @@ class BookmarksMiddlewareTest {
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(
-                bookmarksSelectFolderState = BookmarksSelectFolderState(),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
             ),
         )
 
@@ -610,7 +610,7 @@ class BookmarksMiddlewareTest {
                     destination = "folder guid 1",
                 ),
                 bookmarksSelectFolderState = BookmarksSelectFolderState(
-                    selectionGuid = "folder guid 1",
+                    outerSelectionGuid = "folder guid 1",
                 ),
             ),
         )

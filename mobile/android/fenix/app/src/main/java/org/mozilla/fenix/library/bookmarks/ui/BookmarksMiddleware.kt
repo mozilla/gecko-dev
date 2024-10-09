@@ -130,7 +130,8 @@ internal class BookmarksMiddleware(
                 when {
                     // non-list screen cases need to come first, since we presume if all subscreen
                     // state is null then we are on the list screen
-                    preReductionState.bookmarksAddFolderState != null -> {
+                    preReductionState.bookmarksAddFolderState != null &&
+                        context.state.bookmarksAddFolderState == null -> {
                         navController.popBackStack()
                         scope.launch(ioDispatcher) {
                             val newFolderTitle =
