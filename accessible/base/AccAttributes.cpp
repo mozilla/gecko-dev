@@ -70,7 +70,12 @@ void AccAttributes::StringFromValueAndName(nsAtom* aAttrName,
         aValueString.Assign(*val);
       },
       [&aValueString](const RefPtr<AccAttributes>& val) {
-        aValueString.Assign(u"AccAttributes{...}");
+        if (val) {
+          aValueString.AppendPrintf("AccAttributes: %s",
+                                    ToString(*val).c_str());
+        } else {
+          aValueString.AssignASCII("<null>");
+        }
       },
       [&aValueString](const uint64_t& val) { aValueString.AppendInt(val); },
       [&aValueString](const UniquePtr<AccGroupInfo>& val) {
@@ -224,23 +229,7 @@ void AccAttributes::CopyTo(AccAttributes* aDest) const {
 #ifdef A11Y_LOG
 void AccAttributes::DebugPrint(const char* aPrefix,
                                const AccAttributes& aAttributes) {
-  nsAutoString prettyString;
-  prettyString.AssignLiteral("{\n");
-  for (const auto& iter : aAttributes) {
-    nsAutoString name;
-    iter.NameAsString(name);
-
-    nsAutoString value;
-    iter.ValueAsString(value);
-    prettyString.AppendLiteral("  ");
-    prettyString.Append(name);
-    prettyString.AppendLiteral(": ");
-    prettyString.Append(value);
-    prettyString.AppendLiteral("\n");
-  }
-
-  prettyString.AppendLiteral("}");
-  printf("%s %s\n", aPrefix, NS_ConvertUTF16toUTF8(prettyString).get());
+  printf("%s %s\n", aPrefix, ToString(aAttributes).c_str());
 }
 #endif
 
@@ -291,4 +280,25 @@ size_t AccAttributes::Entry::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) {
   }
 
   return size;
+}
+
+std::ostream& mozilla::a11y::operator<<(std::ostream& aStream,
+                                        const AccAttributes& aAttributes) {
+  if (aAttributes.Count() == 0) {
+    aStream << "{ empty }";
+    return aStream;
+  }
+  aStream << "{\n";
+  nsAutoStringN<2> separator{};
+  nsAutoString scratch;
+  for (const AccAttributes::Entry entry : aAttributes) {
+    aStream << separator << "  ";
+    entry.NameAsString(scratch);
+    aStream << scratch << ": ";
+    entry.ValueAsString(scratch);
+    aStream << scratch;
+    separator.AssignASCII(",\n");
+  }
+  aStream << "\n}";
+  return aStream;
 }
