@@ -5288,6 +5288,7 @@ static bool ParseModule(JSContext* cx, unsigned argc, Value* vp) {
 
   UniqueChars filename;
   CompileOptions options(cx);
+  bool jsonModule = false;
   if (args.length() > 1) {
     if (!args[1].isString()) {
       const char* typeName = InformalValueTypeName(args[1]);
@@ -5302,10 +5303,34 @@ static bool ParseModule(JSContext* cx, unsigned argc, Value* vp) {
     }
 
     options.setFileAndLine(filename.get(), 1);
+
+    // The 2nd argument is the module type string. "js" or "json" is expected.
+    if (args.length() == 3) {
+      if (!args[2].isString()) {
+        const char* typeName = InformalValueTypeName(args[2]);
+        JS_ReportErrorASCII(cx, "expected moduleType string, got %s", typeName);
+        return false;
+      }
+
+      RootedString str(cx, args[2].toString());
+      JSLinearString* linearStr = JS_EnsureLinearString(cx, str);
+      if (!linearStr) {
+        return false;
+      }
+      if (JS_LinearStringEqualsLiteral(linearStr, "json")) {
+        jsonModule = true;
+      } else if (!JS_LinearStringEqualsLiteral(linearStr, "js")) {
+        UniqueChars modType = JS_EncodeStringToUTF8(cx, str);
+        JS_ReportErrorASCII(
+            cx,
+            "unexpected moduleType string (expected 'js' or 'json'), got %s",
+            modType.get());
+        return false;
+      }
+    }
   } else {
     options.setFileAndLine("<string>", 1);
   }
-  options.setModule();
 
   AutoStableStringChars linearChars(cx);
   if (!linearChars.initTwoByte(cx, scriptContents)) {
@@ -5317,8 +5342,14 @@ static bool ParseModule(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  AutoReportFrontendContext fc(cx);
-  RootedObject module(cx, frontend::CompileModule(cx, &fc, options, srcBuf));
+  RootedObject module(cx);
+  if (jsonModule) {
+    module = JS::CompileJsonModule(cx, options, srcBuf);
+  } else {
+    AutoReportFrontendContext fc(cx);
+    options.setModule();
+    module = frontend::CompileModule(cx, &fc, options, srcBuf);
+  }
   if (!module) {
     return false;
   }
@@ -5598,9 +5629,13 @@ static bool RegisterModule(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  Rooted<ImportAttributeVector> attributes(cx);
+  JS::ModuleType moduleType = JS::ModuleType::JavaScript;
+  if (module->hasSyntheticModuleFields()) {
+    moduleType = JS::ModuleType::JSON;
+  }
+
   RootedObject moduleRequest(
-      cx, ModuleRequestObject::create(cx, specifier, attributes));
+      cx, ModuleRequestObject::create(cx, specifier, moduleType));
   if (!moduleRequest) {
     return false;
   }
@@ -9590,9 +9625,10 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "sleep(dt)",
 "  Sleep for dt seconds."),
 
-    JS_FN_HELP("parseModule", ParseModule, 1, 0,
-"parseModule(code)",
-"  Parses source text as a module and returns a ModuleObject wrapper object."),
+    JS_FN_HELP("parseModule", ParseModule, 3, 0,
+"parseModule(code, 'filename', 'js' | 'json')",
+"  Parses source text as a JS module ('js', this is the default) or a JSON"
+" module ('json') and returns a ModuleObject wrapper object."),
 
     JS_FN_HELP("instantiateModuleStencil", InstantiateModuleStencil, 1, 0,
 "instantiateModuleStencil(stencil, [options])",
