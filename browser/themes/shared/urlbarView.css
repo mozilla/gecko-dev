@@ -727,6 +727,10 @@
       .urlbarView-row[type=remotetab] & {
         padding-inline: 6px;
       }
+
+      &.urlbarView-userContext {
+        border-block-start-width: 3px;
+      }
     }
 
     /* stylelint-disable-next-line media-query-no-invalid */
@@ -743,12 +747,17 @@
     @media (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
       -moz-context-properties: fill, fill-opacity;
       color: var(--toolbar-field-focus-color);
-      border: 1px solid var(--urlbarView-separator-color);
       padding-inline-start: calc(var(--urlbarView-favicon-width) + 8px);
       background-image: url("chrome://browser/content/firefoxview/view-opentabs.svg");
       background-repeat: no-repeat;
       background-position: 4px center;
       background-size: var(--urlbarView-favicon-width);
+
+      border-inline: 1px solid var(--urlbarView-separator-color);
+      border-block-end: 1px solid var(--urlbarView-separator-color);
+      &:not(.urlbarView-userContext) {
+        border-block-start: 1px solid var(--urlbarView-separator-color);
+      }
 
       &:-moz-locale-dir(rtl) {
         background-position-x: right 4px;
