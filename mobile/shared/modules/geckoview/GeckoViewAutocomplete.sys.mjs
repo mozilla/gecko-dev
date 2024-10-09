@@ -231,12 +231,7 @@ export class CreditCard {
   }
 
   isValid() {
-    return (
-      this.name !== "" &&
-      this.number !== "" &&
-      this.expMonth !== "" &&
-      this.expYear !== ""
-    );
+    return this.number !== "";
   }
 
   static fromGecko(aObj) {
