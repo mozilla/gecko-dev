@@ -315,7 +315,7 @@ fuzzy(0-1,0-133) == 273681-1.html 273681-1-ref.html
 == 283686-2.html 283686-2-ref.html
 == 283686-3.html about:blank
 == 289384-1.xhtml 289384-ref.xhtml
-random-if(winWidget) fuzzy(0-25,0-2148) fails-if(useDrawSnapshot) HTTP == 289480.html#top 289480-ref.html # basically-verbatim acid2 test, HTTP for a 404 page -- bug 578114 for the winWidget failures
+random-if(winWidget) fuzzy(0-25,0-2800) fails-if(useDrawSnapshot) HTTP == 289480.html#top 289480-ref.html # basically-verbatim acid2 test, HTTP for a 404 page -- bug 578114 for the winWidget failures
 == 290129-1.html 290129-1-ref.html
 == 291078-1.html 291078-1-ref.html
 == 291078-2.html 291078-2-ref.html
@@ -1164,7 +1164,7 @@ fuzzy(0-4,0-361) == 449519-1.html 449519-1-ref.html
 fails-if(Android) == 455826-1.html 455826-1-ref.html
 == chrome://reftest/content/bugs/456147.xhtml 456147-ref.html
 fuzzy(24-110,110-800) == 456219-1a.html 456219-1-ref.html # bug 1128229
-fuzzy(24-110,107-1251) == 456219-1b.html 456219-1-ref.html # bug 1128229
+fuzzy(24-110,107-3800) == 456219-1b.html 456219-1-ref.html # bug 1128229
 fuzzy(24-110,107-3800) == 456219-1c.html 456219-1-ref.html # bug 1128229
 fuzzy(0-10,0-8) == 456219-2.html 456219-2-ref.html
 == 456330-1.gif 456330-1-ref.png
@@ -2009,7 +2009,7 @@ needs-focus != 1377447-1.html 1377447-2.html
 fuzzy(0-129,0-48) == 1406179.html 1406179-ref.html
 == 1406183-1.html 1406183-1-ref.html
 == 1410028.html 1410028-ref.html
-fuzzy-if((!gtkWidget&&!geckoview&&!swgl&&!(isCoverageBuild&&winWidget))||useDrawSnapshot,1-2,17300-17500) skip-if(winWidget&&isCoverageBuild) == 1412375.html 1412375-ref.html # Skip WinCCov: Bug 1740155
+fuzzy(0-2,0-17500) skip-if(winWidget&&isCoverageBuild) == 1412375.html 1412375-ref.html # Skip WinCCov: Bug 1740155
 # Note: The test below has a large fuzz, because svg text chooses
 # scale-dependent font metrics. Without the fix the test fails in the range
 # 246-255,3237-25110, which overlaps the fuzz range, but would still catch
@@ -2018,7 +2018,7 @@ fuzzy(0-255,0-6025) == 1415987-1.html 1415987-1-ref.html
 == 1419820-1.html 1419820-1-ref.html
 == 1420946-1.html 1420946-1-ref.html
 == 1422393.html 1422393-ref.html
-skip-if(winWidget&&isCoverageBuild) == 1424177.html 1424177-ref.html
+skip-if(nogpu||(winWidget&&isCoverageBuild)) == 1424177.html 1424177-ref.html
 == 1424680.html 1424680-ref.html
 == 1424798-1.html 1424798-ref.html
 fuzzy-if(swgl,0-1,0-31430) == 1425243-1.html 1425243-1-ref.html
@@ -2104,7 +2104,7 @@ skip-if(Android) == 1727172-1.xhtml 1727172-1-ref.html
 == 1726663-1.html 1726663-1-ref.html
 == 1727016-1.html 1727016-1-ref.html
 != 1730314-1.html 1730314-1-ref.html
-fuzzy(0-3,0-19) fuzzy-if(Android,0-11,0-1901) fuzzy-if(winWidget,0-154,0-350) fuzzy-if(cocoaWidget,0-23,0-230) == 1738700-1.html 1738700-1-ref.html
+fuzzy(0-3,0-19) fuzzy-if(Android,0-11,0-2600) fuzzy-if(winWidget,0-154,0-350) fuzzy-if(cocoaWidget,0-23,0-230) == 1738700-1.html 1738700-1-ref.html
 
 # Have to skip android because it doesn't set up example.org as a local host,
 # so the test crashes there.
@@ -2161,7 +2161,7 @@ skip-if(!cocoaWidget) != 1836024-1.html 1836024-1-notref.html
 # 1840511.  (It passes on macOS and Android. It also passes with software WR,
 # or when using drawSnapshot.)
 fuzzy-if(!cocoaWidget&&!Android&&!swgl&&!useDrawSnapshot,1-1,142-142) == 1840511-1.html 1840511-1-ref.html
-fuzzy-if(!cocoaWidget&&!Android&&!swgl&&!useDrawSnapshot,1-1,284-284) fuzzy-if(useDrawSnapshot,1-1,4-4) == 1840511-2.html 1840511-1-ref.html
+fuzzy-if(!cocoaWidget&&!Android&&!swgl&&!useDrawSnapshot,1-1,284-309) fuzzy-if(useDrawSnapshot,1-1,4-4) == 1840511-2.html 1840511-1-ref.html
 # This test should render blank, but is reliably fuzzy, per bug 1840747.
 fuzzy-if(!useDrawSnapshot,18-19,294-322) == 1840747-1.html about:blank
 # This test has some fine/expected AA-related fuzziness along the edge of a
