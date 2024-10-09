@@ -892,6 +892,7 @@ LiveRange* LiveBundle::rangeFor(CodePosition pos) const {
 
 void LiveBundle::addRange(LiveRange* range) {
   MOZ_ASSERT(!range->bundle());
+  MOZ_ASSERT(range->hasVreg());
   range->setBundle(this);
   InsertSortedList(ranges_, range);
 }
@@ -1375,10 +1376,7 @@ bool BacktrackingAllocator::minimalBundle(LiveBundle* bundle, bool* pfixed) {
   LiveBundle::RangeIterator iter = bundle->rangesBegin();
   LiveRange* range = *iter;
 
-  if (!range->hasVreg()) {
-    *pfixed = true;
-    return true;
-  }
+  MOZ_ASSERT(range->hasVreg(), "Call ranges are not added to LiveBundles");
 
   // If a bundle contains multiple ranges, splitAtAllRegisterUses will split
   // each range into a separate bundle.
