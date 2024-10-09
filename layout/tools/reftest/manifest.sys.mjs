@@ -656,6 +656,15 @@ function BuildConditionSandbox(aURL) {
   // data not using mozinfo
   sandbox.xulRuntime = {};
 
+  // Do we *not* have a dedicated gpu process.
+  sandbox.nogpu =
+    sandbox.wayland ||
+    sandbox.cocoaWidget ||
+    !(
+      Services.prefs.getBoolPref("layers.gpu-process.enabled") &&
+      Services.prefs.getBoolPref("layers.gpu-process.force-enabled")
+    );
+
   var gfxInfo =
     NS_GFXINFO_CONTRACTID in Cc &&
     Cc[NS_GFXINFO_CONTRACTID].getService(Ci.nsIGfxInfo);
