@@ -1572,6 +1572,13 @@ bool nsAccessibilityService::Init(uint64_t aCacheDomains) {
   // Now its safe to start platform accessibility.
   if (XRE_IsParentProcess()) PlatformInit();
 
+  // Check the startup cache domain pref. We might be in a test environment
+  // where we need to have all cache domains enabled (e.g., fuzzing).
+  if (XRE_IsParentProcess() &&
+      StaticPrefs::accessibility_enable_all_cache_domains_AtStartup()) {
+    gCacheDomains = CacheDomain::All;
+  }
+
   // Set the active accessibility cache domains. We might want to modify the
   // domains that we activate based on information about the instantiator.
   gCacheDomains = ::GetCacheDomainsForKnownClients(aCacheDomains);

@@ -247,6 +247,14 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
+# Whether to enable all accessibility cache domains on startup.
+#  * false: enable domains as needed
+#  * true:  enable all domains regardless of need (cache everything)
+- name: accessibility.enable_all_cache_domains
+  type: bool
+  value: false
+  mirror: once
+
 # Whether form controls and images should be focusable with mouse, in content
 # documents.
 #
