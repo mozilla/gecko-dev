@@ -23,9 +23,9 @@ async function doTest(profile) {
 
   Assert.strictEqual(length, 0, "Correct length");
 
-  info("Resetting origin");
+  info("Resetting client");
 
-  request = resetOrigin(principal);
+  request = resetClient(principal);
   await requestFinished(request);
 
   info("Getting usage");

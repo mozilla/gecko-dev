@@ -127,7 +127,7 @@ const fetchFromNewSnapshotExistingDatastore = async (itemKey, sample) => {
  */
 const fetchFromNewSnapshotNewDatastore = async (itemKey, sample) => {
   return fetchFrom(itemKey, sample, async principal => {
-    let request = resetOrigin(principal);
+    let request = resetClient(principal);
     await requestFinished(request);
   });
 };

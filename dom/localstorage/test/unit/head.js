@@ -154,12 +154,8 @@ function reset() {
   return request;
 }
 
-function resetOrigin(principal) {
-  let request = Services.qms.resetStoragesForPrincipal(
-    principal,
-    "default",
-    "ls"
-  );
+function resetClient(principal) {
+  let request = Services.qms.resetStoragesForClient(principal, "ls", "default");
 
   return request;
 }

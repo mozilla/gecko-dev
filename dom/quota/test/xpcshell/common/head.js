@@ -241,10 +241,10 @@ function clearPrivateBrowsing(callback) {
 }
 
 function resetClient(principal, client) {
-  let request = Services.qms.resetStoragesForPrincipal(
+  let request = Services.qms.resetStoragesForClient(
     principal,
-    "default",
-    client
+    client,
+    "default"
   );
 
   return request;

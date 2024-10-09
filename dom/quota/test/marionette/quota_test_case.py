@@ -156,26 +156,26 @@ class QuotaTestCase(MarionetteTestCase):
                 script_args=(),
             )
 
-    def resetStoragesForPrincipal(self, origin, persistenceType, client):
+    def resetStoragesForClient(self, persistenceType, origin, client):
         # This method is used to force sqlite to write journal file contents to
         # main sqlite database file
 
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
             res = self.executeAsyncScript(
                 """
-                const [origin, persistenceType, client] = arguments;
+                const [persistenceType, origin, client] = arguments;
 
                 async function main() {
                   const principal = Services.scriptSecurityManager.
                     createContentPrincipalFromOrigin(origin);
 
-                  const request = Services.qms.resetStoragesForPrincipal(principal, persistenceType, client);
+                  const request = Services.qms.resetStoragesForClient(principal, client, persistenceType);
                   await requestFinished(request);
 
                   return true;
                 }
                 """,
-                script_args=(origin, persistenceType, client),
+                script_args=(persistenceType, origin, client),
             )
 
             assert res is not None

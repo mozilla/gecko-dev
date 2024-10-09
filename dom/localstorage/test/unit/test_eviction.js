@@ -66,7 +66,7 @@ add_task(async function testSteps() {
 
   let principal = getPrincipal("http://example0.com");
 
-  request = resetOrigin(principal);
+  request = resetClient(principal);
   await requestFinished(request);
 
   info("Getting usage for first origin");

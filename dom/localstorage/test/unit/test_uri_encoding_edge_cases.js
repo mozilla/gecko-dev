@@ -59,7 +59,7 @@ add_task(async function testSteps() {
 
     // This forces any pending changes to be flushed to disk (including origin
     // directory creation).
-    let request = resetOrigin(principal);
+    let request = resetClient(principal);
     await requestFinished(request);
 
     info("Checking the origin directory existence");

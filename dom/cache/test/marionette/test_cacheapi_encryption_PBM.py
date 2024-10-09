@@ -165,7 +165,7 @@ class CacheAPIEncryptionPBM(QuotaTestCase):
         )
 
         self.assertTrue(
-            self.resetStoragesForPrincipal(self.origin, self.persistenceType, "cache")
+            self.resetStoragesForClient(self.persistenceType, self.origin, "cache")
         )
 
         self.assertFalse(os.path.getsize(dbJournalFile) > os.path.getsize(dbFile))

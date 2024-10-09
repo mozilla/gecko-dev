@@ -24,7 +24,7 @@ add_task(async function testSteps() {
 
     // This forces any pending changes to be flushed to disk.  It also forces
     // data to be reloaded from disk at next localStorage API call.
-    request = resetOrigin(principal);
+    request = resetClient(principal);
     await requestFinished(request);
 
     request = getOriginUsage(principal);

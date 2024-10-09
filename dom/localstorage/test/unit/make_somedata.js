@@ -19,8 +19,8 @@ add_task(async function testSteps() {
 
   storage.setItem(data.key, data.value);
 
-  info("Resetting origin");
+  info("Resetting client");
 
-  const request = resetOrigin(principal);
+  const request = resetClient(principal);
   await requestFinished(request);
 });
