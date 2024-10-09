@@ -2,10 +2,9 @@
 
 import argparse
 import collections
+import configparser
 import multiprocessing
 import time
-
-from six.moves import configparser
 
 ProcessNode = collections.namedtuple("ProcessNode", ["maxtime", "children"])
 

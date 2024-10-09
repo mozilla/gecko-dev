@@ -15,10 +15,10 @@ import telnetlib
 import time
 from collections import namedtuple
 from enum import Enum
+from urllib.request import urlopen
 
 import six
 from mozdevice import ADBDeviceFactory, ADBHost
-from six.moves import input, urllib
 
 MOZBUILD_PATH = os.environ.get(
     "MOZBUILD_STATE_PATH", os.path.expanduser(os.path.join("~", ".mozbuild"))
@@ -1013,7 +1013,7 @@ def _log_info(text):
 
 def _download_file(url, filename, path):
     _log_debug("Download %s to %s/%s..." % (url, path, filename))
-    f = urllib.request.urlopen(url)
+    f = urlopen(url)
     if not os.path.isdir(path):
         try:
             os.makedirs(path)

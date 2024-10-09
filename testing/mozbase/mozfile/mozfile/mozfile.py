@@ -13,8 +13,8 @@ import time
 import warnings
 from contextlib import contextmanager
 from textwrap import dedent
-
-from six.moves import urllib
+from urllib.parse import urlparse
+from urllib.request import urlopen
 
 __all__ = [
     "extract_tarball",
@@ -612,7 +612,7 @@ def is_url(thing):
     Return True if thing looks like a URL.
     """
 
-    parsed = urllib.parse.urlparse(thing)
+    parsed = urlparse(thing)
     if "scheme" in parsed:
         return len(parsed.scheme) >= 2
     else:
@@ -634,7 +634,7 @@ def load(resource):
         # if no scheme is given, it is a file path
         return open(resource)
 
-    return urllib.request.urlopen(resource)
+    return urlopen(resource)
 
 
 # see https://docs.python.org/3/whatsnew/3.12.html#imp

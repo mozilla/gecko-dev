@@ -3,13 +3,13 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
+import configparser
 import io
 import os
 import sys
 import zipfile
 
 import mozlog
-from six.moves import configparser
 
 from mozversion import errors
 
