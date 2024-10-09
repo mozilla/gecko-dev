@@ -181,7 +181,6 @@ private fun BookmarksList(
     val dialogState = state.bookmarksDeletionDialogState
     if (dialogState is DeletionDialogState.Presenting) {
         AlertDialogDeletionWarning(
-            numItems = dialogState.count,
             onCancelTapped = { store.dispatch(DeletionDialogAction.CancelTapped) },
             onDeleteTapped = { store.dispatch(DeletionDialogAction.DeleteTapped) },
         )
@@ -345,7 +344,7 @@ private fun BookmarksListTopBar(
                                 Icon(
                                     painter = painterResource(R.drawable.mozac_ic_folder_add_24),
                                     contentDescription = stringResource(
-                                        R.string.bookmark_add_new_folder_button_content_description,
+                                        R.string.bookmark_add_folder,
                                     ),
                                     tint = FirefoxTheme.colors.iconPrimary,
                                 )
@@ -393,7 +392,7 @@ private fun BookmarksListTopBar(
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
                                 contentDescription = stringResource(
-                                    R.string.bookmark_selected_menu_button_content_description,
+                                    R.string.content_description_menu,
                                 ),
                                 tint = FirefoxTheme.colors.iconPrimary,
                             )
@@ -456,14 +455,14 @@ private fun WarnDialog(
 
 @Composable
 private fun AlertDialogDeletionWarning(
-    numItems: Int,
     onCancelTapped: () -> Unit,
     onDeleteTapped: () -> Unit,
 ) {
+    val appName = stringResource(R.string.app_name)
     AlertDialog(
         title = {
             Text(
-                text = stringResource(R.string.bookmark_delete_folder_dialog_title, numItems),
+                text = stringResource(R.string.bookmark_delete_multiple_folders_confirmation_dialog, appName),
                 color = FirefoxTheme.colors.textPrimary,
             )
         },
@@ -544,7 +543,7 @@ private fun SelectFolderScreen(
             if (state?.showNewFolderButton == true) {
                 item {
                     IconListItem(
-                        label = stringResource(R.string.bookmark_select_folder_new_folder_button_title),
+                        label = stringResource(R.string.bookmark_add_folder),
                         labelTextColor = FirefoxTheme.colors.textAccent,
                         beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_add_24),
                         beforeIconTint = FirefoxTheme.colors.textAccent,
@@ -793,7 +792,6 @@ private fun EditFolderScreen(
 
     if (dialogState is DeletionDialogState.Presenting) {
         AlertDialogDeletionWarning(
-            numItems = dialogState.count,
             onCancelTapped = { store.dispatch(DeletionDialogAction.CancelTapped) },
             onDeleteTapped = { store.dispatch(DeletionDialogAction.DeleteTapped) },
         )
