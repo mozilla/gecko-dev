@@ -280,7 +280,9 @@ bool ModuleRequestObject::hasFirstUnsupportedAttributeKey() const {
 }
 
 JSAtom* ModuleRequestObject::getFirstUnsupportedAttributeKey() const {
-  MOZ_ASSERT(hasFirstUnsupportedAttributeKey());
+  if (!hasFirstUnsupportedAttributeKey()) {
+    return nullptr;
+  }
   return &getReservedSlot(FirstUnsupportedAttributeKeySlot)
               .toString()
               ->asAtom();

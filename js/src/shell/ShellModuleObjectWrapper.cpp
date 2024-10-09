@@ -334,12 +334,18 @@ bool ModuleTypeToString(JSContext* cx, JS::Handle<JSObject*> owner,
 
 DEFINE_GETTER_FUNCTIONS(ModuleRequestObject, specifier, StringOrNullValue,
                         IdentFilter)
+DEFINE_GETTER_FUNCTIONS(ModuleRequestObject, getFirstUnsupportedAttributeKey,
+                        StringOrNullValue, IdentFilter)
 DEFINE_NATIVE_GETTER_FUNCTIONS(ModuleRequestObject, moduleType,
                                ModuleTypeToString);
 
 static const JSPropertySpec ShellModuleRequestObjectWrapper_accessors[] = {
     JS_PSG("specifier", ShellModuleRequestObjectWrapper_specifierGetter, 0),
     JS_PSG("moduleType", ShellModuleRequestObjectWrapper_moduleTypeGetter, 0),
+    JS_PSG(
+        "firstUnsupportedAttributeKey",
+        ShellModuleRequestObjectWrapper_getFirstUnsupportedAttributeKeyGetter,
+        0),
     JS_PS_END,
 };
 
