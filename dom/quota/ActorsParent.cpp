@@ -5930,12 +5930,11 @@ RefPtr<BoolPromise> QuotaManager::ClearStorage() {
 
 RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForOrigin(
     Maybe<PersistenceType> aPersistenceType,
-    const PrincipalInfo& aPrincipalInfo, Maybe<Client::Type> aClientType) {
+    const PrincipalInfo& aPrincipalInfo) {
   AssertIsOnOwningThread();
 
-  auto shutdownOriginOp =
-      CreateShutdownOriginOp(WrapMovingNotNullUnchecked(this), aPersistenceType,
-                             aPrincipalInfo, aClientType);
+  auto shutdownOriginOp = CreateShutdownOriginOp(
+      WrapMovingNotNullUnchecked(this), aPersistenceType, aPrincipalInfo);
 
   RegisterNormalOriginOp(*shutdownOriginOp);
 

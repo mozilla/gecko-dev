@@ -185,8 +185,7 @@ parent:
       returns(BoolResponse response);
 
   async ShutdownStoragesForOrigin(PersistenceType? persistenceType,
-                                  PrincipalInfo principalInfo,
-                                  Type? clientType)
+                                  PrincipalInfo principalInfo)
       returns(BoolResponse response);
 
   async ShutdownStoragesForClient(PersistenceType? persistenceType,

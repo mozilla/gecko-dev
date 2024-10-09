@@ -755,7 +755,7 @@ mozilla::ipc::IPCResult Quota::RecvClearStorage(
 
 mozilla::ipc::IPCResult Quota::RecvShutdownStoragesForOrigin(
     const Maybe<PersistenceType>& aPersistenceType,
-    const PrincipalInfo& aPrincipalInfo, const Maybe<Type>& aClientType,
+    const PrincipalInfo& aPrincipalInfo,
     ShutdownStoragesForOriginResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
@@ -770,19 +770,13 @@ mozilla::ipc::IPCResult Quota::RecvShutdownStoragesForOrigin(
 
     QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(aPrincipalInfo)),
            QM_CUF_AND_IPC_FAIL(this));
-
-    if (aClientType) {
-      QM_TRY(MOZ_TO_RESULT(Client::IsValidType(*aClientType)),
-             QM_CUF_AND_IPC_FAIL(this));
-    }
   }
 
   QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
                 QuotaManager::GetOrCreate(),
                 ResolveBoolResponseAndReturn(aResolver));
 
-  quotaManager
-      ->ShutdownStoragesForOrigin(aPersistenceType, aPrincipalInfo, aClientType)
+  quotaManager->ShutdownStoragesForOrigin(aPersistenceType, aPrincipalInfo)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolPromiseResolveOrRejectCallback(this, std::move(aResolver)));
 

@@ -1160,7 +1160,7 @@ QuotaManagerService::Reset(nsIQuotaRequest** _retval) {
 NS_IMETHODIMP
 QuotaManagerService::ResetStoragesForPrincipal(
     nsIPrincipal* aPrincipal, const nsACString& aPersistenceType,
-    const nsAString& aClientType, nsIQuotaRequest** _retval) {
+    nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
 
@@ -1194,25 +1194,10 @@ QuotaManagerService::ResetStoragesForPrincipal(
         return principalInfo;
       }()));
 
-  QM_TRY_INSPECT(const auto& clientType,
-                 ([&aClientType]() -> Result<Maybe<Client::Type>, nsresult> {
-                   if (aClientType.IsVoid()) {
-                     return Maybe<Client::Type>();
-                   }
-
-                   Client::Type clientType;
-                   QM_TRY(MOZ_TO_RESULT(Client::TypeFromText(
-                              aClientType, clientType, fallible)),
-                          Err(NS_ERROR_INVALID_ARG));
-
-                   return Some(clientType);
-                 }()));
-
   RefPtr<Request> request = new Request();
 
   mBackgroundActor
-      ->SendShutdownStoragesForOrigin(persistenceType, principalInfo,
-                                      clientType)
+      ->SendShutdownStoragesForOrigin(persistenceType, principalInfo)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolResponsePromiseResolveOrRejectCallback(request));
 

@@ -695,13 +695,11 @@ class ShutdownOriginOp final : public ResolvableNormalOriginOp<bool> {
   PrincipalMetadata mPrincipalMetadata;
   RefPtr<UniversalDirectoryLock> mDirectoryLock;
   const PersistenceScope mPersistenceScope;
-  const Nullable<Client::Type> mClientType;
 
  public:
   ShutdownOriginOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
                    mozilla::Maybe<PersistenceType> aPersistenceType,
-                   const PrincipalInfo& aPrincipalInfo,
-                   mozilla::Maybe<Client::Type> aClientType);
+                   const PrincipalInfo& aPrincipalInfo);
 
  private:
   ~ShutdownOriginOp() = default;
@@ -988,10 +986,9 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateClearDataOp(
 RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     Maybe<PersistenceType> aPersistenceType,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-    Maybe<Client::Type> aClientType) {
-  return MakeRefPtr<ShutdownOriginOp>(
-      std::move(aQuotaManager), aPersistenceType, aPrincipalInfo, aClientType);
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
+  return MakeRefPtr<ShutdownOriginOp>(std::move(aQuotaManager),
+                                      aPersistenceType, aPrincipalInfo);
 }
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownClientOp(
@@ -2672,16 +2669,13 @@ void ClearDataOp::CloseDirectory() {
 ShutdownOriginOp::ShutdownOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     mozilla::Maybe<PersistenceType> aPersistenceType,
-    const PrincipalInfo& aPrincipalInfo,
-    mozilla::Maybe<Client::Type> aClientType)
+    const PrincipalInfo& aPrincipalInfo)
     : ResolvableNormalOriginOp(std::move(aQuotaManager),
                                "dom::quota::ShutdownOriginOp"),
       mPrincipalInfo(aPrincipalInfo),
       mPersistenceScope(aPersistenceType ? PersistenceScope::CreateFromValue(
                                                *aPersistenceType)
-                                         : PersistenceScope::CreateFromNull()),
-      mClientType(aClientType ? Nullable<Client::Type>(*aClientType)
-                              : Nullable<Client::Type>()) {
+                                         : PersistenceScope::CreateFromNull()) {
   AssertIsOnOwningThread();
 }
 
@@ -2702,7 +2696,7 @@ RefPtr<BoolPromise> ShutdownOriginOp::OpenDirectory() {
 
   mDirectoryLock = mQuotaManager->CreateDirectoryLockInternal(
       mPersistenceScope, OriginScope::FromOrigin(mPrincipalMetadata.mOrigin),
-      mClientType, /* aExclusive */ true);
+      Nullable<Client::Type>(), /* aExclusive */ true);
 
   return mDirectoryLock->Acquire();
 }

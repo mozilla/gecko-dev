@@ -334,18 +334,10 @@ interface nsIQuotaManagerService : nsISupports
    *        "persistent" is different than being "persisted" via persist() and
    *        is only for chrome principals.  See bug 1354500 for more info.
    *        In general, null is the right thing to pass here.
-   * @param aClientType
-   *        An optional string that tells what client type of storages
-   *        will be reset.  If omitted (or void), all client types will be
-   *        cleared for the principal.  If a single client type is provided
-   *        from Client.h, then only that client's storage will be cleared.
-   *        If you want to clear multiple client types (but not all), then you
-   *        must call this method multiple times.
    */
   [must_use] nsIQuotaRequest
   resetStoragesForPrincipal(in nsIPrincipal aPrincipal,
-                            [optional] in ACString aPersistenceType,
-                            [optional] in AString aClientType);
+                            [optional] in ACString aPersistenceType);
 
   /**
    * Resets all storages stored for the given client.

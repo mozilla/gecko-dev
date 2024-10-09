@@ -136,8 +136,7 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateClearDataOp(
 RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownOriginOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     Maybe<PersistenceType> aPersistenceType,
-    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
-    Maybe<Client::Type> aClientType);
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownClientOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
