@@ -211,7 +211,11 @@ internal fun MainMenu(
             onSaveMenuClick()
         },
         onExtensionsMenuClick = {
-            onExtensionsMenuClick()
+            if (accessPoint == MenuAccessPoint.Home) {
+                store.dispatch(MenuAction.Navigate.ManageExtensions)
+            } else {
+                onExtensionsMenuClick()
+            }
         },
         onBookmarksMenuClick = {
             store.dispatch(MenuAction.Navigate.Bookmarks)
