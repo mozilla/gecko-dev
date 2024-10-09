@@ -5849,6 +5849,22 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForOrigin(
   return clearOriginOp->OnResults();
 }
 
+RefPtr<BoolPromise> QuotaManager::ClearStoragesForClient(
+    Maybe<PersistenceType> aPersistenceType,
+    const PrincipalInfo& aPrincipalInfo, Client::Type aClientType) {
+  AssertIsOnOwningThread();
+
+  auto clearClientOp =
+      CreateClearClientOp(WrapMovingNotNullUnchecked(this), aPersistenceType,
+                          aPrincipalInfo, aClientType);
+
+  RegisterNormalOriginOp(*clearClientOp);
+
+  clearClientOp->RunImmediately();
+
+  return clearClientOp->OnResults();
+}
+
 RefPtr<BoolPromise> QuotaManager::ClearStoragesForOriginPrefix(
     const Maybe<PersistenceType>& aPersistenceType,
     const PrincipalInfo& aPrincipalInfo) {

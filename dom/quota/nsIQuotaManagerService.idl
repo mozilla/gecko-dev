@@ -266,6 +266,29 @@ interface nsIQuotaManagerService : nsISupports
                             [optional] in AString aClientType);
 
   /**
+   * Removes all storages stored for the given client. The files may not be
+   * deleted immediately depending on prohibitive concurrent operations.
+   *
+   * @param aPrincipal
+   *        A principal for the origin whose storages are to be cleared.
+   * @param aClientType
+   *        A string that tells what client type of storages will be cleared.
+   * @param aPersistenceType
+   *        An optional string that tells what persistence type of storages
+   *        will be cleared.  If omitted (or void), all persistence types will
+   *        be cleared for the principal and client type.  If a single
+   *        persistence type ("persistent", "temporary", or "default") is
+   *        provided, then only that persistence directory will be considered.
+   *        Note that "persistent" is different than being "persisted" via
+   *        persist() and is only for chrome principals.  See bug 1354500 for
+   *        more info.  In general, null is the right thing to pass here.
+   */
+  [must_use] nsIQuotaRequest
+  clearStoragesForClient(in nsIPrincipal aPrincipal,
+                         in AString aClientType,
+                         [optional] in ACString aPersistenceType);
+
+  /**
    * Removes all storages stored for the given prefix. The files may not be
    * deleted immediately depending on prohibitive concurrent operations.
    *

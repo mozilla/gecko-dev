@@ -172,6 +172,11 @@ parent:
                                Type? clientType)
       returns(BoolResponse response);
 
+  async ClearStoragesForClient(PersistenceType? persistenceType,
+                               PrincipalInfo principalInfo,
+                               Type clientType)
+      returns(BoolResponse response);
+
   async ClearStoragesForOriginPrefix(PersistenceType? persistenceType,
                                      PrincipalInfo principalInfo)
       returns(BoolResponse response);
