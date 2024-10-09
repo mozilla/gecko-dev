@@ -775,12 +775,12 @@ class nsWindow final : public nsBaseWidget {
   bool mTouchWindow = false;
   bool mDisplayPanFeedback = false;
   bool mHideChrome = false;
-  bool mIsRTL;
+  bool mIsRTL = false;
   bool mMousePresent = false;
   bool mSimulatedClientArea = false;
   bool mDestroyCalled = false;
-  bool mOpeningAnimationSuppressed;
-  bool mAlwaysOnTop;
+  bool mOpeningAnimationSuppressed = false;
+  bool mAlwaysOnTop = false;
   bool mIsEarlyBlankWindow = false;
   bool mIsShowingPreXULSkeletonUI = false;
   bool mResizable = false;
