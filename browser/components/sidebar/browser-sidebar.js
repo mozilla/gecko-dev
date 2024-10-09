@@ -308,10 +308,14 @@ var SidebarController = {
     }
 
     const menubar = document.getElementById("viewSidebarMenu");
+    const currentMenuItems = new Set(
+      Array.from(menubar.childNodes, item => item.id)
+    );
     for (const [commandID, sidebar] of this.sidebars.entries()) {
       if (
         !Object.hasOwn(sidebar, "extensionId") &&
-        commandID !== "viewCustomizeSidebar"
+        commandID !== "viewCustomizeSidebar" &&
+        !currentMenuItems.has(sidebar.menuId)
       ) {
         // registerExtension() already creates menu items for extensions.
         const menuitem = this.createMenuItem(commandID, sidebar);
