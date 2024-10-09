@@ -1367,8 +1367,7 @@ TEST_F(TestQuotaManager,
       ASSERT_TRUE(value.IsResolve());
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
-      // XXX Assert IsPersistentOriginInitialized once the method is
-      // available.
+      ASSERT_TRUE(quotaManager->IsPersistentOriginInitialized(principalInfo));
     }
 
     promises.Clear();
@@ -1384,8 +1383,7 @@ TEST_F(TestQuotaManager,
       ASSERT_TRUE(value.IsResolve());
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
-      // XXX Assert IsPersistentOriginInitialized once the method is
-      // available.
+      ASSERT_TRUE(quotaManager->IsPersistentOriginInitialized(principalInfo));
     }
   });
 
@@ -1428,8 +1426,8 @@ TEST_F(TestQuotaManager,
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      // XXX Assert IsTemporaryOriginInitialized once the method is
-      // available.
+      ASSERT_TRUE(quotaManager->IsTemporaryOriginInitialized(
+          testOriginMetadata.mPersistenceType, principalInfo));
     }
 
     promises.Clear();
@@ -1447,8 +1445,204 @@ TEST_F(TestQuotaManager,
 
       ASSERT_TRUE(quotaManager->IsStorageInitialized());
       ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
-      // XXX Assert IsTemporaryOriginInitialized once the method is
-      // available.
+      ASSERT_TRUE(quotaManager->IsTemporaryOriginInitialized(
+          testOriginMetadata.mPersistenceType, principalInfo));
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test simple ClearStoragesForOrigin.
+TEST_F(TestQuotaManager, ClearStoragesForOrigin_Simple) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginNotInitialized(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginInitialized(GetTestOriginMetadata()));
+
+  PerformOnBackgroundThread([]() {
+    auto testOriginMetadata = GetTestOriginMetadata();
+
+    nsCOMPtr<nsIPrincipal> principal =
+        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+    mozilla::ipc::PrincipalInfo principalInfo;
+    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+           QM_TEST_FAIL);
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value = Await(quotaManager->ClearStoragesForOrigin(
+          /* aPersistenceType */ Nothing(), principalInfo));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
+          testOriginMetadata.mPersistenceType, principalInfo));
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test simple ClearStoragesForOriginPrefix.
+TEST_F(TestQuotaManager, ClearStoragesForOriginPrefix_Simple) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginNotInitialized(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginInitialized(GetTestOriginMetadata()));
+
+  PerformOnBackgroundThread([]() {
+    auto testOriginMetadata = GetTestOriginMetadata();
+
+    nsCOMPtr<nsIPrincipal> principal =
+        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+    mozilla::ipc::PrincipalInfo principalInfo;
+    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+           QM_TEST_FAIL);
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value = Await(quotaManager->ClearStoragesForOriginPrefix(
+          /* aPersistenceType */ Nothing(), principalInfo));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
+          testOriginMetadata.mPersistenceType, principalInfo));
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test simple ClearStoragesForOriginAttributesPattern.
+TEST_F(TestQuotaManager, ClearStoragesForOriginAttributesPattern_Simple) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginNotInitialized(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginInitialized(GetTestOriginMetadata()));
+
+  PerformOnBackgroundThread([]() {
+    auto testOriginMetadata = GetTestOriginMetadata();
+
+    nsCOMPtr<nsIPrincipal> principal =
+        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+    mozilla::ipc::PrincipalInfo principalInfo;
+    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+           QM_TEST_FAIL);
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value = Await(quotaManager->ClearStoragesForOriginAttributesPattern(
+          OriginAttributesPattern()));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
+          testOriginMetadata.mPersistenceType, principalInfo));
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test simple ShutdownStoragesForOrigin.
+TEST_F(TestQuotaManager, ShutdownStoragesForOrigin_Simple) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageNotInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginNotInitialized(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(InitializeStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryStorage());
+  ASSERT_NO_FATAL_FAILURE(InitializeTemporaryOrigin(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(AssertTemporaryStorageInitialized());
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginInitialized(GetTestOriginMetadata()));
+
+  PerformOnBackgroundThread([]() {
+    auto testOriginMetadata = GetTestOriginMetadata();
+
+    nsCOMPtr<nsIPrincipal> principal =
+        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+    mozilla::ipc::PrincipalInfo principalInfo;
+    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+           QM_TEST_FAIL);
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value = Await(quotaManager->ShutdownStoragesForOrigin(
+          /* aPersistenceType */ Nothing(), principalInfo));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_FALSE(quotaManager->IsTemporaryOriginInitialized(
+          testOriginMetadata.mPersistenceType, principalInfo));
     }
   });
 

@@ -1140,6 +1140,17 @@ nsresult FinalizeOriginEvictionOp::DoDirectoryWork(
 void FinalizeOriginEvictionOp::UnblockOpen() {
   AssertIsOnOwningThread();
 
+  nsTArray<OriginMetadata> origins;
+
+  std::transform(mLocks.cbegin(), mLocks.cend(), MakeBackInserter(origins),
+                 [](const auto& lock) { return lock->OriginMetadata(); });
+
+  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToCurrentThread(NS_NewRunnableFunction(
+      "dom::quota::FinalizeOriginEvictionOp::UnblockOpen",
+      [quotaManager = mQuotaManager, origins = std::move(origins)]() {
+        quotaManager->NoteUninitializedOrigins(origins);
+      })));
+
   for (const auto& lock : mLocks) {
     lock->Drop();
   }

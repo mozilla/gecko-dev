@@ -25,6 +25,7 @@
 #include "mozilla/dom/quota/CommonMetadata.h"
 #include "mozilla/dom/quota/DirectoryLockCategory.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
+#include "mozilla/dom/quota/HashKeys.h"
 #include "mozilla/dom/quota/InitializationTypes.h"
 #include "mozilla/dom/quota/NotifyUtils.h"
 #include "mozilla/dom/quota/OriginOperationCallbacks.h"
@@ -84,6 +85,7 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class CanonicalQuotaObject;
   friend class ClearStorageOp;
   friend class DirectoryLockImpl;
+  friend class FinalizeOriginEvictionOp;
   friend class GroupInfo;
   friend class InitOp;
   friend class InitTemporaryStorageOp;
@@ -375,6 +377,8 @@ class QuotaManager final : public BackgroundThreadObject {
   RefPtr<BoolPromise> PersistentOriginInitialized(
       const PrincipalInfo& aPrincipalInfo);
 
+  bool IsPersistentOriginInitialized(const PrincipalInfo& aPrincipalInfo);
+
   bool IsPersistentOriginInitializedInternal(
       const OriginMetadata& aOriginMetadata) const;
 
@@ -393,6 +397,9 @@ class QuotaManager final : public BackgroundThreadObject {
 
   RefPtr<BoolPromise> TemporaryOriginInitialized(
       PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo);
+
+  bool IsTemporaryOriginInitialized(PersistenceType aPersistenceType,
+                                    const PrincipalInfo& aPrincipalInfo);
 
   bool IsTemporaryOriginInitializedInternal(
       const OriginMetadata& aOriginMetadata) const;
@@ -743,6 +750,17 @@ class QuotaManager final : public BackgroundThreadObject {
 
   void ClearDirectoryLockTables();
 
+  void NoteInitializedOrigin(PersistenceType aPersistenceType,
+                             const nsACString& aOrigin);
+
+  void NoteUninitializedOrigins(
+      const OriginMetadataArray& aOriginMetadataArray);
+
+  void NoteUninitializedRepository(PersistenceType aPersistenceType);
+
+  bool IsOriginInitialized(PersistenceType aPersistenceType,
+                           const nsACString& aOrigin) const;
+
   bool IsSanitizedOriginValid(const nsACString& aSanitizedOrigin);
 
   Result<nsCString, nsresult> EnsureStorageOriginFromOrigin(
@@ -820,6 +838,10 @@ class QuotaManager final : public BackgroundThreadObject {
   DirectoryLockTable mTemporaryDirectoryLockTable;
   DirectoryLockTable mDefaultDirectoryLockTable;
   DirectoryLockTable mPrivateDirectoryLockTable;
+
+  using BoolArray = AutoTArray<bool, PERSISTENCE_TYPE_INVALID>;
+  nsTHashMap<nsCStringHashKeyWithDisabledMemmove, BoolArray>
+      mInitializedOrigins;
 
   // A list of all successfully initialized persistent origins. This list isn't
   // protected by any mutex but it is only ever touched on the IO thread.
