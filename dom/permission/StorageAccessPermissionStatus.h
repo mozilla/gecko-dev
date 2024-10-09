@@ -11,15 +11,16 @@
 
 namespace mozilla::dom {
 
-// The storage access permission from the Storage Access API has unique
-// implementation details and should not be used as the basis for any other
-// status sink implementations.
 class StorageAccessPermissionStatus final : public PermissionStatus {
  public:
-  explicit StorageAccessPermissionStatus(nsIGlobalObject* aGlobal);
+  explicit StorageAccessPermissionStatus(nsPIDOMWindowInner* aWindow);
 
  private:
-  already_AddRefed<PermissionStatusSink> CreateSink() override;
+  RefPtr<SimplePromise> UpdateState() override;
+
+  bool MaybeUpdatedBy(nsIPermission* aPermission) const override;
+  bool MaybeUpdatedByNotifyOnly(
+      nsPIDOMWindowInner* aInnerWindow) const override;
 };
 
 }  // namespace mozilla::dom

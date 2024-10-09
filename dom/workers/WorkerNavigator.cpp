@@ -16,7 +16,6 @@
 #include "mozilla/dom/LockManager.h"
 #include "mozilla/dom/MediaCapabilities.h"
 #include "mozilla/dom/Navigator.h"
-#include "mozilla/dom/Permissions.h"
 #include "mozilla/dom/StorageManager.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerNavigatorBinding.h"
@@ -51,7 +50,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WorkerNavigator)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaCapabilities)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebGpu)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mLocks)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPermissions)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 WorkerNavigator::WorkerNavigator(const NavigatorProperties& aProperties,
@@ -89,8 +87,6 @@ void WorkerNavigator::Invalidate() {
     mLocks->Shutdown();
     mLocks = nullptr;
   }
-
-  mPermissions = nullptr;
 }
 
 JSObject* WorkerNavigator::WrapObject(JSContext* aCx,
@@ -288,20 +284,6 @@ dom::LockManager* WorkerNavigator::Locks() {
     mLocks = dom::LockManager::Create(*global);
   }
   return mLocks;
-}
-
-dom::Permissions* WorkerNavigator::Permissions() {
-  if (!mPermissions) {
-    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
-    MOZ_ASSERT(workerPrivate);
-
-    nsIGlobalObject* global = workerPrivate->GlobalScope();
-    MOZ_ASSERT(global);
-
-    mPermissions = new dom::Permissions(global);
-  }
-
-  return mPermissions;
 }
 
 }  // namespace mozilla::dom

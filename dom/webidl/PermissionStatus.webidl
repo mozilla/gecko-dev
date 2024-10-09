@@ -13,7 +13,7 @@ enum PermissionState {
   "prompt"
 };
 
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface PermissionStatus : EventTarget {
   readonly attribute PermissionName name;
   readonly attribute PermissionState state;
