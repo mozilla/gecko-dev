@@ -154,10 +154,7 @@ var gBrowserInit = {
     // We don't want these normally non-removable elements to get put back into the
     // tabstrip if we're initializing with vertical tabs
     if (isVerticalTabs && !isPopup) {
-      nonRemovables = [
-        gBrowser.tabContainer,
-        document.getElementById("alltabs-button"),
-      ];
+      nonRemovables = [gBrowser.tabContainer];
       for (let elem of nonRemovables) {
         elem.setAttribute("removable", "true");
         // tell CUI to ignore this element when it builds the toolbar areas

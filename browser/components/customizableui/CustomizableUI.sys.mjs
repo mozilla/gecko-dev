@@ -4194,7 +4194,6 @@ var CustomizableUIInternal = {
 
     // Normally these aren't removable, but for this operation only we need to move them
     changeWidgetRemovability("tabbrowser-tabs", true);
-    changeWidgetRemovability("alltabs-button", true);
 
     if (toVertical) {
       lazy.log.debug(
@@ -4249,7 +4248,6 @@ var CustomizableUIInternal = {
     );
     this.setToolbarVisibility(CustomizableUI.AREA_TABSTRIP, !toVertical);
     changeWidgetRemovability("tabbrowser-tabs", false);
-    changeWidgetRemovability("alltabs-button", false);
 
     for (let [win] of gBuildWindows) {
       win.TabBarVisibility.update(true);
