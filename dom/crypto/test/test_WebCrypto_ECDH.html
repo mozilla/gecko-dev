@@ -512,7 +512,7 @@ TestArray.addTest(
     var that = this;
     var alg = { name: "ECDH", namedCurve: "P-256" };
 
-    crypto.subtle.importKey("raw", tv, alg, false, ["deriveBits"])
+    crypto.subtle.importKey("raw", tv.ecdh_p256_negative.raw_bad, alg, false, [])
       .then(error(that), complete(that));
   }
 );
@@ -524,7 +524,7 @@ TestArray.addTest(
     var that = this;
     var alg = { name: "ECDH", namedCurve: "P-256" };
 
-    crypto.subtle.importKey("unknown", tv, alg, false, ["deriveBits"])
+    crypto.subtle.importKey("unknown", tv.ecdh_p256.raw, alg, false, [])
       .then(error(that), complete(that));
   }
 );
@@ -536,7 +536,7 @@ TestArray.addTest(
     var that = this;
     var alg = { name: "ECDH", namedCurve: "P-256" };
 
-    crypto.subtle.importKey("raw", tv, alg, false, ["deriveBits"])
+    crypto.subtle.importKey("raw", tv.ecdh_p256_negative.raw_short, alg, false, [])
       .then(error(that), complete(that));
   }
 );
@@ -548,7 +548,7 @@ TestArray.addTest(
     var that = this;
     var alg = { name: "ECDH", namedCurve: "P-256" };
 
-    crypto.subtle.importKey("raw", tv, alg, false, ["deriveBits"])
+    crypto.subtle.importKey("raw", tv.ecdh_p256_negative.raw_long, alg, false, [])
       .then(error(that), complete(that));
   }
 );
@@ -560,7 +560,7 @@ TestArray.addTest(
     var that = this;
     var alg = { name: "ECDH", namedCurve: "P-256" };
 
-    crypto.subtle.importKey("raw", tv, alg, false, ["deriveBits"])
+    crypto.subtle.importKey("raw", tv.ecdh_p256_negative.raw_compressed, alg, false, [])
       .then(error(that), complete(that));
   }
 );
