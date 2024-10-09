@@ -372,6 +372,26 @@ networking:
     expires: never
     telemetry_mirror: DNS_LOOKUP_TIME
 
+  trr_fetch_duration:
+    type: labeled_timing_distribution
+    time_unit: millisecond
+    description: >
+      Time for a successful DoH request, from AsyncOpen to ReturnData
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922235
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922235
+    notification_emails:
+      - necko@mozilla.com
+    labels:
+      - h1
+      - h1_network_only
+      - h2
+      - h2_network_only
+      - h3
+      - h3_network_only
+    expires: never
+
   dns_renewal_time:
     type: timing_distribution
     time_unit: millisecond
