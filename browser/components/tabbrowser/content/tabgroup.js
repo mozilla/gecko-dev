@@ -75,6 +75,12 @@
         }
       });
       this._tabsChangedObserver.observe(this, { childList: true });
+
+      this.#labelElement.addEventListener("contextmenu", e => {
+        e.preventDefault();
+        gBrowser.tabGroupMenu.openEditModal(this);
+        return false;
+      });
     }
 
     disconnectedCallback() {

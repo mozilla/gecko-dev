@@ -27,7 +27,8 @@
         role="menu"
         norolluponanchor="true">
       <html:div class="panel-header">
-        <html:h1 data-l10n-id="tab-group-editor-title-create"></html:h1>
+        <html:h1 class="tab-group-create-mode-only" data-l10n-id="tab-group-editor-title-create"></html:h1>
+        <html:h1 class="tab-group-edit-mode-only" data-l10n-id="tab-group-editor-title-edit"></html:h1>
       </html:div>
       <toolbarseparator />
       <html:div class="panel-body tab-group-editor-name">
@@ -36,14 +37,26 @@
       </html:div>
       <html:div class="panel-body tab-group-editor-swatches">
       </html:div>
-      <html:moz-button-group class="panel-body tab-group-editor-actions">
+      <html:moz-button-group class="panel-body tab-group-create-actions tab-group-create-mode-only">
         <html:moz-button id="tab-group-editor-button-cancel" data-l10n-id="tab-group-editor-cancel"></html:moz-button>
         <html:moz-button type="primary" id="tab-group-editor-button-create" data-l10n-id="tab-group-editor-done"></html:moz-button>
       </html:moz-button-group>
+      <toolbarseparator class="tab-group-edit-mode-only" />
+      <html:div class="panel-body tab-group-edit-actions tab-group-edit-mode-only">
+        <toolbarbutton id="tabGroupEditor_addNewTabInGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-add-new"></toolbarbutton>
+        <toolbarbutton disabled="true" id="tabGroupEditor_moveGroupToNewWindow" class="subviewbutton" data-l10n-id="tab-group-editor-action-new-window"></toolbarbutton>
+        <toolbarbutton disabled="true" id="tabGroupEditor_saveAndCloseGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-save"></toolbarbutton>
+        <toolbarbutton id="tabGroupEditor_ungroupTabs" class="subviewbutton" data-l10n-id="tab-group-editor-action-ungroup"></toolbarbutton>
+      </html:div>
+      <toolbarseparator class="tab-group-edit-mode-only" />
+      <html:div class="tab-group-edit-mode-only panel-body tab-group-delete">
+        <toolbarbutton disabled="true" id="tabGroupEditor_deleteGroup" class="subviewbutton" data-l10n-id="tab-group-editor-action-delete"></toolbarbutton>
+      </html:div>
     </panel>
        `;
 
     #activeGroup;
+    #createMode;
     #cancelButton;
     #createButton;
     #nameField;
@@ -93,6 +106,18 @@
         }
       });
 
+      document
+        .getElementById("tabGroupEditor_addNewTabInGroup")
+        .addEventListener("command", () => {
+          this.#handleNewTabInGroup();
+        });
+
+      document
+        .getElementById("tabGroupEditor_ungroupTabs")
+        .addEventListener("command", () => {
+          this.#handleUngroup();
+        });
+
       this.addEventListener("change", this);
     }
 
@@ -130,6 +155,15 @@
       return this.#activeGroup;
     }
 
+    get createMode() {
+      return this.#createMode;
+    }
+
+    set createMode(mode) {
+      this.#panel.classList.toggle("tab-group-editor-mode-create", mode);
+      this.#createMode = mode;
+    }
+
     set activeGroup(group = null) {
       this.#activeGroup = group;
       this.#nameField.value = group ? group.label : "";
@@ -148,6 +182,15 @@
 
     openCreateModal(group) {
       this.activeGroup = group;
+      this.createMode = true;
+      this.#panel.openPopup(group.firstChild, {
+        position: "bottomleft topleft",
+      });
+    }
+
+    openEditModal(group) {
+      this.activeGroup = group;
+      this.createMode = false;
       this.#panel.openPopup(group.firstChild, {
         position: "bottomleft topleft",
       });
@@ -173,6 +216,21 @@
     #handleCreate() {
       this.#panel.hidePopup();
       this.activeGroup = null;
+    }
+
+    async #handleNewTabInGroup() {
+      let lastTab = this.activeGroup?.tabs.at(-1);
+      let onTabOpened = async aEvent => {
+        this.activeGroup?.addTabs([aEvent.target]);
+        this.#panel.hidePopup();
+        window.removeEventListener("TabOpen", onTabOpened);
+      };
+      window.addEventListener("TabOpen", onTabOpened);
+      gBrowser.addAdjacentNewTab(lastTab);
+    }
+
+    #handleUngroup() {
+      this.activeGroup?.ungroupTabs();
     }
   }
 

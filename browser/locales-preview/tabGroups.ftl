@@ -23,6 +23,11 @@ tab-context-move-tab-to-group =
         }
     .accesskey = G
 
+tab-group-editor-action-add-new = Add tab to group
+tab-group-editor-action-new-window = Move group to new window
+tab-group-editor-action-save = Save and close group
+tab-group-editor-action-ungroup = Ungroup tabs
+tab-group-editor-action-delete = Delete group
 tab-group-editor-done =
   .label = Done
   .accessKey = D
