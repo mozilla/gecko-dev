@@ -1,23 +1,16 @@
 // Test module fields related to asynchronous evaluation.
 
-// Hardcoded values of ModuleStatus. Keep these in sync if the code changes.
-const StatusUnlinked = 0;
-const StatusLinked = 2;
-const StatusEvaluating = 3;
-const StatusEvaluatingAsync = 4;
-const StatusEvaluated = 5;
-
 {
   let m = parseModule('');
-  assertEq(m.status, StatusUnlinked);
+  assertEq(m.status, "Unlinked");
 
   moduleLink(m);
   assertEq(m.isAsyncEvaluating, false);
-  assertEq(m.status, StatusLinked);
+  assertEq(m.status, "Linked");
 
   moduleEvaluate(m);
   assertEq(m.isAsyncEvaluating, false);
-  assertEq(m.status, StatusEvaluated);
+  assertEq(m.status, "Evaluated");
 }
 
 {
@@ -28,12 +21,12 @@ const StatusEvaluated = 5;
 
   moduleEvaluate(m);
   assertEq(m.isAsyncEvaluating, true);
-  assertEq(m.status, StatusEvaluatingAsync);
+  assertEq(m.status, "EvaluatingAsync");
   assertEq(m.asyncEvaluatingPostOrder, 1);
 
   drainJobQueue();
   assertEq(m.isAsyncEvaluating, true);
-  assertEq(m.status, StatusEvaluated);
+  assertEq(m.status, "Evaluated");
   assertEq(m.asyncEvaluatingPostOrder, undefined);
 }
 
@@ -43,12 +36,12 @@ const StatusEvaluated = 5;
   moduleLink(m);
   moduleEvaluate(m).catch(() => 0);
   assertEq(m.isAsyncEvaluating, true);
-  assertEq(m.status, StatusEvaluatingAsync);
+  assertEq(m.status, "EvaluatingAsync");
   assertEq(m.asyncEvaluatingPostOrder, 1);
 
   drainJobQueue();
   assertEq(m.isAsyncEvaluating, true);
-  assertEq(m.status, StatusEvaluated);
+  assertEq(m.status, "Evaluated");
   assertEq(m.evaluationError, 2);
   assertEq(m.asyncEvaluatingPostOrder, undefined);
 }
@@ -58,12 +51,12 @@ const StatusEvaluated = 5;
   moduleLink(m);
   moduleEvaluate(m).catch(() => 0);
   assertEq(m.isAsyncEvaluating, true);
-  assertEq(m.status, StatusEvaluatingAsync);
+  assertEq(m.status, "EvaluatingAsync");
   assertEq(m.asyncEvaluatingPostOrder, 1);
 
   drainJobQueue();
   assertEq(m.isAsyncEvaluating, true);
-  assertEq(m.status, StatusEvaluated);
+  assertEq(m.status, "Evaluated");
   assertEq(m.evaluationError, 1);
   assertEq(m.asyncEvaluatingPostOrder, undefined);
 }
@@ -76,16 +69,16 @@ const StatusEvaluated = 5;
   moduleLink(b);
   moduleEvaluate(b);
   assertEq(a.isAsyncEvaluating, false);
-  assertEq(a.status, StatusEvaluated);
+  assertEq(a.status, "Evaluated");
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluatingAsync);
+  assertEq(b.status, "EvaluatingAsync");
   assertEq(b.asyncEvaluatingPostOrder, 1);
 
   drainJobQueue();
   assertEq(a.isAsyncEvaluating, false);
-  assertEq(a.status, StatusEvaluated);
+  assertEq(a.status, "Evaluated");
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluated);
+  assertEq(b.status, "Evaluated");
   assertEq(b.asyncEvaluatingPostOrder, undefined);
 }
 
@@ -97,18 +90,18 @@ const StatusEvaluated = 5;
   moduleLink(b);
   moduleEvaluate(b);
   assertEq(a.isAsyncEvaluating, true);
-  assertEq(a.status, StatusEvaluatingAsync);
+  assertEq(a.status, "EvaluatingAsync");
   assertEq(a.asyncEvaluatingPostOrder, 1);
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluatingAsync);
+  assertEq(b.status, "EvaluatingAsync");
   assertEq(b.asyncEvaluatingPostOrder, 2);
 
   drainJobQueue();
   assertEq(a.isAsyncEvaluating, true);
-  assertEq(a.status, StatusEvaluated);
+  assertEq(a.status, "Evaluated");
   assertEq(a.asyncEvaluatingPostOrder, undefined);
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluated);
+  assertEq(b.status, "Evaluated");
   assertEq(b.asyncEvaluatingPostOrder, undefined);
 }
 
@@ -123,25 +116,25 @@ const StatusEvaluated = 5;
   moduleLink(c);
   moduleEvaluate(c);
   assertEq(a.isAsyncEvaluating, true);
-  assertEq(a.status, StatusEvaluatingAsync);
+  assertEq(a.status, "EvaluatingAsync");
   assertEq(a.asyncEvaluatingPostOrder, 1);
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluatingAsync);
+  assertEq(b.status, "EvaluatingAsync");
   assertEq(b.asyncEvaluatingPostOrder, 2);
   assertEq(c.isAsyncEvaluating, true);
-  assertEq(c.status, StatusEvaluatingAsync);
+  assertEq(c.status, "EvaluatingAsync");
   assertEq(c.asyncEvaluatingPostOrder, 3);
 
   resolve(1);
   drainJobQueue();
   assertEq(a.isAsyncEvaluating, true);
-  assertEq(a.status, StatusEvaluated);
+  assertEq(a.status, "Evaluated");
   assertEq(a.asyncEvaluatingPostOrder, undefined);
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluated);
+  assertEq(b.status, "Evaluated");
   assertEq(b.asyncEvaluatingPostOrder, undefined);
   assertEq(c.isAsyncEvaluating, true);
-  assertEq(c.status, StatusEvaluated);
+  assertEq(c.status, "Evaluated");
   assertEq(c.asyncEvaluatingPostOrder, undefined);
 }
 
@@ -152,10 +145,10 @@ const StatusEvaluated = 5;
 
   moduleLink(b);
   moduleEvaluate(b).catch(() => 0);
-  assertEq(a.status, StatusEvaluated);
+  assertEq(a.status, "Evaluated");
   assertEq(a.isAsyncEvaluating, false);
   assertEq(a.evaluationError, 1);
-  assertEq(b.status, StatusEvaluated);
+  assertEq(b.status, "Evaluated");
   assertEq(b.isAsyncEvaluating, false);
   assertEq(b.evaluationError, 1);
 }
@@ -168,17 +161,17 @@ const StatusEvaluated = 5;
   moduleLink(b);
   moduleEvaluate(b).catch(() => 0);
   assertEq(a.isAsyncEvaluating, true);
-  assertEq(a.status, StatusEvaluatingAsync);
+  assertEq(a.status, "EvaluatingAsync");
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluatingAsync);
+  assertEq(b.status, "EvaluatingAsync");
 
   drainJobQueue();
   assertEq(a.isAsyncEvaluating, true);
-  assertEq(a.status, StatusEvaluated);
+  assertEq(a.status, "Evaluated");
   assertEq(a.evaluationError, 1);
   assertEq(a.asyncEvaluatingPostOrder, undefined);
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluated);
+  assertEq(b.status, "Evaluated");
   assertEq(b.evaluationError, 1);
   assertEq(b.asyncEvaluatingPostOrder, undefined);
 }
@@ -191,17 +184,17 @@ const StatusEvaluated = 5;
   moduleLink(b);
   moduleEvaluate(b).catch(() => 0);
   assertEq(a.isAsyncEvaluating, true);
-  assertEq(a.status, StatusEvaluatingAsync);
+  assertEq(a.status, "EvaluatingAsync");
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluatingAsync);
+  assertEq(b.status, "EvaluatingAsync");
 
   drainJobQueue();
   assertEq(a.isAsyncEvaluating, true);
-  assertEq(a.status, StatusEvaluated);
+  assertEq(a.status, "Evaluated");
   assertEq(a.evaluationError, 2);
   assertEq(a.asyncEvaluatingPostOrder, undefined);
   assertEq(b.isAsyncEvaluating, true);
-  assertEq(b.status, StatusEvaluated);
+  assertEq(b.status, "Evaluated");
   assertEq(b.evaluationError, 2);
   assertEq(b.asyncEvaluatingPostOrder, undefined);
 }

@@ -31,17 +31,13 @@ assertEq(a.namespace.v, 10);
 testGetter(a, "namespace");
 
 // ==== status getter ====
-const MODULE_STATUS_UNLINKED = 0;
-const MODULE_STATUS_LINKED = 2;
-const MODULE_STATUS_EVALUATED = 5;
-
 const c = registerModule('c', parseModule(`
 `));
-assertEq(c.status, MODULE_STATUS_UNLINKED);
+assertEq(c.status, "Unlinked");
 moduleLink(c);
-assertEq(c.status, MODULE_STATUS_LINKED);
+assertEq(c.status, "Linked");
 moduleEvaluate(c);
-assertEq(c.status, MODULE_STATUS_EVALUATED);
+assertEq(c.status, "Evaluated");
 testGetter(c, "status");
 
 // ==== evaluationError getter ====
