@@ -3354,6 +3354,10 @@ bool BacktrackingAllocator::tryAllocateRegister(PhysicalRegister& r,
                                                 LiveBundleVector& conflicting) {
   *success = false;
 
+  // If we know this bundle contains a call (where all registers are spilled) we
+  // shouldn't try again to allocate a register.
+  MOZ_ASSERT(!*pfixed);
+
   if (!r.allocatable) {
     return true;
   }
@@ -3388,6 +3392,8 @@ bool BacktrackingAllocator::tryAllocateRegister(PhysicalRegister& r,
           return false;
         }
       } else {
+        // This bundle contains a call instruction.
+        MOZ_ASSERT(lookupFirstCallPositionInRange(range->from(), range->to()));
         JitSpewIfEnabled(JitSpew_RegAlloc, "  %s collides with fixed use %s",
                          rAlias.reg.name(), existing->toString().get());
         *pfixed = true;
@@ -3471,6 +3477,11 @@ bool BacktrackingAllocator::tryAllocateAnyRegister(
       if (*success) {
         break;
       }
+      if (*pfixed) {
+        // This bundle contains a call instruction. Calls require spilling all
+        // registers, so we have to split or spill this bundle.
+        break;
+      }
     }
     return true;
   }
@@ -3481,6 +3492,11 @@ bool BacktrackingAllocator::tryAllocateAnyRegister(
       return false;
     }
     if (*success) {
+      break;
+    }
+    if (*pfixed) {
+      // This bundle contains a call instruction. Calls require spilling all
+      // registers, so we have to split or spill this bundle.
       break;
     }
   }
