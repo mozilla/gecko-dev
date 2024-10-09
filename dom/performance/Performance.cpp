@@ -524,6 +524,9 @@ DOMHighResTimeStamp Performance::ResolveEndTimeForMeasure(
     }
 
     endTime = start + duration;
+  } else if (aReturnUnclamped) {
+    MOZ_DIAGNOSTIC_ASSERT(profiler_thread_is_being_profiled_for_markers());
+    endTime = NowUnclamped();
   } else {
     endTime = Now();
   }
