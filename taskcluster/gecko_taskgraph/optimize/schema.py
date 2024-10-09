@@ -29,6 +29,7 @@ default_optimizations = (
     {"skip-unless-android-perftest-backstop": None},
     # skip this task if none of the given file patterns match
     {"skip-unless-changed": [str]},
+    {"skip-unless-missing-or-changed": [voluptuous.Any(str, [str])]},
     # skip this task if unless the change files' SCHEDULES contains any of these components
     {"skip-unless-schedules": list(schedules.ALL_COMPONENTS)},
     # optimize strategy aliases for the test kind

@@ -44,6 +44,11 @@ register_strategy("test-inclusive", args=("skip-unless-schedules",))(Alias)
 register_strategy("test-verify", args=("skip-unless-schedules",))(Alias)
 register_strategy("upload-symbols", args=("never",))(Alias)
 register_strategy("reprocess-symbols", args=("never",))(Alias)
+register_strategy(
+    "skip-unless-missing-or-changed",
+    args=("skip-unless-missing", "skip-unless-changed"),
+    kwargs={"split_args": lambda args, _: (args[0], args[1])},
+)(All)
 
 
 # Strategy overrides used to tweak the default strategies. These are referenced
