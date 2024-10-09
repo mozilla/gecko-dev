@@ -396,13 +396,13 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
 
   // This selects both associated and root domain icons, ordered by width,
   // where an associated icon has priority over a root domain icon.
-  // If the preferred width is less than or equal to 64px, non-rich icons are
-  // prioritized over rich icons by ordering first by `isRich ASC`, then by
-  // width. If the preferred width is greater than 64px, the sorting prioritizes
-  // width, with no preference for rich or non-rich icons. Regardless, note that
-  // while this way we are far more efficient, we lost associations with root
-  // domain icons, so it's possible we'll return one for a specific size when an
-  // associated icon for that size doesn't exist.
+  // If the preferred width is less than or equal to THRESHOLD_WIDTH, non-rich
+  // icons are prioritized over rich icons by ordering first by `isRich ASC`,
+  // then by width. If the preferred width is greater than THRESHOLD_WIDTH, the
+  // sorting prioritizes width, with no preference for rich or non-rich icons.
+  // Regardless, note that while this way we are far more efficient, we lost
+  // associations with root domain icons, so it's possible we'll return one for
+  // a specific size when an associated icon for that size doesn't exist.
 
   nsCString query = nsPrintfCString(
       "/* do not warn (bug no: not worth having a compound index) */ "
@@ -438,33 +438,93 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
 
   // Return the biggest icon close to the preferred width. It may be bigger
   // or smaller if the preferred width isn't found.
-  // Non-rich icons are prioritized over rich ones for preferred widths <= 64px.
+  // If the size difference between the bigger icon and preferred width is more
+  // than 4 times greater than the difference between the preferred width and
+  // the smaller icon, we prefer the smaller icon.
+  // Non-rich icons are prioritized over rich ones for preferred widths <=
+  // THRESHOLD_WIDTH. After the inital selection, we check if a suitable SVG
+  // icon exists that could override the initial selection.
+
   bool hasResult;
-  int32_t lastWidth = 0;
+
+  struct IconInfo {
+    int32_t width = 0;
+    int32_t isRich = 0;
+    nsAutoCString spec;
+    bool isSet() { return width > 0; };
+  };
+
+  IconInfo svgIcon;
+  IconInfo lastIcon;
+  IconInfo selectedIcon;
+
+  bool preferNonRichIcons = aPreferredWidth <= THRESHOLD_WIDTH;
+
   while (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
     int32_t width;
     rv = stmt->GetInt32(0, &width);
-    if (lastWidth == width) {
+    if (lastIcon.width == width) {
       // If we already found an icon for this width, we always prefer the first
       // icon found, because it's a non-root icon, per the root ASC ordering.
       continue;
     }
 
     int32_t isRich = stmt->AsInt32(3);
-    if (aPreferredWidth <= THRESHOLD_WIDTH && lastWidth > 0 && isRich) {
-      // If we already found an icon, we prefer it to rich icons for small
-      // sizes.
+    int32_t isSVG = (width == UINT16_MAX);
+
+    nsAutoCString iconURL;
+    stmt->GetUTF8String(1, iconURL);
+
+    // If current icon is an SVG, and we haven't yet stored an SVG,
+    // store the SVG when the preferred width is below
+    // threshold, otherwise simply store the first SVG found regardless of
+    // richness.
+    if (isSVG && !svgIcon.isSet()) {
+      if ((preferNonRichIcons && !isRich) || !preferNonRichIcons) {
+        svgIcon = {width, isRich, iconURL};
+      }
+    }
+
+    if (preferNonRichIcons && lastIcon.isSet() && isRich && !lastIcon.isRich) {
+      // If we already found a non-rich icon, we prefer it to rich icons
+      // for small sizes.
       break;
     }
 
     if (!aIconData.spec.IsEmpty() && width < aPreferredWidth) {
       // We found the best match, or we already found a match so we don't need
       // to fallback to the root domain icon.
+
+      // If the difference between the preferred size and the previously found
+      // larger icon is more than 4 times the difference between the preferred
+      // size and the smaller icon, choose the smaller icon.
+      if (aPreferredWidth - width < abs(lastIcon.width - aPreferredWidth) / 4) {
+        selectedIcon = {width, isRich};
+        rv = stmt->GetUTF8String(1, aIconData.spec);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
       break;
     }
-    lastWidth = width;
+
+    lastIcon = {width, isRich};
+
+    selectedIcon = {width, isRich};
     rv = stmt->GetUTF8String(1, aIconData.spec);
     NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  // Check to see if we should overwrite the original icon selection with an
+  // SVG. We prefer the SVG if the selected icon's width differs from the
+  // preferred width. We also prefer the SVG if the selected icon is rich and
+  // the preferred width is below threshold. Note that since we only store
+  // non-rich SVGs for below-threshold requests, rich SVGs are not considered.
+  // For above-threshold requests, any SVG would overwrite the selected icon if
+  // its width differs from the requested size.
+  if (svgIcon.isSet() && !svgIcon.spec.IsEmpty()) {
+    if ((selectedIcon.width != aPreferredWidth) ||
+        (preferNonRichIcons && selectedIcon.isRich)) {
+      aIconData.spec = svgIcon.spec;
+    }
   }
 
   return NS_OK;

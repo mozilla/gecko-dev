@@ -9,6 +9,15 @@ const ICON32_URL = "http://places.test/favicon-normal32.png";
 const FAVICON16_DATA = readFileData(do_get_file("favicon-normal16.png"));
 const ICON16_URL = "http://places.test/favicon-normal16.png";
 
+const FAVICON64_DATA = readFileData(do_get_file("favicon-big64.png"));
+const ICON64_URL = "http://places.test/favicon-big64.png";
+
+const SVG_DATA = readFileData(do_get_file("favicon-svg.svg"));
+const SVG_URL = "http://example.com/favicon.svg";
+
+const MIMETYPE_PNG = "image/png";
+const MIMETYPE_SVG = "image/svg+xml";
+
 add_task(async function test_normal() {
   Assert.equal(FAVICON_DATA.length, 344);
   let pageURI = NetUtil.newURI("http://example.com/normal");
@@ -124,91 +133,325 @@ add_task(async function test_fallback() {
 });
 
 add_task(async function test_richIconPrioritizationBelowThreshold() {
-  const PAGE_URL = "https://example.com/test_prioritization_below_threshold";
-
-  await PlacesTestUtils.addVisits(PAGE_URL);
-
-  let dataURL = await PlacesTestUtils.fileDataToDataURL(
-    FAVICON16_DATA,
-    "image/png"
-  );
-  await PlacesTestUtils.setFaviconForPage(
-    PAGE_URL,
-    ICON16_URL,
-    dataURL,
-    0,
-    false // Non-rich
-  );
-
-  let richDataURL = await PlacesTestUtils.fileDataToDataURL(
-    FAVICON_DATA,
-    "image/png"
-  );
-  await PlacesTestUtils.setFaviconForPage(
-    PAGE_URL,
-    ICON32_URL,
-    richDataURL,
-    0,
-    true // Rich
-  );
-
-  // Non-rich icons should be prioritized for preferred width <= 64px.
-  await new Promise(resolve => {
-    PlacesUtils.favicons.getFaviconDataForPage(
-      NetUtil.newURI(PAGE_URL),
-      (aURI, aDataLen, aData, aMimeType) => {
-        Assert.equal(aURI.spec, ICON16_URL);
-        Assert.equal(aDataLen, FAVICON16_DATA.length);
-        Assert.deepEqual(aData, FAVICON16_DATA);
-        Assert.equal(aMimeType, FAVICON_MIMETYPE);
-        resolve();
+  await runFaviconTest(
+    "https://example.com/test_prioritization_below_threshold",
+    [
+      {
+        url: ICON16_URL,
+        data: FAVICON16_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_PNG,
       },
-      12
-    );
-  });
+      {
+        url: ICON32_URL,
+        data: FAVICON_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    ICON16_URL,
+    FAVICON16_DATA,
+    12
+  );
 });
 
 add_task(async function test_richIconPrioritizationAboveThreshold() {
-  const PAGE_URL = "https://example.com/test_prioritization_above_threshold";
+  await runFaviconTest(
+    "https://example.com/test_prioritization_below_threshold",
+    [
+      {
+        url: ICON16_URL,
+        data: FAVICON16_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_PNG,
+      },
+      {
+        url: ICON32_URL,
+        data: FAVICON_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    ICON32_URL,
+    FAVICON_DATA,
+    72
+  );
+});
 
+add_task(async function test_sizeSelection() {
+  // Icons set:
+  //  - 16px non-rich
+  //  - 64px non-rich
+  //  - 32px rich
+  const testCases = [
+    // Should select 16px icon, non-rich icons are prioritized for
+    // preferred size <= 64px, and (24 - 16) = 8 <= (64 - 24) / 4 = 10.
+    // Therefore smaller icon is selected.
+    {
+      expectedURI: ICON16_URL,
+      expectedData: FAVICON16_DATA,
+      preferredSize: 24,
+    },
+    // Should select 64px icon, non-rich icons are prioritized for
+    // preferred size <= 64px, and (64 - 32) / 4 = 8 < (32 - 16) = 16.
+    // Therefore, larger icon is selected.
+    {
+      expectedURI: ICON64_URL,
+      expectedData: FAVICON64_DATA,
+      preferredSize: 32,
+    },
+    // Should select 64px icon, no discrimination between rich/non-rich for
+    // preferred size > 64px.
+    {
+      expectedURI: ICON64_URL,
+      expectedData: FAVICON64_DATA,
+      preferredSize: 80,
+    },
+  ];
+
+  for (const { expectedURI, expectedData, preferredSize } of testCases) {
+    await runFaviconTest(
+      "https://example.com/test_size_selection",
+      [
+        {
+          url: ICON16_URL,
+          data: FAVICON16_DATA,
+          isRich: false,
+          mimetype: MIMETYPE_PNG,
+        },
+        {
+          url: ICON64_URL,
+          data: FAVICON64_DATA,
+          isRich: false,
+          mimetype: MIMETYPE_PNG,
+        },
+        {
+          url: ICON32_URL,
+          data: FAVICON_DATA,
+          isRich: true,
+          mimetype: MIMETYPE_PNG,
+        },
+      ],
+      expectedURI,
+      expectedData,
+      preferredSize
+    );
+  }
+});
+
+add_task(async function test_sizeSelectionRichOnly() {
+  // Should select 16px icon, since there are no non-rich icons found,
+  // we return the best-sized rich icon.
+  await runFaviconTest(
+    "https://example.com/test_size_selection_rich_only",
+    [
+      {
+        url: ICON16_URL,
+        data: FAVICON16_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_PNG,
+      },
+      {
+        url: ICON64_URL,
+        data: FAVICON64_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_PNG,
+      },
+      {
+        url: ICON32_URL,
+        data: FAVICON_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    ICON16_URL,
+    FAVICON16_DATA,
+    17
+  );
+});
+
+add_task(async function test_svg() {
+  // Selected non-svg is not a perfect fit, so we prefer SVG.
+  await runFaviconTest(
+    "https://example.com/test_icon_selection_svg",
+    [
+      {
+        url: SVG_URL,
+        data: SVG_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_SVG,
+      },
+      {
+        url: ICON32_URL,
+        data: FAVICON_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    SVG_URL,
+    SVG_DATA,
+    31
+  );
+
+  // Selected non-svg is a perfect fit, so we prefer it.
+  await runFaviconTest(
+    "https://example.com/test_icon_selection_svg",
+    [
+      {
+        url: SVG_URL,
+        data: SVG_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_SVG,
+      },
+      {
+        url: ICON32_URL,
+        data: FAVICON_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    ICON32_URL,
+    FAVICON_DATA,
+    32
+  );
+
+  // Selected non-svg is a perfect fit, but it is rich so we prefer SVG.
+  await runFaviconTest(
+    "https://example.com/test_icon_selection_svg",
+    [
+      {
+        url: SVG_URL,
+        data: SVG_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_SVG,
+      },
+      {
+        url: ICON32_URL,
+        data: FAVICON_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    SVG_URL,
+    SVG_DATA,
+    32
+  );
+
+  // Selected non-svg is not a perfect fit, but SVG is rich, so we prefer non-SVG.
+  await runFaviconTest(
+    "https://example.com/test_icon_selection_svg",
+    [
+      {
+        url: SVG_URL,
+        data: SVG_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_SVG,
+      },
+      {
+        url: ICON32_URL,
+        data: FAVICON_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    ICON32_URL,
+    FAVICON_DATA,
+    31
+  );
+
+  // Selected non-SVG is a perfect fit and it is rich, and SVG is also rich,
+  // so we prefer the original non-SVG selection.
+  await runFaviconTest(
+    "https://example.com/test_icon_selection_svg",
+    [
+      {
+        url: SVG_URL,
+        data: SVG_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_SVG,
+      },
+      {
+        url: ICON32_URL,
+        data: FAVICON_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    ICON32_URL,
+    FAVICON_DATA,
+    32
+  );
+
+  // When requested size is above threshold we have no preference when it comes to richness.
+  await runFaviconTest(
+    "https://example.com/test_icon_selection_svg",
+    [
+      {
+        url: SVG_URL,
+        data: SVG_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_SVG,
+      },
+      {
+        url: ICON64_URL,
+        data: FAVICON64_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_PNG,
+      },
+    ],
+    SVG_URL,
+    SVG_DATA,
+    65
+  );
+
+  // Prefer non-rich SVG when requested size is below threshold.
+  await runFaviconTest(
+    "https://example.com/test_icon_selection_svg",
+    [
+      {
+        url: SVG_URL + "#2",
+        data: SVG_DATA,
+        isRich: true,
+        mimetype: MIMETYPE_SVG,
+      },
+      {
+        url: SVG_URL,
+        data: SVG_DATA,
+        isRich: false,
+        mimetype: MIMETYPE_SVG,
+      },
+    ],
+    SVG_URL,
+    SVG_DATA,
+    32
+  );
+});
+
+async function runFaviconTest(
+  PAGE_URL,
+  iconData,
+  expectedURI,
+  expectedData,
+  preferredSize
+) {
+  await PlacesTestUtils.clearFavicons();
   await PlacesTestUtils.addVisits(PAGE_URL);
 
-  let dataURL = await PlacesTestUtils.fileDataToDataURL(
-    FAVICON16_DATA,
-    "image/png"
-  );
-  await PlacesTestUtils.setFaviconForPage(
-    PAGE_URL,
-    ICON16_URL,
-    dataURL,
-    0,
-    false // Non-rich
-  );
+  for (const { url, data, isRich, mimetype } of iconData) {
+    const dataURL = await PlacesTestUtils.fileDataToDataURL(data, mimetype);
+    await PlacesTestUtils.setFaviconForPage(PAGE_URL, url, dataURL, 0, isRich);
+  }
 
-  let richDataURL = await PlacesTestUtils.fileDataToDataURL(
-    FAVICON_DATA,
-    "image/png"
-  );
-  await PlacesTestUtils.setFaviconForPage(
-    PAGE_URL,
-    ICON32_URL,
-    richDataURL,
-    0,
-    true // Rich
-  );
-
-  // Non-rich icons should not be prioritized for preferred width > 64px.
   await new Promise(resolve => {
     PlacesUtils.favicons.getFaviconDataForPage(
       NetUtil.newURI(PAGE_URL),
-      (aURI, aDataLen, aData, aMimeType) => {
-        Assert.equal(aURI.spec, ICON32_URL);
-        Assert.equal(aDataLen, FAVICON_DATA.length);
-        Assert.deepEqual(aData, FAVICON_DATA);
-        Assert.equal(aMimeType, FAVICON_MIMETYPE);
+      (aURI, aDataLen, aData) => {
+        Assert.equal(aURI.spec, expectedURI);
+        Assert.equal(aDataLen, expectedData.length);
+        Assert.deepEqual(aData, expectedData);
         resolve();
       },
-      72
+      preferredSize
     );
   });
-});
+}

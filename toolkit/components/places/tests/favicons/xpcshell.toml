@@ -24,6 +24,7 @@ support-files = [
   "favicon-normal32.png",
   "favicon-scale160x3.jpg",
   "favicon-scale3x160.jpg",
+  "favicon-svg.svg",
   "noise.png",
 ]
 

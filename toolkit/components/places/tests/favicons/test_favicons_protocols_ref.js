@@ -46,8 +46,8 @@ add_task(async function () {
   );
   await compareFavicons(
     PlacesUtils.urlWithSizeRef(win, PAGE_ICON_URL, 17),
-    PlacesUtils.favicons.getFaviconLinkForIcon(Services.io.newURI(ICON32_URL)),
-    "Size=17 should return the 32px icon"
+    PlacesUtils.favicons.getFaviconLinkForIcon(Services.io.newURI(ICON16_URL)),
+    "Size=17 should return the 16px icon"
   );
   await compareFavicons(
     PlacesUtils.urlWithSizeRef(win, PAGE_ICON_URL, 1),
