@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <functional>
 
+#include "nsTArrayForwardDeclare.h"
 #include "mozilla/dom/quota/CommonMetadataArrayFwd.h"
 #include "mozilla/dom/quota/Config.h"
 
@@ -68,8 +69,12 @@ using ClientDirectoryLockPromise =
 using UniversalDirectoryLockPromise =
     MozPromise<RefPtr<UniversalDirectoryLock>, nsresult, true>;
 
+struct OriginMetadata;
+using OriginMetadataArray = nsTArray<OriginMetadata>;
 class UsageInfo;
 
+using OriginMetadataArrayPromise =
+    MozPromise<OriginMetadataArray, nsresult, true>;
 using OriginUsageMetadataArrayPromise =
     MozPromise<OriginUsageMetadataArray, nsresult, true>;
 using UsageInfoPromise = MozPromise<UsageInfo, nsresult, false>;

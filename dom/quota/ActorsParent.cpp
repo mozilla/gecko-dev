@@ -96,6 +96,7 @@
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FileUtils.h"
+#include "mozilla/dom/quota/MozPromiseUtils.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/QuotaManagerService.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
@@ -5844,7 +5845,11 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForOrigin(
 
   clearOriginOp->RunImmediately();
 
-  return clearOriginOp->OnResults();
+  return Map<BoolPromise>(
+      clearOriginOp->OnResults(),
+      [](OriginMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        return true;
+      });
 }
 
 RefPtr<BoolPromise> QuotaManager::ClearStoragesForClient(
@@ -5875,7 +5880,11 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForOriginPrefix(
 
   clearStoragesForOriginPrefixOp->RunImmediately();
 
-  return clearStoragesForOriginPrefixOp->OnResults();
+  return Map<BoolPromise>(
+      clearStoragesForOriginPrefixOp->OnResults(),
+      [](OriginMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        return true;
+      });
 }
 
 RefPtr<BoolPromise> QuotaManager::ClearStoragesForOriginAttributesPattern(
@@ -5889,7 +5898,11 @@ RefPtr<BoolPromise> QuotaManager::ClearStoragesForOriginAttributesPattern(
 
   clearDataOp->RunImmediately();
 
-  return clearDataOp->OnResults();
+  return Map<BoolPromise>(
+      clearDataOp->OnResults(),
+      [](OriginMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        return true;
+      });
 }
 
 RefPtr<BoolPromise> QuotaManager::ClearPrivateRepository() {
@@ -5940,7 +5953,11 @@ RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForOrigin(
 
   shutdownOriginOp->RunImmediately();
 
-  return shutdownOriginOp->OnResults();
+  return Map<BoolPromise>(
+      shutdownOriginOp->OnResults(),
+      [](OriginMetadataArrayPromise::ResolveOrRejectValue&& aValue) {
+        return true;
+      });
 }
 
 RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForClient(
