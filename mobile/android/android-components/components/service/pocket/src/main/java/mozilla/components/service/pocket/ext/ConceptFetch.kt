@@ -26,5 +26,5 @@ internal fun Client.fetchBodyOrNull(request: Request): String? {
         null
     }
 
-    return response?.use { if (response.isSuccess) response.body.string() else null }
+    return response?.use { if (response.isSuccess) response.body.string(Charsets.UTF_8) else null }
 }
