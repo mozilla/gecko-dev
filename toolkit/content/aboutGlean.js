@@ -140,11 +140,28 @@ function onLoad() {
     let tag = document.getElementById("tag-pings").value;
     let log = document.getElementById("log-pings").checked;
     let ping = document.getElementById("ping-names").value;
+    let feedbackToast = document.getElementById("feedback");
+
     Services.fog.setLogPings(log);
     Services.fog.setTagPings(tag);
+
     if (ping != NO_PING) {
       Services.fog.sendPing(ping);
+      feedbackToast.setAttribute(
+        "data-l10n-id",
+        "about-glean-feedback-settings-and-ping"
+      );
+    } else {
+      feedbackToast.setAttribute(
+        "data-l10n-id",
+        "about-glean-feedback-settings-only"
+      );
     }
+
+    feedbackToast.style.visibility = "visible";
+    setTimeout(() => {
+      feedbackToast.style.visibility = "hidden";
+    }, 3000);
   });
 }
 

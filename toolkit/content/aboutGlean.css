@@ -9,3 +9,12 @@
   text-decoration: underline;
   color: var(--text-color-error);
 }
+
+#feedback {
+  visibility: hidden;
+  position: fixed;
+  z-index: 1;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  bottom: var(--space-medium);
+}
