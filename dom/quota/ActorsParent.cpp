@@ -5834,13 +5834,11 @@ RefPtr<UInt64Promise> QuotaManager::GetCachedOriginUsage(
 
 RefPtr<BoolPromise> QuotaManager::ClearStoragesForOrigin(
     const Maybe<PersistenceType>& aPersistenceType,
-    const PrincipalInfo& aPrincipalInfo,
-    const Maybe<Client::Type>& aClientType) {
+    const PrincipalInfo& aPrincipalInfo) {
   AssertIsOnOwningThread();
 
-  auto clearOriginOp =
-      CreateClearOriginOp(WrapMovingNotNullUnchecked(this), aPersistenceType,
-                          aPrincipalInfo, aClientType);
+  auto clearOriginOp = CreateClearOriginOp(WrapMovingNotNullUnchecked(this),
+                                           aPersistenceType, aPrincipalInfo);
 
   RegisterNormalOriginOp(*clearOriginOp);
 

@@ -168,8 +168,7 @@ parent:
       returns(UInt64Response response);
 
   async ClearStoragesForOrigin(PersistenceType? persistenceType,
-                               PrincipalInfo principalInfo,
-                               Type? clientType)
+                               PrincipalInfo principalInfo)
       returns(BoolResponse response);
 
   async ClearStoragesForClient(PersistenceType? persistenceType,
