@@ -99,6 +99,7 @@ void PlatformEvent(Accessible* aTarget, uint32_t aEventType) {
       aEventType != nsIAccessibleEvent::EVENT_REORDER &&
       aEventType != nsIAccessibleEvent::EVENT_LIVE_REGION_ADDED &&
       aEventType != nsIAccessibleEvent::EVENT_LIVE_REGION_REMOVED &&
+      aEventType != nsIAccessibleEvent::EVENT_LIVE_REGION_CHANGED &&
       aEventType != nsIAccessibleEvent::EVENT_NAME_CHANGE &&
       aEventType != nsIAccessibleEvent::EVENT_OBJECT_ATTRIBUTE_CHANGED) {
     return;
