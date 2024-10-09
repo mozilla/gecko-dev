@@ -1,5 +1,3 @@
-// |jit-test| skip-if: getBuildConfiguration("android") && getBuildConfiguration("arm")
-
 // Old version of JS promise integration API
 // Modified https://github.com/WebAssembly/js-promise-integration/tree/main/test/js-api/js-promise-integration
 
