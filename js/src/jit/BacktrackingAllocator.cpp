@@ -3531,25 +3531,12 @@ bool BacktrackingAllocator::tryAllocateNonFixed(LiveBundle* bundle,
                                                 Requirement hint, bool* success,
                                                 bool* pfixed,
                                                 LiveBundleVector& conflicting) {
-  // If we want, but do not require a bundle to be in a specific register,
-  // only look at that register for allocating and evict or spill if it is
-  // not available. Picking a separate register may be even worse than
-  // spilling, as it will still necessitate moves and will tie up more
-  // registers than if we spilled.
-  if (hint.kind() == Requirement::FIXED) {
-    AnyRegister reg = hint.allocation().toRegister();
-    if (!tryAllocateRegister(registers[reg.code()], bundle, success, pfixed,
-                             conflicting)) {
-      return false;
-    }
-    if (*success) {
-      return true;
-    }
-  }
+  MOZ_ASSERT(hint.kind() != Requirement::FIXED);
+  MOZ_ASSERT(conflicting.empty());
 
   // Spill bundles which have no hint or register requirement.
   if (requirement.kind() == Requirement::NONE &&
-      hint.kind() != Requirement::REGISTER) {
+      hint.kind() == Requirement::NONE) {
     JitSpew(JitSpew_RegAlloc,
             "  postponed spill (no hint or register requirement)");
     if (!spilledBundles.append(bundle)) {
@@ -3559,13 +3546,11 @@ bool BacktrackingAllocator::tryAllocateNonFixed(LiveBundle* bundle,
     return true;
   }
 
-  if (conflicting.empty() || minimalBundle(bundle)) {
-    if (!tryAllocateAnyRegister(bundle, success, pfixed, conflicting)) {
-      return false;
-    }
-    if (*success) {
-      return true;
-    }
+  if (!tryAllocateAnyRegister(bundle, success, pfixed, conflicting)) {
+    return false;
+  }
+  if (*success) {
+    return true;
   }
 
   // Spill bundles which have no register requirement if they didn't get
