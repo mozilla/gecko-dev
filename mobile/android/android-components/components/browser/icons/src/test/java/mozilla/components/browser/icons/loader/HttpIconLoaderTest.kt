@@ -372,11 +372,14 @@ class HttpIconLoaderTest {
             val server = MockWebServer()
 
             server.enqueue(
-                MockResponse().setBody(
-                    javaClass.getResourceAsStream("/misc/test.txt")!!
-                        .bufferedReader()
-                        .use { it.readText() },
-                ).removeHeader("Content-Length"),
+                MockResponse()
+                    .setChunkedBody(
+                        javaClass.getResourceAsStream("/misc/test.txt")!!
+                            .bufferedReader()
+                            .use { it.readText() },
+                        maxChunkSize = 12,
+                    )
+                    .removeHeader("Content-Length"),
             )
 
             server.start()
@@ -391,7 +394,7 @@ class HttpIconLoaderTest {
                         type = IconRequest.Resource.Type.APPLE_TOUCH_ICON,
                     ),
                 )
-                assertTrue("Result should match BytesResult", result is IconLoader.Result.BytesResult)
+                assertTrue("Result should return BytesResult type", result is IconLoader.Result.BytesResult)
                 val data = (result as IconLoader.Result.BytesResult).bytes
                 assertTrue("Data should not be empty", data.isNotEmpty())
             } finally {
