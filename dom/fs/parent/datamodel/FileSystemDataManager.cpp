@@ -28,6 +28,7 @@
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
+#include "mozilla/dom/quota/HashKeys.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
@@ -48,14 +49,6 @@ namespace mozilla::dom::fs::data {
 
 namespace {
 
-// nsCStringHashKey with disabled memmove
-class nsCStringHashKeyDM : public nsCStringHashKey {
- public:
-  explicit nsCStringHashKeyDM(const nsCStringHashKey::KeyTypePointer aKey)
-      : nsCStringHashKey(aKey) {}
-  enum { ALLOW_MEMMOVE = false };
-};
-
 // When CheckedUnsafePtr's checking is enabled, it's necessary to ensure that
 // the hashtable uses the copy constructor instead of memmove for moving entries
 // since memmove will break CheckedUnsafePtr in a memory-corrupting way.
@@ -63,7 +56,7 @@ class nsCStringHashKeyDM : public nsCStringHashKey {
 // The assertion type must be the same as the assertion type used for defining
 // the base class for FileSystemDataManager in FileSystemDataManager.h!
 using FileSystemDataManagerHashKey =
-    std::conditional<ReleaseAssertEnabled::value, nsCStringHashKeyDM,
+    std::conditional<ReleaseAssertEnabled::value, quota::nsCStringHashKeyDM,
                      nsCStringHashKey>::type;
 
 // Raw (but checked when the diagnostic assert is enabled) references as we

@@ -59,6 +59,7 @@ EXPORTS.mozilla.dom.quota += [
     "FirstInitializationAttempts.h",
     "FirstInitializationAttemptsImpl.h",
     "ForwardDecls.h",
+    "HashKeys.h",
     "InitializationTypes.h",
     "IPCStreamCipherStrategy.h",
     "MozPromiseUtils.h",
