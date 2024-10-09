@@ -962,3 +962,15 @@ function IteratorFind(predicate) {
     }
   }
 }
+
+
+#ifdef NIGHTLY_BUILD
+/** 
+ * Iterator.zip (iterables [, options])
+ * 
+ * https://tc39.es/proposal-joint-iteration/#sec-iterator.zip
+ */
+function IteratorZip(predicate) {
+  return false;
+}
+#endif

@@ -1939,6 +1939,9 @@ static const JSFunctionSpec iterator_methods[] = {
 
 static const JSFunctionSpec iterator_static_methods[] = {
     JS_SELF_HOSTED_FN("from", "IteratorFrom", 1, 0),
+#ifdef NIGHTLY_BUILD
+    JS_SELF_HOSTED_FN("zip", "IteratorZip", 1, 0),
+#endif
     JS_FS_END,
 };
 
