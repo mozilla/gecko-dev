@@ -61,6 +61,7 @@ EXPORTS.mozilla.dom.quota += [
     "ForwardDecls.h",
     "InitializationTypes.h",
     "IPCStreamCipherStrategy.h",
+    "MozPromiseUtils.h",
     "NotifyUtils.h",
     "NotifyUtilsCommon.h",
     "NSSCipherStrategy.h",
