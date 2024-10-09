@@ -12,6 +12,7 @@ namespace mozilla::dom::quota {
 enum class DirectoryLockCategory : uint8_t {
   None = 0,
   UninitStorage,
+  UninitOrigins,
 };
 
 }  // namespace mozilla::dom::quota

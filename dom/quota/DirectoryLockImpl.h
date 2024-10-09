@@ -100,7 +100,8 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
                   aOriginMetadata.mStorageOrigin, aOriginMetadata.mIsPrivate,
                   Nullable<Client::Type>(),
                   /* aExclusive */ true, /* aInternal */ true,
-                  ShouldUpdateLockIdTableFlag::No, DirectoryLockCategory::None);
+                  ShouldUpdateLockIdTableFlag::No,
+                  DirectoryLockCategory::UninitOrigins);
   }
 
   static RefPtr<UniversalDirectoryLock> CreateInternal(
