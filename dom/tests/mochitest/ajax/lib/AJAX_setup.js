@@ -12,18 +12,18 @@ function runAJAXTest() {
 }
 
 function onManifestLoad(manifest) {
-  if (manifest.testcases) {
+  if (manifest?.testcases) {
     AJAXtests = manifest.testcases;
     runAJAXTest();
   } else {
-    ok(false, "manifest check", "no manifest!?!");
+    ok(false, "manifest check: no manifest!?!");
     SimpleTest.finish();
   }
 }
 
 function fetchManifest() {
-  var d = loadJSONDoc("manifest.json");
-  d.addBoth(onManifestLoad);
+  var d = fetch("manifest.json");
+  d.then(response=>response.json()).then(onManifestLoad).catch(onManifestLoad);
 }
 
 // Double timeout duration. Since this test case takes longer than 300 seconds
