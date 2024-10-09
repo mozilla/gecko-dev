@@ -169,16 +169,15 @@ async function clearQuotaManager(options, dataType) {
             new Promise((resolve, reject) => {
               let clearRequest;
               if (dataType === "indexedDB") {
-                clearRequest = Services.qms.clearStoragesForPrincipal(
+                clearRequest = Services.qms.clearStoragesForClient(
                   principal,
-                  null,
                   "idb"
                 );
               } else {
-                clearRequest = Services.qms.clearStoragesForPrincipal(
+                clearRequest = Services.qms.clearStoragesForClient(
                   principal,
-                  "default",
-                  "ls"
+                  "ls",
+                  "default"
                 );
               }
 

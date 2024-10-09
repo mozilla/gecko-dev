@@ -68,8 +68,8 @@ async function testSteps() {
 
     request = clearClient(
       getPrincipal(item.origin),
-      item.persistence,
-      item.client
+      item.client,
+      item.persistence
     );
     await requestFinished(request);
 

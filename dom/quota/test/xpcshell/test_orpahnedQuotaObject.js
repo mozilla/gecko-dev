@@ -34,7 +34,7 @@ async function testSteps() {
 
   info("Clearing simpledb");
 
-  request = clearClient(principal, "default", "sdb");
+  request = clearClient(principal, "sdb", "default");
   await requestFinished(request);
 
   info("Resetting localStorage");

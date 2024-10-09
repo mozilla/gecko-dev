@@ -164,10 +164,10 @@ function clearOriginStorageEnsuringNoPreload(origin) {
     Services.scriptSecurityManager.createContentPrincipalFromOrigin(origin);
 
   if (Services.domStorageManager.nextGenLocalStorageEnabled) {
-    let request = Services.qms.clearStoragesForPrincipal(
+    let request = Services.qms.clearStoragesForClient(
       principal,
-      "default",
-      "ls"
+      "ls",
+      "default"
     );
     let promise = new Promise(resolve => {
       request.callback = () => {

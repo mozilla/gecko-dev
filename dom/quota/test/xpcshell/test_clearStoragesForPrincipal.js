@@ -37,7 +37,6 @@ async function testSteps() {
     info("Clearing");
     request = clearClient(
       getPrincipal(testingOrigins[i].origin),
-      null,
       removingClient
     );
     await requestFinished(request);

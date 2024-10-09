@@ -201,11 +201,11 @@ function getFullOriginMetadata(persistence, principal, callback) {
   return request;
 }
 
-function clearClient(principal, persistence, client, callback) {
-  let request = SpecialPowers._getQuotaManager().clearStoragesForPrincipal(
+function clearClient(principal, client, persistence, callback) {
+  let request = SpecialPowers._getQuotaManager().clearStoragesForClient(
     principal,
-    persistence,
-    client
+    client,
+    persistence
   );
   request.callback = callback;
 
