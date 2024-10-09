@@ -204,10 +204,13 @@ else
 # This means C code built by rust is not going to be covered by sanitizers
 # and coverage. But at least we control what compiler is being used,
 # rather than relying on cc-rs guesses, which, sometimes fail us.
+# -fno-sized-deallocation is important, though, as -fsized-deallocation may be the
+# compiler default and we don't want it to be used
+# (see build/moz.configure/flags.configure). Likewise with -fno-aligned-new.
 export CFLAGS_$(rust_host_cc_env_name)=$(HOST_CC_BASE_FLAGS)
 export CXXFLAGS_$(rust_host_cc_env_name)=$(HOST_CXX_BASE_FLAGS)
 export CFLAGS_$(rust_cc_env_name)=$(CC_BASE_FLAGS)
-export CXXFLAGS_$(rust_cc_env_name)=$(CXX_BASE_FLAGS)
+export CXXFLAGS_$(rust_cc_env_name)=$(CXX_BASE_FLAGS) $(filter -fno-aligned-new -fno-sized-deallocation,$(COMPUTED_CXXFLAGS))
 endif
 
 # When host == target, cargo will compile build scripts with sanitizers enabled

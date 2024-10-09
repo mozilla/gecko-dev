@@ -4,6 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# The following flags are explicitly passed to C++ compiler invocations from rust
+# even when only passing base flags. If you add more similarly important flags,
+# please consider whether they should be handled the same way.
+# See config/makefiles/rust.mk.
 # We support C++14, but we don't want to enable the sized deallocation
 # facilities in C++14 yet.
 check_and_add_flag("-fno-sized-deallocation", compiler=cxx_compiler)
