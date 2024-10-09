@@ -66,6 +66,58 @@ def test_alert_basic_command(alert_json, expected_command):
         assert len(alert_layer.perfherder_data) == 1
 
 
+@pytest.mark.parametrize(
+    "alert_json, tests, expected_command",
+    (
+        (
+            "alert-summary-raptor-desktop.json",
+            ["yahoo-mail"],
+            ["./mach", "raptor", "-t", "yahoo-mail"],
+        ),
+        (
+            "alert-summary-raptor-desktop.json",
+            [],
+            ["./mach", "raptor", "-t", "yahoo-mail"],
+        ),
+        ("alert-summary-raptor-desktop.json", ["not-a-test"], []),
+    ),
+)
+def test_alert_basic_command_test_specification(alert_json, tests, expected_command):
+    args = {"flavor": "alert", "tests": ["9000"], "alert-tests": tests}
+
+    mach_cmd, metadata, env = get_running_env(**args)
+    test = env.layers[TEST]
+    alert_layer = get_alert_layer(test.layers)
+    line_handler = alert_layer.create_line_handler("a-test")
+
+    with mock.patch(
+        "mozperftest.test.alert.requests.get"
+    ) as mocked_request, mock.patch(
+        "mozperftest.test.alert.mozprocess"
+    ) as mocked_mozprocess, (
+        MOCK_DATA_DIR / alert_json
+    ).open() as f:
+        mocked_response = mock.MagicMock()
+        mocked_response.configure_mock(status_code=200)
+        mocked_response.json.return_value = json.load(f)
+        mocked_request.return_value = mocked_response
+
+        def _add_perfherder(*args, **kwargs):
+            line_handler(mock.MagicMock(), b'PERFHERDER_DATA: {"name": "test"}')
+
+        mocked_mozprocess.run_and_wait.side_effect = _add_perfherder
+
+        with test as layer, silence(test):
+            layer(metadata)
+
+        if expected_command:
+            mocked_mozprocess.run_and_wait.assert_called_once()
+            assert mocked_mozprocess.run_and_wait.call_args[0][0] == expected_command
+            assert len(alert_layer.perfherder_data) == 1
+        else:
+            mocked_mozprocess.run_and_wait.assert_not_called()
+
+
 def test_alert_basic_command_failed():
     alert_json = "alert-summary-awsy.json"
     expected_command = ["./mach", "awsy-test", "--base"]

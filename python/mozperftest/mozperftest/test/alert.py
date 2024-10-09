@@ -296,6 +296,12 @@ class AlertTestRunner(Layer):
                 "the task which triggered the alert. "
             ),
         },
+        "tests": {
+            "nargs": "*",
+            "type": str,
+            "default": [],
+            "help": "Run only these specific tests from the given alert number.",
+        },
     }
 
     def __init__(self, env, mach_cmd):
@@ -341,6 +347,7 @@ class AlertTestRunner(Layer):
         }.get(str(framework_number), MachTestCommand)
 
     def _get_framework_commands(self, alert_info):
+        tests = self.get_arg("alert_tests")
         framework_commands = {}
 
         all_alerts = []
@@ -355,6 +362,10 @@ class AlertTestRunner(Layer):
                 series_signature["framework_id"]
             )
             test = test_command_klass.get_test_name(series_signature)
+            if tests and test not in tests:
+                self.info(f"Skipping test {test} as it was not requested")
+                continue
+
             machine_platform = series_signature["machine_platform"]
 
             platform = "desktop"
