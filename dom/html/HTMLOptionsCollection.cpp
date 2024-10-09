@@ -130,6 +130,10 @@ Element* HTMLOptionsCollection::GetElementAt(uint32_t aIndex) {
 
 HTMLOptionElement* HTMLOptionsCollection::NamedGetter(const nsAString& aName,
                                                       bool& aFound) {
+  if (aName.IsEmpty()) {
+    aFound = false;
+    return nullptr;
+  }
   uint32_t count = mElements.Length();
   for (uint32_t i = 0; i < count; i++) {
     HTMLOptionElement* content = mElements.ElementAt(i);
