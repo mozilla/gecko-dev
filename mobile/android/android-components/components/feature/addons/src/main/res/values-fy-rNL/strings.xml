@@ -186,10 +186,12 @@
     <string name="mozac_feature_addons_failed_to_translate">Gjin oersetting foar locale %1$s of foar de standerttaal %2$s fûn</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s mei sukses ynstallearre</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Ynstallaasje fan %1$s mislearre</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Ynstallaasje fan dizze útwreiding is mislearre.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Kin útwreiding net ynstallearje</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Dizze útwreiding koe net download wurde, fanwegen in flater yn de ferbining.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -202,6 +204,8 @@
     <string name="mozac_feature_addons_blocklisted_1">%1$s koe net ynstallearre wurde, omdat it in heech risiko op stabiliteits- of feilichheidsproblemen jout.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s kin net ynstallearre wurde, omdat dizze allinnich ynstallearre wurde kin troch in organisaasje mei in bedriuwsbelied, dat net stipe wurdt op dit platfoarm.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked">%1$s skeint it belied fan Mozilla en kin net ynstallearre wurde.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s mei sukses ynskeakele</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -246,8 +250,14 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">OK</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Mear ynfo</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Details besjen</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s is útskeakele fanwegen feilichheids- of stabiliteitsproblemen.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked">Dizze útwreiding skeint it belied fan Mozilla en is útskeakele. Jo kinne it ynskeakelje, mar dit kin gefaarlik wêze.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Dizze útwreiding skeint it belied fan Mozilla. It brûken hjirfan kin gefaarlik wêze.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s koe net as feilich ferifiearre wurde en is útskeakele.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

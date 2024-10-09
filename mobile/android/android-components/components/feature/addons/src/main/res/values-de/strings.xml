@@ -255,9 +255,9 @@
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s wurde aus Sicherheits- und Stabilitätsgründen deaktiviert.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked">Diese Erweiterung verstößt gegen Mozillas Richtlinien und wurde deaktiviert. Sie können es aktivieren, aber dies kann riskant sein.</string>
+    <string name="mozac_feature_addons_status_softblocked">Diese Erweiterung verstößt gegen Mozillas Richtlinien und wurde deaktiviert. Sie können sie aktivieren, dies kann aber riskant sein.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
-    <string name="mozac_feature_addons_status_softblocked_re_enabled">Diese Erweiterung verstößt gegen Mozillas Richtlinien. Es kann riskant sein.</string>
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Diese Erweiterung verstößt gegen Mozillas Richtlinien. Es kann riskant sein, sie zu verwenden.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s konnte nicht als sicher verifiziert werden und wurde deaktiviert.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

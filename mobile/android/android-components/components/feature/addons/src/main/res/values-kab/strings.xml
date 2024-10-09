@@ -186,10 +186,12 @@
     <string name="mozac_feature_addons_failed_to_translate">Ur tettwaf ara tsuqilt, ama i tdigant %1$s ama i tutlayt tamezwert %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">Ibded akken iwata %1$s</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Ur ibded ara %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Yecceḍ usebded n usiɣzefr-a.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Asbeddi n usiɣzef d awezɣi</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Asiɣzef-a ur yezmir ara ad d-yettusader acku yella wugur deg tuqqna</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -202,6 +204,8 @@
     <string name="mozac_feature_addons_blocklisted_1">%1$s ur yezmir ara ad yebded acku yella wugur meqqren n tɣellist akked urkad.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">Azegrir %1$s yegguma ad yettusbedd, acku ilaq ad t-tesbedd tuddsa yesseqdacen tisertiyin n tkebbanit, ayen yellan d awezɣi ɣef tɣerɣert-a.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked">%1$s ur iquder ara tasertit n Mozilla, ur yezmir ara ad yettusbedd</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">Irmed akken iwata %1$s</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -246,8 +250,14 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">IH</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Issin ugar</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Wali talqayt</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s yensa ssebba n wuguren n tɣellist neɣ n uqeɛɛed.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked">Asiɣzef-a ur iquder ara tasertit n Mozilla, yettwakkes. Tzemreḍ ad t-tremdeḍ, d acu yezmer ad tesεḍ uguren.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Asiɣzef-a ur iquder ara tasertit n Mozilla. Aseqdec-is yezmer ad d-yeglu s wuguren.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">Azegrir %1$s yegguma ad yettusenqed d aɣellsan, dayen yensa.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
