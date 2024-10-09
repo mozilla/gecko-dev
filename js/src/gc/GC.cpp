@@ -4830,6 +4830,7 @@ void GCRuntime::minorGC(JS::GCReason reason, gcstats::PhaseKind phase) {
 #ifdef JS_GC_ZEAL
   if (hasZealMode(ZealMode::CheckHeapAfterGC)) {
     gcstats::AutoPhase ap(stats(), phase);
+    waitBackgroundSweepEnd();
     waitBackgroundDecommitEnd();
     CheckHeapAfterGC(rt);
   }
@@ -5149,6 +5150,9 @@ AutoAssertNoNurseryAlloc::~AutoAssertNoNurseryAlloc() {
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 void GCRuntime::checkHashTablesAfterMovingGC() {
+  waitBackgroundSweepEnd();
+  waitBackgroundDecommitEnd();
+
   /*
    * Check that internal hash tables no longer have any pointers to things
    * that have been moved.
