@@ -20,6 +20,7 @@
 #include "frontend/ObjLiteral.h"        // ObjLiteralStencil
 #include "frontend/ParserAtom.h"        // TaggedParserAtomIndex
 #include "frontend/ScriptIndex.h"       // ScriptIndex
+#include "frontend/TaggedParserAtomIndexHasher.h"  // frontend::TaggedParserAtomIndexHasher
 #include "frontend/TypedIndex.h"        // TypedIndex
 #include "js/AllocPolicy.h"             // SystemAllocPolicy
 #include "js/ColumnNumber.h"            // JS::ColumnNumberOneOrigin
@@ -534,6 +535,14 @@ class StencilModuleImportAttribute {
   StencilModuleImportAttribute(TaggedParserAtomIndex key,
                                TaggedParserAtomIndex value)
       : key(key), value(value) {}
+
+  bool operator!=(const StencilModuleImportAttribute& rhs) const {
+    return key != rhs.key || value != rhs.value;
+  }
+
+  bool operator==(const StencilModuleImportAttribute& rhs) const {
+    return !(*this != rhs);
+  }
 };
 
 class StencilModuleRequest {
@@ -580,6 +589,46 @@ class StencilModuleRequest {
     attributes = std::move(other.attributes);
     return *this;
   }
+
+  bool operator==(const StencilModuleRequest& other) const {
+    size_t attrLen = attributes.length();
+    if (specifier != other.specifier ||
+        firstUnsupportedAttributeKey != other.firstUnsupportedAttributeKey ||
+        attrLen != other.attributes.length()) {
+      return false;
+    }
+
+    for (size_t i = 0; i < attrLen; i++) {
+      if (attributes[i] != other.attributes[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool operator!=(const StencilModuleRequest& other) const {
+    return !(*this == other);
+  }
+};
+
+struct StencilModuleRequestHasher {
+  using Key = js::frontend::StencilModuleRequest;
+  using Lookup = Key;
+
+  static HashNumber hash(const Lookup& l) {
+    HashNumber hash = 0;
+    size_t attrLen = l.attributes.length();
+    for (size_t i = 0; i < attrLen; i++) {
+      hash = mozilla::AddToHash(
+          hash, TaggedParserAtomIndexHasher::hash(l.attributes[i].key),
+          TaggedParserAtomIndexHasher::hash(l.attributes[i].value));
+    }
+    return mozilla::AddToHash(hash,
+                              TaggedParserAtomIndexHasher::hash(l.specifier));
+  }
+
+  static bool match(const Key& k, const Lookup& l) { return k == l; }
 };
 
 class MaybeModuleRequestIndex {

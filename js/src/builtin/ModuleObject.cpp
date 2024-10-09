@@ -1507,7 +1507,7 @@ ModuleBuilder::ModuleBuilder(FrontendContext* fc,
                              const frontend::EitherParser& eitherParser)
     : fc_(fc),
       eitherParser_(eitherParser),
-      requestedModuleSpecifiers_(fc),
+      requestedModuleIndexes_(fc),
       importEntries_(fc),
       exportEntries_(fc),
       exportNames_(fc) {}
@@ -2223,8 +2223,13 @@ frontend::MaybeModuleRequestIndex ModuleBuilder::appendModuleRequest(
     return MaybeModuleRequestIndex();
   }
 
+  if (auto ptr = moduleRequestIndexes_.lookup(request)) {
+    return MaybeModuleRequestIndex(ptr->value());
+  }
+
   uint32_t index = moduleRequests_.length();
-  if (!moduleRequests_.append(request)) {
+  if (!moduleRequests_.append(request) ||
+      !moduleRequestIndexes_.put(request, index)) {
     js::ReportOutOfMemory(fc_);
     return MaybeModuleRequestIndex();
   }
@@ -2234,8 +2239,8 @@ frontend::MaybeModuleRequestIndex ModuleBuilder::appendModuleRequest(
 
 bool ModuleBuilder::maybeAppendRequestedModule(
     MaybeModuleRequestIndex moduleRequest, frontend::ParseNode* node) {
-  auto specifier = moduleRequests_[moduleRequest.value()].specifier;
-  if (requestedModuleSpecifiers_.has(specifier)) {
+  uint32_t index = moduleRequest.value();
+  if (requestedModuleIndexes_.has(index)) {
     return true;
   }
 
@@ -2251,7 +2256,7 @@ bool ModuleBuilder::maybeAppendRequestedModule(
     return false;
   }
 
-  return requestedModuleSpecifiers_.put(specifier);
+  return requestedModuleIndexes_.put(index);
 }
 
 void ModuleBuilder::markUsedByStencil(frontend::TaggedParserAtomIndex name) {

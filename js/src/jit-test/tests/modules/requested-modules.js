@@ -23,6 +23,10 @@ testRequestedModules("import a from 'foo'; import b from 'bar'", [
     { specifier: 'bar', moduleType: 'js' }
 ]);
 
+testRequestedModules("import a from 'foo'; import b from 'foo'", [
+    { specifier: 'foo', moduleType: 'js' }
+]);
+
 testRequestedModules("import a from 'foo'; import b from 'bar'; import c from 'foo'", [
     { specifier: 'foo', moduleType: 'js' },
     { specifier: 'bar', moduleType: 'js' }
@@ -76,6 +80,25 @@ if (getRealmConfiguration("importAttributes")) {
     testRequestedModules("import a from 'foo'; import b from 'bar' with { type: 'json' };", [
         { specifier: 'foo', moduleType: 'js' },
         { specifier: 'bar', moduleType: 'json' },
+    ]);
+
+    testRequestedModules("import a from 'foo'; import b from 'foo' with { type: 'json' };", [
+        { specifier: 'foo', moduleType: 'js' },
+        { specifier: 'foo', moduleType: 'json' },
+    ]);
+
+    testRequestedModules("import a from 'foo'; import b from 'foo' with { type: 'js1' };", [
+        { specifier: 'foo', moduleType: 'js' },
+        { specifier: 'foo', moduleType: 'unknown' },
+    ]);
+
+    testRequestedModules("import a from 'foo'; import b from 'foo' with { type: 'json' }; import c from 'foo' with { type: 'json' };", [
+        { specifier: 'foo', moduleType: 'js' },
+        { specifier: 'foo', moduleType: 'json' }
+    ]);
+
+    testRequestedModules("import a from 'foo' with { type: 'json' }; import b from 'foo' with { type: 'json' };", [
+        { specifier: 'foo', moduleType: 'json' },
     ]);
 
     testRequestedModules("import b from 'bar' with { type: 'json' }; import a from 'foo';", [

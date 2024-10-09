@@ -15,6 +15,7 @@
 #include "frontend/Stencil.h"       // js::frontend::StencilModuleEntry
 #include "frontend/TaggedParserAtomIndexHasher.h"  // frontend::TaggedParserAtomIndexHasher
 #include "js/GCVector.h"                           // JS::GCVector
+#include "js/HashTable.h"
 
 struct JS_PUBLIC_API JSContext;
 class JS_PUBLIC_API JSAtom;
@@ -68,6 +69,10 @@ class MOZ_STACK_CLASS ModuleBuilder {
 
   using AtomSet = HashSet<frontend::TaggedParserAtomIndex,
                           frontend::TaggedParserAtomIndexHasher>;
+  using ModuleRequestMap =
+      HashMap<frontend::StencilModuleRequest, uint32_t,
+              frontend::StencilModuleRequestHasher, js::SystemAllocPolicy>;
+  using RequestedModuleSet = HashSet<uint32_t, DefaultHasher<uint32_t>>;
   using ExportEntryVector = Vector<frontend::StencilModuleEntry>;
   using ImportEntryMap =
       HashMap<frontend::TaggedParserAtomIndex, frontend::StencilModuleEntry,
@@ -78,7 +83,9 @@ class MOZ_STACK_CLASS ModuleBuilder {
 
   // These are populated while parsing.
   ModuleRequestVector moduleRequests_;
-  AtomSet requestedModuleSpecifiers_;
+  ModuleRequestMap moduleRequestIndexes_;
+  // The set contains the ModuleRequestIndexes in requestedModules_.
+  RequestedModuleSet requestedModuleIndexes_;
   RequestedModuleVector requestedModules_;
   ImportEntryMap importEntries_;
   ExportEntryVector exportEntries_;
