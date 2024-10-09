@@ -163,6 +163,7 @@ services/common/kinto-http-client.sys.mjs
 services/common/kinto-offline-client.sys.mjs
 testing/gtest/gmock/
 testing/gtest/gtest/
+testing/mochitest/MochiKit/
 testing/mochitest/pywebsocket3/
 testing/mochitest/tests/MochiKit-1.4.2/
 testing/modules/sinon-7.2.7.js
