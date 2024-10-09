@@ -98,6 +98,11 @@ It's still possible that a local test can reproduce a change found in CI though,
  * ``./mach perftest`` for :ref:`MozPerftest`
  * ``./mach awsy`` for :ref:`AWSY`
 
+It's also possible to run all the alerting tests using ``./mach perftest``. To do this, find the alert summary ID/number, then use it in the following command::
+
+   ./mach perftest <ALERT-NUMBER>
+
+To run the exact same commands as what is run in CI, add the ``--alert-exact`` option. The test(s) to run can also be specified by using the ``--alert-tests`` option.
 
 Performance Comparisons
 -----------------------

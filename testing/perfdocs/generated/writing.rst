@@ -125,6 +125,18 @@ Once everything is setup for your shell script test, you can run it with the fol
 
   ./mach perftest <path/to/custom-script.sh>
 
+
+Alert
+-----
+
+This flavor/layer enables running all tests that produced a performance alert locally. It can either run the basic test without any options, or it can run the exact same command that was used to run the test in CI by passing the ``--alert-exact`` option. The ``--alert-tests`` option can also be used to specify which tests should be run from the alert.
+
+The following command can be used as a sample to run all the tests of a given alert number::
+
+  ./mach perftest <ALERT-NUMBER>
+
+Note that this layer has no tests available for it, and new tests should never make use of this layer.
+
 Browsertime
 -----------
 
