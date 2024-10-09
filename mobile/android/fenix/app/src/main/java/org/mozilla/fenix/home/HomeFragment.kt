@@ -10,6 +10,7 @@ import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.StrictMode
 import android.view.LayoutInflater
@@ -1060,7 +1061,8 @@ class HomeFragment : Fragment() {
 
         // Determine if we should show the "Set as Default Browser" prompt
         if (requireContext().settings().shouldShowSetAsDefaultPrompt &&
-            !BrowsersCache.all(requireContext().applicationContext).isDefaultBrowser
+            !BrowsersCache.all(requireContext().applicationContext).isDefaultBrowser &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
         ) {
             // This is to avoid disk read violations on some devices such as samsung and pixel for android 9/10
             requireComponents.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
