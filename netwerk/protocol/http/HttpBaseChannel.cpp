@@ -905,7 +905,7 @@ HttpBaseChannel::SetUploadStream(nsIInputStream* stream,
   // if stream is null, ExplicitSetUploadStream returns error.
   // So we need special case for GET method.
   StoreUploadStreamHasHeaders(false);
-  mRequestHead.SetMethod("GET"_ns);  // revert to GET request
+  SetRequestMethod("GET"_ns);  // revert to GET request
   mUploadStream = nullptr;
   return NS_OK;
 }
@@ -1859,6 +1859,8 @@ HttpBaseChannel::GetRequestMethod(nsACString& aMethod) {
 NS_IMETHODIMP
 HttpBaseChannel::SetRequestMethod(const nsACString& aMethod) {
   ENSURE_CALLED_BEFORE_CONNECT();
+
+  mLoadInfo->SetIsGETRequest(aMethod.Equals("GET"));
 
   const nsCString& flatMethod = PromiseFlatCString(aMethod);
 

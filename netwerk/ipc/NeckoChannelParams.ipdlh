@@ -133,6 +133,7 @@ struct LoadInfoArgs
   bool                        isInThirdPartyContext;
   bool?                       isThirdPartyContextToTopWindow;
   bool                        isFormSubmission;
+  bool                        isGETRequest;
   bool                        sendCSPViolationEvents;
   OriginAttributes            originAttributes;
   RedirectHistoryEntryInfo[]  redirectChainIncludingInternalRedirects;

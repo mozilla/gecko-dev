@@ -647,6 +647,7 @@ LoadInfo::LoadInfo(const LoadInfo& rhs)
       mIsThirdPartyContext(rhs.mIsThirdPartyContext),
       mIsThirdPartyContextToTopWindow(rhs.mIsThirdPartyContextToTopWindow),
       mIsFormSubmission(rhs.mIsFormSubmission),
+      mIsGETRequest(rhs.mIsGETRequest),
       mSendCSPViolationEvents(rhs.mSendCSPViolationEvents),
       mOriginAttributes(rhs.mOriginAttributes),
       mRedirectChainIncludingInternalRedirects(
@@ -720,7 +721,8 @@ LoadInfo::LoadInfo(
     uint64_t aBrowsingContextID, uint64_t aFrameBrowsingContextID,
     bool aInitialSecurityCheckDone, bool aIsThirdPartyContext,
     const Maybe<bool>& aIsThirdPartyContextToTopWindow, bool aIsFormSubmission,
-    bool aSendCSPViolationEvents, const OriginAttributes& aOriginAttributes,
+    bool aIsGETRequest, bool aSendCSPViolationEvents,
+    const OriginAttributes& aOriginAttributes,
     RedirectHistoryArray&& aRedirectChainIncludingInternalRedirects,
     RedirectHistoryArray&& aRedirectChain,
     nsTArray<nsCOMPtr<nsIPrincipal>>&& aAncestorPrincipals,
@@ -785,6 +787,7 @@ LoadInfo::LoadInfo(
       mIsThirdPartyContext(aIsThirdPartyContext),
       mIsThirdPartyContextToTopWindow(aIsThirdPartyContextToTopWindow),
       mIsFormSubmission(aIsFormSubmission),
+      mIsGETRequest(aIsGETRequest),
       mSendCSPViolationEvents(aSendCSPViolationEvents),
       mOriginAttributes(aOriginAttributes),
       mRedirectChainIncludingInternalRedirects(
@@ -1293,6 +1296,18 @@ LoadInfo::GetIsFormSubmission(bool* aResult) {
 NS_IMETHODIMP
 LoadInfo::SetIsFormSubmission(bool aValue) {
   mIsFormSubmission = aValue;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::GetIsGETRequest(bool* aResult) {
+  *aResult = mIsGETRequest;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetIsGETRequest(bool aValue) {
+  mIsGETRequest = aValue;
   return NS_OK;
 }
 

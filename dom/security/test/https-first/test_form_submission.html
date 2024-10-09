@@ -23,10 +23,10 @@
  *          gets timed out, so https-first send an http request, GET form submission.
  *
  * 3. Test: request that gets upgraded to https, and sends a POST form
- *          to http://example.com.
+ *          to http://example.com. The POST does not get upgraded.
  *
  * 4. Test: Request where the https upgrade get timed out -> http, and sends a POST form
- *          to http://example.com,
+ *          to http://example.com. The POST does not get upgraded.
  *
  */
 SimpleTest.waitForExplicitFinish();

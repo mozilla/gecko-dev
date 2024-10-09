@@ -741,6 +741,11 @@ interface nsILoadInfo : nsISupports
   [infallible] attribute boolean isFormSubmission;
 
   /**
+   * True if the load will be a get request.
+   */
+  [infallible] attribute boolean isGETRequest;
+
+  /**
    * The external contentPolicyType of the channel, used for security checks
    * like Mixed Content Blocking and Content Security Policy.
    *

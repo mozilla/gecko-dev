@@ -393,9 +393,9 @@ bool nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(nsIURI* aURI,
   if (port != defaultPortforScheme && port != -1) {
     return false;
   }
-  // 6. Do not upgrade form submissions (for now), revisit within
-  // Bug 1720500: Revisit upgrading form submissions.
-  if (aLoadInfo->GetIsFormSubmission()) {
+
+  // 6. Do not upgrade requests other than GET
+  if (!aLoadInfo->GetIsGETRequest()) {
     return false;
   }
 

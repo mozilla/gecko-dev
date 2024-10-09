@@ -251,6 +251,12 @@ TRRLoadInfo::SetIsFormSubmission(bool aValue) {
 }
 
 NS_IMETHODIMP
+TRRLoadInfo::GetIsGETRequest(bool* aResult) { return NS_ERROR_NOT_IMPLEMENTED; }
+
+NS_IMETHODIMP
+TRRLoadInfo::SetIsGETRequest(bool aValue) { return NS_ERROR_NOT_IMPLEMENTED; }
+
+NS_IMETHODIMP
 TRRLoadInfo::GetSendCSPViolationEvents(bool* aResult) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
