@@ -48,3 +48,35 @@ document.documentElement.addEventListener(
   },
   true
 );
+
+function watchFirefoxNotificationDialogAndHide() {
+  const observer = new MutationObserver((mutations, obs) => {
+    const element = document.querySelector(
+      "div[data-alerts-channel='firefox-notifications']"
+    );
+    if (element) {
+      element.style.display = "none";
+      obs.disconnect(); // Stop observing once we've found and hidden the element
+    }
+  });
+
+  // Start observing the document.
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+// Hide the Firefox error notification
+const notificationElement = document.querySelector(
+  "div[data-alerts-channel='firefox-notifications']"
+);
+if (notificationElement) {
+  notificationElement.style.display = "none";
+} else {
+  // Add a listener to watch for the Firefox notification element to load.
+  window.addEventListener(
+    "DOMContentLoaded",
+    watchFirefoxNotificationDialogAndHide
+  );
+}
