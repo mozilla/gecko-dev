@@ -42,13 +42,26 @@ class gfxAndroidPlatform final : public gfxPlatform {
 
   static bool CheckVariationFontSupport();
 
+  // From Android 12, Font API doesn't read XML files only. To handle updated
+  // font, initializing font API causes that it analyzes all font files. So we
+  // have to call this API at start up on another thread to initialize it.
+  static void InitializeFontAPI();
+  static void WaitForInitializeFontAPI();
+
+  static bool IsFontAPIDisabled(bool aDontCheckPref = false);
+
  protected:
   void InitAcceleration() override;
 
   bool AccelerateLayersByDefault() override { return true; }
 
  private:
+  static void FontAPIInitializeCallback(void*);
+
   gfxImageFormat mOffscreenFormat;
+
+  static PRThread* sFontAPIInitializeThread;
+  static nsCString sManufacturer;
 };
 
 #endif /* GFX_PLATFORM_ANDROID_H */

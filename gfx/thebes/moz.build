@@ -96,6 +96,9 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
         "gfxFT2Utils.cpp",
         "PrintTargetPDF.cpp",
     ]
+    UNIFIED_SOURCES += [
+        "AndroidSystemFontIterator.cpp",
+    ]
 elif CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
     EXPORTS += [
         "gfxMacUtils.h",

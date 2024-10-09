@@ -60,8 +60,8 @@
 
 #ifdef MOZ_WIDGET_ANDROID
 #  include "AndroidBuild.h"
+#  include "AndroidSystemFontIterator.h"
 #  include "mozilla/jni/Utils.h"
-#  include <dlfcn.h>
 #endif
 
 using namespace mozilla;
@@ -1556,19 +1556,6 @@ void gfxFT2FontList::FindFonts() {
 
 #if defined(MOZ_WIDGET_ANDROID)
   // Android API 29+ provides system font and font matcher API for native code.
-  typedef void* (*_ASystemFontIterator_open)();
-  typedef void* (*_ASystemFontIterator_next)(void*);
-  typedef void (*_ASystemFontIterator_close)(void*);
-  typedef const char* (*_AFont_getFontFilePath)(const void*);
-  typedef void (*_AFont_close)(void*);
-
-  static _ASystemFontIterator_open systemFontIterator_open = nullptr;
-  static _ASystemFontIterator_next systemFontIterator_next = nullptr;
-  static _ASystemFontIterator_close systemFontIterator_close = nullptr;
-  static _AFont_getFontFilePath font_getFontFilePath = nullptr;
-  static _AFont_close font_close = nullptr;
-
-  static bool firstTime = true;
 
   nsAutoCString androidFontsRoot = [&] {
     // ANDROID_ROOT is the root of the android system, typically /system;
@@ -1584,70 +1571,35 @@ void gfxFT2FontList::FindFonts() {
     return root;
   }();
 
-  if (firstTime) {
-    if (jni::GetAPIVersion() >= 29) {
-      void* handle = dlopen("libandroid.so", RTLD_LAZY | RTLD_LOCAL);
-      MOZ_ASSERT(handle);
-
-      systemFontIterator_open =
-          (_ASystemFontIterator_open)dlsym(handle, "ASystemFontIterator_open");
-      systemFontIterator_next =
-          (_ASystemFontIterator_next)dlsym(handle, "ASystemFontIterator_next");
-      systemFontIterator_close = (_ASystemFontIterator_close)dlsym(
-          handle, "ASystemFontIterator_close");
-      font_getFontFilePath =
-          (_AFont_getFontFilePath)dlsym(handle, "AFont_getFontFilePath");
-      font_close = (_AFont_close)dlsym(handle, "AFont_close");
-
-      if (NS_WARN_IF(!systemFontIterator_next) ||
-          NS_WARN_IF(!systemFontIterator_close) ||
-          NS_WARN_IF(!font_getFontFilePath) || NS_WARN_IF(!font_close)) {
-        // Since any functions aren't resolved, use old way to enumerate fonts.
-        systemFontIterator_open = nullptr;
-      }
-    }
-    firstTime = false;
-  }
-
-  bool useSystemFontAPI = !!systemFontIterator_open;
-
-  if (useSystemFontAPI &&
-      !StaticPrefs::
-          gfx_font_list_use_font_match_api_force_enabled_AtStartup()) {
-    // OPPO, realme and OnePlus device seem to crash when using font match API
-    // (Bug 1787551).
-    nsCString manufacturer = java::sdk::Build::MANUFACTURER()->ToCString();
-    if (manufacturer.EqualsLiteral("OPPO") ||
-        manufacturer.EqualsLiteral("realme") ||
-        manufacturer.EqualsLiteral("OnePlus")) {
-      useSystemFontAPI = false;
-    }
-  }
+  bool useSystemFontAPI = !gfxAndroidPlatform::IsFontAPIDisabled();
 
   if (useSystemFontAPI) {
-    void* iter = systemFontIterator_open();
-    if (iter) {
-      void* font = systemFontIterator_next(iter);
-      while (font) {
-        nsDependentCString path(font_getFontFilePath(font));
-        AppendFacesFromFontFile(path, mFontNameCache.get(), kStandard);
-        font_close(font);
-        font = systemFontIterator_next(iter);
-      }
+    gfxAndroidPlatform::WaitForInitializeFontAPI();
 
-      if (!StaticPrefs::gfx_font_rendering_colr_v1_enabled()) {
-        // We turn off COLRv1 fonts support. Newer android versions have
-        // COLRv1 emoji font, and a legacy and hidden CBDT font we understand,
-        // so try to find NotoColorEmojiLegacy.ttf explicitly for now.
-        nsAutoCString legacyEmojiFont(androidFontsRoot);
-        legacyEmojiFont.Append("/NotoColorEmojiLegacy.ttf");
-        AppendFacesFromFontFile(legacyEmojiFont, mFontNameCache.get(),
-                                kStandard);
+    bool noFontByFontAPI = true;
+    AndroidSystemFontIterator iter;
+    if (iter.Init()) {
+      while (Maybe<AndroidFont> androidFont = iter.Next()) {
+        if (const char* fontPath = androidFont->GetFontFilePath()) {
+          noFontByFontAPI = false;
+          AppendFacesFromFontFile(nsDependentCString(fontPath),
+                                  mFontNameCache.get(), kStandard);
+        }
       }
+    }
 
-      systemFontIterator_close(iter);
-    } else {
+    if (noFontByFontAPI) {
+      // Font API doesn't seem to work. Use legacy way.
       useSystemFontAPI = false;
+    }
+
+    if (!StaticPrefs::gfx_font_rendering_colr_v1_enabled()) {
+      // We turn off COLRv1 fonts support. Newer android versions have
+      // COLRv1 emoji font, and a legacy and hidden CBDT font we understand,
+      // so try to find NotoColorEmojiLegacy.ttf explicitly for now.
+      nsAutoCString legacyEmojiFont(androidFontsRoot);
+      legacyEmojiFont.Append("/NotoColorEmojiLegacy.ttf");
+      AppendFacesFromFontFile(legacyEmojiFont, mFontNameCache.get(), kStandard);
     }
   }
 
