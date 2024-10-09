@@ -7,6 +7,7 @@
 """Utility functions for mozrunner"""
 
 import os
+import subprocess
 import sys
 
 import mozinfo
@@ -174,15 +175,13 @@ def test_environment(
 
             # Returns total system memory in kilobytes.
             if mozinfo.isWin:
-                # pylint --py3k W1619
-                totalMemory = (
-                    int(
-                        os.popen(
-                            "wmic computersystem get TotalPhysicalMemory"
-                        ).readlines()[1]
-                    )
-                    / 1024
-                )
+                argstring = "(Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory / 1024"
+                args = ["powershell.exe", "-c", argstring]
+                output = subprocess.run(
+                    args, universal_newlines=True, capture_output=True, check=True
+                ).stdout
+
+                totalMemory = int(output.strip())
             elif mozinfo.isMac:
                 # pylint --py3k W1619
                 totalMemory = (
