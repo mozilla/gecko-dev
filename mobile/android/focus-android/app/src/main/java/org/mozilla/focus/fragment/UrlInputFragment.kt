@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.view.OneShotPreDrawListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import kotlinx.coroutines.CoroutineScope
@@ -53,7 +54,6 @@ import org.mozilla.focus.topsites.DefaultTopSitesStorage.Companion.TOP_SITES_MAX
 import org.mozilla.focus.topsites.DefaultTopSitesView
 import org.mozilla.focus.topsites.TopSitesOverlay
 import org.mozilla.focus.ui.theme.FocusTheme
-import org.mozilla.focus.utils.OneShotOnPreDrawListener
 import org.mozilla.focus.utils.SupportUtils
 import org.mozilla.focus.utils.ViewUtils
 import kotlin.coroutines.CoroutineContext
@@ -277,9 +277,8 @@ class UrlInputFragment :
 
         binding.dismissView.setOnClickListener(this)
 
-        OneShotOnPreDrawListener(binding.urlInputContainerView) {
+        OneShotPreDrawListener.add(binding.urlInputContainerView) {
             animateFirstDraw()
-            true
         }
 
         if (isOverlay) {
