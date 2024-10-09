@@ -73,7 +73,7 @@ class ModuleScript;
 
 class ScriptLoaderInterface : public nsISupports {
  public:
-  // alias common classes
+  // Alias common classes.
   using ScriptFetchOptions = JS::loader::ScriptFetchOptions;
   using ScriptKind = JS::loader::ScriptKind;
   using ScriptLoadRequest = JS::loader::ScriptLoadRequest;
@@ -216,6 +216,14 @@ class ModuleMapKey : public PLDHashEntryHdr {
  * 10. The client calls EvaluateModule() to execute the top-level module.
  */
 class ModuleLoaderBase : public nsISupports {
+ public:
+  // Alias common classes.
+  using LoadedScript = JS::loader::LoadedScript;
+  using ScriptFetchOptions = JS::loader::ScriptFetchOptions;
+  using ScriptLoadRequest = JS::loader::ScriptLoadRequest;
+  using ModuleLoadRequest = JS::loader::ModuleLoadRequest;
+
+ private:
   /*
    * Represents an ongoing load operation for a URI initiated for one request
    * and which may have other requests waiting for it to complete.
@@ -281,11 +289,6 @@ class ModuleLoaderBase : public nsISupports {
   void Shutdown();
 
   virtual nsIURI* GetBaseURI() const { return mLoader->GetBaseURI(); };
-
-  using LoadedScript = JS::loader::LoadedScript;
-  using ScriptFetchOptions = JS::loader::ScriptFetchOptions;
-  using ScriptLoadRequest = JS::loader::ScriptLoadRequest;
-  using ModuleLoadRequest = JS::loader::ModuleLoadRequest;
 
   using MaybeSourceText =
       mozilla::MaybeOneOf<JS::SourceText<char16_t>, JS::SourceText<Utf8Unit>>;
