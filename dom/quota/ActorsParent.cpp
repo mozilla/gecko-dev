@@ -5944,6 +5944,22 @@ RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForOrigin(
   return shutdownOriginOp->OnResults();
 }
 
+RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForClient(
+    Maybe<PersistenceType> aPersistenceType,
+    const PrincipalInfo& aPrincipalInfo, Client::Type aClientType) {
+  AssertIsOnOwningThread();
+
+  auto shutdownClientOp =
+      CreateShutdownClientOp(WrapMovingNotNullUnchecked(this), aPersistenceType,
+                             aPrincipalInfo, aClientType);
+
+  RegisterNormalOriginOp(*shutdownClientOp);
+
+  shutdownClientOp->RunImmediately();
+
+  return shutdownClientOp->OnResults();
+}
+
 RefPtr<BoolPromise> QuotaManager::ShutdownStorage(
     Maybe<OriginOperationCallbackOptions> aCallbackOptions,
     Maybe<OriginOperationCallbacks&> aCallbacks) {

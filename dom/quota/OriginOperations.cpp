@@ -717,6 +717,33 @@ class ShutdownOriginOp final : public ResolvableNormalOriginOp<bool> {
   void CloseDirectory() override;
 };
 
+class ShutdownClientOp final : public ResolvableNormalOriginOp<bool> {
+  const PrincipalInfo mPrincipalInfo;
+  PrincipalMetadata mPrincipalMetadata;
+  RefPtr<UniversalDirectoryLock> mDirectoryLock;
+  const PersistenceScope mPersistenceScope;
+  const Client::Type mClientType;
+
+ public:
+  ShutdownClientOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+                   mozilla::Maybe<PersistenceType> aPersistenceType,
+                   const PrincipalInfo& aPrincipalInfo,
+                   const Client::Type aClientType);
+
+ private:
+  ~ShutdownClientOp() = default;
+
+  nsresult DoInit(QuotaManager& aQuotaManager) override;
+
+  RefPtr<BoolPromise> OpenDirectory() override;
+
+  nsresult DoDirectoryWork(QuotaManager& aQuotaManager) override;
+
+  bool GetResolveValue() override;
+
+  void CloseDirectory() override;
+};
+
 class PersistRequestBase : public OpenStorageDirectoryHelper<QuotaRequestBase> {
   const PrincipalInfo mPrincipalInfo;
 
@@ -964,6 +991,14 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownOriginOp(
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
     Maybe<Client::Type> aClientType) {
   return MakeRefPtr<ShutdownOriginOp>(
+      std::move(aQuotaManager), aPersistenceType, aPrincipalInfo, aClientType);
+}
+
+RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownClientOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    Maybe<PersistenceType> aPersistenceType,
+    const PrincipalInfo& aPrincipalInfo, Client::Type aClientType) {
+  return MakeRefPtr<ShutdownClientOp>(
       std::move(aQuotaManager), aPersistenceType, aPrincipalInfo, aClientType);
 }
 
@@ -2691,6 +2726,66 @@ bool ShutdownOriginOp::GetResolveValue() {
 }
 
 void ShutdownOriginOp::CloseDirectory() {
+  AssertIsOnOwningThread();
+
+  DropDirectoryLockIfNotDropped(mDirectoryLock);
+}
+
+ShutdownClientOp::ShutdownClientOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    mozilla::Maybe<PersistenceType> aPersistenceType,
+    const PrincipalInfo& aPrincipalInfo, Client::Type aClientType)
+    : ResolvableNormalOriginOp(std::move(aQuotaManager),
+                               "dom::quota::ShutdownClientOp"),
+      mPrincipalInfo(aPrincipalInfo),
+      mPersistenceScope(aPersistenceType ? PersistenceScope::CreateFromValue(
+                                               *aPersistenceType)
+                                         : PersistenceScope::CreateFromNull()),
+      mClientType(aClientType) {
+  AssertIsOnOwningThread();
+}
+
+nsresult ShutdownClientOp::DoInit(QuotaManager& aQuotaManager) {
+  AssertIsOnOwningThread();
+
+  QM_TRY_UNWRAP(
+      mPrincipalMetadata,
+      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+
+  mPrincipalMetadata.AssertInvariants();
+
+  return NS_OK;
+}
+
+RefPtr<BoolPromise> ShutdownClientOp::OpenDirectory() {
+  AssertIsOnOwningThread();
+
+  mDirectoryLock = mQuotaManager->CreateDirectoryLockInternal(
+      mPersistenceScope, OriginScope::FromOrigin(mPrincipalMetadata.mOrigin),
+      Nullable(mClientType), /* aExclusive */ true);
+
+  return mDirectoryLock->Acquire();
+}
+
+nsresult ShutdownClientOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
+  AssertIsOnIOThread();
+
+  AUTO_PROFILER_LABEL("ShutdownClientOp::DoDirectoryWork", OTHER);
+
+  // All the work is handled by NormalOriginOperationBase parent class. In
+  // this particular case, we just needed to acquire an exclusive directory
+  // lock and that's it.
+
+  return NS_OK;
+}
+
+bool ShutdownClientOp::GetResolveValue() {
+  AssertIsOnOwningThread();
+
+  return true;
+}
+
+void ShutdownClientOp::CloseDirectory() {
   AssertIsOnOwningThread();
 
   DropDirectoryLockIfNotDropped(mDirectoryLock);

@@ -139,6 +139,12 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownOriginOp(
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
     Maybe<Client::Type> aClientType);
 
+RefPtr<ResolvableNormalOriginOp<bool>> CreateShutdownClientOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    Maybe<PersistenceType> aPersistenceType,
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
+    Client::Type aClientType);
+
 RefPtr<QuotaRequestBase> CreatePersistedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const RequestParams& aParams);

@@ -348,6 +348,31 @@ interface nsIQuotaManagerService : nsISupports
                             [optional] in AString aClientType);
 
   /**
+   * Resets all storages stored for the given client.
+   *
+   * If the dom.quotaManager.testing preference is not true the call will be
+   * a no-op.
+   *
+   * @param aPrincipal
+   *        A principal for the origin whose storages are to be reset.
+   * @param aClientType
+   *        A string that tells what client type of storages will be reset.
+   * @param aPersistenceType
+   *        An optional string that tells what persistence type of storages
+   *        will be reset.  If omitted (or void), all persistence types will
+   *        be cleared for the principal and client type.  If a single
+   *        persistence type ("persistent", "temporary", or "default") is
+   *        provided, then only that persistence directory will be considered.
+   *        Note that "persistent" is different than being "persisted" via
+   *        persist() and is only for chrome principals.  See bug 1354500 for
+   *        more info.  In general, null is the right thing to pass here.
+   */
+  [must_use] nsIQuotaRequest
+  resetStoragesForClient(in nsIPrincipal aPrincipal,
+                         in AString aClientType,
+                         [optional] in ACString aPersistenceType);
+
+  /**
    * Check if given origin is persisted.
    *
    * @param aPrincipal

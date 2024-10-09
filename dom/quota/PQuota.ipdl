@@ -189,6 +189,11 @@ parent:
                                   Type? clientType)
       returns(BoolResponse response);
 
+  async ShutdownStoragesForClient(PersistenceType? persistenceType,
+                                  PrincipalInfo principalInfo,
+                                  Type clientType)
+      returns(BoolResponse response);
+
   async ShutdownStorage()
       returns(BoolResponse response);
 

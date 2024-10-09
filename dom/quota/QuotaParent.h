@@ -114,6 +114,11 @@ class Quota final : public PQuotaParent {
       const PrincipalInfo& aPrincipalInfo, const Maybe<Type>& aClientType,
       ShutdownStoragesForOriginResolver&& aResolve) override;
 
+  virtual mozilla::ipc::IPCResult RecvShutdownStoragesForClient(
+      const Maybe<PersistenceType>& aPersistenceType,
+      const PrincipalInfo& aPrincipalInfo, const Type& aClientType,
+      ShutdownStoragesForClientResolver&& aResolve) override;
+
   virtual mozilla::ipc::IPCResult RecvShutdownStorage(
       ShutdownStorageResolver&& aResolver) override;
 
