@@ -41,7 +41,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +54,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -92,11 +90,6 @@ internal fun BookmarksScreen(
     val navController = rememberNavController()
     val store = buildStore(navController)
     BackHandler { store.dispatch(BackClicked) }
-    DisposableEffect(LocalLifecycleOwner.current) {
-        onDispose {
-            store.dispatch(ViewDisposed)
-        }
-    }
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -1300,8 +1293,8 @@ private fun SelectFolderPreview() {
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksEditFolderState = null,
             bookmarksSelectFolderState = BookmarksSelectFolderState(
-                outerSelectionGuid = "",
-                innerSelectionGuid = "guid1",
+                selectionGuid = null,
+                folderSelectionGuid = "guid1",
                 folders = listOf(
                     SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0")),
                     SelectFolderItem(1, BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id)),

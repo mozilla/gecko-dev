@@ -130,8 +130,7 @@ internal class BookmarksMiddleware(
                 when {
                     // non-list screen cases need to come first, since we presume if all subscreen
                     // state is null then we are on the list screen
-                    preReductionState.bookmarksAddFolderState != null &&
-                        context.state.bookmarksAddFolderState == null -> {
+                    preReductionState.bookmarksAddFolderState != null -> {
                         navController.popBackStack()
                         scope.launch(ioDispatcher) {
                             val newFolderTitle =
@@ -274,20 +273,6 @@ internal class BookmarksMiddleware(
                     }
                 }
             }
-            is FirstSyncCompleted -> {
-                context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
-            }
-            ViewDisposed -> {
-                preReductionState.bookmarksSnackbarState.let { snackState ->
-                    if (snackState is BookmarksSnackbarState.UndoDeletion) {
-                        scope.launch {
-                            snackState.guidsToDelete.forEach {
-                                bookmarksStorage.deleteNode(it)
-                            }
-                        }
-                    }
-                }
-            }
             is InitEditLoaded,
             SnackbarAction.Undo,
             is OpenTabsConfirmationDialogAction.Present,
@@ -303,7 +288,7 @@ internal class BookmarksMiddleware(
             is SelectFolderAction.FoldersLoaded,
             is SelectFolderAction.ItemClicked,
             EditFolderAction.DeleteClicked,
-            is ReceivedSyncSignInUpdate,
+            is ReceivedSyncUpdate,
             -> Unit
         }
     }

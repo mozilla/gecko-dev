@@ -149,9 +149,7 @@ internal class BookmarksTelemetryMiddleware : Middleware<BookmarksState, Bookmar
             is OpenTabsConfirmationDialogAction.Present,
             is InitEdit,
             is InitEditLoaded,
-            is ReceivedSyncSignInUpdate,
-            FirstSyncCompleted,
-            ViewDisposed,
+            is ReceivedSyncUpdate,
             -> Unit
         }
     }

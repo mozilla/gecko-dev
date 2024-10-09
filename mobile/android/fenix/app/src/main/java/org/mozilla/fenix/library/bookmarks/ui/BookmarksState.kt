@@ -69,8 +69,8 @@ internal fun BookmarksState.undoSnackbarText(): Pair<Int, String> = bookmarksSna
     when {
         state is BookmarksSnackbarState.UndoDeletion && state.guidsToDelete.size == 1 -> {
             val stringId = R.string.bookmark_delete_single_item
-            val title = this.bookmarkItems.firstOrNull { it.guid == state.guidsToDelete.first() }?.title
-            stringId to (title ?: "error")
+            val title = this.bookmarkItems.first { it.guid == state.guidsToDelete.first() }.title
+            stringId to title
         }
         state is BookmarksSnackbarState.UndoDeletion -> {
             val stringId = R.string.bookmark_delete_multiple_items
@@ -154,26 +154,16 @@ internal data class SelectFolderItem(
         get() = guid == BookmarkRoot.Root.id
 }
 
-/**
- * State representing the select folder subscreen.
- *
- * @property outerSelectionGuid The currently selected folder guid for the initial select folder screen.
- * Required since there is always at least this property active while the screen is visible.
- * @property innerSelectionGuid If in the select folder -> add folder -> select folder flow,
- * this represents the selection GUID for the nest select screen where the newly added folder is being
- * placed. Optional since this screen may never be displayed.
- * @property folders The folders to display.
- */
 internal data class BookmarksSelectFolderState(
-    val outerSelectionGuid: String,
-    val innerSelectionGuid: String? = null,
+    val selectionGuid: String? = null,
+    val folderSelectionGuid: String? = null,
     val folders: List<SelectFolderItem> = listOf(),
 ) {
     val showNewFolderButton: Boolean
-        get() = innerSelectionGuid == null
+        get() = folderSelectionGuid == null
 
-    val selectedGuid: String
-        get() = innerSelectionGuid ?: outerSelectionGuid
+    val selectedGuid: String?
+        get() = folderSelectionGuid ?: selectionGuid
 }
 
 internal val BookmarkItem.Folder.isDesktopFolder: Boolean

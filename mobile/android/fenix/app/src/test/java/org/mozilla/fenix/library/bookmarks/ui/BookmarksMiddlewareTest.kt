@@ -543,7 +543,7 @@ class BookmarksMiddlewareTest {
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(
-                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(),
             ),
         )
 
@@ -559,7 +559,7 @@ class BookmarksMiddlewareTest {
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(
-                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(),
             ),
         )
 
@@ -576,7 +576,7 @@ class BookmarksMiddlewareTest {
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(
                 isSignedIntoSync = true,
-                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(),
             ),
         )
 
@@ -590,7 +590,7 @@ class BookmarksMiddlewareTest {
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(
-                bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "selection guid"),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(),
             ),
         )
 
@@ -610,7 +610,7 @@ class BookmarksMiddlewareTest {
                     destination = "folder guid 1",
                 ),
                 bookmarksSelectFolderState = BookmarksSelectFolderState(
-                    outerSelectionGuid = "folder guid 1",
+                    selectionGuid = "folder guid 1",
                 ),
             ),
         )
@@ -1114,41 +1114,6 @@ class BookmarksMiddlewareTest {
 
         store.dispatch(BookmarksListMenuAction.MultiSelect.MoveClicked)
         verify(navController).navigate(BookmarksDestinations.SELECT_FOLDER)
-    }
-
-    @Test
-    fun `WHEN first bookmarks sync is complete THEN reload the bookmarks list`() = runTestOnMain {
-        val syncedGuid = "sync"
-        val tree = generateBookmarkTree()
-        val afterSyncTree = tree.copy(children = tree.children?.plus(generateBookmark(guid = syncedGuid, "title", "url")))
-        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
-        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id))
-            .thenReturn(tree)
-            .thenReturn(afterSyncTree)
-        val middleware = buildMiddleware()
-        val store = middleware.makeStore()
-
-        store.dispatch(FirstSyncCompleted)
-
-        assertTrue(store.state.bookmarkItems.any { it.guid == syncedGuid })
-    }
-
-    @Test
-    fun `GIVEN a bookmark has been deleted WHEN the view is disposed before the snackbar is dismissed THEN commit the deletion`() = runTestOnMain {
-        val tree = generateBookmarkTree()
-        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
-        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
-
-        val middleware = buildMiddleware()
-        val store = middleware.makeStore()
-        val bookmarkToDelete = store.state.bookmarkItems.first { it is BookmarkItem.Bookmark } as BookmarkItem.Bookmark
-
-        store.dispatch(BookmarksListMenuAction.Bookmark.DeleteClicked(bookmarkToDelete))
-        val snackState = store.state.bookmarksSnackbarState
-        assertTrue(snackState is BookmarksSnackbarState.UndoDeletion && snackState.guidsToDelete.first() == bookmarkToDelete.guid)
-        store.dispatch(ViewDisposed)
-
-        verify(bookmarksStorage).deleteNode(bookmarkToDelete.guid)
     }
 
     private fun buildMiddleware() = BookmarksMiddleware(
