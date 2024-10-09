@@ -381,7 +381,7 @@
     },
 
     get visibleTabs() {
-      return this.tabContainer._getVisibleTabs();
+      return this.tabContainer.visibleTabs;
     },
 
     getDuplicateTabsToClose(aTab) {
