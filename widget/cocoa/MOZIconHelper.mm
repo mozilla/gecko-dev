@@ -22,20 +22,21 @@
 // Returns an autoreleased NSImage.
 + (NSImage*)iconImageFromImageContainer:(imgIContainer*)aImage
                                withSize:(NSSize)aSize
-                             svgContext:
-                                 (const mozilla::SVGImageContext*)aSVGContext
+                            presContext:(const nsPresContext*)aPresContext
+                          computedStyle:
+                              (const mozilla::ComputedStyle*)aComputedStyle
                             scaleFactor:(CGFloat)aScaleFactor {
   bool isEntirelyBlack = false;
   NSImage* retainedImage = nil;
   nsresult rv;
   if (aScaleFactor != 0.0f) {
     rv = nsCocoaUtils::CreateNSImageFromImageContainer(
-        aImage, imgIContainer::FRAME_CURRENT, aSVGContext, aSize,
-        &retainedImage, aScaleFactor, &isEntirelyBlack);
+        aImage, imgIContainer::FRAME_CURRENT, aPresContext, aComputedStyle,
+        aSize, &retainedImage, aScaleFactor, &isEntirelyBlack);
   } else {
     rv = nsCocoaUtils::CreateDualRepresentationNSImageFromImageContainer(
-        aImage, imgIContainer::FRAME_CURRENT, aSVGContext, aSize,
-        &retainedImage, &isEntirelyBlack);
+        aImage, imgIContainer::FRAME_CURRENT, aPresContext, aComputedStyle,
+        aSize, &retainedImage, &isEntirelyBlack);
   }
 
   NSImage* image = [retainedImage autorelease];

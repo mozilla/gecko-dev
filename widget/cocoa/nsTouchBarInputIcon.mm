@@ -127,7 +127,8 @@ nsresult nsTouchBarInputIcon::OnComplete(imgIContainer* aImage) {
   NSImage* image = [MOZIconHelper
       iconImageFromImageContainer:aImage
                          withSize:NSMakeSize(kIconHeight, kIconHeight)
-                       svgContext:nullptr
+                      presContext:nullptr
+                    computedStyle:nullptr
                       scaleFactor:kHiDPIScalingFactor];
   [mButton setImage:image];
   [mShareScrubber setButtonImage:image];

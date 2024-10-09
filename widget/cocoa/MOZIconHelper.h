@@ -15,8 +15,7 @@ class nsPresContext;
 
 namespace mozilla {
 class ComputedStyle;
-class SVGImageContext;
-}  // namespace mozilla
+}
 
 @interface MOZIconHelper : NSObject
 
@@ -26,8 +25,9 @@ class SVGImageContext;
 // Returns an autoreleased NSImage.
 + (NSImage*)iconImageFromImageContainer:(imgIContainer*)aImage
                                withSize:(NSSize)aSize
-                             svgContext:
-                                 (const mozilla::SVGImageContext*)aSVGContext
+                            presContext:(const nsPresContext*)aPresContext
+                          computedStyle:
+                              (const mozilla::ComputedStyle*)aComputedStyle
                             scaleFactor:(CGFloat)aScaleFactor;
 
 @end
