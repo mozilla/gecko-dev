@@ -355,7 +355,16 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     var isOverrideTPPopupsForPerformanceTest = false
 
-    var showSecretDebugMenuThisSession = false
+    // We do not use `booleanPreference` because we only want the "read" part of this setting to be
+    // controlled by a shared pref (if any). In the secret settings, there is a toggle switch to enable
+    // and disable this pref. Other than that, the `SecretDebugMenuTrigger` should be able to change
+    // this setting for the duration of the session only, i.e. `SecretDebugMenuTrigger` should never
+    // be able to (indirectly) change the value of the shared pref.
+    var showSecretDebugMenuThisSession: Boolean = false
+        get() = field || preferences.getBoolean(
+            appContext.getPreferenceKey(R.string.pref_key_persistent_debug_menu),
+            false,
+        )
 
     val shouldShowSecurityPinWarningSync: Boolean
         get() = loginsSecureWarningSyncCount.underMaxCount()

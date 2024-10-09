@@ -302,6 +302,9 @@
 
     <string name="pref_key_debug_settings" translatable="false">pref_key_debug_settings</string>
 
+    <!-- Whether the debug menu (secret settings, secret debug info, nimbus experiments, etc.) should be enabled persistently -->
+    <string name="pref_key_persistent_debug_menu" translatable="false">pref_key_persistent_debug_menu</string>
+
     <string name="pref_key_open_tabs_count" translatable="false">pref_key_open_tabs_count</string>
     <string name="pref_key_open_private_tabs_count" translatable="false">pref_key_open_private_tabs_count</string>
 
