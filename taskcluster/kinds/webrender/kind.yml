@@ -357,9 +357,6 @@ tasks:
                   name: public/build/logs
                   path: /builds/worker/workspace/build/logs
             env:
-                # need hard-coded URLs until bug 1551875 is fixed
-                TASKCLUSTER_ROOT_URL: 'https://taskcluster.net'
-                TASKCLUSTER_PROXY_URL: 'http://taskcluster'
                 MOZHARNESS_SCRIPT: android_wrench.py
                 MOZHARNESS_CONFIG: android/wrench.py
                 NEED_WINDOW_MANAGER: 'true'
@@ -406,9 +403,6 @@ tasks:
                   name: public/build/logs
                   path: /builds/worker/workspace/build/logs
             env:
-                # need hard-coded URLs until bug 1551875 is fixed
-                TASKCLUSTER_ROOT_URL: 'https://taskcluster.net'
-                TASKCLUSTER_PROXY_URL: 'http://taskcluster'
                 MOZHARNESS_SCRIPT: android_wrench.py
                 MOZHARNESS_CONFIG: android/wrench.py
                 NEED_WINDOW_MANAGER: 'true'
