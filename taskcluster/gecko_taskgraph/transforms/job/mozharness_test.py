@@ -110,7 +110,7 @@ def mozharness_test_on_docker(config, job, taskdesc):
     worker["max-run-time"] = test["max-run-time"]
     worker["retry-exit-status"] = test["retry-exit-status"]
     if "android-em-7.0-x86" in test["test-platform"]:
-        worker["privileged"] = True
+        worker["kvm"] = True
 
     artifacts = [
         # (artifact name prefix, in-image path)

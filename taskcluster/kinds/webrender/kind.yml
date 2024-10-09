@@ -347,11 +347,11 @@ tasks:
         description: Run debug wrench reftests on Android emulator
         attributes:
             build_platform: android
-        worker-type: t-linux-kvm  # privileged:true doesn't work on b-linux
+        worker-type: t-linux-kvm
         worker:
             max-run-time: 5400
             docker-image: {in-tree: ubuntu1804-test}
-            privileged: true  # for access to /dev/kvm for hw accel in the emulator
+            kvm: true
             artifacts:
                 - type: directory
                   name: public/build/logs
@@ -393,11 +393,11 @@ tasks:
         description: Run release wrench reftests on Android emulator
         attributes:
             build_platform: android
-        worker-type: t-linux-kvm  # privileged:true doesn't work on b-linux
+        worker-type: t-linux-kvm
         worker:
             max-run-time: 5400
             docker-image: {in-tree: ubuntu1804-test}
-            privileged: true  # for access to /dev/kvm for hw accel in the emulator
+            kvm: true
             artifacts:
                 - type: directory
                   name: public/build/logs
