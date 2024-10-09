@@ -140,6 +140,7 @@ function getRemoteUpdateString(aUpdateProps, aPatches) {
     name: "App Update Test",
     promptWaitTime: null,
     type: "major",
+    unsupported: false,
   };
 
   for (let name in aUpdateProps) {
@@ -348,6 +349,7 @@ function getUpdateString(aUpdateProps) {
       aUpdateProps.disableBackgroundUpdates +
       '" '
     : "";
+  let unsupported = aUpdateProps.unsupported ? 'unsupported="true" ' : "";
   let custom1 = aUpdateProps.custom1 ? aUpdateProps.custom1 + " " : "";
   let custom2 = aUpdateProps.custom2 ? aUpdateProps.custom2 + " " : "";
   let buildID = 'buildID="' + aUpdateProps.buildID + '"';
@@ -363,6 +365,7 @@ function getUpdateString(aUpdateProps) {
     promptWaitTime +
     disableBITS +
     disableBackgroundUpdates +
+    unsupported +
     custom1 +
     custom2 +
     buildID

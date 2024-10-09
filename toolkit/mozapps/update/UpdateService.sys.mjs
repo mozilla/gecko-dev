@@ -3648,18 +3648,20 @@ export class UpdateService {
 
       switch (update.type) {
         case "major":
-          if (!majorUpdate) {
+          if (!majorUpdate || majorUpdate.unsupported) {
             majorUpdate = update;
           } else if (
+            !update.unsupported &&
             vc.compare(majorUpdate.appVersion, update.appVersion) <= 0
           ) {
             majorUpdate = update;
           }
           break;
         case "minor":
-          if (!minorUpdate) {
+          if (!minorUpdate || minorUpdate.unsupported) {
             minorUpdate = update;
           } else if (
+            !update.unsupported &&
             vc.compare(minorUpdate.appVersion, update.appVersion) <= 0
           ) {
             minorUpdate = update;

@@ -59,6 +59,8 @@ reason = "Feature is Firefox-specific and Windows-specific."
 ["languagePackUpdates.js"]
 skip-if = ["socketprocess_networking"] # Bug 1759035
 
+["mixedUnsupported.js"]
+
 ["multiUpdate.js"]
 skip-if = ["socketprocess_networking"] # Bug 1759035
 
