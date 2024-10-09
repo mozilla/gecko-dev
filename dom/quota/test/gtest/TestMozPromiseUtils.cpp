@@ -9,6 +9,16 @@
 
 namespace mozilla::dom::quota::test {
 
+TEST(DOM_Quota_MozPromiseUtils, BoolPromiseToBoolPromise)
+{
+  auto value = QuotaManagerDependencyFixture::Await(Map<BoolPromise>(
+      BoolPromise::CreateAndResolve(true, __func__),
+      [](const BoolPromise::ResolveOrRejectValue& aValue) { return false; }));
+
+  ASSERT_TRUE(value.IsResolve());
+  ASSERT_FALSE(value.ResolveValue());
+}
+
 TEST(DOM_Quota_MozPromiseUtils, ExclusiveBoolPromiseToBoolPromise)
 {
   auto value = QuotaManagerDependencyFixture::Await(

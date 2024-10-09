@@ -8,11 +8,31 @@
 #define DOM_QUOTA_MOZPROMISEUTILS_H_
 
 #include "mozilla/MozPromise.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla::dom::quota {
 
+namespace detail {
+
+template <typename T>
+struct IsExclusiveMozPromise {
+  static constexpr bool value = false;
+};
+
+// Specialization for MozPromise
+template <typename ResolveValueT, typename RejectValueT, bool IsExclusive>
+struct IsExclusiveMozPromise<
+    MozPromise<ResolveValueT, RejectValueT, IsExclusive>> {
+  static constexpr bool value = IsExclusive;
+};
+
+}  // namespace detail
+
 template <typename T, typename U, typename F>
-RefPtr<T> Map(RefPtr<U> aPromise, F&& aFunc) {
+auto Map(RefPtr<U> aPromise, F&& aFunc)
+    -> std::enable_if_t<
+        detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value,
+        RefPtr<T>> {
   return aPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
       [func =
@@ -25,6 +45,25 @@ RefPtr<T> Map(RefPtr<U> aPromise, F&& aFunc) {
 
         return T::CreateAndResolve(value, __func__);
       });
+}
+
+template <typename T, typename U, typename F>
+auto Map(RefPtr<U> aPromise, F&& aFunc)
+    -> std::enable_if_t<
+        !detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value,
+        RefPtr<T>> {
+  return aPromise->Then(GetCurrentSerialEventTarget(), __func__,
+                        [func = std::forward<F>(aFunc)](
+                            const typename U::ResolveOrRejectValue& aValue) {
+                          if (aValue.IsReject()) {
+                            return T::CreateAndReject(aValue.RejectValue(),
+                                                      __func__);
+                          }
+
+                          auto value = func(aValue);
+
+                          return T::CreateAndResolve(value, __func__);
+                        });
 }
 
 }  // namespace mozilla::dom::quota
