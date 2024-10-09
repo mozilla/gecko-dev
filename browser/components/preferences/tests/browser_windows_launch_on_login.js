@@ -22,6 +22,10 @@ const { MockRegistry } = ChromeUtils.importESModule(
   "resource://testing-common/MockRegistry.sys.mjs"
 );
 
+let profileService = Cc["@mozilla.org/toolkit/profile-service;1"].getService(
+  Ci.nsIToolkitProfileService
+);
+let startWithLastProfileOriginal = profileService.startWithLastProfile;
 let registry = null;
 add_setup(() => {
   registry = new MockRegistry();
@@ -145,6 +149,28 @@ add_task(async function delete_external_regkey() {
   doCleanup();
 });
 
+add_task(async function testDisablingLaunchOnLogin() {
+  Cc["@mozilla.org/toolkit/profile-service;1"].getService(
+    Ci.nsIToolkitProfileService
+  ).startWithLastProfile = false;
+
+  await openPreferencesViaOpenPreferencesAPI("paneGeneral", {
+    leaveOpen: true,
+  });
+  let doc = gBrowser.contentDocument;
+
+  let launchOnLoginCheckbox = doc.getElementById("windowsLaunchOnLogin");
+  ok(launchOnLoginCheckbox.disabled, "Autostart checkbox disabled");
+  ok(!launchOnLoginCheckbox.checked, "Autostart checkbox unchecked");
+
+  let launchOnLoginDisabledMessage = doc.getElementById(
+    "windowsLaunchOnLoginDisabledProfileBox"
+  );
+  ok(!launchOnLoginDisabledMessage.hidden, "Disabled message is displayed");
+
+  gBrowser.removeCurrentTab();
+});
+
 registerCleanupFunction(async function () {
   await WindowsLaunchOnLogin.removeLaunchOnLoginShortcuts();
   await WindowsLaunchOnLogin.withLaunchOnLoginRegistryKey(async wrk => {
@@ -153,4 +179,5 @@ registerCleanupFunction(async function () {
       wrk.removeValue(registryName);
     }
   });
+  profileService.startWithLastProfile = startWithLastProfileOriginal;
 });

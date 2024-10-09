@@ -427,28 +427,16 @@ var gMainPane = {
         "command",
         gMainPane.onWindowsLaunchOnLoginChange
       );
-      // We do a check here for startWithLastProfile as we could
-      // have disabled the pref for the user before they're ever
-      // exposed to the experiment on a new profile.
-      // If we're using MSIX, we don't show the checkbox as MSIX
-      // can't write to the registry.
       if (
-        Cc["@mozilla.org/toolkit/profile-service;1"].getService(
-          Ci.nsIToolkitProfileService
-        ).startWithLastProfile
+        Services.prefs.getBoolPref(
+          "browser.startup.windowsLaunchOnLogin.enabled",
+          false
+        )
       ) {
+        document.getElementById("windowsLaunchOnLoginBox").hidden = false;
         NimbusFeatures.windowsLaunchOnLogin.recordExposureEvent({
           once: true,
         });
-
-        if (
-          Services.prefs.getBoolPref(
-            "browser.startup.windowsLaunchOnLogin.enabled",
-            false
-          )
-        ) {
-          document.getElementById("windowsLaunchOnLoginBox").hidden = false;
-        }
       }
     }
     gMainPane.updateBrowserStartupUI =
@@ -687,16 +675,33 @@ var gMainPane = {
         let launchOnLoginCheckbox = document.getElementById(
           "windowsLaunchOnLogin"
         );
-        WindowsLaunchOnLogin.getLaunchOnLoginEnabled().then(enabled => {
-          launchOnLoginCheckbox.checked = enabled;
-        });
-        WindowsLaunchOnLogin.getLaunchOnLoginApproved().then(
-          approvedByWindows => {
-            launchOnLoginCheckbox.disabled = !approvedByWindows;
-            document.getElementById("windowsLaunchOnLoginDisabledBox").hidden =
-              approvedByWindows;
-          }
-        );
+
+        let startWithLastProfile = Cc[
+          "@mozilla.org/toolkit/profile-service;1"
+        ].getService(Ci.nsIToolkitProfileService).startWithLastProfile;
+
+        // Grey out the launch on login checkbox if startWithLastProfile is false
+        document.getElementById(
+          "windowsLaunchOnLoginDisabledProfileBox"
+        ).hidden = startWithLastProfile;
+        launchOnLoginCheckbox.disabled = !startWithLastProfile;
+
+        if (!startWithLastProfile) {
+          launchOnLoginCheckbox.checked = false;
+        } else {
+          WindowsLaunchOnLogin.getLaunchOnLoginEnabled().then(enabled => {
+            launchOnLoginCheckbox.checked = enabled;
+          });
+
+          WindowsLaunchOnLogin.getLaunchOnLoginApproved().then(
+            approvedByWindows => {
+              launchOnLoginCheckbox.disabled = !approvedByWindows;
+              document.getElementById(
+                "windowsLaunchOnLoginDisabledBox"
+              ).hidden = approvedByWindows;
+            }
+          );
+        }
 
         // On Windows, the Application Update setting is an installation-
         // specific preference, not a profile-specific one. Show a warning to

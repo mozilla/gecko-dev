@@ -1362,8 +1362,22 @@ BrowserGlue.prototype = {
           // likely sees the profile selector on launch.
           if (Services.prefs.getBoolPref(launchOnLoginPref)) {
             Glean.launchOnLogin.lastProfileDisableStartup.record();
+            Services.telemetry.setEventRecordingEnabled(
+              "launch_on_login",
+              true
+            );
+            Services.telemetry.recordEvent(
+              "launch_on_login",
+              "last_profile_disable",
+              "startup"
+            );
+            // Disable launch on login messaging if we are disabling the
+            // feature.
+            Services.prefs.setBoolPref(
+              "browser.startup.windowsLaunchOnLogin.disableLaunchOnLoginPrompt",
+              true
+            );
           }
-          Services.prefs.setBoolPref(launchOnLoginPref, false);
           // To reduce confusion when running multiple Gecko profiles,
           // delete launch on login shortcuts and registry keys so that
           // users are not presented with the outdated profile selector
