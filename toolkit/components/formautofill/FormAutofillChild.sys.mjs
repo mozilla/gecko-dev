@@ -168,7 +168,17 @@ export class FormAutofillChild extends JSWindowActorChild {
       const detectedFields = lazy.FormAutofillHandler.collectFormFields(
         handler.form
       );
-      if (!detectedFields.length) {
+
+      // If none of the detected fields are credit card or address fields,
+      // there's no need to notify the parent because nothing will change.
+      if (
+        !detectedFields.some(
+          fd =>
+            lazy.FormAutofillUtils.isCreditCardField(fd.fieldName) ||
+            lazy.FormAutofillUtils.isAddressField(fd.fieldName)
+        )
+      ) {
+        handler.setIdentifiedFieldDetails(detectedFields);
         return;
       }
 
