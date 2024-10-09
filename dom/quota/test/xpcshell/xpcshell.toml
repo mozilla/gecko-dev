@@ -79,7 +79,11 @@ skip-if = ["condprof"] # frequent perma fail, then goes away.
 
 ["test_initializePersistentClient.js"]
 
+["test_initializePersistentOrigin.js"]
+
 ["test_initializeTemporaryClient.js"]
+
+["test_initializeTemporaryOrigin.js"]
 
 ["test_listOrigins.js"]
 

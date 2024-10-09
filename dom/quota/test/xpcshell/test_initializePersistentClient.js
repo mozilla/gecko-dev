@@ -11,7 +11,6 @@
 
 async function testSteps() {
   const clientMetadata = {
-    persistence: "default",
     principal: getPrincipal("https://foo.example.com"),
     client: "sdb",
     file: getRelativeFile("storage/permanent/https+++foo.example.com/sdb"),

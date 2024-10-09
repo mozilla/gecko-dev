@@ -372,6 +372,12 @@ class QuotaManager final : public BackgroundThreadObject {
       const PrincipalInfo& aPrincipalInfo,
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
+  RefPtr<BoolPromise> PersistentOriginInitialized(
+      const PrincipalInfo& aPrincipalInfo);
+
+  bool IsPersistentOriginInitializedInternal(
+      const OriginMetadata& aOriginMetadata) const;
+
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
   Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
@@ -384,6 +390,9 @@ class QuotaManager final : public BackgroundThreadObject {
   RefPtr<BoolPromise> InitializeTemporaryOrigin(
       PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo,
       RefPtr<UniversalDirectoryLock> aDirectoryLock);
+
+  RefPtr<BoolPromise> TemporaryOriginInitialized(
+      PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo);
 
   bool IsTemporaryOriginInitializedInternal(
       const OriginMetadata& aOriginMetadata) const;

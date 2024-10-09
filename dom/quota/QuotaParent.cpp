@@ -344,6 +344,58 @@ mozilla::ipc::IPCResult Quota::RecvTemporaryStorageInitialized(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult Quota::RecvPersistentOriginInitialized(
+    const PrincipalInfo& aPrincipalInfo,
+    PersistentOriginInitializedResolver&& aResolve) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveBoolResponseAndReturn(aResolve));
+
+  if (!TrustParams()) {
+    QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(aPrincipalInfo)),
+           QM_CUF_AND_IPC_FAIL(this));
+  }
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveBoolResponseAndReturn(aResolve));
+
+  quotaManager->PersistentOriginInitialized(aPrincipalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult Quota::RecvTemporaryOriginInitialized(
+    const PersistenceType& aPersistenceType,
+    const PrincipalInfo& aPrincipalInfo,
+    TemporaryOriginInitializedResolver&& aResolve) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveBoolResponseAndReturn(aResolve));
+
+  if (!TrustParams()) {
+    QM_TRY(MOZ_TO_RESULT(IsValidPersistenceType(aPersistenceType)),
+           QM_CUF_AND_IPC_FAIL(this));
+
+    QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(aPrincipalInfo)),
+           QM_CUF_AND_IPC_FAIL(this));
+  }
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveBoolResponseAndReturn(aResolve));
+
+  quotaManager->TemporaryOriginInitialized(aPersistenceType, aPrincipalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
+
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult Quota::RecvInitializeStorage(
     InitializeStorageResolver&& aResolver) {
   AssertIsOnBackgroundThread();

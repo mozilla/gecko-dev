@@ -5413,6 +5413,28 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
   return initializePersistentOriginOp->OnResults();
 }
 
+RefPtr<BoolPromise> QuotaManager::PersistentOriginInitialized(
+    const PrincipalInfo& aPrincipalInfo) {
+  AssertIsOnOwningThread();
+
+  auto persistentOriginInitializedOp = CreatePersistentOriginInitializedOp(
+      WrapMovingNotNullUnchecked(this), aPrincipalInfo);
+
+  RegisterNormalOriginOp(*persistentOriginInitializedOp);
+
+  persistentOriginInitializedOp->RunImmediately();
+
+  return persistentOriginInitializedOp->OnResults();
+}
+
+bool QuotaManager::IsPersistentOriginInitializedInternal(
+    const OriginMetadata& aOriginMetadata) const {
+  AssertIsOnIOThread();
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT);
+
+  return mInitializedOriginsInternal.Contains(aOriginMetadata.mOrigin);
+}
+
 Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
 QuotaManager::EnsurePersistentOriginIsInitializedInternal(
     const OriginMetadata& aOriginMetadata) {
@@ -5520,6 +5542,20 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
   initializeTemporaryOriginOp->RunImmediately();
 
   return initializeTemporaryOriginOp->OnResults();
+}
+
+RefPtr<BoolPromise> QuotaManager::TemporaryOriginInitialized(
+    PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo) {
+  AssertIsOnOwningThread();
+
+  auto temporaryOriginInitializedOp = CreateTemporaryOriginInitializedOp(
+      WrapMovingNotNullUnchecked(this), aPersistenceType, aPrincipalInfo);
+
+  RegisterNormalOriginOp(*temporaryOriginInitializedOp);
+
+  temporaryOriginInitializedOp->RunImmediately();
+
+  return temporaryOriginInitializedOp->OnResults();
 }
 
 bool QuotaManager::IsTemporaryOriginInitializedInternal(

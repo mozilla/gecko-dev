@@ -43,6 +43,34 @@ interface nsIQuotaManagerService : nsISupports
   temporaryStorageInitialized();
 
   /**
+   * Check if persistent origin is initialized.
+   *
+   * If the dom.quotaManager.testing preference is not true the call will be
+   * a no-op.
+   *
+   * @param aPrincipal
+   *        A principal for the persistent origin whose state is to be checked.
+   */
+  [must_use] nsIQuotaRequest
+  persistentOriginInitialized(in nsIPrincipal aPrincipal);
+
+  /**
+   * Check if temporary origin is initialized.
+   *
+   * If the dom.quotaManager.testing preference is not true the call will be
+   * a no-op.
+   *
+   * @param aPersistenceType
+   *        A string that tells what persistence type will be checked (either
+   *        "temporary" or "default").
+   * @param aPrincipal
+   *        A principal for the temporary origin whose state is to be checked.
+   */
+  [must_use] nsIQuotaRequest
+  temporaryOriginInitialized(in ACString aPersistenceType,
+                             in nsIPrincipal aPrincipal);
+
+  /**
    * Initializes storage directory. This can be used in tests to verify
    * upgrade methods.
    *

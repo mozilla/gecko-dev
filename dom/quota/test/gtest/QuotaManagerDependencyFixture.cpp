@@ -237,6 +237,47 @@ void QuotaManagerDependencyFixture::InitializeTemporaryOrigin(
 }
 
 // static
+void QuotaManagerDependencyFixture::TemporaryOriginInitialized(
+    const OriginMetadata& aOriginMetadata, bool* aResult) {
+  ASSERT_TRUE(aResult);
+
+  mozilla::ipc::PrincipalInfo principalInfo;
+  ASSERT_NO_FATAL_FAILURE(
+      CreateContentPrincipalInfo(aOriginMetadata.mOrigin, principalInfo));
+
+  PerformOnBackgroundThread([persistenceType = aOriginMetadata.mPersistenceType,
+                             principalInfo = std::move(principalInfo),
+                             aResult]() {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    auto value = Await(quotaManager->TemporaryOriginInitialized(persistenceType,
+                                                                principalInfo));
+    if (value.IsResolve()) {
+      *aResult = value.ResolveValue();
+    } else {
+      *aResult = false;
+    }
+  });
+}
+
+// static
+void QuotaManagerDependencyFixture::AssertTemporaryOriginInitialized(
+    const OriginMetadata& aOriginMetadata) {
+  bool result;
+  ASSERT_NO_FATAL_FAILURE(TemporaryOriginInitialized(aOriginMetadata, &result));
+  ASSERT_TRUE(result);
+}
+
+// static
+void QuotaManagerDependencyFixture::AssertTemporaryOriginNotInitialized(
+    const OriginMetadata& aOriginMetadata) {
+  bool result;
+  ASSERT_NO_FATAL_FAILURE(TemporaryOriginInitialized(aOriginMetadata, &result));
+  ASSERT_FALSE(result);
+}
+
+// static
 void QuotaManagerDependencyFixture::GetOriginUsage(
     const OriginMetadata& aOriginMetadata, UsageInfo* aResult) {
   ASSERT_TRUE(aResult);
