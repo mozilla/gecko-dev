@@ -24,17 +24,6 @@ CacheControlParser::CacheControlParser(nsACString const& aHeader)
       mPublic(false),
       mPrivate(false),
       mImmutable(false) {
-  mDirectiveTokens[NO_CACHE] = AddCustomToken("no-cache", CASE_INSENSITIVE);
-  mDirectiveTokens[NO_STORE] = AddCustomToken("no-store", CASE_INSENSITIVE);
-  mDirectiveTokens[MAX_AGE] = AddCustomToken("max-age", CASE_INSENSITIVE);
-  mDirectiveTokens[MAX_STALE] = AddCustomToken("max-stale", CASE_INSENSITIVE);
-  mDirectiveTokens[MIN_FRESH] = AddCustomToken("min-fresh", CASE_INSENSITIVE);
-  mDirectiveTokens[STALE_WHILE_REVALIDATE] =
-      AddCustomToken("stale-while-revalidate", CASE_INSENSITIVE);
-  mDirectiveTokens[PUBLIC] = AddCustomToken("public", CASE_INSENSITIVE);
-  mDirectiveTokens[PRIVATE] = AddCustomToken("private", CASE_INSENSITIVE);
-  mDirectiveTokens[IMMUTABLE] = AddCustomToken("immutable", CASE_INSENSITIVE);
-
   SkipWhites();
   if (!CheckEOF()) {
     Directive();
@@ -44,24 +33,24 @@ CacheControlParser::CacheControlParser(nsACString const& aHeader)
 void CacheControlParser::Directive() {
   do {
     SkipWhites();
-    if (Check(mDirectiveTokens[NO_CACHE])) {
+    if (CheckWord("no-cache")) {
       mNoCache = true;
       IgnoreDirective();  // ignore any optionally added values
-    } else if (Check(mDirectiveTokens[NO_STORE])) {
+    } else if (CheckWord("no-store")) {
       mNoStore = true;
-    } else if (Check(mDirectiveTokens[MAX_AGE])) {
+    } else if (CheckWord("max-age")) {
       mMaxAgeSet = SecondsValue(&mMaxAge);
-    } else if (Check(mDirectiveTokens[MAX_STALE])) {
+    } else if (CheckWord("max-stale")) {
       mMaxStaleSet = SecondsValue(&mMaxStale, PR_UINT32_MAX);
-    } else if (Check(mDirectiveTokens[MIN_FRESH])) {
+    } else if (CheckWord("min-fresh")) {
       mMinFreshSet = SecondsValue(&mMinFresh);
-    } else if (Check(mDirectiveTokens[STALE_WHILE_REVALIDATE])) {
+    } else if (CheckWord("stale-while-revalidate")) {
       mStaleWhileRevalidateSet = SecondsValue(&mStaleWhileRevalidate);
-    } else if (Check(mDirectiveTokens[PUBLIC])) {
+    } else if (CheckWord("public")) {
       mPublic = true;
-    } else if (Check(mDirectiveTokens[PRIVATE])) {
+    } else if (CheckWord("private")) {
       mPrivate = true;
-    } else if (Check(mDirectiveTokens[IMMUTABLE])) {
+    } else if (CheckWord("immutable")) {
       mImmutable = true;
     } else {
       IgnoreDirective();
