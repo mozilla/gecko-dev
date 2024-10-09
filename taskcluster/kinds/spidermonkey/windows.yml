@@ -6,6 +6,8 @@ task-defaults:
     worker-type: b-win2022
     worker:
         max-run-time: 10800
+        env:
+            MOZ_JS_UPLOAD_BINARIES_DEFAULT: "0"
     run:
         tooltool-downloads: public
 
