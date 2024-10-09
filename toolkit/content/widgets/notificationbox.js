@@ -29,8 +29,7 @@
         stack.className = "notificationbox-stack";
         stack.addEventListener("transitionend", event => {
           if (
-            (event.target.localName == "notification" ||
-              event.target.localName == "notification-message") &&
+            event.target.localName == "notification-message" &&
             event.propertyName == "margin-top"
           ) {
             this._finishAnimation();
@@ -55,7 +54,6 @@
 
       var closedNotification = this._closedNotification;
       var notifications = [
-        ...this.stack.getElementsByTagName("notification"),
         ...this.stack.getElementsByTagName("notification-message"),
       ];
       return notifications.filter(n => n != closedNotification);
@@ -72,8 +70,8 @@
     }
 
     /**
-     * Creates a <notification> element and shows it. The calling code can modify
-     * the element synchronously to add features to the notification.
+     * Creates a <notification-message> element and shows it. The calling code can modify
+     * the element asynchronously to add features to the notification.
      *
      * aType
      *        String identifier that can uniquely identify the type of the notification.
@@ -94,9 +92,6 @@
      *          removed - notification has been removed
      *          dismissed - user dismissed notification
      *          disconnected - notification removed in any way
-     *    notificationIs
-     *        Defines a Custom Element name to use as the "is" value on creation.
-     *        This allows subclassing the created element.
      *    telemetry
      *        Specifies the telemetry key to use that triggers when the notification
      *        is shown, dismissed and an action taken. This telemetry is a keyed scalar with keys for:
@@ -118,7 +113,7 @@
      *            specifying a separate label and access key.
      *          callback:
      *            When the button is used, this is called with the arguments:
-     *             1. The <notification> element.
+     *             1. The <notification-message> element.
      *             2. This button object definition.
      *             3. The <button> element.
      *             4. The "command" event.
@@ -142,7 +137,7 @@
      *            button creation.
      *        }
      *
-     * @return The <notification> element that is shown.
+     * @returns {Promise<Object>} The <notification-message> element that is shown.
      */
     async appendNotification(aType, aNotification, aButtons) {
       if (
@@ -158,29 +153,20 @@
 
       // Create the Custom Element and connect it to the document immediately.
       let newitem;
-      if (!aNotification.notificationIs) {
-        if (!customElements.get("notification-message")) {
-          // There's some weird timing stuff when this element is created at
-          // script load time, we don't need it until now anyway so be lazy.
-          // Wrapped in a try/catch to handle rare cases where we start creating
-          // a notification but then the window gets closed/goes away.
-          try {
-            await createNotificationMessageElement();
-          } catch (err) {
-            console.warn(err);
-            throw err;
-          }
+      if (!customElements.get("notification-message")) {
+        // There's some weird timing stuff when this element is created at
+        // script load time, we don't need it until now anyway so be lazy.
+        // Wrapped in a try/catch to handle rare cases where we start creating
+        // a notification but then the window gets closed/goes away.
+        try {
+          await createNotificationMessageElement();
+        } catch (err) {
+          console.warn(err);
+          throw err;
         }
-        newitem = document.createElement("notification-message");
-        newitem.setAttribute("message-bar-type", "infobar");
-      } else {
-        newitem = document.createXULElement(
-          "notification",
-          aNotification.notificationIs
-            ? { is: aNotification.notificationIs }
-            : {}
-        );
       }
+      newitem = document.createElement("notification-message");
+      newitem.setAttribute("message-bar-type", "infobar");
 
       // Append or prepend notification, based on stack preference.
       if (this.stack.hasAttribute("prepend-notifications")) {
@@ -189,10 +175,9 @@
         this.stack.append(newitem);
       }
 
-      if (newitem.localName === "notification-message" && aNotification.label) {
+      if (aNotification.label) {
         newitem.label = aNotification.label;
       } else if (newitem.messageText) {
-        // Custom notification classes may not have the messageText property.
         // Can't use instanceof in case this was created from a different document:
         if (
           aNotification.label &&
@@ -417,208 +402,6 @@
     PRIORITY_CRITICAL_MEDIUM: 8,
     PRIORITY_CRITICAL_HIGH: 9,
   });
-
-  MozElements.Notification = class Notification extends MozXULElement {
-    static get markup() {
-      return `
-      <hbox class="messageDetails" align="center" flex="1"
-            oncommand="this.parentNode._doButtonCommand(event);">
-        <image class="messageImage"/>
-        <description class="messageText" flex="1"/>
-        <spacer flex="1"/>
-      </hbox>
-      <toolbarbutton ondblclick="event.stopPropagation();"
-                     class="messageCloseButton close-icon tabbable"
-                     data-l10n-id="close-notification-message"
-                     oncommand="this.parentNode.dismiss();"/>
-      `;
-    }
-
-    constructor() {
-      super();
-      this.persistence = 0;
-      this.priority = 0;
-      this.timeout = 0;
-      this.telemetry = null;
-      this._shown = false;
-    }
-
-    connectedCallback() {
-      MozXULElement.insertFTLIfNeeded("toolkit/global/notification.ftl");
-      this.appendChild(this.constructor.fragment);
-
-      for (let [propertyName, selector] of [
-        ["messageDetails", ".messageDetails"],
-        ["messageImage", ".messageImage"],
-        ["messageText", ".messageText"],
-        ["spacer", "spacer"],
-        ["buttonContainer", ".messageDetails"],
-        ["closeButton", ".messageCloseButton"],
-      ]) {
-        this[propertyName] = this.querySelector(selector);
-      }
-    }
-
-    disconnectedCallback() {
-      if (this.eventCallback) {
-        this.eventCallback("disconnected");
-      }
-    }
-
-    setButtons(aButtons) {
-      for (let button of aButtons) {
-        let buttonElem;
-
-        let link = button.link;
-        let localeId = button["l10n-id"];
-        if (!link && button.supportPage) {
-          link =
-            Services.urlFormatter.formatURLPref("app.support.baseURL") +
-            button.supportPage;
-          if (!button.label && !localeId) {
-            localeId = "notification-learnmore-default-label";
-          }
-        }
-
-        if (link) {
-          buttonElem = document.createXULElement("label", {
-            is: "text-link",
-          });
-          buttonElem.setAttribute("href", link);
-          buttonElem.classList.add("notification-link");
-          buttonElem.onclick = (...args) => this._doButtonCommand(...args);
-        } else {
-          buttonElem = document.createXULElement(
-            "button",
-            button.is ? { is: button.is } : {}
-          );
-          buttonElem.classList.add("notification-button");
-
-          if (button.primary) {
-            buttonElem.classList.add("primary");
-          }
-        }
-
-        if (localeId) {
-          document.l10n.setAttributes(buttonElem, localeId);
-        } else {
-          buttonElem.setAttribute(link ? "value" : "label", button.label);
-          if (typeof button.accessKey == "string") {
-            buttonElem.setAttribute("accesskey", button.accessKey);
-          }
-        }
-
-        if (link) {
-          this.messageText.appendChild(buttonElem);
-        } else {
-          this.messageDetails.appendChild(buttonElem);
-        }
-        buttonElem.buttonInfo = button;
-      }
-    }
-
-    get control() {
-      return this.closest(".notificationbox-stack")._notificationBox;
-    }
-
-    /**
-     * Changes the text of an existing notification. If the notification was
-     * created with a custom fragment, it will be overwritten with plain text
-     * or a localized message.
-     *
-     * @param {string | { "l10n-id": string, "l10n-args"?: string }} value
-     */
-    set label(value) {
-      if (value && typeof value == "object" && "l10n-id" in value) {
-        const message = document.createElement("span");
-        document.l10n.setAttributes(
-          message,
-          value["l10n-id"],
-          value["l10n-args"]
-        );
-        while (this.messageText.firstChild) {
-          this.messageText.firstChild.remove();
-        }
-        this.messageText.appendChild(message);
-      } else {
-        this.messageText.textContent = value;
-      }
-    }
-
-    /**
-     * This method should only be called when the user has manually closed the
-     * notification. If you want to programmatically close the notification, you
-     * should call close() instead.
-     */
-    dismiss() {
-      this._doTelemetry("dismissed");
-
-      if (this.eventCallback) {
-        this.eventCallback("dismissed");
-      }
-      this.close();
-    }
-
-    close() {
-      if (!this.parentNode) {
-        return;
-      }
-      this.control.removeNotification(this);
-    }
-
-    // This will be called when the host (such as a tabbrowser) determines that
-    // the notification is made visible to the user.
-    shown() {
-      if (!this._shown) {
-        this._shown = true;
-        this._doTelemetry("shown");
-      }
-    }
-
-    _doTelemetry(type) {
-      if (
-        this.telemetry &&
-        (!this.telemetryFilter || this.telemetryFilter.includes(type))
-      ) {
-        Services.telemetry.keyedScalarAdd(this.telemetry, type, 1);
-      }
-    }
-
-    _doButtonCommand(event) {
-      if (!("buttonInfo" in event.target)) {
-        return;
-      }
-
-      var button = event.target.buttonInfo;
-      this._doTelemetry(button.telemetry || "action");
-
-      if (button.popup) {
-        document
-          .getElementById(button.popup)
-          .openPopup(
-            event.originalTarget,
-            "after_start",
-            0,
-            0,
-            false,
-            false,
-            event
-          );
-        event.stopPropagation();
-      } else {
-        var callback = button.callback;
-        if (callback) {
-          var result = callback(this, button, event.target, event);
-          if (!result) {
-            this.close();
-          }
-          event.stopPropagation();
-        }
-      }
-    }
-  };
-
-  customElements.define("notification", MozElements.Notification);
 
   async function createNotificationMessageElement() {
     document.createElement("moz-message-bar");
