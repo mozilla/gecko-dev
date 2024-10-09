@@ -3615,16 +3615,18 @@ bool BacktrackingAllocator::processBundle(const MIRGenerator* mir,
   // for higher weight bundles.
 
   Requirement requirement, hint;
-  bool canAllocate = computeRequirement(bundle, &requirement, &hint);
+  bool doesNotHaveFixedConflict =
+      computeRequirement(bundle, &requirement, &hint);
 
-  bool hasCall;
+  bool hasCall = false;
   LiveBundleVector conflicting;
-  for (size_t attempt = 0;; attempt++) {
-    if (mir->shouldCancel("Backtracking Allocation (processBundle loop)")) {
-      return false;
-    }
 
-    if (canAllocate) {
+  if (doesNotHaveFixedConflict) {
+    for (size_t attempt = 0;; attempt++) {
+      if (mir->shouldCancel("Backtracking Allocation (processBundle loop)")) {
+        return false;
+      }
+
       bool success = false;
       hasCall = false;
       conflicting.clear();
@@ -3659,17 +3661,20 @@ bool BacktrackingAllocator::processBundle(const MIRGenerator* mir,
         }
         continue;
       }
+
+      // We have to split this bundle.
+      break;
     }
-
-    // A minimal bundle cannot be split any further. If we try to split it
-    // it at this point we will just end up with the same bundle and will
-    // enter an infinite loop. Weights and the initial live ranges must
-    // be constructed so that any minimal bundle is allocatable.
-    MOZ_ASSERT(!minimalBundle(bundle));
-
-    LiveBundle* conflict = conflicting.empty() ? nullptr : conflicting[0];
-    return chooseBundleSplit(bundle, canAllocate && hasCall, conflict);
   }
+
+  // A minimal bundle cannot be split any further. If we try to split it
+  // it at this point we will just end up with the same bundle and will
+  // enter an infinite loop. Weights and the initial live ranges must
+  // be constructed so that any minimal bundle is allocatable.
+  MOZ_ASSERT(!minimalBundle(bundle));
+
+  LiveBundle* conflict = conflicting.empty() ? nullptr : conflicting[0];
+  return chooseBundleSplit(bundle, hasCall, conflict);
 }
 
 // Helper for ::tryAllocatingRegistersForSpillBundles
