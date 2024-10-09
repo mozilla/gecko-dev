@@ -43,6 +43,7 @@ using namespace mozilla::a11y;
 @interface mozAccessible ()
 - (BOOL)providesLabelNotTitle;
 
+- (void)maybePostLiveRegionChanged;
 - (void)maybePostA11yUtilNotification;
 @end
 
@@ -868,6 +869,17 @@ struct RoleDescrComparator {
   return NO;
 }
 
+- (void)maybePostLiveRegionChanged {
+  id<MOXAccessible> liveRegion =
+      [self moxFindAncestor:^BOOL(id<MOXAccessible> moxAcc, BOOL* stop) {
+        return [moxAcc moxIsLiveRegion];
+      }];
+
+  if (liveRegion) {
+    [liveRegion moxPostNotification:@"AXLiveRegionChanged"];
+  }
+}
+
 - (void)maybePostA11yUtilNotification {
   MOZ_ASSERT(mGeckoAccessible);
   // Sometimes we use a special live region to make announcements to the user.
@@ -992,15 +1004,16 @@ struct RoleDescrComparator {
     case nsIAccessibleEvent::EVENT_LIVE_REGION_REMOVED:
       mIsLiveRegion = false;
       break;
-    case nsIAccessibleEvent::EVENT_NAME_CHANGE:
+    case nsIAccessibleEvent::EVENT_REORDER:
+      [self maybePostLiveRegionChanged];
+      break;
+    case nsIAccessibleEvent::EVENT_NAME_CHANGE: {
       if (![self providesLabelNotTitle]) {
         [self moxPostNotification:NSAccessibilityTitleChangedNotification];
       }
+      [self maybePostLiveRegionChanged];
       break;
-    case nsIAccessibleEvent::EVENT_LIVE_REGION_CHANGED:
-      MOZ_ASSERT(mIsLiveRegion);
-      [self moxPostNotification:@"AXLiveRegionChanged"];
-      break;
+    }
   }
 }
 
