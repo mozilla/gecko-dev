@@ -41,7 +41,7 @@ class MacosDevice(Layer):
         stdout, stderr = p.communicate(timeout=45)
         if p.returncode != 0:
             raise subprocess.CalledProcessError(
-                stdout=stdout, stderr=stderr, returncode=p.returncode
+                p.returncode, args, output=stdout, stderr=stderr
             )
 
         return stdout
