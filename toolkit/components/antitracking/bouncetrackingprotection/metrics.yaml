@@ -22,6 +22,7 @@ bounce.tracking.protection:
       determine whether we need to improve performance here.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890582
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890582#c4
     data_sensitivity:
@@ -30,7 +31,7 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 134
+    expires: 140
   num_hosts_per_purge_run:
     type: custom_distribution
     unit: integer
@@ -42,6 +43,7 @@ bounce.tracking.protection:
       Number of bounce trackers purged successfully per scheduled purge.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1899809
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1899809
     data_sensitivity:
@@ -50,7 +52,7 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 134
+    expires: 140
   purge_count:
     type: labeled_counter
     description: >
@@ -60,6 +62,7 @@ bounce.tracking.protection:
       that would have happened under the dry label.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890578
     data_sensitivity:
@@ -68,7 +71,7 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 134
+    expires: 140
     labels:
       - success
       - failure
@@ -109,6 +112,7 @@ bounce.tracking.protection:
       Keeps track of whether the feature is enabled at startup.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1893964
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1893964#c4
     data_sensitivity:
@@ -117,7 +121,7 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 134
+    expires: 140
   enabled_dry_run_mode_at_startup:
     type: boolean
     description: >
@@ -125,6 +129,7 @@ bounce.tracking.protection:
       at startup.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1893964
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1893964#c4
     data_sensitivity:
@@ -133,7 +138,7 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 134
+    expires: 140
   purge_count_classified_tracker:
     type: counter
     description: >
@@ -141,6 +146,7 @@ bounce.tracking.protection:
       [emailtracking-protection, fingerprinting-protection, socialtracking-protection, tracking-protection]
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890580
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922601
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1890580
     data_sensitivity:
@@ -149,4 +155,4 @@ bounce.tracking.protection:
       - pbz@mozilla.com
       - bvandersloot@mozilla.com
       - manuel@mozilla.com
-    expires: 134
+    expires: 140
