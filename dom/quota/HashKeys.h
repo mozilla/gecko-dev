@@ -12,9 +12,10 @@
 namespace mozilla::dom::quota {
 
 // nsCStringHashKey with disabled memmove
-class nsCStringHashKeyDM : public nsCStringHashKey {
+class nsCStringHashKeyWithDisabledMemmove : public nsCStringHashKey {
  public:
-  explicit nsCStringHashKeyDM(const nsCStringHashKey::KeyTypePointer aKey)
+  explicit nsCStringHashKeyWithDisabledMemmove(
+      const nsCStringHashKey::KeyTypePointer aKey)
       : nsCStringHashKey(aKey) {}
   enum { ALLOW_MEMMOVE = false };
 };

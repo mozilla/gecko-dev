@@ -56,7 +56,8 @@ namespace {
 // The assertion type must be the same as the assertion type used for defining
 // the base class for FileSystemDataManager in FileSystemDataManager.h!
 using FileSystemDataManagerHashKey =
-    std::conditional<ReleaseAssertEnabled::value, quota::nsCStringHashKeyDM,
+    std::conditional<ReleaseAssertEnabled::value,
+                     quota::nsCStringHashKeyWithDisabledMemmove,
                      nsCStringHashKey>::type;
 
 // Raw (but checked when the diagnostic assert is enabled) references as we

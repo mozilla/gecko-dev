@@ -2757,9 +2757,9 @@ StaticAutoPtr<PrepareDatastoreOpArray> gPrepareDatastoreOps;
 // When CheckedUnsafePtr's checking is enabled, it's necessary to ensure that
 // the hashtable uses the copy constructor instead of memmove for moving entries
 // since memmove will break CheckedUnsafePtr in a memory-corrupting way.
-using DatastoreHashKey =
-    std::conditional<DiagnosticAssertEnabled::value, nsCStringHashKeyDM,
-                     nsCStringHashKey>::type;
+using DatastoreHashKey = std::conditional<DiagnosticAssertEnabled::value,
+                                          nsCStringHashKeyWithDisabledMemmove,
+                                          nsCStringHashKey>::type;
 
 using DatastoreHashtable =
     nsBaseHashtable<DatastoreHashKey, NotNull<CheckedUnsafePtr<Datastore>>,
