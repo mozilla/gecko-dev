@@ -136,6 +136,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     OpenTabsConfirmationDialogAction.ConfirmTapped,
     -> state.copy(openTabsConfirmationDialog = OpenTabsConfirmationDialog.None)
     FirstSyncCompleted,
+    ViewDisposed,
     SelectFolderAction.ViewAppeared,
     SearchClicked,
     SignIntoSyncClicked,
