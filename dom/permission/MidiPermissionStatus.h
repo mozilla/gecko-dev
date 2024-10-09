@@ -13,7 +13,7 @@ namespace mozilla::dom {
 
 class MidiPermissionStatus final : public PermissionStatus {
  public:
-  MidiPermissionStatus(nsPIDOMWindowInner* aWindow, bool aSysex);
+  MidiPermissionStatus(nsIGlobalObject* aGlobal, bool aSysex);
 
  private:
   ~MidiPermissionStatus() {}

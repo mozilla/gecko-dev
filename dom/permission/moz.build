@@ -20,6 +20,7 @@ UNIFIED_SOURCES += [
     "PermissionObserver.cpp",
     "Permissions.cpp",
     "PermissionStatus.cpp",
+    "PermissionStatusSink.cpp",
     "PermissionUtils.cpp",
     "StorageAccessPermissionStatus.cpp",
 ]
