@@ -162,8 +162,8 @@ class MapObject : public NativeObject {
                      HashableValueHasher, CellAllocPolicy>;
 
   // OrderedHashMap with the same memory layout as ValueMap but without any
-  // wrappers that perform barriers. Used when updating the nursery allocated
-  // keys map during minor GC.
+  // wrappers that perform barriers. Used to allocate and delete the table and
+  // when updating the nursery allocated keys map during minor GC.
   using UnbarrieredTable =
       OrderedHashMap<Value, Value, UnbarrieredHashPolicy, CellAllocPolicy>;
   friend class OrderedHashTableRef<MapObject>;
@@ -203,14 +203,17 @@ class MapObject : public NativeObject {
 
   PreBarrieredTable* nurseryTable() {
     MOZ_ASSERT(IsInsideNursery(this));
-    return maybePtrFromReservedSlot<PreBarrieredTable>(DataSlot);
+    return reinterpret_cast<PreBarrieredTable*>(unbarrieredTable());
   }
   ValueMap* tenuredTable() {
     MOZ_ASSERT(!IsInsideNursery(this));
     return getTableUnchecked();
   }
   ValueMap* getTableUnchecked() {
-    return maybePtrFromReservedSlot<ValueMap>(DataSlot);
+    return reinterpret_cast<ValueMap*>(unbarrieredTable());
+  }
+  UnbarrieredTable* unbarrieredTable() {
+    return maybePtrFromReservedSlot<UnbarrieredTable>(DataSlot);
   }
 
   static inline bool setWithHashableKey(JSContext* cx, MapObject* obj,
@@ -364,7 +367,10 @@ class SetObject : public NativeObject {
   static const JSPropertySpec staticProperties[];
 
   ValueSet* getTableUnchecked() {
-    return maybePtrFromReservedSlot<ValueSet>(DataSlot);
+    return reinterpret_cast<ValueSet*>(unbarrieredTable());
+  }
+  UnbarrieredTable* unbarrieredTable() {
+    return maybePtrFromReservedSlot<UnbarrieredTable>(DataSlot);
   }
 
   static bool finishInit(JSContext* cx, HandleObject ctor, HandleObject proto);

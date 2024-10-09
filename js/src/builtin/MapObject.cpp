@@ -731,8 +731,8 @@ inline bool MapObject::setWithHashableKey(JSContext* cx, MapObject* obj,
 
 MapObject* MapObject::create(JSContext* cx,
                              HandleObject proto /* = nullptr */) {
-  auto map = cx->make_unique<ValueMap>(cx->zone(),
-                                       cx->realm()->randomHashCodeScrambler());
+  auto map = cx->make_unique<UnbarrieredTable>(
+      cx->zone(), cx->realm()->randomHashCodeScrambler());
   if (!map) {
     return nullptr;
   }
@@ -774,22 +774,37 @@ size_t MapObject::sizeOfData(mozilla::MallocSizeOf mallocSizeOf) {
 
 void MapObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   MOZ_ASSERT(gcx->onMainThread());
-  ValueMap* table = obj->as<MapObject>().getTableUnchecked();
+  UnbarrieredTable* table = obj->as<MapObject>().unbarrieredTable();
   if (!table) {
     return;
   }
 
   MOZ_ASSERT_IF(obj->isTenured(), !table->hasNurseryRanges());
 
-  bool needsPostBarriers = obj->isTenured();
-  if (needsPostBarriers) {
-    // Use the ValueMap representation which has post barriers.
-    gcx->delete_(obj, table, MemoryUse::MapObjectTable);
-  } else {
-    // Use the PreBarrieredTable representation which does not.
-    auto* preBarriedTable = reinterpret_cast<PreBarrieredTable*>(table);
-    gcx->delete_(obj, preBarriedTable, MemoryUse::MapObjectTable);
+#ifdef DEBUG
+  // If we're finalizing a tenured map then it cannot contain nursery things,
+  // because we evicted the nursery at the start of collection and writing a
+  // nursery thing into the table would require it to be live, which means it
+  // would have been marked.
+  if (obj->isTenured()) {
+    size_t count = 0;
+    for (auto r = table->all(); !r.empty(); r.popFront()) {
+      Value key = r.front().key;
+      MOZ_ASSERT_IF(key.isGCThing(), !IsInsideNursery(key.toGCThing()));
+      Value value = r.front().value;
+      MOZ_ASSERT_IF(value.isGCThing(), !IsInsideNursery(value.toGCThing()));
+      count++;
+      if (count == 1000) {
+        break;
+      }
+    }
   }
+#endif
+
+  // No post barriers are required for nursery tables. Finalized tenured tables
+  // do not contain nursery GC things, so do not require post barriers. Pre
+  // barriers are not required during finalization.
+  gcx->delete_(obj, table, MemoryUse::MapObjectTable);
 }
 
 void MapObject::clearNurseryRangesBeforeMinorGC() {
@@ -1474,8 +1489,8 @@ bool SetObject::add(JSContext* cx, HandleObject obj, HandleValue k) {
 
 SetObject* SetObject::create(JSContext* cx,
                              HandleObject proto /* = nullptr */) {
-  auto set = cx->make_unique<ValueSet>(cx->zone(),
-                                       cx->realm()->randomHashCodeScrambler());
+  auto set = cx->make_unique<UnbarrieredTable>(
+      cx->zone(), cx->realm()->randomHashCodeScrambler());
   if (!set) {
     return nullptr;
   }
@@ -1523,11 +1538,33 @@ size_t SetObject::sizeOfData(mozilla::MallocSizeOf mallocSizeOf) {
 
 void SetObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   MOZ_ASSERT(gcx->onMainThread());
-  SetObject* setobj = static_cast<SetObject*>(obj);
-  if (ValueSet* set = setobj->getData()) {
-    MOZ_ASSERT_IF(obj->isTenured(), !set->hasNurseryRanges());
-    gcx->delete_(obj, set, MemoryUse::MapObjectTable);
+  UnbarrieredTable* set = obj->as<SetObject>().unbarrieredTable();
+  if (!set) {
+    return;
   }
+
+#ifdef DEBUG
+  // If we're finalizing a tenured set then it cannot contain nursery things,
+  // because we evicted the nursery at the start of collection and writing a
+  // nursery thing into the set would require it to be live, which means it
+  // would have been marked.
+  if (obj->isTenured()) {
+    size_t count = 0;
+    for (auto r = set->all(); !r.empty(); r.popFront()) {
+      Value key = r.front();
+      MOZ_ASSERT_IF(key.isGCThing(), !IsInsideNursery(key.toGCThing()));
+      count++;
+      if (count == 1000) {
+        break;
+      }
+    }
+  }
+#endif
+
+  // No post barriers are required for nursery sets. Finalized tenured sets do
+  // not contain nursery GC things, so do not require post barriers. Pre
+  // barriers are not required for finalization.
+  gcx->delete_(obj, set, MemoryUse::MapObjectTable);
 }
 
 void SetObject::clearNurseryRangesBeforeMinorGC() {
