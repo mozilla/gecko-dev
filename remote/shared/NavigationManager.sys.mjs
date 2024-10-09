@@ -171,7 +171,13 @@ class NavigationRegistry extends EventEmitter {
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
     const navigation = { state: "finished", navigationId, url };
-    this.#navigations.set(navigableId, navigation);
+
+    // Update the current navigation for the navigable only if there is no
+    // ongoing navigation for the navigable.
+    const currentNavigation = this.#navigations.get(navigableId);
+    if (!currentNavigation || currentNavigation.state == "finished") {
+      this.#navigations.set(navigableId, navigation);
+    }
 
     // Hash change navigations are immediately done, fire a single event.
     this.emit("fragment-navigated", { navigationId, navigableId, url });
@@ -202,7 +208,13 @@ class NavigationRegistry extends EventEmitter {
 
     const navigationId = this.#getOrCreateNavigationId(navigableId);
     const navigation = { state: "finished", navigationId, url };
-    this.#navigations.set(navigableId, navigation);
+
+    // Update the current navigation for the navigable only if there is no
+    // ongoing navigation for the navigable.
+    const currentNavigation = this.#navigations.get(navigableId);
+    if (!currentNavigation || currentNavigation.state == "finished") {
+      this.#navigations.set(navigableId, navigation);
+    }
 
     // Same document navigations are immediately done, fire a single event.
 
