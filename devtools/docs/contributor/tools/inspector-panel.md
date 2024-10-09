@@ -5,23 +5,11 @@ The Inspector panel is a tab in the toolbox. Like all tabs, it's in its own ifra
 
 The high-level hierarchy looks something like this:
 
-     Toolbox
-        |
-    InspectorPanel
-        |
-    +-------------+------------------+---------------+
-    |             |                  |               |
-    MarkupView  SelectorSearch  HTMLBreadcrumbs  ToolSidebar widget (iframes)
-                                                     |
-                                                     +- RuleView
-                                                     |
-                                                     +- ComputedView
-                                                     |
-                                                     +- LayoutView
-                                                     |
-                                                     +- FontInspector
-                                                     |
-                                                     +- AnimationInspector
+```{mermaid}
+flowchart TD
+    Toolbox --> InspectorPanel --> MarkupView & SelectorSearch & HTMLBreadCrumbs & ToolSidebar
+    ToolSidebar["ToolSidebar widget(iframes)"] --> RuleView & ComputedView & LayoutView & FontInspector & AnimationInspector
+```
 
 ## Server dependencies
 - The inspector panel relies on a series of actors that live on the server.
@@ -46,13 +34,11 @@ The high-level hierarchy looks something like this:
 ## Server-side structure
 Simplified actor hierarchy
 
-    InspectorActor
-         |
-    +---------------+
-    |               |
-    WalkerActor    PageStyleActor (for rule-view/computed-view)
-    |               |
-    NodeActor      StyleRuleActor
+```{mermaid}
+flowchart TD
+    InspectorActor --> WalkerActor --> NodeActor
+    InspectorActor --> PageStyleActor["PageStyleActor (for rule-view/computed-view)"] --> StyleRuleActor
+```
 
 __InspectorActor__
 
