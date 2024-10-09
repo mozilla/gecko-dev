@@ -39,6 +39,7 @@ categories:
         - accessible
         - code-quality
         - writing-rust-code
+        - rust-components
         - tools/profiler
         - performance
         - storage
