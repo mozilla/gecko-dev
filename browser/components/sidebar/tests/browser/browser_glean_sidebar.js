@@ -12,11 +12,23 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs",
 });
 
-add_setup(() => Services.fog.testResetFOG());
 registerCleanupFunction(() => {
   while (gBrowser.tabs.length > 1) {
     BrowserTestUtils.removeTab(gBrowser.tabs[0]);
   }
+});
+
+add_task(async function test_metrics_initialized() {
+  await SidebarController.promiseInitialized;
+  const metrics = ["displaySettings", "positionSettings", "tabsLayout"];
+  for (const metric of metrics) {
+    Assert.notEqual(
+      Glean.sidebar[metric].testGetValue(),
+      null,
+      `${metric} is initialized.`
+    );
+  }
+  Services.fog.testResetFOG();
 });
 
 add_task(async function test_sidebar_expand() {
@@ -366,4 +378,29 @@ add_task(async function test_sidebar_tabs_layout() {
     "horizontal",
     false
   );
+});
+
+add_task(async function test_sidebar_position_rtl_ui() {
+  const sandbox = sinon.createSandbox();
+  sandbox.stub(window, "RTL_UI").value(true);
+  await SpecialPowers.pushPrefEnv({ set: [["intl.l10n.pseudo", "bidi"]] });
+  Services.fog.testResetFOG();
+
+  // When RTL is enabled, sidebar is shown on the right by default.
+  // Toggle position setting to move it to the left, then back to the right.
+  await testCustomizeSetting(
+    "positionInputs",
+    Glean.sidebarCustomize.sidebarPosition,
+    { position: "left" },
+    { position: "right" }
+  );
+  await testCustomizeSetting(
+    "positionInputs",
+    Glean.sidebar.positionSettings,
+    "left",
+    "right"
+  );
+
+  sandbox.restore();
+  await SpecialPowers.popPrefEnv();
 });

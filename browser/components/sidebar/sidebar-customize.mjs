@@ -156,9 +156,12 @@ export class SidebarCustomize extends SidebarPage {
   reversePosition() {
     const { SidebarController } = this.getWindow();
     SidebarController.reversePosition();
-    const position = SidebarController._positionStart ? "left" : "right";
-    Glean.sidebarCustomize.sidebarPosition.record({ position });
-    Glean.sidebar.positionSettings.set(position);
+    Glean.sidebarCustomize.sidebarPosition.record({
+      position:
+        SidebarController._positionStart !== this.getWindow().RTL_UI
+          ? "left"
+          : "right",
+    });
   }
 
   extensionTemplate(extension, index) {
@@ -307,17 +310,17 @@ export class SidebarCustomize extends SidebarPage {
   #handleVisibilityChange({ target: { value } }) {
     this.visibility = value;
     Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, value);
-    const preference = value === "always-show" ? "always" : "hide";
-    Glean.sidebarCustomize.sidebarDisplay.record({ preference });
-    Glean.sidebar.displaySettings.set(preference);
+    Glean.sidebarCustomize.sidebarDisplay.record({
+      preference: value === "always-show" ? "always" : "hide",
+    });
   }
 
   #handleTabDirectionChange({ target: { value } }) {
     const verticalTabsEnabled = value === "true";
     Services.prefs.setBoolPref(TAB_DIRECTION_SETTING_PREF, verticalTabsEnabled);
-    const orientation = verticalTabsEnabled ? "vertical" : "horizontal";
-    Glean.sidebarCustomize.tabsLayout.record({ orientation });
-    Glean.sidebar.tabsLayout.set(orientation);
+    Glean.sidebarCustomize.tabsLayout.record({
+      orientation: verticalTabsEnabled ? "vertical" : "horizontal",
+    });
   }
 }
 
