@@ -128,12 +128,8 @@ class WebRenderPipelineInfo final {
 /// messages to preserve ordering.
 class RendererEvent {
  public:
-  RendererEvent() : mCreationTimeStamp(TimeStamp::Now()) {}
   virtual ~RendererEvent() = default;
   virtual void Run(RenderThread& aRenderThread, wr::WindowId aWindow) = 0;
-  virtual const char* Name() = 0;
-
-  const TimeStamp mCreationTimeStamp;
 };
 
 /// The render thread is where WebRender issues all of its GPU work, and as much
@@ -437,8 +433,7 @@ class RenderThread final {
   void InitDeviceTask();
   void HandleFrameOneDoc(wr::WindowId aWindowId, bool aRender,
                          bool aTrackedFrame, Maybe<FramePublishId> aPublishId);
-  void RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aEvent,
-                bool aViaWebRender);
+  void RunEvent(wr::WindowId aWindowId, UniquePtr<RendererEvent> aEvent);
   void PostRunnable(already_AddRefed<nsIRunnable> aRunnable);
 
   void DoAccumulateMemoryReport(MemoryReport,

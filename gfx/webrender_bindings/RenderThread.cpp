@@ -579,7 +579,7 @@ void RenderThread::WrNotifierEvent_HandleExternalEvent(
     wr::WindowId aWindowId, UniquePtr<RendererEvent> aRendererEvent) {
   MOZ_ASSERT(IsInRenderThread());
 
-  RunEvent(aWindowId, std::move(aRendererEvent), /* aViaWebRender */ true);
+  RunEvent(aWindowId, std::move(aRendererEvent));
 }
 
 void RenderThread::BeginRecordingForWindow(wr::WindowId aWindowId,
@@ -727,38 +727,17 @@ void RenderThread::SetProfilerUI(wr::WindowId aWindowId,
 
 void RenderThread::PostEvent(wr::WindowId aWindowId,
                              UniquePtr<RendererEvent> aEvent) {
-  PostRunnable(
-      NewRunnableMethod<wr::WindowId, UniquePtr<RendererEvent>&&, bool>(
-          "wr::RenderThread::PostEvent", this, &RenderThread::RunEvent,
-          aWindowId, std::move(aEvent), /* aViaWebRender */ false));
+  PostRunnable(NewRunnableMethod<wr::WindowId, UniquePtr<RendererEvent>&&>(
+      "wr::RenderThread::PostEvent", this, &RenderThread::RunEvent, aWindowId,
+      std::move(aEvent)));
 }
 
 void RenderThread::RunEvent(wr::WindowId aWindowId,
-                            UniquePtr<RendererEvent> aEvent,
-                            bool aViaWebRender) {
+                            UniquePtr<RendererEvent> aEvent) {
   MOZ_ASSERT(IsInRenderThread());
-
-  const auto maxDurationMs = 2 * 1000;
-  const auto start = TimeStamp::Now();
-  const auto delayMs = static_cast<uint32_t>(
-      (start - aEvent->mCreationTimeStamp).ToMilliseconds());
-  // Check for the delay only if RendererEvent is delivered without using
-  // WebRender. Its delivery via WebRender can be very slow.
-  if (aViaWebRender && (delayMs > maxDurationMs)) {
-    gfxCriticalNote << "Calling " << aEvent->Name()
-                    << "::Run: is delayed: " << delayMs;
-  }
-
-  gfxCriticalNoteOnce << "Calling " << aEvent->Name() << "::Run: ";
 
   aEvent->Run(*this, aWindowId);
   aEvent = nullptr;
-
-  const auto end = TimeStamp::Now();
-  const auto durationMs = static_cast<uint32_t>((end - start).ToMilliseconds());
-  if (durationMs > maxDurationMs) {
-    gfxCriticalNote << "NewRenderer::Run is slow: " << durationMs;
-  }
 }
 
 static void NotifyDidRender(layers::CompositorBridgeParent* aBridge,
@@ -1262,8 +1241,6 @@ void RenderThread::InitDeviceTask() {
   MOZ_ASSERT(!mSingletonGL);
   LOG("RenderThread::InitDeviceTask()");
 
-  const auto start = TimeStamp::Now();
-
   if (gfx::gfxVars::UseSoftwareWebRender()) {
     // Ensure we don't instantiate any shared GL context when SW-WR is used.
     return;
@@ -1277,14 +1254,6 @@ void RenderThread::InitDeviceTask() {
   // Query the shared GL context to force the
   // lazy initialization to happen now.
   SingletonGL();
-
-  const auto maxDurationMs = 3 * 1000;
-  const auto end = TimeStamp::Now();
-  const auto durationMs = static_cast<uint32_t>((end - start).ToMilliseconds());
-  if (durationMs > maxDurationMs) {
-    gfxCriticalNoteOnce << "RenderThread::InitDeviceTask is slow: "
-                        << durationMs;
-  }
 }
 
 void RenderThread::PostRunnable(already_AddRefed<nsIRunnable> aRunnable) {
