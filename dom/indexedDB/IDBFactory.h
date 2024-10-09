@@ -60,9 +60,6 @@ class IDBFactory final : public GlobalTeardownObserver, public nsWrapperCache {
 
   UniquePtr<PrincipalInfo> mPrincipalInfo;
 
-  // TODO: Unused, remove me!
-  nsCOMPtr<nsIGlobalObject> mGlobal;
-
   // This will only be set if the factory belongs to a window in a child
   // process.
   RefPtr<BrowserChild> mBrowserChild;
