@@ -23,10 +23,6 @@ struct GetFullOriginMetadataResponse
   FullOriginMetadata? maybeFullOriginMetadata;
 };
 
-struct ResetOriginResponse
-{
-};
-
 struct PersistedResponse
 {
   bool persisted;
@@ -52,7 +48,6 @@ union RequestResponse
   nsresult;
   StorageNameResponse;
   GetFullOriginMetadataResponse;
-  ResetOriginResponse;
   PersistedResponse;
   PersistResponse;
   EstimateResponse;

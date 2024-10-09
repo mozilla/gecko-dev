@@ -455,6 +455,10 @@ class QuotaManager final : public BackgroundThreadObject {
 
   RefPtr<BoolPromise> ClearStorage();
 
+  RefPtr<BoolPromise> ShutdownStoragesForOrigin(
+      Maybe<PersistenceType> aPersistenceType,
+      const PrincipalInfo& aPrincipalInfo, Maybe<Client::Type> aClientType);
+
   RefPtr<BoolPromise> ShutdownStorage(
       Maybe<OriginOperationCallbackOptions> aCallbackOptions = Nothing(),
       Maybe<OriginOperationCallbacks&> aCallbacks = Nothing());

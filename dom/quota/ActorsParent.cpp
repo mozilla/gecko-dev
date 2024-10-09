@@ -5928,6 +5928,22 @@ RefPtr<BoolPromise> QuotaManager::ClearStorage() {
       });
 }
 
+RefPtr<BoolPromise> QuotaManager::ShutdownStoragesForOrigin(
+    Maybe<PersistenceType> aPersistenceType,
+    const PrincipalInfo& aPrincipalInfo, Maybe<Client::Type> aClientType) {
+  AssertIsOnOwningThread();
+
+  auto shutdownOriginOp =
+      CreateShutdownOriginOp(WrapMovingNotNullUnchecked(this), aPersistenceType,
+                             aPrincipalInfo, aClientType);
+
+  RegisterNormalOriginOp(*shutdownOriginOp);
+
+  shutdownOriginOp->RunImmediately();
+
+  return shutdownOriginOp->OnResults();
+}
+
 RefPtr<BoolPromise> QuotaManager::ShutdownStorage(
     Maybe<OriginOperationCallbackOptions> aCallbackOptions,
     Maybe<OriginOperationCallbacks&> aCallbacks) {

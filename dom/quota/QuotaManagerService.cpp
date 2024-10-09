@@ -95,48 +95,6 @@ nsresult CheckedPrincipalToPrincipalInfo(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-nsresult GetClearResetOriginParams(nsIPrincipal* aPrincipal,
-                                   const nsACString& aPersistenceType,
-                                   const nsAString& aClientType,
-                                   ClearResetOriginParams& aParams) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aPrincipal);
-
-  nsresult rv =
-      CheckedPrincipalToPrincipalInfo(aPrincipal, aParams.principalInfo());
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
-
-  if (aPersistenceType.IsVoid()) {
-    aParams.persistenceTypeIsExplicit() = false;
-  } else {
-    const auto maybePersistenceType =
-        PersistenceTypeFromString(aPersistenceType, fallible);
-    if (NS_WARN_IF(maybePersistenceType.isNothing())) {
-      return NS_ERROR_INVALID_ARG;
-    }
-
-    aParams.persistenceType() = maybePersistenceType.value();
-    aParams.persistenceTypeIsExplicit() = true;
-  }
-
-  if (aClientType.IsVoid()) {
-    aParams.clientTypeIsExplicit() = false;
-  } else {
-    Client::Type clientType;
-    bool ok = Client::TypeFromText(aClientType, clientType, fallible);
-    if (NS_WARN_IF(!ok)) {
-      return NS_ERROR_INVALID_ARG;
-    }
-
-    aParams.clientType() = clientType;
-    aParams.clientTypeIsExplicit() = true;
-  }
-
-  return NS_OK;
-}
-
 template <typename ResponseType>
 struct ResponseTypeTraits;
 
@@ -1206,29 +1164,57 @@ QuotaManagerService::ResetStoragesForPrincipal(
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
 
-  if (NS_WARN_IF(!StaticPrefs::dom_quotaManager_testing())) {
-    return NS_ERROR_UNEXPECTED;
-  }
+  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
 
-  RefPtr<Request> request = new Request(aPrincipal);
+  QM_TRY_INSPECT(
+      const auto& persistenceType,
+      ([&aPersistenceType]() -> Result<Maybe<PersistenceType>, nsresult> {
+        if (aPersistenceType.IsVoid()) {
+          return Maybe<PersistenceType>();
+        }
 
-  ClearResetOriginParams commonParams;
+        const auto persistenceType =
+            PersistenceTypeFromString(aPersistenceType, fallible);
+        QM_TRY(MOZ_TO_RESULT(persistenceType.isSome()),
+               Err(NS_ERROR_INVALID_ARG));
 
-  nsresult rv = GetClearResetOriginParams(aPrincipal, aPersistenceType,
-                                          aClientType, commonParams);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+        return persistenceType;
+      }()));
 
-  RequestParams params;
-  params = ResetOriginParams(commonParams);
+  QM_TRY_INSPECT(
+      const auto& principalInfo,
+      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+        PrincipalInfo principalInfo;
+        QM_TRY(MOZ_TO_RESULT(
+            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-  RequestInfo info(request, params);
+        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
+               Err(NS_ERROR_INVALID_ARG));
 
-  rv = InitiateRequest(info);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+        return principalInfo;
+      }()));
+
+  QM_TRY_INSPECT(const auto& clientType,
+                 ([&aClientType]() -> Result<Maybe<Client::Type>, nsresult> {
+                   if (aClientType.IsVoid()) {
+                     return Maybe<Client::Type>();
+                   }
+
+                   Client::Type clientType;
+                   QM_TRY(MOZ_TO_RESULT(Client::TypeFromText(
+                              aClientType, clientType, fallible)),
+                          Err(NS_ERROR_INVALID_ARG));
+
+                   return Some(clientType);
+                 }()));
+
+  RefPtr<Request> request = new Request();
+
+  mBackgroundActor
+      ->SendShutdownStoragesForOrigin(persistenceType, principalInfo,
+                                      clientType)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             BoolResponsePromiseResolveOrRejectCallback(request));
 
   request.forget(_retval);
   return NS_OK;

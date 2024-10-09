@@ -80,11 +80,6 @@ struct ClearResetOriginParams
   bool clientTypeIsExplicit;
 };
 
-struct ResetOriginParams
-{
-  ClearResetOriginParams commonParams;
-};
-
 struct PersistedParams
 {
   PrincipalInfo principalInfo;
@@ -108,7 +103,6 @@ union RequestParams
 {
   StorageNameParams;
   GetFullOriginMetadataParams;
-  ResetOriginParams;
   PersistedParams;
   PersistParams;
   EstimateParams;
@@ -188,6 +182,11 @@ parent:
       returns(BoolResponse response);
 
   async ClearStorage()
+      returns(BoolResponse response);
+
+  async ShutdownStoragesForOrigin(PersistenceType? persistenceType,
+                                  PrincipalInfo principalInfo,
+                                  Type? clientType)
       returns(BoolResponse response);
 
   async ShutdownStorage()

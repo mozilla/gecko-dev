@@ -180,33 +180,6 @@ bool Quota::VerifyRequestParams(const RequestParams& aParams) const {
       break;
     }
 
-    case RequestParams::TResetOriginParams: {
-      const ClearResetOriginParams& params =
-          aParams.get_ResetOriginParams().commonParams();
-
-      if (NS_WARN_IF(
-              !QuotaManager::IsPrincipalInfoValid(params.principalInfo()))) {
-        MOZ_CRASH_UNLESS_FUZZING();
-        return false;
-      }
-
-      if (params.persistenceTypeIsExplicit()) {
-        if (NS_WARN_IF(!IsValidPersistenceType(params.persistenceType()))) {
-          MOZ_CRASH_UNLESS_FUZZING();
-          return false;
-        }
-      }
-
-      if (params.clientTypeIsExplicit()) {
-        if (NS_WARN_IF(!Client::IsValidType(params.clientType()))) {
-          MOZ_CRASH_UNLESS_FUZZING();
-          return false;
-        }
-      }
-
-      break;
-    }
-
     case RequestParams::TListOriginsParams:
       break;
 
@@ -286,9 +259,6 @@ PQuotaRequestParent* Quota::AllocPQuotaRequestParent(
       case RequestParams::TGetFullOriginMetadataParams:
         return CreateGetFullOriginMetadataOp(
             quotaManager, aParams.get_GetFullOriginMetadataParams());
-
-      case RequestParams::TResetOriginParams:
-        return CreateResetOriginOp(quotaManager, aParams);
 
       case RequestParams::TPersistedParams:
         return CreatePersistedOp(quotaManager, aParams);
@@ -779,6 +749,42 @@ mozilla::ipc::IPCResult Quota::RecvClearStorage(
   quotaManager->ClearStorage()->Then(
       GetCurrentSerialEventTarget(), __func__,
       BoolPromiseResolveOrRejectCallback(this, std::move(aResolver)));
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult Quota::RecvShutdownStoragesForOrigin(
+    const Maybe<PersistenceType>& aPersistenceType,
+    const PrincipalInfo& aPrincipalInfo, const Maybe<Type>& aClientType,
+    ShutdownStoragesForOriginResolver&& aResolver) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveBoolResponseAndReturn(aResolver));
+
+  if (!TrustParams()) {
+    if (aPersistenceType) {
+      QM_TRY(MOZ_TO_RESULT(IsValidPersistenceType(*aPersistenceType)),
+             QM_CUF_AND_IPC_FAIL(this));
+    }
+
+    QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(aPrincipalInfo)),
+           QM_CUF_AND_IPC_FAIL(this));
+
+    if (aClientType) {
+      QM_TRY(MOZ_TO_RESULT(Client::IsValidType(*aClientType)),
+             QM_CUF_AND_IPC_FAIL(this));
+    }
+  }
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveBoolResponseAndReturn(aResolver));
+
+  quotaManager
+      ->ShutdownStoragesForOrigin(aPersistenceType, aPrincipalInfo, aClientType)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             BoolPromiseResolveOrRejectCallback(this, std::move(aResolver)));
 
   return IPC_OK();
 }
