@@ -246,20 +246,30 @@ static const struct moz_wl_pointer_listener pointer_listener = {
 };
 
 void nsWaylandDisplay::SetPointer(wl_pointer* aPointer) {
-  if (!mPointerGestures || wl_proxy_get_version((struct wl_proxy*)aPointer) <
-                               WL_POINTER_RELEASE_SINCE_VERSION) {
+  // Don't even try on such old interface
+  if (wl_proxy_get_version((struct wl_proxy*)aPointer) <
+      WL_POINTER_RELEASE_SINCE_VERSION) {
     return;
   }
+
   MOZ_DIAGNOSTIC_ASSERT(!mPointer);
   mPointer = aPointer;
-  wl_pointer_add_listener(mPointer,
-                          (const wl_pointer_listener*)&pointer_listener, this);
 
-  mPointerGestureHold =
-      zwp_pointer_gestures_v1_get_hold_gesture(mPointerGestures, mPointer);
-  zwp_pointer_gesture_hold_v1_set_user_data(mPointerGestureHold, this);
-  zwp_pointer_gesture_hold_v1_add_listener(mPointerGestureHold,
-                                           &gesture_hold_listener, this);
+  // We're interested in pointer_handle_axis_value120() only for now.
+  if (wl_proxy_get_version((struct wl_proxy*)aPointer) >=
+      WL_POINTER_AXIS_VALUE120_SINCE_VERSION) {
+    wl_pointer_add_listener(
+        mPointer, (const wl_pointer_listener*)&pointer_listener, this);
+  }
+
+  // mPointerGestures is set by zwp_pointer_gestures_v1 if we have it.
+  if (mPointerGestures) {
+    mPointerGestureHold =
+        zwp_pointer_gestures_v1_get_hold_gesture(mPointerGestures, mPointer);
+    zwp_pointer_gesture_hold_v1_set_user_data(mPointerGestureHold, this);
+    zwp_pointer_gesture_hold_v1_add_listener(mPointerGestureHold,
+                                             &gesture_hold_listener, this);
+  }
 }
 
 void nsWaylandDisplay::RemovePointer() {
