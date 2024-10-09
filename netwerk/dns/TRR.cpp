@@ -36,7 +36,6 @@
 #include "mozilla/Base64.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Logging.h"
-#include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Telemetry.h"
@@ -758,23 +757,6 @@ void TRR::StoreIPHintAsDNSRecord(const struct SVCB& aSVCBRecord) {
 }
 
 nsresult TRR::ReturnData(nsIChannel* aChannel) {
-  Maybe<TimeDuration> trrFetchDuration;
-  Maybe<TimeDuration> trrFetchDurationNetworkOnly;
-  // Set timings.
-  nsCOMPtr<nsITimedChannel> timedChan = do_QueryInterface(aChannel);
-  if (timedChan) {
-    TimeStamp asyncOpen, start, end;
-    if (NS_SUCCEEDED(timedChan->GetAsyncOpen(&asyncOpen)) &&
-        !asyncOpen.IsNull()) {
-      trrFetchDuration = Some(TimeStamp::Now() - asyncOpen);
-    }
-    if (NS_SUCCEEDED(timedChan->GetRequestStart(&start)) &&
-        NS_SUCCEEDED(timedChan->GetResponseEnd(&end)) && !start.IsNull() &&
-        !end.IsNull()) {
-      trrFetchDurationNetworkOnly = Some(end - start);
-    }
-  }
-
   if (mType != TRRTYPE_TXT && mType != TRRTYPE_HTTPSSVC) {
     // create and populate an AddrInfo instance to pass on
     RefPtr<AddrInfo> ai(new AddrInfo(mHost, ResolverType(), mType,
@@ -782,12 +764,21 @@ nsresult TRR::ReturnData(nsIChannel* aChannel) {
     auto builder = ai->Build();
     builder.SetAddresses(std::move(mDNS.mAddresses));
     builder.SetCanonicalHostname(mCname);
-    if (trrFetchDuration) {
-      builder.SetTrrFetchDuration((*trrFetchDuration).ToMilliseconds());
-    }
-    if (trrFetchDurationNetworkOnly) {
-      builder.SetTrrFetchDurationNetworkOnly(
-          (*trrFetchDurationNetworkOnly).ToMilliseconds());
+
+    // Set timings.
+    nsCOMPtr<nsITimedChannel> timedChan = do_QueryInterface(aChannel);
+    if (timedChan) {
+      TimeStamp asyncOpen, start, end;
+      if (NS_SUCCEEDED(timedChan->GetAsyncOpen(&asyncOpen)) &&
+          !asyncOpen.IsNull()) {
+        builder.SetTrrFetchDuration(
+            (TimeStamp::Now() - asyncOpen).ToMilliseconds());
+      }
+      if (NS_SUCCEEDED(timedChan->GetRequestStart(&start)) &&
+          NS_SUCCEEDED(timedChan->GetResponseEnd(&end)) && !start.IsNull() &&
+          !end.IsNull()) {
+        builder.SetTrrFetchDurationNetworkOnly((end - start).ToMilliseconds());
+      }
     }
     ai = builder.Finish();
 
@@ -803,29 +794,6 @@ nsresult TRR::ReturnData(nsIChannel* aChannel) {
     RecordReason(TRRSkippedReason::TRR_OK);
     (void)mHostResolver->CompleteLookupByType(mRec, NS_OK, mResult,
                                               mTRRSkippedReason, mTTL, mPB);
-  }
-
-  nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
-  if (httpChannel) {
-    nsAutoCString version;
-    if (NS_SUCCEEDED(httpChannel->GetProtocolVersion(version))) {
-      nsAutoCString key("h1"_ns);
-      if (version.Equals("h3"_ns)) {
-        key.Assign("h3"_ns);
-      } else if (version.Equals("h2"_ns)) {
-        key.Assign("h2"_ns);
-      }
-
-      if (trrFetchDuration) {
-        glean::networking::trr_fetch_duration.Get(key).AccumulateRawDuration(
-            *trrFetchDuration);
-      }
-      if (trrFetchDurationNetworkOnly) {
-        key.Append("_network_only"_ns);
-        glean::networking::trr_fetch_duration.Get(key).AccumulateRawDuration(
-            *trrFetchDurationNetworkOnly);
-      }
-    }
   }
   return NS_OK;
 }
