@@ -4,35 +4,39 @@
  */
 
 /**
- * This test is mainly to verify clearing by origin prefix.
+ * This test is mainly to verify clearing by client type.
  */
 
 async function testSteps() {
   const packages = [
-    "clearStoragesForOriginPrefix_profile",
+    "clearStoragesForClient_profile",
     "defaultStorageDirectory_shared",
   ];
 
   const testData = [
     {
       origin: "http://example.com",
+      client: "sdb",
       persistence: null,
-      key: "afterClearByOriginPrefix",
+      key: "afterClearByClient",
     },
     {
       origin: "http://example.com",
+      client: "sdb",
       persistence: "default",
-      key: "afterClearByOriginPrefix_default",
+      key: "afterClearByClient_default",
     },
     {
       origin: "http://example.com",
+      client: "sdb",
       persistence: "persistent",
-      key: "afterClearByOriginPrefix_persistent",
+      key: "afterClearByClient_persistent",
     },
     {
       origin: "http://example.com",
+      client: "sdb",
       persistence: "temporary",
-      key: "afterClearByOriginPrefix_temporary",
+      key: "afterClearByClient_temporary",
     },
   ];
 
@@ -60,13 +64,17 @@ async function testSteps() {
     getRelativeFile("storage/permanent/invalid+++example.com").remove(false);
     getRelativeFile("storage/temporary/invalid+++example.com").remove(false);
 
-    info("Clearing by origin prefix");
+    info("Clearing by client type");
 
-    request = clearOriginsByPrefix(getPrincipal(item.origin), item.persistence);
+    request = clearClient(
+      getPrincipal(item.origin),
+      item.persistence,
+      item.client
+    );
     await requestFinished(request);
 
     info("Verifying storage");
 
-    verifyStorage(packages, item.key, "afterClearByOriginPrefix");
+    verifyStorage(packages, item.key, "afterClearByClient");
   }
 }

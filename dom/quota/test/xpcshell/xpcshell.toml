@@ -3,6 +3,8 @@ head = "head.js"
 tags = "condprof"
 support-files = [
   "basics_profile.zip",
+  "clearStoragesForClient_profile.json",
+  "clearStoragesForClient_profile.zip",
   "clearStoragesForOriginPrefix_profile.json",
   "clearStoragesForOriginPrefix_profile.zip",
   "clearStoragesForPrincipal_profile.zip",
@@ -44,6 +46,8 @@ skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
 ["test_bad_origin_directory.js"]
 
 ["test_basics.js"]
+
+["test_clearStoragesForClient.js"]
 
 ["test_clearStoragesForOriginAttributesPattern.js"]
 
