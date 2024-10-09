@@ -853,7 +853,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
                                                     bool* success);
 
   // The top level driver for the splitting machinery
-  [[nodiscard]] bool chooseBundleSplit(LiveBundle* bundle, bool fixed,
+  [[nodiscard]] bool chooseBundleSplit(LiveBundle* bundle, bool hasCall,
                                        LiveBundle* conflict);
 
   // Bundle allocation
@@ -862,20 +862,20 @@ class BacktrackingAllocator : protected RegisterAllocator {
                                         Requirement* phint);
   [[nodiscard]] bool tryAllocateRegister(PhysicalRegister& r,
                                          LiveBundle* bundle, bool* success,
-                                         bool* pfixed,
+                                         bool* hasCall,
                                          LiveBundleVector& conflicting);
   [[nodiscard]] bool tryAllocateAnyRegister(LiveBundle* bundle, bool* success,
-                                            bool* pfixed,
+                                            bool* hasCall,
                                             LiveBundleVector& conflicting);
   [[nodiscard]] bool evictBundle(LiveBundle* bundle);
   [[nodiscard]] bool tryAllocateFixed(LiveBundle* bundle,
                                       Requirement requirement, bool* success,
-                                      bool* pfixed,
+                                      bool* hasCall,
                                       LiveBundleVector& conflicting);
   [[nodiscard]] bool tryAllocateNonFixed(LiveBundle* bundle,
                                          Requirement requirement,
                                          Requirement hint, bool* success,
-                                         bool* pfixed,
+                                         bool* hasCall,
                                          LiveBundleVector& conflicting);
   [[nodiscard]] bool processBundle(const MIRGenerator* mir, LiveBundle* bundle);
   [[nodiscard]] bool spill(LiveBundle* bundle);
