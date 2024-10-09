@@ -710,24 +710,35 @@ struct Limits final {
 };
 
 // -
+namespace details {
+template <class T, size_t Padding>
+struct PaddedBase {
+ protected:
+  T val = {};
+
+ private:
+  uint8_t padding[Padding] = {};
+};
+
+template <class T>
+struct PaddedBase<T, 0> {
+ protected:
+  T val = {};
+};
+}  // namespace details
 
 template <class T, size_t PaddedSize>
-struct Padded {
- private:
-  T val = {};
-  uint8_t padding[PaddedSize - sizeof(T)] = {};
+struct Padded : details::PaddedBase<T, PaddedSize - sizeof(T)> {
+  operator T&() { return this->val; }
+  operator const T&() const { return this->val; }
 
- public:
-  operator T&() { return val; }
-  operator const T&() const { return val; }
+  auto& operator=(const T& rhs) { return this->val = rhs; }
+  auto& operator=(T&& rhs) { return this->val = std::move(rhs); }
 
-  auto& operator=(const T& rhs) { return val = rhs; }
-  auto& operator=(T&& rhs) { return val = std::move(rhs); }
-
-  auto& operator*() { return val; }
-  auto& operator*() const { return val; }
-  auto operator->() { return &val; }
-  auto operator->() const { return &val; }
+  auto& operator*() { return this->val; }
+  auto& operator*() const { return this->val; }
+  auto operator->() { return &this->val; }
+  auto operator->() const { return &this->val; }
 };
 
 // -
