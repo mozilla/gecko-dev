@@ -2759,6 +2759,20 @@ void BrowsingContext::DidSet(FieldIndex<IDX_InRDMPane>, bool aOldValue) {
   PresContextAffectingFieldChanged();
 }
 
+void BrowsingContext::DidSet(FieldIndex<IDX_ForceDesktopViewport>,
+                             bool aOldValue) {
+  MOZ_ASSERT(IsTop(), "Should only set in the top-level browsing context");
+  if (ForceDesktopViewport() == aOldValue) {
+    return;
+  }
+  PresContextAffectingFieldChanged();
+  if (nsIDocShell* shell = GetDocShell()) {
+    if (RefPtr ps = shell->GetPresShell()) {
+      ps->MaybeRecreateMobileViewportManager(/* aAfterInitialization= */ true);
+    }
+  }
+}
+
 bool BrowsingContext::CanSet(FieldIndex<IDX_PageAwakeRequestCount>,
                              uint32_t aNewValue, ContentParent* aSource) {
   return IsTop() && XRE_IsParentProcess() && !aSource;

@@ -1111,6 +1111,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   }
 
   void DidSet(FieldIndex<IDX_InRDMPane>, bool aOldValue);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void DidSet(FieldIndex<IDX_ForceDesktopViewport>,
+                                          bool aOldValue);
 
   void DidSet(FieldIndex<IDX_EmbedderColorSchemes>,
               EmbedderColorSchemes&& aOldValue);
