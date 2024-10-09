@@ -547,7 +547,7 @@ OSXNotificationCenter::OnImageReady(nsISupports* aUserData,
   // properties.
   // TODO: Do we have a reasonable size to pass around here?
   nsCocoaUtils::CreateDualRepresentationNSImageFromImageContainer(
-      image, imgIContainer::FRAME_FIRST, nullptr, nullptr, NSMakeSize(0, 0),
+      image, imgIContainer::FRAME_FIRST, nullptr, NSMakeSize(0, 0),
       &cocoaImage);
   (osxni->mPendingNotification).contentImage = cocoaImage;
   [cocoaImage release];

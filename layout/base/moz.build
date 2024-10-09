@@ -23,6 +23,7 @@ XPIDL_SOURCES += [
     "nsILayoutHistoryState.idl",
     "nsIPreloadedStyleSheet.idl",
     "nsIStyleSheetService.idl",
+    "nsISVGPaintContext.idl",
 ]
 
 if CONFIG["MOZ_DEBUG"]:

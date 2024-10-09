@@ -24,6 +24,7 @@
 #include "MOZIconHelper.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/SVGImageContext.h"
 #include "nsCocoaUtils.h"
 #include "nsComputedDOMStyle.h"
 #include "nsContentUtils.h"
@@ -152,11 +153,17 @@ nsresult nsMenuItemIconX::OnComplete(imgIContainer* aImage) {
     mIconImage = nil;
   }
   RefPtr<nsPresContext> pc = mPresContext.get();
+  UniquePtr<SVGImageContext> svgContext;
+  if (pc && mComputedStyle) {
+    svgContext = MakeUnique<SVGImageContext>();
+    SVGImageContext::MaybeStoreContextPaint(*svgContext, *pc, *mComputedStyle,
+                                            aImage);
+  }
+
   mIconImage = [[MOZIconHelper
       iconImageFromImageContainer:aImage
                          withSize:NSMakeSize(kIconSize, kIconSize)
-                      presContext:pc
-                    computedStyle:mComputedStyle
+                       svgContext:svgContext.get()
                       scaleFactor:0.0f] retain];
   mComputedStyle = nullptr;
   mPresContext = nullptr;

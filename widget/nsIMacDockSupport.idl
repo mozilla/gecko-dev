@@ -5,6 +5,8 @@
 #include "nsISupports.idl"
 
 interface nsIStandaloneNativeMenu;
+interface nsISVGPaintContext;
+interface imgIContainer;
 
 /**
  * Allow applications to interface with the Mac OS X Dock.
@@ -33,9 +35,16 @@ interface nsIMacDockSupport : nsISupports
   void activateApplication(in boolean aIgnoreOtherApplications);
 
   /**
-   * Text used to badge the dock tile.
+   * Text used to badge the dock tile. Setting this will remove any badge image.
    */
   attribute AString badgeText;
+
+  /**
+   * An image to add to the dock icon as a badge. Setting this will remove any
+   * badgeText. If an SVG image is passed the given paint context is used to
+   * set the stroke and fill properties.
+   */
+  void setBadgeImage(in imgIContainer aBadgeImage, [optional] in nsISVGPaintContext aPaintContext);
 
   /**
    * True if this app is in the list of apps that are persisted to the macOS
