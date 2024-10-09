@@ -1070,7 +1070,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
                           sizeof dwAttribute);
   }
 
-  UpdateDarkModeToolbar();
+  // Default to the system color scheme unless getting told otherwise.
+  SetColorScheme(Nothing());
 
   if (mOpeningAnimationSuppressed) {
     SuppressAnimation(true);
@@ -2544,9 +2545,9 @@ void nsWindow::ResetLayout() {
 #define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 19
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 
-void nsWindow::UpdateDarkModeToolbar() {
-  PreferenceSheet::EnsureInitialized();
-  BOOL dark = PreferenceSheet::ColorSchemeForChrome() == ColorScheme::Dark;
+void nsWindow::SetColorScheme(const Maybe<ColorScheme>& aScheme) {
+  BOOL dark =
+      aScheme.valueOrFrom(LookAndFeel::SystemColorScheme) == ColorScheme::Dark;
   DwmSetWindowAttribute(mWnd, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &dark,
                         sizeof dark);
   DwmSetWindowAttribute(mWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &dark,
@@ -4890,8 +4891,6 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       // Update non-client margin offsets
       UpdateNonClientMargins();
       nsUXThemeData::UpdateNativeThemeInfo();
-
-      UpdateDarkModeToolbar();
 
       // Invalidate the window so that the repaint will
       // pick up the new theme.

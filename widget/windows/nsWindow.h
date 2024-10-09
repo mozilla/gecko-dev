@@ -658,6 +658,8 @@ class nsWindow final : public nsBaseWidget {
   void UpdateOpaqueRegion(const LayoutDeviceIntRegion&) override;
   void UpdateOpaqueRegionInternal();
 
+  void SetColorScheme(const mozilla::Maybe<mozilla::ColorScheme>&) override;
+
   bool DispatchTouchEventFromWMPointer(UINT msg, LPARAM aLParam,
                                        const WinPointerInfo& aPointerInfo,
                                        mozilla::MouseButton aButton);

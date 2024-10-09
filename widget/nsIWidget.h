@@ -1020,8 +1020,8 @@ class nsIWidget : public nsISupports {
   virtual void SetWindowTransform(const mozilla::gfx::Matrix& aTransform) {}
 
   /**
-   * Set the preferred color-scheme for the widget.
-   * Ignored on non-Mac platforms.
+   * Set the preferred color-scheme for the widget. Nothing() means system
+   * default. Implemented on Windows and macOS.
    */
   virtual void SetColorScheme(const mozilla::Maybe<mozilla::ColorScheme>&) {}
 
