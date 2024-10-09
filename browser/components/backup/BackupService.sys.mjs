@@ -3274,8 +3274,6 @@ export class BackupService extends EventTarget {
       case "session-cookie-changed": {
         let notification = subject.QueryInterface(Ci.nsICookieNotification);
         if (
-          notification.action ==
-            Ci.nsICookieNotification.COOKIES_BATCH_DELETED ||
           notification.action == Ci.nsICookieNotification.COOKIE_DELETED ||
           notification.action == Ci.nsICookieNotification.ALL_COOKIES_CLEARED
         ) {
