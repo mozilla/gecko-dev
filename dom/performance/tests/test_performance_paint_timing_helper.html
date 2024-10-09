@@ -23,36 +23,20 @@
                 const img = document.createElement("img");
                 img.src = "http://example.org/tests/dom/performance/tests/logo.png";
 
-                img.onload = function() {
-                  function getAndTestEntries(runCount) {
-                    function testEntries(entries) {
-                      opener.is(entries.length, 1, "FCP Only returns");
-                      opener.is(entries[0].entryType, "paint", "entryType is paint");
-                      opener.is(entries[0].name, "first-contentful-paint",
-                                "Returned entry should be first-contentful-paint" );
-                      const fcpEntriesGotByName =
-                          performance.getEntriesByName('first-contentful-paint');
-                      opener.is(fcpEntriesGotByName.length, 1, "entries length should match");
-                      opener.is(entries[0], fcpEntriesGotByName[0], "should be the same entry");
-                      opener.done();
-                    }
-                    const entries = performance.getEntriesByType('paint');
-                    if (entries.length < 1) {
-                      if (runCount < 4) {
-                        opener.SimpleTest.requestFlakyTimeout("FCP is being registered asynchronously, so wait a bit of time");
-                        setTimeout(function() {
-                          getAndTestEntries(runCount + 1);
-                        }, 20);
-                      } else {
-                        opener.ok(false, "Unable to find paint entries within a reasonable amount of time");
-                        opener.done();
-                      }
-                    } else {
-                        testEntries(entries);
-                    }
-                  }
-                  getAndTestEntries(1);
-                }
+                const observer = new PerformanceObserver((entryList) => {
+                  const entries = entryList.getEntries();
+                  opener.is(entries.length, 1, "FCP Only returns");
+                  opener.is(entries[0].entryType, "paint", "entryType is paint");
+                  opener.is(entries[0].name, "first-contentful-paint",
+                            "Returned entry should be first-contentful-paint" );
+                  const fcpEntriesGotByName =
+                      performance.getEntriesByName('first-contentful-paint');
+                  opener.is(fcpEntriesGotByName.length, 1, "entries length should match");
+                  opener.is(entries[0], fcpEntriesGotByName[0], "should be the same entry");
+                  opener.done();
+                });
+
+                observer.observe({type: 'paint'});
                 document.body.appendChild(img);
              }
              window.onload = function() {
