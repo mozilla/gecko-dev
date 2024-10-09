@@ -12,22 +12,9 @@
 /*
  * Description of the test:
  * We test https-first behaviour with forms.
- * We perform each test with once with same origin and the second time
+ * We perform each test once with same origin and the second time
  * with a cross origin. We perform two GET form requests and two POST
  * form requests.
- * In more detail:
- *
- * 1. Test: Request that gets upgraded to https, GET form submission.
- *
- * 2. Test: Request that gets upgraded to https, that upgraded request
- *          gets timed out, so https-first send an http request, GET form submission.
- *
- * 3. Test: request that gets upgraded to https, and sends a POST form
- *          to http://example.com. The POST does not get upgraded.
- *
- * 4. Test: Request where the https upgrade get timed out -> http, and sends a POST form
- *          to http://example.com. The POST does not get upgraded.
- *
  */
 SimpleTest.waitForExplicitFinish();
 window.addEventListener("message", receiveMessage);
@@ -42,19 +29,22 @@ const Tests = [{
     value: "test=success",
 },
 {
-  // 2. Test GET, initial request will be downgraded
+  // 2. Test GET, gets downgraded again
+  // 2. a) If the second request is same-origin there is an upgrade exception
+  //       so no upgrade is performed.
+  // 2. b) If the submmission domain is different, the request is upgraded.
     query:"?test=2",
     scheme: "http:",
     method: "GET",
     value: "test=success"
 },
-{  // 3. Test POST formular, gets upgraded
+{  // 3. Test POST formular, does not get upgraded
     query: "?test=3",
     scheme: "http:",
     method: "POST",
     value: "test=success"
 },
-{   // 4. Test POST formular, request will be downgraded
+{   // 4. Test POST formular, does not get upgraded
     query: "?test=4",
     scheme: "http:",
     method: "POST",
@@ -70,17 +60,17 @@ let sameOrigin = true;
 async function receiveMessage(event){
   let data = event.data;
   let origin = sameOrigin? SAME_ORIGIN : CROSS_ORIGIN
-  const expectedLocation = origin.replace("http:", currentTest.scheme);
-  // If GET request check that form was transfered by url
-  if (currentTest.method === "GET") {
-    is(data.location, expectedLocation + currentTest.query,
-   "Reached the correct location for " + currentTest.query );
-  } else {
-    // Since the form is always send to example.com we expect it here as location
-    is(data.location.includes(SAME_ORIGIN.replace("http:", currentTest.scheme)), true,
-   "Reached the correct location for " + currentTest.query );
+  let wantedScheme = currentTest.scheme;
+  if (!sameOrigin && counter === 1) {
+    // cross-origin still gets upgraded, same-origin has a stored exception
+    // after the first fail
+    // See 2. a) and 2. b) above.
+    wantedScheme = "https:";
   }
-  is(data.scheme, currentTest.scheme,`${currentTest.query} upgraded or downgraded to ` + currentTest.scheme);
+  // Since the form is always sent to example.com we expect it here as location
+  is(data.location.includes(SAME_ORIGIN.replace("http:", wantedScheme)), true,
+  "Reached the correct location for " + currentTest.query );
+  is(data.scheme, wantedScheme,`${currentTest.query} upgraded or downgraded to ` + wantedScheme);
   // Check that the form value is correct
   is(data.form, currentTest.value, "Form was transfered");
   testWin.close();
