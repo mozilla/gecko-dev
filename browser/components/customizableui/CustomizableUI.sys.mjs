@@ -3998,6 +3998,33 @@ var CustomizableUIInternal = {
     }
   },
 
+  widgetIsLikelyVisible(aWidgetId, window) {
+    let placement = this.getPlacementOfWidget(aWidgetId);
+
+    if (!placement) {
+      return false;
+    }
+
+    switch (placement.area) {
+      case CustomizableUI.AREA_NAVBAR:
+        return true;
+      case CustomizableUI.AREA_MENUBAR:
+        return !this.getCollapsedToolbarIds(window).has(
+          CustomizableUI.AREA_MENUBAR
+        );
+      case CustomizableUI.AREA_TABSTRIP:
+        return !CustomizableUI.verticalTabsEnabled;
+      case CustomizableUI.AREA_BOOKMARKS:
+        return (
+          Services.prefs.getCharPref(
+            "browser.toolbars.bookmarks.visibility"
+          ) === "always"
+        );
+      default:
+        return false;
+    }
+  },
+
   observe(aSubject, aTopic, aData) {
     if (aTopic == "browser-set-toolbar-visibility") {
       let [toolbar, visibility] = JSON.parse(aData);
@@ -5103,6 +5130,27 @@ export var CustomizableUI = {
    */
   getCollapsedToolbarIds(window) {
     return CustomizableUIInternal.getCollapsedToolbarIds(window);
+  },
+
+  /**
+   * Checks if a widget is likely visible in a given window.
+   *
+   * This method returns true when a widget is:
+   *  - Not pinned to the overflow menu
+   *  - Not in a collapsed toolbar (e.g. bookmarks toolbar, menu bar)
+   *  - Not in the customization palette
+   *
+   * Note: A widget that is moved into the overflow menu due to
+   *       the window being small might be considered visible by
+   *       this method, because a widget's placement does not
+   *       change when it overflows into the overflow menu.
+   *
+   * @param aWidgetId the widget ID to check.
+   * @param {Window} window The browser window to check for widget visibility.
+   * @returns {Boolean} whether the given widget is likely visible or not.
+   */
+  widgetIsLikelyVisible(aWidgetId, window) {
+    return CustomizableUIInternal.widgetIsLikelyVisible(aWidgetId, window);
   },
 
   /**

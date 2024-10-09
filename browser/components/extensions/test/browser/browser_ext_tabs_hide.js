@@ -117,6 +117,136 @@ add_task(function test_doorhanger_keep() {
   });
 });
 
+add_task(function test_doorhanger_alltabs_button_in_menubar() {
+  if (!AppConstants.MENUBAR_CAN_AUTOHIDE) {
+    info("skipping test because the menubar is not customizable");
+    return;
+  }
+
+  return doorhangerTest(async function (extension) {
+    is(gBrowser.visibleTabs.length, 3, "There are 3 visible tabs");
+
+    CustomizableUI.addWidgetToArea(
+      "alltabs-button",
+      CustomizableUI.AREA_MENUBAR
+    );
+
+    is(
+      CustomizableUI.getPlacementOfWidget("alltabs-button").area,
+      CustomizableUI.AREA_MENUBAR,
+      "alltabs-button is in the menubar"
+    );
+
+    // Hide the first tab, expect the doorhanger.
+    let panel = ExtensionControlledPopup._getAndMaybeCreatePanel(document);
+    let popupShown = promisePopupShown(panel);
+    extension.sendMessage("hide", { url: "*://*/?one" });
+    await extension.awaitMessage("done");
+    await popupShown;
+
+    is(
+      CustomizableUI.getPlacementOfWidget("alltabs-button").area,
+      CustomizableUI.AREA_TABSTRIP,
+      "alltabs-button has been moved back to the tabstrip"
+    );
+
+    is(gBrowser.visibleTabs.length, 2, "There are 2 visible tabs now");
+  });
+});
+
+add_task(function test_doorhanger_alltabs_button_in_personaltoolbar() {
+  return doorhangerTest(async function (extension) {
+    is(gBrowser.visibleTabs.length, 3, "There are 3 visible tabs");
+
+    CustomizableUI.addWidgetToArea(
+      "alltabs-button",
+      CustomizableUI.AREA_BOOKMARKS
+    );
+
+    is(
+      CustomizableUI.getPlacementOfWidget("alltabs-button").area,
+      CustomizableUI.AREA_BOOKMARKS,
+      "alltabs-button is in the bookmarks bar"
+    );
+
+    // Hide the first tab, expect the doorhanger.
+    let panel = ExtensionControlledPopup._getAndMaybeCreatePanel(document);
+    let popupShown = promisePopupShown(panel);
+    extension.sendMessage("hide", { url: "*://*/?one" });
+    await extension.awaitMessage("done");
+    await popupShown;
+
+    is(
+      CustomizableUI.getPlacementOfWidget("alltabs-button").area,
+      CustomizableUI.AREA_TABSTRIP,
+      "alltabs-button has been moved back to the tabstrip"
+    );
+
+    is(gBrowser.visibleTabs.length, 2, "There are 2 visible tabs now");
+  });
+});
+
+add_task(function test_doorhanger_alltabs_button_in_overflow_menu() {
+  return doorhangerTest(async function (extension) {
+    is(gBrowser.visibleTabs.length, 3, "There are 3 visible tabs");
+
+    CustomizableUI.addWidgetToArea(
+      "alltabs-button",
+      CustomizableUI.AREA_FIXED_OVERFLOW_PANEL
+    );
+
+    is(
+      CustomizableUI.getPlacementOfWidget("alltabs-button").area,
+      CustomizableUI.AREA_FIXED_OVERFLOW_PANEL,
+      "alltabs-button is in the overflow menu"
+    );
+
+    // Hide the first tab, expect the doorhanger.
+    let panel = ExtensionControlledPopup._getAndMaybeCreatePanel(document);
+    let popupShown = promisePopupShown(panel);
+    extension.sendMessage("hide", { url: "*://*/?one" });
+    await extension.awaitMessage("done");
+    await popupShown;
+
+    is(
+      CustomizableUI.getPlacementOfWidget("alltabs-button").area,
+      CustomizableUI.AREA_TABSTRIP,
+      "alltabs-button has been moved back to the tabstrip"
+    );
+
+    is(gBrowser.visibleTabs.length, 2, "There are 2 visible tabs now");
+  });
+});
+
+add_task(function test_doorhanger_alltabs_button_removed() {
+  return doorhangerTest(async function (extension) {
+    is(gBrowser.visibleTabs.length, 3, "There are 3 visible tabs");
+
+    CustomizableUI.removeWidgetFromArea("alltabs-button");
+
+    is(
+      CustomizableUI.getPlacementOfWidget("alltabs-button"),
+      null,
+      "alltabs-button is removed"
+    );
+
+    // Hide the first tab, expect the doorhanger.
+    let panel = ExtensionControlledPopup._getAndMaybeCreatePanel(document);
+    let popupShown = promisePopupShown(panel);
+    extension.sendMessage("hide", { url: "*://*/?one" });
+    await extension.awaitMessage("done");
+    await popupShown;
+
+    is(
+      CustomizableUI.getPlacementOfWidget("alltabs-button").area,
+      CustomizableUI.AREA_TABSTRIP,
+      "alltabs-button has been moved back to the tabstrip"
+    );
+
+    is(gBrowser.visibleTabs.length, 2, "There are 2 visible tabs now");
+  });
+});
+
 const doorHangerDisable = (
   manifestProps = {},
   expectedAnchorID = "unified-extensions-button"
