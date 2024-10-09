@@ -3,6 +3,10 @@
 
 "use strict";
 
+// The test is going to test different cookie behaviors. So, it will take a
+// longer time to complete.
+requestLongerTimeout(3);
+
 add_setup(() => {
   Services.prefs.setIntPref(
     "network.cookie.cookieBehavior",
@@ -87,40 +91,51 @@ const unpartitionedOAs = createOriginAttributes("");
 // CookieCommons::CreateCookieFromDocument().
 add_task(
   async function test_chips_store_partitioned_document_first_party_child() {
-    const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
-    const browser = gBrowser.getBrowserForTab(tab);
-    await BrowserTestUtils.browserLoaded(browser);
+    const TEST_COOKIE_BEHAVIORS = [
+      Ci.nsICookieService.BEHAVIOR_ACCEPT,
+      Ci.nsICookieService.BEHAVIOR_REJECT_FOREIGN,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+    ];
 
-    // Set partitioned and unpartitioned cookie from document child-side
-    await SpecialPowers.spawn(
-      browser,
-      [COOKIE_PARTITIONED, COOKIE_UNPARTITIONED],
-      (partitioned, unpartitioned) => {
-        content.document.cookie = partitioned;
-        content.document.cookie = unpartitioned;
-      }
-    );
+    for (let behavior of TEST_COOKIE_BEHAVIORS) {
+      Services.prefs.setIntPref("network.cookie.cookieBehavior", behavior);
 
-    // Get cookies from partitioned jar
-    let partitioned = Services.cookies.getCookiesWithOriginAttributes(
-      partitionedOAs,
-      FIRST_PARTY
-    );
-    // Get cookies from unpartitioned jar
-    let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
-      unpartitionedOAs,
-      FIRST_PARTY
-    );
+      const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
+      const browser = gBrowser.getBrowserForTab(tab);
+      await BrowserTestUtils.browserLoaded(browser);
 
-    // Assert partitioned/unpartitioned cookie were stored in correct jars
-    Assert.equal(partitioned.length, 1);
-    Assert.equal(partitioned[0].value, "partitioned");
-    Assert.equal(unpartitioned.length, 1);
-    Assert.equal(unpartitioned[0].value, "unpartitioned");
+      // Set partitioned and unpartitioned cookie from document child-side
+      await SpecialPowers.spawn(
+        browser,
+        [COOKIE_PARTITIONED, COOKIE_UNPARTITIONED],
+        (partitioned, unpartitioned) => {
+          content.document.cookie = partitioned;
+          content.document.cookie = unpartitioned;
+        }
+      );
 
-    // Cleanup
-    BrowserTestUtils.removeTab(tab);
-    Services.cookies.removeAll();
+      // Get cookies from partitioned jar
+      let partitioned = Services.cookies.getCookiesWithOriginAttributes(
+        partitionedOAs,
+        FIRST_PARTY
+      );
+      // Get cookies from unpartitioned jar
+      let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
+        unpartitionedOAs,
+        FIRST_PARTY
+      );
+
+      // Assert partitioned/unpartitioned cookie were stored in correct jars
+      Assert.equal(partitioned.length, 1);
+      Assert.equal(partitioned[0].value, "partitioned");
+      Assert.equal(unpartitioned.length, 1);
+      Assert.equal(unpartitioned[0].value, "unpartitioned");
+
+      // Cleanup
+      BrowserTestUtils.removeTab(tab);
+      Services.cookies.removeAll();
+    }
   }
 );
 
@@ -131,54 +146,111 @@ add_task(
 // CookieCommons::CreateCookieFromDocument().
 add_task(
   async function test_chips_store_partitioned_document_third_party_storage_access_child() {
-    const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
+    // We exclude cookieBehavior BEHAVIOR_REJECT here because the StorageAccess
+    // cannot be granted.
+    const TEST_COOKIE_BEHAVIORS = [
+      Ci.nsICookieService.BEHAVIOR_ACCEPT,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+    ];
+
+    for (let behavior of TEST_COOKIE_BEHAVIORS) {
+      Services.prefs.setIntPref("network.cookie.cookieBehavior", behavior);
+
+      const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
+      const browser = gBrowser.getBrowserForTab(tab);
+      await BrowserTestUtils.browserLoaded(browser);
+
+      // Spawn document bc
+      await SpecialPowers.spawn(
+        browser,
+        [URL_DOCUMENT_THIRDPARTY, COOKIE_PARTITIONED, COOKIE_UNPARTITIONED],
+        async (url, partitioned, unpartitioned) => {
+          let ifr = content.document.createElement("iframe");
+          ifr.src = url;
+          content.document.body.appendChild(ifr);
+          await ContentTaskUtils.waitForEvent(ifr, "load");
+
+          // Spawn iframe bc
+          await SpecialPowers.spawn(
+            await ifr.browsingContext,
+            [partitioned, unpartitioned],
+            async (partitioned, unpartitioned) => {
+              SpecialPowers.wrap(
+                content.document
+              ).notifyUserGestureActivation();
+              await SpecialPowers.addPermission(
+                "storageAccessAPI",
+                true,
+                content.location.href
+              );
+              await SpecialPowers.wrap(content.document).requestStorageAccess();
+
+              ok(
+                await content.document.hasStorageAccess(),
+                "example.org should have storageAccess"
+              );
+
+              content.document.cookie = partitioned;
+              content.document.cookie = unpartitioned;
+            }
+          );
+        }
+      );
+
+      // Get cookies from partitioned jar
+      let partitioned = Services.cookies.getCookiesWithOriginAttributes(
+        partitionedOAs,
+        THIRD_PARTY
+      );
+      // Get cookies from unpartitioned jar
+      let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
+        unpartitionedOAs,
+        THIRD_PARTY
+      );
+
+      // Assert partitioned/unpartitioned cookie were stored in correct jars
+      Assert.equal(partitioned.length, 1);
+      Assert.equal(partitioned[0].value, "partitioned");
+      Assert.equal(unpartitioned.length, 1);
+      Assert.equal(unpartitioned[0].value, "unpartitioned");
+
+      // Cleanup
+      BrowserTestUtils.removeTab(tab);
+      Services.cookies.removeAll();
+    }
+  }
+);
+
+// Set partitioned and unpartitioned cookie from first-party http load.
+// CHIPS "Partitioned" cookie MUST always be stored in partitioned jar.
+// This calls CookieService::SetCookieStringFromHttp() internally.
+add_task(async function test_chips_store_partitioned_http_first_party_parent() {
+  const TEST_COOKIE_BEHAVIORS = [
+    Ci.nsICookieService.BEHAVIOR_ACCEPT,
+    Ci.nsICookieService.BEHAVIOR_REJECT_FOREIGN,
+    Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+    Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+  ];
+
+  for (let behavior of TEST_COOKIE_BEHAVIORS) {
+    Services.prefs.setIntPref("network.cookie.cookieBehavior", behavior);
+
+    // Set partitioned and unpartitioned cookie from http parent side through
+    // chips.sjs being loaded.
+    const tab = BrowserTestUtils.addTab(gBrowser, URL_HTTP_FIRSTPARTY);
     const browser = gBrowser.getBrowserForTab(tab);
     await BrowserTestUtils.browserLoaded(browser);
-
-    // Spawn document bc
-    await SpecialPowers.spawn(
-      browser,
-      [URL_DOCUMENT_THIRDPARTY, COOKIE_PARTITIONED, COOKIE_UNPARTITIONED],
-      async (url, partitioned, unpartitioned) => {
-        let ifr = content.document.createElement("iframe");
-        ifr.src = url;
-        content.document.body.appendChild(ifr);
-        await ContentTaskUtils.waitForEvent(ifr, "load");
-
-        // Spawn iframe bc
-        await SpecialPowers.spawn(
-          await ifr.browsingContext,
-          [partitioned, unpartitioned],
-          async (partitioned, unpartitioned) => {
-            SpecialPowers.wrap(content.document).notifyUserGestureActivation();
-            await SpecialPowers.addPermission(
-              "storageAccessAPI",
-              true,
-              content.location.href
-            );
-            await SpecialPowers.wrap(content.document).requestStorageAccess();
-
-            ok(
-              await content.document.hasStorageAccess(),
-              "example.org should have storageAccess"
-            );
-
-            content.document.cookie = partitioned;
-            content.document.cookie = unpartitioned;
-          }
-        );
-      }
-    );
 
     // Get cookies from partitioned jar
     let partitioned = Services.cookies.getCookiesWithOriginAttributes(
       partitionedOAs,
-      THIRD_PARTY
+      FIRST_PARTY
     );
     // Get cookies from unpartitioned jar
     let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
       unpartitionedOAs,
-      THIRD_PARTY
+      FIRST_PARTY
     );
 
     // Assert partitioned/unpartitioned cookie were stored in correct jars
@@ -191,38 +263,6 @@ add_task(
     BrowserTestUtils.removeTab(tab);
     Services.cookies.removeAll();
   }
-);
-
-// Set partitioned and unpartitioned cookie from first-party http load.
-// CHIPS "Partitioned" cookie MUST always be stored in partitioned jar.
-// This calls CookieService::SetCookieStringFromHttp() internally.
-add_task(async function test_chips_store_partitioned_http_first_party_parent() {
-  // Set partitioned and unpartitioned cookie from http parent side through
-  // chips.sjs being loaded.
-  const tab = BrowserTestUtils.addTab(gBrowser, URL_HTTP_FIRSTPARTY);
-  const browser = gBrowser.getBrowserForTab(tab);
-  await BrowserTestUtils.browserLoaded(browser);
-
-  // Get cookies from partitioned jar
-  let partitioned = Services.cookies.getCookiesWithOriginAttributes(
-    partitionedOAs,
-    FIRST_PARTY
-  );
-  // Get cookies from unpartitioned jar
-  let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
-    unpartitionedOAs,
-    FIRST_PARTY
-  );
-
-  // Assert partitioned/unpartitioned cookie were stored in correct jars
-  Assert.equal(partitioned.length, 1);
-  Assert.equal(partitioned[0].value, "partitioned");
-  Assert.equal(unpartitioned.length, 1);
-  Assert.equal(unpartitioned[0].value, "unpartitioned");
-
-  // Cleanup
-  BrowserTestUtils.removeTab(tab);
-  Services.cookies.removeAll();
 });
 
 // Set partitioned and unpartitioned cookie from third-party http load.
@@ -230,66 +270,79 @@ add_task(async function test_chips_store_partitioned_http_first_party_parent() {
 // This calls CookieService::SetCookieStringFromHttp() internally.
 add_task(
   async function test_chips_store_partitioned_http_third_party_storage_access_parent() {
-    const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
-    const browser = gBrowser.getBrowserForTab(tab);
-    await BrowserTestUtils.browserLoaded(browser);
+    // We exclude cookieBehavior BEHAVIOR_REJECT here because the StorageAccess
+    // cannot be granted.
+    const TEST_COOKIE_BEHAVIORS = [
+      Ci.nsICookieService.BEHAVIOR_ACCEPT,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+    ];
 
-    // Spawn document bc
-    await SpecialPowers.spawn(
-      browser,
-      [THIRD_PARTY_DOMAIN, URL_HTTP_THIRDPARTY],
-      async (url, fetchUrl) => {
-        let ifr = content.document.createElement("iframe");
-        ifr.src = url;
-        content.document.body.appendChild(ifr);
-        // Send http request with "set" query parameter, partitioned and
-        // unpartitioned cookie will be set through http response from chips.sjs.
-        await ContentTaskUtils.waitForEvent(ifr, "load");
+    for (let behavior of TEST_COOKIE_BEHAVIORS) {
+      Services.prefs.setIntPref("network.cookie.cookieBehavior", behavior);
+      const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
+      const browser = gBrowser.getBrowserForTab(tab);
+      await BrowserTestUtils.browserLoaded(browser);
 
-        // Spawn iframe bc
-        await SpecialPowers.spawn(
-          await ifr.browsingContext,
-          [fetchUrl],
-          async url => {
-            SpecialPowers.wrap(content.document).notifyUserGestureActivation();
-            await SpecialPowers.addPermission(
-              "storageAccessAPI",
-              true,
-              content.location.href
-            );
-            await SpecialPowers.wrap(content.document).requestStorageAccess();
+      // Spawn document bc
+      await SpecialPowers.spawn(
+        browser,
+        [THIRD_PARTY_DOMAIN, URL_HTTP_THIRDPARTY],
+        async (url, fetchUrl) => {
+          let ifr = content.document.createElement("iframe");
+          ifr.src = url;
+          content.document.body.appendChild(ifr);
+          // Send http request with "set" query parameter, partitioned and
+          // unpartitioned cookie will be set through http response from chips.sjs.
+          await ContentTaskUtils.waitForEvent(ifr, "load");
 
-            ok(
-              await content.document.hasStorageAccess(),
-              "example.org should have storageAccess"
-            );
+          // Spawn iframe bc
+          await SpecialPowers.spawn(
+            await ifr.browsingContext,
+            [fetchUrl],
+            async url => {
+              SpecialPowers.wrap(
+                content.document
+              ).notifyUserGestureActivation();
+              await SpecialPowers.addPermission(
+                "storageAccessAPI",
+                true,
+                content.location.href
+              );
+              await SpecialPowers.wrap(content.document).requestStorageAccess();
 
-            await content.fetch(url);
-          }
-        );
-      }
-    );
+              ok(
+                await content.document.hasStorageAccess(),
+                "example.org should have storageAccess"
+              );
 
-    // Get cookies from partitioned jar
-    let partitioned = Services.cookies.getCookiesWithOriginAttributes(
-      partitionedOAs,
-      THIRD_PARTY
-    );
-    // Get cookies from unpartitioned jar
-    let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
-      unpartitionedOAs,
-      THIRD_PARTY
-    );
+              await content.fetch(url);
+            }
+          );
+        }
+      );
 
-    // Assert partitioned/unpartitioned cookie were stored in correct jars
-    Assert.equal(partitioned.length, 1);
-    Assert.equal(partitioned[0].value, "partitioned");
-    Assert.equal(unpartitioned.length, 1);
-    Assert.equal(unpartitioned[0].value, "unpartitioned");
+      // Get cookies from partitioned jar
+      let partitioned = Services.cookies.getCookiesWithOriginAttributes(
+        partitionedOAs,
+        THIRD_PARTY
+      );
+      // Get cookies from unpartitioned jar
+      let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
+        unpartitionedOAs,
+        THIRD_PARTY
+      );
 
-    // Cleanup
-    BrowserTestUtils.removeTab(tab);
-    Services.cookies.removeAll();
+      // Assert partitioned/unpartitioned cookie were stored in correct jars
+      Assert.equal(partitioned.length, 1);
+      Assert.equal(partitioned[0].value, "partitioned");
+      Assert.equal(unpartitioned.length, 1);
+      Assert.equal(unpartitioned[0].value, "unpartitioned");
+
+      // Cleanup
+      BrowserTestUtils.removeTab(tab);
+      Services.cookies.removeAll();
+    }
   }
 );
 
@@ -303,34 +356,45 @@ add_task(
 // This uses CookieServiceChild internally.
 add_task(
   async function test_chips_send_partitioned_and_unpartitioned_document_child() {
-    const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
-    const browser = gBrowser.getBrowserForTab(tab);
-    await BrowserTestUtils.browserLoaded(browser);
+    const TEST_COOKIE_BEHAVIORS = [
+      Ci.nsICookieService.BEHAVIOR_ACCEPT,
+      Ci.nsICookieService.BEHAVIOR_REJECT_FOREIGN,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+    ];
 
-    // Spawn document bc
-    await SpecialPowers.spawn(
-      browser,
-      [COOKIE_PARTITIONED, COOKIE_UNPARTITIONED],
-      async (partitioned, unpartitioned) => {
-        content.document.cookie = partitioned;
-        content.document.cookie = unpartitioned;
+    for (let behavior of TEST_COOKIE_BEHAVIORS) {
+      Services.prefs.setIntPref("network.cookie.cookieBehavior", behavior);
 
-        // Assert both unpartitioned and partitioned cookie are returned.
-        let cookies = content.document.cookie;
-        ok(
-          cookies.includes("cookie=partitioned"),
-          "Cookie from partitioned jar was sent."
-        );
-        ok(
-          cookies.includes("cookie=unpartitioned"),
-          "Cookie from unpartitioned jar was sent."
-        );
-      }
-    );
+      const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
+      const browser = gBrowser.getBrowserForTab(tab);
+      await BrowserTestUtils.browserLoaded(browser);
 
-    // Cleanup
-    BrowserTestUtils.removeTab(tab);
-    Services.cookies.removeAll();
+      // Spawn document bc
+      await SpecialPowers.spawn(
+        browser,
+        [COOKIE_PARTITIONED, COOKIE_UNPARTITIONED],
+        async (partitioned, unpartitioned) => {
+          content.document.cookie = partitioned;
+          content.document.cookie = unpartitioned;
+
+          // Assert both unpartitioned and partitioned cookie are returned.
+          let cookies = content.document.cookie;
+          ok(
+            cookies.includes("cookie=partitioned"),
+            "Cookie from partitioned jar was sent."
+          );
+          ok(
+            cookies.includes("cookie=unpartitioned"),
+            "Cookie from unpartitioned jar was sent."
+          );
+        }
+      );
+
+      // Cleanup
+      BrowserTestUtils.removeTab(tab);
+      Services.cookies.removeAll();
+    }
   }
 );
 
@@ -339,101 +403,113 @@ add_task(
 // internally to update child's cookies.
 add_task(
   async function test_chips_send_partitioned_and_unpartitioned_on_storage_access_child() {
-    // Set example.org first-party unpartitioned cookie
-    await BrowserTestUtils.withNewTab(
-      URL_DOCUMENT_THIRDPARTY,
-      async browser => {
-        info("Set a first party cookie via `document.cookie`.");
-        await SpecialPowers.spawn(
-          browser,
-          [COOKIE_UNPARTITIONED],
-          async unpartitioned => {
-            content.document.cookie = unpartitioned;
-            is(
-              content.document.cookie,
-              "cookie=unpartitioned",
-              "Unpartitioned cookie was set."
-            );
-          }
-        );
-      }
-    );
+    // We only test cookieBehavior 5 here because the test involves storage
+    // access API. The other cookieBehaviors doesn't have the same behavior
+    // on StorageAccess API, so the test doesn't apply.
+    const TEST_COOKIE_BEHAVIORS = [
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+    ];
 
-    // Assert cookie was set on parent cookie service for example.org.
-    // Get cookies from unpartitioned jar
-    let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
-      unpartitionedOAs,
-      THIRD_PARTY
-    );
-    Assert.equal(unpartitioned.length, 1);
-    Assert.equal(unpartitioned[0].value, "unpartitioned");
+    for (let behavior of TEST_COOKIE_BEHAVIORS) {
+      Services.prefs.setIntPref("network.cookie.cookieBehavior", behavior);
+      // Set example.org first-party unpartitioned cookie
+      await BrowserTestUtils.withNewTab(
+        URL_DOCUMENT_THIRDPARTY,
+        async browser => {
+          info("Set a first party cookie via `document.cookie`.");
+          await SpecialPowers.spawn(
+            browser,
+            [COOKIE_UNPARTITIONED],
+            async unpartitioned => {
+              content.document.cookie = unpartitioned;
+              is(
+                content.document.cookie,
+                "cookie=unpartitioned",
+                "Unpartitioned cookie was set."
+              );
+            }
+          );
+        }
+      );
 
-    // Load example.com as first-party in tab
-    const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
-    const browser = gBrowser.getBrowserForTab(tab);
-    await BrowserTestUtils.browserLoaded(browser);
+      // Assert cookie was set on parent cookie service for example.org.
+      // Get cookies from unpartitioned jar
+      let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
+        unpartitionedOAs,
+        THIRD_PARTY
+      );
+      Assert.equal(unpartitioned.length, 1);
+      Assert.equal(unpartitioned[0].value, "unpartitioned");
 
-    // Set third-party cookie from example.org iframe, get storageAccess and
-    // check cookies.
-    // Spawn document bc
-    await SpecialPowers.spawn(
-      browser,
-      [URL_DOCUMENT_THIRDPARTY, COOKIE_PARTITIONED],
-      async (url, partitioned) => {
-        // Create third-party iframe
-        let ifr = content.document.createElement("iframe");
-        ifr.src = url;
-        content.document.body.appendChild(ifr);
-        await ContentTaskUtils.waitForEvent(ifr, "load");
+      // Load example.com as first-party in tab
+      const tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
+      const browser = gBrowser.getBrowserForTab(tab);
+      await BrowserTestUtils.browserLoaded(browser);
 
-        // Spawn iframe bc
-        await SpecialPowers.spawn(
-          await ifr.browsingContext,
-          [partitioned],
-          async partitioned => {
-            ok(
-              !(await content.document.hasStorageAccess()),
-              "example.org should not have storageAccess initially."
-            );
+      // Set third-party cookie from example.org iframe, get storageAccess and
+      // check cookies.
+      // Spawn document bc
+      await SpecialPowers.spawn(
+        browser,
+        [URL_DOCUMENT_THIRDPARTY, COOKIE_PARTITIONED],
+        async (url, partitioned) => {
+          // Create third-party iframe
+          let ifr = content.document.createElement("iframe");
+          ifr.src = url;
+          content.document.body.appendChild(ifr);
+          await ContentTaskUtils.waitForEvent(ifr, "load");
 
-            // Set a partitioned third-party cookie and assert its the only.
-            content.document.cookie = partitioned;
-            is(
-              content.document.cookie,
-              "cookie=partitioned",
-              "Partitioned cookie was set."
-            );
+          // Spawn iframe bc
+          await SpecialPowers.spawn(
+            await ifr.browsingContext,
+            [partitioned],
+            async partitioned => {
+              ok(
+                !(await content.document.hasStorageAccess()),
+                "example.org should not have storageAccess initially."
+              );
 
-            info("Simulate user activation.");
-            SpecialPowers.wrap(content.document).notifyUserGestureActivation();
+              // Set a partitioned third-party cookie and assert its the only.
+              content.document.cookie = partitioned;
+              is(
+                content.document.cookie,
+                "cookie=partitioned",
+                "Partitioned cookie was set."
+              );
 
-            info("Request storage access.");
-            await content.document.requestStorageAccess();
+              info("Simulate user activation.");
+              SpecialPowers.wrap(
+                content.document
+              ).notifyUserGestureActivation();
 
-            ok(
-              await content.document.hasStorageAccess(),
-              "example.org should now have storageAccess."
-            );
+              info("Request storage access.");
+              await content.document.requestStorageAccess();
 
-            // Assert both unpartitioned and partitioned cookie are returned.
-            let cookies = content.document.cookie;
-            ok(
-              cookies.includes("cookie=partitioned"),
-              "Cookie from partitioned jar was sent."
-            );
-            ok(
-              cookies.includes("cookie=unpartitioned"),
-              "Cookie from unpartitioned jar was sent."
-            );
-          }
-        );
-      }
-    );
+              ok(
+                await content.document.hasStorageAccess(),
+                "example.org should now have storageAccess."
+              );
 
-    // Cleanup
-    BrowserTestUtils.removeTab(tab);
-    Services.cookies.removeAll();
-    Services.perms.removeAll();
+              // Assert both unpartitioned and partitioned cookie are returned.
+              let cookies = content.document.cookie;
+              ok(
+                cookies.includes("cookie=partitioned"),
+                "Cookie from partitioned jar was sent."
+              );
+              ok(
+                cookies.includes("cookie=unpartitioned"),
+                "Cookie from unpartitioned jar was sent."
+              );
+            }
+          );
+        }
+      );
+
+      // Cleanup
+      BrowserTestUtils.removeTab(tab);
+      Services.cookies.removeAll();
+      Services.perms.removeAll();
+    }
   }
 );
 
@@ -442,68 +518,79 @@ add_task(
 // This tests CookieServiceParent::TrackCookieLoad() internally.
 add_task(
   async function test_chips_send_partitioned_and_unpartitioned_document_parent() {
-    // Set example.com first-party unpartitioned and partitioned cookie, then
-    // close tab.
-    await BrowserTestUtils.withNewTab(
-      URL_DOCUMENT_FIRSTPARTY,
-      async browser => {
-        await SpecialPowers.spawn(
-          browser,
-          [COOKIE_PARTITIONED, COOKIE_UNPARTITIONED],
-          async (partitioned, unpartitioned) => {
-            content.document.cookie = unpartitioned;
-            content.document.cookie = partitioned;
+    const TEST_COOKIE_BEHAVIORS = [
+      Ci.nsICookieService.BEHAVIOR_ACCEPT,
+      Ci.nsICookieService.BEHAVIOR_REJECT_FOREIGN,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+    ];
+
+    for (let behavior of TEST_COOKIE_BEHAVIORS) {
+      Services.prefs.setIntPref("network.cookie.cookieBehavior", behavior);
+
+      // Set example.com first-party unpartitioned and partitioned cookie, then
+      // close tab.
+      await BrowserTestUtils.withNewTab(
+        URL_DOCUMENT_FIRSTPARTY,
+        async browser => {
+          await SpecialPowers.spawn(
+            browser,
+            [COOKIE_PARTITIONED, COOKIE_UNPARTITIONED],
+            async (partitioned, unpartitioned) => {
+              content.document.cookie = unpartitioned;
+              content.document.cookie = partitioned;
+              let cookies = content.document.cookie;
+              ok(
+                cookies.includes("cookie=unpartitioned"),
+                "Unpartitioned cookie was set."
+              );
+              ok(
+                cookies.includes("cookie=partitioned"),
+                "Partitioned cookie was set."
+              );
+            }
+          );
+        }
+      );
+
+      // Assert we have one partitioned and one unpartitioned cookie set.
+      // Get cookies from partitioned jar
+      let partitioned = Services.cookies.getCookiesWithOriginAttributes(
+        partitionedOAs,
+        FIRST_PARTY
+      );
+      // Get cookies from unpartitioned jar
+      let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
+        unpartitionedOAs,
+        FIRST_PARTY
+      );
+      Assert.equal(partitioned.length, 1);
+      Assert.equal(partitioned[0].value, "partitioned");
+      Assert.equal(unpartitioned.length, 1);
+      Assert.equal(unpartitioned[0].value, "unpartitioned");
+
+      // Reload example.com and assert previously set cookies are correctly
+      // send to content child document.
+      await BrowserTestUtils.withNewTab(
+        URL_DOCUMENT_FIRSTPARTY,
+        async browser => {
+          await SpecialPowers.spawn(browser, [], () => {
             let cookies = content.document.cookie;
             ok(
               cookies.includes("cookie=unpartitioned"),
-              "Unpartitioned cookie was set."
+              "Unpartitioned cookie was sent."
             );
             ok(
               cookies.includes("cookie=partitioned"),
-              "Partitioned cookie was set."
+              "Partitioned cookie was sent."
             );
-          }
-        );
-      }
-    );
+          });
+        }
+      );
 
-    // Assert we have one partitioned and one unpartitioned cookie set.
-    // Get cookies from partitioned jar
-    let partitioned = Services.cookies.getCookiesWithOriginAttributes(
-      partitionedOAs,
-      FIRST_PARTY
-    );
-    // Get cookies from unpartitioned jar
-    let unpartitioned = Services.cookies.getCookiesWithOriginAttributes(
-      unpartitionedOAs,
-      FIRST_PARTY
-    );
-    Assert.equal(partitioned.length, 1);
-    Assert.equal(partitioned[0].value, "partitioned");
-    Assert.equal(unpartitioned.length, 1);
-    Assert.equal(unpartitioned[0].value, "unpartitioned");
-
-    // Reload example.com and assert previously set cookies are correctly
-    // send to content child document.
-    await BrowserTestUtils.withNewTab(
-      URL_DOCUMENT_FIRSTPARTY,
-      async browser => {
-        await SpecialPowers.spawn(browser, [], () => {
-          let cookies = content.document.cookie;
-          ok(
-            cookies.includes("cookie=unpartitioned"),
-            "Unpartitioned cookie was sent."
-          );
-          ok(
-            cookies.includes("cookie=partitioned"),
-            "Partitioned cookie was sent."
-          );
-        });
-      }
-    );
-
-    // Cleanup
-    Services.cookies.removeAll();
+      // Cleanup
+      Services.cookies.removeAll();
+    }
   }
 );
 
@@ -512,51 +599,62 @@ add_task(
 // This tests CookieService::GetCookieStringFromHttp() internally.
 add_task(
   async function test_chips_send_partitioned_and_unpartitioned_http_parent() {
-    // Load empty document.
-    let tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
-    let browser = gBrowser.getBrowserForTab(tab);
-    await BrowserTestUtils.browserLoaded(browser);
+    const TEST_COOKIE_BEHAVIORS = [
+      Ci.nsICookieService.BEHAVIOR_ACCEPT,
+      Ci.nsICookieService.BEHAVIOR_REJECT_FOREIGN,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER,
+      Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN,
+    ];
 
-    await SpecialPowers.spawn(
-      browser,
-      [HTTP_COOKIE_SET, HTTP_COOKIE_GET],
-      async (set, get) => {
-        // Send http request with "set" query parameter, partitioned and
-        // unpartitioned cookie will be set through http response.
-        await content.fetch(set);
+    for (let behavior of TEST_COOKIE_BEHAVIORS) {
+      Services.prefs.setIntPref("network.cookie.cookieBehavior", behavior);
 
-        // Assert cookies were set to document.
-        let cookies = content.document.cookie;
-        ok(
-          cookies.includes("cookie=unpartitioned"),
-          "Unpartitioned cookie was set to document."
-        );
-        ok(
-          cookies.includes("cookie=partitioned"),
-          "Partitioned cookie was set to document."
-        );
+      // Load empty document.
+      let tab = BrowserTestUtils.addTab(gBrowser, URL_DOCUMENT_FIRSTPARTY);
+      let browser = gBrowser.getBrowserForTab(tab);
+      await BrowserTestUtils.browserLoaded(browser);
 
-        // Send http request with "get" query parameter, chips.sjs will return
-        // the request "Cookie" header string.
-        await content
-          .fetch(get)
-          .then(response => response.text())
-          .then(requestCookies => {
-            // Assert cookies were sent in http request.
-            ok(
-              requestCookies.includes("cookie=unpartitioned"),
-              "Unpartitioned cookie was sent in http request."
-            );
-            ok(
-              requestCookies.includes("cookie=partitioned"),
-              "Partitioned cookie was sent in http request."
-            );
-          });
-      }
-    );
+      await SpecialPowers.spawn(
+        browser,
+        [HTTP_COOKIE_SET, HTTP_COOKIE_GET],
+        async (set, get) => {
+          // Send http request with "set" query parameter, partitioned and
+          // unpartitioned cookie will be set through http response.
+          await content.fetch(set);
 
-    // Cleanup
-    BrowserTestUtils.removeTab(tab);
-    Services.cookies.removeAll();
+          // Assert cookies were set to document.
+          let cookies = content.document.cookie;
+          ok(
+            cookies.includes("cookie=unpartitioned"),
+            "Unpartitioned cookie was set to document."
+          );
+          ok(
+            cookies.includes("cookie=partitioned"),
+            "Partitioned cookie was set to document."
+          );
+
+          // Send http request with "get" query parameter, chips.sjs will return
+          // the request "Cookie" header string.
+          await content
+            .fetch(get)
+            .then(response => response.text())
+            .then(requestCookies => {
+              // Assert cookies were sent in http request.
+              ok(
+                requestCookies.includes("cookie=unpartitioned"),
+                "Unpartitioned cookie was sent in http request."
+              );
+              ok(
+                requestCookies.includes("cookie=partitioned"),
+                "Partitioned cookie was sent in http request."
+              );
+            });
+        }
+      );
+
+      // Cleanup
+      BrowserTestUtils.removeTab(tab);
+      Services.cookies.removeAll();
+    }
   }
 );
