@@ -939,11 +939,6 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
       mozilla::Maybe<nsID>* aCallerAgentClusterId, nsACString* aScriptLocation,
       mozilla::ErrorResult& aError);
 
-  // Ask the user if further dialogs should be blocked, if dialogs are currently
-  // being abused. This is used in the cases where we have no modifiable UI to
-  // show, in that case we show a separate dialog to ask this question.
-  bool ConfirmDialogIfNeeded();
-
   // Helper called after moving/resizing, to update docShell's presContext
   // if we have caused a resolution change by moving across monitors.
   void CheckForDPIChange();
