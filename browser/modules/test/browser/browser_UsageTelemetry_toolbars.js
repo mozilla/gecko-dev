@@ -203,7 +203,6 @@ add_task(async function widgetPositions() {
       "stop-reload-button",
       "tabbrowser-tabs",
       "personal-bookmarks",
-      "alltabs-button",
     ],
 
     "nav-bar": [
@@ -250,7 +249,7 @@ add_task(async function customizeMode() {
   organizeToolbars({
     PersonalToolbar: ["personal-bookmarks"],
 
-    TabsToolbar: ["tabbrowser-tabs", "new-tab-button", "alltabs-button"],
+    TabsToolbar: ["tabbrowser-tabs", "new-tab-button"],
 
     "nav-bar": [
       "back-button",
@@ -345,7 +344,7 @@ add_task(async function contextMenus() {
   organizeToolbars({
     PersonalToolbar: ["personal-bookmarks"],
 
-    TabsToolbar: ["tabbrowser-tabs", "new-tab-button", "alltabs-button"],
+    TabsToolbar: ["tabbrowser-tabs", "new-tab-button"],
 
     "nav-bar": [
       "back-button",
