@@ -1375,9 +1375,3 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
     }
   }
 }
-
-.tab-contextmenu-group-icon {
-  list-style-image: url("chrome://browser/skin/tabbrowser/tab-group-chicklet.svg");
-  -moz-context-properties: fill;
-  fill: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
-}

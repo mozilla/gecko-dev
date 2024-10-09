@@ -7947,14 +7947,15 @@ var TabContextMenu = {
             document.l10n.setAttributes(item, "tab-context-unnamed-group");
           }
 
-          item.classList.add("menuitem-iconic", "tab-contextmenu-group-icon");
-          item.style.setProperty(
-            "--tab-group-color",
-            group.style.getPropertyValue("--tab-group-color")
-          );
-          item.style.setProperty(
-            "--tab-group-color-invert",
-            group.style.getPropertyValue("--tab-group-color-invert")
+          item.classList.add("menuitem-iconic");
+          item.setAttribute(
+            "image",
+            `data:image/svg+xml;utf8,
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="2" fill="${encodeURIComponent(
+                group.color
+              )}"/>
+            </svg>`
           );
           submenu.appendChild(item);
         });
