@@ -13,6 +13,7 @@
 #include "Units.h"
 
 class nsIFrame;
+class nsISVGPaintContext;
 
 namespace mozilla {
 
@@ -59,6 +60,10 @@ class SVGImageContext {
   static void MaybeStoreContextPaint(SVGImageContext& aContext,
                                      const nsPresContext&, const ComputedStyle&,
                                      imgIContainer*);
+
+  static void MaybeStoreContextPaint(SVGImageContext& aContext,
+                                     nsISVGPaintContext* aPaintContext,
+                                     imgIContainer* aImgContainer);
 
   const Maybe<CSSIntSize>& GetViewportSize() const { return mViewportSize; }
 

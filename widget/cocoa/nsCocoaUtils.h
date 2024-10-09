@@ -286,8 +286,8 @@ class nsCocoaUtils {
      the <code>NSImage</code>.
       @param aImage the image to extract a frame from
       @param aWhichFrame the frame to extract (see imgIContainer FRAME_*)
-      @param aComputedStyle the ComputedStyle of the element that the image is
-     for, to support SVG context paint properties, can be null
+      @param aSVGContext the SVG context paint properties for the image. Can be
+     null.
       @param aResult the resulting NSImage
       @param scaleFactor the desired scale factor of the NSImage (2 for a retina
      display)
@@ -298,18 +298,16 @@ class nsCocoaUtils {
    */
   static nsresult CreateNSImageFromImageContainer(
       imgIContainer* aImage, uint32_t aWhichFrame,
-      const nsPresContext* aPresContext,
-      const mozilla::ComputedStyle* aComputedStyle,
-      const NSSize& aPreferredSize, NSImage** aResult, CGFloat scaleFactor,
-      bool* aIsEntirelyBlack = nullptr);
+      const mozilla::SVGImageContext* aSVGContext, const NSSize& aPreferredSize,
+      NSImage** aResult, CGFloat scaleFactor, bool* aIsEntirelyBlack = nullptr);
 
   /** Creates a Cocoa <code>NSImage</code> from a frame of an
      <code>imgIContainer</code>. The new <code>NSImage</code> will have both a
      regular and HiDPI representation. The caller owns the <code>NSImage</code>.
       @param aImage the image to extract a frame from
       @param aWhichFrame the frame to extract (see imgIContainer FRAME_*)
-      @param aComputedStyle the ComputedStyle of the element that the image is
-     for, to support SVG context paint properties, can be null
+      @param aSVGContext the SVG context paint properties for the image. Can be
+     null.
       @param aResult the resulting NSImage
       @param aIsEntirelyBlack an outparam that, if non-null, will be set to a
                               bool that indicates whether the RGB values on all
@@ -318,10 +316,8 @@ class nsCocoaUtils {
    */
   static nsresult CreateDualRepresentationNSImageFromImageContainer(
       imgIContainer* aImage, uint32_t aWhichFrame,
-      const nsPresContext* aPresContext,
-      const mozilla::ComputedStyle* aComputedStyle,
-      const NSSize& aPreferredSize, NSImage** aResult,
-      bool* aIsEntirelyBlack = nullptr);
+      const mozilla::SVGImageContext* aSVGContext, const NSSize& aPreferredSize,
+      NSImage** aResult, bool* aIsEntirelyBlack = nullptr);
 
   /**
    * Returns nsAString for aSrc.

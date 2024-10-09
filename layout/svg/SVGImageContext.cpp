@@ -15,6 +15,8 @@
 #include "nsIFrame.h"
 #include "nsPresContext.h"
 #include "nsStyleStruct.h"
+#include "nsISVGPaintContext.h"
+#include "mozilla/ServoCSSParser.h"
 
 namespace mozilla {
 
@@ -78,6 +80,52 @@ void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
     contextPaint->SetStrokeOpacity(style->mStrokeOpacity.IsOpacity()
                                        ? style->mStrokeOpacity.AsOpacity()
                                        : 1.0f);
+  }
+
+  if (haveContextPaint) {
+    aContext.mContextPaint = std::move(contextPaint);
+  }
+}
+
+/* static */
+void SVGImageContext::MaybeStoreContextPaint(SVGImageContext& aContext,
+                                             nsISVGPaintContext* aPaintContext,
+                                             imgIContainer* aImgContainer) {
+  if (aImgContainer->GetType() != imgIContainer::TYPE_VECTOR ||
+      !aPaintContext) {
+    // Avoid this overhead for raster images.
+    return;
+  }
+
+  bool haveContextPaint = false;
+  auto contextPaint = MakeRefPtr<SVGEmbeddingContextPaint>();
+  nsCString value;
+  float opacity;
+
+  if (NS_SUCCEEDED(aPaintContext->GetStrokeColor(value)) && !value.IsEmpty()) {
+    nscolor color;
+    if (ServoCSSParser::ComputeColor(nullptr, NS_RGB(0, 0, 0), value, &color)) {
+      haveContextPaint = true;
+      contextPaint->SetStroke(color);
+    }
+  }
+
+  if (NS_SUCCEEDED(aPaintContext->GetFillColor(value)) && !value.IsEmpty()) {
+    nscolor color;
+    if (ServoCSSParser::ComputeColor(nullptr, NS_RGB(0, 0, 0), value, &color)) {
+      haveContextPaint = true;
+      contextPaint->SetFill(color);
+    }
+  }
+
+  if (NS_SUCCEEDED(aPaintContext->GetStrokeOpacity(&opacity))) {
+    haveContextPaint = true;
+    contextPaint->SetStrokeOpacity(opacity);
+  }
+
+  if (NS_SUCCEEDED(aPaintContext->GetFillOpacity(&opacity))) {
+    haveContextPaint = true;
+    contextPaint->SetFillOpacity(opacity);
   }
 
   if (haveContextPaint) {

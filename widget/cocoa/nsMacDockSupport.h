@@ -24,12 +24,15 @@ class nsMacDockSupport : public nsIMacDockSupport, public nsITaskbarProgress {
 
   nsCOMPtr<nsIStandaloneNativeMenu> mDockMenu;
   nsString mBadgeText;
+  bool mHasBadgeImage;
 
   NSView* mDockTileWrapperView;
+  NSImageView* mDockBadgeView;
   MOZProgressDockOverlayView* mProgressDockOverlayView;
 
   nsTaskbarProgressState mProgressState;
   double mProgressFraction;
 
+  void BuildDockTile();
   nsresult UpdateDockTile();
 };

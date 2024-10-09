@@ -506,9 +506,8 @@ nsresult nsCocoaUtils::CreateNSImageFromCGImage(CGImageRef aInputImage,
 
 nsresult nsCocoaUtils::CreateNSImageFromImageContainer(
     imgIContainer* aImage, uint32_t aWhichFrame,
-    const nsPresContext* aPresContext, const ComputedStyle* aComputedStyle,
-    const NSSize& aPreferredSize, NSImage** aResult, CGFloat scaleFactor,
-    bool* aIsEntirelyBlack) {
+    const SVGImageContext* aSVGContext, const NSSize& aPreferredSize,
+    NSImage** aResult, CGFloat scaleFactor, bool* aIsEntirelyBlack) {
   RefPtr<SourceSurface> surface;
   int32_t width = 0;
   int32_t height = 0;
@@ -544,14 +543,15 @@ nsresult nsCocoaUtils::CreateNSImageFromImageContainer(
 
     gfxContext context(drawTarget);
 
-    SVGImageContext svgContext;
-    if (aPresContext && aComputedStyle) {
-      SVGImageContext::MaybeStoreContextPaint(svgContext, *aPresContext,
-                                              *aComputedStyle, aImage);
+    UniquePtr<SVGImageContext> svgContext;
+    if (!aSVGContext) {
+      svgContext = MakeUnique<SVGImageContext>();
+      aSVGContext = svgContext.get();
     }
+
     mozilla::image::ImgDrawResult res =
         aImage->Draw(&context, scaledSize, ImageRegion::Create(scaledSize),
-                     aWhichFrame, SamplingFilter::POINT, svgContext,
+                     aWhichFrame, SamplingFilter::POINT, *aSVGContext,
                      imgIContainer::FLAG_SYNC_DECODE, 1.0);
 
     if (res != mozilla::image::ImgDrawResult::SUCCESS) {
@@ -589,12 +589,12 @@ nsresult nsCocoaUtils::CreateNSImageFromImageContainer(
 
 nsresult nsCocoaUtils::CreateDualRepresentationNSImageFromImageContainer(
     imgIContainer* aImage, uint32_t aWhichFrame,
-    const nsPresContext* aPresContext, const ComputedStyle* aComputedStyle,
-    const NSSize& aPreferredSize, NSImage** aResult, bool* aIsEntirelyBlack) {
+    const SVGImageContext* aSVGContext, const NSSize& aPreferredSize,
+    NSImage** aResult, bool* aIsEntirelyBlack) {
   NSImage* newRepresentation = nil;
   nsresult rv = CreateNSImageFromImageContainer(
-      aImage, aWhichFrame, aPresContext, aComputedStyle, aPreferredSize,
-      &newRepresentation, 1.0f, aIsEntirelyBlack);
+      aImage, aWhichFrame, aSVGContext, aPreferredSize, &newRepresentation,
+      1.0f, aIsEntirelyBlack);
   if (NS_FAILED(rv) || !newRepresentation) {
     return NS_ERROR_FAILURE;
   }
@@ -609,9 +609,9 @@ nsresult nsCocoaUtils::CreateDualRepresentationNSImageFromImageContainer(
   [newRepresentation release];
   newRepresentation = nil;
 
-  rv = CreateNSImageFromImageContainer(
-      aImage, aWhichFrame, aPresContext, aComputedStyle, aPreferredSize,
-      &newRepresentation, 2.0f, aIsEntirelyBlack);
+  rv = CreateNSImageFromImageContainer(aImage, aWhichFrame, aSVGContext,
+                                       aPreferredSize, &newRepresentation, 2.0f,
+                                       aIsEntirelyBlack);
   if (NS_FAILED(rv) || !newRepresentation) {
     return NS_ERROR_FAILURE;
   }

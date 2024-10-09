@@ -1,0 +1,35 @@
+/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+/*
+ * Used to set SVG context values when rendering SVG images outside of a DOM
+ * context.
+ */
+
+[scriptable, uuid(43966236-3146-4518-ab39-f938795cd1a1)]
+interface nsISVGPaintContext : nsISupports
+{
+  /**
+   * The fill color to use. Any CSS color value.
+   */
+  readonly attribute ACString fillColor;
+
+  /**
+   * The stroke color to use. Any CSS color value.
+   */
+  readonly attribute ACString strokeColor;
+
+  /**
+   * The fill opacity to use.
+   */
+  readonly attribute float fillOpacity;
+
+  /**
+   * The stroke opacity to use.
+   */
+  readonly attribute float strokeOpacity;
+};
