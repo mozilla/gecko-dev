@@ -41,7 +41,7 @@ class GenericPrinterPrintfTarget : public mozilla::PrintfTarget {
 
 namespace js {
 
-void GenericPrinter::reportOutOfMemory() {
+void GenericPrinter::setPendingOutOfMemory() {
   if (hadOOM_) {
     return;
   }
@@ -64,7 +64,7 @@ void GenericPrinter::put(mozilla::Span<const char16_t> str) {
 void GenericPrinter::putString(JSContext* cx, JSString* str) {
   StringSegmentRange iter(cx);
   if (!iter.init(str)) {
-    reportOutOfMemory();
+    setPendingOutOfMemory();
     return;
   }
   JS::AutoCheckCannotGC nogc;
@@ -76,7 +76,7 @@ void GenericPrinter::putString(JSContext* cx, JSString* str) {
       put(linear->twoByteRange(nogc));
     }
     if (!iter.popFront()) {
-      reportOutOfMemory();
+      setPendingOutOfMemory();
       return;
     }
   }
@@ -109,7 +109,11 @@ bool StringPrinter::realloc_(size_t newSize) {
   }
   char* newBuf = (char*)js_arena_realloc(arena, base, newSize);
   if (!newBuf) {
-    reportOutOfMemory();
+    // NOTE: The consumer of this method shouldn't directly propagate the error
+    //       mode to the outside of this class.
+    //       The OOM flag set here should be forwarded to the JSContext with
+    //       the releaseChars etc.
+    setPendingOutOfMemory();
     return false;
   }
   base = newBuf;
@@ -144,7 +148,7 @@ bool StringPrinter::init() {
   MOZ_ASSERT(!initialized);
   base = js_pod_arena_malloc<char>(arena, DefaultSize);
   if (!base) {
-    reportOutOfMemory();
+    setPendingOutOfMemory();
     forwardOutOfMemory();
     return false;
   }
@@ -441,14 +445,14 @@ void Fprinter::put(const char* s, size_t len) {
   MOZ_ASSERT(file_);
   int i = fwrite(s, /*size=*/1, /*nitems=*/len, file_);
   if (size_t(i) != len) {
-    reportOutOfMemory();
+    setPendingOutOfMemory();
     return;
   }
 #ifdef XP_WIN
   if ((file_ == stderr) && (IsDebuggerPresent())) {
     UniqueChars buf = DuplicateString(s, len);
     if (!buf) {
-      reportOutOfMemory();
+      setPendingOutOfMemory();
       return;
     }
     OutputDebugStringA(buf.get());
@@ -505,7 +509,7 @@ void LSprinter::put(const char* s, size_t len) {
     LifoAlloc::AutoFallibleScope fallibleAllocator(alloc_);
     last = reinterpret_cast<Chunk*>(alloc_->alloc(allocLength));
     if (!last) {
-      reportOutOfMemory();
+      setPendingOutOfMemory();
       return;
     }
   }

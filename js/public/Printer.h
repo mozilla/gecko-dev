@@ -139,7 +139,7 @@ class LifoAlloc;
 // of chunks allocated with a LifoAlloc.
 class JS_PUBLIC_API GenericPrinter {
  protected:
-  bool hadOOM_;  // whether reportOutOfMemory() has been called.
+  bool hadOOM_;  // whether setPendingOutOfMemory() has been called.
 
   constexpr GenericPrinter() : hadOOM_(false) {}
 
@@ -204,8 +204,9 @@ class JS_PUBLIC_API GenericPrinter {
   // In some printers, this ensure that the content is fully written.
   virtual void flush() { /* Do nothing */ }
 
-  // Report that a string operation failed to get the memory it requested.
-  virtual void reportOutOfMemory();
+  // Set a flag that a string operation failed to get the memory it requested.
+  // The pending out of memory error should be handled by the consumer.
+  virtual void setPendingOutOfMemory();
 
   // Return true if this Sprinter ran out of memory.
   virtual bool hadOutOfMemory() const { return hadOOM_; }
@@ -468,7 +469,7 @@ class JS_PUBLIC_API EscapePrinter final : public GenericPrinter {
   }
   size_t index() const final { return out.index(); }
   void flush() final { out.flush(); }
-  void reportOutOfMemory() final { out.reportOutOfMemory(); }
+  void setPendingOutOfMemory() final { out.setPendingOutOfMemory(); }
   bool hadOutOfMemory() const final { return out.hadOutOfMemory(); }
 };
 

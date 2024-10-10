@@ -77,7 +77,7 @@ LCovSource::LCovSource(LifoAlloc* alloc, UniqueChars name)
 
 void LCovSource::exportInto(GenericPrinter& out) {
   if (hadOutOfMemory()) {
-    out.reportOutOfMemory();
+    out.setPendingOutOfMemory();
   } else {
     out.printf("SF:%s\n", name_.get());
 
