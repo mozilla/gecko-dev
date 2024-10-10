@@ -96,6 +96,7 @@ template("absl_source_set") {
       modified_deps = []
       foreach (dep, deps) {
         newdep = string_replace(dep, "//third_party/abseil-cpp/", "//")
+        newdep = string_replace(newdep, "//build", "//chromium/build")
         modified_deps += [ newdep ]
       }
       deps = []
