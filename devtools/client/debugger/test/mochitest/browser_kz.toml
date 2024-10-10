@@ -32,7 +32,7 @@ prefs = [
 
 ["browser_dbg-link-reload.js"]
 skip-if = [
-  "os == 'linux' && asan", # Bug 1715866
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1715866
   "os == 'win' && bits == 64", # Bug 1715866
 ]
 
@@ -59,17 +59,17 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-navigation.js"]
 skip-if = [
-  "verify && debug && os == 'mac'", # Bug 1307249
-  "os == 'linux' && debug && bits == 64", # Bug 1307249
-  "os == 'mac' && debug", # Bug 1307249
+  "os == 'mac' && debug && verify", # Bug 1307249
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1307249
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1307249
 ]
 
 ["browser_dbg-no-duplicate-breakpoints-on-frame-reload.js"]
 
 ["browser_dbg-old-breakpoint.js"]
 skip-if = [
-  "os == 'linux'", #Bug 1644044
-  "os == 'mac'", #Bug 1644044
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", #Bug 1644044
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #Bug 1644044
 ]
 
 ["browser_dbg-outline-filter.js"]
@@ -144,8 +144,8 @@ fail-if = ["a11y_checks"] # Bug 1860733 splitter element is not focusable
 ["browser_dbg-preview.js"]
 skip-if = [
   "os == 'win'",
-  "os == 'linux'",
-  "os == 'mac' && !debug",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
 ]
 
 ["browser_dbg-project-root.js"]
@@ -156,19 +156,22 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-quick-open.js"]
 skip-if = [
   "os == 'win'",
-  "os == 'linux' && bits == 64 && debug", # Bug 1721999
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1721999
 ]
 
 ["browser_dbg-react-app.js"]
 skip-if = [
   "os == 'win'",
-  "os == 'linux' && tsan", # Bug 1813196
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1813196
 ]
 
 ["browser_dbg-react-jsx.js"]
 
 ["browser_dbg-reducer-cleanup-on-target-removal.js"]
-skip-if = ["os == 'linux' && (debug || tsan)"] # Bug 1835255
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1835255
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1835255
+]
 
 ["browser_dbg-reloading.js"]
 skip-if = ["true"]
@@ -224,7 +227,7 @@ skip-if = [
   "ccov",
   "debug",
   "tsan",
-  "verify && debug && os == 'linux'",
+  "os == 'linux' && debug && verify",
   "a11y_checks", # Bugs 1858041 and 1849028 intermittent results (fails on Try, passes on Autoland)
 ]
 
@@ -234,7 +237,7 @@ skip-if = ["true"] # original stepping is currently disabled
 ["browser_dbg-sourcemapped-toggle.js"]
 
 ["browser_dbg-sourcemaps-bogus.js"]
-skip-if = ["os == 'linux' && !asan"] # bug 1447118
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && !asan"] # bug 1447118
 
 ["browser_dbg-sourcemaps-breakpoints.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -277,7 +280,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-stepping.js"]
 skip-if = [
   "debug",
-  "verify && os == 'win'",
+  "os == 'win' && verify",
 ]
 
 ["browser_dbg-tabs-keyboard.js"]
@@ -303,14 +306,14 @@ skip-if = ["true"] # Bug 1814093
 
 ["browser_dbg-windowless-service-workers-reload.js"]
 skip-if = [
-  "os == 'linux'", # Bug 1767716
-  "win11_2009 && !debug", # Bug 1767716
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1767716
+  "win11_2009 && opt", # Bug 1767716
 ]
 
 ["browser_dbg-windowless-service-workers.js"]
 skip-if = [
-  "os == 'linux'", # Bug 1732486, # Bug 1767717
-  "win11_2009 && !debug", # Bug 1767717
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1732486, # Bug 1767717
+  "win11_2009 && opt", # Bug 1767717
 ]
 
 ["browser_dbg-windowless-workers-early-breakpoint.js"]

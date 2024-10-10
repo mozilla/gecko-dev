@@ -98,8 +98,8 @@ skip-if = ["verify"]
 
 ["browser_console_webconsole_private_browsing.js"]
 skip-if = [
-  "os == 'mac'", # Bug 1689000
-  "os == 'linux' && debug", # Bug 1689000
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1689000
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1689000
 ]
 
 ["browser_console_webextension.js"]
@@ -111,5 +111,5 @@ skip-if = [
   "asan",  # Bug 1591590
   "debug", # Bug 1591590
   "ccov",  # Bug 1591590
-  "os == 'win' && bits == 64 && !debug", # Bug 1591590
+  "os == 'win' && bits == 64 && opt", # Bug 1591590
 ]

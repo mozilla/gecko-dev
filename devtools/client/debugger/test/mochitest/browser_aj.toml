@@ -76,9 +76,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-breakpoints-popup.js"]
 skip-if = [
-  "os == 'linux' && debug", # Bug 1750199
-  "tsan", # Bug 1750199
-  "apple_catalina && !debug", # Bug 1767705
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1750199
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1750199
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1767705
 ]
 
 ["browser_dbg-breakpoints-reloading-with-source-changes.js"]
@@ -98,7 +98,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-browser-toolbox-unselected-pause.js"]
 skip-if = [
   "asan", # Bug 1591064
-  "os == 'win' && fission && debug", # intermittent on fission, Bug 1720165 - test timed out
+  "os == 'win' && debug", # intermittent on fission, Bug 1720165 - test timed out
 ]
 
 ["browser_dbg-browser-toolbox-workers.js"]
@@ -187,7 +187,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-expressions-thread.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["!fission"] # threads panel only shows remote frame when fission is enabled.
 
 ["browser_dbg-expressions-watch.js"]
 
@@ -200,8 +199,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-features-breakable-lines.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && !debug", # Bug 1767701
-  "apple_catalina && !debug", # Bug 1767701
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1767701
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1767701
 ]
 
 ["browser_dbg-features-breakable-positions.js"]

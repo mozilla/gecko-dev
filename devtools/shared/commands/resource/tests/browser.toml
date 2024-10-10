@@ -55,11 +55,10 @@ support-files = [
 ["browser_resources_css_messages.js"]
 
 ["browser_resources_css_registered_properties.js"]
-skip-if = ["!fission"]
 
 ["browser_resources_document_events.js"]
 skip-if = [
-  "os == 'linux' && bits == 64", # Bug 1715878
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1715878
 ]
 
 ["browser_resources_error_messages.js"]
@@ -94,9 +93,9 @@ skip-if = [
 
 ["browser_resources_sources.js"]
 skip-if = [
-  "os == 'linux' && bits == 64", # Bug 1744565
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1744565
   "win11_2009", # Bug 1767772
-  "apple_catalina", # Bug 1767772
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1767772
 ]
 
 ["browser_resources_stylesheets.js"]

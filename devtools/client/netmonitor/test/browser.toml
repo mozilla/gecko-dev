@@ -133,11 +133,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_net_block-pattern.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
   "win11_2009 && debug", # Bug 1603355
   "win10_2009 && debug", # Bug 1603355
-  "apple_catalina && debug", # Bug 1603355
-  "apple_silicon && debug", # Bug 1603355
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1603355
 ]
 
 ["browser_net_block-serviceworker.js"]
@@ -205,8 +204,7 @@ skip-if = [
 
 ["browser_net_content-type.js"]
 skip-if = [
-  "apple_catalina && !debug",
-  "apple_silicon && !debug",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt",
 ]
 
 ["browser_net_cookies_sorted.js"]
@@ -225,8 +223,7 @@ skip-if = ["win11_2009 && debug && verify"]
 ["browser_net_copy_params.js"]
 skip-if = [
   "win11_2009", # Bug 1797751
-  "apple_catalina && !debug && verify", # bug 1328915
-  "apple_silicon && !debug && verify", # bug 1328915
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt && verify", # bug 1328915
 ]
 
 ["browser_net_copy_response.js"]
@@ -425,7 +422,7 @@ skip-if = [
 ["browser_net_resend_xhr.js"]
 
 ["browser_net_response_CORS_blocked.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && !debug && a11y_checks"] # bug 1732635
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks"] # bug 1732635
 
 ["browser_net_response_node-expanded.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -435,7 +432,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_net_script_cache.js"]
 
 ["browser_net_search-results.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && a11y_checks"]  # Bug 1721160
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && a11y_checks"]  # Bug 1721160
 
 ["browser_net_security-details.js"]
 
@@ -462,7 +459,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_service-worker-status.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && !debug && verify"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && verify"]
 
 ["browser_net_service-worker-timings.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled

@@ -3,4 +3,4 @@ subsuite = "screenshots"
 support-files = ["../head.js"]
 
 ["browser_devtools.js"]
-skip-if = ["os == 'mac'"] # times out on macosx1014, see 1570100
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64'"] # times out on macosx1014, see 1570100
