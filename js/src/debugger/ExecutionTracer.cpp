@@ -27,21 +27,24 @@ enum class InlineEntryType : uint8_t {
   LabelLeave,
 };
 
-static ExecutionTracer::ImplementationType GetImplementation(
+mozilla::Vector<ExecutionTracer*> ExecutionTracer::globalInstances;
+Mutex ExecutionTracer::globalInstanceLock(mutexid::ExecutionTracerGlobalLock);
+
+static JS::ExecutionTrace::ImplementationType GetImplementation(
     AbstractFramePtr frame) {
   if (frame.isBaselineFrame()) {
-    return ExecutionTracer::ImplementationType::Baseline;
+    return JS::ExecutionTrace::ImplementationType::Baseline;
   }
 
   if (frame.isRematerializedFrame()) {
-    return ExecutionTracer::ImplementationType::Ion;
+    return JS::ExecutionTrace::ImplementationType::Ion;
   }
 
   if (frame.isWasmDebugFrame()) {
-    return ExecutionTracer::ImplementationType::Wasm;
+    return JS::ExecutionTrace::ImplementationType::Wasm;
   }
 
-  return ExecutionTracer::ImplementationType::Interpreter;
+  return JS::ExecutionTrace::ImplementationType::Interpreter;
 }
 
 static DebuggerFrameType GetFrameType(AbstractFramePtr frame) {
@@ -175,6 +178,8 @@ bool ExecutionTracer::writeFunctionFrame(JSContext* cx,
 }
 
 bool ExecutionTracer::onEnterFrame(JSContext* cx, AbstractFramePtr frame) {
+  LockGuard<Mutex> guard(bufferLock_);
+
   DebuggerFrameType type = GetFrameType(frame);
   if (type == DebuggerFrameType::Call) {
     if (frame.isFunctionFrame()) {
@@ -191,6 +196,8 @@ bool ExecutionTracer::onEnterFrame(JSContext* cx, AbstractFramePtr frame) {
 }
 
 bool ExecutionTracer::onLeaveFrame(JSContext* cx, AbstractFramePtr frame) {
+  LockGuard<Mutex> guard(bufferLock_);
+
   DebuggerFrameType type = GetFrameType(frame);
   if (type == DebuggerFrameType::Call) {
     if (frame.isFunctionFrame()) {
@@ -202,11 +209,14 @@ bool ExecutionTracer::onLeaveFrame(JSContext* cx, AbstractFramePtr frame) {
       inlineData_.finishWritingEntry();
     }
   }
+
   return true;
 }
 
 template <typename CharType, TracerStringEncoding Encoding>
 void ExecutionTracer::onEnterLabel(const CharType* eventType) {
+  LockGuard<Mutex> guard(bufferLock_);
+
   inlineData_.beginWritingEntry();
   inlineData_.write(uint8_t(InlineEntryType::LabelEnter));
   inlineData_.writeCString<CharType, Encoding>(eventType);
@@ -216,6 +226,8 @@ void ExecutionTracer::onEnterLabel(const CharType* eventType) {
 
 template <typename CharType, TracerStringEncoding Encoding>
 void ExecutionTracer::onLeaveLabel(const CharType* eventType) {
+  LockGuard<Mutex> guard(bufferLock_);
+
   inlineData_.beginWritingEntry();
   inlineData_.write(uint8_t(InlineEntryType::LabelLeave));
   inlineData_.writeCString<CharType, Encoding>(eventType);
@@ -231,9 +243,9 @@ static bool ThrowTracingReadFailed(JSContext* cx) {
 
 bool ExecutionTracer::readFunctionFrame(JSContext* cx,
                                         JS::Handle<JSObject*> result,
-                                        EventKind kind) {
-  MOZ_ASSERT(kind == EventKind::FunctionEnter ||
-             kind == EventKind::FunctionLeave);
+                                        ExecutionTrace::EventKind kind) {
+  MOZ_ASSERT(kind == ExecutionTrace::EventKind::FunctionEnter ||
+             kind == ExecutionTrace::EventKind::FunctionLeave);
 
   uint32_t lineno;
   uint32_t column;
@@ -273,6 +285,48 @@ bool ExecutionTracer::readFunctionFrame(JSContext* cx,
   return true;
 }
 
+bool ExecutionTracer::readFunctionFrameNative(
+    JS::ExecutionTrace::EventKind kind, JS::ExecutionTrace::TracedEvent& event) {
+  MOZ_ASSERT(kind == JS::ExecutionTrace::EventKind::FunctionEnter ||
+             kind == JS::ExecutionTrace::EventKind::FunctionLeave);
+
+  event.kind = kind;
+
+  uint8_t implementation;
+  inlineData_.read(&event.functionEvent.lineNumber);
+  inlineData_.read(&event.functionEvent.column);
+  inlineData_.read(&event.functionEvent.scriptId);
+  inlineData_.read(&event.functionEvent.functionNameId);
+  inlineData_.read(&implementation);
+  inlineData_.read(&event.time);
+
+  event.functionEvent.implementation =
+      JS::ExecutionTrace::ImplementationType(implementation);
+
+  return true;
+}
+
+bool ExecutionTracer::readLabelNative(JS::ExecutionTrace::EventKind kind,
+                                      JS::ExecutionTrace::TracedEvent& event,
+                                      TracingScratchBuffer& scratchBuffer,
+                                      mozilla::Vector<char>& stringBuffer) {
+  MOZ_ASSERT(kind == JS::ExecutionTrace::EventKind::LabelEnter ||
+             kind == JS::ExecutionTrace::EventKind::LabelLeave);
+
+  event.kind = kind;
+  size_t index;
+  if (!inlineData_.readStringNative(scratchBuffer, stringBuffer, &index)) {
+    return false;
+  }
+  event.labelEvent.label = index;
+
+  double time;
+  inlineData_.read(&time);
+  event.time = time;
+
+  return true;
+}
+
 bool ExecutionTracer::readStackFunctionEnter(JSContext* cx,
                                              JS::Handle<JSObject*> events) {
   JS::Rooted<JSObject*> obj(cx, NewDenseEmptyArray(cx));
@@ -280,7 +334,7 @@ bool ExecutionTracer::readStackFunctionEnter(JSContext* cx,
     return false;
   }
 
-  if (!readFunctionFrame(cx, obj, EventKind::FunctionEnter)) {
+  if (!readFunctionFrame(cx, obj, JS::ExecutionTrace::EventKind::FunctionEnter)) {
     return false;
   }
 
@@ -299,7 +353,7 @@ bool ExecutionTracer::readStackFunctionLeave(JSContext* cx,
     return false;
   }
 
-  if (!readFunctionFrame(cx, obj, EventKind::FunctionLeave)) {
+  if (!readFunctionFrame(cx, obj, JS::ExecutionTrace::EventKind::FunctionLeave)) {
     return false;
   }
   JS::Rooted<JS::Value> objVal(cx, ObjectValue(*obj));
@@ -346,8 +400,9 @@ bool ExecutionTracer::readAtomEntry(JSContext* cx,
 }
 
 bool ExecutionTracer::readLabel(JSContext* cx, JS::Handle<JSObject*> events,
-                                EventKind kind) {
-  MOZ_ASSERT(kind == EventKind::LabelEnter || kind == EventKind::LabelLeave);
+                                JS::ExecutionTrace::EventKind kind) {
+  MOZ_ASSERT(kind == JS::ExecutionTrace::EventKind::LabelEnter ||
+             kind == JS::ExecutionTrace::EventKind::LabelLeave);
 
   JS::Rooted<JSObject*> obj(cx, NewDenseEmptyArray(cx));
   if (!obj) {
@@ -392,9 +447,9 @@ bool ExecutionTracer::readInlineEntry(JSContext* cx,
     case InlineEntryType::StackFunctionLeave:
       return readStackFunctionLeave(cx, events);
     case InlineEntryType::LabelEnter:
-      return readLabel(cx, events, EventKind::LabelEnter);
+      return readLabel(cx, events, JS::ExecutionTrace::EventKind::LabelEnter);
     case InlineEntryType::LabelLeave:
-      return readLabel(cx, events, EventKind::LabelLeave);
+      return readLabel(cx, events, JS::ExecutionTrace::EventKind::LabelLeave);
     default:
       return ThrowTracingReadFailed(cx);
   }
@@ -444,6 +499,8 @@ bool ExecutionTracer::readOutOfLineEntries(JSContext* cx,
 }
 
 bool ExecutionTracer::getTrace(JSContext* cx, JS::Handle<JSObject*> result) {
+  LockGuard<Mutex> guard(bufferLock_);
+
   // TODO: the long term goal for traces is to be able to collect this data
   // live, while the tracer is still capturing, as well as all at once, which
   // this method covers. Bug 1910182 tracks the next step for the live tracing
@@ -489,7 +546,178 @@ bool ExecutionTracer::getTrace(JSContext* cx, JS::Handle<JSObject*> result) {
   return true;
 }
 
+bool ExecutionTracer::readInlineEntryNative(
+    mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
+    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+  uint8_t entryType;
+  inlineData_.read(&entryType);
+
+  switch (InlineEntryType(entryType)) {
+    case InlineEntryType::StackFunctionEnter:
+    case InlineEntryType::StackFunctionLeave: {
+      JS::ExecutionTrace::EventKind kind;
+      if (InlineEntryType(entryType) == InlineEntryType::StackFunctionEnter) {
+        kind = JS::ExecutionTrace::EventKind::FunctionEnter;
+      } else {
+        kind = JS::ExecutionTrace::EventKind::FunctionLeave;
+      }
+      JS::ExecutionTrace::TracedEvent event;
+      if (!readFunctionFrameNative(kind, event)) {
+        return false;
+      }
+
+      if (!events.append(std::move(event))) {
+        return false;
+      }
+      return true;
+    }
+    case InlineEntryType::LabelEnter:
+    case InlineEntryType::LabelLeave: {
+      JS::ExecutionTrace::EventKind kind;
+      if (InlineEntryType(entryType) == InlineEntryType::LabelEnter) {
+        kind = JS::ExecutionTrace::EventKind::LabelEnter;
+      } else {
+        kind = JS::ExecutionTrace::EventKind::LabelLeave;
+      }
+
+      JS::ExecutionTrace::TracedEvent event;
+      if (!readLabelNative(kind, event, scratchBuffer, stringBuffer)) {
+        return false;
+      }
+
+      if (!events.append(std::move(event))) {
+        return false;
+      }
+
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+
+bool ExecutionTracer::readOutOfLineEntryNative(
+    mozilla::HashMap<uint32_t, size_t>& scriptUrls,
+    mozilla::HashMap<uint32_t, size_t>& atoms,
+    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+  uint8_t entryType;
+  outOfLineData_.read(&entryType);
+
+  switch (OutOfLineEntryType(entryType)) {
+    case OutOfLineEntryType::ScriptURL: {
+      uint32_t id;
+      outOfLineData_.read(&id);
+
+      size_t index;
+      if (!outOfLineData_.readStringNative(scratchBuffer, stringBuffer,
+                                           &index)) {
+        return false;
+      }
+
+      if (!scriptUrls.put(id, index)) {
+        return false;
+      }
+
+      return true;
+    }
+    case OutOfLineEntryType::Atom: {
+      uint32_t id;
+      outOfLineData_.read(&id);
+
+      size_t index;
+      if (!outOfLineData_.readStringNative(scratchBuffer, stringBuffer,
+                                           &index)) {
+        return false;
+      }
+
+      if (!atoms.put(id, index)) {
+        return false;
+      }
+
+      return true;
+    }
+    default:
+      return false;
+  }
+
+  return true;
+}
+
+bool ExecutionTracer::readInlineEntriesNative(
+    mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
+    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+  while (inlineData_.readable()) {
+    inlineData_.beginReadingEntry();
+    if (!readInlineEntryNative(events, scratchBuffer, stringBuffer)) {
+      inlineData_.skipEntry();
+      return false;
+    }
+    inlineData_.finishReadingEntry();
+  }
+  return true;
+}
+
+bool ExecutionTracer::readOutOfLineEntriesNative(
+    mozilla::HashMap<uint32_t, size_t>& scriptUrls,
+    mozilla::HashMap<uint32_t, size_t>& atoms,
+    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+  while (outOfLineData_.readable()) {
+    outOfLineData_.beginReadingEntry();
+    if (!readOutOfLineEntryNative(scriptUrls, atoms, scratchBuffer,
+                                  stringBuffer)) {
+      outOfLineData_.skipEntry();
+      return false;
+    }
+    outOfLineData_.finishReadingEntry();
+  }
+  return true;
+}
+
+bool ExecutionTracer::getNativeTrace(
+    JS::ExecutionTrace::TracedJSContext& context,
+    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+  LockGuard<Mutex> guard(bufferLock_);
+
+  if (!readOutOfLineEntriesNative(context.scriptUrls, context.atoms,
+                                  scratchBuffer, stringBuffer)) {
+    return false;
+  }
+
+  if (!readInlineEntriesNative(context.events, scratchBuffer, stringBuffer)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool ExecutionTracer::getNativeTraceForAllContexts(JS::ExecutionTrace& trace) {
+  LockGuard<Mutex> guard(globalInstanceLock);
+  TracingScratchBuffer scratchBuffer;
+  for (ExecutionTracer* tracer : globalInstances) {
+    JS::ExecutionTrace::TracedJSContext* context = nullptr;
+    for (JS::ExecutionTrace::TracedJSContext& t : trace.contexts) {
+      if (t.id == tracer->threadId_) {
+        context = &t;
+        break;
+      }
+    }
+    if (!context) {
+      if (!trace.contexts.append(JS::ExecutionTrace::TracedJSContext())) {
+        return false;
+      }
+      context = &trace.contexts[trace.contexts.length() - 1];
+      context->id = tracer->threadId_;
+    }
+    if (!tracer->getNativeTrace(*context, scratchBuffer, trace.stringBuffer)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void JS_TracerEnterLabelTwoByte(JSContext* cx, const char16_t* label) {
+  CHECK_THREAD(cx);
   if (cx->hasExecutionTracer()) {
     cx->getExecutionTracer()
         .onEnterLabel<char16_t, TracerStringEncoding::TwoByte>(label);
@@ -497,6 +725,7 @@ void JS_TracerEnterLabelTwoByte(JSContext* cx, const char16_t* label) {
 }
 
 void JS_TracerEnterLabelLatin1(JSContext* cx, const char* label) {
+  CHECK_THREAD(cx);
   if (cx->hasExecutionTracer()) {
     cx->getExecutionTracer().onEnterLabel<char, TracerStringEncoding::Latin1>(
         label);
@@ -504,6 +733,7 @@ void JS_TracerEnterLabelLatin1(JSContext* cx, const char* label) {
 }
 
 void JS_TracerLeaveLabelTwoByte(JSContext* cx, const char16_t* label) {
+  CHECK_THREAD(cx);
   if (cx->hasExecutionTracer()) {
     cx->getExecutionTracer()
         .onLeaveLabel<char16_t, TracerStringEncoding::TwoByte>(label);
@@ -511,8 +741,24 @@ void JS_TracerLeaveLabelTwoByte(JSContext* cx, const char16_t* label) {
 }
 
 void JS_TracerLeaveLabelLatin1(JSContext* cx, const char* label) {
+  CHECK_THREAD(cx);
   if (cx->hasExecutionTracer()) {
     cx->getExecutionTracer().onLeaveLabel<char, TracerStringEncoding::Latin1>(
         label);
   }
+}
+
+bool JS_TracerBeginTracing(JSContext* cx) {
+  CHECK_THREAD(cx);
+  return cx->enableExecutionTracing();
+}
+
+bool JS_TracerEndTracing(JSContext* cx) {
+  CHECK_THREAD(cx);
+  cx->disableExecutionTracing();
+  return true;
+}
+
+bool JS_TracerSnapshotTrace(JS::ExecutionTrace& trace) {
+  return ExecutionTracer::getNativeTraceForAllContexts(trace);
 }
