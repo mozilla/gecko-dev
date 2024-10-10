@@ -78,16 +78,16 @@ add_task(async function () {
 
   invokeInTab("keepMeAlive");
   await waitForPausedInOriginalFileAndToggleMapScopes(dbg);
-  await assertPausedAtSourceAndLine(dbg, entrySrc.id, 15);
+  assertPausedAtSourceAndLine(dbg, entrySrc.id, 15);
 
   await stepIn(dbg);
-  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "times2.js").id, 2);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "times2.js").id, 2);
 
   await stepOver(dbg);
-  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "times2.js").id, 3);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "times2.js").id, 3);
 
   await stepOut(dbg);
-  await assertPausedAtSourceAndLine(dbg, entrySrc.id, 16);
+  assertPausedAtSourceAndLine(dbg, entrySrc.id, 16);
 
   pendingSelectedLocation = Services.prefs.getStringPref(
     "devtools.debugger.pending-selected-location"
@@ -127,7 +127,7 @@ add_task(async function () {
   mappedSourceLink.click();
 
   await waitForSelectedSource(dbg, bundleSrc);
-  await assertPausedAtSourceAndLine(dbg, bundleSrc.id, 62);
+  assertPausedAtSourceAndLine(dbg, bundleSrc.id, 62);
   // The mapped source link is computed asynchronously when we are on the bundle
   mappedSourceLink = await waitFor(() => findElement(dbg, "mappedSourceLink"));
   mappedSourceLink = findElement(dbg, "mappedSourceLink");

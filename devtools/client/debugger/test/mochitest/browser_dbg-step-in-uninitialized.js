@@ -15,7 +15,7 @@ add_task(async function test() {
   await stepOver(dbg);
   await stepIn(dbg);
 
-  await assertPausedAtSourceAndLine(
+  assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-step-in-uninitialized.html").id,
     8
@@ -28,7 +28,7 @@ add_task(async function test() {
 
   await stepOver(dbg);
 
-  await assertPausedAtSourceAndLine(
+  assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-step-in-uninitialized.html").id,
     9

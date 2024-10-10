@@ -14,7 +14,7 @@ add_task(async function () {
 
   await waitFor(() => toolbox.getPanel("jsdebugger"));
   const dbg = createDebuggerContext(toolbox);
-  await waitForElement(dbg, "highlightLine");
+  await waitForElementWithSelector(dbg, ".CodeMirror-code > .highlight-line");
   assertHighlightLocation(dbg, "script-switching-02.js", 18);
 });
 

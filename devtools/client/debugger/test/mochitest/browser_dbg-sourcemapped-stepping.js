@@ -51,12 +51,7 @@ async function runSteps(dbg, source, steps) {
         throw new Error("Unknown stepping type");
     }
 
-    await assertPausedAtSourceAndLine(
-      dbg,
-      source.id,
-      position.line,
-      position.column
-    );
+    assertPausedAtSourceAndLine(dbg, source.id, position.line, position.column);
   }
 }
 

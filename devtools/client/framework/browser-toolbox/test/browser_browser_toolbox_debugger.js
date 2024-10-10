@@ -92,7 +92,7 @@ add_task(async function runTest() {
     await onPaused;
 
     const source = findSource(dbg, fileName);
-    await assertPausedAtSourceAndLine(dbg, source.id, 2);
+    assertPausedAtSourceAndLine(dbg, source.id, 2);
     assertTextContentOnLine(dbg, 2, "const foo = 1;");
     is(
       dbg.selectors.getBreakpointCount(),
@@ -102,7 +102,7 @@ add_task(async function runTest() {
 
     await stepIn(dbg);
 
-    await assertPausedAtSourceAndLine(dbg, source.id, 3);
+    assertPausedAtSourceAndLine(dbg, source.id, 3);
     assertTextContentOnLine(dbg, 3, "return foo;");
     is(
       dbg.selectors.getBreakpointCount(),
@@ -156,14 +156,14 @@ add_task(async function runTest() {
     await onPaused;
 
     const source = findSource(dbg, fileName);
-    await assertPausedAtSourceAndLine(dbg, source.id, 2);
+    assertPausedAtSourceAndLine(dbg, source.id, 2);
     assertTextContentOnLine(dbg, 2, "const plop = 1;");
     await assertBreakpoint(dbg, 2);
     is(dbg.selectors.getBreakpointCount(), 1, "We have exactly one breakpoint");
 
     await stepIn(dbg);
 
-    await assertPausedAtSourceAndLine(dbg, source.id, 3);
+    assertPausedAtSourceAndLine(dbg, source.id, 3);
     assertTextContentOnLine(dbg, 3, "return plop;");
     is(
       dbg.selectors.getBreakpointCount(),
@@ -198,7 +198,7 @@ add_task(async function runTest() {
     const dbg = createDebuggerContext(gToolbox);
     await waitForPaused(dbg);
     const source = findSource(dbg, url);
-    await assertPausedAtSourceAndLine(dbg, source.id, 1);
+    assertPausedAtSourceAndLine(dbg, source.id, 1);
     const thread = dbg.selectors.getThread(dbg.selectors.getCurrentThread());
     is(thread.isTopLevel, false, "The current thread is not the top level one");
     is(thread.targetType, "process", "The current thread is the tab one");

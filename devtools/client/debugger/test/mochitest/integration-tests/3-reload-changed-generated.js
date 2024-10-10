@@ -100,7 +100,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
     // early, therefore is pauses at the old position, where no breakpoint is
     // displayed in the UI
     info("Assert that the breakpoint paused in the other original file");
-    await assertPausedAtSourceAndLine(
+    assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "another-original.js").id,
       5
@@ -110,7 +110,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
 
     info("Switch to generated source and assert that the location is correct");
     await dbg.actions.jumpToMappedSelectedLocation();
-    await assertPausedAtSourceAndLine(
+    assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "bundle-with-another-original.js").id,
       82
@@ -126,7 +126,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
     info(
       "Check that the breakpoint is displayed and paused on the correct line"
     );
-    await assertPausedAtSourceAndLine(
+    assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "original-with-no-update.js").id,
       6
@@ -150,12 +150,12 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
   await selectSource(dbg, "bundle-with-another-original.js");
   // This scrolls the line into view so the content
   // on the line is rendered and avaliable for dom querying.
-  await scrollEditorIntoView(dbg, 103, 0);
+  getCM(dbg).scrollIntoView({ line: 103, ch: 0 });
 
   if (isCompressed) {
     await assertBreakpoint(dbg, 1);
   } else {
-    await assertPausedAtSourceAndLine(
+    assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "bundle-with-another-original.js").id,
       103

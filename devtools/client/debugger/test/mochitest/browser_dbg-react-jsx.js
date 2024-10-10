@@ -16,5 +16,5 @@ add_task(async function () {
   await addBreakpoint(dbg, "main.js", 3);
   invokeInTab("foo");
   await waitForPausedInOriginalFileAndToggleMapScopes(dbg);
-  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "main.js").id, 3);
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "main.js").id, 3);
 });

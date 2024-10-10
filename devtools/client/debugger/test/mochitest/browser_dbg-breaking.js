@@ -27,11 +27,7 @@ add_task(async function () {
   );
   is(whyPaused, "Paused on breakpoint");
 
-  await assertPausedAtSourceAndLine(
-    dbg,
-    findSource(dbg, "doc-scripts.html").id,
-    21
-  );
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "doc-scripts.html").id, 21);
   await resume(dbg);
   info("Wait for reload to complete after resume");
   await onReloaded;
@@ -41,7 +37,7 @@ add_task(async function () {
   await waitForPaused(dbg);
   const source = getSelectedSource();
   ok(!source.url, "It is an eval source");
-  await assertPausedAtSourceAndLine(dbg, source.id, 2);
+  assertPausedAtSourceAndLine(dbg, source.id, 2);
 
   whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
@@ -53,7 +49,7 @@ add_task(async function () {
   await addBreakpoint(dbg, source, 5);
   invokeInTab("evaledFunc");
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(dbg, source.id, 5);
+  assertPausedAtSourceAndLine(dbg, source.id, 5);
 
   await resume(dbg);
 });

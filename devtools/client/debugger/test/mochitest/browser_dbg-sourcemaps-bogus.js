@@ -38,7 +38,7 @@ add_task(async function () {
   await addBreakpoint(dbg, "non-existant-map.js", 4);
   invokeInTab("runCode");
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(
+  assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "non-existant-map.js").id,
     4
@@ -74,7 +74,7 @@ add_task(async function () {
   await waitForPaused(dbg);
 
   // As the original file can't be loaded, the generated source is automatically selected
-  await assertPausedAtSourceAndLine(
+  assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "map-with-failed-original-request.js").id,
     7

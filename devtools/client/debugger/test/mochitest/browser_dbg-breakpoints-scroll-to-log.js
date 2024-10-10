@@ -16,9 +16,10 @@ add_task(async function () {
   await waitForBreakpoint(dbg, "long.js", 66);
 
   info("scroll editor to the top");
-  await scrollEditorIntoView(dbg, 0, 0);
+  const cm = getCM(dbg);
+  cm.scrollTo(0, 0);
 
-  ok(isScrolledPositionVisible(dbg, 0, 0), "editor is scrolled to the top.");
+  is(cm.getScrollInfo().top, 0, "editor is scrolled to the top.");
 
   info("open breakpointContextMenu and select add log");
   await openBreakpointContextMenu(dbg);
@@ -32,15 +33,12 @@ add_task(async function () {
   await typeInPanel(dbg, "this.todos");
   await waitForDispatch(dbg.store, "SET_BREAKPOINT");
 
-  ok(
-    isScrolledPositionVisible(dbg, 66),
-    "editor is scrolled to the log input line."
-  );
+  is(cm.getScrollInfo().top, 870, "editor is scrolled to the log input line.");
 
   info("scroll editor to the top");
-  await scrollEditorIntoView(dbg, 0, 0);
+  cm.scrollTo(0, 0);
 
-  ok(isScrolledPositionVisible(dbg, 0, 0), "editor is scrolled to the top.");
+  is(cm.getScrollInfo().top, 0, "editor is scrolled to the top.");
 
   info("open breakpointContextMenu and select edit log");
   await openBreakpointContextMenu(dbg);
@@ -54,10 +52,7 @@ add_task(async function () {
   await typeInPanel(dbg, ".id");
   await waitForDispatch(dbg.store, "SET_BREAKPOINT");
 
-  ok(
-    isScrolledPositionVisible(dbg, 66),
-    "editor is scrolled to the log input line."
-  );
+  is(cm.getScrollInfo().top, 870, "editor is scrolled to the log input line.");
 });
 
 async function openBreakpointContextMenu(dbg) {

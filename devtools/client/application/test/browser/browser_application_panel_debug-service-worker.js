@@ -47,7 +47,7 @@ add_task(async function () {
   });
   await waitForPaused(debuggerContext);
   const workerScript = findSource(debuggerContext, "debug-sw.js");
-  await assertPausedAtSourceAndLine(debuggerContext, workerScript.id, 11);
+  assertPausedAtSourceAndLine(debuggerContext, workerScript.id, 11);
   await resume(debuggerContext);
 
   // remove breakpoint

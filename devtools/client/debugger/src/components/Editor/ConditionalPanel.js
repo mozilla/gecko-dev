@@ -61,9 +61,7 @@ export class ConditionalPanel extends PureComponent {
     if (this.input) {
       this.input.focus();
     } else if (this.breakpointPanelEditor) {
-      if (!this.breakpointPanelEditor.isDestroyed()) {
-        this.breakpointPanelEditor.focus();
-      }
+      this.breakpointPanelEditor.focus();
     }
   }
 

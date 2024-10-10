@@ -11,7 +11,7 @@ add_task(async function () {
   invokeInTab("singleRequest", "doc-xhr-run-to-completion.html");
   await waitForPaused(dbg);
   await waitForSelectedLocation(dbg, 23);
-  await assertPausedAtSourceAndLine(
+  assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-xhr-run-to-completion.html").id,
     23
@@ -29,21 +29,21 @@ add_task(async function () {
   const dbg = await initDebugger("doc-xhr-run-to-completion.html");
   invokeInTab("multipleRequests", "doc-xhr-run-to-completion.html");
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(
+  assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-xhr-run-to-completion.html").id,
     31
   );
   await resume(dbg);
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(
+  assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-xhr-run-to-completion.html").id,
     33
   );
   await resume(dbg);
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(
+  assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-xhr-run-to-completion.html").id,
     34

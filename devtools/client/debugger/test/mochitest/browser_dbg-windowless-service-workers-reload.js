@@ -25,7 +25,7 @@ add_task(async function () {
   invokeInTab("fetchFromWorker");
 
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
+  assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
 
   await assertPreviews(dbg, [
     {
@@ -42,7 +42,7 @@ add_task(async function () {
   await reload(dbg, "service-worker.sjs");
 
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
+  assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
 
   await assertPreviews(dbg, [
     {

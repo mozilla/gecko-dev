@@ -37,18 +37,18 @@ add_task(async function () {
     "The js source is not flagged as an html source"
   );
 
-  await assertPausedAtSourceAndLine(dbg, htmlSource.id, 8);
+  assertPausedAtSourceAndLine(dbg, htmlSource.id, 8);
   await resume(dbg);
 
   await waitForBreakableLine(dbg, "doc-html-breakpoints.html", 15);
   invokeInTab("test3");
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(dbg, htmlSource.id, 15);
+  assertPausedAtSourceAndLine(dbg, htmlSource.id, 15);
   await resume(dbg);
 
   await waitForBreakableLine(dbg, "doc-html-breakpoints.html", 20);
   invokeInTab("test4");
   await waitForPaused(dbg);
-  await assertPausedAtSourceAndLine(dbg, htmlSource.id, 20);
+  assertPausedAtSourceAndLine(dbg, htmlSource.id, 20);
   await resume(dbg);
 });

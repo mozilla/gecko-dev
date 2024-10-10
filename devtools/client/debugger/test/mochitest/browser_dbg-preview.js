@@ -171,7 +171,10 @@ async function testHoveringInvalidTargetTokens(dbg) {
   // Move the cursor to the top left corner to have a clean state
   resetCursorPositionToTopLeftCorner(dbg);
 
-  const inlinePreviewEl = findElement(dbg, "inlinePreview");
+  const inlinePreviewEl = findElementWithSelector(
+    dbg,
+    ".CodeMirror-code .CodeMirror-widget"
+  );
   is(inlinePreviewEl.innerText, `myVar:"foo"`, "got expected inline preview");
 
   const racePromise = Promise.any([
@@ -258,8 +261,11 @@ async function testMovingFromATokenToAnother(dbg) {
   await waitForPaused(dbg);
 
   info("Hover token `Foo` in `Foo.#privateStatic` expression");
-  const fooTokenEl = await getTokenElAtLine(dbg, "Foo", 50, 44);
-  await scrollEditorIntoView(dbg, 49, 0);
+  const fooTokenEl = getTokenElAtLine(dbg, "Foo", 50, 44);
+  const cm = getCM(dbg);
+  const onScrolled = waitForScrolling(cm);
+  cm.scrollIntoView({ line: 49, ch: 0 }, 0);
+  await onScrolled;
   const { element: fooPopupEl } = await tryHoverToken(dbg, fooTokenEl, "popup");
   ok(!!fooPopupEl, "popup is displayed");
   ok(
@@ -273,12 +279,7 @@ async function testMovingFromATokenToAnother(dbg) {
   info(
     "Move mouse over the `#privateStatic` token in `Foo.#privateStatic` expression"
   );
-  const privateStaticTokenEl = await getTokenElAtLine(
-    dbg,
-    "#privateStatic",
-    50,
-    48
-  );
+  const privateStaticTokenEl = getTokenElAtLine(dbg, "#privateStatic", 50, 48);
 
   // The sequence of event to trigger the bug this is covering isn't easily reproducible
   // by firing a few chosen events (because of React async rendering), so we are going to

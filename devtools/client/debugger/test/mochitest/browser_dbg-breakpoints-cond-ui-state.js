@@ -76,7 +76,11 @@ add_task(async function () {
 
   info("Double click the conditional breakpoint in secondary pane");
   dblClickElement(dbg, "conditionalBreakpointInSecPane");
-  assertConditonalBreakpointPanelFocus(dbg, { isCm6Enabled });
+  is(
+    dbg.win.document.activeElement.tagName,
+    "TEXTAREA",
+    "The textarea of conditional breakpoint panel is focused"
+  );
 
   info("Click the conditional breakpoint in secondary pane");
   await clickElement(dbg, "conditionalBreakpointInSecPane");
@@ -105,7 +109,11 @@ add_task(async function () {
 
   info("Double click the logpoint in secondary pane");
   dblClickElement(dbg, "logPointInSecPane");
-  assertConditonalBreakpointPanelFocus(dbg, { isLogPoint: true, isCm6Enabled });
+  is(
+    dbg.win.document.activeElement.tagName,
+    "TEXTAREA",
+    "The textarea of logpoint panel is focused"
+  );
 
   info("Click the logpoint in secondary pane");
   await clickElement(dbg, "logPointInSecPane");
@@ -130,21 +138,6 @@ async function setConditionalBreakpoint(dbg, index, condition) {
   typeInPanel(dbg, condition);
 }
 
-function assertConditonalBreakpointPanelFocus(
-  dbg,
-  { isLogPoint = false, isCm6Enabled }
-) {
-  const focusedElement = dbg.win.document.activeElement;
-  const isPanelFocused = isCm6Enabled
-    ? focusedElement.classList.contains("cm-content") &&
-      focusedElement.closest(
-        `.conditional-breakpoint-panel${isLogPoint ? ".log-point" : ""}`
-      )
-    : focusedElement.tagName == "TEXTAREA";
-  ok(
-    isPanelFocused,
-    `The content element of ${
-      isLogPoint ? "log point" : "conditional breakpoint"
-    } panel is focused`
-  );
+async function waitForConditionalPanelFocus(dbg) {
+  await waitFor(() => dbg.win.document.activeElement.tagName === "TEXTAREA");
 }

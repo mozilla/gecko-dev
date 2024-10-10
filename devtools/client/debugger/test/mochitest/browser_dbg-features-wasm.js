@@ -57,7 +57,7 @@ add_task(async function () {
   // Ensure selecting the source before asserting breakable lines
   // otherwise the gutter may not be yet updated
   await selectSource(dbg, "fib.c");
-  await assertLineIsBreakable(dbg, source.url, 14, true);
+  assertLineIsBreakable(dbg, source.url, 14, true);
 
   await waitForSourcesInSourceTree(dbg, [
     "doc-wasm-sourcemaps.html",
@@ -77,11 +77,7 @@ add_task(async function () {
 
   await waitForPausedInOriginalFileAndToggleMapScopes(dbg);
 
-  await assertPausedAtSourceAndLine(
-    dbg,
-    findSource(dbg, "fib.c").id,
-    breakpointLine
-  );
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "fib.c").id, breakpointLine);
   await assertBreakpoint(dbg, breakpointLine);
   // Capture the generated location line, so that we can better report
   // when the binary code changed later in this test
@@ -117,7 +113,7 @@ add_task(async function () {
     keepContext: false,
   });
 
-  await assertLineIsBreakable(dbg, binarySource.url, binaryLine, true);
+  assertLineIsBreakable(dbg, binarySource.url, binaryLine, true);
 
   await addBreakpoint(dbg, binarySource, virtualBinaryLine);
   invokeInTab("runWasm");
@@ -126,7 +122,7 @@ add_task(async function () {
   // so only assert that we are in paused state.
   await waitForPaused(dbg);
   // We don't try to assert paused line as there is two types of line in wasm
-  await assertPausedAtSourceAndLine(dbg, binarySource.id, virtualBinaryLine);
+  assertPausedAtSourceAndLine(dbg, binarySource.id, virtualBinaryLine);
 
   // Switch to original source
   info(
@@ -138,11 +134,7 @@ add_task(async function () {
   // to do all classic assertions for paused state.
   await waitForPausedInOriginalFileAndToggleMapScopes(dbg);
 
-  await assertPausedAtSourceAndLine(
-    dbg,
-    findSource(dbg, "fib.c").id,
-    breakpointLine
-  );
+  assertPausedAtSourceAndLine(dbg, findSource(dbg, "fib.c").id, breakpointLine);
 
   info("Reselect the binary source");
   await dbg.actions.selectLocation(createLocation({ source: binarySource }), {
@@ -152,7 +144,7 @@ add_task(async function () {
   assertFirstFrameTitleAndLocation(dbg, "(wasmcall)", "fib.wasm");
 
   // We can't use this method as it uses internaly the breakpoint line, which isn't the line in CodeMirror
-  // await assertPausedAtSourceAndLine(dbg, binarySource.id, binaryLine);
+  // assertPausedAtSourceAndLine(dbg, binarySource.id, binaryLine);
   await assertBreakpoint(dbg, binaryLine);
 
   await removeBreakpoint(dbg, binarySource.id, virtualBinaryLine);

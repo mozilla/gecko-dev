@@ -505,7 +505,8 @@ class Editor extends PureComponent {
       }
     }
   };
-  // Note: The line is optional, if not passed it fallsback to lineAtHeight.
+  // Note: The line is optional, if not passed (as is likely for codemirror 6)
+  // it fallsback to lineAtHeight.
   openMenu(event, line, ch) {
     event.stopPropagation();
     event.preventDefault();
@@ -530,9 +531,7 @@ class Editor extends PureComponent {
 
     const target = event.target;
     const { id: sourceId } = selectedSource;
-    if (!features.codemirrorNext) {
-      line = line ?? lineAtHeight(editor, sourceId, event);
-    }
+    line = line ?? lineAtHeight(editor, sourceId, event);
 
     if (typeof line != "number") {
       return;

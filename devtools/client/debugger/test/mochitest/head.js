@@ -236,12 +236,7 @@ async function assertBreakableLines(
     `We show the expected number of lines in CodeMirror for ${source}`
   );
   for (let line = 1; line <= numberOfLines; line++) {
-    await assertLineIsBreakable(
-      dbg,
-      source,
-      line,
-      breakableLines.includes(line)
-    );
+    assertLineIsBreakable(dbg, source, line, breakableLines.includes(line));
   }
 }
 

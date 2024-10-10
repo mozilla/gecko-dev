@@ -31,7 +31,7 @@ add_task(async function () {
   await waitForPaused(dbg);
 
   source = findSource(dbg, "doc-duplicate-functions.html");
-  await assertPausedAtSourceAndLine(dbg, source.id, 21);
+  assertPausedAtSourceAndLine(dbg, source.id, 21);
   await assertBreakpoint(dbg, 21);
 
   await resume(dbg);
