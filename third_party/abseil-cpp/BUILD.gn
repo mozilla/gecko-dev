@@ -56,6 +56,7 @@ component("absl") {
 }
 
 group("absl_component_deps") {
+  if (false) {
   public_deps = [
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base",
@@ -101,6 +102,22 @@ group("absl_component_deps") {
     "//third_party/abseil-cpp/absl/types:variant",
     "//third_party/abseil-cpp/absl/utility",
   ]
+  } else {
+  public_deps = [
+    "//abseil-cpp/absl/algorithm:container",
+    "//abseil-cpp/absl/base:nullability",
+    "//abseil-cpp/absl/cleanup",
+    "//abseil-cpp/absl/container:inlined_vector",
+    "//abseil-cpp/absl/functional:any_invocable",
+    "//abseil-cpp/absl/functional:bind_front",
+    "//abseil-cpp/absl/strings",
+    "//abseil-cpp/absl/strings:string_view",
+    "//abseil-cpp/absl/types:optional",
+    "//abseil-cpp/absl/types:span",
+    "//abseil-cpp/absl/types:variant",
+    "//abseil-cpp/absl/utility",
+  ]
+  }
 
   # The following dependencies currently don't build with NaCl.
   # TODO(https://crbug.com/1114625): Fix build errors and remove this section.

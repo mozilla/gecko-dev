@@ -1,0 +1,10 @@
+# The location of the build configuration file.
+buildconfig = "//build/config/BUILDCONFIG.gn"
+script_executable = "python3"
+secondary_source = "//abseil-cpp/"
+
+default_args = {
+use_custom_libcxx = false
+is_component_build = false
+}
+

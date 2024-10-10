@@ -1,0 +1,13 @@
+# Shim targets for test dependencies that Mozilla
+# does not use.
+config("gmock_config") {
+}
+
+config("gtest_config") {
+}
+
+source_set("gtest") {
+}
+
+source_set("gmock") {
+}

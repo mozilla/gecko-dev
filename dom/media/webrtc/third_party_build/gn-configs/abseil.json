@@ -1,0 +1,24 @@
+{
+  "build_root_dir": "third_party",
+  "target_dir": "abseil-cpp",
+  "preprocessing_script": "dom/media/webrtc/third_party_build/gn-configs/abseil_preprocessor.py",
+  "moz_build_flag": "build_mozilla_absl",
+  "gn_target": "//:absl",
+  "gn_sandbox_variables": {
+    "COMPILE_FLAGS": {
+      "WARNINGS_AS_ERRORS": []
+    },
+    "FINAL_LIBRARY": "xul"
+  },
+  "mozilla_flags": ["-fobjc-arc", "-mavx2", "-mfma", "-mfpu=neon", "-msse2"],
+  "write_mozbuild_variables": {
+    "INCLUDE_TK_CFLAGS_DIRS": [],
+    "INCLUDE_SYSTEM_LIBVPX_HANDLING": []
+  },
+  "non_unified_sources": [
+    "third_party/abseil-cpp/absl/strings/numbers.cc",
+    "third_party/abseil-cpp/absl/synchronization/blocking_counter.cc",
+    "third_party/abseil-cpp/absl/time/internal/cctz/src/time_zone_posix.cc",
+    "third_party/abseil-cpp/absl/time/time.cc"
+  ]
+}
