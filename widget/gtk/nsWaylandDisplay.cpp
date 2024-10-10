@@ -523,11 +523,11 @@ static void WlLogHandler(const char* format, va_list args) {
   MOZ_CRASH_UNSAFE(error);
 }
 
-// TODO: Add compositor info
 void WlCompositorCrashHandler() {
-  constexpr char error[] = "Compositor crashed";
-  gfxCriticalNote << "Wayland protocol error: " << error;
-  MOZ_CRASH_UNSAFE(error);
+  gfxCriticalNote << "Wayland protocol error: Compositor ("
+                  << GetDesktopEnvironmentIdentifier().get() << ") crashed.";
+  MOZ_CRASH_UNSAFE_PRINTF("Compositor crashed (%s)",
+                          GetDesktopEnvironmentIdentifier().get());
 }
 
 nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)
