@@ -2074,7 +2074,7 @@ class NewAltTextManager {
   #eventBus;
   #firstTime = false;
   #guessedAltText;
-  #hasAI = false;
+  #hasAI = null;
   #isEditing = null;
   #imagePreview;
   #imageData;
