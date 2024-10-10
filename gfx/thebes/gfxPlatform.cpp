@@ -1042,6 +1042,16 @@ void gfxPlatform::Init() {
   }
 }
 
+static bool IsOsTempDirWritable() {
+  nsCOMPtr<nsIFile> file;
+  nsresult rv = NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(file));
+  NS_ENSURE_SUCCESS(rv, false);
+  bool writable = false;
+  rv = file->IsWritable(&writable);
+  NS_ENSURE_SUCCESS(rv, false);
+  return writable;
+}
+
 void gfxPlatform::ReportTelemetry() {
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess(),
                      "GFX: Only allowed to be called from parent process.");
@@ -1064,6 +1074,9 @@ void gfxPlatform::ReportTelemetry() {
       supportsHDR |= screen->GetIsHDR();
     }
     Telemetry::ScalarSet(Telemetry::ScalarID::GFX_SUPPORTS_HDR, supportsHDR);
+
+    bool tmpWritable = IsOsTempDirWritable();
+    Telemetry::ScalarSet(Telemetry::ScalarID::GFX_TMP_WRITABLE, tmpWritable);
   }
 
   nsString adapterDesc;
