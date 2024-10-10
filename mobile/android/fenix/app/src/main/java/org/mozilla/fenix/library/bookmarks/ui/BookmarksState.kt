@@ -69,8 +69,8 @@ internal fun BookmarksState.undoSnackbarText(): Pair<Int, String> = bookmarksSna
     when {
         state is BookmarksSnackbarState.UndoDeletion && state.guidsToDelete.size == 1 -> {
             val stringId = R.string.bookmark_delete_single_item
-            val title = this.bookmarkItems.first { it.guid == state.guidsToDelete.first() }.title
-            stringId to title
+            val title = this.bookmarkItems.firstOrNull { it.guid == state.guidsToDelete.first() }?.title
+            stringId to (title ?: "error")
         }
         state is BookmarksSnackbarState.UndoDeletion -> {
             val stringId = R.string.bookmark_deletion_multiple_snackbar_message_2
