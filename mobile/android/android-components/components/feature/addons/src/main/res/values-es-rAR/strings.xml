@@ -204,6 +204,8 @@
     <string name="mozac_feature_addons_blocklisted_1">%1$s no se pudo instalar porque tiene un riesgo alto de causar problemas de estabilidad o seguridad.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s no se pudo instalar porque solo lo puede hacer una organización que use políticas empresariales, lo cual no es compatible con esta plataforma.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked">%1$s viola las políticas de Mozilla y no se puede instalar.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s habilitado exitosamente</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -253,9 +255,9 @@
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s ha sido deshabilitado debido a problemas de seguridad o estabilidad.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked">Esta extensión viola las políticas de Mozilla y ha sido desactivada. Puede habilitarlo, pero puede ser riesgoso.</string>
+    <string name="mozac_feature_addons_status_softblocked">Esta extensión viola las políticas de Mozilla y ha sido deshabilitada. Se puede habilitar, pero podría ser riesgoso.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
-    <string name="mozac_feature_addons_status_softblocked_re_enabled">Esta extensión viola las políticas de Mozilla. Usarlo puede ser riesgoso.</string>
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Esta extensión viola las políticas de Mozilla. Usarla podría ser riesgoso.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s no se pudo verificar como seguro y fue deshabilitado.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
