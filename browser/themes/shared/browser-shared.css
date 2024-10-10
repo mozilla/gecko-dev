@@ -303,7 +303,6 @@ body {
   /* The toolbar buttons that animate use position:absolute and require a
    * positioned #nav-bar. */
   position: relative;
-  z-index: var(--browser-area-z-index-toolbox);
   border-top: 0.01px var(--tabs-navbar-separator-style) var(--tabs-navbar-separator-color);
 
   &[tabs-hidden] {
