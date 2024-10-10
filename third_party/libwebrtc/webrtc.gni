@@ -548,7 +548,7 @@ template("rtc_test") {
       min_sdk_version = 21
       target_sdk_version = 23
       deps += [
-        "//build/android/gtest_apk:native_test_instrumentation_test_runner_java",
+        "//chromium/build/android/gtest_apk:native_test_instrumentation_test_runner_java",
         webrtc_root + "test:native_test_java",
       ]
     }
@@ -993,10 +993,20 @@ template("rtc_library") {
       modified_deps = []
       foreach (dep, deps) {
         newdep = string_replace(dep, "//third_party/", "//libwebrtc/third_party/")
+        newdep = string_replace(newdep, "//build", "//chromium/build")
         modified_deps += [ newdep ]
       }
       deps = []
       deps = modified_deps
+    }
+    if (build_with_mozilla && defined(data_deps)) {
+      modified_deps = []
+      foreach (dep, data_deps) {
+        newdep = string_replace(dep, "//build/", "//chromium/build/")
+        modified_deps += [ newdep ]
+      }
+      data_deps = []
+      data_deps = modified_deps
     }
   }
 }
@@ -1035,7 +1045,7 @@ template("rtc_executable") {
     if (is_win) {
       deps += [
         # Give executables the default manifest on Windows (a no-op elsewhere).
-        "//build/win:default_exe_manifest",
+        "//chromium/build/win:default_exe_manifest",
       ]
     }
   }
