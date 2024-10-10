@@ -67,7 +67,9 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.ext.observeAsState
 import mozilla.components.ui.colors.PhotonColors
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.HorizontalFadingEdgeBox
@@ -98,6 +100,7 @@ private val titleFadeWidth = 16.dp
  * @param onCloseTabClick Invoked when a tab is closed.
  * @param onLastTabClose Invoked when the last remaining open tab is closed.
  * @param onSelectedTabClick Invoked when a tab is selected.
+ * @param onPrivateModeToggleClick Invoked when the private mode toggle button is clicked.
  */
 @Composable
 fun TabStrip(
@@ -109,15 +112,21 @@ fun TabStrip(
     onCloseTabClick: (isPrivate: Boolean) -> Unit,
     onLastTabClose: (isPrivate: Boolean) -> Unit,
     onSelectedTabClick: () -> Unit,
+    onPrivateModeToggleClick: (mode: BrowsingMode) -> Unit,
 ) {
-    val isPrivateMode by appStore.observeAsState(false) { it.mode.isPrivate }
+    val isPossiblyPrivateMode by appStore.observeAsState(false) { it.mode.isPrivate }
     val state by browserStore.observeAsState(TabStripState.initial) {
-        it.toTabStripState(isSelectDisabled = onHome, isPrivateMode = isPrivateMode)
+        it.toTabStripState(isSelectDisabled = onHome, isPossiblyPrivateMode = isPossiblyPrivateMode)
     }
 
     TabStripContent(
         state = state,
         onAddTabClick = onAddTabClick,
+        onPrivateModeToggleClick = {
+            val newMode = BrowsingMode.fromBoolean(!state.isPrivateMode)
+            onPrivateModeToggleClick(newMode)
+            appStore.dispatch(AppAction.ModeChange(newMode))
+        },
         onCloseTabClick = { id, isPrivate ->
             if (state.tabs.size == 1) {
                 onLastTabClose(isPrivate)
@@ -141,6 +150,7 @@ fun TabStrip(
 private fun TabStripContent(
     state: TabStripState,
     onAddTabClick: () -> Unit,
+    onPrivateModeToggleClick: () -> Unit,
     onCloseTabClick: (id: String, isPrivate: Boolean) -> Unit,
     onSelectedTabClick: (id: String) -> Unit,
     onMove: (tabId: String, targetId: String, placeAfter: Boolean) -> Unit,
@@ -152,6 +162,21 @@ private fun TabStripContent(
             .systemGestureExclusion(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        IconButton(
+            onClick = onPrivateModeToggleClick,
+            modifier = Modifier.padding(start = tabStripStartPadding),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.mozac_ic_private_mode_24),
+                tint = FirefoxTheme.colors.iconPrimary,
+                contentDescription = if (state.isPrivateMode) {
+                    stringResource(R.string.content_description_disable_private_browsing_button)
+                } else {
+                    stringResource(R.string.content_description_private_browsing_button)
+                },
+            )
+        }
+
         TabsList(
             state = state,
             modifier = Modifier.weight(1f, fill = false),
@@ -444,6 +469,7 @@ private class TabUIStateParameterProvider : PreviewParameterProvider<TabStripSta
                         isSelected = true,
                     ),
                 ),
+                isPrivateMode = false,
             ),
         )
 }
@@ -489,8 +515,10 @@ private fun TabStripContentPreview(tabs: List<TabStripItem>) {
         TabStripContent(
             state = TabStripState(
                 tabs = tabs,
+                isPrivateMode = false,
             ),
             onAddTabClick = {},
+            onPrivateModeToggleClick = {},
             onCloseTabClick = { _, _ -> },
             onSelectedTabClick = {},
             onMove = { _, _, _ -> },
@@ -530,6 +558,7 @@ private fun TabStripPreview() {
                 onLastTabClose = {},
                 onCloseTabClick = {},
                 onSelectedTabClick = {},
+                onPrivateModeToggleClick = {},
             )
         }
     }

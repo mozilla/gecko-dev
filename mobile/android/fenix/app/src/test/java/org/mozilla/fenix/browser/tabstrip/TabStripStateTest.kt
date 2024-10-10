@@ -10,9 +10,9 @@ class TabStripStateTest {
     @Test
     fun `WHEN browser state tabs is empty THEN tabs strip state tabs is empty`() {
         val browserState = BrowserState(tabs = emptyList())
-        val actual = browserState.toTabStripState(isSelectDisabled = false, isPrivateMode = false)
+        val actual = browserState.toTabStripState(isSelectDisabled = false, isPossiblyPrivateMode = false)
 
-        val expected = TabStripState(tabs = emptyList())
+        val expected = TabStripState(tabs = emptyList(), false)
 
         assertEquals(expected, actual)
     }
@@ -40,8 +40,9 @@ class TabStripStateTest {
                     id = "3",
                 ),
             ),
+            selectedTabId = "1",
         )
-        val actual = browserState.toTabStripState(isSelectDisabled = false, isPrivateMode = false)
+        val actual = browserState.toTabStripState(isSelectDisabled = false, isPossiblyPrivateMode = false)
 
         val expected = TabStripState(
             tabs = listOf(
@@ -49,7 +50,7 @@ class TabStripStateTest {
                     id = "1",
                     title = "Example 1",
                     url = "https://example.com",
-                    isSelected = false,
+                    isSelected = true,
                     isPrivate = false,
                 ),
                 TabStripItem(
@@ -60,13 +61,14 @@ class TabStripStateTest {
                     isPrivate = false,
                 ),
             ),
+            isPrivateMode = false,
         )
 
         assertEquals(expected, actual)
     }
 
     @Test
-    fun `WHEN private mode is on THEN tabs strip state tabs should include only private tabs`() {
+    fun `WHEN private mode is possibly on THEN tabs strip state tabs should include only private tabs`() {
         val browserState = BrowserState(
             tabs = listOf(
                 createTab(
@@ -89,7 +91,7 @@ class TabStripStateTest {
                 ),
             ),
         )
-        val actual = browserState.toTabStripState(isSelectDisabled = false, isPrivateMode = true)
+        val actual = browserState.toTabStripState(isSelectDisabled = true, isPossiblyPrivateMode = true)
 
         val expected = TabStripState(
             tabs = listOf(
@@ -108,6 +110,50 @@ class TabStripStateTest {
                     isPrivate = true,
                 ),
             ),
+            isPrivateMode = true,
+        )
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `GIVEN private mode is possibly on and select is not disabled WHEN selected tab is normal THEN tabs strip state tabs should include only normal tabs`() {
+        val browserState = BrowserState(
+            tabs = listOf(
+                createTab(
+                    url = "https://example.com",
+                    title = "Example",
+                    private = false,
+                    id = "1",
+                ),
+                createTab(
+                    url = "https://example2.com",
+                    title = "Private Example",
+                    private = true,
+                    id = "2",
+                ),
+                createTab(
+                    url = "https://example3.com",
+                    title = "Example 3",
+                    private = true,
+                    id = "3",
+                ),
+            ),
+            selectedTabId = "1",
+        )
+        val actual = browserState.toTabStripState(isSelectDisabled = false, isPossiblyPrivateMode = true)
+
+        val expected = TabStripState(
+            tabs = listOf(
+                TabStripItem(
+                    id = "1",
+                    title = "Example",
+                    url = "https://example.com",
+                    isSelected = true,
+                    isPrivate = false,
+                ),
+            ),
+            isPrivateMode = false,
         )
 
         assertEquals(expected, actual)
@@ -132,7 +178,7 @@ class TabStripStateTest {
             ),
             selectedTabId = "2",
         )
-        val actual = browserState.toTabStripState(isSelectDisabled = false, isPrivateMode = false)
+        val actual = browserState.toTabStripState(isSelectDisabled = false, isPossiblyPrivateMode = false)
 
         val expected = TabStripState(
             tabs = listOf(
@@ -151,6 +197,7 @@ class TabStripStateTest {
                     isPrivate = false,
                 ),
             ),
+            isPrivateMode = false,
         )
 
         assertEquals(expected, actual)
@@ -181,7 +228,7 @@ class TabStripStateTest {
             ),
             selectedTabId = "2",
         )
-        val actual = browserState.toTabStripState(isSelectDisabled = false, isPrivateMode = false)
+        val actual = browserState.toTabStripState(isSelectDisabled = false, isPossiblyPrivateMode = false)
 
         val expected = TabStripState(
             tabs = listOf(
@@ -200,6 +247,7 @@ class TabStripStateTest {
                     isPrivate = true,
                 ),
             ),
+            isPrivateMode = true,
         )
 
         assertEquals(expected, actual)
@@ -224,7 +272,7 @@ class TabStripStateTest {
             ),
             selectedTabId = "2",
         )
-        val actual = browserState.toTabStripState(isSelectDisabled = true, isPrivateMode = false)
+        val actual = browserState.toTabStripState(isSelectDisabled = true, isPossiblyPrivateMode = false)
 
         val expected = TabStripState(
             tabs = listOf(
@@ -243,6 +291,7 @@ class TabStripStateTest {
                     isPrivate = false,
                 ),
             ),
+            isPrivateMode = false,
         )
 
         assertEquals(expected, actual)
@@ -267,7 +316,7 @@ class TabStripStateTest {
             ),
             selectedTabId = "2",
         )
-        val actual = browserState.toTabStripState(isSelectDisabled = false, isPrivateMode = false)
+        val actual = browserState.toTabStripState(isSelectDisabled = false, isPossiblyPrivateMode = false)
 
         val expected = TabStripState(
             tabs = listOf(
@@ -286,6 +335,7 @@ class TabStripStateTest {
                     isPrivate = false,
                 ),
             ),
+            isPrivateMode = false,
         )
 
         assertEquals(expected, actual)

@@ -8,17 +8,20 @@ import android.graphics.Bitmap
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.TabSessionState
 
 /**
  * The ui state of the tabs strip.
  *
  * @property tabs The list of [TabStripItem].
+ * @property isPrivateMode Whether or not the browser is in private mode.
  */
 data class TabStripState(
     val tabs: List<TabStripItem>,
+    val isPrivateMode: Boolean,
 ) {
     companion object {
-        val initial = TabStripState(tabs = emptyList())
+        val initial = TabStripState(tabs = emptyList(), isPrivateMode = false)
     }
 }
 
@@ -43,25 +46,42 @@ data class TabStripItem(
 
 /**
  * Converts [BrowserState] to [TabStripState] that contains the information needed to render the
- * tabs strip.
+ * tabs strip. [TabStripState.isPrivateMode] is determined by the selected tab's privacy state when
+ * [isSelectDisabled] is false. Otherwise, the private mode is determined by [isPossiblyPrivateMode].
  *
  * @param isSelectDisabled When true, the tabs will show as unselected.
- * @param isPrivateMode Whether or not the browser is in private mode.
+ * @param isPossiblyPrivateMode Whether or not the browser is in private mode.
  */
 internal fun BrowserState.toTabStripState(
     isSelectDisabled: Boolean,
-    isPrivateMode: Boolean,
-): TabStripState = TabStripState(
-    tabs = getNormalOrPrivateTabs(
-        private = isPrivateMode || (!isSelectDisabled && selectedTab?.content?.private == true),
-    ).map {
-        TabStripItem(
-            id = it.id,
-            title = it.content.title.ifBlank { it.content.url },
-            url = it.content.url,
-            icon = it.content.icon,
-            isPrivate = it.content.private,
-            isSelected = !isSelectDisabled && it.id == selectedTabId,
-        )
-    },
+    isPossiblyPrivateMode: Boolean,
+): TabStripState {
+    val isPrivateMode = if (isSelectDisabled) {
+        isPossiblyPrivateMode
+    } else {
+        selectedTab?.content?.private == true
+    }
+
+    return TabStripState(
+        tabs = getNormalOrPrivateTabs(private = isPrivateMode)
+            .map {
+                it.toTabStripItem(
+                    isSelectDisabled = isSelectDisabled,
+                    selectedTabId = selectedTabId,
+                )
+            },
+        isPrivateMode = isPrivateMode,
+    )
+}
+
+private fun TabSessionState.toTabStripItem(
+    isSelectDisabled: Boolean,
+    selectedTabId: String?,
+) = TabStripItem(
+    id = id,
+    title = content.title.ifBlank { content.url },
+    url = content.url,
+    icon = content.icon,
+    isPrivate = content.private,
+    isSelected = !isSelectDisabled && id == selectedTabId,
 )
