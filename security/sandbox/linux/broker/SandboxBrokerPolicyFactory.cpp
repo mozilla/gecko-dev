@@ -406,32 +406,14 @@ static void AddGLDependencies(SandboxBroker::Policy* policy) {
     nsAutoCString snapDesktopShare(snapDesktopDir);
     snapDesktopShare.AppendLiteral("/usr/share");
     policy->AddDir(rdonly, snapDesktopShare.get());
+  }
 
-    // Introduced by Snap's core24 changes, and gpu-2404 snap package, this
-    // directory holds the drirc configuration
-    if (const char* drircConfigDir = PR_GetEnv("DRIRC_CONFIGDIR")) {
-      nsAutoCString drircConfigShare(drircConfigDir);
-      policy->AddDir(rdonly, drircConfigShare.get());
-    }
-
-    // Introduced by Snap's core24 changes, and gpu-2404 snap package, those egl
-    // environment variable configure where libraries are. Failing to access and
-    // load those will result in bug 1921520: RDD process will fail to create
-    // GLContext for VA-API, thus breaking hardware decoding and falling back to
-    // software decoding while generating (potentially a lot of) crash reports.
-
-    if (const char* eglExternalPlatformConfigDir =
-            PR_GetEnv("__EGL_EXTERNAL_PLATFORM_CONFIG_DIRS")) {
-      nsAutoCString eglExternalPlatformConfigShare(
-          eglExternalPlatformConfigDir);
-      policy->AddDir(rdonly, eglExternalPlatformConfigShare.get());
-    }
-
-    if (const char* eglVendorLibraryDir =
-            PR_GetEnv("__EGL_VENDOR_LIBRARY_DIRS")) {
-      nsAutoCString eglVendorLibraryShare(eglVendorLibraryDir);
-      policy->AddDir(rdonly, eglVendorLibraryShare.get());
-    }
+  // Introduced by Snap's core24 changes there is a gpu-2404 dependency and
+  // it is recommended to allow access to all of it?
+  if (const char* snapRoot = PR_GetEnv("SNAP")) {
+    nsAutoCString snapRootString(snapRoot);
+    snapRootString.AppendLiteral("/gpu-2404");
+    policy->AddDir(rdonly, snapRootString.get());
   }
 
   // Note: This function doesn't do anything about Mesa's shader
