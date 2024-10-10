@@ -93,3 +93,15 @@ with Files('libsrtp/**'):
 
 with Files("perfetto/**"):
     BUG_COMPONENT = ("Core", "Performance")
+
+with Files("BUILD.gn"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("chromium/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("abseil-cpp/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("build_overrides/**"):
+    BUG_COMPONENT = ("Core", "WebRTC")
