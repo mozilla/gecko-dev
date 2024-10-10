@@ -8,10 +8,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.compose.BottomSheetHandle
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -37,7 +41,8 @@ fun MenuDialogBottomSheet(
             .background(
                 color = FirefoxTheme.colors.layer3,
                 shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-            ),
+            )
+            .nestedScroll(rememberNestedScrollInteropConnection()),
     ) {
         BottomSheetHandle(
             onRequestDismiss = onRequestDismiss,
@@ -45,7 +50,8 @@ fun MenuDialogBottomSheet(
             modifier = Modifier
                 .padding(top = 8.dp, bottom = 5.dp)
                 .fillMaxWidth(BOTTOM_SHEET_HANDLE_WIDTH_PERCENT)
-                .align(Alignment.CenterHorizontally),
+                .align(Alignment.CenterHorizontally)
+                .verticalScroll(rememberScrollState()),
             color = FirefoxTheme.colors.borderInverted,
         )
 
