@@ -2,51 +2,117 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 // Ensure all the engines defined in the configuration are valid by
-// creating a refined configuration that includes all the engines everywhere.
+// creating a refined configuration that includes all the engines
+// with all the variants and subvariants enabled everywhere.
 
 "use strict";
 
-const { SearchService } = ChromeUtils.importESModule(
-  "resource://gre/modules/SearchService.sys.mjs"
-);
+const IDS = new Set();
 
-const ss = new SearchService();
+function uniqueId(id) {
+  while (IDS.has(id)) {
+    id += "_";
+  }
+  IDS.add(id);
+  return id;
+}
 
-add_task(async function test_validate_engines() {
+/**
+ * For each subVariant, yields an array containing only that subVariant
+ * but with environment set to allRegionsAndLocales and optional to undefined.
+ * If subVariants is undefined, yields undefined once.
+ *
+ * @param {Array|undefined} subVariants
+ *    The original subVariants array.
+ * @yields {Array|undefined}
+ *    An array containing only one subVariant.
+ */
+function* generateSubvariants(subVariants) {
+  if (!subVariants) {
+    yield undefined;
+    return;
+  }
+
+  for (let subVariant of subVariants) {
+    yield [
+      {
+        ...subVariant,
+        optional: undefined,
+        environment: { allRegionsAndLocales: true },
+      },
+    ];
+  }
+}
+
+/**
+ * For each variant and subVariant, yields an array containing only that variant
+ * and subVariant but with environment set to allRegionsAndLocales and optional
+ * to undefined in both the variant and subvariant.
+ *
+ * @param {Array|undefined} variants
+ *    The original variants array.
+ * @yields {Array|undefined}
+ *     An array containing only one variant.
+ */
+function* generateVariants(variants) {
+  for (let variant of variants) {
+    for (let subVariants of generateSubvariants(variant.subVariants)) {
+      yield [
+        {
+          ...variant,
+          optional: undefined,
+          environment: { allRegionsAndLocales: true },
+          subVariants,
+        },
+      ];
+    }
+  }
+}
+
+/**
+ * For each variant and subVariant of a given engine, yields an engine with
+ * only that Variant and subVariant but enabled everywhere. Also makes sure
+ * no identifiers and names of yielded engines are duplicated and works when
+ * there are no variants or subVariants.
+ *
+ * @param {object} engine
+ *    The engine with (potentially) multiple variants.
+ * @yields {object}
+ *    The same engine but with a single variant that is enabled everywhere.
+ */
+function* generateEngineVariants(engine) {
+  for (let variants of generateVariants(engine.variants)) {
+    let id = uniqueId(engine.identifier);
+    yield {
+      ...engine,
+      base: {
+        ...engine.base,
+        // Reuse identifier as name to avoid duplicated names.
+        name: id,
+      },
+      identifier: id,
+      variants,
+    };
+  }
+}
+
+add_task(async function test_validate_all_engines_and_variants() {
   let settings = RemoteSettings(SearchUtils.SETTINGS_KEY);
   let config = await settings.get();
-
-  // We do not load engines with the same name. However, in search-config-v2
-  // we have multiple engines named eBay, so we error out.
-  // We never deploy more than one eBay in each environment so this issue
-  // won't be a problem.
-  // Ignore the error and test the configs can be created to engine objects.
-  consoleAllowList.push("Could not load app provided search engine");
-  config = config.map(obj => {
+  config = config.flatMap(obj => {
     if (obj.recordType == "engine") {
-      return {
-        recordType: "engine",
-        identifier: obj.identifier,
-        base: {
-          name: obj.base.name,
-          urls: {
-            search: {
-              base: obj.base.urls.search.base || "",
-              searchTermParamName: "q",
-            },
-          },
-        },
-        variants: [
-          {
-            environment: { allRegionsAndLocales: true },
-          },
-        ],
-      };
+      return [...generateEngineVariants(obj)];
     }
-
     return obj;
   });
 
   sinon.stub(settings, "get").returns(config);
-  await ss.init();
+  await Services.search.init();
+
+  for (let id of IDS) {
+    Assert.ok(
+      !!Services.search.getEngineById(id),
+      `Engine with id '${id}' was found.`
+    );
+  }
 });
