@@ -22,8 +22,8 @@ if CONFIG["MOZ_WEBRTC"]:
         "/dom/media/webrtc",
         "/media/libyuv/libyuv/include",
         "/mfbt",
+        "/third_party/abseil-cpp",
         "/third_party/libwebrtc",
-        "/third_party/libwebrtc/third_party/abseil-cpp",
         "/tools/profiler/public",
     ]
 

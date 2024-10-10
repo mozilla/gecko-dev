@@ -239,8 +239,8 @@ LOCAL_INCLUDES += [
     "/dom/indexedDB",
     "/dom/storage",
     "/netwerk/base",
+    "/third_party/abseil-cpp",
     "/third_party/libwebrtc",
-    "/third_party/libwebrtc/third_party/abseil-cpp",
     "/tools/fuzzing/ipc",
     "/xpcom/build",
 ]

@@ -35,9 +35,9 @@ if (
         "/dom/media/webrtc/transportbridge",
         "/ipc/chromium/src",
         "/media/webrtc/",
+        "/third_party/abseil-cpp",
         "/third_party/libsrtp/src/include",
         "/third_party/libwebrtc",
-        "/third_party/libwebrtc/third_party/abseil-cpp",
         "/third_party/sipcc",
     ]
 

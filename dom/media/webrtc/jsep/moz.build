@@ -8,8 +8,8 @@ include("/dom/media/webrtc/third_party_build/webrtc.mozbuild")
 LOCAL_INCLUDES += [
     "/dom/media/webrtc",
     "/media/webrtc",
+    "/third_party/abseil-cpp",
     "/third_party/libwebrtc",
-    "/third_party/libwebrtc/third_party/abseil-cpp",
     "/third_party/sipcc",
 ]
 
