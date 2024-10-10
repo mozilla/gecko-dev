@@ -1871,9 +1871,8 @@ gfxFontGroup::gfxFontGroup(nsPresContext* aPresContext,
       break;
   }
   // We don't use SetUserFontSet() here, as we want to unconditionally call
-  // BuildFontList() rather than only do UpdateUserFonts() if it changed.
-  mCurrGeneration = GetGeneration();
-  BuildFontList();
+  // EnsureFontList() rather than only do UpdateUserFonts() if it changed.
+  mCurrGeneration = 0;
 }
 
 gfxFontGroup::~gfxFontGroup() {
@@ -1887,11 +1886,25 @@ static StyleGenericFontFamily GetDefaultGeneric(nsAtom* aLanguage) {
       ->GetDefaultGeneric();
 }
 
-void gfxFontGroup::BuildFontList() {
-  // initialize fonts in the font family list
+void gfxFontGroup::EnsureFontList() {
+  // Ensure resolved font instances are valid; discard them if necessary.
+  auto* pfl = gfxPlatformFontList::PlatformFontList();
+  if (mFontListGeneration != pfl->GetGeneration()) {
+    // Forget cached fonts that may no longer be valid.
+    mLastPrefFamily = FontFamily();
+    mLastPrefFont = nullptr;
+    mDefaultFont = nullptr;
+    mResolvedFonts = false;
+  }
+
+  // If we have already resolved the font list, just return.
+  if (mResolvedFonts) {
+    return;
+  }
+
+  // (Re-)build the list of fonts.
+  mFonts.Clear();
   AutoTArray<FamilyAndGeneric, 10> fonts;
-  gfxPlatformFontList* pfl = gfxPlatformFontList::PlatformFontList();
-  mFontListGeneration = pfl->GetGeneration();
 
   // lookup fonts in the fontlist
   for (const StyleSingleFontFamily& name : mFamilyList.list.AsSpan()) {
@@ -1935,6 +1948,9 @@ void gfxFontGroup::BuildFontList() {
       AddFamilyToFontList(f.mFamily.mUnshared, f.mGeneric);
     }
   }
+
+  mFontListGeneration = pfl->GetGeneration();
+  mResolvedFonts = true;
 }
 
 void gfxFontGroup::AddPlatformFont(const nsACString& aName, bool aQuotedName,
@@ -2228,8 +2244,7 @@ already_AddRefed<gfxFont> gfxFontGroup::GetDefaultFont() {
 
 already_AddRefed<gfxFont> gfxFontGroup::GetFirstValidFont(
     uint32_t aCh, StyleGenericFontFamily* aGeneric, bool* aIsFirst) {
-  // Ensure cached font instances are valid.
-  CheckForUpdatedPlatformList();
+  EnsureFontList();
 
   uint32_t count = mFonts.Length();
   bool loading = false;
@@ -2313,6 +2328,7 @@ already_AddRefed<gfxFont> gfxFontGroup::GetFirstValidFont(
 }
 
 already_AddRefed<gfxFont> gfxFontGroup::GetFirstMathFont() {
+  EnsureFontList();
   uint32_t count = mFonts.Length();
   for (uint32_t i = 0; i < count; ++i) {
     RefPtr<gfxFont> font = GetFontAt(i);
@@ -3625,26 +3641,22 @@ void gfxFontGroup::SetUserFontSet(gfxUserFontSet* aUserFontSet) {
 }
 
 uint64_t gfxFontGroup::GetGeneration() {
-  if (!mUserFontSet) return 0;
-  return mUserFontSet->GetGeneration();
+  return mUserFontSet ? mUserFontSet->GetGeneration() : 0;
 }
 
 uint64_t gfxFontGroup::GetRebuildGeneration() {
-  if (!mUserFontSet) return 0;
-  return mUserFontSet->GetRebuildGeneration();
+  return mUserFontSet ? mUserFontSet->GetRebuildGeneration() : 0;
 }
 
 void gfxFontGroup::UpdateUserFonts() {
   if (mCurrGeneration < GetRebuildGeneration()) {
     // fonts in userfont set changed, need to redo the fontlist
-    mFonts.Clear();
+    mResolvedFonts = false;
     ClearCachedData();
-    BuildFontList();
     mCurrGeneration = GetGeneration();
   } else if (mCurrGeneration != GetGeneration()) {
     // load state change occurred, verify load state and validity of fonts
     ClearCachedData();
-
     uint32_t len = mFonts.Length();
     for (uint32_t i = 0; i < len; i++) {
       FamilyFace& ff = mFonts[i];
@@ -3653,22 +3665,30 @@ void gfxFontGroup::UpdateUserFonts() {
       }
       ff.CheckState(mSkipDrawing);
     }
-
     mCurrGeneration = GetGeneration();
   }
 }
 
 bool gfxFontGroup::ContainsUserFont(const gfxUserFontEntry* aUserFont) {
   UpdateUserFonts();
-  // search through the fonts list for a specific user font
-  uint32_t len = mFonts.Length();
-  for (uint32_t i = 0; i < len; i++) {
-    FamilyFace& ff = mFonts[i];
-    if (ff.EqualsUserFont(aUserFont)) {
-      return true;
+
+  // If we have resolved the font list to concrete font faces, search through
+  // the list for a specific user font face.
+  if (mResolvedFonts) {
+    uint32_t len = mFonts.Length();
+    for (uint32_t i = 0; i < len; i++) {
+      FamilyFace& ff = mFonts[i];
+      if (ff.EqualsUserFont(aUserFont)) {
+        return true;
+      }
     }
+    return false;
   }
-  return false;
+
+  // If the font list is currently not resolved, we assume it might use the
+  // given face. (This method is only called when we have already seen that
+  // the family name is present in the list.)
+  return true;
 }
 
 already_AddRefed<gfxFont> gfxFontGroup::WhichPrefFontSupportsChar(
