@@ -94,6 +94,18 @@ class ColumnBreakpoints extends Component {
         );
         return breakpointNode;
       },
+      getMarkerEqualityValue: (line, column) => {
+        const lineNumber = fromEditorLine(selectedSource.id, line);
+        const columnBreakpoint = columnBreakpoints.find(
+          bp => bp.location.line === lineNumber && bp.location.column === column
+        );
+        return {
+          id: columnBreakpoint?.breakpoint?.id,
+          condition: columnBreakpoint?.breakpoint?.options.condition,
+          log: columnBreakpoint?.breakpoint?.options.logValue,
+          disabled: columnBreakpoint?.breakpoint?.disabled,
+        };
+      },
     });
   }
 

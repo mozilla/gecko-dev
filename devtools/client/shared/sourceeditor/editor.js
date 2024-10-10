@@ -1141,7 +1141,9 @@ class Editor extends EventEmitter {
    *   @property {Function}           marker.createLineElementNode
    *                                  This should return the DOM element which is used for the marker. The line number is passed as a parameter.
    *                                  This is optional.
-
+   *   @property {Function}           marker.getMarkerEqualityValue
+   *                                  Custom equality function. The line and column will be passed as arguments when this is called.
+   *                                  This should return a value used for an equality check. This is optional.
    */
   setLineContentMarker(marker) {
     const cm = editors.get(this);
@@ -1184,11 +1186,20 @@ class Editor extends EventEmitter {
     const cachedPositionContentMarkers = this.#posContentMarkers;
 
     class NodeWidget extends WidgetType {
-      constructor(line, column, markerId, createElementNode) {
+      constructor({
+        line,
+        column,
+        markerId,
+        createElementNode,
+        getMarkerEqualityValue,
+      }) {
         super();
         this.line = line;
         this.column = column;
         this.markerId = markerId;
+        this.equalityValue = getMarkerEqualityValue
+          ? getMarkerEqualityValue(line, column)
+          : {};
         this.toDOM = () => createElementNode(line, column);
       }
 
@@ -1196,7 +1207,16 @@ class Editor extends EventEmitter {
         return (
           this.line == widget.line &&
           this.column == widget.column &&
-          this.markerId == widget.markerId
+          this.markerId == widget.markerId &&
+          this.#isCustomValueEqual(widget)
+        );
+      }
+
+      #isCustomValueEqual(widget) {
+        return Object.keys(this.equalityValue).every(
+          key =>
+            widget.equalityValue.hasOwnProperty(key) &&
+            widget.equalityValue[key] === this.equalityValue[key]
         );
       }
     }
@@ -1255,12 +1275,13 @@ class Editor extends EventEmitter {
             // Markers used:
             // 1. column-breakpoint-marker
             const nodeDecoration = Decoration.widget({
-              widget: new NodeWidget(
-                position.line,
-                position.column,
-                marker.id,
-                marker.createPositionElementNode
-              ),
+              widget: new NodeWidget({
+                line: position.line,
+                column: position.column,
+                markerId: marker.id,
+                createElementNode: marker.createPositionElementNode,
+                getMarkerEqualityValue: marker.getMarkerEqualityValue,
+              }),
               // Make sure the widget is rendered after the cursor
               // see https://codemirror.net/docs/ref/#view.Decoration^widget^spec.side for details.
               side: 1,
