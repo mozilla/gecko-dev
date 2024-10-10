@@ -82,6 +82,7 @@ bounce.tracking.protection:
       Dispatched whenever a bounce tracker site is purged.
     bugs:
       - https://bugzilla.mozilla.org/1889444
+      - https://bugzilla.mozilla.org/1922602
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1889444#c16
     data_sensitivity:
@@ -92,7 +93,7 @@ bounce.tracking.protection:
       - manuel@mozilla.com
     send_in_pings:
       - bounce-tracking-protection
-    expires: 134
+    expires: 140
     extra_keys:
       site_host:
         description: The site host of which the data has been purged.
