@@ -199,7 +199,11 @@ export default class SidebarMain extends MozLitElement {
         }
         break;
       case "contextmenu":
-        if (e.target.id != "tabs-newtab-button") {
+        if (
+          !["tabs-newtab-button", "vertical-tabs-newtab-button"].includes(
+            e.target.id
+          )
+        ) {
           this.onSidebarPopupShowing(e);
         }
         break;
