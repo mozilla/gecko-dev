@@ -129,7 +129,7 @@ impl QPackEncoder {
     }
 
     fn read_instructions(&mut self, conn: &mut Connection, stream_id: StreamId) -> Res<()> {
-        qdebug!([self], "read a new instraction");
+        qdebug!([self], "read a new instruction");
         loop {
             let mut recv = ReceiverConnWrapper::new(conn, stream_id);
             match self.instruction_reader.read_instructions(&mut recv) {

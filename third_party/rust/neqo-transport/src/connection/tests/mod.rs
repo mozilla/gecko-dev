@@ -17,7 +17,7 @@ use neqo_common::{event::Provider, qdebug, qtrace, Datagram, Decoder, Role};
 use neqo_crypto::{random, AllowZeroRtt, AuthenticationStatus, ResumptionToken};
 use test_fixture::{fixture_init, new_neqo_qlog, now, DEFAULT_ADDR};
 
-use super::{CloseReason, Connection, ConnectionId, Output, State};
+use super::{test_internal, CloseReason, Connection, ConnectionId, Output, State};
 use crate::{
     addr_valid::{AddressValidation, ValidateAddress},
     cc::CWND_INITIAL_PKTS,
@@ -28,6 +28,7 @@ use crate::{
     pmtud::Pmtud,
     recovery::ACK_ONLY_SIZE_LIMIT,
     stats::{FrameStats, Stats, MAX_PTO_COUNTS},
+    tparams::{DISABLE_MIGRATION, GREASE_QUIC_BIT},
     ConnectionIdDecoder, ConnectionIdGenerator, ConnectionParameters, Error, StreamId, StreamType,
     Version,
 };
@@ -614,6 +615,17 @@ fn send_something(sender: &mut Connection, now: Instant) -> Datagram {
     send_something_with_modifier(sender, now, Some)
 }
 
+/// Send something, but add a little something extra into the output.
+fn send_with_extra<W>(sender: &mut Connection, writer: W, now: Instant) -> Datagram
+where
+    W: test_internal::FrameWriter + 'static,
+{
+    sender.test_frame_writer = Some(Box::new(writer));
+    let res = send_something_with_modifier(sender, now, Some);
+    sender.test_frame_writer = None;
+    res
+}
+
 /// Send something on a stream from `sender` through a modifier to `receiver`.
 /// Return any ACK that might result.
 fn send_with_modifier_and_receive(
@@ -677,4 +689,22 @@ fn create_server() {
     assert_default_stats(&stats);
     // Server won't have a default path, so no RTT.
     assert_eq!(stats.rtt, Duration::from_secs(0));
+}
+
+#[test]
+fn tp_grease() {
+    for enable in [true, false] {
+        let client = new_client(ConnectionParameters::default().grease(enable));
+        let grease = client.tps.borrow_mut().local.get_empty(GREASE_QUIC_BIT);
+        assert_eq!(enable, grease);
+    }
+}
+
+#[test]
+fn tp_disable_migration() {
+    for disable in [true, false] {
+        let client = new_client(ConnectionParameters::default().disable_migration(disable));
+        let disable_migration = client.tps.borrow_mut().local.get_empty(DISABLE_MIGRATION);
+        assert_eq!(disable, disable_migration);
+    }
 }

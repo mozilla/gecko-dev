@@ -24,7 +24,9 @@ use super::{
     POST_HANDSHAKE_CWND,
 };
 use crate::{
-    connection::tests::cwnd_min,
+    connection::{test_internal::FrameWriter, tests::cwnd_min},
+    frame::FRAME_TYPE_ACK,
+    packet::PacketBuilder,
     recovery::{
         FAST_PTO_SCALE, MAX_OUTSTANDING_UNACK, MAX_PTO_PACKET_COUNT, MIN_OUTSTANDING_UNACK,
     },
@@ -32,7 +34,7 @@ use crate::{
     stats::MAX_PTO_COUNTS,
     tparams::TransportParameter,
     tracking::DEFAULT_ACK_DELAY,
-    Pmtud, StreamType,
+    CloseReason, Error, Pmtud, StreamType,
 };
 
 #[test]
@@ -299,17 +301,17 @@ fn pto_handshake_complete() {
     assert_handshake(&pkt2_hs);
     assert!(pkt2_1rtt.is_some());
     let dropped_before1 = server.stats().dropped_rx;
-    let server_frames = server.stats().frame_rx.all;
+    let server_frames = server.stats().frame_rx.all();
     server.process_input(&pkt2_hs, now);
     assert_eq!(1, server.stats().dropped_rx - dropped_before1);
-    assert_eq!(server.stats().frame_rx.all, server_frames);
+    assert_eq!(server.stats().frame_rx.all(), server_frames);
 
     server.process_input(&pkt2_1rtt.unwrap(), now);
-    let server_frames2 = server.stats().frame_rx.all;
+    let server_frames2 = server.stats().frame_rx.all();
     let dropped_before2 = server.stats().dropped_rx;
     server.process_input(&pkt3_hs, now);
     assert_eq!(1, server.stats().dropped_rx - dropped_before2);
-    assert_eq!(server.stats().frame_rx.all, server_frames2);
+    assert_eq!(server.stats().frame_rx.all(), server_frames2);
 
     now += HALF_RTT;
 
@@ -497,10 +499,10 @@ fn ack_after_pto() {
     assert!(ack.is_some());
 
     // Make sure that the packet only contained an ACK frame.
-    let all_frames_before = server.stats().frame_rx.all;
+    let all_frames_before = server.stats().frame_rx.all();
     let ack_before = server.stats().frame_rx.ack;
     server.process_input(&ack.unwrap(), now);
-    assert_eq!(server.stats().frame_rx.all, all_frames_before + 1);
+    assert_eq!(server.stats().frame_rx.all(), all_frames_before + 1);
     assert_eq!(server.stats().frame_rx.ack, ack_before + 1);
 }
 
@@ -811,4 +813,40 @@ fn fast_pto_persistent_congestion() {
     now += DEFAULT_RTT / 2;
     client.process_input(&ack.unwrap(), now);
     assert_eq!(cwnd(&client), cwnd_min(&client));
+}
+
+/// Receiving an ACK frame for a packet number that was never sent is an error.
+#[test]
+fn ack_for_unsent() {
+    /// This inserts an ACK frame into packets that ACKs a packet that was never sent.
+    struct AckforUnsentWriter {}
+
+    impl FrameWriter for AckforUnsentWriter {
+        fn write_frames(&mut self, builder: &mut PacketBuilder) {
+            builder.encode_varint(FRAME_TYPE_ACK);
+            builder.encode_varint(666u16); // Largest ACKed
+            builder.encode_varint(0u8); // ACK delay
+            builder.encode_varint(0u8); // ACK block count
+            builder.encode_varint(0u8); // ACK block length
+        }
+    }
+
+    let mut client = default_client();
+    let mut server = default_server();
+    connect_force_idle(&mut client, &mut server);
+
+    let spoofed = server
+        .test_write_frames(AckforUnsentWriter {}, now())
+        .dgram()
+        .unwrap();
+
+    // Now deliver the packet with the spoofed ACK frame
+    client.process_input(&spoofed, now());
+    assert!(matches!(
+        client.state(),
+        State::Closing {
+            error: CloseReason::Transport(Error::AckedUnsentPacket),
+            ..
+        }
+    ));
 }

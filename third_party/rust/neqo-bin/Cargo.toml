@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76.0"
 name = "neqo-bin"
-version = "0.9.0"
+version = "0.9.2"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = false
 autobins = false
@@ -135,10 +135,7 @@ default-features = false
 
 [dev-dependencies.criterion]
 version = "0.5"
-features = [
-    "html_reports",
-    "async_tokio",
-]
+features = ["async_tokio"]
 default-features = false
 
 [dev-dependencies.tokio]

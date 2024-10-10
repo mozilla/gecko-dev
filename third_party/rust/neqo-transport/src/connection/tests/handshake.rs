@@ -36,7 +36,7 @@ use crate::{
     events::ConnectionEvent,
     server::ValidateAddress,
     stats::FrameStats,
-    tparams::{TransportParameter, MIN_ACK_DELAY},
+    tparams::{self, TransportParameter, MIN_ACK_DELAY},
     tracking::DEFAULT_ACK_DELAY,
     CloseReason, ConnectionParameters, EmptyConnectionIdGenerator, Error, Pmtud, StreamType,
     Version,
@@ -798,13 +798,13 @@ fn anti_amplification() {
     client.process_input(&s_init1, now);
     client.process_input(&s_init2, now);
     let ack_count = client.stats().frame_tx.ack;
-    let frame_count = client.stats().frame_tx.all;
+    let frame_count = client.stats().frame_tx.all();
     let ack = client.process(Some(&s_init3), now).dgram().unwrap();
     assert!(!maybe_authenticate(&mut client)); // No need yet.
 
     // The client sends a padded datagram, with just ACK for Handshake.
     assert_eq!(client.stats().frame_tx.ack, ack_count + 1);
-    assert_eq!(client.stats().frame_tx.all, frame_count + 1);
+    assert_eq!(client.stats().frame_tx.all(), frame_count + 1);
     assert_ne!(ack.len(), client.plpmtu()); // Not padded (it includes Handshake).
 
     now += DEFAULT_RTT / 2;
@@ -1210,7 +1210,6 @@ fn client_initial_retransmits_identical() {
             client.stats().frame_tx,
             FrameStats {
                 crypto: i,
-                all: i,
                 ..Default::default()
             }
         );
@@ -1238,7 +1237,6 @@ fn server_initial_retransmits_identical() {
             FrameStats {
                 crypto: i * 2,
                 ack: i,
-                all: i * 3,
                 ..Default::default()
             }
         );
@@ -1252,5 +1250,29 @@ fn server_initial_retransmits_identical() {
         }
         now += pto;
         total_ptos += pto;
+    }
+}
+
+#[test]
+fn grease_quic_bit_transport_parameter() {
+    fn get_remote_tp(conn: &Connection) -> bool {
+        conn.tps
+            .borrow()
+            .remote
+            .as_ref()
+            .unwrap()
+            .get_empty(tparams::GREASE_QUIC_BIT)
+    }
+
+    for client_grease in [true, false] {
+        for server_grease in [true, false] {
+            let mut client = new_client(ConnectionParameters::default().grease(client_grease));
+            let mut server = new_server(ConnectionParameters::default().grease(server_grease));
+
+            connect(&mut client, &mut server);
+
+            assert_eq!(client_grease, get_remote_tp(&server));
+            assert_eq!(server_grease, get_remote_tp(&client));
+        }
     }
 }

@@ -376,4 +376,11 @@ mod tests {
         pkts.track(pkt(4)); // This is fine.
         assert_eq!(pkts.len(), 1);
     }
+
+    #[test]
+    fn ignore_unknown() {
+        let mut pkts = SentPackets::default();
+        pkts.track(pkt(0));
+        assert!(pkts.take_ranges([1..=1]).is_empty());
+    }
 }

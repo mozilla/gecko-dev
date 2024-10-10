@@ -155,7 +155,7 @@ impl Default for QuicParameters {
 }
 
 impl QuicParameters {
-    fn get_sock_addr<F>(opt: &Option<String>, v: &str, f: F) -> Option<SocketAddr>
+    fn get_sock_addr<F>(opt: Option<&String>, v: &str, f: F) -> Option<SocketAddr>
     where
         F: FnMut(&SocketAddr) -> bool,
     {
@@ -176,12 +176,20 @@ impl QuicParameters {
 
     #[must_use]
     pub fn preferred_address_v4(&self) -> Option<SocketAddr> {
-        Self::get_sock_addr(&self.preferred_address_v4, "IPv4", SocketAddr::is_ipv4)
+        Self::get_sock_addr(
+            self.preferred_address_v4.as_ref(),
+            "IPv4",
+            SocketAddr::is_ipv4,
+        )
     }
 
     #[must_use]
     pub fn preferred_address_v6(&self) -> Option<SocketAddr> {
-        Self::get_sock_addr(&self.preferred_address_v6, "IPv6", SocketAddr::is_ipv6)
+        Self::get_sock_addr(
+            self.preferred_address_v6.as_ref(),
+            "IPv6",
+            SocketAddr::is_ipv6,
+        )
     }
 
     #[must_use]

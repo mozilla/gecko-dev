@@ -245,15 +245,26 @@ impl Args {
             "handshake" | "transfer" | "retry" | "ecn" => {
                 self.shared.use_old_http = true;
             }
-            "zerortt" | "resumption" => {
+            "resumption" => {
                 if self.urls.len() < 2 {
-                    qerror!("Warning: resumption tests won't work without >1 URL");
+                    qerror!("Warning: resumption test won't work without >1 URL");
+                    exit(127);
+                }
+                self.shared.use_old_http = true;
+                self.resume = true;
+            }
+            "zerortt" => {
+                if self.urls.len() < 2 {
+                    qerror!("Warning: zerortt test won't work without >1 URL");
                     exit(127);
                 }
                 self.shared.use_old_http = true;
                 self.resume = true;
                 // PMTUD probes inflate what we sent in 1-RTT, causing QNS to fail the test.
                 self.shared.quic_parameters.no_pmtud = true;
+                // If we pace, we might get the initial server flight before sending sufficient
+                // 0-RTT data to pass the QNS check. So let's burst.
+                self.shared.quic_parameters.no_pacing = true;
             }
             "multiconnect" => {
                 self.shared.use_old_http = true;
@@ -287,10 +298,10 @@ impl Args {
 
 fn get_output_file(
     url: &Url,
-    output_dir: &Option<PathBuf>,
+    output_dir: Option<&PathBuf>,
     all_paths: &mut Vec<PathBuf>,
 ) -> Option<BufWriter<File>> {
-    if let Some(ref dir) = output_dir {
+    if let Some(dir) = output_dir {
         let mut out_path = dir.clone();
 
         let url_path = if url.path() == "/" {

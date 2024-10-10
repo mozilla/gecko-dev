@@ -25,7 +25,7 @@ use super::{
 };
 use crate::{
     cid::LOCAL_ACTIVE_CID_LIMIT,
-    connection::tests::send_something_paced,
+    connection::tests::{send_something_paced, send_with_extra},
     frame::FRAME_TYPE_NEW_CONNECTION_ID,
     packet::PacketBuilder,
     path::MAX_PATH_PROBES,
@@ -191,11 +191,11 @@ fn migrate_immediate() {
     assert_v6_path(&server2, true);
 
     // The second packet has no real effect, it just elicits an ACK.
-    let all_before = server.stats().frame_tx.all;
+    let all_before = server.stats().frame_tx.all();
     let ack_before = server.stats().frame_tx.ack;
     let server3 = server.process(Some(&client2), now).dgram();
     assert!(server3.is_some());
-    assert_eq!(server.stats().frame_tx.all, all_before + 1);
+    assert_eq!(server.stats().frame_tx.all(), all_before + 1);
     assert_eq!(server.stats().frame_tx.ack, ack_before + 1);
 
     // Receiving a packet sent by the server before migration doesn't change path.
@@ -249,14 +249,14 @@ fn migrate_immediate_fail() {
         let after = client.stats().frame_tx;
         assert_eq!(after.path_challenge, before.path_challenge + 1);
         assert_eq!(after.padding, before.padding + 1);
-        assert_eq!(after.all, before.all + 2);
+        assert_eq!(after.all(), before.all() + 2);
 
         // This might be a PTO, which will result in sending a probe.
         if let Some(probe) = client.process_output(now).dgram() {
             assert_v4_path(&probe, false); // Contains PATH_CHALLENGE.
             let after = client.stats().frame_tx;
             assert_eq!(after.ping, before.ping + 1);
-            assert_eq!(after.all, before.all + 3);
+            assert_eq!(after.all(), before.all() + 3);
         }
     }
 
@@ -325,14 +325,14 @@ fn migrate_same_fail() {
         let after = client.stats().frame_tx;
         assert_eq!(after.path_challenge, before.path_challenge + 1);
         assert_eq!(after.padding, before.padding + 1);
-        assert_eq!(after.all, before.all + 2);
+        assert_eq!(after.all(), before.all() + 2);
 
         // This might be a PTO, which will result in sending a probe.
         if let Some(probe) = client.process_output(now).dgram() {
             assert_v6_path(&probe, false); // Contains PATH_CHALLENGE.
             let after = client.stats().frame_tx;
             assert_eq!(after.ping, before.ping + 1);
-            assert_eq!(after.all, before.all + 3);
+            assert_eq!(after.all(), before.all() + 3);
         }
     }
 
@@ -810,9 +810,7 @@ fn retire_all() {
 
     let original_cid = ConnectionId::from(get_cid(&send_something(&mut client, now())));
 
-    server.test_frame_writer = Some(Box::new(RetireAll { cid_gen }));
-    let ncid = send_something(&mut server, now());
-    server.test_frame_writer = None;
+    let ncid = send_with_extra(&mut server, RetireAll { cid_gen }, now());
 
     let new_cid_before = client.stats().frame_rx.new_connection_id;
     let retire_cid_before = client.stats().frame_tx.retire_connection_id;
@@ -861,9 +859,7 @@ fn retire_prior_to_migration_failure() {
 
     // Have the server receive the probe, but separately have it decide to
     // retire all of the available connection IDs.
-    server.test_frame_writer = Some(Box::new(RetireAll { cid_gen }));
-    let retire_all = send_something(&mut server, now());
-    server.test_frame_writer = None;
+    let retire_all = send_with_extra(&mut server, RetireAll { cid_gen }, now());
 
     let resp = server.process(Some(&probe), now()).dgram().unwrap();
     assert_v4_path(&resp, true);
@@ -916,9 +912,7 @@ fn retire_prior_to_migration_success() {
 
     // Have the server receive the probe, but separately have it decide to
     // retire all of the available connection IDs.
-    server.test_frame_writer = Some(Box::new(RetireAll { cid_gen }));
-    let retire_all = send_something(&mut server, now());
-    server.test_frame_writer = None;
+    let retire_all = send_with_extra(&mut server, RetireAll { cid_gen }, now());
 
     let resp = server.process(Some(&probe), now()).dgram().unwrap();
     assert_v4_path(&resp, true);
@@ -956,13 +950,11 @@ fn error_on_new_path_with_no_connection_id() {
 
     let cid_gen: Rc<RefCell<dyn ConnectionIdGenerator>> =
         Rc::new(RefCell::new(CountingConnectionIdGenerator::default()));
-    server.test_frame_writer = Some(Box::new(RetireAll { cid_gen }));
-    let retire_all = send_something(&mut server, now());
+    let retire_all = send_with_extra(&mut server, RetireAll { cid_gen }, now());
 
     client.process_input(&retire_all, now());
 
-    server.test_frame_writer = Some(Box::new(GarbageWriter {}));
-    let garbage = send_something(&mut server, now());
+    let garbage = send_with_extra(&mut server, GarbageWriter {}, now());
 
     let dgram = change_path(&garbage, DEFAULT_ADDR_V4);
     client.process_input(&dgram, now());

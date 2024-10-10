@@ -55,7 +55,7 @@ impl<'a> StreamReaderConnectionWrapper<'a> {
     }
 }
 
-impl<'a> StreamReader for StreamReaderConnectionWrapper<'a> {
+impl StreamReader for StreamReaderConnectionWrapper<'_> {
     /// # Errors
     ///
     /// An error may happen while reading a stream, e.g. early close, protocol error, etc.
@@ -76,7 +76,7 @@ impl<'a> StreamReaderRecvStreamWrapper<'a> {
     }
 }
 
-impl<'a> StreamReader for StreamReaderRecvStreamWrapper<'a> {
+impl StreamReader for StreamReaderRecvStreamWrapper<'_> {
     /// # Errors
     ///
     /// An error may happen while reading a stream, e.g. early close, protocol error, etc.

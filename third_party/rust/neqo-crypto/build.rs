@@ -109,14 +109,14 @@ fn get_bash() -> PathBuf {
     )
 }
 
-fn build_nss(dir: PathBuf) {
+fn build_nss(dir: PathBuf, nsstarget: &str) {
     let mut build_nss = vec![
         String::from("./build.sh"),
         String::from("-Ddisable_tests=1"),
         // Generate static libraries in addition to shared libraries.
         String::from("--static"),
     ];
-    if !is_debug() {
+    if nsstarget == "Release" {
         build_nss.push(String::from("-o"));
     }
     if let Ok(d) = env::var("NSS_JOBS") {
@@ -317,15 +317,18 @@ fn setup_standalone(nss: &str) -> Vec<String> {
         "The NSS_DIR environment variable is expected to be an absolute path."
     );
 
-    build_nss(nss.clone());
-
     // $NSS_DIR/../dist/
     let nssdist = nss.parent().unwrap().join("dist");
     println!("cargo:rerun-if-env-changed=NSS_TARGET");
     let nsstarget = env::var("NSS_TARGET")
         .unwrap_or_else(|_| fs::read_to_string(nssdist.join("latest")).unwrap());
-    let nsstarget = nssdist.join(nsstarget.trim());
 
+    // If NSS_PREBUILT is set, we assume that the NSS libraries are already built.
+    if env::var("NSS_PREBUILT").is_err() {
+        build_nss(nss, &nsstarget);
+    }
+
+    let nsstarget = nssdist.join(nsstarget.trim());
     let includes = get_includes(&nsstarget, &nssdist);
 
     let nsslibdir = nsstarget.join("lib");

@@ -21,7 +21,7 @@ use neqo_crypto::{
     TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256, TLS_CT_HANDSHAKE,
     TLS_EPOCH_APPLICATION_DATA, TLS_EPOCH_HANDSHAKE, TLS_EPOCH_INITIAL, TLS_EPOCH_ZERO_RTT,
     TLS_GRP_EC_SECP256R1, TLS_GRP_EC_SECP384R1, TLS_GRP_EC_SECP521R1, TLS_GRP_EC_X25519,
-    TLS_GRP_KEM_XYBER768D00, TLS_VERSION_1_3,
+    TLS_GRP_KEM_MLKEM768X25519, TLS_VERSION_1_3,
 };
 
 use crate::{
@@ -78,9 +78,10 @@ impl Crypto {
         ])?;
         match &mut agent {
             Agent::Server(c) => {
-                // Clients do not send xyber shares by default, but servers should accept them.
+                // Clients do not send mlkem768x25519 shares by default, but servers should accept
+                // them.
                 c.set_groups(&[
-                    TLS_GRP_KEM_XYBER768D00,
+                    TLS_GRP_KEM_MLKEM768X25519,
                     TLS_GRP_EC_X25519,
                     TLS_GRP_EC_SECP256R1,
                     TLS_GRP_EC_SECP384R1,

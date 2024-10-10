@@ -44,6 +44,7 @@ pub enum PreferredAddressConfig {
 /// `ConnectionParameters` use for setting intitial value for QUIC parameters.
 /// This collects configuration like initial limits, protocol version, and
 /// congestion control algorithm.
+#[allow(clippy::struct_excessive_bools)] // We need that many, sorry.
 #[derive(Debug, Clone)]
 pub struct ConnectionParameters {
     versions: VersionConfig,
@@ -78,6 +79,7 @@ pub struct ConnectionParameters {
     incoming_datagram_queue: usize,
     fast_pto: u8,
     grease: bool,
+    disable_migration: bool,
     pacing: bool,
     /// Whether the connection performs PLPMTUD.
     pmtud: bool,
@@ -102,6 +104,7 @@ impl Default for ConnectionParameters {
             incoming_datagram_queue: MAX_QUEUED_DATAGRAMS_DEFAULT,
             fast_pto: FAST_PTO_SCALE,
             grease: true,
+            disable_migration: false,
             pacing: true,
             pmtud: false,
         }
@@ -337,6 +340,12 @@ impl ConnectionParameters {
     }
 
     #[must_use]
+    pub const fn disable_migration(mut self, disable_migration: bool) -> Self {
+        self.disable_migration = disable_migration;
+        self
+    }
+
+    #[must_use]
     pub const fn pacing_enabled(&self) -> bool {
         self.pacing
     }
@@ -373,8 +382,12 @@ impl ConnectionParameters {
             tparams::ACTIVE_CONNECTION_ID_LIMIT,
             u64::try_from(LOCAL_ACTIVE_CID_LIMIT)?,
         );
-        tps.local.set_empty(tparams::DISABLE_MIGRATION);
-        tps.local.set_empty(tparams::GREASE_QUIC_BIT);
+        if self.disable_migration {
+            tps.local.set_empty(tparams::DISABLE_MIGRATION);
+        }
+        if self.grease {
+            tps.local.set_empty(tparams::GREASE_QUIC_BIT);
+        }
         tps.local.set_integer(
             tparams::MAX_ACK_DELAY,
             u64::try_from(DEFAULT_ACK_DELAY.as_millis())?,

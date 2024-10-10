@@ -124,13 +124,13 @@ pub struct ConnectionIdRef<'a> {
     cid: &'a [u8],
 }
 
-impl<'a> ::std::fmt::Debug for ConnectionIdRef<'a> {
+impl ::std::fmt::Debug for ConnectionIdRef<'_> {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "CID {}", hex_with_len(self.cid))
     }
 }
 
-impl<'a> ::std::fmt::Display for ConnectionIdRef<'a> {
+impl ::std::fmt::Display for ConnectionIdRef<'_> {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "{}", hex(self.cid))
     }
@@ -142,7 +142,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> From<&'a T> for ConnectionIdRef<'a> {
     }
 }
 
-impl<'a> std::ops::Deref for ConnectionIdRef<'a> {
+impl std::ops::Deref for ConnectionIdRef<'_> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
@@ -150,7 +150,7 @@ impl<'a> std::ops::Deref for ConnectionIdRef<'a> {
     }
 }
 
-impl<'a> PartialEq<ConnectionId> for ConnectionIdRef<'a> {
+impl PartialEq<ConnectionId> for ConnectionIdRef<'_> {
     fn eq(&self, other: &ConnectionId) -> bool {
         self.cid == &other.cid[..]
     }

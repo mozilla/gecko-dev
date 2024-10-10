@@ -146,13 +146,6 @@ fn init_once(db: Option<PathBuf>) -> Res<NssLoaded> {
     };
 
     secstatus_to_res(unsafe { nss::NSS_SetDomesticPolicy() })?;
-    secstatus_to_res(unsafe {
-        p11::NSS_SetAlgorithmPolicy(
-            p11::SECOidTag::SEC_OID_XYBER768D00,
-            p11::NSS_USE_ALG_IN_SSL_KX,
-            0,
-        )
-    })?;
 
     #[cfg(debug_assertions)]
     enable_ssl_trace()?;

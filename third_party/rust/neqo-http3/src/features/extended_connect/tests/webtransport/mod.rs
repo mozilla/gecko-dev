@@ -221,7 +221,7 @@ impl WtTest {
         e: &Http3ClientEvent,
         id: StreamId,
         expected_reason: &SessionCloseReason,
-        expected_headers: &Option<Vec<Header>>,
+        expected_headers: Option<&Vec<Header>>,
     ) -> bool {
         if let Http3ClientEvent::WebTransport(WebTransportEvent::SessionClosed {
             stream_id,
@@ -229,7 +229,7 @@ impl WtTest {
             headers,
         }) = e
         {
-            *stream_id == id && reason == expected_reason && headers == expected_headers
+            *stream_id == id && reason == expected_reason && headers.as_ref() == expected_headers
         } else {
             false
         }
@@ -239,7 +239,7 @@ impl WtTest {
         &mut self,
         wt_session_id: StreamId,
         expected_reason: &SessionCloseReason,
-        expected_headers: &Option<Vec<Header>>,
+        expected_headers: Option<&Vec<Header>>,
     ) {
         let mut event_found = false;
 
@@ -404,7 +404,7 @@ impl WtTest {
         expected_stop_sending_ids: &[StreamId],
         expected_error_stream_stop_sending: Option<u64>,
         expected_local: bool,
-        expected_session_close: &Option<(StreamId, SessionCloseReason)>,
+        expected_session_close: Option<&(StreamId, SessionCloseReason)>,
     ) {
         let mut reset_ids_count = 0;
         let mut stop_sending_ids_count = 0;
@@ -546,7 +546,7 @@ impl WtTest {
         expected_error_stream_reset: Option<u64>,
         expected_stop_sending_ids: &[StreamId],
         expected_error_stream_stop_sending: Option<u64>,
-        expected_session_close: &Option<(StreamId, SessionCloseReason)>,
+        expected_session_close: Option<&(StreamId, SessionCloseReason)>,
     ) {
         let mut reset_ids_count = 0;
         let mut stop_sending_ids_count = 0;

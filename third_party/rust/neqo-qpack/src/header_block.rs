@@ -178,7 +178,7 @@ pub struct HeaderDecoder<'a> {
     req_insert_cnt: u64,
 }
 
-impl<'a> ::std::fmt::Display for HeaderDecoder<'a> {
+impl ::std::fmt::Display for HeaderDecoder<'_> {
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         write!(f, "HeaderDecoder")
     }

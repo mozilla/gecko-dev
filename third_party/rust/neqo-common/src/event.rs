@@ -41,7 +41,7 @@ where
     }
 }
 
-impl<'a, P, E> Iterator for Iter<'a, P, E>
+impl<P, E> Iterator for Iter<'_, P, E>
 where
     P: Provider<Event = E>,
 {
