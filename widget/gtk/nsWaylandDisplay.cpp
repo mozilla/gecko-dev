@@ -523,6 +523,13 @@ static void WlLogHandler(const char* format, va_list args) {
   MOZ_CRASH_UNSAFE(error);
 }
 
+// TODO: Add compositor info
+void WlCompositorCrashHandler() {
+  constexpr char error[] = "Compositor crashed";
+  gfxCriticalNote << "Wayland protocol error: " << error;
+  MOZ_CRASH_UNSAFE(error);
+}
+
 nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)
     : mThreadId(PR_GetCurrentThread()), mDisplay(aDisplay) {
   // GTK sets the log handler on display creation, thus we overwrite it here

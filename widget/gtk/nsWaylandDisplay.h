@@ -120,6 +120,7 @@ class nsWaylandDisplay {
 wl_display* WaylandDisplayGetWLDisplay();
 nsWaylandDisplay* WaylandDisplayGet();
 void WaylandDisplayRelease();
+void WlCompositorCrashHandler();
 
 }  // namespace mozilla::widget
 
