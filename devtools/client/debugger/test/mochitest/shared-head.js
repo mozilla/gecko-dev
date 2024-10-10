@@ -1557,18 +1557,19 @@ async function openContextMenuInDebugger(dbg, elementName, line) {
  * Select a range of lines in the editor and open the contextmenu
  * @param {Object} dbg
  * @param {Object} lines
+ * @param {String} elementName
  * @returns
  */
-async function selectEditorLinesAndOpenContextMenu(dbg, lines) {
+async function selectEditorLinesAndOpenContextMenu(
+  dbg,
+  lines,
+  elementName = "line"
+) {
   const { startLine, endLine } = lines;
-  const elementName = "line";
   if (!endLine) {
     await clickElement(dbg, elementName, startLine);
   } else {
-    getCM(dbg).setSelection(
-      { line: startLine - 1, ch: 0 },
-      { line: endLine, ch: 0 }
-    );
+    setSelection(dbg, startLine, endLine);
   }
   return openContextMenuInDebugger(dbg, elementName, startLine);
 }
@@ -2219,6 +2220,13 @@ function getCM(dbg) {
 function isScrolledPositionVisible(dbg, line, column = 0) {
   line = isCm6Enabled ? line + 1 : line;
   return getCMEditor(dbg).isPositionVisible(line, column);
+}
+     
+function setSelection(dbg, startLine, endLine) {
+  getCMEditor(dbg).setSelectionAt(
+    { line: startLine, column: 0 },
+    { line: endLine, column: 0 }
+  );
 }
 
 // Gets the mode used for the file

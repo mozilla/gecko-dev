@@ -436,8 +436,11 @@ async function testBlackBoxSingleLine(dbg, source) {
   assertNotPaused(dbg);
 
   info("Un-blackbox line 2 of funcA()");
-  selectEditorLines(dbg, 2, 2);
-  await openContextMenuInDebugger(dbg, "CodeMirrorLines");
+  await selectEditorLinesAndOpenContextMenu(
+    dbg,
+    { startLine: 2, endLine: 2 },
+    "CodeMirrorLines"
+  );
   await selectBlackBoxContextMenuItem(dbg, "blackbox-line");
 
   await assertEditorBlackBoxBoxContextMenuItems(dbg, {
@@ -716,17 +719,4 @@ async function assertEditorBlackBoxBoxContextMenuItems(dbg, testFixtures) {
     }
     await closeContextMenu(dbg, popup);
   }
-}
-
-/**
- * Selects a range of lines
- * @param {Object} dbg
- * @param {Number} startLine
- * @param {Number} endLine
- */
-function selectEditorLines(dbg, startLine, endLine) {
-  getCM(dbg).setSelection(
-    { line: startLine - 1, ch: 0 },
-    { line: endLine, ch: 0 }
-  );
 }
