@@ -604,7 +604,6 @@
     "security/manager/ssl/tests/mochitest/mixedcontent/mochitest.ini": 34.83,
     "security/manager/ssl/tests/mochitest/stricttransportsecurity/mochitest.ini": 2.05,
     "testing/mochitest/tests/Harness_sanity/mochitest.ini": 12.27,
-    "testing/mochitest/tests/MochiKit-1.4.2/tests/mochitest.ini": 5.5,
     "toolkit/components/alerts/test/mochitest.ini": 30.56,
     "toolkit/components/contentprefs/tests/mochitest/mochitest.ini": 1.55,
     "toolkit/components/extensions/test/mochitest/mochitest-remote.ini": 144.02,

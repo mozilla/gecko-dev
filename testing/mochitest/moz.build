@@ -80,7 +80,6 @@ FINAL_TARGET_FILES.content.tests.BrowserTestUtils += [
 
 MOCHITEST_MANIFESTS += [
     "baselinecoverage/plain/mochitest.toml",
-    "tests/MochiKit-1.4.2/tests/mochitest.toml",
 ]
 
 MOCHITEST_CHROME_MANIFESTS += [
@@ -169,30 +168,6 @@ TEST_HARNESS_FILES.testing.mochitest.dynamic += [
 
 TEST_HARNESS_FILES.testing.mochitest.static += [
     "static/harness.css",
-]
-
-TEST_HARNESS_FILES.testing.mochitest.tests.testing.mochitest.tests[
-    "MochiKit-1.4.2"
-].MochiKit += [
-    "tests/MochiKit-1.4.2/MochiKit/Async.js",
-    "tests/MochiKit-1.4.2/MochiKit/Base.js",
-    "tests/MochiKit-1.4.2/MochiKit/Color.js",
-    "tests/MochiKit-1.4.2/MochiKit/DateTime.js",
-    "tests/MochiKit-1.4.2/MochiKit/DOM.js",
-    "tests/MochiKit-1.4.2/MochiKit/DragAndDrop.js",
-    "tests/MochiKit-1.4.2/MochiKit/Format.js",
-    "tests/MochiKit-1.4.2/MochiKit/Iter.js",
-    "tests/MochiKit-1.4.2/MochiKit/Logging.js",
-    "tests/MochiKit-1.4.2/MochiKit/LoggingPane.js",
-    "tests/MochiKit-1.4.2/MochiKit/MochiKit.js",
-    "tests/MochiKit-1.4.2/MochiKit/MockDOM.js",
-    "tests/MochiKit-1.4.2/MochiKit/Position.js",
-    "tests/MochiKit-1.4.2/MochiKit/Selector.js",
-    "tests/MochiKit-1.4.2/MochiKit/Signal.js",
-    "tests/MochiKit-1.4.2/MochiKit/Sortable.js",
-    "tests/MochiKit-1.4.2/MochiKit/Style.js",
-    "tests/MochiKit-1.4.2/MochiKit/Test.js",
-    "tests/MochiKit-1.4.2/MochiKit/Visual.js",
 ]
 
 TEST_HARNESS_FILES.testing.mochitest.iceserver += [
