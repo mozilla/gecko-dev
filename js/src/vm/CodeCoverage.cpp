@@ -408,19 +408,16 @@ LCovSource* LCovRealm::lookupOrAdd(const char* name) {
 
   UniqueChars source_name = DuplicateString(name);
   if (!source_name) {
-    outTN_.reportOutOfMemory();
     return nullptr;
   }
 
   // Allocate a new LCovSource for the current top-level.
   LCovSource* source = alloc_.new_<LCovSource>(&alloc_, std::move(source_name));
   if (!source) {
-    outTN_.reportOutOfMemory();
     return nullptr;
   }
 
   if (!sources_.emplaceBack(source)) {
-    outTN_.reportOutOfMemory();
     return nullptr;
   }
 
