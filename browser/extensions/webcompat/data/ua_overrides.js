@@ -1404,6 +1404,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1919004 - UA override for www.editoracontexto.com.br
+     * Webcompat issue #141641 - https://webcompat.com/issues/141641
+     *
+     * Site presents its desktop CSS to Firefox on Android.
+     */
+    id: "bug1919004",
+    platform: "android",
+    domain: "www.editoracontexto.com.br",
+    bug: "1919004",
+    config: {
+      matches: ["*://www.editoracontexto.com.br/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
