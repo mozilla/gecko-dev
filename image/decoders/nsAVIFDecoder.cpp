@@ -1846,13 +1846,17 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
     uint32_t profileSpace = qcms_profile_get_color_space(mInProfile);
     if (profileSpace != icSigGrayData) {
       mUsePipeTransform = true;
-      // When we convert the data to rgb we always pass either B8G8R8A8 or
-      // B8G8R8X8 to ConvertYCbCrToRGB32. After that we input the data to the
-      // surface pipe where qcms happens in the pipeline. So when the data gets
-      // to qcms it will always be in our preferred format and so
-      // gfxPlatform::GetCMSOSRGBAType is the correct type.
-      inType = gfxPlatform::GetCMSOSRGBAType();
-      outType = inType;
+      // If the transform happens with SurfacePipe, it will be in RGBA if we
+      // have an alpha channel, because the swizzle and premultiplication
+      // happens after color management. Otherwise it will be in BGRA because
+      // the swizzle happens at the start.
+      if (mHasAlpha) {
+        inType = QCMS_DATA_RGBA_8;
+        outType = QCMS_DATA_RGBA_8;
+      } else {
+        inType = gfxPlatform::GetCMSOSRGBAType();
+        outType = inType;
+      }
     } else {
       // We can't use SurfacePipe to do the color management (it can't handle
       // grayscale data), we have to do it ourselves on the grayscale data
