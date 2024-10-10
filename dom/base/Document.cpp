@@ -6608,7 +6608,7 @@ void Document::GetCookie(nsAString& aCookie, ErrorResult& aRv) {
   // only available in first-party or third-party with storageAccess contexts.
   // In both cases, the document will have storage access.
   bool isCHIPS = StaticPrefs::network_cookie_CHIPS_enabled() &&
-                 CookieJarSettings()->GetPartitionForeign();
+                 !CookieJarSettings()->GetBlockingAllContexts();
   bool documentHasStorageAccess = false;
   nsresult rv = HasStorageAccessSync(documentHasStorageAccess);
   if (NS_WARN_IF(NS_FAILED(rv))) {
