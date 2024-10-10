@@ -693,6 +693,36 @@ template("rtc_source_set") {
         deps += [ "//third_party/abseil-cpp:absl" ]
       }
     }
+
+    # Rather than widespread changes to most, if not all, BUILD.gn files
+    # we'll do some filtering on dependencies here.
+    if (build_with_mozilla && defined(deps)) {
+      # Now that abseil-cpp is moved to Mozilla's third_party directory
+      # we remove all the abseil-cpp dependency listings so moz.build
+      # generation succeed.
+      filtered_deps = []
+      foreach (dep, deps) {
+        newdep = string_replace(dep, "//third_party/abseil-cpp/", "")
+        if (newdep == dep) {
+          filtered_deps += [ dep ]
+        }
+      }
+      deps = []
+      deps = filtered_deps
+
+      # We don't build any of the test code, but many of the test
+      # targets list gtest/gmock as a dependency.  We can simply
+      # filter them out here.
+      filtered_deps = []
+      foreach (dep, deps) {
+        newdep = string_replace(dep, "//testing/g", "")
+        if (newdep == dep) {
+          filtered_deps += [ dep ]
+        }
+      }
+      deps = []
+      deps = filtered_deps
+    }
   }
 }
 
@@ -926,6 +956,47 @@ template("rtc_library") {
         deps = filtered_deps
         deps += [ "//third_party/abseil-cpp:absl" ]
       }
+    }
+
+    # Rather than widespread changes to most, if not all, BUILD.gn files
+    # we'll do some filtering on dependencies here.
+    if (build_with_mozilla && defined(deps)) {
+      # Now that abseil-cpp is moved to Mozilla's third_party directory
+      # we remove all the abseil-cpp dependency listings so moz.build
+      # generation succeed.
+      filtered_deps = []
+      foreach (dep, deps) {
+        newdep = string_replace(dep, "//third_party/abseil-cpp/", "")
+        if (newdep == dep) {
+          filtered_deps += [ dep ]
+        }
+      }
+      deps = []
+      deps = filtered_deps
+
+      # We don't build any of the test code, but many of the test
+      # targets list gtest/gmock as a dependency.  We can simply
+      # filter them out here.
+      filtered_deps = []
+      foreach (dep, deps) {
+        newdep = string_replace(dep, "//testing/g", "")
+        if (newdep == dep) {
+          filtered_deps += [ dep ]
+        }
+      }
+      deps = []
+      deps = filtered_deps
+
+      # Moving the google build directory requires looking for libwebrtc's
+      # third_party dependencies under libwebrtc/third_party instead of
+      # simply third_party.
+      modified_deps = []
+      foreach (dep, deps) {
+        newdep = string_replace(dep, "//third_party/", "//libwebrtc/third_party/")
+        modified_deps += [ newdep ]
+      }
+      deps = []
+      deps = modified_deps
     }
   }
 }
