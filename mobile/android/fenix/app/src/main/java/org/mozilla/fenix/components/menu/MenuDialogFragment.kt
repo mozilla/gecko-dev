@@ -79,7 +79,7 @@ import org.mozilla.fenix.utils.exitSubmenu
 // three states instead of the expected two states required by design.
 private const val PEEK_HEIGHT = 460
 private const val EXPANDED_MIN_RATIO = 0.0001f
-private const val EXPANDED_OFFSET = 80
+private const val EXPANDED_OFFSET = 56
 private const val HIDING_FRICTION = 0.9f
 
 /**
