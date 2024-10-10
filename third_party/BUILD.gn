@@ -1,0 +1,16 @@
+declare_args() {
+  # These flags are enabled when running gn_processor.py based
+  # on the gn_target provided in the .json file (for example
+  # webrtc.json or abseil.json).
+  build_mozilla_webrtc = false
+  build_mozilla_absl = false
+}
+
+group("default") {
+  if (build_mozilla_webrtc) {
+    deps = [ "libwebrtc:webrtc" ]
+  }
+  if (build_mozilla_absl) {
+    deps = [ "abseil-cpp:absl" ]
+  }
+}
