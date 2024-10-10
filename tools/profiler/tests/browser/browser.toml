@@ -11,6 +11,13 @@ support-files = ["simple.html"]
 ["browser_test_feature_jsallocations.js"]
 support-files = ["do_work_500ms.html"]
 
+["browser_test_feature_jstracing.js"]
+support-files = ["tracing.html"]
+skip-if = [
+  # This features is only enabled on nightly via MOZ_EXECUTION_TRACING build flag
+  "!nightly_build"
+]
+
 ["browser_test_feature_multiprocess_capture_with_signal.js"]
 support-files = ["do_work_500ms.html"]
 skip-if = [

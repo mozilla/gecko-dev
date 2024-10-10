@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Do some naive JS executions</title>
+  <script>
+    function a() {
+      b();
+    }
+    function b() {
+      document.body.setAttribute("foo", "bar");
+      navigator.userAgent;
+      window.dispatchEvent(new Event("CustomEvent"));
+      document.body.click();
+    }
+    window.onload = a;
+    window.onclick = () => console.log("click!");
+    window.addEventListener("CustomEvent", function customEventHandler() {});
+  </script>
+</head>
+<body>
+  Execute some naive code which should be traced.
+</body>
+</html>
