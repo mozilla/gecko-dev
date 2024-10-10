@@ -810,14 +810,6 @@ nsresult PeerConnectionImpl::ConfigureJsepSessionCodecs() {
 
   // We use this to sort the list of codecs once everything is configured
   CompareCodecPriority comparator;
-
-  nsCString preferredCodec;
-  if (NS_SUCCEEDED(branch->GetCharPref("media.navigator.video.preferred_codec",
-                                       preferredCodec))) {
-    preferredCodec.CompressWhitespace(true, true);
-    comparator.SetPreferredCodec(preferredCodec);
-  }
-
   // Sort by priority
   mJsepSession->SortCodecs(comparator);
   return NS_OK;
