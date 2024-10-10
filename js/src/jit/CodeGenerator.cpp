@@ -16535,6 +16535,9 @@ bool CodeGenerator::generate() {
   if (!safepointIndices_.reserve(maxSafepointIndices)) {
     return false;
   }
+  if (!osiIndices_.reserve(graph.numSafepoints())) {
+    return false;
+  }
 
   perfSpewer_.recordOffset(masm, "Prologue");
   if (!generatePrologue()) {
@@ -16611,6 +16614,10 @@ bool CodeGenerator::generate() {
   // storing data in-place of the calling code, which thus becomes unsafe to
   // execute.
   MOZ_ASSERT(safepointIndices_.length() <= maxSafepointIndices);
+
+  // For each instruction with a safepoint, we have an OSI point inserted after
+  // which handles bailouts in case of invalidation of the code.
+  MOZ_ASSERT(osiIndices_.length() == graph.numSafepoints());
 
   return !masm.oom();
 }
