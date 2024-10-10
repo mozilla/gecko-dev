@@ -375,7 +375,9 @@ async function _assertDebugLine(dbg, line, column) {
   }
 
   // Check the debug line
-  const lineInfo = getCM(dbg).lineInfo(line - 1);
+  // cm6 lines are 1-based, while cm5 are 0-based, to keep compatibility with
+  // .lineInfo usage in other locations.
+  const lineInfo = getCMEditor(dbg).lineInfo(isCm6Enabled ? line : line - 1);
   const sourceTextContent = dbg.selectors.getSelectedSourceTextContent();
   if (source && !sourceTextContent) {
     const url = source.url;
