@@ -179,6 +179,18 @@ def install_addon(session, addon_file_path):
     session.send_session_command("POST", "moz/context", {"context": "chrome"})
     session.execute_async_script(
         """
+        async function installAsBuiltinExtension(xpi) {
+            // The built-in location requires a resource: URL that maps to a
+            // jar: or file: URL.  This would typically be something bundled
+            // into omni.ja but we use a temp file.
+            let base = Services.io.newURI(`jar:file:${xpi.path}!/`);
+            let resProto = Services.io
+              .getProtocolHandler("resource")
+              .QueryInterface(Ci.nsIResProtocolHandler);
+            resProto.setSubstitution("ext-test", base);
+            return AddonManager.installBuiltinAddon("resource://ext-test/");
+        }
+
         const addon_file_path = arguments[0];
         const cb = arguments[1];
         const { AddonManager } = ChromeUtils.importESModule(
@@ -191,7 +203,7 @@ def install_addon(session, addon_file_path):
             "resource://gre/modules/FileUtils.sys.mjs"
         );
         const file = new FileUtils.File(arguments[0]);
-        AddonManager.installTemporaryAddon(file).then(addon => {
+        installAsBuiltinExtension(file).then(addon => {
             // also make sure the addon works in private browsing mode
             const incognitoPermission = {
                 permissions: ["internal:privateBrowsingAllowed"],
