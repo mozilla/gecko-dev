@@ -54,6 +54,7 @@ void EventCallbackDebuggerNotificationGuard::DispatchToManager(
       mEventTarget->GetDebuggerNotificationType());
 
   if (notificationType) {
+#ifdef MOZ_EXECUTION_TRACING
     CycleCollectedJSContext* ccjcx = CycleCollectedJSContext::Get();
     if (ccjcx) {
       nsAutoString eventType;
@@ -64,10 +65,13 @@ void EventCallbackDebuggerNotificationGuard::DispatchToManager(
         JS_TracerLeaveLabelTwoByte(ccjcx->Context(), eventType.get());
       }
     }
-    aManager->Dispatch<EventCallbackDebuggerNotification>(
-        DebuggerNotificationType::DomEvent,
-        // The DOM event will always be live during event dispatch.
-        MOZ_KnownLive(mEvent), *notificationType, aPhase);
+#endif
+    if (MOZ_UNLIKELY(aManager)) {
+      aManager->Dispatch<EventCallbackDebuggerNotification>(
+          DebuggerNotificationType::DomEvent,
+          // The DOM event will always be live during event dispatch.
+          MOZ_KnownLive(mEvent), *notificationType, aPhase);
+    }
   }
 }
 

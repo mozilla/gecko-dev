@@ -63,8 +63,8 @@ class MOZ_RAII CallbackDebuggerNotificationGuard final {
 
  private:
   MOZ_CAN_RUN_SCRIPT void Dispatch(CallbackDebuggerNotificationPhase aPhase) {
-    auto manager = DebuggerNotificationManager::ForDispatch(mDebuggeeGlobal);
-    if (MOZ_UNLIKELY(manager)) {
+#ifdef MOZ_EXECUTION_TRACING
+    if (MOZ_UNLIKELY(profiler_is_active())) {
       CycleCollectedJSContext* ccjcx = CycleCollectedJSContext::Get();
       if (ccjcx) {
         const char* typeStr = "";
@@ -106,7 +106,11 @@ class MOZ_RAII CallbackDebuggerNotificationGuard final {
           JS_TracerLeaveLabelLatin1(ccjcx->Context(), typeStr);
         }
       }
+    }
+#endif
 
+    auto manager = DebuggerNotificationManager::ForDispatch(mDebuggeeGlobal);
+    if (MOZ_UNLIKELY(manager)) {
       manager->Dispatch<CallbackDebuggerNotification>(mType, aPhase);
     }
   }
