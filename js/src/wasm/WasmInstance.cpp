@@ -1374,7 +1374,7 @@ static int32_t MemDiscardShared(Instance* instance, I byteOffset, I byteLen,
   RootedFunction exportedFunc(cx);
   if (!instance->getExportedFunction(cx, funcIndex, &exportedFunc)) {
     MOZ_ASSERT(cx->isThrowingOutOfMemory());
-    return nullptr;
+    return AnyRef::invalid().forCompiledCode();
   }
   return FuncRef::fromJSFunction(exportedFunc.get()).forCompiledCode();
 }
