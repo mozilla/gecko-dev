@@ -33,6 +33,7 @@ raptor_description_schema = Schema(
             Optional("lull-schedule"): optionally_keyed_by(
                 "subtest", "test-platform", str
             ),
+            Optional("network-conditions"): optionally_keyed_by("subtest", list),
         },
         # Configs defined in the 'test_description_schema'.
         Optional("max-run-time"): optionally_keyed_by(
@@ -167,6 +168,7 @@ def handle_keyed_by(config, tests):
         "raptor.activity",
         "raptor.binary-path",
         "raptor.lull-schedule",
+        "raptor.network-conditions",
         "limit-platforms",
         "fetches.fetch",
         "max-run-time",
@@ -179,6 +181,49 @@ def handle_keyed_by(config, tests):
             resolve_keyed_by(
                 test, field, item_name=test["test-name"], defer=["variant"]
             )
+        yield test
+
+
+@transforms.add
+def handle_network_conditions(config, tests):
+    for test in tests:
+        conditions = test["raptor"].pop("network-conditions", None)
+        if not conditions:
+            yield test
+            continue
+
+        for condition in conditions:
+            new_test = deepcopy(test)
+            network_type, packet_loss_rate = condition
+
+            new_test.pop("chunk-number")
+            subtest = new_test.pop("subtest")
+            new_test["raptor"]["test"] = subtest
+
+            group, _ = split_symbol(new_test["treeherder-symbol"])
+            new_group = f"{group}-{network_type}"
+            subtest_symbol = f"{new_test['subtest-symbol']}-{packet_loss_rate}"
+            new_test["treeherder-symbol"] = join_symbol(new_group, subtest_symbol)
+
+            mozharness = new_test.setdefault("mozharness", {})
+            extra_options = mozharness.setdefault("extra-options", [])
+
+            extra_options.extend(
+                [
+                    f"--browsertime-arg=network_type={network_type}",
+                    f"--browsertime-arg=pkt_loss_rate={packet_loss_rate}",
+                ]
+            )
+
+            new_test["test-name"] += f"-{subtest}-{network_type}-{packet_loss_rate}"
+            new_test["try-name"] += f"-{subtest}-{network_type}-{packet_loss_rate}"
+            new_test["description"] += (
+                f" on {subtest} with {network_type} network type and "
+                f" {packet_loss_rate} loss rate"
+            )
+
+            yield new_test
+
         yield test
 
 

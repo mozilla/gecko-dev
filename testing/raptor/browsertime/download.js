@@ -60,7 +60,7 @@ module.exports = logTest("download test", async function (context, commands) {
       await actions.move({ origin: downloadItem }).click().perform();
 
       // Start the test and wait for the upload to complete
-      let results = await waitForDownload(120000, commands, context);
+      let results = await waitForDownload(1200000, commands, context);
       let downloadTime = results.end - results.start;
 
       // Store result in megabit/seconds

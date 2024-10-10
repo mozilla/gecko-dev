@@ -841,8 +841,30 @@ browsertime-network-bench:
         subtests:
             - [h3-upload, h3-up]
             - [h3-download, h3-down]
+        network-conditions:
+            by-subtest:
+                h3-upload:
+                    - [slow3G, "0"]
+                    - [slow3G, "0.01"]
+                    - [slow3G, "0.1"]
+                    - [slow3G, "0.5"]
+                    - [fast5G, "0"]
+                    - [fast5G, "0.01"]
+                    - [fast5G, "0.1"]
+                    - [fast5G, "0.5"]
+                    - [fast5G, "1"]
+                    - [busy5G, "0"]
+                    - [busy5G, "0.01"]
+                    - [busy5G, "0.1"]
+                    - [busy5G, "0.5"]
+                    - [busy5G, "1"]
+                h3-download:
+                    - [slow3G, "0"]
+                    - [fast5G, "0"]
+                    - [busy5G, "0"]
+                default: []
     description: Raptor (browsertime) networking download/upload performance test
-    max-run-time: 2700
+    max-run-time: 4500
     run-on-projects: []
     tier: 3
     treeherder-symbol: Btime(network-bench)

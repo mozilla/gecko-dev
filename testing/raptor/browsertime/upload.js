@@ -73,7 +73,7 @@ module.exports = logTest("upload test", async function (context, commands) {
       await uploadItem.sendKeys(localFilePath);
 
       // Start the test and wait for the upload to complete
-      let results = await waitForUpload(120000, commands, context);
+      let results = await waitForUpload(1200000, commands, context);
       let uploadTime = results.end - results.start;
 
       // Store result in megabit/seconds, (Upload is a 32 MB file)
