@@ -156,6 +156,10 @@ bool MediaHardwareKeysEventSourceMacMediaCenter::Open() {
 void MediaHardwareKeysEventSourceMacMediaCenter::Close() {
   LOG("Close MediaHardwareKeysEventSourceMacMediaCenter");
   SetPlaybackState(MediaSessionPlaybackState::None);
+  mImageFetchRequest.DisconnectIfExists();
+  mCurrentImageUrl.Truncate();
+  mFetchingUrl.Truncate();
+  mNextImageIndex = 0;
   EndListeningForEvents();
   mOpened = false;
   MediaControlKeySource::Close();
@@ -188,9 +192,13 @@ void MediaHardwareKeysEventSourceMacMediaCenter::SetPlaybackState(
 
 void MediaHardwareKeysEventSourceMacMediaCenter::SetMediaMetadata(
     const MediaMetadataBase& aMetadata) {
+  MOZ_ASSERT(NS_IsMainThread());
+  mMediaMetadata = aMetadata;
+
   MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
   NSMutableDictionary* nowPlayingInfo =
-      [center.nowPlayingInfo mutableCopy] ?: [NSMutableDictionary dictionary];
+      [[center.nowPlayingInfo mutableCopy] autorelease]
+          ?: [NSMutableDictionary dictionary];
 
   [nowPlayingInfo setObject:nsCocoaUtils::ToNSString(aMetadata.mTitle)
                      forKey:MPMediaItemPropertyTitle];
@@ -198,11 +206,21 @@ void MediaHardwareKeysEventSourceMacMediaCenter::SetMediaMetadata(
                      forKey:MPMediaItemPropertyArtist];
   [nowPlayingInfo setObject:nsCocoaUtils::ToNSString(aMetadata.mAlbum)
                      forKey:MPMediaItemPropertyAlbumTitle];
+  if (mCurrentImageUrl.IsEmpty() ||
+      !IsImageIn(aMetadata.mArtwork, mCurrentImageUrl)) {
+    [nowPlayingInfo removeObjectForKey:MPMediaItemPropertyArtwork];
+  }
+
   // The procedure of updating `nowPlayingInfo` is actually an async operation
   // from our testing, Apple's documentation doesn't mention that though. So be
   // aware that checking `nowPlayingInfo` immedately after setting it might not
   // yield the expected result.
   center.nowPlayingInfo = nowPlayingInfo;
+
+  if (mFetchingUrl.IsEmpty() || !IsImageIn(aMetadata.mArtwork, mFetchingUrl)) {
+    mNextImageIndex = 0;
+    LoadImageAtIndex(mNextImageIndex++);
+  }
 }
 
 void MediaHardwareKeysEventSourceMacMediaCenter::SetSupportedMediaKeys(
@@ -215,17 +233,17 @@ void MediaHardwareKeysEventSourceMacMediaCenter::SetSupportedMediaKeys(
   MPRemoteCommandCenter* commandCenter =
       [MPRemoteCommandCenter sharedCommandCenter];
   commandCenter.togglePlayPauseCommand.enabled =
-      supportedKeys & GetMediaKeyMask(MediaControlKey::Playpause);
+      (bool)(supportedKeys & GetMediaKeyMask(MediaControlKey::Playpause));
   commandCenter.nextTrackCommand.enabled =
-      supportedKeys & GetMediaKeyMask(MediaControlKey::Nexttrack);
+      (bool)(supportedKeys & GetMediaKeyMask(MediaControlKey::Nexttrack));
   commandCenter.previousTrackCommand.enabled =
-      supportedKeys & GetMediaKeyMask(MediaControlKey::Previoustrack);
+      (bool)(supportedKeys & GetMediaKeyMask(MediaControlKey::Previoustrack));
   commandCenter.playCommand.enabled =
-      supportedKeys & GetMediaKeyMask(MediaControlKey::Play);
+      (bool)(supportedKeys & GetMediaKeyMask(MediaControlKey::Play));
   commandCenter.pauseCommand.enabled =
-      supportedKeys & GetMediaKeyMask(MediaControlKey::Pause);
+      (bool)(supportedKeys & GetMediaKeyMask(MediaControlKey::Pause));
   commandCenter.changePlaybackPositionCommand.enabled =
-      supportedKeys & GetMediaKeyMask(MediaControlKey::Seekto);
+      (bool)(supportedKeys & GetMediaKeyMask(MediaControlKey::Seekto));
 }
 
 void MediaHardwareKeysEventSourceMacMediaCenter::SetPositionState(
@@ -238,7 +256,8 @@ void MediaHardwareKeysEventSourceMacMediaCenter::UpdatePositionInfo() {
   if (mPositionState.isSome()) {
     MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
     NSMutableDictionary* nowPlayingInfo =
-        [center.nowPlayingInfo mutableCopy] ?: [NSMutableDictionary dictionary];
+        [[center.nowPlayingInfo mutableCopy] autorelease]
+            ?: [NSMutableDictionary dictionary];
 
     [nowPlayingInfo setObject:@(mPositionState->mDuration)
                        forKey:MPMediaItemPropertyPlaybackDuration];
@@ -251,6 +270,76 @@ void MediaHardwareKeysEventSourceMacMediaCenter::UpdatePositionInfo() {
            forKey:MPNowPlayingInfoPropertyPlaybackRate];
     center.nowPlayingInfo = nowPlayingInfo;
   }
+}
+
+void MediaHardwareKeysEventSourceMacMediaCenter::LoadImageAtIndex(
+    const size_t aIndex) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (aIndex >= mMediaMetadata.mArtwork.Length()) {
+    LOG("Stop loading image. No available image");
+    mImageFetchRequest.DisconnectIfExists();
+    mFetchingUrl.Truncate();
+    return;
+  }
+
+  const MediaImage& image = mMediaMetadata.mArtwork[aIndex];
+
+  if (!IsValidImageUrl(image.mSrc)) {
+    LOG("Skip the image with invalid URL. Try next image");
+    LoadImageAtIndex(mNextImageIndex++);
+    return;
+  }
+
+  mImageFetchRequest.DisconnectIfExists();
+  mFetchingUrl = image.mSrc;
+
+  mImageFetcher = MakeUnique<dom::FetchImageHelper>(image);
+  RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> self = this;
+  mImageFetcher->FetchImage()
+      ->Then(
+          AbstractThread::MainThread(), __func__,
+          [this, self](const nsCOMPtr<imgIContainer>& aImage) {
+            LOG("The image is fetched successfully");
+            mImageFetchRequest.Complete();
+
+            NSImage* image;
+            nsresult rv =
+                nsCocoaUtils::CreateDualRepresentationNSImageFromImageContainer(
+                    aImage, imgIContainer::FRAME_CURRENT, nullptr, nullptr,
+                    NSMakeSize(0, 0), &image);
+            if (NS_FAILED(rv) || !image) {
+              LOG("Failed to create cocoa image. Try next image");
+              LoadImageAtIndex(mNextImageIndex++);
+              return;
+            }
+            mCurrentImageUrl = mFetchingUrl;
+
+            MPNowPlayingInfoCenter* center =
+                [MPNowPlayingInfoCenter defaultCenter];
+            NSMutableDictionary* nowPlayingInfo =
+                [[center.nowPlayingInfo mutableCopy] autorelease]
+                    ?: [NSMutableDictionary dictionary];
+
+            MPMediaItemArtwork* artwork = [[MPMediaItemArtwork alloc]
+                initWithBoundsSize:image.size
+                    requestHandler:^NSImage* _Nonnull(CGSize aSize) {
+                      return image;
+                    }];
+            [nowPlayingInfo setObject:artwork
+                               forKey:MPMediaItemPropertyArtwork];
+
+            center.nowPlayingInfo = nowPlayingInfo;
+
+            mFetchingUrl.Truncate();
+          },
+          [this, self](bool) {
+            LOG("Failed to fetch image. Try next image");
+            mImageFetchRequest.Complete();
+            mFetchingUrl.Truncate();
+            LoadImageAtIndex(mNextImageIndex++);
+          })
+      ->Track(mImageFetchRequest);
 }
 
 }  // namespace widget
