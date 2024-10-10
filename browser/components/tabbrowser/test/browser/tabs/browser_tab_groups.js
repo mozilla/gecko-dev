@@ -60,6 +60,34 @@ add_task(async function test_getTabGroups() {
   );
 });
 
+/**
+ * Tests that creating a group without specifying a color will select a
+ * unique color.
+ */
+add_task(async function test_tabGroupUniqueColors() {
+  let initialTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let initialGroup = gBrowser.addTabGroup(null, null, [initialTab]);
+  let existingGroups = [initialGroup];
+
+  for (let i = 2; i <= 9; i++) {
+    let newTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+    let newGroup = gBrowser.addTabGroup(null, null, [newTab]);
+    Assert.ok(
+      !existingGroups.find(grp => grp.color == newGroup.color),
+      `Group ${i} has a distinct color`
+    );
+    existingGroups.push(newGroup);
+  }
+
+  for (let group of existingGroups) {
+    await removeTabGroup(group);
+  }
+});
+
 add_task(async function test_tabGroupCollapseAndExpand() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let group = gBrowser.addTabGroup("blue", "test", [tab1]);

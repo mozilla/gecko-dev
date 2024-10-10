@@ -2953,9 +2953,13 @@
       return t;
     },
 
-    addTabGroup(color, label = "", tabs) {
+    addTabGroup(color = "", label = "", tabs) {
       if (!tabs?.length) {
         throw new Error("Cannot create tab group with zero tabs");
+      }
+
+      if (!color) {
+        color = this.tabGroupMenu.nextUnusedColor;
       }
 
       let group = document.createXULElement("tab-group", { is: "tab-group" });
@@ -8273,7 +8277,7 @@ var TabContextMenu = {
 
   moveTabsToNewGroup() {
     gBrowser.addTabGroup(
-      "red",
+      null,
       "",
       gBrowser.selectedTabs.includes(this.contextTab)
         ? gBrowser.selectedTabs

@@ -176,6 +176,24 @@
       });
     }
 
+    get nextUnusedColor() {
+      let usedColors = [];
+      gBrowser.getAllTabGroups().forEach(group => {
+        usedColors.push(group.color);
+      });
+      let color = MozTabbrowserTabGroupMenu.COLORS.find(
+        colorCode => !usedColors.includes(colorCode)
+      );
+      if (!color) {
+        // if all colors are used, pick one randomly
+        let randomIndex = Math.floor(
+          Math.random() * MozTabbrowserTabGroupMenu.COLORS.length
+        );
+        color = MozTabbrowserTabGroupMenu.COLORS[randomIndex];
+      }
+      return color;
+    }
+
     get panel() {
       return this.children[0];
     }
