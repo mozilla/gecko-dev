@@ -132,31 +132,26 @@ browsertime-tp6m:
                 by-variant:
                     geckoview-no-fission:
                         by-test-platform:
-                            android-hw-a51.*shippable-qr.*: [trunk-only]
                             android-hw-a55.*shippable.*: [trunk-only]
                             default: []
                     default:
                         by-subtest:
                             wikipedia:
                                 by-test-platform:
-                                    android-hw-a51.*shippable-qr.*: []
                                     android-hw-a55.*shippable.*: []
                                     default: []
                             google-search-restaurants:
                                 by-test-platform:
-                                    android-hw-a51.*shippable-qr.*: []
                                     android-hw-a55.*shippable.*: []
                                     default: []
                             default:
                                 by-test-platform:
-                                    android-hw-a51.*shippable-qr.*: []
                                     android-hw-a55.*shippable.*: []
                                     default: []
             fenix:
                 by-variant:
                     geckoview-no-fission:
                         by-test-platform:
-                            android-hw-a51.*shippable-qr.*: [trunk-only]
                             android-hw-a55.*shippable.*: [trunk-only]
                             default: []
                     default: []
@@ -184,17 +179,14 @@ browsertime-tp6m-essential:
                 by-subtest:
                     allrecipes:
                         by-test-platform:
-                            android-hw-a51.*shippable.*: [trunk]
                             android-hw-a55.*shippable.*: [trunk]
                             default: []
                     default:
                         by-test-platform:
-                            android-hw-a51.*shippable.*: [trunk-only]
                             android-hw-a55.*shippable.*: [trunk-only]
                             default: []
             fenix:
                 by-test-platform:
-                    android-hw-a51.*shippable.*: [trunk-only]
                     android-hw-a55.*shippable.*: [trunk-only]
                     default: []
             default: []
@@ -228,7 +220,6 @@ browsertime-tp6m-webextensions:
         by-app:
             fenix:
                 by-test-platform:
-                    android-hw-a51.*shippable.*: [mozilla-central]
                     android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
             default: []
@@ -245,13 +236,6 @@ browsertime-youtube-playback-mobile:
             by-app:
                 fenix:
                     by-test-platform:
-                        android-hw-a51.*:
-                            - [youtube-playback-av1-sfr, ytp-av1-sfr]
-                            - [youtube-playback-hfr, ytp-hfr]
-                            - [youtube-playback-vp9-sfr, ytp-vp9-sfr]
-                            # Bug 1699469 - Disabled until a crash is fixed.
-                            # - [youtube-playback-widevine-h264-sfr, ytp-widevine-h264-sfr]
-                            # - [youtube-playback-widevine-hfr, ytp-widevine-hfr]
                         android-hw-a55.*:
                             - [youtube-playback-av1-sfr, ytp-av1-sfr]
                             - [youtube-playback-hfr, ytp-hfr]
@@ -262,12 +246,6 @@ browsertime-youtube-playback-mobile:
                         default: []
                 default:
                     by-test-platform:
-                        android-hw-a51.*:
-                            - [youtube-playback-h264-sfr, ytp-h264-sfr]
-                            - [youtube-playback-hfr, ytp-hfr]
-                            # Bug 1699469 - Disabled until a crash is fixed.
-                            # - [youtube-playback-widevine-h264-sfr, ytp-widevine-h264-sfr]
-                            # - [youtube-playback-widevine-hfr, ytp-widevine-hfr]
                         android-hw-a55.*:
                             - [youtube-playback-h264-sfr, ytp-h264-sfr]
                             - [youtube-playback-hfr, ytp-hfr]
@@ -282,21 +260,14 @@ browsertime-youtube-playback-mobile:
                     23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38
                 youtube-playback-hfr:
                     by-test-platform:
-                        android-hw-a51.*:  # remove VP9(1-34) and AV1(51-74) tests
-                            exclude=1,2,
-                            3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,
-                            51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74
-                        android-hw-a55.*:
+                        android-hw-a55.*:  # remove VP9(1-34) and AV1(51-74) tests
                             exclude=1,2,
                             3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,
                             51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74
                         default: ""
                 youtube-playback-widevine-hfr:
                     by-test-platform:
-                        android-hw-a51.*:  # remove VP9(1-34) tests
-                            exclude=1,2,
-                            3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34
-                        android-hw-a55.*:
+                        android-hw-a55.*:  # remove VP9(1-34) tests
                             exclude=1,2,
                             3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34
                         default: ""
@@ -305,12 +276,10 @@ browsertime-youtube-playback-mobile:
         by-app:
             fenix:
                 by-test-platform:
-                    android-hw-a51.*shippable.*: [mozilla-central]
                     android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
             geckoview:
                 by-test-platform:
-                    android-hw-a51.*shippable.*: [mozilla-central]
                     android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
             default: []
@@ -374,7 +343,6 @@ browsertime-tp6m-live:
                 by-app:
                     geckoview:
                         by-test-platform:
-                            android-hw-a51.*shippable-qr.*: [autoland]
                             android-hw-a55.*shippable.*: [autoland]
                             default: []
                     default: []
@@ -399,7 +367,6 @@ browsertime-tp6m-profiling:
             - --gecko-profile
     run-on-projects:
         by-test-platform:
-            android-hw-(a51).*aarch64-shippable-qr/opt: [mozilla-central]
             android-hw-a55.*shippable.*/opt: [mozilla-central]
             default: []
 
@@ -426,7 +393,6 @@ browsertime-video-playback-latency-mobile:
             chrome-m: []
             default:
                 by-test-platform:
-                    android-hw-a51.*shippable.*: [autoland, mozilla-central]
                     android-hw-a55.*shippable.*: [autoland, mozilla-central]
                     default: []
     tier: 3
@@ -444,12 +410,10 @@ browsertime-benchmark-speedometer-mobile:
         by-app:
             fenix:
                 by-test-platform:
-                    android-hw-a51.*shippable-qr.*: [trunk]
                     android-hw-a55.*shippable.*: [trunk]
                     default: []
             geckoview:
                 by-test-platform:
-                    android-hw-a51.*shippable-qr.*: [trunk]
                     android-hw-a55.*shippable.*: [trunk]
                     default: []
             cstm-car-m:
@@ -478,14 +442,12 @@ browsertime-benchmark-speedometer3-mobile:
         by-app:
             fenix:
                 by-test-platform:
-                    android-hw-a51.*shippable-qr.*: [trunk-only]
                     android-hw-a55.*shippable.*: [trunk-only]
                     android-hw-p6.*shippable-qr.*: [mozilla-central]
                     android-hw-s24.*shippable-qr.*: [mozilla-central]
                     default: []
             geckoview:
                 by-test-platform:
-                    android-hw-a51.*shippable-qr.*: [trunk-only]
                     android-hw-a55.*shippable.*: [trunk-only]
                     android-hw-p6.*shippable-qr.*: [mozilla-central]
                     android-hw-s24.*shippable-qr.*: [mozilla-central]
@@ -515,7 +477,6 @@ browsertime-benchmark-motionmark-1-3:
             chrome-m: []
             default:
                 by-test-platform:
-                    android-hw-a51-.*aarch64-shippable-qr.*: [mozilla-central]
                     android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
     treeherder-symbol: Btime()
@@ -541,18 +502,13 @@ browsertime-benchmark-unity-webgl-mobile:
             geckoview:
                 by-test-platform:
                     # Disabled on autoland due to bug 1720063, and bug 1795826
-                    android-hw-a51-.*aarch64-shippable-qr.*: [mozilla-central]
                     android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
             default:
                 by-test-platform:
-                    android-hw-a51-.*aarch64-shippable-qr.*: [mozilla-central]
                     android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
-    max-run-time:
-        by-test-platform:
-            anrdroid-hw-a51.*: 1500
-            default: 900
+    max-run-time: 900
     mozharness:
         extra-options:
             - --test=unity-webgl

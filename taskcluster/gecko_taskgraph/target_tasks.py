@@ -261,8 +261,6 @@ def accept_raptor_android_build(platform):
         return True
     if "a55" in platform and "aarch64" in platform:
         return True
-    if "a51" in platform:
-        return True
     return False
 
 
