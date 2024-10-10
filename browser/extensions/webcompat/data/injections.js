@@ -1204,6 +1204,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1896349",
+    platform: "all",
+    domain: "vivaldi.com",
+    bug: "1896349",
+    contentScripts: {
+      matches: ["*://vivaldi.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1896349-vivaldi.com-selected-text-fix.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
