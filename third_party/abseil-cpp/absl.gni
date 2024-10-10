@@ -26,10 +26,10 @@ declare_args() {
 template("absl_source_set") {
   source_set(target_name) {
     forward_variables_from(invoker, "*")
-    configs -= [ "//build/config/compiler:chromium_code" ]
+    configs -= [ "//chromium/build/config/compiler:chromium_code" ]
     configs += [
-      "//build/config/compiler:no_chromium_code",
-      "//build/config/compiler:prevent_unsafe_narrowing",
+      "//chromium/build/config/compiler:no_chromium_code",
+      "//chromium/build/config/compiler:prevent_unsafe_narrowing",
       "//abseil-cpp:absl_default_cflags_cc",
       "//abseil-cpp:absl_define_config",
     ]
@@ -37,8 +37,8 @@ template("absl_source_set") {
     if (is_component_build) {
       defines = [ "ABSL_BUILD_DLL" ]
       if (!is_win) {
-        configs -= [ "//build/config/gcc:symbol_visibility_hidden" ]
-        configs += [ "//build/config/gcc:symbol_visibility_default" ]
+        configs -= [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
+        configs += [ "//chromium/build/config/gcc:symbol_visibility_default" ]
       }
     }
 
@@ -130,9 +130,9 @@ template("absl_test") {
   source_set(target_name) {
     forward_variables_from(invoker, "*")
     testonly = true
-    configs -= [ "//build/config/compiler:chromium_code" ]
+    configs -= [ "//chromium/build/config/compiler:chromium_code" ]
     configs += [
-      "//build/config/compiler:no_chromium_code",
+      "//chromium/build/config/compiler:no_chromium_code",
       "//abseil-cpp:absl_default_cflags_cc",
       "//abseil-cpp:absl_define_config",
       "//abseil-cpp:absl_test_config",
