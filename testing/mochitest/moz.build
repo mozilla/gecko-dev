@@ -171,29 +171,6 @@ TEST_HARNESS_FILES.testing.mochitest.static += [
     "static/harness.css",
 ]
 
-TEST_HARNESS_FILES.testing.mochitest.MochiKit += [
-    "MochiKit/__package__.js",
-    "MochiKit/Async.js",
-    "MochiKit/Base.js",
-    "MochiKit/Color.js",
-    "MochiKit/Controls.js",
-    "MochiKit/DateTime.js",
-    "MochiKit/DOM.js",
-    "MochiKit/DragAndDrop.js",
-    "MochiKit/Format.js",
-    "MochiKit/Iter.js",
-    "MochiKit/Logging.js",
-    "MochiKit/LoggingPane.js",
-    "MochiKit/MochiKit.js",
-    "MochiKit/MockDOM.js",
-    "MochiKit/New.js",
-    "MochiKit/Signal.js",
-    "MochiKit/Sortable.js",
-    "MochiKit/Style.js",
-    "MochiKit/Test.js",
-    "MochiKit/Visual.js",
-]
-
 TEST_HARNESS_FILES.testing.mochitest.tests.testing.mochitest.tests[
     "MochiKit-1.4.2"
 ].MochiKit += [
