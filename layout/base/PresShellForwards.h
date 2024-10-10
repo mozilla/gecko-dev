@@ -146,8 +146,10 @@ enum class ScrollFlags {
   ScrollSmooth = 1 << 3,
   ScrollSmoothAuto = 1 << 4,
   TriggeredByScript = 1 << 5,
-  // ScrollOverflowHidden | ScrollNoParentFrames
-  AnchorScrollFlags = (1 << 1) | (1 << 2),
+  // ScrollOverflowHidden | ScrollNoParentFrames | TriggeredByScript
+  // NOTE: `Anchor` means here is "scrolling to an anchor", not "CSS scroll
+  // anchoring".
+  AnchorScrollFlags = (1 << 1) | (1 << 2) | (1 << 5),
   ALL_BITS = (1 << 6) - 1,
 };
 
