@@ -22,16 +22,32 @@ export class ProfileCard extends MozLitElement {
     profile: { type: SelectableProfile, reflect: true },
   };
 
-  static queries = { backgroundImage: ".profile-background-image" };
+  static queries = {
+    backgroundImage: ".profile-background-image",
+    avatarImage: ".profile-avatar",
+  };
 
   firstUpdated() {
     super.firstUpdated();
+
+    this.setBackgroundImage();
+    this.setAvatarImage();
+  }
+
+  setBackgroundImage() {
     this.backgroundImage.style.backgroundImage = `url("chrome://browser/content/profiles/assets/profilesBackground${
       this.profile.id % 5
     }.svg")`;
     let { themeFg, themeBg } = this.profile.theme;
     this.backgroundImage.style.fill = themeBg;
     this.backgroundImage.style.stroke = themeFg;
+  }
+
+  setAvatarImage() {
+    this.avatarImage.style.backgroundImage = `url("chrome://browser/content/profiles/assets/80_${this.profile.avatar}.svg")`;
+    let { themeFg, themeBg } = this.profile.theme;
+    this.avatarImage.style.fill = themeBg;
+    this.avatarImage.style.stroke = themeFg;
   }
 
   launchProfile(url) {

@@ -13,6 +13,8 @@ import "chrome://global/content/elements/moz-card.mjs";
 import "chrome://global/content/elements/moz-button.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-button-group.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/profiles/avatar.mjs";
 
 const SAVE_NAME_TIMEOUT = 2000;
 const SAVED_MESSAGE_TIMEOUT = 5000;
@@ -31,6 +33,8 @@ export class EditProfileCard extends MozLitElement {
     nameInput: "#profile-name",
     errorMessage: "#error-message",
     savedMessage: "#saved-message",
+    avatars: { all: "profiles-avatar" },
+    headerAvatar: "#header-avatar",
   };
 
   connectedCallback() {
@@ -62,6 +66,18 @@ export class EditProfileCard extends MozLitElement {
     };
   }
 
+  updated() {
+    super.updated();
+
+    if (!this.profile) {
+      return;
+    }
+
+    let { themeFg, themeBg } = this.profile;
+    this.headerAvatar.style.fill = themeBg;
+    this.headerAvatar.style.stroke = themeFg;
+  }
+
   updateName() {
     this.savedMessage.parentElement.hidden = false;
     if (this.saveMessageTimeoutId) {
@@ -70,6 +86,7 @@ export class EditProfileCard extends MozLitElement {
     this.saveMessageTimeoutId = setTimeout(() => {
       this.savedMessage.parentElement.hidden = true;
     }, SAVED_MESSAGE_TIMEOUT);
+
     let newName = this.nameInput.value.trim();
     if (!newName) {
       return;
@@ -77,6 +94,16 @@ export class EditProfileCard extends MozLitElement {
 
     this.profile.name = newName;
     RPMSendAsyncMessage("Profiles:UpdateProfileName", this.profile);
+  }
+
+  async updateAvatar(newAvatar) {
+    if (newAvatar === this.profile.avatar) {
+      return;
+    }
+
+    this.profile.avatar = newAvatar;
+    RPMSendAsyncMessage("Profiles:UpdateProfileAvatar", this.profile);
+    this.requestUpdate();
   }
 
   isDuplicateName(newName) {
@@ -166,10 +193,27 @@ export class EditProfileCard extends MozLitElement {
   }
 
   avatarsTemplate() {
-    // TODO: bug 1886007 will implement the avatars
-    let avatars = ["star", "flower", "briefcase", "book", "heart", "shopping"];
+    let avatars = ["book", "briefcase", "flower", "heart", "shopping", "star"];
 
-    return avatars.map(s => html`<div class="avatar">${s}</div>`);
+    return avatars.map(
+      avatar =>
+        html`<profiles-avatar
+          @click=${this.handleAvatarClick}
+          value=${avatar}
+          ?selected=${avatar === this.profile.avatar}
+        ></profiles-avatar>`
+    );
+  }
+
+  handleAvatarClick(event) {
+    for (let a of this.avatars) {
+      a.selected = false;
+    }
+
+    let selectedAvatar = event.target;
+    selectedAvatar.selected = true;
+
+    this.updateAvatar(selectedAvatar.value);
   }
 
   onDeleteClick() {
@@ -191,7 +235,11 @@ export class EditProfileCard extends MozLitElement {
       />
       <moz-card
         ><div id="edit-profile-card">
-          <img width="80" height="80" src="${this.profile.avatar}" />
+          <img
+            id="header-avatar"
+            src="chrome://browser/content/profiles/assets/80_${this.profile
+              .avatar}.svg"
+          />
           <div id="profile-content">
             <h1 data-l10n-id="edit-profile-page-header"></h1>
 

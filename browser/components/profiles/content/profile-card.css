@@ -4,6 +4,10 @@
 
 @import url("chrome://global/skin/design-system/text-and-typography.css");
 
+:host {
+  --avatar-size: 80px;
+}
+
 .profile-card {
   height: 185px;
   width: 200px;
@@ -49,6 +53,7 @@
 }
 
 .profile-background-container {
+  position: relative;
   width: 200px;
   height: 136px;
 
@@ -58,6 +63,7 @@
 }
 
 .profile-background-image {
+  position: absolute;
   width: 100%;
   height: 100%;
   background-image: url("chrome://global/skin/icons/plus.svg");
@@ -68,6 +74,17 @@
   fill: currentColor;
 
   border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0;
+}
+
+.profile-avatar {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  z-index: 1;
+
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  -moz-context-properties: fill, stroke;
 }
 
 .profile-details {

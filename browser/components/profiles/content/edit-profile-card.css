@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+:host {
+  --header-avatar-size: 80px;
+  --header-avatar-img-size: 40px;
+}
+
 html,
 body {
   width: 100%;
@@ -32,6 +37,14 @@ edit-profile-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-medium);
+}
+
+#header-avatar {
+  -moz-context-properties: fill, stroke;
+
+  width: var(--header-avatar-size);
+  height: var(--header-avatar-size);
+  border-radius: var(--border-radius-circle);
 }
 
 #profile-name-area {
@@ -96,12 +109,4 @@ edit-profile-card {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-xlarge);
-
-  /* TODO: bug 1886007 will implement the avatars */
-  > .avatar {
-    width: 40px;
-    height: 40px;
-    border: 1px solid;
-    border-radius: 20px;
-  }
 }

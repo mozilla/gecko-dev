@@ -110,7 +110,7 @@ export class SelectableProfile {
    * @param {string} aAvatar Name of the avatar
    */
   set avatar(aAvatar) {
-    this.avatar = aAvatar;
+    this.#avatar = aAvatar;
 
     this.saveUpdatesToDB();
   }
@@ -154,12 +154,14 @@ export class SelectableProfile {
   }
 
   toObject() {
-    return {
+    let profileObj = {
       id: this.id,
       path: this.#path,
       name: this.name,
       avatar: this.avatar,
       ...this.theme,
     };
+
+    return profileObj;
   }
 }

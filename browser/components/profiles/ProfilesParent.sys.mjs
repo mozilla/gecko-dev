@@ -88,6 +88,11 @@ export class ProfilesParent extends JSWindowActorParent {
           loginCount,
         };
       }
+      case "Profiles:UpdateProfileAvatar": {
+        let profileObj = message.data;
+        SelectableProfileService.currentProfile.avatar = profileObj.avatar;
+        break;
+      }
     }
     return null;
   }
