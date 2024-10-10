@@ -467,9 +467,7 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
           if (aSuccess) {
             promise->MaybeResolve(device);
           } else {
-            // In this path, request->mId has an error entry in the wgpu
-            // registry, so let Device::~Device clean things up on both the
-            // child and parent side.
+            device->CleanupUnregisteredInParent();
             promise->MaybeRejectWithInvalidStateError(
                 "Unable to fulfill requested features and limits");
           }
