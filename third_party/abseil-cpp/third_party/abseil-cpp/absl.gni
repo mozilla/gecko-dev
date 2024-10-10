@@ -1,0 +1,3 @@
+# This trampoline is necessary in order to avoid changing every import
+# statement in abseil-cpp's BUILD.gn files.
+import("//abseil-cpp/absl.gni")
