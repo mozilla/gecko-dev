@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/features.gni")
-import("//build/config/freetype/freetype.gni")
-import("//build/config/linux/pkg_config.gni")
+import("//chromium/build/config/features.gni")
+import("//chromium/build/config/freetype/freetype.gni")
+import("//chromium/build/config/linux/pkg_config.gni")
 
 if (use_gio) {
   pkg_config("gio_config") {

@@ -19,7 +19,7 @@
 #  The following variables have the usual GN meaning: data, deps, inputs,
 #  outputs, testonly, visibility.
 
-import("//build/config/python.gni")
+import("//chromium/build/config/python.gni")
 
 template("copy_ex") {
   action_with_pydeps(target_name) {
@@ -43,7 +43,7 @@ template("copy_ex") {
       inputs = invoker.inputs
     }
 
-    script = "//build/android/gyp/copy_ex.py"
+    script = "//chromium/build/android/gyp/copy_ex.py"
 
     args = [
       "--dest",

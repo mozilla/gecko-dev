@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/android/rules.gni")
+import("//chromium/build/config/android/rules.gni")
 
 template("unwind_table_asset") {
   # Note: This file name is used in multiple monochrome build scripts.
@@ -18,7 +18,7 @@ template("unwind_table_asset") {
                                  "root_out_dir")
     }
 
-    script = "//build/android/gyp/extract_unwind_tables.py"
+    script = "//chromium/build/android/gyp/extract_unwind_tables.py"
     outputs = [ _asset_path ]
     inputs = [ "${_root_dir}/lib.unstripped/$shlib_prefix${invoker.library_target}$shlib_extension" ]
 

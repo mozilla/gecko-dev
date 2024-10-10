@@ -2,15 +2,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/chrome_build.gni")
-import("//build/config/chromecast_build.gni")
-import("//build/config/clang/clang.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/chromecast_build.gni")
+import("//chromium/build/config/clang/clang.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 import("//build_overrides/build.gni")
 
 if (is_ios) {
-  import("//build/config/ios/ios_sdk.gni")
+  import("//chromium/build/config/ios/ios_sdk.gni")
 }
 
 # Contains the dependencies needed for sanitizers to link into executables and
@@ -77,7 +77,7 @@ if ((is_mac || is_win || (is_ios && !use_xcode_clang)) && is_asan) {
     # On iOS, the runtime library need to be code signed (adhoc signature)
     # starting with Xcode 8, so use an action instead of a copy on iOS.
     action("copy_asan_runtime") {
-      script = "//build/config/ios/codesign.py"
+      script = "//chromium/build/config/ios/codesign.py"
       sources = [ _clang_rt_dso_full_path ]
       outputs = [ "$root_out_dir/" + get_path_info(sources[0], "file") ]
       args = [
@@ -113,30 +113,30 @@ static_library("options_sources") {
     ":deps",
     "//:gn_visibility",
   ]
-  sources = [ "//build/sanitizers/sanitizer_options.cc" ]
+  sources = [ "//chromium/build/sanitizers/sanitizer_options.cc" ]
 
   # Don't compile this target with any sanitizer code. It can be called from
   # the sanitizer runtimes, so instrumenting these functions could cause
   # recursive calls into the runtime if there is an error.
-  configs -= [ "//build/config/sanitizers:default_sanitizer_flags" ]
+  configs -= [ "//chromium/build/config/sanitizers:default_sanitizer_flags" ]
 
   if (is_asan) {
     if (!defined(asan_suppressions_file)) {
-      asan_suppressions_file = "//build/sanitizers/asan_suppressions.cc"
+      asan_suppressions_file = "//chromium/build/sanitizers/asan_suppressions.cc"
     }
     sources += [ asan_suppressions_file ]
   }
 
   if (is_lsan) {
     if (!defined(lsan_suppressions_file)) {
-      lsan_suppressions_file = "//build/sanitizers/lsan_suppressions.cc"
+      lsan_suppressions_file = "//chromium/build/sanitizers/lsan_suppressions.cc"
     }
     sources += [ lsan_suppressions_file ]
   }
 
   if (is_tsan) {
     if (!defined(tsan_suppressions_file)) {
-      tsan_suppressions_file = "//build/sanitizers/tsan_suppressions.cc"
+      tsan_suppressions_file = "//chromium/build/sanitizers/tsan_suppressions.cc"
     }
     sources += [ tsan_suppressions_file ]
   }
@@ -592,7 +592,7 @@ config("not_fuzzed") {
     # optimize_for_fuzzing (-O1). When given multiple optimization flags, clang
     # obeys the last one, so as long as this flag comes after -O1, it should work.
     # Since this config will always be depended on after
-    # "//build/config/compiler:default_optimization" (which adds -O1 when
+    # "//chromium/build/config/compiler:default_optimization" (which adds -O1 when
     # optimize_for_fuzzing is true), -O2 should always be the second flag. Even
     # though this sounds fragile, it isn't a big deal if it breaks, since proto
     # fuzzers will still work, they will just be slightly slower.

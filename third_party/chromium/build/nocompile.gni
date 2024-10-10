@@ -11,7 +11,7 @@
 #
 # To use this, create a gyp target with the following form:
 #
-# import("//build/nocompile.gni")
+# import("//chromium/build/nocompile.gni")
 # nocompile_test("my_module_nc_unittests") {
 #   sources = [
 #     'nc_testset_1.nc',
@@ -58,9 +58,9 @@
 # something goes wrong, and know during the unittest run that the test was at
 # least processed when things go right.
 
-import("//build/config/clang/clang.gni")
-import("//build/config/python.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/clang/clang.gni")
+import("//chromium/build/config/python.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 import("//testing/test.gni")
 
 declare_args() {
@@ -70,8 +70,8 @@ declare_args() {
 }
 
 if (enable_nocompile_tests) {
-  import("//build/config/c++/c++.gni")
-  import("//build/config/sysroot.gni")
+  import("//chromium/build/config/c++/c++.gni")
+  import("//chromium/build/config/sysroot.gni")
   template("nocompile_test") {
     nocompile_target = target_name + "_run_nocompile"
 

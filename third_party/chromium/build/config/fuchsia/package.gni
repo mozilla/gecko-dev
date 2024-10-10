@@ -55,7 +55,7 @@ template("cr_fuchsia_package") {
                              "testonly",
                            ])
 
-    script = "//build/config/fuchsia/build_cmx_from_fragment.py"
+    script = "//chromium/build/config/fuchsia/build_cmx_from_fragment.py"
 
     inputs = [ invoker.manifest ]
     outputs = [ _component_manifest ]

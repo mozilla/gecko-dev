@@ -7,13 +7,13 @@
 # in the context of the default_toolchain, so we can at least check for that.
 assert(current_toolchain == default_toolchain)
 
-import("//build/config/android/config.gni")
-import("//build/config/apple/symbols.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/coverage/coverage.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/android/config.gni")
+import("//chromium/build/config/apple/symbols.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/coverage/coverage.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 
 declare_args() {
   # Limit the number of concurrent links; we often want to run fewer

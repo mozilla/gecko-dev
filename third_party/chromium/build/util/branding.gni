@@ -12,7 +12,7 @@
 # These values should only be used if you REALLY need to depend on them at
 # build-time, for example, in the computation of output file names.
 
-import("//build/config/chrome_build.gni")
+import("//chromium/build/config/chrome_build.gni")
 
 _branding_dictionary_template =
     "full_name = \"@PRODUCT_FULLNAME@\" " +

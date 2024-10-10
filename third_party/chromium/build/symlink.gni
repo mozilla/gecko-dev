@@ -16,7 +16,7 @@ template("symlink") {
                              "visibility",
                            ])
     outputs = [ invoker.output ]
-    script = "//build/symlink.py"
+    script = "//chromium/build/symlink.py"
     args = [
       "-f",
       rebase_path(invoker.source, get_path_info(invoker.output, "dir")),

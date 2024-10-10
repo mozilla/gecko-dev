@@ -2,8 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/linux/pkg_config.gni")
-import("//build/shim_headers.gni")
+import("//chromium/build/config/linux/pkg_config.gni")
+import("//chromium/build/shim_headers.gni")
 
 pkg_config("config") {
   packages = [ "openh264" ]

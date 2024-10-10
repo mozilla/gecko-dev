@@ -4,7 +4,7 @@
 
 executable("test_rust_exe") {
   crate_root = "main.rs"
-  deps = [ "//build/rust/tests/test_rust_source_set" ]
+  deps = [ "//chromium/build/rust/tests/test_rust_source_set" ]
   rustflags = [
     "--edition",
     "2018",

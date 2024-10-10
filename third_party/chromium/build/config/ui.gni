@@ -17,10 +17,10 @@
 # There is more advice on where to put build flags in the "Build flag" section
 # of //build/config/BUILDCONFIG.gn.
 
-import("//build/config/chromecast_build.gni")
-import("//build/config/chromeos/args.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/ozone.gni")
+import("//chromium/build/config/chromecast_build.gni")
+import("//chromium/build/config/chromeos/args.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/ozone.gni")
 
 declare_args() {
   # Indicates if Aura is enabled. Aura is a low-level windowing library, sort

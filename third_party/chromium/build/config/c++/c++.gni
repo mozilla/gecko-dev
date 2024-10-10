@@ -2,8 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
 
 declare_args() {
   # Use in-tree libc++ (buildtools/third_party/libc++ and
@@ -14,7 +14,7 @@ declare_args() {
   use_custom_libcxx =
       is_fuchsia || is_android || is_mac || is_linux || is_chromeos_lacros ||
       (is_ios && !use_xcode_clang) || (is_win && is_clang) ||
-      (is_chromeos && default_toolchain != "//build/toolchain/cros:target")
+      (is_chromeos && default_toolchain != "//chromium/build/toolchain/cros:target")
 
   # Use libc++ instead of stdlibc++ when using the host_cpu toolchain, even if
   # use_custom_libcxx is false. This is useful for cross-compiles where a custom

@@ -1,7 +1,7 @@
-import("//build/config/c++/c++.gni")
-import("//build/config/chrome_build.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/dcheck_always_on.gni")
+import("//chromium/build/config/c++/c++.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/dcheck_always_on.gni")
 import("//buildtools/deps_revisions.gni")
 
 assert(use_custom_libcxx, "should only be used if use_custom_libcxx is set")

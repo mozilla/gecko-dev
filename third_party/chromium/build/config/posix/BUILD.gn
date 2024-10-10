@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/sysroot.gni")
+import("//chromium/build/config/sysroot.gni")
 
 # This build configuration is used by both Fuchsia and POSIX systems.
 assert(is_posix || is_fuchsia)
@@ -34,10 +34,10 @@ config("runtime_library") {
       # line, and build system rebuilds things when their commandline
       # changes). Nothing should ever read this define.
       sysroot_hash =
-          exec_script("//build/linux/sysroot_scripts/install-sysroot.py",
+          exec_script("//chromium/build/linux/sysroot_scripts/install-sysroot.py",
                       [ "--print-hash=$target_cpu" ],
                       "trim string",
-                      [ "//build/linux/sysroot_scripts/sysroots.json" ])
+                      [ "//chromium/build/linux/sysroot_scripts/sysroots.json" ])
       defines += [ "CR_SYSROOT_HASH=$sysroot_hash" ]
     }
     asmflags += sysroot_flags

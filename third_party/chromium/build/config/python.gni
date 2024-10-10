@@ -67,8 +67,8 @@ template("python_library") {
 # associated .pydeps file. In other words:
 #
 # - This is very similar to just an action(), except that |script| must point
-#   to a Python script (e.g. "//build/.../foo.py") that has a corresponding
-#   .pydeps file in the source tree (e.g. "//build/.../foo.pydeps").
+#   to a Python script (e.g. "//chromium/build/.../foo.py") that has a corresponding
+#   .pydeps file in the source tree (e.g. "//chromium/build/.../foo.pydeps").
 #
 # - The .pydeps file contains a list of python dependencies (imports really)
 #   and is generated _manually_ by using a command like:

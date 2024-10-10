@@ -4,5 +4,5 @@
 
 executable("test_cpp_exe_including_rust") {
   sources = [ "main.cc" ]
-  deps = [ "//build/rust/tests/test_rust_source_set:test_rust_source_set_lib" ]
+  deps = [ "//chromium/build/rust/tests/test_rust_source_set:test_rust_source_set_lib" ]
 }

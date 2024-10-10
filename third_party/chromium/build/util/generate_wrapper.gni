@@ -43,7 +43,7 @@
 #     wrapper_script = "$root_build_dir/bin/run_sample_build_product"
 #   }
 template("generate_wrapper") {
-  _generator_script = "//build/util/generate_wrapper.py"
+  _generator_script = "//chromium/build/util/generate_wrapper.py"
   if (defined(invoker.generator_script)) {
     _generator_script = invoker.generator_script
   }

@@ -1,9 +1,9 @@
 # Copyright 2018 The Chromium Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-import("//build/config/chromecast_build.gni")
-import("//build/config/chromeos/args.gni")
-import("//build/config/linux/pkg_config.gni")
+import("//chromium/build/config/chromecast_build.gni")
+import("//chromium/build/config/chromeos/args.gni")
+import("//chromium/build/config/linux/pkg_config.gni")
 
 assert(is_linux || is_chromeos)
 

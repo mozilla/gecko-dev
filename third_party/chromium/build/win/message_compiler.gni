@@ -38,7 +38,7 @@ template("message_compiler") {
       forward_variables_from(invoker, [ "visibility" ])
     }
 
-    script = "//build/win/message_compiler.py"
+    script = "//chromium/build/win/message_compiler.py"
 
     outputs = [
       "$target_gen_dir/{{source_name_part}}.h",

@@ -36,7 +36,7 @@ if (is_mac) {
     "PATCH_LO=int(PATCH)%256",
   ]
 } else if (target_os == "android") {
-  import("//build/config/android/config.gni")
+  import("//chromium/build/config/android/config.gni")
 
   _version_dictionary_template +=
       "chrome_version_code = " + "\"@CHROME_VERSION_CODE@\" " +

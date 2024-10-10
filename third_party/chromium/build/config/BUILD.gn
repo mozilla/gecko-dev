@@ -2,26 +2,26 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/c++/c++.gni")
-import("//build/config/chrome_build.gni")
-import("//build/config/chromecast_build.gni")
-import("//build/config/crypto.gni")
-import("//build/config/dcheck_always_on.gni")
-import("//build/config/features.gni")
+import("//chromium/build/config/c++/c++.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/chromecast_build.gni")
+import("//chromium/build/config/crypto.gni")
+import("//chromium/build/config/dcheck_always_on.gni")
+import("//chromium/build/config/features.gni")
 
 # Subprojects need to override arguments in {mac,ios}_sdk_overrides.gni in their
 # .gn config, but those arguments are only used on macOS. Including
 # mac_sdk_overrides.gni insures that this doesn't trigger an unused argument
 # warning.
-import("//build/config/ios/ios_sdk_overrides.gni")
-import("//build/config/mac/mac_sdk_overrides.gni")
+import("//chromium/build/config/ios/ios_sdk_overrides.gni")
+import("//chromium/build/config/mac/mac_sdk_overrides.gni")
 
-import("//build/config/pch.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/config/ui.gni")
-import("//build/toolchain/goma.gni")
+import("//chromium/build/config/pch.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/ui.gni")
+import("//chromium/build/toolchain/goma.gni")
 if (is_android) {
-  import("//build/config/android/abi.gni")
+  import("//chromium/build/config/android/abi.gni")
 }
 
 # ==============================================
@@ -247,7 +247,7 @@ group("common_deps") {
   public_deps = []
 
   if (using_sanitizer) {
-    public_deps += [ "//build/config/sanitizers:deps" ]
+    public_deps += [ "//chromium/build/config/sanitizers:deps" ]
   }
 
   #if (use_custom_libcxx) {
@@ -291,8 +291,8 @@ group("shared_library_deps") {
 # Windows linker setup for EXEs and DLLs.
 if (is_win) {
   _windows_linker_configs = [
-    "//build/config/win:sdk_link",
-    "//build/config/win:common_linker_setup",
+    "//chromium/build/config/win:sdk_link",
+    "//chromium/build/config/win:common_linker_setup",
   ]
 }
 
@@ -303,18 +303,18 @@ config("executable_config") {
   if (is_win) {
     configs += _windows_linker_configs
   } else if (is_mac) {
-    configs += [ "//build/config/mac:mac_dynamic_flags" ]
+    configs += [ "//chromium/build/config/mac:mac_dynamic_flags" ]
   } else if (is_ios) {
     configs += [
-      "//build/config/ios:ios_dynamic_flags",
-      "//build/config/ios:ios_executable_flags",
+      "//chromium/build/config/ios:ios_dynamic_flags",
+      "//chromium/build/config/ios:ios_executable_flags",
     ]
   } else if (is_linux || is_chromeos || is_android || current_os == "aix") {
-    configs += [ "//build/config/gcc:executable_config" ]
+    configs += [ "//chromium/build/config/gcc:executable_config" ]
     if (is_chromecast) {
-      configs += [ "//build/config/chromecast:executable_config" ]
+      configs += [ "//chromium/build/config/chromecast:executable_config" ]
     } else if (is_fuchsia) {
-      configs += [ "//build/config/fuchsia:executable_config" ]
+      configs += [ "//chromium/build/config/fuchsia:executable_config" ]
     }
   }
 
@@ -326,7 +326,7 @@ config("executable_config") {
   if (use_locally_built_instrumented_libraries) {
     configs += [ "//third_party/instrumented_libraries:locally_built_ldflags" ]
   }
-  configs += [ "//build/config/sanitizers:link_executable" ]
+  configs += [ "//chromium/build/config/sanitizers:link_executable" ]
 }
 
 # Shared library configs -------------------------------------------------------
@@ -338,16 +338,16 @@ config("shared_library_config") {
   if (is_win) {
     configs += _windows_linker_configs
   } else if (is_mac) {
-    configs += [ "//build/config/mac:mac_dynamic_flags" ]
+    configs += [ "//chromium/build/config/mac:mac_dynamic_flags" ]
   } else if (is_ios) {
     configs += [
-      "//build/config/ios:ios_dynamic_flags",
-      "//build/config/ios:ios_shared_library_flags",
+      "//chromium/build/config/ios:ios_dynamic_flags",
+      "//chromium/build/config/ios:ios_shared_library_flags",
     ]
   } else if (is_chromecast) {
-    configs += [ "//build/config/chromecast:shared_library_config" ]
+    configs += [ "//chromium/build/config/chromecast:shared_library_config" ]
   } else if (is_linux || is_chromeos || current_os == "aix") {
-    configs += [ "//build/config/gcc:shared_library_config" ]
+    configs += [ "//chromium/build/config/gcc:shared_library_config" ]
   }
 
   # If we're using the prebuilt instrumented libraries with the sanitizers, we
@@ -358,7 +358,7 @@ config("shared_library_config") {
   if (use_locally_built_instrumented_libraries) {
     configs += [ "//third_party/instrumented_libraries:locally_built_ldflags" ]
   }
-  configs += [ "//build/config/sanitizers:link_shared_library" ]
+  configs += [ "//chromium/build/config/sanitizers:link_shared_library" ]
 }
 
 # Add this config to your target to enable precompiled headers.
@@ -380,12 +380,12 @@ config("precompiled_headers") {
       # This is a file that GN will compile with the above header. It will be
       # implicitly added to the sources (potentially multiple times, with one
       # variant for each language used in the target).
-      precompiled_source = "//build/precompile.cc"
+      precompiled_source = "//chromium/build/precompile.cc"
 
       # Force include the header.
       cflags = [ "/FI$precompiled_header" ]
     } else if (is_mac || is_linux) {
-      precompiled_source = "//build/precompile.h"
+      precompiled_source = "//chromium/build/precompile.h"
     }
   }
 }

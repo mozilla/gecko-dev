@@ -95,7 +95,7 @@
 #   }
 template("buildflag_header") {
   action(target_name) {
-    script = "//build/write_buildflag_header.py"
+    script = "//chromium/build/write_buildflag_header.py"
 
     if (defined(invoker.header_dir)) {
       header_file = "${invoker.header_dir}/${invoker.header}"
@@ -132,6 +132,6 @@ template("buildflag_header") {
                              "visibility",
                            ])
 
-    public_deps = [ "//build:buildflag_header_h" ]
+    public_deps = [ "//chromium/build:buildflag_header_h" ]
   }
 }

@@ -4,7 +4,7 @@
 #
 # Defines the build_timestamp variable.
 
-import("//build/util/lastchange.gni")
+import("//chromium/build/util/lastchange.gni")
 
 declare_args() {
   # This should be the filename of a script that prints a single line

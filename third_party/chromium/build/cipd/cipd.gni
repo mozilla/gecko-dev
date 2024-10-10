@@ -122,8 +122,8 @@ template("cipd_package_definition_by_file") {
     _output_yaml_filename = invoker.package_definition_yaml
   }
   action(target_name) {
-    script = "//build/cipd/cipd_from_file.py"
-    inputs = [ "//build/cipd/cipd_from_file.py" ]
+    script = "//chromium/build/cipd/cipd_from_file.py"
+    inputs = [ "//chromium/build/cipd/cipd_from_file.py" ]
     args = [
       "--description=" + invoker.description,
       "--buildtype=" + invoker.buildtype,

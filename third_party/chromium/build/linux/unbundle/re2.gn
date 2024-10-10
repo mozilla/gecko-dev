@@ -2,8 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/c++/c++.gni")
-import("//build/shim_headers.gni")
+import("//chromium/build/config/c++/c++.gni")
+import("//chromium/build/shim_headers.gni")
 
 assert(!use_custom_libcxx,
        "Usage of the system libre2.so is not supported with " +

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/sysroot.gni")
+import("//chromium/build/config/sysroot.gni")
 
 # Defines a config specifying the result of running pkg-config for the given
 # packages. Put the package names you want to query in the "packages" variable
@@ -47,7 +47,7 @@ declare_args() {
   system_libdir = "lib"
 }
 
-pkg_config_script = "//build/config/linux/pkg-config.py"
+pkg_config_script = "//chromium/build/config/linux/pkg-config.py"
 
 # Define the args we pass to the pkg-config script for other build files that
 # need to invoke it manually.

@@ -2,15 +2,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/clang/clang.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/rust.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/config/win/visual_studio_version.gni")
-import("//build/toolchain/cc_wrapper.gni")
-import("//build/toolchain/goma.gni")
-import("//build/toolchain/rbe.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/clang/clang.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/rust.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/win/visual_studio_version.gni")
+import("//chromium/build/toolchain/cc_wrapper.gni")
+import("//chromium/build/toolchain/goma.gni")
+import("//chromium/build/toolchain/rbe.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 
 # Should only be running on Windows.
 assert(is_win)
@@ -177,7 +177,7 @@ template("msvc_toolchain") {
       }
 
       coverage_wrapper =
-          rebase_path("//build/toolchain/clang_code_coverage_wrapper.py",
+          rebase_path("//chromium/build/toolchain/clang_code_coverage_wrapper.py",
                       root_build_dir)
       coverage_wrapper = coverage_wrapper + " --target-os=" + target_os
       if (toolchain_coverage_instrumentation_input_file != "") {
@@ -367,7 +367,7 @@ template("msvc_toolchain") {
       libname = "${dllname}.lib"  # e.g. foo.dll.lib
       pdbname = "${dllname}.pdb"
       rspfile = "${dllname}.rsp"
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       command = "$linker_wrapper$link /OUT:$dllname /nologo ${sys_lib_flags}/IMPLIB:$libname /DLL /PDB:$pdbname @$rspfile"
 
@@ -402,7 +402,7 @@ template("msvc_toolchain") {
       dllname = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
       pdbname = "${dllname}.pdb"
       rspfile = "${dllname}.rsp"
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       command = "$linker_wrapper$link /OUT:$dllname /nologo ${sys_lib_flags}/DLL /PDB:$pdbname @$rspfile"
 
@@ -425,7 +425,7 @@ template("msvc_toolchain") {
       exename = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
       pdbname = "$exename.pdb"
       rspfile = "$exename.rsp"
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       command = "$linker_wrapper$link /OUT:$exename /nologo ${sys_lib_flags} /PDB:$pdbname @$rspfile"
 
@@ -450,16 +450,16 @@ template("msvc_toolchain") {
     tool("stamp") {
       command = stamp_command
       description = stamp_description
-      pool = "//build/toolchain:action_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:action_pool($default_toolchain)"
     }
     tool("copy") {
       command = copy_command
       description = copy_description
-      pool = "//build/toolchain:action_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:action_pool($default_toolchain)"
     }
 
     tool("action") {
-      pool = "//build/toolchain:action_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:action_pool($default_toolchain)"
     }
   }
 }

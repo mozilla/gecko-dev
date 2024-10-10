@@ -2,12 +2,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/chrome_build.gni")
-import("//build/config/chromeos/args.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/gclient_args.gni")
-import("//build/config/python.gni")
-import("//build/util/generate_wrapper.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/chromeos/args.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/gclient_args.gni")
+import("//chromium/build/config/python.gni")
+import("//chromium/build/util/generate_wrapper.gni")
 
 assert((is_chromeos_ash || is_chromeos_lacros) && is_chromeos_device)
 
@@ -45,7 +45,7 @@ if (cros_sdk_version != "") {
 
   foreach(b, _potential_test_boards) {
     _cache_path_prefix =
-        "//build/cros_cache/chrome-sdk/symlinks/${b}+${cros_sdk_version}"
+        "//chromium/build/cros_cache/chrome-sdk/symlinks/${b}+${cros_sdk_version}"
 
     _cros_is_vm = false
     foreach(b1, string_split(cros_boards_with_qemu_images, ":")) {
@@ -84,7 +84,7 @@ if (cros_sdk_version != "") {
     _all_symlinks += m[1]
   }
   _all_symlink_targets =
-      exec_script("//build/get_symlink_targets.py", _all_symlinks, "list lines")
+      exec_script("//chromium/build/get_symlink_targets.py", _all_symlinks, "list lines")
   _index = 0
   foreach(m, _symlink_map) {
     _symlink_targets = []
@@ -223,7 +223,7 @@ template("generate_runner_script") {
   }
 
   generate_wrapper(target_name) {
-    executable = "//build/chromeos/test_runner.py"
+    executable = "//chromium/build/chromeos/test_runner.py"
     use_vpython3 = true
     wrapper_script = generated_script
     executable_args = []
@@ -330,15 +330,15 @@ template("generate_runner_script") {
 
       # We use android test-runner's results libs to construct gtest output
       # json.
-      "//build/android/pylib/__init__.py",
-      "//build/android/pylib/base/",
-      "//build/android/pylib/results/",
-      "//build/chromeos/",
-      "//build/util/",
+      "//chromium/build/android/pylib/__init__.py",
+      "//chromium/build/android/pylib/base/",
+      "//chromium/build/android/pylib/results/",
+      "//chromium/build/chromeos/",
+      "//chromium/build/util/",
 
       # Needed for various SDK components used below.
-      "//build/cros_cache/chrome-sdk/misc/",
-      "//build/cros_cache/chrome-sdk/symlinks/",
+      "//chromium/build/cros_cache/chrome-sdk/misc/",
+      "//chromium/build/cros_cache/chrome-sdk/symlinks/",
 
       # The LKGM file controls what version of the VM image to download. Add it
       # as data here so that changes to it will trigger analyze.
@@ -470,7 +470,7 @@ template("lacros_tast_tests") {
       "//components/crash/content/tools/generate_breakpad_symbols.py",
 
       # A script needed to launch Lacros in Lacros Tast tests.
-      "//build/lacros/mojo_connection_lacros_launcher.py",
+      "//chromium/build/lacros/mojo_connection_lacros_launcher.py",
     ]
   }
 }
@@ -483,7 +483,7 @@ template("generate_skylab_runner_script") {
                          ])
 
   action(target_name) {
-    script = "//build/chromeos/gen_skylab_runner.py"
+    script = "//chromium/build/chromeos/gen_skylab_runner.py"
     outputs = [ generated_script ]
     args = [
       "--test-exe",

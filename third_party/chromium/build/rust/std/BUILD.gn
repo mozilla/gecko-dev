@@ -26,8 +26,8 @@
 # https://github.com/rust-lang/rust/issues/64191 aims to make this
 # officially possible.
 
-import("//build/config/compiler/compiler.gni")
-import("//build/config/rust.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/rust.gni")
 
 stdlib_files = [
   "std",  # List first because it makes depfiles more debuggable (see below)

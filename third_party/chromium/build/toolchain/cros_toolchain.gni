@@ -32,8 +32,8 @@
 # cros_target_ar = "x86_64-cros-linux-gnu-gcc-ar"
 # target_cpu = "x64"
 
-import("//build/config/clang/clang.gni")
-import("//build/config/compiler/compiler.gni")
+import("//chromium/build/config/clang/clang.gni")
+import("//chromium/build/config/compiler/compiler.gni")
 
 declare_args() {
   # These must be specified for a board-specific build.

@@ -26,26 +26,26 @@
 
 # Reference this manifest as a source from windows_manifest targets to get
 # the default Chrome OS compatibility list.
-default_compatibility_manifest = "//build/win/compatibility.manifest"
+default_compatibility_manifest = "//chromium/build/win/compatibility.manifest"
 
 # Reference this manifest as a source from windows_manifest targets to get
 # the default Chrome common constrols compatibility.
-common_controls_manifest = "//build/win/common_controls.manifest"
+common_controls_manifest = "//chromium/build/win/common_controls.manifest"
 
 # Reference this manifest to request that Windows not perform any elevation
 # when running your program. Otherwise, it might do some autodetection and
 # request elevated privileges from the user. This is normally what you want.
-as_invoker_manifest = "//build/win/as_invoker.manifest"
+as_invoker_manifest = "//chromium/build/win/as_invoker.manifest"
 
 # An alternative to as_invoker_manifest when you want the application to always
 # elevate.
-require_administrator_manifest = "//build/win/require_administrator.manifest"
+require_administrator_manifest = "//chromium/build/win/require_administrator.manifest"
 
 # Request the segment heap. See https://crbug.com/1014701 for details.
 declare_args() {
   enable_segment_heap = false
 }
-segment_heap_manifest = "//build/win/segment_heap.manifest"
+segment_heap_manifest = "//chromium/build/win/segment_heap.manifest"
 
 # Construct a target to combine the given manifest files into a .rc file.
 #

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/android/rules.gni")
+import("//chromium/build/config/android/rules.gni")
 
 declare_args() {
   # Used by tests to enable generating build files for GN targets which should
@@ -33,7 +33,7 @@ template("android_nocompile_test_suite") {
 
   action(target_name) {
     testonly = true
-    script = "//build/android/gyp/nocompile_test.py"
+    script = "//chromium/build/android/gyp/nocompile_test.py"
 
     _tests = invoker.tests
     _test0 = _tests[0]
@@ -57,7 +57,7 @@ template("android_nocompile_test_suite") {
 
     # Depend on compile_java Python scripts so that the action is re-run whenever the script is
     # modified.
-    _pydeps = [ "//build/android/gyp/compile_java.pydeps" ]
+    _pydeps = [ "//chromium/build/android/gyp/compile_java.pydeps" ]
     if (defined(invoker.pydeps)) {
       _pydeps += invoker.pydeps
     }

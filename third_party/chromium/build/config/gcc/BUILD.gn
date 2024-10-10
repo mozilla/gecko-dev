@@ -2,11 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/c++/c++.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/config/sysroot.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/c++/c++.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/sysroot.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 
 declare_args() {
   # When non empty, overrides the target rpath value. This allows a user to
@@ -60,7 +60,7 @@ config("symbol_visibility_default") {
 # this is OK. For these cases use something like this:
 #
 #  if ((is_linux || is_chromeos) && !is_component_build) {
-#    configs += [ "//build/config/gcc:rpath_for_built_shared_libraries" ]
+#    configs += [ "//chromium/build/config/gcc:rpath_for_built_shared_libraries" ]
 #  }
 config("rpath_for_built_shared_libraries") {
   if (!is_android && current_os != "aix") {

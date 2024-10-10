@@ -4,19 +4,19 @@
 
 # Do not add any imports to non-//build directories here.
 # Some projects (e.g. V8) do not have non-build directories DEPS'ed in.
-import("//build/config/android/config.gni")
-import("//build/config/android/copy_ex.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/compute_inputs_for_analyze.gni")
-import("//build/config/coverage/coverage.gni")
-import("//build/config/python.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/toolchain/goma.gni")
-import("//build/toolchain/kythe.gni")
-import("//build/util/generate_wrapper.gni")
+import("//chromium/build/config/android/config.gni")
+import("//chromium/build/config/android/copy_ex.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/compute_inputs_for_analyze.gni")
+import("//chromium/build/config/coverage/coverage.gni")
+import("//chromium/build/config/python.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/toolchain/goma.gni")
+import("//chromium/build/toolchain/kythe.gni")
+import("//chromium/build/util/generate_wrapper.gni")
 import("//build_overrides/build.gni")
 if (current_toolchain == default_toolchain) {
-  import("//build/toolchain/concurrent_links.gni")
+  import("//chromium/build/toolchain/concurrent_links.gni")
 }
 assert(is_android)
 
@@ -190,7 +190,7 @@ template("write_build_config") {
       deps += [ invoker.android_manifest_dep ]
     }
 
-    script = "//build/android/gyp/write_build_config.py"
+    script = "//chromium/build/android/gyp/write_build_config.py"
     depfile = "$target_gen_dir/$target_name.d"
     inputs = []
     outputs = [ invoker.build_config ]
@@ -638,11 +638,11 @@ template("generate_android_wrapper") {
   generate_wrapper(target_name) {
     forward_variables_from(invoker, "*", TESTONLY_AND_VISIBILITY)
     forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
-    generator_script = "//build/android/gyp/generate_android_wrapper.py"
+    generator_script = "//chromium/build/android/gyp/generate_android_wrapper.py"
     sources = [
-      "//build/android/gyp/util/build_utils.py",
-      "//build/gn_helpers.py",
-      "//build/util/generate_wrapper.py",
+      "//chromium/build/android/gyp/util/build_utils.py",
+      "//chromium/build/gn_helpers.py",
+      "//chromium/build/util/generate_wrapper.py",
     ]
   }
 }
@@ -670,7 +670,7 @@ template("generate_r_java") {
     inputs = [ invoker.build_config ]
     outputs = [ invoker.srcjar_path ]
     _rebased_build_config = rebase_path(invoker.build_config, root_build_dir)
-    script = "//build/android/gyp/create_r_java.py"
+    script = "//chromium/build/android/gyp/create_r_java.py"
     args = [
       "--depfile",
       rebase_path(depfile, root_build_dir),
@@ -739,7 +739,7 @@ template("test_runner_script") {
     if (defined(android_test_runner_script)) {
       _runner_script = android_test_runner_script
     } else {
-      _runner_script = "//build/android/test_runner.py"
+      _runner_script = "//chromium/build/android/test_runner.py"
     }
 
     deps = []
@@ -747,7 +747,7 @@ template("test_runner_script") {
       deps = invoker.deps
     }
     data_deps = [
-      "//build/android:test_runner_py",
+      "//chromium/build/android:test_runner_py",
       "//testing:test_scripts_shared",
     ]
     if (defined(invoker.data_deps)) {
@@ -992,9 +992,9 @@ if (enable_java_templates) {
 
       # https://crbug.com/1098752 Fix for bot OOM (https://crbug.com/1098333).
       if (defined(java_cmd_pool_size)) {
-        pool = "//build/config/android:java_cmd_pool($default_toolchain)"
+        pool = "//chromium/build/config/android:java_cmd_pool($default_toolchain)"
       } else {
-        pool = "//build/toolchain:link_pool($default_toolchain)"
+        pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
       }
 
       # Lint requires generated sources and generated resources from the build.
@@ -1031,7 +1031,7 @@ if (enable_java_templates) {
       _lint_gen_dir = "$target_gen_dir/$target_name"
       _backported_methods = "//third_party/r8/backported_methods.txt"
 
-      script = "//build/android/gyp/lint.py"
+      script = "//chromium/build/android/gyp/lint.py"
       depfile = "$target_gen_dir/$target_name.d"
       inputs = [
         _lint_binary_path,
@@ -1108,7 +1108,7 @@ if (enable_java_templates) {
       } else {
         _stamp_path = "$target_out_dir/$target_name/build.lint.stamp"
         deps += [
-          "//build/android:prepare_android_lint_cache",
+          "//chromium/build/android:prepare_android_lint_cache",
           invoker.build_config_dep,
         ]
         inputs += [ invoker.build_config ]
@@ -1147,7 +1147,7 @@ if (enable_java_templates) {
                                  "data_deps",
                                  "public_deps",
                                ])
-    _script = "//build/android/gyp/proguard.py"
+    _script = "//chromium/build/android/gyp/proguard.py"
     _deps = invoker.deps
 
     _inputs = [
@@ -1357,9 +1357,9 @@ if (enable_java_templates) {
 
       # http://crbug.com/725224. Fix for bots running out of memory.
       if (defined(java_cmd_pool_size)) {
-        pool = "//build/config/android:java_cmd_pool($default_toolchain)"
+        pool = "//chromium/build/config/android:java_cmd_pool($default_toolchain)"
       } else {
-        pool = "//build/toolchain:link_pool($default_toolchain)"
+        pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
       }
     }
   }
@@ -1381,7 +1381,7 @@ if (enable_java_templates) {
       _build_config = invoker.build_config
       _script_name = invoker.script_name
 
-      script = "//build/android/gyp/create_java_binary_script.py"
+      script = "//chromium/build/android/gyp/create_java_binary_script.py"
       inputs = [ _build_config ]
       _java_script = "$root_build_dir/bin/$_script_name"
       outputs = [ _java_script ]
@@ -1460,7 +1460,7 @@ if (enable_java_templates) {
            "apply_mapping can only be specified if proguard is enabled.")
 
     if (_enable_main_dex_list) {
-      _main_dex_rules = "//build/android/main_dex_classes.flags"
+      _main_dex_rules = "//chromium/build/android/main_dex_classes.flags"
     }
 
     if (_desugar_needs_classpath || _proguard_enabled) {
@@ -1573,7 +1573,7 @@ if (enable_java_templates) {
                                      "data",
                                      "data_deps",
                                    ])
-        script = "//build/android/gyp/dex.py"
+        script = "//chromium/build/android/gyp/dex.py"
         deps = _deps
         depfile = "$target_gen_dir/$target_name.d"
         outputs = [ invoker.output ]
@@ -1585,9 +1585,9 @@ if (enable_java_templates) {
         if (!_is_library) {
           # http://crbug.com/725224. Fix for bots running out of memory.
           if (defined(java_cmd_pool_size)) {
-            pool = "//build/config/android:java_cmd_pool($default_toolchain)"
+            pool = "//chromium/build/config/android:java_cmd_pool($default_toolchain)"
           } else {
-            pool = "//build/toolchain:link_pool($default_toolchain)"
+            pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
           }
         }
 
@@ -1742,7 +1742,7 @@ if (enable_java_templates) {
   #   min_sdk_version: The minimum Android SDK version this target supports.
   template("dex_jdk_libs") {
     action_with_pydeps(target_name) {
-      script = "//build/android/gyp/dex_jdk_libs.py"
+      script = "//chromium/build/android/gyp/dex_jdk_libs.py"
       inputs = [
         _r8_path,
         _desugar_jdk_libs_json,
@@ -1782,7 +1782,7 @@ if (enable_java_templates) {
       _sources_json_file = "$target_out_dir/${target_name}__jacoco_sources.json"
       _jacococli_jar = "//third_party/jacoco/lib/jacococli.jar"
 
-      script = "//build/android/gyp/jacoco_instr.py"
+      script = "//chromium/build/android/gyp/jacoco_instr.py"
       inputs = invoker.java_files + [
                  _jacococli_jar,
                  invoker.input_jar_path,
@@ -1814,7 +1814,7 @@ if (enable_java_templates) {
 
   template("filter_jar") {
     action_with_pydeps(target_name) {
-      script = "//build/android/gyp/filter_zip.py"
+      script = "//chromium/build/android/gyp/filter_zip.py"
       forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "deps" ])
       inputs = [ invoker.input_jar ]
       if (defined(invoker.inputs)) {
@@ -1852,7 +1852,7 @@ if (enable_java_templates) {
       _desugar_output_jar = "$target_out_dir/$target_name.desugar.jar"
 
       action_with_pydeps(_desugar_target) {
-        script = "//build/android/gyp/desugar.py"
+        script = "//chromium/build/android/gyp/desugar.py"
         deps = _deps + invoker.classpath_deps
         depfile = "$target_gen_dir/$target_name.d"
         _rebased_build_config =
@@ -1939,7 +1939,7 @@ if (enable_java_templates) {
     action_with_pydeps(target_name) {
       forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
       _bytecode_checker_script = "$root_build_dir/bin/helper/bytecode_processor"
-      script = "//build/android/gyp/bytecode_processor.py"
+      script = "//chromium/build/android/gyp/bytecode_processor.py"
       inputs = [
         invoker.build_config,
         invoker.input_jar,
@@ -1948,7 +1948,7 @@ if (enable_java_templates) {
       outputs = [ "$target_out_dir/$target_name.bytecode.stamp" ]
       deps =
           invoker.deps +
-          [ "//build/android/bytecode:bytecode_processor($default_toolchain)" ]
+          [ "//chromium/build/android/bytecode:bytecode_processor($default_toolchain)" ]
       _rebased_build_config = rebase_path(invoker.build_config, root_build_dir)
       args = [
         "--target-name",
@@ -1984,7 +1984,7 @@ if (enable_java_templates) {
   template("merge_manifests") {
     action_with_pydeps(target_name) {
       forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "deps" ])
-      script = "//build/android/gyp/merge_manifest.py"
+      script = "//chromium/build/android/gyp/merge_manifest.py"
       depfile = "$target_gen_dir/$target_name.d"
 
       inputs = [
@@ -2063,7 +2063,7 @@ if (enable_java_templates) {
                                    "deps",
                                    "sources",
                                  ])
-      script = "//build/android/gyp/prepare_resources.py"
+      script = "//chromium/build/android/gyp/prepare_resources.py"
 
       depfile = "$target_gen_dir/${invoker.target_name}.d"
       outputs = [
@@ -2229,7 +2229,7 @@ if (enable_java_templates) {
     }
     _final_srcjar_path = "${target_gen_dir}/${target_name}.srcjar"
 
-    _script = "//build/android/gyp/compile_resources.py"
+    _script = "//chromium/build/android/gyp/compile_resources.py"
 
     _inputs = [
       invoker.build_config,
@@ -2553,7 +2553,7 @@ if (enable_java_templates) {
     forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
     action_with_pydeps(target_name) {
       forward_variables_from(invoker, [ "deps" ])
-      script = "//build/android/gyp/optimize_resources.py"
+      script = "//chromium/build/android/gyp/optimize_resources.py"
       outputs = [ invoker.optimized_proto_output ]
       inputs = [
         android_sdk_tools_bundle_aapt2,
@@ -2601,7 +2601,7 @@ if (enable_java_templates) {
   template("unused_resources") {
     action_with_pydeps(target_name) {
       forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "deps" ])
-      script = "//build/android/gyp/unused_resources.py"
+      script = "//chromium/build/android/gyp/unused_resources.py"
       depfile = "$target_gen_dir/${target_name}.d"
       _unused_resources_script = "$root_build_dir/bin/helper/unused_resources"
       inputs = [ _unused_resources_script ]
@@ -2609,7 +2609,7 @@ if (enable_java_templates) {
       if (!defined(deps)) {
         deps = []
       }
-      deps += [ "//build/android/unused_resources:unused_resources" ]
+      deps += [ "//chromium/build/android/unused_resources:unused_resources" ]
       _rebased_module_build_config =
           rebase_path(invoker.build_config, root_build_dir)
       args = [
@@ -2653,7 +2653,7 @@ if (enable_java_templates) {
   template("create_size_info_files") {
     action_with_pydeps(target_name) {
       forward_variables_from(invoker, TESTONLY_AND_VISIBILITY + [ "deps" ])
-      script = "//build/android/gyp/create_size_info_files.py"
+      script = "//chromium/build/android/gyp/create_size_info_files.py"
       _jar_info_path = "$root_build_dir/size-info/${invoker.name}.jar.info"
       _pak_info_path = "$root_build_dir/size-info/${invoker.name}.pak.info"
       _res_info_path = "$root_build_dir/size-info/${invoker.name}.res.info"
@@ -2750,7 +2750,7 @@ if (enable_java_templates) {
           invoker.secondary_native_lib_placeholders
     }
 
-    _script = "//build/android/gyp/apkbuilder.py"
+    _script = "//chromium/build/android/gyp/apkbuilder.py"
     _apksigner = "$android_sdk_build_tools/lib/apksigner.jar"
     _zipalign = "$android_sdk_build_tools/zipalign"
 
@@ -3005,9 +3005,9 @@ if (enable_java_templates) {
 
     action_with_pydeps(target_name) {
       if (invoker.use_turbine) {
-        script = "//build/android/gyp/turbine.py"
+        script = "//chromium/build/android/gyp/turbine.py"
       } else {
-        script = "//build/android/gyp/compile_java.py"
+        script = "//chromium/build/android/gyp/compile_java.py"
       }
 
       if (target_name == "chrome_java__header") {
@@ -3092,7 +3092,7 @@ if (enable_java_templates) {
         args += [ "--gomacc-path=$goma_dir/gomacc" ]
 
         # Override the default action_pool when goma is enabled.
-        pool = "//build/config/android:goma_javac_pool"
+        pool = "//chromium/build/config/android:goma_javac_pool"
       }
 
       # Flag enable_kythe_annotations requires
@@ -3191,7 +3191,7 @@ if (enable_java_templates) {
                                    "data_deps",
                                    "public_deps",
                                  ])
-      script = "//build/android/gyp/ijar.py"
+      script = "//chromium/build/android/gyp/ijar.py"
       deps = [ _ijar_target ]
       if (defined(invoker.deps)) {
         deps += invoker.deps
@@ -3868,7 +3868,7 @@ if (enable_java_templates) {
                        get_label_info(invoker.bytecode_rewriter_target, "name")
       _rebased_build_config = rebase_path(_build_config, root_build_dir)
       action_with_pydeps(_rewritten_jar_target_name) {
-        script = "//build/android/gyp/bytecode_rewriter.py"
+        script = "//chromium/build/android/gyp/bytecode_rewriter.py"
         inputs = [
           _rewriter_path,
           _build_config,
@@ -4124,7 +4124,7 @@ template("create_android_app_bundle_module") {
 
   forward_variables_from(invoker, TESTONLY_AND_VISIBILITY)
   _deps = invoker.deps
-  _script = "//build/android/gyp/apkbuilder.py"
+  _script = "//chromium/build/android/gyp/apkbuilder.py"
 
   # NOTE: Compared to the inputs of the "package_apk" template action,
   #       this list is much smaller, since finalize_apk is never called
@@ -4190,7 +4190,7 @@ template("create_android_app_bundle_module") {
   # The library is imported via proguard when proguard is enabled.
   if (!_proguard_enabled && enable_jdk_library_desugaring &&
       invoker.module_name == "base") {
-    _all_jdk_libs = "//build/android:all_jdk_libs"
+    _all_jdk_libs = "//chromium/build/android:all_jdk_libs"
     _deps += [ _all_jdk_libs ]
     _jdk_libs_dex =
         get_label_info(_all_jdk_libs, "target_out_dir") + "/all_jdk_libs.l8.dex"
@@ -4281,7 +4281,7 @@ template("create_android_app_bundle_module") {
 template("dexsplitter") {
   action_with_pydeps(target_name) {
     forward_variables_from(invoker, [ "deps" ])
-    script = "//build/android/gyp/dexsplitter.py"
+    script = "//chromium/build/android/gyp/dexsplitter.py"
     _stamp = "${target_gen_dir}/${target_name}.stamp"
     outputs = [ _stamp ]
 
@@ -4336,7 +4336,7 @@ template("dexsplitter") {
 #   output: Path to native libraries config.
 template("allot_native_libraries") {
   action_with_pydeps(target_name) {
-    script = "//build/android/gyp/allot_native_libraries.py"
+    script = "//chromium/build/android/gyp/allot_native_libraries.py"
     args = [
       "--output",
       rebase_path(invoker.output, root_build_dir),

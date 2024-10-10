@@ -27,7 +27,7 @@ template("convert_plist") {
                              "deps",
                            ])
 
-    script = "//build/apple/plist_util.py"
+    script = "//chromium/build/apple/plist_util.py"
     sources = [ invoker.source ]
     outputs = [ invoker.output ]
     args = [

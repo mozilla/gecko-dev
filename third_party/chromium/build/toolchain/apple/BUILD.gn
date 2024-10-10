@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/toolchain/concurrent_links.gni")
+import("//chromium/build/toolchain/concurrent_links.gni")
 
 declare_args() {
   # Reduce the number of tasks using the copy_bundle_data and compile_xcassets

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/util/lastchange.gni")
+import("//chromium/build/util/lastchange.gni")
 
 # Template to run the tweak_info_plist.py script on a plist.
 #
@@ -36,7 +36,7 @@ template("tweak_info_plist") {
                                "testonly",
                                "deps",
                              ])
-      script = "//build/apple/plist_util.py"
+      script = "//chromium/build/apple/plist_util.py"
       sources = invoker.info_plists
       outputs = [ _source_name ]
       args = [
@@ -62,10 +62,10 @@ template("tweak_info_plist") {
                              "args",
                              "testonly",
                            ])
-    script = "//build/apple/tweak_info_plist.py"
+    script = "//chromium/build/apple/tweak_info_plist.py"
     inputs = [
       script,
-      "//build/util/version.py",
+      "//chromium/build/util/version.py",
       lastchange_file,
       "//chrome/VERSION",
     ]

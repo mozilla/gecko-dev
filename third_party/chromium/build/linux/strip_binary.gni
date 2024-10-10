@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 
 # Extracts symbols from a binary into a symbol file.
 #
@@ -21,7 +21,7 @@ template("strip_binary") {
                          ])
   action("${target_name}") {
     eu_strip_binary = "//buildtools/third_party/eu-strip/bin/eu-strip"
-    script = "//build/linux/strip_binary.py"
+    script = "//chromium/build/linux/strip_binary.py"
     inputs = [
       invoker.binary_input,
       eu_strip_binary,

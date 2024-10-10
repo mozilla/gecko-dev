@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/util/generate_wrapper.gni")
+import("//chromium/build/util/generate_wrapper.gni")
 
 template("compute_fuchsia_package_sizes") {
   generate_wrapper(target_name) {
@@ -12,7 +12,7 @@ template("compute_fuchsia_package_sizes") {
                              "data_deps",
                            ])
     testonly = true
-    executable = "//build/fuchsia/binary_sizes.py"
+    executable = "//chromium/build/fuchsia/binary_sizes.py"
     wrapper_script = "$root_out_dir/bin/run_${target_name}"
 
     assert(target_cpu == "arm64" || target_cpu == "x64",
@@ -29,7 +29,7 @@ template("compute_fuchsia_package_sizes") {
     # Declares the files that are needed for test execution on the
     # swarming test client.
     data += [
-      "//build/fuchsia/",
+      "//chromium/build/fuchsia/",
       "//fuchsia/release/size_tests/",
       "//third_party/fuchsia-sdk/sdk/arch/",
       "//third_party/fuchsia-sdk/sdk/tools/${target_cpu}/",

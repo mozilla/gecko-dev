@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 if (current_toolchain == default_toolchain) {
-  import("//build/toolchain/toolchain.gni")
+  import("//chromium/build/toolchain/toolchain.gni")
 
   # A toolchain that will capture compiler and linker arguments to a file.
   toolchain("flagcapture") {
@@ -26,7 +26,7 @@ if (current_toolchain == default_toolchain) {
       description = stamp_description
     }
   }
-} else if (current_toolchain == "//build/android/native_flags:flagcapture") {
+} else if (current_toolchain == "//chromium/build/android/native_flags:flagcapture") {
   # This will record flags from all default configs of the default toolchain.
   source_set("default_ccflags") {
     sources = [ "empty.cc" ]

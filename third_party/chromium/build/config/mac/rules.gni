@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/apple/apple_info_plist.gni")
-import("//build/config/apple/symbols.gni")
-import("//build/config/mac/mac_sdk.gni")
+import("//chromium/build/apple/apple_info_plist.gni")
+import("//chromium/build/config/apple/symbols.gni")
+import("//chromium/build/config/mac/mac_sdk.gni")
 
 # Generates Info.plist files for Mac apps and frameworks.
 #
@@ -53,7 +53,7 @@ template("mac_info_plist") {
       "XCODE_VERSION=$xcode_version",
     ]
     plist_templates = [
-      "//build/config/mac/BuildInfo.plist",
+      "//chromium/build/config/mac/BuildInfo.plist",
       _info_plist,
     ]
     if (defined(invoker.info_plist_target)) {
@@ -230,7 +230,7 @@ template("mac_framework_bundle") {
 
   # Clean the entire framework if the framework_version changes.
   _version_file = "$target_out_dir/${target_name}_version"
-  exec_script("//build/config/mac/prepare_framework_version.py",
+  exec_script("//chromium/build/config/mac/prepare_framework_version.py",
               [
                 rebase_path(_version_file),
                 rebase_path(_framework_base_dir),
@@ -240,7 +240,7 @@ template("mac_framework_bundle") {
   # Create the symlinks.
   _framework_package_target = target_name + "_package"
   action(_framework_package_target) {
-    script = "//build/config/mac/package_framework.py"
+    script = "//chromium/build/config/mac/package_framework.py"
 
     # The TOC file never needs to be read, since its contents are the values
     # of GN variables. It is only used to trigger this rule when the values
@@ -467,8 +467,8 @@ template("mac_app_bundle") {
 
     action(_pkg_info_target) {
       forward_variables_from(invoker, [ "testonly" ])
-      script = "//build/apple/write_pkg_info.py"
-      inputs = [ "//build/apple/plist_util.py" ]
+      script = "//chromium/build/apple/write_pkg_info.py"
+      inputs = [ "//chromium/build/apple/plist_util.py" ]
       sources = get_target_outputs(":$_info_plist_target")
       outputs = [ "$target_gen_dir/$_pkg_info_target" ]
       args = [ "--plist" ] + rebase_path(sources, root_build_dir) +

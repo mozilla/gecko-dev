@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/python.gni")
+import("//chromium/build/config/python.gni")
 
 # Generate a custom linker version script that can later be used with
 # "-Wl,--version-script=<path>" ldflags.
@@ -16,7 +16,7 @@ import("//build/config/python.gni")
 #
 template("generate_linker_version_script") {
   action_with_pydeps(target_name) {
-    script = "//build/android/gyp/generate_linker_version_script.py"
+    script = "//chromium/build/android/gyp/generate_linker_version_script.py"
     outputs = [ invoker.linker_script ]
     inputs = []
     args = [ "--output=" + rebase_path(invoker.linker_script, root_build_dir) ]

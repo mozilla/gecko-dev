@@ -4,12 +4,12 @@
 
 assert(is_fuchsia)
 
-import("//build/config/chromecast_build.gni")
-import("//build/config/fuchsia/config.gni")
-import("//build/config/fuchsia/package.gni")
-import("//build/config/gclient_args.gni")
-import("//build/config/sysroot.gni")
-import("//build/util/generate_wrapper.gni")
+import("//chromium/build/config/chromecast_build.gni")
+import("//chromium/build/config/fuchsia/config.gni")
+import("//chromium/build/config/fuchsia/package.gni")
+import("//chromium/build/config/gclient_args.gni")
+import("//chromium/build/config/sysroot.gni")
+import("//chromium/build/util/generate_wrapper.gni")
 
 declare_args() {
   # Sets the Fuchsia Amber repository which will be used by default by the
@@ -78,7 +78,7 @@ template("fuchsia_package_runner") {
     if (defined(runner_script)) {
       _runner_script = runner_script
     } else {
-      _runner_script = "//build/fuchsia/test_runner.py"
+      _runner_script = "//chromium/build/fuchsia/test_runner.py"
     }
 
     if (_is_test_exe) {
@@ -122,8 +122,8 @@ template("fuchsia_package_runner") {
     # Declares the files that are needed for test execution on the
     # swarming test client.
     data += [
-      "//build/fuchsia/",
-      "//build/util/lib/",
+      "//chromium/build/fuchsia/",
+      "//chromium/build/util/lib/",
       "//third_party/fuchsia-sdk/sdk/.build-id/",
       "//third_party/fuchsia-sdk/sdk/bin/fpave.sh",
       "//third_party/fuchsia-sdk/sdk/bin/fuchsia-common.sh",
@@ -139,7 +139,7 @@ template("fuchsia_package_runner") {
 
     if (test_host_cpu == "x64") {
       data_deps +=
-          [ "//build/config/clang:llvm-symbolizer_data($host_toolchain)" ]
+          [ "//chromium/build/config/clang:llvm-symbolizer_data($host_toolchain)" ]
     }
 
     data += [
@@ -234,7 +234,7 @@ template("fuchsia_package_runner") {
   # Produces a script which installs a package and its dependencies into the
   # package repository of a pre-existing Fuchsia build directory.
   generate_wrapper(_generate_installer_target) {
-    executable = rebase_path("//build/fuchsia/deploy_to_pkg_repo.py")
+    executable = rebase_path("//chromium/build/fuchsia/deploy_to_pkg_repo.py")
     wrapper_script = generated_install_pkg_script_path
 
     data_deps = [ invoker.package ]

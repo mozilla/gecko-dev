@@ -2,11 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/android/android_nocompile.gni")
-import("//build/config/android/rules.gni")
+import("//chromium/build/config/android/android_nocompile.gni")
+import("//chromium/build/config/android/rules.gni")
 
 missing_symbol_generated_importer_template_nocompile_source =
-    "//build/android/java/test/missing_symbol/Importer.template"
+    "//chromium/build/android/java/test/missing_symbol/Importer.template"
 
 template("missing_symbol_test") {
   # Not named "_java" to prevent target from being considered a classpath dep.

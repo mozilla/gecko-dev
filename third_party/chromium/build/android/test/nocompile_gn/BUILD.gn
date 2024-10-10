@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/android/test/missing_symbol_test.gni")
-import("//build/config/android/android_nocompile.gni")
-import("//build/config/android/rules.gni")
+import("//chromium/build/android/test/missing_symbol_test.gni")
+import("//chromium/build/config/android/android_nocompile.gni")
+import("//chromium/build/config/android/rules.gni")
 import("nocompile_sources.gni")
 
 template("lint_test") {
@@ -24,7 +24,7 @@ template("lint_test") {
     # targets. We need to test linting a normal apk target.
     apk_name = _apk_target_name
     deps = [ ":$_library_target_name" ]
-    android_manifest = "//build/android/AndroidManifest.xml"
+    android_manifest = "//chromium/build/android/AndroidManifest.xml"
   }
 
   android_lint(target_name) {

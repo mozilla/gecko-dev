@@ -2,12 +2,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/chrome_build.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 
 if (is_android) {
-  import("//build/config/android/config.gni")
+  import("//chromium/build/config/android/config.gni")
 }
 
 declare_args() {
@@ -98,7 +98,7 @@ assert(!toolchain_has_rust || defined(rust_prefix))
 # and the host stdlib will be used.
 rust_abi_target = ""
 if (is_android) {
-  import("//build/config/android/abi.gni")
+  import("//chromium/build/config/android/abi.gni")
   rust_abi_target = android_abi_target
   if (rust_abi_target == "arm-linux-androideabi") {
     # Android clang target specifications mostly match Rust, but this

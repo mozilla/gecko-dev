@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/android/build_vars.gni")
-import("//build/config/android/config.gni")
-import("//build/config/android/rules.gni")
-import("//build/config/python.gni")
+import("//chromium/build/config/android/build_vars.gni")
+import("//chromium/build/config/android/config.gni")
+import("//chromium/build/config/android/rules.gni")
+import("//chromium/build/config/python.gni")
 import("//build_overrides/build.gni")
 
 if (enable_java_templates) {
@@ -55,7 +55,7 @@ python_library("devil_chromium_py") {
     "//third_party/catapult/devil/devil/devil_dependencies.json",
 
     # Read by gn_helpers.BuildWithChromium()
-    "//build/config/gclient_args.gni",
+    "//chromium/build/config/gclient_args.gni",
   ]
 }
 
@@ -65,7 +65,7 @@ group("apk_installer_data") {
   # Other //build users let devil library fetch these from Google Storage.
   if (build_with_chromium) {
     data_deps = [
-      "//build/android/pylib/device/commands",
+      "//chromium/build/android/pylib/device/commands",
       "//tools/android/md5sum",
     ]
     data = [
@@ -111,7 +111,7 @@ python_library("test_runner_py") {
 
   # Proguard is needed only when using apks (rather than native executables).
   if (enable_java_templates) {
-    deps = [ "//build/android/stacktrace:java_deobfuscate" ]
+    deps = [ "//chromium/build/android/stacktrace:java_deobfuscate" ]
   }
 }
 

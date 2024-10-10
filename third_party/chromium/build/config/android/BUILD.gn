@@ -2,13 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/android/config.gni")
-import("//build/config/c++/c++.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/android/config.gni")
+import("//chromium/build/config/c++/c++.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
 
 if (current_toolchain == default_toolchain) {
-  import("//build/toolchain/concurrent_links.gni")
+  import("//chromium/build/toolchain/concurrent_links.gni")
 }
 
 assert(is_android)
@@ -111,13 +111,13 @@ config("runtime_library") {
 
 config("hide_all_but_jni_onload") {
   ldflags = [ "-Wl,--version-script=" + rebase_path(
-                  "//build/android/android_only_explicit_jni_exports.lst",
+                  "//chromium/build/android/android_only_explicit_jni_exports.lst",
                   root_build_dir) ]
 }
 
 config("hide_all_but_jni") {
   ldflags = [ "-Wl,--version-script=" +
-              rebase_path("//build/android/android_only_jni_exports.lst",
+              rebase_path("//chromium/build/android/android_only_jni_exports.lst",
                           root_build_dir) ]
 }
 

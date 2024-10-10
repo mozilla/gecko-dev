@@ -8,8 +8,8 @@
 # toolchain, this GNI file may be read and processed from within Chrome OS
 # toolchains. Checking |is_android| here would therefore be too restrictive.
 if (is_android || is_chromeos) {
-  import("//build/config/chromecast_build.gni")
-  import("//build/config/dcheck_always_on.gni")
+  import("//chromium/build/config/chromecast_build.gni")
+  import("//chromium/build/config/dcheck_always_on.gni")
   import("//build_overrides/build.gni")
   import("abi.gni")
 
@@ -17,7 +17,7 @@ if (is_android || is_chromeos) {
     # Some non-chromium projects (e.g. WebRTC) use our build configs
     # heavily but don't write gclient args files.
 
-    import("//build/config/gclient_args.gni")
+    import("//chromium/build/config/gclient_args.gni")
     if (defined(checkout_android_native_support)) {
       n = "$0x0A"  # Newline
       assert(checkout_android_native_support,
@@ -31,7 +31,7 @@ if (is_android || is_chromeos) {
   }
 
   has_chrome_android_internal =
-      exec_script("//build/dir_exists.py",
+      exec_script("//chromium/build/dir_exists.py",
                   [ rebase_path("//clank", root_build_dir) ],
                   "string") == "True"
 
@@ -72,7 +72,7 @@ if (is_android || is_chromeos) {
   if (enable_chrome_android_internal) {
     import("//clank/config.gni")
   } else {
-    import("//build/config/android/sdk.gni")
+    import("//chromium/build/config/android/sdk.gni")
     declare_args() {
       # Which Android SDK to use.
       android_sdk_release = default_android_sdk_release
@@ -116,7 +116,7 @@ if (is_android || is_chromeos) {
   }
 
   if (!defined(default_android_keystore_path)) {
-    default_android_keystore_path = "//build/android/chromium-debug.keystore"
+    default_android_keystore_path = "//chromium/build/android/chromium-debug.keystore"
     default_android_keystore_name = "chromiumdebugkey"
     default_android_keystore_password = "chromium"
   }

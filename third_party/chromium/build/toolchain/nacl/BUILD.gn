@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/nacl/config.gni")
-import("//build/config/sysroot.gni")
-import("//build/toolchain/nacl_toolchain.gni")
+import("//chromium/build/config/nacl/config.gni")
+import("//chromium/build/config/sysroot.gni")
+import("//chromium/build/toolchain/nacl_toolchain.gni")
 
 # Add the toolchain revision as a preprocessor define so that sources are
 # rebuilt when a toolchain is updated.

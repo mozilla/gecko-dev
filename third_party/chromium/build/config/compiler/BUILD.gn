@@ -2,49 +2,49 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/buildflag_header.gni")
-import("//build/config/android/config.gni")
-import("//build/config/c++/c++.gni")
-import("//build/config/chrome_build.gni")
-import("//build/config/chromecast_build.gni")
-import("//build/config/chromeos/args.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/clang/clang.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/coverage/coverage.gni")
-import("//build/config/dcheck_always_on.gni")
-#import("//build/config/gclient_args.gni")
-import("//build/config/host_byteorder.gni")
-import("//build/config/rust.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/config/ui.gni")
-import("//build/toolchain/cc_wrapper.gni")
-import("//build/toolchain/goma.gni")
-import("//build/toolchain/rbe.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/buildflag_header.gni")
+import("//chromium/build/config/android/config.gni")
+import("//chromium/build/config/c++/c++.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/chromecast_build.gni")
+import("//chromium/build/config/chromeos/args.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/clang/clang.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/coverage/coverage.gni")
+import("//chromium/build/config/dcheck_always_on.gni")
+#import("//chromium/build/config/gclient_args.gni")
+import("//chromium/build/config/host_byteorder.gni")
+import("//chromium/build/config/rust.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/ui.gni")
+import("//chromium/build/toolchain/cc_wrapper.gni")
+import("//chromium/build/toolchain/goma.gni")
+import("//chromium/build/toolchain/rbe.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 import("//build_overrides/build.gni")
 
 if (target_cpu == "arm" || target_cpu == "arm64") {
-  import("//build/config/arm.gni")
+  import("//chromium/build/config/arm.gni")
 }
 if (target_cpu == "mipsel" || target_cpu == "mips64el" ||
     target_cpu == "mips" || target_cpu == "mips64") {
-  import("//build/config/mips.gni")
+  import("//chromium/build/config/mips.gni")
 }
 if (target_cpu == "x64") {
-  import("//build/config/x64.gni")
+  import("//chromium/build/config/x64.gni")
 }
 if (is_mac) {
-  import("//build/config/apple/symbols.gni")
+  import("//chromium/build/config/apple/symbols.gni")
 }
 if (is_ios) {
-  import("//build/config/ios/ios_sdk.gni")
+  import("//chromium/build/config/ios/ios_sdk.gni")
 }
 if (is_nacl) {
   # To keep NaCl variables out of builds that don't include NaCl, all
   # variables defined in nacl/config.gni referenced here should be protected by
   # is_nacl conditions.
-  import("//build/config/nacl/config.gni")
+  import("//chromium/build/config/nacl/config.gni")
 }
 
 lld_path = ""
@@ -270,24 +270,24 @@ config("compiler") {
   # categories here, add it to the associated file to keep this shared config
   # smaller.
   if (is_win) {
-    configs += [ "//build/config/win:compiler" ]
+    configs += [ "//chromium/build/config/win:compiler" ]
   } else if (is_android) {
-    configs += [ "//build/config/android:compiler" ]
+    configs += [ "//chromium/build/config/android:compiler" ]
   } else if (is_linux || is_chromeos) {
-    configs += [ "//build/config/linux:compiler" ]
+    configs += [ "//chromium/build/config/linux:compiler" ]
     if (is_chromeos_ash) {
-      configs += [ "//build/config/chromeos:compiler" ]
+      configs += [ "//chromium/build/config/chromeos:compiler" ]
     }
   } else if (is_nacl) {
-    configs += [ "//build/config/nacl:compiler" ]
+    configs += [ "//chromium/build/config/nacl:compiler" ]
   } else if (is_mac) {
-    configs += [ "//build/config/mac:compiler" ]
+    configs += [ "//chromium/build/config/mac:compiler" ]
   } else if (is_ios) {
-    configs += [ "//build/config/ios:compiler" ]
+    configs += [ "//chromium/build/config/ios:compiler" ]
   } else if (is_fuchsia) {
-    configs += [ "//build/config/fuchsia:compiler" ]
+    configs += [ "//chromium/build/config/fuchsia:compiler" ]
   } else if (current_os == "aix") {
-    configs += [ "//build/config/aix:compiler" ]
+    configs += [ "//chromium/build/config/aix:compiler" ]
   }
 
   configs += [
@@ -844,8 +844,8 @@ config("thinlto_optimize_default") {
 # Use this to enable optimization in the ThinLTO link step for select targets
 # when thin_lto_enable_optimizations is set by doing:
 #
-#   configs -= [ "//build/config/compiler:thinlto_optimize_default" ]
-#   configs += [ "//build/config/compiler:thinlto_optimize_max" ]
+#   configs -= [ "//chromium/build/config/compiler:thinlto_optimize_default" ]
+#   configs += [ "//chromium/build/config/compiler:thinlto_optimize_max" ]
 #
 # Since it makes linking significantly slower and more resource intensive, only
 # use it on important targets such as the main browser executable or dll.
@@ -1198,7 +1198,7 @@ config("compiler_codegen") {
   ldflags = []
 
   if (is_nacl) {
-    configs += [ "//build/config/nacl:compiler_codegen" ]
+    configs += [ "//chromium/build/config/nacl:compiler_codegen" ]
   }
 
   if (target_cpu == "arm64" && is_android) {
@@ -1367,28 +1367,28 @@ config("runtime_library") {
   # libandroid_support in the -isystem include order.  Otherwise, there will be
   # build errors related to symbols declared in math.h.
   if (use_custom_libcxx) {
-    configs += [ "//build/config/c++:runtime_library" ]
+    configs += [ "//chromium/build/config/c++:runtime_library" ]
   }
 
   # TODO(crbug.com/830987): Come up with a better name for is POSIX + Fuchsia
   # configuration.
   if (is_posix || is_fuchsia) {
-    configs += [ "//build/config/posix:runtime_library" ]
+    configs += [ "//chromium/build/config/posix:runtime_library" ]
   }
 
   # System-specific flags. If your compiler flags apply to one of the
   # categories here, add it to the associated file to keep this shared config
   # smaller.
   if (is_win) {
-    configs += [ "//build/config/win:runtime_library" ]
+    configs += [ "//chromium/build/config/win:runtime_library" ]
   } else if (is_linux || is_chromeos) {
-    configs += [ "//build/config/linux:runtime_library" ]
+    configs += [ "//chromium/build/config/linux:runtime_library" ]
   } else if (is_ios) {
-    configs += [ "//build/config/ios:runtime_library" ]
+    configs += [ "//chromium/build/config/ios:runtime_library" ]
   } else if (is_mac) {
-    configs += [ "//build/config/mac:runtime_library" ]
+    configs += [ "//chromium/build/config/mac:runtime_library" ]
   } else if (is_android) {
-    configs += [ "//build/config/android:runtime_library" ]
+    configs += [ "//chromium/build/config/android:runtime_library" ]
   }
 
   if (is_component_build) {
@@ -1991,8 +1991,8 @@ config("no_incompatible_pointer_warnings") {
 # You can override the optimization level on a per-target basis by removing the
 # default config and then adding the named one you want:
 #
-#   configs -= [ "//build/config/compiler:default_optimization" ]
-#   configs += [ "//build/config/compiler:optimize_max" ]
+#   configs -= [ "//chromium/build/config/compiler:default_optimization" ]
+#   configs += [ "//chromium/build/config/compiler:optimize_max" ]
 
 # Shared settings for both "optimize" and "optimize_max" configs.
 # IMPORTANT: On Windows "/O1" and "/O2" must go before the common flags.
@@ -2186,12 +2186,12 @@ config("optimize_max") {
     # The NaCl IRT is a special case and always wants its own config.
     # Various components do:
     #   if (!is_debug) {
-    #     configs -= [ "//build/config/compiler:default_optimization" ]
-    #     configs += [ "//build/config/compiler:optimize_max" ]
+    #     configs -= [ "//chromium/build/config/compiler:default_optimization" ]
+    #     configs += [ "//chromium/build/config/compiler:optimize_max" ]
     #   }
     # So this config has to have the selection logic just like
     # "default_optimization", below.
-    configs = [ "//build/config/nacl:irt_optimize" ]
+    configs = [ "//chromium/build/config/nacl:irt_optimize" ]
   } else {
     ldflags = common_optimize_on_ldflags
     if (is_win) {
@@ -2219,12 +2219,12 @@ config("optimize_speed") {
     # The NaCl IRT is a special case and always wants its own config.
     # Various components do:
     #   if (!is_debug) {
-    #     configs -= [ "//build/config/compiler:default_optimization" ]
-    #     configs += [ "//build/config/compiler:optimize_max" ]
+    #     configs -= [ "//chromium/build/config/compiler:default_optimization" ]
+    #     configs += [ "//chromium/build/config/compiler:optimize_max" ]
     #   }
     # So this config has to have the selection logic just like
     # "default_optimization", below.
-    configs = [ "//build/config/nacl:irt_optimize" ]
+    configs = [ "//chromium/build/config/nacl:irt_optimize" ]
   } else {
     ldflags = common_optimize_on_ldflags
     if (is_win) {
@@ -2253,7 +2253,7 @@ config("default_optimization") {
   if (is_nacl && is_nacl_irt) {
     # The NaCl IRT is a special case and always wants its own config.
     # It gets optimized the same way regardless of the type of build.
-    configs = [ "//build/config/nacl:irt_optimize" ]
+    configs = [ "//chromium/build/config/nacl:irt_optimize" ]
   } else if (is_debug) {
     configs = [ ":no_optimize" ]
   } else if (optimize_for_fuzzing) {
@@ -2336,8 +2336,8 @@ config("afdo") {
 # You can override the symbol level on a per-target basis by removing the
 # default config and then adding the named one you want:
 #
-#   configs -= [ "//build/config/compiler:default_symbols" ]
-#   configs += [ "//build/config/compiler:symbols" ]
+#   configs -= [ "//chromium/build/config/compiler:default_symbols" ]
+#   configs += [ "//chromium/build/config/compiler:symbols" ]
 
 # A helper config that all configs passing /DEBUG to the linker should
 # include as sub-config.

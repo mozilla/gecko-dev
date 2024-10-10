@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/android/android_nocompile.gni")
+import("//chromium/build/config/android/android_nocompile.gni")
 import("missing_symbol_test.gni")
 import("nocompile_gn/nocompile_sources.gni")
 
@@ -22,7 +22,7 @@ if (enable_java_templates) {
 
   android_nocompile_test_suite("android_lint_tests") {
     # Depend on lint script so that the action is re-run whenever the script is  modified.
-    pydeps = [ "//build/android/gyp/lint.pydeps" ]
+    pydeps = [ "//chromium/build/android/gyp/lint.pydeps" ]
 
     tests = [
       {

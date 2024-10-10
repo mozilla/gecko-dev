@@ -2,16 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/c++/c++.gni")
-import("//build/config/chrome_build.gni")
-import("//build/config/clang/clang.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/config/win/control_flow_guard.gni")
-import("//build/config/win/visual_studio_version.gni")
-import("//build/timestamp.gni")
-import("//build/toolchain/goma.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/c++/c++.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/clang/clang.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/win/control_flow_guard.gni")
+import("//chromium/build/config/win/visual_studio_version.gni")
+import("//chromium/build/timestamp.gni")
+import("//chromium/build/toolchain/goma.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 
 assert(is_win)
 
@@ -113,7 +113,7 @@ config("compiler") {
       cflags += [ "-msse3" ]
     }
 
-    if (exec_script("//build/win/use_ansi_codes.py", [], "trim string") ==
+    if (exec_script("//chromium/build/win/use_ansi_codes.py", [], "trim string") ==
         "True") {
       cflags += [
         # cmd.exe doesn't understand ANSI escape codes by default,

@@ -2,8 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/linux/pangocairo/pangocairo.gni")
-import("//build/config/linux/pkg_config.gni")
+import("//chromium/build/config/linux/pangocairo/pangocairo.gni")
+import("//chromium/build/config/linux/pkg_config.gni")
 
 if (use_pangocairo) {
   pkg_config("pangocairo") {

@@ -5,8 +5,8 @@
 # Toolchain-related configuration that may be needed outside the context of the
 # toolchain() rules themselves.
 
-import("//build/config/chrome_build.gni")
-import("//build/config/chromecast_build.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/chromecast_build.gni")
 import("//build_overrides/build.gni")
 
 declare_args() {
@@ -86,7 +86,7 @@ stamp_description = "STAMP {{output}}"
 copy_description = "COPY {{source}} {{output}}"
 if (host_os == "win") {
   _tool_wrapper_path =
-      rebase_path("//build/toolchain/win/tool_wrapper.py", root_build_dir)
+      rebase_path("//chromium/build/toolchain/win/tool_wrapper.py", root_build_dir)
 
   stamp_command = "cmd /c type nul > \"{{output}}\""
   copy_command =

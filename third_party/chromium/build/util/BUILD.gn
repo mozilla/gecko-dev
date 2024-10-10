@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/util/lastchange.gni")
+import("//chromium/build/util/lastchange.gni")
 
 action("chromium_git_revision") {
   script = "version.py"
@@ -32,7 +32,7 @@ group("test_results") {
   data = [
     "//.vpython",
     "//.vpython3",
-    "//build/util/lib/__init__.py",
-    "//build/util/lib/results/",
+    "//chromium/build/util/lib/__init__.py",
+    "//chromium/build/util/lib/results/",
   ]
 }

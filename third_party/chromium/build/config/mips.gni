@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/v8_target_cpu.gni")
+import("//chromium/build/config/v8_target_cpu.gni")
 
 # These are primarily relevant in target_cpu == "mips*" contexts, where
 # MIPS code is being compiled.  But they can also be relevant in the

@@ -186,31 +186,31 @@ if (host_toolchain == "") {
 
   if (host_os == "linux" || host_os == "openbsd") {
     if (target_os != "linux") {
-      host_toolchain = "//build/toolchain/linux:clang_$host_cpu"
+      host_toolchain = "//chromium/build/toolchain/linux:clang_$host_cpu"
     } else if (is_clang) {
-      host_toolchain = "//build/toolchain/linux:clang_$host_cpu"
+      host_toolchain = "//chromium/build/toolchain/linux:clang_$host_cpu"
     } else {
-      host_toolchain = "//build/toolchain/linux:$host_cpu"
+      host_toolchain = "//chromium/build/toolchain/linux:$host_cpu"
     }
   } else if (host_os == "mac") {
-    host_toolchain = "//build/toolchain/mac:clang_$host_cpu"
+    host_toolchain = "//chromium/build/toolchain/mac:clang_$host_cpu"
   } else if (host_os == "win") {
     # On Windows always use the target CPU for host builds for x86/x64. On the
     # configurations we support this will always work and it saves build steps.
     # Windows ARM64 targets require an x64 host for cross build.
     if (target_cpu == "x86" || target_cpu == "x64") {
       if (is_clang) {
-        host_toolchain = "//build/toolchain/win:win_clang_$target_cpu"
+        host_toolchain = "//chromium/build/toolchain/win:win_clang_$target_cpu"
       } else {
-        host_toolchain = "//build/toolchain/win:$target_cpu"
+        host_toolchain = "//chromium/build/toolchain/win:$target_cpu"
       }
     } else if (is_clang) {
-      host_toolchain = "//build/toolchain/win:win_clang_$host_cpu"
+      host_toolchain = "//chromium/build/toolchain/win:win_clang_$host_cpu"
     } else {
-      host_toolchain = "//build/toolchain/win:$host_cpu"
+      host_toolchain = "//chromium/build/toolchain/win:$host_cpu"
     }
   } else if (host_os == "aix") {
-    host_toolchain = "//build/toolchain/aix:$host_cpu"
+    host_toolchain = "//chromium/build/toolchain/aix:$host_cpu"
   } else {
     assert(false, "Unsupported host_os: $host_os")
   }
@@ -221,38 +221,38 @@ _default_toolchain = ""
 if (target_os == "android") {
   assert(host_os == "linux" || host_os == "mac",
          "Android builds are only supported on Linux and Mac hosts.")
-  _default_toolchain = "//build/toolchain/android:android_clang_$target_cpu"
+  _default_toolchain = "//chromium/build/toolchain/android:android_clang_$target_cpu"
 } else if (target_os == "chromeos" || target_os == "linux" || target_os == "openbsd") {
   # See comments in build/toolchain/cros/BUILD.gn about board compiles.
   if (is_clang) {
-    _default_toolchain = "//build/toolchain/linux:clang_$target_cpu"
+    _default_toolchain = "//chromium/build/toolchain/linux:clang_$target_cpu"
   } else {
-    _default_toolchain = "//build/toolchain/linux:$target_cpu"
+    _default_toolchain = "//chromium/build/toolchain/linux:$target_cpu"
   }
 } else if (target_os == "fuchsia") {
-  _default_toolchain = "//build/toolchain/fuchsia:$target_cpu"
+  _default_toolchain = "//chromium/build/toolchain/fuchsia:$target_cpu"
 } else if (target_os == "ios") {
-  _default_toolchain = "//build/toolchain/ios:ios_clang_$target_cpu"
+  _default_toolchain = "//chromium/build/toolchain/ios:ios_clang_$target_cpu"
 } else if (target_os == "mac") {
   #assert(host_os == "mac" || host_os == "linux",
   #       "Mac cross-compiles are unsupported.")
-  _default_toolchain = "//build/toolchain/mac:clang_$target_cpu"
+  _default_toolchain = "//chromium/build/toolchain/mac:clang_$target_cpu"
 } else if (target_os == "win") {
   # On Windows, we use the same toolchain for host and target by default.
   # Beware, win cross builds have some caveats, see docs/win_cross.md
   if (is_clang) {
-    _default_toolchain = "//build/toolchain/win:win_clang_$target_cpu"
+    _default_toolchain = "//chromium/build/toolchain/win:win_clang_$target_cpu"
   } else {
-    _default_toolchain = "//build/toolchain/win:$target_cpu"
+    _default_toolchain = "//chromium/build/toolchain/win:$target_cpu"
   }
 } else if (target_os == "winuwp") {
   # Only target WinUWP on for a Windows store application and only
   # x86, x64 and arm are supported target CPUs.
   assert(target_cpu == "x86" || target_cpu == "x64" || target_cpu == "arm" ||
          target_cpu == "arm64")
-  _default_toolchain = "//build/toolchain/win:uwp_$target_cpu"
+  _default_toolchain = "//chromium/build/toolchain/win:uwp_$target_cpu"
 } else if (target_os == "aix") {
-  _default_toolchain = "//build/toolchain/aix:$target_cpu"
+  _default_toolchain = "//chromium/build/toolchain/aix:$target_cpu"
 } else {
   assert(false, "Unsupported target_os: $target_os")
 }
@@ -315,70 +315,70 @@ is_posix = !is_win && !is_fuchsia
 
 # Holds all configs used for running the compiler.
 default_compiler_configs = [
-  "//build/config:feature_flags",
-  "//build/config/compiler:afdo",
-  "//build/config/compiler:afdo_optimize_size",
-  "//build/config/compiler:cet_shadow_stack",
-  "//build/config/compiler:compiler",
-  "//build/config/compiler:compiler_arm_fpu",
-  "//build/config/compiler:compiler_arm_thumb",
-  "//build/config/compiler:chromium_code",
-  "//build/config/compiler:default_include_dirs",
-  "//build/config/compiler:default_optimization",
-  "//build/config/compiler:default_stack_frames",
-  "//build/config/compiler:default_symbols",
-  "//build/config/compiler:export_dynamic",
-  "//build/config/compiler:no_exceptions",
-  "//build/config/compiler:no_rtti",
-  "//build/config/compiler:runtime_library",
-  "//build/config/compiler:thin_archive",
-  "//build/config/compiler:thinlto_optimize_default",
-  "//build/config/compiler:default_init_stack_vars",
-  "//build/config/compiler:no_unresolved_symbols",
-  "//build/config/compiler/pgo:default_pgo_flags",
-  "//build/config/coverage:default_coverage",
-  "//build/config/sanitizers:default_sanitizer_flags",
+  "//chromium/build/config:feature_flags",
+  "//chromium/build/config/compiler:afdo",
+  "//chromium/build/config/compiler:afdo_optimize_size",
+  "//chromium/build/config/compiler:cet_shadow_stack",
+  "//chromium/build/config/compiler:compiler",
+  "//chromium/build/config/compiler:compiler_arm_fpu",
+  "//chromium/build/config/compiler:compiler_arm_thumb",
+  "//chromium/build/config/compiler:chromium_code",
+  "//chromium/build/config/compiler:default_include_dirs",
+  "//chromium/build/config/compiler:default_optimization",
+  "//chromium/build/config/compiler:default_stack_frames",
+  "//chromium/build/config/compiler:default_symbols",
+  "//chromium/build/config/compiler:export_dynamic",
+  "//chromium/build/config/compiler:no_exceptions",
+  "//chromium/build/config/compiler:no_rtti",
+  "//chromium/build/config/compiler:runtime_library",
+  "//chromium/build/config/compiler:thin_archive",
+  "//chromium/build/config/compiler:thinlto_optimize_default",
+  "//chromium/build/config/compiler:default_init_stack_vars",
+  "//chromium/build/config/compiler:no_unresolved_symbols",
+  "//chromium/build/config/compiler/pgo:default_pgo_flags",
+  "//chromium/build/config/coverage:default_coverage",
+  "//chromium/build/config/sanitizers:default_sanitizer_flags",
 ]
 
 if (is_win) {
   default_compiler_configs += [
-    "//build/config/win:default_cfg_compiler",
-    "//build/config/win:default_crt",
-    "//build/config/win:lean_and_mean",
-    "//build/config/win:nominmax",
-    "//build/config/win:unicode",
-    "//build/config/win:winver",
+    "//chromium/build/config/win:default_cfg_compiler",
+    "//chromium/build/config/win:default_crt",
+    "//chromium/build/config/win:lean_and_mean",
+    "//chromium/build/config/win:nominmax",
+    "//chromium/build/config/win:unicode",
+    "//chromium/build/config/win:winver",
   ]
 }
 
 if (is_posix) {
   if (current_os != "aix") {
     default_compiler_configs +=
-        [ "//build/config/gcc:symbol_visibility_hidden" ]
+        [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
   }
 }
 
 if (is_fuchsia) {
-  default_compiler_configs += [ "//build/config/gcc:symbol_visibility_hidden" ]
+  default_compiler_configs += [ "//chromium/build/config/gcc:symbol_visibility_hidden" ]
 }
 
 if (is_android) {
   default_compiler_configs +=
-      [ "//build/config/android:default_orderfile_instrumentation" ]
+      [ "//chromium/build/config/android:default_orderfile_instrumentation" ]
 }
 
 if (is_clang && !is_nacl) {
   default_compiler_configs += [
-    "//build/config/clang:find_bad_constructs",
-    "//build/config/clang:extra_warnings",
+    "//chromium/build/config/clang:find_bad_constructs",
+    "//chromium/build/config/clang:extra_warnings",
   ]
 }
 
 # Debug/release-related defines.
 if (is_debug) {
-  default_compiler_configs += [ "//build/config:debug" ]
+  default_compiler_configs += [ "//chromium/build/config:debug" ]
 } else {
-  default_compiler_configs += [ "//build/config:release" ]
+  default_compiler_configs += [ "//chromium/build/config:release" ]
 }
 
 # Static libraries and source sets use only the compiler ones.
@@ -401,28 +401,28 @@ if (is_win) {
   # Many targets remove these configs, so they are not contained within
   # //build/config:executable_config for easy removal.
   _linker_configs = [
-    "//build/config/win:default_incremental_linking",
+    "//chromium/build/config/win:default_incremental_linking",
 
     # Default to console-mode apps. Most of our targets are tests and such
     # that shouldn't use the windows subsystem.
-    "//build/config/win:console",
+    "//chromium/build/config/win:console",
   ]
 } else if (is_mac) {
-  _linker_configs = [ "//build/config/mac:strip_all" ]
+  _linker_configs = [ "//chromium/build/config/mac:strip_all" ]
 } else {
   _linker_configs = []
 }
 
 # Executable defaults.
 default_executable_configs = default_compiler_configs + [
-                               "//build/config:default_libs",
-                               "//build/config:executable_config",
+                               "//chromium/build/config:default_libs",
+                               "//chromium/build/config:executable_config",
                              ] + _linker_configs
 
 if (is_win) {
   # Turn on linker CFI for executables, and position it so it can be removed
   # if needed.
-  default_executable_configs += [ "//build/config/win:cfi_linker" ]
+  default_executable_configs += [ "//chromium/build/config/win:cfi_linker" ]
 }
 
 set_defaults("executable") {
@@ -432,19 +432,19 @@ set_defaults("executable") {
 # Shared library and loadable module defaults (also for components in component
 # mode).
 default_shared_library_configs = default_compiler_configs + [
-                                   "//build/config:default_libs",
-                                   "//build/config:shared_library_config",
+                                   "//chromium/build/config:default_libs",
+                                   "//chromium/build/config:shared_library_config",
                                  ] + _linker_configs
 if (is_win) {
   # Turn on linker CFI for DLLs, and position it so it can be removed if needed.
-  default_shared_library_configs += [ "//build/config/win:cfi_linker" ]
+  default_shared_library_configs += [ "//chromium/build/config/win:cfi_linker" ]
 }
 
 if (is_android) {
   # Strip native JNI exports from shared libraries by default. Binaries that
   # want this can remove this config.
   default_shared_library_configs +=
-      [ "//build/config/android:hide_all_but_jni_onload" ]
+      [ "//chromium/build/config/android:hide_all_but_jni_onload" ]
 }
 set_defaults("shared_library") {
   configs = default_shared_library_configs
@@ -454,7 +454,7 @@ set_defaults("loadable_module") {
 
   # loadable_modules are generally used by other libs, not just via JNI.
   if (is_android) {
-    configs -= [ "//build/config/android:hide_all_but_jni_onload" ]
+    configs -= [ "//chromium/build/config/android:hide_all_but_jni_onload" ]
   }
 }
 
@@ -475,8 +475,8 @@ TESTONLY_AND_VISIBILITY = [
 # Variables
 #   no_default_deps: If true, no standard dependencies will be added.
 #       Targets that set this usually also want to remove
-#       "//build/config/compiler:runtime_library" from configs (to remove
-#       its subconfig "//build/config/c++:runtime_library").
+#       "//chromium/build/config/compiler:runtime_library" from configs (to remove
+#       its subconfig "//chromium/build/config/c++:runtime_library").
 foreach(_target_type,
         [
           "executable",
@@ -501,7 +501,7 @@ foreach(_target_type,
         # //build/config:shared_library_deps
         # (This explicit list is so that grepping for these configs finds where
         # they are used.)
-        deps += [ "//build/config:${_target_type}_deps" ]
+        deps += [ "//chromium/build/config:${_target_type}_deps" ]
       }
 
       # On Android, write shared library output file to metadata. We will use
@@ -580,7 +580,7 @@ set_defaults("component") {
   if (is_component_build) {
     configs = default_shared_library_configs
     if (is_android) {
-      configs -= [ "//build/config/android:hide_all_but_jni_onload" ]
+      configs -= [ "//chromium/build/config/android:hide_all_but_jni_onload" ]
     }
   } else {
     configs = default_compiler_configs

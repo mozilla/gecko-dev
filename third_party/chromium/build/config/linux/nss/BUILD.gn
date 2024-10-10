@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/linux/pkg_config.gni")
+import("//chromium/build/config/linux/pkg_config.gni")
 
 if (is_linux || is_chromeos) {
   # This is a dependency on NSS with no libssl. On Linux we use a built-in SSL

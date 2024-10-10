@@ -6,15 +6,15 @@
 # some enhancements since the commands on Mac are slightly different than on
 # Linux.
 
-import("//build/config/apple/symbols.gni")
-import("//build/config/clang/clang.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/coverage/coverage.gni")
-import("//build/config/rust.gni")
-import("//build/toolchain/cc_wrapper.gni")
-import("//build/toolchain/goma.gni")
-import("//build/toolchain/rbe.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/apple/symbols.gni")
+import("//chromium/build/config/clang/clang.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/coverage/coverage.gni")
+import("//chromium/build/config/rust.gni")
+import("//chromium/build/toolchain/cc_wrapper.gni")
+import("//chromium/build/toolchain/goma.gni")
+import("//chromium/build/toolchain/rbe.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 
 assert((target_os == "ios" && host_os == "mac") || host_os != "win")
 
@@ -44,10 +44,10 @@ if (swift_whole_module_optimization == -1) {
 tool_versions =
     exec_script("get_tool_mtime.py",
                 rebase_path([
-                              "//build/toolchain/apple/filter_libtool.py",
-                              "//build/toolchain/apple/linker_driver.py",
-                              "//build/toolchain/ios/compile_xcassets.py",
-                              "//build/toolchain/ios/swiftc.py",
+                              "//chromium/build/toolchain/apple/filter_libtool.py",
+                              "//chromium/build/toolchain/apple/linker_driver.py",
+                              "//chromium/build/toolchain/ios/compile_xcassets.py",
+                              "//chromium/build/toolchain/ios/swiftc.py",
                             ],
                             root_build_dir),
                 "trim scope")
@@ -165,7 +165,7 @@ template("apple_toolchain") {
         toolchain_coverage_instrumentation_input_file != ""
     if (_use_clang_coverage_wrapper) {
       _coverage_wrapper =
-          rebase_path("//build/toolchain/clang_code_coverage_wrapper.py",
+          rebase_path("//chromium/build/toolchain/clang_code_coverage_wrapper.py",
                       root_build_dir) + " --files-to-instrument=" +
           rebase_path(toolchain_coverage_instrumentation_input_file,
                       root_build_dir) + " --target-os=" + target_os
@@ -175,7 +175,7 @@ template("apple_toolchain") {
 
     linker_driver =
         "TOOL_VERSION=${tool_versions.linker_driver} " +
-        rebase_path("//build/toolchain/apple/linker_driver.py", root_build_dir)
+        rebase_path("//chromium/build/toolchain/apple/linker_driver.py", root_build_dir)
 
     # Specify an explicit path for the strip binary.
     _strippath = invoker.bin_path + "strip"
@@ -340,7 +340,7 @@ template("apple_toolchain") {
         # labels.
         rspfile_content = "{{inputs_newline}}"
 
-        script = rebase_path("//build/toolchain/apple/filter_libtool.py",
+        script = rebase_path("//chromium/build/toolchain/apple/filter_libtool.py",
                              root_build_dir)
 
         # Specify explicit path for libtool.
@@ -367,7 +367,7 @@ template("apple_toolchain") {
       # E.g. "./libfoo.dylib":
       dylib = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
       rspfile = dylib + ".rsp"
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       # These variables are not built into GN but are helpers that implement
       # (1) linking to produce a .dylib, (2) extracting the symbols from that
@@ -444,7 +444,7 @@ template("apple_toolchain") {
       # E.g. "./libfoo.so":
       sofile = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
       rspfile = sofile + ".rsp"
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       link_command = "$linker_driver $ld -bundle {{ldflags}} -o \"$sofile\" -Wl,-filelist,\"$rspfile\""
       link_command += dsym_switch
@@ -475,7 +475,7 @@ template("apple_toolchain") {
     tool("link") {
       outfile = "{{output_dir}}/{{target_output_name}}{{output_extension}}"
       rspfile = "$outfile.rsp"
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       # Note about -filelist: Apple's linker reads the file list file and
       # interprets each newline-separated chunk of text as a file name. It
@@ -527,7 +527,7 @@ template("apple_toolchain") {
         command = "rm -rf {{output}} && /bin/cp -Rl {{source}} {{output}}"
       }
       description = "COPY_BUNDLE_DATA {{source}} {{output}}"
-      pool = "//build/toolchain/apple:bundle_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain/apple:bundle_pool($default_toolchain)"
     }
 
     # Swift is only used on iOS, not macOS. We want to minimize the number
@@ -535,7 +535,7 @@ template("apple_toolchain") {
     # disallow future uses of Swift on macOS. https://crbug.com/965663.
     if (toolchain_args.current_os == "ios") {
       tool("swift") {
-        _tool = rebase_path("//build/toolchain/ios/swiftc.py", root_build_dir)
+        _tool = rebase_path("//chromium/build/toolchain/ios/swiftc.py", root_build_dir)
 
         depfile = "{{target_out_dir}}/{{module_name}}.d"
         depsformat = "gcc"
@@ -585,7 +585,7 @@ template("apple_toolchain") {
     # disallow future uses of xcassets on macOS. https://crbug.com/965663.
     if (toolchain_args.current_os == "ios") {
       tool("compile_xcassets") {
-        _tool = rebase_path("//build/toolchain/ios/compile_xcassets.py",
+        _tool = rebase_path("//chromium/build/toolchain/ios/compile_xcassets.py",
                             root_build_dir)
 
         _env_vars = "TOOL_VERSION=${tool_versions.compile_xcassets}"
@@ -600,12 +600,12 @@ template("apple_toolchain") {
             "-P \"{{bundle_partial_info_plist}}\" " + "-o {{output}} {{inputs}}"
 
         description = "COMPILE_XCASSETS {{output}}"
-        pool = "//build/toolchain/apple:bundle_pool($default_toolchain)"
+        pool = "//chromium/build/toolchain/apple:bundle_pool($default_toolchain)"
       }
     }
 
     tool("action") {
-      pool = "//build/toolchain:action_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:action_pool($default_toolchain)"
     }
   }
 }

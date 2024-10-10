@@ -45,7 +45,7 @@ if (target_cpu == "x86") {
   android_app_abi = "x86"
   android_abi_target = "i686-linux-android"
 } else if (target_cpu == "arm") {
-  import("//build/config/arm.gni")
+  import("//chromium/build/config/arm.gni")
   if (arm_version < 7) {
     android_app_abi = "armeabi"
   } else {
@@ -97,5 +97,5 @@ if (target_cpu == "arm64") {
 
 if (defined(android_secondary_abi_cpu)) {
   android_secondary_abi_toolchain =
-      "//build/toolchain/android:android_clang_${android_secondary_abi_cpu}"
+      "//chromium/build/toolchain/android:android_clang_${android_secondary_abi_cpu}"
 }

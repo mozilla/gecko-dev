@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/c++/c++.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/linux/pkg_config.gni")
-import("//build/config/ui.gni")
+import("//chromium/build/config/c++/c++.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/linux/pkg_config.gni")
+import("//chromium/build/config/ui.gni")
 
 group("linux") {
   visibility = [ "//:optimize_gn_gen" ]
@@ -16,7 +16,7 @@ group("linux") {
 # Linux-only. This is not applied to Android, but is applied to ChromeOS.
 config("compiler") {
   if (target_cpu == "arm64") {
-    import("//build/config/arm.gni")
+    import("//chromium/build/config/arm.gni")
     cflags = []
     asmflags = []
     if (arm_control_flow_integrity == "standard") {
@@ -40,7 +40,7 @@ config("runtime_library") {
   # Mozilla disable libatomic on linux builds
   if (false) {
   if ((!(is_chromeos_ash || is_chromeos_lacros) ||
-       default_toolchain != "//build/toolchain/cros:target") &&
+       default_toolchain != "//chromium/build/toolchain/cros:target") &&
       (!use_custom_libcxx || target_cpu == "mipsel")) {
     libs = [ "atomic" ]
   }

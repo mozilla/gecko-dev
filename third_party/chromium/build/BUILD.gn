@@ -2,11 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/buildflag_header.gni")
-import("//build/config/chrome_build.gni")
-import("//build/config/chromecast_build.gni")
-import("//build/config/chromeos/args.gni")
-import("//build/config/chromeos/ui_mode.gni")
+import("//chromium/build/buildflag_header.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/chromecast_build.gni")
+import("//chromium/build/config/chromeos/args.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
 
 source_set("buildflag_header_h") {
   sources = [ "buildflag.h" ]

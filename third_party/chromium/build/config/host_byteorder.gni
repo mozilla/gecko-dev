@@ -17,7 +17,7 @@ if (host_cpu == "ppc64") {
   } else {
     # Only use the script when absolutely necessary
     host_byteorder =
-        exec_script("//build/config/get_host_byteorder.py", [], "trim string")
+        exec_script("//chromium/build/config/get_host_byteorder.py", [], "trim string")
   }
 } else if (host_cpu == "ppc" || host_cpu == "s390" || host_cpu == "s390x" ||
            host_cpu == "mips" || host_cpu == "mips64") {

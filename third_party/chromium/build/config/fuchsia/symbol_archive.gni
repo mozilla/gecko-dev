@@ -19,7 +19,7 @@ template("symbol_archive") {
     _ids_txt = invoker.ids_txt
     _build_ids = invoker.archive_name
 
-    script = "//build/config/fuchsia/build_symbol_archive.py"
+    script = "//chromium/build/config/fuchsia/build_symbol_archive.py"
 
     inputs = [ _ids_txt ]
 

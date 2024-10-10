@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/toolchain/concurrent_links.gni")
-import("//build/toolchain/goma.gni")
-import("//build/toolchain/rbe.gni")
+import("//chromium/build/toolchain/concurrent_links.gni")
+import("//chromium/build/toolchain/goma.gni")
+import("//chromium/build/toolchain/rbe.gni")
 
 declare_args() {
   # Pool for non goma tasks.

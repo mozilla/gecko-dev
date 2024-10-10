@@ -2,22 +2,22 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/clang/clang.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/coverage/coverage.gni")
-import("//build/config/rust.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/config/v8_target_cpu.gni")
-import("//build/toolchain/cc_wrapper.gni")
-import("//build/toolchain/goma.gni")
-import("//build/toolchain/rbe.gni")
-import("//build/toolchain/toolchain.gni")
+import("//chromium/build/config/clang/clang.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/coverage/coverage.gni")
+import("//chromium/build/config/rust.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/v8_target_cpu.gni")
+import("//chromium/build/toolchain/cc_wrapper.gni")
+import("//chromium/build/toolchain/goma.gni")
+import("//chromium/build/toolchain/rbe.gni")
+import("//chromium/build/toolchain/toolchain.gni")
 
 if (is_nacl) {
   # To keep NaCl variables out of builds that don't include NaCl, all
   # variables defined in nacl/config.gni referenced here should be protected by
   # is_nacl conditions.
-  import("//build/config/nacl/config.gni")
+  import("//chromium/build/config/nacl/config.gni")
 }
 
 declare_args() {
@@ -249,7 +249,7 @@ template("gcc_toolchain") {
       }
 
       _coverage_wrapper =
-          rebase_path("//build/toolchain/clang_code_coverage_wrapper.py",
+          rebase_path("//chromium/build/toolchain/clang_code_coverage_wrapper.py",
                       root_build_dir)
 
       # The wrapper needs to know what OS we target because it uses that to
@@ -391,7 +391,7 @@ template("gcc_toolchain") {
       # existing file.
       if (host_os == "win") {
         tool_wrapper_path =
-            rebase_path("//build/toolchain/win/tool_wrapper.py", root_build_dir)
+            rebase_path("//chromium/build/toolchain/win/tool_wrapper.py", root_build_dir)
         command = "cmd /c $python_path $tool_wrapper_path delete-file {{output}} && $command"
       } else {
         command = "rm -f {{output}} && $command"
@@ -414,7 +414,7 @@ template("gcc_toolchain") {
       sofile = "{{output_dir}}/$soname"  # Possibly including toolchain dir.
       rspfile = sofile + ".rsp"
 
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       if (defined(invoker.strip)) {
         unstripped_sofile = "{{root_out_dir}}/lib.unstripped/$soname"
@@ -455,7 +455,7 @@ template("gcc_toolchain") {
       # requiring sh control structures, pipelines, and POSIX utilities.
       # The host might not have a POSIX shell and utilities (e.g. Windows).
       solink_wrapper =
-          rebase_path("//build/toolchain/gcc_solink_wrapper.py", root_build_dir)
+          rebase_path("//chromium/build/toolchain/gcc_solink_wrapper.py", root_build_dir)
       solink_extra_flags = ""
       if (current_os == "aix") {
         # to be intercepted by solink_wrapper
@@ -524,7 +524,7 @@ template("gcc_toolchain") {
       sofile = "{{output_dir}}/$soname"
       rspfile = sofile + ".rsp"
 
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       if (defined(invoker.strip)) {
         unstripped_sofile = "{{root_out_dir}}/lib.unstripped/$soname"
@@ -580,7 +580,7 @@ template("gcc_toolchain") {
       rspfile = "$outfile.rsp"
       unstripped_outfile = outfile
 
-      pool = "//build/toolchain:link_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:link_pool($default_toolchain)"
 
       # Use this for {{output_extension}} expansions unless a target manually
       # overrides it (in which case {{output_extension}} will be what the target
@@ -617,7 +617,7 @@ template("gcc_toolchain") {
       }
 
       link_wrapper =
-          rebase_path("//build/toolchain/gcc_link_wrapper.py", root_build_dir)
+          rebase_path("//chromium/build/toolchain/gcc_link_wrapper.py", root_build_dir)
       command = "$python_path \"$link_wrapper\" --output=\"$outfile\"$strip_switch$map_switch$dwp_switch -- $link_command"
 
       description = "LINK $outfile"
@@ -662,7 +662,7 @@ template("gcc_toolchain") {
     }
 
     tool("action") {
-      pool = "//build/toolchain:action_pool($default_toolchain)"
+      pool = "//chromium/build/toolchain:action_pool($default_toolchain)"
     }
 
     if (toolchain_has_rust) {

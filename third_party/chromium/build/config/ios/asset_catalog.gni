@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("//build/config/ios/ios_sdk.gni")
+import("//chromium/build/config/ios/ios_sdk.gni")
 
 # This template declares a bundle_data target that references an asset
 # catalog so that it is compiled to the asset catalog of the generated
@@ -85,7 +85,7 @@ template("asset_catalog") {
                                "testonly",
                              ])
 
-      script = "//build/config/ios/hardlink.py"
+      script = "//chromium/build/config/ios/hardlink.py"
 
       visibility = [ ":$_data_target_name" ]
       sources = _sources
