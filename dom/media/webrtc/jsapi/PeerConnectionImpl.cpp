@@ -603,31 +603,30 @@ RefPtr<DtlsIdentity> PeerConnectionImpl::Identity() const {
 
 class CompareCodecPriority {
  public:
-  void SetPreferredCodec(int32_t preferredCodec) {
-    // This pref really ought to be a string, preferably something like
-    // "H264" or "VP8" instead of a payload type.
-    // Bug 1101259.
-    std::ostringstream os;
-    os << preferredCodec;
-    mPreferredCodec = os.str();
+  void SetPreferredCodec(const nsCString& preferredCodec) {
+    mPreferredCodec = preferredCodec;
   }
 
   bool operator()(const UniquePtr<JsepCodecDescription>& lhs,
                   const UniquePtr<JsepCodecDescription>& rhs) const {
-    if (!mPreferredCodec.empty() && lhs->mDefaultPt == mPreferredCodec &&
-        rhs->mDefaultPt != mPreferredCodec) {
-      return true;
+    // Do we have a preferred codec?
+    if (!mPreferredCodec.IsEmpty()) {
+      const bool lhsMatches = mPreferredCodec.EqualsIgnoreCase(lhs->mName) ||
+                              mPreferredCodec.EqualsIgnoreCase(lhs->mDefaultPt);
+      const bool rhsMatches = mPreferredCodec.EqualsIgnoreCase(rhs->mName) ||
+                              mPreferredCodec.EqualsIgnoreCase(rhs->mDefaultPt);
+      // If the only the left side matches, prefer it
+      if (lhsMatches && !rhsMatches) {
+        return true;
+      }
     }
-
-    if (lhs->mStronglyPreferred && !rhs->mStronglyPreferred) {
-      return true;
-    }
-
-    return false;
+    // If only the left side is strongly preferred, prefer it
+    return (lhs->mStronglyPreferred && !rhs->mStronglyPreferred);
   }
 
  private:
-  std::string mPreferredCodec;
+  // The preferred codec name or PT number
+  nsCString mPreferredCodec;
 };
 
 class ConfigureCodec {
@@ -812,14 +811,14 @@ nsresult PeerConnectionImpl::ConfigureJsepSessionCodecs() {
   // We use this to sort the list of codecs once everything is configured
   CompareCodecPriority comparator;
 
-  // Sort by priority
-  int32_t preferredCodec = 0;
-  branch->GetIntPref("media.navigator.video.preferred_codec", &preferredCodec);
-
-  if (preferredCodec) {
+  nsCString preferredCodec;
+  if (NS_SUCCEEDED(branch->GetCharPref("media.navigator.video.preferred_codec",
+                                       preferredCodec))) {
+    preferredCodec.CompressWhitespace(true, true);
     comparator.SetPreferredCodec(preferredCodec);
   }
 
+  // Sort by priority
   mJsepSession->SortCodecs(comparator);
   return NS_OK;
 }
