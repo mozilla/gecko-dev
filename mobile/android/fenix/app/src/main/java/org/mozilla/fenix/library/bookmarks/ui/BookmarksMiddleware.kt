@@ -276,7 +276,17 @@ internal class BookmarksMiddleware(
             is FirstSyncCompleted -> {
                 context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
             }
-
+            ViewDisposed -> {
+                preReductionState.bookmarksSnackbarState.let { snackState ->
+                    if (snackState is BookmarksSnackbarState.UndoDeletion) {
+                        scope.launch {
+                            snackState.guidsToDelete.forEach {
+                                bookmarksStorage.deleteNode(it)
+                            }
+                        }
+                    }
+                }
+            }
             is InitEditLoaded,
             SnackbarAction.Undo,
             is OpenTabsConfirmationDialogAction.Present,
