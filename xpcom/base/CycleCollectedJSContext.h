@@ -279,6 +279,19 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
     MOZ_ASSERT_UNREACHABLE("Not supported");
   }
 
+  // These two functions control a special flag variable which lets us turn
+  // tracing on and off from a thread other than this JSContext's main thread.
+  // This is useful because we want to be able to start tracing many threads
+  // all at once from the Gecko Profiler in Firefox.
+  //
+  // NOTE: the caller must ensure that this CycleCollectedJSContext is not
+  // being destroyed when this is called. At the time of this API being added,
+  // the only consumer is the Gecko Profiler, which guarantees this via a mutex
+  // around unregistering the context, which always occurs before the context
+  // is destroyed.
+  void BeginExecutionTracingAsync();
+  void EndExecutionTracingAsync();
+
  private:
   // JS::JobQueue implementation: see js/public/Promise.h.
   // SpiderMonkey uses some of these methods to enqueue promise resolution jobs.
