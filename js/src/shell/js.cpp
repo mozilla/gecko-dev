@@ -12726,7 +12726,8 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "enable-iterator-range",
                         "Enable Iterator.range") ||
       !op.addBoolOption('\0', "enable-joint-iteration",
-                        "Enable Joint Iteration")) {
+                        "Enable Joint Iteration") ||
+      !op.addBoolOption('\0', "enable-atomics-pause", "Enable Atomics pause")) {
     return false;
   }
 
@@ -12813,6 +12814,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-joint-iteration")) {
     JS::Prefs::setAtStartup_experimental_joint_iteration(true);
+  }
+  if (op.getBoolOption("enable-atomics-pause")) {
+    JS::Prefs::setAtStartup_experimental_atomics_pause(true);
   }
 #endif
   if (op.getBoolOption("enable-json-parse-with-source")) {
