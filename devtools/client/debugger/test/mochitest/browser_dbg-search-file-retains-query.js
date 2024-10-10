@@ -22,7 +22,6 @@ add_task(async function () {
   type(dbg, "con");
   await waitForSearchState(dbg);
   is(findElement(dbg, "fileSearchInput").value, "con");
-  is(getCM(dbg).state.search.query, "con");
 
   // Close the search bar
   pressKey(dbg, "Escape");
@@ -35,6 +34,5 @@ add_task(async function () {
   is(getActiveSearch(), "file");
 
   // Test for the retained query
-  is(getCM(dbg).state.search.query, "con");
   is(findElement(dbg, "fileSearchInput").value, "con");
 });

@@ -28,19 +28,20 @@ add_task(async function () {
   pressKey(dbg, "fileSearch");
   type(dbg, "check");
 
-  const cm = getCM(dbg);
   await waitFor(
-    () => cm.getSelection() == "check",
+    () => getSearchSelection(dbg).text == "check",
     "Wait for actual selection in CodeMirror"
   );
   is(
-    cm.getCursor().line,
+    getSearchSelection(dbg).line,
     26,
-    "The line of first check occurence in long.js is selected (this is zero-based)"
+    `The line of first check occurence in long.js is selected (this is ${
+      isCm6Enabled ? "one" : "zero"
+    }-based)`
   );
   // The column is the end of "check", so after 'k'
   is(
-    cm.getCursor().ch,
+    getSearchSelection(dbg).column,
     51,
     "The column of first check occurence in long.js is selected (this is zero-based)"
   );
