@@ -28,6 +28,8 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
   });
 });
 
+const USER_DEFINED = "searchTerms";
+
 // Supported OpenSearch parameters
 // See http://opensearch.a9.com/spec/1.1/querysyntax/#core
 const OS_PARAM_INPUT_ENCODING = "inputEncoding";
@@ -271,7 +273,7 @@ class QueryPreferenceParameter extends QueryParameter {
  *   The OpenSearch search parameters.
  * @param {string} searchTerms
  *   The user-provided search terms. This string will inserted into
- *   paramValue as the value of the searchTerms parameter.
+ *   paramValue as the value of the OS_PARAM_USER_DEFINED parameter.
  *   This value must already be escaped appropriately - it is inserted
  *   as-is.
  * @param {string} queryCharset
@@ -283,7 +285,7 @@ function ParamSubstitution(paramValue, searchTerms, queryCharset) {
   const PARAM_REGEXP = /\{((?:\w+:)?\w+)(\??)\}/g;
   return paramValue.replace(PARAM_REGEXP, function (match, name, optional) {
     // {searchTerms} is by far the most common param so handle it first.
-    if (name == "searchTerms") {
+    if (name == USER_DEFINED) {
       return searchTerms;
     }
 
@@ -323,9 +325,6 @@ function ParamSubstitution(paramValue, searchTerms, queryCharset) {
 export class EngineURL {
   params = [];
   rels = [];
-  // We would call this #searchTermParamName, but that causes sphinx-js to fail,
-  // see issue #242 on sphinx-js.
-  #searchTermParam = null;
 
   /**
    * Creates an EngineURL.
@@ -386,52 +385,10 @@ export class EngineURL {
     }
 
     this.templateHost = templateURI.host;
-
-    // It's possible that the search term parameter
-    // is part of the template.
-    let urlParms = new URLSearchParams(templateURI.query);
-    for (let [name, value] of urlParms.entries()) {
-      if (value == "{searchTerms}") {
-        this.#searchTermParam = name;
-      }
-    }
   }
 
   addParam(name, value, purpose) {
-    if (value == "{searchTerms}") {
-      this.searchTermParamName = name;
-      return;
-    }
     this.params.push(new QueryParameter(name, value, purpose));
-  }
-
-  /**
-   * Sets the name of the search term parameter and
-   * adds it to the list of query parameters.
-   *
-   * @param {string} name
-   *   The name of the parameter.
-   */
-  set searchTermParamName(name) {
-    if (this.#searchTermParam) {
-      lazy.logConsole.warn(
-        "set searchTermParamName: searchTermParamName was set twice."
-      );
-    }
-    this.params.push(new QueryParameter(name, "{searchTerms}"));
-    this.#searchTermParam = name;
-  }
-
-  /**
-   * Returns the name of the parameter used for the search term.
-   *
-   * @returns {string|null}
-   *   A string which is the name of the parameter, or null
-   *   if no parameter can be found or is not supported (e.g. POST,
-   *   or contained within the URL).
-   */
-  get searchTermParamName() {
-    return this.#searchTermParam;
   }
 
   /**
@@ -542,6 +499,24 @@ export class EngineURL {
     return new Submission(Services.io.newURI(url), postData);
   }
 
+  _getTermsParameterName() {
+    let searchTerms = "{" + USER_DEFINED + "}";
+    let paramName = this.params.find(p => p.value == searchTerms)?.name;
+    // Some query params might not be added to this.params
+    // in the engine construction process, so try checking the URL
+    // template for the existence of the query parameter value.
+    if (!paramName) {
+      let urlParms = new URL(this.template).searchParams;
+      for (let [name, value] of urlParms.entries()) {
+        if (value == searchTerms) {
+          paramName = name;
+          break;
+        }
+      }
+    }
+    return paramName ?? "";
+  }
+
   _hasRelation(rel) {
     return this.rels.some(e => e == rel.toLowerCase());
   }
@@ -621,6 +596,9 @@ export class SearchEngine {
   _definedAliases = [];
   // The urls associated with this engine.
   _urls = [];
+  // The query parameter name of the search url, cached in memory to avoid
+  // repeated look-ups.
+  _searchUrlQueryParamName = null;
   // The known public suffix of the search url, cached in memory to avoid
   // repeated look-ups.
   _searchUrlPublicSuffix = null;
@@ -1508,8 +1486,7 @@ export class SearchEngine {
       return "";
     }
 
-    let termsParameterName = this.searchUrlQueryParamName;
-
+    let termsParameterName = this.getURLParsingInfo().termsParameterName;
     if (!skipParamMatching) {
       for (let [name, value] of uriParams.entries()) {
         // Don't check the name matching the search
@@ -1544,10 +1521,29 @@ export class SearchEngine {
   }
 
   get searchUrlQueryParamName() {
-    return (
-      this._getURLOfType(lazy.SearchUtils.URL_TYPE.SEARCH)
-        .searchTermParamName || ""
+    if (this._searchUrlQueryParamName != null) {
+      return this._searchUrlQueryParamName;
+    }
+
+    let submission = this.getSubmission(
+      "{searchTerms}",
+      lazy.SearchUtils.URL_TYPE.SEARCH
     );
+
+    if (submission.postData) {
+      console.error("searchUrlQueryParamName can't handle POST urls.");
+      return (this._searchUrlQueryParamName = "");
+    }
+
+    let queryParams = new URLSearchParams(submission.uri.query);
+    let searchUrlQueryParamName = "";
+    for (let [key, value] of queryParams) {
+      if (value == "{searchTerms}") {
+        searchUrlQueryParamName = key;
+      }
+    }
+
+    return (this._searchUrlQueryParamName = searchUrlQueryParamName);
   }
 
   get searchUrlPublicSuffix() {
@@ -1593,7 +1589,7 @@ export class SearchEngine {
       return null;
     }
 
-    let termsParameterName = url.searchTermParamName;
+    let termsParameterName = url._getTermsParameterName();
     if (!termsParameterName) {
       return null;
     }
