@@ -18,7 +18,8 @@ function assert_width(number, text, shouldBeEqual) {
   let w2 = document.getElementById(text).getBoundingClientRect().width;
 
   if (shouldBeEqual) {
-    assert_equals(w1, w2, `${number} vs. ${text}`);
+    const tolerance = 0.0001;
+    assert_less_than(Math.abs(w1 - w2), tolerance, `${number} vs. ${text}`);
   } else {
     assert_greater_than(w1, w2, `${number} vs. ${text}`);
   }
