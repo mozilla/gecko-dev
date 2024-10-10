@@ -54,6 +54,8 @@ class AccessibleWrap : public LocalAccessible {
 
   virtual nsresult HandleAccEvent(AccEvent* aEvent) override;
 
+  static bool IsLiveRegion(nsIContent* aContent);
+
  protected:
   friend class xpcAccessibleMacInterface;
 

@@ -101,5 +101,10 @@ void DocAccessibleWrap::ProcessNewLiveRegions() {
 
 void DocAccessibleWrap::DoInitialUpdate() {
   DocAccessible::DoInitialUpdate();
+  if (IsLiveRegion(mDocumentNode->GetBodyElement())) {
+    // Check if this doc's body element is a live region
+    QueueNewLiveRegion(this);
+  }
+
   ProcessNewLiveRegions();
 }
