@@ -80,10 +80,7 @@ fun Dropdown(
     if (dropdownMenuTextWidth != null) {
         contextMenuWidth += dropdownMenuTextWidth
     } else {
-        val longestDropdownItemSize: Dp
-        dropdownItems.sortedWith(compareBy { it.title.length }).last().let {
-            longestDropdownItemSize = measureTextWidth(it.title, FirefoxTheme.typography.subtitle1)
-        }
+        val longestDropdownItemSize = getLongestItemWidth(dropdownItems, FirefoxTheme.typography.subtitle1)
         contextMenuWidth += longestDropdownItemSize
     }
 
@@ -172,17 +169,22 @@ fun Dropdown(
     }
 }
 
-/**
- * Measure the amount of [Dp] the given text in the given style will take up.
- *
- * @param text The text to measure the [Dp] of.
- * @param style The style that the text will use.
- */
 @Composable
-fun measureTextWidth(text: String, style: TextStyle): Dp {
-    val textMeasurer = rememberTextMeasurer()
-    val widthInPixels = textMeasurer.measure(text, style).size.width
-    return with(LocalDensity.current) { widthInPixels.toDp() }
+private fun getLongestItemWidth(items: List<MenuItem>, style: TextStyle): Dp {
+    if (items.isEmpty()) {
+        return 0.dp
+    }
+
+    val textMeasurer = rememberTextMeasurer(cacheSize = items.size)
+    val longestDropdownItemSize = items.maxOf {
+        val width = textMeasurer.measure(
+            text = it.title,
+            style = style,
+        ).size.width
+
+        with(LocalDensity.current) { width.toDp() }
+    }
+    return longestDropdownItemSize
 }
 
 @Suppress("MagicNumber")

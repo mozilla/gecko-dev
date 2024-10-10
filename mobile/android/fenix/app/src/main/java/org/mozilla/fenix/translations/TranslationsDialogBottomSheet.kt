@@ -23,10 +23,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -43,7 +46,6 @@ import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.button.TextButton
-import org.mozilla.fenix.compose.measureTextWidth
 import org.mozilla.fenix.theme.FirefoxTheme
 import java.util.Locale
 
@@ -295,13 +297,7 @@ private fun TranslationsDialogContent(
         translateFromLanguages?.let { addAll(it) }
     }
 
-    var longestLanguageSize: Dp = 0.dp
-    if (allLanguagesList.isNotEmpty()) {
-        allLanguagesList.sortedWith(compareBy { it.localizedDisplayName?.length })
-            .last().localizedDisplayName?.let {
-                longestLanguageSize = measureTextWidth(it, FirefoxTheme.typography.subtitle1)
-            }
-    }
+    val longestLanguageSize = getLongestLanguageWidth(allLanguagesList, FirefoxTheme.typography.subtitle1)
 
     when (LocalConfiguration.current.orientation) {
         Configuration.ORIENTATION_LANDSCAPE -> {
@@ -661,6 +657,18 @@ private fun TranslationsDialogActionButtons(
             }
         }
     }
+}
+
+@Composable
+private fun getLongestLanguageWidth(languages: List<Language>, style: TextStyle): Dp {
+    val textMeasurer = rememberTextMeasurer(cacheSize = languages.size)
+
+    val maxWidth = languages.mapNotNull { it.localizedDisplayName }
+        .maxOfOrNull { text ->
+            textMeasurer.measure(text = text, style = style).size.width
+        }
+
+    return with(LocalDensity.current) { maxWidth?.toDp() ?: 0.dp }
 }
 
 @Composable
