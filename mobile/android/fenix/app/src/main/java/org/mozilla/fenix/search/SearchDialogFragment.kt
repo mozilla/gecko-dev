@@ -856,7 +856,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                     qrButtonAction = IncreasedTapAreaActionDecorator(
                         BrowserToolbar.Button(
                             AppCompatResources.getDrawable(requireContext(), R.drawable.ic_qr)!!,
-                            requireContext().getString(R.string.search_scan_button),
+                            requireContext().getString(R.string.search_scan_button_2),
                             autoHide = { true },
                             listener = ::launchQr,
                         ),
