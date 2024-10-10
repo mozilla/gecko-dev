@@ -1197,7 +1197,7 @@ nsresult OpenOp::DatabaseWork() {
         }
 
         QM_TRY_RETURN(quotaManager->EnsureTemporaryOriginIsInitializedInternal(
-            mOriginMetadata));
+            mOriginMetadata, /* aCreateIfNonExistent */ true));
       }()
                   .map([](const auto& res) { return res.first; })));
 

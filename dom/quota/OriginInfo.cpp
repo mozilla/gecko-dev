@@ -173,4 +173,11 @@ void OriginInfo::LockedPersist() {
   mGroupInfo->mUsage -= mUsage;
 }
 
+void OriginInfo::LockedDirectoryCreated() {
+  AssertCurrentThreadOwnsQuotaMutex();
+  MOZ_ASSERT(!mDirectoryExists);
+
+  mDirectoryExists = true;
+}
+
 }  // namespace mozilla::dom::quota

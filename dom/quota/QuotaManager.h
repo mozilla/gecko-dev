@@ -158,36 +158,19 @@ class QuotaManager final : public BackgroundThreadObject {
   }
 
   /**
-   * For initialization of an origin where the directory already exists. This is
-   * used by EnsureTemporaryStorageIsInitializedInternal/InitializeRepository
-   * once it has tallied origin usage by calling each of the QuotaClient
-   * InitOrigin methods.
+   * For initialization of an origin where the directory either exists or it
+   * does not. The directory exists case is used by InitializeOrigin once it
+   * has tallied origin usage by calling each of the QuotaClient InitOrigin
+   * methods. It's also used by LoadQuota when quota information is available
+   * from the cache. EnsureTemporaryStorageIsInitializedInternal calls this
+   * either if the directory exists or it does not depending on requirements
+   * of a particular quota client. The special case when origin directory is
+   * not created during origin initialization is currently utilized only by
+   * LSNG.
    */
   void InitQuotaForOrigin(const FullOriginMetadata& aFullOriginMetadata,
                           const ClientUsageArray& aClientUsages,
-                          uint64_t aUsageBytes);
-
-  /**
-   * For use in special-cases like LSNG where we need to be able to know that
-   * there is no data stored for an origin. LSNG knows that there is 0 usage for
-   * its storage of an origin and wants to make sure there is a QuotaObject
-   * tracking this. This method will create a non-persisted, 0-usage,
-   * mDirectoryExists=false OriginInfo if there isn't already an OriginInfo. If
-   * an OriginInfo already exists, it will be left as-is, because that implies a
-   * different client has usages for the origin (and there's no need to add
-   * LSNG's 0 usage to the QuotaObject).
-   */
-  void EnsureQuotaForOrigin(const OriginMetadata& aOriginMetadata);
-
-  /**
-   * For use when creating an origin directory. It's possible that origin usage
-   * is already being tracked due to a call to EnsureQuotaForOrigin, and in that
-   * case we need to update the existing OriginInfo rather than create a new
-   * one.
-   *
-   * @return last access time of the origin.
-   */
-  int64_t NoteOriginDirectoryCreated(const OriginMetadata& aOriginMetadata);
+                          uint64_t aUsageBytes, bool aDirectoryExists = true);
 
   // XXX clients can use QuotaObject instead of calling this method directly.
   void DecreaseUsageForClient(const ClientMetadata& aClientMetadata,
@@ -219,6 +202,8 @@ class QuotaManager final : public BackgroundThreadObject {
 
   void UnloadQuota();
 
+  void RemoveOriginFromCache(const OriginMetadata& aOriginMetadata);
+
   already_AddRefed<QuotaObject> GetQuotaObject(
       PersistenceType aPersistenceType, const OriginMetadata& aOriginMetadata,
       Client::Type aClientType, nsIFile* aFile, int64_t aFileSize = -1,
@@ -236,6 +221,10 @@ class QuotaManager final : public BackgroundThreadObject {
 
   void PersistOrigin(const OriginMetadata& aOriginMetadata);
 
+  template <typename F>
+  auto WithOriginInfo(const OriginMetadata& aOriginMetadata, F aFunction)
+      -> std::invoke_result_t<F, const RefPtr<OriginInfo>&>;
+
   using DirectoryLockIdTableArray =
       AutoTArray<Client::DirectoryLockIdTable, Client::TYPE_MAX>;
   void AbortOperationsForLocks(const DirectoryLockIdTableArray& aLockIds);
@@ -249,6 +238,9 @@ class QuotaManager final : public BackgroundThreadObject {
 
   Result<bool, nsresult> DoesOriginDirectoryExist(
       const OriginMetadata& aOriginMetadata) const;
+
+  Result<nsCOMPtr<nsIFile>, nsresult> GetOrCreateTemporaryOriginDirectory(
+      const OriginMetadata& aOriginMetadata);
 
   static nsresult CreateDirectoryMetadata(
       nsIFile& aDirectory, int64_t aTimestamp,
@@ -334,6 +326,8 @@ class QuotaManager final : public BackgroundThreadObject {
   template <typename P>
   void CollectPendingOriginsForListing(P aPredicate);
 
+  bool IsPendingOrigin(const OriginMetadata& aOriginMetadata) const;
+
   RefPtr<BoolPromise> InitializeStorage();
 
   RefPtr<BoolPromise> InitializeStorage(
@@ -388,11 +382,12 @@ class QuotaManager final : public BackgroundThreadObject {
       const OriginMetadata& aOriginMetadata);
 
   RefPtr<BoolPromise> InitializeTemporaryOrigin(
-      PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo);
+      PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo,
+      bool aCreateIfNonExistent);
 
   RefPtr<BoolPromise> InitializeTemporaryOrigin(
       PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo,
-      RefPtr<UniversalDirectoryLock> aDirectoryLock);
+      bool aCreateIfNonExistent, RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   RefPtr<BoolPromise> TemporaryOriginInitialized(
       PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo);
@@ -407,7 +402,7 @@ class QuotaManager final : public BackgroundThreadObject {
   // indicating whether the directory was newly created.
   Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
   EnsureTemporaryOriginIsInitializedInternal(
-      const OriginMetadata& aOriginMetadata);
+      const OriginMetadata& aOriginMetadata, bool aCreateIfNonExistent);
 
   RefPtr<BoolPromise> InitializePersistentClient(
       const PrincipalInfo& aPrincipalInfo, Client::Type aClientType);

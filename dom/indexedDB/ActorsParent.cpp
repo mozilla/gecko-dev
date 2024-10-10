@@ -15264,7 +15264,7 @@ nsresult OpenDatabaseOp::DoDatabaseWork() {
         }
 
         QM_TRY_RETURN(quotaManager->EnsureTemporaryOriginIsInitializedInternal(
-            mOriginMetadata));
+            mOriginMetadata, /* aCreateIfNonExistent */ true));
       }()
                   .map([](const auto& res) { return res.first; })));
 
@@ -16850,7 +16850,7 @@ nsresult GetDatabasesOp::DoDatabaseWork() {
     }
 
     QM_TRY_RETURN(quotaManager->EnsureTemporaryOriginIsInitializedInternal(
-        mOriginMetadata));
+        mOriginMetadata, /* aCreateIfNonExistent */ true));
   }()
                      .map([](const auto& res) { return Ok{}; })));
 

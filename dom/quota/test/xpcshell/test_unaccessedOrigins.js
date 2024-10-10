@@ -85,7 +85,11 @@ async function testSteps() {
   info("Initializing origins");
 
   for (let index = 0; index < 30; index++) {
-    request = initTemporaryOrigin("default", getPrincipal(getOrigin(index)));
+    request = initTemporaryOrigin(
+      "default",
+      getPrincipal(getOrigin(index)),
+      /* createIfNonExistent */ true
+    );
     await requestFinished(request);
   }
 

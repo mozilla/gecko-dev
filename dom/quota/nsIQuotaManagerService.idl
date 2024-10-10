@@ -116,10 +116,15 @@ interface nsIQuotaManagerService : nsISupports
    *
    * @param aPrincipal
    *        A principal for the origin whose directory is to be initialized.
+   *
+   * @param aCreateIfNonExistent
+   *        An optional boolean to indicate creation of origin directory if it
+   *        doesn't exist yet.
    */
   [must_use] nsIQuotaRequest
   initializeTemporaryOrigin(in ACString aPersistenceType,
-                            in nsIPrincipal aPrincipal);
+                            in nsIPrincipal aPrincipal,
+                            [optional] in boolean aCreateIfNonExistent);
 
   /**
    * Initializes persistent client directory for the given origin and client.

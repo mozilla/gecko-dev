@@ -75,7 +75,12 @@ function* testSteps() {
   initTemporaryStorage(continueToNextStepSync);
   yield undefined;
 
-  initTemporaryOrigin(origin.persistence, principal, continueToNextStepSync);
+  initTemporaryOrigin(
+    origin.persistence,
+    principal,
+    /* createIfNonExistent */ true,
+    continueToNextStepSync
+  );
   yield undefined;
 
   info("Reading out contents of metadata file");

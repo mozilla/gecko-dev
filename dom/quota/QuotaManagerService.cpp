@@ -711,7 +711,7 @@ QuotaManagerService::InitializePersistentOrigin(nsIPrincipal* aPrincipal,
 NS_IMETHODIMP
 QuotaManagerService::InitializeTemporaryOrigin(
     const nsACString& aPersistenceType, nsIPrincipal* aPrincipal,
-    nsIQuotaRequest** _retval) {
+    bool aCreateIfNonExistent, nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(nsContentUtils::IsCallerChrome());
@@ -752,7 +752,8 @@ QuotaManagerService::InitializeTemporaryOrigin(
   auto request = MakeRefPtr<Request>();
 
   mBackgroundActor
-      ->SendInitializeTemporaryOrigin(persistenceType, principalInfo)
+      ->SendInitializeTemporaryOrigin(persistenceType, principalInfo,
+                                      aCreateIfNonExistent)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolResponsePromiseResolveOrRejectCallback(request));
 
