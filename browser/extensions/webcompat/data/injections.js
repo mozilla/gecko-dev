@@ -1190,6 +1190,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1886616",
+    platform: "all",
+    domain: "www.six-group.com",
+    bug: "1886616",
+    contentScripts: {
+      matches: ["*://www.six-group.com/*/market-data/etf/etf-explorer.html*"],
+      css: [
+        {
+          file: "injections/css/bug1886616-www.six-group.com-select-fix.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;

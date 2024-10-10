@@ -73,6 +73,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1849388-kucharkaprodceru.cz-scroll-fix.css",
     "injections/css/bug1868345-tvmovie.de-scroll-fix.css",
     "injections/css/bug1884842-foodora.cz-height-fix.css",
+    "injections/css/bug1886616-www.six-group.com-select-fix.css",
     "injections/css/bug1895994-softtrans.ro-unlock-scrolling.css",
     "injections/css/bug1896571-gracobaby.ca-unlock-scrolling.css",
 ]
