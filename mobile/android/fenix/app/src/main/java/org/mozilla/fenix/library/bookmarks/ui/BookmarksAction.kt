@@ -70,7 +70,8 @@ internal data object AddFolderClicked : BookmarksAction
 internal data object BackClicked : BookmarksAction
 internal data object SignIntoSyncClicked : BookmarksAction
 internal data class EditBookmarkClicked(val bookmark: BookmarkItem.Bookmark) : BookmarksAction
-internal data class ReceivedSyncUpdate(val signedIn: Boolean) : BookmarksAction
+internal data class ReceivedSyncSignInUpdate(val isSignedIn: Boolean) : BookmarksAction
+internal data object FirstSyncCompleted : BookmarksAction
 
 /**
  * Actions specific to the Add Folder screen.

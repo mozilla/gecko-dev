@@ -1116,6 +1116,23 @@ class BookmarksMiddlewareTest {
         verify(navController).navigate(BookmarksDestinations.SELECT_FOLDER)
     }
 
+    @Test
+    fun `WHEN first bookmarks sync is complete THEN reload the bookmarks list`() = runTestOnMain {
+        val syncedGuid = "sync"
+        val tree = generateBookmarkTree()
+        val afterSyncTree = tree.copy(children = tree.children?.plus(generateBookmark(guid = syncedGuid, "title", "url")))
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id))
+            .thenReturn(tree)
+            .thenReturn(afterSyncTree)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(FirstSyncCompleted)
+
+        assertTrue(store.state.bookmarkItems.any { it.guid == syncedGuid })
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         clipboardManager = clipboardManager,

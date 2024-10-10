@@ -273,6 +273,10 @@ internal class BookmarksMiddleware(
                     }
                 }
             }
+            is FirstSyncCompleted -> {
+                context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
+            }
+
             is InitEditLoaded,
             SnackbarAction.Undo,
             is OpenTabsConfirmationDialogAction.Present,
@@ -288,7 +292,7 @@ internal class BookmarksMiddleware(
             is SelectFolderAction.FoldersLoaded,
             is SelectFolderAction.ItemClicked,
             EditFolderAction.DeleteClicked,
-            is ReceivedSyncUpdate,
+            is ReceivedSyncSignInUpdate,
             -> Unit
         }
     }
