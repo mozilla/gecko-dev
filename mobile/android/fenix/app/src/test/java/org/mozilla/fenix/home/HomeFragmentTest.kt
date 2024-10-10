@@ -36,12 +36,14 @@ class HomeFragmentTest {
     private lateinit var context: Context
     private lateinit var core: Core
     private lateinit var homeFragment: HomeFragment
+    private lateinit var activity: HomeActivity
 
     @Before
     fun setup() {
         settings = mockk(relaxed = true)
         context = mockk(relaxed = true)
         core = mockk(relaxed = true)
+        activity = mockk(relaxed = true)
 
         val fenixApplication: FenixApplication = mockk(relaxed = true)
 
@@ -149,5 +151,75 @@ class HomeFragmentTest {
         homeFragment.initializeMicrosurveyFeature(isMicrosurveyEnabled = false)
 
         assertNull(homeFragment.messagingFeatureMicrosurvey.get())
+    }
+
+    @Test
+    fun `WHEN not default browser and prompt supported THEN promptToSetAsDefaultBrowser is called`() {
+        every { settings.setAsDefaultBrowserPromptForExistingUsersEnabled } returns true
+        every { settings.numberOfSetAsDefaultPromptShownTimes } returns 0
+        every { settings.lastSetAsDefaultPromptShownTimeInMillis } returns 0L
+        every { settings.coldStartsBetweenSetAsDefaultPrompts } returns 5
+
+        homeFragment.showSetAsDefaultBrowserPrompt()
+
+        verify { settings.setAsDefaultPromptCalled() }
+    }
+
+    @Test
+    fun `WHEN showSetAsDefaultBrowserPrompt is called GIVEN the conditions to show a prompt are not met THEN setAsDefaultPromptCalled is not called`() {
+        every { settings.setAsDefaultBrowserPromptForExistingUsersEnabled } returns false
+        every { settings.numberOfSetAsDefaultPromptShownTimes } returns 0
+        every { settings.lastSetAsDefaultPromptShownTimeInMillis } returns System.currentTimeMillis()
+        every { settings.coldStartsBetweenSetAsDefaultPrompts } returns 5
+
+        if (settings.shouldShowSetAsDefaultPrompt) {
+            homeFragment.showSetAsDefaultBrowserPrompt()
+        }
+
+        // Because we should not be showing the default browser prompt in this case
+        // showSetAsDefaultBrowserPrompt() is never called.
+        verify(exactly = 0) { homeFragment.showSetAsDefaultBrowserPrompt() }
+    }
+
+    @Test
+    fun `WHEN showSetAsDefaultBrowserPrompt is called GIVEN the prompt has been shown maximum times THEN setAsDefaultPromptCalled is not called`() {
+        every { settings.setAsDefaultBrowserPromptForExistingUsersEnabled } returns true
+        every { settings.numberOfSetAsDefaultPromptShownTimes } returns 3 // Maximum number of times the prompt can be shown based on the design criteria
+        every { settings.lastSetAsDefaultPromptShownTimeInMillis } returns 0L
+        every { settings.coldStartsBetweenSetAsDefaultPrompts } returns 5
+
+        if (settings.shouldShowSetAsDefaultPrompt) {
+            homeFragment.showSetAsDefaultBrowserPrompt()
+        }
+
+        verify(exactly = 0) { homeFragment.showSetAsDefaultBrowserPrompt() }
+    }
+
+    @Test
+    fun `WHEN showSetAsDefaultBrowserPrompt is called GIVEN the time since last prompt is too short THEN setAsDefaultPromptCalled is not called`() {
+        every { settings.setAsDefaultBrowserPromptForExistingUsersEnabled } returns true
+        every { settings.numberOfSetAsDefaultPromptShownTimes } returns 1
+        every { settings.lastSetAsDefaultPromptShownTimeInMillis } returns System.currentTimeMillis() - 1000
+        every { settings.coldStartsBetweenSetAsDefaultPrompts } returns 5
+
+        if (settings.shouldShowSetAsDefaultPrompt) {
+            homeFragment.showSetAsDefaultBrowserPrompt()
+        }
+
+        verify(exactly = 0) { homeFragment.showSetAsDefaultBrowserPrompt() }
+    }
+
+    @Test
+    fun `WHEN showSetAsDefaultBrowserPrompt is called GIVEN not enough cold starts THEN setAsDefaultPromptCalled is not called`() {
+        every { settings.setAsDefaultBrowserPromptForExistingUsersEnabled } returns true
+        every { settings.numberOfSetAsDefaultPromptShownTimes } returns 1
+        every { settings.lastSetAsDefaultPromptShownTimeInMillis } returns 0L
+        every { settings.coldStartsBetweenSetAsDefaultPrompts } returns 1
+
+        if (settings.shouldShowSetAsDefaultPrompt) {
+            homeFragment.showSetAsDefaultBrowserPrompt()
+        }
+
+        verify(exactly = 0) { homeFragment.showSetAsDefaultBrowserPrompt() }
     }
 }

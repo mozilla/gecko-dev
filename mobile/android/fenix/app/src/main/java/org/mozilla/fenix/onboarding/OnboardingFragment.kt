@@ -215,7 +215,8 @@ class OnboardingFragment : Fragment() {
         requireContext().settings().shouldShowNavigationBarCFR = false
     }
 
-    private fun isNotDefaultBrowser(context: Context) =
+    // Marked as internal since it is used in unit tests
+    internal fun isNotDefaultBrowser(context: Context) =
         !BrowsersCache.all(context.applicationContext).isDefaultBrowser
 
     private fun canShowNotificationPage(context: Context) =
