@@ -45,6 +45,8 @@ support-files = [
 
 ["browser_address_doorhanger_unsupported_region.js"]
 
+["browser_address_heuristics_autofill_name.js"]
+
 ["browser_address_telemetry.js"]
 
 ["browser_autofill_whenhidden.js"]
