@@ -11,11 +11,16 @@
 
 [package]
 name = "webrtc-sdp"
-version = "0.3.11"
+version = "0.3.13"
 authors = [
     "Nicolas Grunbaum <na-g+github@nostrum.com>",
     "Nils Ohlmeier <github@ohlmeier.org>",
 ]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "webrtc-sdp parses strings in the format of the Session Description Protocol according to RFC4566. It specifically supports the subset of features required to support WebRTC according to the JSEP draft."
 readme = "README.md"
 keywords = [
@@ -29,6 +34,18 @@ categories = [
 ]
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/webrtc-sdp"
+
+[lib]
+name = "webrtc_sdp"
+path = "src/lib.rs"
+
+[[example]]
+name = "file_parser"
+path = "examples/file_parser.rs"
+
+[[test]]
+name = "parse_sdp_tests"
+path = "tests/parse_sdp_tests.rs"
 
 [dependencies.log]
 version = "0.4"

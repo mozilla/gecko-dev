@@ -374,6 +374,23 @@ fn test_parse_attribute_fmtp() {
     check_parse_and_serialize(
         "fmtp:102 packetization-mode=1;sprop-parameter-sets=Z0LAFYyNQKD5APCIRqA=,aM48gA==",
     );
+    check_parse_and_serialize("fmtp:97 profile=2;level-idx=3;tier=1");
+}
+
+#[test]
+fn test_parse_attribute_framerate() {
+    let check_parse = make_check_parse!(f64, SdpAttribute::FrameRate);
+    let check_parse_and_serialize =
+        make_check_parse_and_serialize!(check_parse, SdpAttribute::FrameRate);
+
+    check_parse_and_serialize("framerate:1");
+    check_parse_and_serialize("framerate:60");
+    check_parse_and_serialize("framerate:23.5");
+    check_parse_and_serialize("framerate:4294967297");
+
+    assert!(parse_attribute("framerate:").is_err());
+    assert!(parse_attribute("framerate:abc").is_err());
+    assert!(parse_attribute("framerate:0").is_err());
 }
 
 #[test]

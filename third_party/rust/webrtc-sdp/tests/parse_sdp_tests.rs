@@ -781,3 +781,68 @@ a=ssrc:2673335628 label:b6ec5178-c611-403f-bbec-3833ed547c09\r\n";
     let parsed_sdp = webrtc_sdp::parse_sdp(sdp, true).unwrap();
     assert!(!parsed_sdp.to_string().contains("\r\n\r\n"));
 }
+
+#[test]
+fn serialize_av1_sdp_with_default_parameters() {
+    // Checks each parameter in turn to ensure that the serialized SDP contains
+    // only the parameter that was set.
+    let sdp = "v=0\r\n
+o=mozilla...THIS_IS_SDPARTA-55.0a1 983028567300715536 0 IN IP4 0.0.0.0\r\n
+s=-\r\n
+t=0 0\r\n
+a=fingerprint:sha-256 68:42:13:88:B6:C1:7D:18:79:07:8A:C6:DC:28:D6:DC:DD:E3:C9:41:E7:80:A7:FE:02:65:FB:76:A0:CD:58:ED\r\n
+a=ice-options:trickle\r\n
+a=msid-semantic:WMS *\r\n
+m=video 9 UDP/TLS/RTP/SAVPF 120 121 126 97\r\n
+c=IN IP4 0.0.0.0\r\n
+a=sendrecv\r\n
+a=extmap:1 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\r\n
+a=extmap:2 urn:ietf:params:rtp-hdrext:toffset\r\n
+a=extmap:3/sendonly urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id\r\n
+a=rtpmap:98 AV1/90000\r\n
+a=ice-pwd:4af388405d558b91f5ba6c2c48f161bf\r\n
+a=ice-ufrag:ce1ac488\r\n
+a=mid:sdparta_0\r\n
+a=msid:{fb6d1fa3-d993-f244-a0fe-d9fb99214c23} \r\n
+a=rtcp-fb:98 nack\r\n
+a=rtcp-fb:98 nack pli\r\n
+a=rtcp-fb:98 ccm fir\r\n
+a=rtcp-fb:98 goog-remb\r\n
+a=rtcp-mux\r\n
+a=setup:actpass\r\n
+a=ssrc:1649784806 cname:{77067f00-2e8d-8b4c-8992-cfe338f56851}\r\n";
+
+    let parameters = ["profile", "level-idx", "tier"];
+    for param in &parameters {
+        // Check that the parameter is not present in the original SDP.
+        assert!(!sdp.contains(format!("{param}=").as_str()));
+        // Add the parameter to the SDP and parse it.
+        let sdp_with_param = format!("{sdp}a=fmtp:98 {param}=0\r\n");
+        let sdp_res = webrtc_sdp::parse_sdp(sdp_with_param.as_str(), true);
+        assert!(sdp_res.is_ok(), "Failed to parse AV1 SDP: {:?}", sdp_res);
+        let sdp_opt = sdp_res.ok();
+        assert!(sdp_opt.is_some());
+        let sdp = sdp_opt.unwrap();
+        assert_eq!(sdp.version, 0);
+        assert_eq!(sdp.media.len(), 1);
+        let reserialized = sdp.to_string();
+        match *param {
+            "profile" => {
+                assert!(reserialized.contains("profile=0"));
+                assert!(!reserialized.contains("level-idx="));
+                assert!(!reserialized.contains("tier="));
+            }
+            "level-idx" => {
+                assert!(reserialized.contains("level-idx=0"));
+                assert!(!reserialized.contains("profile="));
+                assert!(!reserialized.contains("tier="));
+            }
+            "tier" => {
+                assert!(reserialized.contains("tier=0"));
+                assert!(!reserialized.contains("profile="));
+                assert!(!reserialized.contains("level-idx="));
+            }
+            _ => panic!("Unknown parameter: {}", param),
+        }
+    }
+}
