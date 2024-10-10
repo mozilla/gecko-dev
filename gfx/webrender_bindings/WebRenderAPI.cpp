@@ -179,6 +179,8 @@ class NewRenderer : public RendererEvent {
     aRenderThread.AddRenderer(aWindowId, std::move(renderer));
   }
 
+  const char* Name() override { return "NewRenderer"; }
+
  private:
   wr::DocumentHandle** mDocHandle;
   WebRenderBackend* mBackend;
@@ -209,6 +211,8 @@ class RemoveRenderer : public RendererEvent {
     aRenderThread.RemoveRenderer(aWindowId);
     layers::AutoCompleteTask complete(mTask);
   }
+
+  const char* Name() override { return "RemoveRenderer"; }
 
  private:
   layers::SynchronousTask* mTask;
@@ -703,6 +707,9 @@ void WebRenderAPI::Readback(const TimeStamp& aStartTime, gfx::IntSize size,
       layers::AutoCompleteTask complete(mTask);
     }
 
+    const char* Name() override { return "Readback"; }
+
+   private:
     layers::SynchronousTask* mTask;
     TimeStamp mStartTime;
     gfx::IntSize mSize;
@@ -772,6 +779,9 @@ void WebRenderAPI::Pause() {
       layers::AutoCompleteTask complete(mTask);
     }
 
+    const char* Name() override { return "PauseEvent"; }
+
+   private:
     layers::SynchronousTask* mTask;
   };
 
@@ -797,6 +807,9 @@ bool WebRenderAPI::Resume() {
       layers::AutoCompleteTask complete(mTask);
     }
 
+    const char* Name() override { return "ResumeEvent"; }
+
+   private:
     layers::SynchronousTask* mTask;
     bool* mResult;
   };
@@ -838,6 +851,9 @@ void WebRenderAPI::WaitFlushed() {
       layers::AutoCompleteTask complete(mTask);
     }
 
+    const char* Name() override { return "WaitFlushedEvent"; }
+
+   private:
     layers::SynchronousTask* mTask;
   };
 
@@ -896,6 +912,8 @@ void WebRenderAPI::BeginRecording(const TimeStamp& aRecordingStart,
                                             mRootPipelineId);
     }
 
+    const char* Name() override { return "BeginRecordingEvent"; }
+
    private:
     TimeStamp mRecordingStart;
     wr::PipelineId mRootPipelineId;
@@ -927,6 +945,8 @@ RefPtr<WebRenderAPI::EndRecordingPromise> WebRenderAPI::EndRecording() {
     RefPtr<WebRenderAPI::EndRecordingPromise> GetPromise() {
       return mPromise.Ensure(__func__);
     }
+
+    const char* Name() override { return "EndRecordingEvent"; }
 
    private:
     MozPromiseHolder<WebRenderAPI::EndRecordingPromise> mPromise;
@@ -1087,6 +1107,8 @@ class FrameStartTime : public RendererEvent {
       renderer->SetFrameStartTime(mTime);
     }
   }
+
+  const char* Name() override { return "FrameStartTime"; }
 
  private:
   TimeStamp mTime;
