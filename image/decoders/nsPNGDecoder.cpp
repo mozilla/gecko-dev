@@ -664,10 +664,13 @@ void nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr) {
     uint32_t profileSpace = qcms_profile_get_color_space(decoder->mInProfile);
     decoder->mUsePipeTransform = profileSpace != icSigGrayData;
     if (decoder->mUsePipeTransform) {
-      // If the transform happens with SurfacePipe, it will be in RGBA if we
-      // have an alpha channel, because the swizzle and premultiplication
-      // happens after color management. Otherwise it will be in BGRA because
-      // the swizzle happens at the start.
+      // libpng outputs data in RGBA order and we want our final output to be
+      // BGRA order. SurfacePipe takes care of this for us but unfortunately the
+      // swizzle to change the order can happen before or after color management
+      // depending on if we have alpha. If we have alpha then the order will be
+      // color management then swizzle. If we do not have alpha then the order
+      // will be swizzle then color management. See CreateSurfacePipe
+      // https://searchfox.org/mozilla-central/rev/7d6651d29c5c1620bc059f879a3e9bbfb53f271f/image/SurfacePipeFactory.h#133-145
       if (transparency == TransparencyType::eAlpha) {
         inType = QCMS_DATA_RGBA_8;
         outType = QCMS_DATA_RGBA_8;
@@ -676,6 +679,7 @@ void nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr) {
         outType = inType;
       }
     } else {
+      // qcms operates on the data before we hand it to SurfacePipe.
       if (color_type & PNG_COLOR_MASK_ALPHA) {
         inType = QCMS_DATA_GRAYA_8;
         outType = gfxPlatform::GetCMSOSRGBAType();
@@ -690,10 +694,8 @@ void nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr) {
                                                 outType, (qcms_intent)intent);
   } else if ((sRGBTag && decoder->mCMSMode == CMSMode::TaggedOnly) ||
              decoder->mCMSMode == CMSMode::All) {
-    // If the transform happens with SurfacePipe, it will be in RGBA if we
-    // have an alpha channel, because the swizzle and premultiplication
-    // happens after color management. Otherwise it will be in OS_RGBA because
-    // the swizzle happens at the start.
+    // See comment above about SurfacePipe, color management and ordering.
+    decoder->mUsePipeTransform = true;
     if (transparency == TransparencyType::eAlpha) {
       decoder->mTransform =
           decoder->GetCMSsRGBTransform(SurfaceFormat::R8G8B8A8);
@@ -701,7 +703,6 @@ void nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr) {
       decoder->mTransform =
           decoder->GetCMSsRGBTransform(SurfaceFormat::OS_RGBA);
     }
-    decoder->mUsePipeTransform = true;
   }
 
 #ifdef PNG_APNG_SUPPORTED
