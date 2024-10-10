@@ -14,6 +14,8 @@
 
 class ProxiedConnection;
 
+typedef void (*CompositorCrashHandler)();
+
 class WaylandProxy {
  public:
   static std::unique_ptr<WaylandProxy> Create();
@@ -30,6 +32,8 @@ class WaylandProxy {
   void RestoreWaylandDisplay();
 
   static void SetVerbose(bool aVerbose);
+  static void SetCompositorCrashHandler(CompositorCrashHandler aCrashHandler);
+  static void CompositorCrashed();
 
   ~WaylandProxy();
 
@@ -53,6 +57,8 @@ class WaylandProxy {
   void Error(const char* aOperation);
   void ErrorPlain(const char* aFormat, ...);
 
+  void CheckCompositor();
+
  private:
   // List of all Compositor <-> Application connections
   std::vector<std::unique_ptr<ProxiedConnection>> mConnections;
@@ -67,6 +73,8 @@ class WaylandProxy {
   char mWaylandDisplay[sMaxDisplayNameLen];
   // Name of Wayland display provided by us
   char mWaylandProxy[sMaxDisplayNameLen];
+
+  static CompositorCrashHandler sCompositorCrashHandler;
 };
 
 #endif  // _wayland_proxy_h_
