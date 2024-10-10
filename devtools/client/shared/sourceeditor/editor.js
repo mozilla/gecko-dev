@@ -2237,10 +2237,15 @@ class Editor extends EventEmitter {
    * re-detect indentation if we should.
    */
   resetIndentUnit() {
+    if (this.isDestroyed()) {
+      return;
+    }
     const cm = editors.get(this);
-
     const iterFn = (start, maxEnd, callback) => {
       if (!this.config.cm6) {
+        if (this.isDestroyed()) {
+          return;
+        }
         cm.eachLine(start, maxEnd, line => {
           return callback(line.text);
         });
@@ -3276,7 +3281,7 @@ class Editor extends EventEmitter {
   }
 
   isDestroyed() {
-    return !editors.get(this);
+    return !this.config || !editors.get(this);
   }
 
   destroy() {
@@ -3313,6 +3318,10 @@ class Editor extends EventEmitter {
       cm.doc.cm = null;
     }
 
+    // Destroy the CM6 view
+    if (cm?.destroy) {
+      cm.destroy();
+    }
     this.emit("destroy");
   }
 
