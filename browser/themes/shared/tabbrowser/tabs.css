@@ -21,6 +21,7 @@
   --tab-pinned-container-margin-inline-expanded: var(--space-small);
   --tab-border-radius: 4px;
   --tab-overflow-clip-margin: 2px;
+  --tab-close-button-padding: 6px;
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
   --tab-icon-end-margin: 5.5px;
@@ -555,7 +556,7 @@
   margin-inline-end: calc(var(--tab-inline-padding) / -2);
   width: 24px;
   height: 24px;
-  padding: 6px;
+  padding: var(--tab-close-button-padding);
   border-radius: var(--tab-border-radius);
   list-style-image: url(chrome://global/skin/icons/close-12.svg);
 
@@ -1095,6 +1096,10 @@ tab-group {
     border-radius: var(--border-radius-medium);
     margin-inline: var(--tab-inner-inline-margin);
     height: var(--tab-min-height);
+  }
+
+  .tab-close-button {
+    margin-inline-end: calc(-1 * var(--tab-close-button-padding));
   }
 
   &:not([expanded]) {
