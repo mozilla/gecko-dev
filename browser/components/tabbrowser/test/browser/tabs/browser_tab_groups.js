@@ -674,8 +674,16 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
         "group2 menu item has correct label"
       );
       Assert.ok(
-        group2Item.getAttribute("image").includes('fill="blue"'),
+        group2Item.style
+          .getPropertyValue("--tab-group-color")
+          .includes("--tab-group-color-blue"),
         "group2 menu item chicklet has correct color"
+      );
+      Assert.ok(
+        group2Item.style
+          .getPropertyValue("--tab-group-color-invert")
+          .includes("--tab-group-color-blue-invert"),
+        "group2 menu item chicklet has correct inverted color"
       );
 
       const group1Item = submenu[2];
@@ -690,8 +698,16 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
         "group1 menu item has correct label"
       );
       Assert.ok(
-        group1Item.getAttribute("image").includes('fill="red"'),
+        group1Item.style
+          .getPropertyValue("--tab-group-color")
+          .includes("--tab-group-color-red"),
         "group1 menu item chicklet has correct color"
+      );
+      Assert.ok(
+        group1Item.style
+          .getPropertyValue("--tab-group-color-invert")
+          .includes("--tab-group-color-red-invert"),
+        "group1 menu item chicklet has correct inverted color"
       );
     }
   );
