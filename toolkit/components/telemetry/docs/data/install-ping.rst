@@ -211,6 +211,9 @@ ping_version (stub)
 silent (full)
   True if the install was silent (see :ref:`Full Installer Configuration`)
 
+windows_ubr (both)
+  The Windows Update Build Revision of the installation device.
+
 ---------
 Footnotes
 ---------

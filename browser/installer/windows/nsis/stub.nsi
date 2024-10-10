@@ -67,6 +67,7 @@ Var EndFinishPhaseTickCount
 
 Var DistributionID
 Var DistributionVersion
+Var WindowsUBR
 
 Var InitialInstallRequirementsCode
 Var ExistingProfile
@@ -1054,6 +1055,11 @@ Function SendPing
       StrCpy $DistributionVersion "0"
     ${EndIf}
 
+    ; Capture the Windows UBR
+    ReadRegDWORD $WindowsUBR HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "UBR"
+    ${If} ${Errors}
+      StrCpy $WindowsUBR "-1" ; Assign -1 if an error occured during registry read
+
     ; Whether installed into the default installation directory
     ${GetLongPath} "$INSTDIR" $R7
     ${GetLongPath} "$InitialInstallDir" $R8
@@ -1164,14 +1170,15 @@ Function SendPing
                       $\nProfile cleanup prompt shown = $ProfileCleanupPromptType \
                       $\nDid profile cleanup = $CheckboxCleanupProfile \
                       $\nDistribution ID = $DistributionID \
-                      $\nDistribution Version = $DistributionVersion"
+                      $\nDistribution Version = $DistributionVersion \
+                      $\nWindows UBR = $WindowsUBR"
     ; The following will exit the installer
     SetAutoClose true
     StrCpy $R9 "2"
     Call RelativeGotoPage
 !else
     ${StartTimer} ${DownloadIntervalMS} OnPing
-    InetBgDL::Get "${BaseURLStubPing}/${StubURLVersion}${StubURLVersionAppend}/${Channel}/${UpdateChannel}/${AB_CD}/$R0/$R1/$5/$6/$7/$8/$9/$ExitCode/$FirefoxLaunchCode/$DownloadRetryCount/$DownloadedBytes/$DownloadSizeBytes/$IntroPhaseSeconds/$OptionsPhaseSeconds/$0/$1/$DownloadFirstTransferSeconds/$2/$3/$4/$InitialInstallRequirementsCode/$OpenedDownloadPage/$ExistingProfile/$ExistingVersion/$ExistingBuildID/$R5/$R6/$R7/$R8/$R2/$R3/$DownloadServerIP/$PostSigningData/$ProfileCleanupPromptType/$CheckboxCleanupProfile/$DistributionID/$DistributionVersion" \
+    InetBgDL::Get "${BaseURLStubPing}/${StubURLVersion}${StubURLVersionAppend}/${Channel}/${UpdateChannel}/${AB_CD}/$R0/$R1/$5/$6/$7/$8/$9/$ExitCode/$FirefoxLaunchCode/$DownloadRetryCount/$DownloadedBytes/$DownloadSizeBytes/$IntroPhaseSeconds/$OptionsPhaseSeconds/$0/$1/$DownloadFirstTransferSeconds/$2/$3/$4/$InitialInstallRequirementsCode/$OpenedDownloadPage/$ExistingProfile/$ExistingVersion/$ExistingBuildID/$R5/$R6/$R7/$R8/$R2/$R3/$DownloadServerIP/$PostSigningData/$ProfileCleanupPromptType/$CheckboxCleanupProfile/$DistributionID/$DistributionVersion/$WindowsUBR" \
                   "$PLUGINSDIR\_temp" /END
 !endif
   ${Else}
