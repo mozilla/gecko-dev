@@ -18,7 +18,7 @@ script_executable = "python3"
 # The secondary source root is a parallel directory tree where
 # GN build files are placed when they can not be placed directly
 # in the source tree, e.g. for third party source trees.
-secondary_source = "//build/secondary/"
+secondary_source = "//libwebrtc/"
 
 # These are the targets to skip header checking by default. The files in targets
 # matching these patterns (see "gn help label_pattern" for format) will not have
@@ -36,7 +36,7 @@ no_check_targets = [
 # to force additional review for new uses of exec_script, which is strongly
 # discouraged except for gypi_to_gn calls.
 exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
-                        [ "//build_overrides/build.gni" ]
+                        [ "//libwebrtc/build_overrides/build.gni" ]
 
 # Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
 # available yet.

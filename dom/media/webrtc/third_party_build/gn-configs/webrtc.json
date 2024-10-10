@@ -1,5 +1,8 @@
 {
-  "target_dir": "third_party/libwebrtc",
+  "build_root_dir": "third_party",
+  "target_dir": "libwebrtc",
+  "preprocessing_script": "dom/media/webrtc/third_party_build/gn-configs/webrtc_preprocessor.py",
+  "moz_build_flag": "build_mozilla_webrtc",
   "gn_target": "//:webrtc",
   "gn_sandbox_variables": {
     "COMPILE_FLAGS": {

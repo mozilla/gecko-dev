@@ -1,0 +1,5 @@
+build_with_chromium = false
+ignore_elf32_limitations = true
+enable_java_templates = true
+use_system_xcode = false
+xcode_version = "10.15"
