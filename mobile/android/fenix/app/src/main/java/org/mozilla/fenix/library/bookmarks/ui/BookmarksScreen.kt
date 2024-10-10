@@ -1300,8 +1300,8 @@ private fun SelectFolderPreview() {
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksEditFolderState = null,
             bookmarksSelectFolderState = BookmarksSelectFolderState(
-                selectionGuid = null,
-                folderSelectionGuid = "guid1",
+                outerSelectionGuid = "",
+                innerSelectionGuid = "guid1",
                 folders = listOf(
                     SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0")),
                     SelectFolderItem(1, BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id)),
