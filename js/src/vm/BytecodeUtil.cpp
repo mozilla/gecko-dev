@@ -1925,7 +1925,7 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
 #if defined(DEBUG) || defined(JS_JITSPEW)
       // BigInt::dumpLiteral() only available in this configuration.
       script->getBigInt(pc)->dumpLiteral(sprinter);
-      return !sprinter.hadOutOfMemory();
+      return true;
 #else
       return write("[bigint]");
 #endif
@@ -2843,11 +2843,6 @@ static bool GetPCCountJSON(JSContext* cx, const ScriptAndCounts& sac,
   }
 
   json.endObject();
-
-  if (sp.hadOutOfMemory()) {
-    sp.reportOutOfMemory();
-    return false;
-  }
 
   return true;
 }
