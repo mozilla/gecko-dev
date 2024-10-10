@@ -15,14 +15,14 @@ add_task(async function () {
   invokeInTab("testModel");
   await waitForPaused(dbg, "long.js");
   // Some spurious scroll may happen late related to text content *and* late fetching of symbols
-  await waitForScrolling(getCM(dbg));
+  await waitForScrolling(dbg);
 
-  const pauseScrollTop = getScrollTop(dbg);
+  ok(isScrolledPositionVisible(dbg, 66), "The paused line is visible");
 
   info("1. adding a breakpoint should not scroll the editor");
-  getCM(dbg).scrollTo(0, 0);
+  await scrollEditorIntoView(dbg, 0, 0);
   await addBreakpoint(dbg, longSrc, 11);
-  is(getScrollTop(dbg), 0, "scroll position");
+  ok(isScrolledPositionVisible(dbg, 0), "scroll position");
 
   info("2. searching should jump to the match");
   pressKey(dbg, "fileSearch");
@@ -45,10 +45,12 @@ add_task(async function () {
     "The column of first check occurence in long.js is selected (this is zero-based)"
   );
 
-  const matchScrollTop = getScrollTop(dbg);
-  Assert.notEqual(pauseScrollTop, matchScrollTop, "did not jump to debug line");
+  ok(
+    !isScrolledPositionVisible(dbg, 66),
+    "The paused line is no longer visible"
+  );
+  ok(
+    isScrolledPositionVisible(dbg, 26),
+    "The line with the text match is now visible"
+  );
 });
-
-function getScrollTop(dbg) {
-  return getCM(dbg).doc.scrollTop;
-}

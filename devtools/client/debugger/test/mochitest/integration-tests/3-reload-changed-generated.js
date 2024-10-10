@@ -150,7 +150,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
   await selectSource(dbg, "bundle-with-another-original.js");
   // This scrolls the line into view so the content
   // on the line is rendered and avaliable for dom querying.
-  getCM(dbg).scrollIntoView({ line: 103, ch: 0 });
+  await scrollEditorIntoView(dbg, 103, 0);
 
   if (isCompressed) {
     await assertBreakpoint(dbg, 1);

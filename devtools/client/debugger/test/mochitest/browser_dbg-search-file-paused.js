@@ -40,8 +40,7 @@ add_task(async function () {
 
   // Ensure that the debug line is in view, and not the first "bar" instance,
   // which the user would have to scroll down for
-  const { top } = cm.getScrollInfo();
-  is(top, 0, "First search term is not in view");
+  ok(isScrolledPositionVisible(dbg, 0), "First search term is not in view");
 
   // Change the search term and go back to the first source in stack
   info("Switching to paused file via frame click");

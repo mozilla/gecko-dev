@@ -10,10 +10,12 @@ add_task(async function () {
   const dbg = await initDebugger("doc-scripts.html", "long.js");
 
   await selectSource(dbg, "long.js");
-  getCM(dbg).scrollTo(0, 284);
+
+  await scrollEditorIntoView(dbg, 20, 0);
+  ok(isScrolledPositionVisible(dbg, 20), "Editor is scrolled");
 
   pressKey(dbg, "inspector");
   pressKey(dbg, "debugger");
 
-  is(getCM(dbg).getScrollInfo().top, 284);
+  ok(isScrolledPositionVisible(dbg, 20), "Editor is still scrolled");
 });

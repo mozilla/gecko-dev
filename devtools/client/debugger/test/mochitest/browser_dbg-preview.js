@@ -262,10 +262,7 @@ async function testMovingFromATokenToAnother(dbg) {
 
   info("Hover token `Foo` in `Foo.#privateStatic` expression");
   const fooTokenEl = getTokenElAtLine(dbg, "Foo", 50, 44);
-  const cm = getCM(dbg);
-  const onScrolled = waitForScrolling(cm);
-  cm.scrollIntoView({ line: 49, ch: 0 }, 0);
-  await onScrolled;
+  await scrollEditorIntoView(dbg, 49, 0);
   const { element: fooPopupEl } = await tryHoverToken(dbg, fooTokenEl, "popup");
   ok(!!fooPopupEl, "popup is displayed");
   ok(

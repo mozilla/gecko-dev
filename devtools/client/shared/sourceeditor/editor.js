@@ -12,6 +12,7 @@ const {
 } = require("resource://devtools/shared/indentation.js");
 
 const { debounce } = require("resource://devtools/shared/debounce.js");
+const nodeConstants = require("resource://devtools/shared/dom-node-constants.js");
 
 const ENABLE_CODE_FOLDING = "devtools.editor.enableCodeFolding";
 const KEYMAP_PREF = "devtools.editor.keymap";
@@ -706,7 +707,7 @@ class Editor extends EventEmitter {
 
     // Track the scroll snapshot for the current document at the end of the scroll
     this.#editorDOMEventHandlers.scroll = [
-      debounce(this.cacheScrollSnapshot, 250),
+      debounce(this.#cacheScrollSnapshot, 250),
     ];
 
     const extensions = [
@@ -1076,12 +1077,13 @@ class Editor extends EventEmitter {
     });
   }
 
-  cacheScrollSnapshot = () => {
+  #cacheScrollSnapshot = () => {
     const cm = editors.get(this);
-    if (this.#currentDocumentId) {
+    if (!this.#currentDocumentId) {
       return;
     }
     this.#scrollSnapshots.set(this.#currentDocumentId, cm.scrollSnapshot());
+    this.emitForTests("cm-editor-scrolled");
   };
 
   /**
@@ -2153,6 +2155,11 @@ class Editor extends EventEmitter {
 
       if (documentId) {
         this.#currentDocumentId = documentId;
+        // If there is no scroll snapshot explicitly cache the snapshot set as no scroll
+        // is triggered.
+        if (!scrollSnapshot) {
+          this.#cacheScrollSnapshot();
+        }
       }
     } else {
       cm.setValue(value);
@@ -2938,14 +2945,33 @@ class Editor extends EventEmitter {
   }
 
   /**
+   * Gets the element at the specified codemirror offset
+   * @param {Number} offset
+   * @return {Element|null}
+   */
+  #getElementAtOffset(offset) {
+    const cm = editors.get(this);
+    const el = cm.domAtPos(offset).node;
+    if (!el) {
+      return null;
+    }
+    // Text nodes do not have offset* properties, so lets use its
+    // parent element;
+    if (el.nodeType == nodeConstants.TEXT_NODE) {
+      return el.parentElement;
+    }
+    return el;
+  }
+
+  /**
    * This checks if the specified position (line/column) is within the current viewport
    * bounds. it helps determine if scrolling should happen.
-   * @param {Object} cm - The codemirror instance
    * @param {Number} line - The line in the source
    * @param {Number} column - The column in the source
    * @returns {Boolean}
    */
-  #isPositionVisible(cm, line, column) {
+  isPositionVisible(line, column) {
+    const cm = editors.get(this);
     let inXView, inYView;
 
     function withinBounds(x, min, max) {
@@ -2954,7 +2980,10 @@ class Editor extends EventEmitter {
 
     if (this.config.cm6) {
       const pos = this.#posToOffset(cm.state.doc, line, column);
-      const coords = pos && cm.coordsAtPos(pos);
+      if (pos == null) {
+        return false;
+      }
+      const coords = cm.coordsAtPos(pos);
       if (!coords) {
         return false;
       }
@@ -3043,7 +3072,7 @@ class Editor extends EventEmitter {
     const {
       codemirrorView: { EditorView },
     } = this.#CodeMirror6;
-    cm.dispatch({
+    return cm.dispatch({
       effects: EditorView.scrollIntoView(position, {
         x: "nearest",
         y: "center",
@@ -3057,15 +3086,18 @@ class Editor extends EventEmitter {
    * @param {Number} column - The column in the source
    */
   scrollTo(line, column) {
+    if (this.isDestroyed()) {
+      return;
+    }
     const cm = editors.get(this);
     if (this.config.cm6) {
       const {
         codemirrorView: { EditorView },
       } = this.#CodeMirror6;
 
-      if (!this.#isPositionVisible(cm, line, column)) {
+      if (!this.isPositionVisible(line, column)) {
         const offset = this.#posToOffset(cm.state.doc, line, column);
-        if (!offset) {
+        if (offset == null) {
           return;
         }
         cm.dispatch({
@@ -3085,7 +3117,7 @@ class Editor extends EventEmitter {
 
       const { top, left } = cm.charCoords({ line, ch: column }, "local");
 
-      if (!this.#isPositionVisible(cm, line, column)) {
+      if (!this.isPositionVisible(line, column)) {
         const scroller = cm.getScrollerElement();
         const centeredX = Math.max(left - scroller.offsetWidth / 2, 0);
         const centeredY = Math.max(top - scroller.offsetHeight / 2, 0);
@@ -3129,6 +3161,13 @@ class Editor extends EventEmitter {
       return !!this.searchState.cursors;
     }
     return !!cm.state.search;
+  }
+
+  // Only used for CM6
+  getElementAtPos(line, column) {
+    const offset = this.#posToOffset(line, column);
+    const el = this.#getElementAtOffset(offset);
+    return el;
   }
 
   // Used only in tests
