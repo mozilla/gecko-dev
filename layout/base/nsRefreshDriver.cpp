@@ -767,8 +767,6 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
       uint32_t sample = (uint32_t)vsyncLatency.ToMilliseconds();
       Telemetry::Accumulate(Telemetry::FX_REFRESH_DRIVER_CHROME_FRAME_DELAY_MS,
                             sample);
-      Telemetry::Accumulate(
-          Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS, sample);
     } else if (mVsyncRate != TimeDuration::Forever()) {
       TimeDuration contentDelay =
           (TimeStamp::Now() - mLastTickStart) - mVsyncRate;
@@ -781,8 +779,6 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
       uint32_t sample = (uint32_t)contentDelay.ToMilliseconds();
       Telemetry::Accumulate(Telemetry::FX_REFRESH_DRIVER_CONTENT_FRAME_DELAY_MS,
                             sample);
-      Telemetry::Accumulate(
-          Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS, sample);
     } else {
       // Request the vsync rate which VsyncChild stored the last time it got a
       // vsync notification.

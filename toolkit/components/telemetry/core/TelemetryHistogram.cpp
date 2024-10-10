@@ -339,8 +339,6 @@ namespace {
 
 // List of histogram IDs which should have recording disabled initially.
 const HistogramID kRecordingInitiallyDisabledIDs[] = {
-    mozilla::Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS,
-
     // The array must not be empty. Leave these item here.
     mozilla::Telemetry::TELEMETRY_TEST_COUNT_INIT_NO_RECORD,
     mozilla::Telemetry::TELEMETRY_TEST_KEYED_COUNT_INIT_NO_RECORD};

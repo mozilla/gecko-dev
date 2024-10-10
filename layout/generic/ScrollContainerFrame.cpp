@@ -63,7 +63,6 @@
 #include "mozilla/dom/BrowserChild.h"
 #include <stdint.h>
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/Telemetry.h"
 #include "nsSubDocumentFrame.h"
 #include "mozilla/Attributes.h"
 #include "ScrollbarActivity.h"
@@ -1925,10 +1924,7 @@ class ScrollContainerFrame::AsyncSmoothMSDScroll final
         mCallee(nullptr),
         mOneDevicePixelInAppUnits(aPresContext->DevPixelsToAppUnits(1)),
         mSnapTargetIds(std::move(aSnapTargetIds)),
-        mTriggeredByScript(aTriggeredByScript) {
-    Telemetry::SetHistogramRecordingEnabled(
-        Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS, true);
-  }
+        mTriggeredByScript(aTriggeredByScript) {}
 
   NS_INLINE_DECL_REFCOUNTING(AsyncSmoothMSDScroll, override)
 
@@ -2033,11 +2029,7 @@ class ScrollContainerFrame::AsyncSmoothMSDScroll final
 
  private:
   // Private destructor, to discourage deletion outside of Release():
-  ~AsyncSmoothMSDScroll() {
-    RemoveObserver();
-    Telemetry::SetHistogramRecordingEnabled(
-        Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS, false);
-  }
+  ~AsyncSmoothMSDScroll() { RemoveObserver(); }
 
   nsRefreshDriver* RefreshDriver(ScrollContainerFrame* aCallee) {
     return aCallee->PresContext()->RefreshDriver();
@@ -2064,18 +2056,11 @@ class ScrollContainerFrame::AsyncScroll final : public nsARefreshObserver {
       : mOrigin(ScrollOrigin::NotSpecified),
         mCallee(nullptr),
         mSnapTargetIds(std::move(aSnapTargetIds)),
-        mTriggeredByScript(aTriggeredByScript) {
-    Telemetry::SetHistogramRecordingEnabled(
-        Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS, true);
-  }
+        mTriggeredByScript(aTriggeredByScript) {}
 
  private:
   // Private destructor, to discourage deletion outside of Release():
-  ~AsyncScroll() {
-    RemoveObserver();
-    Telemetry::SetHistogramRecordingEnabled(
-        Telemetry::FX_REFRESH_DRIVER_SYNC_SCROLL_FRAME_DELAY_MS, false);
-  }
+  ~AsyncScroll() { RemoveObserver(); }
 
  public:
   void InitSmoothScroll(TimeStamp aTime, nsPoint aInitialPosition,
