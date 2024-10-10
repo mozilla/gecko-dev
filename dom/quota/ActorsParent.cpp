@@ -2475,7 +2475,7 @@ void QuotaManager::EnsureQuotaForOrigin(const OriginMetadata& aOriginMetadata) {
 }
 
 int64_t QuotaManager::NoteOriginDirectoryCreated(
-    const OriginMetadata& aOriginMetadata, bool aPersisted) {
+    const OriginMetadata& aOriginMetadata) {
   AssertIsOnIOThread();
   MOZ_ASSERT(IsBestEffortPersistenceType(aOriginMetadata.mPersistenceType));
 
@@ -2491,15 +2491,15 @@ int64_t QuotaManager::NoteOriginDirectoryCreated(
       groupInfo->LockedGetOriginInfo(aOriginMetadata.mOrigin);
   if (originInfo) {
     timestamp = originInfo->LockedAccessTime();
-    originInfo->mPersisted = aPersisted;
     originInfo->mDirectoryExists = true;
   } else {
     timestamp = PR_Now();
     groupInfo->LockedAddOriginInfo(MakeNotNull<RefPtr<OriginInfo>>(
         groupInfo, aOriginMetadata.mOrigin, aOriginMetadata.mStorageOrigin,
         aOriginMetadata.mIsPrivate, ClientUsageArray(),
-        /* aUsageBytes */ 0,
-        /* aAccessTime */ timestamp, aPersisted, /* aDirectoryExists */ true));
+        /* aUsageBytes */ 0, /* aAccessTime */ timestamp,
+        /* aPersisted */ false,
+        /* aDirectoryExists */ true));
   }
 
   return timestamp;
@@ -5672,8 +5672,7 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
     QM_TRY_INSPECT(const bool& created, EnsureOriginDirectory(*directory));
 
     if (created) {
-      const int64_t timestamp =
-          NoteOriginDirectoryCreated(aOriginMetadata, /* aPersisted */ false);
+      const int64_t timestamp = NoteOriginDirectoryCreated(aOriginMetadata);
 
       // Only creating .metadata-v2 to reduce IO.
       QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
