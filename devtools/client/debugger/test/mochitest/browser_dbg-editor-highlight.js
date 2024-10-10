@@ -25,7 +25,7 @@ add_task(async function () {
 
   info("Select line 16 and make sure the editor scrolled.");
   await selectSource(dbg, "long.js", 16);
-  await waitForElementWithSelector(dbg, ".CodeMirror-code > .highlight-line");
+  await waitForElement(dbg, "highlightLine");
   assertHighlightLocation(dbg, "long.js", 16);
 
   info("Select several locations and check that we have one highlight");
