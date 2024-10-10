@@ -36,7 +36,7 @@ task-defaults:
                     default: []
             default:
                 by-test-platform:
-                    .*(tsan|wayland).*: []
+                    .*(wayland).*: []
                     default: built-projects
     virtualization: virtual
 
@@ -46,6 +46,7 @@ marionette-unittest:
     max-run-time:
         by-test-platform:
             .*asan.*: 3600
+            .*tsan.*: 4500
             default: 1800
     instance-size: default
     chunks: 1
@@ -62,6 +63,7 @@ marionette:
     max-run-time:
         by-test-platform:
             .*asan.*: 3600
+            .*tsan.*: 3600
             .*ccov.*: 3600
             .*debug.*: 3600
             default: 2700
@@ -69,4 +71,5 @@ marionette:
     chunks:
         by-test-platform:
             .*asan.*: 2
+            .*tsan.*: 2
             default: 1
