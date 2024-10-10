@@ -7080,12 +7080,17 @@ void HTMLMediaElement::MakeAssociationWithCDMResolved() {
   mSetMediaKeysDOMPromise = nullptr;
 
   if (profiler_is_collecting_markers()) {
-    nsString keySystem;
-    mMediaKeys->GetKeySystem(keySystem);
-    profiler_add_marker(nsPrintfCString("%p:mozcdmresolved", this),
-                        geckoprofiler::category::MEDIA_PLAYBACK, {},
-                        CDMResolvedMarker{}, keySystem,
-                        mMediaKeys->GetMediaKeySystemConfigurationString());
+    if (mMediaKeys) {
+      nsString keySystem;
+      mMediaKeys->GetKeySystem(keySystem);
+      profiler_add_marker(nsPrintfCString("%p:mozcdmresolved", this),
+                          geckoprofiler::category::MEDIA_PLAYBACK, {},
+                          CDMResolvedMarker{}, keySystem,
+                          mMediaKeys->GetMediaKeySystemConfigurationString());
+    } else {
+      nsPrintfCString markerName{"%p:mozremovemediakey", this};
+      PROFILER_MARKER_UNTYPED(markerName, MEDIA_PLAYBACK);
+    }
   }
 }
 
