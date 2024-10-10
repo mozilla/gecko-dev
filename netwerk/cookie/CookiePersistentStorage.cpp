@@ -1731,24 +1731,30 @@ void CookiePersistentStorage::EnsureInitialized() {
   bool isAccumulated = false;
 
   if (!mInitialized) {
+#ifndef ANDROID
     TimeStamp startBlockTime = TimeStamp::Now();
+#endif
     MonitorAutoLock lock(mMonitor);
 
     while (!mInitialized) {
       mMonitor.Wait();
     }
-
-    Telemetry::AccumulateTimeDelta(
-        Telemetry::MOZ_SQLITE_COOKIES_BLOCK_MAIN_THREAD_MS_V2, startBlockTime);
-    Telemetry::Accumulate(
-        Telemetry::MOZ_SQLITE_COOKIES_TIME_TO_BLOCK_MAIN_THREAD_MS, 0);
+#ifndef ANDROID
+    TimeStamp endBlockTime = TimeStamp::Now();
+    mozilla::glean::networking::sqlite_cookies_block_main_thread
+        .AccumulateRawDuration(endBlockTime - startBlockTime);
+    mozilla::glean::networking::sqlite_cookies_time_to_block_main_thread
+        .AccumulateRawDuration(TimeDuration::Zero());
+#endif
     isAccumulated = true;
   } else if (!mEndInitDBConn.IsNull()) {
     // We didn't block main thread, and here comes the first cookie request.
     // Collect how close we're going to block main thread.
-    Telemetry::Accumulate(
-        Telemetry::MOZ_SQLITE_COOKIES_TIME_TO_BLOCK_MAIN_THREAD_MS,
-        (TimeStamp::Now() - mEndInitDBConn).ToMilliseconds());
+#ifndef ANDROID
+    TimeStamp now = TimeStamp::Now();
+    mozilla::glean::networking::sqlite_cookies_time_to_block_main_thread
+        .AccumulateRawDuration(now - mEndInitDBConn);
+#endif
     // Nullify the timestamp so wo don't accumulate this telemetry probe again.
     mEndInitDBConn = TimeStamp();
     isAccumulated = true;
@@ -1756,8 +1762,10 @@ void CookiePersistentStorage::EnsureInitialized() {
     // A request comes while we finished cookie thread task and InitDBConn is
     // on the way from cookie thread to main thread. We're very close to block
     // main thread.
-    Telemetry::Accumulate(
-        Telemetry::MOZ_SQLITE_COOKIES_TIME_TO_BLOCK_MAIN_THREAD_MS, 0);
+#ifndef ANDROID
+    mozilla::glean::networking::sqlite_cookies_time_to_block_main_thread
+        .AccumulateRawDuration(TimeDuration::Zero());
+#endif
     isAccumulated = true;
   }
 

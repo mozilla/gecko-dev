@@ -273,6 +273,34 @@ networking:
       - edgul@mozilla.com
     expires: 134
 
+  sqlite_cookies_block_main_thread:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Time spent on blocking main thread by startup cookie database read (in milliseconds), only for blocking case
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=870460
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=870460
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: MOZ_SQLITE_COOKIES_BLOCK_MAIN_THREAD_MS_V2
+
+  sqlite_cookies_time_to_block_main_thread:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      How long (in milliseconds) after we finished reading the cookie db until the first cookie request came in (0 implies we blocked the main thread)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1413839
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1413839
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: MOZ_SQLITE_COOKIES_TIME_TO_BLOCK_MAIN_THREAD_MS
+
   set_cookie:
     type: counter
     description: >
