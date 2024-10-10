@@ -20,14 +20,8 @@ support-files = [
 ["browser_bug1539497.js"]
 
 ["browser_dragdrop_protected_diff_origin.js"]
-skip-if = [
-  "os == 'mac'", # Bug 1923546 - temp disabled due to permafails until a fix in place
-]
 
 ["browser_dragdrop_protected_same_origin.js"]
-skip-if = [
-  "os == 'mac'", # Bug 1923546 - temp disabled due to permafails until a fix in place
-]
 
 ["browser_dragdrop_unprotected_diff_origin.js"]
 
