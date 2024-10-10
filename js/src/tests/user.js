@@ -5,6 +5,7 @@ user_pref("devtools.console.stdout.chrome", true);
 user_pref("browser.sessionstore.resume_from_crash", false);
 user_pref("browser.shell.checkDefaultBrowser", false);
 user_pref("security.fileuri.strict_origin_policy", false);
+user_pref("security.OCSP.enabled", 0);
 user_pref("dom.allow_scripts_to_close_windows", true);
 user_pref("dom.disable_open_during_load", false);
 user_pref("dom.max_script_run_time", 0);
