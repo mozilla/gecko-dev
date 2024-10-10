@@ -154,16 +154,26 @@ internal data class SelectFolderItem(
         get() = guid == BookmarkRoot.Root.id
 }
 
+/**
+ * State representing the select folder subscreen.
+ *
+ * @property outerSelectionGuid The currently selected folder guid for the initial select folder screen.
+ * Required since there is always at least this property active while the screen is visible.
+ * @property innerSelectionGuid If in the select folder -> add folder -> select folder flow,
+ * this represents the selection GUID for the nest select screen where the newly added folder is being
+ * placed. Optional since this screen may never be displayed.
+ * @property folders The folders to display.
+ */
 internal data class BookmarksSelectFolderState(
-    val selectionGuid: String? = null,
-    val folderSelectionGuid: String? = null,
+    val outerSelectionGuid: String,
+    val innerSelectionGuid: String? = null,
     val folders: List<SelectFolderItem> = listOf(),
 ) {
     val showNewFolderButton: Boolean
-        get() = folderSelectionGuid == null
+        get() = innerSelectionGuid == null
 
-    val selectedGuid: String?
-        get() = folderSelectionGuid ?: selectionGuid
+    val selectedGuid: String
+        get() = innerSelectionGuid ?: outerSelectionGuid
 }
 
 internal val BookmarkItem.Folder.isDesktopFolder: Boolean
