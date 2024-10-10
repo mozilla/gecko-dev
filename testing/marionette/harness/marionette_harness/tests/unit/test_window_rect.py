@@ -257,6 +257,7 @@ class TestWindowRect(MarionetteTestCase):
         # make this test pass, irregardless of system characteristics.
 
         os = self.marionette.session_capabilities["platformName"]
+        version = self.marionette.session_capabilities["moz:platformVersion"]
 
         # Regardless of platform, headless always supports being positioned
         # off-screen.
@@ -278,7 +279,12 @@ class TestWindowRect(MarionetteTestCase):
         # being moved to (0,0).
         elif os == "mac":
             self.assertEqual(-8, new_position["x"])
-            self.assertEqual(23, new_position["y"])
+            # as of osx 11 (darwin 20), we have a 24 pixel menu bar
+            # https://phabricator.services.mozilla.com/D224403#7737386
+            if int(version.split(".")[0]) >= 20:
+                self.assertEqual(25, new_position["y"])
+            else:
+                self.assertEqual(23, new_position["y"])
 
         # It turns out that Windows is the only platform on which the
         # window can be reliably positioned off-screen.
