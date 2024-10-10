@@ -37,14 +37,10 @@ var gTabsPanel = {
   },
 
   hasHiddenTabsExcludingFxView() {
-    const hiddenTabCount = gBrowser.tabs.length - gBrowser.visibleTabs.length;
-
-    // If there's only 1 hidden tab, check if it's Firefox View to exclude it.
-    // See Bug 1880138.
-    if (hiddenTabCount == 1) {
-      return !FirefoxViewHandler.tab?.hidden;
-    }
-    return hiddenTabCount > 0;
+    // Exclude Firefox View, see Bug 1880138.
+    return gBrowser.tabs.some(
+      tab => tab.hidden && tab != FirefoxViewHandler.tab
+    );
   },
 
   init() {

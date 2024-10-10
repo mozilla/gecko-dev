@@ -384,6 +384,18 @@
       return this.tabContainer.visibleTabs;
     },
 
+    /**
+     * Returns the number of tabs in the current window, including hidden tabs
+     * and tabs in collapsed groups, but excluding the Firefox View tab.
+     */
+    get openTabCount() {
+      let count = this.tabs.length - this._removingTabs.size;
+      if (FirefoxViewHandler.tab) {
+        count--;
+      }
+      return count;
+    },
+
     getDuplicateTabsToClose(aTab) {
       // One would think that a set is better, but it would need to copy all
       // the strings instead of just keeping references to the nsIURI objects,

@@ -5829,7 +5829,7 @@ function warnAboutClosingWindow() {
 
   if (!isPBWindow && !toolbar.visible) {
     return gBrowser.warnAboutClosingTabs(
-      gBrowser.visibleTabs.length,
+      gBrowser.openTabCount,
       gBrowser.closingTabsEnum.ALL
     );
   }
@@ -5869,7 +5869,7 @@ function warnAboutClosingWindow() {
     return (
       isPBWindow ||
       gBrowser.warnAboutClosingTabs(
-        gBrowser.visibleTabs.length,
+        gBrowser.openTabCount,
         gBrowser.closingTabsEnum.ALL
       )
     );
@@ -5894,7 +5894,7 @@ function warnAboutClosingWindow() {
     AppConstants.platform != "macosx" ||
     isPBWindow ||
     gBrowser.warnAboutClosingTabs(
-      gBrowser.visibleTabs.length,
+      gBrowser.openTabCount,
       gBrowser.closingTabsEnum.ALL
     )
   );
