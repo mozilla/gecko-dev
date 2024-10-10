@@ -21,13 +21,17 @@ add_task(async function () {
   const onReloaded = reload(dbg);
   await waitForPaused(dbg);
   await waitForLoadedSource(dbg, "doc-iframes.html");
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "doc-iframes.html").id, 11);
+  await assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, "doc-iframes.html").id,
+    11
+  );
 
   // test pausing in the iframe
   await resume(dbg);
   await waitForPaused(dbg);
   await waitForLoadedSource(dbg, "doc-debugger-statements.html");
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     11
@@ -36,7 +40,7 @@ add_task(async function () {
   // test pausing in the iframe
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     16

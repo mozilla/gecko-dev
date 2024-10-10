@@ -100,7 +100,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
     // early, therefore is pauses at the old position, where no breakpoint is
     // displayed in the UI
     info("Assert that the breakpoint paused in the other original file");
-    assertPausedAtSourceAndLine(
+    await assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "another-original.js").id,
       5
@@ -110,7 +110,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
 
     info("Switch to generated source and assert that the location is correct");
     await dbg.actions.jumpToMappedSelectedLocation();
-    assertPausedAtSourceAndLine(
+    await assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "bundle-with-another-original.js").id,
       82
@@ -126,7 +126,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
     info(
       "Check that the breakpoint is displayed and paused on the correct line"
     );
-    assertPausedAtSourceAndLine(
+    await assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "original-with-no-update.js").id,
       6
@@ -155,7 +155,7 @@ addIntegrationTask(async function testReloadingChangedGeneratedSource(
   if (isCompressed) {
     await assertBreakpoint(dbg, 1);
   } else {
-    assertPausedAtSourceAndLine(
+    await assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "bundle-with-another-original.js").id,
       103

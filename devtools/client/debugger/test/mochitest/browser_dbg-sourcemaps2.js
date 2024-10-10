@@ -38,7 +38,7 @@ add_task(async function () {
   invokeInTab("logMessage");
 
   await waitForPausedInOriginalFileAndToggleMapScopes(dbg);
-  assertPausedAtSourceAndLine(dbg, mainSrc.id, 4);
+  await assertPausedAtSourceAndLine(dbg, mainSrc.id, 4);
 
   // Tests the existence of the sourcemap link in the original source.
   let sourceMapLink = findElement(dbg, "mappedSourceLink");

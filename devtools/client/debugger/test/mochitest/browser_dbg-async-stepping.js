@@ -14,10 +14,10 @@ add_task(async function test() {
   invokeInTab("main");
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "async.js").id, 8);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "async.js").id, 8);
 
   await stepOver(dbg);
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "async.js").id, 9);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "async.js").id, 9);
 
   await assertBreakpoint(dbg, 8);
 });

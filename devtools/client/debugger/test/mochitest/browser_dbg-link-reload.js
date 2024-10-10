@@ -34,7 +34,7 @@ add_task(async function () {
 
     info("Check paused location\n");
     const source = findSource(dbg, "doc-reload-link.html");
-    assertPausedAtSourceAndLine(dbg, source.id, 3);
+    await assertPausedAtSourceAndLine(dbg, source.id, 3);
 
     await resume(dbg);
 

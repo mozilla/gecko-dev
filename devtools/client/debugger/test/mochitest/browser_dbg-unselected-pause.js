@@ -33,7 +33,7 @@ add_task(async function () {
 
   const dbg = await assertDebuggerIsHighlightedAndPaused(toolbox);
   const source = findSource(dbg, "doc-debugger-statements.html");
-  assertPausedAtSourceAndLine(dbg, source.id, 16);
+  await assertPausedAtSourceAndLine(dbg, source.id, 16);
 
   await resume(dbg);
   info("Wait for the paused code to complete after resume");
@@ -58,7 +58,7 @@ add_task(async function () {
 
   const dbg = await assertDebuggerIsHighlightedAndPaused(toolbox);
   const source = findSource(dbg, IFRAME_TEST_COM_URI);
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
 
   await resume(dbg);
   info("Wait for the paused code to complete after resume");
@@ -107,11 +107,11 @@ add_task(async function () {
     );
   }
   const source = findSource(dbg, IFRAME_TEST_COM_URI);
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
 
   info("Step over to the next line");
   await stepOver(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 3);
+  await assertPausedAtSourceAndLine(dbg, source.id, 3);
 
   info("Now execute a debugger statement in the top level target");
   const onPaused = waitForPausedThread(dbg, topLevelThread);
@@ -144,7 +144,7 @@ add_task(async function () {
       "The new paused state refers to the latest breakpoint being hit, on the top level target"
     );
     const source2 = findSource(dbg, IFRAME_TEST_URI);
-    assertPausedAtSourceAndLine(dbg, source2.id, 2);
+    await assertPausedAtSourceAndLine(dbg, source2.id, 2);
 
     info("Resume the top level target");
     await resume(dbg);
@@ -167,7 +167,7 @@ add_task(async function () {
     dbg.actions.selectThread(iframeThread);
     await waitForPausedThread(dbg, iframeThread);
     await waitForSelectedSource(dbg, source);
-    assertPausedAtSourceAndLine(dbg, source.id, 3);
+    await assertPausedAtSourceAndLine(dbg, source.id, 3);
 
     info("Resume the iframe target");
     await resume(dbg);

@@ -33,7 +33,7 @@ add_task(async function () {
   await resume(dbg);
   await waitForPaused(dbg);
   await waitForState(dbg, () => dbg.selectors.getSelectedInlinePreviews());
-  assertPausedAtSourceAndLine(dbg, sourceId, 17);
+  await assertPausedAtSourceAndLine(dbg, sourceId, 17);
   is(await getScopeNodeValue(dbg, 5), "3");
   const whyPaused = await waitFor(
     () => dbg.win.document.querySelector(".why-paused")?.innerText
@@ -43,7 +43,7 @@ add_task(async function () {
   info("Resume and wait to pause at the access to b in the first `obj.b;`");
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, sourceId, 19);
+  await assertPausedAtSourceAndLine(dbg, sourceId, 19);
 
   info("Remove the get watchpoint on b");
   const removedWatchpoint1 = waitForDispatch(dbg.store, "REMOVE_WATCHPOINT");
@@ -57,12 +57,12 @@ add_task(async function () {
   );
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, sourceId, 21);
+  await assertPausedAtSourceAndLine(dbg, sourceId, 21);
 
   info("Resume and pause on the debugger statement in getB");
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, sourceId, 5);
+  await assertPausedAtSourceAndLine(dbg, sourceId, 5);
 
   info("Add a get watchpoint to b");
   await toggleScopeNode(dbg, 4);
@@ -78,13 +78,13 @@ add_task(async function () {
   info("Resume and wait to pause at the access to b in getB");
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, sourceId, 6);
+  await assertPausedAtSourceAndLine(dbg, sourceId, 6);
 
   info("Resume and pause on the debugger statement");
   await waitForRequestsToSettle(dbg);
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, sourceId, 24);
+  await assertPausedAtSourceAndLine(dbg, sourceId, 24);
 
   info("Remove the get watchpoint on b");
   const removedWatchpoint2 = waitForDispatch(dbg.store, "REMOVE_WATCHPOINT");
@@ -108,7 +108,7 @@ add_task(async function () {
   info("Resume and wait to pause on the final `obj.b;`");
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, sourceId, 25);
+  await assertPausedAtSourceAndLine(dbg, sourceId, 25);
 
   info("Do a last resume to finalize the document load");
   await resume(dbg);

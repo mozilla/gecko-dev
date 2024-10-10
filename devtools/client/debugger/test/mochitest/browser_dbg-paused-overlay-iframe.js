@@ -57,7 +57,7 @@ add_task(async function () {
     getSelectedSource().url.includes("simple2.js"),
     "Selected source is simple2.js"
   );
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 5);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 5);
 
   info("Test clicking the resume button");
   await highlighterTestFront.clickPausedDebuggerOverlayButton(

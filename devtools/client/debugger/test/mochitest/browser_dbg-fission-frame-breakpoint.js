@@ -44,7 +44,7 @@ add_task(async function () {
     "Selected source is simple2.js"
   );
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 7);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 7);
 
   await waitForElement(dbg, "threadsPaneItems");
   threadsEl = findAllElements(dbg, "threadsPaneItems");
@@ -79,7 +79,7 @@ add_task(async function () {
   );
 
   await stepIn(dbg);
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 7);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "simple2.js").id, 7);
 
   // We can't used `stepIn` helper as this last step will resume
   // and the helper is expecting to pause again

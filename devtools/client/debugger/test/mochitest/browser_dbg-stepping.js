@@ -19,7 +19,11 @@ add_task(async function test() {
   // to the related original file. The debugger fallbacks to the generated source,
   // but that highlights a bug in the example page.
   await waitForPaused(dbg, "bundle.js");
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "bundle.js").id, 52411);
+  await assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, "bundle.js").id,
+    52411
+  );
 
   await stepIn(dbg);
 
@@ -44,5 +48,9 @@ add_task(async function test() {
 
   // Note that we are asserting against an original source here,
   // See earlier comment about paused in bundle.js
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "step-in-test.js").id, 7679);
+  await assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, "step-in-test.js").id,
+    7679
+  );
 });

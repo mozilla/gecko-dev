@@ -15,22 +15,22 @@ add_task(async function () {
   await waitForPaused(dbg);
   await waitForLoadedSource(dbg, "doc-debugger-statements.html");
   const source = findSource(dbg, "doc-debugger-statements.html");
-  assertPausedAtSourceAndLine(dbg, source.id, 11);
+  await assertPausedAtSourceAndLine(dbg, source.id, 11);
 
   await pressResume(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 16);
+  await assertPausedAtSourceAndLine(dbg, source.id, 16);
 
   await pressStepOver(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 17);
+  await assertPausedAtSourceAndLine(dbg, source.id, 17);
 
   await pressStepIn(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 22);
+  await assertPausedAtSourceAndLine(dbg, source.id, 22);
 
   await pressStepOut(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 18);
+  await assertPausedAtSourceAndLine(dbg, source.id, 18);
 
   await pressStepOver(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 18);
+  await assertPausedAtSourceAndLine(dbg, source.id, 18);
 
   await resume(dbg);
   info("Wait for reload to complete after resume");

@@ -31,11 +31,11 @@ add_task(async function () {
   invokeInTab("arithmetic");
   await waitForPaused(dbg);
 
-  assertPausedAtSourceAndLine(dbg, ppSrc.id, 18);
+  await assertPausedAtSourceAndLine(dbg, ppSrc.id, 18);
 
   await stepOver(dbg);
 
-  assertPausedAtSourceAndLine(dbg, ppSrc.id, 39);
+  await assertPausedAtSourceAndLine(dbg, ppSrc.id, 39);
 
   await resume(dbg);
 

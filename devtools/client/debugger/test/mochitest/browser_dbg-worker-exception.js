@@ -17,10 +17,10 @@ add_task(async function () {
   info("Test pause on exceptions on worker load");
   await waitForPaused(dbg);
   const source = findSource(dbg, "worker-exception.js");
-  assertPausedAtSourceAndLine(dbg, source.id, 4);
+  await assertPausedAtSourceAndLine(dbg, source.id, 4);
 
   await resume(dbg);
   info("Test pause on exceptions on worker postMessage ");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
 });

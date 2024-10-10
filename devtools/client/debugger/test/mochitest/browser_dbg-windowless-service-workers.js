@@ -29,7 +29,7 @@ add_task(async function () {
   invokeInTab("fetchFromWorker");
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
+  await assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
   // Leave the breakpoint and worker in place for the next subtest.
   await resume(dbg);
   await waitForRequestsToSettle(dbg);
@@ -54,7 +54,7 @@ add_task(async function () {
   const workerSource = await waitForSource(dbg, "service-worker.sjs");
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
+  await assertPausedAtSourceAndLine(dbg, workerSource.id, 13);
   await checkAdditionalThreadCount(dbg, 1);
 
   await resume(dbg);
@@ -142,19 +142,19 @@ add_task(async function () {
 
   await waitForBreakpointCount(dbg, 1);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, workerSource.id, 2);
+  await assertPausedAtSourceAndLine(dbg, workerSource.id, 2);
   await checkWorkerStatus(dbg, "parsed");
 
   await addBreakpoint(dbg, "service-worker.sjs", 19);
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, workerSource.id, 19);
+  await assertPausedAtSourceAndLine(dbg, workerSource.id, 19);
   await checkWorkerStatus(dbg, "installing");
 
   await addBreakpoint(dbg, "service-worker.sjs", 5);
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, workerSource.id, 5);
+  await assertPausedAtSourceAndLine(dbg, workerSource.id, 5);
   await checkWorkerStatus(dbg, "activating");
 
   await resume(dbg);

@@ -28,7 +28,7 @@ add_task(async function () {
   assertNotPaused(dbg);
   await dbg.actions.breakOnNext();
   await waitForPaused(dbg, "doc-windowless-workers.html");
-  assertPausedAtSourceAndLine(dbg, mainThreadSource.id, 10);
+  await assertPausedAtSourceAndLine(dbg, mainThreadSource.id, 10);
   threadIsSelected(dbg, 1);
 
   info("Pause in the first worker");
@@ -38,7 +38,7 @@ add_task(async function () {
   await waitForPaused(dbg, "simple-worker.js");
   threadIsSelected(dbg, 2);
   const workerSource2 = dbg.selectors.getSelectedSource();
-  assertPausedAtSourceAndLine(dbg, workerSource2.id, 3);
+  await assertPausedAtSourceAndLine(dbg, workerSource2.id, 3);
 
   info("Add a watch expression and view the value");
   await addExpression(dbg, "count");
@@ -48,7 +48,7 @@ add_task(async function () {
 
   info("StepOver in the first worker");
   await stepOver(dbg);
-  assertPausedAtSourceAndLine(dbg, workerSource2.id, 4);
+  await assertPausedAtSourceAndLine(dbg, workerSource2.id, 4);
 
   info("Ensure that the watch expression has updated");
   await waitUntil(() => {
@@ -63,7 +63,7 @@ add_task(async function () {
   info("StepOver in the main thread");
   dbg.actions.selectThread(mainThread);
   await stepOver(dbg);
-  assertPausedAtSourceAndLine(dbg, mainThreadSource.id, 11);
+  await assertPausedAtSourceAndLine(dbg, mainThreadSource.id, 11);
 
   info("Resume in the mainThread");
   await resume(dbg);
@@ -84,7 +84,7 @@ add_task(async function () {
   info("View the first paused thread");
   dbg.actions.selectThread(thread1);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, workerSource2.id, 10);
+  await assertPausedAtSourceAndLine(dbg, workerSource2.id, 10);
 
   info("View the second paused thread");
   await dbg.actions.selectThread(thread2);
@@ -96,13 +96,13 @@ add_task(async function () {
     workerSource3,
     "The selected source is the same as we have one source per URL"
   );
-  assertPausedAtSourceAndLine(dbg, workerSource3.id, 10);
+  await assertPausedAtSourceAndLine(dbg, workerSource3.id, 10);
 
   info("StepOver in second worker and not the first");
   await stepOver(dbg);
-  assertPausedAtSourceAndLine(dbg, workerSource3.id, 11);
+  await assertPausedAtSourceAndLine(dbg, workerSource3.id, 11);
   await dbg.actions.selectThread(thread1);
-  assertPausedAtSourceAndLine(dbg, workerSource2.id, 10);
+  await assertPausedAtSourceAndLine(dbg, workerSource2.id, 10);
 
   info("Resume both worker execution");
   await resume(dbg);

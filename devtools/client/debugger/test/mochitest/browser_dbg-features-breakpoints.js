@@ -30,19 +30,23 @@ add_task(
     invokeInTab("foo");
     await waitForPausedInOriginalFileAndToggleMapScopes(dbg, "original.js");
 
-    assertPausedAtSourceAndLine(dbg, findSource(dbg, "original.js").id, 8);
+    await assertPausedAtSourceAndLine(
+      dbg,
+      findSource(dbg, "original.js").id,
+      8
+    );
 
     info("Then stepping into a generated source");
     await stepIn(dbg);
-    assertPausedAtSourceAndLine(dbg, findSource(dbg, "script.js").id, 5);
+    await assertPausedAtSourceAndLine(dbg, findSource(dbg, "script.js").id, 5);
 
     info("Stepping another time within the same generated source");
     await stepIn(dbg);
-    assertPausedAtSourceAndLine(dbg, findSource(dbg, "script.js").id, 7);
+    await assertPausedAtSourceAndLine(dbg, findSource(dbg, "script.js").id, 7);
 
     info("And finally stepping into another original source");
     await stepIn(dbg);
-    assertPausedAtSourceAndLine(
+    await assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "removed-original.js").id,
       4
@@ -50,20 +54,28 @@ add_task(
 
     info("Walk up the stack backward, until we resume execution");
     await stepIn(dbg);
-    assertPausedAtSourceAndLine(
+    await assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "removed-original.js").id,
       5
     );
 
     await stepIn(dbg);
-    assertPausedAtSourceAndLine(dbg, findSource(dbg, "script.js").id, 8);
+    await assertPausedAtSourceAndLine(dbg, findSource(dbg, "script.js").id, 8);
 
     await stepIn(dbg);
-    assertPausedAtSourceAndLine(dbg, findSource(dbg, "original.js").id, 9);
+    await assertPausedAtSourceAndLine(
+      dbg,
+      findSource(dbg, "original.js").id,
+      9
+    );
 
     await stepIn(dbg);
-    assertPausedAtSourceAndLine(dbg, findSource(dbg, "original.js").id, 10);
+    await assertPausedAtSourceAndLine(
+      dbg,
+      findSource(dbg, "original.js").id,
+      10
+    );
 
     // We can't use the `stepIn` helper as this last step will resume
     // and the helper is expecting to pause again

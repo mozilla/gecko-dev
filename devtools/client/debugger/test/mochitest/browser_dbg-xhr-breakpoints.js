@@ -24,7 +24,7 @@ add_task(async function () {
   );
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-early-xhr.html").id,
     10
@@ -65,7 +65,7 @@ add_task(async function () {
 
   invokeInTab("main", "doc-xhr.html");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "fetch.js").id, 4);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "fetch.js").id, 4);
   await resume(dbg);
 
   await dbg.actions.removeXHRBreakpoint(0);

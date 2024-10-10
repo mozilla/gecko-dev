@@ -96,7 +96,7 @@ async function reloadAndCheckNoBreakpointExists(dbg) {
   info(
     "Assert pause at the debugger statement in pretty.js:formatted (original source) and not the removed breakpoint"
   );
-  assertPausedAtSourceAndLine(dbg, sourcePretty.id, 8);
+  await assertPausedAtSourceAndLine(dbg, sourcePretty.id, 8);
 
   await selectSource(dbg, "pretty.js");
   const source = findSource(dbg, "pretty.js");
@@ -104,7 +104,7 @@ async function reloadAndCheckNoBreakpointExists(dbg) {
   info(
     "Assert pause at the debugger statement in pretty.js (generated source) and not the removed breakpoint"
   );
-  assertPausedAtSourceAndLine(dbg, source.id, 6);
+  await assertPausedAtSourceAndLine(dbg, source.id, 6);
 
   info(`Confirm that pretty.js:formatted does not have any breakpoints`);
   is(dbg.selectors.getBreakpointCount(), 0, "Breakpoints should be cleared");

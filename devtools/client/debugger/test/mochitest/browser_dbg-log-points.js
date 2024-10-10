@@ -59,7 +59,7 @@ add_task(async function () {
   await waitForPaused(dbg);
   // We aren't pausing on secondCall's debugger statement,
   // called by the condition, but only on the breakpoint we set on firstCall, line 8
-  assertPausedAtSourceAndLine(dbg, source.id, 8);
+  await assertPausedAtSourceAndLine(dbg, source.id, 8);
 
   // The log point is visible, even if it had a debugger statement in it.
   await hasConsoleMessage(dbg, "second call 44");
@@ -80,7 +80,7 @@ add_task(async function () {
   await waitForPaused(dbg);
   // Exceptions in conditional breakpoint would not trigger a pause,
   // So we end up pausing on the debugger statement in the other script.
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "script-switching-02.js").id,
     6

@@ -64,15 +64,15 @@ add_task(async function testBlackBoxOnReload() {
   const onReloaded = reload(dbg, file);
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
   await resume(dbg);
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 8);
+  await assertPausedAtSourceAndLine(dbg, source.id, 8);
   await resume(dbg);
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 12);
+  await assertPausedAtSourceAndLine(dbg, source.id, 12);
   await resume(dbg);
 
   info("Wait for reload to complete after resume");
@@ -91,7 +91,7 @@ add_task(async function testBlackBoxOnReload() {
   const onReloaded2 = reload(dbg, file);
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 12);
+  await assertPausedAtSourceAndLine(dbg, source.id, 12);
   await resume(dbg);
   info("Wait for reload to complete after resume");
   await onReloaded2;
@@ -132,7 +132,7 @@ add_task(async function testBlackBoxOnToolboxRestart() {
   await waitForPaused(dbg);
 
   info("Assert it paused at the debugger statement");
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
   await resume(dbg);
   await onReloaded;
 
@@ -254,12 +254,12 @@ async function testBlackBoxSource(dbg, source) {
 
   info("assert the pause at the debugger statement on line 2");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
   await resume(dbg);
 
   info("assert the pause at the breakpoint set on line 8");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 8);
+  await assertPausedAtSourceAndLine(dbg, source.id, 8);
   await resume(dbg);
 
   assertNotPaused(dbg);
@@ -327,7 +327,7 @@ async function testBlackBoxMultipleLines(dbg, source) {
 
   info("assert the pause at the debugger statement on line 2");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
   await resume(dbg);
 
   info(
@@ -377,12 +377,12 @@ async function testBlackBoxMultipleLines(dbg, source) {
 
   // assert the pause at the debugger statement on line 2
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
   await resume(dbg);
 
   // assert the pause at the breakpoint set on line 8
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 8);
+  await assertPausedAtSourceAndLine(dbg, source.id, 8);
   await resume(dbg);
 
   assertNotPaused(dbg);
@@ -432,7 +432,7 @@ async function testBlackBoxSingleLine(dbg, source) {
 
   // assert the pause at the breakpoint set on line 8
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 8);
+  await assertPausedAtSourceAndLine(dbg, source.id, 8);
   await resume(dbg);
 
   assertNotPaused(dbg);
@@ -474,12 +474,12 @@ async function testBlackBoxSingleLine(dbg, source) {
 
   // assert the pause at the debugger statement on line 2
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 2);
+  await assertPausedAtSourceAndLine(dbg, source.id, 2);
   await resume(dbg);
 
   // assert the pause at the breakpoint set on line 8
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 8);
+  await assertPausedAtSourceAndLine(dbg, source.id, 8);
   await resume(dbg);
 
   assertNotPaused(dbg);

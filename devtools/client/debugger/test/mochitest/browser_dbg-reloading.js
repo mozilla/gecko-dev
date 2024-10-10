@@ -35,5 +35,5 @@ add_task(async function () {
   );
   await waitForPaused(dbg);
   const source = findSource(dbg, "ember-application/index.js");
-  assertPausedAtSourceAndLine(dbg, source.id, 4);
+  await assertPausedAtSourceAndLine(dbg, source.id, 4);
 });

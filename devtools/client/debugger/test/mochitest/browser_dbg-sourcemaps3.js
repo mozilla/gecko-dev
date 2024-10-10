@@ -37,7 +37,7 @@ add_task(async function () {
   invokeInTab("test");
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, sortedSrc.id, 9, 5);
+  await assertPausedAtSourceAndLine(dbg, sortedSrc.id, 9, 5);
 
   is(getScopeNodeLabel(dbg, 1), "Block");
   is(getScopeNodeLabel(dbg, 2), "na");

@@ -18,7 +18,7 @@ add_task(async function () {
 
   let onReloaded = reload(dbg, "doc-debugger-statements.html");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     11
@@ -27,7 +27,7 @@ add_task(async function () {
   info("resume");
   await clickResume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     16
@@ -35,7 +35,7 @@ add_task(async function () {
 
   info("step over");
   await clickStepOver(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     17
@@ -43,7 +43,7 @@ add_task(async function () {
 
   info("step into");
   await clickStepIn(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     22
@@ -51,7 +51,7 @@ add_task(async function () {
 
   info("step over");
   await clickStepOver(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     24
@@ -59,7 +59,7 @@ add_task(async function () {
 
   info("step out");
   await clickStepOut(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     18
@@ -87,7 +87,7 @@ add_task(async function () {
 
   onReloaded = reload(dbg, "doc-debugger-statements.html");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-debugger-statements.html").id,
     11

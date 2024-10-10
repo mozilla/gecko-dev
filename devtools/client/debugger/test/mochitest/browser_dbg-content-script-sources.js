@@ -38,7 +38,7 @@ add_task(async function () {
       () => findElementWithSelector(dbg, ".sources-list .focused"),
       "Source is focused"
     );
-    assertPausedAtSourceAndLine(
+    await assertPausedAtSourceAndLine(
       dbg,
       findSource(dbg, "content_script.js").id,
       2
