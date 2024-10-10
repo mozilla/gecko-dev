@@ -1334,6 +1334,25 @@ skip script test262/built-ins/Temporal/PlainDate/prototype/with/options-wrong-ty
 skip script test262/built-ins/Temporal/Duration/prototype/round/round-and-balance-calendar-units-with-increment-disallowed.js
 skip script test262/built-ins/Temporal/Duration/compare/relativeto-string-invalid.js
 
+# Tests failing after running test262-update.py script.
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1923883
+# https://treeherder.mozilla.org/jobs?repo=autoland&selectedTaskRun=ckFMTFjZT7yqqk5MaEuM9w.0&resultStatus=testfailed%2Cbusted%2Cexception%2Crunnable&revision=25e197bc4c13fafb71ca09fcb82c3d10c023916c&searchStr=Linux%2Cx64%2Cdebug%2CSpidermonkey%2Cbuilds%2Cspidermonkey-sm-temporal-linux64%2Fdebug%2Ctemporal
+skip script test262/built-ins/Temporal/Duration/compare/relativeto-string-limits.js
+skip script test262/built-ins/Temporal/Duration/prototype/total/relativeto-string-limits.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/relativeto-string-limits.js
+skip script test262/built-ins/Temporal/PlainDateTime/from/monthcode-invalid.js
+skip script test262/built-ins/Temporal/ZonedDateTime/compare/argument-string-limits.js
+skip script test262/built-ins/Temporal/ZonedDateTime/from/monthcode-invalid.js
+skip script test262/built-ins/Temporal/ZonedDateTime/from/offset-string-invalid.js
+skip script test262/built-ins/Temporal/ZonedDateTime/from/argument-string-limits.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/equals/argument-string-limits.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/argument-string-limits.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/argument-string-limits.js
+skip script test262/built-ins/Temporal/PlainDate/from/monthcode-invalid.js
+skip script test262/built-ins/Temporal/PlainYearMonth/from/monthcode-invalid.js
+skip script test262/built-ins/Temporal/PlainMonthDay/from/monthcode-invalid.js
+
+
 ##############################################
 # Temporal Intl tests                        #
 ##############################################
@@ -1441,3 +1460,22 @@ skip script test262/intl402/Temporal/ZonedDateTime/non-canonical-utc.js
 skip script test262/intl402/Temporal/ZonedDateTime/iana-legacy-names.js
 skip script test262/intl402/Temporal/ZonedDateTime/timezone-case-insensitive.js
 skip script test262/intl402/Temporal/ZonedDateTime/timezone-ids-basic.js
+
+# Tests failing after running test262-update.py script.
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1923883
+# https://treeherder.mozilla.org/jobs?repo=autoland&selectedTaskRun=ckFMTFjZT7yqqk5MaEuM9w.0&resultStatus=testfailed%2Cbusted%2Cexception%2Crunnable&revision=25e197bc4c13fafb71ca09fcb82c3d10c023916c&searchStr=Linux%2Cx64%2Cdebug%2CSpidermonkey%2Cbuilds%2Cspidermonkey-sm-temporal-linux64%2Fdebug%2Ctemporal
+skip script test262/intl402/DateTimeFormat/prototype/formatRangeToParts/temporal-objects-not-overlapping-options.js
+skip script test262/intl402/DateTimeFormat/prototype/formatToParts/temporal-objects-not-overlapping-options.js
+skip script test262/intl402/DateTimeFormat/prototype/format/temporal-objects-not-overlapping-options.js
+skip script test262/intl402/DateTimeFormat/prototype/formatRange/temporal-objects-not-overlapping-options.js
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/default-includes-time-not-time-zone-name.js
+skip script test262/intl402/Temporal/PlainDateTime/prototype/toLocaleString/lone-options-accepted.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/default-includes-time-and-time-zone-name.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/lone-options-accepted.js
+skip script test262/intl402/Temporal/PlainDate/prototype/toLocaleString/lone-options-accepted.js
+skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/default-does-not-include-date-and-time-zone-name.js
+skip script test262/intl402/Temporal/PlainTime/prototype/toLocaleString/lone-options-accepted.js
+skip script test262/intl402/Temporal/PlainYearMonth/prototype/toLocaleString/lone-options-accepted.js
+skip script test262/intl402/Temporal/PlainMonthDay/prototype/toLocaleString/lone-options-accepted.js
+skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/default-includes-time-not-time-zone-name.js
+skip script test262/intl402/Temporal/Instant/prototype/toLocaleString/lone-options-accepted.js
