@@ -4,42 +4,34 @@ let i = 0;
 function js_import() {
   return Promise.resolve({i: ++i});
 };
-let wasm_js_import = new WebAssembly.Function(
-    {parameters: ['externref'], results: ['externref']},
-    js_import,
-    {suspending: 'first'});
+let wasm_js_import = new WebAssembly.Suspending(js_import);
 
-let wasm_gc_import = new WebAssembly.Function(
-      {parameters: ['externref'], results: []},
-      async () => { gc(); },
-      {suspending: 'first'});
+let wasm_gc_import = new WebAssembly.Suspending(
+    async () => { gc(); }
+);
 
 var ins = wasmEvalText(`(module
-  (import "m" "import"
-    (func (param externref) (result externref)))
-  (import "m" "gc" (func (param externref)))
-  (import "m" "conv"
-    (func (param externref) (result i32)))
+  (import "m" "import" (func (result externref)))
+  (import "m" "gc" (func))
+  (import "m" "conv" (func (param externref) (result i32)))
 
     (global (export "g") (mut i32) (i32.const 0))
 
-    (func (export "test") (param externref)
+    (func (export "test")
       (local i32)
       i32.const 5
-      local.set 1
+      local.set 0
       loop
-        local.get 0
         call 0
-        local.get 0
         call 1
         call 2
         global.get 0
         i32.add
         global.set 0
-        local.get 1
+        local.get 0
         i32.const 1
         i32.sub
-        local.tee 1
+        local.tee 0
         br_if 0
       end
     )
@@ -53,11 +45,7 @@ var ins = wasmEvalText(`(module
 });
 
 
-let wrapped_export = new WebAssembly.Function(
-  {parameters:[], results:['externref']},
-  ins.exports.test,
-  {promising : "first"}
-);
+let wrapped_export = WebAssembly.promising(ins.exports.test);
 
 let export_promise = wrapped_export();
 assertEq(0, ins.exports.g.value);

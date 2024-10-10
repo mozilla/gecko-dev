@@ -406,18 +406,6 @@
 
 #if defined(ENABLE_WASM_JSPI)
 
-- op: CheckSuspender
-  symbolic_address:
-    name: CheckSuspender
-    type: Args_General2
-  entry: CheckSuspender
-  export: suspenderCheck
-  params:
-    - 'externref'
-  result: 'externref'
-  fail_mode: FailOnNullPtr
-  uses_memory: false
-
 - op: CreateSuspender
   symbolic_address:
     name: CreateSuspender
