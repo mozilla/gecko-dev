@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="windows-1251">
+  <title>Testing &#x3C;a&#x3E;.href (windows-1251)</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <script type="text/javascript">
+
+  const UTF_8 = '%C3%A5';
+  const WINDOWS_1251 = '%26%23229%3B';
+
+  function test_scheme(url, expected) {
+    var a = document.createElement('a');
+    a.setAttribute('href', url);
+    ok(a.href.includes(expected), `Expected: ${expected}, Actual: ${a.href}`);
+  }
+
+  add_task(async function test_bug1883033() {
+    // Scheme http (getting <a>.href)
+    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+    test_scheme("http://example.invalid/?x=\u00E5", WINDOWS_1251);
+
+    // Scheme https (getting <a>.href)
+    test_scheme("https://example.invalid/?x=\u00E5", WINDOWS_1251);
+
+    // If encoding is not UTF-8 and url’s scheme is "ws" or "wss",
+    // then encoding should be set to UTF-8.
+    // Scheme ws (getting <a>.href)
+    test_scheme("ws://example.invalid/?x=\u00E5", UTF_8);
+
+    // Scheme wss (getting <a>.href)
+    test_scheme("wss://example.invalid/?x=\u00E5", UTF_8);
+
+    // If encoding is not UTF-8 and url is not special,
+    // then encoding should be UTF-8.
+    // Scheme ssh (getting <a>.href)
+    test_scheme("ssh://foo/?x=\u00E5", UTF_8);
+  });
+  </script>
+</head>
+<body>
+</body>
+</html>
