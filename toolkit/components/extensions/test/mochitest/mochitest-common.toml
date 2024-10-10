@@ -299,7 +299,10 @@ skip-if = [
 ]
 
 ["test_ext_idle.html"]
-skip-if = ["tsan"] # Times out on TSan, bug 1612707
+skip-if = [
+  "tsan", # Times out on TSan, bug 1612707
+  "os == 'linux' && debug", # bug 1918637 (Close to perma fail on Linux debug)
+]
 
 ["test_ext_inIncognitoContext_window.html"]
 skip-if = ["os == 'android'"] # Bug 1513544 (GeckoView is missing the windows API and ability to open private tabs)
