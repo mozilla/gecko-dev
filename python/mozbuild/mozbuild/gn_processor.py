@@ -10,6 +10,7 @@ import sys
 import tempfile
 from collections import defaultdict, deque
 from copy import deepcopy
+from importlib import util
 from pathlib import Path
 from shutil import which
 
@@ -382,6 +383,8 @@ def process_gn_config(
                             file=sys.stderr,
                         )
                     continue
+            if include in context_attrs["LOCAL_INCLUDES"]:
+                continue
             context_attrs["LOCAL_INCLUDES"] += [include]
 
         context_attrs["ASFLAGS"] = spec.get("asflags_mozilla", [])
@@ -613,6 +616,7 @@ def write_mozbuild(
 
             mb.finalize()
 
+    # write the project moz.build file
     dirs_mozbuild = mozpath.join(srcdir, "moz.build")
     mozbuilds.add(dirs_mozbuild)
     with open(dirs_mozbuild, "w") as fh:
@@ -668,11 +672,14 @@ def write_mozbuild(
 
 
 def generate_gn_config(
-    srcdir,
+    build_root_dir,
+    target_dir,
     gn_binary,
     input_variables,
     sandbox_variables,
     gn_target,
+    preprocessor,
+    moz_build_flag,
 ):
     def str_for_arg(v):
         if v in (True, False):
@@ -682,6 +689,7 @@ def generate_gn_config(
     input_variables = input_variables.copy()
     input_variables.update(
         {
+            f"{moz_build_flag}": True,
             "concurrent_links": 1,
             "action_pool_depth": 1,
         }
@@ -712,11 +720,21 @@ def generate_gn_config(
         # relpath() does not lead to unexpected results, should it be used
         # together with another path that has symlinks resolved.
         resolved_tempdir = Path(tempdir).resolve()
-        gen_args = [gn_binary, "gen", str(resolved_tempdir), gn_args, "--ide=json"]
+        gen_args = [
+            gn_binary,
+            "gen",
+            str(resolved_tempdir),
+            gn_args,
+            "--ide=json",
+            "--root=./",  # must find the google build directory in this directory
+            f"--dotfile={target_dir}/.gn",
+        ]
         print('Running "%s"' % " ".join(gen_args), file=sys.stderr)
-        subprocess.check_call(gen_args, cwd=srcdir, stderr=subprocess.STDOUT)
+        subprocess.check_call(gen_args, cwd=build_root_dir, stderr=subprocess.STDOUT)
 
         gn_config_file = resolved_tempdir / "project.json"
+        if preprocessor:
+            preprocessor.main(gn_config_file)
 
         with open(gn_config_file, "r") as fh:
             gn_out = json.load(fh)
@@ -724,6 +742,16 @@ def generate_gn_config(
                 resolved_tempdir, gn_out, sandbox_variables, input_variables, gn_target
             )
             return gn_out
+
+
+def load_preprocessor(script_name):
+    if script_name and os.path.isfile(script_name):
+        print(f"Loading preprocessor {script_name}")
+        spec = util.spec_from_file_location("preprocess", script_name)
+        module = util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    return None
 
 
 def main():
@@ -770,22 +798,27 @@ def main():
                         vars["use_x11"] = True
                     vars_set.append(vars)
 
+    preprocessor = load_preprocessor(config.get("preprocessing_script", None))
+
     gn_configs = []
     for vars in vars_set:
         gn_configs.append(
             generate_gn_config(
-                topsrcdir / config["target_dir"],
+                topsrcdir / config["build_root_dir"],
+                config["target_dir"],
                 gn_binary,
                 vars,
                 config["gn_sandbox_variables"],
                 config["gn_target"],
+                preprocessor,
+                config["moz_build_flag"],
             )
         )
 
     print("Writing moz.build files")
     write_mozbuild(
         topsrcdir,
-        topsrcdir / config["target_dir"],
+        topsrcdir / config["build_root_dir"] / config["target_dir"],
         config["non_unified_sources"],
         gn_configs,
         config["mozilla_flags"],
