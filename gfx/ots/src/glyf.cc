@@ -15,6 +15,8 @@
 // glyf - Glyph Data
 // http://www.microsoft.com/typography/otspec/glyf.htm
 
+#define TABLE_NAME "glyf"
+
 namespace ots {
 
 bool OpenTypeGLYF::ParseFlagsForSimpleGlyph(Buffer &glyph,
@@ -229,7 +231,7 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
       this->iov.push_back(std::make_pair(glyph.buffer(), 2));
       // output a fixed-up version of the bounding box
       uint8_t* fixed_bbox = new uint8_t[8];
-      fixed_bboxes.push_back(fixed_bbox);
+      replacements.push_back(fixed_bbox);
       xmin = ots_htons(xmin);
       std::memcpy(fixed_bbox, &xmin, 2);
       ymin = ots_htons(ymin);
@@ -259,10 +261,25 @@ bool OpenTypeGLYF::ParseSimpleGlyph(Buffer &glyph,
 
 bool OpenTypeGLYF::ParseCompositeGlyph(
     Buffer &glyph,
-    ComponentPointCount* component_point_count) {
+    unsigned glyph_id,
+    ComponentPointCount* component_point_count,
+    unsigned* skip_count) {
   uint16_t flags = 0;
   uint16_t gid = 0;
+  enum class edit_t : uint8_t {
+    skip_bytes,  // param is number of bytes to skip from offset
+    set_flag,    // param is flag to be set (in the 16-bit field at offset)
+    clear_flag,  // param is flag to be cleared
+  };
+  // List of glyph data edits to be applied: first value is offset in the data,
+  // second is a pair of <edit-action, param>.
+  typedef std::pair<unsigned, std::pair<edit_t, unsigned>> edit_rec;
+  std::vector<edit_rec> edits;
+  unsigned prev_start = 0;
+  bool we_have_instructions = false;
   do {
+    unsigned start = glyph.offset();
+
     if (!glyph.ReadU16(&flags) || !glyph.ReadU16(&gid)) {
       return Error("Can't read composite glyph flags or glyphIndex");
     }
@@ -309,12 +326,50 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
       }
     }
 
-    // Push inital components on stack at level 1
+    if (this->loca->offsets[gid] == this->loca->offsets[gid + 1]) {
+      Warning("empty gid %u used as component in glyph %u", gid, glyph_id);
+      // DirectWrite chokes on composite glyphs that have a completely empty glyph
+      // as a component; see https://github.com/mozilla/pdf.js/issues/18848.
+      // To work around this, we attempt to drop empty components.
+      // But we don't drop the component if it's the only (remaining) one in the composite.
+      if (prev_start > 0 || (flags & MORE_COMPONENTS)) {
+        if (!(flags & MORE_COMPONENTS)) {
+          // We're dropping the last component, so we need to clear the MORE_COMPONENTS flag
+          // on the previous one.
+          edits.push_back(edit_rec{prev_start, std::make_pair(edit_t::clear_flag, MORE_COMPONENTS)});
+        }
+        // If this component was the first to provide WE_HAVE_INSTRUCTIONS, set it on the previous (if any).
+        if ((flags & WE_HAVE_INSTRUCTIONS) && !we_have_instructions && prev_start > 0) {
+          edits.push_back(edit_rec{prev_start, std::make_pair(edit_t::set_flag, WE_HAVE_INSTRUCTIONS)});
+        }
+        // Finally, skip the actual bytes of this component.
+        edits.push_back(edit_rec{start, std::make_pair(edit_t::skip_bytes, glyph.offset() - start)});
+      }
+    } else {
+      // If this is the first component we're keeping, but we already saw WE_HAVE_INSTRUCTIONS
+      // (on a dropped component), we need to ensure that flag is set here.
+      if (prev_start == 0 && we_have_instructions && !(flags & WE_HAVE_INSTRUCTIONS)) {
+        edits.push_back(edit_rec{start, std::make_pair(edit_t::set_flag, WE_HAVE_INSTRUCTIONS)});
+      }
+      prev_start = start;
+    }
+
+    we_have_instructions = we_have_instructions || (flags & WE_HAVE_INSTRUCTIONS);
+
+    // Push initial components on stack at level 1
     // to traverse them in parent function.
     component_point_count->gid_stack.push_back({gid, 1});
   } while (flags & MORE_COMPONENTS);
 
-  if (flags & WE_HAVE_INSTRUCTIONS) {
+  // Sort any required edits by offset in the glyph data.
+  struct {
+    bool operator() (const edit_rec& a, const edit_rec& b) const {
+      return a.first < b.first;
+    }
+  } cmp;
+  std::sort(edits.begin(), edits.end(), cmp);
+
+  if (we_have_instructions) {
     uint16_t bytecode_length;
     if (!glyph.ReadU16(&bytecode_length)) {
       return Error("Can't read instructions size");
@@ -333,7 +388,69 @@ bool OpenTypeGLYF::ParseCompositeGlyph(
     }
   }
 
-  this->iov.push_back(std::make_pair(glyph.buffer(), glyph.offset()));
+  // Record the glyph data in this->iov, accounting for any required edits.
+  *skip_count = 0;
+  unsigned offset = 0;
+  while (!edits.empty()) {
+    auto& edit = edits.front();
+    // Handle any glyph data between current offset and the next edit position.
+    if (edit.first > offset) {
+      this->iov.push_back(std::make_pair(glyph.buffer() + offset, edit.first - offset));
+      offset = edit.first;
+    }
+
+    // Handle the edit. Note that there may be multiple set_flag/clear_flag edits
+    // at the same offset, but skip_bytes will never coincide with another edit.
+    auto& action = edit.second;
+    switch (action.first) {
+      case edit_t::set_flag:
+      case edit_t::clear_flag: {
+        // Read the existing flags word.
+        uint16_t flags;
+        std::memcpy(&flags, glyph.buffer() + offset, 2);
+        flags = ots_ntohs(flags);
+        // Apply all flag changes for the current offset.
+        while (!edits.empty() && edits.front().first == offset) {
+          auto& e = edits.front();
+          switch (e.second.first) {
+            case edit_t::set_flag:
+              flags |= e.second.second;
+              break;
+            case edit_t::clear_flag:
+              flags &= ~e.second.second;
+              break;
+            default:
+              assert(false);
+              break;
+          }
+          edits.erase(edits.begin());
+        }
+        // Record the modified flags word.
+        flags = ots_htons(flags);
+        uint8_t* flags_data = new uint8_t[2];
+        std::memcpy(flags_data, &flags, 2);
+        replacements.push_back(flags_data);
+        this->iov.push_back(std::make_pair(flags_data, 2));
+        offset += 2;
+        break;
+      }
+
+      case edit_t::skip_bytes:
+        offset = edit.first + action.second;
+        *skip_count += action.second;
+        edits.erase(edits.begin());
+        break;
+
+      default:
+        assert(false);
+        break;
+    }
+  }
+
+  // Handle any remaining glyph data after the last edit.
+  if (glyph.offset() > offset) {
+    this->iov.push_back(std::make_pair(glyph.buffer() + offset, glyph.offset() - offset));
+  }
 
   return true;
 }
@@ -353,6 +470,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       GetFont()->GetTypedTable(OTS_TAG_NAME));
   bool is_tricky = name->IsTrickyFont();
 
+  this->loca = loca;
   this->maxp = maxp;
 
   const unsigned num_glyphs = maxp->num_glyphs;
@@ -366,6 +484,9 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
   uint32_t current_offset = 0;
 
   for (unsigned i = 0; i < num_glyphs; ++i) {
+    // Used by ParseCompositeGlyph to return the number of bytes being skipped
+    // in the glyph description, so we can adjust offsets properly.
+    unsigned skip_count = 0;
 
     Buffer glyph(GetGlyphBufferSection(data, length, offsets, i));
     if (!glyph.buffer())
@@ -414,7 +535,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
     } else {
 
       ComponentPointCount component_point_count;
-      if (!ParseCompositeGlyph(glyph, &component_point_count)) {
+      if (!ParseCompositeGlyph(glyph, i, &component_point_count, &skip_count)) {
         return Error("Failed to parse glyph %d", i);
       }
 
@@ -465,7 +586,7 @@ bool OpenTypeGLYF::Parse(const uint8_t *data, size_t length) {
       }
     }
 
-    size_t new_size = glyph.offset();
+    size_t new_size = glyph.offset() - skip_count;
     resulting_offsets[i] = current_offset;
     // glyphs must be four byte aligned
     // TODO(yusukes): investigate whether this padding is really necessary.
@@ -622,7 +743,7 @@ Buffer OpenTypeGLYF::GetGlyphBufferSection(
 bool OpenTypeGLYF::Serialize(OTSStream *out) {
   for (unsigned i = 0; i < this->iov.size(); ++i) {
     if (!out->Write(this->iov[i].first, this->iov[i].second)) {
-      return Error("Falied to write glyph %d", i);
+      return Error("Failed to write glyph %d", i);
     }
   }
 
@@ -630,3 +751,5 @@ bool OpenTypeGLYF::Serialize(OTSStream *out) {
 }
 
 }  // namespace ots
+
+#undef TABLE_NAME

@@ -12,6 +12,7 @@
 #include "ots.h"
 
 namespace ots {
+class OpenTypeLOCA;
 class OpenTypeMAXP;
 
 class OpenTypeGLYF : public Table {
@@ -20,7 +21,7 @@ class OpenTypeGLYF : public Table {
       : Table(font, tag, tag), maxp(NULL) { }
 
   ~OpenTypeGLYF() {
-    for (auto* p : fixed_bboxes) {
+    for (auto* p : replacements) {
       delete[] p;
     }
   }
@@ -53,10 +54,14 @@ class OpenTypeGLYF : public Table {
                         int16_t xmax,
                         int16_t ymax,
                         bool is_tricky_font);
+
+  // The skip_count outparam returns the number of bytes from the original
+  // glyph description that are being skipped on output (normally zero).
   bool ParseCompositeGlyph(
       Buffer &glyph,
-      ComponentPointCount* component_point_count);
-
+      unsigned glyph_id,
+      ComponentPointCount* component_point_count,
+      unsigned* skip_count);
 
   bool TraverseComponentsCountingPoints(
       Buffer& glyph,
@@ -70,11 +75,14 @@ class OpenTypeGLYF : public Table {
       const std::vector<uint32_t>& loca_offsets,
       unsigned glyph_id);
 
+  OpenTypeLOCA* loca;
   OpenTypeMAXP* maxp;
 
   std::vector<std::pair<const uint8_t*, size_t> > iov;
 
-  std::vector<uint8_t*> fixed_bboxes;
+  // Any blocks of replacement data created during parsing are stored here
+  // to be available during serialization.
+  std::vector<uint8_t*> replacements;
 };
 
 }  // namespace ots
