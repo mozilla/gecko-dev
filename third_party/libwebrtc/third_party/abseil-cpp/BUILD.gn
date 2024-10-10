@@ -1,0 +1,25 @@
+# Trampoline BUILD.gn file
+# This trampoline is necessary to avoid pointing into abseil-cpp's
+# BUILD.gn files to pick up the definitions for absl_include_config and
+# absl_define_config.  If we tried referencing these definitions in
+# third_party/abseil-cpp/BUILD.gn we encounter errors finding the paths
+# in import statements.
+
+config("absl_include_config") {
+  include_dirs = [ "/third_party/abseil-cpp/" ]
+}
+
+# Done specifically to not change the output of moz.build files, but
+# if the abseil-cpp build is done separately, do we still need this
+# in the libwebrtc build? (mjf)
+config("absl_define_config") {
+  defines = [ "ABSL_ALLOCATOR_NOTHROW=1" ]
+
+  if (is_win) {
+    defines += [
+      # See crbug.com/1101367: Acknowledge extended alignment when using
+      # MSVC's standard library.
+      "_ENABLE_EXTENDED_ALIGNED_STORAGE",
+    ]
+  }
+}
