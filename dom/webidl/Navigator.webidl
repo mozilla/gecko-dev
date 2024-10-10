@@ -106,9 +106,8 @@ interface mixin NavigatorStorageUtils {
   //undefined yieldForStorageUpdates();
 };
 
-// https://w3c.github.io/permissions/#webidl-2112232240
 partial interface Navigator {
-  [Throws, SameObject]
+  [Throws]
   readonly attribute Permissions permissions;
 };
 
