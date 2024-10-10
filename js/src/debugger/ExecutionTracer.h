@@ -400,9 +400,9 @@ class ExecutionTracer {
                           mozilla::HashMap<uint32_t, size_t>& atoms,
                           TracingScratchBuffer& scratchBuffer,
                           mozilla::Vector<char>& stringBuffer);
-  bool readInlineEntries(mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
-                         TracingScratchBuffer& scratchBuffer,
-                         mozilla::Vector<char>& stringBuffer);
+  bool readInlineEntries(
+      mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
+      TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer);
   bool readOutOfLineEntries(mozilla::HashMap<uint32_t, size_t>& scriptUrls,
                             mozilla::HashMap<uint32_t, size_t>& atoms,
                             TracingScratchBuffer& scratchBuffer,

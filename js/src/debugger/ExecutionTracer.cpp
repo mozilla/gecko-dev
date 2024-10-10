@@ -235,8 +235,9 @@ void ExecutionTracer::onLeaveLabel(const CharType* eventType) {
   inlineData_.finishWritingEntry();
 }
 
-bool ExecutionTracer::readFunctionFrame(JS::ExecutionTrace::EventKind kind,
-                                        JS::ExecutionTrace::TracedEvent& event) {
+bool ExecutionTracer::readFunctionFrame(
+    JS::ExecutionTrace::EventKind kind,
+    JS::ExecutionTrace::TracedEvent& event) {
   MOZ_ASSERT(kind == JS::ExecutionTrace::EventKind::FunctionEnter ||
              kind == JS::ExecutionTrace::EventKind::FunctionLeave);
 
