@@ -21,6 +21,9 @@ using namespace mozilla::gfx;
 using VideoBridgeTable = EnumeratedArray<VideoBridgeSource, VideoBridgeParent*,
                                          size_t(VideoBridgeSource::_Count)>;
 
+NS_IMPL_NONLOGGING_ADDREF_INHERITED(VideoBridgeParent, HostIPCAllocator)
+NS_IMPL_NONLOGGING_RELEASE_INHERITED(VideoBridgeParent, HostIPCAllocator)
+
 static StaticDataMutex<VideoBridgeTable> sVideoBridgeFromProcess(
     "VideoBridges");
 static Atomic<bool> sVideoBridgeParentShutDown(false);
