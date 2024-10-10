@@ -35,8 +35,8 @@ add_task(async function () {
   info("Add a logpoint with a valid expression");
   await setLogPoint(dbg, 8, "`a is ${a}`");
 
-  await assertEditorLogpoint(dbg, 7, { hasLog: true });
-  await assertEditorLogpoint(dbg, 8, { hasLog: true });
+  await assertLogBreakpoint(dbg, 7);
+  await assertLogBreakpoint(dbg, 8);
 
   info("Close the file in the debugger");
   await closeTab(dbg, "test-location-debugger-link-logpoint-1.js");

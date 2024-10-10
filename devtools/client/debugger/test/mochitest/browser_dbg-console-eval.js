@@ -13,7 +13,7 @@ add_task(async function () {
   await selectSource(dbg, "simple2.js", 1);
 
   clickElement(dbg, "CodeMirrorLines");
-  await waitForElementWithSelector(dbg, ".CodeMirror-code");
+  await waitForElement(dbg, "CodeMirrorCode");
 
   setSelection(dbg, 1, 7);
 

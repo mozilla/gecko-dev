@@ -11,6 +11,8 @@ const PRETTY_PRINTED_FILENAME = `${TEST_FILENAME}:formatted`;
 
 const BREAKABLE_LINE_HINT_CHAR = `➤`;
 
+requestLongerTimeout(2);
+
 // Import helpers for the inspector
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/inspector/test/shared-head.js",
