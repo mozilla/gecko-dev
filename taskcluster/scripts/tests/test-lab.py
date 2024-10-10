@@ -121,11 +121,13 @@ def execute_tests(
 
     # Add a client details parameter using the repository name
     matrixLabel = os.environ.get("GECKO_HEAD_REPOSITORY")
-    if matrixLabel is not None:
+    geckoRev = os.environ.get("GECKO_HEAD_REV")
+
+    if matrixLabel is not None and geckoRev is not None:
         flank_command.extend(
             [
                 "--client-details",
-                f"matrixLabel={urlparse(matrixLabel).path.rpartition('/')[-1]}",
+                f"matrixLabel={urlparse(matrixLabel).path.rpartition('/')[-1]},geckoRev={geckoRev}",
             ]
         )
 
