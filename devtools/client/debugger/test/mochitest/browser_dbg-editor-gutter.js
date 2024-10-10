@@ -109,7 +109,7 @@ add_task(async function testGutterBreakpointsForSourceWithIgnoredLines() {
   await closeContextMenu(dbg, popup);
 
   info("Assert that the lines 17 to 21 are still ignored");
-  assertIgnoredStyleInSourceLines(dbg, {
+  await assertIgnoredStyleInSourceLines(dbg, {
     lines: [17, 21],
     hasBlackboxedLinesClass: true,
   });
