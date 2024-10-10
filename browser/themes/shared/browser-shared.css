@@ -173,7 +173,7 @@ body {
   /* Reset linux padding */
   padding: 0;
 
-  &:not(.titlebar-color) {
+  &:not(.browser-titlebar) {
     background-color: var(--toolbar-bgcolor);
     color: var(--toolbar-color);
     border-style: none;

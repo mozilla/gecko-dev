@@ -7788,6 +7788,7 @@ var TabBarVisibility = {
 
   update(force = false) {
     let toolbar = document.getElementById("TabsToolbar");
+    let navbar = document.getElementById("nav-bar");
     let hideTabstrip = false;
     let isPopup = !window.toolbar.visible;
     let isVerticalTabs = Services.prefs.getBoolPref(
@@ -7805,7 +7806,7 @@ var TabBarVisibility = {
     if (nonPopupWithVerticalTabs) {
       // TabsInTitlebar decides if we can draw within the titlebar area.
       // In vertical tabs mode, the toolbar with the horizontal tabstrip gets hidden
-      // and the navbar becomes a titlebar. This makie TabsInTitlebar a bit of a misnomer.
+      // and the navbar becomes a titlebar. This makes TabsInTitlebar a bit of a misnomer.
       // We'll fix this in Bug 1921034.
       hideTabstrip = true;
       TabsInTitlebar.allowedBy("tabs-visible", true);
@@ -7813,24 +7814,24 @@ var TabBarVisibility = {
       TabsInTitlebar.allowedBy("tabs-visible", !hideTabstrip);
     }
 
+    navbar.toggleAttribute("tabs-hidden", hideTabstrip);
+    // Should the nav-bar look and function like a titlebar?
+    navbar.classList.toggle(
+      "browser-titlebar",
+      TabsInTitlebar.enabled && hideTabstrip
+    );
+
     if (
       hideTabstrip == toolbar.collapsed &&
       !force &&
       this._initialUpdateDone
     ) {
+      // no further updates needed, toolbar.collapsed already matches hideTabstrip
       return;
     }
     this._initialUpdateDone = true;
 
     toolbar.collapsed = hideTabstrip;
-    let navbar = document.getElementById("nav-bar");
-    navbar.toggleAttribute("tabs-hidden", hideTabstrip);
-    // Should the nav-bar look and function  like a titlebar?
-    navbar.classList.toggle(
-      "browser-titlebar",
-      TabsInTitlebar.enabled && hideTabstrip
-    );
-    navbar.classList.toggle("titlebar-color", hideTabstrip);
 
     document.getElementById("menu_closeWindow").hidden = hideTabstrip;
     document.l10n.setAttributes(
