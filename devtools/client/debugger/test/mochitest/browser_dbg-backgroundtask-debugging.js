@@ -107,6 +107,7 @@ add_task(async function test_backgroundtask_debugger() {
     getCM,
     getEditorContent,
     getCMEditor,
+    isCm6Enabled,
     log: (msg, data) =>
       console.log(`${msg} ${!data ? "" : JSON.stringify(data)}`),
     info: (msg, data) =>
