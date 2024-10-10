@@ -2385,7 +2385,14 @@ already_AddRefed<gfxTextRun> BuildTextRunsScanner::BuildTextRunForFrames(
     fontInflation = nsLayoutUtils::FontSizeInflationFor(firstFrame);
     fontGroup = GetInflatedFontGroupForFrame(firstFrame);
   }
-  MOZ_ASSERT(fontGroup);
+
+  if (fontGroup) {
+    // Refresh fontgroup if necessary, before trying to build textruns.
+    fontGroup->CheckForUpdatedPlatformList();
+  } else {
+    DestroyUserData(userDataToDestroy);
+    return nullptr;
+  }
 
   if (flags2 & nsTextFrameUtils::Flags::HasTab) {
     flags |= gfx::ShapedTextFlags::TEXT_ENABLE_SPACING;
