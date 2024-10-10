@@ -7,7 +7,10 @@ package org.mozilla.fenix.customtabs
 import android.content.Context
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isVisible
@@ -283,7 +286,10 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
         val isToolbarAtBottom = requireComponents.settings.toolbarPosition == ToolbarPosition.BOTTOM
         bottomToolbarContainerView.updateContent {
             FirefoxTheme {
-                Column {
+                val background = navbarIntegration.backgroundColor?.let { Color(it) } ?: FirefoxTheme.colors.layer1
+                Column(
+                    modifier = Modifier.background(background),
+                ) {
                     if (isToolbarAtBottom) {
                         // If the toolbar is reinitialized - for example after the screen is rotated
                         // the toolbar might have been already set.
@@ -331,7 +337,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                                 ),
                             )
                         },
-                        backgroundColor = navbarIntegration.backgroundColor,
+                        backgroundColor = background,
                         buttonTint = navbarIntegration.buttonTint,
                         buttonDisabledTint = navbarIntegration.buttonDisabledTint,
                         onVisibilityUpdated = {

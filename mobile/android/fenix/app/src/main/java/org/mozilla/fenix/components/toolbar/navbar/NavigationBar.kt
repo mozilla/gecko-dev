@@ -262,7 +262,7 @@ fun CustomTabNavBar(
     onForwardButtonLongPress: () -> Unit,
     onOpenInBrowserButtonClick: () -> Unit,
     onMenuButtonClick: () -> Unit,
-    @ColorInt backgroundColor: Int? = null,
+    backgroundColor: Color,
     @ColorInt buttonTint: Int? = null,
     @ColorInt buttonDisabledTint: Int? = null,
     onVisibilityUpdated: (Boolean) -> Unit,
@@ -275,12 +275,11 @@ fun CustomTabNavBar(
     val canGoForward by browserStore.observeAsState(initialValue = false) {
         it.findCustomTab(customTabSessionId)?.content?.canGoForward ?: false
     }
-    val background = backgroundColor?.let { Color(it) } ?: FirefoxTheme.colors.layer1
     val iconTint = buttonTint?.let { Color(it) } ?: FirefoxTheme.colors.iconPrimary
     val disabledIconTint = buttonDisabledTint?.let { Color(it) } ?: FirefoxTheme.colors.iconDisabled
 
     NavBar(
-        background = background,
+        background = backgroundColor,
         onVisibilityUpdated = onVisibilityUpdated,
     ) {
         BackButton(
@@ -565,7 +564,7 @@ private fun CustomTabNavBarPreviewRoot(isPrivateMode: Boolean) {
         onOpenInBrowserButtonClick = {},
         onMenuButtonClick = {},
         isMenuRedesignEnabled = false,
-        backgroundColor = FirefoxTheme.colors.layer1.toArgb(),
+        backgroundColor = FirefoxTheme.colors.layer1,
         buttonTint = FirefoxTheme.colors.iconPrimary.toArgb(),
         onVisibilityUpdated = {},
     )
