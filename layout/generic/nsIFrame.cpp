@@ -1190,6 +1190,11 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
     mComputedStyle->StartImageLoads(*doc, aOldComputedStyle);
   }
 
+  const bool isRootElementStyle = Style()->IsRootElementStyle();
+  if (isRootElementStyle) {
+    PresShell()->SyncWindowProperties(/* aSync = */ false);
+  }
+
   const nsStyleImageLayers* oldLayers =
       aOldComputedStyle ? &aOldComputedStyle->StyleBackground()->mImage
                         : nullptr;
@@ -1264,7 +1269,7 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
     if (disp->mScrollSnapAlign != oldDisp->mScrollSnapAlign) {
       ScrollSnapUtils::PostPendingResnapFor(this);
     }
-    if (aOldComputedStyle->IsRootElementStyle() &&
+    if (isRootElementStyle &&
         disp->mScrollSnapType != oldDisp->mScrollSnapType) {
       if (ScrollContainerFrame* sf =
               PresShell()->GetRootScrollContainerFrame()) {

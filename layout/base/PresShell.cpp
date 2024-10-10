@@ -9975,9 +9975,6 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
   if (target->HasView()) {
     nsContainerFrame::SyncFrameViewAfterReflow(
         mPresContext, target, target->GetView(), boundsRelativeToTarget);
-    if (target->IsViewportFrame()) {
-      SyncWindowProperties(/* aSync = */ false);
-    }
   }
 
   target->DidReflow(mPresContext, nullptr);
@@ -11801,10 +11798,15 @@ PresShell::WindowSizeConstraints PresShell::GetWindowSizeConstraints() {
 }
 
 void PresShell::SyncWindowProperties(bool aSync) {
+  if (XRE_IsContentProcess()) {
+    return;
+  }
+
   nsView* view = mViewManager->GetRootView();
   if (!view || !view->HasWidget()) {
     return;
   }
+
   RefPtr pc = mPresContext;
   if (!pc) {
     return;
@@ -11815,13 +11817,13 @@ void PresShell::SyncWindowProperties(bool aSync) {
     return;
   }
 
-  nsIFrame* rootFrame = FrameConstructor()->GetRootElementStyleFrame();
-  if (!rootFrame) {
+  if (!aSync) {
+    view->SetNeedsWindowPropertiesSync();
     return;
   }
 
-  if (!aSync) {
-    view->SetNeedsWindowPropertiesSync();
+  nsIFrame* rootFrame = FrameConstructor()->GetRootElementStyleFrame();
+  if (!rootFrame) {
     return;
   }
 
