@@ -1133,6 +1133,24 @@ class BookmarksMiddlewareTest {
         assertTrue(store.state.bookmarkItems.any { it.guid == syncedGuid })
     }
 
+    @Test
+    fun `GIVEN a bookmark has been deleted WHEN the view is disposed before the snackbar is dismissed THEN commit the deletion`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+        val bookmarkToDelete = store.state.bookmarkItems.first { it is BookmarkItem.Bookmark } as BookmarkItem.Bookmark
+
+        store.dispatch(BookmarksListMenuAction.Bookmark.DeleteClicked(bookmarkToDelete))
+        val snackState = store.state.bookmarksSnackbarState
+        assertTrue(snackState is BookmarksSnackbarState.UndoDeletion && snackState.guidsToDelete.first() == bookmarkToDelete.guid)
+        store.dispatch(ViewDisposed)
+
+        verify(bookmarksStorage).deleteNode(bookmarkToDelete.guid)
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         clipboardManager = clipboardManager,

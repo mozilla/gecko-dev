@@ -20,6 +20,7 @@ internal data class InitEditLoaded(
     val bookmark: BookmarkItem.Bookmark,
     val folder: BookmarkItem.Folder,
 ) : BookmarksAction
+internal data object ViewDisposed : BookmarksAction
 
 /**
  * Bookmarks have been loaded from the storage layer.
