@@ -1,0 +1,40 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+
+  ### This moz.build was AUTOMATICALLY GENERATED from a GN config,  ###
+  ### DO NOT edit it by hand.                                       ###
+
+DIRS += [
+    "/third_party/abseil-cpp/absl/algorithm/algorithm_gn",
+    "/third_party/abseil-cpp/absl/algorithm/container_gn",
+    "/third_party/abseil-cpp/absl/base/atomic_hook_gn",
+    "/third_party/abseil-cpp/absl/base/base_internal_gn",
+    "/third_party/abseil-cpp/absl/base/config_gn",
+    "/third_party/abseil-cpp/absl/base/core_headers_gn",
+    "/third_party/abseil-cpp/absl/base/log_severity_gn",
+    "/third_party/abseil-cpp/absl/base/nullability_gn",
+    "/third_party/abseil-cpp/absl/base/raw_logging_internal_gn",
+    "/third_party/abseil-cpp/absl/base/throw_delegate_gn",
+    "/third_party/abseil-cpp/absl/cleanup/cleanup_gn",
+    "/third_party/abseil-cpp/absl/cleanup/cleanup_internal_gn",
+    "/third_party/abseil-cpp/absl/container/compressed_tuple_gn",
+    "/third_party/abseil-cpp/absl/container/inlined_vector_gn",
+    "/third_party/abseil-cpp/absl/container/inlined_vector_internal_gn",
+    "/third_party/abseil-cpp/absl/functional/any_invocable_gn",
+    "/third_party/abseil-cpp/absl/functional/bind_front_gn",
+    "/third_party/abseil-cpp/absl/memory/memory_gn",
+    "/third_party/abseil-cpp/absl/meta/type_traits_gn",
+    "/third_party/abseil-cpp/absl/numeric/bits_gn",
+    "/third_party/abseil-cpp/absl/numeric/int128_gn",
+    "/third_party/abseil-cpp/absl/strings/string_view_gn",
+    "/third_party/abseil-cpp/absl/strings/strings_gn",
+    "/third_party/abseil-cpp/absl/types/bad_optional_access_gn",
+    "/third_party/abseil-cpp/absl/types/bad_variant_access_gn",
+    "/third_party/abseil-cpp/absl/types/optional_gn",
+    "/third_party/abseil-cpp/absl/types/span_gn",
+    "/third_party/abseil-cpp/absl/types/variant_gn",
+    "/third_party/abseil-cpp/absl/utility/utility_gn",
+    "/third_party/abseil-cpp/absl_gn"
+]

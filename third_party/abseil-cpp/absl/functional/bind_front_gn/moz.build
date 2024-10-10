@@ -16,10 +16,9 @@ FINAL_LIBRARY = "xul"
 
 LOCAL_INCLUDES += [
     "!/ipc/ipdl/_ipdlheaders",
-    "!/third_party/libwebrtc/gen",
+    "!/third_party/abseil-cpp/gen",
     "/ipc/chromium/src",
-    "/third_party/libwebrtc/",
-    "/third_party/libwebrtc/third_party/abseil-cpp/",
+    "/third_party/abseil-cpp/",
     "/tools/profiler/public"
 ]
 
