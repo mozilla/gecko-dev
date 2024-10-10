@@ -62,8 +62,7 @@ class CodeGeneratorShared : public LElementVisitor {
   // Amount of bytes allocated for incoming args. Used for Wasm return calls.
   uint32_t inboundStackArgBytes_;
 
-  js::Vector<CodegenSafepointIndex, 0, BackgroundSystemAllocPolicy>
-      safepointIndices_;
+  js::Vector<CodegenSafepointIndex, 0, JitAllocPolicy> safepointIndices_;
   js::Vector<OsiIndex, 0, BackgroundSystemAllocPolicy> osiIndices_;
 
   // Allocated data space needed at runtime.

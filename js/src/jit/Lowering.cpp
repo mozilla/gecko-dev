@@ -674,6 +674,7 @@ void LIRGenerator::visitApplyArgs(MApplyArgs* apply) {
 
     lir = new (alloc())
         LApplyArgsGeneric(function, argc, thisValue, tempObj, tempCopy);
+    lirGraph_.addExtraSafepointUses(1);
   }
 
   // Bailout is needed in the case of too many values in the arguments array.
@@ -709,6 +710,7 @@ void LIRGenerator::visitApplyArgsObj(MApplyArgsObj* apply) {
 
     lir = new (alloc())
         LApplyArgsObj(function, argsObj, thisValue, tempObj, tempCopy);
+    lirGraph_.addExtraSafepointUses(1);
   }
 
   // Bailout is needed in the case of too many values in the arguments array.
@@ -744,6 +746,7 @@ void LIRGenerator::visitApplyArray(MApplyArray* apply) {
 
     lir = new (alloc())
         LApplyArrayGeneric(function, elements, thisValue, tempObj, tempCopy);
+    lirGraph_.addExtraSafepointUses(1);
   }
 
   // Bailout is needed in the case of too many values in the array, or empty
@@ -784,6 +787,7 @@ void LIRGenerator::visitConstructArgs(MConstructArgs* mir) {
 
     lir = new (alloc())
         LConstructArgsGeneric(function, argc, newTarget, thisValue, temp);
+    lirGraph_.addExtraSafepointUses(1);
   }
 
   // Bailout is needed in the case of too many values in the arguments array.
@@ -823,6 +827,7 @@ void LIRGenerator::visitConstructArray(MConstructArray* mir) {
 
     lir = new (alloc())
         LConstructArrayGeneric(function, elements, newTarget, thisValue, temp);
+    lirGraph_.addExtraSafepointUses(1);
   }
 
   // Bailout is needed in the case of too many values in the array, or empty
