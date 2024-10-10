@@ -3459,14 +3459,22 @@ void gfxFontGroup::ComputeRanges(nsTArray<TextRange>& aRanges, const T* aString,
     // FindFontForChar method for the most common case, where the first
     // font in the list supports the current char, and it is not one of
     // the special cases where FindFontForChar will attempt to propagate
-    // the font selected for an adjacent character.
+    // the font selected for an adjacent character, and does not need to
+    // consider emoji vs text presentation.
     if ((font = GetFontAt(0, ch)) != nullptr && font->HasCharacter(ch) &&
-        (sizeof(T) == sizeof(uint8_t) ||
-         (!IsClusterExtender(ch) && ch != NARROW_NO_BREAK_SPACE &&
-          !gfxFontUtils::IsJoinControl(ch) &&
-          !gfxFontUtils::IsJoinCauser(prevCh) &&
-          !gfxFontUtils::IsVarSelector(ch) &&
-          GetEmojiPresentation(ch) == TextOnly))) {
+        // In 8-bit text, the only time emoji presentation might be needed
+        // is if it is explicitly requested with font-variant, as no 8-bit
+        // chars are emoji by default.
+        ((sizeof(T) == sizeof(uint8_t) &&
+          (mEmojiPresentation != eFontPresentation::EmojiExplicit ||
+           GetEmojiPresentation(ch) == TextOnly)) ||
+         // For 16-bit text, we need to consider cluster extenders etc.
+         (sizeof(T) == sizeof(char16_t) &&
+          (!IsClusterExtender(ch) && ch != NARROW_NO_BREAK_SPACE &&
+           !gfxFontUtils::IsJoinControl(ch) &&
+           !gfxFontUtils::IsJoinCauser(prevCh) &&
+           !gfxFontUtils::IsVarSelector(ch) &&
+           GetEmojiPresentation(ch) == TextOnly)))) {
       matchType = {FontMatchType::Kind::kFontGroup, mFonts[0].Generic()};
     } else {
       font =
