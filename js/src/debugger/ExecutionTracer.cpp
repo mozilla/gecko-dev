@@ -83,6 +83,10 @@ static DebuggerFrameType GetFrameType(AbstractFramePtr frame) {
   return true;
 }
 
+static double GetNowMilliseconds() {
+  return (TimeStamp::Now() - TimeStamp::ProcessCreation()).ToMilliseconds();
+}
+
 void ExecutionTracer::writeScriptUrl(ScriptSource* scriptSource) {
   outOfLineData_.beginWritingEntry();
   outOfLineData_.write(uint8_t(OutOfLineEntryType::ScriptURL));
@@ -166,7 +170,7 @@ bool ExecutionTracer::writeFunctionFrame(JSContext* cx,
 
   inlineData_.write(functionNameId);
   inlineData_.write(uint8_t(GetImplementation(frame)));
-  inlineData_.write(PRMJ_Now());
+  inlineData_.write(GetNowMilliseconds());
   return true;
 }
 
@@ -206,7 +210,7 @@ void ExecutionTracer::onEnterLabel(const CharType* eventType) {
   inlineData_.beginWritingEntry();
   inlineData_.write(uint8_t(InlineEntryType::LabelEnter));
   inlineData_.writeCString<CharType, Encoding>(eventType);
-  inlineData_.write(PRMJ_Now());
+  inlineData_.write(GetNowMilliseconds());
   inlineData_.finishWritingEntry();
 }
 
@@ -215,7 +219,7 @@ void ExecutionTracer::onLeaveLabel(const CharType* eventType) {
   inlineData_.beginWritingEntry();
   inlineData_.write(uint8_t(InlineEntryType::LabelLeave));
   inlineData_.writeCString<CharType, Encoding>(eventType);
-  inlineData_.write(PRMJ_Now());
+  inlineData_.write(GetNowMilliseconds());
   inlineData_.finishWritingEntry();
 }
 
@@ -236,7 +240,7 @@ bool ExecutionTracer::readFunctionFrame(JSContext* cx,
   uint32_t url;
   uint32_t functionName;
   uint8_t implementation;
-  uint64_t time;
+  double time;
   inlineData_.read(&lineno);
   inlineData_.read(&column);
   inlineData_.read(&url);
@@ -262,9 +266,7 @@ bool ExecutionTracer::readFunctionFrame(JSContext* cx,
   if (!NewbornArrayPush(cx, result, Int32Value(implementation))) {
     return false;
   }
-
-  double timeDouble = time / double(PRMJ_USEC_PER_MSEC);
-  if (!NewbornArrayPush(cx, result, DoubleValue(timeDouble))) {
+  if (!NewbornArrayPush(cx, result, DoubleValue(time))) {
     return false;
   }
 
@@ -364,11 +366,10 @@ bool ExecutionTracer::readLabel(JSContext* cx, JS::Handle<JSObject*> events,
     return false;
   }
 
-  uint64_t time;
+  double time;
   inlineData_.read(&time);
 
-  double timeDouble = time / double(PRMJ_USEC_PER_MSEC);
-  if (!NewbornArrayPush(cx, obj, DoubleValue(timeDouble))) {
+  if (!NewbornArrayPush(cx, obj, DoubleValue(time))) {
     return false;
   }
 
