@@ -385,16 +385,6 @@ interface nsITelemetry : nsISupports
   readonly attribute boolean isOfficialTelemetry;
 
   /**
-   * Enable/disable recording for this histogram at runtime.
-   * Recording is enabled by default, unless listed at kRecordingInitiallyDisabledIDs[].
-   * Name must be a valid Histogram identifier, otherwise an assertion will be triggered.
-   *
-   * @param id - unique identifier from histograms.json
-   * @param enabled - whether or not to enable recording from now on.
-   */
-  void setHistogramRecordingEnabled(in ACString id, in boolean enabled);
-
-  /**
    * Read data from the previous run. After the callback is called, the last
    * shutdown time is available in lastShutdownDuration and any late
    * writes in lateWrites.

@@ -31,10 +31,6 @@ bool CanRecordExtended();
 void SetCanRecordExtended(bool b);
 
 void InitHistogramRecordingEnabled();
-void SetHistogramRecordingEnabled(mozilla::Telemetry::HistogramID aID,
-                                  bool aEnabled);
-
-nsresult SetHistogramRecordingEnabled(const nsACString& id, bool aEnabled);
 
 void Accumulate(mozilla::Telemetry::HistogramID aHistogram, uint32_t aSample);
 void Accumulate(mozilla::Telemetry::HistogramID aHistogram,

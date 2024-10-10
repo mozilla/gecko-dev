@@ -555,12 +555,6 @@ bool TelemetryImpl::AddSQLInfo(JSContext* cx, JS::Handle<JSObject*> rootObj,
 }
 
 NS_IMETHODIMP
-TelemetryImpl::SetHistogramRecordingEnabled(const nsACString& id,
-                                            bool aEnabled) {
-  return TelemetryHistogram::SetHistogramRecordingEnabled(id, aEnabled);
-}
-
-NS_IMETHODIMP
 TelemetryImpl::GetSnapshotForHistograms(const nsACString& aStoreName,
                                         bool aClearStore, bool aFilterTest,
                                         JSContext* aCx,
@@ -1809,11 +1803,6 @@ void RecordShutdownEndTimeStamp() {
 // These are listed in Telemetry.h
 
 namespace mozilla::Telemetry {
-
-// The external API for controlling recording state
-void SetHistogramRecordingEnabled(HistogramID aID, bool aEnabled) {
-  TelemetryHistogram::SetHistogramRecordingEnabled(aID, aEnabled);
-}
 
 void Accumulate(HistogramID aHistogram, uint32_t aSample) {
   TelemetryHistogram::Accumulate(aHistogram, aSample);

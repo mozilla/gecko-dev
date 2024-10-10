@@ -337,12 +337,6 @@ bool gHistogramRecordingDisabled[HistogramCount] = {};
 
 namespace {
 
-// List of histogram IDs which should have recording disabled initially.
-const HistogramID kRecordingInitiallyDisabledIDs[] = {
-    // The array must not be empty. Leave these item here.
-    mozilla::Telemetry::TELEMETRY_TEST_COUNT_INIT_NO_RECORD,
-    mozilla::Telemetry::TELEMETRY_TEST_KEYED_COUNT_INIT_NO_RECORD};
-
 const char* TEST_HISTOGRAM_PREFIX = "TELEMETRY_TEST_";
 
 }  // namespace
@@ -706,15 +700,9 @@ nsresult internal_HistogramAdd(const StaticMutexAutoLock& aLock,
   // If `histogram` is a non-parent-process histogram, then recording-enabled
   // has been checked in its owner process.
   if (aProcessType == ProcessID::Parent && !internal_IsRecordingEnabled(id)) {
-    bool canRecordInProcess =
-        CanRecordInProcess(h.record_in_processes, XRE_GetProcessType());
     PROFILER_MARKER_TEXT(
-        "HistogramError", TELEMETRY,
-        mozilla::MarkerStack::MaybeCapture(!canRecordInProcess),
-        nsPrintfCString(
-            "%s: %s",
-            canRecordInProcess ? "RecordingDisabled" : "CannotRecordInProcess",
-            h.name()));
+        "HistogramError", TELEMETRY, mozilla::MarkerStack::Capture(),
+        nsPrintfCString("CannotRecordInProcess: %s", h.name()));
     return NS_OK;
   }
 
@@ -2575,48 +2563,6 @@ void TelemetryHistogram::InitHistogramRecordingEnabled() {
         CanRecordInProcess(h.record_in_processes, processType);
     internal_SetHistogramRecordingEnabled(locker, id, canRecordInProcess);
   }
-
-  for (auto recordingInitiallyDisabledID : kRecordingInitiallyDisabledIDs) {
-    internal_SetHistogramRecordingEnabled(locker, recordingInitiallyDisabledID,
-                                          false);
-  }
-}
-
-void TelemetryHistogram::SetHistogramRecordingEnabled(HistogramID aID,
-                                                      bool aEnabled) {
-  if (NS_WARN_IF(!internal_IsHistogramEnumId(aID))) {
-    MOZ_ASSERT_UNREACHABLE("Histogram usage requires valid ids.");
-    return;
-  }
-
-  const HistogramInfo& h = gHistogramInfos[aID];
-  if (!CanRecordInProcess(h.record_in_processes, XRE_GetProcessType())) {
-    // Don't permit record_in_process-disabled recording to be re-enabled.
-    return;
-  }
-
-  if (!CanRecordProduct(h.products)) {
-    // Don't permit products-disabled recording to be re-enabled.
-    return;
-  }
-
-  StaticMutexAutoLock locker(gTelemetryHistogramMutex);
-  internal_SetHistogramRecordingEnabled(locker, aID, aEnabled);
-}
-
-nsresult TelemetryHistogram::SetHistogramRecordingEnabled(
-    const nsACString& name, bool aEnabled) {
-  StaticMutexAutoLock locker(gTelemetryHistogramMutex);
-  HistogramID id;
-  if (NS_FAILED(internal_GetHistogramIdByName(locker, name, &id))) {
-    return NS_ERROR_FAILURE;
-  }
-
-  const HistogramInfo& hi = gHistogramInfos[id];
-  if (CanRecordInProcess(hi.record_in_processes, XRE_GetProcessType())) {
-    internal_SetHistogramRecordingEnabled(locker, id, aEnabled);
-  }
-  return NS_OK;
 }
 
 void TelemetryHistogram::Accumulate(HistogramID aID, uint32_t aSample) {

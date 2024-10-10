@@ -10484,7 +10484,6 @@ interface nsITelemetry extends nsISupports {
   readonly canRecordReleaseData: boolean;
   readonly canRecordPrereleaseData: boolean;
   readonly isOfficialTelemetry: boolean;
-  setHistogramRecordingEnabled(id: string, enabled: boolean): void;
   asyncFetchTelemetryData(aCallback: nsIFetchTelemetryDataCallback): void;
   readonly fileIOReports: any;
   msSinceProcessStart(): double;
