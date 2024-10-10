@@ -2314,6 +2314,7 @@ function getCoordsFromPosition(dbg, line, ch) {
 async function getTokenFromPosition(dbg, { line, column = 0 }) {
   info(`Get token at ${line}:${column}`);
   const cm = getCM(dbg);
+  line = isCm6Enabled ? line : line - 1;
   await scrollEditorIntoView(dbg, line, column);
 
   if (isCm6Enabled) {
@@ -2397,16 +2398,21 @@ async function clickAtPos(dbg, pos) {
   info(
     `Clicking on token ${tokenEl.innerText} in line ${tokenEl.parentNode.innerText}`
   );
-  tokenEl.dispatchEvent(
-    new PointerEvent("click", {
-      bubbles: true,
-      cancelable: true,
-      view: dbg.win,
-      // Shift by one as we might be on the edge of the element and click on previous line/column
-      clientX: left + 1,
-      clientY: top + 1,
-    })
-  );
+  // TODO: Unify the usage for CM6 and CM5 Bug 1919694
+  if (isCm6Enabled) {
+    EventUtils.synthesizeMouseAtCenter(tokenEl, {}, dbg.win);
+  } else {
+    tokenEl.dispatchEvent(
+      new PointerEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: dbg.win,
+        // Shift by one as we might be on the edge of the element and click on previous line/column
+        clientX: left + 1,
+        clientY: top + 1,
+      })
+    );
+  }
 }
 
 async function rightClickAtPos(dbg, pos) {
@@ -2414,8 +2420,12 @@ async function rightClickAtPos(dbg, pos) {
   if (!el) {
     return;
   }
-
-  EventUtils.synthesizeMouseAtCenter(el, { type: "contextmenu" }, dbg.win);
+  // In CM6 when clicking in the editor an extra click is needed
+  // TODO: Investiaget and remove Bug 1919693
+  if (isCm6Enabled) {
+    EventUtils.synthesizeMouseAtCenter(el, {}, dbg.win);
+  }
+  rightClickEl(dbg, el);
 }
 
 async function hoverAtPos(dbg, pos) {
