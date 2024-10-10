@@ -219,9 +219,7 @@ class TracerActor extends Actor {
     // Remove before stopping to prevent receiving the stop notification
     lazy.JSTracer.removeTracingListener(this.tracingListener);
     // Save the result of the stop request for the profiler and the getProfile RDP method
-    this.#stopResult = this.tracingListener.stop(
-      lazy.JSTracer.maybeGetNativeTrace()
-    );
+    this.#stopResult = this.tracingListener.stop();
     this.tracingListener = null;
 
     lazy.JSTracer.stopTracing();

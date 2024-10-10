@@ -247,57 +247,10 @@ class TracingBuffer {
     readBytes(reinterpret_cast<uint8_t*>(val), sizeof(T));
   }
 
-  bool readString(JSContext* cx, JS::MutableHandle<JSString*> result) {
-    uint8_t encodingByte;
-    read(&encodingByte);
-    TracerStringEncoding encoding = TracerStringEncoding(encodingByte);
-    uint32_t length;
-    read(&length);
-
-    if (length == 0) {
-      result.set(JS_GetEmptyString(cx));
-      return true;
-    }
-
-    JSLinearString* str = nullptr;
-    if (encoding == TracerStringEncoding::UTF8 ||
-        encoding == TracerStringEncoding::Latin1) {
-      UniquePtr<unsigned char[], JS::FreePolicy> chars(
-          cx->make_pod_arena_array<unsigned char>(StringBufferArena, length));
-      if (!chars) {
-        return false;
-      }
-      readBytes(reinterpret_cast<uint8_t*>(chars.get()), length);
-      if (encoding == TracerStringEncoding::UTF8) {
-        str = NewStringCopyUTF8N(
-            cx, JS::UTF8Chars(reinterpret_cast<char*>(chars.get()), length));
-      } else {
-        str = NewString<CanGC>(cx, std::move(chars), length);
-      }
-    } else {
-      MOZ_ASSERT(encoding == TracerStringEncoding::TwoByte);
-      UniquePtr<char16_t[], JS::FreePolicy> chars(
-          cx->make_pod_arena_array<char16_t>(StringBufferArena, length));
-      if (!chars) {
-        return false;
-      }
-      readBytes((uint8_t*)chars.get(), length * sizeof(char16_t));
-      str = NewString<CanGC>(cx, std::move(chars), length);
-    }
-
-    if (!str) {
-      return false;
-    }
-
-    result.set(str);
-
-    return true;
-  }
-
   // Reads a string from our buffer into the stringBuffer. Converts everything
   // to null-terminated UTF-8
-  bool readStringNative(TracingScratchBuffer& scratchBuffer,
-                        mozilla::Vector<char>& stringBuffer, size_t* index) {
+  bool readString(TracingScratchBuffer& scratchBuffer,
+                  mozilla::Vector<char>& stringBuffer, size_t* index) {
     uint8_t encodingByte;
     read(&encodingByte);
     TracerStringEncoding encoding = TracerStringEncoding(encodingByte);
@@ -431,44 +384,29 @@ class ExecutionTracer {
   bool writeAtom(JSContext* cx, JS::Handle<JSAtom*> atom, uint32_t id);
   bool writeFunctionFrame(JSContext* cx, AbstractFramePtr frame);
 
-  bool readFunctionFrame(JSContext* cx, JS::Handle<JSObject*> result,
-                         JS::ExecutionTrace::EventKind kind);
-  bool readStackFunctionEnter(JSContext* cx, JS::Handle<JSObject*> events);
-  bool readStackFunctionLeave(JSContext* cx, JS::Handle<JSObject*> events);
-  bool readScriptURLEntry(JSContext* cx, JS::Handle<JSObject*> scriptUrls);
-  bool readAtomEntry(JSContext* cx, JS::Handle<JSObject*> atoms);
-  bool readLabel(JSContext* cx, JS::Handle<JSObject*> events,
-                 JS::ExecutionTrace::EventKind kind);
-  bool readInlineEntry(JSContext* cx, JS::Handle<JSObject*> events);
-  bool readOutOfLineEntry(JSContext* cx, JS::Handle<JSObject*> scriptUrls,
-                          JS::Handle<JSObject*> atoms);
-  bool readInlineEntries(JSContext* cx, JS::Handle<JSObject*> events);
-  bool readOutOfLineEntries(JSContext* cx, JS::Handle<JSObject*> scriptUrls,
-                            JS::Handle<JSObject*> atoms);
-
   // The below functions read data from the inlineData_ and outOfLineData_ ring
   // buffers into structs to be consumed by clients of the
   // JS_TracerSnapshotTrace API.
-  bool readFunctionFrameNative(JS::ExecutionTrace::EventKind kind,
-                               JS::ExecutionTrace::TracedEvent& event);
-  bool readLabelNative(JS::ExecutionTrace::EventKind kind,
-                       JS::ExecutionTrace::TracedEvent& event,
+  bool readFunctionFrame(JS::ExecutionTrace::EventKind kind,
+                         JS::ExecutionTrace::TracedEvent& event);
+  bool readLabel(JS::ExecutionTrace::EventKind kind,
+                 JS::ExecutionTrace::TracedEvent& event,
+                 TracingScratchBuffer& scratchBuffer,
+                 mozilla::Vector<char>& stringBuffer);
+  bool readInlineEntry(mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
                        TracingScratchBuffer& scratchBuffer,
                        mozilla::Vector<char>& stringBuffer);
-  bool readInlineEntryNative(
-      mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
-      TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer);
-  bool readOutOfLineEntryNative(mozilla::HashMap<uint32_t, size_t>& scriptUrls,
-                                mozilla::HashMap<uint32_t, size_t>& atoms,
-                                TracingScratchBuffer& scratchBuffer,
-                                mozilla::Vector<char>& stringBuffer);
-  bool readInlineEntriesNative(
-      mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
-      TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer);
-  bool readOutOfLineEntriesNative(
-      mozilla::HashMap<uint32_t, size_t>& scriptUrls,
-      mozilla::HashMap<uint32_t, size_t>& atoms,
-      TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer);
+  bool readOutOfLineEntry(mozilla::HashMap<uint32_t, size_t>& scriptUrls,
+                          mozilla::HashMap<uint32_t, size_t>& atoms,
+                          TracingScratchBuffer& scratchBuffer,
+                          mozilla::Vector<char>& stringBuffer);
+  bool readInlineEntries(mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
+                         TracingScratchBuffer& scratchBuffer,
+                         mozilla::Vector<char>& stringBuffer);
+  bool readOutOfLineEntries(mozilla::HashMap<uint32_t, size_t>& scriptUrls,
+                            mozilla::HashMap<uint32_t, size_t>& atoms,
+                            TracingScratchBuffer& scratchBuffer,
+                            mozilla::Vector<char>& stringBuffer);
 
  public:
   ExecutionTracer() : bufferLock_(mutexid::ExecutionTracerInstanceLock) {}
@@ -510,11 +448,6 @@ class ExecutionTracer {
   void onEnterLabel(const CharType* eventType);
   template <typename CharType, TracerStringEncoding Encoding>
   void onLeaveLabel(const CharType* eventType);
-
-  // Reads the execution trace from the underlying ring buffers and outputs it
-  // into a JS object. For the format of this object see
-  // js/src/doc/Debugger/Debugger.md
-  bool getTrace(JSContext* cx, JS::Handle<JSObject*> result);
 
   // Reads the execution trace from the underlying ring buffers and outputs it
   // into a native struct. For more information about this struct, see
