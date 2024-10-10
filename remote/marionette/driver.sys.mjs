@@ -1201,7 +1201,13 @@ GeckoDriver.prototype.setWindowRect = async function (cmd) {
     ) {
       return false;
     }
-    if (x !== null && y !== null && (win.screenX !== x || win.screenY !== y)) {
+    // Wayland doesn't support getting the window position.
+    if (
+      !lazy.AppInfo.isWayland &&
+      x !== null &&
+      y !== null &&
+      (win.screenX !== x || win.screenY !== y)
+    ) {
       return false;
     }
     lazy.logger.trace(`Requested window geometry matches`);
@@ -1218,7 +1224,8 @@ GeckoDriver.prototype.setWindowRect = async function (cmd) {
       promises.push(new lazy.EventPromise(win, "resize", options));
       win.resizeTo(width, height);
     }
-    if (x !== null && y !== null) {
+    // Wayland doesn't support setting the window position.
+    if (lazy.AppInfo.isWayland !== "wayland" && x !== null && y !== null) {
       promises.push(
         new lazy.EventPromise(win.windowRoot, "MozUpdateWindowPos", options)
       );
