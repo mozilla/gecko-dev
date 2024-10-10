@@ -274,7 +274,7 @@ impl NeqoHttp3Conn {
         {
             // These operations are infallible when conn.state == State::Init.
             let _ = conn.set_groups(&[
-                neqo_crypto::TLS_GRP_KEM_XYBER768D00,
+                neqo_crypto::TLS_GRP_KEM_MLKEM768X25519,
                 neqo_crypto::TLS_GRP_EC_X25519,
                 neqo_crypto::TLS_GRP_EC_SECP256R1,
                 neqo_crypto::TLS_GRP_EC_SECP384R1,
@@ -282,9 +282,9 @@ impl NeqoHttp3Conn {
             ]);
             additional_shares += 1;
         }
-        // If additional_shares == 2, send Xyber768D00, X25519, and P-256.
-        // If additional_shares == 1, send {Xyber768D00, X25519} or {X25519, P-256}.
-        // If additional_shares == 0, send X25519.
+        // If additional_shares == 2, send mlkem768x25519, x25519, and p256.
+        // If additional_shares == 1, send {mlkem768x25519, x25519} or {x25519, p256}.
+        // If additional_shares == 0, send x25519.
         let _ = conn.send_additional_key_shares(additional_shares);
 
         let mut conn = Http3Client::new_with_conn(conn, http3_settings);
