@@ -6,6 +6,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
+  error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
 });
@@ -16,6 +17,8 @@ export const print = {
   maxScaleValue: 2.0,
   minScaleValue: 0.1,
 };
+
+export const MIN_PAGE_SIZE = 0.0352;
 
 print.defaults = {
   // The size of the page in centimeters.
@@ -58,6 +61,18 @@ print.addDefaultSettings = function (settings) {
 
   if (!("height" in page)) {
     page.height = print.defaults.page.height;
+  }
+
+  if (page.width < MIN_PAGE_SIZE) {
+    throw new lazy.error.InvalidArgumentError(
+      `Expected "page.width" to be greater than or equal to ${MIN_PAGE_SIZE}cm, got ${page.width}cm.`
+    );
+  }
+
+  if (page.height < MIN_PAGE_SIZE) {
+    throw new lazy.error.InvalidArgumentError(
+      `Expected "page.height" to be greater than or equal to ${MIN_PAGE_SIZE}cm, got ${page.height}cm.`
+    );
   }
 
   if (!("top" in margin)) {
