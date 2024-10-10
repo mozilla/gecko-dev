@@ -1048,6 +1048,20 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
+    id: "1922175",
+    platform: "all",
+    domain: "app.livingsecurity.com",
+    bug: "1922175",
+    contentScripts: {
+      matches: ["*://app.livingsecurity.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1896383-error-capturestacktrace-shim.js",
+        },
+      ],
+    },
+  },
+  {
     id: "bug1889326",
     platform: "desktop",
     domain: "Office 365 email handling prompt",
