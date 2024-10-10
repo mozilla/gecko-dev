@@ -39,11 +39,11 @@ LOCAL_INCLUDES += [
     "!/ipc/ipdl/_ipdlheaders",
     "!/third_party/libwebrtc/gen",
     "/ipc/chromium/src",
+    "/third_party/abseil-cpp/",
     "/third_party/drm/drm/",
     "/third_party/drm/drm/include/",
     "/third_party/drm/drm/include/libdrm/",
     "/third_party/libwebrtc/",
-    "/third_party/libwebrtc/third_party/abseil-cpp/",
     "/tools/profiler/public"
 ]
 

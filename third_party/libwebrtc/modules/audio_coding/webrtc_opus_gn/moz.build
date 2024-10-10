@@ -29,8 +29,8 @@ LOCAL_INCLUDES += [
     "!/third_party/libwebrtc/gen",
     "/ipc/chromium/src",
     "/media/libopus/include/",
+    "/third_party/abseil-cpp/",
     "/third_party/libwebrtc/",
-    "/third_party/libwebrtc/third_party/abseil-cpp/",
     "/tools/profiler/public"
 ]
 
