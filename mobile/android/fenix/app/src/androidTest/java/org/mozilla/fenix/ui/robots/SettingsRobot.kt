@@ -217,12 +217,12 @@ class SettingsRobot {
             .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
         Log.i(TAG, "verifyPrivateBrowsingButton: Verified that the \"Private browsing\" button is visible")
     }
-    fun verifySitePermissionsButton() {
-        scrollToElementByText("Site permissions")
-        Log.i(TAG, "verifySitePermissionsButton: Trying to verify that the \"Site permissions\" button is visible")
-        onView(withText("Site permissions"))
+    fun verifySiteSettingsButton() {
+        scrollToElementByText("Site settings")
+        Log.i(TAG, "verifySiteSettingsButton: Trying to verify that the \"Site permissions\" button is visible")
+        onView(withText("Site settings"))
             .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-        Log.i(TAG, "verifySitePermissionsButton: Verified that the \"Site permissions\" button is visible")
+        Log.i(TAG, "verifySiteSettingsButton: Verified that the \"Site permissions\" button is visible")
     }
     fun verifyDeleteBrowsingDataButton() {
         scrollToElementByText("Delete browsing data")
@@ -695,11 +695,11 @@ class SettingsRobot {
             return SettingsSubMenuPrivateBrowsingRobot.Transition()
         }
 
-        fun openSettingsSubMenuSitePermissions(interact: SettingsSubMenuSitePermissionsRobot.() -> Unit): SettingsSubMenuSitePermissionsRobot.Transition {
-            scrollToElementByText("Site permissions")
-            Log.i(TAG, "openSettingsSubMenuSitePermissions: Trying to click the \"Site permissions\" button")
-            mDevice.findObject(textContains("Site permissions")).click()
-            Log.i(TAG, "openSettingsSubMenuSitePermissions: Clicked the \"Site permissions\" button")
+        fun openSettingsSubMenuSiteSettings(interact: SettingsSubMenuSitePermissionsRobot.() -> Unit): SettingsSubMenuSitePermissionsRobot.Transition {
+            scrollToElementByText("Site settings")
+            Log.i(TAG, "openSettingsSubMenuSiteSettings: Trying to click the \"Site settings\" button")
+            mDevice.findObject(textContains("Site settings")).click()
+            Log.i(TAG, "openSettingsSubMenuSiteSettings: Clicked the \"Site settings\" button")
 
             SettingsSubMenuSitePermissionsRobot().interact()
             return SettingsSubMenuSitePermissionsRobot.Transition()

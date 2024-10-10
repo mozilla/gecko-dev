@@ -5,10 +5,13 @@
 package org.mozilla.fenix.settings.sitepermissions
 
 import android.os.Bundle
+import androidx.core.content.ContextCompat
 import androidx.navigation.Navigation
 import androidx.preference.Preference
 import androidx.preference.Preference.OnPreferenceClickListener
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreference
+import mozilla.components.browser.state.action.DefaultDesktopModeAction
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.GleanMetrics.Autoplay
@@ -16,13 +19,17 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
+import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.settings.requirePreference
 
+/**
+ * Screen for managing settings related to site permissions and content defaults.
+ */
 @SuppressWarnings("TooManyFunctions")
-class SitePermissionsFragment : PreferenceFragmentCompat() {
+class SiteSettingsFragment : PreferenceFragmentCompat() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.site_permissions_preferences, rootKey)
@@ -33,13 +40,27 @@ class SitePermissionsFragment : PreferenceFragmentCompat() {
 
     override fun onResume() {
         super.onResume()
-        showToolbar(getString(R.string.preferences_site_permissions))
+        showToolbar(getString(R.string.preferences_site_settings))
         setupPreferences()
     }
 
     private fun setupPreferences() {
+        bindDesktopMode()
         bindCategoryPhoneFeatures()
         bindExceptions()
+    }
+
+    private fun bindDesktopMode() {
+        requirePreference<SwitchPreference>(R.string.pref_key_desktop_browsing).apply {
+            icon?.setTint(ContextCompat.getColor(context, R.color.fx_mobile_icon_color_primary))
+            isChecked = requireComponents.core.store.state.desktopMode
+            isPersistent = false
+            onPreferenceChangeListener =
+                Preference.OnPreferenceChangeListener { _, _ ->
+                    requireComponents.core.store.dispatch(DefaultDesktopModeAction.ToggleDesktopMode)
+                    true
+                }
+        }
     }
 
     private fun bindExceptions() {
@@ -47,7 +68,7 @@ class SitePermissionsFragment : PreferenceFragmentCompat() {
         val exceptionsCategory = requireNotNull(findPreference(keyExceptions))
 
         exceptionsCategory.onPreferenceClickListener = OnPreferenceClickListener {
-            val directions = SitePermissionsFragmentDirections.actionSitePermissionsToExceptions()
+            val directions = SiteSettingsFragmentDirections.actionSitePermissionsToExceptions()
             Navigation.findNavController(requireView()).navigate(directions)
             true
         }
@@ -75,7 +96,7 @@ class SitePermissionsFragment : PreferenceFragmentCompat() {
     }
 
     private fun navigateToPhoneFeature(phoneFeature: PhoneFeature) {
-        val directions = SitePermissionsFragmentDirections
+        val directions = SiteSettingsFragmentDirections
             .actionSitePermissionsToManagePhoneFeatures(phoneFeature)
 
         if (phoneFeature == PhoneFeature.AUTOPLAY_AUDIBLE) {

@@ -5,9 +5,12 @@ permalink: /changelog/
 ---
 
 # 133.0 (In Development)
+* **browser-store**
+    * Adds `desktopMode` property to the `BrowserStore` to know whether or not browsing is in desktop mode. The pre-existing Action to update a tab's desktop mode has been renamed to disambiguate its intended use case. [Bug 1910768](https://bugzilla.mozilla.org/show_bug.cgi?id=1910768)
 
 * **browser-engine-gecko**
   * Added `WebExtensionInstallException.SoftBlocked` to handle the `ERROR_SOFT_BLOCKED` error returned by Gecko.
+  * Adds support for enabling desktop mode browsing at the time of the engine session's creation.  [Bug 1910768](https://bugzilla.mozilla.org/show_bug.cgi?id=1910768)
 
 # 132.0
 * **feature-awesomebar**

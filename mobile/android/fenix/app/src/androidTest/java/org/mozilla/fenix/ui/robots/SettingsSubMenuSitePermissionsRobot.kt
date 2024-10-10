@@ -26,10 +26,10 @@ import org.mozilla.fenix.helpers.click
  */
 class SettingsSubMenuSitePermissionsRobot {
 
-    fun verifySitePermissionsToolbarTitle() {
-        Log.i(TAG, "verifySitePermissionsToolbarTitle: Trying to verify that the \"Site permissions\" toolbar title is visible")
-        onView(withText("Site permissions")).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
-        Log.i(TAG, "verifySitePermissionsToolbarTitle: Verified that the \"Site permissions\" toolbar title is visible")
+    fun verifySiteSettingsToolbarTitle() {
+        Log.i(TAG, "verifySiteSettingsToolbarTitle: Trying to verify that the \"Site settings\" toolbar title is visible")
+        onView(withText("Site settings")).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+        Log.i(TAG, "verifySiteSettingsToolbarTitle: Verified that the \"Site settings\" toolbar title is visible")
     }
 
     fun verifyToolbarGoBackButton() {
@@ -39,6 +39,12 @@ class SettingsSubMenuSitePermissionsRobot {
     }
 
     fun verifySitePermissionOption(option: String, summary: String = "") {
+        Log.i(TAG, "verifySitePermissionOption: Trying to perform scroll action to the $option option button")
+        onView(withId(R.id.recycler_view)).perform(
+            RecyclerViewActions.scrollTo<RecyclerView.ViewHolder>(
+                hasDescendant(withText(option)),
+            ),
+        )
         Log.i(TAG, "verifySitePermissionOption: Trying to verify that the $option option with $summary summary is visible")
         onView(
             allOf(

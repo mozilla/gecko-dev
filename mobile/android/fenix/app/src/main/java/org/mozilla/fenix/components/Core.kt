@@ -96,6 +96,8 @@ import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.IntentReceiverActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.desktopmode.DefaultDesktopModeRepository
+import org.mozilla.fenix.browser.desktopmode.DesktopModeMiddleware
 import org.mozilla.fenix.components.search.SearchMigration
 import org.mozilla.fenix.downloads.DownloadService
 import org.mozilla.fenix.ext.components
@@ -171,6 +173,9 @@ class Core(
             cookieBannerHandlingGlobalRulesSubFrames = context.settings().shouldEnableCookieBannerGlobalRulesSubFrame,
             emailTrackerBlockingPrivateBrowsing = true,
             userCharacteristicPingCurrentVersion = FxNimbus.features.userCharacteristics.value().currentVersion,
+            getDesktopMode = {
+                store.state.desktopMode
+            },
         )
 
         // Apply fingerprinting protection overrides if the feature is enabled in Nimbus
@@ -319,6 +324,12 @@ class Core(
                 SaveToPDFMiddleware(context),
                 FxSuggestFactsMiddleware(),
                 FileUploadsDirCleanerMiddleware(fileUploadsDirCleaner),
+                DesktopModeMiddleware(
+                    repository = DefaultDesktopModeRepository(
+                        context = context,
+                    ),
+                    engine = engine,
+                ),
             )
 
         BrowserStore(

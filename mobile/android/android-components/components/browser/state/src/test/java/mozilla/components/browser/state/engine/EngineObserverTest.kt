@@ -985,14 +985,14 @@ class EngineObserverTest {
 
         observer.onDesktopModeChange(true)
         store.waitUntilIdle()
-        middleware.assertFirstAction(ContentAction.UpdateDesktopModeAction::class) { action ->
+        middleware.assertFirstAction(ContentAction.UpdateTabDesktopMode::class) { action ->
             assertEquals("tab-id", action.sessionId)
             assertTrue(action.enabled)
         }
 
         observer.onDesktopModeChange(false)
         store.waitUntilIdle()
-        middleware.assertLastAction(ContentAction.UpdateDesktopModeAction::class) { action ->
+        middleware.assertLastAction(ContentAction.UpdateTabDesktopMode::class) { action ->
             assertEquals("tab-id", action.sessionId)
             assertFalse(action.enabled)
         }

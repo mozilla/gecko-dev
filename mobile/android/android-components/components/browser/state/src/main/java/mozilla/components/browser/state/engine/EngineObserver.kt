@@ -239,7 +239,7 @@ internal class EngineObserver(
 
     override fun onDesktopModeChange(enabled: Boolean) {
         store.dispatch(
-            ContentAction.UpdateDesktopModeAction(
+            ContentAction.UpdateTabDesktopMode(
                 tabId,
                 enabled,
             ),

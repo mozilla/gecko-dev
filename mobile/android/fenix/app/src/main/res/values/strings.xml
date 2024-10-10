@@ -547,7 +547,9 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Privacy and security</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Site permissions</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Site permissions</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">Site settings</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Private browsing</string>
     <!-- Preference for opening links in a private tab-->
@@ -1353,6 +1355,12 @@
     <string name="studies_on">On</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Off</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">Permissions</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">Content</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">Always request desktop site</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->

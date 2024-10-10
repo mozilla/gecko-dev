@@ -1783,6 +1783,7 @@ class GeckoEngineSession(
         this.geckoSession = geckoSessionProvider()
 
         defaultSettings?.trackingProtectionPolicy?.let { updateTrackingProtection(it) }
+        defaultSettings?.desktopModeEnabled?.let { toggleDesktopMode(enable = it, reload = false) }
         defaultSettings?.requestInterceptor?.let { settings.requestInterceptor = it }
         defaultSettings?.historyTrackingDelegate?.let { settings.historyTrackingDelegate = it }
         defaultSettings?.testingModeEnabled?.let {

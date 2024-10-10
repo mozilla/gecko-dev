@@ -278,6 +278,11 @@ abstract class Settings {
      * Setting to control the user characteristic ping current version.
      */
     open var userCharacteristicPingCurrentVersion: Int by UnsupportedSetting()
+
+    /**
+     * Setting to control whether the desktop user agent is used.
+     */
+    open val desktopModeEnabled: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -333,7 +338,11 @@ data class DefaultSettings(
     override var queryParameterStrippingStripList: String = "",
     override var emailTrackerBlockingPrivateBrowsing: Boolean = false,
     override var userCharacteristicPingCurrentVersion: Int = 0,
-) : Settings()
+    val getDesktopMode: () -> Boolean = { false },
+) : Settings() {
+    override val desktopModeEnabled: Boolean
+        get() = getDesktopMode()
+}
 
 class UnsupportedSetting<T> {
     operator fun getValue(thisRef: Any?, prop: KProperty<*>): T {

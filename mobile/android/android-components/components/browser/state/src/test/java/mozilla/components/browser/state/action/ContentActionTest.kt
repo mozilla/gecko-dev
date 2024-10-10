@@ -722,12 +722,12 @@ class ContentActionTest {
         assertFalse(tab.content.desktopMode)
         assertFalse(otherTab.content.desktopMode)
 
-        store.dispatch(ContentAction.UpdateDesktopModeAction(tab.id, true)).joinBlocking()
+        store.dispatch(ContentAction.UpdateTabDesktopMode(tab.id, true)).joinBlocking()
 
         assertTrue(tab.content.desktopMode)
         assertFalse(otherTab.content.desktopMode)
 
-        store.dispatch(ContentAction.UpdateDesktopModeAction(tab.id, false)).joinBlocking()
+        store.dispatch(ContentAction.UpdateTabDesktopMode(tab.id, false)).joinBlocking()
 
         assertFalse(tab.content.desktopMode)
         assertFalse(otherTab.content.desktopMode)

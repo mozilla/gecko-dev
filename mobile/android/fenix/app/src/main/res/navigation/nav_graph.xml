@@ -753,8 +753,8 @@
         android:label="@string/preference_experiments_2" />
     <fragment
         android:id="@+id/sitePermissionsFragment"
-        android:name="org.mozilla.fenix.settings.sitepermissions.SitePermissionsFragment"
-        android:label="@string/preferences_site_permissions">
+        android:name="org.mozilla.fenix.settings.sitepermissions.SiteSettingsFragment"
+        android:label="@string/preferences_site_settings">
         <action
             android:id="@+id/action_site_permissions_to_manage_phone_features"
             app:destination="@id/SitePermissionsManagePhoneFeature"

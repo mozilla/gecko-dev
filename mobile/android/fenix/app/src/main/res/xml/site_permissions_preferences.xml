@@ -14,62 +14,80 @@
         android:visible="false"
         tools:targetApi="o" />
 
-    <androidx.preference.Preference
+    <androidx.preference.PreferenceCategory
+        android:layout="@layout/preference_category_no_icon_style"
+        android:title="@string/preferences_category_content">
+
+        <SwitchPreference
+            android:icon="@drawable/mozac_ic_device_desktop_24"
+            android:defaultValue="false"
+            android:key="@string/pref_key_desktop_browsing"
+            android:title="@string/preference_feature_desktop_mode_default"
+            app:iconSpaceReserved="false" />
+
+    </androidx.preference.PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:layout="@layout/preference_category_no_icon_style"
+        android:title="@string/preferences_category_permissions">
+
+        <androidx.preference.Preference
             android:icon="@drawable/ic_autoplay_enabled"
             android:key="@string/pref_key_browser_feature_autoplay_v2"
             android:title="@string/preference_browser_feature_autoplay"
             android:summary="@string/preference_option_autoplay_blocked3"/>
 
-    <androidx.preference.Preference
+        <androidx.preference.Preference
             android:icon="@drawable/ic_camera_enabled"
             android:key="@string/pref_key_phone_feature_camera"
             android:title="@string/preference_phone_feature_camera"
             android:summary="@string/preference_option_phone_feature_ask_to_allow"/>
 
-    <androidx.preference.Preference
+        <androidx.preference.Preference
             android:icon="@drawable/ic_location_enabled"
             android:key="@string/pref_key_phone_feature_location"
             android:title="@string/preference_phone_feature_location"
             android:summary="@string/preference_option_phone_feature_ask_to_allow"/>
 
-    <androidx.preference.Preference
+        <androidx.preference.Preference
             android:icon="@drawable/ic_microphone_enabled"
             android:key="@string/pref_key_phone_feature_microphone"
             android:title="@string/preference_phone_feature_microphone"
             android:summary="@string/preference_option_phone_feature_ask_to_allow"/>
 
-    <androidx.preference.Preference
+        <androidx.preference.Preference
             android:icon="@drawable/ic_notifications_enabled"
             android:key="@string/pref_key_phone_feature_notification"
             android:title="@string/preference_phone_feature_notification"
             android:summary="@string/preference_option_phone_feature_ask_to_allow"
             app:allowDividerBelow="true"/>
 
-    <androidx.preference.Preference
-        android:icon="@drawable/ic_storage"
-        android:key="@string/pref_key_browser_feature_persistent_storage"
-        android:title="@string/preference_phone_feature_persistent_storage"
-        android:summary="@string/preference_option_phone_feature_ask_to_allow"
-        app:allowDividerBelow="true"/>
+        <androidx.preference.Preference
+            android:icon="@drawable/ic_storage"
+            android:key="@string/pref_key_browser_feature_persistent_storage"
+            android:title="@string/preference_phone_feature_persistent_storage"
+            android:summary="@string/preference_option_phone_feature_ask_to_allow"
+            app:allowDividerBelow="true"/>
 
-    <androidx.preference.Preference
-        android:icon="@drawable/ic_cookies"
-        android:key="@string/pref_key_browser_feature_cross_origin_storage_access"
-        android:title="@string/preference_phone_feature_cross_origin_storage_access"
-        android:summary="@string/preference_option_phone_feature_ask_to_allow"
-        app:allowDividerBelow="true"/>
+        <androidx.preference.Preference
+            android:icon="@drawable/ic_cookies"
+            android:key="@string/pref_key_browser_feature_cross_origin_storage_access"
+            android:title="@string/preference_phone_feature_cross_origin_storage_access"
+            android:summary="@string/preference_option_phone_feature_ask_to_allow"
+            app:allowDividerBelow="true"/>
 
-    <androidx.preference.Preference
-        android:icon="@drawable/ic_link"
-        android:key="@string/pref_key_browser_feature_media_key_system_access"
-        android:title="@string/preference_phone_feature_media_key_system_access"
-        android:summary="@string/preference_option_phone_feature_ask_to_allow"
-        app:allowDividerBelow="true"/>
+        <androidx.preference.Preference
+            android:icon="@drawable/ic_link"
+            android:key="@string/pref_key_browser_feature_media_key_system_access"
+            android:title="@string/preference_phone_feature_media_key_system_access"
+            android:summary="@string/preference_option_phone_feature_ask_to_allow"
+            app:allowDividerBelow="true"/>
 
-    <androidx.preference.Preference
+        <androidx.preference.Preference
             android:icon="@drawable/ic_internet"
             android:key="@string/pref_key_show_site_exceptions"
             android:title="@string/preference_exceptions"
             app:allowDividerAbove="true"/>
+    </androidx.preference.PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>

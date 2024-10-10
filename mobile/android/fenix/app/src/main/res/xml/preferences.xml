@@ -122,7 +122,7 @@
         <androidx.preference.Preference
             android:key="@string/pref_key_site_permissions"
             app:iconSpaceReserved="false"
-            android:title="@string/preferences_site_permissions" />
+            android:title="@string/preferences_site_settings" />
 
         <androidx.preference.Preference
             android:key="@string/pref_key_delete_browsing_data"

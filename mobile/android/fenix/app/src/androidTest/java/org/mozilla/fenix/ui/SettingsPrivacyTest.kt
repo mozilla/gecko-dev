@@ -40,7 +40,7 @@ class SettingsPrivacyTest : TestSetup() {
             verifySettingsOptionSummary("Cookie Banner Blocker in private browsing", "")
             verifyEnhancedTrackingProtectionButton()
             verifySettingsOptionSummary("Enhanced Tracking Protection", "Standard")
-            verifySitePermissionsButton()
+            verifySiteSettingsButton()
             verifyDeleteBrowsingDataButton()
             verifyDeleteBrowsingDataOnQuitButton()
             verifySettingsOptionSummary("Delete browsing data on quit", "Off")
