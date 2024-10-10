@@ -11,6 +11,7 @@
 
 #include <utility>
 
+#include "jit/InlineList.h"
 #include "jit/InlineScriptTree.h"
 #include "jit/JitcodeMap.h"
 #include "jit/LIR.h"
@@ -32,7 +33,7 @@ class IonIC;
 class OutOfLineTruncateSlow;
 
 class CodeGeneratorShared : public LElementVisitor {
-  js::Vector<OutOfLineCode*, 0, BackgroundSystemAllocPolicy> outOfLineCode_;
+  AppendOnlyList<OutOfLineCode> outOfLineCode_;
 
   MacroAssembler& ensureMasm(MacroAssembler* masm, TempAllocator& alloc,
                              CompileRealm* realm);
@@ -402,7 +403,8 @@ class CodeGeneratorShared : public LElementVisitor {
 };
 
 // An out-of-line path is generated at the end of the function.
-class OutOfLineCode : public TempObject {
+class OutOfLineCode : public TempObject,
+                      public AppendOnlyListNode<OutOfLineCode> {
   Label entry_;
   Label rejoin_;
   uint32_t framePushed_;
