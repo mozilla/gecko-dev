@@ -190,7 +190,7 @@ tasks:
                       then: very-low
                       else: lowest  # tasks_for == 'hg-push'
               retries:
-                  $if: "tasks_for == 'hg-push'"
+                  $if: "tasks_for == 'hg-push' && repository.level != '1'"
                   then: 0
                   else: 5
 
