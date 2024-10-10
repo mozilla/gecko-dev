@@ -17,7 +17,8 @@ namespace mozilla::default_agent {
 
 HRESULT SendDefaultAgentPing(const DefaultBrowserInfo& browserInfo,
                              const DefaultPdfInfo& pdfInfo,
-                             const NotificationActivities& activitiesPerformed);
+                             const NotificationActivities& activitiesPerformed,
+                             uint32_t daysSinceLastAppLaunch);
 
 }  // namespace mozilla::default_agent
 

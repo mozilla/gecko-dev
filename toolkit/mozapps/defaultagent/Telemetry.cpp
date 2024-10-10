@@ -160,7 +160,7 @@ static mozilla::WindowsError SendDesktopTelemetryPing(
     const std::string prevOSVersion, const std::string osLocale,
     const std::string notificationType, const std::string notificationShown,
     const std::string notificationAction,
-    const std::string prevNotificationAction) {
+    const std::string prevNotificationAction, uint32_t daysSinceLastAppLaunch) {
   // Fill in the ping JSON object.
   Json::Value ping;
   ping["build_channel"] = MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL);
@@ -175,6 +175,7 @@ static mozilla::WindowsError SendDesktopTelemetryPing(
   ping["notification_shown"] = notificationShown;
   ping["notification_action"] = notificationAction;
   ping["previous_notification_action"] = prevNotificationAction;
+  ping["days_since_last_app_launch"] = daysSinceLastAppLaunch;
 
   // Stringify the JSON.
   Json::StreamWriterBuilder jsonStream;
@@ -449,9 +450,10 @@ HRESULT MaybeWritePreviousNotificationAction(
 }
 
 // Sends Firefox Desktop and Glean telemetry for the Default Agent in parallel.
-HRESULT SendDefaultAgentPing(
-    const DefaultBrowserInfo& browserInfo, const DefaultPdfInfo& pdfInfo,
-    const NotificationActivities& activitiesPerformed) {
+HRESULT SendDefaultAgentPing(const DefaultBrowserInfo& browserInfo,
+                             const DefaultPdfInfo& pdfInfo,
+                             const NotificationActivities& activitiesPerformed,
+                             uint32_t daysSinceLastAppLaunch) {
   std::string currentDefaultBrowser =
       GetStringForBrowser(browserInfo.currentDefaultBrowser);
   std::string currentDefaultPdf =
@@ -570,10 +572,13 @@ HRESULT SendDefaultAgentPing(
     mozilla::glean::system_default::pdf_handler.Set(
         nsDependentCString(currentDefaultPdf.c_str()));
 
+    mozilla::glean::defaultagent::days_since_last_app_launch.Set(
+        daysSinceLastAppLaunch);
     return SendDesktopTelemetryPing(
                currentDefaultBrowser, previousDefaultBrowser, currentDefaultPdf,
                osVersion, prevOSVersion, osLocale, notificationType,
-               notificationShown, notificationAction, prevNotificationAction)
+               notificationShown, notificationAction, prevNotificationAction,
+               daysSinceLastAppLaunch)
         .AsHResult();
   }();
 

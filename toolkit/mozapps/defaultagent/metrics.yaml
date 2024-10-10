@@ -206,3 +206,22 @@ notification:
     expires: never
     send_in_pings:
       - default-agent
+
+defaultagent:
+  days_since_last_app_launch:
+    type: quantity
+    description: >
+      Number of days since the app last launched. Once this reaches 90 days, the installation
+      will stop running the default browser agent.
+    notification_emails:
+        - install-update@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1843667
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1843667
+    data_sensitivity:
+      - technical
+    expires: never
+    send_in_pings:
+      - default-agent
+    unit: days

@@ -1,4 +1,8 @@
 [DEFAULT]
 run-if = ["os == 'win'"]
 
+["test_backgroundtask_defaultagent.js"]
+
+["test_default_agent.js"]
+
 ["test_windows_mutex.js"]

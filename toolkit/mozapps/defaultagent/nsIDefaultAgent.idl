@@ -52,11 +52,14 @@ interface nsIDefaultAgent : nsISupports
   void uninstall(in AString aUniqueToken);
 
   /**
-  * Checks that the main app ran recently.
+  * Returns the number of seconds since the last time the app was launched. In
+  * case of not being able to determine the last time the app was launched,
+  * returns a negative value.
   *
-  * @return {boolean} true if the app ran recently.
+  * @return long long} Number of seconds elapsed since the last time the app
+  *         was launched
   */
-  boolean appRanRecently();
+  long long secondsSinceLastAppRun();
 
   /**
   * Returns a string for the default browser if known, binned to known browsers.
@@ -100,9 +103,12 @@ interface nsIDefaultAgent : nsISupports
   * @param {AString} aNotificationAction
   *        The notification action taken by the user. See
   *        `toolkit/mozapps/defaultagent/Notification.h` for valid values.
-  *
+  * @param {unsigned long} daysSinceLastAppLaunch
+  *         The number of days it has been since the Firefox app was last launched.
+  *         Currently, policy limits the default browser agent to reporting data
+  *         for at most 90 days.
   */
-  void sendPing(in AString aCurrentBrowser, in AString aPreviousBrowser, in AString aPdfHandler, in AString aNotificationShown, in AString aNotificationAction);
+  void sendPing(in AString aCurrentBrowser, in AString aPreviousBrowser, in AString aPdfHandler, in AString aNotificationShown, in AString aNotificationAction, in unsigned long daysSinceLastAppLaunch);
 
   /**
   * Set the default browser and optionally additional file extensions via the

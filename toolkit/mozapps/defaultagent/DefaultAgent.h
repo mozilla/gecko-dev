@@ -23,6 +23,8 @@ class DefaultAgent final : public nsIDefaultAgent {
   ~DefaultAgent() = default;
 };
 
+nsresult getSecondsSinceLastAppRun(int64_t* secondsElapsed);
+
 }  // namespace mozilla::default_agent
 
 #endif  // __DEFAULT_BROWSER_AGENT_DEFAULT_AGENT_H__
