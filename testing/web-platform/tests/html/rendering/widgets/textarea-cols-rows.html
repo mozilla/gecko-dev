@@ -48,11 +48,11 @@ test(() => {
 test(() => {
   const computedWidth = getComputedStyle(computed).width;
   assert_equals(computed.offsetWidth,
-      Math.round(computedWidth.substring(0, computedWidth.length - 2)));
+      parseInt(computedWidth.substring(0, computedWidth.length - 2)));
 
   const computedHeight = getComputedStyle(computed).height;
   assert_equals(computed.offsetHeight,
-      Math.round(computedHeight.substring(0, computedHeight.length - 2)));
+      parseInt(computedHeight.substring(0, computedHeight.length - 2)));
 }, 'Cols/rows attribute values affect layout-dependent computed style');
 
 test(() => {
