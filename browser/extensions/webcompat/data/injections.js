@@ -587,6 +587,7 @@ const AVAILABLE_INJECTIONS = [
         "*://*.lafoodbank.org/*", // 127006
         "*://rutamayacoffee.com/*", // 129353
         "*://ottoandspike.com.au/*", // bugzilla 1644602
+        "*://give.umrelief.org/give/*", // bugzilla 1916407
       ],
       js: [
         {
