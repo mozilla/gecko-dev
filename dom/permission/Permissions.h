@@ -8,10 +8,8 @@
 #define mozilla_dom_Permissions_h_
 
 #include "nsISupports.h"
+#include "nsPIDOMWindow.h"
 #include "nsWrapperCache.h"
-#include "mozilla/GlobalTeardownObserver.h"
-
-class nsIGlobalObject;
 
 namespace mozilla {
 
@@ -23,14 +21,14 @@ class Promise;
 class PermissionStatus;
 struct PermissionSetParameters;
 
-class Permissions final : public GlobalTeardownObserver, public nsWrapperCache {
+class Permissions final : public nsISupports, public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(Permissions)
 
-  explicit Permissions(nsIGlobalObject* aGlobal);
+  explicit Permissions(nsPIDOMWindowInner* aWindow);
 
-  nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
+  nsPIDOMWindowInner* GetParentObject() const { return mWindow; }
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
@@ -47,6 +45,8 @@ class Permissions final : public GlobalTeardownObserver, public nsWrapperCache {
 
  private:
   ~Permissions();
+
+  nsCOMPtr<nsPIDOMWindowInner> mWindow;
 };
 
 }  // namespace dom

@@ -31,7 +31,6 @@ namespace dom {
 class StorageManager;
 class MediaCapabilities;
 class LockManager;
-class Permissions;
 
 namespace network {
 class Connection;
@@ -47,7 +46,6 @@ class WorkerNavigator final : public nsWrapperCache {
   RefPtr<dom::MediaCapabilities> mMediaCapabilities;
   RefPtr<webgpu::Instance> mWebGpu;
   RefPtr<dom::LockManager> mLocks;
-  RefPtr<dom::Permissions> mPermissions;
   bool mOnline;
 
   WorkerNavigator(const NavigatorProperties& aProperties, bool aOnline);
@@ -115,8 +113,6 @@ class WorkerNavigator final : public nsWrapperCache {
   webgpu::Instance* Gpu();
 
   dom::LockManager* Locks();
-
-  dom::Permissions* Permissions();
 };
 
 }  // namespace dom

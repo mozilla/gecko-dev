@@ -27,10 +27,9 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(Permissions)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(Permissions)
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(Permissions)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(Permissions, mWindow)
 
-Permissions::Permissions(nsIGlobalObject* aGlobal)
-    : GlobalTeardownObserver(aGlobal) {}
+Permissions::Permissions(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {}
 
 Permissions::~Permissions() = default;
 
@@ -46,7 +45,7 @@ namespace {
 // commands
 RefPtr<PermissionStatus> CreatePermissionStatus(
     JSContext* aCx, JS::Handle<JSObject*> aPermissionDesc,
-    nsIGlobalObject* aGlobal, ErrorResult& aRv) {
+    nsPIDOMWindowInner* aWindow, ErrorResult& aRv) {
   // Step 2: Let rootDesc be the object permissionDesc refers to, converted to
   // an IDL value of type PermissionDescriptor.
   PermissionDescriptor rootDesc;
@@ -77,16 +76,16 @@ RefPtr<PermissionStatus> CreatePermissionStatus(
         return nullptr;
       }
 
-      return new MidiPermissionStatus(aGlobal, midiPerm.mSysex);
+      return new MidiPermissionStatus(aWindow, midiPerm.mSysex);
     }
     case PermissionName::Storage_access:
-      return new StorageAccessPermissionStatus(aGlobal);
+      return new StorageAccessPermissionStatus(aWindow);
     case PermissionName::Geolocation:
     case PermissionName::Notifications:
     case PermissionName::Push:
     case PermissionName::Persistent_storage:
     case PermissionName::Screen_wake_lock:
-      return new PermissionStatus(aGlobal, rootDesc.mName);
+      return new PermissionStatus(aWindow, rootDesc.mName);
     case PermissionName::Camera:
       if (!StaticPrefs::permissions_media_query_enabled()) {
         aRv.ThrowTypeError(
@@ -94,7 +93,7 @@ RefPtr<PermissionStatus> CreatePermissionStatus(
             "a valid value for enumeration PermissionName.");
         return nullptr;
       }
-      return new PermissionStatus(aGlobal, rootDesc.mName);
+      return new PermissionStatus(aWindow, rootDesc.mName);
     case PermissionName::Microphone:
       if (!StaticPrefs::permissions_media_query_enabled()) {
         aRv.ThrowTypeError(
@@ -102,7 +101,7 @@ RefPtr<PermissionStatus> CreatePermissionStatus(
             "not a valid value for enumeration PermissionName.");
         return nullptr;
       }
-      return new PermissionStatus(aGlobal, rootDesc.mName);
+      return new PermissionStatus(aWindow, rootDesc.mName);
     default:
       MOZ_ASSERT_UNREACHABLE("Unhandled type");
       aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
@@ -119,30 +118,23 @@ already_AddRefed<Promise> Permissions::Query(JSContext* aCx,
   // Step 1: If this's relevant global object is a Window object, then:
   // Step 1.1: If the current settings object's associated Document is not fully
   // active, return a promise rejected with an "InvalidStateError" DOMException.
-
-  nsCOMPtr<nsIGlobalObject> global = GetOwnerGlobal();
-  if (NS_WARN_IF(!global)) {
-    aRv.ThrowInvalidStateError("The context is not fully active.");
+  //
+  // TODO(krosylight): The spec allows worker global while we don't, see bug
+  // 1193373.
+  if (!mWindow || !mWindow->IsFullyActive()) {
+    aRv.ThrowInvalidStateError("The document is not fully active.");
     return nullptr;
-  }
-
-  if (NS_IsMainThread()) {
-    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(global);
-    if (!window || !window->IsFullyActive()) {
-      aRv.ThrowInvalidStateError("The document is not fully active.");
-      return nullptr;
-    }
   }
 
   // Step 2 - 6 and 8.1:
   RefPtr<PermissionStatus> status =
-      CreatePermissionStatus(aCx, aPermission, global, aRv);
+      CreatePermissionStatus(aCx, aPermission, mWindow, aRv);
   if (!status) {
     return nullptr;
   }
 
   // Step 7: Let promise be a new promise.
-  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  RefPtr<Promise> promise = Promise::Create(mWindow->AsGlobal(), aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -151,7 +143,7 @@ already_AddRefed<Promise> Permissions::Query(JSContext* aCx,
   // Step 8.4: Queue a global task on the permissions task source with this's
   // relevant global object to resolve promise with status.
   status->Init()->Then(
-      GetCurrentSerialEventTarget(), __func__,
+      GetMainThreadSerialEventTarget(), __func__,
       [status, promise]() {
         promise->MaybeResolve(status);
         return;
