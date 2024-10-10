@@ -7,12 +7,10 @@
 #ifndef debugger_ExecutionTracer_h
 #define debugger_ExecutionTracer_h
 
-#include "mozilla/Assertions.h"         // MOZ_DIAGNOSTIC_ASSERT, MOZ_ASSERT
-#include "mozilla/BaseProfilerUtils.h"  // profiler_current_thread_id
-#include "mozilla/MathAlgorithms.h"     // mozilla::IsPowerOfTwo
+#include "mozilla/Assertions.h"      // MOZ_DIAGNOSTIC_ASSERT, MOZ_ASSERT
+#include "mozilla/MathAlgorithms.h"  // mozilla::IsPowerOfTwo
 #include "mozilla/Maybe.h"  // mozilla::Maybe, mozilla::Some, mozilla::Nothing
 #include "mozilla/Span.h"
-#include "mozilla/TimeStamp.h"
 
 #include <limits>    // std::numeric_limits
 #include <stddef.h>  // size_t
@@ -32,8 +30,6 @@ enum class TracerStringEncoding {
   TwoByte,
   UTF8,
 };
-
-using TracingScratchBuffer = mozilla::Vector<char, 512>;
 
 // TODO: it should be noted that part of this design is informed by the fact
 // that it evolved from a prototype which wrote this data from a content
@@ -75,15 +71,6 @@ class TracingBuffer {
 
   // Similar to uncommittedWriteHead_, but for the purposes of reading
   uint64_t uncommittedReadHead_ = 0;
-
-  bool ensureScratchBufferSize(TracingScratchBuffer& scratchBuffer,
-                               size_t requiredSize) {
-    if (scratchBuffer.length() >= requiredSize) {
-      return true;
-    }
-    return scratchBuffer.growByUninitialized(requiredSize -
-                                             scratchBuffer.length());
-  }
 
  public:
   ~TracingBuffer() {
@@ -247,87 +234,49 @@ class TracingBuffer {
     readBytes(reinterpret_cast<uint8_t*>(val), sizeof(T));
   }
 
-  // Reads a string from our buffer into the stringBuffer. Converts everything
-  // to null-terminated UTF-8
-  bool readString(TracingScratchBuffer& scratchBuffer,
-                  mozilla::Vector<char>& stringBuffer, size_t* index) {
+  bool readString(JSContext* cx, JS::MutableHandle<JSString*> result) {
     uint8_t encodingByte;
     read(&encodingByte);
     TracerStringEncoding encoding = TracerStringEncoding(encodingByte);
-
     uint32_t length;
     read(&length);
 
-    *index = stringBuffer.length();
-
     if (length == 0) {
-      if (!stringBuffer.append('\0')) {
-        return false;
-      }
+      result.set(JS_GetEmptyString(cx));
       return true;
     }
 
-    if (encoding == TracerStringEncoding::UTF8) {
-      size_t reserveLength = length + 1;
-      if (!stringBuffer.growByUninitialized(reserveLength)) {
+    JSLinearString* str = nullptr;
+    if (encoding == TracerStringEncoding::UTF8 ||
+        encoding == TracerStringEncoding::Latin1) {
+      UniquePtr<unsigned char[], JS::FreePolicy> chars(
+          cx->make_pod_arena_array<unsigned char>(StringBufferArena, length));
+      if (!chars) {
         return false;
       }
-      char* writePtr = stringBuffer.end() - reserveLength;
-      readBytes(reinterpret_cast<uint8_t*>(writePtr), length);
-      writePtr[length] = '\0';
-    } else if (encoding == TracerStringEncoding::Latin1) {
-      if (!ensureScratchBufferSize(scratchBuffer, length)) {
-        return false;
-      }
-      readBytes(reinterpret_cast<uint8_t*>(scratchBuffer.begin()), length);
-
-      // A single latin-1 code point maps to either 1 or 2 UTF-8 code units.
-      // The + 1 is for the null terminator.
-      size_t reserveLength = length * 2 + 1;
-      if (!stringBuffer.reserve(stringBuffer.length() + reserveLength)) {
-        return false;
-      }
-      char* writePtr = stringBuffer.end();
-
-      size_t convertedLength = mozilla::ConvertLatin1toUtf8(
-          mozilla::Span<const char>(scratchBuffer.begin(), length),
-          mozilla::Span<char>(writePtr, reserveLength));
-      writePtr[convertedLength] = 0;
-
-      // We reserved above, which just grows the capacity but not the length.
-      // This just commits the exact length increase.
-      if (!stringBuffer.growByUninitialized(convertedLength + 1)) {
-        return false;
+      readBytes(reinterpret_cast<uint8_t*>(chars.get()), length);
+      if (encoding == TracerStringEncoding::UTF8) {
+        str = NewStringCopyUTF8N(
+            cx, JS::UTF8Chars(reinterpret_cast<char*>(chars.get()), length));
+      } else {
+        str = NewString<CanGC>(cx, std::move(chars), length);
       }
     } else {
       MOZ_ASSERT(encoding == TracerStringEncoding::TwoByte);
-      if (!ensureScratchBufferSize(scratchBuffer, length * sizeof(char16_t))) {
+      UniquePtr<char16_t[], JS::FreePolicy> chars(
+          cx->make_pod_arena_array<char16_t>(StringBufferArena, length));
+      if (!chars) {
         return false;
       }
-      readBytes(reinterpret_cast<uint8_t*>(scratchBuffer.begin()),
-                length * sizeof(char16_t));
-
-      // Non-surrogate-paired single UTF-16 code unit maps to 1 to 3 UTF-8
-      // code units. Surrogate paired UTF-16 code units map to 4 to 6 UTF-8
-      // code units.
-      size_t reserveLength = length * 3 + 1;
-      if (!stringBuffer.reserve(stringBuffer.length() + reserveLength)) {
-        return false;
-      }
-      char* writePtr = stringBuffer.end();
-
-      size_t convertedLength = mozilla::ConvertUtf16toUtf8(
-          mozilla::Span<const char16_t>(
-              reinterpret_cast<char16_t*>(scratchBuffer.begin()), length),
-          mozilla::Span<char>(writePtr, reserveLength));
-      writePtr[convertedLength] = 0;
-
-      // We reserved above, which just grows the capacity but not the length.
-      // This just commits the exact length increase.
-      if (!stringBuffer.growByUninitialized(convertedLength + 1)) {
-        return false;
-      }
+      readBytes((uint8_t*)chars.get(), length * sizeof(char16_t));
+      str = NewString<CanGC>(cx, std::move(chars), length);
     }
+
+    if (!str) {
+      return false;
+    }
+
+    result.set(str);
 
     return true;
   }
@@ -349,14 +298,22 @@ using OutOfLineDataBuffer = TracingBuffer<1 << 22>;
 // enabled to a set of ring buffers, and providing that information as a JS
 // object when requested. See Debugger.md (collectNativeTrace) for more details.
 class ExecutionTracer {
+ public:
+  enum class EventKind {
+    FunctionEnter = 0,
+    FunctionLeave = 1,
+    LabelEnter = 2,
+    LabelLeave = 3,
+  };
+
+  enum class ImplementationType : uint8_t {
+    Interpreter = 0,
+    Baseline = 1,
+    Ion = 2,
+    Wasm = 3,
+  };
+
  private:
-  // The fields below should only be accessed while we hold the lock.
-  static Mutex globalInstanceLock MOZ_UNANNOTATED;
-  static mozilla::Vector<ExecutionTracer*> globalInstances;
-
-  // The buffers below should only be accessed while we hold the lock.
-  Mutex bufferLock_ MOZ_UNANNOTATED;
-
   // This holds the actual entries, one for each push or pop of a frame or label
   InlineDataBuffer inlineData_;
 
@@ -368,13 +325,6 @@ class ExecutionTracer {
   // outOfLineData_
   OutOfLineDataBuffer outOfLineData_;
 
-  // This is just an ID that allows the profiler to easily correlate the trace
-  // for a given context with the correct thread in the output profile.
-  // We're operating on the assumption that there is one JSContext per thread,
-  // which should be true enough for our uses in Firefox, but doesn't have to
-  // be true everywhere.
-  mozilla::baseprofiler::BaseProfilerThreadId threadId_;
-
   void writeScriptUrl(ScriptSource* scriptSource);
 
   // Writes an atom into the outOfLineData_, associating it with the specified
@@ -383,61 +333,28 @@ class ExecutionTracer {
   // cleared when tracing is done.
   bool writeAtom(JSContext* cx, JS::Handle<JSAtom*> atom, uint32_t id);
   bool writeFunctionFrame(JSContext* cx, AbstractFramePtr frame);
-
-  // The below functions read data from the inlineData_ and outOfLineData_ ring
-  // buffers into structs to be consumed by clients of the
-  // JS_TracerSnapshotTrace API.
-  bool readFunctionFrame(JS::ExecutionTrace::EventKind kind,
-                         JS::ExecutionTrace::TracedEvent& event);
-  bool readLabel(JS::ExecutionTrace::EventKind kind,
-                 JS::ExecutionTrace::TracedEvent& event,
-                 TracingScratchBuffer& scratchBuffer,
-                 mozilla::Vector<char>& stringBuffer);
-  bool readInlineEntry(mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
-                       TracingScratchBuffer& scratchBuffer,
-                       mozilla::Vector<char>& stringBuffer);
-  bool readOutOfLineEntry(mozilla::HashMap<uint32_t, size_t>& scriptUrls,
-                          mozilla::HashMap<uint32_t, size_t>& atoms,
-                          TracingScratchBuffer& scratchBuffer,
-                          mozilla::Vector<char>& stringBuffer);
-  bool readInlineEntries(
-      mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
-      TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer);
-  bool readOutOfLineEntries(mozilla::HashMap<uint32_t, size_t>& scriptUrls,
-                            mozilla::HashMap<uint32_t, size_t>& atoms,
-                            TracingScratchBuffer& scratchBuffer,
-                            mozilla::Vector<char>& stringBuffer);
+  bool readFunctionFrame(JSContext* cx, JS::Handle<JSObject*> result,
+                         EventKind kind);
+  bool readStackFunctionEnter(JSContext* cx, JS::Handle<JSObject*> events);
+  bool readStackFunctionLeave(JSContext* cx, JS::Handle<JSObject*> events);
+  bool readScriptURLEntry(JSContext* cx, JS::Handle<JSObject*> scriptUrls);
+  bool readAtomEntry(JSContext* cx, JS::Handle<JSObject*> atoms);
+  bool readLabel(JSContext* cx, JS::Handle<JSObject*> events, EventKind kind);
+  bool readInlineEntry(JSContext* cx, JS::Handle<JSObject*> events);
+  bool readOutOfLineEntry(JSContext* cx, JS::Handle<JSObject*> scriptUrls,
+                          JS::Handle<JSObject*> atoms);
+  bool readInlineEntries(JSContext* cx, JS::Handle<JSObject*> events);
+  bool readOutOfLineEntries(JSContext* cx, JS::Handle<JSObject*> scriptUrls,
+                            JS::Handle<JSObject*> atoms);
 
  public:
-  ExecutionTracer() : bufferLock_(mutexid::ExecutionTracerInstanceLock) {}
-
-  ~ExecutionTracer() {
-    LockGuard<Mutex> guard(globalInstanceLock);
-
-    globalInstances.eraseIfEqual(this);
-  }
-
-  mozilla::baseprofiler::BaseProfilerThreadId threadId() const {
-    return threadId_;
-  }
-
   bool init() {
-    LockGuard<Mutex> guard(globalInstanceLock);
-    LockGuard<Mutex> guard2(bufferLock_);
-
-    threadId_ = mozilla::baseprofiler::profiler_current_thread_id();
-
     if (!inlineData_.init()) {
       return false;
     }
     if (!outOfLineData_.init()) {
       return false;
     }
-
-    if (!globalInstances.append(this)) {
-      return false;
-    }
-
     return true;
   }
 
@@ -450,15 +367,9 @@ class ExecutionTracer {
   void onLeaveLabel(const CharType* eventType);
 
   // Reads the execution trace from the underlying ring buffers and outputs it
-  // into a native struct. For more information about this struct, see
-  // js/public/Debug.h
-  bool getNativeTrace(JS::ExecutionTrace::TracedJSContext& context,
-                      TracingScratchBuffer& scratchBuffer,
-                      mozilla::Vector<char>& stringBuffer);
-
-  // Calls getNativeTrace for every JSContext in the process, populating the
-  // provided ExecutionTrace with the result.
-  static bool getNativeTraceForAllContexts(JS::ExecutionTrace& trace);
+  // into a JS object. For the format of this object see
+  // js/src/doc/Debugger/Debugger.md
+  bool getTrace(JSContext* cx, JS::Handle<JSObject*> result);
 };
 
 }  // namespace js

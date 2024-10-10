@@ -60,7 +60,7 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
 
 Realm::~Realm() {
   MOZ_ASSERT(!hasBeenEnteredIgnoringJit());
-  MOZ_ASSERT_IF(isDebuggee(), isTracingExecution_);
+  MOZ_ASSERT(!isDebuggee());
 
   // Write the code coverage information in a file.
   if (lcovRealm_) {
@@ -69,10 +69,6 @@ Realm::~Realm() {
 
   if (allocationMetadataBuilder_) {
     forgetAllocationMetadataBuilder();
-  }
-
-  if (isTracingExecution_) {
-    disableExecutionTracing();
   }
 
   MOZ_ASSERT(runtime_->numRealms > 0);
@@ -94,10 +90,6 @@ void Realm::init(JSContext* cx, JSPrincipals* principals) {
     isSystem_ = (principals == cx->runtime()->trustedPrincipals());
     JS_HoldPrincipals(principals);
     principals_ = principals;
-  }
-
-  if (!isSystem_ && cx->hasExecutionTracer()) {
-    enableExecutionTracing();
   }
 }
 
@@ -445,8 +437,7 @@ void Realm::updateDebuggerObservesFlag(unsigned flag) {
           : maybeGlobal();
   bool observes = false;
   if (flag == DebuggerObservesAllExecution) {
-    observes = (global && DebugAPI::debuggerObservesAllExecution(global)) ||
-               isTracingExecution_;
+    observes = DebugAPI::debuggerObservesAllExecution(global);
   } else if (flag == DebuggerObservesCoverage) {
     observes = DebugAPI::debuggerObservesCoverage(global);
   } else if (flag == DebuggerObservesAsmJS) {

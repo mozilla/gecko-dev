@@ -9,7 +9,6 @@
 #ifndef vm_JSContext_h
 #define vm_JSContext_h
 
-#include "mozilla/BaseProfilerUtils.h"  // BaseProfilerThreadId
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 
@@ -46,11 +45,8 @@ namespace js {
 class AutoAllocInAtomsZone;
 class AutoMaybeLeaveAtomsZone;
 class AutoRealm;
-struct PortableBaselineStack;
-
-#ifdef MOZ_EXECUTION_TRACING
 class ExecutionTracer;
-#endif
+struct PortableBaselineStack;
 
 namespace jit {
 class ICScript;
@@ -954,27 +950,27 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // has other references on the stack and does not need to be traced.
   js::ContextData<js::Debugger*> insideExclusiveDebuggerOnEval;
 
-#ifdef MOZ_EXECUTION_TRACING
   // This holds onto the JS execution tracer, a system which when turned on
   // records function calls and other information about the JS which has been
   // run under this context.
   js::UniquePtr<js::ExecutionTracer> executionTracer_;
 
-  js::ExecutionTracer& getExecutionTracer() {
+  // Holds all of the consumers of the trace - each consumer is a Debugger
+  // object - when the first consumer is added, the tracer will be initialized,
+  // and when the last consumer is removed, the tracer will be cleaned up.
+  js::HashSet<const js::Debugger*, js::PointerHasher<const js::Debugger*>,
+              js::SystemAllocPolicy>
+      executionTracingConsumers_;
+
+  // For the following methods, see the comments over executionTracer_ and
+  // executionTracingConsumers_
+  bool hasExecutionTracer() const { return !!executionTracer_; }
+  js::ExecutionTracer& getExecutionTracer() const {
     MOZ_ASSERT(hasExecutionTracer());
     return *executionTracer_;
   }
-
-  // See the latter clause of the comment over executionTracer_
-  [[nodiscard]] bool enableExecutionTracing();
-  void disableExecutionTracing();
-
-  // Returns true if there is currently an ExecutionTracer tracing this
-  // context's execution.
-  bool hasExecutionTracer() { return !!executionTracer_; }
-#else
-  bool hasExecutionTracer() { return false; }
-#endif
+  bool addExecutionTracingConsumer(const js::Debugger* dbg);
+  void removeExecutionTracingConsumer(const js::Debugger* dbg);
 
 }; /* struct JSContext */
 

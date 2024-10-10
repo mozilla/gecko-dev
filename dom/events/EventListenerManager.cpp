@@ -1328,7 +1328,7 @@ bool EventListenerManager::HandleEventSingleListener(
 
   if (NS_SUCCEEDED(result)) {
     Maybe<EventCallbackDebuggerNotificationGuard> dbgGuard;
-    if (dom::ChromeUtils::IsDevToolsOpened() || profiler_is_active()) {
+    if (dom::ChromeUtils::IsDevToolsOpened()) {
       dbgGuard.emplace(aCurrentTarget, aDOMEvent);
     }
     nsAutoMicroTask mt;

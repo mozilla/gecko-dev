@@ -27,24 +27,21 @@ enum class InlineEntryType : uint8_t {
   LabelLeave,
 };
 
-mozilla::Vector<ExecutionTracer*> ExecutionTracer::globalInstances;
-Mutex ExecutionTracer::globalInstanceLock(mutexid::ExecutionTracerGlobalLock);
-
-static JS::ExecutionTrace::ImplementationType GetImplementation(
+static ExecutionTracer::ImplementationType GetImplementation(
     AbstractFramePtr frame) {
   if (frame.isBaselineFrame()) {
-    return JS::ExecutionTrace::ImplementationType::Baseline;
+    return ExecutionTracer::ImplementationType::Baseline;
   }
 
   if (frame.isRematerializedFrame()) {
-    return JS::ExecutionTrace::ImplementationType::Ion;
+    return ExecutionTracer::ImplementationType::Ion;
   }
 
   if (frame.isWasmDebugFrame()) {
-    return JS::ExecutionTrace::ImplementationType::Wasm;
+    return ExecutionTracer::ImplementationType::Wasm;
   }
 
-  return JS::ExecutionTrace::ImplementationType::Interpreter;
+  return ExecutionTracer::ImplementationType::Interpreter;
 }
 
 static DebuggerFrameType GetFrameType(AbstractFramePtr frame) {
@@ -84,10 +81,6 @@ static DebuggerFrameType GetFrameType(AbstractFramePtr frame) {
     cx->markAtom(result);
   }
   return true;
-}
-
-static double GetNowMilliseconds() {
-  return (TimeStamp::Now() - TimeStamp::ProcessCreation()).ToMilliseconds();
 }
 
 void ExecutionTracer::writeScriptUrl(ScriptSource* scriptSource) {
@@ -173,16 +166,14 @@ bool ExecutionTracer::writeFunctionFrame(JSContext* cx,
 
   inlineData_.write(functionNameId);
   inlineData_.write(uint8_t(GetImplementation(frame)));
-  inlineData_.write(GetNowMilliseconds());
+  inlineData_.write(PRMJ_Now());
   return true;
 }
 
 bool ExecutionTracer::onEnterFrame(JSContext* cx, AbstractFramePtr frame) {
-  LockGuard<Mutex> guard(bufferLock_);
-
   DebuggerFrameType type = GetFrameType(frame);
   if (type == DebuggerFrameType::Call) {
-    if (frame.isFunctionFrame() && !frame.callee()->isSelfHostedBuiltin()) {
+    if (frame.isFunctionFrame()) {
       inlineData_.beginWritingEntry();
       inlineData_.write(uint8_t(InlineEntryType::StackFunctionEnter));
       if (!writeFunctionFrame(cx, frame)) {
@@ -196,11 +187,9 @@ bool ExecutionTracer::onEnterFrame(JSContext* cx, AbstractFramePtr frame) {
 }
 
 bool ExecutionTracer::onLeaveFrame(JSContext* cx, AbstractFramePtr frame) {
-  LockGuard<Mutex> guard(bufferLock_);
-
   DebuggerFrameType type = GetFrameType(frame);
   if (type == DebuggerFrameType::Call) {
-    if (frame.isFunctionFrame() && !frame.callee()->isSelfHostedBuiltin()) {
+    if (frame.isFunctionFrame()) {
       inlineData_.beginWritingEntry();
       inlineData_.write(uint8_t(InlineEntryType::StackFunctionLeave));
       if (!writeFunctionFrame(cx, frame)) {
@@ -209,176 +198,228 @@ bool ExecutionTracer::onLeaveFrame(JSContext* cx, AbstractFramePtr frame) {
       inlineData_.finishWritingEntry();
     }
   }
-
   return true;
 }
 
 template <typename CharType, TracerStringEncoding Encoding>
 void ExecutionTracer::onEnterLabel(const CharType* eventType) {
-  LockGuard<Mutex> guard(bufferLock_);
-
   inlineData_.beginWritingEntry();
   inlineData_.write(uint8_t(InlineEntryType::LabelEnter));
   inlineData_.writeCString<CharType, Encoding>(eventType);
-  inlineData_.write(GetNowMilliseconds());
+  inlineData_.write(PRMJ_Now());
   inlineData_.finishWritingEntry();
 }
 
 template <typename CharType, TracerStringEncoding Encoding>
 void ExecutionTracer::onLeaveLabel(const CharType* eventType) {
-  LockGuard<Mutex> guard(bufferLock_);
-
   inlineData_.beginWritingEntry();
   inlineData_.write(uint8_t(InlineEntryType::LabelLeave));
   inlineData_.writeCString<CharType, Encoding>(eventType);
-  inlineData_.write(GetNowMilliseconds());
+  inlineData_.write(PRMJ_Now());
   inlineData_.finishWritingEntry();
 }
 
-bool ExecutionTracer::readFunctionFrame(
-    JS::ExecutionTrace::EventKind kind,
-    JS::ExecutionTrace::TracedEvent& event) {
-  MOZ_ASSERT(kind == JS::ExecutionTrace::EventKind::FunctionEnter ||
-             kind == JS::ExecutionTrace::EventKind::FunctionLeave);
-
-  event.kind = kind;
-
-  uint8_t implementation;
-  inlineData_.read(&event.functionEvent.lineNumber);
-  inlineData_.read(&event.functionEvent.column);
-  inlineData_.read(&event.functionEvent.scriptId);
-  inlineData_.read(&event.functionEvent.functionNameId);
-  inlineData_.read(&implementation);
-  inlineData_.read(&event.time);
-
-  event.functionEvent.implementation =
-      JS::ExecutionTrace::ImplementationType(implementation);
-
-  return true;
+static bool ThrowTracingReadFailed(JSContext* cx) {
+  JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                            JSMSG_NATIVE_TRACING_BUFFER_MALFORMED);
+  return false;
 }
 
-bool ExecutionTracer::readLabel(JS::ExecutionTrace::EventKind kind,
-                                JS::ExecutionTrace::TracedEvent& event,
-                                TracingScratchBuffer& scratchBuffer,
-                                mozilla::Vector<char>& stringBuffer) {
-  MOZ_ASSERT(kind == JS::ExecutionTrace::EventKind::LabelEnter ||
-             kind == JS::ExecutionTrace::EventKind::LabelLeave);
+bool ExecutionTracer::readFunctionFrame(JSContext* cx,
+                                        JS::Handle<JSObject*> result,
+                                        EventKind kind) {
+  MOZ_ASSERT(kind == EventKind::FunctionEnter ||
+             kind == EventKind::FunctionLeave);
 
-  event.kind = kind;
-  size_t index;
-  if (!inlineData_.readString(scratchBuffer, stringBuffer, &index)) {
+  uint32_t lineno;
+  uint32_t column;
+  uint32_t url;
+  uint32_t functionName;
+  uint8_t implementation;
+  uint64_t time;
+  inlineData_.read(&lineno);
+  inlineData_.read(&column);
+  inlineData_.read(&url);
+  inlineData_.read(&functionName);
+  inlineData_.read(&implementation);
+  inlineData_.read(&time);
+
+  if (!NewbornArrayPush(cx, result, Int32Value(int32_t(kind)))) {
     return false;
   }
-  event.labelEvent.label = index;
+  if (!NewbornArrayPush(cx, result, Int32Value(lineno))) {
+    return false;
+  }
+  if (!NewbornArrayPush(cx, result, Int32Value(column))) {
+    return false;
+  }
+  if (!NewbornArrayPush(cx, result, Int32Value(url))) {
+    return false;
+  }
+  if (!NewbornArrayPush(cx, result, Int32Value(functionName))) {
+    return false;
+  }
+  if (!NewbornArrayPush(cx, result, Int32Value(implementation))) {
+    return false;
+  }
 
-  double time;
-  inlineData_.read(&time);
-  event.time = time;
+  double timeDouble = time / double(PRMJ_USEC_PER_MSEC);
+  if (!NewbornArrayPush(cx, result, DoubleValue(timeDouble))) {
+    return false;
+  }
 
   return true;
 }
 
-bool ExecutionTracer::readInlineEntry(
-    mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
-    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+bool ExecutionTracer::readStackFunctionEnter(JSContext* cx,
+                                             JS::Handle<JSObject*> events) {
+  JS::Rooted<JSObject*> obj(cx, NewDenseEmptyArray(cx));
+  if (!obj) {
+    return false;
+  }
+
+  if (!readFunctionFrame(cx, obj, EventKind::FunctionEnter)) {
+    return false;
+  }
+
+  JS::Rooted<JS::Value> objVal(cx, ObjectValue(*obj));
+  if (!NewbornArrayPush(cx, events, objVal)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool ExecutionTracer::readStackFunctionLeave(JSContext* cx,
+                                             JS::Handle<JSObject*> events) {
+  JS::Rooted<JSObject*> obj(cx, NewDenseEmptyArray(cx));
+  if (!obj) {
+    return false;
+  }
+
+  if (!readFunctionFrame(cx, obj, EventKind::FunctionLeave)) {
+    return false;
+  }
+  JS::Rooted<JS::Value> objVal(cx, ObjectValue(*obj));
+  if (!NewbornArrayPush(cx, events, objVal)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool ExecutionTracer::readScriptURLEntry(JSContext* cx,
+                                         JS::Handle<JSObject*> scriptUrls) {
+  uint32_t id;
+  outOfLineData_.read(&id);
+
+  JS::Rooted<JSString*> url(cx);
+  if (!outOfLineData_.readString(cx, &url)) {
+    return false;
+  }
+
+  JS::Rooted<JS::Value> urlVal(cx, StringValue(url));
+  if (!DefineDataElement(cx, scriptUrls, id, urlVal, JSPROP_ENUMERATE)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool ExecutionTracer::readAtomEntry(JSContext* cx,
+                                    JS::Handle<JSObject*> atoms) {
+  uint32_t id;
+  outOfLineData_.read(&id);
+  JS::Rooted<JSString*> url(cx);
+  if (!outOfLineData_.readString(cx, &url)) {
+    return false;
+  }
+
+  JS::Rooted<JS::Value> atom(cx, StringValue(url));
+  if (!DefineDataElement(cx, atoms, id, atom, JSPROP_ENUMERATE)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool ExecutionTracer::readLabel(JSContext* cx, JS::Handle<JSObject*> events,
+                                EventKind kind) {
+  MOZ_ASSERT(kind == EventKind::LabelEnter || kind == EventKind::LabelLeave);
+
+  JS::Rooted<JSObject*> obj(cx, NewDenseEmptyArray(cx));
+  if (!obj) {
+    return false;
+  }
+
+  if (!NewbornArrayPush(cx, obj, Int32Value(int32_t(kind)))) {
+    return false;
+  }
+
+  JS::Rooted<JSString*> eventType(cx);
+  if (!inlineData_.readString(cx, &eventType)) {
+    return false;
+  }
+  if (!NewbornArrayPush(cx, obj, StringValue(eventType))) {
+    return false;
+  }
+
+  uint64_t time;
+  inlineData_.read(&time);
+
+  double timeDouble = time / double(PRMJ_USEC_PER_MSEC);
+  if (!NewbornArrayPush(cx, obj, DoubleValue(timeDouble))) {
+    return false;
+  }
+
+  JS::Rooted<JS::Value> objVal(cx, ObjectValue(*obj));
+  if (!NewbornArrayPush(cx, events, objVal)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool ExecutionTracer::readInlineEntry(JSContext* cx,
+                                      JS::Handle<JSObject*> events) {
   uint8_t entryType;
   inlineData_.read(&entryType);
 
   switch (InlineEntryType(entryType)) {
     case InlineEntryType::StackFunctionEnter:
-    case InlineEntryType::StackFunctionLeave: {
-      JS::ExecutionTrace::EventKind kind;
-      if (InlineEntryType(entryType) == InlineEntryType::StackFunctionEnter) {
-        kind = JS::ExecutionTrace::EventKind::FunctionEnter;
-      } else {
-        kind = JS::ExecutionTrace::EventKind::FunctionLeave;
-      }
-      JS::ExecutionTrace::TracedEvent event;
-      if (!readFunctionFrame(kind, event)) {
-        return false;
-      }
-
-      if (!events.append(std::move(event))) {
-        return false;
-      }
-      return true;
-    }
+      return readStackFunctionEnter(cx, events);
+    case InlineEntryType::StackFunctionLeave:
+      return readStackFunctionLeave(cx, events);
     case InlineEntryType::LabelEnter:
-    case InlineEntryType::LabelLeave: {
-      JS::ExecutionTrace::EventKind kind;
-      if (InlineEntryType(entryType) == InlineEntryType::LabelEnter) {
-        kind = JS::ExecutionTrace::EventKind::LabelEnter;
-      } else {
-        kind = JS::ExecutionTrace::EventKind::LabelLeave;
-      }
-
-      JS::ExecutionTrace::TracedEvent event;
-      if (!readLabel(kind, event, scratchBuffer, stringBuffer)) {
-        return false;
-      }
-
-      if (!events.append(std::move(event))) {
-        return false;
-      }
-
-      return true;
-    }
+      return readLabel(cx, events, EventKind::LabelEnter);
+    case InlineEntryType::LabelLeave:
+      return readLabel(cx, events, EventKind::LabelLeave);
     default:
-      return false;
+      return ThrowTracingReadFailed(cx);
   }
 }
 
-bool ExecutionTracer::readOutOfLineEntry(
-    mozilla::HashMap<uint32_t, size_t>& scriptUrls,
-    mozilla::HashMap<uint32_t, size_t>& atoms,
-    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+bool ExecutionTracer::readOutOfLineEntry(JSContext* cx,
+                                         JS::Handle<JSObject*> scriptUrls,
+                                         JS::Handle<JSObject*> atoms) {
   uint8_t entryType;
   outOfLineData_.read(&entryType);
 
   switch (OutOfLineEntryType(entryType)) {
-    case OutOfLineEntryType::ScriptURL: {
-      uint32_t id;
-      outOfLineData_.read(&id);
-
-      size_t index;
-      if (!outOfLineData_.readString(scratchBuffer, stringBuffer, &index)) {
-        return false;
-      }
-
-      if (!scriptUrls.put(id, index)) {
-        return false;
-      }
-
-      return true;
-    }
-    case OutOfLineEntryType::Atom: {
-      uint32_t id;
-      outOfLineData_.read(&id);
-
-      size_t index;
-      if (!outOfLineData_.readString(scratchBuffer, stringBuffer, &index)) {
-        return false;
-      }
-
-      if (!atoms.put(id, index)) {
-        return false;
-      }
-
-      return true;
-    }
+    case OutOfLineEntryType::ScriptURL:
+      return readScriptURLEntry(cx, scriptUrls);
+    case OutOfLineEntryType::Atom:
+      return readAtomEntry(cx, atoms);
     default:
-      return false;
+      return ThrowTracingReadFailed(cx);
   }
-
-  return true;
 }
 
-bool ExecutionTracer::readInlineEntries(
-    mozilla::Vector<JS::ExecutionTrace::TracedEvent>& events,
-    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+bool ExecutionTracer::readInlineEntries(JSContext* cx,
+                                        JS::Handle<JSObject*> events) {
   while (inlineData_.readable()) {
     inlineData_.beginReadingEntry();
-    if (!readInlineEntry(events, scratchBuffer, stringBuffer)) {
+    if (!readInlineEntry(cx, events)) {
       inlineData_.skipEntry();
       return false;
     }
@@ -387,13 +428,12 @@ bool ExecutionTracer::readInlineEntries(
   return true;
 }
 
-bool ExecutionTracer::readOutOfLineEntries(
-    mozilla::HashMap<uint32_t, size_t>& scriptUrls,
-    mozilla::HashMap<uint32_t, size_t>& atoms,
-    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
+bool ExecutionTracer::readOutOfLineEntries(JSContext* cx,
+                                           JS::Handle<JSObject*> scriptUrls,
+                                           JS::Handle<JSObject*> atoms) {
   while (outOfLineData_.readable()) {
     outOfLineData_.beginReadingEntry();
-    if (!readOutOfLineEntry(scriptUrls, atoms, scratchBuffer, stringBuffer)) {
+    if (!readOutOfLineEntry(cx, scriptUrls, atoms)) {
       outOfLineData_.skipEntry();
       return false;
     }
@@ -402,51 +442,53 @@ bool ExecutionTracer::readOutOfLineEntries(
   return true;
 }
 
-bool ExecutionTracer::getNativeTrace(
-    JS::ExecutionTrace::TracedJSContext& context,
-    TracingScratchBuffer& scratchBuffer, mozilla::Vector<char>& stringBuffer) {
-  LockGuard<Mutex> guard(bufferLock_);
-
-  if (!readOutOfLineEntries(context.scriptUrls, context.atoms, scratchBuffer,
-                            stringBuffer)) {
+bool ExecutionTracer::getTrace(JSContext* cx, JS::Handle<JSObject*> result) {
+  // TODO: the long term goal for traces is to be able to collect this data
+  // live, while the tracer is still capturing, as well as all at once, which
+  // this method covers. Bug 1910182 tracks the next step for the live tracing
+  // case, which may in the end involve a similar method to this being called
+  // from a separate process than the process containing the traced JSContext.
+  // If we go down that route, the buffer would be shared via a shmem.
+  JS::Rooted<JSObject*> scriptUrls(cx, NewPlainObject(cx));
+  if (!scriptUrls) {
+    return false;
+  }
+  JS::Rooted<JS::Value> scriptUrlsVal(cx, ObjectValue(*scriptUrls));
+  if (!JS_DefineProperty(cx, result, "scriptURLs", scriptUrlsVal,
+                         JSPROP_ENUMERATE)) {
     return false;
   }
 
-  if (!readInlineEntries(context.events, scratchBuffer, stringBuffer)) {
+  JS::Rooted<JSObject*> atoms(cx, NewPlainObject(cx));
+  if (!atoms) {
+    return false;
+  }
+  JS::Rooted<JS::Value> atomsVal(cx, ObjectValue(*atoms));
+  if (!JS_DefineProperty(cx, result, "atoms", atomsVal, JSPROP_ENUMERATE)) {
     return false;
   }
 
-  return true;
-}
+  JS::Rooted<JSObject*> events(cx, NewDenseEmptyArray(cx));
+  if (!events) {
+    return false;
+  }
+  JS::Rooted<JS::Value> eventsVal(cx, ObjectValue(*events));
+  if (!JS_DefineProperty(cx, result, "events", eventsVal, JSPROP_ENUMERATE)) {
+    return false;
+  }
 
-bool ExecutionTracer::getNativeTraceForAllContexts(JS::ExecutionTrace& trace) {
-  LockGuard<Mutex> guard(globalInstanceLock);
-  TracingScratchBuffer scratchBuffer;
-  for (ExecutionTracer* tracer : globalInstances) {
-    JS::ExecutionTrace::TracedJSContext* context = nullptr;
-    for (JS::ExecutionTrace::TracedJSContext& t : trace.contexts) {
-      if (t.id == tracer->threadId_) {
-        context = &t;
-        break;
-      }
-    }
-    if (!context) {
-      if (!trace.contexts.append(JS::ExecutionTrace::TracedJSContext())) {
-        return false;
-      }
-      context = &trace.contexts[trace.contexts.length() - 1];
-      context->id = tracer->threadId_;
-    }
-    if (!tracer->getNativeTrace(*context, scratchBuffer, trace.stringBuffer)) {
-      return false;
-    }
+  if (!readOutOfLineEntries(cx, scriptUrls, atoms)) {
+    return false;
+  }
+
+  if (!readInlineEntries(cx, events)) {
+    return false;
   }
 
   return true;
 }
 
 void JS_TracerEnterLabelTwoByte(JSContext* cx, const char16_t* label) {
-  CHECK_THREAD(cx);
   if (cx->hasExecutionTracer()) {
     cx->getExecutionTracer()
         .onEnterLabel<char16_t, TracerStringEncoding::TwoByte>(label);
@@ -454,7 +496,6 @@ void JS_TracerEnterLabelTwoByte(JSContext* cx, const char16_t* label) {
 }
 
 void JS_TracerEnterLabelLatin1(JSContext* cx, const char* label) {
-  CHECK_THREAD(cx);
   if (cx->hasExecutionTracer()) {
     cx->getExecutionTracer().onEnterLabel<char, TracerStringEncoding::Latin1>(
         label);
@@ -462,7 +503,6 @@ void JS_TracerEnterLabelLatin1(JSContext* cx, const char* label) {
 }
 
 void JS_TracerLeaveLabelTwoByte(JSContext* cx, const char16_t* label) {
-  CHECK_THREAD(cx);
   if (cx->hasExecutionTracer()) {
     cx->getExecutionTracer()
         .onLeaveLabel<char16_t, TracerStringEncoding::TwoByte>(label);
@@ -470,24 +510,8 @@ void JS_TracerLeaveLabelTwoByte(JSContext* cx, const char16_t* label) {
 }
 
 void JS_TracerLeaveLabelLatin1(JSContext* cx, const char* label) {
-  CHECK_THREAD(cx);
   if (cx->hasExecutionTracer()) {
     cx->getExecutionTracer().onLeaveLabel<char, TracerStringEncoding::Latin1>(
         label);
   }
-}
-
-bool JS_TracerBeginTracing(JSContext* cx) {
-  CHECK_THREAD(cx);
-  return cx->enableExecutionTracing();
-}
-
-bool JS_TracerEndTracing(JSContext* cx) {
-  CHECK_THREAD(cx);
-  cx->disableExecutionTracing();
-  return true;
-}
-
-bool JS_TracerSnapshotTrace(JS::ExecutionTrace& trace) {
-  return ExecutionTracer::getNativeTraceForAllContexts(trace);
 }

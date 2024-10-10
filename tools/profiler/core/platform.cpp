@@ -62,7 +62,6 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoProfilerLabel.h"
 #include "mozilla/BaseAndGeckoProfilerDetail.h"
-#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/ExtensionPolicyService.h"
 #include "mozilla/extensions/WebExtensionPolicy.h"
 #include "mozilla/glean/GleanMetrics.h"
@@ -1082,13 +1081,6 @@ class ActivePS {
 
     if (aFeatures & ProfilerFeature::CPUAllThreads) {
       aFeatures |= ProfilerFeature::CPUUtilization;
-    }
-
-    if (aFeatures & ProfilerFeature::Tracing) {
-      aFeatures &= ~ProfilerFeature::CPUUtilization;
-      aFeatures &= ~ProfilerFeature::Memory;
-      aFeatures |= ProfilerFeature::NoStackSampling;
-      aFeatures |= ProfilerFeature::JS;
     }
 
     return aFeatures;
@@ -5502,11 +5494,6 @@ static ProfilingStack* locked_register_thread(
         if (lockedRWFromAnyThread->GetJSContext()) {
           profiledThreadData->NotifyReceivedJSContext(
               ActivePS::Buffer(aLock).BufferRangeEnd());
-          if (ActivePS::FeatureTracing(aLock)) {
-            CycleCollectedJSContext* ctx =
-                lockedRWFromAnyThread->GetCycleCollectedJSContext();
-            ctx->BeginExecutionTracingAsync();
-          }
         }
       }
     }
@@ -6635,11 +6622,6 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
       lockedThreadData->ReinitializeOnResume();
       if (ActivePS::FeatureJS(aLock) && lockedThreadData->GetJSContext()) {
         profiledThreadData->NotifyReceivedJSContext(0);
-        if (ActivePS::FeatureTracing(aLock)) {
-          CycleCollectedJSContext* ctx =
-              lockedThreadData->GetCycleCollectedJSContext();
-          ctx->BeginExecutionTracingAsync();
-        }
       }
     }
   }
@@ -6851,14 +6833,6 @@ void profiler_ensure_started(PowerOfTwo32 aCapacity, double aInterval,
     lockedThreadData->ClearProfilingFeaturesAndData(aLock);
 
     if (ActivePS::FeatureJS(aLock)) {
-      if (ActivePS::FeatureTracing(aLock)) {
-        CycleCollectedJSContext* ctx =
-            lockedThreadData->GetCycleCollectedJSContext();
-        if (ctx) {
-          ctx->EndExecutionTracingAsync();
-        }
-      }
-
       lockedThreadData->StopJSSampling();
       if (!lockedThreadData.GetLockedRWOnThread() &&
           lockedThreadData->Info().IsMainThread()) {
@@ -7807,7 +7781,7 @@ bool profiler_is_locked_on_current_thread() {
          ProfilerChild::IsLockedOnCurrentThread();
 }
 
-void profiler_set_js_context(CycleCollectedJSContext* aCx) {
+void profiler_set_js_context(JSContext* aCx) {
   MOZ_ASSERT(aCx);
   ThreadRegistration::WithOnThreadRef(
       [&](ThreadRegistration::OnThreadRef aOnThreadRef) {
@@ -7815,7 +7789,7 @@ void profiler_set_js_context(CycleCollectedJSContext* aCx) {
         PSAutoLock lock;
         aOnThreadRef.WithLockedRWOnThread(
             [&](ThreadRegistration::LockedRWOnThread& aThreadData) {
-              aThreadData.SetCycleCollectedJSContext(aCx);
+              aThreadData.SetJSContext(aCx);
 
               if (!ActivePS::Exists(lock) || !ActivePS::FeatureJS(lock)) {
                 return;
@@ -7826,9 +7800,6 @@ void profiler_set_js_context(CycleCollectedJSContext* aCx) {
                   profiledThreadData) {
                 profiledThreadData->NotifyReceivedJSContext(
                     ActivePS::Buffer(lock).BufferRangeEnd());
-                if (ActivePS::FeatureTracing(lock)) {
-                  aCx->BeginExecutionTracingAsync();
-                }
               }
             });
       });
@@ -7843,14 +7814,11 @@ void profiler_clear_js_context() {
 
   ThreadRegistration::WithOnThreadRef(
       [](ThreadRegistration::OnThreadRef aOnThreadRef) {
-        CycleCollectedJSContext* cccx =
-            aOnThreadRef.UnlockedReaderAndAtomicRWOnThreadCRef()
-                .GetCycleCollectedJSContext();
-        if (!cccx) {
+        JSContext* cx =
+            aOnThreadRef.UnlockedReaderAndAtomicRWOnThreadCRef().GetJSContext();
+        if (!cx) {
           return;
         }
-
-        JSContext* cx = cccx->Context();
 
         // The profiler mutex must be locked before the ThreadRegistration's.
         {
@@ -7864,16 +7832,12 @@ void profiler_clear_js_context() {
                 ActivePS::FeatureJS(lock))) {
             // This thread is not being profiled or JS profiling is off, we only
             // need to clear the context pointer.
-            lockedThreadData->ClearCycleCollectedJSContext();
+            lockedThreadData->ClearJSContext();
             return;
           }
 
           profiledThreadData->NotifyAboutToLoseJSContext(
               cx, CorePS::ProcessStartTime(), ActivePS::Buffer(lock));
-
-          if (ActivePS::FeatureTracing(lock)) {
-            cccx->EndExecutionTracingAsync();
-          }
 
           // Notify the JS context that profiling for this context has
           // stopped. Do this by calling StopJSSampling and PollJSSampling
@@ -7882,7 +7846,7 @@ void profiler_clear_js_context() {
         }
 
         // Drop profiler mutex for call into JS engine. This must happen before
-        // ClearCycleCollectedJSContext below.
+        // ClearJSContext below.
         PollJSSamplingForCurrentThread();
 
         {
@@ -7890,7 +7854,7 @@ void profiler_clear_js_context() {
           ThreadRegistration::OnThreadRef::RWOnThreadWithLock lockedThreadData =
               aOnThreadRef.GetLockedRWOnThread();
 
-          lockedThreadData->ClearCycleCollectedJSContext();
+          lockedThreadData->ClearJSContext();
 
           // Tell the thread that we'd like to have JS sampling on this
           // thread again, once it gets a new JSContext (if ever).
