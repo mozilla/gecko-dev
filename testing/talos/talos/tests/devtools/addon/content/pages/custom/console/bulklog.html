@@ -29,8 +29,12 @@
         }
         return value;
       },
-      node: document.body,
-      nodelist: document.querySelectorAll("*"),
+      get node() {
+        return document.body;
+      },
+      get nodelist() {
+        return document.querySelectorAll("*");
+      },
       promise: Promise.resolve(123),
       get error() {
         let value;
