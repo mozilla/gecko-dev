@@ -74,7 +74,7 @@ interface nsISearchEngine : nsISupports
    * URL of type `SearchUtils.URL_TYPE.SEARCH`.
    *
    * @returns A string which is the name of the parameter, or empty string
-   *          if no parameter cannot be found or is not supported (e.g. POST).
+   *          if no parameter can be found or is not supported (e.g. POST).
    */
   readonly attribute AString searchUrlQueryParamName;
 
