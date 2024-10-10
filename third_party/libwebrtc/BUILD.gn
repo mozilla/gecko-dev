@@ -21,15 +21,15 @@
 # - visibility = [ ":*" ] - directory private.
 # As a general guideline, only targets in api/ should have public visibility.
 
-import("//build/config/linux/pkg_config.gni")
-import("//build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/linux/pkg_config.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
 import("webrtc.gni")
 if (rtc_enable_protobuf) {
   import("//third_party/protobuf/proto_library.gni")
 }
 if (is_android) {
-  import("//build/config/android/config.gni")
-  import("//build/config/android/rules.gni")
+  import("//chromium/build/config/android/config.gni")
+  import("//chromium/build/config/android/rules.gni")
   import("//third_party/jni_zero/jni_zero.gni")
 }
 
@@ -531,7 +531,7 @@ if (!build_with_chromium) {
 
     sources = []
     complete_static_lib = true
-    suppressed_configs += [ "//build/config/compiler:thin_archive" ]
+    suppressed_configs += [ "//chromium/build/config/compiler:thin_archive" ]
     defines = []
 
     deps = [
@@ -879,7 +879,7 @@ rtc_static_library("dcsctp") {
   visibility = [ "//:default" ]
   sources = []
   complete_static_lib = true
-  suppressed_configs += [ "//build/config/compiler:thin_archive" ]
+  suppressed_configs += [ "//chromium/build/config/compiler:thin_archive" ]
   defines = []
   deps = [
     "net/dcsctp/public:factory",

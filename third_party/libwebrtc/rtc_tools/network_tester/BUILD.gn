@@ -176,8 +176,8 @@ if (is_android) {
       "../../rtc_base:threading",
     ]
 
-    suppressed_configs += [ "//build/config/android:hide_all_but_jni_onload" ]
-    configs += [ "//build/config/android:hide_all_but_jni" ]
+    suppressed_configs += [ "//chromium/build/config/android:hide_all_but_jni_onload" ]
+    configs += [ "//chromium/build/config/android:hide_all_but_jni" ]
 
     output_extension = "so"
   }

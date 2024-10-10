@@ -6,7 +6,7 @@
 # in the file PATENTS.  All contributing project authors may
 # be found in the AUTHORS file in the root of the source tree.
 
-import("//build/config/features.gni")
+import("//chromium/build/config/features.gni")
 import("//testing/libfuzzer/fuzzer_test.gni")
 import("../../webrtc.gni")
 
@@ -73,7 +73,7 @@ template("webrtc_fuzzer_test") {
     }
 
     if (!build_with_chromium && is_clang) {
-      suppressed_configs = [ "//build/config/clang:find_bad_constructs" ]
+      suppressed_configs = [ "//chromium/build/config/clang:find_bad_constructs" ]
     }
   }
 }

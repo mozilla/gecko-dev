@@ -19,7 +19,7 @@ rtc_library("rnn_vad") {
 
   defines = []
   if (rtc_build_with_neon && target_cpu != "arm64") {
-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
+    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
     cflags = [ "-mfpu=neon" ]
   }
 
@@ -88,7 +88,7 @@ rtc_source_set("rnn_vad_layers") {
 
   defines = []
   if (rtc_build_with_neon && current_cpu != "arm64") {
-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
+    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
     cflags = [ "-mfpu=neon" ]
   }
 
@@ -149,7 +149,7 @@ rtc_library("rnn_vad_pitch") {
 
   defines = []
   if (rtc_build_with_neon && current_cpu != "arm64") {
-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
+    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
     cflags = [ "-mfpu=neon" ]
   }
 
@@ -272,7 +272,7 @@ if (rtc_include_tests) {
 
     defines = []
     if (rtc_build_with_neon && current_cpu != "arm64") {
-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
+      suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
       cflags = [ "-mfpu=neon" ]
     }
 

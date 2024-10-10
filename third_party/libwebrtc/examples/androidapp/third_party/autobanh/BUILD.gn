@@ -7,7 +7,7 @@
 # be found in the AUTHORS file in the root of the source tree.
 
 if (is_android) {
-  import("//build/config/android/rules.gni")
+  import("//chromium/build/config/android/rules.gni")
 
   android_java_prebuilt("autobanh_java") {
     jar_path = "lib/autobanh.jar"

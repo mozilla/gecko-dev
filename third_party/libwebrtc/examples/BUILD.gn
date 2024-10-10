@@ -9,15 +9,15 @@
 import("../webrtc.gni")
 
 if (is_android) {
-  import("//build/config/android/config.gni")
-  import("//build/config/android/rules.gni")
+  import("//chromium/build/config/android/config.gni")
+  import("//chromium/build/config/android/rules.gni")
   import("//third_party/jni_zero/jni_zero.gni")
 } else if (is_mac) {
-  import("//build/config/mac/rules.gni")
+  import("//chromium/build/config/mac/rules.gni")
 } else if (is_ios) {
-  import("//build/config/ios/rules.gni")
+  import("//chromium/build/config/ios/rules.gni")
 } else if (is_linux || is_chromeos) {
-  import("//build/config/linux/pkg_config.gni")
+  import("//chromium/build/config/linux/pkg_config.gni")
 }
 
 group("examples") {
@@ -636,7 +636,7 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
           "../sdk:mediaconstraints_objc",
           "../sdk:peerconnectionfactory_base_objc",
           "../sdk:videocapture_objc",
-          "//build/config/ios:xctest",
+          "//chromium/build/config/ios:xctest",
           "//third_party/ocmock",
         ]
       }
@@ -729,7 +729,7 @@ if (is_linux || is_chromeos || is_win) {
         "peerconnection/client/main_wnd.cc",
         "peerconnection/client/main_wnd.h",
       ]
-      configs += [ "//build/config/win:windowed" ]
+      configs += [ "//chromium/build/config/win:windowed" ]
       deps += [
         "../rtc_base:win32",
         "../rtc_base:win32_socket_init",

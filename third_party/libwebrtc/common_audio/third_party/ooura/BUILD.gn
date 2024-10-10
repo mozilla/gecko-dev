@@ -40,7 +40,7 @@ rtc_library("fft_size_128") {
 
     if (target_cpu != "arm64") {
       # Enable compilation for the NEON instruction set.
-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
+      suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
       cflags += [ "-mfpu=neon" ]
     }
   }

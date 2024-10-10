@@ -86,14 +86,14 @@
 #     # You can also put deps here if the grit source depends on generated
 #     # files.
 #   }
-import("//build/config/chrome_build.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/compute_inputs_for_analyze.gni")
-import("//build/config/crypto.gni")
-import("//build/config/features.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/config/ui.gni")
+import("//chromium/build/config/chrome_build.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/compute_inputs_for_analyze.gni")
+import("//chromium/build/config/crypto.gni")
+import("//chromium/build/config/features.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/ui.gni")
 import("//build/toolchain/gcc_toolchain.gni")
 
 declare_args() {

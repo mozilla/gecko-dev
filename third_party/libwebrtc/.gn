@@ -6,10 +6,10 @@
 # in the file PATENTS.  All contributing project authors may
 # be found in the AUTHORS file in the root of the source tree.
 
-import("//build/dotfile_settings.gni")
+import("//chromium/build/dotfile_settings.gni")
 
 # The location of the build configuration file.
-buildconfig = "//build/config/BUILDCONFIG.gn"
+buildconfig = "//chromium/build/config/BUILDCONFIG.gn"
 
 # The python interpreter to use by default. On Windows, this will look
 # for vpython3.exe and vpython3.bat.

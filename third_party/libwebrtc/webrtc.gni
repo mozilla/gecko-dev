@@ -5,12 +5,12 @@
 # tree. An additional intellectual property rights grant can be found
 # in the file PATENTS.  All contributing project authors may
 # be found in the AUTHORS file in the root of the source tree.
-import("//build/config/arm.gni")
-import("//build/config/features.gni")
-import("//build/config/mips.gni")
-import("//build/config/ozone.gni")
-import("//build/config/sanitizers/sanitizers.gni")
-import("//build/config/sysroot.gni")
+import("//chromium/build/config/arm.gni")
+import("//chromium/build/config/features.gni")
+import("//chromium/build/config/mips.gni")
+import("//chromium/build/config/ozone.gni")
+import("//chromium/build/config/sanitizers/sanitizers.gni")
+import("//chromium/build/config/sysroot.gni")
 import("//libwebrtc/build_overrides/build.gni")
 
 if (!build_with_chromium && is_component_build) {
@@ -28,20 +28,20 @@ if (!build_with_chromium && is_component_build) {
 }
 
 if (is_ios) {
-  import("//build/config/ios/rules.gni")
+  import("//chromium/build/config/ios/rules.gni")
 }
 
 if (is_mac) {
-  import("//build/config/mac/rules.gni")
+  import("//chromium/build/config/mac/rules.gni")
 }
 
 if (is_android) {
-  import("//build/config/android/config.gni")
-  import("//build/config/android/rules.gni")
+  import("//chromium/build/config/android/config.gni")
+  import("//chromium/build/config/android/rules.gni")
 }
 
 if (is_fuchsia) {
-  import("//build/config/fuchsia/config.gni")
+  import("//chromium/build/config/fuchsia/config.gni")
 }
 
 if (build_with_chromium) {
@@ -386,8 +386,8 @@ rtc_common_configs = [ webrtc_root + ":common_config" ]
 
 if (is_mac || is_ios) {
   if (filter_include(default_compiler_configs,
-                     [ "//build/config/compiler:enable_arc" ]) == []) {
-    rtc_common_configs += [ "//build/config/compiler:enable_arc" ]
+                     [ "//chromium/build/config/compiler:enable_arc" ]) == []) {
+    rtc_common_configs += [ "//chromium/build/config/compiler:enable_arc" ]
   }
 }
 
@@ -405,7 +405,7 @@ rtc_common_inherited_config = webrtc_root + ":common_inherited_config"
 # Common configs to remove or add in all rtc targets.
 rtc_remove_configs = []
 if (!build_with_chromium && is_clang) {
-  rtc_remove_configs += [ "//build/config/clang:find_bad_constructs" ]
+  rtc_remove_configs += [ "//chromium/build/config/clang:find_bad_constructs" ]
 }
 rtc_add_configs = rtc_common_configs
 rtc_prod_configs = [ webrtc_root + ":rtc_prod_config" ]

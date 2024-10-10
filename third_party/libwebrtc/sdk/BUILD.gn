@@ -9,11 +9,11 @@
 import("//third_party/libaom/options.gni")
 import("../webrtc.gni")
 if (is_ios) {
-  import("//build/config/ios/ios_sdk.gni")
-  import("//build/config/ios/rules.gni")
+  import("//chromium/build/config/ios/ios_sdk.gni")
+  import("//chromium/build/config/ios/rules.gni")
 }
 if (is_mac) {
-  import("//build/config/mac/rules.gni")
+  import("//chromium/build/config/mac/rules.gni")
 }
 
 group("sdk") {
@@ -65,7 +65,7 @@ if (is_ios || is_mac) {
     ]
 
     if (use_clang_coverage) {
-      configs = [ "//build/config/coverage:default_coverage" ]
+      configs = [ "//chromium/build/config/coverage:default_coverage" ]
     }
   }
 
@@ -1219,7 +1219,7 @@ if (is_ios || is_mac) {
           }
 
           public_deps = [
-            "//build/config/ios:xctest",
+            "//chromium/build/config/ios:xctest",
             "//third_party/ocmock",
           ]
         }

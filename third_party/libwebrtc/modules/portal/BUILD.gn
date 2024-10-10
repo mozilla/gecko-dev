@@ -6,7 +6,7 @@
 # in the file PATENTS.  All contributing project authors may
 # be found in the AUTHORS file in the root of the source tree.
 
-import("//build/config/linux/pkg_config.gni")
+import("//chromium/build/config/linux/pkg_config.gni")
 import("//tools/generate_stubs/rules.gni")
 import("../../webrtc.gni")
 

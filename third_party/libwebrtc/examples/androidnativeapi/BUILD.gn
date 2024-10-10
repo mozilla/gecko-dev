@@ -42,8 +42,8 @@ if (is_android) {
       "jni/onload.cc",
     ]
 
-    suppressed_configs += [ "//build/config/android:hide_all_but_jni_onload" ]
-    configs += [ "//build/config/android:hide_all_but_jni" ]
+    suppressed_configs += [ "//chromium/build/config/android:hide_all_but_jni_onload" ]
+    configs += [ "//chromium/build/config/android:hide_all_but_jni" ]
 
     deps = [
       ":generated_jni",

@@ -6,8 +6,8 @@
 # in the file PATENTS.  All contributing project authors may
 # be found in the AUTHORS file in the root of the source tree.
 
-import("//build/config/linux/gtk/gtk.gni")
-import("//build/config/ui.gni")
+import("//chromium/build/config/linux/gtk/gtk.gni")
+import("//chromium/build/config/ui.gni")
 import("../../webrtc.gni")
 
 use_desktop_capture_differ_sse2 = target_cpu == "x86" || target_cpu == "x64"

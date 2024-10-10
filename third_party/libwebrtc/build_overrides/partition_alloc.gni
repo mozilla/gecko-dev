@@ -7,20 +7,20 @@
 # be found in the AUTHORS file in the root of the source tree.
 
 # Dependencies from //build defining variables used by partition_alloc.
-import("//build/config/android/config.gni")
-import("//build/config/cast.gni")
-import("//build/config/chromeos/ui_mode.gni")
-import("//build/config/compiler/compiler.gni")
-import("//build/config/cronet/config.gni")
-import("//build/config/dcheck_always_on.gni")
-import("//build/config/logging.gni")
-partition_alloc_enable_arc_config = "//build/config/compiler:enable_arc"
+import("//chromium/build/config/android/config.gni")
+import("//chromium/build/config/cast.gni")
+import("//chromium/build/config/chromeos/ui_mode.gni")
+import("//chromium/build/config/compiler/compiler.gni")
+import("//chromium/build/config/cronet/config.gni")
+import("//chromium/build/config/dcheck_always_on.gni")
+import("//chromium/build/config/logging.gni")
+partition_alloc_enable_arc_config = "//chromium/build/config/compiler:enable_arc"
 
 # partition_alloc is performance critical and it should generally be optimized
 # for speed, even in debug mode. WebRTC doesn't really need its debug version.
 partition_alloc_remove_configs =
-    [ "//build/config/compiler:default_optimization" ]
-partition_alloc_add_configs = [ "//build/config/compiler:optimize_speed" ]
+    [ "//chromium/build/config/compiler:default_optimization" ]
+partition_alloc_add_configs = [ "//chromium/build/config/compiler:optimize_speed" ]
 
 # Disable partition_alloc for WebRTC standalone builds.
 use_partition_alloc_as_malloc_default = false
