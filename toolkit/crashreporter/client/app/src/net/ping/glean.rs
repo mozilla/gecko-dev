@@ -96,6 +96,7 @@ pub fn set_crash_ping_metrics(
             profiler_child_shutdown_phase: str = "ProfilerChildShutdownPhase"
             quota_manager_shutdown_timeout: (object convert_quota_manager_shutdown_timeout) = "QuotaManagerShutdownTimeout"
             remote_type: str = "RemoteType"
+            utility_actors_name: (string_list ',') = "UtilityActorsName"
             shutdown_progress: str = "ShutdownProgress"
             stack_traces: (object convert_stack_traces) = "StackTraces"
             startup: bool = "StartupCrash"

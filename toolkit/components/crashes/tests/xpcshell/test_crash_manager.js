@@ -1051,6 +1051,39 @@ add_task(async function test_glean_crash_ping() {
   Assert.ok(submitted);
 });
 
+add_task(async function test_glean_crash_ping_utility() {
+  let m = await getManager();
+
+  let id = await m.createDummyDump();
+
+  let submitted = false;
+  GleanPings.crash.testBeforeNextSubmit(() => {
+    const MINUTES = new Date(DUMMY_DATE_2);
+    Assert.equal(Glean.crash.time.testGetValue().getTime(), MINUTES.getTime());
+    Assert.equal(
+      Glean.crash.processType.testGetValue(),
+      m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_UTILITY]
+    );
+    Assert.deepEqual(Glean.crash.utilityActorsName.testGetValue(), [
+      "audio-decoder-generic",
+      "js-oracle",
+    ]);
+    submitted = true;
+  });
+
+  await m.addCrash(
+    m.processTypes[Ci.nsIXULRuntime.PROCESS_TYPE_UTILITY],
+    m.CRASH_TYPE_CRASH,
+    id,
+    DUMMY_DATE_2,
+    {
+      UtilityActorsName: "audio-decoder-generic,js-oracle",
+    }
+  );
+
+  Assert.ok(submitted);
+});
+
 add_task(async function test_generateSubmissionID() {
   let m = await getManager();
 

@@ -448,6 +448,23 @@ crash:
     send_in_pings:
       - crash
 
+  utility_actors_name:
+    type: string_list
+    description: >
+      List of IPC actor names running on a utility process instance (if the crashing process was a utility process).
+    notification_emails:
+      - crash-reporting-wg@mozilla.org
+      - stability@mozilla.org
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923873
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923873
+    data_sensitivity:
+      - technical
+    expires: never
+    send_in_pings:
+      - crash
+
   shutdown_progress:
     type: string
     description: >
