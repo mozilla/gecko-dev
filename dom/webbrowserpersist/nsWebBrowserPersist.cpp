@@ -804,7 +804,11 @@ NS_IMETHODIMP nsWebBrowserPersist::OnStartRequest(nsIRequest* request) {
                                      getter_AddRefs(mBackgroundQueue));
       }
       if (mBackgroundQueue) {
-        r->RetargetDeliveryTo(mBackgroundQueue);
+        nsresult rv = r->RetargetDeliveryTo(mBackgroundQueue);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+        if (NS_FAILED(rv)) {
+          return rv;
+        }
       }
     }
 

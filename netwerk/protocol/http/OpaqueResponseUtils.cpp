@@ -662,7 +662,7 @@ void OpaqueResponseBlocker::ResolveAndProcessData(
   // When this line reaches, the state is either State::Allowed or
   // State::Blocked. The OnDataAvailable call will either call
   // the next listener or reject the request.
-  OnDataAvailable(aChannel, input, 0, mem.Size<char>());
+  Unused << OnDataAvailable(aChannel, input, 0, mem.Size<char>());
 
   MaybeRunOnStopRequest(aChannel);
 }

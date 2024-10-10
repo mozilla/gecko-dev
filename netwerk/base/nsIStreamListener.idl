@@ -32,7 +32,7 @@ interface nsIStreamListener : nsIRequestObserver
      * An exception thrown from onDataAvailable has the side-effect of
      * causing the request to be canceled.
      */
-    void onDataAvailable(in nsIRequest aRequest,
+    [must_use] void onDataAvailable(in nsIRequest aRequest,
                          in nsIInputStream aInputStream,
                          in unsigned long long aOffset,
                          in unsigned long aCount);

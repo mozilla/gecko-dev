@@ -74,7 +74,10 @@ StreamLoader::OnStartRequest(nsIRequest* aRequest) {
         do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
     RefPtr queue =
         TaskQueue::Create(sts.forget(), "css::StreamLoader Delivery Queue");
-    rr->RetargetDeliveryTo(queue);
+    nsresult rv = rr->RetargetDeliveryTo(queue);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
   }
 
   mSheetLoadData->SetMinimumExpirationTime(
