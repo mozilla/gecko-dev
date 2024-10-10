@@ -1031,6 +1031,13 @@ Function SendPing
     nsJSON::Set /tree ping "Data" "distribution_version" /value '"$0"'
   ${EndIf}
 
+  ReadRegDWORD $0 HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion" "UBR"
+  ${If} ${Errors}
+    StrCpy $0 "-1" ; Assign -1 if an error occured during registry read
+  ${EndIf}
+  
+  nsJSON::Set /tree ping "Data" "windows_ubr" /value '"$0"'
+
   ${GetParameters} $0
   ${GetOptions} $0 "/LaunchedFromMSI" $0
   ${IfNot} ${Errors}
