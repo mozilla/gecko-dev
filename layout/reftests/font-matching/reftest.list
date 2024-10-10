@@ -200,6 +200,8 @@ skip-if(!winWidget) pref(layout.css.font-visibility,1) == 1850672-1.html 1850672
 # Check that "ja-JP" in accept_languages uses the same font prefs as "ja".
 test-pref(intl.accept_languages,"ja-JP,zh-CN,en") ref-pref(intl.accept_languages,"ja,zh-CN,en") == 1892363-lang-prefs.html 1892363-lang-prefs.html
 
+== 1923698-font-variant-emoji.html 1923698-font-variant-emoji-ref.html
+
 # Reset default prefs.
 defaults
 
