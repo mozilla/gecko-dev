@@ -876,8 +876,9 @@ CookieCommons::CheckGlobalAndRetrieveCookiePrincipals(
     // cookie jar is only available in first-party or third-party with
     // storageAccess contexts. In both cases, the Worker will have storage
     // access.
-    bool isCHIPS = StaticPrefs::network_cookie_CHIPS_enabled() &&
-                   workerPrivate->CookieJarSettings()->GetPartitionForeign();
+    bool isCHIPS =
+        StaticPrefs::network_cookie_CHIPS_enabled() &&
+        !workerPrivate->CookieJarSettings()->GetBlockingAllContexts();
     bool workerHasStorageAccess =
         workerPrivate->StorageAccess() == StorageAccess::eAllow;
 
@@ -942,7 +943,7 @@ CookieCommons::CheckGlobalAndRetrieveCookiePrincipals(
     // storageAccess contexts. In both cases, the aDocument will have storage
     // access.
     bool isCHIPS = StaticPrefs::network_cookie_CHIPS_enabled() &&
-                   aDocument->CookieJarSettings()->GetPartitionForeign();
+                   !aDocument->CookieJarSettings()->GetBlockingAllContexts();
     bool documentHasStorageAccess = false;
     nsresult rv = aDocument->HasStorageAccessSync(documentHasStorageAccess);
     if (NS_WARN_IF(NS_FAILED(rv))) {

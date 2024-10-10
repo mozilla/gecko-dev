@@ -120,7 +120,7 @@ RefPtr<GenericPromise> CookieServiceChild::TrackCookieLoad(
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings =
       CookieCommons::GetCookieJarSettings(aChannel);
   bool isCHIPS = StaticPrefs::network_cookie_CHIPS_enabled() &&
-                 cookieJarSettings->GetPartitionForeign();
+                 !cookieJarSettings->GetBlockingAllContexts();
   bool isUnpartitioned =
       !result.contains(ThirdPartyAnalysis::IsForeign) ||
       result.contains(ThirdPartyAnalysis::IsStorageAccessPermissionGranted);
@@ -455,7 +455,7 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
   bool isPartitionedPrincipal =
       !storagePrincipalOriginAttributes.mPartitionKey.IsEmpty();
   bool isCHIPS = StaticPrefs::network_cookie_CHIPS_enabled() &&
-                 cookieJarSettings->GetPartitionForeign();
+                 !cookieJarSettings->GetBlockingAllContexts();
   // Only need to get OAs if we don't already use the partitioned principal.
   if (isCHIPS && !isPartitionedPrincipal) {
     StoragePrincipalHelper::GetOriginAttributes(
