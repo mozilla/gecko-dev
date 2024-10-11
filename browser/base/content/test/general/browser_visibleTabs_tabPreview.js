@@ -17,7 +17,7 @@ add_task(async function test() {
   is(ctrlTab.tabList.length, 3, "Ctrl+Tab panel displays all visible tabs");
   releaseCtrl();
 
-  gBrowser.showOnlyTheseTabs([origTab]);
+  BrowserTestUtils.showOnlyTheseTabs(gBrowser, [origTab]);
   pressCtrlTab();
   ok(
     !ctrlTab.isOpen,
@@ -25,7 +25,7 @@ add_task(async function test() {
   );
   releaseCtrl();
 
-  gBrowser.showOnlyTheseTabs([origTab, tabOne, tabTwo]);
+  BrowserTestUtils.showOnlyTheseTabs(gBrowser, [origTab, tabOne, tabTwo]);
   pressCtrlTab();
   ok(
     ctrlTab.isOpen,

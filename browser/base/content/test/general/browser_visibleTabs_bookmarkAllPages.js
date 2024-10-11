@@ -11,7 +11,7 @@ function test() {
 
   let browser = gBrowser.getBrowserForTab(tabTwo);
   BrowserTestUtils.browserLoaded(browser).then(() => {
-    gBrowser.showOnlyTheseTabs([tabTwo]);
+    BrowserTestUtils.showOnlyTheseTabs(gBrowser, [tabTwo]);
 
     is(gBrowser.visibleTabs.length, 1, "Only one tab is visible");
 

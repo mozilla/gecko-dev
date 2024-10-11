@@ -5135,19 +5135,6 @@
       return aTab.linkedBrowser;
     },
 
-    showOnlyTheseTabs(aTabs) {
-      for (let tab of this.tabs) {
-        if (!aTabs.includes(tab)) {
-          this.hideTab(tab);
-        } else {
-          this.showTab(tab);
-        }
-      }
-
-      this.tabContainer._updateHiddenTabsStatus();
-      this.tabContainer._handleTabSelect(true);
-    },
-
     showTab(aTab) {
       if (!aTab.hidden || aTab == FirefoxViewHandler.tab) {
         return;

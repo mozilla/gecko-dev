@@ -30,13 +30,13 @@ add_task(async function () {
     origTab,
     "sanity check that we're on the original tab"
   );
-  gBrowser.showOnlyTheseTabs([testTab]);
+  BrowserTestUtils.showOnlyTheseTabs(gBrowser, [testTab]);
   is(gBrowser.visibleTabs.length, 3, "all 3 tabs are still visible");
   is(gBrowser.openTabCount, 4, "number of tabs to be considered open (step 2)");
 
   info("Select the test tab and only show that (and pinned)");
   gBrowser.selectedTab = testTab;
-  gBrowser.showOnlyTheseTabs([testTab]);
+  BrowserTestUtils.showOnlyTheseTabs(gBrowser, [testTab]);
 
   visible = gBrowser.visibleTabs;
   is(visible.length, 2, "2 tabs should be visible including the pinned");
@@ -93,7 +93,10 @@ add_task(async function () {
   is(gBrowser.selectedTab, pinned, "next to first visible tab, the pinned tab");
 
   info("Try showing all tabs except for the Firefox View tab");
-  gBrowser.showOnlyTheseTabs(Array.from(gBrowser.tabs.slice(0, 3)));
+  BrowserTestUtils.showOnlyTheseTabs(
+    gBrowser,
+    Array.from(gBrowser.tabs.slice(0, 3))
+  );
   is(gBrowser.visibleTabs.length, 3, "all 3 tabs are visible again");
   is(gBrowser.openTabCount, 4, "number of tabs to be considered open (step 4)");
 
@@ -101,7 +104,7 @@ add_task(async function () {
     "Select the pinned tab and show the testTab to make sure selection updates"
   );
   gBrowser.selectedTab = pinned;
-  gBrowser.showOnlyTheseTabs([testTab]);
+  BrowserTestUtils.showOnlyTheseTabs(gBrowser, [testTab]);
   is(gBrowser.tabs[1], origTab, "make sure origTab is in the middle");
   is(origTab.hidden, true, "make sure it's hidden");
   gBrowser.removeTab(pinned);
@@ -110,12 +113,12 @@ add_task(async function () {
   is(gBrowser.openTabCount, 3, "number of tabs to be considered open (step 5)");
 
   info("Only show one of the non-pinned tabs (but testTab is selected)");
-  gBrowser.showOnlyTheseTabs([origTab]);
+  BrowserTestUtils.showOnlyTheseTabs(gBrowser, [origTab]);
   is(gBrowser.visibleTabs.length, 2, "got 2 tabs");
   is(gBrowser.openTabCount, 3, "number of tabs to be considered open (step 6)");
 
   info("Now really only show one of the tabs");
-  gBrowser.showOnlyTheseTabs([testTab]);
+  BrowserTestUtils.showOnlyTheseTabs(gBrowser, [testTab]);
   visible = gBrowser.visibleTabs;
   is(visible.length, 1, "only the original tab is visible");
   is(visible[0], testTab, "it's the original tab");
