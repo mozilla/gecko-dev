@@ -359,15 +359,11 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   void StringifyElement(Element* aElement, nsAString& aOut);
 
   MOZ_CAN_RUN_SCRIPT
-  void MaybeExecuteDumpFunction(JSContext* aCx, const nsAString& aMethodName,
+  void MaybeExecuteDumpFunction(JSContext* aCx, MethodName aMethodName,
+                                const nsAString& aMethodString,
                                 const Sequence<JS::Value>& aData,
-                                nsIStackFrame* aStack);
-
-  MOZ_CAN_RUN_SCRIPT
-  void MaybeExecuteDumpFunctionForTime(JSContext* aCx, MethodName aMethodName,
-                                       const nsAString& aMethodString,
-                                       uint64_t aMonotonicTimer,
-                                       const JS::Value& aData);
+                                nsIStackFrame* aStack,
+                                DOMHighResTimeStamp aMonotonicTimer);
 
   MOZ_CAN_RUN_SCRIPT
   void ExecuteDumpFunction(const nsAString& aMessage);
