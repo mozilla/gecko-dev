@@ -425,22 +425,7 @@ add_task(async function testRequestMIDIAccess() {
     "Expected Glean event recorded."
   );
 
-  // Invoking getAMTelemetryEvents resets the mocked event array, and we want
-  // to test two different things here, so we cache it.
-  let events = AddonTestUtils.getAMTelemetryEvents();
-  Assert.deepEqual(
-    events.filter(evt => evt.method == "reportSuspiciousSite")[0],
-    {
-      method: "reportSuspiciousSite",
-      object: "suspiciousSite",
-      value: "example.com",
-      extra: undefined,
-    }
-  );
-  assertSitePermissionInstallTelemetryEvents(
-    ["site_warning", "cancelled"],
-    events
-  );
+  assertSitePermissionInstallTelemetryEvents(["site_warning", "cancelled"]);
 });
 
 add_task(async function testIframeRequestMIDIAccess() {
@@ -720,11 +705,8 @@ add_task(function teardown_telemetry_events() {
  *
  * @param {Array<String>} expectedSteps: An array of the expected extra.step values recorded.
  */
-function assertSitePermissionInstallTelemetryEvents(
-  expectedSteps,
-  events = null
-) {
-  let amInstallEvents = (events ?? AddonTestUtils.getAMTelemetryEvents())
+function assertSitePermissionInstallTelemetryEvents(expectedSteps) {
+  let amInstallEvents = AddonTestUtils.getAMTelemetryEvents()
     .filter(evt => evt.method === "install" && evt.object === "sitepermission")
     .map(evt => evt.extra.step);
 
