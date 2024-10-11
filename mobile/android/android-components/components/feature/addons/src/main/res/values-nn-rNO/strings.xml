@@ -186,10 +186,12 @@
     <string name="mozac_feature_addons_failed_to_translate">Fann ikkje omsettinga for språket %2$s, eller for standardspråket %1$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s vart installert</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Klarte ikkje å installere %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Klarte ikkje å installere denne utvidinga.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Kan ikkje installere utvidinga</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Klarte ikkje å laste ned utvidinga på grunn av ein tilkoplingsfeil.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -202,6 +204,8 @@
     <string name="mozac_feature_addons_blocklisted_1">Klarte ikkje å installere %1$s fordi det er stor risiko for at det kan lage stabilitets og sikkerheitsproblem.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s kunne ikkje installerast fordi det berre kan installeres av ein organisasjon som brukar verksemd-policyar, som ikkje er støtta på denne plattforma.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked">%1$s bryt Mozillas retningslinjer og kan ikkje installerast.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s vart aktivert</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -246,8 +250,14 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">OK</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Les meir</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Sjå detaljar</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s er slått av på grunn av sikkerheits- eller stabilitetsproblem.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked">Denne utvidinga bryt Mozillas retningslinjer og har vorte deaktivert. Du kan aktivere det, men dette kan vere risikabelt.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Denne utvidinga bryt Mozillas retningslinjer. Å bruke det kan vere risikabelt.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">Klarte ikkje å stadfeste %1$s som sikker, og er difor slått av.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

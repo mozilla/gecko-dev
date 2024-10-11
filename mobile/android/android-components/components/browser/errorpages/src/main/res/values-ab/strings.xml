@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+    <!-- The button that appears at the bottom of an error page. -->
+    <string name="mozac_browser_errorpages_page_refresh">Даҽазнык шәҽазышәшәа</string>
+
+    <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
+    <string name="mozac_browser_errorpages_generic_title">Аҳәара алымшеит</string>
+    <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
+    <string name="mozac_browser_errorpages_generic_message"><![CDATA[
+      <p>Ари азҵаара ма агха иазку иацҵаны адыррақәа уажәазы ​​иҟаӡам.</p>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_ssl_title">Ишәарҭам аимадара ашьақәыргылара алымшеит</string>
+    <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[<ul>
+        <li>Узхәаԥшырц иуҭаху адаҟьа аарԥшра ауам, избанзар иуоуз адыррақәа ргәаҭара ауам.</li>
+        <li>Гәаҳәарас иҟоуп, асаит зтәу шәрыҿцәажәаны, ари азҵаара рзеиҭашәҳәа.</li>
+      </ul>]]></string>
+
+    <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_title">Ишәарҭам аимадара ашьақәыргылара алымшеит</string>
+    <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[
+      <ul>
+        <li>Ари зыхҟьо ииашам асервер аконфигурациа ауп, мамзаргьы аӡәы иуҭаху асервер даҽакы ала аԥсахра иҽазишәозар ҟалоит.</li>
+        <li>Уаанӡа ари асервер гәаӷьрала уаҿаҳәазар, агха аамҭалатәизар ҟалоит. Абас еиԥш иҟоу аҭагылазаашьаҿы, нас даҽазнык шәҽазышәшәа.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_advanced">Уи адагьы…</string>
+    <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[
+        <label>Иҟалап аӡәы иуҭаху асаит даҽа ҭыԥк ала иԥсахырц иҽазишәозар, убри аҟынтә еиӷьуп уи ацҵара.</label>
+        <br><br>
+        <label>Асаитқәа рыҵабыргра асертификатқәа рыла ишьақәдырӷәӷәоит. %1$s агәра агара алшом <b>%2$s</b>, избан акәзар уи асертификат ҭзыжьыз еилкаам, асертификат асаит ахаҭа инапы аҵанаҩит, мамзаргьы уи асервер ииашоу абжьаратәи асертификатқәа анашьҭӡом.</label>
+    ]]></string>
+
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_back">Шьҭахьҟа (еиӷьуп)</string>
+    <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Ашәарҭара уақәшаҳаҭханы уцала</string>
+
+    <!-- The document title and heading of the error page shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Ари асаит азы ашәарҭадаратә еиқәыршәара ахархәара аҭахуп.</string>
+    <!-- The error message shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[
+      <ul>
+         <li>Узыхәаԥшырц иуҭаху адаҟьа аарԥшра ауам, избанзар ари асаит ашәарҭадаратә еиқәыршәара аҭахуп.</li>
+         <li>Иҟалап, апроблема асаит иадҳәалазар, насгьы уара уи ӡбашьа амам.</li>
+         <li>Ари азҵаара атәы асаит администратор изеиҭашәҳәар шәылшоит.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">Уи адагьы…</string>
+
+    <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2"><![CDATA[
+        <label> <b>%1$s</b> ахархәоит ашәарҭадаратә политика HTTP Forced Secure (HSTS), ҳәа изышьҭоу, уи иаҳәоит <b>%2$s</b> ашәарҭадаратә еиқәыршәара ахархәарала мацара аҽаԥхьакра шалшо. Ари асаит аҭааразы аҷыдаҟазшьа ацҵара ҟалом. </label>
+
+    ]]></string>
+    <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
+    <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">Шьҭахьҟа</string>
+
+    <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
+    <string name="mozac_browser_errorpages_net_interrupt_title">Аимадара ԥҵәеит</string>
+    <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
+    <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[
+      <p>Абраузер ибзианы аимадара шьақәнаргылеит, аха аинформациа аиагараан уи аанкылан. Ҳаҳәоит даҽазнык шәҽазышәшәа.</p>
+      <ul>
+        <li>Асаит аамҭала иҟамзар ауеит, мамзаргьы азыҳәарақәа рыла иҭәызар ауеит. Ԥыҭрак ашьҭахь даҽазнык шәҽазышәшәа.</li>
+        <li>Даҟьак аҭагалара улымшозар, шәхы иашәырхәо амобильтә ма Wi-Fi аимадара гәашәҭ.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when a website takes too long to load. -->
+    <string name="mozac_browser_errorpages_net_timeout_title">Аимадара аамҭа нҵәеит</string>
+    <!-- The error message shown when a website took long to load. -->
+    <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
+      <p>Асаит аимадара азыҳәара аҭак амҭеит, насгьы абраузер аԥшра ааннакылеит.</p>
+      <ul>
+        <li>Асаит асервер мыцхәы иҭагалазар ауеит ма аамҭала аус ауам. Ҳаҳәоит, нас даҽазнык шәҽазышәшәа.</li>
+        <li>Даҽа саитқәак раартра узымчҳауазар, ухы иаурхәо аҳа ишадҳәалоу гәаҭ.</li>
+        <li>Шәхыхәҭа ма аҭыԥантәи аҳа абрандмауэр ма апрокси-сервер ала ихьчазар, урҭ гәашәҭ, избанзар ииашам архиарақәа асаитқәа рыԥшаара шәԥырхагахар ауеит.</li>
+        <li>Иахьагьы иҟоума апроблема? Ацхыраара азы шәсистема администратор ма интернет амаҵзура аиқәыршәаҩ шәиацәажәа.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when a website could not be reached. -->
+    <string name="mozac_browser_errorpages_connection_failure_title">Аимадара аҽазышәара алымшеит</string>
+    <!-- The error message shown when a website could not be reached. -->
+    <string name="mozac_browser_errorpages_connection_failure_message"><![CDATA[
+      <ul>
+        <li>Асаит аамҭала иҟамзар ауеит, мамзаргьы азыҳәарақәа рыла иҭәызар ауеит. Ԥыҭрак ашьҭахь даҽазнык шәҽазышәшәа.</li>
+        <li>Даҟьак аҭагалара улымшозар, шәхы иашәырхәо амобильтә ма Wi-Fi аимадара гәашәҭ.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
+    <string name="mozac_browser_errorpages_unknown_socket_type_title">Еилкаам/идырым асервер аҭак</string>
+    <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
+    <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[
+      <p>Асаит ҳзықәымгәыӷӡоз ала аҳәара аҭак ҟанаҵеит, насгьы абраузер уи аҭак аус адулара алшом.</p>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
+    <string name="mozac_browser_errorpages_redirect_loop_title">Игьежьу ахырхарҭа адаҟьаҿы</string>
+    <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
+    <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[
+      <p>Абраузер адаҟьа аҭагалара аҽазышәара ааннакылеит, избан акәзар асаит азыҳәара ахаангьы ихыркәшахо амҩала еиҭанагоит.</p>
+      <ul>
+        <li>Иҟалап ари асаит аус ауразы иаҭаху акукиқәа ҿыхны ма иаанкыланы иҟазар.</li>
+        <li>Асаит акукиқәа рзин аҭара апроблема ӡбамзар, усҟан уи ухы иаурхәо акәымкәа, асервер архиарақәа ирыдҳәалоуп.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
+    <string name="mozac_browser_errorpages_offline_title">Автономтә арежим</string>
+    <!-- The error message shown when a website cannot be loaded because the browser is in offline mode. -->
+    <string name="mozac_browser_errorpages_offline_message"><![CDATA[
+      <p>Абраузер офлаинуп, убри аҟнытә иаҭаху асаит ахь аимадара аԥҵара алшом.</p>
+      <ul>
+        <li>Аиқәыршәага аус зуа аҳа иадҳәалоу-иаҿаку гәашәҭ.</li>
+        <li>«Try Again», ақәыӷәӷәара аофлаин режим аҟынтәи аҭыҵразы, насгьы адаҟьа ҿыц аҭагаларазы.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
+    <string name="mozac_browser_errorpages_port_blocked_title">Ашәарҭадара амзызқәа ирыхҟьаны, апорт ахь анеира аанкылоуп</string>
+    <!-- The error message shown when the browser prevents loading a website on a restricted port. -->
+    <string name="mozac_browser_errorpages_port_blocked_message"><![CDATA[
+      <p>Иаҳәоу адрес апорт амоуп (иаҳҳәап, <q>mozilla.org:80</q> mozilla.org аҟны апорт 80 ауп), уи <em>абжьааԥны ахархәара амаӡам</em> асаитқәа рзы. Ашәарҭадара азы, абраузер ари азыҳәара мап ацәнакит.</p>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
+    <string name="mozac_browser_errorpages_net_reset_title">Аимадара еиҭашьақәыргылан</string>
+    <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
+    <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[
+      <p>Асаит ахь аимадара аанкылан аимадара ашьақәыргылара аамҭазы. Ҳаҳәоит даҽазнык шәҽазышәшәа.</p>
+      <ul>
+        <li>Асаит аамҭала иҟамзар ауеит, мамзаргьы азыҳәарақәа рыла иҭәызар ауеит. Ԥыҭрак ашьҭахь даҽазнык шәҽазышәшәа.</li>
+        <li>Даҟьак аҭагалара улымшозар, шәхы иашәырхәо амобильтә ма Wi-Fi аимадара гәашәҭ.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
+    <string name="mozac_browser_errorpages_unsafe_content_type_title">Ишәарҭам афаил ахкы</string>
+
+    <!-- The error message shown when the browser refuses to load a type of file that is considered unsafe. -->
+    <string name="mozac_browser_errorpages_unsafe_content_type_message"><![CDATA[<ul>
+        <li>Ҳаҳәоит, асаит зтәу шәрыҿцәажәаны, ари азҵаара иазкны ирзеиҭашәҳәарц.</li>
+      </ul>]]></string>
+
+    <!-- The document title and heading of the error page shown when a file cannot be loaded because of a detected data corruption. -->
+    <string name="mozac_browser_errorpages_corrupted_content_title">Иҭагалатәу аҵакы ԥхасҭоуп</string>
+    <!-- The error message shown when shown when a file cannot be loaded because of a detected data corruption. -->
+    <string name="mozac_browser_errorpages_corrupted_content_message"><![CDATA[
+      <p>Узхәаԥшырц иуҭаху адаҟьа аарԥшра ауам, избан акәзар адыррақәа рыҭараан агха ԥшаан.</p>
+      <ul>
+        <li>Ҳаҳәоит, асаит зтәу шәрыҿцәажәаны, ари азҵаара иазкны ирзеиҭашәҳәарц.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_content_crashed_title">Иҭагалатәу аҵакы ԥхасҭоуп</string>
+    <string name="mozac_browser_errorpages_content_crashed_message"><![CDATA[
+      <p>Узхәаԥшырц иуҭаху адаҟьа аарԥшра ауам, избан акәзар адыррақәа рыҭараан агха ԥшаан.</p>
+      <ul>
+        <li>Ҳаҳәоит, асаит зтәу шәрыҿцәажәаны, ари азҵаара иазкны ирзеиҭашәҳәарц.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_invalid_content_encoding_title">Аҵакы арӷәӷәара агха</string>
+    <string name="mozac_browser_errorpages_invalid_content_encoding_message"><![CDATA[
+      <p>Узыхәаԥшырц иуҭаху адаҟьа аарԥшра ауам, избан акәзар уи ииашам ма иадгылам адыррақәа рырӷәӷәара аметод ахархәоит.</p>
+      <ul>
+        <li>Ҳаҳәоит, асаит зтәу шәрыҿцәажәаны, ари азҵаара иазкны ирзеиҭашәҳәарц.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_unknown_host_title">Адрес ԥшаам</string>
+    <!-- In the example, the two URLs in markup do not need to be translated. -->
+    <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[
+      <p>Абраузер иарбоу адрес ала асервер аԥшаара алымшеит.</p>
+      <ul>
+        <li>Адрес аҟны агха ыҟоу-иҟаму гәашәҭ, ҿырԥштәыс:
+          <strong>ww</strong>.example.com аҭыԥан
+          <strong>www</strong>.example.com.</li>
+        <li>Даҟьак аҭагалара улымшозар, шәхы иашәырхәо амобильтә ма Wi-Fi аимадара гәашәҭ.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_no_internet_title">Аинтернет аимадара ыҟам</string>
+
+    <!-- The main body text of this error page. It will be shown beneath the title -->
+    <string name="mozac_browser_errorpages_no_internet_message">Уҳа аимадара гәаҭа ма ԥыҭрак ашьҭахь адаҟьа ҿыц аҭагалара уҽазышәа.</string>
+    <!-- Text that will show up on the button at the bottom of the error page -->
+    <string name="mozac_browser_errorpages_no_internet_refresh_button">Аиҭаҿакра</string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_malformed_uri_title">Ииашам адрес аформат</string>
+    <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[
+      <p>Иарбоу адрес аформат еилкаашьа амам. Адрес агха ыҟоу-иҟаму гәаҭаны даҽазнык шәҽазышәшәа.</p>
+    ]]></string>
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_malformed_uri_title_alternative">Ииашам адрес аформат</string>
+    <!-- This string contains markup. The URL should not be localized. -->
+    <string name="mozac_browser_errorpages_malformed_uri_message_alternative"><![CDATA[
+      <ul>
+        <li>Ауеб адресқәа лассы-лассы абас еиԥшуп <strong>http://www.example.com/</strong></li>
+        <li>Игәашәҭ иаабац ацәаҳәа ҵәаӷәа шәхы иашәырхәоит (иаҳҳәап. <strong>/</strong>).</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_unknown_protocol_title">Еилкаам апротокол</string>
+
+    <string name="mozac_browser_errorpages_unknown_protocol_message"><![CDATA[
+      <p>Адрес абраузер изымдыруа апротокол аҵоуп (<q>wxyz://</q>), еиԥш, убри аҟнытә абраузер ииашаны асаит аимадара аԥҵара алшом.</p>
+      <ul>
+        <li>Амедиа ма даҽа тексттәым аусбарҭақәа рахь унеирц уҭахызар, иҷыдоу аҭахрақәа рыҟазаара асаит аҿы игәаҭ.</li>
+        <li>Апротоколқәак рҿы ахԥатәи аган апрограмматә еиқәыршәара ма аплагинқәа рышьақәыргылара аҭаххар ауеит, абраузер урҭ еиликаарц азы.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_file_not_found_title">Афаил ԥшаам</string>
+    <string name="mozac_browser_errorpages_file_not_found_message"><![CDATA[
+      <ul>
+        <li>Афаил ахьӡ ԥсахзар, иԥыхзар, ма ииагазар ҟалоит.</li>
+        <li>Адрес анҭажәҵоз агха ҟашәҵазар гәашәҭ.</li>
+        <li>Иаҭаху афаил абара азы азинқәа шшәымоу еилышәкаааит.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_file_access_denied_title">Афаил анеира мап ацәкуп</string>
+    <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[
+      <ul>
+        <li>Иҟалап афаил аныхзар, ииагазар, мамзаргьы уи ахәаԥшразы азин шәымамзар.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_proxy_connection_refused_title">Апрокси-сервер аимадара ашьақәыргылара мап ацәикит</string>
+    <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[
+      <p>Абраузер еиқәыршәоуп апрокси-сервер ахархәаразы, аха апрокси-сервер аимадара ашьақәыргылара мап ацәикит.</p>
+      <ul>
+        <li>Убраузер апрокси архиарақәа гәаҭаны даҽазнык уҽазышәа.</li>
+        <li>Апрокси-маҵзура ари аҳа аҟынтәи аимадара азин анаҭозар гәашәҭ.</li>
+        <li>Иахьагьы иҟоума апроблема? Ацхыраара азы шәсистема администратор ма интернет амаҵзура аиқәыршәаҩ шәиацәажәа.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_unknown_proxy_host_title">Апрокси-сервер ԥшаам</string>
+    <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[
+      <p>Абраузер еиқәыршәоуп апрокси-сервер ахархәаразы, аха апрокси-сервер аԥшаара ауам.</p>
+      <ul>
+        <li>Убраузер апрокси архиарақәа гәаҭаны даҽазнык уҽазышәа.</li>
+        <li>Игәашәҭ шәхыхәҭа активтә ҳәаа иацҵоу-иадҳәаламу.</li>
+        <li>Иахьагьы иҟоума апроблема? Ацхыраара азы шәсистема администратор ма интернет амаҵзура аиқәыршәаҩ шәиацәажәа.</li>
+      </ul>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_browsing_malware_uri_title">Зҽеим асаит</string>
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_browsing_malware_uri_message"><![CDATA[
+      <p>Иҟоуп адыррақәа, асаит %1$s ахархәаҩцәа рҳәагақәа рықәлара азы ахархәара амоуп ҳәа, убри аҟнытә уи ашәарҭадаратә еиқәыршәарақәа инарықәыршәаны иаанкылан.</p>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">Иаҭахым асаит</string>
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[
+      <p>Иҟоуп адыррақәа, асаит %1$s ахархәара амоуп иаҭахым апрограмматә еиқәыршәара аларҵәаразы, убри аҟнытә уи ашәарҭадаратә еиқәыршәарақәа рыла иаанкылоуп.</p>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_harmful_uri_title">Ишәарҭоу асаиҭ</string>
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_harmful_uri_message"><![CDATA[
+      <p>Иҟоуп адыррақәа %1$s асаит шәарҭахар шалшо, убри аҟнытә уи ашәарҭадаратә еиқәыршәарақәа инарықәыршәаны иаанкылоуп.</p>
+    ]]></string>
+
+    <!-- The document title and heading of an error page. -->
+    <string name="mozac_browser_errorpages_safe_phishing_uri_title">Амцтә вебсаит</string>
+    <!-- The %1$s will be replaced by the malicious website URL-->
+    <string name="mozac_browser_errorpages_safe_phishing_uri_message"><![CDATA[
+      <p>Иҟоуп адыррақәа, ари ауеб-даҟьа %1$s мцуп ҳәа, насгьы уи ашәарҭадаратә еиқәыршәарақәа ирыхҟьаны иаанкылоуп ҳәа.</p>
+    ]]></string>
+
+    <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
+    <string name="mozac_browser_errorpages_httpsonly_title">Асаит ишәарҭам аверсиа ыҟаӡам</string>
+    <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will be replaced with the URL of the website. -->
+    <string name="mozac_browser_errorpages_httpsonly_message"><![CDATA[Ашәарҭадара аиӷьтәразы «HTTPS мацара» амоду аус аруит, аха <em>%1$s</em> HTTPS аверсиа ыҟаӡам.]]></string>
+    <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
+    <string name="mozac_browser_errorpages_httpsonly_button">HTTP аверсиахь аиасра</string>
+</resources>

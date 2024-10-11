@@ -95,9 +95,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Hor c’heweriuster prevezded araoketañ betek-hen a lak an heulierien a-gostez.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Hor c’heweriuster prevezded araoketañ betek-hen a lak an heulierien a-gostez.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Gouzout hiroc’h a-zivout ar gwarez toupinoù hollek</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Gouzout hiroc’h a-zivout ar gwarez toupinoù hollek</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -118,9 +118,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Nevez: stokit ur wech war ar biroù dehoù ha kleiz.</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nevez: stokit ur wech war ar biroù dehoù ha kleiz.</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Ur merdeiñ primoc’h e beg ho pizied.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Ur merdeiñ primoc’h e beg ho pizied.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Ezhomm a zo haeziñ ar c’hamera. Kit e Arventennoù Android, stokit war an aotreoù ha stokit war aotren.</string>
@@ -213,6 +213,11 @@
     <string name="browser_menu_extensions_banner_learn_more">Gouzout hiroc\'h</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Merañ an askouezhioù</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Ouzhpennañ %1$s</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Ouzhpennañ an askouezh</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Dizoloit muioc’h a askouezhioù</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -301,7 +306,7 @@
     <string name="browser_menu_switch_to_mobile_site">Lec’hienn hezoug</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Ostilhoù</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Distreiñ d\'al lañser pennañ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Mod lenn, treiñ, moullañ, rannañ, digeriñ en un arload</string>
@@ -400,7 +405,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Kejit gant ho pajenn degemer personelaet. Ivinelloù nevez, sinedoù ha disoc’hoù enklask a vo diskouezet amañ.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Kejit gant ho pajenn degemer personelaet. Ivinelloù nevez, sinedoù ha disoc’hoù enklask a vo diskouezet amañ.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Donemat war un internet personeloc’h</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -566,13 +571,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Nullañ</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Kas ur goulenn</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Goulenn da ouzhpennañ ul lec’hienn</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Kas ur goulenn</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Goulenn vefe skoret al lec’hienn-mañ?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">Goulenn gant %1$s da nac’hañ an toupinoù ent emgefreek</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Goulenn vefe skoret al lec’hienn-mañ?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Goulenn kaset</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -580,18 +581,14 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Goulenn skor kaset</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">N’eo ket skoret al lec’hienn-mañ c’hoazh</string>
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">N’eo ket skoret al lec’hienn</string>
+    <string name="reduce_cookie_banner_unsupported_site">N’eo ket skoret al lec’hienn-mañ c’hoazh</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Gweredekaat stanker banniel an toupinoù evit %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Diweredekaat stanker banniel an toupinoù evit %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s n’hall ket nac’hañ ar goulennoù toupinoù war al lec’hienn-mañ. Gallout a rit goulenn e vefe skoret al lec’hienn-mañ en dazont.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s n’hall ket nac’hañ ar goulennoù toupinoù war al lec’hienn-mañ. Gallout a rit goulenn e vefe skoret al lec’hienn-mañ en dazont.</string>
 
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">N’haller ket nac’hañ ar goulennoù toupinoù ent emgefreek war al lec’hienn-mañ c’hoazh.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Diweredekaat ha skarzhet e vo an toupinoù hag adkarget al lec’hienn gant %1$s. Digennaskañ a raio ac’hanoc’h ha goullonderiñ a raio ho paner.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -1187,6 +1184,9 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Assav an ivinell</string>
 
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Serriñ</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Ha fellout a ra deocʼh dilemel an teuliad-mañ?</string>
@@ -1233,8 +1233,12 @@
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">TEULIAD</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Enrollañ e-barzh</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">ANV</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Anv</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Ouzhpennañ un teuliad</string>
     <!-- Bookmark select folder screen title -->
@@ -1263,7 +1267,7 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Ouzhpennañ un teuliad</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Serriñ ar sinedoù</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Serriñ ar sinedoù</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Klask er sinedoù</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -2430,9 +2434,9 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ket bremañ</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Esaeit ar gwirier alioù</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Esaeit ar gwirier alioù</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Digeriñ ar gwirier alioù</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Digeriñ ar gwirier alioù</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2581,6 +2585,8 @@
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
     <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Pellgargañ yezhoù</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Pellgargañ yezhoù</string>
     <!-- Clickable text from the screen header that links to a website. -->
     <string name="download_languages_header_learn_more_preference">Gouzout hiroc’h</string>
     <!-- The subhead of the download language preference screen will appear above the pivot language. -->
@@ -2612,6 +2618,11 @@
     <string name="delete_language_file_dialog_positive_button_text">Dilemel</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Nullañ</string>
+
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ya</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ket</string>
 
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Pellgargañ a reomp ul lodenn eus ar yezhoù er c’hrubuilh evit mirout ho troidigezhioù prevez.</string>
@@ -2705,9 +2716,9 @@
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Plijet hoc’h gant ho pennbajenn Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Skoazellit da lakaat ar moullañ e Firefox da vezañ gwelloc’h. Ne gemer nemet div eilenn</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Plijet hoc’h gant ar moullañ e Firefox?</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Plijet hoc’h gant ho pennbajenn Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
@@ -2740,9 +2751,9 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Evit kuitaat ar skramm a-bezh, lakait da riklañ adalek ar c\'hrec’h hag implijit ar jestr distreiñ</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Evit kuitaat ar skramm a-bezh, lakait da riklañ adalek ar c\'hrec’h hag implijit ar jestr distreiñ</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Evit kuitaat ar skramm a-bezh, lakait da riklañ adalek ar c\'hrec’h hag pouezit war distreiñ</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Evit kuitaat ar skramm a-bezh, lakait da riklañ adalek ar c\'hrec’h hag pouezit war distreiñ</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
