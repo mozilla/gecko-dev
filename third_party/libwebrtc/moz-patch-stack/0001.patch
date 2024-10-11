@@ -1,64 +1,505 @@
-From: Andrew Grieve <agrieve@google.com>
-Date: Wed, 28 Aug 2024 22:44:08 -0400
-Subject: (cherry-pick-branch-heads/6668) Fix license metadata for
- spl_sqrt_floor, portaudio, sigslot
+From: Michael Froman <mjfroman@mac.com>
+Date: Fri, 11 Oct 2024 12:37:43 -0500
+Subject: (tmp-cherry-pick) Revert "Add recording of PT->Codec mappings on
+ setting SDP for transport" (6793f831ff)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-(cherry picked from commit 6ea1c96325baada0e6ba0b29456e02f403e15a1e)
+This reverts commit 15717236c8621cb684bb7753acfedbf34d931c80.
 
-Bug: b/361140175
-Change-Id: I35e76039608fa5094c04ace5f3ad1dba868ccb85
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360900
-Reviewed-by: Henrik Andreassson <henrika@webrtc.org>
-Commit-Queue: Andrew Grieve <agrieve@google.com>
-Cr-Original-Commit-Position: refs/heads/main@{#42885}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/361520
-Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
-Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6668@{#1}
-Cr-Branched-From: 2cfedb277ae8dd2a8d8dd68aca6f95081c265671-refs/heads/main@{#42810}
+Reason for revert: pr-answer
+
+Original change's description:
+> Add recording of PT->Codec mappings on setting SDP for transport
+>
+> Bug: webrtc:360058654
+> Change-Id: I2aa5e0058346cd3fcda47a8ea5115848fbc4f3e2
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360041
+> Commit-Queue: Harald Alvestrand <hta@webrtc.org>
+> Reviewed-by: Florent Castelli <orphis@webrtc.org>
+> Cr-Commit-Position: refs/heads/main@{#42819}
+
+Bug: webrtc:360058654
+Change-Id: I1fea51b3a0cecfa7e7de75f94f47a85fa064be59
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360380
+Reviewed-by: Jonas Oreland <jonaso@google.com>
+Commit-Queue: Jonas Oreland <jonaso@google.com>
+Reviewed-by: Per Kjellander <perkj@webrtc.org>
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-by: Henrik Boström <hbos@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#42835}
 ---
- common_audio/third_party/spl_sqrt_floor/README.chromium | 2 +-
- modules/third_party/portaudio/README.chromium           | 2 +-
- rtc_base/third_party/sigslot/README.chromium            | 2 +-
- 3 files changed, 3 insertions(+), 3 deletions(-)
+ pc/BUILD.gn                               |  2 --
+ pc/jsep_transport.cc                      | 25 ++---------------------
+ pc/jsep_transport.h                       | 17 +--------------
+ pc/jsep_transport_controller.cc           | 16 +++------------
+ pc/jsep_transport_controller.h            |  3 ---
+ pc/jsep_transport_controller_unittest.cc  |  5 ++---
+ pc/jsep_transport_unittest.cc             |  8 +++-----
+ pc/payload_type_picker.cc                 | 13 ++++--------
+ pc/payload_type_picker.h                  |  6 ------
+ pc/peer_connection.cc                     |  7 +++----
+ pc/peer_connection.h                      |  4 ----
+ pc/peer_connection_interface_unittest.cc  |  8 +-------
+ pc/peer_connection_internal.h             |  3 ---
+ pc/test/fake_peer_connection_base.h       | 13 ------------
+ pc/test/fake_peer_connection_for_stats.h  |  2 --
+ pc/test/mock_peer_connection_internal.h   |  1 -
+ test/peer_scenario/scenario_connection.cc |  2 --
+ 17 files changed, 19 insertions(+), 116 deletions(-)
 
-diff --git a/common_audio/third_party/spl_sqrt_floor/README.chromium b/common_audio/third_party/spl_sqrt_floor/README.chromium
-index b2c4309bd6..2ecaee5537 100644
---- a/common_audio/third_party/spl_sqrt_floor/README.chromium
-+++ b/common_audio/third_party/spl_sqrt_floor/README.chromium
-@@ -3,7 +3,7 @@ Short Name: sql_sqrt_floor
- URL: http://www.pertinentdetail.org/sqrt
- Version: 0
- Date: 2018-03-22
--License: Custom license
-+License: SPL-SQRT-FLOOR
- License File: LICENSE
- Security Critical: yes
- Shipped: yes
-diff --git a/modules/third_party/portaudio/README.chromium b/modules/third_party/portaudio/README.chromium
-index 3f7beef655..d912d912e2 100644
---- a/modules/third_party/portaudio/README.chromium
-+++ b/modules/third_party/portaudio/README.chromium
-@@ -3,7 +3,7 @@ Short Name: portaudio
- URL: https://github.com/PortAudio/portaudio/tree/master/src/common
- Version: 9d8563100d841300f1689b186d131347ad43a0f6
- Date: 2022-04-12
--License: Custom license
-+License: MIT
- License File: LICENSE
- Security Critical: yes
- Shipped: yes
-diff --git a/rtc_base/third_party/sigslot/README.chromium b/rtc_base/third_party/sigslot/README.chromium
-index 9867dd0320..98eac55f9a 100644
---- a/rtc_base/third_party/sigslot/README.chromium
-+++ b/rtc_base/third_party/sigslot/README.chromium
-@@ -3,7 +3,7 @@ Short Name: sigslot
- URL: http://sigslot.sourceforge.net/
- Version: 0
- Date: 2018-07-09
--License: Custom license
-+License: Ignorable
- License File: LICENSE
- Security Critical: yes
- Shipped: yes
+diff --git a/pc/BUILD.gn b/pc/BUILD.gn
+index 6f2fb90f1b..68c1097ba3 100644
+--- a/pc/BUILD.gn
++++ b/pc/BUILD.gn
+@@ -206,7 +206,6 @@ rtc_source_set("jsep_transport") {
+   deps = [
+     ":dtls_srtp_transport",
+     ":dtls_transport",
+-    ":payload_type_picker",
+     ":rtcp_mux_filter",
+     ":rtp_transport",
+     ":rtp_transport_internal",
+@@ -414,7 +413,6 @@ rtc_library("payload_type_picker") {
+     "../api:rtc_error",
+     "../media:codec",
+     "../rtc_base:strong_alias",
+-    "//third_party/abseil-cpp/absl/strings",
+   ]
+ }
+ 
+diff --git a/pc/jsep_transport.cc b/pc/jsep_transport.cc
+index 5b2f2658b2..a6c9ebc10e 100644
+--- a/pc/jsep_transport.cc
++++ b/pc/jsep_transport.cc
+@@ -77,8 +77,7 @@ JsepTransport::JsepTransport(
+     std::unique_ptr<DtlsTransportInternal> rtp_dtls_transport,
+     std::unique_ptr<DtlsTransportInternal> rtcp_dtls_transport,
+     std::unique_ptr<SctpTransportInternal> sctp_transport,
+-    std::function<void()> rtcp_mux_active_callback,
+-    webrtc::PayloadTypePicker& suggester)
++    std::function<void()> rtcp_mux_active_callback)
+     : network_thread_(rtc::Thread::Current()),
+       mid_(mid),
+       local_certificate_(local_certificate),
+@@ -100,9 +99,7 @@ JsepTransport::JsepTransport(
+                                 std::move(sctp_transport),
+                                 rtp_dtls_transport_)
+                           : nullptr),
+-      rtcp_mux_active_callback_(std::move(rtcp_mux_active_callback)),
+-      remote_payload_types_(suggester),
+-      local_payload_types_(suggester) {
++      rtcp_mux_active_callback_(std::move(rtcp_mux_active_callback)) {
+   TRACE_EVENT0("webrtc", "JsepTransport::JsepTransport");
+   RTC_DCHECK(ice_transport_);
+   RTC_DCHECK(rtp_dtls_transport_);
+@@ -373,24 +370,6 @@ void JsepTransport::SetActiveResetSrtpParams(bool active_reset_srtp_params) {
+   }
+ }
+ 
+-webrtc::RTCError JsepTransport::RecordPayloadTypes(bool local,
+-                                                   webrtc::SdpType type,
+-                                                   const ContentInfo& content) {
+-  RTC_DCHECK_RUN_ON(network_thread_);
+-  for (auto codec : content.media_description()->codecs()) {
+-    webrtc::RTCError result;
+-    if (local) {
+-      result = local_payload_types_.AddMapping(codec.id, codec);
+-    } else {
+-      result = remote_payload_types_.AddMapping(codec.id, codec);
+-    }
+-    if (!result.ok()) {
+-      return result;
+-    }
+-  }
+-  return webrtc::RTCError::OK();
+-}
+-
+ void JsepTransport::SetRemoteIceParameters(
+     const IceParameters& ice_parameters,
+     IceTransportInternal* ice_transport) {
+diff --git a/pc/jsep_transport.h b/pc/jsep_transport.h
+index b2c7a751aa..af0c797fc8 100644
+--- a/pc/jsep_transport.h
++++ b/pc/jsep_transport.h
+@@ -34,7 +34,6 @@
+ #include "p2p/base/transport_info.h"
+ #include "pc/dtls_srtp_transport.h"
+ #include "pc/dtls_transport.h"
+-#include "pc/payload_type_picker.h"
+ #include "pc/rtcp_mux_filter.h"
+ #include "pc/rtp_transport.h"
+ #include "pc/rtp_transport_internal.h"
+@@ -98,8 +97,7 @@ class JsepTransport {
+       std::unique_ptr<DtlsTransportInternal> rtp_dtls_transport,
+       std::unique_ptr<DtlsTransportInternal> rtcp_dtls_transport,
+       std::unique_ptr<SctpTransportInternal> sctp_transport,
+-      std::function<void()> rtcp_mux_active_callback,
+-      webrtc::PayloadTypePicker& suggester);
++      std::function<void()> rtcp_mux_active_callback);
+ 
+   ~JsepTransport();
+ 
+@@ -236,12 +234,6 @@ class JsepTransport {
+ 
+   void SetActiveResetSrtpParams(bool active_reset_srtp_params);
+ 
+-  // Record the PT mappings from a single media section.
+-  // This is used to store info needed when generating subsequent SDP.
+-  webrtc::RTCError RecordPayloadTypes(bool local,
+-                                      webrtc::SdpType type,
+-                                      const ContentInfo& content);
+-
+  private:
+   bool SetRtcpMux(bool enable, webrtc::SdpType type, ContentSource source);
+ 
+@@ -321,13 +313,6 @@ class JsepTransport {
+   // `rtcp_dtls_transport_` is destroyed. The JsepTransportController will
+   // receive the callback and update the aggregate transport states.
+   std::function<void()> rtcp_mux_active_callback_;
+-
+-  // Assigned PTs from the remote description, used when sending.
+-  webrtc::PayloadTypeRecorder remote_payload_types_
+-      RTC_GUARDED_BY(network_thread_);
+-  // Assigned PTs from the local description, used when receiving.
+-  webrtc::PayloadTypeRecorder local_payload_types_
+-      RTC_GUARDED_BY(network_thread_);
+ };
+ 
+ }  // namespace cricket
+diff --git a/pc/jsep_transport_controller.cc b/pc/jsep_transport_controller.cc
+index 5d6ac95879..505ed5059e 100644
+--- a/pc/jsep_transport_controller.cc
++++ b/pc/jsep_transport_controller.cc
+@@ -43,7 +43,6 @@ JsepTransportController::JsepTransportController(
+     rtc::Thread* network_thread,
+     cricket::PortAllocator* port_allocator,
+     AsyncDnsResolverFactoryInterface* async_dns_resolver_factory,
+-    PayloadTypePicker& payload_type_picker,
+     Config config)
+     : env_(env),
+       network_thread_(network_thread),
+@@ -59,8 +58,7 @@ JsepTransportController::JsepTransportController(
+           }),
+       config_(std::move(config)),
+       active_reset_srtp_params_(config.active_reset_srtp_params),
+-      bundles_(config.bundle_policy),
+-      payload_type_picker_(payload_type_picker) {
++      bundles_(config.bundle_policy) {
+   // The `transport_observer` is assumed to be non-null.
+   RTC_DCHECK(config_.transport_observer);
+   RTC_DCHECK(config_.rtcp_handler);
+@@ -683,12 +681,6 @@ RTCError JsepTransportController::ApplyDescription_n(
+           "Failed to apply the description for m= section with mid='" +
+               content_info.name + "': " + error.message());
+     }
+-    error = transport->RecordPayloadTypes(local, type, content_info);
+-    if (!error.ok()) {
+-      RTC_LOG(LS_ERROR) << "RecordPayloadTypes failed: "
+-                        << ToString(error.type()) << " - " << error.message();
+-      return error;
+-    }
+   }
+   if (type == SdpType::kAnswer) {
+     transports_.CommitTransports();
+@@ -1107,12 +1099,10 @@ RTCError JsepTransportController::MaybeCreateJsepTransport(
+           content_info.name, certificate_, std::move(ice), std::move(rtcp_ice),
+           std::move(unencrypted_rtp_transport), std::move(sdes_transport),
+           std::move(dtls_srtp_transport), std::move(rtp_dtls_transport),
+-          std::move(rtcp_dtls_transport), std::move(sctp_transport),
+-          [&]() {
++          std::move(rtcp_dtls_transport), std::move(sctp_transport), [&]() {
+             RTC_DCHECK_RUN_ON(network_thread_);
+             UpdateAggregateStates_n();
+-          },
+-          payload_type_picker_);
++          });
+ 
+   jsep_transport->rtp_transport()->SubscribeRtcpPacketReceived(
+       this, [this](rtc::CopyOnWriteBuffer* buffer, int64_t packet_time_ms) {
+diff --git a/pc/jsep_transport_controller.h b/pc/jsep_transport_controller.h
+index 749faddbe2..373b603afe 100644
+--- a/pc/jsep_transport_controller.h
++++ b/pc/jsep_transport_controller.h
+@@ -150,7 +150,6 @@ class JsepTransportController : public sigslot::has_slots<> {
+       rtc::Thread* network_thread,
+       cricket::PortAllocator* port_allocator,
+       AsyncDnsResolverFactoryInterface* async_dns_resolver_factory,
+-      PayloadTypePicker& payload_type_picker,
+       Config config);
+   virtual ~JsepTransportController();
+ 
+@@ -511,8 +510,6 @@ class JsepTransportController : public sigslot::has_slots<> {
+   rtc::scoped_refptr<rtc::RTCCertificate> certificate_;
+ 
+   BundleManager bundles_;
+-  // Reference to the SdpOfferAnswerHandler's payload type picker.
+-  PayloadTypePicker& payload_type_picker_;
+ };
+ 
+ }  // namespace webrtc
+diff --git a/pc/jsep_transport_controller_unittest.cc b/pc/jsep_transport_controller_unittest.cc
+index 9e5d58baea..151c457527 100644
+--- a/pc/jsep_transport_controller_unittest.cc
++++ b/pc/jsep_transport_controller_unittest.cc
+@@ -105,8 +105,7 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
+     config.on_dtls_handshake_error_ = [](rtc::SSLHandshakeError s) {};
+     transport_controller_ = std::make_unique<JsepTransportController>(
+         env_, network_thread, port_allocator,
+-        nullptr /* async_resolver_factory */, payload_type_picker_,
+-        std::move(config));
++        nullptr /* async_resolver_factory */, std::move(config));
+     SendTask(network_thread, [&] { ConnectTransportControllerSignals(); });
+   }
+ 
+@@ -381,7 +380,7 @@ class JsepTransportControllerTest : public JsepTransportController::Observer,
+   std::map<std::string, RtpTransportInternal*> changed_rtp_transport_by_mid_;
+   std::map<std::string, cricket::DtlsTransportInternal*>
+       changed_dtls_transport_by_mid_;
+-  webrtc::PayloadTypePicker payload_type_picker_;
++
+   // Transport controller needs to be destroyed first, because it may issue
+   // callbacks that modify the changed_*_by_mid in the destructor.
+   std::unique_ptr<JsepTransportController> transport_controller_;
+diff --git a/pc/jsep_transport_unittest.cc b/pc/jsep_transport_unittest.cc
+index 074f8e52cc..01b826b52d 100644
+--- a/pc/jsep_transport_unittest.cc
++++ b/pc/jsep_transport_unittest.cc
+@@ -126,8 +126,8 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
+     std::unique_ptr<webrtc::RtpTransport> unencrypted_rtp_transport;
+     std::unique_ptr<webrtc::SrtpTransport> sdes_transport;
+     std::unique_ptr<webrtc::DtlsSrtpTransport> dtls_srtp_transport;
+-    dtls_srtp_transport = CreateDtlsSrtpTransport(rtp_dtls_transport.get(),
+-                                                  rtcp_dtls_transport.get());
++        dtls_srtp_transport = CreateDtlsSrtpTransport(
++            rtp_dtls_transport.get(), rtcp_dtls_transport.get());
+ 
+     auto jsep_transport = std::make_unique<JsepTransport>(
+         kTransportName, /*local_certificate=*/nullptr, std::move(ice),
+@@ -135,8 +135,7 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
+         std::move(sdes_transport), std::move(dtls_srtp_transport),
+         std::move(rtp_dtls_transport), std::move(rtcp_dtls_transport),
+         /*sctp_transport=*/nullptr,
+-        /*rtcp_mux_active_callback=*/[&]() { OnRtcpMuxActive(); },
+-        payload_type_picker_);
++        /*rtcp_mux_active_callback=*/[&]() { OnRtcpMuxActive(); });
+ 
+     signal_rtcp_mux_active_received_ = false;
+     return jsep_transport;
+@@ -180,7 +179,6 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
+   webrtc::SrtpTransport* sdes_transport_ = nullptr;
+ 
+   webrtc::test::ScopedKeyValueConfig field_trials_;
+-  webrtc::PayloadTypePicker payload_type_picker_;
+ };
+ 
+ // The parameterized tests cover both cases when RTCP mux is enable and
+diff --git a/pc/payload_type_picker.cc b/pc/payload_type_picker.cc
+index 236b91438e..9a6368e730 100644
+--- a/pc/payload_type_picker.cc
++++ b/pc/payload_type_picker.cc
+@@ -14,7 +14,6 @@
+ #include <utility>
+ #include <vector>
+ 
+-#include "absl/strings/match.h"
+ #include "api/rtc_error.h"
+ #include "media/base/codec.h"
+ 
+@@ -29,8 +28,8 @@ namespace {
+ 
+ bool MatchesForSdp(const cricket::Codec& codec_1,
+                    const cricket::Codec& codec_2) {
+-  return absl::EqualsIgnoreCase(codec_1.name, codec_2.name) &&
+-         codec_1.type == codec_2.type && codec_1.channels == codec_2.channels &&
++  return codec_1.name == codec_2.name && codec_1.type == codec_2.type &&
++         codec_1.channels == codec_2.channels &&
+          codec_1.clockrate == codec_2.clockrate &&
+          codec_1.params == codec_2.params;
+ }
+@@ -49,12 +48,8 @@ RTCError PayloadTypePicker::AddMapping(PayloadType payload_type,
+ 
+ RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
+                                          cricket::Codec codec) {
+-  auto existing_codec_it = payload_type_to_codec_.find(payload_type);
+-  if (existing_codec_it != payload_type_to_codec_.end() &&
+-      !MatchesForSdp(codec, existing_codec_it->second)) {
+-    RTC_LOG(LS_ERROR) << "DEBUG: AddMapping invalid, PT " << int(payload_type)
+-                      << " new codec " << codec.ToString() << " old codec "
+-                      << existing_codec_it->second.ToString();
++  if (payload_type_to_codec_.find(payload_type) !=
++      payload_type_to_codec_.end()) {
+     return RTCError(RTCErrorType::INVALID_PARAMETER,
+                     "Attempt to insert duplicate mapping for PT");
+   }
+diff --git a/pc/payload_type_picker.h b/pc/payload_type_picker.h
+index a1dd946fc6..7cbc5ba661 100644
+--- a/pc/payload_type_picker.h
++++ b/pc/payload_type_picker.h
+@@ -31,12 +31,6 @@ class PayloadType : public StrongAlias<class PayloadTypeTag, uint8_t> {
+ 
+ class PayloadTypePicker {
+  public:
+-  PayloadTypePicker() = default;
+-  PayloadTypePicker(const PayloadTypePicker&) = delete;
+-  PayloadTypePicker& operator=(const PayloadTypePicker&) = delete;
+-  PayloadTypePicker(PayloadTypePicker&&) = delete;
+-  PayloadTypePicker& operator=(PayloadTypePicker&&) = delete;
+-
+   RTCErrorOr<PayloadType> SuggestMapping(cricket::Codec codec);
+   RTCError AddMapping(PayloadType payload_type, cricket::Codec codec);
+ };
+diff --git a/pc/peer_connection.cc b/pc/peer_connection.cc
+index 083d49be3d..1cf560e6a0 100644
+--- a/pc/peer_connection.cc
++++ b/pc/peer_connection.cc
+@@ -773,10 +773,9 @@ JsepTransportController* PeerConnection::InitializeTransportController_n(
+         }
+       };
+ 
+-  transport_controller_.reset(
+-      new JsepTransportController(env_, network_thread(), port_allocator_.get(),
+-                                  async_dns_resolver_factory_.get(),
+-                                  payload_type_picker_, std::move(config)));
++  transport_controller_.reset(new JsepTransportController(
++      env_, network_thread(), port_allocator_.get(),
++      async_dns_resolver_factory_.get(), std::move(config)));
+ 
+   transport_controller_->SubscribeIceConnectionState(
+       [this](cricket::IceConnectionState s) {
+diff --git a/pc/peer_connection.h b/pc/peer_connection.h
+index dcf6eb61f9..ef543a227f 100644
+--- a/pc/peer_connection.h
++++ b/pc/peer_connection.h
+@@ -448,9 +448,6 @@ class PeerConnection : public PeerConnectionInternal,
+     RTC_DCHECK(call_);
+     return call_->GetTransportControllerSend()->GetNetworkController();
+   }
+-  PayloadTypePicker& payload_type_picker() override {
+-    return payload_type_picker_;
+-  }
+ 
+  protected:
+   // Available for rtc::scoped_refptr creation
+@@ -710,7 +707,6 @@ class PeerConnection : public PeerConnectionInternal,
+   // Used to gather metrics only the first such state change.
+   bool was_ever_connected_ RTC_GUARDED_BY(signaling_thread()) = false;
+ 
+-  PayloadTypePicker payload_type_picker_;
+   // This variable needs to be the last one in the class.
+   rtc::WeakPtrFactory<PeerConnection> weak_factory_;
+ };
+diff --git a/pc/peer_connection_interface_unittest.cc b/pc/peer_connection_interface_unittest.cc
+index 8c17a4acda..4d68246434 100644
+--- a/pc/peer_connection_interface_unittest.cc
++++ b/pc/peer_connection_interface_unittest.cc
+@@ -3083,13 +3083,7 @@ TEST_P(PeerConnectionInterfaceTest, SetConfigurationNotCausingIceRestart) {
+ // 4. Next createOffer should initiate an ICE restart, but only for the other
+ //    m= section; it would be pointless to do an ICE restart for the m= section
+ //    that was already restarted.
+-// Disabled because work on PT assignment showed that the restart tries
+-// to remap an RTX payload type.
+-// Tracking bug for PT assignment work: https://issues.webrtc.org/360058654
+-// The suspected bug is linked below.
+-// TODO(https://issues.webrtc.org/42233461): Fix PT assignment
+-TEST_P(PeerConnectionInterfaceTest,
+-       DISABLED_SetConfigurationCausingPartialIceRestart) {
++TEST_P(PeerConnectionInterfaceTest, SetConfigurationCausingPartialIceRestart) {
+   PeerConnectionInterface::RTCConfiguration config;
+   config.sdp_semantics = sdp_semantics_;
+   config.type = PeerConnectionInterface::kRelay;
+diff --git a/pc/peer_connection_internal.h b/pc/peer_connection_internal.h
+index 75e18f21a4..4f6d6d2cb3 100644
+--- a/pc/peer_connection_internal.h
++++ b/pc/peer_connection_internal.h
+@@ -127,9 +127,6 @@ class PeerConnectionSdpMethods {
+   virtual const FieldTrialsView& trials() const = 0;
+ 
+   virtual void ClearStatsCache() = 0;
+-  // Keeps track of assigned payload types and comes up with reasonable
+-  // suggestions when new PTs need to be assigned.
+-  virtual PayloadTypePicker& payload_type_picker() = 0;
+ };
+ 
+ // Functions defined in this class are called by other objects,
+diff --git a/pc/test/fake_peer_connection_base.h b/pc/test/fake_peer_connection_base.h
+index c69abe5752..6f996700fb 100644
+--- a/pc/test/fake_peer_connection_base.h
++++ b/pc/test/fake_peer_connection_base.h
+@@ -373,23 +373,10 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
+     return nullptr;
+   }
+ 
+-  PayloadTypePicker& payload_type_picker() override {
+-    return payload_type_picker_;
+-  }
+-
+-  cricket::CandidateStatsList GetPooledCandidateStats() const override {
+-    return {};
+-  }
+-
+  protected:
+   test::ScopedKeyValueConfig field_trials_;
+-  PayloadTypePicker payload_type_picker_;
+ };
+ 
+-static_assert(
+-    !std::is_abstract_v<rtc::RefCountedObject<FakePeerConnectionBase>>,
+-    "");
+-
+ }  // namespace webrtc
+ 
+ #endif  // PC_TEST_FAKE_PEER_CONNECTION_BASE_H_
+diff --git a/pc/test/fake_peer_connection_for_stats.h b/pc/test/fake_peer_connection_for_stats.h
+index 3e45899b1f..2883c86b58 100644
+--- a/pc/test/fake_peer_connection_for_stats.h
++++ b/pc/test/fake_peer_connection_for_stats.h
+@@ -498,7 +498,6 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
+       return nullptr;
+     }
+   }
+-  PayloadTypePicker& payload_type_picker() { return payload_type_picker_; }
+ 
+  private:
+   cricket::TransportStats GetTransportStatsByName(
+@@ -564,7 +563,6 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
+       local_certificates_by_transport_;
+   std::map<std::string, std::unique_ptr<rtc::SSLCertChain>>
+       remote_cert_chains_by_transport_;
+-  PayloadTypePicker payload_type_picker_;
+ };
+ 
+ }  // namespace webrtc
+diff --git a/pc/test/mock_peer_connection_internal.h b/pc/test/mock_peer_connection_internal.h
+index 64d09628f0..78b6755b3b 100644
+--- a/pc/test/mock_peer_connection_internal.h
++++ b/pc/test/mock_peer_connection_internal.h
+@@ -334,7 +334,6 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
+               GetNetworkController,
+               (),
+               (override));
+-  MOCK_METHOD(PayloadTypePicker&, payload_type_picker, (), (override));
+ };
+ 
+ }  // namespace webrtc
+diff --git a/test/peer_scenario/scenario_connection.cc b/test/peer_scenario/scenario_connection.cc
+index db3a290db2..54a847bc3b 100644
+--- a/test/peer_scenario/scenario_connection.cc
++++ b/test/peer_scenario/scenario_connection.cc
+@@ -64,7 +64,6 @@ class ScenarioIceConnectionImpl : public ScenarioIceConnection,
+       RTC_GUARDED_BY(signaling_thread_);
+   std::unique_ptr<cricket::BasicPortAllocator> port_allocator_
+       RTC_GUARDED_BY(network_thread_);
+-  PayloadTypePicker payload_type_picker_;
+   std::unique_ptr<JsepTransportController> jsep_controller_;
+   RtpTransportInternal* rtp_transport_ RTC_GUARDED_BY(network_thread_) =
+       nullptr;
+@@ -108,7 +107,6 @@ ScenarioIceConnectionImpl::ScenarioIceConnectionImpl(
+                                       network_thread_,
+                                       port_allocator_.get(),
+                                       /*async_resolver_factory*/ nullptr,
+-                                      payload_type_picker_,
+                                       CreateJsepConfig())) {
+   SendTask(network_thread_, [this] {
+     RTC_DCHECK_RUN_ON(network_thread_);
