@@ -827,6 +827,18 @@ TEST_F(PacketBufferH264FrameGap, DisallowFrameGapForH264NoGeneric) {
               IsEmpty());
 }
 
+TEST_F(PacketBufferH264FrameGap,
+       AllowFrameGapForH264WithGenericOnFirstPacketOnly) {
+  bool generic = true;
+  InsertH264(1, kKeyFrame, kFirst, kLast, 1001, {}, 0, 0, generic);
+  InsertH264(3, kDeltaFrame, kFirst, kNotLast, 1003, {}, 0, 0, generic);
+  // Second packet is not generic, but we can still output frame with 2 packets.
+  EXPECT_THAT(
+      InsertH264(4, kDeltaFrame, kNotFirst, kLast, 1003, {}, 0, 0, !generic)
+          .packets,
+      SizeIs(2));
+}
+
 }  // namespace
 }  // namespace video_coding
 }  // namespace webrtc

@@ -127,7 +127,7 @@ index 40e8f85e8e..6e764f8c15 100644
      TimeDelta total_decode_time = TimeDelta::Zero();
      // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-totalprocessingdelay
 diff --git a/modules/video_coding/packet_buffer.cc b/modules/video_coding/packet_buffer.cc
-index b30e84078c..792c845235 100644
+index 9d7b6e550c..c1f367cb3e 100644
 --- a/modules/video_coding/packet_buffer.cc
 +++ b/modules/video_coding/packet_buffer.cc
 @@ -127,25 +127,27 @@ PacketBuffer::InsertResult PacketBuffer::InsertPacket(

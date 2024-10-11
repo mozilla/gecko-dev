@@ -283,6 +283,14 @@ std::vector<std::unique_ptr<PacketBuffer::Packet>> PacketBuffer::FindFrames(
       int idr_height = -1;
       bool full_frame_found = false;
       while (true) {
+        // GFD is only attached to first packet of frame, so update check on
+        // every packet.
+        if (buffer_[start_index] != nullptr) {
+          is_generic = buffer_[start_index]->video_header.generic.has_value();
+          if (is_generic) {
+            is_h264_descriptor = false;
+          }
+        }
         ++tested_packets;
 
         if (!is_h264_descriptor) {
