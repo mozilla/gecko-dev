@@ -2168,7 +2168,7 @@ void DateObject::fillLocalTimeSlots() {
   /* Remember time zone used to generate the local cache. */
   setReservedSlot(UTC_TIME_ZONE_OFFSET_SLOT, Int32Value(utcTZOffset));
 
-  double utcTime = UTCTime().toNumber();
+  double utcTime = UTCTime().toDouble();
 
   if (!std::isfinite(utcTime)) {
     for (size_t ind = COMPONENTS_START_SLOT; ind < RESERVED_SLOTS; ind++) {
@@ -2279,7 +2279,7 @@ static bool date_getUTCFullYear(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2330,7 +2330,7 @@ static bool date_getUTCMonth(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2381,7 +2381,7 @@ static bool date_getUTCDate(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2432,7 +2432,7 @@ static bool date_getUTCDay(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2492,7 +2492,7 @@ static bool date_getUTCHours(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2553,7 +2553,7 @@ static bool date_getUTCMinutes(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2613,7 +2613,7 @@ static bool date_getUTCSeconds(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2656,7 +2656,7 @@ static bool getMilliseconds(JSContext* cx, unsigned argc, Value* vp,
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2697,7 +2697,7 @@ static bool date_getTimezoneOffset(JSContext* cx, unsigned argc, Value* vp) {
   // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
 
-  double utctime = unwrapped->UTCTime().toNumber();
+  double utctime = unwrapped->UTCTime().toDouble();
   double localtime = unwrapped->localTime().toDouble();
 
   /*
@@ -2752,7 +2752,7 @@ static bool date_setMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2798,7 +2798,7 @@ static bool date_setUTCMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2842,7 +2842,7 @@ static bool date_setSeconds(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2899,7 +2899,7 @@ static bool date_setUTCSeconds(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -2954,7 +2954,7 @@ static bool date_setMinutes(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3021,7 +3021,7 @@ static bool date_setUTCMinutes(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3086,7 +3086,7 @@ static bool date_setHours(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3164,7 +3164,7 @@ static bool date_setUTCHours(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3240,7 +3240,7 @@ static bool date_setDate(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3286,7 +3286,7 @@ static bool date_setUTCDate(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3330,7 +3330,7 @@ static bool date_setMonth(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3387,7 +3387,7 @@ static bool date_setUTCMonth(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3442,7 +3442,7 @@ static bool date_setFullYear(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3506,7 +3506,7 @@ static bool date_setUTCFullYear(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3570,7 +3570,7 @@ static bool date_setYear(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double t = unwrapped->UTCTime().toNumber();
+  double t = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
@@ -3626,7 +3626,7 @@ static bool date_toUTCString(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 3.
-  double utctime = unwrapped->UTCTime().toNumber();
+  double utctime = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(utctime));
 
   // Step 4.
@@ -3670,7 +3670,7 @@ static bool date_toISOString(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Steps 3 and 5.
-  double utctime = unwrapped->UTCTime().toNumber();
+  double utctime = unwrapped->UTCTime().toDouble();
   MOZ_ASSERT(IsTimeValue(utctime));
 
   // Step 4.
@@ -3950,7 +3950,7 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
 static bool ToLocaleFormatHelper(JSContext* cx, DateObject* unwrapped,
                                  const char* format, MutableHandleValue rval) {
   DateTimeInfo::ForceUTC forceUTC = unwrapped->forceUTC();
-  double utcTime = unwrapped->UTCTime().toNumber();
+  double utcTime = unwrapped->UTCTime().toDouble();
 
   const char* locale = unwrapped->realm()->getLocale();
   if (!locale) {
@@ -4108,7 +4108,7 @@ static bool date_toTimeString(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
   return FormatDate(cx, unwrapped->forceUTC(), locale,
-                    unwrapped->UTCTime().toNumber(), FormatSpec::Time,
+                    unwrapped->UTCTime().toDouble(), FormatSpec::Time,
                     args.rval());
 }
 
@@ -4134,7 +4134,7 @@ static bool date_toDateString(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
   return FormatDate(cx, unwrapped->forceUTC(), locale,
-                    unwrapped->UTCTime().toNumber(), FormatSpec::Date,
+                    unwrapped->UTCTime().toDouble(), FormatSpec::Date,
                     args.rval());
 }
 
@@ -4183,7 +4183,7 @@ static bool date_toString(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
   return FormatDate(cx, unwrapped->forceUTC(), locale,
-                    unwrapped->UTCTime().toNumber(), FormatSpec::DateTime,
+                    unwrapped->UTCTime().toDouble(), FormatSpec::DateTime,
                     args.rval());
 }
 
@@ -4249,7 +4249,7 @@ static bool date_toTemporalInstant(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 2.
-  double utctime = unwrapped->UTCTime().toNumber();
+  double utctime = unwrapped->UTCTime().toDouble();
   if (!std::isfinite(utctime)) {
     JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr,
                               JSMSG_INVALID_DATE);
