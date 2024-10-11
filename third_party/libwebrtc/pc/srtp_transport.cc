@@ -35,7 +35,8 @@ namespace webrtc {
 
 SrtpTransport::SrtpTransport(bool rtcp_mux_enabled,
                              const FieldTrialsView& field_trials)
-    : RtpTransport(rtcp_mux_enabled), field_trials_(field_trials) {}
+    : RtpTransport(rtcp_mux_enabled, field_trials),
+      field_trials_(field_trials) {}
 
 bool SrtpTransport::SendRtpPacket(rtc::CopyOnWriteBuffer* packet,
                                   const rtc::PacketOptions& options,

@@ -340,7 +340,7 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
       rtc::PacketTransportInternal* rtp_packet_transport,
       rtc::PacketTransportInternal* rtcp_packet_transport) {
     auto rtp_transport = std::make_unique<webrtc::RtpTransport>(
-        rtcp_packet_transport == nullptr);
+        rtcp_packet_transport == nullptr, field_trials_);
 
     SendTask(network_thread_,
              [&rtp_transport, rtp_packet_transport, rtcp_packet_transport] {

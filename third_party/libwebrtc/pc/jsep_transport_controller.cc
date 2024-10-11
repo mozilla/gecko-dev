@@ -504,8 +504,8 @@ JsepTransportController::CreateUnencryptedRtpTransport(
     rtc::PacketTransportInternal* rtp_packet_transport,
     rtc::PacketTransportInternal* rtcp_packet_transport) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  auto unencrypted_rtp_transport =
-      std::make_unique<RtpTransport>(rtcp_packet_transport == nullptr);
+  auto unencrypted_rtp_transport = std::make_unique<RtpTransport>(
+      rtcp_packet_transport == nullptr, env_.field_trials());
   unencrypted_rtp_transport->SetRtpPacketTransport(rtp_packet_transport);
   if (rtcp_packet_transport) {
     unencrypted_rtp_transport->SetRtcpPacketTransport(rtcp_packet_transport);

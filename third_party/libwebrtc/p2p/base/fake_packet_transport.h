@@ -61,7 +61,7 @@ class FakePacketTransport : public PacketTransportInternal {
                  size_t len,
                  const PacketOptions& options,
                  int flags) override {
-    if (!dest_) {
+    if (!dest_ || error_ != 0) {
       return -1;
     }
     CopyOnWriteBuffer packet(data, len);

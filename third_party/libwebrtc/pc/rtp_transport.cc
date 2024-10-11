@@ -15,7 +15,6 @@
 #include <cstdint>
 #include <utility>
 
-#include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/units/timestamp.h"
 #include "media/base/rtp_utils.h"
@@ -80,8 +79,6 @@ void RtpTransport::SetRtpPacketTransport(
   }
 
   rtp_packet_transport_ = new_packet_transport;
-  // Assumes the transport is ready to send if it is writable. If we are wrong,
-  // ready to send will be updated the next time we try to send.
   SetReadyToSend(false,
                  rtp_packet_transport_ && rtp_packet_transport_->writable());
 }
@@ -119,8 +116,7 @@ void RtpTransport::SetRtcpPacketTransport(
   }
   rtcp_packet_transport_ = new_packet_transport;
 
-  // Assumes the transport is ready to send if it is writable. If we are wrong,
-  // ready to send will be updated the next time we try to send.
+  // Assumes the transport is ready to send if it is writable.
   SetReadyToSend(true,
                  rtcp_packet_transport_ && rtcp_packet_transport_->writable());
 }
@@ -154,9 +150,13 @@ bool RtpTransport::SendPacket(bool rtcp,
   int ret = transport->SendPacket(packet->cdata<char>(), packet->size(),
                                   options, flags);
   if (ret != static_cast<int>(packet->size())) {
-    if (transport->GetError() == ENOTCONN) {
-      RTC_LOG(LS_WARNING) << "Got ENOTCONN from transport.";
-      SetReadyToSend(rtcp, false);
+    if (set_ready_to_send_false_if_send_fail_) {
+      // TODO: webrtc:361124449 - Remove SetReadyToSend if field trial
+      // WebRTC-SetReadyToSendFalseIfSendFail succeed 2024-12-01.
+      if (transport->GetError() == ENOTCONN) {
+        RTC_LOG(LS_WARNING) << "Got ENOTCONN from transport.";
+        SetReadyToSend(rtcp, false);
+      }
     }
     return false;
   }
