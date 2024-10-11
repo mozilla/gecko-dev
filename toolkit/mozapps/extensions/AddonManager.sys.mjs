@@ -4802,7 +4802,7 @@ AMTelemetry = {
 
     const length = str.length;
 
-    // Trim the string to prevent a flood of warnings messages logged internally by recordEvent,
+    // Trim the string to prevent a flood of warnings messages logged internally by recordLegacyEvent,
     // the trimmed version is going to be composed by the first 40 chars and the last 37 and 3 dots
     // that joins the two parts, to visually indicate that the string has been trimmed.
     return `${str.slice(0, 40)}...${str.slice(length - 37, length)}`;
@@ -5010,7 +5010,12 @@ AMTelemetry = {
       };
     }
 
-    this.recordEvent({ method, object, value: install.hashedAddonId, extra });
+    this.recordLegacyEvent({
+      method,
+      object,
+      value: install.hashedAddonId,
+      extra,
+    });
     Glean.addonsManager.installStats.record(
       this.formatExtraVars({
         addon_id: extra.addon_id,
@@ -5114,7 +5119,12 @@ AMTelemetry = {
     // All the extra vars in a telemetry event have to be strings.
     extra = this.formatExtraVars({ ...extraVars, ...extra });
 
-    this.recordEvent({ method: eventMethod, object, value: installId, extra });
+    this.recordLegacyEvent({
+      method: eventMethod,
+      object,
+      value: installId,
+      extra,
+    });
     Glean.addonsManager[eventMethod]?.record(
       this.formatExtraVars({
         addon_id: extra.addon_id,
@@ -5177,7 +5187,7 @@ AMTelemetry = {
     let hasExtraVars = !!Object.keys(extra).length;
     extra = this.formatExtraVars(extra);
 
-    this.recordEvent({
+    this.recordLegacyEvent({
       method,
       object,
       value,
@@ -5206,25 +5216,17 @@ AMTelemetry = {
     );
   },
 
-  recordEvent({ method, object, value, extra }) {
-    if (typeof value != "string") {
-      // The value must be a string or null, make sure it's valid so sending
-      // the event doesn't fail.
-      value = null;
+  recordLegacyEvent({ method, object, value, extra }) {
+    if (typeof value == "string") {
+      if (!extra) {
+        extra = {};
+      }
+      extra.value = value;
     }
-    try {
-      Services.telemetry.recordEvent(
-        "addonsManager",
-        method,
-        object,
-        value,
-        extra
-      );
-    } catch (err) {
-      // If the telemetry throws just log the error so it doesn't break any
-      // functionality.
-      Cu.reportError(err);
-    }
+    const eventName = `${method}_${object}`.replace(/(_[a-z])/g, c =>
+      c[1].toUpperCase()
+    );
+    Glean.addonsManager[eventName].record(extra);
   },
 };
 

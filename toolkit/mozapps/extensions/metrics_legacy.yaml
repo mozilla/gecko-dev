@@ -1,0 +1,1052 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Do not add any new metric to this file.
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Add-ons Manager'
+
+# The following probes are collecting the same telemetry as the
+# addons_manager.install/install_stats/update/manage Glean events
+# defined in toolkit/mozapps/extensions/metrics.yaml but these one
+# are mirroring the collected data into the corresponding Legacy
+# Telemetry events.
+#
+# TODO: (Bug 1923949) Remove these Glean metric definitions along with
+# removing the related legacy telemetry events from Events.yaml.
+#
+# TODO: (Bug 1923950) Regenerate toolkit/components/extensions/types/glean.d.ts
+# to also include metrics defined in this Glean metrics config file.
+
+addons_manager:
+  install_extension:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install#extension.
+    bugs: &addonsManager_install_bugs
+      - https://bugzil.la/1433335
+      - https://bugzil.la/1515697
+      - https://bugzil.la/1523641
+      - https://bugzil.la/1549770
+      - https://bugzil.la/1590736
+      - https://bugzil.la/1630596
+      - https://bugzil.la/1672570
+      - https://bugzil.la/1714251
+      - https://bugzil.la/1749878
+      - https://bugzil.la/1781974
+      - https://bugzil.la/1817100
+      - https://bugzil.la/1861295
+      - https://bugzil.la/1912166
+    data_reviews: &addonsManager_install_data_reviews
+      - https://bugzil.la/1433335
+      - https://bugzil.la/1515697
+      - https://bugzil.la/1523641
+      - https://bugzil.la/1549770
+      - https://bugzil.la/1590736
+      - https://bugzil.la/1630596
+      - https://bugzil.la/1672570
+      - https://bugzil.la/1714251
+      - https://bugzil.la/1749878
+      - https://bugzil.la/1781974
+      - https://bugzil.la/1817100
+      - https://bugzil.la/1861295
+      - https://bugzil.la/1912166
+    notification_emails: &addonsManager_install_emails
+      - addons-dev-internal@mozilla.com
+    expires: 140
+    extra_keys: &addonsManager_install_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      addon_id:
+        description: >
+          A string which identify the extension (when available)
+        type: string
+      download_time:
+        description: >
+          The number of ms needed to complete the download
+        type: string
+      error:
+        description: >
+          The AddonManager error related to an install or update failure.
+        type: string
+      source:
+        description: >
+          The source that originally triggered the add-on installation, one of "about:addons", "about:debugging", "about:preferences", "amo", "browser-import", "disco", "distribution", "extension", "enterprise-policy", "file-url", "geckoview-app", "gmp-plugin", "internal", "plugin", "rtamo", "siteperm-addon-provider" "sync", "system-addon", "temporary-addon", "unknown". For events with method set to "sideload", the source value is derived from the XPIProvider location name (e.g. possible values are "app-builtin", "app-global", "app-profile", "app-system-addons", "app-system-defaults", "app-system-local", "app-system-profile", "app-system-share", "app-system-user", "winreg-app-user", "winreg-app-gobal")
+        type: string
+      method:
+        description: >
+          The method used by the source to install the add-on (included when the source can use more than one, e.g. install events with source "about:addons" may have "install-from-file" or "url" as method), one of "amWebAPI", "drag-and-drop", "installTrigger", "install-from-file", "link", "management-webext-api", "sideload", "synthetic-install", "url", "product-updates". e.g. install events with source "about:addons" may have "install-from-file" or "drag-and-drop" as method), one of "amWebAPI", "drag-and-drop", "installTrigger", "install-from-file", "link", "management-webext-api", "sideload", "synthetic-install", "url", "product-updates", "manager".
+        type: string
+      num_strings:
+        description: >
+          The number of permission description strings in the extension permission doorhanger
+        type: string
+      updated_from:
+        description: >
+          Determine if an update has been requested by the user or the application ("app" / "user")
+        type: string
+      install_origins:
+        description: >
+          This flag indicates whether install_origins is defined in the addon manifest. ("1" / "0")
+        type: string
+      step:
+        description: >
+          The current step in the install or update flow:
+            - started, postponed, cancelled, failed, permissions_prompt, completed
+            - site_warning, site_blocked, install_disabled_warning
+            - download_started, download_completed, download_failed
+        type: string
+    telemetry_mirror: Addonsmanager_Install_Extension
+
+  install_theme:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install#theme.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Install_Theme
+
+  install_locale:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install#locale.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Install_Locale
+
+  install_dictionary:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install#dictionary.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Install_Dictionary
+
+  install_sitepermission:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install#sitepermission.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Install_Sitepermission
+
+  install_siteperm_deprecated:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install#siteperm_deprecated.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Install_SitepermDeprecated
+
+  install_other:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install#other.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Install_Other
+
+  install_unknown:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install#unknown.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Install_Unknown
+
+  update_extension:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.update#extension.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Update_Extension
+
+  update_theme:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.update#theme.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Update_Theme
+
+  update_locale:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.update#locale.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Update_Locale
+
+  update_dictionary:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.update#dictionary.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Update_Dictionary
+
+  update_sitepermission:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.update#sitepermission.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Update_Sitepermission
+
+  update_siteperm_deprecated:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.update#siteperm_deprecated.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Update_SitepermDeprecated
+
+  update_other:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.update#other.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Update_Other
+
+  update_unknown:
+    type: event
+    description: >
+      These events are recorded during the install and update flow for
+      extensions and themes, the value of the event is an install_id
+      shared by the events related to the same install or update flow.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.update#unknown.
+    bugs: *addonsManager_install_bugs
+    data_reviews: *addonsManager_install_data_reviews
+    notification_emails: *addonsManager_install_emails
+    expires: 140
+    extra_keys: *addonsManager_install_extra
+    telemetry_mirror: Addonsmanager_Update_Unknown
+
+  install_stats_extension:
+    type: event
+    description: >
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation is
+      "amo", "rtamo" or "disco". The value of an event is the SHA256 hash
+      of the addon_id.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install_stats#extension.
+    bugs: &addonsManager_install_stats_bugs
+      - https://bugzil.la/1653020
+      - https://bugzil.la/1699225
+    data_reviews: &addonsManager_install_stats_data_reviews
+      - https://bugzil.la/1653020
+      - https://bugzil.la/1699225
+    notification_emails: &addonsManager_install_stats_emails
+      - addons-dev-internal@mozilla.com
+    expires: never
+    extra_keys: &addonsManager_install_stats_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      addon_id:
+        description: >
+          A string which identifies the add-on. This value might be trimmed.
+        type: string
+      taar_based:
+        description: >
+          This extra key is only set for install flows related to the discovery addon. When available it is going to be a string set to "1" for TAAR based recommendations, "0" for manually curated and unset if not relevant for the particular install flow.
+        type: string
+      utm_campaign:
+        description: >
+          The specific product promotion or strategic campaign that drives traffic to the install page.
+        type: string
+      utm_content:
+        description: >
+          The specific item that a person clicks on to access the install page (such as an A/B test, a website banner, or a specific ad).
+        type: string
+      utm_medium:
+        description: >
+          The channel used to share the install page.
+        type: string
+      utm_source:
+        description: >
+          The name of the product, domain of the website that drives traffic to the install page.
+        type: string
+    telemetry_mirror: Addonsmanager_InstallStats_Extension
+
+  install_stats_theme:
+    type: event
+    description: >
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation is
+      "amo", "rtamo" or "disco". The value of an event is the SHA256 hash
+      of the addon_id.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install_stats#theme.
+    bugs: *addonsManager_install_stats_bugs
+    data_reviews: *addonsManager_install_stats_data_reviews
+    notification_emails: *addonsManager_install_stats_emails
+    expires: never
+    extra_keys: *addonsManager_install_stats_extra
+    telemetry_mirror: Addonsmanager_InstallStats_Theme
+
+  install_stats_locale:
+    type: event
+    description: >
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation is
+      "amo", "rtamo" or "disco". The value of an event is the SHA256 hash
+      of the addon_id.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install_stats#locale.
+    bugs: *addonsManager_install_stats_bugs
+    data_reviews: *addonsManager_install_stats_data_reviews
+    notification_emails: *addonsManager_install_stats_emails
+    expires: never
+    extra_keys: *addonsManager_install_stats_extra
+    telemetry_mirror: Addonsmanager_InstallStats_Locale
+
+  install_stats_dictionary:
+    type: event
+    description: >
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation is
+      "amo", "rtamo" or "disco". The value of an event is the SHA256 hash
+      of the addon_id.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install_stats#dictionary.
+    bugs: *addonsManager_install_stats_bugs
+    data_reviews: *addonsManager_install_stats_data_reviews
+    notification_emails: *addonsManager_install_stats_emails
+    expires: never
+    extra_keys: *addonsManager_install_stats_extra
+    telemetry_mirror: Addonsmanager_InstallStats_Dictionary
+
+  install_stats_sitepermission:
+    type: event
+    description: >
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation is
+      "amo", "rtamo" or "disco". The value of an event is the SHA256 hash
+      of the addon_id.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install_stats#sitepermission.
+    bugs: *addonsManager_install_stats_bugs
+    data_reviews: *addonsManager_install_stats_data_reviews
+    notification_emails: *addonsManager_install_stats_emails
+    expires: never
+    extra_keys: *addonsManager_install_stats_extra
+    telemetry_mirror: Addonsmanager_InstallStats_Sitepermission
+
+  install_stats_siteperm_deprecated:
+    type: event
+    description: >
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation is
+      "amo", "rtamo" or "disco". The value of an event is the SHA256 hash
+      of the addon_id.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install_stats#siteperm_deprecated.
+    bugs: *addonsManager_install_stats_bugs
+    data_reviews: *addonsManager_install_stats_data_reviews
+    notification_emails: *addonsManager_install_stats_emails
+    expires: never
+    extra_keys: *addonsManager_install_stats_extra
+    telemetry_mirror: Addonsmanager_InstallStats_SitepermDeprecated
+
+  install_stats_other:
+    type: event
+    description: >
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation is
+      "amo", "rtamo" or "disco". The value of an event is the SHA256 hash
+      of the addon_id.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install_stats#other.
+    bugs: *addonsManager_install_stats_bugs
+    data_reviews: *addonsManager_install_stats_data_reviews
+    notification_emails: *addonsManager_install_stats_emails
+    expires: never
+    extra_keys: *addonsManager_install_stats_extra
+    telemetry_mirror: Addonsmanager_InstallStats_Other
+
+  install_stats_unknown:
+    type: event
+    description: >
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation is
+      "amo", "rtamo" or "disco". The value of an event is the SHA256 hash
+      of the addon_id.
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.install_stats#unknown.
+    bugs: *addonsManager_install_stats_bugs
+    data_reviews: *addonsManager_install_stats_data_reviews
+    notification_emails: *addonsManager_install_stats_emails
+    expires: never
+    extra_keys: *addonsManager_install_stats_extra
+    telemetry_mirror: Addonsmanager_InstallStats_Unknown
+
+  disable_extension:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.disable#extension.
+    bugs: &addonsManager_disable_bugs
+      - https://bugzil.la/1433335
+      - https://bugzil.la/1515697
+      - https://bugzil.la/1523641
+      - https://bugzil.la/1549770
+      - https://bugzil.la/1590736
+      - https://bugzil.la/1630596
+      - https://bugzil.la/1672570
+      - https://bugzil.la/1714251
+      - https://bugzil.la/1749878
+      - https://bugzil.la/1781974
+      - https://bugzil.la/1817100
+      - https://bugzil.la/1861295
+      - https://bugzil.la/1912166
+    data_reviews: &addonsManager_disable_data_reviews
+      - https://bugzil.la/1433335
+      - https://bugzil.la/1515697
+      - https://bugzil.la/1523641
+      - https://bugzil.la/1549770
+      - https://bugzil.la/1590736
+      - https://bugzil.la/1630596
+      - https://bugzil.la/1672570
+      - https://bugzil.la/1714251
+      - https://bugzil.la/1749878
+      - https://bugzil.la/1781974
+      - https://bugzil.la/1817100
+      - https://bugzil.la/1861295
+      - https://bugzil.la/1912166
+    notification_emails: &addonsManager_disable_emails
+      - addons-dev-internal@mozilla.com
+    expires: 140
+    extra_keys: &addonsManager_disable_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      source:
+        description: >
+          The source from which the addon has been installed (See extra_keys.source description from addonsManager.install telemetry event definition).
+        type: string
+      method:
+        description: >
+          The method used by the source to install the add-on (included when the source can use more than one, e.g. install events with source "about:addons" may have "install-from-file" or "url" as method).
+        type: string
+      num_strings:
+        description: >
+          The number of permission description strings in the extension permission doorhanger
+        type: string
+    telemetry_mirror: Addonsmanager_Disable_Extension
+
+  disable_theme:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.disable#theme.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Disable_Theme
+
+  disable_locale:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.disable#locale.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Disable_Locale
+
+  disable_dictionary:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.disable#dictionary.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Disable_Dictionary
+
+  disable_sitepermission:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.disable#sitepermission.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Disable_Sitepermission
+
+  disable_siteperm_deprecated:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.disable#siteperm_deprecated.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Disable_SitepermDeprecated
+
+  disable_other:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.disable#other.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Disable_Other
+
+  disable_unknown:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.disable#unknown.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Disable_Unknown
+
+  enable_extension:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.enable#extension.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Enable_Extension
+
+  enable_theme:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.enable#theme.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Enable_Theme
+
+  enable_locale:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.enable#locale.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Enable_Locale
+
+  enable_dictionary:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.enable#dictionary.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Enable_Dictionary
+
+  enable_sitepermission:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.enable#sitepermission.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Enable_Sitepermission
+
+  enable_siteperm_deprecated:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.enable#siteperm_deprecated.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Enable_SitepermDeprecated
+
+  enable_other:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.enable#other.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Enable_Other
+
+  enable_unknown:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.enable#unknown.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Enable_Unknown
+
+  sideload_prompt_extension:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.sideload_prompt#extension.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_SideloadPrompt_Extension
+
+  sideload_prompt_theme:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.sideload_prompt#theme.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_SideloadPrompt_Theme
+
+  sideload_prompt_locale:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.sideload_prompt#locale.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_SideloadPrompt_Locale
+
+  sideload_prompt_dictionary:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.sideload_prompt#dictionary.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_SideloadPrompt_Dictionary
+
+  sideload_prompt_sitepermission:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.sideload_prompt#sitepermission.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_SideloadPrompt_Sitepermission
+
+  sideload_prompt_siteperm_deprecated:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.sideload_prompt#siteperm_deprecated.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_SideloadPrompt_SitepermDeprecated
+
+  sideload_prompt_other:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.sideload_prompt#other.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_SideloadPrompt_Other
+
+  sideload_prompt_unknown:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.sideload_prompt#unknown.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_SideloadPrompt_Unknown
+
+  uninstall_extension:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.uninstall#extension.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Uninstall_Extension
+
+  uninstall_theme:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.uninstall#theme.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Uninstall_Theme
+
+  uninstall_locale:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.uninstall#locale.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Uninstall_Locale
+
+  uninstall_dictionary:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.uninstall#dictionary.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Uninstall_Dictionary
+
+  uninstall_sitepermission:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.uninstall#sitepermission.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Uninstall_Sitepermission
+
+  uninstall_siteperm_deprecated:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.uninstall#siteperm_deprecated.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Uninstall_SitepermDeprecated
+
+  uninstall_other:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.uninstall#other.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Uninstall_Other
+
+  uninstall_unknown:
+    type: event
+    description: >
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled, the value of the event is the addon_id
+      (which also allow to correlate multiple events related to each
+      other).
+      This event was generated to correspond to the Legacy Telemetry event
+      addonsManager.uninstall#unknown.
+    bugs: *addonsManager_disable_bugs
+    data_reviews: *addonsManager_disable_data_reviews
+    notification_emails: *addonsManager_disable_emails
+    expires: 140
+    extra_keys: *addonsManager_disable_extra
+    telemetry_mirror: Addonsmanager_Uninstall_Unknown

@@ -65,6 +65,7 @@ gecko_metrics = [
     "toolkit/components/translations/metrics.yaml",
     "toolkit/content/metrics.yaml",
     "toolkit/mozapps/extensions/metrics.yaml",
+    "toolkit/mozapps/extensions/metrics_legacy.yaml",
     "toolkit/mozapps/handling/metrics.yaml",
     "toolkit/xre/metrics.yaml",
     "xpcom/metrics.yaml",
