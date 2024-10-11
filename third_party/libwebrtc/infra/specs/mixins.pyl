@@ -181,7 +181,7 @@
         'location':
         '.',
         'revision':
-        'git_revision:81653990788282be32e97d2e15ff585dd9f068f6'
+        'git_revision:a18b7d95d26f3c6bf9591978b19cf0ca8268ac7d'
       }]
     }
   },
@@ -323,6 +323,15 @@
     'swarming': {
       'named_caches': [{
         'name': 'xcode_ios_15f31d',
+        'path': 'Xcode.app'
+      }]
+    }
+  },
+  'xcode_16_main': {
+    'args': ['--xcode-build-version', '16a5211f'],
+    'swarming': {
+      'named_caches': [{
+        'name': 'xcode_ios_16a5211f',
         'path': 'Xcode.app'
       }]
     }
