@@ -38,7 +38,9 @@ class ReportBlockData {
   // The fraction of RTP data packets from 'source_ssrc()' lost since the
   // previous report block was sent.
   // Fraction loss in range [0.0, 1.0].
-  float fraction_lost() const { return fraction_lost_raw() / 256.0; }
+  float fraction_lost() const {
+    return static_cast<float>(fraction_lost_raw()) / 256.0f;
+  }
 
   // Fraction loss as was written in the raw packet: range is [0, 255] where 0
   // represents no loss, and 255 represents 99.6% loss (255/256 * 100%).
