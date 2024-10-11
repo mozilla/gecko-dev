@@ -1244,6 +1244,7 @@ export class TelemetryFeed {
           is_sponsored: datum.card_type === "spoc",
           position: datum.pos,
           tile_id: datum.id || datum.tile_id,
+          is_list_card: datum.is_list_card,
           ...(datum.scheduled_corpus_item_id
             ? {
                 scheduled_corpus_item_id: datum.scheduled_corpus_item_id,
@@ -1297,6 +1298,7 @@ export class TelemetryFeed {
     }
 
     const { tiles } = data;
+
     tiles.forEach(tile => {
       Glean.pocket.impression.record({
         newtab_visit_id: session.session_id,
@@ -1305,6 +1307,7 @@ export class TelemetryFeed {
         tile_id: tile.id,
         topic: tile.topic,
         selected_topics: tile.selectedTopics,
+        is_list_card: tile.is_list_card,
         ...(tile.scheduled_corpus_item_id
           ? {
               scheduled_corpus_item_id: tile.scheduled_corpus_item_id,

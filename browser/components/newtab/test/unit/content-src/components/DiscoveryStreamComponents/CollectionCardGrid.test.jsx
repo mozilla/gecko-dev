@@ -120,6 +120,7 @@ describe("<CollectionCardGrid>", () => {
       card_type: undefined,
       position: 0,
       is_pocket_card: false,
+      is_list_card: undefined,
     }));
 
     assert.deepEqual(firstCall.args[0].data, expected);
