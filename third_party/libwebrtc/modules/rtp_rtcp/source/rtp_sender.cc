@@ -443,6 +443,17 @@ std::vector<std::unique_ptr<RtpPacketToSend>> RTPSender::GeneratePadding(
         break;
       }
       padding_packet->SetSsrc(ssrc_);
+
+      if (always_send_mid_and_rid_ || !ssrc_has_acked_) {
+        // These are no-ops if the corresponding header extension is not
+        // registered.
+        if (!mid_.empty()) {
+          padding_packet->SetExtension<RtpMid>(mid_);
+        }
+        if (!rid_.empty()) {
+          padding_packet->SetExtension<RtpStreamId>(rid_);
+        }
+      }
     } else {
       // Without abs-send-time or transport sequence number a media packet
       // must be sent before padding so that the timestamps used for
@@ -458,17 +469,20 @@ std::vector<std::unique_ptr<RtpPacketToSend>> RTPSender::GeneratePadding(
       RTC_DCHECK(!rtx_payload_type_map_.empty());
       padding_packet->SetSsrc(*rtx_ssrc_);
       padding_packet->SetPayloadType(rtx_payload_type_map_.begin()->second);
+
+      if (always_send_mid_and_rid_ || !rtx_ssrc_has_acked_) {
+        if (!mid_.empty()) {
+          padding_packet->SetExtension<RtpMid>(mid_);
+        }
+        if (!rid_.empty()) {
+          padding_packet->SetExtension<RepairedRtpStreamId>(rid_);
+        }
+      }
     }
 
-    if (rtp_header_extension_map_.IsRegistered(TransportSequenceNumber::kId)) {
-      padding_packet->ReserveExtension<TransportSequenceNumber>();
-    }
-    if (rtp_header_extension_map_.IsRegistered(TransmissionOffset::kId)) {
-      padding_packet->ReserveExtension<TransmissionOffset>();
-    }
-    if (rtp_header_extension_map_.IsRegistered(AbsoluteSendTime::kId)) {
-      padding_packet->ReserveExtension<AbsoluteSendTime>();
-    }
+    padding_packet->ReserveExtension<TransportSequenceNumber>();
+    padding_packet->ReserveExtension<TransmissionOffset>();
+    padding_packet->ReserveExtension<AbsoluteSendTime>();
 
     padding_packet->SetPadding(padding_bytes_in_packet);
     bytes_left -= std::min(bytes_left, padding_bytes_in_packet);

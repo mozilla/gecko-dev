@@ -1078,6 +1078,43 @@ TEST_F(RtpSenderTest, GeneratedPaddingHasBweExtensions) {
   EXPECT_GT(payload_padding->payload_size(), 0u);
 }
 
+TEST_F(RtpSenderTest, GeneratedPaddingHasMidRidExtensions) {
+  EnableMidSending("mid");
+  EnableRidSending();
+
+  // Send a dummy video packet so it ends up in the packet history. Since we
+  // are not using RTX, it should never be used as padding.
+  packet_history_->SetStorePacketsStatus(
+      RtpPacketHistory::StorageMode::kStoreAndCull, 1);
+  std::unique_ptr<RtpPacketToSend> packet =
+      BuildRtpPacket(kPayload, true, 0, env_.clock().CurrentTime());
+  packet->set_allow_retransmission(true);
+  packet->SetPayloadSize(1234);
+  packet->set_packet_type(RtpPacketMediaType::kVideo);
+  sequencer_->Sequence(*packet);
+  packet_history_->PutRtpPacket(std::move(packet), env_.clock().CurrentTime());
+
+  std::vector<std::unique_ptr<RtpPacketToSend>> padding_packets =
+      GeneratePadding(/*target_size_bytes=*/1);
+  ASSERT_THAT(padding_packets, SizeIs(1));
+
+  EXPECT_TRUE(padding_packets[0]->HasExtension<RtpMid>());
+  EXPECT_TRUE(padding_packets[0]->HasExtension<RtpStreamId>());
+}
+
+TEST_F(RtpSenderTest, GeneratedPaddingOnRtxHasMidRidExtensions) {
+  EnableRtx();
+  EnableMidSending("mid");
+  EnableRidSending();
+
+  std::vector<std::unique_ptr<RtpPacketToSend>> padding_packets =
+      GeneratePadding(/*target_size_bytes=*/1);
+  ASSERT_THAT(padding_packets, SizeIs(1));
+
+  EXPECT_TRUE(padding_packets[0]->HasExtension<RtpMid>());
+  EXPECT_TRUE(padding_packets[0]->HasExtension<RepairedRtpStreamId>());
+}
+
 TEST_F(RtpSenderTest, GeneratePaddingResendsOldPacketsWithRtx) {
   // Min requested size in order to use RTX payload.
   const size_t kMinPaddingSize = 50;
