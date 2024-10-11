@@ -362,6 +362,25 @@ TEST_F(ChannelSendTest, UsedRateIsLargerofLastTwoFrames) {
   EXPECT_EQ(used_rate_3, used_rate_2);
 }
 
+// Test that we gracefully handle packets while the congestion control objects
+// are not configured. This can happen during calls
+// AudioSendStream::ConfigureStream
+TEST_F(ChannelSendTest, EnqueuePacketsGracefullyHandlesNonInitializedPacer) {
+  EXPECT_CALL(transport_, SendRtp).Times(1);
+  channel_->StartSend();
+  channel_->ResetSenderCongestionControlObjects();
+  // This should trigger a packet, but congestion control is not configured
+  // so it should be dropped
+  ProcessNextFrame();
+  ProcessNextFrame();
+
+  channel_->RegisterSenderCongestionControlObjects(&transport_controller_);
+  // Now that we reconfigured the congestion control objects the new frame
+  // should be processed
+  ProcessNextFrame();
+  ProcessNextFrame();
+}
+
 }  // namespace
 }  // namespace voe
 }  // namespace webrtc

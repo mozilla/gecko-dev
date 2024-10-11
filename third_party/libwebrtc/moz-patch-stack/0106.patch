@@ -1,31 +1,23 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Mon, 6 May 2024 07:28:00 +0000
-Subject: Bug 1892329 - Fix threading issues in VideoCaptureModuleV4L2 once and
- for all. r=webrtc-reviewers,mjf
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 17 May 2024 22:30:00 -0500
+Subject: Bug 1897501 - (fix-09bb4f09e1) keep default python intepreter as
+ python3
 
-Differential Revision: https://phabricator.services.mozilla.com/D208187
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/65e120a9c1dcb9c8f1c8930e808b03aa149eaf40
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b21ca84c8b2620a98515624de0e43a237698726c
 ---
- modules/video_capture/linux/video_capture_v4l2.cc | 2 +-
+ .gn | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
-index 29ca864e19..b6e7e79a2a 100644
---- a/modules/video_capture/linux/video_capture_v4l2.cc
-+++ b/modules/video_capture/linux/video_capture_v4l2.cc
-@@ -300,7 +300,6 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   _requestedCapability = capability;
-   _captureStarted = true;
-   _streaming = true;
--  }
+diff --git a/.gn b/.gn
+index b374016a64..8325a46ed3 100644
+--- a/.gn
++++ b/.gn
+@@ -13,7 +13,7 @@ buildconfig = "//build/config/BUILDCONFIG.gn"
  
-   // start capture thread;
-   if (!_captureThread.empty()) {
-@@ -308,6 +307,7 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
-   }
+ # The python interpreter to use by default. On Windows, this will look
+ # for vpython3.exe and vpython3.bat.
+-script_executable = "vpython3"
++script_executable = "python3"
  
-   quit_ = false;
-+  }
- 
-   _captureThread = rtc::PlatformThread::SpawnJoinable(
-       [self = scoped_refptr(this)] {
+ # The secondary source root is a parallel directory tree where
+ # GN build files are placed when they can not be placed directly
