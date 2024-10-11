@@ -474,7 +474,7 @@ void NetworkRouterNode::OnPacketReceived(EmulatedIpPacket packet) {
 void NetworkRouterNode::SetReceiver(
     const rtc::IPAddress& dest_ip,
     EmulatedNetworkReceiverInterface* receiver) {
-  task_queue_->PostTask([=] {
+  task_queue_->PostTask([this, dest_ip, receiver] {
     RTC_DCHECK_RUN_ON(task_queue_);
     EmulatedNetworkReceiverInterface* cur_receiver = routing_[dest_ip];
     RTC_CHECK(cur_receiver == nullptr || cur_receiver == receiver)
@@ -490,7 +490,7 @@ void NetworkRouterNode::RemoveReceiver(const rtc::IPAddress& dest_ip) {
 
 void NetworkRouterNode::SetDefaultReceiver(
     EmulatedNetworkReceiverInterface* receiver) {
-  task_queue_->PostTask([=] {
+  task_queue_->PostTask([this, receiver] {
     RTC_DCHECK_RUN_ON(task_queue_);
     if (default_receiver_.has_value()) {
       RTC_CHECK_EQ(*default_receiver_, receiver)
@@ -507,7 +507,7 @@ void NetworkRouterNode::RemoveDefaultReceiver() {
 
 void NetworkRouterNode::SetWatcher(
     std::function<void(const EmulatedIpPacket&)> watcher) {
-  task_queue_->PostTask([=] {
+  task_queue_->PostTask([this, watcher] {
     RTC_DCHECK_RUN_ON(task_queue_);
     watcher_ = watcher;
   });
@@ -515,7 +515,7 @@ void NetworkRouterNode::SetWatcher(
 
 void NetworkRouterNode::SetFilter(
     std::function<bool(const EmulatedIpPacket&)> filter) {
-  task_queue_->PostTask([=] {
+  task_queue_->PostTask([this, filter] {
     RTC_DCHECK_RUN_ON(task_queue_);
     filter_ = filter;
   });

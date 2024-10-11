@@ -83,8 +83,9 @@ RTCError JsepTransportController::SetLocalDescription(
   TRACE_EVENT0("webrtc", "JsepTransportController::SetLocalDescription");
 
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->BlockingCall(
-        [=] { return SetLocalDescription(type, local_desc, remote_desc); });
+    return network_thread_->BlockingCall([this, type, local_desc, remote_desc] {
+      return SetLocalDescription(type, local_desc, remote_desc);
+    });
   }
 
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -107,8 +108,9 @@ RTCError JsepTransportController::SetRemoteDescription(
   RTC_DCHECK(remote_desc);
   TRACE_EVENT0("webrtc", "JsepTransportController::SetRemoteDescription");
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->BlockingCall(
-        [=] { return SetRemoteDescription(type, local_desc, remote_desc); });
+    return network_thread_->BlockingCall([this, type, local_desc, remote_desc] {
+      return SetRemoteDescription(type, local_desc, remote_desc);
+    });
   }
 
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -402,7 +404,8 @@ void JsepTransportController::SetActiveResetSrtpParams(
 
 RTCError JsepTransportController::RollbackTransports() {
   if (!network_thread_->IsCurrent()) {
-    return network_thread_->BlockingCall([=] { return RollbackTransports(); });
+    return network_thread_->BlockingCall(
+        [this] { return RollbackTransports(); });
   }
   RTC_DCHECK_RUN_ON(network_thread_);
   bundles_.Rollback();
