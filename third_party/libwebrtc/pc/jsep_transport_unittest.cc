@@ -126,8 +126,8 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
     std::unique_ptr<webrtc::RtpTransport> unencrypted_rtp_transport;
     std::unique_ptr<webrtc::SrtpTransport> sdes_transport;
     std::unique_ptr<webrtc::DtlsSrtpTransport> dtls_srtp_transport;
-        dtls_srtp_transport = CreateDtlsSrtpTransport(
-            rtp_dtls_transport.get(), rtcp_dtls_transport.get());
+    dtls_srtp_transport = CreateDtlsSrtpTransport(rtp_dtls_transport.get(),
+                                                  rtcp_dtls_transport.get());
 
     auto jsep_transport = std::make_unique<JsepTransport>(
         kTransportName, /*local_certificate=*/nullptr, std::move(ice),
@@ -135,7 +135,8 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
         std::move(sdes_transport), std::move(dtls_srtp_transport),
         std::move(rtp_dtls_transport), std::move(rtcp_dtls_transport),
         /*sctp_transport=*/nullptr,
-        /*rtcp_mux_active_callback=*/[&]() { OnRtcpMuxActive(); });
+        /*rtcp_mux_active_callback=*/[&]() { OnRtcpMuxActive(); },
+        payload_type_picker_);
 
     signal_rtcp_mux_active_received_ = false;
     return jsep_transport;
@@ -179,6 +180,7 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
   webrtc::SrtpTransport* sdes_transport_ = nullptr;
 
   webrtc::test::ScopedKeyValueConfig field_trials_;
+  webrtc::PayloadTypePicker payload_type_picker_;
 };
 
 // The parameterized tests cover both cases when RTCP mux is enable and

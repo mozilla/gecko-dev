@@ -498,6 +498,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
       return nullptr;
     }
   }
+  PayloadTypePicker& payload_type_picker() { return payload_type_picker_; }
 
  private:
   cricket::TransportStats GetTransportStatsByName(
@@ -563,6 +564,7 @@ class FakePeerConnectionForStats : public FakePeerConnectionBase {
       local_certificates_by_transport_;
   std::map<std::string, std::unique_ptr<rtc::SSLCertChain>>
       remote_cert_chains_by_transport_;
+  PayloadTypePicker payload_type_picker_;
 };
 
 }  // namespace webrtc

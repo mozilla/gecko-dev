@@ -64,6 +64,7 @@ class ScenarioIceConnectionImpl : public ScenarioIceConnection,
       RTC_GUARDED_BY(signaling_thread_);
   std::unique_ptr<cricket::BasicPortAllocator> port_allocator_
       RTC_GUARDED_BY(network_thread_);
+  PayloadTypePicker payload_type_picker_;
   std::unique_ptr<JsepTransportController> jsep_controller_;
   RtpTransportInternal* rtp_transport_ RTC_GUARDED_BY(network_thread_) =
       nullptr;
@@ -107,6 +108,7 @@ ScenarioIceConnectionImpl::ScenarioIceConnectionImpl(
                                       network_thread_,
                                       port_allocator_.get(),
                                       /*async_resolver_factory*/ nullptr,
+                                      payload_type_picker_,
                                       CreateJsepConfig())) {
   SendTask(network_thread_, [this] {
     RTC_DCHECK_RUN_ON(network_thread_);

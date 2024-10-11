@@ -150,6 +150,7 @@ class JsepTransportController : public sigslot::has_slots<> {
       rtc::Thread* network_thread,
       cricket::PortAllocator* port_allocator,
       AsyncDnsResolverFactoryInterface* async_dns_resolver_factory,
+      PayloadTypePicker& payload_type_picker,
       Config config);
   virtual ~JsepTransportController();
 
@@ -510,6 +511,8 @@ class JsepTransportController : public sigslot::has_slots<> {
   rtc::scoped_refptr<rtc::RTCCertificate> certificate_;
 
   BundleManager bundles_;
+  // Reference to the SdpOfferAnswerHandler's payload type picker.
+  PayloadTypePicker& payload_type_picker_;
 };
 
 }  // namespace webrtc

@@ -43,6 +43,7 @@ JsepTransportController::JsepTransportController(
     rtc::Thread* network_thread,
     cricket::PortAllocator* port_allocator,
     AsyncDnsResolverFactoryInterface* async_dns_resolver_factory,
+    PayloadTypePicker& payload_type_picker,
     Config config)
     : env_(env),
       network_thread_(network_thread),
@@ -58,7 +59,8 @@ JsepTransportController::JsepTransportController(
           }),
       config_(std::move(config)),
       active_reset_srtp_params_(config.active_reset_srtp_params),
-      bundles_(config.bundle_policy) {
+      bundles_(config.bundle_policy),
+      payload_type_picker_(payload_type_picker) {
   // The `transport_observer` is assumed to be non-null.
   RTC_DCHECK(config_.transport_observer);
   RTC_DCHECK(config_.rtcp_handler);
@@ -681,6 +683,12 @@ RTCError JsepTransportController::ApplyDescription_n(
           "Failed to apply the description for m= section with mid='" +
               content_info.name + "': " + error.message());
     }
+    error = transport->RecordPayloadTypes(local, type, content_info);
+    if (!error.ok()) {
+      RTC_LOG(LS_ERROR) << "RecordPayloadTypes failed: "
+                        << ToString(error.type()) << " - " << error.message();
+      return error;
+    }
   }
   if (type == SdpType::kAnswer) {
     transports_.CommitTransports();
@@ -1099,10 +1107,12 @@ RTCError JsepTransportController::MaybeCreateJsepTransport(
           content_info.name, certificate_, std::move(ice), std::move(rtcp_ice),
           std::move(unencrypted_rtp_transport), std::move(sdes_transport),
           std::move(dtls_srtp_transport), std::move(rtp_dtls_transport),
-          std::move(rtcp_dtls_transport), std::move(sctp_transport), [&]() {
+          std::move(rtcp_dtls_transport), std::move(sctp_transport),
+          [&]() {
             RTC_DCHECK_RUN_ON(network_thread_);
             UpdateAggregateStates_n();
-          });
+          },
+          payload_type_picker_);
 
   jsep_transport->rtp_transport()->SubscribeRtcpPacketReceived(
       this, [this](rtc::CopyOnWriteBuffer* buffer, int64_t packet_time_ms) {

@@ -448,6 +448,9 @@ class PeerConnection : public PeerConnectionInternal,
     RTC_DCHECK(call_);
     return call_->GetTransportControllerSend()->GetNetworkController();
   }
+  PayloadTypePicker& payload_type_picker() override {
+    return payload_type_picker_;
+  }
 
  protected:
   // Available for rtc::scoped_refptr creation
@@ -707,6 +710,7 @@ class PeerConnection : public PeerConnectionInternal,
   // Used to gather metrics only the first such state change.
   bool was_ever_connected_ RTC_GUARDED_BY(signaling_thread()) = false;
 
+  PayloadTypePicker payload_type_picker_;
   // This variable needs to be the last one in the class.
   rtc::WeakPtrFactory<PeerConnection> weak_factory_;
 };

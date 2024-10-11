@@ -31,6 +31,12 @@ class PayloadType : public StrongAlias<class PayloadTypeTag, uint8_t> {
 
 class PayloadTypePicker {
  public:
+  PayloadTypePicker() = default;
+  PayloadTypePicker(const PayloadTypePicker&) = delete;
+  PayloadTypePicker& operator=(const PayloadTypePicker&) = delete;
+  PayloadTypePicker(PayloadTypePicker&&) = delete;
+  PayloadTypePicker& operator=(PayloadTypePicker&&) = delete;
+
   RTCErrorOr<PayloadType> SuggestMapping(cricket::Codec codec);
   RTCError AddMapping(PayloadType payload_type, cricket::Codec codec);
 };

@@ -373,9 +373,22 @@ class FakePeerConnectionBase : public PeerConnectionInternal {
     return nullptr;
   }
 
+  PayloadTypePicker& payload_type_picker() override {
+    return payload_type_picker_;
+  }
+
+  cricket::CandidateStatsList GetPooledCandidateStats() const override {
+    return {};
+  }
+
  protected:
   test::ScopedKeyValueConfig field_trials_;
+  PayloadTypePicker payload_type_picker_;
 };
+
+static_assert(
+    !std::is_abstract_v<rtc::RefCountedObject<FakePeerConnectionBase>>,
+    "");
 
 }  // namespace webrtc
 

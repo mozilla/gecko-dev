@@ -77,7 +77,8 @@ JsepTransport::JsepTransport(
     std::unique_ptr<DtlsTransportInternal> rtp_dtls_transport,
     std::unique_ptr<DtlsTransportInternal> rtcp_dtls_transport,
     std::unique_ptr<SctpTransportInternal> sctp_transport,
-    std::function<void()> rtcp_mux_active_callback)
+    std::function<void()> rtcp_mux_active_callback,
+    webrtc::PayloadTypePicker& suggester)
     : network_thread_(rtc::Thread::Current()),
       mid_(mid),
       local_certificate_(local_certificate),
@@ -99,7 +100,9 @@ JsepTransport::JsepTransport(
                                 std::move(sctp_transport),
                                 rtp_dtls_transport_)
                           : nullptr),
-      rtcp_mux_active_callback_(std::move(rtcp_mux_active_callback)) {
+      rtcp_mux_active_callback_(std::move(rtcp_mux_active_callback)),
+      remote_payload_types_(suggester),
+      local_payload_types_(suggester) {
   TRACE_EVENT0("webrtc", "JsepTransport::JsepTransport");
   RTC_DCHECK(ice_transport_);
   RTC_DCHECK(rtp_dtls_transport_);
@@ -368,6 +371,24 @@ void JsepTransport::SetActiveResetSrtpParams(bool active_reset_srtp_params) {
         << active_reset_srtp_params;
     dtls_srtp_transport_->SetActiveResetSrtpParams(active_reset_srtp_params);
   }
+}
+
+webrtc::RTCError JsepTransport::RecordPayloadTypes(bool local,
+                                                   webrtc::SdpType type,
+                                                   const ContentInfo& content) {
+  RTC_DCHECK_RUN_ON(network_thread_);
+  for (auto codec : content.media_description()->codecs()) {
+    webrtc::RTCError result;
+    if (local) {
+      result = local_payload_types_.AddMapping(codec.id, codec);
+    } else {
+      result = remote_payload_types_.AddMapping(codec.id, codec);
+    }
+    if (!result.ok()) {
+      return result;
+    }
+  }
+  return webrtc::RTCError::OK();
 }
 
 void JsepTransport::SetRemoteIceParameters(

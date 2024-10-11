@@ -127,6 +127,9 @@ class PeerConnectionSdpMethods {
   virtual const FieldTrialsView& trials() const = 0;
 
   virtual void ClearStatsCache() = 0;
+  // Keeps track of assigned payload types and comes up with reasonable
+  // suggestions when new PTs need to be assigned.
+  virtual PayloadTypePicker& payload_type_picker() = 0;
 };
 
 // Functions defined in this class are called by other objects,

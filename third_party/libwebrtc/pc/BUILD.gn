@@ -206,6 +206,7 @@ rtc_source_set("jsep_transport") {
   deps = [
     ":dtls_srtp_transport",
     ":dtls_transport",
+    ":payload_type_picker",
     ":rtcp_mux_filter",
     ":rtp_transport",
     ":rtp_transport_internal",
@@ -413,6 +414,7 @@ rtc_library("payload_type_picker") {
     "../api:rtc_error",
     "../media:codec",
     "../rtc_base:strong_alias",
+    "//third_party/abseil-cpp/absl/strings",
   ]
 }
 
