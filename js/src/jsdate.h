@@ -56,10 +56,10 @@ struct YearMonthDay {
   int32_t year;
 
   // 0-indexed month, i.e. 0 is January, 1 is February, ..., 11 is December.
-  uint32_t month;
+  int32_t month;
 
   // 1-indexed day of month.
-  uint32_t day;
+  int32_t day;
 };
 
 /*

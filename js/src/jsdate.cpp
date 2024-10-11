@@ -382,8 +382,8 @@ YearMonthDay js::ToYearMonthDay(int64_t time) {
   constexpr uint32_t daysFromMar01ToJan01 = 306;
   const uint32_t J = N_Y >= daysFromMar01ToJan01;
   const int32_t Y_G = int32_t((Y - L) + J);
-  const uint32_t M_G = J ? M - 12 : M;
-  const uint32_t D_G = D + 1;
+  const int32_t M_G = int32_t(J ? M - 12 : M);
+  const int32_t D_G = int32_t(D + 1);
 
   return {Y_G, M_G, D_G};
 }
@@ -415,7 +415,7 @@ static double DayWithinYear(int64_t t, double year) {
  */
 static int32_t MonthFromTime(int64_t t) {
   MOZ_ASSERT(IsLocalTimeValue(t));
-  return int32_t(ToYearMonthDay(t).month);
+  return ToYearMonthDay(t).month;
 }
 
 /**
@@ -425,7 +425,7 @@ static int32_t MonthFromTime(int64_t t) {
  */
 static int32_t DateFromTime(int64_t t) {
   MOZ_ASSERT(IsLocalTimeValue(t));
-  return int32_t(ToYearMonthDay(t).day);
+  return ToYearMonthDay(t).day;
 }
 
 /**
@@ -2184,8 +2184,8 @@ void DateObject::fillLocalTimeSlots() {
   const auto [year, month, day] = ToYearMonthDay(localTime);
 
   setReservedSlot(LOCAL_YEAR_SLOT, Int32Value(year));
-  setReservedSlot(LOCAL_MONTH_SLOT, Int32Value(int32_t(month)));
-  setReservedSlot(LOCAL_DATE_SLOT, Int32Value(int32_t(day)));
+  setReservedSlot(LOCAL_MONTH_SLOT, Int32Value(month));
+  setReservedSlot(LOCAL_DATE_SLOT, Int32Value(day));
 
   int weekday = WeekDay(localTime);
   setReservedSlot(LOCAL_DAY_SLOT, Int32Value(weekday));
@@ -3641,7 +3641,7 @@ static bool date_toUTCString(JSContext* cx, unsigned argc, Value* vp) {
   auto [hour, minute, second] = ToHourMinuteSecond(epochMilliseconds);
 
   char buf[100];
-  SprintfLiteral(buf, "%s, %.2u %s %.4d %.2d:%.2d:%.2d GMT",
+  SprintfLiteral(buf, "%s, %.2d %s %.4d %.2d:%.2d:%.2d GMT",
                  days[WeekDay(epochMilliseconds)], day, months[month], year,
                  hour, minute, second);
 
@@ -3689,10 +3689,10 @@ static bool date_toISOString(JSContext* cx, unsigned argc, Value* vp) {
 
   char buf[100];
   if (year < 0 || year > 9999) {
-    SprintfLiteral(buf, "%+.6d-%.2u-%.2uT%.2d:%.2d:%.2d.%.3dZ", year, month + 1,
+    SprintfLiteral(buf, "%+.6d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ", year, month + 1,
                    day, hour, minute, second, msFromTime(epochMilliseconds));
   } else {
-    SprintfLiteral(buf, "%.4d-%.2u-%.2uT%.2d:%.2d:%.2d.%.3dZ", year, month + 1,
+    SprintfLiteral(buf, "%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ", year, month + 1,
                    day, hour, minute, second, msFromTime(epochMilliseconds));
   }
 
@@ -3909,7 +3909,7 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
       /* Tue Oct 31 2000 09:41:40 GMT-0800 */
       auto [year, month, day] = ToYearMonthDay(localTime);
       auto [hour, minute, second] = ToHourMinuteSecond(localTime);
-      SprintfLiteral(buf, "%s %s %.2u %.4d %.2d:%.2d:%.2d GMT%+.4d",
+      SprintfLiteral(buf, "%s %s %.2d %.4d %.2d:%.2d:%.2d GMT%+.4d",
                      days[int(WeekDay(localTime))], months[month], day, year,
                      hour, minute, second, offset);
       break;
@@ -3917,7 +3917,7 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
     case FormatSpec::Date: {
       /* Tue Oct 31 2000 */
       auto [year, month, day] = ToYearMonthDay(localTime);
-      SprintfLiteral(buf, "%s %s %.2u %.4d", days[int(WeekDay(localTime))],
+      SprintfLiteral(buf, "%s %s %.2d %.4d", days[int(WeekDay(localTime))],
                      months[month], day, year);
       break;
     }
