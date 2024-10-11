@@ -26,8 +26,10 @@ legacy.telemetry:
       Does not need to be sent in the Glean "deletion-request" ping.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1755549
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1755549
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
     data_sensitivity:
       - technical
       - highly_sensitive
@@ -42,6 +44,7 @@ legacy.telemetry:
       - 'events'
       - 'newtab'
       - 'baseline'
+      - 'dau-reporting'
 
   profile_group_id:
     type: uuid
