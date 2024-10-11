@@ -608,6 +608,12 @@ dictionary GPUShaderModuleDescriptor
          : GPUObjectDescriptorBase {
     // UTF8String is not observably different from USVString
     required UTF8String code;
+    sequence<GPUShaderModuleCompilationHint> compilationHints = [];
+};
+
+dictionary GPUShaderModuleCompilationHint {
+    required USVString entryPoint;
+    (GPUPipelineLayout or GPUAutoLayoutMode) layout;
 };
 
 enum GPUCompilationMessageType {
