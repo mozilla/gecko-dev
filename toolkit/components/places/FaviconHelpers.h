@@ -170,25 +170,21 @@ class AsyncGetFaviconURLForPage final : public Runnable {
   /**
    * Constructor.
    *
-   * @param aPageSpec
-   *        URL of the page whose favicon's URL we're fetching
-   * @param aPageHost
-   *        Host of the page whose favicon's URL we're fetching
+   * @param aPageURI
+   *        URI of the page whose favicon's URL we're fetching
    * @param aCallback
    *        function to be called once finished
    * @param aPreferredWidth
    *        The preferred size for the icon
    */
-  AsyncGetFaviconURLForPage(const nsACString& aPageSpec,
-                            const nsACString& aPageHost,
+  AsyncGetFaviconURLForPage(const nsCOMPtr<nsIURI>& aPageURI,
                             uint16_t aPreferredWidth,
                             nsIFaviconDataCallback* aCallback);
 
  private:
   uint16_t mPreferredWidth;
   nsMainThreadPtrHandle<nsIFaviconDataCallback> mCallback;
-  nsCString mPageSpec;
-  nsCString mPageHost;
+  nsCOMPtr<nsIURI> mPageURI;
 };
 
 /**
@@ -202,26 +198,22 @@ class AsyncGetFaviconDataForPage final : public Runnable {
   /**
    * Constructor.
    *
-   * @param aPageSpec
-   *        URL of the page whose favicon URL and data we're fetching
-   * @param aPageHost
-   *        Host of the page whose favicon's URL we're fetching
+   * @param aPageURI
+   *        URI of the page whose favicon's URL we're fetching
    * @param aPreferredWidth
    *        The preferred size of the icon.  We will try to return an icon close
    *        to this size.
    * @param aCallback
    *        function to be called once finished
    */
-  AsyncGetFaviconDataForPage(const nsACString& aPageSpec,
-                             const nsACString& aPageHost,
+  AsyncGetFaviconDataForPage(const nsCOMPtr<nsIURI>& aPageURI,
                              uint16_t aPreferredWidth,
                              nsIFaviconDataCallback* aCallback);
 
  private:
   uint16_t mPreferredWidth;
   nsMainThreadPtrHandle<nsIFaviconDataCallback> mCallback;
-  nsCString mPageSpec;
-  nsCString mPageHost;
+  nsCOMPtr<nsIURI> mPageURI;
 };
 
 /**

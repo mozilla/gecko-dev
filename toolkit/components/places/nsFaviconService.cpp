@@ -431,15 +431,8 @@ nsFaviconService::GetFaviconURLForPage(nsIURI* aPageURI,
 
   nsCOMPtr<nsIURI> pageURI = GetExposableURI(aPageURI);
 
-  nsAutoCString pageSpec;
-  nsresult rv = pageURI->GetSpec(pageSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsAutoCString pageHost;
-  // It's expected that some domains may not have a host.
-  Unused << aPageURI->GetHost(pageHost);
-
-  RefPtr<AsyncGetFaviconURLForPage> event = new AsyncGetFaviconURLForPage(
-      pageSpec, pageHost, aPreferredWidth, aCallback);
+  RefPtr<AsyncGetFaviconURLForPage> event =
+      new AsyncGetFaviconURLForPage(pageURI, aPreferredWidth, aCallback);
 
   RefPtr<Database> DB = Database::GetDatabase();
   NS_ENSURE_STATE(DB);
@@ -462,15 +455,8 @@ nsFaviconService::GetFaviconDataForPage(nsIURI* aPageURI,
 
   nsCOMPtr<nsIURI> pageURI = GetExposableURI(aPageURI);
 
-  nsAutoCString pageSpec;
-  nsresult rv = pageURI->GetSpec(pageSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsAutoCString pageHost;
-  // It's expected that some domains may not have a host.
-  Unused << pageURI->GetHost(pageHost);
-
-  RefPtr<AsyncGetFaviconDataForPage> event = new AsyncGetFaviconDataForPage(
-      pageSpec, pageHost, aPreferredWidth, aCallback);
+  RefPtr<AsyncGetFaviconDataForPage> event =
+      new AsyncGetFaviconDataForPage(pageURI, aPreferredWidth, aCallback);
   RefPtr<Database> DB = Database::GetDatabase();
   NS_ENSURE_STATE(DB);
   DB->DispatchToAsyncThread(event);
