@@ -57,7 +57,7 @@ add_task(async function () {
   // Ensure selecting the source before asserting breakable lines
   // otherwise the gutter may not be yet updated
   await selectSource(dbg, "fib.c");
-  assertLineIsBreakable(dbg, source.url, 14, true);
+  await assertLineIsBreakable(dbg, source.url, 14, true);
 
   await waitForSourcesInSourceTree(dbg, [
     "doc-wasm-sourcemaps.html",
@@ -113,7 +113,7 @@ add_task(async function () {
     keepContext: false,
   });
 
-  assertLineIsBreakable(dbg, binarySource.url, binaryLine, true);
+  await assertLineIsBreakable(dbg, binarySource.url, binaryLine, true);
 
   await addBreakpoint(dbg, binarySource, virtualBinaryLine);
   invokeInTab("runWasm");
