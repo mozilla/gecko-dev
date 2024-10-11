@@ -16673,33 +16673,33 @@ static bool AddInlinedCompilations(JSContext* cx, HandleScript script,
 }
 
 struct EmulatesUndefinedDependency final : public CompilationDependency {
-  CompileRuntime* runtime;
-  explicit EmulatesUndefinedDependency(CompileRuntime* runtime)
-      : CompilationDependency(CompilationDependency::Type::EmulatesUndefined),
-        runtime(runtime) {};
+  explicit EmulatesUndefinedDependency()
+      : CompilationDependency(CompilationDependency::Type::EmulatesUndefined) {
+        };
 
   virtual bool operator==(CompilationDependency& dep) {
     // Since the emulates undefined fuse is runtime wide, they are all equal
     return dep.type == type;
   }
 
-  virtual bool checkDependency() {
-    return runtime->hasSeenObjectEmulateUndefinedFuseIntact();
+  virtual bool checkDependency(JSContext* cx) {
+    return cx->runtime()->hasSeenObjectEmulateUndefinedFuse.ref().intact();
   }
 
   virtual bool registerDependency(JSContext* cx, HandleScript script) {
+    MOZ_ASSERT(checkDependency(cx));
     return cx->runtime()
         ->hasSeenObjectEmulateUndefinedFuse.ref()
         .addFuseDependency(cx, script);
   }
 
   virtual UniquePtr<CompilationDependency> clone() {
-    return MakeUnique<EmulatesUndefinedDependency>(runtime);
+    return MakeUnique<EmulatesUndefinedDependency>();
   }
 };
 
 bool CodeGenerator::addHasSeenObjectEmulateUndefinedFuseDependency() {
-  EmulatesUndefinedDependency dep(gen->runtime);
+  EmulatesUndefinedDependency dep;
   return mirGen().tracker.addDependency(dep);
 }
 
@@ -16748,7 +16748,9 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
   }
 
   CompilationDependencyTracker& tracker = mirGen().tracker;
-  if (!tracker.checkDependencies()) {
+  // Make sure we're using the same realm as this context.
+  MOZ_ASSERT(mirGen().realm->realmPtr() == cx->realm());
+  if (!tracker.checkDependencies(cx)) {
     return true;
   }
 
