@@ -242,6 +242,18 @@ class JsepTransport {
                                       webrtc::SdpType type,
                                       const ContentInfo& content);
 
+  const webrtc::PayloadTypeRecorder& remote_payload_types() const {
+    return remote_payload_types_;
+  }
+  const webrtc::PayloadTypeRecorder& local_payload_types() const {
+    return local_payload_types_;
+  }
+  void CommitPayloadTypes() {
+    RTC_DCHECK_RUN_ON(network_thread_);
+    local_payload_types_.Commit();
+    remote_payload_types_.Commit();
+  }
+
  private:
   bool SetRtcpMux(bool enable, webrtc::SdpType type, ContentSource source);
 

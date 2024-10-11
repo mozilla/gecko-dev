@@ -235,6 +235,13 @@ class JsepTransportController : public sigslot::has_slots<> {
   // Get negotiated role, if one has been negotiated.
   absl::optional<rtc::SSLRole> GetDtlsRole(const std::string& mid) const;
 
+  // Suggest a payload type for a given codec on a given media section.
+  // Media section is indicated by MID.
+  // The function will either return a PT already in use on the connection
+  // or a newly suggested one.
+  RTCErrorOr<PayloadType> SuggestPayloadType(const std::string& mid,
+                                             cricket::Codec codec);
+
   // TODO(deadbeef): GetStats isn't const because all the way down to
   // OpenSSLStreamAdapter, GetSslCipherSuite and GetDtlsSrtpCryptoSuite are not
   // const. Fix this.

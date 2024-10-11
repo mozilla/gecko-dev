@@ -220,6 +220,29 @@ absl::optional<rtc::SSLRole> JsepTransportController::GetDtlsRole(
   return t->GetDtlsRole();
 }
 
+RTCErrorOr<webrtc::PayloadType> JsepTransportController::SuggestPayloadType(
+    const std::string& mid,
+    cricket::Codec codec) {
+  RTC_DCHECK_RUN_ON(network_thread_);
+  const cricket::JsepTransport* transport = GetJsepTransportForMid(mid);
+  if (transport) {
+    auto local_result =
+        transport->local_payload_types().LookupPayloadType(codec);
+    if (local_result.ok()) {
+      return local_result;
+    }
+    auto remote_result =
+        transport->remote_payload_types().LookupPayloadType(codec);
+    if (remote_result.ok()) {
+      return remote_result;
+    }
+    return payload_type_picker_.SuggestMapping(
+        codec, &transport->local_payload_types());
+  }
+  // If there is no transport, there are no exclusions.
+  return payload_type_picker_.SuggestMapping(codec, nullptr);
+}
+
 bool JsepTransportController::SetLocalCertificate(
     const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) {
   if (!network_thread_->IsCurrent()) {

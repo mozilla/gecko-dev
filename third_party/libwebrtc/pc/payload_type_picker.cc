@@ -130,7 +130,7 @@ PayloadTypePicker::PayloadTypePicker() {
 
 RTCErrorOr<PayloadType> PayloadTypePicker::SuggestMapping(
     cricket::Codec codec,
-    PayloadTypeRecorder* excluder) {
+    const PayloadTypeRecorder* excluder) {
   // The first matching entry is returned, unless excluder
   // maps it to something different.
   for (auto entry : entries_) {
@@ -193,12 +193,12 @@ RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
 }
 
 std::vector<std::pair<PayloadType, cricket::Codec>>
-PayloadTypeRecorder::GetMappings() {
+PayloadTypeRecorder::GetMappings() const {
   return std::vector<std::pair<PayloadType, cricket::Codec>>{};
 }
 
 RTCErrorOr<PayloadType> PayloadTypeRecorder::LookupPayloadType(
-    cricket::Codec codec) {
+    cricket::Codec codec) const {
   // Note that having multiple PTs mapping to the same codec is NOT an error.
   // In this case, we return the first found (not deterministic).
   auto result = std::find_if(
@@ -212,7 +212,7 @@ RTCErrorOr<PayloadType> PayloadTypeRecorder::LookupPayloadType(
 }
 
 RTCErrorOr<cricket::Codec> PayloadTypeRecorder::LookupCodec(
-    PayloadType payload_type) {
+    PayloadType payload_type) const {
   auto result = payload_type_to_codec_.find(payload_type);
   if (result == payload_type_to_codec_.end()) {
     return RTCError(RTCErrorType::INVALID_PARAMETER, "No such payload type");
@@ -220,7 +220,7 @@ RTCErrorOr<cricket::Codec> PayloadTypeRecorder::LookupCodec(
   return result->second;
 }
 
-void PayloadTypeRecorder::Checkpoint() {
+void PayloadTypeRecorder::Commit() {
   checkpoint_payload_type_to_codec_ = payload_type_to_codec_;
 }
 void PayloadTypeRecorder::Rollback() {

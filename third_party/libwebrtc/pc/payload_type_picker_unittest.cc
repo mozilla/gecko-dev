@@ -75,7 +75,7 @@ TEST(PayloadTypePicker, RollbackAndCommit) {
   cricket::Codec b_codec = cricket::CreateVideoCodec(0, "vp9");
   auto error = recorder.AddMapping(a_payload_type, a_codec);
   ASSERT_TRUE(error.ok());
-  recorder.Checkpoint();
+  recorder.Commit();
   ASSERT_TRUE(recorder.AddMapping(b_payload_type, b_codec).ok());
   {
     auto result = recorder.LookupCodec(a_payload_type);
@@ -99,7 +99,7 @@ TEST(PayloadTypePicker, RollbackAndCommit) {
   }
   ASSERT_TRUE(recorder.AddMapping(b_payload_type, b_codec).ok());
   // Rollback after a new checkpoint has no effect.
-  recorder.Checkpoint();
+  recorder.Commit();
   recorder.Rollback();
   {
     auto result = recorder.LookupCodec(b_payload_type);
