@@ -221,13 +221,21 @@ class SearchInFileBar extends Component {
 
   /**
    * Update the state with the results and matches from the search.
-   * The cusor loccation is also set for CM6.
+   * The cursor location is also set for CM6.
    * @param {Object} results
    * @param {Array} matches
    * @returns
    */
   setSearchResults(results, matches) {
     if (!results) {
+      this.setState({
+        results: {
+          matches,
+          matchIndex: 0,
+          count: matches.length,
+          index: -1,
+        },
+      });
       return;
     }
     const { ch, line } = results;

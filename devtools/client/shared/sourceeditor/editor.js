@@ -164,7 +164,7 @@ class Editor extends EventEmitter {
   searchState = {
     cursors: [],
     currentCursorIndex: -1,
-    query: null,
+    query: "",
   };
 
   #abortController;
@@ -3040,6 +3040,12 @@ class Editor extends EventEmitter {
     return inXView && inYView;
   }
 
+  /**
+   * Determines the line and column values the map to the codemirror offset specified.
+   * Used only for CM6
+   * @param {Number} pos - Codemirror offset
+   * @returns {Object} - Line column related to the position
+   */
   #posToLineColumn(pos) {
     const cm = editors.get(this);
     if (!pos) {
@@ -3231,6 +3237,42 @@ class Editor extends EventEmitter {
     const offset = this.#positionToOffset(line);
     const el = this.#getElementAtOffset(offset);
     return el.closest(".cm-line");
+  }
+
+  // Used only in tests
+  getSearchQuery() {
+    const cm = editors.get(this);
+    if (this.config.cm6) {
+      return this.searchState.query.toString();
+    }
+    return cm.state.search.query;
+  }
+
+  // Used only in tests
+  // Gets currently selected search term
+  getSearchSelection() {
+    const cm = editors.get(this);
+    if (this.config.cm6) {
+      const cursor =
+        this.searchState.cursors[this.searchState.currentCursorIndex];
+      if (!cursor) {
+        return { text: "", line: -1, column: -1 };
+      }
+
+      const cursorPosition = this.#posToLineColumn(cursor.to);
+      // The lines in CM6 are 1 based while CM5 is  0 based
+      return {
+        text: cursor.match[0],
+        line: cursorPosition.line - 1,
+        column: cursorPosition.column,
+      };
+    }
+    const cursor = cm.getCursor();
+    return {
+      text: cm.getSelection(),
+      line: cursor.line,
+      column: cursor.ch,
+    };
   }
 
   // Only used for CM6
