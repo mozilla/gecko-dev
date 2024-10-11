@@ -1,227 +1,302 @@
 From: Michael Froman <mjfroman@mac.com>
-Date: Fri, 11 Oct 2024 12:48:36 -0500
-Subject: (tmp-cherry-pick) Revert "Add PT lookup function to
- JsepTransportController" (0e3a3266af)
+Date: Fri, 11 Oct 2024 12:47:37 -0500
+Subject: (tmp-cherry-pick) Revert "Add first iteration of
+ PayloadTypePicker.SuggestPayloadType" (2e376cd36d)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-This reverts commit d178532ff9416f8b4272b9b8622afa9bab2ed558.
+This reverts commit e2869de9efb8633e51815061242fe5eefd43dad7.
 
-Reason for revert: break pw-answer
+Reason for revert: pr-answer
 
 Original change's description:
-> Add PT lookup function to JsepTransportController
+> Add first iteration of PayloadTypePicker.SuggestPayloadType
 >
 > Bug: webrtc:360058654
-> Change-Id: I9db58bf872f8659622e9f626fc21ce84993cfdfb
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360143
+> Change-Id: I8f9242a97dc871a39ae72f325b8ca039b2285bae
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360061
 > Commit-Queue: Harald Alvestrand <hta@webrtc.org>
 > Reviewed-by: Florent Castelli <orphis@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42829}
+> Cr-Commit-Position: refs/heads/main@{#42828}
 
 Bug: webrtc:360058654
-Change-Id: Ic082dd3e86ed11d05b65710463fa9e57715bf07a
+Change-Id: I3a6b20595aa8420983f692048a8abdb254bf20d8
 No-Presubmit: true
 No-Tree-Checks: true
 No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360360
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360343
 Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Reviewed-by: Henrik Boström <hbos@webrtc.org>
 Commit-Queue: Jonas Oreland <jonaso@google.com>
-Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42832}
+Cr-Commit-Position: refs/heads/main@{#42833}
 ---
- pc/jsep_transport.h                | 12 ------------
- pc/jsep_transport_collection.cc    |  3 ---
- pc/jsep_transport_controller.cc    | 23 -----------------------
- pc/jsep_transport_controller.h     |  7 -------
- pc/payload_type_picker.cc          | 10 +++++-----
- pc/payload_type_picker.h           | 12 ++++++------
- pc/payload_type_picker_unittest.cc |  4 ++--
- 7 files changed, 13 insertions(+), 58 deletions(-)
+ pc/payload_type_picker.cc          | 128 ++---------------------------
+ pc/payload_type_picker.h           |  26 +-----
+ pc/payload_type_picker_unittest.cc |  44 ----------
+ 3 files changed, 9 insertions(+), 189 deletions(-)
 
-diff --git a/pc/jsep_transport.h b/pc/jsep_transport.h
-index 3c14f13159..b2c7a751aa 100644
---- a/pc/jsep_transport.h
-+++ b/pc/jsep_transport.h
-@@ -242,18 +242,6 @@ class JsepTransport {
-                                       webrtc::SdpType type,
-                                       const ContentInfo& content);
- 
--  const webrtc::PayloadTypeRecorder& remote_payload_types() const {
--    return remote_payload_types_;
--  }
--  const webrtc::PayloadTypeRecorder& local_payload_types() const {
--    return local_payload_types_;
--  }
--  void CommitPayloadTypes() {
--    RTC_DCHECK_RUN_ON(network_thread_);
--    local_payload_types_.Commit();
--    remote_payload_types_.Commit();
--  }
--
-  private:
-   bool SetRtcpMux(bool enable, webrtc::SdpType type, ContentSource source);
- 
-diff --git a/pc/jsep_transport_collection.cc b/pc/jsep_transport_collection.cc
-index 08ae513698..b50d303d77 100644
---- a/pc/jsep_transport_collection.cc
-+++ b/pc/jsep_transport_collection.cc
-@@ -306,9 +306,6 @@ void JsepTransportCollection::CommitTransports() {
-   RTC_DCHECK_RUN_ON(&sequence_checker_);
-   stable_mid_to_transport_ = mid_to_transport_;
-   DestroyUnusedTransports();
--  for (auto& transport : jsep_transports_by_name_) {
--    transport.second->CommitPayloadTypes();
--  }
-   RTC_DCHECK(IsConsistent());
- }
- 
-diff --git a/pc/jsep_transport_controller.cc b/pc/jsep_transport_controller.cc
-index 7ad8e2d018..5d6ac95879 100644
---- a/pc/jsep_transport_controller.cc
-+++ b/pc/jsep_transport_controller.cc
-@@ -220,29 +220,6 @@ absl::optional<rtc::SSLRole> JsepTransportController::GetDtlsRole(
-   return t->GetDtlsRole();
- }
- 
--RTCErrorOr<webrtc::PayloadType> JsepTransportController::SuggestPayloadType(
--    const std::string& mid,
--    cricket::Codec codec) {
--  RTC_DCHECK_RUN_ON(network_thread_);
--  const cricket::JsepTransport* transport = GetJsepTransportForMid(mid);
--  if (transport) {
--    auto local_result =
--        transport->local_payload_types().LookupPayloadType(codec);
--    if (local_result.ok()) {
--      return local_result;
--    }
--    auto remote_result =
--        transport->remote_payload_types().LookupPayloadType(codec);
--    if (remote_result.ok()) {
--      return remote_result;
--    }
--    return payload_type_picker_.SuggestMapping(
--        codec, &transport->local_payload_types());
--  }
--  // If there is no transport, there are no exclusions.
--  return payload_type_picker_.SuggestMapping(codec, nullptr);
--}
--
- bool JsepTransportController::SetLocalCertificate(
-     const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) {
-   if (!network_thread_->IsCurrent()) {
-diff --git a/pc/jsep_transport_controller.h b/pc/jsep_transport_controller.h
-index c4275bde5f..749faddbe2 100644
---- a/pc/jsep_transport_controller.h
-+++ b/pc/jsep_transport_controller.h
-@@ -235,13 +235,6 @@ class JsepTransportController : public sigslot::has_slots<> {
-   // Get negotiated role, if one has been negotiated.
-   absl::optional<rtc::SSLRole> GetDtlsRole(const std::string& mid) const;
- 
--  // Suggest a payload type for a given codec on a given media section.
--  // Media section is indicated by MID.
--  // The function will either return a PT already in use on the connection
--  // or a newly suggested one.
--  RTCErrorOr<PayloadType> SuggestPayloadType(const std::string& mid,
--                                             cricket::Codec codec);
--
-   // TODO(deadbeef): GetStats isn't const because all the way down to
-   // OpenSSLStreamAdapter, GetSslCipherSuite and GetDtlsSrtpCryptoSuite are not
-   // const. Fix this.
 diff --git a/pc/payload_type_picker.cc b/pc/payload_type_picker.cc
-index 0f7798e01a..cebc7eb4cc 100644
+index cebc7eb4cc..236b91438e 100644
 --- a/pc/payload_type_picker.cc
 +++ b/pc/payload_type_picker.cc
-@@ -130,7 +130,7 @@ PayloadTypePicker::PayloadTypePicker() {
+@@ -22,14 +22,6 @@ namespace webrtc {
  
+ namespace {
+ 
+-// Due to interoperability issues with old Chrome/WebRTC versions that
+-// ignore the [35, 63] range prefer the lower range for new codecs.
+-static const int kFirstDynamicPayloadTypeLowerRange = 35;
+-static const int kLastDynamicPayloadTypeLowerRange = 63;
+-
+-static const int kFirstDynamicPayloadTypeUpperRange = 96;
+-static const int kLastDynamicPayloadTypeUpperRange = 127;
+-
+ // Note: The only fields we need from a Codec are the type (audio/video),
+ // the subtype (vp8/h264/....), the clock rate, the channel count, and the
+ // fmtp parameters. The use of cricket::Codec, which contains more fields,
+@@ -43,127 +35,16 @@ bool MatchesForSdp(const cricket::Codec& codec_1,
+          codec_1.params == codec_2.params;
+ }
+ 
+-struct MapTableEntry {
+-  webrtc::SdpAudioFormat format;
+-  int payload_type;
+-};
+-
+-RTCErrorOr<PayloadType> FindFreePayloadType(std::set<PayloadType> seen_pt) {
+-  for (auto i = kFirstDynamicPayloadTypeUpperRange;
+-       i < kLastDynamicPayloadTypeUpperRange; i++) {
+-    if (seen_pt.count(PayloadType(i)) == 0) {
+-      return PayloadType(i);
+-    }
+-  }
+-  for (auto i = kFirstDynamicPayloadTypeLowerRange;
+-       i < kLastDynamicPayloadTypeLowerRange; i++) {
+-    if (seen_pt.count(PayloadType(i)) == 0) {
+-      return PayloadType(i);
+-    }
+-  }
+-  return RTCError(RTCErrorType::RESOURCE_EXHAUSTED,
+-                  "All available dynamic PTs have been assigned");
+-}
+-
+ }  // namespace
+ 
+-PayloadTypePicker::PayloadTypePicker() {
+-  // Default audio codecs. Duplicates media/engine/payload_type_mapper.cc
+-  const MapTableEntry default_audio_mappings[] = {
+-      // Static payload type assignments according to RFC 3551.
+-      {{cricket::kPcmuCodecName, 8000, 1}, 0},
+-      {{"GSM", 8000, 1}, 3},
+-      {{"G723", 8000, 1}, 4},
+-      {{"DVI4", 8000, 1}, 5},
+-      {{"DVI4", 16000, 1}, 6},
+-      {{"LPC", 8000, 1}, 7},
+-      {{cricket::kPcmaCodecName, 8000, 1}, 8},
+-      {{cricket::kG722CodecName, 8000, 1}, 9},
+-      {{cricket::kL16CodecName, 44100, 2}, 10},
+-      {{cricket::kL16CodecName, 44100, 1}, 11},
+-      {{"QCELP", 8000, 1}, 12},
+-      {{cricket::kCnCodecName, 8000, 1}, 13},
+-      // RFC 4566 is a bit ambiguous on the contents of the "encoding
+-      // parameters" field, which, for audio, encodes the number of
+-      // channels. It is "optional and may be omitted if the number of
+-      // channels is one". Does that necessarily imply that an omitted
+-      // encoding parameter means one channel?  Since RFC 3551 doesn't
+-      // specify a value for this parameter for MPA, I've included both 0
+-      // and 1 here, to increase the chances it will be correctly used if
+-      // someone implements an MPEG audio encoder/decoder.
+-      {{"MPA", 90000, 0}, 14},
+-      {{"MPA", 90000, 1}, 14},
+-      {{"G728", 8000, 1}, 15},
+-      {{"DVI4", 11025, 1}, 16},
+-      {{"DVI4", 22050, 1}, 17},
+-      {{"G729", 8000, 1}, 18},
+-
+-      // Payload type assignments currently used by WebRTC.
+-      // Includes data to reduce collisions (and thus reassignments)
+-      {{cricket::kIlbcCodecName, 8000, 1}, 102},
+-      {{cricket::kCnCodecName, 16000, 1}, 105},
+-      {{cricket::kCnCodecName, 32000, 1}, 106},
+-      {{cricket::kOpusCodecName,
+-        48000,
+-        2,
+-        {{cricket::kCodecParamMinPTime, "10"},
+-         {cricket::kCodecParamUseInbandFec, cricket::kParamValueTrue}}},
+-       111},
+-      // RED for opus is assigned in the lower range, starting at the top.
+-      // Note that the FMTP refers to the opus payload type.
+-      {{cricket::kRedCodecName,
+-        48000,
+-        2,
+-        {{cricket::kCodecParamNotInNameValueFormat, "111/111"}}},
+-       63},
+-      // TODO(solenberg): Remove the hard coded 16k,32k,48k DTMF once we
+-      // assign payload types dynamically for send side as well.
+-      {{cricket::kDtmfCodecName, 48000, 1}, 110},
+-      {{cricket::kDtmfCodecName, 32000, 1}, 112},
+-      {{cricket::kDtmfCodecName, 16000, 1}, 113},
+-      {{cricket::kDtmfCodecName, 8000, 1}, 126}};
+-  for (auto entry : default_audio_mappings) {
+-    AddMapping(PayloadType(entry.payload_type),
+-               cricket::CreateAudioCodec(entry.format));
+-  }
+-}
+-
  RTCErrorOr<PayloadType> PayloadTypePicker::SuggestMapping(
-     cricket::Codec codec,
--    const PayloadTypeRecorder* excluder) {
-+    PayloadTypeRecorder* excluder) {
-   // The first matching entry is returned, unless excluder
-   // maps it to something different.
-   for (auto entry : entries_) {
-@@ -180,12 +180,12 @@ RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
- }
- 
- std::vector<std::pair<PayloadType, cricket::Codec>>
--PayloadTypeRecorder::GetMappings() const {
-+PayloadTypeRecorder::GetMappings() {
-   return std::vector<std::pair<PayloadType, cricket::Codec>>{};
- }
- 
- RTCErrorOr<PayloadType> PayloadTypeRecorder::LookupPayloadType(
--    cricket::Codec codec) const {
+-    cricket::Codec codec,
+-    PayloadTypeRecorder* excluder) {
+-  // The first matching entry is returned, unless excluder
+-  // maps it to something different.
+-  for (auto entry : entries_) {
+-    if (MatchesForSdp(entry.codec(), codec)) {
+-      if (excluder) {
+-        auto result = excluder->LookupCodec(entry.payload_type());
+-        if (result.ok() && !MatchesForSdp(result.value(), codec)) {
+-          continue;
+-        }
+-      }
+-      return entry.payload_type();
+-    }
+-  }
+-  RTCErrorOr<PayloadType> found_pt = FindFreePayloadType(seen_payload_types_);
+-  if (found_pt.ok()) {
+-    AddMapping(found_pt.value(), codec);
+-  }
+-  return found_pt;
 +    cricket::Codec codec) {
-   // Note that having multiple PTs mapping to the same codec is NOT an error.
-   // In this case, we return the first found (not deterministic).
-   auto result = std::find_if(
-@@ -199,7 +199,7 @@ RTCErrorOr<PayloadType> PayloadTypeRecorder::LookupPayloadType(
++  return RTCError(RTCErrorType::UNSUPPORTED_OPERATION, "Not implemented yet");
  }
  
- RTCErrorOr<cricket::Codec> PayloadTypeRecorder::LookupCodec(
--    PayloadType payload_type) const {
-+    PayloadType payload_type) {
-   auto result = payload_type_to_codec_.find(payload_type);
-   if (result == payload_type_to_codec_.end()) {
-     return RTCError(RTCErrorType::INVALID_PARAMETER, "No such payload type");
-@@ -207,7 +207,7 @@ RTCErrorOr<cricket::Codec> PayloadTypeRecorder::LookupCodec(
-   return result->second;
+ RTCError PayloadTypePicker::AddMapping(PayloadType payload_type,
+                                        cricket::Codec codec) {
+-  // Completely duplicate mappings are ignored.
+-  // Multiple mappings for the same codec and the same PT are legal;
+-  for (auto entry : entries_) {
+-    if (payload_type == entry.payload_type() &&
+-        MatchesForSdp(codec, entry.codec())) {
+-      return RTCError::OK();
+-    }
+-  }
+-  entries_.emplace_back(MapEntry(payload_type, codec));
+-  seen_payload_types_.emplace(payload_type);
+-  return RTCError::OK();
++  return RTCError(RTCErrorType::UNSUPPORTED_OPERATION, "Not implemented yet");
  }
  
--void PayloadTypeRecorder::Commit() {
-+void PayloadTypeRecorder::Checkpoint() {
-   checkpoint_payload_type_to_codec_ = payload_type_to_codec_;
- }
- void PayloadTypeRecorder::Rollback() {
+ RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
+@@ -171,6 +52,9 @@ RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
+   auto existing_codec_it = payload_type_to_codec_.find(payload_type);
+   if (existing_codec_it != payload_type_to_codec_.end() &&
+       !MatchesForSdp(codec, existing_codec_it->second)) {
++    RTC_LOG(LS_ERROR) << "DEBUG: AddMapping invalid, PT " << int(payload_type)
++                      << " new codec " << codec.ToString() << " old codec "
++                      << existing_codec_it->second.ToString();
+     return RTCError(RTCErrorType::INVALID_PARAMETER,
+                     "Attempt to insert duplicate mapping for PT");
+   }
 diff --git a/pc/payload_type_picker.h b/pc/payload_type_picker.h
-index 4726a31635..f29979759b 100644
+index f29979759b..a1dd946fc6 100644
 --- a/pc/payload_type_picker.h
 +++ b/pc/payload_type_picker.h
-@@ -42,7 +42,7 @@ class PayloadTypePicker {
-   // Suggest a payload type for the codec.
-   // If the excluder maps it to something different, don't suggest it.
-   RTCErrorOr<PayloadType> SuggestMapping(cricket::Codec codec,
--                                         const PayloadTypeRecorder* excluder);
-+                                         PayloadTypeRecorder* excluder);
-   RTCError AddMapping(PayloadType payload_type, cricket::Codec codec);
+@@ -12,7 +12,6 @@
+ #define PC_PAYLOAD_TYPE_PICKER_H_
  
-  private:
-@@ -67,12 +67,12 @@ class PayloadTypeRecorder {
-       : suggester_(suggester) {}
+ #include <map>
+-#include <set>
+ #include <utility>
+ #include <vector>
  
-   RTCError AddMapping(PayloadType payload_type, cricket::Codec codec);
--  std::vector<std::pair<PayloadType, cricket::Codec>> GetMappings() const;
--  RTCErrorOr<PayloadType> LookupPayloadType(cricket::Codec codec) const;
--  RTCErrorOr<cricket::Codec> LookupCodec(PayloadType payload_type) const;
-+  std::vector<std::pair<PayloadType, cricket::Codec>> GetMappings();
-+  RTCErrorOr<PayloadType> LookupPayloadType(cricket::Codec codec);
-+  RTCErrorOr<cricket::Codec> LookupCodec(PayloadType payload_type);
-   // Transaction support.
--  // Commit() commits previous changes.
--  void Commit();
-+  // Checkpoint() commits previous changes.
-+  void Checkpoint();
-   // Rollback() rolls back to the previous checkpoint.
-   void Rollback();
+@@ -30,35 +29,16 @@ class PayloadType : public StrongAlias<class PayloadTypeTag, uint8_t> {
+   constexpr operator uint8_t() const& { return value_; }  // NOLINT: Explicit
+ };
  
+-class PayloadTypeRecorder;
+-
+ class PayloadTypePicker {
+  public:
+-  PayloadTypePicker();
++  PayloadTypePicker() = default;
+   PayloadTypePicker(const PayloadTypePicker&) = delete;
+   PayloadTypePicker& operator=(const PayloadTypePicker&) = delete;
+   PayloadTypePicker(PayloadTypePicker&&) = delete;
+   PayloadTypePicker& operator=(PayloadTypePicker&&) = delete;
+-  // Suggest a payload type for the codec.
+-  // If the excluder maps it to something different, don't suggest it.
+-  RTCErrorOr<PayloadType> SuggestMapping(cricket::Codec codec,
+-                                         PayloadTypeRecorder* excluder);
+-  RTCError AddMapping(PayloadType payload_type, cricket::Codec codec);
+ 
+- private:
+-  class MapEntry {
+-   public:
+-    MapEntry(PayloadType payload_type, cricket::Codec codec)
+-        : payload_type_(payload_type), codec_(codec) {}
+-    PayloadType payload_type() const { return payload_type_; }
+-    cricket::Codec codec() const { return codec_; }
+-
+-   private:
+-    PayloadType payload_type_;
+-    cricket::Codec codec_;
+-  };
+-  std::vector<MapEntry> entries_;
+-  std::set<PayloadType> seen_payload_types_;
++  RTCErrorOr<PayloadType> SuggestMapping(cricket::Codec codec);
++  RTCError AddMapping(PayloadType payload_type, cricket::Codec codec);
+ };
+ 
+ class PayloadTypeRecorder {
 diff --git a/pc/payload_type_picker_unittest.cc b/pc/payload_type_picker_unittest.cc
-index 904f9e020f..628a06d346 100644
+index 628a06d346..0e486bf506 100644
 --- a/pc/payload_type_picker_unittest.cc
 +++ b/pc/payload_type_picker_unittest.cc
-@@ -58,7 +58,7 @@ TEST(PayloadTypePicker, RollbackAndCommit) {
-   cricket::Codec b_codec = cricket::CreateVideoCodec(0, "vp9");
-   auto error = recorder.AddMapping(a_payload_type, a_codec);
-   ASSERT_TRUE(error.ok());
--  recorder.Commit();
-+  recorder.Checkpoint();
-   ASSERT_TRUE(recorder.AddMapping(b_payload_type, b_codec).ok());
-   {
-     auto result = recorder.LookupCodec(a_payload_type);
-@@ -82,7 +82,7 @@ TEST(PayloadTypePicker, RollbackAndCommit) {
+@@ -91,48 +91,4 @@ TEST(PayloadTypePicker, RollbackAndCommit) {
    }
-   ASSERT_TRUE(recorder.AddMapping(b_payload_type, b_codec).ok());
-   // Rollback after a new checkpoint has no effect.
--  recorder.Commit();
-+  recorder.Checkpoint();
-   recorder.Rollback();
-   {
-     auto result = recorder.LookupCodec(b_payload_type);
+ }
+ 
+-TEST(PayloadTypePicker, StaticValueIsGood) {
+-  PayloadTypePicker picker;
+-  cricket::Codec a_codec =
+-      cricket::CreateAudioCodec(-1, cricket::kPcmuCodecName, 8000, 1);
+-  auto result = picker.SuggestMapping(a_codec, nullptr);
+-  // In the absence of existing mappings, PCMU always has 0 as PT.
+-  ASSERT_TRUE(result.ok());
+-  EXPECT_EQ(result.value(), PayloadType(0));
+-}
+-
+-TEST(PayloadTypePicker, DynamicValueIsGood) {
+-  PayloadTypePicker picker;
+-  cricket::Codec a_codec = cricket::CreateAudioCodec(-1, "lyra", 8000, 1);
+-  auto result = picker.SuggestMapping(a_codec, nullptr);
+-  // This should result in a value from the dynamic range; since this is the
+-  // first assignment, it should be in the upper range.
+-  ASSERT_TRUE(result.ok());
+-  EXPECT_GE(result.value(), PayloadType(96));
+-  EXPECT_LE(result.value(), PayloadType(127));
+-}
+-
+-TEST(PayloadTypePicker, RecordedValueReturned) {
+-  PayloadTypePicker picker;
+-  PayloadTypeRecorder recorder(picker);
+-  cricket::Codec a_codec = cricket::CreateAudioCodec(-1, "lyra", 8000, 1);
+-  recorder.AddMapping(47, a_codec);
+-  auto result = picker.SuggestMapping(a_codec, &recorder);
+-  ASSERT_TRUE(result.ok());
+-  EXPECT_EQ(47, result.value());
+-}
+-
+-TEST(PayloadTypePicker, RecordedValueExcluded) {
+-  PayloadTypePicker picker;
+-  PayloadTypeRecorder recorder1(picker);
+-  PayloadTypeRecorder recorder2(picker);
+-  cricket::Codec a_codec = cricket::CreateAudioCodec(-1, "lyra", 8000, 1);
+-  cricket::Codec b_codec = cricket::CreateAudioCodec(-1, "mlcodec", 8000, 1);
+-  recorder1.AddMapping(47, a_codec);
+-  recorder2.AddMapping(47, b_codec);
+-  auto result = picker.SuggestMapping(b_codec, &recorder1);
+-  ASSERT_TRUE(result.ok());
+-  EXPECT_NE(47, result.value());
+-}
+-
+ }  // namespace webrtc
