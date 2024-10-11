@@ -1,8 +1,9 @@
 Gecko Logging
 =============
 
-A minimal C++ logging framework is provided for use in core Gecko code. It is
-enabled for all builds and is thread-safe.
+A minimal logging framework is provided for use in core Gecko code,
+written in C++ and enabled for all builds and is thread-safe.
+It can be accessed via C++, JavaScript or Rust.
 
 This page covers enabling logging for particular logging module, configuring
 the logging output, and how to use the logging facilities in native code.
@@ -500,3 +501,73 @@ Example Usage
       MOZ_LOG(sLogger, LogLevel::Error, ("i should be 10!"));
     }
   }
+
+
+Logging from JavaScript via the ``console`` API
++++++++++++++++++++++++++++++++++++++++++++++++
+
+Any call made to a ``console`` API from JavaScript will be logged through the
+``MOZ_LOG`` pipeline.
+
+- Web Pages as well as privileged context using ``console`` API expose to
+  JavaScript will automatically generate MOZ_LOG messages under the ``console``
+  module name.
+
+- Privileged context can use a specific module name by instantiating their own
+  console object:
+  ``const logger = console.createInstance({ prefix: "module-name" })``,
+  ``prefix`` value will be used as the MOZ_LOG module name.
+
+More info about ``console.createInstance`` is available on the
+`JavaScript Logging page </toolkit/javascript-logging.html>`_
+
+When using the ``console`` API, the console methods calls will be visible
+in the Developer Tools, as well as through MOZ_LOG stdout, file or profiler
+outputs.
+
+Note that because of `Bug 1923985
+<https://bugzilla.mozilla.org/show_bug.cgi?id=1923985>`_,
+there is some discrepancies between console log level and MOZ_LOG one.
+So that ``console.shouldLog()`` only consider the level set by
+``createInstance``'s ``maxLogLevel{Pref}`` arguments.
+
+
+.. code-block:: javascript
+
+  // The following two logs can be visible through MOZ_LOG by using:
+  // MOZ_LOG=console:5
+
+  // Both call will be logged through "console" module name.
+  // Any console API call from privileged or content page will be logged.
+  console.log("Doing stuff.");
+
+  console.error("Error happened");
+
+  // The following two other logs can be visible through MOZ_LOG by using:
+  // MOZ_LOG=example_logger:5
+
+  // From a privileged context, you can instantiate your own console object
+  // with a specific module name, here "example_logger":
+  const logger = console.createInstance({ prefix: "example_logger" });
+
+  logger.warn("something failed");
+
+  logger.debug("some debug info");
+
+
+Console API levels
+------------------
+
++----------------------+---------------+
+|  Console API Method  | MOZ_LOG Level |
++======================+===============+
+|   console.error()    |   1 (Error)   |
+|   console.assert()   |               |
++----------------------+---------------+
+|   console.warn()     |   2 (Warning) |
++----------------------+---------------+
+| All other methods,   |   3 (Info)    |
+| but console.debug()  |               |
++----------------------+---------------+
+|   console.debug()    |   4 (Debug    |
++----------------------+---------------+

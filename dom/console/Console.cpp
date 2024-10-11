@@ -874,11 +874,14 @@ already_AddRefed<Console> Console::CreateForWorklet(JSContext* aCx,
 }
 
 Console::Console(JSContext* aCx, nsIGlobalObject* aGlobal,
-                 uint64_t aOuterWindowID, uint64_t aInnerWindowID)
+                 uint64_t aOuterWindowID, uint64_t aInnerWindowID,
+                 const nsAString& aPrefix)
     : mGlobal(aGlobal),
       mOuterID(aOuterWindowID),
       mInnerID(aInnerWindowID),
       mDumpToStdout(false),
+      mLogModule(nullptr),
+      mPrefix(aPrefix),
       mChromeInstance(false),
       mCurrentLogLevel(WebIDLLogLevelToInteger(ConsoleLogLevel::All)),
       mStatus(eUnknown),
@@ -889,6 +892,13 @@ Console::Console(JSContext* aCx, nsIGlobalObject* aGlobal,
   } else {
     mDumpToStdout = StaticPrefs::devtools_console_stdout_content();
   }
+
+  // By default, the console uses "console" MOZ_LOG module name,
+  // but ConsoleInstance may pass a custom prefix which we will use a module
+  // name.
+  mLogModule = mPrefix.IsEmpty()
+                   ? LogModule::Get("console")
+                   : LogModule::Get(NS_ConvertUTF16toUTF8(mPrefix).get());
 
   mozilla::HoldJSObjects(this);
 }
@@ -2696,16 +2706,40 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx, MethodName aMethodName,
                                        const Sequence<JS::Value>& aData,
                                        nsIStackFrame* aStack,
                                        DOMHighResTimeStamp aMonotonicTimer) {
+  if (mLogModule->ShouldLog(InternalLogLevelToMozLog(aMethodName))) {
+    nsString message = GetDumpMessage(aCx, aMethodName, aMethodString, aData,
+                                      aStack, aMonotonicTimer, true);
+
+    MOZ_LOG(mLogModule, InternalLogLevelToMozLog(aMethodName),
+            ("%s", NS_ConvertUTF16toUTF8(message).get()));
+  }
+
   if (!mDumpFunction && !mDumpToStdout) {
     return;
   }
+  nsString message = GetDumpMessage(aCx, aMethodName, aMethodString, aData,
+                                    aStack, aMonotonicTimer, false);
 
-  nsAutoString message;
-  message.AssignLiteral("console.");
+  ExecuteDumpFunction(message);
+}
+
+nsString Console::GetDumpMessage(JSContext* aCx, MethodName aMethodName,
+                                 const nsAString& aMethodString,
+                                 const Sequence<JS::Value>& aData,
+                                 nsIStackFrame* aStack,
+                                 DOMHighResTimeStamp aMonotonicTimer,
+                                 bool aIsForMozLog) {
+  nsString message;
+  // MOZ_LOG already logs either console or the prefix
+  if (!aIsForMozLog) {
+    message.AssignLiteral("console.");
+  } else {
+    message.AssignLiteral("");
+  }
   message.Append(aMethodString);
   message.AppendLiteral(": ");
 
-  if (!mPrefix.IsEmpty()) {
+  if (!aIsForMozLog && !mPrefix.IsEmpty()) {
     message.Append(mPrefix);
     message.AppendLiteral(": ");
   }
@@ -2730,7 +2764,7 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx, MethodName aMethodName,
 
     nsAutoJSString string;
     if (NS_WARN_IF(!string.init(aCx, jsString))) {
-      return;
+      return message;
     }
 
     if (i != 0) {
@@ -2776,7 +2810,7 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx, MethodName aMethodName,
     stack.swap(caller);
   }
 
-  ExecuteDumpFunction(message);
+  return message;
 }
 
 void Console::ExecuteDumpFunction(const nsAString& aMessage) {
@@ -2895,6 +2929,60 @@ uint32_t Console::InternalLogLevelToInteger(MethodName aName) const {
     default:
       MOZ_CRASH("MethodName is out of sync with the Console implementation!");
       return 0;
+  }
+}
+
+LogLevel Console::InternalLogLevelToMozLog(MethodName aName) const {
+  switch (aName) {
+    case MethodLog:
+      return LogLevel::Info;
+    case MethodInfo:
+      return LogLevel::Info;
+    case MethodWarn:
+      return LogLevel::Warning;
+    case MethodError:
+      return LogLevel::Error;
+    case MethodException:
+      return LogLevel::Error;
+    case MethodDebug:
+      return LogLevel::Debug;
+    case MethodTable:
+      return LogLevel::Info;
+    case MethodTrace:
+      return LogLevel::Info;
+    case MethodDir:
+      return LogLevel::Info;
+    case MethodDirxml:
+      return LogLevel::Info;
+    case MethodGroup:
+      return LogLevel::Info;
+    case MethodGroupCollapsed:
+      return LogLevel::Info;
+    case MethodGroupEnd:
+      return LogLevel::Info;
+    case MethodTime:
+      return LogLevel::Info;
+    case MethodTimeLog:
+      return LogLevel::Info;
+    case MethodTimeEnd:
+      return LogLevel::Info;
+    case MethodTimeStamp:
+      return LogLevel::Info;
+    case MethodAssert:
+      return LogLevel::Error;
+    case MethodCount:
+      return LogLevel::Info;
+    case MethodCountReset:
+      return LogLevel::Info;
+    case MethodClear:
+      return LogLevel::Info;
+    case MethodProfile:
+      return LogLevel::Info;
+    case MethodProfileEnd:
+      return LogLevel::Info;
+    default:
+      MOZ_CRASH("MethodName is out of sync with the Console implementation!");
+      return LogLevel::Disabled;
   }
 }
 
