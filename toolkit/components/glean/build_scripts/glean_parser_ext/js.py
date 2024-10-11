@@ -56,8 +56,10 @@ PING_INDEX_BITS = 16
 # This ensures the algorithm finds empty slots in the buckets
 # with the number of metrics we now have in-tree.
 # toolkit/components/telemetry uses 1024, some others 512.
+# FOG is bigger.
 # See https://bugzilla.mozilla.org/show_bug.cgi?id=1822477
-PHF_SIZE = 1024
+# And https://bugzilla.mozilla.org/show_bug.cgi?id=1923973
+PHF_SIZE = 2048
 
 
 def ping_entry(ping_id, ping_string_index):
