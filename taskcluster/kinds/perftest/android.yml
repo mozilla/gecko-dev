@@ -234,11 +234,11 @@ hw-a51-startup-chrome-m-cold-main-first-frame:
             --perfherder
             --AndroidStartUp-product=chrome-m
 
-hw-a55-startup-chrome-m-cold-view-nav-end:
+hw-a55-startup-chrome-m-shopify-applink-startup:
     worker-type: t-bitbar-gw-perf-a55
     description: Run android cold_view_nav_end perftest on Chrome on a Samsung A55
     treeherder:
-        symbol: perftest(startup-chrome-m-cvne)
+        symbol: perftest-chrome(shopify-applink-startup)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
@@ -254,11 +254,11 @@ hw-a55-startup-chrome-m-cold-view-nav-end:
             --perfherder
             --output $MOZ_FETCHES_DIR/../artifacts
 
-hw-a55-startup-fenix-cold-view-nav-end:
+hw-a55-startup-fenix-shopify-applink-startup:
     worker-type: t-bitbar-gw-perf-a55
     description: Run android cold_view_nav_end perftest on Fenix on a Samsung A55
     treeherder:
-        symbol: perftest(startup-fenix-cvne)
+        symbol: perftest-fenix(shopify-applink-startup)
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:

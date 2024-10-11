@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#name: cold_view_nav_end mobile startup script
+#name: applink-startup-cnve
 #owner: perftest
-#description: Runs the cold_view_nav_end(cvne) startup app link test for fenix
+#description: Runs the applink startup(cvne) test for chrome/fenix
 
 # Path to the Python script
 SCRIPT_PATH="testing/performance/mobile-startup/android_startup_videoapplink.py"
