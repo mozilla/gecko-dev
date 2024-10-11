@@ -30,6 +30,7 @@
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
+#include "modules/rtp_rtcp/source/corruption_detection_extension.h"
 #include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_header_extension_size.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
@@ -89,6 +90,7 @@ constexpr RtpExtensionSize kVideoExtensionSizes[] = {
     CreateMaxExtensionSize<RtpStreamId>(),
     CreateMaxExtensionSize<RepairedRtpStreamId>(),
     CreateMaxExtensionSize<RtpMid>(),
+    CreateMaxExtensionSize<CorruptionDetectionExtension>(),
     {RtpGenericFrameDescriptorExtension00::kId,
      RtpGenericFrameDescriptorExtension00::kMaxSizeBytes},
 };
@@ -133,6 +135,7 @@ bool IsNonVolatile(RTPExtensionType type) {
     case kRtpExtensionVideoTiming:
     case kRtpExtensionColorSpace:
     case kRtpExtensionVideoFrameTrackingId:
+    case kRtpExtensionCorruptionDetection:
       return false;
     case kRtpExtensionNone:
     case kRtpExtensionNumberOfExtensions:

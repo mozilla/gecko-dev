@@ -23,6 +23,7 @@ rtc_library("rtp_rtcp_format") {
     "include/rtp_header_extension_map.h",
     "include/rtp_rtcp_defines.h",
     "source/byte_io.h",
+    "source/corruption_detection_extension.h",
     "source/rtcp_packet.h",
     "source/rtcp_packet/app.h",
     "source/rtcp_packet/bye.h",
@@ -63,6 +64,7 @@ rtc_library("rtp_rtcp_format") {
   sources = [
     "include/report_block_data.cc",
     "include/rtp_rtcp_defines.cc",
+    "source/corruption_detection_extension.cc",
     "source/rtcp_packet.cc",
     "source/rtcp_packet/app.cc",
     "source/rtcp_packet/bye.cc",
@@ -124,6 +126,7 @@ rtc_library("rtp_rtcp_format") {
     "../../api/units:timestamp",
     "../../api/video:video_layers_allocation",
     "../../api/video:video_rtp_headers",
+    "../../common_video:common_video",
     "../../rtc_base:bit_buffer",
     "../../rtc_base:bitstream_reader",
     "../../rtc_base:buffer",
@@ -141,6 +144,7 @@ rtc_library("rtp_rtcp_format") {
     "../video_coding:codec_globals_headers",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base:core_headers",
+    "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings:string_view",
     "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/abseil-cpp/absl/types:variant",
@@ -524,21 +528,6 @@ rtc_library("rtp_packetizer_av1_test_helper") {
   ]
 }
 
-rtc_library("corruption_detection_extension") {
-  visibility = [ "*" ]
-  sources = [
-    "source/corruption_detection_extension.cc",
-    "source/corruption_detection_extension.h",
-  ]
-  deps = [
-    ":rtp_rtcp_format",
-    "../../api:array_view",
-    "../../common_video:common_video",
-    "//third_party/abseil-cpp/absl/container:inlined_vector",
-    "//third_party/abseil-cpp/absl/strings:string_view",
-  ]
-}
-
 if (rtc_include_tests) {
   if (!build_with_chromium) {
     rtc_executable("test_packet_masks_metrics") {
@@ -774,7 +763,7 @@ if (rtc_include_tests) {
     testonly = true
     sources = [ "source/corruption_detection_extension_unittest.cc" ]
     deps = [
-      ":corruption_detection_extension",
+      ":rtp_rtcp_format",
       "../../common_video:common_video",
       "../../test:test_support",
       "//third_party/abseil-cpp/absl/types:optional",

@@ -198,6 +198,7 @@ void RtpPacket::ZeroMutableExtensions() {
 #endif
       case RTPExtensionType::kRtpExtensionAbsoluteCaptureTime:
       case RTPExtensionType::kRtpExtensionColorSpace:
+      case RTPExtensionType::kRtpExtensionCorruptionDetection:
       case RTPExtensionType::kRtpExtensionGenericFrameDescriptor:
       case RTPExtensionType::kRtpExtensionDependencyDescriptor:
       case RTPExtensionType::kRtpExtensionMid:

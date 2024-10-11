@@ -73,7 +73,7 @@ bool CorruptionDetectionExtension::Parse(rtc::ArrayView<const uint8_t> data,
   }
   if ((data.size() != kMandatoryPayloadBytes &&
        data.size() <= kConfigurationBytes) ||
-      data.size() > 16) {
+      data.size() > kMaxValueSizeBytes) {
     return false;
   }
   message->interpret_sequence_index_as_most_significant_bits_ = data[0] >> 7;
@@ -93,7 +93,7 @@ bool CorruptionDetectionExtension::Parse(rtc::ArrayView<const uint8_t> data,
 bool CorruptionDetectionExtension::Write(
     rtc::ArrayView<uint8_t> data,
     const CorruptionDetectionMessage& message) {
-  if (data.size() != ValueSize(message)) {
+  if (data.size() != ValueSize(message) || data.size() > kMaxValueSizeBytes) {
     return false;
   }
 

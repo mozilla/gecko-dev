@@ -84,7 +84,7 @@ index 05e771a56d..9cafd4d6f6 100644
  // Base extension class for RTP header extensions which are strings.
  // Subclasses must defined kId and kUri static constexpr members.
 diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
-index 8b536b8469..5594628ad1 100644
+index 3192c27a49..306c17e2c2 100644
 --- a/modules/rtp_rtcp/source/rtp_packet.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet.cc
 @@ -193,7 +193,9 @@ void RtpPacket::ZeroMutableExtensions() {
@@ -96,8 +96,8 @@ index 8b536b8469..5594628ad1 100644
 +#endif
        case RTPExtensionType::kRtpExtensionAbsoluteCaptureTime:
        case RTPExtensionType::kRtpExtensionColorSpace:
-       case RTPExtensionType::kRtpExtensionGenericFrameDescriptor:
-@@ -211,10 +213,12 @@ void RtpPacket::ZeroMutableExtensions() {
+       case RTPExtensionType::kRtpExtensionCorruptionDetection:
+@@ -212,10 +214,12 @@ void RtpPacket::ZeroMutableExtensions() {
          // Non-mutable extension. Don't change it.
          break;
        }
@@ -111,10 +111,10 @@ index 8b536b8469..5594628ad1 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index b7789b638a..ef62bf6b2d 100644
+index 394c51f5ee..0c2a45e82a 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
-@@ -112,7 +112,9 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -114,7 +114,9 @@ bool IsNonVolatile(RTPExtensionType type) {
    switch (type) {
      case kRtpExtensionTransmissionTimeOffset:
      case kRtpExtensionAudioLevel:
@@ -124,7 +124,7 @@ index b7789b638a..ef62bf6b2d 100644
      case kRtpExtensionAbsoluteSendTime:
      case kRtpExtensionTransportSequenceNumber:
      case kRtpExtensionTransportSequenceNumber02:
-@@ -136,10 +138,12 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -139,10 +141,12 @@ bool IsNonVolatile(RTPExtensionType type) {
      case kRtpExtensionNumberOfExtensions:
        RTC_DCHECK_NOTREACHED();
        return false;
@@ -138,10 +138,10 @@ index b7789b638a..ef62bf6b2d 100644
    RTC_CHECK_NOTREACHED();
  }
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index 23a1828915..9b90807a1e 100644
+index 75e17cb8e9..983d9aef76 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
-@@ -77,11 +77,13 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
+@@ -79,11 +79,13 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
          packet.GetExtension<AudioLevelExtension>(&audio_level);
          break;
        }
@@ -155,9 +155,9 @@ index 23a1828915..9b90807a1e 100644
        case kRtpExtensionAbsoluteSendTime:
          uint32_t sendtime;
          packet.GetExtension<AbsoluteSendTime>(&sendtime);
-@@ -164,11 +166,13 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
-         // This extension requires state to read and so complicated that
-         // deserves own fuzzer.
+@@ -170,11 +172,13 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
+         CorruptionDetectionMessage message;
+         packet.GetExtension<CorruptionDetectionExtension>(&message);
          break;
 +#if defined(WEBRTC_MOZILLA_BUILD)
        case kRtpExtensionCsrcAudioLevel: {

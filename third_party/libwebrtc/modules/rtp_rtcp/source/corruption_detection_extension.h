@@ -31,8 +31,8 @@ class CorruptionDetectionExtension {
  public:
   using value_type = CorruptionDetectionMessage;
 
-  // TODO: b/358039777 - Change to our `RTPExtensionType` when available.
-  static constexpr RTPExtensionType kId = kRtpExtensionNumberOfExtensions;
+  static constexpr RTPExtensionType kId = kRtpExtensionCorruptionDetection;
+  static constexpr uint8_t kMaxValueSizeBytes = 16;
   static constexpr char kCorruptionDetectionUri[] =
       "http://www.webrtc.org/experiments/rtp-hdrext/corruption-detection";
 

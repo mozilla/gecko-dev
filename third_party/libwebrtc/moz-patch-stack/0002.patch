@@ -343,10 +343,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  rtc_base/BUILD.gn                             |   6 +
  rtc_base/logging.cc                           |  21 +-
  rtc_base/logging.h                            |   9 +
- test/fuzzers/rtp_packet_fuzzer.cc             |   5 +
+ test/fuzzers/rtp_packet_fuzzer.cc             |   4 +
  test/vcm_capturer.cc                          |   2 +-
  webrtc.gni                                    |   2 +-
- 39 files changed, 566 insertions(+), 81 deletions(-)
+ 39 files changed, 565 insertions(+), 81 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
 index 8813e0f4c2..b5e08cea2c 100644
@@ -846,10 +846,10 @@ index 02a1543e00..05e771a56d 100644
  // Subclasses must defined kId and kUri static constexpr members.
  class BaseRtpStringExtension {
 diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
-index afa9568d7a..8b536b8469 100644
+index 19372880b2..3192c27a49 100644
 --- a/modules/rtp_rtcp/source/rtp_packet.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet.cc
-@@ -211,6 +211,10 @@ void RtpPacket::ZeroMutableExtensions() {
+@@ -212,6 +212,10 @@ void RtpPacket::ZeroMutableExtensions() {
          // Non-mutable extension. Don't change it.
          break;
        }
@@ -929,10 +929,10 @@ index 0b87d6d065..d69ae9420b 100644
  }  // namespace webrtc
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index b64f8b3b4e..b7789b638a 100644
+index 2abbfe5896..394c51f5ee 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
-@@ -136,6 +136,10 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -139,6 +139,10 @@ bool IsNonVolatile(RTPExtensionType type) {
      case kRtpExtensionNumberOfExtensions:
        RTC_DCHECK_NOTREACHED();
        return false;
@@ -1633,21 +1633,20 @@ index b171cfe11e..df7f173f58 100644
  
  //////////////////////////////////////////////////////////////////////
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index be4e9a3e85..23a1828915 100644
+index 5d7c31d965..75e17cb8e9 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
-@@ -164,6 +164,11 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
-         // This extension requires state to read and so complicated that
-         // deserves own fuzzer.
+@@ -170,6 +170,10 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
+         CorruptionDetectionMessage message;
+         packet.GetExtension<CorruptionDetectionExtension>(&message);
          break;
 +      case kRtpExtensionCsrcAudioLevel: {
 +        CsrcAudioLevelList levels;
 +        packet.GetExtension<CsrcAudioLevel>(&levels);
 +        break;
-+      }
+       }
      }
    }
- 
 diff --git a/test/vcm_capturer.cc b/test/vcm_capturer.cc
 index 0a9226ef6f..620c1c02f3 100644
 --- a/test/vcm_capturer.cc
