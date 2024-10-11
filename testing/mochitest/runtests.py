@@ -3590,14 +3590,7 @@ toolbar#nav-bar {
                 # Only do the extra work of symbolicating and viewing the profile if
                 # officially requested through a command line flag. The MOZ_PROFILER_*
                 # flags can be set by a user.
-                # We don't have access to the actual symbols path, just the objdir path,
-                # so do some path work to turn it into an actual symbols path.
-                firefox_symbol_path = os.path.join(
-                    options.topobjdir, "dist", "crashreporter-symbols"
-                )
-                if not os.path.isdir(firefox_symbol_path):
-                    os.mkdir(firefox_symbol_path)
-                symbolicate_profile_json(profile_path, firefox_symbol_path)
+                symbolicate_profile_json(profile_path, options.symbolsPath)
                 view_gecko_profile_from_mochitest(
                     profile_path, options, profiler_logger
                 )
