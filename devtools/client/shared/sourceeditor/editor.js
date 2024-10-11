@@ -3119,6 +3119,24 @@ class Editor extends EventEmitter {
   }
 
   // Used only in tests
+  setSelectionAt(start, end) {
+    const cm = editors.get(this);
+    if (this.config.cm6) {
+      const from = this.#posToOffset(start.line, start.column);
+      const to = this.#posToOffset(end.line, end.column);
+      if (from == null || to == null) {
+        return;
+      }
+      cm.dispatch({ selection: { anchor: from, head: to } });
+    } else {
+      cm.setSelection(
+        { line: start.line - 1, ch: start.column },
+        { line: end.line - 1, ch: end.column }
+      );
+    }
+  }
+
+  // Used only in tests
   setCursorAt(line, column) {
     const cm = editors.get(this);
     if (this.config.cm6) {
