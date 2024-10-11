@@ -166,7 +166,7 @@ static inline T FloorDiv(T dividend, int32_t divisor) {
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static inline double Day(double t) { return floor(t / msPerDay); }
+static inline int32_t Day(int64_t t) { return FloorDiv(t, msPerDay); }
 
 /**
  * 21.4.1.4 TimeWithinDay ( t )
@@ -335,12 +335,6 @@ static YearMonthDay ToYearMonthDay(int64_t time) {
   return {Y_G, M_G, D_G};
 }
 
-static YearMonthDay ToYearMonthDay(double t) {
-  MOZ_ASSERT(IsInteger(t));
-  MOZ_ASSERT(double(INT64_MIN) <= t && t <= double(INT64_MAX));
-  return ::ToYearMonthDay(int64_t(t));
-}
-
 YearMonthDay js::ToYearMonthDay(int64_t epochMilliseconds) {
   return ::ToYearMonthDay(epochMilliseconds);
 }
@@ -350,21 +344,15 @@ YearMonthDay js::ToYearMonthDay(int64_t epochMilliseconds) {
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static double YearFromTime(double t) {
-  if (!std::isfinite(t)) {
-    return GenericNaN();
-  }
-  auto const year = ToYearMonthDay(t).year;
-  return double(year);
-}
+static int32_t YearFromTime(int64_t t) { return ::ToYearMonthDay(t).year; }
 
 /**
  * 21.4.1.9 DayWithinYear ( t )
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static double DayWithinYear(double t, double year) {
-  MOZ_ASSERT_IF(std::isfinite(t), ::YearFromTime(t) == year);
+static double DayWithinYear(int64_t t, double year) {
+  MOZ_ASSERT(::YearFromTime(t) == year);
   return Day(t) - ::DayFromYear(year);
 }
 
@@ -373,39 +361,26 @@ static double DayWithinYear(double t, double year) {
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static double MonthFromTime(double t) {
-  if (!std::isfinite(t)) {
-    return GenericNaN();
-  }
-  const auto month = ToYearMonthDay(t).month;
-  return double(month);
-}
+static int32_t MonthFromTime(int64_t t) { return ::ToYearMonthDay(t).month; }
 
 /**
  * 21.4.1.12 DateFromTime ( t )
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static double DateFromTime(double t) {
-  if (!std::isfinite(t)) {
-    return GenericNaN();
-  }
-  const auto day = ToYearMonthDay(t).day;
-  return double(day);
-}
+static int32_t DateFromTime(int64_t t) { return ::ToYearMonthDay(t).day; }
 
 /**
  * 21.4.1.13 WeekDay ( t )
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static int WeekDay(double t) {
+static int32_t WeekDay(int64_t t) {
   /*
    * We can't assert TimeClip(t) == t because we call this function with
    * local times, which can be offset outside TimeClip's permitted range.
    */
-  MOZ_ASSERT(IsInteger(t));
-  int result = (int(Day(t)) + 4) % 7;
+  int32_t result = (Day(t) + 4) % 7;
   if (result < 0) {
     result += 7;
   }
@@ -496,7 +471,9 @@ JS_PUBLIC_API double JS::YearFromTime(double time) {
   if (!clipped.isValid()) {
     return GenericNaN();
   }
-  return ::YearFromTime(clipped.toDouble());
+  int64_t tv;
+  MOZ_ALWAYS_TRUE(mozilla::NumberEqualsInt64(clipped.toDouble(), &tv));
+  return ::YearFromTime(tv);
 }
 
 JS_PUBLIC_API double JS::MonthFromTime(double time) {
@@ -504,7 +481,9 @@ JS_PUBLIC_API double JS::MonthFromTime(double time) {
   if (!clipped.isValid()) {
     return GenericNaN();
   }
-  return ::MonthFromTime(clipped.toDouble());
+  int64_t tv;
+  MOZ_ALWAYS_TRUE(mozilla::NumberEqualsInt64(clipped.toDouble(), &tv));
+  return ::MonthFromTime(tv);
 }
 
 JS_PUBLIC_API double JS::DayFromTime(double time) {
@@ -512,7 +491,9 @@ JS_PUBLIC_API double JS::DayFromTime(double time) {
   if (!clipped.isValid()) {
     return GenericNaN();
   }
-  return DateFromTime(clipped.toDouble());
+  int64_t tv;
+  MOZ_ALWAYS_TRUE(mozilla::NumberEqualsInt64(clipped.toDouble(), &tv));
+  return DateFromTime(tv);
 }
 
 JS_PUBLIC_API double JS::DayFromYear(double year) {
@@ -524,7 +505,9 @@ JS_PUBLIC_API double JS::DayWithinYear(double time, double year) {
   if (!clipped.isValid()) {
     return GenericNaN();
   }
-  return ::DayWithinYear(clipped.toDouble(), year);
+  int64_t tv;
+  MOZ_ALWAYS_TRUE(mozilla::NumberEqualsInt64(clipped.toDouble(), &tv));
+  return ::DayWithinYear(tv, year);
 }
 
 JS_PUBLIC_API void JS::SetReduceMicrosecondTimePrecisionCallback(
@@ -2152,21 +2135,34 @@ static bool date_getFullYear(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.18 Date.prototype.getUTCMonth ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getUTCFullYear(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped =
       UnwrapAndTypeCheckThis<DateObject>(cx, args, "getUTCFullYear");
   if (!unwrapped) {
     return false;
   }
 
-  double result = unwrapped->UTCTime().toNumber();
-  if (std::isfinite(result)) {
-    result = ::YearFromTime(result);
-  }
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
-  args.rval().setNumber(result);
+  // Step 4.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+  int64_t tv = static_cast<int64_t>(t);
+
+  // Step 5.
+  args.rval().setInt32(::YearFromTime(tv));
   return true;
 }
 
@@ -2183,16 +2179,33 @@ static bool date_getMonth(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.18 Date.prototype.getUTCMonth ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getUTCMonth(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getUTCMonth");
   if (!unwrapped) {
     return false;
   }
 
-  double d = unwrapped->UTCTime().toNumber();
-  args.rval().setNumber(::MonthFromTime(d));
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
+
+  // Step 4.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+  int64_t tv = static_cast<int64_t>(t);
+
+  // Step 5.
+  args.rval().setInt32(::MonthFromTime(tv));
   return true;
 }
 
@@ -2210,20 +2223,33 @@ static bool date_getDate(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.12 Date.prototype.getUTCDate ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getUTCDate(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getUTCDate");
   if (!unwrapped) {
     return false;
   }
 
-  double result = unwrapped->UTCTime().toNumber();
-  if (std::isfinite(result)) {
-    result = DateFromTime(result);
-  }
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
-  args.rval().setNumber(result);
+  // Step 4.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+  int64_t tv = static_cast<int64_t>(t);
+
+  // Step 5.
+  args.rval().setInt32(DateFromTime(tv));
   return true;
 }
 
@@ -2240,20 +2266,33 @@ static bool date_getDay(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.13 Date.prototype.getUTCDay ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getUTCDay(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getUTCDay");
   if (!unwrapped) {
     return false;
   }
 
-  double result = unwrapped->UTCTime().toNumber();
-  if (std::isfinite(result)) {
-    result = WeekDay(result);
-  }
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
-  args.rval().setNumber(result);
+  // Step 4.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+  int64_t tv = static_cast<int64_t>(t);
+
+  // Step 5.
+  args.rval().setInt32(WeekDay(tv));
   return true;
 }
 
@@ -3392,31 +3431,40 @@ static const char* const days[] = {"Sun", "Mon", "Tue", "Wed",
 static const char* const months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
-/* ES5 B.2.6. */
+/**
+ * 21.4.4.43 Date.prototype.toUTCString ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toUTCString(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype", "toUTCString");
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "toUTCString");
   if (!unwrapped) {
     return false;
   }
 
+  // Step 3.
   double utctime = unwrapped->UTCTime().toNumber();
-  if (!std::isfinite(utctime)) {
+  MOZ_ASSERT(IsTimeValue(utctime));
+
+  // Step 4.
+  if (std::isnan(utctime)) {
     args.rval().setString(cx->names().Invalid_Date_);
     return true;
   }
-
   int64_t epochMilliseconds = static_cast<int64_t>(utctime);
 
+  // Steps 5-11.
   auto [year, month, day] = ::ToYearMonthDay(epochMilliseconds);
   auto [hour, minute, second] = ToHourMinuteSecond(epochMilliseconds);
 
   char buf[100];
   SprintfLiteral(buf, "%s, %.2u %s %.4d %.2d:%.2d:%.2d GMT",
-                 days[int(WeekDay(utctime))], day, months[month], year, hour,
-                 minute, second);
+                 days[WeekDay(epochMilliseconds)], day, months[month], year,
+                 hour, minute, second);
 
   JSString* str = NewStringCopyZ<CanGC>(cx, buf);
   if (!str) {
