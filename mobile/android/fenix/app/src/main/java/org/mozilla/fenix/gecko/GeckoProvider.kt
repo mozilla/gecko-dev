@@ -139,6 +139,7 @@ object GeckoProvider {
             .extensionsWebAPIEnabled(true)
             .translationsOfferPopup(context.settings().offerTranslation)
             .disableShip(FxNimbus.features.ship.value().disabled)
+            .fissionEnabled(FxNimbus.features.fission.value().enabled)
             .build()
     }
 }

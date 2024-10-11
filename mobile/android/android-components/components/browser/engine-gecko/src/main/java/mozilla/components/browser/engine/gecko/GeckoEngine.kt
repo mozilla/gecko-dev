@@ -9,6 +9,7 @@ import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.JsonReader
 import androidx.annotation.VisibleForTesting
+import mozilla.components.browser.engine.fission.GeckoWebContentIsolationMapper.intoWebContentIsolationStrategy
 import mozilla.components.browser.engine.gecko.activity.GeckoActivityDelegate
 import mozilla.components.browser.engine.gecko.activity.GeckoScreenOrientationDelegate
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
@@ -40,6 +41,7 @@ import mozilla.components.concept.engine.activity.ActivityDelegate
 import mozilla.components.concept.engine.activity.OrientationDelegate
 import mozilla.components.concept.engine.content.blocking.TrackerLog
 import mozilla.components.concept.engine.content.blocking.TrackingProtectionExceptionStorage
+import mozilla.components.concept.engine.fission.WebContentIsolationStrategy
 import mozilla.components.concept.engine.history.HistoryTrackingDelegate
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.engine.serviceworker.ServiceWorkerDelegate
@@ -1361,6 +1363,12 @@ class GeckoEngine(
         override var userCharacteristicPingCurrentVersion: Int
             get() = runtime.settings.userCharacteristicPingCurrentVersion
             set(value) { runtime.settings.setUserCharacteristicPingCurrentVersion(value) }
+
+        override var webContentIsolationStrategy: WebContentIsolationStrategy?
+            get() = runtime.settings.webContentIsolationStrategy?.intoWebContentIsolationStrategy()
+            set(value) {
+                value?.let { runtime.settings.setWebContentIsolationStrategy(it.intoWebContentIsolationStrategy()) }
+            }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1392,6 +1400,7 @@ class GeckoEngine(
             this.fdlibmMathEnabled = it.fdlibmMathEnabled
             this.emailTrackerBlockingPrivateBrowsing = it.emailTrackerBlockingPrivateBrowsing
             this.userCharacteristicPingCurrentVersion = it.userCharacteristicPingCurrentVersion
+            this.webContentIsolationStrategy = it.webContentIsolationStrategy
         }
     }
 

@@ -460,6 +460,16 @@ features:
         type: Boolean
         default: true
 
+  fission:
+    description: The feature that controls whether fission is enabled or not in Gecko.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable fission. Fission is enabled when set to true. Fission is disabled when
+          set to false.
+        type: Boolean
+        default: false
+
   suggest-shipped-domains:
     description: Feature that suggests domains from the shipped domain list.
     variables:

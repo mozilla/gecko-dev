@@ -39,6 +39,7 @@ import mozilla.components.browser.thumbnails.storage.ThumbnailStorage
 import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.concept.engine.DefaultSettings
 import mozilla.components.concept.engine.Engine
+import mozilla.components.concept.engine.fission.WebContentIsolationStrategy
 import mozilla.components.concept.engine.mediaquery.PreferredColorScheme
 import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.awesomebar.provider.SessionAutocompleteProvider
@@ -176,6 +177,7 @@ class Core(
             getDesktopMode = {
                 store.state.desktopMode
             },
+            webContentIsolationStrategy = WebContentIsolationStrategy.ISOLATE_HIGH_VALUE,
         )
 
         // Apply fingerprinting protection overrides if the feature is enabled in Nimbus
