@@ -60,6 +60,7 @@ tr:nth-child(odd) td {
   border: 1px solid red;
   padding: 10px;
   color: red;
+  margin-bottom: 15px;
 }
 
 textarea {

@@ -25,7 +25,6 @@ const { EngineProcess, PipelineOptions } = ChromeUtils.importESModule(
 /**
  * Preferences for machine learning enablement and model hub configuration.
  */
-const ML_ENABLE = Services.prefs.getBoolPref("browser.ml.enable");
 const MODEL_HUB_ROOT_URL = Services.prefs.getStringPref(
   "browser.ml.modelHubRootUrl"
 );
@@ -124,7 +123,18 @@ const INFERENCE_PAD_PRESETS = {
     dtype: "q8",
     device: "wasm",
   },
+  feature: {
+    inputArgs: [["This is an example sentence", "Each sentence is converted"]],
+    runOptions: { pooling: "mean", normalize: true },
+    task: "feature-extraction",
+    modelId: "Xenova/all-MiniLM-L6-v2",
+    modelRevision: "main",
+    modelHub: "hf",
+    dtype: "q8",
+    device: "wasm",
+  },
 };
+
 const PREDEFINED = Object.keys(INFERENCE_PAD_PRESETS);
 
 /**
@@ -417,22 +427,42 @@ async function updateModels() {
 
 async function refreshPage() {
   const ml_enable = Services.prefs.getBoolPref("browser.ml.enable");
+  const gpu_enabled =
+    Services.prefs.getBoolPref("dom.webgpu.enabled") &&
+    Services.prefs.getBoolPref("dom.webgpu.workers.enabled") &&
+    Services.prefs.getBoolPref("gfx.webgpu.force-enabled");
+
   const content = document.getElementById("content");
   const warning = document.getElementById("warning");
+
   if (!ml_enable) {
-    if (warning.style.display !== "block") {
-      warning.style.display = "block";
-    }
-    if (content.style.display !== "none") {
-      content.style.display = "none";
-    }
+    content.style.display = "none";
   } else {
-    if (content.style.display !== "block") {
-      content.style.display = "block";
+    content.style.display = "block";
+  }
+
+  if (!ml_enable || !gpu_enabled) {
+    warning.style.display = "block";
+    let text = [];
+    if (!ml_enable) {
+      text.push(
+        "browser.ml.enable is set to False ! Toggle it to activate local inference."
+      );
     }
-    if (warning.style.display !== "none") {
-      warning.style.display = "none";
+    if (!gpu_enabled) {
+      text.push(
+        "WebGPU is not enabled, set dom.webgpu.enabled, dom.webgpu.workers.enabled and gfx.webgpu.force-enabled to true."
+      );
     }
+
+    warning.innerHTML = "";
+    text.forEach(message => {
+      let messageDiv = document.createElement("div");
+      messageDiv.textContent = message;
+      warning.appendChild(messageDiv);
+    });
+  } else {
+    warning.style.display = "none";
   }
   await updateModels();
   await updateProcInfo();
