@@ -15,6 +15,7 @@ const { SiteDataTestUtils } = ChromeUtils.importESModule(
 const PREFIX = "https://sub1.test1.example";
 const ORIGIN = `${PREFIX}.org`;
 const ORIGIN_THIRD_PARTY = `${PREFIX}.com`;
+const ORIGIN_PARTITIONED = `${ORIGIN_THIRD_PARTY}^partitionKey=%28https%2Cexample.org%29`;
 const TEST_URL = `${ORIGIN}/${PATH}storage-dfpi.html`;
 
 function listOrigins() {
@@ -45,17 +46,24 @@ add_task(async function () {
   // To ensure more accurate results, try choosing a uncommon origin for PREFIX.
   const EXISTING_ORIGINS = await listOrigins();
   ok(!EXISTING_ORIGINS.includes(ORIGIN), `${ORIGIN} doesn't exist`);
+  ok(
+    !EXISTING_ORIGINS.includes(ORIGIN_PARTITIONED),
+    `${ORIGIN_PARTITIONED} doesn't exist`
+  );
 
   await openTabAndSetupStorage(TEST_URL);
 
   const origins = await listOrigins();
   for (const origin of origins) {
     ok(
-      EXISTING_ORIGINS.includes(origin) || origin === ORIGIN,
+      EXISTING_ORIGINS.includes(origin) ||
+        origin === ORIGIN ||
+        origin == ORIGIN_PARTITIONED,
       `check origin: ${origin}`
     );
   }
   ok(origins.includes(ORIGIN), `${ORIGIN} is added`);
+  ok(origins.includes(ORIGIN_PARTITIONED), `${ORIGIN_PARTITIONED} is added`);
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });

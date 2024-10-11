@@ -5263,9 +5263,17 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
 }
 
 RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
-    const ClientMetadata& aClientMetadata,
+    const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent,
     Maybe<RefPtr<ClientDirectoryLock>&> aPendingDirectoryLockOut) {
   AssertIsOnOwningThread();
+
+  const auto persistenceType = aClientMetadata.mPersistenceType;
+
+  QM_TRY_UNWRAP(
+      auto principalInfo, PrincipalMetadataToPrincipalInfo(aClientMetadata),
+      [](StaticString aFunc, const nsresult aRv) {
+        return ClientDirectoryLockPromise::CreateAndReject(aRv, aFunc);
+      });
 
   nsTArray<RefPtr<BoolPromise>> promises;
 
@@ -5284,7 +5292,7 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
 
   RefPtr<UniversalDirectoryLock> temporaryStorageDirectoryLock;
 
-  if (IsBestEffortPersistenceType(aClientMetadata.mPersistenceType)) {
+  if (IsBestEffortPersistenceType(persistenceType)) {
     temporaryStorageDirectoryLock = CreateDirectoryLockInternal(
         PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                         PERSISTENCE_TYPE_DEFAULT),
@@ -5298,6 +5306,25 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
     } else {
       promises.AppendElement(temporaryStorageDirectoryLock->Acquire());
     }
+  }
+
+  RefPtr<UniversalDirectoryLock> originDirectoryLock =
+      CreateDirectoryLockInternal(
+          PersistenceScope::CreateFromValue(persistenceType),
+          OriginScope::FromOrigin(aClientMetadata.mOrigin),
+          Nullable<Client::Type>(), /* aExclusive */ false);
+
+  const bool originInitialized =
+      persistenceType == PERSISTENCE_TYPE_PERSISTENT
+          ? IsPersistentOriginInitialized(principalInfo)
+          : IsTemporaryOriginInitialized(persistenceType, principalInfo);
+
+  if (originInitialized &&
+      !IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation(
+          originDirectoryLock)) {
+    originDirectoryLock = nullptr;
+  } else {
+    promises.AppendElement(originDirectoryLock->Acquire());
   }
 
   RefPtr<ClientDirectoryLock> clientDirectoryLock =
@@ -5357,6 +5384,32 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
                    return self->InitializeTemporaryStorage(
                        std::move(temporaryStorageDirectoryLock));
                  })
+          ->Then(
+              GetCurrentSerialEventTarget(), __func__,
+              [self = RefPtr(this), persistenceType,
+               principalInfo = std::move(principalInfo), aCreateIfNonExistent,
+               originDirectoryLock = std::move(originDirectoryLock)](
+                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+                if (aValue.IsReject()) {
+                  SafeDropDirectoryLockIfNotDropped(originDirectoryLock);
+
+                  return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                      __func__);
+                }
+
+                if (!originDirectoryLock) {
+                  return BoolPromise::CreateAndResolve(true, __func__);
+                }
+
+                if (persistenceType == PERSISTENCE_TYPE_PERSISTENT) {
+                  return self->InitializePersistentOrigin(
+                      principalInfo, std::move(originDirectoryLock));
+                }
+
+                return self->InitializeTemporaryOrigin(
+                    persistenceType, principalInfo, aCreateIfNonExistent,
+                    std::move(originDirectoryLock));
+              })
           ->Then(GetCurrentSerialEventTarget(), __func__,
                  [clientDirectoryLock = std::move(clientDirectoryLock)](
                      const BoolPromise::ResolveOrRejectValue& aValue) mutable {
