@@ -2835,6 +2835,20 @@ TEST(DcSctpSocketTest, ResetStreamsDeferred) {
                                      kSuccessPerformed))))))));
   a.socket.ReceivePacket(reconfig3);
 
+  EXPECT_THAT(
+      data1,
+      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(0))))));
+  EXPECT_THAT(
+      data2,
+      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(0))))));
+  EXPECT_THAT(
+      data3,
+      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(1))))));
+  EXPECT_THAT(reconfig, HasChunks(ElementsAre(IsReConfig(HasParameters(
+                            ElementsAre(IsOutgoingResetRequest(Property(
+                                &OutgoingSSNResetRequestParameter::stream_ids,
+                                ElementsAre(StreamID(1))))))))));
+
   // Send a new message after the stream has been reset.
   a.socket.Send(DcSctpMessage(StreamID(1), PPID(55),
                               std::vector<uint8_t>(kSmallMessageSize)),
