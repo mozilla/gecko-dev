@@ -171,6 +171,7 @@ class Editor extends EventEmitter {
   // The id for the current source in the editor (selected source). This
   // is used to cache the scroll snapshot for tracking scroll positions.
   #currentDocumentId = null;
+  #currentDocument = null;
   #CodeMirror6;
   #compartments;
   #effects;
@@ -1010,14 +1011,6 @@ class Editor extends EventEmitter {
   }
 
   #createEventHandlers() {
-    function posToLineColumn(pos, view) {
-      if (!pos) {
-        return { line: null, column: null };
-      }
-      const cursor = view.state.doc.lineAt(pos);
-      const column = pos - cursor.from;
-      return { line: cursor.number, column };
-    }
     const eventHandlers = {};
     for (const eventName in this.#editorDOMEventHandlers) {
       const handlers = this.#editorDOMEventHandlers[eventName];
@@ -1031,9 +1024,8 @@ class Editor extends EventEmitter {
           // investigate further Bug 1890895.
           event.target.ownerGlobal.setTimeout(() => {
             const view = editor.viewState;
-            const cursorPos = posToLineColumn(
-              view.state.selection.main.head,
-              view
+            const cursorPos = this.#posToLineColumn(
+              view.state.selection.main.head
             );
             handler(event, view, cursorPos.line, cursorPos.column);
           }, 0);
@@ -2047,6 +2039,12 @@ class Editor extends EventEmitter {
 
   getDoc() {
     const cm = editors.get(this);
+    if (this.config.cm6) {
+      if (!this.#currentDocument) {
+        this.#currentDocument = { id: this.#currentDocumentId };
+      }
+      return this.#currentDocument;
+    }
     return cm.getDoc();
   }
 
@@ -2069,24 +2067,47 @@ class Editor extends EventEmitter {
     return this.wasmOffsetToLine(maybeOffset);
   }
 
+  /**
+   * Gets details about the line
+   *
+   * @param {Number} lineOrOffset
+   * @returns {Object} line info object
+   */
   lineInfo(lineOrOffset) {
-    const line = this.toLineIfWasmOffset(lineOrOffset);
+    let line = this.toLineIfWasmOffset(lineOrOffset);
     if (line == undefined) {
       return null;
     }
     const cm = editors.get(this);
-
     if (this.config.cm6) {
+      // cm6 lines are 1-based, while cm5 are 0-based
+      line = line + 1;
+      const el = this.getElementAtLine(line);
+      // Filter out SPAN which do not contain user-defined classes.
+      // Classes currently are "debug-expression" and "debug-expression-error"
+      const markedSpans = [...el.querySelectorAll("span")].filter(span =>
+        span.className.includes("debug-expression")
+      );
+
       return {
-        // cm6 lines are 1-based, while cm5 are 0-based
-        text: cm.state.doc.lineAt(line + 1)?.text,
+        text: cm.state.doc.lineAt(line)?.text,
         // TODO: Expose those, or see usage for those and do things differently
         line: null,
-        handle: null,
+        handle: {
+          markedSpans: markedSpans
+            ? markedSpans.map(span => {
+                const { column } = this.#posToLineColumn(cm.posAtDOM(span));
+                return {
+                  marker: { className: span.className },
+                  from: column,
+                };
+              })
+            : null,
+        },
         gutterMarkers: null,
         textClass: null,
         bgClass: null,
-        wrapClass: null,
+        wrapClass: el.className,
         widgets: null,
       };
     }
@@ -3014,6 +3035,21 @@ class Editor extends EventEmitter {
     return inXView && inYView;
   }
 
+  #posToLineColumn(pos) {
+    const cm = editors.get(this);
+    if (!pos) {
+      return {
+        line: null,
+        column: null,
+      };
+    }
+    const line = cm.state.doc.lineAt(pos);
+    return {
+      line: line.number,
+      column: pos - line.from,
+    };
+  }
+
   /**
    * Converts  line/col to CM6 offset position
    * @param {Number} line - The line in the source
@@ -3182,6 +3218,14 @@ class Editor extends EventEmitter {
     // CodeMirror is 0-based while line and column arguments are 1-based.
     // Pass "column=-1" when there is no column argument passed.
     return cm.charCoords({ line: ~~line, ch: ~~column });
+  }
+
+  // Used only in tests
+  // Only used for CM6
+  getElementAtLine(line) {
+    const offset = this.#positionToOffset(line);
+    const el = this.#getElementAtOffset(offset);
+    return el.closest(".cm-line");
   }
 
   // Only used for CM6
