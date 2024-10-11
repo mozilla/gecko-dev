@@ -298,8 +298,11 @@ class NetEq {
 
   // Returns the decoder info for the given payload type. Returns empty if no
   // such payload type was registered.
-  virtual absl::optional<DecoderFormat> GetDecoderFormat(
-      int payload_type) const = 0;
+  [[deprecated(
+      "Use GetCurrentDecoderFormat")]] virtual absl::optional<DecoderFormat>
+  GetDecoderFormat(int payload_type) const {
+    return absl::nullopt;
+  }
 
   // Returns info for the most recently used decoder.
   virtual absl::optional<DecoderFormat> GetCurrentDecoderFormat() const {

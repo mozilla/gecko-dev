@@ -374,37 +374,22 @@ int NetEqImpl::last_output_sample_rate_hz() const {
   return last_output_sample_rate_hz_;
 }
 
-absl::optional<NetEq::DecoderFormat> NetEqImpl::GetDecoderFormat(
-    int payload_type) const {
-  MutexLock lock(&mutex_);
-  return GetDecoderFormatInternal(payload_type);
-}
-
-absl::optional<NetEq::DecoderFormat> NetEqImpl::GetDecoderFormatInternal(
-    int payload_type) const {
-  const DecoderDatabase::DecoderInfo* const di =
-      decoder_database_->GetDecoderInfo(payload_type);
-  if (di == nullptr) {
-    // Payload type not registered.
-    return absl::nullopt;
-  }
-  const AudioDecoder* const decoder = di->GetDecoder();
-  // TODO(kwiberg): Why the special case for RED?
-  return DecoderFormat{
-      /*payload_type=*/payload_type,
-      /*sample_rate_hz=*/di->IsRed() ? 8000 : di->SampleRateHz(),
-      /*num_channels=*/
-      decoder ? rtc::dchecked_cast<int>(decoder->Channels()) : 1,
-      /*sdp_format=*/di->GetFormat()};
-}
-
 absl::optional<NetEq::DecoderFormat> NetEqImpl::GetCurrentDecoderFormat()
     const {
   MutexLock lock(&mutex_);
   if (!current_rtp_payload_type_.has_value()) {
     return absl::nullopt;
   }
-  return GetDecoderFormatInternal(*current_rtp_payload_type_);
+  const DecoderDatabase::DecoderInfo* di =
+      decoder_database_->GetDecoderInfo(*current_rtp_payload_type_);
+  if (di == nullptr) {
+    return absl::nullopt;
+  }
+  return DecoderFormat{
+      /*payload_type=*/*current_rtp_payload_type_,
+      /*sample_rate_hz=*/di->SampleRateHz(),
+      /*num_channels=*/rtc::dchecked_cast<int>(di->GetDecoder()->Channels()),
+      /*sdp_format=*/di->GetFormat()};
 }
 
 void NetEqImpl::FlushBuffers() {

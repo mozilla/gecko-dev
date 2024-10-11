@@ -177,9 +177,6 @@ class NetEqImpl : public webrtc::NetEq {
 
   int last_output_sample_rate_hz() const override;
 
-  absl::optional<DecoderFormat> GetDecoderFormat(
-      int payload_type) const override;
-
   absl::optional<DecoderFormat> GetCurrentDecoderFormat() const override;
 
   // Flushes both the packet buffer and the sync buffer.
@@ -341,9 +338,6 @@ class NetEqImpl : public webrtc::NetEq {
 
   NetEqController::PacketArrivedInfo ToPacketArrivedInfo(
       const Packet& packet) const RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-
-  absl::optional<DecoderFormat> GetDecoderFormatInternal(int payload_type) const
-      RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   const Environment env_;
 
