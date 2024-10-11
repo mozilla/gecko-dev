@@ -220,18 +220,10 @@ class AcmReceiver {
   void GetDecodingCallStatistics(AudioDecodingCallStats* stats) const;
 
  private:
-  struct DecoderInfo {
-    int payload_type;
-    int sample_rate_hz;
-    int num_channels;
-    SdpAudioFormat sdp_format;
-  };
-
   uint32_t NowInTimestamp(int decoder_sampling_rate) const;
 
   const Environment env_;
   mutable Mutex mutex_;
-  absl::optional<DecoderInfo> last_decoder_ RTC_GUARDED_BY(mutex_);
   ACMResampler resampler_ RTC_GUARDED_BY(mutex_);
   CallStatistics call_stats_ RTC_GUARDED_BY(mutex_);
   const std::unique_ptr<NetEq> neteq_;  // NetEq is thread-safe; no lock needed.

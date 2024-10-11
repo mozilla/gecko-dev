@@ -91,11 +91,12 @@ int AcmReceiver::GetBaseMinimumDelayMs() const {
 }
 
 absl::optional<int> AcmReceiver::last_packet_sample_rate_hz() const {
-  MutexLock lock(&mutex_);
-  if (!last_decoder_) {
+  absl::optional<NetEq::DecoderFormat> decoder =
+      neteq_->GetCurrentDecoderFormat();
+  if (!decoder) {
     return absl::nullopt;
   }
-  return last_decoder_->sample_rate_hz;
+  return decoder->sample_rate_hz;
 }
 
 int AcmReceiver::last_output_sample_rate_hz() const {
@@ -109,36 +110,6 @@ int AcmReceiver::InsertPacket(const RTPHeader& rtp_header,
     neteq_->InsertEmptyPacket(rtp_header);
     return 0;
   }
-
-  int payload_type = rtp_header.payloadType;
-  auto format = neteq_->GetDecoderFormat(payload_type);
-  if (format && absl::EqualsIgnoreCase(format->sdp_format.name, "red")) {
-    // This is a RED packet. Get the format of the audio codec.
-    payload_type = incoming_payload[0] & 0x7f;
-    format = neteq_->GetDecoderFormat(payload_type);
-  }
-  if (!format) {
-    RTC_LOG_F(LS_ERROR) << "Payload-type " << payload_type
-                        << " is not registered.";
-    return -1;
-  }
-
-  {
-    MutexLock lock(&mutex_);
-    if (absl::EqualsIgnoreCase(format->sdp_format.name, "cn")) {
-      if (last_decoder_ && last_decoder_->num_channels > 1) {
-        // This is a CNG and the audio codec is not mono, so skip pushing in
-        // packets into NetEq.
-        return 0;
-      }
-    } else {
-      last_decoder_ = DecoderInfo{/*payload_type=*/payload_type,
-                                  /*sample_rate_hz=*/format->sample_rate_hz,
-                                  /*num_channels=*/format->num_channels,
-                                  /*sdp_format=*/std::move(format->sdp_format)};
-    }
-  }  // `mutex_` is released.
-
   if (neteq_->InsertPacket(rtp_header, incoming_payload, receive_time) < 0) {
     RTC_LOG(LS_ERROR) << "AcmReceiver::InsertPacket "
                       << static_cast<int>(rtp_header.payloadType)
@@ -237,12 +208,12 @@ int AcmReceiver::TargetDelayMs() const {
 
 absl::optional<std::pair<int, SdpAudioFormat>> AcmReceiver::LastDecoder()
     const {
-  MutexLock lock(&mutex_);
-  if (!last_decoder_) {
+  absl::optional<NetEq::DecoderFormat> decoder =
+      neteq_->GetCurrentDecoderFormat();
+  if (!decoder) {
     return absl::nullopt;
   }
-  RTC_DCHECK_NE(-1, last_decoder_->payload_type);
-  return std::make_pair(last_decoder_->payload_type, last_decoder_->sdp_format);
+  return std::make_pair(decoder->payload_type, decoder->sdp_format);
 }
 
 void AcmReceiver::GetNetworkStatistics(

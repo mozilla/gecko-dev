@@ -451,7 +451,7 @@ index 4bdf81f703..5138876b0d 100644
        LntfConfig lntf;
  
 diff --git a/modules/audio_coding/acm2/acm_receiver.h b/modules/audio_coding/acm2/acm_receiver.h
-index 92305da0e6..3257f5fff0 100644
+index 1e142484b0..274bd4afb3 100644
 --- a/modules/audio_coding/acm2/acm_receiver.h
 +++ b/modules/audio_coding/acm2/acm_receiver.h
 @@ -19,6 +19,7 @@
