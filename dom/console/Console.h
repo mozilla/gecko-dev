@@ -147,7 +147,7 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
 
  private:
   Console(JSContext* aCx, nsIGlobalObject* aGlobal, uint64_t aOuterWindowID,
-          uint64_t aInnerWIndowID, const nsAString& aPrefix = u""_ns);
+          uint64_t aInnerWIndowID);
   ~Console();
 
   void Initialize(ErrorResult& aRv);
@@ -359,19 +359,15 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   void StringifyElement(Element* aElement, nsAString& aOut);
 
   MOZ_CAN_RUN_SCRIPT
-  void MaybeExecuteDumpFunction(JSContext* aCx, MethodName aMethodName,
-                                const nsAString& aMethodString,
+  void MaybeExecuteDumpFunction(JSContext* aCx, const nsAString& aMethodName,
                                 const Sequence<JS::Value>& aData,
-                                nsIStackFrame* aStack,
-                                DOMHighResTimeStamp aMonotonicTimer);
+                                nsIStackFrame* aStack);
 
   MOZ_CAN_RUN_SCRIPT
-  nsString GetDumpMessage(JSContext* aCx, MethodName aMethodName,
-                          const nsAString& aMethodString,
-                          const Sequence<JS::Value>& aData,
-                          nsIStackFrame* aStack,
-                          DOMHighResTimeStamp aMonotonicTimer,
-                          bool aIsForMozLog);
+  void MaybeExecuteDumpFunctionForTime(JSContext* aCx, MethodName aMethodName,
+                                       const nsAString& aMethodString,
+                                       uint64_t aMonotonicTimer,
+                                       const JS::Value& aData);
 
   MOZ_CAN_RUN_SCRIPT
   void ExecuteDumpFunction(const nsAString& aMessage);
@@ -381,7 +377,6 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   uint32_t WebIDLLogLevelToInteger(ConsoleLogLevel aLevel) const;
 
   uint32_t InternalLogLevelToInteger(MethodName aName) const;
-  LogLevel InternalLogLevelToMozLog(MethodName aName) const;
 
   class ArgumentData {
    public:
@@ -430,7 +425,6 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   nsString mPassedInnerID;
   RefPtr<ConsoleInstanceDumpCallback> mDumpFunction;
   bool mDumpToStdout;
-  LogModule* mLogModule;
   nsString mPrefix;
   bool mChromeInstance;
   uint32_t mCurrentLogLevel;

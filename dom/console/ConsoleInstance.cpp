@@ -46,13 +46,15 @@ ConsoleUtils::Level WebIDLevelToConsoleUtilsLevel(ConsoleLevel aLevel) {
 ConsoleInstance::ConsoleInstance(JSContext* aCx,
                                  const ConsoleInstanceOptions& aOptions)
     : mMaxLogLevel(ConsoleLogLevel::All),
-      mConsole(new Console(aCx, nullptr, 0, 0, aOptions.mPrefix)) {
+      mConsole(new Console(aCx, nullptr, 0, 0)) {
   mConsole->mConsoleID = aOptions.mConsoleID;
   mConsole->mPassedInnerID = aOptions.mInnerID;
 
   if (aOptions.mDump.WasPassed()) {
     mConsole->mDumpFunction = &aOptions.mDump.Value();
   }
+
+  mConsole->mPrefix = aOptions.mPrefix;
 
   // Let's inform that this is a custom instance.
   mConsole->mChromeInstance = true;
