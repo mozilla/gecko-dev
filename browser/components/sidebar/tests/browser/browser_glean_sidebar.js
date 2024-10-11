@@ -154,7 +154,7 @@ add_task(async function test_customize_icon_click() {
   SidebarController.hide();
 });
 
-async function testCustomizeToggle(commandID, gleanEvent) {
+async function testCustomizeToggle(commandID, gleanEvent, checked = true) {
   await SidebarController.show("viewCustomizeSidebar");
   const customizeComponent =
     SidebarController.browser.contentDocument.querySelector(
@@ -162,38 +162,54 @@ async function testCustomizeToggle(commandID, gleanEvent) {
     );
   const checkbox = customizeComponent.shadowRoot.querySelector(`#${commandID}`);
 
-  info(`Disable ${commandID}.`);
+  info(`Toggle ${commandID}.`);
   EventUtils.synthesizeMouseAtCenter(
     checkbox,
     {},
     SidebarController.browser.contentWindow
   );
-  Assert.equal(checkbox.checked, false, "Checkbox is unchecked.");
+  Assert.equal(
+    checkbox.checked,
+    !checked,
+    `Checkbox is ${checked ? "un" : ""}checked.`
+  );
   let events = gleanEvent.testGetValue();
   Assert.equal(events?.length, 1, "One event was reported.");
   Assert.deepEqual(
     events[0].extra,
-    { checked: "false" },
-    "Event indicates that the box was unchecked."
+    { checked: `${!checked}` },
+    `Event indicates that the box was ${checked ? "un" : ""}checked.`
   );
 
-  info(`Enable ${commandID}.`);
+  info(`Re-toggle ${commandID}.`);
   EventUtils.synthesizeMouseAtCenter(
     checkbox,
     {},
     SidebarController.browser.contentWindow
   );
-  Assert.equal(checkbox.checked, true, "Checkbox is checked.");
+  Assert.equal(
+    checkbox.checked,
+    checked,
+    `Checkbox is ${checked ? "" : "un"}checked.`
+  );
   events = gleanEvent.testGetValue();
   Assert.equal(events?.length, 2, "Two events were reported.");
   Assert.deepEqual(
     events[1].extra,
-    { checked: "true" },
-    "Event indicates that the box was checked."
+    { checked: `${checked}` },
+    `Event indicates that the box was ${checked ? "" : "un"}checked.`
   );
 
   SidebarController.hide();
 }
+
+add_task(async function test_customize_chatbot_enabled() {
+  await SpecialPowers.pushPrefEnv({ set: [["browser.ml.chat.enabled", true]] });
+  await testCustomizeToggle(
+    "viewGenaiChatSidebar",
+    Glean.sidebarCustomize.chatbotEnabled
+  );
+});
 
 add_task(async function test_customize_synced_tabs_enabled() {
   await testCustomizeToggle(
@@ -206,6 +222,14 @@ add_task(async function test_customize_history_enabled() {
   await testCustomizeToggle(
     "viewHistorySidebar",
     Glean.sidebarCustomize.historyEnabled
+  );
+});
+
+add_task(async function test_customize_bookmarks_enabled() {
+  await testCustomizeToggle(
+    "viewBookmarksSidebar",
+    Glean.sidebarCustomize.bookmarksEnabled,
+    false
   );
 });
 
