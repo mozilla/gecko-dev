@@ -47,11 +47,25 @@ BackingTexture::BackingTexture(const IntSize& aSize, SurfaceFormat aFormat,
                                const RefPtr<WebGLTexture>& aTexture)
     : mSize(aSize), mFormat(aFormat), mTexture(aTexture) {}
 
+#ifdef XP_WIN
+// Work around buggy ANGLE/D3D drivers that may copy blocks of pixels outside
+// the row length. Extra space is reserved at the end of each row up to stride
+// alignment. This does not affect standalone textures.
+static const Etagere::AllocatorOptions kR8AllocatorOptions = {16, 1, 1, 0};
+#endif
+
 SharedTexture::SharedTexture(const IntSize& aSize, SurfaceFormat aFormat,
                              const RefPtr<WebGLTexture>& aTexture)
     : BackingTexture(aSize, aFormat, aTexture),
       mAtlasAllocator(
-          Etagere::etagere_atlas_allocator_new(aSize.width, aSize.height)) {}
+#ifdef XP_WIN
+          aFormat == SurfaceFormat::A8
+              ? Etagere::etagere_atlas_allocator_with_options(
+                    aSize.width, aSize.height, &kR8AllocatorOptions)
+              :
+#endif
+              Etagere::etagere_atlas_allocator_new(aSize.width, aSize.height)) {
+}
 
 SharedTexture::~SharedTexture() {
   if (mAtlasAllocator) {
