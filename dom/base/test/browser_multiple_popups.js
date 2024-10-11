@@ -40,7 +40,7 @@ async function withTestPage(popupCount, optionsOrCallback, callback) {
 
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["dom.block_multiple_popups", true],
+      // Enable popup blocker
       ["dom.disable_open_during_load", true],
     ],
   });
@@ -97,12 +97,15 @@ add_task(async _ => {
   await withTestPage(2, async function (browser) {
     await SpecialPowers.pushPrefEnv({
       set: [
+        // XXXedgar, perhaps dom.block_multiple_popups will be removed at some
+        // point, we would need to update this test then.
         ["dom.block_multiple_popups", false],
-        ["dom.disable_open_during_load", true],
       ],
     });
 
     await BrowserTestUtils.synthesizeMouseAtCenter("#openPopups", {}, browser);
+
+    await SpecialPowers.popPrefEnv();
   });
 });
 

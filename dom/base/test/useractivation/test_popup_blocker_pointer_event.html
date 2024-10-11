@@ -50,8 +50,12 @@
         // This is a rather fragile test when experimental pref isn't enabled.
         // Use default prefs in experimental case.
         SpecialPowers.wrap(document).clearUserGestureActivation();
-        await SpecialPowers.pushPrefEnv({ set: [["dom.block_multiple_popups", true],
-                                                ["dom.disable_open_during_load", true]]});
+        await SpecialPowers.pushPrefEnv({
+          set: [
+            // Enable popup blocker
+            ["dom.disable_open_during_load", true],
+          ],
+        });
       }
       const DENY_ACTION = SpecialPowers.Ci.nsIPermissionManager.DENY_ACTION;
       let xorigin = SimpleTest.getTestFileURL("").replace(location.hostname, 'mochi.xorigin-test');
