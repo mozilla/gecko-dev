@@ -114,7 +114,11 @@ add_task(async () => {
     // equal, but the DOMRect conversion is rounded to 1/65536 CSS pixels.
     // https://searchfox.org/mozilla-central/rev/380fc5571b039fd453b45bbb64ed13146fe9b066/dom/base/DOMRect.cpp#151-159
     // See also https://bugzilla.mozilla.org/show_bug.cgi?id=1640441#c28
-    const absTolerance = 1/65536
+    //
+    // Increased tolerance in https://bugzilla.mozilla.org/show_bug.cgi?id=1920733
+    // as the change to rendering mode seems to have perturbed results a bit, though
+    // it's still "basically the same".
+    const absTolerance = 0.05;
     fuzzyCompareLength(menuRect2.width, menuRect1.width/2,
                        "width of menu font <p> in px", absTolerance, expectFn);
     fuzzyCompareLength(menuRect2.height, menuRect1.height/2,
