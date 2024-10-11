@@ -254,7 +254,7 @@ index 105cbf0783..eb3a370eed 100644
  
  #endif  // MODULES_DESKTOP_CAPTURE_MAC_SCREEN_CAPTURER_SCK_H_
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index a7fdfb1012..51a5275905 100644
+index af1a4e360b..b92399e6b6 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -20,11 +20,13 @@
@@ -692,7 +692,7 @@ index a7fdfb1012..51a5275905 100644
  }  // namespace webrtc
  
  @implementation SckHelper {
-@@ -393,6 +603,50 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+@@ -394,6 +604,50 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
    }
  }
  
@@ -743,7 +743,7 @@ index a7fdfb1012..51a5275905 100644
  - (void)stream:(SCStream*)stream
      didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
                     ofType:(SCStreamOutputType)type {
-@@ -424,6 +678,7 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+@@ -425,6 +679,7 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
  
  - (void)releaseCapturer {
    webrtc::MutexLock lock(&_capturer_lock);

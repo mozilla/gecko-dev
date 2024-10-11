@@ -365,7 +365,8 @@ void PeerConnectionDelegateAdapter::OnRemoveTrack(
   if (!config) {
     return nil;
   }
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _observer.reset(new webrtc::PeerConnectionDelegateAdapter(self));
     _nativeConstraints = constraints.nativeConstraints;
     CopyConstraintsIntoRtcConfiguration(_nativeConstraints.get(), config.get());

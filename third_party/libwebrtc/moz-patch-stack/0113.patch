@@ -33,7 +33,7 @@ index 2c5241d33e..105cbf0783 100644
  std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
      const DesktopCaptureOptions& options);
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 2dad8b356b..a16a74d451 100644
+index fe44694d3a..ab4d9137a0 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -24,6 +24,8 @@
@@ -74,7 +74,7 @@ index 2dad8b356b..a16a74d451 100644
  }
  
  }  // namespace webrtc
-@@ -418,3 +427,5 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+@@ -419,3 +428,5 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
  }
  
  @end

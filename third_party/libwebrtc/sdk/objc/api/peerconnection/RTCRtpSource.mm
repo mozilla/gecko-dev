@@ -65,7 +65,8 @@
 }
 
 - (instancetype)initWithNativeRtpSource:(const webrtc::RtpSource &)nativeRtpSource {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _nativeRtpSource = nativeRtpSource;
   }
   return self;

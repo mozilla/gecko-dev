@@ -119,7 +119,8 @@
 }
 
 - (instancetype)initNative {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _networkThread = rtc::Thread::CreateWithSocketServer();
     _networkThread->SetName("network_thread", _networkThread.get());
     BOOL result = _networkThread->Start();

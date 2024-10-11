@@ -16,7 +16,8 @@
 (Private)
 
     - (instancetype)initWithNativeVideoCodec : (const webrtc::VideoCodec *)videoCodec {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     if (videoCodec) {
       const char *codecName = CodecTypeToPayloadString(videoCodec->codecType);
       self.name = [NSString stringWithUTF8String:codecName];
@@ -31,7 +32,6 @@
       self.mode = (RTCVideoCodecMode)videoCodec->mode;
     }
   }
-
   return self;
 }
 

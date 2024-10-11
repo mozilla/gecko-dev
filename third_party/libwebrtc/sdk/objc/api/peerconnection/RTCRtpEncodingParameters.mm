@@ -33,7 +33,8 @@
 
 - (instancetype)initWithNativeParameters:
     (const webrtc::RtpEncodingParameters &)nativeParameters {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     if (!nativeParameters.rid.empty()) {
       _rid = [NSString stringForStdString:nativeParameters.rid];
     }

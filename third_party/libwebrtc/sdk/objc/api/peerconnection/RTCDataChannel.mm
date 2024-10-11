@@ -50,7 +50,8 @@ class DataChannelDelegateAdapter : public DataChannelObserver {
 
 - (instancetype)initWithData:(NSData *)data isBinary:(BOOL)isBinary {
   NSParameterAssert(data);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     rtc::CopyOnWriteBuffer buffer(
         reinterpret_cast<const uint8_t*>(data.bytes), data.length);
     _dataBuffer.reset(new webrtc::DataBuffer(buffer, isBinary));
@@ -70,7 +71,8 @@ class DataChannelDelegateAdapter : public DataChannelObserver {
 #pragma mark - Private
 
 - (instancetype)initWithNativeBuffer:(const webrtc::DataBuffer&)nativeBuffer {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _dataBuffer.reset(new webrtc::DataBuffer(nativeBuffer));
   }
   return self;
@@ -167,7 +169,8 @@ class DataChannelDelegateAdapter : public DataChannelObserver {
               nativeDataChannel:
                   (rtc::scoped_refptr<webrtc::DataChannelInterface>)nativeDataChannel {
   NSParameterAssert(nativeDataChannel);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _factory = factory;
     _nativeDataChannel = nativeDataChannel;
     _observer.reset(new webrtc::DataChannelDelegateAdapter(self));

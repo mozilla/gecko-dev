@@ -16,7 +16,8 @@
 @synthesize high = _high;
 
 - (instancetype)initWithThresholdsLow:(NSInteger)low high:(NSInteger)high {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _low = low;
     _high = high;
   }

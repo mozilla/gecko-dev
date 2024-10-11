@@ -21,7 +21,8 @@
               srtpEnableAes128Sha1_32CryptoCipher:(BOOL)srtpEnableAes128Sha1_32CryptoCipher
            srtpEnableEncryptedRtpHeaderExtensions:(BOOL)srtpEnableEncryptedRtpHeaderExtensions
                      sframeRequireFrameEncryption:(BOOL)sframeRequireFrameEncryption {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _srtpEnableGcmCryptoSuites = srtpEnableGcmCryptoSuites;
     _srtpEnableAes128Sha1_32CryptoCipher = srtpEnableAes128Sha1_32CryptoCipher;
     _srtpEnableEncryptedRtpHeaderExtensions = srtpEnableEncryptedRtpHeaderExtensions;

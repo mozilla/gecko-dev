@@ -24,7 +24,8 @@ static NSInteger kARDTURNClientErrorBadResponse = -1;
 
 - (instancetype)initWithURL:(NSURL *)url {
   NSParameterAssert([url absoluteString].length);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _url = url;
   }
   return self;

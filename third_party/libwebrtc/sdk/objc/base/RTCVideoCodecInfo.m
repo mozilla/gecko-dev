@@ -21,7 +21,8 @@
 
 - (instancetype)initWithName:(NSString *)name
                   parameters:(nullable NSDictionary<NSString *, NSString *> *)parameters {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _name = name;
     _parameters = (parameters ? parameters : @{});
   }

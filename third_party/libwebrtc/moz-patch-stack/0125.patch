@@ -112,7 +112,7 @@ index b59b319db9..7a5b595f19 100644
        io_surface_(io_surface) {
    RTC_DCHECK(io_surface_);
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index e98b61ccdb..19c887d435 100644
+index 96d54c5c03..f331bafdfd 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -169,6 +169,12 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture

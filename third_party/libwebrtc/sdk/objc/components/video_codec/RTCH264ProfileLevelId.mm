@@ -90,7 +90,8 @@ NSString *MaxSupportedProfileLevelConstrainedHigh() {
 @synthesize hexString = _hexString;
 
 - (instancetype)initWithHexString:(NSString *)hexString {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     self.hexString = hexString;
 
     absl::optional<webrtc::H264ProfileLevelId> profile_level_id =
@@ -104,7 +105,8 @@ NSString *MaxSupportedProfileLevelConstrainedHigh() {
 }
 
 - (instancetype)initWithProfile:(RTCH264Profile)profile level:(RTCH264Level)level {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     self.profile = profile;
     self.level = level;
 

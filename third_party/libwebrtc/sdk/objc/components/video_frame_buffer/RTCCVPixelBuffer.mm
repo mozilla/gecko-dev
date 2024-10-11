@@ -62,7 +62,8 @@
                          cropHeight:(int)cropHeight
                               cropX:(int)cropX
                               cropY:(int)cropY {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _width = adaptedWidth;
     _height = adaptedHeight;
     _pixelBuffer = pixelBuffer;

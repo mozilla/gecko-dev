@@ -25,7 +25,8 @@
 
 - (instancetype)initWithNativeRtpHeaderExtensionCapability:
     (const webrtc::RtpHeaderExtensionCapability &)nativeRtpHeaderExtensionCapability {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _uri = [NSString stringForStdString:nativeRtpHeaderExtensionCapability.uri];
     if (nativeRtpHeaderExtensionCapability.preferred_id) {
       _preferredId = [NSNumber numberWithInt:*nativeRtpHeaderExtensionCapability.preferred_id];

@@ -23,7 +23,8 @@
 }
 
 - (instancetype)initWithNativeParameters:(const webrtc::RtcpParameters &)nativeParameters {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _cname = [NSString stringForStdString:nativeParameters.cname];
     _isReducedSize = nativeParameters.reduced_size;
   }

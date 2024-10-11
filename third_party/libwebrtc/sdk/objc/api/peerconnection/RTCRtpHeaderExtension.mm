@@ -24,7 +24,8 @@
 }
 
 - (instancetype)initWithNativeParameters:(const webrtc::RtpExtension &)nativeParameters {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _uri = [NSString stringForStdString:nativeParameters.uri];
     _id = nativeParameters.id;
     _encrypted = nativeParameters.encrypt;

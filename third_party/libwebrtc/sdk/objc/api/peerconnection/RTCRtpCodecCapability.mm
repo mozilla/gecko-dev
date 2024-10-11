@@ -33,7 +33,8 @@
 
 - (instancetype)initWithNativeRtpCodecCapability:
     (const webrtc::RtpCodecCapability &)nativeRtpCodecCapability {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     if (nativeRtpCodecCapability.preferred_payload_type) {
       _preferredPayloadType =
           [NSNumber numberWithInt:*nativeRtpCodecCapability.preferred_payload_type];

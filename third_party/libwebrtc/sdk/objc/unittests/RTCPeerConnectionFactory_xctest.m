@@ -42,7 +42,8 @@
 
 - (instancetype)initWithSupportedCodecs:
     (nonnull NSArray<RTC_OBJC_TYPE(RTCVideoCodecInfo) *> *)supportedCodecs {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _supportedCodecs = supportedCodecs;
   }
   return self;

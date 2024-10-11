@@ -53,7 +53,8 @@ static cricket::VideoFormat expectedFormat =
 - (instancetype)initWithMediaSubtype:(FourCharCode)subtype
                               minFps:(float)minFps
                               maxFps:(float)maxFps {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     CMVideoFormatDescriptionCreate(nil, subtype, kFormatWidth, kFormatHeight,
                                    nil, &_format);
     // We can use OCMock for the range.

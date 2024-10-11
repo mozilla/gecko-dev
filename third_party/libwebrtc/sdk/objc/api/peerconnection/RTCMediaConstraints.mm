@@ -37,7 +37,8 @@ NSString *const kRTCMediaConstraintsValueFalse = @(webrtc::MediaConstraints::kVa
     (NSDictionary<NSString *, NSString *> *)mandatory
                          optionalConstraints:
     (NSDictionary<NSString *, NSString *> *)optional {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _mandatory = [[NSDictionary alloc] initWithDictionary:mandatory
                                                 copyItems:YES];
     _optional = [[NSDictionary alloc] initWithDictionary:optional

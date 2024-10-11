@@ -69,7 +69,8 @@
 }
 
 - (instancetype)initWithFrame:(CGRect)frame shader:(id<RTC_OBJC_TYPE(RTCVideoViewShading)>)shader {
-  if (self = [super initWithFrame:frame]) {
+  self = [super initWithFrame:frame];
+  if (self) {
     _shader = shader;
     if (![self configure]) {
       return nil;
@@ -80,7 +81,8 @@
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder
                        shader:(id<RTC_OBJC_TYPE(RTCVideoViewShading)>)shader {
-  if (self = [super initWithCoder:aDecoder]) {
+  self = [super initWithCoder:aDecoder];
+  if (self) {
     _shader = shader;
     if (![self configure]) {
       return nil;

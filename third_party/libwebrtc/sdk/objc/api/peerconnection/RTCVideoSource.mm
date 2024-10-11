@@ -33,9 +33,10 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(
                   (rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)nativeVideoSource {
   RTC_DCHECK(factory);
   RTC_DCHECK(nativeVideoSource);
-  if (self = [super initWithFactory:factory
-                  nativeMediaSource:nativeVideoSource
-                               type:RTCMediaSourceTypeVideo]) {
+  self = [super initWithFactory:factory
+              nativeMediaSource:nativeVideoSource
+                           type:RTCMediaSourceTypeVideo];
+  if (self) {
     _nativeVideoSource = nativeVideoSource;
   }
   return self;

@@ -46,7 +46,8 @@ static const GLsizei kNumTextures = kNumTexturesPerSet * kNumTextureSets;
 }
 
 - (instancetype)initWithContext:(GlContextType *)context {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _hasUnpackRowLength = (context.API == kEAGLRenderingAPIOpenGLES3);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 

@@ -113,7 +113,8 @@
                 nativeRtpSender:(rtc::scoped_refptr<webrtc::RtpSenderInterface>)nativeRtpSender {
   NSParameterAssert(factory);
   NSParameterAssert(nativeRtpSender);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _factory = factory;
     _nativeRtpSender = nativeRtpSender;
     if (_nativeRtpSender->media_type() == cricket::MEDIA_TYPE_AUDIO) {

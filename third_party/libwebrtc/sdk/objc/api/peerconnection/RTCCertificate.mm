@@ -28,7 +28,8 @@
 }
 
 - (instancetype)initWithPrivateKey:(NSString *)private_key certificate:(NSString *)certificate {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _private_key = [private_key copy];
     _certificate = [certificate copy];
   }

@@ -26,7 +26,8 @@
               sdpMLineIndex:(int)sdpMLineIndex
                      sdpMid:(NSString *)sdpMid {
   NSParameterAssert(sdp.length);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _sdpMid = [sdpMid copy];
     _sdpMLineIndex = sdpMLineIndex;
     _sdp = [sdp copy];

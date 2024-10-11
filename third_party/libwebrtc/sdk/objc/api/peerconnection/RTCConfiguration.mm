@@ -72,7 +72,8 @@
 
 - (instancetype)initWithNativeConfiguration:
     (const webrtc::PeerConnectionInterface::RTCConfiguration &)config {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _enableDscp = config.dscp();
     NSMutableArray *iceServers = [NSMutableArray array];
     for (const webrtc::PeerConnectionInterface::IceServer& server : config.servers) {

@@ -64,7 +64,8 @@
 - (instancetype)initWithNativeDtmfSender:
         (rtc::scoped_refptr<webrtc::DtmfSenderInterface>)nativeDtmfSender {
   NSParameterAssert(nativeDtmfSender);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _nativeDtmfSender = nativeDtmfSender;
     RTCLogInfo(
         @"RTC_OBJC_TYPE(RTCDtmfSender)(%p): created DTMF sender: %@", self, self.description);

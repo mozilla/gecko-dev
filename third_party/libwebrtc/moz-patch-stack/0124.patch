@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/aabf0bd94f282ae97
  1 file changed, 10 insertions(+), 15 deletions(-)
 
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 51a5275905..e98b61ccdb 100644
+index b92399e6b6..96d54c5c03 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
 @@ -103,7 +103,7 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
@@ -70,7 +70,7 @@ index 51a5275905..e98b61ccdb 100644
        if (!CGRectIsEmpty(rect)) {
          dirty = true;
          break;
-@@ -672,7 +667,7 @@ std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(const DesktopCaptureOp
+@@ -673,7 +668,7 @@ std::unique_ptr<DesktopCapturer> CreateGenericCapturerSck(const DesktopCaptureOp
  
    webrtc::MutexLock lock(&_capturer_lock);
    if (_capturer) {

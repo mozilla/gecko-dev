@@ -53,7 +53,8 @@ class VideoRendererAdapter
 
 - (instancetype)initWithNativeRenderer:(id<RTC_OBJC_TYPE(RTCVideoRenderer)>)videoRenderer {
   NSParameterAssert(videoRenderer);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _videoRenderer = videoRenderer;
     _adapter.reset(new webrtc::VideoRendererAdapter(self));
   }

@@ -115,7 +115,8 @@ static const NSInteger kMaxInflightBuffers = 1;
 @synthesize rotationOverride = _rotationOverride;
 
 - (instancetype)init {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _inflight_semaphore = dispatch_semaphore_create(kMaxInflightBuffers);
   }
 

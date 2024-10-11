@@ -20,7 +20,8 @@
 
 - (instancetype)initWithObserver:(webrtc::AudioSessionObserver *)observer {
   RTC_DCHECK(observer);
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _observer = observer;
   }
   return self;

@@ -33,7 +33,8 @@
 #pragma mark - Private
 
 - (instancetype)initWithNativeReport:(const webrtc::StatsReport &)nativeReport {
-  if (self = [super init]) {
+  self = [super init];
+  if (self) {
     _timestamp = nativeReport.timestamp();
     _type = [NSString stringForStdString:nativeReport.TypeToString()];
     _reportId = [NSString stringForStdString:
