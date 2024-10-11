@@ -587,6 +587,49 @@ class _QuickSuggestTestUtils {
   }
 
   /**
+   * Returns an expected dynamic Wikipedia (non-sponsored) result that can be
+   * passed to `check_results()` in xpcshell tests.
+   *
+   * @returns {object}
+   *   An object that can be passed to `check_results()`.
+   */
+  dynamicWikipediaResult({
+    source = "merino",
+    provider = "wikipedia",
+    keyword = "wikipedia",
+    fullKeyword = keyword,
+    title = "Wikipedia Suggestion",
+    url = "https://example.com/wikipedia",
+    icon = null,
+    suggestedIndex = -1,
+    isSuggestedIndexRelativeToGroup = true,
+  } = {}) {
+    return {
+      suggestedIndex,
+      isSuggestedIndexRelativeToGroup,
+      type: lazy.UrlbarUtils.RESULT_TYPE.URL,
+      source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
+      heuristic: false,
+      payload: {
+        title,
+        url,
+        source,
+        provider,
+        icon,
+        displayUrl: url.replace(/^https:\/\//, ""),
+        isSponsored: false,
+        qsSuggestion: fullKeyword ?? keyword,
+        isBlockable: true,
+        blockL10n: {
+          id: "urlbar-result-menu-dismiss-firefox-suggest",
+        },
+        isManageable: true,
+        telemetryType: "wikipedia",
+      },
+    };
+  }
+
+  /**
    * Returns an AMO (addons) suggestion suitable for storing in a remote
    * settings attachment.
    *
