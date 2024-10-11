@@ -95,13 +95,17 @@ enum StunAddressFamily {
 
 // These are the types of STUN error codes defined in RFC 5389.
 enum StunErrorCode {
+  // Not an actual error from RFC 5389 and not emitted via icecandidateerror.
+  STUN_ERROR_NOT_AN_ERROR = 0,
   STUN_ERROR_TRY_ALTERNATE = 300,
   STUN_ERROR_BAD_REQUEST = 400,
   STUN_ERROR_UNAUTHORIZED = 401,
   STUN_ERROR_UNKNOWN_ATTRIBUTE = 420,
   STUN_ERROR_STALE_NONCE = 438,
   STUN_ERROR_SERVER_ERROR = 500,
-  STUN_ERROR_GLOBAL_FAILURE = 600
+  STUN_ERROR_GLOBAL_FAILURE = 600,
+  // https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceerrorevent-errorcode
+  STUN_ERROR_SERVER_NOT_REACHABLE = 701,
 };
 
 // Strings for the error codes above.
@@ -687,7 +691,8 @@ enum TurnErrorType {
   STUN_ERROR_UNSUPPORTED_PROTOCOL = 442
 };
 
-extern const int SERVER_NOT_REACHABLE_ERROR;
+[[deprecated("Use STUN_ERROR_SERVER_NOT_REACHABLE")]] extern const int
+    SERVER_NOT_REACHABLE_ERROR;
 
 extern const char STUN_ERROR_REASON_FORBIDDEN[];
 extern const char STUN_ERROR_REASON_ALLOCATION_MISMATCH[];
