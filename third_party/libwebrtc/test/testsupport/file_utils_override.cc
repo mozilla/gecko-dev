@@ -19,7 +19,6 @@
 #include <windows.h>
 
 #include <algorithm>
-#include <codecvt>
 #include <locale>
 
 #include "Shlwapi.h"
