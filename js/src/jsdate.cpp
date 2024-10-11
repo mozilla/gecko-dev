@@ -666,7 +666,7 @@ int32_t DateTimeHelper::getTimeZoneOffset(DateTimeInfo::ForceUTC forceUTC,
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static double LocalTime(DateTimeInfo::ForceUTC forceUTC, double t) {
+static int64_t LocalTime(DateTimeInfo::ForceUTC forceUTC, double t) {
   MOZ_ASSERT(std::isfinite(t));
   MOZ_ASSERT(IsTimeValue(t));
 
@@ -676,7 +676,7 @@ static double LocalTime(DateTimeInfo::ForceUTC forceUTC, double t) {
   MOZ_ASSERT(std::abs(offsetMs) < msPerDay);
 
   // Step 5.
-  return t + static_cast<double>(offsetMs);
+  return static_cast<int64_t>(t) + offsetMs;
 }
 
 /**
@@ -2068,7 +2068,7 @@ void DateObject::fillLocalTimeSlots() {
     return;
   }
 
-  double localTime = LocalTime(forceUTC(), utcTime);
+  int64_t localTime = LocalTime(forceUTC(), utcTime);
 
   setReservedSlot(LOCAL_TIME_SLOT, DoubleValue(localTime));
 
@@ -2467,6 +2467,7 @@ static bool date_setMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double ms;
@@ -2481,13 +2482,14 @@ static bool date_setMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 6.
-  t = LocalTime(unwrapped->forceUTC(), t);
+  int64_t tv = LocalTime(unwrapped->forceUTC(), t);
 
   // Step 7.
-  double time = MakeTime(HourFromTime(t), MinFromTime(t), SecFromTime(t), ms);
+  double time =
+      MakeTime(HourFromTime(tv), MinFromTime(tv), SecFromTime(tv), ms);
 
   // Step 8.
-  ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), MakeDate(Day(t), time)));
+  ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), MakeDate(Day(tv), time)));
 
   // Steps 9-10.
   unwrapped->setUTCTime(u, args.rval());
@@ -2511,6 +2513,7 @@ static bool date_setUTCMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double milli;
@@ -2523,13 +2526,14 @@ static bool date_setUTCMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
     args.rval().setNaN();
     return true;
   }
+  int64_t tv = static_cast<int64_t>(t);
 
   // Step 6.
   double time =
-      MakeTime(HourFromTime(t), MinFromTime(t), SecFromTime(t), milli);
+      MakeTime(HourFromTime(tv), MinFromTime(tv), SecFromTime(tv), milli);
 
   // Step 7.
-  ClippedTime v = TimeClip(MakeDate(Day(t), time));
+  ClippedTime v = TimeClip(MakeDate(Day(tv), time));
 
   // Steps 8-9.
   unwrapped->setUTCTime(v, args.rval());
@@ -2553,6 +2557,7 @@ static bool date_setSeconds(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double s;
@@ -2573,16 +2578,16 @@ static bool date_setSeconds(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 7.
-  t = LocalTime(unwrapped->forceUTC(), t);
+  int64_t tv = LocalTime(unwrapped->forceUTC(), t);
 
   // Step 8.
   if (args.length() <= 1) {
-    milli = msFromTime(t);
+    milli = msFromTime(tv);
   }
 
   // Step 9.
   double date =
-      MakeDate(Day(t), MakeTime(HourFromTime(t), MinFromTime(t), s, milli));
+      MakeDate(Day(tv), MakeTime(HourFromTime(tv), MinFromTime(tv), s, milli));
 
   // Step 10.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
@@ -2609,6 +2614,7 @@ static bool date_setUTCSeconds(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double s;
@@ -2627,15 +2633,16 @@ static bool date_setUTCSeconds(JSContext* cx, unsigned argc, Value* vp) {
     args.rval().setNaN();
     return true;
   }
+  int64_t tv = static_cast<int64_t>(t);
 
   // Step 7.
   if (args.length() <= 1) {
-    milli = msFromTime(t);
+    milli = msFromTime(tv);
   }
 
   // Step 8.
   double date =
-      MakeDate(Day(t), MakeTime(HourFromTime(t), MinFromTime(t), s, milli));
+      MakeDate(Day(tv), MakeTime(HourFromTime(tv), MinFromTime(tv), s, milli));
 
   // Step 9.
   ClippedTime v = TimeClip(date);
@@ -2662,6 +2669,7 @@ static bool date_setMinutes(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double m;
@@ -2688,20 +2696,20 @@ static bool date_setMinutes(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 8.
-  t = LocalTime(unwrapped->forceUTC(), t);
+  int64_t tv = LocalTime(unwrapped->forceUTC(), t);
 
   // Step 9.
   if (args.length() <= 1) {
-    s = SecFromTime(t);
+    s = SecFromTime(tv);
   }
 
   // Step 10.
   if (args.length() <= 2) {
-    milli = msFromTime(t);
+    milli = msFromTime(tv);
   }
 
   // Step 11.
-  double date = MakeDate(Day(t), MakeTime(HourFromTime(t), m, s, milli));
+  double date = MakeDate(Day(tv), MakeTime(HourFromTime(tv), m, s, milli));
 
   // Step 12.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
@@ -2728,6 +2736,7 @@ static bool date_setUTCMinutes(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double m;
@@ -2752,19 +2761,20 @@ static bool date_setUTCMinutes(JSContext* cx, unsigned argc, Value* vp) {
     args.rval().setNaN();
     return true;
   }
+  int64_t tv = static_cast<int64_t>(t);
 
   // Step 8.
   if (args.length() <= 1) {
-    s = SecFromTime(t);
+    s = SecFromTime(tv);
   }
 
   // Step 9.
   if (args.length() <= 2) {
-    milli = msFromTime(t);
+    milli = msFromTime(tv);
   }
 
   // Step 10.
-  double date = MakeDate(Day(t), MakeTime(HourFromTime(t), m, s, milli));
+  double date = MakeDate(Day(tv), MakeTime(HourFromTime(tv), m, s, milli));
 
   // Step 11.
   ClippedTime v = TimeClip(date);
@@ -2791,6 +2801,7 @@ static bool date_setHours(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double h;
@@ -2823,25 +2834,25 @@ static bool date_setHours(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 9.
-  t = LocalTime(unwrapped->forceUTC(), t);
+  int64_t tv = LocalTime(unwrapped->forceUTC(), t);
 
   // Step 10.
   if (args.length() <= 1) {
-    m = MinFromTime(t);
+    m = MinFromTime(tv);
   }
 
   // Step 11.
   if (args.length() <= 2) {
-    s = SecFromTime(t);
+    s = SecFromTime(tv);
   }
 
   // Step 12.
   if (args.length() <= 3) {
-    milli = msFromTime(t);
+    milli = msFromTime(tv);
   }
 
   // Step 13.
-  double date = MakeDate(Day(t), MakeTime(h, m, s, milli));
+  double date = MakeDate(Day(tv), MakeTime(h, m, s, milli));
 
   // Step 14.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
@@ -2868,6 +2879,7 @@ static bool date_setUTCHours(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double h;
@@ -2898,24 +2910,25 @@ static bool date_setUTCHours(JSContext* cx, unsigned argc, Value* vp) {
     args.rval().setNaN();
     return true;
   }
+  int64_t tv = static_cast<int64_t>(t);
 
   // Step 9.
   if (args.length() <= 1) {
-    m = MinFromTime(t);
+    m = MinFromTime(tv);
   }
 
   // Step 10.
   if (args.length() <= 2) {
-    s = SecFromTime(t);
+    s = SecFromTime(tv);
   }
 
   // Step 11.
   if (args.length() <= 3) {
-    milli = msFromTime(t);
+    milli = msFromTime(tv);
   }
 
   // Step 12.
-  double date = MakeDate(Day(t), MakeTime(h, m, s, milli));
+  double date = MakeDate(Day(tv), MakeTime(h, m, s, milli));
 
   // Step 13.
   ClippedTime v = TimeClip(date);
@@ -2942,6 +2955,7 @@ static bool date_setDate(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double dt;
@@ -2956,11 +2970,11 @@ static bool date_setDate(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 6.
-  t = LocalTime(unwrapped->forceUTC(), t);
+  int64_t tv = LocalTime(unwrapped->forceUTC(), t);
 
   // Step 7.
-  double newDate = MakeDate(MakeDay(::YearFromTime(t), ::MonthFromTime(t), dt),
-                            TimeWithinDay(t));
+  double newDate = MakeDate(
+      MakeDay(::YearFromTime(tv), ::MonthFromTime(tv), dt), TimeWithinDay(tv));
 
   // Step 8.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), newDate));
@@ -2987,6 +3001,7 @@ static bool date_setUTCDate(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double dt;
@@ -3029,6 +3044,7 @@ static bool date_setMonth(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double m;
@@ -3049,16 +3065,16 @@ static bool date_setMonth(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 7.
-  t = LocalTime(unwrapped->forceUTC(), t);
+  int64_t tv = LocalTime(unwrapped->forceUTC(), t);
 
   // Step 8.
   if (args.length() <= 1) {
-    dt = DateFromTime(t);
+    dt = DateFromTime(tv);
   }
 
   // Step 9.
   double newDate =
-      MakeDate(MakeDay(::YearFromTime(t), m, dt), TimeWithinDay(t));
+      MakeDate(MakeDay(::YearFromTime(tv), m, dt), TimeWithinDay(tv));
 
   // Step 10
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), newDate));
@@ -3085,6 +3101,7 @@ static bool date_setUTCMonth(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double m;
@@ -3138,6 +3155,7 @@ static bool date_setFullYear(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double y;
@@ -3146,16 +3164,17 @@ static bool date_setFullYear(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 5.
+  int64_t tv;
   if (std::isnan(t)) {
-    t = 0;
+    tv = 0;
   } else {
-    t = LocalTime(unwrapped->forceUTC(), t);
+    tv = LocalTime(unwrapped->forceUTC(), t);
   }
 
   // Step 6.
   double m;
   if (args.length() <= 1) {
-    m = MonthFromTime(t);
+    m = MonthFromTime(tv);
   } else {
     if (!ToNumber(cx, args[1], &m)) {
       return false;
@@ -3165,7 +3184,7 @@ static bool date_setFullYear(JSContext* cx, unsigned argc, Value* vp) {
   // Step 7.
   double dt;
   if (args.length() <= 2) {
-    dt = DateFromTime(t);
+    dt = DateFromTime(tv);
   } else {
     if (!ToNumber(cx, args[2], &dt)) {
       return false;
@@ -3173,7 +3192,7 @@ static bool date_setFullYear(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 8.
-  double newDate = MakeDate(MakeDay(y, m, dt), TimeWithinDay(t));
+  double newDate = MakeDate(MakeDay(y, m, dt), TimeWithinDay(tv));
 
   // Step 9.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), newDate));
@@ -3200,6 +3219,7 @@ static bool date_setUTCFullYear(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   if (std::isnan(t)) {
@@ -3260,6 +3280,7 @@ static bool date_setYear(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 3.
   double t = unwrapped->UTCTime().toNumber();
+  MOZ_ASSERT(IsTimeValue(t));
 
   // Step 4.
   double y;
@@ -3268,20 +3289,21 @@ static bool date_setYear(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Step 5.
+  int64_t tv;
   if (std::isnan(t)) {
-    t = 0;
+    tv = 0;
   } else {
-    t = LocalTime(unwrapped->forceUTC(), t);
+    tv = LocalTime(unwrapped->forceUTC(), t);
   }
 
   // Step 6.
   double yyyy = MakeFullYear(y);
 
   // Step 7.
-  double day = MakeDay(yyyy, ::MonthFromTime(t), DateFromTime(t));
+  double day = MakeDay(yyyy, ::MonthFromTime(tv), DateFromTime(tv));
 
   // Step 8.
-  double date = MakeDate(day, TimeWithinDay(t));
+  double date = MakeDate(day, TimeWithinDay(tv));
 
   // Step 9.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
@@ -3534,7 +3556,7 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
   }
 
   int64_t epochMilliseconds = static_cast<int64_t>(utcTime);
-  int64_t localTime = static_cast<int64_t>(LocalTime(forceUTC, utcTime));
+  int64_t localTime = LocalTime(forceUTC, utcTime);
 
   int offset = 0;
   RootedString timeZoneComment(cx);
