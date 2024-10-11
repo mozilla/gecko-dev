@@ -1084,7 +1084,7 @@ done:
  * Non-ISO years < 100 get fixed up, to allow 2-digit year formats.
  * year < 50 becomes 2000-2049, 50-99 becomes 1950-1999.
  */
-int FixupYear(int year) {
+static int FixupYear(int year) {
   if (year < 50) {
     year += 2000;
   } else if (year >= 50 && year < 100) {
@@ -1094,7 +1094,7 @@ int FixupYear(int year) {
 }
 
 template <typename CharT>
-bool MatchesKeyword(const CharT* s, size_t len, const char* keyword) {
+static bool MatchesKeyword(const CharT* s, size_t len, const char* keyword) {
   while (len > 0) {
     MOZ_ASSERT(IsAsciiAlpha(*s));
     MOZ_ASSERT(IsAsciiLowercaseAlpha(*keyword) || *keyword == '\0');
@@ -1120,7 +1120,7 @@ static constexpr const char* const month_prefixes[] = {
  * case-insensitive, with the given lower case prefix.
  */
 template <typename CharT>
-bool StartsWithMonthPrefix(const CharT* s, const char* prefix) {
+static bool StartsWithMonthPrefix(const CharT* s, const char* prefix) {
   MOZ_ASSERT(strlen(prefix) == 3);
 
   for (size_t i = 0; i < 3; ++i) {
@@ -1138,7 +1138,7 @@ bool StartsWithMonthPrefix(const CharT* s, const char* prefix) {
 }
 
 template <typename CharT>
-bool IsMonthName(const CharT* s, size_t len, int* mon) {
+static bool IsMonthName(const CharT* s, size_t len, int* mon) {
   // Month abbreviations < 3 chars are not accepted.
   if (len < 3) {
     return false;
@@ -1353,7 +1353,7 @@ static constexpr CharsAndAction keywords[] = {
 };
 
 template <size_t N>
-constexpr size_t MinKeywordLength(const CharsAndAction (&keywords)[N]) {
+static constexpr size_t MinKeywordLength(const CharsAndAction (&keywords)[N]) {
   size_t min = size_t(-1);
   for (const CharsAndAction& keyword : keywords) {
     min = std::min(min, std::char_traits<char>::length(keyword.chars));
@@ -2009,10 +2009,6 @@ void DateObject::fillLocalTimeSlots() {
   uint64_t yearTime = uint64_t(localTime - yearStartTime);
   int32_t yearSeconds = int32_t(yearTime / 1000);
   setReservedSlot(LOCAL_SECONDS_INTO_YEAR_SLOT, Int32Value(yearSeconds));
-}
-
-MOZ_ALWAYS_INLINE bool IsDate(HandleValue v) {
-  return v.isObject() && v.toObject().is<DateObject>();
 }
 
 /*
@@ -3505,7 +3501,7 @@ static bool date_toSource(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-bool date_toString(JSContext* cx, unsigned argc, Value* vp) {
+static bool date_toString(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype", "toString");
   CallArgs args = CallArgsFromVp(argc, vp);
 
