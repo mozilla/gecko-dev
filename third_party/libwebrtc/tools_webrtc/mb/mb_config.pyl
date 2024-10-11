@@ -186,6 +186,7 @@
         'rtti_no_sctp': 'rtti_no_sctp_x64',
         'disable_trace_events': 'disable_trace_events_x64',
         'perfetto': 'perfetto_x64',
+        'openssl': 'openssl_x64',
       },
       'linux_msan': 'msan_clang_release_bot_x64',
       'linux_rel': 'release_bot_x64',
