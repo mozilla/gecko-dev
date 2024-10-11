@@ -1557,13 +1557,13 @@ async function scrollAndGetEditorLineGutterElement(dbg, line) {
  * @returns
  */
 async function getNodeAtEditorLine(dbg, line) {
-  if (!isCm6Enabled) {
-    return getEditorLine(dbg, line);
+  if (isCm6Enabled) {
+    // To handle virtualized lines accurately, lets use the
+    // cm6 utility here.
+    await scrollEditorIntoView(dbg, line, 0);
+    return getCMEditor(dbg).getElementAtLine(line);
   }
-  // To handle virtualized lines accurately, lets use the
-  // cm6 utility here.
-  await scrollEditorIntoView(dbg, line, 0);
-  return getCMEditor(dbg).getElementAtLine(line);
+  return getEditorLineGutter(dbg, line);
 }
 
 async function getConditionalPanelAtLine(dbg, line) {
@@ -1636,19 +1636,18 @@ async function selectEditorLinesAndOpenContextMenu(
  *                 hasBlackboxedLinesClass
  *                   If `true` assert that style exist, else assert that style does not exist
  */
-function assertIgnoredStyleInSourceLines(
+async function assertIgnoredStyleInSourceLines(
   dbg,
   { lines, hasBlackboxedLinesClass }
 ) {
   if (lines) {
     let currentLine = lines[0];
     do {
-      const element = findElement(dbg, "line", currentLine);
-      const hasStyle = hasBlackboxedLinesClass
-        ? element.parentNode.classList.contains("blackboxed-line")
-        : !element.parentNode.classList.contains("blackboxed-line");
-      ok(
+      const element = await getNodeAtEditorLine(dbg, currentLine);
+      const hasStyle = element.classList.contains("blackboxed-line");
+      is(
         hasStyle,
+        hasBlackboxedLinesClass,
         `Line ${currentLine} ${
           hasBlackboxedLinesClass ? "does not have" : "has"
         } ignored styling`
@@ -1656,14 +1655,8 @@ function assertIgnoredStyleInSourceLines(
       currentLine = currentLine + 1;
     } while (currentLine <= lines[1]);
   } else {
-    const codeLines = findAllElementsWithSelector(
-      dbg,
-      ".CodeMirror-code .CodeMirror-line"
-    );
-    const blackboxedLines = findAllElementsWithSelector(
-      dbg,
-      ".CodeMirror-code .blackboxed-line"
-    );
+    const codeLines = findAllElements(dbg, "codeLines");
+    const blackboxedLines = findAllElements(dbg, "blackboxedLines");
     is(
       hasBlackboxedLinesClass ? codeLines.length : 0,
       blackboxedLines.length,
@@ -1816,6 +1809,12 @@ const selectors = {
     removeOthers: "#node-menu-delete-other",
     removeCondition: "#node-menu-remove-condition",
   },
+  blackboxedLines: isCm6Enabled
+    ? ".cm-content > .blackboxed-line"
+    : ".CodeMirror-code .blackboxed-line",
+  codeLines: isCm6Enabled
+    ? ".cm-content > .cm-line"
+    : ".CodeMirror-code .CodeMirror-line",
   editorContextMenu: {
     continueToHere: "#node-menu-continue-to-here",
   },
@@ -1834,7 +1833,10 @@ const selectors = {
       ? `.cm-gutter.cm-lineNumbers .cm-gutterElement:nth-child(${i + 1})`
       : `.CodeMirror-code *:nth-child(${i}) .CodeMirror-linenumber`,
   gutters: isCm6Enabled ? `.cm-gutters` : `.CodeMirror-gutters`,
-  line: i => `.CodeMirror-code div:nth-child(${i}) .CodeMirror-line`,
+  line: i =>
+    isCm6Enabled
+      ? `.cm-content > div.cm-line:nth-child(${i})`
+      : `.CodeMirror-code div:nth-child(${i}) .CodeMirror-line`,
   addConditionItem:
     "#node-menu-add-condition, #node-menu-add-conditional-breakpoint",
   editConditionItem:
@@ -1848,7 +1850,7 @@ const selectors = {
     : ".CodeMirror-code > .highlight-line",
   debugLine: ".new-debug-line",
   debugErrorLine: ".new-debug-line-error",
-  codeMirror: ".CodeMirror",
+  codeMirror: isCm6Enabled ? ".cm-editor" : ".CodeMirror",
   resume: ".resume.active",
   pause: ".pause.active",
   sourceTabs: ".source-tabs",
@@ -1901,7 +1903,7 @@ const selectors = {
   threadsPaneItems: ".threads-pane .thread",
   threadsPaneItem: i => `.threads-pane .thread:nth-child(${i})`,
   threadsPaneItemPause: i => `${selectors.threadsPaneItem(i)}.paused`,
-  CodeMirrorLines: ".CodeMirror-lines",
+  CodeMirrorLines: isCm6Enabled ? ".cm-content" : ".CodeMirror-lines",
   inlinePreviewLabels: ".inline-preview .inline-preview-label",
   inlinePreviewValues: ".inline-preview .inline-preview-value",
   inlinePreviewOpenInspector: ".inline-preview-value button.open-inspector",

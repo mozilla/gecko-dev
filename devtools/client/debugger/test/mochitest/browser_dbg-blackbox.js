@@ -194,7 +194,7 @@ async function testBlackBoxSource(dbg, source) {
   await selectBlackBoxContextMenuItem(dbg, "blackbox");
 
   info("Assert that all lines in the source are styled correctly");
-  assertIgnoredStyleInSourceLines(dbg, { hasBlackboxedLinesClass: true });
+  await assertIgnoredStyleInSourceLines(dbg, { hasBlackboxedLinesClass: true });
 
   info("Assert that the source tree for simple4.js has the ignored style");
   const node = findSourceNodeWithText(dbg, "simple4.js");
@@ -237,7 +237,9 @@ async function testBlackBoxSource(dbg, source) {
   await selectBlackBoxContextMenuItem(dbg, "blackbox");
 
   info("Assert that all lines in the source are un-styled correctly");
-  assertIgnoredStyleInSourceLines(dbg, { hasBlackboxedLinesClass: false });
+  await assertIgnoredStyleInSourceLines(dbg, {
+    hasBlackboxedLinesClass: false,
+  });
 
   info(
     "Assert that the source tree for simple4.js does not have the ignored style"
@@ -308,7 +310,7 @@ async function testBlackBoxMultipleLines(dbg, source) {
   });
 
   info("Assert that the ignored lines are styled correctly");
-  assertIgnoredStyleInSourceLines(dbg, {
+  await assertIgnoredStyleInSourceLines(dbg, {
     lines: [7, 13],
     hasBlackboxedLinesClass: true,
   });
@@ -357,7 +359,7 @@ async function testBlackBoxMultipleLines(dbg, source) {
   });
 
   info("Assert that the un-ignored lines are no longer have the style");
-  assertIgnoredStyleInSourceLines(dbg, {
+  await assertIgnoredStyleInSourceLines(dbg, {
     lines: [7, 13],
     hasBlackboxedLinesClass: false,
   });
@@ -411,7 +413,7 @@ async function testBlackBoxSingleLine(dbg, source) {
   });
 
   info("Assert that the ignored line 2 is styled correctly");
-  assertIgnoredStyleInSourceLines(dbg, {
+  await assertIgnoredStyleInSourceLines(dbg, {
     lines: [2],
     hasBlackboxedLinesClass: true,
   });
@@ -421,7 +423,7 @@ async function testBlackBoxSingleLine(dbg, source) {
   await selectBlackBoxContextMenuItem(dbg, "blackbox-line");
 
   info("Assert that the ignored line 4 is styled correctly");
-  assertIgnoredStyleInSourceLines(dbg, {
+  await assertIgnoredStyleInSourceLines(dbg, {
     lines: [4],
     hasBlackboxedLinesClass: true,
   });
@@ -463,7 +465,7 @@ async function testBlackBoxSingleLine(dbg, source) {
   });
 
   info("Assert that the un-ignored line 2 is styled correctly");
-  assertIgnoredStyleInSourceLines(dbg, {
+  await assertIgnoredStyleInSourceLines(dbg, {
     lines: [2],
     hasBlackboxedLinesClass: false,
   });
