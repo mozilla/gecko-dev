@@ -17,6 +17,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
 });
 
+const { EngineProcess, PipelineOptions } = ChromeUtils.importESModule(
+  "chrome://global/content/ml/EngineProcess.sys.mjs"
+);
+
 /**
  * Preferences for machine learning enablement and model hub configuration.
  */
@@ -27,6 +31,7 @@ const MODEL_HUB_ROOT_URL = Services.prefs.getStringPref(
 const MODEL_HUB_URL_TEMPLATE = Services.prefs.getStringPref(
   "browser.ml.modelHubUrlTemplate"
 );
+const THIRTY_SECONDS = 30 * 1000;
 
 let modelHub = null;
 let modelCache = null;
@@ -63,6 +68,7 @@ const NUM_THREADS = Array.from(
   { length: navigator.hardwareConcurrency || 4 },
   (_, i) => i + 1
 );
+let engineParent = null;
 
 /**
  * Presets for the pad
@@ -146,7 +152,121 @@ function formatBytes(bytes) {
   return `${size[0]} ${size[1]}`;
 }
 
-let updateInterval; // Declare a variable to store the interval ID
+let updateStatusInterval = null;
+
+/**
+ * Displays engines info in a table.
+ *
+ * @async
+ */
+
+async function updateStatus() {
+  if (!engineParent) {
+    return;
+  }
+
+  let info;
+
+  // Fetch the engine status info
+  try {
+    info = await engineParent.getStatus();
+  } catch (e) {
+    engineParent = null; // let's re-create it on errors.
+    info = new Map();
+  }
+
+  // Get the container where the table will be displayed
+  let tableContainer = document.getElementById("statusTableContainer");
+
+  // Clear the container if the map is empty
+  if (info.size === 0) {
+    tableContainer.innerHTML = ""; // Clear any existing table
+    if (updateStatusInterval) {
+      clearInterval(updateStatusInterval); // Clear the interval if it exists
+      updateStatusInterval = null; // Reset the interval variable
+    }
+    return; // Exit the function early if there's no data to display
+  }
+
+  // Create the fragment for the table content
+  let fragment = document.createDocumentFragment();
+
+  // Create the table element
+  let table = document.createElement("table");
+  table.border = "1";
+
+  // Create the header of the table
+  let thead = document.createElement("thead");
+  let headerRow = document.createElement("tr");
+
+  let columns = [
+    "Engine ID",
+    "Status",
+    "Model ID",
+    "Quantization",
+    "Device",
+    "Timeout",
+  ];
+
+  columns.forEach(col => {
+    let th = document.createElement("th");
+    th.textContent = col;
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // Create the body of the table
+  let tbody = document.createElement("tbody");
+
+  // Iterate over the info map
+  for (let [engineId, engineInfo] of info.entries()) {
+    let row = document.createElement("tr");
+
+    // Create a cell for each piece of data
+    let engineIdCell = document.createElement("td");
+    engineIdCell.textContent = engineId;
+    row.appendChild(engineIdCell);
+
+    let statusCell = document.createElement("td");
+    statusCell.textContent = engineInfo.status;
+    row.appendChild(statusCell);
+
+    let modelIdCell = document.createElement("td");
+    modelIdCell.textContent = engineInfo.options?.modelId || "N/A";
+    row.appendChild(modelIdCell);
+
+    let dtypeCell = document.createElement("td");
+    dtypeCell.textContent = engineInfo.options?.dtype || "N/A";
+    row.appendChild(dtypeCell);
+
+    let deviceCell = document.createElement("td");
+    deviceCell.textContent = engineInfo.options?.device || "N/A";
+    row.appendChild(deviceCell);
+
+    let timeoutCell = document.createElement("td");
+    timeoutCell.textContent = engineInfo.options?.timeoutMS || "N/A";
+    row.appendChild(timeoutCell);
+
+    // Append the row to the table body
+    tbody.appendChild(row);
+  }
+
+  table.appendChild(tbody);
+  fragment.appendChild(table);
+
+  // Replace the old table with the new one
+  tableContainer.innerHTML = "";
+  tableContainer.appendChild(fragment);
+
+  // If no interval exists, set it to update the table periodically
+  if (!updateStatusInterval) {
+    updateStatusInterval = setInterval(updateStatus, 1000); // Update every second
+  }
+}
+
+let updateInterval;
 
 /**
  * Displays process information in a table. Only includes processes of type "inference".
@@ -155,7 +275,7 @@ let updateInterval; // Declare a variable to store the interval ID
  */
 async function updateProcInfo() {
   let info = await ChromeUtils.requestProcInfo();
-  let tableContainer = document.getElementById("runningInference");
+  let tableContainer = document.getElementById("procInfoTableContainer");
   let fragment = document.createDocumentFragment();
   let table = document.createElement("table");
   table.border = "1";
@@ -318,6 +438,7 @@ async function refreshPage() {
   }
   await updateModels();
   await updateProcInfo();
+  await updateStatus();
 }
 
 /**
@@ -406,16 +527,16 @@ async function runInference() {
     device,
     dtype,
     numThreads,
+    timeoutMS: THIRTY_SECONDS,
   };
-
-  const { createEngine } = ChromeUtils.importESModule(
-    "chrome://global/content/ml/EngineProcess.sys.mjs"
-  );
 
   appendTextConsole("Creating engine if needed");
   let engine;
   try {
-    engine = await createEngine(initData, progressData => {
+    const pipelineOptions = new PipelineOptions(initData);
+    const engineParent = await getEngineParent();
+
+    engine = await engineParent.getEngine(pipelineOptions, progressData => {
       engineNotification(progressData).catch(err => {
         console.error("Error in engineNotification:", err);
       });
@@ -442,14 +563,12 @@ async function runInference() {
         "Make sure you started Firefox with MOZ_ALLOW_EXTERNAL_ML_HUB=1"
       );
     }
-
+    engineParent = null; // let's re-create it on errors.
     throw e;
   }
 
   appendTextConsole(`Results: ${JSON.stringify(res, null, 2)}`);
   appendTextConsole(`Metrics: ${JSON.stringify(res.metrics, null, 2)}`);
-
-  await engine.terminate(/* shutdown */ true, /* replacement */ false);
   await refreshPage();
 }
 
@@ -599,6 +718,13 @@ function showTab(tabIndex) {
       item.classList.add("active");
     }
   });
+}
+
+async function getEngineParent() {
+  if (!engineParent) {
+    engineParent = await EngineProcess.getMLEngineParent();
+  }
+  return engineParent;
 }
 
 /**

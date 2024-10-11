@@ -348,7 +348,7 @@ export class EngineProcess {
    * @param {string} config.url
    * @param {string} config.id
    * @param {string} config.resolverName
-   * @returns {Promise<TranslationsEngineParent>}
+   * @returns {Promise<TranslationsEngineParent|MLEngineParent>}
    */
   static async #attachBrowser({ url, id, resolverName }) {
     const hiddenFrame = await this.#getHiddenFrame();

@@ -598,3 +598,65 @@ add_task(async function test_ml_threading_support() {
   await EngineProcess.destroyMLEngine();
   await cleanup();
 });
+
+add_task(async function test_ml_engine_get_status() {
+  const { cleanup, remoteClients } = await setup();
+
+  info("Get the engine");
+  const engineInstance = await createEngine(RAW_PIPELINE_OPTIONS);
+
+  info("Check the inference process is running");
+  Assert.equal(await checkForRemoteType("inference"), true);
+
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  const res = await inferencePromise;
+  Assert.equal(
+    res.output.echo,
+    "This gets echoed.",
+    "The text get echoed exercising the whole flow."
+  );
+
+  const expected = {
+    "default-engine": {
+      status: "IDLING",
+      options: {
+        engineId: "default-engine",
+        taskName: "moz-echo",
+        timeoutMS: 1000,
+        modelHubRootUrl:
+          "chrome://mochitests/content/browser/toolkit/components/ml/tests/browser/data",
+        modelHubUrlTemplate: "{model}/{revision}",
+        modelId: "mozilla/distilvit",
+        modelRevision: "main",
+        tokenizerId: "mozilla/distilvit",
+        tokenizerRevision: "main",
+        processorId: "mozilla/distilvit",
+        processorRevision: "main",
+        logLevel: "All",
+        runtimeFilename: "ort-wasm-simd-threaded.jsep.wasm",
+        device: null,
+        dtype: "q8",
+        numThreads: null,
+      },
+      engineId: "default-engine",
+    },
+  };
+
+  let status = await engineInstance.mlEngineParent.getStatus();
+  status = JSON.parse(JSON.stringify(Object.fromEntries(status)));
+  Assert.deepEqual(status, expected);
+
+  await ok(
+    !EngineProcess.areAllEnginesTerminated(),
+    "The engine process is still active."
+  );
+
+  await EngineProcess.destroyMLEngine();
+
+  await cleanup();
+});

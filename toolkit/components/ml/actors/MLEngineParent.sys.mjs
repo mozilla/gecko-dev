@@ -475,6 +475,13 @@ export class MLEngineParent extends JSWindowActorParent {
   }
 
   /**
+   * Gets a status
+   */
+  getStatus() {
+    return this.sendQuery("MLEngine:GetStatus");
+  }
+
+  /**
    * Send a message to gracefully shutdown all of the ML engines in the engine process.
    * This mostly exists for testing the shutdown paths of the code.
    */

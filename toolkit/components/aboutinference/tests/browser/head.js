@@ -82,7 +82,7 @@ async function openAboutInference({
   const selectors = {
     pageHeader: '[data-l10n-id="about-inference-header"]',
     warning: "div#warning",
-    processes: "div#runningInference",
+    processes: "div#procInfoTableContainer",
   };
 
   // Start the tab at a blank page.

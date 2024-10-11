@@ -61,12 +61,22 @@ export class MLEngineChild extends JSWindowActorChild {
    */
   #engineDispatchers = new Map();
 
+  /**
+   * Engine statuses
+   *
+   * @type {Map<string, string>}
+   */
+  #engineStatuses = new Map();
+
   // eslint-disable-next-line consistent-return
   async receiveMessage({ name, data }) {
     switch (name) {
       case "MLEngine:NewPort": {
         await this.#onNewPortCreated(data);
         break;
+      }
+      case "MLEngine:GetStatus": {
+        return this.getStatus();
       }
       case "MLEngine:ForceShutdown": {
         for (const engineDispatcher of this.#engineDispatchers.values()) {
@@ -76,6 +86,7 @@ export class MLEngineChild extends JSWindowActorChild {
           );
         }
         this.#engineDispatchers = null;
+        this.#engineStatuses = null;
         break;
       }
     }
@@ -104,11 +115,12 @@ export class MLEngineChild extends JSWindowActorChild {
       // And then overwrite with the ones passed in the message
       options.updateOptions(pipelineOptions);
 
+      const engineId = options.engineId;
+      this.#engineStatuses.set(engineId, "INITIALIZING");
+
       // Check if we already have an engine under this id.
-      if (this.#engineDispatchers.has(options.engineId)) {
-        let currentEngineDispatcher = this.#engineDispatchers.get(
-          options.engineId
-        );
+      if (this.#engineDispatchers.has(engineId)) {
+        let currentEngineDispatcher = this.#engineDispatchers.get(engineId);
 
         // The option matches, let's reuse the engine
         if (currentEngineDispatcher.pipelineOptions.equals(options)) {
@@ -116,6 +128,8 @@ export class MLEngineChild extends JSWindowActorChild {
             type: "EnginePort:EngineReady",
             error: null,
           });
+          this.#engineStatuses.set(engineId, "READY");
+
           return;
         }
 
@@ -124,13 +138,16 @@ export class MLEngineChild extends JSWindowActorChild {
           /* shutDownIfEmpty */ false,
           /* replacement */ true
         );
-        this.#engineDispatchers.delete(options.engineId);
+        this.#engineDispatchers.delete(engineId);
       }
 
+      this.#engineStatuses.set(engineId, "CREATING");
       this.#engineDispatchers.set(
-        options.engineId,
+        engineId,
         await EngineDispatcher.initialize(this, port, options)
       );
+
+      this.#engineStatuses.set(engineId, "READY");
       port.postMessage({
         type: "EnginePort:EngineReady",
         error: null,
@@ -193,6 +210,7 @@ export class MLEngineChild extends JSWindowActorChild {
       return;
     }
     this.#engineDispatchers.delete(engineId);
+    this.#engineStatuses.delete(engineId);
 
     this.sendAsyncMessage("MLEngine:Removed", {
       engineId,
@@ -203,6 +221,23 @@ export class MLEngineChild extends JSWindowActorChild {
     if (this.#engineDispatchers.size === 0 && shutDownIfEmpty) {
       this.sendAsyncMessage("MLEngine:DestroyEngineProcess");
     }
+  }
+
+  /**
+   * Collects information about the current status.
+   */
+  async getStatus() {
+    const statusMap = new Map();
+
+    for (const [key, value] of this.#engineStatuses) {
+      if (this.#engineDispatchers.has(key)) {
+        statusMap.set(key, this.#engineDispatchers.get(key).getStatus());
+      } else {
+        // The engine is probably being created
+        statusMap.set(key, { status: value });
+      }
+    }
+    return statusMap;
   }
 }
 
@@ -231,6 +266,9 @@ class EngineDispatcher {
 
   /** @type {PipelineOptions | null} */
   pipelineOptions = null;
+
+  /** @type {string} */
+  #status;
 
   /**
    * Creates the inference engine given the wasm runtime and the run options.
@@ -277,6 +315,7 @@ class EngineDispatcher {
    * @param {PipelineOptions} pipelineOptions
    */
   constructor(mlEngineChild, port, pipelineOptions) {
+    this.#status = "CREATED";
     this.mlEngineChild = mlEngineChild;
     this.#taskName = pipelineOptions.taskName;
     this.timeoutMS = pipelineOptions.timeoutMS;
@@ -305,10 +344,22 @@ class EngineDispatcher {
   }
 
   /**
+   * Returns the status of the engine
+   */
+  getStatus() {
+    return {
+      status: this.#status,
+      options: this.pipelineOptions,
+      engineId: this.#engineId,
+    };
+  }
+
+  /**
    * Resolves the engine to fully initialize it.
    */
   async ensureInferenceEngineIsReady() {
     this.#engine = await this.#engine;
+    this.#status = "READY";
   }
 
   /**
@@ -351,7 +402,11 @@ class EngineDispatcher {
     // In automated tests, the engine is manually destroyed.
     if (!Cu.isInAutomation) {
       this.#keepAliveTimeout = lazy.setTimeout(
-        this.terminate.bind(this),
+        this.terminate.bind(
+          this,
+          /* shutDownIfEmpty */ true,
+          /* replacement */ false
+        ),
         this.timeoutMS
       );
     }
@@ -425,6 +480,7 @@ class EngineDispatcher {
           // as the engine shouldn't be killed while it is initializing.
           this.keepAlive();
 
+          this.#status = "RUNNING";
           try {
             port.postMessage({
               type: "EnginePort:RunResponse",
@@ -440,6 +496,7 @@ class EngineDispatcher {
               error,
             });
           }
+          this.#status = "IDLING";
           break;
         }
         default:
@@ -464,12 +521,15 @@ class EngineDispatcher {
       // This call will trigger back an EnginePort:Discard that will close the port
       this.#port.postMessage({ type: "EnginePort:EngineTerminated" });
     }
+
+    this.#status = "TERMINATING";
     try {
       const engine = await this.#engine;
       engine.terminate();
     } catch (error) {
       lazy.console.error("Failed to get the engine", error);
     }
+    this.#status = "TERMINATED";
 
     this.mlEngineChild.removeEngine(
       this.#engineId,
