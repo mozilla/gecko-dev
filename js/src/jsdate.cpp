@@ -88,54 +88,6 @@ static Atomic<bool, Relaxed> sJitter;
 static Atomic<JS::ReduceMicrosecondTimePrecisionCallback, Relaxed>
     sReduceMicrosecondTimePrecisionCallback;
 
-/*
- * The JS 'Date' object is patterned after the Java 'Date' object.
- * Here is a script:
- *
- *    today = new Date();
- *
- *    print(today.toLocaleString());
- *
- *    weekDay = today.getDay();
- *
- *
- * These Java (and ECMA-262) methods are supported:
- *
- *     UTC
- *     getDate (getUTCDate)
- *     getDay (getUTCDay)
- *     getHours (getUTCHours)
- *     getMinutes (getUTCMinutes)
- *     getMonth (getUTCMonth)
- *     getSeconds (getUTCSeconds)
- *     getMilliseconds (getUTCMilliseconds)
- *     getTime
- *     getTimezoneOffset
- *     getYear
- *     getFullYear (getUTCFullYear)
- *     parse
- *     setDate (setUTCDate)
- *     setHours (setUTCHours)
- *     setMinutes (setUTCMinutes)
- *     setMonth (setUTCMonth)
- *     setSeconds (setUTCSeconds)
- *     setMilliseconds (setUTCMilliseconds)
- *     setTime
- *     setYear (setFullYear, setUTCFullYear)
- *     toGMTString (toUTCString)
- *     toLocaleString
- *     toString
- *
- *
- * These Java methods are not supported
- *
- *     setDay
- *     before
- *     after
- *     equals
- *     hashCode
- */
-
 namespace {
 
 class DateTimeHelper {
@@ -186,21 +138,47 @@ static inline double PositiveModulo(double dividend, double divisor) {
   return result + (+0.0);
 }
 
+/**
+ * 21.4.1.3 Day ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static inline double Day(double t) { return floor(t / msPerDay); }
 
+/**
+ * 21.4.1.4 TimeWithinDay ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double TimeWithinDay(double t) { return PositiveModulo(t, msPerDay); }
 
-/* ES5 15.9.1.3. */
+/**
+ * 21.4.1.5 DaysInYear ( y )
+ * 21.4.1.10 InLeapYear ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static inline bool IsLeapYear(double year) {
-  MOZ_ASSERT(ToInteger(year) == year);
+  MOZ_ASSERT(IsInteger(year));
   return fmod(year, 4) == 0 && (fmod(year, 100) != 0 || fmod(year, 400) == 0);
 }
 
+/**
+ * 21.4.1.6 DayFromYear ( y )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static inline double DayFromYear(double y) {
+  // Steps 1-7.
   return 365 * (y - 1970) + floor((y - 1969) / 4.0) -
          floor((y - 1901) / 100.0) + floor((y - 1601) / 400.0);
 }
 
+/**
+ * 21.4.1.7 TimeFromYear ( y )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static inline double TimeFromYear(double y) {
   return ::DayFromYear(y) * msPerDay;
 }
@@ -342,6 +320,11 @@ YearMonthDay js::ToYearMonthDay(int64_t epochMilliseconds) {
   return ::ToYearMonthDay(epochMilliseconds);
 }
 
+/**
+ * 21.4.1.8 YearFromTime ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double YearFromTime(double t) {
   if (!std::isfinite(t)) {
     return GenericNaN();
@@ -350,12 +333,21 @@ static double YearFromTime(double t) {
   return double(year);
 }
 
-/* ES5 15.9.1.4. */
+/**
+ * 21.4.1.9 DayWithinYear ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double DayWithinYear(double t, double year) {
   MOZ_ASSERT_IF(std::isfinite(t), ::YearFromTime(t) == year);
   return Day(t) - ::DayFromYear(year);
 }
 
+/**
+ * 21.4.1.11 MonthFromTime ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double MonthFromTime(double t) {
   if (!std::isfinite(t)) {
     return GenericNaN();
@@ -364,7 +356,11 @@ static double MonthFromTime(double t) {
   return double(month);
 }
 
-/* ES5 15.9.1.5. */
+/**
+ * 21.4.1.12 DateFromTime ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double DateFromTime(double t) {
   if (!std::isfinite(t)) {
     return GenericNaN();
@@ -373,7 +369,11 @@ static double DateFromTime(double t) {
   return double(day);
 }
 
-/* ES5 15.9.1.6. */
+/**
+ * 21.4.1.13 WeekDay ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static int WeekDay(double t) {
   /*
    * We can't assert TimeClip(t) == t because we call this function with
@@ -403,41 +403,51 @@ static inline int DayFromMonth(int month, bool isLeapYear) {
 template <typename T>
 static inline int DayFromMonth(T month, bool isLeapYear) = delete;
 
-/* ES5 15.9.1.12 (out of order to accommodate DaylightSavingTA). */
+/**
+ * 21.4.1.28 MakeDay ( year, month, date )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double MakeDay(double year, double month, double date) {
-  /* Step 1. */
+  // Step 1.
   if (!std::isfinite(year) || !std::isfinite(month) || !std::isfinite(date)) {
     return GenericNaN();
   }
 
-  /* Steps 2-4. */
+  // Steps 2-4.
   double y = ToInteger(year);
   double m = ToInteger(month);
   double dt = ToInteger(date);
 
-  /* Step 5. */
+  // Step 5.
   double ym = y + floor(m / 12);
 
-  /* Step 6. */
+  // Step 6. (Implicit)
+
+  // Step 7.
   int mn = int(PositiveModulo(m, 12));
 
-  /* Steps 7-8. */
+  // Step 8.
   bool leap = IsLeapYear(ym);
-
   double yearday = floor(TimeFromYear(ym) / msPerDay);
   double monthday = DayFromMonth(mn, leap);
 
+  // Step 9.
   return yearday + monthday + dt - 1;
 }
 
-/* ES5 15.9.1.13 (out of order to accommodate DaylightSavingTA). */
+/**
+ * 21.4.1.29 MakeDate ( day, time )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static inline double MakeDate(double day, double time) {
-  /* Step 1. */
+  // Step 1.
   if (!std::isfinite(day) || !std::isfinite(time)) {
     return GenericNaN();
   }
 
-  /* Step 2. */
+  // Steps 2-4.
   return day * msPerDay + time;
 }
 
