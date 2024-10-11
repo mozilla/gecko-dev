@@ -26,7 +26,7 @@ add_task(async function () {
   // Navigation should clear the stepping state
   const reloaded = reload(dbg, "simple2.js");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "long.js").id, 1);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "long.js").id, 1);
 
   await resume(dbg);
   await reloaded;

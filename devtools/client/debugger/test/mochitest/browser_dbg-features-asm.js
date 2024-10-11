@@ -84,7 +84,7 @@ add_task(async function () {
   invokeInTab("runAsm");
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "asm.js").id, 7);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "asm.js").id, 7);
   await assertBreakpoint(dbg, 7);
 
   await removeBreakpoint(dbg, findSource(dbg, "asm.js").id, 7);

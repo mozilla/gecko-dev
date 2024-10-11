@@ -36,7 +36,7 @@ addIntegrationTask(async function testReloadingRemovedOriginalSources(
   invokeInTab("removedOriginal");
   await waitForPaused(dbg);
   const replacedSource = findSource(dbg, "removed-original.js");
-  assertPausedAtSourceAndLine(dbg, replacedSource.id, 4);
+  await assertPausedAtSourceAndLine(dbg, replacedSource.id, 4);
   assertTextContentOnLine(dbg, 4, 'console.log("Removed original");');
   await assertBreakpoint(dbg, 4);
 
@@ -77,7 +77,7 @@ addIntegrationTask(async function testReloadingRemovedOriginalSources(
   // and the UI updates itself to mention the new original file.
   await waitForPaused(dbg);
   const newSource = findSource(dbg, "new-original.js");
-  assertPausedAtSourceAndLine(dbg, newSource.id, 4);
+  await assertPausedAtSourceAndLine(dbg, newSource.id, 4);
   assertTextContentOnLine(dbg, 4, 'console.log("New original");');
   await assertBreakpoint(dbg, 4);
 

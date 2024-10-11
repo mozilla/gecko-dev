@@ -99,7 +99,7 @@ add_task(async function () {
   const onReloaded = reload(dbg, "test.js");
   await waitForPaused(dbg);
 
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "test.js").id, 2);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "test.js").id, 2);
   is(
     getEditorContent(dbg),
     testOverrideSourceContent,

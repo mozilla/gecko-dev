@@ -343,7 +343,7 @@ add_task(async function testSourceTextContent() {
   is(sources.length, 1, "Got a unique source related to new Function source");
   let newFunctionSource = sources[0];
   // We acknowledge the function header as well as the new line in the first argument
-  assertPausedAtSourceAndLine(dbg, newFunctionSource.id, 4, 0);
+  await assertPausedAtSourceAndLine(dbg, newFunctionSource.id, 4, 0);
   is(getEditorContent(dbg), "function anonymous(a\n,b1\n) {\ndebugger;\n}");
   await resume(dbg);
 
@@ -357,7 +357,7 @@ add_task(async function testSourceTextContent() {
   is(sources.length, 1, "Got a unique source related to new Function source");
   newFunctionSource = sources[0];
   // We acknowledge the function header as well as the new line in the first argument
-  assertPausedAtSourceAndLine(dbg, newFunctionSource.id, 4, 0);
+  await assertPausedAtSourceAndLine(dbg, newFunctionSource.id, 4, 0);
   is(getEditorContent(dbg), "function anonymous(a\n,b2\n) {\ndebugger;\n}");
   await resume(dbg);
 

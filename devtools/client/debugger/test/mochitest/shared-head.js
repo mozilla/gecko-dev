@@ -455,7 +455,7 @@ async function assertEditorLogpoint(dbg, line, { hasLog = false } = {}) {
  * @param {Number} expectedLine
  * @param {Number} [expectedColumn]
  */
-function assertPausedAtSourceAndLine(
+async function assertPausedAtSourceAndLine(
   dbg,
   expectedSourceId,
   expectedLine,
@@ -484,7 +484,7 @@ function assertPausedAtSourceAndLine(
       "Redux state for currently selected frame's column is correct"
     );
   }
-  _assertDebugLine(dbg, pauseLine, pauseColumn);
+  await _assertDebugLine(dbg, pauseLine, pauseColumn);
 
   ok(isVisibleInEditor(dbg, findElement(dbg, "gutters")), "gutter is visible");
 
@@ -1204,7 +1204,12 @@ async function invokeWithBreakpoint(
     return;
   }
 
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, filename).id, line, column);
+  await assertPausedAtSourceAndLine(
+    dbg,
+    findSource(dbg, filename).id,
+    line,
+    column
+  );
 
   await removeBreakpoint(dbg, source.id, line, column);
 

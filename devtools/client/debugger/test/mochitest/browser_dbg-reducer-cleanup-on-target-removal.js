@@ -46,7 +46,7 @@ add_task(async function () {
   });
 
   await waitForPaused(dbg, "original.js");
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "original.js").id, 8);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "original.js").id, 8);
   // Also open the genertated source to populate the reducer for original and generated sources
   await dbg.actions.jumpToMappedSelectedLocation();
   await waitForSelectedSource(dbg, "bundle.js");
