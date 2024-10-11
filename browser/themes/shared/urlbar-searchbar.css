@@ -1093,7 +1093,6 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 
 #urlbar-searchmode-switcher {
   appearance: none;
-  display: none;
   background-color: var(--urlbar-box-bgcolor);
   border-radius: var(--urlbar-icon-border-radius);
   margin: 0;
@@ -1115,10 +1114,12 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
     border-end-end-radius: 0;
   }
 
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
-    display: flex;
+  /* stylelint-disable media-query-no-invalid */
+  @media (not (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate")) and
+         (not (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride")) {
+    display: none;
   }
+  /* stylelint-enable media-query-no-invalid */
 }
 
 #searchmode-switcher-icon {
