@@ -205,14 +205,6 @@ static inline double TimeFromYear(double y) {
   return ::DayFromYear(y) * msPerDay;
 }
 
-namespace {
-struct YearMonthDay {
-  int32_t year;
-  uint32_t month;
-  uint32_t day;
-};
-}  // namespace
-
 /*
  * This function returns the year, month and day corresponding to a given
  * time value. The implementation closely follows (w.r.t. types and variable
@@ -221,7 +213,7 @@ struct YearMonthDay {
  * A key point of the algorithm is that it works on the so called
  * Computational calendar where years run from March to February -- this
  * largely avoids complications with leap years. The algorithm finds the
- * date in the Computation calendar and then maps it to the Gregorian
+ * date in the Computational calendar and then maps it to the Gregorian
  * calendar.
  *
  * [1] Neri C, Schneider L., "Euclidean affine functions and their
@@ -229,9 +221,7 @@ struct YearMonthDay {
  * Softw Pract Exper. 2023;53(4):937-970. doi: 10.1002/spe.3172
  * https://onlinelibrary.wiley.com/doi/full/10.1002/spe.3172
  */
-static YearMonthDay ToYearMonthDay(double t) {
-  MOZ_ASSERT(ToInteger(t) == t);
-
+static YearMonthDay ToYearMonthDay(int64_t time) {
   // Calendar cycles repeat every 400 years in the Gregorian calendar: a
   // leap day is added every 4 years, removed every 100 years and added
   // every 400 years. The number of days in 400 years is cycleInDays.
@@ -280,8 +270,7 @@ static YearMonthDay ToYearMonthDay(double t) {
   // preferably, not outside the ES2024 limits.
   constexpr int64_t minTime = minDays * int64_t(msPerDay);
   [[maybe_unused]] constexpr int64_t maxTime = maxDays * int64_t(msPerDay);
-  MOZ_ASSERT(double(minTime) <= t && t <= double(maxTime));
-  const int64_t time = int64_t(t);
+  MOZ_ASSERT(minTime <= time && time <= maxTime);
 
   // Since time is the number of milliseconds since the epoch, 1970/Jan/01,
   // one might expect N_U = time / uint64_t(msPerDay) is the number of days
@@ -341,6 +330,16 @@ static YearMonthDay ToYearMonthDay(double t) {
   const uint32_t D_G = D + 1;
 
   return {Y_G, M_G, D_G};
+}
+
+static YearMonthDay ToYearMonthDay(double t) {
+  MOZ_ASSERT(IsInteger(t));
+  MOZ_ASSERT(double(INT64_MIN) <= t && t <= double(INT64_MAX));
+  return ::ToYearMonthDay(int64_t(t));
+}
+
+YearMonthDay js::ToYearMonthDay(int64_t epochMilliseconds) {
+  return ::ToYearMonthDay(epochMilliseconds);
 }
 
 static double YearFromTime(double t) {
@@ -1976,7 +1975,7 @@ void DateObject::fillLocalTimeSlots() {
 
   setReservedSlot(LOCAL_TIME_SLOT, DoubleValue(localTime));
 
-  const auto [year, month, day] = ToYearMonthDay(localTime);
+  const auto [year, month, day] = ::ToYearMonthDay(localTime);
 
   setReservedSlot(LOCAL_YEAR_SLOT, Int32Value(year));
   setReservedSlot(LOCAL_MONTH_SLOT, Int32Value(int32_t(month)));
