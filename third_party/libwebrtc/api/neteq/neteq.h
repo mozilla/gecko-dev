@@ -176,6 +176,7 @@ class NetEq {
 
   // Return type for GetDecoderFormat.
   struct DecoderFormat {
+    int payload_type;
     int sample_rate_hz;
     int num_channels;
     SdpAudioFormat sdp_format;
@@ -299,6 +300,11 @@ class NetEq {
   // such payload type was registered.
   virtual absl::optional<DecoderFormat> GetDecoderFormat(
       int payload_type) const = 0;
+
+  // Returns info for the most recently used decoder.
+  virtual absl::optional<DecoderFormat> GetCurrentDecoderFormat() const {
+    return absl::nullopt;
+  }
 
   // Flushes both the packet buffer and the sync buffer.
   virtual void FlushBuffers() = 0;

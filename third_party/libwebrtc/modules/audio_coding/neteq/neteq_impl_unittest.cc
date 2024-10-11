@@ -1734,16 +1734,28 @@ TEST_F(NetEqImplTest, InsertPacketChangePayloadType) {
   header.timestamp = 1234;
   uint8_t payload[160] = {0};
 
+  absl::optional<NetEq::DecoderFormat> decoder =
+      neteq_->GetCurrentDecoderFormat();
+  EXPECT_FALSE(decoder.has_value());
+
   EXPECT_EQ(neteq_->InsertPacket(header, payload,
                                  /*receive_time=*/clock_.CurrentTime()),
             NetEq::kOK);
   EXPECT_EQ(neteq_->GetLifetimeStatistics().packets_discarded, 0u);
+  decoder = neteq_->GetCurrentDecoderFormat();
+  ASSERT_TRUE(decoder.has_value());
+  EXPECT_EQ(decoder->payload_type, kPcmuPayloadType);
+  EXPECT_EQ(decoder->sdp_format.name, "pcmu");
 
   header.payloadType = kPcmaPayloadType;
   header.timestamp += 80;
   EXPECT_EQ(neteq_->InsertPacket(header, payload,
                                  /*receive_time=*/clock_.CurrentTime()),
             NetEq::kOK);
+  decoder = neteq_->GetCurrentDecoderFormat();
+  ASSERT_TRUE(decoder.has_value());
+  EXPECT_EQ(decoder->payload_type, kPcmaPayloadType);
+  EXPECT_EQ(decoder->sdp_format.name, "pcma");
   // The previous packet should be discarded since the codec changed.
   EXPECT_EQ(neteq_->GetLifetimeStatistics().packets_discarded, 1u);
 
@@ -1753,7 +1765,6 @@ TEST_F(NetEqImplTest, InsertPacketChangePayloadType) {
   EXPECT_EQ(neteq_->GetAudio(&audio_frame, &muted), NetEq::kOK);
   EXPECT_EQ(audio_frame.sample_rate_hz(), 8000);
   EXPECT_EQ(audio_frame.speech_type_, AudioFrame::SpeechType::kNormalSpeech);
-  // TODO(jakobi): check active decoder.
 }
 
 class Decoder120ms : public AudioDecoder {
