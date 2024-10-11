@@ -62,6 +62,7 @@ class SettingsAddonsTest : TestSetup() {
                         1,
                     ),
                 ) {
+                    waitForAddonsListProgressBarToBeGone()
                     clickInstallAddon(addonName)
                 }
                 verifyAddonDownloadOverlay()

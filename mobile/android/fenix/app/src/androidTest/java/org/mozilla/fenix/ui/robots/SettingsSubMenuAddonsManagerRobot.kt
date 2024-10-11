@@ -37,6 +37,8 @@ import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
+import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
@@ -56,6 +58,10 @@ class SettingsSubMenuAddonsManagerRobot {
     fun verifyAddonsListIsDisplayed(shouldBeDisplayed: Boolean) =
         assertUIObjectExists(addonsList(), exists = shouldBeDisplayed)
 
+    fun waitForAddonsListProgressBarToBeGone() = assertUIObjectIsGone(itemWithResId("$packageName:id/add_ons_progress_bar"), waitingTime = waitingTimeLong)
+
+    fun waitForAddonsDownloadOverlayToBeGone() = assertUIObjectIsGone(itemWithResId("$packageName:id/addonProgressOverlay"), waitingTime = waitingTimeLong)
+
     fun verifyAddonDownloadOverlay() {
         Log.i(TAG, "verifyAddonDownloadOverlay: Trying to verify that the \"Downloading and verifying extension\" prompt is displayed")
         onView(withText(R.string.mozac_extension_install_progress_caption)).check(matches(isDisplayed()))
@@ -63,6 +69,7 @@ class SettingsSubMenuAddonsManagerRobot {
     }
 
     fun verifyAddonPermissionPrompt(addonName: String) {
+        waitForAddonsDownloadOverlayToBeGone()
         mDevice.waitNotNull(Until.findObject(By.text("Add $addonName?")), waitingTime)
         Log.i(TAG, "verifyAddonPermissionPrompt: Trying to verify that the add-ons permission prompt items are displayed")
         onView(
@@ -126,6 +133,7 @@ class SettingsSubMenuAddonsManagerRobot {
                     homeScreen {
                     }.openThreeDotMenu {
                     }.openAddonsManagerMenu {
+                        waitForAddonsListProgressBarToBeGone()
                         scrollToAddon(addonName)
                         clickInstallAddon(addonName)
                         verifyAddonPermissionPrompt(addonName)
@@ -234,6 +242,7 @@ class SettingsSubMenuAddonsManagerRobot {
         homeScreen {
         }.openThreeDotMenu {
         }.openAddonsManagerMenu {
+            waitForAddonsListProgressBarToBeGone()
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
             acceptPermissionToInstallAddon()
@@ -245,6 +254,7 @@ class SettingsSubMenuAddonsManagerRobot {
         homeScreen {
         }.openThreeDotMenu {
         }.openAddonsManagerMenu {
+            waitForAddonsListProgressBarToBeGone()
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
             selectAllowInPrivateBrowsing()
