@@ -10,7 +10,12 @@ add_task(async function () {
   // Open file:// page.
   let dir = getChromeDir(getResolvedURI(gTestPath));
   dir.append(TEST_FILE);
-  const uriString = Services.io.newFileURI(dir).spec;
+  const uriString = Services.io
+    .newFileURI(dir)
+    .spec.replace(
+      "/components/tabbrowser/test/browser/tabs/",
+      "/base/content/test/general/"
+    );
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, uriString);
   registerCleanupFunction(async function () {
     BrowserTestUtils.removeTab(tab);

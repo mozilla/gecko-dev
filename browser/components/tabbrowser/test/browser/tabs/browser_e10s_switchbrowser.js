@@ -1,6 +1,7 @@
 requestLongerTimeout(2);
 
-const DUMMY_PATH = "browser/browser/base/content/test/general/dummy_page.html";
+const DUMMY_PATH =
+  "browser/browser/components/tabbrowser/test/browser/tabs/dummy_page.html";
 
 const gExpectedHistory = {
   index: -1,

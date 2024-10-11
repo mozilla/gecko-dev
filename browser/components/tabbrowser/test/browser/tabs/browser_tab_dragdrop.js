@@ -135,7 +135,7 @@ add_task(async function () {
   await loadURI(
     tabs[4],
     // eslint-disable-next-line @microsoft/sdl/no-insecure-url
-    "http://example.com/browser/browser/base/content/test/general/browser_tab_dragdrop_embed.html"
+    "http://example.com/browser/browser/components/tabbrowser/test/browser/tabs/browser_tab_dragdrop_embed.html"
   );
   await BrowserTestUtils.switchTab(gBrowser, tabs[3]);
 
@@ -226,7 +226,10 @@ add_task(async function () {
   checkBrowserIds(browserIds);
 
   let win = gBrowser.replaceTabWithWindow(tabs[1]);
-  await new Promise(resolve => whenDelayedStartupFinished(win, resolve));
+  await TestUtils.topicObserved(
+    "browser-delayed-startup-finished",
+    subject => subject == win
+  );
 
   let newWinBrowserId = browserIds[1];
   browserIds.splice(1, 1);
@@ -253,5 +256,5 @@ add_task(async function () {
   await awaitPageShow;
 
   await clickTest(tab);
-  promiseWindowClosed(win);
+  win.close();
 });
