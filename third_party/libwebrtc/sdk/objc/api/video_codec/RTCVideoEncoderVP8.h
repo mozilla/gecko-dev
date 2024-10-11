@@ -20,6 +20,11 @@ RTC_OBJC_EXPORT
  * RTCPeerConnectionFactory. Even though it implements the RTCVideoEncoder protocol, it can not be
  * used independently from the RTCPeerConnectionFactory.
  */
-+ (id<RTC_OBJC_TYPE(RTCVideoEncoder)>)vp8Encoder;
++ (nonnull id<RTC_OBJC_TYPE(RTCVideoEncoder)>)vp8Encoder;
+
+/* Returns list of scalability modes supported by the encoder that can be
+ * created with `vp8Encoder` method above.
+ */
++ (nonnull NSArray<NSString*>*)supportedScalabilityModes;
 
 @end
