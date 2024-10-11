@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "api/call/bitrate_allocation.h"
+#include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
@@ -92,12 +93,11 @@ struct AllocatableTrack {
       : observer(observer),
         config(allocation_config),
         allocated_bitrate_bps(-1),
-        last_used_bitrate_bps(-1),
         media_ratio(1.0) {}
   BitrateAllocatorObserver* observer;
   MediaStreamAllocationConfig config;
   int64_t allocated_bitrate_bps;
-  int64_t last_used_bitrate_bps;
+  absl::optional<DataRate> last_used_bitrate;
   double media_ratio;  // Part of the total bitrate used for media [0.0, 1.0].
 
   uint32_t LastAllocatedBitrate() const;
@@ -122,7 +122,11 @@ class BitrateAllocator : public BitrateAllocatorInterface {
     virtual ~LimitObserver() = default;
   };
 
-  explicit BitrateAllocator(LimitObserver* limit_observer);
+  // `upper_elastic_rate_limit` specifies the rate ceiling an observer can
+  // reach when unused bits are added. A value of zero disables borrowing of
+  // unused rates.
+  BitrateAllocator(LimitObserver* limit_observer,
+                   DataRate upper_elastic_rate_limit);
   ~BitrateAllocator() override;
 
   void UpdateStartRate(uint32_t start_rate_bps);
@@ -139,6 +143,11 @@ class BitrateAllocator : public BitrateAllocatorInterface {
   // the `observer` is currently not allowed to send data.
   void AddObserver(BitrateAllocatorObserver* observer,
                    MediaStreamAllocationConfig config) override;
+
+  // Checks and recomputes bitrate allocation if necessary (when an
+  // elastic/audio bitrate increases significantly). Returns whether there is an
+  // active contributing and active consuming stream.
+  bool RecomputeAllocationIfNeeded();
 
   // Removes a previously added observer, but will not trigger a new bitrate
   // allocation.
@@ -176,7 +185,12 @@ class BitrateAllocator : public BitrateAllocatorInterface {
   int num_pause_events_ RTC_GUARDED_BY(&sequenced_checker_);
   int64_t last_bwe_log_time_ RTC_GUARDED_BY(&sequenced_checker_);
   BitrateAllocationLimits current_limits_ RTC_GUARDED_BY(&sequenced_checker_);
+  const DataRate upper_elastic_rate_limit_ RTC_GUARDED_BY(&sequenced_checker_);
 };
+
+// TODO(b/350555527): Remove after experiment
+DataRate GetElasticRateAllocationFieldTrialParameter(
+    const FieldTrialsView& field_trials);
 
 }  // namespace webrtc
 #endif  // CALL_BITRATE_ALLOCATOR_H_

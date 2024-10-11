@@ -29,6 +29,7 @@
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/transport/network_control.h"
+#include "api/units/time_delta.h"
 #include "audio/audio_receive_stream.h"
 #include "audio/audio_send_stream.h"
 #include "audio/audio_state.h"
@@ -420,6 +421,7 @@ class Call final : public webrtc::Call,
 
   ReceiveSideCongestionController receive_side_cc_;
   RepeatingTaskHandle receive_side_cc_periodic_task_;
+  RepeatingTaskHandle elastic_bandwidth_allocation_task_;
 
   const std::unique_ptr<ReceiveTimeCalculator> receive_time_calculator_;
 
@@ -647,7 +649,9 @@ Call::Call(CallConfig config,
               : nullptr),
       num_cpu_cores_(CpuInfo::DetectNumberOfCores()),
       call_stats_(new CallStats(&env_.clock(), worker_thread_)),
-      bitrate_allocator_(new BitrateAllocator(this)),
+      bitrate_allocator_(new BitrateAllocator(
+          this,
+          GetElasticRateAllocationFieldTrialParameter(env_.field_trials()))),
       config_(std::move(config)),
       audio_network_state_(kNetworkDown),
       video_network_state_(kNetworkDown),
@@ -684,6 +688,22 @@ Call::Call(CallConfig config,
       worker_thread_,
       [receive_side_cc] { return receive_side_cc->MaybeProcess(); },
       TaskQueueBase::DelayPrecision::kLow, &env_.clock());
+
+  // TODO(b/350555527): Remove after experiment
+  if (GetElasticRateAllocationFieldTrialParameter(env_.field_trials()) !=
+      DataRate::Zero()) {
+    elastic_bandwidth_allocation_task_ = RepeatingTaskHandle::Start(
+        worker_thread_,
+        [this] {
+          TimeDelta next_schedule_interval = TimeDelta::Millis(25);
+          if (bitrate_allocator_) {
+            if (!bitrate_allocator_->RecomputeAllocationIfNeeded())
+              next_schedule_interval = TimeDelta::Millis(300);
+          }
+          return next_schedule_interval;
+        },
+        TaskQueueBase::DelayPrecision::kLow, &env_.clock());
+  }
 }
 
 Call::~Call() {
@@ -696,6 +716,7 @@ Call::~Call() {
   RTC_CHECK(video_receive_streams_.empty());
 
   receive_side_cc_periodic_task_.Stop();
+  elastic_bandwidth_allocation_task_.Stop();
   call_stats_->DeregisterStatsObserver(&receive_side_cc_);
   send_stats_.SetFirstPacketTime(transport_send_->GetFirstPacketTime());
 
