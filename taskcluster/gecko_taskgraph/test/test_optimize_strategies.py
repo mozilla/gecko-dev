@@ -10,6 +10,7 @@ import pytest
 from mozunit import main
 from taskgraph.optimize.base import registry
 from taskgraph.task import Task
+from taskgraph.util.copy import deepcopy
 
 from gecko_taskgraph.optimize import project
 from gecko_taskgraph.optimize.backstop import SkipUnlessBackstop, SkipUnlessPushInterval
@@ -20,7 +21,7 @@ from gecko_taskgraph.optimize.bugbug import (
     SkipUnlessDebug,
 )
 from gecko_taskgraph.optimize.mozlint import SkipUnlessMozlint
-from gecko_taskgraph.optimize.strategies import SkipUnlessSchedules
+from gecko_taskgraph.optimize.strategies import SkipUnlessMissing, SkipUnlessSchedules
 from gecko_taskgraph.util.backstop import BACKSTOP_PUSH_INTERVAL
 from gecko_taskgraph.util.bugbug import (
     BUGBUG_BASE_URL,
@@ -584,6 +585,88 @@ def test_mozlint_should_remove_task2(
 
     result = opt.should_remove_task(default_tasks[0], params, "")
     assert result == expected
+
+
+def test_skip_unless_missing(responses, params):
+    opt = SkipUnlessMissing()
+    task = deepcopy(default_tasks[0])
+    task.task["deadline"] = "2024-01-02T00:00:00.000Z"
+    index = "foo.bar.baz"
+    task_id = "abc"
+    root_url = "https://firefox-ci-tc.services.mozilla.com/api"
+
+    # Task is missing, don't optimize
+    responses.add(
+        responses.GET,
+        f"{root_url}/index/v1/task/{index}",
+        status=404,
+    )
+    result = opt.should_remove_task(task, params, index)
+    assert result is False
+
+    # Task is found but failed, don't optimize
+    responses.replace(
+        responses.GET,
+        f"{root_url}/index/v1/task/{index}",
+        json={"taskId": task_id},
+        status=200,
+    )
+    responses.add(
+        responses.GET,
+        f"{root_url}/queue/v1/task/{task_id}/status",
+        json={"status": {"state": "failed"}},
+        status=200,
+    )
+    result = opt.should_remove_task(task, params, index)
+    assert result is False
+
+    # Task is found and passed but expires before deadline, don't optimize
+    responses.replace(
+        responses.GET,
+        f"{root_url}/index/v1/task/{index}",
+        json={"taskId": task_id},
+        status=200,
+    )
+    responses.replace(
+        responses.GET,
+        f"{root_url}/queue/v1/task/{task_id}/status",
+        json={"status": {"state": "completed", "expires": "2024-01-01T00:00:00.000Z"}},
+        status=200,
+    )
+    result = opt.should_remove_task(task, params, index)
+    assert result is False
+
+    # Task is found and passed and expires after deadline, optimize
+    responses.replace(
+        responses.GET,
+        f"{root_url}/index/v1/task/{index}",
+        json={"taskId": task_id},
+        status=200,
+    )
+    responses.replace(
+        responses.GET,
+        f"{root_url}/queue/v1/task/{task_id}/status",
+        json={"status": {"state": "completed", "expires": "2024-01-03T00:00:00.000Z"}},
+        status=200,
+    )
+    result = opt.should_remove_task(task, params, index)
+    assert result is True
+
+    # Task has parameterized deadline, does not raise
+    task.task["deadline"] = {"relative-datestamp": "1 day"}
+    responses.replace(
+        responses.GET,
+        f"{root_url}/index/v1/task/{index}",
+        json={"taskId": task_id},
+        status=200,
+    )
+    responses.replace(
+        responses.GET,
+        f"{root_url}/queue/v1/task/{task_id}/status",
+        json={"status": {"state": "completed", "expires": "2024-01-03T00:00:00.000Z"}},
+        status=200,
+    )
+    opt.should_remove_task(task, params, index)
 
 
 if __name__ == "__main__":
