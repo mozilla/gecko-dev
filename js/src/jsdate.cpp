@@ -124,8 +124,11 @@ static DateTimeInfo::ForceUTC ForceUTC(const Realm* realm) {
                                              : DateTimeInfo::ForceUTC::No;
 }
 
-// ES2019 draft rev 0ceb728a1adbffe42b26972a6541fd7f398b1557
-// 5.2.5 Mathematical Operations
+/**
+ * 5.2.5 Mathematical Operations
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static inline double PositiveModulo(double dividend, double divisor) {
   MOZ_ASSERT(divisor > 0);
   MOZ_ASSERT(std::isfinite(divisor));
@@ -702,19 +705,38 @@ static double UTC(DateTimeInfo::ForceUTC forceUTC, double t) {
   return static_cast<double>(static_cast<int64_t>(t) - offsetMs);
 }
 
-/* ES5 15.9.1.10. */
+/**
+ * 21.4.1.14 HourFromTime ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static int32_t HourFromTime(int64_t t) {
   return PositiveModulo(FloorDiv(t, msPerHour), int32_t(HoursPerDay));
 }
 
+/**
+ * 21.4.1.15 MinFromTime ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static int32_t MinFromTime(int64_t t) {
   return PositiveModulo(FloorDiv(t, msPerMinute), int32_t(MinutesPerHour));
 }
 
+/**
+ * 21.4.1.16 SecFromTime ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static int32_t SecFromTime(int64_t t) {
   return PositiveModulo(FloorDiv(t, msPerSecond), int32_t(SecondsPerMinute));
 }
 
+/**
+ * 21.4.1.17 msFromTime ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static int32_t msFromTime(int64_t t) {
   return PositiveModulo(t, int32_t(msPerSecond));
 }
@@ -732,27 +754,31 @@ HourMinuteSecond js::ToHourMinuteSecond(int64_t epochMilliseconds) {
   return {hour, minute, second};
 }
 
-/* ES5 15.9.1.11. */
+/**
+ * 21.4.1.27 MakeTime ( hour, min, sec, ms )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double MakeTime(double hour, double min, double sec, double ms) {
-  /* Step 1. */
+  // Step 1.
   if (!std::isfinite(hour) || !std::isfinite(min) || !std::isfinite(sec) ||
       !std::isfinite(ms)) {
     return GenericNaN();
   }
 
-  /* Step 2. */
+  // Step 2.
   double h = ToInteger(hour);
 
-  /* Step 3. */
+  // Step 3.
   double m = ToInteger(min);
 
-  /* Step 4. */
+  // Step 4.
   double s = ToInteger(sec);
 
-  /* Step 5. */
+  // Step 5.
   double milli = ToInteger(ms);
 
-  /* Steps 6-7. */
+  // Step 6.
   return h * msPerHour + m * msPerMinute + s * msPerSecond + milli;
 }
 
@@ -1940,6 +1966,11 @@ static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const JSLinearString* s,
              : ParseDate(forceUTC, s->twoByteChars(nogc), s->length(), result);
 }
 
+/**
+ * 21.4.3.2 Date.parse ( string )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_parse(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date", "parse");
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2082,35 +2113,44 @@ void DateObject::fillLocalTimeSlots() {
   setReservedSlot(LOCAL_SECONDS_INTO_YEAR_SLOT, Int32Value(yearSeconds));
 }
 
-/*
- * See ECMA 15.9.5.4 thru 15.9.5.23
+/**
+ * 21.4.4.10 Date.prototype.getTime ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-
 static bool date_getTime(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getTime");
   if (!unwrapped) {
     return false;
   }
 
+  // Step 3.
   args.rval().set(unwrapped->UTCTime());
   return true;
 }
 
+/**
+ * B.2.3.1 Date.prototype.getYear ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getYear(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getYear");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
 
   Value yearVal = unwrapped->localYear();
   if (yearVal.isInt32()) {
-    /* Follow ECMA-262 to the letter, contrary to IE JScript. */
     int year = yearVal.toInt32() - 1900;
     args.rval().setInt32(year);
   } else {
@@ -2119,15 +2159,23 @@ static bool date_getYear(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.4 Date.prototype.getFullYear ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getFullYear(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getFullYear");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
+
   args.rval().set(unwrapped->localYear());
   return true;
 }
@@ -2163,15 +2211,23 @@ static bool date_getUTCFullYear(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.8 Date.prototype.getMonth ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getMonth(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getMonth");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
+
   args.rval().set(unwrapped->localMonth());
   return true;
 }
@@ -2206,14 +2262,21 @@ static bool date_getUTCMonth(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.2 Date.prototype.getDate ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getDate(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getDate");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
 
   args.rval().set(unwrapped->localDate());
@@ -2250,15 +2313,23 @@ static bool date_getUTCDate(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.3 Date.prototype.getDay ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getDay(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getDay");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
+
   args.rval().set(unwrapped->localDay());
   return true;
 }
@@ -2293,14 +2364,21 @@ static bool date_getUTCDay(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.5 Date.prototype.getHours ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getHours(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getHours");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
 
   // Note: localSecondsIntoYear is guaranteed to return an
@@ -2346,14 +2424,21 @@ static bool date_getUTCHours(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.7 Date.prototype.getMinutes ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getMinutes(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getMinutes");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
 
   // Note: localSecondsIntoYear is guaranteed to return an
@@ -2400,14 +2485,21 @@ static bool date_getUTCMinutes(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.9 Date.prototype.getSeconds ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getSeconds(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getSeconds");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
 
   // Note: localSecondsIntoYear is guaranteed to return an
@@ -2504,15 +2596,22 @@ static bool date_getUTCMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
   return getMilliseconds(cx, argc, vp, "getUTCMilliseconds");
 }
 
+/**
+ * 21.4.4.11 Date.prototype.getTimezoneOffset ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_getTimezoneOffset(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped =
       UnwrapAndTypeCheckThis<DateObject>(cx, args, "getTimezoneOffset");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-5.
   unwrapped->fillLocalTimeSlots();
 
   double utctime = unwrapped->UTCTime().toNumber();
@@ -3522,43 +3621,45 @@ static bool date_toISOString(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-/* ES5 15.9.5.44. */
+/**
+ * 21.4.4.37 Date.prototype.toJSON ( key )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toJSON(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype", "toJSON");
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  /* Step 1. */
+  // Step 1.
   RootedObject obj(cx, ToObject(cx, args.thisv()));
   if (!obj) {
     return false;
   }
 
-  /* Step 2. */
+  // Step 2.
   RootedValue tv(cx, ObjectValue(*obj));
   if (!ToPrimitive(cx, JSTYPE_NUMBER, &tv)) {
     return false;
   }
 
-  /* Step 3. */
+  // Step 3.
   if (tv.isDouble() && !std::isfinite(tv.toDouble())) {
     args.rval().setNull();
     return true;
   }
 
-  /* Step 4. */
+  // Step 4.
   RootedValue toISO(cx);
   if (!GetProperty(cx, obj, obj, cx->names().toISOString, &toISO)) {
     return false;
   }
 
-  /* Step 5. */
   if (!IsCallable(toISO)) {
     JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr,
                               JSMSG_BAD_TOISOSTRING_PROP);
     return false;
   }
 
-  /* Step 6. */
   return Call(cx, toISO, obj, args.rval());
 }
 
@@ -3822,7 +3923,11 @@ static bool ToLocaleFormatHelper(JSContext* cx, DateObject* unwrapped,
   return true;
 }
 
-/* ES5 15.9.5.5. */
+/**
+ * 21.4.4.39 Date.prototype.toLocaleString ( [ reserved1 [ , reserved2 ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toLocaleString(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype", "toLocaleString");
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -3848,6 +3953,11 @@ static bool date_toLocaleString(JSContext* cx, unsigned argc, Value* vp) {
   return ToLocaleFormatHelper(cx, unwrapped, format, args.rval());
 }
 
+/**
+ * 21.4.4.38 Date.prototype.toLocaleDateString ( [ reserved1 [ , reserved2 ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toLocaleDateString(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype",
                                         "toLocaleDateString");
@@ -3874,6 +3984,11 @@ static bool date_toLocaleDateString(JSContext* cx, unsigned argc, Value* vp) {
   return ToLocaleFormatHelper(cx, unwrapped, format, args.rval());
 }
 
+/**
+ * 21.4.4.40 Date.prototype.toLocaleTimeString ( [ reserved1 [ , reserved2 ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toLocaleTimeString(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype",
                                         "toLocaleTimeString");
@@ -3889,16 +4004,23 @@ static bool date_toLocaleTimeString(JSContext* cx, unsigned argc, Value* vp) {
 }
 #endif /* !JS_HAS_INTL_API */
 
+/**
+ * 21.4.4.42 Date.prototype.toTimeString ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toTimeString(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype", "toTimeString");
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped =
       UnwrapAndTypeCheckThis<DateObject>(cx, args, "toTimeString");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-6.
   const char* locale = unwrapped->realm()->getLocale();
   if (!locale) {
     return false;
@@ -3908,16 +4030,23 @@ static bool date_toTimeString(JSContext* cx, unsigned argc, Value* vp) {
                     args.rval());
 }
 
+/**
+ * 21.4.4.35 Date.prototype.toDateString ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toDateString(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype", "toDateString");
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped =
       UnwrapAndTypeCheckThis<DateObject>(cx, args, "toDateString");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-6.
   const char* locale = unwrapped->realm()->getLocale();
   if (!locale) {
     return false;
@@ -3951,15 +4080,22 @@ static bool date_toSource(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.41 Date.prototype.toString ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toString(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSMethodProfilerEntry pseudoFrame(cx, "Date.prototype", "toString");
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "toString");
   if (!unwrapped) {
     return false;
   }
 
+  // Steps 3-4.
   const char* locale = unwrapped->realm()->getLocale();
   if (!locale) {
     return false;
@@ -3969,19 +4105,30 @@ static bool date_toString(JSContext* cx, unsigned argc, Value* vp) {
                     args.rval());
 }
 
+/**
+ * 21.4.4.44 Date.prototype.valueOf ( )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 bool js::date_valueOf(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "valueOf");
   if (!unwrapped) {
     return false;
   }
 
+  // Step 3.
   args.rval().set(unwrapped->UTCTime());
   return true;
 }
 
-// ES6 20.3.4.45 Date.prototype[@@toPrimitive]
+/**
+ * 21.4.4.45 Date.prototype [ %Symbol.toPrimitive% ] ( hint )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -4000,7 +4147,7 @@ static bool date_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
     hint = JSTYPE_STRING;
   }
 
-  args.rval().set(args.thisv());
+  // Step 6.
   RootedObject obj(cx, &args.thisv().toObject());
   return OrdinaryToPrimitive(cx, obj, hint, args.rval());
 }
