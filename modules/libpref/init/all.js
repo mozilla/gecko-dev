@@ -2304,6 +2304,11 @@ pref("font.size.monospace.x-math", 13);
   pref("gfx.font_rendering.cleartype_params.pixel_structure", -1);
   pref("gfx.font_rendering.cleartype_params.rendering_mode", -1);
 
+#if defined(EARLY_BETA_OR_EARLIER)
+  // We no longer force "GDI Classic" mode on any fonts by default.
+  pref("gfx.font_rendering.cleartype_params.force_gdi_classic_for_families", "");
+  pref("gfx.font_rendering.cleartype_params.force_gdi_classic_max_size", 0);
+#else
   // A comma-separated list of font family names. Fonts in these families will
   // be forced to use "GDI Classic" ClearType mode, provided the value
   // of gfx.font_rendering.cleartype_params.rendering_mode is -1
@@ -2314,6 +2319,7 @@ pref("font.size.monospace.x-math", 13);
   // The maximum size at which we will force GDI classic mode using
   // force_gdi_classic_for_families.
   pref("gfx.font_rendering.cleartype_params.force_gdi_classic_max_size", 15);
+#endif
 
   // Switch the keyboard layout per window
   pref("intl.keyboard.per_window_layout", false);
