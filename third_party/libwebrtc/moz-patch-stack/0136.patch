@@ -80,7 +80,7 @@ index e6aa410434..dfc532dad9 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index cc89cb0f69..c023559679 100644
+index 85ac0fff33..1ffda57bab 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -103,7 +103,7 @@ index cc89cb0f69..c023559679 100644
    import("//third_party/jni_zero/jni_zero.gni")
  }
  
-@@ -531,7 +531,7 @@ if (!build_with_chromium) {
+@@ -534,7 +534,7 @@ if (!build_with_chromium) {
  
      sources = []
      complete_static_lib = true
@@ -112,7 +112,7 @@ index cc89cb0f69..c023559679 100644
      defines = []
  
      deps = [
-@@ -880,7 +880,7 @@ rtc_static_library("dcsctp") {
+@@ -883,7 +883,7 @@ rtc_static_library("dcsctp") {
    visibility = [ "//:default" ]
    sources = []
    complete_static_lib = true
@@ -828,7 +828,7 @@ index 4af3d59adc..5359a3c621 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index 1f0abe356a..aa77aa2d5c 100644
+index 4be51782c5..da232c19e4 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@
