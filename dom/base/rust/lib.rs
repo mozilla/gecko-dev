@@ -130,6 +130,9 @@ bitflags! {
         /// https://html.spec.whatwg.org/#selector-popover-open
         /// Match element's popover visibility state of showing
         const POPOVER_OPEN = 1u64 << 47;
+        /// https://drafts.csswg.org/css-scoping-1/#the-has-slotted-pseudo
+        /// Match whether a slot element has assigned nodes
+        const HAS_SLOTTED = 1u64 << 48;
 
         /// Some convenience unions.
         const DIR_STATES = Self::LTR.bits() | Self::RTL.bits();
