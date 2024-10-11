@@ -13,18 +13,6 @@ if (is_android) {
   import("//chromium/build/config/android/rules.gni")
 }
 
-if (!rtc_build_ssl) {
-  config("external_ssl_library") {
-    if (rtc_ssl_root != "") {
-      include_dirs = [ rtc_ssl_root ]
-    }
-    libs = [
-      "crypto",
-      "ssl",
-    ]
-  }
-}
-
 rtc_source_set("protobuf_utils") {
   sources = [ "protobuf_utils.h" ]
   if (rtc_enable_protobuf) {
@@ -1542,7 +1530,7 @@ rtc_source_set("digest") {
   if (rtc_build_ssl) {
     deps += [ "//third_party/boringssl" ]
   } else {
-    configs += [ ":external_ssl_library" ]
+    configs += [ "..:external_ssl_library" ]
   }
 }
 
@@ -1564,7 +1552,7 @@ rtc_library("crypto_random") {
   if (rtc_build_ssl) {
     deps += [ "//third_party/boringssl" ]
   } else {
-    configs += [ ":external_ssl_library" ]
+    configs += [ "..:external_ssl_library" ]
   }
 }
 
@@ -1630,7 +1618,7 @@ if (!build_with_mozilla) {
     ]
     deps += [ ":crypto_random" ]
 
-    configs += [ ":external_ssl_library" ]
+    configs += [ "..:external_ssl_library" ]
   }
 
   if (build_with_chromium) {
@@ -1694,7 +1682,7 @@ if (!build_with_mozilla) {
   if (rtc_build_ssl) {
     deps += [ "//third_party/boringssl" ]
   } else {
-    configs += [ ":external_ssl_library" ]
+    configs += [ "..:external_ssl_library" ]
   }
 }
 }
@@ -2253,7 +2241,7 @@ if (rtc_include_tests) {
       if (rtc_build_ssl) {
         deps += [ "//third_party/boringssl" ]
       } else {
-        configs += [ ":external_ssl_library" ]
+        configs += [ "..:external_ssl_library" ]
       }
     }
   }

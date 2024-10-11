@@ -80,7 +80,7 @@ index e6aa410434..dfc532dad9 100644
  # The python interpreter to use by default. On Windows, this will look
  # for vpython3.exe and vpython3.bat.
 diff --git a/BUILD.gn b/BUILD.gn
-index 85ac0fff33..1ffda57bab 100644
+index e94dc7e663..1bb6eacea0 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -21,15 +21,15 @@
@@ -103,7 +103,7 @@ index 85ac0fff33..1ffda57bab 100644
    import("//third_party/jni_zero/jni_zero.gni")
  }
  
-@@ -534,7 +534,7 @@ if (!build_with_chromium) {
+@@ -546,7 +546,7 @@ if (!build_with_chromium) {
  
      sources = []
      complete_static_lib = true
@@ -112,7 +112,7 @@ index 85ac0fff33..1ffda57bab 100644
      defines = []
  
      deps = [
-@@ -883,7 +883,7 @@ rtc_static_library("dcsctp") {
+@@ -895,7 +895,7 @@ rtc_static_library("dcsctp") {
    visibility = [ "//:default" ]
    sources = []
    complete_static_lib = true
@@ -302,7 +302,7 @@ index e75ca3eed6..20afb0f60d 100644
  
  rtc_library("audio") {
 diff --git a/build_overrides/build.gni b/build_overrides/build.gni
-index 7d91ab85a9..724b15222e 100644
+index 57e8900e3e..e2d0a8ce72 100644
 --- a/build_overrides/build.gni
 +++ b/build_overrides/build.gni
 @@ -41,7 +41,7 @@ enable_perfetto_trace_processor = true
@@ -660,7 +660,7 @@ index 57da8929d5..a7144eefb7 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index 6f2fb90f1b..4d5077fd16 100644
+index fd60ce2505..223588a33f 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -30,8 +30,8 @@
@@ -673,9 +673,9 @@ index 6f2fb90f1b..4d5077fd16 100644
 +  import("//chromium/build/config/android/rules.gni")
  }
  
- group("pc") {
+ if (rtc_build_libsrtp) {
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index cbf153c024..64356d9644 100644
+index 6b67d67b7c..f076a74ee7 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -9,8 +9,8 @@
@@ -688,7 +688,7 @@ index cbf153c024..64356d9644 100644
 +  import("//chromium/build/config/android/rules.gni")
  }
  
- if (!rtc_build_ssl) {
+ rtc_source_set("protobuf_utils") {
 diff --git a/rtc_base/memory/BUILD.gn b/rtc_base/memory/BUILD.gn
 index b8f3bffe16..c02018ae4c 100644
 --- a/rtc_base/memory/BUILD.gn

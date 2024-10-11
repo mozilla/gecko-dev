@@ -118,7 +118,7 @@ index 8928cdbaaf..b374016a64 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 64cd32ab05..1ca34bd969 100644
+index 2bf28cc016..9957e3ba12 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {
@@ -151,9 +151,9 @@ index 64cd32ab05..1ca34bd969 100644
  }
 +}
  
- if (!build_with_chromium) {
-   # Target to build all the WebRTC production code.
-@@ -562,6 +568,34 @@ if (!build_with_chromium) {
+ if (!rtc_build_ssl) {
+   config("external_ssl_library") {
+@@ -574,6 +580,34 @@ if (!build_with_chromium) {
        "sdk",
        "video",
      ]
@@ -188,7 +188,7 @@ index 64cd32ab05..1ca34bd969 100644
  
      if (rtc_include_builtin_audio_codecs) {
        deps += [
-@@ -574,6 +608,16 @@ if (!build_with_chromium) {
+@@ -586,6 +620,16 @@ if (!build_with_chromium) {
        deps += [
          "api/video:video_frame",
          "api/video:video_rtp_headers",
@@ -1050,10 +1050,10 @@ index 29a7bea9d9..a8994aaa68 100644
          "/config/external/nspr",
          "/nsprpub/lib/ds",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 2bdbb971ef..0ed0780651 100644
+index 858fe05ec7..7e1fee4884 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -338,6 +338,7 @@ rtc_library("sample_counter") {
+@@ -326,6 +326,7 @@ rtc_library("sample_counter") {
    ]
  }
  
@@ -1061,7 +1061,7 @@ index 2bdbb971ef..0ed0780651 100644
  rtc_library("timestamp_aligner") {
    visibility = [ "*" ]
    sources = [
-@@ -351,6 +352,7 @@ rtc_library("timestamp_aligner") {
+@@ -339,6 +340,7 @@ rtc_library("timestamp_aligner") {
      "system:rtc_export",
    ]
  }
@@ -1069,7 +1069,7 @@ index 2bdbb971ef..0ed0780651 100644
  
  rtc_library("zero_memory") {
    visibility = [ "*" ]
-@@ -858,7 +860,9 @@ rtc_library("rtc_json") {
+@@ -846,7 +848,9 @@ rtc_library("rtc_json") {
      ":stringutils",
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
@@ -1079,7 +1079,7 @@ index 2bdbb971ef..0ed0780651 100644
    if (rtc_build_json) {
      deps += [ "//third_party/jsoncpp" ]
    } else {
-@@ -1210,6 +1214,7 @@ if (!build_with_chromium) {
+@@ -1198,6 +1202,7 @@ if (!build_with_chromium) {
  }
  
  rtc_library("network") {
@@ -1087,7 +1087,7 @@ index 2bdbb971ef..0ed0780651 100644
    visibility = [ "*" ]
    sources = [
      "network.cc",
-@@ -1247,16 +1252,20 @@ rtc_library("network") {
+@@ -1235,16 +1240,20 @@ rtc_library("network") {
      deps += [ ":win32" ]
    }
  }
@@ -1108,7 +1108,7 @@ index 2bdbb971ef..0ed0780651 100644
    visibility = [ "*" ]
    sources = [
      "net_helper.cc",
-@@ -1267,8 +1276,10 @@ rtc_library("net_helper") {
+@@ -1255,8 +1264,10 @@ rtc_library("net_helper") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -1119,7 +1119,7 @@ index 2bdbb971ef..0ed0780651 100644
    visibility = [ "*" ]
    sources = [
      "socket_adapters.cc",
-@@ -1287,6 +1298,7 @@ rtc_library("socket_adapters") {
+@@ -1275,6 +1286,7 @@ rtc_library("socket_adapters") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -1127,7 +1127,7 @@ index 2bdbb971ef..0ed0780651 100644
  
  rtc_library("network_route") {
    sources = [
-@@ -1301,6 +1313,7 @@ rtc_library("network_route") {
+@@ -1289,6 +1301,7 @@ rtc_library("network_route") {
  }
  
  rtc_library("async_tcp_socket") {
@@ -1135,7 +1135,7 @@ index 2bdbb971ef..0ed0780651 100644
    sources = [
      "async_tcp_socket.cc",
      "async_tcp_socket.h",
-@@ -1318,8 +1331,10 @@ rtc_library("async_tcp_socket") {
+@@ -1306,8 +1319,10 @@ rtc_library("async_tcp_socket") {
      "network:sent_packet",
    ]
  }
@@ -1146,7 +1146,7 @@ index 2bdbb971ef..0ed0780651 100644
    visibility = [ "*" ]
    sources = [
      "async_udp_socket.cc",
-@@ -1343,8 +1358,10 @@ rtc_library("async_udp_socket") {
+@@ -1331,8 +1346,10 @@ rtc_library("async_udp_socket") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -1157,7 +1157,7 @@ index 2bdbb971ef..0ed0780651 100644
    visibility = [ "*" ]
    sources = [
      "async_packet_socket.cc",
-@@ -1364,6 +1381,7 @@ rtc_library("async_packet_socket") {
+@@ -1352,6 +1369,7 @@ rtc_library("async_packet_socket") {
      "third_party/sigslot",
    ]
  }
@@ -1165,7 +1165,7 @@ index 2bdbb971ef..0ed0780651 100644
  
  if (rtc_include_tests) {
    rtc_library("async_packet_socket_unittest") {
-@@ -1419,6 +1437,7 @@ rtc_library("data_rate_limiter") {
+@@ -1407,6 +1425,7 @@ rtc_library("data_rate_limiter") {
  }
  
  rtc_library("unique_id_generator") {
@@ -1173,7 +1173,7 @@ index 2bdbb971ef..0ed0780651 100644
    sources = [
      "unique_id_generator.cc",
      "unique_id_generator.h",
-@@ -1433,6 +1452,7 @@ rtc_library("unique_id_generator") {
+@@ -1421,6 +1440,7 @@ rtc_library("unique_id_generator") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -1181,7 +1181,7 @@ index 2bdbb971ef..0ed0780651 100644
  
  rtc_library("crc32") {
    sources = [
-@@ -1466,6 +1486,7 @@ rtc_library("stream") {
+@@ -1454,6 +1474,7 @@ rtc_library("stream") {
  }
  
  rtc_library("rtc_certificate_generator") {
@@ -1189,7 +1189,7 @@ index 2bdbb971ef..0ed0780651 100644
    visibility = [ "*" ]
    sources = [
      "rtc_certificate_generator.cc",
-@@ -1481,6 +1502,7 @@ rtc_library("rtc_certificate_generator") {
+@@ -1469,6 +1490,7 @@ rtc_library("rtc_certificate_generator") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -1197,7 +1197,7 @@ index 2bdbb971ef..0ed0780651 100644
  
  rtc_source_set("ssl_header") {
    visibility = [ "*" ]
-@@ -1537,6 +1559,7 @@ rtc_library("crypto_random") {
+@@ -1525,6 +1547,7 @@ rtc_library("crypto_random") {
  }
  
  rtc_library("ssl") {
@@ -1205,7 +1205,7 @@ index 2bdbb971ef..0ed0780651 100644
    visibility = [ "*" ]
    sources = [
      "openssl_key_pair.cc",
-@@ -1610,6 +1633,7 @@ rtc_library("ssl") {
+@@ -1598,6 +1621,7 @@ rtc_library("ssl") {
      deps += [ ":win32" ]
    }
  }
@@ -1213,7 +1213,7 @@ index 2bdbb971ef..0ed0780651 100644
  
  rtc_library("ssl_adapter") {
    visibility = [ "*" ]
-@@ -2223,7 +2247,7 @@ if (rtc_include_tests) {
+@@ -2211,7 +2235,7 @@ if (rtc_include_tests) {
    }
  }
  

@@ -34,6 +34,13 @@ if (is_android) {
   import("//chromium/build/config/android/rules.gni")
 }
 
+if (rtc_build_libsrtp) {
+  import("//third_party/libsrtp/options.gni")
+  assert(rtc_build_ssl == libsrtp_build_boringssl,
+         "Mismatch ssl build settings detected")
+  assert(rtc_ssl_root == libsrtp_ssl_root, "Mismatch in ssl root detected")
+}
+
 group("pc") {
   deps = [ ":rtc_pc" ]
 }
@@ -178,6 +185,10 @@ rtc_source_set("external_hmac") {
   ]
   if (rtc_build_libsrtp) {
     deps += [ "//third_party/libsrtp" ]
+    configs = []
+    if (!rtc_build_ssl) {
+      configs += [ "..:external_ssl_library" ]
+    }
   }
 }
 
@@ -613,6 +624,10 @@ rtc_source_set("srtp_session") {
   ]
   if (rtc_build_libsrtp) {
     deps += [ "//third_party/libsrtp" ]
+    configs = []
+    if (!rtc_build_ssl) {
+      configs += [ "..:external_ssl_library" ]
+    }
   }
 }
 rtc_source_set("srtp_transport") {
@@ -1991,8 +2006,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "video_rtp_receiver_unittest.cc",
     ]
 
-    include_dirs = [ "//third_party/libsrtp/srtp" ]
-
     if (is_win) {
       libs = [ "strmiids.lib" ]
     }
@@ -2100,8 +2113,14 @@ if (rtc_include_tests && !build_with_chromium) {
       "//third_party/abseil-cpp/absl/types:optional",
     ]
 
+    include_dirs = []
+    configs = []
     if (rtc_build_libsrtp) {
+      include_dirs += [ "//third_party/libsrtp/srtp" ]
       deps += [ "//third_party/libsrtp" ]
+      if (!rtc_build_ssl) {
+        configs += [ "..:external_ssl_library" ]
+      }
     }
 
     if (is_android) {
