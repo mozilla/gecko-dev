@@ -6170,12 +6170,11 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   }
 
   static_assert(!JSReturnOperand.aliases(ReturnReg),
-            "Clobbering ReturnReg should not affect the return value");
+                "Clobbering ReturnReg should not affect the return value");
 
   // Switch back to the current realm if needed. Note: if the DOM method threw
   // an exception, the exception handler will do this.
   if (call->mir()->maybeCrossRealm()) {
-
     masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
   }
 
