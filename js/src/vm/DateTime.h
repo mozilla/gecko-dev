@@ -25,25 +25,24 @@ class Realm;
 
 namespace js {
 
-/* Constants defined by ES5 15.9.1.10. */
-constexpr double HoursPerDay = 24;
-constexpr double MinutesPerHour = 60;
-constexpr double SecondsPerMinute = 60;
-constexpr double msPerSecond = 1000;
-constexpr double msPerMinute = msPerSecond * SecondsPerMinute;
-constexpr double msPerHour = msPerMinute * MinutesPerHour;
-
-/* ES5 15.9.1.2. */
-constexpr double msPerDay = msPerHour * HoursPerDay;
+/**
+ * 21.4.1.2 Time-related Constants
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
+constexpr int32_t HoursPerDay = 24;
+constexpr int32_t MinutesPerHour = 60;
+constexpr int32_t SecondsPerMinute = 60;
+constexpr int32_t msPerSecond = 1000;
+constexpr int32_t msPerMinute = msPerSecond * SecondsPerMinute;
+constexpr int32_t msPerHour = msPerMinute * MinutesPerHour;
+constexpr int32_t msPerDay = msPerHour * HoursPerDay;
 
 /*
- * Additional quantities not mentioned in the spec.  Be careful using these!
- * They aren't doubles and aren't defined in terms of all the other constants.
- * If you need constants that trigger floating point semantics, you'll have to
- * manually cast to get it.
+ * Additional quantities not mentioned in the spec.
  */
-constexpr unsigned SecondsPerHour = 60 * 60;
-constexpr unsigned SecondsPerDay = SecondsPerHour * 24;
+constexpr int32_t SecondsPerHour = 60 * 60;
+constexpr int32_t SecondsPerDay = SecondsPerHour * 24;
 
 constexpr double StartOfTime = -8.64e15;
 constexpr double EndOfTime = 8.64e15;

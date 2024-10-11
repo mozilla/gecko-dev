@@ -207,7 +207,7 @@ static inline int32_t Day(int64_t t) {
  */
 static int32_t TimeWithinDay(int64_t t) {
   MOZ_ASSERT(IsLocalTimeValue(t));
-  return PositiveModulo(t, int32_t(msPerDay));
+  return PositiveModulo(t, msPerDay);
 }
 
 /**
@@ -710,8 +710,7 @@ int32_t DateTimeHelper::adjustTime(DateTimeInfo::ForceUTC forceUTC,
                                    int64_t date) {
   int32_t localTZA = DateTimeInfo::localTZA(forceUTC);
   int32_t t = daylightSavingTA(forceUTC, date) + localTZA;
-  return (localTZA >= 0) ? (t % int32_t(msPerDay))
-                         : -((int32_t(msPerDay) - t) % int32_t(msPerDay));
+  return (localTZA >= 0) ? (t % msPerDay) : -((msPerDay - t) % msPerDay);
 }
 
 int32_t DateTimeHelper::getTimeZoneOffset(DateTimeInfo::ForceUTC forceUTC,
@@ -789,7 +788,7 @@ static double UTC(DateTimeInfo::ForceUTC forceUTC, double t) {
  */
 static int32_t HourFromTime(int64_t t) {
   MOZ_ASSERT(IsLocalTimeValue(t));
-  return PositiveModulo(FloorDiv(t, msPerHour), int32_t(HoursPerDay));
+  return PositiveModulo(FloorDiv(t, msPerHour), HoursPerDay);
 }
 
 /**
@@ -799,7 +798,7 @@ static int32_t HourFromTime(int64_t t) {
  */
 static int32_t MinFromTime(int64_t t) {
   MOZ_ASSERT(IsLocalTimeValue(t));
-  return PositiveModulo(FloorDiv(t, msPerMinute), int32_t(MinutesPerHour));
+  return PositiveModulo(FloorDiv(t, msPerMinute), MinutesPerHour);
 }
 
 /**
@@ -809,7 +808,7 @@ static int32_t MinFromTime(int64_t t) {
  */
 static int32_t SecFromTime(int64_t t) {
   MOZ_ASSERT(IsLocalTimeValue(t));
-  return PositiveModulo(FloorDiv(t, msPerSecond), int32_t(SecondsPerMinute));
+  return PositiveModulo(FloorDiv(t, msPerSecond), SecondsPerMinute);
 }
 
 /**
@@ -819,7 +818,7 @@ static int32_t SecFromTime(int64_t t) {
  */
 static int32_t msFromTime(int64_t t) {
   MOZ_ASSERT(IsLocalTimeValue(t));
-  return PositiveModulo(t, int32_t(msPerSecond));
+  return PositiveModulo(t, msPerSecond);
 }
 
 HourMinuteSecond js::ToHourMinuteSecond(int64_t epochMilliseconds) {
@@ -1242,13 +1241,14 @@ done:
 
   month -= 1; /* convert month to 0-based */
 
-  double date = MakeDate(MakeDay(dateMul * double(year), month, day),
+  double date = MakeDate(MakeDay(dateMul * int32_t(year), month, day),
                          MakeTime(hour, min, sec, msec));
 
   if (isLocalTime) {
     date = UTC(forceUTC, date);
   } else {
-    date -= tzMul * (tzHour * msPerHour + tzMin * msPerMinute);
+    date -=
+        tzMul * (int32_t(tzHour) * msPerHour + int32_t(tzMin) * msPerMinute);
   }
 
   *result = TimeClip(date);
@@ -2034,7 +2034,7 @@ static bool ParseDate(DateTimeInfo::ForceUTC forceUTC, const CharT* s,
   if (tzOffset == -1) { /* no time zone specified, have to use local */
     date = UTC(forceUTC, date);
   } else {
-    date += tzOffset * msPerMinute;
+    date += double(tzOffset) * msPerMinute;
   }
 
   *result = TimeClip(date);
@@ -2192,7 +2192,7 @@ void DateObject::fillLocalTimeSlots() {
 
   int64_t yearStartTime = TimeFromYear(year);
   uint64_t yearTime = uint64_t(localTime - yearStartTime);
-  int32_t yearSeconds = int32_t(yearTime / 1000);
+  int32_t yearSeconds = int32_t(yearTime / msPerSecond);
   setReservedSlot(LOCAL_SECONDS_INTO_YEAR_SLOT, Int32Value(yearSeconds));
 }
 
@@ -2471,8 +2471,8 @@ static bool date_getHours(JSContext* cx, unsigned argc, Value* vp) {
     MOZ_ASSERT(std::isnan(yearSeconds.toDouble()));
     args.rval().set(yearSeconds);
   } else {
-    args.rval().setInt32((yearSeconds.toInt32() / int(SecondsPerHour)) %
-                         int(HoursPerDay));
+    args.rval().setInt32((yearSeconds.toInt32() / SecondsPerHour) %
+                         HoursPerDay);
   }
   return true;
 }
@@ -2531,8 +2531,8 @@ static bool date_getMinutes(JSContext* cx, unsigned argc, Value* vp) {
     MOZ_ASSERT(std::isnan(yearSeconds.toDouble()));
     args.rval().set(yearSeconds);
   } else {
-    args.rval().setInt32((yearSeconds.toInt32() / int(SecondsPerMinute)) %
-                         int(MinutesPerHour));
+    args.rval().setInt32((yearSeconds.toInt32() / SecondsPerMinute) %
+                         MinutesPerHour);
   }
   return true;
 }
@@ -2592,7 +2592,7 @@ static bool date_getSeconds(JSContext* cx, unsigned argc, Value* vp) {
     MOZ_ASSERT(std::isnan(yearSeconds.toDouble()));
     args.rval().set(yearSeconds);
   } else {
-    args.rval().setInt32(yearSeconds.toInt32() % int(SecondsPerMinute));
+    args.rval().setInt32(yearSeconds.toInt32() % SecondsPerMinute);
   }
   return true;
 }
@@ -2705,7 +2705,7 @@ static bool date_getTimezoneOffset(JSContext* cx, unsigned argc, Value* vp) {
    * appropriate for this time. This value would be a constant except for
    * daylight savings time.
    */
-  double result = (utctime - localtime) / msPerMinute;
+  double result = (utctime - localtime) / double(msPerMinute);
   args.rval().setNumber(result);
   return true;
 }
@@ -3876,8 +3876,7 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
   if (format == FormatSpec::DateTime || format == FormatSpec::Time) {
     // Offset from GMT in minutes. The offset includes daylight savings,
     // if it applies.
-    int32_t minutes =
-        int32_t(localTime - epochMilliseconds) / int32_t(msPerMinute);
+    int32_t minutes = int32_t(localTime - epochMilliseconds) / msPerMinute;
 
     // Map 510 minutes to 0830 hours.
     offset = (minutes / 60) * 100 + minutes % 60;
