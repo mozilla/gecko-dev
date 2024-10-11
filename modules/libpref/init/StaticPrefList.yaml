@@ -15626,12 +15626,15 @@
   mirror: always
 
 # The CRLite filter channel to which the user is subscribed.
-# - "all" => filters that contain all revocations,
-# - "specified" => filters that contain revocations with specified reason codes,
-# - "priority" => filters that contain high priority revocations.
+# - "all" => bloom-filter cascades that contain all revocations,
+# - "experimental" => clubcards that contain all revocations.
 - name: security.pki.crlite_channel
   type: String
-  value: "specified"
+#ifdef NIGHTLY_BUILD
+  value: "experimental"
+#else
+  value: "all"
+#endif
   mirror: never
 
 - name: security.pki.use_modern_crypto_with_pkcs12

@@ -125,11 +125,16 @@ function getFilenameForFilter(filter) {
  * @param {boolean} clear Whether or not to clear the local DB first. Defaults
  *                        to true.
  */
-async function syncAndDownload(filters, clear = true, channel = "specified") {
+async function syncAndDownload(filters, clear = true, channel = undefined) {
   const localDB = await CRLiteFiltersClient.client.db;
   if (clear) {
     await localDB.clear();
   }
+
+  channel =
+    typeof channel === "undefined"
+      ? Services.prefs.getStringPref(CRLITE_FILTER_CHANNEL_PREF)
+      : channel;
 
   for (let filter of filters) {
     const filename = getFilenameForFilter(filter);
@@ -200,6 +205,8 @@ add_task(async function test_crlite_filters_disabled() {
     },
   ]);
   equal(result, "disabled", "CRLite filter download should not have run");
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_no_filters() {
@@ -211,6 +218,8 @@ add_task(async function test_crlite_no_filters() {
     "unavailable",
     "CRLite filter download should have run, but nothing was available"
   );
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_no_filters_in_channel() {
@@ -226,6 +235,8 @@ add_task(async function test_crlite_no_filters_in_channel() {
     "unavailable",
     "CRLite filter download should have run, but nothing was available"
   );
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_only_incremental_filters() {
@@ -256,6 +267,8 @@ add_task(async function test_crlite_only_incremental_filters() {
     "unavailable",
     "CRLite filter download should have run, but no full filters were available"
   );
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_incremental_filters_with_wrong_parent() {
@@ -286,6 +299,8 @@ add_task(async function test_crlite_incremental_filters_with_wrong_parent() {
     "2019-01-01T00:00:00Z-cascade",
     "2019-01-01T06:00:00Z-diff",
   ]);
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_incremental_filter_too_early() {
@@ -305,6 +320,8 @@ add_task(async function test_crlite_incremental_filter_too_early() {
     "finished;2019-01-02T00:00:00Z-cascade",
     "CRLite filter download should have run"
   );
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_filters_basic() {
@@ -318,6 +335,8 @@ add_task(async function test_crlite_filters_basic() {
     "finished;2019-01-01T00:00:00Z-cascade",
     "CRLite filter download should have run"
   );
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_filters_not_cached() {
@@ -341,6 +360,8 @@ add_task(async function test_crlite_filters_not_cached() {
   );
   equal(attachment._source, "remote_match");
   await CRLiteFiltersClient.client.attachments.deleteDownloaded(records[0]);
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_filters_full_and_incremental() {
@@ -374,6 +395,8 @@ add_task(async function test_crlite_filters_full_and_incremental() {
     "2019-01-01T12:00:00Z-diff",
     "2019-01-01T18:00:00Z-diff",
   ]);
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_filters_multiple_days() {
@@ -445,6 +468,8 @@ add_task(async function test_crlite_filters_multiple_days() {
     "2019-01-03T12:00:00Z-diff",
     "2019-01-03T18:00:00Z-diff",
   ]);
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_confirm_revocations_mode() {
@@ -544,6 +569,8 @@ add_task(async function test_crlite_confirm_revocations_mode() {
     "us-datarecovery.com",
     Ci.nsIX509CertDB.FLAG_LOCAL_ONLY
   );
+
+  await syncAndDownload([], true);
 });
 
 async function test_crlite_filters_and_check_revocation(filter_type) {
@@ -810,6 +837,8 @@ async function test_crlite_filters_and_check_revocation(filter_type) {
     "us-datarecovery.com",
     Ci.nsIX509CertDB.FLAG_LOCAL_ONLY
   );
+
+  await syncAndDownload([], true);
 }
 
 add_task(async function test_crlite_cascade_filter() {
@@ -883,6 +912,8 @@ add_task(async function test_crlite_clubcard_bad_coverage_in_remote_settings() {
     "us-datarecovery.com",
     0
   );
+
+  await syncAndDownload([], true);
 });
 
 add_task(async function test_crlite_filters_avoid_reprocessing_filters() {
@@ -945,6 +976,8 @@ add_task(async function test_crlite_filters_avoid_reprocessing_filters() {
     false
   );
   equal(result, "finished;2019-01-02T00:00:00Z-diff");
+
+  await syncAndDownload([], true);
 });
 
 add_task(
@@ -1034,6 +1067,8 @@ add_task(
       "2019-01-01T00:00:00Z-cascade",
       "2019-01-01T06:00:00Z-diff",
     ]);
+
+    await syncAndDownload([], true);
   }
 );
 
