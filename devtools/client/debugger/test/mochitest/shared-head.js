@@ -307,21 +307,18 @@ function getVisibleSelectedFrameColumn(dbg) {
  * Assert that a given line is breakable or not.
  * Verify that CodeMirror gutter is grayed out via the empty line classname if not breakable.
  */
-function assertLineIsBreakable(dbg, file, line, shouldBeBreakable) {
-  const lineInfo = getCMEditor(dbg).lineInfo(isCm6Enabled ? line - 1 : line);
-  const lineText = `${line}| ${lineInfo.text.substring(0, 50)}${
-    lineInfo.text.length > 50 ? "…" : ""
+async function assertLineIsBreakable(dbg, file, line, shouldBeBreakable) {
+  const el = await getNodeAtEditorGutterLine(dbg, line);
+  const lineText = `${line}| ${el.innerText.substring(0, 50)}${
+    el.innerText.length > 50 ? "…" : ""
   } — in ${file}`;
   // When a line is not breakable, the "empty-line" class is added
   // and the line is greyed out
   if (shouldBeBreakable) {
-    ok(
-      !lineInfo.wrapClass?.includes("empty-line"),
-      `${lineText} should be breakable`
-    );
+    ok(!el.classList.contains("empty-line"), `${lineText} should be breakable`);
   } else {
     ok(
-      lineInfo?.wrapClass?.includes("empty-line"),
+      el.classList.contains("empty-line"),
       `${lineText} should NOT be breakable`
     );
   }
@@ -431,20 +428,6 @@ async function _assertDebugLine(dbg, line, column) {
     );
   }
   info(`Paused on line ${line}`);
-}
-/**
- * Asserts the log point set
- */
-async function assertEditorLogpoint(dbg, line, { hasLog = false } = {}) {
-  const el = await getEditorLineGutter(dbg, line);
-  const hasLogClass = isCm6Enabled
-    ? !!el.querySelector(".has-log")
-    : el.classList.contains("has-log");
-  Assert.strictEqual(
-    hasLogClass,
-    hasLog,
-    `Breakpoint log ${hasLog ? "exists" : "does not exist"} on line ${line}`
-  );
 }
 
 /**
@@ -1559,7 +1542,7 @@ async function scrollAndGetEditorLineGutterElement(dbg, line) {
  * Gets node at a specific line in the editor
  * @param {*} dbg
  * @param {Number} line
- * @returns
+ * @returns {Element} DOM Element
  */
 async function getNodeAtEditorLine(dbg, line) {
   if (isCm6Enabled) {
@@ -1567,6 +1550,19 @@ async function getNodeAtEditorLine(dbg, line) {
     // cm6 utility here.
     await scrollEditorIntoView(dbg, line, 0);
     return getCMEditor(dbg).getElementAtLine(line);
+  }
+  return getEditorLineGutter(dbg, line);
+}
+
+/**
+ * Gets node at a specific line in the gutter
+ * @param {*} dbg
+ * @param {Number} line
+ * @returns {Element} DOM Element
+ */
+async function getNodeAtEditorGutterLine(dbg, line) {
+  if (isCm6Enabled) {
+    return scrollAndGetEditorLineGutterElement(dbg, line);
   }
   return getEditorLineGutter(dbg, line);
 }
@@ -1679,7 +1675,7 @@ async function assertIgnoredStyleInSourceLines(
  * @param {String} expectedTextContent
  */
 function assertTextContentOnLine(dbg, line, expectedTextContent) {
-  const lineInfo = getCM(dbg).lineInfo(line - 1);
+  const lineInfo = getCMEditor(dbg).lineInfo(isCm6Enabled ? line : line - 1);
   const textContent = lineInfo.text.trim();
   is(textContent, expectedTextContent, `Expected text content on line ${line}`);
 }
@@ -1694,9 +1690,11 @@ function assertTextContentOnLine(dbg, line, expectedTextContent) {
  * @static
  */
 async function assertNoBreakpoint(dbg, line) {
-  const el = await getEditorLineGutter(dbg, line);
+  const el = await getNodeAtEditorGutterLine(dbg, line);
 
-  const exists = !!el.querySelector(".new-breakpoint");
+  const exists = el.classList.contains(
+    isCm6Enabled ? "cm6-gutter-breakpoint" : "new-breakpioint"
+  );
   ok(!exists, `Breakpoint doesn't exists on line ${line}`);
 }
 
@@ -1710,20 +1708,21 @@ async function assertNoBreakpoint(dbg, line) {
  * @static
  */
 async function assertBreakpoint(dbg, line) {
-  const el = await getEditorLineGutter(dbg, line);
+  let el = await getNodeAtEditorGutterLine(dbg, line);
+  el = isCm6Enabled ? el.firstChild : el;
 
-  const exists = !!el.querySelector(".new-breakpoint");
-  ok(exists, `Breakpoint exists on line ${line}`);
+  ok(
+    el.classList.contains(selectors.gutterBreakpoint),
+    `Breakpoint exists on line ${line}`
+  );
 
   const hasConditionClass = el.classList.contains("has-condition");
-
   ok(
     !hasConditionClass,
     `Regular breakpoint doesn't have condition on line ${line}`
   );
 
   const hasLogClass = el.classList.contains("has-log");
-
   ok(!hasLogClass, `Regular breakpoint doesn't have log on line ${line}`);
 }
 
@@ -1736,17 +1735,18 @@ async function assertBreakpoint(dbg, line) {
  * @static
  */
 async function assertConditionBreakpoint(dbg, line) {
-  const el = await getEditorLineGutter(dbg, line);
+  let el = await getNodeAtEditorGutterLine(dbg, line);
+  el = isCm6Enabled ? el.firstChild : el;
 
-  const exists = !!el.querySelector(".new-breakpoint");
-  ok(exists, `Breakpoint exists on line ${line}`);
+  ok(
+    el.classList.contains(selectors.gutterBreakpoint),
+    `Breakpoint exists on line ${line}`
+  );
 
   const hasConditionClass = el.classList.contains("has-condition");
-
   ok(hasConditionClass, `Conditional breakpoint on line ${line}`);
 
   const hasLogClass = el.classList.contains("has-log");
-
   ok(
     !hasLogClass,
     `Conditional breakpoint doesn't have log breakpoint on line ${line}`
@@ -1762,20 +1762,21 @@ async function assertConditionBreakpoint(dbg, line) {
  * @static
  */
 async function assertLogBreakpoint(dbg, line) {
-  const el = await getEditorLineGutter(dbg, line);
+  let el = await getNodeAtEditorGutterLine(dbg, line);
+  el = isCm6Enabled ? el.firstChild : el;
 
-  const exists = !!el.querySelector(".new-breakpoint");
-  ok(exists, `Breakpoint exists on line ${line}`);
+  ok(
+    el.classList.contains(selectors.gutterBreakpoint),
+    `Breakpoint exists on line ${line}`
+  );
 
   const hasConditionClass = el.classList.contains("has-condition");
-
   ok(
     !hasConditionClass,
     `Log breakpoint doesn't have condition on line ${line}`
   );
 
   const hasLogClass = el.classList.contains("has-log");
-
   ok(hasLogClass, `Log breakpoint on line ${line}`);
 }
 
@@ -1832,6 +1833,7 @@ const selectors = {
   mapScopesCheckbox: ".map-scopes-header input",
   frame: i => `.frames [role="list"] [role="listitem"]:nth-child(${i})`,
   frames: '.frames [role="list"] [role="listitem"]',
+  gutterBreakpoint: isCm6Enabled ? "breakpoint-marker" : "new-breakpoint",
   // This is used to trigger events (click etc) on the gutter
   gutterElement: i =>
     isCm6Enabled
@@ -1849,7 +1851,9 @@ const selectors = {
   addLogItem: "#node-menu-add-log-point",
   editLogItem: "#node-menu-edit-log-point",
   disableItem: "#node-menu-disable-breakpoint",
-  breakpoint: ".CodeMirror-code > .new-breakpoint",
+  breakpoint: isCm6Enabled
+    ? ".cm-gutter > .cm6-gutter-breakpoint"
+    : ".CodeMirror-code > .new-breakpoint",
   highlightLine: isCm6Enabled
     ? ".cm-content > .highlight-line"
     : ".CodeMirror-code > .highlight-line",
@@ -1909,6 +1913,7 @@ const selectors = {
   threadsPaneItem: i => `.threads-pane .thread:nth-child(${i})`,
   threadsPaneItemPause: i => `${selectors.threadsPaneItem(i)}.paused`,
   CodeMirrorLines: isCm6Enabled ? ".cm-content" : ".CodeMirror-lines",
+  CodeMirrorCode: isCm6Enabled ? ".cm-content" : ".CodeMirror-code",
   inlinePreview: isCm6Enabled
     ? ".cm-content .inline-preview"
     : ".CodeMirror-code .CodeMirror-widget",
@@ -2022,12 +2027,10 @@ function shiftClickElement(dbg, elementName, ...args) {
 
 function rightClickElement(dbg, elementName, ...args) {
   const selector = getSelector(elementName, ...args);
-  const doc = dbg.win.document;
-  return rightClickEl(dbg, doc.querySelector(selector));
+  return rightClickEl(dbg, dbg.win.document.querySelector(selector));
 }
 
 function rightClickEl(dbg, el) {
-  const doc = dbg.win.document;
   el.scrollIntoView();
   EventUtils.synthesizeMouseAtCenter(el, { type: "contextmenu" }, dbg.win);
 }
@@ -2045,12 +2048,16 @@ async function clearElement(dbg, elementName) {
 }
 
 async function clickGutter(dbg, line) {
-  const el = await codeMirrorGutterElement(dbg, line);
+  const el = await (isCm6Enabled
+    ? scrollAndGetEditorLineGutterElement(dbg, line)
+    : codeMirrorGutterElement(dbg, line));
   clickDOMElement(dbg, el);
 }
 
 async function cmdClickGutter(dbg, line) {
-  const el = await codeMirrorGutterElement(dbg, line);
+  const el = await (isCm6Enabled
+    ? scrollAndGetEditorLineGutterElement(dbg, line)
+    : codeMirrorGutterElement(dbg, line));
   clickDOMElement(dbg, el, cmdOrCtrl);
 }
 
@@ -2323,6 +2330,7 @@ async function getTokenFromPosition(dbg, { line, column = 0 }) {
   info(`Get token at ${line}:${column}`);
   const cm = getCM(dbg);
   line = isCm6Enabled ? line : line - 1;
+  column = isCm6Enabled ? column : column - 1;
   await scrollEditorIntoView(dbg, line, column);
 
   if (isCm6Enabled) {

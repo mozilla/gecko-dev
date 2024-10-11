@@ -11,7 +11,7 @@ const TEST_URL = testServer.urlFor("index.html");
 
 // getTokenFromPosition pauses 0.5s for each line,
 // so this test is quite slow to complete
-requestLongerTimeout(6);
+requestLongerTimeout(10);
 
 /**
  * Cover the breakpoints positions/columns:
