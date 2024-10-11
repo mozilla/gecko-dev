@@ -118,7 +118,7 @@ static already_AddRefed<nsIPrincipal> GetRequestingPrincipal(
   return GetRequestingPrincipal(args.loadInfo());
 }
 
-const char* NeckoParent::GetValidatedOriginAttributes(
+void NeckoParent::GetValidatedOriginAttributes(
     const SerializedLoadContext& aSerialized, PContentParent* aContent,
     nsIPrincipal* aRequestingPrincipal, OriginAttributes& aAttrs) {
   if (!aSerialized.IsNotNull()) {
@@ -128,22 +128,16 @@ const char* NeckoParent::GetValidatedOriginAttributes(
   } else {
     aAttrs = aSerialized.mOriginAttributes;
   }
-  return nullptr;
 }
 
-const char* NeckoParent::CreateChannelLoadContext(
+void NeckoParent::CreateChannelLoadContext(
     PBrowserParent* aBrowser, PContentParent* aContent,
     const SerializedLoadContext& aSerialized,
     nsIPrincipal* aRequestingPrincipal, nsCOMPtr<nsILoadContext>& aResult) {
   OriginAttributes attrs;
-  const char* error = GetValidatedOriginAttributes(aSerialized, aContent,
-                                                   aRequestingPrincipal, attrs);
-  if (error) {
-    return error;
-  }
+  GetValidatedOriginAttributes(aSerialized, aContent, aRequestingPrincipal,
+                               attrs);
 
-  // if !UsingNeckoIPCSecurity(), we may not have a LoadContext to set. This is
-  // the common case for most xpcshell tests.
   if (aSerialized.IsNotNull()) {
     attrs.SyncAttributesWithPrivateBrowsing(
         aSerialized.mOriginAttributes.IsPrivateBrowsing());
@@ -155,8 +149,6 @@ const char* NeckoParent::CreateChannelLoadContext(
     }
     aResult = new LoadContext(aSerialized, topFrameElement, attrs);
   }
-
-  return nullptr;
 }
 
 void NeckoParent::ActorDestroy(ActorDestroyReason aWhy) {
@@ -171,15 +163,8 @@ already_AddRefed<PHttpChannelParent> NeckoParent::AllocPHttpChannelParent(
       GetRequestingPrincipal(aOpenArgs);
 
   nsCOMPtr<nsILoadContext> loadContext;
-  const char* error = CreateChannelLoadContext(
-      aBrowser, Manager(), aSerialized, requestingPrincipal, loadContext);
-  if (error) {
-    printf_stderr(
-        "NeckoParent::AllocPHttpChannelParent: "
-        "FATAL error: %s: KILLING CHILD PROCESS\n",
-        error);
-    return nullptr;
-  }
+  CreateChannelLoadContext(aBrowser, Manager(), aSerialized,
+                           requestingPrincipal, loadContext);
   PBOverrideStatus overrideStatus =
       PBOverrideStatusFromLoadContext(aSerialized);
   RefPtr<HttpChannelParent> p = new HttpChannelParent(
@@ -299,15 +284,8 @@ PWebSocketParent* NeckoParent::AllocPWebSocketParent(
     PBrowserParent* browser, const SerializedLoadContext& serialized,
     const uint32_t& aSerial) {
   nsCOMPtr<nsILoadContext> loadContext;
-  const char* error = CreateChannelLoadContext(browser, Manager(), serialized,
-                                               nullptr, loadContext);
-  if (error) {
-    printf_stderr(
-        "NeckoParent::AllocPWebSocketParent: "
-        "FATAL error: %s: KILLING CHILD PROCESS\n",
-        error);
-    return nullptr;
-  }
+  CreateChannelLoadContext(browser, Manager(), serialized, nullptr,
+                           loadContext);
 
   RefPtr<BrowserParent> browserParent = BrowserParent::GetFrom(browser);
   PBOverrideStatus overrideStatus = PBOverrideStatusFromLoadContext(serialized);
@@ -366,15 +344,8 @@ PGIOChannelParent* NeckoParent::AllocPGIOChannelParent(
       GetRequestingPrincipal(aOpenArgs);
 
   nsCOMPtr<nsILoadContext> loadContext;
-  const char* error = CreateChannelLoadContext(
-      aBrowser, Manager(), aSerialized, requestingPrincipal, loadContext);
-  if (error) {
-    printf_stderr(
-        "NeckoParent::AllocPGIOChannelParent: "
-        "FATAL error: %s: KILLING CHILD PROCESS\n",
-        error);
-    return nullptr;
-  }
+  CreateChannelLoadContext(aBrowser, Manager(), aSerialized,
+                           requestingPrincipal, loadContext);
   PBOverrideStatus overrideStatus =
       PBOverrideStatusFromLoadContext(aSerialized);
   GIOChannelParent* p = new GIOChannelParent(BrowserParent::GetFrom(aBrowser),
