@@ -660,6 +660,21 @@ static double SecFromTime(double t) {
 
 static double msFromTime(double t) { return PositiveModulo(t, msPerSecond); }
 
+HourMinuteSecond js::ToHourMinuteSecond(int64_t epochMilliseconds) {
+  double time = double(epochMilliseconds);
+
+  double hour = HourFromTime(time);
+  MOZ_ASSERT(0 <= hour && hour < HoursPerDay);
+
+  double minute = MinFromTime(time);
+  MOZ_ASSERT(0 <= minute && minute < MinutesPerHour);
+
+  double second = SecFromTime(time);
+  MOZ_ASSERT(0 <= minute && minute < SecondsPerMinute);
+
+  return {int32_t(hour), int32_t(minute), int32_t(second)};
+}
+
 /* ES5 15.9.1.11. */
 static double MakeTime(double hour, double min, double sec, double ms) {
   /* Step 1. */

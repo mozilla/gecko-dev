@@ -67,6 +67,22 @@ struct YearMonthDay {
  */
 YearMonthDay ToYearMonthDay(int64_t epochMilliseconds);
 
+struct HourMinuteSecond {
+  // Hours from 0 to 23.
+  int32_t hour;
+
+  // Minutes from 0 to 59.
+  int32_t minute;
+
+  // Seconds from 0 to 59.
+  int32_t second;
+};
+
+/*
+ * Split an epoch milliseconds value into hour-minute-second parts.
+ */
+HourMinuteSecond ToHourMinuteSecond(int64_t epochMilliseconds);
+
 } /* namespace js */
 
 #endif /* jsdate_h */
