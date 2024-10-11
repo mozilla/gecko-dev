@@ -2088,14 +2088,19 @@ NS_IMETHODIMP HTMLEditor::RebuildDocumentFromSource(
 
 NS_IMETHODIMP HTMLEditor::InsertElementAtSelection(Element* aElement,
                                                    bool aDeleteSelection) {
-  nsresult rv = InsertElementAtSelectionAsAction(aElement, aDeleteSelection);
+  InsertElementOptions options;
+  if (aDeleteSelection) {
+    options += InsertElementOption::DeleteSelection;
+  }
+  nsresult rv = InsertElementAtSelectionAsAction(aElement, options);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::InsertElementAtSelectionAsAction() failed");
   return rv;
 }
 
 nsresult HTMLEditor::InsertElementAtSelectionAsAction(
-    Element* aElement, bool aDeleteSelection, nsIPrincipal* aPrincipal) {
+    Element* aElement, const InsertElementOptions aOptions,
+    nsIPrincipal* aPrincipal) {
   if (NS_WARN_IF(!aElement)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -2175,14 +2180,19 @@ nsresult HTMLEditor::InsertElementAtSelectionAsAction(
     }
   }
 
-  if (aDeleteSelection) {
+  if (aOptions.contains(InsertElementOption::DeleteSelection) &&
+      !SelectionRef().IsCollapsed()) {
     if (!HTMLEditUtils::IsBlockElement(
             *aElement, BlockInlineCheck::UseComputedDisplayOutsideStyle)) {
       // E.g., inserting an image.  In this case we don't need to delete any
       // inline wrappers before we do the insertion.  Otherwise we let
       // DeleteSelectionAndPrepareToCreateNode do the deletion for us, which
       // calls DeleteSelection with aStripWrappers = eStrip.
-      nsresult rv = DeleteSelectionAsSubAction(eNone, eNoStrip);
+      nsresult rv = DeleteSelectionAsSubAction(
+          eNone,
+          aOptions.contains(InsertElementOption::SplitAncestorInlineElements)
+              ? eStrip
+              : eNoStrip);
       if (NS_FAILED(rv)) {
         NS_WARNING(
             "EditorBase::DeleteSelectionAsSubAction(eNone, eNoStrip) failed");
@@ -2235,6 +2245,28 @@ nsresult HTMLEditor::InsertElementAtSelectionAsAction(
     return NS_ERROR_FAILURE;
   }
 
+  if (aOptions.contains(InsertElementOption::SplitAncestorInlineElements)) {
+    if (const RefPtr<Element> topmostInlineElement = Element::FromNodeOrNull(
+            HTMLEditUtils::GetMostDistantAncestorInlineElement(
+                *pointToInsert.ContainerAs<nsIContent>(),
+                BlockInlineCheck::UseComputedDisplayOutsideStyle,
+                editingHost))) {
+      Result<SplitNodeResult, nsresult> splitInlinesResult =
+          SplitNodeDeepWithTransaction(
+              *topmostInlineElement, pointToInsert,
+              SplitAtEdges::eDoNotCreateEmptyContainer);
+      if (MOZ_UNLIKELY(splitInlinesResult.isErr())) {
+        NS_WARNING("HTMLEditor::SplitNodeDeepWithTransaction() failed");
+        return splitInlinesResult.unwrapErr();
+      }
+      splitInlinesResult.inspect().IgnoreCaretPointSuggestion();
+      auto splitPoint =
+          splitInlinesResult.inspect().AtSplitPoint<EditorDOMPoint>();
+      if (MOZ_LIKELY(splitPoint.IsSet())) {
+        pointToInsert = std::move(splitPoint);
+      }
+    }
+  }
   {
     Result<CreateElementResult, nsresult> insertElementResult =
         InsertNodeIntoProperAncestorWithTransaction<Element>(
