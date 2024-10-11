@@ -3872,6 +3872,21 @@ TEST_F(PeerConnectionIntegrationTestUnifiedPlan, VideoPacketLossCausesNack) {
   EXPECT_TRUE_WAIT(NacksReceivedCount(*caller()) > 0, kDefaultTimeout);
 }
 
+TEST_F(PeerConnectionIntegrationTestUnifiedPlan, PrAnswerStateTransitions) {
+  RTCConfiguration config;
+  ASSERT_TRUE(CreatePeerConnectionWrappersWithConfig(config, config));
+  ConnectFakeSignaling();
+  caller()->pc()->AddTransceiver(caller()->CreateLocalAudioTrack());
+  callee()->SetAnswerWithPrAnswer(true);
+  caller()->CreateAndSetAndSignalOffer();
+  ASSERT_FALSE(HasFailure());
+  EXPECT_EQ(caller()->pc()->signaling_state(),
+            PeerConnectionInterface::kHaveRemotePrAnswer);
+  EXPECT_EQ(callee()->pc()->signaling_state(),
+            PeerConnectionInterface::kHaveLocalPrAnswer);
+  // Note: there should be code here for applying the permanent answer.
+}
+
 }  // namespace
 
 }  // namespace webrtc
