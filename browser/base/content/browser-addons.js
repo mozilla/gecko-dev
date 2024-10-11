@@ -92,6 +92,31 @@ const ERROR_L10N_IDS = new Map([
 ]);
 
 customElements.define(
+  "addon-notification-blocklist-url",
+  class MozAddonNotificationBlocklistURL extends HTMLAnchorElement {
+    connectedCallback() {
+      this.addEventListener("click", this);
+    }
+
+    disconnectedCallback() {
+      this.removeEventListener("click", this);
+    }
+
+    handleEvent(e) {
+      if (e.type == "click") {
+        e.preventDefault();
+        window.openTrustedLinkIn(this.href, "tab", {
+          // Make sure the newly open tab is going to be focused, independently
+          // from general user prefs.
+          forceForeground: true,
+        });
+      }
+    }
+  },
+  { extends: "a" }
+);
+
+customElements.define(
   "addon-webext-permissions-notification",
   class MozAddonPermissionsNotification extends customElements.get(
     "popupnotification"
@@ -1119,9 +1144,43 @@ var gXPInstallObserver = {
               "unsigned-addons";
           }
 
+          let notificationId = aTopic;
+
+          const isBlocklistError = [
+            AddonManager.ERROR_BLOCKLISTED,
+            AddonManager.ERROR_SOFT_BLOCKED,
+          ].includes(install.error);
+
+          // On blocklist-related install failures:
+          // - use "addon-install-failed-blocklist" as the notificationId
+          //   (which will use the popupnotification with id
+          //   "addon-install-failed-blocklist-notification" defined
+          //   in popup-notification.inc)
+          // - add an eventCallback that will take care of filling in the
+          //   blocklistURL into the href attribute of the link element
+          //   with id "addon-install-failed-blocklist-info"
+          if (isBlocklistError) {
+            const blocklistURL = await install.addon?.getBlocklistURL();
+            notificationId = `${aTopic}-blocklist`;
+            options.eventCallback = topic => {
+              if (topic !== "showing") {
+                return;
+              }
+              let doc = browser.ownerDocument;
+              let blocklistURLEl = doc.getElementById(
+                "addon-install-failed-blocklist-info"
+              );
+              if (blocklistURL) {
+                blocklistURLEl.setAttribute("href", blocklistURL);
+              } else {
+                blocklistURLEl.removeAttribute("href");
+              }
+            };
+          }
+
           PopupNotifications.show(
             browser,
-            aTopic,
+            notificationId,
             messageString,
             gUnifiedExtensions.getPopupAnchorID(browser, window),
             null,

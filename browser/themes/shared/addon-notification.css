@@ -96,6 +96,10 @@ html|ul.webext-perm-domains-list {
   margin-inline-start: -1px;
 }
 
+.popup-notification-description[popupid="addon-install-failed-blocklist"] {
+  font-weight: normal;
+}
+
 .addon-webext-perm-notification-content,
 .addon-installed-notification-content {
   margin-top: 0;
