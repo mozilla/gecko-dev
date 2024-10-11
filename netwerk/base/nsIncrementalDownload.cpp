@@ -680,7 +680,7 @@ nsIncrementalDownload::OnStartRequest(nsIRequest* aRequest) {
     LOG(
         ("nsIncrementalDownload::OnStartRequest\n"
          "    Retarget to stream transport service\n"));
-    rv = rr->RetargetDeliveryTo(queue);
+    rr->RetargetDeliveryTo(queue);
   }
 
   return rv;

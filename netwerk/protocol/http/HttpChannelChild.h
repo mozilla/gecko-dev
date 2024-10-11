@@ -317,7 +317,6 @@ class HttpChannelChild final : public PHttpChannelChild,
 
   // Target thread for delivering ODA.
   nsCOMPtr<nsISerialEventTarget> mODATarget MOZ_GUARDED_BY(mEventTargetMutex);
-  Atomic<bool, mozilla::Relaxed> mGotDataAvailable{false};
   // Used to ensure atomicity of mNeckoTarget / mODATarget;
   Mutex mEventTargetMutex{"HttpChannelChild::EventTargetMutex"};
 

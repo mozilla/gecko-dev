@@ -31,7 +31,7 @@ interface nsIThreadRetargetableRequest : nsISupports
    * should be ready to deal with OnDataAvailable on either the main thread or
    * the new target thread.
    */
-  [must_use] void retargetDeliveryTo(in nsISerialEventTarget aNewTarget);
+  void retargetDeliveryTo(in nsISerialEventTarget aNewTarget);
 
   /**
    * Returns the event target where OnDataAvailable events will be dispatched.

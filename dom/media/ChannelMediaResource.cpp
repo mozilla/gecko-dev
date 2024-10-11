@@ -282,9 +282,7 @@ nsresult ChannelMediaResource::OnStartRequest(nsIRequest* aRequest,
     // Note this will not always succeed. We need to handle the case where
     // all resources sharing the same cache might run their data callbacks
     // on different threads.
-    nsresult rv = retarget->RetargetDeliveryTo(mCacheStream.OwnerThread());
-    MOZ_ASSERT(NS_SUCCEEDED(rv));  // this shouldn't fail
-    return rv;
+    retarget->RetargetDeliveryTo(mCacheStream.OwnerThread());
   }
 
   return NS_OK;
