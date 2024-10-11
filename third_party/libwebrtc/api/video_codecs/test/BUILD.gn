@@ -76,6 +76,7 @@ if (rtc_include_tests) {
       "../../environment",
       "../../environment:environment_factory",
       "//testing/gtest",
+      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
