@@ -1,21 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Wed, 18 Sep 2024 11:14:00 -0500
-Subject: Bug 1918268 - (fix-ec5a968070) readd an include that upstream removed
+Date: Tue, 17 Sep 2024 17:32:00 -0500
+Subject: Bug 1918268 - (fix-90c430cda4) don't use std::nullopt with
+ absl::optional
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8c080511a17a87c65771747faa74f859b7fe70bb
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/507f630a6ffe51a07797b37d3b970e85c12dbe27
 ---
- api/transport/network_control.h | 1 +
- 1 file changed, 1 insertion(+)
+ modules/audio_processing/audio_processing_impl.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/api/transport/network_control.h b/api/transport/network_control.h
-index de408a5523..815c29f083 100644
---- a/api/transport/network_control.h
-+++ b/api/transport/network_control.h
-@@ -17,6 +17,7 @@
- #include "absl/types/optional.h"
- #include "api/environment/environment.h"
- #include "api/field_trials_view.h"
-+#include "api/rtc_event_log/rtc_event_log.h"
- #include "api/transport/network_types.h"
- #include "api/units/data_rate.h"
- #include "api/units/time_delta.h"
+diff --git a/modules/audio_processing/audio_processing_impl.cc b/modules/audio_processing/audio_processing_impl.cc
+index 9a831d9435..6b448470ae 100644
+--- a/modules/audio_processing/audio_processing_impl.cc
++++ b/modules/audio_processing/audio_processing_impl.cc
+@@ -1446,7 +1446,7 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
+       // TODO(bugs.webrtc.org/7494): Let AGC2 detect applied input volume
+       // changes.
+       submodules_.gain_controller2->Process(
+-          /*speech_probability=*/std::nullopt,
++          /*speech_probability=*/absl::nullopt,
+           capture_.applied_input_volume_changed, capture_buffer);
+     }
+ 
