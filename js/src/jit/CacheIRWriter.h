@@ -570,6 +570,22 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
 #endif
   }
 
+  void callDOMFunctionWithAllocSite(ObjOperandId calleeId, Int32OperandId argc,
+                                    ObjOperandId thisObjId,
+                                    JSFunction* calleeFunc, CallFlags flags,
+                                    uint32_t argcFixed,
+                                    gc::AllocSite* allocSite) {
+#ifdef JS_SIMULATOR
+    void* rawPtr = JS_FUNC_TO_DATA_PTR(void*, calleeFunc->native());
+    void* redirected = Simulator::RedirectNativeFunction(rawPtr, Args_General3);
+    callDOMFunctionWithAllocSite_(calleeId, argc, thisObjId, flags, argcFixed,
+                                  allocSite, redirected);
+#else
+    callDOMFunctionWithAllocSite_(calleeId, argc, thisObjId, flags, argcFixed,
+                                  allocSite);
+#endif
+  }
+
   void callAnyNativeFunction(ObjOperandId calleeId, Int32OperandId argc,
                              CallFlags flags, uint32_t argcFixed) {
     MOZ_ASSERT(!flags.isSameRealm());

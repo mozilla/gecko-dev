@@ -12,6 +12,7 @@
 #include "jsfriendapi.h"
 #include "js/CharacterEncoding.h"
 #include "js/Conversions.h"
+#include "js/experimental/BindingAllocs.h"
 #include "js/experimental/JitInfo.h"  // JSJitGetterOp, JSJitInfo
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy, js::ToWindowProxyIfWindow
 #include "js/MemoryFunctions.h"
@@ -2813,7 +2814,8 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
   void CreateObject(JSContext* aCx, const JSClass* aClass,
                     JS::Handle<JSObject*> aProto, T* aNative,
                     JS::MutableHandle<JSObject*> aReflector) {
-    aReflector.set(JS_NewObjectWithGivenProto(aCx, aClass, aProto));
+    aReflector.set(
+        JS_NewObjectWithGivenProtoAndUseAllocSite(aCx, aClass, aProto));
     if (aReflector) {
       JS::SetReservedSlot(aReflector, DOM_OBJECT_SLOT,
                           JS::PrivateValue(aNative));
