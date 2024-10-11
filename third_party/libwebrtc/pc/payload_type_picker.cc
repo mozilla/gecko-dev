@@ -22,6 +22,14 @@ namespace webrtc {
 
 namespace {
 
+// Due to interoperability issues with old Chrome/WebRTC versions that
+// ignore the [35, 63] range prefer the lower range for new codecs.
+static const int kFirstDynamicPayloadTypeLowerRange = 35;
+static const int kLastDynamicPayloadTypeLowerRange = 63;
+
+static const int kFirstDynamicPayloadTypeUpperRange = 96;
+static const int kLastDynamicPayloadTypeUpperRange = 127;
+
 // Note: The only fields we need from a Codec are the type (audio/video),
 // the subtype (vp8/h264/....), the clock rate, the channel count, and the
 // fmtp parameters. The use of cricket::Codec, which contains more fields,
@@ -35,16 +43,127 @@ bool MatchesForSdp(const cricket::Codec& codec_1,
          codec_1.params == codec_2.params;
 }
 
+struct MapTableEntry {
+  webrtc::SdpAudioFormat format;
+  int payload_type;
+};
+
+RTCErrorOr<PayloadType> FindFreePayloadType(std::set<PayloadType> seen_pt) {
+  for (auto i = kFirstDynamicPayloadTypeUpperRange;
+       i < kLastDynamicPayloadTypeUpperRange; i++) {
+    if (seen_pt.count(PayloadType(i)) == 0) {
+      return PayloadType(i);
+    }
+  }
+  for (auto i = kFirstDynamicPayloadTypeLowerRange;
+       i < kLastDynamicPayloadTypeLowerRange; i++) {
+    if (seen_pt.count(PayloadType(i)) == 0) {
+      return PayloadType(i);
+    }
+  }
+  return RTCError(RTCErrorType::RESOURCE_EXHAUSTED,
+                  "All available dynamic PTs have been assigned");
+}
+
 }  // namespace
 
+PayloadTypePicker::PayloadTypePicker() {
+  // Default audio codecs. Duplicates media/engine/payload_type_mapper.cc
+  const MapTableEntry default_audio_mappings[] = {
+      // Static payload type assignments according to RFC 3551.
+      {{cricket::kPcmuCodecName, 8000, 1}, 0},
+      {{"GSM", 8000, 1}, 3},
+      {{"G723", 8000, 1}, 4},
+      {{"DVI4", 8000, 1}, 5},
+      {{"DVI4", 16000, 1}, 6},
+      {{"LPC", 8000, 1}, 7},
+      {{cricket::kPcmaCodecName, 8000, 1}, 8},
+      {{cricket::kG722CodecName, 8000, 1}, 9},
+      {{cricket::kL16CodecName, 44100, 2}, 10},
+      {{cricket::kL16CodecName, 44100, 1}, 11},
+      {{"QCELP", 8000, 1}, 12},
+      {{cricket::kCnCodecName, 8000, 1}, 13},
+      // RFC 4566 is a bit ambiguous on the contents of the "encoding
+      // parameters" field, which, for audio, encodes the number of
+      // channels. It is "optional and may be omitted if the number of
+      // channels is one". Does that necessarily imply that an omitted
+      // encoding parameter means one channel?  Since RFC 3551 doesn't
+      // specify a value for this parameter for MPA, I've included both 0
+      // and 1 here, to increase the chances it will be correctly used if
+      // someone implements an MPEG audio encoder/decoder.
+      {{"MPA", 90000, 0}, 14},
+      {{"MPA", 90000, 1}, 14},
+      {{"G728", 8000, 1}, 15},
+      {{"DVI4", 11025, 1}, 16},
+      {{"DVI4", 22050, 1}, 17},
+      {{"G729", 8000, 1}, 18},
+
+      // Payload type assignments currently used by WebRTC.
+      // Includes data to reduce collisions (and thus reassignments)
+      {{cricket::kIlbcCodecName, 8000, 1}, 102},
+      {{cricket::kCnCodecName, 16000, 1}, 105},
+      {{cricket::kCnCodecName, 32000, 1}, 106},
+      {{cricket::kOpusCodecName,
+        48000,
+        2,
+        {{cricket::kCodecParamMinPTime, "10"},
+         {cricket::kCodecParamUseInbandFec, cricket::kParamValueTrue}}},
+       111},
+      // RED for opus is assigned in the lower range, starting at the top.
+      // Note that the FMTP refers to the opus payload type.
+      {{cricket::kRedCodecName,
+        48000,
+        2,
+        {{cricket::kCodecParamNotInNameValueFormat, "111/111"}}},
+       63},
+      // TODO(solenberg): Remove the hard coded 16k,32k,48k DTMF once we
+      // assign payload types dynamically for send side as well.
+      {{cricket::kDtmfCodecName, 48000, 1}, 110},
+      {{cricket::kDtmfCodecName, 32000, 1}, 112},
+      {{cricket::kDtmfCodecName, 16000, 1}, 113},
+      {{cricket::kDtmfCodecName, 8000, 1}, 126}};
+  for (auto entry : default_audio_mappings) {
+    AddMapping(PayloadType(entry.payload_type),
+               cricket::CreateAudioCodec(entry.format));
+  }
+}
+
 RTCErrorOr<PayloadType> PayloadTypePicker::SuggestMapping(
-    cricket::Codec codec) {
-  return RTCError(RTCErrorType::UNSUPPORTED_OPERATION, "Not implemented yet");
+    cricket::Codec codec,
+    PayloadTypeRecorder* excluder) {
+  // The first matching entry is returned, unless excluder
+  // maps it to something different.
+  for (auto entry : entries_) {
+    if (MatchesForSdp(entry.codec(), codec)) {
+      if (excluder) {
+        auto result = excluder->LookupCodec(entry.payload_type());
+        if (result.ok() && !MatchesForSdp(result.value(), codec)) {
+          continue;
+        }
+      }
+      return entry.payload_type();
+    }
+  }
+  RTCErrorOr<PayloadType> found_pt = FindFreePayloadType(seen_payload_types_);
+  if (found_pt.ok()) {
+    AddMapping(found_pt.value(), codec);
+  }
+  return found_pt;
 }
 
 RTCError PayloadTypePicker::AddMapping(PayloadType payload_type,
                                        cricket::Codec codec) {
-  return RTCError(RTCErrorType::UNSUPPORTED_OPERATION, "Not implemented yet");
+  // Completely duplicate mappings are ignored.
+  // Multiple mappings for the same codec and the same PT are legal;
+  for (auto entry : entries_) {
+    if (payload_type == entry.payload_type() &&
+        MatchesForSdp(codec, entry.codec())) {
+      return RTCError::OK();
+    }
+  }
+  entries_.emplace_back(MapEntry(payload_type, codec));
+  seen_payload_types_.emplace(payload_type);
+  return RTCError::OK();
 }
 
 RTCError PayloadTypeRecorder::AddMapping(PayloadType payload_type,
