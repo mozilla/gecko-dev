@@ -769,8 +769,6 @@ group("fuzzers") {
     ":frame_buffer_fuzzer",
     ":h264_bitstream_parser_fuzzer",
     ":h264_depacketizer_fuzzer",
-    ":h265_bitstream_parser_fuzzer",
-    ":h265_depacketizer_fuzzer",
     ":neteq_rtp_fuzzer",
     ":neteq_signal_fuzzer",
     ":pseudotcp_parser_fuzzer",
@@ -801,10 +799,20 @@ group("fuzzers") {
     ":vp8_qp_parser_fuzzer",
     ":vp8_replay_fuzzer",
     ":vp9_depacketizer_fuzzer",
-    ":vp9_encoder_references_fuzzer",
     ":vp9_qp_parser_fuzzer",
     ":vp9_replay_fuzzer",
   ]
+  if (rtc_use_h265) {
+    deps += [
+      ":h265_bitstream_parser_fuzzer",
+      ":h265_depacketizer_fuzzer",
+    ]
+  }
+
+  if (rtc_build_libvpx) {
+    deps += [ ":vp9_encoder_references_fuzzer" ]
+  }
+
   if (!build_with_chromium) {
     # TODO: bugs.webrtc.org/42222682 - Add unconditionally when this fuzzer
     # builds in Chromium.

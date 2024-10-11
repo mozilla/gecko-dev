@@ -828,7 +828,7 @@ index 4af3d59adc..5359a3c621 100644
      deps = [ ":google_test_runner_delegate" ]
    }
 diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
-index 4be51782c5..da232c19e4 100644
+index 3c33ad75e3..1d73c84114 100644
 --- a/test/fuzzers/BUILD.gn
 +++ b/test/fuzzers/BUILD.gn
 @@ -6,7 +6,7 @@
