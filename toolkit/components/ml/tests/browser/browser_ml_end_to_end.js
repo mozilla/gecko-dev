@@ -146,19 +146,20 @@ add_task(async function test_ml_moz_image_to_text_pipeline() {
 
   Assert.ok(res.metrics, "Metrics is not defined");
 
-  Assert.ok(
-    isNumberType(res.metrics?.inferenceTime),
-    "The correct type is not returned for inferenceTime"
-  );
+  const expectedSnapshots = [
+    "ensurePipelineIsReadyStart",
+    "ensurePipelineIsReadyEnd",
+    "initializationStart",
+    "initializationEnd",
+    "runStart",
+    "runEnd",
+  ];
+  const collectedSnapshots = res.metrics.map(obj => obj.name);
 
-  Assert.ok(
-    isNumberType(res.metrics?.initTime),
-    "The correct type is not returned for initTime"
-  );
-
-  Assert.ok(
-    isNumberType(res.metrics?.tokenizingTime),
-    "The correct type is not returned for tokenizingTime"
+  Assert.deepEqual(
+    expectedSnapshots,
+    collectedSnapshots,
+    "We collected the metrics"
   );
 
   ok(

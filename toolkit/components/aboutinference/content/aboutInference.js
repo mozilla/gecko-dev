@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   HttpInference: "chrome://global/content/ml/HttpInference.sys.mjs",
   IndexedDBCache: "chrome://global/content/ml/ModelHub.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
+  getInferenceProcessInfo: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 const { EngineProcess, PipelineOptions } = ChromeUtils.importESModule(
@@ -274,7 +275,7 @@ let updateInterval;
  * @async
  */
 async function updateProcInfo() {
-  let info = await ChromeUtils.requestProcInfo();
+  let info = await lazy.getInferenceProcessInfo();
   let tableContainer = document.getElementById("procInfoTableContainer");
   let fragment = document.createDocumentFragment();
   let table = document.createElement("table");
@@ -291,24 +292,21 @@ async function updateProcInfo() {
   thead.appendChild(headerRow);
   table.appendChild(thead);
 
-  let foundInference = false;
+  let foundInference = "pid" in info;
   let tbody = document.createElement("tbody");
 
-  for (const child of info.children) {
-    if (child.type === "inference") {
-      foundInference = true;
-      let row = document.createElement("tr");
+  if (foundInference) {
+    let row = document.createElement("tr");
 
-      let pidCell = document.createElement("td");
-      pidCell.textContent = child.pid;
-      row.appendChild(pidCell);
+    let pidCell = document.createElement("td");
+    pidCell.textContent = info.pid;
+    row.appendChild(pidCell);
 
-      let memoryCell = document.createElement("td");
-      memoryCell.textContent = formatBytes(child.memory);
-      row.appendChild(memoryCell);
+    let memoryCell = document.createElement("td");
+    memoryCell.textContent = formatBytes(info.memory);
+    row.appendChild(memoryCell);
 
-      tbody.appendChild(row);
-    }
+    tbody.appendChild(row);
   }
 
   table.appendChild(tbody);
@@ -492,6 +490,43 @@ function loadExample(name) {
   setSelectOption("device", data.device);
 }
 
+function findMaxMemory(metrics) {
+  return metrics.reduce((max, metric) => {
+    return metric.memory > max ? metric.memory : max;
+  }, 0);
+}
+
+function findTotalTime(metrics) {
+  // Create an object to store arrays of time differences for each name
+  const timeMapping = {};
+
+  metrics.forEach(metricStart => {
+    if (metricStart.name.includes("Start")) {
+      // Find all corresponding metricEnd for the same name
+      const metricEnd = metrics.find(
+        metric =>
+          metric.name === metricStart.name.replace("Start", "End") &&
+          metric.when > metricStart.when
+      );
+
+      if (metricEnd) {
+        const timeDifference = metricEnd.when - metricStart.when;
+        const baseName = metricStart.name.replace("Start", "");
+
+        // Initialize an array if it doesn't exist for this baseName
+        if (!timeMapping[baseName]) {
+          timeMapping[baseName] = [];
+        }
+
+        // Push the time difference to the array
+        timeMapping[baseName].push(timeDifference);
+      }
+    }
+  });
+
+  return timeMapping;
+}
+
 async function runInference() {
   document.getElementById("console").value = "";
   const inferencePadValue = document.getElementById("inferencePad").value;
@@ -501,6 +536,7 @@ async function runInference() {
   const dtype = document.getElementById("dtype").value;
   const device = document.getElementById("device").value;
   const numThreads = parseInt(document.getElementById("numThreads").value);
+  const numRuns = parseInt(document.getElementById("numRuns").value);
 
   let inputData;
   try {
@@ -551,24 +587,42 @@ async function runInference() {
   const request = { args: inputData.inputArgs, options: inputData.runOptions };
 
   let res;
-
-  try {
-    res = await engine.run(request);
-  } catch (e) {
-    appendTextConsole(e);
-    if (
-      e.message.includes("Invalid model hub root url: https://huggingface.co")
-    ) {
-      appendTextConsole(
-        "Make sure you started Firefox with MOZ_ALLOW_EXTERNAL_ML_HUB=1"
-      );
+  for (let i = 0; i < numRuns; i++) {
+    try {
+      res = await engine.run(request);
+    } catch (e) {
+      appendTextConsole(e);
+      if (
+        e.message.includes("Invalid model hub root url: https://huggingface.co")
+      ) {
+        appendTextConsole(
+          "Make sure you started Firefox with MOZ_ALLOW_EXTERNAL_ML_HUB=1"
+        );
+      }
+      engineParent = null; // let's re-create it on errors.
+      throw e;
     }
-    engineParent = null; // let's re-create it on errors.
-    throw e;
+
+    const results_filter = (key, value) => {
+      if (key === "metrics") {
+        return undefined;
+      }
+      return value;
+    };
+
+    appendTextConsole(`Results: ${JSON.stringify(res, results_filter, 2)}`);
   }
 
-  appendTextConsole(`Results: ${JSON.stringify(res, null, 2)}`);
   appendTextConsole(`Metrics: ${JSON.stringify(res.metrics, null, 2)}`);
+  const maxMemory = findMaxMemory(res.metrics);
+  appendTextConsole(
+    `Resident Set Size (RSS) approximative peak usage: ${formatBytes(
+      maxMemory
+    )}`
+  );
+  appendTextConsole(
+    `Timers: ${JSON.stringify(findTotalTime(res.metrics), null, 2)}`
+  );
   await refreshPage();
 }
 

@@ -29,6 +29,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   ModelHub: "chrome://global/content/ml/ModelHub.sys.mjs",
+  getInferenceProcessInfo: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 const RS_RUNTIME_COLLECTION = "ml-onnx-runtime";
@@ -218,6 +219,10 @@ export class MLEngineParent extends JSWindowActorParent {
 
       case "MLEngine:GetModelFile":
         return this.getModelFile(message.data);
+
+      case "MLEngine:GetInferenceProcessInfo":
+        lazy.console.log("GetInferenceProcessInfo called");
+        return lazy.getInferenceProcessInfo();
 
       case "MLEngine:DestroyEngineProcess":
         lazy.EngineProcess.destroyMLEngine().catch(error =>

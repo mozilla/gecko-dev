@@ -58,6 +58,14 @@ class MLEngineWorker {
     return result;
   }
 
+  async getInferenceProcessInfo(...args) {
+    let res = await self.callMainThread("getInferenceProcessInfo", args);
+    if (res.fail) {
+      return new Map();
+    }
+    return res.ok;
+  }
+
   /**
    * Placeholder for the `put` method from the Cache API for Transformers.js custom cache.
    *

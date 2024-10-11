@@ -344,3 +344,20 @@ Progress.ProgressAndStatusCallbackParams = ProgressAndStatusCallbackParams;
 Progress.ProgressStatusText = ProgressStatusText;
 Progress.ProgressType = ProgressType;
 Progress.readResponse = readResponse;
+
+export async function getInferenceProcessInfo() {
+  // for now we only have a single inference process.
+  let info = await ChromeUtils.requestProcInfo();
+
+  for (const child of info.children) {
+    if (child.type === "inference") {
+      return {
+        pid: child.pid,
+        memory: child.memory,
+        cpuTime: child.cpuTime,
+        cpuCycleCount: child.cpuCycleCount,
+      };
+    }
+  }
+  return {};
+}
