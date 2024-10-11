@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': '30454db4a57e989f9848b41dce6e49d779adc0ac',
+  'chromium_revision': 'ab7255fe8aaf67333c2e2ed136dc6a5bd096face',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -61,11 +61,11 @@ vars = {
 deps = {
   # TODO(kjellander): Move this to be Android-only.
   'src/base':
-    'https://chromium.googlesource.com/chromium/src/base@0db01afd90b501b167eb97c672aa7f97b1c64507',
+    'https://chromium.googlesource.com/chromium/src/base@f86fda16571572e0a21d4112a20457e0734547ce',
   'src/build':
-    'https://chromium.googlesource.com/chromium/src/build@96625099e899909656e8f7eafbcac9daba1414cb',
+    'https://chromium.googlesource.com/chromium/src/build@5597e471cbcca05a200429cb743709206914332b',
   'src/buildtools':
-    'https://chromium.googlesource.com/chromium/src/buildtools@47e1ac1df94728371dad86efb2606855334147bd',
+    'https://chromium.googlesource.com/chromium/src/buildtools@f8f6777fcf684dd891658ff32b195589e88fe2d8',
   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
   'src/examples/androidtests/third_party/gradle': {
     'url': 'https://chromium.googlesource.com/external/github.com/gradle/gradle.git@f2d1fb54a951d8b11d25748e4711bec8d128d7e3',
@@ -76,9 +76,9 @@ deps = {
     'condition': 'checkout_ios',
   },
   'src/testing':
-    'https://chromium.googlesource.com/chromium/src/testing@0a53e28d0082b6007c3e5b986943d4277c53b808',
+    'https://chromium.googlesource.com/chromium/src/testing@55fd0c28ae0230771e2c433a63f8fe4e03196f4a',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@994a093f09560e5fe9c3dd4d31d892669da15043',
+    'https://chromium.googlesource.com/chromium/src/third_party@31d0a5b358c360791a65553027080fd27c2b91da',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -382,7 +382,7 @@ deps = {
   'src/third_party/re2/src':
     'https://chromium.googlesource.com/external/github.com/google/re2.git@6dcd83d60f7944926bfd308cc13979fc53dd69ca',
 
-  'src/third_party/r8': {
+  'src/third_party/r8/cipd': {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
@@ -395,7 +395,7 @@ deps = {
   # This duplication is intentional, so we avoid updating the r8.jar used by
   # dexing unless necessary, since each update invalidates all incremental
   # dexing and unnecessarily slows down all bots.
-  'src/third_party/r8/d8': {
+  'src/third_party/r8/d8/cipd': {
       'packages': [
           {
               'package': 'chromium/third_party/r8',
