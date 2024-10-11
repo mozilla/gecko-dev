@@ -1,11 +1,14 @@
 # Corruption Detection
 
-** Name: **
+**Name:**
 "Corruption Detection"; "Extension for Automatic Detection of Video Corruptions"
-** Formal name: **
+
+**Formal name:**
 <http://www.webrtc.org/experiments/rtp-hdrext/corruption-detection>
-** Status: ** This extension is defined here to allow for experimentation.
-** Contact: ** <sprang@google.com>
+
+**Status:** This extension is defined here to allow for experimentation.
+
+**Contact:** <sprang@google.com>
 
 NOTE: This explainer is a work in progress and may change without notice.
 
@@ -14,7 +17,7 @@ detection or ACD) extension is intended to be a part of a system that allows
 estimating a likelihood that a video transmission is in a valid state. That is,
 the input to the video encoder on the send side corresponds to the output of the
 video decoder on the receive side with the only difference being the expected
-distortions from lossy compression. 
+distortions from lossy compression.
 
 The goal is to be able to detect outright coding errors caused by things such as
 bugs in encoder/decoders, malformed packetization data, incorrect relay
@@ -152,7 +155,7 @@ them.
 ### Sequence Index Handling
 
 The quasi-random sequence of choice for this extension is a 2D
-[Halton Sequence](https://en.wikipedia.org/wiki/Halton_sequence). 
+[Halton Sequence](https://en.wikipedia.org/wiki/Halton_sequence).
 
 The index into the Halton Sequence is indicated by the header extension and
 results in a 14 bit unsigned integer which on overflow will wrap around back to
@@ -226,11 +229,11 @@ subsampling format. When determining which plane a location belongs to, it is
 easiest to visualize it as the chroma planes being “stacked” to the side of the
 luma plane:
 
-+------+---+
-|      | U |
-+  Y   +---+
-|      | V |
-+------+---+
+    +------+---+
+    |      | U |
+    +  Y   +---+
+    |      | V |
+    +------+---+
 
 In pseudo code:
 ```
@@ -244,7 +247,7 @@ In pseudo code:
   } else {
     HandleSample(V_PLANE, row - (image_height / 2), col - image_width);
   }
-  
+
   seq_index++;
 ```
 Support for other layout types may be added in later versions of this extension.
@@ -268,14 +271,14 @@ max_d = ceil(sqrt(-2.0 * ln(0.2) * stddev^2) - 1.
 Any samples outside the plane are considered to have weight 0.
 
 In pseudo-code, that means we get the following:
-```  
+```
   sample_sum = 0;
   weight_sum = 0;
   for (y = max(0, row - max_d) to min(plane_height, row + max_d) {
     for (x = max(0, col - max_d) to min(plane_width, col + max_d) {
-	weight = e^(-1 * ((y - row)^2 + (x - col)^2) / (2 * stddev^2));
-	sample_sum += SampleAt(x, y) * weight;
-	weight_sum += weight;
+      weight = e^(-1 * ((y - row)^2 + (x - col)^2) / (2 * stddev^2));
+      sample_sum += SampleAt(x, y) * weight;
+      weight_sum += weight;
     }
   }
   filtered_sample = sample_sum / weight_sum;
@@ -341,7 +344,7 @@ all.
 There are also possibly more accurate but probably much more costly alternatives
 as well, such as training an ML model to determine the settings based on both
 the content of the source frame and any metadata present in the encoded
-bitstream. 
+bitstream.
 
 Regardless of method, the implementation at the send side SHOULD strive to set
 the filter size and error thresholds such that 99.5% of filtered samples end up
