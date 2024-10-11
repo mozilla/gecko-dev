@@ -46,6 +46,8 @@ add_task(async function () {
     selectSource,
     assertTextContentOnLine,
     getEditorContent,
+    isCm6Enabled,
+    getCMEditor,
   });
 
   await addTab(`${EXAMPLE_URL}doc-all-workers.html`);
