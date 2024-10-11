@@ -457,10 +457,11 @@ class MediaSessionDescriptionFactoryTest : public testing::Test {
     if (offer) {
       desc = f1_.CreateOfferOrError(options, current_desc.get()).MoveValue();
     } else {
-      std::unique_ptr<SessionDescription> offer;
-      offer = f1_.CreateOfferOrError(options, nullptr).MoveValue();
-      desc = f1_.CreateAnswerOrError(offer.get(), options, current_desc.get())
-                 .MoveValue();
+      std::unique_ptr<SessionDescription> offer_desc;
+      offer_desc = f1_.CreateOfferOrError(options, nullptr).MoveValue();
+      desc =
+          f1_.CreateAnswerOrError(offer_desc.get(), options, current_desc.get())
+              .MoveValue();
     }
     ASSERT_TRUE(desc);
     const TransportInfo* ti_audio = desc->GetTransportInfoByName("audio");
