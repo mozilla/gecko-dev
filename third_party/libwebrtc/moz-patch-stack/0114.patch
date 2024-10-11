@@ -1,28 +1,82 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Wed, 28 Aug 2024 07:50:00 +0000
-Subject: Bug 1915082 - From ScreenCapturerSck request frames in sRGB
- colorspace. r=webrtc-reviewers,ng
+Date: Tue, 27 Aug 2024 10:01:00 +0000
+Subject: Bug 1914835 - With ScreenCaptureKit embed the mouse cursor directly.
+ r=webrtc-reviewers,ng
 
-The desktop capture path has no colorspace handling for RGB, and libyuv assumes
-sRGB by default. ScreenCaptureKit returns frames in the display's colorspace
-unless told otherwise. On modern macs this is 'Display P3' and will render
-inaccurately when interpreted as sRGB.
+The MouseCursorMonitor on macOS is rather expensive, as for every pulled frame
+it compares all pixels of the cursors used for the current and last frames.
+Getting to the pixels may also incur a conversion.
 
-Differential Revision: https://phabricator.services.mozilla.com/D220219
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6f6acc479b373662d4ed3ef3be84c3581622297f
+Note that this comparison happens even if the backend reports it had embedded
+the cursor already, as the embedding only affects composing the monitored cursor
+into a captured frame.
+
+Differential Revision: https://phabricator.services.mozilla.com/D220092
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8ca7b371646d8aa40b2c3faf54570fcd1331a677
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 1 +
- 1 file changed, 1 insertion(+)
+ .../desktop_capture/mac/screen_capturer_sck.h   |  3 +++
+ .../desktop_capture/mac/screen_capturer_sck.mm  | 17 ++++++++++++++---
+ 2 files changed, 17 insertions(+), 3 deletions(-)
 
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.h b/modules/desktop_capture/mac/screen_capturer_sck.h
+index 2c5241d33e..105cbf0783 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.h
++++ b/modules/desktop_capture/mac/screen_capturer_sck.h
+@@ -18,6 +18,9 @@
+ 
+ namespace webrtc {
+ 
++// Returns true if the ScreenCaptureKit capturer is available.
++bool ScreenCapturerSckAvailable();
++
+ // A DesktopCapturer implementation that uses ScreenCaptureKit.
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+     const DesktopCaptureOptions& options);
 diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index a16a74d451..a7fdfb1012 100644
+index 2dad8b356b..a16a74d451 100644
 --- a/modules/desktop_capture/mac/screen_capturer_sck.mm
 +++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -245,6 +245,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
-                                                     excludingWindows:@[]];
-   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
-   config.pixelFormat = kCVPixelFormatType_32BGRA;
-+  config.colorSpaceName = kCGColorSpaceSRGB;
-   config.showsCursor = capture_options_.prefer_cursor_embedded();
-   config.width = filter.contentRect.size.width * filter.pointPixelScale;
-   config.height = filter.contentRect.size.height * filter.pointPixelScale;
+@@ -24,6 +24,8 @@
+ 
+ using webrtc::DesktopFrameIOSurface;
+ 
++#define SCK_AVAILABLE @available(macOS 14.0, *)
++
+ namespace webrtc {
+ class ScreenCapturerSck;
+ }  // namespace webrtc
+@@ -48,6 +50,14 @@ API_AVAILABLE(macos(14.0))
+ 
+ namespace webrtc {
+ 
++bool ScreenCapturerSckAvailable() {
++  bool sonomaOrHigher = false;
++  if (SCK_AVAILABLE) {
++    sonomaOrHigher = true;
++  }
++  return sonomaOrHigher;
++}
++
+ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapturer {
+  public:
+   explicit ScreenCapturerSck(const DesktopCaptureOptions& options);
+@@ -353,11 +363,10 @@ void ScreenCapturerSck::StartOrReconfigureCapturer() {
+ }
+ 
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOptions& options) {
+-  if (@available(macOS 14.0, *)) {
++  if (SCK_AVAILABLE) {
+     return std::make_unique<ScreenCapturerSck>(options);
+-  } else {
+-    return nullptr;
+   }
++  return nullptr;
+ }
+ 
+ }  // namespace webrtc
+@@ -418,3 +427,5 @@ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOpt
+ }
+ 
+ @end
++
++#undef SCK_AVAILABLE

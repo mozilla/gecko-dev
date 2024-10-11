@@ -1,26 +1,30 @@
 From: Byron Campen <docfaraday@gmail.com>
-Date: Fri, 26 Jul 2024 09:26:00 -0500
-Subject: Bug 1909234 - (fix-a0d1a51217) Move this errant include where it
- belongs. r?mjf
+Date: Thu, 25 Jul 2024 10:07:00 -0500
+Subject: Bug 1909234 - (fix-4fec6f9c67dc) Hollow out the new ssl_adapter lib.
+ r?mjf
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6baf67202c67b27c6464cb8e4dbb419485aa6c4c
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ee2f06666bcc6d22c4d7c93b78fb52d28452d055
 ---
- api/test/network_emulation/BUILD.gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ rtc_base/BUILD.gn | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/api/test/network_emulation/BUILD.gn b/api/test/network_emulation/BUILD.gn
-index 809b1b3ce0..685069c94f 100644
---- a/api/test/network_emulation/BUILD.gn
-+++ b/api/test/network_emulation/BUILD.gn
-@@ -6,10 +6,10 @@
- # in the file PATENTS.  All contributing project authors may
- # be found in the AUTHORS file in the root of the source tree.
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 2690a414d1..cbf153c024 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1646,6 +1646,7 @@ if (!build_with_mozilla) {
+ }
  
--import("//third_party/protobuf/proto_library.gni")
- import("../../../webrtc.gni")
+ rtc_library("ssl_adapter") {
++if (!build_with_mozilla) {
+   visibility = [ "*" ]
+   sources = [
+     "openssl_adapter.cc",
+@@ -1696,6 +1697,7 @@ rtc_library("ssl_adapter") {
+     configs += [ ":external_ssl_library" ]
+   }
+ }
++}
  
- if (rtc_enable_protobuf) {
-+  import("//third_party/protobuf/proto_library.gni")
-   proto_library("network_config_schedule_proto") {
-     visibility = [ "*" ]
-     sources = [ "network_config_schedule.proto" ]
+ rtc_source_set("gtest_prod") {
+   sources = [ "gtest_prod_util.h" ]
