@@ -132,6 +132,19 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
     int64_t first_frame_received_to_decoded_ms = -1;
     absl::optional<uint64_t> qp_sum;
 
+    // TODO(webrtc:357636606): Propagate this score upwards in the chain.
+    // Corruption score, indicating the probability of corruption. Its value is
+    // between 0 and 1, where 0 means no corruption and 1 means that the
+    // compressed frame is corrupted.
+    // However, note that the corruption score may not accurately reflect
+    // corruption. E.g. even if the corruption score is 0, the compressed frame
+    // may still be corrupted and vice versa.
+    absl::optional<double> corruption_score_sum;
+    absl::optional<double> corruption_score_squared_sum;
+    // Number of frames the `corruption_score` was calculated on. This is
+    // usually not the same as `frames_decoded`.
+    uint32_t corruption_score_count = 0;
+
     int current_payload_type = -1;
 
     int total_bitrate_bps = 0;

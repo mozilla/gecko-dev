@@ -26,6 +26,7 @@
 #include "api/video/video_rotation.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/metrics.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 #include "test/time_controller/simulated_time_controller.h"
@@ -34,6 +35,8 @@
 namespace webrtc {
 namespace internal {
 namespace {
+using ::testing::DoubleEq;
+
 const TimeDelta kFreqOffsetProcessInterval = TimeDelta::Seconds(40);
 const uint32_t kRemoteSsrc = 456;
 const int kMinRequiredSamples = 200;
@@ -534,6 +537,30 @@ TEST_F(ReceiveStatisticsProxyTest, OnRenderedFrameIncreasesFramesRendered) {
     statistics_proxy_->OnRenderedFrame(MetaData(frame));
     EXPECT_EQ(i, statistics_proxy_->GetStats().frames_rendered);
   }
+}
+
+TEST_F(ReceiveStatisticsProxyTest, GetStatsReportsOnCorruptionScore) {
+  EXPECT_EQ(absl::nullopt, statistics_proxy_->GetStats().corruption_score_sum);
+  EXPECT_EQ(absl::nullopt,
+            statistics_proxy_->GetStats().corruption_score_squared_sum);
+  EXPECT_EQ(0u, statistics_proxy_->GetStats().corruption_score_count);
+
+  const std::vector<double> corruption_scores = {0.5, 0.25, 0.80};
+  const double kExpectedCorruptionScoreSum = 0.5 + 0.25 + 0.80;
+  const double kExpectedCorruptionScoreSquaredSum =
+      0.5 * 0.5 + 0.25 * 0.25 + 0.80 * 0.80;
+  for (size_t i = 0; i < corruption_scores.size(); ++i) {
+    statistics_proxy_->OnCorruptionScore(
+        /*corruption_score=*/corruption_scores[i],
+        VideoContentType::UNSPECIFIED);
+  }
+
+  VideoReceiveStreamInterface::Stats stats = statistics_proxy_->GetStats();
+  EXPECT_THAT(kExpectedCorruptionScoreSum,
+              DoubleEq(*stats.corruption_score_sum));
+  EXPECT_THAT(kExpectedCorruptionScoreSquaredSum,
+              DoubleEq(*stats.corruption_score_squared_sum));
+  EXPECT_EQ(3u, stats.corruption_score_count);
 }
 
 TEST_F(ReceiveStatisticsProxyTest, GetStatsReportsSsrc) {
@@ -1477,6 +1504,42 @@ TEST_P(ReceiveStatisticsProxyTestWithContent, MaxInterFrameDelayOnlyWithPause) {
                      metrics::MinSample("WebRTC.Video.InterframeDelayInMs"));
     EXPECT_METRIC_EQ(kInterFrameDelay.ms(),
                      metrics::MinSample("WebRTC.Video.InterframeDelayMaxInMs"));
+  }
+}
+
+TEST_P(ReceiveStatisticsProxyTestWithContent, CorruptionScore) {
+  const std::vector<double> corruption_scores = {0.5, 0.25, 0.80};
+  const int kCorruptionLikelihoodPermille =
+      static_cast<int>((0.5 + 0.25 + 0.80) / 3 * 1000);
+  for (size_t i = 0; i < corruption_scores.size(); ++i) {
+    statistics_proxy_->OnCorruptionScore(
+        /*corruption_score=*/corruption_scores[i], content_type_);
+  }
+
+  FlushAndGetStats();
+  EXPECT_EQ(3u, statistics_proxy_->GetStats().corruption_score_count);
+
+  statistics_proxy_->UpdateHistograms(absl::nullopt, StreamDataCounters(),
+                                      nullptr);
+  if (videocontenttypehelpers::IsScreenshare(content_type_)) {
+    EXPECT_METRIC_EQ(
+        1, metrics::NumSamples(
+               "WebRTC.Video.Screenshare.CorruptionLikelihoodPermille"));
+    EXPECT_METRIC_EQ(
+        1, metrics::NumEvents(
+               "WebRTC.Video.Screenshare.CorruptionLikelihoodPermille",
+               kCorruptionLikelihoodPermille));
+    EXPECT_METRIC_EQ(
+        0, metrics::NumSamples("WebRTC.Video.CorruptionLikelihoodPermille"));
+  } else {
+    EXPECT_METRIC_EQ(
+        1, metrics::NumSamples("WebRTC.Video.CorruptionLikelihoodPermille"));
+    EXPECT_METRIC_EQ(
+        1, metrics::NumEvents("WebRTC.Video.CorruptionLikelihoodPermille",
+                              kCorruptionLikelihoodPermille));
+    EXPECT_METRIC_EQ(
+        0, metrics::NumSamples(
+               "WebRTC.Video.Screenshare.CorruptionLikelihoodPermille"));
   }
 }
 

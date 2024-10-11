@@ -26,6 +26,7 @@
 #include "modules/include/module_common_types.h"
 #include "rtc_base/numerics/histogram_percentile_counter.h"
 #include "rtc_base/numerics/moving_max_counter.h"
+#include "rtc_base/numerics/running_statistics.h"
 #include "rtc_base/numerics/sample_counter.h"
 #include "rtc_base/rate_statistics.h"
 #include "rtc_base/rate_tracker.h"
@@ -106,6 +107,9 @@ class ReceiveStatisticsProxy : public VideoStreamBufferControllerStatsObserver,
   // Implements RtcpCnameCallback.
   void OnCname(uint32_t ssrc, absl::string_view cname) override;
 
+  void OnCorruptionScore(double corruption_score,
+                         VideoContentType content_type);
+
   // Implements RtcpPacketTypeCounterObserver.
   void RtcpPacketTypesCounterUpdated(
       uint32_t ssrc,
@@ -144,6 +148,7 @@ class ReceiveStatisticsProxy : public VideoStreamBufferControllerStatsObserver,
     rtc::SampleCounter qp_counter;
     FrameCounts frame_counts;
     rtc::HistogramPercentileCounter interframe_delay_percentiles;
+    webrtc_impl::RunningStatistics<double> corruption_score;
   };
 
   // Removes info about old frames and then updates the framerate.
