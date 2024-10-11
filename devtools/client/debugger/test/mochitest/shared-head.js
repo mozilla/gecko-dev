@@ -368,7 +368,7 @@ function assertHighlightLocation(dbg, source, line) {
  *
  * Assert that CodeMirror reports to be paused at the given line/column.
  */
-function _assertDebugLine(dbg, line, column) {
+async function _assertDebugLine(dbg, line, column) {
   const source = dbg.selectors.getSelectedSource();
   // WASM lines are hex addresses which have to be mapped to decimal line number
   if (isWasmBinarySource(source)) {
@@ -389,7 +389,7 @@ function _assertDebugLine(dbg, line, column) {
 
   // Scroll the line into view to make sure the content
   // on the line is rendered and in the dom.
-  getCM(dbg).scrollIntoView({ line, ch: 0 });
+  await scrollEditorIntoView(dbg, line, 0);
 
   if (!lineInfo.wrapClass) {
     const pauseLine = getVisibleSelectedFrameLine(dbg);
@@ -2184,10 +2184,41 @@ function setEditorCursorAt(dbg, line, column) {
   return getCMEditor(dbg).setCursorAt(line, column);
 }
 
+/**
+ * Scrolls a specific line and column into view in the editor
+ *
+ * @param {*} dbg
+ * @param {Number} line
+ * @param {Number} column
+ * @returns
+ */
+async function scrollEditorIntoView(dbg, line, column) {
+  const onScrolled = waitForScrolling(dbg);
+  line = isCm6Enabled ? line + 1 : line;
+  getCMEditor(dbg).scrollTo(line, column);
+  // Ensure the line is visible with margin because the bar at the bottom of
+  // the editor overlaps into what the editor thinks is its own space, blocking
+  // the click event below.
+  return onScrolled;
+}
+
 // Gets the current codeMirror instance for CM5 tests
 function getCM(dbg) {
   const el = dbg.win.document.querySelector(".CodeMirror");
   return el.CodeMirror;
+}
+
+/**
+ * Wrapper around source editor api to check if a scrolled position is visible
+ *
+ * @param {*} dbg
+ * @param {Number} line
+ * @param {Number} column
+ * @returns
+ */
+function isScrolledPositionVisible(dbg, line, column = 0) {
+  line = isCm6Enabled ? line + 1 : line;
+  return getCMEditor(dbg).isPositionVisible(line, column);
 }
 
 // Gets the mode used for the file
@@ -2202,20 +2233,13 @@ function getCoordsFromPosition(cm, { line, ch }) {
 async function getTokenFromPosition(dbg, { line, column = 0 }) {
   info(`Get token at ${line}:${column}`);
   const cm = getCM(dbg);
+  await scrollEditorIntoView(dbg, line, column);
 
-  // CodeMirror is 0-based while line and column arguments are 1-based.
-  // Pass "ch=-1" when there is no column argument passed.
-  const cmPosition = { line: line - 1, ch: column - 1 };
+  if (isCm6Enabled) {
+    return getCMEditor(dbg).getElementAtPos(line, column);
+  }
 
-  const onScrolled = waitForScrolling(cm);
-  cm.scrollIntoView(cmPosition, 0);
-
-  // Ensure the line is visible with margin because the bar at the bottom of
-  // the editor overlaps into what the editor thinks is its own space, blocking
-  // the click event below.
-  await onScrolled;
-
-  const { left, top } = getCoordsFromPosition(cm, cmPosition);
+  const { left, top } = getCoordsFromPosition(cm, { line, ch: column });
 
   // Adds a vertical offset due to increased line height
   // https://github.com/firefox-devtools/debugger/pull/7934
@@ -2224,11 +2248,30 @@ async function getTokenFromPosition(dbg, { line, column = 0 }) {
   // Note that we might end up retrieving any popup if one is still shown over the expected token
   return dbg.win.document.elementFromPoint(left, top + lineHeightOffset);
 }
-
-async function waitForScrolling(codeMirror) {
+/**
+ * Waits for the currently triggered scroll to complete
+ *
+ * @param {*} dbg
+ * @param {Object} options
+ * @param {Boolean} options.useTimeoutFallback - defaults to true. When set to false
+ *                                               a scroll must happen for the wait for scrolling to complete
+ * @returns
+ */
+async function waitForScrolling(dbg, { useTimeoutFallback = true } = {}) {
   return new Promise(resolve => {
-    codeMirror.on("scroll", resolve);
-    setTimeout(resolve, 500);
+    const editor = getCMEditor(dbg);
+    if (isCm6Enabled) {
+      editor.once("cm-editor-scrolled", resolve);
+    } else {
+      function onScroll() {
+        editor.codeMirror.off("scroll", onScroll);
+        resolve();
+      }
+      editor.codeMirror.on("scroll", onScroll);
+    }
+    if (useTimeoutFallback) {
+      setTimeout(resolve, 500);
+    }
   });
 }
 
@@ -2236,11 +2279,11 @@ async function codeMirrorGutterElement(dbg, line) {
   info(`CodeMirror line ${line}`);
   const cm = getCM(dbg);
 
-  const position = { line: line - 1, ch: 0 };
-  cm.scrollIntoView(position, 0);
-  await waitForScrolling(cm);
+  line = isCm6Enabled ? line : line - 1;
+  await scrollEditorIntoView(dbg, line, 0);
+  await waitForScrolling(dbg);
 
-  const coords = getCoordsFromPosition(cm, position);
+  const coords = getCoordsFromPosition(cm, { line, ch: 0 });
 
   const { left, top } = coords;
 
@@ -2449,10 +2492,7 @@ async function tryHovering(dbg, line, column, elementName) {
  */
 async function tryHoverTokenAtLine(dbg, expression, line, column, elementName) {
   info("Scroll codeMirror to make the token visible");
-  const cm = getCM(dbg);
-  const onScrolled = waitForScrolling(cm);
-  cm.scrollIntoView({ line: line - 1, ch: 0 }, 0);
-  await onScrolled;
+  await scrollEditorIntoView(dbg, line, 0);
 
   // Lookup for the token matching the passed expression
   const tokenEl = getTokenElAtLine(dbg, expression, line, column);

@@ -19,34 +19,44 @@ add_task(async function () {
   await selectSource(dbg, "simple1.js");
   await addBreakpoint(dbg, "simple1.js", 26);
 
-  const cm = getCM(dbg);
-
   info("Open long file, scroll down to line below the fold");
   await selectSource(dbg, "long.js");
-  cm.scrollTo(0, 600);
+
+  await scrollEditorIntoView(dbg, 24, 0);
+  ok(isScrolledPositionVisible(dbg, 24), "Scroll position is visible");
 
   info("Ensure vertical scroll is the same after switching documents");
+  let onScrolled = waitForScrolling(dbg);
   await selectSource(dbg, "simple1.js");
-  is(cm.getScrollInfo().top, 0);
+  // Wait for any codemirror editor scroll that can happen
+  await onScrolled;
+  ok(isScrolledPositionVisible(dbg, 0), "Scrolled to the top of the editor");
+
+  onScrolled = waitForScrolling(dbg);
   await selectSource(dbg, "long.js");
-  is(cm.getScrollInfo().top, 600);
+  await onScrolled;
+  ok(isScrolledPositionVisible(dbg, 24), "Scroll position is visible");
 
   info("Trigger a pause, click on a frame, ensure the right line is selected");
+  onScrolled = waitForScrolling(dbg);
   invokeInTab("doNamedEval");
   await waitForPaused(dbg);
-  findElement(dbg, "frame", 1).focus();
-  await clickElement(dbg, "frame", 1);
-  Assert.notEqual(
-    cm.getScrollInfo().top,
-    0,
-    "frame scrolled down to correct location"
+  await onScrolled;
+
+  ok(
+    isScrolledPositionVisible(dbg, 26),
+    "Frame scrolled down to correct location"
   );
 
   info("Navigating while paused, goes to the correct location");
+  onScrolled = waitForScrolling(dbg);
   await selectSource(dbg, "long.js");
-  is(cm.getScrollInfo().top, 600);
+  await onScrolled;
+  ok(isScrolledPositionVisible(dbg, 24), "Scroll position is visible");
 
   info("Open new source, ensure it's at 0 scroll");
+  onScrolled = waitForScrolling(dbg);
   await selectSource(dbg, "frames.js");
-  is(cm.getScrollInfo().top, 0);
+  await onScrolled;
+  ok(isScrolledPositionVisible(dbg, 0), "Scrolled to the top of the editor");
 });
