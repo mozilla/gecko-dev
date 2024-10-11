@@ -65,7 +65,7 @@ struct YearMonthDay {
 /*
  * Split an epoch milliseconds value into year-month-day parts.
  */
-YearMonthDay ToYearMonthDay(int64_t epochMilliseconds);
+YearMonthDay ToYearMonthDay(int64_t time);
 
 struct HourMinuteSecond {
   // Hours from 0 to 23.

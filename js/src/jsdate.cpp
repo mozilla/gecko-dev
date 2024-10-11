@@ -243,7 +243,7 @@ static inline int64_t TimeFromYear(int32_t y) {
  * Softw Pract Exper. 2023;53(4):937-970. doi: 10.1002/spe.3172
  * https://onlinelibrary.wiley.com/doi/full/10.1002/spe.3172
  */
-static YearMonthDay ToYearMonthDay(int64_t time) {
+YearMonthDay js::ToYearMonthDay(int64_t time) {
   // Calendar cycles repeat every 400 years in the Gregorian calendar: a
   // leap day is added every 4 years, removed every 100 years and added
   // every 400 years. The number of days in 400 years is cycleInDays.
@@ -354,16 +354,12 @@ static YearMonthDay ToYearMonthDay(int64_t time) {
   return {Y_G, M_G, D_G};
 }
 
-YearMonthDay js::ToYearMonthDay(int64_t epochMilliseconds) {
-  return ::ToYearMonthDay(epochMilliseconds);
-}
-
 /**
  * 21.4.1.8 YearFromTime ( t )
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static int32_t YearFromTime(int64_t t) { return ::ToYearMonthDay(t).year; }
+static int32_t YearFromTime(int64_t t) { return ToYearMonthDay(t).year; }
 
 /**
  * 21.4.1.9 DayWithinYear ( t )
@@ -380,14 +376,14 @@ static double DayWithinYear(int64_t t, double year) {
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static int32_t MonthFromTime(int64_t t) { return ::ToYearMonthDay(t).month; }
+static int32_t MonthFromTime(int64_t t) { return ToYearMonthDay(t).month; }
 
 /**
  * 21.4.1.12 DateFromTime ( t )
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static int32_t DateFromTime(int64_t t) { return ::ToYearMonthDay(t).day; }
+static int32_t DateFromTime(int64_t t) { return ToYearMonthDay(t).day; }
 
 /**
  * 21.4.1.13 WeekDay ( t )
@@ -682,7 +678,7 @@ int32_t DateTimeHelper::daylightSavingTA(DateTimeInfo::ForceUTC forceUTC,
    * many OSes, map it to an equivalent year before asking.
    */
   if (!isRepresentableAsTime32(t)) {
-    auto [year, month, day] = ::ToYearMonthDay(t);
+    auto [year, month, day] = ToYearMonthDay(t);
 
     int equivalentYear = equivalentYearForDST(year);
     double equivalentDay = MakeDay(equivalentYear, month, day);
@@ -2163,7 +2159,7 @@ void DateObject::fillLocalTimeSlots() {
 
   setReservedSlot(LOCAL_TIME_SLOT, DoubleValue(localTime));
 
-  const auto [year, month, day] = ::ToYearMonthDay(localTime);
+  const auto [year, month, day] = ToYearMonthDay(localTime);
 
   setReservedSlot(LOCAL_YEAR_SLOT, Int32Value(year));
   setReservedSlot(LOCAL_MONTH_SLOT, Int32Value(int32_t(month)));
@@ -3619,7 +3615,7 @@ static bool date_toUTCString(JSContext* cx, unsigned argc, Value* vp) {
   int64_t epochMilliseconds = static_cast<int64_t>(utctime);
 
   // Steps 5-11.
-  auto [year, month, day] = ::ToYearMonthDay(epochMilliseconds);
+  auto [year, month, day] = ToYearMonthDay(epochMilliseconds);
   auto [hour, minute, second] = ToHourMinuteSecond(epochMilliseconds);
 
   char buf[100];
@@ -3666,7 +3662,7 @@ static bool date_toISOString(JSContext* cx, unsigned argc, Value* vp) {
   // Step 6. (Not applicable in our implementation.)
 
   // Step 7.
-  auto [year, month, day] = ::ToYearMonthDay(epochMilliseconds);
+  auto [year, month, day] = ToYearMonthDay(epochMilliseconds);
   auto [hour, minute, second] = ToHourMinuteSecond(epochMilliseconds);
 
   char buf[100];
@@ -3765,7 +3761,7 @@ JSString* DateTimeHelper::timeZoneComment(JSContext* cx,
 /* Interface to PRMJTime date struct. */
 PRMJTime DateTimeHelper::toPRMJTime(DateTimeInfo::ForceUTC forceUTC,
                                     int64_t localTime, int64_t utcTime) {
-  auto [year, month, day] = ::ToYearMonthDay(localTime);
+  auto [year, month, day] = ToYearMonthDay(localTime);
   auto [hour, minute, second] = ToHourMinuteSecond(localTime);
 
   PRMJTime prtm;
@@ -3890,7 +3886,7 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
   switch (format) {
     case FormatSpec::DateTime: {
       /* Tue Oct 31 2000 09:41:40 GMT-0800 */
-      auto [year, month, day] = ::ToYearMonthDay(localTime);
+      auto [year, month, day] = ToYearMonthDay(localTime);
       auto [hour, minute, second] = ToHourMinuteSecond(localTime);
       SprintfLiteral(buf, "%s %s %.2u %.4d %.2d:%.2d:%.2d GMT%+.4d",
                      days[int(WeekDay(localTime))], months[month], day, year,
@@ -3899,7 +3895,7 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
     }
     case FormatSpec::Date: {
       /* Tue Oct 31 2000 */
-      auto [year, month, day] = ::ToYearMonthDay(localTime);
+      auto [year, month, day] = ToYearMonthDay(localTime);
       SprintfLiteral(buf, "%s %s %.2u %.4d", days[int(WeekDay(localTime))],
                      months[month], day, year);
       break;
