@@ -523,10 +523,7 @@ double DateTimeHelper::localTZA(DateTimeInfo::ForceUTC forceUTC, double t,
 // ES2019 draft rev 0ceb728a1adbffe42b26972a6541fd7f398b1557
 // 20.3.1.8 LocalTime ( t )
 double DateTimeHelper::localTime(DateTimeInfo::ForceUTC forceUTC, double t) {
-  if (!std::isfinite(t)) {
-    return GenericNaN();
-  }
-
+  MOZ_ASSERT(std::isfinite(t));
   MOZ_ASSERT(StartOfTime <= t && t <= EndOfTime);
   return t + localTZA(forceUTC, t, DateTimeInfo::TimeZoneOffset::UTC);
 }
@@ -534,9 +531,7 @@ double DateTimeHelper::localTime(DateTimeInfo::ForceUTC forceUTC, double t) {
 // ES2019 draft rev 0ceb728a1adbffe42b26972a6541fd7f398b1557
 // 20.3.1.9 UTC ( t )
 double DateTimeHelper::UTC(DateTimeInfo::ForceUTC forceUTC, double t) {
-  if (!std::isfinite(t)) {
-    return GenericNaN();
-  }
+  MOZ_ASSERT(std::isfinite(t));
 
   if (t < (StartOfTime - msPerDay) || t > (EndOfTime + msPerDay)) {
     return GenericNaN();
@@ -591,9 +586,7 @@ bool DateTimeHelper::isRepresentableAsTime32(double t) {
 /* ES5 15.9.1.8. */
 double DateTimeHelper::daylightSavingTA(DateTimeInfo::ForceUTC forceUTC,
                                         double t) {
-  if (!std::isfinite(t)) {
-    return GenericNaN();
-  }
+  MOZ_ASSERT(std::isfinite(date));
 
   /*
    * If earlier than 1970 or after 2038, potentially beyond the ken of
@@ -613,6 +606,8 @@ double DateTimeHelper::daylightSavingTA(DateTimeInfo::ForceUTC forceUTC,
 
 double DateTimeHelper::adjustTime(DateTimeInfo::ForceUTC forceUTC,
                                   double date) {
+  MOZ_ASSERT(std::isfinite(date));
+
   double localTZA = DateTimeInfo::localTZA(forceUTC);
   double t = daylightSavingTA(forceUTC, date) + localTZA;
   t = (localTZA >= 0) ? fmod(t, msPerDay) : -fmod(msPerDay - t, msPerDay);
@@ -621,10 +616,13 @@ double DateTimeHelper::adjustTime(DateTimeInfo::ForceUTC forceUTC,
 
 /* ES5 15.9.1.9. */
 double DateTimeHelper::localTime(DateTimeInfo::ForceUTC forceUTC, double t) {
+  MOZ_ASSERT(std::isfinite(t));
   return t + adjustTime(forceUTC, t);
 }
 
 double DateTimeHelper::UTC(DateTimeInfo::ForceUTC forceUTC, double t) {
+  MOZ_ASSERT(std::isfinite(t));
+
   // Following the ES2017 specification creates undesirable results at DST
   // transitions. For example when transitioning from PST to PDT,
   // |new Date(2016,2,13,2,0,0).toTimeString()| returns the string value
@@ -637,11 +635,30 @@ double DateTimeHelper::UTC(DateTimeInfo::ForceUTC forceUTC, double t) {
 }
 #endif /* JS_HAS_INTL_API */
 
+/**
+ * 21.4.1.25 LocalTime ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double LocalTime(DateTimeInfo::ForceUTC forceUTC, double t) {
+  MOZ_ASSERT(std::isfinite(t));
+
+  // Steps 1-5.
   return DateTimeHelper::localTime(forceUTC, t);
 }
 
+/**
+ * 21.4.1.26 UTC ( t )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static double UTC(DateTimeInfo::ForceUTC forceUTC, double t) {
+  // Step 1.
+  if (!std::isfinite(t)) {
+    return GenericNaN();
+  }
+
+  // Steps 2-6.
   return DateTimeHelper::UTC(forceUTC, t);
 }
 
@@ -3359,6 +3376,9 @@ JSString* DateTimeHelper::timeZoneComment(JSContext* cx,
                                           DateTimeInfo::ForceUTC forceUTC,
                                           const char* locale, double utcTime,
                                           double localTime) {
+  MOZ_ASSERT(std::isfinite(utcTime));
+  MOZ_ASSERT(std::isfinite(localTime));
+
   char16_t tzbuf[100];
   tzbuf[0] = ' ';
   tzbuf[1] = '(';
@@ -3389,6 +3409,9 @@ JSString* DateTimeHelper::timeZoneComment(JSContext* cx,
 /* Interface to PRMJTime date struct. */
 PRMJTime DateTimeHelper::toPRMJTime(DateTimeInfo::ForceUTC forceUTC,
                                     double localTime, double utcTime) {
+  MOZ_ASSERT(std::isfinite(localTime));
+  MOZ_ASSERT(std::isfinite(utcTime));
+
   auto [year, month, day] = ::ToYearMonthDay(localTime);
   auto [hour, minute, second] = ::ToHourMinuteSecond(localTime);
 
@@ -3410,6 +3433,9 @@ PRMJTime DateTimeHelper::toPRMJTime(DateTimeInfo::ForceUTC forceUTC,
 size_t DateTimeHelper::formatTime(DateTimeInfo::ForceUTC forceUTC, char* buf,
                                   size_t buflen, const char* fmt,
                                   double utcTime, double localTime) {
+  MOZ_ASSERT(std::isfinite(utcTime));
+  MOZ_ASSERT(std::isfinite(localTime));
+
   PRMJTime prtm = toPRMJTime(forceUTC, localTime, utcTime);
 
   // If an equivalent year was used to compute the date/time components, use
@@ -3428,6 +3454,9 @@ JSString* DateTimeHelper::timeZoneComment(JSContext* cx,
                                           DateTimeInfo::ForceUTC forceUTC,
                                           const char* locale, double utcTime,
                                           double localTime) {
+  MOZ_ASSERT(std::isfinite(utcTime));
+  MOZ_ASSERT(std::isfinite(localTime));
+
   char tzbuf[100];
 
   size_t tzlen =
