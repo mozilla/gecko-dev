@@ -2394,6 +2394,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api/video:builtin_video_bitrate_allocator_factory",
       "../api/video:encoded_image",
       "../api/video:recordable_encoded_frame",
+      "../api/video:resolution",
       "../api/video:video_bitrate_allocator_factory",
       "../api/video:video_codec_constants",
       "../api/video:video_frame",

@@ -6302,6 +6302,74 @@ TEST_F(VideoStreamEncoderTest, InitialFrameDropIsNotReactivatedWhenAdaptingUp) {
   video_stream_encoder_->Stop();
 }
 
+// Same test as above but setting resolution using `requested_resolution`, which
+// does affect the number of ReconfigureEncoder() requiring extra care not to
+// reactivate InitialFrameDrop.
+TEST_F(VideoStreamEncoderTest,
+       InitialFrameDropIsNotReactivatedWhenAdaptingUp_RequestedResolution) {
+  const int kWidth = 640;
+  const int kHeight = 360;
+  // So that quality scaling doesn't happen by itself.
+  fake_encoder_.SetQp(kQpHigh);
+
+  AdaptingFrameForwarder source(&time_controller_);
+  source.set_adaptation_enabled(true);
+  video_stream_encoder_->SetSource(
+      &source, webrtc::DegradationPreference::MAINTAIN_FRAMERATE);
+
+  int timestamp = 1;
+
+  // By using the `requested_resolution` API, ReconfigureEncoder() gets
+  // triggered from VideoStreamEncoder::OnVideoSourceRestrictionsUpdated().
+  ASSERT_THAT(video_encoder_config_.simulcast_layers, SizeIs(1));
+  video_encoder_config_.simulcast_layers[0].requested_resolution.emplace(
+      Resolution({.width = kWidth, .height = kHeight}));
+  video_stream_encoder_->ConfigureEncoder(video_encoder_config_.Copy(),
+                                          kMaxPayloadLength);
+
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kTargetBitrate, kTargetBitrate, kTargetBitrate, 0, 0, 0);
+  source.IncomingCapturedFrame(CreateFrame(timestamp, kWidth, kHeight));
+  WaitForEncodedFrame(timestamp);
+  timestamp += 9000;
+  // Long pause to disable all first BWE drop logic.
+  AdvanceTime(TimeDelta::Millis(1000));
+
+  video_stream_encoder_->OnBitrateUpdatedAndWaitForManagedResources(
+      kLowTargetBitrate, kLowTargetBitrate, kLowTargetBitrate, 0, 0, 0);
+  source.IncomingCapturedFrame(CreateFrame(timestamp, kWidth, kHeight));
+  // Not dropped frame, as initial frame drop is disabled by now.
+  WaitForEncodedFrame(timestamp);
+  timestamp += 9000;
+  AdvanceTime(TimeDelta::Millis(100));
+
+  // Quality adaptation down.
+  video_stream_encoder_->TriggerQualityLow();
+
+  // Adaptation has an effect.
+  EXPECT_TRUE_WAIT(source.sink_wants().max_pixel_count < kWidth * kHeight,
+                   5000);
+
+  // Frame isn't dropped as initial frame dropper is disabled.
+  source.IncomingCapturedFrame(CreateFrame(timestamp, kWidth, kHeight));
+  WaitForEncodedFrame(timestamp);
+  timestamp += 9000;
+  AdvanceTime(TimeDelta::Millis(100));
+
+  // Quality adaptation up.
+  video_stream_encoder_->TriggerQualityHigh();
+
+  // Adaptation has an effect.
+  EXPECT_TRUE_WAIT(source.sink_wants().max_pixel_count > kWidth * kHeight,
+                   5000);
+
+  source.IncomingCapturedFrame(CreateFrame(timestamp, kWidth, kHeight));
+  // Frame should not be dropped, as initial framedropper is off.
+  WaitForEncodedFrame(timestamp);
+
+  video_stream_encoder_->Stop();
+}
+
 TEST_F(VideoStreamEncoderTest,
        FrameDroppedWhenResolutionIncreasesAndLinkAllocationIsLow) {
   const int kMinStartBps360p = 222000;

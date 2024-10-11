@@ -88,6 +88,15 @@ std::string VideoEncoderConfig::ToString() const {
   return ss.str();
 }
 
+bool VideoEncoderConfig::HasRequestedResolution() const {
+  for (const VideoStream& simulcast_layer : simulcast_layers) {
+    if (simulcast_layer.requested_resolution.has_value()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 VideoEncoderConfig::VideoEncoderConfig(const VideoEncoderConfig&) = default;
 
 void VideoEncoderConfig::EncoderSpecificSettings::FillEncoderSpecificSettings(
