@@ -382,7 +382,7 @@ def filter_raptor_jobs(full_task_graph, label_to_taskid, project):
             continue
         if "browsertime" not in entry.attributes.get("raptor_try_name", ""):
             continue
-        if not entry.attributes.get("test_platform", "").endswith("shippable-qr/opt"):
+        if "shippable" not in entry.attributes.get("test_platform", ""):
             continue
         if "android" in entry.attributes.get("test_platform", ""):
             # Bug 1786254 - The backfill bot is scheduling too many tests atm

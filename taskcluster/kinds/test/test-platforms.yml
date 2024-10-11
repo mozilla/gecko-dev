@@ -487,15 +487,23 @@ android-hw-p6-13-0-android-aarch64-shippable-qr/opt:
     test-sets:
         - android-hw-speedometer-tests
 
+# Bug 1922362,1921607 - Fix up mobile naming convention soon
 android-hw-a55-14-0-android-aarch64-shippable-qr/opt:
     build-platform: android-aarch64-shippable/opt
     test-sets:
         - android-hw-speedometer-tests
         - android-hw-browsertime
 
-android-hw-a55-14-0-aarch64-qr/opt:
+android-hw-a55-14-0-aarch64-shippable/opt:
+    build-platform: android-aarch64-shippable/opt
+    test-sets:
+        - android-hw-speedometer-tests
+        - android-hw-browsertime
+
+android-hw-a55-14-0-aarch64/opt:
     build-platform: android-aarch64/opt
     test-sets:
+        - android-hw-speedometer-tests
         - android-hw-browsertime
 
 android-hw-s24-14-0-android-aarch64-shippable-qr/opt:

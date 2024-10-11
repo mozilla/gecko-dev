@@ -55,9 +55,9 @@ task-defaults:
     limit-platforms:
         by-app:
             chrome-m:
-                - .*shippable-qr.*
+                - .*shippable.*
             cstm-car-m:
-                - .*shippable-qr.*
+                - .*shippable.*
             default: []
     fetches:
         toolchain:
@@ -133,31 +133,31 @@ browsertime-tp6m:
                     geckoview-no-fission:
                         by-test-platform:
                             android-hw-a51.*shippable-qr.*: [trunk-only]
-                            android-hw-a55.*shippable-qr.*: [trunk-only]
+                            android-hw-a55.*shippable.*: [trunk-only]
                             default: []
                     default:
                         by-subtest:
                             wikipedia:
                                 by-test-platform:
                                     android-hw-a51.*shippable-qr.*: []
-                                    android-hw-a55.*shippable-qr.*: []
+                                    android-hw-a55.*shippable.*: []
                                     default: []
                             google-search-restaurants:
                                 by-test-platform:
                                     android-hw-a51.*shippable-qr.*: []
-                                    android-hw-a55.*shippable-qr.*: []
+                                    android-hw-a55.*shippable.*: []
                                     default: []
                             default:
                                 by-test-platform:
                                     android-hw-a51.*shippable-qr.*: []
-                                    android-hw-a55.*shippable-qr.*: []
+                                    android-hw-a55.*shippable.*: []
                                     default: []
             fenix:
                 by-variant:
                     geckoview-no-fission:
                         by-test-platform:
                             android-hw-a51.*shippable-qr.*: [trunk-only]
-                            android-hw-a55.*shippable-qr.*: [trunk-only]
+                            android-hw-a55.*shippable.*: [trunk-only]
                             default: []
                     default: []
             default: []
@@ -375,7 +375,7 @@ browsertime-tp6m-live:
                     geckoview:
                         by-test-platform:
                             android-hw-a51.*shippable-qr.*: [autoland]
-                            android-hw-a55.*shippable-qr.*: [autoland]
+                            android-hw-a55.*shippable.*: [autoland]
                             default: []
                     default: []
             default: []
@@ -400,7 +400,7 @@ browsertime-tp6m-profiling:
     run-on-projects:
         by-test-platform:
             android-hw-(a51).*aarch64-shippable-qr/opt: [mozilla-central]
-            android-hw-a55.*shippable-qr/opt: [mozilla-central]
+            android-hw-a55.*shippable.*/opt: [mozilla-central]
             default: []
 
 browsertime-video-playback-latency-mobile:
@@ -445,12 +445,12 @@ browsertime-benchmark-speedometer-mobile:
             fenix:
                 by-test-platform:
                     android-hw-a51.*shippable-qr.*: [trunk]
-                    android-hw-a55.*shippable-qr.*: [trunk]
+                    android-hw-a55.*shippable.*: [trunk]
                     default: []
             geckoview:
                 by-test-platform:
                     android-hw-a51.*shippable-qr.*: [trunk]
-                    android-hw-a55.*shippable-qr.*: [trunk]
+                    android-hw-a55.*shippable.*: [trunk]
                     default: []
             cstm-car-m:
                 by-test-platform:
@@ -479,14 +479,14 @@ browsertime-benchmark-speedometer3-mobile:
             fenix:
                 by-test-platform:
                     android-hw-a51.*shippable-qr.*: [trunk-only]
-                    android-hw-a55.*shippable-qr.*: [trunk-only]
+                    android-hw-a55.*shippable.*: [trunk-only]
                     android-hw-p6.*shippable-qr.*: [mozilla-central]
                     android-hw-s24.*shippable-qr.*: [mozilla-central]
                     default: []
             geckoview:
                 by-test-platform:
                     android-hw-a51.*shippable-qr.*: [trunk-only]
-                    android-hw-a55.*shippable-qr.*: [trunk-only]
+                    android-hw-a55.*shippable.*: [trunk-only]
                     android-hw-p6.*shippable-qr.*: [mozilla-central]
                     android-hw-s24.*shippable-qr.*: [mozilla-central]
                     default: []
@@ -516,7 +516,7 @@ browsertime-benchmark-motionmark-1-3:
             default:
                 by-test-platform:
                     android-hw-a51-.*aarch64-shippable-qr.*: [mozilla-central]
-                    android-hw-a55.*shippable-qr.*: [mozilla-central]
+                    android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
     treeherder-symbol: Btime()
     tier:
@@ -542,12 +542,12 @@ browsertime-benchmark-unity-webgl-mobile:
                 by-test-platform:
                     # Disabled on autoland due to bug 1720063, and bug 1795826
                     android-hw-a51-.*aarch64-shippable-qr.*: [mozilla-central]
-                    android-hw-a55.*shippable-qr.*: [mozilla-central]
+                    android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
             default:
                 by-test-platform:
                     android-hw-a51-.*aarch64-shippable-qr.*: [mozilla-central]
-                    android-hw-a55.*shippable-qr.*: [mozilla-central]
+                    android-hw-a55.*shippable.*: [mozilla-central]
                     default: []
     max-run-time:
         by-test-platform:
