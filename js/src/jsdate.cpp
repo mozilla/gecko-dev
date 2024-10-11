@@ -379,7 +379,7 @@ static int WeekDay(double t) {
    * We can't assert TimeClip(t) == t because we call this function with
    * local times, which can be offset outside TimeClip's permitted range.
    */
-  MOZ_ASSERT(ToInteger(t) == t);
+  MOZ_ASSERT(IsInteger(t));
   int result = (int(Day(t)) + 4) % 7;
   if (result < 0) {
     result += 7;
@@ -673,6 +673,12 @@ HourMinuteSecond js::ToHourMinuteSecond(int64_t epochMilliseconds) {
   MOZ_ASSERT(0 <= minute && minute < SecondsPerMinute);
 
   return {int32_t(hour), int32_t(minute), int32_t(second)};
+}
+
+static HourMinuteSecond ToHourMinuteSecond(double time) {
+  MOZ_ASSERT(IsInteger(time));
+  MOZ_ASSERT(double(INT64_MIN) <= time && time <= double(INT64_MAX));
+  return js::ToHourMinuteSecond(int64_t(time));
 }
 
 /* ES5 15.9.1.11. */
@@ -3023,12 +3029,13 @@ static bool date_toUTCString(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
+  auto [year, month, day] = ::ToYearMonthDay(utctime);
+  auto [hour, minute, second] = ::ToHourMinuteSecond(utctime);
+
   char buf[100];
-  SprintfLiteral(buf, "%s, %.2d %s %.4d %.2d:%.2d:%.2d GMT",
-                 days[int(WeekDay(utctime))], int(DateFromTime(utctime)),
-                 months[int(::MonthFromTime(utctime))],
-                 int(::YearFromTime(utctime)), int(HourFromTime(utctime)),
-                 int(MinFromTime(utctime)), int(SecFromTime(utctime)));
+  SprintfLiteral(buf, "%s, %.2u %s %.4d %.2d:%.2d:%.2d GMT",
+                 days[int(WeekDay(utctime))], day, months[month], year, hour,
+                 minute, second);
 
   JSString* str = NewStringCopyZ<CanGC>(cx, buf);
   if (!str) {
@@ -3056,22 +3063,16 @@ static bool date_toISOString(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
+  auto [year, month, day] = ::ToYearMonthDay(utctime);
+  auto [hour, minute, second] = ::ToHourMinuteSecond(utctime);
+
   char buf[100];
-  int year = int(::YearFromTime(utctime));
   if (year < 0 || year > 9999) {
-    SprintfLiteral(buf, "%+.6d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ",
-                   int(::YearFromTime(utctime)),
-                   int(::MonthFromTime(utctime)) + 1,
-                   int(DateFromTime(utctime)), int(HourFromTime(utctime)),
-                   int(MinFromTime(utctime)), int(SecFromTime(utctime)),
-                   int(msFromTime(utctime)));
+    SprintfLiteral(buf, "%+.6d-%.2u-%.2uT%.2d:%.2d:%.2d.%.3dZ", year, month + 1,
+                   day, hour, minute, second, int(msFromTime(utctime)));
   } else {
-    SprintfLiteral(buf, "%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ",
-                   int(::YearFromTime(utctime)),
-                   int(::MonthFromTime(utctime)) + 1,
-                   int(DateFromTime(utctime)), int(HourFromTime(utctime)),
-                   int(MinFromTime(utctime)), int(SecFromTime(utctime)),
-                   int(msFromTime(utctime)));
+    SprintfLiteral(buf, "%.4d-%.2u-%.2uT%.2d:%.2d:%.2d.%.3dZ", year, month + 1,
+                   day, hour, minute, second, int(msFromTime(utctime)));
   }
 
   JSString* str = NewStringCopyZ<CanGC>(cx, buf);
@@ -3157,15 +3158,16 @@ JSString* DateTimeHelper::timeZoneComment(JSContext* cx,
 /* Interface to PRMJTime date struct. */
 PRMJTime DateTimeHelper::toPRMJTime(DateTimeInfo::ForceUTC forceUTC,
                                     double localTime, double utcTime) {
-  double year = ::YearFromTime(localTime);
+  auto [year, month, day] = ::ToYearMonthDay(localTime);
+  auto [hour, minute, second] = ::ToHourMinuteSecond(localTime);
 
   PRMJTime prtm;
   prtm.tm_usec = int32_t(msFromTime(localTime)) * 1000;
-  prtm.tm_sec = int8_t(SecFromTime(localTime));
-  prtm.tm_min = int8_t(MinFromTime(localTime));
-  prtm.tm_hour = int8_t(HourFromTime(localTime));
-  prtm.tm_mday = int8_t(DateFromTime(localTime));
-  prtm.tm_mon = int8_t(::MonthFromTime(localTime));
+  prtm.tm_sec = int8_t(second);
+  prtm.tm_min = int8_t(minute);
+  prtm.tm_hour = int8_t(hour);
+  prtm.tm_mday = int8_t(day);
+  prtm.tm_mon = int8_t(month);
   prtm.tm_wday = int8_t(WeekDay(localTime));
   prtm.tm_year = year;
   prtm.tm_yday = int16_t(::DayWithinYear(localTime, year));
@@ -3241,6 +3243,7 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
   MOZ_ASSERT(NumbersAreIdentical(TimeClip(utcTime).toDouble(), utcTime));
 
   double localTime = LocalTime(forceUTC, utcTime);
+  MOZ_ASSERT(IsInteger(localTime));
 
   int offset = 0;
   RootedString timeZoneComment(cx);
@@ -3276,27 +3279,27 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
 
   char buf[100];
   switch (format) {
-    case FormatSpec::DateTime:
+    case FormatSpec::DateTime: {
       /* Tue Oct 31 2000 09:41:40 GMT-0800 */
-      SprintfLiteral(
-          buf, "%s %s %.2d %.4d %.2d:%.2d:%.2d GMT%+.4d",
-          days[int(WeekDay(localTime))],
-          months[int(::MonthFromTime(localTime))], int(DateFromTime(localTime)),
-          int(::YearFromTime(localTime)), int(HourFromTime(localTime)),
-          int(MinFromTime(localTime)), int(SecFromTime(localTime)), offset);
+      auto [year, month, day] = ::ToYearMonthDay(localTime);
+      auto [hour, minute, second] = ::ToHourMinuteSecond(localTime);
+      SprintfLiteral(buf, "%s %s %.2u %.4d %.2d:%.2d:%.2d GMT%+.4d",
+                     days[int(WeekDay(localTime))], months[month], day, year,
+                     hour, minute, second, offset);
       break;
-    case FormatSpec::Date:
+    }
+    case FormatSpec::Date: {
       /* Tue Oct 31 2000 */
-      SprintfLiteral(buf, "%s %s %.2d %.4d", days[int(WeekDay(localTime))],
-                     months[int(::MonthFromTime(localTime))],
-                     int(DateFromTime(localTime)),
-                     int(::YearFromTime(localTime)));
+      auto [year, month, day] = ::ToYearMonthDay(localTime);
+      SprintfLiteral(buf, "%s %s %.2u %.4d", days[int(WeekDay(localTime))],
+                     months[month], day, year);
       break;
+    }
     case FormatSpec::Time:
       /* 09:41:40 GMT-0800 */
-      SprintfLiteral(buf, "%.2d:%.2d:%.2d GMT%+.4d",
-                     int(HourFromTime(localTime)), int(MinFromTime(localTime)),
-                     int(SecFromTime(localTime)), offset);
+      auto [hour, minute, second] = ::ToHourMinuteSecond(localTime);
+      SprintfLiteral(buf, "%.2d:%.2d:%.2d GMT%+.4d", hour, minute, second,
+                     offset);
       break;
   }
 
