@@ -846,10 +846,10 @@ index 02a1543e00..05e771a56d 100644
  // Subclasses must defined kId and kUri static constexpr members.
  class BaseRtpStringExtension {
 diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
-index 2a95a3a816..b152cdbd9e 100644
+index afa9568d7a..8b536b8469 100644
 --- a/modules/rtp_rtcp/source/rtp_packet.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet.cc
-@@ -205,6 +205,10 @@ void RtpPacket::ZeroMutableExtensions() {
+@@ -211,6 +211,10 @@ void RtpPacket::ZeroMutableExtensions() {
          // Non-mutable extension. Don't change it.
          break;
        }
@@ -929,10 +929,10 @@ index 0b87d6d065..d69ae9420b 100644
  }  // namespace webrtc
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index ed805e7a2b..65a9d58314 100644
+index 46157147e2..1d07c25755 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
-@@ -128,6 +128,10 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -136,6 +136,10 @@ bool IsNonVolatile(RTPExtensionType type) {
      case kRtpExtensionNumberOfExtensions:
        RTC_DCHECK_NOTREACHED();
        return false;

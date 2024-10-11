@@ -84,10 +84,10 @@ index 05e771a56d..9cafd4d6f6 100644
  // Base extension class for RTP header extensions which are strings.
  // Subclasses must defined kId and kUri static constexpr members.
 diff --git a/modules/rtp_rtcp/source/rtp_packet.cc b/modules/rtp_rtcp/source/rtp_packet.cc
-index b152cdbd9e..7181b303e1 100644
+index 8b536b8469..5594628ad1 100644
 --- a/modules/rtp_rtcp/source/rtp_packet.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet.cc
-@@ -187,7 +187,9 @@ void RtpPacket::ZeroMutableExtensions() {
+@@ -193,7 +193,9 @@ void RtpPacket::ZeroMutableExtensions() {
          break;
        }
        case RTPExtensionType::kRtpExtensionAudioLevel:
@@ -97,7 +97,7 @@ index b152cdbd9e..7181b303e1 100644
        case RTPExtensionType::kRtpExtensionAbsoluteCaptureTime:
        case RTPExtensionType::kRtpExtensionColorSpace:
        case RTPExtensionType::kRtpExtensionGenericFrameDescriptor:
-@@ -205,10 +207,12 @@ void RtpPacket::ZeroMutableExtensions() {
+@@ -211,10 +213,12 @@ void RtpPacket::ZeroMutableExtensions() {
          // Non-mutable extension. Don't change it.
          break;
        }
@@ -111,10 +111,10 @@ index b152cdbd9e..7181b303e1 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index 65a9d58314..da13a1951b 100644
+index 1d07c25755..e6c8ed3fe6 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
-@@ -104,7 +104,9 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -112,7 +112,9 @@ bool IsNonVolatile(RTPExtensionType type) {
    switch (type) {
      case kRtpExtensionTransmissionTimeOffset:
      case kRtpExtensionAudioLevel:
@@ -124,7 +124,7 @@ index 65a9d58314..da13a1951b 100644
      case kRtpExtensionAbsoluteSendTime:
      case kRtpExtensionTransportSequenceNumber:
      case kRtpExtensionTransportSequenceNumber02:
-@@ -128,10 +130,12 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -136,10 +138,12 @@ bool IsNonVolatile(RTPExtensionType type) {
      case kRtpExtensionNumberOfExtensions:
        RTC_DCHECK_NOTREACHED();
        return false;
