@@ -10585,11 +10585,11 @@ JS_FN_HELP("isSmallFunction", IsSmallFunction, 1, 0,
 
 // clang-format off
 static const JSFunctionSpecWithHelp FuzzingUnsafeTestingFunctions[] = {
-    JS_FN_HELP("getErrorNotes", GetErrorNotes, 1, 0,
+JS_FN_HELP("getErrorNotes", GetErrorNotes, 1, 0,
 "getErrorNotes(error)",
 "  Returns an array of error notes."),
 
-    JS_FN_HELP("setTimeZone", SetTimeZone, 1, 0,
+JS_FN_HELP("setTimeZone", SetTimeZone, 1, 0,
 "setTimeZone(tzname)",
 "  Set the 'TZ' environment variable to the given time zone and applies the new time zone.\n"
 "  The time zone given is validated according to the current environment.\n"
@@ -10621,7 +10621,7 @@ JS_FN_HELP("getEnvironmentObjectType", GetEnvironmentObjectType, 1, 0,
 "getEnvironmentObjectType(env)",
 "  Return a string represents the type of given environment object."),
 
-    JS_FN_HELP("shortestPaths", ShortestPaths, 3, 0,
+JS_FN_HELP("shortestPaths", ShortestPaths, 3, 0,
 "shortestPaths(targets, options)",
 "  Return an array of arrays of shortest retaining paths. There is an array of\n"
       "  shortest retaining paths for each object in |targets|. Each element in a path\n"
@@ -10632,10 +10632,10 @@ JS_FN_HELP("getEnvironmentObjectType", GetEnvironmentObjectType, 1, 0,
       "    start: The object to start all paths from. If not given, then\n"
       "      the starting point will be the set of GC roots."),
 
-    JS_FN_HELP("getFuseState", GetFuseState, 0, 0,
-      "getFuseState()",
-      "  Return an object describing the calling realm's fuse state, "
-      "as well as the state of any runtime fuses."),
+JS_FN_HELP("getFuseState", GetFuseState, 0, 0,
+"getFuseState()",
+  "  Return an object describing the calling realm's fuse state, "
+  "  as well as the state of any runtime fuses."),
 
 #if defined(DEBUG) || defined(JS_JITSPEW)
     JS_FN_HELP("dumpObject", DumpObject, 1, 0,
