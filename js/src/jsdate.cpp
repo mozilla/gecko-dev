@@ -706,6 +706,29 @@ static double MakeTime(double hour, double min, double sec, double ms) {
 }
 
 /**
+ * 21.4.1.30 MakeFullYear ( year )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
+static double MakeFullYear(double year) {
+  // Step 1.
+  if (std::isnan(year)) {
+    return year;
+  }
+
+  // Step 2.
+  double truncated = ToInteger(year);
+
+  // Step 3.
+  if (0 <= truncated && truncated <= 99) {
+    return 1900 + truncated;
+  }
+
+  // Step 4.
+  return truncated;
+}
+
+/**
  * end of ECMA 'support' functions
  */
 
@@ -2348,221 +2371,165 @@ static bool date_getTimezoneOffset(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+/**
+ * 21.4.4.27 Date.prototype.setTime ( time )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setTime(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setTime"));
   if (!unwrapped) {
     return false;
   }
 
-  if (args.length() == 0) {
-    unwrapped->setUTCTime(ClippedTime::invalid(), args.rval());
-    return true;
-  }
-
+  // Step 3.
   double result;
-  if (!ToNumber(cx, args[0], &result)) {
+  if (!ToNumber(cx, args.get(0), &result)) {
     return false;
   }
 
+  // Steps 4-6.
   unwrapped->setUTCTime(TimeClip(result), args.rval());
   return true;
 }
 
-static bool GetMsecsOrDefault(JSContext* cx, const CallArgs& args, unsigned i,
-                              double t, double* millis) {
-  if (args.length() <= i) {
-    *millis = msFromTime(t);
-    return true;
-  }
-  return ToNumber(cx, args[i], millis);
-}
-
-static bool GetSecsOrDefault(JSContext* cx, const CallArgs& args, unsigned i,
-                             double t, double* sec) {
-  if (args.length() <= i) {
-    *sec = SecFromTime(t);
-    return true;
-  }
-  return ToNumber(cx, args[i], sec);
-}
-
-static bool GetMinsOrDefault(JSContext* cx, const CallArgs& args, unsigned i,
-                             double t, double* mins) {
-  if (args.length() <= i) {
-    *mins = MinFromTime(t);
-    return true;
-  }
-  return ToNumber(cx, args[i], mins);
-}
-
-/* ES6 20.3.4.23. */
+/**
+ * 21.4.4.23 Date.prototype.setMilliseconds ( ms )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  // Step 1.
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setMilliseconds"));
   if (!unwrapped) {
     return false;
   }
-  double t = LocalTime(unwrapped->forceUTC(), unwrapped->UTCTime().toNumber());
 
-  // Step 2.
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
+
+  // Step 4.
   double ms;
   if (!ToNumber(cx, args.get(0), &ms)) {
     return false;
   }
 
-  // Step 3.
+  // Step 5.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+
+  // Step 6.
+  t = LocalTime(unwrapped->forceUTC(), t);
+
+  // Step 7.
   double time = MakeTime(HourFromTime(t), MinFromTime(t), SecFromTime(t), ms);
 
-  // Step 4.
+  // Step 8.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), MakeDate(Day(t), time)));
 
-  // Steps 5-6.
+  // Steps 9-10.
   unwrapped->setUTCTime(u, args.rval());
   return true;
 }
 
-/* ES5 15.9.5.29. */
+/**
+ * 21.4.4.31 Date.prototype.setUTCMilliseconds ( ms )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setUTCMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCMilliseconds"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
+  // Step 3.
   double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
+  // Step 4.
   double milli;
   if (!ToNumber(cx, args.get(0), &milli)) {
     return false;
   }
+
+  // Step 5.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+
+  // Step 6.
   double time =
       MakeTime(HourFromTime(t), MinFromTime(t), SecFromTime(t), milli);
 
-  /* Step 3. */
+  // Step 7.
   ClippedTime v = TimeClip(MakeDate(Day(t), time));
 
-  /* Steps 4-5. */
+  // Steps 8-9.
   unwrapped->setUTCTime(v, args.rval());
   return true;
 }
 
-/* ES6 20.3.4.26. */
+/**
+ * 21.4.4.26 Date.prototype.setSeconds ( sec [ , ms ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setSeconds(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setSeconds"));
   if (!unwrapped) {
     return false;
   }
 
-  // Steps 1-2.
-  double t = LocalTime(unwrapped->forceUTC(), unwrapped->UTCTime().toNumber());
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
 
-  // Steps 3-4.
+  // Step 4.
   double s;
   if (!ToNumber(cx, args.get(0), &s)) {
     return false;
   }
 
-  // Steps 5-6.
+  // Step 5.
   double milli;
-  if (!GetMsecsOrDefault(cx, args, 1, t, &milli)) {
+  if (args.length() > 1 && !ToNumber(cx, args[1], &milli)) {
     return false;
+  }
+
+  // Step 6.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
   }
 
   // Step 7.
-  double date =
-      MakeDate(Day(t), MakeTime(HourFromTime(t), MinFromTime(t), s, milli));
+  t = LocalTime(unwrapped->forceUTC(), t);
 
   // Step 8.
-  ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
+  if (args.length() <= 1) {
+    milli = msFromTime(t);
+  }
 
   // Step 9.
-  unwrapped->setUTCTime(u, args.rval());
-  return true;
-}
-
-/* ES5 15.9.5.32. */
-static bool date_setUTCSeconds(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  Rooted<DateObject*> unwrapped(
-      cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCSeconds"));
-  if (!unwrapped) {
-    return false;
-  }
-
-  /* Step 1. */
-  double t = unwrapped->UTCTime().toNumber();
-
-  /* Step 2. */
-  double s;
-  if (!ToNumber(cx, args.get(0), &s)) {
-    return false;
-  }
-
-  /* Step 3. */
-  double milli;
-  if (!GetMsecsOrDefault(cx, args, 1, t, &milli)) {
-    return false;
-  }
-
-  /* Step 4. */
   double date =
       MakeDate(Day(t), MakeTime(HourFromTime(t), MinFromTime(t), s, milli));
-
-  /* Step 5. */
-  ClippedTime v = TimeClip(date);
-
-  /* Steps 6-7. */
-  unwrapped->setUTCTime(v, args.rval());
-  return true;
-}
-
-/* ES6 20.3.4.24. */
-static bool date_setMinutes(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  Rooted<DateObject*> unwrapped(
-      cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setMinutes"));
-  if (!unwrapped) {
-    return false;
-  }
-
-  // Steps 1-2.
-  double t = LocalTime(unwrapped->forceUTC(), unwrapped->UTCTime().toNumber());
-
-  // Steps 3-4.
-  double m;
-  if (!ToNumber(cx, args.get(0), &m)) {
-    return false;
-  }
-
-  // Steps 5-6.
-  double s;
-  if (!GetSecsOrDefault(cx, args, 1, t, &s)) {
-    return false;
-  }
-
-  // Steps 7-8.
-  double milli;
-  if (!GetMsecsOrDefault(cx, args, 2, t, &milli)) {
-    return false;
-  }
-
-  // Step 9.
-  double date = MakeDate(Day(t), MakeTime(HourFromTime(t), m, s, milli));
 
   // Step 10.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
@@ -2572,87 +2539,116 @@ static bool date_setMinutes(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-/* ES5 15.9.5.34. */
-static bool date_setUTCMinutes(JSContext* cx, unsigned argc, Value* vp) {
+/**
+ * 21.4.4.34 Date.prototype.setUTCSeconds ( sec [ , ms ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
+static bool date_setUTCSeconds(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
-      cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCMinutes"));
+      cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCSeconds"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
+  // Step 3.
   double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
+  // Step 4.
+  double s;
+  if (!ToNumber(cx, args.get(0), &s)) {
+    return false;
+  }
+
+  // Step 5.
+  double milli;
+  if (args.length() > 1 && !ToNumber(cx, args[1], &milli)) {
+    return false;
+  }
+
+  // Step 6.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+
+  // Step 7.
+  if (args.length() <= 1) {
+    milli = msFromTime(t);
+  }
+
+  // Step 8.
+  double date =
+      MakeDate(Day(t), MakeTime(HourFromTime(t), MinFromTime(t), s, milli));
+
+  // Step 9.
+  ClippedTime v = TimeClip(date);
+
+  // Steps 10-11.
+  unwrapped->setUTCTime(v, args.rval());
+  return true;
+}
+
+/**
+ * 21.4.4.24 Date.prototype.setMinutes ( min [ , sec [ , ms ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
+static bool date_setMinutes(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  // Steps 1-2.
+  Rooted<DateObject*> unwrapped(
+      cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setMinutes"));
+  if (!unwrapped) {
+    return false;
+  }
+
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
+
+  // Step 4.
   double m;
   if (!ToNumber(cx, args.get(0), &m)) {
     return false;
   }
 
-  /* Step 3. */
+  // Step 5.
   double s;
-  if (!GetSecsOrDefault(cx, args, 1, t, &s)) {
+  if (args.length() > 1 && !ToNumber(cx, args[1], &s)) {
     return false;
   }
 
-  /* Step 4. */
+  // Step 6.
   double milli;
-  if (!GetMsecsOrDefault(cx, args, 2, t, &milli)) {
+  if (args.length() > 2 && !ToNumber(cx, args[2], &milli)) {
     return false;
   }
 
-  /* Step 5. */
-  double date = MakeDate(Day(t), MakeTime(HourFromTime(t), m, s, milli));
-
-  /* Step 6. */
-  ClippedTime v = TimeClip(date);
-
-  /* Steps 7-8. */
-  unwrapped->setUTCTime(v, args.rval());
-  return true;
-}
-
-/* ES5 15.9.5.35. */
-static bool date_setHours(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  Rooted<DateObject*> unwrapped(
-      cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setHours"));
-  if (!unwrapped) {
-    return false;
+  // Step 7.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
   }
 
-  // Steps 1-2.
-  double t = LocalTime(unwrapped->forceUTC(), unwrapped->UTCTime().toNumber());
+  // Step 8.
+  t = LocalTime(unwrapped->forceUTC(), t);
 
-  // Steps 3-4.
-  double h;
-  if (!ToNumber(cx, args.get(0), &h)) {
-    return false;
+  // Step 9.
+  if (args.length() <= 1) {
+    s = SecFromTime(t);
   }
 
-  // Steps 5-6.
-  double m;
-  if (!GetMinsOrDefault(cx, args, 1, t, &m)) {
-    return false;
-  }
-
-  // Steps 7-8.
-  double s;
-  if (!GetSecsOrDefault(cx, args, 2, t, &s)) {
-    return false;
-  }
-
-  // Steps 9-10.
-  double milli;
-  if (!GetMsecsOrDefault(cx, args, 3, t, &milli)) {
-    return false;
+  // Step 10.
+  if (args.length() <= 2) {
+    milli = msFromTime(t);
   }
 
   // Step 11.
-  double date = MakeDate(Day(t), MakeTime(h, m, s, milli));
+  double date = MakeDate(Day(t), MakeTime(HourFromTime(t), m, s, milli));
 
   // Step 12.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
@@ -2662,344 +2658,583 @@ static bool date_setHours(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-/* ES5 15.9.5.36. */
+/**
+ * 21.4.4.32 Date.prototype.setUTCMinutes ( min [ , sec [ , ms ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
+static bool date_setUTCMinutes(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  // Steps 1-2.
+  Rooted<DateObject*> unwrapped(
+      cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCMinutes"));
+  if (!unwrapped) {
+    return false;
+  }
+
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
+
+  // Step 4.
+  double m;
+  if (!ToNumber(cx, args.get(0), &m)) {
+    return false;
+  }
+
+  // Step 5.
+  double s;
+  if (args.length() > 1 && !ToNumber(cx, args[1], &s)) {
+    return false;
+  }
+
+  // Step 6.
+  double milli;
+  if (args.length() > 2 && !ToNumber(cx, args[2], &milli)) {
+    return false;
+  }
+
+  // Step 7.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+
+  // Step 8.
+  if (args.length() <= 1) {
+    s = SecFromTime(t);
+  }
+
+  // Step 9.
+  if (args.length() <= 2) {
+    milli = msFromTime(t);
+  }
+
+  // Step 10.
+  double date = MakeDate(Day(t), MakeTime(HourFromTime(t), m, s, milli));
+
+  // Step 11.
+  ClippedTime v = TimeClip(date);
+
+  // Steps 12-13.
+  unwrapped->setUTCTime(v, args.rval());
+  return true;
+}
+
+/**
+ * 21.4.4.22 Date.prototype.setHours ( hour [ , min [ , sec [ , ms ] ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
+static bool date_setHours(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  // Steps 1-2.
+  Rooted<DateObject*> unwrapped(
+      cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setHours"));
+  if (!unwrapped) {
+    return false;
+  }
+
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
+
+  // Step 4.
+  double h;
+  if (!ToNumber(cx, args.get(0), &h)) {
+    return false;
+  }
+
+  // Step 5.
+  double m;
+  if (args.length() > 1 && !ToNumber(cx, args[1], &m)) {
+    return false;
+  }
+
+  // Step 6.
+  double s;
+  if (args.length() > 2 && !ToNumber(cx, args[2], &s)) {
+    return false;
+  }
+
+  // Step 7.
+  double milli;
+  if (args.length() > 3 && !ToNumber(cx, args[3], &milli)) {
+    return false;
+  }
+
+  // Step 8.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
+
+  // Step 9.
+  t = LocalTime(unwrapped->forceUTC(), t);
+
+  // Step 10.
+  if (args.length() <= 1) {
+    m = MinFromTime(t);
+  }
+
+  // Step 11.
+  if (args.length() <= 2) {
+    s = SecFromTime(t);
+  }
+
+  // Step 12.
+  if (args.length() <= 3) {
+    milli = msFromTime(t);
+  }
+
+  // Step 13.
+  double date = MakeDate(Day(t), MakeTime(h, m, s, milli));
+
+  // Step 14.
+  ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
+
+  // Steps 15-16.
+  unwrapped->setUTCTime(u, args.rval());
+  return true;
+}
+
+/**
+ * 21.4.4.30 Date.prototype.setUTCHours ( hour [ , min [ , sec [ , ms ] ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setUTCHours(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCHours"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
+  // Step 3.
   double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
+  // Step 4.
   double h;
   if (!ToNumber(cx, args.get(0), &h)) {
     return false;
   }
 
-  /* Step 3. */
+  // Step 5.
   double m;
-  if (!GetMinsOrDefault(cx, args, 1, t, &m)) {
+  if (args.length() > 1 && !ToNumber(cx, args[1], &m)) {
     return false;
   }
 
-  /* Step 4. */
+  // Step 6.
   double s;
-  if (!GetSecsOrDefault(cx, args, 2, t, &s)) {
+  if (args.length() > 2 && !ToNumber(cx, args[2], &s)) {
     return false;
   }
 
-  /* Step 5. */
+  // Step 7.
   double milli;
-  if (!GetMsecsOrDefault(cx, args, 3, t, &milli)) {
+  if (args.length() > 3 && !ToNumber(cx, args[3], &milli)) {
     return false;
   }
 
-  /* Step 6. */
-  double newDate = MakeDate(Day(t), MakeTime(h, m, s, milli));
+  // Step 8.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
 
-  /* Step 7. */
-  ClippedTime v = TimeClip(newDate);
+  // Step 9.
+  if (args.length() <= 1) {
+    m = MinFromTime(t);
+  }
 
-  /* Steps 8-9. */
+  // Step 10.
+  if (args.length() <= 2) {
+    s = SecFromTime(t);
+  }
+
+  // Step 11.
+  if (args.length() <= 3) {
+    milli = msFromTime(t);
+  }
+
+  // Step 12.
+  double date = MakeDate(Day(t), MakeTime(h, m, s, milli));
+
+  // Step 13.
+  ClippedTime v = TimeClip(date);
+
+  // Steps 14-15.
   unwrapped->setUTCTime(v, args.rval());
   return true;
 }
 
-/* ES5 15.9.5.37. */
+/**
+ * 21.4.4.20 Date.prototype.setDate ( date )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setDate(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setDate"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
-  double t = LocalTime(unwrapped->forceUTC(), unwrapped->UTCTime().toNumber());
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
-  double date;
-  if (!ToNumber(cx, args.get(0), &date)) {
+  // Step 4.
+  double dt;
+  if (!ToNumber(cx, args.get(0), &dt)) {
     return false;
   }
 
-  /* Step 3. */
-  double newDate = MakeDate(
-      MakeDay(::YearFromTime(t), ::MonthFromTime(t), date), TimeWithinDay(t));
+  // Step 5.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
 
-  /* Step 4. */
+  // Step 6.
+  t = LocalTime(unwrapped->forceUTC(), t);
+
+  // Step 7.
+  double newDate = MakeDate(MakeDay(::YearFromTime(t), ::MonthFromTime(t), dt),
+                            TimeWithinDay(t));
+
+  // Step 8.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), newDate));
 
-  /* Steps 5-6. */
+  // Steps 9-10.
   unwrapped->setUTCTime(u, args.rval());
   return true;
 }
 
+/**
+ * 21.4.4.28 Date.prototype.setUTCDate ( date )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setUTCDate(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCDate"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
+  // Step 3.
   double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
-  double date;
-  if (!ToNumber(cx, args.get(0), &date)) {
+  // Step 4.
+  double dt;
+  if (!ToNumber(cx, args.get(0), &dt)) {
     return false;
   }
 
-  /* Step 3. */
-  double newDate = MakeDate(
-      MakeDay(::YearFromTime(t), ::MonthFromTime(t), date), TimeWithinDay(t));
+  // Step 5.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
 
-  /* Step 4. */
+  // Step 6.
+  double newDate = MakeDate(MakeDay(::YearFromTime(t), ::MonthFromTime(t), dt),
+                            TimeWithinDay(t));
+
+  // Step 7.
   ClippedTime v = TimeClip(newDate);
 
-  /* Steps 5-6. */
+  // Steps 8-9.
   unwrapped->setUTCTime(v, args.rval());
   return true;
 }
 
-static bool GetDateOrDefault(JSContext* cx, const CallArgs& args, unsigned i,
-                             double t, double* date) {
-  if (args.length() <= i) {
-    *date = DateFromTime(t);
-    return true;
-  }
-  return ToNumber(cx, args[i], date);
-}
-
-static bool GetMonthOrDefault(JSContext* cx, const CallArgs& args, unsigned i,
-                              double t, double* month) {
-  if (args.length() <= i) {
-    *month = ::MonthFromTime(t);
-    return true;
-  }
-  return ToNumber(cx, args[i], month);
-}
-
-/* ES5 15.9.5.38. */
+/**
+ * 21.4.4.25 Date.prototype.setMonth ( month [ , date ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setMonth(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setMonth"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
-  double t = LocalTime(unwrapped->forceUTC(), unwrapped->UTCTime().toNumber());
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
+  // Step 4.
   double m;
   if (!ToNumber(cx, args.get(0), &m)) {
     return false;
   }
 
-  /* Step 3. */
-  double date;
-  if (!GetDateOrDefault(cx, args, 1, t, &date)) {
+  // Step 5.
+  double dt;
+  if (args.length() > 1 && !ToNumber(cx, args[1], &dt)) {
     return false;
   }
 
-  /* Step 4. */
-  double newDate =
-      MakeDate(MakeDay(::YearFromTime(t), m, date), TimeWithinDay(t));
+  // Step 6.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
 
-  /* Step 5. */
+  // Step 7.
+  t = LocalTime(unwrapped->forceUTC(), t);
+
+  // Step 8.
+  if (args.length() <= 1) {
+    dt = DateFromTime(t);
+  }
+
+  // Step 9.
+  double newDate =
+      MakeDate(MakeDay(::YearFromTime(t), m, dt), TimeWithinDay(t));
+
+  // Step 10
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), newDate));
 
-  /* Steps 6-7. */
+  // Steps 11-12.
   unwrapped->setUTCTime(u, args.rval());
   return true;
 }
 
-/* ES5 15.9.5.39. */
+/**
+ * 21.4.4.33 Date.prototype.setUTCMonth ( month [ , date ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setUTCMonth(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCMonth"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
+  // Step 3.
   double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
+  // Step 4.
   double m;
   if (!ToNumber(cx, args.get(0), &m)) {
     return false;
   }
 
-  /* Step 3. */
-  double date;
-  if (!GetDateOrDefault(cx, args, 1, t, &date)) {
+  // Step 5.
+  double dt;
+  if (args.length() > 1 && !ToNumber(cx, args[1], &dt)) {
     return false;
   }
 
-  /* Step 4. */
-  double newDate =
-      MakeDate(MakeDay(::YearFromTime(t), m, date), TimeWithinDay(t));
+  // Step 6.
+  if (std::isnan(t)) {
+    args.rval().setNaN();
+    return true;
+  }
 
-  /* Step 5. */
+  // Step 7.
+  if (args.length() <= 1) {
+    dt = DateFromTime(t);
+  }
+
+  // Step 8.
+  double newDate =
+      MakeDate(MakeDay(::YearFromTime(t), m, dt), TimeWithinDay(t));
+
+  // Step 9.
   ClippedTime v = TimeClip(newDate);
 
-  /* Steps 6-7. */
+  // Steps 10-11.
   unwrapped->setUTCTime(v, args.rval());
   return true;
 }
 
-static double ThisLocalTimeOrZero(DateTimeInfo::ForceUTC forceUTC,
-                                  Handle<DateObject*> dateObj) {
-  double t = dateObj->UTCTime().toNumber();
-  if (std::isnan(t)) {
-    return +0;
-  }
-  return LocalTime(forceUTC, t);
-}
-
-static double ThisUTCTimeOrZero(Handle<DateObject*> dateObj) {
-  double t = dateObj->as<DateObject>().UTCTime().toNumber();
-  return std::isnan(t) ? +0 : t;
-}
-
-/* ES5 15.9.5.40. */
+/**
+ * 21.4.4.21 Date.prototype.setFullYear ( year [ , month [ , date ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setFullYear(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setFullYear"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
-  double t = ThisLocalTimeOrZero(unwrapped->forceUTC(), unwrapped);
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
+  // Step 4.
   double y;
   if (!ToNumber(cx, args.get(0), &y)) {
     return false;
   }
 
-  /* Step 3. */
+  // Step 5.
+  if (std::isnan(t)) {
+    t = 0;
+  } else {
+    t = LocalTime(unwrapped->forceUTC(), t);
+  }
+
+  // Step 6.
   double m;
-  if (!GetMonthOrDefault(cx, args, 1, t, &m)) {
-    return false;
+  if (args.length() <= 1) {
+    m = MonthFromTime(t);
+  } else {
+    if (!ToNumber(cx, args[1], &m)) {
+      return false;
+    }
   }
 
-  /* Step 4. */
-  double date;
-  if (!GetDateOrDefault(cx, args, 2, t, &date)) {
-    return false;
+  // Step 7.
+  double dt;
+  if (args.length() <= 2) {
+    dt = DateFromTime(t);
+  } else {
+    if (!ToNumber(cx, args[2], &dt)) {
+      return false;
+    }
   }
 
-  /* Step 5. */
-  double newDate = MakeDate(MakeDay(y, m, date), TimeWithinDay(t));
+  // Step 8.
+  double newDate = MakeDate(MakeDay(y, m, dt), TimeWithinDay(t));
 
-  /* Step 6. */
+  // Step 9.
   ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), newDate));
 
-  /* Steps 7-8. */
+  // Steps 10-11.
   unwrapped->setUTCTime(u, args.rval());
   return true;
 }
 
-/* ES5 15.9.5.41. */
+/**
+ * 21.4.4.29 Date.prototype.setUTCFullYear ( year [ , month [ , date ] ] )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setUTCFullYear(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setUTCFullYear"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
-  double t = ThisUTCTimeOrZero(unwrapped);
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
+  // Step 4.
+  if (std::isnan(t)) {
+    t = 0;
+  }
+
+  // Step 5.
   double y;
   if (!ToNumber(cx, args.get(0), &y)) {
     return false;
   }
 
-  /* Step 3. */
+  // Step 6.
   double m;
-  if (!GetMonthOrDefault(cx, args, 1, t, &m)) {
-    return false;
+  if (args.length() <= 1) {
+    m = MonthFromTime(t);
+  } else {
+    if (!ToNumber(cx, args[1], &m)) {
+      return false;
+    }
   }
 
-  /* Step 4. */
-  double date;
-  if (!GetDateOrDefault(cx, args, 2, t, &date)) {
-    return false;
+  // Step 7.
+  double dt;
+  if (args.length() <= 2) {
+    dt = DateFromTime(t);
+  } else {
+    if (!ToNumber(cx, args[2], &dt)) {
+      return false;
+    }
   }
 
-  /* Step 5. */
-  double newDate = MakeDate(MakeDay(y, m, date), TimeWithinDay(t));
+  // Step 8.
+  double newDate = MakeDate(MakeDay(y, m, dt), TimeWithinDay(t));
 
-  /* Step 6. */
+  // Step 9.
   ClippedTime v = TimeClip(newDate);
 
-  /* Steps 7-8. */
+  // Steps 10-11.
   unwrapped->setUTCTime(v, args.rval());
   return true;
 }
 
-/* ES5 Annex B.2.5. */
+/**
+ * B.2.3.2 Date.prototype.setYear ( year )
+ *
+ * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
+ */
 static bool date_setYear(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  // Steps 1-2.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setYear"));
   if (!unwrapped) {
     return false;
   }
 
-  /* Step 1. */
-  double t = ThisLocalTimeOrZero(unwrapped->forceUTC(), unwrapped);
+  // Step 3.
+  double t = unwrapped->UTCTime().toNumber();
 
-  /* Step 2. */
+  // Step 4.
   double y;
   if (!ToNumber(cx, args.get(0), &y)) {
     return false;
   }
 
-  /* Step 3. */
-  if (std::isnan(y)) {
-    unwrapped->setUTCTime(ClippedTime::invalid(), args.rval());
-    return true;
+  // Step 5.
+  if (std::isnan(t)) {
+    t = 0;
+  } else {
+    t = LocalTime(unwrapped->forceUTC(), t);
   }
 
-  /* Step 4. */
-  double yint = ToInteger(y);
-  if (0 <= yint && yint <= 99) {
-    yint += 1900;
-  }
+  // Step 6.
+  double yyyy = MakeFullYear(y);
 
-  /* Step 5. */
-  double day = MakeDay(yint, ::MonthFromTime(t), DateFromTime(t));
+  // Step 7.
+  double day = MakeDay(yyyy, ::MonthFromTime(t), DateFromTime(t));
 
-  /* Step 6. */
-  double u = UTC(unwrapped->forceUTC(), MakeDate(day, TimeWithinDay(t)));
+  // Step 8.
+  double date = MakeDate(day, TimeWithinDay(t));
 
-  /* Steps 7-8. */
-  unwrapped->setUTCTime(TimeClip(u), args.rval());
+  // Step 9.
+  ClippedTime u = TimeClip(UTC(unwrapped->forceUTC(), date));
+
+  // Steps 10-11.
+  unwrapped->setUTCTime(u, args.rval());
   return true;
 }
 
