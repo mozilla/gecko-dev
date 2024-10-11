@@ -5201,6 +5201,12 @@ AMTelemetry = {
    */
   recordSuspiciousSiteEvent({ displayURI }) {
     let site = displayURI?.displayHost ?? "(unknown)";
+    this.recordEvent({
+      method: "reportSuspiciousSite",
+      object: "suspiciousSite",
+      value: site,
+      extra: {},
+    });
     Glean.addonsManager.reportSuspiciousSite.record(
       this.formatExtraVars({ suspicious_site: site })
     );
