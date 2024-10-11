@@ -442,6 +442,7 @@ fun RadioButtonListItem(
  * @param iconPainter [Painter] used to display an [IconButton] after the list item.
  * @param iconDescription Content description of the icon.
  * @param onIconClick Called when the user clicks on the icon.
+ * @param iconSlot Slot for Composable to be used if [iconPainter] is not supplied.
  */
 @Composable
 fun SelectableFaviconListItem(
@@ -457,6 +458,7 @@ fun SelectableFaviconListItem(
     iconPainter: Painter? = null,
     iconDescription: String? = null,
     onIconClick: (() -> Unit)? = null,
+    iconSlot: (@Composable () -> Unit)? = null,
 ) {
     ListItem(
         label = label,
@@ -486,7 +488,7 @@ fun SelectableFaviconListItem(
             Spacer(modifier = Modifier.width(16.dp))
         },
         afterListAction = {
-            if (iconPainter == null || onIconClick == null) {
+            if ((iconPainter == null || onIconClick == null) && iconSlot == null) {
                 return@ListItem
             }
 
@@ -504,15 +506,20 @@ fun SelectableFaviconListItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            IconButton(
-                onClick = onIconClick,
-                modifier = Modifier.size(ICON_SIZE),
-            ) {
-                Icon(
-                    painter = iconPainter,
-                    contentDescription = iconDescription,
-                    tint = FirefoxTheme.colors.iconPrimary,
-                )
+            when {
+                iconPainter != null && onIconClick != null -> {
+                    IconButton(
+                        onClick = onIconClick,
+                        modifier = Modifier.size(ICON_SIZE),
+                    ) {
+                        Icon(
+                            painter = iconPainter,
+                            contentDescription = iconDescription,
+                            tint = FirefoxTheme.colors.iconPrimary,
+                        )
+                    }
+                }
+                iconSlot != null -> iconSlot()
             }
         },
     )
@@ -544,6 +551,8 @@ fun SelectableFaviconListItem(
  * @param afterIconTint Tint applied to [afterIconPainter].
  * @param onAfterIconClick Called when the user clicks on the icon. An [IconButton] will be
  * displayed if this is provided. Otherwise, an [Icon] will be displayed.
+ * @param iconSlot Optional Composable slot to be displayed after the list item if [afterIconPainter] is
+ * not supplied.
  */
 @Composable
 fun SelectableIconListItem(
@@ -566,6 +575,7 @@ fun SelectableIconListItem(
     afterIconDescription: String? = null,
     afterIconTint: Color = FirefoxTheme.colors.iconPrimary,
     onAfterIconClick: (() -> Unit)? = null,
+    iconSlot: (@Composable () -> Unit)? = null,
 ) {
     ListItem(
         label = label,
@@ -593,7 +603,7 @@ fun SelectableIconListItem(
             Spacer(modifier = Modifier.width(16.dp))
         },
         afterListAction = {
-            if (afterIconPainter == null) {
+            if (afterIconPainter == null && iconSlot == null) {
                 return@ListItem
             }
 
@@ -613,24 +623,29 @@ fun SelectableIconListItem(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            if (onAfterIconClick == null) {
-                Icon(
-                    painter = afterIconPainter,
-                    contentDescription = afterIconDescription,
-                    tint = tint,
-                )
-            } else {
-                IconButton(
-                    onClick = onAfterIconClick,
-                    modifier = Modifier.size(ICON_SIZE),
-                    enabled = enabled,
-                ) {
-                    Icon(
-                        painter = afterIconPainter,
-                        contentDescription = afterIconDescription,
-                        tint = tint,
-                    )
+            when {
+                afterIconPainter != null -> {
+                    if (onAfterIconClick == null) {
+                        Icon(
+                            painter = afterIconPainter,
+                            contentDescription = afterIconDescription,
+                            tint = tint,
+                        )
+                    } else {
+                        IconButton(
+                            onClick = onAfterIconClick,
+                            modifier = Modifier.size(ICON_SIZE),
+                            enabled = enabled,
+                        ) {
+                            Icon(
+                                painter = afterIconPainter,
+                                contentDescription = afterIconDescription,
+                                tint = tint,
+                            )
+                        }
+                    }
                 }
+                iconSlot != null -> iconSlot()
             }
         },
     )
