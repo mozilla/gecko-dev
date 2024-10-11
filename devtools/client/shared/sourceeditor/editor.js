@@ -2592,15 +2592,6 @@ class Editor extends EventEmitter {
   }
 
   /**
-   * The reverse of getPositionFromCoords. Similarly, returns a {left, top}
-   * object that corresponds to the specified line and character number.
-   */
-  getCoordsFromPosition({ line, ch }) {
-    const cm = editors.get(this);
-    return cm.charCoords({ line: ~~line, ch: ~~ch });
-  }
-
-  /**
    * Returns true if there's something to undo and false otherwise.
    */
   canUndo() {
@@ -3161,6 +3152,21 @@ class Editor extends EventEmitter {
       return !!this.searchState.cursors;
     }
     return !!cm.state.search;
+  }
+
+  // Used only in tests
+  getCoords(line, column = 0) {
+    const cm = editors.get(this);
+    if (this.config.cm6) {
+      const offset = this.#posToOffset(line, column);
+      if (offset == null) {
+        return null;
+      }
+      return cm.coordsAtPos(offset);
+    }
+    // CodeMirror is 0-based while line and column arguments are 1-based.
+    // Pass "column=-1" when there is no column argument passed.
+    return cm.charCoords({ line: ~~line, ch: ~~column });
   }
 
   // Only used for CM6

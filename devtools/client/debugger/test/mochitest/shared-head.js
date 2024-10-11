@@ -2226,8 +2226,8 @@ function getEditorFileMode(dbg) {
   return getCMEditor(dbg).getEditorFileMode();
 }
 
-function getCoordsFromPosition(cm, { line, ch }) {
-  return cm.charCoords({ line: ~~line, ch: ~~ch });
+function getCoordsFromPosition(dbg, line, ch) {
+  return getCMEditor(dbg).getCoords(line, ch);
 }
 
 async function getTokenFromPosition(dbg, { line, column = 0 }) {
@@ -2239,7 +2239,7 @@ async function getTokenFromPosition(dbg, { line, column = 0 }) {
     return getCMEditor(dbg).getElementAtPos(line, column);
   }
 
-  const { left, top } = getCoordsFromPosition(cm, { line, ch: column });
+  const { left, top } = getCoordsFromPosition(dbg, line, column);
 
   // Adds a vertical offset due to increased line height
   // https://github.com/firefox-devtools/debugger/pull/7934
@@ -2283,7 +2283,7 @@ async function codeMirrorGutterElement(dbg, line) {
   await scrollEditorIntoView(dbg, line, 0);
   await waitForScrolling(dbg);
 
-  const coords = getCoordsFromPosition(cm, { line, ch: 0 });
+  const coords = getCoordsFromPosition(dbg, line);
 
   const { left, top } = coords;
 
