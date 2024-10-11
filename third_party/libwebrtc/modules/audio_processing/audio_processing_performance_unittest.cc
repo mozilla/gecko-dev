@@ -554,8 +554,7 @@ const float CallSimulator::kRenderInputFloatLevel = 0.5f;
 const float CallSimulator::kCaptureInputFloatLevel = 0.03125f;
 }  // anonymous namespace
 
-// TODO(peah): Reactivate once issue 7712 has been resolved.
-TEST_P(CallSimulator, DISABLED_ApiCallDurationTest) {
+TEST_P(CallSimulator, ApiCallDurationTest) {
   // Run test and verify that it did not time out.
   EXPECT_TRUE(Run());
 }
