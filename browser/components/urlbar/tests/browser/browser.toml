@@ -427,6 +427,9 @@ https_first_disabled = true
 
 ["browser_revert.js"]
 
+["browser_same_ref_deduplication.js"]
+support-files = ["dummy_page.html"]
+
 ["browser_searchFunction.js"]
 
 ["browser_searchHistoryLimit.js"]

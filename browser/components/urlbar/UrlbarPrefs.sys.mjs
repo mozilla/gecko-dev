@@ -474,6 +474,13 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Yelp suggestions are turned on.
   ["suggest.yelp", true],
 
+  // Whether history results with the same title and URL excluding the ref
+  // will be deduplicated.
+  ["deduplication.enabled", false],
+
+  // How old history results have to be to be deduplicated.
+  ["deduplication.thresholdDays", 7],
+
   // When using switch to tabs, if set to true this will move the tab into the
   // active window.
   ["switchTabs.adoptIntoActiveWindow", false],

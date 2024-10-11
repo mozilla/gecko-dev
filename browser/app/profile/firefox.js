@@ -433,6 +433,9 @@ pref("browser.urlbar.suggest.engines",              true);
 pref("browser.urlbar.suggest.calculator",           false);
 pref("browser.urlbar.suggest.recentsearches",       true);
 
+pref("browser.urlbar.deduplication.enabled", false);
+pref("browser.urlbar.deduplication.thresholdDays", 7);
+
 pref("browser.urlbar.scotchBonnet.enableOverride", false);
 
 // Enable trending suggestions and recent searches.

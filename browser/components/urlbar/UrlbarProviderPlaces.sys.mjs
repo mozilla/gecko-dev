@@ -34,6 +34,7 @@ const QUERYINDEX_PLACEID = 8;
 const QUERYINDEX_SWITCHTAB = 9;
 const QUERYINDEX_FRECENCY = 10;
 const QUERYINDEX_USERCONTEXTID = 11;
+const QUERYINDEX_LASTVIST = 12;
 
 // Constants to support an alternative frecency algorithm.
 const PAGES_USE_ALT_FRECENCY = Services.prefs.getBoolPref(
@@ -64,7 +65,7 @@ const SQL_BOOKMARK_TAGS_FRAGMENT = `EXISTS(SELECT 1 FROM moz_bookmarks WHERE fk 
 // condition once, and avoid evaluating "btitle" and "tags" when it is false.
 function defaultQuery(conditions = "") {
   let query = `SELECT :query_type, h.url, h.title, ${SQL_BOOKMARK_TAGS_FRAGMENT},
-            h.visit_count, h.typed, h.id, t.open_count, ${PAGES_FRECENCY_FIELD}, t.userContextId
+            h.visit_count, h.typed, h.id, t.open_count, ${PAGES_FRECENCY_FIELD}, t.userContextId, h.last_visit_date
      FROM moz_places h
      LEFT JOIN moz_openpages_temp t
             ON t.url = h.url
@@ -91,7 +92,7 @@ function defaultQuery(conditions = "") {
 }
 
 const SQL_SWITCHTAB_QUERY = `SELECT :query_type, t.url, t.url, NULL, NULL, NULL, NULL, NULL, NULL,
-          t.open_count, NULL, t.userContextId
+          t.open_count, NULL, t.userContextId, NULL
    FROM moz_openpages_temp t
    LEFT JOIN moz_places h ON h.url_hash = hash(t.url) AND h.url = t.url
    WHERE h.id IS NULL
@@ -288,6 +289,7 @@ function convertLegacyMatches(context, matches, urls) {
       comment: match.comment,
       firstToken: context.tokens[0],
       userContextId: match.userContextId,
+      lastVisit: match.lastVisit,
     });
     // Should not happen, but better safe than sorry.
     if (!result) {
@@ -336,6 +338,7 @@ function makeUrlbarResult(tokens, info) {
           title: [info.comment, UrlbarUtils.HIGHLIGHT.TYPED],
           icon: info.icon,
           userContextId: info.userContextId,
+          lastVisit: info.lastVisit,
         });
         if (lazy.UrlbarPrefs.get("secondaryActions.switchToTab")) {
           payload[0].action = UrlbarUtils.createTabSwitchSecondaryAction(
@@ -348,16 +351,6 @@ function makeUrlbarResult(tokens, info) {
           ...payload
         );
       }
-      case "visiturl":
-        return new lazy.UrlbarResult(
-          UrlbarUtils.RESULT_TYPE.URL,
-          UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
-          ...lazy.UrlbarResult.payloadAndSimpleHighlights(tokens, {
-            title: [info.comment, UrlbarUtils.HIGHLIGHT.TYPED],
-            url: [action.params.url, UrlbarUtils.HIGHLIGHT.TYPED],
-            icon: info.icon,
-          })
-        );
       default:
         console.error(`Unexpected action type: ${action.type}`);
         return null;
@@ -417,6 +410,7 @@ function makeUrlbarResult(tokens, info) {
       isBlockable,
       blockL10n,
       helpUrl,
+      lastVisit: info.lastVisit,
     })
   );
 }
@@ -466,7 +460,9 @@ function Search(queryContext, listener, provider) {
 
   this._inPrivateWindow = queryContext.isPrivate;
   this._prohibitAutoFill = !queryContext.allowAutofill;
-  this._maxResults = queryContext.maxResults;
+  // Increase the limit for the query because some results might
+  // get deduplicated if their URLs only differ by their refs.
+  this._maxResults = Math.round(queryContext.maxResults * 1.5);
   this._userContextId = queryContext.userContextId;
   this._currentPage = queryContext.currentPage;
   this._searchModeEngine = queryContext.searchMode?.engineName;
@@ -1129,6 +1125,11 @@ Search.prototype = {
     let tags = row.getResultByIndex(QUERYINDEX_TAGS) || "";
     let frecency = row.getResultByIndex(QUERYINDEX_FRECENCY);
     let userContextId = row.getResultByIndex(QUERYINDEX_USERCONTEXTID);
+    let lastVisitPRTime = row.getResultByIndex(QUERYINDEX_LASTVIST);
+    let lastVisit = lastVisitPRTime
+      ? lazy.PlacesUtils.toDate(lastVisitPRTime).getTime()
+      : undefined;
+
     let match = {
       placeId,
       value: url,
@@ -1136,6 +1137,7 @@ Search.prototype = {
       icon: UrlbarUtils.getIconForUrl(url),
       frecency: frecency || FRECENCY_DEFAULT,
       userContextId,
+      lastVisit,
     };
     if (openPageCount > 0 && this.hasBehavior("openpage")) {
       if (
