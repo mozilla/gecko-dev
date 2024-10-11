@@ -128,6 +128,7 @@ class CompileZone {
 
   gc::AllocSite* catchAllAllocSite(JS::TraceKind traceKind,
                                    gc::CatchAllAllocSite siteKind);
+  gc::AllocSite* tenuringAllocSite();
 
   bool hasRealmWithAllocMetadataBuilder();
 };
