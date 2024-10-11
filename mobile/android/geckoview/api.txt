@@ -880,6 +880,7 @@ package org.mozilla.geckoview {
     method public boolean getFingerprintingProtection();
     method @NonNull public String getFingerprintingProtectionOverrides();
     method public boolean getFingerprintingProtectionPrivateBrowsing();
+    method @Nullable public Boolean getFissionEnabled();
     method public boolean getFontInflationEnabled();
     method public float getFontSizeFactor();
     method public boolean getForceEnableAccessibility();
@@ -977,6 +978,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings.Builder extensionsProcessEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder extensionsWebAPIEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder extras(@NonNull Bundle);
+    method @NonNull public GeckoRuntimeSettings.Builder fissionEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder fontInflation(boolean);
     method @NonNull public GeckoRuntimeSettings.Builder fontSizeFactor(float);
     method @NonNull public GeckoRuntimeSettings.Builder forceUserScalableEnabled(boolean);

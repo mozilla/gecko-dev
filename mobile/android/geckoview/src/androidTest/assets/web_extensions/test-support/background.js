@@ -80,6 +80,9 @@ const APIS = {
   IsSessionHistoryInParentRunning() {
     return browser.test.isSessionHistoryInParentRunning();
   },
+  IsFissionRunning() {
+    return browser.test.isFissionRunning();
+  },
   TriggerCookieBannerDetected({ tab }) {
     return browser.test.triggerCookieBannerDetected(tab.id);
   },

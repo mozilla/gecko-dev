@@ -344,6 +344,18 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     }
 
     /**
+     * Set whether Fission should be enabled or not. This must be set before startup. Note: Session
+     * History in Parent (SHIP) will be enabled as well if Fission is enabled.
+     *
+     * @param enabled A flag determining whether fission should be enabled.
+     * @return The builder instance.
+     */
+    public @NonNull Builder fissionEnabled(final boolean enabled) {
+      getSettings().mFissionEnabled.set(enabled);
+      return this;
+    }
+
+    /**
      * Set whether a candidate page should automatically offer a translation via a popup.
      *
      * @param enabled A flag determining whether the translations offer popup should be enabled.
@@ -614,6 +626,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
   /* package */ final Pref<Boolean> mDevToolsConsoleToLogcat =
       new Pref<>("devtools.console.stdout.chrome", true);
   /* package */ final Pref<Boolean> mAboutConfig = new Pref<>("general.aboutConfig.enable", false);
+  /* package */ final PrefWithoutDefault<Boolean> mFissionEnabled =
+      new PrefWithoutDefault<>("fission.autostart");
   /* package */ final Pref<Boolean> mForceUserScalable =
       new Pref<>("browser.ui.zoom.force-user-scalable", false);
   /* package */ final PrefWithoutDefault<Integer> mWebContentIsolationStrategy =
@@ -1566,6 +1580,16 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public boolean getLoginAutofillEnabled() {
     return mAutofillLogins.get();
+  }
+
+  /**
+   * Gets whether fission is enabled or not. Note: There is no setter after startup. See {@link
+   * Builder#fissionEnabled(boolean)} for setting.
+   *
+   * @return True if fission is enabled or false otherwise.
+   */
+  public @Nullable Boolean getFissionEnabled() {
+    return mFissionEnabled.get();
   }
 
   /**

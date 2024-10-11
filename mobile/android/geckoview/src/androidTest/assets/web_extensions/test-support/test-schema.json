@@ -266,6 +266,13 @@
       },
 
       {
+        "name": "isFissionRunning",
+        "type": "function",
+        "async": true,
+        "description": "Checks if fission is running.",
+        "parameters": []
+      },
+      {
         "name": "triggerCookieBannerDetected",
         "type": "function",
         "async": true,

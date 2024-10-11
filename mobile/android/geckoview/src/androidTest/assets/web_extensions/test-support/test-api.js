@@ -226,6 +226,10 @@ this.test = class extends ExtensionAPI {
           return Services.appinfo.sessionHistoryInParent;
         },
 
+        async isFissionRunning() {
+          return Services.appinfo.fissionAutostart;
+        },
+
         async triggerCookieBannerDetected(tabId) {
           const actor = getActorForTab(tabId, "CookieBanner");
           return actor.receiveMessage({
