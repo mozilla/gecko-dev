@@ -254,6 +254,10 @@
     <string name="mozac_feature_addons_status_see_details">Podrobnosti</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">Dodatek %1$s je onemogočen zaradi težav z varnostjo in zanesljivostjo.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked">Ta razširitev krši Mozilline pravilnike, zato je bila onemogočena. Lahko jo omogočite, vendar je to morda nevarno.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Ta razširitev krši Mozilline pravilnike. Njena uporaba je morda nevarna.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">Dodatka %1$s ni bilo mogoče potrditi kot varnega, zato je onemogočen.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
