@@ -199,11 +199,11 @@ class RTC_EXPORT EncodedImage {
 
   // Returns whether the encoded image can be considered to be of target
   // quality.
-  bool IsAtTargetQuality() const { return at_target_quality_; }
+  [[deprecated]] bool IsAtTargetQuality() const { return at_target_quality_; }
 
   // Sets that the encoded image can be considered to be of target quality to
   // true or false.
-  void SetAtTargetQuality(bool at_target_quality) {
+  [[deprecated]] void SetAtTargetQuality(bool at_target_quality) {
     at_target_quality_ = at_target_quality;
   }
 
