@@ -2954,7 +2954,7 @@ class _DSCard extends (external_React_default()).PureComponent {
   }
   doesLinkTopicMatchSelectedTopic() {
     // Edge case for clicking on a card when topic selections have not be set
-    if (this.props.selectedTopics === "") {
+    if (!this.props.selectedTopics) {
       return "not-set";
     }
 
