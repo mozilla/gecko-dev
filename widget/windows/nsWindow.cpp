@@ -943,6 +943,12 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
       mIsCloaked = mozilla::IsCloaked(mWnd);
       mFrameState->ConsumePreXULSkeletonState(WasPreXULSkeletonUIMaximized());
 
+      MOZ_ASSERT(BoundsUseDesktopPixels());
+      auto scale = GetDesktopToDeviceScale();
+      mBounds = mLastPaintBounds = LayoutDeviceIntRect::FromUnknownRect(
+          DesktopIntRect::Round(LayoutDeviceRect(GetBounds()) / scale)
+              .ToUnknownRect());
+
       // These match the margins set in browser-tabsintitlebar.js with
       // default prefs on Windows. Bug 1673092 tracks lining this up with
       // that more correctly instead of hard-coding it.
