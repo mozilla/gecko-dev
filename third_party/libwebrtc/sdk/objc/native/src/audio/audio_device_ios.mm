@@ -1050,10 +1050,13 @@ int32_t AudioDeviceIOS::MicrophoneMuteIsAvailable(bool& available) {
 }
 
 int32_t AudioDeviceIOS::SetMicrophoneMute(bool enable) {
-  OSStatus result = audio_unit_->SetMicrophoneMute(enable);
-  if (result != noErr) {
-    RTCLogError(@"Set microphone %s failed, reason %d", enable ? "mute" : "unmute", result);
-    return -1;
+  // Set microphone mute only if the audio unit is started.
+  if (audio_unit_ && audio_unit_->GetState() == VoiceProcessingAudioUnit::kStarted) {
+    BOOL result = audio_unit_->SetMicrophoneMute(enable);
+    if (!result) {
+      RTCLogError(@"Set microphone %s failed.", enable ? "mute" : "unmute");
+      return -1;
+    }
   }
   return 0;
 }
