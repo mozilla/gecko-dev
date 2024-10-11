@@ -1502,13 +1502,6 @@
       });
     }
 
-    _updateHiddenTabsStatus() {
-      this.toggleAttribute(
-        "hashiddentabs",
-        gBrowser.visibleTabs.length < gBrowser.tabs.length
-      );
-    }
-
     _handleTabSelect(aInstant) {
       let selectedTab = this.selectedItem;
       if (this.overflowing) {
