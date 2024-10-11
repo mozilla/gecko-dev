@@ -153,7 +153,7 @@ static inline std::enable_if_t<std::is_integral_v<T>, int32_t> PositiveModulo(
 }
 
 template <typename T>
-static inline T FloorDiv(T dividend, int32_t divisor) {
+static constexpr T FloorDiv(T dividend, int32_t divisor) {
   MOZ_ASSERT(divisor > 0);
 
   T quotient = dividend / divisor;
@@ -191,6 +191,12 @@ static inline bool IsLeapYear(double year) {
   return fmod(year, 4) == 0 && (fmod(year, 100) != 0 || fmod(year, 400) == 0);
 }
 
+static constexpr bool IsLeapYear(int32_t year) {
+  // From: https://www.youtube.com/watch?v=0s9F4QWAl-E&t=1790s
+  int32_t d = (year % 100 != 0) ? 4 : 16;
+  return (year & (d - 1)) == 0;
+}
+
 /**
  * 21.4.1.6 DayFromYear ( y )
  *
@@ -202,6 +208,12 @@ static inline double DayFromYear(double y) {
          floor((y - 1901) / 100.0) + floor((y - 1601) / 400.0);
 }
 
+static constexpr int32_t DayFromYear(int32_t y) {
+  // Steps 1-7.
+  return 365 * (y - 1970) + FloorDiv((y - 1969), 4) -
+         FloorDiv((y - 1901), 100) + FloorDiv((y - 1601), 400);
+}
+
 /**
  * 21.4.1.7 TimeFromYear ( y )
  *
@@ -209,6 +221,10 @@ static inline double DayFromYear(double y) {
  */
 static inline double TimeFromYear(double y) {
   return ::DayFromYear(y) * msPerDay;
+}
+
+static inline int64_t TimeFromYear(int32_t y) {
+  return ::DayFromYear(y) * int64_t(msPerDay);
 }
 
 /*
@@ -421,6 +437,55 @@ static double MakeDay(double year, double month, double date) {
   double y = ToInteger(year);
   double m = ToInteger(month);
   double dt = ToInteger(date);
+
+  static constexpr int32_t maxYears = 1'000'000;
+  static constexpr int32_t maxMonths = 1'000'000 * 12;
+  static constexpr int32_t maxDate = 100'000'000;
+
+  // Use integer math if possible, because it avoids some notoriously slow
+  // functions like `fmod`.
+  if (MOZ_LIKELY(std::abs(y) <= maxYears && std::abs(m) <= maxMonths &&
+                 std::abs(dt) <= maxDate)) {
+    int32_t year = mozilla::AssertedCast<int32_t>(y);
+    int32_t month = mozilla::AssertedCast<int32_t>(m);
+    int32_t date = mozilla::AssertedCast<int32_t>(dt);
+
+    static_assert(maxMonths % 12 == 0,
+                  "maxYearMonths expects maxMonths is divisible by 12");
+
+    static constexpr int32_t maxYearMonths = maxYears + (maxMonths / 12);
+    static constexpr int32_t maxYearDay = DayFromYear(maxYearMonths);
+    static constexpr int32_t minYearDay = DayFromYear(-maxYearMonths);
+    static constexpr int32_t daysInLeapYear = 366;
+    static constexpr int32_t maxDay = maxYearDay + daysInLeapYear + maxDate;
+    static constexpr int32_t minDay = minYearDay + daysInLeapYear - maxDate;
+
+    static_assert(maxYearMonths == 2'000'000);
+    static_assert(maxYearDay == 729'765'472);
+    static_assert(minYearDay == -731'204'528);
+    static_assert(maxDay == maxYearDay + daysInLeapYear + maxDate);
+    static_assert(minDay == minYearDay + daysInLeapYear - maxDate);
+
+    // Step 5.
+    int32_t ym = year + FloorDiv(month, 12);
+    MOZ_ASSERT(std::abs(ym) <= maxYearMonths);
+
+    // Step 6. (Implicit)
+
+    // Step 7.
+    int32_t mn = PositiveModulo(month, 12);
+
+    // Step 8.
+    bool leap = IsLeapYear(ym);
+    int32_t yearday = ::DayFromYear(ym);
+    int32_t monthday = DayFromMonth(mn, leap);
+    MOZ_ASSERT(minYearDay <= yearday && yearday <= maxYearDay);
+
+    // Step 9.
+    int32_t day = yearday + monthday + date - 1;
+    MOZ_ASSERT(minDay <= day && day <= maxDay);
+    return day;
+  }
 
   // Step 5.
   double ym = y + floor(m / 12);
@@ -2107,7 +2172,7 @@ void DateObject::fillLocalTimeSlots() {
   int weekday = WeekDay(localTime);
   setReservedSlot(LOCAL_DAY_SLOT, Int32Value(weekday));
 
-  double yearStartTime = TimeFromYear(year);
+  int64_t yearStartTime = TimeFromYear(year);
   uint64_t yearTime = uint64_t(localTime - yearStartTime);
   int32_t yearSeconds = int32_t(yearTime / 1000);
   setReservedSlot(LOCAL_SECONDS_INTO_YEAR_SLOT, Int32Value(yearSeconds));
