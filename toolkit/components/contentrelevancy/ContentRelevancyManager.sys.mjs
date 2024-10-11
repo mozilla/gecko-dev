@@ -12,7 +12,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AsyncShutdown: "resource://gre/modules/AsyncShutdown.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   RelevancyStore: "resource://gre/modules/RustRelevancy.sys.mjs",
+  Interest: "resource://gre/modules/RustRelevancy.sys.mjs",
   InterestVector: "resource://gre/modules/RustRelevancy.sys.mjs",
+  score: "resource://gre/modules/RustRelevancy.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetter(
@@ -73,14 +75,17 @@ class RelevancyManager {
    * Note that this should be called once only. `#enable` and `#disable` can be
    * used to toggle the feature once the manager is initialized.
    */
-  init() {
+  init(rustRelevancyStore = lazy.RelevancyStore) {
     if (this.initialized) {
       return;
     }
 
     lazy.log.info("Initializing the manager");
 
-    this.#storeManager = new RustRelevancyStoreManager(this.#storePath);
+    this.#storeManager = new RustRelevancyStoreManager(
+      this.#storePath,
+      rustRelevancyStore
+    );
     if (this.shouldEnable) {
       this.#enable();
     }
@@ -105,6 +110,7 @@ class RelevancyManager {
     this.#storeManager = null;
 
     this.#initialized = false;
+    this.#interestVector = null;
   }
 
   /**
@@ -116,6 +122,13 @@ class RelevancyManager {
         NIMBUS_VARIABLE_ENABLED
       ) ?? false
     );
+  }
+
+  /**
+   * Whether or not the manager is initialized and enabled.
+   */
+  get enabled() {
+    return this.initialized && this.#storeManager.enabled;
   }
 
   #startUpTimer() {
@@ -253,6 +266,7 @@ class RelevancyManager {
       timerId = Glean.relevancyClassify.duration.start();
 
       const interestVector = await this.#classifyUrls(urls);
+      this.#interestVector = interestVector;
       const sortedVector = Object.entries(interestVector).sort(
         ([, a], [, b]) => b - a // descending
       );
@@ -363,6 +377,73 @@ class RelevancyManager {
   }
 
   /**
+   * Get the user interest vector from the relevancy store.
+   *
+   * Note:
+   *   - It will return "null" if the vector couldn't be fetched from
+   *     the relevancy store or the store is not enabled.
+   *   - The fetched interest vector will be cached for future acesses.
+   *     the cache will be automatically updated upon the next interest
+   *     classification.
+   *
+   * @returns {InterestVector}
+   *   An interest vector.
+   */
+  async getUserInterestVector() {
+    if (!this.enabled) {
+      return null;
+    }
+
+    if (this.#interestVector !== null) {
+      return this.#interestVector;
+    }
+
+    try {
+      this.#interestVector =
+        await this.#storeManager.store.userInterestVector();
+    } catch (error) {
+      lazy.log.error(
+        "Failed to fetch the interest vector: " + (error.reason ?? error)
+      );
+    }
+
+    return this.#interestVector;
+  }
+
+  /**
+   * Generate a score for a given interest array based on the user interest vector.
+   *
+   * @param {Array<Interest>} interests
+   *   An array of interests with each item of type `RustRelevancy.Interest`.
+   *   This is usually specified by the content provider representing the
+   *   interest type(s) of the content. Note that `Interest.INCONCLUSIVE`
+   *   will be ignored for scoring.
+   * @returns {number}
+   *   A relevance score ranges from 0 to 1. A higher score indicating the content
+   *   is more relevant to the user.
+   * @throws {Error}
+   *   Thrown for any store errors or invalid interest parameters.
+   */
+  async score(interests) {
+    const userInterestVector = await this.getUserInterestVector();
+    if (userInterestVector === null) {
+      throw new Error("User interest vector not ready");
+    }
+
+    let relevanceScore;
+    try {
+      relevanceScore = lazy.score(
+        userInterestVector,
+        interests.filter(item => item !== lazy.Interest.INCONCLUSIVE)
+      );
+    } catch (error) {
+      throw new Error("Invalid interest value");
+    }
+
+    return relevanceScore;
+  }
+
+  /**
    * Nimbus update listener.
    */
   #onNimbusUpdate(_event, _reason) {
@@ -392,6 +473,9 @@ class RelevancyManager {
   // Whether or not there is an in-progress classification. Used to prevent
   // duplicate classification tasks.
   #isInProgress = false;
+
+  // The inferred user interest vector
+  #interestVector = null;
 }
 
 /**

@@ -39,6 +39,7 @@ add_setup(() => {
 
 add_task(function test_init() {
   Assert.ok(ContentRelevancyManager.initialized, "Init should succeed");
+  Assert.ok(ContentRelevancyManager.enabled, "Enabled flag should be set");
 });
 
 add_task(function test_uninit() {

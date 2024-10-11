@@ -30,6 +30,7 @@ main = [
   "RelevancyStore",
   "RelevancyStore.close",
   "RelevancyStore.interrupt",
+  "score",
 ]
 
 [remote_settings.receiver_thread]

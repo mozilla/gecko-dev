@@ -1337,15 +1337,11 @@ export function score(interestVector,contentCategories) {
                 }
                 throw e;
             }
-            return UniFFIScaffolding.callAsync(
+            return UniFFIScaffolding.callSync(
                 2, // relevancy:uniffi_relevancy_fn_func_score
                 FfiConverterTypeInterestVector.lower(interestVector),
                 FfiConverterSequenceTypeInterest.lower(contentCategories),
             )
         }
-        try {
-            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
-        }  catch (error) {
-            return Promise.reject(error)
-        }
+        return handleRustResult(functionCall(), liftResult, liftError);
 }

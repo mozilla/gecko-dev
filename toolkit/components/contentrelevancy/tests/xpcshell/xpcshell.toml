@@ -10,6 +10,9 @@ lineno = "5"
 skip-if = ["os == 'android'"] # bug 1886601
 lineno = "9"
 
+["test_InterestVectorBasedScoring.js"]
+skip-if = ["os == 'android'"] # bug 1886601
+
 ["test_Telemetry.js"]
 skip-if = ["os == 'android'"] # bug 1886601
 run-sequentially = "concurrent runs would interfere with each other"
