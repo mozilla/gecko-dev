@@ -358,8 +358,7 @@ function assertHighlightLocation(dbg, source, line) {
 
   ok(isVisibleInEditor(dbg, lineEl), "Highlighted line is visible");
 
-  const cm = getCM(dbg);
-  const lineInfo = cm.lineInfo(line - 1);
+  const lineInfo = getCMEditor(dbg).lineInfo(isCm6Enabled ? line : line - 1);
   ok(lineInfo.wrapClass.includes("highlight-line"), "Line is highlighted");
 }
 
@@ -1804,7 +1803,9 @@ const selectors = {
   editLogItem: "#node-menu-edit-log-point",
   disableItem: "#node-menu-disable-breakpoint",
   breakpoint: ".CodeMirror-code > .new-breakpoint",
-  highlightLine: ".CodeMirror-code > .highlight-line",
+  highlightLine: isCm6Enabled
+    ? ".cm-content > .highlight-line"
+    : ".CodeMirror-code > .highlight-line",
   debugLine: ".new-debug-line",
   debugErrorLine: ".new-debug-line-error",
   codeMirror: ".CodeMirror",
