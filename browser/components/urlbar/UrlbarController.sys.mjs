@@ -957,14 +957,15 @@ class TelemetryEvent {
         1
       );
 
+      let firstVisibleResult = this._controller.view?.visibleResults?.[0];
       if (
         method === "engagement" &&
-        this._controller.view?.visibleResults?.[0]?.autofill
+        firstVisibleResult?.autofill &&
+        firstVisibleResult?.type == lazy.UrlbarUtils.RESULT_TYPE.URL
       ) {
         // Record autofill impressions upon engagement.
-        const type = lazy.UrlbarUtils.telemetryTypeFromResult(
-          this._controller.view.visibleResults[0]
-        );
+        const type =
+          lazy.UrlbarUtils.telemetryTypeFromResult(firstVisibleResult);
         Services.telemetry.scalarAdd(`urlbar.impression.${type}`, 1);
       }
     }
