@@ -1221,8 +1221,18 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   list-style-image: url("chrome://browser/content/firefoxview/view-opentabs.svg");
 
   > .toolbarbutton-badge-stack > .toolbarbutton-icon {
+    --panel-and-palette-icon-size: 20px;
     width: 20px;
     margin: -2px;
+  }
+
+  #TabsToolbar & {
+    list-style-image: url("chrome://global/skin/icons/arrow-down.svg");
+
+    > .toolbarbutton-badge-stack > .toolbarbutton-icon {
+      width: 16px;
+      margin: 0;
+    }
   }
 
   #tabbrowser-tabs[hiddensoundplaying] ~ & > .toolbarbutton-badge-stack > .toolbarbutton-badge {

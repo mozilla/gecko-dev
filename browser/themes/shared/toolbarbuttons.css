@@ -69,10 +69,6 @@
     fill-opacity: var(--toolbarbutton-disabled-opacity);
   }
 
-  > .toolbarbutton-icon {
-    margin-inline-end: 0 !important;
-  }
-
   > .toolbarbutton-icon,
   > .toolbarbutton-badge-stack > .toolbarbutton-icon {
     width: 16px;

@@ -131,7 +131,6 @@ toolbar[overflowable][customizing] > .customization-target {
       height: var(--panel-and-palette-icon-size);
       min-width: var(--panel-and-palette-icon-size);
       min-height: var(--panel-and-palette-icon-size);
-      margin: 0;
       padding: 0;
     }
   }
