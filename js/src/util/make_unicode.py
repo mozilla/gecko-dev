@@ -1141,6 +1141,7 @@ def make_icase_test(version, folding_tests, codepoint_table):
 
     file_name = "../tests/non262/RegExp/unicode-ignoreCase.js"
     with io.open(file_name, mode="w", encoding="utf-8") as test_icase:
+        test_icase.write("// |reftest| skip-if(!this.hasOwnProperty('Intl'))\n\n")
         test_icase.write(warning_message)
         test_icase.write(unicode_version_message.format(version))
         test_icase.write(public_domain)

@@ -1,3 +1,5 @@
+// |reftest| skip-if(!this.hasOwnProperty('Intl'))
+
 var BUGNUMBER = 1338373;
 var summary = "Word boundary should match U+017F and U+212A in unicode+ignoreCase.";
 

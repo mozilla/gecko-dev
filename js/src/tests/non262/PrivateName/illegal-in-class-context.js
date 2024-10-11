@@ -11,7 +11,7 @@ function assertThrowsWithMessage(f, msg) {
     try {
         f();
     } catch (exc) {
-        if (exc.message.normalize() === msg.normalize())
+        if (exc.message === msg)
             return;
 
         fullmsg = `Assertion failed: expected message '${msg}', got '${exc.message}'`;
