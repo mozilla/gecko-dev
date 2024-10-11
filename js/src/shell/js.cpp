@@ -12764,6 +12764,7 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "enable-promise-try", "Enable Promise.try") ||
       !op.addBoolOption('\0', "enable-math-sumprecise",
                         "Enable Math.sumPrecise") ||
+      !op.addBoolOption('\0', "enable-error-iserror", "Enable Error.isError") ||
       !op.addBoolOption('\0', "enable-iterator-range",
                         "Enable Iterator.range") ||
       !op.addBoolOption('\0', "enable-joint-iteration",
@@ -12846,6 +12847,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-promise-try")) {
     JS::Prefs::setAtStartup_experimental_promise_try(true);
+  }
+  if (op.getBoolOption("enable-error-iserror")) {
+    JS::Prefs::setAtStartup_experimental_error_iserror(true);
   }
   if (op.getBoolOption("enable-math-sumprecise")) {
     JS::Prefs::setAtStartup_experimental_math_sumprecise(true);

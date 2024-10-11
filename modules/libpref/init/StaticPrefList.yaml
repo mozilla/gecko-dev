@@ -8128,6 +8128,13 @@
     mirror: always
     set_spidermonkey_pref: startup
 
+  # Experimental support for Error.isError in JavaScript.
+-   name: javascript.options.experimental.error_iserror
+    type: bool
+    value: false
+    mirror: always
+    set_spidermonkey_pref: startup
+
   # Experimental support for Math.sumPrecise in JavaScript.
 -   name: javascript.options.experimental.math_sumprecise
     type: bool
