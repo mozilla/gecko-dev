@@ -14336,7 +14336,7 @@
 
 # Is support for Permissions.query enabled for camera and microphone?
 - name: permissions.media.query.enabled
-  type: bool
+  type: RelaxedAtomicBool
   value: true
   mirror: always
 
