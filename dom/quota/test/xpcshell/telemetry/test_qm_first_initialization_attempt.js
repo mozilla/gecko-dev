@@ -594,11 +594,7 @@ const testcases = [
       },
       {
         name: initTemporaryOrigin,
-        args: [
-          "default",
-          getPrincipal("https://example2.com"),
-          /* createIfNonExistent */ true,
-        ],
+        args: ["default", getPrincipal("https://example2.com")],
       },
     ],
     expectedSnapshots: {
@@ -672,27 +668,15 @@ const testcases = [
     initFunctions: [
       {
         name: initTemporaryOrigin,
-        args: [
-          "temporary",
-          getPrincipal("https://example.com"),
-          /* createIfNonExistent */ true,
-        ],
+        args: ["temporary", getPrincipal("https://example.com")],
       },
       {
         name: initTemporaryOrigin,
-        args: [
-          "default",
-          getPrincipal("https://example.com"),
-          /* createIfNonExistent */ true,
-        ],
+        args: ["default", getPrincipal("https://example.com")],
       },
       {
         name: initTemporaryOrigin,
-        args: [
-          "default",
-          getPrincipal("https://example1.com"),
-          /* createIfNonExistent */ true,
-        ],
+        args: ["default", getPrincipal("https://example1.com")],
       },
       {
         name: initPersistentOrigin,

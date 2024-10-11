@@ -75,12 +75,7 @@ function* testSteps() {
   initTemporaryStorage(continueToNextStepSync);
   yield undefined;
 
-  initTemporaryOrigin(
-    origin.persistence,
-    principal,
-    /* createIfNonExistent */ true,
-    continueToNextStepSync
-  );
+  initTemporaryOrigin(origin.persistence, principal, continueToNextStepSync);
   yield undefined;
 
   info("Reading out contents of metadata file");
@@ -104,63 +99,6 @@ function* testSteps() {
     originPersisted,
     "Persisted() concurs with metadata"
   );
-
-  info("Verifying persist() does update the metadata");
-
-  request = persist(principal, continueToNextStepSync);
-  yield undefined;
-
-  Assert.strictEqual(request.resultCode, NS_OK, "Persist() succeeded");
-
-  info("Reading out contents of metadata file");
-
-  fileReader = new FileReader();
-  fileReader.onload = continueToNextStepSync;
-  fileReader.readAsArrayBuffer(file);
-  yield undefined;
-
-  originPersisted = getPersistedFromMetadata(fileReader.result);
-  ok(originPersisted, "The origin is persisted");
-
-  info("Verifying persisted()");
-
-  request = persisted(principal, continueToNextStepSync);
-  yield undefined;
-
-  Assert.strictEqual(request.resultCode, NS_OK, "Persisted() succeeded");
-  Assert.strictEqual(
-    request.result,
-    originPersisted,
-    "Persisted() concurs with metadata"
-  );
-
-  info("Clearing the origin");
-
-  // Clear the origin since we'll test the same directory again under different
-  // circumstances.
-  clearOrigin(principal, origin.persistence, continueToNextStepSync);
-  yield undefined;
-
-  info(
-    "Persisting an uninitialized origin when temporary storage is already initialized"
-  );
-
-  initTemporaryStorage(continueToNextStepSync);
-  yield undefined;
-
-  exists = originDir.exists();
-  ok(!exists, "Origin directory does not exist");
-
-  exists = metadataFile.exists();
-  ok(!exists, "Metadata file does not exist");
-
-  info("Verifying persisted()");
-
-  request = persisted(principal, continueToNextStepSync);
-  yield undefined;
-
-  Assert.strictEqual(request.resultCode, NS_OK, "Persisted() succeeded");
-  ok(!request.result, "Persisted() concurs with metadata");
 
   info("Verifying persist() does update the metadata");
 

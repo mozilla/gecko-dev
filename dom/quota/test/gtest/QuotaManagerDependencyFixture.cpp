@@ -221,19 +221,18 @@ void QuotaManagerDependencyFixture::ShutdownTemporaryStorage() {
 
 // static
 void QuotaManagerDependencyFixture::InitializeTemporaryOrigin(
-    const OriginMetadata& aOriginMetadata, bool aCreateIfNonExistent) {
+    const OriginMetadata& aOriginMetadata) {
   mozilla::ipc::PrincipalInfo principalInfo;
   ASSERT_NO_FATAL_FAILURE(
       CreateContentPrincipalInfo(aOriginMetadata.mOrigin, principalInfo));
 
   PerformOnBackgroundThread([persistenceType = aOriginMetadata.mPersistenceType,
-                             principalInfo = std::move(principalInfo),
-                             aCreateIfNonExistent]() {
+                             principalInfo = std::move(principalInfo)]() {
     QuotaManager* quotaManager = QuotaManager::Get();
     ASSERT_TRUE(quotaManager);
 
-    Await(quotaManager->InitializeTemporaryOrigin(
-        persistenceType, principalInfo, aCreateIfNonExistent));
+    Await(quotaManager->InitializeTemporaryOrigin(persistenceType,
+                                                  principalInfo));
   });
 }
 

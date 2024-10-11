@@ -165,7 +165,6 @@ function* testSteps() {
       request = initTemporaryOrigin(
         origin.persistence,
         principal,
-        /* createIfNonExistent */ true,
         continueToNextStepSync
       );
     }

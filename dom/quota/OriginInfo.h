@@ -19,7 +19,6 @@ class GroupInfo;
 class OriginInfo final {
   friend class CanonicalQuotaObject;
   friend class GroupInfo;
-  friend class PersistOp;
   friend class QuotaManager;
 
  public:
@@ -64,14 +63,6 @@ class OriginInfo final {
     return mPersisted;
   }
 
-  bool IsExtensionOrigin() const { return mIsExtension; }
-
-  bool LockedDirectoryExists() const {
-    AssertCurrentThreadOwnsQuotaMutex();
-
-    return mDirectoryExists;
-  }
-
   OriginMetadata FlattenToOriginMetadata() const;
 
   FullOriginMetadata LockedFlattenToFullOriginMetadata() const;
@@ -103,7 +94,7 @@ class OriginInfo final {
 
   void LockedPersist();
 
-  void LockedDirectoryCreated();
+  bool IsExtensionOrigin() { return mIsExtension; }
 
   nsTHashMap<nsStringHashKey, NotNull<CanonicalQuotaObject*>>
       mCanonicalQuotaObjects;
@@ -111,19 +102,19 @@ class OriginInfo final {
   GroupInfo* mGroupInfo;
   const nsCString mOrigin;
   const nsCString mStorageOrigin;
+  bool mIsExtension;
   uint64_t mUsage;
   int64_t mAccessTime;
   bool mIsPrivate;
   bool mAccessed;
   bool mPersisted;
-  const bool mIsExtension;
   /**
    * In some special cases like the LocalStorage client where it's possible to
    * create a Quota-using representation but not actually write any data, we
    * want to be able to track quota for an origin without creating its origin
    * directory or the per-client files until they are actually needed to store
    * data. In those cases, the OriginInfo will be created by
-   * InitQuotaForOrigin and the resulting mDirectoryExists will be false until
+   * EnsureQuotaForOrigin and the resulting mDirectoryExists will be false until
    * the origin actually needs to be created. It is possible for mUsage to be
    * greater than zero while mDirectoryExists is false, representing a state
    * where a client like LocalStorage has reserved quota for disk writes, but
