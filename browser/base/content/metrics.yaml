@@ -17,12 +17,13 @@ privacy.sanitize:
       Dispatched when one of the sanitize dialogs opens
     bugs:
       - https://bugzilla.mozilla.org/1856417
+      - https://bugzilla.mozilla.org/1922608
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1856417#c4
     notification_emails:
-      - hsohaney@mozilla.com
+      - wwen@mozilla.com
       - pbz@mozilla.com
-    expires: 134
+    expires: 140
     extra_keys:
       context:
         description: >
@@ -35,12 +36,13 @@ privacy.sanitize:
       Dispatched when the dialog is accepted (to clear)
     bugs:
       - https://bugzilla.mozilla.org/1856417
+      - https://bugzilla.mozilla.org/1922608
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1856417#c4
     notification_emails:
-      - hsohaney@mozilla.com
+      - wwen@mozilla.com
       - pbz@mozilla.com
-    expires: 134
+    expires: 140
     extra_keys:
       context:
         description: >
@@ -65,12 +67,13 @@ privacy.sanitize:
       The time span range selected to sanitize
     bugs:
       - https://bugzilla.mozilla.org/1856417
+      - https://bugzilla.mozilla.org/1922608
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1856417#c4
     notification_emails:
-      - hsohaney@mozilla.com
+      - wwen@mozilla.com
       - pbz@mozilla.com
-    expires: 134
+    expires: 140
     extra_keys:
       time_span:
         description: The timespan that was selected corresponding to one of Sanitizer.TIMESPAN_*'s value
@@ -83,13 +86,14 @@ privacy.sanitize:
       How much time was spent to open the dialog, including loading data sizes
     bugs:
       - https://bugzilla.mozilla.org/1856417
+      - https://bugzilla.mozilla.org/1922608
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1856417#c4
     notification_emails:
-      - hsohaney@mozilla.com
+      - wwen@mozilla.com
       - pbz@mozilla.com
     expires:
-      134
+      140
 
 security.ui.protectionspopup:
   open_protections_popup:
