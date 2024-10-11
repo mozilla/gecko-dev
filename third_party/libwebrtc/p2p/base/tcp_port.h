@@ -174,6 +174,8 @@ class TCPConnection : public Connection, public sigslot::has_slots<> {
 
   void OnConnect(rtc::AsyncPacketSocket* socket);
   void OnClose(rtc::AsyncPacketSocket* socket, int error);
+  void OnSentPacket(rtc::AsyncPacketSocket* socket,
+                    const rtc::SentPacket& sent_packet);
   void OnReadPacket(rtc::AsyncPacketSocket* socket,
                     const rtc::ReceivedPacket& packet);
   void OnReadyToSend(rtc::AsyncPacketSocket* socket);
