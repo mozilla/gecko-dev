@@ -33,6 +33,7 @@
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/JSObjectHolder.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_devtools.h"
 #include "mozilla/StaticPrefs_dom.h"
@@ -109,7 +110,8 @@ class ConsoleCallData final {
 
   ConsoleCallData(Console::MethodName aName, const nsAString& aString,
                   Console* aConsole)
-      : mConsoleID(aConsole->mConsoleID),
+      : mMutex("ConsoleCallData"),
+        mConsoleID(aConsole->mConsoleID),
         mPrefix(aConsole->mPrefix),
         mMethodName(aName),
         mMicroSecondTimeStamp(JS_Now()),
@@ -124,6 +126,7 @@ class ConsoleCallData final {
         mMethodString(aString) {}
 
   void SetIDs(uint64_t aOuterID, uint64_t aInnerID) {
+    mMutex.AssertCurrentThreadOwns();
     MOZ_ASSERT(mIDType == eUnknown);
 
     mOuterIDNumber = aOuterID;
@@ -132,6 +135,7 @@ class ConsoleCallData final {
   }
 
   void SetIDs(const nsAString& aOuterID, const nsAString& aInnerID) {
+    mMutex.AssertCurrentThreadOwns();
     MOZ_ASSERT(mIDType == eUnknown);
 
     mOuterIDString = aOuterID;
@@ -140,10 +144,14 @@ class ConsoleCallData final {
   }
 
   void SetOriginAttributes(const OriginAttributes& aOriginAttributes) {
+    mMutex.AssertCurrentThreadOwns();
+
     mOriginAttributes = aOriginAttributes;
   }
 
   void SetAddonId(nsIPrincipal* aPrincipal) {
+    mMutex.AssertCurrentThreadOwns();
+
     nsAutoString addonId;
     aPrincipal->GetAddonId(addonId);
 
@@ -154,11 +162,13 @@ class ConsoleCallData final {
     NS_ASSERT_OWNINGTHREAD(ConsoleCallData);
   }
 
-  const nsString mConsoleID;
-  const nsString mPrefix;
+  Mutex mMutex;
 
-  const Console::MethodName mMethodName;
-  int64_t mMicroSecondTimeStamp;
+  const nsString mConsoleID MOZ_GUARDED_BY(mMutex);
+  const nsString mPrefix MOZ_GUARDED_BY(mMutex);
+
+  const Console::MethodName mMethodName MOZ_GUARDED_BY(mMutex);
+  int64_t mMicroSecondTimeStamp MOZ_GUARDED_BY(mMutex);
 
   // These values are set in the owning thread and they contain the timestamp of
   // when the new timer has started, the name of it and the status of the
@@ -168,9 +178,9 @@ class ConsoleCallData final {
   // They will be set on the owning thread and never touched again on that
   // thread. They will be used in order to create a ConsoleTimerStart dictionary
   // when console.time() is used.
-  DOMHighResTimeStamp mStartTimerValue;
-  nsString mStartTimerLabel;
-  Console::TimerStatus mStartTimerStatus;
+  DOMHighResTimeStamp mStartTimerValue MOZ_GUARDED_BY(mMutex);
+  nsString mStartTimerLabel MOZ_GUARDED_BY(mMutex);
+  Console::TimerStatus mStartTimerStatus MOZ_GUARDED_BY(mMutex);
 
   // These values are set in the owning thread and they contain the duration,
   // the name and the status of the LogTimer method. If status is false,
@@ -178,16 +188,16 @@ class ConsoleCallData final {
   // touched again on that thread. They will be used in order to create a
   // ConsoleTimerLogOrEnd dictionary. This members are set when
   // console.timeEnd() or console.timeLog() are called.
-  double mLogTimerDuration;
-  nsString mLogTimerLabel;
-  Console::TimerStatus mLogTimerStatus;
+  double mLogTimerDuration MOZ_GUARDED_BY(mMutex);
+  nsString mLogTimerLabel MOZ_GUARDED_BY(mMutex);
+  Console::TimerStatus mLogTimerStatus MOZ_GUARDED_BY(mMutex);
 
   // These 2 values are set by IncreaseCounter or ResetCounter on the owning
   // thread and they are used by CreateCounterOrResetCounterValue.
   // These members are set when console.count() or console.countReset() are
   // called.
-  nsString mCountLabel;
-  uint32_t mCountValue;
+  nsString mCountLabel MOZ_GUARDED_BY(mMutex);
+  uint32_t mCountValue MOZ_GUARDED_BY(mMutex);
 
   // The concept of outerID and innerID is misleading because when a
   // ConsoleCallData is created from a window, these are the window IDs, but
@@ -195,19 +205,19 @@ class ConsoleCallData final {
   // subworker of a ChromeWorker these IDs are the type of worker and the
   // filename of the callee.
   // In Console.sys.mjs the ID is 'jsm'.
-  enum { eString, eNumber, eUnknown } mIDType;
+  enum { eString, eNumber, eUnknown } mIDType MOZ_GUARDED_BY(mMutex);
 
-  uint64_t mOuterIDNumber;
-  nsString mOuterIDString;
+  uint64_t mOuterIDNumber MOZ_GUARDED_BY(mMutex);
+  nsString mOuterIDString MOZ_GUARDED_BY(mMutex);
 
-  uint64_t mInnerIDNumber;
-  nsString mInnerIDString;
+  uint64_t mInnerIDNumber MOZ_GUARDED_BY(mMutex);
+  nsString mInnerIDString MOZ_GUARDED_BY(mMutex);
 
-  OriginAttributes mOriginAttributes;
+  OriginAttributes mOriginAttributes MOZ_GUARDED_BY(mMutex);
 
-  nsString mAddonId;
+  nsString mAddonId MOZ_GUARDED_BY(mMutex);
 
-  const nsString mMethodString;
+  const nsString mMethodString MOZ_GUARDED_BY(mMutex);
 
   // Stack management is complicated, because we want to do it as
   // lazily as possible.  Therefore, we have the following behavior:
@@ -215,9 +225,9 @@ class ConsoleCallData final {
   // 2)  mReifiedStack is initialized if we're created in a worker.
   // 3)  mStack is set (possibly to null if there is no JS on the stack) if
   //     we're created on main thread.
-  Maybe<ConsoleStackEntry> mTopStackFrame;
-  Maybe<nsTArray<ConsoleStackEntry>> mReifiedStack;
-  nsCOMPtr<nsIStackFrame> mStack;
+  Maybe<ConsoleStackEntry> mTopStackFrame MOZ_GUARDED_BY(mMutex);
+  Maybe<nsTArray<ConsoleStackEntry>> mReifiedStack MOZ_GUARDED_BY(mMutex);
+  nsCOMPtr<nsIStackFrame> mStack MOZ_GUARDED_BY(mMutex);
 
  private:
   ~ConsoleCallData() = default;
@@ -513,23 +523,26 @@ class ConsoleCallDataWorkletRunnable final : public ConsoleWorkletRunnable {
     jsapi.Init();
     JSContext* cx = jsapi.cx();
 
-    JSObject* sandbox =
-        mConsoleData->GetOrCreateSandbox(cx, mWorkletImpl->Principal());
-    JS::Rooted<JSObject*> global(cx, sandbox);
-    if (NS_WARN_IF(!global)) {
-      return NS_ERROR_FAILURE;
+    {
+      MutexAutoLock lock(mCallData->mMutex);
+
+      JSObject* sandbox =
+          mConsoleData->GetOrCreateSandbox(cx, mWorkletImpl->Principal());
+      JS::Rooted<JSObject*> global(cx, sandbox);
+      if (NS_WARN_IF(!global)) {
+        return NS_ERROR_FAILURE;
+      }
+
+      // The CreateSandbox call returns a proxy to the actual sandbox object. We
+      // don't need a proxy here.
+      global = js::UncheckedUnwrap(global);
+      JSAutoRealm ar(cx, global);
+
+      // We don't need to set a parent object in mCallData bacause there are not
+      // DOM objects exposed to worklet.
+
+      ProcessCallData(cx, mConsoleData, mCallData);
     }
-
-    // The CreateSandbox call returns a proxy to the actual sandbox object. We
-    // don't need a proxy here.
-    global = js::UncheckedUnwrap(global);
-
-    JSAutoRealm ar(cx, global);
-
-    // We don't need to set a parent object in mCallData bacause there are not
-    // DOM objects exposed to worklet.
-
-    ProcessCallData(cx, mConsoleData, mCallData);
 
     return NS_OK;
   }
@@ -674,35 +687,38 @@ class ConsoleCallDataWorkerRunnable final : public ConsoleWorkerRunnable {
     // The windows have to run in parallel.
     MOZ_ASSERT(!!aOuterWindow == !!aInnerWindow);
 
-    if (aOuterWindow) {
-      mCallData->SetIDs(aOuterWindow->WindowID(), aInnerWindow->WindowID());
-    } else {
-      ConsoleStackEntry frame;
-      if (mCallData->mTopStackFrame) {
-        frame = *mCallData->mTopStackFrame;
-      }
-
-      nsCString id = frame.mFilename;
-      nsString innerID;
-      if (aWorkerPrivate->IsSharedWorker()) {
-        innerID = u"SharedWorker"_ns;
-      } else if (aWorkerPrivate->IsServiceWorker()) {
-        innerID = u"ServiceWorker"_ns;
-        // Use scope as ID so the webconsole can decide if the message should
-        // show up per tab
-        id = aWorkerPrivate->ServiceWorkerScope();
+    {
+      MutexAutoLock lock(mCallData->mMutex);
+      if (aOuterWindow) {
+        mCallData->SetIDs(aOuterWindow->WindowID(), aInnerWindow->WindowID());
       } else {
-        innerID = u"Worker"_ns;
+        ConsoleStackEntry frame;
+        if (mCallData->mTopStackFrame) {
+          frame = *mCallData->mTopStackFrame;
+        }
+
+        nsCString id = frame.mFilename;
+        nsString innerID;
+        if (aWorkerPrivate->IsSharedWorker()) {
+          innerID = u"SharedWorker"_ns;
+        } else if (aWorkerPrivate->IsServiceWorker()) {
+          innerID = u"ServiceWorker"_ns;
+          // Use scope as ID so the webconsole can decide if the message should
+          // show up per tab
+          id = aWorkerPrivate->ServiceWorkerScope();
+        } else {
+          innerID = u"Worker"_ns;
+        }
+
+        mCallData->SetIDs(NS_ConvertUTF8toUTF16(id), innerID);
       }
 
-      mCallData->SetIDs(NS_ConvertUTF8toUTF16(id), innerID);
+      mClonedData.mGlobal = aGlobal;
+
+      ProcessCallData(aCx, mConsoleData, mCallData);
+
+      mClonedData.mGlobal = nullptr;
     }
-
-    mClonedData.mGlobal = aGlobal;
-
-    ProcessCallData(aCx, mConsoleData, mCallData);
-
-    mClonedData.mGlobal = nullptr;
   }
 
   RefPtr<ConsoleCallData> mCallData;
@@ -1283,6 +1299,9 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
 
   RefPtr<ConsoleCallData> callData =
       new ConsoleCallData(aMethodName, aMethodString, this);
+
+  MutexAutoLock lock(callData->mMutex);
+
   if (!StoreCallData(aCx, callData, aData)) {
     return;
   }
@@ -1416,7 +1435,6 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
       if (callData->mTopStackFrame.isSome()) {
         filename = callData->mTopStackFrame->mFilename;
       }
-
       callData->SetIDs(u"jsm"_ns, NS_ConvertUTF8toUTF16(filename));
     }
 
@@ -1501,6 +1519,7 @@ void MainThreadConsoleData::ProcessCallData(
     const Sequence<JS::Value>& aArguments) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aData);
+  aData->mMutex.AssertCurrentThreadOwns();
 
   JS::Rooted<JS::Value> eventValue(aCx);
 
@@ -1561,6 +1580,8 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
   MOZ_ASSERT(aData);
   MOZ_ASSERT(aTargetScope);
   MOZ_ASSERT(JS_IsGlobalObject(aTargetScope));
+
+  aData->mMutex.AssertCurrentThreadOwns();
 
   ConsoleStackEntry frame;
   if (aData->mTopStackFrame) {
@@ -2490,11 +2511,14 @@ void Console::RetrieveConsoleEvents(JSContext* aCx,
     // Here we have aCx and sequence in the same compartment.
     // targetScope is the destination scope and value will be populated in its
     // compartment.
-    if (NS_WARN_IF(!PopulateConsoleNotificationInTheTargetScope(
-            aCx, sequence, targetScope, &value, mCallDataStorage[i],
-            &mGroupStack))) {
-      aRv.Throw(NS_ERROR_FAILURE);
-      return;
+    {
+      MutexAutoLock lock(mCallDataStorage[i]->mMutex);
+      if (NS_WARN_IF(!PopulateConsoleNotificationInTheTargetScope(
+              aCx, sequence, targetScope, &value, mCallDataStorage[i],
+              &mGroupStack))) {
+        aRv.Throw(NS_ERROR_FAILURE);
+        return;
+      }
     }
 
     aEvents.AppendElement(value);
