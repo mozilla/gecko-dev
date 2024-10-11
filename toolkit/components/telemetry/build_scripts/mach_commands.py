@@ -6,23 +6,22 @@ from mach.decorators import Command, CommandArgument
 
 TODO_FILL_DESCRIPTION = "TODO: Fill in this description. You _can_ use **markdown**."
 GENERATED_BY_DESCRIPTION = (
-    "This event was generated to correspond to the Legacy Telemetry event {}."
+    "This {metric} was generated to correspond to the Legacy Telemetry {kind} {name}."
 )
 DESCRIPTION_INDENT = "      "
 LIST_INDENT = "      - "
 BUG_URL_TEMPLATE = "https://bugzil.la/{}"
 
-GLEAN_EVENT_TEMPLATE = """
+GLEAN_METRIC_TEMPLATE = """
   {name}:
-    type: event
+    type: {metric_type}
     description: >
 {multiline_description}
     bugs:{bugs_alias}{bugs_list}
     data_reviews:{data_alias}{bugs_list}
     notification_emails:{emails_alias}{emails_list}
     expires: {expiry}
-    extra_keys:{extra_alias}{extra_keys}
-    telemetry_mirror: {legacy_enum}
+    {extra}telemetry_mirror: {legacy_enum}
 """.strip(
     "\n"
 )
@@ -65,7 +64,7 @@ def mach_gifft(command_context, telemetry_probe_name):
     sys.path.append(path.join(telemetrydir, "build_scripts"))
     import textwrap
 
-    from mozparsers import parse_events
+    from mozparsers import parse_events, parse_scalars
 
     events = parse_events.load_events(path.join(telemetrydir, "Events.yaml"), True)
     for e in events:
@@ -91,7 +90,9 @@ def mach_gifft(command_context, telemetry_probe_name):
                 )
                 multiline_description += "\n"
                 multiline_description += textwrap.fill(
-                    GENERATED_BY_DESCRIPTION.format(legacy_name),
+                    GENERATED_BY_DESCRIPTION.format(
+                        metric="event", kind="event", name=legacy_name
+                    ),
                     width=80 - len(DESCRIPTION_INDENT),
                     initial_indent=DESCRIPTION_INDENT,
                     subsequent_indent=DESCRIPTION_INDENT,
@@ -164,8 +165,9 @@ def mach_gifft(command_context, telemetry_probe_name):
                         return f" *{alias}"
 
                 print(
-                    GLEAN_EVENT_TEMPLATE.format(
+                    GLEAN_METRIC_TEMPLATE.format(
                         name=to_snake_case(name),
+                        metric_type="event",
                         multiline_description=multiline_description,
                         bugs_alias=generate_alias(bugs_list, bugs_alias),
                         bugs_list=bugs_list,
@@ -173,10 +175,92 @@ def mach_gifft(command_context, telemetry_probe_name):
                         emails_alias=generate_alias(emails_list, emails_alias),
                         emails_list=emails_list,
                         expiry=expiry,
-                        extra_alias=generate_alias(extra_keys, extra_alias),
-                        extra_keys=extra_keys,
+                        extra="extra_keys:{extra_alias}{extra_keys}\n    ".format(
+                            extra_alias=generate_alias(extra_keys, extra_alias),
+                            extra_keys=extra_keys,
+                        ),
                         legacy_enum=legacy_enum,
                     )
                 )
                 print()  # We want a newline between event definitions.
             break
+
+    scalars = parse_scalars.load_scalars(path.join(telemetrydir, "Scalars.yaml"))
+    for s in scalars:
+        if s.category + "." + s.name == telemetry_probe_name:
+            category = s.category
+            name = s.name
+            legacy_name = category + "." + name
+            description = s._definition.get("description", TODO_FILL_DESCRIPTION)
+            multiline_description = textwrap.fill(
+                description,
+                width=80 - len(DESCRIPTION_INDENT),
+                initial_indent=DESCRIPTION_INDENT,
+                subsequent_indent=DESCRIPTION_INDENT,
+            )
+            multiline_description += "\n"
+            multiline_description += textwrap.fill(
+                GENERATED_BY_DESCRIPTION.format(
+                    name=legacy_name, metric="metric", kind="scalar"
+                ),
+                width=80 - len(DESCRIPTION_INDENT),
+                initial_indent=DESCRIPTION_INDENT,
+                subsequent_indent=DESCRIPTION_INDENT,
+            )
+
+            bugs_list = "\n" + textwrap.indent(
+                "\n".join(
+                    map(
+                        lambda b: BUG_URL_TEMPLATE.format(b),
+                        s._definition.get("bug_numbers", []),
+                    )
+                ),
+                LIST_INDENT,
+            )
+            emails_list = "\n" + textwrap.indent(
+                "\n".join(s._definition.get("notification_emails", [])),
+                LIST_INDENT,
+            )
+
+            # expires is a string like `"123.0a1"` or `"never"`,
+            # but Glean wants a number like `123` or `never`.
+            expiry = s.expires.strip('"').split(".")[0]
+
+            metric_type = s.kind
+            if metric_type == "uint":
+                if s.keyed:
+                    metric_type = "labeled_counter"
+                else:
+                    # The caller will replace "counter" with "quantity" in the output when needed.
+                    metric_type = "counter"
+            elif s.keyed:
+                if metric_type == "boolean":
+                    metric_type = "labeled_boolean"
+                elif metric_type == "string":
+                    metric_type = "labeled_string"
+
+            extra = ""
+            if s.keys:
+                extra = (
+                    "labels:\n"
+                    + "\n".join(map(lambda key: "      - " + key, s.keys))
+                    + "\n    "
+                )
+
+            print(f"{to_snake_case(category)}:")
+            print(
+                GLEAN_METRIC_TEMPLATE.format(
+                    name=to_snake_case(name),
+                    metric_type=metric_type,
+                    multiline_description=multiline_description,
+                    bugs_alias="",
+                    bugs_list=bugs_list,
+                    data_alias="",
+                    emails_alias="",
+                    emails_list=emails_list,
+                    extra=extra,
+                    expiry=expiry,
+                    legacy_enum=s.enum_label,
+                )
+            )
+            print()  # We want a newline between metric definitions.
