@@ -167,9 +167,9 @@ class DateTimeInfo {
     return guard->utcToLocalStandardOffsetSeconds_;
   }
 
-#if JS_HAS_INTL_API
   enum class TimeZoneOffset { UTC, Local };
 
+#if JS_HAS_INTL_API
   /**
    * Return the time zone offset, including DST, in milliseconds at the
    * given time. The input time can be either at UTC or at local time.
