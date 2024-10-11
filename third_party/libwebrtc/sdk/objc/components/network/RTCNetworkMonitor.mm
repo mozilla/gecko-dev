@@ -89,6 +89,7 @@ rtc::AdapterType AdapterTypeFromInterfaceType(nw_interface_type_t interfaceType)
               RTCLog(@"NW path monitor available interface: %s", name);
               rtc::AdapterType adapterType = AdapterTypeFromInterfaceType(interfaceType);
               map->insert(std::pair<std::string, rtc::AdapterType>(name, adapterType));
+              return true;
             });
         @synchronized(strongSelf) {
           webrtc::NetworkMonitorObserver *observer = strongSelf->_observer;
