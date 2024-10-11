@@ -21,8 +21,6 @@
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
-#include "api/field_trials_view.h"
-#include "api/transport/field_trial_based_config.h"
 #include "modules/audio_coding/codecs/opus/audio_decoder_opus.h"
 #include "rtc_base/checks.h"
 
@@ -89,23 +87,6 @@ std::unique_ptr<AudioDecoder> AudioDecoderOpus::MakeAudioDecoder(
   }
   return std::make_unique<AudioDecoderOpusImpl>(
       env.field_trials(), config.num_channels, config.sample_rate_hz);
-}
-
-std::unique_ptr<AudioDecoder> AudioDecoderOpus::MakeAudioDecoder(
-    Config config,
-    absl::optional<AudioCodecPairId> /*codec_pair_id*/,
-    const FieldTrialsView* field_trials) {
-  if (!config.IsOk()) {
-    RTC_DCHECK_NOTREACHED();
-    return nullptr;
-  }
-  if (field_trials == nullptr) {
-    return std::make_unique<AudioDecoderOpusImpl>(
-        FieldTrialBasedConfig(), config.num_channels, config.sample_rate_hz);
-  } else {
-    return std::make_unique<AudioDecoderOpusImpl>(
-        *field_trials, config.num_channels, config.sample_rate_hz);
-  }
 }
 
 }  // namespace webrtc

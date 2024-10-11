@@ -227,7 +227,7 @@ index a71867a326..3f6bc186ab 100644
  
  rtc_source_set("audio_encoder_ilbc_config") {
 diff --git a/api/audio_codecs/opus/BUILD.gn b/api/audio_codecs/opus/BUILD.gn
-index 8c673116de..cc05e11279 100644
+index f96256e3c5..a82812d3f3 100644
 --- a/api/audio_codecs/opus/BUILD.gn
 +++ b/api/audio_codecs/opus/BUILD.gn
 @@ -8,8 +8,8 @@
