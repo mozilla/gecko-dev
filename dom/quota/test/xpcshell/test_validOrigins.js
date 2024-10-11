@@ -78,11 +78,7 @@ async function testSteps() {
     info(`Testing ${origin.url}`);
 
     try {
-      request = initTemporaryOrigin(
-        "default",
-        getPrincipal(origin.url),
-        /* createIfNonExistent */ true
-      );
+      request = initTemporaryOrigin("default", getPrincipal(origin.url));
       await requestFinished(request);
 
       ok(true, "Should not have thrown");

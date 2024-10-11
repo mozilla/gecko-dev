@@ -440,7 +440,7 @@ mozilla::ipc::IPCResult Quota::RecvInitializePersistentOrigin(
 
 mozilla::ipc::IPCResult Quota::RecvInitializeTemporaryOrigin(
     const PersistenceType& aPersistenceType,
-    const PrincipalInfo& aPrincipalInfo, const bool& aCreateIfNonExistent,
+    const PrincipalInfo& aPrincipalInfo,
     InitializeTemporaryOriginResolver&& aResolve) {
   AssertIsOnBackgroundThread();
 
@@ -459,9 +459,7 @@ mozilla::ipc::IPCResult Quota::RecvInitializeTemporaryOrigin(
                 QuotaManager::GetOrCreate(),
                 ResolveBoolResponseAndReturn(aResolve));
 
-  quotaManager
-      ->InitializeTemporaryOrigin(aPersistenceType, aPrincipalInfo,
-                                  aCreateIfNonExistent)
+  quotaManager->InitializeTemporaryOrigin(aPersistenceType, aPrincipalInfo)
       ->Then(GetCurrentSerialEventTarget(), __func__,
              BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
 

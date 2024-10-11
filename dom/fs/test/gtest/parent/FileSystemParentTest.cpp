@@ -36,11 +36,10 @@ void FileSystemParentTest::TearDown() {
 }
 
 // static
-void FileSystemParentTest::InitializeTemporaryOrigin(
-    bool aCreateIfNonExistent) {
+void FileSystemParentTest::InitializeTemporaryOrigin() {
   ASSERT_NO_FATAL_FAILURE(
       QuotaManagerDependencyFixture::InitializeTemporaryOrigin(
-          GetTestOriginMetadata(), aCreateIfNonExistent));
+          GetTestOriginMetadata()));
 }
 
 //  static

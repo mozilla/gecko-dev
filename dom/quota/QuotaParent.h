@@ -64,7 +64,7 @@ class Quota final : public PQuotaParent {
 
   virtual mozilla::ipc::IPCResult RecvInitializeTemporaryOrigin(
       const PersistenceType& aPersistenceType,
-      const PrincipalInfo& aPrincipalInfo, const bool& aCreateIfNonExistent,
+      const PrincipalInfo& aPrincipalInfo,
       InitializeTemporaryOriginResolver&& aResolve) override;
 
   virtual mozilla::ipc::IPCResult RecvInitializePersistentClient(

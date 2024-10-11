@@ -59,7 +59,7 @@ TEST_F(TestFileOutputStream, extendFileStreamWithSetEOF) {
 
       {
         auto res = quotaManager->EnsureTemporaryOriginIsInitializedInternal(
-            originMetadata, /* aCreateIfNonExistent */ true);
+            originMetadata);
         ASSERT_TRUE(res.isOk());
       }
 

@@ -170,11 +170,10 @@ nsresult EnsureFileSystemDirectory(
   quota::QuotaManager* quotaManager = quota::QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  QM_TRY_INSPECT(const auto& fileSystemDirectory,
-                 quotaManager
-                     ->EnsureTemporaryOriginIsInitializedInternal(
-                         aOriginMetadata, /* aCreateIfNonExistent */ true)
-                     .map([](const auto& aPair) { return aPair.first; }));
+  QM_TRY_INSPECT(
+      const auto& fileSystemDirectory,
+      quotaManager->EnsureTemporaryOriginIsInitializedInternal(aOriginMetadata)
+          .map([](const auto& aPair) { return aPair.first; }));
 
   QM_TRY(QM_TO_RESULT(fileSystemDirectory->AppendRelativePath(
       NS_LITERAL_STRING_FROM_CSTRING(FILESYSTEM_DIRECTORY_NAME))));

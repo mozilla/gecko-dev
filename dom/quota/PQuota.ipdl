@@ -142,8 +142,7 @@ parent:
       returns(BoolResponse response);
 
   async InitializeTemporaryOrigin(PersistenceType persistenceType,
-                                  PrincipalInfo principalInfo,
-                                  bool createIfNonExistent)
+                                  PrincipalInfo principalInfo)
       returns(BoolResponse response);
 
   async InitializePersistentClient(PrincipalInfo principalInfo,
