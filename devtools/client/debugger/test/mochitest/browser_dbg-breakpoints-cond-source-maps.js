@@ -16,7 +16,7 @@ add_task(async function () {
   await setLogPoint(dbg, 55);
   await waitForConditionalPanelFocus(dbg);
   ok(
-    !!getConditionalPanel(dbg, 55),
+    !!(await getConditionalPanelAtLine(dbg, 55)),
     "conditional panel panel is open on line 55"
   );
   is(
@@ -27,19 +27,10 @@ add_task(async function () {
 });
 
 async function setLogPoint(dbg, index) {
-  const gutterEl = await getEditorLineGutter(dbg, index);
-  rightClickEl(dbg, gutterEl.firstChild);
+  rightClickElement(dbg, "gutterElement", index);
   await waitForContextMenu(dbg);
   selectContextMenuItem(
     dbg,
     `${selectors.addLogItem},${selectors.editLogItem}`
   );
-}
-
-async function waitForConditionalPanelFocus(dbg) {
-  await waitFor(() => dbg.win.document.activeElement.tagName === "TEXTAREA");
-}
-
-function getConditionalPanel(dbg, line) {
-  return getCM(dbg).doc.getLineHandle(line - 1).widgets[0];
 }

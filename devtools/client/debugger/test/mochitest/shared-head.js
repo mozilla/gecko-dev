@@ -1551,6 +1551,44 @@ async function scrollAndGetEditorLineGutterElement(dbg, line) {
 }
 
 /**
+ * Gets node at a specific line in the editor
+ * @param {*} dbg
+ * @param {Number} line
+ * @returns
+ */
+async function getNodeAtEditorLine(dbg, line) {
+  if (!isCm6Enabled) {
+    return getEditorLine(dbg, line);
+  }
+  // To handle virtualized lines accurately, lets use the
+  // cm6 utility here.
+  await scrollEditorIntoView(dbg, line, 0);
+  return getCMEditor(dbg).getElementAtLine(line);
+}
+
+async function getConditionalPanelAtLine(dbg, line) {
+  info(`Get conditional panel at line ${line}`);
+  let el = await getNodeAtEditorLine(dbg, line);
+  if (isCm6Enabled) {
+    // In CM6 the conditional panel for a specific line
+    // is injected in a sibling node just after.
+    el = el.nextSibling;
+  }
+  return el.querySelector(".conditional-breakpoint-panel");
+}
+
+async function waitForConditionalPanelFocus(dbg) {
+  if (isCm6Enabled) {
+    return waitFor(
+      () =>
+        dbg.win.document.activeElement.classList.contains("cm-content") &&
+        dbg.win.document.activeElement.closest(".conditional-breakpoint-panel")
+    );
+  }
+  return waitFor(() => dbg.win.document.activeElement.tagName === "TEXTAREA");
+}
+
+/**
  * Opens the debugger editor context menu in either codemirror or the
  * the debugger gutter.
  * @param {Object} dbg
@@ -1838,8 +1876,12 @@ const selectors = {
     `.outline-list__element:nth-child(${i}) .function-signature`,
   outlineItems: ".outline-list__element",
   conditionalPanel: ".conditional-breakpoint-panel",
-  conditionalPanelInput: ".conditional-breakpoint-panel textarea",
-  logPanelInput: ".conditional-breakpoint-panel.log-point textarea",
+  conditionalPanelInput: `.conditional-breakpoint-panel  ${
+    isCm6Enabled ? ".cm-content" : "textarea"
+  }`,
+  logPanelInput: `.conditional-breakpoint-panel.log-point ${
+    isCm6Enabled ? ".cm-content" : "textarea"
+  }`,
   conditionalBreakpointInSecPane: ".breakpoint.is-conditional",
   logPointPanel: ".conditional-breakpoint-panel.log-point",
   logPointInSecPane: ".breakpoint.is-log",
@@ -2087,6 +2129,11 @@ async function typeInPanel(dbg, text, inLogPanel = false) {
   // Position cursor reliably at the end of the text.
   pressKey(dbg, "End");
   type(dbg, text);
+  // Wait for any possible CM6 scroll actions in the conditional panel editor
+  // to complete
+  if (isCm6Enabled) {
+    await wait(1000);
+  }
   pressKey(dbg, "Enter");
 }
 
@@ -2197,6 +2244,7 @@ function getEditorContent(dbg) {
  * @returns
  */
 function setEditorCursorAt(dbg, line, column) {
+  scrollEditorIntoView(dbg, line, 0);
   return getCMEditor(dbg).setCursorAt(line, column);
 }
 
