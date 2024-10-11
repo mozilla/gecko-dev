@@ -20,6 +20,7 @@
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_format.h"
+#include "api/environment/environment.h"
 #include "api/make_ref_counted.h"
 #include "api/scoped_refptr.h"
 
@@ -35,12 +36,47 @@ template <>
 struct Helper<> {
   static void AppendSupportedDecoders(std::vector<AudioCodecSpec>* specs) {}
   static bool IsSupportedDecoder(const SdpAudioFormat& format) { return false; }
-  static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+
+  static absl::Nullable<std::unique_ptr<AudioDecoder>> MakeAudioDecoder(
+      const Environment& env,
       const SdpAudioFormat& format,
       absl::optional<AudioCodecPairId> codec_pair_id) {
     return nullptr;
   }
 };
+
+// Use ranked overloads (abseil.io/tips/229) for dispatching.
+struct Rank0 {};
+struct Rank1 : Rank0 {};
+
+template <typename Trait,
+          typename = std::enable_if_t<std::is_convertible_v<
+              decltype(Trait::MakeAudioDecoder(
+                  std::declval<Environment>(),
+                  std::declval<typename Trait::Config>(),
+                  std::declval<absl::optional<AudioCodecPairId>>())),
+              std::unique_ptr<AudioDecoder>>>>
+absl::Nullable<std::unique_ptr<AudioDecoder>> CreateDecoder(
+    Rank1,
+    const Environment& env,
+    const typename Trait::Config& config,
+    absl::optional<AudioCodecPairId> codec_pair_id) {
+  return Trait::MakeAudioDecoder(env, config, codec_pair_id);
+}
+
+template <typename Trait,
+          typename = std::enable_if_t<std::is_convertible_v<
+              decltype(Trait::MakeAudioDecoder(
+                  std::declval<typename Trait::Config>(),
+                  std::declval<absl::optional<AudioCodecPairId>>())),
+              std::unique_ptr<AudioDecoder>>>>
+absl::Nullable<std::unique_ptr<AudioDecoder>> CreateDecoder(
+    Rank0,
+    const Environment& env,
+    const typename Trait::Config& config,
+    absl::optional<AudioCodecPairId> codec_pair_id) {
+  return Trait::MakeAudioDecoder(config, codec_pair_id);
+}
 
 // Inductive case: Called with n + 1 template parameters; calls subroutines
 // with n template parameters.
@@ -58,17 +94,15 @@ struct Helper<T, Ts...> {
                   "absl::optional<T::Config>");
     return opt_config ? true : Helper<Ts...>::IsSupportedDecoder(format);
   }
-  // TODO: bugs.webrtc.org/356878416 - Migrate to `Create`
-  static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+
+  static absl::Nullable<std::unique_ptr<AudioDecoder>> MakeAudioDecoder(
+      const Environment& env,
       const SdpAudioFormat& format,
       absl::optional<AudioCodecPairId> codec_pair_id) {
     auto opt_config = T::SdpToConfig(format);
-    return opt_config ?
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                      T::MakeAudioDecoder(*opt_config, codec_pair_id)
-#pragma clang diagnostic pop
-                      : Helper<Ts...>::MakeAudioDecoder(format, codec_pair_id);
+    return opt_config.has_value()
+               ? CreateDecoder<T>(Rank1{}, env, *opt_config, codec_pair_id)
+               : Helper<Ts...>::MakeAudioDecoder(env, format, codec_pair_id);
   }
 };
 
@@ -85,10 +119,11 @@ class AudioDecoderFactoryT : public AudioDecoderFactory {
     return Helper<Ts...>::IsSupportedDecoder(format);
   }
 
-  std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+  absl::Nullable<std::unique_ptr<AudioDecoder>> Create(
+      const Environment& env,
       const SdpAudioFormat& format,
       absl::optional<AudioCodecPairId> codec_pair_id) override {
-    return Helper<Ts...>::MakeAudioDecoder(format, codec_pair_id);
+    return Helper<Ts...>::MakeAudioDecoder(env, format, codec_pair_id);
   }
 };
 
@@ -109,7 +144,12 @@ class AudioDecoderFactoryT : public AudioDecoderFactory {
 //   void AppendSupportedDecoders(std::vector<AudioCodecSpec>* specs);
 //
 //   // Creates an AudioDecoder for the specified format. Used to implement
-//   // AudioDecoderFactory::MakeAudioDecoder().
+//   // AudioDecoderFactory::Create().
+//   std::unique_ptr<AudioEncoder> MakeAudioDecoder(
+//       const Environment& env,
+//       const ConfigType& config,
+//       absl::optional<AudioCodecPairId> codec_pair_id);
+//   or
 //   std::unique_ptr<AudioDecoder> MakeAudioDecoder(
 //       const ConfigType& config,
 //       absl::optional<AudioCodecPairId> codec_pair_id);

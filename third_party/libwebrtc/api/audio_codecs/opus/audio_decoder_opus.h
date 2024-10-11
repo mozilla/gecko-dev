@@ -44,6 +44,12 @@ struct RTC_EXPORT AudioDecoderOpus {
 
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(const Environment& env,
                                                         Config config);
+  static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+      const Environment& env,
+      Config config,
+      absl::optional<AudioCodecPairId> /*codec_pair_id*/) {
+    return MakeAudioDecoder(env, config);
+  }
 };
 
 }  // namespace webrtc
