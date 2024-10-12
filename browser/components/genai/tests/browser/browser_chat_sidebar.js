@@ -59,6 +59,7 @@ add_task(async function test_sidebar_providers() {
  * Check that onboarding renders
  */
 add_task(async function test_sidebar_onboarding() {
+  Services.fog.testResetFOG();
   await SidebarController.show("viewGenaiChatSidebar");
 
   const { document } = SidebarController.browser.contentWindow;
@@ -66,12 +67,22 @@ add_task(async function test_sidebar_onboarding() {
     document.querySelector("label:has(.localhost)")
   );
   Assert.ok(label, "Got a provider");
+  let events =
+    Glean.genaiChatbot.onboardingProviderChoiceDisplayed.testGetValue();
+  Assert.equal(events.length, 1, "Displayed onboarding once");
+  Assert.equal(events[0].extra.provider, "none", "Opened with no provider");
+  Assert.equal(events[0].extra.step, "1", "First step");
+
   label.click();
 
   const pickButton = await TestUtils.waitForCondition(() =>
     document.querySelector(".chat_pick .primary:not([disabled])")
   );
   Assert.ok(pickButton, "Got button to activate provider");
+  events = Glean.genaiChatbot.onboardingProviderSelection.testGetValue();
+  Assert.equal(events.length, 1, "Selected one provider");
+  Assert.equal(events[0].extra.provider, "localhost", "Picked localhost");
+  Assert.equal(events[0].extra.step, "1", "First step");
 
   pickButton.click();
 
@@ -84,6 +95,24 @@ add_task(async function test_sidebar_onboarding() {
     "http://localhost:8080",
     "Provider pref changed during onboarding"
   );
+  events = Glean.genaiChatbot.onboardingContinue.testGetValue();
+  Assert.equal(events.length, 1, "Continued once");
+  Assert.equal(
+    events[0].extra.provider,
+    "localhost",
+    "Continued with localhost"
+  );
+  Assert.equal(events[0].extra.step, "1", "First step");
+  events = await TestUtils.waitForCondition(() =>
+    Glean.genaiChatbot.onboardingTextHighlightDisplayed.testGetValue()
+  );
+  Assert.equal(events.length, 1, "Displayed highlight once");
+  Assert.equal(
+    events[0].extra.provider,
+    "localhost",
+    "Continued with localhost"
+  );
+  Assert.equal(events[0].extra.step, "2", "Second step");
 
   Services.prefs.clearUserPref("browser.ml.chat.provider");
   startButton.click();
@@ -92,6 +121,14 @@ add_task(async function test_sidebar_onboarding() {
     () => !document.getElementById("multi-stage-message-root")
   );
   Assert.ok(noOnboarding, "Onboarding container went away");
+  events = Glean.genaiChatbot.onboardingFinish.testGetValue();
+  Assert.equal(events.length, 1, "Finished once");
+  Assert.equal(
+    events[0].extra.provider,
+    "localhost",
+    "Finished with localhost"
+  );
+  Assert.equal(events[0].extra.step, "2", "Second step");
 
   SidebarController.hide();
 });
@@ -100,6 +137,7 @@ add_task(async function test_sidebar_onboarding() {
  * Check that more options menu renders
  */
 add_task(async function test_sidebar_menu() {
+  Services.fog.testResetFOG();
   await SpecialPowers.pushPrefEnv({
     set: [["browser.ml.chat.provider", "http://mochi.test:8888"]],
   });
@@ -122,6 +160,13 @@ add_task(async function test_sidebar_menu() {
   Assert.equal(items.length, 4, "Items added to menu");
   Assert.ok(items[1].hasAttribute("checked"), "Shortcuts shown");
   Assert.ok(!items[2].hasAttribute("checked"), "Shortcuts not hidden");
+  let events = Glean.genaiChatbot.sidebarMoreMenuDisplay.testGetValue();
+  Assert.equal(events.length, 1, "Displayed menu once");
+  Assert.equal(
+    events[0].extra.provider,
+    "custom",
+    "Opened with custom provider"
+  );
 
   // Disable shortcuts via menu
   items[2].click();
@@ -133,6 +178,19 @@ add_task(async function test_sidebar_menu() {
   items = popup.querySelectorAll("menuitem");
   Assert.ok(!items[1].hasAttribute("checked"), "Shortcuts not shown");
   Assert.ok(items[2].hasAttribute("checked"), "Shortcuts hidden");
+  events = Glean.genaiChatbot.sidebarMoreMenuClick.testGetValue();
+  Assert.equal(events.length, 1, "Clicked menu once");
+  Assert.equal(
+    events[0].extra.action,
+    "hide_shortcuts",
+    "Hide shortcuts clicked"
+  );
+  Assert.equal(events[0].extra.provider, "custom", "Still custom provider");
+  Assert.equal(
+    Glean.genaiChatbot.sidebarMoreMenuDisplay.testGetValue().length,
+    2,
+    "Opened second time"
+  );
 
   Services.prefs.clearUserPref("browser.ml.chat.shortcuts");
   const hidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");

@@ -139,6 +139,7 @@ function renderMore() {
     menu.innerHTML = "";
 
     const provider = lazy.GenAI.chatProviders.get(lazy.providerPref)?.name;
+    const providerId = lazy.GenAI.getProviderId();
     [
       [
         "menuitem",
@@ -148,38 +149,53 @@ function renderMore() {
             : "genai-options-reload-generic",
           { provider },
         ],
-        () => request(),
+        function reload() {
+          request();
+        },
       ],
       ["menuseparator"],
       [
         "menuitem",
         ["genai-options-show-shortcut"],
-        () => Services.prefs.setBoolPref("browser.ml.chat.shortcuts", true),
+        function show_shortcuts() {
+          Services.prefs.setBoolPref("browser.ml.chat.shortcuts", true);
+        },
         lazy.shortcutsPref,
       ],
       [
         "menuitem",
         ["genai-options-hide-shortcut"],
-        () => Services.prefs.setBoolPref("browser.ml.chat.shortcuts", false),
+        function hide_shortcuts() {
+          Services.prefs.setBoolPref("browser.ml.chat.shortcuts", false);
+        },
         !lazy.shortcutsPref,
       ],
       ["menuseparator"],
       [
         "menuitem",
         ["genai-options-about-chatbot"],
-        () => openLink(lazy.supportLink),
+        function about() {
+          openLink(lazy.supportLink);
+        },
       ],
     ].forEach(([type, l10n, command, checked]) => {
       const item = menu.appendChild(topDoc.createXULElement(type));
       if (type == "menuitem") {
         document.l10n.setAttributes(item, ...l10n);
-        item.addEventListener("command", command);
+        item.addEventListener("command", () => {
+          command();
+          Glean.genaiChatbot.sidebarMoreMenuClick.record({
+            action: command.name,
+            provider: providerId,
+          });
+        });
         if (checked) {
           item.setAttribute("checked", true);
         }
       }
     });
     menu.openPopup(button, "after_start");
+    Glean.genaiChatbot.sidebarMoreMenuDisplay.record({ provider: providerId });
   });
 }
 
@@ -191,6 +207,10 @@ function handleChange({ target }) {
       if (value == "") {
         target.value = lazy.providerPref;
         showOnboarding(1);
+        Glean.genaiChatbot.sidebarProviderMenuClick.record({
+          action: "details",
+          provider: lazy.GenAI.getProviderId(),
+        });
       } else {
         Services.prefs.setStringPref("browser.ml.chat.provider", value);
       }
@@ -207,9 +227,12 @@ var browserPromise = new Promise((resolve, reject) => {
       node.provider = await renderProviders();
       renderMore();
       resolve(node.chat);
-      document
-        .getElementById("header-close")
-        .addEventListener("click", closeSidebar);
+      document.getElementById("header-close").addEventListener("click", () => {
+        closeSidebar();
+        Glean.genaiChatbot.sidebarCloseClick.record({
+          provider: lazy.GenAI.getProviderId(),
+        });
+      });
     } catch (ex) {
       console.error("Failed to render on load", ex);
       reject(ex);
@@ -398,7 +421,13 @@ function showOnboarding(length) {
           const a = div.appendChild(document.createElement("a"));
           a.href = config.learnLink;
           a.tabIndex = -1;
-          a.addEventListener("click", handleLink);
+          a.addEventListener("click", ev => {
+            handleLink(ev);
+            Glean.genaiChatbot.onboardingProviderLearn.record({
+              provider: config.id,
+              step: 1,
+            });
+          });
           document.l10n.setAttributes(a, config.learnId);
         }
       });
@@ -410,7 +439,51 @@ function showOnboarding(length) {
         providerConfigs.get(value).url
       );
     },
-    AWSendEventTelemetry() {},
+    AWSendEventTelemetry({ event, event_context: { source }, message_id }) {
+      const { provider } = window.AWSendEventTelemetry;
+      const step = message_id.match(/chat_pick/) ? 1 : 2;
+      switch (true) {
+        case step == 1 && event == "IMPRESSION":
+          Glean.genaiChatbot.onboardingProviderChoiceDisplayed.record({
+            provider: lazy.GenAI.getProviderId(lazy.providerPref),
+            step,
+          });
+          break;
+        case step == 1 && source == "cta_paragraph":
+          Glean.genaiChatbot.onboardingLearnMore.record({ provider, step });
+          break;
+        case step == 1 && source == "primary_button":
+          Glean.genaiChatbot.onboardingContinue.record({ provider, step });
+          break;
+        case step == 1 && source == "additional_button":
+          Glean.genaiChatbot.onboardingClose.record({ provider, step });
+          break;
+        case step == 1 && source.startsWith("link"):
+          Glean.genaiChatbot.onboardingProviderTerms.record({
+            provider,
+            step,
+            text: source,
+          });
+          break;
+        // Assume generic click not yet handled above single select of provider
+        case step == 1 && event == "CLICK_BUTTON":
+          window.AWSendEventTelemetry.provider = source;
+          Glean.genaiChatbot.onboardingProviderSelection.record({
+            provider: source,
+            step,
+          });
+          break;
+        case step == 2 && event == "IMPRESSION":
+          Glean.genaiChatbot.onboardingTextHighlightDisplayed.record({
+            provider,
+            step,
+          });
+          break;
+        case step == 2 && source == "primary_button":
+          Glean.genaiChatbot.onboardingFinish.record({ provider, step });
+          break;
+      }
+    },
     AWSendToParent(message, action) {
       switch (action.type) {
         case "OPEN_URL":
@@ -442,6 +515,7 @@ function showOnboarding(length) {
             const link = links.appendChild(document.createElement("a"));
             const name = (link.dataset.l10nName = `link${i}`);
             link.href = config[name];
+            link.setAttribute("value", name);
           }
           document.l10n.setAttributes(links, config.linksId);
         }

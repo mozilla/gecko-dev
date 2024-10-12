@@ -11,6 +11,8 @@ $tags:
   - "Core :: Machine Learning"
 
 genai.chatbot:
+  # metrics
+
   enabled:
     type: boolean
     lifetime: application
@@ -22,7 +24,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D214470
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -39,7 +41,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D214470
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -56,7 +58,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D217782
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -73,7 +75,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D217782
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -90,11 +92,39 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D214470
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
       - metrics
+
+  # events
+
+  contextmenu_prompt_click:
+    type: event
+    description: >
+      Chatbot prompt was clicked from the context menu.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D214470
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      prompt:
+        type: string
+        description: Selected prompt id.
+      provider:
+        type: string
+        description: Selected provider id.
+      selection:
+        type: quantity
+        description: Selected text length.
 
   experiment_checkbox_click:
     type: event
@@ -106,7 +136,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D214470
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -115,6 +145,216 @@ genai.chatbot:
       enabled:
         type: boolean
         description: New/current state is enabled.
+
+  onboarding_close:
+    type: event
+    description: >
+      Chatbot onboarding closed from provider choice.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Which provider was last selected.
+      step:
+        type: quantity
+        description: Onboarding screen number.
+
+  onboarding_continue:
+    type: event
+    description: >
+      Chatbot onboarding continued from provider choice.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Which provider was last selected.
+      step:
+        type: quantity
+        description: Onboarding screen number.
+
+  onboarding_finish:
+    type: event
+    description: >
+      Chatbot onboarding finished with start chatting button.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Which provider was last selected.
+      step:
+        type: quantity
+        description: Onboarding screen number.
+
+  onboarding_learn_more:
+    type: event
+    description: >
+      Chatbot onboarding opened feature learn more link.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Which provider was last selected.
+      step:
+        type: quantity
+        description: Onboarding screen number.
+
+  onboarding_provider_choice_displayed:
+    type: event
+    description: >
+      Chatbot onboarding impression for provider choice screen.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Current provider id.
+      step:
+        type: quantity
+        description: Onboarding screen number.
+
+  onboarding_provider_learn:
+    type: event
+    description: >
+      Chatbot onboarding opened provider learn more link.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Which provider.
+      step:
+        type: quantity
+        description: Onboarding screen number.
+
+  onboarding_provider_selection:
+    type: event
+    description: >
+      Chatbot onboarding selected a provider.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Which provider.
+      step:
+        type: quantity
+        description: Onboarding screen number.
+
+  onboarding_provider_terms:
+    type: event
+    description: >
+      Chatbot onboarding opened provider terms link.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Which provider.
+      step:
+        type: quantity
+        description: Onboarding screen number.
+      text:
+        type: string
+        description: Which terms link.
+
+  onboarding_text_highlight_displayed:
+    type: event
+    description: >
+      Chatbot onboarding impression for text highlight screen.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Which provider was last selected.
+      step:
+        type: quantity
+        description: Onboarding screen number.
 
   provider_change:
     type: event
@@ -126,7 +366,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D214470
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -152,7 +392,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D217782
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -161,32 +401,6 @@ genai.chatbot:
       enabled:
         type: boolean
         description: New/current state is enabled.
-
-  contextmenu_prompt_click:
-    type: event
-    description: >
-      Chatbot prompt was clicked from the context menu.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1895813
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D214470
-    data_sensitivity:
-      - interaction
-    expires: 134
-    notification_emails:
-      - elee@mozilla.com
-    send_in_pings:
-      - events
-    extra_keys:
-      prompt:
-        type: string
-        description: Selected prompt id.
-      provider:
-        type: string
-        description: Selected provider id.
-      selection:
-        type: quantity
-        description: Selected text length.
 
   shortcuts_displayed:
     type: event
@@ -198,7 +412,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D217782
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -224,7 +438,27 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D217782
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      selection:
+        type: quantity
+        description: Selected text length.
+
+  shortcuts_hide_click:
+    type: event
+    description: >
+      Chatbot hide shortcuts was clicked from the shortcuts.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -244,7 +478,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D217782
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -260,6 +494,92 @@ genai.chatbot:
         type: quantity
         description: Selected text length.
 
+  sidebar_close_click:
+    type: event
+    description: >
+      Chatbot close X clicked.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Selected provider id.
+
+  sidebar_more_menu_click:
+    type: event
+    description: >
+      Chatbot more menu clicked an action.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      action:
+        type: string
+        description: Which action was clicked.
+      provider:
+        type: string
+        description: Selected provider id.
+
+  sidebar_more_menu_display:
+    type: event
+    description: >
+      Chatbot more menu opened.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Selected provider id.
+
+  sidebar_provider_menu_click:
+    type: event
+    description: >
+      Chatbot provider menu clicked an action.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911104
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D223938
+    data_sensitivity:
+      - interaction
+    expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      action:
+        type: string
+        description: Which action was clicked.
+      provider:
+        type: string
+        description: Selected provider id.
+
   sidebar_toggle:
     type: event
     description: >
@@ -270,7 +590,7 @@ genai.chatbot:
       - https://phabricator.services.mozilla.com/D214470
     data_sensitivity:
       - interaction
-    expires: 134
+    expires: 147
     notification_emails:
       - elee@mozilla.com
     send_in_pings:

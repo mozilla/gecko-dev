@@ -488,9 +488,12 @@ export const GenAI = {
               vbox.appendChild(document.createXULElement("toolbarseparator"));
               const hider = addItem();
               document.l10n.setAttributes(hider, "genai-shortcuts-hide");
-              hider.addEventListener("command", () =>
-                Services.prefs.setBoolPref("browser.ml.chat.shortcuts", false)
-              );
+              hider.addEventListener("command", () => {
+                Services.prefs.setBoolPref("browser.ml.chat.shortcuts", false);
+                Glean.genaiChatbot.shortcutsHideClick.record({
+                  selection: shortcuts.data.selection.length,
+                });
+              });
 
               popup.openPopup(shortcuts);
               popup.addEventListener(
