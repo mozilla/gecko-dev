@@ -3116,12 +3116,27 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
         *directory, timestamp,
         /* aPersisted */ true, originMetadata)));
   } else {
-    // Get the metadata (restore the metadata file if necessary). We only use
-    // the persisted flag.
-    QM_TRY_INSPECT(const auto& metadata,
-                   aQuotaManager.LoadFullOriginMetadataWithRestore(directory));
+    QM_TRY_INSPECT(
+        const bool& persisted,
+        ([&aQuotaManager, &originMetadata,
+          &directory]() -> mozilla::Result<bool, nsresult> {
+          Nullable<bool> persisted =
+              aQuotaManager.OriginPersisted(originMetadata);
 
-    if (!metadata.mPersisted) {
+          if (!persisted.IsNull()) {
+            return persisted.Value();
+          }
+
+          // Get the metadata (restore the metadata file if necessary). We only
+          // use the persisted flag.
+          QM_TRY_INSPECT(
+              const auto& metadata,
+              aQuotaManager.LoadFullOriginMetadataWithRestore(directory));
+
+          return metadata.mPersisted;
+        }()));
+
+    if (!persisted) {
       QM_TRY_INSPECT(const auto& file,
                      CloneFileAndAppend(
                          *directory, nsLiteralString(METADATA_V2_FILE_NAME)));
