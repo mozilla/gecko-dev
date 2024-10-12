@@ -179,6 +179,7 @@ export let RemotePageAccessManager = {
         "Profiles:UpdateProfileName",
         "Profiles:UpdateProfileAvatar",
         "Profiles:OpenDeletePage",
+        "Profiles:UpdateProfileTheme",
       ],
     },
     "about:protections": {

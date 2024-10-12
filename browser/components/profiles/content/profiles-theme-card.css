@@ -1,0 +1,61 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:host {
+  --preview-image-border-radius: 6px;
+  --theme-card-border-width: 2px;
+}
+
+moz-card {
+  --card-padding: 0;
+}
+
+.theme-card {
+  width: 120px;
+  outline-offset: var(--focus-outline-offset);
+  border: var(--focus-outline-width) solid var(--card-border-color);
+
+  &:hover {
+    background-color: var(--button-background-color-hover);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+  }
+}
+
+.theme-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.img-holder {
+  width: 100%;
+  height: 40px;
+
+  border-top-left-radius: var(--preview-image-border-radius);
+  border-top-right-radius: var(--preview-image-border-radius);
+
+  > img {
+    -moz-context-properties: fill, stroke, fill-opacity;
+    width: 100%;
+
+    border-top-left-radius: var(--preview-image-border-radius);
+    border-top-right-radius: var(--preview-image-border-radius);
+  }
+}
+
+.theme-name {
+  display: flex;
+  align-items: center;
+  padding-inline-start: var(--space-medium);
+  padding-block: var(--space-small);
+
+  border-width: var(--theme-card-border-width);
+  border-top: var(--card-border);
+}
+
+:host([selected]) .theme-card {
+  border-color: var(--focus-outline-color);
+}

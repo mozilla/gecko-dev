@@ -15,6 +15,8 @@ import "chrome://global/content/elements/moz-button.mjs";
 import "chrome://global/content/elements/moz-button-group.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/profiles/avatar.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/profiles/profiles-theme-card.mjs";
 
 const SAVE_NAME_TIMEOUT = 2000;
 const SAVED_MESSAGE_TIMEOUT = 5000;
@@ -26,6 +28,7 @@ export class EditProfileCard extends MozLitElement {
   static properties = {
     profile: { type: Object },
     profiles: { type: Array },
+    themes: { type: Array },
   };
 
   static queries = {
@@ -35,6 +38,7 @@ export class EditProfileCard extends MozLitElement {
     savedMessage: "#saved-message",
     avatars: { all: "profiles-avatar" },
     headerAvatar: "#header-avatar",
+    themeCards: { all: "profiles-theme-card" },
   };
 
   connectedCallback() {
@@ -48,11 +52,12 @@ export class EditProfileCard extends MozLitElement {
       return;
     }
 
-    let { currentProfile, profiles } = await RPMSendQuery(
+    let { currentProfile, profiles, themes } = await RPMSendQuery(
       "Profiles:GetEditProfileContent"
     );
     this.profile = currentProfile;
     this.profiles = profiles;
+    this.themes = themes;
 
     this.initialized = true;
   }
@@ -94,6 +99,10 @@ export class EditProfileCard extends MozLitElement {
 
     this.profile.name = newName;
     RPMSendAsyncMessage("Profiles:UpdateProfileName", this.profile);
+  }
+
+  updateTheme(newThemeId) {
+    RPMSendAsyncMessage("Profiles:UpdateProfileTheme", newThemeId);
   }
 
   async updateAvatar(newAvatar) {
@@ -175,21 +184,29 @@ export class EditProfileCard extends MozLitElement {
   }
 
   themesTemplate() {
-    // TODO: bug 1886005 will implement the theme cards
-    let themes = [
-      "Light",
-      "Marigold",
-      "Lichen",
-      "Magnolia",
-      "Lavendar",
-      "Dark",
-      "Ocean",
-      "Terracotta",
-      "Moss",
-      "System",
-    ];
+    if (!this.themes) {
+      return null;
+    }
 
-    return themes.map(s => html`<moz-card>${s}</moz-card>`);
+    return this.themes.map(
+      t =>
+        html`<profiles-theme-card
+          @click=${this.handleThemeClick}
+          .theme=${t}
+          ?selected=${t.isActive}
+        ></profiles-theme-card>`
+    );
+  }
+
+  handleThemeClick(event) {
+    for (let t of this.themeCards) {
+      t.selected = false;
+    }
+
+    let selectedTheme = event.target;
+    selectedTheme.selected = true;
+
+    this.updateTheme(selectedTheme.theme.id);
   }
 
   avatarsTemplate() {
@@ -247,7 +264,11 @@ export class EditProfileCard extends MozLitElement {
 
             <h3 data-l10n-id="edit-profile-page-theme-header"></h3>
             <div id="themes">${this.themesTemplate()}</div>
-            <a href="" data-l10n-id="edit-profile-page-explore-themes"></a>
+            <a
+              href="about:addons"
+              target="_blank"
+              data-l10n-id="edit-profile-page-explore-themes"
+            ></a>
 
             <h3 data-l10n-id="edit-profile-page-avatar-header"></h3>
             <div id="avatars">${this.avatarsTemplate()}</div>

@@ -11,7 +11,7 @@
     <meta charset="utf-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src resource: chrome:; object-src 'none'; img-src chrome:;"
+      content="default-src chrome:; object-src 'none'; img-src chrome:;"
     />
 
     <link rel="localization" href="branding/brand.ftl" />
@@ -27,6 +27,8 @@
       type="module"
       src="chrome://browser/content/profiles/edit-profile-card.mjs"
     ></script>
+
+    <script src="chrome://browser/content/contentTheme.js"></script>
 
     <title data-l10n-id="edit-profile-page-title"></title>
   </head>
