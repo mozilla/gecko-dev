@@ -28,7 +28,6 @@ add_setup(async function() {
   await new Promise(resolve => SimpleTest.waitForFocus(resolve));
 
   // Set popup preferences.
-  await SpecialPowers.pushPrefEnv({ set: [["dom.block_multiple_popups", true]] });
   await SpecialPowers.pushPrefEnv({ set: [["dom.popup.experimental", true]] });
 });
 

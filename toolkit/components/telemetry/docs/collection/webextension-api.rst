@@ -109,7 +109,7 @@ Sets the scalar to the maximum of the current and the passed value
 ``recordEvent``
 ~~~~~~~~~~~~~~~
 
-Deprecated since Firefox 132 by bug 1894533.
+As of Firefox 132, this method is a no-op. See Bug 1894533.
 
 Instead, use :doc:`Glean APIs <../../glean/user/glean_for_legacy_events>` to record events.
 
@@ -128,13 +128,13 @@ Register new scalars to record them from addons. See :ref:`registerscalars` for 
 ``registerEvents``
 ~~~~~~~~~~~~~~~~~~
 
-Deprecated since Firefox 132 by bug 1894533.
+As of Firefox 132, this method is a no-op. See Bug 1894533.
 
 Instead, use :doc:`Glean event definitions <../../glean/user/glean_for_legacy_events>` for your extension's events.
 
 ``setEventRecordingEnabled``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Deprecated since Firefox 133 by bug 1920562.
+As of Firefox 133, this method is a no-op. Event recording is enabled by default unconditionally. See Bug 1920562.
 
 Instead, use :doc:`Glean event definitions <../../glean/user/glean_for_legacy_events>` for your extension's events.

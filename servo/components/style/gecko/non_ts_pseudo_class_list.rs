@@ -44,6 +44,7 @@ macro_rules! apply_non_ts_list {
                 ("focus", Focus, FOCUS, _),
                 ("focus-within", FocusWithin, FOCUS_WITHIN, _),
                 ("focus-visible", FocusVisible, FOCUSRING, _),
+                ("has-slotted", HasSlotted, HAS_SLOTTED, _),
                 ("hover", Hover, HOVER, _),
                 ("-moz-drag-over", MozDragOver, DRAGOVER, _),
                 ("target", Target, URLTARGET, _),

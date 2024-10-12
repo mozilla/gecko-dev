@@ -637,11 +637,13 @@ async function checkClickOnNode(
 
   if (logPointExpr !== undefined && logPointExpr !== "") {
     const inputEl = dbg.panelWin.document.activeElement;
-    is(
-      inputEl.tagName,
-      "TEXTAREA",
-      "The textarea of logpoint panel is focused"
-    );
+
+    const isPanelFocused = isCm6Enabled
+      ? inputEl.classList.contains("cm-content") &&
+        inputEl.closest(".conditional-breakpoint-panel.log-point")
+      : inputEl.tagName == "TEXTAREA";
+
+    ok(isPanelFocused, "The textarea of logpoint panel is focused");
 
     const inputValue = inputEl.parentElement.parentElement.innerText.trim();
     is(

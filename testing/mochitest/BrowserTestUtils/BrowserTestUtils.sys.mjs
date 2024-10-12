@@ -247,6 +247,17 @@ export var BrowserTestUtils = {
     });
   },
 
+  showOnlyTheseTabs(tabbrowser, tabs) {
+    for (let tab of tabs) {
+      tabbrowser.showTab(tab);
+    }
+    for (let tab of tabbrowser.tabs) {
+      if (!tabs.includes(tab)) {
+        tabbrowser.hideTab(tab);
+      }
+    }
+  },
+
   /**
    * Checks if a DOM element is hidden.
    *

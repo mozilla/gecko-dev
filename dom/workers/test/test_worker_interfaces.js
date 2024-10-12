@@ -302,6 +302,10 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "PerformanceServerTiming", insecureContext: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "Permissions", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "PermissionStatus", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ProgressEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "PromiseRejectionEvent", insecureContext: true },

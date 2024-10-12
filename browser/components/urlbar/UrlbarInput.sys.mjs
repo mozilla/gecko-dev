@@ -2095,7 +2095,7 @@ export class UrlbarInput {
 
   set searchMode(searchMode) {
     this.setSearchMode(searchMode, this.window.gBrowser.selectedBrowser);
-    this.searchModeSwitcher.onSearchModeChanged();
+    this.searchModeSwitcher?.onSearchModeChanged();
     lazy.UrlbarSearchTermsPersistence.onSearchModeChanged(this.window);
   }
 
@@ -3742,7 +3742,7 @@ export class UrlbarInput {
       this.setPageProxyState("invalid", true);
     }
 
-    this.searchModeSwitcher.onSearchModeChanged();
+    this.searchModeSwitcher?.onSearchModeChanged();
   }
 
   /**

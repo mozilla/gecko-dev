@@ -57,6 +57,8 @@ function getObserverTopic(aNotificationId) {
     topic = "addon-install-started";
   } else if (topic == "addon-installed") {
     topic = "webextension-install-notify";
+  } else if (topic == "addon-install-failed-blocklist") {
+    topic = "addon-install-failed";
   }
   return topic;
 }
@@ -975,10 +977,19 @@ var TESTS = [
     let id = "amosigned-xpi@tests.mozilla.org";
     let version = "2.2";
 
+    const {
+      BlocklistPrivate: { ExtensionBlocklistMLBF },
+    } = ChromeUtils.importESModule("resource://gre/modules/Blocklist.sys.mjs");
+
+    const blocklistURL = ExtensionBlocklistMLBF.createBlocklistURL(id, version);
+
     info("Verify addon-install-failed on hard-blocked addon");
     await testBlocklistedAddon({
       stash: { blocked: [`${id}:${version}`], unblocked: [] },
-      expectedFluentId: "addon-install-error-blocklisted",
+      expected: {
+        fluentId: "addon-install-error-blocklisted",
+        blocklistURL,
+      },
     });
 
     info("Verify addon-install-failed on soft-blocked blocked addon");
@@ -987,11 +998,14 @@ var TESTS = [
     });
     await testBlocklistedAddon({
       stash: { softblocked: [`${id}:${version}`], blocked: [], unblocked: [] },
-      expectedFluentId: "addon-install-error-soft-blocked",
+      expected: {
+        fluentId: "addon-install-error-soft-blocked",
+        blocklistURL,
+      },
     });
     await SpecialPowers.popPrefEnv();
 
-    async function testBlocklistedAddon({ stash, expectedFluentId }) {
+    async function testBlocklistedAddon({ stash, expected }) {
       await AddonTestUtils.loadBlocklistRawData({
         extensionsMLBF: [{ stash, stash_time: 0 }],
       });
@@ -1005,7 +1019,7 @@ var TESTS = [
       );
 
       let progressPromise = waitForProgressNotification();
-      let failPromise = waitForNotification("addon-install-failed");
+      let failPromise = waitForNotification("addon-install-failed-blocklist");
       let triggers = encodeURIComponent(
         JSON.stringify({
           XPI: "amosigned.xpi",
@@ -1017,14 +1031,39 @@ var TESTS = [
       );
       await progressPromise;
       info("Wait for addon-install-failed notification");
+
       let panel = await failPromise;
 
       let notification = panel.childNodes[0];
-      let message = lazy.l10n.formatValueSync(expectedFluentId, { addonName });
+      let message = lazy.l10n.formatValueSync(expected.fluentId, { addonName });
       is(
         notification.getAttribute("label"),
         message,
         "Should have seen the right message"
+      );
+
+      await BrowserTestUtils.waitForCondition(
+        () => panel.state === "open",
+        "Wait for the panel to reach the open state"
+      );
+      let blocklistURLEl = panel.querySelector(
+        "#addon-install-failed-blocklist-info"
+      );
+      ok(
+        BrowserTestUtils.isVisible(blocklistURLEl),
+        "Expect blocklist info link to be visible"
+      );
+      is(
+        blocklistURLEl.getAttribute("href"),
+        expected.blocklistURL,
+        "Blocklist info link href should be set to the expected url"
+      );
+      is(
+        blocklistURLEl.textContent,
+        await panel.ownerDocument.l10n.formatValue(
+          "popup-notification-xpinstall-prompt-block-url"
+        ),
+        "Blocklist info link should have the expected localized string"
       );
 
       await cleanupBlocklist();

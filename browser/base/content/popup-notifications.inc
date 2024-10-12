@@ -136,6 +136,17 @@
       </popupnotificationcontent>
     </popupnotification>
 
+    <popupnotification id="addon-install-failed-blocklist-notification" hidden="true">
+      <popupnotificationcontent id="addon-install-failed-blocklist-content" orient="vertical">
+        <html:a
+            id="addon-install-failed-blocklist-info"
+            is="addon-notification-blocklist-url"
+            class="popup-notification-learnmore-link"
+            data-l10n-id="popup-notification-xpinstall-prompt-block-url"
+          />
+      </popupnotificationcontent>
+    </popupnotification>
+
     <popupnotification id="canvas-permissions-prompt-notification" hidden="true">
       <popupnotificationcontent orient="vertical">
         <description class="popup-notification-description"/>

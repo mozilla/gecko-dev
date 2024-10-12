@@ -7,16 +7,13 @@
 #ifndef mozilla_dom_PermissionObserver_h_
 #define mozilla_dom_PermissionObserver_h_
 
-#include "mozilla/dom/PermissionsBinding.h"
-
 #include "nsIObserver.h"
-#include "nsIPrincipal.h"
 #include "nsTArray.h"
 #include "nsWeakReference.h"
 
 namespace mozilla::dom {
 
-class PermissionStatus;
+class PermissionStatusSink;
 
 // Singleton that watches for perm-changed notifications in order to notify
 // PermissionStatus objects.
@@ -28,14 +25,14 @@ class PermissionObserver final : public nsIObserver,
 
   static already_AddRefed<PermissionObserver> GetInstance();
 
-  void AddSink(PermissionStatus* aObs);
-  void RemoveSink(PermissionStatus* aObs);
+  void AddSink(PermissionStatusSink* aSink);
+  void RemoveSink(PermissionStatusSink* aSink);
 
  private:
   PermissionObserver();
   virtual ~PermissionObserver();
 
-  nsTArray<PermissionStatus*> mSinks;
+  nsTArray<RefPtr<PermissionStatusSink>> mSinks;
 };
 
 }  // namespace mozilla::dom

@@ -11827,28 +11827,14 @@ void PresShell::SyncWindowProperties(bool aSync) {
     return;
   }
 
+  // Apply color scheme to the top level window widget.
+  windowWidget->SetColorScheme(
+      Some(LookAndFeel::ColorSchemeForFrame(rootFrame)));
+
   AutoWeakFrame weak(rootFrame);
-  if (!GetRootScrollContainerFrame()) {
-    // Scrollframes use native widgets which don't work well with
-    // translucent windows, at least in Windows XP. So if the document
-    // has a root scrollrame it's useless to try to make it transparent,
-    // we'll just get something broken.
-    // We can change this to allow translucent toplevel HTML documents
-    // (e.g. to do something like Dashboard widgets), once we
-    // have broad support for translucent scrolled documents, but be
-    // careful because apparently some Firefox extensions expect
-    // openDialog("something.html") to produce an opaque window
-    // even if the HTML doesn't have a background-color set.
-    auto* canvas = GetCanvasFrame();
-    widget::TransparencyMode mode = nsLayoutUtils::GetFrameTransparency(
-        canvas ? canvas : rootFrame, rootFrame);
-    windowWidget->SetTransparencyMode(mode);
-
-    // For macOS, apply color scheme to the top level window widget.
-    windowWidget->SetColorScheme(
-        Some(LookAndFeel::ColorSchemeForFrame(rootFrame)));
-  }
-
+  auto* canvas = GetCanvasFrame();
+  windowWidget->SetTransparencyMode(nsLayoutUtils::GetFrameTransparency(
+      canvas ? canvas : rootFrame, rootFrame));
   if (!weak.IsAlive()) {
     return;
   }

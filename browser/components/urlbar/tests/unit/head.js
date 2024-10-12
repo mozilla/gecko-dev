@@ -992,16 +992,6 @@ async function check_results({
     "Found the expected number of results."
   );
 
-  function getPayload(result) {
-    let payload = {};
-    for (let [key, value] of Object.entries(result.payload)) {
-      if (value !== undefined) {
-        payload[key] = value;
-      }
-    }
-    return payload;
-  }
-
   let propertiesToCheck = {
     type: {},
     source: {},
@@ -1012,6 +1002,8 @@ async function check_results({
     isSuggestedIndexRelativeToGroup: { optional: true, map: v => !!v },
     exposureTelemetry: { optional: true },
   };
+
+  let optionalPayloadProperties = new Set(["lastVisit"]);
 
   for (let i = 0; i < matches.length; i++) {
     let actual = context.results[i];
@@ -1036,11 +1028,18 @@ async function check_results({
     }
 
     if (expected.payload) {
-      Assert.deepEqual(
-        getPayload(actual),
-        getPayload(expected),
-        `result.payload at result index ${i}`
+      let expectedEntries = new Set(Object.keys(expected.payload));
+      let actualEntries = new Set(Object.keys(actual.payload)).difference(
+        optionalPayloadProperties
       );
+
+      for (let key of actualEntries.union(expectedEntries)) {
+        Assert.deepEqual(
+          actual.payload[key],
+          expected.payload[key],
+          `result.payload.${key} at result index ${i}`
+        );
+      }
     }
   }
 }

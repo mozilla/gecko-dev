@@ -18,21 +18,17 @@ def save_gecko_profile(profile, filename):
         json.dump(profile, f)
 
 
-def symbolicate_profile_json(profile_path, objdir_path):
+def symbolicate_profile_json(profile_path, firefox_symbols_path):
     """
     Symbolicate a single JSON profile.
     """
     temp_dir = tempfile.mkdtemp()
     missing_symbols_zip = os.path.join(temp_dir, "missingsymbols.zip")
 
-    firefox_symbol_path = os.path.join(objdir_path, "dist", "crashreporter-symbols")
-    if not os.path.isdir(firefox_symbol_path):
-        os.mkdir(firefox_symbol_path)
-
     windows_symbol_path = os.path.join(temp_dir, "windows")
     os.mkdir(windows_symbol_path)
 
-    symbol_paths = {"FIREFOX": firefox_symbol_path, "WINDOWS": windows_symbol_path}
+    symbol_paths = {"FIREFOX": firefox_symbols_path, "WINDOWS": windows_symbol_path}
 
     symbolicator = ProfileSymbolicator(
         {

@@ -18,6 +18,8 @@ body {
   justify-content: center;
   width: 100%;
   height: 100%;
+
+  background-color: var(--newtab-background-color, var(--in-content-page-background));
 }
 
 edit-profile-card {

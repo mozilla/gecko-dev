@@ -8,7 +8,7 @@ add_task(async function () {
   const dbg = await initDebugger("doc-scroll-run-to-completion.html");
   invokeInTab("pauseOnce", "doc-scroll-run-to-completion.html");
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-scroll-run-to-completion.html").id,
     20

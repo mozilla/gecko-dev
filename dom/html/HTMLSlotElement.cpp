@@ -302,6 +302,7 @@ void HTMLSlotElement::InsertAssignedNode(uint32_t aIndex, nsIContent& aNode) {
   MOZ_ASSERT(!aNode.GetAssignedSlot(), "Losing track of a slot");
   mAssignedNodes.InsertElementAt(aIndex, &aNode);
   aNode.SetAssignedSlot(this);
+  SetStates(ElementState::HAS_SLOTTED, true);
   SlotAssignedNodeAdded(this, aNode);
 }
 
@@ -309,6 +310,7 @@ void HTMLSlotElement::AppendAssignedNode(nsIContent& aNode) {
   MOZ_ASSERT(!aNode.GetAssignedSlot(), "Losing track of a slot");
   mAssignedNodes.AppendElement(&aNode);
   aNode.SetAssignedSlot(this);
+  SetStates(ElementState::HAS_SLOTTED, true);
   SlotAssignedNodeAdded(this, aNode);
 }
 
@@ -319,6 +321,7 @@ void HTMLSlotElement::RemoveAssignedNode(nsIContent& aNode) {
              "How exactly?");
   mAssignedNodes.RemoveElement(&aNode);
   aNode.SetAssignedSlot(nullptr);
+  SetStates(ElementState::HAS_SLOTTED, !mAssignedNodes.IsEmpty());
   SlotAssignedNodeRemoved(this, aNode);
 }
 
@@ -331,6 +334,7 @@ void HTMLSlotElement::ClearAssignedNodes() {
   }
 
   mAssignedNodes.Clear();
+  SetStates(ElementState::HAS_SLOTTED, false);
 }
 
 void HTMLSlotElement::EnqueueSlotChangeEvent() {

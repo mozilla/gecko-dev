@@ -1,4 +1,4 @@
-// |reftest| skip-if(!this.getSelfHostedValue)
+// |reftest| skip-if(!this.getSelfHostedValue||!this.hasOwnProperty('Intl'))
 
 const startOfUnicodeExtensions = getSelfHostedValue("startOfUnicodeExtensions");
 const endOfUnicodeExtensions = getSelfHostedValue("endOfUnicodeExtensions");

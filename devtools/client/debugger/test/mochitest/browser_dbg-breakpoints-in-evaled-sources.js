@@ -51,7 +51,7 @@ add_task(async function () {
   );
 
   const evaledSource = dbg.selectors.getSelectedSource();
-  assertPausedAtSourceAndLine(dbg, evaledSource.id, 2);
+  await assertPausedAtSourceAndLine(dbg, evaledSource.id, 2);
 
   info("Add a breakpoint in the evaled source");
   await addBreakpoint(dbg, evaledSource, 3);
@@ -59,7 +59,7 @@ add_task(async function () {
   info("Resume and check that we hit the breakpoint");
   await resume(dbg);
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, evaledSource.id, 3);
+  await assertPausedAtSourceAndLine(dbg, evaledSource.id, 3);
 
   info("Close the toolbox");
   await dbg.toolbox.closeToolbox();
@@ -84,7 +84,7 @@ add_task(async function () {
   await waitForPaused(dbg2);
 
   const scriptSource = dbg2.selectors.getSelectedSource();
-  assertPausedAtSourceAndLine(dbg2, scriptSource.id, 21);
+  await assertPausedAtSourceAndLine(dbg2, scriptSource.id, 21);
   await resume(dbg2);
 
   info("Wait for reload to complete after resume");

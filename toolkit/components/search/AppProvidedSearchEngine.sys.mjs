@@ -544,7 +544,7 @@ export class AppProvidedSearchEngine extends SearchEngine {
       // The search term parameter is always added last, which will add it to the
       // end of the URL. This is because in the past we have seen users trying to
       // modify their searches by altering the end of the URL.
-      engineURL.addParam(urlData.searchTermParamName, "{searchTerms}");
+      engineURL.setSearchTermParamName(urlData.searchTermParamName);
     }
 
     this._urls.push(engineURL);

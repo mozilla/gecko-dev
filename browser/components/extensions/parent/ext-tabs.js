@@ -36,7 +36,10 @@ ChromeUtils.defineLazyGetter(this, "tabHidePopup", () => {
     descriptionMessageId: "tabHideControlled.message",
     getLocalizedDescription: (doc, message, addonDetails) => {
       let image = doc.createXULElement("image");
-      image.setAttribute("class", "extension-controlled-icon alltabs-icon");
+      image.classList.add("extension-controlled-icon", "alltabs-icon");
+      if (!doc.getElementById("alltabs-button")?.closest("#TabsToolbar")) {
+        image.classList.add("alltabs-icon-generic");
+      }
       return BrowserUIUtils.getLocalizedFragment(
         doc,
         message,

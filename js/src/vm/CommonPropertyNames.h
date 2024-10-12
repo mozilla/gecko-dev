@@ -482,6 +482,7 @@
   MACRO_(public_, "public")                                                    \
   MACRO_(pull, "pull")                                                         \
   MACRO_(quarter, "quarter")                                                   \
+  MACRO_(range, "range")                                                       \
   MACRO_(raw, "raw")                                                           \
   MACRO_(rawJSON, "rawJSON")                                                   \
   MACRO_(read, "read")                                                         \

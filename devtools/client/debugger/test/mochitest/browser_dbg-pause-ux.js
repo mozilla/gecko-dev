@@ -15,40 +15,43 @@ add_task(async function () {
   invokeInTab("testModel");
   await waitForPaused(dbg, "long.js");
   // Some spurious scroll may happen late related to text content *and* late fetching of symbols
-  await waitForScrolling(getCM(dbg));
+  await waitForScrolling(dbg);
 
-  const pauseScrollTop = getScrollTop(dbg);
+  ok(isScrolledPositionVisible(dbg, 66), "The paused line is visible");
 
   info("1. adding a breakpoint should not scroll the editor");
-  getCM(dbg).scrollTo(0, 0);
+  await scrollEditorIntoView(dbg, 0, 0);
   await addBreakpoint(dbg, longSrc, 11);
-  is(getScrollTop(dbg), 0, "scroll position");
+  ok(isScrolledPositionVisible(dbg, 0), "scroll position");
 
   info("2. searching should jump to the match");
   pressKey(dbg, "fileSearch");
   type(dbg, "check");
 
-  const cm = getCM(dbg);
   await waitFor(
-    () => cm.getSelection() == "check",
+    () => getSearchSelection(dbg).text == "check",
     "Wait for actual selection in CodeMirror"
   );
   is(
-    cm.getCursor().line,
+    getSearchSelection(dbg).line,
     26,
-    "The line of first check occurence in long.js is selected (this is zero-based)"
+    `The line of first check occurence in long.js is selected (this is ${
+      isCm6Enabled ? "one" : "zero"
+    }-based)`
   );
   // The column is the end of "check", so after 'k'
   is(
-    cm.getCursor().ch,
+    getSearchSelection(dbg).column,
     51,
     "The column of first check occurence in long.js is selected (this is zero-based)"
   );
 
-  const matchScrollTop = getScrollTop(dbg);
-  Assert.notEqual(pauseScrollTop, matchScrollTop, "did not jump to debug line");
+  ok(
+    !isScrolledPositionVisible(dbg, 66),
+    "The paused line is no longer visible"
+  );
+  ok(
+    isScrolledPositionVisible(dbg, 26),
+    "The line with the text match is now visible"
+  );
 });
-
-function getScrollTop(dbg) {
-  return getCM(dbg).doc.scrollTop;
-}

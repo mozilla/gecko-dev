@@ -13,9 +13,9 @@ add_task(async function () {
   await selectSource(dbg, "simple2.js", 1);
 
   clickElement(dbg, "CodeMirrorLines");
-  await waitForElementWithSelector(dbg, ".CodeMirror-code");
+  await waitForElement(dbg, "CodeMirrorCode");
 
-  getCM(dbg).setSelection({ line: 0, ch: 0 }, { line: 8, ch: 0 });
+  setSelection(dbg, 1, 7);
 
   rightClickElement(dbg, "CodeMirrorLines");
   await waitForContextMenu(dbg);

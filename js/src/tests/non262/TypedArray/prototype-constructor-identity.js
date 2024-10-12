@@ -41,7 +41,11 @@ anyTypedArrayConstructors.forEach(function(ctor) {
   var props = Object.getOwnPropertyNames(proto).sort();
   assertEq(props[0], "BYTES_PER_ELEMENT");
   assertEq(props[1], "constructor");
-  assertEq(props.length, 2);
+  if (ctor === Uint8Array) {
+    assertEq(props.length, 6);
+  } else {
+    assertEq(props.length, 2);
+  }
 
   // The inheritance chain should be set up properly.
   assertEq(Object.getPrototypeOf(proto), TypedArray.prototype,

@@ -40,7 +40,7 @@ add_task(async function () {
   invokeInTab("main");
   await waitForPaused(dbg);
   const source = findSource(dbg, "simple1.js");
-  assertPausedAtSourceAndLine(dbg, source.id, 4);
+  await assertPausedAtSourceAndLine(dbg, source.id, 4);
   is(countSources(dbg), 5, "5 sources are loaded.");
 
   await waitForRequestsToSettle(dbg);

@@ -53,7 +53,10 @@ from manifestparser.filters import (
     tags,
 )
 from manifestparser.util import normsep
-from mozgeckoprofiler import symbolicate_profile_json, view_gecko_profile
+from mozgeckoprofiler import (
+    symbolicate_profile_json,
+    view_gecko_profile,
+)
 from mozserve import DoHServer, Http2Server, Http3Server
 
 try:
@@ -2847,6 +2850,7 @@ toolbar#nav-bar {
                     debuggerInfo,
                     browserProcessId,
                     processLog,
+                    symbolsPath,
                 )
 
             kp_kwargs = {
@@ -3586,7 +3590,7 @@ toolbar#nav-bar {
                 # Only do the extra work of symbolicating and viewing the profile if
                 # officially requested through a command line flag. The MOZ_PROFILER_*
                 # flags can be set by a user.
-                symbolicate_profile_json(profile_path, options.topobjdir)
+                symbolicate_profile_json(profile_path, options.symbolsPath)
                 view_gecko_profile_from_mochitest(
                     profile_path, options, profiler_logger
                 )
@@ -3858,7 +3862,14 @@ toolbar#nav-bar {
         return status
 
     def handleTimeout(
-        self, timeout, proc, utilityPath, debuggerInfo, browser_pid, processLog
+        self,
+        timeout,
+        proc,
+        utilityPath,
+        debuggerInfo,
+        browser_pid,
+        processLog,
+        symbolsPath,
     ):
         """handle process output timeout"""
         # TODO: bug 913975 : _processOutput should call self.processOutputLine
@@ -3885,15 +3896,20 @@ toolbar#nav-bar {
         browser_pid = browser_pid or proc.pid
 
         # Send a signal to start the profiler - if we're running on Linux or MacOS
+        profiler_logger = get_proxy_logger("profiler")
         if mozinfo.isLinux or mozinfo.isMac:
-            self.log.info(
+            profiler_logger.warning(
                 "Attempting to start the profiler to help with diagnosing the hang."
             )
-            self.log.info("Sending SIGUSR1 to pid %d start the profiler." % browser_pid)
+            profiler_logger.info(
+                "Sending SIGUSR1 to pid %d start the profiler." % browser_pid
+            )
             os.kill(browser_pid, signal.SIGUSR1)
-            self.log.info("Waiting 10s to capture a profile.")
+            profiler_logger.info("Waiting 10s to capture a profile...")
             time.sleep(10)
-            self.log.info("Sending SIGUSR2 to pid %d stop the profiler." % browser_pid)
+            profiler_logger.info(
+                "Sending SIGUSR2 to pid %d stop the profiler." % browser_pid
+            )
             os.kill(browser_pid, signal.SIGUSR2)
             # We trigger `killPid` further down in this function, which will
             # stop the profiler writing to disk. As we might still be writing a
@@ -3902,10 +3918,30 @@ toolbar#nav-bar {
             # profile (which should be plenty of time!) See Bug 1906151 for more
             # details, and Bug 1905929 for an intermediate solution that would
             # allow this test to watch for the profile file being completed.
-            self.log.info("Wait 10s for Firefox to write the profile to disk.")
+            profiler_logger.info("Wait 10s for Firefox to write the profile to disk.")
             time.sleep(10)
+
+            # Symbolicate the profile generated above using signals. The profile
+            # file will be named something like:
+            #  `$MOZ_UPLOAD_DIR/profile_${tid}_${pid}.json
+            # where `tid` is /currently/ always 0 (we can only write our profile
+            # from the main thread). This may change if we end up writing from
+            # other threads in firefox. See `profiler_find_dump_path()` in
+            # `platform.cpp` for more details on how we name signal-generated
+            # profiles.
+            # Sanity check that we actually have a MOZ_UPLOAD_DIR
+            if "MOZ_UPLOAD_DIR" in os.environ:
+                profiler_logger.info(
+                    "Symbolicating profile in %s" % os.environ["MOZ_UPLOAD_DIR"]
+                )
+                profile_path = "{}/profile_0_{}.json".format(
+                    os.environ["MOZ_UPLOAD_DIR"], browser_pid
+                )
+                profiler_logger.info("Looking inside symbols dir: %s)" % symbolsPath)
+                profiler_logger.info("Symbolicating profile: %s" % profile_path)
+                symbolicate_profile_json(profile_path, symbolsPath)
         else:
-            self.log.info(
+            profiler_logger.info(
                 "Not sending a signal to start the profiler - not on MacOS or Linux. See Bug 1823370."
             )
 

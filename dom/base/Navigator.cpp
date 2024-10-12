@@ -516,7 +516,7 @@ Permissions* Navigator::GetPermissions(ErrorResult& aRv) {
   }
 
   if (!mPermissions) {
-    mPermissions = new Permissions(mWindow);
+    mPermissions = new Permissions(mWindow->AsGlobal());
   }
 
   return mPermissions;

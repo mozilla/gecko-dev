@@ -21,18 +21,20 @@ add_task(async function () {
   await waitForPaused(dbg);
 
   info("Starting a search for 'bar'");
-  const cm = getCM(dbg);
   pressKey(dbg, "fileSearch");
   is(dbg.selectors.getActiveSearch(), "file");
   const el = getFocusedEl(dbg);
   type(dbg, "bar");
   await waitForSearchState(dbg);
-
+  await waitFor(() => {
+    return getSearchQuery(dbg).includes("bar");
+  });
+  is(getSearchSelection(dbg).line, 1);
   info("Ensuring 'bar' matches are highlighted");
   pressKey(dbg, "Enter");
-  is(cm.state.search.posFrom.line, 1);
+  is(getSearchSelection(dbg).line, 4);
   pressKey(dbg, "Enter");
-  is(cm.state.search.posFrom.line, 4);
+  is(getSearchSelection(dbg).line, 1);
 
   info("Switching files via frame click");
   const frames = findAllElements(dbg, "frames");
@@ -40,8 +42,7 @@ add_task(async function () {
 
   // Ensure that the debug line is in view, and not the first "bar" instance,
   // which the user would have to scroll down for
-  const { top } = cm.getScrollInfo();
-  is(top, 0, "First search term is not in view");
+  ok(isScrolledPositionVisible(dbg, 0), "First search term is not in view");
 
   // Change the search term and go back to the first source in stack
   info("Switching to paused file via frame click");
@@ -50,15 +51,16 @@ add_task(async function () {
   type(dbg, "func");
   await waitForSearchState(dbg);
   pressMouseDown(dbg, frames[0]);
-  await waitFor(() => cm.state.search.query === "func");
-
-  // Ensure there is a match for the new term
+  await waitFor(() => {
+    return getSearchQuery(dbg).includes("func");
+  });
+  is(getSearchSelection(dbg).line, 0);
+  // Ensure there is a match for the new term and correct item is selected
   pressKey(dbg, "Enter");
-  await waitFor(() => cm.state.search.posFrom.line === 0);
-  is(cm.state.search.posFrom.line, 0);
+  await waitFor(() => getSearchSelection(dbg).line === 1);
   pressKey(dbg, "Enter");
-  await waitFor(() => cm.state.search.posFrom.line === 1);
-  is(cm.state.search.posFrom.line, 1);
+  // There are only two items in the search so pressing enter will cycle back to the first
+  await waitFor(() => getSearchSelection(dbg).line === 0);
 });
 
 function getFocusedEl(dbg) {

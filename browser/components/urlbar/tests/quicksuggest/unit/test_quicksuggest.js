@@ -1282,8 +1282,8 @@ add_tasks_with_rust(async function dedupeAgainstURL_timestamps() {
     // Check payloads except for the quick suggest.
     if (i != QUICK_SUGGEST_INDEX) {
       Assert.deepEqual(
-        getPayload(context.results[i]),
-        getPayload(expectedResults[i]),
+        getPayload(context.results[i], ["lastVisit"]),
+        getPayload(expectedResults[i], ["lastVisit"]),
         "Payload at index " + i
       );
     }

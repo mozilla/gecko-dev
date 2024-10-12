@@ -33,7 +33,7 @@ dictionary MidiPermissionDescriptor : PermissionDescriptor {
 // We don't implement `PushPermissionDescriptor` because we use a background
 // message quota instead of `userVisibleOnly`.
 
-[Exposed=Window]
+[Exposed=(Window,Worker)]
 interface Permissions {
   [NewObject]
   Promise<PermissionStatus> query(object permission);

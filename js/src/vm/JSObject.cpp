@@ -740,7 +740,8 @@ bool js::TestIntegrityLevel(JSContext* cx, HandleObject obj,
 
 static MOZ_ALWAYS_INLINE NativeObject* NewObject(
     JSContext* cx, const JSClass* clasp, Handle<TaggedProto> proto,
-    gc::AllocKind kind, NewObjectKind newKind, ObjectFlags objFlags) {
+    gc::AllocKind kind, NewObjectKind newKind, ObjectFlags objFlags,
+    gc::AllocSite* allocSite = nullptr) {
   MOZ_ASSERT(clasp->isNativeObject());
 
   // Some classes have specialized allocation functions and shouldn't end up
@@ -748,6 +749,8 @@ static MOZ_ALWAYS_INLINE NativeObject* NewObject(
   MOZ_ASSERT(clasp != &ArrayObject::class_);
   MOZ_ASSERT(clasp != &PlainObject::class_);
   MOZ_ASSERT(!clasp->isJSFunction());
+
+  MOZ_ASSERT_IF(allocSite, allocSite->zone() == cx->zone());
 
   // Computing nfixed based on the AllocKind isn't right for objects which can
   // store fixed data inline (TypedArrays and ArrayBuffers) so for simplicity
@@ -766,8 +769,8 @@ static MOZ_ALWAYS_INLINE NativeObject* NewObject(
     return nullptr;
   }
 
-  gc::Heap heap = GetInitialHeap(newKind, clasp);
-  NativeObject* obj = NativeObject::create(cx, kind, heap, shape);
+  gc::Heap heap = GetInitialHeap(newKind, clasp, allocSite);
+  NativeObject* obj = NativeObject::create(cx, kind, heap, shape, allocSite);
   if (!obj) {
     return nullptr;
   }
@@ -780,6 +783,13 @@ NativeObject* js::NewObjectWithGivenTaggedProto(
     JSContext* cx, const JSClass* clasp, Handle<TaggedProto> proto,
     gc::AllocKind allocKind, NewObjectKind newKind, ObjectFlags objFlags) {
   return NewObject(cx, clasp, proto, allocKind, newKind, objFlags);
+}
+
+NativeObject* js::NewObjectWithGivenTaggedProtoAndAllocSite(
+    JSContext* cx, const JSClass* clasp, Handle<TaggedProto> proto,
+    gc::AllocKind allocKind, NewObjectKind newKind, ObjectFlags objFlags,
+    gc::AllocSite* site) {
+  return NewObject(cx, clasp, proto, allocKind, newKind, objFlags, site);
 }
 
 NativeObject* js::NewObjectWithClassProto(JSContext* cx, const JSClass* clasp,
@@ -2267,7 +2277,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
     return true;
   }
 
-#ifdef NIGHTLY_BUILD
   if (key == JSProto_Uint8Array &&
       !JS::Prefs::experimental_uint8array_base64() &&
       (id == NameToId(cx->names().setFromBase64) ||
@@ -2286,6 +2295,7 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
     return true;
   }
 
+#ifdef NIGHTLY_BUILD
   // It's gently surprising that this is JSProto_Function, but the trick
   // to realize is that this is a -constructor function-, not a function
   // on the prototype; and the proto of the constructor is JSProto_Function.
@@ -2310,6 +2320,14 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
   // on the prototype; and the proto of the constructor is JSProto_Function.
   if (key == JSProto_Function && !JS::Prefs::experimental_joint_iteration() &&
       id == NameToId(cx->names().zip)) {
+    return true;
+  }
+
+  // It's gently surprising that this is JSProto_Function, but the trick
+  // to realize is that this is a -constructor function-, not a function
+  // on the prototype; and the proto of the constructor is JSProto_Function.
+  if (key == JSProto_Function && !JS::Prefs::experimental_iterator_range() &&
+      (id == NameToId(cx->names().range))) {
     return true;
   }
 #endif

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Search Widget -->
+    <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
+    <string name="search_widget_content_description">Агәылаҵа ҿыц аарттәуп %1$s</string>
+    <!-- Text preview for smaller sized widgets -->
+    <string name="search_widget_text_short">Аԥшаара</string>
+    </resources>

@@ -286,7 +286,7 @@
       },
       {
         "name": "recordEvent",
-        "deprecated": "`recordEvent` has been deprecated since Firefox 132 (see bug 1894533)",
+        "deprecated": "`recordEvent` is a no-op since Firefox 132 (see bug 1894533)",
         "type": "function",
         "description": "Record an event in Telemetry. Throws when trying to record an unknown event.",
         "async": true,
@@ -343,7 +343,7 @@
       },
       {
         "name": "registerEvents",
-        "deprecated": "`registerEvents` has been deprecated since Firefox 132 (see bug 1894533)",
+        "deprecated": "`registerEvents` is a no-op since Firefox 132 (see bug 1894533)",
         "type": "function",
         "description": "Register new events to record them from addons. See nsITelemetry.idl for more details.",
         "async": true,
@@ -363,7 +363,7 @@
       },
       {
         "name": "setEventRecordingEnabled",
-        "deprecated": "`setEventRecordingEnabled` has been deprecated since Firefox 133 (see bug 1920562)",
+        "deprecated": "`setEventRecordingEnabled` is a no-op since Firefox 133 (see bug 1920562)",
         "type": "function",
         "description": "Enable recording of events in a category. Events default to recording enabled. This allows to toggle recording for all events in the specified category.",
         "async": true,

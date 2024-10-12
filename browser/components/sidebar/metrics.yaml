@@ -240,6 +240,25 @@ sidebar.customize:
       - vsabino@mozilla.com
     send_in_pings:
       - events
+  chatbot_enabled:
+    type: event
+    description: >
+      User clicked on the checkbox corresponding to chatbot on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923900
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D225304
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      checked:
+        type: boolean
+        description: Whether the box was checked.
   synced_tabs_enabled:
     type: event
     description: >
@@ -267,6 +286,25 @@ sidebar.customize:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
     data_reviews:
       - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      checked:
+        type: boolean
+        description: Whether the box was checked.
+  bookmarks_enabled:
+    type: event
+    description: >
+      User clicked on the checkbox corresponding to bookmarks on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923900
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D225304
     data_sensitivity:
       - interaction
     expires: never

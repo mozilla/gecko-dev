@@ -408,6 +408,7 @@ no-gpu-process:
         $eval: '
                     "windows" in task["test-platform"]
                     || "android" in task["test-platform"]
+                    || "linux" in task["test-platform"]
                 '
     replace:
         virtualization: virtual

@@ -305,6 +305,10 @@ bool TestPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins) const {
       break;
     }
 
+    case MIRType::Int64:
+    case MIRType::IntPtr:
+      MOZ_CRASH("Int64 and IntPtr are only used as input type after GVN");
+
     default:
       MOZ_ASSERT(IsMagicType(op->type()));
       ins->replaceOperand(0, BoxAt(alloc, ins, op));

@@ -6127,8 +6127,16 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
     masm.switchToObjectRealm(argJSContext, argJSContext);
   }
 
+  bool preTenureWrapperAllocation =
+      call->mir()->to<MCallDOMNative>()->initialHeap() == gc::Heap::Tenured;
+  if (preTenureWrapperAllocation) {
+    auto ptr = ImmPtr(mirGen().realm->zone()->tenuringAllocSite());
+    masm.storeLocalAllocSite(ptr, argJSContext);
+  }
+
   // Construct native exit frame.
   uint32_t safepointOffset = masm.buildFakeExitFrame(argJSContext);
+
   masm.loadJSContext(argJSContext);
   masm.enterFakeExitFrame(argJSContext, argJSContext,
                           ExitFrameType::IonDOMMethod);
@@ -6161,12 +6169,19 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
                    JSReturnOperand);
   }
 
+  static_assert(!JSReturnOperand.aliases(ReturnReg),
+                "Clobbering ReturnReg should not affect the return value");
+
   // Switch back to the current realm if needed. Note: if the DOM method threw
   // an exception, the exception handler will do this.
   if (call->mir()->maybeCrossRealm()) {
-    static_assert(!JSReturnOperand.aliases(ReturnReg),
-                  "Clobbering ReturnReg should not affect the return value");
     masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  // Wipe out the preTenuring bit from the local alloc site
+  // On exception we handle this in C++
+  if (preTenureWrapperAllocation) {
+    masm.storeLocalAllocSite(ImmPtr(nullptr), ReturnReg);
   }
 
   // Until C++ code is instrumented against Spectre, prevent speculative
@@ -16658,33 +16673,33 @@ static bool AddInlinedCompilations(JSContext* cx, HandleScript script,
 }
 
 struct EmulatesUndefinedDependency final : public CompilationDependency {
-  CompileRuntime* runtime;
-  explicit EmulatesUndefinedDependency(CompileRuntime* runtime)
-      : CompilationDependency(CompilationDependency::Type::EmulatesUndefined),
-        runtime(runtime) {};
+  explicit EmulatesUndefinedDependency()
+      : CompilationDependency(CompilationDependency::Type::EmulatesUndefined) {
+        };
 
   virtual bool operator==(CompilationDependency& dep) {
     // Since the emulates undefined fuse is runtime wide, they are all equal
     return dep.type == type;
   }
 
-  virtual bool checkDependency() {
-    return runtime->hasSeenObjectEmulateUndefinedFuseIntact();
+  virtual bool checkDependency(JSContext* cx) {
+    return cx->runtime()->hasSeenObjectEmulateUndefinedFuse.ref().intact();
   }
 
   virtual bool registerDependency(JSContext* cx, HandleScript script) {
+    MOZ_ASSERT(checkDependency(cx));
     return cx->runtime()
         ->hasSeenObjectEmulateUndefinedFuse.ref()
         .addFuseDependency(cx, script);
   }
 
   virtual UniquePtr<CompilationDependency> clone() {
-    return MakeUnique<EmulatesUndefinedDependency>(runtime);
+    return MakeUnique<EmulatesUndefinedDependency>();
   }
 };
 
 bool CodeGenerator::addHasSeenObjectEmulateUndefinedFuseDependency() {
-  EmulatesUndefinedDependency dep(gen->runtime);
+  EmulatesUndefinedDependency dep;
   return mirGen().tracker.addDependency(dep);
 }
 
@@ -16733,7 +16748,9 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
   }
 
   CompilationDependencyTracker& tracker = mirGen().tracker;
-  if (!tracker.checkDependencies()) {
+  // Make sure we're using the same realm as this context.
+  MOZ_ASSERT(mirGen().realm->realmPtr() == cx->realm());
+  if (!tracker.checkDependencies(cx)) {
     return true;
   }
 

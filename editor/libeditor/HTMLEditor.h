@@ -266,9 +266,17 @@ class HTMLEditor final : public EditorBase,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   InsertParagraphSeparatorAsAction(nsIPrincipal* aPrincipal = nullptr);
 
-  MOZ_CAN_RUN_SCRIPT nsresult
-  InsertElementAtSelectionAsAction(Element* aElement, bool aDeleteSelection,
-                                   nsIPrincipal* aPrincipal = nullptr);
+  enum class InsertElementOption {
+    // Delete selection if set, otherwise, insert aElement at start or end of
+    // selection.
+    DeleteSelection,
+    // Whether split all inline ancestors or not.
+    SplitAncestorInlineElements,
+  };
+  using InsertElementOptions = EnumSet<InsertElementOption>;
+  MOZ_CAN_RUN_SCRIPT nsresult InsertElementAtSelectionAsAction(
+      Element* aElement, const InsertElementOptions aOptions,
+      nsIPrincipal* aPrincipal = nullptr);
 
   MOZ_CAN_RUN_SCRIPT nsresult InsertLinkAroundSelectionAsAction(
       Element* aAnchorElement, nsIPrincipal* aPrincipal = nullptr);

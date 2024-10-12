@@ -51,6 +51,38 @@ bool date_now(JSContext* cx, unsigned argc, JS::Value* vp);
 
 bool date_valueOf(JSContext* cx, unsigned argc, JS::Value* vp);
 
+struct YearMonthDay {
+  // Signed year in the range [-271821, 275760].
+  int32_t year;
+
+  // 0-indexed month, i.e. 0 is January, 1 is February, ..., 11 is December.
+  int32_t month;
+
+  // 1-indexed day of month.
+  int32_t day;
+};
+
+/*
+ * Split an epoch milliseconds value into year-month-day parts.
+ */
+YearMonthDay ToYearMonthDay(int64_t time);
+
+struct HourMinuteSecond {
+  // Hours from 0 to 23.
+  int32_t hour;
+
+  // Minutes from 0 to 59.
+  int32_t minute;
+
+  // Seconds from 0 to 59.
+  int32_t second;
+};
+
+/*
+ * Split an epoch milliseconds value into hour-minute-second parts.
+ */
+HourMinuteSecond ToHourMinuteSecond(int64_t epochMilliseconds);
+
 } /* namespace js */
 
 #endif /* jsdate_h */

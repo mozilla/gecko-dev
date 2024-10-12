@@ -29,6 +29,8 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
   UrlbarUtils.getLogger({ prefix: "MuxerUnifiedComplete" })
 );
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
 /**
  * Constructs the map key by joining the url with the userContextId if
  * 'browser.urlbar.switchTabs.searchAllContainers' is set to true.
@@ -98,6 +100,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       // The total span of results that have been added so far.
       usedResultSpan: 0,
       strippedUrlToTopPrefixAndTitle: new Map(),
+      baseAndTitleToTopRef: new Map(),
       urlToTabResultType: new Map(),
       addedRemoteTabUrls: new Set(),
       addedSwitchTabUrls: new Set(),
@@ -223,6 +226,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       strippedUrlToTopPrefixAndTitle: new Map(
         state.strippedUrlToTopPrefixAndTitle
       ),
+      baseAndTitleToTopRef: new Map(state.baseAndTitleToTopRef),
       urlToTabResultType: new Map(state.urlToTabResultType),
       addedRemoteTabUrls: new Set(state.addedRemoteTabUrls),
       addedSwitchTabUrls: new Set(state.addedSwitchTabUrls),
@@ -1028,6 +1032,27 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       }
     }
 
+    // Dedupe history results with different ref.
+    if (
+      lazy.UrlbarPrefs.get("deduplication.enabled") &&
+      result.source == UrlbarUtils.RESULT_SOURCE.HISTORY &&
+      result.type == UrlbarUtils.RESULT_TYPE.URL &&
+      !result.heuristic &&
+      result.payload.lastVisit
+    ) {
+      let { base, ref } = UrlbarUtils.extractRefFromUrl(result.payload.url);
+      let baseAndTitle = `${base} ${result.payload.title}`;
+      let topRef = state.baseAndTitleToTopRef.get(baseAndTitle);
+
+      let msSinceLastVisit = Date.now() - result.payload.lastVisit;
+      let daysSinceLastVisit = msSinceLastVisit / MS_PER_DAY;
+      let thresholdDays = lazy.UrlbarPrefs.get("deduplication.thresholdDays");
+
+      if (daysSinceLastVisit >= thresholdDays && ref != topRef) {
+        return false;
+      }
+    }
+
     // Include the result.
     return true;
   }
@@ -1115,6 +1140,29 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
           rank: prefixRank,
           providerName: result.providerName,
         });
+      }
+    }
+
+    // Save some state to dedupe results that only differ by the ref of their URL.
+    // Even though here we are considering tab results to find the top ref,
+    // we'll never dedupe them.
+    if (
+      (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY &&
+        result.type == UrlbarUtils.RESULT_TYPE.URL) ||
+      result.type == UrlbarUtils.RESULT_TYPE.TAB_SWITCH
+    ) {
+      let { base, ref } = UrlbarUtils.extractRefFromUrl(result.payload.url);
+
+      // This is unique because all spaces in base will be url-encoded
+      // so the part before the space is always the base url.
+      let baseAndTitle = `${base} ${result.payload.title}`;
+
+      // The first result should have the highest frecency so we set it as the top
+      // ref for its base url. If a result is heuristic, always override an existing
+      // top ref for its base url in case the heuristic provider was slow and a non
+      // heuristic result was added first for the same base url.
+      if (!state.baseAndTitleToTopRef.has(baseAndTitle) || result.heuristic) {
+        state.baseAndTitleToTopRef.set(baseAndTitle, ref);
       }
     }
 

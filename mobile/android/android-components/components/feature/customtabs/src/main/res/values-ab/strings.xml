@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mozac_feature_customtabs_exit_button">Ԥасатәи арзаҳал ахь ахынҳәра</string>
+    <string name="mozac_feature_customtabs_share_link">Аиҩшара азхьарԥш</string>
+    <!-- Content description (not visible, for screen readers etc.): Description of the refresh button in the Custom Tabs toolbar -->
+    <string name="mozac_feature_customtabs_refresh_button">Арҿыцра</string>
+    <!-- Content description (not visible, for screen readers etc.): Description of the menu button in the Custom Tabs toolbar. -->
+    <string name="mozac_feature_customtabs_menu_button">Егьырҭ архиарақәа</string>
+</resources>

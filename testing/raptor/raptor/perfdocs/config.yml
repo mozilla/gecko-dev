@@ -6,6 +6,11 @@ name: raptor
 manifest: testing/raptor/raptor/raptor.toml
 static-only: False
 metrics:
+    "cpu Time":
+        aliases:
+            - cpuTime
+        description: >
+            Specifies cumulative CPU usage in milliseconds across all threads of the process since the process start.
     "First Paint":
         aliases:
             - fcp

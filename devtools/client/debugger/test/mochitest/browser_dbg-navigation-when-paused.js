@@ -13,7 +13,7 @@ add_task(async function () {
 
   await waitForPaused(dbg, "doc-navigation-when-paused.html");
 
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-navigation-when-paused.html").id,
     12
@@ -34,7 +34,7 @@ add_task(async function () {
   // source itself has loaded, which may not be the case if navigation cleared
   // the source and nothing has sent it to the devtools client yet, as was
   // the case in Bug 1581530.
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc-navigation-when-paused.html").id,
     12

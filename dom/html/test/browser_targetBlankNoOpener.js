@@ -101,7 +101,7 @@ add_task(async _ => {
   await SpecialPowers.flushPrefEnv();
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["dom.block_multiple_popups", false],
+      // Enable popup blocker
       ["dom.disable_open_during_load", true],
       ["dom.targetBlankNoOpener.enabled", true],
     ],

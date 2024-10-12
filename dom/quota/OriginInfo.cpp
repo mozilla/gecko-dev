@@ -14,6 +14,12 @@
 
 namespace mozilla::dom::quota {
 
+// This constructor is called from the "QuotaManager IO" thread and so we
+// can't check if the principal has a WebExtensionPolicy instance associated
+// to it, and even besides that if the extension is currently disabled (and so
+// no WebExtensionPolicy instance would actually exist) its stored data
+// shouldn't be cleared until the extension is uninstalled and so here we
+// resort to check the origin scheme instead to initialize mIsExtension.
 OriginInfo::OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin,
                        const nsACString& aStorageOrigin, bool aIsPrivate,
                        const ClientUsageArray& aClientUsages, uint64_t aUsage,
@@ -28,6 +34,7 @@ OriginInfo::OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin,
       mIsPrivate(aIsPrivate),
       mAccessed(false),
       mPersisted(aPersisted),
+      mIsExtension(StringBeginsWith(aOrigin, "moz-extension://"_ns)),
       mDirectoryExists(aDirectoryExists) {
   MOZ_ASSERT(aGroupInfo);
   MOZ_ASSERT_IF(!aIsPrivate, aOrigin == aStorageOrigin);
@@ -35,14 +42,6 @@ OriginInfo::OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin,
   MOZ_ASSERT(aClientUsages.Length() == Client::TypeMax());
   MOZ_ASSERT_IF(aPersisted,
                 aGroupInfo->mPersistenceType == PERSISTENCE_TYPE_DEFAULT);
-
-  // This constructor is called from the "QuotaManager IO" thread and so
-  // we can't check if the principal has a WebExtensionPolicy instance
-  // associated to it, and even besides that if the extension is currently
-  // disabled (and so no WebExtensionPolicy instance would actually exist)
-  // its stored data shouldn't be cleared until the extension is uninstalled
-  // and so here we resort to check the origin scheme instead.
-  mIsExtension = StringBeginsWith(mOrigin, "moz-extension://"_ns);
 
 #ifdef DEBUG
   QuotaManager* quotaManager = QuotaManager::Get();

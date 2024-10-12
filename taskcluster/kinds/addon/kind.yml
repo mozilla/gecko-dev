@@ -39,6 +39,9 @@ tasks:
             using: mach
             mach: tps-build --dest tps-out
             sparse-profile: tps
-        when:
-            files-changed:
-                - 'services/sync/tps/extensions/tps/**'
+        optimization:
+            skip-unless-missing-or-changed:
+                # index path where task should be found (if missing will cause task to run)
+                - "gecko.v2.mozilla-central.latest.firefox.addons.tps"
+                # file paths that should also cause task to run when modified
+                - ["services/sync/tps/extensions/tps/**"]

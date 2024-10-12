@@ -45,7 +45,8 @@ const SQL_ADAPTIVE_QUERY = `/* do not warn (bug 487789) */
             WHERE b.fk = h.id
           ) AS tags,
           t.open_count,
-          t.userContextId
+          t.userContextId,
+          h.last_visit_date
    FROM (
      SELECT ROUND(MAX(use_count) * (1 + (input = :search_string)), 1) AS rank,
             place_id
@@ -137,6 +138,10 @@ class ProviderInputHistory extends UrlbarProvider {
         ? row.getResultByName("bookmark_title")
         : null;
       const tags = row.getResultByName("tags") || "";
+      let lastVisitPRTime = row.getResultByName("last_visit_date");
+      let lastVisit = lastVisitPRTime
+        ? lazy.PlacesUtils.toDate(lastVisitPRTime).getTime()
+        : undefined;
 
       let resultTitle = historyTitle;
       if (openPageCount > 0 && lazy.UrlbarPrefs.get("suggest.openpage")) {
@@ -152,6 +157,7 @@ class ProviderInputHistory extends UrlbarProvider {
             title: [resultTitle, UrlbarUtils.HIGHLIGHT.TYPED],
             icon: UrlbarUtils.getIconForUrl(url),
             userContextId,
+            lastVisit,
           }
         );
         if (lazy.UrlbarPrefs.get("secondaryActions.switchToTab")) {
@@ -202,6 +208,7 @@ class ProviderInputHistory extends UrlbarProvider {
             ? Services.urlFormatter.formatURLPref("app.support.baseURL") +
               "awesome-bar-result-menu"
             : undefined,
+          lastVisit,
         })
       );
 

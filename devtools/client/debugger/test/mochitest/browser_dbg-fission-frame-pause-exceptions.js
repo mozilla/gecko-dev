@@ -17,7 +17,7 @@ add_task(async function () {
   let onReloaded = reload(dbg);
   await waitForPaused(dbg);
 
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc_dbg-fission-frame-pause-exceptions.html").id,
     17
@@ -33,7 +33,7 @@ add_task(async function () {
   onReloaded = reload(dbg);
   await waitForPaused(dbg);
 
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc_dbg-fission-frame-pause-exceptions.html").id,
     13
@@ -42,7 +42,7 @@ add_task(async function () {
   await resume(dbg);
   await waitForPaused(dbg);
 
-  assertPausedAtSourceAndLine(
+  await assertPausedAtSourceAndLine(
     dbg,
     findSource(dbg, "doc_dbg-fission-frame-pause-exceptions.html").id,
     17

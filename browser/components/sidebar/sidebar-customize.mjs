@@ -78,6 +78,11 @@ export class SidebarCustomize extends SidebarPage {
     e.preventDefault();
     this.getWindow().SidebarController.toggleTool(e.target.id);
     switch (e.target.id) {
+      case "viewGenaiChatSidebar":
+        Glean.sidebarCustomize.chatbotEnabled.record({
+          checked: e.target.checked,
+        });
+        break;
       case "viewTabsSidebar":
         Glean.sidebarCustomize.syncedTabsEnabled.record({
           checked: e.target.checked,
@@ -85,6 +90,11 @@ export class SidebarCustomize extends SidebarPage {
         break;
       case "viewHistorySidebar":
         Glean.sidebarCustomize.historyEnabled.record({
+          checked: e.target.checked,
+        });
+        break;
+      case "viewBookmarksSidebar":
+        Glean.sidebarCustomize.bookmarksEnabled.record({
           checked: e.target.checked,
         });
         break;

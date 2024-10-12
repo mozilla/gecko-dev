@@ -72,7 +72,7 @@ var tests = [
    setup(aNext) {
      setupPP("click mouseup", DENY_ACTION, DENY_ACTION, aNext);
    },
-   report: should_not_have_blocked
+   report: should_have_blocked
  },
  { event: "mouseup",
    setup(aNext) {
@@ -108,7 +108,7 @@ var tests = [
    setup(aNext) {
      setupPP("click mouseup", DENY_ACTION, DENY_ACTION, aNext);
    },
-   report: should_not_have_blocked
+   report: should_have_blocked
  },
  { event: "click",
    setup(aNext) {

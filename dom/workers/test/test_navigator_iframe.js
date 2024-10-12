@@ -31,6 +31,7 @@ worker.onmessage = function (event) {
     "gpu",
     "locks",
     "mediaCapabilities",
+    "permissions",
     "storage",
   ];
 

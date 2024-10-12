@@ -64,7 +64,7 @@ add_task(async function () {
   info(
     "So that we miss info about the ASM sources and lines are not breakables"
   );
-  assertLineIsBreakable(dbg, legitSource.url, 7, false);
+  await assertLineIsBreakable(dbg, legitSource.url, 7, false);
 
   info("Reload and assert that ASM.js file are then debuggable");
   await reload(dbg, "doc-asm.html", "asm.js");
@@ -73,7 +73,7 @@ add_task(async function () {
   // Ensure selecting the source before asserting breakable lines
   // otherwise the gutter may not be yet updated
   await selectSource(dbg, "asm.js");
-  assertLineIsBreakable(dbg, legitSource.url, 7, true);
+  await assertLineIsBreakable(dbg, legitSource.url, 7, true);
 
   await waitForSourcesInSourceTree(dbg, ["doc-asm.html", "asm.js"]);
   is(dbg.selectors.getSourceCount(), 2, "There is only the two sources");
@@ -84,7 +84,7 @@ add_task(async function () {
   invokeInTab("runAsm");
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, findSource(dbg, "asm.js").id, 7);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, "asm.js").id, 7);
   await assertBreakpoint(dbg, 7);
 
   await removeBreakpoint(dbg, findSource(dbg, "asm.js").id, 7);

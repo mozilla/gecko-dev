@@ -51,7 +51,7 @@ add_task(async function () {
   });
 
   await waitForPaused(dbg);
-  assertPausedAtSourceAndLine(dbg, source.id, 3);
+  await assertPausedAtSourceAndLine(dbg, source.id, 3);
   assertTextContentOnLine(dbg, 3, `console.log("breakpoint line");`);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {

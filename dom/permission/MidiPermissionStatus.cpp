@@ -11,9 +11,9 @@
 
 namespace mozilla::dom {
 
-MidiPermissionStatus::MidiPermissionStatus(nsPIDOMWindowInner* aWindow,
+MidiPermissionStatus::MidiPermissionStatus(nsIGlobalObject* aGlobal,
                                            bool aSysex)
-    : PermissionStatus(aWindow, PermissionName::Midi), mSysex(aSysex) {}
+    : PermissionStatus(aGlobal, PermissionName::Midi), mSysex(aSysex) {}
 
 nsLiteralCString MidiPermissionStatus::GetPermissionType() const {
   return mSysex ? "midi-sysex"_ns : "midi"_ns;

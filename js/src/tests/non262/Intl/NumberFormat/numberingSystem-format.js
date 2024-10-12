@@ -1,3 +1,5 @@
+// |reftest| skip-if(!this.hasOwnProperty('Intl'))
+
 for (let [numberingSystem, {digits, algorithmic}] of Object.entries(numberingSystems)) {
   if (algorithmic) {
     // We don't yet support algorithmic numbering systems.

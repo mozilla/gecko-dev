@@ -285,10 +285,10 @@ class MOZ_RAII WarpCacheIRTranspiler : public WarpBuilderShared {
 
   [[nodiscard]] bool updateCallInfo(MDefinition* callee, CallFlags flags);
 
-  [[nodiscard]] bool emitCallFunction(ObjOperandId calleeId,
-                                      Int32OperandId argcId,
-                                      mozilla::Maybe<ObjOperandId> thisObjId,
-                                      CallFlags flags, CallKind kind);
+  [[nodiscard]] bool emitCallFunction(
+      ObjOperandId calleeId, Int32OperandId argcId,
+      mozilla::Maybe<ObjOperandId> thisObjId, CallFlags flags, CallKind kind,
+      mozilla::Maybe<uint32_t> siteOffset = mozilla::Nothing());
   [[nodiscard]] bool emitFunApplyArgsObj(WrappedFunction* wrappedTarget,
                                          CallFlags flags);
 
@@ -483,38 +483,32 @@ bool WarpCacheIRTranspiler::emitGuardShape(ObjOperandId objId,
 
 template <auto FuseMember>
 struct RealmFuseDependency final : public CompilationDependency {
-  Realm* realm = nullptr;
-
-  explicit RealmFuseDependency(Realm* realm);
+  RealmFuseDependency();
 
   virtual bool registerDependency(JSContext* cx, HandleScript script) override {
-    MOZ_ASSERT(checkDependency());
-    return (realm->realmFuses.*FuseMember).addFuseDependency(cx, script);
+    MOZ_ASSERT(checkDependency(cx));
+
+    return (cx->realm()->realmFuses.*FuseMember).addFuseDependency(cx, script);
   }
 
   virtual UniquePtr<CompilationDependency> clone() override {
-    return MakeUnique<RealmFuseDependency<FuseMember>>(realm);
+    return MakeUnique<RealmFuseDependency<FuseMember>>();
   }
 
-  virtual bool checkDependency() override {
-    return (realm->realmFuses.*FuseMember).intact();
+  virtual bool checkDependency(JSContext* cx) override {
+    return (cx->realm()->realmFuses.*FuseMember).intact();
   }
 
   virtual bool operator==(CompilationDependency& dep) override {
-    if (dep.type != type) {
-      return false;
-    }
-
-    return static_cast<RealmFuseDependency<FuseMember>*>(&dep)->realm == realm;
+    return dep.type == type;
   }
 };
 
 using GetIteratorDependency =
     RealmFuseDependency<&RealmFuses::optimizeGetIteratorFuse>;
 template <>
-GetIteratorDependency::RealmFuseDependency(Realm* realm)
-    : CompilationDependency(CompilationDependency::Type::GetIterator),
-      realm(realm) {}
+GetIteratorDependency::RealmFuseDependency()
+    : CompilationDependency(CompilationDependency::Type::GetIterator) {}
 
 bool WarpCacheIRTranspiler::emitGuardFuse(RealmFuses::FuseIndex fuseIndex) {
   if (fuseIndex != RealmFuses::FuseIndex::OptimizeGetIteratorFuse) {
@@ -524,7 +518,7 @@ bool WarpCacheIRTranspiler::emitGuardFuse(RealmFuses::FuseIndex fuseIndex) {
   }
 
   // Register the compilation dependency.
-  GetIteratorDependency dep((JS::Realm*)(mirGen().realm->realmPtr()));
+  GetIteratorDependency dep;
   return mirGen().tracker.addDependency(dep);
 }
 
@@ -5816,7 +5810,8 @@ bool WarpCacheIRTranspiler::maybeCreateThis(MDefinition* callee,
 
 bool WarpCacheIRTranspiler::emitCallFunction(
     ObjOperandId calleeId, Int32OperandId argcId,
-    mozilla::Maybe<ObjOperandId> thisObjId, CallFlags flags, CallKind kind) {
+    mozilla::Maybe<ObjOperandId> thisObjId, CallFlags flags, CallKind kind,
+    mozilla::Maybe<uint32_t> siteOffset) {
   MDefinition* callee = getOperand(calleeId);
   if (kind == CallKind::Scripted && callInfo_ && callInfo_->isInlined()) {
     // We are transpiling to generate the correct guards. We also
@@ -5885,8 +5880,14 @@ bool WarpCacheIRTranspiler::emitCallFunction(
 
   switch (callInfo_->argFormat()) {
     case CallInfo::ArgFormat::Standard: {
+      gc::Heap initialHeap = gc::Heap::Default;
+      if (siteOffset) {
+        MOZ_ASSERT(kind == CallKind::DOM);
+        MOZ_ASSERT(readStubWord(*siteOffset) <= (uintptr_t)(gc::Heap::Tenured));
+        initialHeap = static_cast<gc::Heap>(readStubWord(*siteOffset));
+      }
       MCall* call = makeCall(*callInfo_, needsThisCheck, wrappedTarget,
-                             kind == CallKind::DOM);
+                             kind == CallKind::DOM, initialHeap);
       if (!call) {
         return false;
       }
@@ -5967,6 +5968,13 @@ bool WarpCacheIRTranspiler::emitCallDOMFunction(ObjOperandId calleeId,
   return emitCallFunction(calleeId, argcId, mozilla::Some(thisObjId), flags,
                           CallKind::DOM);
 }
+
+bool WarpCacheIRTranspiler::emitCallDOMFunctionWithAllocSite(
+    ObjOperandId calleeId, Int32OperandId argcId, ObjOperandId thisObjId,
+    CallFlags flags, uint32_t argcFixed, uint32_t siteOffset) {
+  return emitCallFunction(calleeId, argcId, mozilla::Some(thisObjId), flags,
+                          CallKind::DOM, mozilla::Some(siteOffset));
+}
 #else
 bool WarpCacheIRTranspiler::emitCallNativeFunction(ObjOperandId calleeId,
                                                    Int32OperandId argcId,
@@ -5982,6 +5990,14 @@ bool WarpCacheIRTranspiler::emitCallDOMFunction(
     CallFlags flags, uint32_t argcFixed, uint32_t targetOffset) {
   return emitCallFunction(calleeId, argcId, mozilla::Some(thisObjId), flags,
                           CallKind::DOM);
+}
+
+bool WarpCacheIRTranspiler::emitCallDOMFunctionWithAllocSite(
+    ObjOperandId calleeId, Int32OperandId argcId, ObjOperandId thisObjId,
+    CallFlags flags, uint32_t argcFixed, uint32_t siteOffset,
+    uint32_t targetOffset) {
+  return emitCallFunction(calleeId, argcId, mozilla::Some(thisObjId), flags,
+                          CallKind::DOM, mozilla::Some(siteOffset));
 }
 #endif
 
@@ -6685,10 +6701,9 @@ bool WarpCacheIRTranspiler::emitCloseIterScriptedResult(ObjOperandId iterId,
   bool constructing = false;
   bool ignoresRval = false;
   bool needsThisCheck = false;
-  bool isDOMCall = false;
   CallInfo callInfo(alloc(), constructing, ignoresRval);
   callInfo.initForCloseIter(iter, callee);
-  MCall* call = makeCall(callInfo, needsThisCheck, wrappedTarget, isDOMCall);
+  MCall* call = makeCall(callInfo, needsThisCheck, wrappedTarget);
   if (!call) {
     return false;
   }

@@ -72,40 +72,44 @@ add_task(async function () {
     },
   ]);
 
-  info("Resize the editor until `myVeryLongVariableNameThatMayWrap` wraps");
+  info(
+    "Resize the editor until the content on line 6 => `        const cs2 = getComputedStyle(document.documentElement);` wraps"
+  );
   // Use splitter to resize to make sure CodeMirror internal state is refreshed
   // in such case (CodeMirror already handle window resize on its own).
   const splitter = dbg.win.document.querySelectorAll(".splitter")[1];
   const splitterOriginalX = splitter.getBoundingClientRect().left;
   ok(splitter, "Got the splitter");
 
-  let longToken = getTokenElAtLine(
-    dbg,
-    "myVeryLongVariableNameThatMayWrap",
-    16
-  );
-  const longTokenBoundingClientRect = longToken.getBoundingClientRect();
+  const lineEl = findElement(dbg, "line", 6);
+
+  const lineHeightBeforeWrap = getElementBoxQuadHeight(lineEl);
+  let lineHeightAfterWrap = 0;
+
+  info("Resize the editor width to one third of the size of the line element");
+  const lineElBoundingClientRect = lineEl.getBoundingClientRect();
   await resizeSplitter(
     dbg,
     splitter,
-    longTokenBoundingClientRect.left + longTokenBoundingClientRect.width / 2
+    lineElBoundingClientRect.left + lineElBoundingClientRect.width / 3
   );
 
-  info("Wait until the token does wrap");
-  longToken = await waitFor(() => {
-    const token = getTokenElAtLine(
-      dbg,
-      "myVeryLongVariableNameThatMayWrap",
-      16
-    );
-    if (token.getBoxQuads().length === 1) {
-      return null;
-    }
-    return token;
+  info("Wait until the line does wrap");
+  await waitFor(async () => {
+    const el = findElement(dbg, "line", 6);
+    lineHeightAfterWrap = getElementBoxQuadHeight(el);
+    return lineHeightAfterWrap > lineHeightBeforeWrap;
   });
 
-  longToken.scrollIntoView();
+  info("Assert that the line wrapped");
+  const EXPECTED_LINES_TO_WRAP_OVER = 3;
+  is(
+    Math.floor(lineHeightAfterWrap),
+    Math.floor(lineHeightBeforeWrap * EXPECTED_LINES_TO_WRAP_OVER),
+    "The content on line 6 to wrap over 3 lines"
+  );
 
+  info("Assert the previews still work with wrapping");
   await assertPreviews(dbg, [
     {
       line: 16,
@@ -128,15 +132,6 @@ add_task(async function () {
 
 async function resizeSplitter(dbg, splitterEl, x) {
   EventUtils.synthesizeMouse(splitterEl, 0, 0, { type: "mousedown" }, dbg.win);
-
-  // Resizing the editor should cause codeMirror to refresh
-  const cm = dbg.getCM();
-  const onEditorRefreshed = new Promise(resolve =>
-    cm.on("refresh", function onCmRefresh() {
-      cm.off("refresh", onCmRefresh);
-      resolve();
-    })
-  );
   // Move the splitter of the secondary pane to the middle of the token,
   // this should cause the token to wrap.
   EventUtils.synthesizeMouseAtPoint(
@@ -148,7 +143,10 @@ async function resizeSplitter(dbg, splitterEl, x) {
 
   // Stop dragging
   EventUtils.synthesizeMouseAtCenter(splitterEl, { type: "mouseup" }, dbg.win);
+}
 
-  await onEditorRefreshed;
-  ok(true, "CodeMirror was refreshed when resizing the editor");
+// Calculates the height of the element for the line
+function getElementBoxQuadHeight(lineEl) {
+  const boxQ = lineEl.getBoxQuads()[0];
+  return boxQ.p4.y - boxQ.p1.y;
 }

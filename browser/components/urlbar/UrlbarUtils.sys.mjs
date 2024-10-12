@@ -786,6 +786,25 @@ export var UrlbarUtils = {
   },
 
   /**
+   * Splits a url into base and ref strings, according to nsIURI.idl.
+   * Base refers to the part of the url before the ref, excluding the #.
+   *
+   * @param {string} url
+   *   The url to split.
+   * @returns {object} { base, ref }
+   *   Base and ref parts of the given url. Ref is an empty string
+   *   if there is no ref and undefined if url is not well-formed.
+   */
+  extractRefFromUrl(url) {
+    try {
+      let nsUri = Services.io.newURI(url);
+      return { base: nsUri.specIgnoringRef, ref: nsUri.ref };
+    } catch {
+      return { base: url };
+    }
+  },
+
+  /**
    * Strips parts of a URL defined in `options`.
    *
    * @param {string} spec
@@ -1744,6 +1763,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       isSponsored: {
         type: "boolean",
       },
+      lastVisit: {
+        type: "number",
+      },
       title: {
         type: "string",
       },
@@ -1936,6 +1958,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       },
       isSponsored: {
         type: "boolean",
+      },
+      lastVisit: {
+        type: "number",
       },
       originalUrl: {
         type: "string",

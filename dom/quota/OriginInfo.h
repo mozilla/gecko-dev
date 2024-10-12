@@ -63,6 +63,8 @@ class OriginInfo final {
     return mPersisted;
   }
 
+  bool IsExtensionOrigin() const { return mIsExtension; }
+
   OriginMetadata FlattenToOriginMetadata() const;
 
   FullOriginMetadata LockedFlattenToFullOriginMetadata() const;
@@ -94,20 +96,18 @@ class OriginInfo final {
 
   void LockedPersist();
 
-  bool IsExtensionOrigin() { return mIsExtension; }
-
   nsTHashMap<nsStringHashKey, NotNull<CanonicalQuotaObject*>>
       mCanonicalQuotaObjects;
   ClientUsageArray mClientUsages;
   GroupInfo* mGroupInfo;
   const nsCString mOrigin;
   const nsCString mStorageOrigin;
-  bool mIsExtension;
   uint64_t mUsage;
   int64_t mAccessTime;
   bool mIsPrivate;
   bool mAccessed;
   bool mPersisted;
+  const bool mIsExtension;
   /**
    * In some special cases like the LocalStorage client where it's possible to
    * create a Quota-using representation but not actually write any data, we

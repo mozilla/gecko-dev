@@ -160,6 +160,9 @@ impl NonTSPseudoClass {
         if matches!(*self, Self::CustomState(_)) {
             return static_prefs::pref!("dom.element.customstateset.enabled");
         }
+        if matches!(*self, Self::HasSlotted) {
+            return static_prefs::pref!("layout.css.has-slotted-selector.enabled");
+        }
         !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }
 

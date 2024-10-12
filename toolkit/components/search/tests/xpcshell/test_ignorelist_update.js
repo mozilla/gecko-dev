@@ -6,11 +6,9 @@
 const kSearchEngineID1 = "ignorelist_test_engine1";
 const kSearchEngineID2 = "ignorelist_test_engine2";
 const kSearchEngineID3 = "ignorelist_test_engine3";
-const kSearchEngineURL1 =
-  "https://example.com/?search={searchTerms}&ignore=true";
-const kSearchEngineURL2 =
-  "https://example.com/?search={searchTerms}&IGNORE=TRUE";
-const kSearchEngineURL3 = "https://example.com/?search={searchTerms}";
+const kSearchEngineURL1 = "https://example.com/?ignore=true";
+const kSearchEngineURL2 = "https://example.com/?IGNORE=TRUE";
+const kSearchEngineURL3 = "https://example.com/";
 const kExtensionID = "searchignore@mozilla.com";
 
 add_task(async function test_ignoreList() {

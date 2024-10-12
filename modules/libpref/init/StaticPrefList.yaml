@@ -7977,6 +7977,13 @@
 #endif
   mirror: always
 
+# Use the realm local dom alloc site.
+- name: javascript.options.dom_alloc_site
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: always
+
 # Use better error message when accessing property of null or undefined.
 - name: javascript.options.property_error_message_fix
   type: bool
@@ -8079,6 +8086,13 @@
   mirror: always
   set_spidermonkey_pref: startup
 
+# Experimental support for Uint8Array base64/hex in JavaScript.
+-   name: javascript.options.experimental.uint8array_base64
+    type: bool
+    value: true
+    mirror: always
+    set_spidermonkey_pref: startup
+
 #ifdef NIGHTLY_BUILD
   # Experimental support for Async Iterator Helpers in JavaScript.
 -   name: javascript.options.experimental.async_iterator_helpers
@@ -8089,13 +8103,6 @@
 
   # Experimental support for Symbols as WeakMap keys in JavaScript.
 -   name: javascript.options.experimental.symbols_as_weakmap_keys
-    type: bool
-    value: false
-    mirror: always
-    set_spidermonkey_pref: startup
-
-  # Experimental support for Uint8Array base64/hex in JavaScript.
--   name: javascript.options.experimental.uint8array_base64
     type: bool
     value: false
     mirror: always
@@ -8116,6 +8123,13 @@
 
   # Experimental support for Promise.try in JavaScript.
 -   name: javascript.options.experimental.promise_try
+    type: bool
+    value: false
+    mirror: always
+    set_spidermonkey_pref: startup
+
+  # Experimental support for Error.isError in JavaScript.
+-   name: javascript.options.experimental.error_iserror
     type: bool
     value: false
     mirror: always
@@ -9205,6 +9219,13 @@
 - name: layout.css.has-selector.enabled
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+  rust: true
+
+# Whether the `:has-slotted` pseudo class is enabled
+- name: layout.css.has-slotted-selector.enabled
+  type: RelaxedAtomicBool
+  value: false
   mirror: always
   rust: true
 
@@ -12291,7 +12312,7 @@
 # Use sever time (Date header) to adjust the expire cookie attribute
 - name: network.cookie.useServerTime
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # If we should attempt to race the cache and network.
@@ -14336,7 +14357,7 @@
 
 # Is support for Permissions.query enabled for camera and microphone?
 - name: permissions.media.query.enabled
-  type: bool
+  type: RelaxedAtomicBool
   value: true
   mirror: always
 
@@ -15626,12 +15647,15 @@
   mirror: always
 
 # The CRLite filter channel to which the user is subscribed.
-# - "all" => filters that contain all revocations,
-# - "specified" => filters that contain revocations with specified reason codes,
-# - "priority" => filters that contain high priority revocations.
+# - "all" => bloom-filter cascades that contain all revocations,
+# - "experimental" => clubcards that contain all revocations.
 - name: security.pki.crlite_channel
   type: String
-  value: "specified"
+#ifdef NIGHTLY_BUILD
+  value: "experimental"
+#else
+  value: "all"
+#endif
   mirror: never
 
 - name: security.pki.use_modern_crypto_with_pkcs12

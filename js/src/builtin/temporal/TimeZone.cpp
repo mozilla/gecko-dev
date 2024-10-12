@@ -22,6 +22,7 @@
 #include <iterator>
 #include <utility>
 
+#include "jsdate.h"
 #include "jsnum.h"
 #include "jspubtd.h"
 #include "jstypes.h"
@@ -776,70 +777,29 @@ bool js::temporal::TimeZoneEquals(const TimeZoneValue& one,
   return false;
 }
 
-// ES2019 draft rev 0ceb728a1adbffe42b26972a6541fd7f398b1557
-// 5.2.5 Mathematical Operations
-static inline double PositiveModulo(double dividend, double divisor) {
-  MOZ_ASSERT(divisor > 0);
-  MOZ_ASSERT(std::isfinite(divisor));
-
-  double result = std::fmod(dividend, divisor);
-  if (result < 0) {
-    result += divisor;
-  }
-  return result + (+0.0);
-}
-
-/* ES5 15.9.1.10. */
-static double HourFromTime(double t) {
-  return PositiveModulo(std::floor(t / msPerHour), HoursPerDay);
-}
-
-static double MinFromTime(double t) {
-  return PositiveModulo(std::floor(t / msPerMinute), MinutesPerHour);
-}
-
-static double SecFromTime(double t) {
-  return PositiveModulo(std::floor(t / msPerSecond), SecondsPerMinute);
-}
-
-static double msFromTime(double t) { return PositiveModulo(t, msPerSecond); }
-
 /**
  * GetISOPartsFromEpoch ( epochNanoseconds )
  */
 static PlainDateTime GetISOPartsFromEpoch(const Instant& instant) {
-  // TODO: YearFromTime/MonthFromTime/DayFromTime recompute the same values
-  // multiple times. Consider adding a new function avoids this.
-
   // Step 1.
   MOZ_ASSERT(IsValidEpochInstant(instant));
 
   // Step 2.
   int32_t remainderNs = instant.nanoseconds % 1'000'000;
 
+  // Step 10. (Reordered)
+  //
+  // Reordered so the compiler can merge the divisons in steps 2, 3, and 10.
+  int32_t millisecond = instant.nanoseconds / 1'000'000;
+
   // Step 3.
-  double epochMilliseconds = double(instant.floorToMilliseconds());
+  int64_t epochMilliseconds = instant.floorToMilliseconds();
 
-  // Step 4.
-  int32_t year = int32_t(JS::YearFromTime(epochMilliseconds));
+  // Steps 4-6.
+  auto [year, month, day] = ToYearMonthDay(epochMilliseconds);
 
-  // Step 5.
-  int32_t month = int32_t(JS::MonthFromTime(epochMilliseconds)) + 1;
-
-  // Step 6.
-  int32_t day = int32_t(JS::DayFromTime(epochMilliseconds));
-
-  // Step 7.
-  int32_t hour = int32_t(HourFromTime(epochMilliseconds));
-
-  // Step 8.
-  int32_t minute = int32_t(MinFromTime(epochMilliseconds));
-
-  // Step 9.
-  int32_t second = int32_t(SecFromTime(epochMilliseconds));
-
-  // Step 10.
-  int32_t millisecond = int32_t(msFromTime(epochMilliseconds));
+  // Steps 7-9.
+  auto [hour, minute, second] = ToHourMinuteSecond(epochMilliseconds);
 
   // Step 11.
   int32_t microsecond = remainderNs / 1000;
@@ -849,7 +809,7 @@ static PlainDateTime GetISOPartsFromEpoch(const Instant& instant) {
 
   // Step 13.
   PlainDateTime result = {
-      {year, month, day},
+      {year, month + 1, day},
       {hour, minute, second, millisecond, microsecond, nanosecond}};
 
   // Always valid when the epoch nanoseconds are within the representable limit.

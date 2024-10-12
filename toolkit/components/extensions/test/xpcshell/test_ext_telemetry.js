@@ -769,9 +769,9 @@ if (AppConstants.MOZ_BUILD_APP === "browser") {
     });
 
     const expectedRegisterEventsMessage =
-      /`registerEvents` has been deprecated since Firefox 132 \(see bug 1894533\)/;
+      /`registerEvents` is a no-op since Firefox 132 \(see bug 1894533\)/;
     const expectedRecordEventMessage =
-      /`recordEvent` has been deprecated since Firefox 132 \(see bug 1894533\)/;
+      /`recordEvent` is a no-op since Firefox 132 \(see bug 1894533\)/;
 
     AddonTestUtils.checkMessages(messages, {
       expected: [

@@ -1062,6 +1062,9 @@ public final class GeckoRuntime implements Parcelable {
    */
   @AnyThread
   public boolean isInteractiveWidgetDefaultResizesVisual() {
+    if (!GeckoThread.isStateAtLeast(GeckoThread.State.JNI_READY)) {
+      return false;
+    }
     return GeckoAppShell.isInteractiveWidgetDefaultResizesVisual();
   }
 }

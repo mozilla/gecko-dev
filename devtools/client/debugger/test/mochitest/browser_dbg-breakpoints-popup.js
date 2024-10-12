@@ -88,7 +88,7 @@ add_task(async function testPausedByBreakpoint() {
   );
 
   source = await waitForSource(dbg, POPUP_URL);
-  assertPausedAtSourceAndLine(dbg, source.id, 4);
+  await assertPausedAtSourceAndLine(dbg, source.id, 4);
 
   await resume(dbg);
   is(
@@ -112,7 +112,7 @@ add_task(async function testPausedByDebuggerStatement() {
   );
 
   const source = findSource(dbg, POPUP_DEBUGGER_STATEMENT_URL);
-  assertPausedAtSourceAndLine(dbg, source.id, 4);
+  await assertPausedAtSourceAndLine(dbg, source.id, 4);
 
   await resume(dbg);
   is(

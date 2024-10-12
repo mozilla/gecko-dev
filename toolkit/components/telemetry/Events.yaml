@@ -296,21 +296,6 @@ addonsManager:
     record_in_processes: ["main"]
     bug_numbers: [1433335, 1515697, 1523641, 1549770, 1590736, 1630596, 1672570, 1714251, 1749878, 1781974, 1817100, 1861295, 1912166]
     release_channel_collection: opt-out
-  reportSuspiciousSite:
-    description: >
-      Sent when a user clicks "Report Suspicious Site" on the dropdown menu of the third-
-      party xpinstall doorhanger. The object is always suspiciousSite. The value is the
-      site domain, or "(unknown)" if there is no site associated with the prompt.
-    objects:
-      - suspiciousSite
-    notification_emails: ["addons-dev-internal@mozilla.com"]
-    expiry_version: "140"
-    products:
-      - "firefox"
-    record_in_processes: ["main"]
-    bug_numbers: [1806056, 1817100, 1861295, 1912166]
-    release_channel_collection: opt-out
-
 addonsSearchDetection:
   etld_change:
     description: |

@@ -4550,11 +4550,6 @@
       aTab.remove();
       this.tabContainer._invalidateCachedTabs();
 
-      // Update hashiddentabs if this tab was hidden.
-      if (aTab.hidden) {
-        this.tabContainer._updateHiddenTabsStatus();
-      }
-
       // ... and fix up the _tPos properties immediately.
       for (let i = aTab._tPos; i < this.tabs.length; i++) {
         this.tabs[i]._tPos = i;
@@ -5135,19 +5130,6 @@
       return aTab.linkedBrowser;
     },
 
-    showOnlyTheseTabs(aTabs) {
-      for (let tab of this.tabs) {
-        if (!aTabs.includes(tab)) {
-          this.hideTab(tab);
-        } else {
-          this.showTab(tab);
-        }
-      }
-
-      this.tabContainer._updateHiddenTabsStatus();
-      this.tabContainer._handleTabSelect(true);
-    },
-
     showTab(aTab) {
       if (!aTab.hidden || aTab == FirefoxViewHandler.tab) {
         return;
@@ -5156,7 +5138,6 @@
       this.tabContainer._invalidateCachedVisibleTabs();
 
       this.tabContainer._updateCloseButtons();
-      this.tabContainer._updateHiddenTabsStatus();
       if (aTab.multiselected) {
         this._updateMultiselectedTabCloseButtonTooltip();
       }
@@ -5182,7 +5163,6 @@
       this.tabContainer._invalidateCachedVisibleTabs();
 
       this.tabContainer._updateCloseButtons();
-      this.tabContainer._updateHiddenTabsStatus();
       if (aTab.multiselected) {
         this._updateMultiselectedTabCloseButtonTooltip();
       }

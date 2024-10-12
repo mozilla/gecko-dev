@@ -87,20 +87,13 @@ toolbarbutton {
   @media (-moz-platform: windows) {
     font-weight: bold;
   }
+
   @media (-moz-platform: macos) {
     font-size: 9px;
     padding-top: 1px;
-  }
-}
 
-@media not (-moz-platform: macos) {
-  .toolbarbutton-badge-stack > .toolbarbutton-icon[label]:not([label=""]) {
-    margin-inline-end: 0;
-  }
-}
-
-@media (-moz-platform: macos) {
-  toolbar[mode="icons"] > *|* > .toolbarbutton-badge {
-    margin-inline-end: -10px !important;
+    toolbar[mode="icons"] > *|* > & {
+      margin-inline-end: -10px !important;
+    }
   }
 }

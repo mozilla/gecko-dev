@@ -21,7 +21,7 @@ function test() {
     function () {
       // Hide the original tab
       gBrowser.selectedTab = testTab2;
-      gBrowser.showOnlyTheseTabs([testTab2]);
+      BrowserTestUtils.showOnlyTheseTabs(gBrowser, [testTab2]);
       is(gBrowser.visibleTabs.length, 1, "1 tab should be visible");
 
       // Add a tab that will get pinned
@@ -42,7 +42,7 @@ function test() {
 
       // Show all tabs
       let allTabs = Array.from(gBrowser.tabs);
-      gBrowser.showOnlyTheseTabs(allTabs);
+      BrowserTestUtils.showOnlyTheseTabs(gBrowser, allTabs);
 
       // reset the environment
       gBrowser.removeTab(testTab2);

@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/PermissionsBinding.h"
 #include "mozilla/dom/PermissionStatusBinding.h"
+#include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/Maybe.h"
 
 namespace mozilla::dom {
@@ -27,7 +28,7 @@ const nsLiteralCString& PermissionNameToType(PermissionName aName);
 Maybe<PermissionName> TypeToPermissionName(const nsACString& aType);
 
 PermissionState ActionToPermissionState(uint32_t aAction, PermissionName aName,
-                                        const Document& aDocument);
+                                        nsIGlobalObject* aGlobal);
 
 }  // namespace mozilla::dom
 

@@ -60,7 +60,9 @@ Maybe<PermissionName> TypeToPermissionName(const nsACString& aType) {
 }
 
 PermissionState ActionToPermissionState(uint32_t aAction, PermissionName aName,
-                                        const Document& aDocument) {
+                                        nsIGlobalObject* aGlobal) {
+  MOZ_ASSERT(aGlobal);
+
   switch (aAction) {
     case nsIPermissionManager::ALLOW_ACTION:
       return PermissionState::Granted;
@@ -71,7 +73,7 @@ PermissionState ActionToPermissionState(uint32_t aAction, PermissionName aName,
     case nsIPermissionManager::PROMPT_ACTION:
       if ((aName == PermissionName::Camera ||
            aName == PermissionName::Microphone) &&
-          !aDocument.ShouldResistFingerprinting(RFPTarget::MediaDevices)) {
+          !aGlobal->ShouldResistFingerprinting(RFPTarget::MediaDevices)) {
         // A persisted PROMPT_ACTION means the user chose "Always Ask"
         // which shows as "granted" to prevent websites from priming the
         // user to escalate permission any further.
