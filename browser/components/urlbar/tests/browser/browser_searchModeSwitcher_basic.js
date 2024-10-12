@@ -719,3 +719,28 @@ add_task(async function nimbusLogEnabled() {
   await cleanUpNimbusEnable();
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_readonly() {
+  let popupOpened = BrowserTestUtils.waitForNewWindow({ url: "about:blank" });
+  BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "data:text/html,<html><script>popup=open('about:blank','','width=300,height=200')</script>"
+  );
+  let win = await popupOpened;
+
+  Assert.ok(win.gURLBar, "location bar exists in the popup");
+  Assert.ok(win.gURLBar.readOnly, "location bar is read-only in the popup");
+
+  Assert.equal(
+    BrowserTestUtils.isVisible(
+      win.gURLBar.querySelector("#urlbar-searchmode-switcher")
+    ),
+    false,
+    "Unified Search Button should not be visible in readonly windows"
+  );
+
+  let closedPopupPromise = BrowserTestUtils.windowClosed(win);
+  win.close();
+  await closedPopupPromise;
+  gBrowser.removeCurrentTab();
+});
