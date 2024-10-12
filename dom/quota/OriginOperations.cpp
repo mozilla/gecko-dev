@@ -3151,12 +3151,14 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
 
       // Set the persisted flag to true.
       QM_TRY(MOZ_TO_RESULT(stream->WriteBoolean(true)));
-    }
 
-    // Directory metadata has been successfully updated.
-    // Update OriginInfo too if temporary storage was already initialized.
-    if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
-      aQuotaManager.PersistOrigin(originMetadata);
+      QM_TRY(MOZ_TO_RESULT(stream->Close()));
+
+      // Directory metadata has been successfully updated.
+      // Update OriginInfo too if temporary storage was already initialized.
+      if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
+        aQuotaManager.PersistOrigin(originMetadata);
+      }
     }
   }
 
