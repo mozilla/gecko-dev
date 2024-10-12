@@ -61,6 +61,13 @@ class SVGNumberList {
 
   const float& operator[](uint32_t aIndex) const { return mNumbers[aIndex]; }
 
+  [[nodiscard]] FallibleTArray<float>::const_iterator begin() const {
+    return mNumbers.begin();
+  }
+  [[nodiscard]] FallibleTArray<float>::const_iterator end() const {
+    return mNumbers.end();
+  }
+
   bool operator==(const SVGNumberList& rhs) const {
     return mNumbers == rhs.mNumbers;
   }
