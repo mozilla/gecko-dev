@@ -187,8 +187,7 @@ class QuotaManager final : public BackgroundThreadObject {
    *
    * @return last access time of the origin.
    */
-  int64_t NoteOriginDirectoryCreated(const OriginMetadata& aOriginMetadata,
-                                     bool aPersisted);
+  int64_t NoteOriginDirectoryCreated(const OriginMetadata& aOriginMetadata);
 
   // XXX clients can use QuotaObject instead of calling this method directly.
   void DecreaseUsageForClient(const ClientMetadata& aClientMetadata,
