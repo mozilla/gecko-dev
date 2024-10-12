@@ -121,16 +121,16 @@ class QuotaTestCase(MarionetteTestCase):
                 script_args=(),
             )
 
-    def initTemporaryOrigin(self, persistenceType, origin):
+    def initTemporaryOrigin(self, persistenceType, origin, createIfNonExistent=True):
         with self.marionette.using_context(self.marionette.CONTEXT_CHROME):
             return self.executeAsyncScript(
                 """
-                const [persistenceType, origin] = arguments;
+                const [persistenceType, origin, createIfNonExistent] = arguments;
                 async function main() {
                     const principal = Services.scriptSecurityManager.
                                         createContentPrincipalFromOrigin(origin);
 
-                    let req = Services.qms.initializeTemporaryOrigin(persistenceType, principal);
+                    let req = Services.qms.initializeTemporaryOrigin(persistenceType, principal, createIfNonExistent);
                     await requestFinished(req)
 
                     return true;
@@ -139,6 +139,7 @@ class QuotaTestCase(MarionetteTestCase):
                 script_args=(
                     persistenceType,
                     origin,
+                    createIfNonExistent,
                 ),
             )
 

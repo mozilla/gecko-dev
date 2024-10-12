@@ -102,8 +102,16 @@ function initPersistentOrigin(principal) {
   return Services.qms.initializePersistentOrigin(principal);
 }
 
-function initTemporaryOrigin(persistence, principal) {
-  return Services.qms.initializeTemporaryOrigin(persistence, principal);
+function initTemporaryOrigin(
+  persistence,
+  principal,
+  createIfNonExistent = true
+) {
+  return Services.qms.initializeTemporaryOrigin(
+    persistence,
+    principal,
+    createIfNonExistent
+  );
 }
 
 function getOriginUsage(principal) {

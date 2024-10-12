@@ -103,6 +103,8 @@ skip-if = ["condprof"] # frequent perma fail, then goes away.
 
 ["test_persist_groupLimit.js"]
 
+["test_quotaClientInteractions.js"]
+
 ["test_removeLocalStorage.js"]
 
 ["test_simpledb.js"]

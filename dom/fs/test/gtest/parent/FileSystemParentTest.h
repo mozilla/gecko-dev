@@ -46,7 +46,7 @@ class FileSystemParentTest : public quota::test::QuotaManagerDependencyFixture {
 
   void TearDown() override;
 
-  static void InitializeTemporaryOrigin();
+  static void InitializeTemporaryOrigin(bool aCreateIfNonExistent = true);
 
   static void GetOriginUsage(quota::UsageInfo& aResult);
 

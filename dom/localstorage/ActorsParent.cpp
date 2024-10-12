@@ -1245,7 +1245,7 @@ class ConnectionDatastoreOperationBase : public DatastoreOperationBase {
 class Connection final : public CachingDatabaseConnection {
   friend class ConnectionThread;
 
-  class InitTemporaryOriginHelper;
+  class GetOrCreateTemporaryOriginDirectoryHelper;
 
   class FlushOp;
   class CloseOp;
@@ -1360,16 +1360,17 @@ class Connection final : public CachingDatabaseConnection {
 };
 
 /**
- * Helper to invoke EnsureTemporaryOriginIsInitializedInternal on the
- * QuotaManager IO thread from the LocalStorage connection thread when creating
- * a database connection on demand. This is necessary because we attempt to
- * defer the creation of the origin directory and the database until absolutely
- * needed, but the directory creation and origin initialization must happen on
- * the QM IO thread for invariant reasons. (We can't just use a mutex because
- * there could be logic on the IO thread that also wants to deal with the same
- * origin, so we need to queue a runnable and wait our turn.)
+ * Helper to invoke GetOrCreateTemporaryOriginDirectory on the QuotaManager IO
+ * thread from the LocalStorage connection thread when creating a database
+ * connection on demand. This is necessary because we attempt to defer the
+ * creation of the origin directory and the database until absolutely needed,
+ * but the directory creation must happen on the QM IO thread for invariant
+ * reasons. (We can't just use a mutex because there could be logic on the IO
+ * thread that also wants to deal with the same origin, so we need to queue a
+ * runnable and wait our turn.)
  */
-class Connection::InitTemporaryOriginHelper final : public Runnable {
+class Connection::GetOrCreateTemporaryOriginDirectoryHelper final
+    : public Runnable {
   mozilla::Monitor mMonitor MOZ_UNANNOTATED;
   const OriginMetadata mOriginMetadata;
   nsString mOriginDirectoryPath;
@@ -1377,9 +1378,12 @@ class Connection::InitTemporaryOriginHelper final : public Runnable {
   bool mWaiting;
 
  public:
-  explicit InitTemporaryOriginHelper(const OriginMetadata& aOriginMetadata)
-      : Runnable("dom::localstorage::Connection::InitTemporaryOriginHelper"),
-        mMonitor("InitTemporaryOriginHelper::mMonitor"),
+  explicit GetOrCreateTemporaryOriginDirectoryHelper(
+      const OriginMetadata& aOriginMetadata)
+      : Runnable(
+            "dom::localstorage::Connection::"
+            "GetOrCreateTemporaryOriginDirectoryHelper"),
+        mMonitor("GetOrCreateTemporaryOriginDirectoryHelper::mMonitor"),
         mOriginMetadata(aOriginMetadata),
         mIOThreadResultCode(NS_OK),
         mWaiting(true) {
@@ -1389,7 +1393,7 @@ class Connection::InitTemporaryOriginHelper final : public Runnable {
   Result<nsString, nsresult> BlockAndReturnOriginDirectoryPath();
 
  private:
-  ~InitTemporaryOriginHelper() = default;
+  ~GetOrCreateTemporaryOriginDirectoryHelper() = default;
 
   nsresult RunOnIOThread();
 
@@ -4069,8 +4073,8 @@ nsresult Connection::EnsureStorageConnection() {
     return NS_OK;
   }
 
-  RefPtr<InitTemporaryOriginHelper> helper =
-      new InitTemporaryOriginHelper(mOriginMetadata);
+  auto helper =
+      MakeRefPtr<GetOrCreateTemporaryOriginDirectoryHelper>(mOriginMetadata);
 
   QM_TRY_INSPECT(const auto& originDirectoryPath,
                  helper->BlockAndReturnOriginDirectoryPath());
@@ -4223,7 +4227,8 @@ void Connection::FlushTimerCallback(nsITimer* aTimer, void* aClosure) {
 }
 
 Result<nsString, nsresult>
-Connection::InitTemporaryOriginHelper::BlockAndReturnOriginDirectoryPath() {
+Connection::GetOrCreateTemporaryOriginDirectoryHelper::
+    BlockAndReturnOriginDirectoryPath() {
   AssertIsOnGlobalConnectionThread();
 
   QuotaManager* quotaManager = QuotaManager::Get();
@@ -4242,7 +4247,8 @@ Connection::InitTemporaryOriginHelper::BlockAndReturnOriginDirectoryPath() {
   return mOriginDirectoryPath;
 }
 
-nsresult Connection::InitTemporaryOriginHelper::RunOnIOThread() {
+nsresult
+Connection::GetOrCreateTemporaryOriginDirectoryHelper::RunOnIOThread() {
   AssertIsOnIOThread();
 
   QuotaManager* quotaManager = QuotaManager::Get();
@@ -4250,8 +4256,7 @@ nsresult Connection::InitTemporaryOriginHelper::RunOnIOThread() {
 
   QM_TRY_INSPECT(
       const auto& directoryEntry,
-      quotaManager->EnsureTemporaryOriginIsInitializedInternal(mOriginMetadata)
-          .map([](const auto& res) { return res.first; }));
+      quotaManager->GetOrCreateTemporaryOriginDirectory(mOriginMetadata));
 
   QM_TRY(MOZ_TO_RESULT(directoryEntry->GetPath(mOriginDirectoryPath)));
 
@@ -4259,7 +4264,7 @@ nsresult Connection::InitTemporaryOriginHelper::RunOnIOThread() {
 }
 
 NS_IMETHODIMP
-Connection::InitTemporaryOriginHelper::Run() {
+Connection::GetOrCreateTemporaryOriginDirectoryHelper::Run() {
   AssertIsOnIOThread();
 
   nsresult rv = RunOnIOThread();
@@ -7010,21 +7015,21 @@ nsresult PrepareDatastoreOp::DatabaseWork() {
         ([hasDataForMigration, &quotaManager,
           this]() -> mozilla::Result<nsCOMPtr<nsIFile>, nsresult> {
           if (hasDataForMigration) {
-            QM_TRY_RETURN(quotaManager
-                              ->EnsureTemporaryOriginIsInitializedInternal(
-                                  mOriginMetadata)
-                              .map([](const auto& res) { return res.first; }));
+            QM_TRY_RETURN(
+                quotaManager
+                    ->EnsureTemporaryOriginIsInitializedInternal(
+                        mOriginMetadata, /* aCreateIfNonExistent*/ true)
+                    .map([](const auto& res) { return res.first; }));
           }
 
           MOZ_ASSERT(mOriginMetadata.mPersistenceType ==
                      PERSISTENCE_TYPE_DEFAULT);
 
-          QM_TRY_UNWRAP(auto directoryEntry,
-                        quotaManager->GetOriginDirectory(mOriginMetadata));
-
-          quotaManager->EnsureQuotaForOrigin(mOriginMetadata);
-
-          return directoryEntry;
+          QM_TRY_RETURN(
+              quotaManager
+                  ->EnsureTemporaryOriginIsInitializedInternal(
+                      mOriginMetadata, /* aCreateIfNonExistent*/ false)
+                  .map([](const auto& res) { return res.first; }));
         }()));
 
     QM_TRY(MOZ_TO_RESULT(directoryEntry->Append(

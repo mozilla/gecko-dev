@@ -1196,8 +1196,14 @@ nsresult OpenOp::DatabaseWork() {
                   mOriginMetadata));
         }
 
-        QM_TRY_RETURN(quotaManager->EnsureTemporaryOriginIsInitializedInternal(
+        QM_TRY_UNWRAP(auto dbDirectory,
+                      quotaManager->EnsureTemporaryOriginIsInitializedInternal(
+                          mOriginMetadata, /* aCreateIfNonExistent */ true));
+
+        QM_TRY(quotaManager->EnsureTemporaryOriginDirectoryCreated(
             mOriginMetadata));
+
+        return std::move(dbDirectory);
       }()
                   .map([](const auto& res) { return res.first; })));
 

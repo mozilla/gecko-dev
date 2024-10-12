@@ -59,7 +59,7 @@ TEST_F(TestFileOutputStream, extendFileStreamWithSetEOF) {
 
       {
         auto res = quotaManager->EnsureTemporaryOriginIsInitializedInternal(
-            originMetadata);
+            originMetadata, /* aCreateIfNonExistent */ true);
         ASSERT_TRUE(res.isOk());
       }
 
@@ -80,7 +80,8 @@ TEST_F(TestFileOutputStream, extendFileStreamWithSetEOF) {
                                               quota::Client::Type::SDB);
 
       {
-        auto testPathRes = quotaManager->GetOriginDirectory(originMetadata);
+        auto testPathRes =
+            quotaManager->GetOrCreateTemporaryOriginDirectory(originMetadata);
 
         ASSERT_TRUE(testPathRes.isOk());
 

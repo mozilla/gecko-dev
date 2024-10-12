@@ -406,11 +406,15 @@ Context::QuotaInitRunnable::Run() {
         QuotaManager* quotaManager = QuotaManager::Get();
         MOZ_DIAGNOSTIC_ASSERT(quotaManager);
 
-        QM_TRY_UNWRAP(mDirectoryMetadata->mDir,
-                      quotaManager
-                          ->EnsureTemporaryOriginIsInitializedInternal(
-                              *mDirectoryMetadata)
-                          .map([](const auto& res) { return res.first; }));
+        QM_TRY_UNWRAP(
+            mDirectoryMetadata->mDir,
+            quotaManager
+                ->EnsureTemporaryOriginIsInitializedInternal(
+                    *mDirectoryMetadata, /* aCreateIfNonExistent */ true)
+                .map([](const auto& res) { return res.first; }));
+
+        QM_TRY(quotaManager->EnsureTemporaryOriginDirectoryCreated(
+            *mDirectoryMetadata));
 
         auto* cacheQuotaClient = CacheQuotaClient::Get();
         MOZ_DIAGNOSTIC_ASSERT(cacheQuotaClient);

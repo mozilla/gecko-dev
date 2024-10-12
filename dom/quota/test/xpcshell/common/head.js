@@ -178,10 +178,16 @@ function initPersistentOrigin(principal, callback) {
   return request;
 }
 
-function initTemporaryOrigin(persistence, principal, callback) {
+function initTemporaryOrigin(
+  persistence,
+  principal,
+  createIfNonExistent = true,
+  callback
+) {
   let request = SpecialPowers._getQuotaManager().initializeTemporaryOrigin(
     persistence,
-    principal
+    principal,
+    createIfNonExistent
   );
   request.callback = callback;
 
