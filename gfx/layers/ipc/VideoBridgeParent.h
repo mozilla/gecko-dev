@@ -20,8 +20,7 @@ class VideoBridgeParent final : public PVideoBridgeParent,
                                 public HostIPCAllocator,
                                 public mozilla::ipc::IShmemAllocator {
  public:
-  NS_IMETHODIMP_(MozExternalRefCountType) AddRef(void) override;
-  NS_IMETHODIMP_(MozExternalRefCountType) Release(void) override;
+  NS_INLINE_DECL_REFCOUNTING_INHERITED(VideoBridgeParent, HostIPCAllocator)
 
   static RefPtr<VideoBridgeParent> GetSingleton(
       const Maybe<VideoBridgeSource>& aSource);
