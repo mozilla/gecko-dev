@@ -870,10 +870,6 @@ add_task(async function test_registerContentScripts_on_about_blank_frames() {
 add_task(async function test_registerContentScripts_on_top_level_about_blank() {
   // This is the default behavior, but fix pref value in case that is not the
   // case. The flipped-pref case is tested later in this test.
-  // TODO bug 1856071: Remove this pref setter when the pref is removed.
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.script_about_blank_without_permission", false]],
-  });
   let extension = makeExtension({
     async background() {
       await browser.scripting.registerContentScripts([
@@ -934,8 +930,6 @@ add_task(async function test_registerContentScripts_on_top_level_about_blank() {
   // We remove the tab after having unloaded the extensions to avoid failures
   // on Windows, see: Bug 1761550.
   await AppTestDelegate.removeTab(window, tab);
-  await SpecialPowers.popPrefEnv(); // Balances pushPrefEnv at start of task.
-  // TODO bug bug 1856071: Remove the above popPrefEnv call.
 });
 
 add_task(async function test_registerContentScripts_twice_with_same_id() {

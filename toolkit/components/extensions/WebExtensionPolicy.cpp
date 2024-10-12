@@ -818,9 +818,6 @@ bool MozDocumentMatcher::Matches(const DocInfo& aDoc,
   // that intend to run scripts "everywhere", consider the document matched if
   // the match pattern describe a very broad pattern (such as "<all_urls>").
   if (mMatchAboutBlank && aDoc.IsTopLevelOpaqueAboutBlank()) {
-    if (StaticPrefs::extensions_script_about_blank_without_permission()) {
-      return true;
-    }
     if (mHasActiveTabPermission) {
       return true;
     }
