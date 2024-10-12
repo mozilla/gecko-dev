@@ -2,4 +2,8 @@
 <resources>
     <string name="mozac_feature_customtabs_exit_button">Till gun aplacaid roimhe</string>
     <string name="mozac_feature_customtabs_share_link">Co-roinn an ceangal</string>
+    <!-- Content description (not visible, for screen readers etc.): Description of the refresh button in the Custom Tabs toolbar -->
+    <string name="mozac_feature_customtabs_refresh_button">Ath-nuadhaich</string>
+    <!-- Content description (not visible, for screen readers etc.): Description of the menu button in the Custom Tabs toolbar. -->
+    <string name="mozac_feature_customtabs_menu_button">Barrachd roghainnean</string>
 </resources>

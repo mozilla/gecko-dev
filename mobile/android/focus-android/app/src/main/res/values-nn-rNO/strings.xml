@@ -37,13 +37,13 @@
     <!-- Menu item: Switch to another browser to open the currently visible page. %1$s will be
       replaced with the name of the browser like: "Open in Firefox" or "Open in Chrome". Some
       links can be opened by native apps that aren't a browser, e.g. "Open in YouTube" -->
-    <string name="menu_open_with_default_browser2">Opna i %1$s</string>
+    <string name="menu_open_with_default_browser2">Opne i %1$s</string>
 
     <!-- Menu item: Switch to another browser to open the currently visible page. This menu item
       will be shown if there are multiple browsers and we do not know which one is the default
       browser or in case Focus is actually the default browser. Clicking this menu item will show
       a screen with multiple browsers (or other apps that can open the current URL) to choose from. -->
-    <string name="menu_open_with_a_browser2">Opna i…</string>
+    <string name="menu_open_with_a_browser2">Opne i…</string>
 
     <!-- Menu item: Add the current page as a shortcut to the device's home screen (launcher). -->
     <string name="menu_add_to_home_screen">Legg til på startskjerm</string>
@@ -86,8 +86,6 @@
 
     <string name="notification_erase_title_android_14">Slette nettlesarhistorikk?</string>
 
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Trykk eller fjern dette varselet for å slette nettlesarhistorikken din på ein trygg måte.</string>
-
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
     <string name="notification_erase_text_android_14_1">Trykk eller sveip dette varselet for å slette nettlesarhistorikken din på ein trygg måte.</string>
@@ -95,11 +93,11 @@
     <string name="notification_erase_text">Slett nettlesarhistorikk</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
-    <string name="notification_action_open">Opna</string>
+    <string name="notification_action_open">Opne</string>
 
     <!-- Notification action to erase the current browsing session AND switch to Focus (bring it
          to the foreground) -->
-    <string name="notification_action_erase_and_open">Slett og opna</string>
+    <string name="notification_action_erase_and_open">Slett og opne</string>
 
     <!-- On Android 7+ users can add a shortcut for erasing the browsing history to the home screen.
          This is the label for this shortcut. Android recommends a maximum length of 10 characters. -->
@@ -263,7 +261,7 @@
     <string name="preference_autocomplete_custom_summary">Legg til og handsam tilpassa autofullførte nettadressesr.</string>
 
     <!-- Label for the "custom autocomplete URL" input field -->
-    <string name="preference_autocomplete_add_title">Nettadresse å legga til</string>
+    <string name="preference_autocomplete_add_title">Nettadresse å leggje til</string>
 
     <!-- "Hint" text for the "custom autocomplete URL" input field. Shown when the field is empty. -->
     <string name="preference_autocomplete_add_hint">Lim inn eller skriv inn ei nettadresse</string>
@@ -295,9 +293,9 @@
     <string name="preference_privacy_block_ads">Blokker reklamesporfølgjarar</string>
     <string name="preference_privacy_block_ads_summary">Nokre annonsar sporfølgjarar nettstadbesøk, sjølv om du ikkje klikkar på annonsane</string>
     <string name="preference_privacy_block_analytics">Blokker analysesporfølgjarar</string>
-    <string name="preference_privacy_block_analytics_summary">Brukt for å samla inn, analysera og måla aktivitetar som tastetrykk og rulling</string>
+    <string name="preference_privacy_block_analytics_summary">Brukt for å samle inn, analysere og måle aktivitetar som tastetrykk og rulling</string>
     <string name="preference_privacy_block_social">Blokker sosiale media-sporfølgjarar</string>
-    <string name="preference_privacy_block_social_summary">Innebygd på nettstader for å spora besøka dine og å visa funksjonalitet som dele-knappar</string>
+    <string name="preference_privacy_block_social_summary">Innebygd på nettstader for å spore besøka dine og å vise funksjonalitet som dele-knappar</string>
     <string name="preference_privacy_block_content">Blokker andre innhaldssporfølgjarar</string>
     <string name="preference_privacy_block_content_summary2">Aktivering kan føre til at nokre sider oppfører seg uventa</string>
     <string name="preference_privacy_category_cookies">Blokker infokapslar</string>
@@ -338,7 +336,7 @@
 
     <string name="preference_performance_block_javascript">Blokker JavaScript</string>
     <!-- This text is shown below setting for disabling JavaScript. Some websites may not work correctly when JavaScript is disabled -->
-    <string name="preference_performance_block_javascript_summary">Sider kan lastast raskare, men kan òg oppføra seg uventa</string>
+    <string name="preference_performance_block_javascript_summary">Sider kan lastast raskare, men kan òg oppføre seg uventa</string>
 
     <!-- This preference does not set Focus as the default browser but instead links to Android's
      "default apps" settings screen or if not supported by this Android version to a SUMO page describing
@@ -353,7 +351,7 @@
     <string name="preference_mozilla_telemetry_summary">Les meir</string>
 
     <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-    <string name="preference_mozilla_telemetry_summary2">Mozilla strevar etter å berre samla inn det vi treng for å tilby og forbetra %1$s for alle.</string>
+    <string name="preference_mozilla_telemetry_summary2">Mozilla strevar etter å berre samle inn det vi treng for å tilby og forbetre %1$s for alle.</string>
 
     <!-- In-app link (in settings) to Focus privacy notice. -->
     <string name="preference_privacy_notice">Personvernerklæring</string>
@@ -471,23 +469,23 @@
 
     <string name="your_rights">Dine rettar</string>
 
-    <string name="external_app_prompt_title">Opna lenke i ein annan app</string>
+    <string name="external_app_prompt_title">Opne lenke i ein annan app</string>
     <!-- This string is shown when the user has clicked a link that needs to be opened in a different app.
          Argument 2 is the external app name, argument 1 is our name (i.e. Firefox Focus, or Firefox Klar). -->
-    <string name="external_app_prompt">Du kan gå ut av %1$s for å opna denne lenka i %2$s.</string>
+    <string name="external_app_prompt">Du kan gå ut av %1$s for å opne denne lenka i %2$s.</string>
     <!-- This text is the title of a dialog shown if no app could be found for a custom link protocol. -->
-    <string name="external_app_prompt_no_app_title">Finn ein app som kan opna lenka</string>
+    <string name="external_app_prompt_no_app_title">Finn ein app som kan opne lenka</string>
     <!-- This text is shown in a dialog if no app could be found for a custom link protocol. %1$s is the name of the app (i.e. Firefox Focus) and %2$s is the name of
          the app store installed on the device (usually that's Google Play). -->
-    <string name="external_app_prompt_no_app">Ingen av appane på eininga di kan opna denne lenka. Du kan gå ut av %1$s for å søka på %2$s etter ein app som kan gjera dette.</string>
+    <string name="external_app_prompt_no_app">Ingen av appane på eininga di kan opne denne lenka. Du kan gå ut av %1$s for å søke på %2$s etter ein app som kan gjere dette.</string>
     <!-- This label is shown above a list of apps that can be used to open a given link -->
-    <string name="external_multiple_apps_matched_exit">Avslutta privat nettlesing?</string>
+    <string name="external_multiple_apps_matched_exit">Avslutte privat nettlesing?</string>
 
     <!-- Snackbar that will be displayed after a download has completed. %1$s will be replaced with the file name. -->
     <string name="download_snackbar_finished">%1$s ferdig</string>
 
     <!-- Snackbar action to immediately open the successfully downloaded file. -->
-    <string name="download_snackbar_open">Opna</string>
+    <string name="download_snackbar_open">Opne</string>
 
 
 
@@ -521,7 +519,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Lat att</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Lat att</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -545,7 +543,7 @@
     <string name="onboarding_second_screen_subtitle_two">Gjer %1$s til din standard-nettlesar for å beskytte dataa dine, kvar gong du opnar ei lenke.</string>
 
     <!-- New Onboarding flow second screen make Focus default browser button label-->
-    <string name="onboarding_second_screen_default_browser_button_text">Bruk som standard nettleser</string>
+    <string name="onboarding_second_screen_default_browser_button_text">Bruk som standard nettlesar</string>
 
     <!-- New Onboarding flow second screen skip onboarding button label-->
     <string name="onboarding_second_screen_skip_button_text">Hopp over</string>
@@ -608,7 +606,7 @@
     * To understand what notification channels are, see: https://www.androidcentral.com/notification-channels
     * To see how this string will look like in Android's UI, see: https://github.com/mozilla-mobile/focus-android/issues/863#issuecomment-324105723
     -->
-    <string name="notification_browsing_session_channel_description">Med varsel kan du sletta økta di i %1$s med eitt klikk. Du treng ikkje å opna appen, eller å sjå kva som køyrer i nettlesaren din.</string>
+    <string name="notification_browsing_session_channel_description">Med varsel kan du slette økta di i %1$s med eitt klikk. Du treng ikkje å opne appen, eller å sjå kva som køyrer i nettlesaren din.</string>
 
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Slett nettlesarhistorikk</string>
@@ -914,7 +912,9 @@
     <!-- Tip displayed on home view explaining how to make Focus the default browser
     Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
     The new line here must be kept as the second half of the string is clickable for the user. -->
-    <string name="tip_set_default_browser">Opna kvar lenke i %1$s\n Vel %1$s som standardnettlesar</string>
+    <string name="tip_set_default_browser">Opne kvar lenke i %1$s\n
+        Bruk %1$s som standardnettlesar
+    </string>
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->
@@ -922,7 +922,7 @@
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user. -->
-    <string name="tip_open_in_new_tab">Opna ei lenke i ei ny fane\n Trykk og hald på ei lenke på ei side</string>
+    <string name="tip_open_in_new_tab">Opne ei lenke i ei ny fane\n Trykk og hald på ei lenke på ei side</string>
 
     <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
     <string name="tip_disable_tips2">Slå av tips på startskjermen</string>
@@ -932,9 +932,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Byt</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Startar fullskjermmodus</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Byt til lenke i ny fane med ein gong</string>
@@ -968,7 +965,7 @@
     <!-- Title for the tab crash report screen-->
     <string name="tab_crash_report_title">Fana krasja</string>
     <!-- Headline for the tab crash report screen -->
-    <string name="tab_crash_report_headline">Orsak. Vi har eit problem med denne fana.</string>
+    <string name="tab_crash_report_headline">Beklagar. Vi har eit problem med denne fana.</string>
     <!-- Subtitle for the tab crash report screen -->
     <string name="tab_crash_report_description">Som ein privat nettlesar lagrar vi aldri og kan ikkje gjenopprette denne fana.</string>
     <!-- Label for button to close the tab-->

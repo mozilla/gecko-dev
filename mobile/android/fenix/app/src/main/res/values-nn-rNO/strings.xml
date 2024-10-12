@@ -474,7 +474,7 @@
     This is part of the string with the key "juno_onboarding_default_browser_description". -->
     <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">peronvernerklæring</string>
     <!-- Text for the button to set firefox as default browser on the device -->
-    <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Bruk som standard nettleser</string>
+    <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Bruk som standard nettlesar</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Ikkje no</string>
     <!-- Title for sign in to sync screen. -->
