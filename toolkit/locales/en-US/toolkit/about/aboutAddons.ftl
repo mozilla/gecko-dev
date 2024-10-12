@@ -488,7 +488,7 @@ recent-updates-heading = Recent Updates
 release-notes-loading = Loading…
 release-notes-error = Sorry, but there was an error loading the release notes.
 
-addon-permissions-empty = This extension doesn’t require any permissions
+addon-permissions-empty2 = This extension doesn’t require any permissions.
 addon-permissions-required = Required permissions for core functionality:
 addon-permissions-optional = Optional permissions for added functionality:
 addon-permissions-learnmore = Learn more about permissions

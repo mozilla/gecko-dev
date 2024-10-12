@@ -271,7 +271,7 @@ async function runTest(options) {
   if (!num_permissions) {
     is(
       win.document.l10n.getAttributes(rows[0]).id,
-      "addon-permissions-empty",
+      "addon-permissions-empty2",
       "There's a message when no permissions are shown"
     );
   }
