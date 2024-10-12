@@ -180,6 +180,16 @@
     .story-footer {
       margin-block-start: var(--space-xsmall);
     }
+
+    .source {
+      margin-bottom: 1px;
+    }
+
+    .title {
+      font-size: var(--font-size-small);
+      line-height: 19px;
+    }
+
   }
 
   .excerpt {

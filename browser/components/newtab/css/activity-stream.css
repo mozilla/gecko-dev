@@ -6231,6 +6231,13 @@ main section {
 .ds-card-grid .list-feed-content .ds-card.list-feed-card .meta .story-footer {
   margin-block-start: var(--space-xsmall);
 }
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .meta .source {
+  margin-bottom: 1px;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .meta .title {
+  font-size: var(--font-size-small);
+  line-height: 19px;
+}
 .ds-card-grid .list-feed-content .ds-card.list-feed-card .excerpt {
   display: none;
 }
