@@ -6,7 +6,7 @@ const { TabStateFlusher } = ChromeUtils.importESModule(
 );
 
 const DUMMY =
-  "https://example.com/browser/browser/components/tabbrowser/test/browser/tabs/dummy_page.html";
+  "https://example.com/browser/browser/base/content/test/general/dummy_page.html";
 
 function isBrowserAppTab(browser) {
   return browser.browsingContext.isAppTab;
@@ -27,7 +27,7 @@ var restart = async function (browser) {
   let tab = gBrowser.getTabForBrowser(browser);
   SessionStore.reviveCrashedTab(tab);
 
-  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  await promiseTabLoaded(tab);
 };
 
 add_task(async function navigate() {

@@ -1,8 +1,8 @@
 [DEFAULT]
 support-files = [
   "head.js",
-  "audio.ogg",
   "dummy_page.html",
+  "audio.ogg",
   "file_mediaPlayback.html",
   "test_process_flags_chrome.html",
   "helper_origin_attrs_testing.js",
@@ -21,14 +21,8 @@ prefs = [
 
 ["browser_allow_process_switches_despite_related_browser.js"]
 
-["browser_alltabslistener.js"]
-support-files = ["alltabslistener.html"]
-
 ["browser_audioTabIcon.js"]
 tags = "audiochannel"
-
-["browser_beforeunload_duplicate_dialogs.js"]
-https_first_disabled = true
 
 ["browser_bfcache_exemption_about_pages.js"]
 run-if = ["fission"]
@@ -49,16 +43,11 @@ https_first_disabled = true
 skip-if = ["verify && debug && os == 'linux'"]
 support-files = ["test_bug1358314.html"]
 
-["browser_ctrlTab.js"]
-
 ["browser_dont_process_switch_204.js"]
 support-files = [
   "blank.html",
   "204.sjs",
 ]
-
-["browser_double_close_tab.js"]
-support-files = ["file_double_close_tab.html"]
 
 ["browser_e10s_about_page_triggeringprincipal.js"]
 https_first_disabled = true
@@ -87,9 +76,6 @@ skip-if = ["debug"] # Bug 1444565, Bug 1457887
 support-files = ["tab_that_closes.html"]
 
 ["browser_hiddentab_contextmenu.js"]
-
-["browser_lastAccessedTab.js"]
-skip-if = ["os == 'windows'"] # Disabled on Windows due to frequent failures (bug 969405)
 
 ["browser_lastSeenActive.js"]
 
@@ -216,13 +202,6 @@ skip-if = [
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && verify",
 ]
 
-["browser_newTabDrop.js"]
-https_first_disabled = true
-skip-if = ["os == 'linux' && fission && tsan"] # high frequency intermittent
-
-["browser_new_http_window_opened_from_file_tab.js"]
-https_first_disabled = true
-
 ["browser_new_file_whitelisted_http_tab.js"]
 https_first_disabled = true
 support-files = [
@@ -299,8 +278,6 @@ https_first_disabled = true
 ["browser_progress_keyword_search_handling.js"]
 https_first_disabled = true
 
-["browser_relatedTabs.js"]
-
 ["browser_relatedTabs_reset.js"]
 
 ["browser_reload_deleted_file.js"]
@@ -318,11 +295,6 @@ https_first_disabled = true
 ["browser_replacewithwindow_dialog.js"]
 support-files = ["tab_that_opens_dialog.html"]
 
-["browser_restore_isAppTab.js"]
-run-if = ["crashreporter"] # test requires crashreporter due to 1536221
-
-["browser_selectTabAtIndex.js"]
-
 ["browser_switch_by_scrolling.js"]
 
 ["browser_tabCloseProbes.js"]
@@ -331,9 +303,6 @@ run-if = ["crashreporter"] # test requires crashreporter due to 1536221
 skip-if = ["true"] # Bug 1616418 Bug 1549985
 
 ["browser_tabContextMenu_keyboard.js"]
-
-["browser_tabDrop.js"]
-https_first_disabled = true
 
 ["browser_tabReorder.js"]
 
@@ -346,21 +315,6 @@ https_first_disabled = true
 ["browser_tabSuccessors.js"]
 
 ["browser_tab_a11y_description.js"]
-
-["browser_tab_close_dependent_window.js"]
-
-["browser_tab_detach_restore.js"]
-https_first_disabled = true
-
-["browser_tab_drag_drop_perwindow.js"]
-
-["browser_tab_dragdrop.js"]
-skip-if = ["true"] # Bug 1312436, Bug 1388973
-support-files = ["browser_tab_dragdrop_embed.html"]
-
-["browser_tab_dragdrop2.js"]
-skip-if = ["win11_2009 && bits == 32 && !debug"] # high frequency win7 intermittent: crash
-support-files = ["browser_tab_dragdrop2_frame1.xhtml"]
 
 ["browser_tab_groups.js"]
 
@@ -384,20 +338,6 @@ support-files = ["browser_tab_dragdrop2_frame1.xhtml"]
 
 ["browser_tab_tooltips.js"]
 
-["browser_tabfocus.js"]
-
-["browser_tabkeynavigation.js"]
-
-["browser_tabs_close_beforeunload.js"]
-support-files = [
-  "close_beforeunload_opens_second_tab.html",
-  "close_beforeunload.html",
-]
-
-["browser_tabs_isActive.js"]
-
-["browser_tabs_owner.js"]
-
 ["browser_tabswitch_contextmenu.js"]
 
 ["browser_tabswitch_select.js"]
@@ -407,27 +347,16 @@ support-files = ["open_window_in_new_tab.html"]
 
 ["browser_tabswitch_window_focus.js"]
 
-["browser_testOpenNewRemoteTabsFromNonRemoteBrowsers.js"]
-
 ["browser_undo_close_tabs.js"]
 skip-if = ["true"] #bug 1642084
 
 ["browser_undo_close_tabs_at_start.js"]
 
-["browser_viewSourceInTabOnViewSource.js"]
-
 ["browser_viewsource_of_data_URI_in_file_process.js"]
-
-["browser_visibleTabs.js"]
-
-["browser_visibleTabs_bookmarkAllPages.js"]
 
 ["browser_visibleTabs_bookmarkAllTabs.js"]
 
 ["browser_visibleTabs_contextMenu.js"]
-
-["browser_visibleTabs_tabPreview.js"]
-skip-if = ["os == 'win' && !debug"]
 
 ["browser_window_open_modifiers.js"]
 support-files = ["file_window_open.html"]

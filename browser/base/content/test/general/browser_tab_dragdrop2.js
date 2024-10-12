@@ -52,8 +52,8 @@ add_task(async function () {
   ok(true, "tests succeeded a second time");
 
   // Cleanup.
-  await win2.close();
-  await win.close();
+  await promiseWindowClosed(win2);
+  await promiseWindowClosed(win);
 });
 
 function promiseTestsDone(win) {
@@ -61,8 +61,5 @@ function promiseTestsDone(win) {
 }
 
 function promiseDelayedStartupFinished(win) {
-  return TestUtils.topicObserved(
-    "browser-delayed-startup-finished",
-    subject => subject == win
-  );
+  return new Promise(resolve => whenDelayedStartupFinished(win, resolve));
 }

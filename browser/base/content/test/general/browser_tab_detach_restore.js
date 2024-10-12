@@ -7,7 +7,7 @@ const { TabStateFlusher } = ChromeUtils.importESModule(
 add_task(async function () {
   let uri =
     // eslint-disable-next-line @microsoft/sdl/no-insecure-url
-    "http://example.com/browser/browser/components/tabbrowser/test/browser/tabs/dummy_page.html";
+    "http://example.com/browser/browser/base/content/test/general/dummy_page.html";
 
   // Clear out the closed windows set to start
   while (SessionStore.getClosedWindowCount() > 0) {
@@ -21,10 +21,7 @@ add_task(async function () {
 
   let key = tab.linkedBrowser.permanentKey;
   let win = gBrowser.replaceTabWithWindow(tab);
-  await TestUtils.topicObserved(
-    "browser-delayed-startup-finished",
-    subject => subject == win
-  );
+  await new Promise(resolve => whenDelayedStartupFinished(win, resolve));
 
   is(
     win.gBrowser.selectedBrowser.permanentKey,
@@ -53,5 +50,5 @@ add_task(async function () {
     "Should have restored the right page"
   );
 
-  win.close();
+  await promiseWindowClosed(win);
 });

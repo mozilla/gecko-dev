@@ -161,6 +161,29 @@ function promiseWindowClosed(win) {
   return promise;
 }
 
+function promiseOpenAndLoadWindow(aOptions, aWaitForDelayedStartup = false) {
+  return new Promise(resolve => {
+    let win = OpenBrowserWindow(aOptions);
+    if (aWaitForDelayedStartup) {
+      Services.obs.addObserver(function onDS(aSubject) {
+        if (aSubject != win) {
+          return;
+        }
+        Services.obs.removeObserver(onDS, "browser-delayed-startup-finished");
+        resolve(win);
+      }, "browser-delayed-startup-finished");
+    } else {
+      win.addEventListener(
+        "load",
+        function () {
+          resolve(win);
+        },
+        { once: true }
+      );
+    }
+  });
+}
+
 async function whenNewTabLoaded(aWindow, aCallback) {
   aWindow.BrowserCommands.openTab();
 
@@ -219,6 +242,21 @@ function promiseTabLoadEvent(tab, url) {
   }
 
   return loaded;
+}
+
+/**
+ * Returns a Promise that resolves once a new tab has been opened in
+ * a xul:tabbrowser.
+ *
+ * @param aTabBrowser
+ *        The xul:tabbrowser to monitor for a new tab.
+ * @return {Promise}
+ *        Resolved when the new tab has been opened.
+ * @resolves to the TabOpen event that was fired.
+ * @rejects Never.
+ */
+function waitForNewTabEvent(aTabBrowser) {
+  return BrowserTestUtils.waitForEvent(aTabBrowser.tabContainer, "TabOpen");
 }
 
 function is_hidden(element) {

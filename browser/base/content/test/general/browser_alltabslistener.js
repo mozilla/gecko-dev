@@ -165,9 +165,9 @@ var gBackgroundTab,
   gForegroundBrowser,
   gTestBrowser;
 var gTestPage =
-  "/browser/browser/components/tabbrowser/test/browser/tabs/alltabslistener.html";
+  "/browser/browser/base/content/test/general/alltabslistener.html";
 const kBasePage =
-  "http://mochi.test:8888/browser/browser/components/tabbrowser/test/browser/tabs/dummy_page.html";
+  "http://mochi.test:8888/browser/browser/base/content/test/general/dummy_page.html";
 var gNextTest;
 
 async function test() {

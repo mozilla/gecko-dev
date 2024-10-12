@@ -1,32 +1,9 @@
 const TEST_PAGE =
-  "http://mochi.test:8888/browser/browser/components/tabbrowser/test/browser/tabs/file_double_close_tab.html";
+  "http://mochi.test:8888/browser/browser/base/content/test/general/file_double_close_tab.html";
 
 var expectingDialog = false;
 var wantToClose = true;
 var resolveDialogPromise;
-
-function promiseOpenAndLoadWindow(aOptions, aWaitForDelayedStartup = false) {
-  return new Promise(resolve => {
-    let win = OpenBrowserWindow(aOptions);
-    if (aWaitForDelayedStartup) {
-      Services.obs.addObserver(function onDS(aSubject) {
-        if (aSubject != win) {
-          return;
-        }
-        Services.obs.removeObserver(onDS, "browser-delayed-startup-finished");
-        resolve(win);
-      }, "browser-delayed-startup-finished");
-    } else {
-      win.addEventListener(
-        "load",
-        function () {
-          resolve(win);
-        },
-        { once: true }
-      );
-    }
-  });
-}
 
 function onCommonDialogLoaded(promptWindow) {
   ok(expectingDialog, "Should be expecting this dialog.");

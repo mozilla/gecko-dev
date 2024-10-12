@@ -104,9 +104,7 @@ add_task(async function multiple_tabs_under_max() {
   ]);
 });
 add_task(async function multiple_tabs_over_max_accept() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.tabs.maxOpenBeforeWarn", 4]],
-  });
+  await pushPrefs(["browser.tabs.maxOpenBeforeWarn", 4]);
 
   let confirmPromise = BrowserTestUtils.promiseAlertDialog("accept");
 
@@ -124,12 +122,10 @@ add_task(async function multiple_tabs_over_max_accept() {
 
   await confirmPromise;
 
-  await SpecialPowers.popPrefEnv();
+  await popPrefs();
 });
 add_task(async function multiple_tabs_over_max_cancel() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.tabs.maxOpenBeforeWarn", 4]],
-  });
+  await pushPrefs(["browser.tabs.maxOpenBeforeWarn", 4]);
 
   let confirmPromise = BrowserTestUtils.promiseAlertDialog("cancel");
 
@@ -141,7 +137,7 @@ add_task(async function multiple_tabs_over_max_cancel() {
 
   await confirmPromise;
 
-  await SpecialPowers.popPrefEnv();
+  await popPrefs();
 });
 
 // Open URLs ignoring non-URL.
