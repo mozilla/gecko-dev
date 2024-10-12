@@ -519,8 +519,8 @@ void MathMLTextRunFactory::RebuildTextRun(
   StyleMathVariant mathVar = StyleMathVariant::None;
   bool doMathvariantStyling = true;
 
-  // Ensure it will be safe to call FindFontForChar in the loop below.
-  fontGroup->CheckForUpdatedPlatformList();
+  // Ensure the fontGroup is ready to be searched.
+  fontGroup->EnsureFontList();
 
   for (uint32_t i = 0; i < length; ++i) {
     int extraChars = 0;

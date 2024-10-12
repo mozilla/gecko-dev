@@ -770,10 +770,11 @@ bool nsCaseTransformTextRunFactory::TransformString(
               // Bug 930504. Some platforms do not have fonts for Mathematical
               // Alphanumeric Symbols. Hence we only perform the transform if a
               // character is actually available.
+              auto* fontGroup = aTextRun->GetFontGroup();
+              fontGroup->EnsureFontList();
               FontMatchType matchType;
-              RefPtr<gfxFont> mathFont =
-                  aTextRun->GetFontGroup()->FindFontForChar(
-                      ch2, 0, 0, intl::Script::COMMON, nullptr, &matchType);
+              RefPtr<gfxFont> mathFont = fontGroup->FindFontForChar(
+                  ch2, 0, 0, intl::Script::COMMON, nullptr, &matchType);
               if (mathFont) {
                 ch = ch2;
               }

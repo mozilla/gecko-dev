@@ -904,6 +904,8 @@ class gfxFontGroup final : public gfxTextRunFactory {
  public:
   typedef mozilla::intl::Script Script;
   typedef gfxShapedText::CompressedGlyph CompressedGlyph;
+  friend class MathMLTextRunFactory;
+  friend class nsCaseTransformTextRunFactory;
 
   static void
   Shutdown();  // platform must call this to release the languageAtomService
@@ -1062,18 +1064,6 @@ class gfxFontGroup final : public gfxTextRunFactory {
       int32_t aAppUnitsPerDevPixel, mozilla::gfx::ShapedTextFlags aFlags,
       LazyReferenceDrawTargetGetter& aRefDrawTargetGetter);
 
-  void CheckForUpdatedPlatformList() {
-    auto* pfl = gfxPlatformFontList::PlatformFontList();
-    if (mFontListGeneration != pfl->GetGeneration()) {
-      // Forget cached fonts that may no longer be valid.
-      mLastPrefFamily = FontFamily();
-      mLastPrefFont = nullptr;
-      mDefaultFont = nullptr;
-      mFonts.Clear();
-      BuildFontList();
-    }
-  }
-
   nsAtom* Language() const { return mLanguage.get(); }
 
   // Get font metrics to be used as the basis for CSS font-relative units.
@@ -1086,6 +1076,7 @@ class gfxFontGroup final : public gfxTextRunFactory {
 
  protected:
   friend class mozilla::PostTraversalTask;
+  friend class DeferredClearResolvedFonts;
 
   struct TextRange {
     TextRange(uint32_t aStart, uint32_t aEnd, gfxFont* aFont,
@@ -1401,6 +1392,8 @@ class gfxFontGroup final : public gfxTextRunFactory {
 
   bool mExplicitLanguage;  // Does mLanguage come from an explicit attribute?
 
+  bool mResolvedFonts = false;  // Whether the mFonts array has been set up.
+
   eFontPresentation mEmojiPresentation = eFontPresentation::Any;
 
   // Generic font family used to select among font prefs during fallback.
@@ -1427,8 +1420,9 @@ class gfxFontGroup final : public gfxTextRunFactory {
       const T* aString, uint32_t aLength, const Parameters* aParams,
       mozilla::gfx::ShapedTextFlags aFlags, nsTextFrameUtils::Flags aFlags2);
 
-  // Initialize the list of fonts
-  void BuildFontList();
+  // Ensure the font-family list & style properties from CSS/prefs/defaults is
+  // resolved to the array of available font faces we'll actually use.
+  void EnsureFontList();
 
   // Get the font at index i within the fontlist, for character aCh (in case
   // of fonts with multiple resources and unicode-range partitioning).
