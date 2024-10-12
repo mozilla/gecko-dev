@@ -1594,6 +1594,7 @@ const LinkMenuOptions = {
         position: pos,
         ...(site.sponsored_tile_id ? { tile_id: site.sponsored_tile_id } : {}),
         is_pocket_card: site.type === "CardGrid",
+        is_list_card: site.is_list_card,
       })),
     }),
     impression: actionCreators.ImpressionStats({
@@ -2077,7 +2078,8 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
         recommendation_id: this.props.recommendation_id,
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
-        received_rank: this.props.received_rank
+        received_rank: this.props.received_rank,
+        is_list_card: this.props.is_list_card
       }
     })));
   }
@@ -3330,7 +3332,8 @@ class _DSCard extends (external_React_default()).PureComponent {
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
-        topic: this.props.topic
+        topic: this.props.topic,
+        is_list_card: this.props.isListCard
       }],
       dispatch: this.props.dispatch,
       source: this.props.type,
@@ -3384,7 +3387,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       block_key: this.props.id,
       scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
       recommended_at: this.props.recommended_at,
-      received_rank: this.props.received_rank
+      received_rank: this.props.received_rank,
+      is_list_card: this.props.isListCard
     }))));
   }
 }
@@ -3699,7 +3703,7 @@ function ListFeed({
     }
     return /*#__PURE__*/external_React_default().createElement(DSCard, {
       key: `list-card-${index}`,
-      pos: rec.pos,
+      pos: index,
       flightId: rec.flight_id,
       image_src: rec.image_src,
       raw_image_src: rec.raw_image_src,
@@ -3711,7 +3715,6 @@ function ListFeed({
       url: rec.url,
       id: rec.id,
       shim: rec.shim,
-      fetchTimestamp: rec.fetchTimestamp,
       type: type,
       context: rec.context,
       sponsor: rec.sponsor,
@@ -3722,7 +3725,6 @@ function ListFeed({
       pocket_id: rec.pocket_id,
       context_type: rec.context_type,
       bookmarkGuid: rec.bookmarkGuid,
-      recommendation_id: rec.recommendation_id,
       firstVisibleTimestamp: firstVisibleTimestamp,
       scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
       recommended_at: rec.recommended_at,

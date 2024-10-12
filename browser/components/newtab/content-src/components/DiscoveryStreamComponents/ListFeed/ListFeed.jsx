@@ -18,6 +18,7 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
   const { length: listLength } = listFeedRecs;
   // determine if the list should take up all availible height or not
   const fullList = listLength >= 5;
+
   return (
     listLength > 0 && (
       <div
@@ -48,7 +49,7 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
               return (
                 <DSCard
                   key={`list-card-${index}`}
-                  pos={rec.pos}
+                  pos={index}
                   flightId={rec.flight_id}
                   image_src={rec.image_src}
                   raw_image_src={rec.raw_image_src}
@@ -60,7 +61,6 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
                   url={rec.url}
                   id={rec.id}
                   shim={rec.shim}
-                  fetchTimestamp={rec.fetchTimestamp}
                   type={type}
                   context={rec.context}
                   sponsor={rec.sponsor}
@@ -71,7 +71,6 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
                   pocket_id={rec.pocket_id}
                   context_type={rec.context_type}
                   bookmarkGuid={rec.bookmarkGuid}
-                  recommendation_id={rec.recommendation_id}
                   firstVisibleTimestamp={firstVisibleTimestamp}
                   scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
                   recommended_at={rec.recommended_at}

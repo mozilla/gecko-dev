@@ -120,6 +120,7 @@ export const LinkMenuOptions = {
         position: pos,
         ...(site.sponsored_tile_id ? { tile_id: site.sponsored_tile_id } : {}),
         is_pocket_card: site.type === "CardGrid",
+        is_list_card: site.is_list_card,
       })),
     }),
     impression: ac.ImpressionStats({
