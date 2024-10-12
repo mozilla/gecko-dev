@@ -509,7 +509,8 @@ nsWaylandDisplay::~nsWaylandDisplay() = default;
 static void WlLogHandler(const char* format, va_list args) {
   char error[1000];
   VsprintfLiteral(error, format, args);
-  gfxCriticalNote << "Wayland protocol error: " << error;
+  gfxCriticalNote << "(" << GetDesktopEnvironmentIdentifier().get()
+                  << ") Wayland protocol error: " << error;
 
   // See Bug 1826583 and Bug 1844653 for reference.
   // "warning: queue %p destroyed while proxies still attached" and variants
@@ -520,7 +521,8 @@ static void WlLogHandler(const char* format, va_list args) {
     return;
   }
 
-  MOZ_CRASH_UNSAFE(error);
+  MOZ_CRASH_UNSAFE_PRINTF("(%s) %s", GetDesktopEnvironmentIdentifier().get(),
+                          error);
 }
 
 void WlCompositorCrashHandler() {
