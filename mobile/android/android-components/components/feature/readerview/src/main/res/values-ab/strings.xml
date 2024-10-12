@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Name for one of the font options available to use -->
+    <string name="mozac_feature_readerview_sans_serif_font">Асериф змам</string>
+    <!-- Accessible description for the font option -->
+    <string name="mozac_feature_readerview_sans_serif_font_desc">Ашрифт асерифда</string>
+    <!-- Name for one of the font options available to use -->
+    <string name="mozac_feature_readerview_serif_font">Асерифтә</string>
+    <!-- Accessible description for the font option -->
+    <string name="mozac_feature_readerview_serif_font_desc">Асерифтә шрифт</string>
+
+    <!-- Accessible description for decreasing the font size -->
+    <string name="mozac_feature_readerview_font_size_decrease_desc">Ашрифт ашәагаа армаҷтәуп</string>
+
+    <!-- Accessible description for increasing the font size -->
+    <string name="mozac_feature_readerview_font_size_increase_desc">Ашрифт ашәагаа иацҵатәуп</string>
+    <!-- Color option for the background -->
+    <string name="mozac_feature_readerview_dark">Аиқәаҵәа</string>
+    <!-- Accessible description for the color option -->
+    <string name="mozac_feature_readerview_dark_color_scheme_desc">Ашәыгақәа «Еиқәаҵәоу» рсхема</string>
+    <!-- Color option for the background -->
+    <string name="mozac_feature_readerview_sephia">Асепиа</string>
+    <!-- Accessible description for the color option -->
+    <string name="mozac_feature_readerview_sepia_color_scheme_desc">Аԥштәқәа «Асепиа» рсхема</string>
+    <!-- Color option for the background -->
+    <string name="mozac_feature_readerview_light">Алаша</string>
+    <!-- Accessible description for the color option -->
+    <string name="mozac_feature_readerview_light_color_scheme_desc">Ацәаԥштәқәа «Илашоу» рсхема</string>
+</resources>

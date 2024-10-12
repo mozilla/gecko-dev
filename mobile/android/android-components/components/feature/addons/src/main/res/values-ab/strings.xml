@@ -1,5 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://schemas.android.com/apk/res-auto">
+    <!-- Description for privacy add-on permission. -->
+    <string name="mozac_feature_addons_permissions_privacy_description">Амаӡара архиарақәа рыԥхьареи рыԥсахреи</string>
+    <!-- Description for all_urls add-on permission. -->
+    <string name="mozac_feature_addons_permissions_all_urls_description">Асаитқәа зегьы рзы шәдыррақәа рахь анеира</string>
+    <!-- Description for giving an add-on access to users's data on one site. %1$s  will be replaced by the DNS host name for which a web extension is requesting access (e.g., www.mozilla.org). -->
+    <string name="mozac_feature_addons_permissions_one_site_description">Удыррақәа рахь анеира %1$s аҟны</string>
+    <!-- Description for giving an add-on access to users's data in multiple sites in the domain %1$s. %1$s will be replaced by the DNS domain for which a web extension is requesting access (e.g., mozilla.org). -->
+    <string name="mozac_feature_addons_permissions_sites_in_domain_description">Адомен %1$s аҟны иҟоу асаитқәа рзы шәдыррақәа рахь анеира</string>
+    <!-- When an add-on requires access to more than 4 sites, for example the add-on requires access for 5 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
+     then we will show another collapsed entry saying "Access your data on 1 other site". This entry it's for the singular case, when the add-on is only accessing one extra site. -->
+    <string name="mozac_feature_addons_permissions_one_extra_site_description" tools:ignore="PluralsCandidate">Даҽа саитк аҟны удыррақәа рахь анеира</string>
+    <!-- When an add-on requires access to more than 4 sites, for example the add-on requires access for 6 sites. We will show the first 4 sites in individual entries, as in mozac_feature_addons_permissions_one_site_description,
+     then we will show another collapsed entry saying "Access your data on 2 other sites". This entry it's for the plural case, when the add-on is accessing more than one extra site.
+     %1$d will be replaced by an integer indicating the number of additional hosts for which this web extension is requesting permission. -->
+    <string name="mozac_feature_addons_permissions_extra_sites_description" tools:ignore="PluralsCandidate">Удыррақәа рахь анеира даҽа %1$d асаитқәа рҿы</string>
+    <!-- When an add-on requires access to more than 4 domains, for example the add-on requires access for 5 domains. We will show the first 4 domains in individual entries, as in mozac_feature_addons_permissions_sites_in_domain_description,
+      then we will show another collapsed entry saying "Access your data on 1 other domain". This entry it's for the singular case, when the add-on is only accessing one extra domain. -->
+    <string name="mozac_feature_addons_permissions_one_extra_domain_description" tools:ignore="PluralsCandidate">Даҽа доменк аҿы шәдыррақәа рахь анеира</string>
+    <!-- When an add-on requires access to more than 4 domains, for example the add-on requires access for 6 domains. We will show the first 4 domains in individual entries, as in mozac_feature_addons_permissions_sites_in_domain_description,
+     then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
+     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission. -->
+    <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Удыррақәа рахь анеира даҽа %1$d доменқәак рҿы</string>
+    <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
+    <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d аҟны %3$d</string>
+    <!-- Description for tabs add-on permission. -->
+    <string name="mozac_feature_addons_permissions_tabs_description">Абраузер абларҭақәа рахь анеира</string>
+    <!-- Description for unlimited_storage permission. -->
+    <string name="mozac_feature_addons_permissions_unlimited_storage_description">Аклиент аганахьала ԥкра змам адыррақәа рыҵәахра</string>
+    <!-- Description for navigation permission. -->
+    <string name="mozac_feature_addons_permissions_web_navigation_description">Анавигациа аан абраузер аусура анеира</string>
+    <!-- Description for bookmarks permission. -->
+    <string name="mozac_feature_addons_permissions_bookmarks_description">Адыргақәа рыԥхьареи рыԥсахреи</string>
+    <!-- Description for browser_setting permission. -->
+    <string name="mozac_feature_addons_permissions_browser_setting_description">Абраузер архиарақәа аԥхьареи рыԥсахреи</string>
+    <!-- Description for browser_data permission. -->
+    <string name="mozac_feature_addons_permissions_browser_data_description">Иаԥыхтәуп аҵыхәтәантәи аԥшаара аҭоурых, акукиқәа, насгьы урҭ ирыдҳәалоу адыррақәа</string>
+    <!-- Description for clipboard_read permission. -->
+    <string name="mozac_feature_addons_permissions_clipboard_read_description">Аҭаӡҩыра аҟынтәи адыррақәа раагара</string>
+    <!-- Description for clipboard_write permission. -->
+    <string name="mozac_feature_addons_permissions_clipboard_write_description">Аҭаӡҩыраҿы адыррақәа рықәыргылара</string>
+    <!-- Description for declarativeNetRequest permission. -->
+    <string name="mozac_feature_addons_permissions_declarative_net_request_description">Иарбанзаалак даҟьак аҟны аҵакы аблокада</string>
+    <!-- Description for declarativeNetRequestFeedback permission. -->
+    <string name="mozac_feature_addons_permissions_declarative_net_request_feedback_description">Абраузер аҭоурых аԥхьара</string>
+    <!-- Description for downloads permission. -->
+    <string name="mozac_feature_addons_permissions_downloads_description">Афаилқәа рыхгара, аԥхьара, насгьы абраузер аҭагалара аҭоурых аԥсахра</string>
+    <!-- Description for downloads_open permission. -->
+    <string name="mozac_feature_addons_permissions_downloads_open_description">Иаарттәуп афаилқәа шәхыхәҭахь иҭагалоу</string>
+    <!-- Description for find permission. -->
+    <string name="mozac_feature_addons_permissions_find_description">Иаарту абларҭақәа зегьы рҿы атекст аԥхьара</string>
+    <!-- Description for geolocation permission. -->
+    <string name="mozac_feature_addons_permissions_geolocation_description">Уахьыҟоу аҭыԥ ахь анеира</string>
+    <!-- Description for history permission. -->
+    <string name="mozac_feature_addons_permissions_history_description">Абраузер аҭоурых ахь анеира</string>
+    <!-- Description for management permission. -->
+    <string name="mozac_feature_addons_permissions_management_description">Анарҭбаара ахархәара ашьклаԥшра, насгьы атемақәа рнапхгара</string>
+    <!-- Description for native_messaging permission. -->
+    <string name="mozac_feature_addons_permissions_native_messaging_description">Уи анҭыҵ апрограммақәа рыла аацҳарақәа рышьҭра</string>
+    <!-- Description for notifications permission. -->
+    <string name="mozac_feature_addons_permissions_notifications_description">Ардыррақәа удырбоит</string>
+    <!-- Description for pkcs11 permission. -->
+    <string name="mozac_feature_addons_permissions_pkcs11_description">Акриптографиатә аутентификациа амаҵзурақәа рыҭара</string>
+    <!-- Description for proxy permission. -->
+    <string name="mozac_feature_addons_permissions_proxy_description">Абраузер аҟны апрокси архиарақәа рконтроль азура</string>
+    <!-- Description for sessions permission. -->
+    <string name="mozac_feature_addons_permissions_sessions_description">Ааигәа иаркыз абларҭақәа рахь анеира</string>
+    <!-- Description for tab_hide permission. -->
+    <string name="mozac_feature_addons_permissions_tab_hide_description">Абраузер абларҭақәа рыҵәахра ма раарԥшра</string>
+    <!-- Description for top_sites permission. -->
+    <string name="mozac_feature_addons_permissions_top_sites_description">Абраузер аҭоурых ахь анеира</string>
+    <!-- Description for devtools permission. -->
+    <string name="mozac_feature_addons_permissions_devtools_description">Иаарту абӷьыцқәа рҿы шәдыррақәа рахь анеирҭа аԥҵаҩы имыругақәа рырҭбаара</string>
+    <!-- The version on of add-on. -->
+    <string name="mozac_feature_addons_version">Аверсиа</string>
+    <!-- The author of an add-on. -->
+    <string name="mozac_feature_addons_author">Аҩҩы</string>
     <!-- The last date that the add-on was updated. -->
     <string name="mozac_feature_addons_last_updated">Аҵыхәтәантәи арҿыцра</string>
     <!-- The developer website (Homepage) of the add-on. -->
@@ -100,4 +176,22 @@
     <string name="mozac_feature_addons_supported_checker_notification_content_two">Иацҵатәуп %1$s-еи %2$s-еи %3$s ахь</string>
     <!-- The content of the notification, this will be shown to the user when more than two newly supported add-ons are available. %1$s is the app name (in most cases Firefox). -->
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">Иацҵа урҭ %1$s</string>
+    <!-- This is the caption for not yet supported screen caption -->
+    <string name="mozac_feature_addons_not_yet_supported_caption2">Уажәазы ​​ҳара иҳархиоит иҳадгалаз анарҭбаарақәа ралхразы раԥхьатәи асистема.</string>
+    <!-- This is the caption for the extension installation progress overlay -->
+    <string name="mozac_extension_install_progress_caption">Анарҭбаара аҭагалареи агәаҭареи…</string>
+    <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
+    <string name="mozac_feature_addons_failed_to_query_extensions">Анарҭбаара ахьӡынҵа аҭагалара алымшеит!</string>
+    <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
+    <string name="mozac_feature_addons_failed_to_translate">Абызшәазы %1$s мамзаргьы иҟоу абызшәа (%2$s) азы аиҭага ҳԥыхьамшәеит</string>
+    <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_successfully_installed">%1$s қәҿиарала ишьақәыргылоуп</string>
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_failed_to_install">Агха ҟалеит ашьақәыргылараан %1$s</string>
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
+    <string name="mozac_feature_addons_extension_failed_to_install">Ари анарҭбаара ашьақәыргылара алымшеит.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Анарҭбаара ашьақәыргылара алымшеит</string>
+    <!-- Text shown when attempting to install an extension and a network error happened. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_network_error">Ари арҭбаара аҭагалара алымшеит аимадаратә гха иахҟьаны.</string>
     </resources>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Menu option to duplicate the current tab -->
+    <string name="mozac_ui_tabcounter_duplicate_tab">Агәылаҵа аҩынтәра</string>
+    <!-- Content description of the tab counter toolbar button -->
+    <string name="mozac_tab_counter_content_description">Аинструментқәа рпанель аҟны аҵәаӷәа аԥхьаӡага агәыҵха.</string>
+</resources>
