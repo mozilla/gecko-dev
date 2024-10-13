@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+    <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="app_name_private_5">Ахатә %s</string>
+    <!-- App name for private browsing mode. The first parameter is the name of the app defined in app_name (for example: Fenix)-->
+    <string name="app_name_private_4">%s (Ихатәу)</string>
+
+    <!-- Home Fragment -->
+    <!-- Content description (not visible, for screen readers etc.): "Three dot" menu button. -->
+    <string name="content_description_menu">Егьырҭ архиарақәа</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_private_browsing_button">Ахатә ԥшаара аҿактәуп</string>
+    <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+    <string name="content_description_disable_private_browsing_button">Ихатәу абраузер аҿыхтәуп</string>
+
+
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
+    <string name="search_hint">Иҭажәгал шәзыҳәара ма шәҭыӡҭыԥ</string>
+    <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
+    <string name="search_hint_general_engine">Аинтернет аҿы аԥшаара</string>
+    <!-- Placeholder text shown in search bar when using history search -->
+    <string name="history_search_hint">Ажурнал аԥшаара</string>
+    <!-- Placeholder text shown in search bar when using bookmarks search -->
+    <string name="bookmark_search_hint">Адыргақәа рҿы аԥшаара</string>
+    <!-- Placeholder text shown in search bar when using tabs search -->
+    <string name="tab_search_hint">Ахҵарақәа рҿы аԥшаара</string>
+    <!-- Placeholder text shown in the search bar when using application search engines -->
+    <string name="application_search_hint">Иҭажәгал шәыԥшааратә ажәақәа</string>
+    <!-- No Open Tabs Message Description -->
+    <string name="no_open_tabs_description">Иаарту анҵамҭақәа абра иаарԥшхоит.</string>
+    <!-- No Private Tabs Message Description -->
+    <string name="no_private_tabs_description">Ухатә ҭаӡҩырақәа абра иаарԥшхоит.</string>
+
+
+    <!-- Translations feature-->
+
+
+    </resources>
