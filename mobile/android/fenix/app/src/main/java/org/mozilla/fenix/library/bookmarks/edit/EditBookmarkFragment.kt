@@ -426,6 +426,7 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
 
     override fun onDestroyView() {
         super.onDestroyView()
+        activity?.title = getString(R.string.app_name)
 
         _binding = null
     }

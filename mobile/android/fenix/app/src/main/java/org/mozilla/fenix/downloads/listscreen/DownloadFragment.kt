@@ -290,6 +290,7 @@ class DownloadFragment : Fragment(), UserInteractionHandler, MenuProvider {
     override fun onDetach() {
         super.onDetach()
         context?.let {
+            activity?.title = getString(R.string.app_name)
             activity?.findViewById<Toolbar>(R.id.navigationToolbar)?.setToolbarColors(
                 it.getColorFromAttr(R.attr.textPrimary),
                 it.getColorFromAttr(R.attr.layer1),
