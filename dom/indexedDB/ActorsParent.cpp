@@ -15255,24 +15255,15 @@ nsresult OpenDatabaseOp::DoDatabaseWork() {
 
   QM_TRY_INSPECT(
       const auto& dbDirectory,
-      ([persistenceType, &quotaManager, this]()
-           -> mozilla::Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult> {
+      ([persistenceType, &quotaManager,
+        this]() -> mozilla::Result<nsCOMPtr<nsIFile>, nsresult> {
         if (persistenceType == PERSISTENCE_TYPE_PERSISTENT) {
-          QM_TRY_RETURN(
-              quotaManager->EnsurePersistentOriginIsInitializedInternal(
-                  mOriginMetadata));
+          QM_TRY_RETURN(quotaManager->GetOriginDirectory(mOriginMetadata));
         }
 
-        QM_TRY_UNWRAP(auto dbDirectory,
-                      quotaManager->EnsureTemporaryOriginIsInitializedInternal(
-                          mOriginMetadata, /* aCreateIfNonExistent */ true));
-
-        QM_TRY(quotaManager->EnsureTemporaryOriginDirectoryCreated(
-            mOriginMetadata));
-
-        return std::move(dbDirectory);
-      }()
-                  .map([](const auto& res) { return res.first; })));
+        QM_TRY_RETURN(
+            quotaManager->GetOrCreateTemporaryOriginDirectory(mOriginMetadata));
+      }()));
 
   QM_TRY(MOZ_TO_RESULT(
       dbDirectory->Append(NS_LITERAL_STRING_FROM_CSTRING(IDB_DIRECTORY_NAME))));
@@ -16848,23 +16839,17 @@ nsresult GetDatabasesOp::DoDatabaseWork() {
     }
   }
 
-  QM_TRY(([&quotaManager, this]()
-              -> mozilla::Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult> {
+  // XXX Is this really needed ?
+  QM_TRY(([&quotaManager,
+           this]() -> mozilla::Result<nsCOMPtr<nsIFile>, nsresult> {
     if (mPersistenceType == PERSISTENCE_TYPE_PERSISTENT) {
-      QM_TRY_RETURN(quotaManager->EnsurePersistentOriginIsInitializedInternal(
-          mOriginMetadata));
+      QM_TRY_RETURN(quotaManager->GetOriginDirectory(mOriginMetadata));
     }
 
-    QM_TRY_UNWRAP(auto dbDirectory,
-                  quotaManager->EnsureTemporaryOriginIsInitializedInternal(
-                      mOriginMetadata, /* aCreateIfNonExistent */ true));
-
-    QM_TRY(
-        quotaManager->EnsureTemporaryOriginDirectoryCreated(mOriginMetadata));
-
-    return std::move(dbDirectory);
+    QM_TRY_RETURN(
+        quotaManager->GetOrCreateTemporaryOriginDirectory(mOriginMetadata));
   }()
-                     .map([](const auto& res) { return Ok{}; })));
+                          .map([](const auto& res) { return Ok{}; })));
 
   {
     QM_TRY_INSPECT(const bool& exists,

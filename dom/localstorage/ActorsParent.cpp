@@ -7016,21 +7016,14 @@ nsresult PrepareDatastoreOp::DatabaseWork() {
         ([hasDataForMigration, &quotaManager,
           this]() -> mozilla::Result<nsCOMPtr<nsIFile>, nsresult> {
           if (hasDataForMigration) {
-            QM_TRY_RETURN(
-                quotaManager
-                    ->EnsureTemporaryOriginIsInitializedInternal(
-                        mOriginMetadata, /* aCreateIfNonExistent*/ true)
-                    .map([](const auto& res) { return res.first; }));
+            QM_TRY_RETURN(quotaManager->GetOrCreateTemporaryOriginDirectory(
+                mOriginMetadata));
           }
 
           MOZ_ASSERT(mOriginMetadata.mPersistenceType ==
                      PERSISTENCE_TYPE_DEFAULT);
 
-          QM_TRY_RETURN(
-              quotaManager
-                  ->EnsureTemporaryOriginIsInitializedInternal(
-                      mOriginMetadata, /* aCreateIfNonExistent*/ false)
-                  .map([](const auto& res) { return res.first; }));
+          QM_TRY_RETURN(quotaManager->GetOriginDirectory(mOriginMetadata));
         }()));
 
     QM_TRY(MOZ_TO_RESULT(directoryEntry->Append(

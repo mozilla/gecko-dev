@@ -32,15 +32,10 @@ namespace {
 void InitializeClientDirectory(const ClientMetadata& aClientMetadata) {
   QuotaManager* quotaManager = QuotaManager::Get();
 
-  QM_TRY_INSPECT(const auto& directory,
-                 quotaManager
-                     ->EnsureTemporaryOriginIsInitializedInternal(
-                         aClientMetadata, /* aCreateIfNonExistent */ true)
-                     .map([](const auto& aPair) { return aPair.first; }),
-                 QM_TEST_FAIL);
-
-  QM_TRY(quotaManager->EnsureTemporaryOriginDirectoryCreated(aClientMetadata),
-         QM_TEST_FAIL);
+  QM_TRY_INSPECT(
+      const auto& directory,
+      quotaManager->GetOrCreateTemporaryOriginDirectory(aClientMetadata),
+      QM_TEST_FAIL);
 
   QM_TRY(MOZ_TO_RESULT(directory->Append(
              Client::TypeToString(aClientMetadata.mClientType))),
