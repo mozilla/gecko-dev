@@ -40,7 +40,7 @@ class PrivateRepositoryCleanup(QuotaTestCase):
         super(PrivateRepositoryCleanup, self).tearDown()
 
     def doStorageWork(self):
-        origin = self.marionette.absolute_url("")[:-1] + "^privateBrowsingId=1"
+        origin = "https://example.com^privateBrowsingId=1"
         assert self.initTemporaryOrigin("private", origin)
 
         self.ensureInvariantHolds(lambda _: os.path.exists(self.getPrivateRepository()))

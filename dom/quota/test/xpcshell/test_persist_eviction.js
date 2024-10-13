@@ -60,6 +60,12 @@ async function testSteps() {
       let file = getRelativeFile(path);
       if (index == (persistOldestOrigin ? 2 : 1)) {
         ok(!file.exists(), "The origin directory " + path + " doesn't exist");
+
+        let spec = "http://example" + index + ".com";
+        request = initTemporaryOrigin("default", getPrincipal(spec));
+        await requestFinished(request);
+
+        ok(file.exists(), "The origin directory " + path + " does exist");
       } else {
         ok(file.exists(), "The origin directory " + path + " does exist");
       }
