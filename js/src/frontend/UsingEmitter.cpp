@@ -200,8 +200,9 @@ bool DisposalEmitter::prepareForDisposeCapability() {
 // Steps 3-5, 7.
 //
 // This implementation of DisposeResources is designed for using and await using
-// syntax and covers the complete algorithm as defined in the spec for
-// both sync and async disposals as necessary in bytecode.
+// syntax as well as for disposals in DisposableStack and AsyncDisposableStack,
+// it covers the complete algorithm as defined in the spec for both sync and
+// async disposals as necessary in bytecode.
 bool DisposalEmitter::emitEnd(EmitterScope& es) {
   MOZ_ASSERT(state_ == State::DisposeCapability);
   MOZ_ASSERT(initialCompletion_ != CompletionKind::Return);

@@ -965,6 +965,11 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   [[nodiscard]] bool emitSelfHostedSetCanonicalName(CallNode* callNode);
   [[nodiscard]] bool emitSelfHostedArgumentsLength(CallNode* callNode);
   [[nodiscard]] bool emitSelfHostedGetArgument(CallNode* callNode);
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  enum class DisposalKind : bool { Sync, Async };
+  [[nodiscard]] bool emitSelfHostedDisposeResources(CallNode* callNode,
+                                                    DisposalKind kind);
+#endif
 #ifdef DEBUG
   void assertSelfHostedExpectedTopLevel(ParseNode* node);
   void assertSelfHostedUnsafeGetReservedSlot(ListNode* argsList);

@@ -141,6 +141,8 @@
   MACRO_(direction, "direction")                                               \
   MACRO_(disambiguation, "disambiguation")                                     \
   MACRO_(displayURL, "displayURL")                                             \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                             \
+      MACRO_(DisposeResourcesAsync, "DisposeResourcesAsync"))                  \
   MACRO2(do_, "do")                                                            \
   MACRO_(dollar_ArrayBufferSpecies_, "$ArrayBufferSpecies")                    \
   MACRO_(dollar_ArraySpecies_, "$ArraySpecies")                                \
