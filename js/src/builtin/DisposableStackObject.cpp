@@ -11,8 +11,6 @@
 #include "js/friend/ErrorMessages.h"
 #include "js/PropertyAndElement.h"
 #include "js/PropertySpec.h"
-#include "vm/BytecodeUtil.h"
-#include "vm/DisposableRecord.h"
 #include "vm/GlobalObject.h"
 #include "vm/Interpreter.h"
 #include "vm/JSContext.h"
@@ -132,155 +130,6 @@ using namespace js;
                                              JS::Value* vp) {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
   return JS::CallNonGenericMethod<is, use_impl>(cx, args);
-}
-
-// Explicit Resource Management Proposal
-// DisposeResources ( disposeCapability, completion )
-// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
-//
-// This implementation of DisposeResources is specifically for DisposableStack.
-// This implements the subset of steps that specific for sync disposals.
-//
-// TODO: Consider unifying the implementation of DisposeResources by introducing
-// a special call like syntax that directly generates bytecode (Bug 1917491).
-template <typename ClearFn>
-MOZ_ALWAYS_INLINE bool DisposeResources(
-    JSContext* cx, JS::Handle<ArrayObject*> disposeCapability, ClearFn clear) {
-  uint32_t index = disposeCapability->getDenseInitializedLength();
-
-  // hadError and latestException correspond to the completion value.
-  MOZ_ASSERT(!cx->isExceptionPending());
-  bool hadError = false;
-  JS::Rooted<JS::Value> latestException(cx);
-
-  // Step 3. For each element resource of
-  // disposeCapability.[[DisposableResourceStack]], in reverse list order, do
-  while (index) {
-    --index;
-    JS::Value val = disposeCapability->getDenseElement(index);
-
-    MOZ_ASSERT(val.isObject());
-
-    JS::Rooted<DisposableRecordObject*> resource(
-        cx, &val.toObject().as<DisposableRecordObject>());
-
-    // Step 3.a. Let value be resource.[[ResourceValue]].
-    JS::Rooted<JS::Value> value(cx, resource->getObject());
-
-    // Step 3.b. Let hint be resource.[[Hint]].
-    // Step 3.c. Let method be resource.[[DisposeMethod]].
-    JS::Rooted<JS::Value> method(cx, resource->getMethod());
-
-    // Step 3.e. If method is not undefined, then
-    if (method.isUndefined()) {
-      continue;
-    }
-
-    // Step 3.e.i. Let result be Completion(Call(method, value)).
-    JS::Rooted<JS::Value> rval(cx);
-    if (!Call(cx, method, value, &rval)) {
-      // Step 3.e.iii. If result is a throw completion, then
-      if (hadError) {
-        // Step 3.e.iii.1.a. Set result to result.[[Value]].
-        JS::Rooted<JS::Value> result(cx);
-        if (!cx->getPendingException(&result)) {
-          return false;
-        }
-        cx->clearPendingException();
-
-        // Step 3.e.iii.1.b. Let suppressed be completion.[[Value]].
-        JS::Rooted<JS::Value> suppressed(cx, latestException);
-
-        // Steps 3.e.iii.1.c-e.
-        ErrorObject* errorObj = CreateSuppressedError(cx, result, suppressed);
-        if (!errorObj) {
-          return false;
-        }
-        // Step 3.e.iii.1.f. Set completion to ThrowCompletion(error).
-        latestException.set(ObjectValue(*errorObj));
-      } else {
-        // Step 3.e.iii.2. Else,
-        // Step 3.e.iii.2.a. Set completion to result.
-        hadError = true;
-        if (cx->isExceptionPending()) {
-          if (!cx->getPendingException(&latestException)) {
-            return false;
-          }
-          cx->clearPendingException();
-        }
-      }
-    }
-  }
-
-  // Step 6. Set disposeCapability.[[DisposableResourceStack]] to a new empty
-  // List.
-  clear();
-
-  // Step 7. Return ? completion.
-  if (hadError) {
-    cx->setPendingException(latestException, ShouldCaptureStack::Maybe);
-    return false;
-  }
-
-  return true;
-}
-
-// Explicit Resource Management Proposal
-// 27.3.3.3 DisposableStack.prototype.dispose ( )
-// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposablestack.prototype.dispose
-// Step 4-5.
-bool DisposableStackObject::disposeResources(JSContext* cx) {
-  MOZ_ASSERT(state() == DisposableState::Pending);
-
-  // Step 4. Set disposableStack.[[DisposableState]] to disposed.
-  setState(DisposableState::Disposed);
-
-  // Step 5. Return ? DisposeResources(disposableStack.[[DisposeCapability]],
-  // NormalCompletion(undefined)).
-  if (isDisposableResourceStackEmpty()) {
-    return true;
-  }
-
-  JS::Rooted<ArrayObject*> disposeCapability(cx,
-                                             nonEmptyDisposableResourceStack());
-
-  auto clearFn = [&]() { clearDisposableResourceStack(); };
-
-  return DisposeResources(cx, disposeCapability, clearFn);
-}
-
-/**
- * Explicit Resource Management Proposal
- * 27.3.3.3 DisposableStack.prototype.dispose ( )
- * https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposablestack.prototype.dispose
- */
-/* static */ bool DisposableStackObject::dispose_impl(
-    JSContext* cx, const JS::CallArgs& args) {
-  // Step 1. Let disposableStack be the this value.
-  JS::Rooted<DisposableStackObject*> disposableStack(
-      cx, &args.thisv().toObject().as<DisposableStackObject>());
-
-  // Step 2. Perform ? RequireInternalSlot(disposableStack,
-  // [[DisposableState]]).
-  // Step 3. If disposableStack.[[DisposableState]] is disposed, return
-  // undefined.
-  if (disposableStack->state() == DisposableState::Disposed) {
-    args.rval().setUndefined();
-    return true;
-  }
-
-  // Steps 4-5.
-  if (!disposableStack->disposeResources(cx)) {
-    return false;
-  }
-  args.rval().setUndefined();
-  return true;
-}
-
-/* static */ bool DisposableStackObject::dispose(JSContext* cx, unsigned argc,
-                                                 JS::Value* vp) {
-  JS::CallArgs args = CallArgsFromVp(argc, vp);
-  return JS::CallNonGenericMethod<is, dispose_impl>(cx, args);
 }
 
 /**
@@ -486,26 +335,6 @@ bool DisposableStackObject::disposeResources(JSContext* cx) {
   return JS::CallNonGenericMethod<is, disposed_impl>(cx, args);
 }
 
-/* static */ bool DisposableStackObject::finishInit(
-    JSContext* cx, JS::Handle<JSObject*> ctor, JS::Handle<JSObject*> proto) {
-  JS::Handle<NativeObject*> nativeProto = proto.as<NativeObject>();
-
-  JS::Rooted<JS::Value> disposeFn(cx);
-  JS::Rooted<JS::PropertyKey> disposeId(cx, NameToId(cx->names().dispose));
-  if (!NativeGetProperty(cx, nativeProto, disposeId, &disposeFn)) {
-    return false;
-  }
-
-  // Explicit Resource Management Proposal
-  // 27.3.3.7 DisposableStack.prototype [ @@dispose ] ( )
-  // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposablestack.prototype-%40%40dispose
-  // The initial value of the @@dispose property is
-  // %DisposableStack.prototype.dispose%, defined in 27.3.3.3.
-  JS::Rooted<JS::PropertyKey> disposeSym(
-      cx, JS::PropertyKey::Symbol(cx->wellKnownSymbols().dispose));
-  return NativeDefineDataProperty(cx, nativeProto, disposeSym, disposeFn, 0);
-}
-
 const JSPropertySpec DisposableStackObject::properties[] = {
     JS_STRING_SYM_PS(toStringTag, "DisposableStack", JSPROP_READONLY),
     JS_PSG("disposed", disposed, 0),
@@ -514,13 +343,11 @@ const JSPropertySpec DisposableStackObject::properties[] = {
 
 const JSFunctionSpec DisposableStackObject::methods[] = {
     JS_FN("use", DisposableStackObject::use, 1, 0),
-    JS_FN("dispose", DisposableStackObject::dispose, 0, 0),
+    JS_SELF_HOSTED_FN("dispose", "$DisposableStackDispose", 0, 0),
     JS_FN("defer", DisposableStackObject::defer, 1, 0),
     JS_FN("move", DisposableStackObject::move, 0, 0),
     JS_FN("adopt", DisposableStackObject::adopt, 2, 0),
-    // @@dispose is re-defined in finishInit so that it has the
-    // same identity as |dispose|.
-    JS_SYM_FN(dispose, DisposableStackObject::dispose, 0, 0),
+    JS_SELF_HOSTED_SYM_FN(dispose, "$DisposableStackDispose", 0, 0),
     JS_FS_END,
 };
 
@@ -532,7 +359,7 @@ const ClassSpec DisposableStackObject::classSpec_ = {
     nullptr,
     DisposableStackObject::methods,
     DisposableStackObject::properties,
-    DisposableStackObject::finishInit,
+    nullptr,
 };
 
 const JSClass DisposableStackObject::class_ = {

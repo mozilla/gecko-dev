@@ -11,7 +11,8 @@
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 #  define INLINABLE_EXPLICIT_RESOURCE_MANAGEMENENT_LIST(_) \
-    _(IntrinsicGuardToAsyncDisposableStack)
+    _(IntrinsicGuardToAsyncDisposableStack)                \
+    _(IntrinsicGuardToDisposableStack)
 #else
 #  define INLINABLE_EXPLICIT_RESOURCE_MANAGEMENENT_LIST(_)
 #endif

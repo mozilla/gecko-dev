@@ -51,4 +51,4 @@ async function $AsyncDisposableStackDisposeAsync() {
   // Step 9. Return promiseCapability.[[Promise]].
   return undefined;
 }
-SetCanonicalName($AsyncDisposableStackDisposeAsync, 'disposeAsync');
+SetCanonicalName($AsyncDisposableStackDisposeAsync, "disposeAsync");

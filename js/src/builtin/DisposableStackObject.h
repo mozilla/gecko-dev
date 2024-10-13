@@ -9,7 +9,6 @@
 
 #include "builtin/DisposableStackObjectBase.h"
 #include "vm/JSObject.h"
-#include "vm/NativeObject.h"
 
 namespace js {
 
@@ -28,8 +27,6 @@ class DisposableStackObject : public DisposableStackObjectBase {
   static const JSPropertySpec properties[];
   static const JSFunctionSpec methods[];
 
-  bool disposeResources(JSContext* cx);
-
   static bool is(JS::Handle<JS::Value> val);
   static bool finishInit(JSContext* cx, JS::Handle<JSObject*> ctor,
                          JS::Handle<JSObject*> proto);
@@ -37,8 +34,6 @@ class DisposableStackObject : public DisposableStackObjectBase {
   static bool construct(JSContext* cx, unsigned argc, JS::Value* vp);
   static bool use_impl(JSContext* cx, const JS::CallArgs& args);
   static bool use(JSContext* cx, unsigned argc, JS::Value* vp);
-  static bool dispose_impl(JSContext* cx, const JS::CallArgs& args);
-  static bool dispose(JSContext* cx, unsigned argc, JS::Value* vp);
   static bool adopt_impl(JSContext* cx, const JS::CallArgs& args);
   static bool adopt(JSContext* cx, unsigned argc, JS::Value* vp);
   static bool defer_impl(JSContext* cx, const JS::CallArgs& args);

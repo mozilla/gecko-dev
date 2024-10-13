@@ -628,7 +628,10 @@ if CONFIG["ENABLE_RECORD_TUPLE"]:
     selfhosted_inputs += ["builtin/Tuple.js"]
 
 if CONFIG["ENABLE_EXPLICIT_RESOURCE_MANAGEMENT"]:
-    selfhosted_inputs += ["builtin/AsyncDisposableStack.js"]
+    selfhosted_inputs += [
+        "builtin/AsyncDisposableStack.js",
+        "builtin/DisposableStack.js",
+    ]
 
 # Prepare self-hosted JS code for embedding
 GeneratedFile(

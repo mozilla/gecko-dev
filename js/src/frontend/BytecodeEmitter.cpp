@@ -8568,6 +8568,10 @@ bool BytecodeEmitter::emitCallOrNew(CallNode* callNode, ValueUsage valueUsage) {
         TaggedParserAtomIndex::WellKnown::DisposeResourcesAsync()) {
       return emitSelfHostedDisposeResources(callNode, DisposalKind::Async);
     }
+    if (calleeName ==
+        TaggedParserAtomIndex::WellKnown::DisposeResourcesSync()) {
+      return emitSelfHostedDisposeResources(callNode, DisposalKind::Sync);
+    }
 #endif
 #ifdef DEBUG
     if (calleeName ==

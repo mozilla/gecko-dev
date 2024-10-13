@@ -143,6 +143,8 @@
   MACRO_(displayURL, "displayURL")                                             \
   IF_EXPLICIT_RESOURCE_MANAGEMENT(                                             \
       MACRO_(DisposeResourcesAsync, "DisposeResourcesAsync"))                  \
+  IF_EXPLICIT_RESOURCE_MANAGEMENT(                                             \
+      MACRO_(DisposeResourcesSync, "DisposeResourcesSync"))                    \
   MACRO2(do_, "do")                                                            \
   MACRO_(dollar_ArrayBufferSpecies_, "$ArrayBufferSpecies")                    \
   MACRO_(dollar_ArraySpecies_, "$ArraySpecies")                                \
