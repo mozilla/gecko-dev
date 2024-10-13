@@ -3006,7 +3006,8 @@ class nsLayoutUtils {
    * a cross-process ancestor document.
    * Note this function only works for frames in out-of-process iframes.
    **/
-  static bool FrameIsScrolledOutOfViewInCrossProcess(const nsIFrame* aFrame);
+  static bool FrameRectIsScrolledOutOfViewInCrossProcess(
+      const nsIFrame* aFrame, const nsRect& aFrameRect);
 
   /**
    * Similar to above FrameIsScrolledOutViewInCrossProcess but returns true even

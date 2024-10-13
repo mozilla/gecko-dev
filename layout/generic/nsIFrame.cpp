@@ -11271,9 +11271,9 @@ bool nsIFrame::IsStackingContext() {
   return IsStackingContext(StyleDisplay(), StyleEffects());
 }
 
-static bool IsFrameScrolledOutOfView(const nsIFrame* aTarget,
-                                     const nsRect& aTargetRect,
-                                     const nsIFrame* aParent) {
+static bool IsFrameRectScrolledOutOfView(const nsIFrame* aTarget,
+                                         const nsRect& aTargetRect,
+                                         const nsIFrame* aParent) {
   // The ancestor frame we are checking if it clips out aTargetRect relative to
   // aTarget.
   nsIFrame* clipParent = nullptr;
@@ -11299,7 +11299,8 @@ static bool IsFrameScrolledOutOfView(const nsIFrame* aTarget,
     // are in an out-of-process iframe, try to see if |aTarget| frame is
     // scrolled out of view in an scrollable frame in a cross-process ancestor
     // document.
-    return nsLayoutUtils::FrameIsScrolledOutOfViewInCrossProcess(aTarget);
+    return nsLayoutUtils::FrameRectIsScrolledOutOfViewInCrossProcess(
+        aTarget, aTargetRect);
   }
 
   nsRect clipRect = clipParent->InkOverflowRectRelativeToSelf();
@@ -11330,12 +11331,12 @@ static bool IsFrameScrolledOutOfView(const nsIFrame* aTarget,
     return false;
   }
 
-  return IsFrameScrolledOutOfView(aTarget, aTargetRect, parent);
+  return IsFrameRectScrolledOutOfView(clipParent, transformedRect, parent);
 }
 
 bool nsIFrame::IsScrolledOutOfView() const {
   nsRect rect = InkOverflowRectRelativeToSelf();
-  return IsFrameScrolledOutOfView(this, rect, this);
+  return IsFrameRectScrolledOutOfView(this, rect, this);
 }
 
 gfx::Matrix nsIFrame::ComputeWidgetTransform() const {
