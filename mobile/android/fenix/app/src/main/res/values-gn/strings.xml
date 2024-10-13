@@ -118,9 +118,15 @@
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Ñanduti rendápe, ko várra okañýta ehovévo yvy gotyo erekove rekávo pa’ũ eikundaha hag̃ua.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Ejopymeme pe hu’y epo hag̃ua tembiasakue kuatiarogue ko tendaykepegua.</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Pyahu: hu’y tapykue ha tenonde gotyo jepoko ndive</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Vy’apópe eikundaha pya’eve ha eguereko nde po ypýpe.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Eikotevẽ eike ta’ãngamýime. Eho Android ñembohekópe, eukutu ñemoneĩ ha moneĩ.</string>
@@ -473,6 +479,9 @@
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Emoñepyrũvo tembiapo ha ojuehérõ, ne rekorosãvéta. Firefox ombopapapy ñe’ẽñemi, techaukaha ha hetave.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox ombopapapapy ñe’ẽñemi, techaukaaha ha hetave oñembojuehéramo.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Eñemboheraguapy</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -906,6 +915,8 @@
     <string name="preferences_marketing_data">Mba’ekuaarã jehepyme’ẽrã</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Emoherakuã mba’ekuaarã ojeporúva Adjust ndive, ore marketing me’ẽhára</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Emondo marandu jejavy rehegua</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Ñembokatupyry</string>
     <!-- Summary for studies preferences -->
@@ -1211,6 +1222,8 @@
 
     <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
     <string name="unsubmitted_crash_dialog_title">%s oñemoñepyrũ jey</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Emondo marandu jejavy rehegua</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">Mboty</string>
     <!-- Unsubmitted crash dialog positive button to submit crash report -->
@@ -2875,10 +2888,18 @@
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">¿Evy’ápa nde Firefox kuatiarogue ñepyrũha ndive?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Eipytyvõ tahekoporãve Firefox. Saieterei oikotevẽ pevarã</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Eipytyvõ Firefox jeheka jeikoporãverã. Peteĩ aravo’i eikotevẽ.</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Eipytyvõ Firefox ñembojuehe jeikoporãverã. Peteĩ aravo’i eikotevẽ.</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">¿Mba’eichaitépa reñeñandu Firefox ndive?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">¿Evy’ápa nde Firefox kuatiarogue ñepyrũha ndive?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">¿Mba’eichaitépa reñeñandu Firefox jehekaha ndive?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">¿Mba’eichaitépa reñeñandu Firefox ñembojuehe ndive?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox ra’ãnga’i</string>
