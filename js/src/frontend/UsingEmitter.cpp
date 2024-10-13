@@ -96,8 +96,8 @@ bool UsingEmitter::emitThrowIfException() {
   return true;
 }
 
-bool UsingEmitter::emitResourcePropertyAccess(TaggedParserAtomIndex prop,
-                                              unsigned resourcesFromTop) {
+bool DisposalEmitter::emitResourcePropertyAccess(TaggedParserAtomIndex prop,
+                                                 unsigned resourcesFromTop) {
   // [stack] # if resourcesFromTop == 1
   // [stack] RESOURCES INDEX
   // [stack] # if resourcesFromTop > 1
@@ -125,25 +125,16 @@ bool UsingEmitter::emitResourcePropertyAccess(TaggedParserAtomIndex prop,
 // Explicit Resource Management Proposal
 // DisposeResources ( disposeCapability, completion )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
-//
-// This implementation of DisposeResources is designed for using and await using
-// syntax and covers the complete algorithm as defined in the spec for
-// both sync and async disposals as necessary in bytecode.
-bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
-                                   CompletionKind initialCompletion) {
-  MOZ_ASSERT(initialCompletion != CompletionKind::Return);
+// Steps 1-2.
+bool DisposalEmitter::prepareForDisposeCapability() {
+  MOZ_ASSERT(state_ == State::Start);
+  MOZ_ASSERT(initialCompletion_ != CompletionKind::Return);
 
   // [stack] # if CompletionKind::Throw
   // [stack] EXC
   // [stack] # otherwise (CompletionKind::Normal)
   // [stack]
-
-  // TODO: This method still has access to instance variables and it maybe
-  // possible to accidentally use them wrongly for example hasAwaitUsing_ could
-  // be used instead and that would cause inconsistent behaviour. Consider
-  // refactoring this method to either be a static method or move this method to
-  // a base class without hasAwaitUsing_ but with bce_. (Bug 1917491)
-  if (hasAsyncDisposables) {
+  if (hasAsyncDisposables_) {
     // Awaits can cause suspension of the current frame and
     // the erasure of the frame's return value, thus we preserve
     // the frame's return value on the value stack.
@@ -166,13 +157,13 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
   }
 
   // corresponds to completion parameter
-  if (initialCompletion == CompletionKind::Throw) {
+  if (initialCompletion_ == CompletionKind::Throw) {
     if (!bce_->emit1(JSOp::True)) {
       // [stack] EXC RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING
       return false;
     }
 
-    if (hasAsyncDisposables) {
+    if (hasAsyncDisposables_) {
       // [stack] EXC RVAL NEEDS-AWAIT HAS-AWAITED THROWING
       if (!bce_->emitPickN(4)) {
         // [stack] RVAL NEEDS-AWAIT HAS-AWAITED THROWING EXC
@@ -197,24 +188,37 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
     }
   }
 
-  // [stack] ...
+#ifdef DEBUG
+  state_ = State::DisposeCapability;
+#endif
+  return true;
+}
 
-  // For the purpose of readbility RVAL has been omitted from
-  // the stack comments below and is assumed to be present,
-  // we mention it again below at the completion steps when we
-  // use it.
+// Explicit Resource Management Proposal
+// DisposeResources ( disposeCapability, completion )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
+// Steps 3-5, 7.
+//
+// This implementation of DisposeResources is designed for using and await using
+// syntax and covers the complete algorithm as defined in the spec for
+// both sync and async disposals as necessary in bytecode.
+bool DisposalEmitter::emitEnd(EmitterScope& es) {
+  MOZ_ASSERT(state_ == State::DisposeCapability);
+  MOZ_ASSERT(initialCompletion_ != CompletionKind::Return);
+
+  // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING EXC RESOURCES COUNT
+
+  // For the purpose of readbility some values are omitted from
+  // the stack comments and are assumed to be present,
+  // we mention the values in the comments as and when they are being
+  // operated upon.
+
+  // [stack] ... RESOURCES COUNT
 
   // We do the iteration in reverse order as per spec,
   // there can be the case when count is 0 and hence index
   // below becomes -1 but the loop condition will ensure
   // no code is executed in that case.
-  // Step 6. Set disposeCapability.[[DisposableResourceStack]] to a new empty
-  // List.
-  if (!emitTakeDisposeCapability()) {
-    // [stack] ... RESOURCES COUNT
-    return false;
-  }
-
   if (!bce_->emit1(JSOp::Dec)) {
     // [stack] ... RESOURCES INDEX
     return false;
@@ -251,7 +255,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
 
   // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING EXC RESOURCES INDEX
 
-  if (hasAsyncDisposables) {
+  if (hasAsyncDisposables_) {
     // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX
 
     // Step 3.b. Let hint be resource.[[Hint]].
@@ -403,7 +407,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
     return false;
   }
 
-  if (hasAsyncDisposables) {
+  if (hasAsyncDisposables_) {
     // Step 3.e.ii. If result is a normal completion and hint is async-dispose,
     // then
     if (!emitResourcePropertyAccess(TaggedParserAtomIndex::WellKnown::hint(),
@@ -476,7 +480,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
     return false;
   }
 
-  if (initialCompletion == CompletionKind::Throw &&
+  if (initialCompletion_ == CompletionKind::Throw &&
       bce_->sc->isSuspendableContext() &&
       bce_->sc->asSuspendableContext()->isGenerator()) {
     // [stack] ... THROWING RESOURCES INDEX EXC2 EXC
@@ -595,7 +599,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
     return false;
   }
 
-  if (hasAsyncDisposables) {
+  if (hasAsyncDisposables_) {
     // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX
 
     // Step 3.f.ii. Set needsAwait to true.
@@ -640,7 +644,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
     return false;
   }
 
-  if (hasAsyncDisposables) {
+  if (hasAsyncDisposables_) {
     // Step 4. If needsAwait is true and hasAwaited is false, then
     if (!bce_->emitPickN(3)) {
       // [stack] HAS-AWAITED THROWING EXC NEEDS-AWAIT
@@ -696,7 +700,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
     return false;
   }
 
-  if (hasAsyncDisposables) {
+  if (hasAsyncDisposables_) {
     // [stack] RVAL EXC THROWING
 
     if (!bce_->emitPickN(2)) {
@@ -708,6 +712,36 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
       // [stack] EXC THROWING
       return false;
     }
+  }
+
+#ifdef DEBUG
+  state_ = State::End;
+#endif
+  return true;
+}
+
+bool UsingEmitter::emitDisposeResourcesForEnvironment(
+    EmitterScope& es, CompletionKind initialCompletion) {
+  DisposalEmitter de(bce_, hasAwaitUsing_, initialCompletion);
+  if (!de.prepareForDisposeCapability()) {
+    // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING EXC
+    return false;
+  }
+
+  // Explicit Resource Management Proposal
+  // DisposeResources ( disposeCapability, completion )
+  // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
+  //
+  // Step 6. Set disposeCapability.[[DisposableResourceStack]] to a new empty
+  // List.
+  if (!emitTakeDisposeCapability()) {
+    // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING EXC RESOURCES COUNT
+    return false;
+  }
+
+  if (!de.emitEnd(es)) {
+    // [stack] EXC THROWING
+    return false;
   }
 
   return true;
@@ -949,7 +983,7 @@ bool UsingEmitter::prepareForAssignment(UsingHint hint) {
   MOZ_ASSERT(bce_->innermostEmitterScope()->hasDisposables());
 
   if (hint == UsingHint::Async) {
-    hasAwaitUsing_ = true;
+    setHasAwaitUsing(true);
   }
 
   // [stack] VAL
@@ -1009,7 +1043,7 @@ bool UsingEmitter::prepareForForOfLoopIteration() {
   EmitterScope* es = bce_->innermostEmitterScopeNoCheck();
   MOZ_ASSERT(es->hasDisposables());
 
-  if (!emitDisposeLoop(*es, hasAwaitUsing_)) {
+  if (!emitDisposeResourcesForEnvironment(*es)) {
     // [stack] EXC THROWING
     return false;
   }
@@ -1028,7 +1062,7 @@ bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
     return false;
   }
 
-  if (!emitDisposeLoop(*es, hasAwaitUsing_, CompletionKind::Throw)) {
+  if (!emitDisposeResourcesForEnvironment(*es, CompletionKind::Throw)) {
     // [stack] STACK EXC THROWING
     return false;
   }
@@ -1045,7 +1079,7 @@ bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
 bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {
   MOZ_ASSERT(present->hasDisposables());
 
-  if (!emitDisposeLoop(*present, hasAwaitUsing_)) {
+  if (!emitDisposeResourcesForEnvironment(*present)) {
     // [stack] EXC THROWING
     return false;
   }
@@ -1061,7 +1095,7 @@ bool UsingEmitter::emitEnd() {
   // Given that we are using NonSyntactic TryEmitter we do
   // not have fallthrough behaviour in the normal completion case
   // see comment on controlInfo_ in TryEmitter.h
-  if (!emitDisposeLoop(*es, hasAwaitUsing_)) {
+  if (!emitDisposeResourcesForEnvironment(*es)) {
     //     [stack] EXC THROWING
     return false;
   }
@@ -1088,7 +1122,7 @@ bool UsingEmitter::emitEnd() {
     return false;
   }
 
-  if (!emitDisposeLoop(*es, hasAwaitUsing_, CompletionKind::Throw)) {
+  if (!emitDisposeResourcesForEnvironment(*es, CompletionKind::Throw)) {
     //     [stack] STACK THROWING EXC THROWING
     return false;
   }
@@ -1128,9 +1162,11 @@ bool NonLocalIteratorCloseUsingEmitter::prepareForIteratorClose(
     return true;
   }
 
+  setHasAwaitUsing(es.hasAsyncDisposables());
+
   // [stack] ITER
 
-  if (!emitDisposeLoop(es, es.hasAsyncDisposables())) {
+  if (!emitDisposeResourcesForEnvironment(es)) {
     // [stack] ITER EXC-DISPOSE DISPOSE-THROWING
     return false;
   }

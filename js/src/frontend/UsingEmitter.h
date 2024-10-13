@@ -17,6 +17,63 @@ namespace js::frontend {
 struct BytecodeEmitter;
 class EmitterScope;
 
+// Class for emitting bytecode for disposal loops.
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
+//
+// Usage: (check for the return value is omitted for simplicity)
+//
+//   at the point where the disposal loop is needed
+//     DisposalEmitter de(bce, hasAsyncDisposables, initialCompletion);
+//     de.prepareForDisposeCapability();
+//     emit_DisposeCapability();
+//     de.emitEnd(es);
+//
+class MOZ_STACK_CLASS DisposalEmitter {
+ private:
+  BytecodeEmitter* bce_;
+  bool hasAsyncDisposables_;
+  CompletionKind initialCompletion_;
+
+#ifdef DEBUG
+  // The state of this emitter.
+  //
+  // +-------+  prepareForDisposeCapability  +-----------------------------+
+  // | Start |------------------------------>| prepareForDisposeCapability |--+
+  // +-------+                               +-----------------------------+  |
+  //                                                                          |
+  //   +----------------------------------------------------------------------+
+  //   |
+  //   |  emitEnd  +-----+
+  //   +---------->| End |
+  //               +-----+
+  enum class State {
+    // The initial state.
+    Start,
+
+    // After calling prepareForDisposeCapability.
+    DisposeCapability,
+
+    // After calling emitEnd.
+    End
+  };
+  State state_ = State::Start;
+#endif
+
+  [[nodiscard]] bool emitResourcePropertyAccess(TaggedParserAtomIndex prop,
+                                                unsigned resourcesFromTop = 1);
+
+ public:
+  DisposalEmitter(BytecodeEmitter* bce, bool hasAsyncDisposables,
+                  CompletionKind initialCompletion)
+      : bce_(bce),
+        hasAsyncDisposables_(hasAsyncDisposables),
+        initialCompletion_(initialCompletion) {}
+
+  [[nodiscard]] bool prepareForDisposeCapability();
+
+  [[nodiscard]] bool emitEnd(EmitterScope& es);
+};
+
 class MOZ_STACK_CLASS UsingEmitter {
  private:
   mozilla::Maybe<TryEmitter> tryEmitter_;
@@ -34,20 +91,19 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   [[nodiscard]] bool emitTakeDisposeCapability();
 
-  [[nodiscard]] bool emitResourcePropertyAccess(TaggedParserAtomIndex prop,
-                                                unsigned resourcesFromTop = 1);
-
  protected:
   BytecodeEmitter* bce_;
 
-  [[nodiscard]] bool emitDisposeLoop(
-      EmitterScope& es, bool hasAsyncDisposables,
+  [[nodiscard]] bool emitDisposeResourcesForEnvironment(
+      EmitterScope& es,
       CompletionKind initialCompletion = CompletionKind::Normal);
 
  public:
   explicit UsingEmitter(BytecodeEmitter* bce);
 
   bool hasAwaitUsing() const { return hasAwaitUsing_; }
+
+  void setHasAwaitUsing(bool hasAwaitUsing) { hasAwaitUsing_ = hasAwaitUsing; }
 
   [[nodiscard]] bool prepareForDisposableScopeBody();
 
