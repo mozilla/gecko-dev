@@ -589,6 +589,9 @@ class QuotaManager final : public BackgroundThreadObject {
   Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
       const PrincipalInfo& aPrincipalInfo);
 
+  static Result<PrincipalInfo, nsresult> PrincipalMetadataToPrincipalInfo(
+      const PrincipalMetadata& aPrincipalMetadata);
+
   static nsAutoCString GetOriginFromValidatedPrincipalInfo(
       const PrincipalInfo& aPrincipalInfo);
 
