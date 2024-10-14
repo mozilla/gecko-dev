@@ -104,8 +104,9 @@ class WebExtensionPromptFeatureTest {
             extensionName = extensionName,
             throwable = Exception(),
         )
+        val appName = testContext.getString(R.string.app_name)
         val expectedMessage =
-            testContext.getString(R.string.mozac_feature_addons_blocklisted_1, extensionName)
+            testContext.getString(R.string.mozac_feature_addons_blocklisted_2, extensionName, appName)
         val expectedUrl = "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/$extensionId/"
 
         val dialog = webExtensionPromptFeature.handleInstallationFailedRequest(exception = exception)
@@ -367,7 +368,9 @@ class WebExtensionPromptFeatureTest {
             extensionName = extensionName,
             throwable = Exception(),
         )
-        val expectedMessage = testContext.getString(R.string.mozac_feature_addons_soft_blocked, extensionName)
+        val appName = testContext.getString(R.string.app_name)
+        val expectedMessage =
+            testContext.getString(R.string.mozac_feature_addons_soft_blocked_1, extensionName, appName)
         val expectedUrl = "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/$extensionId/"
 
         val dialog = webExtensionPromptFeature.handleInstallationFailedRequest(exception = exception)

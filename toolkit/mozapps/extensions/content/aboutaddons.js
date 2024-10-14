@@ -247,11 +247,11 @@ async function getAddonMessageInfo(
   const { STATE_BLOCKED, STATE_SOFTBLOCKED } = Ci.nsIBlocklistService;
 
   if (addon.blocklistState === STATE_BLOCKED) {
+    let typeSuffix = addon.type === "extension" ? "extension" : "other";
     return {
       linkUrl: await addon.getBlocklistURL(),
       linkId: "details-notification-blocked-link2",
-      messageId: "details-notification-blocked2",
-      messageArgs: { name },
+      messageId: `details-notification-hard-blocked-${typeSuffix}`,
       type: "error",
     };
   } else if (isDisabledUnsigned(addon)) {
@@ -282,7 +282,7 @@ async function getAddonMessageInfo(
       type: "warning",
     };
   } else if (addon.blocklistState === STATE_SOFTBLOCKED) {
-    const fluentBaseId = "details-notification-softblocked";
+    const fluentBaseId = "details-notification-soft-blocked";
     let typeSuffix = addon.type === "extension" ? "extension" : "other";
     let stateSuffix;
     // If the Addon Card is not expanded, delay changing the messagebar

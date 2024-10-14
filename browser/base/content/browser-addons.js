@@ -73,7 +73,10 @@ const ERROR_L10N_IDS = new Map([
     ["addon-install-error-not-signed", "addon-local-install-error-not-signed"],
   ],
   [-8, ["addon-install-error-invalid-domain"]],
-  [-10, ["addon-install-error-blocklisted", "addon-install-error-blocklisted"]],
+  [
+    -10,
+    ["addon-install-error-hard-blocked", "addon-install-error-hard-blocked"],
+  ],
   [
     -11,
     ["addon-install-error-incompatible", "addon-install-error-incompatible"],

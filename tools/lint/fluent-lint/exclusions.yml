@@ -165,10 +165,12 @@ CO01:
         - addon-badge-line3
         - recommended-theme-1
         - plugins-openh264-description
-        - details-notification-softblocked-extension-disabled
-        - details-notification-softblocked-extension-enabled
-        - details-notification-softblocked-other-disabled
-        - details-notification-softblocked-other-enabled
+        - details-notification-hard-blocked-extension
+        - details-notification-hard-blocked-other
+        - details-notification-soft-blocked-extension-disabled
+        - details-notification-soft-blocked-extension-enabled
+        - details-notification-soft-blocked-other-disabled
+        - details-notification-soft-blocked-other-enabled
         # toolkit/locales/en-US/toolkit/about/aboutGlean.ftl
         - about-glean-description
         # toolkit/locales/en-US/toolkit/about/aboutRights.ftl
@@ -186,6 +188,7 @@ CO01:
         # toolkit/locales/en-US/toolkit/global/processTypes.ftl
         - process-type-privilegedmozilla
         # browser/locales/en-US/browser/addonNotifications.ftl
+        - addon-install-error-hard-blocked
         - addon-install-error-soft-blocked
     files:
         - browser/components/ion/content/ion.ftl

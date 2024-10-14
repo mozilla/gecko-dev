@@ -987,7 +987,7 @@ var TESTS = [
     await testBlocklistedAddon({
       stash: { blocked: [`${id}:${version}`], unblocked: [] },
       expected: {
-        fluentId: "addon-install-error-blocklisted",
+        fluentId: "addon-install-error-hard-blocked",
         blocklistURL,
       },
     });

@@ -156,17 +156,19 @@ class WebExtensionPromptFeature(
         exception: WebExtensionInstallException,
     ): AlertDialog? {
         val addonName = exception.extensionName ?: ""
+        val appName = context.getString(R.string.app_name)
+
         var title = context.getString(R.string.mozac_feature_addons_cant_install_extension)
         var url: String? = null
         val message = when (exception) {
             is WebExtensionInstallException.Blocklisted -> {
                 url = exception.extensionId?.let { AMO_BLOCKED_PAGE_URL.format(it) }
-                context.getString(R.string.mozac_feature_addons_blocklisted_1, addonName)
+                context.getString(R.string.mozac_feature_addons_blocklisted_2, addonName, appName)
             }
 
             is WebExtensionInstallException.SoftBlocked -> {
                 url = exception.extensionId?.let { AMO_BLOCKED_PAGE_URL.format(it) }
-                context.getString(R.string.mozac_feature_addons_soft_blocked, addonName)
+                context.getString(R.string.mozac_feature_addons_soft_blocked_1, addonName, appName)
             }
 
             is WebExtensionInstallException.UserCancelled -> {
@@ -207,7 +209,6 @@ class WebExtensionPromptFeature(
             }
 
             is WebExtensionInstallException.Incompatible -> {
-                val appName = context.getString(R.string.app_name)
                 val version = context.appVersionName
                 context.getString(
                     R.string.mozac_feature_addons_failed_to_install_incompatible_error,

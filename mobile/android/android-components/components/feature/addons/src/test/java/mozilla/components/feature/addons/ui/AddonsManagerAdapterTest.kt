@@ -616,7 +616,8 @@ class AddonsManagerAdapterTest {
         adapter.bindAddon(addonViewHolder, addon, appName, appVersion)
 
         verify(statusErrorView).isVisible = true
-        verify(messageTextView).text = "$addonName has been disabled due to security or stability issues."
+        verify(messageTextView).text =
+            "This extension is blocked for violating Mozilla’s policies and has been disabled."
 
         // Since we link to a non-SUMO page, we should update the text for this link.
         assertEquals(learnMoreTextView.text, "See details")
@@ -627,45 +628,6 @@ class AddonsManagerAdapterTest {
             AddonsManagerAdapterDelegate.LearnMoreLinks.BLOCKLISTED_ADDON,
             addon,
         )
-    }
-
-    @Test
-    fun `bind blocklisted add-on without an add-on name`() {
-        val addonsManagerAdapterDelegate: AddonsManagerAdapterDelegate = mock()
-        val titleView: TextView = mock()
-        whenever(titleView.context).thenReturn(testContext)
-        val summaryView: TextView = mock()
-        whenever(summaryView.context).thenReturn(testContext)
-        val statusErrorView: View = mock()
-        val messageTextView: TextView = mock()
-        whenever(statusErrorView.findViewById<TextView>(R.id.add_on_status_error_message)).thenReturn(
-            messageTextView,
-        )
-        whenever(statusErrorView.findViewById<TextView>(R.id.add_on_status_error_learn_more_link)).thenReturn(
-            mock(),
-        )
-        val iconView = mock<ImageView>()
-        whenever(iconView.context).thenReturn(testContext)
-        val addonViewHolder = CustomViewHolder.AddonViewHolder(
-            view = View(testContext),
-            contentWrapperView = mock(),
-            iconView = iconView,
-            titleView = titleView,
-            summaryView = summaryView,
-            ratingView = mock(),
-            ratingAccessibleView = mock(),
-            reviewCountView = mock(),
-            addButton = mock(),
-            allowedInPrivateBrowsingLabel = mock(),
-            statusErrorView = statusErrorView,
-        )
-        val addon = makeDisabledAddon(Addon.DisabledReason.BLOCKLISTED)
-        val adapter = AddonsManagerAdapter(addonsManagerAdapterDelegate, emptyList(), mock(), emptyList(), mock())
-
-        adapter.bindAddon(addonViewHolder, addon, appName, appVersion)
-
-        verify(statusErrorView).isVisible = true
-        verify(messageTextView).text = "${addon.id} has been disabled due to security or stability issues."
     }
 
     @Test
@@ -848,7 +810,7 @@ class AddonsManagerAdapterTest {
         val addon = makeDisabledAddon(Addon.DisabledReason.SOFT_BLOCKED)
         whenever(addon.isEnabled()).thenReturn(false)
         val expectedMessage =
-            "This extension violates Mozilla’s policies and has been disabled. You can enable it, but this may be risky."
+            "This extension is restricted for violating Mozilla’s policies and has been disabled. You can enable it, but this may be risky."
 
         bindSoftBlockedAddon(addon, expectedMessage)
     }

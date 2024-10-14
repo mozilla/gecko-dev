@@ -112,27 +112,30 @@ add_task(async function testNoMessageLangpack() {
 });
 
 add_task(async function testHardBlocked() {
-  const id = "blocked@mochi.test";
-  const linkUrl = "https://example.com/addon-blocked";
-  const name = "Blocked";
-  gProvider.createAddons([
-    {
-      appDisabled: true,
-      blocklistState: STATE_BLOCKED,
-      blocklistURL: linkUrl,
-      id,
-      name,
-    },
-  ]);
-  await checkMessageState(id, "extension", {
-    linkUrl,
-    text: {
-      id: "details-notification-blocked2",
-      args: { name },
-      linkId: "details-notification-blocked-link2",
-    },
-    type: "error",
-  });
+  for (const addonType of ["extension", "theme"]) {
+    const id = `blocked-${addonType}@mochi.test`;
+    const linkUrl = "https://example.com/addon-blocked";
+    gProvider.createAddons([
+      {
+        appDisabled: true,
+        blocklistState: STATE_BLOCKED,
+        blocklistURL: linkUrl,
+        id,
+        name: `blocked ${addonType}`,
+        type: addonType,
+      },
+    ]);
+
+    let typeSuffix = addonType === "extension" ? "extension" : "other";
+    await checkMessageState(id, addonType, {
+      linkUrl,
+      text: {
+        id: `details-notification-hard-blocked-${typeSuffix}`,
+        linkId: "details-notification-blocked-link2",
+      },
+      type: "error",
+    });
+  }
 });
 
 add_task(async function testSoftBlocked() {
@@ -158,7 +161,7 @@ add_task(async function testSoftBlocked() {
 
   // Verify soft-block message on a softdisabled extension and theme.
   await testSoftBlockedAddon({
-    expectedFluentId: "details-notification-softblocked-extension-disabled",
+    expectedFluentId: "details-notification-soft-blocked-extension-disabled",
     mockAddon: {
       id: "softblocked-extension@mochi.test",
       name: "Soft-Blocked Extension",
@@ -168,7 +171,7 @@ add_task(async function testSoftBlocked() {
     },
   });
   await testSoftBlockedAddon({
-    expectedFluentId: "details-notification-softblocked-other-disabled",
+    expectedFluentId: "details-notification-soft-blocked-other-disabled",
     mockAddon: {
       id: "softblocked-theme@mochi.test",
       name: "Soft-Blocked Theme",
@@ -180,7 +183,7 @@ add_task(async function testSoftBlocked() {
 
   // Verify soft-block message on a re-enabled extension and theme.
   await testSoftBlockedAddon({
-    expectedFluentId: "details-notification-softblocked-extension-enabled",
+    expectedFluentId: "details-notification-soft-blocked-extension-enabled",
     mockAddon: {
       id: "softblocked-extension@mochi.test",
       name: "Soft-Blocked Extension",
@@ -190,7 +193,7 @@ add_task(async function testSoftBlocked() {
     },
   });
   await testSoftBlockedAddon({
-    expectedFluentId: "details-notification-softblocked-other-enabled",
+    expectedFluentId: "details-notification-soft-blocked-other-enabled",
     mockAddon: {
       id: "softblocked-theme@mochi.test",
       name: "Soft-Blocked Theme",

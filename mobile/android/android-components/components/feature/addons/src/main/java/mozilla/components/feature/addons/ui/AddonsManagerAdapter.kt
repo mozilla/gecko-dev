@@ -343,11 +343,11 @@ class AddonsManagerAdapter(
                 // Hard-blocked add-ons cannot be re-enabled, but soft-blocked ones can. That's why we check
                 // whether the add-on is enabled first if it isn't hard blocked ("disabled as blocklisted").
                 if (addon.isDisabledAsBlocklisted()) {
-                    R.string.mozac_feature_addons_status_blocklisted
+                    R.string.mozac_feature_addons_status_blocklisted_1
                 } else if (addon.isEnabled()) {
                     R.string.mozac_feature_addons_status_softblocked_re_enabled
                 } else {
-                    R.string.mozac_feature_addons_status_softblocked
+                    R.string.mozac_feature_addons_status_softblocked_1
                 },
                 addonName,
             )
