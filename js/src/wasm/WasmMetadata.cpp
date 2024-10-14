@@ -270,13 +270,13 @@ void CodeMetadata::dumpStats() const {
          0xFFFFFF & (unsigned long)uintptr_t(this));
   JS_LOG(wasmCodeMetaStats, level, "  ------ Heuristic Settings ------");
   JS_LOG(wasmCodeMetaStats, level, "     w_e_tiering_level  (1..9) = %u",
-         lazyTieringHeuristics.level());
+         LazyTieringHeuristics::rawLevel());
   JS_LOG(wasmCodeMetaStats, level, "     w_e_inlining_level (1..9) = %u",
-         inliningHeuristics.level());
+         InliningHeuristics::rawLevel());
   JS_LOG(wasmCodeMetaStats, level, "     w_e_direct_inlining  = %s",
-         inliningHeuristics.directAllowed() ? "true" : "false");
+         InliningHeuristics::rawDirectAllowed() ? "true" : "false");
   JS_LOG(wasmCodeMetaStats, level, "     w_e_callRef_inlining = %s",
-         inliningHeuristics.callRefAllowed() ? "true" : "false");
+         InliningHeuristics::rawCallRefAllowed() ? "true" : "false");
   JS_LOG(wasmCodeMetaStats, level, "  ------ Complete Tier ------");
   JS_LOG(wasmCodeMetaStats, level, "    %7zu functions in module",
          statsCopy.completeNumFuncs);

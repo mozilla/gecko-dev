@@ -152,10 +152,6 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // available if we're debugging.
   ModuleHash debugHash;
 
-  // Heuristics for lazy tiering and inlining.
-  const LazyTieringHeuristics lazyTieringHeuristics;
-  const InliningHeuristics inliningHeuristics;
-
   // Statistics collection for lazy tiering and inlining.
   struct ProtectedOptimizationStats {
     // ---- Stats for the complete tier ----

@@ -2716,8 +2716,7 @@ int32_t Instance::computeInitialHotnessCounter(uint32_t funcIndex) {
       codeMeta()
           .funcDefRanges[funcIndex - codeMeta().numFuncImports]
           .bodyLength;
-  return codeMeta().lazyTieringHeuristics.estimateIonCompilationCost(
-      bodyLength);
+  return LazyTieringHeuristics::estimateIonCompilationCost(bodyLength);
 }
 
 void Instance::resetHotnessCounter(uint32_t funcIndex) {

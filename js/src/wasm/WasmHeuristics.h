@@ -36,10 +36,6 @@ namespace wasm {
 // Tiger Lake) and a low end Intel (Celeron N3050 -- Goldmont).
 
 class LazyTieringHeuristics {
-  // 1 = min (almost never, set tiering threshold to max possible, == 2^31-1)
-  // 5 = default
-  // 9 = max (request tier up at first call, set tiering threshold to zero)
-  uint32_t level_ = 0;  // invalid
   static constexpr uint32_t MIN_LEVEL = 1;
   static constexpr uint32_t MAX_LEVEL = 9;
 
@@ -52,15 +48,18 @@ class LazyTieringHeuristics {
                                       0.333, 0.111, 0.037};
 
  public:
-  LazyTieringHeuristics() {
-    level_ = JS::Prefs::wasm_lazy_tiering_level();
-    // Clamp to range MIN_LEVEL .. MAX_LEVEL.
-    level_ = std::max<uint32_t>(level_, MIN_LEVEL);
-    level_ = std::min<uint32_t>(level_, MAX_LEVEL);
-  }
-
+  // 1 = min (almost never, set tiering threshold to max possible, == 2^31-1)
+  // 5 = default
+  // 9 = max (request tier up at first call, set tiering threshold to zero)
+  //
   // Don't use this directly, except for logging etc.
-  uint32_t level() const { return level_; }
+  static uint32_t rawLevel() {
+    uint32_t level = JS::Prefs::wasm_lazy_tiering_level();
+    // Clamp to range MIN_LEVEL .. MAX_LEVEL.
+    level = std::max<uint32_t>(level, MIN_LEVEL);
+    level = std::min<uint32_t>(level, MAX_LEVEL);
+    return level;
+  }
 
   // Estimate the cost of compiling a function of bytecode size `bodyLength`
   // using Ion, in terms of arbitrary work-units.  The baseline code for the
@@ -68,8 +67,9 @@ class LazyTieringHeuristics {
   // goes negative it requests tier-up.  See "[SMDOC] WebAssembly baseline
   // compiler -- Lazy Tier-Up mechanism" in WasmBaselineCompile.cpp.
 
-  int32_t estimateIonCompilationCost(uint32_t bodyLength) const {
-    if (MOZ_LIKELY(MIN_LEVEL < level_ && level_ < MAX_LEVEL)) {
+  static int32_t estimateIonCompilationCost(uint32_t bodyLength) {
+    uint32_t level = rawLevel();
+    if (MOZ_LIKELY(MIN_LEVEL < level && level < MAX_LEVEL)) {
       // The estimated cost, in X86_64 insns, for Ion compilation:
       // 30k up-front cost + 4k per bytecode byte.
       //
@@ -80,12 +80,12 @@ class LazyTieringHeuristics {
       // of costs.  This will need to be revisited at some point.
       float thresholdF = 30000.0 + 4000.0 * float(bodyLength);
 
-      // Rescale to step-down work units, so that the default `level_` setting
+      // Rescale to step-down work units, so that the default `level` setting
       // (5) gives pretty good results.
       thresholdF *= 0.25;
 
-      // Rescale again to take into account `level_`.
-      thresholdF *= scale_[level_ - (MIN_LEVEL + 1)];
+      // Rescale again to take into account `level`.
+      thresholdF *= scale_[level - (MIN_LEVEL + 1)];
 
       // Clamp and convert.
       thresholdF = std::max<float>(thresholdF, 10.0);   // at least 10
@@ -94,11 +94,11 @@ class LazyTieringHeuristics {
       MOZ_RELEASE_ASSERT(thresholdI >= 0);
       return thresholdI;
     }
-    if (level_ == MIN_LEVEL) {
+    if (level == MIN_LEVEL) {
       // "almost never tier up"; produce our closest approximation to infinity
       return INT32_MAX;
     }
-    if (level_ == MAX_LEVEL) {
+    if (level == MAX_LEVEL) {
       // request tier up at the first call; return the lowest possible value
       return 0;
     }
@@ -107,30 +107,27 @@ class LazyTieringHeuristics {
 };
 
 class InliningHeuristics {
+  static constexpr uint32_t MIN_LEVEL = 1;
+  static constexpr uint32_t MAX_LEVEL = 9;
+
+ public:
   // 1 = no inlining allowed
   // 2 = min (minimal inlining)
   // 5 = default
   // 9 = max (very aggressive inlining)
-  uint32_t level_ = 0;  // invalid
-  static constexpr uint32_t MIN_LEVEL = 1;
-  static constexpr uint32_t MAX_LEVEL = 9;
-
-  bool directAllowed_ = true;   // default
-  bool callRefAllowed_ = true;  // default
- public:
-  InliningHeuristics() {
-    directAllowed_ = JS::Prefs::wasm_direct_inlining();
-    callRefAllowed_ = JS::Prefs::wasm_call_ref_inlining();
-    level_ = JS::Prefs::wasm_inlining_level();
-    // Clamp to range MIN_LEVEL .. MAX_LEVEL.
-    level_ = std::max<uint32_t>(level_, MIN_LEVEL);
-    level_ = std::min<uint32_t>(level_, MAX_LEVEL);
-  }
-
+  //
   // Don't use these directly, except for logging etc.
-  uint32_t level() const { return level_; }
-  bool directAllowed() const { return directAllowed_; }
-  bool callRefAllowed() const { return callRefAllowed_; }
+  static uint32_t rawLevel() {
+    uint32_t level = JS::Prefs::wasm_inlining_level();
+    // Clamp to range MIN_LEVEL .. MAX_LEVEL.
+    level = std::max<uint32_t>(level, MIN_LEVEL);
+    level = std::min<uint32_t>(level, MAX_LEVEL);
+    return level;
+  }
+  static bool rawDirectAllowed() { return JS::Prefs::wasm_direct_inlining(); }
+  static bool rawCallRefAllowed() {
+    return JS::Prefs::wasm_call_ref_inlining();
+  }
 
   // Given a call of kind `callKind` to a function of bytecode size
   // `bodyLength` at `inliningDepth`, decide whether the it is allowable to
@@ -139,13 +136,13 @@ class InliningHeuristics {
   // (if approved) would be inlined into the top-level function currently being
   // compiled.
   enum class CallKind { Direct, CallRef };
-  bool isSmallEnoughToInline(CallKind callKind, uint32_t inliningDepth,
-                             uint32_t bodyLength) const {
+  static bool isSmallEnoughToInline(CallKind callKind, uint32_t inliningDepth,
+                                    uint32_t bodyLength) {
     // If this fails, something's seriously wrong; bail out.
     MOZ_RELEASE_ASSERT(inliningDepth <= 10);  // because 10 > (400 / 50)
     // Check whether calls of this kind are currently allowed
-    if ((callKind == CallKind::Direct && !directAllowed_) ||
-        (callKind == CallKind::CallRef && !callRefAllowed_)) {
+    if ((callKind == CallKind::Direct && !rawDirectAllowed()) ||
+        (callKind == CallKind::CallRef && !rawCallRefAllowed())) {
       return false;
     }
     // Check the size is allowable.  This depends on how deep we are in the
@@ -161,8 +158,9 @@ class InliningHeuristics {
     static constexpr int32_t baseSize[9] = {0,   50,  100, 150,
                                             200,  // default
                                             250, 300, 350, 400};
-    MOZ_RELEASE_ASSERT(level_ >= MIN_LEVEL && level_ <= MAX_LEVEL);
-    int32_t allowedSize = baseSize[level_ - MIN_LEVEL];
+    uint32_t level = rawLevel();
+    MOZ_RELEASE_ASSERT(level >= MIN_LEVEL && level <= MAX_LEVEL);
+    int32_t allowedSize = baseSize[level - MIN_LEVEL];
     allowedSize -= int32_t(50 * inliningDepth);
     return allowedSize > 0 && bodyLength <= uint32_t(allowedSize);
   }
