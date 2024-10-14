@@ -23,6 +23,9 @@ import androidx.core.view.WindowInsetsCompat.Type.systemBars
  *
  * @param targetView The view which will be shown on top of the keyboard while this is animated to be
  * showing or to be hidden.
+ * @param synchronizeViewWithIME Whether to automatically apply the needed margins to [targetView]
+ * to ensure it will be animated together with the keyboard or not. As an alternative integrators can use
+ * the [onIMEAnimationStarted] and [onIMEAnimationFinished] callbacks to resize the layout on their own.
  * @param onIMEAnimationStarted Callback for when the IME animation starts.
  * It will inform whether the keyboard is showing or hiding and the height of the keyboard.
  * @param onIMEAnimationFinished Callback for when the IME animation finishes.
@@ -30,6 +33,7 @@ import androidx.core.view.WindowInsetsCompat.Type.systemBars
  */
 class ImeInsetsSynchronizer private constructor(
     private val targetView: View,
+    private val synchronizeViewWithIME: Boolean,
     private val onIMEAnimationStarted: (Boolean, Int) -> Unit,
     private val onIMEAnimationFinished: (Boolean, Int) -> Unit,
 ) : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE),
@@ -162,8 +166,10 @@ class ImeInsetsSynchronizer private constructor(
     ) = (keyboardHeight - navigationBarHeight).coerceAtLeast(0)
 
     private fun View.updateBottomMargin(bottom: Int) {
-        (layoutParams as ViewGroup.MarginLayoutParams).setMargins(0, 0, 0, bottom)
-        requestLayout()
+        if (synchronizeViewWithIME) {
+            (layoutParams as ViewGroup.MarginLayoutParams).setMargins(0, 0, 0, bottom)
+            requestLayout()
+        }
     }
 
     companion object {
@@ -172,6 +178,9 @@ class ImeInsetsSynchronizer private constructor(
          * This works only on Android 10+, otherwise the dynamic padding based on the keyboard is not reliable.
          *
          * @param targetView The root view to add paddings to for accounting the visible keyboard height.
+         * @param synchronizeViewWithIME Whether to automatically apply the needed margins to [targetView]
+         * to ensure it will be animated together with the keyboard or not. As an alternative integrators can use
+         * the [onIMEAnimationStarted] and [onIMEAnimationFinished] callbacks to resize the layout on their own.
          * @param onIMEAnimationStarted Callback for when the IME animation starts.
          * It will inform whether the keyboard is showing or hiding and the height of the keyboard.
          * @param onIMEAnimationFinished Callback for when the IME animation finishes.
@@ -179,10 +188,16 @@ class ImeInsetsSynchronizer private constructor(
          */
         fun setup(
             targetView: View,
+            synchronizeViewWithIME: Boolean = true,
             onIMEAnimationStarted: (Boolean, Int) -> Unit = { _, _ -> },
             onIMEAnimationFinished: (Boolean, Int) -> Unit = { _, _ -> },
         ) = when (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            true -> ImeInsetsSynchronizer(targetView, onIMEAnimationStarted, onIMEAnimationFinished)
+            true -> ImeInsetsSynchronizer(
+                targetView,
+                synchronizeViewWithIME,
+                onIMEAnimationStarted,
+                onIMEAnimationFinished,
+            )
             false -> null
         }
     }

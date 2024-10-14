@@ -69,11 +69,24 @@ class ImeInsetsSynchronizerTest {
     }
 
     @Test
+    fun `GIVEN synchronizing targetView with keyboard height is disabled WHEN window insets change THEN don't update any margings`() {
+        val synchronizer = ImeInsetsSynchronizer.setup(targetView = targetView, synchronizeViewWithIME = false)!!
+        val windowInsets: WindowInsetsCompat = mock()
+        doReturn(Insets.of(1, 2, 3, 4)).`when`(windowInsets).getInsets(ime())
+        doReturn(Insets.of(10, 20, 30, 40)).`when`(windowInsets).getInsets(systemBars())
+
+        val result = synchronizer.onApplyWindowInsets(targetView, windowInsets)
+
+        assertEquals(windowInsets, result)
+        verifyNoMoreInteractions(targetViewLayoutParams)
+    }
+
+    @Test
     fun `GIVEN ime animation is not in progress and it is hidden WHEN window insets change THEN inform about the current keyboard status`() {
         var isKeyboardShowing = "unknown"
         var keyboardAnimationFinishedHeight = -1
         val synchronizer = ImeInsetsSynchronizer.setup(
-            view = targetView,
+            targetView = targetView,
             onIMEAnimationStarted = { _, height ->
                 isKeyboardShowing = "error"
                 keyboardAnimationFinishedHeight = height + 22
@@ -103,7 +116,7 @@ class ImeInsetsSynchronizerTest {
         var isKeyboardShowing = "unknown"
         var keyboardAnimationFinishedHeight = -1
         val synchronizer = ImeInsetsSynchronizer.setup(
-            view = targetView,
+            targetView = targetView,
             onIMEAnimationStarted = { _, height ->
                 isKeyboardShowing = "error"
                 keyboardAnimationFinishedHeight = height + 22
@@ -133,7 +146,7 @@ class ImeInsetsSynchronizerTest {
         var isKeyboardShowing = "unknown"
         var keyboardAnimationFinishedHeight = -1
         val synchronizer = ImeInsetsSynchronizer.setup(
-            view = targetView,
+            targetView = targetView,
             onIMEAnimationStarted = { keyboardShowing, height ->
                 isKeyboardShowing = keyboardShowing.toString()
                 keyboardAnimationFinishedHeight = height
@@ -167,7 +180,7 @@ class ImeInsetsSynchronizerTest {
         var isKeyboardShowing = "unknown"
         var keyboardAnimationFinishedHeight = -1
         val synchronizer = ImeInsetsSynchronizer.setup(
-            view = targetView,
+            targetView = targetView,
             onIMEAnimationStarted = { keyboardShowing, height ->
                 isKeyboardShowing = keyboardShowing.toString()
                 keyboardAnimationFinishedHeight = height
@@ -239,6 +252,43 @@ class ImeInsetsSynchronizerTest {
         doReturn(1f).`when`(imeAnimation).interpolatedFraction
         synchronizer.onProgress(mock(), listOf(imeAnimation))
         verify(targetViewLayoutParams).setMargins(0, 0, 0, 960)
+    }
+
+    @Test
+    fun `GIVEN synchronizing targetView with keyboard height is disabled WHEN the keyboard is animated into view THEN don't update any margins for the target view`() {
+        // Set the initial system insets
+        val windowInsets: WindowInsetsCompat = mock()
+        doReturn(Insets.of(1, 2, 3, 4)).`when`(windowInsets).getInsets(ime())
+        doReturn(Insets.of(10, 20, 30, 40)).`when`(windowInsets).getInsets(systemBars())
+        // Set that the keyboard is showing
+        doReturn(true).`when`(windowInsets).isVisible(ime())
+        val imeAnimation: WindowInsetsAnimationCompat = mock()
+        doReturn(ime()).`when`(imeAnimation).typeMask
+        val synchronizer = ImeInsetsSynchronizer.setup(targetView = targetView, synchronizeViewWithIME = false)!!
+        synchronizer.onApplyWindowInsets(targetView, windowInsets)
+        // Setup the the keyboard to have a final height of 1000px.
+        val animationBounds: WindowInsetsAnimationCompat.BoundsCompat = mock()
+        doReturn(Insets.of(0, 0, 0, 200)).`when`(animationBounds).lowerBound
+        doReturn(Insets.of(0, 0, 0, 1200)).`when`(animationBounds).upperBound
+
+        synchronizer.onStart(imeAnimation, animationBounds)
+
+        doReturn(0.01f).`when`(imeAnimation).interpolatedFraction
+        synchronizer.onProgress(mock(), listOf(imeAnimation))
+
+        doReturn(0.041f).`when`(imeAnimation).interpolatedFraction
+        synchronizer.onProgress(mock(), listOf(imeAnimation))
+
+        doReturn(0.5f).`when`(imeAnimation).interpolatedFraction
+        synchronizer.onProgress(mock(), listOf(imeAnimation))
+
+        doReturn(0.95f).`when`(imeAnimation).interpolatedFraction
+        synchronizer.onProgress(mock(), listOf(imeAnimation))
+
+        doReturn(1f).`when`(imeAnimation).interpolatedFraction
+        synchronizer.onProgress(mock(), listOf(imeAnimation))
+
+        verifyNoMoreInteractions(targetViewLayoutParams)
     }
 
     @Test
