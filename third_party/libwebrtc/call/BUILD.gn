@@ -340,10 +340,6 @@ rtc_library("call") {
     "//third_party/abseil-cpp/absl/types:optional",
   ]
   if (build_with_mozilla) { # See Bug 1820869.
-    sources -= [
-      "create_call.cc",
-      "degraded_call.cc",
-    ]
     deps -= [
       ":fake_network",
       ":simulated_network",

@@ -76,7 +76,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b86cb7278bc4e5571
  api/rtp_sender_setparameters_callback.h       | 28 +++++++++++
  api/task_queue/BUILD.gn                       |  2 +
  api/transport/BUILD.gn                        |  2 +
- call/BUILD.gn                                 | 14 +++++-
+ call/BUILD.gn                                 | 10 +++-
  call/audio_send_stream.h                      |  2 +-
  call/video_send_stream.h                      |  2 +-
  common_audio/BUILD.gn                         |  4 --
@@ -99,7 +99,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b86cb7278bc4e5571
  test/BUILD.gn                                 | 10 ++++
  video/BUILD.gn                                |  4 +-
  webrtc.gni                                    | 32 ++++++++-----
- 31 files changed, 316 insertions(+), 98 deletions(-)
+ 31 files changed, 312 insertions(+), 98 deletions(-)
  create mode 100644 api/rtp_sender_setparameters_callback.cc
  create mode 100644 api/rtp_sender_setparameters_callback.h
  create mode 100644 common_audio/intrin.h
@@ -470,7 +470,7 @@ index 991a0d3880..05982eb029 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 613f273cbc..0641acb42a 100644
+index 613f273cbc..376a73fc36 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -44,7 +44,7 @@ rtc_library("call_interfaces") {
@@ -482,15 +482,11 @@ index 613f273cbc..0641acb42a 100644
      "../api:scoped_refptr",
      "../api:transport_api",
      "../api/adaptation:resource_adaptation_api",
-@@ -333,6 +333,16 @@ rtc_library("call") {
+@@ -333,6 +333,12 @@ rtc_library("call") {
      "//third_party/abseil-cpp/absl/strings:string_view",
      "//third_party/abseil-cpp/absl/types:optional",
    ]
 +  if (build_with_mozilla) { # See Bug 1820869.
-+    sources -= [
-+      "create_call.cc",
-+      "degraded_call.cc",
-+    ]
 +    deps -= [
 +      ":fake_network",
 +      ":simulated_network",
@@ -499,7 +495,7 @@ index 613f273cbc..0641acb42a 100644
  }
  
  rtc_source_set("receive_stream_interface") {
-@@ -360,7 +370,7 @@ rtc_library("video_stream_api") {
+@@ -360,7 +366,7 @@ rtc_library("video_stream_api") {
      "../api:frame_transformer_interface",
      "../api:rtp_headers",
      "../api:rtp_parameters",
