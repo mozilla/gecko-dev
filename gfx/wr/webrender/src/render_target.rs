@@ -67,70 +67,6 @@ pub struct RenderTargetContext<'a, 'rc> {
     pub frame_memory: &'a mut FrameMemory,
 }
 
-/// Represents a number of rendering operations on a surface.
-///
-/// In graphics parlance, a "render target" usually means "a surface (texture or
-/// framebuffer) bound to the output of a shader". This trait has a slightly
-/// different meaning, in that it represents the operations on that surface
-/// _before_ it's actually bound and rendered. So a `RenderTarget` is built by
-/// the `RenderBackend` by inserting tasks, and then shipped over to the
-/// `Renderer` where a device surface is resolved and the tasks are transformed
-/// into draw commands on that surface.
-///
-/// We express this as a trait to generalize over color and alpha surfaces.
-/// a given `RenderTask` will draw to one or the other, depending on its type
-/// and sometimes on its parameters. See `RenderTask::target_kind`.
-pub trait RenderTarget {
-    /// Creates a new RenderTarget of the given type.
-    fn new(
-        target_kind: RenderTargetKind,
-        texture_id: CacheTextureId,
-        screen_size: DeviceIntSize,
-        gpu_supports_fast_clears: bool,
-        used_rect: DeviceIntRect,
-        memory: &FrameMemory,
-    ) -> Self;
-
-    /// Optional hook to provide additional processing for the target at the
-    /// end of the build phase.
-    fn build(
-        &mut self,
-        _ctx: &mut RenderTargetContext,
-        _gpu_cache: &mut GpuCache,
-        _render_tasks: &RenderTaskGraph,
-        _prim_headers: &mut PrimitiveHeaders,
-        _transforms: &mut TransformPalette,
-        _z_generator: &mut ZBufferIdGenerator,
-        _prim_instances: &[PrimitiveInstance],
-        _cmd_buffers: &CommandBufferList,
-        _gpu_buffer_builder: &mut GpuBufferBuilder,
-    ) {
-    }
-
-    /// Associates a `RenderTask` with this target. That task must be assigned
-    /// to a region returned by invoking `allocate()` on this target.
-    ///
-    /// TODO(gw): It's a bit odd that we need the deferred resolves and mutable
-    /// GPU cache here. They are typically used by the build step above. They
-    /// are used for the blit jobs to allow resolve_image to be called. It's a
-    /// bit of extra overhead to store the image key here and the resolve them
-    /// in the build step separately.  BUT: if/when we add more texture cache
-    /// target jobs, we might want to tidy this up.
-    fn add_task(
-        &mut self,
-        task_id: RenderTaskId,
-        ctx: &RenderTargetContext,
-        gpu_cache: &mut GpuCache,
-        gpu_buffer_builder: &mut GpuBufferBuilder,
-        render_tasks: &RenderTaskGraph,
-        clip_store: &ClipStore,
-        transforms: &mut TransformPalette,
-    );
-
-    fn needs_depth(&self) -> bool;
-    fn texture_id(&self) -> CacheTextureId;
-}
-
 /// A series of `RenderTarget` instances, serving as the high-level container
 /// into which `RenderTasks` are assigned.
 ///
@@ -158,11 +94,11 @@ pub trait RenderTarget {
 /// a pass earlier than the immediately-preceding pass.
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-pub struct RenderTargetList<T> {
-    pub targets: FrameVec<T>,
+pub struct RenderTargetList {
+    pub targets: FrameVec<ColorRenderTarget>,
 }
 
-impl<T: RenderTarget> RenderTargetList<T> {
+impl RenderTargetList {
     pub fn new(allocator: FrameAllocator) -> Self {
         RenderTargetList {
             targets: allocator.new_vec(),
@@ -208,9 +144,15 @@ impl<T: RenderTarget> RenderTargetList<T> {
 const NUM_PATTERNS: usize = crate::pattern::NUM_PATTERNS as usize;
 
 /// Contains the work (in the form of instance arrays) needed to fill a color
-/// color output surface (RGBA8).
+/// color (RGBA8) or alpha output surface.
 ///
-/// See `RenderTarget`.
+/// In graphics parlance, a "render target" usually means "a surface (texture or
+/// framebuffer) bound to the output of a shader". This struct has a slightly
+/// different meaning, in that it represents the operations on that surface
+/// _before_ it's actually bound and rendered. So a `RenderTarget` is built by
+/// the `RenderBackend` by inserting tasks, and then shipped over to the
+/// `Renderer` where a device surface is resolved and the tasks are transformed
+/// into draw commands on that surface.
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct ColorRenderTarget {
@@ -245,8 +187,8 @@ pub struct ColorRenderTarget {
     pub one_clears: FrameVec<RenderTaskId>,
 }
 
-impl RenderTarget for ColorRenderTarget {
-    fn new(
+impl ColorRenderTarget {
+    pub fn new(
         target_kind: RenderTargetKind,
         texture_id: CacheTextureId,
         screen_size: DeviceIntSize,
@@ -278,7 +220,7 @@ impl RenderTarget for ColorRenderTarget {
         }
     }
 
-    fn build(
+    pub fn build(
         &mut self,
         ctx: &mut RenderTargetContext,
         gpu_cache: &mut GpuCache,
@@ -366,11 +308,11 @@ impl RenderTarget for ColorRenderTarget {
         }
     }
 
-    fn texture_id(&self) -> CacheTextureId {
+    pub fn texture_id(&self) -> CacheTextureId {
         self.texture_id
     }
 
-    fn add_task(
+    pub fn add_task(
         &mut self,
         task_id: RenderTaskId,
         ctx: &RenderTargetContext,
@@ -562,7 +504,7 @@ impl RenderTarget for ColorRenderTarget {
         );
     }
 
-    fn needs_depth(&self) -> bool {
+    pub fn needs_depth(&self) -> bool {
         self.alpha_batch_containers.iter().any(|ab| {
             !ab.opaque_batches.is_empty()
         })
