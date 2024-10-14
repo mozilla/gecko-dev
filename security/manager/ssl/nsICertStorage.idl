@@ -152,7 +152,7 @@ interface nsICertStorage : nsISupports {
    * `base64(sha256(subject DN || subject SPKI))` for each enrolled issuer, and
    * the filter's timestamp coverage, replaces any existing filter with the new
    * one. Also clears any previously-set incremental revocation updates
-   * ("stashes").
+   * ("stashes" or "deltas").
    */
   [must_use]
   void setFullCRLiteFilter(in Array<octet> filter,
@@ -196,6 +196,16 @@ interface nsICertStorage : nsISupports {
    */
   [must_use]
   void addCRLiteStash(in Array<octet> stash, in nsICertStorageCallback callback);
+
+  /**
+   * Add a new CRLite filter for consideration in revocation checks. This
+   * filter is treated as a delta update to the current full filter. Calling
+   * this function will not remove the existing full filter, stashes, or delta
+   * updates. A copy of the new filter will be written to the user's
+   * security_state directory with the given filename.
+   */
+  [must_use]
+  void addCRLiteDelta(in Array<octet> delta, in ACString filename, in nsICertStorageCallback callback);
 
   /**
    * Given a DER-encoded issuer subject public key info and the bytes of the value of the serial
