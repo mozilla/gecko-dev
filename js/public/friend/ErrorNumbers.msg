@@ -496,7 +496,6 @@ MSG_DEF(JSMSG_WASM_BAD_EXN_TAG,        0, JSEXN_TYPEERR,     "exception's tag di
 MSG_DEF(JSMSG_WASM_BAD_EXN_OPTIONS,    0, JSEXN_TYPEERR,     "argument cannot be converted to an ExceptionOptions")
 MSG_DEF(JSMSG_WASM_BAD_FUNCTION_VALUE, 0, JSEXN_TYPEERR,     "second argument must be a function")
 MSG_DEF(JSMSG_WASM_BAD_COMPILE_OPTIONS, 0, JSEXN_TYPEERR,    "argument cannot be converted to a CompileOptions")
-MSG_DEF(JSMSG_WASM_UNKNOWN_BUILTIN,     0, JSEXN_TYPEERR,    "unknown builtin")
 MSG_DEF(JSMSG_WASM_DUPLICATE_BUILTIN,   0, JSEXN_TYPEERR,    "duplicate builtin")
 MSG_DEF(JSMSG_WASM_BAD_CODEPOINT,       0, JSEXN_WASMRUNTIMEERROR,     "bad codepoint")
 MSG_DEF(JSMSG_WASM_NO_TRANSFER,        0, JSEXN_TYPEERR,     "cannot transfer WebAssembly/asm.js ArrayBuffer")
