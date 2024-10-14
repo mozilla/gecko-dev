@@ -6288,7 +6288,8 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
     result = result * parent;
   }
 
-  if (aFlags & OFFSET_BY_ORIGIN) {
+  MOZ_ASSERT((aOrigin == nsPoint()) || (aFlags & OFFSET_BY_ORIGIN));
+  if ((aFlags & OFFSET_BY_ORIGIN) && (aOrigin != nsPoint())) {
     nsLayoutUtils::PostTranslate(result, aOrigin, aAppUnitsPerPixel,
                                  shouldRound);
   }
@@ -7220,8 +7221,9 @@ nsRect nsDisplayTransform::TransformRect(const nsRect& aUntransformedBounds,
   FrameTransformProperties props(aFrame, aRefBox, factor);
   return nsLayoutUtils::MatrixTransformRect(
       aUntransformedBounds,
-      GetResultingTransformMatrixInternal(props, aRefBox, nsPoint(), factor,
-                                          kTransformRectFlags),
+      GetResultingTransformMatrixInternal(
+          props, aRefBox, nsPoint(), factor,
+          kTransformRectFlags & ~OFFSET_BY_ORIGIN),
       factor);
 }
 
@@ -7232,8 +7234,8 @@ bool nsDisplayTransform::UntransformRect(const nsRect& aTransformedBounds,
   MOZ_ASSERT(aFrame, "Can't take the transform based on a null frame!");
 
   float factor = aFrame->PresContext()->AppUnitsPerDevPixel();
-  Matrix4x4 transform = GetResultingTransformMatrix(aFrame, nsPoint(), factor,
-                                                    kTransformRectFlags);
+  Matrix4x4 transform = GetResultingTransformMatrix(
+      aFrame, nsPoint(), factor, kTransformRectFlags & ~OFFSET_BY_ORIGIN);
   return UntransformRect(aTransformedBounds, aChildBounds, transform, factor,
                          aOutRect);
 }
