@@ -6,7 +6,7 @@ add_task(async function () {
   is(gBrowser.tabs.length, 1, "one tab is open initially");
 
   const TestPage =
-    "http://mochi.test:8888/browser/browser/base/content/test/general/dummy_page.html";
+    "http://mochi.test:8888/browser/browser/components/tabbrowser/test/browser/tabs/dummy_page.html";
 
   // Add several new tabs in sequence
   let tabs = [];

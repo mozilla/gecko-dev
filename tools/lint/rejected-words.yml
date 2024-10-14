@@ -35,7 +35,6 @@ avoid-blacklist-and-whitelist:
         - browser/app/winlauncher/LauncherProcessWin.cpp
         - browser/base/content/browser.js
         - browser/base/content/contentTheme.js
-        - browser/base/content/test/general/browser_tab_drag_drop_perwindow.js
         - browser/base/content/test/performance/browser_preferences_usage.js
         - browser/base/content/test/protectionsUI/browser_protectionsUI_cryptominers.js
         - browser/base/content/test/protectionsUI/browser_protectionsUI_fingerprinters.js
@@ -55,6 +54,7 @@ avoid-blacklist-and-whitelist:
         - browser/components/safebrowsing/content/test/browser_whitelisted.js
         - browser/components/sessionstore/test/browser_crashedTabs.js
         - browser/components/tabbrowser/test/browser/tabs/browser_new_file_whitelisted_http_tab.js
+        - browser/components/tabbrowser/test/browser/tabs/browser_tab_drag_drop_perwindow.js
         - browser/components/uitour/UITourChild.sys.mjs
         - browser/components/urlbar/tests/browser/browser_searchSingleWordNotification.js
         - browser/components/urlbar/tests/browser/browser_UrlbarInput_trimURLs.js

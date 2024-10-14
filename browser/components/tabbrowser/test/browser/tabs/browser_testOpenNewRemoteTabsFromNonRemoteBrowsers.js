@@ -18,6 +18,12 @@ function insertAndClickAnchor(browser) {
   });
 }
 
+function promiseWaitForFocus(aWindow) {
+  return new Promise(resolve => {
+    waitForFocus(resolve, aWindow);
+  });
+}
+
 /**
  * Takes some browser in some window, and forces that browser
  * to become non-remote, and then navigates it to a page that
@@ -57,7 +63,10 @@ add_task(async function test_new_tab() {
     await prepareNonRemoteBrowser(testWindow, testBrowser);
     info("Non-remote browser prepared");
 
-    let tabOpenEventPromise = waitForNewTabEvent(testWindow.gBrowser);
+    let tabOpenEventPromise = BrowserTestUtils.waitForEvent(
+      testWindow.gBrowser.tabContainer,
+      "TabOpen"
+    );
     await insertAndClickAnchor(testBrowser);
 
     let newTab = (await tabOpenEventPromise).target;

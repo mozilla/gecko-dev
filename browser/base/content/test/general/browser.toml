@@ -7,14 +7,11 @@
 
 [DEFAULT]
 support-files = [
-  "alltabslistener.html",
   "app_bug575561.html",
   "app_subframe_bug575561.html",
   "audio.ogg",
   "browser_bug479408_sample.html",
   "browser_star_hsts.sjs",
-  "browser_tab_dragdrop2_frame1.xhtml",
-  "browser_tab_dragdrop_embed.html",
   "bug792517-2.html",
   "bug792517.html",
   "bug792517.sjs",
@@ -25,7 +22,6 @@ support-files = [
   "download_with_content_disposition_header.sjs",
   "dummy_page.html",
   "file_documentnavigation_frameset.html",
-  "file_double_close_tab.html",
   "file_fullscreen-window-open.html",
   "file_with_link_to_http.html",
   "head.js",
@@ -49,14 +45,7 @@ support-files = [
 ["browser_addCertException.js"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
-["browser_alltabslistener.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
 ["browser_backButtonFitts.js"]
-https_first_disabled = true
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_beforeunload_duplicate_dialogs.js"]
 https_first_disabled = true
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
@@ -269,9 +258,6 @@ https_first_disabled = true
 skip-if = ["true"] # Clicks in content don't go through contentAreaClick.
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
-["browser_ctrlTab.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
 ["browser_datachoices_notification.js"]
 run-if = ["datareporting"]
 skip-if = ["verify && !debug && os == 'win'"]
@@ -283,9 +269,6 @@ skip-if = ["verify && !debug && os == 'linux'"]
 
 ["browser_domFullscreen_fullscreenMode.js"]
 tags = "fullscreen"
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_double_close_tab.js"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_drag.js"]
@@ -323,10 +306,6 @@ support-files = [
 skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && socketprocess_networking"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
-["browser_lastAccessedTab.js"]
-skip-if = ["os == 'windows'"] # Disabled on Windows due to frequent failures (bug 969405)
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
 ["browser_menuButtonFitts.js"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
@@ -349,10 +328,6 @@ skip-if = ["os == 'linux' && fission && tsan"] # high frequency intermittent
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_newWindowDrop.js"]
-https_first_disabled = true
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_new_http_window_opened_from_file_tab.js"]
 https_first_disabled = true
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
@@ -390,9 +365,6 @@ support-files = [
 ]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
-["browser_relatedTabs.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
 ["browser_remoteTroubleshoot.js"]
 https_first_disabled = true
 run-if = ["updater"]
@@ -402,10 +374,6 @@ support-files = ["test_remoteTroubleshoot.html"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_remoteWebNavigation_postdata.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_restore_isAppTab.js"]
-run-if = ["crashreporter"] # test requires crashreporter due to 1536221
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_save_link-perwindowpb.js"]
@@ -443,58 +411,11 @@ support-files = [
 ]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
-["browser_selectTabAtIndex.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
 ["browser_star_hsts.js"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_storagePressure_notification.js"]
 skip-if = ["verify"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tabDrop.js"]
-https_first_disabled = true
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tab_close_dependent_window.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tab_detach_restore.js"]
-https_first_disabled = true
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tab_drag_drop_perwindow.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tab_dragdrop.js"]
-skip-if = ["true"] # Bug 1312436, Bug 1388973
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tab_dragdrop2.js"]
-skip-if = ["win11_2009 && bits == 32 && !debug"] # high frequency win7 intermittent: crash
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tabfocus.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tabkeynavigation.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tabs_close_beforeunload.js"]
-support-files = [
-  "close_beforeunload_opens_second_tab.html",
-  "close_beforeunload.html",
-]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tabs_isActive.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_tabs_owner.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_testOpenNewRemoteTabsFromNonRemoteBrowsers.js"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_typeAheadFind.js"]
@@ -506,21 +427,8 @@ support-files = [
 ["browser_unloaddialogs.js"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
-["browser_viewSourceInTabOnViewSource.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
 ["browser_visibleFindSelection.js"]
 skip-if = ["true"] # Bug 1409184 disabled because interactive find next is not automating properly
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_visibleTabs.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_visibleTabs_bookmarkAllPages.js"]
-# DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
-
-["browser_visibleTabs_tabPreview.js"]
-skip-if = ["os == 'win' && !debug"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_windowactivation.js"]
