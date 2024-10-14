@@ -115,7 +115,7 @@ DNSRequestHandler::OnLookupComplete(nsICancelable* request,
     nsCOMPtr<nsIDNSAddrRecord> rec = do_QueryInterface(aRecord);
     MOZ_ASSERT(rec);
     nsAutoCString cname;
-    if (mFlags & nsHostResolver::RES_CANON_NAME) {
+    if (mFlags & nsIDNSService::RESOLVE_CANONICAL_NAME) {
       rec->GetCanonicalName(cname);
     }
 

@@ -106,7 +106,7 @@ NS_IMPL_ISUPPORTS(nsDNSRecord, nsIDNSRecord, nsIDNSAddrRecord)
 NS_IMETHODIMP
 nsDNSRecord::GetCanonicalName(nsACString& result) {
   // this method should only be called if we have a CNAME
-  NS_ENSURE_TRUE(mHostRecord->flags & nsHostResolver::RES_CANON_NAME,
+  NS_ENSURE_TRUE(mHostRecord->flags & nsIDNSService::RESOLVE_CANONICAL_NAME,
                  NS_ERROR_NOT_AVAILABLE);
 
   MutexAutoLock lock(mHostRecord->addr_info_lock);

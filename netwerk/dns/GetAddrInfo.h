@@ -18,6 +18,7 @@
 #include "mozilla/net/DNS.h"
 #include "nsIDNSByTypeRecord.h"
 #include "mozilla/Logging.h"
+#include "nsIDNSService.h"
 
 #if defined(XP_WIN)
 #  define DNSQUERY_AVAILABLE 1
@@ -38,17 +39,15 @@ class DNSPacket;
  *
  * @param aHost[in] Character string defining the host name of interest
  * @param aAddressFamily[in] May be AF_INET, AF_INET6, or AF_UNSPEC.
- * @param aFlags[in] May be either PR_AI_ADDRCONFIG or
- *     PR_AI_ADDRCONFIG | PR_AI_NOCANONNAME. Include PR_AI_NOCANONNAME to
- *     suppress the determination of the canonical name corresponding to
- *     hostname (PR_AI_NOCANONNAME will be ignored if the TTL is retrieved).
+ * @param aFlags[in] See nsIDNSService::DNSFlags
  * @param aAddrInfo[out] Will point to the results of the host lookup, or be
  *     null if the lookup failed.
  * @param aGetTtl[in] If true, the TTL will be retrieved if DNS provides the
  *     answers..
  */
 nsresult GetAddrInfo(const nsACString& aHost, uint16_t aAddressFamily,
-                     uint16_t aFlags, AddrInfo** aAddrInfo, bool aGetTtl);
+                     nsIDNSService::DNSFlags aFlags, AddrInfo** aAddrInfo,
+                     bool aGetTtl);
 
 /**
  * Initialize the GetAddrInfo module.
@@ -73,13 +72,15 @@ void DNSThreadShutdown();
  * Resolves a HTTPS record. Will check overrides before calling the
  * native OS implementation.
  */
-nsresult ResolveHTTPSRecord(const nsACString& aHost, uint16_t aFlags,
+nsresult ResolveHTTPSRecord(const nsACString& aHost,
+                            nsIDNSService::DNSFlags aFlags,
                             TypeRecordResultType& aResult, uint32_t& aTTL);
 
 /**
  * The platform specific implementation of HTTPS resolution.
  */
-nsresult ResolveHTTPSRecordImpl(const nsACString& aHost, uint16_t aFlags,
+nsresult ResolveHTTPSRecordImpl(const nsACString& aHost,
+                                nsIDNSService::DNSFlags aFlags,
                                 TypeRecordResultType& aResult, uint32_t& aTTL);
 
 nsresult ParseHTTPSRecord(nsCString& aHost, DNSPacket& aDNSPacket,
@@ -87,7 +88,7 @@ nsresult ParseHTTPSRecord(nsCString& aHost, DNSPacket& aDNSPacket,
 
 // Use the provided aHost to create a mock HTTPS record.
 nsresult CreateAndResolveMockHTTPSRecord(const nsACString& aHost,
-                                         uint16_t aFlags,
+                                         nsIDNSService::DNSFlags aFlags,
                                          TypeRecordResultType& aResult,
                                          uint32_t& aTTL);
 
@@ -101,14 +102,17 @@ class NativeDNSResolverOverride : public nsINativeDNSResolverOverride {
 
  private:
   virtual ~NativeDNSResolverOverride() = default;
-  mozilla::RWLock mLock MOZ_UNANNOTATED{"NativeDNSResolverOverride"};
+  mozilla::RWLock mLock{"NativeDNSResolverOverride"};
 
-  nsTHashMap<nsCStringHashKey, nsTArray<NetAddr>> mOverrides;
-  nsTHashMap<nsCStringHashKey, nsCString> mCnames;
-  nsTHashMap<nsCStringHashKey, nsTArray<uint8_t>> mHTTPSRecordOverrides;
+  nsTHashMap<nsCStringHashKey, nsTArray<NetAddr>> mOverrides
+      MOZ_GUARDED_BY(mLock);
+  nsTHashMap<nsCStringHashKey, nsCString> mCnames MOZ_GUARDED_BY(mLock);
+  nsTHashMap<nsCStringHashKey, nsTArray<uint8_t>> mHTTPSRecordOverrides
+      MOZ_GUARDED_BY(mLock);
 
   friend bool FindAddrOverride(const nsACString& aHost, uint16_t aAddressFamily,
-                               uint16_t aFlags, AddrInfo** aAddrInfo);
+                               nsIDNSService::DNSFlags aFlags,
+                               AddrInfo** aAddrInfo);
   friend bool FindHTTPSRecordOverride(const nsACString& aHost,
                                       TypeRecordResultType& aResult);
 };

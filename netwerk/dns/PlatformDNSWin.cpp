@@ -28,7 +28,8 @@ namespace mozilla::net {
 #define LOG(msg, ...) \
   MOZ_LOG(gGetAddrInfoLog, LogLevel::Debug, ("[DNS]: " msg, ##__VA_ARGS__))
 
-nsresult ResolveHTTPSRecordImpl(const nsACString& aHost, uint16_t aFlags,
+nsresult ResolveHTTPSRecordImpl(const nsACString& aHost,
+                                nsIDNSService::DNSFlags aFlags,
                                 TypeRecordResultType& aResult, uint32_t& aTTL) {
   nsAutoCString host(aHost);
   PDNS_RECORD result = nullptr;

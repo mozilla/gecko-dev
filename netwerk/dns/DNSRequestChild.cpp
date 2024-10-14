@@ -86,7 +86,7 @@ ChildDNSRecord::ChildDNSRecord(const DNSRecord& reply,
 
 NS_IMETHODIMP
 ChildDNSRecord::GetCanonicalName(nsACString& result) {
-  if (!(mFlags & nsHostResolver::RES_CANON_NAME)) {
+  if (!(mFlags & nsIDNSService::RESOLVE_CANONICAL_NAME)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 

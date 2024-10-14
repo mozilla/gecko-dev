@@ -516,8 +516,10 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
   nsAutoCString originSuffix;
   aOriginAttributes.CreateSuffix(originSuffix);
   LOG(("Resolving host [%s]<%s>%s%s type %d. [this=%p]\n", host.get(),
-       originSuffix.get(), flags & RES_BYPASS_CACHE ? " - bypassing cache" : "",
-       flags & RES_REFRESH_CACHE ? " - refresh cache" : "", type, this));
+       originSuffix.get(),
+       flags & nsIDNSService::RESOLVE_BYPASS_CACHE ? " - bypassing cache" : "",
+       flags & nsIDNSService::RESOLVE_REFRESH_CACHE ? " - refresh cache" : "",
+       type, this));
 
   PROFILER_MARKER("nsHostResolver::ResolveHost", NETWORK, {},
                   HostResolverMarker, host, originSuffix, type, flags);
@@ -619,7 +621,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
       rec->RecordReason(TRRSkippedReason::TRR_EXCLUDED);
     }
 
-    if (!(flags & RES_BYPASS_CACHE) &&
+    if (!(flags & nsIDNSService::RESOLVE_BYPASS_CACHE) &&
         rec->HasUsableResult(TimeStamp::NowLoRes(), flags)) {
       result = FromCache(rec, host, type, status, lock);
     } else if (addrRec && addrRec->addr) {
@@ -646,7 +648,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
       rv = NS_ERROR_DNS_LOOKUP_QUEUE_FULL;
 
       // Check if the offline flag is set.
-    } else if (flags & RES_OFFLINE) {
+    } else if (flags & nsIDNSService::RESOLVE_OFFLINE) {
       LOG(("  Offline request for host [%s]; ignoring.\n", host.get()));
       rv = NS_ERROR_OFFLINE;
 
@@ -664,7 +666,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
         LOG(("  No usable record in cache for host [%s] type %d.", host.get(),
              type));
 
-        if (flags & RES_REFRESH_CACHE) {
+        if (flags & nsIDNSService::RESOLVE_REFRESH_CACHE) {
           rec->Invalidate();
         }
 
@@ -783,7 +785,7 @@ already_AddRefed<nsHostRecord> nsHostResolver::FromUnspecEntry(
   // If this is an IPV4 or IPV6 specific request, check if there is
   // an AF_UNSPEC entry we can use. Otherwise, hit the resolver...
   RefPtr<AddrHostRecord> addrRec = do_QueryObject(aRec);
-  if (addrRec && !(aFlags & RES_BYPASS_CACHE) &&
+  if (addrRec && !(aFlags & nsIDNSService::RESOLVE_BYPASS_CACHE) &&
       ((af == PR_AF_INET) || (af == PR_AF_INET6))) {
     // Check for an AF_UNSPEC entry.
 
@@ -1190,8 +1192,8 @@ nsresult nsHostResolver::NameLookup(nsHostRecord* rec,
   LOG(("NameLookup host:%s af:%" PRId16, rec->host.get(), rec->af));
   mLock.AssertCurrentThreadOwns();
 
-  if (rec->flags & RES_IP_HINT) {
-    LOG(("Skip lookup if RES_IP_HINT is set\n"));
+  if (rec->flags & nsIDNSService::RESOLVE_IP_HINT) {
+    LOG(("Skip lookup if nsIDNSService::RESOLVE_IP_HINT is set\n"));
     return NS_ERROR_UNKNOWN_HOST;
   }
 

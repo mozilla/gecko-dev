@@ -175,27 +175,6 @@ class nsHostResolver : public nsISupports, public AHostResolver {
                           const mozilla::OriginAttributes& aOriginAttributes,
                           nsIDNSService::DNSFlags flags, uint16_t af,
                           nsIDNSListener* aListener, nsresult status);
-  /**
-   * values for the flags parameter passed to ResolveHost and DetachCallback
-   * that may be bitwise OR'd together.
-   *
-   * NOTE: in this implementation, these flags correspond exactly in value
-   *       to the flags defined on nsIDNSService.
-   */
-  enum {
-    RES_BYPASS_CACHE = nsIDNSService::RESOLVE_BYPASS_CACHE,
-    RES_CANON_NAME = nsIDNSService::RESOLVE_CANONICAL_NAME,
-    RES_PRIORITY_MEDIUM = nsHostRecord::DNS_PRIORITY_MEDIUM,
-    RES_PRIORITY_LOW = nsHostRecord::DNS_PRIORITY_LOW,
-    RES_SPECULATE = nsIDNSService::RESOLVE_SPECULATE,
-    // RES_DISABLE_IPV6 = nsIDNSService::RESOLVE_DISABLE_IPV6, // Not used
-    RES_OFFLINE = nsIDNSService::RESOLVE_OFFLINE,
-    // RES_DISABLE_IPv4 = nsIDNSService::RESOLVE_DISABLE_IPV4, // Not Used
-    RES_ALLOW_NAME_COLLISION = nsIDNSService::RESOLVE_ALLOW_NAME_COLLISION,
-    RES_DISABLE_TRR = nsIDNSService::RESOLVE_DISABLE_TRR,
-    RES_REFRESH_CACHE = nsIDNSService::RESOLVE_REFRESH_CACHE,
-    RES_IP_HINT = nsIDNSService::RESOLVE_IP_HINT
-  };
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
