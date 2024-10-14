@@ -22,7 +22,7 @@ use crate::image_source::{resolve_image, resolve_cached_render_task};
 use smallvec::SmallVec;
 use topological_sort::TopologicalSort;
 
-use crate::render_target::{RenderTargetList, PictureCacheTarget, TextureCacheRenderTarget};
+use crate::render_target::{RenderTargetList, PictureCacheTarget, RenderTarget};
 use crate::util::{Allocation, VecHelper};
 use std::{usize, f32};
 
@@ -854,7 +854,7 @@ pub struct RenderPass {
     /// The subpasses that describe targets being rendered to in this pass
     pub alpha: RenderTargetList,
     pub color: RenderTargetList,
-    pub texture_cache: FastHashMap<CacheTextureId, TextureCacheRenderTarget>,
+    pub texture_cache: FastHashMap<CacheTextureId, RenderTarget>,
     pub picture_cache: FrameVec<PictureCacheTarget>,
     pub textures_to_invalidate: FrameVec<CacheTextureId>,
 }

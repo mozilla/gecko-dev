@@ -26,7 +26,7 @@ use crate::prim_store::{DeferredResolve, PrimitiveInstance};
 use crate::profiler::{self, TransactionProfile};
 use crate::render_backend::{DataStores, ScratchBuffer};
 use crate::renderer::{GpuBufferF, GpuBufferBuilderF, GpuBufferI, GpuBufferBuilderI, GpuBufferBuilder};
-use crate::render_target::{PictureCacheTarget, TextureCacheRenderTarget, PictureCacheTargetKind};
+use crate::render_target::{PictureCacheTarget, PictureCacheTargetKind};
 use crate::render_target::{RenderTargetContext, RenderTargetKind, RenderTarget};
 use crate::render_task_graph::{RenderTaskGraph, Pass, SubPassSurface};
 use crate::render_task_graph::{RenderPass, RenderTaskGraphBuilder};
@@ -942,10 +942,11 @@ pub fn build_render_pass(
                     RenderTargetKind::Color => {
                         let mut target = RenderTarget::new(
                             RenderTargetKind::Color,
+                            false,
                             texture_id,
                             screen_size,
                             gpu_supports_fast_clears,
-                            used_rect,
+                            Some(used_rect),
                             &ctx.frame_memory,
                         );
 
@@ -966,10 +967,11 @@ pub fn build_render_pass(
                     RenderTargetKind::Alpha => {
                         let mut target = RenderTarget::new(
                             RenderTargetKind::Alpha,
+                            false,
                             texture_id,
                             screen_size,
                             gpu_supports_fast_clears,
-                            used_rect,
+                            Some(used_rect),
                             &ctx.frame_memory,
                         );
 
@@ -1081,10 +1083,26 @@ pub fn build_render_pass(
                 let texture = pass.texture_cache
                     .entry(texture)
                     .or_insert_with(||
-                        TextureCacheRenderTarget::new(target_kind, &ctx.frame_memory)
+                        RenderTarget::new(
+                            target_kind,
+                            true,
+                            texture,
+                            screen_size,
+                            gpu_supports_fast_clears,
+                            None,
+                            &ctx.frame_memory
+                        )
                     );
                 for task_id in &sub_pass.task_ids {
-                    texture.add_task(*task_id, render_tasks, &ctx.frame_memory);
+                    texture.add_task(
+                        *task_id,
+                        ctx,
+                        gpu_cache,
+                        gpu_buffer_builder,
+                        render_tasks,
+                        clip_store,
+                        transforms,
+                    );
                 }
             }
             SubPassSurface::Persistent { surface: StaticRenderTaskSurface::ReadOnly { .. } } => {
@@ -1115,6 +1133,20 @@ pub fn build_render_pass(
         cmd_buffers,
         gpu_buffer_builder,
     );
+
+    for target in &mut pass.texture_cache.values_mut() {
+        target.build(
+            ctx,
+            gpu_cache,
+            render_tasks,
+            prim_headers,
+            transforms,
+            z_generator,
+            prim_instances,
+            cmd_buffers,
+            gpu_buffer_builder,
+        );
+    }
 
     pass
 }

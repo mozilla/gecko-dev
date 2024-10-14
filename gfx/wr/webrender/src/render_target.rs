@@ -157,6 +157,7 @@ const NUM_PATTERNS: usize = crate::pattern::NUM_PATTERNS as usize;
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct RenderTarget {
     pub target_kind: RenderTargetKind,
+    pub cached: bool,
     screen_size: DeviceIntSize,
     pub texture_id: CacheTextureId,
 
@@ -172,7 +173,7 @@ pub struct RenderTarget {
     // Track the used rect of the render target, so that
     // we can set a scissor rect and only clear to the
     // used portion of the target as an optimization.
-    pub used_rect: DeviceIntRect,
+    pub used_rect: Option<DeviceIntRect>,
     pub resolve_ops: FrameVec<ResolveOp>,
     pub clear_color: Option<ColorF>,
 
@@ -181,8 +182,27 @@ pub struct RenderTarget {
 
     pub clip_masks: ClipMaskInstanceList,
 
-    // Alpha-specific
+    pub border_segments_complex: FrameVec<BorderInstance>,
+    pub border_segments_solid: FrameVec<BorderInstance>,
+    pub line_decorations: FrameVec<LineDecorationJob>,
+    pub fast_linear_gradients: FrameVec<FastLinearGradientInstance>,
+    pub linear_gradients: FrameVec<LinearGradientInstance>,
+    pub radial_gradients: FrameVec<RadialGradientInstance>,
+    pub conic_gradients: FrameVec<ConicGradientInstance>,
+
     pub clip_batcher: ClipBatcher,
+    // TODO: Clearing a render target is very ad-hoc and error-prone. Previously,
+    // alpha, color and cached render targets were entirely separate implementations
+    // with a fair amount of overlap but also divergent approaches to tackle common
+    // functionality. The unified code retains this quirk for the clearing logic.
+    // In a nutshell:
+    //  - Non-cached color targets expect to be globally cleared in draw_render_target.
+    //  - Cached targets obviously can't since some of their content is cached from
+    //    previous frames, so clearing specific parts is done as needed via `clears`.
+    //  - Alpha targets also have special clearing needs that are specified before the
+    //    render tasks rects are allocated, so they are provided as render task ids instead.
+    // See also the clearing code in `Renderer::draw_render_target`.
+    pub clears: FrameVec<DeviceIntRect>,
     pub zero_clears: FrameVec<RenderTaskId>,
     pub one_clears: FrameVec<RenderTaskId>,
 }
@@ -190,14 +210,16 @@ pub struct RenderTarget {
 impl RenderTarget {
     pub fn new(
         target_kind: RenderTargetKind,
+        cached: bool,
         texture_id: CacheTextureId,
         screen_size: DeviceIntSize,
         gpu_supports_fast_clears: bool,
-        used_rect: DeviceIntRect,
+        used_rect: Option<DeviceIntRect>,
         memory: &FrameMemory,
     ) -> Self {
         RenderTarget {
             target_kind,
+            cached,
             screen_size,
             texture_id,
             alpha_batch_containers: memory.new_vec(),
@@ -217,6 +239,14 @@ impl RenderTarget {
             clip_batcher: ClipBatcher::new(gpu_supports_fast_clears, memory),
             zero_clears: memory.new_vec(),
             one_clears: memory.new_vec(),
+            border_segments_complex: memory.new_vec(),
+            border_segments_solid: memory.new_vec(),
+            clears: memory.new_vec(),
+            line_decorations: memory.new_vec(),
+            fast_linear_gradients: memory.new_vec(),
+            linear_gradients: memory.new_vec(),
+            radial_gradients: memory.new_vec(),
+            conic_gradients: memory.new_vec(),
         }
     }
 
@@ -420,17 +450,6 @@ impl RenderTarget {
                     &ctx.frame_memory,
                 )
             }
-            RenderTaskKind::Image(..) |
-            RenderTaskKind::Cached(..) |
-            RenderTaskKind::Border(..) |
-            RenderTaskKind::FastLinearGradient(..) |
-            RenderTaskKind::LinearGradient(..) |
-            RenderTaskKind::RadialGradient(..) |
-            RenderTaskKind::ConicGradient(..) |
-            RenderTaskKind::TileComposite(..) |
-            RenderTaskKind::LineDecoration(..) => {
-                panic!("Should not be added to color target!");
-            }
             RenderTaskKind::Empty(..) => {
                 // TODO(gw): Could likely be more efficient by choosing to clear to 0 or 1
                 //           based on the clip chain, or even skipping clear and masking the
@@ -471,7 +490,6 @@ impl RenderTarget {
                     region_task.device_pixel_scale.0,
                 );
             }
-            RenderTaskKind::Readback(..) => {}
             RenderTaskKind::Scaling(ref info) => {
                 add_scaling_instances(
                     info,
@@ -489,6 +507,58 @@ impl RenderTarget {
                     target_rect,
                 });
             }
+            RenderTaskKind::LineDecoration(ref info) => {
+                self.clears.push(target_rect);
+
+                self.line_decorations.push(LineDecorationJob {
+                    task_rect: target_rect.to_f32(),
+                    local_size: info.local_size,
+                    style: info.style as i32,
+                    axis_select: match info.orientation {
+                        LineOrientation::Horizontal => 0.0,
+                        LineOrientation::Vertical => 1.0,
+                    },
+                    wavy_line_thickness: info.wavy_line_thickness,
+                });
+            }
+            RenderTaskKind::Border(ref task_info) => {
+                self.clears.push(target_rect);
+
+                let task_origin = target_rect.min.to_f32();
+                // TODO(gw): Clone here instead of a move of this vec, since the frame
+                //           graph is immutable by this point. It's rare that borders
+                //           are drawn since they are persisted in the texture cache,
+                //           but perhaps this could be improved in future.
+                let instances = task_info.instances.clone();
+                for mut instance in instances {
+                    // TODO(gw): It may be better to store the task origin in
+                    //           the render task data instead of per instance.
+                    instance.task_origin = task_origin;
+                    if instance.flags & STYLE_MASK == STYLE_SOLID {
+                        self.border_segments_solid.push(instance);
+                    } else {
+                        self.border_segments_complex.push(instance);
+                    }
+                }
+            }
+            RenderTaskKind::FastLinearGradient(ref task_info) => {
+                self.fast_linear_gradients.push(task_info.to_instance(&target_rect));
+            }
+            RenderTaskKind::LinearGradient(ref task_info) => {
+                self.linear_gradients.push(task_info.to_instance(&target_rect));
+            }
+            RenderTaskKind::RadialGradient(ref task_info) => {
+                self.radial_gradients.push(task_info.to_instance(&target_rect));
+            }
+            RenderTaskKind::ConicGradient(ref task_info) => {
+                self.conic_gradients.push(task_info.to_instance(&target_rect));
+            }
+            RenderTaskKind::Image(..) |
+            RenderTaskKind::Cached(..) |
+            RenderTaskKind::TileComposite(..) => {
+                panic!("Should not be added to color target!");
+            }
+            RenderTaskKind::Readback(..) => {}
             #[cfg(test)]
             RenderTaskKind::Test(..) => {}
         }
@@ -539,140 +609,6 @@ pub struct PictureCacheTarget {
     pub clear_color: Option<ColorF>,
     pub dirty_rect: DeviceIntRect,
     pub valid_rect: DeviceIntRect,
-}
-
-#[cfg_attr(feature = "capture", derive(Serialize))]
-#[cfg_attr(feature = "replay", derive(Deserialize))]
-pub struct TextureCacheRenderTarget {
-    pub target_kind: RenderTargetKind,
-    pub horizontal_blurs: FastHashMap<TextureSource, FrameVec<BlurInstance>>,
-    pub blits: FrameVec<BlitJob>,
-    pub border_segments_complex: FrameVec<BorderInstance>,
-    pub border_segments_solid: FrameVec<BorderInstance>,
-    pub clears: FrameVec<DeviceIntRect>,
-    pub line_decorations: FrameVec<LineDecorationJob>,
-    pub fast_linear_gradients: FrameVec<FastLinearGradientInstance>,
-    pub linear_gradients: FrameVec<LinearGradientInstance>,
-    pub radial_gradients: FrameVec<RadialGradientInstance>,
-    pub conic_gradients: FrameVec<ConicGradientInstance>,
-}
-
-impl TextureCacheRenderTarget {
-    pub fn new(target_kind: RenderTargetKind, memory: &FrameMemory) -> Self {
-        TextureCacheRenderTarget {
-            target_kind,
-            horizontal_blurs: FastHashMap::default(),
-            blits: memory.new_vec(),
-            border_segments_complex: memory.new_vec(),
-            border_segments_solid: memory.new_vec(),
-            clears: memory.new_vec(),
-            line_decorations: memory.new_vec(),
-            fast_linear_gradients: memory.new_vec(),
-            linear_gradients: memory.new_vec(),
-            radial_gradients: memory.new_vec(),
-            conic_gradients: memory.new_vec(),
-        }
-    }
-
-    pub fn add_task(
-        &mut self,
-        task_id: RenderTaskId,
-        render_tasks: &RenderTaskGraph,
-        memory: &FrameMemory,
-    ) {
-        profile_scope!("add_task");
-        let task_address = task_id.into();
-
-        let task = &render_tasks[task_id];
-        let target_rect = task.get_target_rect();
-
-        match task.kind {
-            RenderTaskKind::LineDecoration(ref info) => {
-                self.clears.push(target_rect);
-
-                self.line_decorations.push(LineDecorationJob {
-                    task_rect: target_rect.to_f32(),
-                    local_size: info.local_size,
-                    style: info.style as i32,
-                    axis_select: match info.orientation {
-                        LineOrientation::Horizontal => 0.0,
-                        LineOrientation::Vertical => 1.0,
-                    },
-                    wavy_line_thickness: info.wavy_line_thickness,
-                });
-            }
-            RenderTaskKind::HorizontalBlur(ref info) => {
-                add_blur_instances(
-                    &mut self.horizontal_blurs,
-                    BlurDirection::Horizontal,
-                    info.blur_std_deviation,
-                    info.blur_region,
-                    task_address,
-                    task.children[0],
-                    render_tasks,
-                    memory,
-                );
-            }
-            RenderTaskKind::Blit(ref task_info) => {
-                // Add a blit job to copy from an existing render
-                // task to this target.
-                self.blits.push(BlitJob {
-                    source: task_info.source,
-                    source_rect: task_info.source_rect,
-                    target_rect,
-                });
-            }
-            RenderTaskKind::Border(ref task_info) => {
-                self.clears.push(target_rect);
-
-                let task_origin = target_rect.min.to_f32();
-                // TODO(gw): Clone here instead of a move of this vec, since the frame
-                //           graph is immutable by this point. It's rare that borders
-                //           are drawn since they are persisted in the texture cache,
-                //           but perhaps this could be improved in future.
-                let instances = task_info.instances.clone();
-                for mut instance in instances {
-                    // TODO(gw): It may be better to store the task origin in
-                    //           the render task data instead of per instance.
-                    instance.task_origin = task_origin;
-                    if instance.flags & STYLE_MASK == STYLE_SOLID {
-                        self.border_segments_solid.push(instance);
-                    } else {
-                        self.border_segments_complex.push(instance);
-                    }
-                }
-            }
-            RenderTaskKind::FastLinearGradient(ref task_info) => {
-                self.fast_linear_gradients.push(task_info.to_instance(&target_rect));
-            }
-            RenderTaskKind::LinearGradient(ref task_info) => {
-                self.linear_gradients.push(task_info.to_instance(&target_rect));
-            }
-            RenderTaskKind::RadialGradient(ref task_info) => {
-                self.radial_gradients.push(task_info.to_instance(&target_rect));
-            }
-            RenderTaskKind::ConicGradient(ref task_info) => {
-                self.conic_gradients.push(task_info.to_instance(&target_rect));
-            }
-            RenderTaskKind::Prim(..) |
-            RenderTaskKind::Image(..) |
-            RenderTaskKind::Cached(..) |
-            RenderTaskKind::VerticalBlur(..) |
-            RenderTaskKind::Picture(..) |
-            RenderTaskKind::ClipRegion(..) |
-            RenderTaskKind::CacheMask(..) |
-            RenderTaskKind::Readback(..) |
-            RenderTaskKind::Scaling(..) |
-            RenderTaskKind::TileComposite(..) |
-            RenderTaskKind::Empty(..) |
-            RenderTaskKind::SvgFilter(..) |
-            RenderTaskKind::SVGFENode(..) => {
-                panic!("BUG: unexpected task kind for texture cache target");
-            }
-            #[cfg(test)]
-            RenderTaskKind::Test(..) => {}
-        }
-    }
 }
 
 fn add_blur_instances(

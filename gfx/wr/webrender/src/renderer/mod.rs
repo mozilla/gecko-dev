@@ -87,7 +87,7 @@ use crate::render_task_graph::{RenderTaskGraph};
 use crate::render_task::{RenderTask, RenderTaskKind, ReadbackTask};
 use crate::screen_capture::AsyncScreenshotGrabber;
 use crate::render_target::{RenderTarget, PictureCacheTarget, PictureCacheTargetKind};
-use crate::render_target::{TextureCacheRenderTarget, RenderTargetKind, BlitJob};
+use crate::render_target::{RenderTargetKind, BlitJob};
 use crate::telemetry::Telemetry;
 use crate::tile_cache::PictureCacheDebugInfo;
 use crate::util::drain_filter;
@@ -263,10 +263,6 @@ const GPU_TAG_SVG_FILTER_NODES: GpuProfileTag = GpuProfileTag {
 const GPU_TAG_COMPOSITE: GpuProfileTag = GpuProfileTag {
     label: "Composite",
     color: debug_colors::TOMATO,
-};
-const GPU_TAG_CLEAR: GpuProfileTag = GpuProfileTag {
-    label: "Clear",
-    color: debug_colors::CHOCOLATE,
 };
 
 /// The clear color used for the texture cache when the debug display is enabled.
@@ -3481,7 +3477,7 @@ impl Renderer {
         }
     }
 
-    fn draw_color_target(
+    fn draw_render_target(
         &mut self,
         draw_target: DrawTarget,
         target: &RenderTarget,
@@ -3490,8 +3486,8 @@ impl Renderer {
         projection: &default::Transform3D<f32>,
         stats: &mut RendererStats,
     ) {
-        profile_scope!("draw_color_target");
-        let _gm = self.gpu_profiler.start_marker("color target");
+        profile_scope!("draw_render_target");
+        let _gm = self.gpu_profiler.start_marker("render target");
 
         let counter = match target.target_kind {
             RenderTargetKind::Color => profiler::COLOR_PASSES,
@@ -3524,13 +3520,15 @@ impl Renderer {
                     Some(_) => 0,
                     None => gl::COLOR_BUFFER_BIT0_QCOM,
                 };
-                self.device.gl().start_tiling_qcom(
-                    target.used_rect.min.x.max(0) as _,
-                    target.used_rect.min.y.max(0) as _,
-                    target.used_rect.width() as _,
-                    target.used_rect.height() as _,
-                    preserve_mask,
-                );
+                if let Some(used_rect) = target.used_rect {
+                    self.device.gl().start_tiling_qcom(
+                        used_rect.min.x.max(0) as _,
+                        used_rect.min.y.max(0) as _,
+                        used_rect.width() as _,
+                        used_rect.height() as _,
+                        preserve_mask,
+                    );
+                }
             }
 
             self.device.disable_depth();
@@ -3545,23 +3543,32 @@ impl Renderer {
             let zero_color = [0.0, 0.0, 0.0, 0.0];
             let one_color = [1.0, 1.0, 1.0, 1.0];
 
-            if target.target_kind == RenderTargetKind::Alpha {
-                // On some Adreno 4xx devices we have seen render tasks to alpha targets have no
-                // effect unless the target is fully cleared prior to rendering. See bug 1714227.
-                if self.device.get_capabilities().requires_alpha_target_full_clear {
-                    self.device.clear_target(
-                        Some(zero_color),
-                        None,
-                        None,
-                    );
-                }
+            // On some Adreno 4xx devices we have seen render tasks to alpha targets have no
+            // effect unless the target is fully cleared prior to rendering. See bug 1714227.
+            if target.target_kind == RenderTargetKind::Alpha
+                && !target.cached
+                && self.device.get_capabilities().requires_alpha_target_full_clear {
 
-                // On some Mali-T devices we have observed crashes in subsequent draw calls
-                // immediately after clearing the alpha render target regions with glClear().
-                // Using the shader to clear the regions avoids the crash. See bug 1638593.
-                if self.clear_alpha_targets_with_quads
-                    && !(target.zero_clears.is_empty() && target.one_clears.is_empty())
-                {
+                self.device.clear_target(
+                    Some(zero_color),
+                    clear_depth,
+                    None,
+                );
+            } else if target.cached && needs_depth {
+                // Make sure to clear the depth buffer if it used in a cached target.
+                self.device.clear_target(None, clear_depth, None);
+            }
+
+            // On some Mali-T devices we have observed crashes in subsequent draw calls
+            // immediately after clearing the alpha render target regions with glClear().
+            // Using the shader to clear the regions avoids the crash. See bug 1638593.
+            let clear_with_quads = (target.cached && self.clear_caches_with_quads)
+                || (target.target_kind == RenderTargetKind::Alpha && self.clear_alpha_targets_with_quads);
+
+            let has_clear_instances = !(target.zero_clears.is_empty() && target.one_clears.is_empty() && target.clears.is_empty());
+
+            if has_clear_instances {
+                if clear_with_quads {
                     let zeroes = target.zero_clears
                         .iter()
                         .map(|task_id| {
@@ -3588,7 +3595,18 @@ impl Renderer {
                             }
                         });
 
-                    let instances = zeroes.chain(ones).collect::<Vec<_>>();
+                    let other_zeroes = target.clears
+                        .iter()
+                        .map(|r| ClearInstance {
+                            rect: [
+                                r.min.x as f32, r.min.y as f32,
+                                r.max.x as f32, r.max.y as f32,
+                            ],
+                            color: zero_color,
+                        })
+                        .collect::<Vec<_>>();
+
+                    let instances = zeroes.chain(ones).chain(other_zeroes).collect::<Vec<_>>();
                     self.shaders.borrow_mut().ps_clear.bind(
                         &mut self.device,
                         &projection,
@@ -3612,7 +3630,7 @@ impl Renderer {
                         let rect = render_tasks[task_id].get_target_rect();
                         self.device.clear_target(
                             Some(zero_color),
-                            None,
+                            clear_depth,
                             Some(draw_target.to_framebuffer_rect(rect)),
                         );
                     }
@@ -3621,13 +3639,25 @@ impl Renderer {
                         let rect = render_tasks[task_id].get_target_rect();
                         self.device.clear_target(
                             Some(one_color),
-                            None,
+                            clear_depth,
                             Some(draw_target.to_framebuffer_rect(rect)),
                         );
                     }
+
+                    for rect in &target.clears {
+                        self.device.clear_target(
+                            Some(zero_color),
+                            clear_depth,
+                            Some(draw_target.to_framebuffer_rect(*rect)),
+                        );
+                    }
                 }
-            } else {
-                // Color target
+            } else if !target.cached && target.target_kind == RenderTargetKind::Color {
+                // TODO: There is an implicit assumption that non-cached color targets
+                // need to be cleared, unless they have clear instances.
+                // This is error-prone, and will probably mesh poorly with pictures
+                // soon being optionally cached. We should instead have the code that
+                // builds the target specify whether this single-clear code path is needed.
 
                 let clear_color = target
                     .clear_color
@@ -3655,7 +3685,7 @@ impl Renderer {
                         // target slices were minimum 2048x2048. Now that we size
                         // them adaptively, this may be less of a win (except perhaps
                         // on a mostly-unused last slice of a large texture array).
-                        Some(draw_target.to_framebuffer_rect(target.used_rect))
+                        target.used_rect.map(|rect| draw_target.to_framebuffer_rect(rect))
                     }
                     DrawTarget::Texture { .. } | DrawTarget::External { .. } => {
                         None
@@ -3667,11 +3697,11 @@ impl Renderer {
                     clear_depth,
                     clear_rect,
                 );
-
-                if clear_depth.is_some() {
-                    self.device.disable_depth_write();
-                }
             }
+        }
+
+        if clear_depth.is_some() {
+            self.device.disable_depth_write();
         }
 
         // Handle any resolves from parent pictures to this target
@@ -3687,6 +3717,177 @@ impl Renderer {
             render_tasks,
             draw_target,
         );
+
+        // Draw any borders for this target.
+        if !target.border_segments_solid.is_empty() ||
+           !target.border_segments_complex.is_empty()
+        {
+            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CACHE_BORDER);
+
+            self.set_blend(true, FramebufferKind::Other);
+            self.set_blend_mode_premultiplied_alpha(FramebufferKind::Other);
+
+            if !target.border_segments_solid.is_empty() {
+                self.shaders.borrow_mut().cs_border_solid.bind(
+                    &mut self.device,
+                    &projection,
+                    None,
+                    &mut self.renderer_errors,
+                    &mut self.profile,
+                );
+
+                self.draw_instanced_batch(
+                    &target.border_segments_solid,
+                    VertexArrayKind::Border,
+                    &BatchTextures::empty(),
+                    stats,
+                );
+            }
+
+            if !target.border_segments_complex.is_empty() {
+                self.shaders.borrow_mut().cs_border_segment.bind(
+                    &mut self.device,
+                    &projection,
+                    None,
+                    &mut self.renderer_errors,
+                    &mut self.profile,
+                );
+
+                self.draw_instanced_batch(
+                    &target.border_segments_complex,
+                    VertexArrayKind::Border,
+                    &BatchTextures::empty(),
+                    stats,
+                );
+            }
+
+            self.set_blend(false, FramebufferKind::Other);
+        }
+
+        // Draw any line decorations for this target.
+        if !target.line_decorations.is_empty() {
+            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CACHE_LINE_DECORATION);
+
+            self.set_blend(true, FramebufferKind::Other);
+            self.set_blend_mode_premultiplied_alpha(FramebufferKind::Other);
+
+            self.shaders.borrow_mut().cs_line_decoration.bind(
+                &mut self.device,
+                &projection,
+                None,
+                &mut self.renderer_errors,
+                &mut self.profile,
+            );
+
+            self.draw_instanced_batch(
+                &target.line_decorations,
+                VertexArrayKind::LineDecoration,
+                &BatchTextures::empty(),
+                stats,
+            );
+
+            self.set_blend(false, FramebufferKind::Other);
+        }
+
+        // Draw any fast path linear gradients for this target.
+        if !target.fast_linear_gradients.is_empty() {
+            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CACHE_FAST_LINEAR_GRADIENT);
+
+            self.set_blend(false, FramebufferKind::Other);
+
+            self.shaders.borrow_mut().cs_fast_linear_gradient.bind(
+                &mut self.device,
+                &projection,
+                None,
+                &mut self.renderer_errors,
+                &mut self.profile,
+            );
+
+            self.draw_instanced_batch(
+                &target.fast_linear_gradients,
+                VertexArrayKind::FastLinearGradient,
+                &BatchTextures::empty(),
+                stats,
+            );
+        }
+
+        // Draw any linear gradients for this target.
+        if !target.linear_gradients.is_empty() {
+            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CACHE_LINEAR_GRADIENT);
+
+            self.set_blend(false, FramebufferKind::Other);
+
+            self.shaders.borrow_mut().cs_linear_gradient.bind(
+                &mut self.device,
+                &projection,
+                None,
+                &mut self.renderer_errors,
+                &mut self.profile,
+            );
+
+            if let Some(ref texture) = self.dither_matrix_texture {
+                self.device.bind_texture(TextureSampler::Dither, texture, Swizzle::default());
+            }
+
+            self.draw_instanced_batch(
+                &target.linear_gradients,
+                VertexArrayKind::LinearGradient,
+                &BatchTextures::empty(),
+                stats,
+            );
+        }
+
+        // Draw any radial gradients for this target.
+        if !target.radial_gradients.is_empty() {
+            let _timer = self.gpu_profiler.start_timer(GPU_TAG_RADIAL_GRADIENT);
+
+            self.set_blend(false, FramebufferKind::Other);
+
+            self.shaders.borrow_mut().cs_radial_gradient.bind(
+                &mut self.device,
+                &projection,
+                None,
+                &mut self.renderer_errors,
+                &mut self.profile,
+            );
+
+            if let Some(ref texture) = self.dither_matrix_texture {
+                self.device.bind_texture(TextureSampler::Dither, texture, Swizzle::default());
+            }
+
+            self.draw_instanced_batch(
+                &target.radial_gradients,
+                VertexArrayKind::RadialGradient,
+                &BatchTextures::empty(),
+                stats,
+            );
+        }
+
+        // Draw any conic gradients for this target.
+        if !target.conic_gradients.is_empty() {
+            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CONIC_GRADIENT);
+
+            self.set_blend(false, FramebufferKind::Other);
+
+            self.shaders.borrow_mut().cs_conic_gradient.bind(
+                &mut self.device,
+                &projection,
+                None,
+                &mut self.renderer_errors,
+                &mut self.profile,
+            );
+
+            if let Some(ref texture) = self.dither_matrix_texture {
+                self.device.bind_texture(TextureSampler::Dither, texture, Swizzle::default());
+            }
+
+            self.draw_instanced_batch(
+                &target.conic_gradients,
+                VertexArrayKind::ConicGradient,
+                &BatchTextures::empty(),
+                stats,
+            );
+        }
 
         // Draw any blurs for this target.
         // Blurs are rendered as a standard 2-pass
@@ -3879,278 +4080,6 @@ impl Renderer {
                 items,
                 VertexArrayKind::ClipBoxShadow,
                 &textures,
-                stats,
-            );
-        }
-    }
-
-    fn draw_texture_cache_target(
-        &mut self,
-        texture: &CacheTextureId,
-        target: &TextureCacheRenderTarget,
-        render_tasks: &RenderTaskGraph,
-        stats: &mut RendererStats,
-    ) {
-        profile_scope!("draw_texture_cache_target");
-
-        self.device.disable_depth();
-        self.device.disable_depth_write();
-
-        self.set_blend(false, FramebufferKind::Other);
-
-        let texture = &self.texture_resolver.texture_cache_map[texture].texture;
-        let target_size = texture.get_dimensions();
-
-        let projection = Transform3D::ortho(
-            0.0,
-            target_size.width as f32,
-            0.0,
-            target_size.height as f32,
-            self.device.ortho_near_plane(),
-            self.device.ortho_far_plane(),
-        );
-
-        let draw_target = DrawTarget::from_texture(
-            texture,
-            false,
-        );
-        self.device.bind_draw_target(draw_target);
-
-        {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CLEAR);
-
-            self.device.disable_depth();
-            self.device.disable_depth_write();
-            self.set_blend(false, FramebufferKind::Other);
-
-            let color = [0.0, 0.0, 0.0, 0.0];
-            if self.clear_caches_with_quads && !target.clears.is_empty() {
-                let instances = target.clears
-                    .iter()
-                    .map(|r| ClearInstance {
-                        rect: [
-                            r.min.x as f32, r.min.y as f32,
-                            r.max.x as f32, r.max.y as f32,
-                        ],
-                        color,
-                    })
-                    .collect::<Vec<_>>();
-                self.shaders.borrow_mut().ps_clear.bind(
-                    &mut self.device,
-                    &projection,
-                    None,
-                    &mut self.renderer_errors,
-                    &mut self.profile,
-                );
-                self.draw_instanced_batch(
-                    &instances,
-                    VertexArrayKind::Clear,
-                    &BatchTextures::empty(),
-                    stats,
-                );
-            } else {
-                for rect in &target.clears {
-                    self.device.clear_target(
-                        Some(color),
-                        None,
-                        Some(draw_target.to_framebuffer_rect(*rect)),
-                    );
-                }
-            }
-
-            // Handle any blits to this texture from child tasks.
-            self.handle_blits(
-                &target.blits,
-                render_tasks,
-                draw_target,
-            );
-        }
-
-        // Draw any borders for this target.
-        if !target.border_segments_solid.is_empty() ||
-           !target.border_segments_complex.is_empty()
-        {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CACHE_BORDER);
-
-            self.set_blend(true, FramebufferKind::Other);
-            self.set_blend_mode_premultiplied_alpha(FramebufferKind::Other);
-
-            if !target.border_segments_solid.is_empty() {
-                self.shaders.borrow_mut().cs_border_solid.bind(
-                    &mut self.device,
-                    &projection,
-                    None,
-                    &mut self.renderer_errors,
-                    &mut self.profile,
-                );
-
-                self.draw_instanced_batch(
-                    &target.border_segments_solid,
-                    VertexArrayKind::Border,
-                    &BatchTextures::empty(),
-                    stats,
-                );
-            }
-
-            if !target.border_segments_complex.is_empty() {
-                self.shaders.borrow_mut().cs_border_segment.bind(
-                    &mut self.device,
-                    &projection,
-                    None,
-                    &mut self.renderer_errors,
-                    &mut self.profile,
-                );
-
-                self.draw_instanced_batch(
-                    &target.border_segments_complex,
-                    VertexArrayKind::Border,
-                    &BatchTextures::empty(),
-                    stats,
-                );
-            }
-
-            self.set_blend(false, FramebufferKind::Other);
-        }
-
-        // Draw any line decorations for this target.
-        if !target.line_decorations.is_empty() {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CACHE_LINE_DECORATION);
-
-            self.set_blend(true, FramebufferKind::Other);
-            self.set_blend_mode_premultiplied_alpha(FramebufferKind::Other);
-
-            self.shaders.borrow_mut().cs_line_decoration.bind(
-                &mut self.device,
-                &projection,
-                None,
-                &mut self.renderer_errors,
-                &mut self.profile,
-            );
-
-            self.draw_instanced_batch(
-                &target.line_decorations,
-                VertexArrayKind::LineDecoration,
-                &BatchTextures::empty(),
-                stats,
-            );
-
-            self.set_blend(false, FramebufferKind::Other);
-        }
-
-        // Draw any fast path linear gradients for this target.
-        if !target.fast_linear_gradients.is_empty() {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CACHE_FAST_LINEAR_GRADIENT);
-
-            self.set_blend(false, FramebufferKind::Other);
-
-            self.shaders.borrow_mut().cs_fast_linear_gradient.bind(
-                &mut self.device,
-                &projection,
-                None,
-                &mut self.renderer_errors,
-                &mut self.profile,
-            );
-
-            self.draw_instanced_batch(
-                &target.fast_linear_gradients,
-                VertexArrayKind::FastLinearGradient,
-                &BatchTextures::empty(),
-                stats,
-            );
-        }
-
-        // Draw any linear gradients for this target.
-        if !target.linear_gradients.is_empty() {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CACHE_LINEAR_GRADIENT);
-
-            self.set_blend(false, FramebufferKind::Other);
-
-            self.shaders.borrow_mut().cs_linear_gradient.bind(
-                &mut self.device,
-                &projection,
-                None,
-                &mut self.renderer_errors,
-                &mut self.profile,
-            );
-
-            if let Some(ref texture) = self.dither_matrix_texture {
-                self.device.bind_texture(TextureSampler::Dither, texture, Swizzle::default());
-            }
-
-            self.draw_instanced_batch(
-                &target.linear_gradients,
-                VertexArrayKind::LinearGradient,
-                &BatchTextures::empty(),
-                stats,
-            );
-        }
-
-        // Draw any radial gradients for this target.
-        if !target.radial_gradients.is_empty() {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_RADIAL_GRADIENT);
-
-            self.set_blend(false, FramebufferKind::Other);
-
-            self.shaders.borrow_mut().cs_radial_gradient.bind(
-                &mut self.device,
-                &projection,
-                None,
-                &mut self.renderer_errors,
-                &mut self.profile,
-            );
-
-            if let Some(ref texture) = self.dither_matrix_texture {
-                self.device.bind_texture(TextureSampler::Dither, texture, Swizzle::default());
-            }
-
-            self.draw_instanced_batch(
-                &target.radial_gradients,
-                VertexArrayKind::RadialGradient,
-                &BatchTextures::empty(),
-                stats,
-            );
-        }
-
-        // Draw any conic gradients for this target.
-        if !target.conic_gradients.is_empty() {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_CONIC_GRADIENT);
-
-            self.set_blend(false, FramebufferKind::Other);
-
-            self.shaders.borrow_mut().cs_conic_gradient.bind(
-                &mut self.device,
-                &projection,
-                None,
-                &mut self.renderer_errors,
-                &mut self.profile,
-            );
-
-            if let Some(ref texture) = self.dither_matrix_texture {
-                self.device.bind_texture(TextureSampler::Dither, texture, Swizzle::default());
-            }
-
-            self.draw_instanced_batch(
-                &target.conic_gradients,
-                VertexArrayKind::ConicGradient,
-                &BatchTextures::empty(),
-                stats,
-            );
-        }
-
-        // Draw any blurs for this target.
-        if !target.horizontal_blurs.is_empty() {
-            let _timer = self.gpu_profiler.start_timer(GPU_TAG_BLUR);
-
-            {
-                let mut shaders = self.shaders.borrow_mut();
-                match target.target_kind {
-                    RenderTargetKind::Alpha => &mut shaders.cs_blur_a8,
-                    RenderTargetKind::Color => &mut shaders.cs_blur_rgba8,
-                }.bind(&mut self.device, &projection, None, &mut self.renderer_errors, &mut self.profile);
-            }
-
-            self.draw_blurs(
-                &target.horizontal_blurs,
                 stats,
             );
         }
@@ -4607,10 +4536,33 @@ impl Renderer {
             // skipped this time.
             if !frame.has_been_rendered {
                 for (&texture_id, target) in &pass.texture_cache {
-                    self.draw_texture_cache_target(
-                        &texture_id,
+                    let texture = self.texture_resolver.get_cache_texture_mut(&texture_id);
+                    let draw_target = DrawTarget::from_texture(
+                        texture,
+                        target.needs_depth(),
+                    );
+
+                    let clear_depth = if target.needs_depth() {
+                        Some(1.0)
+                    } else {
+                        None
+                    };
+
+                    let projection = Transform3D::ortho(
+                        0.0,
+                        draw_target.dimensions().width as f32,
+                        0.0,
+                        draw_target.dimensions().height as f32,
+                        self.device.ortho_near_plane(),
+                        self.device.ortho_far_plane(),
+                    );
+
+                    self.draw_render_target(
+                        draw_target,
                         target,
+                        clear_depth,
                         &frame.render_tasks,
+                        &projection,
                         &mut results.stats,
                     );
                 }
@@ -4711,7 +4663,7 @@ impl Renderer {
                     self.device.ortho_far_plane(),
                 );
 
-                self.draw_color_target(
+                self.draw_render_target(
                     draw_target,
                     target,
                     None,
@@ -4755,7 +4707,7 @@ impl Renderer {
                     None
                 };
 
-                self.draw_color_target(
+                self.draw_render_target(
                     draw_target,
                     target,
                     clear_depth,
