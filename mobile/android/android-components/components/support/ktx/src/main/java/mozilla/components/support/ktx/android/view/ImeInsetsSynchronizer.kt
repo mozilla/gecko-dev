@@ -23,9 +23,15 @@ import androidx.core.view.WindowInsetsCompat.Type.systemBars
  *
  * @param targetView The view which will be shown on top of the keyboard while this is animated to be
  * showing or to be hidden.
+ * @param onIMEAnimationStarted Callback for when the IME animation starts.
+ * It will inform whether the keyboard is showing or hiding and the height of the keyboard.
+ * @param onIMEAnimationFinished Callback for when the IME animation finishes.
+ * It will inform whether the keyboard is showing or hiding and the height of the keyboard.
  */
 class ImeInsetsSynchronizer private constructor(
     private val targetView: View,
+    private val onIMEAnimationStarted: (Boolean, Int) -> Unit,
+    private val onIMEAnimationFinished: (Boolean, Int) -> Unit,
 ) : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE),
     OnApplyWindowInsetsListener {
 
@@ -50,7 +56,15 @@ class ImeInsetsSynchronizer private constructor(
             view.updateBottomMargin(
                 calculateBottomMargin(
                     windowInsets.keyboardInsets.bottom,
-                    windowInsets.navigationBarInsetHeight,
+                    getNavbarHeight(),
+                ),
+            )
+
+            onIMEAnimationFinished(
+                isKeyboardShowingUp,
+                calculateBottomMargin(
+                    windowInsets.keyboardInsets.bottom,
+                    getNavbarHeight(),
                 ),
             )
         }
@@ -78,9 +92,14 @@ class ImeInsetsSynchronizer private constructor(
 
             // Workaround for https://issuetracker.google.com/issues/369223558
             // We expect the keyboard to have a bigger height than the OS navigation bar.
-            if (keyboardHeight <= lastWindowInsets.navigationBarInsetHeight) {
+            if (keyboardHeight <= getNavbarHeight()) {
                 keyboardHeight = 0
             }
+
+            onIMEAnimationStarted(
+                isKeyboardShowingUp,
+                calculateBottomMargin(keyboardHeight, getNavbarHeight()),
+            )
         }
 
         return super.onStart(animation, bounds)
@@ -101,7 +120,7 @@ class ImeInsetsSynchronizer private constructor(
             targetView.updateBottomMargin(
                 calculateBottomMargin(
                     (keyboardHeight * imeAnimationFractionBasedOnDirection).toInt(),
-                    lastWindowInsets.navigationBarInsetHeight,
+                    getNavbarHeight(),
                 ),
             )
         }
@@ -134,6 +153,9 @@ class ImeInsetsSynchronizer private constructor(
             false -> 0
         }
 
+    private fun getNavbarHeight() = ViewCompat.getRootWindowInsets(targetView)
+        ?.getInsets(systemBars())?.bottom ?: lastWindowInsets.navigationBarInsetHeight
+
     private fun calculateBottomMargin(
         keyboardHeight: Int,
         navigationBarHeight: Int,
@@ -150,11 +172,17 @@ class ImeInsetsSynchronizer private constructor(
          * This works only on Android 10+, otherwise the dynamic padding based on the keyboard is not reliable.
          *
          * @param targetView The root view to add paddings to for accounting the visible keyboard height.
+         * @param onIMEAnimationStarted Callback for when the IME animation starts.
+         * It will inform whether the keyboard is showing or hiding and the height of the keyboard.
+         * @param onIMEAnimationFinished Callback for when the IME animation finishes.
+         * It will inform whether the keyboard is showing or hiding and the height of the keyboard.
          */
         fun setup(
             targetView: View,
+            onIMEAnimationStarted: (Boolean, Int) -> Unit = { _, _ -> },
+            onIMEAnimationFinished: (Boolean, Int) -> Unit = { _, _ -> },
         ) = when (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            true -> ImeInsetsSynchronizer(targetView)
+            true -> ImeInsetsSynchronizer(targetView, onIMEAnimationStarted, onIMEAnimationFinished)
             false -> null
         }
     }
