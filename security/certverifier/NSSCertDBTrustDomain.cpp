@@ -1398,7 +1398,7 @@ Result NSSCertDBTrustDomain::IsChainValid(const DERArray& reversedDERArray,
         MOZ_LOG(
             gCertVerifierLog, LogLevel::Debug,
             ("certificate has notBefore after distrust after value for root"));
-        return Result::ERROR_UNTRUSTED_ISSUER;
+        return Result::ERROR_ISSUER_NO_LONGER_TRUSTED;
       }
       MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
               ("ignoring built-in distrust after for third-party root"));

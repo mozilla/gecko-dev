@@ -333,6 +333,7 @@ mozilla-pkix-error-invalid-integer-encoding = The server presented a certificate
 mozilla-pkix-error-empty-issuer-name = The server presented a certificate with an empty issuer distinguished name.
 mozilla-pkix-error-additional-policy-constraint-failed = An additional policy constraint failed when validating this certificate.
 mozilla-pkix-error-self-signed-cert = The certificate is not trusted because it is self-signed.
+mozilla-pkix-error-issuer-no-longer-trusted = The certificate authority that issued the certificate was distrusted before the certificate was issued.
 
 xp-java-remove-principal-error = Couldn’t remove the principal
 xp-java-delete-privilege-error = Couldn’t delete the privilege
