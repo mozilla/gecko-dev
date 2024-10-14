@@ -132,6 +132,14 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
       BounceTrackingAllowList& aBounceTrackingAllowList,
       nsTArray<RefPtr<ClearDataMozPromise>>& aClearPromises);
 
+  // Helper which calls nsIClearDataService to clear data for given host and
+  // OriginAttributes.
+  // After a successful call aClearPromise will be populated.
+  [[nodiscard]] nsresult PurgeStateForHostAndOriginAttributes(
+      const nsACString& aHost, PRTime bounceTime,
+      const OriginAttributes& aOriginAttributes,
+      ClearDataMozPromise** aClearPromise);
+
   // Whether a purge operation is currently in progress. This avoids running
   // multiple purge operations at the same time.
   bool mPurgeInProgress = false;
