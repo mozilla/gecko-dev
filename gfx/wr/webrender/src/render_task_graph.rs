@@ -643,13 +643,16 @@ impl RenderTaskGraphBuilder {
                 // We'll handle it later and it's easier to not have to
                 // deal with unexpected location variants like
                 // RenderTaskLocation::CacheRequest when we do.
-                let source = cache_item.texture_id;
                 task.uv_rect_handle = cache_item.uv_rect_handle;
-                task.location = RenderTaskLocation::Static {
-                    surface: StaticRenderTaskSurface::ReadOnly { source },
-                    rect: cache_item.uv_rect,
-                };
+                if let RenderTaskLocation::CacheRequest { .. } = &task.location {
+                    let source = cache_item.texture_id;
+                    task.location = RenderTaskLocation::Static {
+                        surface: StaticRenderTaskSurface::ReadOnly { source },
+                        rect: cache_item.uv_rect,
+                    };
+                }
             }
+
             // Give the render task an opportunity to add any
             // information to the GPU cache, if appropriate.
             let target_rect = task.get_target_rect();

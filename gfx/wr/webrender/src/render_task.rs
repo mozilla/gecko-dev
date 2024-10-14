@@ -2676,10 +2676,10 @@ impl RenderTask {
                 assert_ne!(texture_id, CacheTextureId::INVALID);
                 texture_id
             }
-            RenderTaskLocation::Existing { .. } |
-            RenderTaskLocation::CacheRequest { .. } |
-            RenderTaskLocation::Unallocated { .. } |
-            RenderTaskLocation::Static { .. } => {
+            RenderTaskLocation::Static { surface: StaticRenderTaskSurface::TextureCache { texture, .. }, .. } => {
+                texture
+            }
+            _ => {
                 unreachable!();
             }
         }
