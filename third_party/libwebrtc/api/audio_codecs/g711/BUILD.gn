@@ -29,7 +29,6 @@ rtc_library("audio_encoder_g711") {
     "../../../rtc_base:stringutils",
     "../../../rtc_base/system:rtc_export",
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -48,6 +47,5 @@ rtc_library("audio_decoder_g711") {
     "../../../rtc_base:safe_conversions",
     "../../../rtc_base/system:rtc_export",
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }

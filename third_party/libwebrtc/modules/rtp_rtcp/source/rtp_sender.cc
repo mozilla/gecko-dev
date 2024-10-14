@@ -15,12 +15,12 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_packet_sender.h"
@@ -169,7 +169,7 @@ RTPSender::RTPSender(const RtpRtcpInterface::Configuration& config,
       ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       flexfec_ssrc_(config.fec_generator ? config.fec_generator->FecSsrc()
-                                         : absl::nullopt),
+                                         : std::nullopt),
       packet_history_(packet_history),
       paced_sender_(packet_sender),
       sending_media_(true),                   // Default to sending media.

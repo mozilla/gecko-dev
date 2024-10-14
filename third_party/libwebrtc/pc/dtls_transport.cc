@@ -10,9 +10,9 @@
 
 #include "pc/dtls_transport.h"
 
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/dtls_transport_interface.h"
 #include "api/make_ref_counted.h"
 #include "api/sequence_checker.h"
@@ -109,7 +109,7 @@ void DtlsTransport::UpdateInformation() {
         DtlsTransportState::kConnected) {
       bool success = true;
       rtc::SSLRole internal_role;
-      absl::optional<DtlsTransportTlsRole> role;
+      std::optional<DtlsTransportTlsRole> role;
       int ssl_cipher_suite;
       int tls_version;
       int srtp_cipher;
@@ -136,8 +136,8 @@ void DtlsTransport::UpdateInformation() {
         RTC_LOG(LS_ERROR) << "DtlsTransport in connected state has incomplete "
                              "TLS information";
         set_info(DtlsTransportInformation(
-            internal_dtls_transport_->dtls_state(), role, absl::nullopt,
-            absl::nullopt, absl::nullopt,
+            internal_dtls_transport_->dtls_state(), role, std::nullopt,
+            std::nullopt, std::nullopt,
             internal_dtls_transport_->GetRemoteSSLCertChain()));
       }
     } else {

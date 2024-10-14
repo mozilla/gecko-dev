@@ -13,7 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "net/dcsctp/public/types.h"
 
 namespace dcsctp {
@@ -128,7 +129,7 @@ struct DcSctpOptions {
   // transient network issues. Setting this value may require changing
   // `max_retransmissions` and `max_init_retransmits` to ensure that the
   // connection is not closed too quickly.
-  absl::optional<DurationMs> max_timer_backoff_duration = absl::nullopt;
+  std::optional<DurationMs> max_timer_backoff_duration = std::nullopt;
 
   // Hearbeat interval (on idle connections only). Set to zero to disable.
   DurationMs heartbeat_interval = DurationMs(30000);
@@ -183,13 +184,13 @@ struct DcSctpOptions {
   // retransmission scenarios.
   int max_burst = 4;
 
-  // Maximum Data Retransmit Attempts (per DATA chunk). Set to absl::nullopt for
+  // Maximum Data Retransmit Attempts (per DATA chunk). Set to std::nullopt for
   // no limit.
-  absl::optional<int> max_retransmissions = 10;
+  std::optional<int> max_retransmissions = 10;
 
   // Max.Init.Retransmits (https://tools.ietf.org/html/rfc4960#section-15). Set
-  // to absl::nullopt for no limit.
-  absl::optional<int> max_init_retransmits = 8;
+  // to std::nullopt for no limit.
+  std::optional<int> max_init_retransmits = 8;
 
   // RFC3758 Partial Reliability Extension
   bool enable_partial_reliability = true;

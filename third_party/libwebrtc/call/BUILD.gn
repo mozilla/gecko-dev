@@ -82,7 +82,6 @@ rtc_library("call_interfaces") {
     "../rtc_base/network:sent_packet",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -130,7 +129,6 @@ rtc_library("rtp_interfaces") {
     "../rtc_base:stringutils",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -224,7 +222,6 @@ rtc_library("rtp_sender") {
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
@@ -236,7 +233,6 @@ rtc_library("bitrate_configurator") {
   ]
   deps = [
     ":rtp_interfaces",
-    "//third_party/abseil-cpp/absl/types:optional",
 
     # For api/bitrate_constraints.h
     "../api:libjingle_peerconnection_api",
@@ -338,7 +334,6 @@ rtc_library("call") {
     "adaptation:resource_adaptation",
     "//third_party/abseil-cpp/absl/functional:bind_front",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   if (build_with_mozilla) { # See Bug 1820869.
     deps -= [
@@ -391,7 +386,6 @@ rtc_library("video_stream_api") {
     "../rtc_base:checks",
     "../rtc_base:stringutils",
     "../video/config:encoder_config",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -522,7 +516,6 @@ if (rtc_include_tests) {
         "//third_party/abseil-cpp/absl/container:inlined_vector",
         "//third_party/abseil-cpp/absl/functional:any_invocable",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
         "//third_party/abseil-cpp/absl/types:variant",
       ]
     }

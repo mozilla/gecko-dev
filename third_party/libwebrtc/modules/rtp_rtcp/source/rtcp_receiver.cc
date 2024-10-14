@@ -101,7 +101,7 @@ RTCPReceiver::RegisteredSsrcs::RegisteredSsrcs(
     ssrcs_.push_back(*config.rtx_send_ssrc);
   }
   if (config.fec_generator) {
-    absl::optional<uint32_t> flexfec_ssrc = config.fec_generator->FecSsrc();
+    std::optional<uint32_t> flexfec_ssrc = config.fec_generator->FecSsrc();
     if (flexfec_ssrc) {
       ssrcs_.push_back(*flexfec_ssrc);
     }
@@ -131,12 +131,12 @@ struct RTCPReceiver::PacketInformation {
   uint32_t remote_ssrc = 0;
   std::vector<uint16_t> nack_sequence_numbers;
   std::vector<ReportBlockData> report_block_datas;
-  absl::optional<TimeDelta> rtt;
+  std::optional<TimeDelta> rtt;
   uint32_t receiver_estimated_max_bitrate_bps = 0;
   std::unique_ptr<rtcp::TransportFeedback> transport_feedback;
-  absl::optional<rtcp::CongestionControlFeedback> congestion_control_feedback;
-  absl::optional<VideoBitrateAllocation> target_bitrate_allocation;
-  absl::optional<NetworkStateEstimate> network_state_estimate;
+  std::optional<rtcp::CongestionControlFeedback> congestion_control_feedback;
+  std::optional<VideoBitrateAllocation> target_bitrate_allocation;
+  std::optional<NetworkStateEstimate> network_state_estimate;
   std::unique_ptr<rtcp::LossNotification> loss_notification;
 };
 
@@ -260,20 +260,20 @@ void RTCPReceiver::RttStats::AddRtt(TimeDelta rtt) {
   ++num_rtts_;
 }
 
-absl::optional<TimeDelta> RTCPReceiver::AverageRtt() const {
+std::optional<TimeDelta> RTCPReceiver::AverageRtt() const {
   MutexLock lock(&rtcp_receiver_lock_);
   auto it = rtts_.find(remote_ssrc_);
   if (it == rtts_.end()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return it->second.average_rtt();
 }
 
-absl::optional<TimeDelta> RTCPReceiver::LastRtt() const {
+std::optional<TimeDelta> RTCPReceiver::LastRtt() const {
   MutexLock lock(&rtcp_receiver_lock_);
   auto it = rtts_.find(remote_ssrc_);
   if (it == rtts_.end()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return it->second.last_rtt();
 }
@@ -292,19 +292,18 @@ void RTCPReceiver::SetNonSenderRttMeasurement(bool enabled) {
   xr_rrtr_status_ = enabled;
 }
 
-absl::optional<TimeDelta> RTCPReceiver::GetAndResetXrRrRtt() {
+std::optional<TimeDelta> RTCPReceiver::GetAndResetXrRrRtt() {
   MutexLock lock(&rtcp_receiver_lock_);
-  absl::optional<TimeDelta> rtt = xr_rr_rtt_;
-  xr_rr_rtt_ = absl::nullopt;
+  std::optional<TimeDelta> rtt = xr_rr_rtt_;
+  xr_rr_rtt_ = std::nullopt;
   return rtt;
 }
 
 // Called regularly (1/sec) on the worker thread to do rtt  calculations.
-absl::optional<TimeDelta> RTCPReceiver::OnPeriodicRttUpdate(
-    Timestamp newer_than,
-    bool sending) {
+std::optional<TimeDelta> RTCPReceiver::OnPeriodicRttUpdate(Timestamp newer_than,
+                                                           bool sending) {
   // Running on the worker thread (same as construction thread).
-  absl::optional<TimeDelta> rtt;
+  std::optional<TimeDelta> rtt;
 
   if (sending) {
     // Check if we've received a report block within the last kRttUpdateInterval
@@ -338,11 +337,11 @@ absl::optional<TimeDelta> RTCPReceiver::OnPeriodicRttUpdate(
   return rtt;
 }
 
-absl::optional<RtpRtcpInterface::SenderReportStats>
+std::optional<RtpRtcpInterface::SenderReportStats>
 RTCPReceiver::GetSenderReportStats() const {
   MutexLock lock(&rtcp_receiver_lock_);
   if (!remote_sender_.last_arrival_timestamp.Valid()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   return remote_sender_;
@@ -816,7 +815,7 @@ bool RTCPReceiver::HandleBye(const CommonHeader& rtcp_block) {
     received_rrtrs_.erase(it->second);
     received_rrtrs_ssrc_it_.erase(it);
   }
-  xr_rr_rtt_ = absl::nullopt;
+  xr_rr_rtt_ = std::nullopt;
   return true;
 }
 

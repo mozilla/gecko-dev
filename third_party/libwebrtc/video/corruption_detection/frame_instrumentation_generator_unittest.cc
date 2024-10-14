@@ -11,9 +11,9 @@
 #include "video/corruption_detection/frame_instrumentation_generator.h"
 
 #include <cstdint>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/scoped_refptr.h"
 #include "api/video/encoded_image.h"
@@ -142,7 +142,7 @@ TEST(FrameInstrumentationGeneratorTest,
   encoded_image._encodedHeight = kDefaultScaledHeight;
 
   generator.OnCapturedFrame(frame);
-  absl::optional<
+  std::optional<
       absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
       data = generator.OnEncodedImage(encoded_image);
 
@@ -182,7 +182,7 @@ TEST(FrameInstrumentationGeneratorTest,
   encoded_image._encodedHeight = kDefaultScaledHeight;
 
   generator.OnCapturedFrame(frame);
-  absl::optional<
+  std::optional<
       absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
       data = generator.OnEncodedImage(encoded_image);
 
@@ -224,7 +224,7 @@ TEST(FrameInstrumentationGeneratorTest,
 
   generator.OnCapturedFrame(frame);
   generator.OnEncodedImage(encoded_image1);
-  absl::optional<
+  std::optional<
       absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
       data = generator.OnEncodedImage(encoded_image2);
 
@@ -307,11 +307,11 @@ TEST(FrameInstrumentationGeneratorTest,
     generator.OnCapturedFrame(frame1);
     generator.OnCapturedFrame(frame2);
 
-    absl::optional<
+    std::optional<
         absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
         data1 = generator.OnEncodedImage(encoded_image1);
 
-    absl::optional<
+    std::optional<
         absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
         data2 = generator.OnEncodedImage(encoded_image2);
 
@@ -357,11 +357,11 @@ TEST(FrameInstrumentationGeneratorTest,
 
     generator.OnCapturedFrame(frame);
 
-    absl::optional<
+    std::optional<
         absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
         data1 = generator.OnEncodedImage(encoded_image1);
 
-    absl::optional<
+    std::optional<
         absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
         data2 = generator.OnEncodedImage(encoded_image2);
 

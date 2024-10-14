@@ -407,7 +407,7 @@ uint32_t AudioReceiveStreamImpl::id() const {
   return remote_ssrc();
 }
 
-absl::optional<Syncable::Info> AudioReceiveStreamImpl::GetInfo() const {
+std::optional<Syncable::Info> AudioReceiveStreamImpl::GetInfo() const {
   // TODO(bugs.webrtc.org/11993): This is called via RtpStreamsSynchronizer,
   // expect to be called on the network thread.
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);

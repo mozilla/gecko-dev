@@ -412,7 +412,7 @@ UnwrappedTSN OutstandingData::highest_outstanding_tsn() const {
                              outstanding_data_.size());
 }
 
-absl::optional<UnwrappedTSN> OutstandingData::Insert(
+std::optional<UnwrappedTSN> OutstandingData::Insert(
     OutgoingMessageId message_id,
     const Data& data,
     Timestamp time_sent,
@@ -436,7 +436,7 @@ absl::optional<UnwrappedTSN> OutstandingData::Insert(
                          << " as expired";
     AbandonAllFor(item);
     RTC_DCHECK(IsConsistent());
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   RTC_DCHECK(IsConsistent());

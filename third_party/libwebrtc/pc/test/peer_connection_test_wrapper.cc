@@ -13,12 +13,12 @@
 #include <stddef.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
@@ -81,7 +81,7 @@ class FuzzyMatchedVideoEncoderFactory : public webrtc::VideoEncoderFactory {
   std::unique_ptr<webrtc::VideoEncoder> Create(
       const Environment& env,
       const webrtc::SdpVideoFormat& format) override {
-    if (absl::optional<webrtc::SdpVideoFormat> original_format =
+    if (std::optional<webrtc::SdpVideoFormat> original_format =
             webrtc::FuzzyMatchSdpVideoFormat(factory_.GetSupportedFormats(),
                                              format)) {
       return std::make_unique<webrtc::SimulcastEncoderAdapter>(
@@ -93,7 +93,7 @@ class FuzzyMatchedVideoEncoderFactory : public webrtc::VideoEncoderFactory {
 
   CodecSupport QueryCodecSupport(
       const webrtc::SdpVideoFormat& format,
-      absl::optional<std::string> scalability_mode) const override {
+      std::optional<std::string> scalability_mode) const override {
     return factory_.QueryCodecSupport(format, scalability_mode);
   }
 
@@ -207,7 +207,7 @@ PeerConnectionTestWrapper::CreateDataChannel(
   return result.MoveValue();
 }
 
-absl::optional<webrtc::RtpCodecCapability>
+std::optional<webrtc::RtpCodecCapability>
 PeerConnectionTestWrapper::FindFirstSendCodecWithName(
     cricket::MediaType media_type,
     const std::string& name) const {
@@ -218,7 +218,7 @@ PeerConnectionTestWrapper::FindFirstSendCodecWithName(
       return codec;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void PeerConnectionTestWrapper::WaitForNegotiation() {

@@ -196,7 +196,7 @@ RTCErrorOr<cricket::StreamParamsVec> ToCricketStreamParamsVec(
   return std::move(cricket_streams);
 }
 
-absl::optional<RtcpFeedback> ToRtcpFeedback(
+std::optional<RtcpFeedback> ToRtcpFeedback(
     const cricket::FeedbackParam& cricket_feedback) {
   if (cricket_feedback.id() == cricket::kRtcpFbParamCcm) {
     if (cricket_feedback.param() == cricket::kRtcpFbCcmParamFir) {
@@ -204,7 +204,7 @@ absl::optional<RtcpFeedback> ToRtcpFeedback(
     } else {
       RTC_LOG(LS_WARNING) << "Unsupported parameter for CCM RTCP feedback: "
                           << cricket_feedback.param();
-      return absl::nullopt;
+      return std::nullopt;
     }
   } else if (cricket_feedback.id() == cricket::kRtcpFbParamLntf) {
     if (cricket_feedback.param().empty()) {
@@ -212,7 +212,7 @@ absl::optional<RtcpFeedback> ToRtcpFeedback(
     } else {
       RTC_LOG(LS_WARNING) << "Unsupported parameter for LNTF RTCP feedback: "
                           << cricket_feedback.param();
-      return absl::nullopt;
+      return std::nullopt;
     }
   } else if (cricket_feedback.id() == cricket::kRtcpFbParamNack) {
     if (cricket_feedback.param().empty()) {
@@ -223,13 +223,13 @@ absl::optional<RtcpFeedback> ToRtcpFeedback(
     } else {
       RTC_LOG(LS_WARNING) << "Unsupported parameter for NACK RTCP feedback: "
                           << cricket_feedback.param();
-      return absl::nullopt;
+      return std::nullopt;
     }
   } else if (cricket_feedback.id() == cricket::kRtcpFbParamRemb) {
     if (!cricket_feedback.param().empty()) {
       RTC_LOG(LS_WARNING) << "Unsupported parameter for REMB RTCP feedback: "
                           << cricket_feedback.param();
-      return absl::nullopt;
+      return std::nullopt;
     } else {
       return RtcpFeedback(RtcpFeedbackType::REMB);
     }
@@ -238,14 +238,14 @@ absl::optional<RtcpFeedback> ToRtcpFeedback(
       RTC_LOG(LS_WARNING)
           << "Unsupported parameter for transport-cc RTCP feedback: "
           << cricket_feedback.param();
-      return absl::nullopt;
+      return std::nullopt;
     } else {
       return RtcpFeedback(RtcpFeedbackType::TRANSPORT_CC);
     }
   }
   RTC_LOG(LS_WARNING) << "Unsupported RTCP feedback type: "
                       << cricket_feedback.id();
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 std::vector<RtpEncodingParameters> ToRtpEncodings(
@@ -269,7 +269,7 @@ RtpCodecCapability ToRtpCodecCapability(const cricket::Codec& cricket_codec) {
   codec.preferred_payload_type.emplace(cricket_codec.id);
   for (const cricket::FeedbackParam& cricket_feedback :
        cricket_codec.feedback_params.params()) {
-    absl::optional<RtcpFeedback> feedback = ToRtcpFeedback(cricket_feedback);
+    std::optional<RtcpFeedback> feedback = ToRtcpFeedback(cricket_feedback);
     if (feedback) {
       codec.rtcp_feedback.push_back(feedback.value());
     }
@@ -297,7 +297,7 @@ RtpCodecParameters ToRtpCodecParameters(const cricket::Codec& cricket_codec) {
   codec_param.payload_type = cricket_codec.id;
   for (const cricket::FeedbackParam& cricket_feedback :
        cricket_codec.feedback_params.params()) {
-    absl::optional<RtcpFeedback> feedback = ToRtcpFeedback(cricket_feedback);
+    std::optional<RtcpFeedback> feedback = ToRtcpFeedback(cricket_feedback);
     if (feedback) {
       codec_param.rtcp_feedback.push_back(feedback.value());
     }

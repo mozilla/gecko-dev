@@ -73,12 +73,12 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/adaptation/resource.h"
 #include "api/async_dns_resolver.h"
 #include "api/audio/audio_device.h"
@@ -433,7 +433,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     // The below fields correspond to constraints from the deprecated
     // constraints interface for constructing a PeerConnection.
     //
-    // absl::optional fields can be "missing", in which case the implementation
+    // std::optional fields can be "missing", in which case the implementation
     // default will be used.
     //////////////////////////////////////////////////////////////////////////
 
@@ -457,7 +457,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     // Minimum bitrate at which screencast video tracks will be encoded at.
     // This means adding padding bits up to this bitrate, which can help
     // when switching from a static scene to one with motion.
-    absl::optional<int> screencast_min_bitrate;
+    std::optional<int> screencast_min_bitrate;
 
     /////////////////////////////////////////////////
     // The below fields are not part of the standard.
@@ -581,28 +581,28 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     // 3) ice_check_min_interval defines the minimal interval (equivalently the
     // maximum rate) that overrides the above two intervals when either of them
     // is less.
-    absl::optional<int> ice_check_interval_strong_connectivity;
-    absl::optional<int> ice_check_interval_weak_connectivity;
-    absl::optional<int> ice_check_min_interval;
+    std::optional<int> ice_check_interval_strong_connectivity;
+    std::optional<int> ice_check_interval_weak_connectivity;
+    std::optional<int> ice_check_min_interval;
 
     // The min time period for which a candidate pair must wait for response to
     // connectivity checks before it becomes unwritable. This parameter
     // overrides the default value in the ICE implementation if set.
-    absl::optional<int> ice_unwritable_timeout;
+    std::optional<int> ice_unwritable_timeout;
 
     // The min number of connectivity checks that a candidate pair must sent
     // without receiving response before it becomes unwritable. This parameter
     // overrides the default value in the ICE implementation if set.
-    absl::optional<int> ice_unwritable_min_checks;
+    std::optional<int> ice_unwritable_min_checks;
 
     // The min time period for which a candidate pair must wait for response to
     // connectivity checks it becomes inactive. This parameter overrides the
     // default value in the ICE implementation if set.
-    absl::optional<int> ice_inactive_timeout;
+    std::optional<int> ice_inactive_timeout;
 
     // The interval in milliseconds at which STUN candidates will resend STUN
     // binding requests to keep NAT bindings open.
-    absl::optional<int> stun_candidate_keepalive_interval;
+    std::optional<int> stun_candidate_keepalive_interval;
 
     // Optional TurnCustomizer.
     // With this class one can modify outgoing TURN messages.
@@ -614,7 +614,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     // A candidate pair on a preferred network has a higher precedence in ICE
     // than one on an un-preferred network, regardless of priority or network
     // cost.
-    absl::optional<rtc::AdapterType> network_preference;
+    std::optional<rtc::AdapterType> network_preference;
 
     // Configure the SDP semantics used by this PeerConnection. By default, this
     // is Unified Plan which is compliant to the WebRTC 1.0 specification. It is
@@ -648,7 +648,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     // Defines advanced optional cryptographic settings related to SRTP and
     // frame encryption for native WebRTC. Setting this will overwrite any
     // settings set in PeerConnectionFactory (which is deprecated).
-    absl::optional<CryptoOptions> crypto_options;
+    std::optional<CryptoOptions> crypto_options;
 
     // Configure if we should include the SDP attribute extmap-allow-mixed in
     // our offer on session level.
@@ -665,11 +665,11 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
 
     // The delay before doing a usage histogram report for long-lived
     // PeerConnections. Used for testing only.
-    absl::optional<int> report_usage_pattern_delay_ms;
+    std::optional<int> report_usage_pattern_delay_ms;
 
     // The ping interval (ms) when the connection is stable and writable. This
     // parameter overrides the default value in the ICE implementation if set.
-    absl::optional<int> stable_writable_connection_ping_interval_ms;
+    std::optional<int> stable_writable_connection_ping_interval_ms;
 
     // Whether this PeerConnection will avoid VPNs (kAvoidVpn), prefer VPNs
     // (kPreferVpn), only work over VPN (kOnlyUseVpn) or only work over non-VPN
@@ -685,7 +685,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
     PortAllocatorConfig port_allocator_config;
 
     // The burst interval of the pacer, see TaskQueuePacedSender constructor.
-    absl::optional<TimeDelta> pacer_burst_interval;
+    std::optional<TimeDelta> pacer_burst_interval;
 
     //
     // Don't forget to update operator== if adding something.
@@ -1187,7 +1187,7 @@ class RTC_EXPORT PeerConnectionInterface : public webrtc::RefCountInterface {
 
   // Returns the current state of canTrickleIceCandidates per
   // https://w3c.github.io/webrtc-pc/#attributes-1
-  virtual absl::optional<bool> can_trickle_ice_candidates() = 0;
+  virtual std::optional<bool> can_trickle_ice_candidates() = 0;
 
   // When a resource is overused, the PeerConnection will try to reduce the load
   // on the sysem, for example by reducing the resolution or frame rate of

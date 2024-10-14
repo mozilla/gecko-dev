@@ -12,10 +12,10 @@
 #define MODULES_AUDIO_CODING_NETEQ_TOOLS_NETEQ_TEST_FACTORY_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "modules/audio_coding/neteq/tools/neteq_test.h"
 
 namespace webrtc {
@@ -98,7 +98,7 @@ class NetEqTestFactory {
     // A PCM file that will be used to populate dummy RTP packets.
     std::string replacement_audio_file;
     // Only use packets with this SSRC.
-    absl::optional<uint32_t> ssrc_filter;
+    std::optional<uint32_t> ssrc_filter;
     // Extension ID for audio level (RFC 6464).
     static constexpr int default_audio_level() { return 1; }
     int audio_level = default_audio_level();
@@ -136,11 +136,11 @@ class NetEqTestFactory {
     bool textlog = false;
     // If specified and `textlog` is true, the output of `textlog` is written to
     // the specified file name.
-    absl::optional<std::string> textlog_filename;
+    std::optional<std::string> textlog_filename;
     // Base name for the output script files for plotting the delay profile.
-    absl::optional<std::string> plot_scripts_basename;
+    std::optional<std::string> plot_scripts_basename;
     // Path to the output audio file.
-    absl::optional<std::string> output_audio_filename;
+    std::optional<std::string> output_audio_filename;
     // Field trials to use during the simulation.
     std::string field_trial_string;
   };

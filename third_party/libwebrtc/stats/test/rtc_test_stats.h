@@ -13,10 +13,10 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/stats/rtc_stats.h"
 #include "rtc_base/system/rtc_export.h"
 
@@ -28,22 +28,22 @@ class RTC_EXPORT RTCTestStats : public RTCStats {
   RTCTestStats(const std::string& id, Timestamp timestamp);
   ~RTCTestStats() override;
 
-  absl::optional<bool> m_bool;
-  absl::optional<int32_t> m_int32;
-  absl::optional<uint32_t> m_uint32;
-  absl::optional<int64_t> m_int64;
-  absl::optional<uint64_t> m_uint64;
-  absl::optional<double> m_double;
-  absl::optional<std::string> m_string;
-  absl::optional<std::vector<bool>> m_sequence_bool;
-  absl::optional<std::vector<int32_t>> m_sequence_int32;
-  absl::optional<std::vector<uint32_t>> m_sequence_uint32;
-  absl::optional<std::vector<int64_t>> m_sequence_int64;
-  absl::optional<std::vector<uint64_t>> m_sequence_uint64;
-  absl::optional<std::vector<double>> m_sequence_double;
-  absl::optional<std::vector<std::string>> m_sequence_string;
-  absl::optional<std::map<std::string, uint64_t>> m_map_string_uint64;
-  absl::optional<std::map<std::string, double>> m_map_string_double;
+  std::optional<bool> m_bool;
+  std::optional<int32_t> m_int32;
+  std::optional<uint32_t> m_uint32;
+  std::optional<int64_t> m_int64;
+  std::optional<uint64_t> m_uint64;
+  std::optional<double> m_double;
+  std::optional<std::string> m_string;
+  std::optional<std::vector<bool>> m_sequence_bool;
+  std::optional<std::vector<int32_t>> m_sequence_int32;
+  std::optional<std::vector<uint32_t>> m_sequence_uint32;
+  std::optional<std::vector<int64_t>> m_sequence_int64;
+  std::optional<std::vector<uint64_t>> m_sequence_uint64;
+  std::optional<std::vector<double>> m_sequence_double;
+  std::optional<std::vector<std::string>> m_sequence_string;
+  std::optional<std::map<std::string, uint64_t>> m_map_string_uint64;
+  std::optional<std::map<std::string, double>> m_map_string_double;
 };
 
 }  // namespace webrtc

@@ -15,9 +15,9 @@
 #include <atomic>
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_mixer.h"
 #include "api/environment/environment.h"

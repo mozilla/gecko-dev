@@ -34,7 +34,7 @@ class TestClient : public sigslot::has_slots<> {
 
     SocketAddress addr;
     Buffer buf;
-    absl::optional<webrtc::Timestamp> packet_time;
+    std::optional<webrtc::Timestamp> packet_time;
   };
 
   // Default timeout for NextPacket reads.
@@ -98,7 +98,7 @@ class TestClient : public sigslot::has_slots<> {
   void OnPacket(AsyncPacketSocket* socket,
                 const rtc::ReceivedPacket& received_packet);
   void OnReadyToSend(AsyncPacketSocket* socket);
-  bool CheckTimestamp(absl::optional<webrtc::Timestamp> packet_timestamp);
+  bool CheckTimestamp(std::optional<webrtc::Timestamp> packet_timestamp);
   void AdvanceTime(int ms);
 
   ThreadProcessingFakeClock* fake_clock_ = nullptr;
@@ -106,7 +106,7 @@ class TestClient : public sigslot::has_slots<> {
   std::unique_ptr<AsyncPacketSocket> socket_;
   std::vector<std::unique_ptr<Packet>> packets_;
   int ready_to_send_count_ = 0;
-  absl::optional<webrtc::Timestamp> prev_packet_timestamp_;
+  std::optional<webrtc::Timestamp> prev_packet_timestamp_;
 };
 
 }  // namespace rtc

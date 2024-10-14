@@ -24,12 +24,12 @@
 #include <array>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio/echo_control.h"
@@ -931,8 +931,8 @@ class EchoDetector : public RefCountInterface {
       rtc::ArrayView<const float> capture_audio) = 0;
 
   struct Metrics {
-    absl::optional<double> echo_likelihood;
-    absl::optional<double> echo_likelihood_recent_max;
+    std::optional<double> echo_likelihood;
+    std::optional<double> echo_likelihood_recent_max;
   };
 
   // Collect current metrics from the echo detector.

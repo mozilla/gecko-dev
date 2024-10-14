@@ -13,8 +13,8 @@
 
 #include <list>
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
@@ -105,7 +105,7 @@ class OveruseFrameDetector {
   void FrameSent(uint32_t timestamp,
                  int64_t time_sent_in_us,
                  int64_t capture_time_us,
-                 absl::optional<int> encode_duration_us);
+                 std::optional<int> encode_duration_us);
 
   // Interface for cpu load estimation. Intended for internal use only.
   class ProcessingUsage {
@@ -116,13 +116,13 @@ class OveruseFrameDetector {
                                int64_t time_when_first_seen_us,
                                int64_t last_capture_time_us) = 0;
     // Returns encode_time in us, if there's a new measurement.
-    virtual absl::optional<int> FrameSent(
+    virtual std::optional<int> FrameSent(
         // These two argument used by old estimator.
         uint32_t timestamp,
         int64_t time_sent_in_us,
         // And these two by the new estimator.
         int64_t capture_time_us,
-        absl::optional<int> encode_duration_us) = 0;
+        std::optional<int> encode_duration_us) = 0;
 
     virtual int Value() = 0;
     virtual ~ProcessingUsage() = default;
@@ -156,7 +156,7 @@ class OveruseFrameDetector {
 
   // Stats metrics.
   CpuOveruseMetricsObserver* const metrics_observer_;
-  absl::optional<int> encode_usage_percent_ RTC_GUARDED_BY(task_checker_);
+  std::optional<int> encode_usage_percent_ RTC_GUARDED_BY(task_checker_);
 
   int64_t num_process_times_ RTC_GUARDED_BY(task_checker_);
 

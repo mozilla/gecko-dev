@@ -12,9 +12,8 @@
 #define RTC_TOOLS_NETWORK_TESTER_CONFIG_READER_H_
 
 #include <fstream>
+#include <optional>
 #include <string>
-
-#include "absl/types/optional.h"
 
 #ifdef WEBRTC_NETWORK_TESTER_PROTO
 #include "rtc_tools/network_tester/network_tester_config.pb.h"
@@ -38,7 +37,7 @@ class ConfigReader {
   ConfigReader(const ConfigReader&) = delete;
   ConfigReader& operator=(const ConfigReader&) = delete;
 
-  absl::optional<Config> GetNextConfig();
+  std::optional<Config> GetNextConfig();
 
  private:
   NetworkTesterAllConfigs proto_all_configs_;

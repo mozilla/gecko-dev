@@ -11,9 +11,9 @@
 #include "api/audio_codecs/opus_audio_decoder_factory.h"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
@@ -31,8 +31,7 @@ namespace {
 template <typename T>
 struct NotAdvertised {
   using Config = typename T::Config;
-  static absl::optional<Config> SdpToConfig(
-      const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
     return T::SdpToConfig(audio_format);
   }
   static void AppendSupportedDecoders(std::vector<AudioCodecSpec>* specs) {
@@ -40,7 +39,7 @@ struct NotAdvertised {
   }
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
       const Config& config,
-      absl::optional<AudioCodecPairId> codec_pair_id = absl::nullopt) {
+      std::optional<AudioCodecPairId> codec_pair_id = std::nullopt) {
     return T::MakeAudioDecoder(config, codec_pair_id);
   }
 };

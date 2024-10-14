@@ -13,10 +13,10 @@
 
 #include <list>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/sequence_checker.h"
 #include "api/units/time_delta.h"
@@ -75,7 +75,7 @@ class RTCPReceiver final {
     }
     void Invalidate() { round_trip_time_.reset(); }
     // https://www.w3.org/TR/webrtc-stats/#dom-rtcremoteoutboundrtpstreamstats-roundtriptime
-    absl::optional<TimeDelta> round_trip_time() const {
+    std::optional<TimeDelta> round_trip_time() const {
       return round_trip_time_;
     }
     // https://www.w3.org/TR/webrtc-stats/#dom-rtcremoteoutboundrtpstreamstats-totalroundtriptime
@@ -86,7 +86,7 @@ class RTCPReceiver final {
     }
 
    private:
-    absl::optional<TimeDelta> round_trip_time_;
+    std::optional<TimeDelta> round_trip_time_;
     TimeDelta total_round_trip_time_ = TimeDelta::Zero();
     int round_trip_time_measurements_ = 0;
   };
@@ -112,7 +112,7 @@ class RTCPReceiver final {
   bool receiver_only() const { return receiver_only_; }
 
   // Returns stats based on the received RTCP Sender Reports.
-  absl::optional<RtpRtcpInterface::SenderReportStats> GetSenderReportStats()
+  std::optional<RtpRtcpInterface::SenderReportStats> GetSenderReportStats()
       const;
 
   std::vector<rtcp::ReceiveTimeInfo> ConsumeReceivedXrReferenceTimeInfo();
@@ -123,19 +123,19 @@ class RTCPReceiver final {
                             int64_t* ntp_timestamp_ms,
                             int64_t* remote_ntp_timestamp_ms) const;
 
-  absl::optional<TimeDelta> AverageRtt() const;
-  absl::optional<TimeDelta> LastRtt() const;
+  std::optional<TimeDelta> AverageRtt() const;
+  std::optional<TimeDelta> LastRtt() const;
 
   // Returns non-sender RTT metrics for the remote SSRC.
   NonSenderRttStats GetNonSenderRTT() const;
 
   void SetNonSenderRttMeasurement(bool enabled);
-  absl::optional<TimeDelta> GetAndResetXrRrRtt();
+  std::optional<TimeDelta> GetAndResetXrRrRtt();
 
   // Called once per second on the worker thread to do rtt calculations.
   // Returns an optional rtt value if one is available.
-  absl::optional<TimeDelta> OnPeriodicRttUpdate(Timestamp newer_than,
-                                                bool sending);
+  std::optional<TimeDelta> OnPeriodicRttUpdate(Timestamp newer_than,
+                                               bool sending);
 
   // A snapshot of Report Blocks with additional data of interest to statistics.
   // Within this list, the source SSRC is unique and ReportBlockData represents
@@ -389,7 +389,7 @@ class RTCPReceiver final {
 
   // Estimated rtt, nullopt when there is no valid estimate.
   bool xr_rrtr_status_ RTC_GUARDED_BY(rtcp_receiver_lock_);
-  absl::optional<TimeDelta> xr_rr_rtt_;
+  std::optional<TimeDelta> xr_rr_rtt_;
 
   Timestamp oldest_tmmbr_info_ RTC_GUARDED_BY(rtcp_receiver_lock_);
   // Mapped by remote ssrc.

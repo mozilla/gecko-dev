@@ -29,7 +29,7 @@
 namespace webrtc {
 
 std::unique_ptr<RtpPacketizer> RtpPacketizer::Create(
-    absl::optional<VideoCodecType> type,
+    std::optional<VideoCodecType> type,
     rtc::ArrayView<const uint8_t> payload,
     PayloadSizeLimits limits,
     // Codec-specific details.

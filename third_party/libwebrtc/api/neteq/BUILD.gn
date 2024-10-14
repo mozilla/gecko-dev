@@ -25,7 +25,6 @@ rtc_source_set("neteq_api") {
     "../audio_codecs:audio_codecs_api",
     "../environment",
     "../units:timestamp",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -57,7 +56,6 @@ rtc_source_set("neteq_controller_api") {
     ":neteq_api",
     ":tick_timer",
     "../environment",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

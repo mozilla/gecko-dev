@@ -13,6 +13,7 @@
 
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -20,7 +21,6 @@
 #include "absl/flags/parse.h"
 #include "absl/flags/usage.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtp_headers.h"
 #include "logging/rtc_event_log/events/logged_rtp_rtcp.h"
@@ -75,14 +75,14 @@ using MediaType = webrtc::ParsedRtcEventLog::MediaType;
 // The empty string must be validated as true, because it is the default value
 // of the command-line flag. In this case, no value is written to the output
 // variable.
-absl::optional<uint32_t> ParseSsrc(absl::string_view str) {
+std::optional<uint32_t> ParseSsrc(absl::string_view str) {
   // Set `base` to 0 to allow detection of the "0x" prefix in case hex is used.
   return rtc::StringToNumber<uint32_t>(str, 0);
 }
 
 bool ShouldSkipStream(MediaType media_type,
                       uint32_t ssrc,
-                      absl::optional<uint32_t> ssrc_filter) {
+                      std::optional<uint32_t> ssrc_filter) {
   if (!absl::GetFlag(FLAGS_audio) && media_type == MediaType::AUDIO)
     return true;
   if (!absl::GetFlag(FLAGS_video) && media_type == MediaType::VIDEO)
@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
   std::string input_file = args[1];
   std::string output_file = args[2];
 
-  absl::optional<uint32_t> ssrc_filter;
+  std::optional<uint32_t> ssrc_filter;
   if (!absl::GetFlag(FLAGS_ssrc).empty()) {
     ssrc_filter = ParseSsrc(absl::GetFlag(FLAGS_ssrc));
     RTC_CHECK(ssrc_filter.has_value()) << "Failed to read SSRC filter flag.";

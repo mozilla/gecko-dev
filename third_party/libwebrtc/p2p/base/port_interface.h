@@ -12,12 +12,12 @@
 #define P2P_BASE_PORT_INTERFACE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/candidate.h"
 #include "api/field_trials_view.h"
 #include "api/packet_socket_factory.h"
@@ -139,7 +139,7 @@ class PortInterface {
 
   virtual std::string ToString() const = 0;
 
-  virtual void GetStunStats(absl::optional<StunStats>* stats) = 0;
+  virtual void GetStunStats(std::optional<StunStats>* stats) = 0;
 
   // Removes and deletes a connection object. `DestroyConnection` will
   // delete the connection object directly whereas `DestroyConnectionAsync`

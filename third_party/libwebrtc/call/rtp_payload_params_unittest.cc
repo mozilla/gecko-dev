@@ -13,10 +13,10 @@
 #include <string.h>
 
 #include <map>
+#include <optional>
 #include <set>
 
 #include "absl/container/inlined_vector.h"
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/transport/field_trial_based_config.h"
 #include "api/video/video_content_type.h"
@@ -144,7 +144,7 @@ TEST(RtpPayloadParamsTest, InfoMappedToRtpVideoHeader_Vp9) {
   EXPECT_EQ(kVideoRotation_90, header.rotation);
   EXPECT_EQ(VideoContentType::SCREENSHARE, header.content_type);
   EXPECT_EQ(kVideoCodecVP9, header.codec);
-  EXPECT_EQ(absl::make_optional(color_space), header.color_space);
+  EXPECT_EQ(std::make_optional(color_space), header.color_space);
   EXPECT_EQ(kPictureId + 1, vp9_header.picture_id);
   EXPECT_EQ(kTl0PicIdx, vp9_header.tl0_pic_idx);
   EXPECT_EQ(vp9_header.temporal_idx, codec_info.codecSpecific.VP9.temporal_idx);
@@ -371,7 +371,7 @@ TEST(RtpPayloadParamsTest, GenerateFrameIdWhenExternalFrameIdsAreNotProvided) {
 
   RtpPayloadParams params(kSsrc1, &state, FieldTrialBasedConfig());
   RTPVideoHeader header =
-      params.GetRtpVideoHeader(encoded_image, &codec_info, absl::nullopt);
+      params.GetRtpVideoHeader(encoded_image, &codec_info, std::nullopt);
 
   EXPECT_THAT(header.codec, Eq(kVideoCodecGeneric));
 
@@ -379,7 +379,7 @@ TEST(RtpPayloadParamsTest, GenerateFrameIdWhenExternalFrameIdsAreNotProvided) {
   EXPECT_THAT(header.generic->frame_id, Eq(123));
 
   encoded_image._frameType = VideoFrameType::kVideoFrameDelta;
-  header = params.GetRtpVideoHeader(encoded_image, &codec_info, absl::nullopt);
+  header = params.GetRtpVideoHeader(encoded_image, &codec_info, std::nullopt);
   ASSERT_TRUE(header.generic);
   EXPECT_THAT(header.generic->frame_id, Eq(124));
 }

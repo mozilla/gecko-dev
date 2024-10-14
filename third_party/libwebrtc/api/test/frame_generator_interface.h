@@ -12,9 +12,9 @@
 #define API_TEST_FRAME_GENERATOR_INTERFACE_H_
 
 #include <cstddef>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/scoped_refptr.h"
 #include "api/video/video_frame.h"
 #include "api/video/video_frame_buffer.h"
@@ -30,11 +30,11 @@ class FrameGeneratorInterface {
   };
   struct VideoFrameData {
     VideoFrameData(rtc::scoped_refptr<VideoFrameBuffer> buffer,
-                   absl::optional<VideoFrame::UpdateRect> update_rect)
+                   std::optional<VideoFrame::UpdateRect> update_rect)
         : buffer(std::move(buffer)), update_rect(update_rect) {}
 
     rtc::scoped_refptr<VideoFrameBuffer> buffer;
-    absl::optional<VideoFrame::UpdateRect> update_rect;
+    std::optional<VideoFrame::UpdateRect> update_rect;
   };
 
   enum class OutputType { kI420, kI420A, kI010, kNV12 };
@@ -56,8 +56,8 @@ class FrameGeneratorInterface {
 
   // Returns the frames per second this generator is supposed to provide
   // according to its data source. Not all frame generators know the frames per
-  // second of the data source, in such case this method returns absl::nullopt.
-  virtual absl::optional<int> fps() const = 0;
+  // second of the data source, in such case this method returns std::nullopt.
+  virtual std::optional<int> fps() const = 0;
 };
 
 }  // namespace test

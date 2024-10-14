@@ -42,7 +42,7 @@ class DecoderDatabase {
    public:
     DecoderInfo(const Environment& env,
                 const SdpAudioFormat& audio_format,
-                absl::optional<AudioCodecPairId> codec_pair_id,
+                std::optional<AudioCodecPairId> codec_pair_id,
                 AudioDecoderFactory* factory);
     DecoderInfo(DecoderInfo&&);
     ~DecoderInfo();
@@ -86,16 +86,16 @@ class DecoderDatabase {
    private:
     const Environment env_;
     const SdpAudioFormat audio_format_;
-    const absl::optional<AudioCodecPairId> codec_pair_id_;
+    const std::optional<AudioCodecPairId> codec_pair_id_;
     AudioDecoderFactory* const factory_;
     mutable std::unique_ptr<AudioDecoder> decoder_;
 
     // Set iff this is a comfort noise decoder.
     struct CngDecoder {
-      static absl::optional<CngDecoder> Create(const SdpAudioFormat& format);
+      static std::optional<CngDecoder> Create(const SdpAudioFormat& format);
       int sample_rate_hz;
     };
-    const absl::optional<CngDecoder> cng_decoder_;
+    const std::optional<CngDecoder> cng_decoder_;
 
     enum class Subtype : int8_t { kNormal, kComfortNoise, kDtmf, kRed };
 
@@ -110,7 +110,7 @@ class DecoderDatabase {
 
   DecoderDatabase(const Environment& env,
                   scoped_refptr<AudioDecoderFactory> decoder_factory,
-                  absl::optional<AudioCodecPairId> codec_pair_id);
+                  std::optional<AudioCodecPairId> codec_pair_id);
 
   virtual ~DecoderDatabase();
 
@@ -192,7 +192,7 @@ class DecoderDatabase {
   int active_cng_decoder_type_;
   mutable std::unique_ptr<ComfortNoiseDecoder> active_cng_decoder_;
   scoped_refptr<AudioDecoderFactory> decoder_factory_;
-  const absl::optional<AudioCodecPairId> codec_pair_id_;
+  const std::optional<AudioCodecPairId> codec_pair_id_;
 };
 
 }  // namespace webrtc

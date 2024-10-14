@@ -456,9 +456,9 @@ TEST_F(RtpRtcpEndToEndTest, DISABLED_TestFlexfecRtpStatePreservation) {
       return SEND_PACKET;
     }
 
-    absl::optional<uint16_t> last_observed_sequence_number_
+    std::optional<uint16_t> last_observed_sequence_number_
         RTC_GUARDED_BY(mutex_);
-    absl::optional<uint32_t> last_observed_timestamp_ RTC_GUARDED_BY(mutex_);
+    std::optional<uint32_t> last_observed_timestamp_ RTC_GUARDED_BY(mutex_);
     size_t num_flexfec_packets_sent_ RTC_GUARDED_BY(mutex_);
     Mutex mutex_;
   } observer;

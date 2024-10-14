@@ -12,10 +12,10 @@
 #define TEST_TESTSUPPORT_IVF_VIDEO_FRAME_GENERATOR_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/sequence_checker.h"
 #include "api/test/frame_generator_interface.h"
@@ -40,7 +40,7 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
   void ChangeResolution(size_t width, size_t height) override;
   Resolution GetResolution() const override;
 
-  absl::optional<int> fps() const override { return absl::nullopt; }
+  std::optional<int> fps() const override { return std::nullopt; }
 
  private:
   class DecodedCallback : public DecodedImageCallback {
@@ -51,8 +51,8 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
     int32_t Decoded(VideoFrame& decoded_image) override;
     int32_t Decoded(VideoFrame& decoded_image, int64_t decode_time_ms) override;
     void Decoded(VideoFrame& decoded_image,
-                 absl::optional<int32_t> decode_time_ms,
-                 absl::optional<uint8_t> qp) override;
+                 std::optional<int32_t> decode_time_ms,
+                 std::optional<uint8_t> qp) override;
 
    private:
     IvfVideoFrameGenerator* const reader_;
@@ -82,7 +82,7 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
   Mutex frame_decode_lock_;
 
   rtc::Event next_frame_decoded_;
-  absl::optional<VideoFrame> next_frame_ RTC_GUARDED_BY(frame_decode_lock_);
+  std::optional<VideoFrame> next_frame_ RTC_GUARDED_BY(frame_decode_lock_);
 };
 
 }  // namespace test

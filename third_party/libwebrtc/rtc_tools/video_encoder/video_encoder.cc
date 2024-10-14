@@ -377,7 +377,7 @@ class TestVideoEncoderFactoryWrapper final {
     RTC_CHECK_NE(codec_type, kVideoCodecGeneric);
 
     // Retrieve scalability mode information.
-    absl::optional<ScalabilityMode> scalability_mode =
+    std::optional<ScalabilityMode> scalability_mode =
         ScalabilityModeFromString(scalability_mode_string);
     RTC_CHECK(scalability_mode);
 
@@ -641,7 +641,7 @@ int main(int argc, char* argv[]) {
       frame_buffer_generator = webrtc::test::CreateSquareFrameGenerator(
           width, height,
           webrtc::test::FrameGeneratorInterface::OutputType::kI420,
-          absl::nullopt);
+          std::nullopt);
       RTC_CHECK(frame_buffer_generator);
 
       RTC_LOG(LS_INFO) << "CreateSquareFrameGenerator: " << width << "x"

@@ -10,10 +10,10 @@
 
 #include "pc/rtp_transmission_manager.h"
 
+#include <optional>
 #include <type_traits>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtp_transceiver_direction.h"
 #include "pc/audio_rtp_receiver.h"
@@ -520,8 +520,8 @@ void RtpTransmissionManager::CreateVideoReceiver(
 
   video_receiver->SetupMediaChannel(
       remote_sender_info.sender_id == kDefaultVideoSenderId
-          ? absl::nullopt
-          : absl::optional<uint32_t>(remote_sender_info.first_ssrc),
+          ? std::nullopt
+          : std::optional<uint32_t>(remote_sender_info.first_ssrc),
       video_media_receive_channel());
 
   auto receiver = RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(

@@ -10,9 +10,9 @@
 
 #include "api/video_codecs/h265_profile_tier_level.h"
 
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/rtp_parameters.h"
 #include "api/video/resolution.h"
 #include "rtc_base/arraysize.h"
@@ -65,10 +65,10 @@ static constexpr LevelConstraint kLevelConstraints[] = {
 }  // anonymous namespace
 
 // Annex A of https://www.itu.int/rec/T-REC-H.265 (08/21), section A.3.
-absl::optional<H265Profile> StringToH265Profile(const std::string& profile) {
-  absl::optional<int> i = rtc::StringToNumber<int>(profile);
+std::optional<H265Profile> StringToH265Profile(const std::string& profile) {
+  std::optional<int> i = rtc::StringToNumber<int>(profile);
   if (!i.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   switch (i.value()) {
@@ -95,16 +95,16 @@ absl::optional<H265Profile> StringToH265Profile(const std::string& profile) {
     case 11:
       return H265Profile::kProfileHighThroughputScreenContentCoding;
     default:
-      return absl::nullopt;
+      return std::nullopt;
   }
 }
 
 // Annex A of https://www.itu.int/rec/T-REC-H.265 (08/21), section A.4,
 // tiers and levels.
-absl::optional<H265Tier> StringToH265Tier(const std::string& tier) {
-  absl::optional<int> i = rtc::StringToNumber<int>(tier);
+std::optional<H265Tier> StringToH265Tier(const std::string& tier) {
+  std::optional<int> i = rtc::StringToNumber<int>(tier);
   if (!i.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   switch (i.value()) {
@@ -113,14 +113,14 @@ absl::optional<H265Tier> StringToH265Tier(const std::string& tier) {
     case 1:
       return H265Tier::kTier1;
     default:
-      return absl::nullopt;
+      return std::nullopt;
   }
 }
 
-absl::optional<H265Level> StringToH265Level(const std::string& level) {
-  const absl::optional<int> i = rtc::StringToNumber<int>(level);
+std::optional<H265Level> StringToH265Level(const std::string& level) {
+  const std::optional<int> i = rtc::StringToNumber<int>(level);
   if (!i.has_value())
-    return absl::nullopt;
+    return std::nullopt;
 
   switch (i.value()) {
     case 30:
@@ -150,7 +150,7 @@ absl::optional<H265Level> StringToH265Level(const std::string& level) {
     case 186:
       return H265Level::kLevel6_2;
     default:
-      return absl::nullopt;
+      return std::nullopt;
   }
 }
 
@@ -221,44 +221,44 @@ std::string H265LevelToString(H265Level level) {
   }
 }
 
-absl::optional<H265ProfileTierLevel> ParseSdpForH265ProfileTierLevel(
+std::optional<H265ProfileTierLevel> ParseSdpForH265ProfileTierLevel(
     const CodecParameterMap& params) {
   static const H265ProfileTierLevel kDefaultProfileTierLevel(
       H265Profile::kProfileMain, H265Tier::kTier0, H265Level::kLevel3_1);
   bool profile_tier_level_specified = false;
 
-  absl::optional<H265Profile> profile;
+  std::optional<H265Profile> profile;
   const auto profile_it = params.find(kH265FmtpProfile);
   if (profile_it != params.end()) {
     profile_tier_level_specified = true;
     const std::string& profile_str = profile_it->second;
     profile = StringToH265Profile(profile_str);
     if (!profile) {
-      return absl::nullopt;
+      return std::nullopt;
     }
   } else {
     profile = H265Profile::kProfileMain;
   }
-  absl::optional<H265Tier> tier;
+  std::optional<H265Tier> tier;
   const auto tier_it = params.find(kH265FmtpTier);
   if (tier_it != params.end()) {
     profile_tier_level_specified = true;
     const std::string& tier_str = tier_it->second;
     tier = StringToH265Tier(tier_str);
     if (!tier) {
-      return absl::nullopt;
+      return std::nullopt;
     }
   } else {
     tier = H265Tier::kTier0;
   }
-  absl::optional<H265Level> level;
+  std::optional<H265Level> level;
   const auto level_it = params.find(kH265FmtpLevel);
   if (level_it != params.end()) {
     profile_tier_level_specified = true;
     const std::string& level_str = level_it->second;
     level = StringToH265Level(level_str);
     if (!level) {
-      return absl::nullopt;
+      return std::nullopt;
     }
   } else {
     level = H265Level::kLevel3_1;
@@ -266,7 +266,7 @@ absl::optional<H265ProfileTierLevel> ParseSdpForH265ProfileTierLevel(
 
   // Spec Table A.9, level 1 to level 3.1 does not allow high tiers.
   if (level <= H265Level::kLevel3_1 && tier == H265Tier::kTier1) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   return !profile_tier_level_specified
@@ -277,16 +277,16 @@ absl::optional<H265ProfileTierLevel> ParseSdpForH265ProfileTierLevel(
 
 bool H265IsSameProfileTierLevel(const CodecParameterMap& params1,
                                 const CodecParameterMap& params2) {
-  const absl::optional<H265ProfileTierLevel> ptl1 =
+  const std::optional<H265ProfileTierLevel> ptl1 =
       ParseSdpForH265ProfileTierLevel(params1);
-  const absl::optional<H265ProfileTierLevel> ptl2 =
+  const std::optional<H265ProfileTierLevel> ptl2 =
       ParseSdpForH265ProfileTierLevel(params2);
   return ptl1 && ptl2 && ptl1->profile == ptl2->profile &&
          ptl1->tier == ptl2->tier && ptl1->level == ptl2->level;
 }
 
-absl::optional<H265Level> GetSupportedH265Level(const Resolution& resolution,
-                                                float max_fps) {
+std::optional<H265Level> GetSupportedH265Level(const Resolution& resolution,
+                                               float max_fps) {
   int aligned_width =
       (resolution.width + kMinCbSizeYMax - 1) & ~(kMinCbSizeYMax - 1);
   int aligned_height =
@@ -303,7 +303,7 @@ absl::optional<H265Level> GetSupportedH265Level(const Resolution& resolution,
       return level_constraint.level;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace webrtc

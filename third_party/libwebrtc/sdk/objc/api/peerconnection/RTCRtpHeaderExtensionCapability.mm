@@ -48,7 +48,7 @@
   webrtc::RtpHeaderExtensionCapability rtpHeaderExtensionCapability;
   rtpHeaderExtensionCapability.uri = [NSString stdStringForString:_uri];
   if (_preferredId != nil) {
-    rtpHeaderExtensionCapability.preferred_id = absl::optional<int>(_preferredId.intValue);
+    rtpHeaderExtensionCapability.preferred_id = std::optional<int>(_preferredId.intValue);
   }
   rtpHeaderExtensionCapability.preferred_encrypt = _preferredEncrypted;
   return rtpHeaderExtensionCapability;

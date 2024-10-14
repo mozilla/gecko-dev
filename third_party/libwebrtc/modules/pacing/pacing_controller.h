@@ -17,9 +17,9 @@
 #include <array>
 #include <atomic>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/function_view.h"
 #include "api/rtp_packet_sender.h"
@@ -62,8 +62,8 @@ class PacingController {
     virtual void OnAbortedRetransmissions(
         uint32_t ssrc,
         rtc::ArrayView<const uint16_t> sequence_numbers) {}
-    virtual absl::optional<uint32_t> GetRtxSsrcForMedia(uint32_t ssrc) const {
-      return absl::nullopt;
+    virtual std::optional<uint32_t> GetRtxSsrcForMedia(uint32_t ssrc) const {
+      return std::nullopt;
     }
   };
 
@@ -179,7 +179,7 @@ class PacingController {
   DataSize CurrentBufferLevel() const;
 
   // Returns the time when the first packet was sent.
-  absl::optional<Timestamp> FirstSentPacketTime() const;
+  std::optional<Timestamp> FirstSentPacketTime() const;
 
   // Returns the number of milliseconds it will take to send the current
   // packets in the queue, given the current size and bitrate, ignoring prio.
@@ -275,7 +275,7 @@ class PacingController {
 
   Timestamp last_process_time_;
   Timestamp last_send_time_;
-  absl::optional<Timestamp> first_sent_packet_time_;
+  std::optional<Timestamp> first_sent_packet_time_;
   bool seen_first_packet_;
 
   PrioritizedPacketQueue packet_queue_;

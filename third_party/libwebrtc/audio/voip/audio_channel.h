@@ -59,7 +59,7 @@ class AudioChannel : public RefCountInterface {
                   std::unique_ptr<AudioEncoder> encoder) {
     egress_->SetEncoder(payload_type, encoder_format, std::move(encoder));
   }
-  absl::optional<SdpAudioFormat> GetEncoderFormat() const {
+  std::optional<SdpAudioFormat> GetEncoderFormat() const {
     return egress_->GetEncoderFormat();
   }
   void RegisterTelephoneEventType(int rtp_payload_type, int sample_rate_hz) {

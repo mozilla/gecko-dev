@@ -109,7 +109,7 @@ class AudioReceiveStreamImpl final : public webrtc::AudioReceiveStreamInterface,
 
   // Syncable
   uint32_t id() const override;
-  absl::optional<Syncable::Info> GetInfo() const override;
+  std::optional<Syncable::Info> GetInfo() const override;
   bool GetPlayoutRtpTimestamp(uint32_t* rtp_timestamp,
                               int64_t* time_ms) const override;
   void SetEstimatedPlayoutNtpTimestampMs(int64_t ntp_timestamp_ms,

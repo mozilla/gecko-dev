@@ -309,7 +309,7 @@ void RtpPacketHistory::Clear() {
 
 void RtpPacketHistory::Reset() {
   packet_history_.clear();
-  large_payload_packet_ = absl::nullopt;
+  large_payload_packet_ = std::nullopt;
 }
 
 void RtpPacketHistory::CullOldPackets() {

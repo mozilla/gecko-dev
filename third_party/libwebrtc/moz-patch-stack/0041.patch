@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d0b311007c033e838
  11 files changed, 55 insertions(+), 10 deletions(-)
 
 diff --git a/audio/audio_receive_stream.cc b/audio/audio_receive_stream.cc
-index d494b63438..117cbfeec6 100644
+index 44c95f3c04..cd11e7163b 100644
 --- a/audio/audio_receive_stream.cc
 +++ b/audio/audio_receive_stream.cc
 @@ -43,6 +43,8 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
@@ -42,11 +42,11 @@ index d494b63438..117cbfeec6 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index e403cfade3..91e0016302 100644
+index 7fcdf66cf8..3021453d03 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
 @@ -105,7 +105,8 @@ class ChannelReceive : public ChannelReceiveInterface,
-       absl::optional<AudioCodecPairId> codec_pair_id,
+       std::optional<AudioCodecPairId> codec_pair_id,
        rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
        const webrtc::CryptoOptions& crypto_options,
 -      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer);
@@ -56,7 +56,7 @@ index e403cfade3..91e0016302 100644
  
    void SetSink(AudioSinkInterface* sink) override;
 @@ -533,7 +534,8 @@ ChannelReceive::ChannelReceive(
-     absl::optional<AudioCodecPairId> codec_pair_id,
+     std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
 -    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer)
@@ -74,7 +74,7 @@ index e403cfade3..91e0016302 100644
    if (frame_transformer)
      InitFrameTransformerDelegate(std::move(frame_transformer));
 @@ -1119,13 +1122,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
-     absl::optional<AudioCodecPairId> codec_pair_id,
+     std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
 -    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer) {
@@ -91,7 +91,7 @@ index e403cfade3..91e0016302 100644
  
  }  // namespace voe
 diff --git a/audio/channel_receive.h b/audio/channel_receive.h
-index 0e73eac6b4..2668737a85 100644
+index 0a1157324d..0d5b76565e 100644
 --- a/audio/channel_receive.h
 +++ b/audio/channel_receive.h
 @@ -29,6 +29,7 @@
@@ -103,7 +103,7 @@ index 0e73eac6b4..2668737a85 100644
  
  // TODO(solenberg, nisse): This file contains a few NOLINT marks, to silence
 @@ -185,7 +186,8 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
-     absl::optional<AudioCodecPairId> codec_pair_id,
+     std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
 -    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer);
@@ -113,11 +113,11 @@ index 0e73eac6b4..2668737a85 100644
  }  // namespace voe
  }  // namespace webrtc
 diff --git a/call/audio_receive_stream.h b/call/audio_receive_stream.h
-index f2118e81ab..35d80151f3 100644
+index 5154360afb..ae8c4e18e6 100644
 --- a/call/audio_receive_stream.h
 +++ b/call/audio_receive_stream.h
 @@ -19,6 +19,7 @@
- #include "absl/types/optional.h"
+ 
  #include "api/audio_codecs/audio_decoder_factory.h"
  #include "api/call/transport.h"
 +#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -147,7 +147,7 @@ index 8d88ce23c6..9ee9ed3e76 100644
    return ss.str();
  }
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 673e371c52..e3539635d3 100644
+index 5ee6287c1c..e992577184 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -20,6 +20,7 @@
@@ -168,7 +168,7 @@ index 673e371c52..e3539635d3 100644
  
      // Transport for outgoing packets (RTCP).
 diff --git a/modules/rtp_rtcp/include/rtp_rtcp_defines.h b/modules/rtp_rtcp/include/rtp_rtcp_defines.h
-index 911a4eb2af..838e8cf0c8 100644
+index eb4d1d019c..2bdfe53ab9 100644
 --- a/modules/rtp_rtcp/include/rtp_rtcp_defines.h
 +++ b/modules/rtp_rtcp/include/rtp_rtcp_defines.h
 @@ -184,6 +184,14 @@ class NetworkLinkRtcpObserver {
@@ -187,7 +187,7 @@ index 911a4eb2af..838e8cf0c8 100644
  static constexpr size_t kNumMediaTypes = 5;
  enum class RtpPacketMediaType : size_t {
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index c50bc380b0..076353bede 100644
+index 9e2d4efbd2..2619c4011d 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
 @@ -149,6 +149,7 @@ RTCPReceiver::RTCPReceiver(const RtpRtcpInterface::Configuration& config,
@@ -206,7 +206,7 @@ index c50bc380b0..076353bede 100644
        rtcp_intra_frame_observer_(config.intra_frame_callback),
        rtcp_loss_notification_observer_(config.rtcp_loss_notification_observer),
        network_state_estimate_observer_(config.network_state_estimate_observer),
-@@ -792,6 +794,10 @@ bool RTCPReceiver::HandleBye(const CommonHeader& rtcp_block) {
+@@ -791,6 +793,10 @@ bool RTCPReceiver::HandleBye(const CommonHeader& rtcp_block) {
      return false;
    }
  
@@ -217,7 +217,7 @@ index c50bc380b0..076353bede 100644
    // Clear our lists.
    rtts_.erase(bye.sender_ssrc());
    EraseIf(received_report_blocks_, [&](const auto& elem) {
-@@ -1228,12 +1234,20 @@ std::vector<rtcp::TmmbItem> RTCPReceiver::TmmbrReceived() {
+@@ -1227,12 +1233,20 @@ std::vector<rtcp::TmmbItem> RTCPReceiver::TmmbrReceived() {
  }
  
  bool RTCPReceiver::RtcpRrTimeoutLocked(Timestamp now) {
@@ -241,7 +241,7 @@ index c50bc380b0..076353bede 100644
  
  }  // namespace webrtc
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.h b/modules/rtp_rtcp/source/rtcp_receiver.h
-index 44a44f5440..76857576b5 100644
+index 72687c27af..0f528e56be 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.h
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.h
 @@ -365,6 +365,7 @@ class RTCPReceiver final {
@@ -253,7 +253,7 @@ index 44a44f5440..76857576b5 100644
    RtcpLossNotificationObserver* const rtcp_loss_notification_observer_;
    NetworkStateEstimateObserver* const network_state_estimate_observer_;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index 002f249d17..68d3fe60e0 100644
+index 0591d68db8..1c50d3fe52 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 @@ -68,6 +68,9 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
@@ -267,7 +267,7 @@ index 002f249d17..68d3fe60e0 100644
  
      // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 36645c595a..7ed659e9f3 100644
+index 23c3d3f6eb..931c29d8c8 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -82,7 +82,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(

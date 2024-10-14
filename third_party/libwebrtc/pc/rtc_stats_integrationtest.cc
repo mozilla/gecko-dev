@@ -12,13 +12,13 @@
 #include <string.h>
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/audio_options.h"
@@ -160,14 +160,14 @@ class RTCStatsVerifier {
   }
 
   template <typename T>
-  void MarkAttributeTested(const absl::optional<T>& field,
+  void MarkAttributeTested(const std::optional<T>& field,
                            bool test_successful) {
     untested_attribute_names_.erase(stats_->GetAttribute(field).name());
     all_tests_successful_ &= test_successful;
   }
 
   template <typename T>
-  void TestAttributeIsDefined(const absl::optional<T>& field) {
+  void TestAttributeIsDefined(const std::optional<T>& field) {
     EXPECT_TRUE(field.has_value())
         << stats_->type() << "." << stats_->GetAttribute(field).name() << "["
         << stats_->id() << "] was undefined.";
@@ -175,7 +175,7 @@ class RTCStatsVerifier {
   }
 
   template <typename T>
-  void TestAttributeIsUndefined(const absl::optional<T>& field) {
+  void TestAttributeIsUndefined(const std::optional<T>& field) {
     Attribute attribute = stats_->GetAttribute(field);
     EXPECT_FALSE(field.has_value())
         << stats_->type() << "." << attribute.name() << "[" << stats_->id()
@@ -184,7 +184,7 @@ class RTCStatsVerifier {
   }
 
   template <typename T>
-  void TestAttributeIsPositive(const absl::optional<T>& field) {
+  void TestAttributeIsPositive(const std::optional<T>& field) {
     Attribute attribute = stats_->GetAttribute(field);
     EXPECT_TRUE(field.has_value()) << stats_->type() << "." << attribute.name()
                                    << "[" << stats_->id() << "] was undefined.";
@@ -200,7 +200,7 @@ class RTCStatsVerifier {
   }
 
   template <typename T>
-  void TestAttributeIsNonNegative(const absl::optional<T>& field) {
+  void TestAttributeIsNonNegative(const std::optional<T>& field) {
     Attribute attribute = stats_->GetAttribute(field);
     EXPECT_TRUE(field.has_value()) << stats_->type() << "." << attribute.name()
                                    << "[" << stats_->id() << "] was undefined.";
@@ -216,13 +216,13 @@ class RTCStatsVerifier {
   }
 
   template <typename T>
-  void TestAttributeIsIDReference(const absl::optional<T>& field,
+  void TestAttributeIsIDReference(const std::optional<T>& field,
                                   const char* expected_type) {
     TestAttributeIsIDReference(field, expected_type, false);
   }
 
   template <typename T>
-  void TestAttributeIsOptionalIDReference(const absl::optional<T>& field,
+  void TestAttributeIsOptionalIDReference(const std::optional<T>& field,
                                           const char* expected_type) {
     TestAttributeIsIDReference(field, expected_type, true);
   }
@@ -239,7 +239,7 @@ class RTCStatsVerifier {
 
  private:
   template <typename T>
-  void TestAttributeIsIDReference(const absl::optional<T>& field,
+  void TestAttributeIsIDReference(const std::optional<T>& field,
                                   const char* expected_type,
                                   bool optional) {
     if (optional && !field.has_value()) {

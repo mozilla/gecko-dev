@@ -63,7 +63,7 @@ class AudioTransportImpl : public AudioTransport {
       uint32_t currentMicLevel,
       bool keyPressed,
       uint32_t& newMicLevel,
-      absl::optional<int64_t> estimated_capture_time_ns) override;
+      std::optional<int64_t> estimated_capture_time_ns) override;
 
   int32_t NeedMorePlayData(size_t nSamples,
                            size_t nBytesPerSample,

@@ -23,10 +23,10 @@
 #include <stddef.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/ref_count.h"
 #include "api/rtc_error.h"
 #include "rtc_base/system/rtc_export.h"
@@ -117,7 +117,7 @@ RTC_EXPORT const char* SdpTypeToString(SdpType type);
 // Returns the SdpType from its string form. The string form can be one of the
 // constants defined in SessionDescriptionInterface. Passing in any other string
 // results in nullopt.
-RTC_EXPORT absl::optional<SdpType> SdpTypeFromString(
+RTC_EXPORT std::optional<SdpType> SdpTypeFromString(
     const std::string& type_str);
 
 // Class representation of an SDP session description.

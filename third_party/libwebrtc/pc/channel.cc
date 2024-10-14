@@ -170,7 +170,7 @@ bool BaseChannel::ConnectToRtpTransport_n() {
   rtp_transport_->SubscribeReadyToSend(
       this, [this](bool ready) { OnTransportReadyToSend(ready); });
   rtp_transport_->SubscribeNetworkRouteChanged(
-      this, [this](absl::optional<rtc::NetworkRoute> route) {
+      this, [this](std::optional<rtc::NetworkRoute> route) {
         OnNetworkRouteChanged(route);
       });
   rtp_transport_->SubscribeWritableState(
@@ -335,7 +335,7 @@ void BaseChannel::OnWritableState(bool writable) {
 }
 
 void BaseChannel::OnNetworkRouteChanged(
-    absl::optional<rtc::NetworkRoute> network_route) {
+    std::optional<rtc::NetworkRoute> network_route) {
   RTC_DCHECK_RUN_ON(network_thread());
   RTC_DCHECK(network_initialized());
 
@@ -449,7 +449,7 @@ void BaseChannel::OnRtpPacket(const webrtc::RtpPacketReceived& parsed_packet) {
 
 bool BaseChannel::MaybeUpdateDemuxerAndRtpExtensions_w(
     bool update_demuxer,
-    absl::optional<RtpHeaderExtensions> extensions,
+    std::optional<RtpHeaderExtensions> extensions,
     std::string& error_desc) {
   if (extensions) {
     if (rtp_header_extensions_ == extensions) {
@@ -911,8 +911,8 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
   bool success = MaybeUpdateDemuxerAndRtpExtensions_w(
       criteria_modified,
       update_header_extensions
-          ? absl::optional<RtpHeaderExtensions>(std::move(header_extensions))
-          : absl::nullopt,
+          ? std::optional<RtpHeaderExtensions>(std::move(header_extensions))
+          : std::nullopt,
       error_desc);
 
   RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(1);
@@ -1056,7 +1056,7 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
       }
 
       if (may_ignore_packetization) {
-        send_codec.packetization = absl::nullopt;
+        send_codec.packetization = std::nullopt;
         needs_send_params_update = true;
       } else if (!has_matching_packetization) {
         error_desc = StringFormat(
@@ -1113,8 +1113,8 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
   bool success = MaybeUpdateDemuxerAndRtpExtensions_w(
       criteria_modified,
       update_header_extensions
-          ? absl::optional<RtpHeaderExtensions>(std::move(header_extensions))
-          : absl::nullopt,
+          ? std::optional<RtpHeaderExtensions>(std::move(header_extensions))
+          : std::nullopt,
       error_desc);
 
   RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(1);
@@ -1170,7 +1170,7 @@ bool VideoChannel::SetRemoteContent_w(const MediaContentDescription* content,
       }
 
       if (may_ignore_packetization) {
-        recv_codec.packetization = absl::nullopt;
+        recv_codec.packetization = std::nullopt;
         needs_recv_params_update = true;
       } else if (!has_matching_packetization) {
         error_desc = StringFormat(

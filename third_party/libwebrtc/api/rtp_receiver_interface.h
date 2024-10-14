@@ -14,11 +14,11 @@
 #ifndef API_RTP_RECEIVER_INTERFACE_H_
 #define API_RTP_RECEIVER_INTERFACE_H_
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/dtls_transport_interface.h"
 #include "api/frame_transformer_interface.h"
@@ -91,7 +91,7 @@ class RTC_EXPORT RtpReceiverInterface : public webrtc::RefCountInterface,
   // positive value including 0.0 measured in seconds. `nullopt` means default
   // value must be used.
   virtual void SetJitterBufferMinimumDelay(
-      absl::optional<double> delay_seconds) = 0;
+      std::optional<double> delay_seconds) = 0;
 
   // TODO(zhihuang): Remove the default implementation once the subclasses
   // implement this. Currently, the only relevant subclass is the

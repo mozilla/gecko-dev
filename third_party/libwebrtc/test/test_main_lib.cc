@@ -15,6 +15,7 @@
 #include <fstream>
 #include <ios>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -22,7 +23,6 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/test/metrics/chrome_perf_dashboard_metrics_exporter.h"
 #include "api/test/metrics/global_metrics_logger_and_exporter.h"
 #include "api/test/metrics/metrics_exporter.h"
@@ -167,11 +167,11 @@ class TestMainImpl : public TestMain {
       StartTracingCapture(trace_event_path);
     }
 
-    absl::optional<std::vector<std::string>> metrics_to_plot =
+    std::optional<std::vector<std::string>> metrics_to_plot =
         absl::GetFlag(FLAGS_plot);
 
     if (metrics_to_plot->empty()) {
-      metrics_to_plot = absl::nullopt;
+      metrics_to_plot = std::nullopt;
     } else {
       if (metrics_to_plot->size() == 1 &&
           (*metrics_to_plot)[0] == kPlotAllMetrics) {

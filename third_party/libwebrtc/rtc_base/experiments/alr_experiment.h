@@ -13,8 +13,9 @@
 
 #include <stdint.h>
 
+#include <optional>
+
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 
 namespace webrtc {
@@ -35,7 +36,7 @@ struct AlrExperimentSettings {
   static constexpr absl::string_view kStrictPacingAndProbingExperimentName =
       "WebRTC-StrictPacingAndProbing";
 
-  static absl::optional<AlrExperimentSettings> CreateFromFieldTrial(
+  static std::optional<AlrExperimentSettings> CreateFromFieldTrial(
       const FieldTrialsView& key_value_config,
       absl::string_view experiment_name);
   static bool MaxOneFieldTrialEnabled(const FieldTrialsView& key_value_config);

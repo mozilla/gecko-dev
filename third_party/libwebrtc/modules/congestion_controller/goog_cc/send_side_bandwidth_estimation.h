@@ -17,10 +17,10 @@
 
 #include <deque>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/transport/bandwidth_usage.h"
 #include "api/transport/network_types.h"
@@ -43,7 +43,7 @@ class LinkCapacityTracker {
   void UpdateDelayBasedEstimate(Timestamp at_time,
                                 DataRate delay_based_bitrate);
   void OnStartingRate(DataRate start_rate);
-  void OnRateUpdate(absl::optional<DataRate> acknowledged,
+  void OnRateUpdate(std::optional<DataRate> acknowledged,
                     DataRate target,
                     Timestamp at_time);
   void OnRttBackoff(DataRate backoff_rate, Timestamp at_time);
@@ -115,18 +115,18 @@ class SendSideBandwidthEstimation {
   // Call when we receive a RTCP message with a ReceiveBlock.
   void UpdateRtt(TimeDelta rtt, Timestamp at_time);
 
-  void SetBitrates(absl::optional<DataRate> send_bitrate,
+  void SetBitrates(std::optional<DataRate> send_bitrate,
                    DataRate min_bitrate,
                    DataRate max_bitrate,
                    Timestamp at_time);
   void SetSendBitrate(DataRate bitrate, Timestamp at_time);
   void SetMinMaxBitrate(DataRate min_bitrate, DataRate max_bitrate);
   int GetMinBitrate() const;
-  void SetAcknowledgedRate(absl::optional<DataRate> acknowledged_rate,
+  void SetAcknowledgedRate(std::optional<DataRate> acknowledged_rate,
                            Timestamp at_time);
   void UpdateLossBasedEstimator(const TransportPacketsFeedback& report,
                                 BandwidthUsage delay_detector_state,
-                                absl::optional<DataRate> probe_bitrate,
+                                std::optional<DataRate> probe_bitrate,
                                 bool in_alr);
   bool PaceAtLossBasedEstimate() const;
 
@@ -178,7 +178,7 @@ class SendSideBandwidthEstimation {
   int lost_packets_since_last_loss_update_;
   int expected_packets_since_last_loss_update_;
 
-  absl::optional<DataRate> acknowledged_rate_;
+  std::optional<DataRate> acknowledged_rate_;
   DataRate current_target_;
   DataRate last_logged_target_;
   DataRate min_bitrate_configured_;

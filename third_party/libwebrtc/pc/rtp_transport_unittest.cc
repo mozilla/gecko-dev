@@ -40,7 +40,7 @@ class SignalObserver : public sigslot::has_slots<> {
     transport->SubscribeReadyToSend(
         this, [this](bool ready) { OnReadyToSend(ready); });
     transport->SubscribeNetworkRouteChanged(
-        this, [this](absl::optional<rtc::NetworkRoute> route) {
+        this, [this](std::optional<rtc::NetworkRoute> route) {
           OnNetworkRouteChanged(route);
         });
     if (transport->rtp_packet_transport()) {
@@ -57,8 +57,8 @@ class SignalObserver : public sigslot::has_slots<> {
   bool ready() const { return ready_; }
   void OnReadyToSend(bool ready) { ready_ = ready; }
 
-  absl::optional<rtc::NetworkRoute> network_route() { return network_route_; }
-  void OnNetworkRouteChanged(absl::optional<rtc::NetworkRoute> network_route) {
+  std::optional<rtc::NetworkRoute> network_route() { return network_route_; }
+  void OnNetworkRouteChanged(std::optional<rtc::NetworkRoute> network_route) {
     network_route_ = network_route;
   }
 
@@ -81,7 +81,7 @@ class SignalObserver : public sigslot::has_slots<> {
   int rtcp_transport_sent_count_ = 0;
   RtpTransport* transport_ = nullptr;
   bool ready_ = false;
-  absl::optional<rtc::NetworkRoute> network_route_;
+  std::optional<rtc::NetworkRoute> network_route_;
 };
 
 TEST(RtpTransportTest, SettingRtcpAndRtpSignalsReady) {
@@ -164,7 +164,7 @@ TEST(RtpTransportTest, SetRtpTransportWithNetworkRouteChanged) {
   network_route.remote = rtc::RouteEndpoint::CreateWithNetworkId(kRemoteNetId);
   network_route.last_sent_packet_id = kLastPacketId;
   network_route.packet_overhead = kTransportOverheadPerPacket;
-  fake_rtp.SetNetworkRoute(absl::optional<rtc::NetworkRoute>(network_route));
+  fake_rtp.SetNetworkRoute(std::optional<rtc::NetworkRoute>(network_route));
   transport.SetRtpPacketTransport(&fake_rtp);
   ASSERT_TRUE(observer.network_route());
   EXPECT_TRUE(observer.network_route()->connected);
@@ -193,7 +193,7 @@ TEST(RtpTransportTest, SetRtcpTransportWithNetworkRouteChanged) {
   network_route.remote = rtc::RouteEndpoint::CreateWithNetworkId(kRemoteNetId);
   network_route.last_sent_packet_id = kLastPacketId;
   network_route.packet_overhead = kTransportOverheadPerPacket;
-  fake_rtcp.SetNetworkRoute(absl::optional<rtc::NetworkRoute>(network_route));
+  fake_rtcp.SetNetworkRoute(std::optional<rtc::NetworkRoute>(network_route));
   transport.SetRtcpPacketTransport(&fake_rtcp);
   ASSERT_TRUE(observer.network_route());
   EXPECT_TRUE(observer.network_route()->connected);

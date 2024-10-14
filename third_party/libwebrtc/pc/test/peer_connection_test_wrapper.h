@@ -65,7 +65,7 @@ class PeerConnectionTestWrapper
       const std::string& label,
       const webrtc::DataChannelInit& init);
 
-  absl::optional<webrtc::RtpCodecCapability> FindFirstSendCodecWithName(
+  std::optional<webrtc::RtpCodecCapability> FindFirstSendCodecWithName(
       cricket::MediaType media_type,
       const std::string& name) const;
 

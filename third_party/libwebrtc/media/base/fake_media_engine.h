@@ -92,8 +92,8 @@ class RtpReceiveChannelHelper : public Base, public MediaChannelUtil {
   bool CheckNoRtcp() { return rtcp_packets_.empty(); }
   void set_fail_set_recv_codecs(bool fail) { fail_set_recv_codecs_ = fail; }
   void ResetUnsignaledRecvStream() override {}
-  absl::optional<uint32_t> GetUnsignaledSsrc() const override {
-    return absl::nullopt;
+  std::optional<uint32_t> GetUnsignaledSsrc() const override {
+    return std::nullopt;
   }
   void ChooseReceiverReportSsrc(const std::set<uint32_t>& choices) override {}
 
@@ -481,8 +481,7 @@ class FakeVoiceMediaReceiveChannel
   bool GetOutputVolume(uint32_t ssrc, double* volume);
 
   bool SetBaseMinimumPlayoutDelayMs(uint32_t ssrc, int delay_ms) override;
-  absl::optional<int> GetBaseMinimumPlayoutDelayMs(
-      uint32_t ssrc) const override;
+  std::optional<int> GetBaseMinimumPlayoutDelayMs(uint32_t ssrc) const override;
 
   bool GetStats(VoiceMediaReceiveInfo* info,
                 bool get_and_clear_legacy_stats) override;
@@ -508,7 +507,7 @@ class FakeVoiceMediaReceiveChannel
                 int sample_rate,
                 size_t number_of_channels,
                 size_t number_of_frames,
-                absl::optional<int64_t> absolute_capture_timestamp_ms) override;
+                std::optional<int64_t> absolute_capture_timestamp_ms) override;
     void OnClose() override;
     int NumPreferredChannels() const override { return -1; }
     AudioSource* source() const;
@@ -577,7 +576,7 @@ class FakeVoiceMediaSendChannel
   bool SendCodecHasNack() const override { return false; }
   void SetSendCodecChangedCallback(
       absl::AnyInvocable<void()> callback) override {}
-  absl::optional<Codec> GetSendCodec() const override;
+  std::optional<Codec> GetSendCodec() const override;
 
   bool GetStats(VoiceMediaSendInfo* stats) override;
 
@@ -591,7 +590,7 @@ class FakeVoiceMediaSendChannel
                 int sample_rate,
                 size_t number_of_channels,
                 size_t number_of_frames,
-                absl::optional<int64_t> absolute_capture_timestamp_ms) override;
+                std::optional<int64_t> absolute_capture_timestamp_ms) override;
     void OnClose() override;
     int NumPreferredChannels() const override { return -1; }
     AudioSource* source() const;
@@ -662,8 +661,7 @@ class FakeVideoMediaReceiveChannel
   std::vector<webrtc::RtpSource> GetSources(uint32_t ssrc) const override;
 
   bool SetBaseMinimumPlayoutDelayMs(uint32_t ssrc, int delay_ms) override;
-  absl::optional<int> GetBaseMinimumPlayoutDelayMs(
-      uint32_t ssrc) const override;
+  std::optional<int> GetBaseMinimumPlayoutDelayMs(uint32_t ssrc) const override;
 
   void SetRecordableEncodedFrameCallback(
       uint32_t ssrc,
@@ -674,7 +672,7 @@ class FakeVideoMediaReceiveChannel
   void SetReceiverFeedbackParameters(bool lntf_enabled,
                                      bool nack_enabled,
                                      webrtc::RtcpMode rtcp_mode,
-                                     absl::optional<int> rtx_time) override {}
+                                     std::optional<int> rtx_time) override {}
   bool GetStats(VideoMediaReceiveInfo* info) override;
 
   bool AddDefaultRecvStreamForTesting(const StreamParams& sp) override {
@@ -720,7 +718,7 @@ class FakeVideoMediaSendChannel
   int max_bps() const;
   bool SetSenderParameters(const VideoSenderParameters& params) override;
 
-  absl::optional<Codec> GetSendCodec() const override;
+  std::optional<Codec> GetSendCodec() const override;
 
   bool SetSend(bool send) override;
   bool SetVideoSend(
@@ -744,9 +742,7 @@ class FakeVideoMediaSendChannel
 
   bool SendCodecHasLntf() const override { return false; }
   bool SendCodecHasNack() const override { return false; }
-  absl::optional<int> SendCodecRtxTime() const override {
-    return absl::nullopt;
-  }
+  std::optional<int> SendCodecRtxTime() const override { return std::nullopt; }
   bool GetStats(VideoMediaSendInfo* info) override;
 
  private:
@@ -789,7 +785,7 @@ class FakeVoiceEngine : public VoiceEngineInterface {
   int GetInputLevel();
   bool StartAecDump(webrtc::FileWrapper file, int64_t max_size_bytes) override;
   void StopAecDump() override;
-  absl::optional<webrtc::AudioDeviceModule::Stats> GetAudioDeviceStats()
+  std::optional<webrtc::AudioDeviceModule::Stats> GetAudioDeviceStats()
       override;
   std::vector<webrtc::RtpHeaderExtensionCapability> GetRtpHeaderExtensions()
       const override;

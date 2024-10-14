@@ -13,10 +13,10 @@
 
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/video/video_source_interface.h"
 #include "common_video/framerate_controller.h"
 #include "media/base/video_common.h"
@@ -62,7 +62,7 @@ class RTC_EXPORT VideoAdapter {
   // maintain the input orientation, so it doesn't matter if e.g. 1280x720 or
   // 720x1280 is requested.
   // Note: Should be called from the source only.
-  void OnOutputFormatRequest(const absl::optional<VideoFormat>& format)
+  void OnOutputFormatRequest(const std::optional<VideoFormat>& format)
       RTC_LOCKS_EXCLUDED(mutex_);
 
   // Requests output frame size and frame interval from `AdaptFrameResolution`.
@@ -74,20 +74,20 @@ class RTC_EXPORT VideoAdapter {
   // `max_fps`: The maximum output framerate.
   // Note: Should be called from the source only.
   void OnOutputFormatRequest(
-      const absl::optional<std::pair<int, int>>& target_aspect_ratio,
-      const absl::optional<int>& max_pixel_count,
-      const absl::optional<int>& max_fps) RTC_LOCKS_EXCLUDED(mutex_);
+      const std::optional<std::pair<int, int>>& target_aspect_ratio,
+      const std::optional<int>& max_pixel_count,
+      const std::optional<int>& max_fps) RTC_LOCKS_EXCLUDED(mutex_);
 
   // Same as above, but allows setting two different target aspect ratios
   // depending on incoming frame orientation. This gives more fine-grained
   // control and can e.g. be used to force landscape video to be cropped to
   // portrait video.
   void OnOutputFormatRequest(
-      const absl::optional<std::pair<int, int>>& target_landscape_aspect_ratio,
-      const absl::optional<int>& max_landscape_pixel_count,
-      const absl::optional<std::pair<int, int>>& target_portrait_aspect_ratio,
-      const absl::optional<int>& max_portrait_pixel_count,
-      const absl::optional<int>& max_fps) RTC_LOCKS_EXCLUDED(mutex_);
+      const std::optional<std::pair<int, int>>& target_landscape_aspect_ratio,
+      const std::optional<int>& max_landscape_pixel_count,
+      const std::optional<std::pair<int, int>>& target_portrait_aspect_ratio,
+      const std::optional<int>& max_portrait_pixel_count,
+      const std::optional<int>& max_fps) RTC_LOCKS_EXCLUDED(mutex_);
 
   // Requests the output frame size from `AdaptFrameResolution` to have as close
   // as possible to `sink_wants.target_pixel_count` pixels (if set)
@@ -134,11 +134,11 @@ class RTC_EXPORT VideoAdapter {
   // OnResolutionFramerateRequest respectively.
   // The adapted output format is the minimum of these.
   struct OutputFormatRequest {
-    absl::optional<std::pair<int, int>> target_landscape_aspect_ratio;
-    absl::optional<int> max_landscape_pixel_count;
-    absl::optional<std::pair<int, int>> target_portrait_aspect_ratio;
-    absl::optional<int> max_portrait_pixel_count;
-    absl::optional<int> max_fps;
+    std::optional<std::pair<int, int>> target_landscape_aspect_ratio;
+    std::optional<int> max_landscape_pixel_count;
+    std::optional<std::pair<int, int>> target_portrait_aspect_ratio;
+    std::optional<int> max_portrait_pixel_count;
+    std::optional<int> max_fps;
 
     // For logging.
     std::string ToString() const;
@@ -157,7 +157,7 @@ class RTC_EXPORT VideoAdapter {
   // frame). This allows for an application to only use
   // RtpEncodingParameters::request_resolution and get the same behavior as if
   // it had used VideoAdapter::OnOutputFormatRequest.
-  absl::optional<OutputFormatRequest> stashed_output_format_request_
+  std::optional<OutputFormatRequest> stashed_output_format_request_
       RTC_GUARDED_BY(mutex_);
 
   webrtc::FramerateController framerate_controller_ RTC_GUARDED_BY(mutex_);

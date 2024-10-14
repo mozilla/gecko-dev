@@ -46,6 +46,5 @@ rtc_library("test_video_track_source") {
     "../../../rtc_base/system:no_unique_address",
     "../../video:recordable_encoded_frame",
     "../../video:video_frame",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }

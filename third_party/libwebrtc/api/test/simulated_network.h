@@ -15,10 +15,10 @@
 #include <stdint.h>
 
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "api/units/data_rate.h"
 
 namespace webrtc {
@@ -116,7 +116,7 @@ class NetworkBehaviorInterface {
   // possible that no packet will be delivered by that time (e.g. in case of
   // random extra delay), in such case this method should be called again to get
   // the updated estimated delivery time.
-  virtual absl::optional<int64_t> NextDeliveryTimeUs() const = 0;
+  virtual std::optional<int64_t> NextDeliveryTimeUs() const = 0;
   // Registers a callback that should be triggered by an implementation if the
   // next NextDeliveryTimeUs() has changed between a call to NextDeliveryTimeUs
   // and DequeueDeliverablePackets.

@@ -102,7 +102,7 @@
 }
 
 + (NSNumber *)degradationPreferenceFromNativeDegradationPreference:
-    (absl::optional<webrtc::DegradationPreference>)nativeDegradationPreference {
+    (std::optional<webrtc::DegradationPreference>)nativeDegradationPreference {
   if (!nativeDegradationPreference.has_value()) {
     return nil;
   }

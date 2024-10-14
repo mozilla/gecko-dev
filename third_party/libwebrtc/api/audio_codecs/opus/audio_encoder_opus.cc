@@ -11,9 +11,9 @@
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_encoder_factory.h"
@@ -24,7 +24,7 @@
 
 namespace webrtc {
 
-absl::optional<AudioEncoderOpusConfig> AudioEncoderOpus::SdpToConfig(
+std::optional<AudioEncoderOpusConfig> AudioEncoderOpus::SdpToConfig(
     const SdpAudioFormat& format) {
   return AudioEncoderOpusImpl::SdpToConfig(format);
 }

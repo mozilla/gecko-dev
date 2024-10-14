@@ -11,9 +11,9 @@
 #include "modules/rtp_rtcp/source/rtp_sender_egress.h"
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/call/transport.h"
 #include "api/environment/environment.h"
@@ -62,7 +62,7 @@ class MockSendPacketObserver : public SendPacketObserver {
  public:
   MOCK_METHOD(void,
               OnSendPacket,
-              (absl::optional<uint16_t>, Timestamp, uint32_t),
+              (std::optional<uint16_t>, Timestamp, uint32_t),
               (override));
 };
 
@@ -102,11 +102,11 @@ class TestTransport : public Transport {
     RTC_CHECK_NOTREACHED();
   }
 
-  absl::optional<TransmittedPacket> last_packet() { return last_packet_; }
+  std::optional<TransmittedPacket> last_packet() { return last_packet_; }
 
  private:
   DataSize total_data_sent_;
-  absl::optional<TransmittedPacket> last_packet_;
+  std::optional<TransmittedPacket> last_packet_;
   RtpHeaderExtensionMap* const extensions_;
 };
 
@@ -289,7 +289,7 @@ TEST_F(RtpSenderEgressTest,
   std::unique_ptr<RtpSenderEgress> sender = CreateRtpSenderEgress();
   sender->SendPacket(std::move(padding), PacedPacketInfo());
 
-  absl::optional<int32_t> offset =
+  std::optional<int32_t> offset =
       transport_.last_packet()->packet.GetExtension<TransmissionOffset>();
   EXPECT_EQ(offset, 0);
 }
@@ -375,7 +375,7 @@ TEST_F(RtpSenderEgressTest, OnSendPacketUpdatedWithoutTransportSequenceNumber) {
   std::unique_ptr<RtpSenderEgress> sender = CreateRtpSenderEgress();
 
   EXPECT_CALL(send_packet_observer_,
-              OnSendPacket(Eq(absl::nullopt), clock_->CurrentTime(), kSsrc));
+              OnSendPacket(Eq(std::nullopt), clock_->CurrentTime(), kSsrc));
   sender->SendPacket(BuildRtpPacket(), PacedPacketInfo());
 }
 

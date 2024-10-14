@@ -12,9 +12,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtp_packet_infos.h"
 #include "api/video_codecs/video_decoder.h"
@@ -33,7 +33,7 @@ namespace video_coding {
 class ReceiveCallback : public VCMReceiveCallback {
  public:
   int32_t FrameToRender(VideoFrame& frame,
-                        absl::optional<uint8_t> qp,
+                        std::optional<uint8_t> qp,
                         TimeDelta decode_time,
                         VideoContentType content_type,
                         VideoFrameType frame_type) override {
@@ -41,9 +41,9 @@ class ReceiveCallback : public VCMReceiveCallback {
     return 0;
   }
 
-  absl::optional<VideoFrame> PopLastFrame() {
+  std::optional<VideoFrame> PopLastFrame() {
     if (frames_.empty())
-      return absl::nullopt;
+      return std::nullopt;
     auto ret = frames_.front();
     frames_.pop_back();
     return ret;
@@ -98,7 +98,7 @@ TEST_F(GenericDecoderTest, PassesPacketInfos) {
   encoded_frame.SetPacketInfos(packet_infos);
   generic_decoder_.Decode(encoded_frame, clock_->CurrentTime());
   time_controller_.AdvanceTime(TimeDelta::Millis(10));
-  absl::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
+  std::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
   ASSERT_TRUE(decoded_frame.has_value());
   EXPECT_EQ(decoded_frame->packet_infos().size(), 3U);
 }
@@ -134,7 +134,7 @@ TEST_F(GenericDecoderTest, PassesPacketInfosForDelayedDecoders) {
   }
 
   time_controller_.AdvanceTime(TimeDelta::Millis(200));
-  absl::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
+  std::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
   ASSERT_TRUE(decoded_frame.has_value());
   EXPECT_EQ(decoded_frame->packet_infos().size(), 3U);
 }
@@ -143,11 +143,11 @@ TEST_F(GenericDecoderTest, MaxCompositionDelayNotSetByDefault) {
   EncodedFrame encoded_frame;
   generic_decoder_.Decode(encoded_frame, clock_->CurrentTime());
   time_controller_.AdvanceTime(TimeDelta::Millis(10));
-  absl::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
+  std::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
   ASSERT_TRUE(decoded_frame.has_value());
   EXPECT_THAT(
       decoded_frame->render_parameters().max_composition_delay_in_frames,
-      testing::Eq(absl::nullopt));
+      testing::Eq(std::nullopt));
 }
 
 TEST_F(GenericDecoderTest, MaxCompositionDelayActivatedByPlayoutDelay) {
@@ -156,10 +156,10 @@ TEST_F(GenericDecoderTest, MaxCompositionDelayActivatedByPlayoutDelay) {
   // is specified as X,Y, where X=0, Y>0.
   constexpr int kMaxCompositionDelayInFrames = 3;  // ~50 ms at 60 fps.
   timing_.SetMaxCompositionDelayInFrames(
-      absl::make_optional(kMaxCompositionDelayInFrames));
+      std::make_optional(kMaxCompositionDelayInFrames));
   generic_decoder_.Decode(encoded_frame, clock_->CurrentTime());
   time_controller_.AdvanceTime(TimeDelta::Millis(10));
-  absl::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
+  std::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
   ASSERT_TRUE(decoded_frame.has_value());
   EXPECT_THAT(
       decoded_frame->render_parameters().max_composition_delay_in_frames,
@@ -170,7 +170,7 @@ TEST_F(GenericDecoderTest, IsLowLatencyStreamFalseByDefault) {
   EncodedFrame encoded_frame;
   generic_decoder_.Decode(encoded_frame, clock_->CurrentTime());
   time_controller_.AdvanceTime(TimeDelta::Millis(10));
-  absl::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
+  std::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
   ASSERT_TRUE(decoded_frame.has_value());
   EXPECT_FALSE(decoded_frame->render_parameters().use_low_latency_rendering);
 }
@@ -183,7 +183,7 @@ TEST_F(GenericDecoderTest, IsLowLatencyStreamActivatedByPlayoutDelay) {
   timing_.set_max_playout_delay(kPlayoutDelay.max());
   generic_decoder_.Decode(encoded_frame, clock_->CurrentTime());
   time_controller_.AdvanceTime(TimeDelta::Millis(10));
-  absl::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
+  std::optional<VideoFrame> decoded_frame = user_callback_.PopLastFrame();
   ASSERT_TRUE(decoded_frame.has_value());
   EXPECT_TRUE(decoded_frame->render_parameters().use_low_latency_rendering);
 }

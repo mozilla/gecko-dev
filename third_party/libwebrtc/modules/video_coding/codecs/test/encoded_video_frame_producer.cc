@@ -49,7 +49,7 @@ EncodedVideoFrameProducer::Encode() {
   std::unique_ptr<test::FrameGeneratorInterface> frame_buffer_generator =
       test::CreateSquareFrameGenerator(
           resolution_.Width(), resolution_.Height(),
-          test::FrameGeneratorInterface::OutputType::kI420, absl::nullopt);
+          test::FrameGeneratorInterface::OutputType::kI420, std::nullopt);
 
   std::vector<EncodedFrame> encoded_frames;
   EncoderCallback encoder_callback(encoded_frames);

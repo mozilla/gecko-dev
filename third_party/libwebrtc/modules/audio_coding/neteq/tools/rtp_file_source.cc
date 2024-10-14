@@ -27,7 +27,7 @@ namespace webrtc {
 namespace test {
 
 RtpFileSource* RtpFileSource::Create(absl::string_view file_name,
-                                     absl::optional<uint32_t> ssrc_filter) {
+                                     std::optional<uint32_t> ssrc_filter) {
   RtpFileSource* source = new RtpFileSource(ssrc_filter);
   RTC_CHECK(source->OpenFile(file_name));
   return source;
@@ -79,7 +79,7 @@ std::unique_ptr<Packet> RtpFileSource::NextPacket() {
   }
 }
 
-RtpFileSource::RtpFileSource(absl::optional<uint32_t> ssrc_filter)
+RtpFileSource::RtpFileSource(std::optional<uint32_t> ssrc_filter)
     : PacketSource(), ssrc_filter_(ssrc_filter) {}
 
 bool RtpFileSource::OpenFile(absl::string_view file_name) {

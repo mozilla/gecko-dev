@@ -109,13 +109,13 @@ BandwidthQualityScaler::CheckBitrate() {
     return BandwidthQualityScaler::CheckBitrateResult::kInsufficientSamples;
   }
 
-  absl::optional<int64_t> current_bitrate_bps =
+  std::optional<int64_t> current_bitrate_bps =
       encoded_bitrate_.Rate(last_time_sent_in_ms_.value());
   if (!current_bitrate_bps.has_value()) {
     // We can't get a valid bitrate due to not enough data points.
     return BandwidthQualityScaler::CheckBitrateResult::kInsufficientSamples;
   }
-  absl::optional<VideoEncoder::ResolutionBitrateLimits> suitable_bitrate_limit =
+  std::optional<VideoEncoder::ResolutionBitrateLimits> suitable_bitrate_limit =
       EncoderInfoSettings::
           GetSinglecastBitrateLimitForResolutionWhenQpIsUntrusted(
               last_frame_size_pixels_, resolution_bitrate_limits_);

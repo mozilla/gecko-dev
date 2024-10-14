@@ -39,10 +39,10 @@ namespace {
 #if defined(WEBRTC_IOS)
 
 NSString *MaxSupportedLevelForProfile(webrtc::H264Profile profile) {
-  const absl::optional<webrtc::H264ProfileLevelId> profileLevelId =
+  const std::optional<webrtc::H264ProfileLevelId> profileLevelId =
       [UIDevice maxSupportedH264Profile];
   if (profileLevelId && profileLevelId->profile >= profile) {
-    const absl::optional<std::string> profileString =
+    const std::optional<std::string> profileString =
         H264ProfileLevelIdToString(webrtc::H264ProfileLevelId(profile, profileLevelId->level));
     if (profileString) {
       return [NSString stringForStdString:*profileString];
@@ -94,7 +94,7 @@ NSString *MaxSupportedProfileLevelConstrainedHigh() {
   if (self) {
     self.hexString = hexString;
 
-    absl::optional<webrtc::H264ProfileLevelId> profile_level_id =
+    std::optional<webrtc::H264ProfileLevelId> profile_level_id =
         webrtc::ParseH264ProfileLevelId([hexString cStringUsingEncoding:NSUTF8StringEncoding]);
     if (profile_level_id.has_value()) {
       self.profile = static_cast<RTCH264Profile>(profile_level_id->profile);
@@ -110,7 +110,7 @@ NSString *MaxSupportedProfileLevelConstrainedHigh() {
     self.profile = profile;
     self.level = level;
 
-    absl::optional<std::string> hex_string =
+    std::optional<std::string> hex_string =
         webrtc::H264ProfileLevelIdToString(webrtc::H264ProfileLevelId(
             static_cast<webrtc::H264Profile>(profile), static_cast<webrtc::H264Level>(level)));
     self.hexString =

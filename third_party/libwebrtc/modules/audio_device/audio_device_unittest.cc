@@ -15,8 +15,8 @@
 #include <list>
 #include <memory>
 #include <numeric>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
@@ -320,7 +320,7 @@ class LatencyAudioStream : public AudioStream {
   SequenceChecker read_thread_checker_;
   SequenceChecker write_thread_checker_;
 
-  absl::optional<int64_t> pulse_time_ RTC_GUARDED_BY(lock_);
+  std::optional<int64_t> pulse_time_ RTC_GUARDED_BY(lock_);
   std::vector<int> latencies_ RTC_GUARDED_BY(race_checker_);
   size_t read_count_ RTC_GUARDED_BY(read_thread_checker_) = 0;
   size_t write_count_ RTC_GUARDED_BY(write_thread_checker_) = 0;

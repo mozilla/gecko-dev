@@ -32,7 +32,7 @@ static constexpr webrtc::TimeDelta kEventTimeout =
 
 bool IsScalabilityModeSupported(
     const std::vector<webrtc::SdpVideoFormat>& formats,
-    absl::optional<std::string> scalability_mode) {
+    std::optional<std::string> scalability_mode) {
   if (!scalability_mode.has_value()) {
     return true;
   }
@@ -222,7 +222,7 @@ FakeWebRtcVideoEncoderFactory::GetSupportedFormats() const {
 webrtc::VideoEncoderFactory::CodecSupport
 FakeWebRtcVideoEncoderFactory::QueryCodecSupport(
     const webrtc::SdpVideoFormat& format,
-    absl::optional<std::string> scalability_mode) const {
+    std::optional<std::string> scalability_mode) const {
   std::vector<webrtc::SdpVideoFormat> supported_formats;
   for (const auto& f : formats_) {
     if (format.IsSameCodec(f))

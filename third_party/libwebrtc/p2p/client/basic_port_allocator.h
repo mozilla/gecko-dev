@@ -151,7 +151,7 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
   void GetCandidateStatsFromReadyPorts(
       CandidateStatsList* candidate_stats_list) const override;
   void SetStunKeepaliveIntervalForReadyPorts(
-      const absl::optional<int>& stun_keepalive_interval) override;
+      const std::optional<int>& stun_keepalive_interval) override;
   void PruneAllPorts() override;
   static std::vector<const rtc::Network*> SelectIPv6Networks(
       std::vector<const rtc::Network*>& all_ipv6_networks,

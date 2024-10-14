@@ -61,7 +61,7 @@ ApmDataDumper::~ApmDataDumper() = default;
 
 #if WEBRTC_APM_DEBUG_DUMP == 1
 bool ApmDataDumper::recording_activated_ = false;
-absl::optional<int> ApmDataDumper::dump_set_to_use_;
+std::optional<int> ApmDataDumper::dump_set_to_use_;
 char ApmDataDumper::output_dir_[] = "";
 
 FILE* ApmDataDumper::GetRawFile(absl::string_view name) {

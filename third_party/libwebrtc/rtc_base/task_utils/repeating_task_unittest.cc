@@ -12,9 +12,9 @@
 
 #include <atomic>
 #include <memory>
+#include <optional>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/task_queue/test/mock_task_queue_base.h"
 #include "api/units/time_delta.h"
@@ -63,7 +63,7 @@ class FakeTaskQueue : public TaskQueueBase {
                     const PostTaskTraits& /*traits*/,
                     const Location& /*location*/) override {
     last_task_ = std::move(task);
-    last_precision_ = absl::nullopt;
+    last_precision_ = std::nullopt;
     last_delay_ = TimeDelta::Zero();
   }
 
@@ -95,7 +95,7 @@ class FakeTaskQueue : public TaskQueueBase {
     return last_delay_;
   }
 
-  absl::optional<TaskQueueBase::DelayPrecision> last_precision() const {
+  std::optional<TaskQueueBase::DelayPrecision> last_precision() const {
     return last_precision_;
   }
 
@@ -104,7 +104,7 @@ class FakeTaskQueue : public TaskQueueBase {
   SimulatedClock* clock_;
   absl::AnyInvocable<void() &&> last_task_;
   TimeDelta last_delay_ = TimeDelta::MinusInfinity();
-  absl::optional<TaskQueueBase::DelayPrecision> last_precision_;
+  std::optional<TaskQueueBase::DelayPrecision> last_precision_;
 };
 
 // NOTE: Since this utility class holds a raw pointer to a variable that likely

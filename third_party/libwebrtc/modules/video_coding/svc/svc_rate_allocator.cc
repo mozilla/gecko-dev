@@ -174,7 +174,7 @@ DataRate FindLayerTogglingThreshold(const VideoCodec& codec,
 SvcRateAllocator::NumLayers SvcRateAllocator::GetNumLayers(
     const VideoCodec& codec) {
   NumLayers layers;
-  if (absl::optional<ScalabilityMode> scalability_mode =
+  if (std::optional<ScalabilityMode> scalability_mode =
           codec.GetScalabilityMode();
       scalability_mode.has_value()) {
     if (auto structure = CreateScalabilityStructure(*scalability_mode)) {

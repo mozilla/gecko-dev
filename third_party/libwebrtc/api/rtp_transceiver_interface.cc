@@ -20,9 +20,9 @@ RtpTransceiverInit::RtpTransceiverInit(const RtpTransceiverInit& rhs) = default;
 
 RtpTransceiverInit::~RtpTransceiverInit() = default;
 
-absl::optional<RtpTransceiverDirection>
+std::optional<RtpTransceiverDirection>
 RtpTransceiverInterface::fired_direction() const {
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 bool RtpTransceiverInterface::stopping() const {

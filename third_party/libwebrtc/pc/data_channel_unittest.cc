@@ -172,7 +172,7 @@ TEST_F(SctpDataChannelTest, VerifyConfigurationGetters) {
   // Check the non-const part of the configuration.
   EXPECT_EQ(channel_->id(), init_.id);
   network_thread_.BlockingCall(
-      [&]() { EXPECT_EQ(inner_channel_->sid_n(), absl::nullopt); });
+      [&]() { EXPECT_EQ(inner_channel_->sid_n(), std::nullopt); });
 
   SetChannelReady();
   EXPECT_EQ(channel_->id(), 0);
@@ -188,7 +188,7 @@ TEST_F(SctpDataChannelTest, ConnectedToTransportOnCreated) {
   EXPECT_TRUE(controller_->IsConnected(dc.get()));
 
   // The sid is not set yet, so it should not have added the streams.
-  absl::optional<StreamId> sid =
+  std::optional<StreamId> sid =
       network_thread_.BlockingCall([&]() { return dc->sid_n(); });
   EXPECT_FALSE(sid.has_value());
 
@@ -636,7 +636,7 @@ TEST_F(SctpSidAllocatorTest, SctpIdAllocationNoReuse) {
   StreamId old_id(1);
   EXPECT_TRUE(allocator_.ReserveSid(old_id));
 
-  absl::optional<StreamId> new_id = allocator_.AllocateSid(rtc::SSL_SERVER);
+  std::optional<StreamId> new_id = allocator_.AllocateSid(rtc::SSL_SERVER);
   EXPECT_TRUE(new_id.has_value());
   EXPECT_NE(old_id, new_id);
 
@@ -654,7 +654,7 @@ TEST_F(SctpSidAllocatorTest, SctpIdReusedForRemovedDataChannel) {
   EXPECT_TRUE(allocator_.ReserveSid(odd_id));
   EXPECT_TRUE(allocator_.ReserveSid(even_id));
 
-  absl::optional<StreamId> allocated_id =
+  std::optional<StreamId> allocated_id =
       allocator_.AllocateSid(rtc::SSL_SERVER);
   EXPECT_EQ(odd_id.stream_id_int() + 2, allocated_id->stream_id_int());
 

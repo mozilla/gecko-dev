@@ -15,13 +15,13 @@
 #include <atomic>
 #include <list>
 #include <memory>
+#include <optional>
 #include <stack>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/base/nullability.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/fec_controller_override.h"
 #include "api/field_trials_view.h"
@@ -125,10 +125,10 @@ class RTC_EXPORT SimulcastEncoderAdapter : public VideoEncoder {
     void set_is_keyframe_needed() { is_keyframe_needed_ = true; }
     bool is_paused() const { return is_paused_; }
     void set_is_paused(bool is_paused) { is_paused_ = is_paused; }
-    absl::optional<double> target_fps() const {
+    std::optional<double> target_fps() const {
       return framerate_controller_ == nullptr
-                 ? absl::nullopt
-                 : absl::optional<double>(
+                 ? std::nullopt
+                 : std::optional<double>(
                        framerate_controller_->GetMaxFramerate());
     }
 

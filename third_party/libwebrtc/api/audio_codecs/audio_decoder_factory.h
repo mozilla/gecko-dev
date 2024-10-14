@@ -12,10 +12,10 @@
 #define API_AUDIO_CODECS_AUDIO_DECODER_FACTORY_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/base/nullability.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -49,7 +49,7 @@ class AudioDecoderFactory : public RefCountInterface {
   [[deprecated("bugs.webrtc.org/356878416 - Use `Create` instead")]]  //
   virtual std::unique_ptr<AudioDecoder>
   MakeAudioDecoder(const SdpAudioFormat& format,
-                   absl::optional<AudioCodecPairId> codec_pair_id) {
+                   std::optional<AudioCodecPairId> codec_pair_id) {
     RTC_DCHECK_NOTREACHED();
     return nullptr;
   }
@@ -59,7 +59,7 @@ class AudioDecoderFactory : public RefCountInterface {
   virtual absl::Nullable<std::unique_ptr<AudioDecoder>> Create(
       const Environment& env,
       const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id) {
+      std::optional<AudioCodecPairId> codec_pair_id) {
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"

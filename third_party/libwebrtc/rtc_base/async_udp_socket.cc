@@ -10,7 +10,8 @@
 
 #include "rtc_base/async_udp_socket.h"
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"

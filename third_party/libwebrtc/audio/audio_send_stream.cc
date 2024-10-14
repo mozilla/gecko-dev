@@ -49,8 +49,8 @@ void UpdateEventLogStreamConfig(RtcEventLog& event_log,
                                 const AudioSendStream::Config* old_config) {
   using SendCodecSpec = AudioSendStream::Config::SendCodecSpec;
   // Only update if any of the things we log have changed.
-  auto payload_types_equal = [](const absl::optional<SendCodecSpec>& a,
-                                const absl::optional<SendCodecSpec>& b) {
+  auto payload_types_equal = [](const std::optional<SendCodecSpec>& a,
+                                const std::optional<SendCodecSpec>& b) {
     if (a.has_value() && b.has_value()) {
       return a->format.name == b->format.name &&
              a->payload_type == b->payload_type;
@@ -106,7 +106,7 @@ AudioSendStream::AudioSendStream(
     RtpTransportControllerSendInterface* rtp_transport,
     BitrateAllocatorInterface* bitrate_allocator,
     RtcpRttStats* rtcp_rtt_stats,
-    const absl::optional<RtpState>& suspended_rtp_state)
+    const std::optional<RtpState>& suspended_rtp_state)
     : AudioSendStream(env,
                       config,
                       audio_state,
@@ -130,7 +130,7 @@ AudioSendStream::AudioSendStream(
     const rtc::scoped_refptr<webrtc::AudioState>& audio_state,
     RtpTransportControllerSendInterface* rtp_transport,
     BitrateAllocatorInterface* bitrate_allocator,
-    const absl::optional<RtpState>& suspended_rtp_state,
+    const std::optional<RtpState>& suspended_rtp_state,
     std::unique_ptr<voe::ChannelSendInterface> channel_send)
     : env_(env),
       allocate_audio_without_feedback_(
@@ -480,7 +480,7 @@ uint32_t AudioSendStream::OnBitrateUpdated(BitrateAllocationUpdate update) {
   // Pick a target bitrate between the constraints. Overrules the allocator if
   // it 1) allocated a bitrate of zero to disable the stream or 2) allocated a
   // higher than max to allow for e.g. extra FEC.
-  absl::optional<TargetAudioBitrateConstraints> constraints =
+  std::optional<TargetAudioBitrateConstraints> constraints =
       GetMinMaxBitrateConstraints();
   if (constraints) {
     update.target_bitrate.Clamp(constraints->min, constraints->max);
@@ -492,7 +492,7 @@ uint32_t AudioSendStream::OnBitrateUpdated(BitrateAllocationUpdate update) {
   return 0;
 }
 
-absl::optional<DataRate> AudioSendStream::GetUsedRate() const {
+std::optional<DataRate> AudioSendStream::GetUsedRate() const {
   return channel_send_->GetUsedRate();
 }
 
@@ -658,7 +658,7 @@ bool AudioSendStream::ReconfigureSendCodec(const Config& new_config) {
     return SetupSendCodec(new_config);
   }
 
-  const absl::optional<int>& new_target_bitrate_bps =
+  const std::optional<int>& new_target_bitrate_bps =
       new_config.send_codec_spec->target_bitrate_bps;
   // If a bitrate has been specified for the codec, use it over the
   // codec's default.
@@ -824,14 +824,14 @@ void AudioSendStream::RemoveBitrateObserver() {
   bitrate_allocator_->RemoveObserver(this);
 }
 
-absl::optional<AudioSendStream::TargetAudioBitrateConstraints>
+std::optional<AudioSendStream::TargetAudioBitrateConstraints>
 AudioSendStream::GetMinMaxBitrateConstraints() const {
   if (config_.min_bitrate_bps < 0 || config_.max_bitrate_bps < 0) {
     RTC_LOG(LS_WARNING) << "Config is invalid: min_bitrate_bps="
                         << config_.min_bitrate_bps
                         << "; max_bitrate_bps=" << config_.max_bitrate_bps
                         << "; both expected greater or equal to 0";
-    return absl::nullopt;
+    return std::nullopt;
   }
   TargetAudioBitrateConstraints constraints{
       DataRate::BitsPerSec(config_.min_bitrate_bps),
@@ -854,7 +854,7 @@ AudioSendStream::GetMinMaxBitrateConstraints() const {
   if (constraints.max < constraints.min) {
     RTC_LOG(LS_WARNING) << "TargetAudioBitrateConstraints::max is less than "
                         << "TargetAudioBitrateConstraints::min";
-    return absl::nullopt;
+    return std::nullopt;
   }
   if (use_legacy_overhead_calculation_) {
     // OverheadPerPacket = Ipv4(20B) + UDP(8B) + SRTP(10B) + RTP(12)
@@ -867,7 +867,7 @@ AudioSendStream::GetMinMaxBitrateConstraints() const {
   } else {
     if (!frame_length_range_.has_value()) {
       RTC_LOG(LS_WARNING) << "frame_length_range_ is not set";
-      return absl::nullopt;
+      return std::nullopt;
     }
     const DataSize overhead_per_packet = DataSize::Bytes(overhead_per_packet_);
     constraints.min += overhead_per_packet / frame_length_range_->second;

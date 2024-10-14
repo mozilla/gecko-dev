@@ -229,7 +229,7 @@ void RemoteBitrateEstimatorAbsSendTime::IncomingPacket(
   // here.
 
   // Check if incoming bitrate estimate is valid, and if it needs to be reset.
-  absl::optional<DataRate> incoming_bitrate =
+  std::optional<DataRate> incoming_bitrate =
       incoming_bitrate_.Rate(arrival_time);
   if (incoming_bitrate) {
     incoming_bitrate_initialized_ = true;
@@ -302,7 +302,7 @@ void RemoteBitrateEstimatorAbsSendTime::IncomingPacket(
             remote_rate_.GetFeedbackInterval().ms()) {
       update_estimate = true;
     } else if (detector_.State() == BandwidthUsage::kBwOverusing) {
-      absl::optional<DataRate> incoming_rate =
+      std::optional<DataRate> incoming_rate =
           incoming_bitrate_.Rate(arrival_time);
       if (incoming_rate.has_value() &&
           remote_rate_.TimeToReduceFurther(now, *incoming_rate)) {

@@ -76,9 +76,7 @@ class TestBitrateObserver : public BitrateAllocatorObserver {
     last_probing_interval_ms_ = update.bwe_period.ms();
     return update.target_bitrate.bps() * protection_ratio_;
   }
-  absl::optional<DataRate> GetUsedRate() const override {
-    return absl::nullopt;
-  }
+  std::optional<DataRate> GetUsedRate() const override { return std::nullopt; }
   uint32_t last_bitrate_bps_;
   uint8_t last_fraction_loss_;
   int64_t last_rtt_ms_;
@@ -89,7 +87,7 @@ class TestBitrateObserver : public BitrateAllocatorObserver {
 class TestContributingBitrateObserver : public TestBitrateObserver {
  public:
   TestContributingBitrateObserver() : rate_usage_(DataRate::Zero()) {}
-  absl::optional<DataRate> GetUsedRate() const override { return rate_usage_; }
+  std::optional<DataRate> GetUsedRate() const override { return rate_usage_; }
   DataRate rate_usage_;
 };
 
@@ -129,7 +127,7 @@ class BitrateAllocatorTest : public ::testing::Test {
       uint32_t pad_up_bitrate_bps,
       bool enforce_min_bitrate,
       double bitrate_priority,
-      absl::optional<TrackRateElasticity> rate_elasticity = absl::nullopt) {
+      std::optional<TrackRateElasticity> rate_elasticity = std::nullopt) {
     allocator_->AddObserver(
         observer, {min_bitrate_bps, max_bitrate_bps, pad_up_bitrate_bps,
                    /* priority_bitrate */ 0, enforce_min_bitrate,

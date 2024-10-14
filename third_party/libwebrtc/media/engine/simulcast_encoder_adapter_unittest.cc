@@ -333,7 +333,7 @@ class MockVideoEncoder : public VideoEncoder {
     video_format_ = video_format;
   }
 
-  void set_is_qp_trusted(absl::optional<bool> is_qp_trusted) {
+  void set_is_qp_trusted(std::optional<bool> is_qp_trusted) {
     is_qp_trusted_ = is_qp_trusted;
   }
 
@@ -360,7 +360,7 @@ class MockVideoEncoder : public VideoEncoder {
   VideoEncoder::RateControlParameters last_set_rates_;
   FramerateFractions fps_allocation_;
   bool supports_simulcast_ = false;
-  absl::optional<bool> is_qp_trusted_;
+  std::optional<bool> is_qp_trusted_;
   SdpVideoFormat video_format_;
   std::vector<VideoEncoder::ResolutionBitrateLimits> resolution_bitrate_limits;
 
@@ -465,9 +465,9 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
         env_, use_fallback_factory_,
         SdpVideoFormat("VP8", sdp_video_parameters_));
     adapter_ = helper_->CreateMockEncoderAdapter();
-    last_encoded_image_width_ = absl::nullopt;
-    last_encoded_image_height_ = absl::nullopt;
-    last_encoded_image_simulcast_index_ = absl::nullopt;
+    last_encoded_image_width_ = std::nullopt;
+    last_encoded_image_height_ = std::nullopt;
+    last_encoded_image_simulcast_index_ = std::nullopt;
   }
 
   void ReSetUp() {
@@ -489,9 +489,9 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
     return Result(Result::OK, encoded_image.RtpTimestamp());
   }
 
-  bool GetLastEncodedImageInfo(absl::optional<int>* out_width,
-                               absl::optional<int>* out_height,
-                               absl::optional<int>* out_simulcast_index) {
+  bool GetLastEncodedImageInfo(std::optional<int>* out_width,
+                               std::optional<int>* out_height,
+                               std::optional<int>* out_simulcast_index) {
     if (!last_encoded_image_width_.has_value()) {
       return false;
     }
@@ -621,9 +621,9 @@ class TestSimulcastEncoderAdapterFake : public ::testing::Test,
   std::unique_ptr<TestSimulcastEncoderAdapterFakeHelper> helper_;
   std::unique_ptr<VideoEncoder> adapter_;
   VideoCodec codec_;
-  absl::optional<int> last_encoded_image_width_;
-  absl::optional<int> last_encoded_image_height_;
-  absl::optional<int> last_encoded_image_simulcast_index_;
+  std::optional<int> last_encoded_image_width_;
+  std::optional<int> last_encoded_image_height_;
+  std::optional<int> last_encoded_image_simulcast_index_;
   std::unique_ptr<SimulcastRateAllocator> rate_allocator_;
   bool use_fallback_factory_;
   CodecParameterMap sdp_video_parameters_;
@@ -672,9 +672,9 @@ TEST_F(TestSimulcastEncoderAdapterFake, EncodedCallbackForDifferentEncoders) {
   std::vector<MockVideoEncoder*> encoders = helper_->factory()->encoders();
   ASSERT_EQ(3u, encoders.size());
   encoders[0]->SendEncodedImage(1152, 704);
-  absl::optional<int> width;
-  absl::optional<int> height;
-  absl::optional<int> simulcast_index;
+  std::optional<int> width;
+  std::optional<int> height;
+  std::optional<int> simulcast_index;
   EXPECT_TRUE(GetLastEncodedImageInfo(&width, &height, &simulcast_index));
   ASSERT_TRUE(width.has_value());
   EXPECT_EQ(1152, width.value());
@@ -899,9 +899,9 @@ TEST_F(TestSimulcastEncoderAdapterFake, ReinitDoesNotReorderFrameSimulcastIdx) {
   std::vector<MockVideoEncoder*> encoders = helper_->factory()->encoders();
   ASSERT_EQ(3u, encoders.size());
   encoders[0]->SendEncodedImage(1152, 704);
-  absl::optional<int> width;
-  absl::optional<int> height;
-  absl::optional<int> simulcast_index;
+  std::optional<int> width;
+  std::optional<int> height;
+  std::optional<int> simulcast_index;
   EXPECT_TRUE(GetLastEncodedImageInfo(&width, &height, &simulcast_index));
   // SEA doesn't intercept frame encode complete callback for the lowest stream.
   EXPECT_FALSE(simulcast_index.has_value());

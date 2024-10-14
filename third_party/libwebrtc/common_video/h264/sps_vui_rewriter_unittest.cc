@@ -307,7 +307,7 @@ void TestSps(const VuiHeader& vui,
   rtc::Buffer original_sps;
   GenerateFakeSps(vui, &original_sps);
 
-  absl::optional<SpsParser::SpsState> sps;
+  std::optional<SpsParser::SpsState> sps;
   rtc::Buffer rewritten_sps;
   SpsVuiRewriter::ParseResult result = SpsVuiRewriter::ParseAndRewriteSps(
       original_sps, &sps, color_space, &rewritten_sps,

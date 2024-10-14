@@ -63,11 +63,10 @@ class MockIceTransport : public IceTransportInternal {
   void SetRemoteIceParameters(const IceParameters& ice_params) override {}
   void SetRemoteIceMode(IceMode mode) override {}
   void SetIceConfig(const IceConfig& config) override {}
-  absl::optional<int> GetRttEstimate() override { return absl::nullopt; }
+  std::optional<int> GetRttEstimate() override { return std::nullopt; }
   const Connection* selected_connection() const override { return nullptr; }
-  absl::optional<const CandidatePair> GetSelectedCandidatePair()
-      const override {
-    return absl::nullopt;
+  std::optional<const CandidatePair> GetSelectedCandidatePair() const override {
+    return std::nullopt;
   }
   void MaybeStartGathering() override {}
   void AddRemoteCandidate(const Candidate& candidate) override {}

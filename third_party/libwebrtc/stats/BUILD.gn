@@ -44,7 +44,6 @@ rtc_library("rtc_stats_test_utils") {
     "../api:rtc_stats_api",
     "../rtc_base:checks",
     "../rtc_base/system:rtc_export",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -65,7 +64,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base:rtc_json",
       "../test:test_main",
       "../test:test_support",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
 
     if (is_android) {

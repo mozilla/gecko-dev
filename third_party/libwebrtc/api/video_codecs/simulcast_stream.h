@@ -11,7 +11,8 @@
 #ifndef API_VIDEO_CODECS_SIMULCAST_STREAM_H_
 #define API_VIDEO_CODECS_SIMULCAST_STREAM_H_
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "api/video_codecs/scalability_mode.h"
 #include "rtc_base/system/rtc_export.h"
 
@@ -23,7 +24,7 @@ struct RTC_EXPORT SimulcastStream {
   // Temporary utility methods for transition from numberOfTemporalLayers
   // setting to ScalabilityMode.
   unsigned char GetNumberOfTemporalLayers() const;
-  absl::optional<ScalabilityMode> GetScalabilityMode() const;
+  std::optional<ScalabilityMode> GetScalabilityMode() const;
   void SetNumberOfTemporalLayers(unsigned char n);
 
   bool operator==(const SimulcastStream& other) const;

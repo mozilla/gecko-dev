@@ -15,8 +15,8 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/sequence_checker.h"
 #include "api/units/time_delta.h"
 #include "rtc_base/async_packet_socket.h"
@@ -70,7 +70,7 @@ class AsyncUDPSocket : public AsyncPacketSocket {
   RTC_NO_UNIQUE_ADDRESS webrtc::SequenceChecker sequence_checker_;
   std::unique_ptr<Socket> socket_;
   rtc::Buffer buffer_ RTC_GUARDED_BY(sequence_checker_);
-  absl::optional<webrtc::TimeDelta> socket_time_offset_
+  std::optional<webrtc::TimeDelta> socket_time_offset_
       RTC_GUARDED_BY(sequence_checker_);
 };
 

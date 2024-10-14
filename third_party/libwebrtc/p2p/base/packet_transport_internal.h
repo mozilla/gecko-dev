@@ -11,12 +11,12 @@
 #ifndef P2P_BASE_PACKET_TRANSPORT_INTERNAL_H_
 #define P2P_BASE_PACKET_TRANSPORT_INTERNAL_H_
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "p2p/base/port.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/callback_list.h"
@@ -67,7 +67,7 @@ class RTC_EXPORT PacketTransportInternal : public sigslot::has_slots<> {
 
   // Returns the current network route with transport overhead.
   // TODO(zhihuang): Make it pure virtual once the Chrome/remoting is updated.
-  virtual absl::optional<NetworkRoute> network_route() const;
+  virtual std::optional<NetworkRoute> network_route() const;
 
   // Emitted when the writable state, represented by `writable()`, changes.
   sigslot::signal1<PacketTransportInternal*> SignalWritableState;
@@ -95,7 +95,7 @@ class RTC_EXPORT PacketTransportInternal : public sigslot::has_slots<> {
       SignalSentPacket;
 
   // Signalled when the current network route has changed.
-  sigslot::signal1<absl::optional<rtc::NetworkRoute>> SignalNetworkRouteChanged;
+  sigslot::signal1<std::optional<rtc::NetworkRoute>> SignalNetworkRouteChanged;
 
   // Signalled when the transport is closed.
   void SetOnCloseCallback(absl::AnyInvocable<void() &&> callback);

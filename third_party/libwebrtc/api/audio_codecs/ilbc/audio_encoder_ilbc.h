@@ -12,9 +12,9 @@
 #define API_AUDIO_CODECS_ILBC_AUDIO_ENCODER_ILBC_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -27,14 +27,14 @@ namespace webrtc {
 // CreateAudioEncoderFactory<...>().
 struct AudioEncoderIlbc {
   using Config = AudioEncoderIlbcConfig;
-  static absl::optional<AudioEncoderIlbcConfig> SdpToConfig(
+  static std::optional<AudioEncoderIlbcConfig> SdpToConfig(
       const SdpAudioFormat& audio_format);
   static void AppendSupportedEncoders(std::vector<AudioCodecSpec>* specs);
   static AudioCodecInfo QueryAudioEncoder(const AudioEncoderIlbcConfig& config);
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const AudioEncoderIlbcConfig& config,
       int payload_type,
-      absl::optional<AudioCodecPairId> codec_pair_id = absl::nullopt,
+      std::optional<AudioCodecPairId> codec_pair_id = std::nullopt,
       const FieldTrialsView* field_trials = nullptr);
 };
 

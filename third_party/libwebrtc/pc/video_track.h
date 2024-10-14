@@ -11,9 +11,9 @@
 #ifndef PC_VIDEO_TRACK_H_
 #define PC_VIDEO_TRACK_H_
 
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/media_stream_interface.h"
 #include "api/media_stream_track.h"
 #include "api/scoped_refptr.h"

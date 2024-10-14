@@ -222,8 +222,8 @@ class H265PpsParserTest : public ::testing::Test {
 
   H265PpsParser::PpsState generated_pps_;
   rtc::Buffer buffer_;
-  absl::optional<H265PpsParser::PpsState> parsed_pps_;
-  absl::optional<H265SpsParser::SpsState> parsed_sps_;
+  std::optional<H265PpsParser::PpsState> parsed_pps_;
+  std::optional<H265SpsParser::SpsState> parsed_sps_;
 };
 
 TEST_F(H265PpsParserTest, ZeroPps) {

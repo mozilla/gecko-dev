@@ -226,7 +226,7 @@ TEST_F(AudioEgressTest, SkipAudioEncodingAfterStopSend) {
 }
 
 TEST_F(AudioEgressTest, ChangeEncoderFromPcmuToOpus) {
-  absl::optional<SdpAudioFormat> pcmu = egress_->GetEncoderFormat();
+  std::optional<SdpAudioFormat> pcmu = egress_->GetEncoderFormat();
   EXPECT_TRUE(pcmu);
   EXPECT_EQ(pcmu->clockrate_hz, kPcmuFormat.clockrate_hz);
   EXPECT_EQ(pcmu->num_channels, kPcmuFormat.num_channels);
@@ -238,7 +238,7 @@ TEST_F(AudioEgressTest, ChangeEncoderFromPcmuToOpus) {
                       encoder_factory_->Create(env_, kOpusFormat,
                                                {.payload_type = kOpusPayload}));
 
-  absl::optional<SdpAudioFormat> opus = egress_->GetEncoderFormat();
+  std::optional<SdpAudioFormat> opus = egress_->GetEncoderFormat();
   EXPECT_TRUE(opus);
   EXPECT_EQ(opus->clockrate_hz, kOpusFormat.clockrate_hz);
   EXPECT_EQ(opus->num_channels, kOpusFormat.num_channels);

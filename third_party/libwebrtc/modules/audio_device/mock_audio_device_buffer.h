@@ -11,7 +11,8 @@
 #ifndef MODULES_AUDIO_DEVICE_MOCK_AUDIO_DEVICE_BUFFER_H_
 #define MODULES_AUDIO_DEVICE_MOCK_AUDIO_DEVICE_BUFFER_H_
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "modules/audio_device/audio_device_buffer.h"
 #include "test/gmock.h"
 
@@ -27,7 +28,7 @@ class MockAudioDeviceBuffer : public AudioDeviceBuffer {
               SetRecordedBuffer,
               (const void* audioBuffer,
                size_t nSamples,
-               absl::optional<int64_t> capture_time_ns),
+               std::optional<int64_t> capture_time_ns),
               (override));
   MOCK_METHOD(void, SetVQEData, (int playDelayMS, int recDelayMS), (override));
   MOCK_METHOD(int32_t, DeliverRecordedData, (), (override));

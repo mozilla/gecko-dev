@@ -90,11 +90,11 @@ int AcmReceiver::GetBaseMinimumDelayMs() const {
   return neteq_->GetBaseMinimumDelayMs();
 }
 
-absl::optional<int> AcmReceiver::last_packet_sample_rate_hz() const {
-  absl::optional<NetEq::DecoderFormat> decoder =
+std::optional<int> AcmReceiver::last_packet_sample_rate_hz() const {
+  std::optional<NetEq::DecoderFormat> decoder =
       neteq_->GetCurrentDecoderFormat();
   if (!decoder) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return decoder->sample_rate_hz;
 }
@@ -194,7 +194,7 @@ void AcmReceiver::FlushBuffers() {
   neteq_->FlushBuffers();
 }
 
-absl::optional<uint32_t> AcmReceiver::GetPlayoutTimestamp() {
+std::optional<uint32_t> AcmReceiver::GetPlayoutTimestamp() {
   return neteq_->GetPlayoutTimestamp();
 }
 
@@ -206,12 +206,11 @@ int AcmReceiver::TargetDelayMs() const {
   return neteq_->TargetDelayMs();
 }
 
-absl::optional<std::pair<int, SdpAudioFormat>> AcmReceiver::LastDecoder()
-    const {
-  absl::optional<NetEq::DecoderFormat> decoder =
+std::optional<std::pair<int, SdpAudioFormat>> AcmReceiver::LastDecoder() const {
+  std::optional<NetEq::DecoderFormat> decoder =
       neteq_->GetCurrentDecoderFormat();
   if (!decoder) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return std::make_pair(decoder->payload_type, decoder->sdp_format);
 }

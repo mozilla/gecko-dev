@@ -134,7 +134,7 @@ class MockPacingControllerCallback : public PacingController::PacketSender {
               OnAbortedRetransmissions,
               (uint32_t, rtc::ArrayView<const uint16_t>),
               (override));
-  MOCK_METHOD(absl::optional<uint32_t>,
+  MOCK_METHOD(std::optional<uint32_t>,
               GetRtxSsrcForMedia,
               (uint32_t),
               (const, override));
@@ -162,7 +162,7 @@ class MockPacketSender : public PacingController::PacketSender {
               OnAbortedRetransmissions,
               (uint32_t, rtc::ArrayView<const uint16_t>),
               (override));
-  MOCK_METHOD(absl::optional<uint32_t>,
+  MOCK_METHOD(std::optional<uint32_t>,
               GetRtxSsrcForMedia,
               (uint32_t),
               (const, override));
@@ -200,8 +200,8 @@ class PacingControllerPadding : public PacingController::PacketSender {
 
   void OnAbortedRetransmissions(uint32_t,
                                 rtc::ArrayView<const uint16_t>) override {}
-  absl::optional<uint32_t> GetRtxSsrcForMedia(uint32_t) const override {
-    return absl::nullopt;
+  std::optional<uint32_t> GetRtxSsrcForMedia(uint32_t) const override {
+    return std::nullopt;
   }
 
   void OnBatchComplete() override {}
@@ -261,8 +261,8 @@ class PacingControllerProbing : public PacingController::PacketSender {
 
   void OnAbortedRetransmissions(uint32_t,
                                 rtc::ArrayView<const uint16_t>) override {}
-  absl::optional<uint32_t> GetRtxSsrcForMedia(uint32_t) const override {
-    return absl::nullopt;
+  std::optional<uint32_t> GetRtxSsrcForMedia(uint32_t) const override {
+    return std::nullopt;
   }
   void OnBatchComplete() override {}
 

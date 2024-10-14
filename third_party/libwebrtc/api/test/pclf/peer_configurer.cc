@@ -12,12 +12,12 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/async_dns_resolver.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
@@ -122,7 +122,7 @@ PeerConfigurer* PeerConfigurer::SetSSLCertificateVerifier(
 
 PeerConfigurer* PeerConfigurer::AddVideoConfig(VideoConfig config) {
   video_sources_.push_back(
-      CreateSquareFrameGenerator(config, /*type=*/absl::nullopt));
+      CreateSquareFrameGenerator(config, /*type=*/std::nullopt));
   configurable_params_->video_configs.push_back(std::move(config));
   return this;
 }

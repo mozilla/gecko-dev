@@ -9,9 +9,9 @@
  */
 #include "net/dcsctp/tx/outstanding_data.h"
 
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "net/dcsctp/common/internal_types.h"
 #include "net/dcsctp/common/math.h"
 #include "net/dcsctp/common/sequence_numbers.h"

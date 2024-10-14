@@ -16,10 +16,10 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio/audio_device.h"
 #include "api/data_channel_interface.h"
 #include "api/media_types.h"
@@ -170,10 +170,10 @@ class RTCStatsCollector : public RefCountInterface {
   struct RtpTransceiverStatsInfo {
     rtc::scoped_refptr<RtpTransceiver> transceiver;
     cricket::MediaType media_type;
-    absl::optional<std::string> mid;
-    absl::optional<std::string> transport_name;
+    std::optional<std::string> mid;
+    std::optional<std::string> transport_name;
     TrackMediaInfoMap track_media_info_map;
-    absl::optional<RtpTransceiverDirection> current_direction;
+    std::optional<RtpTransceiverDirection> current_direction;
   };
 
   void DeliverCachedReport(
@@ -240,7 +240,7 @@ class RTCStatsCollector : public RefCountInterface {
   void ProducePartialResultsOnSignalingThread(Timestamp timestamp);
   void ProducePartialResultsOnNetworkThread(
       Timestamp timestamp,
-      absl::optional<std::string> sctp_transport_name);
+      std::optional<std::string> sctp_transport_name);
   // Merges `network_report_` into `partial_report_` and completes the request.
   // This is a NO-OP if `network_report_` is null.
   void MergeNetworkReport_s();
@@ -293,7 +293,7 @@ class RTCStatsCollector : public RefCountInterface {
 
   Call::Stats call_stats_;
 
-  absl::optional<AudioDeviceModule::Stats> audio_device_stats_;
+  std::optional<AudioDeviceModule::Stats> audio_device_stats_;
 
   // A timestamp, in microseconds, that is based on a timer that is
   // monotonically increasing. That is, even if the system clock is modified the

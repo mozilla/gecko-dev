@@ -144,7 +144,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
          .ice_username_fragment = rtc::CreateRandomString(16),
          .ice_password = rtc::CreateRandomString(22),
          .field_trials = field_trials},
-        0, 0, stun_servers, absl::nullopt);
+        0, 0, stun_servers, std::nullopt);
     stun_port_->SetIceTiebreaker(kTiebreakerDefault);
     stun_port_->set_stun_keepalive_delay(stun_keepalive_delay_);
     // If `stun_keepalive_lifetime_` is negative, let the stun port
@@ -181,7 +181,7 @@ class StunPortTestBase : public ::testing::Test, public sigslot::has_slots<> {
          .ice_username_fragment = rtc::CreateRandomString(16),
          .ice_password = rtc::CreateRandomString(22),
          .field_trials = field_trials},
-        socket_.get(), false, absl::nullopt);
+        socket_.get(), false, std::nullopt);
     ASSERT_TRUE(stun_port_ != NULL);
     stun_port_->SetIceTiebreaker(kTiebreakerDefault);
     ServerAddresses stun_servers;

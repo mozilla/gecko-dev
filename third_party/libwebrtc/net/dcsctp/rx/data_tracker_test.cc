@@ -12,8 +12,8 @@
 #include <cstdint>
 #include <initializer_list>
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/task_queue/task_queue_base.h"
 #include "net/dcsctp/common/handover_testing.h"

@@ -30,7 +30,7 @@ namespace webrtc {
 DecoderDatabase::DecoderDatabase(
     const Environment& env,
     scoped_refptr<AudioDecoderFactory> decoder_factory,
-    absl::optional<AudioCodecPairId> codec_pair_id)
+    std::optional<AudioCodecPairId> codec_pair_id)
     : env_(env),
       active_decoder_type_(-1),
       active_cng_decoder_type_(-1),
@@ -42,7 +42,7 @@ DecoderDatabase::~DecoderDatabase() = default;
 DecoderDatabase::DecoderInfo::DecoderInfo(
     const Environment& env,
     const SdpAudioFormat& audio_format,
-    absl::optional<AudioCodecPairId> codec_pair_id,
+    std::optional<AudioCodecPairId> codec_pair_id,
     AudioDecoderFactory* factory)
     : env_(env),
       audio_format_(audio_format),
@@ -73,7 +73,7 @@ bool DecoderDatabase::DecoderInfo::IsType(absl::string_view name) const {
   return absl::EqualsIgnoreCase(audio_format_.name, name);
 }
 
-absl::optional<DecoderDatabase::DecoderInfo::CngDecoder>
+std::optional<DecoderDatabase::DecoderInfo::CngDecoder>
 DecoderDatabase::DecoderInfo::CngDecoder::Create(const SdpAudioFormat& format) {
   if (absl::EqualsIgnoreCase(format.name, "CN")) {
     // CN has a 1:1 RTP clock rate to sample rate ratio.
@@ -82,7 +82,7 @@ DecoderDatabase::DecoderInfo::CngDecoder::Create(const SdpAudioFormat& format) {
                sample_rate_hz == 32000 || sample_rate_hz == 48000);
     return DecoderDatabase::DecoderInfo::CngDecoder{sample_rate_hz};
   } else {
-    return absl::nullopt;
+    return std::nullopt;
   }
 }
 

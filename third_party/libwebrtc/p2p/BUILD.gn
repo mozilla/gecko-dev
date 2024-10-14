@@ -159,7 +159,6 @@ rtc_library("rtc_p2p") {
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -180,7 +179,6 @@ rtc_source_set("active_ice_controller_interface") {
     ":ice_transport_internal",
     ":transport_description",
     "../api:array_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -360,7 +358,6 @@ rtc_library("connection") {
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -372,7 +369,6 @@ rtc_library("connection_info") {
   deps = [
     "../api:candidate",
     "../api/units:timestamp",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -472,7 +468,6 @@ rtc_library("ice_controller_interface") {
     ":ice_transport_internal",
     "../rtc_base:checks",
     "../rtc_base/system:rtc_export",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -524,7 +519,6 @@ rtc_library("ice_transport_internal") {
     "../rtc_base/system:rtc_export",
     "../rtc_base/third_party/sigslot",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -598,13 +592,11 @@ rtc_library("p2p_transport_channel") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
 rtc_source_set("p2p_transport_channel_ice_field_trials") {
   sources = [ "base/p2p_transport_channel_ice_field_trials.h" ]
-  deps = [ "//third_party/abseil-cpp/absl/types:optional" ]
 }
 
 rtc_library("packet_transport_internal") {
@@ -624,7 +616,6 @@ rtc_library("packet_transport_internal") {
     "../rtc_base/system:rtc_export",
     "../rtc_base/third_party/sigslot",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -679,7 +670,6 @@ rtc_library("port") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -706,7 +696,6 @@ rtc_library("port_allocator") {
     "../rtc_base/system:rtc_export",
     "../rtc_base/third_party/sigslot",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -725,7 +714,6 @@ rtc_library("port_interface") {
     "../rtc_base:callback_list",
     "../rtc_base:socket_address",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -862,7 +850,6 @@ rtc_library("transport_description") {
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -926,7 +913,6 @@ rtc_library("turn_port") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -975,7 +961,6 @@ rtc_library("wrapping_active_ice_controller") {
     "../rtc_base:macromagic",
     "../rtc_base:threading",
     "../rtc_base:timeutils",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -996,7 +981,6 @@ if (rtc_include_tests) {
       "../rtc_base/network:received_packet",
       "//third_party/abseil-cpp/absl/algorithm:container",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -1186,7 +1170,6 @@ if (rtc_include_tests) {
       "//third_party/abseil-cpp/absl/algorithm:container",
       "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 }

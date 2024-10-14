@@ -261,7 +261,7 @@ constexpr SupportedH264Profile kH264MaxSupportedProfiles[] = {
      {H264Profile::kProfileHigh, H264Level::kLevel4_1}},
 };
 
-absl::optional<H264ProfileLevelId> FindMaxSupportedProfileForDevice(NSString* machineName) {
+std::optional<H264ProfileLevelId> FindMaxSupportedProfileForDevice(NSString* machineName) {
   const auto* result =
       std::find_if(std::begin(kH264MaxSupportedProfiles),
                    std::end(kH264MaxSupportedProfiles),
@@ -279,14 +279,14 @@ absl::optional<H264ProfileLevelId> FindMaxSupportedProfileForDevice(NSString* ma
     H264ProfileLevelId fallbackProfile{H264Profile::kProfileMain, H264Level::kLevel4_1};
     return fallbackProfile;
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace
 
 @implementation UIDevice (H264Profile)
 
-+ (absl::optional<webrtc::H264ProfileLevelId>)maxSupportedH264Profile {
++ (std::optional<webrtc::H264ProfileLevelId>)maxSupportedH264Profile {
   return FindMaxSupportedProfileForDevice([UIDevice machineName]);
 }
 

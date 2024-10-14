@@ -93,7 +93,6 @@ rtc_source_set("aec_dump_interface") {
     ":audio_frame_view",
     "../../api/audio:audio_processing",
     "//third_party/abseil-cpp/absl/base:core_headers",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -194,7 +193,6 @@ rtc_library("audio_processing") {
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 
   deps += [
@@ -233,7 +231,6 @@ rtc_library("residual_echo_detector") {
     "../../rtc_base:checks",
     "../../rtc_base:logging",
     "../../system_wrappers:metrics",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -246,7 +243,6 @@ rtc_source_set("rms_level") {
   deps = [
     "../../api:array_view",
     "../../rtc_base:checks",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -281,7 +277,6 @@ rtc_library("apm_logging") {
     "../../rtc_base:checks",
     "../../rtc_base:stringutils",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   defines = []
 }
@@ -404,7 +399,6 @@ if (rtc_include_tests) {
         "vad:vad_unittests",
         "//testing/gtest",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
 
       defines = []
@@ -495,7 +489,6 @@ if (rtc_include_tests) {
       "../../rtc_base:safe_conversions",
       "../../rtc_base:safe_minmax",
       "agc2:gain_map",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -547,7 +540,6 @@ if (rtc_include_tests) {
         "//third_party/abseil-cpp/absl/flags:flag",
         "//third_party/abseil-cpp/absl/flags:parse",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }  # audioproc_f_impl
   }
@@ -625,7 +617,6 @@ rtc_library("audioproc_test_utils") {
     "../audio_coding:neteq_input_audio_tools",
     "//testing/gtest",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

@@ -120,7 +120,7 @@ class PacketBuffer {
   // determine continuity between them.
   std::vector<std::unique_ptr<Packet>> buffer_;
 
-  absl::optional<uint16_t> newest_inserted_seq_num_;
+  std::optional<uint16_t> newest_inserted_seq_num_;
   std::set<uint16_t, DescendingSeqNumComp<uint16_t>> missing_packets_;
 
   std::set<uint16_t, DescendingSeqNumComp<uint16_t>> received_padding_;

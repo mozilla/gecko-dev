@@ -16,10 +16,10 @@
 #include <atomic>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/metronome/metronome.h"
@@ -117,7 +117,7 @@ class VideoSendStreamImpl : public webrtc::VideoSendStream,
 
   std::map<uint32_t, RtpPayloadState> GetRtpPayloadStates() const;
 
-  const absl::optional<float>& configured_pacing_factor() const {
+  const std::optional<float>& configured_pacing_factor() const {
     return configured_pacing_factor_;
   }
 
@@ -129,7 +129,7 @@ class VideoSendStreamImpl : public webrtc::VideoSendStream,
                          SendDelayStats* send_delay_stats)
         : stats_proxy_(*stats_proxy), send_delay_stats_(*send_delay_stats) {}
 
-    void OnSendPacket(absl::optional<uint16_t> packet_id,
+    void OnSendPacket(std::optional<uint16_t> packet_id,
                       Timestamp capture_time,
                       uint32_t ssrc) override {
       stats_proxy_.OnSendPacket(ssrc, capture_time);
@@ -143,10 +143,10 @@ class VideoSendStreamImpl : public webrtc::VideoSendStream,
     SendDelayStats& send_delay_stats_;
   };
 
-  absl::optional<float> GetPacingFactorOverride() const;
+  std::optional<float> GetPacingFactorOverride() const;
   // Implements BitrateAllocatorObserver.
   uint32_t OnBitrateUpdated(BitrateAllocationUpdate update) override;
-  absl::optional<DataRate> GetUsedRate() const override;
+  std::optional<DataRate> GetUsedRate() const override;
 
   // Implements VideoStreamEncoderInterface::EncoderSink
   void OnEncoderConfigurationChanged(
@@ -229,12 +229,12 @@ class VideoSendStreamImpl : public webrtc::VideoSendStream,
   // throttle sending of similar bitrate allocations.
   struct VbaSendContext {
     VideoBitrateAllocation last_sent_allocation;
-    absl::optional<VideoBitrateAllocation> throttled_allocation;
+    std::optional<VideoBitrateAllocation> throttled_allocation;
     int64_t last_send_time_ms;
   };
-  absl::optional<VbaSendContext> video_bitrate_allocation_context_
+  std::optional<VbaSendContext> video_bitrate_allocation_context_
       RTC_GUARDED_BY(thread_checker_);
-  const absl::optional<float> configured_pacing_factor_;
+  const std::optional<float> configured_pacing_factor_;
 };
 }  // namespace internal
 }  // namespace webrtc

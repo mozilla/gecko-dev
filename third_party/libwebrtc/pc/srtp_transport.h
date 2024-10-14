@@ -15,10 +15,10 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/rtc_error.h"
 #include "p2p/base/packet_transport_internal.h"
@@ -120,7 +120,7 @@ class SrtpTransport : public RtpTransport {
   void OnRtpPacketReceived(const rtc::ReceivedPacket& packet) override;
   void OnRtcpPacketReceived(const rtc::ReceivedPacket& packet) override;
   void OnNetworkRouteChanged(
-      absl::optional<rtc::NetworkRoute> network_route) override;
+      std::optional<rtc::NetworkRoute> network_route) override;
 
   // Override the RtpTransport::OnWritableState.
   void OnWritableState(rtc::PacketTransportInternal* packet_transport) override;
@@ -151,8 +151,8 @@ class SrtpTransport : public RtpTransport {
   std::unique_ptr<cricket::SrtpSession> send_rtcp_session_;
   std::unique_ptr<cricket::SrtpSession> recv_rtcp_session_;
 
-  absl::optional<int> send_crypto_suite_;
-  absl::optional<int> recv_crypto_suite_;
+  std::optional<int> send_crypto_suite_;
+  std::optional<int> recv_crypto_suite_;
   rtc::ZeroOnFreeBuffer<uint8_t> send_key_;
   rtc::ZeroOnFreeBuffer<uint8_t> recv_key_;
 

@@ -12,7 +12,7 @@ Subject: Bug 1766646 - (fix-ae0d117d51) ifdef our Csrc impl vs upstream's
  5 files changed, 20 insertions(+)
 
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.cc b/modules/rtp_rtcp/source/rtp_header_extensions.cc
-index bcdc9a036b..cb6793f6d7 100644
+index bb035729f8..53211fa2b4 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.cc
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.cc
 @@ -181,6 +181,7 @@ bool AudioLevelExtension::Write(rtc::ArrayView<uint8_t> data,
@@ -48,7 +48,7 @@ index bcdc9a036b..cb6793f6d7 100644
  // Video Content Type.
  //
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index 05e771a56d..9cafd4d6f6 100644
+index ed816caa10..2ad2d18036 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
 @@ -104,6 +104,7 @@ class AudioLevelExtension {
@@ -111,7 +111,7 @@ index 3192c27a49..306c17e2c2 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index 394c51f5ee..0c2a45e82a 100644
+index 958edece7e..faed3dfaa5 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
 @@ -114,7 +114,9 @@ bool IsNonVolatile(RTPExtensionType type) {
@@ -138,7 +138,7 @@ index 394c51f5ee..0c2a45e82a 100644
    RTC_CHECK_NOTREACHED();
  }
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index 75e17cb8e9..983d9aef76 100644
+index 6a7b233e29..705ceee309 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
 @@ -79,11 +79,13 @@ void FuzzOneInput(const uint8_t* data, size_t size) {

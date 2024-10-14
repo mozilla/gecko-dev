@@ -15,8 +15,8 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
@@ -101,7 +101,7 @@ class QualityScaler {
 
   const size_t min_frames_needed_;
   const double initial_scale_factor_;
-  const absl::optional<double> scale_factor_;
+  const std::optional<double> scale_factor_;
 };
 
 // Reacts to QP being too high or too low. For best quality, when QP is high it

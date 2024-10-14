@@ -36,7 +36,6 @@ rtc_library("media_constraints") {
   deps = [
     "../api:audio_options_api",
     "../api:libjingle_peerconnection_api",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -453,7 +452,6 @@ if (is_ios || is_mac) {
           "../media:rtc_media_base",
           "../rtc_base:checks",
           "../rtc_base:logging",
-          "//third_party/abseil-cpp/absl/types:optional",
         ]
 
         configs += [

@@ -99,7 +99,7 @@ class NetworkEmulationManagerImpl : public NetworkEmulationManager {
   using CrossTrafficSource =
       std::pair<std::unique_ptr<CrossTrafficGenerator>, RepeatingTaskHandle>;
 
-  absl::optional<rtc::IPAddress> GetNextIPv4Address();
+  std::optional<rtc::IPAddress> GetNextIPv4Address();
 
   const TimeMode time_mode_;
   const EmulatedNetworkStatsGatheringMode stats_gathering_mode_;

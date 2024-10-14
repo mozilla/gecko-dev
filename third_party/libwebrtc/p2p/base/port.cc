@@ -80,13 +80,13 @@ const char* ProtoToString(ProtocolType proto) {
   return PROTO_NAMES[proto];
 }
 
-absl::optional<ProtocolType> StringToProto(absl::string_view proto_name) {
+std::optional<ProtocolType> StringToProto(absl::string_view proto_name) {
   for (size_t i = 0; i <= PROTO_LAST; ++i) {
     if (absl::EqualsIgnoreCase(PROTO_NAMES[i], proto_name)) {
       return static_cast<ProtocolType>(i);
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 // RFC 6544, TCP candidate encoding rules.

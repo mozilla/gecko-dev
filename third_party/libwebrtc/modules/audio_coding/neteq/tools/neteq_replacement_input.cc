@@ -30,17 +30,17 @@ NetEqReplacementInput::NetEqReplacementInput(
   ReplacePacket();
 }
 
-absl::optional<int64_t> NetEqReplacementInput::NextPacketTime() const {
+std::optional<int64_t> NetEqReplacementInput::NextPacketTime() const {
   return packet_
-             ? absl::optional<int64_t>(static_cast<int64_t>(packet_->time_ms))
-             : absl::nullopt;
+             ? std::optional<int64_t>(static_cast<int64_t>(packet_->time_ms))
+             : std::nullopt;
 }
 
-absl::optional<int64_t> NetEqReplacementInput::NextOutputEventTime() const {
+std::optional<int64_t> NetEqReplacementInput::NextOutputEventTime() const {
   return source_->NextOutputEventTime();
 }
 
-absl::optional<NetEqInput::SetMinimumDelayInfo>
+std::optional<NetEqInput::SetMinimumDelayInfo>
 NetEqReplacementInput::NextSetMinimumDelayInfo() const {
   return source_->NextSetMinimumDelayInfo();
 }
@@ -72,7 +72,7 @@ bool NetEqReplacementInput::ended() const {
   return source_->ended();
 }
 
-absl::optional<RTPHeader> NetEqReplacementInput::NextHeader() const {
+std::optional<RTPHeader> NetEqReplacementInput::NextHeader() const {
   return source_->NextHeader();
 }
 
@@ -98,7 +98,7 @@ void NetEqReplacementInput::ReplacePacket() {
     return;
   }
 
-  absl::optional<RTPHeader> next_hdr = source_->NextHeader();
+  std::optional<RTPHeader> next_hdr = source_->NextHeader();
   RTC_DCHECK(next_hdr);
   uint8_t payload[12];
   constexpr uint32_t kMaxFrameSize = 120 * 48;

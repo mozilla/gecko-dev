@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/78bd1d147bff20fcd
  1 file changed, 2 insertions(+)
 
 diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index fd93b31063..e17e28a65f 100644
+index 49421de7b1..e9f7f765a5 100644
 --- a/modules/video_capture/linux/pipewire_session.cc
 +++ b/modules/video_capture/linux/pipewire_session.cc
 @@ -422,6 +422,8 @@ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {

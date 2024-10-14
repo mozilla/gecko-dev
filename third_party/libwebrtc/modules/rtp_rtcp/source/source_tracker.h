@@ -13,11 +13,11 @@
 
 #include <cstdint>
 #include <list>
+#include <optional>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/rtp_packet_infos.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
@@ -91,19 +91,19 @@ class SourceTracker {
     // the most recent packet used to assemble the frame associated with
     // `timestamp`. May be absent. Only relevant for audio receivers. See the
     // specs for `RTCRtpContributingSource` for more info.
-    absl::optional<uint8_t> audio_level;
+    std::optional<uint8_t> audio_level;
 
     // Absolute capture time header extension received or interpolated from the
     // most recent packet used to assemble the frame. For more info see
     // https://webrtc.org/experiments/rtp-hdrext/abs-capture-time/
-    absl::optional<AbsoluteCaptureTime> absolute_capture_time;
+    std::optional<AbsoluteCaptureTime> absolute_capture_time;
 
     // Clock offset between the local clock and the capturer's clock.
     // Do not confuse with `AbsoluteCaptureTime::estimated_capture_clock_offset`
     // which instead represents the clock offset between a remote sender and the
     // capturer. The following holds:
     //   Capture's NTP Clock = Local NTP Clock + Local-Capture Clock Offset
-    absl::optional<TimeDelta> local_capture_clock_offset;
+    std::optional<TimeDelta> local_capture_clock_offset;
 
     // RTP timestamp of the most recent packet used to assemble the frame
     // associated with `timestamp`.

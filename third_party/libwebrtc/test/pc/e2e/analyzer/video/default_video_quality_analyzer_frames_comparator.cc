@@ -12,11 +12,11 @@
 
 #include <algorithm>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
 #include "api/video/i420_buffer.h"
@@ -317,8 +317,8 @@ void DefaultVideoQualityAnalyzerFramesComparator::RegisterParticipantInCall(
 
 void DefaultVideoQualityAnalyzerFramesComparator::AddComparison(
     InternalStatsKey stats_key,
-    absl::optional<VideoFrame> captured,
-    absl::optional<VideoFrame> rendered,
+    std::optional<VideoFrame> captured,
+    std::optional<VideoFrame> rendered,
     FrameComparisonType type,
     FrameStats frame_stats) {
   MutexLock lock(&mutex_);
@@ -331,8 +331,8 @@ void DefaultVideoQualityAnalyzerFramesComparator::AddComparison(
 void DefaultVideoQualityAnalyzerFramesComparator::AddComparison(
     InternalStatsKey stats_key,
     int skipped_between_rendered,
-    absl::optional<VideoFrame> captured,
-    absl::optional<VideoFrame> rendered,
+    std::optional<VideoFrame> captured,
+    std::optional<VideoFrame> rendered,
     FrameComparisonType type,
     FrameStats frame_stats) {
   MutexLock lock(&mutex_);
@@ -349,8 +349,8 @@ void DefaultVideoQualityAnalyzerFramesComparator::AddComparison(
 
 void DefaultVideoQualityAnalyzerFramesComparator::AddComparisonInternal(
     InternalStatsKey stats_key,
-    absl::optional<VideoFrame> captured,
-    absl::optional<VideoFrame> rendered,
+    std::optional<VideoFrame> captured,
+    std::optional<VideoFrame> rendered,
     FrameComparisonType type,
     FrameStats frame_stats) {
   cpu_measurer_.StartExcludingCpuThreadTime();
@@ -360,9 +360,9 @@ void DefaultVideoQualityAnalyzerFramesComparator::AddComparisonInternal(
   // frames itself to make future computations lighter.
   if (comparisons_.size() >= kMaxActiveComparisons) {
     comparisons_.emplace_back(ValidateFrameComparison(
-        FrameComparison(std::move(stats_key), /*captured=*/absl::nullopt,
-                        /*rendered=*/absl::nullopt, type,
-                        std::move(frame_stats), OverloadReason::kCpu)));
+        FrameComparison(std::move(stats_key), /*captured=*/std::nullopt,
+                        /*rendered=*/std::nullopt, type, std::move(frame_stats),
+                        OverloadReason::kCpu)));
   } else {
     OverloadReason overload_reason = OverloadReason::kNone;
     if (!captured && type == FrameComparisonType::kRegular) {
@@ -379,7 +379,7 @@ void DefaultVideoQualityAnalyzerFramesComparator::AddComparisonInternal(
 void DefaultVideoQualityAnalyzerFramesComparator::ProcessComparisons() {
   while (true) {
     // Try to pick next comparison to perform from the queue.
-    absl::optional<FrameComparison> comparison = absl::nullopt;
+    std::optional<FrameComparison> comparison = std::nullopt;
     bool more_new_comparisons_expected;
     {
       MutexLock lock(&mutex_);

@@ -196,7 +196,7 @@ class PpsParserTest : public ::testing::Test {
 
   PpsParser::PpsState generated_pps_;
   rtc::Buffer buffer_;
-  absl::optional<PpsParser::PpsState> parsed_pps_;
+  std::optional<PpsParser::PpsState> parsed_pps_;
 };
 
 TEST_F(PpsParserTest, ZeroPps) {
@@ -227,7 +227,7 @@ TEST_F(PpsParserTest, ParseSliceHeader) {
         H264::ParseNaluType(chunk[index.payload_start_offset]);
     if (nalu_type == H264::NaluType::kIdr) {
       // Skip NAL type header and parse slice header.
-      absl::optional<PpsParser::SliceHeader> slice_header =
+      std::optional<PpsParser::SliceHeader> slice_header =
           PpsParser::ParseSliceHeader(chunk.subview(
               index.payload_start_offset + 1, index.payload_size - 1));
       ASSERT_TRUE(slice_header.has_value());

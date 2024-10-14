@@ -93,7 +93,7 @@ class RtpTransportControllerSend final
   void OnNetworkAvailability(bool network_available) override;
   NetworkLinkRtcpObserver* GetRtcpObserver() override;
   int64_t GetPacerQueuingDelayMs() const override;
-  absl::optional<Timestamp> GetFirstPacketTime() const override;
+  std::optional<Timestamp> GetFirstPacketTime() const override;
   void EnablePeriodicAlrProbing(bool enable) override;
   void OnSentPacket(const rtc::SentPacket& sent_packet) override;
   void OnReceivedPacket(const ReceivedPacket& packet_msg) override;
@@ -134,7 +134,7 @@ class RtpTransportControllerSend final
   void StartProcessPeriodicTasks() RTC_RUN_ON(sequence_checker_);
   void UpdateControllerWithTimeInterval() RTC_RUN_ON(sequence_checker_);
 
-  absl::optional<BitrateConstraints> ApplyOrLiftRelayCap(bool is_relayed);
+  std::optional<BitrateConstraints> ApplyOrLiftRelayCap(bool is_relayed);
   bool IsRelevantRouteChange(const rtc::NetworkRoute& old_route,
                              const rtc::NetworkRoute& new_route) const;
   void UpdateBitrateConstraints(const BitrateConstraints& updated);
@@ -142,7 +142,7 @@ class RtpTransportControllerSend final
   void PostUpdates(NetworkControlUpdate update) RTC_RUN_ON(sequence_checker_);
   void UpdateControlState() RTC_RUN_ON(sequence_checker_);
   void UpdateCongestedState() RTC_RUN_ON(sequence_checker_);
-  absl::optional<bool> GetCongestedStateUpdate() const
+  std::optional<bool> GetCongestedStateUpdate() const
       RTC_RUN_ON(sequence_checker_);
 
   // Called by packet router just before packet is sent to the RTP modules.

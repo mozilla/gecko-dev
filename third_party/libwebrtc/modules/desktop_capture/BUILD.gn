@@ -280,7 +280,6 @@ rtc_library("desktop_capture") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   public_configs = [ ":x11_config" ]
   sources = [

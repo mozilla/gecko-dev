@@ -68,9 +68,9 @@ RTPVideoHeaderH264 GenerateRTPVideoHeaderH264(DataReader* reader) {
   return result;
 }
 
-absl::optional<RTPVideoHeader::GenericDescriptorInfo>
+std::optional<RTPVideoHeader::GenericDescriptorInfo>
 GenerateGenericFrameDependencies(DataReader* reader) {
-  absl::optional<RTPVideoHeader::GenericDescriptorInfo> result;
+  std::optional<RTPVideoHeader::GenericDescriptorInfo> result;
   uint8_t flags = reader->GetNum<uint8_t>();
   if (flags & 0b1000'0000) {
     // i.e. with 50% chance there are no generic dependencies.
@@ -156,7 +156,7 @@ void FuzzOneInput(const uint8_t* data, size_t size) {
         kVideoRotation_0,
         VideoContentType::UNSPECIFIED,
         video_header,
-        /*color_space=*/absl::nullopt,
+        /*color_space=*/std::nullopt,
         RtpPacketInfos(),
         EncodedImageBuffer::Create(/*size=*/0));
     // clang-format on

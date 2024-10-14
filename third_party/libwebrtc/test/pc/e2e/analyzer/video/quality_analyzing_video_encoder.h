@@ -52,7 +52,7 @@ class QualityAnalyzingVideoEncoder : public VideoEncoder,
                                      public EncodedImageCallback {
  public:
   using EmulatedSFUConfigMap =
-      std::map<std::string, absl::optional<EmulatedSFUConfig>>;
+      std::map<std::string, std::optional<EmulatedSFUConfig>>;
 
   QualityAnalyzingVideoEncoder(absl::string_view peer_name,
                                std::unique_ptr<VideoEncoder> delegate,
@@ -138,7 +138,7 @@ class QualityAnalyzingVideoEncoder : public VideoEncoder,
   const double bitrate_multiplier_;
   // Contains mapping from stream label to optional spatial index.
   // If we have stream label "Foo" and mapping contains
-  // 1. `absl::nullopt` means all streams are required
+  // 1. `std::nullopt` means all streams are required
   // 2. Concrete value means that particular simulcast/SVC stream have to be
   //    analyzed.
   EmulatedSFUConfigMap stream_to_sfu_config_;
@@ -176,7 +176,7 @@ class QualityAnalyzingVideoEncoderFactory : public VideoEncoderFactory {
   std::vector<SdpVideoFormat> GetSupportedFormats() const override;
   VideoEncoderFactory::CodecSupport QueryCodecSupport(
       const SdpVideoFormat& format,
-      absl::optional<std::string> scalability_mode) const override;
+      std::optional<std::string> scalability_mode) const override;
   std::unique_ptr<VideoEncoder> Create(const Environment& env,
                                        const SdpVideoFormat& format) override;
 

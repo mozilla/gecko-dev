@@ -13,12 +13,12 @@
 #include <limits.h>
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/str_replace.h"
-#include "absl/types/optional.h"
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
@@ -1955,7 +1955,7 @@ TEST_P(PeerConnectionInterfaceTest, CreateSctpDataChannel) {
   EXPECT_FALSE(channel.value()->reliable());
   EXPECT_FALSE(observer_.renegotiation_needed_);
 
-  config.maxRetransmits = absl::nullopt;
+  config.maxRetransmits = std::nullopt;
   config.maxRetransmitTime = 0;
   channel = pc_->CreateDataChannelOrError("4", &config);
   EXPECT_TRUE(channel.ok());
@@ -2223,7 +2223,7 @@ TEST_P(PeerConnectionInterfaceTest, SetConfigurationChangesPruneTurnPortsFlag) {
 // require a very complex set of mocks.
 TEST_P(PeerConnectionInterfaceTest, SetConfigurationChangesIceCheckInterval) {
   PeerConnectionInterface::RTCConfiguration config;
-  config.ice_check_min_interval = absl::nullopt;
+  config.ice_check_min_interval = std::nullopt;
   CreatePeerConnection(config);
   config = pc_->GetConfiguration();
   config.ice_check_min_interval = 100;

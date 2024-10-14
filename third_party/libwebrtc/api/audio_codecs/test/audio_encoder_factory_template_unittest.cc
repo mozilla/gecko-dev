@@ -11,10 +11,10 @@
 #include "api/audio_codecs/audio_encoder_factory_template.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/L16/audio_encoder_L16.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
@@ -59,13 +59,12 @@ struct AudioEncoderFakeApi {
     SdpAudioFormat audio_format;
   };
 
-  static absl::optional<Config> SdpToConfig(
-      const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
     if (Params::AudioFormat() == audio_format) {
       Config config = {audio_format};
       return config;
     } else {
-      return absl::nullopt;
+      return std::nullopt;
     }
   }
 
@@ -80,7 +79,7 @@ struct AudioEncoderFakeApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
       int payload_type,
-      absl::optional<AudioCodecPairId> /*codec_pair_id*/ = absl::nullopt) {
+      std::optional<AudioCodecPairId> /*codec_pair_id*/ = std::nullopt) {
     auto enc = std::make_unique<testing::StrictMock<MockAudioEncoder>>();
     EXPECT_CALL(*enc, SampleRateHz())
         .WillOnce(::testing::Return(Params::CodecInfo().sample_rate_hz));
@@ -101,8 +100,7 @@ struct BaseAudioEncoderApi {
   static SdpAudioFormat AudioFormat() { return {"fake", 16'000, 2, {}}; }
   static AudioCodecInfo CodecInfo() { return {16'000, 2, 23456}; }
 
-  static absl::optional<Config> SdpToConfig(
-      const SdpAudioFormat& audio_format) {
+  static std::optional<Config> SdpToConfig(const SdpAudioFormat& audio_format) {
     return Config();
   }
 
@@ -117,7 +115,7 @@ struct AudioEncoderApiWithV1Make : BaseAudioEncoderApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
       int payload_type,
-      absl::optional<AudioCodecPairId> codec_pair_id) {
+      std::optional<AudioCodecPairId> codec_pair_id) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV1SameRate));
     return encoder;
@@ -139,7 +137,7 @@ struct AudioEncoderApiWithBothV1AndV2Make : BaseAudioEncoderApi {
   static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
       const Config&,
       int payload_type,
-      absl::optional<AudioCodecPairId> codec_pair_id) {
+      std::optional<AudioCodecPairId> codec_pair_id) {
     auto encoder = std::make_unique<NiceMock<MockAudioEncoder>>();
     ON_CALL(*encoder, SampleRateHz).WillByDefault(Return(kV1SameRate));
     return encoder;
@@ -190,7 +188,7 @@ TEST(AudioEncoderFactoryTemplateTest, NoEncoderTypes) {
       rtc::make_ref_counted<
           audio_encoder_factory_template_impl::AudioEncoderFactoryT<>>());
   EXPECT_THAT(factory->GetSupportedEncoders(), ::testing::IsEmpty());
-  EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
+  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
 
   EXPECT_THAT(factory->Create(env, {"bar", 16000, 1}, {}), IsNull());
 }
@@ -201,7 +199,7 @@ TEST(AudioEncoderFactoryTemplateTest, OneEncoderType) {
   EXPECT_THAT(factory->GetSupportedEncoders(),
               ::testing::ElementsAre(
                   AudioCodecSpec{{"bogus", 8000, 1}, {8000, 1, 12345}}));
-  EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
+  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
   EXPECT_EQ(AudioCodecInfo(8000, 1, 12345),
             factory->QueryAudioEncoder({"bogus", 8000, 1}));
 
@@ -219,7 +217,7 @@ TEST(AudioEncoderFactoryTemplateTest, TwoEncoderTypes) {
                   AudioCodecSpec{{"bogus", 8000, 1}, {8000, 1, 12345}},
                   AudioCodecSpec{{"sham", 16000, 2, {{"param", "value"}}},
                                  {16000, 2, 23456}}));
-  EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
+  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
   EXPECT_EQ(AudioCodecInfo(8000, 1, 12345),
             factory->QueryAudioEncoder({"bogus", 8000, 1}));
   EXPECT_EQ(
@@ -242,7 +240,7 @@ TEST(AudioEncoderFactoryTemplateTest, G711) {
               ::testing::ElementsAre(
                   AudioCodecSpec{{"PCMU", 8000, 1}, {8000, 1, 64000}},
                   AudioCodecSpec{{"PCMA", 8000, 1}, {8000, 1, 64000}}));
-  EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"PCMA", 16000, 1}));
+  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"PCMA", 16000, 1}));
   EXPECT_EQ(AudioCodecInfo(8000, 1, 64000),
             factory->QueryAudioEncoder({"PCMA", 8000, 1}));
 
@@ -259,7 +257,7 @@ TEST(AudioEncoderFactoryTemplateTest, G722) {
   EXPECT_THAT(factory->GetSupportedEncoders(),
               ::testing::ElementsAre(
                   AudioCodecSpec{{"G722", 8000, 1}, {16000, 1, 64000}}));
-  EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
+  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
   EXPECT_EQ(AudioCodecInfo(16000, 1, 64000),
             factory->QueryAudioEncoder({"G722", 8000, 1}));
 
@@ -274,7 +272,7 @@ TEST(AudioEncoderFactoryTemplateTest, Ilbc) {
   EXPECT_THAT(factory->GetSupportedEncoders(),
               ::testing::ElementsAre(
                   AudioCodecSpec{{"ILBC", 8000, 1}, {8000, 1, 13333}}));
-  EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
+  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
   EXPECT_EQ(AudioCodecInfo(8000, 1, 13333),
             factory->QueryAudioEncoder({"ilbc", 8000, 1}));
 
@@ -295,7 +293,7 @@ TEST(AudioEncoderFactoryTemplateTest, L16) {
           AudioCodecSpec{{"L16", 8000, 2}, {8000, 2, 8000 * 16 * 2}},
           AudioCodecSpec{{"L16", 16000, 2}, {16000, 2, 16000 * 16 * 2}},
           AudioCodecSpec{{"L16", 32000, 2}, {32000, 2, 32000 * 16 * 2}}));
-  EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"L16", 8000, 0}));
+  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"L16", 8000, 0}));
   EXPECT_EQ(AudioCodecInfo(48000, 1, 48000 * 16),
             factory->QueryAudioEncoder({"L16", 48000, 1}));
 
@@ -315,7 +313,7 @@ TEST(AudioEncoderFactoryTemplateTest, Opus) {
       ::testing::ElementsAre(AudioCodecSpec{
           {"opus", 48000, 2, {{"minptime", "10"}, {"useinbandfec", "1"}}},
           info}));
-  EXPECT_EQ(absl::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
+  EXPECT_EQ(std::nullopt, factory->QueryAudioEncoder({"foo", 8000, 1}));
   EXPECT_EQ(
       info,
       factory->QueryAudioEncoder(

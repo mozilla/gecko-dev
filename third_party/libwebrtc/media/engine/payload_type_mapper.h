@@ -12,9 +12,9 @@
 #define MEDIA_ENGINE_PAYLOAD_TYPE_MAPPER_H_
 
 #include <map>
+#include <optional>
 #include <set>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_format.h"
 #include "media/base/codec.h"
 
@@ -30,16 +30,15 @@ class PayloadTypeMapper {
   // Finds the current payload type for `format` or assigns a new one, if no
   // current mapping exists. Will return an empty value if it was unable to
   // create a mapping, i.e. if all dynamic payload type ids have been used up.
-  absl::optional<int> GetMappingFor(const webrtc::SdpAudioFormat& format);
+  std::optional<int> GetMappingFor(const webrtc::SdpAudioFormat& format);
 
   // Finds the current payload type for `format`, if any. Returns an empty value
   // if no payload type mapping exists for the format.
-  absl::optional<int> FindMappingFor(
-      const webrtc::SdpAudioFormat& format) const;
+  std::optional<int> FindMappingFor(const webrtc::SdpAudioFormat& format) const;
 
   // Like GetMappingFor, but fills in an AudioCodec structure with the necessary
   // information instead.
-  absl::optional<Codec> ToAudioCodec(const webrtc::SdpAudioFormat& format);
+  std::optional<Codec> ToAudioCodec(const webrtc::SdpAudioFormat& format);
 
  private:
   struct SdpAudioFormatOrdering {

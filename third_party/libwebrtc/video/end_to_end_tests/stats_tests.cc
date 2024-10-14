@@ -9,9 +9,9 @@
  */
 
 #include <memory>
+#include <optional>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/simulated_network.h"
 #include "api/test/video/function_video_encoder_factory.h"
@@ -691,7 +691,7 @@ TEST_F(StatsEndToEndTest, VerifyNackStats) {
     bool dropped_rtp_packet_requested_ RTC_GUARDED_BY(&mutex_) = false;
     std::vector<VideoReceiveStreamInterface*> receive_streams_;
     VideoSendStream* send_stream_ = nullptr;
-    absl::optional<int64_t> start_runtime_ms_;
+    std::optional<int64_t> start_runtime_ms_;
     TaskQueueBase* const task_queue_;
     rtc::scoped_refptr<PendingTaskSafetyFlag> task_safety_flag_ =
         PendingTaskSafetyFlag::CreateDetached();

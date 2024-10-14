@@ -15,9 +15,9 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
@@ -107,7 +107,7 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
   DataSize QueueSizeData() const override;
 
   // Returns the time when the first packet was sent;
-  absl::optional<Timestamp> FirstSentPacketTime() const override;
+  std::optional<Timestamp> FirstSentPacketTime() const override;
 
   // Returns the number of milliseconds it will take to send the current
   // packets in the queue, given the current size and bitrate, ignoring prio.
@@ -127,7 +127,7 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
     Timestamp oldest_packet_enqueue_time;
     DataSize queue_size;
     TimeDelta expected_queue_time;
-    absl::optional<Timestamp> first_sent_packet_time;
+    std::optional<Timestamp> first_sent_packet_time;
   };
   void OnStatsUpdated(const Stats& stats);
 

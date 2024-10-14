@@ -13,8 +13,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
@@ -146,16 +146,16 @@ float BitrateEstimator::UpdateWindow(int64_t now_ms,
   return bitrate_sample;
 }
 
-absl::optional<DataRate> BitrateEstimator::bitrate() const {
+std::optional<DataRate> BitrateEstimator::bitrate() const {
   if (bitrate_estimate_kbps_ < 0.f)
-    return absl::nullopt;
+    return std::nullopt;
   return DataRate::KilobitsPerSec(bitrate_estimate_kbps_);
 }
 
-absl::optional<DataRate> BitrateEstimator::PeekRate() const {
+std::optional<DataRate> BitrateEstimator::PeekRate() const {
   if (current_window_ms_ > 0)
     return DataSize::Bytes(sum_) / TimeDelta::Millis(current_window_ms_);
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void BitrateEstimator::ExpectFastRateChange() {

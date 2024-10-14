@@ -15,13 +15,13 @@
 
 #include <algorithm>
 #include <limits>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/video/color_space.h"
 #include "api/video/i010_buffer.h"
 #include "api/video_codecs/scalability_mode.h"
@@ -158,7 +158,7 @@ std::unique_ptr<ScalableVideoController> CreateVp9ScalabilityStructure(
     }
   }
 
-  absl::optional<ScalabilityMode> scalability_mode =
+  std::optional<ScalabilityMode> scalability_mode =
       ScalabilityModeFromString(name);
   if (!scalability_mode.has_value()) {
     RTC_LOG(LS_WARNING) << "Invalid scalability mode " << name;
@@ -505,8 +505,8 @@ int LibvpxVp9Encoder::InitEncode(const VideoCodec* inst,
     return WEBRTC_VIDEO_CODEC_ERR_PARAMETER;
   }
 
-  absl::optional<vpx_img_fmt_t> previous_img_fmt =
-      raw_ ? absl::make_optional<vpx_img_fmt_t>(raw_->fmt) : absl::nullopt;
+  std::optional<vpx_img_fmt_t> previous_img_fmt =
+      raw_ ? std::make_optional<vpx_img_fmt_t>(raw_->fmt) : std::nullopt;
 
   int ret_val = Release();
   if (ret_val < 0) {
@@ -1266,8 +1266,8 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(
 }
 
 bool LibvpxVp9Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
-                                             absl::optional<int>* spatial_idx,
-                                             absl::optional<int>* temporal_idx,
+                                             std::optional<int>* spatial_idx,
+                                             std::optional<int>* temporal_idx,
                                              const vpx_codec_cx_pkt& pkt) {
   RTC_CHECK(codec_specific != nullptr);
   codec_specific->codecType = kVideoCodecVP9;
@@ -1293,14 +1293,14 @@ bool LibvpxVp9Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
   if (num_temporal_layers_ == 1) {
     RTC_CHECK_EQ(layer_id.temporal_layer_id, 0);
     vp9_info->temporal_idx = kNoTemporalIdx;
-    *temporal_idx = absl::nullopt;
+    *temporal_idx = std::nullopt;
   } else {
     vp9_info->temporal_idx = layer_id.temporal_layer_id;
     *temporal_idx = layer_id.temporal_layer_id;
   }
   if (num_active_spatial_layers_ == 1) {
     RTC_CHECK_EQ(layer_id.spatial_layer_id, 0);
-    *spatial_idx = absl::nullopt;
+    *spatial_idx = std::nullopt;
   } else {
     *spatial_idx = layer_id.spatial_layer_id;
   }
@@ -1447,8 +1447,8 @@ bool LibvpxVp9Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
     codec_specific_.scalability_mode = MakeScalabilityMode(
         num_active_spatial_layers_, num_temporal_layers_, inter_layer_pred_,
         num_active_spatial_layers_ > 1
-            ? absl::make_optional(ScalabilityModeResolutionRatio::kTwoToOne)
-            : absl::nullopt,
+            ? std::make_optional(ScalabilityModeResolutionRatio::kTwoToOne)
+            : std::nullopt,
         /*shift=*/false);
   }
 
@@ -1616,7 +1616,7 @@ vpx_svc_ref_frame_config_t LibvpxVp9Encoder::SetReferences(
   const bool is_inter_layer_pred_allowed =
       inter_layer_pred_ == InterLayerPredMode::kOn ||
       (inter_layer_pred_ == InterLayerPredMode::kOnKeyPic && is_key_pic);
-  absl::optional<int> last_updated_buf_idx;
+  std::optional<int> last_updated_buf_idx;
 
   // Put temporal reference to LAST and spatial reference to GOLDEN. Update
   // frame buffer (i.e. store encoded frame) if current frame is a temporal
@@ -1712,8 +1712,8 @@ void LibvpxVp9Encoder::GetEncodedLayerFrame(const vpx_codec_cx_pkt* pkt) {
       static_cast<const uint8_t*>(pkt->data.frame.buf), pkt->data.frame.sz));
 
   codec_specific_ = {};
-  absl::optional<int> spatial_index;
-  absl::optional<int> temporal_index;
+  std::optional<int> spatial_index;
+  std::optional<int> temporal_index;
   if (!PopulateCodecSpecific(&codec_specific_, &spatial_index, &temporal_index,
                              *pkt)) {
     // Drop the frame.

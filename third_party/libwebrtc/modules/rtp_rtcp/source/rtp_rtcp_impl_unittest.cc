@@ -599,7 +599,7 @@ TEST_F(RtpRtcpImplTest, StoresPacketInfoForSentPackets) {
 
 // Checks that the remote sender stats are not available if no RTCP SR was sent.
 TEST_F(RtpRtcpImplTest, SenderReportStatsNotAvailable) {
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(absl::nullopt));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(std::nullopt));
 }
 
 // Checks that the remote sender stats are available if an RTCP SR was sent.
@@ -608,7 +608,7 @@ TEST_F(RtpRtcpImplTest, SenderReportStatsAvailable) {
   SendFrame(&sender_, sender_video_.get(), kBaseLayerTid);
   // Send an SR.
   ASSERT_THAT(sender_.impl_->SendRTCP(kRtcpReport), Eq(0));
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Not(Eq(absl::nullopt)));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Not(Eq(std::nullopt)));
 }
 
 // Checks that the remote sender stats are not available if an RTCP SR with an
@@ -624,7 +624,7 @@ TEST_F(RtpRtcpImplTest, SenderReportStatsNotUpdatedWithUnexpectedSsrc) {
   sr.SetPacketCount(123u);
   sr.SetOctetCount(456u);
   receiver_.impl_->IncomingRtcpPacket(sr.Build());
-  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(absl::nullopt));
+  EXPECT_THAT(receiver_.impl_->GetSenderReportStats(), Eq(std::nullopt));
 }
 
 // Checks the stats derived from the last received RTCP SR are set correctly.
@@ -672,7 +672,7 @@ TEST_F(RtpRtcpImplTest, SenderReportStatsArrivalTimestampSet) {
   // Send an SR.
   ASSERT_THAT(sender_.impl_->SendRTCP(kRtcpReport), Eq(0));
   auto stats = receiver_.impl_->GetSenderReportStats();
-  ASSERT_THAT(stats, Not(Eq(absl::nullopt)));
+  ASSERT_THAT(stats, Not(Eq(std::nullopt)));
   EXPECT_TRUE(stats->last_arrival_timestamp.Valid());
 }
 

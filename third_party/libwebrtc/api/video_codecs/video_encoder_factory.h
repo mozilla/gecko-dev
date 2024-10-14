@@ -12,10 +12,10 @@
 #define API_VIDEO_CODECS_VIDEO_ENCODER_FACTORY_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/units/data_rate.h"
 #include "api/video/render_resolution.h"
@@ -48,19 +48,19 @@ class VideoEncoderFactory {
 
     // Called every time the available bitrate is updated. Should return a
     // non-empty if an encoder switch should be performed.
-    virtual absl::optional<SdpVideoFormat> OnAvailableBitrate(
+    virtual std::optional<SdpVideoFormat> OnAvailableBitrate(
         const DataRate& rate) = 0;
 
     // Called every time the encoder input resolution change. Should return a
     // non-empty if an encoder switch should be performed.
-    virtual absl::optional<SdpVideoFormat> OnResolutionChange(
+    virtual std::optional<SdpVideoFormat> OnResolutionChange(
         const RenderResolution& resolution) {
-      return absl::nullopt;
+      return std::nullopt;
     }
 
     // Called if the currently used encoder reports itself as broken. Should
     // return a non-empty if an encoder switch should be performed.
-    virtual absl::optional<SdpVideoFormat> OnEncoderBroken() = 0;
+    virtual std::optional<SdpVideoFormat> OnEncoderBroken() = 0;
   };
 
   // Returns a list of supported video formats in order of preference, to use
@@ -84,7 +84,7 @@ class VideoEncoderFactory {
   // subject to change without notice.
   virtual CodecSupport QueryCodecSupport(
       const SdpVideoFormat& format,
-      absl::optional<std::string> scalability_mode) const {
+      std::optional<std::string> scalability_mode) const {
     // Default implementation, query for supported formats and check if the
     // specified format is supported. Returns false if scalability_mode is
     // specified.

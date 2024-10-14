@@ -341,11 +341,11 @@ ProtocolType UDPPort::GetProtocol() const {
   return PROTO_UDP;
 }
 
-void UDPPort::GetStunStats(absl::optional<StunStats>* stats) {
+void UDPPort::GetStunStats(std::optional<StunStats>* stats) {
   *stats = stats_;
 }
 
-void UDPPort::set_stun_keepalive_delay(const absl::optional<int>& delay) {
+void UDPPort::set_stun_keepalive_delay(const std::optional<int>& delay) {
   stun_keepalive_delay_ = delay.value_or(STUN_KEEPALIVE_INTERVAL);
 }
 
@@ -614,7 +614,7 @@ std::unique_ptr<StunPort> StunPort::Create(
     uint16_t min_port,
     uint16_t max_port,
     const ServerAddresses& servers,
-    absl::optional<int> stun_keepalive_interval) {
+    std::optional<int> stun_keepalive_interval) {
   // Using `new` to access a non-public constructor.
   auto port = absl::WrapUnique(new StunPort(args, min_port, max_port, servers));
   port->set_stun_keepalive_delay(stun_keepalive_interval);
@@ -633,7 +633,7 @@ std::unique_ptr<StunPort> StunPort::Create(
     absl::string_view username,
     absl::string_view password,
     const ServerAddresses& servers,
-    absl::optional<int> stun_keepalive_interval,
+    std::optional<int> stun_keepalive_interval,
     const webrtc::FieldTrialsView* field_trials) {
   return Create({.network_thread = thread,
                  .socket_factory = factory,

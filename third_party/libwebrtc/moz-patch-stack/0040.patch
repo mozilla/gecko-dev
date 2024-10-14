@@ -48,10 +48,10 @@ index 9957e3ba12..8e8ed055c9 100644
      if (mips_float_abi == "hard") {
        defines += [ "MIPS_FPU_LE" ]
 diff --git a/common_audio/BUILD.gn b/common_audio/BUILD.gn
-index 4397c45085..ae6acf46b6 100644
+index 66895ccd0e..f6d06f6ad9 100644
 --- a/common_audio/BUILD.gn
 +++ b/common_audio/BUILD.gn
-@@ -67,7 +67,7 @@ rtc_library("common_audio") {
+@@ -66,7 +66,7 @@ rtc_library("common_audio") {
      deps += [ ":common_audio_neon" ]
    }
  
@@ -60,7 +60,7 @@ index 4397c45085..ae6acf46b6 100644
      deps += [ ":common_audio_sse2" ]
      deps += [ ":common_audio_avx2" ]
    }
-@@ -89,7 +89,7 @@ rtc_source_set("mock_common_audio") {
+@@ -88,7 +88,7 @@ rtc_source_set("mock_common_audio") {
  rtc_source_set("common_audio_c_arm_asm") {
    sources = []
    deps = []
@@ -69,7 +69,7 @@ index 4397c45085..ae6acf46b6 100644
      sources += [ "signal_processing/complex_bit_reverse_arm.S" ]
  
      if (arm_version >= 7) {
-@@ -153,7 +153,7 @@ rtc_library("common_audio_c") {
+@@ -152,7 +152,7 @@ rtc_library("common_audio_c") {
      "vad/webrtc_vad.c",
    ]
  
@@ -78,7 +78,7 @@ index 4397c45085..ae6acf46b6 100644
      sources += [
        "signal_processing/complex_bit_reverse_mips.c",
        "signal_processing/complex_fft_mips.c",
-@@ -171,7 +171,7 @@ rtc_library("common_audio_c") {
+@@ -170,7 +170,7 @@ rtc_library("common_audio_c") {
      sources += [ "signal_processing/complex_fft.c" ]
    }
  
@@ -87,7 +87,7 @@ index 4397c45085..ae6acf46b6 100644
      sources += [
        "signal_processing/complex_bit_reverse.c",
        "signal_processing/filter_ar_fast_q12.c",
-@@ -232,7 +232,7 @@ rtc_library("fir_filter_factory") {
+@@ -231,7 +231,7 @@ rtc_library("fir_filter_factory") {
      "../rtc_base/system:arch",
      "../system_wrappers",
    ]
@@ -96,7 +96,7 @@ index 4397c45085..ae6acf46b6 100644
      deps += [ ":common_audio_sse2" ]
      deps += [ ":common_audio_avx2" ]
    }
-@@ -241,7 +241,7 @@ rtc_library("fir_filter_factory") {
+@@ -240,7 +240,7 @@ rtc_library("fir_filter_factory") {
    }
  }
  
@@ -105,7 +105,7 @@ index 4397c45085..ae6acf46b6 100644
    rtc_library("common_audio_sse2") {
      sources = [
        "fir_filter_sse.cc",
-@@ -290,7 +290,7 @@ if (rtc_build_with_neon) {
+@@ -289,7 +289,7 @@ if (rtc_build_with_neon) {
        "resampler/sinc_resampler_neon.cc",
      ]
  
@@ -114,7 +114,7 @@ index 4397c45085..ae6acf46b6 100644
        # Enable compilation for the NEON instruction set.
        suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
        cflags = [ "-mfpu=neon" ]
-@@ -313,7 +313,7 @@ if (rtc_build_with_neon) {
+@@ -312,7 +312,7 @@ if (rtc_build_with_neon) {
        "signal_processing/min_max_operations_neon.c",
      ]
  
@@ -172,7 +172,7 @@ index ac862c65a8..e66ed2796e 100644
    } else {
      sources += [ "spl_sqrt_floor.c" ]
 diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
-index a55132fcdc..584d9676ab 100644
+index 39e24c9324..411c0d27ca 100644
 --- a/modules/audio_processing/aec3/BUILD.gn
 +++ b/modules/audio_processing/aec3/BUILD.gn
 @@ -123,7 +123,7 @@ rtc_library("aec3") {
@@ -184,8 +184,8 @@ index a55132fcdc..584d9676ab 100644
      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
      cflags = [ "-mfpu=neon" ]
    }
-@@ -160,7 +160,7 @@ rtc_library("aec3") {
-     "//third_party/abseil-cpp/absl/types:optional",
+@@ -159,7 +159,7 @@ rtc_library("aec3") {
+     "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  
 -  if (current_cpu == "x86" || current_cpu == "x64") {
@@ -193,7 +193,7 @@ index a55132fcdc..584d9676ab 100644
      deps += [ ":aec3_avx2" ]
    }
  }
-@@ -251,7 +251,7 @@ rtc_source_set("fft_data") {
+@@ -249,7 +249,7 @@ rtc_source_set("fft_data") {
    ]
  }
  
@@ -224,10 +224,10 @@ index 80f2901049..a77f04aba5 100644
    } else {
      sources += [ "aecm_core_c.cc" ]
 diff --git a/modules/audio_processing/agc/BUILD.gn b/modules/audio_processing/agc/BUILD.gn
-index 1616f54581..10af426741 100644
+index f5bb27217a..b8363ad79e 100644
 --- a/modules/audio_processing/agc/BUILD.gn
 +++ b/modules/audio_processing/agc/BUILD.gn
-@@ -83,7 +83,7 @@ rtc_library("legacy_agc") {
+@@ -82,7 +82,7 @@ rtc_library("legacy_agc") {
    ]
  
    if (rtc_build_with_neon) {
@@ -263,7 +263,7 @@ index 31ad61156d..6587fd14f3 100644
      cflags = [ "-mfpu=neon" ]
    }
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index 1d6f6d567f..9b339c5ae0 100644
+index e39700419d..1047f30ee4 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
 @@ -10,7 +10,7 @@ import("//build/config/linux/gtk/gtk.gni")

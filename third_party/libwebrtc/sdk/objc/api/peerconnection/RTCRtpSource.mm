@@ -41,7 +41,7 @@
 }
 
 - (NSNumber *)audioLevel {
-  absl::optional<uint8_t> level = _nativeRtpSource.value().audio_level();
+  std::optional<uint8_t> level = _nativeRtpSource.value().audio_level();
   if (!level.has_value()) {
     return nil;
   }

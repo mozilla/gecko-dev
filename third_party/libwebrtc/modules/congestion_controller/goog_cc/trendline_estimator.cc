@@ -18,11 +18,11 @@
 #include <cstdio>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/network_state_predictor.h"
 #include "api/transport/bandwidth_usage.h"
@@ -57,7 +57,7 @@ size_t ReadTrendlineFilterWindowSize(const FieldTrialsView* key_value_config) {
   return TrendlineEstimatorSettings::kDefaultTrendlineWindowSize;
 }
 
-absl::optional<double> LinearFitSlope(
+std::optional<double> LinearFitSlope(
     const std::deque<TrendlineEstimator::PacketTiming>& packets) {
   RTC_DCHECK(packets.size() >= 2);
   // Compute the "center of mass".
@@ -79,11 +79,11 @@ absl::optional<double> LinearFitSlope(
     denominator += (x - x_avg) * (x - x_avg);
   }
   if (denominator == 0)
-    return absl::nullopt;
+    return std::nullopt;
   return numerator / denominator;
 }
 
-absl::optional<double> ComputeSlopeCap(
+std::optional<double> ComputeSlopeCap(
     const std::deque<TrendlineEstimator::PacketTiming>& packets,
     const TrendlineEstimatorSettings& settings) {
   RTC_DCHECK(1 <= settings.beginning_packets &&
@@ -104,7 +104,7 @@ absl::optional<double> ComputeSlopeCap(
       late = packets[i];
   }
   if (late.arrival_time_ms - early.arrival_time_ms < 1) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return (late.raw_delay_ms - early.raw_delay_ms) /
              (late.arrival_time_ms - early.arrival_time_ms) +
@@ -238,7 +238,7 @@ void TrendlineEstimator::UpdateTrendline(double recv_delta_ms,
     //   trend < 0     ->  the delay decreases, queues are being emptied
     trend = LinearFitSlope(delay_hist_).value_or(trend);
     if (settings_.enable_cap) {
-      absl::optional<double> cap = ComputeSlopeCap(delay_hist_, settings_);
+      std::optional<double> cap = ComputeSlopeCap(delay_hist_, settings_);
       // We only use the cap to filter out overuse detections, not
       // to detect additional underuses.
       if (trend >= 0 && cap.has_value() && trend > cap.value()) {

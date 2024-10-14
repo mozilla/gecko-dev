@@ -11,11 +11,11 @@
 #include "modules/rtp_rtcp/source/rtcp_transceiver_impl.h"
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
-#include "absl/types/optional.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -68,7 +68,7 @@ std::function<void(rtc::ArrayView<const uint8_t>)> GetRtcpTransport(
 
 struct RtcpTransceiverImpl::RemoteSenderState {
   uint8_t fir_sequence_number = 0;
-  absl::optional<SenderReportTimes> last_received_sender_report;
+  std::optional<SenderReportTimes> last_received_sender_report;
   std::vector<MediaReceiverRtcpObserver*> observers;
 };
 
@@ -234,7 +234,7 @@ void RtcpTransceiverImpl::SetRemb(int64_t bitrate_bps,
   // immideately on large bitrate change when there is one RtcpTransceiver per
   // rtp transport.
   if (send_now) {
-    absl::optional<rtcp::Remb> remb;
+    std::optional<rtcp::Remb> remb;
     remb.swap(remb_);
     SendImmediateFeedback(*remb);
     remb.swap(remb_);
@@ -366,7 +366,7 @@ void RtcpTransceiverImpl::HandleReportBlocks(
       Timestamp::Millis(now_ntp.ToMs() - rtc::kNtpJan1970Millisecs);
 
   for (const rtcp::ReportBlock& block : rtcp_report_blocks) {
-    absl::optional<TimeDelta> rtt;
+    std::optional<TimeDelta> rtt;
     if (block.last_sr() != 0) {
       rtt = CompactNtpRttToTimeDelta(
           receive_time_ntp - block.delay_since_last_sr() - block.last_sr());
@@ -736,7 +736,7 @@ void RtcpTransceiverImpl::CreateCompoundPacket(Timestamp now,
                                                PacketSender& sender) {
   RTC_DCHECK(sender.IsEmpty());
   ReservedBytes reserved = {.per_packet = reserved_bytes};
-  absl::optional<rtcp::Sdes> sdes;
+  std::optional<rtcp::Sdes> sdes;
   if (!config_.cname.empty()) {
     sdes.emplace();
     bool added = sdes->AddCName(config_.feedback_ssrc, config_.cname);
@@ -747,7 +747,7 @@ void RtcpTransceiverImpl::CreateCompoundPacket(Timestamp now,
   if (remb_.has_value()) {
     reserved.per_packet += remb_->BlockLength();
   }
-  absl::optional<rtcp::ExtendedReports> xr_with_dlrr;
+  std::optional<rtcp::ExtendedReports> xr_with_dlrr;
   if (!received_rrtrs_.empty()) {
     RTC_DCHECK(config_.reply_to_non_sender_rtt_measurement);
     xr_with_dlrr.emplace();

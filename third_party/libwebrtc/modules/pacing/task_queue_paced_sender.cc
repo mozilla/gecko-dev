@@ -160,7 +160,7 @@ DataSize TaskQueuePacedSender::QueueSizeData() const {
   return GetStats().queue_size;
 }
 
-absl::optional<Timestamp> TaskQueuePacedSender::FirstSentPacketTime() const {
+std::optional<Timestamp> TaskQueuePacedSender::FirstSentPacketTime() const {
   return GetStats().first_sent_packet_time;
 }
 

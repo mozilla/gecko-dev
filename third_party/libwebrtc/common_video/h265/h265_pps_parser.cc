@@ -11,9 +11,9 @@
 #include "common_video/h265/h265_pps_parser.h"
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "common_video/h265/h265_common.h"
 #include "rtc_base/bit_buffer.h"
 #include "rtc_base/bitstream_reader.h"
@@ -26,7 +26,7 @@
                              " to be"                                         \
                           << " in range [" << (min) << ":" << (max) << "]"    \
                           << " found " << (val) << " instead";                \
-      return absl::nullopt;                                                   \
+      return std::nullopt;                                                    \
     }                                                                         \
   } while (0)
 
@@ -46,7 +46,7 @@
     if (!reader.Ok() || !(a)) {                                          \
       RTC_LOG(LS_WARNING) << "Error in stream: invalid value, expected " \
                           << #a;                                         \
-      return absl::nullopt;                                              \
+      return std::nullopt;                                               \
     }                                                                    \
   } while (0)
 
@@ -62,7 +62,7 @@ namespace webrtc {
 // You can find it on this page:
 // http://www.itu.int/rec/T-REC-H.265
 
-absl::optional<H265PpsParser::PpsState> H265PpsParser::ParsePps(
+std::optional<H265PpsParser::PpsState> H265PpsParser::ParsePps(
     rtc::ArrayView<const uint8_t> data,
     const H265SpsParser::SpsState* sps) {
   // First, parse out rbsp, which is basically the source buffer minus emulation
@@ -88,18 +88,18 @@ bool H265PpsParser::ParsePpsIds(rtc::ArrayView<const uint8_t> data,
   return reader.Ok();
 }
 
-absl::optional<H265PpsParser::PpsState> H265PpsParser::ParseInternal(
+std::optional<H265PpsParser::PpsState> H265PpsParser::ParseInternal(
     rtc::ArrayView<const uint8_t> buffer,
     const H265SpsParser::SpsState* sps) {
   BitstreamReader reader(buffer);
   PpsState pps;
 
   if (!sps) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (!ParsePpsIdsInternal(reader, pps.pps_id, pps.sps_id)) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // dependent_slice_segments_enabled_flag: u(1)
@@ -221,14 +221,14 @@ absl::optional<H265PpsParser::PpsState> H265PpsParser::ParseInternal(
   if (pps_scaling_list_data_present_flag) {
     // scaling_list_data()
     if (!H265SpsParser::ParseScalingListData(reader)) {
-      return absl::nullopt;
+      return std::nullopt;
     }
   }
   // lists_modification_present_flag: u(1)
   pps.lists_modification_present_flag = reader.Read<bool>();
 
   if (!reader.Ok()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   return pps;

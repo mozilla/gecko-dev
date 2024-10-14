@@ -385,14 +385,14 @@ TEST_F(TransportFeedbackAdapterTest, IgnoreDuplicatePacketSentCalls) {
   packet_info.pacing_info = packet.sent_packet.pacing_info;
   packet_info.packet_type = RtpPacketMediaType::kVideo;
   adapter_->AddPacket(packet_info, 0u, clock_.CurrentTime());
-  absl::optional<SentPacket> sent_packet = adapter_->ProcessSentPacket(
+  std::optional<SentPacket> sent_packet = adapter_->ProcessSentPacket(
       rtc::SentPacket(packet.sent_packet.sequence_number,
                       packet.sent_packet.send_time.ms(), rtc::PacketInfo()));
   EXPECT_TRUE(sent_packet.has_value());
 
   // Call ProcessSentPacket() again with the same sequence number. This packet
   // has already been marked as sent and the call should be ignored.
-  absl::optional<SentPacket> duplicate_packet = adapter_->ProcessSentPacket(
+  std::optional<SentPacket> duplicate_packet = adapter_->ProcessSentPacket(
       rtc::SentPacket(packet.sent_packet.sequence_number,
                       packet.sent_packet.send_time.ms(), rtc::PacketInfo()));
   EXPECT_FALSE(duplicate_packet.has_value());

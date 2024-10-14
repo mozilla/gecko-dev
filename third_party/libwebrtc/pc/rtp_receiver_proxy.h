@@ -11,10 +11,10 @@
 #ifndef PC_RTP_RECEIVER_PROXY_H_
 #define PC_RTP_RECEIVER_PROXY_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/dtls_transport_interface.h"
 #include "api/frame_transformer_interface.h"
@@ -44,7 +44,7 @@ PROXY_SECONDARY_CONSTMETHOD0(RtpParameters, GetParameters)
 PROXY_METHOD1(void, SetObserver, RtpReceiverObserverInterface*)
 PROXY_SECONDARY_METHOD1(void,
                         SetJitterBufferMinimumDelay,
-                        absl::optional<double>)
+                        std::optional<double>)
 PROXY_SECONDARY_CONSTMETHOD0(std::vector<RtpSource>, GetSources)
 // TODO(bugs.webrtc.org/12772): Remove.
 PROXY_SECONDARY_METHOD1(void,

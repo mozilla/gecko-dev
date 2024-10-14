@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -23,7 +24,6 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/candidate.h"
 #include "api/rtp_parameters.h"
 #include "media/base/codec.h"
@@ -4142,7 +4142,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, H265TxModeIsDifferentDropCodecs) {
   ASSERT_EQ(1u, answer->contents().size());
   vcd1 = answer->contents()[0].media_description()->as_video();
   ASSERT_EQ(1u, vcd1->codecs().size());
-  EXPECT_EQ(vcd1->codecs()[0].tx_mode, absl::nullopt);
+  EXPECT_EQ(vcd1->codecs()[0].tx_mode, std::nullopt);
 }
 #endif
 
@@ -4215,7 +4215,7 @@ TEST_F(MediaSessionDescriptionFactoryTest, PacketizationIsDifferent) {
   ASSERT_EQ(1u, answer->contents().size());
   vcd1 = answer->contents()[0].media_description()->as_video();
   ASSERT_EQ(1u, vcd1->codecs().size());
-  EXPECT_EQ(vcd1->codecs()[0].packetization, absl::nullopt);
+  EXPECT_EQ(vcd1->codecs()[0].packetization, std::nullopt);
 }
 
 // Test that the codec preference order per media section is respected in

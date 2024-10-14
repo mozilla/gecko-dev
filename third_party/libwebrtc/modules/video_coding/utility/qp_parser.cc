@@ -15,13 +15,13 @@
 
 namespace webrtc {
 
-absl::optional<uint32_t> QpParser::Parse(VideoCodecType codec_type,
-                                         size_t spatial_idx,
-                                         const uint8_t* frame_data,
-                                         size_t frame_size) {
+std::optional<uint32_t> QpParser::Parse(VideoCodecType codec_type,
+                                        size_t spatial_idx,
+                                        const uint8_t* frame_data,
+                                        size_t frame_size) {
   if (frame_data == nullptr || frame_size == 0 ||
       spatial_idx >= kMaxSimulcastStreams) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (codec_type == kVideoCodecVP8) {
@@ -43,12 +43,11 @@ absl::optional<uint32_t> QpParser::Parse(VideoCodecType codec_type,
 #endif
   }
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
-absl::optional<uint32_t> QpParser::H264QpParser::Parse(
-    const uint8_t* frame_data,
-    size_t frame_size) {
+std::optional<uint32_t> QpParser::H264QpParser::Parse(const uint8_t* frame_data,
+                                                      size_t frame_size) {
   MutexLock lock(&mutex_);
   bitstream_parser_.ParseBitstream(
       rtc::ArrayView<const uint8_t>(frame_data, frame_size));
@@ -56,9 +55,8 @@ absl::optional<uint32_t> QpParser::H264QpParser::Parse(
 }
 
 #ifdef RTC_ENABLE_H265
-absl::optional<uint32_t> QpParser::H265QpParser::Parse(
-    const uint8_t* frame_data,
-    size_t frame_size) {
+std::optional<uint32_t> QpParser::H265QpParser::Parse(const uint8_t* frame_data,
+                                                      size_t frame_size) {
   MutexLock lock(&mutex_);
   bitstream_parser_.ParseBitstream(
       rtc::ArrayView<const uint8_t>(frame_data, frame_size));

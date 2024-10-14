@@ -248,7 +248,7 @@ void RtpSenderBase::SetParametersInternal(const RtpParameters& parameters,
   }
   if (!media_channel_ || !ssrc_) {
     auto result = cricket::CheckRtpParametersInvalidModificationAndValues(
-        init_parameters_, parameters, send_codecs_, absl::nullopt);
+        init_parameters_, parameters, send_codecs_, std::nullopt);
     if (result.ok()) {
       init_parameters_ = parameters;
     }
@@ -299,7 +299,7 @@ RTCError RtpSenderBase::SetParametersInternalWithAllLayers(
   }
   if (!media_channel_ || !ssrc_) {
     auto result = cricket::CheckRtpParametersInvalidModificationAndValues(
-        init_parameters_, parameters, send_codecs_, absl::nullopt);
+        init_parameters_, parameters, send_codecs_, std::nullopt);
     if (result.ok()) {
       init_parameters_ = parameters;
     }
@@ -339,11 +339,11 @@ RTCError RtpSenderBase::CheckSetParameters(const RtpParameters& parameters) {
 }
 
 RTCError RtpSenderBase::CheckCodecParameters(const RtpParameters& parameters) {
-  absl::optional<cricket::Codec> send_codec = media_channel_->GetSendCodec();
+  std::optional<cricket::Codec> send_codec = media_channel_->GetSendCodec();
 
   // Match the currently used codec against the codec preferences to gather
   // the SVC capabilities.
-  absl::optional<cricket::Codec> send_codec_with_svc_info;
+  std::optional<cricket::Codec> send_codec_with_svc_info;
   if (send_codec && send_codec->type == cricket::Codec::Type::kVideo) {
     auto codec_match = absl::c_find_if(
         send_codecs_, [&](auto& codec) { return send_codec->Matches(codec); });
@@ -498,7 +498,7 @@ void RtpSenderBase::SetSsrc(uint32_t ssrc) {
           init_parameters_.degradation_preference;
       media_channel_->SetRtpSendParameters(ssrc_, current_parameters, nullptr);
       init_parameters_.encodings.clear();
-      init_parameters_.degradation_preference = absl::nullopt;
+      init_parameters_.degradation_preference = std::nullopt;
     });
   }
   // Attempt to attach the frame decryptor to the current media channel.
@@ -606,7 +606,7 @@ void LocalAudioSinkAdapter::OnData(
     int sample_rate,
     size_t number_of_channels,
     size_t number_of_frames,
-    absl::optional<int64_t> absolute_capture_timestamp_ms) {
+    std::optional<int64_t> absolute_capture_timestamp_ms) {
   TRACE_EVENT2("webrtc", "LocalAudioSinkAdapter::OnData", "sample_rate",
                sample_rate, "number_of_frames", number_of_frames);
   MutexLock lock(&lock_);

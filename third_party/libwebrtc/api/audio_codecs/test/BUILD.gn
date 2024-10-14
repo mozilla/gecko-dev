@@ -37,7 +37,6 @@ if (rtc_include_tests) {
       "../ilbc:audio_encoder_ilbc",
       "../opus:audio_decoder_opus",
       "../opus:audio_encoder_opus",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 }

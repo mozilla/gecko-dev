@@ -174,7 +174,7 @@ class RtpSenderTest : public ::testing::Test {
   RateLimiter retransmission_rate_limiter_;
   FlexfecSender flexfec_sender_;
 
-  absl::optional<PacketSequencer> sequencer_;
+  std::optional<PacketSequencer> sequencer_;
   std::unique_ptr<RtpPacketHistory> packet_history_;
   std::unique_ptr<RTPSender> rtp_sender_;
 
@@ -434,7 +434,7 @@ TEST_F(RtpSenderTest, NoPaddingAsFirstPacketWithoutBweExtensions) {
 
 TEST_F(RtpSenderTest, RequiresRtxSsrcToEnableRtx) {
   RtpRtcpInterface::Configuration config = GetDefaultConfig();
-  config.rtx_send_ssrc = absl::nullopt;
+  config.rtx_send_ssrc = std::nullopt;
   RTPSender rtp_sender(config, packet_history_.get(), config.paced_sender);
   rtp_sender.SetRtxPayloadType(kRtxPayload, kPayload);
 
@@ -1369,7 +1369,7 @@ TEST_F(RtpSenderTest, MarksPacketsWithKeyframeStatus) {
   RTPSenderVideo rtp_sender_video(video_config);
 
   const uint8_t kPayloadType = 127;
-  const absl::optional<VideoCodecType> kCodecType =
+  const std::optional<VideoCodecType> kCodecType =
       VideoCodecType::kVideoCodecGeneric;
 
   const uint32_t kCaptureTimeMsToRtpTimestamp = 90;  // 90 kHz clock

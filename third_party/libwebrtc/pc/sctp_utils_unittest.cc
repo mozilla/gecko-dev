@@ -13,8 +13,8 @@
 #include <stdint.h>
 
 #include <limits>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/priority.h"
 #include "media/sctp/sctp_transport_internal.h"
 #include "rtc_base/byte_buffer.h"

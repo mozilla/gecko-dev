@@ -18,7 +18,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c8606497de1f461a6
  1 file changed, 28 insertions(+), 2 deletions(-)
 
 diff --git a/modules/desktop_capture/linux/wayland/egl_dmabuf.cc b/modules/desktop_capture/linux/wayland/egl_dmabuf.cc
-index b529077c6d..6a019c64b4 100644
+index fff976468c..15a447d1b0 100644
 --- a/modules/desktop_capture/linux/wayland/egl_dmabuf.cc
 +++ b/modules/desktop_capture/linux/wayland/egl_dmabuf.cc
 @@ -13,6 +13,7 @@
@@ -29,7 +29,7 @@ index b529077c6d..6a019c64b4 100644
  #include <libdrm/drm_fourcc.h>
  #include <linux/types.h>
  #include <spa/param/video/format-utils.h>
-@@ -217,6 +218,26 @@ static void CloseLibrary(void* library) {
+@@ -218,6 +219,26 @@ static void CloseLibrary(void* library) {
    }
  }
  
@@ -56,7 +56,7 @@ index b529077c6d..6a019c64b4 100644
  static void* g_lib_egl = nullptr;
  
  RTC_NO_SANITIZE("cfi-icall")
-@@ -362,8 +383,13 @@ EglDmaBuf::EglDmaBuf() {
+@@ -363,8 +384,13 @@ EglDmaBuf::EglDmaBuf() {
      return;
    }
  

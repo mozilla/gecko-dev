@@ -11,9 +11,9 @@
 #ifndef PC_RTP_PARAMETERS_CONVERSION_H_
 #define PC_RTP_PARAMETERS_CONVERSION_H_
 
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "media/base/codec.h"
@@ -74,7 +74,7 @@ RTCErrorOr<cricket::StreamParamsVec> ToCricketStreamParamsVec(
 
 // Returns empty value if `cricket_feedback` is a feedback type not
 // supported/recognized.
-absl::optional<RtcpFeedback> ToRtcpFeedback(
+std::optional<RtcpFeedback> ToRtcpFeedback(
     const cricket::FeedbackParam& cricket_feedback);
 
 std::vector<RtpEncodingParameters> ToRtpEncodings(

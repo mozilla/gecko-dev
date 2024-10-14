@@ -14,10 +14,10 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "api/transport/network_types.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtcp_packet.h"
@@ -49,10 +49,10 @@ void PacketRouter::AddSendRtpModule(RtpRtcpInterface* rtp_module,
   RTC_DCHECK_RUN_ON(&thread_checker_);
 
   AddSendRtpModuleToMap(rtp_module, rtp_module->SSRC());
-  if (absl::optional<uint32_t> rtx_ssrc = rtp_module->RtxSsrc()) {
+  if (std::optional<uint32_t> rtx_ssrc = rtp_module->RtxSsrc()) {
     AddSendRtpModuleToMap(rtp_module, *rtx_ssrc);
   }
-  if (absl::optional<uint32_t> flexfec_ssrc = rtp_module->FlexfecSsrc()) {
+  if (std::optional<uint32_t> flexfec_ssrc = rtp_module->FlexfecSsrc()) {
     AddSendRtpModuleToMap(rtp_module, *flexfec_ssrc);
   }
 
@@ -119,10 +119,10 @@ void PacketRouter::RemoveSendRtpModule(RtpRtcpInterface* rtp_module) {
   MaybeRemoveRembModuleCandidate(rtp_module, /* media_sender = */ true);
 
   RemoveSendRtpModuleFromMap(rtp_module->SSRC());
-  if (absl::optional<uint32_t> rtx_ssrc = rtp_module->RtxSsrc()) {
+  if (std::optional<uint32_t> rtx_ssrc = rtp_module->RtxSsrc()) {
     RemoveSendRtpModuleFromMap(*rtx_ssrc);
   }
-  if (absl::optional<uint32_t> flexfec_ssrc = rtp_module->FlexfecSsrc()) {
+  if (std::optional<uint32_t> flexfec_ssrc = rtp_module->FlexfecSsrc()) {
     RemoveSendRtpModuleFromMap(*flexfec_ssrc);
   }
 
@@ -275,7 +275,7 @@ void PacketRouter::OnAbortedRetransmissions(
   }
 }
 
-absl::optional<uint32_t> PacketRouter::GetRtxSsrcForMedia(uint32_t ssrc) const {
+std::optional<uint32_t> PacketRouter::GetRtxSsrcForMedia(uint32_t ssrc) const {
   RTC_DCHECK_RUN_ON(&thread_checker_);
   auto it = send_modules_map_.find(ssrc);
   if (it != send_modules_map_.end() && it->second->SSRC() == ssrc) {
@@ -283,7 +283,7 @@ absl::optional<uint32_t> PacketRouter::GetRtxSsrcForMedia(uint32_t ssrc) const {
     // media SSRC for that RTP module.
     return it->second->RtxSsrc();
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void PacketRouter::SendRemb(int64_t bitrate_bps, std::vector<uint32_t> ssrcs) {

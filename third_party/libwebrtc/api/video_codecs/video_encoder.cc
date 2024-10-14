@@ -14,12 +14,12 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
-#include "absl/types/optional.h"
 #include "api/fec_controller_override.h"
 #include "api/units/data_rate.h"
 #include "api/video/video_bitrate_allocation.h"
@@ -248,7 +248,7 @@ bool VideoEncoder::EncoderInfo::operator==(const EncoderInfo& rhs) const {
   return true;
 }
 
-absl::optional<VideoEncoder::ResolutionBitrateLimits>
+std::optional<VideoEncoder::ResolutionBitrateLimits>
 VideoEncoder::EncoderInfo::GetEncoderBitrateLimitsForResolution(
     int frame_size_pixels) const {
   std::vector<ResolutionBitrateLimits> bitrate_limits =
@@ -277,11 +277,11 @@ VideoEncoder::EncoderInfo::GetEncoderBitrateLimitsForResolution(
     }
 
     if (bitrate_limits[i].frame_size_pixels >= frame_size_pixels) {
-      return absl::optional<ResolutionBitrateLimits>(bitrate_limits[i]);
+      return std::optional<ResolutionBitrateLimits>(bitrate_limits[i]);
     }
   }
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 VideoEncoder::RateControlParameters::RateControlParameters()

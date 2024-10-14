@@ -13,12 +13,12 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/call/transport.h"
 #include "api/field_trials_view.h"
@@ -102,7 +102,7 @@ class RTPSender {
   // RTX.
   void SetRtxStatus(int mode) RTC_LOCKS_EXCLUDED(send_mutex_);
   int RtxStatus() const RTC_LOCKS_EXCLUDED(send_mutex_);
-  absl::optional<uint32_t> RtxSsrc() const RTC_LOCKS_EXCLUDED(send_mutex_) {
+  std::optional<uint32_t> RtxSsrc() const RTC_LOCKS_EXCLUDED(send_mutex_) {
     return rtx_ssrc_;
   }
   // Returns expected size difference between an RTX packet and media packet
@@ -144,7 +144,7 @@ class RTPSender {
     return rid_;
   }
 
-  absl::optional<uint32_t> FlexfecSsrc() const RTC_LOCKS_EXCLUDED(send_mutex_) {
+  std::optional<uint32_t> FlexfecSsrc() const RTC_LOCKS_EXCLUDED(send_mutex_) {
     return flexfec_ssrc_;
   }
 
@@ -176,8 +176,8 @@ class RTPSender {
   const bool audio_configured_;
 
   const uint32_t ssrc_;
-  const absl::optional<uint32_t> rtx_ssrc_;
-  const absl::optional<uint32_t> flexfec_ssrc_;
+  const std::optional<uint32_t> rtx_ssrc_;
+  const std::optional<uint32_t> flexfec_ssrc_;
 
   RtpPacketHistory* const packet_history_;
   RtpPacketSender* const paced_sender_;

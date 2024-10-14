@@ -14,12 +14,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/test/frame_generator_interface.h"
 #include "system_wrappers/include/clock.h"
@@ -34,8 +34,8 @@ namespace test {
 std::unique_ptr<FrameGeneratorInterface> CreateSquareFrameGenerator(
     int width,
     int height,
-    absl::optional<FrameGeneratorInterface::OutputType> type,
-    absl::optional<int> num_squares);
+    std::optional<FrameGeneratorInterface::OutputType> type,
+    std::optional<int> num_squares);
 
 // Creates a frame generator that repeatedly plays a set of yuv files.
 // The frame_repeat_count determines how many times each frame is shown,

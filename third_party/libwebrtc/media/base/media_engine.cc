@@ -68,7 +68,7 @@ std::vector<webrtc::RtpExtension> GetDefaultEnabledRtpHeaderExtensions(
 webrtc::RTCError CheckScalabilityModeValues(
     const webrtc::RtpParameters& rtp_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    absl::optional<cricket::Codec> send_codec) {
+    std::optional<cricket::Codec> send_codec) {
   using webrtc::RTCErrorType;
 
   if (send_codecs.empty()) {
@@ -140,7 +140,7 @@ webrtc::RTCError CheckScalabilityModeValues(
 webrtc::RTCError CheckRtpParametersValues(
     const webrtc::RtpParameters& rtp_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    absl::optional<cricket::Codec> send_codec) {
+    std::optional<cricket::Codec> send_codec) {
   using webrtc::RTCErrorType;
 
   for (size_t i = 0; i < rtp_parameters.encodings.size(); ++i) {
@@ -203,14 +203,14 @@ webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_rtp_parameters,
     const webrtc::RtpParameters& rtp_parameters) {
   return CheckRtpParametersInvalidModificationAndValues(
-      old_rtp_parameters, rtp_parameters, {}, absl::nullopt);
+      old_rtp_parameters, rtp_parameters, {}, std::nullopt);
 }
 
 webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_rtp_parameters,
     const webrtc::RtpParameters& rtp_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    absl::optional<cricket::Codec> send_codec) {
+    std::optional<cricket::Codec> send_codec) {
   using webrtc::RTCErrorType;
   if (rtp_parameters.encodings.size() != old_rtp_parameters.encodings.size()) {
     LOG_AND_RETURN_ERROR(

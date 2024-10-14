@@ -120,8 +120,8 @@ class FrameObserver : public test::RtpRtcpObserver,
   }
 
   Mutex mutex_;
-  absl::optional<uint32_t> last_timestamp_;  // Only accessed from pacer thread.
-  absl::optional<uint8_t> expected_payload_type_ RTC_GUARDED_BY(mutex_);
+  std::optional<uint32_t> last_timestamp_;  // Only accessed from pacer thread.
+  std::optional<uint8_t> expected_payload_type_ RTC_GUARDED_BY(mutex_);
   int num_sent_frames_ RTC_GUARDED_BY(mutex_) = 0;
   int num_rendered_frames_ RTC_GUARDED_BY(mutex_) = 0;
   std::vector<uint32_t> sent_timestamps_ RTC_GUARDED_BY(mutex_);

@@ -12,9 +12,9 @@
 #define MODULES_AUDIO_PROCESSING_AGC2_INPUT_VOLUME_CONTROLLER_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_processing.h"
 #include "modules/audio_processing/agc2/clipping_predictor.h"
@@ -95,9 +95,9 @@ class InputVolumeController final {
   // suppression are applied. Returns a non-empty input volume recommendation if
   // available. If `capture_output_used_` is true, returns the applied input
   // volume.
-  absl::optional<int> RecommendInputVolume(
+  std::optional<int> RecommendInputVolume(
       float speech_probability,
-      absl::optional<float> speech_level_dbfs);
+      std::optional<float> speech_level_dbfs);
 
   // Stores whether the capture output will be used or not. Call when the
   // capture stream output has been flagged to be used/not-used. If unused, the
@@ -155,7 +155,7 @@ class InputVolumeController final {
   int recommended_input_volume_ = 0;
   // Applied input volume. After `SetAppliedInputVolume()` is called it holds
   // the current applied volume.
-  absl::optional<int> applied_input_volume_;
+  std::optional<int> applied_input_volume_;
 
   bool capture_output_used_;
 
@@ -213,7 +213,7 @@ class MonoInputVolumeController {
   // result of `HandleClipping()` and on `rms_error_dbfs`. Updates are only
   // allowed for active speech segments and when `rms_error_dbfs` is not empty.
   // Must be called after `HandleClipping()`.
-  void Process(absl::optional<int> rms_error_dbfs, float speech_probability);
+  void Process(std::optional<int> rms_error_dbfs, float speech_probability);
 
   // Returns the recommended input volume. Must be called after `Process()`.
   int recommended_analog_level() const { return recommended_input_volume_; }

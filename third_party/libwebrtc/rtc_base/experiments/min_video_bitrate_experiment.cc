@@ -26,20 +26,20 @@ const char kForcedFallbackFieldTrial[] =
     "WebRTC-VP8-Forced-Fallback-Encoder-v2";
 const char kMinVideoBitrateExperiment[] = "WebRTC-Video-MinVideoBitrate";
 
-absl::optional<int> GetFallbackMinBpsFromFieldTrial(
+std::optional<int> GetFallbackMinBpsFromFieldTrial(
     const FieldTrialsView& field_trials,
     VideoCodecType type) {
   if (type != kVideoCodecVP8) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (!field_trials.IsEnabled(kForcedFallbackFieldTrial)) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   const std::string group = field_trials.Lookup(kForcedFallbackFieldTrial);
   if (group.empty()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   int min_pixels;  // Ignored.
@@ -47,21 +47,21 @@ absl::optional<int> GetFallbackMinBpsFromFieldTrial(
   int min_bps;
   if (sscanf(group.c_str(), "Enabled-%d,%d,%d", &min_pixels, &max_pixels,
              &min_bps) != 3) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (min_bps <= 0) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   return min_bps;
 }
 }  // namespace
 
-absl::optional<DataRate> GetExperimentalMinVideoBitrate(
+std::optional<DataRate> GetExperimentalMinVideoBitrate(
     const FieldTrialsView& field_trials,
     VideoCodecType type) {
-  const absl::optional<int> fallback_min_bitrate_bps =
+  const std::optional<int> fallback_min_bitrate_bps =
       GetFallbackMinBpsFromFieldTrial(field_trials, type);
   if (fallback_min_bitrate_bps) {
     return DataRate::BitsPerSec(*fallback_min_bitrate_bps);
@@ -106,13 +106,13 @@ absl::optional<DataRate> GetExperimentalMinVideoBitrate(
       case kVideoCodecH264:
         return min_bitrate_h264.GetOptional();
       case kVideoCodecGeneric:
-        return absl::nullopt;
+        return std::nullopt;
     }
 
     RTC_DCHECK_NOTREACHED();
   }
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace webrtc

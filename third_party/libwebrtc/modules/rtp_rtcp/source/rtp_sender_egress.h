@@ -13,10 +13,10 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/call/transport.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/sequence_checker.h"
@@ -72,8 +72,8 @@ class RtpSenderEgress {
                   const PacedPacketInfo& pacing_info);
   void OnBatchComplete();
   uint32_t Ssrc() const { return ssrc_; }
-  absl::optional<uint32_t> RtxSsrc() const { return rtx_ssrc_; }
-  absl::optional<uint32_t> FlexFecSsrc() const { return flexfec_ssrc_; }
+  std::optional<uint32_t> RtxSsrc() const { return rtx_ssrc_; }
+  std::optional<uint32_t> FlexFecSsrc() const { return flexfec_ssrc_; }
 
   RtpSendRates GetSendRates(Timestamp now) const;
   void GetDataCounters(StreamDataCounters* rtp_stats,
@@ -126,8 +126,8 @@ class RtpSenderEgress {
   const bool enable_send_packet_batching_;
   TaskQueueBase* const worker_queue_;
   const uint32_t ssrc_;
-  const absl::optional<uint32_t> rtx_ssrc_;
-  const absl::optional<uint32_t> flexfec_ssrc_;
+  const std::optional<uint32_t> rtx_ssrc_;
+  const std::optional<uint32_t> flexfec_ssrc_;
   const bool populate_network2_timestamp_;
   Clock* const clock_;
   RtpPacketHistory* const packet_history_ RTC_GUARDED_BY(worker_queue_);
@@ -136,8 +136,8 @@ class RtpSenderEgress {
   const bool is_audio_;
   const bool need_rtp_packet_infos_;
   VideoFecGenerator* const fec_generator_ RTC_GUARDED_BY(worker_queue_);
-  absl::optional<uint16_t> last_sent_seq_ RTC_GUARDED_BY(worker_queue_);
-  absl::optional<uint16_t> last_sent_rtx_seq_ RTC_GUARDED_BY(worker_queue_);
+  std::optional<uint16_t> last_sent_seq_ RTC_GUARDED_BY(worker_queue_);
+  std::optional<uint16_t> last_sent_rtx_seq_ RTC_GUARDED_BY(worker_queue_);
 
   SendPacketObserver* const send_packet_observer_;
   StreamDataCountersCallback* const rtp_stats_callback_;
@@ -151,7 +151,7 @@ class RtpSenderEgress {
   StreamDataCounters rtx_rtp_stats_ RTC_GUARDED_BY(worker_queue_);
   // One element per value in RtpPacketMediaType, with index matching value.
   std::vector<BitrateTracker> send_rates_ RTC_GUARDED_BY(worker_queue_);
-  absl::optional<std::pair<FecProtectionParams, FecProtectionParams>>
+  std::optional<std::pair<FecProtectionParams, FecProtectionParams>>
       pending_fec_params_ RTC_GUARDED_BY(worker_queue_);
 
   // Maps sent packets' sequence numbers to a tuple consisting of:

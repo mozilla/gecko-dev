@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <string_view>
@@ -19,7 +20,6 @@
 
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/audio_options.h"
@@ -233,14 +233,14 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
       size_t index,
       const std::string& codec_id) {
     return IsCodecIdDifferentWithScalabilityMode(pc_wrapper, index, codec_id,
-                                                 absl::nullopt);
+                                                 std::nullopt);
   }
 
   bool IsCodecIdDifferentWithScalabilityMode(
       rtc::scoped_refptr<PeerConnectionTestWrapper> pc_wrapper,
       size_t index,
       const std::string& codec_id,
-      absl::optional<std::string> wanted_scalability_mode) {
+      std::optional<std::string> wanted_scalability_mode) {
     rtc::scoped_refptr<const RTCStatsReport> report = GetStats(pc_wrapper);
     std::vector<const RTCOutboundRtpStreamStats*> outbound_rtps =
         report->GetStatsOfType<RTCOutboundRtpStreamStats>();
@@ -513,7 +513,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   // `scalability_mode` remains unset because SetParameters() failed.
   parameters = sender->GetParameters();
   ASSERT_EQ(parameters.encodings.size(), 1u);
-  EXPECT_THAT(parameters.encodings[0].scalability_mode, Eq(absl::nullopt));
+  EXPECT_THAT(parameters.encodings[0].scalability_mode, Eq(std::nullopt));
 
   local_pc_wrapper->WaitForConnection();
   remote_pc_wrapper->WaitForConnection();
@@ -532,7 +532,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   // GetParameters() confirms `scalability_mode` is still not set.
   parameters = sender->GetParameters();
   ASSERT_EQ(parameters.encodings.size(), 1u);
-  EXPECT_THAT(parameters.encodings[0].scalability_mode, Eq(absl::nullopt));
+  EXPECT_THAT(parameters.encodings[0].scalability_mode, Eq(std::nullopt));
 }
 
 TEST_F(PeerConnectionEncodingsIntegrationTest,
@@ -626,7 +626,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   local_pc_wrapper->WaitForConnection();
   remote_pc_wrapper->WaitForConnection();
   // `scalaiblity_mode` is assigned the fallback value "L1T2" which is different
-  // than the default of absl::nullopt.
+  // than the default of std::nullopt.
   parameters = sender->GetParameters();
   ASSERT_EQ(parameters.encodings.size(), 1u);
   EXPECT_THAT(parameters.encodings[0].scalability_mode,
@@ -838,9 +838,9 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   parameters.encodings[0].scalability_mode = "L2T2_KEY";
   parameters.encodings[0].scale_resolution_down_by = 2.0;
   parameters.encodings[1].active = false;
-  parameters.encodings[1].scalability_mode = absl::nullopt;
+  parameters.encodings[1].scalability_mode = std::nullopt;
   parameters.encodings[2].active = false;
-  parameters.encodings[2].scalability_mode = absl::nullopt;
+  parameters.encodings[2].scalability_mode = std::nullopt;
   sender->SetParameters(parameters);
 
   // Since the standard API is configuring simulcast we get three outbound-rtps,
@@ -890,7 +890,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   parameters.encodings[1].scalability_mode = "L1T1";
   parameters.encodings[1].scale_resolution_down_by = 2.0;
   parameters.encodings[2].active = false;
-  parameters.encodings[2].scalability_mode = absl::nullopt;
+  parameters.encodings[2].scalability_mode = std::nullopt;
   EXPECT_TRUE(sender->SetParameters(parameters).ok());
 
   // The original negotiation triggers legacy SVC because we didn't specify
@@ -920,7 +920,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
               Optional(StrEq("L1T3")));
   EXPECT_THAT(parameters.encodings[1].scalability_mode,
               Optional(StrEq("L1T1")));
-  EXPECT_THAT(parameters.encodings[2].scalability_mode, Eq(absl::nullopt));
+  EXPECT_THAT(parameters.encodings[2].scalability_mode, Eq(std::nullopt));
 }
 
 TEST_F(PeerConnectionEncodingsIntegrationTest,
@@ -976,7 +976,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   // GetParameters() does not report any fallback.
   parameters = sender->GetParameters();
   ASSERT_THAT(parameters.encodings, SizeIs(3));
-  EXPECT_THAT(parameters.encodings[0].scalability_mode, Eq(absl::nullopt));
+  EXPECT_THAT(parameters.encodings[0].scalability_mode, Eq(std::nullopt));
   EXPECT_THAT(parameters.encodings[1].scalability_mode,
               Optional(StrEq("L1T1")));
   EXPECT_THAT(parameters.encodings[2].scalability_mode,
@@ -984,14 +984,14 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
 
   // Switch to legacy SVC mode.
   parameters.encodings[0].active = true;
-  parameters.encodings[0].scalability_mode = absl::nullopt;
-  parameters.encodings[0].scale_resolution_down_by = absl::nullopt;
+  parameters.encodings[0].scalability_mode = std::nullopt;
+  parameters.encodings[0].scale_resolution_down_by = std::nullopt;
   parameters.encodings[1].active = true;
-  parameters.encodings[1].scalability_mode = absl::nullopt;
-  parameters.encodings[1].scale_resolution_down_by = absl::nullopt;
+  parameters.encodings[1].scalability_mode = std::nullopt;
+  parameters.encodings[1].scale_resolution_down_by = std::nullopt;
   parameters.encodings[2].active = false;
-  parameters.encodings[2].scalability_mode = absl::nullopt;
-  parameters.encodings[2].scale_resolution_down_by = absl::nullopt;
+  parameters.encodings[2].scalability_mode = std::nullopt;
+  parameters.encodings[2].scale_resolution_down_by = std::nullopt;
 
   EXPECT_TRUE(sender->SetParameters(parameters).ok());
   // Ensure that we are getting VGA at L1T3 from the "f" rid.
@@ -1284,7 +1284,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
           /*audio=*/true, {}, /*video=*/false, {});
   rtc::scoped_refptr<AudioTrackInterface> track = stream->GetAudioTracks()[0];
 
-  absl::optional<RtpCodecCapability> pcmu =
+  std::optional<RtpCodecCapability> pcmu =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
                                                    "pcmu");
   ASSERT_TRUE(pcmu);
@@ -1325,7 +1325,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
           /*audio=*/false, {}, /*video=*/true, {.width = 1280, .height = 720});
   rtc::scoped_refptr<VideoTrackInterface> track = stream->GetVideoTracks()[0];
 
-  absl::optional<RtpCodecCapability> vp9 =
+  std::optional<RtpCodecCapability> vp9 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp9");
   ASSERT_TRUE(vp9);
@@ -1372,7 +1372,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
           /*audio=*/true, {}, /*video=*/false, {});
   rtc::scoped_refptr<AudioTrackInterface> track = stream->GetAudioTracks()[0];
 
-  absl::optional<RtpCodecCapability> pcmu =
+  std::optional<RtpCodecCapability> pcmu =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
                                                    "pcmu");
 
@@ -1409,7 +1409,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
           /*audio=*/true, {}, /*video=*/false, {});
   rtc::scoped_refptr<AudioTrackInterface> track = stream->GetAudioTracks()[0];
 
-  absl::optional<RtpCodecCapability> pcmu =
+  std::optional<RtpCodecCapability> pcmu =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
                                                    "pcmu");
 
@@ -1457,7 +1457,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
           /*audio=*/false, {}, /*video=*/true, {.width = 1280, .height = 720});
   rtc::scoped_refptr<VideoTrackInterface> track = stream->GetVideoTracks()[0];
 
-  absl::optional<RtpCodecCapability> vp9 =
+  std::optional<RtpCodecCapability> vp9 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp9");
 
@@ -1500,7 +1500,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
           /*audio=*/false, {}, /*video=*/true, {.width = 1280, .height = 720});
   rtc::scoped_refptr<VideoTrackInterface> track = stream->GetVideoTracks()[0];
 
-  absl::optional<RtpCodecCapability> vp9 =
+  std::optional<RtpCodecCapability> vp9 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp9");
 
@@ -1635,7 +1635,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
-  absl::optional<RtpCodecCapability> opus =
+  std::optional<RtpCodecCapability> opus =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
                                                    "opus");
   ASSERT_TRUE(opus);
@@ -1674,7 +1674,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
-  absl::optional<RtpCodecCapability> opus =
+  std::optional<RtpCodecCapability> opus =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
                                                    "opus");
   ASSERT_TRUE(opus);
@@ -1736,7 +1736,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
-  absl::optional<RtpCodecCapability> vp8 =
+  std::optional<RtpCodecCapability> vp8 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
@@ -1775,7 +1775,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
-  absl::optional<RtpCodecCapability> vp8 =
+  std::optional<RtpCodecCapability> vp8 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
@@ -1837,7 +1837,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
-  absl::optional<RtpCodecCapability> opus =
+  std::optional<RtpCodecCapability> opus =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
                                                    "opus");
   ASSERT_TRUE(opus);
@@ -1890,12 +1890,12 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
           ->GetRtpSenderCapabilities(cricket::MEDIA_TYPE_AUDIO)
           .codecs;
 
-  absl::optional<RtpCodecCapability> opus =
+  std::optional<RtpCodecCapability> opus =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
                                                    "opus");
   ASSERT_TRUE(opus);
 
-  absl::optional<RtpCodecCapability> red =
+  std::optional<RtpCodecCapability> red =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_AUDIO,
                                                    "red");
   ASSERT_TRUE(red);
@@ -1943,7 +1943,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
        SetParametersRejectsScalabilityModeForSelectedCodec) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
 
-  absl::optional<RtpCodecCapability> vp8 =
+  std::optional<RtpCodecCapability> vp8 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
@@ -1973,7 +1973,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
-  absl::optional<RtpCodecCapability> vp8 =
+  std::optional<RtpCodecCapability> vp8 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
@@ -2031,11 +2031,11 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
   ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
 
-  absl::optional<RtpCodecCapability> vp8 =
+  std::optional<RtpCodecCapability> vp8 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp8");
   ASSERT_TRUE(vp8);
-  absl::optional<RtpCodecCapability> vp9 =
+  std::optional<RtpCodecCapability> vp9 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp9");
 

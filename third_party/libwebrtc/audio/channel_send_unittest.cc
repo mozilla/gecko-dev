@@ -164,7 +164,7 @@ TEST_F(ChannelSendTest, FrameTransformerGetsCorrectTimestamp) {
       .WillOnce(SaveArg<0>(&callback));
   EXPECT_CALL(*mock_frame_transformer, UnregisterTransformedFrameCallback);
 
-  absl::optional<uint32_t> sent_timestamp;
+  std::optional<uint32_t> sent_timestamp;
   auto send_rtp = [&](rtc::ArrayView<const uint8_t> data,
                       const PacketOptions& options) {
     RtpPacketReceived packet;
@@ -311,7 +311,7 @@ TEST_F(ChannelSendTest, AudioLevelsAttachedToInsertedTransformedFrame) {
 TEST_F(ChannelSendTest, NoUsedRateInitially) {
   channel_->StartSend();
   auto used_rate = channel_->GetUsedRate();
-  EXPECT_EQ(used_rate, absl::nullopt);
+  EXPECT_EQ(used_rate, std::nullopt);
 }
 
 // Ensure that GetUsedRate returns value with one coded frame.

@@ -137,7 +137,7 @@ const cricket::IceParameters kIceParams[4] = {
 cricket::IceConfig CreateIceConfig(
     int receiving_timeout,
     cricket::ContinualGatheringPolicy continual_gathering_policy,
-    absl::optional<int> backup_ping_interval = absl::nullopt) {
+    std::optional<int> backup_ping_interval = std::nullopt) {
   cricket::IceConfig config;
   config.receiving_timeout = receiving_timeout;
   config.continual_gathering_policy = continual_gathering_policy;
@@ -541,8 +541,8 @@ class P2PTransportChannelTestBase : public ::testing::Test,
                   const SocketAddress& addr,
                   absl::string_view ifname,
                   rtc::AdapterType adapter_type,
-                  absl::optional<rtc::AdapterType> underlying_vpn_adapter_type =
-                      absl::nullopt) {
+                  std::optional<rtc::AdapterType> underlying_vpn_adapter_type =
+                      std::nullopt) {
     GetEndpoint(endpoint)->network_manager_.AddInterface(
         addr, ifname, adapter_type, underlying_vpn_adapter_type);
   }
@@ -793,7 +793,7 @@ class P2PTransportChannelTestBase : public ::testing::Test,
     }
   }
 
-  void OnNetworkRouteChanged(absl::optional<rtc::NetworkRoute> network_route) {
+  void OnNetworkRouteChanged(std::optional<rtc::NetworkRoute> network_route) {
     // If the `network_route` is unset, don't count. This is used in the case
     // when the network on remote side is down, the signal will be fired with an
     // unset network route and it shouldn't trigger a connection switch.
@@ -3392,7 +3392,7 @@ class P2PTransportChannelPingTest : public ::testing::Test,
     conn->SignalNominated(conn);
   }
 
-  void OnNetworkRouteChanged(absl::optional<rtc::NetworkRoute> network_route) {
+  void OnNetworkRouteChanged(std::optional<rtc::NetworkRoute> network_route) {
     last_network_route_ = network_route;
     if (last_network_route_) {
       last_sent_packet_id_ = last_network_route_->last_sent_packet_id;
@@ -3405,7 +3405,7 @@ class P2PTransportChannelPingTest : public ::testing::Test,
       absl::string_view remote_ufrag,
       int priority,
       uint32_t nomination,
-      const absl::optional<std::string>& piggyback_ping_id) {
+      const std::optional<std::string>& piggyback_ping_id) {
     IceMessage msg(STUN_BINDING_REQUEST);
     msg.AddAttribute(std::make_unique<StunByteStringAttribute>(
         STUN_ATTR_USERNAME,
@@ -3434,7 +3434,7 @@ class P2PTransportChannelPingTest : public ::testing::Test,
                                int priority,
                                uint32_t nomination = 0) {
     ReceivePingOnConnection(conn, remote_ufrag, priority, nomination,
-                            absl::nullopt);
+                            std::nullopt);
   }
 
   void OnReadyToSend(rtc::PacketTransportInternal* transport) {
@@ -3509,9 +3509,9 @@ class P2PTransportChannelPingTest : public ::testing::Test,
   int selected_candidate_pair_switches_ = 0;
   int last_sent_packet_id_ = -1;
   bool channel_ready_to_send_ = false;
-  absl::optional<CandidatePairChangeEvent> last_candidate_change_event_;
+  std::optional<CandidatePairChangeEvent> last_candidate_change_event_;
   IceTransportState channel_state_ = IceTransportState::STATE_INIT;
-  absl::optional<rtc::NetworkRoute> last_network_route_;
+  std::optional<rtc::NetworkRoute> last_network_route_;
 };
 
 TEST_F(P2PTransportChannelPingTest, TestTriggeredChecks) {

@@ -13,10 +13,10 @@
 
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 
 #include "absl/base/attributes.h"
-#include "absl/types/optional.h"
 #include "api/audio/audio_processing.h"
 #include "modules/audio_processing/include/audio_frame_view.h"
 
@@ -68,7 +68,7 @@ class AecDump {
   struct AudioProcessingState {
     int delay;
     int drift;
-    absl::optional<int> applied_input_volume;
+    std::optional<int> applied_input_volume;
     bool keypress;
   };
 

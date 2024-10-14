@@ -21,6 +21,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -29,7 +30,6 @@
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio_options.h"
@@ -915,7 +915,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
                          int sdp_mline_index,
                          const std::string& msg) override {
     RTC_LOG(LS_INFO) << debug_name_ << ": ReceiveIceMessage";
-    absl::optional<RTCError> result;
+    std::optional<RTCError> result;
     pc()->AddIceCandidate(absl::WrapUnique(CreateIceCandidate(
                               sdp_mid, sdp_mline_index, msg, nullptr)),
                           [&result](RTCError r) { result = r; });
@@ -1256,7 +1256,7 @@ class PeerConnectionIntegrationBaseTest : public ::testing::Test {
  public:
   PeerConnectionIntegrationBaseTest(
       SdpSemantics sdp_semantics,
-      absl::optional<std::string> field_trials = absl::nullopt)
+      std::optional<std::string> field_trials = std::nullopt)
       : sdp_semantics_(sdp_semantics),
         ss_(new rtc::VirtualSocketServer()),
         fss_(new rtc::FirewallSocketServer(ss_.get())),

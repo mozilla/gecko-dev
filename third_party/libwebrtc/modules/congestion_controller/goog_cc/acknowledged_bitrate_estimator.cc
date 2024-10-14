@@ -12,10 +12,10 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
@@ -56,11 +56,11 @@ void AcknowledgedBitrateEstimator::IncomingPacketFeedbackVector(
   }
 }
 
-absl::optional<DataRate> AcknowledgedBitrateEstimator::bitrate() const {
+std::optional<DataRate> AcknowledgedBitrateEstimator::bitrate() const {
   return bitrate_estimator_->bitrate();
 }
 
-absl::optional<DataRate> AcknowledgedBitrateEstimator::PeekRate() const {
+std::optional<DataRate> AcknowledgedBitrateEstimator::PeekRate() const {
   return bitrate_estimator_->PeekRate();
 }
 

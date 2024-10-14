@@ -304,7 +304,7 @@ void AndroidVoipClient::StartSession(JNIEnv* env) {
   RUN_ON_VOIP_THREAD(StartSession, env);
 
   // CreateChannel guarantees to return valid channel id.
-  channel_ = voip_engine_->Base().CreateChannel(this, absl::nullopt);
+  channel_ = voip_engine_->Base().CreateChannel(this, std::nullopt);
 
   rtp_socket_.reset(rtc::AsyncUDPSocket::Create(voip_thread_->socketserver(),
                                                 rtp_local_address_));
@@ -357,7 +357,7 @@ void AndroidVoipClient::StopSession(JNIEnv* env) {
   webrtc::VoipResult result = voip_engine_->Base().ReleaseChannel(*channel_);
   RTC_CHECK(result == webrtc::VoipResult::kOk);
 
-  channel_ = absl::nullopt;
+  channel_ = std::nullopt;
   Java_VoipClient_onStopSessionCompleted(env_, j_voip_client_,
                                          /*isSuccessful=*/true);
 }

@@ -13,12 +13,12 @@
 #include <deque>
 #include <limits>
 #include <map>
+#include <optional>
 #include <set>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "net/dcsctp/common/internal_types.h"
 #include "net/dcsctp/packet/data.h"
@@ -136,7 +136,7 @@ void RRSendQueue::OutgoingStream::Add(DcSctpMessage message,
   RTC_DCHECK(IsConsistent());
 }
 
-absl::optional<SendQueue::DataToSend> RRSendQueue::OutgoingStream::Produce(
+std::optional<SendQueue::DataToSend> RRSendQueue::OutgoingStream::Produce(
     Timestamp now,
     size_t max_size) {
   RTC_DCHECK(pause_state_ != PauseState::kPaused &&
@@ -218,7 +218,7 @@ absl::optional<SendQueue::DataToSend> RRSendQueue::OutgoingStream::Produce(
     return chunk;
   }
   RTC_DCHECK(IsConsistent());
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void RRSendQueue::OutgoingStream::HandleMessageExpired(
@@ -331,8 +331,8 @@ void RRSendQueue::OutgoingStream::Reset() {
                                             item.remaining_size);
     item.remaining_offset = 0;
     item.remaining_size = item.message.payload().size();
-    item.mid = absl::nullopt;
-    item.ssn = absl::nullopt;
+    item.mid = std::nullopt;
+    item.ssn = std::nullopt;
     item.current_fsn = FSN(0);
     if (old_pause_state == PauseState::kPaused ||
         old_pause_state == PauseState::kResetting) {
@@ -381,8 +381,8 @@ bool RRSendQueue::IsEmpty() const {
   return total_buffered_amount() == 0;
 }
 
-absl::optional<SendQueue::DataToSend> RRSendQueue::Produce(Timestamp now,
-                                                           size_t max_size) {
+std::optional<SendQueue::DataToSend> RRSendQueue::Produce(Timestamp now,
+                                                          size_t max_size) {
   return scheduler_.Produce(now, max_size);
 }
 

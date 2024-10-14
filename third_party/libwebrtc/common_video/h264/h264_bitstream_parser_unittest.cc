@@ -122,7 +122,7 @@ TEST(H264BitstreamParserTest, ReportsNoQpWithOnlyParsedPpsAndSpsSlices) {
 TEST(H264BitstreamParserTest, ReportsLastSliceQpForImageSlices) {
   H264BitstreamParser h264_parser;
   h264_parser.ParseBitstream(kH264BitstreamChunk);
-  absl::optional<int> qp = h264_parser.GetLastSliceQp();
+  std::optional<int> qp = h264_parser.GetLastSliceQp();
   ASSERT_TRUE(qp.has_value());
   EXPECT_EQ(35, *qp);
 
@@ -140,7 +140,7 @@ TEST(H264BitstreamParserTest, ReportsLastSliceQpForCABACImageSlices) {
 
   // Parse an additional image slice.
   h264_parser.ParseBitstream(kH264BitstreamNextImageSliceChunkCabac);
-  absl::optional<int> qp = h264_parser.GetLastSliceQp();
+  std::optional<int> qp = h264_parser.GetLastSliceQp();
   ASSERT_TRUE(qp.has_value());
   EXPECT_EQ(24, *qp);
 }
@@ -149,14 +149,14 @@ TEST(H264BitstreamParserTest, ReportsLastSliceQpForWeightedPredSlices) {
   H264BitstreamParser h264_parser;
   h264_parser.ParseBitstream(kH264BitstreamWeightedPred);
 
-  absl::optional<int> qp = h264_parser.GetLastSliceQp();
+  std::optional<int> qp = h264_parser.GetLastSliceQp();
   ASSERT_TRUE(qp.has_value());
   EXPECT_EQ(11, *qp);
 }
 
 TEST(H264BitstreamParserTest, ReportsLastSliceQpForWeightedPredSlicesL0Active) {
   H264BitstreamParser h264_parser;
-  absl::optional<int> qp;
+  std::optional<int> qp;
   h264_parser.ParseBitstream(H264BitstreamCVWP1SPS);
 
   h264_parser.ParseBitstream(H264BitstreamCVWP1PFrame1);
@@ -182,7 +182,7 @@ TEST(H264BitstreamParserTest, ReportsLastSliceQpForWeightedPredSlicesL0Active) {
 
 TEST(H264BitstreamParserTest, ReportsLastSliceQpForWeightedPredSlicesL1Active) {
   H264BitstreamParser h264_parser;
-  absl::optional<int> qp;
+  std::optional<int> qp;
   h264_parser.ParseBitstream(H264BitstreamCVWP2SPS);
 
   h264_parser.ParseBitstream(H264BitstreamCVWP2BFrame1);

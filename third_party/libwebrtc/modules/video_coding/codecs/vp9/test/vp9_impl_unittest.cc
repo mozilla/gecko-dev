@@ -125,7 +125,7 @@ class TestVp9ImplForPixelFormat
  protected:
   void SetUp() override {
     input_frame_generator_ = test::CreateSquareFrameGenerator(
-        kWidth, kHeight, GetParam(), absl::optional<int>());
+        kWidth, kHeight, GetParam(), std::optional<int>());
     TestVp9Impl::SetUp();
   }
 };
@@ -145,7 +145,7 @@ TEST_P(TestVp9ImplForPixelFormat, EncodeDecode) {
   encoded_frame._frameType = VideoFrameType::kVideoFrameKey;
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, decoder_->Decode(encoded_frame, 0));
   std::unique_ptr<VideoFrame> decoded_frame;
-  absl::optional<uint8_t> decoded_qp;
+  std::optional<uint8_t> decoded_qp;
   ASSERT_TRUE(WaitForDecodedFrame(&decoded_frame, &decoded_qp));
   ASSERT_TRUE(decoded_frame);
   EXPECT_GT(I420PSNR(&input_frame, decoded_frame.get()), 36);
@@ -195,7 +195,7 @@ TEST_P(TestVp9ImplForPixelFormat, DecodedColorSpaceFromBitstream) {
   // Encoded frame without explicit color space information.
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, decoder_->Decode(encoded_frame, 0));
   std::unique_ptr<VideoFrame> decoded_frame;
-  absl::optional<uint8_t> decoded_qp;
+  std::optional<uint8_t> decoded_qp;
   ASSERT_TRUE(WaitForDecodedFrame(&decoded_frame, &decoded_qp));
   ASSERT_TRUE(decoded_frame);
   // Color space present from encoded bitstream.
@@ -213,7 +213,7 @@ TEST_P(TestVp9ImplForPixelFormat, DecodedQpEqualsEncodedQp) {
   encoded_frame._frameType = VideoFrameType::kVideoFrameKey;
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, decoder_->Decode(encoded_frame, 0));
   std::unique_ptr<VideoFrame> decoded_frame;
-  absl::optional<uint8_t> decoded_qp;
+  std::optional<uint8_t> decoded_qp;
   ASSERT_TRUE(WaitForDecodedFrame(&decoded_frame, &decoded_qp));
   ASSERT_TRUE(decoded_frame);
   ASSERT_TRUE(decoded_qp);
@@ -242,14 +242,14 @@ TEST_F(TestVp9Impl, SwitchInputPixelFormatsWithoutReconfigure) {
   // Change the input frame type from I420 to NV12, encoding should still work.
   input_frame_generator_ = test::CreateSquareFrameGenerator(
       kWidth, kHeight, test::FrameGeneratorInterface::OutputType::kNV12,
-      absl::optional<int>());
+      std::optional<int>());
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, encoder_->Encode(NextInputFrame(), nullptr));
   ASSERT_TRUE(WaitForEncodedFrame(&encoded_frame, &codec_specific_info));
 
   // Flipping back to I420, encoding should still work.
   input_frame_generator_ = test::CreateSquareFrameGenerator(
       kWidth, kHeight, test::FrameGeneratorInterface::OutputType::kI420,
-      absl::optional<int>());
+      std::optional<int>());
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, encoder_->Encode(NextInputFrame(), nullptr));
   ASSERT_TRUE(WaitForEncodedFrame(&encoded_frame, &codec_specific_info));
 }
@@ -531,7 +531,7 @@ TEST(Vp9ImplTest, EnableDisableSpatialLayersWithSvcController) {
 }
 
 MATCHER_P2(GenericLayerIs, spatial_id, temporal_id, "") {
-  if (arg.codec_specific_info.generic_frame_info == absl::nullopt) {
+  if (arg.codec_specific_info.generic_frame_info == std::nullopt) {
     *result_listener << " miss generic_frame_info";
     return false;
   }
@@ -1861,8 +1861,8 @@ TEST_P(Vp9ImplWithLayeringTest, FlexibleMode) {
         frame.codec_specific_info.codecSpecific.VP9;
     EXPECT_EQ(frame.encoded_image.SpatialIndex(),
               num_spatial_layers_ == 1
-                  ? absl::nullopt
-                  : absl::optional<int>(i % num_spatial_layers_))
+                  ? std::nullopt
+                  : std::optional<int>(i % num_spatial_layers_))
         << "Frame " << i;
     EXPECT_EQ(vp9.temporal_idx, num_temporal_layers_ == 1
                                     ? kNoTemporalIdx
@@ -2009,8 +2009,7 @@ class TestVp9ImplProfile2 : public TestVp9Impl {
     TestVp9Impl::SetUp();
     input_frame_generator_ = test::CreateSquareFrameGenerator(
         codec_settings_.width, codec_settings_.height,
-        test::FrameGeneratorInterface::OutputType::kI010,
-        absl::optional<int>());
+        test::FrameGeneratorInterface::OutputType::kI010, std::optional<int>());
   }
 
   std::unique_ptr<VideoEncoder> CreateEncoder() override {
@@ -2035,7 +2034,7 @@ TEST_F(TestVp9ImplProfile2, EncodeDecode) {
   encoded_frame._frameType = VideoFrameType::kVideoFrameKey;
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK, decoder_->Decode(encoded_frame, 0));
   std::unique_ptr<VideoFrame> decoded_frame;
-  absl::optional<uint8_t> decoded_qp;
+  std::optional<uint8_t> decoded_qp;
   ASSERT_TRUE(WaitForDecodedFrame(&decoded_frame, &decoded_qp));
   ASSERT_TRUE(decoded_frame);
 
@@ -2431,7 +2430,7 @@ TEST(Vp9SpeedSettingsTrialsTest, DefaultPerLayerFlagsWithSvc) {
 
 struct SvcFrameDropConfigTestParameters {
   bool flexible_mode;
-  absl::optional<ScalabilityMode> scalability_mode;
+  std::optional<ScalabilityMode> scalability_mode;
   std::string field_trial;
   int expected_framedrop_mode;
   int expected_max_consec_drop;
@@ -2508,7 +2507,7 @@ INSTANTIATE_TEST_SUITE_P(
         // controller is not enabled). Layer drop is not allowed.
         SvcFrameDropConfigTestParameters{
             .flexible_mode = true,
-            .scalability_mode = absl::nullopt,
+            .scalability_mode = std::nullopt,
             .expected_framedrop_mode = FULL_SUPERFRAME_DROP,
             .expected_max_consec_drop = 2}));
 

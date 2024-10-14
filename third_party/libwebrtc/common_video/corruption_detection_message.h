@@ -12,9 +12,9 @@
 #define COMMON_VIDEO_CORRUPTION_DETECTION_MESSAGE_H_
 
 #include <cstddef>
+#include <optional>
 
 #include "absl/container/inlined_vector.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 
 namespace webrtc {
@@ -84,28 +84,28 @@ class CorruptionDetectionMessage::Builder {
 
   ~Builder() = default;
 
-  absl::optional<CorruptionDetectionMessage> Build() {
+  std::optional<CorruptionDetectionMessage> Build() {
     if (message_.sequence_index_ < 0 ||
         message_.sequence_index_ > 0b0111'1111) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     if (message_.std_dev_ < 0.0 || message_.std_dev_ > 40.0) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     if (message_.luma_error_threshold_ < 0 ||
         message_.luma_error_threshold_ > 15) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     if (message_.chroma_error_threshold_ < 0 ||
         message_.chroma_error_threshold_ > 15) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     if (message_.sample_values_.size() > kMaxSampleSize) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     for (double sample_value : message_.sample_values_) {
       if (sample_value < 0.0 || sample_value > 255.0) {
-        return absl::nullopt;
+        return std::nullopt;
       }
     }
     return message_;

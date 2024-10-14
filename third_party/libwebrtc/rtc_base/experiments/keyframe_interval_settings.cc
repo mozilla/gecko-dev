@@ -27,8 +27,7 @@ KeyframeIntervalSettings::KeyframeIntervalSettings(
                   key_value_config.Lookup(kFieldTrialName));
 }
 
-absl::optional<int> KeyframeIntervalSettings::MinKeyframeSendIntervalMs()
-    const {
+std::optional<int> KeyframeIntervalSettings::MinKeyframeSendIntervalMs() const {
   return min_keyframe_send_interval_ms_.GetOptional();
 }
 }  // namespace webrtc

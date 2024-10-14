@@ -35,7 +35,7 @@ TEST(PacketTransportInternal,
                       rtc::ReceivedPacket::kDtlsDecrypted);
           });
   packet_transport.NotifyPacketReceived(rtc::ReceivedPacket(
-      {}, rtc::SocketAddress(), absl::nullopt, rtc::EcnMarking::kNotEct,
+      {}, rtc::SocketAddress(), std::nullopt, rtc::EcnMarking::kNotEct,
       rtc::ReceivedPacket::kDtlsDecrypted));
 
   packet_transport.DeregisterReceivedPacketCallback(&receiver);

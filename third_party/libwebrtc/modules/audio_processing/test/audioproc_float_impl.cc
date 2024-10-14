@@ -339,19 +339,19 @@ const char kUsageDescription[] =
     "protobuf debug dump recordings.\n";
 
 void SetSettingIfSpecified(absl::string_view value,
-                           absl::optional<std::string>* parameter) {
+                           std::optional<std::string>* parameter) {
   if (value.compare("") != 0) {
     *parameter = std::string(value);
   }
 }
 
-void SetSettingIfSpecified(int value, absl::optional<int>* parameter) {
+void SetSettingIfSpecified(int value, std::optional<int>* parameter) {
   if (value != kParameterNotSpecifiedValue) {
     *parameter = value;
   }
 }
 
-void SetSettingIfSpecified(float value, absl::optional<float>* parameter) {
+void SetSettingIfSpecified(float value, std::optional<float>* parameter) {
   constexpr float kFloatParameterNotSpecifiedValue =
       kParameterNotSpecifiedValue;
   if (value != kFloatParameterNotSpecifiedValue) {
@@ -359,7 +359,7 @@ void SetSettingIfSpecified(float value, absl::optional<float>* parameter) {
   }
 }
 
-void SetSettingIfFlagSet(int32_t flag, absl::optional<bool>* parameter) {
+void SetSettingIfFlagSet(int32_t flag, std::optional<bool>* parameter) {
   if (flag == 0) {
     *parameter = false;
   } else if (flag == 1) {
@@ -507,14 +507,14 @@ SimulationSettings CreateSettings() {
                         &settings.dump_end_frame);
 
   constexpr int kFramesPerSecond = 100;
-  absl::optional<float> start_seconds;
+  std::optional<float> start_seconds;
   SetSettingIfSpecified(absl::GetFlag(FLAGS_dump_start_seconds),
                         &start_seconds);
   if (start_seconds) {
     settings.dump_start_frame = *start_seconds * kFramesPerSecond;
   }
 
-  absl::optional<float> end_seconds;
+  std::optional<float> end_seconds;
   SetSettingIfSpecified(absl::GetFlag(FLAGS_dump_end_seconds), &end_seconds);
   if (end_seconds) {
     settings.dump_end_frame = *end_seconds * kFramesPerSecond;

@@ -12,10 +12,10 @@
 #define PC_DTLS_SRTP_TRANSPORT_H_
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/dtls_transport_interface.h"
 #include "api/rtc_error.h"
 #include "p2p/base/dtls_transport_internal.h"
@@ -83,8 +83,8 @@ class DtlsSrtpTransport : public SrtpTransport {
   cricket::DtlsTransportInternal* rtcp_dtls_transport_ = nullptr;
 
   // The encrypted header extension IDs.
-  absl::optional<std::vector<int>> send_extension_ids_;
-  absl::optional<std::vector<int>> recv_extension_ids_;
+  std::optional<std::vector<int>> send_extension_ids_;
+  std::optional<std::vector<int>> recv_extension_ids_;
 
   bool active_reset_srtp_params_ = false;
   std::function<void(void)> on_dtls_state_change_;

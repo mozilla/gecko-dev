@@ -120,22 +120,22 @@ class ObjcVideoEncoderSelector : public VideoEncoderFactory::EncoderSelectorInte
         [[RTC_OBJC_TYPE(RTCVideoCodecInfo) alloc] initWithNativeSdpVideoFormat:format];
     [selector_ registerCurrentEncoderInfo:info];
   }
-  absl::optional<SdpVideoFormat> OnEncoderBroken() override {
+  std::optional<SdpVideoFormat> OnEncoderBroken() override {
     RTC_OBJC_TYPE(RTCVideoCodecInfo) *info = [selector_ encoderForBrokenEncoder];
     if (info) {
       return [info nativeSdpVideoFormat];
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
-  absl::optional<SdpVideoFormat> OnAvailableBitrate(const DataRate &rate) override {
+  std::optional<SdpVideoFormat> OnAvailableBitrate(const DataRate &rate) override {
     RTC_OBJC_TYPE(RTCVideoCodecInfo) *info = [selector_ encoderForBitrate:rate.kbps<NSInteger>()];
     if (info) {
       return [info nativeSdpVideoFormat];
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
 
-  absl::optional<SdpVideoFormat> OnResolutionChange(const RenderResolution &resolution) override {
+  std::optional<SdpVideoFormat> OnResolutionChange(const RenderResolution &resolution) override {
     if ([selector_ respondsToSelector:@selector(encoderForResolutionChangeBySize:)]) {
       RTC_OBJC_TYPE(RTCVideoCodecInfo) *info = [selector_
           encoderForResolutionChangeBySize:CGSizeMake(resolution.Width(), resolution.Height())];
@@ -143,7 +143,7 @@ class ObjcVideoEncoderSelector : public VideoEncoderFactory::EncoderSelectorInte
         return [info nativeSdpVideoFormat];
       }
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
 
  private:

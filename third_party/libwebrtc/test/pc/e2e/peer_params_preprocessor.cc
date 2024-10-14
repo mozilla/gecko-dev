@@ -52,7 +52,7 @@ class PeerParamsPreprocessor::DefaultNamesProvider {
       rtc::ArrayView<const absl::string_view> default_names = {})
       : prefix_(prefix), default_names_(default_names) {}
 
-  void MaybeSetName(absl::optional<std::string>& name) {
+  void MaybeSetName(std::optional<std::string>& name) {
     if (name.has_value()) {
       known_names_.insert(name.value());
     } else {
@@ -168,11 +168,11 @@ void PeerParamsPreprocessor::ValidateParams(const PeerConfigurer& peer) {
           if (!encoding_param.scalability_mode)
             continue;
 
-          absl::optional<ScalabilityMode> scalability_mode =
+          std::optional<ScalabilityMode> scalability_mode =
               ScalabilityModeFromString(*encoding_param.scalability_mode);
           RTC_CHECK(scalability_mode) << "Unknown scalability_mode requested";
 
-          absl::optional<ScalableVideoController::StreamLayersConfig>
+          std::optional<ScalableVideoController::StreamLayersConfig>
               stream_layers_config =
                   ScalabilityStructureConfig(*scalability_mode);
           is_svc |= stream_layers_config->num_spatial_layers > 1;

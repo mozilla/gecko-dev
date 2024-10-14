@@ -89,15 +89,15 @@ class FuzzSignalInput : public NetEqInput {
     output_event_period_ms_ = fuzz_data_.SelectOneOf(output_event_periods);
   }
 
-  absl::optional<int64_t> NextPacketTime() const override {
+  std::optional<int64_t> NextPacketTime() const override {
     return packet_->time_ms;
   }
 
-  absl::optional<int64_t> NextOutputEventTime() const override {
+  std::optional<int64_t> NextOutputEventTime() const override {
     return next_output_event_ms_;
   }
 
-  absl::optional<SetMinimumDelayInfo> NextSetMinimumDelayInfo() const override {
+  std::optional<SetMinimumDelayInfo> NextSetMinimumDelayInfo() const override {
     return input_->NextSetMinimumDelayInfo();
   }
 
@@ -133,7 +133,7 @@ class FuzzSignalInput : public NetEqInput {
 
   bool ended() const override { return ended_; }
 
-  absl::optional<RTPHeader> NextHeader() const override {
+  std::optional<RTPHeader> NextHeader() const override {
     RTC_DCHECK(packet_);
     return packet_->header;
   }

@@ -11,12 +11,12 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/transport/goog_cc_factory.h"
@@ -199,7 +199,7 @@ void RtpTransportControllerSend::DeRegisterSendingRtpStream(
 }
 
 void RtpTransportControllerSend::UpdateControlState() {
-  absl::optional<TargetTransferRate> update = control_handler_->GetUpdate();
+  std::optional<TargetTransferRate> update = control_handler_->GetUpdate();
   if (!update)
     return;
   retransmission_rate_limiter_.SetMaxRate(update->target_rate.bps());
@@ -215,13 +215,13 @@ void RtpTransportControllerSend::UpdateCongestedState() {
   }
 }
 
-absl::optional<bool> RtpTransportControllerSend::GetCongestedStateUpdate()
+std::optional<bool> RtpTransportControllerSend::GetCongestedStateUpdate()
     const {
   bool congested = transport_feedback_adapter_.GetOutstandingData() >=
                    congestion_window_size_;
   if (congested != is_congested_)
     return congested;
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 PacketRouter* RtpTransportControllerSend::packet_router() {
@@ -326,7 +326,7 @@ void RtpTransportControllerSend::OnNetworkRouteChanged(
     return;
   }
 
-  absl::optional<BitrateConstraints> relay_constraint_update =
+  std::optional<BitrateConstraints> relay_constraint_update =
       ApplyOrLiftRelayCap(IsRelayed(network_route));
 
   // Check whether the network route has changed on each transport.
@@ -413,7 +413,7 @@ NetworkLinkRtcpObserver* RtpTransportControllerSend::GetRtcpObserver() {
 int64_t RtpTransportControllerSend::GetPacerQueuingDelayMs() const {
   return pacer_.OldestPacketWaitTime().ms();
 }
-absl::optional<Timestamp> RtpTransportControllerSend::GetFirstPacketTime()
+std::optional<Timestamp> RtpTransportControllerSend::GetFirstPacketTime()
     const {
   return pacer_.FirstSentPacketTime();
 }
@@ -444,7 +444,7 @@ void RtpTransportControllerSend::OnSentPacket(
 void RtpTransportControllerSend::ProcessSentPacket(
     const rtc::SentPacket& sent_packet) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  absl::optional<SentPacket> packet_msg =
+  std::optional<SentPacket> packet_msg =
       transport_feedback_adapter_.ProcessSentPacket(sent_packet);
   if (!packet_msg)
     return;
@@ -493,7 +493,7 @@ void RtpTransportControllerSend::UpdateBitrateConstraints(
 void RtpTransportControllerSend::SetSdpBitrateParameters(
     const BitrateConstraints& constraints) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  absl::optional<BitrateConstraints> updated =
+  std::optional<BitrateConstraints> updated =
       bitrate_configurator_.UpdateWithSdpParameters(constraints);
   if (updated.has_value()) {
     UpdateBitrateConstraints(*updated);
@@ -507,7 +507,7 @@ void RtpTransportControllerSend::SetSdpBitrateParameters(
 void RtpTransportControllerSend::SetClientBitratePreferences(
     const BitrateSettings& preferences) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
-  absl::optional<BitrateConstraints> updated =
+  std::optional<BitrateConstraints> updated =
       bitrate_configurator_.UpdateWithClientPreferences(preferences);
   if (updated.has_value()) {
     UpdateBitrateConstraints(*updated);
@@ -518,7 +518,7 @@ void RtpTransportControllerSend::SetClientBitratePreferences(
   }
 }
 
-absl::optional<BitrateConstraints>
+std::optional<BitrateConstraints>
 RtpTransportControllerSend::ApplyOrLiftRelayCap(bool is_relayed) {
   DataRate cap = is_relayed ? relay_bandwidth_cap_ : DataRate::PlusInfinity();
   return bitrate_configurator_.UpdateWithRelayCap(cap);
@@ -608,7 +608,7 @@ void RtpTransportControllerSend::OnTransportFeedback(
     const rtcp::TransportFeedback& feedback) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   feedback_demuxer_.OnTransportFeedback(feedback);
-  absl::optional<TransportPacketsFeedback> feedback_msg =
+  std::optional<TransportPacketsFeedback> feedback_msg =
       transport_feedback_adapter_.ProcessTransportFeedback(feedback,
                                                            receive_time);
   if (feedback_msg) {

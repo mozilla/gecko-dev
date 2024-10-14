@@ -12,11 +12,11 @@
 #define API_AUDIO_CODECS_AUDIO_ENCODER_FACTORY_TEMPLATE_H_
 
 #include <memory>
+#include <optional>
 #include <type_traits>
 #include <vector>
 
 #include "absl/base/nullability.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_encoder_factory.h"
@@ -36,9 +36,9 @@ struct Helper;
 template <>
 struct Helper<> {
   static void AppendSupportedEncoders(std::vector<AudioCodecSpec>* specs) {}
-  static absl::optional<AudioCodecInfo> QueryAudioEncoder(
+  static std::optional<AudioCodecInfo> QueryAudioEncoder(
       const SdpAudioFormat& format) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   static absl::Nullable<std::unique_ptr<AudioEncoder>> CreateAudioEncoder(
       const Environment& env,
@@ -72,7 +72,7 @@ template <typename Trait,
               decltype(Trait::MakeAudioEncoder(
                   std::declval<typename Trait::Config>(),
                   int{},
-                  std::declval<absl::optional<AudioCodecPairId>>())),
+                  std::declval<std::optional<AudioCodecPairId>>())),
               std::unique_ptr<AudioEncoder>>>>
 absl::Nullable<std::unique_ptr<AudioEncoder>> CreateEncoder(
     Rank0,
@@ -91,14 +91,14 @@ struct Helper<T, Ts...> {
     T::AppendSupportedEncoders(specs);
     Helper<Ts...>::AppendSupportedEncoders(specs);
   }
-  static absl::optional<AudioCodecInfo> QueryAudioEncoder(
+  static std::optional<AudioCodecInfo> QueryAudioEncoder(
       const SdpAudioFormat& format) {
     auto opt_config = T::SdpToConfig(format);
     static_assert(std::is_same<decltype(opt_config),
-                               absl::optional<typename T::Config>>::value,
+                               std::optional<typename T::Config>>::value,
                   "T::SdpToConfig() must return a value of type "
-                  "absl::optional<T::Config>");
-    return opt_config ? absl::optional<AudioCodecInfo>(
+                  "std::optional<T::Config>");
+    return opt_config ? std::optional<AudioCodecInfo>(
                             T::QueryAudioEncoder(*opt_config))
                       : Helper<Ts...>::QueryAudioEncoder(format);
   }
@@ -123,7 +123,7 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
     return specs;
   }
 
-  absl::optional<AudioCodecInfo> QueryAudioEncoder(
+  std::optional<AudioCodecInfo> QueryAudioEncoder(
       const SdpAudioFormat& format) override {
     return Helper<Ts...>::QueryAudioEncoder(format);
   }
@@ -146,7 +146,7 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
 //   // Converts `audio_format` to a ConfigType instance. Returns an empty
 //   // optional if `audio_format` doesn't correctly specify an encoder of our
 //   // type.
-//   absl::optional<ConfigType> SdpToConfig(const SdpAudioFormat& audio_format);
+//   std::optional<ConfigType> SdpToConfig(const SdpAudioFormat& audio_format);
 //
 //   // Appends zero or more AudioCodecSpecs to the list that will be returned
 //   // by AudioEncoderFactory::GetSupportedEncoders().
@@ -166,7 +166,7 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
 //   std::unique_ptr<AudioEncoder> MakeAudioEncoder(
 //       const ConfigType& config,
 //       int payload_type,
-//       absl::optional<AudioCodecPairId> codec_pair_id);
+//       std::optional<AudioCodecPairId> codec_pair_id);
 //
 // ConfigType should be a type that encapsulates all the settings needed to
 // create an AudioEncoder. T::Config (where T is the encoder struct) should

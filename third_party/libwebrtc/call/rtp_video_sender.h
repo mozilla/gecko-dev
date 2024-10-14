@@ -13,10 +13,10 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <unordered_set>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/call/transport.h"
 #include "api/environment/environment.h"
@@ -182,7 +182,7 @@ class RtpVideoSender : public RtpVideoSenderInterface,
   const std::vector<webrtc_internal_rtp_video_sender::RtpStreamSender>
       rtp_streams_;
   const RtpConfig rtp_config_;
-  const absl::optional<VideoCodecType> codec_type_;
+  const std::optional<VideoCodecType> codec_type_;
   RtpTransportControllerSendInterface* const transport_;
 
   // When using the generic descriptor we want all simulcast streams to share

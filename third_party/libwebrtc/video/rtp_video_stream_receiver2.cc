@@ -13,12 +13,12 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
-#include "absl/types/optional.h"
 #include "api/video/video_codec_type.h"
 #include "media/base/media_constants.h"
 #include "modules/pacing/packet_router.h"
@@ -189,7 +189,7 @@ void RtpVideoStreamReceiver2::RtcpFeedbackBuffer::SendLossNotification(
   RTC_DCHECK(!lntf_state_)
       << "SendLossNotification() called twice in a row with no call to "
          "SendBufferedRtcpFeedback() in between.";
-  lntf_state_ = absl::make_optional<LossNotificationState>(
+  lntf_state_ = std::make_optional<LossNotificationState>(
       last_decoded_seq_num, last_received_seq_num, decodability_flag);
 }
 
@@ -198,7 +198,7 @@ void RtpVideoStreamReceiver2::RtcpFeedbackBuffer::SendBufferedRtcpFeedback() {
 
   bool request_key_frame = false;
   std::vector<uint16_t> nack_sequence_numbers;
-  absl::optional<LossNotificationState> lntf_state;
+  std::optional<LossNotificationState> lntf_state;
 
   std::swap(request_key_frame, request_key_frame_);
   std::swap(nack_sequence_numbers, nack_sequence_numbers_);
@@ -249,8 +249,8 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
       config_(*config),
       packet_router_(packet_router),
       ntp_estimator_(&env_.clock()),
-      forced_playout_delay_max_ms_("max_ms", absl::nullopt),
-      forced_playout_delay_min_ms_("min_ms", absl::nullopt),
+      forced_playout_delay_max_ms_("max_ms", std::nullopt),
+      forced_playout_delay_min_ms_("min_ms", std::nullopt),
       rtp_receive_statistics_(rtp_receive_statistics),
       ulpfec_receiver_(
           MaybeConstructUlpfecReceiver(config->rtp.remote_ssrc,
@@ -375,20 +375,20 @@ void RtpVideoStreamReceiver2::RemoveReceiveCodecs() {
   h26x_packet_buffer_.reset();
 }
 
-absl::optional<Syncable::Info> RtpVideoStreamReceiver2::GetSyncInfo() const {
+std::optional<Syncable::Info> RtpVideoStreamReceiver2::GetSyncInfo() const {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   Syncable::Info info;
-  absl::optional<RtpRtcpInterface::SenderReportStats> last_sr =
+  std::optional<RtpRtcpInterface::SenderReportStats> last_sr =
       rtp_rtcp_->GetSenderReportStats();
   if (!last_sr.has_value()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   info.capture_time_ntp_secs = last_sr->last_remote_timestamp.seconds();
   info.capture_time_ntp_frac = last_sr->last_remote_timestamp.fractions();
   info.capture_time_source_clock = last_sr->last_remote_rtp_timestamp;
 
   if (!last_received_rtp_timestamp_ || !last_received_rtp_system_time_) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   info.latest_received_capture_timestamp = *last_received_rtp_timestamp_;
   info.latest_receive_time_ms = last_received_rtp_system_time_->ms();
@@ -554,7 +554,7 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     if (!video_header.playout_delay.emplace().Set(
             TimeDelta::Millis(*forced_playout_delay_min_ms_),
             TimeDelta::Millis(*forced_playout_delay_max_ms_))) {
-      video_header.playout_delay = absl::nullopt;
+      video_header.playout_delay = std::nullopt;
     }
   } else {
     video_header.playout_delay = rtp_packet.GetExtension<PlayoutDelayLimits>();
@@ -838,7 +838,7 @@ void RtpVideoStreamReceiver2::OnAssembledFrame(
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   RTC_DCHECK(frame);
 
-  const absl::optional<RTPVideoHeader::GenericDescriptorInfo>& descriptor =
+  const std::optional<RTPVideoHeader::GenericDescriptorInfo>& descriptor =
       frame->GetRtpVideoHeader().generic;
 
   if (loss_notification_controller_ && descriptor) {
@@ -1025,28 +1025,28 @@ void RtpVideoStreamReceiver2::SetProtectionPayloadTypes(
                                    ulpfec_payload_type, this, &env_.clock());
 }
 
-absl::optional<int64_t> RtpVideoStreamReceiver2::LastReceivedPacketMs() const {
+std::optional<int64_t> RtpVideoStreamReceiver2::LastReceivedPacketMs() const {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   if (last_received_rtp_system_time_) {
-    return absl::optional<int64_t>(last_received_rtp_system_time_->ms());
+    return std::optional<int64_t>(last_received_rtp_system_time_->ms());
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
-absl::optional<uint32_t>
-RtpVideoStreamReceiver2::LastReceivedFrameRtpTimestamp() const {
+std::optional<uint32_t> RtpVideoStreamReceiver2::LastReceivedFrameRtpTimestamp()
+    const {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   return last_received_rtp_timestamp_;
 }
 
-absl::optional<int64_t> RtpVideoStreamReceiver2::LastReceivedKeyframePacketMs()
+std::optional<int64_t> RtpVideoStreamReceiver2::LastReceivedKeyframePacketMs()
     const {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   if (last_received_keyframe_rtp_system_time_) {
-    return absl::optional<int64_t>(
+    return std::optional<int64_t>(
         last_received_keyframe_rtp_system_time_->ms());
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 // Mozilla modification: VideoReceiveStream2 and friends do not surface RTCP
@@ -1060,7 +1060,7 @@ void RtpVideoStreamReceiver2::RemoteRTCPSenderInfo(
                                   remote_ntp_timestamp_ms);
 }
 
-absl::optional<RtpRtcpInterface::SenderReportStats>
+std::optional<RtpRtcpInterface::SenderReportStats>
 RtpVideoStreamReceiver2::GetSenderReportStats() const {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
   return rtp_rtcp_->GetSenderReportStats();
@@ -1094,9 +1094,9 @@ void RtpVideoStreamReceiver2::ReceivePacket(const RtpPacketReceived& packet) {
 
   auto parse_and_insert = [&](const RtpPacketReceived& packet) {
     RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
-    absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload =
+    std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload =
         type_it->second->Parse(packet.PayloadBuffer());
-    if (parsed_payload == absl::nullopt) {
+    if (parsed_payload == std::nullopt) {
       RTC_LOG(LS_WARNING) << "Failed parsing payload.";
       return false;
     }
@@ -1187,13 +1187,13 @@ bool RtpVideoStreamReceiver2::DeliverRtcp(const uint8_t* rtcp_packet,
   rtp_rtcp_->IncomingRtcpPacket(
       rtc::MakeArrayView(rtcp_packet, rtcp_packet_length));
 
-  absl::optional<TimeDelta> rtt = rtp_rtcp_->LastRtt();
+  std::optional<TimeDelta> rtt = rtp_rtcp_->LastRtt();
   if (!rtt.has_value()) {
     // Waiting for valid rtt.
     return true;
   }
 
-  absl::optional<RtpRtcpInterface::SenderReportStats> last_sr =
+  std::optional<RtpRtcpInterface::SenderReportStats> last_sr =
       rtp_rtcp_->GetSenderReportStats();
   if (!last_sr.has_value()) {
     // Waiting for RTCP.
@@ -1205,7 +1205,7 @@ bool RtpVideoStreamReceiver2::DeliverRtcp(const uint8_t* rtcp_packet,
   if (time_since_received <= 1) {
     ntp_estimator_.UpdateRtcpTimestamp(*rtt, last_sr->last_remote_timestamp,
                                        last_sr->last_remote_rtp_timestamp);
-    absl::optional<int64_t> remote_to_local_clock_offset =
+    std::optional<int64_t> remote_to_local_clock_offset =
         ntp_estimator_.EstimateRemoteToLocalClockOffset();
     if (remote_to_local_clock_offset.has_value()) {
       capture_clock_offset_updater_.SetRemoteToLocalClockOffset(

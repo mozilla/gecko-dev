@@ -177,8 +177,8 @@ void AecDumpBasedSimulator::PrepareProcessStreamCall(
   // Set the applied input level if available.
   aec_dump_applied_input_level_ =
       msg.has_applied_input_volume()
-          ? absl::optional<int>(msg.applied_input_volume())
-          : absl::nullopt;
+          ? std::optional<int>(msg.applied_input_volume())
+          : std::nullopt;
 }
 
 void AecDumpBasedSimulator::VerifyProcessStreamBitExactness(

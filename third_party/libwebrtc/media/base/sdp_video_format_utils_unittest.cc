@@ -106,7 +106,7 @@ TEST(SdpVideoFormatUtilsTest, H265GenerateProfileTierLevelNoEmpty) {
 
 TEST(SdpVideoFormatUtilsTest, MaxFrameRateIsMissingOrInvalid) {
   CodecParameterMap params;
-  absl::optional<int> empty = ParseSdpForVPxMaxFrameRate(params);
+  std::optional<int> empty = ParseSdpForVPxMaxFrameRate(params);
   EXPECT_FALSE(empty);
   params[kVPxFmtpMaxFrameRate] = "-1";
   EXPECT_FALSE(ParseSdpForVPxMaxFrameRate(params));
@@ -126,7 +126,7 @@ TEST(SdpVideoFormatUtilsTest, MaxFrameRateIsSpecified) {
 
 TEST(SdpVideoFormatUtilsTest, MaxFrameSizeIsMissingOrInvalid) {
   CodecParameterMap params;
-  absl::optional<int> empty = ParseSdpForVPxMaxFrameSize(params);
+  std::optional<int> empty = ParseSdpForVPxMaxFrameSize(params);
   EXPECT_FALSE(empty);
   params[kVPxFmtpMaxFrameSize] = "-1";
   EXPECT_FALSE(ParseSdpForVPxMaxFrameSize(params));

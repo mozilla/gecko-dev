@@ -113,7 +113,7 @@ class ChannelSendInterface {
           frame_transformer) = 0;
 
   // Returns payload bitrate actually used.
-  virtual absl::optional<DataRate> GetUsedRate() const = 0;
+  virtual std::optional<DataRate> GetUsedRate() const = 0;
 
   // Registers per packet byte overhead.
   virtual void RegisterPacketOverhead(int packet_byte_overhead) = 0;

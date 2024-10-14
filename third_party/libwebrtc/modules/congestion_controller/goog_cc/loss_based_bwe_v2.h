@@ -12,10 +12,10 @@
 #define MODULES_CONGESTION_CONTROLLER_GOOG_CC_LOSS_BASED_BWE_V2_H_
 
 #include <cstdint>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
 #include "api/transport/network_types.h"
@@ -164,7 +164,7 @@ class LossBasedBweV2 {
     DataRate rate = DataRate::PlusInfinity();
   };
 
-  static absl::optional<Config> CreateConfig(
+  static std::optional<Config> CreateConfig(
       const FieldTrialsView* key_value_config);
   bool IsConfigValid() const;
 
@@ -200,16 +200,16 @@ class LossBasedBweV2 {
   bool IsInLossLimitedState() const;
   bool CanKeepIncreasingState(DataRate estimate) const;
 
-  absl::optional<DataRate> acknowledged_bitrate_;
-  absl::optional<Config> config_;
+  std::optional<DataRate> acknowledged_bitrate_;
+  std::optional<Config> config_;
   ChannelParameters current_best_estimate_;
   int num_observations_ = 0;
   std::vector<Observation> observations_;
   PartialObservation partial_observation_;
   Timestamp last_send_time_most_recent_observation_ = Timestamp::PlusInfinity();
   Timestamp last_time_estimate_reduced_ = Timestamp::MinusInfinity();
-  absl::optional<DataRate> cached_instant_upper_bound_;
-  absl::optional<DataRate> cached_instant_lower_bound_;
+  std::optional<DataRate> cached_instant_upper_bound_;
+  std::optional<DataRate> cached_instant_lower_bound_;
   std::vector<double> instant_upper_bound_temporal_weights_;
   std::vector<double> temporal_weights_;
   Timestamp recovering_after_loss_timestamp_ = Timestamp::MinusInfinity();

@@ -98,7 +98,6 @@ rtc_library("deprecated_packet") {
     "../../../api/video:video_frame_type",
     "../../../modules/rtp_rtcp:rtp_rtcp_format",
     "../../../modules/rtp_rtcp:rtp_video_header",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

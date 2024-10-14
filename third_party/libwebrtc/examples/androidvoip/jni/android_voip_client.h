@@ -165,7 +165,7 @@ class AndroidVoipClient : public webrtc::Transport {
   // The entry point to all VoIP APIs.
   std::unique_ptr<webrtc::VoipEngine> voip_engine_ RTC_GUARDED_BY(voip_thread_);
   // Used by the VoIP API to facilitate a VoIP session.
-  absl::optional<webrtc::ChannelId> channel_ RTC_GUARDED_BY(voip_thread_);
+  std::optional<webrtc::ChannelId> channel_ RTC_GUARDED_BY(voip_thread_);
   // Members below are used for network related operations.
   std::unique_ptr<rtc::AsyncUDPSocket> rtp_socket_ RTC_GUARDED_BY(voip_thread_);
   std::unique_ptr<rtc::AsyncUDPSocket> rtcp_socket_

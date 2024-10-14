@@ -11,10 +11,10 @@
 #include "pc/data_channel_controller.h"
 
 #include <cstdint>
+#include <optional>
 #include <utility>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/peer_connection_interface.h"
 #include "api/priority.h"
 #include "api/rtc_error.h"
@@ -300,8 +300,8 @@ void DataChannelController::OnDataChannelOpenMessage(
 
 // RTC_RUN_ON(network_thread())
 RTCError DataChannelController::ReserveOrAllocateSid(
-    absl::optional<StreamId>& sid,
-    absl::optional<rtc::SSLRole> fallback_ssl_role) {
+    std::optional<StreamId>& sid,
+    std::optional<rtc::SSLRole> fallback_ssl_role) {
   if (sid.has_value()) {
     return sid_allocator_.ReserveSid(*sid)
                ? RTCError::OK()
@@ -309,7 +309,7 @@ RTCError DataChannelController::ReserveOrAllocateSid(
   }
 
   // Attempt to allocate an ID based on the negotiated role.
-  absl::optional<rtc::SSLRole> role = pc_->GetSctpSslRole_n();
+  std::optional<rtc::SSLRole> role = pc_->GetSctpSslRole_n();
   if (!role)
     role = fallback_ssl_role;
   if (role) {
@@ -327,7 +327,7 @@ RTCError DataChannelController::ReserveOrAllocateSid(
 RTCErrorOr<rtc::scoped_refptr<SctpDataChannel>>
 DataChannelController::CreateDataChannel(const std::string& label,
                                          InternalDataChannelInit& config) {
-  absl::optional<StreamId> sid = absl::nullopt;
+  std::optional<StreamId> sid = std::nullopt;
   if (config.id != -1) {
     if (config.id < 0 || config.id > cricket::kMaxSctpSid) {
       return RTCError(RTCErrorType::INVALID_RANGE, "StreamId out of range.");
@@ -413,7 +413,7 @@ void DataChannelController::AllocateSctpSids(rtc::SSLRole role) {
   for (auto it = sctp_data_channels_n_.begin();
        it != sctp_data_channels_n_.end();) {
     if (!(*it)->sid_n().has_value()) {
-      absl::optional<StreamId> sid = sid_allocator_.AllocateSid(role);
+      std::optional<StreamId> sid = sid_allocator_.AllocateSid(role);
       if (sid.has_value()) {
         (*it)->SetSctpSid_n(*sid);
         AddSctpDataStream(*sid, (*it)->priority());

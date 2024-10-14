@@ -72,7 +72,7 @@ class BitrateProber {
   Timestamp NextProbeTime(Timestamp now) const;
 
   // Information about the current probing cluster.
-  absl::optional<PacedPacketInfo> CurrentCluster(Timestamp now);
+  std::optional<PacedPacketInfo> CurrentCluster(Timestamp now);
 
   // Returns the minimum number of bytes that the prober recommends for
   // the next probe, or zero if not probing. A probe can consist of multiple

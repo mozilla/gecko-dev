@@ -11,11 +11,11 @@
 #define LOGGING_RTC_EVENT_LOG_EVENTS_RTC_EVENT_REMOTE_ESTIMATE_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtc_event_log/rtc_event.h"
 #include "api/units/data_rate.h"
@@ -32,8 +32,8 @@ struct LoggedRemoteEstimateEvent {
   Timestamp log_time() const { return timestamp; }
 
   Timestamp timestamp = Timestamp::MinusInfinity();
-  absl::optional<DataRate> link_capacity_lower;
-  absl::optional<DataRate> link_capacity_upper;
+  std::optional<DataRate> link_capacity_lower;
+  std::optional<DataRate> link_capacity_upper;
 };
 
 class RtcEventRemoteEstimate final : public RtcEvent {

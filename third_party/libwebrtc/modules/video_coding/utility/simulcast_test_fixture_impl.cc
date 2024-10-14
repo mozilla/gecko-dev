@@ -150,8 +150,8 @@ class SimulcastTestFixtureImpl::TestDecodedImageCallback
     return -1;
   }
   void Decoded(VideoFrame& decoded_image,
-               absl::optional<int32_t> decode_time_ms,
-               absl::optional<uint8_t> qp) override {
+               std::optional<int32_t> decode_time_ms,
+               std::optional<uint8_t> qp) override {
     Decoded(decoded_image);
   }
   int DecodedFrames() { return decoded_frames_; }
@@ -930,8 +930,8 @@ void SimulcastTestFixtureImpl::TestDecodeWidthHeightSet() {
 
   EXPECT_CALL(decoder_callback, Decoded(_, _, _))
       .WillOnce(::testing::Invoke([](VideoFrame& decodedImage,
-                                     absl::optional<int32_t> decode_time_ms,
-                                     absl::optional<uint8_t> qp) {
+                                     std::optional<int32_t> decode_time_ms,
+                                     std::optional<uint8_t> qp) {
         EXPECT_EQ(decodedImage.width(), kDefaultWidth / 4);
         EXPECT_EQ(decodedImage.height(), kDefaultHeight / 4);
       }));
@@ -939,8 +939,8 @@ void SimulcastTestFixtureImpl::TestDecodeWidthHeightSet() {
 
   EXPECT_CALL(decoder_callback, Decoded(_, _, _))
       .WillOnce(::testing::Invoke([](VideoFrame& decodedImage,
-                                     absl::optional<int32_t> decode_time_ms,
-                                     absl::optional<uint8_t> qp) {
+                                     std::optional<int32_t> decode_time_ms,
+                                     std::optional<uint8_t> qp) {
         EXPECT_EQ(decodedImage.width(), kDefaultWidth / 2);
         EXPECT_EQ(decodedImage.height(), kDefaultHeight / 2);
       }));
@@ -948,8 +948,8 @@ void SimulcastTestFixtureImpl::TestDecodeWidthHeightSet() {
 
   EXPECT_CALL(decoder_callback, Decoded(_, _, _))
       .WillOnce(::testing::Invoke([](VideoFrame& decodedImage,
-                                     absl::optional<int32_t> decode_time_ms,
-                                     absl::optional<uint8_t> qp) {
+                                     std::optional<int32_t> decode_time_ms,
+                                     std::optional<uint8_t> qp) {
         EXPECT_EQ(decodedImage.width(), kDefaultWidth);
         EXPECT_EQ(decodedImage.height(), kDefaultHeight);
       }));

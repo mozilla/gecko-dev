@@ -13,9 +13,9 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/call/transport.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/units/data_rate.h"
@@ -58,8 +58,8 @@ class DEPRECATED_RtpSenderEgress {
   void SendPacket(RtpPacketToSend* packet, const PacedPacketInfo& pacing_info)
       RTC_LOCKS_EXCLUDED(lock_);
   uint32_t Ssrc() const { return ssrc_; }
-  absl::optional<uint32_t> RtxSsrc() const { return rtx_ssrc_; }
-  absl::optional<uint32_t> FlexFecSsrc() const { return flexfec_ssrc_; }
+  std::optional<uint32_t> RtxSsrc() const { return rtx_ssrc_; }
+  std::optional<uint32_t> FlexFecSsrc() const { return flexfec_ssrc_; }
 
   void ProcessBitrateAndNotifyObservers() RTC_LOCKS_EXCLUDED(lock_);
   RtpSendRates GetSendRates() const RTC_LOCKS_EXCLUDED(lock_);
@@ -99,8 +99,8 @@ class DEPRECATED_RtpSenderEgress {
       RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
   const uint32_t ssrc_;
-  const absl::optional<uint32_t> rtx_ssrc_;
-  const absl::optional<uint32_t> flexfec_ssrc_;
+  const std::optional<uint32_t> rtx_ssrc_;
+  const std::optional<uint32_t> flexfec_ssrc_;
   const bool populate_network2_timestamp_;
   Clock* const clock_;
   RtpPacketHistory* const packet_history_;

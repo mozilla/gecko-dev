@@ -14,10 +14,10 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/candidate.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
@@ -149,9 +149,9 @@ class JsepTransport {
     return needs_ice_restart_;
   }
 
-  // Returns role if negotiated, or empty absl::optional if it hasn't been
+  // Returns role if negotiated, or empty std::optional if it hasn't been
   // negotiated yet.
-  absl::optional<rtc::SSLRole> GetDtlsRole() const;
+  std::optional<rtc::SSLRole> GetDtlsRole() const;
 
   // TODO(deadbeef): Make this const. See comment in transportcontroller.h.
   bool GetStats(TransportStats* stats);
@@ -274,7 +274,7 @@ class JsepTransport {
       webrtc::SdpType local_description_type,
       ConnectionRole local_connection_role,
       ConnectionRole remote_connection_role,
-      absl::optional<rtc::SSLRole>* negotiated_dtls_role);
+      std::optional<rtc::SSLRole>* negotiated_dtls_role);
 
   // Pushes down the ICE parameters from the remote description.
   void SetRemoteIceParameters(const IceParameters& ice_parameters,
@@ -283,7 +283,7 @@ class JsepTransport {
   // Pushes down the DTLS parameters obtained via negotiation.
   static webrtc::RTCError SetNegotiatedDtlsParameters(
       DtlsTransportInternal* dtls_transport,
-      absl::optional<rtc::SSLRole> dtls_role,
+      std::optional<rtc::SSLRole> dtls_role,
       rtc::SSLFingerprint* remote_fingerprint);
 
   bool GetTransportStats(DtlsTransportInternal* dtls_transport,
@@ -324,9 +324,9 @@ class JsepTransport {
   RtcpMuxFilter rtcp_mux_negotiator_ RTC_GUARDED_BY(network_thread_);
 
   // Cache the encrypted header extension IDs for SDES negoitation.
-  absl::optional<std::vector<int>> send_extension_ids_
+  std::optional<std::vector<int>> send_extension_ids_
       RTC_GUARDED_BY(network_thread_);
-  absl::optional<std::vector<int>> recv_extension_ids_
+  std::optional<std::vector<int>> recv_extension_ids_
       RTC_GUARDED_BY(network_thread_);
 
   // This is invoked when RTCP-mux becomes active and

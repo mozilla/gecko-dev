@@ -15,11 +15,11 @@
 
 #include <initializer_list>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/video/render_resolution.h"
 
 namespace webrtc {
@@ -109,8 +109,8 @@ struct DependencyDescriptor {
   bool last_packet_in_frame = true;
   int frame_number = 0;
   FrameDependencyTemplate frame_dependencies;
-  absl::optional<RenderResolution> resolution;
-  absl::optional<uint32_t> active_decode_targets_bitmask;
+  std::optional<RenderResolution> resolution;
+  std::optional<uint32_t> active_decode_targets_bitmask;
   std::unique_ptr<FrameDependencyStructure> attached_structure;
 };
 

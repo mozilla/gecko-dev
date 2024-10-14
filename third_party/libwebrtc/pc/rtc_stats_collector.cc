@@ -1053,7 +1053,7 @@ RTCStatsCollector::CreateReportFilteredBySelector(
     // Filter mode: RTCStatsCollector::RequestInfo::kReceiverSelector
     if (receiver_selector) {
       // Find the inbound-rtp of the receiver using ssrc lookup.
-      absl::optional<uint32_t> ssrc;
+      std::optional<uint32_t> ssrc;
       worker_thread_->BlockingCall([&] { ssrc = receiver_selector->ssrc(); });
       if (ssrc.has_value()) {
         for (const auto* inbound_rtp :
@@ -1250,7 +1250,7 @@ void RTCStatsCollector::ProducePartialResultsOnSignalingThreadImpl(
 
 void RTCStatsCollector::ProducePartialResultsOnNetworkThread(
     Timestamp timestamp,
-    absl::optional<std::string> sctp_transport_name) {
+    std::optional<std::string> sctp_transport_name) {
   TRACE_EVENT0("webrtc",
                "RTCStatsCollector::ProducePartialResultsOnNetworkThread");
   RTC_DCHECK_RUN_ON(network_thread_);
@@ -2136,8 +2136,8 @@ void RTCStatsCollector::PrepareTransceiverStatsInfosAndCallStats_s_w_n() {
     bool has_audio_receiver = false;
     for (auto& stats : transceiver_stats_infos_) {
       auto transceiver = stats.transceiver;
-      absl::optional<cricket::VoiceMediaInfo> voice_media_info;
-      absl::optional<cricket::VideoMediaInfo> video_media_info;
+      std::optional<cricket::VoiceMediaInfo> voice_media_info;
+      std::optional<cricket::VideoMediaInfo> video_media_info;
       auto channel = transceiver->channel();
       if (channel) {
         cricket::MediaType media_type = transceiver->media_type();
@@ -2175,7 +2175,7 @@ void RTCStatsCollector::PrepareTransceiverStatsInfosAndCallStats_s_w_n() {
 
     call_stats_ = pc_->GetCallStats();
     audio_device_stats_ =
-        has_audio_receiver ? pc_->GetAudioDeviceStats() : absl::nullopt;
+        has_audio_receiver ? pc_->GetAudioDeviceStats() : std::nullopt;
   });
 
   for (auto& stats : transceiver_stats_infos_) {

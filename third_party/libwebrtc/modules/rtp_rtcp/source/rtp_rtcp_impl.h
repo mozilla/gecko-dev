@@ -15,12 +15,12 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/rtp_headers.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "modules/include/module_fec_types.h"
@@ -107,12 +107,12 @@ class ABSL_DEPRECATED("") ModuleRtpRtcpImpl
 
   void SetRtxSendStatus(int mode) override;
   int RtxSendStatus() const override;
-  absl::optional<uint32_t> RtxSsrc() const override;
+  std::optional<uint32_t> RtxSsrc() const override;
 
   void SetRtxSendPayloadType(int payload_type,
                              int associated_payload_type) override;
 
-  absl::optional<uint32_t> FlexfecSsrc() const override;
+  std::optional<uint32_t> FlexfecSsrc() const override;
 
   // Sends kRtcpByeCode when going from true to false.
   int32_t SetSendingStatus(bool sending) override;
@@ -185,7 +185,7 @@ class ABSL_DEPRECATED("") ModuleRtpRtcpImpl
   int32_t SetCNAME(absl::string_view c_name) override;
 
   // Get RoundTripTime.
-  absl::optional<TimeDelta> LastRtt() const override;
+  std::optional<TimeDelta> LastRtt() const override;
 
   TimeDelta ExpectedRetransmissionTime() const override;
 
@@ -207,10 +207,10 @@ class ABSL_DEPRECATED("") ModuleRtpRtcpImpl
   // Within this list, the `ReportBlockData::source_ssrc()`, which is the SSRC
   // of the corresponding outbound RTP stream, is unique.
   std::vector<ReportBlockData> GetLatestReportBlockData() const override;
-  absl::optional<SenderReportStats> GetSenderReportStats() const override;
+  std::optional<SenderReportStats> GetSenderReportStats() const override;
   // Round trip time statistics computed from the XR block contained in the last
   // report.
-  absl::optional<NonSenderRttStats> GetNonSenderRttStats() const override;
+  std::optional<NonSenderRttStats> GetNonSenderRttStats() const override;
 
   // (REMB) Receiver Estimated Max Bitrate.
   void SetRemb(int64_t bitrate_bps, std::vector<uint32_t> ssrcs) override;

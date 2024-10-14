@@ -16,12 +16,12 @@
 #include <algorithm>
 #include <cmath>
 #include <list>
+#include <optional>
 #include <set>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/candidate.h"
@@ -902,8 +902,8 @@ LegacyStatsCollector::ExtractSessionAndDataInfo() {
 LegacyStatsCollector::SessionStats LegacyStatsCollector::ExtractSessionInfo_n(
     const std::vector<rtc::scoped_refptr<
         RtpTransceiverProxyWithInternal<RtpTransceiver>>>& transceivers,
-    absl::optional<std::string> sctp_transport_name,
-    absl::optional<std::string> sctp_mid) {
+    std::optional<std::string> sctp_transport_name,
+    std::optional<std::string> sctp_mid) {
   TRACE_EVENT0("webrtc", "LegacyStatsCollector::ExtractSessionInfo_n");
   RTC_DCHECK_RUN_ON(pc_->network_thread());
   rtc::Thread::ScopedDisallowBlockingCalls no_blocking_calls;

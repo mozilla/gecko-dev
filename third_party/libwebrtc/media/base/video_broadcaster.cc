@@ -11,9 +11,9 @@
 #include "media/base/video_broadcaster.h"
 
 #include <algorithm>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/video/i420_buffer.h"
 #include "api/video/video_rotation.h"
 #include "media/base/video_common.h"

@@ -16,11 +16,11 @@
 #include <iterator>
 #include <map>
 #include <numeric>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "net/dcsctp/common/sequence_numbers.h"
 #include "net/dcsctp/packet/chunk/forward_tsn_common.h"
@@ -34,8 +34,8 @@ namespace {
 // Given a map (`chunks`) and an iterator to within that map (`iter`), this
 // function will return an iterator to the first chunk in that message, which
 // has the `is_beginning` flag set. If there are any gaps, or if the beginning
-// can't be found, `absl::nullopt` is returned.
-absl::optional<std::map<UnwrappedTSN, Data>::iterator> FindBeginning(
+// can't be found, `std::nullopt` is returned.
+std::optional<std::map<UnwrappedTSN, Data>::iterator> FindBeginning(
     const std::map<UnwrappedTSN, Data>& chunks,
     std::map<UnwrappedTSN, Data>::iterator iter) {
   UnwrappedTSN prev_tsn = iter->first;
@@ -44,11 +44,11 @@ absl::optional<std::map<UnwrappedTSN, Data>::iterator> FindBeginning(
       return iter;
     }
     if (iter == chunks.begin()) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     --iter;
     if (iter->first.next_value() != prev_tsn) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     prev_tsn = iter->first;
   }
@@ -57,8 +57,8 @@ absl::optional<std::map<UnwrappedTSN, Data>::iterator> FindBeginning(
 // Given a map (`chunks`) and an iterator to within that map (`iter`), this
 // function will return an iterator to the chunk after the last chunk in that
 // message, which has the `is_end` flag set. If there are any gaps, or if the
-// end can't be found, `absl::nullopt` is returned.
-absl::optional<std::map<UnwrappedTSN, Data>::iterator> FindEnd(
+// end can't be found, `std::nullopt` is returned.
+std::optional<std::map<UnwrappedTSN, Data>::iterator> FindEnd(
     std::map<UnwrappedTSN, Data>& chunks,
     std::map<UnwrappedTSN, Data>::iterator iter) {
   UnwrappedTSN prev_tsn = iter->first;
@@ -68,10 +68,10 @@ absl::optional<std::map<UnwrappedTSN, Data>::iterator> FindEnd(
     }
     ++iter;
     if (iter == chunks.end()) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     if (iter->first != prev_tsn.next_value()) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     prev_tsn = iter->first;
   }
@@ -108,11 +108,11 @@ size_t TraditionalReassemblyStreams::UnorderedStream::TryToAssembleMessage(
   // message, which can be inefficient for very large values of N. This could be
   // optimized by e.g. only trying to assemble a message once _any_ beginning
   // and _any_ end has been found.
-  absl::optional<ChunkMap::iterator> start = FindBeginning(chunks_, iter);
+  std::optional<ChunkMap::iterator> start = FindBeginning(chunks_, iter);
   if (!start.has_value()) {
     return 0;
   }
-  absl::optional<ChunkMap::iterator> end = FindEnd(chunks_, iter);
+  std::optional<ChunkMap::iterator> end = FindEnd(chunks_, iter);
   if (!end.has_value()) {
     return 0;
   }

@@ -237,7 +237,7 @@ TEST(RtcpReceiverTest, InjectSrPacketCalculatesRTT) {
   const uint32_t kDelayNtp = 0x4321;
   const TimeDelta kDelay = CompactNtpRttToTimeDelta(kDelayNtp);
 
-  EXPECT_EQ(receiver.LastRtt(), absl::nullopt);
+  EXPECT_EQ(receiver.LastRtt(), std::nullopt);
 
   uint32_t sent_ntp = CompactNtp(mocks.clock.CurrentNtpTime());
   mocks.clock.AdvanceTime(kRtt + kDelay);
@@ -266,7 +266,7 @@ TEST(RtcpReceiverTest, InjectSrPacketCalculatesNegativeRTTAsOneMs) {
   const uint32_t kDelayNtp = 0x4321;
   const TimeDelta kDelay = CompactNtpRttToTimeDelta(kDelayNtp);
 
-  EXPECT_EQ(receiver.LastRtt(), absl::nullopt);
+  EXPECT_EQ(receiver.LastRtt(), std::nullopt);
 
   uint32_t sent_ntp = CompactNtp(mocks.clock.CurrentNtpTime());
   mocks.clock.AdvanceTime(kRtt + kDelay);
@@ -565,8 +565,8 @@ TEST(RtcpReceiverTest, GetRtt) {
   receiver.SetRemoteSSRC(kSenderSsrc);
 
   // No report block received.
-  EXPECT_EQ(receiver.LastRtt(), absl::nullopt);
-  EXPECT_EQ(receiver.AverageRtt(), absl::nullopt);
+  EXPECT_EQ(receiver.LastRtt(), std::nullopt);
+  EXPECT_EQ(receiver.AverageRtt(), std::nullopt);
 
   rtcp::ReportBlock rb;
   rb.SetMediaSsrc(kReceiverMainSsrc);
@@ -584,8 +584,8 @@ TEST(RtcpReceiverTest, GetRtt) {
   receiver.IncomingPacket(rr.Build());
 
   EXPECT_EQ(receiver.LastReceivedReportBlockMs(), now.ms());
-  EXPECT_NE(receiver.LastRtt(), absl::nullopt);
-  EXPECT_NE(receiver.AverageRtt(), absl::nullopt);
+  EXPECT_NE(receiver.LastRtt(), std::nullopt);
+  EXPECT_NE(receiver.AverageRtt(), std::nullopt);
 }
 
 // App packets are ignored.

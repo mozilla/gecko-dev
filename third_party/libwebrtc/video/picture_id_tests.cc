@@ -98,7 +98,7 @@ class PictureIdObserver : public test::RtpRtcpObserver {
     parsed->timestamp = rtp_packet.Timestamp();
     parsed->ssrc = rtp_packet.Ssrc();
 
-    absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload =
+    std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload =
         depacketizer_->Parse(rtp_packet.PayloadBuffer());
     EXPECT_TRUE(parsed_payload);
 

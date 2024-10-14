@@ -8,7 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "api/test/video/function_video_encoder_factory.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -151,7 +152,7 @@ void HistogramTest::VerifyHistogramStats(bool use_rtx,
     const bool use_fec_;
     const bool screenshare_;
     test::FunctionVideoEncoderFactory encoder_factory_;
-    absl::optional<int64_t> start_runtime_ms_;
+    std::optional<int64_t> start_runtime_ms_;
     int num_frames_received_ RTC_GUARDED_BY(&mutex_);
   } test(use_rtx, use_fec, screenshare);
 

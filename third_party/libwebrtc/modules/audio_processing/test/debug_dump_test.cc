@@ -264,7 +264,7 @@ class DebugDumpTest : public ::testing::Test {
 void DebugDumpTest::VerifyDebugDump(absl::string_view in_filename) {
   ASSERT_TRUE(debug_dump_replayer_.SetDumpFile(in_filename));
 
-  while (const absl::optional<audioproc::Event> event =
+  while (const std::optional<audioproc::Event> event =
              debug_dump_replayer_.GetNextEvent()) {
     debug_dump_replayer_.RunNextEvent();
     if (event->type() == audioproc::Event::STREAM) {
@@ -371,7 +371,7 @@ TEST_F(DebugDumpTest, VerifyCombinedExperimentalStringInclusive) {
 
   ASSERT_TRUE(debug_dump_replayer_.SetDumpFile(generator.dump_file_name()));
 
-  while (const absl::optional<audioproc::Event> event =
+  while (const std::optional<audioproc::Event> event =
              debug_dump_replayer_.GetNextEvent()) {
     debug_dump_replayer_.RunNextEvent();
     if (event->type() == audioproc::Event::CONFIG) {
@@ -395,7 +395,7 @@ TEST_F(DebugDumpTest, VerifyCombinedExperimentalStringExclusive) {
 
   ASSERT_TRUE(debug_dump_replayer_.SetDumpFile(generator.dump_file_name()));
 
-  while (const absl::optional<audioproc::Event> event =
+  while (const std::optional<audioproc::Event> event =
              debug_dump_replayer_.GetNextEvent()) {
     debug_dump_replayer_.RunNextEvent();
     if (event->type() == audioproc::Event::CONFIG) {
@@ -420,7 +420,7 @@ TEST_F(DebugDumpTest, VerifyAec3ExperimentalString) {
 
   ASSERT_TRUE(debug_dump_replayer_.SetDumpFile(generator.dump_file_name()));
 
-  while (const absl::optional<audioproc::Event> event =
+  while (const std::optional<audioproc::Event> event =
              debug_dump_replayer_.GetNextEvent()) {
     debug_dump_replayer_.RunNextEvent();
     if (event->type() == audioproc::Event::CONFIG) {
@@ -442,7 +442,7 @@ TEST_F(DebugDumpTest, VerifyEmptyExperimentalString) {
 
   ASSERT_TRUE(debug_dump_replayer_.SetDumpFile(generator.dump_file_name()));
 
-  while (const absl::optional<audioproc::Event> event =
+  while (const std::optional<audioproc::Event> event =
              debug_dump_replayer_.GetNextEvent()) {
     debug_dump_replayer_.RunNextEvent();
     if (event->type() == audioproc::Event::CONFIG) {

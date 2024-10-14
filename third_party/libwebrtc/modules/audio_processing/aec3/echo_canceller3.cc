@@ -718,7 +718,7 @@ std::atomic<int> EchoCanceller3::instance_count_(0);
 
 EchoCanceller3::EchoCanceller3(
     const EchoCanceller3Config& config,
-    const absl::optional<EchoCanceller3Config>& multichannel_config,
+    const std::optional<EchoCanceller3Config>& multichannel_config,
     int sample_rate_hz,
     size_t num_render_channels,
     size_t num_capture_channels)

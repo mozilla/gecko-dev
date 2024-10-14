@@ -9,12 +9,12 @@
  */
 
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/jsep.h"
 #include "api/jsep_session_description.h"
 #include "api/peer_connection_interface.h"
@@ -104,18 +104,18 @@ class ObserverForUsageHistogramTest : public MockPeerConnectionObserver {
 
   bool HaveDataChannel() { return last_datachannel_ != nullptr; }
 
-  absl::optional<int> interesting_usage_detected() {
+  std::optional<int> interesting_usage_detected() {
     return interesting_usage_detected_;
   }
 
   void ClearInterestingUsageDetector() {
-    interesting_usage_detected_ = absl::optional<int>();
+    interesting_usage_detected_ = std::optional<int>();
   }
 
   bool candidate_gathered() const { return candidate_gathered_; }
 
  private:
-  absl::optional<int> interesting_usage_detected_;
+  std::optional<int> interesting_usage_detected_;
   bool candidate_gathered_ = false;
   RawWrapperPtr candidate_target_;  // Note: Not thread-safe against deletions.
 };
@@ -728,7 +728,7 @@ TEST_F(PeerConnectionUsageHistogramTest, NotableUsageNoted) {
       (expected_fingerprint |
        static_cast<int>(UsageEvent::PRIVATE_CANDIDATE_COLLECTED)) ==
           ObservedFingerprint());
-  EXPECT_METRIC_EQ(absl::make_optional(ObservedFingerprint()),
+  EXPECT_METRIC_EQ(std::make_optional(ObservedFingerprint()),
                    caller->observer()->interesting_usage_detected());
 }
 
@@ -748,7 +748,7 @@ TEST_F(PeerConnectionUsageHistogramTest, NotableUsageOnEventFiring) {
       (expected_fingerprint |
        static_cast<int>(UsageEvent::PRIVATE_CANDIDATE_COLLECTED)) ==
           ObservedFingerprint());
-  EXPECT_METRIC_EQ(absl::make_optional(ObservedFingerprint()),
+  EXPECT_METRIC_EQ(std::make_optional(ObservedFingerprint()),
                    caller->observer()->interesting_usage_detected());
 }
 

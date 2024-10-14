@@ -12,10 +12,10 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_device.h"
 #include "api/environment/environment.h"
@@ -115,7 +115,7 @@ class CallTest : public ::testing::Test, public RtpPacketSinkInterface {
       const VideoSendStream::Config& video_send_config,
       Transport* rtcp_send_transport,
       VideoDecoderFactory* decoder_factory,
-      absl::optional<size_t> decode_sub_stream,
+      std::optional<size_t> decode_sub_stream,
       bool receiver_reference_time_report,
       int rtp_history_ms);
   void AddMatchingVideoReceiveConfigs(
@@ -123,7 +123,7 @@ class CallTest : public ::testing::Test, public RtpPacketSinkInterface {
       const VideoSendStream::Config& video_send_config,
       Transport* rtcp_send_transport,
       VideoDecoderFactory* decoder_factory,
-      absl::optional<size_t> decode_sub_stream,
+      std::optional<size_t> decode_sub_stream,
       bool receiver_reference_time_report,
       int rtp_history_ms);
 
@@ -241,7 +241,7 @@ class CallTest : public ::testing::Test, public RtpPacketSinkInterface {
   test::FakeVideoRenderer fake_renderer_;
 
  private:
-  absl::optional<RtpExtension> GetRtpExtensionByUri(
+  std::optional<RtpExtension> GetRtpExtensionByUri(
       const std::string& uri) const;
 
   void AddRtpExtensionByUri(const std::string& uri,

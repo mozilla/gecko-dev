@@ -62,10 +62,10 @@ class TransportFeedbackAdapter {
   void AddPacket(const RtpPacketSendInfo& packet_info,
                  size_t overhead_bytes,
                  Timestamp creation_time);
-  absl::optional<SentPacket> ProcessSentPacket(
+  std::optional<SentPacket> ProcessSentPacket(
       const rtc::SentPacket& sent_packet);
 
-  absl::optional<TransportPacketsFeedback> ProcessTransportFeedback(
+  std::optional<TransportPacketsFeedback> ProcessTransportFeedback(
       const rtcp::TransportFeedback& feedback,
       Timestamp feedback_receive_time);
 

@@ -14,13 +14,13 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "net/dcsctp/common/internal_types.h"
 #include "net/dcsctp/public/dcsctp_message.h"
@@ -75,8 +75,8 @@ class RRSendQueue : public SendQueue {
            const SendOptions& send_options = {});
 
   // Implementation of `SendQueue`.
-  absl::optional<DataToSend> Produce(webrtc::Timestamp now,
-                                     size_t max_size) override;
+  std::optional<DataToSend> Produce(webrtc::Timestamp now,
+                                    size_t max_size) override;
   bool Discard(StreamID stream_id, OutgoingMessageId message_id) override;
   void PrepareResetStream(StreamID streams) override;
   bool HasStreamsReadyToBeReset() const override;
@@ -154,8 +154,8 @@ class RRSendQueue : public SendQueue {
     void Add(DcSctpMessage message, MessageAttributes attributes);
 
     // Implementing `StreamScheduler::StreamProducer`.
-    absl::optional<SendQueue::DataToSend> Produce(webrtc::Timestamp now,
-                                                  size_t max_size) override;
+    std::optional<SendQueue::DataToSend> Produce(webrtc::Timestamp now,
+                                                 size_t max_size) override;
     size_t bytes_to_send_in_next_message() const override;
 
     const ThresholdWatcher& buffered_amount() const { return buffered_amount_; }
@@ -235,8 +235,8 @@ class RRSendQueue : public SendQueue {
       size_t remaining_size;
       // If set, an allocated Message ID and SSN. Will be allocated when the
       // first fragment is sent.
-      absl::optional<MID> mid = absl::nullopt;
-      absl::optional<SSN> ssn = absl::nullopt;
+      std::optional<MID> mid = std::nullopt;
+      std::optional<SSN> ssn = std::nullopt;
       // The current Fragment Sequence Number, incremented for each fragment.
       FSN current_fsn = FSN(0);
     };
@@ -263,7 +263,7 @@ class RRSendQueue : public SendQueue {
 
   bool IsConsistent() const;
   OutgoingStream& GetOrCreateStreamInfo(StreamID stream_id);
-  absl::optional<DataToSend> Produce(
+  std::optional<DataToSend> Produce(
       std::map<StreamID, OutgoingStream>::iterator it,
       webrtc::Timestamp now,
       size_t max_size);

@@ -13,12 +13,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
@@ -741,7 +741,7 @@ TEST(LibaomAv1Encoder, HigherEffortLevelYieldsHigherQualityFrames) {
                                          .performance.min_max_effort_level;
   // Cbr rc{.duration = TimeDelta::Millis(100),
   //       .target_bitrate = DataRate::KilobitsPerSec(100)};
-  absl::optional<double> psnr_last;
+  std::optional<double> psnr_last;
   Av1Decoder dec;
 
   for (int i = effort_range.first; i <= effort_range.second; ++i) {

@@ -13,11 +13,11 @@
 #include <cstdint>
 #include <initializer_list>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtp_packet_info.h"
 #include "api/rtp_packet_infos.h"

@@ -41,7 +41,7 @@ class ZeroChecksumAcceptableChunkParameter
       ZeroChecksumAlternateErrorDetectionMethod error_detection_method)
       : error_detection_method_(error_detection_method) {}
 
-  static absl::optional<ZeroChecksumAcceptableChunkParameter> Parse(
+  static std::optional<ZeroChecksumAcceptableChunkParameter> Parse(
       rtc::ArrayView<const uint8_t> data);
 
   void SerializeTo(std::vector<uint8_t>& out) const override;

@@ -15,10 +15,10 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/fec_controller_override.h"
 #include "api/sequence_checker.h"
@@ -112,8 +112,8 @@ class FakeEncoder : public VideoEncoder {
   uint32_t counter_ RTC_GUARDED_BY(mutex_);
   mutable Mutex mutex_;
   bool used_layers_[kMaxSimulcastStreams];
-  absl::optional<int> qp_ RTC_GUARDED_BY(mutex_);
-  absl::optional<std::string> implementation_name_ RTC_GUARDED_BY(mutex_);
+  std::optional<int> qp_ RTC_GUARDED_BY(mutex_);
+  std::optional<std::string> implementation_name_ RTC_GUARDED_BY(mutex_);
 
   // Current byte debt to be payed over a number of frames.
   // The debt is acquired by keyframes overshooting the bitrate target.

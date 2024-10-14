@@ -29,7 +29,7 @@ class MockAudioEncoderFactory
               GetSupportedEncoders,
               (),
               (override));
-  MOCK_METHOD(absl::optional<AudioCodecInfo>,
+  MOCK_METHOD(std::optional<AudioCodecInfo>,
               QueryAudioEncoder,
               (const SdpAudioFormat& format),
               (override));

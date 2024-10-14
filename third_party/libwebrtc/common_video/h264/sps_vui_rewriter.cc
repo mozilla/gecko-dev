@@ -136,14 +136,14 @@ void SpsVuiRewriter::UpdateStats(ParseResult result, Direction direction) {
 
 SpsVuiRewriter::ParseResult SpsVuiRewriter::ParseAndRewriteSps(
     rtc::ArrayView<const uint8_t> buffer,
-    absl::optional<SpsParser::SpsState>* sps,
+    std::optional<SpsParser::SpsState>* sps,
     const webrtc::ColorSpace* color_space,
     rtc::Buffer* destination) {
   // Create temporary RBSP decoded buffer of the payload (exlcuding the
   // leading nalu type header byte (the SpsParser uses only the payload).
   std::vector<uint8_t> rbsp_buffer = H264::ParseRbsp(buffer);
   BitstreamReader source_buffer(rbsp_buffer);
-  absl::optional<SpsParser::SpsState> sps_state =
+  std::optional<SpsParser::SpsState> sps_state =
       SpsParser::ParseSpsUpToVui(source_buffer);
   if (!sps_state)
     return ParseResult::kFailure;
@@ -212,7 +212,7 @@ SpsVuiRewriter::ParseResult SpsVuiRewriter::ParseAndRewriteSps(
 
 SpsVuiRewriter::ParseResult SpsVuiRewriter::ParseAndRewriteSps(
     rtc::ArrayView<const uint8_t> buffer,
-    absl::optional<SpsParser::SpsState>* sps,
+    std::optional<SpsParser::SpsState>* sps,
     const webrtc::ColorSpace* color_space,
     rtc::Buffer* destination,
     Direction direction) {
@@ -253,7 +253,7 @@ rtc::Buffer SpsVuiRewriter::ParseOutgoingBitstreamAndRewrite(
       // protect legacy receive clients) in RtpDepacketizerH264::ParseSingleNalu
       // (receive side, in orderer to protect us from unknown or legacy send
       // clients).
-      absl::optional<SpsParser::SpsState> sps;
+      std::optional<SpsParser::SpsState> sps;
       rtc::Buffer output_nalu;
 
       // Add the type header to the output buffer first, so that the rewriter

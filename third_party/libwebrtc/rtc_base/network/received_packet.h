@@ -11,8 +11,8 @@
 #define RTC_BASE_NETWORK_RECEIVED_PACKET_H_
 
 #include <cstdint>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/network/ecn_marking.h"
@@ -38,7 +38,7 @@ class RTC_EXPORT ReceivedPacket {
   // lifetime of this ReceivedPacket.
   ReceivedPacket(rtc::ArrayView<const uint8_t> payload,
                  const SocketAddress& source_address,
-                 absl::optional<webrtc::Timestamp> arrival_time = absl::nullopt,
+                 std::optional<webrtc::Timestamp> arrival_time = std::nullopt,
                  EcnMarking ecn = EcnMarking::kNotEct,
                  DecryptionInfo decryption = kNotDecrypted);
 
@@ -50,7 +50,7 @@ class RTC_EXPORT ReceivedPacket {
 
   // Timestamp when this packet was received. Not available on all socket
   // implementations.
-  absl::optional<webrtc::Timestamp> arrival_time() const {
+  std::optional<webrtc::Timestamp> arrival_time() const {
     return arrival_time_;
   }
 
@@ -76,7 +76,7 @@ class RTC_EXPORT ReceivedPacket {
 
  private:
   rtc::ArrayView<const uint8_t> payload_;
-  absl::optional<webrtc::Timestamp> arrival_time_;
+  std::optional<webrtc::Timestamp> arrival_time_;
   const SocketAddress& source_address_;
   EcnMarking ecn_;
   DecryptionInfo decryption_info_;

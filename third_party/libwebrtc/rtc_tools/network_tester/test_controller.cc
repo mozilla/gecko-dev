@@ -11,8 +11,8 @@
 #include "rtc_tools/network_tester/test_controller.h"
 
 #include <limits>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/units/timestamp.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/internal/default_socket_server.h"
@@ -64,14 +64,14 @@ void TestController::SendConnectTo(const std::string& hostname, int port) {
   remote_address_ = rtc::SocketAddress(hostname, port);
   NetworkTesterPacket packet;
   packet.set_type(NetworkTesterPacket::HAND_SHAKING);
-  SendData(packet, absl::nullopt);
+  SendData(packet, std::nullopt);
   MutexLock scoped_lock(&test_done_lock_);
   local_test_done_ = false;
   remote_test_done_ = false;
 }
 
 void TestController::SendData(const NetworkTesterPacket& packet,
-                              absl::optional<size_t> data_size) {
+                              std::optional<size_t> data_size) {
   if (!packet_sender_thread_->IsCurrent()) {
     packet_sender_thread_->PostTask(SafeTask(
         task_safety_flag_,
@@ -96,7 +96,7 @@ void TestController::OnTestDone() {
   RTC_DCHECK_RUN_ON(packet_sender_thread_.get());
   NetworkTesterPacket packet;
   packet.set_type(NetworkTesterPacket::TEST_DONE);
-  SendData(packet, absl::nullopt);
+  SendData(packet, std::nullopt);
   MutexLock scoped_lock(&test_done_lock_);
   local_test_done_ = true;
 }
@@ -123,7 +123,7 @@ void TestController::OnReadPacket(rtc::AsyncPacketSocket* socket,
       NetworkTesterPacket packet;
       packet.set_type(NetworkTesterPacket::TEST_START);
       remote_address_ = received_packet.source_address();
-      SendData(packet, absl::nullopt);
+      SendData(packet, std::nullopt);
       packet_sender_.reset(new PacketSender(this, packet_sender_thread_.get(),
                                             task_safety_flag_,
                                             config_file_path_));

@@ -176,7 +176,7 @@ class OveruseFrameDetectorTest : public ::testing::Test,
       clock_.AdvanceTime(TimeDelta::Micros(delay_us));
       overuse_detector_->FrameSent(timestamp, rtc::TimeMicros(),
                                    capture_time_us,
-                                   absl::optional<int>(delay_us));
+                                   std::optional<int>(delay_us));
 
       overuse_detector_->CheckForOveruse(observer_);
       // Avoid turning clock backwards.

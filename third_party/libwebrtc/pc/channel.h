@@ -15,12 +15,12 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/crypto/crypto_options.h"
 #include "api/jsep.h"
 #include "api/media_types.h"
@@ -228,7 +228,7 @@ class BaseChannel : public ChannelInterface,
   // From RtpTransportInternal
   void OnWritableState(bool writable);
 
-  void OnNetworkRouteChanged(absl::optional<rtc::NetworkRoute> network_route);
+  void OnNetworkRouteChanged(std::optional<rtc::NetworkRoute> network_route);
 
   bool SendPacket(bool rtcp,
                   rtc::CopyOnWriteBuffer* packet,
@@ -295,7 +295,7 @@ class BaseChannel : public ChannelInterface,
   // failed, which needs to be treated as an error.
   bool MaybeUpdateDemuxerAndRtpExtensions_w(
       bool update_demuxer,
-      absl::optional<RtpHeaderExtensions> extensions,
+      std::optional<RtpHeaderExtensions> extensions,
       std::string& error_desc) RTC_RUN_ON(worker_thread());
 
   bool RegisterRtpDemuxerSink_w() RTC_RUN_ON(worker_thread());

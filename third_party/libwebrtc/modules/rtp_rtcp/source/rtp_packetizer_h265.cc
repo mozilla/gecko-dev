@@ -10,9 +10,9 @@
 
 #include "modules/rtp_rtcp/source/rtp_packetizer_h265.h"
 
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "common_video/h264/h264_common.h"
 #include "common_video/h265/h265_common.h"
 #include "modules/rtp_rtcp/source/byte_io.h"

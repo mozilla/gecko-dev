@@ -12,12 +12,12 @@
 #define P2P_BASE_TRANSPORT_DESCRIPTION_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/rtc_error.h"
 #include "p2p/base/p2p_constants.h"
 #include "rtc_base/ssl_fingerprint.h"
@@ -87,7 +87,7 @@ extern const char CONNECTIONROLE_HOLDCONN_STR[];
 constexpr auto* ICE_OPTION_TRICKLE = "trickle";
 constexpr auto* ICE_OPTION_RENOMINATION = "renomination";
 
-absl::optional<ConnectionRole> StringToConnectionRole(
+std::optional<ConnectionRole> StringToConnectionRole(
     absl::string_view role_str);
 bool ConnectionRoleToString(const ConnectionRole& role, std::string* role_str);
 

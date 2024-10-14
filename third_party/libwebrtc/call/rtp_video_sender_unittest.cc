@@ -723,7 +723,7 @@ TEST(RtpVideoSenderTest, SupportsDependencyDescriptor) {
 
   // Send in delta frame.
   encoded_image._frameType = VideoFrameType::kVideoFrameDelta;
-  codec_specific.template_structure = absl::nullopt;
+  codec_specific.template_structure = std::nullopt;
   codec_specific.generic_frame_info =
       GenericFrameInfo::Builder().T(1).Dtis("D").Build();
   codec_specific.generic_frame_info->encoder_buffers = {{0, true, false}};
@@ -1000,7 +1000,7 @@ TEST(RtpVideoSenderTest, SupportsDependencyDescriptorForVp9) {
   EXPECT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
             EncodedImageCallback::Result::OK);
   // Send in 2nd spatial layer.
-  codec_specific.template_structure = absl::nullopt;
+  codec_specific.template_structure = std::nullopt;
   codec_specific.generic_frame_info =
       GenericFrameInfo::Builder().S(1).Dtis("-S").Build();
   codec_specific.generic_frame_info->encoder_buffers = {{0, true, false},
@@ -1164,7 +1164,7 @@ TEST(RtpVideoSenderTest, SupportsStoppingUsingDependencyDescriptor) {
 
   // Send in a new key frame without the support for the dependency descriptor.
   encoded_image._frameType = VideoFrameType::kVideoFrameKey;
-  codec_specific.template_structure = absl::nullopt;
+  codec_specific.template_structure = std::nullopt;
   EXPECT_EQ(test.router()->OnEncodedImage(encoded_image, &codec_specific).error,
             EncodedImageCallback::Result::OK);
   test.AdvanceTime(TimeDelta::Millis(33));

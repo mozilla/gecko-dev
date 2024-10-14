@@ -86,7 +86,7 @@ class VideoSendStreamPeer {
   explicit VideoSendStreamPeer(webrtc::VideoSendStream* base_class_stream)
       : internal_stream_(
             static_cast<internal::VideoSendStreamImpl*>(base_class_stream)) {}
-  absl::optional<float> GetPacingFactorOverride() const {
+  std::optional<float> GetPacingFactorOverride() const {
     return internal_stream_->GetPacingFactorOverride();
   }
 
@@ -1426,7 +1426,7 @@ TEST_F(VideoSendStreamTest, NoPaddingWhenVideoIsMuted) {
     TestState test_state_ = kBeforeStopCapture;
     Clock* const clock_;
     Mutex mutex_;
-    absl::optional<int64_t> last_packet_time_ms_ RTC_GUARDED_BY(mutex_);
+    std::optional<int64_t> last_packet_time_ms_ RTC_GUARDED_BY(mutex_);
     test::FrameGeneratorCapturer* capturer_ RTC_GUARDED_BY(mutex_);
   } test;
 
@@ -3316,10 +3316,10 @@ class Vp9HeaderObserver : public test::SendTest {
   }
 
   ScalableVideoController::StreamLayersConfig GetScalabilityConfig() const {
-    absl::optional<ScalabilityMode> scalability_mode =
+    std::optional<ScalabilityMode> scalability_mode =
         ScalabilityModeFromString(params_.scalability_mode);
     EXPECT_TRUE(scalability_mode.has_value());
-    absl::optional<ScalableVideoController::StreamLayersConfig> config =
+    std::optional<ScalableVideoController::StreamLayersConfig> config =
         ScalabilityStructureConfig(*scalability_mode);
     EXPECT_TRUE(config.has_value());
     EXPECT_EQ(config->num_spatial_layers, params_.num_spatial_layers);
@@ -3331,8 +3331,8 @@ class Vp9HeaderObserver : public test::SendTest {
   VideoCodecVP9 vp9_settings_;
   webrtc::VideoEncoderConfig encoder_config_;
   bool last_packet_marker_ = false;
-  absl::optional<uint16_t> last_packet_sequence_number_;
-  absl::optional<uint32_t> last_packet_timestamp_;
+  std::optional<uint16_t> last_packet_sequence_number_;
+  std::optional<uint32_t> last_packet_timestamp_;
   RTPVideoHeaderVP9 last_vp9_;
   std::map<int, int> last_temporal_idx_by_spatial_idx_;
   Mutex mutex_;
@@ -3451,7 +3451,7 @@ void VideoSendStreamTest::TestVp9NonFlexMode(
         vp9_settings_.numberOfSpatialLayers = params_.num_spatial_layers;
         vp9_settings_.interLayerPred = params_.inter_layer_pred;
       } else {
-        absl::optional<ScalabilityMode> mode =
+        std::optional<ScalabilityMode> mode =
             ScalabilityModeFromString(params_.scalability_mode);
         encoder_config->simulcast_layers[0].scalability_mode = mode;
         EXPECT_TRUE(mode.has_value());
@@ -3780,7 +3780,7 @@ TEST_F(VideoSendStreamTest, RemoveOverheadFromBandwidth) {
 class PacingFactorObserver : public test::SendTest {
  public:
   PacingFactorObserver(bool configure_send_side,
-                       absl::optional<float> expected_pacing_factor)
+                       std::optional<float> expected_pacing_factor)
       : test::SendTest(test::VideoTestConstants::kDefaultTimeout),
         configure_send_side_(configure_send_side),
         expected_pacing_factor_(expected_pacing_factor) {}
@@ -3836,7 +3836,7 @@ class PacingFactorObserver : public test::SendTest {
 
  private:
   const bool configure_send_side_;
-  const absl::optional<float> expected_pacing_factor_;
+  const std::optional<float> expected_pacing_factor_;
 };
 
 std::string GetAlrProbingExperimentString() {
@@ -3857,7 +3857,7 @@ TEST_F(VideoSendStreamTest, AlrConfiguredWhenSendSideOn) {
 TEST_F(VideoSendStreamTest, AlrNotConfiguredWhenSendSideOff) {
   test::ScopedFieldTrials alr_experiment(GetAlrProbingExperimentString());
   // Send-side bwe off, use configuration should not be overridden.
-  PacingFactorObserver test_without_send_side(false, absl::nullopt);
+  PacingFactorObserver test_without_send_side(false, std::nullopt);
   RunBaseTest(&test_without_send_side);
 }
 
@@ -4120,7 +4120,7 @@ void VideoSendStreamTest::TestTemporalLayers(
       parsed.timestamp = rtp_packet.Timestamp();
       parsed.ssrc = rtp_packet.Ssrc();
 
-      absl::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload =
+      std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload =
           depacketizer_->Parse(rtp_packet.PayloadBuffer());
       EXPECT_TRUE(parsed_payload);
 

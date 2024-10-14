@@ -22,7 +22,7 @@ TEST(SimulcastEncoderAdapterSettingsTest, NoValuesWithoutFieldTrial) {
   ExplicitKeyValueConfig field_trials("");
 
   SimulcastEncoderAdapterEncoderInfoSettings settings(field_trials);
-  EXPECT_EQ(absl::nullopt, settings.requested_resolution_alignment());
+  EXPECT_EQ(std::nullopt, settings.requested_resolution_alignment());
   EXPECT_FALSE(settings.apply_alignment_to_all_simulcast_layers());
   EXPECT_TRUE(settings.resolution_bitrate_limits().empty());
 }
@@ -33,7 +33,7 @@ TEST(SimulcastEncoderAdapterSettingsTest, NoValueForInvalidAlignment) {
       "requested_resolution_alignment:0/");
 
   SimulcastEncoderAdapterEncoderInfoSettings settings(field_trials);
-  EXPECT_EQ(absl::nullopt, settings.requested_resolution_alignment());
+  EXPECT_EQ(std::nullopt, settings.requested_resolution_alignment());
 }
 
 TEST(SimulcastEncoderAdapterSettingsTest, GetResolutionAlignment) {
@@ -68,7 +68,7 @@ TEST(SimulcastEncoderAdapterSettingsTest, GetResolutionBitrateLimits) {
       "max_bitrate_bps:77000/");
 
   SimulcastEncoderAdapterEncoderInfoSettings settings(field_trials);
-  EXPECT_EQ(absl::nullopt, settings.requested_resolution_alignment());
+  EXPECT_EQ(std::nullopt, settings.requested_resolution_alignment());
   EXPECT_FALSE(settings.apply_alignment_to_all_simulcast_layers());
   EXPECT_THAT(settings.resolution_bitrate_limits(),
               ::testing::ElementsAre(VideoEncoder::ResolutionBitrateLimits{

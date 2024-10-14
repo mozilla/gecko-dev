@@ -17,13 +17,13 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <utility>
 #include <vector>
 
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/media_types.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/sequence_checker.h"
@@ -288,13 +288,13 @@ class Call final : public webrtc::Call,
         RTC_GUARDED_BY(sequence_checker_);
     RateCounter received_rtcp_bytes_per_second_counter_
         RTC_GUARDED_BY(sequence_checker_);
-    absl::optional<Timestamp> first_received_rtp_audio_timestamp_
+    std::optional<Timestamp> first_received_rtp_audio_timestamp_
         RTC_GUARDED_BY(sequence_checker_);
-    absl::optional<Timestamp> last_received_rtp_audio_timestamp_
+    std::optional<Timestamp> last_received_rtp_audio_timestamp_
         RTC_GUARDED_BY(sequence_checker_);
-    absl::optional<Timestamp> first_received_rtp_video_timestamp_
+    std::optional<Timestamp> first_received_rtp_video_timestamp_
         RTC_GUARDED_BY(sequence_checker_);
-    absl::optional<Timestamp> last_received_rtp_video_timestamp_
+    std::optional<Timestamp> last_received_rtp_video_timestamp_
         RTC_GUARDED_BY(sequence_checker_);
   };
 
@@ -306,7 +306,7 @@ class Call final : public webrtc::Call,
     explicit SendStats(Clock* clock);
     ~SendStats();
 
-    void SetFirstPacketTime(absl::optional<Timestamp> first_sent_packet_time);
+    void SetFirstPacketTime(std::optional<Timestamp> first_sent_packet_time);
     void PauseSendAndPacerBitrateCounters();
     void AddTargetBitrateSample(uint32_t target_bitrate_bps);
     void SetMinAllocatableRate(BitrateAllocationLimits limits);
@@ -320,7 +320,7 @@ class Call final : public webrtc::Call,
     AvgCounter pacer_bitrate_kbps_counter_ RTC_GUARDED_BY(sequence_checker_);
     uint32_t min_allocated_send_bitrate_bps_ RTC_GUARDED_BY(sequence_checker_){
         0};
-    absl::optional<Timestamp> first_sent_packet_time_
+    std::optional<Timestamp> first_sent_packet_time_
         RTC_GUARDED_BY(destructor_sequence_checker_);
   };
 
@@ -451,7 +451,7 @@ class Call final : public webrtc::Call,
   // Sequence checker for outgoing network traffic. Could be the network thread.
   // Could also be a pacer owned thread or TQ such as the TaskQueueSender.
   RTC_NO_UNIQUE_ADDRESS SequenceChecker sent_packet_sequence_checker_;
-  absl::optional<rtc::SentPacket> last_sent_packet_
+  std::optional<rtc::SentPacket> last_sent_packet_
       RTC_GUARDED_BY(sent_packet_sequence_checker_);
 };
 }  // namespace internal
@@ -607,7 +607,7 @@ Call::SendStats::~SendStats() {
 }
 
 void Call::SendStats::SetFirstPacketTime(
-    absl::optional<Timestamp> first_sent_packet_time) {
+    std::optional<Timestamp> first_sent_packet_time) {
   RTC_DCHECK_RUN_ON(&destructor_sequence_checker_);
   first_sent_packet_time_ = first_sent_packet_time;
 }
@@ -758,7 +758,7 @@ webrtc::AudioSendStream* Call::CreateAudioSendStream(
 
   // Stream config is logged in AudioSendStream::ConfigureStream, as it may
   // change during the stream's lifetime.
-  absl::optional<RtpState> suspended_rtp_state;
+  std::optional<RtpState> suspended_rtp_state;
   {
     const auto& iter = suspended_audio_send_ssrcs_.find(config.rtp.ssrc);
     if (iter != suspended_audio_send_ssrcs_.end()) {

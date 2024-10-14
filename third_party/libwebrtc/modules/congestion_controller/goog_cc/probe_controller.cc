@@ -14,10 +14,10 @@
 #include <cstdint>
 #include <initializer_list>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/transport/network_types.h"
@@ -375,11 +375,11 @@ void ProbeController::EnableRepeatedInitialProbing(bool enable) {
 }
 
 void ProbeController::SetAlrStartTimeMs(
-    absl::optional<int64_t> alr_start_time_ms) {
+    std::optional<int64_t> alr_start_time_ms) {
   if (alr_start_time_ms) {
     alr_start_time_ = Timestamp::Millis(*alr_start_time_ms);
   } else {
-    alr_start_time_ = absl::nullopt;
+    alr_start_time_ = std::nullopt;
   }
 }
 void ProbeController::SetAlrEndedTimeMs(int64_t alr_end_time_ms) {
@@ -433,7 +433,7 @@ void ProbeController::Reset(Timestamp at_time) {
   min_bitrate_to_probe_further_ = DataRate::PlusInfinity();
   time_last_probing_initiated_ = Timestamp::Zero();
   estimated_bitrate_ = DataRate::Zero();
-  network_estimate_ = absl::nullopt;
+  network_estimate_ = std::nullopt;
   start_bitrate_ = DataRate::Zero();
   max_bitrate_ = kDefaultMaxProbingBitrate;
   Timestamp now = at_time;

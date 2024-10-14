@@ -15,10 +15,10 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/candidate.h"
 #include "api/rtc_event_log/rtc_event.h"

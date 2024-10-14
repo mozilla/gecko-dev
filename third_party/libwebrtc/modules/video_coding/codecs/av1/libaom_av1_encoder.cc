@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -20,7 +21,6 @@
 #include "absl/base/macros.h"
 #include "absl/base/nullability.h"
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
 #include "api/scoped_refptr.h"
@@ -120,10 +120,10 @@ class LibaomAv1Encoder final : public VideoEncoder {
   void MaybeRewrapImgWithFormat(const aom_img_fmt_t fmt);
 
   std::unique_ptr<ScalableVideoController> svc_controller_;
-  absl::optional<ScalabilityMode> scalability_mode_;
+  std::optional<ScalabilityMode> scalability_mode_;
   bool inited_;
   bool rates_configured_;
-  absl::optional<aom_svc_params_t> svc_params_;
+  std::optional<aom_svc_params_t> svc_params_;
   VideoCodec encoder_settings_;
   LibaomAv1EncoderSettings settings_;
   aom_image_t* frame_for_encode_;
@@ -434,7 +434,7 @@ bool LibaomAv1Encoder::SetSvcParams(
   bool svc_enabled =
       svc_config.num_spatial_layers > 1 || svc_config.num_temporal_layers > 1;
   if (!svc_enabled) {
-    svc_params_ = absl::nullopt;
+    svc_params_ = std::nullopt;
     return true;
   }
   if (svc_config.num_spatial_layers < 1 || svc_config.num_spatial_layers > 4) {
@@ -652,7 +652,7 @@ int32_t LibaomAv1Encoder::Encode(
     // The libaom AV1 encoder requires that `aom_codec_encode` is called for
     // every spatial layer, even if the configured bitrate for that layer is
     // zero. For zero bitrate spatial layers no frames will be produced.
-    absl::optional<ScalableVideoController::LayerFrameConfig>
+    std::optional<ScalableVideoController::LayerFrameConfig>
         non_encoded_layer_frame;
     ScalableVideoController::LayerFrameConfig* layer_frame;
     if (next_layer_frame != layer_frames.end() &&

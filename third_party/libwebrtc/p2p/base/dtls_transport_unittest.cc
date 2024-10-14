@@ -66,7 +66,7 @@ void SetRemoteFingerprintFromCert(
           ->SetRemoteParameters(
               fingerprint->algorithm,
               reinterpret_cast<const uint8_t*>(fingerprint->digest.data()),
-              fingerprint->digest.size(), absl::nullopt)
+              fingerprint->digest.size(), std::nullopt)
           .ok());
 }
 

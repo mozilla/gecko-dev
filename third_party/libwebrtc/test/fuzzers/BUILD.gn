@@ -238,7 +238,6 @@ webrtc_fuzzer_test("rtp_packet_fuzzer") {
   deps = [
     "../../common_video:common_video",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
   seed_corpus = "corpora/rtp-corpus"
 }
@@ -307,7 +306,6 @@ rtc_library("audio_decoder_fuzzer") {
     "../../api/audio_codecs:audio_codecs_api",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
     "../../rtc_base:checks",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -590,7 +588,6 @@ webrtc_fuzzer_test("aec3_fuzzer") {
     "../../api/audio:audio_processing",
     "../../modules/audio_processing:audio_buffer",
     "../../modules/audio_processing/aec3",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

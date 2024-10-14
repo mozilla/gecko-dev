@@ -55,7 +55,6 @@ if (rtc_include_tests) {
       "../../video:video_frame_type",
       "../../video:video_rtp_headers",
       "//testing/gtest",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -76,7 +75,6 @@ if (rtc_include_tests) {
       "../../environment",
       "../../environment:environment_factory",
       "//testing/gtest",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 

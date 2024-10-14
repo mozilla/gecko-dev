@@ -71,7 +71,7 @@ class PacketRouter : public PacingController::PacketSender {
   void OnAbortedRetransmissions(
       uint32_t ssrc,
       rtc::ArrayView<const uint16_t> sequence_numbers) override;
-  absl::optional<uint32_t> GetRtxSsrcForMedia(uint32_t ssrc) const override;
+  std::optional<uint32_t> GetRtxSsrcForMedia(uint32_t ssrc) const override;
   void OnBatchComplete() override;
 
   // Send REMB feedback.

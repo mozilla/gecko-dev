@@ -14,10 +14,10 @@
 
 #include <algorithm>  // std::min
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/rtp_headers.h"
 #include "api/units/data_rate.h"
@@ -197,7 +197,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
   MutexLock lock(&mutex_rtcp_sender_);
 
   if (new_method == RtcpMode::kOff) {
-    next_time_to_send_rtcp_ = absl::nullopt;
+    next_time_to_send_rtcp_ = std::nullopt;
   } else if (method_ == RtcpMode::kOff) {
     // When switching on, reschedule the next packet
     SetNextRtcpSendEvaluationDuration(RTCP_INTERVAL_RAPID_SYNC_MS / 2);
@@ -249,7 +249,7 @@ int32_t RTCPSender::SendLossNotification(const FeedbackState& feedback_state,
       event_log_->Log(std::make_unique<RtcEventRtcpPacketOutgoing>(packet));
     }
   };
-  absl::optional<PacketSender> sender;
+  std::optional<PacketSender> sender;
   {
     MutexLock lock(&mutex_rtcp_sender_);
 
@@ -317,8 +317,8 @@ void RTCPSender::SetTimestampOffset(uint32_t timestamp_offset) {
 }
 
 void RTCPSender::SetLastRtpTime(uint32_t rtp_timestamp,
-                                absl::optional<Timestamp> capture_time,
-                                absl::optional<int8_t> payload_type) {
+                                std::optional<Timestamp> capture_time,
+                                std::optional<int8_t> payload_type) {
   MutexLock lock(&mutex_rtcp_sender_);
   // For compatibility with clients who don't set payload type correctly on all
   // calls.
@@ -609,7 +609,7 @@ int32_t RTCPSender::SendRTCP(const FeedbackState& feedback_state,
       }
     }
   };
-  absl::optional<PacketSender> sender;
+  std::optional<PacketSender> sender;
   {
     MutexLock lock(&mutex_rtcp_sender_);
     sender.emplace(callback, max_packet_size_);
@@ -624,7 +624,7 @@ int32_t RTCPSender::SendRTCP(const FeedbackState& feedback_state,
   return error_code;
 }
 
-absl::optional<int32_t> RTCPSender::ComputeCompoundRTCPPacket(
+std::optional<int32_t> RTCPSender::ComputeCompoundRTCPPacket(
     const FeedbackState& feedback_state,
     RTCPPacketType packet_type,
     int32_t nack_size,
@@ -699,7 +699,7 @@ absl::optional<int32_t> RTCPSender::ComputeCompoundRTCPPacket(
   }
 
   RTC_DCHECK(AllVolatileFlagsConsumed());
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 TimeDelta RTCPSender::ComputeTimeUntilNextReport(DataRate send_bitrate) {
@@ -846,7 +846,7 @@ void RTCPSender::SetVideoBitrateAllocation(
   // Check if this allocation is first ever, or has a different set of
   // spatial/temporal layers signaled and enabled, if so trigger an rtcp report
   // as soon as possible.
-  absl::optional<VideoBitrateAllocation> new_bitrate =
+  std::optional<VideoBitrateAllocation> new_bitrate =
       CheckAndUpdateLayerStructure(bitrate);
   if (new_bitrate) {
     video_bitrate_allocation_ = *new_bitrate;
@@ -862,9 +862,9 @@ void RTCPSender::SetVideoBitrateAllocation(
   SetFlag(kRtcpAnyExtendedReports, true);
 }
 
-absl::optional<VideoBitrateAllocation> RTCPSender::CheckAndUpdateLayerStructure(
+std::optional<VideoBitrateAllocation> RTCPSender::CheckAndUpdateLayerStructure(
     const VideoBitrateAllocation& bitrate) const {
-  absl::optional<VideoBitrateAllocation> updated_bitrate;
+  std::optional<VideoBitrateAllocation> updated_bitrate;
   for (size_t si = 0; si < kMaxSpatialLayers; ++si) {
     for (size_t ti = 0; ti < kMaxTemporalStreams; ++ti) {
       if (!updated_bitrate &&

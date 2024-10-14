@@ -10,11 +10,11 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bb6417a4cfac1416a
  1 file changed, 7 insertions(+)
 
 diff --git a/rtc_base/platform_thread.h b/rtc_base/platform_thread.h
-index befd61849d..5b7c6884fe 100644
+index cfc9d17af4..eeaa052d27 100644
 --- a/rtc_base/platform_thread.h
 +++ b/rtc_base/platform_thread.h
-@@ -21,8 +21,13 @@
- #include "absl/types/optional.h"
+@@ -22,8 +22,13 @@
+ #include "absl/strings/string_view.h"
  #include "rtc_base/platform_thread_types.h"
  
 +#include "rtc_base/deprecated/recursive_critical_section.h"
@@ -27,9 +27,9 @@ index befd61849d..5b7c6884fe 100644
  enum class ThreadPriority {
    kLow = 1,
    kNormal,
-@@ -113,6 +118,8 @@ class PlatformThread final {
+@@ -114,6 +119,8 @@ class PlatformThread final {
  
-   absl::optional<Handle> handle_;
+   std::optional<Handle> handle_;
    bool joinable_ = false;
 +  // Bug 1691641
 +  friend PlatformUIThread;

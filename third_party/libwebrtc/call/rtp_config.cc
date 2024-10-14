@@ -155,12 +155,12 @@ bool RtpConfig::IsFlexfecSsrc(uint32_t ssrc) const {
   return flexfec.payload_type != -1 && ssrc == flexfec.ssrc;
 }
 
-absl::optional<uint32_t> RtpConfig::GetRtxSsrcAssociatedWithMediaSsrc(
+std::optional<uint32_t> RtpConfig::GetRtxSsrcAssociatedWithMediaSsrc(
     uint32_t media_ssrc) const {
   RTC_DCHECK(IsMediaSsrc(media_ssrc));
   // If we don't use RTX there is no association.
   if (rtx.ssrcs.empty())
-    return absl::nullopt;
+    return std::nullopt;
   // If we use RTX there MUST be an association ssrcs[i] <-> rtx.ssrcs[i].
   RTC_DCHECK_EQ(ssrcs.size(), rtx.ssrcs.size());
   return FindAssociatedSsrc(media_ssrc, ssrcs, rtx.ssrcs);
@@ -189,7 +189,7 @@ uint32_t RtpConfig::GetMediaSsrcAssociatedWithFlexfecSsrc(
   return media_ssrc;
 }
 
-absl::optional<std::string> RtpConfig::GetRidForSsrc(uint32_t ssrc) const {
+std::optional<std::string> RtpConfig::GetRidForSsrc(uint32_t ssrc) const {
   auto it = std::find(ssrcs.begin(), ssrcs.end(), ssrc);
   if (it != ssrcs.end()) {
     size_t ssrc_index = std::distance(ssrcs.begin(), it);
@@ -197,7 +197,7 @@ absl::optional<std::string> RtpConfig::GetRidForSsrc(uint32_t ssrc) const {
       return rids[ssrc_index];
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace webrtc

@@ -13,7 +13,8 @@
 
 #include <errno.h>
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "rtc_base/checks.h"
 
 #if defined(WEBRTC_POSIX)
@@ -90,7 +91,7 @@ class RTC_EXPORT Socket {
   struct ReceiveBuffer {
     ReceiveBuffer(Buffer& payload) : payload(payload) {}
 
-    absl::optional<webrtc::Timestamp> arrival_time;
+    std::optional<webrtc::Timestamp> arrival_time;
     SocketAddress source_address;
     EcnMarking ecn = EcnMarking::kNotEct;
     Buffer& payload;

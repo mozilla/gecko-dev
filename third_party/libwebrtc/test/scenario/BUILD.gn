@@ -157,7 +157,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
     if (is_android) {
       deps += [ "../../modules/video_coding:android_codec_factory_helper" ]

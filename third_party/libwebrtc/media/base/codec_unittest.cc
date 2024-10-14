@@ -555,7 +555,7 @@ TEST(CodecTest, TestToCodecParameters) {
   EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, codec_params_1.kind);
   EXPECT_EQ("V", codec_params_1.name);
   EXPECT_EQ(cricket::kVideoCodecClockrate, codec_params_1.clock_rate);
-  EXPECT_EQ(absl::nullopt, codec_params_1.num_channels);
+  EXPECT_EQ(std::nullopt, codec_params_1.num_channels);
   ASSERT_EQ(1u, codec_params_1.parameters.size());
   EXPECT_EQ("p1", codec_params_1.parameters.begin()->first);
   EXPECT_EQ("v1", codec_params_1.parameters.begin()->second);

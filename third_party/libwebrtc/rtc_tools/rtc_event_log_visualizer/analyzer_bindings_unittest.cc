@@ -13,10 +13,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "rtc_base/protobuf_utils.h"
 #include "rtc_base/system/file_wrapper.h"
 #include "test/gtest.h"
@@ -36,7 +36,7 @@ class RtcEventLogAnalyzerBindingsTest : public ::testing::Test {
     webrtc::FileWrapper file = webrtc::FileWrapper::OpenReadOnly(file_name);
     ASSERT_TRUE(file.is_open());
 
-    absl::optional<size_t> file_size = file.FileSize();
+    std::optional<size_t> file_size = file.FileSize();
     ASSERT_TRUE(file_size.has_value());
     constexpr size_t kMaxFileSize = 1'000'000;
     ASSERT_GT(*file_size, 0u);

@@ -146,7 +146,6 @@ rtc_library("rtp_rtcp_format") {
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
@@ -357,7 +356,6 @@ rtc_library("rtp_rtcp") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
@@ -393,7 +391,6 @@ rtc_source_set("rtp_rtcp_legacy") {
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -449,7 +446,6 @@ rtc_library("rtcp_transceiver") {
     "//third_party/abseil-cpp/absl/cleanup",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -468,7 +464,6 @@ rtc_library("rtp_video_header") {
     "../../api/video:video_rtp_headers",
     "../../modules/video_coding:codec_globals_headers",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
@@ -517,7 +512,6 @@ rtc_library("mock_rtp_rtcp") {
     "../../rtc_base:checks",
     "../../test:test_support",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -738,7 +732,6 @@ if (rtc_include_tests) {
       "//third_party/abseil-cpp/absl/base:core_headers",
       "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -767,7 +760,6 @@ if (rtc_include_tests) {
       ":rtp_rtcp_format",
       "../../common_video:common_video",
       "../../test:test_support",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 }

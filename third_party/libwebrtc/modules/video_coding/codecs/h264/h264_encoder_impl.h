@@ -103,7 +103,7 @@ class H264EncoderImpl : public VideoEncoder {
   std::vector<LayerConfig> configurations_;
   std::vector<EncodedImage> encoded_images_;
   std::vector<std::unique_ptr<ScalableVideoController>> svc_controllers_;
-  absl::InlinedVector<absl::optional<ScalabilityMode>, kMaxSimulcastStreams>
+  absl::InlinedVector<std::optional<ScalabilityMode>, kMaxSimulcastStreams>
       scalability_modes_;
 
   const Environment env_;
@@ -111,7 +111,7 @@ class H264EncoderImpl : public VideoEncoder {
   H264PacketizationMode packetization_mode_;
   size_t max_payload_size_;
   int32_t number_of_cores_;
-  absl::optional<int> encoder_thread_limit_;
+  std::optional<int> encoder_thread_limit_;
   EncodedImageCallback* encoded_image_callback_;
 
   bool has_reported_init_;

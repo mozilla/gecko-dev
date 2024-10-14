@@ -44,7 +44,7 @@
 
   absl::InlinedVector<webrtc::ScalabilityMode, webrtc::kScalabilityModeCount> scalability_modes;
   for (NSString* mode_name in self.scalabilityModes) {
-    absl::optional<webrtc::ScalabilityMode> mode =
+    std::optional<webrtc::ScalabilityMode> mode =
         webrtc::ScalabilityModeStringToEnum([NSString stdStringForString:mode_name]);
     if (mode.has_value()) {
       scalability_modes.push_back(*mode);

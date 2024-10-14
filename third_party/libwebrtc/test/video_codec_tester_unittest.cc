@@ -188,7 +188,7 @@ class VideoCodecTesterTest : public ::testing::Test {
       std::string codec_type,
       ScalabilityMode scalability_mode,
       std::vector<std::vector<Frame>> encoded_frames,
-      absl::optional<int> num_source_frames = absl::nullopt) {
+      std::optional<int> num_source_frames = std::nullopt) {
     int num_frames = encoded_frames.size();
     std::string yuv_path =
         CreateYuvFile(kWidth, kHeight, num_source_frames.value_or(num_frames));
@@ -276,9 +276,9 @@ class MockCodedVideoSource : public CodedVideoSource {
   MockCodedVideoSource(int num_frames, Frequency framerate)
       : num_frames_(num_frames), frame_num_(0), framerate_(framerate) {}
 
-  absl::optional<EncodedImage> PullFrame() override {
+  std::optional<EncodedImage> PullFrame() override {
     if (frame_num_ >= num_frames_) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     uint32_t timestamp_rtp = frame_num_ * k90kHz / framerate_;
     ++frame_num_;

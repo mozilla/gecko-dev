@@ -53,7 +53,7 @@ class RTC_EXPORT RtpSenderInterface : public webrtc::RefCountInterface,
 
   // Returns primary SSRC used by this sender for sending media.
   // Returns 0 if not yet determined.
-  // TODO(deadbeef): Change to absl::optional.
+  // TODO(deadbeef): Change to std::optional.
   // TODO(deadbeef): Remove? With GetParameters this should be redundant.
   virtual uint32_t ssrc() const = 0;
 

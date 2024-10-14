@@ -10,11 +10,11 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_RTP_PACKET_H_
 #define MODULES_RTP_RTCP_SOURCE_RTP_PACKET_H_
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -131,7 +131,7 @@ class RtpPacket {
   bool GetExtension(FirstValue&&, Values&&...) const;
 
   template <typename Extension>
-  absl::optional<typename Extension::value_type> GetExtension() const;
+  std::optional<typename Extension::value_type> GetExtension() const;
 
   // Returns view of the raw extension or empty view on failure.
   template <typename Extension>
@@ -241,11 +241,11 @@ bool RtpPacket::GetExtension(FirstValue&& first, Values&&... values) const {
 }
 
 template <typename Extension>
-absl::optional<typename Extension::value_type> RtpPacket::GetExtension() const {
-  absl::optional<typename Extension::value_type> result;
+std::optional<typename Extension::value_type> RtpPacket::GetExtension() const {
+  std::optional<typename Extension::value_type> result;
   auto raw = FindExtension(Extension::kId);
   if (raw.empty() || !Extension::Parse(raw, &result.emplace()))
-    result = absl::nullopt;
+    result = std::nullopt;
   return result;
 }
 

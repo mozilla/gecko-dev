@@ -37,7 +37,6 @@ rtc_library("streams_config") {
     "../../rtc_base/experiments:rate_control_settings",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -56,7 +55,6 @@ rtc_library("encoder_config") {
     "../../rtc_base:checks",
     "../../rtc_base:refcount",
     "../../rtc_base:stringutils",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

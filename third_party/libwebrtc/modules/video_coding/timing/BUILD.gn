@@ -27,7 +27,6 @@ rtc_library("inter_frame_delay_variation_calculator") {
     "../../../api/units:time_delta",
     "../../../api/units:timestamp",
     "../../../rtc_base:rtc_numerics",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -67,7 +66,6 @@ rtc_library("jitter_estimator") {
     "../../../rtc_base/experiments:field_trial_parser",
     "../../../system_wrappers",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -92,7 +90,6 @@ rtc_library("timestamp_extrapolator") {
     "../../../api/units:timestamp",
     "../../../modules:module_api_public",
     "../../../rtc_base:rtc_numerics",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -114,7 +111,6 @@ rtc_library("timing_module") {
     "../../../rtc_base/experiments:field_trial_parser",
     "../../../rtc_base/synchronization:mutex",
     "../../../system_wrappers",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -146,6 +142,5 @@ rtc_library("timing_unittests") {
     "../../../system_wrappers:system_wrappers",
     "../../../test:scoped_key_value_config",
     "../../../test:test_support",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }

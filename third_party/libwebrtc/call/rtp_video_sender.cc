@@ -294,9 +294,9 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
   return rtp_streams;
 }
 
-absl::optional<VideoCodecType> GetVideoCodecType(const RtpConfig& config) {
+std::optional<VideoCodecType> GetVideoCodecType(const RtpConfig& config) {
   if (config.raw_payload) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return PayloadStringToCodecType(config.payload_name);
 }
@@ -553,7 +553,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
     RTPSenderVideo& sender_video = *rtp_streams_[simulcast_index].sender_video;
     if (codec_specific_info && codec_specific_info->template_structure) {
       sender_video.SetVideoStructure(&*codec_specific_info->template_structure);
-    } else if (absl::optional<FrameDependencyStructure> structure =
+    } else if (std::optional<FrameDependencyStructure> structure =
                    params_[simulcast_index].GenericStructure(
                        codec_specific_info)) {
       sender_video.SetVideoStructure(&*structure);
@@ -562,7 +562,7 @@ EncodedImageCallback::Result RtpVideoSender::OnEncodedImage(
     }
   }
 
-  absl::optional<int64_t> frame_id;
+  std::optional<int64_t> frame_id;
   if (!independent_frame_ids_) {
     frame_id = shared_frame_id_;
   }
@@ -600,7 +600,7 @@ void RtpVideoSender::OnBitrateAllocationUpdated(
       // If spatial scalability is enabled, it is covered by a single stream.
       rtp_streams_[0].rtp_rtcp->SetVideoBitrateAllocation(bitrate);
     } else {
-      std::vector<absl::optional<VideoBitrateAllocation>> layer_bitrates =
+      std::vector<std::optional<VideoBitrateAllocation>> layer_bitrates =
           bitrate.GetSimulcastAllocations();
       // Simulcast is in use, split the VideoBitrateAllocation into one struct
       // per rtp stream, moving over the temporal layer allocation.
@@ -727,7 +727,7 @@ std::map<uint32_t, RtpState> RtpVideoSender::GetRtpStates() const {
     // Only happens during shutdown, when RTP module is already inactive,
     // so OK to call fec generator here.
     if (rtp_streams_[i].fec_generator) {
-      absl::optional<RtpState> fec_state =
+      std::optional<RtpState> fec_state =
           rtp_streams_[i].fec_generator->GetRtpState();
       if (fec_state) {
         uint32_t ssrc = rtp_config_.flexfec.ssrc;

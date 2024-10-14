@@ -62,8 +62,8 @@ void MatchedFilterLagAggregator::Reset(bool hard_reset) {
   }
 }
 
-absl::optional<DelayEstimate> MatchedFilterLagAggregator::Aggregate(
-    const absl::optional<const MatchedFilter::LagEstimate>& lag_estimate) {
+std::optional<DelayEstimate> MatchedFilterLagAggregator::Aggregate(
+    const std::optional<const MatchedFilter::LagEstimate>& lag_estimate) {
   if (lag_estimate && pre_echo_lag_aggregator_) {
     pre_echo_lag_aggregator_->Dump(data_dumper_);
     pre_echo_lag_aggregator_->Aggregate(
@@ -90,7 +90,7 @@ absl::optional<DelayEstimate> MatchedFilterLagAggregator::Aggregate(
     }
   }
 
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 MatchedFilterLagAggregator::HighestPeakAggregator::HighestPeakAggregator(

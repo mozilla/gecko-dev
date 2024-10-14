@@ -11,8 +11,9 @@
 #ifndef MODULES_VIDEO_CODING_SVC_SCALABILITY_MODE_UTIL_H_
 #define MODULES_VIDEO_CODING_SVC_SCALABILITY_MODE_UTIL_H_
 
+#include <optional>
+
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/video_codec.h"
 
@@ -25,14 +26,14 @@ enum class ScalabilityModeResolutionRatio {
 
 static constexpr char kDefaultScalabilityModeStr[] = "L1T2";
 
-RTC_EXPORT absl::optional<ScalabilityMode> MakeScalabilityMode(
+RTC_EXPORT std::optional<ScalabilityMode> MakeScalabilityMode(
     int num_spatial_layers,
     int num_temporal_layers,
     InterLayerPredMode inter_layer_pred,
-    absl::optional<ScalabilityModeResolutionRatio> ratio,
+    std::optional<ScalabilityModeResolutionRatio> ratio,
     bool shift);
 
-absl::optional<ScalabilityMode> ScalabilityModeFromString(
+std::optional<ScalabilityMode> ScalabilityModeFromString(
     absl::string_view scalability_mode_string);
 
 InterLayerPredMode ScalabilityModeToInterLayerPredMode(
@@ -42,7 +43,7 @@ int ScalabilityModeToNumSpatialLayers(ScalabilityMode scalability_mode);
 
 int ScalabilityModeToNumTemporalLayers(ScalabilityMode scalability_mode);
 
-absl::optional<ScalabilityModeResolutionRatio> ScalabilityModeToResolutionRatio(
+std::optional<ScalabilityModeResolutionRatio> ScalabilityModeToResolutionRatio(
     ScalabilityMode scalability_mode);
 
 bool ScalabilityModeIsShiftMode(ScalabilityMode scalability_mode);

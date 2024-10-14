@@ -14,9 +14,9 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/remote_estimate.h"
@@ -94,7 +94,7 @@ void TransportSequenceNumberFeedbackGenenerator::OnReceivedPacket(
   }
 
   uint16_t seqnum = 0;
-  absl::optional<FeedbackRequest> feedback_request;
+  std::optional<FeedbackRequest> feedback_request;
   if (!packet.GetExtension<TransportSequenceNumber>(&seqnum) &&
       !packet.GetExtension<TransportSequenceNumberV2>(&seqnum,
                                                       &feedback_request)) {
@@ -139,7 +139,7 @@ void TransportSequenceNumberFeedbackGenenerator::OnReceivedPacket(
     SendFeedbackOnRequest(seq, *feedback_request);
   }
 
-  absl::optional<uint32_t> absolute_send_time_24bits =
+  std::optional<uint32_t> absolute_send_time_24bits =
       packet.GetExtension<AbsoluteSendTime>();
   if (network_state_estimator_ && absolute_send_time_24bits.has_value()) {
     PacketResult packet_result;
@@ -217,7 +217,7 @@ void TransportSequenceNumberFeedbackGenenerator::SendPeriodicFeedbacks() {
 
   std::unique_ptr<rtcp::RemoteEstimate> remote_estimate;
   if (network_state_estimator_) {
-    absl::optional<NetworkStateEstimate> state_estimate =
+    std::optional<NetworkStateEstimate> state_estimate =
         network_state_estimator_->GetCurrentEstimate();
     if (state_estimate) {
       remote_estimate = std::make_unique<rtcp::RemoteEstimate>();

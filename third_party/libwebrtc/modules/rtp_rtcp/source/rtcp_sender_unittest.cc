@@ -721,7 +721,7 @@ TEST_F(RtcpSenderTest, SendXrWithTargetBitrate) {
   EXPECT_EQ(0, rtcp_sender->SendRTCP(feedback_state(), kRtcpReport));
   EXPECT_EQ(1, parser()->xr()->num_packets());
   EXPECT_EQ(kSenderSsrc, parser()->xr()->sender_ssrc());
-  const absl::optional<rtcp::TargetBitrate>& target_bitrate =
+  const std::optional<rtcp::TargetBitrate>& target_bitrate =
       parser()->xr()->target_bitrate();
   ASSERT_TRUE(target_bitrate);
   const std::vector<rtcp::TargetBitrate::BitrateItem>& bitrates =
@@ -787,7 +787,7 @@ TEST_F(RtcpSenderTest, SendTargetBitrateExplicitZeroOnStreamRemoval) {
   allocation.SetBitrate(1, 0, 200000);
   rtcp_sender->SetVideoBitrateAllocation(allocation);
   EXPECT_EQ(0, rtcp_sender->SendRTCP(feedback_state(), kRtcpReport));
-  absl::optional<rtcp::TargetBitrate> target_bitrate =
+  std::optional<rtcp::TargetBitrate> target_bitrate =
       parser()->xr()->target_bitrate();
   ASSERT_TRUE(target_bitrate);
   std::vector<rtcp::TargetBitrate::BitrateItem> bitrates =

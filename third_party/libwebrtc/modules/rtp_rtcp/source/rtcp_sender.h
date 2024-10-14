@@ -13,12 +13,12 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/call/transport.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
@@ -79,7 +79,7 @@ class RTCPSender final {
     std::function<void(TimeDelta)> schedule_next_rtcp_send_evaluation_function;
 
     RtcEventLog* event_log = nullptr;
-    absl::optional<TimeDelta> rtcp_report_interval;
+    std::optional<TimeDelta> rtcp_report_interval;
     ReceiveStatisticsProvider* receive_statistics = nullptr;
     RtcpPacketTypeCounterObserver* rtcp_packet_type_counter_observer = nullptr;
   };
@@ -126,8 +126,8 @@ class RTCPSender final {
       RTC_LOCKS_EXCLUDED(mutex_rtcp_sender_);
 
   void SetLastRtpTime(uint32_t rtp_timestamp,
-                      absl::optional<Timestamp> capture_time,
-                      absl::optional<int8_t> payload_type)
+                      std::optional<Timestamp> capture_time,
+                      std::optional<int8_t> payload_type)
       RTC_LOCKS_EXCLUDED(mutex_rtcp_sender_);
 
   void SetRtpClockRate(int8_t payload_type, int rtp_clock_rate_hz)
@@ -185,7 +185,7 @@ class RTCPSender final {
   class RtcpContext;
   class PacketSender;
 
-  absl::optional<int32_t> ComputeCompoundRTCPPacket(
+  std::optional<int32_t> ComputeCompoundRTCPPacket(
       const FeedbackState& feedback_state,
       RTCPPacketType packet_type,
       int32_t nack_size,
@@ -256,12 +256,12 @@ class RTCPSender final {
   mutable Mutex mutex_rtcp_sender_;
   bool sending_ RTC_GUARDED_BY(mutex_rtcp_sender_);
 
-  absl::optional<Timestamp> next_time_to_send_rtcp_
+  std::optional<Timestamp> next_time_to_send_rtcp_
       RTC_GUARDED_BY(mutex_rtcp_sender_);
 
   uint32_t timestamp_offset_ RTC_GUARDED_BY(mutex_rtcp_sender_);
   uint32_t last_rtp_timestamp_ RTC_GUARDED_BY(mutex_rtcp_sender_);
-  absl::optional<Timestamp> last_frame_capture_time_
+  std::optional<Timestamp> last_frame_capture_time_
       RTC_GUARDED_BY(mutex_rtcp_sender_);
   // SSRC that we receive on our RTP channel
   uint32_t remote_ssrc_ RTC_GUARDED_BY(mutex_rtcp_sender_);
@@ -303,7 +303,7 @@ class RTCPSender final {
   std::map<int8_t, int> rtp_clock_rates_khz_ RTC_GUARDED_BY(mutex_rtcp_sender_);
   int8_t last_payload_type_ RTC_GUARDED_BY(mutex_rtcp_sender_);
 
-  absl::optional<VideoBitrateAllocation> CheckAndUpdateLayerStructure(
+  std::optional<VideoBitrateAllocation> CheckAndUpdateLayerStructure(
       const VideoBitrateAllocation& bitrate) const
       RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_rtcp_sender_);
 

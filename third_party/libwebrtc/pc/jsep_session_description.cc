@@ -11,9 +11,9 @@
 #include "api/jsep_session_description.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
 #include "p2p/base/transport_description.h"
@@ -101,7 +101,7 @@ void UpdateConnectionAddress(
 // TODO(steveanton): Remove this default implementation once Chromium has been
 // updated.
 SdpType SessionDescriptionInterface::GetType() const {
-  absl::optional<SdpType> maybe_type = SdpTypeFromString(type());
+  std::optional<SdpType> maybe_type = SdpTypeFromString(type());
   if (maybe_type) {
     return *maybe_type;
   } else {
@@ -116,7 +116,7 @@ SdpType SessionDescriptionInterface::GetType() const {
 SessionDescriptionInterface* CreateSessionDescription(const std::string& type,
                                                       const std::string& sdp,
                                                       SdpParseError* error) {
-  absl::optional<SdpType> maybe_type = SdpTypeFromString(type);
+  std::optional<SdpType> maybe_type = SdpTypeFromString(type);
   if (!maybe_type) {
     return nullptr;
   }
@@ -158,7 +158,7 @@ std::unique_ptr<SessionDescriptionInterface> CreateSessionDescription(
 JsepSessionDescription::JsepSessionDescription(SdpType type) : type_(type) {}
 
 JsepSessionDescription::JsepSessionDescription(const std::string& type) {
-  absl::optional<SdpType> maybe_type = SdpTypeFromString(type);
+  std::optional<SdpType> maybe_type = SdpTypeFromString(type);
   if (maybe_type) {
     type_ = *maybe_type;
   } else {

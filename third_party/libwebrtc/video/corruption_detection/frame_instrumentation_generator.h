@@ -13,10 +13,10 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <queue>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/video/encoded_image.h"
 #include "api/video/video_codec_type.h"
@@ -52,7 +52,7 @@ class FrameInstrumentationGenerator {
   ~FrameInstrumentationGenerator() = default;
 
   void OnCapturedFrame(VideoFrame frame);
-  absl::optional<
+  std::optional<
       absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
   OnEncodedImage(const EncodedImage& encoded_image);
 

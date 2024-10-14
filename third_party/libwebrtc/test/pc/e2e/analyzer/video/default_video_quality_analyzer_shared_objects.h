@@ -14,13 +14,13 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -238,9 +238,9 @@ class VideoStreamsInfo {
   // empty set will be returned.
   std::set<std::string> GetStreams(absl::string_view sender_name) const;
 
-  // Returns sender name for specified `stream_label`. Returns `absl::nullopt`
+  // Returns sender name for specified `stream_label`. Returns `std::nullopt`
   // if provided `stream_label` isn't known to the video analyzer.
-  absl::optional<std::string> GetSender(absl::string_view stream_label) const;
+  std::optional<std::string> GetSender(absl::string_view stream_label) const;
 
   // Returns set of the receivers for specified `stream_label`. If stream wasn't
   // received by any peer or `stream_label` isn't known to the video analyzer

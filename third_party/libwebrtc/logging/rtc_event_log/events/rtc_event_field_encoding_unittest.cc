@@ -12,13 +12,13 @@
 #include <cstdint>
 #include <cstdio>
 #include <limits>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtc_event_log/rtc_event.h"
 #include "logging/rtc_event_log/encoder/var_int.h"
@@ -93,12 +93,12 @@ size_t ExpectedEncodingSize(const FieldParameters& params,
 
 template <typename T, std::enable_if_t<std::is_integral<T>::value, bool> = true>
 size_t ExpectedEncodingSize(const FieldParameters& params,
-                            const std::vector<absl::optional<T>>& v,
+                            const std::vector<std::optional<T>>& v,
                             size_t expected_bits_per_delta) {
   size_t num_existing_values =
-      v.size() - std::count(v.begin(), v.end(), absl::nullopt);
+      v.size() - std::count(v.begin(), v.end(), std::nullopt);
   auto first_existing_value = std::find_if(
-      v.begin(), v.end(), [](absl::optional<T> x) { return x.has_value(); });
+      v.begin(), v.end(), [](std::optional<T> x) { return x.has_value(); });
   if (num_existing_values == 0)
     return 0;
 
@@ -116,7 +116,7 @@ size_t ExpectedEncodingSize(const FieldParameters& params,
       (num_existing_values == v.size() ? 0 : (v.size() + 7) / 8);
   // Check if there is an element *not* equal to base.
   if (std::all_of(v.begin(), v.end(),
-                  [base](absl::optional<T> x) { return x == base; })) {
+                  [base](std::optional<T> x) { return x == base; })) {
     return tag_size + base_size + delta_header_size + positions_size;
   }
 
@@ -164,8 +164,8 @@ class RtcTestEvent final : public RtcEvent {
                uint32_t unsigned32,
                int64_t signed64,
                uint64_t unsigned64,
-               absl::optional<int32_t> optional_signed32,
-               absl::optional<int64_t> optional_signed64,
+               std::optional<int32_t> optional_signed32,
+               std::optional<int64_t> optional_signed64,
                uint32_t wrapping21,
                absl::string_view string)
       : b_(b),
@@ -211,8 +211,8 @@ class RtcTestEvent final : public RtcEvent {
   const uint32_t unsigned32_;
   const int64_t signed64_;
   const uint64_t unsigned64_;
-  const absl::optional<int32_t> optional_signed32_ = absl::nullopt;
-  const absl::optional<int64_t> optional_signed64_ = absl::nullopt;
+  const std::optional<int32_t> optional_signed32_ = std::nullopt;
+  const std::optional<int64_t> optional_signed64_ = std::nullopt;
   const uint32_t wrapping21_ = 0;
   const std::string string_;
 };
@@ -242,8 +242,8 @@ class RtcEventFieldTest : public ::testing::Test {
       const std::vector<uint32_t>& unsigned32_values,
       const std::vector<int64_t>& signed64_values,
       const std::vector<uint64_t>& unsigned64_values,
-      const std::vector<absl::optional<int32_t>>& optional32_values,
-      const std::vector<absl::optional<int64_t>>& optional64_values,
+      const std::vector<std::optional<int32_t>>& optional32_values,
+      const std::vector<std::optional<int64_t>>& optional64_values,
       const std::vector<uint32_t>& wrapping21_values,
       const std::vector<std::string>& string_values) {
     size_t size = bool_values.size();
@@ -340,7 +340,7 @@ class RtcEventFieldTest : public ::testing::Test {
   template <typename T>
   void ParseAndVerifyOptionalField(
       const FieldParameters& params,
-      const std::vector<absl::optional<T>>& expected_values,
+      const std::vector<std::optional<T>>& expected_values,
       size_t expected_bits_per_delta,
       size_t expected_skipped_bytes = 0) {
     size_t expected_size =
@@ -361,7 +361,7 @@ class RtcEventFieldTest : public ::testing::Test {
                   expected_values[i].value());
         ++value_it;
       } else {
-        EXPECT_EQ(absl::nullopt, expected_values[i]);
+        EXPECT_EQ(std::nullopt, expected_values[i]);
       }
     }
     EXPECT_EQ(value_it, values.end());
@@ -409,8 +409,8 @@ TEST_F(RtcEventFieldTest, Singleton) {
   std::vector<uint32_t> unsigned32_values = {123456789};
   std::vector<int64_t> signed64_values = {-9876543210};
   std::vector<uint64_t> unsigned64_values = {9876543210};
-  std::vector<absl::optional<int32_t>> optional32_values = {kInt32Min};
-  std::vector<absl::optional<int64_t>> optional64_values = {kInt64Max};
+  std::vector<std::optional<int32_t>> optional32_values = {kInt32Min};
+  std::vector<std::optional<int64_t>> optional64_values = {kInt64Max};
   std::vector<uint32_t> wrapping21_values = {(1 << 21) - 1};
   std::vector<std::string> string_values = {"foo"};
 
@@ -478,9 +478,9 @@ TEST_F(RtcEventFieldTest, EqualElements) {
                                           -9876543210};
   std::vector<uint64_t> unsigned64_values = {9876543210, 9876543210, 9876543210,
                                              9876543210};
-  std::vector<absl::optional<int32_t>> optional32_values = {
+  std::vector<std::optional<int32_t>> optional32_values = {
       kInt32Min, kInt32Min, kInt32Min, kInt32Min};
-  std::vector<absl::optional<int64_t>> optional64_values = {
+  std::vector<std::optional<int64_t>> optional64_values = {
       kInt64Max, kInt64Max, kInt64Max, kInt64Max};
   std::vector<uint32_t> wrapping21_values = {(1 << 21) - 1, (1 << 21) - 1,
                                              (1 << 21) - 1, (1 << 21) - 1};
@@ -547,9 +547,9 @@ TEST_F(RtcEventFieldTest, Increasing) {
   std::vector<int64_t> signed64_values = {kInt64Max - 1, kInt64Max, kInt64Min,
                                           kInt64Min + 1};
   std::vector<uint64_t> unsigned64_values = {kUint64Max - 1, kUint64Max, 0, 1};
-  std::vector<absl::optional<int32_t>> optional32_values = {
+  std::vector<std::optional<int32_t>> optional32_values = {
       kInt32Max - 1, kInt32Max, kInt32Min, kInt32Min + 1};
-  std::vector<absl::optional<int64_t>> optional64_values = {
+  std::vector<std::optional<int64_t>> optional64_values = {
       kInt64Max - 1, kInt64Max, kInt64Min, kInt64Min + 1};
   std::vector<uint32_t> wrapping21_values = {(1 << 21) - 2, (1 << 21) - 1, 0,
                                              1};
@@ -618,9 +618,9 @@ TEST_F(RtcEventFieldTest, Decreasing) {
   std::vector<int64_t> signed64_values = {kInt64Min + 1, kInt64Min, kInt64Max,
                                           kInt64Max - 1};
   std::vector<uint64_t> unsigned64_values = {1, 0, kUint64Max, kUint64Max - 1};
-  std::vector<absl::optional<int32_t>> optional32_values = {
+  std::vector<std::optional<int32_t>> optional32_values = {
       kInt32Min + 1, kInt32Min, kInt32Max, kInt32Max - 1};
-  std::vector<absl::optional<int64_t>> optional64_values = {
+  std::vector<std::optional<int64_t>> optional64_values = {
       kInt64Min + 1, kInt64Min, kInt64Max, kInt64Max - 1};
   std::vector<uint32_t> wrapping21_values = {1, 0, (1 << 21) - 1,
                                              (1 << 21) - 2};
@@ -690,10 +690,10 @@ TEST_F(RtcEventFieldTest, SkipsDeprecatedFields) {
   std::vector<uint32_t> unsigned32_values = {0, kUint32Max / 2};
   std::vector<int64_t> signed64_values = {kInt64Min / 2, kInt64Max / 2};
   std::vector<uint64_t> unsigned64_values = {0, kUint64Max / 2};
-  std::vector<absl::optional<int32_t>> optional32_values = {kInt32Max / 2,
-                                                            kInt32Min / 2};
-  std::vector<absl::optional<int64_t>> optional64_values = {kInt64Min / 2,
-                                                            kInt64Max / 2};
+  std::vector<std::optional<int32_t>> optional32_values = {kInt32Max / 2,
+                                                           kInt32Min / 2};
+  std::vector<std::optional<int64_t>> optional64_values = {kInt64Min / 2,
+                                                           kInt64Max / 2};
   std::vector<uint32_t> wrapping21_values = {0, 1 << 20};
   std::vector<std::string> string_values = {"foo", "bar"};
 
@@ -769,10 +769,10 @@ TEST_F(RtcEventFieldTest, SkipsMissingFields) {
   std::vector<uint32_t> unsigned32_values = {0, kUint32Max / 2};
   std::vector<int64_t> signed64_values = {kInt64Min / 2, kInt64Max / 2};
   std::vector<uint64_t> unsigned64_values = {0, kUint64Max / 2};
-  std::vector<absl::optional<int32_t>> optional32_values = {kInt32Max / 2,
-                                                            kInt32Min / 2};
-  std::vector<absl::optional<int64_t>> optional64_values = {kInt64Min / 2,
-                                                            kInt64Max / 2};
+  std::vector<std::optional<int32_t>> optional32_values = {kInt32Max / 2,
+                                                           kInt32Min / 2};
+  std::vector<std::optional<int64_t>> optional64_values = {kInt64Min / 2,
+                                                           kInt64Max / 2};
   std::vector<uint32_t> wrapping21_values = {0, 1 << 20};
   std::vector<std::string> string_values = {"foo", "foo"};
 
@@ -821,10 +821,10 @@ TEST_F(RtcEventFieldTest, SkipsMissingFields) {
 }
 
 TEST_F(RtcEventFieldTest, OptionalFields) {
-  std::vector<absl::optional<int32_t>> optional32_values = {
-      2, absl::nullopt, 4, absl::nullopt, 6, absl::nullopt};
-  std::vector<absl::optional<int64_t>> optional64_values = {
-      absl::nullopt, 1024, absl::nullopt, 1025, absl::nullopt, 1026};
+  std::vector<std::optional<int32_t>> optional32_values = {
+      2, std::nullopt, 4, std::nullopt, 6, std::nullopt};
+  std::vector<std::optional<int64_t>> optional64_values = {
+      std::nullopt, 1024, std::nullopt, 1025, std::nullopt, 1026};
   std::vector<uint32_t> wrapping21_values = {(1 << 21) - 3, 0, 2, 5, 5, 6};
 
   for (size_t i = 0; i < optional32_values.size(); i++) {
@@ -860,11 +860,11 @@ TEST_F(RtcEventFieldTest, OptionalFields) {
 }
 
 TEST_F(RtcEventFieldTest, AllNulloptTreatedAsMissing) {
-  std::vector<absl::optional<int32_t>> optional32_values = {
-      absl::nullopt, absl::nullopt, absl::nullopt,
-      absl::nullopt, absl::nullopt, absl::nullopt};
-  std::vector<absl::optional<int64_t>> optional64_values = {
-      absl::nullopt, 1024, absl::nullopt, 1025, absl::nullopt, 1026};
+  std::vector<std::optional<int32_t>> optional32_values = {
+      std::nullopt, std::nullopt, std::nullopt,
+      std::nullopt, std::nullopt, std::nullopt};
+  std::vector<std::optional<int64_t>> optional64_values = {
+      std::nullopt, 1024, std::nullopt, 1025, std::nullopt, 1026};
 
   for (size_t i = 0; i < optional32_values.size(); i++) {
     batch_.push_back(new RtcTestEvent(0, 0, 0, 0, 0, optional32_values[i],

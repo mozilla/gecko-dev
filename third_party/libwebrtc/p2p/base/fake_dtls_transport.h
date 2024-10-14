@@ -152,7 +152,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   webrtc::RTCError SetRemoteParameters(absl::string_view alg,
                                        const uint8_t* digest,
                                        size_t digest_len,
-                                       absl::optional<rtc::SSLRole> role) {
+                                       std::optional<rtc::SSLRole> role) {
     if (role) {
       SetDtlsRole(*role);
     }
@@ -210,7 +210,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     }
     return false;
   }
-  void SetSslCipherSuite(absl::optional<int> cipher_suite) {
+  void SetSslCipherSuite(std::optional<int> cipher_suite) {
     ssl_cipher_suite_ = cipher_suite;
   }
   uint16_t GetSslPeerSignatureAlgorithm() const override { return 0; }
@@ -266,7 +266,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   }
   int GetError() override { return ice_transport_->GetError(); }
 
-  absl::optional<rtc::NetworkRoute> network_route() const override {
+  std::optional<rtc::NetworkRoute> network_route() const override {
     return ice_transport_->network_route();
   }
 
@@ -295,7 +295,7 @@ class FakeDtlsTransport : public DtlsTransportInternal {
     SignalWritableState(this);
   }
 
-  void OnNetworkRouteChanged(absl::optional<rtc::NetworkRoute> network_route) {
+  void OnNetworkRouteChanged(std::optional<rtc::NetworkRoute> network_route) {
     SignalNetworkRouteChanged(network_route);
   }
 
@@ -309,9 +309,9 @@ class FakeDtlsTransport : public DtlsTransportInternal {
   bool do_dtls_ = false;
   rtc::SSLProtocolVersion ssl_max_version_ = rtc::SSL_PROTOCOL_DTLS_12;
   rtc::SSLFingerprint dtls_fingerprint_;
-  absl::optional<rtc::SSLRole> dtls_role_;
+  std::optional<rtc::SSLRole> dtls_role_;
   int crypto_suite_ = rtc::kSrtpAes128CmSha1_80;
-  absl::optional<int> ssl_cipher_suite_;
+  std::optional<int> ssl_cipher_suite_;
 
   webrtc::DtlsTransportState dtls_state_ = webrtc::DtlsTransportState::kNew;
 

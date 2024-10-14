@@ -39,7 +39,7 @@ class RTC_EXPORT UDPPort : public Port {
       const PortParametersRef& args,
       rtc::AsyncPacketSocket* socket,
       bool emit_local_for_anyaddress,
-      absl::optional<int> stun_keepalive_interval) {
+      std::optional<int> stun_keepalive_interval) {
     // Using `new` to access a non-public constructor.
     auto port =
         absl::WrapUnique(new UDPPort(args, webrtc::IceCandidateType::kHost,
@@ -59,7 +59,7 @@ class RTC_EXPORT UDPPort : public Port {
              absl::string_view username,
              absl::string_view password,
              bool emit_local_for_anyaddress,
-             absl::optional<int> stun_keepalive_interval,
+             std::optional<int> stun_keepalive_interval,
              const webrtc::FieldTrialsView* field_trials = nullptr) {
     return Create({.network_thread = thread,
                    .socket_factory = factory,
@@ -75,7 +75,7 @@ class RTC_EXPORT UDPPort : public Port {
       uint16_t min_port,
       uint16_t max_port,
       bool emit_local_for_anyaddress,
-      absl::optional<int> stun_keepalive_interval) {
+      std::optional<int> stun_keepalive_interval) {
     // Using `new` to access a non-public constructor.
     auto port = absl::WrapUnique(
         new UDPPort(args, webrtc::IceCandidateType::kHost, min_port, max_port,
@@ -96,7 +96,7 @@ class RTC_EXPORT UDPPort : public Port {
              absl::string_view username,
              absl::string_view password,
              bool emit_local_for_anyaddress,
-             absl::optional<int> stun_keepalive_interval,
+             std::optional<int> stun_keepalive_interval,
              const webrtc::FieldTrialsView* field_trials = nullptr) {
     return Create({.network_thread = thread,
                    .socket_factory = factory,
@@ -133,9 +133,9 @@ class RTC_EXPORT UDPPort : public Port {
   bool SupportsProtocol(absl::string_view protocol) const override;
   ProtocolType GetProtocol() const override;
 
-  void GetStunStats(absl::optional<StunStats>* stats) override;
+  void GetStunStats(std::optional<StunStats>* stats) override;
 
-  void set_stun_keepalive_delay(const absl::optional<int>& delay);
+  void set_stun_keepalive_delay(const std::optional<int>& delay);
   int stun_keepalive_delay() const { return stun_keepalive_delay_; }
 
   // Visible for testing.
@@ -290,7 +290,7 @@ class StunPort : public UDPPort {
       uint16_t min_port,
       uint16_t max_port,
       const ServerAddresses& servers,
-      absl::optional<int> stun_keepalive_interval);
+      std::optional<int> stun_keepalive_interval);
   [[deprecated("Pass arguments using PortParametersRef")]] static std::
       unique_ptr<StunPort>
       Create(webrtc::TaskQueueBase* thread,
@@ -301,7 +301,7 @@ class StunPort : public UDPPort {
              absl::string_view username,
              absl::string_view password,
              const ServerAddresses& servers,
-             absl::optional<int> stun_keepalive_interval,
+             std::optional<int> stun_keepalive_interval,
              const webrtc::FieldTrialsView* field_trials);
   void PrepareAddress() override;
 

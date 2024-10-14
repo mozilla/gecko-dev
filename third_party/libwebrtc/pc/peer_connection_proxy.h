@@ -157,7 +157,7 @@ PROXY_METHOD0(IceConnectionState, ice_connection_state)
 PROXY_METHOD0(IceConnectionState, standardized_ice_connection_state)
 PROXY_METHOD0(PeerConnectionState, peer_connection_state)
 PROXY_METHOD0(IceGatheringState, ice_gathering_state)
-PROXY_METHOD0(absl::optional<bool>, can_trickle_ice_candidates)
+PROXY_METHOD0(std::optional<bool>, can_trickle_ice_candidates)
 PROXY_METHOD1(void, AddAdaptationResource, rtc::scoped_refptr<Resource>)
 PROXY_METHOD2(bool,
               StartRtcEventLog,

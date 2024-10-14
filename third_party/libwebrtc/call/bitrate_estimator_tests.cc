@@ -180,8 +180,8 @@ class BitrateEstimatorTest : public test::CallTest {
               &test->env().clock(),
               test::CreateSquareFrameGenerator(
                   test::VideoTestConstants::kDefaultWidth,
-                  test::VideoTestConstants::kDefaultHeight, absl::nullopt,
-                  absl::nullopt),
+                  test::VideoTestConstants::kDefaultHeight, std::nullopt,
+                  std::nullopt),
               test::VideoTestConstants::kDefaultFramerate,
               test->env().task_queue_factory());
       frame_generator_capturer_->Init();

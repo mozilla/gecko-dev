@@ -13,12 +13,12 @@
 #include <cstdint>
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/task_queue/task_queue_base.h"
 #include "net/dcsctp/public/dcsctp_message.h"
@@ -150,9 +150,9 @@ class MockDcSctpSocketCallbacks : public DcSctpSocketCallbacks {
     sent_packets_.pop_front();
     return ret;
   }
-  absl::optional<DcSctpMessage> ConsumeReceivedMessage() {
+  std::optional<DcSctpMessage> ConsumeReceivedMessage() {
     if (received_messages_.empty()) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     DcSctpMessage ret = std::move(received_messages_.front());
     received_messages_.pop_front();
@@ -162,7 +162,7 @@ class MockDcSctpSocketCallbacks : public DcSctpSocketCallbacks {
   void AdvanceTime(webrtc::TimeDelta duration) { now_ = now_ + duration; }
   void SetTime(webrtc::Timestamp now) { now_ = now; }
 
-  absl::optional<TimeoutID> GetNextExpiredTimeout() {
+  std::optional<TimeoutID> GetNextExpiredTimeout() {
     return timeout_manager_.GetNextExpiredTimeout();
   }
 

@@ -29,7 +29,6 @@ rtc_library("rtc_api_video_unittests") {
     "../..:scoped_refptr",
     "../../../test:frame_utils",
     "../../../test:test_support",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

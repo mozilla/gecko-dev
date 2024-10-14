@@ -249,7 +249,7 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
   RTPHeader rtp_header_;
   AudioFrame input_frame_;
 
-  absl::optional<SdpAudioFormat> audio_format_;
+  std::optional<SdpAudioFormat> audio_format_;
   int pac_size_ = -1;
 };
 

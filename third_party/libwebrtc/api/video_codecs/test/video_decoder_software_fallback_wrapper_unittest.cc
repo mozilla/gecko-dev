@@ -13,9 +13,9 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/video/encoded_image.h"
@@ -190,8 +190,8 @@ TEST_F(VideoDecoderSoftwareFallbackWrapperTest,
       return -1;
     }
     void Decoded(webrtc::VideoFrame& decodedImage,
-                 absl::optional<int32_t> decode_time_ms,
-                 absl::optional<uint8_t> qp) override {
+                 std::optional<int32_t> decode_time_ms,
+                 std::optional<uint8_t> qp) override {
       RTC_DCHECK_NOTREACHED();
     }
   } callback;

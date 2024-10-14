@@ -11,11 +11,11 @@
 #include "media/engine/webrtc_voice_engine.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/environment/environment.h"
@@ -468,7 +468,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     EXPECT_EQ(expected_bitrate, spec->target_bitrate_bps);
   }
 
-  absl::optional<int> GetCodecBitrate(int32_t ssrc) {
+  std::optional<int> GetCodecBitrate(int32_t ssrc) {
     return GetSendStreamConfig(ssrc).send_codec_spec->target_bitrate_bps;
   }
 
@@ -476,8 +476,7 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
     return GetSendStreamConfig(ssrc).max_bitrate_bps;
   }
 
-  const absl::optional<std::string>& GetAudioNetworkAdaptorConfig(
-      int32_t ssrc) {
+  const std::optional<std::string>& GetAudioNetworkAdaptorConfig(int32_t ssrc) {
     return GetSendStreamConfig(ssrc).audio_network_adaptor_config;
   }
 
@@ -1230,7 +1229,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetRtpParametersEncodingsActive) {
   // Now change it back to active and verify we resume sending.
   // This should occur even when other parameters are updated.
   parameters.encodings[0].active = true;
-  parameters.encodings[0].max_bitrate_bps = absl::optional<int>(6000);
+  parameters.encodings[0].max_bitrate_bps = std::optional<int>(6000);
   EXPECT_TRUE(send_channel_->SetRtpSendParameters(kSsrcX, parameters).ok());
   EXPECT_TRUE(GetSendStream(kSsrcX).IsSending());
 }
@@ -1408,7 +1407,7 @@ TEST_P(WebRtcVoiceEngineTestFake,
   // forced codec anymore.
   webrtc::RtpParameters new_params =
       send_channel_->GetRtpSendParameters(kSsrcX);
-  EXPECT_EQ(new_params.encodings[0].codec, absl::nullopt);
+  EXPECT_EQ(new_params.encodings[0].codec, std::nullopt);
 }
 
 // Test that max_bitrate_bps in send stream config gets updated correctly when
@@ -1590,7 +1589,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecs) {
   EXPECT_EQ(22000, send_codec_spec.target_bitrate_bps);
   EXPECT_STRCASEEQ("OPUS", send_codec_spec.format.name.c_str());
   EXPECT_NE(send_codec_spec.format.clockrate_hz, 8000);
-  EXPECT_EQ(absl::nullopt, send_codec_spec.cng_payload_type);
+  EXPECT_EQ(std::nullopt, send_codec_spec.cng_payload_type);
   EXPECT_FALSE(send_channel_->CanInsertDtmf());
 }
 
@@ -1620,7 +1619,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsRedNoFmtp) {
   const auto& send_codec_spec = *GetSendStreamConfig(kSsrcX).send_codec_spec;
   EXPECT_EQ(111, send_codec_spec.payload_type);
   EXPECT_STRCASEEQ("opus", send_codec_spec.format.name.c_str());
-  EXPECT_EQ(absl::nullopt, send_codec_spec.red_payload_type);
+  EXPECT_EQ(std::nullopt, send_codec_spec.red_payload_type);
 }
 
 // Test that we do not use Opus/Red by default.
@@ -1634,7 +1633,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsRedDefault) {
   const auto& send_codec_spec = *GetSendStreamConfig(kSsrcX).send_codec_spec;
   EXPECT_EQ(111, send_codec_spec.payload_type);
   EXPECT_STRCASEEQ("opus", send_codec_spec.format.name.c_str());
-  EXPECT_EQ(absl::nullopt, send_codec_spec.red_payload_type);
+  EXPECT_EQ(std::nullopt, send_codec_spec.red_payload_type);
 }
 
 // Test that the RED fmtp line must match the payload type.
@@ -1648,7 +1647,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsRedFmtpMismatch) {
   const auto& send_codec_spec = *GetSendStreamConfig(kSsrcX).send_codec_spec;
   EXPECT_EQ(111, send_codec_spec.payload_type);
   EXPECT_STRCASEEQ("opus", send_codec_spec.format.name.c_str());
-  EXPECT_EQ(absl::nullopt, send_codec_spec.red_payload_type);
+  EXPECT_EQ(std::nullopt, send_codec_spec.red_payload_type);
 }
 
 // Test that the RED fmtp line must show 2..32 payloads.
@@ -1662,7 +1661,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsRedFmtpAmountOfRedundancy) {
   const auto& send_codec_spec = *GetSendStreamConfig(kSsrcX).send_codec_spec;
   EXPECT_EQ(111, send_codec_spec.payload_type);
   EXPECT_STRCASEEQ("opus", send_codec_spec.format.name.c_str());
-  EXPECT_EQ(absl::nullopt, send_codec_spec.red_payload_type);
+  EXPECT_EQ(std::nullopt, send_codec_spec.red_payload_type);
   for (int i = 1; i < 32; i++) {
     parameters.codecs[0].params[""] += "/111";
     SetSenderParameters(parameters);
@@ -1676,7 +1675,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsRedFmtpAmountOfRedundancy) {
   const auto& send_codec_spec3 = *GetSendStreamConfig(kSsrcX).send_codec_spec;
   EXPECT_EQ(111, send_codec_spec3.payload_type);
   EXPECT_STRCASEEQ("opus", send_codec_spec3.format.name.c_str());
-  EXPECT_EQ(absl::nullopt, send_codec_spec3.red_payload_type);
+  EXPECT_EQ(std::nullopt, send_codec_spec3.red_payload_type);
 }
 
 // Test that WebRtcVoiceEngine reconfigures, rather than recreates its
@@ -1709,7 +1708,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecOpusBadClockrate) {
   parameters.codecs[0].bitrate = 0;
   parameters.codecs[0].clockrate = 50000;
   EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
-  EXPECT_EQ(send_channel_->GetSendCodec(), absl::nullopt);
+  EXPECT_EQ(send_channel_->GetSendCodec(), std::nullopt);
 }
 
 // Test that if channels=0 for opus, we do not have a send codec.
@@ -1720,7 +1719,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecOpusBad0ChannelsNoStereo) {
   parameters.codecs[0].bitrate = 0;
   parameters.codecs[0].channels = 0;
   EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
-  EXPECT_EQ(send_channel_->GetSendCodec(), absl::nullopt);
+  EXPECT_EQ(send_channel_->GetSendCodec(), std::nullopt);
 }
 
 // Test that if channels=0 for opus, we do not have a send codec.
@@ -1732,7 +1731,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecOpusBad0Channels1Stereo) {
   parameters.codecs[0].channels = 0;
   parameters.codecs[0].params["stereo"] = "1";
   EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
-  EXPECT_EQ(send_channel_->GetSendCodec(), absl::nullopt);
+  EXPECT_EQ(send_channel_->GetSendCodec(), std::nullopt);
 }
 
 // Test that if channel is 1 for opus and there's no stereo, we do not have a
@@ -1744,7 +1743,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecOpus1ChannelNoStereo) {
   parameters.codecs[0].bitrate = 0;
   parameters.codecs[0].channels = 1;
   EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
-  EXPECT_EQ(send_channel_->GetSendCodec(), absl::nullopt);
+  EXPECT_EQ(send_channel_->GetSendCodec(), std::nullopt);
 }
 
 // Test that if channel is 1 for opus and stereo=0, we do not have a send codec.
@@ -1756,7 +1755,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecOpusBad1Channel0Stereo) {
   parameters.codecs[0].channels = 1;
   parameters.codecs[0].params["stereo"] = "0";
   EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
-  EXPECT_EQ(send_channel_->GetSendCodec(), absl::nullopt);
+  EXPECT_EQ(send_channel_->GetSendCodec(), std::nullopt);
 }
 
 // Test that if channel is 1 for opus and stereo=1, we do not have a send codec.
@@ -1768,7 +1767,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecOpusBad1Channel1Stereo) {
   parameters.codecs[0].channels = 1;
   parameters.codecs[0].params["stereo"] = "1";
   EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
-  EXPECT_EQ(send_channel_->GetSendCodec(), absl::nullopt);
+  EXPECT_EQ(send_channel_->GetSendCodec(), std::nullopt);
 }
 
 // Test that with bitrate=0 and no stereo, bitrate is 32000.
@@ -2046,7 +2045,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsNoCodecs) {
   EXPECT_TRUE(SetupSendStream());
   cricket::AudioSenderParameter parameters;
   EXPECT_TRUE(send_channel_->SetSenderParameters(parameters));
-  EXPECT_EQ(send_channel_->GetSendCodec(), absl::nullopt);
+  EXPECT_EQ(send_channel_->GetSendCodec(), std::nullopt);
 }
 
 // Test that we can set send codecs even with telephone-event codec as the first
@@ -2178,7 +2177,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsCNNoMatch) {
   {
     const auto& send_codec_spec = *GetSendStreamConfig(kSsrcX).send_codec_spec;
     EXPECT_STRCASEEQ("PCMU", send_codec_spec.format.name.c_str());
-    EXPECT_EQ(absl::nullopt, send_codec_spec.cng_payload_type);
+    EXPECT_EQ(std::nullopt, send_codec_spec.cng_payload_type);
   }
   // Set PCMU(8K) and CN(8K). VAD should be activated.
   parameters.codecs[1] = kCn8000Codec;
@@ -2195,7 +2194,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsCNNoMatch) {
   {
     const auto& send_codec_spec = *GetSendStreamConfig(kSsrcX).send_codec_spec;
     EXPECT_STRCASEEQ("OPUS", send_codec_spec.format.name.c_str());
-    EXPECT_EQ(absl::nullopt, send_codec_spec.cng_payload_type);
+    EXPECT_EQ(std::nullopt, send_codec_spec.cng_payload_type);
   }
 }
 
@@ -2366,7 +2365,7 @@ TEST_P(WebRtcVoiceEngineTestFake, SetSendCodecsWithMultipleSendStreams) {
     const auto& send_codec_spec =
         *call_.GetAudioSendStream(ssrc)->GetConfig().send_codec_spec;
     EXPECT_STRCASEEQ("PCMU", send_codec_spec.format.name.c_str());
-    EXPECT_EQ(absl::nullopt, send_codec_spec.cng_payload_type);
+    EXPECT_EQ(std::nullopt, send_codec_spec.cng_payload_type);
   }
 }
 
@@ -2532,7 +2531,7 @@ TEST_P(WebRtcVoiceEngineTestFake, AudioSendResetAudioNetworkAdaptor) {
   cricket::AudioOptions options;
   options.audio_network_adaptor = false;
   SetAudioSend(kSsrcX, true, nullptr, &options);
-  EXPECT_EQ(absl::nullopt, GetAudioNetworkAdaptorConfig(kSsrcX));
+  EXPECT_EQ(std::nullopt, GetAudioNetworkAdaptorConfig(kSsrcX));
 }
 
 TEST_P(WebRtcVoiceEngineTestFake, AudioNetworkAdaptorNotGetOverridden) {
@@ -2544,7 +2543,7 @@ TEST_P(WebRtcVoiceEngineTestFake, AudioNetworkAdaptorNotGetOverridden) {
             GetAudioNetworkAdaptorConfig(kSsrcX));
   const int initial_num = call_.GetNumCreatedSendStreams();
   cricket::AudioOptions options;
-  options.audio_network_adaptor = absl::nullopt;
+  options.audio_network_adaptor = std::nullopt;
   // Unvalued `options.audio_network_adaptor` should not reset audio network
   // adaptor.
   SetAudioSend(kSsrcX, true, nullptr, &options);

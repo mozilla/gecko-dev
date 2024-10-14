@@ -17,12 +17,12 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/base/nullability.h"
-#include "absl/types/optional.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
@@ -423,8 +423,7 @@ void LinkEmulation::UpdateProcessSchedule() {
   if (process_task_.Running()) {
     process_task_.Stop();
   };
-  absl::optional<int64_t> next_time_us =
-      network_behavior_->NextDeliveryTimeUs();
+  std::optional<int64_t> next_time_us = network_behavior_->NextDeliveryTimeUs();
   if (!next_time_us)
     return;
   Timestamp current_time = clock_->CurrentTime();
@@ -436,7 +435,7 @@ void LinkEmulation::UpdateProcessSchedule() {
         RTC_DCHECK_RUN_ON(task_queue_);
         Timestamp current_time = clock_->CurrentTime();
         Process(current_time);
-        absl::optional<int64_t> next_time_us =
+        std::optional<int64_t> next_time_us =
             network_behavior_->NextDeliveryTimeUs();
         if (!next_time_us) {
           process_task_.Stop();
@@ -502,7 +501,7 @@ void NetworkRouterNode::SetDefaultReceiver(
 
 void NetworkRouterNode::RemoveDefaultReceiver() {
   RTC_DCHECK_RUN_ON(task_queue_);
-  default_receiver_ = absl::nullopt;
+  default_receiver_ = std::nullopt;
 }
 
 void NetworkRouterNode::SetWatcher(
@@ -636,19 +635,19 @@ void EmulatedEndpointImpl::SendPacket(const rtc::SocketAddress& from,
   });
 }
 
-absl::optional<uint16_t> EmulatedEndpointImpl::BindReceiver(
+std::optional<uint16_t> EmulatedEndpointImpl::BindReceiver(
     uint16_t desired_port,
     EmulatedNetworkReceiverInterface* receiver) {
   return BindReceiverInternal(desired_port, receiver, /*is_one_shot=*/false);
 }
 
-absl::optional<uint16_t> EmulatedEndpointImpl::BindOneShotReceiver(
+std::optional<uint16_t> EmulatedEndpointImpl::BindOneShotReceiver(
     uint16_t desired_port,
     EmulatedNetworkReceiverInterface* receiver) {
   return BindReceiverInternal(desired_port, receiver, /*is_one_shot=*/true);
 }
 
-absl::optional<uint16_t> EmulatedEndpointImpl::BindReceiverInternal(
+std::optional<uint16_t> EmulatedEndpointImpl::BindReceiverInternal(
     uint16_t desired_port,
     EmulatedNetworkReceiverInterface* receiver,
     bool is_one_shot) {
@@ -675,7 +674,7 @@ absl::optional<uint16_t> EmulatedEndpointImpl::BindReceiverInternal(
     RTC_LOG(LS_INFO) << "Can't bind receiver to used port " << desired_port
                      << " in endpoint " << options_.log_name
                      << "; id=" << options_.id;
-    return absl::nullopt;
+    return std::nullopt;
   }
   RTC_LOG(LS_INFO) << "New receiver is binded to endpoint " << options_.log_name
                    << "; id=" << options_.id << " on port " << port;
@@ -715,7 +714,7 @@ void EmulatedEndpointImpl::UnbindDefaultReceiver() {
   MutexLock lock(&receiver_lock_);
   RTC_LOG(LS_INFO) << "Default receiver is removed from endpoint "
                    << options_.log_name << "; id=" << options_.id;
-  default_receiver_ = absl::nullopt;
+  default_receiver_ = std::nullopt;
 }
 
 rtc::IPAddress EmulatedEndpointImpl::GetPeerLocalAddress() const {

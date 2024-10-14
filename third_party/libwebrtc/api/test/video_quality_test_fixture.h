@@ -15,10 +15,10 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/fec_controller.h"
 #include "api/media_types.h"
 #include "api/network_state_predictor.h"
@@ -74,7 +74,7 @@ class VideoQualityTestFixtureInterface {
       bool sync_video = false;
       bool dtx = false;
       bool use_real_adm = false;
-      absl::optional<std::string> ana_config;
+      std::optional<std::string> ana_config;
     } audio;
     struct Screenshare {
       bool enabled = false;
@@ -95,7 +95,7 @@ class VideoQualityTestFixtureInterface {
     // `sender_network` and `receiver_network` in InjectionComponents are
     // non-null. May be nullopt even if `sender_network` and `receiver_network`
     // are null; in that case, a default config will be used.
-    absl::optional<BuiltInNetworkBehaviorConfig> config;
+    std::optional<BuiltInNetworkBehaviorConfig> config;
     struct SS {                          // Spatial scalability.
       std::vector<VideoStream> streams;  // If empty, one stream is assumed.
       size_t selected_stream = 0;

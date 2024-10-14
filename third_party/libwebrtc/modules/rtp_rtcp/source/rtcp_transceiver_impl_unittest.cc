@@ -221,7 +221,7 @@ TEST_F(RtcpTransceiverImplTest, DelaysSendingFirstCompondPacket) {
   config.rtcp_transport = transport.AsStdFunction();
   config.initial_report_delay = TimeDelta::Millis(10);
   config.task_queue = queue.get();
-  absl::optional<RtcpTransceiverImpl> rtcp_transceiver;
+  std::optional<RtcpTransceiverImpl> rtcp_transceiver;
 
   Timestamp started = CurrentTime();
   queue->PostTask([&] { rtcp_transceiver.emplace(config); });
@@ -248,7 +248,7 @@ TEST_F(RtcpTransceiverImplTest, PeriodicallySendsPackets) {
   config.initial_report_delay = TimeDelta::Zero();
   config.report_period = kReportPeriod;
   config.task_queue = queue.get();
-  absl::optional<RtcpTransceiverImpl> rtcp_transceiver;
+  std::optional<RtcpTransceiverImpl> rtcp_transceiver;
   Timestamp time_just_before_1st_packet = Timestamp::MinusInfinity();
   queue->PostTask([&] {
     // Because initial_report_delay_ms is set to 0, time_just_before_the_packet
@@ -283,7 +283,7 @@ TEST_F(RtcpTransceiverImplTest, SendCompoundPacketDelaysPeriodicSendPackets) {
   config.initial_report_delay = TimeDelta::Zero();
   config.report_period = kReportPeriod;
   config.task_queue = queue.get();
-  absl::optional<RtcpTransceiverImpl> rtcp_transceiver;
+  std::optional<RtcpTransceiverImpl> rtcp_transceiver;
   queue->PostTask([&] { rtcp_transceiver.emplace(config); });
 
   // Wait for the first packet.
@@ -365,7 +365,7 @@ TEST_F(RtcpTransceiverImplTest, SendsPeriodicRtcpWhenNetworkStateIsUp) {
   config.initial_ready_to_send = false;
   config.rtcp_transport = transport.AsStdFunction();
   config.task_queue = queue.get();
-  absl::optional<RtcpTransceiverImpl> rtcp_transceiver;
+  std::optional<RtcpTransceiverImpl> rtcp_transceiver;
   rtcp_transceiver.emplace(config);
 
   queue->PostTask([&] { rtcp_transceiver->SetReadyToSend(true); });

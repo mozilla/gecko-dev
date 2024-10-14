@@ -14,11 +14,11 @@
 #include <array>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/base/attributes.h"
-#include "absl/types/optional.h"
 #include "modules/video_coding/packet_buffer.h"
 #include "rtc_base/numerics/sequence_number_unwrapper.h"
 

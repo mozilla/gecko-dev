@@ -180,7 +180,7 @@ PeerConnectionE2EQualityTest::PeerConnectionE2EQualityTest(
 void PeerConnectionE2EQualityTest::ExecuteAt(
     TimeDelta target_time_since_start,
     std::function<void(TimeDelta)> func) {
-  executor_->ScheduleActivity(target_time_since_start, absl::nullopt, func);
+  executor_->ScheduleActivity(target_time_since_start, std::nullopt, func);
 }
 
 void PeerConnectionE2EQualityTest::ExecuteEvery(
@@ -256,9 +256,9 @@ void PeerConnectionE2EQualityTest::Run(RunParams run_params) {
   // Audio streams are intercepted in AudioDeviceModule, so if it is required to
   // catch output of Alice's stream, Alice's output_dump_file_name should be
   // passed to Bob's TestPeer setup as audio output file name.
-  absl::optional<RemotePeerAudioConfig> alice_remote_audio_config =
+  std::optional<RemotePeerAudioConfig> alice_remote_audio_config =
       RemotePeerAudioConfig::Create(bob_configurer->params()->audio_config);
-  absl::optional<RemotePeerAudioConfig> bob_remote_audio_config =
+  std::optional<RemotePeerAudioConfig> bob_remote_audio_config =
       RemotePeerAudioConfig::Create(alice_configurer->params()->audio_config);
   // Copy Alice and Bob video configs, subscriptions and names to correctly pass
   // them into lambdas.

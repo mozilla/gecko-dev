@@ -320,7 +320,7 @@ TEST_F(NetEqImplTest, InsertPacket) {
         return mock_decoder;
       }));
   DecoderDatabase::DecoderInfo info(env, SdpAudioFormat("pcmu", 8000, 1),
-                                    absl::nullopt, mock_decoder_factory.get());
+                                    std::nullopt, mock_decoder_factory.get());
 
   // Expectations for decoder database.
   EXPECT_CALL(*mock_decoder_database_, GetDecoderInfo(kPayloadType))
@@ -532,10 +532,10 @@ TEST_F(NetEqImplTest, VerifyTimestampPropagation) {
   // The value of the last of the output samples is the same as the number of
   // samples played from the decoded packet. Thus, this number + the RTP
   // timestamp should match the playout timestamp.
-  // Wrap the expected value in an absl::optional to compare them as such.
+  // Wrap the expected value in an std::optional to compare them as such.
   EXPECT_EQ(
-      absl::optional<uint32_t>(rtp_header.timestamp +
-                               output.data()[output.samples_per_channel_ - 1]),
+      std::optional<uint32_t>(rtp_header.timestamp +
+                              output.data()[output.samples_per_channel_ - 1]),
       neteq_->GetPlayoutTimestamp());
 
   // Check the timestamp for the last value in the sync buffer. This should
@@ -1652,7 +1652,7 @@ TEST_F(NetEqImplTest, NoCrashWith1000Channels) {
         return dec;
       }));
   DecoderDatabase::DecoderInfo info(env, SdpAudioFormat("pcmu", 8000, 1),
-                                    absl::nullopt, mock_decoder_factory.get());
+                                    std::nullopt, mock_decoder_factory.get());
   // Expectations for decoder database.
   EXPECT_CALL(*mock_decoder_database_, GetDecoderInfo(kPayloadType))
       .WillRepeatedly(Return(&info));
@@ -1734,7 +1734,7 @@ TEST_F(NetEqImplTest, InsertPacketChangePayloadType) {
   header.timestamp = 1234;
   uint8_t payload[160] = {0};
 
-  absl::optional<NetEq::DecoderFormat> decoder =
+  std::optional<NetEq::DecoderFormat> decoder =
       neteq_->GetCurrentDecoderFormat();
   EXPECT_FALSE(decoder.has_value());
 

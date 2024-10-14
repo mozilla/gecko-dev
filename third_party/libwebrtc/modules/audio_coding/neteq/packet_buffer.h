@@ -11,7 +11,8 @@
 #ifndef MODULES_AUDIO_CODING_NETEQ_PACKET_BUFFER_H_
 #define MODULES_AUDIO_CODING_NETEQ_PACKET_BUFFER_H_
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "modules/audio_coding/neteq/decoder_database.h"
 #include "modules/audio_coding/neteq/packet.h"
 #include "modules/include/module_common_types_public.h"  // IsNewerTimestamp
@@ -78,7 +79,7 @@ class PacketBuffer {
 
   // Extracts the first packet in the buffer and returns it.
   // Returns an empty optional if the buffer is empty.
-  virtual absl::optional<Packet> GetNextPacket();
+  virtual std::optional<Packet> GetNextPacket();
 
   // Discards the first packet in the buffer. The packet is deleted.
   // Returns PacketBuffer::kBufferEmpty if the buffer is empty,

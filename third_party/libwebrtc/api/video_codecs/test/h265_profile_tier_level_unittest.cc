@@ -10,9 +10,9 @@
 
 #include "api/video_codecs/h265_profile_tier_level.h"
 
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/rtp_parameters.h"
 #include "api/video/resolution.h"
 #include "test/gtest.h"
@@ -109,7 +109,7 @@ TEST(H265ProfileTierLevel, TestStringToTier) {
 }
 
 TEST(H265ProfileTierLevel, TestParseSdpProfileTierLevelAllEmpty) {
-  const absl::optional<H265ProfileTierLevel> profile_tier_level =
+  const std::optional<H265ProfileTierLevel> profile_tier_level =
       ParseSdpForH265ProfileTierLevel(CodecParameterMap());
   EXPECT_TRUE(profile_tier_level);
   EXPECT_EQ(H265Profile::kProfileMain, profile_tier_level->profile);
@@ -121,7 +121,7 @@ TEST(H265ProfileTierLevel, TestParseSdpProfileTierLevelPartialEmpty) {
   CodecParameterMap params;
   params["profile-id"] = "1";
   params["tier-flag"] = "0";
-  absl::optional<H265ProfileTierLevel> profile_tier_level =
+  std::optional<H265ProfileTierLevel> profile_tier_level =
       ParseSdpForH265ProfileTierLevel(params);
   EXPECT_TRUE(profile_tier_level);
   EXPECT_EQ(H265Profile::kProfileMain, profile_tier_level->profile);
@@ -152,7 +152,7 @@ TEST(H265ProfileTierLevel, TestParseSdpProfileTierLevelInvalid) {
   params["profile-id"] = "1";
   params["tier-flag"] = "1";
   params["level-id"] = "93";
-  absl::optional<H265ProfileTierLevel> profile_tier_level =
+  std::optional<H265ProfileTierLevel> profile_tier_level =
       ParseSdpForH265ProfileTierLevel(params);
   EXPECT_FALSE(profile_tier_level);
   params.clear();
@@ -176,7 +176,7 @@ TEST(H265ProfileTierLevel, TestToStringRoundTrip) {
   params["profile-id"] = "1";
   params["tier-flag"] = "0";
   params["level-id"] = "93";
-  absl::optional<H265ProfileTierLevel> profile_tier_level =
+  std::optional<H265ProfileTierLevel> profile_tier_level =
       ParseSdpForH265ProfileTierLevel(params);
   EXPECT_TRUE(profile_tier_level);
   EXPECT_EQ("1", H265ProfileToString(profile_tier_level->profile));
@@ -288,12 +288,12 @@ TEST(H265ProfileTierLevel, TestGetSupportedH265Level) {
   // Test with 64x64 at 30fps
   r.width = 64;
   r.height = 64;
-  EXPECT_EQ(GetSupportedH265Level(r, 30), absl::nullopt);
+  EXPECT_EQ(GetSupportedH265Level(r, 30), std::nullopt);
 
   // Test with extremly large width or height at 15fps
   r.width = 16928;
   r.height = 64;
-  EXPECT_EQ(GetSupportedH265Level(r, 15), absl::nullopt);
+  EXPECT_EQ(GetSupportedH265Level(r, 15), std::nullopt);
 }
 
 }  // namespace webrtc

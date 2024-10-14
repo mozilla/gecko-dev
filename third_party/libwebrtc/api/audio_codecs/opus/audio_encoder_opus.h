@@ -12,9 +12,9 @@
 #define API_AUDIO_CODECS_OPUS_AUDIO_ENCODER_OPUS_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_encoder_factory.h"
 #include "api/audio_codecs/audio_format.h"
@@ -28,7 +28,7 @@ namespace webrtc {
 // CreateAudioEncoderFactory<...>().
 struct RTC_EXPORT AudioEncoderOpus {
   using Config = AudioEncoderOpusConfig;
-  static absl::optional<AudioEncoderOpusConfig> SdpToConfig(
+  static std::optional<AudioEncoderOpusConfig> SdpToConfig(
       const SdpAudioFormat& audio_format);
   static void AppendSupportedEncoders(std::vector<AudioCodecSpec>* specs);
   static AudioCodecInfo QueryAudioEncoder(const AudioEncoderOpusConfig& config);

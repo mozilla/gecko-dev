@@ -15,10 +15,10 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <optional>
 #include <utility>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/video/video_timing.h"
 #include "api/video_codecs/video_decoder.h"
 #include "modules/include/module_common_types_public.h"
@@ -73,15 +73,15 @@ int32_t VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage) {
 int32_t VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
                                          int64_t decode_time_ms) {
   Decoded(decodedImage,
-          decode_time_ms >= 0 ? absl::optional<int32_t>(decode_time_ms)
-                              : absl::nullopt,
-          absl::nullopt);
+          decode_time_ms >= 0 ? std::optional<int32_t>(decode_time_ms)
+                              : std::nullopt,
+          std::nullopt);
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
-std::pair<absl::optional<FrameInfo>, size_t>
+std::pair<std::optional<FrameInfo>, size_t>
 VCMDecodedFrameCallback::FindFrameInfo(uint32_t rtp_timestamp) {
-  absl::optional<FrameInfo> frame_info;
+  std::optional<FrameInfo> frame_info;
 
   auto it = absl::c_find_if(frame_infos_, [rtp_timestamp](const auto& entry) {
     return entry.rtp_timestamp == rtp_timestamp ||
@@ -100,15 +100,15 @@ VCMDecodedFrameCallback::FindFrameInfo(uint32_t rtp_timestamp) {
 }
 
 void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
-                                      absl::optional<int32_t> decode_time_ms,
-                                      absl::optional<uint8_t> qp) {
+                                      std::optional<int32_t> decode_time_ms,
+                                      std::optional<uint8_t> qp) {
   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
   TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
                        TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
                        decodedImage.rtp_timestamp());
   // TODO(holmer): We should improve this so that we can handle multiple
   // callbacks from one call to Decode().
-  absl::optional<FrameInfo> frame_info;
+  std::optional<FrameInfo> frame_info;
   int timestamp_map_size = 0;
   int dropped_frames = 0;
   {
@@ -300,8 +300,8 @@ int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
   frame_info.decode_start = now;
   frame_info.render_time =
       render_time_ms >= 0
-          ? absl::make_optional(Timestamp::Millis(render_time_ms))
-          : absl::nullopt;
+          ? std::make_optional(Timestamp::Millis(render_time_ms))
+          : std::nullopt;
   frame_info.rotation = frame.rotation();
   frame_info.timing = frame.video_timing();
   frame_info.ntp_time_ms = frame.ntp_time_ms_;

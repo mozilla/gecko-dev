@@ -16,13 +16,13 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/types/optional.h"
 #include "api/async_dns_resolver.h"
 #include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
@@ -233,7 +233,7 @@ class JsepTransportController : public sigslot::has_slots<> {
   std::unique_ptr<rtc::SSLCertChain> GetRemoteSSLCertChain(
       const std::string& mid) const;
   // Get negotiated role, if one has been negotiated.
-  absl::optional<rtc::SSLRole> GetDtlsRole(const std::string& mid) const;
+  std::optional<rtc::SSLRole> GetDtlsRole(const std::string& mid) const;
 
   // Suggest a payload type for a given codec on a given media section.
   // Media section is indicated by MID.
@@ -511,7 +511,7 @@ class JsepTransportController : public sigslot::has_slots<> {
   const Config config_;
   bool active_reset_srtp_params_ RTC_GUARDED_BY(network_thread_);
 
-  absl::optional<bool> initial_offerer_;
+  std::optional<bool> initial_offerer_;
 
   cricket::IceConfig ice_config_;
   cricket::IceRole ice_role_ = cricket::ICEROLE_CONTROLLING;

@@ -14,9 +14,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "api/field_trials_view.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/units/timestamp.h"
@@ -107,7 +107,7 @@ class RtpTransport : public RtpTransportInternal {
 
   // Overridden by SrtpTransport.
   virtual void OnNetworkRouteChanged(
-      absl::optional<rtc::NetworkRoute> network_route);
+      std::optional<rtc::NetworkRoute> network_route);
   virtual void OnRtpPacketReceived(const rtc::ReceivedPacket& packet);
   virtual void OnRtcpPacketReceived(const rtc::ReceivedPacket& packet);
   // Overridden by SrtpTransport and DtlsSrtpTransport.

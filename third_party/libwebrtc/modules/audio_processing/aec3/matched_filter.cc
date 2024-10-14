@@ -23,8 +23,8 @@
 #include <initializer_list>
 #include <iterator>
 #include <numeric>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "modules/audio_processing/aec3/downsampled_render_buffer.h"
 #include "modules/audio_processing/logging/apm_data_dumper.h"
@@ -647,8 +647,8 @@ void MatchedFilter::Reset(bool full_reset) {
     std::fill(f.begin(), f.end(), 0.f);
   }
 
-  winner_lag_ = absl::nullopt;
-  reported_lag_estimate_ = absl::nullopt;
+  winner_lag_ = std::nullopt;
+  reported_lag_estimate_ = std::nullopt;
   if (full_reset) {
     for (auto& e : accumulated_error_) {
       std::fill(e.begin(), e.end(), 1.0f);
@@ -677,10 +677,10 @@ void MatchedFilter::Update(const DownsampledRenderBuffer& render_buffer,
 
   // Apply all matched filters.
   float winner_error_sum = error_sum_anchor;
-  winner_lag_ = absl::nullopt;
-  reported_lag_estimate_ = absl::nullopt;
+  winner_lag_ = std::nullopt;
+  reported_lag_estimate_ = std::nullopt;
   size_t alignment_shift = 0;
-  absl::optional<size_t> previous_lag_estimate;
+  std::optional<size_t> previous_lag_estimate;
   const int num_filters = static_cast<int>(filters_.size());
   int winner_index = -1;
   for (int n = 0; n < num_filters; ++n) {

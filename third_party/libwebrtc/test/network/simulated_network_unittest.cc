@@ -37,7 +37,7 @@ PacketInFlightInfo PacketWithSize(size_t size) {
 
 TEST(SimulatedNetworkTest, NextDeliveryTimeIsUnknownOnEmptyNetwork) {
   SimulatedNetwork network = SimulatedNetwork({});
-  EXPECT_EQ(network.NextDeliveryTimeUs(), absl::nullopt);
+  EXPECT_EQ(network.NextDeliveryTimeUs(), std::nullopt);
 }
 
 TEST(SimulatedNetworkTest, EnqueueFirstPacketOnNetworkWithInfiniteCapacity) {
@@ -329,7 +329,7 @@ TEST(SimulatedNetworkTest, NetworkEmptyAfterLastPacketDequeued) {
   EXPECT_EQ(delivered_packets.size(), 1ul);
 
   // ... leaves the network empty.
-  EXPECT_EQ(network.NextDeliveryTimeUs(), absl::nullopt);
+  EXPECT_EQ(network.NextDeliveryTimeUs(), std::nullopt);
 }
 
 TEST(SimulatedNetworkTest, DequeueDeliverablePacketsOnLateCall) {

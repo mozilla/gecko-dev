@@ -94,7 +94,7 @@ RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
       ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       flexfec_ssrc_(config.fec_generator ? config.fec_generator->FecSsrc()
-                                         : absl::nullopt),
+                                         : std::nullopt),
       populate_network2_timestamp_(config.populate_network2_timestamp),
       clock_(config.clock),
       packet_history_(packet_history),
@@ -175,7 +175,7 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
     // This packet should be protected by FEC, add it to packet generator.
     RTC_DCHECK(fec_generator_);
     RTC_DCHECK(packet->packet_type() == RtpPacketMediaType::kVideo);
-    absl::optional<std::pair<FecProtectionParams, FecProtectionParams>>
+    std::optional<std::pair<FecProtectionParams, FecProtectionParams>>
         new_fec_params;
     new_fec_params.swap(pending_fec_params_);
     if (new_fec_params) {
@@ -275,7 +275,7 @@ void RtpSenderEgress::CompleteSendPacket(const Packet& compound_packet,
   // bit and will wrap. We should be able to use the 64bit value as id, but in
   // order to not change behaviour we use the 16bit extension value if it is
   // used.
-  absl::optional<uint16_t> packet_id =
+  std::optional<uint16_t> packet_id =
       packet->GetExtension<TransportSequenceNumber>();
   if (packet_id.has_value()) {
     options.packet_id = *packet_id;

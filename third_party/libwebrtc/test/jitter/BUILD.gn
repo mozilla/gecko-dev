@@ -24,7 +24,6 @@ rtc_library("delay_variation_calculator") {
     "../../api/video:video_frame_type",
     "../../rtc_base:logging",
     "../../rtc_base:rtc_numerics",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

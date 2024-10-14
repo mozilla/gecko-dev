@@ -30,7 +30,6 @@ rtc_library("file_wrapper") {
     "..:criticalsection",
     "..:safe_conversions",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

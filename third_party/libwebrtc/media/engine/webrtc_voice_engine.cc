@@ -17,6 +17,7 @@
 #include <initializer_list>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -26,7 +27,6 @@
 #include "absl/algorithm/container.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio/audio_frame.h"
 #include "api/audio/audio_frame_processor.h"
 #include "api/audio/audio_processing.h"
@@ -145,14 +145,14 @@ bool IsCodec(const Codec& codec, const char* ref_name) {
   return absl::EqualsIgnoreCase(codec.name, ref_name);
 }
 
-absl::optional<Codec> FindCodec(const std::vector<Codec>& codecs,
-                                const Codec& codec) {
+std::optional<Codec> FindCodec(const std::vector<Codec>& codecs,
+                               const Codec& codec) {
   for (const Codec& c : codecs) {
     if (c.Matches(codec)) {
       return c;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 bool VerifyUniquePayloadTypes(const std::vector<Codec>& codecs) {
@@ -166,7 +166,7 @@ bool VerifyUniquePayloadTypes(const std::vector<Codec>& codecs) {
   return absl::c_adjacent_find(payload_types) == payload_types.end();
 }
 
-absl::optional<std::string> GetAudioNetworkAdaptorConfig(
+std::optional<std::string> GetAudioNetworkAdaptorConfig(
     const AudioOptions& options) {
   if (options.audio_network_adaptor && *options.audio_network_adaptor &&
       options.audio_network_adaptor_config) {
@@ -174,7 +174,7 @@ absl::optional<std::string> GetAudioNetworkAdaptorConfig(
     // equals true and `options_.audio_network_adaptor_config` has a value.
     return options.audio_network_adaptor_config;
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 // Returns its smallest positive argument. If neither argument is positive,
@@ -191,9 +191,9 @@ int MinPositive(int a, int b) {
 
 // `max_send_bitrate_bps` is the bitrate from "b=" in SDP.
 // `rtp_max_bitrate_bps` is the bitrate from RtpSender::SetParameters.
-absl::optional<int> ComputeSendBitrate(int max_send_bitrate_bps,
-                                       absl::optional<int> rtp_max_bitrate_bps,
-                                       const webrtc::AudioCodecSpec& spec) {
+std::optional<int> ComputeSendBitrate(int max_send_bitrate_bps,
+                                      std::optional<int> rtp_max_bitrate_bps,
+                                      const webrtc::AudioCodecSpec& spec) {
   // If application-configured bitrate is set, take minimum of that and SDP
   // bitrate.
   const int bps = rtp_max_bitrate_bps
@@ -212,7 +212,7 @@ absl::optional<int> ComputeSendBitrate(int max_send_bitrate_bps,
                       << " bps"
                          ", requires at least "
                       << spec.info.min_bitrate_bps << " bps.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (spec.info.HasFixedBitrate()) {
@@ -235,7 +235,7 @@ struct AdaptivePtimeConfig {
   webrtc::DataRate min_encoder_bitrate = webrtc::DataRate::KilobitsPerSec(16);
   bool use_slow_adaptation = true;
 
-  absl::optional<std::string> audio_network_adaptor_config;
+  std::optional<std::string> audio_network_adaptor_config;
 
   std::unique_ptr<webrtc::StructParametersParser> Parser() {
     return webrtc::StructParametersParser::Create(    //
@@ -272,7 +272,7 @@ webrtc::AudioReceiveStreamInterface::Config BuildReceiveStreamConfig(
     webrtc::Transport* rtcp_send_transport,
     const rtc::scoped_refptr<webrtc::AudioDecoderFactory>& decoder_factory,
     const std::map<int, webrtc::SdpAudioFormat>& decoder_map,
-    absl::optional<webrtc::AudioCodecPairId> codec_pair_id,
+    std::optional<webrtc::AudioCodecPairId> codec_pair_id,
     size_t jitter_buffer_max_packets,
     bool jitter_buffer_fast_accelerate,
     int jitter_buffer_min_delay_ms,
@@ -686,7 +686,7 @@ void WebRtcVoiceEngine::StopAecDump() {
   }
 }
 
-absl::optional<webrtc::AudioDeviceModule::Stats>
+std::optional<webrtc::AudioDeviceModule::Stats>
 WebRtcVoiceEngine::GetAudioDeviceStats() {
   return adm()->GetStats();
 }
@@ -722,7 +722,7 @@ std::vector<Codec> WebRtcVoiceEngine::CollectCodecs(
 
   auto map_format = [&mapper](const webrtc::SdpAudioFormat& format,
                               std::vector<Codec>* out) {
-    absl::optional<Codec> opt_codec = mapper.ToAudioCodec(format);
+    std::optional<Codec> opt_codec = mapper.ToAudioCodec(format);
     if (opt_codec) {
       if (out) {
         out->push_back(*opt_codec);
@@ -737,7 +737,7 @@ std::vector<Codec> WebRtcVoiceEngine::CollectCodecs(
 
   for (const auto& spec : specs) {
     // We need to do some extra stuff before adding the main codecs to out.
-    absl::optional<Codec> opt_codec = map_format(spec.format, nullptr);
+    std::optional<Codec> opt_codec = map_format(spec.format, nullptr);
     if (opt_codec) {
       Codec& codec = *opt_codec;
       if (spec.info.supports_network_adaption) {
@@ -796,17 +796,17 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
       const std::string& mid,
       const std::string& c_name,
       const std::string track_id,
-      const absl::optional<webrtc::AudioSendStream::Config::SendCodecSpec>&
+      const std::optional<webrtc::AudioSendStream::Config::SendCodecSpec>&
           send_codec_spec,
       bool extmap_allow_mixed,
       const std::vector<webrtc::RtpExtension>& extensions,
       int max_send_bitrate_bps,
       int rtcp_report_interval_ms,
-      const absl::optional<std::string>& audio_network_adaptor_config,
+      const std::optional<std::string>& audio_network_adaptor_config,
       webrtc::Call* call,
       webrtc::Transport* send_transport,
       const rtc::scoped_refptr<webrtc::AudioEncoderFactory>& encoder_factory,
-      const absl::optional<webrtc::AudioCodecPairId> codec_pair_id,
+      const std::optional<webrtc::AudioCodecPairId> codec_pair_id,
       rtc::scoped_refptr<webrtc::FrameEncryptorInterface> frame_encryptor,
       const webrtc::CryptoOptions& crypto_options)
       : adaptive_ptime_config_(call->trials()),
@@ -899,7 +899,7 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
   }
 
   void SetAudioNetworkAdaptorConfig(
-      const absl::optional<std::string>& audio_network_adaptor_config) {
+      const std::optional<std::string>& audio_network_adaptor_config) {
     RTC_DCHECK_RUN_ON(&worker_thread_checker_);
     if (audio_network_adaptor_config_from_options_ ==
         audio_network_adaptor_config) {
@@ -1000,7 +1000,7 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
               int sample_rate,
               size_t number_of_channels,
               size_t number_of_frames,
-              absl::optional<int64_t> absolute_capture_timestamp_ms) override {
+              std::optional<int64_t> absolute_capture_timestamp_ms) override {
     TRACE_EVENT_BEGIN2("webrtc", "WebRtcAudioSendStream::OnData", "sample_rate",
                        sample_rate, "number_of_frames", number_of_frames);
     RTC_DCHECK_EQ(16, bits_per_sample);
@@ -1044,7 +1044,7 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
       return webrtc::InvokeSetParametersCallback(callback, error);
     }
 
-    absl::optional<int> send_rate;
+    std::optional<int> send_rate;
     if (audio_codec_spec_) {
       send_rate = ComputeSendBitrate(max_send_bitrate_bps_,
                                      parameters.encodings[0].max_bitrate_bps,
@@ -1055,7 +1055,7 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
       }
     }
 
-    const absl::optional<int> old_rtp_max_bitrate =
+    const std::optional<int> old_rtp_max_bitrate =
         rtp_parameters_.encodings[0].max_bitrate_bps;
     double old_priority = rtp_parameters_.encodings[0].bitrate_priority;
     webrtc::Priority old_dscp = rtp_parameters_.encodings[0].network_priority;
@@ -1207,10 +1207,10 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
   bool muted_ = false;
   int max_send_bitrate_bps_;
   webrtc::RtpParameters rtp_parameters_;
-  absl::optional<webrtc::AudioCodecSpec> audio_codec_spec_;
+  std::optional<webrtc::AudioCodecSpec> audio_codec_spec_;
   // TODO(webrtc:11717): Remove this once audio_network_adaptor in AudioOptions
   // has been removed.
-  absl::optional<std::string> audio_network_adaptor_config_from_options_;
+  std::optional<std::string> audio_network_adaptor_config_from_options_;
   std::atomic<int> num_encoded_channels_{-1};
 };
 
@@ -1254,7 +1254,7 @@ bool WebRtcVoiceSendChannel::SetOptions(const AudioOptions& options) {
   options_.SetAll(options);
   engine()->ApplyOptions(options_);
 
-  absl::optional<std::string> audio_network_adaptor_config =
+  std::optional<std::string> audio_network_adaptor_config =
       GetAudioNetworkAdaptorConfig(options_);
   for (auto& it : send_streams_) {
     it.second->SetAudioNetworkAdaptorConfig(audio_network_adaptor_config);
@@ -1275,7 +1275,7 @@ bool WebRtcVoiceSendChannel::SetSenderParameters(
   // all the information at once.
 
   // Finding if the RtpParameters force a specific codec
-  absl::optional<Codec> force_codec;
+  std::optional<Codec> force_codec;
   if (send_streams_.size() == 1) {
     // Since audio simulcast is not supported, currently, only PlanB
     // has multiple tracks and we don't care about getting the
@@ -1343,11 +1343,11 @@ bool WebRtcVoiceSendChannel::SetSenderParameters(
   return SetOptions(params.options);
 }
 
-absl::optional<Codec> WebRtcVoiceSendChannel::GetSendCodec() const {
+std::optional<Codec> WebRtcVoiceSendChannel::GetSendCodec() const {
   if (send_codec_spec_) {
     return CreateAudioCodec(send_codec_spec_->format);
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 // Utility function called from SetSenderParameters() to extract current send
@@ -1355,9 +1355,9 @@ absl::optional<Codec> WebRtcVoiceSendChannel::GetSendCodec() const {
 // and receive streams may be reconfigured based on the new settings.
 bool WebRtcVoiceSendChannel::SetSendCodecs(
     const std::vector<Codec>& codecs,
-    absl::optional<Codec> preferred_codec) {
+    std::optional<Codec> preferred_codec) {
   RTC_DCHECK_RUN_ON(worker_thread_);
-  dtmf_payload_type_ = absl::nullopt;
+  dtmf_payload_type_ = std::nullopt;
   dtmf_payload_freq_ = -1;
 
   // Validate supplied codecs list.
@@ -1387,10 +1387,9 @@ bool WebRtcVoiceSendChannel::SetSendCodecs(
   }
 
   // Scan through the list to figure out the codec to use for sending.
-  absl::optional<webrtc::AudioSendStream::Config::SendCodecSpec>
-      send_codec_spec;
+  std::optional<webrtc::AudioSendStream::Config::SendCodecSpec> send_codec_spec;
   webrtc::BitrateConstraints bitrate_config;
-  absl::optional<webrtc::AudioCodecInfo> voice_codec_info;
+  std::optional<webrtc::AudioCodecInfo> voice_codec_info;
   size_t send_codec_position = 0;
   for (const Codec& voice_codec : codecs) {
     if (!(IsCodec(voice_codec, kCnCodecName) ||
@@ -1554,7 +1553,7 @@ bool WebRtcVoiceSendChannel::AddSendStream(const StreamParams& sp) {
     return false;
   }
 
-  absl::optional<std::string> audio_network_adaptor_config =
+  std::optional<std::string> audio_network_adaptor_config =
       GetAudioNetworkAdaptorConfig(options_);
   WebRtcAudioSendStream* stream = new WebRtcAudioSendStream(
       ssrc, mid_, sp.cname, sp.id, send_codec_spec_, ExtmapAllowMixed(),
@@ -1878,7 +1877,7 @@ webrtc::RTCError WebRtcVoiceSendChannel::SetRtpSendParameters(
     }
     SetPreferredDscp(new_dscp);
 
-    absl::optional<cricket::Codec> send_codec = GetSendCodec();
+    std::optional<cricket::Codec> send_codec = GetSendCodec();
     // Since we validate that all layers have the same value, we can just check
     // the first layer.
     // TODO(orphis): Support mixed-codec simulcast
@@ -2168,7 +2167,7 @@ bool WebRtcVoiceReceiveChannel::SetRecvCodecs(
   for (const Codec& codec : codecs) {
     // Log a warning if a codec's payload type is changing. This used to be
     // treated as an error. It's abnormal, but not really illegal.
-    absl::optional<Codec> old_codec = FindCodec(recv_codecs_, codec);
+    std::optional<Codec> old_codec = FindCodec(recv_codecs_, codec);
     if (old_codec && old_codec->id != codec.id) {
       RTC_LOG(LS_WARNING) << codec.name << " mapped to a second payload type ("
                           << codec.id << ", was already mapped to "
@@ -2357,9 +2356,9 @@ void WebRtcVoiceReceiveChannel::ResetUnsignaledRecvStream() {
   }
 }
 
-absl::optional<uint32_t> WebRtcVoiceReceiveChannel::GetUnsignaledSsrc() const {
+std::optional<uint32_t> WebRtcVoiceReceiveChannel::GetUnsignaledSsrc() const {
   if (unsignaled_recv_ssrcs_.empty()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   // In the event of multiple unsignaled ssrcs, the last in the vector will be
   // the most recent one (the one forwarded to the MediaStreamTrack).
@@ -2447,7 +2446,7 @@ bool WebRtcVoiceReceiveChannel::SetBaseMinimumPlayoutDelayMs(uint32_t ssrc,
   return true;
 }
 
-absl::optional<int> WebRtcVoiceReceiveChannel::GetBaseMinimumPlayoutDelayMs(
+std::optional<int> WebRtcVoiceReceiveChannel::GetBaseMinimumPlayoutDelayMs(
     uint32_t ssrc) const {
   // SSRC of 0 represents the default receive stream.
   if (ssrc == 0) {
@@ -2459,7 +2458,7 @@ absl::optional<int> WebRtcVoiceReceiveChannel::GetBaseMinimumPlayoutDelayMs(
   if (it != recv_streams_.end()) {
     return it->second->GetBaseMinimumPlayoutDelayMs();
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void WebRtcVoiceReceiveChannel::SetFrameDecryptor(

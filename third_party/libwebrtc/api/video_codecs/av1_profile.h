@@ -11,9 +11,9 @@
 #ifndef API_VIDEO_CODECS_AV1_PROFILE_H_
 #define API_VIDEO_CODECS_AV1_PROFILE_H_
 
+#include <optional>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/rtp_parameters.h"
 #include "rtc_base/system/rtc_export.h"
 
@@ -34,13 +34,13 @@ RTC_EXPORT absl::string_view AV1ProfileToString(AV1Profile profile);
 
 // Helper function which converts a std::string to AV1Profile. Returns null if
 // |profile| is not a valid profile string.
-absl::optional<AV1Profile> StringToAV1Profile(absl::string_view profile);
+std::optional<AV1Profile> StringToAV1Profile(absl::string_view profile);
 
 // Parses an SDP key-value map of format parameters to retrive an AV1 profile.
 // Returns an AV1Profile if one has been specified, `kProfile0` if no profile is
 // specified and an empty value if the profile key is present but contains an
 // invalid value.
-RTC_EXPORT absl::optional<AV1Profile> ParseSdpForAV1Profile(
+RTC_EXPORT std::optional<AV1Profile> ParseSdpForAV1Profile(
     const CodecParameterMap& params);
 
 // Returns true if the parameters have the same AV1 profile or neither contains

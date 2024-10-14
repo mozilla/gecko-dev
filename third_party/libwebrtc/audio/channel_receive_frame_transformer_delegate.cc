@@ -12,10 +12,10 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtp_headers.h"
@@ -62,14 +62,14 @@ class TransformableIncomingAudioFrame
   Direction GetDirection() const override { return Direction::kReceiver; }
 
   std::string GetMimeType() const override { return codec_mime_type_; }
-  const absl::optional<uint16_t> SequenceNumber() const override {
+  const std::optional<uint16_t> SequenceNumber() const override {
     return header_.sequenceNumber;
   }
 
-  absl::optional<uint64_t> AbsoluteCaptureTimestamp() const override {
+  std::optional<uint64_t> AbsoluteCaptureTimestamp() const override {
     // This could be extracted from received header extensions + extrapolation,
     // if required in future, eg for being able to re-send received frames.
-    return absl::nullopt;
+    return std::nullopt;
   }
   const RTPHeader& Header() const { return header_; }
 
@@ -83,17 +83,17 @@ class TransformableIncomingAudioFrame
                : FrameType::kAudioFrameCN;
   }
 
-  absl::optional<uint8_t> AudioLevel() const override {
+  std::optional<uint8_t> AudioLevel() const override {
     if (header_.extension.audio_level()) {
       return header_.extension.audio_level()->level();
     }
-    return absl::nullopt;
+    return std::nullopt;
   }
 
-  absl::optional<Timestamp> ReceiveTime() const override {
+  std::optional<Timestamp> ReceiveTime() const override {
     return receive_time_ == Timestamp::MinusInfinity()
-               ? absl::nullopt
-               : absl::optional<Timestamp>(receive_time_);
+               ? std::nullopt
+               : std::optional<Timestamp>(receive_time_);
   }
 
  private:

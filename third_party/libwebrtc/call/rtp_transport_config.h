@@ -12,8 +12,8 @@
 #define CALL_RTP_TRANSPORT_CONFIG_H_
 
 #include <memory>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/network_state_predictor.h"
 #include "api/transport/bitrate_settings.h"
@@ -37,7 +37,7 @@ struct RtpTransportConfig {
   NetworkControllerFactoryInterface* network_controller_factory = nullptr;
 
   // The burst interval of the pacer, see TaskQueuePacedSender constructor.
-  absl::optional<TimeDelta> pacer_burst_interval;
+  std::optional<TimeDelta> pacer_burst_interval;
 };
 }  // namespace webrtc
 

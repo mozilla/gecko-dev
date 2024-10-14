@@ -14,13 +14,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
@@ -121,7 +121,7 @@ std::unique_ptr<SimpleEncoderWrapper> SimpleEncoderWrapper::Create(
     return nullptr;
   }
 
-  absl::optional<ScalabilityMode> sm =
+  std::optional<ScalabilityMode> sm =
       ScalabilityModeStringToEnum(scalability_mode);
   if (!sm) {
     return nullptr;

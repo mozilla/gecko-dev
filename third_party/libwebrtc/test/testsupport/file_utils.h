@@ -13,12 +13,12 @@
 #ifndef TEST_TESTSUPPORT_FILE_UTILS_H_
 #define TEST_TESTSUPPORT_FILE_UTILS_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 
 namespace webrtc {
 namespace test {
@@ -80,7 +80,7 @@ std::string WorkingDir();
 // of strings with one element for each found file or directory. Each element is
 // a path created by prepending `dir` to the file/directory name. "." and ".."
 // are never added in the returned vector.
-absl::optional<std::vector<std::string>> ReadDirectory(absl::string_view path);
+std::optional<std::vector<std::string>> ReadDirectory(absl::string_view path);
 
 // Creates a directory if it not already exists.
 // Returns true if successful. Will print an error message to stderr and return

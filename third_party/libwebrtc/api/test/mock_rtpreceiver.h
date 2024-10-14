@@ -11,10 +11,10 @@
 #ifndef API_TEST_MOCK_RTPRECEIVER_H_
 #define API_TEST_MOCK_RTPRECEIVER_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/media_stream_interface.h"
 #include "api/media_types.h"
@@ -47,7 +47,7 @@ class MockRtpReceiver : public rtc::RefCountedObject<RtpReceiverInterface> {
   MOCK_METHOD(void, SetObserver, (RtpReceiverObserverInterface*), (override));
   MOCK_METHOD(void,
               SetJitterBufferMinimumDelay,
-              (absl::optional<double>),
+              (std::optional<double>),
               (override));
   MOCK_METHOD(std::vector<RtpSource>, GetSources, (), (const, override));
   MOCK_METHOD(void,

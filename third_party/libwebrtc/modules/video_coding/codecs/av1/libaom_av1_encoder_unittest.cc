@@ -13,10 +13,10 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/test/create_frame_generator.h"
@@ -93,7 +93,7 @@ TEST(LibaomAv1EncoderTest, NoBitrateOnTopLayerRefecltedInActiveDecodeTargets) {
       EncodedVideoFrameProducer(*encoder).SetNumInputFrames(1).Encode();
   ASSERT_THAT(encoded_frames, SizeIs(1));
   ASSERT_NE(encoded_frames[0].codec_specific_info.generic_frame_info,
-            absl::nullopt);
+            std::nullopt);
   // Assuming L1T2 structure uses 1st decode target for T0 and 2nd decode target
   // for T0+T1 frames, expect only 1st decode target is active.
   EXPECT_EQ(encoded_frames[0]
@@ -477,7 +477,7 @@ TEST(LibaomAv1EncoderTest, DisableAutomaticResize) {
   EXPECT_EQ(encoder->InitEncode(&codec_settings, DefaultEncoderSettings()),
             WEBRTC_VIDEO_CODEC_OK);
   EXPECT_EQ(encoder->GetEncoderInfo().scaling_settings.thresholds,
-            absl::nullopt);
+            std::nullopt);
 }
 
 }  // namespace

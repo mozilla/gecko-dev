@@ -35,7 +35,6 @@ rtc_library("video_rtp_headers") {
     "../../rtc_base/system:rtc_export",
     "../units:data_rate",
     "../units:time_delta",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -75,7 +74,6 @@ rtc_library("video_frame") {
     "../../rtc_base/system:rtc_export",
     "../units:time_delta",
     "../units:timestamp",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/libyuv",
   ]
 }
@@ -121,7 +119,6 @@ rtc_source_set("recordable_encoded_frame") {
     "..:make_ref_counted",
     "..:scoped_refptr",
     "../units:timestamp",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -165,7 +162,6 @@ rtc_library("encoded_image") {
     "../../rtc_base:refcount",
     "../../rtc_base/system:rtc_export",
     "../units:timestamp",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -183,7 +179,6 @@ rtc_library("encoded_frame") {
     "../../modules/video_coding:codec_globals_headers",
     "../../modules/video_coding:video_codec_interface",
     "../units:timestamp",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
@@ -213,7 +208,6 @@ rtc_library("rtp_video_frame_assembler") {
     "../../rtc_base:rtc_numerics",
     "../transport/rtp:dependency_descriptor",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -235,7 +229,6 @@ rtc_library("rtp_video_frame_assembler_unittests") {
     "../../rtc_base:checks",
     "../../test:test_support",
     "../transport/rtp:dependency_descriptor",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -257,7 +250,6 @@ rtc_library("video_bitrate_allocation") {
     "../../rtc_base:safe_conversions",
     "../../rtc_base:stringutils",
     "../../rtc_base/system:rtc_export",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -343,7 +335,6 @@ rtc_source_set("video_frame_metadata") {
     "../../rtc_base/system:rtc_export",
     "../transport/rtp:dependency_descriptor",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
-    "//third_party/abseil-cpp/absl/types:optional",
     "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
@@ -386,7 +377,6 @@ rtc_library("frame_buffer") {
     "../../rtc_base:rtc_numerics",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -401,7 +391,6 @@ rtc_library("frame_buffer_unittest") {
     "../../test:field_trial",
     "../../test:scoped_key_value_config",
     "../../test:test_support",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

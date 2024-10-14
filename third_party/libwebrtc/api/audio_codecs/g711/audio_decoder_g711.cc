@@ -12,10 +12,10 @@
 
 #include <initializer_list>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -26,7 +26,7 @@
 
 namespace webrtc {
 
-absl::optional<AudioDecoderG711::Config> AudioDecoderG711::SdpToConfig(
+std::optional<AudioDecoderG711::Config> AudioDecoderG711::SdpToConfig(
     const SdpAudioFormat& format) {
   const bool is_pcmu = absl::EqualsIgnoreCase(format.name, "PCMU");
   const bool is_pcma = absl::EqualsIgnoreCase(format.name, "PCMA");
@@ -37,11 +37,11 @@ absl::optional<AudioDecoderG711::Config> AudioDecoderG711::SdpToConfig(
     config.num_channels = rtc::dchecked_cast<int>(format.num_channels);
     if (!config.IsOk()) {
       RTC_DCHECK_NOTREACHED();
-      return absl::nullopt;
+      return std::nullopt;
     }
     return config;
   } else {
-    return absl::nullopt;
+    return std::nullopt;
   }
 }
 
@@ -54,7 +54,7 @@ void AudioDecoderG711::AppendSupportedDecoders(
 
 std::unique_ptr<AudioDecoder> AudioDecoderG711::MakeAudioDecoder(
     const Config& config,
-    absl::optional<AudioCodecPairId> /*codec_pair_id*/,
+    std::optional<AudioCodecPairId> /*codec_pair_id*/,
     const FieldTrialsView* field_trials) {
   if (!config.IsOk()) {
     RTC_DCHECK_NOTREACHED();

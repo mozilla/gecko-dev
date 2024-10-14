@@ -328,7 +328,7 @@ bool H264DecoderImpl::Configure(const Settings& settings) {
 
   av_frame_.reset(av_frame_alloc());
 
-  if (absl::optional<int> buffer_pool_size = settings.buffer_pool_size()) {
+  if (std::optional<int> buffer_pool_size = settings.buffer_pool_size()) {
     if (!ffmpeg_buffer_pool_.Resize(*buffer_pool_size)) {
       return false;
     }
@@ -399,7 +399,7 @@ int32_t H264DecoderImpl::Decode(const EncodedImage& input_image,
 
   // TODO(sakal): Maybe it is possible to get QP directly from FFmpeg.
   h264_bitstream_parser_.ParseBitstream(input_image);
-  absl::optional<int> qp = h264_bitstream_parser_.GetLastSliceQp();
+  std::optional<int> qp = h264_bitstream_parser_.GetLastSliceQp();
 
   // Obtain the `video_frame` containing the decoded image.
   VideoFrame* input_frame =
@@ -617,7 +617,7 @@ int32_t H264DecoderImpl::Decode(const EncodedImage& input_image,
   // Return decoded frame.
   // TODO(nisse): Timestamp and rotation are all zero here. Change decoder
   // interface to pass a VideoFrameBuffer instead of a VideoFrame?
-  decoded_image_callback_->Decoded(decoded_frame, absl::nullopt, qp);
+  decoded_image_callback_->Decoded(decoded_frame, std::nullopt, qp);
 
   // Stop referencing it, possibly freeing `input_frame`.
   av_frame_unref(av_frame_.get());

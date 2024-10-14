@@ -12,6 +12,7 @@
 
 #include <stddef.h>
 
+#include <optional>
 #include <queue>
 #include <string>
 #include <type_traits>
@@ -19,7 +20,6 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/jsep.h"
 #include "api/jsep_session_description.h"
 #include "api/rtc_error.h"
@@ -163,7 +163,7 @@ WebRtcSessionDescriptionFactory::WebRtcSessionDescriptionFactory(
       << key_params.type() << ").";
 
   // Request certificate. This happens asynchronously on a different thread.
-  cert_generator_->GenerateCertificateAsync(key_params, absl::nullopt,
+  cert_generator_->GenerateCertificateAsync(key_params, std::nullopt,
                                             std::move(callback));
 }
 
@@ -318,7 +318,7 @@ void WebRtcSessionDescriptionFactory::InternalCreateAnswer(
           sdp_info_->IceRestartPending(options.mid);
       // We should pass the current DTLS role to the transport description
       // factory, if there is already an existing ongoing session.
-      absl::optional<rtc::SSLRole> dtls_role =
+      std::optional<rtc::SSLRole> dtls_role =
           sdp_info_->GetDtlsRole(options.mid);
       if (dtls_role) {
         options.transport_options.prefer_passive_role =

@@ -77,7 +77,7 @@ class MostlyMockVoiceEngineInterface : public VoiceEngineInterface {
               (webrtc::FileWrapper file, int64_t max_size_bytes),
               (override));
   MOCK_METHOD(void, StopAecDump, (), (override));
-  MOCK_METHOD(absl::optional<webrtc::AudioDeviceModule::Stats>,
+  MOCK_METHOD(std::optional<webrtc::AudioDeviceModule::Stats>,
               GetAudioDeviceStats,
               (),
               (override));

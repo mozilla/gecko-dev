@@ -1044,12 +1044,12 @@ std::unique_ptr<MouseCursor> SharedScreenCastStream::CaptureCursor() {
   return private_->CaptureCursor();
 }
 
-absl::optional<DesktopVector> SharedScreenCastStream::CaptureCursorPosition() {
+std::optional<DesktopVector> SharedScreenCastStream::CaptureCursorPosition() {
   DesktopVector position = private_->CaptureCursorPosition();
 
   // Consider only (x >= 0 and y >= 0) a valid position
   if (position.x() < 0 || position.y() < 0) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   return position;

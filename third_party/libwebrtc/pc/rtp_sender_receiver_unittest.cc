@@ -13,12 +13,12 @@
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_options.h"
 #include "api/crypto/crypto_options.h"
@@ -491,7 +491,7 @@ class RtpSenderReceiverTest
       RtpReceiverInterface* receiver,
       uint32_t ssrc) {
     receiver->SetJitterBufferMinimumDelay(/*delay_seconds=*/0.5);
-    absl::optional<int> delay_ms =
+    std::optional<int> delay_ms =
         media_channel->GetBaseMinimumPlayoutDelayMs(ssrc);  // In milliseconds.
     EXPECT_DOUBLE_EQ(0.5, delay_ms.value_or(0) / 1000.0);
   }
@@ -888,7 +888,7 @@ TEST_F(RtpSenderReceiverTest, AudioSenderCanSetParametersAsync) {
 
   RtpParameters params = audio_rtp_sender_->GetParameters();
   EXPECT_EQ(1u, params.encodings.size());
-  absl::optional<RTCError> result;
+  std::optional<RTCError> result;
   audio_rtp_sender_->SetParametersAsync(
       params, [&result](RTCError error) { result = error; });
   run_loop_.Flush();
@@ -918,7 +918,7 @@ TEST_F(RtpSenderReceiverTest,
   audio_rtp_sender_ =
       AudioRtpSender::Create(worker_thread_, /*id=*/"", nullptr, nullptr);
 
-  absl::optional<RTCError> result;
+  std::optional<RTCError> result;
   RtpParameters params = audio_rtp_sender_->GetParameters();
   ASSERT_EQ(1u, params.encodings.size());
   params.encodings[0].max_bitrate_bps = 90000;
@@ -1016,7 +1016,7 @@ TEST_F(RtpSenderReceiverTest,
 
   RtpParameters params = audio_rtp_sender_->GetParameters();
   EXPECT_EQ(1u, params.encodings.size());
-  absl::optional<RTCError> result;
+  std::optional<RTCError> result;
   audio_rtp_sender_->SetParametersAsync(
       params, [&result](RTCError error) { result = error; });
   run_loop_.Flush();
@@ -1139,7 +1139,7 @@ TEST_F(RtpSenderReceiverTest, VideoSenderCanSetParametersAsync) {
 
   RtpParameters params = video_rtp_sender_->GetParameters();
   EXPECT_EQ(1u, params.encodings.size());
-  absl::optional<RTCError> result;
+  std::optional<RTCError> result;
   video_rtp_sender_->SetParametersAsync(
       params, [&result](RTCError error) { result = error; });
   run_loop_.Flush();
@@ -1169,7 +1169,7 @@ TEST_F(RtpSenderReceiverTest,
   video_rtp_sender_ =
       VideoRtpSender::Create(worker_thread_, /*id=*/"", nullptr);
 
-  absl::optional<RTCError> result;
+  std::optional<RTCError> result;
   RtpParameters params = video_rtp_sender_->GetParameters();
   ASSERT_EQ(1u, params.encodings.size());
   params.encodings[0].max_bitrate_bps = 90000;
@@ -1349,7 +1349,7 @@ TEST_F(RtpSenderReceiverTest,
 
   RtpParameters params = video_rtp_sender_->GetParameters();
   EXPECT_EQ(1u, params.encodings.size());
-  absl::optional<RTCError> result;
+  std::optional<RTCError> result;
   video_rtp_sender_->SetParametersAsync(
       params, [&result](RTCError error) { result = error; });
   run_loop_.Flush();
@@ -1723,7 +1723,7 @@ TEST_F(RtpSenderReceiverTest,
   video_track_->set_enabled(true);
 
   // Sender is not ready to send (no SSRC) so no option should have been set.
-  EXPECT_EQ(absl::nullopt, video_media_send_channel()->options().is_screencast);
+  EXPECT_EQ(std::nullopt, video_media_send_channel()->options().is_screencast);
 
   // Verify that the content hint is accounted for when video_rtp_sender_ does
   // get enabled.

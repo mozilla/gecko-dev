@@ -98,7 +98,7 @@ void NackTracker::UpdateLastReceivedPacket(uint16_t sequence_number,
   LimitNackListSize();
 }
 
-absl::optional<int> NackTracker::GetSamplesPerPacket(
+std::optional<int> NackTracker::GetSamplesPerPacket(
     uint16_t sequence_number_current_received_rtp,
     uint32_t timestamp_current_received_rtp) const {
   uint32_t timestamp_increase =
@@ -110,7 +110,7 @@ absl::optional<int> NackTracker::GetSamplesPerPacket(
   if (samples_per_packet == 0 ||
       samples_per_packet > kMaxPacketSizeMs * sample_rate_khz_) {
     // Not a valid samples per packet.
-    return absl::nullopt;
+    return std::nullopt;
   }
   return samples_per_packet;
 }
@@ -125,7 +125,7 @@ void NackTracker::UpdateList(uint16_t sequence_number_current_received_rtp,
              IsNewerSequenceNumber(sequence_number_current_received_rtp,
                                    sequence_num_last_decoded_rtp_));
 
-  absl::optional<int> samples_per_packet = GetSamplesPerPacket(
+  std::optional<int> samples_per_packet = GetSamplesPerPacket(
       sequence_number_current_received_rtp, timestamp_current_received_rtp);
   if (!samples_per_packet) {
     return;

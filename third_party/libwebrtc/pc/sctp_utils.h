@@ -64,10 +64,10 @@ bool ParseDataChannelOpenAckMessage(const rtc::CopyOnWriteBuffer& payload);
 
 bool WriteDataChannelOpenMessage(const std::string& label,
                                  const std::string& protocol,
-                                 absl::optional<PriorityValue> priority,
+                                 std::optional<PriorityValue> priority,
                                  bool ordered,
-                                 absl::optional<int> max_retransmits,
-                                 absl::optional<int> max_retransmit_time,
+                                 std::optional<int> max_retransmits,
+                                 std::optional<int> max_retransmit_time,
                                  rtc::CopyOnWriteBuffer* payload);
 bool WriteDataChannelOpenMessage(const std::string& label,
                                  const DataChannelInit& config,

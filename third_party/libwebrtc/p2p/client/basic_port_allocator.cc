@@ -494,7 +494,7 @@ void BasicPortAllocatorSession::GetCandidateStatsFromReadyPorts(
   for (auto* port : ports) {
     auto candidates = port->Candidates();
     for (const auto& candidate : candidates) {
-      absl::optional<StunStats> stun_stats;
+      std::optional<StunStats> stun_stats;
       port->GetStunStats(&stun_stats);
       CandidateStats candidate_stats(allocator_->SanitizeCandidate(candidate),
                                      std::move(stun_stats));
@@ -504,7 +504,7 @@ void BasicPortAllocatorSession::GetCandidateStatsFromReadyPorts(
 }
 
 void BasicPortAllocatorSession::SetStunKeepaliveIntervalForReadyPorts(
-    const absl::optional<int>& stun_keepalive_interval) {
+    const std::optional<int>& stun_keepalive_interval) {
   RTC_DCHECK_RUN_ON(network_thread_);
   auto ports = ReadyPorts();
   for (PortInterface* port : ports) {

@@ -13,8 +13,8 @@
 #define API_TRANSPORT_DATA_CHANNEL_TRANSPORT_INTERFACE_H_
 
 #include <cstddef>
+#include <optional>
 
-#include "absl/types/optional.h"
 #include "api/priority.h"
 #include "api/rtc_error.h"
 #include "rtc_base/copy_on_write_buffer.h"
@@ -49,14 +49,14 @@ struct SendDataParams {
   // Setting this value to zero disables retransmission.
   // Valid values are in the range [0-UINT16_MAX].
   // `max_rtx_count` and `max_rtx_ms` may not be set simultaneously.
-  absl::optional<int> max_rtx_count;
+  std::optional<int> max_rtx_count;
 
   // If set, the maximum number of milliseconds for which the transport
   // may retransmit this message before it is dropped.
   // Setting this value to zero disables retransmission.
   // Valid values are in the range [0-UINT16_MAX].
   // `max_rtx_count` and `max_rtx_ms` may not be set simultaneously.
-  absl::optional<int> max_rtx_ms;
+  std::optional<int> max_rtx_ms;
 };
 
 // Sink for callbacks related to a data channel.

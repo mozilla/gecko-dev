@@ -15,10 +15,10 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -45,7 +45,7 @@ class AudioEncoderMultiChannelOpusImpl final : public AudioEncoder {
 
   // Static interface for use by BuiltinAudioEncoderFactory.
   static constexpr const char* GetPayloadName() { return "multiopus"; }
-  static absl::optional<AudioCodecInfo> QueryAudioEncoder(
+  static std::optional<AudioCodecInfo> QueryAudioEncoder(
       const SdpAudioFormat& format);
 
   int SampleRateHz() const override;
@@ -55,7 +55,7 @@ class AudioEncoderMultiChannelOpusImpl final : public AudioEncoder {
   int GetTargetBitrate() const override;
 
   void Reset() override;
-  absl::optional<std::pair<TimeDelta, TimeDelta>> GetFrameLengthRange()
+  std::optional<std::pair<TimeDelta, TimeDelta>> GetFrameLengthRange()
       const override;
 
  protected:
@@ -64,7 +64,7 @@ class AudioEncoderMultiChannelOpusImpl final : public AudioEncoder {
                          rtc::Buffer* encoded) override;
 
  private:
-  static absl::optional<AudioEncoderMultiChannelOpusConfig> SdpToConfig(
+  static std::optional<AudioEncoderMultiChannelOpusConfig> SdpToConfig(
       const SdpAudioFormat& format);
   static AudioCodecInfo QueryAudioEncoder(
       const AudioEncoderMultiChannelOpusConfig& config);

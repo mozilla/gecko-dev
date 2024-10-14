@@ -16,11 +16,11 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/candidate.h"
 #include "api/dtls_transport_interface.h"
@@ -366,7 +366,7 @@ void EncodeRtcpPacket(rtc::ArrayView<const EventType*> batch,
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms
@@ -417,7 +417,7 @@ void RtcEventLogEncoderNewFormat::EncodeRtpPacket(const Batch& batch,
   proto_batch->set_padding_size(base_event->padding_length());
 
   // Add header extensions (base event).
-  absl::optional<uint64_t> base_transport_sequence_number;
+  std::optional<uint64_t> base_transport_sequence_number;
   {
     uint16_t seqnum;
     if (base_event->template GetExtension<TransportSequenceNumber>(&seqnum)) {
@@ -426,7 +426,7 @@ void RtcEventLogEncoderNewFormat::EncodeRtpPacket(const Batch& batch,
     }
   }
 
-  absl::optional<uint64_t> unsigned_base_transmission_time_offset;
+  std::optional<uint64_t> unsigned_base_transmission_time_offset;
   {
     int32_t offset;
     if (base_event->template GetExtension<TransmissionOffset>(&offset)) {
@@ -435,7 +435,7 @@ void RtcEventLogEncoderNewFormat::EncodeRtpPacket(const Batch& batch,
     }
   }
 
-  absl::optional<uint64_t> base_absolute_send_time;
+  std::optional<uint64_t> base_absolute_send_time;
   {
     uint32_t sendtime;
     if (base_event->template GetExtension<AbsoluteSendTime>(&sendtime)) {
@@ -444,7 +444,7 @@ void RtcEventLogEncoderNewFormat::EncodeRtpPacket(const Batch& batch,
     }
   }
 
-  absl::optional<uint64_t> base_video_rotation;
+  std::optional<uint64_t> base_video_rotation;
   {
     VideoRotation video_rotation;
     if (base_event->template GetExtension<VideoOrientation>(&video_rotation)) {
@@ -454,8 +454,8 @@ void RtcEventLogEncoderNewFormat::EncodeRtpPacket(const Batch& batch,
     }
   }
 
-  absl::optional<uint64_t> base_audio_level;
-  absl::optional<uint64_t> base_voice_activity;
+  std::optional<uint64_t> base_audio_level;
+  std::optional<uint64_t> base_voice_activity;
   {
     AudioLevel audio_level;
     if (base_event->template GetExtension<AudioLevelExtension>(&audio_level)) {
@@ -496,7 +496,7 @@ void RtcEventLogEncoderNewFormat::EncodeRtpPacket(const Batch& batch,
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms (event)
@@ -998,7 +998,7 @@ void RtcEventLogEncoderNewFormat::EncodeAudioNetworkAdaptation(
     proto_batch->set_frame_length_ms(
         base_event->config().frame_length_ms.value());
   }
-  absl::optional<uint64_t> base_uplink_packet_loss_fraction;
+  std::optional<uint64_t> base_uplink_packet_loss_fraction;
   if (base_event->config().uplink_packet_loss_fraction.has_value()) {
     base_uplink_packet_loss_fraction = ConvertPacketLossFractionToProtoFormat(
         base_event->config().uplink_packet_loss_fraction.value());
@@ -1020,7 +1020,7 @@ void RtcEventLogEncoderNewFormat::EncodeAudioNetworkAdaptation(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms
@@ -1042,10 +1042,10 @@ void RtcEventLogEncoderNewFormat::EncodeAudioNetworkAdaptation(
       values[i].reset();
     }
   }
-  const absl::optional<uint64_t> unsigned_base_bitrate_bps =
+  const std::optional<uint64_t> unsigned_base_bitrate_bps =
       base_event->config().bitrate_bps.has_value()
           ? ToUnsigned(base_event->config().bitrate_bps.value())
-          : absl::optional<uint64_t>();
+          : std::optional<uint64_t>();
   encoded_deltas = EncodeDeltas(unsigned_base_bitrate_bps, values);
   if (!encoded_deltas.empty()) {
     proto_batch->set_bitrate_bps_deltas(encoded_deltas);
@@ -1060,10 +1060,10 @@ void RtcEventLogEncoderNewFormat::EncodeAudioNetworkAdaptation(
       values[i].reset();
     }
   }
-  const absl::optional<uint64_t> unsigned_base_frame_length_ms =
+  const std::optional<uint64_t> unsigned_base_frame_length_ms =
       base_event->config().frame_length_ms.has_value()
           ? ToUnsigned(base_event->config().frame_length_ms.value())
-          : absl::optional<uint64_t>();
+          : std::optional<uint64_t>();
   encoded_deltas = EncodeDeltas(unsigned_base_frame_length_ms, values);
   if (!encoded_deltas.empty()) {
     proto_batch->set_frame_length_ms_deltas(encoded_deltas);
@@ -1107,7 +1107,7 @@ void RtcEventLogEncoderNewFormat::EncodeAudioNetworkAdaptation(
   // num_channels
   for (size_t i = 0; i < values.size(); ++i) {
     const RtcEventAudioNetworkAdaptation* event = batch[i + 1];
-    const absl::optional<size_t> num_channels = event->config().num_channels;
+    const std::optional<size_t> num_channels = event->config().num_channels;
     if (num_channels.has_value()) {
       // Since the number of channels is always greater than 0, we can encode
       // N channels as N-1, thereby making sure that we get smaller deltas.
@@ -1122,7 +1122,7 @@ void RtcEventLogEncoderNewFormat::EncodeAudioNetworkAdaptation(
   }
   // In the base event, N channels encoded as N channels, but for delta
   // compression purposes, also shifted down by 1.
-  absl::optional<size_t> shifted_base_num_channels;
+  std::optional<size_t> shifted_base_num_channels;
   if (base_event->config().num_channels.has_value()) {
     RTC_DCHECK_GT(base_event->config().num_channels.value(), 0u);
     shifted_base_num_channels = base_event->config().num_channels.value() - 1;
@@ -1151,7 +1151,7 @@ void RtcEventLogEncoderNewFormat::EncodeAudioPlayout(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms
@@ -1198,7 +1198,7 @@ void RtcEventLogEncoderNewFormat::EncodeNetEqSetMinimumDelay(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms
@@ -1290,7 +1290,7 @@ void RtcEventLogEncoderNewFormat::EncodeBweUpdateDelayBased(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms
@@ -1347,7 +1347,7 @@ void RtcEventLogEncoderNewFormat::EncodeBweUpdateLossBased(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms
@@ -1478,13 +1478,13 @@ void RtcEventLogEncoderNewFormat::EncodeRemoteEstimate(
 
   proto_batch->set_timestamp_ms(base_event->timestamp_ms());
 
-  absl::optional<uint64_t> base_link_capacity_lower;
+  std::optional<uint64_t> base_link_capacity_lower;
   if (base_event->link_capacity_lower_.IsFinite()) {
     base_link_capacity_lower =
         base_event->link_capacity_lower_.kbps<uint32_t>();
     proto_batch->set_link_capacity_lower_kbps(*base_link_capacity_lower);
   }
-  absl::optional<uint64_t> base_link_capacity_upper;
+  std::optional<uint64_t> base_link_capacity_upper;
   if (base_event->link_capacity_upper_.IsFinite()) {
     base_link_capacity_upper =
         base_event->link_capacity_upper_.kbps<uint32_t>();
@@ -1496,7 +1496,7 @@ void RtcEventLogEncoderNewFormat::EncodeRemoteEstimate(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms
@@ -1589,7 +1589,7 @@ void RtcEventLogEncoderNewFormat::EncodeFramesDecoded(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   // timestamp_ms
@@ -1682,7 +1682,7 @@ void RtcEventLogEncoderNewFormat::EncodeGenericPacketsSent(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   if (batch.size() == 1) {
@@ -1756,7 +1756,7 @@ void RtcEventLogEncoderNewFormat::EncodeGenericPacketsReceived(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   if (batch.size() == 1) {
@@ -1807,7 +1807,7 @@ void RtcEventLogEncoderNewFormat::EncodeGenericAcksReceived(
   proto_batch->set_timestamp_ms(base_event->timestamp_ms());
   proto_batch->set_packet_number(base_event->packet_number());
   proto_batch->set_acked_packet_number(base_event->acked_packet_number());
-  absl::optional<uint64_t> base_receive_timestamp;
+  std::optional<uint64_t> base_receive_timestamp;
   if (base_event->receive_acked_packet_time_ms()) {
     int64_t receive_acked_packet_time_ms =
         base_event->receive_acked_packet_time_ms().value();
@@ -1817,7 +1817,7 @@ void RtcEventLogEncoderNewFormat::EncodeGenericAcksReceived(
 
   // Delta encoding
   proto_batch->set_number_of_deltas(batch.size() - 1);
-  std::vector<absl::optional<uint64_t>> values(batch.size() - 1);
+  std::vector<std::optional<uint64_t>> values(batch.size() - 1);
   std::string encoded_deltas;
 
   if (batch.size() == 1) {
@@ -1862,7 +1862,7 @@ void RtcEventLogEncoderNewFormat::EncodeGenericAcksReceived(
     if (event->receive_acked_packet_time_ms()) {
       values[i] = ToUnsigned(event->receive_acked_packet_time_ms().value());
     } else {
-      values[i] = absl::nullopt;
+      values[i] = std::nullopt;
     }
   }
   encoded_deltas = EncodeDeltas(base_receive_timestamp, values);

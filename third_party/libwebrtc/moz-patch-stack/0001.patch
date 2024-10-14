@@ -363,7 +363,7 @@ index 8813e0f4c2..b5e08cea2c 100644
  RTPHeaderExtension::RTPHeaderExtension(const RTPHeaderExtension& other) =
      default;
 diff --git a/api/rtp_headers.h b/api/rtp_headers.h
-index 129ab5f499..5a867bbd77 100644
+index 6ba3292fca..5d3a731864 100644
 --- a/api/rtp_headers.h
 +++ b/api/rtp_headers.h
 @@ -113,6 +113,19 @@ inline bool operator!=(const AbsoluteCaptureTime& lhs,
@@ -388,12 +388,12 @@ index 129ab5f499..5a867bbd77 100644
    RTPHeaderExtension(const RTPHeaderExtension& other);
 @@ -171,12 +184,12 @@ struct RTPHeaderExtension {
  
-   absl::optional<ColorSpace> color_space;
+   std::optional<ColorSpace> color_space;
  
 +  CsrcAudioLevelList csrcAudioLevels;
 +
   private:
-   absl::optional<AudioLevel> audio_level_;
+   std::optional<AudioLevel> audio_level_;
  };
  
 -enum { kRtpCsrcSize = 15 };  // RFC 3550 page 13
@@ -416,7 +416,7 @@ index c919f7c1dd..117aba6a0f 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index cc81b38e26..e6a695a940 100644
+index fd387d980b..bb84fc6dc3 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -438,7 +438,7 @@ index cc81b38e26..e6a695a940 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 4bdf81f703..5138876b0d 100644
+index 23cf035379..a47bd0822e 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
 @@ -229,6 +229,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
@@ -451,17 +451,17 @@ index 4bdf81f703..5138876b0d 100644
        LntfConfig lntf;
  
 diff --git a/modules/audio_coding/acm2/acm_receiver.h b/modules/audio_coding/acm2/acm_receiver.h
-index 1e142484b0..274bd4afb3 100644
+index 2d0dffbd87..0a2576db6c 100644
 --- a/modules/audio_coding/acm2/acm_receiver.h
 +++ b/modules/audio_coding/acm2/acm_receiver.h
-@@ -19,6 +19,7 @@
+@@ -20,6 +20,7 @@
  #include <string>
  #include <utility>
  #include <vector>
 +#include <atomic>
  
- #include "absl/types/optional.h"
  #include "api/array_view.h"
+ #include "api/audio/audio_frame.h"
 diff --git a/modules/audio_coding/neteq/dtmf_buffer.cc b/modules/audio_coding/neteq/dtmf_buffer.cc
 index 9f78aca6e2..115bfcf97b 100644
 --- a/modules/audio_coding/neteq/dtmf_buffer.cc
@@ -757,11 +757,11 @@ index 3745e9cba5..f68cfb94c1 100644
        device_names->push_back(rtc::ToUtf8(device.DeviceName));
      }
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index 7ec3b17929..cd516d3d6f 100644
+index cea49e4a5a..7a73bfe44e 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
 @@ -200,7 +200,7 @@ void RTCPSender::SetRTCPStatus(RtcpMode new_method) {
-     next_time_to_send_rtcp_ = absl::nullopt;
+     next_time_to_send_rtcp_ = std::nullopt;
    } else if (method_ == RtcpMode::kOff) {
      // When switching on, reschedule the next packet
 -    SetNextRtcpSendEvaluationDuration(report_interval_ / 2);
@@ -770,7 +770,7 @@ index 7ec3b17929..cd516d3d6f 100644
    method_ = new_method;
  }
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.cc b/modules/rtp_rtcp/source/rtp_header_extensions.cc
-index 43770a728a..bcdc9a036b 100644
+index 46c82180eb..bb035729f8 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.cc
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.cc
 @@ -423,6 +423,45 @@ bool PlayoutDelayLimits::Write(rtc::ArrayView<uint8_t> data,
@@ -820,7 +820,7 @@ index 43770a728a..bcdc9a036b 100644
  //
  // E.g. default video or screenshare.
 diff --git a/modules/rtp_rtcp/source/rtp_header_extensions.h b/modules/rtp_rtcp/source/rtp_header_extensions.h
-index 02a1543e00..05e771a56d 100644
+index b8495f4ba6..ed816caa10 100644
 --- a/modules/rtp_rtcp/source/rtp_header_extensions.h
 +++ b/modules/rtp_rtcp/source/rtp_header_extensions.h
 @@ -308,6 +308,21 @@ class ColorSpaceExtension {
@@ -861,7 +861,7 @@ index 19372880b2..3192c27a49 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_packet_unittest.cc b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
-index ccdb5f8a75..da4abe0131 100644
+index 5f9544dcab..7c2b93e219 100644
 --- a/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 @@ -123,6 +123,18 @@ constexpr uint8_t kPacketWithMid[] = {
@@ -884,7 +884,7 @@ index ccdb5f8a75..da4abe0131 100644
  constexpr uint8_t kPayload[] = {'p', 'a', 'y', 'l', 'o', 'a', 'd'};
  constexpr uint8_t kPacketPaddingSize = 8;
 @@ -402,6 +414,24 @@ TEST(RtpPacketTest, FailsToSetUnregisteredExtension) {
-   EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), absl::nullopt);
+   EXPECT_EQ(packet.GetExtension<TransportSequenceNumber>(), std::nullopt);
  }
  
 +TEST(RtpPacketTest, CreateWithDynamicSizedExtensionCsrcAudioLevel) {
@@ -929,7 +929,7 @@ index 0b87d6d065..d69ae9420b 100644
  }  // namespace webrtc
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index 2abbfe5896..394c51f5ee 100644
+index bfdaca0f45..958edece7e 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
 @@ -139,6 +139,10 @@ bool IsNonVolatile(RTPExtensionType type) {
@@ -1437,7 +1437,7 @@ index 5ec1fd4a83..e46e050609 100644
  
    int64_t _lastProcessFrameTimeNanos RTC_GUARDED_BY(capture_checker_);
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
-index 7a2b4940fe..c05607c6ee 100644
+index c9129ca9a6..ba2aa418ff 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.cc
 @@ -255,6 +255,7 @@ LibvpxVp9Encoder::LibvpxVp9Encoder(const Environment& env,
@@ -1518,10 +1518,10 @@ index 7a2b4940fe..c05607c6ee 100644
 +}
 +
  bool LibvpxVp9Encoder::PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
-                                              absl::optional<int>* spatial_idx,
-                                              absl::optional<int>* temporal_idx,
+                                              std::optional<int>* spatial_idx,
+                                              std::optional<int>* temporal_idx,
 diff --git a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
-index f83fe2de80..f06b09c325 100644
+index 6454c98317..effc97e956 100644
 --- a/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
 +++ b/modules/video_coding/codecs/vp9/libvpx_vp9_encoder.h
 @@ -68,6 +68,9 @@ class LibvpxVp9Encoder : public VideoEncoder {
@@ -1532,8 +1532,8 @@ index f83fe2de80..f06b09c325 100644
 +  int UpdateCodecFrameSize(const VideoFrame& input_image);
 +
    bool PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
-                              absl::optional<int>* spatial_idx,
-                              absl::optional<int>* temporal_idx,
+                              std::optional<int>* spatial_idx,
+                              std::optional<int>* temporal_idx,
 @@ -150,6 +153,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
    VideoBitrateAllocation current_bitrate_allocation_;
    bool ss_info_needed_;
@@ -1541,13 +1541,13 @@ index f83fe2de80..f06b09c325 100644
 +  uint8_t num_cores_;
  
    std::unique_ptr<ScalableVideoController> svc_controller_;
-   absl::optional<ScalabilityMode> scalability_mode_;
+   std::optional<ScalabilityMode> scalability_mode_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 4e06cdd45e..858fe05ec7 100644
+index bbe25fdd14..03d48437d9 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -457,6 +457,12 @@ rtc_library("logging") {
-     "//third_party/abseil-cpp/absl/types:optional",
+@@ -444,6 +444,12 @@ rtc_library("logging") {
+     "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  
 +  # Added to allow including apm_data_dumper.h in rtc_base/logging.cc
@@ -1606,7 +1606,7 @@ index 61a3c667ba..ad2303735e 100644
  // The list of logging streams currently configured.
  // Note: we explicitly do not clean this up, because of the uncertain ordering
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index b171cfe11e..df7f173f58 100644
+index 3d27d6c5d4..e8c972afe4 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
 @@ -581,6 +581,12 @@ class LogMessage {
@@ -1633,7 +1633,7 @@ index b171cfe11e..df7f173f58 100644
  
  //////////////////////////////////////////////////////////////////////
 diff --git a/test/fuzzers/rtp_packet_fuzzer.cc b/test/fuzzers/rtp_packet_fuzzer.cc
-index 5d7c31d965..75e17cb8e9 100644
+index eaa423e855..6a7b233e29 100644
 --- a/test/fuzzers/rtp_packet_fuzzer.cc
 +++ b/test/fuzzers/rtp_packet_fuzzer.cc
 @@ -170,6 +170,10 @@ void FuzzOneInput(const uint8_t* data, size_t size) {

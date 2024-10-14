@@ -15,11 +15,11 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/call/bitrate_allocation.h"
 #include "api/environment/environment.h"
@@ -1233,7 +1233,7 @@ TEST_F(VideoSendStreamImplTest, TestElasticityForScreenshare) {
   EXPECT_CALL(bitrate_allocator_,
               AddObserver(vss_impl.get(),
                           Field(&MediaStreamAllocationConfig::rate_elasticity,
-                                absl::nullopt)));
+                                std::nullopt)));
   vss_impl->Start();
   EXPECT_CALL(bitrate_allocator_, RemoveObserver(vss_impl.get()));
   vss_impl->Stop();

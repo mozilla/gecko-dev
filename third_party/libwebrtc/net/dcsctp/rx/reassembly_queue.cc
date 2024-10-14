@@ -14,13 +14,13 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "net/dcsctp/common/sequence_numbers.h"
 #include "net/dcsctp/packet/chunk/forward_tsn_common.h"
@@ -135,7 +135,7 @@ void ReassemblyQueue::ResetStreamsAndLeaveDeferredReset(
     // normally."
     auto deferred_actions =
         std::move(deferred_reset_streams_->deferred_actions);
-    deferred_reset_streams_ = absl::nullopt;
+    deferred_reset_streams_ = std::nullopt;
 
     for (auto& action : deferred_actions) {
       action();
@@ -152,7 +152,7 @@ void ReassemblyQueue::EnterDeferredReset(
     RTC_DLOG(LS_VERBOSE) << log_prefix_
                          << "Entering deferred reset; sender_last_assigned_tsn="
                          << *sender_last_assigned_tsn;
-    deferred_reset_streams_ = absl::make_optional<DeferredResetStreams>(
+    deferred_reset_streams_ = std::make_optional<DeferredResetStreams>(
         tsn_unwrapper_.Unwrap(sender_last_assigned_tsn),
         webrtc::flat_set<StreamID>(streams.begin(), streams.end()));
   }

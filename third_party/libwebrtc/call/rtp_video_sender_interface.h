@@ -12,9 +12,9 @@
 #define CALL_RTP_VIDEO_SENDER_INTERFACE_H_
 
 #include <map>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/call/bitrate_allocation.h"
 #include "api/fec_controller_override.h"

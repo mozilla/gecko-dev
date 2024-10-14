@@ -15,12 +15,12 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/adaptation/resource.h"
 #include "api/call/bitrate_allocation.h"
 #include "api/crypto/crypto_options.h"
@@ -181,7 +181,7 @@ int CalculateMaxPadBitrateBps(const std::vector<VideoStream>& streams,
   return pad_up_to_bitrate_bps;
 }
 
-absl::optional<AlrExperimentSettings> GetAlrSettings(
+std::optional<AlrExperimentSettings> GetAlrSettings(
     const FieldTrialsView& field_trials,
     VideoEncoderConfig::ContentType content_type) {
   if (content_type == VideoEncoderConfig::ContentType::kScreen) {
@@ -208,15 +208,15 @@ bool SameStreamsEnabled(const VideoBitrateAllocation& lhs,
 
 // Returns an optional that has value iff TransportSeqNumExtensionConfigured
 // is `true` for the given video send stream config.
-absl::optional<float> GetConfiguredPacingFactor(
+std::optional<float> GetConfiguredPacingFactor(
     const VideoSendStream::Config& config,
     VideoEncoderConfig::ContentType content_type,
     const PacingConfig& default_pacing_config,
     const FieldTrialsView& field_trials) {
   if (!TransportSeqNumExtensionConfigured(config))
-    return absl::nullopt;
+    return std::nullopt;
 
-  absl::optional<AlrExperimentSettings> alr_settings =
+  std::optional<AlrExperimentSettings> alr_settings =
       GetAlrSettings(field_trials, content_type);
   if (alr_settings)
     return alr_settings->pacing_factor;
@@ -472,12 +472,12 @@ VideoSendStreamImpl::VideoSendStreamImpl(
   RTC_CHECK(
       AlrExperimentSettings::MaxOneFieldTrialEnabled(env_.field_trials()));
 
-  absl::optional<bool> enable_alr_bw_probing;
+  std::optional<bool> enable_alr_bw_probing;
 
   // If send-side BWE is enabled, check if we should apply updated probing and
   // pacing settings.
   if (configured_pacing_factor_) {
-    absl::optional<AlrExperimentSettings> alr_settings =
+    std::optional<AlrExperimentSettings> alr_settings =
         GetAlrSettings(env_.field_trials(), content_type_);
     int queue_time_limit_ms;
     if (alr_settings) {
@@ -575,7 +575,7 @@ VideoSendStream::Stats VideoSendStreamImpl::GetStats() {
   return stats_proxy_.GetStats();
 }
 
-absl::optional<float> VideoSendStreamImpl::GetPacingFactorOverride() const {
+std::optional<float> VideoSendStreamImpl::GetPacingFactorOverride() const {
   return configured_pacing_factor_;
 }
 
@@ -782,8 +782,8 @@ MediaStreamAllocationConfig VideoSendStreamImpl::GetAllocationConfig() const {
       !config_.suspend_below_min_bitrate,
       encoder_bitrate_priority_,
       (content_type_ == VideoEncoderConfig::ContentType::kRealtimeVideo)
-          ? absl::optional<TrackRateElasticity>(TrackRateElasticity::kCanConsumeExtraRate)
-          : absl::nullopt};
+          ? std::optional<TrackRateElasticity>(TrackRateElasticity::kCanConsumeExtraRate)
+          : std::nullopt};
 }
 
 void VideoSendStreamImpl::OnEncoderConfigurationChanged(
@@ -802,7 +802,7 @@ void VideoSendStreamImpl::OnEncoderConfigurationChanged(
     const VideoCodecType codec_type =
         PayloadStringToCodecType(config_.rtp.payload_name);
 
-    const absl::optional<DataRate> experimental_min_bitrate =
+    const std::optional<DataRate> experimental_min_bitrate =
         GetExperimentalMinVideoBitrate(env_.field_trials(), codec_type);
     encoder_min_bitrate_bps_ =
         experimental_min_bitrate
@@ -947,10 +947,10 @@ uint32_t VideoSendStreamImpl::OnBitrateUpdated(BitrateAllocationUpdate update) {
   return protection_bitrate_bps;
 }
 
-absl::optional<DataRate> VideoSendStreamImpl::GetUsedRate() const {
+std::optional<DataRate> VideoSendStreamImpl::GetUsedRate() const {
   // This value is for real-time video. Screenshare may have unused bandwidth
   // that can be shared, and this needs to be changed to support that.
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 }  // namespace internal

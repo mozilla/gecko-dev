@@ -76,7 +76,7 @@ void RTPVideoHeader::SetFromMetadata(const VideoFrameMetadata& metadata) {
   rotation = metadata.GetRotation();
   content_type = metadata.GetContentType();
   if (!metadata.GetFrameId().has_value()) {
-    generic = absl::nullopt;
+    generic = std::nullopt;
   } else {
     generic.emplace();
     generic->frame_id = metadata.GetFrameId().value();

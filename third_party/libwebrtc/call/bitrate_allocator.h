@@ -40,7 +40,7 @@ class BitrateAllocatorObserver {
   // implementation, as bitrate in bps.
   virtual uint32_t OnBitrateUpdated(BitrateAllocationUpdate update) = 0;
   // Returns the bitrate consumed (vs allocated) by BitrateAllocatorObserver
-  virtual absl::optional<DataRate> GetUsedRate() const = 0;
+  virtual std::optional<DataRate> GetUsedRate() const = 0;
 
  protected:
   virtual ~BitrateAllocatorObserver() {}
@@ -71,7 +71,7 @@ struct MediaStreamAllocationConfig {
   // observers. If an observer has twice the bitrate_priority of other
   // observers, it should be allocated twice the bitrate above its min.
   double bitrate_priority;
-  absl::optional<TrackRateElasticity> rate_elasticity;
+  std::optional<TrackRateElasticity> rate_elasticity;
 };
 
 // Interface used for mocking
@@ -97,7 +97,7 @@ struct AllocatableTrack {
   BitrateAllocatorObserver* observer;
   MediaStreamAllocationConfig config;
   int64_t allocated_bitrate_bps;
-  absl::optional<DataRate> last_used_bitrate;
+  std::optional<DataRate> last_used_bitrate;
   double media_ratio;  // Part of the total bitrate used for media [0.0, 1.0].
 
   uint32_t LastAllocatedBitrate() const;

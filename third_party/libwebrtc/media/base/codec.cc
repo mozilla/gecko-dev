@@ -13,12 +13,12 @@
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/media_types.h"
 #include "api/rtp_parameters.h"
@@ -498,7 +498,7 @@ void AddH264ConstrainedBaselineProfileToSupportedFormats(
   for (auto it = supported_formats->cbegin(); it != supported_formats->cend();
        ++it) {
     if (it->name == cricket::kH264CodecName) {
-      const absl::optional<webrtc::H264ProfileLevelId> profile_level_id =
+      const std::optional<webrtc::H264ProfileLevelId> profile_level_id =
           webrtc::ParseSdpForH264ProfileLevelId(it->parameters);
       if (profile_level_id &&
           profile_level_id->profile !=

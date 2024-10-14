@@ -204,7 +204,7 @@ void PacingController::EnqueuePacket(std::unique_ptr<RtpPacketToSend> packet) {
     // queue). Flush any pending packets currently in the queue for that stream
     // in order to get the new keyframe out as quickly as possible.
     packet_queue_.RemovePacketsForSsrc(packet->Ssrc());
-    absl::optional<uint32_t> rtx_ssrc =
+    std::optional<uint32_t> rtx_ssrc =
         packet_sender_->GetRtxSsrcForMedia(packet->Ssrc());
     if (rtx_ssrc) {
       packet_queue_.RemovePacketsForSsrc(*rtx_ssrc);
@@ -283,7 +283,7 @@ DataSize PacingController::CurrentBufferLevel() const {
   return std::max(media_debt_, padding_debt_);
 }
 
-absl::optional<Timestamp> PacingController::FirstSentPacketTime() const {
+std::optional<Timestamp> PacingController::FirstSentPacketTime() const {
   return first_sent_packet_time_;
 }
 

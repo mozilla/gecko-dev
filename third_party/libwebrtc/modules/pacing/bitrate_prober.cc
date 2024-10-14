@@ -139,9 +139,9 @@ Timestamp BitrateProber::NextProbeTime(Timestamp now) const {
   return next_probe_time_;
 }
 
-absl::optional<PacedPacketInfo> BitrateProber::CurrentCluster(Timestamp now) {
+std::optional<PacedPacketInfo> BitrateProber::CurrentCluster(Timestamp now) {
   if (clusters_.empty() || probing_state_ != ProbingState::kActive) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (next_probe_time_.IsFinite() &&
@@ -153,7 +153,7 @@ absl::optional<PacedPacketInfo> BitrateProber::CurrentCluster(Timestamp now) {
     clusters_.pop();
     if (clusters_.empty()) {
       probing_state_ = ProbingState::kInactive;
-      return absl::nullopt;
+      return std::nullopt;
     }
   }
 

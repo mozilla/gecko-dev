@@ -10,12 +10,12 @@
 #include "api/test/metrics/metrics_logger.h"
 
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/test/metrics/metric.h"
 #include "api/units/timestamp.h"
@@ -55,7 +55,7 @@ void DefaultMetricsLogger::LogSingleValueMetric(
           Metric::TimeSeries{.samples = std::vector{Metric::TimeSeries::Sample{
                                  .timestamp = Now(), .value = value}}},
       .stats = Metric::Stats{
-          .mean = value, .stddev = absl::nullopt, .min = value, .max = value}});
+          .mean = value, .stddev = std::nullopt, .min = value, .max = value}});
 }
 
 void DefaultMetricsLogger::LogMetric(

@@ -19,14 +19,14 @@ namespace {
 template <class T>
 void ToStringIfSet(rtc::SimpleStringBuilder* result,
                    const char* key,
-                   const absl::optional<T>& val) {
+                   const std::optional<T>& val) {
   if (val) {
     (*result) << key << ": " << *val << ", ";
   }
 }
 
 template <typename T>
-void SetFrom(absl::optional<T>* s, const absl::optional<T>& o) {
+void SetFrom(std::optional<T>* s, const std::optional<T>& o) {
   if (o) {
     *s = o;
   }

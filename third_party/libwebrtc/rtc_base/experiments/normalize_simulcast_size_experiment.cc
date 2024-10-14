@@ -24,27 +24,27 @@ constexpr int kMinSetting = 0;
 constexpr int kMaxSetting = 5;
 }  // namespace
 
-absl::optional<int> NormalizeSimulcastSizeExperiment::GetBase2Exponent(
+std::optional<int> NormalizeSimulcastSizeExperiment::GetBase2Exponent(
     const FieldTrialsView& field_trials) {
   if (!field_trials.IsEnabled(kFieldTrial))
-    return absl::nullopt;
+    return std::nullopt;
 
   const std::string group = field_trials.Lookup(kFieldTrial);
   if (group.empty())
-    return absl::nullopt;
+    return std::nullopt;
 
   int exponent;
   if (sscanf(group.c_str(), "Enabled-%d", &exponent) != 1) {
     RTC_LOG(LS_WARNING) << "No parameter provided.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   if (exponent < kMinSetting || exponent > kMaxSetting) {
     RTC_LOG(LS_WARNING) << "Unsupported exp value provided, value ignored.";
-    return absl::nullopt;
+    return std::nullopt;
   }
 
-  return absl::optional<int>(exponent);
+  return std::optional<int>(exponent);
 }
 
 }  // namespace webrtc

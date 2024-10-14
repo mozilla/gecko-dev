@@ -13,13 +13,13 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "net/dcsctp/common/sequence_numbers.h"
 #include "net/dcsctp/packet/chunk/forward_tsn_chunk.h"
@@ -243,7 +243,7 @@ class RetransmissionQueue {
 
   // If set, fast recovery is enabled until this TSN has been cumulative
   // acked.
-  absl::optional<UnwrappedTSN> fast_recovery_exit_tsn_ = absl::nullopt;
+  std::optional<UnwrappedTSN> fast_recovery_exit_tsn_ = std::nullopt;
 
   // The send queue.
   SendQueue& send_queue_;

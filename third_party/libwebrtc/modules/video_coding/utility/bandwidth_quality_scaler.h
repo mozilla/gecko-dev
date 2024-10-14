@@ -15,9 +15,9 @@
 #include <stdint.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/video_codecs/video_encoder.h"
@@ -82,9 +82,9 @@ class BandwidthQualityScaler {
   BandwidthQualityScalerUsageHandlerInterface* const handler_
       RTC_GUARDED_BY(&task_checker_);
 
-  absl::optional<int64_t> last_time_sent_in_ms_ RTC_GUARDED_BY(&task_checker_);
+  std::optional<int64_t> last_time_sent_in_ms_ RTC_GUARDED_BY(&task_checker_);
   RateStatistics encoded_bitrate_ RTC_GUARDED_BY(&task_checker_);
-  absl::optional<int> last_frame_size_pixels_ RTC_GUARDED_BY(&task_checker_);
+  std::optional<int> last_frame_size_pixels_ RTC_GUARDED_BY(&task_checker_);
   rtc::WeakPtrFactory<BandwidthQualityScaler> weak_ptr_factory_;
 
   std::vector<VideoEncoder::ResolutionBitrateLimits> resolution_bitrate_limits_;

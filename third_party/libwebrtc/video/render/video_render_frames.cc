@@ -88,8 +88,8 @@ int32_t VideoRenderFrames::AddFrame(VideoFrame&& new_frame) {
   return static_cast<int32_t>(incoming_frames_.size());
 }
 
-absl::optional<VideoFrame> VideoRenderFrames::FrameToRender() {
-  absl::optional<VideoFrame> render_frame;
+std::optional<VideoFrame> VideoRenderFrames::FrameToRender() {
+  std::optional<VideoFrame> render_frame;
   // Get the newest frame that can be released for rendering.
   while (!incoming_frames_.empty() && TimeToNextFrameRelease() <= 0) {
     if (render_frame) {

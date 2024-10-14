@@ -13,11 +13,11 @@
 
 #include <stdint.h>
 
+#include <optional>
 #include <string>
 #include <utility>  // For std::move.
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/system/rtc_export.h"
@@ -137,7 +137,7 @@ class RTC_EXPORT RTCError {
 
   RTCErrorDetailType error_detail() const { return error_detail_; }
   void set_error_detail(RTCErrorDetailType detail) { error_detail_ = detail; }
-  absl::optional<uint16_t> sctp_cause_code() const { return sctp_cause_code_; }
+  std::optional<uint16_t> sctp_cause_code() const { return sctp_cause_code_; }
   void set_sctp_cause_code(uint16_t cause_code) {
     sctp_cause_code_ = cause_code;
   }
@@ -150,7 +150,7 @@ class RTC_EXPORT RTCError {
   RTCErrorType type_ = RTCErrorType::NONE;
   std::string message_;
   RTCErrorDetailType error_detail_ = RTCErrorDetailType::NONE;
-  absl::optional<uint16_t> sctp_cause_code_;
+  std::optional<uint16_t> sctp_cause_code_;
 };
 
 // Outputs the error as a friendly string. Update this method when adding a new
@@ -309,7 +309,7 @@ class RTCErrorOr {
 
  private:
   RTCError error_;
-  absl::optional<T> value_;
+  std::optional<T> value_;
 };
 
 }  // namespace webrtc

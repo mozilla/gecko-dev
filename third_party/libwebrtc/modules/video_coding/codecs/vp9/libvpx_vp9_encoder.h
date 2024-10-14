@@ -72,8 +72,8 @@ class LibvpxVp9Encoder : public VideoEncoder {
   int UpdateCodecFrameSize(const VideoFrame& input_image);
 
   bool PopulateCodecSpecific(CodecSpecificInfo* codec_specific,
-                             absl::optional<int>* spatial_idx,
-                             absl::optional<int>* temporal_idx,
+                             std::optional<int>* spatial_idx,
+                             std::optional<int>* temporal_idx,
                              const vpx_codec_cx_pkt& pkt);
   void FillReferenceIndices(const vpx_codec_cx_pkt& pkt,
                             size_t pic_num,
@@ -156,7 +156,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
   uint8_t num_cores_;
 
   std::unique_ptr<ScalableVideoController> svc_controller_;
-  absl::optional<ScalabilityMode> scalability_mode_;
+  std::optional<ScalabilityMode> scalability_mode_;
   std::vector<FramerateControllerDeprecated> framerate_controller_;
 
   // Used for flexible mode.

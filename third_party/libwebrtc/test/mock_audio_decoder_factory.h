@@ -51,7 +51,7 @@ class MockAudioDecoderFactory : public AudioDecoderFactory {
               Create,
               (const Environment&,
                const SdpAudioFormat&,
-               absl::optional<AudioCodecPairId>),
+               std::optional<AudioCodecPairId>),
               (override));
 };
 

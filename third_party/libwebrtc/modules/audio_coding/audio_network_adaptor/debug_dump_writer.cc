@@ -10,9 +10,9 @@
 
 #include "modules/audio_coding/audio_network_adaptor/debug_dump_writer.h"
 
+#include <optional>
 #include <string>
 
-#include "absl/types/optional.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/system/file_wrapper.h"

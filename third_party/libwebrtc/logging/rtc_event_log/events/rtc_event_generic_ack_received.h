@@ -13,11 +13,11 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/rtc_event_log/rtc_event.h"
 #include "api/units/timestamp.h"
@@ -30,7 +30,7 @@ struct LoggedGenericAckReceived {
   LoggedGenericAckReceived(Timestamp timestamp,
                            int64_t packet_number,
                            int64_t acked_packet_number,
-                           absl::optional<int64_t> receive_acked_packet_time_ms)
+                           std::optional<int64_t> receive_acked_packet_time_ms)
       : timestamp(timestamp),
         packet_number(packet_number),
         acked_packet_number(acked_packet_number),
@@ -43,7 +43,7 @@ struct LoggedGenericAckReceived {
   Timestamp timestamp = Timestamp::MinusInfinity();
   int64_t packet_number;
   int64_t acked_packet_number;
-  absl::optional<int64_t> receive_acked_packet_time_ms;
+  std::optional<int64_t> receive_acked_packet_time_ms;
 };
 
 struct AckedPacket {
@@ -52,7 +52,7 @@ struct AckedPacket {
 
   // The time where the packet was received. Not every ACK will
   // include the receive timestamp.
-  absl::optional<int64_t> receive_acked_packet_time_ms;
+  std::optional<int64_t> receive_acked_packet_time_ms;
 };
 
 class RtcEventGenericAckReceived final : public RtcEvent {
@@ -79,7 +79,7 @@ class RtcEventGenericAckReceived final : public RtcEvent {
   int64_t acked_packet_number() const { return acked_packet_number_; }
 
   // Timestamp when the `acked_packet_number` was received by the remote side.
-  absl::optional<int64_t> receive_acked_packet_time_ms() const {
+  std::optional<int64_t> receive_acked_packet_time_ms() const {
     return receive_acked_packet_time_ms_;
   }
 
@@ -108,11 +108,11 @@ class RtcEventGenericAckReceived final : public RtcEvent {
       int64_t timestamp_us,
       int64_t packet_number,
       int64_t acked_packet_number,
-      absl::optional<int64_t> receive_acked_packet_time_ms);
+      std::optional<int64_t> receive_acked_packet_time_ms);
 
   const int64_t packet_number_;
   const int64_t acked_packet_number_;
-  const absl::optional<int64_t> receive_acked_packet_time_ms_;
+  const std::optional<int64_t> receive_acked_packet_time_ms_;
 };
 
 }  // namespace webrtc

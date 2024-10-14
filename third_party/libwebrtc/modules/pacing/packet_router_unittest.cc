@@ -420,7 +420,7 @@ TEST_F(PacketRouterTest, SendPacketWithoutTransportSequenceNumbers) {
                     &RtpPacketToSend::HasExtension<TransportSequenceNumber>,
                     false)),
                 Pointee(Property(&RtpPacketToSend::transport_sequence_number,
-                                 absl::nullopt))),
+                                 std::nullopt))),
           _));
   packet_router_.SendPacket(std::move(packet), PacedPacketInfo());
   packet_router_.OnBatchComplete();
@@ -517,9 +517,9 @@ TEST_F(PacketRouterTest, ReportsRtxSsrc) {
   packet_router_.AddSendRtpModule(&rtp_2, false);
 
   EXPECT_EQ(packet_router_.GetRtxSsrcForMedia(kSsrc1), kRtxSsrc1);
-  EXPECT_EQ(packet_router_.GetRtxSsrcForMedia(kRtxSsrc1), absl::nullopt);
-  EXPECT_EQ(packet_router_.GetRtxSsrcForMedia(kSsrc2), absl::nullopt);
-  EXPECT_EQ(packet_router_.GetRtxSsrcForMedia(kInvalidSsrc), absl::nullopt);
+  EXPECT_EQ(packet_router_.GetRtxSsrcForMedia(kRtxSsrc1), std::nullopt);
+  EXPECT_EQ(packet_router_.GetRtxSsrcForMedia(kSsrc2), std::nullopt);
+  EXPECT_EQ(packet_router_.GetRtxSsrcForMedia(kInvalidSsrc), std::nullopt);
 
   packet_router_.RemoveSendRtpModule(&rtp_1);
   packet_router_.RemoveSendRtpModule(&rtp_2);

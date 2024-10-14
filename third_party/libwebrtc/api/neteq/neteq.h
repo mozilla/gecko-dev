@@ -15,10 +15,10 @@
 #include <stdint.h>
 
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_format.h"
@@ -136,7 +136,7 @@ class NetEq {
     bool enable_fast_accelerate = false;
     bool enable_muted_state = false;
     bool enable_rtx_handling = false;
-    absl::optional<AudioCodecPairId> codec_pair_id;
+    std::optional<AudioCodecPairId> codec_pair_id;
     bool for_test_no_time_stretching = false;  // Use only for testing.
   };
 
@@ -223,7 +223,7 @@ class NetEq {
       AudioFrame* audio_frame,
       bool* muted = nullptr,
       int* current_sample_rate_hz = nullptr,
-      absl::optional<Operation> action_override = absl::nullopt) = 0;
+      std::optional<Operation> action_override = std::nullopt) = 0;
 
   // Replaces the current set of decoders with the given one.
   virtual void SetCodecs(const std::map<int, SdpAudioFormat>& codecs) = 0;
@@ -289,7 +289,7 @@ class NetEq {
 
   // Returns the RTP timestamp for the last sample delivered by GetAudio().
   // The return value will be empty if no valid timestamp is available.
-  virtual absl::optional<uint32_t> GetPlayoutTimestamp() const = 0;
+  virtual std::optional<uint32_t> GetPlayoutTimestamp() const = 0;
 
   // Returns the sample rate in Hz of the audio produced in the last GetAudio
   // call. If GetAudio has not been called yet, the configured sample rate
@@ -299,14 +299,14 @@ class NetEq {
   // Returns the decoder info for the given payload type. Returns empty if no
   // such payload type was registered.
   [[deprecated(
-      "Use GetCurrentDecoderFormat")]] virtual absl::optional<DecoderFormat>
+      "Use GetCurrentDecoderFormat")]] virtual std::optional<DecoderFormat>
   GetDecoderFormat(int payload_type) const {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Returns info for the most recently used decoder.
-  virtual absl::optional<DecoderFormat> GetCurrentDecoderFormat() const {
-    return absl::nullopt;
+  virtual std::optional<DecoderFormat> GetCurrentDecoderFormat() const {
+    return std::nullopt;
   }
 
   // Flushes both the packet buffer and the sync buffer.

@@ -12,9 +12,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/units/time_delta.h"
 #include "modules/audio_coding/codecs/cng/webrtc_cng.h"
 #include "rtc_base/checks.h"
@@ -54,10 +54,9 @@ class AudioEncoderCng final : public AudioEncoder {
       override;
   void OnReceivedUplinkPacketLossFraction(
       float uplink_packet_loss_fraction) override;
-  void OnReceivedUplinkBandwidth(
-      int target_audio_bitrate_bps,
-      absl::optional<int64_t> bwe_period_ms) override;
-  absl::optional<std::pair<TimeDelta, TimeDelta>> GetFrameLengthRange()
+  void OnReceivedUplinkBandwidth(int target_audio_bitrate_bps,
+                                 std::optional<int64_t> bwe_period_ms) override;
+  std::optional<std::pair<TimeDelta, TimeDelta>> GetFrameLengthRange()
       const override;
 
  private:
@@ -225,12 +224,12 @@ void AudioEncoderCng::OnReceivedUplinkPacketLossFraction(
 
 void AudioEncoderCng::OnReceivedUplinkBandwidth(
     int target_audio_bitrate_bps,
-    absl::optional<int64_t> bwe_period_ms) {
+    std::optional<int64_t> bwe_period_ms) {
   speech_encoder_->OnReceivedUplinkBandwidth(target_audio_bitrate_bps,
                                              bwe_period_ms);
 }
 
-absl::optional<std::pair<TimeDelta, TimeDelta>>
+std::optional<std::pair<TimeDelta, TimeDelta>>
 AudioEncoderCng::GetFrameLengthRange() const {
   return speech_encoder_->GetFrameLengthRange();
 }

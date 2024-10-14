@@ -19,10 +19,10 @@
 
 #include <list>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/units/time_delta.h"
 #include "p2p/base/basic_packet_socket_factory.h"
 #include "p2p/base/connection.h"
@@ -372,7 +372,7 @@ class TurnPortTest : public ::testing::Test,
                                  .ice_username_fragment = kIceUfrag2,
                                  .ice_password = kIcePwd2,
                                  .field_trials = &field_trials_},
-                                0, 0, false, absl::nullopt);
+                                0, 0, false, std::nullopt);
     // UDP port will be controlled.
     udp_port_->SetIceRole(ICEROLE_CONTROLLED);
     udp_port_->SetIceTiebreaker(kTiebreakerDefault);

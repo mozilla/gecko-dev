@@ -12,10 +12,10 @@
 #include "modules/video_coding/codecs/h264/include/h264.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "absl/container/inlined_vector.h"
-#include "absl/types/optional.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "media/base/media_constants.h"
 #include "rtc_base/trace_event.h"
@@ -54,7 +54,7 @@ SdpVideoFormat CreateH264Format(H264Profile profile,
                                 H264Level level,
                                 const std::string& packetization_mode,
                                 bool add_scalability_modes) {
-  const absl::optional<std::string> profile_string =
+  const std::optional<std::string> profile_string =
       H264ProfileLevelIdToString(H264ProfileLevelId(profile, level));
   RTC_CHECK(profile_string);
   absl::InlinedVector<ScalabilityMode, kScalabilityModeCount> scalability_modes;

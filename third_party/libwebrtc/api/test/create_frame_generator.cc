@@ -13,12 +13,12 @@
 #include <cstdint>
 #include <cstdio>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/test/frame_generator_interface.h"
@@ -32,8 +32,8 @@ namespace test {
 std::unique_ptr<FrameGeneratorInterface> CreateSquareFrameGenerator(
     int width,
     int height,
-    absl::optional<FrameGeneratorInterface::OutputType> type,
-    absl::optional<int> num_squares) {
+    std::optional<FrameGeneratorInterface::OutputType> type,
+    std::optional<int> num_squares) {
   return std::make_unique<SquareGenerator>(
       width, height, type.value_or(FrameGeneratorInterface::OutputType::kI420),
       num_squares.value_or(10));

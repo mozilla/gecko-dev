@@ -19,7 +19,6 @@ rtc_source_set("scalability_mode_util") {
     "../../../rtc_base:checks",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -61,7 +60,6 @@ rtc_source_set("scalability_structures") {
     "../../../rtc_base:logging",
     "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -109,7 +107,6 @@ if (rtc_include_tests) {
       "../../../rtc_base:stringutils",
       "../../../test:test_support",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 

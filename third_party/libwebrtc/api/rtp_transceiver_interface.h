@@ -11,11 +11,11 @@
 #ifndef API_RTP_TRANSCEIVER_INTERFACE_H_
 #define API_RTP_TRANSCEIVER_INTERFACE_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/base/attributes.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/media_types.h"
 #include "api/ref_count.h"
@@ -69,7 +69,7 @@ class RTC_EXPORT RtpTransceiverInterface : public webrtc::RefCountInterface {
   // remote descriptions. Before negotiation is complete, the mid value may be
   // null. After rollbacks, the value may change from a non-null value to null.
   // https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-mid
-  virtual absl::optional<std::string> mid() const = 0;
+  virtual std::optional<std::string> mid() const = 0;
 
   // The sender attribute exposes the RtpSender corresponding to the RTP media
   // that may be sent with the transceiver's mid. The sender is always present,
@@ -119,14 +119,14 @@ class RTC_EXPORT RtpTransceiverInterface : public webrtc::RefCountInterface {
   // for this transceiver. If this transceiver has never been represented in an
   // offer/answer exchange, or if the transceiver is stopped, the value is null.
   // https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-currentdirection
-  virtual absl::optional<RtpTransceiverDirection> current_direction() const = 0;
+  virtual std::optional<RtpTransceiverDirection> current_direction() const = 0;
 
   // An internal slot designating for which direction the relevant
   // PeerConnection events have been fired. This is to ensure that events like
   // OnAddTrack only get fired once even if the same session description is
   // applied again.
   // Exposed in the public interface for use by Chromium.
-  virtual absl::optional<RtpTransceiverDirection> fired_direction() const;
+  virtual std::optional<RtpTransceiverDirection> fired_direction() const;
 
   // Initiates a stop of the transceiver.
   // The stop is complete when stopped() returns true.

@@ -10,7 +10,8 @@
 
 #include "api/video_codecs/simulcast_stream.h"
 
-#include "absl/types/optional.h"
+#include <optional>
+
 #include "api/video_codecs/scalability_mode.h"
 #include "rtc_base/checks.h"
 
@@ -25,14 +26,14 @@ void SimulcastStream::SetNumberOfTemporalLayers(unsigned char n) {
   numberOfTemporalLayers = n;
 }
 
-absl::optional<ScalabilityMode> SimulcastStream::GetScalabilityMode() const {
+std::optional<ScalabilityMode> SimulcastStream::GetScalabilityMode() const {
   static const ScalabilityMode scalability_modes[3] = {
       ScalabilityMode::kL1T1,
       ScalabilityMode::kL1T2,
       ScalabilityMode::kL1T3,
   };
   if (numberOfTemporalLayers < 1 || numberOfTemporalLayers > 3) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return scalability_modes[numberOfTemporalLayers - 1];
 }

@@ -16,11 +16,11 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/units/time_delta.h"
 #include "net/dcsctp/public/timeout.h"
@@ -45,17 +45,17 @@ struct TimerOptions {
       : TimerOptions(duration, TimerBackoffAlgorithm::kExponential) {}
   TimerOptions(webrtc::TimeDelta duration,
                TimerBackoffAlgorithm backoff_algorithm)
-      : TimerOptions(duration, backoff_algorithm, absl::nullopt) {}
+      : TimerOptions(duration, backoff_algorithm, std::nullopt) {}
   TimerOptions(webrtc::TimeDelta duration,
                TimerBackoffAlgorithm backoff_algorithm,
-               absl::optional<int> max_restarts)
+               std::optional<int> max_restarts)
       : TimerOptions(duration,
                      backoff_algorithm,
                      max_restarts,
                      webrtc::TimeDelta::PlusInfinity()) {}
   TimerOptions(webrtc::TimeDelta duration,
                TimerBackoffAlgorithm backoff_algorithm,
-               absl::optional<int> max_restarts,
+               std::optional<int> max_restarts,
                webrtc::TimeDelta max_backoff_duration)
       : TimerOptions(duration,
                      backoff_algorithm,
@@ -64,7 +64,7 @@ struct TimerOptions {
                      webrtc::TaskQueueBase::DelayPrecision::kLow) {}
   TimerOptions(webrtc::TimeDelta duration,
                TimerBackoffAlgorithm backoff_algorithm,
-               absl::optional<int> max_restarts,
+               std::optional<int> max_restarts,
                webrtc::TimeDelta max_backoff_duration,
                webrtc::TaskQueueBase::DelayPrecision precision)
       : duration(duration),
@@ -79,8 +79,8 @@ struct TimerOptions {
   // restarted. If not set, the same duration will be used.
   const TimerBackoffAlgorithm backoff_algorithm;
   // The maximum number of times that the timer will be automatically restarted,
-  // or absl::nullopt if there is no limit.
-  const absl::optional<int> max_restarts;
+  // or std::nullopt if there is no limit.
+  const std::optional<int> max_restarts;
   // The maximum timeout value for exponential backoff.
   const webrtc::TimeDelta max_backoff_duration;
   // The precision of the webrtc::TaskQueueBase used for scheduling.

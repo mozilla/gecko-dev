@@ -74,7 +74,7 @@ class AudioEgress : public AudioSender, public AudioPacketizationCallback {
 
   // Retrieve current encoder format info. This returns encoder format set
   // by SetEncoder() and if encoder is not set, this will return nullopt.
-  absl::optional<SdpAudioFormat> GetEncoderFormat() const {
+  std::optional<SdpAudioFormat> GetEncoderFormat() const {
     MutexLock lock(&lock_);
     return encoder_format_;
   }
@@ -119,7 +119,7 @@ class AudioEgress : public AudioSender, public AudioPacketizationCallback {
   mutable Mutex lock_;
 
   // Current encoder format selected by caller.
-  absl::optional<SdpAudioFormat> encoder_format_ RTC_GUARDED_BY(lock_);
+  std::optional<SdpAudioFormat> encoder_format_ RTC_GUARDED_BY(lock_);
 
   // Synchronization is handled internally by RtpRtcp.
   RtpRtcpInterface* const rtp_rtcp_;

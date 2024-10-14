@@ -34,7 +34,7 @@ class SimulatedPacketReceiverInterface : public PacketReceiver {
   // Returns the time until next process or nullopt to indicate that the next
   // process time is unknown. If the next process time is unknown, this should
   // be checked again any time a packet is enqueued.
-  virtual absl::optional<int64_t> TimeUntilNextProcess() = 0;
+  virtual std::optional<int64_t> TimeUntilNextProcess() = 0;
 };
 
 }  // namespace webrtc

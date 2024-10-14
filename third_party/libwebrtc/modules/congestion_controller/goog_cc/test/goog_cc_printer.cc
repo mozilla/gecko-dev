@@ -13,11 +13,11 @@
 
 #include <deque>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/rtc_event_log_output.h"
 #include "api/transport/goog_cc_factory.h"
 #include "api/transport/network_control.h"
@@ -42,16 +42,16 @@ void WriteTypedValue(RtcEventLogOutput* out, int value) {
 void WriteTypedValue(RtcEventLogOutput* out, double value) {
   LogWriteFormat(out, "%.6f", value);
 }
-void WriteTypedValue(RtcEventLogOutput* out, absl::optional<DataRate> value) {
+void WriteTypedValue(RtcEventLogOutput* out, std::optional<DataRate> value) {
   LogWriteFormat(out, "%.0f", value ? value->bytes_per_sec<double>() : NAN);
 }
-void WriteTypedValue(RtcEventLogOutput* out, absl::optional<DataSize> value) {
+void WriteTypedValue(RtcEventLogOutput* out, std::optional<DataSize> value) {
   LogWriteFormat(out, "%.0f", value ? value->bytes<double>() : NAN);
 }
-void WriteTypedValue(RtcEventLogOutput* out, absl::optional<TimeDelta> value) {
+void WriteTypedValue(RtcEventLogOutput* out, std::optional<TimeDelta> value) {
   LogWriteFormat(out, "%.3f", value ? value->seconds<double>() : NAN);
 }
-void WriteTypedValue(RtcEventLogOutput* out, absl::optional<Timestamp> value) {
+void WriteTypedValue(RtcEventLogOutput* out, std::optional<Timestamp> value) {
   LogWriteFormat(out, "%.3f", value ? value->seconds<double>() : NAN);
 }
 

@@ -38,13 +38,13 @@ struct AudioAllocationConfig {
   static constexpr char kKey[] = "WebRTC-Audio-Allocation";
   // Field Trial configured bitrates to use as overrides over default/user
   // configured bitrate range when audio bitrate allocation is enabled.
-  absl::optional<DataRate> min_bitrate;
-  absl::optional<DataRate> max_bitrate;
+  std::optional<DataRate> min_bitrate;
+  std::optional<DataRate> max_bitrate;
   DataRate priority_bitrate = DataRate::Zero();
   // By default the priority_bitrate is compensated for packet overhead.
   // Use this flag to configure a raw value instead.
-  absl::optional<DataRate> priority_bitrate_raw;
-  absl::optional<double> bitrate_priority;
+  std::optional<DataRate> priority_bitrate_raw;
+  std::optional<double> bitrate_priority;
 
   std::unique_ptr<StructParametersParser> Parser();
   explicit AudioAllocationConfig(const FieldTrialsView& field_trials);
@@ -61,14 +61,14 @@ class AudioSendStream final : public webrtc::AudioSendStream,
                   RtpTransportControllerSendInterface* rtp_transport,
                   BitrateAllocatorInterface* bitrate_allocator,
                   RtcpRttStats* rtcp_rtt_stats,
-                  const absl::optional<RtpState>& suspended_rtp_state);
+                  const std::optional<RtpState>& suspended_rtp_state);
   // For unit tests, which need to supply a mock ChannelSend.
   AudioSendStream(const Environment& env,
                   const webrtc::AudioSendStream::Config& config,
                   const rtc::scoped_refptr<webrtc::AudioState>& audio_state,
                   RtpTransportControllerSendInterface* rtp_transport,
                   BitrateAllocatorInterface* bitrate_allocator,
-                  const absl::optional<RtpState>& suspended_rtp_state,
+                  const std::optional<RtpState>& suspended_rtp_state,
                   std::unique_ptr<voe::ChannelSendInterface> channel_send);
 
   AudioSendStream() = delete;
@@ -97,7 +97,7 @@ class AudioSendStream final : public webrtc::AudioSendStream,
 
   // Implements BitrateAllocatorObserver.
   uint32_t OnBitrateUpdated(BitrateAllocationUpdate update) override;
-  absl::optional<DataRate> GetUsedRate() const override;
+  std::optional<DataRate> GetUsedRate() const override;
 
   void SetTransportOverhead(int transport_overhead_per_packet_bytes);
 
@@ -141,7 +141,7 @@ class AudioSendStream final : public webrtc::AudioSendStream,
 
   // Returns bitrate constraints, maybe including overhead when enabled by
   // field trial.
-  absl::optional<TargetAudioBitrateConstraints> GetMinMaxBitrateConstraints()
+  std::optional<TargetAudioBitrateConstraints> GetMinMaxBitrateConstraints()
       const RTC_RUN_ON(worker_thread_checker_);
 
   // Sets per-packet overhead on encoded (for ANA) based on current known values
@@ -181,7 +181,7 @@ class AudioSendStream final : public webrtc::AudioSendStream,
   RtpTransportControllerSendInterface* const rtp_transport_;
 
   RtpRtcpInterface* const rtp_rtcp_module_;
-  absl::optional<RtpState> const suspended_rtp_state_;
+  std::optional<RtpState> const suspended_rtp_state_;
 
   // RFC 5285: Each distinct extension MUST have a unique ID. The value 0 is
   // reserved for padding and MUST NOT be used as a local identifier.
@@ -207,9 +207,9 @@ class AudioSendStream final : public webrtc::AudioSendStream,
 
   bool registered_with_allocator_ RTC_GUARDED_BY(worker_thread_checker_) =
       false;
-  absl::optional<std::pair<TimeDelta, TimeDelta>> frame_length_range_
+  std::optional<std::pair<TimeDelta, TimeDelta>> frame_length_range_
       RTC_GUARDED_BY(worker_thread_checker_);
-  absl::optional<std::pair<DataRate, DataRate>> bitrate_range_
+  std::optional<std::pair<DataRate, DataRate>> bitrate_range_
       RTC_GUARDED_BY(worker_thread_checker_);
 };
 }  // namespace internal

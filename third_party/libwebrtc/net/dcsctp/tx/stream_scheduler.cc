@@ -10,9 +10,9 @@
 #include "net/dcsctp/tx/stream_scheduler.h"
 
 #include <algorithm>
+#include <optional>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "net/dcsctp/packet/data.h"
 #include "net/dcsctp/public/dcsctp_message.h"
@@ -30,7 +30,7 @@ void StreamScheduler::Stream::SetPriority(StreamPriority priority) {
   inverse_weight_ = InverseWeight(priority);
 }
 
-absl::optional<SendQueue::DataToSend> StreamScheduler::Produce(
+std::optional<SendQueue::DataToSend> StreamScheduler::Produce(
     webrtc::Timestamp now,
     size_t max_size) {
   // For non-interleaved streams, avoid rescheduling while still sending a
@@ -50,7 +50,7 @@ absl::optional<SendQueue::DataToSend> StreamScheduler::Produce(
 
   RTC_DCHECK(rescheduling || current_stream_ != nullptr);
 
-  absl::optional<SendQueue::DataToSend> data;
+  std::optional<SendQueue::DataToSend> data;
   while (!data.has_value() && !active_streams_.empty()) {
     if (rescheduling) {
       auto it = active_streams_.begin();
@@ -77,7 +77,7 @@ absl::optional<SendQueue::DataToSend> StreamScheduler::Produce(
         << "There is no stream with data; Can't produce any data.";
     RTC_DCHECK(IsConsistent());
 
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   RTC_DCHECK(data->data.stream_id == current_stream_->stream_id());
@@ -126,10 +126,10 @@ StreamScheduler::VirtualTime StreamScheduler::Stream::CalculateFinishTime(
   return VirtualTime(*current_virtual_time_ + 1);
 }
 
-absl::optional<SendQueue::DataToSend> StreamScheduler::Stream::Produce(
+std::optional<SendQueue::DataToSend> StreamScheduler::Stream::Produce(
     webrtc::Timestamp now,
     size_t max_size) {
-  absl::optional<SendQueue::DataToSend> data = producer_.Produce(now, max_size);
+  std::optional<SendQueue::DataToSend> data = producer_.Produce(now, max_size);
 
   if (data.has_value()) {
     VirtualTime new_current = CalculateFinishTime(data->data.payload.size());

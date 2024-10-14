@@ -14,11 +14,11 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_codecs/audio_format.h"
@@ -32,11 +32,11 @@
 
 namespace webrtc {
 
-absl::optional<AudioEncoderL16::Config> AudioEncoderL16::SdpToConfig(
+std::optional<AudioEncoderL16::Config> AudioEncoderL16::SdpToConfig(
     const SdpAudioFormat& format) {
   if (!rtc::IsValueInRangeForNumericType<int>(format.num_channels)) {
     RTC_DCHECK_NOTREACHED();
-    return absl::nullopt;
+    return std::nullopt;
   }
   Config config;
   config.sample_rate_hz = format.clockrate_hz;
@@ -51,7 +51,7 @@ absl::optional<AudioEncoderL16::Config> AudioEncoderL16::SdpToConfig(
   if (absl::EqualsIgnoreCase(format.name, "L16") && config.IsOk()) {
     return config;
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 void AudioEncoderL16::AppendSupportedEncoders(
@@ -70,7 +70,7 @@ AudioCodecInfo AudioEncoderL16::QueryAudioEncoder(
 std::unique_ptr<AudioEncoder> AudioEncoderL16::MakeAudioEncoder(
     const AudioEncoderL16::Config& config,
     int payload_type,
-    absl::optional<AudioCodecPairId> /*codec_pair_id*/,
+    std::optional<AudioCodecPairId> /*codec_pair_id*/,
     const FieldTrialsView* field_trials) {
   AudioEncoderPcm16B::Config c;
   c.sample_rate_hz = config.sample_rate_hz;

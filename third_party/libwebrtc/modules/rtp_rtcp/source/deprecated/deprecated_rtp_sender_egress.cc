@@ -62,7 +62,7 @@ DEPRECATED_RtpSenderEgress::DEPRECATED_RtpSenderEgress(
     : ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       flexfec_ssrc_(config.fec_generator ? config.fec_generator->FecSsrc()
-                                         : absl::nullopt),
+                                         : std::nullopt),
       populate_network2_timestamp_(config.populate_network2_timestamp),
       clock_(config.clock),
       packet_history_(packet_history),

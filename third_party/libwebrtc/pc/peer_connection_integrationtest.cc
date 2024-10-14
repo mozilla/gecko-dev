@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -27,7 +28,6 @@
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/candidate.h"
 #include "api/crypto/crypto_options.h"
 #include "api/dtmf_sender_interface.h"
@@ -2353,7 +2353,7 @@ TEST_P(PeerConnectionIntegrationTestWithFakeClock,
   ASSERT_EQ(first_candidate_stats.size(), 0u);
 
   // Add a "fake" candidate.
-  absl::optional<RTCError> result;
+  std::optional<RTCError> result;
   caller()->pc()->AddIceCandidate(
       absl::WrapUnique(CreateIceCandidate(
           "", 0,

@@ -12,10 +12,10 @@
 #define MEDIA_SCTP_DCSCTP_TRANSPORT_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
 #include "api/priority.h"
@@ -65,8 +65,8 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
                     const rtc::CopyOnWriteBuffer& payload) override;
   bool ReadyToSendData() override;
   int max_message_size() const override;
-  absl::optional<int> max_outbound_streams() const override;
-  absl::optional<int> max_inbound_streams() const override;
+  std::optional<int> max_outbound_streams() const override;
+  std::optional<int> max_inbound_streams() const override;
   size_t buffered_amount(int sid) const override;
   size_t buffered_amount_low_threshold(int sid) const override;
   void SetBufferedAmountLowThreshold(int sid, size_t bytes) override;

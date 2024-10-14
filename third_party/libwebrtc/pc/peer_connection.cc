@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -22,7 +23,6 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/jsep_ice_candidate.h"
 #include "api/media_types.h"
@@ -175,11 +175,11 @@ IceCandidatePairType GetIceCandidatePairCounter(
   return kIceCandidatePairMax;
 }
 
-absl::optional<int> RTCConfigurationToIceConfigOptionalInt(
+std::optional<int> RTCConfigurationToIceConfigOptionalInt(
     int rtc_configuration_parameter) {
   if (rtc_configuration_parameter ==
       PeerConnectionInterface::RTCConfiguration::kUndefined) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return rtc_configuration_parameter;
 }
@@ -261,7 +261,7 @@ RTCError ValidateConfiguration(
 // set, which is done via SetLocalDescription.
 RTCError ValidateIceCandidatePoolSize(
     int ice_candidate_pool_size,
-    absl::optional<int> previous_ice_candidate_pool_size) {
+    std::optional<int> previous_ice_candidate_pool_size) {
   // Note that this isn't possible through chromium, since it's an unsigned
   // short in WebIDL.
   if (ice_candidate_pool_size < 0 ||
@@ -407,7 +407,7 @@ bool PeerConnectionInterface::RTCConfiguration::operator==(
     bool disable_ipv6_on_wifi;
     int max_ipv6_networks;
     bool disable_link_local_networks;
-    absl::optional<int> screencast_min_bitrate;
+    std::optional<int> screencast_min_bitrate;
     TcpCandidatePolicy tcp_candidate_policy;
     CandidateNetworkPolicy candidate_network_policy;
     int audio_jitter_buffer_max_packets;
@@ -424,27 +424,27 @@ bool PeerConnectionInterface::RTCConfiguration::operator==(
     bool enable_ice_renomination;
     bool redetermine_role_on_ice_restart;
     bool surface_ice_candidates_on_ice_transport_type_changed;
-    absl::optional<int> ice_check_interval_strong_connectivity;
-    absl::optional<int> ice_check_interval_weak_connectivity;
-    absl::optional<int> ice_check_min_interval;
-    absl::optional<int> ice_unwritable_timeout;
-    absl::optional<int> ice_unwritable_min_checks;
-    absl::optional<int> ice_inactive_timeout;
-    absl::optional<int> stun_candidate_keepalive_interval;
+    std::optional<int> ice_check_interval_strong_connectivity;
+    std::optional<int> ice_check_interval_weak_connectivity;
+    std::optional<int> ice_check_min_interval;
+    std::optional<int> ice_unwritable_timeout;
+    std::optional<int> ice_unwritable_min_checks;
+    std::optional<int> ice_inactive_timeout;
+    std::optional<int> stun_candidate_keepalive_interval;
     TurnCustomizer* turn_customizer;
     SdpSemantics sdp_semantics;
-    absl::optional<rtc::AdapterType> network_preference;
+    std::optional<rtc::AdapterType> network_preference;
     bool active_reset_srtp_params;
-    absl::optional<CryptoOptions> crypto_options;
+    std::optional<CryptoOptions> crypto_options;
     bool offer_extmap_allow_mixed;
     std::string turn_logging_id;
     bool enable_implicit_rollback;
-    absl::optional<int> report_usage_pattern_delay_ms;
-    absl::optional<int> stable_writable_connection_ping_interval_ms;
+    std::optional<int> report_usage_pattern_delay_ms;
+    std::optional<int> stable_writable_connection_ping_interval_ms;
     VpnPreference vpn_preference;
     std::vector<rtc::NetworkMask> vpn_list;
     PortAllocatorConfig port_allocator_config;
-    absl::optional<TimeDelta> pacer_burst_interval;
+    std::optional<TimeDelta> pacer_burst_interval;
   };
   static_assert(sizeof(stuff_being_tested_for_equality) == sizeof(*this),
                 "Did you add something to RTCConfiguration and forget to "
@@ -1152,7 +1152,7 @@ PeerConnection::AddTransceiver(
   }
 
   auto result =
-      cricket::CheckRtpParametersValues(parameters, codecs, absl::nullopt);
+      cricket::CheckRtpParametersValues(parameters, codecs, std::nullopt);
   if (!result.ok()) {
     if (result.type() == RTCErrorType::INVALID_MODIFICATION) {
       result.set_type(RTCErrorType::UNSUPPORTED_OPERATION);
@@ -1411,18 +1411,18 @@ PeerConnection::ice_gathering_state() {
   return ice_gathering_state_;
 }
 
-absl::optional<bool> PeerConnection::can_trickle_ice_candidates() {
+std::optional<bool> PeerConnection::can_trickle_ice_candidates() {
   RTC_DCHECK_RUN_ON(signaling_thread());
   const SessionDescriptionInterface* description = current_remote_description();
   if (!description) {
     description = pending_remote_description();
   }
   if (!description) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   // TODO(bugs.webrtc.org/7443): Change to retrieve from session-level option.
   if (description->description()->transport_infos().size() < 1) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   return description->description()->transport_infos()[0].description.HasOption(
       "trickle");
@@ -1542,8 +1542,8 @@ RTCError PeerConnection::SetConfiguration(
   RTCError validate_error = ValidateIceCandidatePoolSize(
       configuration.ice_candidate_pool_size,
       has_local_description
-          ? absl::optional<int>(configuration_.ice_candidate_pool_size)
-          : absl::nullopt);
+          ? std::optional<int>(configuration_.ice_candidate_pool_size)
+          : std::nullopt);
   if (!validate_error.ok()) {
     return validate_error;
   }
@@ -2079,7 +2079,7 @@ bool PeerConnection::CreateDataChannelTransport(absl::string_view mid) {
   RTC_DCHECK(!sctp_mid().has_value() || mid == sctp_mid().value());
   RTC_LOG(LS_INFO) << "Creating data channel, mid=" << mid;
 
-  absl::optional<std::string> transport_name =
+  std::optional<std::string> transport_name =
       network_thread()->BlockingCall([&] {
         RTC_DCHECK_RUN_ON(network_thread());
         return SetupDataChannelTransport_n(mid);
@@ -2180,7 +2180,7 @@ bool PeerConnection::ReconfigurePortAllocator_n(
     int candidate_pool_size,
     PortPrunePolicy turn_port_prune_policy,
     TurnCustomizer* turn_customizer,
-    absl::optional<int> stun_candidate_keepalive_interval,
+    std::optional<int> stun_candidate_keepalive_interval,
     bool have_local_description) {
   RTC_DCHECK_RUN_ON(network_thread());
   port_allocator_->SetCandidateFilter(
@@ -2213,10 +2213,10 @@ void PeerConnection::StopRtcEventLog_w() {
   env_.event_log().StopLogging();
 }
 
-absl::optional<rtc::SSLRole> PeerConnection::GetSctpSslRole_n() {
+std::optional<rtc::SSLRole> PeerConnection::GetSctpSslRole_n() {
   RTC_DCHECK_RUN_ON(network_thread());
   return sctp_mid_n_ ? transport_controller_->GetDtlsRole(*sctp_mid_n_)
-                     : absl::nullopt;
+                     : std::nullopt;
 }
 
 bool PeerConnection::GetSslRole(const std::string& content_name,
@@ -2261,11 +2261,11 @@ std::vector<DataChannelStats> PeerConnection::GetDataChannelStats() const {
   return data_channel_controller_.GetDataChannelStats();
 }
 
-absl::optional<std::string> PeerConnection::sctp_transport_name() const {
+std::optional<std::string> PeerConnection::sctp_transport_name() const {
   RTC_DCHECK_RUN_ON(signaling_thread());
   if (sctp_mid_s_ && transport_controller_copy_)
     return sctp_transport_name_s_;
-  return absl::optional<std::string>();
+  return std::optional<std::string>();
 }
 
 void PeerConnection::SetSctpTransportName(std::string sctp_transport_name) {
@@ -2274,7 +2274,7 @@ void PeerConnection::SetSctpTransportName(std::string sctp_transport_name) {
   ClearStatsCache();
 }
 
-absl::optional<std::string> PeerConnection::sctp_mid() const {
+std::optional<std::string> PeerConnection::sctp_mid() const {
   RTC_DCHECK_RUN_ON(signaling_thread());
   return sctp_mid_s_;
 }
@@ -2489,14 +2489,14 @@ Call::Stats PeerConnection::GetCallStats() {
   }
 }
 
-absl::optional<AudioDeviceModule::Stats> PeerConnection::GetAudioDeviceStats() {
+std::optional<AudioDeviceModule::Stats> PeerConnection::GetAudioDeviceStats() {
   if (context_->media_engine()) {
     return context_->media_engine()->voice().GetAudioDeviceStats();
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
-absl::optional<std::string> PeerConnection::SetupDataChannelTransport_n(
+std::optional<std::string> PeerConnection::SetupDataChannelTransport_n(
     absl::string_view mid) {
   sctp_mid_n_ = std::string(mid);
   DataChannelTransportInterface* transport =
@@ -2505,11 +2505,11 @@ absl::optional<std::string> PeerConnection::SetupDataChannelTransport_n(
     RTC_LOG(LS_ERROR)
         << "Data channel transport is not available for data channels, mid="
         << mid;
-    sctp_mid_n_ = absl::nullopt;
-    return absl::nullopt;
+    sctp_mid_n_ = std::nullopt;
+    return std::nullopt;
   }
 
-  absl::optional<std::string> transport_name;
+  std::optional<std::string> transport_name;
   cricket::DtlsTransportInternal* dtls_transport =
       transport_controller_->GetDtlsTransport(*sctp_mid_n_);
   if (dtls_transport) {

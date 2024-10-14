@@ -32,14 +32,14 @@ SpsParser::SpsState::~SpsState() = default;
 // http://www.itu.int/rec/T-REC-H.264
 
 // Unpack RBSP and parse SPS state from the supplied buffer.
-absl::optional<SpsParser::SpsState> SpsParser::ParseSps(
+std::optional<SpsParser::SpsState> SpsParser::ParseSps(
     rtc::ArrayView<const uint8_t> data) {
   std::vector<uint8_t> unpacked_buffer = H264::ParseRbsp(data);
   BitstreamReader reader(unpacked_buffer);
   return ParseSpsUpToVui(reader);
 }
 
-absl::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
+std::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
     BitstreamReader& reader) {
   // Now, we need to use a bitstream reader to parse through the actual AVC SPS
   // format. See Section 7.3.2.1.1 ("Sequence parameter set data syntax") of the
@@ -102,7 +102,7 @@ absl::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
               int delta_scale = reader.ReadSignedExponentialGolomb();
               if (!reader.Ok() || delta_scale < kScalingDeltaMin ||
                   delta_scale > kScaldingDeltaMax) {
-                return absl::nullopt;
+                return std::nullopt;
               }
               next_scale = (last_scale + delta_scale + 256) % 256;
             }
@@ -122,7 +122,7 @@ absl::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
   // log2_max_frame_num_minus4: ue(v)
   uint32_t log2_max_frame_num_minus4 = reader.ReadExponentialGolomb();
   if (!reader.Ok() || log2_max_frame_num_minus4 > kMaxLog2Minus4) {
-    return absl::nullopt;
+    return std::nullopt;
   }
   sps.log2_max_frame_num = log2_max_frame_num_minus4 + 4;
 
@@ -132,7 +132,7 @@ absl::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
     // log2_max_pic_order_cnt_lsb_minus4: ue(v)
     uint32_t log2_max_pic_order_cnt_lsb_minus4 = reader.ReadExponentialGolomb();
     if (!reader.Ok() || log2_max_pic_order_cnt_lsb_minus4 > kMaxLog2Minus4) {
-      return absl::nullopt;
+      return std::nullopt;
     }
     sps.log2_max_pic_order_cnt_lsb = log2_max_pic_order_cnt_lsb_minus4 + 4;
   } else if (sps.pic_order_cnt_type == 1) {
@@ -149,7 +149,7 @@ absl::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
       // offset_for_ref_frame[i]: se(v)
       reader.ReadExponentialGolomb();
       if (!reader.Ok()) {
-        return absl::nullopt;
+        return std::nullopt;
       }
     }
   }
@@ -197,7 +197,7 @@ absl::optional<SpsParser::SpsState> SpsParser::ParseSpsUpToVui(
 
   // Far enough! We don't use the rest of the SPS.
   if (!reader.Ok()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   // Figure out the crop units in pixels. That's based on the chroma format's

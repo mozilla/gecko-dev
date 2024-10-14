@@ -151,7 +151,7 @@ class ReassemblyQueue {
   std::vector<DcSctpMessage> reassembled_messages_;
 
   // If present, "deferred reset processing" mode is active.
-  absl::optional<DeferredResetStreams> deferred_reset_streams_;
+  std::optional<DeferredResetStreams> deferred_reset_streams_;
 
   // The number of "payload bytes" that are in this queue, in total.
   size_t queued_bytes_ = 0;

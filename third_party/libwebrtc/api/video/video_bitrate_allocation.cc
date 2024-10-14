@@ -12,10 +12,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/video/video_codec_constants.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/numerics/safe_conversions.h"
@@ -32,7 +32,7 @@ bool VideoBitrateAllocation::SetBitrate(size_t spatial_index,
   RTC_CHECK_LT(spatial_index, kMaxSpatialLayers);
   RTC_CHECK_LT(temporal_index, kMaxTemporalStreams);
   int64_t new_bitrate_sum_bps = sum_;
-  absl::optional<uint32_t>& layer_bitrate =
+  std::optional<uint32_t>& layer_bitrate =
       bitrates_[spatial_index][temporal_index];
   if (layer_bitrate) {
     RTC_DCHECK_LE(*layer_bitrate, sum_);
@@ -112,11 +112,11 @@ std::vector<uint32_t> VideoBitrateAllocation::GetTemporalLayerAllocation(
   return temporal_rates;
 }
 
-std::vector<absl::optional<VideoBitrateAllocation>>
+std::vector<std::optional<VideoBitrateAllocation>>
 VideoBitrateAllocation::GetSimulcastAllocations() const {
-  std::vector<absl::optional<VideoBitrateAllocation>> bitrates;
+  std::vector<std::optional<VideoBitrateAllocation>> bitrates;
   for (size_t si = 0; si < kMaxSpatialLayers; ++si) {
-    absl::optional<VideoBitrateAllocation> layer_bitrate;
+    std::optional<VideoBitrateAllocation> layer_bitrate;
     if (IsSpatialLayerUsed(si)) {
       layer_bitrate = VideoBitrateAllocation();
       for (int tl = 0; tl < kMaxTemporalStreams; ++tl) {

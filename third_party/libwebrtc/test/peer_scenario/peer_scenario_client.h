@@ -79,7 +79,7 @@ class PeerScenarioClient {
       struct PulsedNoise {
         double amplitude = 0.1;
       };
-      absl::optional<PulsedNoise> pulsed_noise = PulsedNoise();
+      std::optional<PulsedNoise> pulsed_noise = PulsedNoise();
     } audio;
     struct Video {
       bool use_fake_codecs = false;

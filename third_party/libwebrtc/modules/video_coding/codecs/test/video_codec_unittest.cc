@@ -57,8 +57,8 @@ VideoCodecUnitTest::FakeEncodeCompleteCallback::OnEncodedImage(
 
 void VideoCodecUnitTest::FakeDecodeCompleteCallback::Decoded(
     VideoFrame& frame,
-    absl::optional<int32_t> decode_time_ms,
-    absl::optional<uint8_t> qp) {
+    std::optional<int32_t> decode_time_ms,
+    std::optional<uint8_t> qp) {
   MutexLock lock(&test_->decoded_frame_section_);
   test_->decoded_frame_.emplace(frame);
   test_->decoded_qp_ = qp;
@@ -77,7 +77,7 @@ void VideoCodecUnitTest::SetUp() {
 
   input_frame_generator_ = test::CreateSquareFrameGenerator(
       codec_settings_.width, codec_settings_.height,
-      test::FrameGeneratorInterface::OutputType::kI420, absl::optional<int>());
+      test::FrameGeneratorInterface::OutputType::kI420, std::optional<int>());
 
   encoder_ = CreateEncoder();
   decoder_ = CreateDecoder();
@@ -159,7 +159,7 @@ bool VideoCodecUnitTest::WaitForEncodedFrames(
 }
 
 bool VideoCodecUnitTest::WaitForDecodedFrame(std::unique_ptr<VideoFrame>* frame,
-                                             absl::optional<uint8_t>* qp) {
+                                             std::optional<uint8_t>* qp) {
   bool ret = decoded_frame_event_.Wait(kDecodeTimeout);
   EXPECT_TRUE(ret) << "Timed out while waiting for a decoded frame.";
   // This becomes unsafe if there are multiple threads waiting for frames.

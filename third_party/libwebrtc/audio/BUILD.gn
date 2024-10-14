@@ -116,7 +116,6 @@ rtc_library("audio") {
     "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 if (rtc_include_tests) {
@@ -226,7 +225,6 @@ if (rtc_include_tests) {
       "utility:utility_tests",
       "//testing/gtest",
       "//third_party/abseil-cpp/absl/memory",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 

@@ -35,11 +35,11 @@ struct RemotePeerAudioConfig {
       : sampling_frequency_in_hz(config.sampling_frequency_in_hz),
         output_file_name(config.output_dump_file_name) {}
 
-  static absl::optional<RemotePeerAudioConfig> Create(
-      absl::optional<AudioConfig> config);
+  static std::optional<RemotePeerAudioConfig> Create(
+      std::optional<AudioConfig> config);
 
   int sampling_frequency_in_hz;
-  absl::optional<std::string> output_file_name;
+  std::optional<std::string> output_file_name;
 };
 
 class TestPeerFactory {
@@ -68,8 +68,8 @@ class TestPeerFactory {
   std::unique_ptr<TestPeer> CreateTestPeer(
       std::unique_ptr<PeerConfigurer> configurer,
       std::unique_ptr<MockPeerConnectionObserver> observer,
-      absl::optional<RemotePeerAudioConfig> remote_audio_config,
-      absl::optional<EchoEmulationConfig> echo_emulation_config);
+      std::optional<RemotePeerAudioConfig> remote_audio_config,
+      std::optional<EchoEmulationConfig> echo_emulation_config);
 
  private:
   rtc::Thread* signaling_thread_;

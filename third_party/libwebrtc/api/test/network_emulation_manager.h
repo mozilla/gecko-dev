@@ -14,12 +14,12 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
 #include "api/packet_socket_factory.h"
@@ -69,11 +69,11 @@ struct EmulatedEndpointConfig {
   enum class IpAddressFamily { kIpv4, kIpv6 };
 
   // If specified will be used to name endpoint for logging purposes.
-  absl::optional<std::string> name = absl::nullopt;
+  std::optional<std::string> name = std::nullopt;
   IpAddressFamily generated_ip_family = IpAddressFamily::kIpv4;
   // If specified will be used as IP address for endpoint node. Must be unique
   // among all created nodes.
-  absl::optional<rtc::IPAddress> ip;
+  std::optional<rtc::IPAddress> ip;
   // Should endpoint be enabled or not, when it will be created.
   // Enabled endpoints will be available for webrtc to send packets.
   bool start_as_enabled = true;

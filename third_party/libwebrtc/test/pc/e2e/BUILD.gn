@@ -80,7 +80,6 @@ if (!build_with_chromium) {
         "../../../rtc_base/synchronization:mutex",
         "//third_party/abseil-cpp/absl/memory",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
 
@@ -126,7 +125,6 @@ if (!build_with_chromium) {
         "../../../api:sequence_checker",
         "../../../api/test/video:test_video_track_source",
         "../../../api/video:video_frame",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
 
@@ -201,7 +199,6 @@ if (!build_with_chromium) {
         "../../../rtc_base/task_utils:repeating_task",
         "../../../system_wrappers",
         "//third_party/abseil-cpp/absl/memory",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
 
@@ -371,7 +368,6 @@ if (!build_with_chromium) {
         "../../../api/test/pclf:peer_configurer",
         "../../../api/units:time_delta",
         "//third_party/abseil-cpp/absl/strings:string_view",
-        "//third_party/abseil-cpp/absl/types:optional",
       ]
     }
 
@@ -440,7 +436,6 @@ if (!build_with_chromium) {
       "../../../api:track_id_stream_info_map",
       "../../../rtc_base:macromagic",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -553,7 +548,6 @@ if (!build_with_chromium) {
       "../../../rtc_base/synchronization:mutex",
       "../../../system_wrappers:field_trial",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
@@ -578,7 +572,6 @@ if (!build_with_chromium) {
       "../../../rtc_base:stringutils",
       "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings:string_view",
-      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 }

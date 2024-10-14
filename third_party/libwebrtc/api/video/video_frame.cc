@@ -12,9 +12,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <utility>
 
-#include "absl/types/optional.h"
 #include "api/rtp_packet_infos.h"
 #include "api/scoped_refptr.h"
 #include "api/units/timestamp.h"
@@ -196,13 +196,13 @@ VideoFrame::Builder& VideoFrame::Builder::set_timestamp_us(
 }
 
 VideoFrame::Builder& VideoFrame::Builder::set_capture_time_identifier(
-    const absl::optional<Timestamp>& capture_time_identifier) {
+    const std::optional<Timestamp>& capture_time_identifier) {
   capture_time_identifier_ = capture_time_identifier;
   return *this;
 }
 
 VideoFrame::Builder& VideoFrame::Builder::set_reference_time(
-    const absl::optional<Timestamp>& reference_time) {
+    const std::optional<Timestamp>& reference_time) {
   reference_time_ = reference_time;
   return *this;
 }
@@ -230,15 +230,14 @@ VideoFrame::Builder& VideoFrame::Builder::set_rotation(VideoRotation rotation) {
 }
 
 VideoFrame::Builder& VideoFrame::Builder::set_color_space(
-    const absl::optional<ColorSpace>& color_space) {
+    const std::optional<ColorSpace>& color_space) {
   color_space_ = color_space;
   return *this;
 }
 
 VideoFrame::Builder& VideoFrame::Builder::set_color_space(
     const ColorSpace* color_space) {
-  color_space_ =
-      color_space ? absl::make_optional(*color_space) : absl::nullopt;
+  color_space_ = color_space ? std::make_optional(*color_space) : std::nullopt;
   return *this;
 }
 
@@ -248,7 +247,7 @@ VideoFrame::Builder& VideoFrame::Builder::set_id(uint16_t id) {
 }
 
 VideoFrame::Builder& VideoFrame::Builder::set_update_rect(
-    const absl::optional<VideoFrame::UpdateRect>& update_rect) {
+    const std::optional<VideoFrame::UpdateRect>& update_rect) {
   update_rect_ = update_rect;
   return *this;
 }
@@ -283,14 +282,14 @@ VideoFrame::VideoFrame(const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
 VideoFrame::VideoFrame(uint16_t id,
                        const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
                        int64_t timestamp_us,
-                       const absl::optional<Timestamp>& capture_time_identifier,
-                       const absl::optional<Timestamp>& reference_time,
+                       const std::optional<Timestamp>& capture_time_identifier,
+                       const std::optional<Timestamp>& reference_time,
                        uint32_t timestamp_rtp,
                        int64_t ntp_time_ms,
                        VideoRotation rotation,
-                       const absl::optional<ColorSpace>& color_space,
+                       const std::optional<ColorSpace>& color_space,
                        const RenderParameters& render_parameters,
-                       const absl::optional<UpdateRect>& update_rect,
+                       const std::optional<UpdateRect>& update_rect,
                        RtpPacketInfos packet_infos)
     : id_(id),
       video_frame_buffer_(buffer),

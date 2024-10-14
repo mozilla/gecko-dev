@@ -51,7 +51,7 @@
                                                                        expirationTimestamp);
   } else {
     cc_certificate =
-        rtc::RTCCertificateGenerator::GenerateCertificate(rtc::KeyParams(keyType), absl::nullopt);
+        rtc::RTCCertificateGenerator::GenerateCertificate(rtc::KeyParams(keyType), std::nullopt);
   }
   if (!cc_certificate) {
     RTCLogError(@"Failed to generate certificate.");

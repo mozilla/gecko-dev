@@ -12,11 +12,11 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/test/create_network_emulation_manager.h"
 #include "api/test/create_peer_connection_quality_test_frame_generator.h"
@@ -65,14 +65,14 @@ void AddDefaultAudioVideoPeer(
   fixture.AddPeer(std::move(peer));
 }
 
-absl::optional<Metric> FindMeetricByName(absl::string_view name,
-                                         rtc::ArrayView<const Metric> metrics) {
+std::optional<Metric> FindMeetricByName(absl::string_view name,
+                                        rtc::ArrayView<const Metric> metrics) {
   for (const Metric& metric : metrics) {
     if (metric.name == name) {
       return metric;
     }
   }
-  return absl::nullopt;
+  return std::nullopt;
 }
 
 TEST(StatsBasedNetworkQualityMetricsReporterTest, DebugStatsAreCollected) {
@@ -128,20 +128,20 @@ TEST(StatsBasedNetworkQualityMetricsReporterTest, DebugStatsAreCollected) {
   fixture.Run(RunParams(TimeDelta::Seconds(4)));
 
   std::vector<Metric> metrics = metrics_logger.GetCollectedMetrics();
-  absl::optional<Metric> uplink_packet_transport_time =
+  std::optional<Metric> uplink_packet_transport_time =
       FindMeetricByName("uplink_packet_transport_time", metrics);
   ASSERT_TRUE(uplink_packet_transport_time.has_value());
   ASSERT_FALSE(uplink_packet_transport_time->time_series.samples.empty());
-  absl::optional<Metric> uplink_size_to_packet_transport_time =
+  std::optional<Metric> uplink_size_to_packet_transport_time =
       FindMeetricByName("uplink_size_to_packet_transport_time", metrics);
   ASSERT_TRUE(uplink_size_to_packet_transport_time.has_value());
   ASSERT_FALSE(
       uplink_size_to_packet_transport_time->time_series.samples.empty());
-  absl::optional<Metric> downlink_packet_transport_time =
+  std::optional<Metric> downlink_packet_transport_time =
       FindMeetricByName("downlink_packet_transport_time", metrics);
   ASSERT_TRUE(downlink_packet_transport_time.has_value());
   ASSERT_FALSE(downlink_packet_transport_time->time_series.samples.empty());
-  absl::optional<Metric> downlink_size_to_packet_transport_time =
+  std::optional<Metric> downlink_size_to_packet_transport_time =
       FindMeetricByName("downlink_size_to_packet_transport_time", metrics);
   ASSERT_TRUE(downlink_size_to_packet_transport_time.has_value());
   ASSERT_FALSE(

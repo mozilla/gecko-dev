@@ -13,9 +13,9 @@
 
 #include <deque>
 #include <map>
+#include <optional>
 #include <vector>
 
-#include "absl/types/optional.h"
 #include "api/make_ref_counted.h"
 #include "api/ref_counted_base.h"
 #include "api/scoped_refptr.h"
@@ -151,7 +151,7 @@ class VirtualSocket : public Socket, public sigslot::has_slots<> {
     std::list<std::unique_ptr<Packet>> recv_buffer_ RTC_GUARDED_BY(mutex_);
 
     // Pending sockets which can be Accepted
-    absl::optional<std::deque<SocketAddress>> listen_queue_
+    std::optional<std::deque<SocketAddress>> listen_queue_
         RTC_GUARDED_BY(mutex_);
   };
 
