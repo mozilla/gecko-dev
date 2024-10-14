@@ -3269,6 +3269,9 @@ void nsIFrame::BuildDisplayListForStackingContext(
         if (!hasPerspective) {
           flags &= ~nsDisplayTransform::INCLUDE_PERSPECTIVE;
         }
+        if (!combines3DTransformWithAncestors) {
+          flags &= ~nsDisplayTransform::INCLUDE_PRESERVE3D_ANCESTORS;
+        }
         auto transform = nsDisplayTransform::GetResultingTransformMatrix(
             this, nsPoint(), appPerDev, flags);
         nsRect untransformedDirtyRect;
