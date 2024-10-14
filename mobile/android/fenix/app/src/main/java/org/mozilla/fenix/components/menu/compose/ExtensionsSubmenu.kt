@@ -54,6 +54,7 @@ internal fun ExtensionsSubmenu(
     onAddonClick: (Addon) -> Unit,
     onInstallAddonClick: (Addon) -> Unit,
     onDiscoverMoreExtensionsMenuClick: () -> Unit,
+    webExtensionMenuItemClick: () -> Unit,
 ) {
     MenuScaffold(
         header = {
@@ -95,7 +96,10 @@ internal fun ExtensionsSubmenu(
                         badgeText = webExtensionMenuItem.badgeText,
                         badgeTextColor = webExtensionMenuItem.badgeTextColor,
                         badgeBackgroundColor = webExtensionMenuItem.badgeBackgroundColor,
-                        onClick = webExtensionMenuItem.onClick,
+                        onClick = {
+                            webExtensionMenuItemClick()
+                            webExtensionMenuItem.onClick()
+                        },
                     )
                 }
             }
@@ -229,6 +233,7 @@ private fun ExtensionsSubmenuPreview() {
                 onAddonClick = {},
                 onInstallAddonClick = {},
                 onDiscoverMoreExtensionsMenuClick = {},
+                webExtensionMenuItemClick = {},
             )
         }
     }
@@ -280,6 +285,7 @@ private fun ExtensionsSubmenuPrivatePreview() {
                 onAddonClick = {},
                 onInstallAddonClick = {},
                 onDiscoverMoreExtensionsMenuClick = {},
+                webExtensionMenuItemClick = {},
             )
         }
     }

@@ -373,6 +373,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                         onExtensionsMenuClick = {
                                             contentState = Route.ExtensionsMenu
+                                            Events.browserMenuAction.record(
+                                                Events.BrowserMenuActionExtra(
+                                                    item = "extensions_submenu",
+                                                ),
+                                            )
                                         },
                                         onSaveMenuClick = {
                                             contentState = Route.SaveMenu
@@ -394,6 +399,11 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                         onExtensionsMenuClick = {
                                             contentState = Route.ExtensionsMenu
+                                            Events.browserMenuAction.record(
+                                                Events.BrowserMenuActionExtra(
+                                                    item = "extensions_submenu",
+                                                ),
+                                            )
                                         },
                                         onSaveMenuClick = {
                                             contentState = Route.SaveMenu
@@ -571,6 +581,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onDiscoverMoreExtensionsMenuClick = {
                                         store.dispatch(MenuAction.Navigate.DiscoverMoreExtensions)
+                                    },
+                                    webExtensionMenuItemClick = {
+                                        Events.browserMenuAction.record(
+                                            Events.BrowserMenuActionExtra(
+                                                item = "web_extension_browser_action_clicked",
+                                            ),
+                                        )
                                     },
                                 )
                             }

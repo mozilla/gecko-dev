@@ -210,12 +210,40 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
+            MenuAction.Navigate.DiscoverMoreExtensions -> {
+                Events.browserMenuAction.record(
+                    Events.BrowserMenuActionExtra(
+                        item = "discover_more_extensions",
+                    ),
+                )
+            }
+
+            MenuAction.Navigate.ExtensionsLearnMore -> {
+                Events.browserMenuAction.record(
+                    Events.BrowserMenuActionExtra(
+                        item = "extensions_learn_more",
+                    ),
+                )
+            }
+
+            is MenuAction.Navigate.AddonDetails -> {
+                Events.browserMenuAction.record(
+                    Events.BrowserMenuActionExtra(
+                        item = "addon_details",
+                    ),
+                )
+            }
+
+            is MenuAction.InstallAddon -> {
+                Events.browserMenuAction.record(
+                    Events.BrowserMenuActionExtra(
+                        item = "install_addon",
+                    ),
+                )
+            }
+
             MenuAction.InitAction,
-            is MenuAction.InstallAddon,
             is MenuAction.CustomMenuItemAction,
-            is MenuAction.Navigate.AddonDetails,
-            MenuAction.Navigate.DiscoverMoreExtensions,
-            MenuAction.Navigate.ExtensionsLearnMore,
             is MenuAction.UpdateBookmarkState,
             is MenuAction.UpdateExtensionState,
             is MenuAction.UpdatePinnedState,

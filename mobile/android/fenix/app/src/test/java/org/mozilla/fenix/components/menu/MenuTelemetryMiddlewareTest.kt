@@ -6,6 +6,7 @@ package org.mozilla.fenix.components.menu
 
 import mozilla.components.browser.state.state.ReaderState
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.feature.addons.Addon
 import mozilla.components.service.fxa.manager.AccountState
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
@@ -407,6 +408,46 @@ class MenuTelemetryMiddlewareTest {
         store.dispatch(MenuAction.OpenInFirefox).joinBlocking()
 
         assertTelemetryRecorded(Events.browserMenuAction, item = "open_in_fenix")
+    }
+
+    @Test
+    fun `WHEN navigating to the discover more extensions page THEN record the discover more extensions browser menu telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.Navigate.DiscoverMoreExtensions).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "discover_more_extensions")
+    }
+
+    @Test
+    fun `WHEN navigating to the sumo page for installing add-ons THEN record the extensions learn more browser menu telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.Navigate.ExtensionsLearnMore).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "extensions_learn_more")
+    }
+
+    @Test
+    fun `WHEN navigating to an add-on's details THEN record the addon details browser menu telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.Navigate.AddonDetails(Addon(""))).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "addon_details")
+    }
+
+    @Test
+    fun `WHEN installing an add-on THEN record the install addon browser menu telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.InstallAddon(Addon(""))).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "install_addon")
     }
 
     private fun assertTelemetryRecorded(
