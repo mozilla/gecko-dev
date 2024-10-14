@@ -10,6 +10,9 @@
 #include <poll.h>
 #include <unistd.h>
 #include <linux/rtnetlink.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "nsThreadUtils.h"
 #include "NetlinkService.h"
@@ -26,6 +29,7 @@
 #include "mozilla/ProfilerThreadSleep.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/ScopeExit.h"
 
 #if defined(HAVE_RES_NINIT)
 #  include <netinet/in.h>
@@ -73,6 +77,11 @@ static void GetAddrStr(const in_common_addr* aAddr, uint8_t aFamily,
   }
   _retval.Assign(addr);
 }
+
+// Assume true by default.
+static Atomic<bool, MemoryOrdering::Relaxed> sHasNonLocalIPv6{true};
+// static
+bool NetlinkService::HasNonLocalIPv6Address() { return sHasNonLocalIPv6; }
 
 class NetlinkAddress {
  public:
@@ -1844,6 +1853,11 @@ void NetlinkService::CalculateNetworkID() {
       idChanged = true;
       Telemetry::Accumulate(Telemetry::NETWORK_ID2, 0);
     }
+  }
+
+  if (idChanged) {
+    sHasNonLocalIPv6 = found6;
+    LOG(("has IPv6: %d", bool(sHasNonLocalIPv6)));
   }
 
   // If this is first time we calculate network ID, don't report it as a network

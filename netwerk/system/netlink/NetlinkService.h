@@ -56,6 +56,8 @@ class NetlinkService : public nsIRunnable {
   nsresult GetDnsSuffixList(nsTArray<nsCString>& aDnsSuffixList);
   nsresult GetResolvers(nsTArray<NetAddr>& aResolvers);
 
+  static bool HasNonLocalIPv6Address();
+
  private:
   void EnqueueGenMsg(uint16_t aMsgType, uint8_t aFamily);
   void EnqueueRtMsg(uint8_t aFamily, void* aAddress);

@@ -61,16 +61,9 @@ static const unsigned int kNetworkChangeCoalescingPeriod = 1000;
 NS_IMPL_ISUPPORTS(nsNotifyAddrListener, nsINetworkLinkService, nsIRunnable,
                   nsIObserver)
 
-nsNotifyAddrListener::nsNotifyAddrListener()
-    : mLinkUp(true),  // assume true by default
-      mStatusKnown(false),
-      mCheckAttempted(false),
-      mMutex("nsNotifyAddrListener::mMutex"),
-      mCheckEvent(nullptr),
-      mShutdown(false),
-      mPlatformDNSIndications(NONE_DETECTED),
-      mIPInterfaceChecksum(0),
-      mCoalescingActive(false) {}
+static Atomic<bool, MemoryOrdering::Relaxed> sHasNonLocalIPv6{true};
+
+nsNotifyAddrListener::nsNotifyAddrListener() = default;
 
 nsNotifyAddrListener::~nsNotifyAddrListener() {
   NS_ASSERTION(!mThread, "nsNotifyAddrListener thread shutdown failed");
@@ -475,6 +468,7 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void) {
   nsTArray<nsCString> dnsSuffixList;
   nsTArray<mozilla::net::NetAddr> resolvers;
   uint32_t platformDNSIndications = NONE_DETECTED;
+  bool hasNonLocalIPv6 = false;
   if (ret == ERROR_SUCCESS) {
     bool linkUp = false;
     ULONG sum = 0;
@@ -511,6 +505,15 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void) {
         SOCKET_ADDRESS* sockAddr = &pip->Address;
         for (int i = 0; i < sockAddr->iSockaddrLength; ++i) {
           sum += (reinterpret_cast<unsigned char*>(sockAddr->lpSockaddr))[i];
+        }
+
+        if (sockAddr->lpSockaddr->sa_family == AF_INET6) {
+          sockaddr_in6* ipv6 =
+              reinterpret_cast<sockaddr_in6*>(sockAddr->lpSockaddr);
+          if (!IN6_IS_ADDR_LINKLOCAL(&ipv6->sin6_addr) &&
+              !IN6_IS_ADDR_LOOPBACK(&ipv6->sin6_addr)) {
+            hasNonLocalIPv6 = true;
+          }
         }
       }
 
@@ -558,6 +561,8 @@ nsNotifyAddrListener::CheckAdaptersAddresses(void) {
     mStatusKnown = true;
   }
   free(adapterList);
+  LOG(("has IPv6: %d", hasNonLocalIPv6));
+  sHasNonLocalIPv6 = hasNonLocalIPv6;
 
   if (mLinkUp) {
     /* Store the checksum only if one or more interfaces are up */
@@ -733,4 +738,9 @@ void nsNotifyAddrListener::CheckLinkStatus(void) {
                                                  : NS_NETWORK_LINK_DATA_DOWN);
     }
   }
+}
+
+// static
+bool nsINetworkLinkService::HasNonLocalIPv6Address() {
+  return sHasNonLocalIPv6;
 }

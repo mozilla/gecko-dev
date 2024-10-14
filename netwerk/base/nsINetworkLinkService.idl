@@ -87,6 +87,10 @@ interface nsINetworkLinkService : nsISupports
    * indicate that we should only use DNS, not TRR.
    */
   readonly attribute unsigned long platformDNSIndications;
+
+  %{C++
+    static bool HasNonLocalIPv6Address();
+  %}
 };
 
 %{C++

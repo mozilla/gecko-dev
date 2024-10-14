@@ -9,6 +9,7 @@
 #include "nsIObserver.h"
 #include "nsITimer.h"
 #include "nsString.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/SHA1.h"
 

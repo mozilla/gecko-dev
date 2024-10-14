@@ -44,9 +44,9 @@ class nsNotifyAddrListener : public nsINetworkLinkService,
                                    mozilla::SHA1Sum& sha1);
 
  protected:
-  bool mLinkUp;
-  bool mStatusKnown;
-  bool mCheckAttempted;
+  bool mLinkUp{true};  // assume true by default
+  bool mStatusKnown{false};
+  bool mCheckAttempted{false};
 
   nsresult Shutdown(void);
   nsresult NotifyObservers(const char* aTopic, const char* aData);
@@ -68,29 +68,30 @@ class nsNotifyAddrListener : public nsINetworkLinkService,
   void calculateNetworkId(void);
   bool findMac(char* gateway);
 
-  mozilla::Mutex mMutex MOZ_UNANNOTATED;
+  mozilla::Mutex mMutex MOZ_UNANNOTATED{"nsNotifyAddrListener::mMutex"};
   nsCString mNetworkId;
   nsTArray<nsCString> mDnsSuffixList;
   nsTArray<mozilla::net::NetAddr> mDNSResolvers;
 
-  HANDLE mCheckEvent;
+  HANDLE mCheckEvent{nullptr};
 
   // set true when mCheckEvent means shutdown
-  mozilla::Atomic<bool> mShutdown;
+  mozilla::Atomic<bool> mShutdown{false};
 
   // Contains a set of flags that codify the reasons for which
   // the platform indicates DNS should be used instead of TRR.
-  mozilla::Atomic<uint32_t, mozilla::Relaxed> mPlatformDNSIndications;
+  mozilla::Atomic<uint32_t, mozilla::Relaxed> mPlatformDNSIndications{
+      NONE_DETECTED};
 
   // This is a checksum of various meta data for all network interfaces
   // considered UP at last check.
-  ULONG mIPInterfaceChecksum;
+  ULONG mIPInterfaceChecksum{0};
 
   // start time of the checking
   mozilla::TimeStamp mStartTime;
 
   // Flag set while coalescing change events
-  bool mCoalescingActive;
+  bool mCoalescingActive{false};
 
   // Time stamp for first event during coalescing
   mozilla::TimeStamp mChangeTime;

@@ -210,3 +210,8 @@ void nsNetworkLinkService::NotifyObservers(const char* aTopic,
         aData ? NS_ConvertASCIItoUTF16(aData).get() : nullptr);
   }
 }
+
+// static
+bool nsINetworkLinkService::HasNonLocalIPv6Address() {
+  return mozilla::net::NetlinkService::HasNonLocalIPv6Address();
+}

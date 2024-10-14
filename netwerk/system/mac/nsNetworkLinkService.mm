@@ -90,6 +90,8 @@ static void CFReleaseSafe(CFTypeRef cf) {
   }
 }
 
+mozilla::Atomic<bool, mozilla::MemoryOrdering::Relaxed> sHasNonLocalIPv6{true};
+
 NS_IMPL_ISUPPORTS(nsNetworkLinkService, nsINetworkLinkService, nsIObserver,
                   nsITimerCallback, nsINamed)
 
@@ -528,6 +530,7 @@ bool nsNetworkLinkService::IPv6NetworkId(SHA1Sum* sha1) {
   std::vector<prefix_and_netmask> prefixAndNetmaskStore;
 
   if (!getifaddrs(&ifap)) {
+    bool hasNonLocalIPv6 = false;
     struct ifaddrs* ifa;
     for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
       if (ifa->ifa_addr == NULL) {
@@ -536,6 +539,7 @@ bool nsNetworkLinkService::IPv6NetworkId(SHA1Sum* sha1) {
       if ((AF_INET6 == ifa->ifa_addr->sa_family) &&
           !(ifa->ifa_flags & (IFF_POINTOPOINT | IFF_LOOPBACK))) {
         // only IPv6 interfaces that aren't pointtopoint or loopback
+        hasNonLocalIPv6 = true;
         struct sockaddr_in6* sin_netmask =
             (struct sockaddr_in6*)ifa->ifa_netmask;
         if (sin_netmask) {
@@ -569,6 +573,7 @@ bool nsNetworkLinkService::IPv6NetworkId(SHA1Sum* sha1) {
         }
       }
     }
+    sHasNonLocalIPv6 = hasNonLocalIPv6;
     freeifaddrs(ifap);
   }
   if (prefixAndNetmaskStore.empty()) {
@@ -996,4 +1001,9 @@ void nsNetworkLinkService::ReachabilityChanged(SCNetworkReachabilityRef target,
   // If a new interface is up or the order of interfaces is changed, we should
   // update the DNS suffix list.
   service->DNSConfigChanged(0);
+}
+
+// static
+bool nsINetworkLinkService::HasNonLocalIPv6Address() {
+  return sHasNonLocalIPv6;
 }
