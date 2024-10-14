@@ -23,12 +23,12 @@
     <mozilla.components.browser.toolbar.internal.ActionContainer
         android:id="@+id/mozac_browser_toolbar_navigation_actions"
         android:layout_width="wrap_content"
-        android:layout_height="48dp"
+        android:layout_height="@dimen/mozac_browser_toolbar_button_height"
         android:layout_marginTop="4dp"
         app:layout_constraintStart_toEndOf="@id/mozac_browser_toolbar_start_browser"
         app:layout_constraintTop_toTopOf="parent"
-        mozac:actionContainerItemSize="48dp"
-        tools:layout_width="48dp" />
+        mozac:actionContainerItemSize="@dimen/mozac_browser_toolbar_button_container_item_size"
+        tools:layout_width="@dimen/mozac_browser_toolbar_button_width" />
 
     <!-- URL container -->
 
@@ -128,32 +128,32 @@
     <mozilla.components.browser.toolbar.internal.ActionContainer
         android:id="@+id/mozac_browser_toolbar_page_actions"
         android:layout_width="wrap_content"
-        android:layout_height="48dp"
+        android:layout_height="@dimen/mozac_browser_toolbar_button_height"
         android:layout_marginTop="4dp"
         android:scaleType="center"
         app:layout_constraintEnd_toEndOf="@+id/mozac_browser_toolbar_background"
         app:layout_constraintTop_toTopOf="parent"
-        mozac:actionContainerItemSize="48dp"
-        tools:layout_width="48dp" />
+        mozac:actionContainerItemSize="@dimen/mozac_browser_toolbar_button_container_item_size"
+        tools:layout_width="@dimen/mozac_browser_toolbar_button_width" />
 
     <!-- Browser Actions -->
 
     <mozilla.components.browser.toolbar.internal.ActionContainer
         android:id="@+id/mozac_browser_toolbar_browser_actions"
         android:layout_width="wrap_content"
-        android:layout_height="48dp"
+        android:layout_height="@dimen/mozac_browser_toolbar_button_height"
         android:layout_marginTop="4dp"
         app:layout_constraintEnd_toStartOf="@id/mozac_browser_toolbar_menu"
         app:layout_constraintTop_toTopOf="parent"
-        mozac:actionContainerItemSize="48dp"
-        tools:layout_width="48dp" />
+        mozac:actionContainerItemSize="@dimen/mozac_browser_toolbar_button_container_item_size"
+        tools:layout_width="@dimen/mozac_browser_toolbar_button_width" />
 
     <!-- Menu -->
 
     <mozilla.components.browser.menu.view.MenuButton
         android:id="@+id/mozac_browser_toolbar_menu"
-        android:layout_width="36dp"
-        android:layout_height="48dp"
+        android:layout_width="@dimen/mozac_browser_toolbar_button_width"
+        android:layout_height="@dimen/mozac_browser_toolbar_button_height"
         android:layout_marginTop="4dp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         app:layout_constraintEnd_toStartOf="@+id/mozac_browser_toolbar_end_browser"
