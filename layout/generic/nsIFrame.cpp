@@ -3263,17 +3263,10 @@ void nsIFrame::BuildDisplayListForStackingContext(
           visibleRect = dirtyRect = aBuilder->GetPreserves3DRect();
         }
 
-        const float appPerDev = PresContext()->AppUnitsPerDevPixel();
-        uint32_t flags = nsDisplayTransform::kTransformRectFlags &
-                         ~nsDisplayTransform::OFFSET_BY_ORIGIN;
-        if (!hasPerspective) {
-          flags &= ~nsDisplayTransform::INCLUDE_PERSPECTIVE;
-        }
-        if (!combines3DTransformWithAncestors) {
-          flags &= ~nsDisplayTransform::INCLUDE_PRESERVE3D_ANCESTORS;
-        }
+        float appPerDev = PresContext()->AppUnitsPerDevPixel();
         auto transform = nsDisplayTransform::GetResultingTransformMatrix(
-            this, nsPoint(), appPerDev, flags);
+            this, nsPoint(), appPerDev,
+            nsDisplayTransform::kTransformRectFlags);
         nsRect untransformedDirtyRect;
         if (nsDisplayTransform::UntransformRect(dirtyRect, overflow, transform,
                                                 appPerDev,

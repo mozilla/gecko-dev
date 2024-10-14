@@ -3813,7 +3813,8 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
       // in the coordinate space of `frame`.
       gfx::Matrix4x4 mtx = nsDisplayTransform::GetResultingTransformMatrix(
           frame, nsPoint(0, 0), AppUnitsPerCSSPixel(),
-          nsDisplayTransform::INCLUDE_PERSPECTIVE);
+          nsDisplayTransform::INCLUDE_PERSPECTIVE |
+              nsDisplayTransform::OFFSET_BY_ORIGIN);
       // We might get back the identity matrix. This can happen if there is no
       // actual transform. For example, if an element has
       // will-change: transform, nsIFrame::IsTransformed will return true, but

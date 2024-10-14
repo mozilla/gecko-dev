@@ -6236,9 +6236,7 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
   }
 
   // Apply any translation due to 'transform-origin' and/or 'transform-box':
-  if (aProperties.mToTransformOrigin != gfx::Point3D()) {
-    result.ChangeBasis(aProperties.mToTransformOrigin);
-  }
+  result.ChangeBasis(aProperties.mToTransformOrigin);
 
   if (parentHasChildrenOnlyTransform) {
     float pixelsPerCSSPx = AppUnitsPerCSSPixel() / aAppUnitsPerPixel;
@@ -6290,8 +6288,7 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
     result = result * parent;
   }
 
-  MOZ_ASSERT((aOrigin == nsPoint()) || (aFlags & OFFSET_BY_ORIGIN));
-  if ((aFlags & OFFSET_BY_ORIGIN) && (aOrigin != nsPoint())) {
+  if (aFlags & OFFSET_BY_ORIGIN) {
     nsLayoutUtils::PostTranslate(result, aOrigin, aAppUnitsPerPixel,
                                  shouldRound);
   }
@@ -7223,9 +7220,8 @@ nsRect nsDisplayTransform::TransformRect(const nsRect& aUntransformedBounds,
   FrameTransformProperties props(aFrame, aRefBox, factor);
   return nsLayoutUtils::MatrixTransformRect(
       aUntransformedBounds,
-      GetResultingTransformMatrixInternal(
-          props, aRefBox, nsPoint(), factor,
-          kTransformRectFlags & ~OFFSET_BY_ORIGIN),
+      GetResultingTransformMatrixInternal(props, aRefBox, nsPoint(), factor,
+                                          kTransformRectFlags),
       factor);
 }
 
@@ -7236,8 +7232,8 @@ bool nsDisplayTransform::UntransformRect(const nsRect& aTransformedBounds,
   MOZ_ASSERT(aFrame, "Can't take the transform based on a null frame!");
 
   float factor = aFrame->PresContext()->AppUnitsPerDevPixel();
-  Matrix4x4 transform = GetResultingTransformMatrix(
-      aFrame, nsPoint(), factor, kTransformRectFlags & ~OFFSET_BY_ORIGIN);
+  Matrix4x4 transform = GetResultingTransformMatrix(aFrame, nsPoint(), factor,
+                                                    kTransformRectFlags);
   return UntransformRect(aTransformedBounds, aChildBounds, transform, factor,
                          aOutRect);
 }
