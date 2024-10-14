@@ -119,9 +119,9 @@ class InliningHeuristics {
   bool callRefAllowed_ = true;  // default
  public:
   InliningHeuristics() {
-    directAllowed_ = JS::Prefs::wasm_experimental_direct_inlining();
-    callRefAllowed_ = JS::Prefs::wasm_experimental_callRef_inlining();
-    level_ = JS::Prefs::wasm_experimental_inlining_level();
+    directAllowed_ = JS::Prefs::wasm_direct_inlining();
+    callRefAllowed_ = JS::Prefs::wasm_call_ref_inlining();
+    level_ = JS::Prefs::wasm_inlining_level();
     // Clamp to range MIN_LEVEL .. MAX_LEVEL.
     level_ = std::max<uint32_t>(level_, MIN_LEVEL);
     level_ = std::min<uint32_t>(level_, MAX_LEVEL);

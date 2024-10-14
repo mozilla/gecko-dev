@@ -8384,7 +8384,7 @@
     mirror: always
     set_spidermonkey_pref: always
 
-- name: javascript.options.wasm_experimental_inline_call_ref_threshold
+- name: javascript.options.wasm_inline_call_ref_threshold
   type: uint32_t
   value: 1
   mirror: always
@@ -8400,21 +8400,21 @@
   set_spidermonkey_pref: always
 
 # Aggressiveness of inlining (regardless of call kind), allowable: 1 .. 9
-- name: javascript.options.wasm_experimental_inlining_level
+- name: javascript.options.wasm_inlining_level
   type: uint32_t
   value: 5
   mirror: always
   set_spidermonkey_pref: always
 
 # Are wasm direct calls (within same Instance) candidates for inlining?
-- name: javascript.options.wasm_experimental_direct_inlining
+- name: javascript.options.wasm_direct_inlining
   type: bool
   value: true
   mirror: always
   set_spidermonkey_pref: always
 
-# Are wasm callRef calls (within same Instance) candidates for inlining?
-- name: javascript.options.wasm_experimental_callRef_inlining
+# Are wasm call_ref calls (within same Instance) candidates for inlining?
+- name: javascript.options.wasm_call_ref_inlining
   type: bool
   value: true
   mirror: always

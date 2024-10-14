@@ -2729,8 +2729,7 @@ int32_t Instance::readHotnessCounter(uint32_t funcIndex) const {
 }
 
 void Instance::submitCallRefHints(uint32_t funcIndex) {
-  uint32_t callCountThreshold =
-      JS::Prefs::wasm_experimental_inline_call_ref_threshold();
+  uint32_t callCountThreshold = JS::Prefs::wasm_inline_call_ref_threshold();
   CallRefMetricsRange range = codeMeta().getFuncDefCallRefs(funcIndex);
   for (uint32_t callRefIndex = range.begin;
        callRefIndex < range.begin + range.length; callRefIndex++) {
