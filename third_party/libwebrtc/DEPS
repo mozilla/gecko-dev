@@ -10,7 +10,7 @@ vars = {
   # chromium waterfalls. More info at: crbug.com/570091.
   'checkout_configuration': 'default',
   'checkout_instrumented_libraries': 'checkout_linux and checkout_configuration == "default"',
-  'chromium_revision': '10ff7fa1e33386ba9b3c0660ba3f7f89a067bb36',
+  'chromium_revision': 'b975bdde2720c75d0dfc1955cf36283544de6ffb',
 
   # Fetch the prebuilt binaries for llvm-cov and llvm-profdata. Needed to
   # process the raw profiles produced by instrumented targets (built with
@@ -61,11 +61,11 @@ vars = {
 deps = {
   # TODO(kjellander): Move this to be Android-only.
   'src/base':
-    'https://chromium.googlesource.com/chromium/src/base@4b293ff11b99d80488674ac15f91d996810e561d',
+    'https://chromium.googlesource.com/chromium/src/base@ede08137fff2b9cf691462ea1dcfde74220ac8f1',
   'src/build':
-    'https://chromium.googlesource.com/chromium/src/build@053a09c8e212c11a7b7e100f776567dd6a39a3da',
+    'https://chromium.googlesource.com/chromium/src/build@6be3205c7bf08c0511541beb0808e2e729be4315',
   'src/buildtools':
-    'https://chromium.googlesource.com/chromium/src/buildtools@f8f6777fcf684dd891658ff32b195589e88fe2d8',
+    'https://chromium.googlesource.com/chromium/src/buildtools@e7bde40d8b82d30ec8074f67383339e4492e8e32',
   # Gradle 6.6.1. Used for testing Android Studio project generation for WebRTC.
   'src/examples/androidtests/third_party/gradle': {
     'url': 'https://chromium.googlesource.com/external/github.com/gradle/gradle.git@f2d1fb54a951d8b11d25748e4711bec8d128d7e3',
@@ -78,7 +78,7 @@ deps = {
   'src/testing':
     'https://chromium.googlesource.com/chromium/src/testing@f39c5823f134459b2b6418bec44539a63c0682a5',
   'src/third_party':
-    'https://chromium.googlesource.com/chromium/src/third_party@e0f26cc194ccdf56e2b21c04913080d45494054f',
+    'https://chromium.googlesource.com/chromium/src/third_party@6c225c671824ffc891cfc37ca66de843005e7629',
 
   'src/buildtools/linux64': {
     'packages': [
@@ -505,7 +505,7 @@ deps = {
       'dep_type': 'cipd',
   },
 
-  'src/third_party/robolectric': {
+  'src/third_party/robolectric/cipd': {
       'packages': [
           {
               'package': 'chromium/third_party/robolectric',
