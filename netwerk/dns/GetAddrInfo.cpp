@@ -32,6 +32,7 @@
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/net/DNSPacket.h"
 #include "nsIDNSService.h"
+#include "nsINetworkLinkService.h"
 
 namespace mozilla::net {
 
@@ -219,6 +220,17 @@ _GetAddrInfo_Portable(const nsACString& aCanonHost, uint16_t aAddressFamily,
   bool disableIPv4 = aAddressFamily == PR_AF_INET6;
   if (disableIPv4) {
     aAddressFamily = PR_AF_UNSPEC;
+  }
+
+  if (StaticPrefs::network_dns_skip_ipv6_when_no_addresses() &&
+      !nsINetworkLinkService::HasNonLocalIPv6Address()) {
+    // If the family was AF_UNSPEC initially, make it AF_INET
+    // when there are no IPv6 addresses.
+    // If the DNS request specified IPv6 specifically, let it
+    // go through.
+    if (aAddressFamily == PR_AF_UNSPEC && !disableIPv4) {
+      aAddressFamily = PR_AF_INET;
+    }
   }
 
 #if defined(DNSQUERY_AVAILABLE)
