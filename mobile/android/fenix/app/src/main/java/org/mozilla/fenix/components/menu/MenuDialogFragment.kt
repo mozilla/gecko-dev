@@ -133,15 +133,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                 var handlebarContentDescription by remember {
                     mutableStateOf(
                         if (args.accesspoint == MenuAccessPoint.External) {
-                            context.getString(
-                                R.string.browser_menu_handlebar_content_description,
-                                context.getString(R.string.browser_custom_tab_menu_handlebar_content_description),
-                            )
+                            context.getString(R.string.browser_custom_tab_menu_handlebar_content_description)
                         } else {
-                            context.getString(
-                                R.string.browser_menu_handlebar_content_description,
-                                context.getString(R.string.browser_main_menu_handlebar_content_description),
-                            )
+                            context.getString(R.string.browser_main_menu_handlebar_content_description)
                         },
                     )
                 }
@@ -355,10 +349,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     ) { route ->
                         when (route) {
                             Route.MainMenu -> {
-                                handlebarContentDescription = context.getString(
-                                    R.string.browser_menu_handlebar_content_description,
-                                    context.getString(R.string.browser_main_menu_handlebar_content_description),
-                                )
+                                handlebarContentDescription =
+                                    context.getString(R.string.browser_main_menu_handlebar_content_description)
 
                                 if (settings.shouldShowMenuCFR) {
                                     MainMenuWithCFR(
@@ -416,10 +408,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             }
 
                             Route.CustomTabMenu -> {
-                                handlebarContentDescription = context.getString(
-                                    R.string.browser_menu_handlebar_content_description,
-                                    context.getString(R.string.browser_custom_tab_menu_handlebar_content_description),
-                                )
+                                handlebarContentDescription =
+                                    context.getString(R.string.browser_custom_tab_menu_handlebar_content_description)
 
                                 CustomTabMenu(
                                     isDesktopMode = isDesktopMode,
@@ -455,10 +445,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     null
                                 }
 
-                                handlebarContentDescription = context.getString(
-                                    R.string.browser_menu_handlebar_content_description,
-                                    context.getString(R.string.browser_tools_menu_handlebar_content_description),
-                                )
+                                handlebarContentDescription =
+                                    context.getString(R.string.browser_tools_menu_handlebar_content_description)
 
                                 ToolsSubmenu(
                                     isPdf = isPdf,
@@ -511,10 +499,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             }
 
                             Route.SaveMenu -> {
-                                handlebarContentDescription = context.getString(
-                                    R.string.browser_menu_handlebar_content_description,
-                                    context.getString(R.string.browser_save_menu_handlebar_content_description),
-                                )
+                                handlebarContentDescription =
+                                    context.getString(R.string.browser_save_menu_handlebar_content_description)
 
                                 SaveSubmenu(
                                     isBookmarked = isBookmarked,
@@ -553,10 +539,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             }
 
                             Route.ExtensionsMenu -> {
-                                handlebarContentDescription = context.getString(
-                                    R.string.browser_menu_handlebar_content_description,
-                                    context.getString(R.string.browser_extensions_menu_handlebar_content_description),
-                                )
+                                handlebarContentDescription =
+                                    context.getString(R.string.browser_extensions_menu_handlebar_content_description)
 
                                 ExtensionsSubmenu(
                                     recommendedAddons = recommendedAddons,
