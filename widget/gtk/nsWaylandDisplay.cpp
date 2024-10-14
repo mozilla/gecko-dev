@@ -20,6 +20,7 @@
 #include "WidgetUtilsGtk.h"
 #include "nsGtkKeyUtils.h"
 #include "nsWindow.h"
+#include "wayland-proxy.h"
 
 namespace mozilla::widget {
 
@@ -521,15 +522,18 @@ static void WlLogHandler(const char* format, va_list args) {
     return;
   }
 
-  MOZ_CRASH_UNSAFE_PRINTF("(%s) %s", GetDesktopEnvironmentIdentifier().get(),
-                          error);
+  MOZ_CRASH_UNSAFE_PRINTF("(%s) %s Proxy: %s",
+                          GetDesktopEnvironmentIdentifier().get(), error,
+                          WaylandProxy::GetState());
 }
 
 void WlCompositorCrashHandler() {
   gfxCriticalNote << "Wayland protocol error: Compositor ("
-                  << GetDesktopEnvironmentIdentifier().get() << ") crashed.";
-  MOZ_CRASH_UNSAFE_PRINTF("Compositor crashed (%s)",
-                          GetDesktopEnvironmentIdentifier().get());
+                  << GetDesktopEnvironmentIdentifier().get()
+                  << ") crashed, proxy: " << WaylandProxy::GetState();
+  MOZ_CRASH_UNSAFE_PRINTF("Compositor crashed (%s) proxy: %s",
+                          GetDesktopEnvironmentIdentifier().get(),
+                          WaylandProxy::GetState());
 }
 
 nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)

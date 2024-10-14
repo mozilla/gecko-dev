@@ -39,6 +39,11 @@
 
 #  ifdef MOZ_WIDGET_GTK
 #    include <dlfcn.h>
+#    include "WidgetUtilsGtk.h"
+#  endif
+
+#  ifdef MOZ_WAYLAND
+#    include "wayland-proxy.h"
 #  endif
 
 // Note: some tests manipulate this value.
@@ -175,7 +180,16 @@ static bool IsCrashyGtkMessage(const nsACString& aMessage) {
 static void HandleGLibMessage(GLogLevelFlags aLogLevel,
                               const nsDependentCString& aMessage) {
   if (MOZ_UNLIKELY(IsCrashyGtkMessage(aMessage))) {
-    MOZ_CRASH_UNSAFE(strdup(aMessage.get()));
+#    ifdef MOZ_WAYLAND
+    MOZ_CRASH_UNSAFE_PRINTF(
+        "(%s) %s Proxy: %s",
+        mozilla::widget::GetDesktopEnvironmentIdentifier().get(),
+        strdup(aMessage.get()), WaylandProxy::GetState());
+#    else
+    MOZ_CRASH_UNSAFE_PRINTF(
+        "(%s) %s", mozilla::widget::GetDesktopEnvironmentIdentifier().get(),
+        strdup(aMessage.get()));
+#    endif
   }
 
   if (aLogLevel &
