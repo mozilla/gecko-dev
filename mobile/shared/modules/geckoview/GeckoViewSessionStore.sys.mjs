@@ -216,7 +216,9 @@ export var GeckoViewSessionStore = {
             browsingContext
           )) ||
         listener.collect(permanentKey, browsingContext, {
-          collectFull: !!update.sHistoryNeeded,
+          // TODO: See Bug 1915362. Enable partial history collection for better performance
+          // and uncomment the line below.
+          // collectFull: !!update.sHistoryNeeded,
           writeToCache: false,
         });
 
