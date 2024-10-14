@@ -1042,6 +1042,7 @@ SSL_CTX* OpenSSLStreamAdapter::SetupSSLContext() {
     return nullptr;
   }
 
+  // TODO(bugs.webrtc.org/339300437): Remove dependency.
   SSL_CTX_set_info_callback(ctx, OpenSSLAdapter::SSLInfoCallback);
 
   int mode = SSL_VERIFY_PEER;

@@ -21,7 +21,7 @@
 // RTC_LOG(sev) logs the given stream at severity "sev", which must be a
 //     compile-time constant of the LoggingSeverity type, without the namespace
 //     prefix.
-// RTC_LOG_IF(sev, condition) logs the given stream at severitye "sev" if
+// RTC_LOG_IF(sev, condition) logs the given stream at severity "sev" if
 //     "condition" is true.
 // RTC_LOG_V(sev) Like RTC_LOG(), but sev is a run-time variable of the
 //     LoggingSeverity type (basically, it just doesn't prepend the namespace).
