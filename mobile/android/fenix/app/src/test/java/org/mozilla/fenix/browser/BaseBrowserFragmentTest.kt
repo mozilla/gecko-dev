@@ -508,6 +508,36 @@ class BaseBrowserFragmentTest {
 
         verify { engineView.setDynamicToolbarMaxHeight(23) }
     }
+
+    @Test
+    fun `GIVEN normal browsing WHEN reinitializing the engine view THEN use the toolbar heights`() {
+        fragment.webAppToolbarShouldBeVisible = true
+        every { settings.getTopToolbarHeight(any()) } returns 11
+        every { settings.getBottomToolbarHeight(any()) } returns 5
+
+        safeMockkStatic(Context::isTabStripEnabled) {
+            every { testContext.isTabStripEnabled() } returns false
+
+            fragment.reinitializeEngineView()
+        }
+
+        verify { fragment.initializeEngineView(11, 5) }
+    }
+
+    @Test
+    fun `GIVEN a PWA WHEN reinitializing the engine view THEN ignore toolbar heights`() {
+        fragment.webAppToolbarShouldBeVisible = false
+        every { settings.getTopToolbarHeight(any()) } returns 11
+        every { settings.getBottomToolbarHeight(any()) } returns 5
+
+        safeMockkStatic(Context::isTabStripEnabled) {
+            every { testContext.isTabStripEnabled() } returns false
+
+            fragment.reinitializeEngineView()
+        }
+
+        verify { fragment.initializeEngineView(0, 0) }
+    }
 }
 
 private inline fun safeMockkStatic(vararg objects: KFunction<*>, block: () -> Unit) {
