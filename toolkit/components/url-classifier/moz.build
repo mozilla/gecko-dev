@@ -90,9 +90,6 @@ if CONFIG["CC_TYPE"] == "gcc":
         "-Wno-maybe-uninitialized",
     ]
 
-if CONFIG["NIGHTLY_BUILD"] or CONFIG["MOZ_DEBUG"]:
-    DEFINES["MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES"] = True
-
 SPHINX_TREES["url-classifier"] = "docs"
 
 with Files("docs/**"):
