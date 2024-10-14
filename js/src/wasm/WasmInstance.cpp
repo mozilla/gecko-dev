@@ -2260,7 +2260,7 @@ int32_t Instance::stringCompare(Instance* instance, void* firstStringArg,
   }
   return result;
 }
-#endif // ENABLE_WASM_JS_STRING_BUILTINS
+#endif  // ENABLE_WASM_JS_STRING_BUILTINS
 
 //////////////////////////////////////////////////////////////////////////////
 //
