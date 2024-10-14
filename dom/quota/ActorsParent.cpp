@@ -11,6 +11,7 @@
 #include "ClientUsageArray.h"
 #include "Flatten.h"
 #include "FirstInitializationAttemptsImpl.h"
+#include "InitializationUtils.h"
 #include "GroupInfo.h"
 #include "GroupInfoPair.h"
 #include "NormalOriginOperationBase.h"
@@ -5214,42 +5215,11 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
             return BoolPromise::CreateAndReject(aRejectValue, __func__);
           })
       ->Then(GetCurrentSerialEventTarget(), __func__,
-             [self = RefPtr(this),
-              storageDirectoryLock = std::move(storageDirectoryLock)](
-                 const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-               if (aValue.IsReject()) {
-                 SafeDropDirectoryLockIfNotDropped(storageDirectoryLock);
-
-                 return BoolPromise::CreateAndReject(aValue.RejectValue(),
-                                                     __func__);
-               }
-
-               if (!storageDirectoryLock) {
-                 return BoolPromise::CreateAndResolve(true, __func__);
-               }
-
-               return self->InitializeStorage(std::move(storageDirectoryLock));
-             })
-
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr(this), temporaryStorageDirectoryLock =
-                                    std::move(temporaryStorageDirectoryLock)](
-              const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-            if (aValue.IsReject()) {
-              SafeDropDirectoryLockIfNotDropped(temporaryStorageDirectoryLock);
-
-              return BoolPromise::CreateAndReject(aValue.RejectValue(),
-                                                  __func__);
-            }
-
-            if (!temporaryStorageDirectoryLock) {
-              return BoolPromise::CreateAndResolve(true, __func__);
-            }
-
-            return self->InitializeTemporaryStorage(
-                std::move(temporaryStorageDirectoryLock));
-          })
+             MaybeInitialize(std::move(storageDirectoryLock), this,
+                             &QuotaManager::InitializeStorage))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             MaybeInitialize(std::move(temporaryStorageDirectoryLock), this,
+                             &QuotaManager::InitializeTemporaryStorage))
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [universalDirectoryLockPromise =
                   std::move(universalDirectoryLockPromise)](
@@ -5360,70 +5330,28 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
               [](nsresult aRejectValue) {
                 return BoolPromise::CreateAndReject(aRejectValue, __func__);
               })
-          ->Then(
-              GetCurrentSerialEventTarget(), __func__,
-              [self = RefPtr(this),
-               storageDirectoryLock = std::move(storageDirectoryLock)](
-                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-                if (aValue.IsReject()) {
-                  SafeDropDirectoryLockIfNotDropped(storageDirectoryLock);
-
-                  return BoolPromise::CreateAndReject(aValue.RejectValue(),
-                                                      __func__);
-                }
-
-                if (!storageDirectoryLock) {
-                  return BoolPromise::CreateAndResolve(true, __func__);
-                }
-
-                return self->InitializeStorage(std::move(storageDirectoryLock));
-              })
           ->Then(GetCurrentSerialEventTarget(), __func__,
-                 [self = RefPtr(this),
-                  temporaryStorageDirectoryLock =
-                      std::move(temporaryStorageDirectoryLock)](
-                     const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-                   if (aValue.IsReject()) {
-                     SafeDropDirectoryLockIfNotDropped(
-                         temporaryStorageDirectoryLock);
+                 MaybeInitialize(std::move(storageDirectoryLock), this,
+                                 &QuotaManager::InitializeStorage))
+          ->Then(GetCurrentSerialEventTarget(), __func__,
+                 MaybeInitialize(std::move(temporaryStorageDirectoryLock), this,
+                                 &QuotaManager::InitializeTemporaryStorage))
+          ->Then(GetCurrentSerialEventTarget(), __func__,
+                 MaybeInitialize(
+                     std::move(originDirectoryLock),
+                     [self = RefPtr(this), persistenceType,
+                      principalInfo = std::move(principalInfo),
+                      aCreateIfNonExistent](RefPtr<UniversalDirectoryLock>
+                                                originDirectoryLock) mutable {
+                       if (persistenceType == PERSISTENCE_TYPE_PERSISTENT) {
+                         return self->InitializePersistentOrigin(
+                             principalInfo, std::move(originDirectoryLock));
+                       }
 
-                     return BoolPromise::CreateAndReject(aValue.RejectValue(),
-                                                         __func__);
-                   }
-
-                   if (!temporaryStorageDirectoryLock) {
-                     return BoolPromise::CreateAndResolve(true, __func__);
-                   }
-
-                   return self->InitializeTemporaryStorage(
-                       std::move(temporaryStorageDirectoryLock));
-                 })
-          ->Then(
-              GetCurrentSerialEventTarget(), __func__,
-              [self = RefPtr(this), persistenceType,
-               principalInfo = std::move(principalInfo), aCreateIfNonExistent,
-               originDirectoryLock = std::move(originDirectoryLock)](
-                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-                if (aValue.IsReject()) {
-                  SafeDropDirectoryLockIfNotDropped(originDirectoryLock);
-
-                  return BoolPromise::CreateAndReject(aValue.RejectValue(),
-                                                      __func__);
-                }
-
-                if (!originDirectoryLock) {
-                  return BoolPromise::CreateAndResolve(true, __func__);
-                }
-
-                if (persistenceType == PERSISTENCE_TYPE_PERSISTENT) {
-                  return self->InitializePersistentOrigin(
-                      principalInfo, std::move(originDirectoryLock));
-                }
-
-                return self->InitializeTemporaryOrigin(
-                    persistenceType, principalInfo, aCreateIfNonExistent,
-                    std::move(originDirectoryLock));
-              })
+                       return self->InitializeTemporaryOrigin(
+                           persistenceType, principalInfo, aCreateIfNonExistent,
+                           std::move(originDirectoryLock));
+                     }))
           ->Then(GetCurrentSerialEventTarget(), __func__,
                  [clientDirectoryLock = std::move(clientDirectoryLock)](
                      const BoolPromise::ResolveOrRejectValue& aValue) mutable {
