@@ -612,6 +612,7 @@ MSG_DEF(JSMSG_DEBUG_PROMISE_NOT_REJECTED, 0, JSEXN_TYPEERR, "Promise hasn't been
 MSG_DEF(JSMSG_DEBUG_NO_BINARY_SOURCE,  0, JSEXN_ERR, "WebAssembly binary source is not available")
 MSG_DEF(JSMSG_DEBUG_EXCLUSIVE_FRAME_COVERAGE, 0, JSEXN_ERR, "onEnterFrame and collectCoverageInfo cannot be active at the same time")
 MSG_DEF(JSMSG_NATIVE_TRACING_BUFFER_MALFORMED, 0, JSEXN_ERR, "bad data encountered while reading the native tracing buffer")
+MSG_DEF(JSMSG_NATIVE_TRACING_MUST_BE_ENABLED, 0, JSEXN_ERR, "Cannot collect a native trace without setting nativeTracing to true")
 
 // Testing functions
 MSG_DEF(JSMSG_TESTING_SCRIPTS_ONLY, 0, JSEXN_TYPEERR, "only works on scripts")

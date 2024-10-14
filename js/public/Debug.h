@@ -11,9 +11,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/BaseProfilerUtils.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Vector.h"
 
 #include <utility>
 
@@ -51,103 +49,6 @@ extern JS_PUBLIC_API void JS_TracerLeaveLabelLatin1(JSContext* cx,
                                                     const char* label);
 extern JS_PUBLIC_API void JS_TracerLeaveLabelTwoByte(JSContext* cx,
                                                      const char16_t* label);
-
-#ifdef MOZ_EXECUTION_TRACING
-
-// This will begin execution tracing for the JSContext, i.e., this will begin
-// recording every entrance into / exit from a function for the given context.
-// The trace can be read via JS_TracerSnapshotTrace, and populates the
-// ExecutionTrace struct defined below.
-extern JS_PUBLIC_API bool JS_TracerBeginTracing(JSContext* cx);
-
-// This ends execution tracing for the JSContext, discards the tracing
-// buffers, and clears some caches used for tracing. JS_TracerSnapshotTrace
-// should be called *before* JS_TracerEndTracing if you want to read the trace
-// data for this JSContext.
-extern JS_PUBLIC_API bool JS_TracerEndTracing(JSContext* cx);
-
-namespace JS {
-
-// This is populated by JS_TracerSnapshotTrace and just represent a minimal
-// structure for natively representing an execution trace across a range of
-// JSContexts (see below). The core of the trace is an array of events, each of
-// which is a tagged union with data corresponding to that event. Events can
-// also point into various tables, and store all of their string data in a
-// contiguous UTF-8 stringBuffer (each string is null-terminated within the
-// buffer.)
-struct ExecutionTrace {
-  enum class EventKind : uint8_t {
-    FunctionEnter = 0,
-    FunctionLeave = 1,
-    LabelEnter = 2,
-    LabelLeave = 3,
-  };
-
-  enum class ImplementationType : uint8_t {
-    Interpreter = 0,
-    Baseline = 1,
-    Ion = 2,
-    Wasm = 3,
-  };
-
-  struct TracedEvent {
-    EventKind kind;
-    union {
-      // For FunctionEnter / FunctionLeave
-      struct {
-        ImplementationType implementation;
-
-        // 1-origin line number of the function
-        uint32_t lineNumber;
-
-        // 1-origin column of the function
-        uint32_t column;
-
-        // Keys into the thread's scriptUrls HashMap. This key can be missing
-        // from the HashMap, although ideally that situation is rare (it is
-        // more likely in long running traces with *many* unique functions
-        // and/or scripts)
-        uint32_t scriptId;
-
-        // Keys into the thread's atoms HashMap. This key can be missing from
-        // the HashMap as well (see comment above scriptId)
-        uint32_t functionNameId;
-      } functionEvent;
-
-      // For LabelEnter / LabelLeave
-      struct {
-        size_t label;  // Indexes directly into the trace's stringBuffer
-      } labelEvent;
-    };
-    // Milliseconds since process creation
-    double time;
-  };
-
-  struct TracedJSContext {
-    mozilla::baseprofiler::BaseProfilerThreadId id;
-
-    // Maps ids to indices into the trace's stringBuffer
-    mozilla::HashMap<uint32_t, size_t> scriptUrls;
-
-    // Similar to scriptUrls
-    mozilla::HashMap<uint32_t, size_t> atoms;
-
-    mozilla::Vector<TracedEvent> events;
-  };
-
-  mozilla::Vector<char> stringBuffer;
-
-  // This will be populated with an entry for each context which had tracing
-  // enabled via JS_TracerBeginTracing.
-  mozilla::Vector<TracedJSContext> contexts;
-};
-}  // namespace JS
-
-// Captures the trace for all JSContexts in the process which are currently
-// tracing.
-extern JS_PUBLIC_API bool JS_TracerSnapshotTrace(JS::ExecutionTrace& trace);
-
-#endif /* MOZ_EXECUTION_TRACING */
 
 namespace JS {
 namespace dbg {
