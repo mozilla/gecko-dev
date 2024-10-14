@@ -280,6 +280,32 @@ class BaseBrowserFragmentTest {
     }
 
     @Test
+    fun `GIVEN dynamic toolbars and not a PWA WHEN initializeEngineView is called THEN set a custom behavior for the browser`() {
+        every { settings.shouldUseFixedTopToolbar } returns false
+        every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.navigationToolbarEnabled } returns true
+        fragment.webAppToolbarShouldBeVisible = true
+
+        fragment.initializeEngineView(0, 0)
+
+        val browserViewParams = swipeRefreshLayout.layoutParams as CoordinatorLayout.LayoutParams
+        verify { browserViewParams.behavior = any() }
+    }
+
+    @Test
+    fun `GIVEN dynamic toolbars for a PWA WHEN initializeEngineView is called THEN don't set a custom behavior for the browser`() {
+        every { settings.shouldUseFixedTopToolbar } returns false
+        every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.navigationToolbarEnabled } returns true
+        fragment.webAppToolbarShouldBeVisible = false
+
+        fragment.initializeEngineView(0, 0)
+
+        val browserViewParams = swipeRefreshLayout.layoutParams as CoordinatorLayout.LayoutParams
+        verify { browserViewParams wasNot Called }
+    }
+
+    @Test
     fun `WHEN isMicrosurveyEnabled and isExperimentationEnabled are true GIVEN a call to setupMicrosurvey THEN messagingFeature is initialized`() {
         every { testContext.settings().isExperimentationEnabled } returns true
         every { testContext.settings().microsurveyFeatureEnabled } returns true
