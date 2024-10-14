@@ -21,6 +21,7 @@
 #include "api/video/video_codec_type.h"
 #include "api/video/video_frame.h"
 #include "api/video/video_frame_type.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "test/gtest.h"
 
 namespace webrtc {

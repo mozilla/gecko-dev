@@ -25,6 +25,7 @@
 #include "api/video/video_frame_buffer.h"
 #include "api/video/video_frame_type.h"
 #include "api/video_codecs/video_codec.h"
+#include "common_video/frame_instrumentation_data.h"
 #include "modules/include/module_common_types_public.h"
 #include "modules/video_coding/utility/qp_parser.h"
 #include "rtc_base/logging.h"

@@ -8,6 +8,10 @@
 
 import("../webrtc.gni")
 
+rtc_library("frame_instrumentation_data") {
+  sources = [ "frame_instrumentation_data.h" ]
+}
+
 rtc_library("common_video") {
   visibility = [ "*" ]
 
@@ -56,6 +60,7 @@ rtc_library("common_video") {
   }
 
   deps = [
+    ":frame_instrumentation_data",
     "../api:array_view",
     "../api:make_ref_counted",
     "../api:scoped_refptr",
