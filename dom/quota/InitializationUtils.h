@@ -14,8 +14,31 @@
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
+#include "mozilla/dom/quota/QuotaManager.h"
 
 namespace mozilla::dom::quota {
+
+template <typename UninitChecker, typename PromiseArrayIter>
+RefPtr<UniversalDirectoryLock> CreateDirectoryLockForInitialization(
+    QuotaManager& aQuotaManager, const PersistenceScope& aPersistenceScope,
+    const OriginScope& aOriginScope, const bool aAlreadyInitialized,
+    UninitChecker&& aUninitChecker, PromiseArrayIter&& aPromiseArrayIter) {
+  RefPtr<UniversalDirectoryLock> directoryLock =
+      aQuotaManager.CreateDirectoryLockInternal(aPersistenceScope, aOriginScope,
+                                                Nullable<Client::Type>(),
+                                                /* aExclusive */ false);
+
+  if (aAlreadyInitialized &&
+      !std::forward<UninitChecker>(aUninitChecker)(directoryLock)) {
+    return nullptr;
+  }
+
+  auto iter = std::forward<PromiseArrayIter>(aPromiseArrayIter);
+  *iter = directoryLock->Acquire();
+  ++iter;
+
+  return directoryLock;
+}
 
 template <typename Callable>
 class MaybeInitializeHelper final {

@@ -5163,35 +5163,22 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
   nsTArray<RefPtr<BoolPromise>> promises;
 
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
-      CreateDirectoryLockInternal(PersistenceScope::CreateFromNull(),
-                                  OriginScope::FromNull(),
-                                  Nullable<Client::Type>(),
-                                  /* aExclusive */ false);
-
-  if (mStorageInitialized &&
-      !IsDirectoryLockBlockedByUninitStorageOperation(storageDirectoryLock)) {
-    storageDirectoryLock = nullptr;
-  } else {
-    promises.AppendElement(storageDirectoryLock->Acquire());
-  }
+      CreateDirectoryLockForInitialization(
+          *this, PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
+          mStorageInitialized, IsDirectoryLockBlockedByUninitStorageOperation,
+          MakeBackInserter(promises));
 
   RefPtr<UniversalDirectoryLock> temporaryStorageDirectoryLock;
 
   if (aInitializeOrigins &&
       MatchesBestEffortPersistenceScope(aPersistenceScope)) {
-    temporaryStorageDirectoryLock = CreateDirectoryLockInternal(
+    temporaryStorageDirectoryLock = CreateDirectoryLockForInitialization(
+        *this,
         PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                         PERSISTENCE_TYPE_DEFAULT),
-        OriginScope::FromNull(), Nullable<Client::Type>(),
-        /* aExclusive */ false);
-
-    if (mTemporaryStorageInitialized &&
-        !IsDirectoryLockBlockedByUninitStorageOperation(
-            temporaryStorageDirectoryLock)) {
-      temporaryStorageDirectoryLock = nullptr;
-    } else {
-      promises.AppendElement(temporaryStorageDirectoryLock->Acquire());
-    }
+        OriginScope::FromNull(), mTemporaryStorageInitialized,
+        IsDirectoryLockBlockedByUninitStorageOperation,
+        MakeBackInserter(promises));
   }
 
   RefPtr<UniversalDirectoryLock> universalDirectoryLock =
@@ -5262,54 +5249,34 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
   nsTArray<RefPtr<BoolPromise>> promises;
 
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
-      CreateDirectoryLockInternal(PersistenceScope::CreateFromNull(),
-                                  OriginScope::FromNull(),
-                                  Nullable<Client::Type>(),
-                                  /* aExclusive */ false);
-
-  if (mStorageInitialized &&
-      !IsDirectoryLockBlockedByUninitStorageOperation(storageDirectoryLock)) {
-    storageDirectoryLock = nullptr;
-  } else {
-    promises.AppendElement(storageDirectoryLock->Acquire());
-  }
+      CreateDirectoryLockForInitialization(
+          *this, PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
+          mStorageInitialized, IsDirectoryLockBlockedByUninitStorageOperation,
+          MakeBackInserter(promises));
 
   RefPtr<UniversalDirectoryLock> temporaryStorageDirectoryLock;
 
   if (IsBestEffortPersistenceType(persistenceType)) {
-    temporaryStorageDirectoryLock = CreateDirectoryLockInternal(
+    temporaryStorageDirectoryLock = CreateDirectoryLockForInitialization(
+        *this,
         PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                         PERSISTENCE_TYPE_DEFAULT),
-        OriginScope::FromNull(), Nullable<Client::Type>(),
-        /* aExclusive */ false);
-
-    if (mTemporaryStorageInitialized &&
-        !IsDirectoryLockBlockedByUninitStorageOperation(
-            temporaryStorageDirectoryLock)) {
-      temporaryStorageDirectoryLock = nullptr;
-    } else {
-      promises.AppendElement(temporaryStorageDirectoryLock->Acquire());
-    }
+        OriginScope::FromNull(), mTemporaryStorageInitialized,
+        IsDirectoryLockBlockedByUninitStorageOperation,
+        MakeBackInserter(promises));
   }
-
-  RefPtr<UniversalDirectoryLock> originDirectoryLock =
-      CreateDirectoryLockInternal(
-          PersistenceScope::CreateFromValue(persistenceType),
-          OriginScope::FromOrigin(aClientMetadata.mOrigin),
-          Nullable<Client::Type>(), /* aExclusive */ false);
 
   const bool originInitialized =
       persistenceType == PERSISTENCE_TYPE_PERSISTENT
           ? IsPersistentOriginInitialized(principalInfo)
           : IsTemporaryOriginInitialized(persistenceType, principalInfo);
 
-  if (originInitialized &&
-      !IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation(
-          originDirectoryLock)) {
-    originDirectoryLock = nullptr;
-  } else {
-    promises.AppendElement(originDirectoryLock->Acquire());
-  }
+  RefPtr<UniversalDirectoryLock> originDirectoryLock =
+      CreateDirectoryLockForInitialization(
+          *this, PersistenceScope::CreateFromValue(persistenceType),
+          OriginScope::FromOrigin(aClientMetadata.mOrigin), originInitialized,
+          IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation,
+          MakeBackInserter(promises));
 
   RefPtr<ClientDirectoryLock> clientDirectoryLock =
       CreateDirectoryLock(aClientMetadata, /* aExclusive */ false);
