@@ -8,13 +8,20 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import org.mozilla.fenix.Config
+import org.mozilla.fenix.ReleaseChannel
 import org.mozilla.fenix.utils.isLargeScreenSize
 
 /**
  * Returns true if the tab strip is enabled.
  */
 fun Context.isTabStripEnabled(): Boolean =
-    isTabStripEligible() && Config.channel.isNightlyOrDebug
+    Config.channel.isTabStripChannel() && isTabStripEligible()
+
+/**
+ * Returns true for channels that have the tab strip enabled.
+ */
+private fun ReleaseChannel.isTabStripChannel(): Boolean =
+    isBeta || isNightlyOrDebug
 
 /**
  * Returns true if the the device has the prerequisites to enable the tab strip.
