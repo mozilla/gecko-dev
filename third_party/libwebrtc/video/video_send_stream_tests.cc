@@ -13,6 +13,8 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/metrics/global_metrics_logger_and_exporter.h"
@@ -1561,10 +1563,9 @@ TEST_F(VideoSendStreamTest, MinTransmitBitrateRespectsRemb) {
                                    receive_streams) override {
       stream_ = send_stream;
       RtpRtcpInterface::Configuration config;
-      config.clock = Clock::GetRealTimeClock();
       config.outgoing_transport = feedback_transport_.get();
       config.retransmission_rate_limiter = &retranmission_rate_limiter_;
-      rtp_rtcp_ = ModuleRtpRtcpImpl2::Create(config);
+      rtp_rtcp_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, config);
       rtp_rtcp_->SetRTCPStatus(RtcpMode::kReducedSize);
     }
 
@@ -1589,6 +1590,7 @@ TEST_F(VideoSendStreamTest, MinTransmitBitrateRespectsRemb) {
     }
 
     TaskQueueBase* const task_queue_;
+    const Environment env_ = CreateEnvironment();
     std::unique_ptr<ModuleRtpRtcpImpl2> rtp_rtcp_;
     std::unique_ptr<internal::TransportAdapter> feedback_transport_;
     RateLimiter retranmission_rate_limiter_;

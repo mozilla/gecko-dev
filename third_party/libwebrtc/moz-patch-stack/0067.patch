@@ -215,10 +215,10 @@ index a678602877..8d84c5341a 100644
                                     int current_delay_ms,
                                     int target_delay_ms,
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 7f519fa762..2090c6e2b4 100644
+index c4fb2aa0f2..34df8d3a6f 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -243,6 +243,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
+@@ -239,6 +239,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
      RtcpPacketTypeCounterObserver* rtcp_packet_type_counter_observer,
      RtcpCnameCallback* rtcp_cname_callback,
      NackPeriodicProcessor* nack_periodic_processor,
@@ -226,7 +226,7 @@ index 7f519fa762..2090c6e2b4 100644
      OnCompleteFrameCallback* complete_frame_callback,
      scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      scoped_refptr<FrameTransformerInterface> frame_transformer)
-@@ -286,6 +287,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
+@@ -282,6 +283,7 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
                                              config_.rtp.nack,
                                              &rtcp_feedback_buffer_,
                                              &rtcp_feedback_buffer_)),
@@ -234,7 +234,7 @@ index 7f519fa762..2090c6e2b4 100644
        packet_buffer_(kPacketBufferStartSize,
                       PacketBufferMaxSize(env_.field_trials())),
        reference_finder_(std::make_unique<RtpFrameReferenceFinder>()),
-@@ -1238,7 +1240,8 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
+@@ -1234,7 +1236,8 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
      int64_t unwrapped_rtp_seq_num = rtp_seq_num_unwrapper_.Unwrap(seq_num);
      packet_infos_.erase(packet_infos_.begin(),
                          packet_infos_.upper_bound(unwrapped_rtp_seq_num));

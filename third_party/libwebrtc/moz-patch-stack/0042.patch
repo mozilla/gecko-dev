@@ -267,7 +267,7 @@ index 002f249d17..68d3fe60e0 100644
  
      // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 9809398ff7..36f9bb88d7 100644
+index 36645c595a..7ed659e9f3 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
 @@ -82,7 +82,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(
@@ -278,17 +278,17 @@ index 9809398ff7..36f9bb88d7 100644
 +    uint32_t local_ssrc,
 +    RtcpEventObserver* rtcp_event_observer) {
    RtpRtcpInterface::Configuration configuration;
-   configuration.clock = &env.clock();
    configuration.audio = false;
-@@ -94,6 +95,7 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(
+   configuration.receiver_only = true;
+@@ -93,6 +94,7 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(
        rtcp_packet_type_counter_observer;
    configuration.rtcp_cname_callback = rtcp_cname_callback;
    configuration.local_media_ssrc = local_ssrc;
 +  configuration.rtcp_event_observer = rtcp_event_observer;
    configuration.non_sender_rtt_measurement = non_sender_rtt_measurement;
-   configuration.event_log = &env.event_log();
-   configuration.field_trials = &env.field_trials();
-@@ -270,7 +272,8 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
+ 
+   auto rtp_rtcp = std::make_unique<ModuleRtpRtcpImpl2>(env, configuration);
+@@ -266,7 +268,8 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
            rtcp_packet_type_counter_observer,
            rtcp_cname_callback,
            config_.rtp.rtcp_xr.receiver_reference_time_report,

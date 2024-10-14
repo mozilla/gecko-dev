@@ -199,7 +199,6 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
   RTC_DCHECK_GT(rtp_config.ssrcs.size(), 0);
 
   RtpRtcpInterface::Configuration configuration;
-  configuration.clock = &env.clock();
   configuration.audio = false;
   configuration.receiver_only = false;
   configuration.outgoing_transport = send_transport;
@@ -217,7 +216,6 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
   configuration.paced_sender = transport->packet_sender();
   configuration.send_bitrate_observer = observers.bitrate_observer;
   configuration.send_packet_observer = observers.send_packet_observer;
-  configuration.event_log = &env.event_log();
   if (env.field_trials().IsDisabled("WebRTC-DisableRtxRateLimiter")) {
     configuration.retransmission_rate_limiter = retransmission_rate_limiter;
   }
@@ -227,7 +225,6 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
       crypto_options.sframe.require_frame_encryption;
   configuration.extmap_allow_mixed = rtp_config.extmap_allow_mixed;
   configuration.rtcp_report_interval_ms = rtcp_report_interval_ms;
-  configuration.field_trials = &env.field_trials();
   configuration.enable_send_packet_batching =
       rtp_config.enable_send_packet_batching;
 
@@ -258,15 +255,14 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
 
     configuration.need_rtp_packet_infos = rtp_config.lntf.enabled;
 
-    std::unique_ptr<ModuleRtpRtcpImpl2> rtp_rtcp(
-        ModuleRtpRtcpImpl2::Create(configuration));
+    auto rtp_rtcp = std::make_unique<ModuleRtpRtcpImpl2>(env, configuration);
     rtp_rtcp->SetSendingStatus(false);
     rtp_rtcp->SetSendingMediaStatus(false);
     rtp_rtcp->SetRTCPStatus(RtcpMode::kCompound);
     // Set NACK.
     rtp_rtcp->SetStorePacketsStatus(true, kMinSendSidePacketHistorySize);
 
-    video_config.clock = configuration.clock;
+    video_config.clock = &env.clock();
     video_config.rtp_sender = rtp_rtcp->RtpSender();
     video_config.frame_encryptor = frame_encryptor;
     video_config.require_frame_encryption =
