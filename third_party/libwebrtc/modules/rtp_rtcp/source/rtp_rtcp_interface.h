@@ -44,12 +44,6 @@ class VideoBitrateAllocationObserver;
 class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
  public:
   struct Configuration {
-    Configuration() = default;
-    Configuration(Configuration&& rhs) = default;
-
-    Configuration(const Configuration&) = delete;
-    Configuration& operator=(const Configuration&) = delete;
-
     // True for a audio version of the RTP/RTCP module object false will create
     // a video version.
     bool audio = false;

@@ -106,10 +106,10 @@ index bbc0db8968..db2b850099 100644
    // A snapshot of the most recent Report Block with additional data of
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-index d0232e58bf..dd5139ae71 100644
+index 890cf6bb32..57e35b4a5f 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-@@ -513,11 +513,11 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
+@@ -534,11 +534,11 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
  }
  
  // Received RTCP report.
@@ -127,10 +127,10 @@ index d0232e58bf..dd5139ae71 100644
  
  std::vector<ReportBlockData> ModuleRtpRtcpImpl2::GetLatestReportBlockData()
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.h b/modules/rtp_rtcp/source/rtp_rtcp_impl2.h
-index e76495f6ae..f4c262c53e 100644
+index 2126f128d7..252fd07ae9 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.h
-@@ -203,7 +203,8 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
+@@ -204,7 +204,8 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
  
    void RemoteRTCPSenderInfo(uint32_t* packet_count,
                              uint32_t* octet_count,
@@ -141,10 +141,10 @@ index e76495f6ae..f4c262c53e 100644
    // A snapshot of the most recent Report Block with additional data of
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index 95bf036a38..db39a345f5 100644
+index 68d3fe60e0..860ea4c6c5 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-@@ -411,10 +411,11 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
+@@ -405,10 +405,11 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
        StreamDataCounters* rtx_counters) const = 0;
  
  

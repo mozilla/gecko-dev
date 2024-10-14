@@ -61,10 +61,10 @@ index cd516d3d6f..1cd3edc31c 100644
  
  void RTCPSender::SetNonSenderRttMeasurement(bool enabled) {
 diff --git a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
-index 002a5f86f1..1dcb628722 100644
+index f58098bcae..f18dcc36a7 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
-@@ -328,12 +328,13 @@ TEST_F(RtcpSenderTest, SendBye) {
+@@ -330,12 +330,13 @@ TEST_F(RtcpSenderTest, SendBye) {
    EXPECT_EQ(kSenderSsrc, parser()->bye()->sender_ssrc());
  }
  
@@ -93,10 +93,10 @@ index 278d88154d..579bfcd2e9 100644
    }
    return 0;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_interface.h b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-index db39a345f5..9577d68df6 100644
+index 860ea4c6c5..2246a24212 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_interface.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_interface.h
-@@ -282,7 +282,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
+@@ -276,7 +276,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
    // Returns the FlexFEC SSRC, if there is one.
    virtual absl::optional<uint32_t> FlexfecSsrc() const = 0;
  

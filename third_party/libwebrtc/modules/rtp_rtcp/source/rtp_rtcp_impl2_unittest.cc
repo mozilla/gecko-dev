@@ -238,7 +238,6 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
   void CreateModuleImpl() {
     RtpRtcpInterface::Configuration config;
     config.audio = false;
-    config.clock = &env_.clock();
     config.outgoing_transport = &transport_;
     config.receive_statistics = receive_statistics_.get();
     config.rtcp_packet_type_counter_observer = this;
@@ -249,10 +248,9 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
         is_sender_ ? absl::make_optional(kRtxSenderSsrc) : absl::nullopt;
     config.need_rtp_packet_infos = true;
     config.non_sender_rtt_measurement = true;
-    config.field_trials = &env_.field_trials();
     config.send_packet_observer = this;
     config.fec_generator = fec_generator_;
-    impl_.reset(new ModuleRtpRtcpImpl2(config));
+    impl_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, config);
     impl_->SetRemoteSSRC(is_sender_ ? kReceiverSsrc : kSenderSsrc);
     impl_->SetRTCPStatus(RtcpMode::kCompound);
   }

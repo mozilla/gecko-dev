@@ -14,6 +14,8 @@
 #include <utility>
 
 #include "absl/base/macros.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/units/time_delta.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/bye.h"
@@ -89,9 +91,9 @@ class RtcpSenderTest : public ::testing::Test {
  protected:
   RtcpSenderTest()
       : clock_(1335900000),
-        receive_statistics_(ReceiveStatistics::Create(&clock_)) {
-    rtp_rtcp_impl_.reset(new ModuleRtpRtcpImpl2(GetDefaultRtpRtcpConfig()));
-  }
+        env_(CreateEnvironment(&clock_)),
+        receive_statistics_(ReceiveStatistics::Create(&clock_)),
+        rtp_rtcp_impl_(env_, GetDefaultRtpRtcpConfig()) {}
 
   RTCPSender::Configuration GetDefaultConfig() {
     RTCPSender::Configuration configuration;
@@ -108,7 +110,6 @@ class RtcpSenderTest : public ::testing::Test {
     RTCPSender::Configuration config = GetDefaultConfig();
     RtpRtcpInterface::Configuration result;
     result.audio = config.audio;
-    result.clock = config.clock;
     result.outgoing_transport = config.outgoing_transport;
     result.rtcp_report_interval_ms = config.rtcp_report_interval->ms();
     result.receive_statistics = config.receive_statistics;
@@ -128,14 +129,15 @@ class RtcpSenderTest : public ::testing::Test {
   test::RtcpPacketParser* parser() { return &test_transport_.parser_; }
 
   RTCPSender::FeedbackState feedback_state() {
-    return rtp_rtcp_impl_->GetFeedbackState();
+    return rtp_rtcp_impl_.GetFeedbackState();
   }
 
   rtc::AutoThread main_thread_;
   SimulatedClock clock_;
+  const Environment env_;
   TestTransport test_transport_;
   std::unique_ptr<ReceiveStatistics> receive_statistics_;
-  std::unique_ptr<ModuleRtpRtcpImpl2> rtp_rtcp_impl_;
+  ModuleRtpRtcpImpl2 rtp_rtcp_impl_;
 };
 
 TEST_F(RtcpSenderTest, SetRtcpStatus) {
@@ -163,7 +165,7 @@ TEST_F(RtcpSenderTest, SendSr) {
   const uint32_t kOctetCount = 0x23456;
   auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
   rtcp_sender->SetRTCPStatus(RtcpMode::kReducedSize);
-  RTCPSender::FeedbackState feedback_state = rtp_rtcp_impl_->GetFeedbackState();
+  RTCPSender::FeedbackState feedback_state = rtp_rtcp_impl_.GetFeedbackState();
   rtcp_sender->SetSendingStatus(feedback_state, true);
   feedback_state.packets_sent = kPacketCount;
   feedback_state.media_bytes_sent = kOctetCount;
@@ -188,7 +190,7 @@ TEST_F(RtcpSenderTest, SendConsecutiveSrWithExactSlope) {
   // Make sure clock is not exactly at some milliseconds point.
   clock_.AdvanceTimeMicroseconds(kTimeBetweenSRsUs);
   rtcp_sender->SetRTCPStatus(RtcpMode::kReducedSize);
-  RTCPSender::FeedbackState feedback_state = rtp_rtcp_impl_->GetFeedbackState();
+  RTCPSender::FeedbackState feedback_state = rtp_rtcp_impl_.GetFeedbackState();
   rtcp_sender->SetSendingStatus(feedback_state, true);
   feedback_state.packets_sent = kPacketCount;
   feedback_state.media_bytes_sent = kOctetCount;
@@ -481,7 +483,7 @@ TEST_F(RtcpSenderTest, RembIncludedInEachCompoundPacketAfterSet) {
 TEST_F(RtcpSenderTest, SendXrWithDlrr) {
   auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
   rtcp_sender->SetRTCPStatus(RtcpMode::kCompound);
-  RTCPSender::FeedbackState feedback_state = rtp_rtcp_impl_->GetFeedbackState();
+  RTCPSender::FeedbackState feedback_state = rtp_rtcp_impl_.GetFeedbackState();
   rtcp::ReceiveTimeInfo last_xr_rr;
   last_xr_rr.ssrc = 0x11111111;
   last_xr_rr.last_rr = 0x22222222;
@@ -501,7 +503,7 @@ TEST_F(RtcpSenderTest, SendXrWithMultipleDlrrSubBlocks) {
   const size_t kNumReceivers = 2;
   auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
   rtcp_sender->SetRTCPStatus(RtcpMode::kCompound);
-  RTCPSender::FeedbackState feedback_state = rtp_rtcp_impl_->GetFeedbackState();
+  RTCPSender::FeedbackState feedback_state = rtp_rtcp_impl_.GetFeedbackState();
   for (size_t i = 0; i < kNumReceivers; ++i) {
     rtcp::ReceiveTimeInfo last_xr_rr;
     last_xr_rr.ssrc = i;
