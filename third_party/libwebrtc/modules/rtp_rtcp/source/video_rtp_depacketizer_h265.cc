@@ -71,7 +71,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessApOrSingleNalu(
   }
   const uint8_t* const payload_data = rtp_payload.cdata();
   std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
-      absl::in_place);
+      std::in_place);
   parsed_payload->video_header.width = 0;
   parsed_payload->video_header.height = 0;
   parsed_payload->video_header.codec = kVideoCodecH265;
@@ -191,7 +191,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuNalu(
     return std::nullopt;
   }
   std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
-      absl::in_place);
+      std::in_place);
 
   uint8_t f = rtp_payload.cdata()[0] & kH265FBit;
   uint8_t layer_id_h = rtp_payload.cdata()[0] & kH265LayerIDHMask;

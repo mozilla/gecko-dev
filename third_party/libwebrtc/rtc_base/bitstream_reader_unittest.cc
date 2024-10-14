@@ -28,7 +28,7 @@ namespace {
 
 TEST(BitstreamReaderTest, InDebugModeRequiresToCheckOkStatusBeforeDestruction) {
   const uint8_t bytes[32] = {};
-  std::optional<BitstreamReader> reader(absl::in_place, bytes);
+  std::optional<BitstreamReader> reader(std::in_place, bytes);
 
   EXPECT_GE(reader->ReadBits(7), 0u);
 #if RTC_DCHECK_IS_ON && GTEST_HAS_DEATH_TEST && !defined(OS_ANDROID)
@@ -40,7 +40,7 @@ TEST(BitstreamReaderTest, InDebugModeRequiresToCheckOkStatusBeforeDestruction) {
 
 TEST(BitstreamReaderTest, InDebugModeMayCheckRemainingBitsInsteadOfOkStatus) {
   const uint8_t bytes[32] = {};
-  std::optional<BitstreamReader> reader(absl::in_place, bytes);
+  std::optional<BitstreamReader> reader(std::in_place, bytes);
 
   EXPECT_GE(reader->ReadBit(), 0);
 #if RTC_DCHECK_IS_ON && GTEST_HAS_DEATH_TEST && !defined(OS_ANDROID)

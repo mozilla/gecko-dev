@@ -12,6 +12,8 @@
 
 #include <string.h>
 
+#include <optional>
+
 #include "api/video/video_codec_constants.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "modules/video_coding/codecs/interface/common_constants.h"
@@ -148,7 +150,7 @@ void ParseSsData(BitstreamReader& parser, RTPVideoHeaderVP9* vp9) {
 
 std::optional<VideoRtpDepacketizer::ParsedRtpPayload>
 VideoRtpDepacketizerVp9::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
-  std::optional<ParsedRtpPayload> result(absl::in_place);
+  std::optional<ParsedRtpPayload> result(std::in_place);
   int offset = ParseRtpPayload(rtp_payload, &result->video_header);
   if (offset == 0)
     return std::nullopt;

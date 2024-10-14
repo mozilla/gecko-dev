@@ -136,7 +136,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload>
 VideoRtpDepacketizerVp8::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
   rtc::ArrayView<const uint8_t> payload(rtp_payload.cdata(),
                                         rtp_payload.size());
-  std::optional<ParsedRtpPayload> result(absl::in_place);
+  std::optional<ParsedRtpPayload> result(std::in_place);
   int offset = ParseRtpPayload(payload, &result->video_header);
   if (offset == kFailedToParse)
     return std::nullopt;

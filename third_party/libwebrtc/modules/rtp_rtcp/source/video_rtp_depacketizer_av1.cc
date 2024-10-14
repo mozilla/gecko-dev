@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <optional>
 #include <utility>
 
 #include "modules/rtp_rtcp/source/leb128.h"
@@ -367,7 +368,7 @@ VideoRtpDepacketizerAv1::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
     // new coded video sequence can't start from an OBU fragment.
     return std::nullopt;
   }
-  std::optional<ParsedRtpPayload> parsed(absl::in_place);
+  std::optional<ParsedRtpPayload> parsed(std::in_place);
 
   // To assemble frame, all of the rtp payload is required, including
   // aggregation header.

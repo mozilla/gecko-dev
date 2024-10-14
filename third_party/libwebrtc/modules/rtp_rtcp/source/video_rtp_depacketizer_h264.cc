@@ -63,7 +63,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ProcessStapAOrSingleNalu(
     rtc::CopyOnWriteBuffer rtp_payload) {
   const uint8_t* const payload_data = rtp_payload.cdata();
   std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
-      absl::in_place);
+      std::in_place);
   bool modified_buffer = false;
   parsed_payload->video_payload = rtp_payload;
   parsed_payload->video_header.width = 0;
@@ -235,7 +235,7 @@ std::optional<VideoRtpDepacketizer::ParsedRtpPayload> ParseFuaNalu(
     return std::nullopt;
   }
   std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload(
-      absl::in_place);
+      std::in_place);
   uint8_t fnri = rtp_payload.cdata()[0] & (kH264FBit | kH264NriMask);
   uint8_t original_nal_type = rtp_payload.cdata()[1] & kH264TypeMask;
   bool first_fragment = (rtp_payload.cdata()[1] & kH264SBit) > 0;

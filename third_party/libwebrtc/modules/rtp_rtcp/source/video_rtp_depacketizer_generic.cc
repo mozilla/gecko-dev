@@ -39,7 +39,7 @@ VideoRtpDepacketizerGeneric::Parse(rtc::CopyOnWriteBuffer rtp_payload) {
     RTC_LOG(LS_WARNING) << "Empty payload.";
     return std::nullopt;
   }
-  std::optional<ParsedRtpPayload> parsed(absl::in_place);
+  std::optional<ParsedRtpPayload> parsed(std::in_place);
   const uint8_t* payload_data = rtp_payload.cdata();
 
   uint8_t generic_header = payload_data[0];
