@@ -32,7 +32,6 @@ Previously, `absl_deps` was used but been deprecated in May 2024.
 * `absl::InlinedVector`
 * `absl::Nonnull` and `absl::Nullable`
 * `absl::WrapUnique`
-* `absl::optional` and related stuff from `absl/types/optional.h`.
 * `absl::string_view`
 * The functions in `absl/strings/ascii.h`, `absl/strings/match.h`,
   and `absl/strings/str_replace.h`.
@@ -64,6 +63,10 @@ one. To make `absl::Mutex` available, we would need to nicely ask the
 Abseil team to remove that initializer (like they already did for a
 spinlock initializer). Additionally, `absl::Mutex` handles time in a
 way that may not be compatible with the rest of WebRTC.
+
+### `absl::optional`
+
+*Use `std::optional` instead.*
 
 ### `absl::Span`
 
