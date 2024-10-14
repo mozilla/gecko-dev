@@ -619,13 +619,22 @@ static bool EnforceIndexValue(JSContext* cx, HandleValue v, IndexType indexType,
 // The IndexValue typedef, a union of number and bigint, is used in the JS API
 // spec for memory and table arguments, where number is used for memory32 and
 // bigint is used for memory64.
-static Value IndexValue(JSContext* cx, uint64_t value, IndexType indexType) {
+[[nodiscard]] static bool CreateIndexValue(JSContext* cx, uint64_t value,
+                                           IndexType indexType,
+                                           MutableHandleValue indexValue) {
   switch (indexType) {
     case IndexType::I32:
       MOZ_ASSERT(value <= UINT32_MAX);
-      return NumberValue(value);
-    case IndexType::I64:
-      return BigIntValue(BigInt::createFromUint64(cx, value));
+      indexValue.set(NumberValue(value));
+      return true;
+    case IndexType::I64: {
+      BigInt* bi = BigInt::createFromUint64(cx, value);
+      if (!bi) {
+        return false;
+      }
+      indexValue.set(BigIntValue(bi));
+      return true;
+    }
     default:
       MOZ_CRASH("unknown index type");
   }
@@ -937,7 +946,11 @@ static JSObject* TableTypeToObject(JSContext* cx, IndexType indexType,
 
   if (maximum.isSome()) {
     RootedId maximumId(cx, NameToId(cx->names().maximum));
-    Value maximumValue = IndexValue(cx, maximum.value(), indexType);
+    RootedValue maximumValue(cx);
+    if (!CreateIndexValue(cx, maximum.value(), indexType, &maximumValue)) {
+      ReportOutOfMemory(cx);
+      return nullptr;
+    }
     if (!props.append(IdValuePair(maximumId, maximumValue))) {
       ReportOutOfMemory(cx);
       return nullptr;
@@ -945,7 +958,11 @@ static JSObject* TableTypeToObject(JSContext* cx, IndexType indexType,
   }
 
   RootedId minimumId(cx, NameToId(cx->names().minimum));
-  Value minimumValue = IndexValue(cx, initial, indexType);
+  RootedValue minimumValue(cx);
+  if (!CreateIndexValue(cx, initial, indexType, &minimumValue)) {
+    ReportOutOfMemory(cx);
+    return nullptr;
+  }
   if (!props.append(IdValuePair(minimumId, minimumValue))) {
     ReportOutOfMemory(cx);
     return nullptr;
@@ -973,7 +990,12 @@ static JSObject* MemoryTypeToObject(JSContext* cx, bool shared,
   Rooted<IdValueVector> props(cx, IdValueVector(cx));
   if (maxPages) {
     RootedId maximumId(cx, NameToId(cx->names().maximum));
-    Value maximumValue = IndexValue(cx, maxPages.value().value(), indexType);
+    RootedValue maximumValue(cx);
+    if (!CreateIndexValue(cx, maxPages.value().value(), indexType,
+                          &maximumValue)) {
+      ReportOutOfMemory(cx);
+      return nullptr;
+    }
     if (!props.append(IdValuePair(maximumId, maximumValue))) {
       ReportOutOfMemory(cx);
       return nullptr;
@@ -981,7 +1003,11 @@ static JSObject* MemoryTypeToObject(JSContext* cx, bool shared,
   }
 
   RootedId minimumId(cx, NameToId(cx->names().minimum));
-  Value minimumValue = IndexValue(cx, minPages.value(), indexType);
+  RootedValue minimumValue(cx);
+  if (!CreateIndexValue(cx, minPages.value(), indexType, &minimumValue)) {
+    ReportOutOfMemory(cx);
+    return nullptr;
+  }
   if (!props.append(IdValuePair(minimumId, minimumValue))) {
     ReportOutOfMemory(cx);
     return nullptr;
@@ -2251,7 +2277,12 @@ bool WasmMemoryObject::growImpl(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  args.rval().set(IndexValue(cx, ret, memory->indexType()));
+  RootedValue result(cx);
+  if (!CreateIndexValue(cx, ret, memory->indexType(), &result)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  args.rval().set(result);
   return true;
 }
 
@@ -2755,8 +2786,13 @@ static bool IsTable(HandleValue v) {
 bool WasmTableObject::lengthGetterImpl(JSContext* cx, const CallArgs& args) {
   const WasmTableObject& tableObj =
       args.thisv().toObject().as<WasmTableObject>();
-  args.rval().set(
-      IndexValue(cx, tableObj.table().length(), tableObj.table().indexType()));
+  RootedValue length(cx);
+  if (!CreateIndexValue(cx, tableObj.table().length(),
+                        tableObj.table().indexType(), &length)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  args.rval().set(length);
   return true;
 }
 
@@ -2922,7 +2958,12 @@ bool WasmTableObject::growImpl(JSContext* cx, const CallArgs& args) {
   }
 #endif
 
-  args.rval().set(IndexValue(cx, oldLength, table.indexType()));
+  RootedValue result(cx);
+  if (!CreateIndexValue(cx, oldLength, table.indexType(), &result)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  args.rval().set(result);
   return true;
 }
 
