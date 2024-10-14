@@ -1041,7 +1041,7 @@ FlexfecReceiveStream* Call::CreateFlexfecReceiveStream(
   // OnRtpPacket until the constructor is finished and the object is
   // in a valid state, since OnRtpPacket runs on the same thread.
   FlexfecReceiveStreamImpl* receive_stream = new FlexfecReceiveStreamImpl(
-      &env_.clock(), std::move(config), &video_receiver_controller_,
+      env_, std::move(config), &video_receiver_controller_,
       call_stats_->AsRtcpRttStats());
 
   // TODO(bugs.webrtc.org/11993): Set this up asynchronously on the network

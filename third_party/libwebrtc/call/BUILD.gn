@@ -297,6 +297,7 @@ rtc_library("call") {
     "../api:sequence_checker",
     "../api:simulated_network_api",
     "../api:transport_api",
+    "../api/environment",
     "../api/rtc_event_log",
     "../api/task_queue:pending_task_safety_flag",
     "../api/transport:network_control",
