@@ -286,7 +286,8 @@ WasmHelpers._normalizeStack = (stack, preciseStacks) => {
         {re:/^(fast|slow) exit trampoline (?:to native )?\(in wasm\)$/,   sub:"<"},
         {re:/^call to(?: asm.js)? native (.*?)(?: builtin)? \(in wasm\)$/, sub:"$1"},
         {re:/^call to native (.*)$/,                                      sub:"#$1"},
-        {re:/ \(in wasm\)$/,                                              sub:""}
+        {re:/^tier-up request \(in wasm\)$/,                              sub: ""},
+        {re:/ \(in wasm\)$/,                                              sub:""},
     ];
 
     let entryRegexps;

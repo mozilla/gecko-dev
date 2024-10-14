@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmGcEnabled() || !wasmExperimentalCompilePipelineEnabled(); test-also=-P wasm_lazy_tiering -P wasm_lazy_tiering_level=9;
+// |jit-test| test-also=--setpref=wasm_lazy_tiering --setpref=wasm_lazy_tiering_synchronous; skip-if: wasmCompileMode() != "baseline+ion" || !getPrefValue("wasm_lazy_tiering")
 
 // Needs to be at least 13500 in order for test functions to tier up.
 // See Instance::computeInitialHotnessCounter.
@@ -59,12 +59,6 @@ for ([funcToInline, funcToInlineExpected] of testFuncs) {
   for (let i = 0; i <= tierUpThreshold; i++) {
     invokeTestWith(exports, funcToInline, funcToInlineExpected);
   }
-  // Give the off-thread Ion compilation a chance to catch up.  This is really
-  // a kludge in that we currently have no reliable way in JS to wait for all
-  // requested tier-ups to complete.  Better would be to put the sleep and
-  // assertEq inside an exponential backoff loop and have that as a "library"
-  // function.
-  sleep(0.05);
   assertEq(wasmFunctionTier(test), "optimized");
 
   // Now that we've inlined something, try calling it with every test function

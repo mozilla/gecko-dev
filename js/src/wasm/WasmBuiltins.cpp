@@ -735,6 +735,16 @@ static void WasmHandleRequestTierUp(Instance* instance) {
   // for compilation.
   instance->submitCallRefHints(funcIndex);
 
+  if (JS::Prefs::wasm_lazy_tiering_synchronous()) {
+    UniqueChars error;
+    UniqueCharsVector warnings;
+    bool ok = CompilePartialTier2(*codeBlock->code, funcIndex, &error);
+    ReportTier2ResultsOffThread(ok, mozilla::Some(funcIndex),
+                                codeBlock->code->codeMeta().scriptedCaller(),
+                                error, warnings);
+    return;
+  }
+
   // Try to Ion-compile it.  Note that `ok == true` signifies either
   // "duplicate request" or "not a duplicate, and compilation succeeded".
   bool ok = codeBlock->code->requestTierUp(funcIndex);

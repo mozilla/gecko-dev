@@ -1,5 +1,4 @@
-// |jit-test| skip-if: !wasmDebuggingEnabled() || wasmExperimentalCompilePipelineEnabled()
-// TODO: temporarily skip lazy tiering to avoid a timeout
+// |jit-test| skip-if: !wasmDebuggingEnabled()
 //
 var mod = new WebAssembly.Module(wasmTextToBinary(`
     (module

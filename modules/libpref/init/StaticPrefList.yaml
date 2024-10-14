@@ -8399,6 +8399,14 @@
   mirror: always
   set_spidermonkey_pref: always
 
+# Forces lazy tiering to synchronously compile instead of using a background
+# thread.
+- name: javascript.options.wasm_lazy_tiering_synchronous
+  type: bool
+  value: false
+  mirror: always
+  set_spidermonkey_pref: always
+
 # Aggressiveness of inlining (regardless of call kind), allowable: 1 .. 9
 - name: javascript.options.wasm_inlining_level
   type: uint32_t

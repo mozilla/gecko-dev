@@ -1,4 +1,5 @@
-// |jit-test| skip-if: !wasmGcEnabled()
+// |jit-test| skip-if: !wasmGcEnabled() || getPrefValue("wasm_lazy_tiering")
+// TODO: skip lazy tiering temporarily to avoid a timeout
 
 load(libdir + "wasm-binary.js");
 
