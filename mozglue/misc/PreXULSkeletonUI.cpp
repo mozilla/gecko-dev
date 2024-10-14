@@ -97,6 +97,13 @@ NormalizedRGB Lerp(const NormalizedRGB& a, const NormalizedRGB& b, double x) {
 // Produces a smooth curve in [0,1] based on a linear input in [0,1]
 double SmoothStep3(double x) { return x * x * (3.0 - 2.0 * x); }
 
+struct Margin {
+  int top = 0;
+  int right = 0;
+  int bottom = 0;
+  int left = 0;
+};
+
 static const wchar_t kPreXULSkeletonUIKeyPath[] =
     L"SOFTWARE"
     L"\\" MOZ_APP_VENDOR L"\\" MOZ_APP_BASENAME L"\\PreXULSkeletonUISettings";
@@ -115,9 +122,20 @@ static Vector<ColorRect>* sAnimatedRects = nullptr;
 static int sTotalChromeHeight = 0;
 static volatile LONG sAnimationControlFlag = 0;
 static bool sMaximized = false;
-static int sNonClientVerticalMargins = 0;
-static int sNonClientHorizontalMargins = 0;
 static uint32_t sDpi = 0;
+// See nsWindow::mNonClientOffset
+static Margin sNonClientOffset;
+static int sCaptionHeight = 0;
+static int sHorizontalResizeMargin = 0;
+static int sVerticalResizeMargin = 0;
+
+// See nsWindow::NonClientSizeMargin()
+static Margin NonClientSizeMargin() {
+  return Margin{sCaptionHeight - sNonClientOffset.top,
+                sHorizontalResizeMargin - sNonClientOffset.right,
+                sVerticalResizeMargin - sNonClientOffset.bottom,
+                sHorizontalResizeMargin - sNonClientOffset.left};
+}
 
 // Color values needed by the animation loop
 static uint32_t sAnimationColor;
@@ -701,9 +719,9 @@ Result<Ok, PreXULSkeletonUIError> DrawSkeletonUI(
   bool rtlEnabled = flags.contains(SkeletonUIFlag::RtlEnabled);
 
   int chromeHorMargin = CSSToDevPixels(2, sCSSToDevPixelScaling);
-  int verticalOffset = sMaximized ? sNonClientVerticalMargins : 0;
+  int verticalOffset = sMaximized ? sVerticalResizeMargin : 0;
   int horizontalOffset =
-      sNonClientHorizontalMargins - (sMaximized ? 0 : chromeHorMargin);
+      sHorizontalResizeMargin - (sMaximized ? 0 : chromeHorMargin);
 
   // found in tabs.inc.css, "--tab-min-height" + 2 * "--tab-block-margin"
   int tabBarHeight = CSSToDevPixels(44, sCSSToDevPixelScaling);
@@ -1274,19 +1292,12 @@ LRESULT WINAPI PreXULSkeletonUIProc(HWND hWnd, UINT msg, WPARAM wParam,
         wParam ? &(reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam))->rgrc[0]
                : (reinterpret_cast<RECT*>(lParam));
 
-    // These match the margins set in browser-tabsintitlebar.js with
-    // default prefs on Windows. Bug 1673092 tracks lining this up with
-    // that more correctly instead of hard-coding it.
-    int horizontalOffset =
-        sNonClientHorizontalMargins -
-        (sMaximized ? 0 : CSSToDevPixels(2, sCSSToDevPixelScaling));
-    int verticalOffset =
-        sNonClientHorizontalMargins -
-        (sMaximized ? 0 : CSSToDevPixels(2, sCSSToDevPixelScaling));
-    clientRect->top = clientRect->top;
-    clientRect->left += horizontalOffset;
-    clientRect->right -= horizontalOffset;
-    clientRect->bottom -= verticalOffset;
+    Margin margin = NonClientSizeMargin();
+    clientRect->top += margin.top;
+    clientRect->left += margin.left;
+    clientRect->right -= margin.right;
+    clientRect->bottom -= margin.bottom;
+
     return 0;
   }
 
@@ -1967,11 +1978,30 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
   }
 
   sDpi = sGetDpiForWindow(sPreXULSkeletonUIWindow);
-  sNonClientHorizontalMargins =
-      sGetSystemMetricsForDpi(SM_CXFRAME, sDpi) +
-      sGetSystemMetricsForDpi(SM_CXPADDEDBORDER, sDpi);
-  sNonClientVerticalMargins = sGetSystemMetricsForDpi(SM_CYFRAME, sDpi) +
-                              sGetSystemMetricsForDpi(SM_CXPADDEDBORDER, sDpi);
+  sHorizontalResizeMargin = sGetSystemMetricsForDpi(SM_CXFRAME, sDpi) +
+                            sGetSystemMetricsForDpi(SM_CXPADDEDBORDER, sDpi);
+  sVerticalResizeMargin = sGetSystemMetricsForDpi(SM_CYFRAME, sDpi) +
+                          sGetSystemMetricsForDpi(SM_CXPADDEDBORDER, sDpi);
+  sCaptionHeight =
+      sVerticalResizeMargin + sGetSystemMetricsForDpi(SM_CYCAPTION, sDpi);
+
+  // These match the margins set in browser-tabsintitlebar.js with default prefs
+  // on Windows. We don't use the skeleton ui if tabsInTitlebar is disabled, see
+  // bug 1673092.
+  const Margin nonClientMargin{0, 2, 2, 2};
+
+  if (sMaximized) {
+    sNonClientOffset.top = sCaptionHeight - sVerticalResizeMargin;
+  } else {
+    // See nsWindow::NormalWindowNonClientOffset()
+    sNonClientOffset.top = sCaptionHeight;
+    sNonClientOffset.bottom =
+        std::min(sVerticalResizeMargin, nonClientMargin.bottom);
+    sNonClientOffset.left =
+        std::min(sHorizontalResizeMargin, nonClientMargin.left);
+    sNonClientOffset.right =
+        std::min(sHorizontalResizeMargin, nonClientMargin.right);
+  }
 
   if (sMaximized) {
     HMONITOR monitor =
@@ -1989,9 +2019,9 @@ static Result<Ok, PreXULSkeletonUIError> CreateAndStorePreXULSkeletonUIImpl(
     }
 
     sWindowWidth =
-        mi.rcWork.right - mi.rcWork.left + sNonClientHorizontalMargins * 2;
+        mi.rcWork.right - mi.rcWork.left + sHorizontalResizeMargin * 2;
     sWindowHeight =
-        mi.rcWork.bottom - mi.rcWork.top + sNonClientVerticalMargins * 2;
+        mi.rcWork.bottom - mi.rcWork.top + sVerticalResizeMargin * 2;
   } else {
     sWindowWidth = static_cast<int>(windowWidth);
     sWindowHeight = static_cast<int>(windowHeight);
