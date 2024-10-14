@@ -3610,6 +3610,12 @@ impl ClipBatchList {
             box_shadows: FastHashMap::default(),
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.slow_rectangles.is_empty()
+          && self.fast_rectangles.is_empty()
+          && self.box_shadows.is_empty()
+    }
 }
 
 /// Batcher managing draw calls into the clip mask (in the RT cache).

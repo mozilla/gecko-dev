@@ -27,7 +27,7 @@ use crate::profiler::{self, TransactionProfile};
 use crate::render_backend::{DataStores, ScratchBuffer};
 use crate::renderer::{GpuBufferF, GpuBufferBuilderF, GpuBufferI, GpuBufferBuilderI, GpuBufferBuilder};
 use crate::render_target::{RenderTarget, PictureCacheTarget, TextureCacheRenderTarget, PictureCacheTargetKind};
-use crate::render_target::{RenderTargetContext, RenderTargetKind, AlphaRenderTarget, ColorRenderTarget};
+use crate::render_target::{RenderTargetContext, RenderTargetKind, ColorRenderTarget};
 use crate::render_task_graph::{RenderTaskGraph, Pass, SubPassSurface};
 use crate::render_task_graph::{RenderPass, RenderTaskGraphBuilder};
 use crate::render_task::{RenderTaskKind, StaticRenderTaskSurface};
@@ -737,7 +737,7 @@ impl FrameBuilder {
         return
       }
 
-      // In our main walk over the spatial tree (below), for nodes inside a 
+      // In our main walk over the spatial tree (below), for nodes inside a
       // subtree rooted at a root-content node, we need some information from
       // that enclosing root-content node. To collect this information, do an
       // preliminary walk over the spatial tree now and collect the root-content
@@ -800,7 +800,7 @@ impl FrameBuilder {
             let world_transform = spatial_tree
                 .get_world_viewport_transform(index)
                 .into_transform();
-            let mut local_to_root_content = 
+            let mut local_to_root_content =
                 world_transform.with_destination::<LayoutPixel>();
             let mut root_content_to_world = LayoutToWorldTransform::default();
             let mut root_content_clip = None;
@@ -941,6 +941,7 @@ pub fn build_render_pass(
                 match target_kind {
                     RenderTargetKind::Color => {
                         let mut target = ColorRenderTarget::new(
+                            RenderTargetKind::Color,
                             texture_id,
                             screen_size,
                             gpu_supports_fast_clears,
@@ -963,7 +964,8 @@ pub fn build_render_pass(
                         pass.color.targets.push(target);
                     }
                     RenderTargetKind::Alpha => {
-                        let mut target = AlphaRenderTarget::new(
+                        let mut target = ColorRenderTarget::new(
+                            RenderTargetKind::Alpha,
                             texture_id,
                             screen_size,
                             gpu_supports_fast_clears,

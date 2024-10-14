@@ -23,7 +23,7 @@ use smallvec::SmallVec;
 use topological_sort::TopologicalSort;
 
 use crate::render_target::{RenderTargetList, ColorRenderTarget};
-use crate::render_target::{PictureCacheTarget, TextureCacheRenderTarget, AlphaRenderTarget};
+use crate::render_target::{PictureCacheTarget, TextureCacheRenderTarget};
 use crate::util::{Allocation, VecHelper};
 use std::{usize, f32};
 
@@ -853,7 +853,7 @@ fn assign_free_pass(
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct RenderPass {
     /// The subpasses that describe targets being rendered to in this pass
-    pub alpha: RenderTargetList<AlphaRenderTarget>,
+    pub alpha: RenderTargetList<ColorRenderTarget>,
     pub color: RenderTargetList<ColorRenderTarget>,
     pub texture_cache: FastHashMap<CacheTextureId, TextureCacheRenderTarget>,
     pub picture_cache: FrameVec<PictureCacheTarget>,
