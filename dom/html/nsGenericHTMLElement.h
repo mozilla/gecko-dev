@@ -194,9 +194,9 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
       const nsAString& aEventType, const nsAString& aOldState,
       const nsAString& aNewState, mozilla::Cancelable);
   /** Returns true if the event has been cancelled. */
-  MOZ_CAN_RUN_SCRIPT bool FireToggleEvent(
-      mozilla::dom::PopoverVisibilityState aOldState,
-      mozilla::dom::PopoverVisibilityState aNewState, const nsAString& aType);
+  MOZ_CAN_RUN_SCRIPT bool FireToggleEvent(const nsAString& aOldState,
+                                          const nsAString& aNewState,
+                                          const nsAString& aType);
   MOZ_CAN_RUN_SCRIPT void QueuePopoverEventTask(
       mozilla::dom::PopoverVisibilityState aOldState);
   MOZ_CAN_RUN_SCRIPT void RunPopoverToggleEventTask(

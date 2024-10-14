@@ -2445,6 +2445,13 @@
   value: @IS_NIGHTLY_BUILD@
   mirror: always
 
+# Whether Dialog elements emit beforetoggle and toggle events during opening and closing.
+# See https://github.com/whatwg/html/pull/10091
+- name: dom.element.dialog.toggle_events.enabled
+  type: bool
+  value: true
+  mirror: always
+
 - name: dom.element.transform-getters.enabled
   type: bool
   value: false

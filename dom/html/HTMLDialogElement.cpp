@@ -65,6 +65,15 @@ void HTMLDialogElement::Close(
   if (!Open()) {
     return;
   }
+
+  if (StaticPrefs::dom_element_dialog_toggle_events_enabled()) {
+    FireToggleEvent(u"open"_ns, u"closed"_ns, u"beforetoggle"_ns);
+    if (!Open()) {
+      return;
+    }
+    QueueToggleEventTask();
+  }
+
   if (aReturnValue.WasPassed()) {
     SetReturnValue(aReturnValue.Value());
   }
@@ -102,6 +111,16 @@ void HTMLDialogElement::Show(ErrorResult& aError) {
     }
     return aError.ThrowInvalidStateError(
         "Cannot call show() on an open modal dialog.");
+  }
+
+  if (StaticPrefs::dom_element_dialog_toggle_events_enabled()) {
+    if (FireToggleEvent(u"closed"_ns, u"open"_ns, u"beforetoggle"_ns)) {
+      return;
+    }
+    if (Open()) {
+      return;
+    }
+    QueueToggleEventTask();
   }
 
   SetOpen(true, IgnoreErrors());
@@ -180,6 +199,16 @@ void HTMLDialogElement::ShowModal(ErrorResult& aError) {
         "Dialog element is already an open popover.");
   }
 
+  if (StaticPrefs::dom_element_dialog_toggle_events_enabled()) {
+    if (FireToggleEvent(u"closed"_ns, u"open"_ns, u"beforetoggle"_ns)) {
+      return;
+    }
+    if (Open()) {
+      return;
+    }
+    QueueToggleEventTask();
+  }
+
   AddToTopLayerIfNeeded();
 
   SetOpen(true, aError);
@@ -213,6 +242,12 @@ void HTMLDialogElement::ShowModal(ErrorResult& aError) {
   FocusDialog();
 
   aError.SuppressException();
+}
+
+void HTMLDialogElement::AsyncEventRunning(AsyncEventDispatcher* aEvent) {
+  if (mToggleEventDispatcher == aEvent) {
+    mToggleEventDispatcher = nullptr;
+  }
 }
 
 void HTMLDialogElement::FocusDialog() {
@@ -292,6 +327,23 @@ bool HTMLDialogElement::HandleInvokeInternal(Element* aInvoker,
   }
 
   return false;
+}
+
+void HTMLDialogElement::QueueToggleEventTask() {
+  nsAutoString oldState;
+  auto newState = Open() ? u"closed"_ns : u"open"_ns;
+  if (mToggleEventDispatcher) {
+    oldState.Truncate();
+    static_cast<ToggleEvent*>(mToggleEventDispatcher->mEvent.get())
+        ->GetOldState(oldState);
+    mToggleEventDispatcher->Cancel();
+  } else {
+    oldState.Assign(Open() ? u"open"_ns : u"closed"_ns);
+  }
+  RefPtr<ToggleEvent> toggleEvent =
+      CreateToggleEvent(u"toggle"_ns, oldState, newState, Cancelable::eNo);
+  mToggleEventDispatcher = new AsyncEventDispatcher(this, toggleEvent.forget());
+  mToggleEventDispatcher->PostDOMEvent();
 }
 
 JSObject* HTMLDialogElement::WrapNode(JSContext* aCx,
