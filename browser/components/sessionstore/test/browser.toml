@@ -275,6 +275,10 @@ tags = "os_integration"
 
 ["browser_tab_groups_empty.js"]
 
+["browser_tab_groups_restore_simple.js"]
+
+["browser_tab_groups_restore_multiple.js"]
+
 ["browser_tab_groups_state.js"]
 
 ["browser_tab_label_during_restore.js"]
