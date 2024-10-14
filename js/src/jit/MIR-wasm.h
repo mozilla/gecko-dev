@@ -2938,13 +2938,16 @@ class MWasmNewStructObject : public MBinaryInstruction,
   bool isOutline_;
   bool zeroFields_;
   gc::AllocKind allocKind_;
+  wasm::BytecodeOffset bytecodeOffset_;
 
   MWasmNewStructObject(MDefinition* instance, MDefinition* typeDefData,
-                       bool isOutline, bool zeroFields, gc::AllocKind allocKind)
+                       bool isOutline, bool zeroFields, gc::AllocKind allocKind,
+                       wasm::BytecodeOffset bytecodeOffset)
       : MBinaryInstruction(classOpcode, instance, typeDefData),
         isOutline_(isOutline),
         zeroFields_(zeroFields),
-        allocKind_(allocKind) {
+        allocKind_(allocKind),
+        bytecodeOffset_(bytecodeOffset) {
     setResultType(MIRType::WasmAnyRef);
   }
 
@@ -2963,6 +2966,7 @@ class MWasmNewStructObject : public MBinaryInstruction,
   bool isOutline() const { return isOutline_; }
   bool zeroFields() const { return zeroFields_; }
   gc::AllocKind allocKind() const { return allocKind_; }
+  wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
 };
 
 class MWasmNewArrayObject : public MTernaryInstruction,

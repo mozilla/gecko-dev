@@ -4053,6 +4053,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                            wasm::SymbolicAddress builtin,
                                            wasm::FailureMode failureMode);
 
+  // Performs the appropriate check based on the instance call's FailureMode,
+  // and traps if the check fails. The resultRegister should likely be
+  // ReturnReg, but this depends on whatever you do with registers immediately
+  // after the call.
+  void wasmTrapOnFailedInstanceCall(Register resultRegister,
+                                    wasm::FailureMode failureMode,
+                                    wasm::BytecodeOffset bytecodeOffset);
+
   // Performs a bounds check for ranged wasm operations like memory.fill or
   // array.fill. This handles the bizarre edge case in the wasm spec where a
   // write to index N is valid as long as the length is zero - despite the index

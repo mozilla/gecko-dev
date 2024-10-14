@@ -6001,34 +6001,39 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
   }
 
   CodeOffset ret = call(desc, builtin);
-
-  if (failureMode != wasm::FailureMode::Infallible) {
-    Label noTrap;
-    switch (failureMode) {
-      case wasm::FailureMode::Infallible:
-        MOZ_CRASH();
-      case wasm::FailureMode::FailOnNegI32:
-        branchTest32(Assembler::NotSigned, ReturnReg, ReturnReg, &noTrap);
-        break;
-      case wasm::FailureMode::FailOnMaxI32:
-        branchPtr(Assembler::NotEqual, ReturnReg, ImmWord(uintptr_t(INT32_MAX)),
-                  &noTrap);
-        break;
-      case wasm::FailureMode::FailOnNullPtr:
-        branchTestPtr(Assembler::NonZero, ReturnReg, ReturnReg, &noTrap);
-        break;
-      case wasm::FailureMode::FailOnInvalidRef:
-        branchPtr(Assembler::NotEqual, ReturnReg,
-                  ImmWord(uintptr_t(wasm::AnyRef::invalid().forCompiledCode())),
-                  &noTrap);
-        break;
-    }
-    wasmTrap(wasm::Trap::ThrowReported,
-             wasm::BytecodeOffset(desc.lineOrBytecode()));
-    bind(&noTrap);
-  }
+  wasmTrapOnFailedInstanceCall(ReturnReg, failureMode,
+                               wasm::BytecodeOffset(desc.lineOrBytecode()));
 
   return ret;
+}
+
+void MacroAssembler::wasmTrapOnFailedInstanceCall(
+    Register resultRegister, wasm::FailureMode failureMode,
+    wasm::BytecodeOffset bytecodeOffset) {
+  Label noTrap;
+  switch (failureMode) {
+    case wasm::FailureMode::Infallible:
+      return;
+    case wasm::FailureMode::FailOnNegI32:
+      branchTest32(Assembler::NotSigned, resultRegister, resultRegister,
+                   &noTrap);
+      break;
+    case wasm::FailureMode::FailOnMaxI32:
+      branchPtr(Assembler::NotEqual, resultRegister,
+                ImmWord(uintptr_t(INT32_MAX)), &noTrap);
+      break;
+    case wasm::FailureMode::FailOnNullPtr:
+      branchTestPtr(Assembler::NonZero, resultRegister, resultRegister,
+                    &noTrap);
+      break;
+    case wasm::FailureMode::FailOnInvalidRef:
+      branchPtr(Assembler::NotEqual, resultRegister,
+                ImmWord(uintptr_t(wasm::AnyRef::invalid().forCompiledCode())),
+                &noTrap);
+      break;
+  }
+  wasmTrap(wasm::Trap::ThrowReported, bytecodeOffset);
+  bind(&noTrap);
 }
 
 CodeOffset MacroAssembler::asmCallIndirect(const wasm::CallSiteDesc& desc,

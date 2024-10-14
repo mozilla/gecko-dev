@@ -20367,10 +20367,22 @@ void CodeGenerator::visitWasmRefIsSubtypeOfConcreteAndBranch(
   masm.jump(onFail);
 }
 
-void CodeGenerator::callWasmStructAllocFun(LInstruction* lir,
-                                           wasm::SymbolicAddress fun,
-                                           Register typeDefData,
-                                           Register output) {
+void CodeGenerator::callWasmStructAllocFun(
+    LInstruction* lir, wasm::SymbolicAddress fun, Register typeDefData,
+    Register output, wasm::BytecodeOffset bytecodeOffset) {
+  MOZ_ASSERT(fun == wasm::SymbolicAddress::StructNewIL_true ||
+             fun == wasm::SymbolicAddress::StructNewIL_false ||
+             fun == wasm::SymbolicAddress::StructNewOOL_true ||
+             fun == wasm::SymbolicAddress::StructNewOOL_false);
+  MOZ_ASSERT(wasm::SASigStructNewIL_true.failureMode ==
+             wasm::FailureMode::FailOnNullPtr);
+  MOZ_ASSERT(wasm::SASigStructNewIL_false.failureMode ==
+             wasm::FailureMode::FailOnNullPtr);
+  MOZ_ASSERT(wasm::SASigStructNewOOL_true.failureMode ==
+             wasm::FailureMode::FailOnNullPtr);
+  MOZ_ASSERT(wasm::SASigStructNewOOL_false.failureMode ==
+             wasm::FailureMode::FailOnNullPtr);
+
   masm.Push(InstanceReg);
   int32_t framePushedAfterInstance = masm.framePushed();
   saveLive(lir);
@@ -20379,9 +20391,8 @@ void CodeGenerator::callWasmStructAllocFun(LInstruction* lir,
   masm.passABIArg(InstanceReg);
   masm.passABIArg(typeDefData);
   int32_t instanceOffset = masm.framePushed() - framePushedAfterInstance;
-  CodeOffset offset =
-      masm.callWithABI(wasm::BytecodeOffset(0), fun,
-                       mozilla::Some(instanceOffset), ABIType::General);
+  CodeOffset offset = masm.callWithABI(
+      bytecodeOffset, fun, mozilla::Some(instanceOffset), ABIType::General);
   masm.storeCallPointerResult(output);
 
   markSafepointAt(offset.offset(), lir);
@@ -20393,6 +20404,9 @@ void CodeGenerator::callWasmStructAllocFun(LInstruction* lir,
 #if JS_CODEGEN_ARM64
   masm.syncStackPtr();
 #endif
+
+  masm.wasmTrapOnFailedInstanceCall(output, wasm::FailureMode::FailOnNullPtr,
+                                    bytecodeOffset);
 }
 
 // Out-of-line path to allocate wasm GC structs
@@ -20401,11 +20415,17 @@ class OutOfLineWasmNewStruct : public OutOfLineCodeBase<CodeGenerator> {
   wasm::SymbolicAddress fun_;
   Register typeDefData_;
   Register output_;
+  wasm::BytecodeOffset bytecodeOffset_;
 
  public:
   OutOfLineWasmNewStruct(LInstruction* lir, wasm::SymbolicAddress fun,
-                         Register typeDefData, Register output)
-      : lir_(lir), fun_(fun), typeDefData_(typeDefData), output_(output) {}
+                         Register typeDefData, Register output,
+                         wasm::BytecodeOffset bytecodeOffset)
+      : lir_(lir),
+        fun_(fun),
+        typeDefData_(typeDefData),
+        output_(output),
+        bytecodeOffset_(bytecodeOffset) {}
 
   void accept(CodeGenerator* codegen) override {
     codegen->visitOutOfLineWasmNewStruct(this);
@@ -20415,11 +20435,12 @@ class OutOfLineWasmNewStruct : public OutOfLineCodeBase<CodeGenerator> {
   wasm::SymbolicAddress fun() const { return fun_; }
   Register typeDefData() const { return typeDefData_; }
   Register output() const { return output_; }
+  wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
 };
 
 void CodeGenerator::visitOutOfLineWasmNewStruct(OutOfLineWasmNewStruct* ool) {
   callWasmStructAllocFun(ool->lir(), ool->fun(), ool->typeDefData(),
-                         ool->output());
+                         ool->output(), ool->bytecodeOffset());
   masm.jump(ool->rejoin());
 }
 
@@ -20435,7 +20456,8 @@ void CodeGenerator::visitWasmNewStructObject(LWasmNewStructObject* lir) {
     wasm::SymbolicAddress fun = mir->zeroFields()
                                     ? wasm::SymbolicAddress::StructNewOOL_true
                                     : wasm::SymbolicAddress::StructNewOOL_false;
-    callWasmStructAllocFun(lir, fun, typeDefData, output);
+    callWasmStructAllocFun(lir, fun, typeDefData, output,
+                           mir->bytecodeOffset());
   } else {
     wasm::SymbolicAddress fun = mir->zeroFields()
                                     ? wasm::SymbolicAddress::StructNewIL_true
@@ -20444,8 +20466,8 @@ void CodeGenerator::visitWasmNewStructObject(LWasmNewStructObject* lir) {
     Register instance = ToRegister(lir->instance());
     MOZ_ASSERT(instance == InstanceReg);
 
-    auto ool =
-        new (alloc()) OutOfLineWasmNewStruct(lir, fun, typeDefData, output);
+    auto* ool = new (alloc()) OutOfLineWasmNewStruct(
+        lir, fun, typeDefData, output, mir->bytecodeOffset());
     addOutOfLineCode(ool, lir->mir());
 
     Register temp1 = ToRegister(lir->temp0());
@@ -20462,6 +20484,13 @@ void CodeGenerator::callWasmArrayAllocFun(LInstruction* lir,
                                           Register numElements,
                                           Register typeDefData, Register output,
                                           wasm::BytecodeOffset bytecodeOffset) {
+  MOZ_ASSERT(fun == wasm::SymbolicAddress::ArrayNew_true ||
+             fun == wasm::SymbolicAddress::ArrayNew_false);
+  MOZ_ASSERT(wasm::SASigArrayNew_true.failureMode ==
+             wasm::FailureMode::FailOnNullPtr);
+  MOZ_ASSERT(wasm::SASigArrayNew_false.failureMode ==
+             wasm::FailureMode::FailOnNullPtr);
+
   masm.Push(InstanceReg);
   int32_t framePushedAfterInstance = masm.framePushed();
   saveLive(lir);
@@ -20485,10 +20514,8 @@ void CodeGenerator::callWasmArrayAllocFun(LInstruction* lir,
   masm.syncStackPtr();
 #endif
 
-  Label ok;
-  masm.branchPtr(Assembler::NonZero, output, ImmWord(0), &ok);
-  masm.wasmTrap(wasm::Trap::ThrowReported, bytecodeOffset);
-  masm.bind(&ok);
+  masm.wasmTrapOnFailedInstanceCall(output, wasm::FailureMode::FailOnNullPtr,
+                                    bytecodeOffset);
 }
 
 // Out-of-line path to allocate wasm GC arrays

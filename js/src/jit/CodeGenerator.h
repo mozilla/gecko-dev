@@ -200,7 +200,8 @@ class CodeGenerator final : public CodeGeneratorSpecific {
       OutOfLineWasmCallPostWriteBarrierIndex* ool);
 
   void callWasmStructAllocFun(LInstruction* lir, wasm::SymbolicAddress fun,
-                              Register typeDefData, Register output);
+                              Register typeDefData, Register output,
+                              wasm::BytecodeOffset bytecodeOffset);
   void visitOutOfLineWasmNewStruct(OutOfLineWasmNewStruct* ool);
 
   void callWasmArrayAllocFun(LInstruction* lir, wasm::SymbolicAddress fun,

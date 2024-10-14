@@ -4670,9 +4670,9 @@ class FunctionCompiler {
       return nullptr;
     }
 
-    auto* structObject =
-        MWasmNewStructObject::New(alloc(), instancePointer_, typeDefData,
-                                  isOutline, zeroFields, allocKind);
+    auto* structObject = MWasmNewStructObject::New(
+        alloc(), instancePointer_, typeDefData, isOutline, zeroFields,
+        allocKind, bytecodeOffset());
     if (!structObject) {
       return nullptr;
     }
