@@ -17,6 +17,7 @@
 #include "mozilla/EventQueue.h"
 #include "mozilla/UniquePtr.h"
 #include "nsISupportsImpl.h"
+#include "nsThreadUtils.h"  // for MOZ_COLLECTING_RUNNABLE_TELEMETRY
 
 #include <atomic>
 #include <vector>
