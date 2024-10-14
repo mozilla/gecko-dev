@@ -962,10 +962,6 @@ tab-group {
     scrollbar-width: thin;
     overflow-y: auto;
   }
-
-  &[overflowing]:not([scrolledtoend]) {
-    mask-image: linear-gradient(to bottom, black 98%, transparent 100%);
-  }
 }
 
 #tabbrowser-arrowscrollbox[orient="vertical"] > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
