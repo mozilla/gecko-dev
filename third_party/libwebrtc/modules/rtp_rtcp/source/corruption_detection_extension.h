@@ -16,6 +16,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/rtp_parameters.h"
 #include "common_video/corruption_detection_message.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 
@@ -33,10 +34,10 @@ class CorruptionDetectionExtension {
 
   static constexpr RTPExtensionType kId = kRtpExtensionCorruptionDetection;
   static constexpr uint8_t kMaxValueSizeBytes = 16;
-  static constexpr char kCorruptionDetectionUri[] =
-      "http://www.webrtc.org/experiments/rtp-hdrext/corruption-detection";
 
-  static constexpr absl::string_view Uri() { return kCorruptionDetectionUri; }
+  static constexpr absl::string_view Uri() {
+    return RtpExtension::kCorruptionDetectionUri;
+  }
   static bool Parse(rtc::ArrayView<const uint8_t> data,
                     CorruptionDetectionMessage* message);
   static bool Write(rtc::ArrayView<uint8_t> data,

@@ -377,6 +377,10 @@ struct RTC_EXPORT RtpExtension {
   static constexpr char kCsrcAudioLevelsUri[] =
       "urn:ietf:params:rtp-hdrext:csrc-audio-level";
 
+  // Header extension for automatic corruption detection.
+  static constexpr char kCorruptionDetectionUri[] =
+      "http://www.webrtc.org/experiments/rtp-hdrext/corruption-detection";
+
   // Inclusive min and max IDs for two-byte header extensions and one-byte
   // header extensions, per RFC8285 Section 4.2-4.3.
   static constexpr int kMinId = 1;
