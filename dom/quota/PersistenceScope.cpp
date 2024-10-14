@@ -8,6 +8,14 @@
 
 namespace mozilla::dom::quota {
 
+bool MatchesPersistentPersistenceScope(
+    const PersistenceScope& aPersistenceScope) {
+  static PersistenceScope scope(
+      PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT));
+
+  return aPersistenceScope.Matches(scope);
+}
+
 bool MatchesBestEffortPersistenceScope(
     const PersistenceScope& aPersistenceScope) {
   static PersistenceScope scope(PersistenceScope::CreateFromSet(

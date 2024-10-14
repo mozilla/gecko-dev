@@ -34,6 +34,8 @@ nsLiteralCString StringGenerator::GetString(
       return "UpgradeFromIndexedDBDirectory"_ns;
     case Initialization::UpgradeFromPersistentStorageDirectory:
       return "UpgradeFromPersistentStorageDirectory"_ns;
+    case Initialization::PersistentRepository:
+      return "PersistentRepository"_ns;
 
     default:
       MOZ_CRASH("Bad initialization value!");

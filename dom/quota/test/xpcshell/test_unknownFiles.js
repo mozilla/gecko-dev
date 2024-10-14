@@ -16,14 +16,17 @@ async function testSteps() {
     const modes = [
       {
         initializedStorage: false,
+        initializedPersistentStorage: false,
         initializedTemporaryStorage: false,
       },
       {
         initializedStorage: true,
+        initializedPersistentStorage: false,
         initializedTemporaryStorage: false,
       },
       {
         initializedStorage: true,
+        initializedPersistentStorage: false,
         initializedTemporaryStorage: true,
       },
     ];
@@ -61,6 +64,7 @@ async function testSteps() {
 
       await verifyInitializationStatus(
         mode.initializedStorage,
+        mode.initializedPersistentStorage,
         mode.initializedTemporaryStorage
       );
 

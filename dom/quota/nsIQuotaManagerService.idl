@@ -34,6 +34,15 @@ interface nsIQuotaManagerService : nsISupports
   storageInitialized();
 
   /**
+   * Check if persistent storage is initialized.
+   *
+   * If the dom.quotaManager.testing preference is not true the call will be
+   * a no-op.
+   */
+  [must_use] nsIQuotaRequest
+  persistentStorageInitialized();
+
+  /**
    * Check if temporary storage is initialized.
    *
    * If the dom.quotaManager.testing preference is not true the call will be
@@ -79,6 +88,16 @@ interface nsIQuotaManagerService : nsISupports
    */
   [must_use] nsIQuotaRequest
   init();
+
+  /**
+   * Initializes persistent storage. This can be used in tests to verify
+   * persistent storage initialization.
+   *
+   * If the dom.quotaManager.testing preference is not true the call will be
+   * a no-op.
+   */
+  [must_use] nsIQuotaRequest
+  initializePersistentStorage();
 
   /**
    * Initializes temporary storage. This can be used in tests to verify

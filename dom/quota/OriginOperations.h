@@ -69,6 +69,9 @@ RefPtr<QuotaRequestBase> CreateStorageNameOp(
 RefPtr<ResolvableNormalOriginOp<bool>> CreateStorageInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
 
+RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentStorageInitializedOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
+
 RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryStorageInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
 
@@ -82,6 +85,10 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryOriginInitializedOp(
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock);
+
+RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentStorageOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     RefPtr<UniversalDirectoryLock> aDirectoryLock);
 

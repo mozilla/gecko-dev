@@ -32,6 +32,7 @@ enum class Initialization {
   UpgradeStorageFrom2_2To2_3 = 1 << 8,
   UpgradeFromIndexedDBDirectory = 1 << 9,
   UpgradeFromPersistentStorageDirectory = 1 << 10,
+  PersistentRepository = 1 << 11,
 };
 
 enum class OriginInitialization {

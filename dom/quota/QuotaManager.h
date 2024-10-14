@@ -88,6 +88,7 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class FinalizeOriginEvictionOp;
   friend class GroupInfo;
   friend class InitOp;
+  friend class InitializePersistentStorageOp;
   friend class InitTemporaryStorageOp;
   friend class OriginInfo;
   friend class ShutdownStorageOp;
@@ -361,6 +362,29 @@ class QuotaManager final : public BackgroundThreadObject {
 
  private:
   nsresult EnsureStorageIsInitializedInternal();
+
+ public:
+  RefPtr<BoolPromise> InitializePersistentStorage();
+
+  RefPtr<BoolPromise> InitializePersistentStorage(
+      RefPtr<UniversalDirectoryLock> aDirectoryLock);
+
+  RefPtr<BoolPromise> PersistentStorageInitialized();
+
+  bool IsPersistentStorageInitialized() const {
+    AssertIsOnOwningThread();
+
+    return mPersistentStorageInitialized;
+  }
+
+  bool IsPersistentStorageInitializedInternal() const {
+    AssertIsOnIOThread();
+
+    return mPersistentStorageInitializedInternal;
+  }
+
+ private:
+  nsresult EnsurePersistentStorageIsInitializedInternal();
 
  public:
   RefPtr<BoolPromise> InitializePersistentOrigin(
@@ -884,6 +908,8 @@ class QuotaManager final : public BackgroundThreadObject {
   uint64_t mTemporaryStorageUsage;
   int64_t mNextDirectoryLockId;
   bool mStorageInitialized;
+  bool mPersistentStorageInitialized;
+  bool mPersistentStorageInitializedInternal;
   bool mTemporaryStorageInitialized;
   bool mTemporaryStorageInitializedInternal;
   bool mCacheUsable;

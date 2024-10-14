@@ -125,6 +125,9 @@ parent:
   async StorageInitialized()
       returns(BoolResponse response);
 
+  async PersistentStorageInitialized()
+      returns(BoolResponse response);
+
   async TemporaryStorageInitialized()
       returns(BoolResponse response);
 
@@ -136,6 +139,9 @@ parent:
       returns(BoolResponse response);
 
   async InitializeStorage()
+      returns(BoolResponse response);
+
+  async InitializePersistentStorage()
       returns(BoolResponse response);
 
   async InitializePersistentOrigin(PrincipalInfo principalInfo)

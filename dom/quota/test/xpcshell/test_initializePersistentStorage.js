@@ -4,14 +4,14 @@
  */
 
 /**
- * This test is mainly to verify initTemporaryStorage() does call
- * QuotaManager::EnsureTemporaryStorageIsInitializedInternal() which does
+ * This test is mainly to verify initializePersistentStorage() does call
+ * QuotaManager::EnsurePersistentStorageIsInitializedInternal() which does
  * various things, for example, it restores the directory metadata if it's
  * broken or missing.
  */
 
 async function testSteps() {
-  const originDirPath = "storage/default/https+++foo.example.com";
+  const originDirPath = "storage/permanent/https+++foo.example.com";
   const metadataFileName = ".metadata-v2";
 
   info("Initializing");
@@ -28,14 +28,14 @@ async function testSteps() {
   let originDir = getRelativeFile(originDirPath);
   originDir.create(Ci.nsIFile.DIRECTORY_TYPE, parseInt("0755", 8));
 
-  info("Initializing the temporary storage");
+  info("Initializing persistent storage");
 
-  request = initTemporaryStorage();
+  request = initializePersistentStorage();
   await requestFinished(request);
 
   info(
     "Verifying directory metadata was restored after calling " +
-      "initTemporaryStorage()"
+      "initializePersistentStorage()"
   );
 
   let metadataFile = originDir.clone();
@@ -45,5 +45,5 @@ async function testSteps() {
 
   info("Verifying initialization status");
 
-  await verifyInitializationStatus(true, false, true);
+  await verifyInitializationStatus(true, true, false);
 }

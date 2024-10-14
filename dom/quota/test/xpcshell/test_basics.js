@@ -35,7 +35,7 @@ function* testSteps() {
 
   info("Verifying initialization status");
 
-  verifyInitializationStatus(false, false).then(continueToNextStepSync);
+  verifyInitializationStatus(false, false, false).then(continueToNextStepSync);
   yield undefined;
 
   info("Getting usage");
@@ -47,7 +47,7 @@ function* testSteps() {
 
   info("Verifying initialization status");
 
-  verifyInitializationStatus(true, false).then(continueToNextStepSync);
+  verifyInitializationStatus(true, false, false).then(continueToNextStepSync);
   yield undefined;
 
   info("Clearing");
@@ -57,7 +57,7 @@ function* testSteps() {
 
   info("Verifying initialization status");
 
-  verifyInitializationStatus(false, false).then(continueToNextStepSync);
+  verifyInitializationStatus(false, false, false).then(continueToNextStepSync);
   yield undefined;
 
   info("Installing package");
@@ -77,7 +77,7 @@ function* testSteps() {
 
   info("Verifying initialization status");
 
-  verifyInitializationStatus(true, false).then(continueToNextStepSync);
+  verifyInitializationStatus(true, false, false).then(continueToNextStepSync);
   yield undefined;
 
   info("Clearing");
@@ -94,7 +94,7 @@ function* testSteps() {
 
   info("Verifying initialization status");
 
-  verifyInitializationStatus(false, false).then(continueToNextStepSync);
+  verifyInitializationStatus(false, false, false).then(continueToNextStepSync);
   yield undefined;
 
   info("Initializing");
@@ -109,7 +109,7 @@ function* testSteps() {
 
   info("Verifying initialization status");
 
-  verifyInitializationStatus(true, false).then(continueToNextStepSync);
+  verifyInitializationStatus(true, false, false).then(continueToNextStepSync);
   yield undefined;
 
   info("Initializing origin");
@@ -135,7 +135,7 @@ function* testSteps() {
 
   info("Verifying initialization status");
 
-  verifyInitializationStatus(true, false).then(continueToNextStepSync);
+  verifyInitializationStatus(true, false, false).then(continueToNextStepSync);
 
   yield undefined;
 

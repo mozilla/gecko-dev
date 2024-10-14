@@ -1655,6 +1655,8 @@ QuotaManager::QuotaManager(const nsAString& aBasePath,
       mTemporaryStorageUsage(0),
       mNextDirectoryLockId(0),
       mStorageInitialized(false),
+      mPersistentStorageInitialized(false),
+      mPersistentStorageInitializedInternal(false),
       mTemporaryStorageInitialized(false),
       mTemporaryStorageInitializedInternal(false),
       mCacheUsable(false) {
@@ -3574,7 +3576,8 @@ template <typename OriginFunc>
 nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
                                             OriginFunc&& aOriginFunc) {
   AssertIsOnIOThread();
-  MOZ_ASSERT(aPersistenceType == PERSISTENCE_TYPE_TEMPORARY ||
+  MOZ_ASSERT(aPersistenceType == PERSISTENCE_TYPE_PERSISTENT ||
+             aPersistenceType == PERSISTENCE_TYPE_TEMPORARY ||
              aPersistenceType == PERSISTENCE_TYPE_DEFAULT);
 
   QM_TRY_INSPECT(const auto& directory,
@@ -3710,7 +3713,9 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
                               return Ok{};
                             })));
 
-                        std::forward<OriginFunc>(aOriginFunc)(metadata);
+                        if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
+                          std::forward<OriginFunc>(aOriginFunc)(metadata);
+                        }
 
                         break;
                       }
@@ -3744,41 +3749,44 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
 
   for (auto& info : renameAndInitInfos) {
     QM_TRY(([&]() -> Result<Ok, nsresult> {
-      QM_TRY(([&directory, &info, this, aPersistenceType,
-               &aOriginFunc]() -> Result<Ok, nsresult> {
-               const auto extraInfo = ScopedLogExtraInfo{
-                   ScopedLogExtraInfo::kTagStorageOriginTainted,
-                   info.mFullOriginMetadata.mStorageOrigin};
+      QM_TRY(
+          ([&directory, &info, this, aPersistenceType,
+            &aOriginFunc]() -> Result<Ok, nsresult> {
+            const auto extraInfo =
+                ScopedLogExtraInfo{ScopedLogExtraInfo::kTagStorageOriginTainted,
+                                   info.mFullOriginMetadata.mStorageOrigin};
 
-               const auto originDirName =
-                   MakeSanitizedOriginString(info.mFullOriginMetadata.mOrigin);
+            const auto originDirName =
+                MakeSanitizedOriginString(info.mFullOriginMetadata.mOrigin);
 
-               // Check if targetDirectory exist.
-               QM_TRY_INSPECT(const auto& targetDirectory,
-                              CloneFileAndAppend(*directory, originDirName));
+            // Check if targetDirectory exist.
+            QM_TRY_INSPECT(const auto& targetDirectory,
+                           CloneFileAndAppend(*directory, originDirName));
 
-               QM_TRY_INSPECT(const bool& exists, MOZ_TO_RESULT_INVOKE_MEMBER(
-                                                      targetDirectory, Exists));
+            QM_TRY_INSPECT(const bool& exists, MOZ_TO_RESULT_INVOKE_MEMBER(
+                                                   targetDirectory, Exists));
 
-               if (exists) {
-                 QM_TRY(MOZ_TO_RESULT(info.mOriginDirectory->Remove(true)));
+            if (exists) {
+              QM_TRY(MOZ_TO_RESULT(info.mOriginDirectory->Remove(true)));
 
-                 return Ok{};
-               }
+              return Ok{};
+            }
 
-               QM_TRY(MOZ_TO_RESULT(
-                   info.mOriginDirectory->RenameTo(nullptr, originDirName)));
+            QM_TRY(MOZ_TO_RESULT(
+                info.mOriginDirectory->RenameTo(nullptr, originDirName)));
 
-               // XXX We don't check corruption here ?
-               QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
-                   aPersistenceType, info.mFullOriginMetadata, info.mTimestamp,
-                   info.mPersisted, targetDirectory)));
+            // XXX We don't check corruption here ?
+            QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
+                aPersistenceType, info.mFullOriginMetadata, info.mTimestamp,
+                info.mPersisted, targetDirectory)));
 
-               std::forward<OriginFunc>(aOriginFunc)(info.mFullOriginMetadata);
+            if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
+              std::forward<OriginFunc>(aOriginFunc)(info.mFullOriginMetadata);
+            }
 
-               return Ok{};
-             }()),
-             OK_IN_NIGHTLY_PROPAGATE_IN_OTHERS, statusKeeperFunc);
+            return Ok{};
+          }()),
+          OK_IN_NIGHTLY_PROPAGATE_IN_OTHERS, statusKeeperFunc);
 
       return Ok{};
     }()));
@@ -5462,6 +5470,113 @@ bool QuotaManager::IsPendingOrigin(
       LockedGetOriginInfo(aOriginMetadata.mPersistenceType, aOriginMetadata);
 
   return originInfo && !originInfo->LockedDirectoryExists();
+}
+
+RefPtr<BoolPromise> QuotaManager::InitializePersistentStorage() {
+  AssertIsOnOwningThread();
+
+  RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
+      PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
+      OriginScope::FromNull(), Nullable<Client::Type>(),
+      /* aExclusive */ false);
+
+  // If persistent storage is initialized but there's a clear storage or
+  // shutdown storage operation already scheduled, we can't immediately resolve
+  // the promise and return from the function because the clear or shutdown
+  // storage operation uninitializes storage.
+  if (mPersistentStorageInitialized &&
+      !IsDirectoryLockBlockedByUninitStorageOperation(directoryLock)) {
+    return BoolPromise::CreateAndResolve(true, __func__);
+  }
+
+  return directoryLock->Acquire()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [self = RefPtr(this),
+       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+        if (aValue.IsReject()) {
+          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
+        }
+
+        return self->InitializePersistentStorage(std::move(directoryLock));
+      });
+}
+
+RefPtr<BoolPromise> QuotaManager::InitializePersistentStorage(
+    RefPtr<UniversalDirectoryLock> aDirectoryLock) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aDirectoryLock);
+  MOZ_ASSERT(aDirectoryLock->Acquired());
+
+  // If persistent storage is initialized and the directory lock for the
+  // initialize persistent storage operation is acquired, we can immediately
+  // resolve the promise and return from the function because there can't be a
+  // clear storage or shutdown storage operation which would uninitialize
+  // persistent storage.
+  if (mPersistentStorageInitialized) {
+    DropDirectoryLock(aDirectoryLock);
+
+    return BoolPromise::CreateAndResolve(true, __func__);
+  }
+
+  auto initializePersistentStorageOp = CreateInitializePersistentStorageOp(
+      WrapMovingNotNullUnchecked(this), std::move(aDirectoryLock));
+
+  RegisterNormalOriginOp(*initializePersistentStorageOp);
+
+  initializePersistentStorageOp->RunImmediately();
+
+  return initializePersistentStorageOp->OnResults()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [self = RefPtr(this)](const BoolPromise::ResolveOrRejectValue& aValue) {
+        if (aValue.IsReject()) {
+          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
+        }
+
+        self->mPersistentStorageInitialized = true;
+
+        return BoolPromise::CreateAndResolve(true, __func__);
+      });
+}
+
+RefPtr<BoolPromise> QuotaManager::PersistentStorageInitialized() {
+  AssertIsOnOwningThread();
+
+  auto persistentStorageInitializedOp =
+      CreatePersistentStorageInitializedOp(WrapMovingNotNullUnchecked(this));
+
+  RegisterNormalOriginOp(*persistentStorageInitializedOp);
+
+  persistentStorageInitializedOp->RunImmediately();
+
+  return persistentStorageInitializedOp->OnResults();
+}
+
+nsresult QuotaManager::EnsurePersistentStorageIsInitializedInternal() {
+  AssertIsOnIOThread();
+  MOZ_DIAGNOSTIC_ASSERT(mStorageConnection);
+
+  const auto innerFunc =
+      [&](const auto& firstInitializationAttempt) -> nsresult {
+    if (mPersistentStorageInitializedInternal) {
+      MOZ_ASSERT(firstInitializationAttempt.Recorded());
+      return NS_OK;
+    }
+
+    QM_TRY(MOZ_TO_RESULT(ExecuteInitialization(
+        Initialization::PersistentRepository, [&](const auto&) -> nsresult {
+          return InitializeRepository(PERSISTENCE_TYPE_PERSISTENT,
+                                      [](auto&) {});
+        })));
+
+    mPersistentStorageInitializedInternal = true;
+
+    return NS_OK;
+  };
+
+  return ExecuteInitialization(
+      Initialization::TemporaryStorage,
+      "dom::quota::FirstInitializationAttempt::PersistentStorage"_ns,
+      innerFunc);
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
