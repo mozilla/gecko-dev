@@ -3689,6 +3689,9 @@ WebRtcVideoReceiveChannel::WebRtcVideoReceiveStream::GetVideoReceiverInfo(
   info.key_frames_decoded = stats.frame_counts.key_frames;
   info.frames_rendered = stats.frames_rendered;
   info.qp_sum = stats.qp_sum;
+  info.corruption_score_sum = stats.corruption_score_sum;
+  info.corruption_score_squared_sum = stats.corruption_score_squared_sum;
+  info.corruption_score_count = stats.corruption_score_count;
   info.total_decode_time = stats.total_decode_time;
   info.total_processing_delay = stats.total_processing_delay;
   info.total_assembly_time = stats.total_assembly_time;

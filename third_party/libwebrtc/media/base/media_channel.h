@@ -631,6 +631,17 @@ struct VideoReceiverInfo : public MediaReceiverInfo {
   uint32_t key_frames_decoded = 0;
   uint32_t frames_rendered = 0;
   std::optional<uint64_t> qp_sum;
+  // Corruption score, indicating the probability of corruption. Its value is
+  // between 0 and 1, where 0 means no corruption and 1 means that the
+  // compressed frame is corrupted.
+  // However, note that the corruption score may not accurately reflect
+  // corruption. E.g. even if the corruption score is 0, the compressed frame
+  // may still be corrupted and vice versa.
+  std::optional<double> corruption_score_sum;
+  std::optional<double> corruption_score_squared_sum;
+  // Number of frames the `corruption_score` was calculated on. This is
+  // usually not the same as `frames_decoded` or `frames_rendered`.
+  uint32_t corruption_score_count = 0;
   // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-totaldecodetime
   webrtc::TimeDelta total_decode_time = webrtc::TimeDelta::Zero();
   // https://w3c.github.io/webrtc-stats/#dom-rtcinboundrtpstreamstats-totalprocessingdelay

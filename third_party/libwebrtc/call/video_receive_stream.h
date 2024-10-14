@@ -132,7 +132,6 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
     int64_t first_frame_received_to_decoded_ms = -1;
     std::optional<uint64_t> qp_sum;
 
-    // TODO(webrtc:357636606): Propagate this score upwards in the chain.
     // Corruption score, indicating the probability of corruption. Its value is
     // between 0 and 1, where 0 means no corruption and 1 means that the
     // compressed frame is corrupted.
