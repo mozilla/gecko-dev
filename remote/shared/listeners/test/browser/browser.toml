@@ -3,7 +3,7 @@ tags = "remote"
 subsuite = "remote"
 support-files = [
   "head.js",
-  "cached_style.sjs",
+  "cached_resource.sjs",
 ]
 prefs = ["remote.messagehandler.modulecache.useBrowserTestRoot=true"]
 
