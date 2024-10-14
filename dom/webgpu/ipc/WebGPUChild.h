@@ -99,6 +99,9 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
   std::unordered_map<RawId, WeakPtr<Device>> mDeviceMap;
   nsTArray<RawId> mSwapChainTexturesWaitingForSubmit;
 
+  void ResolveLostForDeviceId(RawId aDeviceId, Maybe<uint8_t> aReason,
+                              const nsAString& aMessage);
+
  public:
   ipc::IPCResult RecvUncapturedError(Maybe<RawId> aDeviceId,
                                      const nsACString& aMessage);

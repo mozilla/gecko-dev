@@ -160,9 +160,9 @@ ipc::IPCResult WebGPUChild::RecvDropAction(const ipc::ByteBuf& aByteBuf) {
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUChild::RecvDeviceLost(RawId aDeviceId,
-                                           Maybe<uint8_t> aReason,
-                                           const nsACString& aMessage) {
+void WebGPUChild::ResolveLostForDeviceId(RawId aDeviceId,
+                                         Maybe<uint8_t> aReason,
+                                         const nsAString& aMessage) {
   RefPtr<Device> device;
   const auto itr = mDeviceMap.find(aDeviceId);
   if (itr != mDeviceMap.end()) {
@@ -171,15 +171,21 @@ ipc::IPCResult WebGPUChild::RecvDeviceLost(RawId aDeviceId,
   }
 
   if (device) {
-    auto message = NS_ConvertUTF8toUTF16(aMessage);
     if (aReason.isSome()) {
       dom::GPUDeviceLostReason reason =
           static_cast<dom::GPUDeviceLostReason>(*aReason);
-      device->ResolveLost(Some(reason), message);
+      device->ResolveLost(Some(reason), aMessage);
     } else {
-      device->ResolveLost(Nothing(), message);
+      device->ResolveLost(Nothing(), aMessage);
     }
   }
+}
+
+ipc::IPCResult WebGPUChild::RecvDeviceLost(RawId aDeviceId,
+                                           Maybe<uint8_t> aReason,
+                                           const nsACString& aMessage) {
+  auto message = NS_ConvertUTF8toUTF16(aMessage);
+  ResolveLostForDeviceId(aDeviceId, aReason, message);
   return IPC_OK();
 }
 
@@ -223,11 +229,15 @@ void WebGPUChild::UnregisterDevice(RawId aDeviceId) {
   if (CanSend()) {
     SendDeviceDrop(aDeviceId);
   }
+  ResolveLostForDeviceId(aDeviceId, Nothing(),
+                         u"WebGPUChild unregistered device"_ns);
   mDeviceMap.erase(aDeviceId);
 }
 
 void WebGPUChild::FreeUnregisteredInParentDevice(RawId aId) {
   ffi::wgpu_client_kill_device_id(mClient.get(), aId);
+  ResolveLostForDeviceId(aId, Nothing(),
+                         u"WebGPUChild unregistered device in parent"_ns);
   mDeviceMap.erase(aId);
 }
 
