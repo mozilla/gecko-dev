@@ -254,6 +254,8 @@ open class DefaultComponents(private val applicationContext: Context) {
             launchInApp = {
                 applicationContext.components.preferences.getBoolean(PREF_LAUNCH_EXTERNAL_APP, false)
             },
+            launchFromInterceptor = true,
+            store = store,
         )
     }
 

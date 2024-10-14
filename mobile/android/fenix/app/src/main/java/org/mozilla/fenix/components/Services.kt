@@ -9,6 +9,7 @@ import android.net.Uri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.accounts.FirefoxAccountsAuthFeature
 import mozilla.components.feature.app.links.AppLinksInterceptor
 import mozilla.components.service.fxa.manager.FxaAccountManager
@@ -21,6 +22,7 @@ import org.mozilla.fenix.settings.SupportUtils
  */
 class Services(
     private val context: Context,
+    private val store: BrowserStore,
     private val accountManager: FxaAccountManager,
 ) {
     val accountsAuthFeature by lazyMonitored {
@@ -43,9 +45,12 @@ class Services(
 
     val appLinksInterceptor by lazyMonitored {
         AppLinksInterceptor(
-            context,
+            context = context,
             interceptLinkClicks = true,
             launchInApp = { context.settings().shouldOpenLinksInApp() },
+            shouldPrompt = { context.settings().shouldPromptOpenLinksInApp() },
+            launchFromInterceptor = true,
+            store = store,
         )
     }
 }

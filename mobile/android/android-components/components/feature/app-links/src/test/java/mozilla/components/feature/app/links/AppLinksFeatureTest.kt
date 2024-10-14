@@ -223,7 +223,7 @@ class AppLinksFeatureTest {
     }
 
     @Test
-    fun `WHEN tab have action view and caller is the same as external app THEN an external app dialog is shown`() {
+    fun `WHEN tab have action view and caller is the same as external app THEN an external app dialog is not shown`() {
         feature = spy(
             AppLinksFeature(
                 context = mockContext,

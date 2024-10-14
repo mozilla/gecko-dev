@@ -30,6 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
+import org.mockito.ArgumentMatchers.anyString
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
@@ -146,7 +147,7 @@ class NavigationInteractorTest {
         )
         try {
             mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
-            every { mockedStore.state.findTab(any()) } returns tab
+            every { mockedStore.state.findTab(anyString()) } returns tab
             every { mockedStore.state.getNormalOrPrivateTabs(any()) } returns listOf(tab)
 
             controller.onCloseAllTabsClicked(true)

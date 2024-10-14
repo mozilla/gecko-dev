@@ -8,6 +8,7 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.concept.engine.EngineSession
 import mozilla.components.support.base.log.logger.Logger
 import java.net.URI
 import java.net.URISyntaxException
@@ -37,6 +38,17 @@ val BrowserState.selectedNormalTab: TabSessionState?
  */
 fun BrowserState.findTab(tabId: String): TabSessionState? {
     return tabs.firstOrNull { it.id == tabId }
+}
+
+/**
+ * Finds and returns the tab with the given [EngineSession]. Returns null if no matching tab could be
+ * found.
+ *
+ * @param engineSession The engineSession of the tab to search for.
+ * @return The [TabSessionState] with the provided [EngineSession] or null if it could not be found.
+ */
+fun BrowserState.findTab(engineSession: EngineSession): TabSessionState? {
+    return tabs.firstOrNull { it.engineState.engineSession == engineSession }
 }
 
 /**

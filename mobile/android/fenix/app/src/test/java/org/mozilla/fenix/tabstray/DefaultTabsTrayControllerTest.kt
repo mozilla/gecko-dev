@@ -271,7 +271,7 @@ class DefaultTabsTrayControllerTest {
         every { browserStore.state } returns mockk()
         try {
             mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
-            every { browserStore.state.findTab(any()) } returns tab
+            every { browserStore.state.findTab("testTabId") } returns tab
             every { browserStore.state.getNormalOrPrivateTabs(any()) } returns listOf(tab)
 
             createController().handleTabDeletion("testTabId", "unknown")
@@ -303,7 +303,7 @@ class DefaultTabsTrayControllerTest {
         )
         try {
             mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
-            every { browserStore.state.findTab(any()) } returns tab
+            every { browserStore.state.findTab("testTabId") } returns tab
             every { browserStore.state.getNormalOrPrivateTabs(any()) } returns listOf(tab)
             every { browserStore.state.selectedTabId } returns "testTabId"
 
@@ -419,7 +419,7 @@ class DefaultTabsTrayControllerTest {
         every { browserStore.state } returns mockk()
         try {
             mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
-            every { browserStore.state.findTab(any()) } returns tab
+            every { browserStore.state.findTab("22") } returns tab
             every { browserStore.state.getNormalOrPrivateTabs(any()) } returns listOf(tab, mockk())
 
             var showUndoSnackbarForTabInvoked = false
@@ -449,7 +449,7 @@ class DefaultTabsTrayControllerTest {
         try {
             val testTabId = "33"
             mockkStatic("mozilla.components.browser.state.selector.SelectorsKt")
-            every { browserStore.state.findTab(any()) } returns tab
+            every { browserStore.state.findTab(testTabId) } returns tab
             every { browserStore.state.getNormalOrPrivateTabs(any()) } returns listOf(tab)
             every { browserStore.state.selectedTabId } returns testTabId
 

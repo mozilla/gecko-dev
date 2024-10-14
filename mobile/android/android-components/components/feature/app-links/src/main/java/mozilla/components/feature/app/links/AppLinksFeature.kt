@@ -95,7 +95,7 @@ class AppLinksFeature(
         }
 
         val doNotOpenApp = {
-            AppLinksInterceptor.addUserDoNotIntercept(url, appIntent)
+            AppLinksInterceptor.addUserDoNotIntercept(url, appIntent, tab.id)
 
             loadUrlIfSchemeSupported(tab, url)
         }

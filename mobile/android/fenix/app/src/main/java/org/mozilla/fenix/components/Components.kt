@@ -77,7 +77,7 @@ class Components(private val context: Context) {
             strictMode,
         )
     }
-    val services by lazyMonitored { Services(context, backgroundServices.accountManager) }
+    val services by lazyMonitored { Services(context, core.store, backgroundServices.accountManager) }
     val core by lazyMonitored { Core(context, analytics.crashReporter, strictMode) }
 
     @Suppress("Deprecation")

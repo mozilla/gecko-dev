@@ -105,6 +105,22 @@ class SelectorsKtTest {
     }
 
     @Test
+    fun `WHEN findTab WITH engine session THEN currect tab is returned`() {
+        val tab = createTab("https://www.firefox.com")
+        val otherTab = createTab("https://getpocket.com")
+        val customTab = createCustomTab("https://www.mozilla.org")
+
+        val state = BrowserState(
+            tabs = listOf(tab, otherTab),
+            customTabs = listOf(customTab),
+        )
+
+        assertEquals(tab, state.findTab(tab.id))
+        assertEquals(otherTab, state.findTab(otherTab.id))
+        assertNull(state.findTab(customTab.id))
+    }
+
+    @Test
     fun `findNormalTab extension function`() {
         val privateTab = createTab("https://www.firefox.com", private = true)
         val normalTab = createTab("https://getpocket.com")
