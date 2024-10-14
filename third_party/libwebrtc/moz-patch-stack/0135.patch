@@ -1,0 +1,21 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Mon, 14 Oct 2024 17:11:00 -0500
+Subject: Bug 1924098 - (fix-8037fc6ffa) upstream missed an include file
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c870b16aa4443088c7ddd68a91afe73c8bd04a17
+---
+ modules/audio_processing/aec3/matched_filter_lag_aggregator.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/modules/audio_processing/aec3/matched_filter_lag_aggregator.h b/modules/audio_processing/aec3/matched_filter_lag_aggregator.h
+index 9022424d2f..c15c9960f9 100644
+--- a/modules/audio_processing/aec3/matched_filter_lag_aggregator.h
++++ b/modules/audio_processing/aec3/matched_filter_lag_aggregator.h
+@@ -11,6 +11,7 @@
+ #ifndef MODULES_AUDIO_PROCESSING_AEC3_MATCHED_FILTER_LAG_AGGREGATOR_H_
+ #define MODULES_AUDIO_PROCESSING_AEC3_MATCHED_FILTER_LAG_AGGREGATOR_H_
+ 
++#include <memory>
+ #include <optional>
+ #include <vector>
+ 
