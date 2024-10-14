@@ -4752,10 +4752,15 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
         auto* proxyLog = getenv("WAYLAND_PROXY_LOG");
         WaylandProxy::SetVerbose(proxyLog && *proxyLog);
         WaylandProxy::SetCompositorCrashHandler(WlCompositorCrashHandler);
+        WaylandProxy::AddState(WAYLAND_PROXY_ENABLED);
         gWaylandProxy = WaylandProxy::Create();
         if (gWaylandProxy) {
-          gWaylandProxy->RunThread();
+          if (!gWaylandProxy->RunThread()) {
+            Output(true, "Failed to run Wayland proxy\n");
+          }
         }
+      } else {
+        WaylandProxy::AddState(WAYLAND_PROXY_DISABLED);
       }
     }
 #  endif
