@@ -3874,7 +3874,7 @@ bool CanvasRenderingContext2D::EnsureWritablePath() {
   if (!mPath) {
     mPathBuilder = mTarget->CreatePathBuilder(fillRule);
   } else {
-    mPathBuilder = mPath->CopyToBuilder(fillRule);
+    mPathBuilder = Path::ToBuilder(mPath.forget(), fillRule);
   }
   return true;
 }
@@ -3906,9 +3906,7 @@ void CanvasRenderingContext2D::EnsureUserSpacePath(
   }
 
   if (mPath && mPath->GetFillRule() != fillRule) {
-    mPathBuilder = mPath->CopyToBuilder(fillRule);
-    mPath = mPathBuilder->Finish();
-    mPathBuilder = nullptr;
+    Path::SetFillRule(mPath, fillRule);
   }
 
   NS_ASSERTION(mPath, "mPath should exist");
@@ -3921,11 +3919,9 @@ void CanvasRenderingContext2D::TransformCurrentPath(const Matrix& aTransform) {
   }
 
   if (mPathBuilder) {
-    RefPtr<Path> path = mPathBuilder->Finish();
-    mPathBuilder = path->TransformedCopyToBuilder(aTransform);
+    mPathBuilder = Path::ToBuilder(mPathBuilder->Finish(), aTransform);
   } else if (mPath) {
-    mPathBuilder = mPath->TransformedCopyToBuilder(aTransform);
-    mPath = nullptr;
+    mPathBuilder = Path::ToBuilder(mPath.forget(), aTransform);
   }
 }
 
@@ -6359,8 +6355,7 @@ void CanvasRenderingContext2D::EnsureErrorTarget() {
 
 void CanvasRenderingContext2D::FillRuleChanged() {
   if (mPath) {
-    mPathBuilder = mPath->CopyToBuilder(CurrentState().fillRule);
-    mPath = nullptr;
+    mPathBuilder = Path::ToBuilder(mPath.forget(), CurrentState().fillRule);
   }
 }
 
@@ -7004,9 +6999,7 @@ void CanvasPath::AddPath(CanvasPath& aCanvasPath, const DOMMatrix2DInit& aInit,
   }
 
   if (!transform.IsIdentity()) {
-    RefPtr<PathBuilder> tempBuilder =
-        tempPath->TransformedCopyToBuilder(transform, FillRule::FILL_WINDING);
-    tempPath = tempBuilder->Finish();
+    Path::TransformAndSetFillRule(tempPath, transform, FillRule::FILL_WINDING);
   }
 
   EnsurePathBuilder();  // in case a path is added to itself
@@ -7046,8 +7039,7 @@ already_AddRefed<gfx::Path> CanvasPath::GetPath(
     mPath->StreamToSink(tmpPathBuilder);
     mPath = tmpPathBuilder->Finish();
   } else if (mPath->GetFillRule() != fillRule) {
-    RefPtr<PathBuilder> tmpPathBuilder = mPath->CopyToBuilder(fillRule);
-    mPath = tmpPathBuilder->Finish();
+    Path::SetFillRule(mPath, fillRule);
   }
 
   RefPtr<gfx::Path> path(mPath);
@@ -7061,8 +7053,7 @@ void CanvasPath::EnsurePathBuilder() const {
 
   // if there is not pathbuilder, there must be a path
   MOZ_ASSERT(mPath);
-  mPathBuilder = mPath->CopyToBuilder();
-  mPath = nullptr;
+  mPathBuilder = Path::ToBuilder(mPath.forget());
 }
 
 size_t BindingJSObjectMallocBytes(CanvasRenderingContext2D* aContext) {

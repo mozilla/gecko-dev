@@ -50,38 +50,9 @@ class PathOps {
 
   PathOps TransformedCopy(const Matrix& aTransform) const;
 
+  void TransformInPlace(const Matrix& aTransform);
+
   size_t NumberOfOps() const;
-
-  void MoveTo(const Point& aPoint) { AppendPathOp(OpType::OP_MOVETO, aPoint); }
-
-  void LineTo(const Point& aPoint) { AppendPathOp(OpType::OP_LINETO, aPoint); }
-
-  void BezierTo(const Point& aCP1, const Point& aCP2, const Point& aCP3) {
-    AppendPathOp(OpType::OP_BEZIERTO, ThreePoints{aCP1, aCP2, aCP3});
-  }
-
-  void QuadraticBezierTo(const Point& aCP1, const Point& aCP2) {
-    AppendPathOp(OpType::OP_QUADRATICBEZIERTO, TwoPoints{aCP1, aCP2});
-  }
-
-  void Arc(const Point& aOrigin, float aRadius, float aStartAngle,
-           float aEndAngle, bool aAntiClockwise) {
-    AppendPathOp(OpType::OP_ARC, ArcParams{aOrigin, aRadius, aStartAngle,
-                                           aEndAngle, aAntiClockwise});
-  }
-
-  void Close() {
-    size_t oldSize = mPathData.size();
-    mPathData.resize(oldSize + sizeof(OpType));
-    *reinterpret_cast<OpType*>(mPathData.data() + oldSize) = OpType::OP_CLOSE;
-  }
-
-  Maybe<Circle> AsCircle() const;
-  Maybe<Line> AsLine() const;
-
-  bool IsActive() const { return !mPathData.empty(); }
-
-  bool IsEmpty() const;
 
  private:
   enum class OpType : uint32_t {
@@ -89,18 +60,22 @@ class PathOps {
     OP_LINETO,
     OP_BEZIERTO,
     OP_QUADRATICBEZIERTO,
-    OP_ARC,
+    OP_ARC_CW,
+    OP_ARC_CCW,
     OP_CLOSE,
     OP_INVALID
   };
 
   template <typename T>
+  void AppendPathOp(const T& aOpData) {
+    mPathData.insert(mPathData.end(), (const uint8_t*)(&aOpData),
+                     (const uint8_t*)(&aOpData + 1));
+  }
+
+  template <typename T>
   void AppendPathOp(const OpType& aOpType, const T& aOpParams) {
-    size_t oldSize = mPathData.size();
-    mPathData.resize(oldSize + sizeof(OpType) + sizeof(T));
-    memcpy(mPathData.data() + oldSize, &aOpType, sizeof(OpType));
-    oldSize += sizeof(OpType);
-    memcpy(mPathData.data() + oldSize, &aOpParams, sizeof(T));
+    AppendPathOp(aOpType);
+    AppendPathOp(aOpParams);
   }
 
   struct TwoPoints {
@@ -115,13 +90,51 @@ class PathOps {
   };
 
   struct ArcParams {
-    Point origin;
-    float radius;
+    Matrix transform;
     float startAngle;
     float endAngle;
-    bool antiClockwise;
+
+    Point GetOrigin() const { return transform.GetTranslation(); }
+    Maybe<float> GetRadius() const;
+
+    void ToSink(PathSink& aPathSink, bool aAntiClockwise) const;
   };
 
+ public:
+  void MoveTo(const Point& aPoint) { AppendPathOp(OpType::OP_MOVETO, aPoint); }
+
+  void LineTo(const Point& aPoint) { AppendPathOp(OpType::OP_LINETO, aPoint); }
+
+  void BezierTo(const Point& aCP1, const Point& aCP2, const Point& aCP3) {
+    AppendPathOp(OpType::OP_BEZIERTO, ThreePoints{aCP1, aCP2, aCP3});
+  }
+
+  void QuadraticBezierTo(const Point& aCP1, const Point& aCP2) {
+    AppendPathOp(OpType::OP_QUADRATICBEZIERTO, TwoPoints{aCP1, aCP2});
+  }
+
+  void Arc(const Matrix& aTransform, float aStartAngle, float aEndAngle,
+           bool aAntiClockwise) {
+    AppendPathOp(aAntiClockwise ? OpType::OP_ARC_CCW : OpType::OP_ARC_CW,
+                 ArcParams{aTransform, aStartAngle, aEndAngle});
+  }
+
+  void Arc(const Point& aOrigin, float aRadius, float aStartAngle,
+           float aEndAngle, bool aAntiClockwise) {
+    Arc(Matrix(aRadius, 0.0f, 0.0f, aRadius, aOrigin.x, aOrigin.y), aStartAngle,
+        aEndAngle, aAntiClockwise);
+  }
+
+  void Close() { AppendPathOp(OpType::OP_CLOSE); }
+
+  Maybe<Circle> AsCircle() const;
+  Maybe<Line> AsLine() const;
+
+  bool IsActive() const { return !mPathData.empty(); }
+
+  bool IsEmpty() const;
+
+ private:
   std::vector<uint8_t> mPathData;
 };
 
@@ -200,6 +213,10 @@ class PathRecording final : public Path {
   already_AddRefed<PathBuilder> CopyToBuilder(FillRule aFillRule) const final;
   already_AddRefed<PathBuilder> TransformedCopyToBuilder(
       const Matrix& aTransform, FillRule aFillRule) const final;
+  already_AddRefed<PathBuilder> MoveToBuilder(FillRule aFillRule) final;
+  already_AddRefed<PathBuilder> TransformedMoveToBuilder(
+      const Matrix& aTransform, FillRule aFillRule) final;
+
   bool ContainsPoint(const Point& aPoint,
                      const Matrix& aTransform) const final {
     EnsurePath();

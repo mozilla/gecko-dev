@@ -2651,8 +2651,7 @@ void SVGTextDrawPathCallbacks::FillGeometry() {
     RefPtr<Path> path = mContext.GetPath();
     FillRule fillRule = SVGUtils::ToFillRule(mFrame->StyleSVG()->mFillRule);
     if (fillRule != path->GetFillRule()) {
-      RefPtr<PathBuilder> builder = path->CopyToBuilder(fillRule);
-      path = builder->Finish();
+      Path::SetFillRule(path, fillRule);
     }
     mContext.GetDrawTarget()->Fill(path, fillPattern);
   }
@@ -4537,8 +4536,7 @@ already_AddRefed<Path> SVGTextFrame::GetTextPath(nsIFrame* aTextPathFrame) {
   // Apply the geometry element's transform if appropriate.
   auto matrix = geomElement->LocalTransform();
   if (!matrix.IsIdentity()) {
-    RefPtr<PathBuilder> builder = path->TransformedCopyToBuilder(matrix);
-    path = builder->Finish();
+    Path::Transform(path, matrix);
   }
 
   return path.forget();

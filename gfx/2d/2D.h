@@ -959,6 +959,72 @@ class Path : public external::AtomicRefCounted<Path> {
   virtual already_AddRefed<PathBuilder> TransformedCopyToBuilder(
       const Matrix& aTransform, FillRule aFillRule) const = 0;
 
+ protected:
+  /** This returns a PathBuilder object that may consume the contents of this
+   * path.
+   */
+  virtual inline already_AddRefed<PathBuilder> MoveToBuilder(
+      FillRule aFillRule) {
+    return CopyToBuilder(aFillRule);
+  }
+  inline already_AddRefed<PathBuilder> MoveToBuilder() {
+    return MoveToBuilder(GetFillRule());
+  }
+  /** Like TransformedCopyToBuilder, but is allowed to consume the contents of
+   * the path when beneficial.
+   */
+  virtual inline already_AddRefed<PathBuilder> TransformedMoveToBuilder(
+      const Matrix& aTransform, FillRule aFillRule) {
+    return TransformedCopyToBuilder(aTransform, aFillRule);
+  }
+  inline already_AddRefed<PathBuilder> TransformedMoveToBuilder(
+      const Matrix& aTransform) {
+    return TransformedMoveToBuilder(aTransform, GetFillRule());
+  }
+
+ public:
+  /** Move to a PathBuilder only if there are no other references to the path,
+   * otherwise copy.
+   */
+  static inline already_AddRefed<PathBuilder> ToBuilder(
+      already_AddRefed<Path> aPath, FillRule aFillRule) {
+    RefPtr<Path> path = aPath;
+    return path->hasOneRef() ? path->MoveToBuilder(aFillRule)
+                             : path->CopyToBuilder(aFillRule);
+  }
+  static inline already_AddRefed<PathBuilder> ToBuilder(
+      already_AddRefed<Path> aPath) {
+    RefPtr<Path> path = aPath;
+    FillRule fillRule = path->GetFillRule();
+    return ToBuilder(path.forget(), fillRule);
+  }
+  /** Transformed move to a PathBuilder only if there are no other references to
+   * the path, otherwise copy.
+   */
+  static inline already_AddRefed<PathBuilder> ToBuilder(
+      already_AddRefed<Path> aPath, const Matrix& aTransform,
+      FillRule aFillRule) {
+    RefPtr<Path> path = aPath;
+    return path->hasOneRef()
+               ? path->TransformedMoveToBuilder(aTransform, aFillRule)
+               : path->TransformedCopyToBuilder(aTransform, aFillRule);
+  }
+  static inline already_AddRefed<PathBuilder> ToBuilder(
+      already_AddRefed<Path> aPath, const Matrix& aTransform) {
+    RefPtr<Path> path = aPath;
+    FillRule fillRule = path->GetFillRule();
+    return ToBuilder(path.forget(), aTransform, fillRule);
+  }
+
+  /** Modifies an existing path in-place if it has no other references, or
+   * copies if it is used elsewhere.
+   */
+  static void Transform(RefPtr<Path>& aPath, const Matrix& aTransform);
+  static void SetFillRule(RefPtr<Path>& aPath, FillRule aFillRule);
+  static void TransformAndSetFillRule(RefPtr<Path>& aPath,
+                                      const Matrix& aTransform,
+                                      FillRule aFillRule);
+
   /** This function checks if a point lies within a path. It allows passing a
    * transform that will transform the path to the coordinate space in which
    * aPoint is given.
@@ -1036,6 +1102,24 @@ class PathBuilder : public PathSink {
 
   virtual bool IsActive() const = 0;
 };
+
+inline void Path::Transform(RefPtr<Path>& aPath, const Matrix& aTransform) {
+  RefPtr<PathBuilder> builder = Path::ToBuilder(aPath.forget(), aTransform);
+  aPath = builder->Finish();
+}
+
+inline void Path::SetFillRule(RefPtr<Path>& aPath, FillRule aFillRule) {
+  RefPtr<PathBuilder> builder = Path::ToBuilder(aPath.forget(), aFillRule);
+  aPath = builder->Finish();
+}
+
+inline void Path::TransformAndSetFillRule(RefPtr<Path>& aPath,
+                                          const Matrix& aTransform,
+                                          FillRule aFillRule) {
+  RefPtr<PathBuilder> builder =
+      Path::ToBuilder(aPath.forget(), aTransform, aFillRule);
+  aPath = builder->Finish();
+}
 
 struct Glyph {
   uint32_t mIndex;

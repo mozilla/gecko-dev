@@ -240,9 +240,7 @@ nsIFrame* SVGGeometryFrame::GetFrameForPoint(const gfxPoint& aPoint) {
       // Naturally we also need to transform the point into the same
       // coordinate system in order to hit-test against the path.
       point = ToMatrix(userToOuterSVG).TransformPoint(point);
-      RefPtr<PathBuilder> builder =
-          path->TransformedCopyToBuilder(ToMatrix(userToOuterSVG), fillRule);
-      path = builder->Finish();
+      Path::TransformAndSetFillRule(path, ToMatrix(userToOuterSVG), fillRule);
     }
     isHit = path->StrokeContainsPoint(stroke, point, {});
   }
@@ -625,9 +623,7 @@ void SVGGeometryFrame::Render(gfxContext* aContext, uint32_t aRenderComponents,
       gfxMatrix outerSVGToUser = userToOuterSVG;
       outerSVGToUser.Invert();
       aContext->Multiply(outerSVGToUser);
-      RefPtr<PathBuilder> builder =
-          path->TransformedCopyToBuilder(ToMatrix(userToOuterSVG), fillRule);
-      path = builder->Finish();
+      Path::TransformAndSetFillRule(path, ToMatrix(userToOuterSVG), fillRule);
     }
     GeneralPattern strokePattern;
     SVGUtils::MakeStrokePatternFor(this, aContext, &strokePattern, aImgParams,

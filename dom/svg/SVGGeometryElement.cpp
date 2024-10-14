@@ -207,9 +207,7 @@ bool SVGGeometryElement::IsPointInStroke(const DOMPointInit& aPoint) {
         // We have non-scaling-stroke as well as a non-translation transform.
         // We should transform the path first then apply the stroke on the
         // transformed path to preserve the stroke-width.
-        RefPtr<PathBuilder> builder = path->TransformedCopyToBuilder(mat);
-
-        path = builder->Finish();
+        Path::Transform(path, mat);
         point = mat.TransformPoint(point);
       }
     }
@@ -281,8 +279,7 @@ float SVGGeometryElement::GetPathLengthScale(PathLengthScaleForType aFor) {
         // we need to take that into account.
         auto matrix = LocalTransform();
         if (!matrix.IsIdentity()) {
-          RefPtr<PathBuilder> builder = path->TransformedCopyToBuilder(matrix);
-          path = builder->Finish();
+          Path::Transform(path, matrix);
         }
       }
       return path->ComputeLength() / authorsPathLengthEstimate;
