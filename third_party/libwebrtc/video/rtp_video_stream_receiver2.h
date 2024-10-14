@@ -18,6 +18,7 @@
 
 #include "absl/types/optional.h"
 #include "api/crypto/frame_decryptor_interface.h"
+#include "api/environment/environment.h"
 #include "api/sequence_checker.h"
 #include "api/units/timestamp.h"
 #include "api/video/color_space.h"
@@ -80,8 +81,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   };
 
   RtpVideoStreamReceiver2(
+      const Environment& env,
       TaskQueueBase* current_queue,
-      Clock* clock,
       Transport* transport,
       RtcpRttStats* rtt_stats,
       // The packet router is optional; if provided, the RtpRtcp module for this
@@ -97,10 +98,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
       // The KeyFrameRequestSender is optional; if not provided, key frame
       // requests are sent via the internal RtpRtcp module.
       OnCompleteFrameCallback* complete_frame_callback,
-      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
-      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
-      const FieldTrialsView& field_trials,
-      RtcEventLog* event_log);
+      scoped_refptr<FrameDecryptorInterface> frame_decryptor,
+      scoped_refptr<FrameTransformerInterface> frame_transformer);
   ~RtpVideoStreamReceiver2() override;
 
   void AddReceiveCodec(uint8_t payload_type,
@@ -324,9 +323,9 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
                                      bool is_keyframe)
       RTC_RUN_ON(packet_sequence_checker_);
 
-  const FieldTrialsView& field_trials_;
+  const Environment env_;
   TaskQueueBase* const worker_queue_;
-  Clock* const clock_;
+
   // Ownership of this object lies with VideoReceiveStreamInterface, which owns
   // `this`.
   const VideoReceiveStreamInterface::Config& config_;

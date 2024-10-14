@@ -25,10 +25,10 @@ index 1307f8491b..673e371c52 100644
  
        // See LntfConfig for description.
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index caf373cd6a..cbfa512fd0 100644
+index 4c43bec9ce..9809398ff7 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -1254,7 +1254,7 @@ void RtpVideoStreamReceiver2::StartReceive() {
+@@ -1248,7 +1248,7 @@ void RtpVideoStreamReceiver2::StartReceive() {
      // Change REMB candidate egibility.
      packet_router_->RemoveReceiveRtpModule(rtp_rtcp_.get());
      packet_router_->AddReceiveRtpModule(rtp_rtcp_.get(),

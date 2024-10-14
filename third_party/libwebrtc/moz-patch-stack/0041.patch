@@ -267,33 +267,33 @@ index 5bdc9ffe05..95bf036a38 100644
  
      // DEPRECATED, transport_feedback_callback is no longer invoked by the RTP
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index cbfa512fd0..3e2a995ada 100644
+index 9809398ff7..36f9bb88d7 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -83,7 +83,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(
+@@ -82,7 +82,8 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(
+     RtcpPacketTypeCounterObserver* rtcp_packet_type_counter_observer,
      RtcpCnameCallback* rtcp_cname_callback,
      bool non_sender_rtt_measurement,
-     uint32_t local_ssrc,
--    RtcEventLog* rtc_event_log) {
-+    RtcEventLog* rtc_event_log,
+-    uint32_t local_ssrc) {
++    uint32_t local_ssrc,
 +    RtcpEventObserver* rtcp_event_observer) {
    RtpRtcpInterface::Configuration configuration;
-   configuration.clock = clock;
+   configuration.clock = &env.clock();
    configuration.audio = false;
-@@ -95,6 +96,7 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(
+@@ -94,6 +95,7 @@ std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpRtcpModule(
        rtcp_packet_type_counter_observer;
    configuration.rtcp_cname_callback = rtcp_cname_callback;
    configuration.local_media_ssrc = local_ssrc;
 +  configuration.rtcp_event_observer = rtcp_event_observer;
    configuration.non_sender_rtt_measurement = non_sender_rtt_measurement;
-   configuration.event_log = rtc_event_log;
- 
-@@ -275,7 +277,8 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
+   configuration.event_log = &env.event_log();
+   configuration.field_trials = &env.field_trials();
+@@ -270,7 +272,8 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
+           rtcp_packet_type_counter_observer,
            rtcp_cname_callback,
            config_.rtp.rtcp_xr.receiver_reference_time_report,
-           config_.rtp.local_ssrc,
--          event_log)),
-+          event_log,
+-          config_.rtp.local_ssrc)),
++          config_.rtp.local_ssrc,
 +          config_.rtp.rtcp_event_observer)),
        nack_periodic_processor_(nack_periodic_processor),
        complete_frame_callback_(complete_frame_callback),
