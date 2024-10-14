@@ -12,6 +12,9 @@ permalink: /changelog/
   * Added `WebExtensionInstallException.SoftBlocked` to handle the `ERROR_SOFT_BLOCKED` error returned by Gecko.
   * Adds support for enabling desktop mode browsing at the time of the engine session's creation.  [Bug 1910768](https://bugzilla.mozilla.org/show_bug.cgi?id=1910768)
 
+* **support-ktx**
+  * 🆕 `Window.setupPersistentInsets()` will setup handling persistent insets instead of the framework to allow for custom handling of dynamic insets [Bug 1911042](https://bugzilla.mozilla.org/show_bug.cgi?id=1911042)
+
 # 132.0
 * **feature-awesomebar**
   * The `onCancelEditing` now returns a result based on the `onStartEditing` and `onStopEditing` callback. [Bug 1917496](https://bugzilla.mozilla.org/show_bug.cgi?id=1917496)
