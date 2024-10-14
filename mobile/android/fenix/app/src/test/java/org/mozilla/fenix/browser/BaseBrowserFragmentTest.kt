@@ -7,7 +7,11 @@ package org.mozilla.fenix.browser
 import android.content.Context
 import android.view.View
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.view.isVisible
+import io.mockk.Called
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.slot
@@ -31,6 +35,9 @@ import org.junit.Test
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.FindInPageIntegration
+import org.mozilla.fenix.components.toolbar.BottomToolbarContainerView
+import org.mozilla.fenix.components.toolbar.BrowserToolbarView
+import org.mozilla.fenix.components.toolbar.ToolbarContainerView
 import org.mozilla.fenix.components.toolbar.navbar.EngineViewClippingBehavior
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.isKeyboardVisible
@@ -654,6 +661,68 @@ class BaseBrowserFragmentTest {
         }
 
         verify(exactly = 0) { engineView.setDynamicToolbarMaxHeight(any()) }
+    }
+
+    @Test
+    fun `WHEN asked to expand the browser view THEN hide all toolbars and show only the browser view`() {
+        val browserToolbarView = mockk<BrowserToolbarView>(relaxed = true)
+        val toolbarContainerView = mockk<ToolbarContainerView>(relaxed = true)
+        val bottomToolbarContainerView = mockk<BottomToolbarContainerView>()
+        every { bottomToolbarContainerView.toolbarContainerView } returns toolbarContainerView
+        fragment._browserToolbarView = browserToolbarView
+        fragment._bottomToolbarContainerView = bottomToolbarContainerView
+
+        fragment.expandBrowserView()
+
+        verify { browserToolbarView.collapse() }
+        verify { browserToolbarView.gone() }
+        verify { toolbarContainerView.collapse() }
+        verify { toolbarContainerView.isVisible = false }
+        val browserViewParams = swipeRefreshLayout.layoutParams as CoordinatorLayout.LayoutParams
+        verify { browserViewParams.behavior = null }
+        verify { (swipeRefreshLayout.layoutParams as CoordinatorLayout.LayoutParams).bottomMargin = 0 }
+        verify { (swipeRefreshLayout.layoutParams as CoordinatorLayout.LayoutParams).topMargin = 0 }
+        verify { swipeRefreshLayout.translationY = 0f }
+        verify { engineView.setDynamicToolbarMaxHeight(0) }
+        verify { engineView.setVerticalClipping(0) }
+    }
+
+    @Test
+    fun `GIVEN toolbars should be visible WHEN asked to collapse the browser view THEN reinitialize the browser view and show the toolbars`() {
+        fragment.webAppToolbarShouldBeVisible = true
+        every { fragment.reinitializeEngineView() } just Runs
+        val browserToolbarView = mockk<BrowserToolbarView>(relaxed = true)
+        val toolbarContainerView = mockk<ToolbarContainerView>(relaxed = true)
+        val bottomToolbarContainerView = mockk<BottomToolbarContainerView>()
+        every { bottomToolbarContainerView.toolbarContainerView } returns toolbarContainerView
+        fragment._browserToolbarView = browserToolbarView
+        fragment._bottomToolbarContainerView = bottomToolbarContainerView
+
+        fragment.collapseBrowserView()
+
+        verify { fragment.reinitializeEngineView() }
+        verify { browserToolbarView.visible() }
+        verify { toolbarContainerView.isVisible = true }
+        verify { browserToolbarView.expand() }
+        verify { toolbarContainerView.expand() }
+    }
+
+    @Test
+    fun `GIVEN toolbars should not be visible WHEN asked to collapse the browser view THEN don't do anything`() {
+        fragment.webAppToolbarShouldBeVisible = false
+        every { fragment.reinitializeEngineView() } just Runs
+        val browserToolbarView = mockk<BrowserToolbarView>(relaxed = true)
+        val toolbarContainerView = mockk<ToolbarContainerView>(relaxed = true)
+        val bottomToolbarContainerView = mockk<BottomToolbarContainerView>()
+        every { bottomToolbarContainerView.toolbarContainerView } returns toolbarContainerView
+        fragment._browserToolbarView = browserToolbarView
+        fragment._bottomToolbarContainerView = bottomToolbarContainerView
+
+        fragment.collapseBrowserView()
+
+        verify(exactly = 0) { fragment.reinitializeEngineView() }
+        verify { browserToolbarView wasNot Called }
+        verify { toolbarContainerView wasNot Called }
     }
 }
 

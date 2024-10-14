@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.coordinatorlayout.widget.CoordinatorLayout
-import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.Dispatchers
@@ -125,47 +123,10 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                     tabId = customTabSessionId,
                     manifest = manifest,
                 ) { toolbarVisible ->
-
-                    browserToolbarView.view.isVisible = toolbarVisible
                     webAppToolbarShouldBeVisible = toolbarVisible
-                    if (requireContext().shouldAddNavigationBar()) {
-                        bottomToolbarContainerView.toolbarContainerView.isVisible = toolbarVisible
-                    }
-
-                    val browserEngine = binding.swipeRefresh.layoutParams as CoordinatorLayout.LayoutParams
-                    val settings = activity.settings()
-                    val isToolbarAtBottom = settings.toolbarPosition == ToolbarPosition.BOTTOM
-
-                    if (!toolbarVisible) {
-                        binding.engineView.setDynamicToolbarMaxHeight(0)
-                        if (isToolbarAtBottom) {
-                            browserEngine.bottomMargin = 0
-                        } else {
-                            browserEngine.topMargin = 0
-                            // The value of translationY of swipeRefresh was changed in EngineViewClippingBehavior.
-                            binding.swipeRefresh.translationY = 0f
-
-                            if (isNavBarEnabled) {
-                                browserEngine.bottomMargin = 0
-                            }
-                        }
-                    } else {
-                        val bottomToolbarHeight = settings.getBottomToolbarHeight(requireContext())
-                        val topToolbarHeight = settings.getTopToolbarHeight(false)
-                        binding.engineView.setDynamicToolbarMaxHeight(topToolbarHeight + bottomToolbarHeight)
-                        val isToolbarDynamic = !settings.shouldUseFixedTopToolbar && settings.isDynamicToolbarEnabled
-
-                        if (!isToolbarDynamic) {
-                            if (isToolbarAtBottom) {
-                                browserEngine.bottomMargin = bottomToolbarHeight
-                            } else {
-                                browserEngine.topMargin = topToolbarHeight
-
-                                if (isNavBarEnabled) {
-                                    browserEngine.bottomMargin = bottomToolbarHeight
-                                }
-                            }
-                        }
+                    when (toolbarVisible) {
+                        true -> collapseBrowserView()
+                        false -> expandBrowserView()
                     }
                 },
                 owner = this,
