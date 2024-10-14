@@ -656,9 +656,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger> {
   // See JS::dbg::ShouldAvoidSideEffects.
   bool shouldAvoidSideEffects;
 
-  // Whether to enable native tracing on the Debuggee.
-  bool nativeTracing;
-
   template <typename T>
   struct DebuggerLinkAccess {
     static mozilla::DoublyLinkedListElement<T>& Get(T* aThis) {
