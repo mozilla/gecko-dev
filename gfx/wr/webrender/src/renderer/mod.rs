@@ -3479,13 +3479,41 @@ impl Renderer {
 
     fn draw_render_target(
         &mut self,
-        draw_target: DrawTarget,
+        texture_id: CacheTextureId,
         target: &RenderTarget,
-        clear_depth: Option<f32>,
         render_tasks: &RenderTaskGraph,
-        projection: &default::Transform3D<f32>,
         stats: &mut RendererStats,
     ) {
+        let needs_depth = target.needs_depth();
+
+        let texture = self.texture_resolver.get_cache_texture_mut(&texture_id);
+        if needs_depth {
+            self.device.reuse_render_target::<u8>(
+                texture,
+                RenderTargetInfo { has_depth: needs_depth },
+            );
+        }
+
+        let draw_target = DrawTarget::from_texture(
+            texture,
+            needs_depth,
+        );
+
+        let clear_depth = if needs_depth {
+            Some(1.0)
+        } else {
+            None
+        };
+
+        let projection = Transform3D::ortho(
+            0.0,
+            draw_target.dimensions().width as f32,
+            0.0,
+            draw_target.dimensions().height as f32,
+            self.device.ortho_near_plane(),
+            self.device.ortho_far_plane(),
+        );
+
         profile_scope!("draw_render_target");
         let _gm = self.gpu_profiler.start_marker("render target");
 
@@ -3534,7 +3562,7 @@ impl Renderer {
             self.device.disable_depth();
             self.set_blend(false, framebuffer_kind);
 
-            if clear_depth.is_some() {
+            if needs_depth {
                 self.device.enable_depth_write();
             } else {
                 self.device.disable_depth_write();
@@ -3700,7 +3728,7 @@ impl Renderer {
             }
         }
 
-        if clear_depth.is_some() {
+        if needs_depth {
             self.device.disable_depth_write();
         }
 
@@ -3900,7 +3928,7 @@ impl Renderer {
 
             self.set_blend(false, framebuffer_kind);
             self.shaders.borrow_mut().cs_blur_rgba8
-                .bind(&mut self.device, projection, None, &mut self.renderer_errors, &mut self.profile);
+                .bind(&mut self.device, &projection, None, &mut self.renderer_errors, &mut self.profile);
 
             if !target.vertical_blurs.is_empty() {
                 self.draw_blurs(
@@ -3919,7 +3947,7 @@ impl Renderer {
 
         self.handle_scaling(
             &target.scalings,
-            projection,
+            &projection,
             stats,
         );
 
@@ -3927,13 +3955,13 @@ impl Renderer {
             self.handle_svg_filters(
                 textures,
                 filters,
-                projection,
+                &projection,
                 stats,
             );
         }
 
         for (ref textures, ref filters) in &target.svg_nodes {
-            self.handle_svg_nodes(textures, filters, projection, stats);
+            self.handle_svg_nodes(textures, filters, &projection, stats);
         }
 
         for alpha_batch_container in &target.alpha_batch_containers {
@@ -3941,7 +3969,7 @@ impl Renderer {
                 alpha_batch_container,
                 draw_target,
                 framebuffer_kind,
-                projection,
+                &projection,
                 render_tasks,
                 stats,
             );
@@ -3951,7 +3979,7 @@ impl Renderer {
             &draw_target,
             &target.prim_instances,
             &target.prim_instances_with_scissor,
-            projection,
+            &projection,
             stats,
         );
 
@@ -3969,7 +3997,7 @@ impl Renderer {
                 self.set_blend(false, FramebufferKind::Other);
                 self.draw_clip_batch_list(
                     &target.clip_batcher.primary_clips,
-                    projection,
+                    &projection,
                     stats,
                 );
             }
@@ -3981,7 +4009,7 @@ impl Renderer {
                 self.set_blend_mode_multiply(FramebufferKind::Other);
                 self.draw_clip_batch_list(
                     &target.clip_batcher.secondary_clips,
-                    projection,
+                    &projection,
                     stats,
                 );
             }
@@ -3989,12 +4017,12 @@ impl Renderer {
             self.handle_clips(
                 &draw_target,
                 &target.clip_masks,
-                projection,
+                &projection,
                 stats,
             );
         }
 
-        if clear_depth.is_some() {
+        if needs_depth {
             self.device.invalidate_depth_target();
         }
         if self.device.get_capabilities().supports_qcom_tiled_rendering {
@@ -4536,33 +4564,10 @@ impl Renderer {
             // skipped this time.
             if !frame.has_been_rendered {
                 for (&texture_id, target) in &pass.texture_cache {
-                    let texture = self.texture_resolver.get_cache_texture_mut(&texture_id);
-                    let draw_target = DrawTarget::from_texture(
-                        texture,
-                        target.needs_depth(),
-                    );
-
-                    let clear_depth = if target.needs_depth() {
-                        Some(1.0)
-                    } else {
-                        None
-                    };
-
-                    let projection = Transform3D::ortho(
-                        0.0,
-                        draw_target.dimensions().width as f32,
-                        0.0,
-                        draw_target.dimensions().height as f32,
-                        self.device.ortho_near_plane(),
-                        self.device.ortho_far_plane(),
-                    );
-
                     self.draw_render_target(
-                        draw_target,
+                        texture_id,
                         target,
-                        clear_depth,
                         &frame.render_tasks,
-                        &projection,
                         &mut results.stats,
                     );
                 }
@@ -4644,75 +4649,20 @@ impl Renderer {
 
             for target in &pass.alpha.targets {
                 results.stats.alpha_target_count += 1;
-
-                let texture_id = target.texture_id();
-
-                let alpha_tex = self.texture_resolver.get_cache_texture_mut(&texture_id);
-
-                let draw_target = DrawTarget::from_texture(
-                    alpha_tex,
-                    false,
-                );
-
-                let projection = Transform3D::ortho(
-                    0.0,
-                    draw_target.dimensions().width as f32,
-                    0.0,
-                    draw_target.dimensions().height as f32,
-                    self.device.ortho_near_plane(),
-                    self.device.ortho_far_plane(),
-                );
-
                 self.draw_render_target(
-                    draw_target,
+                    target.texture_id(),
                     target,
-                    None,
                     &frame.render_tasks,
-                    &projection,
                     &mut results.stats,
                 );
             }
 
-            let color_rt_info = RenderTargetInfo { has_depth: pass.color.needs_depth() };
-
             for target in &pass.color.targets {
                 results.stats.color_target_count += 1;
-
-                let texture_id = target.texture_id();
-
-                let color_tex = self.texture_resolver.get_cache_texture_mut(&texture_id);
-
-                self.device.reuse_render_target::<u8>(
-                    color_tex,
-                    color_rt_info,
-                );
-
-                let draw_target = DrawTarget::from_texture(
-                    color_tex,
-                    target.needs_depth(),
-                );
-
-                let projection = Transform3D::ortho(
-                    0.0,
-                    draw_target.dimensions().width as f32,
-                    0.0,
-                    draw_target.dimensions().height as f32,
-                    self.device.ortho_near_plane(),
-                    self.device.ortho_far_plane(),
-                );
-
-                let clear_depth = if target.needs_depth() {
-                    Some(1.0)
-                } else {
-                    None
-                };
-
                 self.draw_render_target(
-                    draw_target,
+                    target.texture_id(),
                     target,
-                    clear_depth,
                     &frame.render_tasks,
-                    &projection,
                     &mut results.stats,
                 );
             }

@@ -135,10 +135,6 @@ impl RenderTargetList {
             );
         }
     }
-
-    pub fn needs_depth(&self) -> bool {
-        self.targets.iter().any(|target| target.needs_depth())
-    }
 }
 
 const NUM_PATTERNS: usize = crate::pattern::NUM_PATTERNS as usize;
