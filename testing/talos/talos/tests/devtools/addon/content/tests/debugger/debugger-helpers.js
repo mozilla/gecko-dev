@@ -102,20 +102,32 @@ function findSource(dbg, url) {
 }
 exports.findSource = findSource;
 
-function getCMEditor(dbg) {
-  return dbg.win.codeMirrorSourceEditorTestInstance;
+function getCM(dbg, isCm6Enabled) {
+  if (isCm6Enabled) {
+    return dbg.win.document.sourceEditor.cm;
+  }
+  const el = dbg.win.document.querySelector(".CodeMirror");
+  return el.CodeMirror;
 }
-exports.getCMEditor = getCMEditor;
+exports.getCM = getCM;
 
-function waitForText(dbg, text) {
+function waitForText(dbg, text, isCm6Enabled = false) {
   return waitUntil(() => {
     // the welcome box is removed once text is displayed
     const welcomebox = dbg.win.document.querySelector(".welcomebox");
     if (welcomebox) {
       return false;
     }
-    const editor = getCMEditor(dbg);
-    return editor.getText().includes(text);
+    const cm = getCM(dbg, isCm6Enabled);
+    let editorText = "";
+    if (isCm6Enabled) {
+      if (cm) {
+        editorText = cm.state.doc.toString();
+      }
+    } else {
+      editorText = cm.doc.getValue();
+    }
+    return editorText.includes(text);
   }, "text is visible");
 }
 exports.waitForText = waitForText;
@@ -284,13 +296,13 @@ function evalInFrame(tab, testFunction) {
 }
 exports.evalInFrame = evalInFrame;
 
-async function openDebuggerAndLog(label, expected) {
+async function openDebuggerAndLog(label, expected, isCm6Enabled) {
   const onLoad = async (toolbox, panel) => {
     const dbg = await createContext(panel);
     await waitForThreadCount(dbg, expected.threadsCount);
     await waitForSource(dbg, expected.sourceURL);
     await selectSource(dbg, expected.file);
-    await waitForText(dbg, expected.text);
+    await waitForText(dbg, expected.text, isCm6Enabled);
   };
 
   const toolbox = await openToolboxAndLog(
@@ -302,7 +314,7 @@ async function openDebuggerAndLog(label, expected) {
 }
 exports.openDebuggerAndLog = openDebuggerAndLog;
 
-async function reloadDebuggerAndLog(label, toolbox, expected) {
+async function reloadDebuggerAndLog(label, toolbox, expected, isCm6Enabled) {
   const onReload = async () => {
     const panel = await toolbox.getPanelWhenReady("jsdebugger");
     const dbg = await createContext(panel);
@@ -315,7 +327,7 @@ async function reloadDebuggerAndLog(label, toolbox, expected) {
 
     await waitForSources(dbg, expected.sources);
     await waitForSource(dbg, expected.sourceURL);
-    await waitForText(dbg, expected.text);
+    await waitForText(dbg, expected.text, isCm6Enabled);
   };
   await reloadPageAndLog(`${label}.jsdebugger`, toolbox, onReload);
 }
@@ -389,7 +401,7 @@ async function step(dbg, stepType) {
 exports.step = step;
 
 async function hoverOnToken(dbg, textToWaitFor, textToHover, isCm6Enabled) {
-  await waitForText(dbg, textToWaitFor);
+  await waitForText(dbg, textToWaitFor, isCm6Enabled);
   const selector = isCm6Enabled ? ".cm-editor span" : ".CodeMirror span";
   const tokenElement = [...dbg.win.document.querySelectorAll(selector)].find(
     el => el.textContent === textToHover
