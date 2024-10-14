@@ -52,6 +52,7 @@ class PopoverData {
   ~PopoverData() = default;
 
   CloseWatcher& EnsureCloseWatcher(nsGenericHTMLElement* aElement);
+  CloseWatcher* GetCloseWatcher();
 
   PopoverAttributeState GetPopoverAttributeState() const { return mState; }
   void SetPopoverAttributeState(PopoverAttributeState aState) {

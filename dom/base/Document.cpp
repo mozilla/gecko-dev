@@ -15527,6 +15527,9 @@ void Document::HidePopover(Element& aPopover, bool aFocusPreviousElement,
   auto cleanupHidingFlag = MakeScopeExit([&]() {
     if (auto* popoverData = popoverHTMLEl->GetPopoverData()) {
       popoverData->SetIsShowingOrHiding(wasShowingOrHiding);
+      if (auto* closeWatcher = popoverData->GetCloseWatcher()) {
+        closeWatcher->Destroy();
+      }
     }
   });
 
