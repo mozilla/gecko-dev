@@ -416,7 +416,7 @@ index c919f7c1dd..117aba6a0f 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index fd387d980b..bb84fc6dc3 100644
+index 1094b48002..796b8fd3d7 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -438,10 +438,10 @@ index fd387d980b..bb84fc6dc3 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index 370bc168fd..76a59760a9 100644
+index 08ac664edc..3b09c2d78c 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
-@@ -228,6 +228,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -232,6 +232,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
        // disabled.
        KeyFrameReqMethod keyframe_method = KeyFrameReqMethod::kPliRtcp;
  

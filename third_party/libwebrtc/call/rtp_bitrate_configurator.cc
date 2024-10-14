@@ -11,7 +11,10 @@
 #include "call/rtp_bitrate_configurator.h"
 
 #include <algorithm>
+#include <optional>
 
+#include "api/transport/bitrate_settings.h"
+#include "api/units/data_rate.h"
 #include "rtc_base/checks.h"
 
 namespace {

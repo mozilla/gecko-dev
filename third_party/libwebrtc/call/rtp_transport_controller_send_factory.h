@@ -12,10 +12,11 @@
 #define CALL_RTP_TRANSPORT_CONTROLLER_SEND_FACTORY_H_
 
 #include <memory>
-#include <utility>
 
+#include "call/rtp_transport_config.h"
 #include "call/rtp_transport_controller_send.h"
 #include "call/rtp_transport_controller_send_factory_interface.h"
+#include "call/rtp_transport_controller_send_interface.h"
 
 namespace webrtc {
 class RtpTransportControllerSendFactory

@@ -11,17 +11,24 @@
 #ifndef CALL_AUDIO_RECEIVE_STREAM_H_
 #define CALL_AUDIO_RECEIVE_STREAM_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
-#include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
+#include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/audio_codecs/audio_format.h"
 #include "api/call/transport.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "api/crypto/crypto_options.h"
-#include "api/rtp_parameters.h"
+#include "api/crypto/frame_decryptor_interface.h"
+#include "api/frame_transformer_interface.h"
+#include "api/rtp_headers.h"
+#include "api/scoped_refptr.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "call/receive_stream.h"
 #include "call/rtp_config.h"
 

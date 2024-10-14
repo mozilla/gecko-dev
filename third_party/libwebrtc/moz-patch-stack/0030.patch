@@ -470,11 +470,11 @@ index 7d19c60ae8..1e9f5cd7b5 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index bb84fc6dc3..1967dd8038 100644
+index 796b8fd3d7..c1e255f01e 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
-@@ -44,7 +44,7 @@ rtc_library("call_interfaces") {
-     "../api:network_state_predictor_api",
+@@ -46,7 +46,7 @@ rtc_library("call_interfaces") {
+     "../api:ref_count",
      "../api:rtp_headers",
      "../api:rtp_parameters",
 -    "../api:rtp_sender_interface",
@@ -482,7 +482,7 @@ index bb84fc6dc3..1967dd8038 100644
      "../api:scoped_refptr",
      "../api:transport_api",
      "../api/adaptation:resource_adaptation_api",
-@@ -329,6 +329,12 @@ rtc_library("call") {
+@@ -370,6 +370,12 @@ rtc_library("call") {
      "//third_party/abseil-cpp/absl/functional:bind_front",
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
@@ -495,7 +495,7 @@ index bb84fc6dc3..1967dd8038 100644
  }
  
  rtc_source_set("receive_stream_interface") {
-@@ -356,7 +362,7 @@ rtc_library("video_stream_api") {
+@@ -398,7 +404,7 @@ rtc_library("video_stream_api") {
      "../api:frame_transformer_interface",
      "../api:rtp_headers",
      "../api:rtp_parameters",
@@ -505,20 +505,20 @@ index bb84fc6dc3..1967dd8038 100644
      "../api:transport_api",
      "../api/adaptation:resource_adaptation_api",
 diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
-index 3794dfb6f8..252941462f 100644
+index 540956c1fd..c60526771e 100644
 --- a/call/audio_send_stream.h
 +++ b/call/audio_send_stream.h
-@@ -26,7 +26,7 @@
- #include "api/crypto/frame_encryptor_interface.h"
+@@ -27,7 +27,7 @@
  #include "api/frame_transformer_interface.h"
+ #include "api/rtp_headers.h"
  #include "api/rtp_parameters.h"
 -#include "api/rtp_sender_interface.h"
 +#include "api/rtp_sender_setparameters_callback.h"
  #include "api/scoped_refptr.h"
+ #include "api/units/time_delta.h"
  #include "call/audio_sender.h"
- #include "call/rtp_config.h"
 diff --git a/call/video_send_stream.h b/call/video_send_stream.h
-index bd2209612e..01cb7198f1 100644
+index 3bf13c5e74..2f5ff4ad3c 100644
 --- a/call/video_send_stream.h
 +++ b/call/video_send_stream.h
 @@ -23,7 +23,7 @@

@@ -11,7 +11,6 @@
 #ifndef CALL_RTP_TRANSPORT_CONFIG_H_
 #define CALL_RTP_TRANSPORT_CONFIG_H_
 
-#include <memory>
 #include <optional>
 
 #include "api/environment/environment.h"

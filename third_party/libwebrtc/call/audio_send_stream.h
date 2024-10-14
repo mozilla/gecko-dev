@@ -11,7 +11,7 @@
 #ifndef CALL_AUDIO_SEND_STREAM_H_
 #define CALL_AUDIO_SEND_STREAM_H_
 
-#include <memory>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -25,11 +25,12 @@
 #include "api/crypto/crypto_options.h"
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/frame_transformer_interface.h"
+#include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_setparameters_callback.h"
 #include "api/scoped_refptr.h"
+#include "api/units/time_delta.h"
 #include "call/audio_sender.h"
-#include "call/rtp_config.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 

@@ -13,10 +13,7 @@
 
 #include <stdint.h>
 
-#include <map>
-#include <memory>
-#include <string>
-#include <utility>
+#include <optional>
 #include <vector>
 
 #include "api/call/bitrate_allocation.h"
@@ -25,6 +22,7 @@
 #include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
 #include "rtc_base/system/no_unique_address.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
 

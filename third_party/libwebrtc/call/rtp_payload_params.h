@@ -12,12 +12,17 @@
 #define CALL_RTP_PAYLOAD_PARAMS_H_
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
 #include "api/field_trials_view.h"
+#include "api/transport/rtp/dependency_descriptor.h"
+#include "api/video/encoded_image.h"
 #include "api/video_codecs/video_encoder.h"
 #include "call/rtp_config.h"
+#include "common_video/generic_frame_descriptor/generic_frame_info.h"
 #include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor.h"
 #include "modules/rtp_rtcp/source/rtp_video_header.h"
 #include "modules/video_coding/chain_diff_calculator.h"

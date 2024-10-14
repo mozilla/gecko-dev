@@ -11,14 +11,18 @@
 #define CALL_CALL_CONFIG_H_
 
 #include <memory>
+#include <optional>
 
 #include "api/environment/environment.h"
 #include "api/fec_controller.h"
 #include "api/metronome/metronome.h"
 #include "api/neteq/neteq_factory.h"
 #include "api/network_state_predictor.h"
+#include "api/scoped_refptr.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/transport/network_control.h"
+#include "api/units/time_delta.h"
 #include "call/audio_state.h"
 #include "call/rtp_transport_config.h"
 #include "call/rtp_transport_controller_send_factory_interface.h"

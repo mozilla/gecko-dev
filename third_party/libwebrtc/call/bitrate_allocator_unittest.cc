@@ -11,11 +11,18 @@
 #include "call/bitrate_allocator.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
-#include <vector>
+#include <optional>
+#include <string>
 
 #include "absl/strings/string_view.h"
-#include "system_wrappers/include/clock.h"
+#include "api/call/bitrate_allocation.h"
+#include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
+#include "rtc_base/numerics/safe_conversions.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"

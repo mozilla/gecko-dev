@@ -13,9 +13,9 @@
 #include "api/audio/audio_device.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
+#include "api/ref_count.h"
 #include "api/scoped_refptr.h"
 #include "modules/async_audio_processing/async_audio_processing.h"
-#include "rtc_base/ref_count.h"
 
 namespace webrtc {
 

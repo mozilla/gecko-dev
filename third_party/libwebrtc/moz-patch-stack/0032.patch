@@ -109,18 +109,18 @@ index 02215e49cb..a1b09feb5e 100644
    // Within this list, the sender-source SSRC pair is unique and per-pair the
    // ReportBlockData represents the latest Report Block that was received for
 diff --git a/call/audio_send_stream.h b/call/audio_send_stream.h
-index 252941462f..7990322749 100644
+index c60526771e..949bb32a88 100644
 --- a/call/audio_send_stream.h
 +++ b/call/audio_send_stream.h
-@@ -31,6 +31,7 @@
+@@ -32,6 +32,7 @@
+ #include "api/units/time_delta.h"
  #include "call/audio_sender.h"
- #include "call/rtp_config.h"
  #include "modules/rtp_rtcp/include/report_block_data.h"
 +#include "modules/rtp_rtcp/include/rtcp_statistics.h"
  
  namespace webrtc {
  
-@@ -65,6 +66,7 @@ class AudioSendStream : public AudioSender {
+@@ -66,6 +67,7 @@ class AudioSendStream : public AudioSender {
  
      ANAStats ana_statistics;
      AudioProcessingStats apm_statistics;

@@ -6,15 +6,15 @@ Subject: Bug 1766646 - (fix) breakout Call::Stats and SharedModuleThread into
 ---
  call/BUILD.gn            |  6 ++++++
  call/call.cc             | 13 -------------
- call/call.h              | 12 ++----------
+ call/call.h              | 11 ++---------
  call/call_basic_stats.cc | 20 ++++++++++++++++++++
  call/call_basic_stats.h  | 21 +++++++++++++++++++++
- 5 files changed, 49 insertions(+), 23 deletions(-)
+ 5 files changed, 49 insertions(+), 22 deletions(-)
  create mode 100644 call/call_basic_stats.cc
  create mode 100644 call/call_basic_stats.h
 
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 1967dd8038..402c5eab49 100644
+index c1e255f01e..4e6ca12c6d 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -33,6 +33,12 @@ rtc_library("call_interfaces") {
@@ -31,10 +31,10 @@ index 1967dd8038..402c5eab49 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/call.cc b/call/call.cc
-index aa48491436..711449cbff 100644
+index 0b1ca6f237..5285bda9b2 100644
 --- a/call/call.cc
 +++ b/call/call.cc
-@@ -456,19 +456,6 @@ class Call final : public webrtc::Call,
+@@ -479,19 +479,6 @@ class Call final : public webrtc::Call,
  };
  }  // namespace internal
  
@@ -55,26 +55,18 @@ index aa48491436..711449cbff 100644
    std::unique_ptr<RtpTransportControllerSendInterface> transport_send;
    if (config.rtp_transport_controller_send_factory != nullptr) {
 diff --git a/call/call.h b/call/call.h
-index 6ada035a22..c7e127ee3b 100644
+index 6c6bc46c2a..3865b77cdd 100644
 --- a/call/call.h
 +++ b/call/call.h
-@@ -21,6 +21,7 @@
- #include "api/task_queue/task_queue_base.h"
+@@ -25,6 +25,7 @@
+ #include "api/transport/bitrate_settings.h"
  #include "call/audio_receive_stream.h"
  #include "call/audio_send_stream.h"
 +#include "call/call_basic_stats.h"
  #include "call/call_config.h"
  #include "call/flexfec_receive_stream.h"
  #include "call/packet_receiver.h"
-@@ -29,7 +30,6 @@
- #include "rtc_base/copy_on_write_buffer.h"
- #include "rtc_base/network/sent_packet.h"
- #include "rtc_base/network_route.h"
--#include "rtc_base/ref_count.h"
- 
- namespace webrtc {
- 
-@@ -45,15 +45,7 @@ namespace webrtc {
+@@ -48,15 +49,7 @@ namespace webrtc {
  
  class Call {
   public:

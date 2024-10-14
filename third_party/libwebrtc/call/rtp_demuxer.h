@@ -11,10 +11,10 @@
 #ifndef CALL_RTP_DEMUXER_H_
 #define CALL_RTP_DEMUXER_H_
 
+#include <cstdint>
 #include <map>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "rtc_base/containers/flat_map.h"

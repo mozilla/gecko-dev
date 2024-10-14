@@ -16,24 +16,23 @@
 #include <map>
 #include <memory>
 #include <optional>
-#include <string>
-#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/crypto/crypto_options.h"
 #include "api/fec_controller.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtp_packet_sender.h"
+#include "api/scoped_refptr.h"
 #include "api/transport/bandwidth_estimation_settings.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/transport/network_control.h"
+#include "api/transport/network_types.h"
 #include "api/units/timestamp.h"
 #include "call/rtp_config.h"
 #include "common_video/frame_counts.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
-#include "modules/rtp_rtcp/source/rtp_packet_received.h"
 
 namespace rtc {
 struct SentPacket;

@@ -11,18 +11,19 @@
 #ifndef CALL_FAKE_NETWORK_PIPE_H_
 #define CALL_FAKE_NETWORK_PIPE_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <map>
 #include <memory>
-#include <queue>
-#include <set>
-#include <string>
-#include <vector>
+#include <optional>
 
+#include "api/array_view.h"
 #include "api/call/transport.h"
 #include "api/test/simulated_network.h"
 #include "call/simulated_packet_receiver.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread_annotations.h"
 

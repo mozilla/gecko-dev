@@ -10,8 +10,7 @@
 
 #include "call/rtp_payload_params.h"
 
-#include <string.h>
-
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <set>
@@ -19,14 +18,22 @@
 #include "absl/container/inlined_vector.h"
 #include "absl/types/variant.h"
 #include "api/transport/field_trial_based_config.h"
+#include "api/transport/rtp/dependency_descriptor.h"
+#include "api/video/color_space.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_codec_constants.h"
+#include "api/video/video_codec_type.h"
 #include "api/video/video_content_type.h"
+#include "api/video/video_frame_type.h"
 #include "api/video/video_rotation.h"
-#include "modules/video_coding/codecs/h264/include/h264_globals.h"
+#include "call/rtp_config.h"
+#include "common_video/generic_frame_descriptor/generic_frame_info.h"
+#include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor.h"
+#include "modules/rtp_rtcp/source/rtp_video_header.h"
 #include "modules/video_coding/codecs/interface/common_constants.h"
 #include "modules/video_coding/codecs/vp8/include/vp8_globals.h"
 #include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
 #include "modules/video_coding/include/video_codec_interface.h"
-#include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"

@@ -13,17 +13,26 @@
 
 #include <algorithm>
 #include <cmath>
-#include <memory>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
+#include "api/call/bitrate_allocation.h"
+#include "api/field_trials_view.h"
+#include "api/sequence_checker.h"
+#include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/numerics/safe_minmax.h"
-#include "system_wrappers/include/clock.h"
 #include "system_wrappers/include/metrics.h"
 
 namespace webrtc {

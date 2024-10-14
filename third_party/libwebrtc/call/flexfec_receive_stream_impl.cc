@@ -13,13 +13,13 @@
 #include <stddef.h>
 
 #include <cstdint>
+#include <memory>
 #include <string>
-#include <utility>
 
 #include "api/array_view.h"
-#include "api/call/transport.h"
 #include "api/environment/environment.h"
-#include "api/rtp_parameters.h"
+#include "api/sequence_checker.h"
+#include "call/flexfec_receive_stream.h"
 #include "call/rtp_stream_receiver_controller_interface.h"
 #include "modules/rtp_rtcp/include/flexfec_receiver.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"

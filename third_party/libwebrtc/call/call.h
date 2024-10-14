@@ -10,26 +10,30 @@
 #ifndef CALL_CALL_H_
 #define CALL_CALL_H_
 
-#include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/adaptation/resource.h"
+#include "api/fec_controller.h"
+#include "api/field_trials_view.h"
 #include "api/media_types.h"
+#include "api/rtp_headers.h"
+#include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
+#include "api/transport/bitrate_settings.h"
 #include "call/audio_receive_stream.h"
 #include "call/audio_send_stream.h"
 #include "call/call_basic_stats.h"
 #include "call/call_config.h"
 #include "call/flexfec_receive_stream.h"
 #include "call/packet_receiver.h"
+#include "call/rtp_transport_controller_send_interface.h"
 #include "call/video_receive_stream.h"
 #include "call/video_send_stream.h"
-#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/network/sent_packet.h"
-#include "rtc_base/network_route.h"
+#include "video/config/video_encoder_config.h"
 
 namespace webrtc {
 

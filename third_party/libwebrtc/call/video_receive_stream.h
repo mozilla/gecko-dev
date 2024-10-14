@@ -12,8 +12,10 @@
 #define CALL_VIDEO_RECEIVE_STREAM_H_
 
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <utility>
@@ -22,8 +24,11 @@
 #include "api/call/transport.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "api/crypto/crypto_options.h"
+#include "api/crypto/frame_decryptor_interface.h"
+#include "api/frame_transformer_interface.h"
 #include "api/rtp_headers.h"
-#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
+#include "api/units/time_delta.h"
 #include "api/video/recordable_encoded_frame.h"
 #include "api/video/video_content_type.h"
 #include "api/video/video_frame.h"
@@ -35,7 +40,6 @@
 #include "common_video/frame_counts.h"
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
-#include "rtc_base/checks.h"
 
 namespace webrtc {
 

@@ -13,15 +13,23 @@
 #include <string.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <optional>
 #include <queue>
 #include <utility>
 #include <vector>
 
+#include "api/array_view.h"
+#include "api/call/transport.h"
 #include "api/media_types.h"
+#include "api/test/simulated_network.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/synchronization/mutex.h"
 #include "system_wrappers/include/clock.h"
 
 namespace webrtc {

@@ -11,7 +11,9 @@
 #ifndef CALL_SIMULATED_PACKET_RECEIVER_H_
 #define CALL_SIMULATED_PACKET_RECEIVER_H_
 
-#include "api/test/simulated_network.h"
+#include <cstdint>
+#include <optional>
+
 #include "call/packet_receiver.h"
 
 namespace webrtc {

@@ -11,11 +11,12 @@
 #ifndef CALL_RECEIVE_STREAM_H_
 #define CALL_RECEIVE_STREAM_H_
 
+#include <cstdint>
 #include <vector>
 
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/frame_transformer_interface.h"
-#include "api/media_types.h"
+#include "api/rtp_headers.h"
 #include "api/scoped_refptr.h"
 #include "api/transport/rtp/rtp_source.h"
 

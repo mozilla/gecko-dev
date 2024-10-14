@@ -10,18 +10,22 @@
 #ifndef TEST_SCENARIO_NETWORK_NODE_H_
 #define TEST_SCENARIO_NETWORK_NODE_H_
 
-#include <deque>
-#include <map>
+#include <cstdint>
+#include <functional>
 #include <memory>
-#include <utility>
-#include <vector>
 
+#include "api/array_view.h"
 #include "api/call/transport.h"
 #include "api/sequence_checker.h"
+#include "api/test/network_emulation/network_emulation_interfaces.h"
+#include "api/units/data_size.h"
 #include "api/units/timestamp.h"
 #include "call/call.h"
-#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/network_route.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread_annotations.h"
+#include "system_wrappers/include/clock.h"
 #include "test/network/network_emulation.h"
 #include "test/network/simulated_network.h"
 #include "test/scenario/column_printer.h"
