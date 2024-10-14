@@ -442,25 +442,17 @@ async function refreshPage() {
   }
 
   if (!ml_enable || !gpu_enabled) {
-    warning.style.display = "block";
     let text = [];
     if (!ml_enable) {
-      text.push(
-        "browser.ml.enable is set to False ! Toggle it to activate local inference."
-      );
-    }
-    if (!gpu_enabled) {
-      text.push(
-        "WebGPU is not enabled, set dom.webgpu.enabled, dom.webgpu.workers.enabled and gfx.webgpu.force-enabled to true."
-      );
+      text =
+        "browser.ml.enable is set to False ! Toggle it to activate local inference.";
+    } else if (!gpu_enabled) {
+      text =
+        "WebGPU is not enabled, set dom.webgpu.enabled, dom.webgpu.workers.enabled and gfx.webgpu.force-enabled to true.";
     }
 
-    warning.innerHTML = "";
-    text.forEach(message => {
-      let messageDiv = document.createElement("div");
-      messageDiv.textContent = message;
-      warning.appendChild(messageDiv);
-    });
+    warning.setAttribute("message", text);
+    warning.style.display = "block";
   } else {
     warning.style.display = "none";
   }
@@ -719,6 +711,7 @@ async function engineNotification(data) {
 function appendTextConsole(text) {
   const textarea = document.getElementById("console");
   textarea.value += (textarea.value ? "\n" : "") + text;
+  textarea.scrollTop = textarea.scrollHeight;
 }
 
 async function runHttpInference() {
@@ -784,24 +777,20 @@ function fillSelect(elementId, values) {
   });
 }
 
-function showTab(tabIndex) {
-  // Hide all tab-content sections
-  const tabs = document.querySelectorAll(".tab-content");
-  tabs.forEach((tab, index) => {
-    tab.classList.remove("active");
-    if (index === tabIndex) {
-      tab.classList.add("active");
-    }
-  });
-
-  // Update the tab menu active state
-  const menuItems = document.querySelectorAll(".tab-menu li");
-  menuItems.forEach((item, index) => {
-    item.classList.remove("active");
-    if (index === tabIndex) {
-      item.classList.add("active");
-    }
-  });
+function showTab(button) {
+  let current_tab = document.querySelector(".active");
+  let category = button.getAttribute("id").substring("category-".length);
+  let content = document.getElementById(category);
+  if (current_tab == content) {
+    return;
+  }
+  current_tab.classList.remove("active");
+  current_tab.hidden = true;
+  content.classList.add("active");
+  content.hidden = false;
+  let current_button = document.querySelector("[selected=true]");
+  current_button.removeAttribute("selected");
+  button.setAttribute("selected", "true");
 }
 
 async function getEngineParent() {
@@ -817,7 +806,15 @@ async function getEngineParent() {
  * @async
  */
 window.onload = async function () {
-  showTab(0);
+  let menu = document.getElementById("categories");
+  menu.addEventListener("click", function click(e) {
+    if (e.target && e.target.parentNode == menu) {
+      showTab(e.target);
+    }
+  });
+
+  showTab(document.getElementById("category-local-inference"));
+
   fillSelect("dtype", DTYPE);
   fillSelect("taskName", TASKS);
   fillSelect("numThreads", NUM_THREADS);
@@ -846,11 +843,6 @@ window.onload = async function () {
   document
     .getElementById("http.limit")
     .addEventListener("change", updateHttpContext);
-
-  const menuItems = document.querySelectorAll(".tab-menu li");
-  menuItems.forEach((item, index) => {
-    item.addEventListener("click", () => showTab(index));
-  });
 
   updateHttpContext();
   await refreshPage();

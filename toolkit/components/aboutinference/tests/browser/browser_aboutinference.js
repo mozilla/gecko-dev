@@ -40,7 +40,7 @@ add_task(async function test_about_inference_disabled() {
       const { display } = window.getComputedStyle(element);
       is(display, "block", "The warning should be visible");
       Assert.stringContains(
-        element.textContent,
+        element.message,
         "browser.ml.enable is set to False !"
       );
     },

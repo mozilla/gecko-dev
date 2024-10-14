@@ -84,7 +84,7 @@ async function openAboutInference({
    */
   const selectors = {
     pageHeader: '[data-l10n-id="about-inference-header"]',
-    warning: "div#warning",
+    warning: "moz-message-bar#warning",
     processes: "div#procInfoTableContainer",
   };
 
@@ -101,14 +101,13 @@ async function openAboutInference({
 
   await ContentTask.spawn(tab.linkedBrowser, { selectors }, runInPage);
 
-  await loadBlankPage();
-  BrowserTestUtils.removeTab(tab);
-  await SpecialPowers.popPrefEnv();
-
   if (runInference) {
     await EngineProcess.destroyMLEngine();
     await cleanup();
   }
+  await loadBlankPage();
+  BrowserTestUtils.removeTab(tab);
+  await SpecialPowers.popPrefEnv();
 }
 
 /**

@@ -10,35 +10,60 @@
     />
     <meta name="color-scheme" content="light dark" />
     <title data-l10n-id="about-inference-title"></title>
-    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <link rel="stylesheet" href="chrome://global/content/aboutInference.css" />
     <link rel="localization" href="preview/aboutInference.ftl" />
     <script src="chrome://global/content/aboutInference.js"></script>
-    <link rel="stylesheet" href="chrome://global/content/aboutInference.css" />
   </head>
-  <body>
-    <h1 data-l10n-id="about-inference-header"></h1>
-    <p>
-      <span data-l10n-id="about-inference-description"></span>
-
-      <a
-        href="https://firefox-source-docs.mozilla.org/toolkit/components/ml"
-        data-l10n-id="about-inference-learn-more"
-      ></a>
-    </p>
-
-    <div id="warning">
-      browser.ml.enable is set to False ! Toggle it to activate local inference.
+  <body id="body">
+    <div id="categories">
+      <div
+        class="category category-no-icon"
+        selected="true"
+        id="category-local-inference"
+      >
+        <span
+          class="category-name"
+          data-l10n-id="about-inference-category-local-inference"
+        ></span>
+      </div>
+      <div class="category category-no-icon" id="category-http-inference">
+        <span
+          class="category-name"
+          data-l10n-id="about-inference-category-http-inference"
+        ></span>
+      </div>
+      <div class="category category-no-icon" id="category-models-storage">
+        <span
+          class="category-name"
+          data-l10n-id="about-inference-category-models-storage"
+        ></span>
+      </div>
     </div>
 
-    <div id="content">
-      <ul class="tab-menu">
-        <li class="active">Local Inference</li>
-        <li>HTTP Inference</li>
-        <li>Models Storage</li>
-      </ul>
+    <div class="main-content" id="content">
+      <div class="header">
+        <h1
+          id="sectionTitle"
+          data-l10n-id="about-inference-header"
+          class="header-name"
+        ></h1>
+        <p>
+          <span data-l10n-id="about-inference-description"></span>
+
+          <a
+            href="https://firefox-source-docs.mozilla.org/toolkit/components/ml"
+            data-l10n-id="about-inference-learn-more"
+          ></a>
+        </p>
+        <moz-message-bar
+          type="warning"
+          id="warning"
+          message=""
+        ></moz-message-bar>
+      </div>
 
       <!-- local tab -->
-      <div class="tab-content active">
+      <div id="local-inference" class="tab active">
         <div class="fieldset-container">
           <fieldset>
             <legend>Inference Pad</legend>
@@ -156,7 +181,7 @@
       </div>
 
       <!-- http tab -->
-      <div class="tab-content">
+      <div id="http-inference" class="tab" hidden="true">
         <div class="fieldset-container">
           <fieldset>
             <legend>HTTP Inference Pad</legend>
@@ -225,7 +250,7 @@
       </div>
 
       <!-- model tab -->
-      <div class="tab-content">
+      <div id="models-storage" class="tab" hidden="true">
         <div class="fieldset-container">
           <fieldset class="large">
             <legend data-l10n-id="about-inference-models-title"></legend>
