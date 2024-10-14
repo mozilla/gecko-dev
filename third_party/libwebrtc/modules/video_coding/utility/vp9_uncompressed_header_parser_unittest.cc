@@ -56,6 +56,7 @@ TEST(Vp9UncompressedHeaderParserTest, FrameWithSegmentation) {
   EXPECT_EQ(frame_info->tile_cols_log2, 0u);
   EXPECT_EQ(frame_info->tile_rows_log2, 0u);
   EXPECT_EQ(frame_info->render_size_offset_bits, 64u);
+  EXPECT_EQ(frame_info->loop_filter_params_offset_bits, 100u);
   EXPECT_EQ(frame_info->compressed_header_size, 23u);
   EXPECT_EQ(frame_info->uncompressed_header_size, 37u);
 

@@ -488,6 +488,8 @@ void Parse(BitstreamReader& br,
   // Frame context index.
   frame_info->frame_context_idx = br.ReadBits(2);
 
+  frame_info->loop_filter_params_offset_bits =
+      total_buffer_size_bits - br.RemainingBitCount();
   Vp9ReadLoopfilter(br);
 
   // Read base QP.
