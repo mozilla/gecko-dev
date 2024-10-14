@@ -49,6 +49,17 @@ class GenericExperimentIntegrationTest {
     }
 
     @Test
+    fun verifyStudiesAreDisabled() {
+        homeScreen {
+        }.openThreeDotMenu {
+        }.openSettings {
+        }.openSettingsSubMenuDataCollection {
+            clickStudiesOption()
+            verifyStudiesToggle(false)
+        }
+    }
+
+    @Test
     fun testExperimentEnrolled() {
         homeScreen {
         }.openThreeDotMenu {
