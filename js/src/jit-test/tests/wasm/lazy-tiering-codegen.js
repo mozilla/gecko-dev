@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmExperimentalCompilePipelineEnabled() || !getBuildConfiguration("x64") || !hasDisassembler() || getBuildConfiguration("simulator"); test-also=-P wasm_lazy_tiering; include:codegen-x64-test.js
+// |jit-test| skip-if: !wasmExperimentalCompilePipelineEnabled() || !getBuildConfiguration("x64") || !hasDisassembler() || getBuildConfiguration("simulator"); test-also=-P wasm_lazy_tiering -P wasm_lazy_tiering_level=9; include:codegen-x64-test.js
 
 assertEq(hasDisassembler(), true);
 

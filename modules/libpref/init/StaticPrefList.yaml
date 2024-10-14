@@ -8393,7 +8393,7 @@
 # Aggressiveness of lazy tiering, allowable: 1 .. 9
 # 1 = min (almost never, set tiering threshold to max possible, == 2^31-1)
 # 9 = max (request tier up at first call, set tiering threshold to zero)
-- name: javascript.options.wasm_experimental_tiering_level
+- name: javascript.options.wasm_lazy_tiering_level
   type: uint32_t
   value: 5
   mirror: always

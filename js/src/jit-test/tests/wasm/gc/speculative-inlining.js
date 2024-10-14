@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmGcEnabled() || !wasmExperimentalCompilePipelineEnabled(); test-also=-P wasm_lazy_tiering;
+// |jit-test| skip-if: !wasmGcEnabled() || !wasmExperimentalCompilePipelineEnabled(); test-also=-P wasm_lazy_tiering -P wasm_lazy_tiering_level=9;
 
 // Needs to be at least 13500 in order for test functions to tier up.
 // See Instance::computeInitialHotnessCounter.

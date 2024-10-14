@@ -53,7 +53,7 @@ class LazyTieringHeuristics {
 
  public:
   LazyTieringHeuristics() {
-    level_ = JS::Prefs::wasm_experimental_tiering_level();
+    level_ = JS::Prefs::wasm_lazy_tiering_level();
     // Clamp to range MIN_LEVEL .. MAX_LEVEL.
     level_ = std::max<uint32_t>(level_, MIN_LEVEL);
     level_ = std::min<uint32_t>(level_, MAX_LEVEL);
