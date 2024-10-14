@@ -216,6 +216,17 @@ class RootActor extends Actor {
   }
 
   /**
+   * Method called by the client right after the root actor is communicated to it,
+   * with information about the frontend.
+   *
+   * For now this is used by Servo which implements different backend APIs,
+   * based on the frontend version. (backward compat to support many frontend versions
+   * on the same backend revision)
+   */
+  // eslint-disable-next-line no-unused-vars
+  connect({ frontendVersion }) {}
+
+  /**
    * Gets the "root" form, which lists all the global actors that affect the entire
    * browser.
    */

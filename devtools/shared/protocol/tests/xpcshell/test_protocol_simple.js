@@ -156,6 +156,10 @@ class RootFront extends protocol.FrontClassWithSpec(rootSpec) {
     // Root owns itself.
     this.manage(this);
   }
+
+  connect({ frontendVersion }) {
+    this.frontendVersion = frontendVersion;
+  }
 }
 protocol.registerFront(RootFront);
 
@@ -195,6 +199,7 @@ add_task(async function () {
   Assert.equal(applicationType, "xpcshell-tests");
 
   const rootFront = client.mainRoot;
+  Assert.equal(typeof rootFront.frontendVersion, "string");
 
   let ret = await rootFront.simpleReturn();
   trace.expectSend({ type: "simpleReturn", to: "<actorid>" });

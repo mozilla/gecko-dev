@@ -354,6 +354,8 @@ class RootFront extends protocol.FrontClassWithSpec(rootSpec) {
   toString() {
     return "[root front]";
   }
+
+  connect() {}
 }
 
 let rootFront, childFront;

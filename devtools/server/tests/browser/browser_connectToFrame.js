@@ -79,6 +79,8 @@ add_task(async function () {
     const transport = DevToolsServer.connectPipe();
     const conn = transport._serverConnection;
     const client = new DevToolsClient(transport);
+    // We aren't calling DevtoolsClient.connect, but still need to wait for the client to be connected
+    await client.once("connected");
     const actor = await connectToFrame(conn, browser);
     ok(actor.connectToFrameTestActor, "Got the test actor");
 
@@ -122,6 +124,8 @@ add_task(async function () {
     const transport = DevToolsServer.connectPipe();
     const conn = transport._serverConnection;
     const client = new DevToolsClient(transport);
+    // We aren't calling DevtoolsClient.connect, but still need to wait for the client to be connected
+    await client.once("connected");
     const actor = await connectToFrame(conn, browser);
     ok(
       actor.connectToFrameTestActor,

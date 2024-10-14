@@ -88,6 +88,8 @@ class RootFront extends protocol.FrontClassWithSpec(rootSpec) {
     // Root owns itself.
     this.manage(this);
   }
+
+  connect() {}
 }
 protocol.registerFront(RootFront);
 
