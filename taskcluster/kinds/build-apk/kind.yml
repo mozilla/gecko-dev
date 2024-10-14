@@ -13,6 +13,7 @@ transforms:
 kind-dependencies:
     - toolchain
     - build-fat-aar
+    - generate-baseline-profile-firebase
 
 task-defaults:
     apk-artifact-template:
@@ -164,6 +165,12 @@ tasks:
             shipping-product: fenix
         dependencies:
             build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
+            baseline-profile: generate-baseline-profile-firebase-fenix
+        fetches:
+            baseline-profile:
+                - artifact: baseline-prof.txt
+                  extract: false
+                  dest: baselineProfiles
         include-shippable-secrets: true
         include-nightly-version: true
         source-project-name: "fenix"
@@ -172,6 +179,7 @@ tasks:
             gradle-build-name: fenixNightly
             gradle-build: fenix
             track-apk-size: true
+            baseline-profile-path: /builds/worker/fetches/baselineProfiles
         run-on-projects: []
         treeherder:
             symbol: fenix-nightly(B)
@@ -460,6 +468,12 @@ tasks:
         description: 'Fenix Nightly Simulation'
         dependencies:
             build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
+            baseline-profile: generate-baseline-profile-firebase-fenix
+        fetches:
+            baseline-profile:
+                - artifact: baseline-prof.txt
+                  extract: false
+                  dest: baselineProfiles
         attributes:
             nightly: false
             shipping-product: fenix
@@ -470,6 +484,7 @@ tasks:
             gradle-build-type: nightly
             gradle-build-name: fenixNightly
             gradle-build: fenix
+            baseline-profile-path: /builds/worker/fetches/baselineProfiles
         source-project-name: "fenix"
         treeherder:
             symbol: fenix-nightlySim(B)

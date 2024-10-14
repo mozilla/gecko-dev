@@ -1,0 +1,51 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+loader: taskgraph.loader.transform:loader
+
+transforms:
+    - android_taskgraph.transforms.build_android_app:transforms
+    - gecko_taskgraph.transforms.job:transforms
+    - gecko_taskgraph.transforms.task:transforms
+
+kind-dependencies:
+    - toolchain
+    - build-fat-aar
+
+task-defaults:
+    attributes:
+        retrigger: true
+    fetches:
+        toolchain:
+            - linux64-android-sdk-linux-repack
+            - linux64-jdk-repack
+            - linux64-node
+    run:
+        using: gradlew
+    treeherder:
+        kind: test
+        tier: 1
+
+tasks:
+    fenix:
+        description: 'Generate baseline profile apks for fenix.'
+        attributes:
+            shipping-product: fenix
+        dependencies:
+            build-fat-aar: build-fat-aar-android-geckoview-fat-aar/opt
+        source-project-name: "fenix"
+        run:
+            gradle-package-command: ":benchmark:assembleBenchmark :app:assembleBenchmark"
+        treeherder:
+            symbol: Bpgo(instr)
+            platform: fenix-android-all/opt
+        worker:
+            artifacts:
+                - name: "public/build/target.arm64-v8a.apk"
+                  path: "/builds/worker/checkouts/gecko/mobile/android/fenix/app/build/outputs/apk/fenix/benchmark/app-fenix-arm64-v8a-benchmark.apk"
+                  type: "file"
+                - name: "public/build/target.noarch.apk"
+                  path: "/builds/worker/checkouts/gecko/mobile/android/fenix/benchmark/build/outputs/apk/benchmark/benchmark-benchmark.apk"
+                  type: "file"
+            chain-of-trust: true

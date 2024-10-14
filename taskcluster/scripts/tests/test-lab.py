@@ -33,6 +33,7 @@ class Worker(Enum):
 
 
 ANDROID_TEST = "./automation/taskcluster/androidTest"
+SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 def setup_logging():
@@ -157,7 +158,7 @@ def process_results(flank_config: str, test_type: str = "instrumentation") -> No
         ANDROID_TEST, "parse-ui-test-fromfile.py"
     )
     copy_robo_crash_artifacts_script = os.path.join(
-        ANDROID_TEST, "copy-robo-crash-artifacts.py"
+        SCRIPT_DIR, "copy-artifacts-from-ftl.py"
     )
 
     os.chmod(parse_ui_test_script, 0o755)
@@ -176,7 +177,7 @@ def process_results(flank_config: str, test_type: str = "instrumentation") -> No
 
     # If the test type is robo, run a script that copies the crash artifacts from Cloud Storage over (if there are any from failed devices)
     if test_type == "robo":
-        exit_code = run_command([copy_robo_crash_artifacts_script])
+        exit_code = run_command([copy_robo_crash_artifacts_script, "crash_log"])
 
     command = [
         parse_ui_test_script,

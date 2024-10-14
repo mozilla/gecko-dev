@@ -867,10 +867,6 @@ push-bundle
 -----------
 Push Focus and Fenix AABs to Google Play.
 
-push-bundle
------------
-Push Focus and Fenix AABs to Google Play.
-
 android-l10n
 ------------
 Update android string resources from android-l10n repo.
@@ -878,3 +874,11 @@ Update android string resources from android-l10n repo.
 release-update-product-channel-version
 --------------------------------------
 Update the product channel version in Ship-It.
+
+instrumented-build-apk
+-----------------------
+Generate instrumented apks used to generate Baseline Profile for Android apps.
+
+generate-baseline-profile-firebase
+----------------------------------
+Run baseline profile generation for Android on Firebase TestLab.

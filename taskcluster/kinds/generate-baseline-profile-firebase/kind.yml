@@ -1,0 +1,80 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+loader: taskgraph.loader.transform:loader
+
+transforms:
+    - gecko_taskgraph.transforms.test_apk:transforms
+    # While not a build, the build optimization works well for these tasks.
+    - gecko_taskgraph.transforms.build_schedules:transforms
+    - gecko_taskgraph.transforms.job:transforms
+    - gecko_taskgraph.transforms.task:transforms
+
+kind-dependencies:
+    - toolchain
+    - instrumented-build-apk
+
+task-defaults:
+    attributes:
+        build_platform: android
+        build-type: debug
+        retrigger: true
+    fetches:
+        toolchain:
+            - android-sdk-linux
+    optimization:
+        skip-unless-backstop: null
+    worker-type: b-linux-medium-gcp
+    worker:
+        docker-image: {in-tree: android-ui-tests}
+        max-run-time: 7200
+        env:
+            GOOGLE_APPLICATION_CREDENTIALS: '.firebase_token.json'
+            ANDROID_SDK_ROOT: /builds/worker/fetches/android-sdk-linux
+        artifacts:
+            - name: public
+              path: /builds/worker/artifacts
+              type: directory
+        retry-exit-status: [20]
+    treeherder:
+        kind: test
+        tier: 1
+    run:
+        use-caches: false
+        using: run-commands
+        dummy-secrets:
+            - content: "faketoken"
+              path: .adjust_token
+
+tasks:
+    fenix:
+        attributes:
+            build-type: fenix-debug-firebase
+            shipping-product: fenix
+        description: Baseline profile generation for Fenix
+        dependencies:
+            instrumented-apk: instrumented-build-apk-fenix
+        fetches:
+            instrumented-apk:
+                - artifact: target.arm64-v8a.apk
+                  extract: false
+                - artifact: target.noarch.apk
+                  extract: false
+        run:
+            secrets:
+                - name: project/mobile/firefox-android/fenix/firebase
+                  key: firebaseToken
+                  path: .firebase_token.json
+                  json: true
+            pre-commands:
+                - ["cd", "mobile/android/fenix"]
+            commands:
+                - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm64-v8a-baseline-profile, /builds/worker/fetches/target.arm64-v8a.apk, --apk_test, /builds/worker/fetches/target.noarch.apk]
+                - [python3, ../../../taskcluster/scripts/tests/copy-artifacts-from-ftl.py, "baseline_profile"]
+        treeherder:
+            platform: fenix-android-all/opt
+            symbol: Bpgo(run)
+        worker:
+            env:
+                GOOGLE_PROJECT: moz-fenix

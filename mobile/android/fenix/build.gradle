@@ -233,18 +233,3 @@ tasks.register("listRepositories") {
         project.repositories.each { println "Name: " + it.name + "; url: " + it.url }
     }
 }
-
-// Task to copy generated baseline profile to the app module nightly variant.
-tasks.register("copyBaselineProfile", DefaultTask) {
-    doLast {
-        File profileFile = fileTree('benchmark/build/outputs') {
-            include '**/*baseline-prof.txt'
-        }.getSingleFile()
-        def destinationPath = Paths.get("app", "src", "nightly", "baselineProfiles", "baseline-prof.txt")
-        File destinationDir = destinationPath.toFile().parentFile
-        if (!destinationDir.exists()) {
-            destinationDir.mkdirs()
-        }
-        Files.copy(profileFile.toPath(), destinationPath, StandardCopyOption.REPLACE_EXISTING)
-    }
-}

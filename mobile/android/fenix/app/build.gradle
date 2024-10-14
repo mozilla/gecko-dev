@@ -187,6 +187,7 @@ android {
         benchmark releaseTemplate >> {
             initWith buildTypes.nightly
             applicationIdSuffix ".fenix"
+            signingConfig signingConfigs.debug
             debuggable false
         }
     }
@@ -225,6 +226,11 @@ android {
     sourceSets {
         androidTest {
             resources.srcDirs += ['src/androidTest/resources']
+        }
+        if (project.hasProperty('baselineProfilePath')) {
+            main {
+                baselineProfiles.srcDirs(project.property('baselineProfilePath'))
+            }
         }
     }
 

@@ -154,10 +154,14 @@ def build_pre_gradle_command(config, tasks):
 @transforms.add
 def build_gradle_command(config, tasks):
     for task in tasks:
-        gradle_build_type = task["run"]["gradle-build-type"]
-        gradle_build_name = task["run"]["gradle-build-name"]
-        variant_config = get_variant(gradle_build_type, gradle_build_name)
-        variant_name = variant_config["name"][0].upper() + variant_config["name"][1:]
+        gradle_build_type = task["run"].get("gradle-build-type")
+        gradle_build_name = task["run"].get("gradle-build-name")
+
+        variant_name = ""
+        if gradle_build_type and gradle_build_name:
+            variant_name = get_variant(gradle_build_type, gradle_build_name)[
+                "name"
+            ].capitalize()
 
         package_command = task["run"].pop("gradle-package-command", "assemble")
         gradle_command = [
@@ -169,6 +173,19 @@ def build_gradle_command(config, tasks):
             gradle_command.append(f"apkSize{variant_name}")
 
         task["run"]["gradlew"] = gradle_command
+
+        yield task
+
+
+@transforms.add
+def add_baseline_profile_path(config, tasks):
+    for task in tasks:
+        baseline_profile_path = task["run"].pop("baseline-profile-path", "")
+        if baseline_profile_path:
+            task["run"]["gradlew"].append(
+                f"-PbaselineProfilePath={baseline_profile_path}"
+            )
+
         yield task
 
 
@@ -225,12 +242,17 @@ def add_release_version(config, tasks):
 @transforms.add
 def add_artifacts(config, tasks):
     for task in tasks:
-        gradle_build_type = task["run"].pop("gradle-build-type")
-        gradle_build_name = task["run"].pop("gradle-build-name")
-        gradle_build = task["run"].pop("gradle-build")
+        gradle_build_type = task["run"].pop("gradle-build-type", "")
+        gradle_build_name = task["run"].pop("gradle-build-name", "")
+        gradle_build = task["run"].pop("gradle-build", "")
+        source_project_name = task.pop("source-project-name")
+
+        if not gradle_build_type or not gradle_build_name or not gradle_build:
+            yield task
+            continue
+
         variant_config = get_variant(gradle_build_type, gradle_build_name)
         artifacts = task.setdefault("worker", {}).setdefault("artifacts", [])
-        source_project_name = task.pop("source-project-name")
 
         task["attributes"]["apks"] = apks = {}
 
