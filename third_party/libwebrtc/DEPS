@@ -2457,7 +2457,6 @@ include_rules = [
   "+absl/strings/match.h",
   "+absl/strings/str_replace.h",
   "+absl/strings/string_view.h",
-  "+absl/types/optional.h",
   "+absl/types/variant.h",
 
   # Abseil flags are allowed in tests and tools.
