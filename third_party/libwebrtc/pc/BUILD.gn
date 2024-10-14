@@ -182,10 +182,6 @@ rtc_source_set("external_hmac") {
   ]
   if (rtc_build_libsrtp) {
     deps += [ "//third_party/libsrtp" ]
-    configs = []
-    if (!rtc_build_ssl) {
-      configs += [ "..:external_ssl_library" ]
-    }
   }
 }
 
@@ -615,10 +611,6 @@ rtc_source_set("srtp_session") {
   ]
   if (rtc_build_libsrtp) {
     deps += [ "//third_party/libsrtp" ]
-    configs = []
-    if (!rtc_build_ssl) {
-      configs += [ "..:external_ssl_library" ]
-    }
   }
 }
 rtc_source_set("srtp_transport") {

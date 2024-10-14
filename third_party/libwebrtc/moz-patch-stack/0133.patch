@@ -660,7 +660,7 @@ index 4d7e1492fd..9c7ab4f08a 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index f16e2c15f4..e0b065540d 100644
+index 2d43148cd4..b41871c9a5 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -30,8 +30,8 @@
