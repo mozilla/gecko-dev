@@ -251,7 +251,7 @@ features:
       enable-event-timestamps:
         description: "Enables precise event timestamps for Glean events"
         type: Boolean
-        default: false
+        default: true
       delay-ping-lifetime-io:
         description: "Glean will delay io for ping lifetime metrics"
         type: Boolean
