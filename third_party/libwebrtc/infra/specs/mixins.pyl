@@ -77,7 +77,7 @@
     'swarming': {
       'idempotent': False,
       'dimensions': {
-        'os': 'iOS-17.5.1',
+        'os': 'iOS-17.6.1',
         'pool': 'WebRTC'
       }
     }
@@ -328,10 +328,10 @@
     }
   },
   'xcode_16_main': {
-    'args': ['--xcode-build-version', '16a5211f'],
+    'args': ['--xcode-build-version', '16a5230g'],
     'swarming': {
       'named_caches': [{
-        'name': 'xcode_ios_16a5211f',
+        'name': 'xcode_ios_16a5230g',
         'path': 'Xcode.app'
       }]
     }

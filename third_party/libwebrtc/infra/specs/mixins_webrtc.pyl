@@ -51,7 +51,7 @@
     'swarming': {
       'idempotent': False,
       'dimensions': {
-        'os': 'iOS-17.5.1',
+        'os': 'iOS-17.6.1',
         'pool': 'WebRTC',
         #'device_status': 'available'
       },
