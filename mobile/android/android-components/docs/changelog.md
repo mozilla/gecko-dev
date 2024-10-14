@@ -14,6 +14,7 @@ permalink: /changelog/
 
 * **support-ktx**
   * 🆕 `Window.setupPersistentInsets()` will setup handling persistent insets instead of the framework to allow for custom handling of dynamic insets [Bug 1911042](https://bugzilla.mozilla.org/show_bug.cgi?id=1911042)
+  * 🆕 `ImeInsetsSynchronizer` allows synchronizing the resize animation for any View which should be shown at the top of the keyboard while this is showing or hiding. [Bug 1911042](https://bugzilla.mozilla.org/show_bug.cgi?id=1911042)
 
 # 132.0
 * **feature-awesomebar**

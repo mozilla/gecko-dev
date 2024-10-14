@@ -140,6 +140,7 @@
     <ID>UndocumentedPublicClass:ImageDecoder.kt$ImageDecoder$Companion</ID>
     <ID>UndocumentedPublicClass:ImageDecoder.kt$ImageDecoder.Companion$ImageMagicNumbers</ID>
     <ID>UndocumentedPublicClass:ImageViewAndroidTintXmlDetector.kt$ImageViewAndroidTintXmlDetector$Companion</ID>
+    <ID>UndocumentedPublicClass:ImeInsetsSynchronizer.kt$ImeInsetsSynchronizer$Companion</ID>
     <ID>UndocumentedPublicClass:InContentTelemetry.kt$InContentTelemetry$Companion</ID>
     <ID>UndocumentedPublicClass:InlineAutocompleteEditText.kt$InlineAutocompleteEditText$AutocompleteResult</ID>
     <ID>UndocumentedPublicClass:InlineAutocompleteEditText.kt$InlineAutocompleteEditText$Companion</ID>
