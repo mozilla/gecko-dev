@@ -21,6 +21,7 @@
 #include "api/adaptation/resource.h"
 #include "api/call/transport.h"
 #include "api/crypto/crypto_options.h"
+#include "api/crypto/frame_encryptor_interface.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_setparameters_callback.h"

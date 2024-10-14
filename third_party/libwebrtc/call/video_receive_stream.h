@@ -25,6 +25,7 @@
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "api/crypto/crypto_options.h"
 #include "api/crypto/frame_decryptor_interface.h"
+#include "api/crypto/frame_encryptor_interface.h"
 #include "api/frame_transformer_interface.h"
 #include "api/rtp_headers.h"
 #include "api/scoped_refptr.h"
