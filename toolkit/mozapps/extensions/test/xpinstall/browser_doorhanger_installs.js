@@ -981,6 +981,15 @@ var TESTS = [
       BlocklistPrivate: { ExtensionBlocklistMLBF },
     } = ChromeUtils.importESModule("resource://gre/modules/Blocklist.sys.mjs");
 
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        [
+          "extensions.blocklist.addonItemURL",
+          "https://example.com/blocked-addon/%addonID%/%addonVersion%/",
+        ],
+      ],
+    });
+
     const blocklistURL = ExtensionBlocklistMLBF.createBlocklistURL(id, version);
 
     info("Verify addon-install-failed on hard-blocked addon");
@@ -1003,6 +1012,9 @@ var TESTS = [
         blocklistURL,
       },
     });
+    // Clear extensions.blocklist.softblock.enabled pref.
+    await SpecialPowers.popPrefEnv();
+    // Clear extensions.blocklist.addonItemURL pref.
     await SpecialPowers.popPrefEnv();
 
     async function testBlocklistedAddon({ stash, expected }) {
@@ -1066,9 +1078,33 @@ var TESTS = [
         "Blocklist info link should have the expected localized string"
       );
 
+      // Clicking on the the blocklistURL link is expected to dismiss the
+      // popup.
+      let closePromise = waitForNotificationClose();
+
+      let newTabPromise = BrowserTestUtils.waitForNewTab(
+        gBrowser,
+        expected.blocklistURL,
+        true
+      );
+      info(
+        `Click on the blocklist "See details" link ${expected.blocklistURL}`
+      );
+      blocklistURLEl.click();
+      const newTab = await newTabPromise;
+
+      is(
+        newTab,
+        gBrowser.selectedTab,
+        "Blocklist info tab is currrently selected"
+      );
+      BrowserTestUtils.removeTab(newTab);
+
       await cleanupBlocklist();
       PermissionTestUtils.remove("http://example.com/", "install");
-      await removeTabAndWaitForNotificationClose();
+
+      BrowserTestUtils.removeTab(gBrowser.selectedTab);
+      await closePromise;
     }
   },
 
