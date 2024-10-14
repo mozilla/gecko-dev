@@ -367,12 +367,12 @@ pref("browser.overlink-delay", 80);
 
 pref("browser.theme.colorway-closet", true);
 
-#ifdef XP_MACOSX
-#ifdef NIGHTLY_BUILD
-pref("browser.theme.macos.native-theme", true);
+#if defined(MOZ_WIDGET_GTK)
+  pref("browser.theme.native-theme", true);
+#elif defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
+  pref("browser.theme.native-theme", true);
 #else
-pref("browser.theme.macos.native-theme", false);
-#endif
+  pref("browser.theme.native-theme", false);
 #endif
 
 // Whether expired built-in colorways themes that are active or retained

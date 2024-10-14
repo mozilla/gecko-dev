@@ -555,6 +555,8 @@ class WinUtils {
 
   static bool GetClassName(HWND aHwnd, nsAString& aName);
 
+  static bool MicaEnabled();
+
   static void EnableWindowOcclusion(const bool aEnable);
 
   static bool GetTimezoneName(wchar_t* aBuffer);

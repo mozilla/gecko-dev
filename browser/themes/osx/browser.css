@@ -9,7 +9,7 @@
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.theme.macos.native-theme") {
+@media (-moz-bool-pref: "browser.theme.native-theme") {
   @media not (prefers-contrast) {
     :root:not([lwtheme]) {
       @media (prefers-color-scheme: light) {
