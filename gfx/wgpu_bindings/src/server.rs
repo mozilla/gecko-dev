@@ -160,14 +160,8 @@ pub struct FfiLUID {
 }
 
 /// Request an adapter according to the specified options.
-/// Provide the list of IDs to pick from.
 ///
-/// Returns the index in this list, or -1 if unable to pick.
-///
-/// # Safety
-///
-/// This function is unsafe as there is no guarantee that the given pointer is
-/// valid for `id_length` elements.
+/// Returns true if we successfully found an adapter.
 #[allow(unused_variables)]
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_server_instance_request_adapter(
