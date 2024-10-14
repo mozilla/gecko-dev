@@ -8129,8 +8129,6 @@ static bool EmitStructNew(FunctionCompiler& f) {
 }
 
 static bool EmitStructNewDefault(FunctionCompiler& f) {
-  uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
-
   uint32_t typeIndex;
   if (!f.iter().readStructNewDefault(&typeIndex)) {
     return false;
@@ -8140,26 +8138,8 @@ static bool EmitStructNewDefault(FunctionCompiler& f) {
     return true;
   }
 
-  const StructType& structType = (*f.codeMeta().types)[typeIndex].structType();
-
-  // Allocate a default initialized struct.  This requires the type definition
-  // for the struct.
-  MDefinition* typeDefData = f.loadTypeDefInstanceData(typeIndex);
-  if (!typeDefData) {
-    return false;
-  }
-
-  // Figure out whether we need an OOL storage area, and hence which routine
-  // to call.
-  SymbolicAddressSignature calleeSASig =
-      WasmStructObject::requiresOutlineBytes(structType.size_)
-          ? SASigStructNewOOL_true
-          : SASigStructNewIL_true;
-
-  // Create call: structObject = Instance::structNew{IL,OOL}<true>(typeDefData)
-  MDefinition* structObject;
-  if (!f.emitInstanceCall1(lineOrBytecode, calleeSASig, typeDefData,
-                           &structObject)) {
+  MDefinition* structObject = f.createStructObject(typeIndex, true);
+  if (!structObject) {
     return false;
   }
 
