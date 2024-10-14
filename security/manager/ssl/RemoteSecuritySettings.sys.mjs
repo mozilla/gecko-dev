@@ -672,10 +672,7 @@ class CRLiteFilters {
         });
       });
     }
-    let stashes = filtersDownloaded.filter(
-      filter =>
-        filter.incremental && filter.attachment.filename.endsWith("stash")
-    );
+    let stashes = filtersDownloaded.filter(filter => filter.incremental);
     let totalLength = stashes.reduce(
       (sum, filter) => sum + filter.bytes.length,
       0
@@ -695,23 +692,6 @@ class CRLiteFilters {
           lazy.log.debug(`addCRLiteStash: ${rv}`);
           resolve();
         });
-      });
-    }
-    let deltas = filtersDownloaded.filter(
-      filter =>
-        filter.incremental && filter.attachment.filename.endsWith("delta")
-    );
-    for (let filter of deltas) {
-      lazy.log.debug(`adding delta update of size ${filter.bytes.length}`);
-      await new Promise(resolve => {
-        certList.addCRLiteDelta(
-          filter.bytes,
-          filter.attachment.filename,
-          rv => {
-            lazy.log.debug(`addCRLiteDelta: ${rv}`);
-            resolve();
-          }
-        );
       });
     }
 

@@ -46,7 +46,7 @@ use rust_cascade::Cascade;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
-use std::ffi::{CString, OsString};
+use std::ffi::CString;
 use std::fmt::Display;
 use std::fs::{create_dir_all, remove_file, File, OpenOptions};
 use std::io::{BufRead, BufReader, Read, Write};
@@ -262,12 +262,11 @@ enum Filter {
 }
 
 impl Filter {
-    fn load(
-        store_path: &PathBuf,
-        filter_filename: &OsString,
-    ) -> Result<Option<Filter>, SecurityStateError> {
+    fn load(profile_path: &PathBuf) -> Result<Option<Filter>, SecurityStateError> {
+        let store_path = get_store_path(profile_path)?;
+
+        let filter_path = store_path.join("crlite.filter");
         // Before we've downloaded any filters, this file won't exist.
-        let filter_path = store_path.join(filter_filename);
         if !filter_path.exists() {
             return Ok(None);
         }
@@ -349,7 +348,7 @@ impl MallocSizeOf for Filter {
 struct SecurityState {
     profile_path: PathBuf,
     env_and_store: Option<EnvAndStore>,
-    crlite_filters: Vec<Filter>,
+    crlite_filter: Option<Filter>,
     /// Maps issuer spki hashes to sets of serial numbers.
     crlite_stash: Option<HashMap<Vec<u8>, HashSet<Vec<u8>>>>,
     /// Tracks the number of asynchronous operations which have been dispatched but not completed.
@@ -363,7 +362,7 @@ impl SecurityState {
         SecurityState {
             profile_path,
             env_and_store: None,
-            crlite_filters: vec![],
+            crlite_filter: None,
             crlite_stash: None,
             remaining_ops: 0,
         }
@@ -495,10 +494,10 @@ impl SecurityState {
 
     pub fn get_has_prior_data(&self, data_type: u8) -> Result<bool, SecurityStateError> {
         if data_type == nsICertStorage::DATA_TYPE_CRLITE_FILTER_FULL {
-            return Ok(!self.crlite_filters.is_empty());
+            return Ok(self.crlite_filter.is_some());
         }
         if data_type == nsICertStorage::DATA_TYPE_CRLITE_FILTER_INCREMENTAL {
-            return Ok(self.crlite_stash.is_some() || self.crlite_filters.len() > 1);
+            return Ok(self.crlite_stash.is_some());
         }
 
         let env_and_store = match self.env_and_store.as_ref() {
@@ -641,29 +640,26 @@ impl SecurityState {
         enrolled_issuers: Vec<nsCString>,
         coverage_entries: &[(nsCString, u64, u64)],
     ) -> Result<(), SecurityStateError> {
-        let store_path = get_store_path(&self.profile_path)?;
-
-        // Drop any existing crlite filter and clear the accumulated stash.
-        self.crlite_filters.clear();
-        self.crlite_stash = None;
-
-        // Delete the backing data for any stash or delta files.
-        for entry in std::fs::read_dir(&store_path)? {
-            let Ok(entry) = entry else {
-                continue;
-            };
-            let entry_path = entry.path();
-            let extension = entry_path
-                .extension()
-                .map(|os_str| os_str.to_str())
-                .flatten();
-            if extension == Some("stash") || extension == Some("delta") {
-                let _ = std::fs::remove_file(entry_path);
+        // First drop any existing crlite filter and clear the accumulated stash.
+        {
+            let _ = self.crlite_filter.take();
+            let _ = self.crlite_stash.take();
+            let mut path = get_store_path(&self.profile_path)?;
+            path.push("crlite.stash");
+            // Truncate the stash file if it exists.
+            if path.exists() {
+                File::create(path).map_err(|e| {
+                    SecurityStateError::from(format!("couldn't truncate stash file: {}", e))
+                })?;
             }
         }
-
         // Write the new full filter.
-        std::fs::write(store_path.join("crlite.filter"), &filter)?;
+        let mut path = get_store_path(&self.profile_path)?;
+        path.push("crlite.filter");
+        {
+            let mut filter_file = File::create(&path)?;
+            filter_file.write_all(&filter)?;
+        }
 
         // Serialize the coverage metadata as a 1 byte version number followed by any number of 48
         // byte entries. Each entry is a 32 byte (opaque) log id, followed by two 8 byte
@@ -684,7 +680,12 @@ impl SecurityState {
             coverage_bytes.extend_from_slice(&max_t.to_le_bytes());
         }
         // Write the coverage file for the new filter
-        std::fs::write(store_path.join("crlite.coverage"), &coverage_bytes)?;
+        let mut path = get_store_path(&self.profile_path)?;
+        path.push("crlite.coverage");
+        {
+            let mut coverage_file = File::create(&path)?;
+            coverage_file.write_all(&coverage_bytes)?;
+        }
 
         // Serialize the enrollment list as a 1 byte version number followed by:
         // Version 1: any number of 32 byte values of the form `SHA256(subject || spki)`.
@@ -703,7 +704,12 @@ impl SecurityState {
             enrollment_bytes.extend_from_slice(&issuer_id);
         }
         // Write the enrollment file for the new filter
-        std::fs::write(store_path.join("crlite.enrollment"), &enrollment_bytes)?;
+        let mut path = get_store_path(&self.profile_path)?;
+        path.push("crlite.enrollment");
+        {
+            let mut enrollment_file = File::create(&path)?;
+            enrollment_file.write_all(&enrollment_bytes)?;
+        }
 
         self.note_crlite_update_time()?;
         self.load_crlite_filter()?;
@@ -712,17 +718,13 @@ impl SecurityState {
     }
 
     fn load_crlite_filter(&mut self) -> Result<(), SecurityStateError> {
-        if !self.crlite_filters.is_empty() {
+        if self.crlite_filter.is_some() {
             return Err(SecurityStateError::from(
-                "crlite_filters should be empty here",
+                "crlite_filter should be None here",
             ));
         }
 
-        let store_path = get_store_path(&self.profile_path)?;
-        let filter_filename = OsString::from("crlite.filter");
-        if let Ok(Some(filter)) = Filter::load(&store_path, &filter_filename) {
-            self.crlite_filters.push(filter);
-        }
+        self.crlite_filter = Filter::load(&self.profile_path)?;
         Ok(())
     }
 
@@ -734,22 +736,6 @@ impl SecurityState {
         stash_file.write_all(&stash)?;
         let crlite_stash = self.crlite_stash.get_or_insert(HashMap::new());
         load_crlite_stash_from_reader_into_map(&mut stash.as_slice(), crlite_stash)?;
-        self.note_crlite_update_time()?;
-        self.note_memory_usage();
-        Ok(())
-    }
-
-    pub fn add_crlite_delta(
-        &mut self,
-        delta: Vec<u8>,
-        filename: String,
-    ) -> Result<(), SecurityStateError> {
-        let store_path = get_store_path(&self.profile_path)?;
-        let delta_path = store_path.join(&filename);
-        std::fs::write(&delta_path, &delta)?;
-        if let Ok(Some(filter)) = Filter::load(&store_path, &filename.into()) {
-            self.crlite_filters.push(filter);
-        }
         self.note_crlite_update_time()?;
         self.note_memory_usage();
         Ok(())
@@ -784,28 +770,12 @@ impl SecurityState {
         if !self.is_crlite_fresh() {
             return nsICertStorage::STATE_NO_FILTER;
         }
-        if self.crlite_filters.is_empty() {
+        let Some(ref crlite_filter) = self.crlite_filter else {
             // This can only happen if the backing file was deleted or if it or our database has
             // become corrupted. In any case, we have no information.
             return nsICertStorage::STATE_NO_FILTER;
-        }
-        let mut maybe_good = false;
-        let mut covered = false;
-        for filter in &self.crlite_filters {
-            match filter.has(issuer, issuer_spki, serial_number, timestamps) {
-                nsICertStorage::STATE_ENFORCE => return nsICertStorage::STATE_ENFORCE,
-                nsICertStorage::STATE_UNSET => maybe_good = true,
-                nsICertStorage::STATE_NOT_ENROLLED => covered = true,
-                _ => (),
-            }
-        }
-        if maybe_good {
-            return nsICertStorage::STATE_UNSET;
-        }
-        if covered {
-            return nsICertStorage::STATE_NOT_ENROLLED;
-        }
-        nsICertStorage::STATE_NOT_COVERED
+        };
+        crlite_filter.has(issuer, issuer_spki, serial_number, timestamps)
     }
 
     // To store certificates, we create a Cert out of each given cert, subject, and trust tuple. We
@@ -983,11 +953,7 @@ impl MallocSizeOf for SecurityState {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.profile_path.size_of(ops)
             + self.env_and_store.size_of(ops)
-            + self
-                .crlite_filters
-                .iter()
-                .map(|filter| filter.size_of(ops))
-                .sum::<usize>()
+            + self.crlite_filter.size_of(ops)
             + self.crlite_stash.size_of(ops)
             + self.remaining_ops.size_of(ops)
     }
@@ -1337,50 +1303,45 @@ impl BackgroundReadStashTask {
 
 impl Task for BackgroundReadStashTask {
     fn run(&self) {
-        let Ok(store_path) = get_store_path(&self.profile_path) else {
-            error!("error getting security_state path");
-            return;
-        };
-
-        let mut delta_filters = vec![];
-        if let Ok(mut entries) = std::fs::read_dir(&store_path) {
-            while let Some(Ok(entry)) = entries.next() {
-                let entry_path = entry.path();
-                let extension = entry_path
-                    .extension()
-                    .map(|os_str| os_str.to_str())
-                    .flatten();
-                if extension != Some("delta") {
-                    continue;
-                }
-                if let Ok(Some(filter)) = Filter::load(&store_path, &entry.file_name()) {
-                    delta_filters.push(filter);
-                }
+        let mut path = match get_store_path(&self.profile_path) {
+            Ok(path) => path,
+            Err(e) => {
+                error!("error getting security_state path: {}", e.message);
+                return;
             }
-        }
-
-        let mut maybe_crlite_stash = None;
-        let stash_path = store_path.join("crlite.stash");
+        };
+        path.push("crlite.stash");
         // Before we've downloaded any stashes, this file won't exist.
-        if stash_path.exists() {
-            if let Ok(stash_file) = File::open(stash_path) {
-                let mut stash_reader = BufReader::new(stash_file);
-                let mut crlite_stash = HashMap::new();
-                match load_crlite_stash_from_reader_into_map(&mut stash_reader, &mut crlite_stash) {
-                    Ok(()) => maybe_crlite_stash = Some(crlite_stash),
-                    Err(e) => {
-                        error!("error loading crlite stash: {}", e.message);
-                    }
-                }
-            } else {
-                error!("error opening stash file");
+        if !path.exists() {
+            return;
+        }
+        let stash_file = match File::open(path) {
+            Ok(file) => file,
+            Err(e) => {
+                error!("error opening stash file: {}", e);
+                return;
+            }
+        };
+        let mut stash_reader = BufReader::new(stash_file);
+        let mut crlite_stash = HashMap::new();
+        match load_crlite_stash_from_reader_into_map(&mut stash_reader, &mut crlite_stash) {
+            Ok(()) => {}
+            Err(e) => {
+                error!("error loading crlite stash: {}", e.message);
+                return;
             }
         }
-        let Ok(mut ss) = self.security_state.write() else {
-            return;
+        let mut ss = match self.security_state.write() {
+            Ok(ss) => ss,
+            Err(_) => return,
         };
-        ss.crlite_filters.append(&mut delta_filters);
-        ss.crlite_stash = maybe_crlite_stash;
+        match ss.crlite_stash.replace(crlite_stash) {
+            Some(_) => {
+                error!("replacing existing crlite stash when reading for the first time?");
+                return;
+            }
+            None => {}
+        }
     }
 
     fn done(&self) -> Result<(), nsresult> {
@@ -1757,30 +1718,6 @@ impl CertStorage {
             move |ss| ss.add_crlite_stash(stash_owned),
         )));
         let runnable = try_ns!(TaskRunnable::new("AddCRLiteStash", task));
-        try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
-        NS_OK
-    }
-
-    unsafe fn AddCRLiteDelta(
-        &self,
-        delta: *const ThinVec<u8>,
-        filename: *const nsACString,
-        callback: *const nsICertStorageCallback,
-    ) -> nserror::nsresult {
-        if !is_main_thread() {
-            return NS_ERROR_NOT_SAME_THREAD;
-        }
-        if delta.is_null() || filename.is_null() || callback.is_null() {
-            return NS_ERROR_NULL_POINTER;
-        }
-        let delta_owned = (*delta).to_vec();
-        let filename_owned = (*filename).to_string();
-        let task = Box::new(try_ns!(SecurityStateTask::new(
-            &*callback,
-            &self.security_state,
-            move |ss| ss.add_crlite_delta(delta_owned, filename_owned),
-        )));
-        let runnable = try_ns!(TaskRunnable::new("AddCRLiteDelta", task));
         try_ns!(TaskRunnable::dispatch(runnable, self.queue.coerce()));
         NS_OK
     }
