@@ -741,7 +741,7 @@ var loadManifest = async function (aPackage, aLocation, aOldAddon) {
     // Always report when there is an attempt to install a blocked add-on.
     // (transitions from STATE_BLOCKED to STATE_NOT_BLOCKED are checked
     //  in the individual AddonInstall subclasses).
-    if (addon.blocklistState == nsIBlocklistService.STATE_BLOCKED) {
+    if (addon.blocklistState > nsIBlocklistService.STATE_NOT_BLOCKED) {
       addon.recordAddonBlockChangeTelemetry(
         aOldAddon ? "addon_update" : "addon_install"
       );
@@ -2254,13 +2254,11 @@ var LocalAddonInstall = class extends AddonInstall {
 
     // Report if blocked add-on becomes unblocked through this install.
     if (
-      addon?.blocklistState === nsIBlocklistService.STATE_BLOCKED &&
+      addon?.blocklistState > nsIBlocklistService.STATE_NOT_BLOCKED &&
       this.addon.blocklistState === nsIBlocklistService.STATE_NOT_BLOCKED
     ) {
       this.addon.recordAddonBlockChangeTelemetry("addon_install");
     }
-
-    // TODO:(Bug 1917859) record changes between hard and soft blocked, and from soft blocked to unblocked?
 
     if (this.addon.blocklistState === nsIBlocklistService.STATE_BLOCKED) {
       this.error = AddonManager.ERROR_BLOCKLISTED;
@@ -2762,7 +2760,7 @@ var DownloadAddonInstall = class extends AddonInstall {
 
     // Report if blocked add-on becomes unblocked through this install/update.
     if (
-      aAddon?.blocklistState === nsIBlocklistService.STATE_BLOCKED &&
+      aAddon?.blocklistState > nsIBlocklistService.STATE_NOT_BLOCKED &&
       this.addon.blocklistState === nsIBlocklistService.STATE_NOT_BLOCKED
     ) {
       this.addon.recordAddonBlockChangeTelemetry(

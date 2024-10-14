@@ -1090,7 +1090,6 @@ const ExtensionBlocklistMLBF = {
 
   // Update the telemetry of the blocklist. This is always called, even if
   // the update request failed (e.g. due to network errors or data corruption).
-  // TODO: (Bug 1917859) telemetry for the softblocks.
   _recordPostUpdateTelemetry() {
     BlocklistTelemetry.recordRSBlocklistLastModified(
       "addons_mlbf",
@@ -1099,13 +1098,24 @@ const ExtensionBlocklistMLBF = {
     Glean.blocklist.mlbfSource.set(
       this._mlbfData?.rsAttachmentSource || "unknown"
     );
+    Glean.blocklist.mlbfSoftblocksSource.set(
+      this._mlbfDataSoftBlocks?.rsAttachmentSource || "unknown"
+    );
     BlocklistTelemetry.recordTimeScalar(
       "mlbf_generation_time",
       this._mlbfData?.generationTime
     );
+    BlocklistTelemetry.recordTimeScalar(
+      "mlbf_softblocks_generation_time",
+      this._mlbfDataSoftBlocks?.generationTime
+    );
     BlocklistTelemetry.recordGleanDateTime(
       Glean.blocklist.mlbfGenerationTime,
       this._mlbfData?.generationTime
+    );
+    BlocklistTelemetry.recordGleanDateTime(
+      Glean.blocklist.mlbfSoftblocksGenerationTime,
+      this._mlbfDataSoftBlocks?.generationTime
     );
     // stashes has conveniently already been sorted by stash_time, newest first.
     let stashes = this._stashes || [];
@@ -1121,7 +1131,6 @@ const ExtensionBlocklistMLBF = {
       Glean.blocklist.mlbfStashTimeOldest,
       stashes[stashes.length - 1]?.stash_time
     );
-
     BlocklistTelemetry.recordGleanDateTime(
       Glean.blocklist.mlbfStashTimeNewest,
       stashes[0]?.stash_time
@@ -1129,13 +1138,14 @@ const ExtensionBlocklistMLBF = {
   },
 
   // Used by BlocklistTelemetry.recordAddonBlockChangeTelemetry.
-  // TODO: (Bug 1917859) add telemetry for the softblocks.
   getBlocklistMetadataForTelemetry() {
     // Blocklist telemetry can only be reported when a blocklist decision
     // has been made. That implies that the blocklist has been loaded, so
     // ExtensionBlocklistMLBF should have been initialized.
     // (except when the blocklist is disabled, or blocklist v2 is used)
     const generationTime = this._mlbfData?.generationTime ?? 0;
+    const softblocksGenerationTime =
+      this._mlbfDataSoftBlocks?.generationTime ?? 0;
 
     // Keys to include in the blocklist.addonBlockChange telemetry event.
     return {
@@ -1144,6 +1154,9 @@ const ExtensionBlocklistMLBF = {
         `${this._stashes?.[0]?.stash_time ?? generationTime}`,
       mlbf_generation: `${generationTime}`,
       mlbf_source: this._mlbfData?.rsAttachmentSource ?? "unknown",
+      mlbf_softblocks_generation: `${softblocksGenerationTime}`,
+      mlbf_softblocks_source:
+        this._mlbfDataSoftBlocks?.rsAttachmentSource ?? "unknown",
     };
   },
 

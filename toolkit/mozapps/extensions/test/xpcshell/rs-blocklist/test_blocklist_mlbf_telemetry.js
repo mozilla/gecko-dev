@@ -4,6 +4,7 @@
 "use strict";
 
 Services.prefs.setBoolPref("extensions.blocklist.useMLBF", true);
+Services.prefs.setBoolPref("extensions.blocklist.softblock.enabled", true);
 
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1");
 
@@ -20,7 +21,12 @@ const { TelemetryTestUtils } = ChromeUtils.importESModule(
 
 const OLDEST_STASH = { stash: { blocked: [], unblocked: [] }, stash_time: 2e6 };
 const NEWEST_STASH = { stash: { blocked: [], unblocked: [] }, stash_time: 5e6 };
-const RECORDS_WITH_STASHES_AND_MLBF = [MLBF_RECORD, OLDEST_STASH, NEWEST_STASH];
+const RECORDS_WITH_STASHES_AND_MLBF = [
+  MLBF_RECORD,
+  MLBF_SOFTBLOCK_RECORD,
+  OLDEST_STASH,
+  NEWEST_STASH,
+];
 
 const ExtensionBlocklistMLBF = getExtensionBlocklistMLBF();
 
@@ -46,7 +52,7 @@ function toUTC(time) {
   return new Date(time).toUTCString();
 }
 
-add_task(async function setup() {
+add_setup(async function setup() {
   if (!IS_ANDROID_BUILD) {
     // FOG needs a profile directory to put its data in.
     do_get_profile();
@@ -66,6 +72,7 @@ add_task(async function test_initialization() {
   ExtensionBlocklistMLBF.ensureInitialized();
 
   Assert.equal(undefined, Glean.blocklist.mlbfSource.testGetValue());
+  Assert.equal(undefined, Glean.blocklist.mlbfSoftblocksSource.testGetValue());
   Assert.equal(undefined, Glean.blocklist.mlbfGenerationTime.testGetValue());
   Assert.equal(undefined, Glean.blocklist.mlbfStashTimeOldest.testGetValue());
   Assert.equal(undefined, Glean.blocklist.mlbfStashTimeNewest.testGetValue());
@@ -89,6 +96,7 @@ add_task(async function test_without_mlbf() {
   // test to fail due to the unexpected imported records).
   await AddonTestUtils.loadBlocklistRawData({ extensionsMLBF: [{}] });
   Assert.equal("unknown", Glean.blocklist.mlbfSource.testGetValue());
+  Assert.equal("unknown", Glean.blocklist.mlbfSoftblocksSource.testGetValue());
 
   Assert.equal(0, Glean.blocklist.mlbfGenerationTime.testGetValue().getTime());
   Assert.equal(0, Glean.blocklist.mlbfStashTimeOldest.testGetValue().getTime());
@@ -96,6 +104,7 @@ add_task(async function test_without_mlbf() {
 
   assertTelemetryScalars({
     "blocklist.mlbf_source": "unknown",
+    "blocklist.mlbf_softblocks_source": "unknown",
     "blocklist.mlbf_generation_time": "Missing Date",
     "blocklist.mlbf_stash_time_oldest": "Missing Date",
     "blocklist.mlbf_stash_time_newest": "Missing Date",
@@ -111,10 +120,21 @@ add_task(async function test_common_good_case_with_stashes() {
     ExtensionBlocklistMLBF.RS_ATTACHMENT_ID,
     { record: MLBF_RECORD, blob: await load_mlbf_record_as_blob() }
   );
+  await ExtensionBlocklistMLBF._client.db.saveAttachment(
+    ExtensionBlocklistMLBF.RS_SOFTBLOCKS_ATTACHMENT_ID,
+    {
+      record: MLBF_SOFTBLOCK_RECORD,
+      blob: await load_mlbf_record_as_blob("mlbf-softblocked1.bin"),
+    }
+  );
   await AddonTestUtils.loadBlocklistRawData({
     extensionsMLBF: RECORDS_WITH_STASHES_AND_MLBF,
   });
   Assert.equal("cache_match", Glean.blocklist.mlbfSource.testGetValue());
+  Assert.equal(
+    "cache_match",
+    Glean.blocklist.mlbfSoftblocksSource.testGetValue()
+  );
   Assert.equal(
     MLBF_RECORD.generation_time,
     Glean.blocklist.mlbfGenerationTime.testGetValue().getTime()
@@ -129,6 +149,7 @@ add_task(async function test_common_good_case_with_stashes() {
   );
   assertTelemetryScalars({
     "blocklist.mlbf_source": "cache_match",
+    "blocklist.mlbf_softblocks_source": "cache_match",
     "blocklist.mlbf_generation_time": toUTC(MLBF_RECORD.generation_time),
     "blocklist.mlbf_stash_time_oldest": toUTC(OLDEST_STASH.stash_time),
     "blocklist.mlbf_stash_time_newest": toUTC(NEWEST_STASH.stash_time),
@@ -140,12 +161,22 @@ add_task(async function test_common_good_case_with_stashes() {
 // Test what happens when there are no stashes in the collection itself.
 add_task(async function test_without_stashes() {
   Services.fog.testResetFOG();
-  await AddonTestUtils.loadBlocklistRawData({ extensionsMLBF: [MLBF_RECORD] });
+  await AddonTestUtils.loadBlocklistRawData({
+    extensionsMLBF: [MLBF_RECORD, MLBF_SOFTBLOCK_RECORD],
+  });
 
   Assert.equal("cache_match", Glean.blocklist.mlbfSource.testGetValue());
   Assert.equal(
+    "cache_match",
+    Glean.blocklist.mlbfSoftblocksSource.testGetValue()
+  );
+  Assert.equal(
     MLBF_RECORD.generation_time,
     Glean.blocklist.mlbfGenerationTime.testGetValue().getTime()
+  );
+  Assert.equal(
+    MLBF_SOFTBLOCK_RECORD.generation_time,
+    Glean.blocklist.mlbfSoftblocksGenerationTime.testGetValue().getTime()
   );
 
   Assert.equal(0, Glean.blocklist.mlbfStashTimeOldest.testGetValue().getTime());
@@ -153,7 +184,11 @@ add_task(async function test_without_stashes() {
 
   assertTelemetryScalars({
     "blocklist.mlbf_source": "cache_match",
+    "blocklist.mlbf_softblocks_source": "cache_match",
     "blocklist.mlbf_generation_time": toUTC(MLBF_RECORD.generation_time),
+    "blocklist.mlbf_softblocks_generation_time": toUTC(
+      MLBF_SOFTBLOCK_RECORD.generation_time
+    ),
     "blocklist.mlbf_stash_time_oldest": "Missing Date",
     "blocklist.mlbf_stash_time_newest": "Missing Date",
   });
@@ -172,8 +207,16 @@ add_task(async function test_without_collection_but_cache() {
   });
   Assert.equal("cache_fallback", Glean.blocklist.mlbfSource.testGetValue());
   Assert.equal(
+    "cache_fallback",
+    Glean.blocklist.mlbfSoftblocksSource.testGetValue()
+  );
+  Assert.equal(
     MLBF_RECORD.generation_time,
     Glean.blocklist.mlbfGenerationTime.testGetValue().getTime()
+  );
+  Assert.equal(
+    MLBF_SOFTBLOCK_RECORD.generation_time,
+    Glean.blocklist.mlbfSoftblocksGenerationTime.testGetValue().getTime()
   );
 
   Assert.equal(0, Glean.blocklist.mlbfStashTimeOldest.testGetValue().getTime());
@@ -181,7 +224,11 @@ add_task(async function test_without_collection_but_cache() {
 
   assertTelemetryScalars({
     "blocklist.mlbf_source": "cache_fallback",
+    "blocklist.mlbf_softblocks_source": "cache_fallback",
     "blocklist.mlbf_generation_time": toUTC(MLBF_RECORD.generation_time),
+    "blocklist.mlbf_softblocks_generation_time": toUTC(
+      MLBF_SOFTBLOCK_RECORD.generation_time
+    ),
     "blocklist.mlbf_stash_time_oldest": "Missing Date",
     "blocklist.mlbf_stash_time_newest": "Missing Date",
   });

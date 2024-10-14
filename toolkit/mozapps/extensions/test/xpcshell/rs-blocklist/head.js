@@ -30,7 +30,7 @@ const MLBF_SOFTBLOCK_RECORD = {
     filename: "does-not-matter.bin",
   },
   attachment_type: "softblocks-bloomfilter-base",
-  generation_time: 1577833200000,
+  generation_time: 1728321900000,
 };
 
 function enable_blocklist_v2_instead_of_useMLBF() {
