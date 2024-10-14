@@ -255,9 +255,9 @@
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s güvenlik veya kararlılık gerekçesiyle devre dışı bırakıldı.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked">Bu uzantı Mozilla’nın politikalarını ihlal ettiği devre dışı bırakıldı. Uzantıyı etkinleştirebilirsiniz ama bu riskli olabilir.</string>
+    <string name="mozac_feature_addons_status_softblocked">Bu uzantı Mozilla’nın politikalarını ihlal ettiği için devre dışı bırakıldı. Uzantıyı etkinleştirebilirsiniz ama bu riskli olabilir.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
-    <string name="mozac_feature_addons_status_softblocked_re_enabled">Bu uzantı Mozilla politikalarını ihlal ediyor. Kullanılması riskli olabilir.</string>
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Bu uzantı Mozilla’nın politikalarını ihlal ediyor. Kullanılması riskli olabilir.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s eklentisinin güvenliği doğrulanamadığı için eklenti devre dışı bırakıldı.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

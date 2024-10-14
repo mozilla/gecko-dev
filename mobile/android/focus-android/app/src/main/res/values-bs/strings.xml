@@ -84,7 +84,6 @@
     <string name="share_dialog_title">Dijeli putem</string>
 
     <string name="notification_erase_title_android_14">Izbrisati historiju pretraživanja?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Dodirnite ili izbrišite ovo obavještenje da sigurno izbrišete svoju historiju pretraživanja.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -122,23 +121,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Traži u Fokusu</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Traži u Fokusu</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Traži u Klaru</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Traži u Klaru</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Traži u Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Traži u Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Traži u Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Traži u Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s daje ti kontrolu.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s daje ti kontrolu.</p>
 <p>Koristi ga kao privatni pretraživač:
   <ul>
     <li>traži i pretražuj direktno u aplikaciji</li>
@@ -514,7 +513,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Zatvori</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Zatvori</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -605,9 +604,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Izbriši historiju pretraživanja</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Zatvori ostale tabove</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Preuzmite Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Preuzmite Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -619,23 +621,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s vam je omogućen pod uslovima licence <a href="%2$s">Mozilla Public License</a> i drugih licenci otvorenog kôda.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s vam je omogućen pod uslovima licence <a href="%2$s">Mozilla Public License</a> i drugih licenci otvorenog kôda.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Ne dodjeljuju vam se nikakva prava ili licence za žigove Mozilla Foundation ili bilo koje strane, uključujući imena ili logotipe Mozilla, Firefox ili %1$s. Dodatne informacije možete pronaći <a href="%2$s">ovdje</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Ne dodjeljuju vam se nikakva prava ili licence za žigove Mozilla Foundation ili bilo koje strane, uključujući imena ili logotipe Mozilla, Firefox ili %1$s. Dodatne informacije možete pronaći <a href="%2$s">ovdje</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Dodatni izvorni kod za %1$s je dostupan pod raznim drugim besplatnim i otvorenim <a href="%2$s">licencama</a>.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Dodatni izvorni kod za %1$s je dostupan pod raznim drugim besplatnim i otvorenim <a href="%2$s">licencama</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s također koristi liste blokiranih koje pruža Disconnect, Inc. kao odvojene i nezavisne radove pod <a href="%2$s">GNU General Public License v3</a>, i dostupnima <a href="%3$s">ovdje</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s također koristi liste blokiranih koje pruža Disconnect, Inc. kao odvojene i nezavisne radove pod <a href="%2$s">GNU General Public License v3</a>, i dostupnima <a href="%3$s">ovdje</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Korisničko ime</string>
@@ -826,7 +828,7 @@
     <string name="preference_studies">Studije</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox može s vremena na vrijeme instalirati i pokrenuti studije.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox može s vremena na vrijeme instalirati i pokrenuti studije.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Saznajte više</string>
@@ -928,9 +930,6 @@
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Promijeni</string>
 
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Ulazim u režim cijelog ekrana</string>
-
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Odmah se prebacite na link u novom tabu</string>
 
@@ -1029,7 +1028,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s pokušava koristiti HTTPS vezu kad god je to moguće radi veće sigurnosti.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s pokušava koristiti HTTPS vezu kad god je to moguće radi veće sigurnosti.
      <a href="%2$s">Saznajte više</a> <br/><br/>
      Promijenite ovu postavku u Postavke > Privatnost i sigurnost > Sigurnost.]]></string>
 
@@ -1102,7 +1101,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Da biste izašli iz načina rada preko cijelog ekrana, ​​povucite ekran s vrha prema dole i upotrijebite pokret nazad</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Da biste izašli iz načina rada preko cijelog ekrana, ​​povucite ekran s vrha prema dole i upotrijebite pokret nazad</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Da biste izašli iz načina rada preko cijelog ekrana, ​​povucite ekran s vrha prema dole i pritisnite nazad</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Da biste izašli iz načina rada preko cijelog ekrana, ​​povucite ekran s vrha prema dole i pritisnite nazad</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Prevucite odozgo i koristite pokret unazad za izlaz</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Prevucite od vrha i pritisnite nazad za izlaz</string>
 </resources>

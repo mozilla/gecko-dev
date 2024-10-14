@@ -17,7 +17,7 @@
     <!-- Text for password field in an authentication dialog. -->
     <string name="mozac_feature_prompt_password_hint">گذرواژه</string>
     <!-- Negative confirmation that we should not save the new or updated login -->
-    <string name="mozac_feature_prompt_dont_save">ذخیره نشود</string>
+    <string name="mozac_feature_prompt_dont_save_2">الان نه</string>
     <!-- Negative confirmation that we should never save a login for this site -->
     <string name="mozac_feature_prompt_never_save">هرگز ذخیره نکن</string>
     <!-- Negative confirmation that we should not save a credit card for this site -->
@@ -25,19 +25,19 @@
     <!-- Positive confirmation that we should save the new or updated login -->
     <string name="mozac_feature_prompt_save_confirmation">ذخیره</string>
     <!-- Negative confirmation that we should not save the updated login -->
-    <string name="mozac_feature_prompt_dont_update">بروزرسانی نکن</string>
+    <string name="mozac_feature_prompt_dont_update_2">الان نه</string>
     <!-- Positive confirmation that we should save the updated login -->
-    <string name="mozac_feature_prompt_update_confirmation">بروزرسانی</string>
+    <string name="mozac_feature_prompt_update_confirmation">به‌روزرسانی‌</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_empty_password">خانهٔ گذرواژه نباید خالی باشد</string>
+    <string name="mozac_feature_prompt_error_empty_password_2">یک گذرواژه وارد کنید</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_unknown_cause">ذخیره ورود امکان پذیر نیست</string>
-    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new login. -->
-    <string name="mozac_feature_prompt_login_save_headline">ذخیره این ورود؟</string>
-    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_update_headline">بروزرسانی این ورود؟</string>
+    <string name="mozac_feature_prompt_error_unknown_cause_2">نمی‌توان گذرواژه را ذخیره کرد</string>
+    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
+    <string name="mozac_feature_prompt_login_save_headline_2">ذخیره گذرواژه؟</string>
+    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
+    <string name="mozac_feature_prompt_login_update_headline_2">به‌روزرسانی گذرواژه؟</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline">افزودن نام‌کاربری به گذرواژه ذخیره شده؟</string>
+    <string name="mozac_feature_prompt_login_add_username_headline_2">به‌روزرسانی نام‌کاربری؟</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">برچسب برای وارد کردن یک خانهٔ ورودی متنی</string>
@@ -83,14 +83,36 @@
     <string name="mozac_feature_prompts_dec">دسامبر</string>
     <!-- Title of the time picker dialog. -->
     <string name="mozac_feature_prompts_set_time">تنظیم زمان</string>
-    <!-- Option in expanded select login prompt that links to login settings -->
-    <string name="mozac_feature_prompts_manage_logins">مدیریت ورودها</string>
-    <!-- Content description for expanding the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_expand_logins_content_description">ورودهای پیشنهادی را گسترش دهید</string>
-    <!-- Content description for collapsing the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description">ورودهای پیشنهادی را گسترش دهید</string>
-    <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
-    <string name="mozac_feature_prompts_saved_logins">ورود‌های پیشنهاد شده</string>
+
+    <!-- Option in expanded select password prompt that links to password settings -->
+    <string name="mozac_feature_prompts_manage_logins_2">مدیریت گذرواژه‌ها</string>
+    <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
+    <string name="mozac_feature_prompts_saved_logins_2">گذرواژه‌های ذخیره شده</string>
+
+    <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_content_description">پیشنهاد گذرواژه قوی</string>
+    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_2">استفاده از گذرواژه قوی</string>
+    <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_message">استفاده از گذرواژه قوی: %1$s</string>
+
+    <!-- Title for using the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_title">استفاده از گذرواژه قوی؟</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">حساب‌های کاربری خود را با استفاده از یک گذرواژه قوی و به صورت تصادفی تولید شده محافظت کنید. این گذرواژه برای استفاده‌های آینده در حساب کاربری شما ذخیره خواهد شد.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">حساب کاربری خود را با استفاده از یک گذرواژه قوی و به صورت تصادفی تولید شده محافظت کنید. این گذرواژه برای استفاده‌های آینده در حساب کاربری شما ذخیره خواهد شد.</string>
+
+    <!-- Pressing this will use the suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_use_password">استفاده از گذرواژه</string>
+    <!-- Pressing this will dismiss the suggested strong password dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_dismiss">اکنون نه</string>
+    <!-- Title for showing the suggest strong password saved confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">گذرواژه ذخیره شد</string>
+    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">گذرواژه به‌روز شد</string>
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">نام‌کاربری به‌روز شد</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">ارسال دوباره داده به این پایگاه؟</string>
@@ -100,39 +122,32 @@
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
     <string name="mozac_feature_prompt_repost_negative_button_text">لغو</string>
 
-    <!-- Credit Card Autofill -->
-    <!-- Header for the select credit card prompt to allow users to fill a form with a saved credit card. -->
-    <string name="mozac_feature_prompts_select_credit_card">انتخاب کارت اعتباری</string>
-    <!-- Content description for expanding the select credit card options in the select credit card prompt. -->
-    <string name="mozac_feature_prompts_expand_credit_cards_content_description">کارت‌های اعتباری بیشتر</string>
-    <!-- Content description for collapsing the select credit card options in the select credit prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description">کارت‌های اعتباری کم‌تر</string>
-    <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
-    <string name="mozac_feature_prompts_manage_credit_cards">مدیریت کارت‌های اعتباری</string>
+    <!-- Option in the expanded select card prompt that links to cards settings. -->
+    <string name="mozac_feature_prompts_manage_credit_cards_2">مدیریت کارت‌ها</string>
     <!-- Text for the title of a save credit card dialog. -->
     <string name="mozac_feature_prompts_save_credit_card_prompt_title">این کارت به صورت ایمن ذخیره شود؟</string>
     <!-- Text for the title of an update credit card dialog. -->
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">تاریخ انقضای کارت به‌روز شود؟</string>
-    <!-- Subtitle text displayed under the title of the save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_body">شماره کارت رمزگذاری خواهد شد. رمز امنیتی ذخیره نخواهد شد.</string>
 
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
     <string name="mozac_feature_prompts_select_address_2">گزینش نشانی</string>
-    <!-- Content description for expanding the select addresses options in the select address prompt. -->
-    <string name="mozac_feature_prompts_expand_address_content_description">گسترش نشانی‌های پیشنهادی</string>
-    <!-- Content description for collapsing the select address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description">جمع کردن نشانی‌های پیشنهادی</string>
     <!-- Text for the manage addresses button. -->
     <string name="mozac_feature_prompts_manage_address">مدیریت نشانی‌ها</string>
 
     <!-- Federated Credential Management prompts -->
     <!--Content description for the Account picture in the Select Account FedCM prompt -->
     <string name="mozac_feature_prompts_account_picture">تصویر حساب</string>
-    <!-- Title of the Identity Credential provider dialog choose. -->
+    <!-- Title of the Identity Credential provider dialog chooser. -->
     <string name="mozac_feature_prompts_identity_credentials_choose_provider">انتخاب یک فراهم‌کنندهٔ ورود</string>
+    <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
+    <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">با حساب کاربری %1$s وارد شوید</string>
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">استفاده از %1$s به عنوان یک فراهم‌کننده</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ورود به %1$s با یک حساب %2$s تحت <a href="%3$s">سیاست حفظ محرمانگی</a> و <a href="%4$s">شرایط ارائهٔ خدمات</a> آن‌هاست]]></string>
-    </resources>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ورود به %1$s با یک حساب %2$s تحت <a href="%3$s">سیاست حفظ محرمانگی</a> و <a href="%4$s">شرایط ارائهٔ خدمات</a> آن‌هاست]]></string>
+    <!-- Text for the positive button of the Identity Credential dialogs. -->
+    <string name="mozac_feature_prompts_identity_credentials_continue">ادامه</string>
+    <!-- Text for the cancel button of the Identity Credential dialogs. -->
+    <string name="mozac_feature_prompts_identity_credentials_cancel">انصراف</string>
+</resources>

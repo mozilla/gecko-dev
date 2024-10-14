@@ -204,6 +204,8 @@
     <string name="mozac_feature_addons_blocklisted_1">%1$s ᱫᱚ ᱵᱚᱦᱟᱞ ᱵᱟᱝ ᱦᱩᱭ ᱫᱟᱲᱮᱭᱟᱫᱼᱟ ᱪᱮᱫᱟᱜ ᱥᱮ ᱱᱚᱣᱟ ᱫᱚ ᱥᱴᱮᱵᱤᱞᱤᱴᱤ ᱟᱨᱵᱟᱝ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱦᱩᱰᱟᱹᱜ ᱢᱮᱱᱟᱜᱼᱟ ᱾</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s ᱫᱚ ᱵᱚᱦᱟᱞ ᱵᱟᱭ ᱜᱟᱱᱚᱜᱼᱟ ᱪᱮᱫᱟᱜ ᱥᱮ ᱱᱚᱶᱟ ᱫᱚ ᱮᱱᱴᱟᱨᱯᱨᱟᱭᱤᱥ ᱯᱚᱞᱤᱥᱤ ᱵᱮᱵᱷᱟᱨ ᱠᱟᱛᱮ ᱢᱤᱫ ᱜᱟᱶᱛᱟ ᱦᱚᱛᱮᱛᱮ ᱵᱚᱦᱟᱞ ᱠᱟᱱᱟ, ᱡᱟᱦᱟᱸ ᱫᱚ ᱱᱚᱶᱟ ᱯᱞᱮᱴᱯᱷᱚᱨᱢ ᱨᱮ ᱵᱟᱝ ᱥᱚᱦᱚᱫ ᱢᱮᱱᱟᱜᱼᱟ ᱾</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked">%1$s ᱫᱚ Mozilla’s ᱱᱤᱛᱤ ᱵᱟᱭ ᱢᱟᱱᱟᱣ ᱮᱫᱟ ᱚᱱᱟᱛᱮ ᱵᱟᱭ ᱵᱚᱦᱟᱞ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s ᱵᱮᱥ ᱛᱮ ᱮᱢ ᱪᱷᱚ</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -252,6 +254,10 @@
     <string name="mozac_feature_addons_status_see_details">ᱵᱤᱵᱨᱟᱬ ᱧᱮᱞ ᱢᱮ</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s ᱫᱚ ᱡᱟᱹᱯᱛᱤ ᱟᱨ ᱵᱟᱝ ᱛᱤᱸᱜᱩ ᱛᱷᱤᱨ ᱠᱟᱛᱷᱟ ᱠᱚ ᱠᱟᱨᱚᱱ ᱛᱮ ᱵᱟᱝ ᱦᱩᱭ ᱦᱚᱪᱚ ᱟᱠᱟᱱᱟ ᱾</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked">ᱱᱚᱣᱟ ᱯᱟᱥᱱᱟᱣ Mozilla’s  ᱨᱮᱭᱟᱜ ᱱᱤᱛᱤ ᱵᱟᱭᱢᱟᱱᱟᱣ ᱮᱫᱟᱭ ᱚᱱᱟᱛᱮ ᱵᱚᱸᱫ ᱠᱟᱱᱟ ᱾ ᱟᱢ ᱱᱚᱶᱟ ᱮᱢᱪᱷᱚ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ, ᱢᱮᱱᱠᱷᱟᱱ ᱱᱚᱶᱟ ᱫᱚ ᱡᱚᱠᱷᱤᱢ ᱫᱷᱟᱨᱟ ᱦᱩᱭ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">ᱱᱚᱶᱟ ᱯᱟᱥᱱᱟᱣ ᱫᱚ Mozilla’s ᱦᱟᱜ ᱱᱤᱛᱤ ᱵᱟᱝᱵᱟᱛᱟᱣ ᱮᱫᱟᱭ ᱾ ᱱᱚᱶᱟ ᱵᱮᱵᱷᱟᱨ ᱫᱚ ᱡᱚᱠᱷᱤᱢ ᱫᱷᱟᱨᱟ ᱦᱩᱭ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s ᱫᱚ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱦᱤᱥᱟᱹᱵ ᱛᱮ ᱵᱟᱭ ᱪᱤᱱᱦᱟᱹᱯ ᱠᱟᱱᱟ ᱟᱨ ᱚᱱᱟᱛᱮ ᱵᱚᱸᱫ ᱠᱟᱱᱟ ᱾</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

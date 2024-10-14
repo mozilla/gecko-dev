@@ -194,4 +194,72 @@
     <string name="mozac_feature_addons_cant_install_extension">Анарҭбаара ашьақәыргылара алымшеит</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Ари арҭбаара аҭагалара алымшеит аимадаратә гха иахҟьаны.</string>
-    </resources>
+    <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_corrupt_error">Ари анарҭбаара ашьақәыргылара ауам, избан акәзар иԥхасҭоушәа ауп ишыҟоу.</string>
+    <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
+    <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">Ари анарҭбаара ашьақәыргылара ауам, избан акәзар уи гәаҭам.</string>
+    <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s ашьақәыргылара ауам, избанзар уи %2$s %3$s иақәшәом.</string>
+    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_blocklisted_1">%1$s ашьақәыргылара ауам, избан акәзар уи аҭышәынтәалара ма ашәарҭадара иадҳәалоу азҵаарақәа рызцәырҵра ашәарҭара ду ыҟоуп.</string>
+    <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_admin_install_only">%1$s ашьақәыргылара залшом, избан акәзар уи ашьақәыргылара зылшо аиҿкаара мацара ауп, абри аплатформаҿы адгылара змам анаплакратә политика змоу.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked">%1$s еилеигоит Мозилла аполитикақәа убри аҟнытә ашьақәыргылара ауам.</string>
+    <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_successfully_enabled">%1$s қәҿиарала аус ауит</string>
+    <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_failed_to_enable">%1$s аус арураан агха</string>
+    <!-- Text shown after successfully disabled an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_successfully_disabled">%1$s қәҿиарала иаҿыхуп</string>
+    <!-- Text shown after failed to disable an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_failed_to_disable">Аиҟәгараан агха ҟалеит %1$s</string>
+    <!-- Text shown after successfully uninstalled an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_successfully_uninstalled">%1$s иманшәаланы ианыхуп</string>
+    <!-- Text shown after failed to uninstall an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_failed_to_uninstall">Аԥыхраан агха: %1$s</string>
+    <!-- Text shown after successfully removed an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_successfully_removed" tools:ignore="UnusedResources">%1$s иманшәаланы ианыхуп</string>
+    <!-- Text shown after failed to remove an add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">Аԥыхраан агха ҟалеит %1$s</string>
+    <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
+    <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">Ари ацҵара %1$s ԥасатәи аверсиа аҟынтәи ииагахеит</string>
+    <!-- Text shown in not yet supported add-ons section. -->
+    <string name="mozac_feature_addons_unsupported_caption_2">1 анарҭбаара</string>
+    <!-- Text shown in not yet supported add-ons section - plural. %1$s is the number of unsupported extensions. -->
+    <string name="mozac_feature_addons_unsupported_caption_plural_2">%1$s анарҭбаарақәа</string>
+    <!-- Text link to a sumo page for learning more about unsupported add-ons. -->
+    <string name="mozac_feature_addons_unsupported_learn_more">Еиҳаны аилкаара`</string>
+    <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated. -->
+    <string name="mozac_feature_addons_updater_status_successfully_updated">Иманшәаланы ирҿыцуп</string>
+    <!-- Displayed in the "Status" field for the updater when an add-on has no updates available. -->
+    <string name="mozac_feature_addons_updater_status_no_update_available">Арҿыцрақәа ыҟам</string>
+    <!-- Displayed in the "Status" field for the updater when there was an error during the add-on update. -->
+    <string name="mozac_feature_addons_updater_status_error">Агха</string>
+    <!-- Text shown in a dialog that displays information about the last attempt to update an add-on. This is the title of the dialog. -->
+    <string name="mozac_feature_addons_updater_dialog_title">Ахәҭаҷқәа рҿыцтәуп</string>
+    <!-- Label in the dialog displaying information for the last attempt to update add-ons. It's followed by the date of the last attempt. -->
+    <string name="mozac_feature_addons_updater_dialog_last_attempt">Аҵыхәтәантәи аԥышәара:</string>
+    <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated -->
+    <string name="mozac_feature_addons_updater_dialog_status">Аҟазшьа:</string>
+    <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_installed_dialog_title">%1$s иацҵан %2$s ахь</string>
+    <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_installed_dialog_description_2">Анеира %1$s %2$s амениу аҟынтәи.</string>
+    <!-- Confirmation button text for the dialog when add-on installation is completed. -->
+    <string name="mozac_feature_addons_installed_dialog_okay_button_2">ИБЗИОУП</string>
+    <!-- "Learn more" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_learn_more">Еиҳаны аилкаара</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Еиҳаны аилкаара</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted">%1$s ашәарҭадара ма аҭышәынтәалара иахҟьаны иҟәыхуп.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked">Ари арҭбаара Мозилла аполитика еиленагоит, убри аҟнытә иаҿыхуп. Уара уи аус арура улшоит, аха уи шәарҭахар ауеит.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Ари арҭбаара Мозилла аполитика еиленагоит. Уи ахархәара ашәарҭара ацуп.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_unsigned">%1$s ашәарҭадаразы агәаҭара ауам, убри аҟнытә иаҿыхуп.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_status_incompatible">%1$s уара уверсиа %2$s (версиа %3$s) иақәшәом.</string>
+</resources>

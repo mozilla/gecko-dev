@@ -94,9 +94,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Naša najmoćnija funkcija privatnosti, ali ipak izolira praćenje na više lokacija.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Naša najmoćnija funkcija privatnosti, ali ipak izolira praćenje na više lokacija.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Saznajte više o potpunoj zaštiti od kolačića</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Saznajte više o potpunoj zaštiti od kolačića</string>
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -117,9 +117,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Novo: strelice naprijed i nazad jednim dodirom</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Novo: strelice naprijed i nazad jednim dodirom</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Uživajte u bržoj navigaciji koja vam je uvijek na dohvat ruke.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Uživajte u bržoj navigaciji koja vam je uvijek na dohvat ruke.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Potreban pristup kameri. Idite na Android postavke, dodirnite dozvole i dodirnite dozvoli.</string>
@@ -209,6 +209,13 @@
     <string name="browser_menu_extensions_banner_learn_more">Saznajte više</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Upravljanje ekstenzijama</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Preporučena ekstenzija</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Dodaj %1$s</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Dodaj ekstenziju</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Otkrijte više ekstenzija</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -231,6 +238,8 @@
     <string name="browser_menu_add_to_homescreen">Dodaj na Početni ekran</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Dodaj na početni ekran…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi uređajima će možda trebati dodatna odobrenja za dodavanje prečica na početni ekran. Molimo provjerite svoje postavke.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Ponovo sinhronizuj</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -297,7 +306,7 @@
     <string name="browser_menu_switch_to_mobile_site">Prebacite se na mobilnu stranicu</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Alati</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Povratak na glavni meni</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Prikaz za čitanje, Prevedi, Štampaj, Dijeli, Otvori aplikaciju</string>
@@ -392,7 +401,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Upoznajte svoju personalizovanu početnu stranicu. Ovdje će se pojaviti nedavni tabovi, oznake i rezultati pretraživanja.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Upoznajte svoju personalizovanu početnu stranicu. Ovdje će se pojaviti nedavni tabovi, oznake i rezultati pretraživanja.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Dobrodošli na ličniji internet</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -881,6 +890,10 @@
 
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Dijeli osnovne podatke o korištenju s Adjustom, našim dobavljačem mobilnog marketinga</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Automatski slati izvještaje o padu</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Automatski dijeli podatke o padu prilikom pokretanja s Mozilla-om nakon pada</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studije</string>
     <!-- Summary for studies preferences -->
@@ -1171,6 +1184,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Vrati tab</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s se morao ponovo pokrenuti</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Automatski šalji izvještaje o padu</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Zatvori</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Pošalji izvještaj o padu</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Da li ste sigurni da želite obrisati ovaj direktorij?</string>
@@ -1251,11 +1273,22 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Dodaj novi folder</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Zatvori oznake</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Zatvori oznake</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Pretraži oznake</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Stavka menija za %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Još nema oznaka</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Spremite web stranice dok pretražujete. Prijavite se da preuzmete oznake sa drugih sinhronizovanih uređaja.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Prijavite se za sinhronizaciju</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Spremite web stranice dok pretražujete. Također ćemo preuzeti oznake s drugih sinhroniziranih uređaja.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Dodajte oznake dok pretražujete kako biste kasnije mogli pronaći svoje omiljene stranice.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2421,13 +2454,13 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ne sada</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Saznajte možete li vjerovati recenzijama ovog proizvoda — prije nego što kupite.</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Saznajte možete li vjerovati recenzijama ovog proizvoda — prije nego što kupite.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Pokušaj provjeriti recenziju</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Pokušaj provjeriti recenziju</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Jesu li ove recenzije pouzdane? Provjerite sada da vidite prilagođenu ocjenu.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Jesu li ove recenzije pouzdane? Provjerite sada da vidite prilagođenu ocjenu.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Otvori provjeru recenzije</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Otvori provjeru recenzije</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2779,16 +2812,24 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Ne koristim ga</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Ne koristim pretragu na Firefoxu</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Ne koristim sinhronizaciju</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Koliko ste zadovoljni svojom Firefox početnom stranicom?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Pomozite da štampanje u Firefoxu bude bolje. Traje samo sekund</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Pomozite da pretraga u Firefoxu bude bolja. Traje samo minut</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Pomozite da sinhronizacija u Firefoxu bude bolja. Traje samo minut</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Koliko ste zadovoljni štampanjem u Firefoxu?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Koliko ste zadovoljni svojom Firefox početnom stranicom?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Koliko ste zadovoljni iskustvom pretraživanja u Firefoxu?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Koliko ste zadovoljni iskustvom sinhronizacije u Firefoxu?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox logo</string>
@@ -2816,6 +2857,10 @@
     <string name="debug_drawer_cfr_tools_title">CFR alati</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Resetuj CFR-ove</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Glean alati za otklanjanje grešaka</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
