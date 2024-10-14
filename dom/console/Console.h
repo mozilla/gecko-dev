@@ -147,7 +147,7 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
 
  private:
   Console(JSContext* aCx, nsIGlobalObject* aGlobal, uint64_t aOuterWindowID,
-          uint64_t aInnerWIndowID);
+          uint64_t aInnerWIndowID, const nsAString& aPrefix = u""_ns);
   ~Console();
 
   void Initialize(ErrorResult& aRv);
@@ -366,6 +366,14 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
                                 DOMHighResTimeStamp aMonotonicTimer);
 
   MOZ_CAN_RUN_SCRIPT
+  nsString GetDumpMessage(JSContext* aCx, MethodName aMethodName,
+                          const nsAString& aMethodString,
+                          const Sequence<JS::Value>& aData,
+                          nsIStackFrame* aStack,
+                          DOMHighResTimeStamp aMonotonicTimer,
+                          bool aIsForMozLog);
+
+  MOZ_CAN_RUN_SCRIPT
   void ExecuteDumpFunction(const nsAString& aMessage);
 
   bool ShouldProceed(MethodName aName) const;
@@ -373,6 +381,7 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   uint32_t WebIDLLogLevelToInteger(ConsoleLogLevel aLevel) const;
 
   uint32_t InternalLogLevelToInteger(MethodName aName) const;
+  LogLevel InternalLogLevelToMozLog(MethodName aName) const;
 
   class ArgumentData {
    public:
@@ -421,6 +430,7 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   nsString mPassedInnerID;
   RefPtr<ConsoleInstanceDumpCallback> mDumpFunction;
   bool mDumpToStdout;
+  LogModule* mLogModule;
   nsString mPrefix;
   bool mChromeInstance;
   uint32_t mCurrentLogLevel;
