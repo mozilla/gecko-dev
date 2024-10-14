@@ -377,6 +377,7 @@ rtc_source_set("rtp_rtcp_legacy") {
     "..:module_fec_api",
     "../../api:rtp_headers",
     "../../api:transport_api",
+    "../../api/environment",
     "../../api/rtc_event_log",
     "../../api/units:data_rate",
     "../../api/units:timestamp",

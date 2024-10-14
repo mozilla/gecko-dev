@@ -71,10 +71,10 @@ index 76857576b5..569805c9ac 100644
    absl::optional<TimeDelta> AverageRtt() const;
    absl::optional<TimeDelta> LastRtt() const;
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index b154ed2bf0..278d88154d 100644
+index 744319a9b7..76699333e6 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-@@ -500,11 +500,11 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
+@@ -512,11 +512,11 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
  }
  
  // Received RTCP report.
