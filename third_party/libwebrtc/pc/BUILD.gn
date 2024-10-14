@@ -2440,6 +2440,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../rtc_base:network",
       "../rtc_base:network_constants",
       "../rtc_base:null_socket_server",
+      "../rtc_base:random",
       "../rtc_base:refcount",
       "../rtc_base:rtc_base_tests_utils",
       "../rtc_base:rtc_certificate_generator",

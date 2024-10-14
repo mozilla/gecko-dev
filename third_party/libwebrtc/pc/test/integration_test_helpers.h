@@ -165,11 +165,16 @@ PeerConnectionInterface::RTCOfferAnswerOptions IceRestartOfferAnswerOptions();
 
 // Remove all stream information (SSRCs, track IDs, etc.) and "msid-semantic"
 // attribute from received SDP, simulating a legacy endpoint.
-void RemoveSsrcsAndMsids(cricket::SessionDescription* desc);
+void RemoveSsrcsAndMsids(std::unique_ptr<SessionDescriptionInterface>& desc);
 
 // Removes all stream information besides the stream ids, simulating an
 // endpoint that only signals a=msid lines to convey stream_ids.
-void RemoveSsrcsAndKeepMsids(cricket::SessionDescription* desc);
+void RemoveSsrcsAndKeepMsids(
+    std::unique_ptr<SessionDescriptionInterface>& desc);
+
+// Set SdpType.
+void SetSdpType(std::unique_ptr<SessionDescriptionInterface>& sdp,
+                SdpType sdpType);
 
 // Replaces the stream's primary SSRC and updates the first SSRC of all
 // ssrc-groups.
@@ -265,14 +270,16 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   // used to test SDP being applied that a PeerConnection would normally not
   // generate, but a non-JSEP endpoint might.
   void SetReceivedSdpMunger(
-      std::function<void(cricket::SessionDescription*)> munger) {
+      std::function<void(std::unique_ptr<SessionDescriptionInterface>&)>
+          munger) {
     received_sdp_munger_ = std::move(munger);
   }
 
   // Similar to the above, but this is run on SDP immediately after it's
   // generated.
   void SetGeneratedSdpMunger(
-      std::function<void(cricket::SessionDescription*)> munger) {
+      std::function<void(std::unique_ptr<SessionDescriptionInterface>&)>
+          munger) {
     generated_sdp_munger_ = std::move(munger);
   }
 
@@ -658,9 +665,21 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     candidates_expected_ = candidate_count;
   }
 
-  // For testing PR-Answer functionality
-  // If true, an offer will get a pr-answer back.
-  void SetAnswerWithPrAnswer(bool value) { answer_with_pr_answer_ = value; }
+  bool SetRemoteDescription(std::unique_ptr<SessionDescriptionInterface> desc) {
+    auto observer = rtc::make_ref_counted<FakeSetRemoteDescriptionObserver>();
+    std::string str;
+    desc->ToString(&str);
+    RTC_LOG(LS_INFO) << debug_name_ << ": SetRemoteDescription SDP:\n" << str;
+    pc()->SetRemoteDescription(std::move(desc), observer);  // desc.release());
+    RemoveUnusedVideoRenderers();
+    EXPECT_TRUE_WAIT(observer->called(), kDefaultTimeout);
+    auto err = observer->error();
+    if (!err.ok()) {
+      RTC_LOG(LS_WARNING) << debug_name_
+                          << ": SetRemoteDescription error: " << err.message();
+    }
+    return observer->error().ok();
+  }
 
  private:
   // Constructor used by friend class PeerConnectionIntegrationBaseTest.
@@ -736,7 +755,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     std::unique_ptr<SessionDescriptionInterface> desc =
         CreateSessionDescription(SdpType::kOffer, msg);
     if (received_sdp_munger_) {
-      received_sdp_munger_(desc->description());
+      received_sdp_munger_(desc);
     }
 
     EXPECT_TRUE(SetRemoteDescription(std::move(desc)));
@@ -748,11 +767,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     }
     auto answer = CreateAnswer();
     ASSERT_NE(nullptr, answer);
-    if (answer_with_pr_answer_) {
-      std::string answer_string;
-      answer->ToString(&answer_string);
-      answer = CreateSessionDescription(SdpType::kPrAnswer, answer_string);
-    }
     EXPECT_TRUE(SetLocalDescriptionAndSendSdpMessage(std::move(answer)));
   }
 
@@ -762,7 +776,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     std::unique_ptr<SessionDescriptionInterface> desc =
         CreateSessionDescription(type, msg);
     if (received_sdp_munger_) {
-      received_sdp_munger_(desc->description());
+      received_sdp_munger_(desc);
     }
 
     EXPECT_TRUE(SetRemoteDescription(std::move(desc)));
@@ -786,7 +800,7 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     }
     auto description = observer->MoveDescription();
     if (generated_sdp_munger_) {
-      generated_sdp_munger_(description->description());
+      generated_sdp_munger_(description);
     }
     return description;
   }
@@ -811,15 +825,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
     SendSdpMessage(type, sdp);
     EXPECT_TRUE_WAIT(observer->called(), kDefaultTimeout);
     return true;
-  }
-
-  bool SetRemoteDescription(std::unique_ptr<SessionDescriptionInterface> desc) {
-    auto observer = rtc::make_ref_counted<MockSetSessionDescriptionObserver>();
-    RTC_LOG(LS_INFO) << debug_name_ << ": SetRemoteDescription";
-    pc()->SetRemoteDescription(observer.get(), desc.release());
-    RemoveUnusedVideoRenderers();
-    EXPECT_TRUE_WAIT(observer->called(), kDefaultTimeout);
-    return observer->result();
   }
 
   // This is a work around to remove unused fake_video_renderers from
@@ -1059,8 +1064,10 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
 
   SdpSemantics sdp_semantics_;
   PeerConnectionInterface::RTCOfferAnswerOptions offer_answer_options_;
-  std::function<void(cricket::SessionDescription*)> received_sdp_munger_;
-  std::function<void(cricket::SessionDescription*)> generated_sdp_munger_;
+  std::function<void(std::unique_ptr<SessionDescriptionInterface>&)>
+      received_sdp_munger_;
+  std::function<void(std::unique_ptr<SessionDescriptionInterface>&)>
+      generated_sdp_munger_;
   std::function<void()> remote_offer_handler_;
   MockAsyncDnsResolver* remote_async_dns_resolver_ = nullptr;
   // Result variables for the mock DNS resolver
@@ -1096,8 +1103,6 @@ class PeerConnectionIntegrationWrapper : public PeerConnectionObserver,
   uint64_t audio_samples_stat_ = 0;
   uint64_t audio_concealed_stat_ = 0;
   std::string rtp_stats_id_;
-
-  bool answer_with_pr_answer_ = false;
 
   ScopedTaskSafety task_safety_;
 
