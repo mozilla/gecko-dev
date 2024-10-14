@@ -2175,7 +2175,7 @@ void* Instance::stringConcat(Instance* instance, void* firstStringArg,
 }
 
 void* Instance::stringSubstring(Instance* instance, void* stringArg,
-                                int32_t startIndex, int32_t endIndex) {
+                                uint32_t startIndex, uint32_t endIndex) {
   MOZ_ASSERT(SASigStringSubstring.failureMode == FailureMode::FailOnNullPtr);
   JSContext* cx = instance->cx();
 
@@ -2185,11 +2185,15 @@ void* Instance::stringSubstring(Instance* instance, void* stringArg,
     return nullptr;
   }
 
-  RootedString string(cx, stringRef.toJSString());
   static_assert(JS::MaxStringLength <= INT32_MAX);
-  if ((uint32_t)startIndex > string->length() ||
-      (uint32_t)endIndex > string->length() || startIndex > endIndex) {
+  RootedString string(cx, stringRef.toJSString());
+  uint32_t stringLength = string->length();
+  if (startIndex > stringLength || startIndex > endIndex) {
     return AnyRef::fromJSString(cx->names().empty_).forCompiledCode();
+  }
+
+  if (endIndex > stringLength) {
+    endIndex = stringLength;
   }
 
   JSString* result =
