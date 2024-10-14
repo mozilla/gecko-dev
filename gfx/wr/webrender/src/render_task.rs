@@ -667,18 +667,17 @@ impl RenderTaskKind {
                     // Request a cacheable render task with a blurred, minimal
                     // sized box-shadow rect.
                     source.render_task = Some(resource_cache.request_render_task(
-                        RenderTaskCacheKey {
+                        Some(RenderTaskCacheKey {
                             size: cache_size,
                             kind: RenderTaskCacheKeyKind::BoxShadow(cache_key),
-                        },
+                        }),
+                        false,
+                        RenderTaskParent::RenderTask(clip_task_id),
                         gpu_cache,
                         gpu_buffer_builder,
                         rg_builder,
-                        None,
-                        false,
-                        RenderTaskParent::RenderTask(clip_task_id),
                         surface_builder,
-                        |rg_builder, _| {
+                        &mut |rg_builder, _| {
                             let clip_data = ClipData::rounded_rect(
                                 source.minimal_shadow_rect.size(),
                                 &source.shadow_radius,

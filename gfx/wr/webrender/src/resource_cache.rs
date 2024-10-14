@@ -576,38 +576,39 @@ impl ResourceCache {
         }
     }
 
-    // Request the texture cache item for a cacheable render
-    // task. If the item is already cached, the texture cache
-    // handle will be returned. Otherwise, the user supplied
-    // closure will be invoked to generate the render task
-    // chain that is required to draw this task.
-    pub fn request_render_task<F>(
+    /// Request an optionally cacheable render task.
+    ///
+    /// If the render task cache key is None, the render task is
+    /// not cached.
+    /// Otherwise, if the item is already cached, the texture cache
+    /// handle will be returned. Otherwise, the user supplied
+    /// closure will be invoked to generate the render task
+    /// chain that is required to draw this task.
+    ///
+    /// This function takes care of adding the render task as a
+    /// dependency to its parent task or surface.
+    pub fn request_render_task(
         &mut self,
-        key: RenderTaskCacheKey,
+        key: Option<RenderTaskCacheKey>,
+        is_opaque: bool,
+        parent: RenderTaskParent,
         gpu_cache: &mut GpuCache,
         gpu_buffer_builder: &mut GpuBufferBuilderF,
         rg_builder: &mut RenderTaskGraphBuilder,
-        user_data: Option<[f32; 4]>,
-        is_opaque: bool,
-        parent: RenderTaskParent,
         surface_builder: &mut SurfaceBuilder,
-        f: F,
-    ) -> RenderTaskId
-    where
-        F: FnOnce(&mut RenderTaskGraphBuilder, &mut GpuBufferBuilderF) -> RenderTaskId,
-    {
+        f: &mut dyn FnMut(&mut RenderTaskGraphBuilder, &mut GpuBufferBuilderF) -> RenderTaskId,
+    ) -> RenderTaskId {
         self.cached_render_tasks.request_render_task(
             key,
             &mut self.texture_cache,
+            is_opaque,
+            parent,
             gpu_cache,
             gpu_buffer_builder,
             rg_builder,
-            user_data,
-            is_opaque,
-            parent,
             surface_builder,
-            |render_graph, gpu_buffer_builder| Ok(f(render_graph, gpu_buffer_builder))
-        ).expect("Failed to request a render task from the resource cache!")
+            f
+        )
     }
 
     pub fn post_scene_building_update(

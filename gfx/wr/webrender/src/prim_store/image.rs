@@ -250,18 +250,17 @@ impl ImageData {
 
                     // Request a pre-rendered image task.
                     let cached_task_handle = frame_state.resource_cache.request_render_task(
-                        RenderTaskCacheKey {
+                        Some(RenderTaskCacheKey {
                             size,
                             kind: RenderTaskCacheKeyKind::Image(image_cache_key),
-                        },
+                        }),
+                        descriptor.is_opaque(),
+                        RenderTaskParent::Surface,
                         frame_state.gpu_cache,
                         &mut frame_state.frame_gpu_data.f32,
                         frame_state.rg_builder,
-                        None,
-                        descriptor.is_opaque(),
-                        RenderTaskParent::Surface,
                         &mut frame_state.surface_builder,
-                        |rg_builder, _| {
+                        &mut |rg_builder, _| {
                             // Create a task to blit from the texture cache to
                             // a normal transient render task surface.
                             // TODO: figure out if/when we can do a blit instead.

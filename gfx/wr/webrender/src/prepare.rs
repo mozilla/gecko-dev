@@ -403,18 +403,17 @@ fn prepare_interned_prim_for_render(
                 //           happens, we can use the cache handle immediately, and not need
                 //           to temporarily store it in the primitive instance.
                 *render_task = Some(frame_state.resource_cache.request_render_task(
-                    RenderTaskCacheKey {
+                    Some(RenderTaskCacheKey {
                         size: task_size,
                         kind: RenderTaskCacheKeyKind::LineDecoration(cache_key.clone()),
-                    },
+                    }),
+                    false,
+                    RenderTaskParent::Surface,
                     frame_state.gpu_cache,
                     &mut frame_state.frame_gpu_data.f32,
                     frame_state.rg_builder,
-                    None,
-                    false,
-                    RenderTaskParent::Surface,
                     &mut frame_state.surface_builder,
-                    |rg_builder, _| {
+                    &mut |rg_builder, _| {
                         rg_builder.add().init(RenderTask::new_dynamic(
                             task_size,
                             RenderTaskKind::new_line_decoration(
@@ -561,15 +560,14 @@ fn prepare_interned_prim_for_render(
                 };
 
                 handles.push(frame_state.resource_cache.request_render_task(
-                    cache_key,
+                    Some(cache_key),
+                    false,          // TODO(gw): We don't calculate opacity for borders yet!
+                    RenderTaskParent::Surface,
                     frame_state.gpu_cache,
                     &mut frame_state.frame_gpu_data.f32,
                     frame_state.rg_builder,
-                    None,
-                    false,          // TODO(gw): We don't calculate opacity for borders yet!
-                    RenderTaskParent::Surface,
                     &mut frame_state.surface_builder,
-                    |rg_builder, _| {
+                    &mut |rg_builder, _| {
                         rg_builder.add().init(RenderTask::new_dynamic(
                             cache_size,
                             RenderTaskKind::new_border_segment(

@@ -283,18 +283,17 @@ impl ConicGradientTemplate {
         };
 
         let task_id = frame_state.resource_cache.request_render_task(
-            RenderTaskCacheKey {
+            Some(RenderTaskCacheKey {
                 size: self.task_size,
                 kind: RenderTaskCacheKeyKind::ConicGradient(cache_key),
-            },
+            }),
+            false,
+            RenderTaskParent::Surface,
             frame_state.gpu_cache,
             &mut frame_state.frame_gpu_data.f32,
             frame_state.rg_builder,
-            None,
-            false,
-            RenderTaskParent::Surface,
             &mut frame_state.surface_builder,
-            |rg_builder, gpu_buffer_builder| {
+            &mut |rg_builder, gpu_buffer_builder| {
                 let stops = GradientGpuBlockBuilder::build(
                     false,
                     gpu_buffer_builder,
