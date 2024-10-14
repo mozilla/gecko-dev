@@ -1958,10 +1958,7 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
   return 0;
 }
 
-// TODO: this cast is irregular and not representable in wasm, as it does not
-// take into account the enclosing recursion group of the type. This is
-// temporary until builtin module functions can specify a precise array type
-// for params/results.
+#ifdef ENABLE_WASM_JS_STRING_BUILTINS
 template <bool isMutable>
 static WasmArrayObject* UncheckedCastToArrayI16(HandleAnyRef ref) {
   JSObject& object = ref.toJSObject();
@@ -1974,6 +1971,7 @@ static WasmArrayObject* UncheckedCastToArrayI16(HandleAnyRef ref) {
 
 /* static */
 int32_t Instance::stringTest(Instance* instance, void* stringArg) {
+  MOZ_ASSERT(SASigStringTest.failureMode == FailureMode::Infallible);
   AnyRef string = AnyRef::fromCompiledCode(stringArg);
   if (string.isNull() || !string.isJSString()) {
     return 0;
@@ -1983,6 +1981,7 @@ int32_t Instance::stringTest(Instance* instance, void* stringArg) {
 
 /* static */
 void* Instance::stringCast(Instance* instance, void* stringArg) {
+  MOZ_ASSERT(SASigStringCast.failureMode == FailureMode::FailOnNullPtr);
   AnyRef string = AnyRef::fromCompiledCode(stringArg);
   if (string.isNull() || !string.isJSString()) {
     ReportTrapError(instance->cx(), JSMSG_WASM_BAD_CAST);
@@ -1995,6 +1994,8 @@ void* Instance::stringCast(Instance* instance, void* stringArg) {
 void* Instance::stringFromCharCodeArray(Instance* instance, void* arrayArg,
                                         uint32_t arrayStart,
                                         uint32_t arrayEnd) {
+  MOZ_ASSERT(SASigStringFromCharCodeArray.failureMode ==
+             FailureMode::FailOnNullPtr);
   JSContext* cx = instance->cx();
   RootedAnyRef arrayRef(cx, AnyRef::fromCompiledCode(arrayArg));
   if (arrayRef.isNull()) {
@@ -2022,6 +2023,8 @@ void* Instance::stringFromCharCodeArray(Instance* instance, void* arrayArg,
 /* static */
 int32_t Instance::stringIntoCharCodeArray(Instance* instance, void* stringArg,
                                           void* arrayArg, uint32_t arrayStart) {
+  MOZ_ASSERT(SASigStringIntoCharCodeArray.failureMode ==
+             FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
   AnyRef stringRef = AnyRef::fromCompiledCode(stringArg);
   if (!stringRef.isJSString()) {
@@ -2055,6 +2058,7 @@ int32_t Instance::stringIntoCharCodeArray(Instance* instance, void* stringArg,
 }
 
 void* Instance::stringFromCharCode(Instance* instance, uint32_t charCode) {
+  MOZ_ASSERT(SASigStringFromCharCode.failureMode == FailureMode::FailOnNullPtr);
   JSContext* cx = instance->cx();
 
   JSString* str = StringFromCharCode(cx, int32_t(charCode));
@@ -2067,6 +2071,8 @@ void* Instance::stringFromCharCode(Instance* instance, uint32_t charCode) {
 }
 
 void* Instance::stringFromCodePoint(Instance* instance, uint32_t codePoint) {
+  MOZ_ASSERT(SASigStringFromCodePoint.failureMode ==
+             FailureMode::FailOnNullPtr);
   JSContext* cx = instance->cx();
 
   // Check for any error conditions before calling fromCodePoint so we report
@@ -2087,6 +2093,7 @@ void* Instance::stringFromCodePoint(Instance* instance, uint32_t codePoint) {
 
 int32_t Instance::stringCharCodeAt(Instance* instance, void* stringArg,
                                    uint32_t index) {
+  MOZ_ASSERT(SASigStringCharCodeAt.failureMode == FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
   AnyRef stringRef = AnyRef::fromCompiledCode(stringArg);
   if (!stringRef.isJSString()) {
@@ -2110,6 +2117,7 @@ int32_t Instance::stringCharCodeAt(Instance* instance, void* stringArg,
 
 int32_t Instance::stringCodePointAt(Instance* instance, void* stringArg,
                                     uint32_t index) {
+  MOZ_ASSERT(SASigStringCodePointAt.failureMode == FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
   AnyRef stringRef = AnyRef::fromCompiledCode(stringArg);
   if (!stringRef.isJSString()) {
@@ -2132,6 +2140,7 @@ int32_t Instance::stringCodePointAt(Instance* instance, void* stringArg,
 }
 
 int32_t Instance::stringLength(Instance* instance, void* stringArg) {
+  MOZ_ASSERT(SASigStringLength.failureMode == FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
   AnyRef stringRef = AnyRef::fromCompiledCode(stringArg);
   if (!stringRef.isJSString()) {
@@ -2145,6 +2154,7 @@ int32_t Instance::stringLength(Instance* instance, void* stringArg) {
 
 void* Instance::stringConcat(Instance* instance, void* firstStringArg,
                              void* secondStringArg) {
+  MOZ_ASSERT(SASigStringConcat.failureMode == FailureMode::FailOnNullPtr);
   JSContext* cx = instance->cx();
 
   AnyRef firstStringRef = AnyRef::fromCompiledCode(firstStringArg);
@@ -2166,6 +2176,7 @@ void* Instance::stringConcat(Instance* instance, void* firstStringArg,
 
 void* Instance::stringSubstring(Instance* instance, void* stringArg,
                                 int32_t startIndex, int32_t endIndex) {
+  MOZ_ASSERT(SASigStringSubstring.failureMode == FailureMode::FailOnNullPtr);
   JSContext* cx = instance->cx();
 
   AnyRef stringRef = AnyRef::fromCompiledCode(stringArg);
@@ -2192,10 +2203,18 @@ void* Instance::stringSubstring(Instance* instance, void* stringArg,
 
 int32_t Instance::stringEquals(Instance* instance, void* firstStringArg,
                                void* secondStringArg) {
+  MOZ_ASSERT(SASigStringEquals.failureMode == FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
 
   AnyRef firstStringRef = AnyRef::fromCompiledCode(firstStringArg);
   AnyRef secondStringRef = AnyRef::fromCompiledCode(secondStringArg);
+
+  // Null strings are considered equals
+  if (firstStringRef.isNull() || secondStringRef.isNull()) {
+    return firstStringRef.isNull() == secondStringRef.isNull();
+  }
+
+  // Otherwise, rule out any other kind of reference value
   if (!firstStringRef.isJSString() || !secondStringRef.isJSString()) {
     ReportTrapError(cx, JSMSG_WASM_BAD_CAST);
     return -1;
@@ -2212,6 +2231,7 @@ int32_t Instance::stringEquals(Instance* instance, void* firstStringArg,
 
 int32_t Instance::stringCompare(Instance* instance, void* firstStringArg,
                                 void* secondStringArg) {
+  MOZ_ASSERT(SASigStringCompare.failureMode == FailureMode::FailOnMaxI32);
   JSContext* cx = instance->cx();
 
   AnyRef firstStringRef = AnyRef::fromCompiledCode(firstStringArg);
@@ -2236,6 +2256,7 @@ int32_t Instance::stringCompare(Instance* instance, void* firstStringArg,
   }
   return result;
 }
+#endif // ENABLE_WASM_JS_STRING_BUILTINS
 
 //////////////////////////////////////////////////////////////////////////////
 //
