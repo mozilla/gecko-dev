@@ -2226,7 +2226,7 @@ function rightClickObjectInspectorNode(dbg, node) {
 
 // Gets the current source editor for CM6 tests
 function getCMEditor(dbg) {
-  return dbg.win.codemirrorEditor;
+  return dbg.win.codeMirrorSourceEditorTestInstance;
 }
 
 // Gets the number of lines in the editor
