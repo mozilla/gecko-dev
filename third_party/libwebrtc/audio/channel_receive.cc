@@ -565,12 +565,10 @@ ChannelReceive::ChannelReceive(
 
   rtp_receive_statistics_->EnableRetransmitDetection(remote_ssrc_, true);
   RtpRtcpInterface::Configuration configuration;
-  configuration.clock = &env_.clock();
   configuration.audio = true;
   configuration.receiver_only = true;
   configuration.outgoing_transport = rtcp_send_transport;
   configuration.receive_statistics = rtp_receive_statistics_.get();
-  configuration.event_log = &env_.event_log();
   configuration.local_media_ssrc = local_ssrc;
   configuration.rtcp_packet_type_counter_observer = this;
   configuration.non_sender_rtt_measurement = enable_non_sender_rtt;
@@ -579,7 +577,7 @@ ChannelReceive::ChannelReceive(
   if (frame_transformer)
     InitFrameTransformerDelegate(std::move(frame_transformer));
 
-  rtp_rtcp_ = ModuleRtpRtcpImpl2::Create(configuration);
+  rtp_rtcp_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, configuration);
   rtp_rtcp_->SetRemoteSSRC(remote_ssrc_);
 
   // Ensure that RTCP is enabled for the created channel.

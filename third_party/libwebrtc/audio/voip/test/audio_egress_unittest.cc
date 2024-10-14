@@ -34,16 +34,15 @@ using ::testing::Invoke;
 using ::testing::NiceMock;
 using ::testing::Unused;
 
-std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpStack(Clock* clock,
+std::unique_ptr<ModuleRtpRtcpImpl2> CreateRtpStack(const Environment& env,
                                                    Transport* transport,
                                                    uint32_t remote_ssrc) {
   RtpRtcpInterface::Configuration rtp_config;
-  rtp_config.clock = clock;
   rtp_config.audio = true;
   rtp_config.rtcp_report_interval_ms = 5000;
   rtp_config.outgoing_transport = transport;
   rtp_config.local_media_ssrc = remote_ssrc;
-  auto rtp_rtcp = ModuleRtpRtcpImpl2::Create(rtp_config);
+  auto rtp_rtcp = std::make_unique<ModuleRtpRtcpImpl2>(env, rtp_config);
   rtp_rtcp->SetSendingMediaStatus(false);
   rtp_rtcp->SetRTCPStatus(RtcpMode::kCompound);
   return rtp_rtcp;
@@ -68,8 +67,7 @@ class AudioEgressTest : public ::testing::Test {
   // Prepare test on audio egress by using PCMu codec with specific
   // sequence number and its status to be running.
   void SetUp() override {
-    rtp_rtcp_ =
-        CreateRtpStack(time_controller_.GetClock(), &transport_, kRemoteSsrc);
+    rtp_rtcp_ = CreateRtpStack(env_, &transport_, kRemoteSsrc);
     egress_ = std::make_unique<AudioEgress>(env_, rtp_rtcp_.get());
     constexpr int kPcmuPayload = 0;
     egress_->SetEncoder(kPcmuPayload, kPcmuFormat,

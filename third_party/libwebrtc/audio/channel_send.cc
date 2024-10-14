@@ -516,13 +516,10 @@ ChannelSend::ChannelSend(
   configuration.report_block_data_observer = this;
   configuration.network_link_rtcp_observer =
       transport_controller->GetRtcpObserver();
-  configuration.clock = &env_.clock();
   configuration.audio = true;
   configuration.outgoing_transport = rtp_transport;
 
   configuration.paced_sender = rtp_packet_pacer_proxy_.get();
-
-  configuration.event_log = &env_.event_log();
   configuration.rtt_stats = rtcp_rtt_stats;
   configuration.rtcp_packet_type_counter_observer =
       rtcp_counter_observer_.get();
@@ -533,15 +530,13 @@ ChannelSend::ChannelSend(
   configuration.extmap_allow_mixed = extmap_allow_mixed;
   configuration.rtcp_report_interval_ms = rtcp_report_interval_ms;
   configuration.rtcp_packet_type_counter_observer = this;
-
   configuration.local_media_ssrc = ssrc;
-  configuration.field_trials = &env_.field_trials();
 
-  rtp_rtcp_ = ModuleRtpRtcpImpl2::Create(configuration);
+  rtp_rtcp_ = std::make_unique<ModuleRtpRtcpImpl2>(env_, configuration);
   rtp_rtcp_->SetSendingMediaStatus(false);
 
-  rtp_sender_audio_ = std::make_unique<RTPSenderAudio>(configuration.clock,
-                                                       rtp_rtcp_->RtpSender());
+  rtp_sender_audio_ =
+      std::make_unique<RTPSenderAudio>(&env_.clock(), rtp_rtcp_->RtpSender());
 
   // Ensure that RTCP is enabled by default for the created channel.
   rtp_rtcp_->SetRTCPStatus(RtcpMode::kCompound);
