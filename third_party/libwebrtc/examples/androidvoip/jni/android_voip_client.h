@@ -150,6 +150,9 @@ class AndroidVoipClient : public webrtc::Transport {
   void ReadRTPPacket(const std::vector<uint8_t>& packet_copy);
   void ReadRTCPPacket(const std::vector<uint8_t>& packet_copy);
 
+  // Method to print out ChannelStatistics
+  void LogChannelStatistics(JNIEnv* env);
+
   // Used to invoke operations and send/receive RTP/RTCP packets.
   std::unique_ptr<rtc::Thread> voip_thread_;
   // Reference to the VoipClient java instance used to
