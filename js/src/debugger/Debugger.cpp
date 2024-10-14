@@ -30,12 +30,14 @@
 #include "jsapi.h"    // for CallArgs, CallArgsFromVp
 #include "jstypes.h"  // for JS_PUBLIC_API
 
-#include "builtin/Array.h"                // for NewDenseFullyAllocatedArray
-#include "debugger/DebugAPI.h"            // for ResumeMode, DebugAPI
-#include "debugger/DebuggerMemory.h"      // for DebuggerMemory
-#include "debugger/DebugScript.h"         // for DebugScript
-#include "debugger/Environment.h"         // for DebuggerEnvironment
-#include "debugger/ExecutionTracer.h"     // for ExecutionTracer
+#include "builtin/Array.h"            // for NewDenseFullyAllocatedArray
+#include "debugger/DebugAPI.h"        // for ResumeMode, DebugAPI
+#include "debugger/DebuggerMemory.h"  // for DebuggerMemory
+#include "debugger/DebugScript.h"     // for DebugScript
+#include "debugger/Environment.h"     // for DebuggerEnvironment
+#ifdef MOZ_EXECUTION_TRACING
+#  include "debugger/ExecutionTracer.h"  // for ExecutionTracer::onEnterFrame, ExecutionTracer::onLeaveFrame
+#endif
 #include "debugger/Frame.h"               // for DebuggerFrame
 #include "debugger/NoExecute.h"           // for EnterDebuggeeNoExecute
 #include "debugger/Object.h"              // for DebuggerObject
@@ -903,11 +905,13 @@ bool Debugger::hasAnyLiveHooks() const {
 
 /* static */
 bool DebugAPI::slowPathOnEnterFrame(JSContext* cx, AbstractFramePtr frame) {
+#ifdef MOZ_EXECUTION_TRACING
   if (cx->hasExecutionTracer()) {
     if (!cx->getExecutionTracer().onEnterFrame(cx, frame)) {
       return false;
     }
   }
+#endif
   return Debugger::dispatchResumptionHook(
       cx, frame,
       [frame](Debugger* dbg) -> bool {
@@ -919,11 +923,13 @@ bool DebugAPI::slowPathOnEnterFrame(JSContext* cx, AbstractFramePtr frame) {
 
 /* static */
 bool DebugAPI::slowPathOnResumeFrame(JSContext* cx, AbstractFramePtr frame) {
+#ifdef MOZ_EXECUTION_TRACING
   if (cx->hasExecutionTracer()) {
     if (!cx->getExecutionTracer().onEnterFrame(cx, frame)) {
       return false;
     }
   }
+#endif
   // Don't count on this method to be called every time a generator is
   // resumed! This is called only if the frame's debuggee bit is set,
   // i.e. the script has breakpoints or the frame is stepping.
@@ -1127,11 +1133,13 @@ class MOZ_RAII AutoSetGeneratorRunning {
 /* static */
 bool DebugAPI::slowPathOnLeaveFrame(JSContext* cx, AbstractFramePtr frame,
                                     const jsbytecode* pc, bool frameOk) {
+#ifdef MOZ_EXECUTION_TRACING
   if (cx->hasExecutionTracer()) {
     if (!cx->getExecutionTracer().onLeaveFrame(cx, frame)) {
       return false;
     }
   }
+#endif
   MOZ_ASSERT_IF(!frame.isWasmDebugFrame(), pc);
 
   mozilla::DebugOnly<Handle<GlobalObject*>> debuggeeGlobal = cx->global();
@@ -4235,8 +4243,10 @@ struct MOZ_STACK_CLASS Debugger::CallData {
   CallData(JSContext* cx, const CallArgs& args, Debugger* dbg)
       : cx(cx), args(args), dbg(dbg) {}
 
+#ifdef MOZ_EXECUTION_TRACING
   bool getNativeTracing();
   bool setNativeTracing();
+#endif
   bool getOnDebuggerStatement();
   bool setOnDebuggerStatement();
   bool getOnExceptionUnwind();
@@ -4289,7 +4299,9 @@ struct MOZ_STACK_CLASS Debugger::CallData {
   bool disableAsyncStack();
   bool enableUnlimitedStacksCapturing();
   bool disableUnlimitedStacksCapturing();
+#ifdef MOZ_EXECUTION_TRACING
   bool collectNativeTrace();
+#endif
 
   using Method = bool (CallData::*)();
 
@@ -4399,6 +4411,7 @@ bool Debugger::setGarbageCollectionHook(JSContext* cx, const CallArgs& args,
   return true;
 }
 
+#ifdef MOZ_EXECUTION_TRACING
 bool Debugger::CallData::getNativeTracing() {
   args.rval().set(BooleanValue(dbg->nativeTracing));
   return true;
@@ -4423,7 +4436,7 @@ bool Debugger::CallData::collectNativeTrace() {
   }
 
   dbg->nativeTracing = false;
-  cx->removeExecutionTracingConsumer(dbg);
+  cx->disableExecutionTracing();
   if (!dbg->updateObservesAllExecutionOnDebuggees(
           cx, dbg->observesAllExecution())) {
     return false;
@@ -4441,12 +4454,12 @@ bool Debugger::CallData::setNativeTracing() {
   dbg->nativeTracing = ToBoolean(args[0]);
   if (wasEnabled != dbg->nativeTracing) {
     if (dbg->nativeTracing) {
-      if (!cx->addExecutionTracingConsumer(dbg)) {
+      if (!cx->enableExecutionTracing()) {
         ReportOutOfMemory(cx);
         return false;
       }
     } else {
-      cx->removeExecutionTracingConsumer(dbg);
+      cx->disableExecutionTracing();
     }
   }
 
@@ -4457,6 +4470,7 @@ bool Debugger::CallData::setNativeTracing() {
 
   return true;
 }
+#endif
 
 bool Debugger::CallData::getOnDebuggerStatement() {
   return getHookImpl(cx, args, *dbg, OnDebuggerStatement);
@@ -5246,7 +5260,8 @@ void Debugger::removeDebuggeeGlobal(JS::GCContext* gcx, GlobalObject* global,
     Debugger::removeAllocationsTracking(*global);
   }
 
-  if (!global->realm()->hasDebuggers()) {
+  if (!global->realm()->hasDebuggers() &&
+      !global->realm()->isTracingExecution()) {
     global->realm()->unsetIsDebuggee();
   } else {
     global->realm()->updateDebuggerObservesAllExecution();
@@ -6975,28 +6990,28 @@ const JSFunctionSpec Debugger::methods[] = {
 
 const JSPropertySpec Debugger::static_properties[]{
     JS_INT32_PS("TRACING_EVENT_KIND_FUNCTION_ENTER",
-                int32_t(ExecutionTracer::EventKind::FunctionEnter),
+                int32_t(ExecutionTrace::EventKind::FunctionEnter),
                 JSPROP_READONLY | JSPROP_PERMANENT),
     JS_INT32_PS("TRACING_EVENT_KIND_FUNCTION_LEAVE",
-                int32_t(ExecutionTracer::EventKind::FunctionLeave),
+                int32_t(ExecutionTrace::EventKind::FunctionLeave),
                 JSPROP_READONLY | JSPROP_PERMANENT),
     JS_INT32_PS("TRACING_EVENT_KIND_LABEL_ENTER",
-                int32_t(ExecutionTracer::EventKind::LabelEnter),
+                int32_t(ExecutionTrace::EventKind::LabelEnter),
                 JSPROP_READONLY | JSPROP_PERMANENT),
     JS_INT32_PS("TRACING_EVENT_KIND_LABEL_LEAVE",
-                int32_t(ExecutionTracer::EventKind::LabelLeave),
+                int32_t(ExecutionTrace::EventKind::LabelLeave),
                 JSPROP_READONLY | JSPROP_PERMANENT),
     JS_INT32_PS("IMPLEMENTATION_INTERPRETER",
-                int32_t(ExecutionTracer::ImplementationType::Interpreter),
+                int32_t(ExecutionTrace::ImplementationType::Interpreter),
                 JSPROP_READONLY | JSPROP_PERMANENT),
     JS_INT32_PS("IMPLEMENTATION_BASELINE",
-                int32_t(ExecutionTracer::ImplementationType::Baseline),
+                int32_t(ExecutionTrace::ImplementationType::Baseline),
                 JSPROP_READONLY | JSPROP_PERMANENT),
     JS_INT32_PS("IMPLEMENTATION_ION",
-                int32_t(ExecutionTracer::ImplementationType::Ion),
+                int32_t(ExecutionTrace::ImplementationType::Ion),
                 JSPROP_READONLY | JSPROP_PERMANENT),
     JS_INT32_PS("IMPLEMENTATION_WASM",
-                int32_t(ExecutionTracer::ImplementationType::Wasm),
+                int32_t(ExecutionTrace::ImplementationType::Wasm),
                 JSPROP_READONLY | JSPROP_PERMANENT),
     JS_PS_END,
 };
