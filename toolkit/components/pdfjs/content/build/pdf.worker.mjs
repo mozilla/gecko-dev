@@ -55200,11 +55200,10 @@ class PDFDocument {
     }
   }
   get fieldObjects() {
-    const promise = this.pdfManager.ensureDoc("formInfo").then(async formInfo => {
-      if (!formInfo.hasFields) {
-        return null;
-      }
-      const [annotationGlobals, acroForm] = await Promise.all([this.pdfManager.ensureDoc("annotationGlobals"), this.pdfManager.ensureCatalog("acroForm")]);
+    if (!this.formInfo.hasFields) {
+      return shadow(this, "fieldObjects", Promise.resolve(null));
+    }
+    const promise = Promise.all([this.pdfManager.ensureDoc("annotationGlobals"), this.pdfManager.ensureCatalog("acroForm")]).then(async ([annotationGlobals, acroForm]) => {
       if (!annotationGlobals) {
         return null;
       }
@@ -55247,7 +55246,11 @@ class PDFDocument {
     return false;
   }
   get calculationOrderIds() {
-    const calculationOrder = this.catalog.acroForm?.get("CO");
+    const acroForm = this.catalog.acroForm;
+    if (!acroForm?.has("CO")) {
+      return shadow(this, "calculationOrderIds", null);
+    }
+    const calculationOrder = acroForm.get("CO");
     if (!Array.isArray(calculationOrder) || calculationOrder.length === 0) {
       return shadow(this, "calculationOrderIds", null);
     }
@@ -55257,7 +55260,10 @@ class PDFDocument {
         ids.push(id.toString());
       }
     }
-    return shadow(this, "calculationOrderIds", ids.length ? ids : null);
+    if (ids.length === 0) {
+      return shadow(this, "calculationOrderIds", null);
+    }
+    return shadow(this, "calculationOrderIds", ids);
   }
   get annotationGlobals() {
     return shadow(this, "annotationGlobals", AnnotationFactory.createGlobals(this.pdfManager));
@@ -55980,7 +55986,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "4.7.85";
+    const workerVersion = "4.7.78";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -56544,8 +56550,8 @@ if (typeof window === "undefined" && !isNodeJS && typeof self !== "undefined" &&
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "4.7.85";
-const pdfjsBuild = "233ac1773";
+const pdfjsVersion = "4.7.78";
+const pdfjsBuild = "81cf42df4";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };

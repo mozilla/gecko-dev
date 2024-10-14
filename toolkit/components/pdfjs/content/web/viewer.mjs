@@ -9411,7 +9411,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.7.85";
+    const viewerVersion = "4.7.78";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -9663,17 +9663,17 @@ class PDFViewer {
     if (document.visibilityState === "hidden" || !this.container.offsetParent || this._getVisiblePages().views.length === 0) {
       return;
     }
-    const hiddenCapability = Promise.withResolvers(),
-      ac = new AbortController();
-    document.addEventListener("visibilitychange", () => {
+    const hiddenCapability = Promise.withResolvers();
+    function onVisibilityChange() {
       if (document.visibilityState === "hidden") {
         hiddenCapability.resolve();
       }
-    }, {
-      signal: AbortSignal.any([signal, ac.signal])
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange, {
+      signal
     });
     await Promise.race([this._onePageRenderedCapability.promise, hiddenCapability.promise]);
-    ac.abort();
+    document.removeEventListener("visibilitychange", onVisibilityChange);
   }
   async getAllText() {
     const texts = [];
@@ -13601,8 +13601,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.7.85";
-const pdfjsBuild = "233ac1773";
+const pdfjsVersion = "4.7.78";
+const pdfjsBuild = "81cf42df4";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
