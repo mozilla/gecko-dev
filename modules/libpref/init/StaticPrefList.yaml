@@ -8368,11 +8368,21 @@
     mirror: always
     set_spidermonkey_pref: always
 
--   name: javascript.options.wasm_experimental_compile_pipeline
+# Enables lazy tiering for wasm modules that have a GC type defined in them.
+# Use wasm_lazy_tiering to enable it for any module.
+-   name: javascript.options.wasm_lazy_tiering_for_gc
     type: bool
     value: false
     mirror: always
-    set_spidermonkey_pref: startup
+    set_spidermonkey_pref: always
+
+# Enables lazy tiering for all modules. Use wasm_lazy_tiering_for_gc to only
+# enable this for GC modules.
+-   name: javascript.options.wasm_lazy_tiering
+    type: bool
+    value: false
+    mirror: always
+    set_spidermonkey_pref: always
 
 - name: javascript.options.wasm_experimental_inline_call_ref_threshold
   type: uint32_t

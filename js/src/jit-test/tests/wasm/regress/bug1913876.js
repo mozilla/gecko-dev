@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmGcEnabled(); test-also=-P wasm_experimental_compile_pipeline;
+// |jit-test| skip-if: !wasmGcEnabled(); test-also=-P wasm_lazy_tiering;
 
 let {a} = wasmEvalText(`(module
   (type $t (func))

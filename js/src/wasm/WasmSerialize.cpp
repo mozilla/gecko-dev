@@ -1479,6 +1479,14 @@ CoderResult CodeModule(Coder<mode>& coder, CoderArg<mode, Module> item) {
 }  // namespace wasm
 }  // namespace js
 
+bool Module::canSerialize() const {
+  // TODO(bug 1903131): JS string builtins don't support serialization
+  // TODO(bug 1913109): lazy tiering doesn't support serialization
+  return code_->mode() != CompileMode::LazyTiering &&
+         codeMeta().features().builtinModules.hasNone() &&
+         !codeMeta().debugEnabled;
+}
+
 static bool GetSerializedSize(const Module& module, size_t* size) {
   Coder<MODE_SIZE> coder(module.codeMeta().types.get());
   auto result = CodeModule(coder, &module);
@@ -1490,7 +1498,7 @@ static bool GetSerializedSize(const Module& module, size_t* size) {
 }
 
 bool Module::serialize(Bytes* bytes) const {
-  MOZ_RELEASE_ASSERT(!codeMeta().debugEnabled);
+  MOZ_RELEASE_ASSERT(canSerialize());
   MOZ_RELEASE_ASSERT(code_->hasCompleteTier(Tier::Serialized));
 
   size_t serializedSize;

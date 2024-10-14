@@ -300,7 +300,7 @@ struct CompilerEnvironment {
   CompilerEnvironment(CompileMode mode, Tier tier, DebugEnabled debugEnabled);
 
   // Compute any remaining compilation parameters.
-  void computeParameters(Decoder& d);
+  void computeParameters(const ModuleMetadata& moduleMeta);
 
   // Compute any remaining compilation parameters.  Only use this method if
   // the CompilerEnvironment was created with values for mode, tier, and

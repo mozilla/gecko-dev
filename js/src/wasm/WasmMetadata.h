@@ -349,6 +349,13 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
     callRefHints[callRefIndex] = hint.toRepr();
   }
 
+  size_t codeSectionSize() const {
+    if (codeSection) {
+      return codeSection->size;
+    }
+    return 0;
+  }
+
   // This gets names for wasm only.
   // For asm.js, see CodeMetadataForAsmJS::getFuncNameForAsmJS.
   bool getFuncNameForWasm(NameContext ctx, uint32_t funcIndex,

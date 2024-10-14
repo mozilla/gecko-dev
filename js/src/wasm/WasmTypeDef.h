@@ -701,6 +701,8 @@ class TypeDef {
 
   bool isArrayType() const { return kind_ == TypeDefKind::Array; }
 
+  bool isGcType() const { return isStructType() || isArrayType(); }
+
   const FuncType& funcType() const {
     MOZ_ASSERT(isFuncType());
     return funcType_;
@@ -1052,6 +1054,16 @@ class RecGroup : public AtomicRefCounted<RecGroup> {
     return (uint32_t)groupTypeIndex;
   }
 
+  bool hasGcType() const {
+    for (uint32_t groupTypeIndex = 0; groupTypeIndex < numTypes();
+         groupTypeIndex++) {
+      if (type(groupTypeIndex).isGcType()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   HashNumber hash() const {
     HashNumber hn = 0;
     for (uint32_t i = 0; i < numTypes(); i++) {
@@ -1188,8 +1200,7 @@ class TypeContext : public AtomicRefCounted<TypeContext> {
     return true;
   }
 
-  // Finish creation of a recursion group after type definitions have been
-  // initialized. This must be paired with `startGroup`.
+  // Add a pre-existing recursion group to this type context.
   [[nodiscard]] bool addRecGroup(SharedRecGroup recGroup) {
     // We must not have a pending group
     MOZ_ASSERT(!pendingRecGroup_);
@@ -1235,6 +1246,15 @@ class TypeContext : public AtomicRefCounted<TypeContext> {
   uint32_t length() const { return types_.length(); }
 
   const SharedRecGroupVector& groups() const { return recGroups_; }
+
+  bool hasGcType() const {
+    for (const SharedRecGroup& recGroup : groups()) {
+      if (recGroup->hasGcType()) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   // Map from type definition to index
 

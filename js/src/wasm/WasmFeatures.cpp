@@ -303,8 +303,8 @@ bool wasm::CodeCachingAvailable(JSContext* cx) {
   return false;
 #else
 
-  // We temporarily don't support caching with our new compile pipeline
-  if (ExperimentalCompilePipelineAvailable(cx)) {
+  // TODO(bug 1913109): lazy tiering doesn't support serialization
+  if (JS::Prefs::wasm_lazy_tiering() || JS::Prefs::wasm_lazy_tiering_for_gc()) {
     return false;
   }
 
