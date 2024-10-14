@@ -1076,15 +1076,36 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
       // resolve the promise to indicate that the data would have been cleared.
       cb->OnDataDeleted(0);
     } else {
-      // TODO: Bug 1842067: Clear by site + OA.
-
       // nsIClearDataService expects a schemeless site which for IPV6 addresses
       // includes brackets. Add them if needed.
       nsAutoCString hostToPurge(host);
       nsContentUtils::MaybeFixIPv6Host(hostToPurge);
 
+      // When clearing data for a specific site host we need to ensure that we
+      // only clear for matching OriginAttributes. For example if the current
+      // state global is private browsing only we must not clear normal browsing
+      // data. To restrict clearing we pass in a (stringified)
+      // OriginAttributesPattern which matches the state global's
+      // OriginAttributes.
+      const OriginAttributes& oa = aStateGlobal->OriginAttributesRef();
+
+      nsAutoString oaPatternString;
+      OriginAttributesPattern pattern;
+      // partitionKey and firstPartyDomain are omitted making them wildcards. We
+      // want to clear across partitions since BTP should clear all data for a
+      // given top level.
+      pattern.mUserContextId.Construct(oa.mUserContextId);
+      pattern.mPrivateBrowsingId.Construct((oa.mPrivateBrowsingId));
+      pattern.mGeckoViewSessionContextId.Construct(
+          oa.mGeckoViewSessionContextId);
+
+      if (NS_WARN_IF(!pattern.ToJSON(oaPatternString))) {
+        // Serializing the pattern failed.
+        continue;
+      }
+
       rv = clearDataService->DeleteDataFromSiteAndOriginAttributesPatternString(
-          hostToPurge, u""_ns, false, TRACKER_PURGE_FLAGS, cb);
+          hostToPurge, oaPatternString, false, TRACKER_PURGE_FLAGS, cb);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         clearPromise->Reject(0, __func__);
       }
