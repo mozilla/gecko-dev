@@ -186,10 +186,12 @@
     <string name="mozac_feature_addons_failed_to_translate">Перекладу не знайдено, для локалі %1$s та типової мови %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s успішно встановлено</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Не вдалося встановити %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Не вдалося встановити це розширення.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Не вдалося встановити розширення</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Не вдалося завантажити це розширення через помилку зі з’єднанням.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -202,6 +204,8 @@
     <string name="mozac_feature_addons_blocklisted_1">%1$s неможливо встановити через високу ймовірність спричинення проблем безпеки та стабільності.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">Не вдається встановити %1$s. Його може встановити лише організація, яка використовує корпоративні політики, що не підтримуються на цій платформі.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked">Розширення %1$s не можна встановити, оскільки воно порушує правила Mozilla.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s успішно увімкнено</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -246,8 +250,14 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">OK</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Докладніше</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Показати подробиці</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s було вимкнено, у зв’язку з проблемами безпеки чи стабільності.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked">Це розширення порушує правила Mozilla, тому його вимкнено. Ви можете ввімкнути його, але це може бути ризиковано.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Це розширення порушує правила Mozilla. Користуватися ним може бути ризикованим.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s вимкнено через неможливість підтвердити його безпечність.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

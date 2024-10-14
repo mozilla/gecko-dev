@@ -186,10 +186,12 @@
     <string name="mozac_feature_addons_failed_to_translate">%1$s veya %2$s çeviri bulunamadı</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s başarıyla yüklendi</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">%1$s yüklenemedi</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Bu uzantı yüklenemedi.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Uzantı yüklenemedi</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Bağlantı hatası nedeniyle bu uzantı indirilemedi.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -202,6 +204,8 @@
     <string name="mozac_feature_addons_blocklisted_1">%1$s yüklenemedi çünkü kararsızlık veya güvenlik sorunlarına yol açma riski yüksek.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s yüklenemedi çünkü yalnızca kurumsal ilkeleri kullanan bir kuruluş tarafından yüklenebilir, ancak bu platformda kurumsal ilkeler desteklenmiyor.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked">%1$s Mozilla politikalarını ihlal ettiği için yüklenemiyor.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s başarıyla etkinleştirildi</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -246,8 +250,14 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">Tamam</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Daha fazla bilgi alın</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Ayrıntıları göster</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted">%1$s güvenlik veya kararlılık gerekçesiyle devre dışı bırakıldı.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked">Bu uzantı Mozilla’nın politikalarını ihlal ettiği devre dışı bırakıldı. Uzantıyı etkinleştirebilirsiniz ama bu riskli olabilir.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Bu uzantı Mozilla politikalarını ihlal ediyor. Kullanılması riskli olabilir.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">%1$s eklentisinin güvenliği doğrulanamadığı için eklenti devre dışı bırakıldı.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

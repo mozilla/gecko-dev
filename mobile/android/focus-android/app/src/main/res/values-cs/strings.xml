@@ -84,7 +84,6 @@
     <string name="share_dialog_title">Sdílet přes</string>
 
     <string name="notification_erase_title_android_14">Vymazat historii prohlížení?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Klepnutím na toto oznámení nebo jeho smazáním bezpečně vymažete svou historii prohlížení.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -516,7 +515,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Zavřít</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Zavřít</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -925,9 +924,6 @@
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Přepnout</string>
 
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Spuštěn režim celé obrazovky</string>
-
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Přepnout ihned na odkaz v novém panelu</string>
 
@@ -1116,7 +1112,14 @@ Toto nastavení můžete změnit v části Nastavení -> Soukromí a zabezpečen
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Pro ukončení režimu celé obrazovky přetáhněte prst shora a použijte gesto Zpět</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Pro ukončení režimu celé obrazovky přetáhněte prst shora a použijte gesto Zpět</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Pro ukončení režimu celé obrazovky přetáhněte prst seshora a stiskněte zpět</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Pro ukončení režimu celé obrazovky přetáhněte prst seshora a stiskněte zpět</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Pro ukončení potáhněte shora a použijte gesto zpět</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Pro ukončení potáhněte shora a stiskněte zpět</string>
 </resources>
