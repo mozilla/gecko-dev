@@ -784,6 +784,7 @@ rtc_library("neteq_tools_minimal") {
     ":default_neteq_factory",
     ":neteq",
     "../../api:array_view",
+    "../../api:field_trials",
     "../../api:neteq_simulator_api",
     "../../api:rtp_headers",
     "../../api/audio:audio_frame_api",

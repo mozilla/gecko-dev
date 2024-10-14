@@ -17,7 +17,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "modules/audio_coding/neteq/tools/neteq_test.h"
-#include "test/field_trial.h"
 
 namespace webrtc {
 namespace test {
@@ -161,9 +160,6 @@ class NetEqTestFactory {
                                             const Config& config);
   std::unique_ptr<SsrcSwitchDetector> ssrc_switch_detector_;
   std::unique_ptr<NetEqStatsPlotter> stats_plotter_;
-  // The field trials are stored in the test factory, because neteq_test is not
-  // in a testonly target, and therefore cannot use ScopedFieldTrials.
-  std::unique_ptr<ScopedFieldTrials> field_trials_;
 };
 
 }  // namespace test

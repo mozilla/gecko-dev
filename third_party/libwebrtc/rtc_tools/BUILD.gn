@@ -405,6 +405,7 @@ if (!build_with_chromium) {
         "../rtc_base:stringutils",
         "../rtc_base/network:sent_packet",
         "../system_wrappers",
+        "../system_wrappers:field_trial",
         "../test:explicit_key_value_config",
         "//third_party/abseil-cpp/absl/algorithm:container",
         "//third_party/abseil-cpp/absl/base:core_headers",

@@ -43,6 +43,7 @@
 #include "rtc_base/checks.h"
 #include "rtc_tools/rtc_event_log_visualizer/analyzer_common.h"
 #include "rtc_tools/rtc_event_log_visualizer/plot_base.h"
+#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 
@@ -275,7 +276,7 @@ std::unique_ptr<test::NetEqStatsGetter> CreateNetEqTestAndRun(
   NetEq::Config config;
   test::NetEqTest test(config, decoder_factory, codecs, /*text_log=*/nullptr,
                        /*factory=*/nullptr, std::move(input), std::move(output),
-                       callbacks);
+                       callbacks, field_trial::GetFieldTrialString());
   test.Run();
   return neteq_stats_getter;
 }

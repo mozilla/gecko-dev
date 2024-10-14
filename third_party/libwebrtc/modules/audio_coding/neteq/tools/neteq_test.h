@@ -88,7 +88,8 @@ class NetEqTest : public NetEqSimulator {
             NetEqFactory* neteq_factory,
             std::unique_ptr<NetEqInput> input,
             std::unique_ptr<AudioSink> output,
-            Callbacks callbacks);
+            Callbacks callbacks,
+            absl::string_view field_trials = "");
 
   ~NetEqTest() override;
 
