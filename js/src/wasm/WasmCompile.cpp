@@ -118,6 +118,21 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
 
     if (importedStringConstants.isNullOrUndefined()) {
       this->jsStringConstants = false;
+    } else if (importedStringConstants.isBoolean() &&
+               importedStringConstants.toBoolean()) {
+      // Temporary backwards compatibility hack to interpret 'true' as "'"
+      this->jsStringConstants = true;
+
+      UniqueChars jsStringConstantsNamespace = JS_smprintf("'");
+      if (!jsStringConstantsNamespace) {
+        return false;
+      }
+
+      this->jsStringConstantsNamespace =
+          js_new<ShareableChars>(std::move(jsStringConstantsNamespace));
+      if (!this->jsStringConstantsNamespace) {
+        return false;
+      }
     } else {
       this->jsStringConstants = true;
 
@@ -170,12 +185,12 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
           return false;
         }
 
-        // We ignore unknown builtins
         if (!jsStringBuiltins) {
-          continue;
+          JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                   JSMSG_WASM_UNKNOWN_BUILTIN);
+          return false;
         }
 
-        // You cannot request the same builtin twice
         if (this->jsStringBuiltins && jsStringBuiltins) {
           JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                    JSMSG_WASM_DUPLICATE_BUILTIN);

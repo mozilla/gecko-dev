@@ -18,8 +18,10 @@ assertErrorMessage(() => wasmEvalWithConstants(`(module
 )`, "'"), WebAssembly.CompileError, /type mismatch/);
 
 function testString(type, literal, namespace) {
+  // Temporary backwards compat for string namespace
+  let importSpecifier = namespace === true ? "'" : namespace;
   return wasmEvalWithConstants(`(module
-    (global (import "${namespace}" "${literal}") ${type})
+    (global (import "${importSpecifier}" "${literal}") ${type})
     (export "constant" (global 0))
   )`, namespace).constant.value;
 }
@@ -34,7 +36,9 @@ let tests = [
 let namespaces = [
   "",
   "'",
-  "strings"
+  "strings",
+  // Temporary backwards compat for string namespace
+  true
 ];
 
 for (let namespace of namespaces) {
