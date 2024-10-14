@@ -86,7 +86,7 @@ use crate::render_target::{ResolveOp};
 use crate::render_task_graph::{RenderTaskGraph};
 use crate::render_task::{RenderTask, RenderTaskKind, ReadbackTask};
 use crate::screen_capture::AsyncScreenshotGrabber;
-use crate::render_target::{ColorRenderTarget, PictureCacheTarget, PictureCacheTargetKind};
+use crate::render_target::{RenderTarget, PictureCacheTarget, PictureCacheTargetKind};
 use crate::render_target::{TextureCacheRenderTarget, RenderTargetKind, BlitJob};
 use crate::telemetry::Telemetry;
 use crate::tile_cache::PictureCacheDebugInfo;
@@ -3484,7 +3484,7 @@ impl Renderer {
     fn draw_color_target(
         &mut self,
         draw_target: DrawTarget,
-        target: &ColorRenderTarget,
+        target: &RenderTarget,
         clear_depth: Option<f32>,
         render_tasks: &RenderTaskGraph,
         projection: &default::Transform3D<f32>,

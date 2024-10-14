@@ -27,7 +27,7 @@ use crate::profiler::{self, TransactionProfile};
 use crate::render_backend::{DataStores, ScratchBuffer};
 use crate::renderer::{GpuBufferF, GpuBufferBuilderF, GpuBufferI, GpuBufferBuilderI, GpuBufferBuilder};
 use crate::render_target::{PictureCacheTarget, TextureCacheRenderTarget, PictureCacheTargetKind};
-use crate::render_target::{RenderTargetContext, RenderTargetKind, ColorRenderTarget};
+use crate::render_target::{RenderTargetContext, RenderTargetKind, RenderTarget};
 use crate::render_task_graph::{RenderTaskGraph, Pass, SubPassSurface};
 use crate::render_task_graph::{RenderPass, RenderTaskGraphBuilder};
 use crate::render_task::{RenderTaskKind, StaticRenderTaskSurface};
@@ -940,7 +940,7 @@ pub fn build_render_pass(
             SubPassSurface::Dynamic { target_kind, texture_id, used_rect } => {
                 match target_kind {
                     RenderTargetKind::Color => {
-                        let mut target = ColorRenderTarget::new(
+                        let mut target = RenderTarget::new(
                             RenderTargetKind::Color,
                             texture_id,
                             screen_size,
@@ -964,7 +964,7 @@ pub fn build_render_pass(
                         pass.color.targets.push(target);
                     }
                     RenderTargetKind::Alpha => {
-                        let mut target = ColorRenderTarget::new(
+                        let mut target = RenderTarget::new(
                             RenderTargetKind::Alpha,
                             texture_id,
                             screen_size,

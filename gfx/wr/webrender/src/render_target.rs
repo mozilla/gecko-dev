@@ -95,7 +95,7 @@ pub struct RenderTargetContext<'a, 'rc> {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct RenderTargetList {
-    pub targets: FrameVec<ColorRenderTarget>,
+    pub targets: FrameVec<RenderTarget>,
 }
 
 impl RenderTargetList {
@@ -155,7 +155,7 @@ const NUM_PATTERNS: usize = crate::pattern::NUM_PATTERNS as usize;
 /// into draw commands on that surface.
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-pub struct ColorRenderTarget {
+pub struct RenderTarget {
     pub target_kind: RenderTargetKind,
     screen_size: DeviceIntSize,
     pub texture_id: CacheTextureId,
@@ -187,7 +187,7 @@ pub struct ColorRenderTarget {
     pub one_clears: FrameVec<RenderTaskId>,
 }
 
-impl ColorRenderTarget {
+impl RenderTarget {
     pub fn new(
         target_kind: RenderTargetKind,
         texture_id: CacheTextureId,
@@ -196,7 +196,7 @@ impl ColorRenderTarget {
         used_rect: DeviceIntRect,
         memory: &FrameMemory,
     ) -> Self {
-        ColorRenderTarget {
+        RenderTarget {
             target_kind,
             screen_size,
             texture_id,
