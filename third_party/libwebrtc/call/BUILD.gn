@@ -273,10 +273,6 @@ rtc_library("bitrate_allocator") {
 rtc_library("call") {
   sources = [
     "call.cc",
-    "create_call.cc",
-    "create_call.h",
-    "degraded_call.cc",
-    "degraded_call.h",
     "flexfec_receive_stream_impl.cc",
     "flexfec_receive_stream_impl.h",
     "receive_time_calculator.cc",

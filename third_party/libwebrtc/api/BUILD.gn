@@ -37,7 +37,6 @@ rtc_source_set("enable_media") {
     ":scoped_refptr",
     "../call",
     "../call:call_interfaces",
-    "../call:call_interfaces",
     "../media:media_engine",
     "../media:rtc_audio_video",
     "../pc:media_factory",
