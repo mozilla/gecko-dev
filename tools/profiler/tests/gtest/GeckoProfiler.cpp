@@ -474,12 +474,12 @@ static void TestLockedRWOnThread(
   TestLockedRWFromAnyThread(aData, aBeforeRegistration, aAfterRegistration,
                             aOnStackObject, aThreadId);
 
-  // We don't want to really call SetJSContext here, so just verify that
-  // the call would compile and return the expected type.
-  static_assert(
-      std::is_same_v<decltype(aData.SetJSContext(std::declval<JSContext*>())),
-                     void>);
-  aData.ClearJSContext();
+  // We don't want to really call SetCycleCollectedJSContext here, so just
+  // verify that the call would compile and return the expected type.
+  static_assert(std::is_same_v<decltype(aData.SetCycleCollectedJSContext(
+                                   std::declval<CycleCollectedJSContext*>())),
+                               void>);
+  aData.ClearCycleCollectedJSContext();
   aData.PollJSSampling();
 };
 
@@ -1677,6 +1677,9 @@ TEST(GeckoProfiler, FeaturesAndParams)
   {
     uint32_t availableFeatures = profiler_get_available_features();
     const char* filters[] = {""};
+
+    // Turn off tracing because it mucks with other features
+    availableFeatures &= ~ProfilerFeature::Tracing;
 
     profiler_start(PowerOfTwo32(88888), 10, availableFeatures, filters,
                    MOZ_ARRAY_LENGTH(filters), 0, Some(15.0));

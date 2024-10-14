@@ -1332,7 +1332,7 @@ nsresult XPCJSContext::Initialize() {
       cx, kStackQuota, kStackQuota - kSystemCodeBuffer,
       kStackQuota - kSystemCodeBuffer - kTrustedScriptBuffer);
 
-  PROFILER_SET_JS_CONTEXT(cx);
+  PROFILER_SET_JS_CONTEXT(this);
 
   JS_AddInterruptCallback(cx, InterruptCallback);
 

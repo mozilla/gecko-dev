@@ -48,7 +48,8 @@
           "responsiveness",
           "cpufreq",
           "bandwidth",
-          "memory"
+          "memory",
+          "tracing"
         ]
       },
       {
