@@ -57,7 +57,7 @@ static const wchar_t kUrl[] = TELEMETRY_BASE_URL TELEMETRY_NAMESPACE
     TELEMETRY_LAUNCHER_PING_DOCTYPE TELEMETRY_LAUNCHER_PING_VERSION L"/";
 static const uint32_t kGuidCharLenWithNul = 39;
 static const uint32_t kGuidCharLenNoBracesNoNul = 36;
-static const mozilla::StaticXREAppData* gAppData;
+static const mozilla::StaticXREAppData* gStaticAppData;
 
 // Ordinarily, errors are only reported to the Windows Event Log when they are
 // not reported upstream via telemetry (usually due either to telemetry being
@@ -495,11 +495,11 @@ static bool PrepPing(const PingThreadContext& aContext, const std::wstring& aId,
 
   aJson.StringProperty("update_channel", QUOTE_ME(MOZ_UPDATE_CHANNEL));
 
-  if (gAppData) {
+  if (gStaticAppData) {
     aJson.StringProperty("build_id",
-                         mozilla::MakeStringSpan(gAppData->buildID));
+                         mozilla::MakeStringSpan(gStaticAppData->buildID));
     aJson.StringProperty("build_version",
-                         mozilla::MakeStringSpan(gAppData->version));
+                         mozilla::MakeStringSpan(gStaticAppData->version));
   }
 
   OSVERSIONINFOEXW osv = {sizeof(osv)};
@@ -767,7 +767,7 @@ void HandleLauncherError(const LauncherError& aError,
 }
 
 void SetLauncherErrorAppData(const StaticXREAppData& aAppData) {
-  gAppData = &aAppData;
+  gStaticAppData = &aAppData;
 }
 
 void SetLauncherErrorForceEventLog() { gForceEventLog = true; }
