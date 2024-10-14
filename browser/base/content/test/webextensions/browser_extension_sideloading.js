@@ -383,6 +383,8 @@ add_task(async function test_sideloading() {
 
   const baseEventAddon1 = createBaseEventAddon(1);
 
+  const blocklist_state = `${Ci.nsIBlocklistService.STATE_NOT_BLOCKED}`;
+
   Assert.deepEqual(
     AddonTestUtils.getAMGleanEvents("manage", { addon_id: ID1 }),
     [
@@ -393,6 +395,7 @@ add_task(async function test_sideloading() {
         source: "app-profile",
         source_method: "sideload",
         num_strings: "2",
+        blocklist_state,
       },
       {
         addon_id: ID1,
@@ -400,6 +403,7 @@ add_task(async function test_sideloading() {
         addon_type: "extension",
         source: "app-profile",
         source_method: "sideload",
+        blocklist_state,
       },
     ],
     "Got the expected Glean events for addon1."
@@ -413,9 +417,13 @@ add_task(async function test_sideloading() {
     {
       ...baseEventAddon1,
       method: "sideload_prompt",
-      extra: { ...expectedExtra, num_strings: "2" },
+      extra: { ...expectedExtra, num_strings: "2", blocklist_state },
     },
-    { ...baseEventAddon1, method: "uninstall" },
+    {
+      ...baseEventAddon1,
+      method: "uninstall",
+      extra: { ...expectedExtra, blocklist_state },
+    },
   ];
 
   let i = 0;
@@ -442,10 +450,18 @@ add_task(async function test_sideloading() {
     {
       ...baseEventAddon2,
       method: "sideload_prompt",
-      extra: { ...expectedExtra, num_strings: "1" },
+      extra: { ...expectedExtra, num_strings: "1", blocklist_state },
     },
-    { ...baseEventAddon2, method: "enable" },
-    { ...baseEventAddon2, method: "uninstall" },
+    {
+      ...baseEventAddon2,
+      method: "enable",
+      extra: { ...expectedExtra, blocklist_state },
+    },
+    {
+      ...baseEventAddon2,
+      method: "uninstall",
+      extra: { ...expectedExtra, blocklist_state },
+    },
   ];
 
   i = 0;
@@ -473,6 +489,7 @@ add_task(async function test_sideloading() {
         source: "app-profile",
         source_method: "sideload",
         num_strings: "1",
+        blocklist_state,
       },
       {
         addon_id: ID2,
@@ -480,6 +497,7 @@ add_task(async function test_sideloading() {
         addon_type: "extension",
         source: "app-profile",
         source_method: "sideload",
+        blocklist_state,
       },
       {
         addon_id: ID2,
@@ -487,6 +505,7 @@ add_task(async function test_sideloading() {
         addon_type: "extension",
         source: "app-profile",
         source_method: "sideload",
+        blocklist_state,
       },
     ],
     "Got the expected Glean events for addon2."

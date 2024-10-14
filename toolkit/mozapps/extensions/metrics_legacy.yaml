@@ -518,6 +518,7 @@ addons_manager:
       - https://bugzil.la/1817100
       - https://bugzil.la/1861295
       - https://bugzil.la/1912166
+      - https://bugzil.la/1917859
     data_reviews: &addonsManager_disable_data_reviews
       - https://bugzil.la/1433335
       - https://bugzil.la/1515697
@@ -532,6 +533,7 @@ addons_manager:
       - https://bugzil.la/1817100
       - https://bugzil.la/1861295
       - https://bugzil.la/1912166
+      - https://bugzil.la/1917859
     notification_emails: &addonsManager_disable_emails
       - addons-dev-internal@mozilla.com
     expires: 140
@@ -552,6 +554,11 @@ addons_manager:
       num_strings:
         description: >
           The number of permission description strings in the extension permission doorhanger
+        type: string
+      blocklist_state:
+        description: |
+          The add-on blocklistState (0 not-blocked, 1 soft-blocked, 2
+          hard-blocked) at the time the manage event was being collected.
         type: string
     telemetry_mirror: Addonsmanager_Disable_Extension
 

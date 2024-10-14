@@ -287,6 +287,9 @@ addonsManager:
         The method used by the source to install the add-on (included when the source can use more than one,
         e.g. install events with source "about:addons" may have "install-from-file" or "url" as method).
       num_strings: The number of permission description strings in the extension permission doorhanger
+      blocklist_state: >
+        The add-on blocklistState (0 not-blocked, 1 soft-blocked, 2
+        hard-blocked) at the time the manage event was being collected.
     notification_emails: ["addons-dev-internal@mozilla.com"]
     expiry_version: "140"
     products:
@@ -294,7 +297,7 @@ addonsManager:
       - "fennec"
       - "thunderbird"
     record_in_processes: ["main"]
-    bug_numbers: [1433335, 1515697, 1523641, 1549770, 1590736, 1630596, 1672570, 1714251, 1749878, 1781974, 1817100, 1861295, 1912166]
+    bug_numbers: [1433335, 1515697, 1523641, 1549770, 1590736, 1630596, 1672570, 1714251, 1749878, 1781974, 1817100, 1861295, 1912166, 1917859]
     release_channel_collection: opt-out
 addonsSearchDetection:
   etld_change:

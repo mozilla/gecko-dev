@@ -197,24 +197,35 @@ add_task(
     let amUninstallEvents = amEvents
       .filter(evt => evt.method === "uninstall")
       .map(evt => {
-        const { object, value } = evt;
-        return { object, value };
+        const { object, value, extra } = evt;
+        return {
+          object,
+          value,
+          extra: { blocklist_state: extra.blocklist_state },
+        };
       });
+
+    const blocklist_state = `${Ci.nsIBlocklistService.STATE_NOT_BLOCKED}`;
 
     Assert.deepEqual(
       amUninstallEvents,
       [
-        { object: "dictionary", value: addon.id },
-        { object: "dictionary", value: addon2.id },
+        { object: "dictionary", value: addon.id, extra: { blocklist_state } },
+        { object: "dictionary", value: addon2.id, extra: { blocklist_state } },
       ],
       "Got the expected uninstall telemetry events"
     );
 
+    const baseGleanExtra = {
+      addon_type: "dictionary",
+      method: "uninstall",
+      blocklist_state,
+    };
     Assert.deepEqual(
       AddonTestUtils.getAMGleanEvents("manage", { method: "uninstall" }),
       [
-        { addon_type: "dictionary", addon_id: addon.id, method: "uninstall" },
-        { addon_type: "dictionary", addon_id: addon2.id, method: "uninstall" },
+        { ...baseGleanExtra, addon_id: addon.id },
+        { ...baseGleanExtra, addon_id: addon2.id },
       ],
       "Got the expected uninstall Glean events."
     );

@@ -182,9 +182,11 @@ addons_manager:
       - https://bugzilla.mozilla.org/1817100
       - https://bugzilla.mozilla.org/1820153
       - https://bugzilla.mozilla.org/1912166
+      - https://bugzilla.mozilla.org/1917859
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1433335#c8
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
+      - https://phabricator.services.mozilla.com/D224982
     data_sensitivity:
       - interaction
     notification_emails:
@@ -217,6 +219,11 @@ addons_manager:
           The number of permission description strings in the
           extension permission doorhanger.
         type: quantity
+      blocklist_state:
+        description: |
+          The add-on blocklistState (0 not-blocked, 1 soft-blocked, 2
+          hard-blocked) at the time the manage event was being collected.
+        type: string
     expires: 140
 
   report_suspicious_site:

@@ -5173,6 +5173,8 @@ AMTelemetry = {
       }
     }
 
+    extra.blocklist_state = `${addon.blocklistState}`;
+
     if (extra.source === "internal") {
       // Do not record the telemetry event for installation sources
       // that are marked as "internal".
@@ -5201,6 +5203,7 @@ AMTelemetry = {
         source: extra.source,
         source_method: extra.method,
         num_strings: extra.num_strings,
+        blocklist_state: extra.blocklist_state,
       })
     );
   },
