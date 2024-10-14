@@ -1126,7 +1126,8 @@ void Console::ProfileMethodInternal(JSContext* aCx, MethodName aMethodName,
     return;
   }
 
-  MaybeExecuteDumpFunction(aCx, aAction, aData, nullptr);
+  MaybeExecuteDumpFunction(aCx, aMethodName, aAction, aData, nullptr,
+                           DOMHighResTimeStamp(0.0));
 
   if (WorkletThread::IsOnWorkletThread()) {
     RefPtr<ConsoleProfileWorkletRunnable> runnable =
@@ -1396,14 +1397,14 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
 
   // Before processing this CallData differently, it's time to call the dump
   // function.
+  //
+  // Only log the stack trace for console.trace() and console.assert()
   if (aMethodName == MethodTrace || aMethodName == MethodAssert) {
-    MaybeExecuteDumpFunction(aCx, aMethodString, aData, stack);
-  } else if ((aMethodName == MethodTime || aMethodName == MethodTimeEnd) &&
-             !aData.IsEmpty()) {
-    MaybeExecuteDumpFunctionForTime(aCx, aMethodName, aMethodString,
-                                    monotonicTimer, aData[0]);
+    MaybeExecuteDumpFunction(aCx, aMethodName, aMethodString, aData, stack,
+                             monotonicTimer);
   } else {
-    MaybeExecuteDumpFunction(aCx, aMethodString, aData, nullptr);
+    MaybeExecuteDumpFunction(aCx, aMethodName, aMethodString, aData, nullptr,
+                             monotonicTimer);
   }
 
   if (NS_IsMainThread()) {
@@ -2690,17 +2691,18 @@ void Console::StringifyElement(Element* aElement, nsAString& aOut) {
   aOut.AppendLiteral(">");
 }
 
-void Console::MaybeExecuteDumpFunction(JSContext* aCx,
-                                       const nsAString& aMethodName,
+void Console::MaybeExecuteDumpFunction(JSContext* aCx, MethodName aMethodName,
+                                       const nsAString& aMethodString,
                                        const Sequence<JS::Value>& aData,
-                                       nsIStackFrame* aStack) {
+                                       nsIStackFrame* aStack,
+                                       DOMHighResTimeStamp aMonotonicTimer) {
   if (!mDumpFunction && !mDumpToStdout) {
     return;
   }
 
   nsAutoString message;
   message.AssignLiteral("console.");
-  message.Append(aMethodName);
+  message.Append(aMethodString);
   message.AppendLiteral(": ");
 
   if (!mPrefix.IsEmpty()) {
@@ -2738,6 +2740,11 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
     message.Append(string);
   }
 
+  if (aMethodName == MethodTime || aMethodName == MethodTimeEnd) {
+    message.AppendLiteral(" @ ");
+    message.AppendFloat(aMonotonicTimer);
+  }
+
   message.AppendLiteral("\n");
 
   // aStack can be null.
@@ -2769,44 +2776,6 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
     stack.swap(caller);
   }
 
-  ExecuteDumpFunction(message);
-}
-
-void Console::MaybeExecuteDumpFunctionForTime(JSContext* aCx,
-                                              MethodName aMethodName,
-                                              const nsAString& aMethodString,
-                                              uint64_t aMonotonicTimer,
-                                              const JS::Value& aData) {
-  if (!mDumpFunction && !mDumpToStdout) {
-    return;
-  }
-
-  nsAutoString message;
-  message.AssignLiteral("console.");
-  message.Append(aMethodString);
-  message.AppendLiteral(": ");
-
-  if (!mPrefix.IsEmpty()) {
-    message.Append(mPrefix);
-    message.AppendLiteral(": ");
-  }
-
-  JS::Rooted<JS::Value> v(aCx, aData);
-  JS::Rooted<JSString*> jsString(aCx, JS_ValueToSource(aCx, v));
-  if (!jsString) {
-    return;
-  }
-
-  nsAutoJSString string;
-  if (NS_WARN_IF(!string.init(aCx, jsString))) {
-    return;
-  }
-
-  message.Append(string);
-  message.AppendLiteral(" @ ");
-  message.AppendInt(aMonotonicTimer);
-
-  message.AppendLiteral("\n");
   ExecuteDumpFunction(message);
 }
 
