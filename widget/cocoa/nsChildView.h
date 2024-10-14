@@ -305,7 +305,7 @@ class nsChildView final : public nsBaseWidget {
   bool IsVisible() const override;
 
   void SetParent(nsIWidget* aNewParent) override;
-  nsIWidget* GetParent(void) override;
+  nsIWidget* GetParent() override;
   float GetDPI() override;
 
   void Move(double aX, double aY) override;
@@ -562,7 +562,7 @@ class nsChildView final : public nsBaseWidget {
   InputContext mInputContext;
 
   NSView* mParentView;
-  nsIWidget* mParentWidget;
+  nsCOMPtr<nsIWidget> mParentWidget;
 
 #ifdef ACCESSIBILITY
   // weak ref to this childview's associated mozAccessible for speed reasons

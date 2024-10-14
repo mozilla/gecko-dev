@@ -323,6 +323,9 @@ class nsCocoaWindow final : public nsBaseWidget {
 
   void SetPopupWindowLevel();
 
+  nsIWidget* GetParent() override { return mParent; }
+  void SetParent(nsIWidget*) override;
+
   bool InFullScreenMode() const { return mInFullScreenMode; }
 
   void PauseOrResumeCompositor(bool aPause) override;
@@ -378,9 +381,8 @@ class nsCocoaWindow final : public nsBaseWidget {
     return nsIWidget::CreateTopLevelWindow();
   }
 
-  nsIWidget* mParent;        // if we're a popup, this is our parent [WEAK]
-  nsIWidget* mAncestorLink;  // link to traverse ancestors [WEAK]
-  BaseWindow* mWindow;       // our cocoa window [STRONG]
+  nsCOMPtr<nsIWidget> mParent;
+  BaseWindow* mWindow;  // our cocoa window [STRONG]
   WindowDelegate*
       mDelegate;  // our delegate for processing window msgs [STRONG]
   RefPtr<nsMenuBarX> mMenuBar;

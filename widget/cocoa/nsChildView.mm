@@ -220,7 +220,6 @@ static inline void FlipCocoaScreenCoordinate(NSPoint& inPoint) {
 nsChildView::nsChildView()
     : mView(nullptr),
       mParentView(nil),
-      mParentWidget(nullptr),
       mCompositingLock("ChildViewCompositing"),
       mBackingScaleFactor(0.0),
       mVisible(false),
@@ -243,7 +242,6 @@ nsChildView::~nsChildView() {
       kid = kid->GetPrevSibling();
       RemoveChild(childWindow);
       childWindow->mParent = nullptr;
-      childWindow->mAncestorLink = nullptr;
     }
   }
 
