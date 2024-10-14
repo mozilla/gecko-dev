@@ -118,21 +118,6 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
 
     if (importedStringConstants.isNullOrUndefined()) {
       this->jsStringConstants = false;
-    } else if (importedStringConstants.isBoolean() &&
-               importedStringConstants.toBoolean()) {
-      // Temporary backwards compatibility hack to interpret 'true' as "'"
-      this->jsStringConstants = true;
-
-      UniqueChars jsStringConstantsNamespace = JS_smprintf("'");
-      if (!jsStringConstantsNamespace) {
-        return false;
-      }
-
-      this->jsStringConstantsNamespace =
-          js_new<ShareableChars>(std::move(jsStringConstantsNamespace));
-      if (!this->jsStringConstantsNamespace) {
-        return false;
-      }
     } else {
       this->jsStringConstants = true;
 
