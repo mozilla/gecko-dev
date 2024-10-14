@@ -2682,6 +2682,7 @@ static bool SelectForGC(JSContext* cx, unsigned argc, Value* vp) {
   for (unsigned i = 0; i < args.length(); i++) {
     if (args[i].isObject()) {
       if (!cx->runtime()->gc.selectForMarking(&args[i].toObject())) {
+        ReportOutOfMemory(cx);
         return false;
       }
     }
