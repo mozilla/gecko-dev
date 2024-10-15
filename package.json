@@ -5,6 +5,7 @@
   "license": "MPL-2.0",
   "devDependencies": {
     "@microsoft/eslint-plugin-sdl": "0.2.2",
+    "@stylistic/stylelint-plugin": "^3.1.0",
     "@types/gecko": "file:tools/@types",
     "eslint": "8.57.1",
     "eslint-config-prettier": "9.1.0",
@@ -22,9 +23,9 @@
     "eslint-plugin-spidermonkey-js": "file:tools/lint/eslint/eslint-plugin-spidermonkey-js",
     "jsdoc": "4.0.3",
     "prettier": "2.8.8",
-    "stylelint": "15.10.3",
-    "stylelint-config-recommended": "13.0.0",
-    "stylelint-config-standard-scss": "11.0.0",
+    "stylelint": "16.9.0",
+    "stylelint-config-recommended": "14.0.1",
+    "stylelint-config-standard-scss": "13.1.0",
     "yarn": "1.22.22"
   },
   "notes(private)": "We don't want to publish to npm, so this is marked as private",

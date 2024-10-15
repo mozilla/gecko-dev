@@ -220,17 +220,17 @@ async function main() {
       flags: {
         collection: {
           type: "string",
-          alias: "c",
+          shortFlag: "c",
           default: DEFAULT_COLLECTION_ID,
         },
         experiments: {
           type: "boolean",
-          alias: "e",
+          shortFlag: "e",
           default: false,
         },
         skipValidation: {
           type: "boolean",
-          alias: "s",
+          shortFlag: "s",
           default: false,
         },
       },

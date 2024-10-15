@@ -6,12 +6,12 @@
 
 /* eslint-env node */
 
-const { createPlugin } = require("stylelint");
-const rules = require("./rules");
-const { namespace } = require("./helpers");
+import stylelint from "stylelint";
+import rules from "./rules/index.mjs";
+import { namespace } from "./helpers.mjs";
 
 const plugins = Object.keys(rules).map(ruleName => {
-  return createPlugin(namespace(ruleName), rules[ruleName]);
+  return stylelint.createPlugin(namespace(ruleName), rules[ruleName]);
 });
 
-module.exports = plugins;
+export default plugins;

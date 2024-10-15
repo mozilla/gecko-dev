@@ -175,12 +175,12 @@ async function main() {
       flags: {
         addonPath: {
           type: "string",
-          alias: "a",
+          shortFlag: "a",
           default: DEFAULT_OPTIONS.addonPath,
         },
         baseUrl: {
           type: "string",
-          alias: "b",
+          shortFlag: "b",
           default: DEFAULT_OPTIONS.baseUrl,
         },
       },

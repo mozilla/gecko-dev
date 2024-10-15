@@ -6,6 +6,8 @@
 
 /* eslint-env node */
 
-module.exports = {
-  "no-base-design-tokens": require("./no-base-design-tokens"),
-};
+const MOZILLA_NAMESPACE = "stylelint-plugin-mozilla";
+
+export function namespace(ruleName) {
+  return `${MOZILLA_NAMESPACE}/${ruleName}`;
+}

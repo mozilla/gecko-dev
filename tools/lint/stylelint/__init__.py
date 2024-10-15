@@ -129,30 +129,29 @@ def run(cmd_args, config, fix):
     signal.signal(signal.SIGINT, orig)
 
     try:
-        output, errors = proc.communicate()
+        _, errors = proc.communicate()
     except KeyboardInterrupt:
         proc.kill()
         return {"results": [], "fixed": 0}
 
     if errors:
         errors = errors.decode(encoding, "replace")
-        print(STYLELINT_ERROR_MESSAGE.format(errors))
 
     # 0 is success, 2 is there was at least 1 rule violation. Anything else
     # is more serious.
     if proc.returncode != 0 and proc.returncode != 2:
         if proc.returncode == 78:
             print("Stylelint reported an issue with its configuration file.")
-            print(output)
+            print(errors)
         return 1
 
-    if not output:
-        return {"results": [], "fixed": 0}  # no output means success
-    output = output.decode(encoding, "replace")
+    if not errors:
+        return {"results": [], "fixed": 0}
+
     try:
-        jsonresult = json.loads(output)
+        jsonresult = json.loads(errors)
     except ValueError:
-        print(STYLELINT_ERROR_MESSAGE.format(output))
+        print(STYLELINT_ERROR_MESSAGE.format(errors))
         return 1
 
     results = []

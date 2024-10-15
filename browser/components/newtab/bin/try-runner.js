@@ -310,7 +310,7 @@ async function main() {
         test: {
           type: "string",
           isMultiple: true,
-          alias: "t",
+          shortFlag: "t",
         },
       },
     }

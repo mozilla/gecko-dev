@@ -806,7 +806,6 @@ a.learn-more-link.webconsole-learn-more-link {
   max-height: 250px;
   overflow: auto;
   position: relative;
-  border-width: 1px 0 0 1px;
   padding: 0;
   margin-block-end: var(--attachment-margin-block-end);
   border: 1px solid var(--consoletable-border);

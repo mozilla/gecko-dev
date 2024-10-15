@@ -6,7 +6,7 @@
 // these values exactly, since they're drawn from other parts of the browser.
 
 @mixin light-theme {
-  --fc-background: var(--fc-background-light, #fff);
+  --fc-background: var(--fc-background-light, #FFF);
   --fc-color: var(--fc-color-light, rgb(21, 20, 26));
   --fc-border: var(--fc-border-light, #CFCFD8);
   --fc-accent-color: var(--fc-accent-color-light, rgb(0, 97, 224));
@@ -19,13 +19,13 @@
   --fc-button-background-active: var(--fc-button-background-active-light, #CFCFD8);
   --fc-button-color-active: var(--fc-button-color-active-light, rgb(21, 20, 26));
   --fc-button-border-active: var(--fc-button-border-active-light, transparent);
-  --fc-primary-button-background: var(--fc-primary-button-background-light, #0061e0);
+  --fc-primary-button-background: var(--fc-primary-button-background-light, #0061E0);
   --fc-primary-button-color: var(--fc-primary-button-color-light, rgb(251,251,254));
   --fc-primary-button-border: var(--fc-primary-button-border-light, transparent);
-  --fc-primary-button-background-hover: var(--fc-primary-button-background-hover-light, #0250bb);
+  --fc-primary-button-background-hover: var(--fc-primary-button-background-hover-light, #0250BB);
   --fc-primary-button-color-hover: var(--fc-primary-button-color-hover-light, rgb(251,251,254));
   --fc-primary-button-border-hover: var(--fc-primary-button-border-hover-light, transparent);
-  --fc-primary-button-background-active: var(--fc-primary-button-background-active-light, #053e94);
+  --fc-primary-button-background-active: var(--fc-primary-button-background-active-light, #053E94);
   --fc-primary-button-color-active: var(--fc-primary-button-color-active-light, rgb(251,251,254));
   --fc-primary-button-border-active: var(--fc-primary-button-border-active-light, transparent);
   --fc-step-color: color-mix(in srgb, currentColor 50%, transparent);
