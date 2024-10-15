@@ -47,6 +47,15 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPlayPauseEvent)
 
   ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
   ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Playpause));
+
+  MPRemoteCommandCenter* commandCenter =
+      [MPRemoteCommandCenter sharedCommandCenter];
+
+  ASSERT_TRUE(!commandCenter.togglePlayPauseCommand.enabled);
+
+  source->SetSupportedMediaKeys({MediaControlKey::Playpause});
+
+  ASSERT_TRUE(commandCenter.togglePlayPauseCommand.enabled);
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPlayEvent)
@@ -76,6 +85,15 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPlayEvent)
 
   ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
   ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Play));
+
+  MPRemoteCommandCenter* commandCenter =
+      [MPRemoteCommandCenter sharedCommandCenter];
+
+  ASSERT_TRUE(!commandCenter.playCommand.enabled);
+
+  source->SetSupportedMediaKeys({MediaControlKey::Play});
+
+  ASSERT_TRUE(commandCenter.playCommand.enabled);
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPauseEvent)
@@ -103,6 +121,15 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPauseEvent)
 
   ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePaused);
   ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Pause));
+
+  MPRemoteCommandCenter* commandCenter =
+      [MPRemoteCommandCenter sharedCommandCenter];
+
+  ASSERT_TRUE(!commandCenter.pauseCommand.enabled);
+
+  source->SetSupportedMediaKeys({MediaControlKey::Pause});
+
+  ASSERT_TRUE(commandCenter.pauseCommand.enabled);
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPrevNextEvent)
@@ -130,6 +157,18 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPrevNextEvent)
   previousHandler(nil);
 
   ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Previoustrack));
+
+  MPRemoteCommandCenter* commandCenter =
+      [MPRemoteCommandCenter sharedCommandCenter];
+
+  ASSERT_TRUE(!commandCenter.previousTrackCommand.enabled);
+  ASSERT_TRUE(!commandCenter.nextTrackCommand.enabled);
+
+  source->SetSupportedMediaKeys(
+      {MediaControlKey::Previoustrack, MediaControlKey::Nexttrack});
+
+  ASSERT_TRUE(commandCenter.previousTrackCommand.enabled);
+  ASSERT_TRUE(commandCenter.nextTrackCommand.enabled);
 }
 
 @interface MockChangePlaybackPositionCommandEvent : MPRemoteCommandEvent
@@ -171,6 +210,15 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter,
   ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Seekto));
   mozilla::Maybe<SeekDetails> seekDetails = listener->GetSeekDetails();
   ASSERT_TRUE(seekDetails->mAbsolute->mSeekTime == seekPosition);
+
+  MPRemoteCommandCenter* commandCenter =
+      [MPRemoteCommandCenter sharedCommandCenter];
+
+  ASSERT_TRUE(!commandCenter.changePlaybackPositionCommand.enabled);
+
+  source->SetSupportedMediaKeys({MediaControlKey::Seekto});
+
+  ASSERT_TRUE(commandCenter.changePlaybackPositionCommand.enabled);
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestSetMetadata)

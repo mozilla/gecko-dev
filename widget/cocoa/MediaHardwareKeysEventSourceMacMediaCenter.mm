@@ -29,7 +29,7 @@ MediaHardwareKeysEventSourceMacMediaCenter::CreatePlayPauseHandler() {
         center.playbackState == MPNowPlayingPlaybackStatePlaying
             ? MPNowPlayingPlaybackStatePaused
             : MPNowPlayingPlaybackStatePlaying;
-    HandleEvent(dom::MediaControlAction(MediaControlKey::Playpause));
+    HandleEvent(MediaControlAction(MediaControlKey::Playpause));
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -37,7 +37,7 @@ MediaHardwareKeysEventSourceMacMediaCenter::CreatePlayPauseHandler() {
 MediaCenterEventHandler
 MediaHardwareKeysEventSourceMacMediaCenter::CreateNextTrackHandler() {
   return Block_copy(^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent* event) {
-    HandleEvent(dom::MediaControlAction(MediaControlKey::Nexttrack));
+    HandleEvent(MediaControlAction(MediaControlKey::Nexttrack));
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -45,7 +45,7 @@ MediaHardwareKeysEventSourceMacMediaCenter::CreateNextTrackHandler() {
 MediaCenterEventHandler
 MediaHardwareKeysEventSourceMacMediaCenter::CreatePreviousTrackHandler() {
   return Block_copy(^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent* event) {
-    HandleEvent(dom::MediaControlAction(MediaControlKey::Previoustrack));
+    HandleEvent(MediaControlAction(MediaControlKey::Previoustrack));
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -57,7 +57,7 @@ MediaHardwareKeysEventSourceMacMediaCenter::CreatePlayHandler() {
     if (center.playbackState != MPNowPlayingPlaybackStatePlaying) {
       center.playbackState = MPNowPlayingPlaybackStatePlaying;
     }
-    HandleEvent(dom::MediaControlAction(MediaControlKey::Play));
+    HandleEvent(MediaControlAction(MediaControlKey::Play));
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -69,7 +69,7 @@ MediaHardwareKeysEventSourceMacMediaCenter::CreatePauseHandler() {
     if (center.playbackState != MPNowPlayingPlaybackStatePaused) {
       center.playbackState = MPNowPlayingPlaybackStatePaused;
     }
-    HandleEvent(dom::MediaControlAction(MediaControlKey::Pause));
+    HandleEvent(MediaControlAction(MediaControlKey::Pause));
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -79,9 +79,9 @@ MediaCenterEventHandler MediaHardwareKeysEventSourceMacMediaCenter::
   return Block_copy(^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent* event) {
     MPChangePlaybackPositionCommandEvent* changePosEvent =
         (MPChangePlaybackPositionCommandEvent*)event;
-    HandleEvent(dom::MediaControlAction(
-        MediaControlKey::Seekto,
-        dom::SeekDetails(changePosEvent.positionTime, false)));
+    HandleEvent(
+        MediaControlAction(MediaControlKey::Seekto,
+                           SeekDetails(changePosEvent.positionTime, false)));
     return MPRemoteCommandHandlerStatusSuccess;
   });
 }
@@ -110,18 +110,18 @@ void MediaHardwareKeysEventSourceMacMediaCenter::BeginListeningForEvents() {
   center.playbackState = MPNowPlayingPlaybackStatePlaying;
   MPRemoteCommandCenter* commandCenter =
       [MPRemoteCommandCenter sharedCommandCenter];
-  commandCenter.togglePlayPauseCommand.enabled = true;
+  commandCenter.togglePlayPauseCommand.enabled = false;
   [commandCenter.togglePlayPauseCommand addTargetWithHandler:mPlayPauseHandler];
-  commandCenter.nextTrackCommand.enabled = true;
+  commandCenter.nextTrackCommand.enabled = false;
   [commandCenter.nextTrackCommand addTargetWithHandler:mNextTrackHandler];
-  commandCenter.previousTrackCommand.enabled = true;
+  commandCenter.previousTrackCommand.enabled = false;
   [commandCenter.previousTrackCommand
       addTargetWithHandler:mPreviousTrackHandler];
-  commandCenter.playCommand.enabled = true;
+  commandCenter.playCommand.enabled = false;
   [commandCenter.playCommand addTargetWithHandler:mPlayHandler];
-  commandCenter.pauseCommand.enabled = true;
+  commandCenter.pauseCommand.enabled = false;
   [commandCenter.pauseCommand addTargetWithHandler:mPauseHandler];
-  commandCenter.changePlaybackPositionCommand.enabled = true;
+  commandCenter.changePlaybackPositionCommand.enabled = false;
   [commandCenter.changePlaybackPositionCommand
       addTargetWithHandler:mChangePlaybackPositionHandler];
 }
@@ -155,7 +155,7 @@ bool MediaHardwareKeysEventSourceMacMediaCenter::Open() {
 
 void MediaHardwareKeysEventSourceMacMediaCenter::Close() {
   LOG("Close MediaHardwareKeysEventSourceMacMediaCenter");
-  SetPlaybackState(dom::MediaSessionPlaybackState::None);
+  SetPlaybackState(MediaSessionPlaybackState::None);
   EndListeningForEvents();
   mOpened = false;
   MediaControlKeySource::Close();
@@ -166,7 +166,7 @@ bool MediaHardwareKeysEventSourceMacMediaCenter::IsOpened() const {
 }
 
 void MediaHardwareKeysEventSourceMacMediaCenter::HandleEvent(
-    const dom::MediaControlAction& aAction) {
+    const MediaControlAction& aAction) {
   for (auto iter = mListeners.begin(); iter != mListeners.end(); ++iter) {
     (*iter)->OnActionPerformed(aAction);
   }
@@ -187,7 +187,7 @@ void MediaHardwareKeysEventSourceMacMediaCenter::SetPlaybackState(
 }
 
 void MediaHardwareKeysEventSourceMacMediaCenter::SetMediaMetadata(
-    const dom::MediaMetadataBase& aMetadata) {
+    const MediaMetadataBase& aMetadata) {
   MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
   NSMutableDictionary* nowPlayingInfo =
       [center.nowPlayingInfo mutableCopy] ?: [NSMutableDictionary dictionary];
@@ -205,8 +205,31 @@ void MediaHardwareKeysEventSourceMacMediaCenter::SetMediaMetadata(
   center.nowPlayingInfo = nowPlayingInfo;
 }
 
+void MediaHardwareKeysEventSourceMacMediaCenter::SetSupportedMediaKeys(
+    const MediaKeysArray& aSupportedKeys) {
+  uint32_t supportedKeys = 0;
+  for (const MediaControlKey& key : aSupportedKeys) {
+    supportedKeys |= GetMediaKeyMask(key);
+  }
+
+  MPRemoteCommandCenter* commandCenter =
+      [MPRemoteCommandCenter sharedCommandCenter];
+  commandCenter.togglePlayPauseCommand.enabled =
+      supportedKeys & GetMediaKeyMask(MediaControlKey::Playpause);
+  commandCenter.nextTrackCommand.enabled =
+      supportedKeys & GetMediaKeyMask(MediaControlKey::Nexttrack);
+  commandCenter.previousTrackCommand.enabled =
+      supportedKeys & GetMediaKeyMask(MediaControlKey::Previoustrack);
+  commandCenter.playCommand.enabled =
+      supportedKeys & GetMediaKeyMask(MediaControlKey::Play);
+  commandCenter.pauseCommand.enabled =
+      supportedKeys & GetMediaKeyMask(MediaControlKey::Pause);
+  commandCenter.changePlaybackPositionCommand.enabled =
+      supportedKeys & GetMediaKeyMask(MediaControlKey::Seekto);
+}
+
 void MediaHardwareKeysEventSourceMacMediaCenter::SetPositionState(
-    const Maybe<dom::PositionState>& aState) {
+    const Maybe<PositionState>& aState) {
   mPositionState = aState;
   UpdatePositionInfo();
 }
