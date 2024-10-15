@@ -408,14 +408,6 @@ var SidebarController = {
       this._tabstripOrientationObserverAdded = true;
     }
 
-    requestIdleCallback(() => {
-      if (!this._uiState) {
-        // UI state has not been set by SessionStore. Use backup state for now.
-        const backupState = this.SidebarManager.getBackupState();
-        this.setUIState(backupState);
-      }
-    });
-
     this._initDeferred.resolve();
   },
 
@@ -428,10 +420,8 @@ var SidebarController = {
     let enumerator = Services.wm.getEnumerator("navigator:browser");
     if (!enumerator.hasMoreElements()) {
       let xulStore = Services.xulStore;
-      xulStore.persist(this._title, "value");
 
-      const currentState = this.getUIState();
-      this.SidebarManager.setBackupState(currentState);
+      xulStore.persist(this._title, "value");
     }
 
     Services.obs.removeObserver(this, "intl:app-locales-changed");
@@ -454,50 +444,6 @@ var SidebarController = {
       this.sidebarMain.remove();
     }
     this.browser.removeEventListener("resize", this._browserResizeObserver);
-  },
-
-  getUIState() {
-    const state = { width: this._box.style.width, command: this.currentID };
-    if (this.sidebarRevampEnabled) {
-      state.expanded = this.sidebarMain.expanded;
-      state.hidden = this.sidebarContainer.hidden;
-    }
-    return state;
-  },
-
-  /**
-   * Update and store the UI state of the sidebar for this window.
-   *
-   * @param {object} state
-   * @param {string} state.width
-   *   Panel width of the sidebar.
-   * @param {string} state.command
-   *   Panel ID that is currently open.
-   * @param {boolean} state.expanded
-   *   Whether the sidebar launcher is expanded. (Revamp only)
-   * @param {boolean} state.hidden
-   *   Whether the sidebar is hidden. (Revamp only)
-   */
-  async setUIState(state) {
-    if (!state) {
-      return;
-    }
-    this._uiState = state;
-    if (state.width) {
-      this._box.style.width = state.width;
-    }
-    if (state.command && this.currentID != state.command && !this.isOpen) {
-      await this.showInitially(state.command);
-    }
-    if (this.sidebarRevampEnabled) {
-      // The `sidebar-main` component is lazy-loaded in the `init()` method.
-      // Wait this out to ensure that it is connected to the DOM before making
-      // any changes.
-      await this.promiseInitialized;
-      this.toggleExpanded(state.expanded);
-      this.sidebarContainer.hidden = state.hidden;
-      this.updateToolbarButton();
-    }
   },
 
   /**
@@ -746,8 +692,29 @@ var SidebarController = {
       this._box.setAttribute("sidebarcommand", commandID);
     }
 
-    const sourceControllerState = sourceController.getUIState();
-    this.setUIState(sourceControllerState);
+    // Adopt `expanded` and `hidden` states only if the opener was also using
+    // revamped sidebar.
+    if (this.sidebarRevampEnabled && sourceController.revampComponentsLoaded) {
+      this.promiseInitialized.then(() => {
+        this.sidebarContainer.hidden = sourceController.sidebarContainer.hidden;
+        this.toggleExpanded(sourceController.sidebarMain.expanded);
+      });
+    }
+
+    if (sourceController._box.hidden) {
+      // just hidden means we have adopted the hidden state.
+      return true;
+    }
+
+    // dynamically generated sidebars will fail this check, but we still
+    // consider it adopted.
+    if (!this.sidebars.has(commandID)) {
+      return true;
+    }
+
+    this._box.style.width = sourceController._box.style.width;
+    this.showInitially(commandID);
+
     return true;
   },
 
