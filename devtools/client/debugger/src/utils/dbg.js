@@ -32,6 +32,11 @@ function bindSelectors(obj) {
   }, {});
 }
 
+function getCM() {
+  const cm = document.querySelector(".CodeMirror");
+  return cm?.CodeMirror;
+}
+
 function formatMappedLocation(mappedLocation) {
   const { location, generatedLocation } = mappedLocation;
   return {
@@ -67,6 +72,7 @@ export function setupHelper(obj) {
     prefs,
     asyncStore,
     features,
+    getCM,
 
     // Expose this to tests as they don't have access to debugger's browser loader require
     // and so can't load utils/wasm.js

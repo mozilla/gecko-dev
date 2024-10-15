@@ -8,10 +8,6 @@
 
 // Tests that after clicking a function in edtior, outline focuses that function
 add_task(async function () {
-  // Disabled for CM6 until this is fixed
-  if (isCm6Enabled) {
-    return;
-  }
   const dbg = await initDebugger("doc-sources.html", "long.js");
 
   await selectSource(dbg, "long.js", 1);
