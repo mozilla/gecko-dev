@@ -397,7 +397,7 @@ TEST_F(TestVp9Impl, EncoderExplicitLayering) {
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
             encoder_->InitEncode(&codec_settings_, kSettings));
 
-  // Ensure it fails if scaling factors in horz/vert dimentions are different.
+  // Ensure it fails if scaling factors in horz/vert dimensions are different.
   codec_settings_.spatialLayers[0].width = codec_settings_.width;
   codec_settings_.spatialLayers[0].height = codec_settings_.height / 2;
   codec_settings_.spatialLayers[1].width = codec_settings_.width;
@@ -411,6 +411,82 @@ TEST_F(TestVp9Impl, EncoderExplicitLayering) {
   codec_settings_.spatialLayers[1].width = codec_settings_.width;
   codec_settings_.spatialLayers[1].height = codec_settings_.height;
   EXPECT_EQ(WEBRTC_VIDEO_CODEC_ERR_PARAMETER,
+            encoder_->InitEncode(&codec_settings_, kSettings));
+}
+
+TEST_F(TestVp9Impl, EncoderAcceptsSvcLikeSimulcast) {
+  // Override default settings.
+  codec_settings_.VP9()->numberOfTemporalLayers = 3;
+  codec_settings_.VP9()->numberOfSpatialLayers = 1;
+  codec_settings_.numberOfSimulcastStreams = 3;
+
+  codec_settings_.width = 1280;
+  codec_settings_.height = 720;
+  codec_settings_.simulcastStream[0].minBitrate = 30;
+  codec_settings_.simulcastStream[0].maxBitrate = 150;
+  codec_settings_.simulcastStream[0].targetBitrate =
+      (codec_settings_.simulcastStream[0].minBitrate +
+       codec_settings_.simulcastStream[0].maxBitrate) /
+      2;
+  codec_settings_.simulcastStream[0].numberOfTemporalLayers = 3;
+  codec_settings_.simulcastStream[0].active = true;
+
+  codec_settings_.simulcastStream[1].minBitrate = 200;
+  codec_settings_.simulcastStream[1].maxBitrate = 500;
+  codec_settings_.simulcastStream[1].targetBitrate =
+      (codec_settings_.simulcastStream[1].minBitrate +
+       codec_settings_.simulcastStream[1].maxBitrate) /
+      2;
+  codec_settings_.simulcastStream[1].numberOfTemporalLayers = 3;
+  codec_settings_.simulcastStream[1].active = true;
+
+  codec_settings_.simulcastStream[2].minBitrate = 600;
+  codec_settings_.simulcastStream[2].maxBitrate = 1200;
+  codec_settings_.simulcastStream[2].targetBitrate =
+      (codec_settings_.simulcastStream[2].minBitrate +
+       codec_settings_.simulcastStream[2].maxBitrate) /
+      2;
+  codec_settings_.simulcastStream[2].numberOfTemporalLayers = 3;
+  codec_settings_.simulcastStream[2].active = true;
+
+  codec_settings_.simulcastStream[0].width = codec_settings_.width / 4;
+  codec_settings_.simulcastStream[0].height = codec_settings_.height / 4;
+  codec_settings_.simulcastStream[0].maxFramerate =
+      codec_settings_.maxFramerate;
+  codec_settings_.simulcastStream[1].width = codec_settings_.width / 2;
+  codec_settings_.simulcastStream[1].height = codec_settings_.height / 2;
+  codec_settings_.simulcastStream[1].maxFramerate =
+      codec_settings_.maxFramerate;
+  codec_settings_.simulcastStream[2].width = codec_settings_.width;
+  codec_settings_.simulcastStream[2].height = codec_settings_.height;
+  codec_settings_.simulcastStream[2].maxFramerate =
+      codec_settings_.maxFramerate;
+
+  EXPECT_EQ(WEBRTC_VIDEO_CODEC_OK,
+            encoder_->InitEncode(&codec_settings_, kSettings));
+
+  // Ensure it fails if temporal configs are different.
+  codec_settings_.simulcastStream[0].numberOfTemporalLayers = 1;
+  EXPECT_EQ(WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED,
+            encoder_->InitEncode(&codec_settings_, kSettings));
+
+  // Restore for following tests.
+  codec_settings_.simulcastStream[0].numberOfTemporalLayers = 3;
+
+  // Ensure it fails if scaling factors in horz/vert dimentions are different.
+  codec_settings_.simulcastStream[0].width = codec_settings_.width / 4;
+  codec_settings_.simulcastStream[0].height = codec_settings_.height / 16;
+  codec_settings_.simulcastStream[1].width = codec_settings_.width / 2;
+  codec_settings_.simulcastStream[1].height = codec_settings_.height / 4;
+  EXPECT_EQ(WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED,
+            encoder_->InitEncode(&codec_settings_, kSettings));
+
+  // Ensure it fails if scaling factor is not power of two.
+  codec_settings_.simulcastStream[0].width = codec_settings_.width / 9;
+  codec_settings_.simulcastStream[0].height = codec_settings_.height / 9;
+  codec_settings_.simulcastStream[1].width = codec_settings_.width / 3;
+  codec_settings_.simulcastStream[1].height = codec_settings_.height / 3;
+  EXPECT_EQ(WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED,
             encoder_->InitEncode(&codec_settings_, kSettings));
 }
 

@@ -16,6 +16,7 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "api/environment/environment.h"
@@ -27,8 +28,10 @@
 #include "common_video/include/video_frame_buffer_pool.h"
 #include "modules/video_coding/codecs/interface/libvpx_interface.h"
 #include "modules/video_coding/codecs/vp9/include/vp9.h"
+#include "modules/video_coding/codecs/vp9/svc_config.h"
 #include "modules/video_coding/codecs/vp9/vp9_frame_buffer_pool.h"
 #include "modules/video_coding/svc/scalable_video_controller.h"
+#include "modules/video_coding/svc/simulcast_to_svc_converter.h"
 #include "modules/video_coding/utility/framerate_controller_deprecated.h"
 #include "rtc_base/containers/flat_map.h"
 #include "rtc_base/experiments/encoder_info_settings.h"
@@ -66,7 +69,7 @@ class LibvpxVp9Encoder : public VideoEncoder {
   int NumberOfThreads(int width, int height, int number_of_cores);
 
   // Call encoder initialize function and set control settings.
-  int InitAndSetControlSettings(const VideoCodec* inst);
+  int InitAndSetControlSettings();
 
   // Update frame size for codec.
   int UpdateCodecFrameSize(const VideoFrame& input_image);
@@ -154,6 +157,9 @@ class LibvpxVp9Encoder : public VideoEncoder {
   bool ss_info_needed_;
   bool force_all_active_layers_;
   uint8_t num_cores_;
+
+  const bool enable_svc_for_simulcast_;
+  std::optional<SimulcastToSvcConverter> simulcast_to_svc_converter_;
 
   std::unique_ptr<ScalableVideoController> svc_controller_;
   std::optional<ScalabilityMode> scalability_mode_;

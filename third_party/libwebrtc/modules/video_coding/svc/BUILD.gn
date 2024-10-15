@@ -80,6 +80,22 @@ rtc_source_set("svc_rate_allocator") {
   ]
 }
 
+rtc_source_set("simulcast_to_svc_converter") {
+  sources = [
+    "simulcast_to_svc_converter.cc",
+    "simulcast_to_svc_converter.h",
+  ]
+  deps = [
+    ":scalability_mode_util",
+    ":scalability_structures",
+    ":scalable_video_controller",
+    "../../../api/video:encoded_image",
+    "../../../api/video_codecs:video_codecs_api",
+    "../../../modules/video_coding:video_codec_interface",
+    "../../../rtc_base:checks",
+  ]
+}
+
 if (rtc_include_tests) {
   rtc_source_set("scalability_structure_tests") {
     testonly = true
@@ -96,6 +112,7 @@ if (rtc_include_tests) {
       ":scalability_mode_util",
       ":scalability_structures",
       ":scalable_video_controller",
+      ":simulcast_to_svc_converter",
       "..:chain_diff_calculator",
       "..:frame_dependencies_calculator",
       "../../../api:array_view",
@@ -118,6 +135,18 @@ if (rtc_include_tests) {
       "..:webrtc_vp9_helpers",
       "../../../rtc_base:checks",
       "../../../test:field_trial",
+      "../../../test:test_support",
+    ]
+  }
+
+  rtc_source_set("simulcast_to_svc_converter_tests") {
+    testonly = true
+    sources = [ "simulcast_to_svc_converter_unittest.cc" ]
+    deps = [
+      ":scalability_structures",
+      ":scalable_video_controller",
+      ":simulcast_to_svc_converter",
+      "../../../rtc_base:checks",
       "../../../test:test_support",
     ]
   }
