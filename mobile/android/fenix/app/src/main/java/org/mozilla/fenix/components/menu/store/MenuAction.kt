@@ -175,16 +175,6 @@ sealed class MenuAction : Action {
     ) : MenuAction()
 
     /**
-     * [MenuAction] dispatched when disabled extensions promotion banner onboarding should be visible or not.
-     *
-     * @property showDisabledExtensionsOnboarding Show extensions promotion banner onboarding when
-     * all installed extensions have been disabled.
-     */
-    data class UpdateShowDisabledExtensionsOnboarding(
-        val showDisabledExtensionsOnboarding: Boolean,
-    ) : MenuAction()
-
-    /**
      * [MenuAction] dispatched when a custom item is tapped in the custom tab menu.
      *
      * @property intent The [PendingIntent] from the custom menu item.

@@ -61,6 +61,7 @@ class WebExtensionsMenuBinding(
             }
             .collect { webExtensionsFlowState ->
                 val eligibleExtensions = webExtensionsFlowState.browserState.extensions.values
+                    .filter { it.enabled }
                     .filterNot {
                         !it.allowedInPrivateBrowsing &&
                             webExtensionsFlowState.sessionState.content.private
@@ -88,14 +89,6 @@ class WebExtensionsMenuBinding(
                     }
                 }
 
-                if (browserWebExtensionMenuItems.isEmpty() && eligibleExtensions.filter { !it.isBuiltIn }
-                        .all { !it.enabled }
-                ) {
-                    menuStore.dispatch(MenuAction.UpdateShowDisabledExtensionsOnboarding(true))
-                } else {
-                    menuStore.dispatch(MenuAction.UpdateShowDisabledExtensionsOnboarding(false))
-                }
-
                 menuStore.dispatch(
                     MenuAction.UpdateWebExtensionBrowserMenuItems(browserWebExtensionMenuItems),
                 )
@@ -105,17 +98,12 @@ class WebExtensionsMenuBinding(
             }
     }
 
-    @Suppress("ReturnCount")
     private suspend fun getWebExtensionMenuItem(
         extension: WebExtensionState,
         webExtensionsFlowState: WebExtensionsFlowState,
         globalAction: Action,
         isPageAction: Boolean = false,
     ): WebExtensionMenuItem? {
-        if (!extension.enabled) {
-            return null
-        }
-
         val tabAction = if (isPageAction) {
             webExtensionsFlowState.sessionState.extensionState[extension.id]?.pageAction
         } else {

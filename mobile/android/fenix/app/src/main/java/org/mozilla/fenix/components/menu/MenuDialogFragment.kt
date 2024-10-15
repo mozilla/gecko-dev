@@ -303,10 +303,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         state.extensionMenuState.showExtensionsOnboarding
                     }
 
-                    val showDisabledExtensionsOnboarding by store.observeAsState(initialValue = false) { state ->
-                        state.extensionMenuState.showDisabledExtensionsOnboarding
-                    }
-
                     val initRoute = when (args.accesspoint) {
                         MenuAccessPoint.Browser,
                         MenuAccessPoint.Home,
@@ -550,7 +546,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     recommendedAddons = recommendedAddons,
                                     addonInstallationInProgress = addonInstallationInProgress,
                                     showExtensionsOnboarding = showExtensionsOnboarding,
-                                    showDisabledExtensionsOnboarding = showDisabledExtensionsOnboarding,
                                     showManageExtensions = updateManageExtensionsMenuItemVisibility,
                                     webExtensionMenuItems = browserWebExtensionMenuItem,
                                     onBackButtonClick = {
