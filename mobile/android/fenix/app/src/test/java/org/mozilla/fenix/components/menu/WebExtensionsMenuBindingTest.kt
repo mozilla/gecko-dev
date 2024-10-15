@@ -18,6 +18,7 @@ import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -216,6 +217,96 @@ class WebExtensionsMenuBindingTest {
             verify(menuStore).dispatch(pageItemsUpdateCaptor.capture())
 
             assertTrue(pageItemsUpdateCaptor.value.webExtensionPageMenuItem.isEmpty())
+        }
+
+    @Test
+    fun `WHEN all web extensions are disabled THEN show disabled extensions onboarding`() =
+        runTestOnMain {
+            val extensions: Map<String, WebExtensionState> = mapOf(
+                "id" to WebExtensionState(
+                    id = "id",
+                    url = "url",
+                    name = "name",
+                    enabled = false,
+                ),
+            )
+
+            menuStore = spy(MenuStore(MenuState()))
+            browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(
+                        createTab(
+                            url = "https://www.example.org",
+                            id = "tab1",
+                            extensions = extensions,
+                        ),
+                    ),
+                    selectedTabId = "tab1",
+                    extensions = extensions,
+                ),
+            )
+
+            val binding = WebExtensionsMenuBinding(
+                browserStore = browserStore,
+                menuStore = menuStore,
+                iconSize = 24.dpToPx(testContext.resources.displayMetrics),
+                onDismiss = {},
+            )
+            binding.start()
+
+            val showDisabledExtensionsOnboardingCaptor = argumentCaptor<MenuAction.UpdateShowDisabledExtensionsOnboarding>()
+
+            verify(menuStore).dispatch(showDisabledExtensionsOnboardingCaptor.capture())
+
+            assertTrue(showDisabledExtensionsOnboardingCaptor.value.showDisabledExtensionsOnboarding)
+        }
+
+    @Test
+    fun `WHEN only one web extension is disabled THEN not show disabled extensions onboarding`() =
+        runTestOnMain {
+            val extensions: Map<String, WebExtensionState> = mapOf(
+                "id" to WebExtensionState(
+                    id = "id",
+                    url = "url",
+                    name = "name",
+                    enabled = false,
+                ),
+                "id2" to WebExtensionState(
+                    id = "id2",
+                    url = "url2",
+                    name = "name2",
+                    enabled = true,
+                ),
+            )
+
+            menuStore = spy(MenuStore(MenuState()))
+            browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(
+                        createTab(
+                            url = "https://www.example.org",
+                            id = "tab1",
+                            extensions = extensions,
+                        ),
+                    ),
+                    selectedTabId = "tab1",
+                    extensions = extensions,
+                ),
+            )
+
+            val binding = WebExtensionsMenuBinding(
+                browserStore = browserStore,
+                menuStore = menuStore,
+                iconSize = 24.dpToPx(testContext.resources.displayMetrics),
+                onDismiss = {},
+            )
+            binding.start()
+
+            val showDisabledExtensionsOnboardingCaptor = argumentCaptor<MenuAction.UpdateShowDisabledExtensionsOnboarding>()
+
+            verify(menuStore).dispatch(showDisabledExtensionsOnboardingCaptor.capture())
+
+            assertFalse(showDisabledExtensionsOnboardingCaptor.value.showDisabledExtensionsOnboarding)
         }
 
     private fun createWebExtensionPageAction(title: String) = WebExtensionPageAction(

@@ -253,6 +253,7 @@ class MenuTelemetryMiddleware(
             is MenuAction.InstallAddonSuccess,
             is MenuAction.UpdateInstallAddonInProgress,
             is MenuAction.UpdateShowExtensionsOnboarding,
+            is MenuAction.UpdateShowDisabledExtensionsOnboarding,
             is MenuAction.UpdateManageExtensionsMenuItemVisibility,
             -> Unit
         }

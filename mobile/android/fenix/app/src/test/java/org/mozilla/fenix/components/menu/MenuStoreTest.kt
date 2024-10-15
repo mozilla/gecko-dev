@@ -404,4 +404,15 @@ class MenuStoreTest {
 
             assertTrue(store.state.extensionMenuState.shouldShowManageExtensionsMenuItem)
         }
+
+    @Test
+    fun `WHEN update show disabled extensions onboarding dispatched THEN extension state is updated`() =
+        runTest {
+            val initialState = MenuState()
+            val store = MenuStore(initialState = initialState)
+
+            store.dispatch(MenuAction.UpdateShowDisabledExtensionsOnboarding(true)).join()
+
+            assertTrue(store.state.extensionMenuState.showDisabledExtensionsOnboarding)
+        }
 }
