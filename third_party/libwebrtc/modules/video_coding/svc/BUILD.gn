@@ -134,6 +134,8 @@ if (rtc_include_tests) {
     deps = [
       ":svc_rate_allocator",
       "..:webrtc_vp9_helpers",
+      "../../../api/video:video_frame",
+      "../../../modules/video_coding/codecs/av1:av1_svc_config",
       "../../../rtc_base:checks",
       "../../../test:field_trial",
       "../../../test:test_support",
