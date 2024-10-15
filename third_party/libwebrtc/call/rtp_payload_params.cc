@@ -53,6 +53,7 @@ void PopulateRtpWithCodecSpecifics(const CodecSpecificInfo& info,
                                    RTPVideoHeader* rtp) {
   rtp->codec = info.codecType;
   rtp->is_last_frame_in_picture = info.end_of_picture;
+  rtp->frame_instrumentation_data = info.frame_instrumentation_data;
   switch (info.codecType) {
     case kVideoCodecVP8: {
       auto& vp8_header = rtp->video_type_header.emplace<RTPVideoHeaderVP8>();

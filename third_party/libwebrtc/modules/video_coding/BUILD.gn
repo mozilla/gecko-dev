@@ -291,8 +291,10 @@ rtc_library("video_codec_interface") {
     "../../api/video_codecs:scalability_mode",
     "../../api/video_codecs:video_codecs_api",
     "../../common_video",
+    "../../common_video:frame_instrumentation_data",
     "../../common_video/generic_frame_descriptor",
     "../../rtc_base/system:rtc_export",
+    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 
