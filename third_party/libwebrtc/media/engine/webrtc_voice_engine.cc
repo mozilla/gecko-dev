@@ -1039,7 +1039,7 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
   webrtc::RTCError SetRtpParameters(const webrtc::RtpParameters& parameters,
                                     webrtc::SetParametersCallback callback) {
     webrtc::RTCError error = CheckRtpParametersInvalidModificationAndValues(
-        rtp_parameters_, parameters);
+        rtp_parameters_, parameters, call_->trials());
     if (!error.ok()) {
       return webrtc::InvokeSetParametersCallback(callback, error);
     }

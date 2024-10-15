@@ -1990,7 +1990,7 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::SetRtpParameters(
   // conformance.
   // TODO(orphis): Migrate tests to later make this a DCHECK only
   webrtc::RTCError error = CheckRtpParametersInvalidModificationAndValues(
-      rtp_parameters_, new_parameters);
+      rtp_parameters_, new_parameters, call_->trials());
   if (!error.ok()) {
     return webrtc::InvokeSetParametersCallback(callback, error);
   }

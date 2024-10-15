@@ -858,6 +858,8 @@ if (rtc_include_tests) {
       "../rtc_base:timeutils",
       "../rtc_base/synchronization:mutex",
       "../rtc_base/third_party/sigslot",
+      "../test:explicit_key_value_config",
+      "../test:scoped_key_value_config",
       "../test:test_support",
       "../video/config:streams_config",
       "//testing/gtest",

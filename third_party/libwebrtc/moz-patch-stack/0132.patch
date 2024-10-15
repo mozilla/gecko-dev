@@ -486,7 +486,7 @@ index 39a5171908..1271a93f5f 100644
  
  group("logging") {
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 666ad096b7..444899112e 100644
+index 904bfa31aa..875bed2633 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -6,7 +6,7 @@
@@ -660,7 +660,7 @@ index 4d7e1492fd..9c7ab4f08a 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index 2d43148cd4..b41871c9a5 100644
+index c4aa4de08d..b04ea2463f 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -30,8 +30,8 @@

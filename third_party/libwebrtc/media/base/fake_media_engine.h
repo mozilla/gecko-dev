@@ -37,6 +37,8 @@
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/thread.h"
+#include "test/explicit_key_value_config.h"
+#include "test/scoped_key_value_config.h"
 
 using webrtc::RtpExtension;
 
@@ -306,7 +308,8 @@ class RtpSendChannelHelper : public Base, public MediaChannelUtil {
     auto parameters_iterator = rtp_send_parameters_.find(ssrc);
     if (parameters_iterator != rtp_send_parameters_.end()) {
       auto result = CheckRtpParametersInvalidModificationAndValues(
-          parameters_iterator->second, parameters);
+          parameters_iterator->second, parameters,
+          webrtc::test::ExplicitKeyValueConfig(""));
       if (!result.ok()) {
         return webrtc::InvokeSetParametersCallback(callback, result);
       }

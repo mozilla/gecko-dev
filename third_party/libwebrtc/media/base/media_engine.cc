@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "absl/algorithm/container.h"
+#include "api/field_trials_view.h"
 #include "api/video/video_bitrate_allocation.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/string_encode.h"
@@ -140,7 +141,8 @@ webrtc::RTCError CheckScalabilityModeValues(
 webrtc::RTCError CheckRtpParametersValues(
     const webrtc::RtpParameters& rtp_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    std::optional<cricket::Codec> send_codec) {
+    std::optional<cricket::Codec> send_codec,
+    const webrtc::FieldTrialsView& field_trials) {
   using webrtc::RTCErrorType;
 
   for (size_t i = 0; i < rtp_parameters.encodings.size(); ++i) {
@@ -201,16 +203,18 @@ webrtc::RTCError CheckRtpParametersValues(
 
 webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_rtp_parameters,
-    const webrtc::RtpParameters& rtp_parameters) {
+    const webrtc::RtpParameters& rtp_parameters,
+    const webrtc::FieldTrialsView& field_trials) {
   return CheckRtpParametersInvalidModificationAndValues(
-      old_rtp_parameters, rtp_parameters, {}, std::nullopt);
+      old_rtp_parameters, rtp_parameters, {}, std::nullopt, field_trials);
 }
 
 webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_rtp_parameters,
     const webrtc::RtpParameters& rtp_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    std::optional<cricket::Codec> send_codec) {
+    std::optional<cricket::Codec> send_codec,
+    const webrtc::FieldTrialsView& field_trials) {
   using webrtc::RTCErrorType;
   if (rtp_parameters.encodings.size() != old_rtp_parameters.encodings.size()) {
     LOG_AND_RETURN_ERROR(
@@ -245,7 +249,8 @@ webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
                          "Attempted to set RtpParameters with modified SSRC");
   }
 
-  return CheckRtpParametersValues(rtp_parameters, send_codecs, send_codec);
+  return CheckRtpParametersValues(rtp_parameters, send_codecs, send_codec,
+                                  field_trials);
 }
 
 CompositeMediaEngine::CompositeMediaEngine(

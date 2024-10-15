@@ -48,7 +48,8 @@ webrtc::RTCError CheckScalabilityModeValues(
 webrtc::RTCError CheckRtpParametersValues(
     const webrtc::RtpParameters& new_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    std::optional<cricket::Codec> send_codec);
+    std::optional<cricket::Codec> send_codec,
+    const webrtc::FieldTrialsView& field_trials);
 
 // Checks that the immutable values have not changed in new_parameters and
 // checks all parameters with CheckRtpParametersValues().
@@ -56,14 +57,16 @@ webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_parameters,
     const webrtc::RtpParameters& new_parameters,
     rtc::ArrayView<cricket::Codec> send_codecs,
-    std::optional<cricket::Codec> send_codec);
+    std::optional<cricket::Codec> send_codec,
+    const webrtc::FieldTrialsView& field_trials);
 
 // Checks that the immutable values have not changed in new_parameters and
 // checks parameters (except SVC) with CheckRtpParametersValues(). It should
 // usually be paired with a call to CheckScalabilityModeValues().
 webrtc::RTCError CheckRtpParametersInvalidModificationAndValues(
     const webrtc::RtpParameters& old_parameters,
-    const webrtc::RtpParameters& new_parameters);
+    const webrtc::RtpParameters& new_parameters,
+    const webrtc::FieldTrialsView& field_trials);
 
 struct RtpCapabilities {
   RtpCapabilities();

@@ -705,7 +705,7 @@ RTCError PeerConnection::Initialize(
                                                dependencies, context_.get());
 
   rtp_manager_ = std::make_unique<RtpTransmissionManager>(
-      IsUnifiedPlan(), context_.get(), &usage_pattern_, observer_,
+      env_, IsUnifiedPlan(), context_.get(), &usage_pattern_, observer_,
       legacy_stats_.get(), [this]() {
         RTC_DCHECK_RUN_ON(signaling_thread());
         sdp_handler_->UpdateNegotiationNeeded();
@@ -1151,8 +1151,8 @@ PeerConnection::AddTransceiver(
     codecs = context_->media_engine()->voice().send_codecs();
   }
 
-  auto result =
-      cricket::CheckRtpParametersValues(parameters, codecs, std::nullopt);
+  auto result = cricket::CheckRtpParametersValues(
+      parameters, codecs, std::nullopt, env_.field_trials());
   if (!result.ok()) {
     if (result.type() == RTCErrorType::INVALID_MODIFICATION) {
       result.set_type(RTCErrorType::UNSUPPORTED_OPERATION);
@@ -1219,7 +1219,7 @@ rtc::scoped_refptr<RtpSenderInterface> PeerConnection::CreateSender(
   rtc::scoped_refptr<RtpSenderProxyWithInternal<RtpSenderInternal>> new_sender;
   if (kind == MediaStreamTrackInterface::kAudioKind) {
     auto audio_sender =
-        AudioRtpSender::Create(worker_thread(), rtc::CreateRandomUuid(),
+        AudioRtpSender::Create(env_, worker_thread(), rtc::CreateRandomUuid(),
                                legacy_stats_.get(), rtp_manager());
     audio_sender->SetMediaChannel(rtp_manager()->voice_media_send_channel());
     new_sender = RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
@@ -1227,7 +1227,7 @@ rtc::scoped_refptr<RtpSenderInterface> PeerConnection::CreateSender(
     rtp_manager()->GetAudioTransceiver()->internal()->AddSender(new_sender);
   } else if (kind == MediaStreamTrackInterface::kVideoKind) {
     auto video_sender = VideoRtpSender::Create(
-        worker_thread(), rtc::CreateRandomUuid(), rtp_manager());
+        env_, worker_thread(), rtc::CreateRandomUuid(), rtp_manager());
     video_sender->SetMediaChannel(rtp_manager()->video_media_send_channel());
     new_sender = RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
         signaling_thread(), video_sender);

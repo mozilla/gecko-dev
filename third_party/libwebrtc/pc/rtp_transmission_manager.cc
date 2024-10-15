@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "api/environment/environment.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtp_transceiver_direction.h"
 #include "pc/audio_rtp_receiver.h"
@@ -34,13 +35,15 @@ static const char kDefaultVideoSenderId[] = "defaultv0";
 }  // namespace
 
 RtpTransmissionManager::RtpTransmissionManager(
+    const Environment& env,
     bool is_unified_plan,
     ConnectionContext* context,
     UsagePattern* usage_pattern,
     PeerConnectionObserver* observer,
     LegacyStatsCollectorInterface* legacy_stats,
     std::function<void()> on_negotiation_needed)
-    : is_unified_plan_(is_unified_plan),
+    : env_(env),
+      is_unified_plan_(is_unified_plan),
       context_(context),
       usage_pattern_(usage_pattern),
       observer_(observer),
@@ -245,14 +248,15 @@ RtpTransmissionManager::CreateSender(
                (track->kind() == MediaStreamTrackInterface::kAudioKind));
     sender = RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
         signaling_thread(),
-        AudioRtpSender::Create(worker_thread(), id, legacy_stats_, this));
+        AudioRtpSender::Create(env_, worker_thread(), id, legacy_stats_, this));
     NoteUsageEvent(UsageEvent::AUDIO_ADDED);
   } else {
     RTC_DCHECK_EQ(media_type, cricket::MEDIA_TYPE_VIDEO);
     RTC_DCHECK(!track ||
                (track->kind() == MediaStreamTrackInterface::kVideoKind));
     sender = RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
-        signaling_thread(), VideoRtpSender::Create(worker_thread(), id, this));
+        signaling_thread(),
+        VideoRtpSender::Create(env_, worker_thread(), id, this));
     NoteUsageEvent(UsageEvent::VIDEO_ADDED);
   }
   bool set_track_succeeded = sender->SetTrack(track.get());
