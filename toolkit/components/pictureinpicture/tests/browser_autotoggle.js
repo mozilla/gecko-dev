@@ -3,6 +3,11 @@
 
 "use strict";
 
+const MIN_DURATION_PREF =
+  "media.videocontrols.picture-in-picture.video-toggle.min-video-secs";
+const ALWAYS_SHOW_PREF =
+  "media.videocontrols.picture-in-picture.video-toggle.always-show";
+
 add_setup(async () => {
   const PIP_ON_TAB_SWITCH_ENABLED_PREF =
     "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled";
@@ -16,7 +21,7 @@ add_setup(async () => {
  * Tests that the PiP window is automatically opened and closed when switching
  * between tabs, ensuring that the main browser window maintains focus.
  */
-add_task(async () => {
+add_task(async function autopip_and_focus() {
   // Open a new window and save a handle for the first tab
   let win1 = await BrowserTestUtils.openNewBrowserWindow();
   let firstTab = win1.gBrowser.selectedTab;
@@ -74,7 +79,7 @@ add_task(async () => {
  *  - If a user manually opens PiP and switches tab, it is not closed automatically
  *  - If a user manually closes PiP and switches tab, the automaticatic trigger still works
  */
-add_task(async () => {
+add_task(async function autopip_interference() {
   // Save a handle for the first tab
   let firstTab = gBrowser.selectedTab;
   await BrowserTestUtils.withNewTab(
@@ -130,6 +135,94 @@ add_task(async () => {
       let pipClosedAuto = BrowserTestUtils.domWindowClosed(pipWinAuto);
       await BrowserTestUtils.switchTab(gBrowser, secondTab);
       ok(await pipClosedAuto, "PiP window automatically closed.");
+    }
+  );
+});
+
+/**
+ * Tests that silent videos do not qualify for auto-PiP.
+ */
+add_task(async function autopip_silent_videos() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [ALWAYS_SHOW_PREF, false],
+      [MIN_DURATION_PREF, 3], // The sample video is 4 seconds long.
+    ],
+  });
+
+  let firstTab = gBrowser.selectedTab;
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: TEST_PAGE_WITHOUT_AUDIO,
+    },
+    async browser => {
+      // Ensure the video is playing
+      let videoID = "without-audio";
+      await ensureVideosReady(browser);
+      await SpecialPowers.spawn(browser, [videoID], async videoID => {
+        await content.document.getElementById(videoID).play();
+      });
+
+      let visibilityChange = BrowserTestUtils.waitForContentEvent(
+        browser,
+        "visibilitychange"
+      );
+      await BrowserTestUtils.switchTab(gBrowser, firstTab);
+      await visibilityChange;
+
+      // Wait a few seconds for the event loop to have sent messages down to
+      // autoPiP.
+      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      assertNoPiPWindowsOpen();
+    }
+  );
+});
+
+/**
+ * Tests that small videos do not qualify for auto-PiP, even if they have sound.
+ */
+add_task(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [ALWAYS_SHOW_PREF, false],
+      [MIN_DURATION_PREF, 3], // The sample video is 5 seconds long.
+    ],
+  });
+
+  let firstTab = gBrowser.selectedTab;
+
+  await BrowserTestUtils.withNewTab(
+    {
+      gBrowser,
+      url: TEST_PAGE_WITH_SOUND,
+    },
+    async browser => {
+      // Ensure the video is playing
+      let videoID = "with-controls";
+      await ensureVideosReady(browser);
+      await SpecialPowers.spawn(browser, [videoID], async videoID => {
+        // Force the video to be small.
+        let videoEl = content.document.getElementById(videoID);
+        videoEl.style.maxWidth = "10px";
+        videoEl.style.maxHeight = "10px";
+        await videoEl.play();
+      });
+
+      let visibilityChange = BrowserTestUtils.waitForContentEvent(
+        browser,
+        "visibilitychange"
+      );
+      await BrowserTestUtils.switchTab(gBrowser, firstTab);
+      await visibilityChange;
+
+      // Wait a few seconds for the event loop to have sent messages down to
+      // autoPiP.
+      // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      assertNoPiPWindowsOpen();
     }
   );
 });

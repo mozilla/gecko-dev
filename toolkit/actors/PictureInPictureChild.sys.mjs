@@ -288,7 +288,11 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
     let doc = this.document;
     if (doc) {
       let video = this.findVideoToPiP(doc);
-      if (video && PictureInPictureChild.videoIsPlaying(video)) {
+      if (
+        video &&
+        PictureInPictureChild.videoIsPlaying(video) &&
+        PictureInPictureChild.videoIsPiPEligible(video)
+      ) {
         this.togglePictureInPicture({ video, reason: "AutoPip" }, false);
       }
     }
@@ -636,7 +640,7 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
   }
 
   updatePipVideoEligibility(video) {
-    let isEligible = this.isVideoPiPEligible(video);
+    let isEligible = PictureInPictureChild.videoIsPiPEligible(video);
     if (isEligible) {
       if (!this.eligiblePipVideos.has(video)) {
         this.eligiblePipVideos.add(video);
@@ -700,26 +704,6 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       );
       video.dispatchEvent(pipEvent);
     }
-  }
-
-  isVideoPiPEligible(video) {
-    if (lazy.PIP_TOGGLE_ALWAYS_SHOW) {
-      return true;
-    }
-
-    if (isNaN(video.duration) || video.duration < lazy.MIN_VIDEO_LENGTH) {
-      return false;
-    }
-
-    const MIN_VIDEO_DIMENSION = 140; // pixels
-    if (
-      video.clientWidth < MIN_VIDEO_DIMENSION ||
-      video.clientHeight < MIN_VIDEO_DIMENSION
-    ) {
-      return false;
-    }
-
-    return true;
   }
 
   /**
@@ -1929,6 +1913,38 @@ export class PictureInPictureChild extends JSWindowActorChild {
 
   static videoIsMuted(video) {
     return this.videoWrapper.isMuted(video);
+  }
+
+  /**
+   * Returns true if a video passes heuristics indicating that it'd be a good
+   * candidate for the Picture-in-Picture feature.
+   *
+   * @param {Element} video
+   *   The <video> element to evaluate.
+   * @returns {boolean}
+   */
+  static videoIsPiPEligible(video) {
+    if (lazy.PIP_TOGGLE_ALWAYS_SHOW) {
+      return true;
+    }
+
+    if (isNaN(video.duration) || video.duration < lazy.MIN_VIDEO_LENGTH) {
+      return false;
+    }
+
+    const MIN_VIDEO_DIMENSION = 140; // pixels
+    if (
+      video.clientWidth < MIN_VIDEO_DIMENSION ||
+      video.clientHeight < MIN_VIDEO_DIMENSION
+    ) {
+      return false;
+    }
+
+    if (!video.mozHasAudio) {
+      return false;
+    }
+
+    return true;
   }
 
   handleEvent(event) {
