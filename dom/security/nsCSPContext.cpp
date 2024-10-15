@@ -1171,7 +1171,7 @@ nsresult nsCSPContext::SendReports(
   mPolicies[aViolatedPolicyIndex]->getReportGroup(reportGroup);
 
   // CSP Level 3 Reporting
-  if (!reportGroup.IsEmpty()) {
+  if (StaticPrefs::dom_reporting_enabled() && !reportGroup.IsEmpty()) {
     return SendReportsToEndpoints(reportGroup, aViolationEventInit);
   }
 
