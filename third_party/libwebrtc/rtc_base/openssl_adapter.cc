@@ -1000,10 +1000,6 @@ SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode,
   SSL_CTX_set_cipher_list(
       ctx, "ALL:!SHA256:!SHA384:!aPSK:!ECDSA+SHA1:!ADH:!LOW:!EXP:!MD5:!3DES");
 
-  if (mode == SSL_MODE_DTLS) {
-    SSL_CTX_set_read_ahead(ctx, 1);
-  }
-
   if (enable_cache) {
     SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_CLIENT);
     SSL_CTX_sess_set_new_cb(ctx, &OpenSSLAdapter::NewSSLSessionCallback);
