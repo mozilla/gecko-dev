@@ -81,6 +81,7 @@ rtc_library("audio") {
     "../modules/audio_coding:audio_coding_module_typedefs",
     "../modules/audio_coding:audio_encoder_cng",
     "../modules/audio_coding:audio_network_adaptor_config",
+    "../modules/audio_coding:default_neteq_factory",
     "../modules/audio_coding:red",
     "../modules/audio_device",
     "../modules/audio_processing",

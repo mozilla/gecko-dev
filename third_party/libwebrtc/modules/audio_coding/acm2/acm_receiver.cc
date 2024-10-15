@@ -61,10 +61,7 @@ AcmReceiver::AcmReceiver(const Environment& env, Config config)
       neteq_(CreateNetEq(config.neteq_factory,
                          config.neteq_config,
                          env_,
-                         std::move(config.decoder_factory))),
-      resampled_last_output_frame_(true) {
-  ClearSamples(last_audio_buffer_);
-}
+                         std::move(config.decoder_factory))) {}
 
 AcmReceiver::~AcmReceiver() = default;
 
@@ -128,60 +125,13 @@ int AcmReceiver::GetAudio(int desired_freq_hz,
     RTC_LOG(LS_ERROR) << "AcmReceiver::GetAudio - NetEq Failed.";
     return -1;
   }
-
-  RTC_DCHECK_NE(current_sample_rate_hz, 0);
-
-  // Update if resampling is required.
-  const bool need_resampling =
-      (desired_freq_hz != -1) && (current_sample_rate_hz != desired_freq_hz);
+  RTC_DCHECK_EQ(audio_frame->sample_rate_hz_, current_sample_rate_hz);
 
   // Accessing members, take the lock.
   MutexLock lock(&mutex_);
-  if (need_resampling && !resampled_last_output_frame_) {
-    // Prime the resampler with the last frame.
-    int16_t temp_output[AudioFrame::kMaxDataSizeSamples];
-    int samples_per_channel_int = resampler_.Resample10Msec(
-        last_audio_buffer_.data(), current_sample_rate_hz, desired_freq_hz,
-        audio_frame->num_channels_, AudioFrame::kMaxDataSizeSamples,
-        temp_output);
-    if (samples_per_channel_int < 0) {
-      RTC_LOG(LS_ERROR) << "AcmReceiver::GetAudio - "
-                           "Resampling last_audio_buffer_ failed.";
-      return -1;
-    }
+  if (!resampler_helper_.MaybeResample(desired_freq_hz, audio_frame)) {
+    return -1;
   }
-
-  // TODO(bugs.webrtc.org/3923) Glitches in the output may appear if the output
-  // rate from NetEq changes.
-  if (need_resampling) {
-    // TODO(yujo): handle this more efficiently for muted frames.
-    int samples_per_channel_int = resampler_.Resample10Msec(
-        audio_frame->data(), current_sample_rate_hz, desired_freq_hz,
-        audio_frame->num_channels_, AudioFrame::kMaxDataSizeSamples,
-        audio_frame->mutable_data());
-    if (samples_per_channel_int < 0) {
-      RTC_LOG(LS_ERROR)
-          << "AcmReceiver::GetAudio - Resampling audio_buffer_ failed.";
-      return -1;
-    }
-    audio_frame->samples_per_channel_ =
-        static_cast<size_t>(samples_per_channel_int);
-    audio_frame->sample_rate_hz_ = desired_freq_hz;
-    RTC_DCHECK_EQ(
-        audio_frame->sample_rate_hz_,
-        rtc::dchecked_cast<int>(audio_frame->samples_per_channel_ * 100));
-    resampled_last_output_frame_ = true;
-  } else {
-    resampled_last_output_frame_ = false;
-    // We might end up here ONLY if codec is changed.
-  }
-
-  // Store current audio in `last_audio_buffer_` for next time.
-  // TODO: b/335805780 - Use CopySamples().
-  memcpy(last_audio_buffer_.data(), audio_frame->data(),
-         sizeof(int16_t) * audio_frame->samples_per_channel_ *
-             audio_frame->num_channels_);
-
   call_stats_.DecodedByNetEq(audio_frame->speech_type_, audio_frame->muted());
   return 0;
 }
