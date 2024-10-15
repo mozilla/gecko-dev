@@ -26,7 +26,13 @@ async function run_test() {
   await testPostUpdateProcessing();
   checkPostUpdateRunningFile(false);
   checkFilesAfterUpdateFailure(getApplyDirFile);
-  await waitForUpdateXMLFiles();
-  await checkUpdateManager(STATE_NONE, false, STATE_AFTER_RUNUPDATE, 0, 1);
+  await waitForUpdateXMLFiles(true, false);
+  await checkUpdateManager(
+    STATE_AFTER_RUNUPDATE,
+    true,
+    STATE_AFTER_RUNUPDATE,
+    0,
+    0
+  );
   await waitForFilesInUse();
 }

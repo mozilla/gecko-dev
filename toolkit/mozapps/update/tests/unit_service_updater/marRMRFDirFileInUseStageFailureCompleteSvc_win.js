@@ -37,7 +37,13 @@ async function run_test() {
   checkUpdateLogContains(
     ERR_MOVE_DESTDIR_7 + "\n" + STATE_FAILED_WRITE_ERROR + "\n" + CALL_QUIT
   );
-  await waitForUpdateXMLFiles();
-  await checkUpdateManager(STATE_NONE, false, STATE_AFTER_RUNUPDATE, 0, 1);
+  await waitForUpdateXMLFiles(true, false);
+  await checkUpdateManager(
+    STATE_AFTER_RUNUPDATE,
+    true,
+    STATE_AFTER_RUNUPDATE,
+    0,
+    0
+  );
   checkCallbackLog();
 }

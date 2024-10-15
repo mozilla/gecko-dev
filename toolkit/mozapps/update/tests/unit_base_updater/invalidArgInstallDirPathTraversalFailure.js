@@ -26,7 +26,6 @@ async function run_test() {
   await testPostUpdateProcessing();
   checkPostUpdateRunningFile(false);
   checkFilesAfterUpdateFailure(getApplyDirFile);
-  await waitForUpdateXMLFiles();
   if (gIsServiceTest) {
     // The invalid argument service tests launch the maintenance service
     // directly so the unelevated updater doesn't handle the invalid argument.
@@ -35,8 +34,10 @@ async function run_test() {
     // launch the maintenance service the update.status file isn't copied from
     // the secure log directory to the patch directory and the update manager
     // won't read the failure from the update.status file.
-    await checkUpdateManager(STATE_NONE, false, STATE_PENDING_SVC, 0, 1);
+    await waitForUpdateXMLFiles(true, false);
+    await checkUpdateManager(STATE_PENDING_SVC, true, STATE_PENDING_SVC, 0, 0);
   } else {
+    await waitForUpdateXMLFiles();
     await checkUpdateManager(
       STATE_NONE,
       false,
