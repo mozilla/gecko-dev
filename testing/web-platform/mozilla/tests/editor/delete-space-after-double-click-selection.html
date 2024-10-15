@@ -233,7 +233,7 @@
           await waitForRender();
           assert_equals(
             getValue(),
-            "one<br>",
+            "one",
             "The line break must be preserved!"
           );
         }, `${editableElement.tagName}: Removing a word in front of a line break should preserve the line break.`);
