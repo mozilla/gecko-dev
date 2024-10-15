@@ -427,6 +427,7 @@ bool CookieParser::ParseAttributes(nsCString& aCookieHeader,
 
   mCookieData.isSecure() = false;
   mCookieData.isHttpOnly() = false;
+  mCookieData.isPartitioned() = false;
 
   SetSameSiteAttributeDefault(mCookieData);
 
