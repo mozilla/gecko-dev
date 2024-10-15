@@ -344,6 +344,9 @@ int32_t VideoEncoderSoftwareFallbackWrapper::InitEncode(
     PrimeEncoder(current_encoder());
     return ret;
   }
+  if (ret == WEBRTC_VIDEO_CODEC_ERR_SIMULCAST_PARAMETERS_NOT_SUPPORTED) {
+    return ret;
+  }
   RTC_LOG(LS_WARNING) << "[VESFW] Hardware encoder initialization failed with"
                       << " error code: " << WebRtcVideoCodecErrorToString(ret);
 
