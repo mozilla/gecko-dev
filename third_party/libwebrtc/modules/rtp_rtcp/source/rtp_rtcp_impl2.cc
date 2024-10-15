@@ -111,11 +111,13 @@ ModuleRtpRtcpImpl2::ModuleRtpRtcpImpl2(TagConfigurationIncludesEnvironment,
                                        const Configuration& configuration)
     : env_(env),
       worker_queue_(TaskQueueBase::Current()),
-      rtcp_sender_(AddRtcpSendEvaluationCallback(
-          RTCPSender::Configuration::FromRtpRtcpConfiguration(configuration),
-          [this](TimeDelta duration) {
-            ScheduleRtcpSendEvaluation(duration);
-          })),
+      rtcp_sender_(env_,
+                   AddRtcpSendEvaluationCallback(
+                       RTCPSender::Configuration::FromRtpRtcpConfiguration(
+                           configuration),
+                       [this](TimeDelta duration) {
+                         ScheduleRtcpSendEvaluation(duration);
+                       })),
       rtcp_receiver_(env_, configuration, this),
       packet_overhead_(28),  // IPV4 UDP.
       nack_last_time_sent_full_ms_(0),

@@ -89,6 +89,7 @@ ModuleRtpRtcpImpl::ModuleRtpRtcpImpl(const Environment& env,
                                      const Configuration& configuration)
     : env_(env),
       rtcp_sender_(
+          env_,
           RTCPSender::Configuration::FromRtpRtcpConfiguration(configuration)),
       rtcp_receiver_(env_, configuration, this),
       last_bitrate_process_time_(env_.clock().TimeInMilliseconds()),

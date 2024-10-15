@@ -8,42 +8,82 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 #include <algorithm>  // max
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <map>
 #include <memory>
+#include <optional>
+#include <set>
+#include <string>
+#include <tuple>
+#include <utility>
 #include <vector>
 
-#include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
+#include "absl/types/variant.h"
+#include "api/array_view.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
+#include "api/fec_controller_override.h"
+#include "api/make_ref_counted.h"
+#include "api/rtp_headers.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/metrics/global_metrics_logger_and_exporter.h"
 #include "api/test/metrics/metric.h"
 #include "api/test/simulated_network.h"
+#include "api/test/video/function_video_encoder_factory.h"
+#include "api/transport/bitrate_settings.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/video/builtin_video_bitrate_allocator_factory.h"
 #include "api/video/encoded_image.h"
 #include "api/video/video_bitrate_allocation.h"
+#include "api/video/video_bitrate_allocator.h"
+#include "api/video/video_bitrate_allocator_factory.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_content_type.h"
+#include "api/video/video_frame_type.h"
+#include "api/video/video_rotation.h"
+#include "api/video/video_sink_interface.h"
+#include "api/video/video_source_interface.h"
+#include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_encoder.h"
+#include "call/audio_receive_stream.h"
+#include "call/audio_send_stream.h"
 #include "call/call.h"
 #include "call/fake_network_pipe.h"
-#include "call/rtp_transport_controller_send.h"
+#include "call/video_receive_stream.h"
 #include "call/video_send_stream.h"
+#include "media/base/video_common.h"
 #include "media/engine/internal_encoder_factory.h"
 #include "media/engine/simulcast_encoder_adapter.h"
 #include "media/engine/webrtc_video_engine.h"
+#include "modules/include/module_common_types_public.h"
+#include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/create_video_rtp_depacketizer.h"
+#include "modules/rtp_rtcp/source/rtcp_packet/report_block.h"
 #include "modules/rtp_rtcp/source/rtcp_sender.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_impl2.h"
+#include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
+#include "modules/rtp_rtcp/source/video_rtp_depacketizer.h"
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.h"
 #include "modules/video_coding/codecs/interface/common_constants.h"
 #include "modules/video_coding/codecs/vp8/include/vp8.h"
+#include "modules/video_coding/codecs/vp8/include/vp8_globals.h"
 #include "modules/video_coding/codecs/vp9/include/vp9.h"
+#include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
 #include "modules/video_coding/svc/create_scalability_structure.h"
 #include "modules/video_coding/svc/scalability_mode_util.h"
 #include "modules/video_coding/svc/scalable_video_controller.h"
@@ -51,31 +91,33 @@
 #include "rtc_base/event.h"
 #include "rtc_base/experiments/alr_experiment.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/platform_thread.h"
+#include "rtc_base/network_route.h"
 #include "rtc_base/rate_limiter.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue_for_test.h"
+#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/unique_id_generator.h"
 #include "system_wrappers/include/sleep.h"
 #include "test/call_test.h"
 #include "test/configurable_frame_size_encoder.h"
+#include "test/encoder_settings.h"
 #include "test/fake_encoder.h"
-#include "test/fake_texture_frame.h"
+#include "test/field_trial.h"
 #include "test/frame_forwarder.h"
 #include "test/frame_generator_capturer.h"
 #include "test/frame_utils.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
-#include "test/network/simulated_network.h"
 #include "test/null_transport.h"
 #include "test/rtcp_packet_parser.h"
 #include "test/rtp_rtcp_observer.h"
+#include "test/scoped_key_value_config.h"
 #include "test/video_encoder_proxy_factory.h"
 #include "test/video_test_constants.h"
-#include "video/config/encoder_stream_factory.h"
-#include "video/send_statistics_proxy.h"
+#include "video/config/video_encoder_config.h"
 #include "video/transport_adapter.h"
 #include "video/video_send_stream_impl.h"
 
@@ -991,12 +1033,11 @@ void VideoSendStreamTest::TestNackRetransmission(
       // NACK packets at arbitrary points.
       if (send_count_ % 25 == 0) {
         RTCPSender::Configuration config;
-        config.clock = Clock::GetRealTimeClock();
         config.outgoing_transport = transport_adapter_.get();
         config.rtcp_report_interval = TimeDelta::Millis(kRtcpIntervalMs);
         config.local_media_ssrc =
             test::VideoTestConstants::kReceiverLocalVideoSsrc;
-        RTCPSender rtcp_sender(config);
+        RTCPSender rtcp_sender(env_, config);
 
         rtcp_sender.SetRTCPStatus(RtcpMode::kReducedSize);
         rtcp_sender.SetRemoteSSRC(test::VideoTestConstants::kVideoSendSsrcs[0]);
@@ -1069,6 +1110,7 @@ void VideoSendStreamTest::TestNackRetransmission(
       EXPECT_TRUE(Wait()) << "Timed out while waiting for NACK retransmission.";
     }
 
+    const Environment env_ = CreateEnvironment();
     std::unique_ptr<internal::TransportAdapter> transport_adapter_;
     int send_count_;
     int retransmit_count_;
@@ -1230,12 +1272,11 @@ void VideoSendStreamTest::TestPacketFragmentationSize(VideoFormat format,
             packets_lost_,  // Cumulative lost.
             loss_ratio);    // Loss percent.
         RTCPSender::Configuration config;
-        config.clock = Clock::GetRealTimeClock();
         config.receive_statistics = &lossy_receive_stats;
         config.outgoing_transport = transport_adapter_.get();
         config.rtcp_report_interval = TimeDelta::Millis(kRtcpIntervalMs);
         config.local_media_ssrc = test::VideoTestConstants::kVideoSendSsrcs[0];
-        RTCPSender rtcp_sender(config);
+        RTCPSender rtcp_sender(env_, config);
 
         rtcp_sender.SetRTCPStatus(RtcpMode::kReducedSize);
         rtcp_sender.SetRemoteSSRC(test::VideoTestConstants::kVideoSendSsrcs[0]);
@@ -1296,6 +1337,7 @@ void VideoSendStreamTest::TestPacketFragmentationSize(VideoFormat format,
       EXPECT_TRUE(Wait()) << "Timed out while observing incoming RTP packets.";
     }
 
+    const Environment env_ = CreateEnvironment();
     std::unique_ptr<internal::TransportAdapter> transport_adapter_;
     test::ConfigurableFrameSizeEncoder encoder_;
     test::VideoEncoderProxyFactory encoder_factory_;

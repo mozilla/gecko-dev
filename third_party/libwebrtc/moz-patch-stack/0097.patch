@@ -31,10 +31,10 @@ index e97112c617..b92d915ad8 100644
      rtp_module.SetSendingMediaStatus(sending);
      if (sending) {
 diff --git a/modules/rtp_rtcp/source/rtcp_sender.cc b/modules/rtp_rtcp/source/rtcp_sender.cc
-index 1d8fe30fc9..fbb219ebb9 100644
+index 051d77c4f7..b545633f25 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender.cc
-@@ -225,8 +225,23 @@ bool RTCPSender::Sending() const {
+@@ -223,8 +223,23 @@ bool RTCPSender::Sending() const {
  
  void RTCPSender::SetSendingStatus(const FeedbackState& feedback_state,
                                    bool sending) {
@@ -61,10 +61,10 @@ index 1d8fe30fc9..fbb219ebb9 100644
  
  void RTCPSender::SetNonSenderRttMeasurement(bool enabled) {
 diff --git a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
-index 023f92325c..11965689f4 100644
+index 3a77df5e3e..deda5f71c8 100644
 --- a/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtcp_sender_unittest.cc
-@@ -330,12 +330,13 @@ TEST_F(RtcpSenderTest, SendBye) {
+@@ -347,12 +347,13 @@ TEST_F(RtcpSenderTest, SendBye) {
    EXPECT_EQ(kSenderSsrc, parser()->bye()->sender_ssrc());
  }
  
@@ -81,10 +81,10 @@ index 023f92325c..11965689f4 100644
  
  TEST_F(RtcpSenderTest, SendFir) {
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index 6415388c7f..0532111c63 100644
+index 83d507357d..7286088e2b 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-@@ -320,6 +320,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
+@@ -321,6 +321,7 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl::GetFeedbackState() {
  
  int32_t ModuleRtpRtcpImpl::SetSendingStatus(const bool sending) {
    if (rtcp_sender_.Sending() != sending) {
