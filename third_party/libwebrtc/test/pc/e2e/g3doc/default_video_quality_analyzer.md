@@ -1,5 +1,5 @@
 <!-- go/cmark -->
-<!--* freshness: {owner: 'titovartem' reviewed: '2024-09-09'} *-->
+<!--* freshness: {owner: 'jleconte' reviewed: '2024-09-11'} *-->
 
 # DefaultVideoQualityAnalyzer
 
