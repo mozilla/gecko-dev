@@ -43,6 +43,7 @@ When Firefox uses a model, it will
 2. download model files from our hub
 3. store the files in IndexDB
 
+.. _inference-remote-settings:
 
 1. Remote Settings
 ------------------
@@ -54,11 +55,13 @@ We have two collections in Remote Settings:
 
 Running the inference API will download the WASM files if needed, and then see
 if there's an entry for the task in `ml-inference-options`, to grab the options.
-
 That allows us to set the default running options for each task.
 
 This is also how we can update a model without changing Firefox's code:
 setting a new revision for a model in Remote Settings will trigger a new download for our users.
+
+Records in `ml-inference-options` are uniquely identified by `featureId`. When not provided,
+it falls back to `taskName`.
 
 
 2. Model Hub

@@ -32,6 +32,16 @@ export class PipelineOptions {
   engineId = "default-engine";
 
   /**
+   * The name of the feature to be used by the pipeline.
+   *
+   * This field can be used to uniquely identify an inference and
+   * overwrite taskName when doing lookups in Remote Settings.
+   *
+   * @type {?string}
+   */
+  featureId = null;
+
+  /**
    * The name of the task the pipeline is configured for.
    *
    * @type {?string}
@@ -165,6 +175,7 @@ export class PipelineOptions {
   updateOptions(options) {
     const allowedKeys = [
       "engineId",
+      "featureId",
       "taskName",
       "modelHubRootUrl",
       "modelHubUrlTemplate",
@@ -206,6 +217,7 @@ export class PipelineOptions {
   getOptions() {
     return {
       engineId: this.engineId,
+      featureId: this.featureId,
       taskName: this.taskName,
       modelHubRootUrl: this.modelHubRootUrl,
       modelHubUrlTemplate: this.modelHubUrlTemplate,

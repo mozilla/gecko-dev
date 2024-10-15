@@ -182,8 +182,9 @@ export class MLEngineChild extends JSWindowActorChild {
    *
    * @returns {Promise<object>}
    */
-  getInferenceOptions(taskName) {
+  getInferenceOptions(featureId, taskName) {
     return this.sendQuery("MLEngine:GetInferenceOptions", {
+      featureId,
       taskName,
     });
   }
@@ -266,6 +267,9 @@ class EngineDispatcher {
   #taskName;
 
   /** @type {string} */
+  #featureId;
+
+  /** @type {string} */
   #engineId;
 
   /** @type {PipelineOptions | null} */
@@ -293,6 +297,7 @@ class EngineDispatcher {
     const wasm = await this.mlEngineChild.getWasmArrayBuffer();
 
     let remoteSettingsOptions = await this.mlEngineChild.getInferenceOptions(
+      this.#featureId,
       this.#taskName
     );
 
@@ -323,6 +328,7 @@ class EngineDispatcher {
   constructor(mlEngineChild, port, pipelineOptions) {
     this.#status = "CREATED";
     this.mlEngineChild = mlEngineChild;
+    this.#featureId = pipelineOptions.featureId;
     this.#taskName = pipelineOptions.taskName;
     this.timeoutMS = pipelineOptions.timeoutMS;
     this.#engineId = pipelineOptions.engineId;
