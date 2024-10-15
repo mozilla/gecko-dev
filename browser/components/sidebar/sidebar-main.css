@@ -31,7 +31,7 @@
   justify-content: center;
   align-items: start;
 
-  > moz-button {
+  > moz-button:not(.tools-overflow) {
     --button-outer-padding-inline: var(--space-medium);
     --button-outer-padding-block: var(--space-xsmall);
 
@@ -41,6 +41,31 @@
 
     &:last-of-type {
       --button-outer-padding-block-end: var(--space-small);
+    }
+  }
+}
+
+.tools-and-extensions[orientation="horizontal"] {
+  :host([expanded]) & {
+    /* button width + extra inline padding to extend to the edge of sidebar + inline padding between adjacent buttons */
+    --first-last-button-width: calc(var(--button-size-icon) + var(--space-medium) + var(--space-xxsmall));
+    display: grid;
+    grid-template-columns: var(--first-last-button-width) repeat(4, calc(var(--button-size-icon) + var(--space-xsmall))) var(--first-last-button-width);
+  }
+
+  > moz-button.tools-overflow {
+    width: min-content;
+    --button-outer-padding-inline: var(--space-xxsmall);
+    --button-outer-padding-block: var(--space-xxsmall);
+
+    /* First button in every row */
+    &:nth-of-type(6n + 1) {
+      --button-outer-padding-inline-start: var(--space-medium);
+    }
+
+    /* Last button in every row */
+    &:nth-of-type(6n) {
+      --button-outer-padding-inline-end: var(--space-medium);
     }
   }
 }

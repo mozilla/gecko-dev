@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import {
+  classMap,
   html,
   ifDefined,
   nothing,
@@ -10,6 +11,8 @@ import {
   when,
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
+
+const TOOLS_OVERFLOW_LIMIT = 5;
 
 /**
  * Sidebar with expanded and collapsed states that provides entry points
@@ -232,6 +235,23 @@ export default class SidebarMain extends MozLitElement {
     }
   }
 
+  isToolsOverflowing() {
+    if (
+      !this.expanded ||
+      !window.SidebarController.sidebarVerticalTabsEnabled
+    ) {
+      return false;
+    }
+    let enabledToolsAndExtensionsCount = 0;
+    for (const tool of window.SidebarController.toolsAndExtensions.values()) {
+      if (!tool.disabled) {
+        enabledToolsAndExtensionsCount++;
+      }
+    }
+    // Add 1 to enabledToolsAndExtensionsCount to account for 'Customize sidebar'
+    return enabledToolsAndExtensionsCount + 1 > TOOLS_OVERFLOW_LIMIT;
+  }
+
   entrypointTemplate(action) {
     if (action.disabled || action.hidden) {
       return null;
@@ -245,8 +265,12 @@ export default class SidebarMain extends MozLitElement {
       const attributes = messages?.[0]?.attributes;
       actionLabel = attributes?.find(attr => attr.name === "label")?.value;
     }
+    let toolsOverflowing = this.isToolsOverflowing();
     return html`<moz-button
-      class=${this.expanded ? "expanded-button" : ""}
+      class=${classMap({
+        "expanded-button": this.expanded,
+        "tools-overflow": toolsOverflowing,
+      })}
       type=${isActiveView ? "icon" : "icon ghost"}
       aria-pressed="${isActiveView}"
       view=${action.view}
@@ -256,7 +280,7 @@ export default class SidebarMain extends MozLitElement {
       ?extension=${action.view?.includes("-sidebar-action")}
       extensionId=${ifDefined(action.extensionId)}
     >
-      ${this.expanded ? actionLabel : nothing}
+      ${this.expanded && !toolsOverflowing ? actionLabel : nothing}
     </moz-button>`;
   }
 
@@ -274,7 +298,7 @@ export default class SidebarMain extends MozLitElement {
         <slot name="tabstrip"></slot>
         <button-group
           class="tools-and-extensions actions-list"
-          orientation="vertical"
+          orientation=${this.isToolsOverflowing() ? "horizontal" : "vertical"}
         >
           ${repeat(
             this.getToolsAndExtensions().values(),
