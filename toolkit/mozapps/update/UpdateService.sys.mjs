@@ -4277,6 +4277,95 @@ export class UpdateService {
     return gStateTransitionPromise.promise;
   }
 
+  /**
+   * Either starts a BITS transfer job or connects to an existing one.
+   * When starting a job, it starts it with a name and path that make sense for
+   * an update MAR download.
+   *
+   * @param  parameters
+   *         A parameters object must be passed, in which `bitsId` or `url` must
+   *         be specified. If `bitsId` is specified (and not null), this will
+   *         connect to an existing transfer.
+   *           activeListeners
+   *             If `true`, this option specifies that there are active
+   *             listeners, so the faster "active" progress update polling rate
+   *             should be used.
+   *           bitsId
+   *             The ID of the job to connect to. If this is not passed, a new
+   *             transfer will be started.
+   *           observer
+   *             If specified, should be an instance of `nsIRequestObserver`
+   *             and, optionally, `nsIProgressEventSink`. This will be connected
+   *             to the `BitsRequest` that is returned.
+   *           url
+   *             The URL to download.
+   * @return Promise<BitsRequest>
+   *         Returns a request object
+   * @throws BitsError
+   *         On failure to connect to the BITS job.
+   */
+  async makeBitsRequest({ activeListeners = false, bitsId, observer, url }) {
+    let noProgressTimeout = BITS_IDLE_NO_PROGRESS_TIMEOUT_SECS;
+    let monitorInterval = BITS_IDLE_POLL_RATE_MS;
+    // The monitor's timeout should be much greater than the longest monitor
+    // poll interval. If the timeout is too short, delay in the pipe to the
+    // update agent might cause BITS to falsely report an error, causing an
+    // unnecessary fallback to nsIIncrementalDownload.
+    let monitorTimeout = Math.max(10 * monitorInterval, 10 * 60 * 1000);
+    if (activeListeners) {
+      noProgressTimeout = BITS_ACTIVE_NO_PROGRESS_TIMEOUT_SECS;
+      monitorInterval = BITS_ACTIVE_POLL_RATE_MS;
+    }
+
+    let updateRootDir = FileUtils.getDir(KEY_UPDROOT, []);
+    try {
+      updateRootDir.create(
+        Ci.nsIFile.DIRECTORY_TYPE,
+        FileUtils.PERMS_DIRECTORY
+      );
+    } catch (ex) {
+      if (ex.result != Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
+        throw ex;
+      }
+      // Ignore the exception due to a directory that already exists.
+    }
+
+    let jobName = "MozillaUpdate " + updateRootDir.leafName;
+    let updatePath = getDownloadingUpdateDir().path;
+    if (!Bits.initialized) {
+      Bits.init(jobName, updatePath, monitorTimeout);
+    }
+
+    if (bitsId) {
+      LOG(
+        "UpdateService:makeBitsRequest - Connecting to in-progress download. " +
+          "BITS ID: " +
+          bitsId
+      );
+
+      return Bits.monitorDownload(bitsId, monitorInterval, observer, null);
+    }
+
+    LOG(
+      "UpdateService:makeBitsRequest - Starting BITS download with url: " +
+        url +
+        ", updateDir: " +
+        updatePath +
+        ", filename: " +
+        FILE_UPDATE_MAR
+    );
+
+    return Bits.startDownload(
+      url,
+      FILE_UPDATE_MAR,
+      Ci.nsIBits.PROXY_PRECONFIG,
+      noProgressTimeout,
+      monitorInterval,
+      observer,
+      null
+    );
+  }
+
   classID = UPDATESERVICE_CID;
 
   QueryInterface = ChromeUtils.generateQI([
@@ -6062,75 +6151,16 @@ class Downloader {
       this._request.init(uri, patchFile, DOWNLOAD_CHUNK_SIZE, interval);
       this._request.start(this, null);
     } else {
-      let noProgressTimeout = BITS_IDLE_NO_PROGRESS_TIMEOUT_SECS;
-      let monitorInterval = BITS_IDLE_POLL_RATE_MS;
-      this._bitsActiveNotifications = false;
-      // The monitor's timeout should be much greater than the longest monitor
-      // poll interval. If the timeout is too short, delay in the pipe to the
-      // update agent might cause BITS to falsely report an error, causing an
-      // unnecessary fallback to nsIIncrementalDownload.
-      let monitorTimeout = Math.max(10 * monitorInterval, 10 * 60 * 1000);
-      if (this.hasDownloadListeners) {
-        noProgressTimeout = BITS_ACTIVE_NO_PROGRESS_TIMEOUT_SECS;
-        monitorInterval = BITS_ACTIVE_POLL_RATE_MS;
-        this._bitsActiveNotifications = true;
-      }
-
-      let updateRootDir = FileUtils.getDir(KEY_UPDROOT, []);
-      try {
-        updateRootDir.create(
-          Ci.nsIFile.DIRECTORY_TYPE,
-          FileUtils.PERMS_DIRECTORY
-        );
-      } catch (ex) {
-        if (ex.result != Cr.NS_ERROR_FILE_ALREADY_EXISTS) {
-          throw ex;
-        }
-        // Ignore the exception due to a directory that already exists.
-      }
-
-      let jobName = "MozillaUpdate " + updateRootDir.leafName;
-      let updatePath = updateDir.path;
-      if (!Bits.initialized) {
-        Bits.init(jobName, updatePath, monitorTimeout);
-      }
-
+      this._bitsActiveNotifications = this.hasDownloadListeners;
       this._cancelPromise = null;
 
-      let bitsId = this._patch.getProperty("bitsId");
-      if (bitsId) {
-        LOG(
-          "Downloader:downloadUpdate - Connecting to in-progress download. " +
-            "BITS ID: " +
-            bitsId
-        );
+      this._pendingRequest = this.updateService.makeBitsRequest({
+        activeListeners: this.hasDownloadListeners,
+        bitsId: this._patch.getProperty("bitsId"),
+        observer: this,
+        url: this._patch.URL,
+      });
 
-        this._pendingRequest = Bits.monitorDownload(
-          bitsId,
-          monitorInterval,
-          this,
-          null
-        );
-      } else {
-        LOG(
-          "Downloader:downloadUpdate - Starting BITS download with url: " +
-            this._patch.URL +
-            ", updateDir: " +
-            updatePath +
-            ", filename: " +
-            FILE_UPDATE_MAR
-        );
-
-        this._pendingRequest = Bits.startDownload(
-          this._patch.URL,
-          FILE_UPDATE_MAR,
-          Ci.nsIBits.PROXY_PRECONFIG,
-          noProgressTimeout,
-          monitorInterval,
-          this,
-          null
-        );
-      }
       let request;
       try {
         request = await this._pendingRequest;
