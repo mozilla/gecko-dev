@@ -112,7 +112,7 @@ object Versions {
         const val falcon = "2.2.0"
         const val fastlane = "2.1.1"
         const val junit = "5.11.2"
-        const val mockito = "5.14.1"
+        const val mockito = "5.14.2"
         const val mockk = "1.13.13"
     }
 }
