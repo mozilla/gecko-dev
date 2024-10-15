@@ -750,7 +750,7 @@ index 995c3d081a..ec6a7b26b9 100644
      output_extension = "so"
    }
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index d7f14a2052..584fb724b0 100644
+index d2a74716dd..21600a039b 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -9,11 +9,11 @@
@@ -777,7 +777,7 @@ index d7f14a2052..584fb724b0 100644
      }
    }
  
-@@ -1228,7 +1228,7 @@ if (is_ios || is_mac) {
+@@ -1229,7 +1229,7 @@ if (is_ios || is_mac) {
            }
  
            public_deps = [
