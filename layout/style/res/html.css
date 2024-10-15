@@ -274,16 +274,6 @@ table {
   text-indent: 0;
 }
 
-table[align="left"] {
-  float: left;
-}
-
-table[align="right"] {
-  float: right;
-  text-align: start;
-}
-
-
 /* border collapse rules */
 
   /* Set hidden if we have 'frame' or 'rules' attribute.
