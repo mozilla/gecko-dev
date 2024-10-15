@@ -29,9 +29,6 @@ class EventQueue {
    */
   bool PushEvent(AccEvent* aEvent);
 
-  bool PushNameOrDescriptionChangeToRelations(LocalAccessible* aAccessible,
-                                              RelationType aType);
-
   /**
    * Puts name and/or description change events into the queue, if needed.
    */
