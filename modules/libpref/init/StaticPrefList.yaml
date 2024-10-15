@@ -2212,6 +2212,11 @@
   value: false
   mirror: always
 
+- name: devtools.debugger.features.codemirror-next
+  type: bool
+  value: false
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "docshell."
 #---------------------------------------------------------------------------

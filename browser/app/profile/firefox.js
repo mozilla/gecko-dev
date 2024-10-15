@@ -3016,6 +3016,11 @@ pref("devtools.debugger.features.map-await-expression", true);
 pref("devtools.debugger.features.async-captured-stacks", true);
 pref("devtools.debugger.features.async-live-stacks", false);
 pref("devtools.debugger.hide-ignored-sources", false);
+#if defined(NIGHTLY_BUILD)
+  pref("devtools.debugger.features.codemirror-next", true);
+#else
+  pref("devtools.debugger.features.codemirror-next", false);
+#endif
 
 // Disable autohide for DevTools popups and tooltips.
 // This is currently not exposed by any UI to avoid making
