@@ -644,6 +644,12 @@ skip-if = [
   "http2",
 ]
 
+["test_reporting_api_disabled.html"]
+skip-if = [
+  "http3",
+  "http2",
+]
+
 ["test_report_font_cache.html"]
 skip-if = [
   "http3",
