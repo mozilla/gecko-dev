@@ -75,9 +75,7 @@ class MOZ_RAII EventCallbackDebuggerNotificationGuard final {
  private:
   MOZ_CAN_RUN_SCRIPT void Dispatch(CallbackDebuggerNotificationPhase aPhase) {
     auto manager = DebuggerNotificationManager::ForDispatch(mDebuggeeGlobal);
-    if (MOZ_UNLIKELY(manager)) {
-      DispatchToManager(manager, aPhase);
-    }
+    DispatchToManager(manager, aPhase);
   }
 
   MOZ_CAN_RUN_SCRIPT void DispatchToManager(

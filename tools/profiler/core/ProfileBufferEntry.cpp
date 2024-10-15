@@ -16,6 +16,7 @@
 #include "js/ProfilingFrameIterator.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/Logging.h"
 #include "mozilla/JSONStringWriteFuncs.h"
 #include "mozilla/ScopeExit.h"
@@ -1034,6 +1035,153 @@ struct StreamingParametersForThread {
         mPreviousStack(aPreviousStack) {}
 };
 
+#ifdef MOZ_EXECUTION_TRACING
+
+template <typename GetStreamingParametersForThreadCallback>
+void ProfileBuffer::MaybeStreamExecutionTraceToJSON(
+    GetStreamingParametersForThreadCallback&&
+        aGetStreamingParametersForThreadCallback,
+    double aSinceTime) const {
+  JS::ExecutionTrace trace;
+  if (!JS_TracerSnapshotTrace(trace)) {
+    return;
+  }
+
+  for (const JS::ExecutionTrace::TracedJSContext& context : trace.contexts) {
+    Maybe<StreamingParametersForThread> streamingParameters =
+        std::forward<GetStreamingParametersForThreadCallback>(
+            aGetStreamingParametersForThreadCallback)(context.id);
+
+    // Ignore samples that are for the wrong thread.
+    if (!streamingParameters) {
+      continue;
+    }
+
+    SpliceableJSONWriter& writer = streamingParameters->mWriter;
+    UniqueStacks& uniqueStacks = streamingParameters->mUniqueStacks;
+
+    mozilla::Vector<UniqueStacks::StackKey> frameStack;
+
+    Maybe<UniqueStacks::StackKey> maybeStack =
+        uniqueStacks.BeginStack(UniqueStacks::FrameKey("(root)"));
+    if (!maybeStack) {
+      writer.SetFailure("BeginStack failure");
+      continue;
+    }
+
+    UniqueStacks::StackKey stack = *maybeStack;
+    if (!frameStack.append(stack)) {
+      writer.SetFailure("frameStack append failure");
+      continue;
+    }
+
+    for (const JS::ExecutionTrace::TracedEvent& event : context.events) {
+      if (event.time < aSinceTime) {
+        continue;
+      }
+
+      if (event.kind == JS::ExecutionTrace::EventKind::FunctionEnter) {
+        HashMap<uint32_t, size_t>::Ptr functionName =
+            context.atoms.lookup(event.functionEvent.functionNameId);
+        // This is uncommon, but if one of our ring buffers wraps around, we
+        // can end up with missing function name entries
+        const char* functionNameStr = "<expired>";
+        if (functionName) {
+          functionNameStr = &trace.stringBuffer[functionName->value()];
+        }
+        HashMap<uint32_t, size_t>::Ptr scriptUrl =
+            context.scriptUrls.lookup(event.functionEvent.scriptId);
+        // See the comment above functionNameStr
+        const char* scriptUrlStr = "<expired>";
+        if (scriptUrl) {
+          scriptUrlStr = &trace.stringBuffer[scriptUrl->value()];
+        }
+        nsAutoCStringN<1024> name(functionNameStr);
+        name.AppendPrintf(" (%s:%u:%u)", scriptUrlStr,
+                          event.functionEvent.lineNumber,
+                          event.functionEvent.column);
+        JS::ProfilingCategoryPair categoryPair;
+        switch (event.functionEvent.implementation) {
+          case JS::ExecutionTrace::ImplementationType::Interpreter:
+            categoryPair = JS::ProfilingCategoryPair::JS;
+            break;
+          case JS::ExecutionTrace::ImplementationType::Baseline:
+            categoryPair = JS::ProfilingCategoryPair::JS_Baseline;
+            break;
+          case JS::ExecutionTrace::ImplementationType::Ion:
+            categoryPair = JS::ProfilingCategoryPair::JS_IonMonkey;
+            break;
+          case JS::ExecutionTrace::ImplementationType::Wasm:
+            categoryPair = JS::ProfilingCategoryPair::JS_WasmOther;
+            break;
+        }
+
+        UniqueStacks::FrameKey newFrame(nsCString(name.get()), true, false, 0,
+                                        Nothing{}, Nothing{},
+                                        Some(categoryPair));
+        maybeStack = uniqueStacks.AppendFrame(stack, newFrame);
+        if (!maybeStack) {
+          writer.SetFailure("AppendFrame failure");
+          continue;
+        }
+        stack = *maybeStack;
+        if (!frameStack.append(stack)) {
+          writer.SetFailure("frameStack append failure");
+          continue;
+        }
+
+      } else if (event.kind == JS::ExecutionTrace::EventKind::LabelEnter) {
+        UniqueStacks::FrameKey newFrame(
+            nsCString(&trace.stringBuffer[event.labelEvent.label]), true, false,
+            0, Nothing{}, Nothing{}, Some(JS::ProfilingCategoryPair::DOM));
+        maybeStack = uniqueStacks.AppendFrame(stack, newFrame);
+        if (!maybeStack) {
+          writer.SetFailure("AppendFrame failure");
+          continue;
+        }
+        stack = *maybeStack;
+        if (!frameStack.append(stack)) {
+          writer.SetFailure("frameStack append failure");
+          continue;
+        }
+
+      } else {
+        MOZ_ASSERT(event.kind == JS::ExecutionTrace::EventKind::LabelLeave ||
+                   event.kind == JS::ExecutionTrace::EventKind::FunctionLeave);
+        if (frameStack.length() > 0) {
+          frameStack.popBack();
+        }
+        if (frameStack.length() > 0) {
+          stack = frameStack[frameStack.length() - 1];
+        } else {
+          maybeStack =
+              uniqueStacks.BeginStack(UniqueStacks::FrameKey("(root)"));
+          if (!maybeStack) {
+            writer.SetFailure("BeginStack failure");
+            continue;
+          }
+
+          stack = *maybeStack;
+          if (!frameStack.append(stack)) {
+            writer.SetFailure("frameStack append failure");
+            continue;
+          }
+        }
+      }
+
+      const Maybe<uint32_t> stackIndex = uniqueStacks.GetOrAddStackIndex(stack);
+      if (!stackIndex) {
+        writer.SetFailure("Can't add unique string for stack");
+        continue;
+      }
+
+      WriteSample(writer, ProfileSample{*stackIndex, event.time, Nothing{},
+                                        RunningTimes{}});
+    }
+  }
+}
+#endif
+
 // GetStreamingParametersForThreadCallback:
 //   (ProfilerThreadId) -> Maybe<StreamingParametersForThread>
 template <typename GetStreamingParametersForThreadCallback>
@@ -1458,6 +1606,7 @@ ProfilerThreadId ProfileBuffer::StreamSamplesToJSON(
 #ifdef DEBUG
   int processedCount = 0;
 #endif  // DEBUG
+
   return DoStreamSamplesAndMarkersToJSON(
       aWriter.SourceFailureLatch(),
       [&](ProfilerThreadId aReadThreadId) {
@@ -1482,19 +1631,25 @@ ProfilerThreadId ProfileBuffer::StreamSamplesToJSON(
 void ProfileBuffer::StreamSamplesAndMarkersToJSON(
     ProcessStreamingContext& aProcessStreamingContext,
     mozilla::ProgressLogger aProgressLogger) const {
+  auto getStreamingParamsCallback = [&](ProfilerThreadId aReadThreadId) {
+    Maybe<StreamingParametersForThread> streamingParameters;
+    ThreadStreamingContext* threadData =
+        aProcessStreamingContext.GetThreadStreamingContext(aReadThreadId);
+    if (threadData) {
+      streamingParameters.emplace(
+          threadData->mSamplesDataWriter, *threadData->mUniqueStacks,
+          threadData->mPreviousStackState, threadData->mPreviousStack);
+    }
+    return streamingParameters;
+  };
+
+#ifdef MOZ_EXECUTION_TRACING
+  MaybeStreamExecutionTraceToJSON(getStreamingParamsCallback,
+                                  aProcessStreamingContext.GetSinceTime());
+#endif
+
   (void)DoStreamSamplesAndMarkersToJSON(
-      aProcessStreamingContext.SourceFailureLatch(),
-      [&](ProfilerThreadId aReadThreadId) {
-        Maybe<StreamingParametersForThread> streamingParameters;
-        ThreadStreamingContext* threadData =
-            aProcessStreamingContext.GetThreadStreamingContext(aReadThreadId);
-        if (threadData) {
-          streamingParameters.emplace(
-              threadData->mSamplesDataWriter, *threadData->mUniqueStacks,
-              threadData->mPreviousStackState, threadData->mPreviousStack);
-        }
-        return streamingParameters;
-      },
+      aProcessStreamingContext.SourceFailureLatch(), getStreamingParamsCallback,
       aProcessStreamingContext.GetSinceTime(), &aProcessStreamingContext,
       std::move(aProgressLogger));
 }

@@ -2142,7 +2142,7 @@ WorkerThreadPrimaryRunnable::Run() {
       runLoopRan = true;
 
       {
-        PROFILER_SET_JS_CONTEXT(cx);
+        PROFILER_SET_JS_CONTEXT(context.get());
 
         {
           // We're on the worker thread here, and WorkerPrivate's refcounting is
