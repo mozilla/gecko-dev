@@ -42,11 +42,12 @@ std::optional<SendQueue::DataToSend> StreamScheduler::Produce(
   RTC_DLOG(LS_VERBOSE) << log_prefix_
                        << "Producing data, rescheduling=" << rescheduling
                        << ", active="
-                       << StrJoin(active_streams_, ", ",
-                                  [&](rtc::StringBuilder& sb, const auto& p) {
-                                    sb << *p->stream_id() << "@"
-                                       << *p->next_finish_time();
-                                  });
+                       << webrtc::StrJoin(
+                              active_streams_, ", ",
+                              [&](rtc::StringBuilder& sb, const auto& p) {
+                                sb << *p->stream_id() << "@"
+                                   << *p->next_finish_time();
+                              });
 
   RTC_DCHECK(rescheduling || current_stream_ != nullptr);
 

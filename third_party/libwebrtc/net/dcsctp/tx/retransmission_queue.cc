@@ -430,11 +430,11 @@ RetransmissionQueue::GetChunksForFastRetransmit(size_t bytes_in_packet) {
   rtx_bytes_count_ += bytes_retransmitted;
 
   RTC_DLOG(LS_VERBOSE) << log_prefix_ << "Fast-retransmitting TSN "
-                       << StrJoin(to_be_sent, ",",
-                                  [&](rtc::StringBuilder& sb,
-                                      const std::pair<TSN, Data>& c) {
-                                    sb << *c.first;
-                                  })
+                       << webrtc::StrJoin(to_be_sent, ",",
+                                          [&](rtc::StringBuilder& sb,
+                                              const std::pair<TSN, Data>& c) {
+                                            sb << *c.first;
+                                          })
                        << " - " << bytes_retransmitted
                        << " bytes. unacked_bytes=" << unacked_bytes() << " ("
                        << old_unacked_bytes << ")";
@@ -511,11 +511,11 @@ std::vector<std::pair<TSN, Data>> RetransmissionQueue::GetChunksToSend(
       t3_rtx_.Start();
     }
     RTC_DLOG(LS_VERBOSE) << log_prefix_ << "Sending TSN "
-                         << StrJoin(to_be_sent, ",",
-                                    [&](rtc::StringBuilder& sb,
-                                        const std::pair<TSN, Data>& c) {
-                                      sb << *c.first;
-                                    })
+                         << webrtc::StrJoin(to_be_sent, ",",
+                                            [&](rtc::StringBuilder& sb,
+                                                const std::pair<TSN, Data>& c) {
+                                              sb << *c.first;
+                                            })
                          << " - "
                          << absl::c_accumulate(
                                 to_be_sent, 0,

@@ -145,8 +145,8 @@ std::string SackChunk::ToString() const {
   }
   if (!duplicate_tsns_.empty()) {
     sb << ", dup_tsns="
-       << StrJoin(duplicate_tsns(), ",",
-                  [](rtc::StringBuilder& sb, TSN tsn) { sb << *tsn; });
+       << webrtc::StrJoin(duplicate_tsns(), ",",
+                          [](rtc::StringBuilder& sb, TSN tsn) { sb << *tsn; });
   }
 
   return sb.Release();
