@@ -66,6 +66,18 @@ TEST(DOM_Quota_OriginScope, MatchesOrigin)
   }
 
   {
+    const auto originScope(
+        OriginScope::FromJSONPattern(u"{ \"userContextId\": 1 }"_ns));
+
+    EXPECT_FALSE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.mozilla.org"_ns)));
+    EXPECT_TRUE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.mozilla.org^userContextId=1"_ns)));
+    EXPECT_TRUE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.example.org^userContextId=1"_ns)));
+  }
+
+  {
     const auto originScope(OriginScope::FromNull());
 
     EXPECT_TRUE(originScope.Matches(
