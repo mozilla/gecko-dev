@@ -7,9 +7,7 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import org.junit.Rule
 import org.junit.Test
-import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
-import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.TestAssetHelper
@@ -21,8 +19,6 @@ import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 
 class CrashReportingTest : TestSetup() {
-    private val tabCrashMessage = getStringResource(R.string.tab_crash_title_2)
-
     @get:Rule
     val activityTestRule = AndroidComposeTestRule(
         HomeActivityIntentTestRule(
@@ -78,7 +74,7 @@ class CrashReportingTest : TestSetup() {
 
         navigationToolbar {
         }.openTabCrashReporter {
-            verifyPageContent(tabCrashMessage)
+            verifyTabCrashReporterView()
         }.openTabDrawer(activityTestRule) {
             verifyExistingOpenTabs(firstWebPage.title)
             verifyExistingOpenTabs("about:crashcontent")

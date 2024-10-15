@@ -198,6 +198,14 @@ class BrowserRobot {
         }
     }
 
+    fun verifyTabCrashReporterView() {
+        assertUIObjectExists(itemWithResId("$packageName:id/crash_tab_image"))
+        assertUIObjectExists(itemWithText(getStringResource(R.string.tab_crash_title_2)))
+        assertUIObjectExists(itemWithText(getStringResource(R.string.tab_crash_send_report)))
+        assertUIObjectExists(itemWithResId("$packageName:id/restoreTabButton"))
+        assertUIObjectExists(itemWithResId("$packageName:id/closeTabButton"))
+    }
+
     fun verifyPocketPageContent() {
         sessionLoadedIdlingResource = SessionLoadedIdlingResource()
         registerAndCleanupIdlingResources(sessionLoadedIdlingResource) {
