@@ -368,8 +368,12 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
 
     override fun onBackPressed(): Boolean {
         // The state needs to be updated accordingly if Edit mode is active
-        historyStore.dispatch(HistoryFragmentAction.BackPressed)
-        return true
+        return if (historyStore.state.mode is HistoryFragmentState.Mode.Editing) {
+            historyStore.dispatch(HistoryFragmentAction.BackPressed)
+            true
+        } else {
+            false
+        }
     }
 
     override fun onDestroyView() {
