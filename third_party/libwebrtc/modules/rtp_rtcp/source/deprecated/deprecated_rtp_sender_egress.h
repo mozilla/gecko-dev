@@ -11,14 +11,16 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_DEPRECATED_DEPRECATED_RTP_SENDER_EGRESS_H_
 #define MODULES_RTP_RTCP_SOURCE_DEPRECATED_DEPRECATED_RTP_SENDER_EGRESS_H_
 
-#include <map>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <vector>
 
+#include "api/array_view.h"
 #include "api/call/transport.h"
 #include "api/rtc_event_log/rtc_event_log.h"
-#include "api/units/data_rate.h"
+#include "api/rtp_packet_sender.h"
+#include "api/transport/network_types.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/packet_sequencer.h"
 #include "modules/rtp_rtcp/source/rtp_packet_history.h"

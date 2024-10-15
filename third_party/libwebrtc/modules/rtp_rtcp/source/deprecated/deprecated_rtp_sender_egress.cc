@@ -10,14 +10,29 @@
 
 #include "modules/rtp_rtcp/source/deprecated/deprecated_rtp_sender_egress.h"
 
-#include <limits>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
-#include <utility>
+#include <optional>
+#include <vector>
 
-#include "absl/strings/match.h"
+#include "api/array_view.h"
+#include "api/call/transport.h"
+#include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "logging/rtc_event_log/events/rtc_event_rtp_packet_outgoing.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/packet_sequencer.h"
+#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
+#include "modules/rtp_rtcp/source/rtp_packet_history.h"
+#include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
+#include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"
+#include "rtc_base/bitrate_tracker.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/synchronization/mutex.h"
 
 namespace webrtc {
 namespace {

@@ -11,23 +11,22 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_RTP_SENDER_H_
 #define MODULES_RTP_RTCP_SOURCE_RTP_SENDER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
-#include "api/call/transport.h"
-#include "api/field_trials_view.h"
 #include "api/rtp_packet_sender.h"
 #include "modules/rtp_rtcp/include/flexfec_sender.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtp_header_extension_size.h"
 #include "modules/rtp_rtcp/source/rtp_packet_history.h"
-#include "modules/rtp_rtcp/source/rtp_rtcp_config.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
 #include "rtc_base/random.h"
 #include "rtc_base/synchronization/mutex.h"

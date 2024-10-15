@@ -11,20 +11,27 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_RTP_RTCP_INTERFACE_H_
 #define MODULES_RTP_RTCP_SOURCE_RTP_RTCP_INTERFACE_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "api/field_trials_view.h"
 #include "api/frame_transformer_interface.h"
+#include "api/rtp_headers.h"
 #include "api/rtp_packet_sender.h"
 #include "api/scoped_refptr.h"
+#include "api/transport/network_types.h"
 #include "api/units/time_delta.h"
 #include "api/video/video_bitrate_allocation.h"
+#include "modules/include/module_fec_types.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
+#include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"

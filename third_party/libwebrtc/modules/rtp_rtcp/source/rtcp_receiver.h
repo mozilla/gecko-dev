@@ -11,16 +11,19 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_RTCP_RECEIVER_H_
 #define MODULES_RTP_RTCP_SOURCE_RTCP_RECEIVER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <list>
 #include <map>
 #include <optional>
-#include <string>
 #include <vector>
 
+#include "absl/container/inlined_vector.h"
 #include "api/array_view.h"
 #include "api/sequence_checker.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "api/video/video_codec_constants.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -28,11 +31,12 @@
 #include "modules/rtp_rtcp/source/rtcp_packet/dlrr.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/tmmb_item.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/containers/flat_map.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/system/no_unique_address.h"
 #include "rtc_base/thread_annotations.h"
-#include "system_wrappers/include/ntp_time.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 

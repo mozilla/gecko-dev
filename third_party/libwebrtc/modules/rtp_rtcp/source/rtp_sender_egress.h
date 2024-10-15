@@ -11,29 +11,30 @@
 #ifndef MODULES_RTP_RTCP_SOURCE_RTP_SENDER_EGRESS_H_
 #define MODULES_RTP_RTCP_SOURCE_RTP_SENDER_EGRESS_H_
 
-#include <map>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
 
+#include "api/array_view.h"
 #include "api/call/transport.h"
 #include "api/rtc_event_log/rtc_event_log.h"
-#include "api/sequence_checker.h"
+#include "api/rtp_packet_sender.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
-#include "api/units/data_rate.h"
-#include "api/units/time_delta.h"
+#include "api/transport/network_types.h"
 #include "api/units/timestamp.h"
+#include "modules/include/module_fec_types.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/packet_sequencer.h"
 #include "modules/rtp_rtcp/source/rtp_packet_history.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
 #include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"
+#include "modules/rtp_rtcp/source/video_fec_generator.h"
 #include "rtc_base/bitrate_tracker.h"
-#include "rtc_base/synchronization/mutex.h"
-#include "rtc_base/system/no_unique_address.h"
 #include "rtc_base/task_utils/repeating_task.h"
 #include "rtc_base/thread_annotations.h"
 
