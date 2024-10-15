@@ -2136,6 +2136,12 @@ networking:
       setPref:
         branch: default
         pref: "network.http.speculative-parallel-limit"
+    chipsEnabled:
+      description: Whether CHIPS is enabled or not
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.cookie.CHIPS.enabled"
     chipsPartitionLimitEnabled:
       description: Whether we enforce CHIPS partition limit
       type: boolean
