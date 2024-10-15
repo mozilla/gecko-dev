@@ -339,7 +339,8 @@
           background-repeat: no-repeat;
           width: 480px;
           height: 100%;
-          animation: tab-throbber-animation 1.05s steps(30) infinite;
+          /* this runs tab-throbber-animation 43 times (~45s) and delays swap-icon-animation by 45s  */
+          animation: tab-throbber-animation 1.05s steps(30) 43, swap-icon-animation 0s linear 45s 1 forwards;
           -moz-context-properties: fill;
 
           /* XXX: It would be nice to transition between the "connecting" color and the
@@ -377,6 +378,11 @@
 @keyframes tab-throbber-animation-rtl {
   0% { transform: translateX(0); }
   100% { transform: translateX(100%); }
+}
+
+@keyframes swap-icon-animation {
+  0% { background-image: url("chrome://browser/skin/tabbrowser/loading.svg"); transform: translateX(0); }
+  100% { background-image: url("chrome://browser/skin/tabbrowser/hourglass.svg"); transform: translateX(0); }
 }
 
 .tab-icon-pending:is(:not([pendingicon]), [busy], [pinned]) {
