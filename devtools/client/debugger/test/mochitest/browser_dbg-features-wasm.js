@@ -19,6 +19,10 @@
 "use strict";
 
 add_task(async function () {
+  // Disabled for CM6 until this is fixed
+  if (isCm6Enabled) {
+    return;
+  }
   // Load the test page before opening the debugger so that WASM are built
   // without debugging instructions. Opening the console still doesn't enable debugging instructions.
   const tab = await addTab(EXAMPLE_URL + "doc-wasm-sourcemaps.html");

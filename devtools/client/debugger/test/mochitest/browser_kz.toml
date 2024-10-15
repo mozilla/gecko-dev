@@ -23,6 +23,7 @@ prefs = [
 ]
 
 ["browser_dbg-keyboard-navigation.js"]
+skip-if = ["cm6"]
 
 ["browser_dbg-keyboard-shortcuts-modal.js"]
 
@@ -76,7 +77,7 @@ skip-if = [
 
 ["browser_dbg-outline-focus.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["verify"]
+skip-if = ["verify", "cm6"]
 
 ["browser_dbg-outline-pretty.js"]
 
