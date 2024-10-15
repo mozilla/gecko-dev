@@ -12,8 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
-  WindowGlobalMessageHandler:
-    "chrome://remote/content/shared/messagehandler/WindowGlobalMessageHandler.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "prefAsyncEventsEnabled", () =>
@@ -63,14 +61,8 @@ class InputModule extends RootBiDiModule {
    *     If target is outside the viewport.
    */
   #assertInViewPort(target, context) {
-    return this.messageHandler.forwardCommand({
-      moduleName: "input",
-      commandName: "_assertInViewPort",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: { target },
+    return this._forwardToWindowGlobal("_assertInViewPort", context.id, {
+      target,
     });
   }
 
@@ -88,14 +80,9 @@ class InputModule extends RootBiDiModule {
    *     Promise that resolves once the event is dispatched.
    */
   #dispatchEvent(eventName, context, details) {
-    return this.messageHandler.forwardCommand({
-      moduleName: "input",
-      commandName: "_dispatchEvent",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: { eventName, details },
+    return this._forwardToWindowGlobal("_dispatchEvent", context.id, {
+      eventName,
+      details,
     });
   }
 
@@ -109,14 +96,7 @@ class InputModule extends RootBiDiModule {
    *     Promise that resolves when the finalization is done.
    */
   #finalizeAction(context) {
-    return this.messageHandler.forwardCommand({
-      moduleName: "input",
-      commandName: "_finalizeAction",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-    });
+    return this._forwardToWindowGlobal("_finalizeAction", context.id);
   }
 
   /**
@@ -131,14 +111,8 @@ class InputModule extends RootBiDiModule {
    *     Promise that resolves to a list of DOMRect-like objects.
    */
   #getClientRects(node, context) {
-    return this.messageHandler.forwardCommand({
-      moduleName: "input",
-      commandName: "_getClientRects",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: { element: node },
+    return this._forwardToWindowGlobal("_getClientRects", context.id, {
+      element: node,
     });
   }
 
@@ -154,14 +128,8 @@ class InputModule extends RootBiDiModule {
    *     Promise that resolves to the shared reference.
    */
   #getElementOrigin(origin, context) {
-    return this.messageHandler.forwardCommand({
-      moduleName: "input",
-      commandName: "_getElementOrigin",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: { origin },
+    return this._forwardToWindowGlobal("_getElementOrigin", context.id, {
+      origin,
     });
   }
 
@@ -199,14 +167,8 @@ class InputModule extends RootBiDiModule {
    *     `rect`.
    */
   #getInViewCentrePoint(rect, context) {
-    return this.messageHandler.forwardCommand({
-      moduleName: "input",
-      commandName: "_getInViewCentrePoint",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: { rect },
+    return this._forwardToWindowGlobal("_getInViewCentrePoint", context.id, {
+      rect,
     });
   }
 
@@ -255,16 +217,8 @@ class InputModule extends RootBiDiModule {
 
     if (!lazy.prefAsyncEventsEnabled) {
       // Bug 1920959: Remove if we no longer need to dispatch in content.
-      await this.messageHandler.forwardCommand({
-        moduleName: "input",
-        commandName: "performActions",
-        destination: {
-          type: lazy.WindowGlobalMessageHandler.type,
-          id: context.id,
-        },
-        params: {
-          actions,
-        },
+      await this._forwardToWindowGlobal("performActions", context.id, {
+        actions,
       });
 
       return;
@@ -318,15 +272,7 @@ class InputModule extends RootBiDiModule {
 
     if (!lazy.prefAsyncEventsEnabled) {
       // Bug 1920959: Remove if we no longer need to dispatch in content.
-      await this.messageHandler.forwardCommand({
-        moduleName: "input",
-        commandName: "releaseActions",
-        destination: {
-          type: lazy.WindowGlobalMessageHandler.type,
-          id: context.id,
-        },
-        params: {},
-      });
+      await this._forwardToWindowGlobal("releaseActions", context.id);
 
       return;
     }
@@ -396,14 +342,9 @@ class InputModule extends RootBiDiModule {
       );
     }
 
-    await this.messageHandler.forwardCommand({
-      moduleName: "input",
-      commandName: "setFiles",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: { element, files },
+    await this._forwardToWindowGlobal("setFiles", context.id, {
+      element,
+      files,
     });
   }
 

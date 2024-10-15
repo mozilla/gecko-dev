@@ -1024,21 +1024,17 @@ class BrowsingContextModule extends RootBiDiModule {
       );
     }
 
-    const result = await this.messageHandler.forwardCommand({
-      moduleName: "browsingContext",
-      commandName: "_locateNodes",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: {
+    const result = await this._forwardToWindowGlobal(
+      "_locateNodes",
+      context.id,
+      {
         locator,
         maxNodeCount,
         serializationOptions: serializationOptionsWithDefaults,
         startNodes,
       },
-      retryOnAbort: true,
-    });
+      { retryOnAbort: true }
+    );
 
     return {
       nodes: result.serializedNodes,
@@ -1461,19 +1457,15 @@ class BrowsingContextModule extends RootBiDiModule {
         );
       }
       // Wait until the viewport has been resized
-      await this.messageHandler.forwardCommand({
-        moduleName: "browsingContext",
-        commandName: "_awaitViewportDimensions",
-        destination: {
-          type: lazy.WindowGlobalMessageHandler.type,
-          id: context.id,
-        },
-        params: {
+      await this._forwardToWindowGlobal(
+        "_awaitViewportDimensions",
+        context.id,
+        {
           height: targetHeight,
           width: targetWidth,
         },
-        retryOnAbort: true,
-      });
+        { retryOnAbort: true }
+      );
     }
   }
 
@@ -2003,18 +1995,12 @@ class BrowsingContextModule extends RootBiDiModule {
   }
 
   #waitForVisibilityChange(browsingContext) {
-    return this.messageHandler.forwardCommand({
-      moduleName: "browsingContext",
-      commandName: "_awaitVisibilityState",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: browsingContext.id,
-      },
-      params: {
-        value: "hidden",
-      },
-      retryOnAbort: true,
-    });
+    return this._forwardToWindowGlobal(
+      "_awaitVisibilityState",
+      browsingContext.id,
+      { value: "hidden" },
+      { retryOnAbort: true }
+    );
   }
 
   /**
