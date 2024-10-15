@@ -130,7 +130,8 @@ std::optional<Timestamp> TimestampExtrapolator::ExtrapolateLocalTime(
 
   if (!first_unwrapped_timestamp_) {
     return std::nullopt;
-  } else if (packet_count_ < kStartUpFilterDelayInPackets) {
+  }
+  if (packet_count_ < kStartUpFilterDelayInPackets) {
     constexpr double kRtpTicksPerMs = 90;
     TimeDelta diff = TimeDelta::Millis(
         (unwrapped_ts90khz - *prev_unwrapped_timestamp_) / kRtpTicksPerMs);
@@ -140,19 +141,20 @@ std::optional<Timestamp> TimestampExtrapolator::ExtrapolateLocalTime(
       return std::nullopt;
     }
     return prev_ + diff;
-  } else if (w_[0] < 1e-3) {
-    return start_;
-  } else {
-    double timestampDiff = unwrapped_ts90khz - *first_unwrapped_timestamp_;
-    TimeDelta diff = TimeDelta::Millis(
-        static_cast<int64_t>((timestampDiff - w_[1]) / w_[0] + 0.5));
-    if (start_.us() + diff.us() < 0) {
-      // Prevent the construction of a negative Timestamp.
-      // This scenario can occur when the RTP timestamp wraps around.
-      return std::nullopt;
-    }
-    return start_ + diff;
   }
+  if (w_[0] < 1e-3) {
+    return start_;
+  }
+  double timestamp_diff =
+      static_cast<double>(unwrapped_ts90khz - *first_unwrapped_timestamp_);
+  TimeDelta diff = TimeDelta::Millis(
+      static_cast<int64_t>((timestamp_diff - w_[1]) / w_[0] + 0.5));
+  if (start_.us() + diff.us() < 0) {
+    // Prevent the construction of a negative Timestamp.
+    // This scenario can occur when the RTP timestamp wraps around.
+    return std::nullopt;
+  }
+  return start_ + diff;
 }
 
 bool TimestampExtrapolator::DelayChangeDetection(double error) {
