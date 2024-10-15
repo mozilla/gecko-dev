@@ -36,7 +36,7 @@ Push to Try Server
 Now that you have a configuration setup and machines available via try server, it
 is time to run try.  If you are migrating mochitest or xpcshell, then you can do:
 
-  ``./mach try fuzzy --no-artifact --full --rebuild 10 --new-task-config -q 'test-windows10-64-1903 mochitest-browser-chrome !ccov !ship !browsertime !talos !asan'``
+  ``./mach try fuzzy --no-artifact --full --rebuild 10 --new-test-config -q 'test-windows10-64-1903 mochitest-browser-chrome !ccov !ship !browsertime !talos !asan'``
 
 This will run many tests (thanks to --full and --rebuild 10), but will give plenty
 of useful data.
