@@ -22,6 +22,7 @@
 #include "debugger/DebugAPI.h"
 #include "debugger/Debugger.h"
 #include "jit/arm/Simulator-arm.h"
+#include "jit/JitRuntime.h"
 #include "jit/MIRGenerator.h"
 #include "js/CallAndConstruct.h"
 #include "vm/Iteration.h"
@@ -397,6 +398,9 @@ void SuspenderObject::enter(JSContext* cx) {
   MOZ_ASSERT(state() == SuspenderState::Initial);
   cx->wasm().promiseIntegration.setActiveSuspender(this);
   setActive(cx);
+#  ifdef DEBUG
+  cx->runtime()->jitRuntime()->disallowArbitraryCode();
+#  endif
 }
 
 void SuspenderObject::suspend(JSContext* cx) {
@@ -405,6 +409,9 @@ void SuspenderObject::suspend(JSContext* cx) {
   cx->wasm().promiseIntegration.suspendedStacks_.pushFront(data());
   data()->setSuspendedBy(&cx->wasm().promiseIntegration);
   cx->wasm().promiseIntegration.setActiveSuspender(nullptr);
+#  ifdef DEBUG
+  cx->runtime()->jitRuntime()->clearDisallowArbitraryCode();
+#  endif
 
   if (cx->realm()->isDebuggee()) {
     WasmFrameIter iter(cx->activation()->asJit());
@@ -427,6 +434,9 @@ void SuspenderObject::resume(JSContext* cx) {
   setActive(cx);
   data()->setSuspendedBy(nullptr);
   cx->wasm().promiseIntegration.suspendedStacks_.remove(data());
+#  ifdef DEBUG
+  cx->runtime()->jitRuntime()->disallowArbitraryCode();
+#  endif
 
   if (cx->realm()->isDebuggee()) {
     for (FrameIter iter(cx);; ++iter) {
@@ -446,6 +456,9 @@ void SuspenderObject::resume(JSContext* cx) {
 
 void SuspenderObject::leave(JSContext* cx) {
   cx->wasm().promiseIntegration.setActiveSuspender(nullptr);
+#  ifdef DEBUG
+  cx->runtime()->jitRuntime()->clearDisallowArbitraryCode();
+#  endif
   // We are exiting alternative stack if state is active,
   // otherwise the stack was just suspended.
   switch (state()) {
