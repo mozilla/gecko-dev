@@ -1442,10 +1442,11 @@ function cleanupReadyUpdate() {
  * Note - This function may cause a state transition. If the current state is
  *        STATE_DOWNLOADING, this will cause it to change to STATE_NONE.
  */
-function cleanupDownloadingUpdate() {
+async function cleanupDownloadingUpdate() {
   // Move the update from the Active Update list into the Past Updates list.
   if (lazy.UM.internal.downloadingUpdate) {
     LOG("cleanupDownloadingUpdate - Clearing downloadingUpdate.");
+    await lazy.AUS.wrappedJSObject.cancelDownloadingUpdate();
     lazy.UM.internal.addUpdateToHistory(lazy.UM.internal.downloadingUpdate);
     lazy.UM.internal.downloadingUpdate = null;
   }
@@ -1479,7 +1480,7 @@ function cleanupDownloadingUpdate() {
  *
  * Note - This function causes a state transition to STATE_NONE.
  */
-function cleanupActiveUpdates() {
+async function cleanupActiveUpdates() {
   // Move the update from the Active Update list into the Past Updates list.
   if (lazy.UM.internal.readyUpdate) {
     LOG("cleanupActiveUpdates - Clearing readyUpdate");
@@ -1488,6 +1489,7 @@ function cleanupActiveUpdates() {
   }
   if (lazy.UM.internal.downloadingUpdate) {
     LOG("cleanupActiveUpdates - Clearing downloadingUpdate.");
+    await lazy.AUS.wrappedJSObject.cancelDownloadingUpdate();
     lazy.UM.internal.addUpdateToHistory(lazy.UM.internal.downloadingUpdate);
     lazy.UM.internal.downloadingUpdate = null;
   }
@@ -1788,8 +1790,7 @@ async function handleFallbackToCompleteUpdate() {
     "handleFallbackToCompleteUpdate - Cleaning up active updates in " +
       "preparation of falling back to complete update."
   );
-  await lazy.AUS.internal.stopDownload();
-  cleanupActiveUpdates();
+  await cleanupActiveUpdates();
 
   if (!update.selectedPatch) {
     // If we don't have a partial patch selected but a partial is available,
@@ -1815,7 +1816,7 @@ async function handleFallbackToCompleteUpdate() {
         "handleFallbackToCompleteUpdate - Starting complete patch download " +
           "failed. Cleaning up downloading patch."
       );
-      cleanupDownloadingUpdate();
+      await cleanupDownloadingUpdate();
     }
   } else {
     LOG(
@@ -2811,7 +2812,7 @@ export class UpdateService {
       // If the update is present in the update directory somehow,
       // it would prevent us from notifying the user of further updates.
       LOG("UpdateService:#asyncInit - Cleaning up active updates.");
-      cleanupActiveUpdates();
+      await cleanupActiveUpdates();
       return;
     }
 
@@ -2858,7 +2859,7 @@ export class UpdateService {
         pingStateAndStatusCodes(updates[0], true, newStatus);
       }
 
-      cleanupActiveUpdates();
+      await cleanupActiveUpdates();
       return;
     }
 
@@ -2892,7 +2893,7 @@ export class UpdateService {
       }
       let newStatus = STATE_FAILED + ": " + ERR_CHANNEL_CHANGE;
       pingStateAndStatusCodes(updates[0], true, newStatus);
-      cleanupActiveUpdates();
+      await cleanupActiveUpdates();
       return;
     }
 
@@ -2952,7 +2953,7 @@ export class UpdateService {
         // exceedingly unlikely that a user could end up in a state where one
         // update is acceptable and the other isn't. And it makes this function
         // considerably more complex to try to deal with that possibility.
-        cleanupActiveUpdates();
+        await cleanupActiveUpdates();
         return;
       }
     }
@@ -2976,7 +2977,7 @@ export class UpdateService {
             "because we installed a different patch before it finished" +
             "downloading."
         );
-        cleanupDownloadingUpdate();
+        await cleanupDownloadingUpdate();
       } else {
         // Attempt to resume download
         if (lazy.UM.internal.downloadingUpdate) {
@@ -2997,7 +2998,7 @@ export class UpdateService {
               "UpdateService:#asyncInit - Failed to resume patch. " +
                 "Cleaning up downloading update."
             );
-            cleanupDownloadingUpdate();
+            await cleanupDownloadingUpdate();
           }
         } else {
           LOG(
@@ -3006,7 +3007,7 @@ export class UpdateService {
               "active updates."
           );
           // Put ourselves back in a good state.
-          cleanupActiveUpdates();
+          await cleanupActiveUpdates();
         }
         if (status == STATE_DOWNLOADING) {
           // Done dealing with the downloading update, and there is no ready
@@ -3361,7 +3362,7 @@ export class UpdateService {
           "UpdateService:_attemptResume - Resuming download failed. Cleaning " +
             "up downloading update."
         );
-        cleanupDownloadingUpdate();
+        await cleanupDownloadingUpdate();
       }
       return;
     }
@@ -3881,7 +3882,7 @@ export class UpdateService {
         "UpdateService:_selectAndInstallUpdate - Failed to start downloading " +
           "update. Cleaning up downloading update."
       );
-      cleanupDownloadingUpdate();
+      await cleanupDownloadingUpdate();
     }
     AUSTLMY.pingCheckCode(this._pingSuffix, AUSTLMY.CHK_DOWNLOAD_UPDATE);
   }
@@ -4389,6 +4390,64 @@ export class UpdateService {
       monitorInterval,
       observer,
       null
+    );
+  }
+
+  /**
+   * Get rid of a downloading update. This is generally done before cleaning it
+   * up.
+   *
+   * Connects to the in-progress BITS job in order to cancel it, if necessary.
+   * This is generally only necessary when cancelling a job at startup,
+   * otherwise we would have connected to it already.
+   *
+   * If there is not an in-progress download, this has no effect.
+   */
+  async cancelDownloadingUpdate() {
+    if (this.isDownloading) {
+      LOG(
+        "UpdateService:cancelDownloadingUpdate - Job is connected already. Stopping."
+      );
+      await this.internal.stopDownload();
+      return;
+    }
+
+    // If we didn't return above, either we haven't connected to the BITS job
+    // yet or there is no BITS job and nothing to cancel.
+
+    if (!lazy.UM.internal.downloadingUpdate) {
+      LOG(
+        "UpdateService:cancelDownloadingUpdate - Not cleaning up BITS Job. No update."
+      );
+      return;
+    }
+    const patch = lazy.UM.internal.downloadingUpdate.selectedPatch;
+    if (!patch || !patch.QueryInterface(Ci.nsIWritablePropertyBag)) {
+      LOG(
+        "UpdateService:cancelDownloadingUpdate - Not cleaning up BITS Job. No patch."
+      );
+      return;
+    }
+    const bitsId = patch.getProperty("bitsId");
+    if (!bitsId) {
+      LOG(
+        "UpdateService:cancelDownloadingUpdate - Not cleaning up BITS Job. No BITS ID."
+      );
+      return;
+    }
+    // If `!this.isDownloading`, we are not connected to the BITS request, which
+    // we need to do to stop a BITS download.
+    try {
+      const request = await this.makeBitsRequest({ bitsId });
+      await request.cancelAsync();
+    } catch (ex) {
+      LOG(
+        `UpdateService:cancelDownloadingUpdate - Failed to clean up BITS Job ${bitsId}: ${ex}`
+      );
+      return;
+    }
+    LOG(
+      `UpdateService:cancelDownloadingUpdate - Successfully cleaned up BITS Job ${bitsId}`
     );
   }
 
@@ -5014,7 +5073,7 @@ export class UpdateManager {
       "UpdateManager:cleanupDownloadingUpdate - cleaning up downloading update."
     );
     await lazy.AUS.init();
-    cleanupDownloadingUpdate();
+    await cleanupDownloadingUpdate();
   }
 
   /**
@@ -5032,7 +5091,7 @@ export class UpdateManager {
   async cleanupActiveUpdates() {
     LOG("UpdateManager:cleanupActiveUpdates - cleaning up active updates.");
     await lazy.AUS.init();
-    cleanupActiveUpdates();
+    await cleanupActiveUpdates();
   }
 
   /**
@@ -5862,7 +5921,7 @@ class Downloader {
    *          A nsIUpdate object to select a patch from
    * @return  A nsIUpdatePatch object to download
    */
-  _selectPatch(update) {
+  async _selectPatch(update) {
     // Given an update to download, we will always try to download the patch
     // for a partial update over the patch for a full update.
 
@@ -5920,7 +5979,7 @@ class Downloader {
       if (update && selectedPatch.type == "complete") {
         // This is a pretty fatal error.  Just bail.
         LOG("Downloader:_selectPatch - failed to apply complete patch!");
-        cleanupDownloadingUpdate();
+        await cleanupDownloadingUpdate();
         return null;
       }
 
@@ -6085,7 +6144,7 @@ class Downloader {
 
     // This function may return null, which indicates that there are no patches
     // to download.
-    this._patch = this._selectPatch(update);
+    this._patch = await this._selectPatch(update);
     if (!this._patch) {
       LOG("Downloader:downloadUpdate - no patch to download");
       AUSTLMY.pingDownloadCode(undefined, AUSTLMY.DWNLD_ERR_NO_UPDATE_PATCH);
@@ -6151,7 +6210,7 @@ class Downloader {
               "downloader from a background task. Cleaning up downloading " +
               "update."
           );
-          cleanupDownloadingUpdate();
+          await cleanupDownloadingUpdate();
         }
         return Ci.nsIApplicationUpdateService
           .DOWNLOAD_FAILURE_CANNOT_RESUME_IN_BACKGROUND;
@@ -6840,7 +6899,7 @@ class Downloader {
               "Downloader:onStopRequest - Failed to fall back to " +
                 "nsIIncrementalDownload. Cleaning up downloading update."
             );
-            cleanupDownloadingUpdate();
+            await cleanupDownloadingUpdate();
           } else {
             allFailed = false;
           }
@@ -6864,7 +6923,7 @@ class Downloader {
               "Downloader:onStopRequest - Failed to fall back to complete " +
                 "patch. Cleaning up downloading update."
             );
-            cleanupDownloadingUpdate();
+            await cleanupDownloadingUpdate();
           } else {
             allFailed = false;
           }
