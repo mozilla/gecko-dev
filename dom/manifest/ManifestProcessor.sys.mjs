@@ -131,8 +131,12 @@ export var ManifestProcessor = {
         trim: true,
       };
       const value = extractor.extractValue(spec);
-      if (this.textDirections.has(value)) {
-        return value;
+      if (
+        value &&
+        typeof value === "string" &&
+        this.textDirections.has(value.toLowerCase())
+      ) {
+        return value.toLowerCase();
       }
       return "auto";
     }

@@ -25,13 +25,13 @@ typeTests.forEach((type) => {
   is(result.dir, "auto", expected);
 });
 
-/* Test valid values*/
-var validDirs = ["ltr", "rtl", "auto"];
+/* Test valid values - case insensitive*/
+var validDirs = ["ltr", "rtl", "auto", "LTR", "RtL", "AuTo"];
 validDirs.forEach((dir) => {
   var expected = `Expect dir value to be ${dir}.`;
   data.jsonText = JSON.stringify({dir});
   var result = processor.process(data);
-  is(result.dir, dir, expected);
+  is(result.dir, dir.toLowerCase(), expected);
 });
 
 // trim tests
@@ -42,11 +42,11 @@ validDirs.forEach((dir) => {
     dir: expandeddir,
   });
   var result = processor.process(data);
-  is(result.dir, dir, expected);
+  is(result.dir, dir.toLowerCase(), expected);
 });
 
 // Unknown/Invalid directions
-var invalidDirs = ["LTR", "RtL", `fooo${whiteSpace}rtl`, "", "bar baz, some value", "ltr rtl auto", "AuTo"];
+var invalidDirs = [`fooo${whiteSpace}rtl`, "", "bar baz, some value", "ltr rtl auto"];
 invalidDirs.forEach((dir) => {
   var expected = `Expect default dir "auto" to be returned: '${dir}'`;
   data.jsonText = JSON.stringify({dir});
