@@ -221,7 +221,6 @@ export class MLEngineParent extends JSWindowActorParent {
         return this.getModelFile(message.data);
 
       case "MLEngine:GetInferenceProcessInfo":
-        lazy.console.log("GetInferenceProcessInfo called");
         return lazy.getInferenceProcessInfo();
 
       case "MLEngine:DestroyEngineProcess":
@@ -612,9 +611,7 @@ class MLEngine {
     const engineId = pipelineOptions.engineId;
     this.events = {};
     this.engineId = engineId;
-    lazy.console.log("MLEngine constructor, adding engine", engineId);
     MLEngine.#instances.set(engineId, this);
-    lazy.console.log("Instances", MLEngine.#instances);
     this.mlEngineParent = mlEngineParent;
     this.pipelineOptions = pipelineOptions;
     this.notificationsCallback = notificationsCallback;
