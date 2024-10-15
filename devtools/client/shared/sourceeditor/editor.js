@@ -1732,6 +1732,9 @@ class Editor extends EventEmitter {
    * @returns {Object}  - The location information for the current viewport
    */
   getLocationsInViewport() {
+    if (this.isDestroyed()) {
+      return null;
+    }
     const cm = editors.get(this);
     if (this.config.cm6) {
       const { from, to } = cm.viewport;
@@ -2091,18 +2094,13 @@ class Editor extends EventEmitter {
   /**
    * Gets details about the line
    *
-   * @param {Number} lineOrOffset
+   * @param {Number} line
    * @returns {Object} line info object
    */
-  lineInfo(lineOrOffset) {
-    let line = this.toLineIfWasmOffset(lineOrOffset);
-    if (line == undefined) {
-      return null;
-    }
+  lineInfo(line) {
     const cm = editors.get(this);
     if (this.config.cm6) {
       // cm6 lines are 1-based, while cm5 are 0-based
-      line = line + 1;
       const el = this.getElementAtLine(line);
       // Filter out SPAN which do not contain user-defined classes.
       // Classes currently are "debug-expression" and "debug-expression-error"
@@ -2111,7 +2109,7 @@ class Editor extends EventEmitter {
       );
 
       return {
-        text: cm.state.doc.lineAt(line)?.text,
+        text: el.innerText,
         // TODO: Expose those, or see usage for those and do things differently
         line: null,
         handle: {
