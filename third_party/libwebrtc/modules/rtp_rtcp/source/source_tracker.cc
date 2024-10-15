@@ -99,6 +99,9 @@ SourceTracker::SourceEntry& SourceTracker::UpdateEntry(const SourceKey& key) {
 }
 
 void SourceTracker::PruneEntries(Timestamp now) const {
+  if (now < Timestamp::Zero() + kTimeout) {
+    return;
+  }
   Timestamp prune = now - kTimeout;
   while (!list_.empty() && list_.back().second.timestamp < prune) {
     map_.erase(list_.back().first);
