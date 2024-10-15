@@ -1607,7 +1607,17 @@ main section {
   }
 }
 .layout-variant-b.has-recommended-stories .search-inner-wrapper {
-  width: 350px;
+  width: 200px;
+}
+@media (min-width: 510px) {
+  .layout-variant-b.has-recommended-stories .search-inner-wrapper {
+    width: 300px;
+  }
+}
+@media (min-width: 610px) {
+  .layout-variant-b.has-recommended-stories .search-inner-wrapper {
+    width: 350px;
+  }
 }
 @media (min-width: 866px) {
   .layout-variant-b.has-recommended-stories .search-inner-wrapper {

@@ -188,7 +188,15 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   }
 
   .search-inner-wrapper {
-    width: 350px;
+    width: 200px;
+
+    @media (min-width: $break-point-small) {
+      width: 300px;
+    }
+
+    @media (min-width: $break-point-medium) {
+      width: 350px;
+    }
 
     @media (min-width: $break-point-large) {
       width: 410px;
