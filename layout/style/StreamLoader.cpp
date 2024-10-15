@@ -113,6 +113,11 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   // Resolution of parse promise fires onLoadEvent and this should not happen
   // before main thread OnStopRequest is dispatched.
   if (NS_IsMainThread()) {
+    {
+      nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+      channel->SetNotificationCallbacks(nullptr);
+    }
+
     mSheetLoadData->mNetworkMetadata =
         new SubResourceNetworkMetadataHolder(aRequest);
 
@@ -136,10 +141,6 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   nsCString utf8String;
   {
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
-
-    if (NS_IsMainThread()) {
-      channel->SetNotificationCallbacks(nullptr);
-    }
 
     if (NS_FAILED(mStatus)) {
       mSheetLoadData->VerifySheetReadyToParse(mStatus, ""_ns, ""_ns, channel,
