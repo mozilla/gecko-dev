@@ -166,14 +166,6 @@ int32_t VerifyCodecSettings(const VideoCodec& codec_settings) {
   return WEBRTC_VIDEO_CODEC_OK;
 }
 
-int GetMaxConsecDrops(double framerate_fps) {
-  // Consecutive frame drops result in a video freeze. We want to minimize the
-  // max number of consecutive drops and, at the same time, keep the value high
-  // enough to let encoder drain the buffer at overshoot.
-  constexpr double kMaxFreezeSeconds = 0.25;
-  return std::ceil(kMaxFreezeSeconds * framerate_fps);
-}
-
 LibaomAv1Encoder::LibaomAv1Encoder(const Environment& env,
                                    LibaomAv1EncoderSettings settings)
     : inited_(false),
@@ -338,6 +330,11 @@ int LibaomAv1Encoder::InitEncode(const VideoCodec* codec_settings,
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_SMOOTH_INTERINTRA, 0);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_ENABLE_TX64, 0);
   SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_REFERENCE_FRAMES, 3);
+
+  if (adaptive_max_consec_drops_) {
+    SET_ENCODER_PARAM_OR_RETURN_ERROR(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR,
+                                      250);
+  }
 
   return WEBRTC_VIDEO_CODEC_OK;
 }
@@ -813,17 +810,6 @@ void LibaomAv1Encoder::SetRates(const RateControlParameters& parameters) {
       }
     }
     SetEncoderControlParameters(AV1E_SET_SVC_PARAMS, &*svc_params_);
-  }
-
-  if (adaptive_max_consec_drops_ &&
-      (!rates_configured_ || framerate_fps_ != parameters.framerate_fps)) {
-    int max_consec_drops = GetMaxConsecDrops(parameters.framerate_fps);
-    if (!SetEncoderControlParameters(AV1E_SET_MAX_CONSEC_FRAME_DROP_CBR,
-                                     max_consec_drops)) {
-      RTC_LOG(LS_WARNING)
-          << "Failed to set AV1E_SET_MAX_CONSEC_FRAME_DROP_CBR to "
-          << max_consec_drops;
-    }
   }
 
   framerate_fps_ = parameters.framerate_fps;
