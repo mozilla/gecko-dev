@@ -23,6 +23,7 @@
 #include "api/call/transport.h"
 #include "api/fec_controller.h"
 #include "api/frame_transformer_interface.h"
+#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/rtp_packet_sender.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"

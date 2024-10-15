@@ -20,7 +20,9 @@
 
 #include "api/array_view.h"
 #include "api/call/transport.h"
+#include "api/environment/environment.h"
 #include "api/field_trials_view.h"
+#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
@@ -109,19 +111,19 @@ void RtpSenderEgress::NonPacedPacketSender::PrepareForSend(
   packet->ReserveExtension<AbsoluteSendTime>();
 }
 
-RtpSenderEgress::RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
+RtpSenderEgress::RtpSenderEgress(const Environment& env,
+                                 const RtpRtcpInterface::Configuration& config,
                                  RtpPacketHistory* packet_history)
-    : enable_send_packet_batching_(config.enable_send_packet_batching),
+    : env_(env),
+      enable_send_packet_batching_(config.enable_send_packet_batching),
       worker_queue_(TaskQueueBase::Current()),
       ssrc_(config.local_media_ssrc),
       rtx_ssrc_(config.rtx_send_ssrc),
       flexfec_ssrc_(config.fec_generator ? config.fec_generator->FecSsrc()
                                          : std::nullopt),
       populate_network2_timestamp_(config.populate_network2_timestamp),
-      clock_(config.clock),
       packet_history_(packet_history),
       transport_(config.outgoing_transport),
-      event_log_(config.event_log),
       is_audio_(config.audio),
       need_rtp_packet_infos_(config.need_rtp_packet_infos),
       fec_generator_(config.fec_generator),
@@ -182,7 +184,7 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
     RTC_DCHECK(packet->retransmitted_sequence_number().has_value());
   }
 
-  const Timestamp now = clock_->CurrentTime();
+  const Timestamp now = env_.clock().CurrentTime();
   if (need_rtp_packet_infos_ &&
       packet->packet_type() == RtpPacketToSend::Type::kVideo) {
     // Last packet of a frame, add it to sequence number info map.
@@ -240,8 +242,8 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
   }
   if (packet->HasExtension<AbsoluteSendTime>()) {
     if (use_ntp_time_for_absolute_send_time_) {
-      packet->SetExtension<AbsoluteSendTime>(
-          AbsoluteSendTime::To24Bits(clock_->ConvertTimestampToNtpTime(now)));
+      packet->SetExtension<AbsoluteSendTime>(AbsoluteSendTime::To24Bits(
+          env_.clock().ConvertTimestampToNtpTime(now)));
     } else {
       packet->SetExtension<AbsoluteSendTime>(AbsoluteSendTime::To24Bits(now));
     }
@@ -453,21 +455,13 @@ bool RtpSenderEgress::SendPacketToNetwork(const RtpPacketToSend& packet,
                                           const PacketOptions& options,
                                           const PacedPacketInfo& pacing_info) {
   RTC_DCHECK_RUN_ON(worker_queue_);
-  int bytes_sent = -1;
-  if (transport_) {
-    bytes_sent = transport_->SendRtp(packet, options)
-                     ? static_cast<int>(packet.size())
-                     : -1;
-    if (event_log_ && bytes_sent > 0) {
-      event_log_->Log(std::make_unique<RtcEventRtpPacketOutgoing>(
-          packet, pacing_info.probe_cluster_id));
-    }
-  }
-
-  if (bytes_sent <= 0) {
+  if (transport_ == nullptr || !transport_->SendRtp(packet, options)) {
     RTC_LOG(LS_WARNING) << "Transport failed to send packet.";
     return false;
   }
+
+  env_.event_log().Log(std::make_unique<RtcEventRtpPacketOutgoing>(
+      packet, pacing_info.probe_cluster_id));
   return true;
 }
 
@@ -515,7 +509,7 @@ void RtpSenderEgress::UpdateRtpStats(Timestamp now,
 void RtpSenderEgress::PeriodicUpdate() {
   RTC_DCHECK_RUN_ON(worker_queue_);
   RTC_DCHECK(bitrate_callback_);
-  RtpSendRates send_rates = GetSendRates(clock_->CurrentTime());
+  RtpSendRates send_rates = GetSendRates(env_.clock().CurrentTime());
   bitrate_callback_->Notify(
       send_rates.Sum().bps(),
       send_rates[RtpPacketMediaType::kRetransmission].bps(), ssrc_);

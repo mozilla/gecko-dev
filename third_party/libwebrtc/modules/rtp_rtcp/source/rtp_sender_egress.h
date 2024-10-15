@@ -20,7 +20,7 @@
 
 #include "api/array_view.h"
 #include "api/call/transport.h"
-#include "api/rtc_event_log/rtc_event_log.h"
+#include "api/environment/environment.h"
 #include "api/rtp_packet_sender.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
@@ -65,7 +65,8 @@ class RtpSenderEgress {
     ScopedTaskSafety task_safety_;
   };
 
-  RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
+  RtpSenderEgress(const Environment& env,
+                  const RtpRtcpInterface::Configuration& config,
                   RtpPacketHistory* packet_history);
   ~RtpSenderEgress();
 
@@ -124,16 +125,15 @@ class RtpSenderEgress {
   // Called on a timer, once a second, on the worker_queue_.
   void PeriodicUpdate();
 
+  const Environment env_;
   const bool enable_send_packet_batching_;
   TaskQueueBase* const worker_queue_;
   const uint32_t ssrc_;
   const std::optional<uint32_t> rtx_ssrc_;
   const std::optional<uint32_t> flexfec_ssrc_;
   const bool populate_network2_timestamp_;
-  Clock* const clock_;
   RtpPacketHistory* const packet_history_ RTC_GUARDED_BY(worker_queue_);
   Transport* const transport_;
-  RtcEventLog* const event_log_;
   const bool is_audio_;
   const bool need_rtp_packet_infos_;
   VideoFecGenerator* const fec_generator_ RTC_GUARDED_BY(worker_queue_);

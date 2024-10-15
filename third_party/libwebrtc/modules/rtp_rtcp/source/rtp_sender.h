@@ -21,6 +21,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/environment/environment.h"
 #include "api/rtp_packet_sender.h"
 #include "modules/rtp_rtcp/include/flexfec_sender.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
@@ -36,7 +37,6 @@ namespace webrtc {
 
 class FrameEncryptorInterface;
 class RateLimiter;
-class RtcEventLog;
 class RtpPacketToSend;
 
 // Maximum amount of padding in RFC 3550 is 255 bytes.
@@ -44,6 +44,11 @@ constexpr size_t kMaxPaddingLength = 255;
 
 class RTPSender {
  public:
+  RTPSender(const Environment& env,
+            const RtpRtcpInterface::Configuration& config,
+            RtpPacketHistory* packet_history,
+            RtpPacketSender* packet_sender);
+
   RTPSender(const RtpRtcpInterface::Configuration& config,
             RtpPacketHistory* packet_history,
             RtpPacketSender* packet_sender);
@@ -159,6 +164,11 @@ class RTPSender {
   RtpState GetRtxRtpState() const RTC_LOCKS_EXCLUDED(send_mutex_);
 
  private:
+  RTPSender(Clock* clock,
+            const RtpRtcpInterface::Configuration& config,
+            RtpPacketHistory* packet_history,
+            RtpPacketSender* packet_sender);
+
   std::unique_ptr<RtpPacketToSend> BuildRtxPacket(
       const RtpPacketToSend& packet);
 

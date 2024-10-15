@@ -19,7 +19,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
@@ -71,17 +70,19 @@ RTCPSender::Configuration AddRtcpSendEvaluationCallback(
 }  // namespace
 
 ModuleRtpRtcpImpl2::RtpSenderContext::RtpSenderContext(
+    const Environment& env,
     TaskQueueBase& worker_queue,
     const RtpRtcpInterface::Configuration& config)
-    : packet_history(config.clock,
+    : packet_history(&env.clock(),
                      RtpPacketHistory::PaddingMode::kRecentLargePacket),
       sequencer(config.local_media_ssrc,
                 config.rtx_send_ssrc,
                 /*require_marker_before_media_padding=*/!config.audio,
-                config.clock),
-      packet_sender(config, &packet_history),
+                &env.clock()),
+      packet_sender(env, config, &packet_history),
       non_paced_sender(worker_queue, &packet_sender, &sequencer),
       packet_generator(
+          env,
           config,
           &packet_history,
           config.paced_sender ? config.paced_sender : &non_paced_sender) {}
@@ -91,7 +92,7 @@ ModuleRtpRtcpImpl2::RtpSenderContext::RtpSenderContext(
 // Merge two constructors into single one after that.
 ModuleRtpRtcpImpl2::ModuleRtpRtcpImpl2(const Environment& env,
                                        const Configuration& configuration)
-    : ModuleRtpRtcpImpl2([&] {
+    : ModuleRtpRtcpImpl2({}, env, [&] {
         // Check users of this constructor switch to not duplicate
         // utilities passed with environment.
         RTC_DCHECK(configuration.field_trials == nullptr);
@@ -105,15 +106,17 @@ ModuleRtpRtcpImpl2::ModuleRtpRtcpImpl2(const Environment& env,
         return config;
       }()) {}
 
-ModuleRtpRtcpImpl2::ModuleRtpRtcpImpl2(const Configuration& configuration)
-    : worker_queue_(TaskQueueBase::Current()),
+ModuleRtpRtcpImpl2::ModuleRtpRtcpImpl2(TagConfigurationIncludesEnvironment,
+                                       const Environment& env,
+                                       const Configuration& configuration)
+    : env_(env),
+      worker_queue_(TaskQueueBase::Current()),
       rtcp_sender_(AddRtcpSendEvaluationCallback(
           RTCPSender::Configuration::FromRtpRtcpConfiguration(configuration),
           [this](TimeDelta duration) {
             ScheduleRtcpSendEvaluation(duration);
           })),
       rtcp_receiver_(configuration, this),
-      clock_(configuration.clock),
       packet_overhead_(28),  // IPV4 UDP.
       nack_last_time_sent_full_ms_(0),
       nack_last_seq_number_sent_(0),
@@ -123,7 +126,7 @@ ModuleRtpRtcpImpl2::ModuleRtpRtcpImpl2(const Configuration& configuration)
   rtcp_thread_checker_.Detach();
   if (!configuration.receiver_only) {
     rtp_sender_ =
-        std::make_unique<RtpSenderContext>(*worker_queue_, configuration);
+        std::make_unique<RtpSenderContext>(env_, *worker_queue_, configuration);
     rtp_sender_->sequencing_checker.Detach();
     // Make sure rtcp sender use same timestamp offset as rtp sender.
     rtcp_sender_.SetTimestampOffset(
@@ -147,15 +150,6 @@ ModuleRtpRtcpImpl2::ModuleRtpRtcpImpl2(const Configuration& configuration)
 ModuleRtpRtcpImpl2::~ModuleRtpRtcpImpl2() {
   RTC_DCHECK_RUN_ON(worker_queue_);
   rtt_update_task_.Stop();
-}
-
-// static
-std::unique_ptr<ModuleRtpRtcpImpl2> ModuleRtpRtcpImpl2::Create(
-    const Configuration& configuration) {
-  RTC_DCHECK(configuration.clock);
-  RTC_DCHECK(TaskQueueBase::Current());
-  // Use WrapUnique to access private constructor.
-  return absl::WrapUnique(new ModuleRtpRtcpImpl2(configuration));
 }
 
 void ModuleRtpRtcpImpl2::SetRtxSendStatus(int mode) {
@@ -289,7 +283,8 @@ RTCPSender::FeedbackState ModuleRtpRtcpImpl2::GetFeedbackState() {
     state.media_bytes_sent = rtp_stats.transmitted.payload_bytes +
                              rtx_stats.transmitted.payload_bytes;
     state.send_bitrate =
-        rtp_sender_->packet_sender.GetSendRates(clock_->CurrentTime()).Sum();
+        rtp_sender_->packet_sender.GetSendRates(env_.clock().CurrentTime())
+            .Sum();
   }
   state.receiver = &rtcp_receiver_;
 
@@ -613,7 +608,7 @@ int32_t ModuleRtpRtcpImpl2::SendNACK(const uint16_t* nack_list,
                                      const uint16_t size) {
   uint16_t nack_length = size;
   uint16_t start_id = 0;
-  int64_t now_ms = clock_->TimeInMilliseconds();
+  int64_t now_ms = env_.clock().TimeInMilliseconds();
   if (TimeToSendFullNackList(now_ms)) {
     nack_last_time_sent_full_ms_ = now_ms;
   } else {
@@ -710,7 +705,7 @@ void ModuleRtpRtcpImpl2::SetLocalSsrc(uint32_t local_ssrc) {
 
 RtpSendRates ModuleRtpRtcpImpl2::GetSendRates() const {
   RTC_DCHECK_RUN_ON(&rtp_sender_->sequencing_checker);
-  return rtp_sender_->packet_sender.GetSendRates(clock_->CurrentTime());
+  return rtp_sender_->packet_sender.GetSendRates(env_.clock().CurrentTime());
 }
 
 void ModuleRtpRtcpImpl2::OnRequestSendReport() {
@@ -788,7 +783,7 @@ const RTPSender* ModuleRtpRtcpImpl2::RtpSender() const {
 void ModuleRtpRtcpImpl2::PeriodicUpdate() {
   RTC_DCHECK_RUN_ON(worker_queue_);
 
-  Timestamp check_since = clock_->CurrentTime() - kRttUpdateInterval;
+  Timestamp check_since = env_.clock().CurrentTime() - kRttUpdateInterval;
   std::optional<TimeDelta> rtt =
       rtcp_receiver_.OnPeriodicRttUpdate(check_since, rtcp_sender_.Sending());
   if (rtt) {
@@ -810,7 +805,7 @@ void ModuleRtpRtcpImpl2::MaybeSendRtcp() {
 void ModuleRtpRtcpImpl2::MaybeSendRtcpAtOrAfterTimestamp(
     Timestamp execution_time) {
   RTC_DCHECK_RUN_ON(worker_queue_);
-  Timestamp now = clock_->CurrentTime();
+  Timestamp now = env_.clock().CurrentTime();
   if (now >= execution_time) {
     MaybeSendRtcp();
     return;
@@ -838,7 +833,7 @@ void ModuleRtpRtcpImpl2::ScheduleRtcpSendEvaluation(TimeDelta duration) {
       MaybeSendRtcp();
     }));
   } else {
-    Timestamp execution_time = clock_->CurrentTime() + duration;
+    Timestamp execution_time = env_.clock().CurrentTime() + duration;
     ScheduleMaybeSendRtcpAtOrAfterTimestamp(execution_time, duration);
   }
 }

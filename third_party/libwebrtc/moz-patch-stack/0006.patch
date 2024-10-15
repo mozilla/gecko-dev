@@ -93,10 +93,10 @@ index 0c0332354b..5bead2b8a6 100644
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
    // Within this list, the `ReportBlockData::source_ssrc()`, which is the SSRC
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-index 985f1024a9..1a4e35c058 100644
+index 43ae7d5dc4..f611948a04 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-@@ -550,6 +550,11 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
+@@ -545,6 +545,11 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
  }
  
  // Received RTCP report.
@@ -109,10 +109,10 @@ index 985f1024a9..1a4e35c058 100644
      const {
    return rtcp_receiver_.GetLatestReportBlockData();
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.h b/modules/rtp_rtcp/source/rtp_rtcp_impl2.h
-index 87896c7237..18a1b546b1 100644
+index 4951790ee0..81ed9cf0fb 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.h
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.h
-@@ -206,6 +206,9 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
+@@ -199,6 +199,9 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
        StreamDataCounters* rtp_counters,
        StreamDataCounters* rtx_counters) const override;
  

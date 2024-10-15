@@ -22,6 +22,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/environment/environment.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_packet_sender.h"
 #include "api/units/time_delta.h"
@@ -160,10 +161,22 @@ bool HasBweExtension(const RtpHeaderExtensionMap& extensions_map) {
 
 }  // namespace
 
+RTPSender::RTPSender(const Environment& env,
+                     const RtpRtcpInterface::Configuration& config,
+                     RtpPacketHistory* packet_history,
+                     RtpPacketSender* packet_sender)
+    : RTPSender(&env.clock(), config, packet_history, packet_sender) {}
+
 RTPSender::RTPSender(const RtpRtcpInterface::Configuration& config,
                      RtpPacketHistory* packet_history,
                      RtpPacketSender* packet_sender)
-    : clock_(config.clock),
+    : RTPSender(config.clock, config, packet_history, packet_sender) {}
+
+RTPSender::RTPSender(Clock* clock,
+                     const RtpRtcpInterface::Configuration& config,
+                     RtpPacketHistory* packet_history,
+                     RtpPacketSender* packet_sender)
+    : clock_(clock),
       random_(clock_->TimeInMicroseconds()),
       audio_configured_(config.audio),
       ssrc_(config.local_media_ssrc),

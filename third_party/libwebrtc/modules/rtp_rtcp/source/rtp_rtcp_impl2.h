@@ -61,13 +61,6 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
                      const RtpRtcpInterface::Configuration& configuration);
   ~ModuleRtpRtcpImpl2() override;
 
-  // This method is provided to easy with migrating away from the
-  // RtpRtcp::Create factory method. Since this is an internal implementation
-  // detail though, creating an instance of ModuleRtpRtcpImpl2 directly should
-  // be fine.
-  static std::unique_ptr<ModuleRtpRtcpImpl2> Create(
-      const Configuration& configuration);
-
   // Receiver part.
 
   // Called when we receive an RTCP packet.
@@ -269,7 +262,8 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
   FRIEND_TEST_ALL_PREFIXES(RtpRtcpImpl2Test, RttForReceiverOnly);
 
   struct RtpSenderContext {
-    explicit RtpSenderContext(TaskQueueBase& worker_queue,
+    explicit RtpSenderContext(const Environment& env,
+                              TaskQueueBase& worker_queue,
                               const RtpRtcpInterface::Configuration& config);
     // Storage of packets, for retransmissions and padding, if applicable.
     RtpPacketHistory packet_history;
@@ -285,7 +279,10 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
     RTPSender packet_generator;
   };
 
-  explicit ModuleRtpRtcpImpl2(const Configuration& configuration);
+  struct TagConfigurationIncludesEnvironment {};
+  explicit ModuleRtpRtcpImpl2(TagConfigurationIncludesEnvironment,
+                              const Environment& env,
+                              const Configuration& configuration);
 
   void set_rtt_ms(int64_t rtt_ms);
   int64_t rtt_ms() const;
@@ -316,14 +313,13 @@ class ModuleRtpRtcpImpl2 final : public RtpRtcpInterface,
   void ScheduleMaybeSendRtcpAtOrAfterTimestamp(Timestamp execution_time,
                                                TimeDelta duration);
 
+  const Environment env_;
   TaskQueueBase* const worker_queue_;
   RTC_NO_UNIQUE_ADDRESS SequenceChecker rtcp_thread_checker_;
 
   std::unique_ptr<RtpSenderContext> rtp_sender_;
   RTCPSender rtcp_sender_;
   RTCPReceiver rtcp_receiver_;
-
-  Clock* const clock_;
 
   uint16_t packet_overhead_;
 

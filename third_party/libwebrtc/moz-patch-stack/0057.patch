@@ -111,10 +111,10 @@ index 3192c27a49..306c17e2c2 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_sender.cc b/modules/rtp_rtcp/source/rtp_sender.cc
-index 958edece7e..faed3dfaa5 100644
+index 258bfa1885..5b1c588197 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender.cc
-@@ -114,7 +114,9 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -115,7 +115,9 @@ bool IsNonVolatile(RTPExtensionType type) {
    switch (type) {
      case kRtpExtensionTransmissionTimeOffset:
      case kRtpExtensionAudioLevel:
@@ -124,7 +124,7 @@ index 958edece7e..faed3dfaa5 100644
      case kRtpExtensionAbsoluteSendTime:
      case kRtpExtensionTransportSequenceNumber:
      case kRtpExtensionTransportSequenceNumber02:
-@@ -139,10 +141,12 @@ bool IsNonVolatile(RTPExtensionType type) {
+@@ -140,10 +142,12 @@ bool IsNonVolatile(RTPExtensionType type) {
      case kRtpExtensionNumberOfExtensions:
        RTC_DCHECK_NOTREACHED();
        return false;
