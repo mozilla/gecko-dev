@@ -389,11 +389,7 @@ export class MLEngineParent extends JSWindowActorParent {
       RS_INFERENCE_OPTIONS_COLLECTION
     );
 
-    let records = await client.get({
-      filters: {
-        featureId,
-      },
-    });
+    let records = featureId ? await client.get({ filters: { featureId } }) : [];
 
     // if the featureId is not in our settings, we fallback to the task name
     if (records.length === 0) {
