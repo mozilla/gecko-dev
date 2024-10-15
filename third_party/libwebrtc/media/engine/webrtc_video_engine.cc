@@ -30,6 +30,7 @@
 #include "api/media_types.h"
 #include "api/priority.h"
 #include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -44,7 +45,9 @@
 #include "call/call.h"
 #include "call/packet_receiver.h"
 #include "call/receive_stream.h"
+#include "call/rtp_config.h"
 #include "call/rtp_transport_controller_send_interface.h"
+#include "call/video_send_stream.h"
 #include "common_video/frame_counts.h"
 #include "common_video/include/quality_limitation_reason.h"
 #include "media/base/codec.h"
@@ -1489,6 +1492,13 @@ bool WebRtcVideoSendChannel::AddSendStream(const StreamParams& sp) {
   config.encoder_settings.bitrate_allocator_factory =
       bitrate_allocator_factory_;
   config.encoder_settings.encoder_switch_request_callback = this;
+
+  // TODO: b/358039777 - Add test when this effectively does something.
+  if (webrtc::RtpExtension::FindHeaderExtensionByUri(
+          config.rtp.extensions, webrtc::RtpExtension::kCorruptionDetectionUri,
+          webrtc::RtpExtension::kRequireEncryptedExtension)) {
+    config.encoder_settings.enable_frame_instrumentation_generator = true;
+  }
   config.crypto_options = crypto_options_;
   config.rtp.extmap_allow_mixed = ExtmapAllowMixed();
   config.rtcp_report_interval_ms = video_config_.rtcp_report_interval_ms;
