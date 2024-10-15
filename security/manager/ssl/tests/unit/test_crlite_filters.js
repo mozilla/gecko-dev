@@ -39,19 +39,37 @@
 //    "MinTimestamp": 0,
 //    "MaxTimestamp": 9999999999999,
 //    "MMD": 86400,
-//    "MinEntry": 0,
+//    "MinEntry": 0
 //  },
 //  {
 //    "LogID": "pLkJkLQYWBSHuxOizGdwCjw1mAT5G9+443fNDsgN3BA=",
 //    "MinTimestamp": 0,
 //    "MaxTimestamp": 9999999999999,
 //    "MMD": 86400,
-//    "MinEntry": 0,
+//    "MinEntry": 0
 //  }]
 //
 // $ rust-create-cascade --filter-type cascade --known ./known/ --revoked ./revoked --outdir ./cascade
 // $ rust-create-cascade --filter-type clubcard --ct-logs-json ./ct-logs.json --known ./known/ --revoked ./revoked --outdir ./clubcard
 //
+// Additional revoked certificates were then added to the /known/ and /revoked/
+// files before creating the delta updates:
+//
+// $ ./crlite_key.py test_crlite_filters/issuer.pem test_crlite_filters/revoked-in-stash.pem
+// 8Rw90Ej3Ttt8RRkrg-WYDS9n7IS03bk5bjP_UXPtaY8=
+// 009796e3b017a29f0d
+//
+// $ ./crlite_key.py test_crlite_filters/issuer.pem test_crlite_filters/revoked-in-stash-2.pem
+// 8Rw90Ej3Ttt8RRkrg-WYDS9n7IS03bk5bjP_UXPtaY8=
+// 167d2818a75ab5d8
+//
+// $ echo "009796e3b017a29f0d" >> known/8Rw90Ej3Ttt8RRkrg-WYDS9n7IS03bk5bjP_UXPtaY8\=
+// $ echo "00009796e3b017a29f0d" >> revoked/8Rw90Ej3Ttt8RRkrg-WYDS9n7IS03bk5bjP_UXPtaY8\=
+// $ rust-create-cascade --filter-type clubcard --ct-logs-json ./ct-logs.json --known ./known/ --revoked ./revoked --prev-revset ./clubcard/revset.bin --outdir ./clubcard-delta-1
+//
+// $ echo "167d2818a75ab5d8" >> known/8Rw90Ej3Ttt8RRkrg-WYDS9n7IS03bk5bjP_UXPtaY8\=
+// $ echo "00167d2818a75ab5d8" >> revoked/8Rw90Ej3Ttt8RRkrg-WYDS9n7IS03bk5bjP_UXPtaY8\=
+// $ rust-create-cascade --filter-type clubcard --ct-logs-json ./ct-logs.json --known ./known/ --revoked ./revoked --prev-revset ./clubcard-delta-1/revset.bin --outdir ./clubcard-delta-2
 
 "use strict";
 do_get_profile(); // must be called before getting nsIX509CertDB
@@ -108,6 +126,12 @@ function getFilenameForFilter(filter) {
   }
   if (filter.id == "0001") {
     return "20201017-1-filter.stash";
+  }
+  if (filter.id == "1000") {
+    return "20201017-1-filter.delta";
+  }
+  if (filter.id == "2000") {
+    return "20201201-3-filter.delta";
   }
   // The addition of another stash file was written more than a month after
   // other parts of this test. As such, the second stash file for October 17th,
@@ -668,7 +692,7 @@ async function test_crlite_filters_and_check_revocation(filter_type) {
       {
         timestamp: "2020-10-17T03:00:00Z",
         type: "diff",
-        id: "0001",
+        id: filter_type == "clubcard" ? "1000" : "0001",
         parent: "0000",
       },
     ],
@@ -712,8 +736,8 @@ async function test_crlite_filters_and_check_revocation(filter_type) {
       {
         timestamp: "2020-10-17T06:00:00Z",
         type: "diff",
-        id: "0002",
-        parent: "0001",
+        id: filter_type == "clubcard" ? "2000" : "0002",
+        parent: filter_type == "clubcard" ? "1000" : "0001",
       },
     ],
     false
