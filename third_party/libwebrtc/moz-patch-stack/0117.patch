@@ -1,23 +1,21 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 17 Sep 2024 13:33:00 -0500
-Subject: Bug 1918268 - (fix-96c1b9c5ea) provide template arg for optional to
- fix compile error
+Date: Wed, 18 Sep 2024 11:14:00 -0500
+Subject: Bug 1918268 - (fix-ec5a968070) readd an include that upstream removed
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ca2211dbb0dd8864768cdcce1ea146bdbb0faeda
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8c080511a17a87c65771747faa74f859b7fe70bb
 ---
- video/video_send_stream_impl.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ api/transport/network_control.h | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/video/video_send_stream_impl.cc b/video/video_send_stream_impl.cc
-index 77f40f9001..0514ee9456 100644
---- a/video/video_send_stream_impl.cc
-+++ b/video/video_send_stream_impl.cc
-@@ -782,7 +782,7 @@ MediaStreamAllocationConfig VideoSendStreamImpl::GetAllocationConfig() const {
-       !config_.suspend_below_min_bitrate,
-       encoder_bitrate_priority_,
-       (content_type_ == VideoEncoderConfig::ContentType::kRealtimeVideo)
--          ? std::optional(TrackRateElasticity::kCanConsumeExtraRate)
-+          ? std::optional<TrackRateElasticity>(TrackRateElasticity::kCanConsumeExtraRate)
-           : std::nullopt};
- }
- 
+diff --git a/api/transport/network_control.h b/api/transport/network_control.h
+index 90cdebe9bb..0f712da8bb 100644
+--- a/api/transport/network_control.h
++++ b/api/transport/network_control.h
+@@ -17,6 +17,7 @@
+ #include "absl/base/attributes.h"
+ #include "api/environment/environment.h"
+ #include "api/field_trials_view.h"
++#include "api/rtc_event_log/rtc_event_log.h"
+ #include "api/transport/network_types.h"
+ #include "api/units/data_rate.h"
+ #include "api/units/time_delta.h"
