@@ -31,7 +31,7 @@ skip-if = ["verify && debug && (os == 'linux')"]
 ["browser_confirmFolderUpload.js"]
 
 ["browser_contentOrigins.js"]
-support-files = ["file_beforeunload_stop.html"]
+support-files = ["file_beforeunload_stop.html", "auth-route.sjs"]
 
 ["browser_multiplePrompts.js"]
 
