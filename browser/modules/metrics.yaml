@@ -28,10 +28,12 @@ browser.engagement:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1741674
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1755050
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1545172#c8
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781578
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1811152#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
     data_sensitivity:
       - interaction
     notification_emails:
@@ -40,6 +42,7 @@ browser.engagement:
     send_in_pings:
       - baseline
       - metrics
+      - dau-reporting
     no_lint:
       - BASELINE_PING
 
@@ -57,10 +60,12 @@ browser.engagement:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1741674
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1755050
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781578
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1535169#c14
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1781578
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1811152#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1921440
     data_sensitivity:
       - interaction
     notification_emails:
@@ -69,6 +74,7 @@ browser.engagement:
     send_in_pings:
       - baseline
       - metrics
+      - dau-reporting
     no_lint:
       - BASELINE_PING
 
