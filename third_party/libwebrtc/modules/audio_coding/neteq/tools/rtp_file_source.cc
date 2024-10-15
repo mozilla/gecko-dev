@@ -12,15 +12,16 @@
 
 #include <string.h>
 
-#include "absl/strings/string_view.h"
-#ifndef WIN32
-#include <netinet/in.h>
-#endif
-
+#include <cstdint>
 #include <memory>
+#include <optional>
 
+#include "absl/strings/string_view.h"
 #include "modules/audio_coding/neteq/tools/packet.h"
+#include "modules/audio_coding/neteq/tools/packet_source.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "test/rtp_file_reader.h"
 
 namespace webrtc {

@@ -15,7 +15,7 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <net/if.h>
-#include <netinet/in.h>
+#include <netinet/in.h>  // no-presubmit-check
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>

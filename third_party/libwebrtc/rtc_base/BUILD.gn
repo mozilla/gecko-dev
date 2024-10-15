@@ -1083,6 +1083,7 @@ rtc_library("socket") {
   deps = [
     ":buffer",
     ":checks",
+    ":ip_address",
     ":macromagic",
     ":net_helpers",
     ":socket_address",
@@ -1978,6 +1979,7 @@ if (rtc_include_tests) {
         ":macromagic",
         ":mod_ops",
         ":moving_max_counter",
+        ":net_helpers",
         ":null_socket_server",
         ":one_time_event",
         ":platform_thread",

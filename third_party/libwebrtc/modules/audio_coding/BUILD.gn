@@ -823,6 +823,7 @@ rtc_library("neteq_test_tools") {
     "../../common_audio",
     "../../rtc_base:buffer",
     "../../rtc_base:checks",
+    "../../rtc_base:copy_on_write_buffer",
     "../../rtc_base:digest",
     "../../rtc_base:stringutils",
     "../../rtc_base/system:arch",
@@ -1380,6 +1381,7 @@ if (rtc_include_tests) {
 
       deps = [
         ":audio_coding",
+        ":audio_coding_module_typedefs",
         ":audio_encoder_cng",
         ":neteq_input_audio_tools",
         "../../api/audio:audio_frame_api",
@@ -1389,10 +1391,11 @@ if (rtc_include_tests) {
         "../../api/audio_codecs/ilbc:audio_encoder_ilbc",
         "../../api/audio_codecs/opus:audio_encoder_opus",
         "../../api/environment:environment_factory",
+        "../../rtc_base:checks",
+        "../../rtc_base:ip_address",
         "../../rtc_base:safe_conversions",
         "//third_party/abseil-cpp/absl/flags:flag",
         "//third_party/abseil-cpp/absl/flags:parse",
-        "//third_party/abseil-cpp/absl/memory",
       ]
 
       deps += audio_coding_deps

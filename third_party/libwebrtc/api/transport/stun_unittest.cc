@@ -10,9 +10,6 @@
 
 #include "api/transport/stun.h"
 
-#if defined(WEBRTC_POSIX)
-#include <netinet/in.h>
-#endif
 #include <string.h>
 
 #include <cstdint>

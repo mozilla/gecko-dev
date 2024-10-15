@@ -11,10 +11,11 @@
 #ifndef RTC_BASE_IP_ADDRESS_H_
 #define RTC_BASE_IP_ADDRESS_H_
 
+#include <cstdint>
 #if defined(WEBRTC_POSIX)
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <netinet/in.h>
+#include <netinet/in.h>  // IWYU pragma: export
 
 #include "absl/strings/string_view.h"
 #endif

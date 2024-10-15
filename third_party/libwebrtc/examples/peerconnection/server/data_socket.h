@@ -13,13 +13,13 @@
 
 #include <string>
 
+#include "rtc_base/ip_address.h"
 #include "rtc_base/net_helpers.h"
 
 #ifdef WIN32
 typedef int socklen_t;
 typedef SOCKET NativeSocket;
 #else
-#include <netinet/in.h>
 #include <sys/select.h>
 #define closesocket close
 typedef int NativeSocket;

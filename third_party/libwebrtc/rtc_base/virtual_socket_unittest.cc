@@ -14,14 +14,8 @@
 #include <string.h>
 #include <time.h>
 
-#include "rtc_base/network/received_packet.h"
-#if defined(WEBRTC_POSIX)
-#include <netinet/in.h>
-#endif
-
 #include <algorithm>
 #include <memory>
-#include <utility>
 
 #include "absl/memory/memory.h"
 #include "api/units/time_delta.h"
@@ -32,6 +26,8 @@
 #include "rtc_base/gunit.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/net_helpers.h"
+#include "rtc_base/network/received_packet.h"
 #include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/task_utils/repeating_task.h"

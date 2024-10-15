@@ -385,7 +385,7 @@ index a0ddf777db..cf15513e18 100644
      }
    }
 diff --git a/examples/BUILD.gn b/examples/BUILD.gn
-index 91c2f8ab51..68d57fa1c5 100644
+index a0dbdcc154..46492a4b2b 100644
 --- a/examples/BUILD.gn
 +++ b/examples/BUILD.gn
 @@ -9,15 +9,15 @@
@@ -675,7 +675,7 @@ index 9a7a783b62..3d669ceb73 100644
  
  if (rtc_build_libsrtp) {
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index e3b5697e08..050ae9eae4 100644
+index c659427577..ab656fc85c 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -9,8 +9,8 @@

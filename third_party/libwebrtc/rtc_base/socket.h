@@ -13,19 +13,20 @@
 
 #include <errno.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <optional>
-
-#include "rtc_base/checks.h"
 
 #if defined(WEBRTC_POSIX)
 #include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/types.h>
 #define SOCKET_EACCES EACCES
 #endif
 
 #include "api/units/timestamp.h"
 #include "rtc_base/buffer.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/net_helpers.h"
 #include "rtc_base/network/ecn_marking.h"
 #include "rtc_base/socket_address.h"

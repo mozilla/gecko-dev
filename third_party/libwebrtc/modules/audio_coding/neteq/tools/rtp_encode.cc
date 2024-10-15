@@ -10,21 +10,20 @@
 
 #include <stdio.h>
 
+#include <cstdint>
+#include <memory>
+#include <utility>
+
 #ifdef WIN32
 #include <winsock2.h>
 #endif
-#if defined(WEBRTC_LINUX) || defined(WEBRTC_FUCHSIA)
-#include <netinet/in.h>
-#endif
 
-#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "absl/memory/memory.h"
 #include "api/audio/audio_frame.h"
 #include "api/audio_codecs/L16/audio_encoder_L16.h"
 #include "api/audio_codecs/g711/audio_encoder_g711.h"
@@ -34,7 +33,10 @@
 #include "api/environment/environment_factory.h"
 #include "modules/audio_coding/codecs/cng/audio_encoder_cng.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
+#include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/audio_coding/neteq/tools/input_audio_file.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/numerics/safe_conversions.h"
 
 ABSL_FLAG(bool, list_codecs, false, "Enumerate all codecs");
