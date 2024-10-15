@@ -135,7 +135,7 @@ class AppLinksInterceptor(
 
         val tabId = tabSessionState?.id ?: ""
         val redirect = useCases.interceptedAppLinkRedirect(uri)
-        val result = handleRedirect(redirect, uri, tabId, engineSupportedSchemes.contains(uriScheme))
+        val result = handleRedirect(redirect, uri, tabId)
 
         if (redirect.hasExternalApp()) {
             val packageName = redirect.appIntent?.component?.packageName
@@ -172,15 +172,18 @@ class AppLinksInterceptor(
         redirect: AppLinkRedirect,
         uri: String,
         tabId: String,
-        schemeSupported: Boolean,
     ): RequestInterceptor.InterceptionResponse? {
-        if (!launchInApp() || inUserDoNotIntercept(uri, redirect.appIntent, tabId)) {
+        if (!launchInApp()) {
             redirect.fallbackUrl?.let {
                 return RequestInterceptor.InterceptionResponse.Url(it)
             }
         }
 
-        if (schemeSupported && inUserDoNotIntercept(uri, redirect.appIntent, tabId)) {
+        if (inUserDoNotIntercept(uri, redirect.appIntent, tabId)) {
+            redirect.fallbackUrl?.let {
+                return RequestInterceptor.InterceptionResponse.Url(it)
+            }
+
             return null
         }
 

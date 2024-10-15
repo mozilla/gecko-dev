@@ -509,7 +509,7 @@ class AppLinksInterceptorTest {
         )
 
         val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", fallbackUrl, null)
-        val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, "", true)
+        val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, "")
         assert(response is RequestInterceptor.InterceptionResponse.Url)
     }
 
@@ -554,7 +554,7 @@ class AppLinksInterceptorTest {
         )
 
         val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", fallbackUrl, null)
-        val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, "", true)
+        val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, "")
         assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
     }
 
@@ -569,7 +569,7 @@ class AppLinksInterceptorTest {
         )
 
         val testRedirect = AppLinkRedirect(null, "", fallbackUrl, Intent.parseUri(marketplaceUrl, 0))
-        val response = appLinksInterceptor.handleRedirect(testRedirect, webUrl, "", true)
+        val response = appLinksInterceptor.handleRedirect(testRedirect, webUrl, "")
         assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
     }
 
@@ -584,7 +584,7 @@ class AppLinksInterceptorTest {
         )
 
         val testRedirect = AppLinkRedirect(null, "", fallbackUrl, null)
-        val response = appLinksInterceptor.handleRedirect(testRedirect, webUrl, "", true)
+        val response = appLinksInterceptor.handleRedirect(testRedirect, webUrl, "")
         assert(response is RequestInterceptor.InterceptionResponse.Url)
     }
 
@@ -634,12 +634,12 @@ class AppLinksInterceptorTest {
 
         addUserDoNotIntercept(intentUrl, null, "")
         val testRedirect = AppLinkRedirect(Intent.parseUri(intentUrl, 0), "", fallbackUrl, null)
-        val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, "", true)
+        val response = appLinksInterceptor.handleRedirect(testRedirect, intentUrl, "")
         assert(response is RequestInterceptor.InterceptionResponse.Url)
     }
 
     @Test
-    fun `WHEN request is in user do not intercept cache but engine doesn't support scheme THEN request is intercepted`() {
+    fun `WHEN request is in user do not intercept cache and scheme is not supported by the engine THEN request is not intercepted`() {
         val engineSession: EngineSession = mock()
         val supportedScheme = "supported"
         val notSupportedScheme = "not_supported"
@@ -658,7 +658,30 @@ class AppLinksInterceptorTest {
         val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), "", null, null)
         whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
         val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, false, false, false, false, false)
-        assert(response is RequestInterceptor.InterceptionResponse.AppIntent)
+        assertNull(response)
+    }
+
+    @Test
+    fun `WHEN don't launch in app AND request is in user do not intercept cache AND scheme is not supported by the engine THEN request is not intercepted`() {
+        val engineSession: EngineSession = mock()
+        val supportedScheme = "supported"
+        val notSupportedScheme = "not_supported"
+        val blocklistedScheme = "blocklisted"
+        val feature = AppLinksInterceptor(
+            context = mockContext,
+            interceptLinkClicks = false,
+            engineSupportedSchemes = setOf(supportedScheme),
+            alwaysDeniedSchemes = setOf(blocklistedScheme),
+            launchInApp = { false },
+            useCases = mockUseCases,
+        )
+
+        val notSupportedUrl = "$notSupportedScheme://example.com"
+        addUserDoNotIntercept(notSupportedUrl, null, "")
+        val notSupportedRedirect = AppLinkRedirect(Intent.parseUri(notSupportedUrl, 0), "", null, null)
+        whenever(mockGetRedirect.invoke(notSupportedUrl)).thenReturn(notSupportedRedirect)
+        val response = feature.onLoadRequest(engineSession, notSupportedUrl, null, false, false, false, false, false)
+        assertNull(response)
     }
 
     @Test
