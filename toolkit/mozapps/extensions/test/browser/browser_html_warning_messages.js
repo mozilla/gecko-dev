@@ -154,7 +154,7 @@ add_task(async function testSoftBlocked() {
         args: null,
         linkId: "details-notification-softblocked-link2",
       },
-      type: "error",
+      type: "warning",
     });
     await testAddon.uninstall();
   }

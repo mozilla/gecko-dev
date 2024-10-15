@@ -299,7 +299,7 @@ async function getAddonMessageInfo(
       linkUrl: await addon.getBlocklistURL(),
       linkId: "details-notification-softblocked-link2",
       messageId,
-      type: "error",
+      type: "warning",
     };
   } else if (addon.isGMPlugin && !addon.isInstalled && addon.isActive) {
     return {
