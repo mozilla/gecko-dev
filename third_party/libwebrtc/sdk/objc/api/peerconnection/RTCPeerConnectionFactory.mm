@@ -140,7 +140,8 @@
 }
 
 - (instancetype)initWithNoMedia {
-  if (self = [self initNative]) {
+  self = [self initNative];
+  if (self) {
     webrtc::PeerConnectionFactoryDependencies dependencies;
     dependencies.network_thread = _networkThread.get();
     dependencies.worker_thread = _workerThread.get();
@@ -187,7 +188,8 @@
                          networkControllerFactory:
                              (std::unique_ptr<webrtc::NetworkControllerFactoryInterface>)
                                  networkControllerFactory {
-  if (self = [self initNative]) {
+  self = [self initNative];
+  if (self) {
     webrtc::PeerConnectionFactoryDependencies dependencies;
     dependencies.network_thread = _networkThread.get();
     dependencies.worker_thread = _workerThread.get();

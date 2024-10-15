@@ -32,7 +32,8 @@
   std::string nativeId = [NSString stdStringForString:trackId];
   rtc::scoped_refptr<webrtc::VideoTrackInterface> track =
       factory.nativeFactory->CreateVideoTrack(source.nativeVideoSource, nativeId);
-  if (self = [self initWithFactory:factory nativeTrack:track type:RTCMediaStreamTrackTypeVideo]) {
+  self = [self initWithFactory:factory nativeTrack:track type:RTCMediaStreamTrackTypeVideo];
+  if (self) {
     _source = source;
   }
   return self;
