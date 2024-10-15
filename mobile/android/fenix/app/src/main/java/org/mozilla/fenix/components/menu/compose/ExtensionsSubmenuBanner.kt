@@ -125,6 +125,7 @@ private fun ExtensionsSubmenuBannerText(
             },
             color = FirefoxTheme.colors.textPrimary,
             style = FirefoxTheme.typography.headline7,
+            textAlign = if (!isWideScreen) TextAlign.Center else null,
         )
 
         Text(

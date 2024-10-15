@@ -547,6 +547,7 @@ object WebExtensionSupport {
             getMetadata()?.name,
             isEnabled(),
             isAllowedInPrivateBrowsing(),
+            isBuiltIn(),
         )
 
     private fun SessionState.isCustomTab() = this is CustomTabSessionState

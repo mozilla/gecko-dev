@@ -18,6 +18,8 @@ import mozilla.components.concept.engine.webextension.WebExtensionPageAction
  * @property enabled Whether or not this web extension is enabled, defaults to true.
  * @property allowedInPrivateBrowsing Whether or not this web extension is allowed in private browsing
  * mode. Defaults to false.
+ * @property isBuiltIn Whether or not this web extension is built-in (packaged with the
+ * APK file) or coming from an external source.
  * @property browserAction The browser action state of this extension.
  * @property pageAction The page action state of this extension.
  * @property popupSessionId The ID of the session displaying
@@ -30,6 +32,7 @@ data class WebExtensionState(
     val name: String? = null,
     val enabled: Boolean = true,
     val allowedInPrivateBrowsing: Boolean = false,
+    val isBuiltIn: Boolean = false,
     val browserAction: WebExtensionBrowserAction? = null,
     val pageAction: WebExtensionPageAction? = null,
     val popupSessionId: String? = null,
