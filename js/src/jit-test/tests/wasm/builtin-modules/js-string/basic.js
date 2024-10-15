@@ -194,6 +194,11 @@ function throwIfNotString(a) {
     throw new WebAssembly.RuntimeError();
   }
 }
+function throwIfNotStringOrNull(a) {
+  if (a !== null && typeof a !== "string") {
+    throw new WebAssembly.RuntimeError();
+  }
+}
 let polyFillImports = {
   test: (string) => {
     if (string === null ||
@@ -282,8 +287,8 @@ let polyFillImports = {
     return string.substring(startIndex, endIndex);
   },
   equals: (stringA, stringB) => {
-    throwIfNotString(stringA);
-    throwIfNotString(stringB);
+    throwIfNotStringOrNull(stringA);
+    throwIfNotStringOrNull(stringB);
     return stringA === stringB;
   },
   compare: (stringA, stringB) => {
@@ -329,6 +334,7 @@ let builtinExports = wasmEvalText(testModule, {}, {builtins: ["js-string"]}).exp
 let polyfillExports = wasmEvalText(testModule, { 'wasm:js-string': polyFillImports }).exports;
 
 let testStrings = ["", "a", "1", "ab", "hello, world", "\n", "☺", "☺smiley", String.fromCodePoint(0x10000, 0x10001)];
+let testStringsAndNull = [...testStrings, null];
 let testCharCodes = [1, 2, 3, 10, 0x7f, 0xff, 0xfffe, 0xffff];
 let testCodePoints = [1, 2, 3, 10, 0x7f, 0xff, 0xfffe, 0xffff, 0x10000, 0x10001];
 
@@ -418,13 +424,18 @@ for (let a of testStrings) {
       a, b
     );
     assertSameBehavior(
-      builtinExports['equals'],
-      polyfillExports['equals'],
-      a, b
-    );
-    assertSameBehavior(
       builtinExports['compare'],
       polyfillExports['compare'],
+      a, b
+    );
+  }
+}
+
+for (let a of testStringsAndNull) {
+  for (let b of testStringsAndNull) {
+    assertSameBehavior(
+      builtinExports['equals'],
+      polyfillExports['equals'],
       a, b
     );
   }
