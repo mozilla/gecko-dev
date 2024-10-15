@@ -39,7 +39,6 @@ import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.CustomTabNavBar
-import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
@@ -62,8 +61,6 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
 
     private val isNavBarEnabled
         get() = requireContext().settings().navigationToolbarEnabled
-    private val isNavbarVisible
-        get() = requireContext().shouldAddNavigationBar()
 
     @Suppress("LongMethod", "ComplexMethod")
     override fun initializeUI(view: View, tab: SessionState) {
@@ -77,12 +74,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
             requireComponents.core.webAppManifestStorage.getManifestCache(url)
         }
 
-        // Updating the contents of the bottomToolbarContainer with CustomTabNavBar. The container gets initialized
-        // during the super.initializeUI call with BrowserNavBar.
-        // A follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888300
-        if (isNavbarVisible) {
-            initializeNavBar()
-        }
+        initializeNavBar()
 
         customTabsIntegration.set(
             feature = CustomTabsIntegration(
@@ -185,9 +177,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
 
     override fun onUpdateToolbarForConfigurationChange(toolbar: BrowserToolbarView) {
         super.onUpdateToolbarForConfigurationChange(toolbar)
-        if (isNavbarVisible) {
-            initializeNavBar()
-        }
+        initializeNavBar()
     }
 
     override fun removeSessionIfNeeded(): Boolean {
@@ -235,6 +225,11 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
     )
 
     private fun initializeNavBar() {
+        // Update the contents of the bottomToolbarContainer with the CustomTabNavBar configuration
+        // only if the container was initialized in the parent - we know a navbar should be used.
+        // Follow up: https://bugzilla.mozilla.org/show_bug.cgi?id=1888300
+        _bottomToolbarContainerView ?: return
+
         val customTabSessionId = customTabSessionId ?: return
 
         val navbarIntegration = CustomTabsNavigationBarIntegration(
