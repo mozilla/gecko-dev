@@ -2185,15 +2185,7 @@ void nsWindow::DumpWindows(const nsTArray<nsWindow*>& wins, int indent) {
   }
 }
 
-nsWindow::nsWindow()
-    : mWidgetId(++sWidgetId),
-      mIsVisible(false),
-      mParent(nullptr),
-      mDynamicToolbarMaxHeight(0),
-      mSizeMode(nsSizeMode_Normal),
-      mIsFullScreen(false),
-      mCompositorWidgetDelegate(nullptr),
-      mDestroyMutex("nsWindow::mDestroyMutex") {}
+nsWindow::nsWindow() : mWidgetId(++sWidgetId) {}
 
 nsWindow::~nsWindow() {
   gTopLevelWindows.RemoveElement(this);
@@ -2206,8 +2198,7 @@ nsWindow::~nsWindow() {
 
 bool nsWindow::IsTopLevel() {
   return mWindowType == WindowType::TopLevel ||
-         mWindowType == WindowType::Dialog ||
-         mWindowType == WindowType::Invisible;
+         mWindowType == WindowType::Dialog;
 }
 
 nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
@@ -2434,7 +2425,9 @@ void nsWindow::Show(bool aState) {
       unsigned int i;
       for (i = 1; i < gTopLevelWindows.Length(); i++) {
         nsWindow* win = gTopLevelWindows[i];
-        if (!win->mIsVisible) continue;
+        if (!win->mIsVisible) {
+          continue;
+        }
 
         win->BringToFront();
         break;

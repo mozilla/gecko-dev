@@ -71,11 +71,21 @@ class nsWindow final : public nsBaseWidget {
       bool aIsTopLevel);
 
  private:
+  nsWindow* mParent = nullptr;
+  nsCOMPtr<nsIUserIdleServiceInternal> mIdleService;
+  mozilla::ScreenIntCoord mDynamicToolbarMaxHeight{0};
+  mozilla::ScreenIntMargin mSafeAreaInsets;
+  mozilla::widget::PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate =
+      nullptr;
+  mozilla::Mutex mDestroyMutex{"nsWindow::mDestroyMutex"};
+
   // Unique ID given to each widget, used to map Surfaces to widgets
   // in the CompositorSurfaceManager.
   int32_t mWidgetId;
+  nsSizeMode mSizeMode = nsSizeMode_Normal;
+  bool mIsFullScreen = false;
+  bool mIsVisible = false;
 
- private:
   RefPtr<mozilla::widget::AndroidView> mAndroidView;
 
   // Object that implements native LayerView calls.
@@ -262,24 +272,12 @@ class nsWindow final : public nsBaseWidget {
   already_AddRefed<GeckoContentController> CreateRootContentController()
       override;
 
-  bool mIsVisible;
-  nsTArray<nsWindow*> mChildren;
-  nsWindow* mParent;
-
-  nsCOMPtr<nsIUserIdleServiceInternal> mIdleService;
-  mozilla::ScreenIntCoord mDynamicToolbarMaxHeight;
-  mozilla::ScreenIntMargin mSafeAreaInsets;
-
-  nsSizeMode mSizeMode;
-  bool mIsFullScreen;
-
   bool UseExternalCompositingSurface() const override { return true; }
 
   static void DumpWindows();
   static void DumpWindows(const nsTArray<nsWindow*>& wins, int indent = 0);
   static void LogWindow(nsWindow* win, int index, int indent);
 
- private:
   void CreateLayerManager();
   void RedrawAll();
 
@@ -288,10 +286,6 @@ class nsWindow final : public nsBaseWidget {
   mozilla::layers::LayersId GetRootLayerId() const;
   RefPtr<mozilla::layers::UiCompositorControllerChild>
   GetUiCompositorControllerChild();
-
-  mozilla::widget::PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate;
-
-  mozilla::Mutex mDestroyMutex;
 
   friend class mozilla::widget::GeckoViewSupport;
   friend class mozilla::widget::LayerViewSupport;
