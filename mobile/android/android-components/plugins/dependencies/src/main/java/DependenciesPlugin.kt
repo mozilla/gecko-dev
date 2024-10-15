@@ -113,7 +113,7 @@ object Versions {
         const val fastlane = "2.1.1"
         const val junit = "5.11.1"
         const val mockito = "5.14.1"
-        const val mockk = "1.13.12"
+        const val mockk = "1.13.13"
     }
 }
 
