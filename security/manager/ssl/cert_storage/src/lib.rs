@@ -315,6 +315,7 @@ impl Filter {
                 }
             }
             Filter::Clubcard(clubcard) => {
+                let crlite_key = clubcard_crlite::CRLiteKey::new(issuer_spki_hash.as_ref(), serial);
                 let timestamps = timestamps
                     .iter()
                     .map(|timestamp| {
@@ -324,7 +325,7 @@ impl Filter {
                             .map(|log_id| (log_id, timestamp.timestamp))
                     })
                     .flatten();
-                match clubcard.contains(issuer_spki_hash.as_ref(), serial, timestamps) {
+                match clubcard.contains(&crlite_key, timestamps) {
                     CRLiteStatus::Good => nsICertStorage::STATE_UNSET,
                     CRLiteStatus::NotCovered => nsICertStorage::STATE_NOT_COVERED,
                     CRLiteStatus::NotEnrolled => nsICertStorage::STATE_NOT_ENROLLED,

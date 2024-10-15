@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::query::{CRLiteCoverage, CRLiteQuery};
+use crate::query::{CRLiteCoverage, CRLiteKey, CRLiteQuery};
 use clubcard::{AsQuery, Equation, Filterable};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -101,19 +101,11 @@ impl CRLiteBuilderItem {
     }
 }
 
-impl<'a> From<&'a CRLiteBuilderItem> for CRLiteQuery<'a> {
-    fn from(item: &'a CRLiteBuilderItem) -> Self {
-        Self {
-            issuer: &item.issuer,
-            serial: &item.serial,
-            log_timestamp: None,
-        }
-    }
-}
-
 impl AsQuery<4> for CRLiteBuilderItem {
     fn as_query(&self, m: usize) -> Equation<4> {
-        CRLiteQuery::from(self).as_query(m)
+        let crlite_key = CRLiteKey::new(&self.issuer, &self.serial);
+        let crlite_query = CRLiteQuery::new(&crlite_key, None);
+        crlite_query.as_query(m)
     }
 
     fn block(&self) -> &[u8] {
@@ -216,12 +208,8 @@ mod tests {
             let issuer = [i as u8; 32];
             for j in 0..universe_size {
                 let serial = j.to_le_bytes();
-                let item = CRLiteQuery {
-                    issuer: &issuer,
-                    serial: &serial,
-                    log_timestamp: None,
-                };
-                if clubcard.unchecked_contains(&item) {
+                let key = CRLiteKey::new(&issuer, &serial);
+                if clubcard.unchecked_contains(&CRLiteQuery::new(&key, None)) {
                     included += 1;
                 } else {
                     excluded += 1;
@@ -235,61 +223,43 @@ mod tests {
         // Test that querying a serial from a never-before-seen issuer results in a non-member return.
         let issuer = [subset_sizes.len() as u8; 32];
         let serial = 0usize.to_le_bytes();
-        let item = CRLiteQuery {
-            issuer: &issuer,
-            serial: &serial,
-            log_timestamp: None,
-        };
-        assert!(!clubcard.unchecked_contains(&item));
+        let key = CRLiteKey::new(&issuer, &serial);
+        assert!(!clubcard.unchecked_contains(&CRLiteQuery::new(&key, None)));
 
         assert!(subset_sizes.len() > 0 && subset_sizes[0] > 0 && subset_sizes[0] < universe_size);
         let issuer = [0u8; 32];
         let revoked_serial = 0usize.to_le_bytes();
         let nonrevoked_serial = (universe_size - 1).to_le_bytes();
 
-        // Test that calling contains() a without a timestamp results in a NotInUniverse return
-        let item = CRLiteQuery {
-            issuer: &issuer,
-            serial: &revoked_serial,
-            log_timestamp: None,
-        };
+        // Test that calling contains() without a timestamp results in a NotInUniverse return
+        let revoked_serial_key = CRLiteKey::new(&issuer, &revoked_serial);
+        let query = CRLiteQuery::new(&revoked_serial_key, None);
         assert!(matches!(
-            clubcard.contains(&item),
+            clubcard.contains(&query),
             Membership::NotInUniverse
         ));
 
-        // Test that calling contains() without a timestamp in a covered interval results in a
+        // Test that calling contains() with a timestamp in a covered interval results in a
         // Member return.
         let log_id = [0u8; 32];
         let timestamp = (&log_id, 100);
-        let item = CRLiteQuery {
-            issuer: &issuer,
-            serial: &revoked_serial,
-            log_timestamp: Some(timestamp),
-        };
-        assert!(matches!(clubcard.contains(&item), Membership::Member));
+        let query = CRLiteQuery::new(&revoked_serial_key, Some(timestamp));
+        assert!(matches!(clubcard.contains(&query), Membership::Member));
 
         // Test that calling contains() without a timestamp in a covered interval results in a
         // Member return.
         let timestamp = (&log_id, 100);
-        let item = CRLiteQuery {
-            issuer: &issuer,
-            serial: &nonrevoked_serial,
-            log_timestamp: Some(timestamp),
-        };
-        assert!(matches!(clubcard.contains(&item), Membership::Nonmember));
+        let nonrevoked_serial_key = CRLiteKey::new(&issuer, &nonrevoked_serial);
+        let query = CRLiteQuery::new(&nonrevoked_serial_key, Some(timestamp));
+        assert!(matches!(clubcard.contains(&query), Membership::Nonmember));
 
         // Test that calling contains() without a timestamp in a covered interval results in a
         // Member return.
         let log_id = [1u8; 32];
         let timestamp = (&log_id, 100);
-        let item = CRLiteQuery {
-            issuer: &issuer,
-            serial: &revoked_serial,
-            log_timestamp: Some(timestamp),
-        };
+        let query = CRLiteQuery::new(&revoked_serial_key, Some(timestamp));
         assert!(matches!(
-            clubcard.contains(&item),
+            clubcard.contains(&query),
             Membership::NotInUniverse
         ));
     }

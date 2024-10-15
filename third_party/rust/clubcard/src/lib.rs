@@ -44,7 +44,7 @@
 pub mod builder;
 
 mod clubcard;
-pub use clubcard::{ApproximateSizeOf, Clubcard, ClubcardIndexEntry, Membership};
+pub use clubcard::{ApproximateSizeOf, Clubcard, ClubcardIndex, ClubcardIndexEntry, Membership};
 
 mod equation;
 pub use equation::Equation;

@@ -12,15 +12,32 @@
 [package]
 edition = "2021"
 name = "clubcard-crlite"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["John M. Schanck <jschanck@mozilla.com>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "An instantiation of Clubcard for use in CRLite"
+readme = false
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/clubcard-crlite/"
 
+[lib]
+name = "clubcard_crlite"
+path = "src/lib.rs"
+
+[[example]]
+name = "inspect"
+path = "examples/inspect.rs"
+
+[[example]]
+name = "query"
+path = "examples/query.rs"
+
 [dependencies.base64]
-version = "0.22"
-optional = true
+version = "0.21"
 
 [dependencies.bincode]
 version = "1.3"
@@ -49,10 +66,13 @@ version = "0.8"
 [dev-dependencies.sha2]
 version = "0.10"
 
+[dev-dependencies.x509-parser]
+version = "0.16"
+features = ["verify"]
+
 [features]
 builder = [
     "dep:rand",
-    "dep:base64",
     "dep:serde_json",
     "clubcard/builder",
 ]
