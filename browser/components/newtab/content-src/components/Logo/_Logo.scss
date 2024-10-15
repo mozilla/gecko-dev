@@ -1,3 +1,8 @@
+.logo-and-wordmark-wrapper {
+  // Override default h1 margins
+  margin-block: 0;
+}
+
 .logo-and-wordmark {
   $logo-size: 82px;
   $wordmark-size: 134px;
@@ -5,12 +10,12 @@
   align-items: center;
   display: flex;
   justify-content: center;
-  margin-bottom: 48px;
+  margin-block-end: 48px;
 
   // Bug 1914055 - Layout experiment: logo/search spacing
   .layout-variant-a &,
   .layout-variant-b & {
-    margin-bottom: 32px;
+    margin-block-end: 32px;
     $logo-size: 64px;
     $wordmark-size: 105px;
   }
@@ -18,7 +23,7 @@
   // Edge case for users who have pocket stories turned off
   .layout-variant-a.no-recommended-stories &,
   .layout-variant-b.no-recommended-stories & {
-    margin-bottom: 40px;
+    margin-block-end: 40px;
   }
 
   .logo {

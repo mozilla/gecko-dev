@@ -111,7 +111,7 @@ export class _CollapsibleSection extends React.PureComponent {
         data-section-id={id}
       >
         <div className="section-top-bar">
-          <h3
+          <h2
             className={`section-title-container ${hasSubtitleClassName}`}
             style={titleStyle}
           >
@@ -130,7 +130,7 @@ export class _CollapsibleSection extends React.PureComponent {
                   dispatch={this.props.dispatch}
                 />
               )}
-          </h3>
+          </h2>
           {mayHaveTopicsSelection && (
             <div className="button-topic-selection">
               <moz-button

@@ -685,17 +685,21 @@ main section {
   text-decoration: underline;
 }
 
+.logo-and-wordmark-wrapper {
+  margin-block: 0;
+}
+
 .logo-and-wordmark {
   align-items: center;
   display: flex;
   justify-content: center;
-  margin-bottom: 48px;
+  margin-block-end: 48px;
 }
 .layout-variant-a .logo-and-wordmark, .layout-variant-b .logo-and-wordmark {
-  margin-bottom: 32px;
+  margin-block-end: 32px;
 }
 .layout-variant-a.no-recommended-stories .logo-and-wordmark, .layout-variant-b.no-recommended-stories .logo-and-wordmark {
-  margin-bottom: 40px;
+  margin-block-end: 40px;
 }
 .logo-and-wordmark .logo {
   display: inline-block;
@@ -5538,7 +5542,7 @@ main section {
   }
 }
 .thumbs-ui-compact.no-search main {
-  margin-top: var(--space-xxlarge);
+  margin-block-start: var(--space-xxlarge);
 }
 .thumbs-ui-compact section {
   margin-bottom: 0;
@@ -5549,15 +5553,18 @@ main section {
 }
 .thumbs-ui-compact .search-wrapper {
   padding: 0;
-  margin: var(--space-xxlarge) 0;
+  margin-block: var(--space-xxlarge);
 }
 .thumbs-ui-compact .search-wrapper .logo-and-wordmark {
-  margin-bottom: var(--space-xxlarge);
+  margin-block-end: var(--space-xxlarge);
+}
+.thumbs-ui-compact .search-wrapper .logo-and-wordmark-wrapper {
+  margin-block-end: var(--space-xxlarge);
 }
 @media (height <= 700px) {
   .thumbs-ui-compact .search-wrapper {
     padding: 0;
-    margin-top: 0;
+    margin-block-start: 0;
   }
 }
 @media (height > 700px) {
@@ -5566,7 +5573,7 @@ main section {
   }
 }
 .thumbs-ui-compact.fixed-search .search-wrapper {
-  margin-top: 0;
+  margin-block-start: 0;
 }
 .thumbs-ui-compact .top-site-outer {
   margin-block-end: 0;

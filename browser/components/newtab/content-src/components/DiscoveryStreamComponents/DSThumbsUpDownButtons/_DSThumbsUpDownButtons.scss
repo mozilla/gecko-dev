@@ -80,7 +80,7 @@
 
   // Edge case for if search is turned off
   &.no-search main {
-    margin-top: var(--space-xxlarge);
+    margin-block-start: var(--space-xxlarge);
   }
 
   section {
@@ -96,15 +96,19 @@
   // _Search.scss
   .search-wrapper {
     padding: 0;
-    margin: var(--space-xxlarge) 0;
+    margin-block: var(--space-xxlarge);
 
     .logo-and-wordmark {
-      margin-bottom: var(--space-xxlarge);
+      margin-block-end: var(--space-xxlarge);
+    }
+
+    .logo-and-wordmark-wrapper {
+      margin-block-end: var(--space-xxlarge);
     }
 
     @media (height <=700px) {
       padding: 0;
-      margin-top: 0;
+      margin-block-start: 0;
     }
 
     @media (height > 700px) {
@@ -113,7 +117,7 @@
   }
 
   &.fixed-search .search-wrapper {
-    margin-top: 0;
+    margin-block-start: 0;
   }
 
   // _TopSites.scss
