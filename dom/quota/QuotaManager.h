@@ -88,7 +88,9 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class FinalizeOriginEvictionOp;
   friend class GroupInfo;
   friend class InitOp;
+  friend class InitializePersistentOriginOp;
   friend class InitializePersistentStorageOp;
+  friend class InitializeTemporaryOriginOp;
   friend class InitTemporaryStorageOp;
   friend class OriginInfo;
   friend class ShutdownStorageOp;
@@ -402,12 +404,14 @@ class QuotaManager final : public BackgroundThreadObject {
   bool IsPersistentOriginInitializedInternal(
       const OriginMetadata& aOriginMetadata) const;
 
+ private:
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
   Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
   EnsurePersistentOriginIsInitializedInternal(
       const OriginMetadata& aOriginMetadata);
 
+ public:
   RefPtr<BoolPromise> InitializeTemporaryOrigin(
       PersistenceType aPersistenceType, const PrincipalInfo& aPrincipalInfo,
       bool aCreateIfNonExistent);
@@ -425,12 +429,14 @@ class QuotaManager final : public BackgroundThreadObject {
   bool IsTemporaryOriginInitializedInternal(
       const OriginMetadata& aOriginMetadata) const;
 
+ private:
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
   Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
   EnsureTemporaryOriginIsInitializedInternal(
       const OriginMetadata& aOriginMetadata, bool aCreateIfNonExistent);
 
+ public:
   RefPtr<BoolPromise> InitializePersistentClient(
       const PrincipalInfo& aPrincipalInfo, Client::Type aClientType);
 
