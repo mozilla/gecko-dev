@@ -4529,18 +4529,32 @@ export class UpdateManager {
       // Load the active-update.xml file to see if there is an active update.
       let activeUpdates = this._loadXMLFileIntoArray(FILE_ACTIVE_UPDATE_XML);
       if (activeUpdates.length) {
-        // Set the active update directly on the var used to cache the value.
-        this._readyUpdate = activeUpdates[0];
-        if (activeUpdates.length >= 2) {
+        const status = readStatusFile(getReadyUpdateDir());
+
+        // If there are two updates, the first one is the ready update.
+        // If there is only 1 update, we don't know which is which. We use the
+        // state to figure it out.
+        if (activeUpdates.length > 1) {
+          this._readyUpdate = activeUpdates[0];
           this._downloadingUpdate = activeUpdates[1];
-        }
-        let status = readStatusFile(getReadyUpdateDir());
-        LOG(`UpdateManager:#reload - Got status = ${status}`);
-        if (status == STATE_DOWNLOADING) {
-          this._downloadingUpdate = this._readyUpdate;
-          this._readyUpdate = null;
-          transitionState(Ci.nsIApplicationUpdateService.STATE_DOWNLOADING);
+          if (activeUpdates.length > 2) {
+            LOG(
+              "UpdateManager:#reload - Warning: Ignoring additional (>2) " +
+                "unexpected active updates"
+            );
+          }
         } else if (
+          status == STATE_DOWNLOADING ||
+          activeUpdates[0].state == STATE_DOWNLOADING
+        ) {
+          this._downloadingUpdate = activeUpdates[0];
+          transitionState(Ci.nsIApplicationUpdateService.STATE_DOWNLOADING);
+        } else {
+          this._readyUpdate = activeUpdates[0];
+        }
+
+        LOG(`UpdateManager:#reload - Got status = ${status}`);
+        if (
           [
             STATE_PENDING,
             STATE_PENDING_SERVICE,
