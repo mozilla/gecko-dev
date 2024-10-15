@@ -16,19 +16,19 @@
 //
 // size_t page_size = 4_KiB;
 //
-constexpr size_t operator"" _KiB(unsigned long long int aNum) {
+constexpr size_t operator""_KiB(unsigned long long int aNum) {
   return size_t(aNum) * 1024;
 }
 
-constexpr size_t operator"" _KiB(long double aNum) {
+constexpr size_t operator""_KiB(long double aNum) {
   return size_t(aNum * 1024);
 }
 
-constexpr size_t operator"" _MiB(unsigned long long int aNum) {
+constexpr size_t operator""_MiB(unsigned long long int aNum) {
   return size_t(aNum) * 1024_KiB;
 }
 
-constexpr size_t operator"" _MiB(long double aNum) {
+constexpr size_t operator""_MiB(long double aNum) {
   return size_t(aNum * 1024_KiB);
 }
 
