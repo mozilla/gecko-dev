@@ -78,7 +78,7 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_use_new_bookmarks_ui).apply {
-            isVisible = Config.channel.isNightlyOrDebug
+            isVisible = true
             isChecked = context.settings().useNewBookmarks
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
