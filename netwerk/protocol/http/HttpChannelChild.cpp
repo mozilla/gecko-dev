@@ -810,8 +810,6 @@ void HttpChannelChild::DoOnDataAvailable(nsIRequest* aRequest,
   LOG(("HttpChannelChild::DoOnDataAvailable [this=%p]\n", this));
   if (mCanceled) return;
 
-  mGotDataAvailable = true;
-
   if (mListener) {
     nsCOMPtr<nsIStreamListener> listener(mListener);
     nsresult rv = listener->OnDataAvailable(aRequest, aStream, aOffset, aCount);
@@ -3057,15 +3055,7 @@ HttpChannelChild::RetargetDeliveryTo(nsISerialEventTarget* aNewTarget) {
   MOZ_ASSERT(mOnDataAvailableStartTime.IsNull());
   {
     MutexAutoLock lock(mEventTargetMutex);
-    // Don't assert if the target hasn't changed, or if we haven't gotten
-    // OnDataAvailable
-    MOZ_DIAGNOSTIC_ASSERT(!mODATarget || (mODATarget == aNewTarget) ||
-                          !mGotDataAvailable);
-    if (!mODATarget || (mODATarget == aNewTarget) || !mGotDataAvailable) {
-      RetargetDeliveryToImpl(aNewTarget, lock);
-    } else {
-      return NS_ERROR_FAILURE;
-    }
+    RetargetDeliveryToImpl(aNewTarget, lock);
   }
 
   return NS_OK;
