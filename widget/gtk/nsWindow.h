@@ -1021,7 +1021,7 @@ class nsWindow final : public nsBaseWidget {
   LayoutDeviceIntRect mLastLoggedBoundSize;
   int mLastLoggedScale = -1;
 #endif
-  mozilla::Sides mResizableEdges;
+  mozilla::Sides mResizableEdges{mozilla::SideBits::eAll};
   // Running in kiosk mode and requested to stay on specified monitor.
   // If monitor is removed minimize the window.
   mozilla::Maybe<int> mKioskMonitor;
