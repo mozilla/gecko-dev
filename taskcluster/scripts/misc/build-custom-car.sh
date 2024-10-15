@@ -11,6 +11,7 @@ shift
 CONFIG=$(echo $* | tr -d "'")
 
 # Android build flag
+IS_ANDROID=false
 if [[ "$ARTIFACT_NAME" == *"android"* ]]; then
   IS_ANDROID=true
 fi
@@ -195,6 +196,19 @@ CONFIG=$(echo $CONFIG pgo_data_path='"'$PGO_FILE'"')
 # Set up then build chrome
 gn gen out/Default --args="$CONFIG"
 autoninja -C out/Default $FINAL_BIN
+
+# Make artifact smaller for win/linux
+if [[ $(uname -s) == "Linux" ]] || [[ $(uname -o) == "Msys" ]]; then
+  if [ "$IS_ANDROID" = false ]; then
+    rm -rf out/Default/.ninjadeps
+    rm -rf out/Default/*_deps
+    rm -rf out/Default/gen/*
+    rm -rf out/Default/obj/*
+    rm -rf out/Default/thinlto-cache
+    rm -rf out/Default/*/gen/*
+    rm -rf out/Default/*/obj/*
+  fi
+fi
 
 # Gather binary and related files into a zip, and upload it
 cd ..
