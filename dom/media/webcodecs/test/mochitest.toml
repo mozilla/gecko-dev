@@ -1,6 +1,13 @@
 [DEFAULT]
 subsuite = "media"
 tags = "webcodecs"
-prefs = ["dom.media.webcodecs.enabled=true"]
+prefs = [
+  "dom.media.webcodecs.enabled=true",
+  "dom.media.webcodecs.image-decoder.enabled=true",
+]
+support-files = ["bug1921817.jpg"]
 
 ["test_videoFrame_mismatched_codedSize.html"]
+
+["test_bug1921817.html"]
+scheme = "https"

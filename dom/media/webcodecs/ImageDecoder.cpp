@@ -338,9 +338,11 @@ void ImageDecoder::CheckOutstandingDecodes() {
   const uint32_t decodedFrameCount = track->DecodedFrameCount();
   const uint32_t frameCount = track->FrameCount();
   const bool frameCountComplete = track->FrameCountComplete();
+  const bool decodedFramesComplete = track->DecodedFramesComplete();
 
   AutoTArray<OutstandingDecode, 4> resolved;
-  AutoTArray<OutstandingDecode, 4> rejected;
+  AutoTArray<OutstandingDecode, 4> rejectedRange;
+  AutoTArray<OutstandingDecode, 4> rejectedState;
   uint32_t minFrameIndex = UINT32_MAX;
 
   // 3. Remove promise from [[pending decode promises]].
@@ -354,15 +356,26 @@ void ImageDecoder::CheckOutstandingDecodes() {
       resolved.AppendElement(std::move(decode));
       mOutstandingDecodes.RemoveElementAt(i);
     } else if (frameCountComplete && frameCount <= frameIndex) {
-      // We have gotten the last frame from the decoder, so we must reject any
-      // unfulfilled requests.
+      // We have gotten the frame count from the decoder, so we must reject any
+      // unfulfilled requests that are beyond it with a RangeError.
       MOZ_LOG(gWebCodecsLog, LogLevel::Warning,
               ("ImageDecoder %p CheckOutstandingDecodes -- rejected index %u "
                "out-of-bounds",
                this, frameIndex));
-      rejected.AppendElement(std::move(decode));
+      rejectedRange.AppendElement(std::move(decode));
       mOutstandingDecodes.RemoveElementAt(i);
-    } else {
+    } else if (frameCountComplete && decodedFramesComplete) {
+      // We have decoded all of the frames, but we produced fewer than the frame
+      // count indicated. This means we ran into problems while decoding and
+      // aborted. We must reject any unfulfilled requests with an
+      // InvalidStateError.
+      MOZ_LOG(gWebCodecsLog, LogLevel::Warning,
+              ("ImageDecoder %p CheckOutstandingDecodes -- rejected index %u "
+               "decode error",
+               this, frameIndex));
+      rejectedState.AppendElement(std::move(decode));
+      mOutstandingDecodes.RemoveElementAt(i);
+    } else if (!decodedFramesComplete) {
       // We haven't gotten the last frame yet, so we can advance to the next
       // one.
       MOZ_LOG(gWebCodecsLog, LogLevel::Debug,
@@ -372,6 +385,12 @@ void ImageDecoder::CheckOutstandingDecodes() {
         minFrameIndex = std::min(minFrameIndex, frameIndex);
       }
       ++i;
+    } else {
+      // If none of the above, we have finished decoding all the frames we can,
+      // but we raced against the frame count completion. Once that finishes, we
+      // will run again, and we can appropriately fail frame requests as either
+      // out-of-bounds or decoding failures.
+      MOZ_ASSERT(!frameCountComplete);
     }
   }
 
@@ -388,8 +407,12 @@ void ImageDecoder::CheckOutstandingDecodes() {
     i.mPromise->MaybeResolve(result);
   }
 
-  for (const auto& i : rejected) {
+  for (const auto& i : rejectedRange) {
     i.mPromise->MaybeRejectWithRangeError("No more frames available"_ns);
+  }
+
+  for (const auto& i : rejectedState) {
+    i.mPromise->MaybeRejectWithInvalidStateError("Error decoding frame"_ns);
   }
 }
 

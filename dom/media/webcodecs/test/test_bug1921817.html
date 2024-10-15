@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title></title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<script>
+// Bug 1924775 - ESLint doesn't yet know about `ImageDecoder`.
+/* globals ImageDecoder:false */
+
+async function test() {
+  const imgResponse = await fetch("bug1921817.jpg");
+  const decoder = new ImageDecoder({
+    data: imgResponse.body,
+    type: "image/jpeg",
+  });
+
+  // Should download all the data and decode metadata just fine.
+  await decoder.completed;
+  await decoder.tracks.ready;
+  is(decoder.tracks.length, 1, "Should have one track");
+  is(decoder.tracks[0].frameCount, 1, "Should have a single frame");
+
+  try {
+    await decoder.decode();
+    ok(false, "Expected to fail to decode image")
+  } catch (e) {
+    is(e.code, DOMException.INVALID_STATE_ERR, "Should throw InvalidStateError");
+  }
+
+  return Promise.resolve();
+}
+
+async function initTest() {
+  SimpleTest.waitForExplicitFinish();
+  try {
+    await test();
+  } catch (e) {
+    ok(false, "Unexpected error " + e);
+  } finally {
+    SimpleTest.finish();
+  }
+}
+
+initTest();
+</script>
+</body>
+</html>

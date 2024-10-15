@@ -68,6 +68,8 @@ class ImageTrack final : public nsISupports, public nsWrapperCache {
 
   size_t DecodedFrameCount() const { return mDecodedFrames.Length(); }
 
+  bool DecodedFramesComplete() const { return mDecodedFramesComplete; }
+
   VideoFrame* GetDecodedFrame(uint32_t aIndex) const {
     if (mDecodedFrames.Length() <= aIndex) {
       return nullptr;
@@ -90,6 +92,7 @@ class ImageTrack final : public nsISupports, public nsWrapperCache {
   float mRepetitionCount = 0.0f;
   uint32_t mFrameCount = 0;
   bool mFrameCountComplete = false;
+  bool mDecodedFramesComplete = false;
   bool mAnimated = false;
   bool mSelected = false;
 };
