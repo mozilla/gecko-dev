@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "api/units/timestamp.h"

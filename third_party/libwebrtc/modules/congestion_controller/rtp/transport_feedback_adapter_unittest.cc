@@ -23,9 +23,6 @@
 #include "test/gmock.h"
 #include "test/gtest.h"
 
-using ::testing::_;
-using ::testing::Invoke;
-
 namespace webrtc {
 
 namespace {
@@ -248,8 +245,9 @@ TEST_F(TransportFeedbackAdapterTest, SendTimeWrapsBothWays) {
     std::vector<PacketResult> expected_packets;
     expected_packets.push_back(packets[i]);
 
-    auto res = adapter_->ProcessTransportFeedback(*feedback.get(),
-                                                  clock_.CurrentTime());
+    ASSERT_TRUE(feedback.get() != nullptr);
+    auto res =
+        adapter_->ProcessTransportFeedback(*feedback, clock_.CurrentTime());
     ComparePacketFeedbackVectors(expected_packets, res->packet_feedbacks);
   }
 }
@@ -348,9 +346,9 @@ TEST_F(TransportFeedbackAdapterTest, TimestampDeltas) {
 
   std::vector<PacketResult> received_feedback;
 
-  EXPECT_TRUE(feedback.get() != nullptr);
+  ASSERT_TRUE(feedback.get() != nullptr);
   auto res =
-      adapter_->ProcessTransportFeedback(*feedback.get(), clock_.CurrentTime());
+      adapter_->ProcessTransportFeedback(*feedback, clock_.CurrentTime());
   ComparePacketFeedbackVectors(sent_packets, res->packet_feedbacks);
 
   // Create a new feedback message and add the trailing item.
@@ -364,10 +362,10 @@ TEST_F(TransportFeedbackAdapterTest, TimestampDeltas) {
   feedback =
       rtcp::TransportFeedback::ParseFrom(raw_packet.data(), raw_packet.size());
 
-  EXPECT_TRUE(feedback.get() != nullptr);
+  ASSERT_TRUE(feedback.get() != nullptr);
   {
-    auto res = adapter_->ProcessTransportFeedback(*feedback.get(),
-                                                  clock_.CurrentTime());
+    auto res =
+        adapter_->ProcessTransportFeedback(*feedback, clock_.CurrentTime());
     std::vector<PacketResult> expected_packets;
     expected_packets.push_back(packet_feedback);
     ComparePacketFeedbackVectors(expected_packets, res->packet_feedbacks);

@@ -91,7 +91,7 @@ class TrendlineEstimator : public DelayIncreaseDetectorInterface {
   friend class GoogCcStatePrinter;
   void Detect(double trend, double ts_delta, int64_t now_ms);
 
-  void UpdateThreshold(double modified_offset, int64_t now_ms);
+  void UpdateThreshold(double modified_trend, int64_t now_ms);
 
   // Parameters.
   TrendlineEstimatorSettings settings_;

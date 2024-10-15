@@ -10,7 +10,9 @@
 
 #include "modules/congestion_controller/include/receive_side_congestion_controller.h"
 
+#include <algorithm>
 #include <memory>
+#include <utility>
 
 #include "absl/base/nullability.h"
 #include "api/environment/environment.h"
