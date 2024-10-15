@@ -271,11 +271,6 @@ class nsUrlClassifierDBServiceWorker final : public nsIUrlClassifierDBService {
 
   // list of pending lookups
   nsTArray<PendingLookup> mPendingLookups;
-
-#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
-  // The raw update response for debugging.
-  nsCString mRawTableUpdates;
-#endif
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsUrlClassifierDBService,

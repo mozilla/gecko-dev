@@ -1140,13 +1140,6 @@ def telemetry_on_by_default(reporting, is_nightly):
 
 set_define("MOZ_TELEMETRY_ON_BY_DEFAULT", True, when=telemetry_on_by_default)
 
-# Safe browing
-# ==============================================================
-set_define(
-    "MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES", True, when=milestone.is_nightly | moz_debug
-)
-
-
 # Miscellaneous programs
 # ==============================================================
 
