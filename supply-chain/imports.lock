@@ -135,6 +135,20 @@ user-id = 6743
 user-login = "epage"
 user-name = "Ed Page"
 
+[[publisher.clubcard]]
+version = "0.3.2"
+when = "2024-10-08"
+user-id = 175410
+user-login = "jschanck"
+user-name = "John Schanck"
+
+[[publisher.clubcard-crlite]]
+version = "0.3.0"
+when = "2024-10-14"
+user-id = 175410
+user-login = "jschanck"
+user-name = "John Schanck"
+
 [[publisher.core-foundation]]
 version = "0.9.3"
 when = "2022-02-07"

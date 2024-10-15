@@ -6,4 +6,4 @@
 pub mod builder;
 
 mod query;
-pub use query::{CRLiteClubcard, CRLiteCoverage, CRLiteQuery, CRLiteStatus};
+pub use query::{CRLiteClubcard, CRLiteCoverage, CRLiteKey, CRLiteQuery, CRLiteStatus};

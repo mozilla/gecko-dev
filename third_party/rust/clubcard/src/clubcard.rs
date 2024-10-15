@@ -75,12 +75,12 @@ impl<const W: usize, UniverseMetadata, PartitionMetadata> fmt::Display
             .sum::<usize>();
         writeln!(
             f,
-            "Clubcard of size {} ({} + {})",
+            "Clubcard of size {} ({} + {}) with {} exceptions",
             approx_size + exact_size,
             approx_size,
-            exact_size
-        )?;
-        writeln!(f, "- exceptions: {}", exceptions)
+            exact_size,
+            exceptions
+        )
     }
 }
 
@@ -154,6 +154,10 @@ impl<const W: usize, UniverseMetadata, PartitionMetadata>
     pub fn partition(&self) -> &PartitionMetadata {
         &self.partition
     }
+
+    pub fn index(&self) -> &ClubcardIndex {
+        &self.index
+    }
 }
 
 /// Helper trait for (approximate) heap memory usage analysis in Firefox
@@ -184,7 +188,9 @@ where
         self.universe.approximate_size_of()
             + self.partition.approximate_size_of()
             + self.index.approximate_size_of()
-            + self.approx_filter.iter().map(|x| x.len()).sum::<usize>()
-            + self.exact_filter.len()
+            + size_of::<Vec<Vec<u8>>>()
+            + 8 * self.approx_filter.iter().map(|x| x.len()).sum::<usize>()
+            + size_of::<Vec<u8>>()
+            + 8 * self.exact_filter.len()
     }
 }
