@@ -1781,22 +1781,22 @@
             ? tabs[this.#maxTabsPerRow - 1]
             : tabs.at(-1);
       }
-      let firstMovingTabScreenX = movingTabs.at(-1).screenX;
-      let firstMovingTabScreenY = movingTabs.at(-1).screenY;
-      let lastMovingTabScreenX = movingTabs[0].screenX;
-      let lastMovingTabScreenY = movingTabs[0].screenY;
+      let lastMovingTabScreenX = movingTabs.at(-1).screenX;
+      let lastMovingTabScreenY = movingTabs.at(-1).screenY;
+      let firstMovingTabScreenX = movingTabs[0].screenX;
+      let firstMovingTabScreenY = movingTabs[0].screenY;
       let translateX = screenX - draggedTab._dragData.screenX;
       let translateY = screenY - draggedTab._dragData.screenY;
-      let firstBoundX = firstTabInRow.screenX - lastMovingTabScreenX;
-      let firstBoundY = firstTabInRow.screenY - lastMovingTabScreenY;
+      let firstBoundX = firstTabInRow.screenX - firstMovingTabScreenX;
+      let firstBoundY = firstTabInRow.screenY - firstMovingTabScreenY;
       let lastBoundX =
         lastTabInRow.screenX +
         lastTabInRow.getBoundingClientRect().width -
-        (firstMovingTabScreenX + tabWidth);
+        (lastMovingTabScreenX + tabWidth);
       let lastBoundY =
         tabs.at(-1).screenY +
         lastTabInRow.getBoundingClientRect().height -
-        (firstMovingTabScreenY + tabHeight);
+        (lastMovingTabScreenY + tabHeight);
       translateX = Math.min(Math.max(translateX, firstBoundX), lastBoundX);
       translateY = Math.min(Math.max(translateY, firstBoundY), lastBoundY);
 
@@ -1820,11 +1820,11 @@
       //   tabs we need to check.
 
       tabs = tabs.filter(t => !movingTabs.includes(t) || t == draggedTab);
-      let firstTabCenterX = lastMovingTabScreenX + translateX + tabWidth / 2;
-      let lastTabCenterX = firstMovingTabScreenX + translateX + tabWidth / 2;
+      let firstTabCenterX = firstMovingTabScreenX + translateX + tabWidth / 2;
+      let lastTabCenterX = lastMovingTabScreenX + translateX + tabWidth / 2;
       let tabCenterX = directionX ? lastTabCenterX : firstTabCenterX;
-      let firstTabCenterY = lastMovingTabScreenY + translateY + tabWidth / 2;
-      let lastTabCenterY = firstMovingTabScreenY + translateY + tabWidth / 2;
+      let firstTabCenterY = firstMovingTabScreenY + translateY + tabWidth / 2;
+      let lastTabCenterY = lastMovingTabScreenY + translateY + tabWidth / 2;
       let tabCenterY = directionY ? lastTabCenterY : firstTabCenterY;
 
       let newIndex = -1;
@@ -1962,8 +1962,6 @@
       let scrollDirection = this.verticalMode ? "scrollTop" : "scrollLeft";
       let tabWidth = draggedTab.getBoundingClientRect().width;
       let tabHeight = draggedTab.getBoundingClientRect().height;
-      let tabSize = this.verticalMode ? tabHeight : tabWidth;
-      let shiftSize = tabSize * movingTabs.length;
       let translateX = event.screenX - draggedTab._dragData.screenX;
       let translateY = event.screenY - draggedTab._dragData.screenY;
 
@@ -1975,19 +1973,21 @@
       // Move the dragged tab based on the mouse position.
       let firstTab = tabs[0];
       let lastTab = tabs.at(-1);
-      let firstMovingTabScreen = movingTabs.at(-1)[screenAxis];
-      let lastMovingTabScreen = movingTabs[0][screenAxis];
+      let lastMovingTabScreen = movingTabs.at(-1)[screenAxis];
+      let firstMovingTabScreen = movingTabs[0][screenAxis];
+      let tabSize = this.verticalMode ? tabHeight : tabWidth;
+      let shiftSize = lastMovingTabScreen + tabSize - firstMovingTabScreen;
       let translate = screen - draggedTab._dragData[screenAxis];
       if (!pinned) {
         translate +=
           this.arrowScrollbox.scrollbox[scrollDirection] -
           draggedTab._dragData.scrollPos;
       }
-      let firstBound = firstTab[screenAxis] - lastMovingTabScreen;
+      let firstBound = firstTab[screenAxis] - firstMovingTabScreen;
       let lastBound =
         lastTab[screenAxis] +
         lastTab.getBoundingClientRect()[size] -
-        (firstMovingTabScreen + tabSize);
+        (lastMovingTabScreen + tabSize);
       translate = Math.min(Math.max(translate, firstBound), lastBound);
 
       for (let tab of movingTabs) {
@@ -2009,8 +2009,8 @@
       //   tabs we need to check.
 
       tabs = tabs.filter(t => !movingTabs.includes(t) || t == draggedTab);
-      let firstTabCenter = lastMovingTabScreen + translate + tabSize / 2;
-      let lastTabCenter = firstMovingTabScreen + translate + tabSize / 2;
+      let firstTabCenter = firstMovingTabScreen + translate + tabSize / 2;
+      let lastTabCenter = lastMovingTabScreen + translate + tabSize / 2;
       let tabCenter = directionMove ? lastTabCenter : firstTabCenter;
       let newIndex = -1;
       let oldIndex =
