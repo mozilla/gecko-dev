@@ -12823,9 +12823,6 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   if (op.getBoolOption("enable-float16array")) {
     JS::Prefs::setAtStartup_experimental_float16array(true);
   }
-  if (op.getBoolOption("enable-iterator-helpers")) {
-    JS::Prefs::setAtStartup_experimental_iterator_helpers(true);
-  }
   if (op.getBoolOption("enable-new-set-methods")) {
     JS::Prefs::setAtStartup_experimental_new_set_methods(true);
   }

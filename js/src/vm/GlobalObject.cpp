@@ -109,10 +109,6 @@ JS_PUBLIC_API const JSClass* js::ProtoKeyToClass(JSProtoKey key) {
   return protoTable[key];
 }
 
-static bool IsIteratorHelpersEnabled() {
-  return JS::Prefs::experimental_iterator_helpers();
-}
-
 static bool IsAsyncIteratorHelpersEnabled() {
 #ifdef NIGHTLY_BUILD
   return JS::Prefs::experimental_async_iterator_helpers();
@@ -138,6 +134,7 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_RegExp:
     case JSProto_Error:
     case JSProto_InternalError:
+    case JSProto_Iterator:
     case JSProto_AggregateError:
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     case JSProto_SuppressedError:
@@ -247,9 +244,6 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_WeakRef:
     case JSProto_FinalizationRegistry:
       return JS::GetWeakRefsEnabled() == JS::WeakRefSpecifier::Disabled;
-
-    case JSProto_Iterator:
-      return !IsIteratorHelpersEnabled();
 
     case JSProto_AsyncIterator:
       return !IsAsyncIteratorHelpersEnabled();
@@ -1026,11 +1020,6 @@ bool GlobalObject::addIntrinsicValue(JSContext* cx,
 /* static */
 JSObject* GlobalObject::createIteratorPrototype(JSContext* cx,
                                                 Handle<GlobalObject*> global) {
-  if (!IsIteratorHelpersEnabled()) {
-    return getOrCreateBuiltinProto(cx, global, ProtoKind::IteratorProto,
-                                   initIteratorProto);
-  }
-
   if (!ensureConstructor(cx, global, JSProto_Iterator)) {
     return nullptr;
   }

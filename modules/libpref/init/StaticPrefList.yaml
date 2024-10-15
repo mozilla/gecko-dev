@@ -8069,14 +8069,6 @@
   mirror: always
   set_spidermonkey_pref: startup
 
-
-# Experimental support for Iterator Helpers in JavaScript.
-- name: javascript.options.experimental.iterator_helpers
-  type: bool
-  value: true
-  mirror: always
-  set_spidermonkey_pref: startup
-
 # Experimental support for Pattern Modifiers in JavaScript.
 - name: javascript.options.experimental.regexp_modifiers
   type: bool
