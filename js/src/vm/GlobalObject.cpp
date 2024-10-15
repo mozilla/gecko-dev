@@ -440,6 +440,19 @@ bool GlobalObject::resolveConstructor(JSContext* cx,
     }
   }
 
+  // If the prototype exists, mark the object as used as a prototype to enable
+  // Watchtower observation of protos which may not yet actually have an
+  // instance which yet uses it as a proto!
+  //
+  // You might well be asking: "Why not set IsUsedAsPrototype when constructing
+  // the proto object?". This ends up leading to a fair amount of complexity in
+  // how standard protos are linked together and the properties we want to
+  // enforce. Generally, it's fine if we don't watch for mutations on protos
+  // until they get exposed to user code.
+  if (proto && !JSObject::setFlag(cx, proto, ObjectFlag::IsUsedAsPrototype)) {
+    return false;
+  }
+
   if (!isObjectOrFunction) {
     // Any operations that modifies the global object should be placed
     // after any other fallible operations.
