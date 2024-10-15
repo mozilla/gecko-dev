@@ -193,4 +193,4 @@ public class DataChannel {
   private native long nativeBufferedAmount();
   private native void nativeClose();
   private native boolean nativeSend(byte[] data, boolean binary);
-};
+}
