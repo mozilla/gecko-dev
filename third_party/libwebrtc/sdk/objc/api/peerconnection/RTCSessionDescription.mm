@@ -13,6 +13,7 @@
 #import "base/RTCLogging.h"
 #import "helpers/NSString+StdString.h"
 
+#include "api/jsep.h"
 #include "rtc_base/checks.h"
 
 @implementation RTC_OBJC_TYPE (RTCSessionDescription)
@@ -51,7 +52,7 @@
   webrtc::SdpParseError error;
 
   std::unique_ptr<webrtc::SessionDescriptionInterface> description(webrtc::CreateSessionDescription(
-      [[self class] stdStringForType:_type], _sdp.stdString, &error));
+      [[self class] nativeTypeForType:_type], _sdp.stdString, &error));
 
   if (!description) {
     RTCLogError(@"Failed to create session description: %s\nline: %s",
@@ -98,6 +99,19 @@
   } else {
     RTC_DCHECK_NOTREACHED();
     return RTCSdpTypeOffer;
+  }
+}
+
++ (webrtc::SdpType)nativeTypeForType:(RTCSdpType)type {
+  switch (type) {
+    case RTCSdpTypeOffer:
+      return webrtc::SdpType::kOffer;
+    case RTCSdpTypePrAnswer:
+      return webrtc::SdpType::kPrAnswer;
+    case RTCSdpTypeAnswer:
+      return webrtc::SdpType::kAnswer;
+    case RTCSdpTypeRollback:
+      return webrtc::SdpType::kRollback;
   }
 }
 

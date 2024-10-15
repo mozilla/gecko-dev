@@ -192,12 +192,14 @@ class RTC_EXPORT SessionDescriptionInterface {
 // Creates a SessionDescriptionInterface based on the SDP string and the type.
 // Returns null if the sdp string can't be parsed or the type is unsupported.
 // `error` may be null.
-// TODO(steveanton): This function is deprecated. Please use the functions below
-// which take an SdpType enum instead. Remove this once it is no longer used.
-RTC_EXPORT SessionDescriptionInterface* CreateSessionDescription(
-    const std::string& type,
-    const std::string& sdp,
-    SdpParseError* error);
+// TODO(https://issues.webrtc.org/360909068): This function is deprecated.
+// Please use the functions below which take an SdpType enum instead. Remove
+// this once it is no longer used.
+[[deprecated("Use version with SdpType argument")]] RTC_EXPORT
+    SessionDescriptionInterface*
+    CreateSessionDescription(const std::string& type,
+                             const std::string& sdp,
+                             SdpParseError* error);
 
 // Creates a SessionDescriptionInterface based on the SDP string and the type.
 // Returns null if the SDP string cannot be parsed.
