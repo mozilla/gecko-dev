@@ -8,10 +8,6 @@
 
 // Tests that after clicking a function in edtior, outline focuses that function
 add_task(async function () {
-  // Disabled for CM6 until this is fixed
-  if (isCm6Enabled) {
-    return;
-  }
   const dbg = await initDebugger("doc-sources.html", "long.js");
 
   await selectSource(dbg, "long.js", 1);
@@ -33,6 +29,8 @@ add_task(async function () {
 
   info("Clicking an empty line in the editor should unfocus the outline");
   await clickAtPos(dbg, { line: 13, column: 3 });
+  // Wait for the node to be unfocused
+  await waitFor(() => !getFocusedNode(dbg));
   is(getFocusedNode(dbg), null, "should not exist");
 });
 
