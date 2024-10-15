@@ -1273,7 +1273,7 @@ int LibvpxVp9Encoder::UpdateCodecFrameSize(
   // bugs in trying to do it the "right" way, we basically re-do
   // the initialization.
   vpx_codec_destroy(encoder_); // clean up old state
-  int result = InitAndSetControlSettings(&codec_);
+  int result = InitAndSetControlSettings();
   if (result == WEBRTC_VIDEO_CODEC_OK) {
     // TODO: Mozilla rates have become much more complicated, we need to store
     // more state or find another way of doing this.
