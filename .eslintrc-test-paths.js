@@ -114,7 +114,6 @@ const extraBrowserTestPaths = [
   "browser/base/content/test/startup/",
   "browser/base/content/test/static/",
   "browser/base/content/test/sync/",
-  "browser/base/content/test/tabMediaIndicator/",
   "browser/base/content/test/tabPrompts/",
   "browser/base/content/test/tabcrashed/",
   "browser/base/content/test/tabdialogs/",
