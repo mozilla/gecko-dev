@@ -1,0 +1,52 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Test for Bug 1916356</title>
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  </head>
+  <body>
+    <script>
+      SimpleTest.waitForExplicitFinish();
+
+      (async () => {
+        // server.sjs?slow doesn't respond, which results in the
+        // HttpBaseChannel::mResponseHead being nullptr.
+        const slowXHR = new XMLHttpRequest();
+        slowXHR.open("GET", "server.sjs?slow");
+        slowXHR.send();
+
+        // server.sjs?fast quickly responds.
+        // Perform this and wait for the load, in order to ensure the
+        // network requests performed there reaches necko and the
+        // corresponding resource entry is created for server.sjs?slow as well.
+        const fastXHR = new XMLHttpRequest();
+        fastXHR.open("GET", "server.sjs?fast");
+        const fastLoadPromise = new Promise(resolve => {
+          fastXHR.addEventListener("load", resolve);
+        });
+        fastXHR.send();
+        await fastLoadPromise;
+
+        const slowEntryPromise = new Promise(resolve => {
+          new PerformanceObserver(list => {
+            const entries = list.getEntries();
+            for (const entry of entries) {
+              if (entry.name.includes("server.sjs?slow")) {
+                resolve(entry);
+              }
+            }
+          }).observe({ entryTypes: [ "resource" ] });
+        });
+
+        slowXHR.abort();
+
+        const slowEntry = await slowEntryPromise;
+        is(slowEntry.responseStatus, 0,
+           "responseStatus for the request with no response should be 0");
+
+        SimpleTest.finish();
+      })();
+    </script>
+  </body>
+</html>

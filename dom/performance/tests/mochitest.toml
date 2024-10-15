@@ -10,7 +10,10 @@ support-files = [
   "test_worker_performance_entries.sjs",
   "empty.js",
   "serverTiming.sjs",
+  "server.sjs",
 ]
+
+["test_performance_aborted_status.html"]
 
 ["test_performance_navigation_timing.html"]
 

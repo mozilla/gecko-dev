@@ -365,7 +365,7 @@ void CacheablePerformanceTimingData::SetCacheablePropertiesFromHttpChannel(
     mDecodedBodySize = mEncodedBodySize;
   }
 
-  uint32_t responseStatus;
+  uint32_t responseStatus = 0;
   Unused << aHttpChannel->GetResponseStatus(&responseStatus);
   mResponseStatus = static_cast<uint16_t>(responseStatus);
 
