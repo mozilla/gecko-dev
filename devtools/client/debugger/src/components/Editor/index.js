@@ -77,8 +77,6 @@ import {
   resizeBreakpointGutter,
 } from "../../utils/ui";
 
-import flags from "devtools/shared/flags";
-
 const { debounce } = require("resource://devtools/shared/debounce.js");
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
@@ -277,9 +275,11 @@ class Editor extends PureComponent {
     }
     this.setState({ editor });
     // Used for tests
-    if (flags.testing) {
-      window.codemirrorEditor = editor;
-    }
+    Object.defineProperty(window, "codeMirrorSourceEditorTestInstance", {
+      get() {
+        return editor;
+      },
+    });
     return editor;
   }
 
