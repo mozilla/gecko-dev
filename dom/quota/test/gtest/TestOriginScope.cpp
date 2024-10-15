@@ -12,23 +12,6 @@
 
 namespace mozilla::dom::quota {
 
-namespace {
-
-struct OriginTest {
-  const char* mOrigin;
-  bool mMatch;
-};
-
-void CheckOriginScopeMatchesOrigin(const OriginScope& aOriginScope,
-                                   const char* aOrigin, bool aMatch) {
-  bool result = aOriginScope.Matches(
-      OriginScope::FromOrigin(nsDependentCString(aOrigin)));
-
-  EXPECT_TRUE(result == aMatch);
-}
-
-}  // namespace
-
 TEST(DOM_Quota_OriginScope, SanityChecks)
 {
   OriginScope originScope;
@@ -58,49 +41,39 @@ TEST(DOM_Quota_OriginScope, SanityChecks)
 
 TEST(DOM_Quota_OriginScope, MatchesOrigin)
 {
-  OriginScope originScope;
-
   // Test each origin scope type against particular origins.
 
   {
-    originScope.SetFromOrigin("http://www.mozilla.org"_ns);
+    const auto originScope(
+        OriginScope::FromOrigin("http://www.mozilla.org"_ns));
 
-    static const OriginTest tests[] = {
-        {"http://www.mozilla.org", true},
-        {"http://www.example.org", false},
-    };
-
-    for (const auto& test : tests) {
-      CheckOriginScopeMatchesOrigin(originScope, test.mOrigin, test.mMatch);
-    }
+    EXPECT_TRUE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.mozilla.org"_ns)));
+    EXPECT_FALSE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.example.org"_ns)));
   }
 
   {
-    originScope.SetFromPrefix("http://www.mozilla.org"_ns);
+    const auto originScope(
+        OriginScope::FromPrefix("http://www.mozilla.org"_ns));
 
-    static const OriginTest tests[] = {
-        {"http://www.mozilla.org", true},
-        {"http://www.mozilla.org^userContextId=1", true},
-        {"http://www.example.org^userContextId=1", false},
-    };
-
-    for (const auto& test : tests) {
-      CheckOriginScopeMatchesOrigin(originScope, test.mOrigin, test.mMatch);
-    }
+    EXPECT_TRUE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.mozilla.org"_ns)));
+    EXPECT_TRUE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.mozilla.org^userContextId=1"_ns)));
+    EXPECT_FALSE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.example.org^userContextId=1"_ns)));
   }
 
   {
-    originScope.SetFromNull();
+    const auto originScope(OriginScope::FromNull());
 
-    static const OriginTest tests[] = {
-        {"http://www.mozilla.org", true},
-        {"http://www.mozilla.org^userContextId=1", true},
-        {"http://www.example.org^userContextId=1", true},
-    };
-
-    for (const auto& test : tests) {
-      CheckOriginScopeMatchesOrigin(originScope, test.mOrigin, test.mMatch);
-    }
+    EXPECT_TRUE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.mozilla.org"_ns)));
+    EXPECT_TRUE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.mozilla.org^userContextId=1"_ns)));
+    EXPECT_TRUE(originScope.Matches(
+        OriginScope::FromOrigin("http://www.example.org^userContextId=1"_ns)));
   }
 }
 
