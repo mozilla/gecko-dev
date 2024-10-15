@@ -51,8 +51,7 @@ layers::OffsetRange ShmSegmentsWriter::Write(Range<uint8_t> aBytes) {
   const size_t start = mCursor;
   const size_t length = aBytes.length();
 
-//  if (length >= mChunkSize * 4) {
-  if (length > 0) {
+  if (length >= mChunkSize * 4) {
     auto range = AllocLargeChunk(length);
     if (range.length()) {
       // Allocation was successful
