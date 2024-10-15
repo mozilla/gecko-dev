@@ -114,7 +114,7 @@ FlexfecReceiveStreamImpl::FlexfecReceiveStreamImpl(
                                            recovered_packet_receiver)),
       rtp_receive_statistics_(ReceiveStatistics::Create(&env.clock())),
       rtp_rtcp_(env,
-                {.audio = false,
+                RtpRtcpInterface::Configuration{.audio = false,
                  .receiver_only = true,
                  .receive_statistics = rtp_receive_statistics_.get(),
                  .outgoing_transport = config.rtcp_send_transport,
