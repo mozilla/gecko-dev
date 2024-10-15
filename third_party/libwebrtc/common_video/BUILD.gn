@@ -8,6 +8,18 @@
 
 import("../webrtc.gni")
 
+rtc_library("corruption_detection_converters") {
+  sources = [
+    "corruption_detection_converters.cc",
+    "corruption_detection_converters.h",
+  ]
+  deps = [
+    ":corruption_detection_message",
+    ":frame_instrumentation_data",
+    "../rtc_base:checks",
+  ]
+}
+
 rtc_library("corruption_detection_message") {
   sources = [ "corruption_detection_message.h" ]
   deps = [
@@ -125,6 +137,17 @@ if (rtc_include_tests && !build_with_chromium) {
     }
   }
 
+  rtc_library("corruption_detection_converters_unittest") {
+    testonly = true
+    sources = [ "corruption_detection_converters_unittest.cc" ]
+    deps = [
+      ":corruption_detection_converters",
+      ":corruption_detection_message",
+      ":frame_instrumentation_data",
+      "../test:test_support",
+    ]
+  }
+
   rtc_library("corruption_detection_message_unittest") {
     testonly = true
     sources = [ "corruption_detection_message_unittest.cc" ]
@@ -161,6 +184,7 @@ if (rtc_include_tests && !build_with_chromium) {
 
     deps = [
       ":common_video",
+      ":corruption_detection_converters_unittest",
       ":corruption_detection_message_unittest",
       "../api:scoped_refptr",
       "../api/units:time_delta",
