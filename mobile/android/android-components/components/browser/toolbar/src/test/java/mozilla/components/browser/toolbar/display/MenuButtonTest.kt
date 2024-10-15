@@ -153,4 +153,65 @@ class MenuButtonTest {
             ),
         )
     }
+
+    @Test
+    fun `setHighlightStatus should do nothing if using the new menu controller`() {
+        `when`(menuButtonInternal.menuController).thenReturn(menuController)
+        `when`(menuButtonInternal.menuBuilder).thenReturn(null)
+        verify(menuButtonInternal, never()).setHighlight(any())
+
+        menuButtonInternal.setHighlightStatus()
+
+        verify(menuButtonInternal, never()).setHighlight(any())
+    }
+
+    @Test
+    fun `setHighlightStatus reads highlight status of items and sets proper highlight status for low priority`() {
+        val highlight = BrowserMenuHighlight.LowPriority(Color.YELLOW)
+        val highlightMenuBuilder = spy(
+            BrowserMenuBuilder(
+                listOf(
+                    BrowserMenuHighlightableItem(
+                        label = "Test",
+                        startImageResource = 0,
+                        highlight = highlight,
+                        isHighlighted = { true },
+                    ),
+                ),
+            ),
+        )
+        doReturn(menu).`when`(highlightMenuBuilder).build(testContext)
+
+        menuButtonInternal.menuBuilder = highlightMenuBuilder
+        `when`(menuButtonInternal.menuBuilder).thenReturn(highlightMenuBuilder)
+        menuButton.invalidateMenu()
+
+        menuButtonInternal.setHighlightStatus()
+        verify(menuButtonInternal).setHighlight(highlight)
+    }
+
+    @Test
+    fun `setHighlightStatus reads highlight status of items and sets proper highlight status for no highlight`() {
+        val highlight = BrowserMenuHighlight.LowPriority(Color.YELLOW)
+        val highlightMenuBuilder = spy(
+            BrowserMenuBuilder(
+                listOf(
+                    BrowserMenuHighlightableItem(
+                        label = "Test",
+                        startImageResource = 0,
+                        highlight = highlight,
+                        isHighlighted = { false },
+                    ),
+                ),
+            ),
+        )
+        doReturn(menu).`when`(highlightMenuBuilder).build(testContext)
+
+        menuButtonInternal.menuBuilder = highlightMenuBuilder
+        `when`(menuButtonInternal.menuBuilder).thenReturn(highlightMenuBuilder)
+        menuButton.invalidateMenu()
+
+        menuButtonInternal.setHighlightStatus()
+        verify(menuButtonInternal).setHighlight(null)
+    }
 }

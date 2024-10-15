@@ -281,6 +281,10 @@ abstract class BaseBrowserFragment :
     protected val bottomToolbarContainerView: BottomToolbarContainerView
         get() = _bottomToolbarContainerView!!
 
+    @Suppress("VariableNaming")
+    @VisibleForTesting
+    internal var _menuButtonView: MenuButton? = null
+
     protected val readerViewFeature = ViewBoundFeatureWrapper<ReaderViewFeature>()
     protected val thumbnailsFeature = ViewBoundFeatureWrapper<BrowserThumbnails>()
 
@@ -1569,6 +1573,8 @@ abstract class BaseBrowserFragment :
             )
             recordClickEvent = { NavigationBar.browserMenuTapped.record(NoExtras()) }
         }
+        menuButton.setHighlightStatus()
+        _menuButtonView = menuButton
 
         CFRPopupLayout(
             showCFR = showCFR && context.settings().shouldShowNavigationButtonsCFR,
@@ -2560,6 +2566,7 @@ abstract class BaseBrowserFragment :
                 toolbarView.view.invalidateActions()
                 toolbarView.toolbarIntegration.invalidateMenu()
             }
+            _menuButtonView?.setHighlightStatus()
         }
     }
 
