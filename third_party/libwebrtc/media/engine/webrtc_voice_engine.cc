@@ -2071,6 +2071,7 @@ bool WebRtcVoiceReceiveChannel::SetReceiverParameters(
                    << params.ToString();
   // TODO(pthatcher): Refactor this to be more clean now that we have
   // all the information at once.
+  mid_ = params.mid;
 
   if (!SetRecvCodecs(params.codecs)) {
     return false;

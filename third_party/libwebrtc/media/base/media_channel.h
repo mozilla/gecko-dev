@@ -824,6 +824,10 @@ struct RtcpParameters {
 
 struct MediaChannelParameters {
   virtual ~MediaChannelParameters() = default;
+  // This is the value to be sent in the MID RTP header extension (if the header
+  // extension in included in the list of extensions).
+  // It is also used as a key to map the channnel to its transport.
+  std::string mid;
 
   std::vector<Codec> codecs;
   std::vector<webrtc::RtpExtension> extensions;
@@ -858,9 +862,6 @@ struct MediaChannelParameters {
 
 struct SenderParameters : MediaChannelParameters {
   int max_bandwidth_bps = -1;
-  // This is the value to be sent in the MID RTP header extension (if the header
-  // extension in included in the list of extensions).
-  std::string mid;
   bool extmap_allow_mixed = false;
 
  protected:

@@ -878,6 +878,7 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
       content, header_extensions,
       webrtc::RtpTransceiverDirectionHasRecv(content->direction()),
       &recv_params);
+  recv_params.mid = mid();
 
   if (!media_receive_channel()->SetReceiverParameters(recv_params)) {
     error_desc = StringFormat(

@@ -717,7 +717,7 @@ index 32af2321d2..10e3480d85 100644
  
  rtc_library("rtc_audio_video") {
 diff --git a/media/base/media_channel.h b/media/base/media_channel.h
-index c59a5753a6..b60bc1dce2 100644
+index b7f5987f6e..abbca99b5c 100644
 --- a/media/base/media_channel.h
 +++ b/media/base/media_channel.h
 @@ -65,10 +65,6 @@ class Timing;
