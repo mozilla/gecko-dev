@@ -2,7 +2,16 @@
 
 ## Unreleased
 
-- 
+## 1.20.2
+
+- Remove `portable_atomic` from Cargo.lock if it is not, in fact, used: [#267](https://github.com/matklad/once_cell/pull/267)
+  This is a work-around for this cargo bug: https://github.com/rust-lang/cargo/issues/10801.
+
+## 1.20.1
+
+- Allow using `race` module using just `portable_atomic`, without `critical_section` and provide
+  better error messages on targets without atomic CAS instruction,
+  [#265](https://github.com/matklad/once_cell/pull/265).
 
 ## 1.19.0
 
