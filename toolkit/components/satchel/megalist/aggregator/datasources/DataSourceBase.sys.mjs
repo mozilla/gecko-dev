@@ -77,10 +77,10 @@ export class DataSourceBase {
 
   async localizeStrings(strings) {
     const keys = Object.keys(strings);
-    const localisationIds = Object.values(strings)
-      .filter(id => id)
-      .map(id => ({ id }));
-    const messages = await DataSourceBase.ftl.formatMessages(localisationIds);
+    const l10nObj = Object.values(strings)
+      .filter(({ id }) => id)
+      .map(({ id, args = {} }) => ({ id, args }));
+    const messages = await DataSourceBase.ftl.formatMessages(l10nObj);
 
     for (let i = 0; i < messages.length; i++) {
       let { attributes, value } = messages[i];

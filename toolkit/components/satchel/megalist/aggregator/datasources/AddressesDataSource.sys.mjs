@@ -57,13 +57,13 @@ export class AddressesDataSource extends DataSourceBase {
   constructor(...args) {
     super(...args);
     this.localizeStrings({
-      headerLabel: "addresses-section-label",
-      expandSection: "addresses-expand-section-tooltip",
-      collapseSection: "addresses-collapse-section-tooltip",
-      nameLabel: "address-name-label",
-      phoneLabel: "address-phone-label",
-      emailLabel: "address-email-label",
-      addressesDisabled: "addresses-disabled",
+      headerLabel: { id: "addresses-section-label" },
+      expandSection: { id: "addresses-expand-section-tooltip" },
+      collapseSection: { id: "addresses-collapse-section-tooltip" },
+      nameLabel: { id: "address-name-label" },
+      phoneLabel: { id: "address-phone-label" },
+      emailLabel: { id: "address-email-label" },
+      addressesDisabled: { id: "addresses-disabled" },
     }).then(strings => {
       const copyCommand = { id: "Copy", label: "command-copy" };
       const editCommand = { id: "Edit", label: "command-edit" };

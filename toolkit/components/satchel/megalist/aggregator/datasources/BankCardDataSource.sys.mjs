@@ -69,13 +69,13 @@ export class BankCardDataSource extends DataSourceBase {
     super(...args);
     // Wait for Fluent to provide strings before loading data
     this.localizeStrings({
-      headerLabel: "payments-section-label",
-      expandSection: "payments-expand-section-tooltip",
-      collapseSection: "payments-collapse-section-tooltip",
-      numberLabel: "card-number-label",
-      expirationLabel: "card-expiration-label",
-      holderLabel: "card-holder-label",
-      cardsDisabled: "payments-disabled",
+      headerLabel: { id: "payments-section-label" },
+      expandSection: { id: "payments-expand-section-tooltip" },
+      collapseSection: { id: "payments-collapse-section-tooltip" },
+      numberLabel: { id: "card-number-label" },
+      expirationLabel: { id: "card-expiration-label" },
+      holderLabel: { id: "card-holder-label" },
+      cardsDisabled: { id: "payments-disabled" },
     }).then(strings => {
       const copyCommand = { id: "Copy", label: "command-copy" };
       const editCommand = { id: "Edit", label: "command-edit", verify: true };

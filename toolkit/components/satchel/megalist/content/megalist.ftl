@@ -92,6 +92,12 @@ passwords-import-error-button-try-again = Try Again
 passwords-import-error-button-cancel = Cancel
 passwords-import-learn-more = Learn about importing passwords
 
+# Export passwords to file dialog
+export-passwords-dialog-title = Export passwords to file?
+# This string recommends to the user that they delete the exported password file that is saved on their local machine.
+export-passwords-dialog-message = After you export, we recommend deleting it so others who may use this device can’t see your passwords.
+export-passwords-dialog-confirm-button = Continue with export
+
 # Title of the file picker dialog
 passwords-export-file-picker-title = Export Passwords from { -brand-short-name }
 # The default file name shown in the file picker when exporting saved logins.
@@ -127,7 +133,7 @@ passwords-filtered-count =
 #   $total (number) - Total number of passwords
 passwords-remove-all-title =
   { $total ->
-     [one] Remove { $total } password?
+     [one] Remove password?
     *[other] Remove all { $total } passwords?
   }
 
@@ -140,14 +146,27 @@ passwords-remove-all-confirm =
   }
 
 # Button label to confirm removal of saved passwords
-passwords-remove-all-confirm-button = Confirm
+#   $total (number) - Total number of passwords
+passwords-remove-all-confirm-button =
+  { $total ->
+     [1] Remove
+    *[other] Remove all
+  }
 
-# Message to confirm the removal of saved passwords
+# Message to confirm the removal of all saved passwords when user DOES NOT HAVE SYNC
 #   $total (number) - Total number of passwords
 passwords-remove-all-message =
   { $total ->
-     [1] This will remove your saved password and any breach alerts. You cannot undo this action.
-    *[other] This will remove your saved passwords and any breach alerts. You cannot undo this action.
+     [1] This will remove your password saved to { -brand-short-name } and any breach alerts. You cannot undo this action.
+    *[other] This will remove the passwords saved to { -brand-short-name } and any breach alerts. You cannot undo this action.
+  }
+
+# Message for modal to confirm the removal of all saved passwords when user HAS SYNC
+#   $total (number) - Total number of passwords
+passwords-remove-all-message-sync =
+  { $total ->
+     [1] This will remove the password saved to { -brand-short-name } on all your synced devices and remove any breach alerts. You cannot undo this action.
+    *[other] This will remove all passwords saved to { -brand-short-name } on all your synced devices and remove any breach alerts. You cannot undo this action.
   }
 
 passwords-origin-label = Website

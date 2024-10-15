@@ -18,11 +18,6 @@ const DISPLAY_MODES = {
   ALL: "SortByName",
 };
 
-const DIALOGS = {
-  REMOVE_ALL: "remove-all",
-  EXPORT: "export-passwords",
-};
-
 export class MegalistAlpha extends MozLitElement {
   constructor() {
     super();
@@ -46,7 +41,6 @@ export class MegalistAlpha extends MozLitElement {
       header: { type: Object },
       notification: { type: Object },
       displayMode: { type: String },
-      dialogType: { type: String },
     };
   }
 
@@ -77,10 +71,6 @@ export class MegalistAlpha extends MozLitElement {
   #onRadioButtonChange(e) {
     this.displayMode = e.target.value;
     this.#sendCommand(this.displayMode);
-  }
-
-  #closeDialog() {
-    this.dialogType = null;
   }
 
   #openMenu(e) {
@@ -157,10 +147,6 @@ export class MegalistAlpha extends MozLitElement {
           </div>
         `
       : "";
-  }
-
-  #openDialog(dialog = "") {
-    this.dialogType = dialog;
   }
 
   renderSearch() {
@@ -252,12 +238,12 @@ export class MegalistAlpha extends MozLitElement {
         <panel-item
           action="export-logins"
           data-l10n-id="about-logins-menu-menuitem-export-logins2"
-          @click=${() => this.#openDialog(DIALOGS.EXPORT)}
+          @click=${() => this.#sendCommand("Export")}
         ></panel-item>
         <panel-item
           action="remove-all-logins"
           data-l10n-id="about-logins-menu-menuitem-remove-all-logins2"
-          @click=${() => this.#openDialog(DIALOGS.REMOVE_ALL)}
+          @click=${() => this.#sendCommand("RemoveAll")}
           .disabled=${!this.header.value.total}
         ></panel-item>
         <hr />
@@ -285,38 +271,6 @@ export class MegalistAlpha extends MozLitElement {
     </div>`;
   }
 
-  renderDialog() {
-    if (!this.dialogType) {
-      return "";
-    }
-
-    if (this.dialogType === DIALOGS.REMOVE_ALL) {
-      return html`<remove-all-dialog
-        .onClick=${() => {
-          this.#sendCommand("RemoveAll");
-          this.#closeDialog();
-        }}
-        .onClose=${() => {
-          this.#closeDialog();
-        }}
-        loginsCount=${this.header.value.total}
-      ></remove-all-dialog>`;
-    } else if (this.dialogType === DIALOGS.EXPORT) {
-      return html`<export-all-dialog
-        .onClick=${() => {
-          this.#sendCommand("Export");
-          this.#closeDialog();
-        }}
-        .onClose=${() => {
-          this.#closeDialog();
-        }}
-        loginsCount=${this.header.value.total}
-      ></export-all-dialog>`;
-    }
-
-    return "";
-  }
-
   renderNotification() {
     if (!this.notification) {
       return "";
@@ -340,7 +294,6 @@ export class MegalistAlpha extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/megalist/megalist.css"
       />
-      ${this.renderDialog()}
       <div class="container">
         ${this.renderFirstRow()} ${this.renderSecondRow()}
         ${this.renderNotification()} ${this.renderList()}
