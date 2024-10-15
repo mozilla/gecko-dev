@@ -962,7 +962,10 @@ export class LoginFormState {
       return;
     }
 
-    const confirmPasswordInput = Logic.findConfirmationField(passwordField);
+    const confirmPasswordInput = Logic.findConfirmationField(
+      passwordField,
+      lazy.LoginFormFactory
+    );
 
     if (confirmPasswordInput && !confirmPasswordInput.value) {
       this._treatAsGeneratedPasswordField(confirmPasswordInput);
