@@ -8647,6 +8647,11 @@
   value: 10000
   mirror: once
 
+- name: layers.gpu-process.extend_ipc_reply_timeout_ms
+  type: int32_t
+  value: 20000
+  mirror: once
+
 # How many unstable GPU process restarts we allow for a given configuration.
 - name: layers.gpu-process.max_restarts
   type: RelaxedAtomicInt32

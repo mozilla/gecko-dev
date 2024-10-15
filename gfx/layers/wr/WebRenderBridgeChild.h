@@ -181,6 +181,10 @@ class WebRenderBridgeChild final : public PWebRenderBridgeChild,
   void StartCaptureSequence(const nsCString& path, uint32_t aFlags);
   void StopCaptureSequence();
 
+  bool SendEnsureConnected(TextureFactoryIdentifier* textureFactoryIdentifier,
+                           MaybeIdNamespace* maybeIdNamespace,
+                           nsCString* error);
+
  private:
   friend class CompositorBridgeChild;
 

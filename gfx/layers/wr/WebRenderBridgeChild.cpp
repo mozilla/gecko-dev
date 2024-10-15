@@ -10,6 +10,7 @@
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/layers/CompositableClient.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
+#include "mozilla/layers/CompositorManagerChild.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/IpcResourceUpdateQueue.h"
 #include "mozilla/layers/StackingContextHelper.h"
@@ -580,6 +581,21 @@ void WebRenderBridgeChild::StartCaptureSequence(const nsCString& aPath,
 
 void WebRenderBridgeChild::StopCaptureSequence() {
   this->SendStopCaptureSequence();
+}
+
+bool WebRenderBridgeChild::SendEnsureConnected(
+    TextureFactoryIdentifier* textureFactoryIdentifier,
+    MaybeIdNamespace* maybeIdNamespace, nsCString* error) {
+  auto* manager = CompositorManagerChild::GetInstance();
+  if (XRE_IsParentProcess()) {
+    manager->SetSyncIPCStartTimeStamp();
+  }
+  auto ret = PWebRenderBridgeChild::SendEnsureConnected(
+      textureFactoryIdentifier, maybeIdNamespace, error);
+  if (XRE_IsParentProcess()) {
+    manager->ClearSyncIPCStartTimeStamp();
+  }
+  return ret;
 }
 
 }  // namespace layers

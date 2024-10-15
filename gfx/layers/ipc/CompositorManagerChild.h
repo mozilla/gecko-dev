@@ -98,6 +98,9 @@ class CompositorManagerChild : public PCompositorManagerChild {
     return mFwdTransactionCounter;
   }
 
+  void SetSyncIPCStartTimeStamp();
+  void ClearSyncIPCStartTimeStamp();
+
  private:
   static StaticRefPtr<CompositorManagerChild> sInstance;
 
@@ -114,6 +117,8 @@ class CompositorManagerChild : public PCompositorManagerChild {
   bool mCanSend;
   bool mSameProcess;
   FwdTransactionCounter mFwdTransactionCounter;
+  // Used to extend sync IPC reply timeout
+  Maybe<TimeStamp> mSyncIPCStartTimeStamp;
 };
 
 }  // namespace layers

@@ -241,7 +241,23 @@ void CompositorManagerChild::SetReplyTimeout() {
 }
 
 bool CompositorManagerChild::ShouldContinueFromReplyTimeout() {
+  MOZ_ASSERT_IF(mSyncIPCStartTimeStamp.isSome(), XRE_IsParentProcess());
+
   if (XRE_IsParentProcess()) {
+#ifndef DEBUG
+    // Extend sync IPC reply timeout
+    if (mSyncIPCStartTimeStamp.isSome()) {
+      const int32_t maxDurationMs = StaticPrefs::
+          layers_gpu_process_extend_ipc_reply_timeout_ms_AtStartup();
+      const auto now = TimeStamp::Now();
+      const auto durationMs = static_cast<int32_t>(
+          (now - mSyncIPCStartTimeStamp.ref()).ToMilliseconds());
+
+      if (durationMs < maxDurationMs) {
+        return true;
+      }
+    }
+#endif
     gfxCriticalNote << "Killing GPU process due to IPC reply timeout";
     MOZ_DIAGNOSTIC_ASSERT(GPUProcessManager::Get()->GetGPUChild());
     GPUProcessManager::Get()->KillProcess(/* aGenerateMinidump */ true);
@@ -255,6 +271,16 @@ mozilla::ipc::IPCResult CompositorManagerChild::RecvNotifyWebRenderError(
   MOZ_ASSERT(NS_IsMainThread());
   GPUProcessManager::Get()->NotifyWebRenderError(aError);
   return IPC_OK();
+}
+
+void CompositorManagerChild::SetSyncIPCStartTimeStamp() {
+  MOZ_ASSERT(mSyncIPCStartTimeStamp.isNothing());
+
+  mSyncIPCStartTimeStamp = Some(TimeStamp::Now());
+}
+
+void CompositorManagerChild::ClearSyncIPCStartTimeStamp() {
+  mSyncIPCStartTimeStamp = Nothing();
 }
 
 }  // namespace layers
