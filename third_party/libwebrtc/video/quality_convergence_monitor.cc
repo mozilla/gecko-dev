@@ -10,6 +10,7 @@
 
 #include "video/quality_convergence_monitor.h"
 
+#include <algorithm>
 #include <numeric>
 
 #include "rtc_base/checks.h"
@@ -21,11 +22,27 @@ constexpr size_t kDefaultRecentWindowLength = 6;
 constexpr size_t kDefaultPastWindowLength = 6;
 constexpr float kDefaultAlpha = 0.06;
 
+struct StaticDetectionConfig {
+  // Overrides the static QP threshold if set to a higher value than what is
+  // reported by the encoder.
+  int static_qp_threshold_override = 0;
+  std::unique_ptr<StructParametersParser> Parser();
+};
+
+std::unique_ptr<StructParametersParser> StaticDetectionConfig::Parser() {
+  // The empty comments ensures that each pair is on a separate line.
+  return StructParametersParser::Create("static_qp_threshold",
+                                        &static_qp_threshold_override);
+}
+
 struct DynamicDetectionConfig {
   bool enabled = false;
   // alpha is a percentage of the codec-specific max QP value that is used to
   // determine the dynamic QP threshold:
-  //   dynamic_qp_threshold = static_qp_threshold + alpha * max_QP
+  //   dynamic_qp_threshold = static_min_qp_threshold + alpha * max_QP
+  // Please note that although the static threshold is overridden, the dynamic
+  // threshold is calculated from static_min_qp_threshold reported by the
+  // encoder.
   double alpha = kDefaultAlpha;
   int recent_length = kDefaultRecentWindowLength;
   int past_length = kDefaultPastWindowLength;
@@ -41,27 +58,30 @@ std::unique_ptr<StructParametersParser> DynamicDetectionConfig::Parser() {
 }
 
 QualityConvergenceMonitor::Parameters GetParameters(
-    int static_qp_threshold,
+    int static_min_qp_threshold,
     VideoCodecType codec,
     const FieldTrialsView& trials) {
   QualityConvergenceMonitor::Parameters params;
-  params.static_qp_threshold = static_qp_threshold;
 
+  StaticDetectionConfig static_config;
   DynamicDetectionConfig dynamic_config;
   // Apply codec specific settings.
   int max_qp = 0;
   switch (codec) {
     case kVideoCodecVP8:
+      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-VP8"));
       dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-VP8"));
       max_qp = 127;
       break;
     case kVideoCodecVP9:
+      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-VP9"));
       // Change to enabled by default for VP9.
       dynamic_config.enabled = true;
       dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-VP9"));
       max_qp = 255;
       break;
     case kVideoCodecAV1:
+      static_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Static-AV1"));
       // Change to enabled by default for AV1.
       dynamic_config.enabled = true;
       dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-AV1"));
@@ -73,10 +93,13 @@ QualityConvergenceMonitor::Parameters GetParameters(
       break;
   }
 
+  params.static_qp_threshold = std::max(
+      static_min_qp_threshold, static_config.static_qp_threshold_override);
+
   if (dynamic_config.enabled) {
     params.dynamic_detection_enabled = dynamic_config.enabled;
     params.dynamic_qp_threshold =
-        params.static_qp_threshold + max_qp * dynamic_config.alpha;
+        static_min_qp_threshold + max_qp * dynamic_config.alpha;
     params.recent_window_length = dynamic_config.recent_length;
     params.past_window_length = dynamic_config.past_length;
   }
