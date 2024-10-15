@@ -10,7 +10,6 @@
 
 #if defined(WEBRTC_POSIX)
 #include <netinet/in.h>
-#include <sys/socket.h>
 
 #include "absl/strings/string_view.h"
 #ifdef OPENBSD

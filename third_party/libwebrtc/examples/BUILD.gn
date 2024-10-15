@@ -792,6 +792,7 @@ if (is_linux || is_chromeos || is_win) {
     ]
     deps = [
       "../rtc_base:checks",
+      "../rtc_base:net_helpers",
       "../rtc_base:stringutils",
       "../system_wrappers:field_trial",
       "../test:field_trial",

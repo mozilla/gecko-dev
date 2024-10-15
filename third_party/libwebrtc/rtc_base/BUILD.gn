@@ -1084,6 +1084,7 @@ rtc_library("socket") {
     ":buffer",
     ":checks",
     ":macromagic",
+    ":net_helpers",
     ":socket_address",
     "../api/units:timestamp",
     "./network:ecn_marking",

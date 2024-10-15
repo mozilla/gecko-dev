@@ -14,9 +14,6 @@
 // This file contains classes for dealing with the STUN protocol, as specified
 // in RFC 5389, and its descendants.
 
-#if defined(WEBRTC_POSIX)
-#include <sys/socket.h>
-#endif
 #include <stddef.h>
 #include <stdint.h>
 
@@ -30,6 +27,7 @@
 #include "rtc_base/byte_buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/ip_address.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/socket_address.h"
 
 namespace cricket {

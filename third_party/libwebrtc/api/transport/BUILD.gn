@@ -118,6 +118,7 @@ if (!build_with_mozilla) {
     "../../rtc_base:digest",
     "../../rtc_base:ip_address",
     "../../rtc_base:logging",
+    "../../rtc_base:net_helpers",
     "../../rtc_base:socket_address",
     "../../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/strings:string_view",

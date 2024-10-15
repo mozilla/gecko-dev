@@ -15,12 +15,10 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <sys/socket.h>
 
 #include "absl/strings/string_view.h"
 #endif
 #if defined(WEBRTC_WIN)
-#include <winsock2.h>
 #include <ws2tcpip.h>
 #endif
 #include <string.h>
@@ -32,6 +30,7 @@
 #include "rtc_base/win32.h"
 #endif
 #include "absl/strings/string_view.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/system/rtc_export.h"
 namespace rtc {
 

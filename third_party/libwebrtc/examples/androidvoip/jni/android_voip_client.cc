@@ -11,7 +11,7 @@
 #include "examples/androidvoip/jni/android_voip_client.h"
 
 #include <errno.h>
-#include <sys/socket.h>
+#include <sys/socket.h>  // no-presubmit-check
 
 #include <algorithm>
 #include <map>

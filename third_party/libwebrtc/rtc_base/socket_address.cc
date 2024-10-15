@@ -15,7 +15,6 @@
 
 #if defined(WEBRTC_POSIX)
 #include <netinet/in.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 #if defined(OPENBSD)
 #include <netinet/in_systm.h>
