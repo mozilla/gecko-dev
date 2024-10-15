@@ -24,6 +24,7 @@
 #include "api/audio/audio_processing.h"
 #include "api/create_peerconnection_factory.h"
 #include "api/environment/environment.h"
+#include "api/field_trials_view.h"
 #include "api/media_types.h"
 #include "api/sequence_checker.h"
 #include "api/video_codecs/video_decoder_factory.h"
@@ -50,6 +51,7 @@
 #include "rtc_base/string_encode.h"
 #include "rtc_base/time_utils.h"
 #include "test/gtest.h"
+#include "test/scoped_key_value_config.h"
 
 namespace {
 
@@ -132,6 +134,21 @@ PeerConnectionTestWrapper::PeerConnectionTestWrapper(
   pc_thread_checker_.Detach();
 }
 
+PeerConnectionTestWrapper::PeerConnectionTestWrapper(
+    const std::string& name,
+    rtc::SocketServer* socket_server,
+    rtc::Thread* network_thread,
+    rtc::Thread* worker_thread,
+    webrtc::test::ScopedKeyValueConfig& field_trials)
+    : field_trials_(field_trials, ""),
+      name_(name),
+      socket_server_(socket_server),
+      network_thread_(network_thread),
+      worker_thread_(worker_thread),
+      pending_negotiation_(false) {
+  pc_thread_checker_.Detach();
+}
+
 PeerConnectionTestWrapper::~PeerConnectionTestWrapper() {
   RTC_DCHECK_RUN_ON(&pc_thread_checker_);
   // To avoid flaky bot failures, make sure fake sources are stopped prior to
@@ -173,7 +190,8 @@ bool PeerConnectionTestWrapper::CreatePc(
           webrtc::LibvpxVp9DecoderTemplateAdapter,
           webrtc::OpenH264DecoderTemplateAdapter,
           webrtc::Dav1dDecoderTemplateAdapter>>(),
-      nullptr /* audio_mixer */, nullptr /* audio_processing */);
+      nullptr /* audio_mixer */, nullptr /* audio_processing */, nullptr,
+      std::make_unique<webrtc::test::ScopedKeyValueConfig>(field_trials_, ""));
   if (!peer_connection_factory_) {
     return false;
   }

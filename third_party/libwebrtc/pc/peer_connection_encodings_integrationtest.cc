@@ -23,6 +23,7 @@
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
 #include "api/audio_options.h"
+#include "api/field_trials_view.h"
 #include "api/jsep.h"
 #include "api/make_ref_counted.h"
 #include "api/media_stream_interface.h"
@@ -51,6 +52,7 @@
 #include "rtc_base/thread.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
+#include "test/scoped_key_value_config.h"
 
 using ::testing::Eq;
 using ::testing::Optional;
@@ -118,7 +120,8 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
 
   rtc::scoped_refptr<PeerConnectionTestWrapper> CreatePc() {
     auto pc_wrapper = rtc::make_ref_counted<PeerConnectionTestWrapper>(
-        "pc", &pss_, background_thread_.get(), background_thread_.get());
+        "pc", &pss_, background_thread_.get(), background_thread_.get(),
+        field_trials_);
     pc_wrapper->CreatePc({}, CreateBuiltinAudioEncoderFactory(),
                          CreateBuiltinAudioDecoderFactory());
     return pc_wrapper;
@@ -445,6 +448,7 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
     return true;
   }
 
+  test::ScopedKeyValueConfig field_trials_;
   rtc::PhysicalSocketServer pss_;
   std::unique_ptr<rtc::Thread> background_thread_;
 };
@@ -2038,6 +2042,7 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   std::optional<RtpCodecCapability> vp9 =
       local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
                                                    "vp9");
+  ASSERT_TRUE(vp9);
 
   RtpTransceiverInit init;
   init.direction = RtpTransceiverDirection::kSendOnly;
@@ -2056,6 +2061,41 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   ASSERT_FALSE(transceiver_or_error.ok());
   EXPECT_EQ(transceiver_or_error.error().type(),
             RTCErrorType::UNSUPPORTED_OPERATION);
+}
+
+TEST_F(PeerConnectionEncodingsIntegrationTest,
+       AddTransceiverAcceptsMixedCodecSimulcast) {
+  // Enable WIP mixed codec simulcast support
+  test::ScopedKeyValueConfig field_trials(
+      field_trials_, "WebRTC-MixedCodecSimulcast/Enabled/");
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  std::optional<RtpCodecCapability> vp8 =
+      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+                                                   "vp8");
+  ASSERT_TRUE(vp8);
+  std::optional<RtpCodecCapability> vp9 =
+      local_pc_wrapper->FindFirstSendCodecWithName(cricket::MEDIA_TYPE_VIDEO,
+                                                   "vp9");
+  ASSERT_TRUE(vp9);
+
+  RtpTransceiverInit init;
+  init.direction = RtpTransceiverDirection::kSendOnly;
+  RtpEncodingParameters encoding_parameters;
+  encoding_parameters.rid = "h";
+  encoding_parameters.codec = vp8;
+  encoding_parameters.scale_resolution_down_by = 2;
+  init.send_encodings.push_back(encoding_parameters);
+  encoding_parameters.rid = "f";
+  encoding_parameters.codec = vp9;
+  encoding_parameters.scale_resolution_down_by = 1;
+  init.send_encodings.push_back(encoding_parameters);
+
+  auto transceiver_or_error =
+      local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  ASSERT_TRUE(transceiver_or_error.ok());
 }
 
 // Tests that use the standard path (specifying both `scalability_mode` and
