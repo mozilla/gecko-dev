@@ -4557,24 +4557,7 @@ var SessionStoreInternal = {
       delete winData.hidden;
     }
 
-    let sidebarBox = aWindow.document.getElementById("sidebar-box");
-    let command = sidebarBox.getAttribute("sidebarcommand");
-    winData.sidebar = {};
-    if (sidebarBox.style.width) {
-      winData.sidebar.width = sidebarBox.style.width;
-    }
-    if (command && sidebarBox.getAttribute("checked") == "true") {
-      winData.sidebar.command = command;
-    } else if (winData.sidebar?.command) {
-      delete winData.sidebar.command;
-    }
-
-    if (aWindow.SidebarController.revampComponentsLoaded) {
-      winData.sidebar = Object.assign(winData.sidebar || {}, {
-        expanded: aWindow.SidebarController.sidebarMain.expanded,
-        hidden: aWindow.SidebarController.sidebarContainer.hidden,
-      });
-    }
+    winData.sidebar = aWindow.SidebarController.getUIState();
 
     let workspaceID = aWindow.getWorkspaceID();
     if (workspaceID) {
@@ -5632,30 +5615,8 @@ var SessionStoreInternal = {
    *        Object containing command (sidebarcommand/category) and styles
    */
   restoreSidebar(aWindow, aSidebar, isPopup) {
-    if (!aSidebar) {
-      return;
-    }
     if (!isPopup) {
-      let sidebarBox = aWindow.document.getElementById("sidebar-box");
-      // Always restore sidebar width
-      if (aSidebar.width) {
-        sidebarBox.style.width = aSidebar.width;
-      }
-      if (
-        aSidebar.command &&
-        (sidebarBox.getAttribute("sidebarcommand") != aSidebar.command ||
-          !sidebarBox.getAttribute("checked"))
-      ) {
-        aWindow.SidebarController.showInitially(aSidebar.command);
-      }
-    }
-    if (aWindow.SidebarController.sidebarRevampEnabled) {
-      const { SidebarController } = aWindow;
-      SidebarController.promiseInitialized.then(() => {
-        SidebarController.toggleExpanded(aSidebar.expanded);
-        SidebarController.sidebarContainer.hidden = aSidebar.hidden;
-        SidebarController.updateToolbarButton();
-      });
+      aWindow.SidebarController.setUIState(aSidebar);
     }
   },
 
