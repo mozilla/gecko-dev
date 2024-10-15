@@ -20,7 +20,7 @@ async function removeTabGroup(group) {
 
 add_task(async function test_tabGroupCreateAndAddTab() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [tab1]);
+  let group = gBrowser.addTabGroup([tab1]);
 
   Assert.ok(group.id, "group has id");
   Assert.ok(group.tabs.includes(tab1), "tab1 is in group");
@@ -36,7 +36,7 @@ add_task(async function test_tabGroupCreateAndAddTab() {
 
 add_task(async function test_getTabGroups() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group1 = gBrowser.addTabGroup("blue", "test1", [tab1]);
+  let group1 = gBrowser.addTabGroup([tab1]);
   Assert.equal(
     gBrowser.tabGroups.length,
     1,
@@ -44,7 +44,7 @@ add_task(async function test_getTabGroups() {
   );
 
   let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group2 = gBrowser.addTabGroup("red", "test2", [tab2]);
+  let group2 = gBrowser.addTabGroup([tab2]);
   Assert.equal(
     gBrowser.tabGroups.length,
     2,
@@ -68,14 +68,14 @@ add_task(async function test_tabGroupUniqueColors() {
   let initialTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
   });
-  let initialGroup = gBrowser.addTabGroup(null, null, [initialTab]);
+  let initialGroup = gBrowser.addTabGroup([initialTab]);
   let existingGroups = [initialGroup];
 
   for (let i = 2; i <= 9; i++) {
     let newTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
       skipAnimation: true,
     });
-    let newGroup = gBrowser.addTabGroup(null, null, [newTab]);
+    let newGroup = gBrowser.addTabGroup([newTab]);
     Assert.ok(
       !existingGroups.find(grp => grp.color == newGroup.color),
       `Group ${i} has a distinct color`
@@ -90,7 +90,7 @@ add_task(async function test_tabGroupUniqueColors() {
 
 add_task(async function test_tabGroupCollapseAndExpand() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [tab1]);
+  let group = gBrowser.addTabGroup([tab1]);
 
   Assert.ok(!group.collapsed, "group is expanded by default");
 
@@ -110,7 +110,7 @@ add_task(async function test_tabGroupCollapseAndExpand() {
 
 add_task(async function test_tabGroupCollapsedTabsNotVisible() {
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [tab]);
+  let group = gBrowser.addTabGroup([tab]);
 
   Assert.ok(!group.collapsed, "group is expanded by default");
 
@@ -139,7 +139,7 @@ add_task(async function test_tabGroupCollapsedTabsNotVisible() {
  */
 add_task(async function test_tabGroupCollapseSelectsAdjacentTabAfter() {
   let tabInGroup = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [tabInGroup]);
+  let group = gBrowser.addTabGroup([tabInGroup]);
   let adjacentTabAfter = BrowserTestUtils.addTab(gBrowser, "about:blank");
 
   gBrowser.selectedTab = tabInGroup;
@@ -165,7 +165,7 @@ add_task(async function test_tabGroupCollapseSelectsAdjacentTabAfter() {
 add_task(async function test_tabGroupCollapseSelectsAdjacentTabBefore() {
   let adjacentTabBefore = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let tabInGroup = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [tabInGroup]);
+  let group = gBrowser.addTabGroup([tabInGroup]);
 
   gBrowser.selectedTab = tabInGroup;
 
@@ -187,11 +187,7 @@ add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
   // This can be removed once the group remove API is implemented
   let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
 
-  let group = fgWindow.gBrowser.addTabGroup(
-    "blue",
-    "test",
-    fgWindow.gBrowser.tabs
-  );
+  let group = fgWindow.gBrowser.addTabGroup(fgWindow.gBrowser.tabs);
 
   Assert.equal(fgWindow.gBrowser.tabs.length, 1, "only one tab exists");
   Assert.equal(
@@ -228,7 +224,7 @@ add_task(async function test_tabUngroup() {
   let extraTab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
 
   let groupedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [groupedTab]);
+  let group = gBrowser.addTabGroup([groupedTab]);
 
   let extraTab2 = BrowserTestUtils.addTab(gBrowser, "about:blank");
 
@@ -254,7 +250,7 @@ add_task(async function test_tabUngroup() {
 
 add_task(async function test_tabGroupRemove() {
   let groupedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [groupedTab]);
+  let group = gBrowser.addTabGroup([groupedTab]);
 
   await removeTabGroup(group);
 
@@ -264,7 +260,7 @@ add_task(async function test_tabGroupRemove() {
 
 add_task(async function test_tabGroupDeletesWhenLastTabClosed() {
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let group = gBrowser.addTabGroup("blue", "test", [tab]);
+  let group = gBrowser.addTabGroup([tab]);
 
   gBrowser.removeTab(tab);
 
@@ -274,7 +270,10 @@ add_task(async function test_tabGroupDeletesWhenLastTabClosed() {
 add_task(async function test_tabGroupMoveToNewWindow() {
   let tabUri = "https://example.com/tab-group-test";
   let groupedTab = BrowserTestUtils.addTab(gBrowser, tabUri);
-  let group = gBrowser.addTabGroup("blue", "test", [groupedTab]);
+  let group = gBrowser.addTabGroup([groupedTab], {
+    color: "blue",
+    label: "test",
+  });
 
   info("Calling adoptTabGroup and waiting for TabGroupRemove event.");
   let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
@@ -333,7 +332,7 @@ add_task(async function test_TabGroupEvents() {
   ).then(event => {
     createdGroupId = event.target.id;
   });
-  group = gBrowser.addTabGroup("blue", "test", [tab1]);
+  group = gBrowser.addTabGroup([tab1]);
   await tabGroupCreated;
   Assert.equal(
     createdGroupId,
@@ -387,8 +386,8 @@ add_task(async function test_moveTabBetweenGroups() {
 
   let tab1Added = BrowserTestUtils.waitForEvent(tab1, "TabGrouped");
   let tab2Added = BrowserTestUtils.waitForEvent(tab2, "TabGrouped");
-  let group1 = gBrowser.addTabGroup("blue", "test1", [tab1]);
-  let group2 = gBrowser.addTabGroup("red", "test2", [tab2]);
+  let group1 = gBrowser.addTabGroup([tab1]);
+  let group2 = gBrowser.addTabGroup([tab2]);
   await Promise.allSettled([tab1Added, tab2Added]);
 
   let ungroupedGroupId = null;
@@ -665,11 +664,14 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
   });
-  let group1 = gBrowser.addTabGroup("red", "Test group with label", [tab1]);
+  let group1 = gBrowser.addTabGroup([tab1], {
+    color: "red",
+    label: "Test group with label",
+  });
   let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
   });
-  let group2 = gBrowser.addTabGroup("blue", "", [tab2]);
+  let group2 = gBrowser.addTabGroup([tab2], { color: "blue", label: "" });
 
   let tabToClick = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
@@ -752,7 +754,7 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupNewGroup() {
   let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
   });
-  let otherGroup = gBrowser.addTabGroup("red", "", [otherTab]);
+  let otherGroup = gBrowser.addTabGroup([otherTab]);
 
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
@@ -780,7 +782,7 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupNewGroup() {
   let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
   });
-  let group = gBrowser.addTabGroup("red", "", [otherTab]);
+  let group = gBrowser.addTabGroup([otherTab]);
 
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
@@ -805,11 +807,11 @@ add_task(
     let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
       skipAnimation: true,
     });
-    let group1 = gBrowser.addTabGroup("red", "", [tab1]);
+    let group1 = gBrowser.addTabGroup([tab1]);
     let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
       skipAnimation: true,
     });
-    let group2 = gBrowser.addTabGroup("blue", "", [tab2]);
+    let group2 = gBrowser.addTabGroup([tab2]);
 
     await withTabMenu(tab2, async (_, moveTabToGroupItem) => {
       const submenu = moveTabToGroupItem.querySelector(
@@ -839,7 +841,7 @@ add_task(
     let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
       skipAnimation: true,
     });
-    let group = gBrowser.addTabGroup("red", "", [tab]);
+    let group = gBrowser.addTabGroup([tab]);
 
     await withTabMenu(
       tab,
@@ -869,8 +871,8 @@ add_task(
       });
     });
 
-    let group1 = gBrowser.addTabGroup("red", "", [tabs[0]]);
-    let group2 = gBrowser.addTabGroup("blue", "", [tabs[1]]);
+    let group1 = gBrowser.addTabGroup([tabs[0]]);
+    let group2 = gBrowser.addTabGroup([tabs[1]]);
 
     tabs.forEach(tab => {
       EventUtils.synthesizeMouseAtCenter(
@@ -919,11 +921,11 @@ add_task(
         skipAnimation: true,
       });
     });
-    let selectedTabGroup = gBrowser.addTabGroup("red", "", tabsToSelect);
+    let selectedTabGroup = gBrowser.addTabGroup(tabsToSelect);
     let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
       skipAnimation: true,
     });
-    let otherGroup = gBrowser.addTabGroup("blue", "", [otherTab]);
+    let otherGroup = gBrowser.addTabGroup([otherTab]);
 
     // Click the first tab in our test group to make sure the default tab at the
     // start of the tab strip is deselected
@@ -967,8 +969,8 @@ add_task(async function test_tabsContainNoTabGroups() {
     skipAnimation: true,
   });
 
-  let group1 = gBrowser.addTabGroup("red", "test", [tab]);
-  gBrowser.addTabGroup("blue", "test", [tab]);
+  let group1 = gBrowser.addTabGroup([tab]);
+  gBrowser.addTabGroup([tab]);
 
   Assert.equal(
     gBrowser.tabs.length,
@@ -997,7 +999,7 @@ add_task(async function test_tabGroupCreatePanel() {
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
 
   let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  let group = gBrowser.addTabGroup("cyan", "Food", [tab]);
+  let group = gBrowser.addTabGroup([tab], { color: "cyan", label: "Food" });
   await panelShown;
   Assert.ok(tabgroupEditor.createMode, "Group editor is in create mode");
   // Edit panel should be populated with correct group details
@@ -1018,7 +1020,7 @@ add_task(async function test_tabGroupCreatePanel() {
   Assert.ok(!tab.group, "Tab is ungrouped after hitting Cancel");
 
   panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  group = gBrowser.addTabGroup("cyan", "Food", [tab]);
+  group = gBrowser.addTabGroup([tab], { color: "cyan", label: "Food" });
   await panelShown;
 
   // Panel inputs should work correctly
@@ -1073,7 +1075,7 @@ async function createTabGroupAndOpenEditPanel() {
   });
 
   let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  let group = gBrowser.addTabGroup("cyan", "Food", [tab]);
+  let group = gBrowser.addTabGroup([tab], { color: "cyan", label: "Food" });
   await panelShown;
 
   // Panel dismissed after clicking Create and group remains

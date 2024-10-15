@@ -2969,7 +2969,19 @@
       return group;
     },
 
-    addTabGroup(color = "", label = "", tabs) {
+    /**
+     * Adds a new tab group.
+     *
+     * @param {object[]} tabs
+     *   The set of tabs to include in the group.
+     * @param {object} [options]
+     * @param {string} [options.color]
+     *   Color for the group label. See tabgroup-menu.js for possible values.
+     *   If no color specified, will attempt to assign an unused group color.
+     * @param {string} [options.label]
+     *   Label for the group.
+     */
+    addTabGroup(tabs, { color = null, label = "" } = {}) {
       if (!tabs?.length) {
         throw new Error("Cannot create tab group with zero tabs");
       }
@@ -3013,7 +3025,7 @@
         newTabs.push(this.adoptTab(tab, index));
       }
 
-      this.addTabGroup(group.color, group.label, newTabs);
+      this.addTabGroup(newTabs, { label: group.label, color: group.color });
     },
 
     getAllTabGroups() {
@@ -8326,8 +8338,6 @@ var TabContextMenu = {
 
   moveTabsToNewGroup() {
     gBrowser.addTabGroup(
-      null,
-      "",
       gBrowser.selectedTabs.includes(this.contextTab)
         ? gBrowser.selectedTabs
         : [this.contextTab]

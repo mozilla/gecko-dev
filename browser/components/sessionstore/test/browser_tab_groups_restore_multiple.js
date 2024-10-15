@@ -17,20 +17,20 @@ add_task(async function test_RestoreMultipleGroups() {
 
   let aboutMozillaTab = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
   let aboutLogoTab = BrowserTestUtils.addTab(win.gBrowser, "about:logo");
-  let mozillaTabGroup = win.gBrowser.addTabGroup("red", "mozilla stuff", [
-    aboutMozillaTab,
-    aboutLogoTab,
-  ]);
+  let mozillaTabGroup = win.gBrowser.addTabGroup(
+    [aboutMozillaTab, aboutLogoTab],
+    { color: "red", label: "mozilla stuff" }
+  );
   const mozillaTabGroupId = mozillaTabGroup.id;
 
   BrowserTestUtils.addTab(win.gBrowser, "about:robots");
 
   let aboutCrashesTab = BrowserTestUtils.addTab(win.gBrowser, "about:crashes");
   let aboutMemoryTab = BrowserTestUtils.addTab(win.gBrowser, "about:memory");
-  let systemTabGroup = win.gBrowser.addTabGroup("blue", "system stuff", [
-    aboutCrashesTab,
-    aboutMemoryTab,
-  ]);
+  let systemTabGroup = win.gBrowser.addTabGroup(
+    [aboutCrashesTab, aboutMemoryTab],
+    { color: "blue", label: "system stuff" }
+  );
   systemTabGroup.collapsed = true;
   const systemTabGroupId = systemTabGroup.id;
 

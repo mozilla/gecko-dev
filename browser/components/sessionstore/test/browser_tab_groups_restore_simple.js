@@ -16,9 +16,11 @@ add_task(async function test_RestoreSingleGroup() {
   let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
   let aboutCrashesTab = BrowserTestUtils.addTab(win.gBrowser, "about:crashes");
   const { id: originalTabGroupId } = win.gBrowser.addTabGroup(
-    "blue",
-    "about pages",
-    [aboutRobotsTab, aboutCrashesTab]
+    [aboutRobotsTab, aboutCrashesTab],
+    {
+      color: "blue",
+      label: "about pages",
+    }
   );
 
   await TabStateFlusher.flushWindow(win);

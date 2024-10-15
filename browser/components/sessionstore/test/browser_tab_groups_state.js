@@ -25,10 +25,9 @@ add_task(async function test_TabGroupsInState() {
   let aboutCrashesTab = BrowserTestUtils.addTab(win.gBrowser, "about:crashes");
   BrowserTestUtils.addTab(win.gBrowser, "about:about");
 
-  let group = win.gBrowser.addTabGroup("blue", "non-meta about pages", [
-    aboutRobotsTab,
-    aboutCrashesTab,
-  ]);
+  let group = win.gBrowser.addTabGroup([aboutRobotsTab, aboutCrashesTab], {
+    label: "non-meta about pages",
+  });
 
   let state = ss.getWindowState(win);
 
