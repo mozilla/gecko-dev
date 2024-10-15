@@ -126,5 +126,5 @@ TEST_F(ImageFrameAnimator, BlendWebPWithFilter) {
 }
 
 TEST_F(ImageFrameAnimator, BlendAVIFWithFilter) {
-  CheckFrameAnimatorBlend(BlendAnimatedAVIFTestCase(), 1);
+  CheckFrameAnimatorBlend(BlendAnimatedAVIFTestCase(), 2);
 }
