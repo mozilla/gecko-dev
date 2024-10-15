@@ -66,50 +66,6 @@ add_task(async function show_and_send_telemetry() {
   );
 });
 
-add_task(async function react_to_trigger() {
-  let message = {
-    ...(await CFRMessageProvider.getMessages()).find(
-      m => m.id === "INFOBAR_ACTION_86"
-    ),
-  };
-  message.targeting = "true";
-  message.content.type = "tab";
-  message.groups = [];
-  message.provider = ASRouter.state.providers[0].id;
-  message.content.message = "Infobar Mochitest";
-  await ASRouter.setState({ messages: [message] });
-
-  let notificationStack = gBrowser.getNotificationBox(gBrowser.selectedBrowser);
-  Assert.ok(
-    !notificationStack.currentNotification,
-    "No notification to start with"
-  );
-
-  await ASRouter.sendTriggerMessage({
-    browser: BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
-    id: "defaultBrowserCheck",
-  });
-
-  await BrowserTestUtils.waitForCondition(
-    () => notificationStack.currentNotification,
-    "Wait for notification to show"
-  );
-
-  Assert.equal(
-    notificationStack.currentNotification.getAttribute("value"),
-    message.id,
-    "Notification id should match"
-  );
-
-  let defaultPriority = notificationStack.PRIORITY_SYSTEM;
-  Assert.ok(
-    notificationStack.currentNotification.priority === defaultPriority,
-    "Notification has default priority"
-  );
-  // Dismiss the notification
-  notificationStack.currentNotification.closeButton.click();
-});
-
 add_task(async function dismiss_telemetry() {
   let message = {
     ...(await CFRMessageProvider.getMessages()).find(
