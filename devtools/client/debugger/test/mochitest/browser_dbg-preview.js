@@ -207,7 +207,7 @@ async function testHoveringInvalidTargetTokens(dbg) {
   // We don't want to use hoverToken, as it synthesize the event at the center of the element,
   // which wouldn't reproduce the original issue we want to check
   EventUtils.synthesizeMouse(
-    findElementWithSelector(dbg, ".CodeMirror-lines"),
+    findElement(dbg, "CodeMirrorLines"),
     0,
     0,
     {
@@ -218,7 +218,7 @@ async function testHoveringInvalidTargetTokens(dbg) {
   is(
     await racePromiseLines,
     "TIMEOUT_LINES",
-    "No popup was displayed over the .CodeMirror-lines element"
+    "No popup was displayed over the content container element"
   );
 
   // Resume and select back the main JS file that is used by the other assertions
@@ -257,9 +257,13 @@ async function testMovingFromATokenToAnother(dbg) {
   invokeInTab("classPreview");
   await waitForPaused(dbg);
 
+  await scrollEditorIntoView(dbg, 50, 0);
+  // Wait for all the updates to the document to complete to make all
+  // token elements have been rendered
+  await waitForDocumentLoadComplete(dbg);
+
   info("Hover token `Foo` in `Foo.#privateStatic` expression");
   const fooTokenEl = await getTokenElAtLine(dbg, "Foo", 50, 44);
-  await scrollEditorIntoView(dbg, 50, 0);
   const { element: fooPopupEl } = await tryHoverToken(dbg, fooTokenEl, "popup");
   ok(!!fooPopupEl, "popup is displayed");
   ok(

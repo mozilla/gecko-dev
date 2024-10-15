@@ -118,6 +118,10 @@ add_task(async function () {
   await waitForPaused(dbg);
   await waitForSelectedSource(dbg, "doc-event-handler.html");
 
+  // Wait for all the updates to the document to complete to make all
+  // token elements have been rendered
+  await waitForDocumentLoadComplete(dbg);
+
   // Hover over the token to launch preview popup
   await tryHovering(dbg, 5, 8, "popup");
 

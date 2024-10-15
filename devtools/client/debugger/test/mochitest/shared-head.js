@@ -1618,11 +1618,7 @@ async function selectEditorLinesAndOpenContextMenu(
   elementName = "line"
 ) {
   const { startLine, endLine } = lines;
-  if (!endLine) {
-    await clickElement(dbg, elementName, startLine);
-  } else {
-    setSelection(dbg, startLine, endLine);
-  }
+  setSelection(dbg, startLine, endLine ?? startLine);
   return openContextMenuInDebugger(dbg, elementName, startLine);
 }
 
@@ -2246,6 +2242,15 @@ function waitForSearchState(dbg) {
 }
 
 /**
+ * Wait for CodeMirror Document to completely load (for CM6 only)
+ */
+function waitForDocumentLoadComplete(dbg) {
+  return waitFor(() =>
+    isCm6Enabled ? getCMEditor(dbg).codeMirror.isDocumentLoadComplete : true
+  );
+}
+
+/**
  * Gets the content for the editor as a string. it uses the
  * newline character to separate lines.
  */
@@ -2568,7 +2573,9 @@ async function tryHovering(dbg, line, column, elementName) {
     !findElement(dbg, elementName),
     "The expected preview element on hover should not exist beforehand"
   );
-
+  // Wait for all the updates to the document to complete to make all
+  // token elements have been rendered
+  await waitForDocumentLoadComplete(dbg);
   const tokenEl = await getTokenFromPosition(dbg, { line, column });
   return tryHoverToken(dbg, tokenEl, elementName);
 }
@@ -2591,7 +2598,9 @@ async function tryHovering(dbg, line, column, elementName) {
 async function tryHoverTokenAtLine(dbg, expression, line, column, elementName) {
   info("Scroll codeMirror to make the token visible");
   await scrollEditorIntoView(dbg, line, 0);
-
+  // Wait for all the updates to the document to complete to make all
+  // token elements have been rendered
+  await waitForDocumentLoadComplete(dbg);
   // Lookup for the token matching the passed expression
   const tokenEl = await getTokenElAtLine(dbg, expression, line, column);
   if (!tokenEl) {
