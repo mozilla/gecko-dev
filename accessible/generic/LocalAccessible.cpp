@@ -72,6 +72,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/ScrollContainerFrame.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/HTMLLabelElement.h"
@@ -2556,6 +2557,11 @@ void LocalAccessible::DispatchClickEvent(nsIContent* aContent,
   // Simulate a touch interaction by dispatching touch events with mouse events.
   nsCoreUtils::DispatchTouchEvent(eTouchStart, x, y, aContent, frame, presShell,
                                   widget);
+
+  if (StaticPrefs::dom_popup_experimental()) {
+    // This isn't needed once bug 1924790 is fixed.
+    aContent->OwnerDoc()->NotifyUserGestureActivation();
+  }
   nsCoreUtils::DispatchMouseEvent(eMouseDown, x, y, aContent, frame, presShell,
                                   widget);
   nsCoreUtils::DispatchTouchEvent(eTouchEnd, x, y, aContent, frame, presShell,
