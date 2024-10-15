@@ -13,12 +13,20 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
+#include <vector>
 
+#include "api/rtp_headers.h"
+#include "api/transport/network_types.h"
+#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/mocks/mock_rtp_rtcp.h"
+#include "modules/rtp_rtcp/source/rtcp_packet.h"
 #include "modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
+#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/fake_clock.h"
@@ -35,19 +43,13 @@ namespace webrtc {
 namespace {
 
 using ::testing::_;
-using ::testing::AnyNumber;
-using ::testing::AtLeast;
 using ::testing::ElementsAreArray;
-using ::testing::Field;
-using ::testing::Gt;
 using ::testing::InSequence;
-using ::testing::Le;
 using ::testing::MockFunction;
 using ::testing::NiceMock;
 using ::testing::Pointee;
 using ::testing::Property;
 using ::testing::Return;
-using ::testing::SaveArg;
 
 constexpr int kProbeMinProbes = 5;
 constexpr int kProbeMinBytes = 1000;

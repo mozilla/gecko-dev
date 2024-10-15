@@ -12,10 +12,15 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <memory>
 #include <optional>
 #include <utility>
 
 #include "absl/container/inlined_vector.h"
+#include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"

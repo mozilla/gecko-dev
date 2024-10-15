@@ -11,11 +11,17 @@
 #include "modules/pacing/bitrate_prober.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <optional>
 
 #include "api/field_trials_view.h"
+#include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
 
 namespace webrtc {

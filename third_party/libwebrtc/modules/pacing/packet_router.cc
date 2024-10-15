@@ -12,15 +12,20 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "absl/functional/any_invocable.h"
+#include "api/array_view.h"
+#include "api/rtp_headers.h"
+#include "api/sequence_checker.h"
 #include "api/transport/network_types.h"
+#include "api/units/data_size.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtcp_packet.h"
+#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"

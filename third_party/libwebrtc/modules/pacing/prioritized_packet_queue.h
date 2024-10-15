@@ -14,6 +14,7 @@
 #include <stddef.h>
 
 #include <array>
+#include <cstdint>
 #include <deque>
 #include <list>
 #include <memory>
@@ -23,6 +24,7 @@
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 
 namespace webrtc {

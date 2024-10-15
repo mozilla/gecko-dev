@@ -11,16 +11,24 @@
 #include "modules/pacing/pacing_controller.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
+#include "api/array_view.h"
 #include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "modules/pacing/bitrate_prober.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "system_wrappers/include/clock.h"
 #include "test/explicit_key_value_config.h"
 #include "test/gmock.h"

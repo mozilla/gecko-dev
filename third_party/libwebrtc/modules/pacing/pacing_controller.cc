@@ -11,12 +11,21 @@
 #include "modules/pacing/pacing_controller.h"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "absl/cleanup/cleanup.h"
 #include "absl/strings/match.h"
+#include "absl/strings/string_view.h"
+#include "api/array_view.h"
+#include "api/field_trials_view.h"
+#include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -24,6 +33,7 @@
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/numerics/safe_conversions.h"
 #include "system_wrappers/include/clock.h"
 
 namespace webrtc {
