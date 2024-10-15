@@ -259,13 +259,15 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
 
   webrtc::CallReceiveStatistics call_stats =
       channel_receive_->GetRTCPStatistics();
-  // TODO(solenberg): Don't return here if we can't get the codec - return the
-  //                  stats we *can* get.
   auto receive_codec = channel_receive_->GetReceiveCodec();
-  if (!receive_codec) {
-    return stats;
+  if (receive_codec) {
+    stats.codec_name = receive_codec->second.name;
+    stats.codec_payload_type = receive_codec->first;
+    int clockrate_khz = receive_codec->second.clockrate_hz / 1000;
+    if (clockrate_khz > 0) {
+      stats.jitter_ms = call_stats.jitterSamples / clockrate_khz;
+    }
   }
-
   stats.payload_bytes_received = call_stats.payload_bytes_received;
   stats.header_and_padding_bytes_received =
       call_stats.header_and_padding_bytes_received;
@@ -274,12 +276,6 @@ webrtc::AudioReceiveStreamInterface::Stats AudioReceiveStreamImpl::GetStats(
   stats.nacks_sent = call_stats.nacks_sent;
   stats.capture_start_ntp_time_ms = call_stats.capture_start_ntp_time_ms_;
   stats.last_packet_received = call_stats.last_packet_received;
-  stats.codec_name = receive_codec->second.name;
-  stats.codec_payload_type = receive_codec->first;
-  int clockrate_khz = receive_codec->second.clockrate_hz / 1000;
-  if (clockrate_khz > 0) {
-    stats.jitter_ms = call_stats.jitterSamples / clockrate_khz;
-  }
   stats.delay_estimate_ms = channel_receive_->GetDelayEstimate();
   stats.audio_level = channel_receive_->GetSpeechOutputLevelFullRange();
   stats.total_output_energy = channel_receive_->GetTotalOutputEnergy();
