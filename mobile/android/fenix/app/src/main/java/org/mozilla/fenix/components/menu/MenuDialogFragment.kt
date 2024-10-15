@@ -245,6 +245,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         }
                                     },
                                     scope = coroutineScope,
+                                    customTab = customTab,
                                 ),
                                 MenuTelemetryMiddleware(
                                     accessPoint = args.accesspoint,
@@ -438,6 +439,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onOpenInFirefoxMenuClick = {
                                         store.dispatch(MenuAction.OpenInFirefox)
+                                    },
+                                    onShareMenuClick = {
+                                        store.dispatch(MenuAction.Navigate.Share)
                                     },
                                 )
                             }
