@@ -630,7 +630,7 @@ class alignas(16) Instance {
   static void* stringConcat(Instance* instance, void* firstStringArg,
                             void* secondStringArg);
   static void* stringSubstring(Instance* instance, void* stringArg,
-                               int32_t startIndex, int32_t endIndex);
+                               uint32_t startIndex, uint32_t endIndex);
   static int32_t stringEquals(Instance* instance, void* firstStringArg,
                               void* secondStringArg);
   static int32_t stringCompare(Instance* instance, void* firstStringArg,
