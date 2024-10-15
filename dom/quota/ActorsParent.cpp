@@ -3215,7 +3215,7 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
   MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
   MOZ_DIAGNOSTIC_ASSERT(IsStorageInitializedInternal());
   MOZ_DIAGNOSTIC_ASSERT(IsTemporaryStorageInitializedInternal());
-  MOZ_DIAGNOSTIC_ASSERT(IsTemporaryOriginInitializedInternal(aOriginMetadata));
+  MOZ_ASSERT(IsTemporaryOriginInitializedInternal(aOriginMetadata));
 
   QM_TRY_UNWRAP(auto directory, GetOriginDirectory(aOriginMetadata));
 
