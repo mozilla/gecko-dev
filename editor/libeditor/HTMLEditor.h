@@ -2095,7 +2095,7 @@ class HTMLEditor final : public EditorBase,
       const EditorDOMPointInText& aStartToDelete,
       const EditorDOMPointInText& aEndToDelete,
       TreatEmptyTextNodes aTreatEmptyTextNodes,
-      DeleteDirection aDeleteDirection, const Element& aEditingHost);
+      DeleteDirection aDeleteDirection);
 
   /**
    * ExtendRangeToDeleteWithNormalizingWhiteSpaces() is a helper method of
@@ -3270,24 +3270,6 @@ class HTMLEditor final : public EditorBase,
    */
   MOZ_CAN_RUN_SCRIPT Result<EditorDOMPoint, nsresult> PrepareToInsertBRElement(
       const EditorDOMPoint& aPointToInsert);
-
-  /**
-   * If unnecessary line break is there immediately after aPoint, this deletes
-   * the line break.  Note that unnecessary line break means that the line break
-   * is a padding line break for empty line immediately before a block boundary
-   * and it's not a placeholder of ancestor inline elements.
-   *
-   * @param aNextOrAfterModifiedPoint   If you inserted something, this should
-   *                                    be next point or after the inserted
-   *                                    content.
-   *                                    If you deleted something, this should be
-   *                                    end of the deleted range.
-   * @param aEditingHost                The editing host.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  EnsureNoFollowingUnnecessaryLineBreak(
-      const EditorDOMPoint& aNextOrAfterModifiedPoint,
-      const Element& aEditingHost);
 
   /**
    * IndentAsSubAction() indents the content around Selection.

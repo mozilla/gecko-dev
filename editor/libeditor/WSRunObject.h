@@ -287,14 +287,13 @@ class MOZ_STACK_CLASS WSScanResult final {
   }
 
   /**
-   * PointAfterReachedContent() returns the next position of found visible
-   * content or reached block element.
+   * PointAfterReachedContent() returns the position after found visible content
+   * or reached block element.
    */
   template <typename EditorDOMPointType>
   EditorDOMPointType PointAfterReachedContent() const {
     MOZ_ASSERT(mContent);
-    return PointAtReachedContent<EditorDOMPointType>()
-        .template NextPointOrAfterContainer();
+    return PointAtReachedContent<EditorDOMPointType>().template NextPoint<>();
   }
 
   /**
@@ -1727,8 +1726,7 @@ class WhiteSpaceVisibilityKeeper final {
   template <typename EditorDOMPointType>
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsresult
   NormalizeVisibleWhiteSpacesAt(HTMLEditor& aHTMLEditor,
-                                const EditorDOMPointType& aPoint,
-                                const Element& aEditingHost);
+                                const EditorDOMPointType& aPoint);
 
  private:
   /**
