@@ -441,6 +441,7 @@ int SimulcastEncoderAdapter::InitEncode(
         parent, std::move(encoder_context),
         std::make_unique<FramerateController>(stream_codec.maxFramerate),
         stream_idx, stream_codec.width, stream_codec.height, is_paused);
+    encoder_context = nullptr;
   }
 
   // To save memory, don't store encoders that we don't use.
