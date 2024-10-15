@@ -1073,6 +1073,38 @@ TEST_P(DcSctpSocketParametrizedTest, ResetStream) {
   MaybeHandoverSocketAndSendMessage(a, std::move(z));
 }
 
+TEST(DcSctpSocketTest, SendReconfigWhenStreamsReady) {
+  DcSctpOptions options = {.cwnd_mtus_initial = 1};
+  SocketUnderTest a("A", options);
+  SocketUnderTest z("Z", options);
+
+  ConnectSockets(a, z);
+
+  // Send a message so large so that it will not be sent in full, and still
+  // remaining in the send queue.
+  a.socket.Send(DcSctpMessage(StreamID(1), PPID(51),
+                              std::vector<uint8_t>(options.mtu * 3)),
+                {.unordered = IsUnordered(false)});
+
+  // Reset the outgoing stream. RECONFIG can't be sent immediately as the stream
+  // is pending (not paused).
+  a.socket.ResetStreams(std::vector<StreamID>({StreamID(1)}));
+
+  // This message sent directly after should be received eventually.
+  a.socket.Send(DcSctpMessage(StreamID(1), PPID(53), std::vector<uint8_t>(100)),
+                {.unordered = IsUnordered(false)});
+
+  ExchangeMessagesAndAdvanceTime(a, z);
+
+  std::optional<DcSctpMessage> msg1 = z.cb.ConsumeReceivedMessage();
+  ASSERT_TRUE(msg1.has_value());
+  EXPECT_EQ(msg1->ppid(), PPID(51));
+
+  std::optional<DcSctpMessage> msg2 = z.cb.ConsumeReceivedMessage();
+  ASSERT_TRUE(msg2.has_value());
+  EXPECT_EQ(msg2->ppid(), PPID(53));
+}
+
 TEST_P(DcSctpSocketParametrizedTest, ResetStreamWillMakeChunksStartAtZeroSsn) {
   SocketUnderTest a("A");
   auto z = std::make_unique<SocketUnderTest>("Z");
