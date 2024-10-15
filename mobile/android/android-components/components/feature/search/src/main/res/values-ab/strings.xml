@@ -5,4 +5,8 @@
     <string name="search_widget_content_description">Агәылаҵа ҿыц аарттәуп %1$s</string>
     <!-- Text preview for smaller sized widgets -->
     <string name="search_widget_text_short">Аԥшаара</string>
-    </resources>
+    <!-- Text preview for larger sized widgets -->
+    <string name="search_widget_text_long">Аинтернет аҿы аԥшаара</string>
+    <!-- Content description (not visible, for screen readers etc.): Voice search -->
+    <string name="search_widget_voice">Бжьыла аԥшаара</string>
+</resources>

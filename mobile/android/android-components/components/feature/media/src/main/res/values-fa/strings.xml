@@ -11,6 +11,21 @@
     <string name="mozac_feature_media_sharing_camera_and_microphone">دوربین و صدابَر وصل هستند</string>
 
 
+    <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_text">برای باز کردن زبانه‌ای که از دوربین شما استفاده می‌کند، ضربه بزنید.</string>
+    <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_microphone_text">برای باز کردن زبانه‌ای که از میکروفون شما استفاده می‌کند، ضربه بزنید.</string>
+    <!-- Text of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_text">برای باز کردن زبانه‌ای که از میکروفون و دوربین شما استفاده می‌کند، ضربه بزنید.</string>
+
+
+    <!-- Text of reminder notification shown when the device's camera is shared with a website (WebRTC). %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_reminder_text">یادآوری: %1$s هنوز در حال استفاده از دوربین شما است. برای باز کردن زبانه، ضربه بزنید.</string>
+    <!-- Text of reminder notification shown when the device's microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_microphone_reminder_text_2">یادآوری: %1$s هنوز در حال استفاده از میکروفون شما است. برای باز کردن زبانه، ضربه بزنید.</string>
+    <!-- Text of reminder notification shown when the device's camera and microphone is shared with a website (WebRTC) %1$s is a placeholder that will be replaced by the app name-->
+    <string name="mozac_feature_media_sharing_camera_and_microphone_reminder_text_2">یادآوری: %1$s هنوز در حال استفاده از میکروفون و دوربین شما است. برای باز کردن زبانه، ضربه بزنید.</string>
+
     <!--This is the title of the "play" action media shown in the media notification while web content is playing media. Clicking it will resume playing paused media. On most modern Android system only an icon is visible. But screen readers may read this title. -->
     <string name="mozac_feature_media_notification_action_play">پخش</string>
 
@@ -18,5 +33,5 @@
     <string name="mozac_feature_media_notification_action_pause">مکث</string>
 
     <!-- Neutral title of the media notification for when a website that is open in private mode. -->
-    <string name="mozac_feature_media_notification_private_mode">پایگاهی در حال پخش رسانه است</string>
+    <string name="mozac_feature_media_notification_private_mode">وبگاهی در حال پخش رسانه است</string>
 </resources>
