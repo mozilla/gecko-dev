@@ -751,8 +751,13 @@ if (rtc_include_tests) {
     sources = [ "task_queue_stdlib_unittest.cc" ]
     deps = [
       ":gunit_helpers",
+      ":logging",
+      ":rtc_event",
       ":rtc_task_queue_stdlib",
+      "../api/task_queue",
       "../api/task_queue:task_queue_test",
+      "../api/units:time_delta",
+      "../system_wrappers",
       "../test:test_main",
       "../test:test_support",
     ]
