@@ -189,6 +189,12 @@ def _RunCommand(command,
     return std_output, err_output
 
 
+def _IsExistingDir(path):
+    """Returns True if `path` exists and is a dir.
+    """
+    return os.path.isdir(path)
+
+
 def _GetBranches():
     """Returns a tuple of active,branches.
 
@@ -620,7 +626,7 @@ def UpdateDepsFile(deps_filename, rev_update, changed_deps, new_cr_content):
         if isinstance(dep, ChangedVersionEntry):
             continue
         local_dep_dir = os.path.join(GCLIENT_ROOT_DIR, dep.path)
-        if not os.path.isdir(local_dep_dir):
+        if not _IsExistingDir(local_dep_dir):
             raise RollError(
                 'Cannot find local directory %s. Either run\n'
                 'gclient sync --deps=all\n'
