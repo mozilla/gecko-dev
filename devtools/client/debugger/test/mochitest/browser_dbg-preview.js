@@ -207,7 +207,7 @@ async function testHoveringInvalidTargetTokens(dbg) {
   // We don't want to use hoverToken, as it synthesize the event at the center of the element,
   // which wouldn't reproduce the original issue we want to check
   EventUtils.synthesizeMouse(
-    findElement(dbg, "CodeMirrorLines"),
+    findElementWithSelector(dbg, ".CodeMirror-lines"),
     0,
     0,
     {
@@ -218,7 +218,7 @@ async function testHoveringInvalidTargetTokens(dbg) {
   is(
     await racePromiseLines,
     "TIMEOUT_LINES",
-    "No popup was displayed over the content container element"
+    "No popup was displayed over the .CodeMirror-lines element"
   );
 
   // Resume and select back the main JS file that is used by the other assertions

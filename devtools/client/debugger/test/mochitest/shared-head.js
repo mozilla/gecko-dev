@@ -1618,7 +1618,11 @@ async function selectEditorLinesAndOpenContextMenu(
   elementName = "line"
 ) {
   const { startLine, endLine } = lines;
-  setSelection(dbg, startLine, endLine ?? startLine);
+  if (!endLine) {
+    await clickElement(dbg, elementName, startLine);
+  } else {
+    setSelection(dbg, startLine, endLine);
+  }
   return openContextMenuInDebugger(dbg, elementName, startLine);
 }
 
@@ -2226,7 +2230,7 @@ function rightClickObjectInspectorNode(dbg, node) {
 
 // Gets the current source editor for CM6 tests
 function getCMEditor(dbg) {
-  return dbg.win.codeMirrorSourceEditorTestInstance;
+  return dbg.win.codemirrorEditor;
 }
 
 // Gets the number of lines in the editor
@@ -2239,15 +2243,6 @@ function getLineCount(dbg) {
  */
 function waitForSearchState(dbg) {
   return waitFor(() => getCMEditor(dbg).isSearchStateReady());
-}
-
-/**
- * Wait for CodeMirror Document to completely load (for CM6 only)
- */
-function waitForDocumentLoadComplete(dbg) {
-  return waitFor(() =>
-    isCm6Enabled ? getCMEditor(dbg).codeMirror.isDocumentLoadComplete : true
-  );
 }
 
 /**
@@ -2286,6 +2281,12 @@ async function scrollEditorIntoView(dbg, line, column) {
   // the editor overlaps into what the editor thinks is its own space, blocking
   // the click event below.
   return onScrolled;
+}
+
+// Gets the current codeMirror instance for CM5 tests
+function getCM(dbg) {
+  const el = dbg.win.document.querySelector(".CodeMirror");
+  return el.CodeMirror;
 }
 
 /**
@@ -2327,6 +2328,7 @@ function getCoordsFromPosition(dbg, line, ch) {
 
 async function getTokenFromPosition(dbg, { line, column = 0 }) {
   info(`Get token at ${line}:${column}`);
+  const cm = getCM(dbg);
   line = isCm6Enabled ? line : line - 1;
   column = isCm6Enabled ? column : column - 1;
   await scrollEditorIntoView(dbg, line, column);
@@ -2373,6 +2375,7 @@ async function waitForScrolling(dbg, { useTimeoutFallback = true } = {}) {
 
 async function codeMirrorGutterElement(dbg, line) {
   info(`CodeMirror line ${line}`);
+  const cm = getCM(dbg);
 
   line = isCm6Enabled ? line : line - 1;
   await scrollEditorIntoView(dbg, line, 0);
@@ -2596,9 +2599,7 @@ async function tryHovering(dbg, line, column, elementName) {
 async function tryHoverTokenAtLine(dbg, expression, line, column, elementName) {
   info("Scroll codeMirror to make the token visible");
   await scrollEditorIntoView(dbg, line, 0);
-  // Wait for all the updates to the document to complete to make all
-  // token elements have been rendered
-  await waitForDocumentLoadComplete(dbg);
+
   // Lookup for the token matching the passed expression
   const tokenEl = await getTokenElAtLine(dbg, expression, line, column);
   if (!tokenEl) {

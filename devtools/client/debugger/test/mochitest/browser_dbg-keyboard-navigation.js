@@ -7,10 +7,6 @@
 "use strict";
 
 add_task(async function () {
-  // Disabled for CM6 until this is fixed
-  if (isCm6Enabled) {
-    return;
-  }
   const dbg = await initDebugger("doc-scripts.html", "simple2.js");
   const doc = dbg.win.document;
 

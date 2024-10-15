@@ -23,7 +23,6 @@ prefs = [
 ]
 
 ["browser_dbg-keyboard-navigation.js"]
-skip-if = ["cm6"]
 
 ["browser_dbg-keyboard-shortcuts-modal.js"]
 
@@ -77,7 +76,7 @@ skip-if = [
 
 ["browser_dbg-outline-focus.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["verify", "cm6"]
+skip-if = ["verify"]
 
 ["browser_dbg-outline-pretty.js"]
 
@@ -107,7 +106,6 @@ skip-if = ["os == 'win'"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-pretty-print-breakpoints-delete.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-pretty-print-breakpoints.js"]
 
