@@ -5,6 +5,7 @@
 #ifndef WIDGET_COCOA_MEDIAHARDWAREKEYSEVENTSOURCEMACMEDIACENTER_H_
 #define WIDGET_COCOA_MEDIAHARDWAREKEYSEVENTSOURCEMACMEDIACENTER_H_
 
+#include "mozilla/dom/FetchImageHelper.h"
 #include "mozilla/dom/MediaControlKeySource.h"
 
 #ifdef __OBJC__
@@ -51,6 +52,17 @@ class MediaHardwareKeysEventSourceMacMediaCenter final
 
   bool mOpened = false;
   Maybe<dom::PositionState> mPositionState;
+  dom::MediaMetadataBase mMediaMetadata;
+
+  // Should only be used on main thread
+  UniquePtr<dom::FetchImageHelper> mImageFetcher;
+  MozPromiseRequestHolder<dom::ImagePromise> mImageFetchRequest;
+
+  nsString mFetchingUrl;
+  nsString mCurrentImageUrl;
+  size_t mNextImageIndex = 0;
+
+  void LoadImageAtIndex(const size_t aIndex);
 
   MediaCenterEventHandler mPlayPauseHandler;
   MediaCenterEventHandler mNextTrackHandler;
