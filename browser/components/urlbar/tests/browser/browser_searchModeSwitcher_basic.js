@@ -720,6 +720,23 @@ add_task(async function nimbusLogEnabled() {
   await SpecialPowers.popPrefEnv();
 });
 
+add_task(async function test_button_stuck() {
+  let win = await BrowserTestUtils.openNewBrowserWindow();
+  let popup = win.document.getElementById("searchmode-switcher-popup");
+  let button = win.document.getElementById("urlbar-searchmode-switcher");
+
+  info("Show the SearchModeSwitcher");
+  let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
+  EventUtils.synthesizeMouseAtCenter(button, {}, win);
+  await promiseMenuOpen;
+
+  info("Hide the SearchModeSwitcher");
+  let promiseMenuClosed = BrowserTestUtils.waitForEvent(popup, "popuphidden");
+  EventUtils.synthesizeMouseAtCenter(button, {}, win);
+  await promiseMenuClosed;
+  await BrowserTestUtils.closeWindow(win);
+});
+
 add_task(async function test_readonly() {
   let popupOpened = BrowserTestUtils.waitForNewWindow({ url: "about:blank" });
   BrowserTestUtils.openNewForegroundTab(

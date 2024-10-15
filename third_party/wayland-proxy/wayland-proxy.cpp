@@ -26,6 +26,7 @@
 #include <cassert>
 #include <pthread.h>
 #include <sched.h>
+#include <fstream> 
 
 #include "wayland-proxy.h"
 

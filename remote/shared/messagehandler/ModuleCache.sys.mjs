@@ -168,6 +168,7 @@ export class ModuleCache {
     let module = null;
     if (ModuleClass) {
       module = new ModuleClass(this.#messageHandler);
+      module.moduleName = moduleName;
     }
 
     this.#modules.set(key, module);

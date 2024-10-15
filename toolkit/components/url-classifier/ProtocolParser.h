@@ -27,10 +27,6 @@ class ProtocolParser {
 
   nsresult Status() const { return mUpdateStatus; }
 
-#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
-  virtual nsCString GetRawTableUpdates() const { return mPending; }
-#endif
-
   virtual void SetCurrentTable(const nsACString& aTable) = 0;
 
   void SetRequestedTables(const nsTArray<nsCString>& aRequestTables) {
@@ -100,12 +96,6 @@ class ProtocolParserV2 final : public ProtocolParser {
     return mForwards;
   }
 
-#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
-  // Unfortunately we have to override to return mRawUpdate which
-  // will not be modified during the parsing, unlike mPending.
-  virtual nsCString GetRawTableUpdates() const override { return mRawUpdate; }
-#endif
-
  private:
   virtual RefPtr<TableUpdate> CreateTableUpdate(
       const nsACString& aTableName) const override;
@@ -163,10 +153,6 @@ class ProtocolParserV2 final : public ProtocolParser {
 
   // Updates to apply to the current table being parsed.
   RefPtr<TableUpdateV2> mTableUpdate;
-
-#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
-  nsCString mRawUpdate;  // Keep a copy of mPending before it's processed.
-#endif
 };
 
 // Helpers to parse the "proto" list format.

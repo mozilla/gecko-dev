@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Text
@@ -62,7 +63,11 @@ fun MicrosurveyContent(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
     ) {
-        Column(modifier = Modifier.wrapContentHeight()) {
+        Column(
+            modifier = Modifier
+                .wrapContentHeight()
+                .selectableGroup(),
+        ) {
             Header(icon, question)
 
             answers.forEach {

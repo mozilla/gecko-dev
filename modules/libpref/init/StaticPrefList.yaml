@@ -2728,13 +2728,13 @@
 # The maximum number of pending fetch keepalive requests per browser instance
 - name: dom.fetchKeepalive.total_request_limit
   type: RelaxedAtomicUint32
-  value: 100
+  value: 500
   mirror: always
 
 # The maximum number of pending fetch keepalive requests per origin
 - name: dom.fetchKeepalive.request_limit_per_origin
   type: RelaxedAtomicUint32
-  value: 30
+  value: 250
   mirror: always
 
 - name: dom.fetchObserver.enabled

@@ -361,14 +361,10 @@ class ScriptModule extends RootBiDiModule {
     const context = await this.#getContextFromTarget({ contextId, realmId });
     const serializationOptionsWithDefaults =
       lazy.setDefaultAndAssertSerializationOptions(serializationOptions);
-    const evaluationResult = await this.messageHandler.forwardCommand({
-      moduleName: "script",
-      commandName: "callFunctionDeclaration",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: {
+    const evaluationResult = await this._forwardToWindowGlobal(
+      "callFunctionDeclaration",
+      context.id,
+      {
         awaitPromise,
         commandArguments,
         functionDeclaration,
@@ -378,8 +374,8 @@ class ScriptModule extends RootBiDiModule {
         serializationOptions: serializationOptionsWithDefaults,
         thisParameter,
         userActivation,
-      },
-    });
+      }
+    );
 
     return this.#buildReturnValue(evaluationResult);
   }
@@ -412,18 +408,10 @@ class ScriptModule extends RootBiDiModule {
 
     const { contextId, realmId, sandbox } = this.#assertTarget(target);
     const context = await this.#getContextFromTarget({ contextId, realmId });
-    await this.messageHandler.forwardCommand({
-      moduleName: "script",
-      commandName: "disownHandles",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: {
-        handles,
-        realmId,
-        sandbox,
-      },
+    await this._forwardToWindowGlobal("disownHandles", context.id, {
+      handles,
+      realmId,
+      sandbox,
     });
   }
 
@@ -488,14 +476,10 @@ class ScriptModule extends RootBiDiModule {
     const context = await this.#getContextFromTarget({ contextId, realmId });
     const serializationOptionsWithDefaults =
       lazy.setDefaultAndAssertSerializationOptions(serializationOptions);
-    const evaluationResult = await this.messageHandler.forwardCommand({
-      moduleName: "script",
-      commandName: "evaluateExpression",
-      destination: {
-        type: lazy.WindowGlobalMessageHandler.type,
-        id: context.id,
-      },
-      params: {
+    const evaluationResult = await this._forwardToWindowGlobal(
+      "evaluateExpression",
+      context.id,
+      {
         awaitPromise,
         expression: source,
         realmId,
@@ -503,8 +487,8 @@ class ScriptModule extends RootBiDiModule {
         sandbox,
         serializationOptions: serializationOptionsWithDefaults,
         userActivation,
-      },
-    });
+      }
+    );
 
     return this.#buildReturnValue(evaluationResult);
   }

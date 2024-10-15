@@ -2115,13 +2115,13 @@ bool js::Nursery::allocateNextChunk(AutoLockGCBgAlloc& lock) {
     return false;
   }
 
-  ArenaChunk* toSpaceChunk = gc->getOrAllocChunk(lock);
+  ArenaChunk* toSpaceChunk = gc->takeOrAllocChunk(lock);
   if (!toSpaceChunk) {
     return false;
   }
 
   ArenaChunk* fromSpaceChunk = nullptr;
-  if (semispaceEnabled_ && !(fromSpaceChunk = gc->getOrAllocChunk(lock))) {
+  if (semispaceEnabled_ && !(fromSpaceChunk = gc->takeOrAllocChunk(lock))) {
     gc->recycleChunk(toSpaceChunk, lock);
     return false;
   }

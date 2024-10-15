@@ -734,11 +734,6 @@ nsUrlClassifierDBServiceWorker::FinishStream() {
     mTableUpdates.AppendElements(mProtocolParser->GetTableUpdates());
     mProtocolParser->ForgetTableUpdates();
 
-#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
-    // The assignment involves no string copy since the source string is
-    // sharable.
-    mRawTableUpdates = mProtocolParser->GetRawTableUpdates();
-#endif
   } else {
     LOG(
         ("nsUrlClassifierDBService::FinishStream Failed to parse the stream "
@@ -795,18 +790,8 @@ nsUrlClassifierDBServiceWorker::FinishUpdate() {
 
   RefPtr<nsUrlClassifierDBServiceWorker> self = this;
   nsresult rv = mClassifier->AsyncApplyUpdates(
-      mTableUpdates, [self](nsresult aRv) -> void {
-#ifdef MOZ_SAFEBROWSING_DUMP_FAILED_UPDATES
-        if (NS_FAILED(aRv) && NS_ERROR_OUT_OF_MEMORY != aRv &&
-            NS_ERROR_UC_UPDATE_SHUTDOWNING != aRv) {
-          self->mClassifier->DumpRawTableUpdates(self->mRawTableUpdates);
-        }
-        // Invalidate the raw table updates.
-        self->mRawTableUpdates.Truncate();
-#endif
-
-        self->NotifyUpdateObserver(aRv);
-      });
+      mTableUpdates,
+      [self](nsresult aRv) -> void { self->NotifyUpdateObserver(aRv); });
   mTableUpdates.Clear();  // Classifier is working on its copy.
 
   if (NS_FAILED(rv)) {

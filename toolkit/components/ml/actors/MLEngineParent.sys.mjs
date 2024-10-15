@@ -221,7 +221,6 @@ export class MLEngineParent extends JSWindowActorParent {
         return this.getModelFile(message.data);
 
       case "MLEngine:GetInferenceProcessInfo":
-        lazy.console.log("GetInferenceProcessInfo called");
         return lazy.getInferenceProcessInfo();
 
       case "MLEngine:DestroyEngineProcess":
@@ -231,7 +230,10 @@ export class MLEngineParent extends JSWindowActorParent {
         break;
       case "MLEngine:GetInferenceOptions":
         this.checkTaskName(message.json.taskName);
-        return MLEngineParent.getInferenceOptions(message.json.taskName);
+        return MLEngineParent.getInferenceOptions(
+          message.json.featureId,
+          message.json.taskName
+        );
       case "MLEngine:Removed":
         if (!message.json.replacement) {
           // when receiving this message from the child, we know it's not a replacement.
@@ -371,20 +373,43 @@ export class MLEngineParent extends JSWindowActorParent {
     return record;
   }
 
-  /** Gets the inference options from remote settings given a task name.
+  /**
+   * Gets the inference options from remote settings given a feature id or task name.
    *
-   * @param {string} taskName - name of the inference :wtask
+   * Each feature can store default options in Remote Settings.
+   *
+   * We fallback to taskName if there is no featureId provided.
+   *
+   * @param {string} featureId - id of the feature
+   * @param {string} taskName - name of the inference task
    * @returns {Promise<ModelRevisionRecord>}
    */
-  static async getInferenceOptions(taskName) {
+  static async getInferenceOptions(featureId, taskName) {
     const client = MLEngineParent.#getRemoteClient(
       RS_INFERENCE_OPTIONS_COLLECTION
     );
-    const records = await client.get({
+
+    let records = await client.get({
       filters: {
-        taskName,
+        featureId,
       },
     });
+
+    // if the featureId is not in our settings, we fallback to the task name
+    if (records.length === 0) {
+      records = await client.get({
+        filters: {
+          taskName,
+        },
+      });
+    }
+
+    // if we get more than one entry we error out
+    if (records.length > 1) {
+      throw new Error(
+        `Found more than one inference options record for ${featureId} and ${taskName}`
+      );
+    }
 
     // if the task name is not in our settings, we just set the onnx runtime filename.
     if (records.length === 0) {
@@ -586,9 +611,7 @@ class MLEngine {
     const engineId = pipelineOptions.engineId;
     this.events = {};
     this.engineId = engineId;
-    lazy.console.log("MLEngine constructor, adding engine", engineId);
     MLEngine.#instances.set(engineId, this);
-    lazy.console.log("Instances", MLEngine.#instances);
     this.mlEngineParent = mlEngineParent;
     this.pipelineOptions = pipelineOptions;
     this.notificationsCallback = notificationsCallback;
@@ -821,7 +844,7 @@ class MLEngine {
     return new Promise((resolve, reject) => {
       // Initial check in case the status is already the desired one
       if (this.engineStatus === desiredStatus) {
-        resolve(`Engine status is now ${desiredStatus}`);
+        resolve(`Engine status is now ${desiredStatus} `);
       }
 
       let onStatusChanged;
@@ -830,7 +853,7 @@ class MLEngine {
       const timeoutId = lazy.setTimeout(() => {
         this.off("statusChanged", onStatusChanged);
         reject(
-          `Timeout after ${TERMINATE_TIMEOUT}ms: Engine status did not reach ${desiredStatus}`
+          `Timeout after ${TERMINATE_TIMEOUT} ms: Engine status did not reach ${desiredStatus} `
         );
       }, TERMINATE_TIMEOUT);
 
@@ -838,7 +861,7 @@ class MLEngine {
         if (status === desiredStatus) {
           this.off("statusChanged", onStatusChanged);
           lazy.clearTimeout(timeoutId);
-          resolve(`Engine status is now ${desiredStatus}`);
+          resolve(`Engine status is now ${desiredStatus} `);
         }
       };
 

@@ -275,7 +275,7 @@ abstract class BaseBrowserFragment :
     internal val browserToolbarView: BrowserToolbarView
         get() = _browserToolbarView!!
 
-    @VisibleForTesting
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     @Suppress("VariableNaming")
     internal var _bottomToolbarContainerView: BottomToolbarContainerView? = null
     protected val bottomToolbarContainerView: BottomToolbarContainerView

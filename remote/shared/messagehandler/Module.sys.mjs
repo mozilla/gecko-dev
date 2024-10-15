@@ -17,6 +17,7 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 
 export class Module {
   #messageHandler;
+  #moduleName;
 
   /**
    * Create a new module instance.
@@ -131,5 +132,13 @@ export class Module {
 
   static supportsMethod(methodName) {
     return typeof this.prototype[methodName] === "function";
+  }
+
+  get moduleName() {
+    return this.#moduleName;
+  }
+
+  set moduleName(name) {
+    this.#moduleName = name;
   }
 }

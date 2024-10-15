@@ -51,4 +51,33 @@ export class RootBiDiModule extends Module {
       contextInfo
     );
   }
+
+  /**
+   * Forwards a command to the windowglobal module corresponding to the provided
+   * browsing context id, using the same module name as the current one.
+   *
+   * @param {string} commandName
+   *     The name of the command to execute.
+   * @param {number} browsingContextID
+   *     The debuggable context ID.
+   * @param {object} params
+   *    Any command parameters to pass.
+   * @param {object=} args
+   *     Any additional command arguments to pass.
+   * @returns {Promise}
+   *     A Promise that will resolve with the return value of the
+   *     command once it has been executed.
+   */
+  _forwardToWindowGlobal(commandName, browsingContextID, params, args = {}) {
+    return this.messageHandler.forwardCommand({
+      moduleName: this.moduleName,
+      commandName,
+      destination: {
+        type: lazy.WindowGlobalMessageHandler.type,
+        id: browsingContextID,
+      },
+      ...args,
+      params,
+    });
+  }
 }
