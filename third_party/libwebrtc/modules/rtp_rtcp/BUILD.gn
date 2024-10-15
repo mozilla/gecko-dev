@@ -126,7 +126,7 @@ rtc_library("rtp_rtcp_format") {
     "../../api/units:timestamp",
     "../../api/video:video_layers_allocation",
     "../../api/video:video_rtp_headers",
-    "../../common_video:common_video",
+    "../../common_video:corruption_detection_message",
     "../../rtc_base:bit_buffer",
     "../../rtc_base:bitstream_reader",
     "../../rtc_base:buffer",
@@ -139,7 +139,6 @@ rtc_library("rtp_rtcp_format") {
     "../../rtc_base:safe_conversions",
     "../../rtc_base:stringutils",
     "../../rtc_base/network:ecn_marking",
-    "../../rtc_base/synchronization:mutex",
     "../../system_wrappers",
     "../video_coding:codec_globals_headers",
     "//third_party/abseil-cpp/absl/algorithm:container",
@@ -763,7 +762,7 @@ if (rtc_include_tests) {
     sources = [ "source/corruption_detection_extension_unittest.cc" ]
     deps = [
       ":rtp_rtcp_format",
-      "../../common_video:common_video",
+      "../../common_video:corruption_detection_message",
       "../../test:test_support",
     ]
   }
