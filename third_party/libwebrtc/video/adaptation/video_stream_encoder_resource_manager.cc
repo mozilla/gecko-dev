@@ -161,21 +161,18 @@ class VideoStreamEncoderResourceManager::InitialFrameDropper {
 
   void OnEncoderSettingsUpdated(
       const VideoCodec& codec,
-      const VideoAdaptationCounters& adaptation_counters,
-      bool has_requested_resolution) {
+      const VideoAdaptationCounters& adaptation_counters) {
     last_stream_configuration_changed_ = false;
     std::vector<bool> active_flags = GetActiveLayersFlags(codec);
     // Check if the source resolution has changed for the external reasons,
-    // i.e. without any adaptation from WebRTC. This only matters when encoding
-    // resolution is relative to input frame, which it isn't if the
-    // `requested_resolution` API is used.
+    // i.e. without any adaptation from WebRTC.
     const bool source_resolution_changed =
         (last_input_width_ != codec.width ||
          last_input_height_ != codec.height) &&
         adaptation_counters.resolution_adaptations ==
             last_adaptation_counters_.resolution_adaptations;
     if (!EqualFlags(active_flags, last_active_flags_) ||
-        (!has_requested_resolution && source_resolution_changed)) {
+        source_resolution_changed) {
       // Streams configuration has changed.
       last_stream_configuration_changed_ = true;
       // Initial frame drop must be enabled because BWE might be way too low
@@ -417,8 +414,7 @@ void VideoStreamEncoderResourceManager::SetEncoderSettings(
   encoder_settings_ = std::move(encoder_settings);
   bitrate_constraint_->OnEncoderSettingsUpdated(encoder_settings_);
   initial_frame_dropper_->OnEncoderSettingsUpdated(
-      encoder_settings_->video_codec(), current_adaptation_counters_,
-      encoder_settings.encoder_config().HasRequestedResolution());
+      encoder_settings_->video_codec(), current_adaptation_counters_);
   MaybeUpdateTargetFrameRate();
 }
 
