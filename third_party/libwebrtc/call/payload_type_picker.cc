@@ -8,15 +8,20 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "pc/payload_type_picker.h"
+#include "call/payload_type_picker.h"
 
 #include <algorithm>
+#include <set>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
+#include "api/audio_codecs/audio_format.h"
 #include "api/rtc_error.h"
+#include "call/payload_type.h"
 #include "media/base/codec.h"
+#include "media/base/media_constants.h"
+#include "rtc_base/logging.h"
 
 namespace webrtc {
 

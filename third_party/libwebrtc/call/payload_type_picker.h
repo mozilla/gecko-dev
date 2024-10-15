@@ -8,8 +8,8 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef PC_PAYLOAD_TYPE_PICKER_H_
-#define PC_PAYLOAD_TYPE_PICKER_H_
+#ifndef CALL_PAYLOAD_TYPE_PICKER_H_
+#define CALL_PAYLOAD_TYPE_PICKER_H_
 
 #include <map>
 #include <set>
@@ -18,17 +18,9 @@
 
 #include "api/rtc_error.h"
 #include "media/base/codec.h"
-#include "rtc_base/strong_alias.h"
+#include "call/payload_type.h"
 
 namespace webrtc {
-
-class PayloadType : public StrongAlias<class PayloadTypeTag, uint8_t> {
- public:
-  // Non-explicit conversions from and to ints are to be deprecated and
-  // removed once calling code is upgraded.
-  PayloadType(uint8_t pt) { value_ = pt; }                // NOLINT: explicit
-  constexpr operator uint8_t() const& { return value_; }  // NOLINT: Explicit
-};
 
 class PayloadTypeRecorder;
 
@@ -84,4 +76,4 @@ class PayloadTypeRecorder {
 
 }  // namespace webrtc
 
-#endif  //  PC_PAYLOAD_TYPE_PICKER_H_
+#endif  //  CALL_PAYLOAD_TYPE_PICKER_H_

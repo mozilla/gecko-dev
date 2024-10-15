@@ -8,9 +8,11 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "pc/payload_type_picker.h"
+#include "call/payload_type_picker.h"
 
+#include "call/payload_type.h"
 #include "media/base/codec.h"
+#include "media/base/media_constants.h"
 #include "test/gtest.h"
 
 namespace webrtc {

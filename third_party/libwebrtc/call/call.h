@@ -29,9 +29,11 @@
 #include "call/call_config.h"
 #include "call/flexfec_receive_stream.h"
 #include "call/packet_receiver.h"
+#include "call/payload_type.h"
 #include "call/rtp_transport_controller_send_interface.h"
 #include "call/video_receive_stream.h"
 #include "call/video_send_stream.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/network/sent_packet.h"
 #include "video/config/video_encoder_config.h"
 
@@ -101,6 +103,18 @@ class Call {
   // TODO(srte): Move ownership of transport controller send out of Call and
   // remove this method interface.
   virtual RtpTransportControllerSendInterface* GetTransportControllerSend() = 0;
+
+  // A class that keeps track of payload types on the transport(s), and
+  // suggests new ones when needed.
+  virtual PayloadTypeSuggester* GetPayloadTypeSuggester() {
+    // TODO: https://issues.webrtc.org/360058654 - make pure virtual
+    RTC_CHECK_NOTREACHED();
+    return nullptr;
+  }
+  virtual void SetPayloadTypeSuggester(PayloadTypeSuggester* suggester) {
+    // TODO: https://issues.webrtc.org/360058654 - make pure virtual
+    RTC_CHECK_NOTREACHED();
+  }
 
   // Returns the call statistics, such as estimated send and receive bandwidth,
   // pacing delay, etc.

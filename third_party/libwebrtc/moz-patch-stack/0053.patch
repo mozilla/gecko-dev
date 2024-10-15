@@ -14,7 +14,7 @@ Subject: Bug 1766646 - (fix) breakout Call::Stats and SharedModuleThread into
  create mode 100644 call/call_basic_stats.h
 
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index c1e255f01e..4e6ca12c6d 100644
+index 4e74bb6175..73485672c5 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -33,6 +33,12 @@ rtc_library("call_interfaces") {
@@ -31,10 +31,10 @@ index c1e255f01e..4e6ca12c6d 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/call.cc b/call/call.cc
-index 0b1ca6f237..5285bda9b2 100644
+index cf94cb8910..93e088e053 100644
 --- a/call/call.cc
 +++ b/call/call.cc
-@@ -479,19 +479,6 @@ class Call final : public webrtc::Call,
+@@ -505,19 +505,6 @@ class Call final : public webrtc::Call,
  };
  }  // namespace internal
  
@@ -55,7 +55,7 @@ index 0b1ca6f237..5285bda9b2 100644
    std::unique_ptr<RtpTransportControllerSendInterface> transport_send;
    if (config.rtp_transport_controller_send_factory != nullptr) {
 diff --git a/call/call.h b/call/call.h
-index 6c6bc46c2a..3865b77cdd 100644
+index 313e8a85d1..ef782c2bb8 100644
 --- a/call/call.h
 +++ b/call/call.h
 @@ -25,6 +25,7 @@
@@ -66,7 +66,7 @@ index 6c6bc46c2a..3865b77cdd 100644
  #include "call/call_config.h"
  #include "call/flexfec_receive_stream.h"
  #include "call/packet_receiver.h"
-@@ -48,15 +49,7 @@ namespace webrtc {
+@@ -50,15 +51,7 @@ namespace webrtc {
  
  class Call {
   public:

@@ -30,6 +30,7 @@
 #include "api/fec_controller.h"
 #include "api/field_trials_view.h"
 #include "api/media_types.h"
+#include "api/rtc_error.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/rtp_headers.h"
 #include "api/scoped_refptr.h"
@@ -52,6 +53,8 @@
 #include "call/flexfec_receive_stream.h"
 #include "call/flexfec_receive_stream_impl.h"
 #include "call/packet_receiver.h"
+#include "call/payload_type.h"
+#include "call/payload_type_picker.h"
 #include "call/receive_stream.h"
 #include "call/receive_time_calculator.h"
 #include "call/rtp_config.h"
@@ -66,6 +69,7 @@
 #include "logging/rtc_event_log/events/rtc_event_video_receive_stream_config.h"
 #include "logging/rtc_event_log/events/rtc_event_video_send_stream_config.h"
 #include "logging/rtc_event_log/rtc_stream_config.h"
+#include "media/base/codec.h"
 #include "modules/congestion_controller/include/receive_side_congestion_controller.h"
 #include "modules/rtp_rtcp/include/flexfec_receiver.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -99,6 +103,21 @@
 namespace webrtc {
 
 namespace {
+
+// In normal operation, the PTS comes from the PeerConnection.
+// However, it is too much of a bother to insert it in all tests,
+// so defaulting here.
+class PayloadTypeSuggesterForTests : public PayloadTypeSuggester {
+ public:
+  PayloadTypeSuggesterForTests() = default;
+  RTCErrorOr<PayloadType> SuggestPayloadType(const std::string& mid,
+                                             cricket::Codec codec) override {
+    return payload_type_picker_.SuggestMapping(codec, nullptr);
+  }
+
+ private:
+  PayloadTypePicker payload_type_picker_;
+};
 
 const int* FindKeyByValue(const std::map<int, int>& m, int v) {
   for (const auto& kv : m) {
@@ -248,6 +267,9 @@ class Call final : public webrtc::Call,
   void AddAdaptationResource(rtc::scoped_refptr<Resource> resource) override;
 
   RtpTransportControllerSendInterface* GetTransportControllerSend() override;
+
+  PayloadTypeSuggester* GetPayloadTypeSuggester() override;
+  void SetPayloadTypeSuggester(PayloadTypeSuggester* suggester) override;
 
   Stats GetStats() const override;
 
@@ -465,17 +487,21 @@ class Call final : public webrtc::Call,
   // https://bugs.chromium.org/p/chromium/issues/detail?id=992640
   RtpTransportControllerSendInterface* const transport_send_ptr_
       RTC_GUARDED_BY(send_transport_sequence_checker_);
-  // Declared last since it will issue callbacks from a task queue. Declaring it
-  // last ensures that it is destroyed first and any running tasks are finished.
-  const std::unique_ptr<RtpTransportControllerSendInterface> transport_send_;
 
   bool is_started_ RTC_GUARDED_BY(worker_thread_) = false;
+
+  // Mechanism for proposing payload types in RTP mappings.
+  PayloadTypeSuggester* pt_suggester_ = nullptr;
+  std::unique_ptr<PayloadTypeSuggesterForTests> owned_pt_suggester_;
 
   // Sequence checker for outgoing network traffic. Could be the network thread.
   // Could also be a pacer owned thread or TQ such as the TaskQueueSender.
   RTC_NO_UNIQUE_ADDRESS SequenceChecker sent_packet_sequence_checker_;
   std::optional<rtc::SentPacket> last_sent_packet_
       RTC_GUARDED_BY(sent_packet_sequence_checker_);
+  // Declared last since it will issue callbacks from a task queue. Declaring it
+  // last ensures that it is destroyed first and any running tasks are finished.
+  const std::unique_ptr<RtpTransportControllerSendInterface> transport_send_;
 };
 }  // namespace internal
 
@@ -1104,6 +1130,24 @@ void Call::AddAdaptationResource(rtc::scoped_refptr<Resource> resource) {
 
 RtpTransportControllerSendInterface* Call::GetTransportControllerSend() {
   return transport_send_.get();
+}
+
+PayloadTypeSuggester* Call::GetPayloadTypeSuggester() {
+  // TODO: https://issues.webrtc.org/360058654 - make mandatory at
+  // initialization. Currently, only some channels use it.
+  RTC_DCHECK_RUN_ON(worker_thread_);
+  if (!pt_suggester_) {
+    // Make something that will work most of the time for testing.
+    owned_pt_suggester_ = std::make_unique<PayloadTypeSuggesterForTests>();
+    SetPayloadTypeSuggester(owned_pt_suggester_.get());
+  }
+  return pt_suggester_;
+}
+
+void Call::SetPayloadTypeSuggester(PayloadTypeSuggester* suggester) {
+  RTC_CHECK(!pt_suggester_)
+      << "SetPayloadTypeSuggester can be called only once";
+  pt_suggester_ = suggester;
 }
 
 Call::Stats Call::GetStats() const {

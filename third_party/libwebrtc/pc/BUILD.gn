@@ -145,7 +145,10 @@ rtc_source_set("dtls_srtp_transport") {
 }
 
 rtc_source_set("dtls_transport") {
-  visibility = [ ":*" ]
+  visibility = [
+    ":*",
+    "../test/*",
+  ]
   sources = [
     "dtls_transport.cc",
     "dtls_transport.h",
@@ -210,7 +213,6 @@ rtc_source_set("jsep_transport") {
   deps = [
     ":dtls_srtp_transport",
     ":dtls_transport",
-    ":payload_type_picker",
     ":rtcp_mux_filter",
     ":rtp_transport",
     ":rtp_transport_internal",
@@ -226,6 +228,7 @@ rtc_source_set("jsep_transport") {
     "../api:scoped_refptr",
     "../api:sequence_checker",
     "../api/transport:datagram_transport_interface",
+    "../call:payload_type_picker",
     "../media:rtc_data_sctp_transport_internal",
     "../p2p:dtls_transport",
     "../p2p:dtls_transport_internal",
@@ -304,7 +307,11 @@ rtc_source_set("jsep_transport_controller") {
     "../api/transport:datagram_transport_interface",
     "../api/transport:enums",
     "../api/transport:sctp_transport_factory_interface",
+    "../call:payload_type",
+    "../call:payload_type_picker",
+    "../media:codec",
     "../media:rtc_data_sctp_transport_internal",
+    "../modules/rtp_rtcp:rtp_rtcp_format",
     "../p2p:connection",
     "../p2p:dtls_transport",
     "../p2p:dtls_transport_factory",
@@ -331,6 +338,7 @@ rtc_source_set("jsep_transport_controller") {
     "../rtc_base/third_party/sigslot",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/functional:any_invocable",
+    "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
 
@@ -403,19 +411,6 @@ rtc_source_set("media_stream_track_proxy") {
   deps = [
     ":proxy",
     "../api:media_stream_interface",
-  ]
-}
-
-rtc_library("payload_type_picker") {
-  sources = [
-    "payload_type_picker.cc",
-    "payload_type_picker.h",
-  ]
-  deps = [
-    "../api:rtc_error",
-    "../media:codec",
-    "../rtc_base:strong_alias",
-    "//third_party/abseil-cpp/absl/strings",
   ]
 }
 
@@ -1084,7 +1079,6 @@ rtc_source_set("peer_connection") {
     ":ice_server_parsing",
     ":jsep_transport_controller",
     ":legacy_stats_collector",
-    ":payload_type_picker",
     ":peer_connection_internal",
     ":peer_connection_message_handler",
     ":rtc_stats_collector",
@@ -1130,6 +1124,7 @@ rtc_source_set("peer_connection") {
     "../api/transport:enums",
     "../api/video:video_codec_constants",
     "../call:call_interfaces",
+    "../call:payload_type_picker",
     "../media:media_channel",
     "../media:media_engine",
     "../media:rid_description",
@@ -1953,7 +1948,6 @@ if (rtc_include_tests && !build_with_chromium) {
       "jsep_transport_controller_unittest.cc",
       "jsep_transport_unittest.cc",
       "media_session_unittest.cc",
-      "payload_type_picker_unittest.cc",
       "rtcp_mux_filter_unittest.cc",
       "rtp_transport_unittest.cc",
       "sctp_transport_unittest.cc",
@@ -1981,7 +1975,6 @@ if (rtc_include_tests && !build_with_chromium) {
       ":libjingle_peerconnection",
       ":media_protocol_names",
       ":media_session",
-      ":payload_type_picker",
       ":pc_test_utils",
       ":rtc_pc",
       ":rtcp_mux_filter",
@@ -2017,6 +2010,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../api/video:builtin_video_bitrate_allocator_factory",
       "../api/video:recordable_encoded_frame",
       "../api/video/test:mock_recordable_encoded_frame",
+      "../call:payload_type_picker",
       "../call:rtp_interfaces",
       "../call:rtp_receiver",
       "../media:codec",

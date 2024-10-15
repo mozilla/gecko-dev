@@ -12,7 +12,6 @@
 #define PC_JSEP_TRANSPORT_H_
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -25,16 +24,13 @@
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/transport/data_channel_transport_interface.h"
+#include "call/payload_type_picker.h"
 #include "media/sctp/sctp_transport_internal.h"
-#include "p2p/base/dtls_transport.h"
 #include "p2p/base/dtls_transport_internal.h"
 #include "p2p/base/ice_transport_internal.h"
-#include "p2p/base/p2p_constants.h"
 #include "p2p/base/transport_description.h"
-#include "p2p/base/transport_info.h"
 #include "pc/dtls_srtp_transport.h"
 #include "pc/dtls_transport.h"
-#include "pc/payload_type_picker.h"
 #include "pc/rtcp_mux_filter.h"
 #include "pc/rtp_transport.h"
 #include "pc/rtp_transport_internal.h"
@@ -42,7 +38,6 @@
 #include "pc/session_description.h"
 #include "pc/srtp_transport.h"
 #include "pc/transport_stats.h"
-#include "rtc_base/checks.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_stream_adapter.h"
