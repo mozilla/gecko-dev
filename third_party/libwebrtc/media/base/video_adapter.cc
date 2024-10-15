@@ -379,6 +379,11 @@ void VideoAdapter::OnSinkWants(const rtc::VideoSinkWants& sink_wants) {
   }
 
   auto res = *sink_wants.requested_resolution;
+  if (res.width < res.height) {
+    // Adjust `res` to landscape mode.
+    res.width = sink_wants.requested_resolution->height;
+    res.height = sink_wants.requested_resolution->width;
+  }
   auto pixel_count = res.width * res.height;
   output_format_request_.target_landscape_aspect_ratio =
       std::make_pair(res.width, res.height);
