@@ -2302,6 +2302,16 @@ void Document::AccumulatePageLoadTelemetry(
       aEventTelemetryDataOut.loadTime =
           mozilla::Some(static_cast<uint32_t>(loadTime.ToMilliseconds()));
     }
+
+    TimeStamp requestStart;
+    timedChannel->GetRequestStart(&requestStart);
+    if (requestStart) {
+      TimeDuration timeToRequestStart = requestStart - navigationStart;
+      if (timeToRequestStart > zeroDuration) {
+        aEventTelemetryDataOut.timeToRequestStart = mozilla::Some(
+            static_cast<uint32_t>(timeToRequestStart.ToMilliseconds()));
+      }
+    }
   }
 
   aEventTelemetryDataOut.features = mozilla::Some(mPageloadEventFeatures);
