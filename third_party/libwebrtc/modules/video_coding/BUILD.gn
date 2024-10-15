@@ -437,6 +437,7 @@ rtc_library("video_coding_utility") {
     "../../rtc_base/system:arch",
     "../../rtc_base/system:file_wrapper",
     "../../rtc_base/system:no_unique_address",
+    "../../rtc_base/system:rtc_export",
     "../../rtc_base/task_utils:repeating_task",
     "../../video/config:encoder_config",
     "../rtp_rtcp:rtp_rtcp_format",

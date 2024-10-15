@@ -20,15 +20,18 @@
 #include "api/video_codecs/video_codec.h"
 #include "modules/video_coding/include/video_codec_interface.h"
 #include "modules/video_coding/svc/scalable_video_controller.h"
+#include "rtc_base/system/rtc_export.h"
 
 namespace webrtc {
 
-class SimulcastToSvcConverter {
+class RTC_EXPORT SimulcastToSvcConverter {
  public:
   explicit SimulcastToSvcConverter(const VideoCodec&);
+  SimulcastToSvcConverter(SimulcastToSvcConverter&&) = default;
 
   SimulcastToSvcConverter(const SimulcastToSvcConverter&) = delete;
   SimulcastToSvcConverter& operator=(const SimulcastToSvcConverter&) = delete;
+  SimulcastToSvcConverter& operator=(SimulcastToSvcConverter&&) = default;
 
   ~SimulcastToSvcConverter() = default;
 
