@@ -827,6 +827,35 @@ nsresult CycleCollectedJSContext::NotifyUnhandledRejections::Cancel() {
   return NS_OK;
 }
 
+#ifdef MOZ_EXECUTION_TRACING
+
+void CycleCollectedJSContext::BeginExecutionTracingAsync() {
+  mOwningThread->Dispatch(NS_NewRunnableFunction(
+      "CycleCollectedJSContext::BeginExecutionTracingAsync", [] {
+        CycleCollectedJSContext* ccjs = CycleCollectedJSContext::Get();
+        if (ccjs) {
+          JS_TracerBeginTracing(ccjs->Context());
+        }
+      }));
+}
+
+void CycleCollectedJSContext::EndExecutionTracingAsync() {
+  mOwningThread->Dispatch(NS_NewRunnableFunction(
+      "CycleCollectedJSContext::EndExecutionTracingAsync", [] {
+        CycleCollectedJSContext* ccjs = CycleCollectedJSContext::Get();
+        if (ccjs) {
+          JS_TracerEndTracing(ccjs->Context());
+        }
+      }));
+}
+
+#else
+
+void CycleCollectedJSContext::BeginExecutionTracingAsync() {}
+void CycleCollectedJSContext::EndExecutionTracingAsync() {}
+
+#endif
+
 class FinalizationRegistryCleanup::CleanupRunnable
     : public DiscardableRunnable {
  public:
