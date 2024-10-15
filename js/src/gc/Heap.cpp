@@ -442,6 +442,12 @@ void ArenaChunk::decommitFreeArenasWithoutUnlocking(const AutoLockGC& lock) {
 
 void ArenaChunk::updateChunkListAfterAlloc(GCRuntime* gc,
                                            const AutoLockGC& lock) {
+  if (MOZ_UNLIKELY(info.numArenasFree == ArenasPerChunk - 1)) {
+    gc->emptyChunks(lock).remove(this);
+    gc->availableChunks(lock).push(this);
+    return;
+  }
+
   if (MOZ_UNLIKELY(!hasAvailableArenas())) {
     gc->availableChunks(lock).remove(this);
     gc->fullChunks(lock).push(this);

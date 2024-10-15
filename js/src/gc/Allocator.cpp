@@ -549,9 +549,16 @@ Arena* ArenaChunk::fetchNextFreeArena(GCRuntime* gc) {
 
 // ///////////  System -> ArenaChunk Allocator  ////////////////////////////////
 
+ArenaChunk* GCRuntime::takeOrAllocChunk(AutoLockGCBgAlloc& lock) {
+  ArenaChunk* chunk = getOrAllocChunk(lock);
+  emptyChunks(lock).remove(chunk);
+  return chunk;
+}
+
 ArenaChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
-  ArenaChunk* chunk = emptyChunks(lock).pop();
-  if (chunk) {
+  ArenaChunk* chunk;
+  if (!emptyChunks(lock).empty()) {
+    chunk = emptyChunks(lock).head();
     // Reinitialize ChunkBase; arenas are all free and may or may not be
     // committed.
     SetMemCheckKind(chunk, sizeof(ChunkBase), MemCheckKind::MakeUndefined);
@@ -564,7 +571,8 @@ ArenaChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
     }
 
     chunk = ArenaChunk::emplace(ptr, this, /* allMemoryCommitted = */ true);
-    MOZ_ASSERT(chunk->info.numArenasFree == ArenasPerChunk);
+    MOZ_ASSERT(chunk->unused());
+    emptyChunks(lock).push(chunk);
   }
 
   if (wantBackgroundAllocation(lock)) {
@@ -600,11 +608,8 @@ ArenaChunk* GCRuntime::pickChunk(AutoLockGCBgAlloc& lock) {
 #ifdef DEBUG
   chunk->verify();
   MOZ_ASSERT(chunk->unused());
-  MOZ_ASSERT(!fullChunks(lock).contains(chunk));
-  MOZ_ASSERT(!availableChunks(lock).contains(chunk));
+  MOZ_ASSERT(emptyChunks(lock).contains(chunk));
 #endif
-
-  availableChunks(lock).push(chunk);
 
   return chunk;
 }
@@ -675,6 +680,7 @@ ArenaChunk* ArenaChunk::emplace(void* ptr, GCRuntime* gc,
     chunk->initAsCommitted();
   }
 
+  MOZ_ASSERT(chunk->unused());
   chunk->verify();
 
   return chunk;

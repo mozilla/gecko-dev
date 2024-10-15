@@ -2191,6 +2191,14 @@ void GCRuntime::decommitFreeArenas(const bool& cancel, AutoLockGC& lock) {
   }
 
   for (ArenaChunk* chunk : chunksToDecommit) {
+    MOZ_ASSERT(chunk->getKind() == ChunkKind::TenuredArenas);
+    MOZ_ASSERT(!chunk->unused());
+    if (!chunk->hasAvailableArenas()) {
+      // Chunk has become full while lock was released.
+      continue;
+    }
+
+    MOZ_ASSERT(availableChunks(lock).contains(chunk));
     chunk->decommitFreeArenas(this, cancel, lock);
   }
 }
