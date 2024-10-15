@@ -138,7 +138,6 @@ class GlobalObjectData {
   // Built-in prototypes for this global. Note that this is different from the
   // set of built-in constructors/prototypes based on JSProtoKey.
   enum class ProtoKind {
-    IteratorProto,
     ArrayIteratorProto,
     StringIteratorProto,
     RegExpStringIteratorProto,
@@ -760,18 +759,18 @@ class GlobalObject : public NativeObject {
 
  public:
   NativeObject* maybeGetIteratorPrototype() {
-    if (JSObject* obj = maybeBuiltinProto(ProtoKind::IteratorProto)) {
-      return &obj->as<NativeObject>();
+    if (!hasPrototype(JSProto_Iterator)) {
+      return nullptr;
     }
-    return nullptr;
+    return &(getPrototype(JSProto_Iterator).as<NativeObject>());
   }
 
   static JSObject* getOrCreateIteratorPrototype(JSContext* cx,
                                                 Handle<GlobalObject*> global) {
-    if (JSObject* proto = global->maybeBuiltinProto(ProtoKind::IteratorProto)) {
-      return proto;
+    if (!ensureConstructor(cx, global, JSProto_Iterator)) {
+      return nullptr;
     }
-    return createIteratorPrototype(cx, global);
+    return &global->getPrototype(JSProto_Iterator);
   }
 
   static NativeObject* getOrCreateArrayIteratorPrototype(
@@ -1031,7 +1030,6 @@ class GlobalObject : public NativeObject {
       JSContext* cx, Handle<GlobalObject*> global);
 
   // Implemented in vm/Iteration.cpp.
-  static bool initIteratorProto(JSContext* cx, Handle<GlobalObject*> global);
   template <ProtoKind Kind, const JSClass* ProtoClass,
             const JSFunctionSpec* Methods, const bool needsFuseProperty = false>
   static bool initObjectIteratorProto(JSContext* cx,

@@ -346,10 +346,8 @@ bool GlobalObject::resolveConstructor(JSContext* cx,
 
   // %IteratorPrototype%.map.[[Prototype]] is %Generator% and
   // %Generator%.prototype.[[Prototype]] is %IteratorPrototype%.
-  // A workaround in initIteratorProto prevents runaway mutual recursion while
-  // setting these up. Ensure the workaround is triggered already:
   if (key == JSProto_GeneratorFunction &&
-      !global->hasBuiltinProto(ProtoKind::IteratorProto)) {
+      !global->hasPrototype(JSProto_Iterator)) {
     if (!getOrCreateIteratorPrototype(cx, global)) {
       return false;
     }
@@ -1024,7 +1022,6 @@ JSObject* GlobalObject::createIteratorPrototype(JSContext* cx,
     return nullptr;
   }
   JSObject* proto = &global->getPrototype(JSProto_Iterator);
-  global->initBuiltinProto(ProtoKind::IteratorProto, proto);
   return proto;
 }
 
