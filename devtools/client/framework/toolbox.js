@@ -3113,6 +3113,9 @@ Toolbox.prototype = {
     }
 
     return this.loadTool("webconsole").then(() => {
+      if (!this.component) {
+        return;
+      }
       this.component.setIsSplitConsoleActive(true);
       this.telemetry.recordEvent("activate", "split_console", null, {
         host: this._getTelemetryHostString(),

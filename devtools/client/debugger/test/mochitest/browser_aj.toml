@@ -117,6 +117,7 @@ skip-if = ["verify && !debug && os == 'linux'"]
 ["browser_dbg-console-async.js"]
 
 ["browser_dbg-console-eval.js"]
+fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-console-link.js"]
 
@@ -133,6 +134,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = ["os == 'win'"]
 
 ["browser_dbg-continue-to-here.js"]
+fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-custom-formatters.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
