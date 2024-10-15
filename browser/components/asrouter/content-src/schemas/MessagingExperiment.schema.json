@@ -638,6 +638,98 @@
         }
       }
     },
+    "MenuMessage": {
+      "$schema": "https://json-schema.org/draft/2019-09/schema",
+      "$id": "file:///MenuMessage.schema.json",
+      "title": "MenuMessage",
+      "description": "A template for messages that appear within our menus.",
+      "allOf": [
+        {
+          "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/Message"
+        }
+      ],
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "object",
+          "properties": {
+            "messageType": {
+              "type": "string",
+              "description": "The subtype of the message.",
+              "enum": [
+                "fxa_cta"
+              ]
+            },
+            "primaryText": {
+              "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/localizableText",
+              "description": "The primary text for the message, which offers the value proposition to the user."
+            },
+            "secondaryText": {
+              "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/localizableText",
+              "description": "The second text for the message, which offers more detail on the value proposition to the user."
+            },
+            "closeAction": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Action dispatched by the button."
+                },
+                "data": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": true,
+              "description": "The action to take upon clicking the close button."
+            },
+            "primaryAction": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Action dispatched by the button."
+                },
+                "data": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": true,
+              "description": "The action to take upon clicking the primary action button."
+            },
+            "primaryActionText": {
+              "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/localizableText",
+              "description": "The label for the primary action."
+            },
+            "imageURL": {
+              "type": "string",
+              "description": "URL for image to use with the content."
+            },
+            "imageVerticalOffset": {
+              "type": "number",
+              "description": "The margin-block-start value to apply to the image in pixels."
+            }
+          }
+        },
+        "template": {
+          "type": "string",
+          "const": "menu_message"
+        },
+        "testingTriggerContext": {
+          "type": "string",
+          "enum": [
+            "app_menu",
+            "pxi_menu"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
     "NewtabPromoMessage": {
       "$schema": "https://json-schema.org/draft/2019-09/schema",
       "$id": "file:///NewtabPromoMessage.schema.json",
@@ -1180,6 +1272,7 @@
             "cfr_doorhanger",
             "milestone_message",
             "infobar",
+            "menu_message",
             "pb_newtab",
             "spotlight",
             "feature_callout",
@@ -1386,6 +1479,25 @@
           },
           "then": {
             "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/InfoBar"
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {
+              "template": {
+                "type": "string",
+                "enum": [
+                  "menu_message"
+                ]
+              }
+            },
+            "required": [
+              "template"
+            ]
+          },
+          "then": {
+            "$ref": "chrome://browser/content/asrouter/schemas/MessagingExperiment.schema.json#/$defs/MenuMessage"
           }
         },
         {

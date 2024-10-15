@@ -648,6 +648,22 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
 /* Handle different UI states. */
 
+#appMenu-mainView:not([showing-fxa-menu-message]) #appMenu-fxa-menu-message,
+#PanelUI-fxa:not([showing-fxa-menu-message]) #PanelUI-fxa-menu-message {
+  display: none;
+}
+
+#appMenu-mainView[showing-fxa-menu-message] {
+  & #appMenu-fxa-status2,
+  & #appMenu-fxa-separator {
+    display: none;
+  }
+}
+
+#PanelUI-fxa[showing-fxa-menu-message] #fxa-manage-account-button {
+  display: none
+}
+
 :root:not([fxastatus="signedin"]) #PanelUI-fxa-menu-syncnow-button {
   display: none;
 }

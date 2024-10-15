@@ -4,6 +4,8 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.sys.mjs",
+  ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
+  MenuMessage: "resource:///modules/asrouter/MenuMessage.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
 });
@@ -137,6 +139,7 @@ const PanelUI = {
       "appMenu-libraryView"
     ).addEventListener("command", this._onLibraryCommand);
     this.mainView.addEventListener("command", this);
+    this.mainView.addEventListener("ViewShowing", this._onMainViewShow);
     this._eventListenersAdded = true;
   },
 
@@ -216,6 +219,14 @@ const PanelUI = {
         return;
       }
 
+      if (ASRouter.initialized) {
+        await ASRouter.sendTriggerMessage({
+          browser: gBrowser.selectedBrowser,
+          id: "menuOpened",
+          context: { source: MenuMessage.SOURCES.APP_MENU },
+        });
+      }
+
       let domEvent = null;
       if (aEvent && aEvent.type != "command") {
         domEvent = aEvent;
@@ -284,6 +295,7 @@ const PanelUI = {
         this._updatePanelButton(aEvent.target);
         if (aEvent.type == "popuphidden") {
           CustomizableUI.removePanelCloseListeners(this.panel);
+          MenuMessage.hideAppMenuMessage(gBrowser.selectedBrowser);
         }
         break;
       case "mousedown":
@@ -616,6 +628,22 @@ const PanelUI = {
         this.menuButton,
         "appmenu-menu-button-closed2"
       );
+    }
+  },
+
+  _onMainViewShow(event) {
+    let panelview = event.target;
+    let messageId = panelview.getAttribute(
+      MenuMessage.SHOWING_FXA_MENU_MESSAGE_ATTR
+    );
+    if (messageId) {
+      MenuMessage.recordMenuMessageTelemetry(
+        "IMPRESSION",
+        MenuMessage.SOURCES.APP_MENU,
+        messageId
+      );
+      let message = ASRouter.getMessageById(messageId);
+      ASRouter.addImpression(message);
     }
   },
 

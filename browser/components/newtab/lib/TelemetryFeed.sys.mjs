@@ -504,6 +504,9 @@ export class TelemetryFeed {
       case "onboarding_user_event":
         event = await this.applyOnboardingPolicy(event, session);
         break;
+      case "menu_message_user_event":
+        event = await this.applyMenuMessagePolicy(event);
+        break;
       case "asrouter_undesired_event":
         event = this.applyUndesiredEventPolicy(event);
         break;
@@ -568,6 +571,13 @@ export class TelemetryFeed {
     ping.browser_session_id = lazy.browserSessionId;
     delete ping.action;
     return { ping, pingType: "toast_notification" };
+  }
+
+  async applyMenuMessagePolicy(ping) {
+    ping.client_id = await this.telemetryClientId;
+    ping.browser_session_id = lazy.browserSessionId;
+    delete ping.action;
+    return { ping, pingType: "menu" };
   }
 
   /**
@@ -1103,6 +1113,8 @@ export class TelemetryFeed {
       case msg.SPOTLIGHT_TELEMETRY:
       // Intentional fall-through
       case msg.TOAST_NOTIFICATION_TELEMETRY:
+      // Intentional fall-through
+      case msg.MENU_MESSAGE_TELEMETRY:
       // Intentional fall-through
       case msg.AS_ROUTER_TELEMETRY_USER_EVENT:
         this.handleASRouterUserEvent(action);

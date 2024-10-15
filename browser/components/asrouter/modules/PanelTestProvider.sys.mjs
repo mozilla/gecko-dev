@@ -809,6 +809,44 @@ const MESSAGES = () => [
       ],
     },
   },
+  {
+    id: "FXA_ACCOUNTS_APPMENU_PROTECT_BROWSING_DATA",
+    template: "menu_message",
+    content: {
+      messageType: "fxa_cta",
+      primaryText: "Bounce between devices",
+      secondaryText:
+        "Sync and encrypt your bookmarks, passwords, and more on all your devices.",
+      primaryActionText: "Sign up",
+      primaryAction: {
+        type: "FXA_SIGNIN_FLOW",
+        data: {
+          where: "tab",
+          extraParams: {
+            utm_source: "firefox-desktop",
+            utm_medium: "product",
+            utm_campaign: "some-campaign",
+            utm_content: "some-content",
+          },
+          autoClose: false,
+        },
+      },
+      closeAction: {
+        type: "BLOCK_MESSAGE",
+        data: {
+          id: "FXA_ACCOUNTS_APPMENU_PROTECT_BROWSING_DATA",
+        },
+      },
+      imageURL:
+        "chrome://activity-stream/content/data/content/assets/fox-doodle-waving-static.png",
+      imageVerticalOffset: -24,
+    },
+    skip_in_tests: "TODO",
+    trigger: {
+      id: "menuOpened",
+    },
+    testingTriggerContext: "app_menu",
+  },
 ];
 
 export const PanelTestProvider = {

@@ -43,6 +43,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   InfoBar: "resource:///modules/asrouter/InfoBar.sys.mjs",
   KintoHttpClient: "resource://services-common/kinto-http-client.sys.mjs",
   MacAttribution: "resource:///modules/MacAttribution.sys.mjs",
+  MenuMessage: "resource:///modules/asrouter/MenuMessage.sys.mjs",
   MomentsPageHub: "resource:///modules/asrouter/MomentsPageHub.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PanelTestProvider: "resource:///modules/asrouter/PanelTestProvider.sys.mjs",
@@ -1477,6 +1478,9 @@ export class _ASRouter {
         break;
       case "bookmarks_bar_button":
         lazy.BookmarksBarButton.showBookmarksBarButton(browser, message);
+        break;
+      case "menu_message":
+        lazy.MenuMessage.showMenuMessage(browser, message, trigger, force);
         break;
     }
 

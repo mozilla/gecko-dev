@@ -1,0 +1,50 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+:host {
+  margin-inline: var(--arrowpanel-menuitem-margin-inline, var(--space-xsmall));
+  margin-block: var(--space-xsmall);
+  --illustration-margin-block-offset: 0px;
+}
+
+#container {
+  display: flex;
+  position: relative;
+  flex-direction: column;
+  background-color: var(--background-color-information);
+  border-radius: var(--border-radius-small);
+  padding-block: var(--arrowpanel-menuitem-padding-block, var(--space-small));
+  padding-inline: var(--arrowpanel-menuitem-padding-inline, var(--space-small));
+  margin-block-start: var(--space-small);
+  color: var(--text-color);
+}
+
+#close-button {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  padding-block: var(--arrowpanel-menuitem-padding-block, var(--space-small));
+  padding-inline: var(--arrowpanel-menuitem-padding-inline, var(--space-small));
+}
+
+#container:not([has-image]) > #illustration-container {
+  display: none;
+}
+
+#container[has-image] > #illustration-container {
+  display: flex;
+  justify-content: center;
+  margin-block-start: var(--illustration-margin-block-offset);
+  pointer-events: none;
+}
+
+#primary {
+  font-size: 1.154em;
+  font-weight: var(--font-weight-bold);
+  margin-block-end: var(--space-xsmall);
+}
+
+#sign-up-button {
+  margin-block-start: var(--space-medium);
+}

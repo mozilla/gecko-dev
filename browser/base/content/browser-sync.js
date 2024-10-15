@@ -18,11 +18,13 @@ const { UIState } = ChromeUtils.importESModule(
 );
 
 ChromeUtils.defineESModuleGetters(this, {
+  ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
   EnsureFxAccountsWebChannel:
     "resource://gre/modules/FxAccountsWebChannel.sys.mjs",
 
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
+  MenuMessage: "resource:///modules/asrouter/MenuMessage.sys.mjs",
   SyncedTabs: "resource://services-sync/SyncedTabs.sys.mjs",
   SyncedTabsManagement: "resource://services-sync/SyncedTabs.sys.mjs",
   Weave: "resource://services-sync/main.sys.mjs",
@@ -697,6 +699,19 @@ var gSync = {
   },
 
   onFxAPanelViewShowing(panelview) {
+    let messageId = panelview.getAttribute(
+      MenuMessage.SHOWING_FXA_MENU_MESSAGE_ATTR
+    );
+    if (messageId) {
+      MenuMessage.recordMenuMessageTelemetry(
+        "IMPRESSION",
+        MenuMessage.SOURCES.PXI_MENU,
+        messageId
+      );
+      let message = ASRouter.getMessageById(messageId);
+      ASRouter.addImpression(message);
+    }
+
     let syncNowBtn = panelview.querySelector(".syncnow-label");
     let l10nId = syncNowBtn.getAttribute(
       this._isCurrentlySyncing
@@ -730,6 +745,7 @@ var gSync = {
   },
 
   onFxAPanelViewHiding(panelview) {
+    MenuMessage.hidePxiMenuMessage(gBrowser.selectedBrowser);
     panelview.syncedTabsPanelList.destroy();
     panelview.syncedTabsPanelList = null;
   },
@@ -954,7 +970,7 @@ var gSync = {
     }
   },
 
-  toggleAccountPanel(
+  async toggleAccountPanel(
     anchor = document.getElementById("fxa-toolbar-menu-button"),
     aEvent
   ) {
@@ -970,6 +986,19 @@ var gSync = {
         aEvent.keyCode != KeyEvent.DOM_VK_RETURN)
     ) {
       return;
+    }
+
+    if (
+      anchor == document.getElementById("fxa-toolbar-menu-button") &&
+      anchor.getAttribute("open") != "true"
+    ) {
+      if (ASRouter.initialized) {
+        await ASRouter.sendTriggerMessage({
+          browser: gBrowser.selectedBrowser,
+          id: "menuOpened",
+          context: { source: MenuMessage.SOURCES.PXI_MENU },
+        });
+      }
     }
 
     // We read the state that's been set on the root node, since that makes
