@@ -49,6 +49,7 @@ class RTPSender {
             RtpPacketHistory* packet_history,
             RtpPacketSender* packet_sender);
 
+  [[deprecated("bugs.webrtc.org/362762208")]]  //
   RTPSender(const RtpRtcpInterface::Configuration& config,
             RtpPacketHistory* packet_history,
             RtpPacketSender* packet_sender);

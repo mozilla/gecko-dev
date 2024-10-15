@@ -56,24 +56,21 @@ constexpr TimeDelta kDefaultExpectedRetransmissionTime = TimeDelta::Millis(125);
 }  // namespace
 
 ModuleRtpRtcpImpl::RtpSenderContext::RtpSenderContext(
+    const Environment& env,
     const RtpRtcpInterface::Configuration& config)
-    : packet_history(config.clock,
+    : packet_history(&env.clock(),
                      RtpPacketHistory::PaddingMode::kRecentLargePacket),
       sequencer_(config.local_media_ssrc,
                  config.rtx_send_ssrc,
                  /*require_marker_before_media_padding=*/!config.audio,
-                 config.clock),
-      packet_sender(config, &packet_history),
+                 &env.clock()),
+      packet_sender(env, config, &packet_history),
       non_paced_sender(&packet_sender, &sequencer_),
       packet_generator(
+          env,
           config,
           &packet_history,
           config.paced_sender ? config.paced_sender : &non_paced_sender) {}
-
-std::unique_ptr<RtpRtcp> RtpRtcp::Create(const Configuration& configuration) {
-  RTC_DCHECK(configuration.clock);
-  return std::make_unique<ModuleRtpRtcpImpl>(configuration);
-}
 
 std::unique_ptr<RtpRtcp> RtpRtcp::Create(const Environment& env,
                                          const Configuration& configuration) {
@@ -85,23 +82,24 @@ std::unique_ptr<RtpRtcp> RtpRtcp::Create(const Environment& env,
   config.field_trials = &env.field_trials();
   config.clock = &env.clock();
   config.event_log = &env.event_log();
-  return std::make_unique<ModuleRtpRtcpImpl>(config);
+  return std::make_unique<ModuleRtpRtcpImpl>(env, config);
 }
 
-ModuleRtpRtcpImpl::ModuleRtpRtcpImpl(const Configuration& configuration)
-    : rtcp_sender_(
+ModuleRtpRtcpImpl::ModuleRtpRtcpImpl(const Environment& env,
+                                     const Configuration& configuration)
+    : env_(env),
+      rtcp_sender_(
           RTCPSender::Configuration::FromRtpRtcpConfiguration(configuration)),
       rtcp_receiver_(configuration, this),
-      clock_(configuration.clock),
-      last_bitrate_process_time_(clock_->TimeInMilliseconds()),
-      last_rtt_process_time_(clock_->TimeInMilliseconds()),
+      last_bitrate_process_time_(env_.clock().TimeInMilliseconds()),
+      last_rtt_process_time_(env_.clock().TimeInMilliseconds()),
       packet_overhead_(28),  // IPV4 UDP.
       nack_last_time_sent_full_ms_(0),
       nack_last_seq_number_sent_(0),
       rtt_stats_(configuration.rtt_stats),
       rtt_ms_(0) {
   if (!configuration.receiver_only) {
-    rtp_sender_ = std::make_unique<RtpSenderContext>(configuration);
+    rtp_sender_ = std::make_unique<RtpSenderContext>(env, configuration);
     // Make sure rtcp sender use same timestamp offset as rtp sender.
     rtcp_sender_.SetTimestampOffset(
         rtp_sender_->packet_generator.TimestampOffset());
@@ -118,7 +116,7 @@ ModuleRtpRtcpImpl::~ModuleRtpRtcpImpl() = default;
 
 // Process any pending tasks such as timeouts (non time critical events).
 void ModuleRtpRtcpImpl::Process() {
-  const int64_t now = clock_->TimeInMilliseconds();
+  const int64_t now = env_.clock().TimeInMilliseconds();
 
   if (rtp_sender_) {
     if (now >= last_bitrate_process_time_ + kRtpRtcpBitrateProcessTimeMs) {
@@ -584,7 +582,7 @@ int32_t ModuleRtpRtcpImpl::SendNACK(const uint16_t* nack_list,
                                     const uint16_t size) {
   uint16_t nack_length = size;
   uint16_t start_id = 0;
-  int64_t now_ms = clock_->TimeInMilliseconds();
+  int64_t now_ms = env_.clock().TimeInMilliseconds();
   if (TimeToSendFullNackList(now_ms)) {
     nack_last_time_sent_full_ms_ = now_ms;
   } else {

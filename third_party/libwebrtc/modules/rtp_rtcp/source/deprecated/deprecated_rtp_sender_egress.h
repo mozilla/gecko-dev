@@ -18,7 +18,7 @@
 
 #include "api/array_view.h"
 #include "api/call/transport.h"
-#include "api/rtc_event_log/rtc_event_log.h"
+#include "api/environment/environment.h"
 #include "api/rtp_packet_sender.h"
 #include "api/transport/network_types.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
@@ -53,7 +53,8 @@ class DEPRECATED_RtpSenderEgress {
     PacketSequencer* sequence_number_assigner_;
   };
 
-  DEPRECATED_RtpSenderEgress(const RtpRtcpInterface::Configuration& config,
+  DEPRECATED_RtpSenderEgress(const Environment& env,
+                             const RtpRtcpInterface::Configuration& config,
                              RtpPacketHistory* packet_history);
   ~DEPRECATED_RtpSenderEgress() = default;
 
@@ -100,14 +101,13 @@ class DEPRECATED_RtpSenderEgress {
   void UpdateRtpStats(const RtpPacketToSend& packet)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(lock_);
 
+  const Environment env_;
   const uint32_t ssrc_;
   const std::optional<uint32_t> rtx_ssrc_;
   const std::optional<uint32_t> flexfec_ssrc_;
   const bool populate_network2_timestamp_;
-  Clock* const clock_;
   RtpPacketHistory* const packet_history_;
   Transport* const transport_;
-  RtcEventLog* const event_log_;
   const bool need_rtp_packet_infos_;
 
   TransportFeedbackObserver* const transport_feedback_observer_;

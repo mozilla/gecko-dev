@@ -22,10 +22,6 @@ namespace webrtc {
 class [[deprecated("bugs.webrtc.org/42224904")]] RtpRtcp
     : public RtpRtcpInterface {
  public:
-  [[deprecated("bugs.webrtc.org/362762208")]]  //
-  static std::unique_ptr<RtpRtcp>
-  Create(const Configuration& configuration);
-
   [[deprecated("bugs.webrtc.org/42224904")]]  //
   static std::unique_ptr<RtpRtcp>
   Create(const Environment& env, const Configuration& configuration);

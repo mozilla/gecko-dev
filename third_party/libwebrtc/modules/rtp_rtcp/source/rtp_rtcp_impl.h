@@ -21,6 +21,7 @@
 #include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/environment/environment.h"
 #include "api/rtp_headers.h"
 #include "api/units/time_delta.h"
 #include "api/video/video_bitrate_allocation.h"
@@ -46,7 +47,6 @@
 
 namespace webrtc {
 
-class Clock;
 struct PacedPacketInfo;
 struct RTPVideoHeader;
 
@@ -57,8 +57,8 @@ class ABSL_DEPRECATED("") ModuleRtpRtcpImpl
       public RTCPReceiver::ModuleRtpRtcp {
 #pragma clang diagnostic pop
  public:
-  explicit ModuleRtpRtcpImpl(
-      const RtpRtcpInterface::Configuration& configuration);
+  ModuleRtpRtcpImpl(const Environment& env,
+                    const RtpRtcpInterface::Configuration& configuration);
   ~ModuleRtpRtcpImpl() override;
 
   // Process any pending tasks such as timeouts.
@@ -283,14 +283,13 @@ class ABSL_DEPRECATED("") ModuleRtpRtcpImpl
     rtp_sender_->packet_sender.SetMediaHasBeenSent(media_has_been_sent);
   }
 
-  Clock* clock() const { return clock_; }
-
  private:
   FRIEND_TEST_ALL_PREFIXES(RtpRtcpImplTest, Rtt);
   FRIEND_TEST_ALL_PREFIXES(RtpRtcpImplTest, RttForReceiverOnly);
 
   struct RtpSenderContext {
-    explicit RtpSenderContext(const RtpRtcpInterface::Configuration& config);
+    RtpSenderContext(const Environment& env,
+                     const RtpRtcpInterface::Configuration& config);
     // Storage of packets, for retransmissions and padding, if applicable.
     RtpPacketHistory packet_history;
     // Handles sequence number assignment and padding timestamp generation.
@@ -316,12 +315,11 @@ class ABSL_DEPRECATED("") ModuleRtpRtcpImpl
   // Returns current Receiver Reference Time Report (RTTR) status.
   bool RtcpXrRrtrStatus() const;
 
+  const Environment env_;
   std::unique_ptr<RtpSenderContext> rtp_sender_;
 
   RTCPSender rtcp_sender_;
   RTCPReceiver rtcp_receiver_;
-
-  Clock* const clock_;
 
   int64_t last_bitrate_process_time_;
   int64_t last_rtt_process_time_;
