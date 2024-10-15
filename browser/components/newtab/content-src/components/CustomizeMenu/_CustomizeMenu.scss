@@ -1,6 +1,8 @@
 .personalizeButtonWrapper {
   margin: 0;
   padding: 0;
+  // z-index note: menu should cover fixed search bar and asrouter dev tools toggle button
+  z-index: 3;
 
   @media (height < 700px) {
     position: absolute;
@@ -12,7 +14,6 @@
     position: fixed;
     inset-block-start: var(--space-xlarge);
     inset-inline-end: var(--space-xlarge);
-    z-index: 1000;
   }
 }
 
