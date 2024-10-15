@@ -90,7 +90,7 @@ ModuleRtpRtcpImpl::ModuleRtpRtcpImpl(const Environment& env,
     : env_(env),
       rtcp_sender_(
           RTCPSender::Configuration::FromRtpRtcpConfiguration(configuration)),
-      rtcp_receiver_(configuration, this),
+      rtcp_receiver_(env_, configuration, this),
       last_bitrate_process_time_(env_.clock().TimeInMilliseconds()),
       last_rtt_process_time_(env_.clock().TimeInMilliseconds()),
       packet_overhead_(28),  // IPV4 UDP.

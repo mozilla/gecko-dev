@@ -224,11 +224,14 @@ webrtc_fuzzer_test("rtp_video_frame_assembler_fuzzer") {
 webrtc_fuzzer_test("rtcp_receiver_fuzzer") {
   sources = [ "rtcp_receiver_fuzzer.cc" ]
   deps = [
+    "../../api:array_view",
+    "../../api/environment",
+    "../../api/environment:environment_factory",
     "../../modules/rtp_rtcp",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
     "../../rtc_base:checks",
     "../../system_wrappers",
-    "../../system_wrappers:field_trial",
+    "../../test:explicit_key_value_config",
   ]
   seed_corpus = "corpora/rtcp-corpus"
 }

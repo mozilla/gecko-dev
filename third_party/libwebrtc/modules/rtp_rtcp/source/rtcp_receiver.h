@@ -20,6 +20,7 @@
 
 #include "absl/container/inlined_vector.h"
 #include "api/array_view.h"
+#include "api/environment/environment.h"
 #include "api/sequence_checker.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -36,7 +37,6 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/system/no_unique_address.h"
 #include "rtc_base/thread_annotations.h"
-#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -95,10 +95,12 @@ class RTCPReceiver final {
     int round_trip_time_measurements_ = 0;
   };
 
-  RTCPReceiver(const RtpRtcpInterface::Configuration& config,
+  RTCPReceiver(const Environment& env,
+               const RtpRtcpInterface::Configuration& config,
                ModuleRtpRtcp* owner);
 
-  RTCPReceiver(const RtpRtcpInterface::Configuration& config,
+  RTCPReceiver(const Environment& env,
+               const RtpRtcpInterface::Configuration& config,
                ModuleRtpRtcpImpl2* owner);
 
   ~RTCPReceiver();
@@ -362,7 +364,7 @@ class RTCPReceiver final {
   bool RtcpRrSequenceNumberTimeoutLocked(Timestamp now)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(rtcp_receiver_lock_);
 
-  Clock* const clock_;
+  const Environment env_;
   const bool receiver_only_;
   const bool enable_congestion_controller_feedback_;
   ModuleRtpRtcp* const rtp_rtcp_;

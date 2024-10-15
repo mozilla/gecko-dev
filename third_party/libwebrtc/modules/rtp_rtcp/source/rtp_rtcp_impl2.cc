@@ -116,7 +116,7 @@ ModuleRtpRtcpImpl2::ModuleRtpRtcpImpl2(TagConfigurationIncludesEnvironment,
           [this](TimeDelta duration) {
             ScheduleRtcpSendEvaluation(duration);
           })),
-      rtcp_receiver_(configuration, this),
+      rtcp_receiver_(env_, configuration, this),
       packet_overhead_(28),  // IPV4 UDP.
       nack_last_time_sent_full_ms_(0),
       nack_last_seq_number_sent_(0),

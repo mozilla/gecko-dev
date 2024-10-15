@@ -30,10 +30,10 @@ index 3b09c2d78c..8b8caba840 100644
      // single 'timing frame'.
      std::optional<webrtc::TimingFrameInfo> timing_frame_info;
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index 38222473f4..c05f8eedd5 100644
+index 6116470735..959b5d1dce 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.cc
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
-@@ -384,6 +384,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {
+@@ -387,6 +387,13 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {
    return last_xr_rtis;
  }
  
@@ -48,10 +48,10 @@ index 38222473f4..c05f8eedd5 100644
    std::vector<ReportBlockData> result;
    MutexLock lock(&rtcp_receiver_lock_);
 diff --git a/modules/rtp_rtcp/source/rtcp_receiver.h b/modules/rtp_rtcp/source/rtcp_receiver.h
-index 05b5c547b2..0e12d8ec37 100644
+index 766a808044..2551534b9f 100644
 --- a/modules/rtp_rtcp/source/rtcp_receiver.h
 +++ b/modules/rtp_rtcp/source/rtcp_receiver.h
-@@ -121,6 +121,10 @@ class RTCPReceiver final {
+@@ -123,6 +123,10 @@ class RTCPReceiver final {
  
    std::vector<rtcp::ReceiveTimeInfo> ConsumeReceivedXrReferenceTimeInfo();
  
@@ -63,7 +63,7 @@ index 05b5c547b2..0e12d8ec37 100644
    std::optional<TimeDelta> LastRtt() const;
  
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
-index a2d963ada2..13b35bc6e7 100644
+index 600230b328..e09439f90b 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl.cc
 @@ -523,6 +523,11 @@ void ModuleRtpRtcpImpl::GetSendStreamDataCounters(
@@ -93,7 +93,7 @@ index 94035ddb02..446882ea67 100644
    // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
    // Within this list, the `ReportBlockData::source_ssrc()`, which is the SSRC
 diff --git a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
-index 43ae7d5dc4..f611948a04 100644
+index cc61ad4d71..2daa2bc818 100644
 --- a/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 +++ b/modules/rtp_rtcp/source/rtp_rtcp_impl2.cc
 @@ -545,6 +545,11 @@ void ModuleRtpRtcpImpl2::GetSendStreamDataCounters(
