@@ -104,7 +104,6 @@ add_task(async function test_backgroundtask_debugger() {
     waitForState,
     waitUntil,
     createLocation,
-    getCM,
     getEditorContent,
     getCMEditor,
     isCm6Enabled,
