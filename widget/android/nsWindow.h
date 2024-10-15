@@ -71,7 +71,7 @@ class nsWindow final : public nsBaseWidget {
       bool aIsTopLevel);
 
  private:
-  nsWindow* mParent = nullptr;
+  RefPtr<nsWindow> mParent;
   nsCOMPtr<nsIUserIdleServiceInternal> mIdleService;
   mozilla::ScreenIntCoord mDynamicToolbarMaxHeight{0};
   mozilla::ScreenIntMargin mSafeAreaInsets;

@@ -2169,9 +2169,13 @@ void nsWindow::LogWindow(nsWindow* win, int index, int indent) {
   char spaces[] = "                    ";
   spaces[indent < 20 ? indent : 20] = 0;
   ALOG("%s [% 2d] 0x%p [parent 0x%p] [% 3d,% 3dx% 3d,% 3d] vis %d type %d",
-       spaces, index, win, win->mParent, win->mBounds.x, win->mBounds.y,
+       spaces, index, win, win->mParent.get(), win->mBounds.x, win->mBounds.y,
        win->mBounds.width, win->mBounds.height, win->mIsVisible,
        int(win->mWindowType));
+  int i = 0;
+  for (nsIWidget* kid = win->mFirstChild; kid; kid = kid->GetNextSibling()) {
+    LogWindow(static_cast<nsWindow*>(kid), i++, indent + 1);
+  }
 #endif
 }
 
@@ -2181,7 +2185,6 @@ void nsWindow::DumpWindows(const nsTArray<nsWindow*>& wins, int indent) {
   for (uint32_t i = 0; i < wins.Length(); ++i) {
     nsWindow* w = wins[i];
     LogWindow(w, i, indent);
-    DumpWindows(w->mChildren, indent + 1);
   }
 }
 
@@ -2206,8 +2209,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   ALOG("nsWindow[%p]::Create %p [%d %d %d %d]", (void*)this, (void*)aParent,
        aRect.x, aRect.y, aRect.width, aRect.height);
 
-  nsWindow* parent = (nsWindow*)aParent;
-
   // A default size of 1x1 confuses MobileViewportManager, so
   // use 0x0 instead. This is also a little more fitting since
   // we don't yet have a surface yet (and therefore a valid size)
@@ -2224,18 +2225,12 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   MOZ_DIAGNOSTIC_ASSERT(!aInitData ||
                         aInitData->mWindowType != WindowType::Invisible);
 
-  // FIXME(emilio): Seems we should pass aParent here, but I don't think we can
-  // have child widgets on android.
-  BaseCreate(nullptr, aInitData);
-
-  NS_ASSERTION(IsTopLevel() || parent,
-               "non-top-level window doesn't have a parent!");
+  BaseCreate(aParent, aInitData);
+  mParent = static_cast<nsWindow*>(aParent);
+  MOZ_ASSERT_IF(!IsTopLevel(), aParent);
 
   if (IsTopLevel()) {
     gTopLevelWindows.AppendElement(this);
-  } else if (parent) {
-    parent->mChildren.AppendElement(this);
-    mParent = parent;
   }
 
 #ifdef DEBUG_ANDROID_WIDGET
@@ -2256,11 +2251,12 @@ void nsWindow::Destroy() {
   // Stuff below may release the last ref to this
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
 
-  while (mChildren.Length()) {
+  while (RefPtr<nsWindow> kid = static_cast<nsWindow*>(mLastChild)) {
     // why do we still have children?
     ALOG("### Warning: Destroying window %p and reparenting child %p to null!",
-         (void*)this, (void*)mChildren[0]);
-    mChildren[0]->SetParent(nullptr);
+         this, kid.get());
+    RemoveChild(kid);
+    kid->mParent = nullptr;
   }
 
   // Ensure the compositor has been shutdown before this nsWindow is potentially
@@ -2316,15 +2312,19 @@ void nsWindow::OnGeckoViewReady() {
 }
 
 void nsWindow::SetParent(nsIWidget* aNewParent) {
-  if ((nsIWidget*)mParent == aNewParent) return;
+  if (mParent == aNewParent) {
+    return;
+  }
 
-  // If we had a parent before, remove ourselves from its list of
-  // children.
-  if (mParent) mParent->mChildren.RemoveElement(this);
+  if (mParent) {
+    mParent->RemoveChild(this);
+  }
 
-  mParent = (nsWindow*)aNewParent;
+  mParent = static_cast<nsWindow*>(aNewParent);
 
-  if (mParent) mParent->mChildren.AppendElement(this);
+  if (mParent) {
+    mParent->AddChild(this);
+  }
 
   // if we are now in the toplevel window's hierarchy, schedule a redraw
   if (FindTopLevel() == nsWindow::TopWindow()) RedrawAll();
