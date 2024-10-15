@@ -152,7 +152,7 @@ TEST(FrameInstrumentationGeneratorTest,
   FrameInstrumentationData frame_instrumentation_data =
       absl::get<FrameInstrumentationData>(*data);
   EXPECT_EQ(frame_instrumentation_data.sequence_index, 0);
-  EXPECT_TRUE(frame_instrumentation_data.is_key_frame);
+  EXPECT_TRUE(frame_instrumentation_data.communicate_upper_bits);
   EXPECT_NE(frame_instrumentation_data.std_dev, 0.0);
   EXPECT_NE(frame_instrumentation_data.luma_error_threshold, 0);
   EXPECT_NE(frame_instrumentation_data.chroma_error_threshold, 0);
@@ -192,7 +192,7 @@ TEST(FrameInstrumentationGeneratorTest,
   FrameInstrumentationData frame_instrumentation_data =
       absl::get<FrameInstrumentationData>(*data);
   EXPECT_EQ(frame_instrumentation_data.sequence_index, 0);
-  EXPECT_TRUE(frame_instrumentation_data.is_key_frame);
+  EXPECT_TRUE(frame_instrumentation_data.communicate_upper_bits);
   EXPECT_NE(frame_instrumentation_data.std_dev, 0.0);
   EXPECT_NE(frame_instrumentation_data.luma_error_threshold, 0);
   EXPECT_NE(frame_instrumentation_data.chroma_error_threshold, 0);
@@ -234,7 +234,7 @@ TEST(FrameInstrumentationGeneratorTest,
   FrameInstrumentationData frame_instrumentation_data =
       absl::get<FrameInstrumentationData>(*data);
   EXPECT_EQ(frame_instrumentation_data.sequence_index, 0);
-  EXPECT_TRUE(frame_instrumentation_data.is_key_frame);
+  EXPECT_TRUE(frame_instrumentation_data.communicate_upper_bits);
   EXPECT_NE(frame_instrumentation_data.std_dev, 0.0);
   EXPECT_NE(frame_instrumentation_data.luma_error_threshold, 0);
   EXPECT_NE(frame_instrumentation_data.chroma_error_threshold, 0);
@@ -322,8 +322,10 @@ TEST(FrameInstrumentationGeneratorTest,
 
     ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data2));
 
-    EXPECT_TRUE(absl::get<FrameInstrumentationData>(*data1).is_key_frame);
-    EXPECT_TRUE(absl::get<FrameInstrumentationData>(*data2).is_key_frame);
+    EXPECT_TRUE(
+        absl::get<FrameInstrumentationData>(*data1).communicate_upper_bits);
+    EXPECT_TRUE(
+        absl::get<FrameInstrumentationData>(*data2).communicate_upper_bits);
   }
 }
 
@@ -373,16 +375,20 @@ TEST(FrameInstrumentationGeneratorTest,
 
       ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data2));
 
-      EXPECT_TRUE(absl::get<FrameInstrumentationData>(*data1).is_key_frame);
-      EXPECT_TRUE(absl::get<FrameInstrumentationData>(*data2).is_key_frame);
+      EXPECT_TRUE(
+          absl::get<FrameInstrumentationData>(*data1).communicate_upper_bits);
+      EXPECT_TRUE(
+          absl::get<FrameInstrumentationData>(*data2).communicate_upper_bits);
     } else if (data1.has_value() || data2.has_value()) {
       if (data1.has_value()) {
         ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data1));
-        EXPECT_FALSE(absl::get<FrameInstrumentationData>(*data1).is_key_frame);
+        EXPECT_FALSE(
+            absl::get<FrameInstrumentationData>(*data1).communicate_upper_bits);
       }
       if (data2.has_value()) {
         ASSERT_TRUE(absl::holds_alternative<FrameInstrumentationData>(*data2));
-        EXPECT_FALSE(absl::get<FrameInstrumentationData>(*data2).is_key_frame);
+        EXPECT_FALSE(
+            absl::get<FrameInstrumentationData>(*data2).communicate_upper_bits);
       }
       has_found_delta_frame = true;
     }

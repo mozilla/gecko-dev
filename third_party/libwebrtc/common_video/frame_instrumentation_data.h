@@ -18,12 +18,12 @@ namespace webrtc {
 // TODO: b/358039777 - Error handling: negative values etc.
 struct FrameInstrumentationSyncData {
   int sequence_index;
-  bool is_key_frame;
+  bool communicate_upper_bits;
 };
 
 struct FrameInstrumentationData {
   int sequence_index;
-  bool is_key_frame;
+  bool communicate_upper_bits;
   double std_dev;
   int luma_error_threshold;
   int chroma_error_threshold;

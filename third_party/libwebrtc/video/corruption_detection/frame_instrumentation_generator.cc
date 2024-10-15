@@ -132,7 +132,7 @@ FrameInstrumentationGenerator::OnEncodedImage(
       return std::nullopt;
     }
     return FrameInstrumentationSyncData{.sequence_index = sequence_index,
-                                        .is_key_frame = true};
+                                        .communicate_upper_bits = true};
   }
 
   std::optional<FilterSettings> filter_settings =
@@ -153,7 +153,7 @@ FrameInstrumentationGenerator::OnEncodedImage(
 
   FrameInstrumentationData data = {
       .sequence_index = sequence_index,
-      .is_key_frame = is_key_frame,
+      .communicate_upper_bits = is_key_frame,
       .std_dev = filter_settings->std_dev,
       .luma_error_threshold = filter_settings->luma_error_threshold,
       .chroma_error_threshold = filter_settings->chroma_error_threshold};
