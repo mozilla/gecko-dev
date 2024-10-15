@@ -264,7 +264,7 @@ class VideoReceiveStream2
   bool decoder_running_ RTC_GUARDED_BY(worker_sequence_checker_) = false;
   bool decoder_stopped_ RTC_GUARDED_BY(decode_sequence_checker_) = true;
 
-  SourceTracker source_tracker_;
+  SourceTracker source_tracker_ RTC_GUARDED_BY(worker_sequence_checker_);
   ReceiveStatisticsProxy stats_proxy_;
   // Shared by media and rtx stream receivers, since the latter has no RtpRtcp
   // module of its own.

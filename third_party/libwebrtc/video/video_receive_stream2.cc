@@ -635,11 +635,11 @@ int VideoReceiveStream2::GetBaseMinimumPlayoutDelayMs() const {
 }
 
 void VideoReceiveStream2::OnFrame(const VideoFrame& video_frame) {
-  source_tracker_.OnFrameDelivered(video_frame.packet_infos());
   config_.renderer->OnFrame(video_frame);
 
-  // TODO(bugs.webrtc.org/10739): we should set local capture clock offset for
-  // `video_frame.packet_infos`. But VideoFrame is const qualified here.
+  // TODO: bugs.webrtc.org/42220804 - we should set local capture clock offset
+  // for `packet_infos`.
+  RtpPacketInfos packet_infos = video_frame.packet_infos();
 
   // For frame delay metrics, calculated in `OnRenderedFrame`, to better reflect
   // user experience measurements must be done as close as possible to frame
@@ -650,7 +650,7 @@ void VideoReceiveStream2::OnFrame(const VideoFrame& video_frame) {
   // rendered" callback from the renderer.
   VideoFrameMetaData frame_meta(video_frame, env_.clock().CurrentTime());
   call_->worker_thread()->PostTask(
-      SafeTask(task_safety_.flag(), [frame_meta, this]() {
+      SafeTask(task_safety_.flag(), [frame_meta, packet_infos, this]() {
         RTC_DCHECK_RUN_ON(&worker_sequence_checker_);
         int64_t video_playout_ntp_ms;
         int64_t sync_offset_ms;
@@ -662,6 +662,8 @@ void VideoReceiveStream2::OnFrame(const VideoFrame& video_frame) {
                                            estimated_freq_khz);
         }
         stats_proxy_.OnRenderedFrame(frame_meta);
+        source_tracker_.OnFrameDelivered(packet_infos,
+                                         frame_meta.decode_timestamp);
       }));
 
   webrtc::MutexLock lock(&pending_resolution_mutex_);
@@ -1057,6 +1059,7 @@ void VideoReceiveStream2::UpdatePlayoutDelays() const {
 }
 
 std::vector<webrtc::RtpSource> VideoReceiveStream2::GetSources() const {
+  RTC_DCHECK_RUN_ON(&worker_sequence_checker_);
   return source_tracker_.GetSources();
 }
 

@@ -19,8 +19,6 @@
 #include <vector>
 
 #include "api/rtp_packet_infos.h"
-#include "api/task_queue/pending_task_safety_flag.h"
-#include "api/task_queue/task_queue_base.h"
 #include "api/transport/rtp/rtp_source.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -34,6 +32,7 @@ namespace webrtc {
 //   - https://w3c.github.io/webrtc-pc/#dom-rtcrtpcontributingsource
 //   - https://w3c.github.io/webrtc-pc/#dom-rtcrtpsynchronizationsource
 //
+// This class is thread unsafe.
 class SourceTracker {
  public:
   // Amount of time before the entry associated with an update is removed. See:
@@ -49,7 +48,8 @@ class SourceTracker {
 
   // Updates the source entries when a frame is delivered to the
   // RTCRtpReceiver's MediaStreamTrack.
-  void OnFrameDelivered(RtpPacketInfos packet_infos);
+  void OnFrameDelivered(const RtpPacketInfos& packet_infos,
+                        Timestamp delivery_time = Timestamp::MinusInfinity());
 
   // Returns an `RtpSource` for each unique SSRC and CSRC identifier updated in
   // the last `kTimeoutMs` milliseconds. Entries appear in reverse chronological
@@ -116,27 +116,21 @@ class SourceTracker {
                                        SourceKeyHasher,
                                        SourceKeyComparator>;
 
-  void OnFrameDeliveredInternal(Timestamp now,
-                                const RtpPacketInfos& packet_infos)
-      RTC_RUN_ON(worker_thread_);
-
   // Updates an entry by creating it (if it didn't previously exist) and moving
   // it to the front of the list. Returns a reference to the entry.
-  SourceEntry& UpdateEntry(const SourceKey& key) RTC_RUN_ON(worker_thread_);
+  SourceEntry& UpdateEntry(const SourceKey& key);
 
   // Removes entries that have timed out. Marked as "const" so that we can do
   // pruning in getters.
-  void PruneEntries(Timestamp now) const RTC_RUN_ON(worker_thread_);
+  void PruneEntries(Timestamp now) const;
 
-  TaskQueueBase* const worker_thread_;
   Clock* const clock_;
 
   // Entries are stored in reverse chronological order (i.e. with the most
   // recently updated entries appearing first). Mutability is needed for timeout
   // pruning in const functions.
-  mutable SourceList list_ RTC_GUARDED_BY(worker_thread_);
-  mutable SourceMap map_ RTC_GUARDED_BY(worker_thread_);
-  ScopedTaskSafety worker_safety_;
+  mutable SourceList list_;
+  mutable SourceMap map_;
 };
 
 }  // namespace webrtc

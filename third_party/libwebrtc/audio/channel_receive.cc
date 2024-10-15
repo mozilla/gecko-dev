@@ -172,7 +172,7 @@ class ChannelReceive : public ChannelReceiveInterface,
 
   int PreferredSampleRate() const override;
 
-  void SetSourceTracker(SourceTracker* source_tracker) override;
+  std::vector<RtpSource> GetSources() const override;
 
   // Associate to a send channel.
   // Used for obtaining RTT for a receive-only channel.
@@ -241,7 +241,7 @@ class ChannelReceive : public ChannelReceiveInterface,
   std::unique_ptr<ReceiveStatistics> rtp_receive_statistics_;
   std::unique_ptr<ModuleRtpRtcpImpl2> rtp_rtcp_;
   const uint32_t remote_ssrc_;
-  SourceTracker* source_tracker_ = nullptr;
+  SourceTracker source_tracker_ RTC_GUARDED_BY(&worker_thread_checker_);
 
   // Info for GetSyncInfo is updated on network or worker thread, and queried on
   // the worker thread.
@@ -326,20 +326,18 @@ void ChannelReceive::OnReceivedPayloadData(
     // Avoid inserting into NetEQ when we are not playing. Count the
     // packet as discarded.
 
-    // If we have a source_tracker_, tell it that the frame has been
-    // "delivered". Normally, this happens in AudioReceiveStreamInterface when
-    // audio frames are pulled out, but when playout is muted, nothing is
-    // pulling frames. The downside of this approach is that frames delivered
-    // this way won't be delayed for playout, and therefore will be
-    // unsynchronized with (a) audio delay when playing and (b) any audio/video
-    // synchronization. But the alternative is that muting playout also stops
-    // the SourceTracker from updating RtpSource information.
-    if (source_tracker_) {
-      RtpPacketInfos::vector_type packet_vector = {
-          RtpPacketInfo(rtpHeader, receive_time)};
-      source_tracker_->OnFrameDelivered(RtpPacketInfos(packet_vector));
-    }
-
+    // Tell source_tracker_ that the frame has been "delivered". Normally, this
+    // happens in AudioReceiveStreamInterface when audio frames are pulled out,
+    // but when playout is muted, nothing is pulling frames. The downside of
+    // this approach is that frames delivered this way won't be delayed for
+    // playout, and therefore will be unsynchronized with (a) audio delay when
+    // playing and (b) any audio/video synchronization. But the alternative is
+    // that muting playout also stops the SourceTracker from updating RtpSource
+    // information.
+    RtpPacketInfos::vector_type packet_vector = {
+        RtpPacketInfo(rtpHeader, receive_time)};
+    source_tracker_.OnFrameDelivered(RtpPacketInfos(packet_vector),
+                                     env_.clock().CurrentTime());
     return;
   }
 
@@ -483,7 +481,16 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
     }
     packet_infos.push_back(std::move(new_packet_info));
   }
-  audio_frame->packet_infos_ = RtpPacketInfos(packet_infos);
+  audio_frame->packet_infos_ = RtpPacketInfos(std::move(packet_infos));
+  if (!audio_frame->packet_infos_.empty()) {
+    RtpPacketInfos infos_copy = audio_frame->packet_infos_;
+    Timestamp delivery_time = env_.clock().CurrentTime();
+    worker_thread_->PostTask(
+        SafeTask(worker_safety_.flag(), [this, infos_copy, delivery_time]() {
+          RTC_DCHECK_RUN_ON(&worker_thread_checker_);
+          source_tracker_.OnFrameDelivered(infos_copy, delivery_time);
+        }));
+  }
 
   ++audio_frame_interval_count_;
   if (audio_frame_interval_count_ >= kHistogramReportingInterval) {
@@ -515,10 +522,6 @@ int ChannelReceive::PreferredSampleRate() const {
                   acm_receiver_.last_output_sample_rate_hz());
 }
 
-void ChannelReceive::SetSourceTracker(SourceTracker* source_tracker) {
-  source_tracker_ = source_tracker;
-}
-
 ChannelReceive::ChannelReceive(
     const Environment& env,
     NetEqFactory* neteq_factory,
@@ -540,6 +543,7 @@ ChannelReceive::ChannelReceive(
       worker_thread_(TaskQueueBase::Current()),
       rtp_receive_statistics_(ReceiveStatistics::Create(&env_.clock())),
       remote_ssrc_(remote_ssrc),
+      source_tracker_(&env_.clock()),
       acm_receiver_(env_,
                     AcmConfig(neteq_factory,
                               decoder_factory,
@@ -1103,6 +1107,11 @@ int ChannelReceive::GetRtpTimestampRateHz() const {
   return (decoder && decoder->second.clockrate_hz != 0)
              ? decoder->second.clockrate_hz
              : acm_receiver_.last_output_sample_rate_hz();
+}
+
+std::vector<RtpSource> ChannelReceive::GetSources() const {
+  RTC_DCHECK_RUN_ON(&worker_thread_checker_);
+  return source_tracker_.GetSources();
 }
 
 }  // namespace

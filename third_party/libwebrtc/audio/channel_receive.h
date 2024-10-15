@@ -149,9 +149,7 @@ class ChannelReceiveInterface : public RtpPacketSinkInterface {
 
   virtual int PreferredSampleRate() const = 0;
 
-  // Sets the source tracker to notify about "delivered" packets when output is
-  // muted.
-  virtual void SetSourceTracker(SourceTracker* source_tracker) = 0;
+  virtual std::vector<RtpSource> GetSources() const = 0;
 
   // Associate to a send channel.
   // Used for obtaining RTT for a receive-only channel.

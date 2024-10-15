@@ -104,7 +104,6 @@ AudioReceiveStreamImpl::AudioReceiveStreamImpl(
     std::unique_ptr<voe::ChannelReceiveInterface> channel_receive)
     : config_(config),
       audio_state_(audio_state),
-      source_tracker_(&env.clock()),
       channel_receive_(std::move(channel_receive)) {
   RTC_LOG(LS_INFO) << "AudioReceiveStreamImpl: " << config.rtp.remote_ssrc;
   RTC_DCHECK(config.decoder_factory);
@@ -115,11 +114,6 @@ AudioReceiveStreamImpl::AudioReceiveStreamImpl(
   RTC_DCHECK(packet_router);
   // Configure bandwidth estimation.
   channel_receive_->RegisterReceiverCongestionControlObjects(packet_router);
-
-  // When output is muted, ChannelReceive will directly notify the source
-  // tracker of "delivered" frames, so RtpReceiver information will continue to
-  // be updated.
-  channel_receive_->SetSourceTracker(&source_tracker_);
 
   // Complete configuration.
   // TODO(solenberg): Config NACK history window (which is a packet count),
@@ -379,19 +373,13 @@ int AudioReceiveStreamImpl::GetBaseMinimumPlayoutDelayMs() const {
 }
 
 std::vector<RtpSource> AudioReceiveStreamImpl::GetSources() const {
-  return source_tracker_.GetSources();
+  return channel_receive_->GetSources();
 }
 
 AudioMixer::Source::AudioFrameInfo
 AudioReceiveStreamImpl::GetAudioFrameWithInfo(int sample_rate_hz,
                                               AudioFrame* audio_frame) {
-  AudioMixer::Source::AudioFrameInfo audio_frame_info =
-      channel_receive_->GetAudioFrameWithInfo(sample_rate_hz, audio_frame);
-  if (audio_frame_info != AudioMixer::Source::AudioFrameInfo::kError &&
-      !audio_frame->packet_infos_.empty()) {
-    source_tracker_.OnFrameDelivered(audio_frame->packet_infos_);
-  }
-  return audio_frame_info;
+  return channel_receive_->GetAudioFrameWithInfo(sample_rate_hz, audio_frame);
 }
 
 int AudioReceiveStreamImpl::Ssrc() const {

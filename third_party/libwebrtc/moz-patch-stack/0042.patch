@@ -20,7 +20,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d0b311007c033e838
  11 files changed, 55 insertions(+), 10 deletions(-)
 
 diff --git a/audio/audio_receive_stream.cc b/audio/audio_receive_stream.cc
-index 44c95f3c04..cd11e7163b 100644
+index bf2da5dd18..cd6ed5fbdd 100644
 --- a/audio/audio_receive_stream.cc
 +++ b/audio/audio_receive_stream.cc
 @@ -43,6 +43,8 @@ std::string AudioReceiveStreamInterface::Config::Rtp::ToString() const {
@@ -42,7 +42,7 @@ index 44c95f3c04..cd11e7163b 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index 7fcdf66cf8..3021453d03 100644
+index 86c8cfbae3..4877223188 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
 @@ -105,7 +105,8 @@ class ChannelReceive : public ChannelReceiveInterface,
@@ -55,7 +55,7 @@ index 7fcdf66cf8..3021453d03 100644
    ~ChannelReceive() override;
  
    void SetSink(AudioSinkInterface* sink) override;
-@@ -533,7 +534,8 @@ ChannelReceive::ChannelReceive(
+@@ -536,7 +537,8 @@ ChannelReceive::ChannelReceive(
      std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
@@ -65,7 +65,7 @@ index 7fcdf66cf8..3021453d03 100644
      : env_(env),
        worker_thread_(TaskQueueBase::Current()),
        rtp_receive_statistics_(ReceiveStatistics::Create(&env_.clock())),
-@@ -570,6 +572,7 @@ ChannelReceive::ChannelReceive(
+@@ -574,6 +576,7 @@ ChannelReceive::ChannelReceive(
    configuration.local_media_ssrc = local_ssrc;
    configuration.rtcp_packet_type_counter_observer = this;
    configuration.non_sender_rtt_measurement = enable_non_sender_rtt;
@@ -73,7 +73,7 @@ index 7fcdf66cf8..3021453d03 100644
  
    if (frame_transformer)
      InitFrameTransformerDelegate(std::move(frame_transformer));
-@@ -1119,13 +1122,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -1128,13 +1131,14 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
@@ -91,7 +91,7 @@ index 7fcdf66cf8..3021453d03 100644
  
  }  // namespace voe
 diff --git a/audio/channel_receive.h b/audio/channel_receive.h
-index 0a1157324d..0d5b76565e 100644
+index 4e2048daac..bebafc12a7 100644
 --- a/audio/channel_receive.h
 +++ b/audio/channel_receive.h
 @@ -29,6 +29,7 @@
@@ -102,7 +102,7 @@ index 0a1157324d..0d5b76565e 100644
  #include "modules/rtp_rtcp/source/source_tracker.h"
  
  // TODO(solenberg, nisse): This file contains a few NOLINT marks, to silence
-@@ -185,7 +186,8 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -183,7 +184,8 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      std::optional<AudioCodecPairId> codec_pair_id,
      rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
      const webrtc::CryptoOptions& crypto_options,
