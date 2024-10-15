@@ -11,6 +11,61 @@ use glean::{DistributionData, ErrorType, HistogramType};
 use crate::ipc::{need_ipc, with_ipc_payload};
 use glean::traits::CustomDistribution;
 
+#[cfg(feature = "with_gecko")]
+use super::profiler_utils::{lookup_canonical_metric_name, LookupError};
+
+#[cfg(feature = "with_gecko")]
+use gecko_profiler::gecko_profiler_category;
+
+#[cfg(feature = "with_gecko")]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+struct CustomDistributionMetricMarker {
+    id: MetricId,
+    samples: Vec<i64>,
+}
+
+#[cfg(feature = "with_gecko")]
+impl gecko_profiler::ProfilerMarker for CustomDistributionMetricMarker {
+    fn marker_type_name() -> &'static str {
+        "CustomDistribution"
+    }
+
+    fn marker_type_display() -> gecko_profiler::MarkerSchema {
+        use gecko_profiler::schema::*;
+        let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+        schema.set_tooltip_label("{marker.data.id} {marker.data.samples}");
+        schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.samples}");
+        schema.add_key_label_format_searchable(
+            "id",
+            "Metric",
+            Format::String,
+            Searchable::Searchable,
+        );
+        schema.add_key_label_format("samples", "Samples", Format::String);
+        schema
+    }
+
+    fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+        json_writer.string_property(
+            "id",
+            lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
+        );
+        let vstr = if self.samples.len() == 1 {
+            format!("{}", self.samples[0])
+        } else {
+            format!(
+                "[{}]",
+                self.samples
+                    .iter()
+                    .map(|x| x.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        };
+        json_writer.string_property("samples", vstr.as_str());
+    }
+}
+
 /// A custom distribution metric.
 ///
 /// Custom distributions are used to record the distribution of arbitrary values.
@@ -110,8 +165,37 @@ impl LocalCustomDistribution<'_> {
 impl CustomDistribution for CustomDistributionMetric {
     pub fn accumulate_samples_signed(&self, samples: Vec<i64>) {
         match self {
-            CustomDistributionMetric::Parent { inner, .. } => inner.accumulate_samples(samples),
+            // We need to allow unused for `id`, as it's
+            // only used when we compile with gecko
+            #[allow(unused_variables)]
+            CustomDistributionMetric::Parent { id, inner } => {
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "CustomDistribution::accumulate",
+                        gecko_profiler_category!(Telemetry),
+                        Default::default(),
+                        CustomDistributionMetricMarker {
+                            id: *id,
+                            samples: samples.clone(),
+                        },
+                    );
+                }
+                inner.accumulate_samples(samples)
+            }
             CustomDistributionMetric::Child(c) => {
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "CustomDistribution::accumulate",
+                        gecko_profiler_category!(Telemetry),
+                        Default::default(),
+                        CustomDistributionMetricMarker {
+                            id: c.0,
+                            samples: samples.clone(),
+                        },
+                    );
+                }
                 with_ipc_payload(move |payload| {
                     if let Some(v) = payload.custom_samples.get_mut(&c.0) {
                         v.extend(samples);
@@ -125,10 +209,37 @@ impl CustomDistribution for CustomDistributionMetric {
 
     pub fn accumulate_single_sample_signed(&self, sample: i64) {
         match self {
-            CustomDistributionMetric::Parent { inner, .. } => {
-                inner.accumulate_single_sample(sample)
+            // We need to allow unused for `id`, as it's
+            // only used when we compile with gecko
+            #[allow(unused_variables)]
+            CustomDistributionMetric::Parent { id, inner } => {
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "CustomDistribution::accumulate",
+                        gecko_profiler_category!(Telemetry),
+                        Default::default(),
+                        CustomDistributionMetricMarker {
+                            id: *id,
+                            samples: vec![sample],
+                        },
+                    );
+                }
+                inner.accumulate_single_sample(sample);
             }
             CustomDistributionMetric::Child(c) => {
+                #[cfg(feature = "with_gecko")]
+                if gecko_profiler::can_accept_markers() {
+                    gecko_profiler::add_marker(
+                        "CustomDistribution::accumulate",
+                        gecko_profiler_category!(Telemetry),
+                        Default::default(),
+                        CustomDistributionMetricMarker {
+                            id: c.0,
+                            samples: vec![sample],
+                        },
+                    );
+                }
                 with_ipc_payload(move |payload| {
                     if let Some(v) = payload.custom_samples.get_mut(&c.0) {
                         v.push(sample);
