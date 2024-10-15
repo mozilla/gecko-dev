@@ -182,7 +182,8 @@ function waitForEvent(topic, status = null) {
 
 /* Triggers post-update processing */
 async function testPostUpdateProcessing() {
-  await gAUS.internal.postUpdateProcessing();
+  // All of the post update processing happens during initialization
+  await gAUS.internal.init(/* force = */ true);
 }
 
 /* Initializes the update service stub */

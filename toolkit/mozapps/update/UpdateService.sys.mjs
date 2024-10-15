@@ -2668,9 +2668,8 @@ export class UpdateService {
     this._logStatus();
 
     this.internal = {
-      init: async () => this.#init(),
+      init: async (force = false) => this.#init(force),
       downloadUpdate: async update => this.#downloadUpdate(update),
-      postUpdateProcessing: async () => this._postUpdateProcessing(),
       stopDownload: async () => this.#stopDownload(),
       QueryInterface: ChromeUtils.generateQI([
         Ci.nsIApplicationUpdateServiceInternal,
@@ -2687,13 +2686,17 @@ export class UpdateService {
 
   /**
    * See nsIApplicationUpdateServiceInternal.init in nsIUpdateService.idl
+   * and `#asyncInit`.
    */
-  async #init() {
+  async #init(force = false) {
+    if (force) {
+      return this.#asyncInit();
+    }
     if (!this.#initPromise) {
-      this.#initPromise = this._postUpdateProcessing();
+      this.#initPromise = this.#asyncInit();
     }
 
-    await this.#initPromise;
+    return this.#initPromise;
   }
 
   /**
@@ -2756,49 +2759,59 @@ export class UpdateService {
   }
 
   /**
-   * The following needs to happen during the post-update-processing
-   * notification from nsUpdateServiceStub.js:
-   * 1. post update processing
-   * 2. resume of a download that was in progress during a previous session
-   * 3. start of a complete update download after the failure to apply a partial
-   *    update
-   */
-
-  /**
-   * Perform post-processing on updates lingering in the updates directory
-   * from a previous application session - either report install failures (and
-   * optionally attempt to fetch a different version if appropriate) or
-   * notify the user of install success.
+   * This is effectively the initialization function for `UpdateService`.
    *
-   * This will only be called during `UpdateService` initialization and should
-   * not be called again (with possible exceptions in testing).
+   * Bug 1900717 - This currently returns immediately if we don't hold the
+   *               update mutex when we initialize and it never runs again, even
+   *               if we eventually do get the update mutex.
+   *
+   * The initialization process basically involves doing any of these steps that
+   * are currently relevant:
+   *
+   * Make sure we are in a good state
+   *   Reset things and clean up if information in different files conflicts.
+   *
+   * Show the update elevation dialog
+   *   When we need to elevate our privileges to update on macOS, we show a
+   *   dialog to ask the user first. We show that now and if they accept it,
+   *   they are updated on the next application launch.
+   *
+   * Post update processing
+   *   Move installed updates into the history. Cleanup.
+   *
+   * Resume in-progress download
+   *   For BITS, this really just means connecting to the BITS manager.
+   *   For the internal downloader, we actually need to start the download
+   *   again.
+   *
+   * Error fallback
+   *   If an in-progress update failed in some way, we try to fall back. This
+   *   could include retrying the installation differently next time,
+   *   downloading a new MAR, or asking the user to download and run a new
+   *   installer.
    */
   /* eslint-disable-next-line complexity */
-  async _postUpdateProcessing() {
+  async #asyncInit() {
+    // This check also ensures we have the update mutex
     if (!this.canCheckForUpdates) {
       LOG(
-        "UpdateService:_postUpdateProcessing - unable to check for " +
+        "UpdateService:#asyncInit - unable to check for " +
           "updates... returning early"
       );
       return;
     }
     const readyUpdateDir = getReadyUpdateDir();
     let status = readStatusFile(readyUpdateDir);
-    LOG(`UpdateService:_postUpdateProcessing - status = "${status}"`);
-
-    if (!this.canApplyUpdates) {
+    LOG(`UpdateService:#asyncInit - status = "${status}"`);
+    if (!this.canUsuallyApplyUpdates) {
       LOG(
-        "UpdateService:_postUpdateProcessing - unable to apply " +
+        "UpdateService:#asyncInit - unable to apply " +
           "updates... returning early"
       );
-      if (hasUpdateMutex()) {
-        // If the update is present in the update directory somehow,
-        // it would prevent us from notifying the user of further updates.
-        LOG(
-          "UpdateService:_postUpdateProcessing - Cleaning up active updates."
-        );
-        cleanupActiveUpdates();
-      }
+      // If the update is present in the update directory somehow,
+      // it would prevent us from notifying the user of further updates.
+      LOG("UpdateService:#asyncInit - Cleaning up active updates.");
+      cleanupActiveUpdates();
       return;
     }
 
@@ -2811,13 +2824,13 @@ export class UpdateService {
     }
 
     if (status == STATE_NONE) {
-      // A status of STATE_NONE in _postUpdateProcessing means that the there
+      // A status of STATE_NONE in #asyncInit means that the there
       // isn't an update in progress. Let's make sure we initialize into a good
       // state.
       // Under some edgecases such as Windows system restore the
       // active-update.xml will contain a pending update without the status
       // file. We need to deal with that situation gracefully.
-      LOG("UpdateService:_postUpdateProcessing - Initial cleanup");
+      LOG("UpdateService:#asyncInit - Initial cleanup");
 
       const statusFile = readyUpdateDir.clone();
       statusFile.append(FILE_UPDATE_STATUS);
@@ -2825,7 +2838,7 @@ export class UpdateService {
         // This file existing but not having a state in it is unexpected. In
         // addition to putting things in a good state, put a null update in the
         // update history if we didn't start up with any.
-        LOG("UpdateService:_postUpdateProcessing - Status file is empty?");
+        LOG("UpdateService:#asyncInit - Status file is empty?");
 
         if (!updates.length) {
           updates.push(new Update(null));
@@ -2849,8 +2862,8 @@ export class UpdateService {
       return;
     }
 
-    let channelChanged = updates => {
-      for (let update of updates) {
+    let channelChanged = updatesToCheck => {
+      for (let update of updatesToCheck) {
         if (update.channel != lazy.UpdateUtils.UpdateChannel) {
           return true;
         }
@@ -2862,7 +2875,7 @@ export class UpdateService {
         ? lazy.UM.internal.readyUpdate.channel
         : lazy.UM.internal.downloadingUpdate.channel;
       LOG(
-        "UpdateService:_postUpdateProcessing - update channel is " +
+        "UpdateService:#asyncInit - update channel is " +
           "different than application's channel, removing update. update " +
           "channel: " +
           channel +
@@ -2915,7 +2928,7 @@ export class UpdateService {
       }
       if (tooOldUpdate) {
         LOG(
-          "UpdateService:_postUpdateProcessing - removing update for older " +
+          "UpdateService:#asyncInit - removing update for older " +
             "application version or same application version with same build " +
             "ID. update application version: " +
             tooOldUpdate.appVersion +
@@ -2959,7 +2972,7 @@ export class UpdateService {
         // MAR without checking because we currently only download partial MARs
         // when an update has already been downloaded.
         LOG(
-          "UpdateService:_postUpdateProcessing - removing downloading patch " +
+          "UpdateService:#asyncInit - removing downloading patch " +
             "because we installed a different patch before it finished" +
             "downloading."
         );
@@ -2968,7 +2981,7 @@ export class UpdateService {
         // Attempt to resume download
         if (lazy.UM.internal.downloadingUpdate) {
           LOG(
-            "UpdateService:_postUpdateProcessing - resuming patch found in " +
+            "UpdateService:#asyncInit - resuming patch found in " +
               "downloading state"
           );
           let result = await this.#downloadUpdate(
@@ -2981,14 +2994,14 @@ export class UpdateService {
                 .DOWNLOAD_FAILURE_CANNOT_RESUME_IN_BACKGROUND
           ) {
             LOG(
-              "UpdateService:_postUpdateProcessing - Failed to resume patch. " +
+              "UpdateService:#asyncInit - Failed to resume patch. " +
                 "Cleaning up downloading update."
             );
             cleanupDownloadingUpdate();
           }
         } else {
           LOG(
-            "UpdateService:_postUpdateProcessing - Warning: found " +
+            "UpdateService:#asyncInit - Warning: found " +
               "downloading state, but no downloading patch. Cleaning up " +
               "active updates."
           );
@@ -3024,7 +3037,7 @@ export class UpdateService {
         (update.state == STATE_PENDING || update.state == STATE_PENDING_SERVICE)
       ) {
         LOG(
-          "UpdateService:_postUpdateProcessing - patch found in applying " +
+          "UpdateService:#asyncInit - patch found in applying " +
             "state for the first time"
         );
         update.state = STATE_APPLYING;
@@ -3034,7 +3047,7 @@ export class UpdateService {
       } else {
         // We get here even if we don't have an update object
         LOG(
-          "UpdateService:_postUpdateProcessing - patch found in applying " +
+          "UpdateService:#asyncInit - patch found in applying " +
             "state for the second time. Cleaning up ready update."
         );
         cleanupReadyUpdate();
@@ -3045,14 +3058,14 @@ export class UpdateService {
     if (!update) {
       if (status != STATE_SUCCEEDED) {
         LOG(
-          "UpdateService:_postUpdateProcessing - previous patch failed " +
+          "UpdateService:#asyncInit - previous patch failed " +
             "and no patch available. Cleaning up ready update."
         );
         cleanupReadyUpdate();
         return;
       }
       LOG(
-        "UpdateService:_postUpdateProcessing - Update data missing. Creating " +
+        "UpdateService:#asyncInit - Update data missing. Creating " +
           "an empty update object."
       );
       update = new Update(null);
@@ -3062,20 +3075,20 @@ export class UpdateService {
     status = parts[0];
     update.state = status;
     LOG(
-      `UpdateService:_postUpdateProcessing - Setting update's state from ` +
+      `UpdateService:#asyncInit - Setting update's state from ` +
         `the status file (="${update.state}")`
     );
     if (update.state == STATE_FAILED && parts[1]) {
       update.errorCode = parseInt(parts[1]);
       LOG(
-        `UpdateService:_postUpdateProcessing - Setting update's errorCode ` +
+        `UpdateService:#asyncInit - Setting update's errorCode ` +
           `from the status file (="${update.errorCode}")`
       );
     }
 
     if (status != STATE_SUCCEEDED) {
-      // Rotate the update logs so the update log isn't removed. By passing
-      // false the patch directory won't be removed.
+      // If there are new update logs, rotate them to ensure none are ever
+      // overwritten. By passing `false` the patch directory won't be removed.
       cleanUpReadyUpdateDir(false);
     }
 
@@ -3105,17 +3118,14 @@ export class UpdateService {
       // readyUpdate is null.
       if (!lazy.UM.internal.readyUpdate) {
         LOG(
-          "UpdateService:_postUpdateProcessing - Assigning successful update " +
+          "UpdateService:#asyncInit - Assigning successful update " +
             "readyUpdate before cleaning it up."
         );
         lazy.UM.internal.readyUpdate = update;
       }
 
       // Done with this update. Clean it up.
-      LOG(
-        "UpdateService:_postUpdateProcessing - Cleaning up successful ready " +
-          "update."
-      );
+      LOG("UpdateService:#asyncInit - Cleaning up successful ready update.");
       cleanupReadyUpdate();
 
       Services.prefs.setIntPref(PREF_APP_UPDATE_ELEVATE_ATTEMPTS, 0);
@@ -3123,7 +3133,7 @@ export class UpdateService {
       // In case the active-update.xml file is deleted.
       if (!update) {
         LOG(
-          "UpdateService:_postUpdateProcessing - status is pending-elevate " +
+          "UpdateService:#asyncInit - status is pending-elevate " +
             "but there isn't a ready update, removing update"
         );
         cleanupReadyUpdate();
@@ -3137,13 +3147,13 @@ export class UpdateService {
           // restart.
           // So this is defense in depth.
           LOG(
-            "UpdateService:_postUpdateProcessing - status is " +
+            "UpdateService:#asyncInit - status is " +
               "pending-elevate, but this is a silent startup, so the " +
               "elevation window has been suppressed."
           );
         } else {
           LOG(
-            "UpdateService:_postUpdateProcessing - status is " +
+            "UpdateService:#asyncInit - status is " +
               "pending-elevate. Showing Update elevation dialog."
           );
           let uri = "chrome://mozapps/content/update/updateElevation.xhtml";
@@ -3152,24 +3162,40 @@ export class UpdateService {
           Services.ww.openWindow(null, uri, "Update:Elevation", features, null);
         }
       }
+    } else if (
+      status == STATE_PENDING ||
+      status == STATE_PENDING_SERVICE ||
+      status == STATE_APPLIED ||
+      status == STATE_APPLIED_SERVICE
+    ) {
+      // We started up with an update already pending. Usually we apply updates
+      // at startup, but there are some cases where we do not. Most likely, we
+      // will just end up installing this update the next time we start up, but
+      // we should make sure that the pending update looks valid since it may
+      // prevent us from downloading a new one in the meantime.
+      LOG("UpdateService:#asyncInit - Verifying existing pending update.");
+      // The only things the updater binary really needs to update are
+      // `update.status` (which we already read `status` from) and `update.mar`.
+      let marFile = readyUpdateDir.clone();
+      marFile.append(FILE_UPDATE_MAR);
+      if (!marFile.exists()) {
+        LOG("UpdateService:#asyncInit - Cleaning up missing pending update.");
+        cleanupReadyUpdate();
+      }
     } else {
       // If there was an I/O error it is assumed that the patch is not invalid
       // and it is set to pending so an attempt to apply it again will happen
       // when the application is restarted.
       if (update.state == STATE_FAILED && update.errorCode) {
-        LOG(
-          "UpdateService:_postUpdateProcessing - Attempting handleUpdateFailure"
-        );
+        LOG("UpdateService:#asyncInit - Attempting handleUpdateFailure");
         if (handleUpdateFailure(update)) {
-          LOG(
-            "UpdateService:_postUpdateProcessing - handleUpdateFailure success."
-          );
+          LOG("UpdateService:#asyncInit - handleUpdateFailure success.");
           return;
         }
       }
 
       LOG(
-        "UpdateService:_postUpdateProcessing - Attempting to fall back to a " +
+        "UpdateService:#asyncInit - Attempting to fall back to a " +
           "complete update."
       );
       // Something went wrong with the patch application process.

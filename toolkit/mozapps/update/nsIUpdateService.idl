@@ -403,9 +403,12 @@ interface nsIApplicationUpdateServiceInternal : nsISupports
    * method is invoked as part of the update initialization process, but is not
    * an entry point to it.
    *
+   * @param   force
+   *          If `true`, run the initialization again, even if we already have.
+   *          Should only be used in testing.
    * @returns Promise<undefined>
    */
-  Promise init();
+  Promise init(in boolean force);
 
   /**
    * These are identical to the corresponding functions in
@@ -414,14 +417,6 @@ interface nsIApplicationUpdateServiceInternal : nsISupports
    */
   Promise downloadUpdate(in nsIUpdate update);
   Promise stopDownload();
-
-  /**
-   * Runs post update processing, even if it has already run. This should only
-   * be done in testing.
-   *
-   * @returns Promise<undefined>
-   */
-  Promise postUpdateProcessing();
 };
 
 /**

@@ -127,7 +127,7 @@ export class UpdateServiceStub {
     Cc["@mozilla.org/updates/update-checker;1"].getService(Ci.nsIUpdateChecker);
 
     // Run update service initialization
-    await aus.internal.init();
+    await aus.internal.init(false);
   }
 
   async #init(force_update_init) {
