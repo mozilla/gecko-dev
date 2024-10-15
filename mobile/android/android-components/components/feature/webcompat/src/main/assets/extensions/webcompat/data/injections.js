@@ -1218,6 +1218,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1836872",
+    platform: "desktop",
+    domain: "docs.google.com",
+    bug: "1836872",
+    contentScripts: {
+      matches: ["*://docs.google.com/document/*"],
+      css: [
+        {
+          file: "injections/css/bug1836872-docs.google.com-font-submenus-inaccessible.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
