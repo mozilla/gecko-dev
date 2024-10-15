@@ -25,6 +25,8 @@ skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1892548
 ["browser_asrouter_keyboard_cfr.js"]
 https_first_disabled = true
 
+["browser_asrouter_menu_messages.js"]
+
 ["browser_asrouter_milestone_message_cfr.js"]
 
 ["browser_asrouter_momentspagehub.js"]

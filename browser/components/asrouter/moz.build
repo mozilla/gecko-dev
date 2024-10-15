@@ -42,6 +42,8 @@ EXTRA_JS_MODULES.asrouter += [
     "modules/ToolbarBadgeHub.sys.mjs",
 ]
 
+MOCHITEST_CHROME_MANIFESTS += ["tests/chrome/chrome.toml"]
+
 BROWSER_CHROME_MANIFESTS += [
     "tests/browser/browser.toml",
 ]

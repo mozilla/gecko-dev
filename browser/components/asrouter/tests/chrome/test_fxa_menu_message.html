@@ -1,0 +1,184 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tests for the FxA Menu Message component</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <script
+  src="chrome://browser/content/asrouter/components/fxa-menu-message.mjs"
+  type="module"
+></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script>
+    const { BrowserTestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/BrowserTestUtils.sys.mjs"
+    );
+
+    /**
+     * Tests that the exposed properties of the component are reflected
+     * as expected in the shadow DOM.
+     */
+    add_task(async function test_properties() {
+      let message = document.createElement("fxa-menu-message");
+      const TEST_IMAGE_URL = "chrome://activity-stream/content/data/content/assets/fox-doodle-waving-static.png";
+      message.imageURL = TEST_IMAGE_URL;
+      const TEST_BUTTON_TEXT = "Howdy, partner! Sign up!";
+      message.buttonText = TEST_BUTTON_TEXT;
+      const PRIMARY_TEXT = "This is the primary text";
+      message.primaryText = PRIMARY_TEXT;
+      const SECONDARY_TEXT = "This is the secondary text";
+      message.secondaryText = SECONDARY_TEXT;
+
+      let content = document.getElementById("content");
+      content.appendChild(message);
+      await message.updateComplete;
+
+      let shadow = message.shadowRoot;
+      let image = shadow.querySelector("img");
+      is(image.src, TEST_IMAGE_URL, "The img element got the expected URL");
+
+      let button = shadow.querySelector("#sign-up-button");
+      is(button.textContent, TEST_BUTTON_TEXT, "The sign-up button got the right text.");
+
+      let primaryText = shadow.querySelector("#primary");
+      is(primaryText.textContent, PRIMARY_TEXT, "The primary text was correct.");
+
+      let secondaryText = shadow.querySelector("#secondary");
+      is(secondaryText.textContent, SECONDARY_TEXT, "The secondary text was correct.");
+
+      message.remove();
+    });
+
+    /**
+     * Tests that the buttons exposed by the component emit the expected
+     * events.
+     */
+    add_task(async function test_properties() {
+      let message = document.createElement("fxa-menu-message");
+      const TEST_BUTTON_TEXT = "Howdy, partner! Sign up!";
+      message.buttonText = TEST_BUTTON_TEXT;
+
+      let content = document.getElementById("content");
+      content.appendChild(message);
+      await message.updateComplete;
+
+      let shadow = message.shadowRoot;
+
+      let signUpEventPromise = BrowserTestUtils.waitForEvent(message, "FxAMenuMessage:SignUp");
+      let signUpButton = shadow.querySelector("#sign-up-button");
+      signUpButton.click();
+      await signUpEventPromise;
+      ok(true, "Got the FxAMenuMessage:SignUp event");
+
+      let closeEventPromise = BrowserTestUtils.waitForEvent(message, "FxAMenuMessage:Close");
+      let closeButton = shadow.querySelector("#close-button");
+      closeButton.click();
+      await closeEventPromise;
+      ok(true, "Got the FxAMenuMessage:Close event");
+
+      message.remove();
+    });
+
+    /**
+     * Tests that the sign-up button is focused by default, and that focus
+     * can be changed via the keyboard.
+     */
+    add_task(async function test_focus() {
+      let message = document.createElement("fxa-menu-message");
+      const TEST_BUTTON_TEXT = "Howdy, partner! Sign up!";
+      message.buttonText = TEST_BUTTON_TEXT;
+
+      let content = document.getElementById("content");
+      content.appendChild(message);
+      await message.updateComplete;
+
+      message.focus();
+
+      let shadow = message.shadowRoot;
+      let signUpButton = shadow.querySelector("#sign-up-button");
+      is(shadow.activeElement, signUpButton, "Sign-up button is focused by default.");
+
+      let closeButton = shadow.querySelector("#close-button");
+      const FOCUS_CHANGING_KEYS = [
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown",
+      ];
+
+      for (let keyName of FOCUS_CHANGING_KEYS) {
+        synthesizeKey(`KEY_${keyName}`);
+        // Now the close button should be focused.
+        is(shadow.activeElement, closeButton, "Close button is now focused.");
+
+        synthesizeKey(`KEY_${keyName}`);
+        // And pressing the same key should swap focus back to the sign-up
+        // button.
+        is(shadow.activeElement, signUpButton, "Sign-up button is now focused.");
+      }
+
+      message.remove();
+    });
+
+    /**
+     * Tests that setting no imageURL makes it so that the image element is
+     * not visible, and setting one makes it visible.
+     */
+    add_task(async function test_focus() {
+      let message = document.createElement("fxa-menu-message");
+      const TEST_BUTTON_TEXT = "Howdy, partner! Sign up!";
+      message.buttonText = TEST_BUTTON_TEXT;
+
+      let content = document.getElementById("content");
+      content.appendChild(message);
+      await message.updateComplete;
+
+      let illustrationContainer = message.shadowRoot.querySelector("#illustration-container");
+      ok(isHidden(illustrationContainer), "Illustration container should be hidden.");
+
+      message.imageURL = "some-image.png";
+      await message.updateComplete;
+      ok(!isHidden(illustrationContainer), "Illustration container should be visible.");
+
+      message.remove();
+    });
+
+    /**
+     * Tests that setting the --illustration-margin-block-offset forwards that
+     * offset to the illustration container.
+     */
+     add_task(async function test_focus() {
+       let message = document.createElement("fxa-menu-message");
+       const TEST_IMAGE_URL = "chrome://activity-stream/content/data/content/assets/fox-doodle-waving-static.png";
+       message.imageURL = TEST_IMAGE_URL;
+
+       let content = document.getElementById("content");
+       content.appendChild(message);
+
+       await message.updateComplete;
+
+       let illustrationContainer = message.shadowRoot.querySelector("#illustration-container");
+       ok(!isHidden(illustrationContainer), "Illustration container should not be hidden.");
+       let messageStyle = window.getComputedStyle(illustrationContainer);
+       is(messageStyle.marginBlockStart, "0px", "Illustration offset should default to 0px.");
+
+       const TEST_OFFSET = "123px";
+       message.style.setProperty("--illustration-margin-block-offset", TEST_OFFSET);
+       messageStyle = window.getComputedStyle(illustrationContainer);
+       is(
+         messageStyle.marginBlockStart,
+         TEST_OFFSET,
+         "Illustration offset should have been forwarded to the container."
+       );
+
+       message.remove();
+    });
+  </script>
+</head>
+<body>
+<p id="display"></p>
+<div id="content"></div>
+<pre id="test"></pre>
+</body>
+</html>
