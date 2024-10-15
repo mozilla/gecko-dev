@@ -187,6 +187,24 @@ class PeerConnectionEncodingsIntegrationTest : public ::testing::Test {
         local_pc_wrapper.get(), &PeerConnectionTestWrapper::AddIceCandidate);
   }
 
+  // Negotiate without any tweaks (does not work for simulcast loopback).
+  void Negotiate(
+      rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper,
+      rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper) {
+    std::unique_ptr<SessionDescriptionInterface> offer =
+        CreateOffer(local_pc_wrapper);
+    rtc::scoped_refptr<MockSetSessionDescriptionObserver> p1 =
+        SetLocalDescription(local_pc_wrapper, offer.get());
+    rtc::scoped_refptr<MockSetSessionDescriptionObserver> p2 =
+        SetRemoteDescription(remote_pc_wrapper, offer.get());
+    EXPECT_TRUE(Await({p1, p2}));
+    std::unique_ptr<SessionDescriptionInterface> answer =
+        CreateAnswer(remote_pc_wrapper);
+    p1 = SetLocalDescription(remote_pc_wrapper, answer.get());
+    p2 = SetRemoteDescription(local_pc_wrapper, answer.get());
+    EXPECT_TRUE(Await({p1, p2}));
+  }
+
   void NegotiateWithSimulcastTweaks(
       rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper,
       rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper) {
@@ -2096,6 +2114,86 @@ TEST_F(PeerConnectionEncodingsIntegrationTest,
   auto transceiver_or_error =
       local_pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
   ASSERT_TRUE(transceiver_or_error.ok());
+}
+
+TEST_F(PeerConnectionEncodingsIntegrationTest,
+       RequestedResolutionParameterChecking) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> pc_wrapper = CreatePc();
+
+  // AddTransceiver: If `requested_resolution` is specified on any encoding it
+  // must be specified on all encodings.
+  RtpTransceiverInit init;
+  RtpEncodingParameters encoding;
+  encoding.requested_resolution = std::nullopt;
+  init.send_encodings.push_back(encoding);
+  encoding.requested_resolution = {.width = 1280, .height = 720};
+  init.send_encodings.push_back(encoding);
+  auto transceiver_or_error =
+      pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  EXPECT_FALSE(transceiver_or_error.ok());
+  EXPECT_EQ(transceiver_or_error.error().type(),
+            RTCErrorType::UNSUPPORTED_OPERATION);
+
+  // AddTransceiver: Specifying both `requested_resolution` and
+  // `scale_resolution_down_by` is allowed (the latter is ignored).
+  init.send_encodings[0].requested_resolution = {.width = 640, .height = 480};
+  init.send_encodings[0].scale_resolution_down_by = 1.0;
+  init.send_encodings[1].requested_resolution = {.width = 1280, .height = 720};
+  init.send_encodings[1].scale_resolution_down_by = 2.0;
+  transceiver_or_error =
+      pc_wrapper->pc()->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  ASSERT_TRUE(transceiver_or_error.ok());
+
+  // SetParameters: If `requested_resolution` is specified on any encoding it
+  // must be specified on all encodings.
+  auto sender = transceiver_or_error.value()->sender();
+  auto parameters = sender->GetParameters();
+  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+  parameters.encodings[1].requested_resolution = std::nullopt;
+  auto error = sender->SetParameters(parameters);
+  EXPECT_FALSE(error.ok());
+  EXPECT_EQ(error.type(), RTCErrorType::INVALID_MODIFICATION);
+
+  // SetParameters: Specifying both `requested_resolution` and
+  // `scale_resolution_down_by` is allowed (the latter is ignored).
+  parameters = sender->GetParameters();
+  parameters.encodings[0].requested_resolution = {.width = 640, .height = 480};
+  parameters.encodings[0].scale_resolution_down_by = 2.0;
+  parameters.encodings[1].requested_resolution = {.width = 1280, .height = 720};
+  parameters.encodings[1].scale_resolution_down_by = 1.0;
+  error = sender->SetParameters(parameters);
+  EXPECT_TRUE(error.ok());
+}
+
+TEST_F(PeerConnectionEncodingsIntegrationTest,
+       ScaleResolutionDownByIsIgnoredWhenRequestedResolutionIsSpecified) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+
+  rtc::scoped_refptr<MediaStreamInterface> stream =
+      local_pc_wrapper->GetUserMedia(
+          /*audio=*/false, {}, /*video=*/true, {.width = 640, .height = 360});
+  rtc::scoped_refptr<VideoTrackInterface> track = stream->GetVideoTracks()[0];
+
+  // Configure contradicting scaling factors (180p vs 360p).
+  RtpTransceiverInit init;
+  RtpEncodingParameters encoding;
+  encoding.scale_resolution_down_by = 2.0;
+  encoding.requested_resolution = {.width = 640, .height = 360};
+  init.send_encodings.push_back(encoding);
+  auto transceiver_or_error =
+      local_pc_wrapper->pc()->AddTransceiver(track, init);
+
+  // Negotiate singlecast.
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+  Negotiate(local_pc_wrapper, remote_pc_wrapper);
+
+  // Confirm 640x360 is sent.
+  // If `scale_resolution_down_by` was not ignored we would never ramp up to
+  // full resolution.
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper) ==
+                       (Resolution{.width = 640, .height = 360}),
+                   kLongTimeoutForRampingUp.ms());
 }
 
 // Tests that use the standard path (specifying both `scalability_mode` and

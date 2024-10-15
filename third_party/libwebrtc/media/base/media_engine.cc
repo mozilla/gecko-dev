@@ -145,6 +145,7 @@ webrtc::RTCError CheckRtpParametersValues(
     const webrtc::FieldTrialsView& field_trials) {
   using webrtc::RTCErrorType;
 
+  bool has_requested_resolution = false;
   for (size_t i = 0; i < rtp_parameters.encodings.size(); ++i) {
     if (rtp_parameters.encodings[i].bitrate_priority <= 0) {
       LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_RANGE,
@@ -183,11 +184,8 @@ webrtc::RTCError CheckRtpParametersValues(
       }
     }
 
-    if (rtp_parameters.encodings[i].requested_resolution &&
-        rtp_parameters.encodings[i].scale_resolution_down_by) {
-      LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_RANGE,
-                           "Attempted to set scale_resolution_down_by and "
-                           "requested_resolution simultaniously.");
+    if (rtp_parameters.encodings[i].requested_resolution.has_value()) {
+      has_requested_resolution = true;
     }
 
     if (!field_trials.IsEnabled("WebRTC-MixedCodecSimulcast")) {
@@ -198,6 +196,16 @@ webrtc::RTCError CheckRtpParametersValues(
                              "different encodings.");
       }
     }
+  }
+
+  if (has_requested_resolution &&
+      absl::c_any_of(rtp_parameters.encodings,
+                     [](const webrtc::RtpEncodingParameters& encoding) {
+                       return !encoding.requested_resolution.has_value();
+                     })) {
+    LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_MODIFICATION,
+                         "If a resolution is specified on any encoding then "
+                         "it must be specified on all encodings.");
   }
 
   return CheckScalabilityModeValues(rtp_parameters, send_codecs, send_codec);
