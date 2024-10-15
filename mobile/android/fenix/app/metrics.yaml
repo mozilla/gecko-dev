@@ -1958,6 +1958,7 @@ metrics:
       - metrics
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/960
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/1067#issuecomment-474598673
       - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
@@ -1981,6 +1982,7 @@ metrics:
     send_in_pings:
       - metrics
       - baseline
+      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/16075
     data_reviews:
@@ -2316,9 +2318,11 @@ metrics:
     send_in_pings:
       - metrics
       - baseline
+      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/1158
       - https://github.com/mozilla-mobile/fenix/issues/6556
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/1677
       - https://github.com/mozilla-mobile/fenix/pull/5216
@@ -3504,8 +3508,10 @@ search.default_engine:
     send_in_pings:
       - metrics
       - baseline
+      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/800
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/1606
       - https://github.com/mozilla-mobile/fenix/pull/5216
@@ -3532,8 +3538,10 @@ search.default_engine:
     send_in_pings:
       - metrics
       - baseline
+      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/800
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/1606
       - https://github.com/mozilla-mobile/fenix/pull/5216
@@ -8000,10 +8008,12 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
+      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/6558
       - https://github.com/mozilla-mobile/fenix/issues/28010
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1799049
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/10112
       - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
@@ -8033,9 +8043,11 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
+      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/6558
       - https://github.com/mozilla-mobile/fenix/issues/28010
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/10112
       - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
@@ -8057,8 +8069,10 @@ browser.search:
     send_in_pings:
       - metrics
       - baseline
+      - dau-reporting
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/6557
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923842
     data_reviews:
       - https://github.com/mozilla-mobile/fenix/pull/10167
       - https://github.com/mozilla-mobile/fenix/pull/15713#issuecomment-703972068
