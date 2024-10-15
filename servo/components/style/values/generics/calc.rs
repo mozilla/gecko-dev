@@ -1549,6 +1549,9 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
 
                 debug_assert!(children.len() >= 2, "Should still have multiple kids!");
 
+                // Sort by spec order.
+                children.sort_unstable_by_key(|c| c.sort_key());
+
                 // NOTE: if the function returns true, by the docs of dedup_by,
                 // a is removed.
                 children.dedup_by(|right, left| left.try_product_in_place(right));
