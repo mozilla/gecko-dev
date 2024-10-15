@@ -169,6 +169,11 @@ impl SentPacket {
         }
     }
 
+    /// The number of the packet.
+    pub const fn pn(&self) -> PacketNumber {
+        self.pn
+    }
+
     /// Returns `true` if the packet will elicit an ACK.
     pub fn ack_eliciting(&self) -> bool {
         self.ack_eliciting

@@ -188,3 +188,10 @@ uniffi_bindgen = "=0.23.0"
 uniffi_build = "=0.23.0"
 uniffi_macros = "=0.23.0"
 weedle2 = "=4.0.0"
+
+[patch."https://github.com/mozilla/neqo"]
+neqo-common = { path = "third_party/rust/neqo-common" }
+neqo-crypto = { path = "third_party/rust/neqo-crypto" }
+neqo-http3 = { path = "third_party/rust/neqo-http3" }
+neqo-qpack = { path = "third_party/rust/neqo-qpack" }
+neqo-transport = { path = "third_party/rust/neqo-transport" }

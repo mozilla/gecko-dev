@@ -652,7 +652,6 @@ impl LossRecovery {
         &mut self,
         primary_path: &PathRef,
         pn_space: PacketNumberSpace,
-        largest_acked: u64,
         acked_ranges: R,
         ack_delay: Duration,
         now: Instant,
@@ -661,36 +660,25 @@ impl LossRecovery {
         R: IntoIterator<Item = RangeInclusive<u64>>,
         R::IntoIter: ExactSizeIterator,
     {
-        qdebug!(
-            [self],
-            "ACK for {} - largest_acked={}.",
-            pn_space,
-            largest_acked
-        );
-
-        let space = self.spaces.get_mut(pn_space);
-        let space = if let Some(sp) = space {
-            sp
-        } else {
+        let Some(space) = self.spaces.get_mut(pn_space) else {
             qinfo!("ACK on discarded space");
             return (Vec::new(), Vec::new());
         };
 
         let (acked_packets, any_ack_eliciting) =
             space.remove_acked(acked_ranges, &mut self.stats.borrow_mut());
-        if acked_packets.is_empty() {
+        let Some(largest_acked_pkt) = acked_packets.first() else {
             // No new information.
             return (Vec::new(), Vec::new());
-        }
+        };
 
         // Track largest PN acked per space
         let prev_largest_acked = space.largest_acked_sent_time;
-        if Some(largest_acked) > space.largest_acked {
-            space.largest_acked = Some(largest_acked);
+        if Some(largest_acked_pkt.pn()) > space.largest_acked {
+            space.largest_acked = Some(largest_acked_pkt.pn());
 
             // If the largest acknowledged is newly acked and any newly acked
             // packet was ack-eliciting, update the RTT. (-recovery 5.1)
-            let largest_acked_pkt = acked_packets.first().expect("must be there");
             space.largest_acked_sent_time = Some(largest_acked_pkt.time_sent);
             if any_ack_eliciting && largest_acked_pkt.on_primary_path() {
                 self.rtt_sample(
@@ -701,6 +689,13 @@ impl LossRecovery {
                 );
             }
         }
+
+        qdebug!(
+            [self],
+            "ACK for {} - largest_acked={}",
+            pn_space,
+            largest_acked_pkt.pn()
+        );
 
         // Perform loss detection.
         // PTO is used to remove lost packets from in-flight accounting.
@@ -1035,19 +1030,12 @@ mod tests {
         pub fn on_ack_received(
             &mut self,
             pn_space: PacketNumberSpace,
-            largest_acked: u64,
-            acked_ranges: Vec<RangeInclusive<u64>>,
+            acked_ranges: Vec<RangeInclusive<PacketNumber>>,
             ack_delay: Duration,
             now: Instant,
         ) -> (Vec<SentPacket>, Vec<SentPacket>) {
-            self.lr.on_ack_received(
-                &self.path,
-                pn_space,
-                largest_acked,
-                acked_ranges,
-                ack_delay,
-                now,
-            )
+            self.lr
+                .on_ack_received(&self.path, pn_space, acked_ranges, ack_delay, now)
         }
 
         pub fn on_packet_sent(&mut self, sent_packet: SentPacket) {
@@ -1191,7 +1179,6 @@ mod tests {
     fn ack(lr: &mut Fixture, pn: u64, delay: Duration) {
         lr.on_ack_received(
             PacketNumberSpace::ApplicationData,
-            pn,
             vec![pn..=pn],
             ACK_DELAY,
             pn_time(pn) + delay,
@@ -1338,7 +1325,6 @@ mod tests {
         ));
         let (_, lost) = lr.on_ack_received(
             PacketNumberSpace::ApplicationData,
-            1,
             vec![1..=1],
             ACK_DELAY,
             pn_time(0) + (TEST_RTT * 5 / 4),
@@ -1361,7 +1347,6 @@ mod tests {
 
         let (_, lost) = lr.on_ack_received(
             PacketNumberSpace::ApplicationData,
-            2,
             vec![2..=2],
             ACK_DELAY,
             pn2_ack_time,
@@ -1390,7 +1375,6 @@ mod tests {
         assert_eq!(super::PACKET_THRESHOLD, 3);
         let (_, lost) = lr.on_ack_received(
             PacketNumberSpace::ApplicationData,
-            4,
             vec![2..=4],
             ACK_DELAY,
             pn_time(4),
@@ -1418,7 +1402,6 @@ mod tests {
         lr.discard(PacketNumberSpace::Initial, now());
         let (acked, lost) = lr.on_ack_received(
             PacketNumberSpace::Initial,
-            0,
             vec![],
             Duration::from_millis(0),
             pn_time(0),
@@ -1464,7 +1447,7 @@ mod tests {
             let sent_pkt = SentPacket::new(*sp, 1, pn_time(3), true, Vec::new(), ON_SENT_SIZE);
             let pn_space = PacketNumberSpace::from(sent_pkt.pt);
             lr.on_packet_sent(sent_pkt);
-            lr.on_ack_received(pn_space, 1, vec![1..=1], Duration::from_secs(0), pn_time(3));
+            lr.on_ack_received(pn_space, vec![1..=1], Duration::from_secs(0), pn_time(3));
             let mut lost = Vec::new();
             lr.spaces.get_mut(pn_space).unwrap().detect_lost_packets(
                 pn_time(3),
@@ -1510,7 +1493,6 @@ mod tests {
         let rtt = lr.path.borrow().rtt().estimate();
         lr.on_ack_received(
             PacketNumberSpace::Initial,
-            0,
             vec![0..=0],
             Duration::new(0, 0),
             now() + rtt,
