@@ -443,9 +443,6 @@ class JitTest:
 
         return cmd
 
-    # The test runner expects this to be set to give to get_command.
-    js_cmd_prefix = None
-
     def get_command(self, prefix, tempdir):
         """Shim for the test runner."""
         return self.command(prefix, LIB_DIR, MODULE_DIR, tempdir)
@@ -831,9 +828,6 @@ def run_tests_local(tests, num_tests, prefix, options, slog):
         options.show_cmd,
         options.use_xdr,
     )
-
-    # The test runner wants the prefix as a static on the Test class.
-    JitTest.js_cmd_prefix = prefix
 
     with TemporaryDirectory() as tempdir:
         pb = create_progressbar(num_tests, options)
