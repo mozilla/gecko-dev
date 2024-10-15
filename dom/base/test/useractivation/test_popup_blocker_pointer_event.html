@@ -11,7 +11,7 @@
   <div id="target" style="width: 50px; height: 50px; background: green"></div>
   <script>
 
-    let experimental = false;
+    const experimental = SpecialPowers.getBoolPref("dom.popup.experimental");
 
     function sendMouseEvent(element, eventName, button, listenEventName, handler) {
       let needToCheckHandler = false;
@@ -46,6 +46,17 @@
     }
 
     add_setup(async function() {
+      if (experimental) {
+        // This is a rather fragile test when experimental pref isn't enabled.
+        // Use default prefs in experimental case.
+        SpecialPowers.wrap(document).clearUserGestureActivation();
+        await SpecialPowers.pushPrefEnv({
+          set: [
+            // Enable popup blocker
+            ["dom.disable_open_during_load", true],
+          ],
+        });
+      }
       const DENY_ACTION = SpecialPowers.Ci.nsIPermissionManager.DENY_ACTION;
       let xorigin = SimpleTest.getTestFileURL("").replace(location.hostname, 'mochi.xorigin-test');
       await SpecialPowers.pushPermissions([
@@ -62,36 +73,7 @@
     const RIGHT_BUTTON = 2;
     let target = document.getElementById("target");
 
-    async function beginTest() {
-      if (!experimental) {
-        info("NOT EXPERIMENTAL");
-        await SpecialPowers.pushPrefEnv({
-          set: [
-            ["dom.popup.experimental", false]
-          ],
-        });
-      } else {
-        info("EXPERIMENTAL");
-        // This is a rather fragile test when experimental pref isn't enabled.
-        // Use default prefs in experimental case.
-        SpecialPowers.wrap(document).clearUserGestureActivation();
-        await SpecialPowers.pushPrefEnv({
-          set: [
-            ["dom.popup.experimental", true],
-            // Enable popup blocker
-            ["dom.disable_open_during_load", true],
-          ],
-        });
-      }
-    }
-
-    async function endTest() {
-      await SpecialPowers.popPrefEnv();
-    }
-
-    async function testPointerEventDefault() {
-      await beginTest();
-
+    add_task(async function testPointerEventDefault() {
       // By default, only allow opening popup in the pointerup listener.
       // Left button
       sendMouseEvent(target, "mousedown", LEFT_BUTTON, "pointerdown", checkAllowOpenPopup);
@@ -113,13 +95,9 @@
                                                                          checkBlockOpenPopup);
       sendMouseEvent(target, "mousemove", RIGHT_BUTTON, "pointermove", checkBlockOpenPopup);
       sendMouseEvent(target, "mouseup", RIGHT_BUTTON, "pointerup", checkBlockOpenPopup);
+    });
 
-      await endTest();
-    };
-
-    async function testPointerEventAddPointerDownToPref() {
-      await beginTest();
-
+    add_task(async function testPointerEventAddPointerDownToPref() {
       // Adding pointerdown to preference
       await SpecialPowers.pushPrefEnv({"set": [["dom.popup_allowed_events",
                                                 "pointerdown pointerup"]]});
@@ -143,14 +121,9 @@
                                                                          checkBlockOpenPopup);
       sendMouseEvent(target, "mousemove", RIGHT_BUTTON, "pointermove", checkBlockOpenPopup);
       sendMouseEvent(target, "mouseup", RIGHT_BUTTON, "pointerup", checkBlockOpenPopup);
-      await SpecialPowers.popPrefEnv();
+    });
 
-      await endTest();
-    }
-
-    async function testPointerEventAddPointerMoveToPref() {
-      await beginTest();
-
+    add_task(async function testPointerEventAddPointerMoveToPref() {
       // Adding pointermove to preference should have no effect.
       await SpecialPowers.pushPrefEnv({"set": [["dom.popup_allowed_events",
                                                 "pointerdown pointerup pointermove"]]});
@@ -174,20 +147,7 @@
                                                                          checkBlockOpenPopup);
       sendMouseEvent(target, "mousemove", RIGHT_BUTTON, "pointermove", checkBlockOpenPopup);
       sendMouseEvent(target, "mouseup", RIGHT_BUTTON, "pointerup", checkBlockOpenPopup);
-      await SpecialPowers.popPrefEnv();
-
-      await endTest();
-    }
-
-    add_task(testPointerEventDefault);
-    add_task(testPointerEventAddPointerDownToPref);
-    add_task(testPointerEventAddPointerMoveToPref);
-
-    add_task(() => experimental = true);
-
-    add_task(testPointerEventDefault);
-    add_task(testPointerEventAddPointerDownToPref);
-    add_task(testPointerEventAddPointerMoveToPref);
+    });
   </script>
 </body>
 </html>
