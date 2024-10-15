@@ -255,6 +255,7 @@ export function reifyTextureViewDescriptor(
     format,
     dimension,
     aspect,
+    usage: texture.usage,
     baseMipLevel,
     mipLevelCount,
     baseArrayLayer,

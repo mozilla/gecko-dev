@@ -63,6 +63,10 @@ import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert } from '../../../common/util/util.js';
 import { GPUTest, TextureTestMixin } from '../../gpu_test.js';
 
+// This is a tolerance that should be less strict than oneULP(X) of a f32 where X is any arbitraryValues or 0.
+// Given that in GLSL compat highp float can < 32 bit.
+const kFloatTolerance = 0.000001;
+
 // Encapsulates a draw call (either indexed or non-indexed)
 class DrawCall {
   private test: GPUTest;
@@ -265,11 +269,15 @@ const typeInfoMap: { [k: string]: VertexInfo } = {
     sizeInBytes: 12,
     validationFunc: 'return valid(v.x) && valid(v.y) && valid(v.z);',
   },
+  // It is valid to return (0, 0, 0, X) for an OOB access. (X can be anything)
+  // https://gpuweb.github.io/gpuweb/#security-shader
   float32x4: {
     wgslType: 'vec4<f32>',
     sizeInBytes: 16,
     validationFunc: `return (valid(v.x) && valid(v.y) && valid(v.z) && valid(v.w)) ||
-                            (v.x == 0.0 && v.y == 0.0 && v.z == 0.0 && (v.w == 0.0 || v.w == 1.0));`,
+                            (abs(v.x - 0.0) <= ${kFloatTolerance} &&
+                             abs(v.y - 0.0) <= ${kFloatTolerance} &&
+                             abs(v.z - 0.0) <= ${kFloatTolerance});`,
   },
 };
 
@@ -363,7 +371,7 @@ class F extends TextureTestMixin(GPUTest) {
       ${layoutStr}
 
       fn valid(f : f32) -> bool {
-        return ${validValues.map(v => `f == ${v}.0`).join(' || ')};
+        return ${validValues.map(v => `abs(f - ${v}.0) <= ${kFloatTolerance}`).join(' || ')};
       }
 
       fn validationFunc(v : ${typeInfo.wgslType}) -> bool {

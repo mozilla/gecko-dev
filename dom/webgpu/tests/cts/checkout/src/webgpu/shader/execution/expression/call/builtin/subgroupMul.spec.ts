@@ -1,5 +1,5 @@
 export const description = `
-Execution tests for subgroupMul and subgroupExclusiveMul
+Execution tests for subgroupMul, subgroupExclusiveMul, and subgroupInclusiveMul
 
 Note: There is a lack of portability for non-uniform execution so these tests
 restrict themselves to uniform control flow.
@@ -38,7 +38,7 @@ const kIdentity = 1;
 
 const kDataTypes = objectsToRecord(kConcreteNumericScalarsAndVectors);
 
-const kOperations = ['subgroupMul', 'subgroupExclusiveMul'] as const;
+const kOperations = ['subgroupMul', 'subgroupExclusiveMul', 'subgroupInclusiveMul'] as const;
 
 g.test('fp_accuracy')
   .desc(
@@ -86,17 +86,20 @@ and limit the number of permutations needed to calculate the final result.`
  * Expected results:
  * - subgroupMul: each invocation should have result equal to 2 to the real subgroup size
  * - subgroupExclusiveMul: each invocation should have result equal to 2 to its subgroup invocation id
+ * - subgroupInclusiveMul: each invocation should be equal to subgroupExclusiveMul result multiplied by the fill value
  * @param metadata An array containing actual subgroup size per invocation followed by
  *                 subgroup invocation id per invocation
  * @param output An array of multiplications
  * @param type The data type
  * @param operation Type of multiplication
+ * @param expectedFillValue The original value used to fill the test array
  */
 function checkMultiplication(
   metadata: Uint32Array,
   output: Uint32Array,
   type: Type,
-  operation: 'subgroupMul' | 'subgroupExclusiveMul'
+  operation: 'subgroupMul' | 'subgroupExclusiveMul' | 'subgroupInclusiveMul',
+  expectedfillValue: number
 ): undefined | Error {
   let numEles = 1;
   if (type instanceof VectorType) {
@@ -105,7 +108,10 @@ function checkMultiplication(
   const scalarTy = scalarTypeOf(type);
   const expectedOffset = operation === 'subgroupMul' ? 0 : metadata.length / 2;
   for (let i = 0; i < metadata.length / 2; i++) {
-    const expected = Math.pow(2, metadata[i + expectedOffset]);
+    let expected = Math.pow(2, metadata[i + expectedOffset]);
+    if (operation === 'subgroupInclusiveMul') {
+      expected *= expectedfillValue;
+    }
     for (let j = 0; j < numEles; j++) {
       let idx = i * numEles + j;
       const isOdd = idx & 0x1;
@@ -237,7 +243,8 @@ fn main(
   outputs[lid] = ${t.params.operation}(inputs[lid]);
 }`;
 
-    let fillValue = 2;
+    const expectedfillValue = 2;
+    let fillValue = expectedfillValue;
     let numUints = wgThreads * numEles;
     if (scalarType === Type.f32) {
       fillValue = numberToFloatBits(fillValue, kFloat32Format);
@@ -253,7 +260,7 @@ fn main(
       numUints,
       new Uint32Array([...iterRange(numUints, x => fillValue)]),
       (metadata: Uint32Array, output: Uint32Array) => {
-        return checkMultiplication(metadata, output, type, t.params.operation);
+        return checkMultiplication(metadata, output, type, t.params.operation, expectedfillValue);
       }
     );
   });
@@ -274,7 +281,7 @@ g.test('fragment').unimplemented();
 function checkPredicatedMultiplication(
   metadata: Uint32Array,
   output: Uint32Array,
-  operation: 'subgroupMul' | 'subgroupExclusiveMul',
+  operation: 'subgroupMul' | 'subgroupExclusiveMul' | 'subgroupInclusiveMul',
   filter: (id: number, size: number) => boolean
 ): Error | undefined {
   for (let i = 0; i < output.length; i++) {
@@ -282,10 +289,15 @@ function checkPredicatedMultiplication(
     const id = metadata[output.length + i];
     let expected = 1;
     if (filter(id, size)) {
-      const bound = operation === 'subgroupMul' ? size : id;
+      // This function replicates the behavior in the shader.
+      const valueModFun = function (id: number) {
+        return (id % 4) + 1;
+      };
+      const bound =
+        operation === 'subgroupInclusiveMul' ? id + 1 : operation === 'subgroupMul' ? size : id;
       for (let j = 0; j < bound; j++) {
         if (filter(j, size)) {
-          expected *= (j % 4) + 1;
+          expected *= valueModFun(j);
         }
       }
     } else {

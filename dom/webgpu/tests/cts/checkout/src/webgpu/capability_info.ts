@@ -817,19 +817,21 @@ export const kFeatureNameInfo: {
   readonly [k in GPUFeatureName]: {};
 } =
   /* prettier-ignore */ {
-  'bgra8unorm-storage':       {},
-  'depth-clip-control':       {},
-  'depth32float-stencil8':    {},
-  'texture-compression-bc':   {},
-  'texture-compression-etc2': {},
-  'texture-compression-astc': {},
-  'timestamp-query':          {},
-  'indirect-first-instance':  {},
-  'shader-f16':               {},
-  'rg11b10ufloat-renderable': {},
-  'float32-filterable':       {},
-  'clip-distances':           {},
-  'dual-source-blending':     {},
+  'bgra8unorm-storage':                 {},
+  'depth-clip-control':                 {},
+  'depth32float-stencil8':              {},
+  'texture-compression-bc':             {},
+  'texture-compression-bc-sliced-3d':   {},
+  'texture-compression-etc2':           {},
+  'texture-compression-astc':           {},
+  'texture-compression-astc-sliced-3d': {},
+  'timestamp-query':                    {},
+  'indirect-first-instance':            {},
+  'shader-f16':                         {},
+  'rg11b10ufloat-renderable':           {},
+  'float32-filterable':                 {},
+  'clip-distances':                     {},
+  'dual-source-blending':               {},
 };
 /** List of all GPUFeatureName values. */
 export const kFeatureNames = keysOf(kFeatureNameInfo);

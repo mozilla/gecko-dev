@@ -644,6 +644,15 @@ export const listing = [
       "validation",
       "capability_checks",
       "features",
+      "clip_distances"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "capability_checks",
+      "features",
       "query_types"
     ]
   },
@@ -3848,6 +3857,14 @@ export const listing = [
       "execution",
       "shader_io",
       "user_io"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "shader_io",
+      "vertex_builtins"
     ]
   },
   {

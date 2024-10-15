@@ -9,7 +9,7 @@ import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
 
-const kBuiltins = ['subgroupAdd', 'subgroupExclusiveAdd'];
+const kBuiltins = ['subgroupAdd', 'subgroupExclusiveAdd', 'subgroupInclusiveAdd'];
 
 const kStages = {
   constant: (builtin) => {

@@ -1,7 +1,7 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/export const description = `
-Validation tests for subgroupMul and subgroupExclusiveMul
+Validation tests for subgroupMul, subgroupExclusiveMul, and subgroupInclusiveMul
 `;import { makeTestGroup } from '../../../../../../common/framework/test_group.js';
 import { keysOf, objectsToRecord } from '../../../../../../common/util/data_tables.js';
 import { Type, elementTypeOf, kAllScalarsAndVectors } from '../../../../../util/conversion.js';
@@ -9,7 +9,7 @@ import { ShaderValidationTest } from '../../../shader_validation_test.js';
 
 export const g = makeTestGroup(ShaderValidationTest);
 
-const kBuiltins = ['subgroupMul', 'subgroupExclusiveMul'];
+const kBuiltins = ['subgroupMul', 'subgroupExclusiveMul', 'subgroupInclusiveMul'];
 
 const kStages = {
   constant: (builtin) => {

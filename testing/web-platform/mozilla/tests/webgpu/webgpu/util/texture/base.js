@@ -255,6 +255,7 @@ view)
     format,
     dimension,
     aspect,
+    usage: texture.usage,
     baseMipLevel,
     mipLevelCount,
     baseArrayLayer,

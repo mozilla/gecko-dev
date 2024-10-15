@@ -1,5 +1,5 @@
 export const description = `
-Execution tests for subgroupAdd and subgroupExclusiveAdd
+Execution tests for subgroupAdd, subgroupExclusiveAdd, and subgroupInclusiveAdd
 
 Note: There is a lack of portability for non-uniform execution so these tests
 restrict themselves to uniform control flow.
@@ -38,7 +38,7 @@ const kIdentity = 0;
 
 const kDataTypes = objectsToRecord(kConcreteNumericScalarsAndVectors);
 
-const kOperations = ['subgroupAdd', 'subgroupExclusiveAdd'] as const;
+const kOperations = ['subgroupAdd', 'subgroupExclusiveAdd', 'subgroupInclusiveAdd'] as const;
 
 g.test('fp_accuracy')
   .desc(
@@ -86,17 +86,20 @@ and limit the number of permutations needed to calculate the final result.`
  * Expected results:
  * - subgroupAdd: each invocation should have result equal to real subgroup size
  * - subgroupExclusiveAdd: each invocation should have result equal to its subgroup invocation id
+ * - subgroupInclusiveAdd: each invocation should be equal to the result of subgroupExclusiveAdd plus the fill value
  * @param metadata An array containing actual subgroup size per invocation followed by
  *                 subgroup invocation id per invocation
  * @param output An array of additions
  * @param type The data type
  * @param operation Type of addition
+ * @param expectedfillValue The original value used to fill the test array
  */
 function checkAddition(
   metadata: Uint32Array,
   output: Uint32Array,
   type: Type,
-  operation: 'subgroupAdd' | 'subgroupExclusiveAdd'
+  operation: 'subgroupAdd' | 'subgroupExclusiveAdd' | 'subgroupInclusiveAdd',
+  expectedfillValue: number
 ): undefined | Error {
   let numEles = 1;
   if (type instanceof VectorType) {
@@ -105,7 +108,11 @@ function checkAddition(
   const scalarTy = scalarTypeOf(type);
   const expectedOffset = operation === 'subgroupAdd' ? 0 : metadata.length / 2;
   for (let i = 0; i < metadata.length / 2; i++) {
-    const expected = metadata[i + expectedOffset];
+    let expected = metadata[i + expectedOffset];
+    if (operation === 'subgroupInclusiveAdd') {
+      expected += expectedfillValue;
+    }
+
     for (let j = 0; j < numEles; j++) {
       let idx = i * numEles + j;
       const isOdd = idx & 0x1;
@@ -217,8 +224,8 @@ fn main(
 
   outputs[lid] = ${t.params.operation}(inputs[lid]);
 }`;
-
-    let fillValue = 1;
+    const expectedFillValue = 1;
+    let fillValue = expectedFillValue;
     let numUints = wgThreads * numEles;
     if (scalarType === Type.f32) {
       fillValue = numberToFloatBits(1, kFloat32Format);
@@ -234,7 +241,7 @@ fn main(
       numUints,
       new Uint32Array([...iterRange(numUints, x => fillValue)]),
       (metadata: Uint32Array, output: Uint32Array) => {
-        return checkAddition(metadata, output, type, t.params.operation);
+        return checkAddition(metadata, output, type, t.params.operation, expectedFillValue);
       }
     );
   });
@@ -255,7 +262,7 @@ g.test('fragment').unimplemented();
 function checkPredicatedAddition(
   metadata: Uint32Array,
   output: Uint32Array,
-  operation: 'subgroupAdd' | 'subgroupExclusiveAdd',
+  operation: 'subgroupAdd' | 'subgroupExclusiveAdd' | 'subgroupInclusiveAdd',
   filter: (id: number, size: number) => boolean
 ): Error | undefined {
   for (let i = 0; i < output.length; i++) {
@@ -263,7 +270,8 @@ function checkPredicatedAddition(
     const id = metadata[output.length + i];
     let expected = 0;
     if (filter(id, size)) {
-      const bound = operation === 'subgroupAdd' ? size : id;
+      const bound =
+        operation === 'subgroupInclusiveAdd' ? id + 1 : operation === 'subgroupAdd' ? size : id;
       for (let j = 0; j < bound; j++) {
         if (filter(j, size)) {
           expected += j;
