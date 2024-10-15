@@ -194,6 +194,15 @@ async function initUpdateServiceStub() {
   await updateServiceStub.init();
 }
 
+/* Initializes the Update Service, even if it has already been initialized */
+async function reInitUpdateService() {
+  return gAUS.internal.init(/* force = */ true);
+}
+
+async function initUpdateService() {
+  return gAUS.init();
+}
+
 /**
  * Reloads the update xml files.
  *
@@ -946,4 +955,82 @@ async function waitForUpdatePing(archiveChecker, expectedProperties) {
     100
   );
   return updatePing;
+}
+
+/**
+ * It's frequently desirable to run a test many times with different parameters
+ * each time.
+ *
+ * @param  testFn
+ *         The function to test. It is expected to be a function that takes a
+ *         single object of named parameters. For example:
+ *           function test({param1, param2})
+ * @param  parameters
+ *         This can either be an object or an array of objects.
+ *
+ *         If it is an array of objects, it will be treated as a list of
+ *         sets of parameters. The number of times the test is executed will be
+ *         equal to the length of the array.
+ *         For example:
+ *           [{param1: value1}, {param1: value2}]
+ *
+ *         If it is an object, each key will be treated as a parameter with the
+ *         corresponding value will be an array of values that parameter can
+ *         have. The number of times the test is executed will be equal to the
+ *         product of all the array lengths.
+ *         For example:
+ *            {param1: [value1, value2], {param2: [value3]}}
+ * @param  options
+ *         An additional object can be passed that with any of these supported
+ *         options:
+ *           skipFn
+ *             This is evaluated with the test's parameters before each test. If
+ *             it returns `true`, the test is not run with that set of
+ *             parameters.
+ */
+async function parameterizedTest(testFn, parameters, { skipFn } = {}) {
+  logTestInfo(`parameterizedTest - Testing ${testFn.name}`);
+
+  const maybeRunTest = async params => {
+    const invocationDesc = `${testFn.name}(${JSON.stringify(params)})`;
+    if (skipFn && (await skipFn(params))) {
+      logTestInfo("parameterizedTest - SKIPPING " + invocationDesc);
+      return;
+    }
+    logTestInfo("parameterizedTest - START " + invocationDesc);
+    await testFn(params);
+    logTestInfo("parameterizedTest - COMPLETE " + invocationDesc);
+  };
+
+  if (Array.isArray(parameters)) {
+    for (const params of parameters) {
+      await maybeRunTest(params);
+    }
+  } else {
+    const recurse = async (chosenParams, remainingPossibleParams) => {
+      if (!remainingPossibleParams.length) {
+        await maybeRunTest(chosenParams);
+        return;
+      }
+      const [param, argValues] = remainingPossibleParams.shift();
+      for (const argValue of argValues) {
+        chosenParams[param] = argValue;
+        // Clone parameters when we recurse.
+        await recurse(Object.assign({}, chosenParams), [
+          ...remainingPossibleParams,
+        ]);
+      }
+    };
+    await recurse({}, Object.entries(parameters));
+  }
+
+  logTestInfo(`parameterizedTest - Finished testing ${testFn.name}`);
+}
+
+async function startBitsMarDownload(url) {
+  return gAUS.wrappedJSObject.makeBitsRequest({ url });
+}
+
+async function connectToBitsMarDownload(bitsId) {
+  return gAUS.wrappedJSObject.makeBitsRequest({ bitsId });
 }

@@ -21,13 +21,7 @@ support-files = [
 
 ["canCheckForAndCanApplyUpdates.js"]
 
-["cleanupDownloadingForDifferentChannel.js"]
-
-["cleanupDownloadingForOlderAppVersion.js"]
-
-["cleanupDownloadingForSameVersionAndBuildID.js"]
-
-["cleanupDownloadingIncorrectStatus.js"]
+["cleanupDownloading.js"]
 
 ["cleanupPendingVersionFileIncorrectStatus.js"]
 
@@ -55,6 +49,8 @@ skip-if = ["socketprocess_networking"] # Bug 1759035
 ["ensureExperimentToRolloutTransitionPerformed.js"]
 run-if = ["os == 'win' && appname == 'firefox'"]
 reason = "Feature is Firefox-specific and Windows-specific."
+
+["initWithPendingUpdate.js"]
 
 ["languagePackUpdates.js"]
 skip-if = ["socketprocess_networking"] # Bug 1759035
