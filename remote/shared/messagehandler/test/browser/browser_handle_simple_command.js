@@ -79,6 +79,53 @@ add_task(async function test_windowglobalModule_command() {
   rootMessageHandler.destroy();
 });
 
+// Test calling a windowglobal module as soon as possible.
+add_task(async function test_windowglobalModule_early_command() {
+  const rootMessageHandler = createRootMessageHandler(
+    "session-id-windowglobalModule-early"
+  );
+
+  info("Setup an observer to send a command as soon as the context is created");
+  const onContext = new Promise((resolve, reject) => {
+    const onContextAttached = async browsingContext => {
+      try {
+        const result = await rootMessageHandler.handleCommand({
+          moduleName: "command",
+          commandName: "testWindowGlobalModule",
+          destination: {
+            type: WindowGlobalMessageHandler.type,
+            id: browsingContext.id,
+          },
+        });
+        info("Early command succeeded, resolve the retrieved value");
+        resolve(result);
+      } catch (e) {
+        info("Early command failed, reject");
+        reject(e);
+      } finally {
+        Services.obs.removeObserver(
+          onContextAttached,
+          "browsing-context-attached"
+        );
+      }
+    };
+    Services.obs.addObserver(onContextAttached, "browsing-context-attached");
+  });
+
+  const tab = await addTab("https://example.com/document-builder.sjs?html=tab");
+
+  const windowGlobalValue = await onContext;
+  is(
+    windowGlobalValue,
+    "windowglobal-value",
+    "Retrieved the expected value from testWindowGlobalModule"
+  );
+
+  rootMessageHandler.destroy();
+
+  gBrowser.removeTab(tab);
+});
+
 // Test calling a method on a module which is only available in the "windowglobal"
 // folder. This will check that the MessageHandler/ModuleCache correctly moves
 // on to the next layer when no implementation can be found in the root layer.

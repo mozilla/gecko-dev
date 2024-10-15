@@ -15,6 +15,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MessageHandlerFrameActor:
     "chrome://remote/content/shared/messagehandler/transports/js-window-actors/MessageHandlerFrameActor.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
+  waitForCurrentWindowGlobal:
+    "chrome://remote/content/shared/messagehandler/transports/BrowsingContextUtils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
@@ -124,6 +126,9 @@ export class RootTransport {
     let attempts = 0;
     while (true) {
       try {
+        if (!webProgress.browsingContext.currentWindowGlobal) {
+          await lazy.waitForCurrentWindowGlobal(webProgress.browsingContext);
+        }
         return await webProgress.browsingContext.currentWindowGlobal
           .getActor("MessageHandlerFrame")
           .sendCommand(command, this._messageHandler.sessionId);

@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  PollPromise: "chrome://remote/content/shared/Sync.sys.mjs",
+});
+
 function isExtensionContext(browsingContext) {
   let principal;
   try {
@@ -91,5 +97,33 @@ export function isBrowsingContextCompatible(browsingContext, options = {}) {
   // - privileged contexts until we support debugging Chrome context, see Bug 1713440.
   return (
     !isExtensionContext(browsingContext) && !isParentProcess(browsingContext)
+  );
+}
+
+/**
+ * Wait until `currentWindowGlobal` is available on a browsing context. When a
+ * browsing context has just been created, the `currentWindowGlobal` might not
+ * be attached yet.
+ *
+ * @param {CanonicalBrowsingContext} browsingContext
+ *     The browsing context to wait for.
+ *
+ * @returns {Promise}
+ *     Promise which resolves when `currentWindowGlobal` is set on the browsing
+ *     context or throws after 100ms.
+ */
+export async function waitForCurrentWindowGlobal(browsingContext) {
+  await lazy.PollPromise(
+    (resolve, reject) => {
+      if (browsingContext.currentWindowGlobal) {
+        resolve();
+      } else {
+        reject();
+      }
+    },
+    {
+      errorMessage: `currentWindowGlobal was not available for Browsing Context with id: ${browsingContext.id}`,
+      timeout: 100,
+    }
   );
 }
