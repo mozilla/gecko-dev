@@ -24,6 +24,7 @@
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_format.h"
+#include "api/environment/environment.h"
 #include "api/function_view.h"
 #include "api/make_ref_counted.h"
 #include "api/neteq/neteq.h"
@@ -219,7 +220,8 @@ class ReplacementAudioDecoderFactory : public AudioDecoderFactory {
     return true;
   }
 
-  std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+  std::unique_ptr<AudioDecoder> Create(
+      const Environment& env,
       const SdpAudioFormat& format,
       std::optional<AudioCodecPairId> codec_pair_id) override {
     auto replacement_file = std::make_unique<test::ResampleInputAudioFile>(

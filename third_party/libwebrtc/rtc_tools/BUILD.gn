@@ -360,6 +360,7 @@ if (!build_with_chromium) {
         "../api:scoped_refptr",
         "../api/audio_codecs:audio_codecs_api",  # TODO(kwiberg): Remove this
                                                  # dependency.
+        "../api/environment",
         "../api/environment:environment_factory",
         "../api/neteq:neteq_api",
         "../api/rtc_event_log:rtc_event_log",

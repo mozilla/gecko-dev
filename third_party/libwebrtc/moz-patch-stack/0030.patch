@@ -1232,10 +1232,10 @@ index b18114f107..3ca6994c81 100644
      deps += [
        "..:logging",
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index 422172743a..b5dcf1329e 100644
+index 33e920f8ba..ac80805821 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
-@@ -228,6 +228,7 @@ rtc_library("audio_test_common") {
+@@ -229,6 +229,7 @@ rtc_library("audio_test_common") {
    ]
  }
  
@@ -1243,7 +1243,7 @@ index 422172743a..b5dcf1329e 100644
  if (!build_with_chromium) {
    if (is_mac || is_ios) {
      rtc_library("video_test_mac") {
-@@ -281,8 +282,12 @@ if (!build_with_chromium) {
+@@ -282,8 +283,12 @@ if (!build_with_chromium) {
      }
    }
  }
@@ -1256,7 +1256,7 @@ index 422172743a..b5dcf1329e 100644
    testonly = true
    sources = [
      "rtcp_packet_parser.cc",
-@@ -292,6 +297,7 @@ rtc_library("rtp_test_utils") {
+@@ -293,6 +298,7 @@ rtc_library("rtp_test_utils") {
      "rtp_file_writer.cc",
      "rtp_file_writer.h",
    ]
@@ -1264,7 +1264,7 @@ index 422172743a..b5dcf1329e 100644
  
    deps = [
      "../api:array_view",
-@@ -514,7 +520,9 @@ rtc_library("video_frame_writer") {
+@@ -515,7 +521,9 @@ rtc_library("video_frame_writer") {
    ]
  
    if (!is_ios) {
@@ -1274,7 +1274,7 @@ index 422172743a..b5dcf1329e 100644
      sources += [ "testsupport/jpeg_frame_writer.cc" ]
    } else {
      sources += [ "testsupport/jpeg_frame_writer_ios.cc" ]
-@@ -1287,6 +1295,7 @@ if (!build_with_chromium) {
+@@ -1288,6 +1296,7 @@ if (!build_with_chromium) {
    }
  }
  
@@ -1282,7 +1282,7 @@ index 422172743a..b5dcf1329e 100644
  if (!build_with_chromium && is_android) {
    rtc_android_library("native_test_java") {
      testonly = true
-@@ -1300,6 +1309,7 @@ if (!build_with_chromium && is_android) {
+@@ -1301,6 +1310,7 @@ if (!build_with_chromium && is_android) {
      ]
    }
  }
