@@ -37,12 +37,6 @@ class OriginScope {
 
     const nsACString& GetOrigin() const { return mOrigin; }
 
-    void SetOrigin(const nsACString& aOrigin) {
-      mOrigin = aOrigin;
-
-      InitMembers();
-    }
-
     const nsACString& GetOriginNoSuffix() const { return mOriginNoSuffix; }
 
     const OriginAttributes& GetAttributes() const {
@@ -68,10 +62,6 @@ class OriginScope {
         : mOriginNoSuffix(aOriginNoSuffix) {}
 
     const nsCString& GetOriginNoSuffix() const { return mOriginNoSuffix; }
-
-    void SetOriginNoSuffix(const nsACString& aOriginNoSuffix) {
-      mOriginNoSuffix = aOriginNoSuffix;
-    }
   };
 
   class Pattern {
@@ -95,10 +85,6 @@ class OriginScope {
       MOZ_ASSERT(mPattern);
 
       return *mPattern;
-    }
-
-    void SetPattern(const OriginAttributesPattern& aPattern) {
-      mPattern = MakeUnique<OriginAttributesPattern>(aPattern);
     }
 
     nsString GetJSONPattern() const {
@@ -171,12 +157,6 @@ class OriginScope {
     return mData.as<Origin>().GetOrigin();
   }
 
-  void SetOrigin(const nsACString& aOrigin) {
-    MOZ_ASSERT(IsOrigin());
-
-    mData.as<Origin>().SetOrigin(aOrigin);
-  }
-
   const nsACString& GetOriginNoSuffix() const {
     MOZ_ASSERT(IsOrigin() || IsPrefix());
 
@@ -184,12 +164,6 @@ class OriginScope {
       return mData.as<Origin>().GetOriginNoSuffix();
     }
     return mData.as<Prefix>().GetOriginNoSuffix();
-  }
-
-  void SetOriginNoSuffix(const nsACString& aOriginNoSuffix) {
-    MOZ_ASSERT(IsPrefix());
-
-    mData.as<Prefix>().SetOriginNoSuffix(aOriginNoSuffix);
   }
 
   const OriginAttributesPattern& GetPattern() const {
@@ -202,12 +176,6 @@ class OriginScope {
     MOZ_ASSERT(IsPattern());
 
     return mData.as<Pattern>().GetJSONPattern();
-  }
-
-  void SetPattern(const OriginAttributesPattern& aPattern) {
-    MOZ_ASSERT(IsPattern());
-
-    mData.as<Pattern>().SetPattern(aPattern);
   }
 
   bool Matches(const OriginScope& aOther) const {
