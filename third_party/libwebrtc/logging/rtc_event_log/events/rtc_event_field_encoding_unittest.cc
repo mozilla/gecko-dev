@@ -6,6 +6,7 @@
  *  in the file PATENTS.  All contributing project authors may
  *  be found in the AUTHORS file in the root of the source tree.
  */
+
 #include "logging/rtc_event_log/events/rtc_event_field_encoding.h"
 
 #include <cstddef>
@@ -592,21 +593,21 @@ TEST_F(RtcEventFieldTest, Increasing) {
   ParseEventHeader(s);
   ParseAndVerifyTimestamps();
   ParseAndVerifyField(RtcTestEvent::bool_params, bool_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::signed32_params, signed32_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::unsigned32_params, unsigned32_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::signed64_params, signed64_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::unsigned64_params, unsigned64_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyOptionalField(RtcTestEvent::optional32_params,
-                              optional32_values, /*delta bits*/ 1);
+                              optional32_values, /*expected_bits_per_delta=*/1);
   ParseAndVerifyOptionalField(RtcTestEvent::optional64_params,
-                              optional64_values, /*delta bits*/ 1);
+                              optional64_values, /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::wrapping21_params, wrapping21_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyStringField(RtcTestEvent::string_params, string_values);
   EXPECT_EQ(parser_.RemainingBytes(), 0u);
 }
@@ -663,21 +664,21 @@ TEST_F(RtcEventFieldTest, Decreasing) {
   ParseEventHeader(s);
   ParseAndVerifyTimestamps();
   ParseAndVerifyField(RtcTestEvent::bool_params, bool_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::signed32_params, signed32_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::unsigned32_params, unsigned32_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::signed64_params, signed64_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::unsigned64_params, unsigned64_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyOptionalField(RtcTestEvent::optional32_params,
-                              optional32_values, /*delta bits*/ 1);
+                              optional32_values, /*expected_bits_per_delta=*/1);
   ParseAndVerifyOptionalField(RtcTestEvent::optional64_params,
-                              optional64_values, /*delta bits*/ 1);
+                              optional64_values, /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::wrapping21_params, wrapping21_values,
-                      /*delta bits*/ 1);
+                      /*expected_bits_per_delta=*/1);
   ParseAndVerifyStringField(RtcTestEvent::string_params, string_values);
   EXPECT_EQ(parser_.RemainingBytes(), 0u);
 }
@@ -740,23 +741,23 @@ TEST_F(RtcEventFieldTest, SkipsDeprecatedFields) {
   ParseEventHeader(s);
   ParseAndVerifyTimestamps();
   ParseAndVerifyField(RtcTestEvent::bool_params, bool_values,
-                      /*delta_bits=*/1);
+                      /*expected_bits_per_delta=*/1);
   // Skips parsing the `signed32_values`. The following unsigned fields should
   // still be found.
   ParseAndVerifyField(RtcTestEvent::unsigned32_params, unsigned32_values,
-                      /*delta_bits=*/31,
+                      /*expected_bits_per_delta=*/31,
                       /*expected_skipped_bytes=*/signed32_encoding_size);
   // Skips parsing the `signed64_values`. The following unsigned fields should
   // still be found.
   ParseAndVerifyField(RtcTestEvent::unsigned64_params, unsigned64_values,
-                      /*delta_bits=*/63, signed64_encoding_size);
+                      /*expected_bits_per_delta=*/63, signed64_encoding_size);
   // Skips parsing the `optional32_values`. The following unsigned fields should
   // still be found.
-  ParseAndVerifyOptionalField(RtcTestEvent::optional64_params,
-                              optional64_values,
-                              /*delta_bits=*/63, optional32_encoding_size);
+  ParseAndVerifyOptionalField(
+      RtcTestEvent::optional64_params, optional64_values,
+      /*expected_bits_per_delta=*/63, optional32_encoding_size);
   ParseAndVerifyField(RtcTestEvent::wrapping21_params, wrapping21_values,
-                      /*delta_bits=*/20);
+                      /*expected_bits_per_delta=*/20);
   ParseAndVerifyStringField(RtcTestEvent::string_params, string_values);
   EXPECT_EQ(parser_.RemainingBytes(), 0u);
 }
@@ -806,16 +807,17 @@ TEST_F(RtcEventFieldTest, SkipsMissingFields) {
   ParseAndVerifyTimestamps();
   ParseAndVerifyMissingField(RtcTestEvent::bool_params);
   ParseAndVerifyField(RtcTestEvent::signed32_params, signed32_values,
-                      /*delta_bits=*/31);
+                      /*expected_bits_per_delta=*/31);
   ParseAndVerifyMissingField(RtcTestEvent::unsigned32_params);
   ParseAndVerifyField(RtcTestEvent::signed64_params, signed64_values,
-                      /*delta_bits=*/63);
+                      /*expected_bits_per_delta=*/63);
   ParseAndVerifyMissingField(RtcTestEvent::unsigned64_params);
   ParseAndVerifyOptionalField(RtcTestEvent::optional32_params,
-                              optional32_values, /*delta_bits=*/31);
+                              optional32_values,
+                              /*expected_bits_per_delta=*/31);
   ParseAndVerifyMissingOptionalField(RtcTestEvent::optional64_params);
   ParseAndVerifyField(RtcTestEvent::wrapping21_params, wrapping21_values,
-                      /*delta_bits=*/20);
+                      /*expected_bits_per_delta=*/20);
   ParseAndVerifyStringField(RtcTestEvent::string_params, string_values);
   EXPECT_EQ(parser_.RemainingBytes(), 0u);
 }
@@ -851,11 +853,11 @@ TEST_F(RtcEventFieldTest, OptionalFields) {
   ParseEventHeader(s);
   ParseAndVerifyTimestamps();
   ParseAndVerifyOptionalField(RtcTestEvent::optional32_params,
-                              optional32_values, /*delta bits*/ 2);
+                              optional32_values, /*expected_bits_per_delta=*/2);
   ParseAndVerifyOptionalField(RtcTestEvent::optional64_params,
-                              optional64_values, /*delta bits*/ 1);
+                              optional64_values, /*expected_bits_per_delta=*/1);
   ParseAndVerifyField(RtcTestEvent::wrapping21_params, wrapping21_values,
-                      /*delta bits*/ 2);
+                      /*expected_bits_per_delta=*/2);
   EXPECT_EQ(parser_.RemainingBytes(), 0u);
 }
 
@@ -887,7 +889,7 @@ TEST_F(RtcEventFieldTest, AllNulloptTreatedAsMissing) {
   ParseAndVerifyTimestamps();
   ParseAndVerifyMissingOptionalField(RtcTestEvent::optional32_params);
   ParseAndVerifyOptionalField(RtcTestEvent::optional64_params,
-                              optional64_values, /*delta_bits=*/1);
+                              optional64_values, /*expected_bits_per_delta=*/1);
   EXPECT_EQ(parser_.RemainingBytes(), 0u);
 }
 

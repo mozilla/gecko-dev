@@ -1783,8 +1783,7 @@ ParsedRtcEventLog::ParseStatus ParsedRtcEventLog::StoreParsedLegacyEvent(
     case rtclog::Event::AUDIO_NETWORK_ADAPTATION_EVENT: {
       auto status_or_value = GetAudioNetworkAdaptation(event);
       RTC_RETURN_IF_ERROR(status_or_value.status());
-      LoggedAudioNetworkAdaptationEvent ana_event = status_or_value.value();
-      audio_network_adaptation_events_.push_back(ana_event);
+      audio_network_adaptation_events_.push_back(status_or_value.value());
       break;
     }
     case rtclog::Event::BWE_PROBE_CLUSTER_CREATED_EVENT: {
@@ -2393,10 +2392,11 @@ std::vector<LoggedPacketInfo> ParsedRtcEventLog::GetPacketInfos(
       int64_t unwrapped_seq_num =
           seq_num_unwrapper.Unwrap(logged.transport_seq_no);
       if (indices.find(unwrapped_seq_num) != indices.end()) {
-        auto prev = packets[indices[unwrapped_seq_num]];
+        Timestamp prev_log_packet_time =
+            packets[indices[unwrapped_seq_num]].log_packet_time;
         RTC_LOG(LS_WARNING)
             << "Repeated sent packet sequence number: " << unwrapped_seq_num
-            << " Packet time:" << prev.log_packet_time.seconds() << "s vs "
+            << " Packet time:" << prev_log_packet_time.seconds() << "s vs "
             << logged.log_packet_time.seconds()
             << "s at:" << rtp.log_time_ms() / 1000;
       }
@@ -2538,7 +2538,7 @@ std::vector<LoggedIceEvent> ParsedRtcEventLog::GetIceEvents() const {
   return log_events;
 }
 
-const std::vector<MatchedSendArrivalTimes> GetNetworkTrace(
+std::vector<MatchedSendArrivalTimes> GetNetworkTrace(
     const ParsedRtcEventLog& parsed_log) {
   std::vector<MatchedSendArrivalTimes> rtp_rtcp_matched;
   for (auto& packet :
