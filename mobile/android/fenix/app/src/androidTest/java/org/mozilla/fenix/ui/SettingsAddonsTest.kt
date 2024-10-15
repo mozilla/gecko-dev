@@ -13,7 +13,6 @@ import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingReso
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.RecyclerViewIdlingResource
 import org.mozilla.fenix.helpers.TestAssetHelper.getEnhancedTrackingProtectionAsset
-import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper
 import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestHelper.waitUntilSnackbarGone
@@ -142,7 +141,7 @@ class SettingsAddonsTest : TestSetup() {
         }.goBack {
         }.openContextMenuOnSponsoredShortcut("Top Articles") {
         }.openTopSiteInPrivateTab {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPocketPageContent()
         }.openThreeDotMenu {
             openAddonsSubList()
             verifyAddonAvailableInMainMenu(addonName)

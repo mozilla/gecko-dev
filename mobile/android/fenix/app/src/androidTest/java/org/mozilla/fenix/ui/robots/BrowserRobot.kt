@@ -191,7 +191,10 @@ class BrowserRobot {
         )
 
         registerAndCleanupIdlingResources(sessionLoadedIdlingResource) {
-            assertUIObjectExists(itemContainingText(expectedText))
+            assertTrue(
+                itemWithResId("$packageName:id/engineView")
+                    .getChild(UiSelector().textContains(expectedText)).waitForExists(waitingTimeLong),
+            )
         }
     }
 
@@ -803,7 +806,7 @@ class BrowserRobot {
             try {
                 // Wait for the blocker to kick-in and make the cookie banner disappear
                 Log.i(TAG, "verifyCookieBannerExists: Waiting for $waitingTime ms for cookie banner to be gone")
-                itemWithResId("cookieConsentBanner").waitUntilGone(waitingTime)
+                itemWithResId("cookieConsentBanner").waitUntilGone(waitingTimeLong)
                 Log.i(TAG, "verifyCookieBannerExists: Waited for $waitingTime ms for cookie banner to be gone")
                 // Assert that the blocker properly dismissed the cookie banner
                 assertUIObjectExists(itemWithResId("cookieConsentBanner"), exists = exists)
@@ -822,6 +825,7 @@ class BrowserRobot {
         assertUIObjectExists(
             itemContainingText(getStringResource(R.string.cookie_banner_cfr_message)),
             exists = exists,
+            waitingTime = waitingTimeLong,
         )
 
     fun verifyOpenLinkInAnotherAppPrompt() {

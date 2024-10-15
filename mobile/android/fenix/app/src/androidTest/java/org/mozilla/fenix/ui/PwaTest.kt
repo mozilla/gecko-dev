@@ -38,7 +38,7 @@ class PwaTest : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(externalLinksPWAPage.toUri()) {
-            waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
+            verifyPageContent("Misc Link Types")
         }.openThreeDotMenu {
         }.clickInstall {
             clickSystemHomeScreenShortcutAddButton()
