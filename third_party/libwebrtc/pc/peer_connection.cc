@@ -13,54 +13,110 @@
 #include <limits.h>
 #include <stddef.h>
 
-#include <algorithm>
+#include <cstdint>
+#include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <set>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/adaptation/resource.h"
+#include "api/audio/audio_device.h"
+#include "api/candidate.h"
+#include "api/crypto/crypto_options.h"
+#include "api/data_channel_interface.h"
+#include "api/dtls_transport_interface.h"
 #include "api/environment/environment.h"
+#include "api/jsep.h"
 #include "api/jsep_ice_candidate.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
 #include "api/media_types.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtc_event_log_output.h"
 #include "api/rtp_parameters.h"
+#include "api/rtp_receiver_interface.h"
+#include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_direction.h"
+#include "api/rtp_transceiver_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/sctp_transport_interface.h"
+#include "api/sequence_checker.h"
+#include "api/set_local_description_observer_interface.h"
+#include "api/set_remote_description_observer_interface.h"
+#include "api/stats/rtc_stats_collector_callback.h"
+#include "api/task_queue/pending_task_safety_flag.h"
+#include "api/transport/bandwidth_estimation_settings.h"
+#include "api/transport/bitrate_settings.h"
+#include "api/transport/data_channel_transport_interface.h"
+#include "api/transport/enums.h"
+#include "api/turn_customizer.h"
 #include "api/uma_metrics.h"
+#include "api/units/time_delta.h"
 #include "api/video/video_codec_constants.h"
 #include "call/audio_state.h"
 #include "call/packet_receiver.h"
-#include "media/base/media_channel.h"
+#include "media/base/codec.h"
 #include "media/base/media_config.h"
 #include "media/base/media_engine.h"
 #include "media/base/rid_description.h"
 #include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "p2p/base/basic_async_resolver_factory.h"
-#include "p2p/base/connection.h"
 #include "p2p/base/connection_info.h"
 #include "p2p/base/dtls_transport_internal.h"
+#include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/p2p_transport_channel.h"
+#include "p2p/base/port.h"
+#include "p2p/base/port_allocator.h"
+#include "p2p/base/transport_description.h"
 #include "p2p/base/transport_info.h"
+#include "pc/channel_interface.h"
+#include "pc/connection_context.h"
+#include "pc/data_channel_utils.h"
+#include "pc/dtls_transport.h"
 #include "pc/ice_server_parsing.h"
+#include "pc/jsep_transport_controller.h"
+#include "pc/legacy_stats_collector.h"
+#include "pc/rtc_stats_collector.h"
 #include "pc/rtp_receiver.h"
 #include "pc/rtp_receiver_proxy.h"
 #include "pc/rtp_sender.h"
 #include "pc/rtp_sender_proxy.h"
+#include "pc/rtp_transceiver.h"
+#include "pc/rtp_transmission_manager.h"
+#include "pc/rtp_transport_internal.h"
+#include "pc/sctp_data_channel.h"
 #include "pc/sctp_transport.h"
+#include "pc/sdp_offer_answer.h"
+#include "pc/session_description.h"
 #include "pc/simulcast_description.h"
-#include "pc/webrtc_session_description_factory.h"
+#include "pc/transceiver_list.h"
+#include "pc/transport_stats.h"
+#include "pc/usage_pattern.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/crypto_random.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/net_helper.h"
 #include "rtc_base/network.h"
 #include "rtc_base/network_constants.h"
+#include "rtc_base/rtc_certificate.h"
 #include "rtc_base/socket_address.h"
+#include "rtc_base/ssl_certificate.h"
+#include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/string_encode.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/trace_event.h"
 #include "rtc_base/unique_id_generator.h"
 #include "system_wrappers/include/metrics.h"
@@ -695,6 +751,12 @@ RTCError PeerConnection::Initialize(
                               kPeerConnectionAddressFamilyCounter_Max);
     return InitializeTransportController_n(configuration, dependencies);
   });
+  if (call_ptr_) {
+    worker_thread()->BlockingCall([this, tc = transport_controller_copy_] {
+      RTC_DCHECK_RUN_ON(worker_thread());
+      call_->SetPayloadTypeSuggester(tc);
+    });
+  }
 
   configuration_ = configuration;
 

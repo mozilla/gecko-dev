@@ -12,54 +12,77 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/algorithm.h"
 #include "absl/algorithm/container.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/functional/bind_front.h"
 #include "absl/strings/match.h"
+#include "absl/strings/string_view.h"
 #include "api/audio/audio_frame.h"
 #include "api/audio/audio_frame_processor.h"
+#include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
+#include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_encoder.h"
+#include "api/audio_codecs/audio_encoder_factory.h"
+#include "api/audio_codecs/audio_format.h"
+#include "api/audio_options.h"
 #include "api/call/audio_sink.h"
+#include "api/crypto/crypto_options.h"
+#include "api/crypto/frame_decryptor_interface.h"
 #include "api/field_trials_view.h"
+#include "api/frame_transformer_interface.h"
 #include "api/make_ref_counted.h"
 #include "api/media_types.h"
 #include "api/priority.h"
+#include "api/rtc_error.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
+#include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_direction.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/transport/bitrate_settings.h"
+#include "api/transport/rtp/rtp_source.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "call/audio_receive_stream.h"
+#include "call/audio_send_stream.h"
+#include "call/audio_state.h"
+#include "call/call.h"
 #include "call/packet_receiver.h"
+#include "call/payload_type_picker.h"
 #include "call/rtp_config.h"
 #include "call/rtp_transport_controller_send_interface.h"
 #include "media/base/audio_source.h"
 #include "media/base/codec.h"
+#include "media/base/media_channel.h"
+#include "media/base/media_channel_impl.h"
+#include "media/base/media_config.h"
 #include "media/base/media_constants.h"
+#include "media/base/media_engine.h"
 #include "media/base/stream_params.h"
 #include "media/engine/adm_helpers.h"
-#include "media/engine/payload_type_mapper.h"
 #include "media/engine/webrtc_media_engine.h"
 #include "modules/async_audio_processing/async_audio_processing.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
-#include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
@@ -72,6 +95,7 @@
 #include "rtc_base/strings/audio_format_to_string.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/strings/string_format.h"
+#include "rtc_base/system/file_wrapper.h"
 #include "rtc_base/thread_annotations.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
@@ -332,6 +356,91 @@ bool CheckRedParameters(
   return true;
 }
 
+webrtc::SdpAudioFormat AudioCodecToSdpAudioFormat(const Codec& ac) {
+  return webrtc::SdpAudioFormat(ac.name, ac.clockrate, ac.channels, ac.params);
+}
+
+// Assign the payload types for the codecs of this voice engine.
+// This is a "preliminary" pass, done to prime the
+// payload type picker with a normal set of PTs.
+// TODO: https://issues.webrtc.org/360058654 - remove.
+std::vector<Codec> LegacyCollectCodecs(
+    const std::vector<webrtc::AudioCodecSpec>& specs) {
+  // Once payload assignment is done in the channel not in the factory,
+  // this needs to be a variable. But then this function should go away.
+  webrtc::PayloadTypePicker pt_mapper;
+  std::vector<Codec> out;
+
+  // Only generate CN payload types for these clockrates:
+  std::map<int, bool, std::greater<int>> generate_cn = {
+      {8000, false}, {16000, false}, {32000, false}};
+  // Only generate telephone-event payload types for these clockrates:
+  std::map<int, bool, std::greater<int>> generate_dtmf = {
+      {8000, false}, {16000, false}, {32000, false}, {48000, false}};
+
+  for (const auto& spec : specs) {
+    cricket::Codec codec = CreateAudioCodec(spec.format);
+    auto pt_or_error = pt_mapper.SuggestMapping(codec, nullptr);
+    // We need to do some extra stuff before adding the main codecs to out.
+    if (pt_or_error.ok()) {
+      codec.id = pt_or_error.value();
+      if (spec.info.supports_network_adaption) {
+        codec.AddFeedbackParam(
+            FeedbackParam(kRtcpFbParamTransportCc, kParamValueEmpty));
+      }
+
+      if (spec.info.allow_comfort_noise) {
+        // Generate a CN entry if the decoder allows it and we support the
+        // clockrate.
+        auto cn = generate_cn.find(spec.format.clockrate_hz);
+        if (cn != generate_cn.end()) {
+          cn->second = true;
+        }
+      }
+
+      // Generate a telephone-event entry if we support the clockrate.
+      auto dtmf = generate_dtmf.find(spec.format.clockrate_hz);
+      if (dtmf != generate_dtmf.end()) {
+        dtmf->second = true;
+      }
+
+      out.push_back(codec);
+
+      // TODO(hta):  Don't assign RED codecs until we know that the PT for Opus
+      // is final
+      if (codec.name == kOpusCodecName) {
+        std::string red_fmtp =
+            rtc::ToString(codec.id) + "/" + rtc::ToString(codec.id);
+        cricket::Codec red_codec =
+            CreateAudioCodec({kRedCodecName, 48000, 2, {{"", red_fmtp}}});
+        red_codec.id = pt_mapper.SuggestMapping(red_codec, nullptr).value();
+        out.push_back(red_codec);
+      }
+    }
+  }
+
+  // Add CN codecs after "proper" audio codecs.
+  for (const auto& cn : generate_cn) {
+    if (cn.second) {
+      cricket::Codec cn_codec = CreateAudioCodec({kCnCodecName, cn.first, 1});
+      cn_codec.id = pt_mapper.SuggestMapping(cn_codec, nullptr).value();
+      out.push_back(cn_codec);
+    }
+  }
+
+  // Add telephone-event codecs last.
+  for (const auto& dtmf : generate_dtmf) {
+    if (dtmf.second) {
+      cricket::Codec dtmf_codec =
+          CreateAudioCodec({kDtmfCodecName, dtmf.first, 1});
+      dtmf_codec.id = pt_mapper.SuggestMapping(dtmf_codec, nullptr).value();
+      out.push_back(dtmf_codec);
+    }
+  }
+
+  return out;
+}
+
 }  // namespace
 
 WebRtcVoiceEngine::WebRtcVoiceEngine(
@@ -383,13 +492,13 @@ void WebRtcVoiceEngine::Init() {
 
   // Load our audio codec lists.
   RTC_LOG(LS_VERBOSE) << "Supported send codecs in order of preference:";
-  send_codecs_ = CollectCodecs(encoder_factory_->GetSupportedEncoders());
+  send_codecs_ = LegacyCollectCodecs(encoder_factory_->GetSupportedEncoders());
   for (const Codec& codec : send_codecs_) {
     RTC_LOG(LS_VERBOSE) << ToString(codec);
   }
 
   RTC_LOG(LS_VERBOSE) << "Supported recv codecs in order of preference:";
-  recv_codecs_ = CollectCodecs(decoder_factory_->GetSupportedDecoders());
+  recv_codecs_ = LegacyCollectCodecs(decoder_factory_->GetSupportedDecoders());
   for (const Codec& codec : recv_codecs_) {
     RTC_LOG(LS_VERBOSE) << ToString(codec);
   }
@@ -708,84 +817,6 @@ webrtc::AudioState* WebRtcVoiceEngine::audio_state() {
   return audio_state_.get();
 }
 
-std::vector<Codec> WebRtcVoiceEngine::CollectCodecs(
-    const std::vector<webrtc::AudioCodecSpec>& specs) const {
-  PayloadTypeMapper mapper;
-  std::vector<Codec> out;
-
-  // Only generate CN payload types for these clockrates:
-  std::map<int, bool, std::greater<int>> generate_cn = {
-      {8000, false}, {16000, false}, {32000, false}};
-  // Only generate telephone-event payload types for these clockrates:
-  std::map<int, bool, std::greater<int>> generate_dtmf = {
-      {8000, false}, {16000, false}, {32000, false}, {48000, false}};
-
-  auto map_format = [&mapper](const webrtc::SdpAudioFormat& format,
-                              std::vector<Codec>* out) {
-    std::optional<Codec> opt_codec = mapper.ToAudioCodec(format);
-    if (opt_codec) {
-      if (out) {
-        out->push_back(*opt_codec);
-      }
-    } else {
-      RTC_LOG(LS_ERROR) << "Unable to assign payload type to format: "
-                        << rtc::ToString(format);
-    }
-
-    return opt_codec;
-  };
-
-  for (const auto& spec : specs) {
-    // We need to do some extra stuff before adding the main codecs to out.
-    std::optional<Codec> opt_codec = map_format(spec.format, nullptr);
-    if (opt_codec) {
-      Codec& codec = *opt_codec;
-      if (spec.info.supports_network_adaption) {
-        codec.AddFeedbackParam(
-            FeedbackParam(kRtcpFbParamTransportCc, kParamValueEmpty));
-      }
-
-      if (spec.info.allow_comfort_noise) {
-        // Generate a CN entry if the decoder allows it and we support the
-        // clockrate.
-        auto cn = generate_cn.find(spec.format.clockrate_hz);
-        if (cn != generate_cn.end()) {
-          cn->second = true;
-        }
-      }
-
-      // Generate a telephone-event entry if we support the clockrate.
-      auto dtmf = generate_dtmf.find(spec.format.clockrate_hz);
-      if (dtmf != generate_dtmf.end()) {
-        dtmf->second = true;
-      }
-
-      out.push_back(codec);
-
-      if (codec.name == kOpusCodecName) {
-        std::string red_fmtp =
-            rtc::ToString(codec.id) + "/" + rtc::ToString(codec.id);
-        map_format({kRedCodecName, 48000, 2, {{"", red_fmtp}}}, &out);
-      }
-    }
-  }
-
-  // Add CN codecs after "proper" audio codecs.
-  for (const auto& cn : generate_cn) {
-    if (cn.second) {
-      map_format({kCnCodecName, cn.first, 1}, &out);
-    }
-  }
-
-  // Add telephone-event codecs last.
-  for (const auto& dtmf : generate_dtmf) {
-    if (dtmf.second) {
-      map_format({kDtmfCodecName, dtmf.first, 1}, &out);
-    }
-  }
-
-  return out;
-}
 
 // --------------------------------- WebRtcVoiceSendChannel ------------------
 
@@ -2151,11 +2182,20 @@ bool WebRtcVoiceReceiveChannel::SetOptions(const AudioOptions& options) {
 }
 
 bool WebRtcVoiceReceiveChannel::SetRecvCodecs(
-    const std::vector<Codec>& codecs) {
+    const std::vector<Codec>& codecs_in) {
   RTC_DCHECK_RUN_ON(worker_thread_);
 
-  // Set the payload types to be used for incoming media.
-  RTC_LOG(LS_INFO) << "Setting receive voice codecs.";
+  auto codecs = codecs_in;
+  // Record the payload types used in the payload type suggester.
+  RTC_LOG(LS_INFO) << "Setting receive voice codecs. Mid is " << mid_;
+  for (auto& codec : codecs) {
+    auto error = call_->GetPayloadTypeSuggester()->AddLocalMapping(
+        mid_, codec.id, codec);
+    if (!error.ok()) {
+      RTC_LOG(LS_ERROR) << "Failed to register PT for " << codec.ToString();
+      return false;
+    }
+  }
 
   if (!VerifyUniquePayloadTypes(codecs)) {
     RTC_LOG(LS_ERROR) << "Codec payload types overlap.";

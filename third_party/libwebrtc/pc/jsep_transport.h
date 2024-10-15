@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-#include "api/candidate.h"
 #include "api/ice_transport_interface.h"
 #include "api/jsep.h"
 #include "api/rtc_error.h"
@@ -241,6 +240,9 @@ class JsepTransport {
     return remote_payload_types_;
   }
   const webrtc::PayloadTypeRecorder& local_payload_types() const {
+    return local_payload_types_;
+  }
+  webrtc::PayloadTypeRecorder& local_payload_types() {
     return local_payload_types_;
   }
   void CommitPayloadTypes() {

@@ -34,13 +34,14 @@
 #include "api/audio_codecs/audio_format.h"
 #include "api/audio_options.h"
 #include "api/call/audio_sink.h"
-#include "api/call/transport.h"
 #include "api/crypto/crypto_options.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/field_trials_view.h"
 #include "api/frame_transformer_interface.h"
+#include "api/media_types.h"
 #include "api/rtc_error.h"
+#include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
@@ -57,12 +58,11 @@
 #include "media/base/media_channel_impl.h"
 #include "media/base/media_config.h"
 #include "media/base/media_engine.h"
-#include "media/base/rtp_utils.h"
 #include "media/base/stream_params.h"
 #include "modules/async_audio_processing/async_audio_processing.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "rtc_base/buffer.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/system/file_wrapper.h"
@@ -146,9 +146,6 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
   webrtc::AudioDeviceModule* adm();
   webrtc::AudioProcessing* apm() const;
   webrtc::AudioState* audio_state();
-
-  std::vector<Codec> CollectCodecs(
-      const std::vector<webrtc::AudioCodecSpec>& specs) const;
 
   webrtc::SequenceChecker signal_thread_checker_{
       webrtc::SequenceChecker::kDetached};

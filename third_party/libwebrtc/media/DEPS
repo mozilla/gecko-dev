@@ -34,8 +34,7 @@ specific_include_rules = {
   ".*fake_webrtc_call\.cc": [
     "+video/config",
   ],
-  # temporary
-  ".*webrtc_voice_engine\.cc": [
-    "+pc/payload_type_picker.h",
+  ".*fake_webrtc_call\.h": [
+    "+video/config",
   ],
 }

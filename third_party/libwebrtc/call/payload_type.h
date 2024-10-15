@@ -37,6 +37,11 @@ class PayloadTypeSuggester {
   // or a newly suggested one.
   virtual RTCErrorOr<PayloadType> SuggestPayloadType(const std::string& mid,
                                                      cricket::Codec codec) = 0;
+  // Register a payload type as mapped to a specific codec for this MID
+  // at this time.
+  virtual RTCError AddLocalMapping(const std::string& mid,
+                                   PayloadType payload_type,
+                                   const cricket::Codec& codec) = 0;
 };
 
 }  // namespace webrtc

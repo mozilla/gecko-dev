@@ -12,28 +12,44 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <memory>
+#include <optional>
 #include <string>
-#include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
+#include "api/crypto/crypto_options.h"
+#include "api/jsep.h"
+#include "api/media_types.h"
 #include "api/rtp_parameters.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
-#include "api/units/timestamp.h"
+#include "api/task_queue/task_queue_base.h"
 #include "media/base/codec.h"
+#include "media/base/media_channel.h"
 #include "media/base/rid_description.h"
 #include "media/base/rtp_utils.h"
+#include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "p2p/base/dtls_transport_internal.h"
 #include "pc/rtp_media_utils.h"
+#include "pc/rtp_transport_internal.h"
+#include "pc/session_description.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/containers/flat_set.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
+#include "rtc_base/socket.h"
 #include "rtc_base/strings/string_format.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/trace_event.h"
+#include "rtc_base/unique_id_generator.h"
 
 namespace cricket {
 namespace {
@@ -907,7 +923,9 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
   set_local_content_direction(content->direction());
   UpdateMediaSendRecvState_w();
 
-  RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(0);
+  // Disabled because suggeting PTs takes thread jumps.
+  // TODO: https://issues.webrtc.org/360058654 - reenable after cleanup
+  // RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(0);
 
   bool success = MaybeUpdateDemuxerAndRtpExtensions_w(
       criteria_modified,
@@ -916,7 +934,7 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
           : std::nullopt,
       error_desc);
 
-  RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(1);
+  // RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(1);
 
   return success;
 }

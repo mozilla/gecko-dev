@@ -114,6 +114,11 @@ class PayloadTypeSuggesterForTests : public PayloadTypeSuggester {
                                              cricket::Codec codec) override {
     return payload_type_picker_.SuggestMapping(codec, nullptr);
   }
+  RTCError AddLocalMapping(const std::string& mid,
+                           PayloadType payload_type,
+                           const cricket::Codec& codec) override {
+    return RTCError::OK();
+  }
 
  private:
   PayloadTypePicker payload_type_picker_;

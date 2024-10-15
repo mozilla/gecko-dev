@@ -12,25 +12,58 @@
 
 #include <stddef.h>
 
+#include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
-#include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/strings/string_view.h"
+#include "api/async_dns_resolver.h"
+#include "api/candidate.h"
 #include "api/dtls_transport_interface.h"
 #include "api/environment/environment.h"
+#include "api/ice_transport_interface.h"
+#include "api/jsep.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/transport/data_channel_transport_interface.h"
 #include "api/transport/enums.h"
+#include "call/payload_type.h"
+#include "call/payload_type_picker.h"
+#include "media/base/codec.h"
 #include "media/sctp/sctp_transport_internal.h"
+#include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "p2p/base/dtls_transport.h"
+#include "p2p/base/dtls_transport_internal.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
+#include "p2p/base/port_allocator.h"
+#include "p2p/base/transport_description.h"
+#include "p2p/base/transport_info.h"
+#include "pc/dtls_srtp_transport.h"
+#include "pc/dtls_transport.h"
+#include "pc/jsep_transport.h"
+#include "pc/rtp_transport.h"
+#include "pc/rtp_transport_internal.h"
+#include "pc/sctp_transport.h"
+#include "pc/session_description.h"
+#include "pc/srtp_transport.h"
+#include "pc/transport_stats.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/rtc_certificate.h"
+#include "rtc_base/ssl_certificate.h"
+#include "rtc_base/ssl_stream_adapter.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/trace_event.h"
 
@@ -225,6 +258,15 @@ std::optional<rtc::SSLRole> JsepTransportController::GetDtlsRole(
 RTCErrorOr<webrtc::PayloadType> JsepTransportController::SuggestPayloadType(
     const std::string& mid,
     cricket::Codec codec) {
+  // Because SDP processing runs on the signal thread and Call processing
+  // runs on the worker thread, we allow cross thread invocation until we
+  // can clean up the thread work.
+  if (!network_thread_->IsCurrent()) {
+    return network_thread_->BlockingCall([&] {
+      RTC_DCHECK_RUN_ON(network_thread_);
+      return SuggestPayloadType(mid, codec);
+    });
+  }
   RTC_DCHECK_RUN_ON(network_thread_);
   const cricket::JsepTransport* transport = GetJsepTransportForMid(mid);
   if (transport) {
@@ -243,6 +285,27 @@ RTCErrorOr<webrtc::PayloadType> JsepTransportController::SuggestPayloadType(
   }
   // If there is no transport, there are no exclusions.
   return payload_type_picker_.SuggestMapping(codec, nullptr);
+}
+
+RTCError JsepTransportController::AddLocalMapping(const std::string& mid,
+                                                  PayloadType payload_type,
+                                                  const cricket::Codec& codec) {
+  // Because SDP processing runs on the signal thread and Call processing
+  // runs on the worker thread, we allow cross thread invocation until we
+  // can clean up the thread work.
+  if (!network_thread_->IsCurrent()) {
+    return network_thread_->BlockingCall([&] {
+      RTC_DCHECK_RUN_ON(network_thread_);
+      return AddLocalMapping(mid, payload_type, codec);
+    });
+  }
+  RTC_DCHECK_RUN_ON(network_thread_);
+  cricket::JsepTransport* transport = GetJsepTransportForMid(mid);
+  if (!transport) {
+    return RTCError(RTCErrorType::INVALID_PARAMETER,
+                    "AddLocalMapping: no transport for mid");
+  }
+  return transport->local_payload_types().AddMapping(payload_type, codec);
 }
 
 bool JsepTransportController::SetLocalCertificate(

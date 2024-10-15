@@ -43,7 +43,6 @@ rtc_library("call_interfaces") {
   deps = [
     ":audio_sender_interface",
     ":payload_type",
-    ":payload_type",
     ":receive_stream_interface",
     ":rtp_interfaces",
     ":video_stream_api",

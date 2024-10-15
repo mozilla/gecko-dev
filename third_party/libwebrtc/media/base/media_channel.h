@@ -11,6 +11,9 @@
 #ifndef MEDIA_BASE_MEDIA_CHANNEL_H_
 #define MEDIA_BASE_MEDIA_CHANNEL_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -19,6 +22,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/string_view.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/audio_options.h"
@@ -27,37 +32,34 @@
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/frame_transformer_interface.h"
 #include "api/media_stream_interface.h"
+#include "api/media_types.h"
 #include "api/rtc_error.h"
+#include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_sender_interface.h"
-#include "api/task_queue/pending_task_safety_flag.h"
-#include "api/transport/data_channel_transport_interface.h"
+#include "api/scoped_refptr.h"
 #include "api/transport/rtp/rtp_source.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "api/video/recordable_encoded_frame.h"
 #include "api/video/video_content_type.h"
 #include "api/video/video_sink_interface.h"
 #include "api/video/video_source_interface.h"
 #include "api/video/video_timing.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/video_encoder_factory.h"
-#include "call/video_receive_stream.h"
 #include "common_video/include/quality_limitation_reason.h"
 #include "media/base/codec.h"
-#include "media/base/media_constants.h"
 #include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/async_packet_socket.h"
-#include "rtc_base/buffer.h"
 #include "rtc_base/copy_on_write_buffer.h"
-#include "rtc_base/dscp.h"
-#include "rtc_base/logging.h"
+#include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/socket.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/strings/string_builder.h"
-#include "video/config/video_encoder_config.h"
 
 namespace rtc {
 class Timing;

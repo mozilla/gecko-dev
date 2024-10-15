@@ -243,6 +243,9 @@ class JsepTransportController : public PayloadTypeSuggester,
   // or a newly suggested one.
   RTCErrorOr<PayloadType> SuggestPayloadType(const std::string& mid,
                                              cricket::Codec codec) override;
+  RTCError AddLocalMapping(const std::string& mid,
+                           PayloadType payload_type,
+                           const cricket::Codec& codec) override;
 
   // TODO(deadbeef): GetStats isn't const because all the way down to
   // OpenSSLStreamAdapter, GetSslCipherSuite and GetDtlsSrtpCryptoSuite are not
