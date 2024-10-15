@@ -127,6 +127,7 @@ def fix_me(log, filename):
         ".mm",
         ".rs",
         ".java",
+        ".kt",
         ".js",
         ".jsm",
         ".jsx",

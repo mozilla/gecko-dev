@@ -87,6 +87,7 @@ license:
         - .js
         - .jsm
         - .jsx
+        - .kt
         - .m
         - .mm
         - .mjs
