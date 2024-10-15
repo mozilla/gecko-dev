@@ -15647,9 +15647,12 @@
 # Configures Certificate Transparency support mode:
 # 0: Fully disabled.
 # 1: Only collect telemetry. CT qualification checks are not performed.
+# 2: Enforce CT.
 - name: security.pki.certificate_transparency.mode
   type: RelaxedAtomicUint32
-#ifdef EARLY_BETA_OR_EARLIER
+#if defined(NIGHTLY_BUILD)
+  value: 2
+#elif defined(EARLY_BETA_OR_EARLIER)
   value: 1
 #else
   value: 0

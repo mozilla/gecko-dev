@@ -549,3 +549,81 @@ add_task(async function checkViewSource() {
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
+
+add_task(async function testCertificateTransparency() {
+  info(
+    "Test that when certificate transparency is enforced, the right error page is shown."
+  );
+  // Enforce certificate transparency for certificates issued by our test root.
+  // This is only possible in debug builds, hence skipping this test in
+  // non-debug builds (see below).
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [
+        "security.test.built_in_root_hash",
+        "8D:9D:57:09:E5:7D:D5:C6:4B:BE:24:70:E9:E5:BF:FF:16:F6:F2:C2:49:4E:0F:B9:37:1C:DD:3A:0E:10:45:F4",
+      ],
+    ],
+  });
+
+  for (let useFrame of [false, true]) {
+    let tab = await openErrorPage(GOOD_PAGE, useFrame);
+    let browser = tab.linkedBrowser;
+
+    let bc = browser.browsingContext;
+    if (useFrame) {
+      bc = bc.children[0];
+    }
+
+    let message = await SpecialPowers.spawn(bc, [], async function () {
+      let doc = content.document;
+
+      const shortDesc = doc.getElementById("errorShortDesc");
+      const sdArgs = JSON.parse(shortDesc.dataset.l10nArgs);
+      is(
+        sdArgs.hostname,
+        "example.com",
+        "Should list hostname in error message."
+      );
+
+      let advancedButton = doc.getElementById("advancedButton");
+      advancedButton.click();
+
+      // Wait until fluent sets the errorCode inner text.
+      let errorCode;
+      await ContentTaskUtils.waitForCondition(() => {
+        errorCode = doc.getElementById("errorCode");
+        return errorCode && errorCode.textContent != "";
+      }, "error code has been set inside the advanced button panel");
+
+      return {
+        textContent: errorCode.textContent,
+        tagName: errorCode.tagName.toLowerCase(),
+      };
+    });
+    is(
+      message.textContent,
+      "MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY",
+      "Correct error message found"
+    );
+    is(message.tagName, "a", "Error message is a link");
+
+    message = await SpecialPowers.spawn(bc, [], async function () {
+      let doc = content.document;
+      let errorCode = doc.getElementById("errorCode");
+      errorCode.click();
+      let text = doc.getElementById("certificateErrorText");
+      return {
+        text: text.textContent,
+      };
+    });
+    ok(message.text.includes(GOOD_PAGE), "Correct URL found");
+
+    BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  }
+
+  await SpecialPowers.popPrefEnv();
+
+  // Certificate transparency can only be enforced for our test certificates in
+  // debug builds.
+}).skip(!AppConstants.DEBUG);

@@ -228,6 +228,9 @@ uint32_t MapOverridableErrorToProbeValue(PRErrorCode errorCode) {
       return 19;
     case mozilla::pkix::MOZILLA_PKIX_ERROR_MITM_DETECTED:
       return 20;
+    case mozilla::pkix::
+        MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY:
+      return 21;
   }
   NS_WARNING(
       "Unknown certificate error code. Does MapOverridableErrorToProbeValue "
@@ -271,14 +274,16 @@ static uint32_t MapCertErrorToProbeValue(PRErrorCode errorCode) {
 Maybe<nsITransportSecurityInfo::OverridableErrorCategory>
 CategorizeCertificateError(PRErrorCode certificateError) {
   switch (certificateError) {
+    case SEC_ERROR_CA_CERT_INVALID:
     case SEC_ERROR_CERT_SIGNATURE_ALGORITHM_DISABLED:
     case SEC_ERROR_EXPIRED_ISSUER_CERTIFICATE:
     case SEC_ERROR_UNKNOWN_ISSUER:
-    case SEC_ERROR_CA_CERT_INVALID:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_EMPTY_ISSUER_NAME:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE:
+    case mozilla::pkix::
+        MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_MITM_DETECTED:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_SELF_SIGNED_CERT:
@@ -290,8 +295,8 @@ CategorizeCertificateError(PRErrorCode certificateError) {
       return Some(
           nsITransportSecurityInfo::OverridableErrorCategory::ERROR_DOMAIN);
 
-    case SEC_ERROR_INVALID_TIME:
     case SEC_ERROR_EXPIRED_CERTIFICATE:
+    case SEC_ERROR_INVALID_TIME:
     case mozilla::pkix::MOZILLA_PKIX_ERROR_NOT_YET_VALID_CERTIFICATE:
       return Some(
           nsITransportSecurityInfo::OverridableErrorCategory::ERROR_TIME);
@@ -453,7 +458,7 @@ void GatherTelemetryForSingleSCT(const ct::VerifiedSCT& verifiedSct) {
 }
 
 void GatherCertificateTransparencyTelemetry(
-    const nsTArray<uint8_t>& rootCert, bool isEV,
+    const nsTArray<uint8_t>& rootCert,
     const CertificateTransparencyInfo& info) {
   if (!info.enabled) {
     // No telemetry is gathered when CT is disabled.
@@ -545,8 +550,6 @@ static void CollectCertTelemetry(
     const nsTArray<uint8_t>& rootCert = aBuiltCertChain.LastElement();
     AccumulateTelemetryForRootCA(Telemetry::CERT_VALIDATION_SUCCESS_BY_CA_2,
                                  rootCert);
-    GatherCertificateTransparencyTelemetry(rootCert, aEVStatus == EVStatus::EV,
-                                           aCertificateTransparencyInfo);
 
     mozilla::glean::tls::certificate_verifications.Add(1);
     if (issuerSources.contains(IssuerSource::TLSHandshake)) {
@@ -569,6 +572,15 @@ static void CollectCertTelemetry(
       mozilla::glean::verification_used_cert_from::built_in_roots_module
           .AddToNumerator(1);
     }
+  }
+
+  if ((aCertVerificationResult == Success ||
+       aCertVerificationResult ==
+           Result::ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY) &&
+      aBuiltCertChain.Length() > 0) {
+    const nsTArray<uint8_t>& rootCert = aBuiltCertChain.LastElement();
+    GatherCertificateTransparencyTelemetry(rootCert,
+                                           aCertificateTransparencyInfo);
   }
 }
 
@@ -801,10 +813,11 @@ SSLServerCertVerificationJob::Run() {
   // NB: finalError may be 0 here, in which the connection will continue.
   nsresult rv = mResultTask->Dispatch(
       std::move(builtChainBytesArray), std::move(mPeerCertChain),
-      nsITransportSecurityInfo::CERTIFICATE_TRANSPARENCY_NOT_APPLICABLE,
+      TransportSecurityInfo::ConvertCertificateTransparencyInfoToStatus(
+          certificateTransparencyInfo),
       EVStatus::NotEV, false, finalError, overridableErrorCategory,
-      // If the certificate verifier returned Result::ERROR_BAD_CERT_DOMAIN, a
-      // chain was built, so isCertChainRootBuiltInRoot is valid and
+      // If the certificate verifier returned Result::ERROR_BAD_CERT_DOMAIN,
+      // a chain was built, so isCertChainRootBuiltInRoot is valid and
       // potentially useful. Otherwise, assume no chain was built.
       result == Result::ERROR_BAD_CERT_DOMAIN ? isCertChainRootBuiltInRoot
                                               : false,
@@ -1109,6 +1122,8 @@ SSLServerCertVerificationResult::Run() {
   mSocketControl->SetMadeOCSPRequests(mMadeOCSPRequests);
   mSocketControl->SetIsBuiltCertChainRootBuiltInRoot(
       mIsBuiltCertChainRootBuiltInRoot);
+  mSocketControl->SetCertificateTransparencyStatus(
+      mCertificateTransparencyStatus);
 
   if (mSucceeded) {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
@@ -1117,8 +1132,6 @@ SSLServerCertVerificationResult::Run() {
     nsCOMPtr<nsIX509Cert> cert(new nsNSSCertificate(std::move(certBytes)));
     mSocketControl->SetServerCert(cert, mEVStatus);
     mSocketControl->SetSucceededCertChain(std::move(mBuiltChain));
-    mSocketControl->SetCertificateTransparencyStatus(
-        mCertificateTransparencyStatus);
   } else {
     nsTArray<uint8_t> certBytes(mPeerCertChain.ElementAt(0).Clone());
     nsCOMPtr<nsIX509Cert> cert(new nsNSSCertificate(std::move(certBytes)));

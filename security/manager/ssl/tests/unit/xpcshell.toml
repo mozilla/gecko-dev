@@ -2,6 +2,9 @@
 head = "head_psm.js"
 tags = "psm condprof"
 firefox-appdir = "browser"
+prefs = [
+  "security.pki.certificate_transparency.mode=1",
+]
 skip-if = ["os == 'win' && msix"] # https://bugzilla.mozilla.org/show_bug.cgi?id=1809477
 support-files = [
   "corrupted_crlite_helper.js",

@@ -2144,6 +2144,7 @@ CertVerifier::CertificateTransparencyMode GetCertificateTransparencyMode() {
   switch (ctMode) {
     case CertVerifier::CertificateTransparencyMode::Disabled:
     case CertVerifier::CertificateTransparencyMode::TelemetryOnly:
+    case CertVerifier::CertificateTransparencyMode::Enforce:
       break;
     default:
       ctMode = defaultCTMode;

@@ -231,6 +231,7 @@ class CertVerifier {
   enum class CertificateTransparencyMode {
     Disabled = 0,
     TelemetryOnly = 1,
+    Enforce = 2,
   };
 
   CertVerifier(OcspDownloadConfig odc, OcspStrictConfig osc,

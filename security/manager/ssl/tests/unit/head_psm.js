@@ -111,6 +111,8 @@ const MOZILLA_PKIX_ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED =
   MOZILLA_PKIX_ERROR_BASE + 13;
 const MOZILLA_PKIX_ERROR_SELF_SIGNED_CERT = MOZILLA_PKIX_ERROR_BASE + 14;
 const MOZILLA_PKIX_ERROR_MITM_DETECTED = MOZILLA_PKIX_ERROR_BASE + 15;
+const MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY =
+  MOZILLA_PKIX_ERROR_BASE + 16;
 const MOZILLA_PKIX_ERROR_ISSUER_NO_LONGER_TRUSTED =
   MOZILLA_PKIX_ERROR_BASE + 17;
 
@@ -1248,6 +1250,10 @@ function append_line_to_data_storage_file(
   outputStream.write(line, line.length);
 }
 
+// Helper constants for setting security.pki.certificate_transparency.mode.
+const CT_MODE_COLLECT_TELEMETRY = 1;
+const CT_MODE_ENFORCE = 2;
+
 // Helper function for add_ct_test. Returns a function that checks that the
 // nsITransportSecurityInfo of the connection has the expected CT and resumed
 // statuses.
@@ -1271,18 +1277,23 @@ function expectCT(expectedCTValue, expectedResumed) {
 // Additionally, if an additional connection is made, it is expected that TLS
 // resumption is used and that the CT status is the same with the resumed
 // connection.
-function add_ct_test(host, expectedCTValue) {
+function add_ct_test(host, expectedCTValue, expectConnectionSuccess) {
   add_connection_test(
     host,
-    PRErrorCodeSuccess,
+    expectConnectionSuccess
+      ? PRErrorCodeSuccess
+      : MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY,
     null,
     expectCT(expectedCTValue, false)
   );
-  // Test that session resumption results in the same expected CT status.
-  add_connection_test(
-    host,
-    PRErrorCodeSuccess,
-    null,
-    expectCT(expectedCTValue, true)
-  );
+  // Test that session resumption results in the same expected CT status for
+  // successful connections.
+  if (expectConnectionSuccess) {
+    add_connection_test(
+      host,
+      PRErrorCodeSuccess,
+      null,
+      expectCT(expectedCTValue, true)
+    );
+  }
 }

@@ -281,7 +281,9 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
       ctInfo->verifyResult = std::move(emptyResult);
       ctInfo->policyCompliance.emplace(CTPolicyCompliance::NotEnoughScts);
     }
-    return Success;
+    return mCTMode == CertificateTransparencyMode::Enforce
+               ? Result::ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY
+               : Success;
   }
 
   const nsTArray<uint8_t>& endEntityBytes = builtChain.ElementAt(0);
@@ -360,6 +362,12 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
     ctInfo->verifyResult = std::move(result);
     ctInfo->policyCompliance.emplace(ctPolicyCompliance);
   }
+
+  if (ctPolicyCompliance != CTPolicyCompliance::Compliant &&
+      mCTMode == CertificateTransparencyMode::Enforce) {
+    return Result::ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY;
+  }
+
   return Success;
 }
 

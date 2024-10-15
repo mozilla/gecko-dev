@@ -1334,6 +1334,14 @@ function setCertErrorDetails() {
       ];
       break;
     }
+    case "MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY":
+      whatToDoParts = [
+        [
+          "p",
+          "cert-error-trust-certificate-transparency-what-can-you-do-about-it",
+        ],
+      ];
+      break;
   }
 
   if (whatToDoParts) {
@@ -1451,6 +1459,9 @@ function setTechnicalDetailsOnCertError(
         case "MOZILLA_PKIX_ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED":
           addLabel("cert-error-intro", { hostname });
           addLabel("cert-error-trust-symantec");
+          break;
+        case "MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY":
+          addLabel("cert-error-trust-certificate-transparency", { hostname });
           break;
         default:
           addLabel("cert-error-intro", { hostname });
