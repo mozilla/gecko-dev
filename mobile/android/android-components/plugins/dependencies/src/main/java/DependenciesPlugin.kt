@@ -36,7 +36,7 @@ object Versions {
     const val detekt = "1.23.7"
     const val ktlint = "0.49.1"
 
-    const val sentry = "7.14.0"
+    const val sentry = "7.15.0"
 
     const val zxing = "3.5.3"
 
