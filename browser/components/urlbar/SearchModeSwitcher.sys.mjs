@@ -73,37 +73,40 @@ export class SearchModeSwitcher {
       await this.#rebuildSearchModeList(this.#input.window);
       this.#engineListNeedsRebuild = false;
     }
-    if (anchor.getAttribute("open") != "true") {
-      this.#input.view.hideTemporarily();
 
+    if (anchor.getAttribute("open") == "true") {
+      lazy.PanelMultiView.hidePopup(this.#popup);
+      return;
+    }
+
+    this.#input.view.hideTemporarily();
+
+    this.#popup.addEventListener(
+      "popuphidden",
+      () => {
+        anchor.removeAttribute("open");
+        anchor.setAttribute("aria-expanded", false);
+        this.#input.view.restoreVisibility();
+      },
+      { once: true }
+    );
+    anchor.setAttribute("open", true);
+    anchor.setAttribute("aria-expanded", true);
+
+    if (event.type == "keypress") {
+      // Focus the first item when opened by keypress only.
       this.#popup.addEventListener(
-        "popuphidden",
+        "popupshown",
         () => {
-          anchor.removeAttribute("open");
-          anchor.setAttribute("aria-expanded", false);
-          this.#input.view.restoreVisibility();
+          this.#popup.querySelector("toolbarbutton").focus();
         },
         { once: true }
       );
-      anchor.setAttribute("open", true);
-      anchor.setAttribute("aria-expanded", true);
-
-      if (event.type == "keypress") {
-        // Focus the first item when opened by keypress only.
-        this.#popup.addEventListener(
-          "popupshown",
-          () => {
-            this.#popup.querySelector("toolbarbutton").focus();
-          },
-          { once: true }
-        );
-      }
-
-      lazy.PanelMultiView.openPopup(this.#popup, anchor, {
-        position: "bottomleft topleft",
-        triggerEvent: event,
-      }).catch(console.error);
     }
+    lazy.PanelMultiView.openPopup(this.#popup, anchor, {
+      position: "bottomleft topleft",
+      triggerEvent: event,
+    }).catch(console.error);
   }
 
   #openPreferences(event) {
@@ -392,19 +395,19 @@ export class SearchModeSwitcher {
   #enableObservers() {
     Services.obs.addObserver(this, "browser-search-engine-modified", true);
 
-    this.#toolbarbutton.addEventListener("mousedown", this);
+    this.#toolbarbutton.addEventListener("command", this);
     this.#toolbarbutton.addEventListener("keypress", this);
 
     let closebutton = this.#input.document.querySelector(
       "#searchmode-switcher-close"
     );
-    closebutton.addEventListener("mousedown", this);
+    closebutton.addEventListener("command", this);
     closebutton.addEventListener("keypress", this);
 
     let prefsbutton = this.#input.document.querySelector(
       "#searchmode-switcher-popup-search-settings-button"
     );
-    prefsbutton.addEventListener("mousedown", this);
+    prefsbutton.addEventListener("command", this);
     prefsbutton.addEventListener("keypress", this);
 
     this.#input.window.addEventListener(
@@ -417,19 +420,19 @@ export class SearchModeSwitcher {
   #disableObservers() {
     Services.obs.removeObserver(this, "browser-search-engine-modified");
 
-    this.#toolbarbutton.removeEventListener("mousedown", this);
+    this.#toolbarbutton.removeEventListener("command", this);
     this.#toolbarbutton.removeEventListener("keypress", this);
 
     let closebutton = this.#input.document.querySelector(
       "#searchmode-switcher-close"
     );
-    closebutton.removeEventListener("mousedown", this);
+    closebutton.removeEventListener("command", this);
     closebutton.removeEventListener("keypress", this);
 
     let prefsbutton = this.#input.document.querySelector(
       "#searchmode-switcher-popup-search-settings-button"
     );
-    prefsbutton.removeEventListener("mousedown", this);
+    prefsbutton.removeEventListener("command", this);
     prefsbutton.removeEventListener("keypress", this);
   }
 }
