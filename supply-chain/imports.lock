@@ -52,13 +52,6 @@ user-login = "padenot"
 user-name = "Paul Adenot"
 
 [[publisher.authenticator]]
-version = "0.4.0-alpha.24"
-when = "2023-11-29"
-user-id = 175410
-user-login = "jschanck"
-user-name = "John Schanck"
-
-[[publisher.authenticator]]
 version = "0.4.1"
 when = "2024-09-25"
 user-id = 175410
@@ -71,27 +64,6 @@ when = "2023-02-23"
 user-id = 128763
 user-login = "martinthomson"
 user-name = "Martin Thomson"
-
-[[publisher.breakpad-symbols]]
-version = "0.21.1"
-when = "2024-03-01"
-user-id = 72814
-user-login = "gabrielesvelto"
-user-name = "Gabriele Svelto"
-
-[[publisher.breakpad-symbols]]
-version = "0.21.2"
-when = "2024-06-03"
-user-id = 72814
-user-login = "gabrielesvelto"
-user-name = "Gabriele Svelto"
-
-[[publisher.breakpad-symbols]]
-version = "0.22.0"
-when = "2024-07-03"
-user-id = 72814
-user-login = "gabrielesvelto"
-user-name = "Gabriele Svelto"
 
 [[publisher.breakpad-symbols]]
 version = "0.22.1"
@@ -255,20 +227,6 @@ user-login = "joshtriplett"
 user-name = "Josh Triplett"
 
 [[publisher.framehop]]
-version = "0.9.0"
-when = "2024-02-07"
-user-id = 20227
-user-login = "mstange"
-user-name = "Markus Stange"
-
-[[publisher.framehop]]
-version = "0.11.2"
-when = "2024-05-06"
-user-id = 20227
-user-login = "mstange"
-user-name = "Markus Stange"
-
-[[publisher.framehop]]
 version = "0.12.1"
 when = "2024-06-04"
 user-id = 20227
@@ -290,15 +248,15 @@ user-login = "jrmuizel"
 user-name = "Jeff Muizelaar"
 
 [[publisher.glean]]
-version = "61.1.0"
-when = "2024-09-24"
+version = "61.2.0"
+when = "2024-10-07"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
 
 [[publisher.glean-core]]
-version = "61.1.0"
-when = "2024-09-24"
+version = "61.2.0"
+when = "2024-10-07"
 user-id = 48
 user-login = "badboy"
 user-name = "Jan-Erik Rediger"
@@ -423,27 +381,6 @@ user-login = "seanmonstar"
 user-name = "Sean McArthur"
 
 [[publisher.minidump]]
-version = "0.21.1"
-when = "2024-03-01"
-user-id = 72814
-user-login = "gabrielesvelto"
-user-name = "Gabriele Svelto"
-
-[[publisher.minidump]]
-version = "0.21.2"
-when = "2024-06-03"
-user-id = 72814
-user-login = "gabrielesvelto"
-user-name = "Gabriele Svelto"
-
-[[publisher.minidump]]
-version = "0.22.0"
-when = "2024-07-03"
-user-id = 72814
-user-login = "gabrielesvelto"
-user-name = "Gabriele Svelto"
-
-[[publisher.minidump]]
 version = "0.22.1"
 when = "2024-09-05"
 user-id = 72814
@@ -531,13 +468,6 @@ version = "0.16.2"
 when = "2024-03-19"
 user-id = 213776
 user-login = "divviup-github-automation"
-
-[[publisher.proc-macro2]]
-version = "1.0.74"
-when = "2024-01-02"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
 
 [[publisher.proc-macro2]]
 version = "1.0.84"
@@ -664,13 +594,6 @@ when = "2024-01-19"
 user-id = 2017
 user-login = "mbrubeck"
 user-name = "Matt Brubeck"
-
-[[publisher.syn]]
-version = "2.0.46"
-when = "2024-01-02"
-user-id = 3618
-user-login = "dtolnay"
-user-name = "David Tolnay"
 
 [[publisher.syn]]
 version = "2.0.68"
