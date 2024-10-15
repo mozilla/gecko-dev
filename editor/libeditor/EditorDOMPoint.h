@@ -693,6 +693,14 @@ class EditorDOMPointBase final {
     return result;
   }
   template <typename EditorDOMPointType = SelfType>
+  EditorDOMPointType NextPointOrAfterContainer() const {
+    MOZ_ASSERT(IsInContentNode());
+    if (!IsEndOfContainer()) {
+      return NextPoint<EditorDOMPointType>();
+    }
+    return EditorDOMPointType::After(*ContainerAs<nsIContent>());
+  }
+  template <typename EditorDOMPointType = SelfType>
   EditorDOMPointType PreviousPoint() const {
     NS_ASSERTION(!IsStartOfContainer(),
                  "Should not be at start of the container");

@@ -287,13 +287,14 @@ class MOZ_STACK_CLASS WSScanResult final {
   }
 
   /**
-   * PointAfterReachedContent() returns the position after found visible content
-   * or reached block element.
+   * PointAfterReachedContent() returns the next position of found visible
+   * content or reached block element.
    */
   template <typename EditorDOMPointType>
   EditorDOMPointType PointAfterReachedContent() const {
     MOZ_ASSERT(mContent);
-    return PointAtReachedContent<EditorDOMPointType>().template NextPoint<>();
+    return PointAtReachedContent<EditorDOMPointType>()
+        .template NextPointOrAfterContainer();
   }
 
   /**
