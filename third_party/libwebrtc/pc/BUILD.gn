@@ -49,6 +49,7 @@ rtc_source_set("proxy") {
   visibility = [ ":*" ]
   sources = [ "proxy.h" ]
   deps = [
+    "../api:make_ref_counted",
     "../api:scoped_refptr",
     "../api/task_queue",
     "../rtc_base:event_tracer",

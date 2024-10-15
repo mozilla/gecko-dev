@@ -13,7 +13,6 @@
 
 #include <string>
 
-#include "api/media_stream_interface.h"
 #include "api/ref_count.h"
 
 namespace webrtc {

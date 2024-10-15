@@ -13,6 +13,7 @@
 #import "base/RTCLogging.h"
 #import "helpers/NSString+StdString.h"
 
+#include "api/scoped_refptr.h"
 #include "rtc_base/time_utils.h"
 
 @implementation RTC_OBJC_TYPE (RTCDtmfSender) {

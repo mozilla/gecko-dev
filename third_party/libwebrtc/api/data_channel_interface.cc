@@ -10,7 +10,12 @@
 
 #include "api/data_channel_interface.h"
 
+#include <cstdint>
+#include <string>
+
+#include "absl/functional/any_invocable.h"
 #include "api/priority.h"
+#include "api/rtc_error.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {

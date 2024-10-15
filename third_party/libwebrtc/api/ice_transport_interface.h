@@ -15,7 +15,6 @@
 
 #include "api/async_dns_resolver.h"
 #include "api/ref_count.h"
-#include "api/rtc_error.h"
 #include "api/rtc_event_log/rtc_event_log.h"
 #include "api/scoped_refptr.h"
 

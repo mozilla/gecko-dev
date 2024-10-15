@@ -10,6 +10,10 @@
 
 #include "api/jsep.h"
 
+#include <cstddef>
+#include <string>
+#include <vector>
+
 namespace webrtc {
 
 std::string IceCandidateInterface::server_url() const {

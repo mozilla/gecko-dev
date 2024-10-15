@@ -10,6 +10,10 @@
 
 #include "api/rtp_headers.h"
 
+#include "api/video/video_content_type.h"
+#include "api/video/video_rotation.h"
+#include "rtc_base/checks.h"
+
 namespace webrtc {
 
 AudioLevel::AudioLevel() : voice_activity_(false), audio_level_(0) {}

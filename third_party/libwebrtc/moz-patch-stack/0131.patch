@@ -122,7 +122,7 @@ index e94dc7e663..1bb6eacea0 100644
    deps = [
      "net/dcsctp/public:factory",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index a7224eb649..2abe4d3055 100644
+index a630bb1b30..dc7575e3b3 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -660,7 +660,7 @@ index 7c78f5064a..5e6f0971c5 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index f21f407fbf..856d14074f 100644
+index a5560cdf49..b64cd041f0 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -30,8 +30,8 @@

@@ -10,7 +10,9 @@
 
 #include "api/media_stream_interface.h"
 
+#include "api/audio_options.h"
 #include "api/media_types.h"
+#include "api/scoped_refptr.h"
 
 namespace webrtc {
 

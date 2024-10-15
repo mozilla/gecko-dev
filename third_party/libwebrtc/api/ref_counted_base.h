@@ -12,6 +12,7 @@
 
 #include <type_traits>
 
+#include "api/ref_count.h"
 #include "rtc_base/ref_counter.h"
 
 namespace webrtc {

@@ -349,10 +349,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fc01107426c3adebb
  39 files changed, 565 insertions(+), 81 deletions(-)
 
 diff --git a/api/rtp_headers.cc b/api/rtp_headers.cc
-index 8813e0f4c2..b5e08cea2c 100644
+index c272ccae06..0271714c44 100644
 --- a/api/rtp_headers.cc
 +++ b/api/rtp_headers.cc
-@@ -31,7 +31,8 @@ RTPHeaderExtension::RTPHeaderExtension()
+@@ -35,7 +35,8 @@ RTPHeaderExtension::RTPHeaderExtension()
        videoRotation(kVideoRotation_0),
        hasVideoContentType(false),
        videoContentType(VideoContentType::UNSPECIFIED),

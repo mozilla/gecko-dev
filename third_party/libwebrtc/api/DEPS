@@ -102,6 +102,7 @@ specific_include_rules = {
 
   "packet_socket_factory\.h": [
     "+rtc_base/async_packet_socket.h",
+    "+rtc_base/socket_address.h",
   ],
 
   "peer_connection_interface\.h": [
@@ -171,6 +172,7 @@ specific_include_rules = {
 
   "notifier\.h": [
     "+rtc_base/system/no_unique_address.h",
+    "+rtc_base/thread_annotations.h",
   ],
 
   "priority\.h": [
