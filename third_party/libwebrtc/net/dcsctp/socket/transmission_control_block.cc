@@ -169,7 +169,6 @@ void TransmissionControlBlock::MaybeSendForwardTsn(SctpPacket::Builder& builder,
     } else {
       builder.Add(retransmission_queue_.CreateForwardTsn());
     }
-    Send(builder);
     // https://datatracker.ietf.org/doc/html/rfc3758
     // "IMPLEMENTATION NOTE: An implementation may wish to limit the number of
     // duplicate FORWARD TSN chunks it sends by ... waiting a full RTT before
