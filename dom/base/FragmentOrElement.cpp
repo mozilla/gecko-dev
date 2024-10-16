@@ -662,12 +662,14 @@ void FragmentOrElement::nsExtendedDOMSlots::TraverseExtendedSlots(
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(aCb, "mSlots->mPart");
   aCb.NoteXPCOMChild(mPart.get());
 
-  for (auto& tableEntry : mAttrElementsMap) {
-    auto& [explicitlySetElements, cachedAttrElements] =
-        *tableEntry.GetModifiableData();
-    if (cachedAttrElements) {
-      ImplCycleCollectionTraverse(aCb, *cachedAttrElements,
-                                  "cached attribute elements entry", 0);
+  if (!mAttrElementsMap.IsEmpty()) {
+    for (auto& tableEntry : mAttrElementsMap) {
+      auto& [explicitlySetElements, cachedAttrElements] =
+          *tableEntry.GetModifiableData();
+      if (cachedAttrElements) {
+        ImplCycleCollectionTraverse(aCb, *cachedAttrElements,
+                                    "cached attribute elements entry", 0);
+      }
     }
   }
 
