@@ -1,4 +1,4 @@
-//error: invalid value for attribute `ChildProc', expected one of: any, anychild, anydom, compositor, Parent, Content, IPDLUnitTest, GMPlugin, GPU, VR, RDD, Socket, RemoteSandboxBroker, ForkServer, Utility
+//error: invalid value for attribute `ChildProc', expected one of: any, anychild, anydom, compositor, Parent, Content, IPDLUnitTest, GMPlugin, GPU, VR, RDD, Socket, ForkServer, Utility
 
 [ChildProc=unknowntype]
 protocol PUnknownProc {

@@ -63,7 +63,6 @@ Diagram
                     <TR><TD BORDER="1">Data Decoder (RDD) Process</TD></TR>
                     <TR><TD BORDER="1">Network (Socket) Process</TD></TR>
                     <TR><TD BORDER="1">Utility Process</TD></TR>
-                    <TR><TD BORDER="1">Remote Sandbox Broker Process</TD></TR>
                     <TR><TD BORDER="1">Fork Server</TD></TR>
                 </TABLE>
             >
@@ -290,17 +289,6 @@ Network (Socket) Process
 :sandboxed?: yes (socket sandbox policy)
 
 The socket process is used to separate certain networking operations from the parent process, allowing them to be performed more directly in a partially sandboxed process. The eventual goal is to move all TCP/UDP network operations into this dedicated process, and is being tracked in `Bug 1322426 <https://bugzilla.mozilla.org/show_bug.cgi?id=1322426>`_.
-
-.. _remote-sandbox-process:
-
-Remote Sandbox Broker Process
------------------------------
-
-:platform: Windows on ARM only
-:primary protocol: `PRemoteSandboxBroker <https://searchfox.org/mozilla-central/source/security/sandbox/win/src/remotesandboxbroker/PRemoteSandboxBroker.ipdl>`_
-:sandboxed?: no
-
-In order to run sandboxed x86 plugin processes from Windows-on-ARM, the remote sandbox broker process is launched in x86-mode, and used to launch sandboxed x86 subprocesses. This avoids issues with the sandboxing layer, which unfortunately assumes that pointer width matches between the sandboxer and sandboxing process. To avoid this, the remote sandbox broker is used as an x86 sandboxing process which wraps these plugins.
 
 .. _fork-server:
 

@@ -88,11 +88,6 @@ int main(int argc, char* argv[]) {
 
     childData.ProvideLogFunction = mozilla::sandboxing::ProvideLogFunction;
   }
-
-  if (GetGeckoProcessType() == GeckoProcessType_RemoteSandboxBroker) {
-    childData.sandboxBrokerServices =
-        mozilla::sandboxing::GetInitializedBrokerServices();
-  }
 #endif
 
   nsresult rv = bootstrap->XRE_InitChildProcess(argc, argv, &childData);
