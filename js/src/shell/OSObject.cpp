@@ -194,11 +194,9 @@ JSString* ResolvePath(JSContext* cx, HandleString filenameStr,
   JS::AutoFilename scriptFilename;
   if (resolveMode == ScriptRelative) {
     // Get the currently executing script's name.
-    if (!DescribeScriptedCaller(cx, &scriptFilename)) {
-      return nullptr;
-    }
-
-    if (!scriptFilename.get()) {
+    if (!DescribeScriptedCaller(cx, &scriptFilename) || !scriptFilename.get()) {
+      JS_ReportErrorASCII(
+          cx, "cannot resolve path due to hidden or unscripted caller");
       return nullptr;
     }
 
