@@ -48,6 +48,20 @@
 #include <iptypes.h>
 #include <iphlpapi.h>
 
+#if defined(__MINGW32__) || defined(__MINGW64__)
+BOOLEAN IN6_IS_ADDR_LOOPBACK(const struct in6_addr* a) {
+  auto words = a->s6_words;
+  return (words[0] == 0) && (words[1] == 0) && (words[2] == 0) &&
+         (words[3] == 0) && (words[4] == 0) && (words[5] == 0) &&
+         (words[6] == 0) && (words[7] == 0x0100);
+}
+
+#  define IN6_IS_ADDR_LINKLOCAL(_addr)         \
+    ((((const uint8_t*)(_addr))[0] == 0xfe) && \
+     ((((const uint8_t*)(_addr))[1] & 0xc0) == 0x80))
+
+#endif  // defined(__MINGW32__)  || defined (__MINGW64__)
+
 using namespace mozilla;
 
 static LazyLogModule gNotifyAddrLog("nsNotifyAddr");
