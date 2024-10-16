@@ -509,10 +509,6 @@ class TestClickNavigation(WindowManagerMixin, MarionetteTestCase):
         self.marionette.find_element(By.ID, "anchor").click()
         self.assertEqual(self.marionette.get_url(), "{}#".format(self.test_page))
 
-    @skipIf(
-        sys.platform.startswith("win"),
-        "Bug 1627965 - Skip on Windows for frequent failures",
-    )
     def test_click_link_install_addon(self):
         try:
             self.marionette.find_element(By.ID, "install-addon").click()
