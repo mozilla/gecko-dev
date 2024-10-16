@@ -15,14 +15,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
@@ -63,21 +67,25 @@ fun MicrosurveyContent(
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .wrapContentHeight()
-                .selectableGroup(),
-        ) {
+        Column {
             Header(icon, question)
 
-            answers.forEach {
-                RadioButtonListItem(
-                    label = it,
-                    selected = selectedAnswer == it,
-                    onClick = {
-                        onSelectionChange.invoke(it)
-                    },
-                )
+            Column(
+                modifier = Modifier
+                    .wrapContentHeight()
+                    .selectableGroup()
+                    .nestedScroll(rememberNestedScrollInteropConnection())
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                answers.forEach {
+                    RadioButtonListItem(
+                        label = it,
+                        selected = selectedAnswer == it,
+                        onClick = {
+                            onSelectionChange.invoke(it)
+                        },
+                    )
+                }
             }
         }
     }

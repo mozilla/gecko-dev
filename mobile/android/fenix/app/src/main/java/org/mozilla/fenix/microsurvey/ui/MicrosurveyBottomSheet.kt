@@ -7,13 +7,14 @@ package org.mozilla.fenix.microsurvey.ui
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -60,43 +61,35 @@ fun MicrosurveyBottomSheet(
     var selectedAnswer by remember { mutableStateOf<String?>(null) }
     var isSubmitted by remember { mutableStateOf(false) }
 
-    Surface(
-        modifier = Modifier.fillMaxHeight(),
-        color = FirefoxTheme.colors.layer1,
-        shape = bottomSheetShape,
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(vertical = 8.dp)
-                .nestedScroll(rememberNestedScrollInteropConnection())
-                .verticalScroll(rememberScrollState()),
-        ) {
-            BottomSheetHandle(
-                onRequestDismiss = {},
-                contentDescription = stringResource(R.string.microsurvey_close_handle_content_description),
+    Scaffold(
+        backgroundColor = FirefoxTheme.colors.layer1,
+        topBar = {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .fillMaxWidth(BOTTOM_SHEET_HANDLE_WIDTH_PERCENT)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { traversalIndex = -1f },
-            )
+                    .padding(top = 8.dp)
+                    .nestedScroll(rememberNestedScrollInteropConnection())
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                BottomSheetHandle(
+                    onRequestDismiss = {},
+                    contentDescription = stringResource(R.string.microsurvey_close_handle_content_description),
+                    modifier = Modifier
+                        .padding(bottom = 2.dp)
+                        .fillMaxWidth(BOTTOM_SHEET_HANDLE_WIDTH_PERCENT)
+                        .semantics { traversalIndex = -1f },
+                )
 
-            MicrosurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {
-                onCloseButtonClicked()
-            }
-
-            Column {
-                if (isSubmitted) {
-                    MicrosurveyCompleted()
-                } else {
-                    MicrosurveyContent(
-                        question = question,
-                        icon = icon,
-                        answers = answers,
-                        selectedAnswer = selectedAnswer,
-                        onSelectionChange = { selectedAnswer = it },
-                    )
+                MicrosurveyHeader(title = stringResource(id = R.string.micro_survey_survey_header_2)) {
+                    onCloseButtonClicked()
                 }
-
+            }
+        },
+        bottomBar = {
+            Column(
+                modifier = Modifier
+                    .padding(bottom = 8.dp),
+            ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 MicrosurveyFooter(
@@ -109,6 +102,26 @@ fun MicrosurveyBottomSheet(
                             isSubmitted = true
                         }
                     },
+                )
+            }
+        },
+    ) { innerPadding ->
+        Surface(
+            modifier = Modifier
+                .wrapContentHeight()
+                .padding(innerPadding),
+            color = FirefoxTheme.colors.layer1,
+            shape = bottomSheetShape,
+        ) {
+            if (isSubmitted) {
+                MicrosurveyCompleted()
+            } else {
+                MicrosurveyContent(
+                    question = question,
+                    icon = icon,
+                    answers = answers,
+                    selectedAnswer = selectedAnswer,
+                    onSelectionChange = { selectedAnswer = it },
                 )
             }
         }
