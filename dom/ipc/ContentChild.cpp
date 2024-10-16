@@ -804,6 +804,13 @@ void ContentChild::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
             PendingInputEventHangAnnotator::sSingleton);
       }));
 #endif
+
+#if defined(MOZ_MEMORY) && defined(DEBUG)
+  jemalloc_stats_t stats;
+  jemalloc_stats(&stats);
+  MOZ_ASSERT(!stats.opt_randomize_small,
+             "Content process should not randomize small allocations");
+#endif
 }
 
 void ContentChild::AddProfileToProcessName(const nsACString& aProfile) {

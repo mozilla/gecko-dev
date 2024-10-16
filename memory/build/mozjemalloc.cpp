@@ -4878,6 +4878,7 @@ inline void MozJemalloc::jemalloc_stats_internal(
 
   // Gather runtime settings.
   aStats->opt_junk = opt_junk;
+  aStats->opt_randomize_small = opt_randomize_small;
   aStats->opt_zero = opt_zero;
   aStats->quantum = kQuantum;
   aStats->quantum_max = kMaxQuantumClass;
