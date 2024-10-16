@@ -6,7 +6,7 @@
 
 use super::AllowQuirks;
 use crate::color::mix::ColorInterpolationMethod;
-use crate::color::{parsing, AbsoluteColor, ColorSpace};
+use crate::color::{parsing, AbsoluteColor, ColorFlags, ColorFunction, ColorSpace};
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
@@ -115,6 +115,9 @@ pub enum Color {
     /// An absolute color.
     /// https://w3c.github.io/csswg-drafts/css-color-4/#typedef-absolute-color-function
     Absolute(Box<Absolute>),
+    /// A color function that could not be resolved to a [Color::Absolute] color at parse time.
+    /// Right now this is only the case for relative colors with `currentColor` as the origin.
+    ColorFunction(Box<ColorFunction>),
     /// A system color.
     #[cfg(feature = "gecko")]
     System(SystemColor),
@@ -141,7 +144,9 @@ impl LightDark {
     fn compute(&self, cx: &Context) -> ComputedColor {
         let dark = cx.device().is_dark_color_scheme(cx.builder.color_scheme);
         if cx.for_non_inherited_property {
-            cx.rule_cache_conditions.borrow_mut().set_color_scheme_dependency(cx.builder.color_scheme);
+            cx.rule_cache_conditions
+                .borrow_mut()
+                .set_color_scheme_dependency(cx.builder.color_scheme);
         }
         let used = if dark { &self.dark } else { &self.light };
         used.to_computed_value(cx)
@@ -422,7 +427,9 @@ impl SystemColor {
 
         let color = cx.device().system_nscolor(*self, cx.builder.color_scheme);
         if cx.for_non_inherited_property {
-            cx.rule_cache_conditions.borrow_mut().set_color_scheme_dependency(cx.builder.color_scheme);
+            cx.rule_cache_conditions
+                .borrow_mut()
+                .set_color_scheme_dependency(cx.builder.color_scheme);
         }
         if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
             return ComputedColor::currentcolor();
@@ -565,6 +572,7 @@ impl ToCss for Color {
         match *self {
             Color::CurrentColor => dest.write_str("currentcolor"),
             Color::Absolute(ref absolute) => absolute.to_css(dest),
+            Color::ColorFunction(ref color_function) => color_function.to_css(dest),
             Color::ColorMix(ref mix) => mix.to_css(dest),
             Color::LightDark(ref ld) => ld.to_css(dest),
             #[cfg(feature = "gecko")]
@@ -585,6 +593,14 @@ impl Color {
             #[cfg(feature = "gecko")]
             Self::System(..) => true,
             Self::Absolute(ref absolute) => allow_transparent && absolute.color.is_transparent(),
+            Self::ColorFunction(ref color_function) => {
+                // For now we allow transparent colors if we can resolve the color function.
+                // <https://bugzilla.mozilla.org/show_bug.cgi?id=1923053>
+                color_function
+                    .resolve_to_absolute()
+                    .map(|resolved| allow_transparent && resolved.is_transparent())
+                    .unwrap_or(false)
+            },
             Self::LightDark(ref ld) => {
                 ld.light.honored_in_forced_colors_mode(allow_transparent) &&
                     ld.dark.honored_in_forced_colors_mode(allow_transparent)
@@ -625,25 +641,22 @@ impl Color {
         use crate::values::specified::percentage::ToPercentage;
 
         match self {
-            Self::Absolute(c) => return Some(c.color),
+            Self::Absolute(c) => Some(c.color),
+            Self::ColorFunction(ref color_function) => color_function.resolve_to_absolute().ok(),
             Self::ColorMix(ref mix) => {
-                if let Some(left) = mix.left.resolve_to_absolute() {
-                    if let Some(right) = mix.right.resolve_to_absolute() {
-                        return Some(crate::color::mix::mix(
-                            mix.interpolation,
-                            &left,
-                            mix.left_percentage.to_percentage(),
-                            &right,
-                            mix.right_percentage.to_percentage(),
-                            mix.flags,
-                        ));
-                    }
-                }
+                let left = mix.left.resolve_to_absolute()?;
+                let right = mix.right.resolve_to_absolute()?;
+                Some(crate::color::mix::mix(
+                    mix.interpolation,
+                    &left,
+                    mix.left_percentage.to_percentage(),
+                    &right,
+                    mix.right_percentage.to_percentage(),
+                    mix.flags,
+                ))
             },
-            _ => (),
-        };
-
-        None
+            _ => None,
+        }
     }
 
     /// Parse a color, with quirks.
@@ -746,27 +759,56 @@ impl Color {
     /// If `context` is `None`, and the specified color requires data from
     /// the context to resolve, then `None` is returned.
     pub fn to_computed_color(&self, context: Option<&Context>) -> Option<ComputedColor> {
+        macro_rules! adjust_absolute_color {
+            ($color:expr) => {{
+                // Computed lightness values can not be NaN.
+                if matches!(
+                    $color.color_space,
+                    ColorSpace::Lab | ColorSpace::Oklab | ColorSpace::Lch | ColorSpace::Oklch
+                ) {
+                    $color.components.0 = normalize($color.components.0);
+                }
+
+                // Computed RGB and XYZ components can not be NaN.
+                if !$color.is_legacy_syntax() && $color.color_space.is_rgb_or_xyz_like() {
+                    $color.components = $color.components.map(normalize);
+                }
+
+                $color.alpha = normalize($color.alpha);
+            }};
+        }
+
         Some(match *self {
             Color::CurrentColor => ComputedColor::CurrentColor,
             Color::Absolute(ref absolute) => {
                 let mut color = absolute.color;
-
-                // Computed lightness values can not be NaN.
-                if matches!(
-                    color.color_space,
-                    ColorSpace::Lab | ColorSpace::Oklab | ColorSpace::Lch | ColorSpace::Oklch
-                ) {
-                    color.components.0 = normalize(color.components.0);
-                }
-
-                // Computed RGB and XYZ components can not be NaN.
-                if !color.is_legacy_syntax() && color.color_space.is_rgb_or_xyz_like() {
-                    color.components = color.components.map(normalize);
-                }
-
-                color.alpha = normalize(color.alpha);
-
+                adjust_absolute_color!(color);
                 ComputedColor::Absolute(color)
+            },
+            Color::ColorFunction(ref color_function) => {
+                let has_origin_color = color_function.has_origin_color();
+
+                let Ok(mut absolute) = color_function.resolve_to_absolute() else {
+                    // TODO(tlouw): The specified color must contain `currentColor` or some other
+                    //              unresolvable origin color, so here we have to store the whole
+                    //              [ColorFunction] in the computed color.
+                    return Some(ComputedColor::Absolute(AbsoluteColor::BLACK));
+                };
+
+                // A special case when the color was a rgb(..) function and had an origin color,
+                // the result must be in the color(srgb ..) syntax, to avoid clipped channels
+                // into gamut limits.
+                let mut absolute = match absolute.color_space {
+                    _ if has_origin_color && absolute.is_legacy_syntax() => {
+                        absolute.flags.remove(ColorFlags::IS_LEGACY_SRGB);
+                        absolute
+                    },
+                    _ => absolute,
+                };
+
+                adjust_absolute_color!(absolute);
+
+                ComputedColor::Absolute(absolute)
             },
             Color::LightDark(ref ld) => ld.compute(context?),
             Color::ColorMix(ref mix) => {

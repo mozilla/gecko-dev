@@ -16,6 +16,7 @@ pub mod parsing;
 mod to_css;
 
 use self::parsing::ChannelKeyword;
+pub use color_function::*;
 use component::ColorComponent;
 use cssparser::color::PredefinedColorSpace;
 

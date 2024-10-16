@@ -158,6 +158,7 @@ pub enum SortKey {
     Vmax,
     Vmin,
     Vw,
+    ColorComponent,
     Other,
 }
 
@@ -1429,14 +1430,14 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
 
                 if value_or_stop!(children[0].is_nan_leaf()) {
                     replace_self_with!(&mut children[0]);
-                    return
+                    return;
                 }
 
                 let mut result = 0;
                 for i in 1..children.len() {
                     if value_or_stop!(children[i].is_nan_leaf()) {
                         replace_self_with!(&mut children[i]);
-                        return
+                        return;
                     }
                     let o = match children[i]
                         .compare(&children[result], PositivePercentageBasis::Unknown)

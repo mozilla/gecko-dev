@@ -4,6 +4,8 @@
 
 //! Parse/serialize and resolve a single color component.
 
+use std::fmt::Write;
+
 use super::{
     parsing::{rcs_enabled, ChannelKeyword},
     AbsoluteColor,
@@ -16,7 +18,7 @@ use crate::{
     },
 };
 use cssparser::{Parser, Token};
-use style_traits::ParseError;
+use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 
 /// A single color component.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
@@ -63,7 +65,6 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         allow_none: bool,
-        origin_color: Option<&AbsoluteColor>,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
 
@@ -71,16 +72,11 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
             Token::Ident(ref value) if allow_none && value.eq_ignore_ascii_case("none") => {
                 Ok(ColorComponent::None)
             },
-            ref t @ Token::Ident(ref ident) if origin_color.is_some() => {
+            ref t @ Token::Ident(ref ident) => {
                 if let Ok(channel_keyword) = ChannelKeyword::from_ident(ident) {
-                    if let Ok(value) = origin_color
-                        .unwrap()
-                        .get_component_by_channel_keyword(channel_keyword)
-                    {
-                        Ok(Self::Value(ValueType::from_value(value.unwrap_or(0.0))))
-                    } else {
-                        Err(location.new_unexpected_token_error(t.clone()))
-                    }
+                    Ok(ColorComponent::Calc(Box::new(SpecifiedCalcNode::Leaf(
+                        SpecifiedLeaf::ColorComponent(channel_keyword),
+                    ))))
                 } else {
                     Err(location.new_unexpected_token_error(t.clone()))
                 }
@@ -93,6 +89,7 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                     ValueType::units()
                 };
                 let mut node = SpecifiedCalcNode::parse(context, input, function, units)?;
+
                 // TODO(tlouw): We only have to simplify the node when we have to store it, but we
                 //              only know if we have to store it much later when the whole color
                 //              can't be resolved to absolute at which point the calc nodes are
@@ -108,7 +105,7 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
     }
 
     /// Resolve a [ColorComponent] into a float.  None is "none".
-    pub fn resolve(&self, origin_color: Option<AbsoluteColor>) -> Result<Option<ValueType>, ()> {
+    pub fn resolve(&self, origin_color: Option<&AbsoluteColor>) -> Result<Option<ValueType>, ()> {
         Ok(match self {
             ColorComponent::None => None,
             ColorComponent::Value(value) => Some(value.clone()),
@@ -137,5 +134,33 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                 Some(ValueType::try_from_leaf(&resolved_leaf)?)
             },
         })
+    }
+}
+
+impl<ValueType: ToCss> ToCss for ColorComponent<ValueType> {
+    fn to_css<W>(&self, dest: &mut style_traits::CssWriter<W>) -> std::fmt::Result
+    where
+        W: Write,
+    {
+        match self {
+            ColorComponent::None => dest.write_str("none")?,
+            ColorComponent::Value(value) => value.to_css(dest)?,
+            ColorComponent::Calc(node) => {
+                // Channel keywords used directly as a component serializes without `calc()`, but
+                // we store channel keywords inside a calc node irrespectively, so we have to remove
+                // it again here.
+                // There are some contradicting wpt's, which depends on resolution of:
+                // <https://github.com/web-platform-tests/wpt/issues/47921>
+                if let SpecifiedCalcNode::Leaf(SpecifiedLeaf::ColorComponent(channel_keyword)) =
+                    node.as_ref()
+                {
+                    channel_keyword.to_css(dest)?;
+                } else {
+                    node.to_css(dest)?;
+                }
+            },
+        }
+
+        Ok(())
     }
 }

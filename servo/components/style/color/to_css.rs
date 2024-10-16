@@ -4,7 +4,10 @@
 
 //! Write colors into CSS strings.
 
-use super::{AbsoluteColor, ColorFlags, ColorSpace};
+use super::{
+    parsing::{NumberOrAngle, NumberOrPercentage},
+    AbsoluteColor, ColorFlags, ColorSpace,
+};
 use crate::values::normalize;
 use cssparser::color::{clamp_unit_f32, serialize_color_alpha, OPAQUE};
 use std::fmt::{self, Write};
@@ -35,6 +38,36 @@ impl<'a> ToCss for ModernComponent<'a> {
         } else {
             dest.write_str("none")
         }
+    }
+}
+
+impl ToCss for NumberOrPercentage {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        use crate::values::computed::Percentage;
+
+        match self {
+            Self::Number(number) => number.to_css(dest)?,
+            Self::Percentage(percentage) => Percentage(*percentage).to_css(dest)?,
+        }
+        Ok(())
+    }
+}
+
+impl ToCss for NumberOrAngle {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        use crate::values::computed::Angle;
+
+        match self {
+            Self::Number(number) => number.to_css(dest)?,
+            Self::Angle(degrees) => Angle::from_degrees(*degrees).to_css(dest)?,
+        }
+        Ok(())
     }
 }
 
