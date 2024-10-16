@@ -80,6 +80,27 @@ class APZCPanningTester : public APZCBasicTester {
 
     apzc->AssertStateIsReset();
   }
+
+  void PanWithFling() {
+    // Send a pan gesture that triggers a fling animation at the end.
+    // Note that we need at least two _PAN events to have enough samples
+    // in the velocity tracker to compute a fling velocity.
+    PanGesture(PanGestureInput::PANGESTURE_START, apzc, ScreenIntPoint(50, 80),
+               ScreenPoint(0, 2), mcc->Time());
+    mcc->AdvanceByMillis(5);
+    apzc->AdvanceAnimations(mcc->GetSampleTime());
+    PanGesture(PanGestureInput::PANGESTURE_PAN, apzc, ScreenIntPoint(50, 80),
+               ScreenPoint(0, 10), mcc->Time());
+    mcc->AdvanceByMillis(5);
+    apzc->AdvanceAnimations(mcc->GetSampleTime());
+    PanGesture(PanGestureInput::PANGESTURE_PAN, apzc, ScreenIntPoint(50, 80),
+               ScreenPoint(0, 10), mcc->Time());
+    mcc->AdvanceByMillis(5);
+    apzc->AdvanceAnimations(mcc->GetSampleTime());
+    PanGesture(PanGestureInput::PANGESTURE_END, apzc, ScreenIntPoint(50, 80),
+               ScreenPoint(0, 0), mcc->Time(), MODIFIER_NONE,
+               /*aSimulateMomentum=*/true);
+  }
 };
 
 // In the each of the following 4 pan tests we are performing two pan gestures:
@@ -220,23 +241,7 @@ TEST_F(APZCPanningTester, PanWithHistoricalTouchData) {
 
 TEST_F(APZCPanningTester, DuplicatePanEndEvents_Bug1833950) {
   // Send a pan gesture that triggers a fling animation at the end.
-  // Note that we need at least two _PAN events to have enough samples
-  // in the velocity tracker to compute a fling velocity.
-  PanGesture(PanGestureInput::PANGESTURE_START, apzc, ScreenIntPoint(50, 80),
-             ScreenPoint(0, 2), mcc->Time());
-  mcc->AdvanceByMillis(5);
-  apzc->AdvanceAnimations(mcc->GetSampleTime());
-  PanGesture(PanGestureInput::PANGESTURE_PAN, apzc, ScreenIntPoint(50, 80),
-             ScreenPoint(0, 10), mcc->Time());
-  mcc->AdvanceByMillis(5);
-  apzc->AdvanceAnimations(mcc->GetSampleTime());
-  PanGesture(PanGestureInput::PANGESTURE_PAN, apzc, ScreenIntPoint(50, 80),
-             ScreenPoint(0, 10), mcc->Time());
-  mcc->AdvanceByMillis(5);
-  apzc->AdvanceAnimations(mcc->GetSampleTime());
-  PanGesture(PanGestureInput::PANGESTURE_END, apzc, ScreenIntPoint(50, 80),
-             ScreenPoint(0, 0), mcc->Time(), MODIFIER_NONE,
-             /*aSimulateMomentum=*/true);
+  PanWithFling();
 
   // Give the fling animation a chance to start.
   SampleAnimationOnce();
@@ -249,3 +254,71 @@ TEST_F(APZCPanningTester, DuplicatePanEndEvents_Bug1833950) {
              ScreenPoint(0, 0), mcc->Time(), MODIFIER_NONE,
              /*aSimulateMomentum=*/true);
 }
+
+#ifdef MOZ_WIDGET_GTK  // Handling PANGESTURE_MAYSTART is Linux-only for now
+TEST_F(APZCPanningTester, HoldGesture_HoldAndRelease) {
+  // Send a pan gesture that triggers a fling animation at the end.
+  PanWithFling();
+
+  // Give the fling animation a chance to start.
+  SampleAnimationOnce();
+  apzc->AssertStateIsFling();
+
+  // Send a PANGESTURE_MAYSTART event, signifying that the fingers went back
+  // down on the touchpad.
+  PanGesture(PanGestureInput::PANGESTURE_MAYSTART, apzc, ScreenIntPoint(50, 80),
+             ScreenPoint(0, 0), mcc->Time());
+
+  // This should have had the effect of cancelling the fling animation.
+  apzc->AssertStateIsReset();
+
+  // Send a PANGESTURE_CANCELLED event, signifying that the fingers have been
+  // lifted without any scrolling. This should have no effect on the gesture
+  // state.
+  mcc->AdvanceByMillis(5);
+  apzc->AdvanceAnimations(mcc->GetSampleTime());
+  PanGesture(PanGestureInput::PANGESTURE_CANCELLED, apzc,
+             ScreenIntPoint(50, 80), ScreenPoint(0, 0), mcc->Time());
+  apzc->AssertStateIsReset();
+}
+
+TEST_F(APZCPanningTester, HoldGesture_HoldAndScroll) {
+  // Send a pan gesture that triggers a fling animation at the end.
+  PanWithFling();
+
+  // Give the fling animation a chance to start.
+  SampleAnimationOnce();
+  apzc->AssertStateIsFling();
+
+  // Record the scroll offset before the fingers go back.
+  float scrollYBefore = apzc->GetFrameMetrics().GetVisualScrollOffset().y;
+  EXPECT_GT(scrollYBefore, 0);
+
+  // Send a PANGESTURE_MAYSTART event, signifying that the fingers went back
+  // down on the touchpad.
+  PanGesture(PanGestureInput::PANGESTURE_MAYSTART, apzc, ScreenIntPoint(50, 80),
+             ScreenPoint(0, 0), mcc->Time());
+
+  // This should have had the effect of cancelling the fling animation.
+  apzc->AssertStateIsReset();
+
+  // Do actual panning as part of the same gesture.
+  mcc->AdvanceByMillis(5);
+  apzc->AdvanceAnimations(mcc->GetSampleTime());
+  PanGesture(PanGestureInput::PANGESTURE_START, apzc, ScreenIntPoint(50, 80),
+             ScreenPoint(0, 2), mcc->Time());
+  mcc->AdvanceByMillis(5);
+  apzc->AdvanceAnimations(mcc->GetSampleTime());
+  PanGesture(PanGestureInput::PANGESTURE_PAN, apzc, ScreenIntPoint(50, 80),
+             ScreenPoint(0, 10), mcc->Time());
+  mcc->AdvanceByMillis(5);
+  apzc->AdvanceAnimations(mcc->GetSampleTime());
+  PanGesture(PanGestureInput::PANGESTURE_END, apzc, ScreenIntPoint(50, 80),
+             ScreenPoint(0, 0), mcc->Time(), MODIFIER_NONE,
+             /*aSimulateMomentum=*/true);
+
+  // Check that we've done additional scrolling.
+  float scrollYAfter = apzc->GetFrameMetrics().GetVisualScrollOffset().y;
+  EXPECT_GT(scrollYAfter, scrollYBefore);
+}
+#endif

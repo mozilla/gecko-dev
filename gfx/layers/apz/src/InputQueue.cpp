@@ -442,12 +442,14 @@ APZEventResult InputQueue::ReceivePanGestureInput(
     TargetConfirmationFlags aFlags, const PanGestureInput& aEvent) {
   APZEventResult result(aTarget, aFlags);
 
+#ifndef MOZ_WIDGET_GTK
   if (aEvent.mType == PanGestureInput::PANGESTURE_MAYSTART ||
       aEvent.mType == PanGestureInput::PANGESTURE_CANCELLED) {
     // Ignore these events for now.
     result.SetStatusAsConsumeDoDefault(aTarget);
     return result;
   }
+#endif
 
   if (aEvent.mType == PanGestureInput::PANGESTURE_INTERRUPTED) {
     if (RefPtr<PanGestureBlockState> block = mActivePanGestureBlock.get()) {
@@ -458,8 +460,11 @@ APZEventResult InputQueue::ReceivePanGestureInput(
     return result;
   }
 
+  bool startsNewBlock = aEvent.mType == PanGestureInput::PANGESTURE_MAYSTART ||
+                        aEvent.mType == PanGestureInput::PANGESTURE_START;
+
   RefPtr<PanGestureBlockState> block;
-  if (aEvent.mType != PanGestureInput::PANGESTURE_START) {
+  if (!startsNewBlock) {
     block = mActivePanGestureBlock.get();
   }
 
@@ -483,10 +488,10 @@ APZEventResult InputQueue::ReceivePanGestureInput(
       // by turning the event into a pan-start below.
       return result;
     }
-    if (event.mType != PanGestureInput::PANGESTURE_START) {
-      // Only PANGESTURE_START events are allowed to start a new pan gesture
-      // block, but we really want to start a new block here, so we magically
-      // turn this input into a PANGESTURE_START.
+    if (!startsNewBlock) {
+      // Only PANGESTURE_MAYSTART or PANGESTURE_START events are allowed to
+      // start a new pan gesture block, but we really want to start a new block
+      // here, so we magically turn this input into a PANGESTURE_START.
       INPQ_LOG(
           "transmogrifying pan input %d to PANGESTURE_START for new block\n",
           event.mType);
