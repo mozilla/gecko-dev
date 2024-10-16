@@ -6,6 +6,7 @@
 
 #include "mozilla/ProfilerThreadRegistrationData.h"
 
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/FOGIPC.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ProfilerMarkers.h"
@@ -129,6 +130,14 @@ static void profiler_add_js_allocation_marker(JS::RecordAllocationInfo&& info) {
       info.size, info.inNursery);
 }
 
+JSContext* ThreadRegistrationUnlockedReaderAndAtomicRWOnThread::GetJSContext()
+    const {
+  if (!mCCJSContext) {
+    return nullptr;
+  }
+  return mCCJSContext->Context();
+}
+
 void ThreadRegistrationLockedRWFromAnyThread::SetProfilingFeaturesAndData(
     ThreadProfilingFeatures aProfilingFeatures,
     ProfiledThreadData* aProfiledThreadData, const PSAutoLock&) {
@@ -139,7 +148,7 @@ void ThreadRegistrationLockedRWFromAnyThread::SetProfilingFeaturesAndData(
   MOZ_ASSERT(aProfiledThreadData);
   mProfiledThreadData = aProfiledThreadData;
 
-  if (mJSContext) {
+  if (mCCJSContext) {
     // The thread is now being profiled, and we already have a JSContext,
     // allocate a JsFramesBuffer to allow profiler-unlocked on-thread sampling.
     MOZ_ASSERT(!mJsFrameBuffer);
@@ -149,7 +158,7 @@ void ThreadRegistrationLockedRWFromAnyThread::SetProfilingFeaturesAndData(
   // Check invariants.
   MOZ_ASSERT((mProfilingFeatures != ThreadProfilingFeatures::NotProfiled) ==
              !!mProfiledThreadData);
-  MOZ_ASSERT((mJSContext &&
+  MOZ_ASSERT((mCCJSContext &&
               (mProfilingFeatures != ThreadProfilingFeatures::NotProfiled)) ==
              !!mJsFrameBuffer);
 }
@@ -167,15 +176,17 @@ void ThreadRegistrationLockedRWFromAnyThread::ClearProfilingFeaturesAndData(
   // Check invariants.
   MOZ_ASSERT((mProfilingFeatures != ThreadProfilingFeatures::NotProfiled) ==
              !!mProfiledThreadData);
-  MOZ_ASSERT((mJSContext &&
+  MOZ_ASSERT((mCCJSContext &&
               (mProfilingFeatures != ThreadProfilingFeatures::NotProfiled)) ==
              !!mJsFrameBuffer);
 }
 
-void ThreadRegistrationLockedRWOnThread::SetJSContext(JSContext* aJSContext) {
-  MOZ_ASSERT(aJSContext && !mJSContext);
+void ThreadRegistrationLockedRWOnThread::SetCycleCollectedJSContext(
+    CycleCollectedJSContext* aCx) {
+  MOZ_ASSERT(aCx && !mCCJSContext);
+  MOZ_ASSERT(aCx->Context());
 
-  mJSContext = aJSContext;
+  mCCJSContext = aCx;
 
   if (mProfiledThreadData) {
     MOZ_ASSERT((mProfilingFeatures != ThreadProfilingFeatures::NotProfiled) ==
@@ -188,16 +199,16 @@ void ThreadRegistrationLockedRWOnThread::SetJSContext(JSContext* aJSContext) {
 
   // We give the JS engine a non-owning reference to the ProfilingStack. It's
   // important that the JS engine doesn't touch this once the thread dies.
-  js::SetContextProfilingStack(aJSContext, &ProfilingStackRef());
+  js::SetContextProfilingStack(aCx->Context(), &ProfilingStackRef());
 
   // Check invariants.
-  MOZ_ASSERT((mJSContext &&
+  MOZ_ASSERT((mCCJSContext &&
               (mProfilingFeatures != ThreadProfilingFeatures::NotProfiled)) ==
              !!mJsFrameBuffer);
 }
 
-void ThreadRegistrationLockedRWOnThread::ClearJSContext() {
-  mJSContext = nullptr;
+void ThreadRegistrationLockedRWOnThread::ClearCycleCollectedJSContext() {
+  mCCJSContext = nullptr;
 
   if (mJsFrameBuffer) {
     delete[] mJsFrameBuffer;
@@ -205,14 +216,14 @@ void ThreadRegistrationLockedRWOnThread::ClearJSContext() {
   }
 
   // Check invariants.
-  MOZ_ASSERT((mJSContext &&
+  MOZ_ASSERT((mCCJSContext &&
               (mProfilingFeatures != ThreadProfilingFeatures::NotProfiled)) ==
              !!mJsFrameBuffer);
 }
 
 void ThreadRegistrationLockedRWOnThread::PollJSSampling() {
   // We can't start/stop profiling until we have the thread's JSContext.
-  if (mJSContext) {
+  if (mCCJSContext) {
     // It is possible for mJSSampling to go through the following sequences.
     //
     // - INACTIVE, ACTIVE_REQUESTED, INACTIVE_REQUESTED, INACTIVE
@@ -222,24 +233,24 @@ void ThreadRegistrationLockedRWOnThread::PollJSSampling() {
     // Therefore, the if and else branches here aren't always interleaved.
     // This is ok because the JS engine can handle that.
     //
+    JSContext* cx = mCCJSContext->Context();
     if (mJSSampling == ACTIVE_REQUESTED) {
       mJSSampling = ACTIVE;
-      js::EnableContextProfilingStack(mJSContext, true);
+      js::EnableContextProfilingStack(cx, true);
 
       if (JSAllocationsEnabled()) {
         // TODO - This probability should not be hardcoded. See Bug 1547284.
-        JS::EnableRecordingAllocations(mJSContext,
-                                       profiler_add_js_allocation_marker, 0.01);
+        JS::EnableRecordingAllocations(cx, profiler_add_js_allocation_marker,
+                                       0.01);
       }
-      js::RegisterContextProfilingEventMarker(mJSContext,
-                                              profiler_add_js_marker);
+      js::RegisterContextProfilingEventMarker(cx, profiler_add_js_marker);
 
     } else if (mJSSampling == INACTIVE_REQUESTED) {
       mJSSampling = INACTIVE;
-      js::EnableContextProfilingStack(mJSContext, false);
+      js::EnableContextProfilingStack(cx, false);
 
       if (JSAllocationsEnabled()) {
-        JS::DisableRecordingAllocations(mJSContext);
+        JS::DisableRecordingAllocations(cx);
       }
     }
   }
