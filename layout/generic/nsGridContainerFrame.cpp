@@ -5924,19 +5924,33 @@ void nsGridContainerFrame::Tracks::CalculateSizes(
     GridReflowInput& aState, nsTArray<GridItemInfo>& aGridItems,
     const TrackSizingFunctions& aFunctions, nscoord aContentBoxSize,
     LineRange GridArea::*aRange, SizingConstraint aConstraint) {
+  // Implement the intrinsic sizing algorithm, step 11.5 as described in:
+  // https://drafts.csswg.org/css-grid-1/#algo-content
   nscoord percentageBasis = aContentBoxSize;
   if (percentageBasis == NS_UNCONSTRAINEDSIZE) {
     percentageBasis = 0;
   }
+  // 11.5 step 1: Shim baseline-aligned items so their intrinsic size
+  // contributions reflect their baseline alignment
+  // https://drafts.csswg.org/css-grid-1/#algo-baseline-shims
   InitializeItemBaselines(aState, aGridItems);
+
+  // 11.5 steps 2-5
   ResolveIntrinsicSize(aState, aGridItems, aFunctions, aRange, percentageBasis,
                        aConstraint);
+
+  // Neither 11.6 nor 11.7 will occur under min content constraint.
   if (aConstraint != SizingConstraint::MinContent) {
     nscoord freeSpace = aContentBoxSize;
     if (freeSpace != NS_UNCONSTRAINEDSIZE) {
       freeSpace -= SumOfGridGaps();
     }
+    // 11.6 maximize tracks by distributing free space.
+    // https://drafts.csswg.org/css-grid-1/#algo-grow-tracks
     DistributeFreeSpace(freeSpace);
+
+    // 11.7 Expand flexible tracks.
+    // https://drafts.csswg.org/css-grid-1/#algo-flex-tracks
     StretchFlexibleTracks(aState, aGridItems, aFunctions, freeSpace);
   }
 }
@@ -6637,6 +6651,9 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
     GridReflowInput& aState, nsTArray<GridItemInfo>& aGridItems,
     const TrackSizingFunctions& aFunctions, LineRange GridArea::*aRange,
     nscoord aPercentageBasis, SizingConstraint aConstraint) {
+  // Intrinsic sizing algorithm 11.5 steps 2-5
+  // https://drafts.csswg.org/css-grid-1/#algo-content
+  //
   // We're also setting eIsFlexing on the item state here to speed up
   // FindUsedFlexFraction later.
 
@@ -6718,12 +6735,15 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
 
     if (span == 1) {
       // Step 2. Size tracks to fit non-spanning items.
+      // https://drafts.csswg.org/css-grid-1/#algo-single-span-items
       if (ResolveIntrinsicSizeForNonSpanningItems(aState, aFunctions,
                                                   aPercentageBasis, aConstraint,
                                                   lineRange, gridItem)) {
         gridItem.mState[mAxis] |= ItemState::eIsFlexing;
       }
     } else {
+      // Collect information for step 3.
+      // https://drafts.csswg.org/css-grid-1/#algo-spanning-items
       TrackSize::StateBits state = StateBitsForRange(lineRange);
 
       // Check if we need to apply "Automatic Minimum Size" and cache it.
@@ -6734,6 +6754,8 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
       }
 
       if (state & TrackSize::eFlexMaxSizing) {
+        // Set eIsFlexing on the item state here to speed up
+        // FindUsedFlexFraction later.
         gridItem.mState[mAxis] |= ItemState::eIsFlexing;
       } else if (state & (TrackSize::eIntrinsicMinSizing |
                           TrackSize::eIntrinsicMaxSizing)) {
@@ -6805,6 +6827,8 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
       return false;
     };
 
+    // Step 3 should "Repeat incrementally for items with greater spans until
+    // all items have been considered."
     // Sort the collected items on span length, shortest first.  There's no need
     // for a stable sort here since the sizing isn't order dependent within
     // a group of items with the same span length.
