@@ -147,9 +147,30 @@ interface nsIToolkitProfileService : nsISupports
     /**
      * Flush the profiles list file. This will fail with
      * NS_ERROR_DATABASE_CHANGED if the files on disk have changed since the
-     * profiles were loaded.
+     * profiles were loaded. Should not be called outside of startup.
      */
     void flush();
+
+    /**
+     * Flushes the profiles list file on a background thread after acquiring the
+     * startup lock. Like `flush` this will fail with NS_ERROR_DATABASE_CHANGED
+     * if the files on disk have changed since the profiles were loaded.
+     * It is safe to call this while a previous flush is still in progress. The
+     * promise returned will resolve when the last call to flush completes.
+     */
+    [implicit_jscontext]
+    Promise asyncFlush();
+
+    /**
+     * Flushes the mutable data about the current profile to disk on a
+     * background thread after acquiring the startup lock. Unlike other flushing
+     * methods this can usually succeed even if the files on disk have changed
+     * since the profiles were loaded.
+     * It is safe to call this while a previous flush is still in progress. The
+     * promise returned will resolve when the last call to flush completes.
+     */
+    [implicit_jscontext]
+    Promise asyncFlushCurrentProfile();
 };
 
 %{C++

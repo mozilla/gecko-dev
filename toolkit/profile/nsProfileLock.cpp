@@ -68,8 +68,11 @@ nsProfileLock::nsProfileLock(nsProfileLock& src) { *this = src; }
 nsProfileLock& nsProfileLock::operator=(nsProfileLock& rhs) {
   Unlock();
 
+  mLockFile = rhs.mLockFile;
+  rhs.mLockFile = nullptr;
   mHaveLock = rhs.mHaveLock;
   rhs.mHaveLock = false;
+  mReplacedLockTime = rhs.mReplacedLockTime;
 
 #if defined(XP_WIN)
   mLockFileHandle = rhs.mLockFileHandle;

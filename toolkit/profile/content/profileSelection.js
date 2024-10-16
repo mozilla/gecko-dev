@@ -89,7 +89,7 @@ async function flush(cancelled) {
 
   if (gNeedsFlush) {
     try {
-      gProfileService.flush();
+      await gProfileService.asyncFlush();
     } catch (e) {
       let appName = gBrandBundle.getString("brandShortName");
 
