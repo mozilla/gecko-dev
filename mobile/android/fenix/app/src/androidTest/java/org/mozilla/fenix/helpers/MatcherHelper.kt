@@ -153,4 +153,18 @@ object MatcherHelper {
             Log.i(TAG, "assertItemIsEnabledAndVisible: Verified ${appItem.selector} is visible and enabled")
         }
     }
+
+    fun assertItemIsChecked(vararg appItems: UiObject, isChecked: Boolean = true) {
+        for (appItem in appItems) {
+            if (isChecked) {
+                Log.i(TAG, "assertItemIsChecked: Trying to verify that ${appItem.selector} is checked")
+                assertTrue(appItem.isChecked)
+                Log.i(TAG, "assertItemIsChecked: Verified ${appItem.selector} is checked")
+            } else {
+                Log.i(TAG, "assertItemIsChecked: Trying to verify that ${appItem.selector} is not checked")
+                assertFalse(appItem.isChecked)
+                Log.i(TAG, "assertItemIsChecked: Verified ${appItem.selector} is not checked")
+            }
+        }
+    }
 }
