@@ -4677,6 +4677,12 @@ const char* AutoFilename::get() const {
 JS_PUBLIC_API bool DescribeScriptedCaller(AutoFilename* filename, JSContext* cx,
                                           uint32_t* lineno,
                                           JS::ColumnNumberOneOrigin* column) {
+#ifdef DEBUG
+  auto noThrow = mozilla::MakeScopeExit([=]() {
+    MOZ_ASSERT(!cx->isThrowingOutOfMemory() && !cx->isThrowingOverRecursed() &&
+               !cx->isExceptionPending());
+  });
+#endif
   if (filename) {
     filename->reset();
   }

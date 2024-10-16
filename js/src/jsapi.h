@@ -952,6 +952,8 @@ class MOZ_RAII JS_PUBLIC_API AutoFilename {
  *
  * If a the embedding has hidden the scripted caller for the topmost activation
  * record, this will also return false.
+ *
+ * This never throws an exception.
  */
 extern JS_PUBLIC_API bool DescribeScriptedCaller(
     AutoFilename* filename, JSContext* cx, uint32_t* lineno = nullptr,
