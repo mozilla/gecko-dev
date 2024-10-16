@@ -2777,6 +2777,7 @@ void net_EnsurePSMInit() {
 
   DebugOnly<bool> rv = EnsureNSSInitializedChromeOrContent();
   MOZ_ASSERT(rv);
+  nsHttpHandler::CheckThirdPartyRoots();
 }
 
 bool NS_IsAboutBlank(nsIURI* uri) {
