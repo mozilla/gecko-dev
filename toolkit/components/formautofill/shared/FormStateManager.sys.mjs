@@ -21,12 +21,12 @@ export class FormStateManager {
   }
 
   /**
-   * Get the form handler for the specified input element.
+   * Get the form's handler from cache which is created after page identified.
    *
-   * @param {HTMLInputElement} element
-   *        Focused input which triggered profile searching
-   * @returns {FormAutofillHandler | null}
-   *        The form handler associated with the specified input element.
+   * @param {HTMLInputElement} element Focused input which triggered profile searching
+   * @returns {Array<object> | null}
+   *          Return target form's handler from content cache
+   *          (or return null if the information is not found in the cache).
    */
   getFormHandler(element) {
     if (!element) {
@@ -38,16 +38,21 @@ export class FormStateManager {
   }
 
   /**
-   * Get the form handler for the specified input element. If no handler exists
-   * in the cache, this function creates a new one.
+   * Identifies and handles autofill fields in a form element.
    *
-   * @param {HTMLInputElement} element
-   *        Focused input which triggered profile searching
-   * @returns {FormAutofillHandler}
-   *        The form handler associated with the specified input element.
+   * This function retrieves a form handler for the given element and returns the
+   * form handler. If the form handler already exists and the form does not change
+   * since last time we identify its fields, it sets `newFieldsIdentifided` to false.
+   *
+   * @param {HTMLElement} element The form element to identify autofill fields for.
+   * @returns {object} a {handler, newFieldsIdentified} object
    */
-  getOrCreateFormHandler(element) {
+  identifyAutofillFields(element) {
     let handler = this.getFormHandler(element);
+    if (handler && !handler.updateFormIfNeeded(element)) {
+      return { handler, newFieldsIdentified: false };
+    }
+
     if (!handler) {
       handler = new lazy.FormAutofillHandler(
         lazy.AutofillFormFactory.createFromField(element),
@@ -55,7 +60,9 @@ export class FormStateManager {
       );
       this._formsDetails.set(handler.form.rootElement, handler);
     }
-    return handler;
+
+    handler.collectFormFields();
+    return { handler, newFieldsIdentified: true };
   }
 }
 
