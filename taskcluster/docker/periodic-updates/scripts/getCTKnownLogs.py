@@ -215,7 +215,7 @@ def get_log_operator_structs(json_data):
     return initializers
 
 
-TWELVE_WEEKS_IN_SECONDS = 60 * 60 * 24 * 7 * 12
+TEN_WEEKS_IN_SECONDS = 60 * 60 * 24 * 7 * 10
 MICROSECONDS_PER_SECOND = 1000000
 
 
@@ -226,7 +226,7 @@ def generate_cpp_header_file(json_data, out_file):
     log_info_initializers = get_log_info_structs(json_data)
     operator_info_initializers = get_log_operator_structs(json_data)
     expiration_time = (
-        int(time.time()) + TWELVE_WEEKS_IN_SECONDS
+        int(time.time()) + TEN_WEEKS_IN_SECONDS
     ) * MICROSECONDS_PER_SECOND
     out_file.write(
         Template(OUTPUT_TEMPLATE).substitute(
