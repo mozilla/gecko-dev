@@ -7,7 +7,6 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -21,7 +20,7 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.generateRandomString
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
 import org.mozilla.fenix.helpers.TestAssetHelper
-import org.mozilla.fenix.helpers.TestHelper
+import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -205,7 +204,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1314137
-    @Ignore("To be removed in: https://bugzilla.mozilla.org/show_bug.cgi?id=1921359")
     @Test
     fun setDesktopSiteBeforePageLoadTest() {
         val webPage = TestAssetHelper.getGenericAsset(mockWebServer, 4)
@@ -223,9 +221,12 @@ class MainMenuTest : TestSetup() {
         }.closeBrowserMenuToBrowser {
         }.openNavigationToolbar {
         }.enterURLAndEnterToBrowser(webPage.url) {
+        }.openThreeDotMenu {
+            verifyDesktopSiteModeEnabled(true)
+        }.closeBrowserMenuToBrowser {
             longClickPageObject(MatcherHelper.itemWithText("Link 2"))
             clickContextMenuItem("Open link in new tab")
-            TestHelper.clickSnackbarButton("SWITCH")
+            clickSnackbarButton("SWITCH")
         }.openThreeDotMenu {
             verifyDesktopSiteModeEnabled(false)
         }
