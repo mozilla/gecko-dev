@@ -23,8 +23,20 @@ class QATests(SnapTestsBase):
         self._dir = "qa_tests"
 
         super(QATests, self).__init__(
-            exp=os.path.join(self._dir, "qa_expectations.json")
+            exp=os.path.join(
+                self._dir, "qa_expectations_{}.json".format(self._distro_release())
+            )
         )
+
+    def _distro_release(self):
+        with open("/etc/lsb-release") as lsb_release:
+            f = list(
+                filter(
+                    lambda x: x.startswith("DISTRIB_RELEASE"),
+                    lsb_release.read().split(),
+                )
+            )
+            return f[0].split("=")[1].replace(".", "")
 
     def _test_audio_playback(
         self, url, iframe_selector=None, click_to_play=False, video_selector=None
