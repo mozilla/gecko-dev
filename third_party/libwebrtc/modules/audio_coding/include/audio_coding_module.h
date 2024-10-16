@@ -78,6 +78,10 @@ class AudioCodingModule {
     });
   }
 
+  // Reset encoder and audio coding module. This throws away any audio passed
+  // and starts fresh.
+  virtual void Reset() = 0;
+
   // int32_t RegisterTransportCallback()
   // Register a transport callback which will be called to deliver
   // the encoded buffers whenever Process() is called and a

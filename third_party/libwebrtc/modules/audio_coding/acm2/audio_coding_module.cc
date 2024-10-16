@@ -43,6 +43,8 @@ class AudioCodingModuleImpl final : public AudioCodingModule {
   explicit AudioCodingModuleImpl();
   ~AudioCodingModuleImpl() override;
 
+  void Reset() override;
+
   /////////////////////////////////////////
   //   Sender
   //
@@ -280,7 +282,7 @@ int32_t AudioCodingModuleImpl::Encode(
           absolute_capture_timestamp_ms_.value_or(-1));
     }
   }
-  absolute_capture_timestamp_ms_ = std::nullopt;
+  absolute_capture_timestamp_ms_.reset();
   previous_pltype_ = encoded_info.payload_type;
   return static_cast<int32_t>(encode_buffer_.size());
 }
@@ -288,6 +290,14 @@ int32_t AudioCodingModuleImpl::Encode(
 /////////////////////////////////////////
 //   Sender
 //
+
+void AudioCodingModuleImpl::Reset() {
+  MutexLock lock(&acm_mutex_);
+  absolute_capture_timestamp_ms_.reset();
+  if (HaveValidEncoder("Reset")) {
+    encoder_stack_->Reset();
+  }
+}
 
 void AudioCodingModuleImpl::ModifyEncoder(
     rtc::FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) {

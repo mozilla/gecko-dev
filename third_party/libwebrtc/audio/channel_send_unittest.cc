@@ -140,6 +140,7 @@ TEST_F(ChannelSendTest, StopSendShouldResetEncoder) {
   ProcessNextFrame();
   // StopSend should clear the previous audio frame stored in the encoder.
   channel_->StopSend();
+
   channel_->StartSend();
   // The following frame should not trigger a new packet since the encoder
   // needs 20 ms audio.

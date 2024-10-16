@@ -590,7 +590,7 @@ void ChannelSend::StopSend() {
   rtc::Event flush;
   encoder_queue_->PostTask([this, &flush]() {
     RTC_DCHECK_RUN_ON(&encoder_queue_checker_);
-    CallEncoder([](AudioEncoder* encoder) { encoder->Reset(); });
+    audio_coding_->Reset();
     flush.Set();
   });
   flush.Wait(rtc::Event::kForever);
