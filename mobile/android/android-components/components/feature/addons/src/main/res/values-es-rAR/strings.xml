@@ -201,11 +201,11 @@
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s no pudo instalarse porque no es compatible con %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">%1$s no se pudo instalar porque tiene un riesgo alto de causar problemas de estabilidad o seguridad.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s no se pudo instalar porque tiene un riesgo alto de causar problemas de estabilidad o seguridad.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s no se pudo instalar porque solo lo puede hacer una organización que use políticas empresariales, lo cual no es compatible con esta plataforma.</string>
     <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_soft_blocked">%1$s viola las políticas de Mozilla y no se puede instalar.</string>
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s viola las políticas de Mozilla y no se puede instalar.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s habilitado exitosamente</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -253,9 +253,13 @@
     <!-- "See details" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_see_details">Ver detalles</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s ha sido deshabilitado debido a problemas de seguridad o estabilidad.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s ha sido deshabilitado debido a problemas de seguridad o estabilidad.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">Esta extensión está bloqueada por violar las políticas de Mozilla y ha sido deshabilitada.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked">Esta extensión viola las políticas de Mozilla y ha sido deshabilitada. Se puede habilitar, pero podría ser riesgoso.</string>
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Esta extensión viola las políticas de Mozilla y ha sido deshabilitada. Se puede habilitar, pero podría ser riesgoso.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">Esta extensión está restringida por violar las políticas de Mozilla y ha sido deshabilitada. Puede habilitarlo, pero puede ser riesgoso.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
     <string name="mozac_feature_addons_status_softblocked_re_enabled">Esta extensión viola las políticas de Mozilla. Usarla podría ser riesgoso.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->

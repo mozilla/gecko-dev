@@ -85,8 +85,6 @@
 
     <string name="notification_erase_title_android_14">Eliminar le chronologia de navigation?</string>
 
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Tocca o clara iste aviso pro cancellar con securitate tu chronologia de navigation.</string>
-
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
     <string name="notification_erase_text_android_14_1">Tocca o glissa iste aviso pro cancellar con securitate tu chronologia de navigation.</string>
@@ -519,7 +517,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Clauder</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Clauder</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -748,7 +746,7 @@
     <string name="cookie_banner_exception_panel_title_state_off_for_site">Disactivar le reduction de banner pro cookie pro %1$s?</string>
 
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
-    <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s clarara le cookies de iste sito e actualisara le pagina. Clarar tote le cookies pote clauder tu connexion o vacuar tu carrettos de compras.</string>
+    <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s radera le cookies de iste sito e actualisara le pagina. Rader tote le cookies pote clauder tu session o vacuar tu carrettos de compras.</string>
 
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
     <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s pote tentar de rejectar automaticamente le requestas de cookies.</string>
@@ -930,9 +928,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Commutar</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Entrante in modo plen schermo</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Commutar a ligamine in nove scheda immediatemente</string>
