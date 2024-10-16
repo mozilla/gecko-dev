@@ -218,6 +218,10 @@ device-migration-fxa-spotlight-getting-new-device-header-2 = New device in your 
 device-migration-fxa-spotlight-getting-new-device-body-2 = Follow a few simple steps to bring your bookmarks, history, and passwords with you when you get started on a new device.
 device-migration-fxa-spotlight-getting-new-device-primary-button = How to back up my data
 
+device-migration-fxa-spotlight-sync-header = Browse without missing a beat
+device-migration-fxa-spotlight-sync-body = Sync all your important info with encryption — like bookmarks and passwords. You can pull everything up anywhere you use { -brand-product-name }.
+device-migration-fxa-spotlight-sync-primary-button = Get started
+
 ## Set as Default PDF Reader Infobar
 
 # The question portion of the following message should have the <strong> and </strong> tags surrounding it.
