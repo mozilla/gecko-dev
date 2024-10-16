@@ -51,6 +51,18 @@ void AddToFdsToRemap(const ChildProcessArgs& aArgs,
 }
 #endif
 
+#ifdef XP_DARWIN
+// Table of mach send rights which have been sent by the parent process.
+static mach_port_t gMachSendRights[kMaxPassedMachSendRights] = {MACH_PORT_NULL};
+
+void SetPassedMachSendRights(std::vector<UniqueMachSendRight>&& aSendRights) {
+  MOZ_RELEASE_ASSERT(aSendRights.size() <= ArrayLength(gMachSendRights));
+  for (size_t i = 0; i < aSendRights.size(); ++i) {
+    gMachSendRights[i] = aSendRights[i].release();
+  }
+}
+#endif
+
 template <>
 Maybe<UniqueFileHandle> CommandLineArg<UniqueFileHandle>::GetCommon(
     const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags) {
@@ -92,5 +104,30 @@ void CommandLineArg<UniqueFileHandle>::PutCommon(const char* aName,
     aArgs.mFiles.push_back(std::move(aValue));
   }
 }
+
+#ifdef XP_DARWIN
+template <>
+Maybe<UniqueMachSendRight> CommandLineArg<UniqueMachSendRight>::GetCommon(
+    const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags) {
+  if (Maybe<uint32_t> arg =
+          CommandLineArg<uint32_t>::GetCommon(aMatch, aArgc, aArgv, aFlags)) {
+    MOZ_RELEASE_ASSERT(*arg < ArrayLength(gMachSendRights));
+    return Some(UniqueMachSendRight{
+        std::exchange(gMachSendRights[*arg], MACH_PORT_NULL)});
+  }
+  return Nothing();
+}
+
+template <>
+void CommandLineArg<UniqueMachSendRight>::PutCommon(const char* aName,
+                                                    UniqueMachSendRight aValue,
+                                                    ChildProcessArgs& aArgs) {
+  if (aValue) {
+    CommandLineArg<uint32_t>::PutCommon(
+        aName, static_cast<uint32_t>(aArgs.mSendRights.size()), aArgs);
+    aArgs.mSendRights.push_back(std::move(aValue));
+  }
+}
+#endif
 
 }  // namespace mozilla::geckoargs

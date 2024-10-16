@@ -330,24 +330,13 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 
   const int kTimeoutMs = 1000;
 
-  UniqueMachSendRight task_sender;
-  kern_return_t kr = bootstrap_look_up(bootstrap_port, mach_port_name,
-                                       getter_Transfers(task_sender));
-  if (kr != KERN_SUCCESS) {
-    NS_WARNING(nsPrintfCString("child bootstrap_look_up failed: %s",
-                               mach_error_string(kr))
-                   .get());
+  std::vector<mozilla::UniqueMachSendRight> sendRights;
+  if (NS_WARN_IF(
+          !MachChildProcessCheckIn(mach_port_name, kTimeoutMs, sendRights))) {
     return NS_ERROR_FAILURE;
   }
 
-  kr = MachSendPortSendRight(task_sender.get(), mach_task_self(),
-                             Some(kTimeoutMs));
-  if (kr != KERN_SUCCESS) {
-    NS_WARNING(nsPrintfCString("child MachSendPortSendRight failed: %s",
-                               mach_error_string(kr))
-                   .get());
-    return NS_ERROR_FAILURE;
-  }
+  geckoargs::SetPassedMachSendRights(std::move(sendRights));
 
 #  if defined(MOZ_SANDBOX)
   std::string sandboxError;
