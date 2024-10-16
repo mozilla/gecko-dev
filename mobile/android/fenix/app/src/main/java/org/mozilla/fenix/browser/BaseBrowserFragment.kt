@@ -625,14 +625,12 @@ abstract class BaseBrowserFragment :
                 sessionId = customTabSessionId,
                 view = binding.findInPageView,
                 engineView = binding.engineView,
-                toolbars = {
-                    listOf(
-                        _bottomToolbarContainerView?.toolbarContainerView,
-                        browserToolbarView.layout as? ViewGroup?,
-                    )
+                toolbarsHideCallback = {
+                    expandBrowserView()
                 },
                 toolbarsResetCallback = {
                     onUpdateToolbarForConfigurationChange(browserToolbarView)
+                    collapseBrowserView()
                 },
             ),
             owner = this,

@@ -5,11 +5,9 @@
 package org.mozilla.fenix.components
 
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewGroup.MarginLayoutParams
 import androidx.annotation.UiThread
 import androidx.annotation.VisibleForTesting
-import androidx.core.view.isVisible
 import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineView
@@ -30,11 +28,10 @@ import org.mozilla.fenix.components.appstate.AppState
  * @param view The [FindInPageBar] view to display.
  * @param engineView the browser in which the queries will be made and which needs to be better positioned
  * to suit the find in page bar.
- * @param toolbars [View]s that the find in page bar will hide/show while it is being displayed/hidden.
+ * @param toolbarsHideCallback Callback to hide all toolbars to ensure an unobstructed browser page
+ * in which to search and present results.
  * @param toolbarsResetCallback Callback to reset the toolbars to how they should be displayed
  * after this feature is dismissed.
- * Note that when this feature is active all provided [toolbars] are set to [View.GONE].
- * Will be the responsibility of the caller to reset them to [View.VISIBLE] when the feature is dismissed.
  * @param findInPageHeight The height of the find in page bar.
  */
 class FindInPageIntegration(
@@ -43,7 +40,7 @@ class FindInPageIntegration(
     private val sessionId: String? = null,
     private val view: FindInPageBar,
     private val engineView: EngineView,
-    private val toolbars: () -> List<ViewGroup?>,
+    private val toolbarsHideCallback: () -> Unit,
     private val toolbarsResetCallback: () -> Unit,
     private val findInPageHeight: Int = view.context.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height),
 ) : LifecycleAwareFeature, UserInteractionHandler {
@@ -74,7 +71,6 @@ class FindInPageIntegration(
         view.visibility = View.GONE
         getEngineViewsLayoutParams().bottomMargin = 0
         toolbarsResetCallback.invoke()
-        toolbars().forEach { it?.isVisible = true }
         appStore.dispatch(FindInPageAction.FindInPageDismissed)
         _isFeatureActive = false
     }
@@ -90,25 +86,13 @@ class FindInPageIntegration(
     private fun onLaunch(view: View, feature: LifecycleAwareFeature) {
         store.state.findCustomTabOrSelectedTab(sessionId)?.let { tab ->
             _isFeatureActive = true
-            prepareLayoutForFindBar()
+            toolbarsHideCallback.invoke()
+            getEngineViewsLayoutParams().bottomMargin = findInPageHeight
 
             view.visibility = View.VISIBLE
             (feature as FindInPageFeature).bind(tab)
             view.layoutParams.height = findInPageHeight
         }
-    }
-
-    private fun prepareLayoutForFindBar() {
-        toolbars().forEach { it?.isVisible = false }
-        expandEngineView()
-    }
-
-    private fun expandEngineView() {
-        // Ensure the webpage occupies all screen estate minus the find in page bar.
-        getEngineViewsLayoutParams().topMargin = 0
-        getEngineViewsLayoutParams().bottomMargin = findInPageHeight
-        getEngineViewParent().translationY = 0f
-        engineView.setDynamicToolbarMaxHeight(0)
     }
 
     private fun getEngineViewParent() = engineView.asView().parent as View
