@@ -25,6 +25,11 @@ let h2Port;
 add_setup(async function setup() {
   trr_test_setup();
 
+  Services.prefs.setBoolPref(
+    "dom.security.https_first_for_custom_ports",
+    false
+  );
+
   h2Port = Services.env.get("MOZHTTP2_PORT");
   Assert.notEqual(h2Port, null);
   Assert.notEqual(h2Port, "");
@@ -51,6 +56,7 @@ add_setup(async function setup() {
     );
     Services.prefs.clearUserPref("network.dns.notifyResolution");
     Services.prefs.clearUserPref("network.dns.disablePrefetch");
+    Services.prefs.clearUserPref("dom.security.https_first_for_custom_ports");
   });
 
   if (mozinfo.socketprocess_networking) {

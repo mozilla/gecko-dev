@@ -69,6 +69,7 @@ skip-if = ["win11_2009"] # Bug 1797751
 ["browser_storage_cookies_domain.js"]
 
 ["browser_storage_cookies_domain_port.js"]
+https_first_disabled = true
 
 ["browser_storage_cookies_edit.js"]
 

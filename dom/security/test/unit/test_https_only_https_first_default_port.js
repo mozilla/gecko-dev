@@ -26,7 +26,7 @@ const TESTS = [
   {
     description: "Test 3 - Explicit Custom Port (scheme: http, port: 8888)",
     url: "http://test1.example.com:8888",
-    expectedScheme: "http",
+    expectedScheme: "https",
     expectedPort: 8888,
   },
   {

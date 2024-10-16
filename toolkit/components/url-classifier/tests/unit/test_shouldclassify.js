@@ -125,6 +125,7 @@ function setupChannel(params) {
 }
 
 add_task(async function testShouldClassify() {
+  Services.prefs.setBoolPref("dom.security.https_first", false);
   Services.prefs.setBoolPref(
     "privacy.trackingprotection.annotate_channels",
     true

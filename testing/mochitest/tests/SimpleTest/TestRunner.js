@@ -602,6 +602,11 @@ async function _runNextTest() {
         { type: "allowXULXBL", allow: true, context: "http://example.org" },
       ]);
     }
+    if (TestRunner._urls[TestRunner._currentTest].test.https_first_disabled) {
+      await SpecialPowers.pushPrefEnv({
+        set: [["dom.security.https_first", false]],
+      });
+    }
     TestRunner._makeIframe(url, 0);
   } else {
     $("current-test").innerHTML = "<b>Finished</b>";

@@ -815,6 +815,7 @@ skip-if = [
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_httpssvc_https_upgrade.js"]
+https_first_disabled = true
 
 ["test_httpssvc_iphint.js"]
 run-sequentially = "node server exceptions dont replay well"

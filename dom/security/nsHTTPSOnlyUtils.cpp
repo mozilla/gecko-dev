@@ -124,11 +124,13 @@ void nsHTTPSOnlyUtils::PotentiallyFireHttpRequestToShortenTimout(
     return;
   }
 
+  // Upgrades for custom ports may be disabled in that case
   // HTTPS-First only applies to standard ports but HTTPS-Only brute forces
   // all http connections to be https and overrules HTTPS-First. In case
   // HTTPS-First is enabled, but HTTPS-Only is not enabled, we might return
   // early if attempting to send a background request to a non standard port.
-  if ((IsHttpsFirstModeEnabled(isPrivateWin) ||
+  if (!mozilla::StaticPrefs::dom_security_https_first_for_custom_ports() &&
+      (IsHttpsFirstModeEnabled(isPrivateWin) ||
        (loadInfo->GetWasSchemelessInput() &&
         mozilla::StaticPrefs::dom_security_https_first_schemeless()))) {
     int32_t port = 0;
@@ -381,17 +383,19 @@ bool nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(nsIURI* aURI,
     return false;
   }
 
-  // 5. HTTPS-First Mode only upgrades default ports - do not upgrade the
-  // request to https if port is specified and not the default port of 80.
+  // 5. Make sure HTTPS-First does not upgrade custom ports when it is disabled
   MOZ_ASSERT(aURI->SchemeIs("http"), "how come the request is not 'http'?");
-  int defaultPortforScheme = NS_GetDefaultPort("http");
-  // If no port is specified, then the API returns -1 to indicate the default
-  // port.
-  int32_t port = 0;
-  nsresult rv = aURI->GetPort(&port);
-  NS_ENSURE_SUCCESS(rv, false);
-  if (port != defaultPortforScheme && port != -1) {
-    return false;
+
+  if (!mozilla::StaticPrefs::dom_security_https_first_for_custom_ports()) {
+    int defaultPortforScheme = NS_GetDefaultPort("http");
+    // If no port is specified, then the API returns -1 to indicate the default
+    // port.
+    int32_t port = 0;
+    nsresult rv = aURI->GetPort(&port);
+    NS_ENSURE_SUCCESS(rv, false);
+    if (port != defaultPortforScheme && port != -1) {
+      return false;
+    }
   }
 
   // 6. Do not upgrade requests other than GET
