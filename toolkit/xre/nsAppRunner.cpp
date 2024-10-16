@@ -4433,9 +4433,7 @@ static void ReadAheadPackagedDll(const wchar_t* dllName,
   ReadAheadLib(dllPath);
 }
 
-static void PR_CALLBACK ReadAheadDlls_ThreadStart(void* arg) {
-  UniquePtr<wchar_t[]> greDir(static_cast<wchar_t*>(arg));
-
+static void ReadAheadDlls(const wchar_t* greDir) {
   // In Bug 1628903, we investigated which DLLs we should prefetch in
   // order to reduce disk I/O and improve startup on Windows machines.
   // Our ultimate goal is to measure the impact of these improvements on
@@ -4444,11 +4442,11 @@ static void PR_CALLBACK ReadAheadDlls_ThreadStart(void* arg) {
   // and monitor results from that subset.
   if (greDir) {
     // Prefetch the DLLs shipped with firefox
-    ReadAheadPackagedDll(L"libegl.dll", greDir.get());
-    ReadAheadPackagedDll(L"libGLESv2.dll", greDir.get());
-    ReadAheadPackagedDll(L"nssckbi.dll", greDir.get());
-    ReadAheadPackagedDll(L"freebl3.dll", greDir.get());
-    ReadAheadPackagedDll(L"softokn3.dll", greDir.get());
+    ReadAheadPackagedDll(L"libegl.dll", greDir);
+    ReadAheadPackagedDll(L"libGLESv2.dll", greDir);
+    ReadAheadPackagedDll(L"nssckbi.dll", greDir);
+    ReadAheadPackagedDll(L"freebl3.dll", greDir);
+    ReadAheadPackagedDll(L"softokn3.dll", greDir);
 
     // Prefetch the system DLLs
     ReadAheadSystemDll(L"DWrite.dll");
@@ -5412,25 +5410,18 @@ nsresult XREMain::XRE_mainRun() {
       nsAutoString path;
       rv = greDir->GetPath(path);
       if (NS_SUCCEEDED(rv)) {
-        PRThread* readAheadThread;
-        wchar_t* pathRaw;
-
         // We use the presence of a path argument inside the thread to determine
         // which list of Dlls to use. The old list does not need access to the
-        // GRE dir, so the path argument is set to a null pointer.
-        if (dllPrefetchMode ==
+        // GRE dir, so the path argument is voided.
+        if (dllPrefetchMode !=
             mozilla::AlteredDllPrefetchMode::OptimizedPrefetch) {
-          pathRaw = new wchar_t[MAX_PATH];
-          wcscpy_s(pathRaw, MAX_PATH, path.get());
-        } else {
-          pathRaw = nullptr;
+          path.SetIsVoid(true);
         }
-        readAheadThread = PR_CreateThread(
-            PR_USER_THREAD, ReadAheadDlls_ThreadStart, (void*)pathRaw,
-            PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD, PR_UNJOINABLE_THREAD, 0);
-        if (readAheadThread == NULL) {
-          delete[] pathRaw;
-        }
+
+        NS_DispatchBackgroundTask(
+            NS_NewRunnableFunction("ReadAheadDlls", [path = std::move(path)] {
+              ReadAheadDlls(path.IsVoid() ? nullptr : path.get());
+            }));
       }
     }
 #endif
