@@ -197,15 +197,15 @@ Codec::Codec(Type type,
       bitrate(0),
       channels(channels) {}
 
-Codec::Codec(Type type) : Codec(type, 0, "", 0) {}
+Codec::Codec(Type type) : Codec(type, kIdNotSet, "", 0) {}
 
 Codec::Codec(const webrtc::SdpAudioFormat& c)
-    : Codec(Type::kAudio, 0, c.name, c.clockrate_hz, c.num_channels) {
+    : Codec(Type::kAudio, kIdNotSet, c.name, c.clockrate_hz, c.num_channels) {
   params = c.parameters;
 }
 
 Codec::Codec(const webrtc::SdpVideoFormat& c)
-    : Codec(Type::kVideo, 0, c.name, kVideoCodecClockrate) {
+    : Codec(Type::kVideo, kIdNotSet, c.name, kVideoCodecClockrate) {
   params = c.parameters;
   scalability_modes = c.scalability_modes;
 }
@@ -539,7 +539,7 @@ Codec CreateAudioCodec(const webrtc::SdpAudioFormat& c) {
 }
 
 Codec CreateVideoCodec(const std::string& name) {
-  return CreateVideoCodec(0, name);
+  return CreateVideoCodec(Codec::kIdNotSet, name);
 }
 
 Codec CreateVideoCodec(int id, const std::string& name) {

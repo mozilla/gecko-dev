@@ -10,13 +10,18 @@
 
 #include "media/base/codec.h"
 
-#include <tuple>
+#include <optional>
+#include <string>
+#include <vector>
 
-#include "api/video_codecs/av1_profile.h"
+#include "api/media_types.h"
+#include "api/rtp_parameters.h"
 #include "api/video_codecs/h264_profile_level_id.h"
+#include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/vp9_profile.h"
+#include "media/base/media_constants.h"
 #include "modules/video_coding/codecs/h264/include/h264.h"
-#include "rtc_base/gunit.h"
+#include "test/gtest.h"
 
 using cricket::Codec;
 using cricket::FeedbackParam;
@@ -62,7 +67,7 @@ TEST(CodecTest, TestCodecOperators) {
   EXPECT_TRUE(c0 != c1);
 
   TestCodec c5;
-  TestCodec c6(0, "", 0);
+  TestCodec c6(Codec::kIdNotSet, "", 0);
   EXPECT_TRUE(c5 == c6);
 }
 
