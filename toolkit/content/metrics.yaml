@@ -382,3 +382,116 @@ security.ui.tlserror:
           The status of the failed channel, as an nsresult.
         type: quantity
     telemetry_mirror: SecurityUiTlserror_Load_Abouttlserror
+
+findbar:
+  shown:
+    type: counter
+    description: >
+      The count of how many times the "Find toolbar" was shown per
+      session.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar findbar.shown.
+    bugs:
+      - https://bugzil.la/1627688
+    data_reviews:
+      - https://bugzil.la/1627688
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: FINDBAR_SHOWN
+
+  find_prev:
+    type: counter
+    description: >
+      The count of how many times the find previous button was used per
+      session.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar findbar.find_prev.
+    bugs:
+      - https://bugzil.la/1627688
+    data_reviews:
+      - https://bugzil.la/1627688
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: FINDBAR_FIND_PREV
+
+  find_next:
+    type: counter
+    description: >
+      The count of how many times the find next button was used per
+      session.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar findbar.find_next.
+    bugs:
+      - https://bugzil.la/1627688
+    data_reviews:
+      - https://bugzil.la/1627688
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: FINDBAR_FIND_NEXT
+
+  highlight_all:
+    type: counter
+    description: >
+      The count of how many times the "Highlight All" button was used in
+      find toolbar.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar findbar.highlight_all.
+    bugs:
+      - https://bugzil.la/1627688
+    data_reviews:
+      - https://bugzil.la/1627688
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: FINDBAR_HIGHLIGHT_ALL
+
+  match_case:
+    type: counter
+    description: >
+      The count of how many times the "Match Case" button was used in find
+      toolbar.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar findbar.match_case.
+    bugs:
+      - https://bugzil.la/1627688
+    data_reviews:
+      - https://bugzil.la/1627688
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: FINDBAR_MATCH_CASE
+
+  match_diacritics:
+    type: counter
+    description: >
+      The count of how many times the "Match Diacritics" button was used
+      in find toolbar.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar findbar.match_diacritics.
+    bugs:
+      - https://bugzil.la/1627688
+    data_reviews:
+      - https://bugzil.la/1627688
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: FINDBAR_MATCH_DIACRITICS
+
+  whole_words:
+    type: counter
+    description: >
+      The count of how many times the "Whole Words" button was used in
+      find toolbar.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar findbar.whole_words.
+    bugs:
+      - https://bugzil.la/1627688
+    data_reviews:
+      - https://bugzil.la/1627688
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: FINDBAR_WHOLE_WORDS
