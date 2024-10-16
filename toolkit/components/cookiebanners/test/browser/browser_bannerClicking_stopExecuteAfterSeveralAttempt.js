@@ -231,7 +231,7 @@ add_task(async function testForgetAboutSiteWithStopExecuteAfterOneAttempt() {
   });
 
   // Call ForgetAboutSite for the domain.
-  await ForgetAboutSite.removeDataFromDomain(TEST_DOMAIN_A);
+  await ForgetAboutSite.removeDataFromBaseDomain(TEST_DOMAIN_A);
 
   // Open the domain again after ForgetAboutSite and the clicking should work
   // again.

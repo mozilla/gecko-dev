@@ -116,46 +116,10 @@ add_task(async function setup() {
   await handshakePromise;
 });
 
-add_task(async function test_forgetAboutSubdomain() {
-  let modifiedScopes = [];
-  let promiseForgetSubs = Promise.all([
-    // Active subscriptions should be dropped.
-    promiseUnregister("active-sub"),
-    promiseObserverNotification(
-      PushServiceComponent.subscriptionModifiedTopic,
-      (subject, data) => {
-        modifiedScopes.push(data);
-        return modifiedScopes.length == 1;
-      }
-    ),
-  ]);
-  await ForgetAboutSite.removeDataFromDomain("sub.example.com");
-  await promiseForgetSubs;
-
-  deepEqual(
-    modifiedScopes.sort(compareAscending),
-    ["https://sub.example.com/sub-page"],
-    "Should fire modified notifications for active subscriptions"
-  );
-
-  let remainingIDs = await getAllKeyIDs(db);
-  deepEqual(
-    remainingIDs,
-    [
-      "active-1",
-      "active-1-b",
-      "active-2",
-      "active-2-b",
-      "active-sub-b",
-      "privileged",
-    ],
-    "Should only forget subscriptions for subdomain"
-  );
-});
-
 add_task(async function test_forgetAboutRootDomain() {
   let modifiedScopes = [];
   let promiseForgetSubs = Promise.all([
+    promiseUnregister("active-sub"),
     promiseUnregister("active-1"),
     promiseUnregister("active-2"),
     promiseObserverNotification(
@@ -167,7 +131,7 @@ add_task(async function test_forgetAboutRootDomain() {
     ),
   ]);
 
-  await ForgetAboutSite.removeDataFromDomain("example.com");
+  await ForgetAboutSite.removeDataFromBaseDomain("example.com");
   await promiseForgetSubs;
 
   deepEqual(
@@ -183,43 +147,6 @@ add_task(async function test_forgetAboutRootDomain() {
   deepEqual(
     remainingIDs,
     ["active-1-b", "active-2-b", "active-sub-b", "privileged"],
-    "Should ignore privileged records with a real URL"
-  );
-});
-
-// Tests the legacy removeDataFromDomain method.
-add_task(async function test_forgetAboutBaseDomain() {
-  let modifiedScopes = [];
-  let promiseForgetSubs = Promise.all([
-    promiseUnregister("active-sub-b"),
-    promiseUnregister("active-1-b"),
-    promiseUnregister("active-2-b"),
-    promiseObserverNotification(
-      PushServiceComponent.subscriptionModifiedTopic,
-      (subject, data) => {
-        modifiedScopes.push(data);
-        return modifiedScopes.length == 3;
-      }
-    ),
-  ]);
-
-  await ForgetAboutSite.removeDataFromDomain("example.net");
-  await promiseForgetSubs;
-
-  deepEqual(
-    modifiedScopes.sort(compareAscending),
-    [
-      "https://sub.example.net/sub-page",
-      "https://sub2.example.net/some-page",
-      "https://sub3.example.net/another-page",
-    ],
-    "Should fire modified notifications for entire domain"
-  );
-
-  let remainingIDs = await getAllKeyIDs(db);
-  deepEqual(
-    remainingIDs,
-    ["privileged"],
     "Should ignore privileged records with a real URL"
   );
 });

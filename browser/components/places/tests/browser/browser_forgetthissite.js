@@ -147,7 +147,6 @@ async function testForgetAboutThisSite(
   // methods are called.
   if (!shouldForget) {
     sinon.stub(ForgetAboutSite, "removeDataFromBaseDomain").resolves();
-    sinon.stub(ForgetAboutSite, "removeDataFromDomain").resolves();
   }
 
   let pageRemovedEventPromise;
@@ -168,8 +167,7 @@ async function testForgetAboutThisSite(
 
   if (!shouldForget) {
     ok(
-      ForgetAboutSite.removeDataFromBaseDomain.notCalled &&
-        ForgetAboutSite.removeDataFromDomain.notCalled,
+      ForgetAboutSite.removeDataFromBaseDomain.notCalled,
       "Should not call ForgetAboutSite when the confirmation prompt is cancelled."
     );
     // Remove the stubs.

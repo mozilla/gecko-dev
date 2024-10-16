@@ -141,7 +141,7 @@ async function test_cookie_cleared() {
   }
 
   // Forget the site.
-  await ForgetAboutSite.removeDataFromDomain(TEST_HOST);
+  await ForgetAboutSite.removeDataFromBaseDomain(TEST_HOST);
 
   // Check that whether cookies has been cleared or not.
   for (let userContextId of Object.keys(USER_CONTEXTS)) {
@@ -191,7 +191,7 @@ async function test_cache_cleared() {
   }
 
   // Forget the site.
-  await ForgetAboutSite.removeDataFromDomain(TEST_HOST);
+  await ForgetAboutSite.removeDataFromBaseDomain(TEST_HOST);
 
   // Check that do caches be removed or not?
   for (let userContextId of Object.keys(USER_CONTEXTS)) {
@@ -243,7 +243,7 @@ async function test_image_cache_cleared() {
   gHits = 0;
 
   // Forget the site.
-  await ForgetAboutSite.removeDataFromDomain("localhost");
+  await ForgetAboutSite.removeDataFromBaseDomain("localhost");
 
   // Load again.
   for (let userContextId of Object.keys(USER_CONTEXTS)) {
@@ -329,7 +329,7 @@ async function test_storage_cleared() {
   }
 
   // Forget the site.
-  await ForgetAboutSite.removeDataFromDomain(TEST_HOST);
+  await ForgetAboutSite.removeDataFromBaseDomain(TEST_HOST);
 
   // Open the tab again without setting the localStorage and check that the
   // local storage has been cleared or not.

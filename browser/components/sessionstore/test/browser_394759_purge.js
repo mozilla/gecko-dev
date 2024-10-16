@@ -196,7 +196,7 @@ add_task(async function () {
 
   // purge domain & check that we purged correctly for closed windows
   let clearHistoryPromise = promiseClearHistory();
-  await ForgetAboutSite.removeDataFromDomain("mozilla.org");
+  await ForgetAboutSite.removeDataFromBaseDomain("mozilla.org");
   await clearHistoryPromise;
 
   let closedWindowData = ss.getClosedWindowData();

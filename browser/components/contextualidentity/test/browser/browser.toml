@@ -31,7 +31,7 @@ https_first_disabled = true
 skip-if = ["verify"]
 
 ["browser_forgetaboutsite.js"]
-skip-if = ["true"] # Bug 1541885
+skip-if = ["true"] # Bug 1924563
 
 ["browser_guessusercontext.js"]
 
