@@ -311,7 +311,7 @@
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Skift til desktop-version</string>
     <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
-    <string name="browser_menu_switch_to_mobile_site">Skift til mobiludgaven</string>
+    <string name="browser_menu_switch_to_mobile_site">Skift til mobil-version</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Funktioner</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
