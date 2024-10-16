@@ -14,7 +14,7 @@
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/StaticPrefs_ui.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/dom/Document.h"
@@ -275,21 +275,21 @@ void PreferenceSheet::Initialize() {
     return;
   }
 
-  nsAutoString useDocumentColorPref;
+  glean::a11y::ThemeLabel gleanLabel;
   switch (StaticPrefs::browser_display_document_color_use()) {
     case 1:
-      useDocumentColorPref.AssignLiteral("always");
+      gleanLabel = glean::a11y::ThemeLabel::eAlways;
       break;
     case 2:
-      useDocumentColorPref.AssignLiteral("never");
+      gleanLabel = glean::a11y::ThemeLabel::eNever;
       break;
     default:
-      useDocumentColorPref.AssignLiteral("default");
+      gleanLabel = glean::a11y::ThemeLabel::eDefault;
       break;
   }
 
-  Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_THEME, useDocumentColorPref,
-                       sContentPrefs.mUseAccessibilityTheme);
+  glean::a11y::theme.EnumGet(gleanLabel)
+      .Set(sContentPrefs.mUseAccessibilityTheme);
   if (!sContentPrefs.mUseDocumentColors) {
     // If a user has chosen to override doc colors through OS HCM or our HCM,
     // we should log the user's current foreground (text) color and background
@@ -304,18 +304,16 @@ void PreferenceSheet::Initialize() {
     // theme color/background (if we're using system colors and the user is
     // using a High Contrast theme), and also the colors that as of today we
     // allow setting in about:preferences.
-    Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_HCM_FOREGROUND,
-                         sContentPrefs.mLightColors.mDefault);
-    Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_HCM_BACKGROUND,
-                         sContentPrefs.mLightColors.mDefaultBackground);
+    glean::a11y::hcm_foreground.Set(sContentPrefs.mLightColors.mDefault);
+    glean::a11y::hcm_background.Set(
+        sContentPrefs.mLightColors.mDefaultBackground);
   }
 
-  Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_BACKPLATE,
-                       StaticPrefs::browser_display_permit_backplate());
-  Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_USE_SYSTEM_COLORS,
-                       StaticPrefs::browser_display_use_system_colors());
-  Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_ALWAYS_UNDERLINE_LINKS,
-                       StaticPrefs::layout_css_always_underline_links());
+  glean::a11y::backplate.Set(StaticPrefs::browser_display_permit_backplate());
+  glean::a11y::use_system_colors.Set(
+      StaticPrefs::browser_display_use_system_colors());
+  glean::a11y::always_underline_links.Set(
+      StaticPrefs::layout_css_always_underline_links());
 }
 
 bool PreferenceSheet::AffectedByPref(const nsACString& aPref) {

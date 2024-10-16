@@ -22,7 +22,7 @@
 #include <tuple>
 
 #if defined(MOZ_TELEMETRY_REPORTING)
-#  include "mozilla/Telemetry.h"
+#  include "mozilla/glean/GleanMetrics.h"
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
 
 using namespace mozilla;
@@ -204,7 +204,7 @@ static void AccumulateInstantiatorTelemetry(const nsAString& aValue) {
 
   if (!aValue.IsEmpty()) {
 #if defined(MOZ_TELEMETRY_REPORTING)
-    Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_INSTANTIATORS, aValue);
+    glean::a11y::instantiators.Set(NS_ConvertUTF16toUTF8(aValue));
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
     CrashReporter::RecordAnnotationNSString(
         CrashReporter::Annotation::AccessibilityClient, aValue);

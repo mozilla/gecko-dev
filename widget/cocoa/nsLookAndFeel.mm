@@ -16,7 +16,7 @@
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/StaticPrefs_widget.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
 #include "mozilla/MacStringHelpers.h"
 
@@ -579,7 +579,7 @@ void nsLookAndFeel::RecordAccessibilityTelemetry() {
           (accessibilityDisplayShouldInvertColors)]) {
     bool val =
         [[NSWorkspace sharedWorkspace] accessibilityDisplayShouldInvertColors];
-    Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_INVERT_COLORS, val);
+    glean::a11y::invert_colors.Set(val);
   }
 }
 

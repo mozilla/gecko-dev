@@ -15,6 +15,7 @@
 # (Firefox Desktop, Firefox for Android, Focus for Android, etc.).
 # Order is lexicographical, enforced by t/c/glean/tests/pytest/test_yaml_indices.py
 gecko_metrics = [
+    "accessible/metrics.yaml",
     "browser/base/content/metrics.yaml",
     "devtools/client/shared/metrics.yaml",
     "docshell/base/metrics.yaml",

@@ -22,7 +22,7 @@
 #include "nsAppShell.h"
 #include "nsCocoaUtils.h"
 #include "mozilla/EnumSet.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 
 // Available from 10.13 onwards; test availability at runtime before using
 @interface NSWorkspace (AvailableSinceHighSierra)
@@ -326,9 +326,7 @@ uint64_t GetCacheDomainsForKnownClients(uint64_t aCacheDomains) {
       const char* client = GetStringForClient(clientToLog);
 
 #if defined(MOZ_TELEMETRY_REPORTING)
-      mozilla::Telemetry::ScalarSet(
-          mozilla::Telemetry::ScalarID::A11Y_INSTANTIATORS,
-          NS_ConvertASCIItoUTF16(client));
+      mozilla::glean::a11y::instantiators.Set(nsDependentCString(client));
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
       CrashReporter::RecordAnnotationCString(
           CrashReporter::Annotation::AccessibilityClient, client);

@@ -1,0 +1,156 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Disability Access APIs'
+
+a11y:
+  always_underline_links:
+    type: boolean
+    description: >
+      Bool tracking if the user has always underline links enabled in
+      firefox.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar a11y.always_underline_links.
+    bugs:
+      - https://bugzil.la/1835194
+    data_reviews:
+      - https://bugzil.la/1835194
+    notification_emails:
+      - accessibility@mozilla.com
+      - mreschenberg@mozilla.com
+    expires: never
+    telemetry_mirror: A11Y_ALWAYS_UNDERLINE_LINKS
+
+  use_system_colors:
+    type: boolean
+    description: >
+      Bool tracking if the user has system colors enabled in firefox.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar a11y.use_system_colors.
+    bugs:
+      - https://bugzil.la/1835194
+    data_reviews:
+      - https://bugzil.la/1835194
+    notification_emails:
+      - accessibility@mozilla.com
+      - mreschenberg@mozilla.com
+    expires: never
+    telemetry_mirror: A11Y_USE_SYSTEM_COLORS
+
+  hcm_background:
+    type: quantity
+    description: >
+      Unsigned int tracking the user's prefered background color \ (logged
+      when HCM is enabled).
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar a11y.HCM_background.
+    bugs:
+      - https://bugzil.la/1694717
+    data_reviews:
+      - https://bugzil.la/1694717
+    notification_emails:
+      - accessibility@mozilla.com
+      - mreschenberg@mozilla.com
+    expires: never
+    unit: nscolor
+    telemetry_mirror: A11Y_HCM_BACKGROUND
+
+  hcm_foreground:
+    type: quantity
+    description: >
+      Unsigned int tracking the user's prefered foreground color \ (logged
+      when HCM is enabled).
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar a11y.HCM_foreground.
+    bugs:
+      - https://bugzil.la/1694717
+    data_reviews:
+      - https://bugzil.la/1694717
+    notification_emails:
+      - accessibility@mozilla.com
+      - mreschenberg@mozilla.com
+    expires: never
+    unit: nscolor
+    telemetry_mirror: A11Y_HCM_FOREGROUND
+
+  backplate:
+    type: boolean
+    description: >
+      Boolean tracking if the user has the backplate preference enabled or
+      disabled.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar a11y.backplate.
+    bugs:
+      - https://bugzil.la/1539212
+    data_reviews:
+      - https://bugzil.la/1539212
+    notification_emails:
+      - accessibility@mozilla.com
+      - mreschenberg@mozilla.com
+    expires: never
+    telemetry_mirror: A11Y_BACKPLATE
+
+  instantiators:
+    type: string
+    description: >
+      The leaf name and version number of the binary for the process
+      responsible for remotely instantiating a11y.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar a11y.instantiators.
+    bugs:
+      - https://bugzil.la/1323069
+      - https://bugzil.la/1462238
+    data_reviews:
+      - https://bugzil.la/1323069
+      - https://bugzil.la/1462238
+    notification_emails:
+      - accessibility@mozilla.com
+      - jteh@mozilla.com
+    expires: never
+    telemetry_mirror: A11Y_INSTANTIATORS
+
+  invert_colors:
+    type: boolean
+    description: >
+      Boolean tracking if the user has an invert colors OS setting
+      enabled.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar a11y.invert_colors.
+    bugs:
+      - https://bugzil.la/1794626
+    data_reviews:
+      - https://bugzil.la/1794626
+    notification_emails:
+      - accessibility@mozilla.com
+      - mreschenberg@mozilla.com
+    expires: never
+    telemetry_mirror: A11Y_INVERT_COLORS
+
+  theme:
+    type: labeled_boolean
+    description: >
+      OS high contrast or other accessibility theme is enabled. The result
+      is split into keys which represent the values of
+      browser.display.document_color_use: "default", "always", or "never".
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar a11y.theme.
+    bugs:
+      - https://bugzil.la/1022528
+    data_reviews:
+      - https://bugzil.la/1022528
+    notification_emails:
+      - accessibility@mozilla.com
+      - eisaacson@mozilla.com
+    expires: never
+    labels:
+      - default
+      - always
+      - never
+    telemetry_mirror: A11Y_THEME
