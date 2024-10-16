@@ -331,9 +331,9 @@ class HistoryInView extends ViewPage {
     let descriptionLink;
     if (Services.prefs.getBoolPref(NEVER_REMEMBER_HISTORY_PREF, false)) {
       // History pref set to never remember history
-      descriptionHeader = "firefoxview-dont-remember-history-empty-header-2";
+      descriptionHeader = "firefoxview-dont-remember-history-empty-header";
       descriptionLabels = [
-        "firefoxview-dont-remember-history-empty-description-one",
+        "firefoxview-dont-remember-history-empty-description",
         "firefoxview-dont-remember-history-empty-description-two",
       ];
       descriptionLink = {

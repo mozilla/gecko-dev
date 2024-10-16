@@ -169,13 +169,13 @@ export class SyncedTabsController {
 
   actionMappings = {
     "sign-in": {
-      header: "firefoxview-syncedtabs-signin-header-2",
-      description: "firefoxview-syncedtabs-signin-description-2",
-      buttonLabel: "firefoxview-syncedtabs-signin-primarybutton-2",
+      header: "firefoxview-syncedtabs-signin-header",
+      description: "firefoxview-syncedtabs-signin-description",
+      buttonLabel: "firefoxview-syncedtabs-signin-primarybutton",
     },
     "add-device": {
-      header: "firefoxview-syncedtabs-adddevice-header-2",
-      description: "firefoxview-syncedtabs-adddevice-description-2",
+      header: "firefoxview-syncedtabs-adddevice-header",
+      description: "firefoxview-syncedtabs-adddevice-description",
       buttonLabel: "firefoxview-syncedtabs-adddevice-primarybutton",
       descriptionLink: {
         name: "url",
