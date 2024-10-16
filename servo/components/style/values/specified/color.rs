@@ -6,7 +6,7 @@
 
 use super::AllowQuirks;
 use crate::color::mix::ColorInterpolationMethod;
-use crate::color::{parsing, AbsoluteColor, ColorFlags, ColorFunction, ColorSpace};
+use crate::color::{parsing, AbsoluteColor, ColorFunction, ColorSpace};
 use crate::media_queries::Device;
 use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
@@ -117,7 +117,7 @@ pub enum Color {
     Absolute(Box<Absolute>),
     /// A color function that could not be resolved to a [Color::Absolute] color at parse time.
     /// Right now this is only the case for relative colors with `currentColor` as the origin.
-    ColorFunction(Box<ColorFunction>),
+    ColorFunction(Box<ColorFunction<Self>>),
     /// A system color.
     #[cfg(feature = "gecko")]
     System(SystemColor),
@@ -786,29 +786,17 @@ impl Color {
                 ComputedColor::Absolute(color)
             },
             Color::ColorFunction(ref color_function) => {
-                let has_origin_color = color_function.has_origin_color();
+                debug_assert!(color_function.has_origin_color(),
+                    "no need for a ColorFunction if it doesn't contain an unresolvable origin color");
 
-                let Ok(mut absolute) = color_function.resolve_to_absolute() else {
-                    // TODO(tlouw): The specified color must contain `currentColor` or some other
-                    //              unresolvable origin color, so here we have to store the whole
-                    //              [ColorFunction] in the computed color.
-                    return Some(ComputedColor::Absolute(AbsoluteColor::BLACK));
-                };
-
-                // A special case when the color was a rgb(..) function and had an origin color,
-                // the result must be in the color(srgb ..) syntax, to avoid clipped channels
-                // into gamut limits.
-                let mut absolute = match absolute.color_space {
-                    _ if has_origin_color && absolute.is_legacy_syntax() => {
-                        absolute.flags.remove(ColorFlags::IS_LEGACY_SRGB);
-                        absolute
-                    },
-                    _ => absolute,
-                };
-
-                adjust_absolute_color!(absolute);
-
-                ComputedColor::Absolute(absolute)
+                // Try to eagerly resolve the color function before making it a computed color.
+                if let Ok(absolute) = color_function.resolve_to_absolute() {
+                    ComputedColor::Absolute(absolute)
+                } else {
+                    let color_function = color_function
+                        .map_origin_color(|origin_color| origin_color.to_computed_color(context));
+                    ComputedColor::ColorFunction(Box::new(color_function))
+                }
             },
             Color::LightDark(ref ld) => ld.compute(context?),
             Color::ColorMix(ref mix) => {
@@ -852,6 +840,11 @@ impl ToComputedValue for Color {
     fn from_computed_value(computed: &ComputedColor) -> Self {
         match *computed {
             ComputedColor::Absolute(ref color) => Self::from_absolute_color(color.clone()),
+            ComputedColor::ColorFunction(ref color_function) => {
+                let color_function =
+                    color_function.map_origin_color(|o| Some(Self::from_computed_value(o)));
+                Self::ColorFunction(Box::new(color_function))
+            },
             ComputedColor::CurrentColor => Color::CurrentColor,
             ComputedColor::ColorMix(ref mix) => {
                 Color::ColorMix(Box::new(ToComputedValue::from_computed_value(&**mix)))

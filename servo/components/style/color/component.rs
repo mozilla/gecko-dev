@@ -13,6 +13,7 @@ use super::{
 use crate::{
     parser::ParserContext,
     values::{
+        animated::ToAnimatedValue,
         generics::calc::CalcUnits,
         specified::calc::{CalcNode as SpecifiedCalcNode, Leaf as SpecifiedLeaf},
     },
@@ -207,5 +208,17 @@ impl<ValueType: ToCss> ToCss for ColorComponent<ValueType> {
         }
 
         Ok(())
+    }
+}
+
+impl<ValueType> ToAnimatedValue for ColorComponent<ValueType> {
+    type AnimatedValue = Self;
+
+    fn to_animated_value(self, _context: &crate::values::animated::Context) -> Self::AnimatedValue {
+        self
+    }
+
+    fn from_animated_value(animated: Self::AnimatedValue) -> Self {
+        animated
     }
 }

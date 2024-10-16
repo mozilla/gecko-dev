@@ -70,6 +70,15 @@ namespace mozilla {
 
 class ComputedStyle;
 
+template <typename T>
+struct StyleColorFunction {};
+
+template <typename T>
+inline bool operator==(const StyleColorFunction<T>& left,
+                       const StyleColorFunction<T>& right) {
+  return &left == &right;
+}
+
 using Matrix4x4Components = float[16];
 using StyleMatrix4x4Components = Matrix4x4Components;
 

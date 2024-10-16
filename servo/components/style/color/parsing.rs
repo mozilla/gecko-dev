@@ -169,7 +169,7 @@ fn parse_color_function<'i, 't>(
     context: &ParserContext,
     name: CowRcStr<'i>,
     arguments: &mut Parser<'i, 't>,
-) -> Result<ColorFunction, ParseError<'i>> {
+) -> Result<ColorFunction<SpecifiedColor>, ParseError<'i>> {
     let origin_color = parse_origin_color(context, arguments)?;
 
     let color = match_ignore_ascii_case! { &name,
@@ -215,7 +215,7 @@ fn parse_rgb<'i, 't>(
     context: &ParserContext,
     arguments: &mut Parser<'i, 't>,
     origin_color: Option<SpecifiedColor>,
-) -> Result<ColorFunction, ParseError<'i>> {
+) -> Result<ColorFunction<SpecifiedColor>, ParseError<'i>> {
     let maybe_red = parse_number_or_percentage(context, arguments, true, RGB_CHANNEL_KEYWORDS)?;
 
     // If the first component is not "none" and is followed by a comma, then we
@@ -259,7 +259,7 @@ fn parse_hsl<'i, 't>(
     context: &ParserContext,
     arguments: &mut Parser<'i, 't>,
     origin_color: Option<SpecifiedColor>,
-) -> Result<ColorFunction, ParseError<'i>> {
+) -> Result<ColorFunction<SpecifiedColor>, ParseError<'i>> {
     let hue = parse_number_or_angle(context, arguments, true, HSL_CHANNEL_KEYWORDS)?;
 
     // If the hue is not "none" and is followed by a comma, then we are parsing
@@ -299,7 +299,7 @@ fn parse_hwb<'i, 't>(
     context: &ParserContext,
     arguments: &mut Parser<'i, 't>,
     origin_color: Option<SpecifiedColor>,
-) -> Result<ColorFunction, ParseError<'i>> {
+) -> Result<ColorFunction<SpecifiedColor>, ParseError<'i>> {
     let hue = parse_number_or_angle(context, arguments, true, HWB_CHANNEL_KEYWORDS)?;
     let whiteness = parse_number_or_percentage(context, arguments, true, HWB_CHANNEL_KEYWORDS)?;
     let blackness = parse_number_or_percentage(context, arguments, true, HWB_CHANNEL_KEYWORDS)?;
@@ -328,8 +328,8 @@ fn parse_lab_like<'i, 't>(
     context: &ParserContext,
     arguments: &mut Parser<'i, 't>,
     origin_color: Option<SpecifiedColor>,
-    into_color: IntoLabFn<ColorFunction>,
-) -> Result<ColorFunction, ParseError<'i>> {
+    into_color: IntoLabFn<ColorFunction<SpecifiedColor>>,
+) -> Result<ColorFunction<SpecifiedColor>, ParseError<'i>> {
     let lightness = parse_number_or_percentage(context, arguments, true, LAB_CHANNEL_KEYWORDS)?;
     let a = parse_number_or_percentage(context, arguments, true, LAB_CHANNEL_KEYWORDS)?;
     let b = parse_number_or_percentage(context, arguments, true, LAB_CHANNEL_KEYWORDS)?;
@@ -352,8 +352,8 @@ fn parse_lch_like<'i, 't>(
     context: &ParserContext,
     arguments: &mut Parser<'i, 't>,
     origin_color: Option<SpecifiedColor>,
-    into_color: IntoLchFn<ColorFunction>,
-) -> Result<ColorFunction, ParseError<'i>> {
+    into_color: IntoLchFn<ColorFunction<SpecifiedColor>>,
+) -> Result<ColorFunction<SpecifiedColor>, ParseError<'i>> {
     let lightness = parse_number_or_percentage(context, arguments, true, LCH_CHANNEL_KEYWORDS)?;
     let chroma = parse_number_or_percentage(context, arguments, true, LCH_CHANNEL_KEYWORDS)?;
     let hue = parse_number_or_angle(context, arguments, true, LCH_CHANNEL_KEYWORDS)?;
@@ -369,7 +369,7 @@ fn parse_color_with_color_space<'i, 't>(
     context: &ParserContext,
     arguments: &mut Parser<'i, 't>,
     origin_color: Option<SpecifiedColor>,
-) -> Result<ColorFunction, ParseError<'i>> {
+) -> Result<ColorFunction<SpecifiedColor>, ParseError<'i>> {
     let color_space = PredefinedColorSpace::parse(arguments)?;
 
     let allowed_channel_keywords = match color_space {
@@ -398,8 +398,8 @@ fn parse_color_with_color_space<'i, 't>(
     ))
 }
 
-/// Eithee.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
+/// Either a percentage or a number.
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
 pub enum NumberOrPercentage {
     /// `<number>`.
     Number(f32),
@@ -448,7 +448,7 @@ impl ColorComponentType for NumberOrPercentage {
 }
 
 /// Either an angle or a number.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
 pub enum NumberOrAngle {
     /// `<number>`.
     Number(f32),

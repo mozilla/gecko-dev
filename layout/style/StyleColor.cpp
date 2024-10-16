@@ -32,7 +32,6 @@ StyleAbsoluteColor StyleColor::ResolveColor(
     return aForegroundColor;
   }
 
-  MOZ_ASSERT(IsColorMix(), "should be the only type left at this point.");
   return Servo_ResolveColor(this, &aForegroundColor);
 }
 

@@ -4,8 +4,7 @@
 
 //! Generic types for color properties.
 
-use crate::color::mix::ColorInterpolationMethod;
-use crate::color::AbsoluteColor;
+use crate::color::{mix::ColorInterpolationMethod, AbsoluteColor, ColorFunction};
 use crate::values::specified::percentage::ToPercentage;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
@@ -17,6 +16,8 @@ use style_traits::{CssWriter, ToCss};
 pub enum GenericColor<Percentage> {
     /// The actual numeric color.
     Absolute(AbsoluteColor),
+    /// A unresolvable color.
+    ColorFunction(Box<ColorFunction<Self>>),
     /// The `CurrentColor` keyword.
     CurrentColor,
     /// The color-mix() function.

@@ -12,15 +12,17 @@ use super::{
     parsing::{NumberOrAngle, NumberOrPercentage},
     AbsoluteColor, ColorFlags, ColorSpace,
 };
-use crate::values::{normalize, specified::color::Color as SpecifiedColor};
+use crate::values::{
+    computed::color::Color as ComputedColor, normalize, specified::color::Color as SpecifiedColor,
+};
 use cssparser::color::{clamp_floor_256_f32, OPAQUE};
 
 /// Represents a specified color function.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
-pub enum ColorFunction {
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
+pub enum ColorFunction<Color> {
     /// <https://drafts.csswg.org/css-color-4/#rgb-functions>
     Rgb(
-        Option<SpecifiedColor>,             // origin
+        Option<Color>,                      // origin
         ColorComponent<NumberOrPercentage>, // red
         ColorComponent<NumberOrPercentage>, // green
         ColorComponent<NumberOrPercentage>, // blue
@@ -28,7 +30,7 @@ pub enum ColorFunction {
     ),
     /// <https://drafts.csswg.org/css-color-4/#the-hsl-notation>
     Hsl(
-        Option<SpecifiedColor>,             // origin
+        Option<Color>,                      // origin
         ColorComponent<NumberOrAngle>,      // hue
         ColorComponent<NumberOrPercentage>, // saturation
         ColorComponent<NumberOrPercentage>, // lightness
@@ -36,7 +38,7 @@ pub enum ColorFunction {
     ),
     /// <https://drafts.csswg.org/css-color-4/#the-hwb-notation>
     Hwb(
-        Option<SpecifiedColor>,             // origin
+        Option<Color>,                      // origin
         ColorComponent<NumberOrAngle>,      // hue
         ColorComponent<NumberOrPercentage>, // whiteness
         ColorComponent<NumberOrPercentage>, // blackness
@@ -44,7 +46,7 @@ pub enum ColorFunction {
     ),
     /// <https://drafts.csswg.org/css-color-4/#specifying-lab-lch>
     Lab(
-        Option<SpecifiedColor>,             // origin
+        Option<Color>,                      // origin
         ColorComponent<NumberOrPercentage>, // lightness
         ColorComponent<NumberOrPercentage>, // a
         ColorComponent<NumberOrPercentage>, // b
@@ -52,7 +54,7 @@ pub enum ColorFunction {
     ),
     /// <https://drafts.csswg.org/css-color-4/#specifying-lab-lch>
     Lch(
-        Option<SpecifiedColor>,             // origin
+        Option<Color>,                      // origin
         ColorComponent<NumberOrPercentage>, // lightness
         ColorComponent<NumberOrPercentage>, // chroma
         ColorComponent<NumberOrAngle>,      // hue
@@ -60,7 +62,7 @@ pub enum ColorFunction {
     ),
     /// <https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch>
     Oklab(
-        Option<SpecifiedColor>,             // origin
+        Option<Color>,                      // origin
         ColorComponent<NumberOrPercentage>, // lightness
         ColorComponent<NumberOrPercentage>, // a
         ColorComponent<NumberOrPercentage>, // b
@@ -68,7 +70,7 @@ pub enum ColorFunction {
     ),
     /// <https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch>
     Oklch(
-        Option<SpecifiedColor>,             // origin
+        Option<Color>,                      // origin
         ColorComponent<NumberOrPercentage>, // lightness
         ColorComponent<NumberOrPercentage>, // chroma
         ColorComponent<NumberOrAngle>,      // hue
@@ -76,7 +78,7 @@ pub enum ColorFunction {
     ),
     /// <https://drafts.csswg.org/css-color-4/#color-function>
     Color(
-        Option<SpecifiedColor>,             // origin
+        Option<Color>,                      // origin
         ColorComponent<NumberOrPercentage>, // red / x
         ColorComponent<NumberOrPercentage>, // green / y
         ColorComponent<NumberOrPercentage>, // blue / z
@@ -85,40 +87,13 @@ pub enum ColorFunction {
     ),
 }
 
-impl ColorFunction {
-    /// Return true if the color funciton has an origin color specified.
-    pub fn has_origin_color(&self) -> bool {
-        match self {
-            Self::Rgb(origin_color, ..) |
-            Self::Hsl(origin_color, ..) |
-            Self::Hwb(origin_color, ..) |
-            Self::Lab(origin_color, ..) |
-            Self::Lch(origin_color, ..) |
-            Self::Oklab(origin_color, ..) |
-            Self::Oklch(origin_color, ..) |
-            Self::Color(origin_color, ..) => origin_color.is_some(),
-        }
-    }
-
-    /// Try to resolve the color function to an [`AbsoluteColor`] that does not
-    /// contain any variables (currentcolor, color components, etc.).
-    pub fn resolve_to_absolute(&self) -> Result<AbsoluteColor, ()> {
+impl ColorFunction<AbsoluteColor> {
+    fn resolve_to_absolute(&self) -> Result<AbsoluteColor, ()> {
         macro_rules! alpha {
             ($alpha:expr, $origin_color:expr) => {{
                 $alpha
                     .resolve($origin_color)?
                     .map(|value| normalize(value.to_number(1.0)).clamp(0.0, OPAQUE))
-            }};
-        }
-
-        macro_rules! resolved_origin_color {
-            ($origin_color:expr,$color_space:expr) => {{
-                match $origin_color {
-                    Some(color) => color
-                        .resolve_to_absolute()
-                        .map(|color| color.to_color_space($color_space)),
-                    None => None,
-                }
             }};
         }
 
@@ -137,17 +112,19 @@ impl ColorFunction {
                     ))
                 }
 
-                // Ensure that the origin color is in the rgb(..) format and not in
-                // the color(srgb ..) format.
-                let origin_color = resolved_origin_color!(origin_color, ColorSpace::Srgb)
-                    .map(|origin| origin.into_srgb_legacy());
+                let origin_color =
+                    origin_color.map(|o| o.to_color_space(ColorSpace::Srgb).into_srgb_legacy());
 
-                AbsoluteColor::srgb_legacy(
-                    resolve(r, origin_color.as_ref())?,
-                    resolve(g, origin_color.as_ref())?,
-                    resolve(b, origin_color.as_ref())?,
-                    alpha!(alpha, origin_color.as_ref()).unwrap_or(0.0),
-                )
+                let r = resolve(r, origin_color.as_ref())?;
+                let g = resolve(g, origin_color.as_ref())?;
+                let b = resolve(b, origin_color.as_ref())?;
+                let alpha = alpha!(alpha, origin_color.as_ref()).unwrap_or(0.0);
+
+                if origin_color.is_some() {
+                    AbsoluteColor::new(ColorSpace::Srgb, r, g, b, alpha)
+                } else {
+                    AbsoluteColor::srgb_legacy(r, g, b, alpha)
+                }
             },
             ColorFunction::Hsl(origin_color, h, s, l, alpha) => {
                 // Percent reference range for S and L: 0% = 0.0, 100% = 100.0
@@ -161,7 +138,7 @@ impl ColorFunction {
                 //   color to be out of gamut and not clamp.
                 let use_rgb_sytax = origin_color.is_none();
 
-                let origin_color = resolved_origin_color!(origin_color, ColorSpace::Hsl);
+                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Hsl));
 
                 let mut result = AbsoluteColor::new(
                     ColorSpace::Hsl,
@@ -202,7 +179,7 @@ impl ColorFunction {
                 const WHITENESS_RANGE: f32 = 100.0;
                 const BLACKNESS_RANGE: f32 = 100.0;
 
-                let origin_color = resolved_origin_color!(origin_color, ColorSpace::Hwb);
+                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Hwb));
 
                 let mut result = AbsoluteColor::new(
                     ColorSpace::Hwb,
@@ -237,7 +214,7 @@ impl ColorFunction {
                 const LIGHTNESS_RANGE: f32 = 100.0;
                 const A_B_RANGE: f32 = 125.0;
 
-                let origin_color = resolved_origin_color!(origin_color, ColorSpace::Lab);
+                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Lab));
 
                 AbsoluteColor::new(
                     ColorSpace::Lab,
@@ -256,7 +233,7 @@ impl ColorFunction {
                 const LIGHTNESS_RANGE: f32 = 100.0;
                 const CHROMA_RANGE: f32 = 150.0;
 
-                let origin_color = resolved_origin_color!(origin_color, ColorSpace::Lch);
+                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Lch));
 
                 AbsoluteColor::new(
                     ColorSpace::Lch,
@@ -275,7 +252,7 @@ impl ColorFunction {
                 const LIGHTNESS_RANGE: f32 = 1.0;
                 const A_B_RANGE: f32 = 0.4;
 
-                let origin_color = resolved_origin_color!(origin_color, ColorSpace::Oklab);
+                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Oklab));
 
                 AbsoluteColor::new(
                     ColorSpace::Oklab,
@@ -294,7 +271,7 @@ impl ColorFunction {
                 const LIGHTNESS_RANGE: f32 = 1.0;
                 const CHROMA_RANGE: f32 = 0.4;
 
-                let origin_color = resolved_origin_color!(origin_color, ColorSpace::Oklch);
+                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Oklch));
 
                 AbsoluteColor::new(
                     ColorSpace::Oklch,
@@ -308,7 +285,7 @@ impl ColorFunction {
                 )
             },
             ColorFunction::Color(origin_color, r, g, b, alpha, color_space) => {
-                let origin_color = resolved_origin_color!(origin_color, *color_space);
+                let origin_color = origin_color.map(|o| o.to_color_space(*color_space));
                 AbsoluteColor::new(
                     (*color_space).into(),
                     r.resolve(origin_color.as_ref())?.map(|c| c.to_number(1.0)),
@@ -321,7 +298,83 @@ impl ColorFunction {
     }
 }
 
-impl style_traits::ToCss for ColorFunction {
+impl ColorFunction<SpecifiedColor> {
+    /// Return true if the color funciton has an origin color specified.
+    pub fn has_origin_color(&self) -> bool {
+        match self {
+            Self::Rgb(origin_color, ..) |
+            Self::Hsl(origin_color, ..) |
+            Self::Hwb(origin_color, ..) |
+            Self::Lab(origin_color, ..) |
+            Self::Lch(origin_color, ..) |
+            Self::Oklab(origin_color, ..) |
+            Self::Oklch(origin_color, ..) |
+            Self::Color(origin_color, ..) => origin_color.is_some(),
+        }
+    }
+
+    /// Try to resolve the color function to an [`AbsoluteColor`] that does not
+    /// contain any variables (currentcolor, color components, etc.).
+    pub fn resolve_to_absolute(&self) -> Result<AbsoluteColor, ()> {
+        // Map the color function to one with an absolute origin color.
+        let resolvable = self.map_origin_color(|o| o.resolve_to_absolute());
+        resolvable.resolve_to_absolute()
+    }
+}
+
+impl<Color> ColorFunction<Color> {
+    /// Map the origin color to another type.  Return None from `f` if the conversion fails.
+    pub fn map_origin_color<U>(&self, f: impl FnOnce(&Color) -> Option<U>) -> ColorFunction<U> {
+        macro_rules! map {
+            ($f:ident, $o:expr, $c0:expr, $c1:expr, $c2:expr, $alpha:expr) => {{
+                ColorFunction::$f(
+                    $o.as_ref().and_then(f),
+                    $c0.clone(),
+                    $c1.clone(),
+                    $c2.clone(),
+                    $alpha.clone(),
+                )
+            }};
+        }
+        match self {
+            ColorFunction::Rgb(o, c0, c1, c2, alpha) => map!(Rgb, o, c0, c1, c2, alpha),
+            ColorFunction::Hsl(o, c0, c1, c2, alpha) => map!(Hsl, o, c0, c1, c2, alpha),
+            ColorFunction::Hwb(o, c0, c1, c2, alpha) => map!(Hwb, o, c0, c1, c2, alpha),
+            ColorFunction::Lab(o, c0, c1, c2, alpha) => map!(Lab, o, c0, c1, c2, alpha),
+            ColorFunction::Lch(o, c0, c1, c2, alpha) => map!(Lch, o, c0, c1, c2, alpha),
+            ColorFunction::Oklab(o, c0, c1, c2, alpha) => map!(Oklab, o, c0, c1, c2, alpha),
+            ColorFunction::Oklch(o, c0, c1, c2, alpha) => map!(Oklch, o, c0, c1, c2, alpha),
+            ColorFunction::Color(o, c0, c1, c2, alpha, color_space) => ColorFunction::Color(
+                o.as_ref().and_then(f),
+                c0.clone(),
+                c1.clone(),
+                c2.clone(),
+                alpha.clone(),
+                color_space.clone(),
+            ),
+        }
+    }
+}
+
+impl ColorFunction<ComputedColor> {
+    /// Resolve a computed color function to an absolute computed color.
+    pub fn resolve_to_absolute(&self, current_color: &AbsoluteColor) -> AbsoluteColor {
+        // Map the color function to one with an absolute origin color.
+        let resolvable = self.map_origin_color(|o| Some(o.resolve_to_absolute(current_color)));
+        match resolvable.resolve_to_absolute() {
+            Ok(color) => color,
+            Err(..) => {
+                debug_assert!(
+                    false,
+                    "the color could not be resolved even with a currentcolor specified?"
+                );
+                AbsoluteColor::TRANSPARENT_BLACK
+            },
+        }
+    }
+}
+
+impl<C: style_traits::ToCss> style_traits::ToCss for ColorFunction<C> {
     fn to_css<W>(&self, dest: &mut style_traits::CssWriter<W>) -> std::fmt::Result
     where
         W: std::fmt::Write,

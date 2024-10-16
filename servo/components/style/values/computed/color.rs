@@ -31,6 +31,7 @@ impl ToCss for Color {
     {
         match *self {
             Self::Absolute(ref c) => c.to_css(dest),
+            Self::ColorFunction(ref color_function) => color_function.to_css(dest),
             Self::CurrentColor => dest.write_str("currentcolor"),
             Self::ColorMix(ref m) => m.to_css(dest),
         }
@@ -64,6 +65,9 @@ impl Color {
 
         match *self {
             Self::Absolute(c) => c,
+            Self::ColorFunction(ref color_function) => {
+                color_function.resolve_to_absolute(current_color)
+            },
             Self::CurrentColor => *current_color,
             Self::ColorMix(ref mix) => {
                 let left = mix.left.resolve_to_absolute(current_color);
