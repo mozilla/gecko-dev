@@ -1788,7 +1788,9 @@ void LibvpxVp9Encoder::DeliverBufferedFrame(bool end_of_picture) {
 
     codec_specific_.end_of_picture = end_of_picture;
 
-    if (simulcast_to_svc_converter_) {
+    if (!simulcast_to_svc_converter_) {
+      encoded_image_.SetSimulcastIndex(std::nullopt);
+    } else {
       simulcast_to_svc_converter_->ConvertFrame(encoded_image_,
                                                 codec_specific_);
     }

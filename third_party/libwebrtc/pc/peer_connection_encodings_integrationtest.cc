@@ -2399,6 +2399,76 @@ TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
   EXPECT_THAT(*outbound_rtps[2]->scalability_mode, StrEq("L1T3"));
 }
 
+// Simulcast starting in 720p 4:2:1 then changing to {180p, 360p, 540p} using
+// the `scale_resolution_down_by` API.
+TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
+       SimulcastScaleDownByNoLongerPowerOfTwo) {
+  rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
+  if (SkipTestDueToAv1Missing(local_pc_wrapper)) {
+    return;
+  }
+  rtc::scoped_refptr<PeerConnectionTestWrapper> remote_pc_wrapper = CreatePc();
+  ExchangeIceCandidates(local_pc_wrapper, remote_pc_wrapper);
+
+  std::vector<cricket::SimulcastLayer> layers =
+      CreateLayers({"q", "h", "f"}, /*active=*/true);
+  rtc::scoped_refptr<RtpTransceiverInterface> transceiver =
+      AddTransceiverWithSimulcastLayers(local_pc_wrapper, remote_pc_wrapper,
+                                        layers);
+  std::vector<RtpCodecCapability> codecs =
+      GetCapabilitiesAndRestrictToCodec(remote_pc_wrapper, codec_name_);
+  transceiver->SetCodecPreferences(codecs);
+  rtc::scoped_refptr<RtpSenderInterface> sender = transceiver->sender();
+
+  // Configure {180p, 360p, 720p}.
+  RtpParameters parameters = sender->GetParameters();
+  ASSERT_THAT(parameters.encodings, SizeIs(3));
+  parameters.encodings[0].scalability_mode = "L1T1";
+  parameters.encodings[0].scale_resolution_down_by = 4.0;
+  parameters.encodings[1].scalability_mode = "L1T1";
+  parameters.encodings[1].scale_resolution_down_by = 2.0;
+  parameters.encodings[2].scalability_mode = "L1T1";
+  parameters.encodings[2].scale_resolution_down_by = 1.0;
+  sender->SetParameters(parameters);
+
+  NegotiateWithSimulcastTweaks(local_pc_wrapper, remote_pc_wrapper);
+  local_pc_wrapper->WaitForConnection();
+  remote_pc_wrapper->WaitForConnection();
+
+  // Wait for media to flow on all layers.
+  // Needed repro step of https://crbug.com/webrtc/369654168: When the same
+  // LibvpxVp9Encoder instance was used to first produce simulcast and later for
+  // a single encoding, the previously used simulcast index (= 2) would still be
+  // set when producing 180p since non-simulcast config does not reset this,
+  // resulting in the 180p encoding freezing and the 540p encoding having double
+  // frame rate and toggling between 180p and 540p in resolution.
+  ASSERT_TRUE_WAIT(HasOutboundRtpBytesSent(local_pc_wrapper, 3u),
+                   kLongTimeoutForRampingUp.ms());
+
+  // Configure {180p, 360p, 540p}.
+  parameters = sender->GetParameters();
+  parameters.encodings[0].scale_resolution_down_by = 4.0;
+  parameters.encodings[1].scale_resolution_down_by = 2.0;
+  parameters.encodings[2].scale_resolution_down_by = 1.333333;
+  sender->SetParameters(parameters);
+
+  // Wait for the new resolutions to be produced.
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "q") ==
+                       Resolution({.width = 320, .height = 180}),
+                   kLongTimeoutForRampingUp.ms());
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "h") ==
+                       Resolution({.width = 640, .height = 360}),
+                   kLongTimeoutForRampingUp.ms());
+  ASSERT_TRUE_WAIT(GetEncodingResolution(local_pc_wrapper, "f") ==
+                       Resolution({.width = 960, .height = 540}),
+                   kLongTimeoutForRampingUp.ms());
+
+  // Ensure 180p frames continue to be encoded post reconfiguration.
+  int frames_encoded = EncodedFrames(local_pc_wrapper, "q");
+  ASSERT_TRUE_WAIT(EncodedFrames(local_pc_wrapper, "q") > frames_encoded,
+                   kLongTimeoutForRampingUp.ms());
+}
+
 TEST_P(PeerConnectionEncodingsIntegrationParameterizedTest,
        SimulcastEncodingStopWhenRtpEncodingChangeToInactive) {
   rtc::scoped_refptr<PeerConnectionTestWrapper> local_pc_wrapper = CreatePc();
