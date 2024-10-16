@@ -418,6 +418,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   bool CheckForFreshCanvasDevice(int aLineNumber);
   void NotifyDeviceChanged();
 
+  void NotifyDeviceReset(const RemoteTextureOwnerIdSet& aIds);
   bool EnsureSharedContextWebgl();
   gfx::DrawTargetWebgl* GetDrawTargetWebgl(int64_t aTextureId,
                                            bool aCheckForFallback = true) const;

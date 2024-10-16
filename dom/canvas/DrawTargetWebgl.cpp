@@ -1634,10 +1634,7 @@ bool DrawTargetWebgl::RemoveAllClips() {
   return true;
 }
 
-void DrawTargetWebgl::CopyToFallback(DrawTarget* aDT) {
-  if (RefPtr<SourceSurface> snapshot = Snapshot()) {
-    aDT->CopySurface(snapshot, snapshot->GetRect(), gfx::IntPoint(0, 0));
-  }
+bool DrawTargetWebgl::CopyToFallback(DrawTarget* aDT) {
   aDT->RemoveAllClips();
   for (auto& clipStack : mClipStack) {
     aDT->SetTransform(clipStack.mTransform);
@@ -1648,6 +1645,17 @@ void DrawTargetWebgl::CopyToFallback(DrawTarget* aDT) {
     }
   }
   aDT->SetTransform(GetTransform());
+
+  // An existing data snapshot is required for fallback, as we have to avoid
+  // trying to touch the WebGL context, which is assumed to be invalid and not
+  // suitable for readback.
+  if (HasDataSnapshot()) {
+    if (RefPtr<SourceSurface> snapshot = Snapshot()) {
+      aDT->CopySurface(snapshot, snapshot->GetRect(), gfx::IntPoint(0, 0));
+      return true;
+    }
+  }
+  return false;
 }
 
 // Whether a given composition operator can be mapped to a WebGL blend mode.

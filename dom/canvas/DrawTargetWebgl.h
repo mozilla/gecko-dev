@@ -542,7 +542,7 @@ class DrawTargetWebgl : public DrawTarget, public SupportsWeakPtr {
                                 uint32_t aCount) override;
   void PopClip() override;
   bool RemoveAllClips() override;
-  void CopyToFallback(DrawTarget* aDT);
+  bool CopyToFallback(DrawTarget* aDT);
   void PushLayer(bool aOpaque, Float aOpacity, SourceSurface* aMask,
                  const Matrix& aMaskTransform,
                  const IntRect& aBounds = IntRect(),

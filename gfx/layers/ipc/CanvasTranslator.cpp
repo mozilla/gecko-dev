@@ -489,20 +489,13 @@ bool CanvasTranslator::TryDrawTargetWebglFallback(
     int64_t aTextureId, gfx::DrawTargetWebgl* aWebgl) {
   NotifyRequiresRefresh(aTextureId);
 
-  // An existing data snapshot is required for fallback, as we have to avoid
-  // trying to touch the WebGL context, which is assumed to be invalid and not
-  // suitable for readback.
-  if (!aWebgl->HasDataSnapshot()) {
-    return false;
-  }
-
   const auto& info = mTextureInfo[aTextureId];
   if (RefPtr<gfx::DrawTarget> dt = CreateFallbackDrawTarget(
           info.mRefPtr, aTextureId, info.mRemoteTextureOwnerId,
           aWebgl->GetSize(), aWebgl->GetFormat())) {
-    aWebgl->CopyToFallback(dt);
+    bool success = aWebgl->CopyToFallback(dt);
     AddDrawTarget(info.mRefPtr, dt);
-    return true;
+    return success;
   }
   return false;
 }
@@ -526,7 +519,7 @@ void CanvasTranslator::ForceDrawTargetWebglFallback() {
     }
   }
   if (!lost.empty()) {
-    mRemoteTextureOwner->NotifyContextLost(&lost);
+    NotifyDeviceReset(lost);
   }
 }
 
@@ -962,6 +955,23 @@ void CanvasTranslator::NotifyDeviceChanged() {
                         &CanvasTranslator::SendNotifyDeviceChanged));
 }
 
+void CanvasTranslator::NotifyDeviceReset(const RemoteTextureOwnerIdSet& aIds) {
+  if (aIds.empty()) {
+    return;
+  }
+  if (mRemoteTextureOwner) {
+    mRemoteTextureOwner->NotifyContextLost(&aIds);
+  }
+  nsTArray<RemoteTextureOwnerId> idArray(aIds.size());
+  for (const auto& id : aIds) {
+    idArray.AppendElement(id);
+  }
+  gfx::CanvasRenderThread::Dispatch(
+      NewRunnableMethod<nsTArray<RemoteTextureOwnerId>&&>(
+          "CanvasTranslator::SendNotifyDeviceReset", this,
+          &CanvasTranslator::SendNotifyDeviceReset, std::move(idArray)));
+}
+
 gfx::DrawTargetWebgl* CanvasTranslator::GetDrawTargetWebgl(
     int64_t aTextureId, bool aCheckForFallback) const {
   auto result = mTextureInfo.find(aTextureId);
@@ -1294,7 +1304,7 @@ bool CanvasTranslator::PresentTexture(int64_t aTextureId, RemoteTextureId aId) {
       webgl->EnsureDataSnapshot();
       if (!TryDrawTargetWebglFallback(aTextureId, webgl)) {
         RemoteTextureOwnerIdSet lost = {info.mRemoteTextureOwnerId};
-        mRemoteTextureOwner->NotifyContextLost(&lost);
+        NotifyDeviceReset(lost);
       }
     }
   }
