@@ -316,6 +316,10 @@ class AccAttributes {
                                      const AttrValueType& aValue,
                                      nsAString& aValueString);
 
+  // Opts AccAttributes into the common ToString function.
+  friend std::ostream& operator<<(std::ostream& aStream,
+                                  const AccAttributes& aAttributes);
+
   AtomVariantMap mData;
 
   friend struct IPC::ParamTraits<AccAttributes*>;
