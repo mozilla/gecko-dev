@@ -347,27 +347,19 @@ var SidebarController = {
         this._mainResizeObserverAdded = true;
       }
       if (!this._browserResizeObserver) {
-        let debounceTimeout = null;
         this._browserResizeObserver = () => {
           // Report resize events to Glean.
-          if (!this._browserResizeObserverEnabled) {
-            return;
-          }
-          clearTimeout(debounceTimeout);
-          debounceTimeout = setTimeout(() => {
-            const current = this.browser.getBoundingClientRect().width;
-            const previous = this._browserWidth;
-            const percentage = (current / window.innerWidth) * 100;
-            this._browserWidth = current;
-            Glean.sidebar.resize.record({
-              current,
-              previous,
-              percentage,
-            });
-            Glean.sidebar.width.set(current);
-          }, 1000);
+          const current = this.browser.getBoundingClientRect().width;
+          const previous = this._browserWidth;
+          const percentage = (current / window.innerWidth) * 100;
+          Glean.sidebar.resize.record({
+            current: Math.round(current),
+            previous: Math.round(previous),
+            percentage: Math.round(percentage),
+          });
+          this._recordBrowserSize();
         };
-        this.browser.addEventListener("resize", this._browserResizeObserver);
+        this._splitter.addEventListener("command", this._browserResizeObserver);
       }
       // Record Glean metrics.
       this.recordVisibilitySetting();
@@ -443,7 +435,7 @@ var SidebarController = {
       // setup by reactive controllers will also be removed.
       this.sidebarMain.remove();
     }
-    this.browser.removeEventListener("resize", this._browserResizeObserver);
+    this._splitter.removeEventListener("command", this._browserResizeObserver);
   },
 
   /**
@@ -784,10 +776,9 @@ var SidebarController = {
   },
 
   /**
-   * Start listening for panel resize events, which will be reported to Glean.
+   * Report the current browser width to Glean, and store it internally.
    */
-  _enableBrowserResizeObserver() {
-    this._browserResizeObserverEnabled = true;
+  _recordBrowserSize() {
     this._browserWidth = this.browser.getBoundingClientRect().width;
     Glean.sidebar.width.set(this._browserWidth);
   },
@@ -1362,6 +1353,11 @@ var SidebarController = {
    * @returns {Promise<boolean>}
    */
   async show(commandID, triggerNode) {
+    if (this.currentID) {
+      // If there is currently a panel open, we are about to hide it in order
+      // to show another one, so record a "hide" event on the current panel.
+      this._recordPanelToggle(this.currentID, false);
+    }
     this._recordPanelToggle(commandID, true);
 
     // Extensions without private window access wont be in the
@@ -1484,7 +1480,7 @@ var SidebarController = {
 
               // Now that the currentId is updated, fire a show event.
               this._fireShowEvent();
-              this._enableBrowserResizeObserver();
+              this._recordBrowserSize();
             }, 0);
           },
           { capture: true, once: true }
@@ -1494,7 +1490,7 @@ var SidebarController = {
 
         // Now that the currentId is updated, fire a show event.
         this._fireShowEvent();
-        this._enableBrowserResizeObserver();
+        this._recordBrowserSize();
       }
     });
   },
@@ -1511,7 +1507,6 @@ var SidebarController = {
     }
 
     this.hideSwitcherPanel();
-    this._browserResizeObserverEnabled = false;
     this._recordPanelToggle(this.currentID, false);
     if (this.sidebarRevampEnabled) {
       this._box.dispatchEvent(new CustomEvent("sidebar-hide"));

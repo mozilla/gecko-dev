@@ -12,6 +12,11 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs",
 });
 
+add_setup(async () => {
+  Services.fog.testResetFOG();
+  SidebarController.init();
+  await TestUtils.waitForTick();
+});
 registerCleanupFunction(() => {
   while (gBrowser.tabs.length > 1) {
     BrowserTestUtils.removeTab(gBrowser.tabs[0]);
@@ -19,7 +24,6 @@ registerCleanupFunction(() => {
 });
 
 add_task(async function test_metrics_initialized() {
-  await SidebarController.promiseInitialized;
   const metrics = ["displaySettings", "positionSettings", "tabsLayout"];
   for (const metric of metrics) {
     Assert.notEqual(
@@ -50,7 +54,7 @@ add_task(async function test_sidebar_expand() {
   Assert.equal(events?.length, 1, "One event was reported.");
 });
 
-async function testSidebarToggle(commandID, gleanEvent) {
+async function testSidebarToggle(commandID, gleanEvent, otherCommandID) {
   info(`Load the ${commandID} panel.`);
   await SidebarController.show(commandID);
 
@@ -62,8 +66,13 @@ async function testSidebarToggle(commandID, gleanEvent) {
     "Event indicates that the panel was opened."
   );
 
-  info(`Unload the ${commandID} panel.`);
-  SidebarController.hide();
+  if (otherCommandID) {
+    info(`Load the ${otherCommandID} panel.`);
+    await SidebarController.show(otherCommandID);
+  } else {
+    info(`Unload the ${commandID} panel.`);
+    SidebarController.hide();
+  }
 
   events = gleanEvent.testGetValue();
   Assert.equal(events?.length, 2, "Two events were reported.");
@@ -72,10 +81,17 @@ async function testSidebarToggle(commandID, gleanEvent) {
     "false",
     "Event indicates that the panel was closed."
   );
+  if (otherCommandID) {
+    SidebarController.hide();
+  }
 }
 
 add_task(async function test_history_sidebar_toggle() {
-  await testSidebarToggle("viewHistorySidebar", Glean.history.sidebarToggle);
+  await testSidebarToggle(
+    "viewHistorySidebar",
+    Glean.history.sidebarToggle,
+    "viewBookmarksSidebar"
+  );
 });
 
 add_task(async function test_synced_tabs_sidebar_toggle() {
@@ -340,7 +356,7 @@ add_task(async function test_customize_firefox_settings_clicked() {
   const component = contentDocument.querySelector("sidebar-customize");
 
   EventUtils.synthesizeMouseAtCenter(
-    component.shadowRoot.querySelector("#manage-settings"),
+    component.shadowRoot.querySelector("#manage-settings > a"),
     {},
     contentWindow
   );
@@ -354,6 +370,7 @@ add_task(async function test_sidebar_resize() {
   await SidebarController.show("viewHistorySidebar");
   const originalWidth = SidebarController._box.style.width;
   SidebarController._box.style.width = "500px";
+  SidebarController._splitter.dispatchEvent(new CustomEvent("command"));
 
   const events = await TestUtils.waitForCondition(
     () => Glean.sidebar.resize.testGetValue(),
