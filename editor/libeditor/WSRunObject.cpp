@@ -55,6 +55,12 @@ WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
 template WSScanResult
 WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
     const EditorRawDOMPoint& aPoint) const;
+template WSScanResult
+WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
+    const EditorDOMPointInText& aPoint) const;
+template WSScanResult
+WSRunScanner::ScanInclusiveNextVisibleNodeOrBlockBoundaryFrom(
+    const EditorRawDOMPointInText& aPoint) const;
 template EditorDOMPoint WSRunScanner::GetAfterLastVisiblePoint(
     Text& aTextNode, const Element* aAncestorLimiter);
 template EditorRawDOMPoint WSRunScanner::GetAfterLastVisiblePoint(
