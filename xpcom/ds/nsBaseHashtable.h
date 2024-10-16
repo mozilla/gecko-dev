@@ -175,7 +175,8 @@ class nsBaseHashtableValueRange {
 };
 
 template <typename EntryType>
-auto RangeSize(const detail::nsBaseHashtableValueRange<EntryType>& aRange) {
+size_t RangeSizeEstimate(
+    const detail::nsBaseHashtableValueRange<EntryType>& aRange) {
   return aRange.Count();
 }
 

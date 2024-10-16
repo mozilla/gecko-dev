@@ -30,7 +30,9 @@ template <typename Range, typename AsAtom>
 static AtomSet::ArrayType AtomSetFromRange(Range&& aRange,
                                            AsAtom&& aTransform) {
   AtomSet::ArrayType atoms;
-  atoms.SetCapacity(RangeSize(aRange));
+  if (auto estimate = RangeSizeEstimate(aRange)) {
+    atoms.SetCapacity(estimate);
+  }
   std::transform(aRange.begin(), aRange.end(), MakeBackInserter(atoms),
                  std::forward<AsAtom>(aTransform));
 

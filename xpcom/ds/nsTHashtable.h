@@ -168,7 +168,8 @@ class nsTHashtableKeyRange {
 };
 
 template <typename EntryType>
-auto RangeSize(const ::detail::nsTHashtableKeyRange<EntryType>& aRange) {
+size_t RangeSizeEstimate(
+    const ::detail::nsTHashtableKeyRange<EntryType>& aRange) {
   return aRange.Count();
 }
 

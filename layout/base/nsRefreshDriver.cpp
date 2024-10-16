@@ -2311,15 +2311,10 @@ void nsRefreshDriver::DetermineProximityToViewportAndNotifyResizeObservers() {
 }
 
 static CallState UpdateAndReduceAnimations(Document& aDocument) {
-  {
-    AutoTArray<RefPtr<DocumentTimeline>, 32> timelinesToTick;
-    for (DocumentTimeline* timeline : aDocument.Timelines()) {
-      timelinesToTick.AppendElement(timeline);
-    }
-
-    for (DocumentTimeline* tl : timelinesToTick) {
-      tl->WillRefresh();
-    }
+  for (DocumentTimeline* tl :
+       ToTArray<AutoTArray<RefPtr<DocumentTimeline>, 32>>(
+           aDocument.Timelines())) {
+    tl->WillRefresh();
   }
 
   if (nsPresContext* pc = aDocument.GetPresContext()) {

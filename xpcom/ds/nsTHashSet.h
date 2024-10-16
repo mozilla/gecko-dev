@@ -134,7 +134,7 @@ class nsTBaseHashSet : protected nsTHashtable<KeyClass> {
 };
 
 template <typename KeyClass>
-auto RangeSize(const nsTBaseHashSet<KeyClass>& aRange) {
+size_t RangeSizeEstimate(const nsTBaseHashSet<KeyClass>& aRange) {
   return aRange.Count();
 }
 

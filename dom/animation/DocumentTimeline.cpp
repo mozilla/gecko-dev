@@ -160,12 +160,8 @@ void DocumentTimeline::NotifyAnimationUpdated(Animation& aAnimation) {
 }
 
 void DocumentTimeline::TriggerAllPendingAnimationsNow() {
-  AutoTArray<RefPtr<Animation>, 32> animationsToTrigger;
-  for (Animation* animation : mAnimationOrder) {
-    animationsToTrigger.AppendElement(animation);
-  }
-
-  for (Animation* animation : animationsToTrigger) {
+  for (Animation* animation :
+       ToTArray<AutoTArray<RefPtr<Animation>, 32>>(mAnimationOrder)) {
     animation->TryTriggerNow();
   }
 }

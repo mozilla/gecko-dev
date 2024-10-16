@@ -3274,11 +3274,14 @@ class nsTArrayView {
   const Span<element_type> mSpan;
 };
 
-template <typename Range, typename = std::enable_if_t<std::is_same_v<
-                              typename std::iterator_traits<
-                                  typename Range::iterator>::iterator_category,
-                              std::random_access_iterator_tag>>>
-auto RangeSize(const Range& aRange) {
+// NOTE(emilio): If changing the name of this or so, make sure to change
+// specializations too.
+template <typename Range,
+          typename = std::enable_if_t<std::is_same_v<
+              typename std::iterator_traits<typename std::remove_reference_t<
+                  Range>::iterator>::iterator_category,
+              std::random_access_iterator_tag>>>
+size_t RangeSizeEstimate(const Range& aRange) {
   // See https://en.cppreference.com/w/cpp/iterator/begin, section 'User-defined
   // overloads'.
   using std::begin;
@@ -3293,12 +3296,14 @@ auto RangeSize(const Range& aRange) {
  * convertible from the range's value type.
  */
 template <typename Array, typename Range>
-auto ToTArray(const Range& aRange) {
+auto ToTArray(Range&& aRange) {
   using std::begin;
   using std::end;
 
   Array res;
-  res.SetCapacity(RangeSize(aRange));
+  if (auto estimate = RangeSizeEstimate(aRange)) {
+    res.SetCapacity(estimate);
+  }
   std::copy(begin(aRange), end(aRange), MakeBackInserter(res));
   return res;
 }
@@ -3307,21 +3312,22 @@ auto ToTArray(const Range& aRange) {
  * Materialize a range as a nsTArray of its (decayed) value type.
  */
 template <typename Range>
-auto ToArray(const Range& aRange) {
-  return ToTArray<nsTArray<std::decay_t<
-      typename std::iterator_traits<typename Range::iterator>::value_type>>>(
-      aRange);
+auto ToArray(Range&& aRange) {
+  return ToTArray<nsTArray<std::decay_t<typename std::iterator_traits<
+      typename std::remove_reference_t<Range>::iterator>::value_type>>>(
+      std::forward<Range>(aRange));
 }
 
 /**
  * Appends all elements from a range to an array.
  */
 template <typename Array, typename Range>
-void AppendToArray(Array& aArray, const Range& aRange) {
+void AppendToArray(Array& aArray, Range&& aRange) {
   using std::begin;
   using std::end;
-
-  aArray.SetCapacity(aArray.Length() + RangeSize(aRange));
+  if (auto estimate = RangeSizeEstimate(aRange)) {
+    aArray.SetCapacity(aArray.Length() + estimate);
+  }
   std::copy(begin(aRange), end(aRange), MakeBackInserter(aArray));
 }
 
