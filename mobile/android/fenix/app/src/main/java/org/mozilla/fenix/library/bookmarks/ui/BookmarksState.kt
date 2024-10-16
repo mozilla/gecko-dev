@@ -40,6 +40,10 @@ internal data class BookmarksState(
     val bookmarksEditFolderState: BookmarksEditFolderState?,
     val bookmarksMultiselectMoveState: MultiselectMoveState?,
 ) : State {
+    val showNewFolderButton: Boolean
+        get() = bookmarksSelectFolderState?.innerSelectionGuid == null &&
+            bookmarksAddFolderState == null && bookmarksEditFolderState == null
+
     companion object {
         val default: BookmarksState = BookmarksState(
             bookmarkItems = listOf(),
@@ -169,9 +173,6 @@ internal data class BookmarksSelectFolderState(
     val innerSelectionGuid: String? = null,
     val folders: List<SelectFolderItem> = listOf(),
 ) {
-    val showNewFolderButton: Boolean
-        get() = innerSelectionGuid == null
-
     val selectedGuid: String
         get() = innerSelectionGuid ?: outerSelectionGuid
 }

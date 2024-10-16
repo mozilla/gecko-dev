@@ -521,6 +521,7 @@ private fun AlertDialogDeletionWarning(
 private fun SelectFolderScreen(
     store: BookmarksStore,
 ) {
+    val showNewFolderButton by store.observeAsState(store.state.showNewFolderButton) { store.state.showNewFolderButton }
     val state by store.observeAsState(store.state.bookmarksSelectFolderState) { it.bookmarksSelectFolderState }
 
     LaunchedEffect(Unit) {
@@ -531,7 +532,7 @@ private fun SelectFolderScreen(
         topBar = {
             SelectFolderTopBar(
                 onBackClick = { store.dispatch(BackClicked) },
-                onNewFolderClick = if (state?.showNewFolderButton == true) {
+                onNewFolderClick = if (showNewFolderButton) {
                     { store.dispatch(AddFolderClicked) }
                 } else {
                     null
@@ -566,7 +567,7 @@ private fun SelectFolderScreen(
                     )
                 }
             }
-            if (state?.showNewFolderButton == true) {
+            if (showNewFolderButton) {
                 item {
                     IconListItem(
                         label = stringResource(R.string.bookmark_add_folder),

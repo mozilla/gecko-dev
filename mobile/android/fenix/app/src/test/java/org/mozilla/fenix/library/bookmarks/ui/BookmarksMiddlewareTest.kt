@@ -1151,6 +1151,121 @@ class BookmarksMiddlewareTest {
         verify(bookmarksStorage).deleteNode(bookmarkToDelete.guid)
     }
 
+    @Test
+    fun `GIVEN adding a folder WHEN selecting a new parent THEN folder is updated`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val newParent = tree.children?.last { it.type == BookmarkNodeType.FOLDER }!!
+        val newParentItem = BookmarkItem.Folder(title = newParent.title!!, guid = newParent.guid)
+        val newFolderTitle = "newFolder"
+
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(AddFolderClicked)
+        store.dispatch(AddFolderAction.TitleChanged(newFolderTitle))
+        store.dispatch(AddFolderAction.ParentFolderClicked)
+        store.dispatch(SelectFolderAction.ViewAppeared)
+        store.dispatch(SelectFolderAction.ItemClicked(SelectFolderItem(0, newParentItem)))
+        store.dispatch(BackClicked)
+
+        assertNull(store.state.bookmarksSelectFolderState)
+        assertEquals(newParentItem, store.state.bookmarksAddFolderState?.parent)
+
+        store.dispatch(BackClicked)
+
+        verify(bookmarksStorage).addFolder(parentGuid = newParent.guid, title = newFolderTitle)
+    }
+
+    @Test
+    fun `GIVEN editing a folder WHEN selecting a new parent THEN folder is updated`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val folder = tree.children?.first { it.type == BookmarkNodeType.FOLDER }!!
+        val newParent = tree.children?.last { it.type == BookmarkNodeType.FOLDER }!!
+        val folderItem = BookmarkItem.Folder(title = folder.title!!, guid = folder.guid)
+        val newParentItem = BookmarkItem.Folder(title = newParent.title!!, guid = newParent.guid)
+
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Folder.EditClicked(folderItem))
+        store.dispatch(EditFolderAction.ParentFolderClicked)
+        store.dispatch(SelectFolderAction.ViewAppeared)
+        store.dispatch(SelectFolderAction.ItemClicked(SelectFolderItem(0, newParentItem)))
+        store.dispatch(BackClicked)
+
+        assertNull(store.state.bookmarksSelectFolderState)
+        assertEquals(newParentItem, store.state.bookmarksEditFolderState?.parent)
+
+        store.dispatch(BackClicked)
+
+        verify(bookmarksStorage).updateNode(
+            folder.guid,
+            BookmarkInfo(
+                parentGuid = newParent.guid,
+                position = tree.children?.indexOfFirst { it.guid == folder.guid }!!.toUInt(),
+                title = folder.title,
+                url = null,
+            ),
+        )
+    }
+
+    @Test
+    fun `GIVEN editing a bookmark WHEN selecting a new parent THEN user can successfully add a new folder`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val bookmark = tree.children?.first { it.type == BookmarkNodeType.ITEM }!!
+        val bookmarkItem = BookmarkItem.Bookmark(title = bookmark.title!!, guid = bookmark.guid, url = bookmark.url!!, previewImageUrl = bookmark.url!!)
+        val newFolderTitle = "newFolder"
+        val newFolderGuid = "newFolderGuid"
+        val parentForNewFolder = tree.children?.last { it.type == BookmarkNodeType.FOLDER }!!
+        val parentForNewFolderItem = BookmarkItem.Folder(title = parentForNewFolder.title!!, guid = parentForNewFolder.guid)
+
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Bookmark.EditClicked(bookmarkItem))
+        store.dispatch(EditFolderAction.ParentFolderClicked)
+        store.dispatch(SelectFolderAction.ViewAppeared)
+        store.dispatch(AddFolderClicked)
+        store.dispatch(AddFolderAction.TitleChanged(newFolderTitle))
+        store.dispatch(AddFolderAction.ParentFolderClicked)
+        store.dispatch(SelectFolderAction.ItemClicked(SelectFolderItem(0, parentForNewFolderItem)))
+        store.dispatch(BackClicked)
+
+        assertNotNull(store.state.bookmarksSelectFolderState)
+        assertNull(store.state.bookmarksSelectFolderState?.innerSelectionGuid)
+        assertEquals(parentForNewFolderItem, store.state.bookmarksAddFolderState?.parent)
+        assertEquals(newFolderTitle, store.state.bookmarksAddFolderState?.folderBeingAddedTitle)
+
+        store.dispatch(BackClicked)
+        assertNull(store.state.bookmarksAddFolderState)
+        verify(bookmarksStorage).addFolder(parentGuid = parentForNewFolder.guid, title = newFolderTitle)
+
+        // replace the previous parent for the new folder in the tree with the updated version
+        val newFolder = generateBookmarkFolder(guid = newFolderGuid, title = newFolderTitle, parentForNewFolder.guid)
+        val updatedParentForNewFolder = parentForNewFolder.copy(
+            children = listOf(newFolder),
+        )
+        val updatedTree = tree.copy(
+            children = tree.children!!.mapNotNull { it.takeIf { it.guid != parentForNewFolder.guid } } + updatedParentForNewFolder,
+        )
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = true)).thenReturn(updatedTree)
+        store.dispatch(SelectFolderAction.ViewAppeared)
+
+        val selectFolderItem = store.state.bookmarksSelectFolderState?.folders?.find { it.guid == newFolderGuid }!!
+        store.dispatch(SelectFolderAction.ItemClicked(selectFolderItem))
+        store.dispatch(BackClicked)
+
+        assertNull(store.state.bookmarksSelectFolderState)
+        assertEquals(newFolderGuid, store.state.bookmarksEditBookmarkState?.folder?.guid)
+        assertEquals(newFolderTitle, store.state.bookmarksEditBookmarkState?.folder?.title)
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         clipboardManager = clipboardManager,
