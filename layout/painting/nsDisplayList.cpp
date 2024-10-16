@@ -6238,13 +6238,19 @@ Matrix4x4 nsDisplayTransform::GetResultingTransformMatrixInternal(
     float pixelsPerCSSPx = AppUnitsPerCSSPixel() / aAppUnitsPerPixel;
     parentsChildrenOnlyTransform._31 *= pixelsPerCSSPx;
     parentsChildrenOnlyTransform._32 *= pixelsPerCSSPx;
-
-    Point3D frameOffset(
-        NSAppUnitsToFloatPixels(-frame->GetPosition().x, aAppUnitsPerPixel),
-        NSAppUnitsToFloatPixels(-frame->GetPosition().y, aAppUnitsPerPixel), 0);
-    Matrix4x4 parentsChildrenOnlyTransform3D =
-        Matrix4x4::From2D(parentsChildrenOnlyTransform)
-            .ChangeBasis(frameOffset);
+    auto parentsChildrenOnlyTransform3D =
+        Matrix4x4::From2D(parentsChildrenOnlyTransform);
+    // <svg> outer anon child frame doesn't need the extra basis change because
+    // it is the root of the svg rendering (and thus its offset with respect to
+    // its parent, like border / padding shouldn't be accounted for).
+    if (frame->GetPosition() != nsPoint() &&
+        !frame->IsSVGOuterSVGAnonChildFrame()) {
+      const Point3D frameOffset(
+          NSAppUnitsToFloatPixels(-frame->GetPosition().x, aAppUnitsPerPixel),
+          NSAppUnitsToFloatPixels(-frame->GetPosition().y, aAppUnitsPerPixel),
+          0);
+      parentsChildrenOnlyTransform3D.ChangeBasis(frameOffset);
+    }
 
     result *= parentsChildrenOnlyTransform3D;
   }
