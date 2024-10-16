@@ -14,6 +14,32 @@
 #include "nsISupportsImpl.h"
 #include "nsString.h"
 
+class nsIContentSecurityPolicy;
+
+namespace mozilla {
+
+class ErrorResult;
+
+namespace dom {
+
+class TrustedHTMLOrString;
+
+namespace TrustedTypeUtils {
+
+// https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
+// specialized for TrustedHTML.
+// @param aCSP May be null.
+void GetTrustedTypesCompliantString(const TrustedHTMLOrString& aInput,
+                                    nsIContentSecurityPolicy* aCSP,
+                                    const nsAString& aSink,
+                                    const nsAString& aSinkGroup,
+                                    nsAString& aResult, ErrorResult& aError);
+}  // namespace TrustedTypeUtils
+
+}  // namespace dom
+
+}  // namespace mozilla
+
 #define DECL_TRUSTED_TYPE_CLASS(_class)                                \
   class _class {                                                       \
    public:                                                             \

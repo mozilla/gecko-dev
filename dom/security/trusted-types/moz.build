@@ -23,6 +23,7 @@ UNIFIED_SOURCES += [
     "TrustedScriptURL.cpp",
     "TrustedTypePolicy.cpp",
     "TrustedTypePolicyFactory.cpp",
+    "TrustedTypeUtils.cpp",
 ]
 
 FINAL_LIBRARY = "xul"
