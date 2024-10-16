@@ -81,7 +81,7 @@ already_AddRefed<T> TrustedTypePolicy::CreateTrustedType(
 template <typename CallbackObject>
 void TrustedTypePolicy::DetermineTrustedPolicyValue(
     const RefPtr<CallbackObject>& aCallbackObject, const nsAString& aValue,
-    const Sequence<JS::Value>& aArguments, bool aThrowIfMissing,
+    const nsTArray<JS::Value>& aArguments, bool aThrowIfMissing,
     ErrorResult& aErrorResult, nsAString& aResult) const {
   if (!aCallbackObject) {
     aResult.SetIsVoid(true);

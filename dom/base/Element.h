@@ -233,6 +233,7 @@ class DOMRectList;
 class Flex;
 class Grid;
 class OwningTrustedHTMLOrNullIsEmptyString;
+class TrustedHTML;
 class TrustedHTMLOrNullIsEmptyString;
 
 // IID for the dom::Element interface
@@ -1629,8 +1630,12 @@ class Element : public FragmentOrElement {
                     OOMReporter& aError);
 
   // https://html.spec.whatwg.org/#dom-parsing-and-serialization:dom-element-innerhtml
-  void SetInnerHTML(const TrustedHTMLOrNullIsEmptyString& aInnerHTML,
-                    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
+  //
+  // May only run script if aInnerHTML is a string. If this behavior changes,
+  // callees might need adjusting.
+  MOZ_CAN_RUN_SCRIPT void SetInnerHTML(
+      const TrustedHTMLOrNullIsEmptyString& aInnerHTML,
+      nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
 
   // Call this method only with trusted, i.e. non-attacker-controlled, strings.
   virtual void SetInnerHTMLTrusted(const nsAString& aInnerHTML,
@@ -1639,9 +1644,9 @@ class Element : public FragmentOrElement {
 
   void GetOuterHTML(nsAString& aOuterHTML);
   void SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError);
-  void InsertAdjacentHTML(const nsAString& aPosition,
-                          const TrustedHTMLOrString& aTrustedHTMLOrString,
-                          ErrorResult& aError);
+  MOZ_CAN_RUN_SCRIPT void InsertAdjacentHTML(
+      const nsAString& aPosition,
+      const TrustedHTMLOrString& aTrustedHTMLOrString, ErrorResult& aError);
 
   void SetHTML(const nsAString& aInnerHTML, const SetHTMLOptions& aOptions,
                ErrorResult& aError);

@@ -113,6 +113,7 @@
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/dom/Text.h"
+#include "mozilla/dom/TrustedHTML.h"
 #include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/dom/TrustedTypeUtils.h"
 #include "mozilla/dom/UnbindContext.h"
@@ -4166,38 +4167,15 @@ void Element::GetInnerHTML(OwningTrustedHTMLOrNullIsEmptyString& aInnerHTML,
   GetInnerHTML(aInnerHTML.SetAsNullIsEmptyString(), aError);
 }
 
-// The global object's CSP may differ from the owner-document's one.
-// E.g. when a document is created via
-// `document.implementation.createHTMLDocument("")` is not connected to a
-// browsing context.
-static nsIContentSecurityPolicy* GetCspFromScopeObjectsInnerWindow(
-    const Document& aOwnerDoc, ErrorResult& aError) {
-  nsIGlobalObject* globalObject = aOwnerDoc.GetScopeObject();
-  if (!globalObject) {
-    aError.ThrowTypeError("No global object");
-    return nullptr;
-  }
-
-  nsPIDOMWindowInner* piDOMWindowInner = globalObject->GetAsInnerWindow();
-  if (!piDOMWindowInner) {
-    aError.ThrowTypeError("No inner window");
-    return nullptr;
-  }
-
-  return piDOMWindowInner->GetCsp();
-}
-
 void Element::SetInnerHTML(const TrustedHTMLOrNullIsEmptyString& aInnerHTML,
                            nsIPrincipal* aSubjectPrincipal,
                            ErrorResult& aError) {
   constexpr nsLiteralString sink = u"Element innerHTML"_ns;
 
-  nsIContentSecurityPolicy* csp =
-      GetCspFromScopeObjectsInnerWindow(*OwnerDoc(), aError);
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aInnerHTML, csp, sink, kTrustedTypesOnlySinkGroup,
+          aInnerHTML, sink, kTrustedTypesOnlySinkGroup, *this,
           compliantStringHolder, aError);
 
   if (aError.Failed()) {
@@ -4278,16 +4256,10 @@ void Element::InsertAdjacentHTML(
     ErrorResult& aError) {
   constexpr nsLiteralString kSink = u"Element insertAdjacentHTML"_ns;
 
-  nsIContentSecurityPolicy* csp =
-      GetCspFromScopeObjectsInnerWindow(*OwnerDoc(), aError);
-  if (aError.Failed()) {
-    return;
-  }
-
   Maybe<nsAutoString> compliantStringHolder;
   const nsAString* compliantString =
       TrustedTypeUtils::GetTrustedTypesCompliantString(
-          aTrustedHTMLOrString, csp, kSink, kTrustedTypesOnlySinkGroup,
+          aTrustedHTMLOrString, kSink, kTrustedTypesOnlySinkGroup, *this,
           compliantStringHolder, aError);
 
   if (aError.Failed()) {

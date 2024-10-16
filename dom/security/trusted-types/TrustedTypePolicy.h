@@ -20,6 +20,9 @@
 #include "nsString.h"
 #include "nsWrapperCache.h"
 
+template <typename T>
+class nsTArray;
+
 namespace mozilla::dom {
 
 class DOMString;
@@ -65,6 +68,17 @@ class TrustedTypePolicy : public nsWrapperCache {
       JSContext* aJSContext, const nsAString& aInput,
       const Sequence<JS::Value>& aArguments, ErrorResult& aErrorResult) const;
 
+  // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-type-policy-value
+  //
+  // @param aResult may become void.
+  template <typename CallbackObject>
+  MOZ_CAN_RUN_SCRIPT void DetermineTrustedPolicyValue(
+      const RefPtr<CallbackObject>& aCallbackObject, const nsAString& aValue,
+      const nsTArray<JS::Value>& aArguments, bool aThrowIfMissing,
+      ErrorResult& aErrorResult, nsAString& aResult) const;
+
+  const Options& GetOptions() const { return mOptions; }
+
  private:
   // Required because this class is ref-counted.
   virtual ~TrustedTypePolicy() = default;
@@ -75,14 +89,6 @@ class TrustedTypePolicy : public nsWrapperCache {
       const RefPtr<CallbackObject>& aCallbackObject, const nsAString& aValue,
       const Sequence<JS::Value>& aArguments, ErrorResult& aErrorResult) const;
 
-  // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-get-trusted-type-policy-value
-  //
-  // @param aResult may become void.
-  template <typename CallbackObject>
-  MOZ_CAN_RUN_SCRIPT void DetermineTrustedPolicyValue(
-      const RefPtr<CallbackObject>& aCallbackObject, const nsAString& aValue,
-      const Sequence<JS::Value>& aArguments, bool aThrowIfMissing,
-      ErrorResult& aErrorResult, nsAString& aResult) const;
   RefPtr<TrustedTypePolicyFactory> mParentObject;
 
   const nsString mName;

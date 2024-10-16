@@ -8,6 +8,7 @@
 #define DOM_SECURITY_TRUSTED_TYPES_TRUSTEDTYPEUTILS_H_
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/dom/DOMString.h"
 #include "mozilla/dom/SessionStoreUtils.h"
 #include "mozilla/dom/TrustedTypesBinding.h"
@@ -34,18 +35,25 @@ namespace TrustedTypeUtils {
 // https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
 // specialized for TrustedHTML.
 //
-// @param aCSP May be null.
+// May only run script if aInput is not TrustedHTML and if the trusted types
+// pref is set to `true`. If this changes, callees might require adjusting.
+//
 // @param aResultHolder Keeps the compliant string alive when necessary.
 // @return The compliant string if aError didn't fail.
-const nsAString* GetTrustedTypesCompliantString(
-    const TrustedHTMLOrString& aInput, nsIContentSecurityPolicy* aCSP,
-    const nsAString& aSink, const nsAString& aSinkGroup,
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
+    const TrustedHTMLOrString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, const nsINode& aNode,
     Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
-const nsAString* GetTrustedTypesCompliantString(
-    const TrustedHTMLOrNullIsEmptyString& aInput,
-    nsIContentSecurityPolicy* aCSP, const nsAString& aSink,
-    const nsAString& aSinkGroup, Maybe<nsAutoString>& aResultHolder,
-    ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
+    const TrustedHTMLOrNullIsEmptyString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, const nsINode& aNode,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+
+// https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-process-value-with-a-default-policy
+// specialized for `TrustedHTML`.
+MOZ_CAN_RUN_SCRIPT void ProcessValueWithADefaultPolicy(
+    const Document& aDocument, const nsAString& aInput, const nsAString& aSink,
+    TrustedHTML** aResult, ErrorResult& aError);
 
 }  // namespace TrustedTypeUtils
 
@@ -79,6 +87,10 @@ const nsAString* GetTrustedTypesCompliantString(
    private:                                                            \
     friend mozilla::dom::TrustedTypePolicy;                            \
     friend mozilla::dom::TrustedTypePolicyFactory;                     \
+    friend void                                                        \
+    mozilla::dom::TrustedTypeUtils::ProcessValueWithADefaultPolicy(    \
+        const Document& aDocument, const nsAString&, const nsAString&, \
+        TrustedHTML**, ErrorResult&);                                  \
                                                                        \
     explicit _class(const nsAString& aData) : mData{aData} {           \
       MOZ_ASSERT(!aData.IsVoid());                                     \
