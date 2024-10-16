@@ -34,12 +34,6 @@ async function runTests() {
   newWin.focus();
   await focused;
 
-  // Ensure the URL bar is ready for a new URL to be typed.
-  // Sometimes, when this test runs, the existing text isn't selected when the
-  // URL bar is focused. Pressing escape twice ensures that the popup is
-  // closed and that the existing text is selected.
-  EventUtils.synthesizeKey("KEY_Escape", {}, newWin);
-  EventUtils.synthesizeKey("KEY_Escape", {}, newWin);
   let caretMoved = waitForEvent(
     EVENT_TEXT_CARET_MOVED,
     event => event.accessible.role == ROLE_ENTRY
