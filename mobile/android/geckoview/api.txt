@@ -2631,6 +2631,7 @@ package org.mozilla.geckoview {
     field public final int code;
     field @Nullable public final String extensionId;
     field @Nullable public final String extensionName;
+    field @Nullable public final String extensionVersion;
   }
 
   @Retention(value=RetentionPolicy.SOURCE) public static interface WebExtension.InstallException.Codes {

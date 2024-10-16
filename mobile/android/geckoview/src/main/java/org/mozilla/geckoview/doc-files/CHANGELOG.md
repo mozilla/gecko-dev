@@ -22,6 +22,7 @@ exclude: true
 - Added [`ERROR_SOFT_BLOCKED`][133.6] to `WebExtension.InstallException.ErrorCodes`, and [`SOFT_BLOCKLIST`][133.7] to`WebExtension.DisabledFlags`. ([bug 1917852]({{bugzilla}}1917852))
 - Added [`InstallException.extensionId`][133.8], which indicates the ID of the extension that caused the exception.
 - Added [`getFissionEnabled()`][133.9] on `GeckoRuntimeSettings` and [`fissionEnabled(boolean)`][133.10] on `GeckoRuntimeSettings.Builder` to control Fission on Android.
+- Added [`InstallException.extensionVersion`][133.11], which indicates the version of the extension that caused the exception.
 
 [133.1]: {{javadoc_uri}}/GeckoSession.html#getWebCompatInfo()
 [133.2]: {{javadoc_uri}}/GeckoRuntime.html#isInteractiveWidgetDefaultResizesVisual()
@@ -33,6 +34,7 @@ exclude: true
 [133.8]: {{javadoc_uri}}/WebExtension.InstallException.html#extensionId
 [133.9]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getFissionEnabled()
 [133.10]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#fissionEnabled(boolean)
+[133.11]: {{javadoc_uri}}/WebExtension.InstallException.html#extensionVersion
 
 ## v132
 -Added [`getDisableShip`][132.1] to get the setting for Session History in Parent (SHIP)) and [`disableShip`][132.2] to set the status of SHIP on the `GeckoRuntimeSettings` builder.
@@ -1636,4 +1638,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: bf1bb7c2d463572bebc04b8efe66187daa25850a
+[api-version]: ea7fd1a4337e3d988ce2bcc3def1cfbba329d7fb

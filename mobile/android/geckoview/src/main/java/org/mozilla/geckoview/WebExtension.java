@@ -1648,11 +1648,15 @@ public class WebExtension {
     /** An optional name of the extension that caused the exception. */
     public final @Nullable String extensionName;
 
+    /** An optional version of the extension that caused the exception. */
+    public final @Nullable String extensionVersion;
+
     /** For testing */
     protected InstallException() {
       this.code = ErrorCodes.ERROR_NETWORK_FAILURE;
       this.extensionId = null;
       this.extensionName = null;
+      this.extensionVersion = null;
     }
 
     @Override
@@ -1663,22 +1667,36 @@ public class WebExtension {
     /* package */ InstallException(
         final @Codes int code,
         final @Nullable String extensionId,
+        final @Nullable String extensionName,
+        final @Nullable String extensionVersion) {
+      this.code = code;
+      this.extensionId = extensionId;
+      this.extensionName = extensionName;
+      this.extensionVersion = extensionVersion;
+    }
+
+    /* package */ InstallException(
+        final @Codes int code,
+        final @Nullable String extensionId,
         final @Nullable String extensionName) {
       this.code = code;
       this.extensionId = extensionId;
       this.extensionName = extensionName;
+      this.extensionVersion = null;
     }
 
     /* package */ InstallException(final @Codes int code, final @Nullable String extensionName) {
       this.code = code;
       this.extensionId = null;
       this.extensionName = extensionName;
+      this.extensionVersion = null;
     }
 
     /* package */ InstallException(final @Codes int code) {
       this.code = code;
       this.extensionId = null;
       this.extensionName = null;
+      this.extensionVersion = null;
     }
   }
 

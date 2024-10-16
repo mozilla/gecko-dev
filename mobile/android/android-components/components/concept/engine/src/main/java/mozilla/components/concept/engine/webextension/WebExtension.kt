@@ -643,6 +643,7 @@ open class WebExtensionException(throwable: Throwable, open val isRecoverable: B
 sealed class WebExtensionInstallException(
     open val extensionId: String? = null,
     open val extensionName: String? = null,
+    open val extensionVersion: String? = null,
     throwable: Throwable,
     override val isRecoverable: Boolean = true,
 ) : WebExtensionException(throwable) {
@@ -658,6 +659,7 @@ sealed class WebExtensionInstallException(
     class Blocklisted(
         override val extensionId: String? = null,
         override val extensionName: String? = null,
+        override val extensionVersion: String? = null,
         throwable: Throwable,
     ) :
         WebExtensionInstallException(throwable = throwable)
@@ -711,6 +713,7 @@ sealed class WebExtensionInstallException(
     class SoftBlocked(
         override val extensionId: String? = null,
         override val extensionName: String? = null,
+        override val extensionVersion: String? = null,
         throwable: Throwable,
     ) :
         WebExtensionInstallException(throwable = throwable)

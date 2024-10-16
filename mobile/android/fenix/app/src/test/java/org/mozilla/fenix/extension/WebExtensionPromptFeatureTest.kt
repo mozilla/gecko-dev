@@ -99,15 +99,17 @@ class WebExtensionPromptFeatureTest {
         val expectedTitle = testContext.getString(R.string.mozac_feature_addons_cant_install_extension)
         val extensionId = "extensionId"
         val extensionName = "extensionName"
+        val extensionVersion = "extensionVersion"
         val exception = WebExtensionInstallException.Blocklisted(
             extensionId = extensionId,
             extensionName = extensionName,
+            extensionVersion = extensionVersion,
             throwable = Exception(),
         )
         val appName = testContext.getString(R.string.app_name)
         val expectedMessage =
             testContext.getString(R.string.mozac_feature_addons_blocklisted_2, extensionName, appName)
-        val expectedUrl = "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/$extensionId/"
+        val expectedUrl = "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/$extensionId/$extensionVersion/"
 
         val dialog = webExtensionPromptFeature.handleInstallationFailedRequest(exception = exception)
 
@@ -363,15 +365,17 @@ class WebExtensionPromptFeatureTest {
         val expectedTitle = testContext.getString(R.string.mozac_feature_addons_cant_install_extension)
         val extensionId = "extensionId"
         val extensionName = "extensionName"
+        val extensionVersion = "extensionVersion"
         val exception = WebExtensionInstallException.SoftBlocked(
             extensionId = extensionId,
             extensionName = extensionName,
+            extensionVersion = extensionVersion,
             throwable = Exception(),
         )
         val appName = testContext.getString(R.string.app_name)
         val expectedMessage =
             testContext.getString(R.string.mozac_feature_addons_soft_blocked_1, extensionName, appName)
-        val expectedUrl = "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/$extensionId/"
+        val expectedUrl = "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/$extensionId/$extensionVersion/"
 
         val dialog = webExtensionPromptFeature.handleInstallationFailedRequest(exception = exception)
 

@@ -602,6 +602,7 @@ class AddonInstallObserver {
       extension,
       addonId: aAddon?.id,
       addonName: aAddonName,
+      addonVersion: aAddon?.version,
       error: aError,
     });
   }

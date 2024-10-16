@@ -251,7 +251,7 @@ class AddonsManagementFragment : Fragment(R.layout.fragment_add_ons_management) 
     private fun openLearnMoreLink(link: AddonsManagerAdapterDelegate.LearnMoreLinks, addon: Addon) {
         val url = when (link) {
             AddonsManagerAdapterDelegate.LearnMoreLinks.BLOCKLISTED_ADDON ->
-                "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/${addon.id}/"
+                "${BuildConfig.AMO_BASE_URL}/android/blocked-addon/${addon.id}/${addon.version}/"
             AddonsManagerAdapterDelegate.LearnMoreLinks.ADDON_NOT_CORRECTLY_SIGNED ->
                 SupportUtils.getSumoURLForTopic(requireContext(), SupportUtils.SumoTopic.UNSIGNED_ADDONS)
         }

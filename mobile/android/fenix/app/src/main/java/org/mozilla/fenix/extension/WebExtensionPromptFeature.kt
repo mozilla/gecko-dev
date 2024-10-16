@@ -162,12 +162,12 @@ class WebExtensionPromptFeature(
         var url: String? = null
         val message = when (exception) {
             is WebExtensionInstallException.Blocklisted -> {
-                url = exception.extensionId?.let { AMO_BLOCKED_PAGE_URL.format(it) }
+                url = formatBlocklistURL(exception)
                 context.getString(R.string.mozac_feature_addons_blocklisted_2, addonName, appName)
             }
 
             is WebExtensionInstallException.SoftBlocked -> {
-                url = exception.extensionId?.let { AMO_BLOCKED_PAGE_URL.format(it) }
+                url = formatBlocklistURL(exception)
                 context.getString(R.string.mozac_feature_addons_soft_blocked_1, addonName, appName)
             }
 
@@ -224,6 +224,17 @@ class WebExtensionPromptFeature(
             message = message,
             url = url,
         )
+    }
+
+    private fun formatBlocklistURL(exception: WebExtensionInstallException): String? {
+        var url: String? = exception.extensionId?.let { AMO_BLOCKED_PAGE_URL.format(it) }
+        // Only append the version if the URL is valid and we have a version. The AMO "blocked" page
+        // can be loaded without a version, but it's always better to specify a version if we have one.
+        if (url != null && exception.extensionVersion != null) {
+            url += "${exception.extensionVersion}/"
+        }
+
+        return url
     }
 
     /**
