@@ -43,7 +43,7 @@ enum class Route {
 internal fun MenuAccessPoint.toFenixFxAEntryPoint(): FenixFxAEntryPoint {
     return when (this) {
         MenuAccessPoint.Browser -> FenixFxAEntryPoint.BrowserToolbar
-        MenuAccessPoint.External -> FenixFxAEntryPoint.Unknown
+        MenuAccessPoint.External -> FenixFxAEntryPoint.ExternalView
         MenuAccessPoint.Home -> FenixFxAEntryPoint.HomeMenu
     }
 }

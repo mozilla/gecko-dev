@@ -81,6 +81,11 @@ enum class FenixFxAEntryPoint(override val entryName: String) : FxAEntryPoint, P
     SyncedTabsMenu("synced-tabs-menu"),
 
     /**
+     * Accessing the menu dialog from an external view (e.g. custom tab)
+     */
+    ExternalView("external-view"),
+
+    /**
      * When serializing the value after navigating, the result is a nullable value. We have this
      * "unknown" as a default value in the odd chance that we receive an [entryName] is not part of this enum.
      *

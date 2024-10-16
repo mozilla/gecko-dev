@@ -16,7 +16,7 @@ class MenuAccessPointTest {
             FenixFxAEntryPoint.BrowserToolbar,
             MenuAccessPoint.Browser.toFenixFxAEntryPoint(),
         )
-        assertEquals(FenixFxAEntryPoint.Unknown, MenuAccessPoint.External.toFenixFxAEntryPoint())
+        assertEquals(FenixFxAEntryPoint.ExternalView, MenuAccessPoint.External.toFenixFxAEntryPoint())
         assertEquals(FenixFxAEntryPoint.HomeMenu, MenuAccessPoint.Home.toFenixFxAEntryPoint())
     }
 }
