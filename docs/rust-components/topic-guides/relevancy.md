@@ -12,8 +12,6 @@ The `relevancy` component tracks the user's interests locally, without sharing a
 To use the `RelevancyStore` in either Kotlin or Swift, you need to import the relevant classes and data types from the `MozillaAppServices` library.
 
 :::{tab-set-code}
-:sync-group: language
-
 ```kotlin
 import mozilla.appservices.relevancy.RelevancyStore
 import mozilla.appservices.relevancy.InterestVector
@@ -33,7 +31,6 @@ let store = RelevancyStore(dbPath: "path/to/database")
 To work with the RelevancyStore, you need to create an instance using a database path where the user’s interest data will be stored:
 
 :::{tab-set-code}
-:sync-group: language
 ```kotlin
 val store = RelevancyStore(dbPath)
 ```
@@ -53,7 +50,6 @@ To build the user's interest vector, call the `ingest` function with a list of U
 ### Example usage of `ingest`:
 
 :::{tab-set-code}
-:sync-group: language
 ```kotlin
 val topUrlsByFrequency = listOf("https://example.com", "https://another-example.com")
 val interestVector = store.ingest(topUrlsByFrequency)

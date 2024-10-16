@@ -21,7 +21,6 @@ The API for the `SuggestStore` can be found in the [MozillaComponents Kotlin doc
 You need to import one or more of the following primitives to work with the `SuggestStore` (these come from the generated `suggest.kt` file, produced by `uniffi`):
 
 :::{tab-set-code}
-:sync-group: language
 
 ```kotlin
 import mozilla.appservices.remotesettings.RemoteSettingsServer
@@ -41,7 +40,6 @@ import MozillaAppServices
 Create a `SuggestStore` as a singleton. You do this via the `SuggestStoreBuilder`, which returns a `SuggestStore`. No I/O or network requests are performed during construction, which makes this safe to do at any point in the application startup:
 
 :::{tab-set-code}
-:sync-group: language
 ```kotlin
 internal val store: SuggestStore = {
     SuggestStoreBuilder()
@@ -76,7 +74,6 @@ Ingesting suggestions happens in two different ways: On startup, and then, perio
 Ingest with `SuggestIngestionConstraints(emptyOnly=true)` shortly after each startup. This ensures we have something in the DB on the first run and also after upgrades where we often will clear the DB to start from scratch.
 
 :::{tab-set-code}
-:sync-group: language
 ```kotlin
 store.value.ingest(SuggestIngestionConstraints(
     emptyOnly = true,
@@ -97,7 +94,6 @@ store.value.ingest(SuggestIngestionConstraints(
 Ingest with `SuggestIngestionConstraints(emptyOnly=false)` on a regular schedule (like once a day).
 
 :::{tab-set-code}
-:sync-group: language
 ```kotlin
 store.value.ingest(SuggestIngestionConstraints(emptyOnly = false))
 ```
@@ -112,7 +108,6 @@ store.value.ingest(SuggestIngestionConstraints(emptyOnly: false))
 Call `SuggestStore::query` to fetch suggestions for the suggest bar. The `providers` parameter should be the same value that got passed to `ingest()`.
 
 :::{tab-set-code}
-:sync-group: language
 ```kotlin
 store.value.query(
     SuggestionQuery(
@@ -139,7 +134,6 @@ store.value.query(
 Call `SuggestStore::Interrupt` with `InterruptKind::Read` to interrupt any in-progress queries when the user cancels a query and before running the next query.
 
 :::{tab-set-code}
-:sync-group: language
 ```kotlin
 store.value.interrupt()
 ```
@@ -154,7 +148,6 @@ store.value.interrupt()
 On shutdown, call `SuggestStore::Interrupt` with `InterruptKind::ReadWrite` to interrupt any in-progress ingestion and queries.
 
 :::{tab-set-code}
-:sync-group: language
 ```kotlin
 store.value.interrupt()
 ```
