@@ -491,10 +491,10 @@ class FloatRegisters {
               (1 << FloatRegisters::s12) | (1 << FloatRegisters::s13) |
               (1 << FloatRegisters::s14) | (1 << FloatRegisters::s15));
 
+  // Note: only the bottom 64 bits of v8-v15 will be preserved.
   static constexpr SetType NonVolatileMask =
       (NonVolatileSingleMask << ShiftSingle) |
-      (NonVolatileSingleMask << ShiftDouble) |
-      (NonVolatileSingleMask << ShiftSimd128);
+      (NonVolatileSingleMask << ShiftDouble);
 
   static constexpr SetType VolatileMask = AllMask & ~NonVolatileMask;
 
