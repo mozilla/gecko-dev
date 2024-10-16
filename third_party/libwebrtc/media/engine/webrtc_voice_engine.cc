@@ -365,9 +365,9 @@ webrtc::SdpAudioFormat AudioCodecToSdpAudioFormat(const Codec& ac) {
 // payload type picker with a normal set of PTs.
 // TODO: https://issues.webrtc.org/360058654 - remove.
 std::vector<Codec> LegacyCollectCodecs(
-    const std::vector<webrtc::AudioCodecSpec>& specs) {
-  // Once payload assignment is done in the channel not in the factory,
-  // this needs to be a variable. But then this function should go away.
+    const std::vector<webrtc::AudioCodecSpec>& specs,
+    bool allocate_pt) {
+  // Only used for the legacy "allocate_pt = true" case.
   webrtc::PayloadTypePicker pt_mapper;
   std::vector<Codec> out;
 
@@ -380,40 +380,50 @@ std::vector<Codec> LegacyCollectCodecs(
 
   for (const auto& spec : specs) {
     cricket::Codec codec = CreateAudioCodec(spec.format);
-    auto pt_or_error = pt_mapper.SuggestMapping(codec, nullptr);
-    // We need to do some extra stuff before adding the main codecs to out.
-    if (pt_or_error.ok()) {
+    if (allocate_pt) {
+      auto pt_or_error = pt_mapper.SuggestMapping(codec, nullptr);
+      // We need to do some extra stuff before adding the main codecs to out.
+      if (!pt_or_error.ok()) {
+        continue;
+      }
       codec.id = pt_or_error.value();
-      if (spec.info.supports_network_adaption) {
-        codec.AddFeedbackParam(
-            FeedbackParam(kRtcpFbParamTransportCc, kParamValueEmpty));
+    }
+    if (spec.info.supports_network_adaption) {
+      codec.AddFeedbackParam(
+          FeedbackParam(kRtcpFbParamTransportCc, kParamValueEmpty));
+    }
+
+    if (spec.info.allow_comfort_noise) {
+      // Generate a CN entry if the decoder allows it and we support the
+      // clockrate.
+      auto cn = generate_cn.find(spec.format.clockrate_hz);
+      if (cn != generate_cn.end()) {
+        cn->second = true;
       }
+    }
 
-      if (spec.info.allow_comfort_noise) {
-        // Generate a CN entry if the decoder allows it and we support the
-        // clockrate.
-        auto cn = generate_cn.find(spec.format.clockrate_hz);
-        if (cn != generate_cn.end()) {
-          cn->second = true;
-        }
-      }
+    // Generate a telephone-event entry if we support the clockrate.
+    auto dtmf = generate_dtmf.find(spec.format.clockrate_hz);
+    if (dtmf != generate_dtmf.end()) {
+      dtmf->second = true;
+    }
 
-      // Generate a telephone-event entry if we support the clockrate.
-      auto dtmf = generate_dtmf.find(spec.format.clockrate_hz);
-      if (dtmf != generate_dtmf.end()) {
-        dtmf->second = true;
-      }
+    out.push_back(codec);
 
-      out.push_back(codec);
-
-      // TODO(hta):  Don't assign RED codecs until we know that the PT for Opus
-      // is final
-      if (codec.name == kOpusCodecName) {
+    // TODO(hta):  Don't assign RED codecs until we know that the PT for Opus
+    // is final
+    if (codec.name == kOpusCodecName) {
+      if (allocate_pt) {
         std::string red_fmtp =
             rtc::ToString(codec.id) + "/" + rtc::ToString(codec.id);
         cricket::Codec red_codec =
             CreateAudioCodec({kRedCodecName, 48000, 2, {{"", red_fmtp}}});
         red_codec.id = pt_mapper.SuggestMapping(red_codec, nullptr).value();
+        out.push_back(red_codec);
+      } else {
+        // We don't know the PT to put into the RED fmtp parameter yet.
+        // Leave it out.
+        cricket::Codec red_codec = CreateAudioCodec({kRedCodecName, 48000, 2});
         out.push_back(red_codec);
       }
     }
@@ -423,7 +433,9 @@ std::vector<Codec> LegacyCollectCodecs(
   for (const auto& cn : generate_cn) {
     if (cn.second) {
       cricket::Codec cn_codec = CreateAudioCodec({kCnCodecName, cn.first, 1});
-      cn_codec.id = pt_mapper.SuggestMapping(cn_codec, nullptr).value();
+      if (allocate_pt) {
+        cn_codec.id = pt_mapper.SuggestMapping(cn_codec, nullptr).value();
+      }
       out.push_back(cn_codec);
     }
   }
@@ -433,11 +445,12 @@ std::vector<Codec> LegacyCollectCodecs(
     if (dtmf.second) {
       cricket::Codec dtmf_codec =
           CreateAudioCodec({kDtmfCodecName, dtmf.first, 1});
-      dtmf_codec.id = pt_mapper.SuggestMapping(dtmf_codec, nullptr).value();
+      if (allocate_pt) {
+        dtmf_codec.id = pt_mapper.SuggestMapping(dtmf_codec, nullptr).value();
+      }
       out.push_back(dtmf_codec);
     }
   }
-
   return out;
 }
 
@@ -460,7 +473,9 @@ WebRtcVoiceEngine::WebRtcVoiceEngine(
       apm_(audio_processing),
       audio_frame_processor_(std::move(audio_frame_processor)),
       minimized_remsampling_on_mobile_trial_enabled_(
-          IsEnabled(trials, "WebRTC-Audio-MinimizeResamplingOnMobile")) {
+          IsEnabled(trials, "WebRTC-Audio-MinimizeResamplingOnMobile")),
+      payload_types_in_transport_trial_enabled_(
+          IsEnabled(trials, "WebRTC-PayloadTypesInTransport")) {
   RTC_LOG(LS_INFO) << "WebRtcVoiceEngine::WebRtcVoiceEngine";
   RTC_DCHECK(decoder_factory);
   RTC_DCHECK(encoder_factory);
@@ -492,13 +507,17 @@ void WebRtcVoiceEngine::Init() {
 
   // Load our audio codec lists.
   RTC_LOG(LS_VERBOSE) << "Supported send codecs in order of preference:";
-  send_codecs_ = LegacyCollectCodecs(encoder_factory_->GetSupportedEncoders());
+  send_codecs_ =
+      LegacyCollectCodecs(encoder_factory_->GetSupportedEncoders(),
+                          !payload_types_in_transport_trial_enabled_);
   for (const Codec& codec : send_codecs_) {
     RTC_LOG(LS_VERBOSE) << ToString(codec);
   }
 
   RTC_LOG(LS_VERBOSE) << "Supported recv codecs in order of preference:";
-  recv_codecs_ = LegacyCollectCodecs(decoder_factory_->GetSupportedDecoders());
+  recv_codecs_ =
+      LegacyCollectCodecs(decoder_factory_->GetSupportedDecoders(),
+                          !payload_types_in_transport_trial_enabled_);
   for (const Codec& codec : recv_codecs_) {
     RTC_LOG(LS_VERBOSE) << ToString(codec);
   }

@@ -174,6 +174,7 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
   int audio_jitter_buffer_min_delay_ms_ = 0;
 
   const bool minimized_remsampling_on_mobile_trial_enabled_;
+  const bool payload_types_in_transport_trial_enabled_;
 };
 
 class WebRtcVoiceSendChannel final : public MediaChannelUtil,

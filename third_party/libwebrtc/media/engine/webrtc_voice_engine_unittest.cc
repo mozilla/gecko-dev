@@ -10,37 +10,69 @@
 
 #include "media/engine/webrtc_voice_engine.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <map>
 #include <memory>
 #include <optional>
+#include <set>
+#include <string>
 #include <utility>
+#include <vector>
 
-#include "absl/memory/memory.h"
 #include "absl/strings/match.h"
+#include "api/audio/audio_processing.h"
+#include "api/audio_codecs/audio_codec_pair_id.h"
+#include "api/audio_codecs/audio_format.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/audio_codecs/builtin_audio_encoder_factory.h"
+#include "api/audio_options.h"
+#include "api/call/audio_sink.h"
+#include "api/crypto/crypto_options.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
+#include "api/make_ref_counted.h"
 #include "api/media_types.h"
+#include "api/priority.h"
+#include "api/ref_count.h"
+#include "api/rtc_error.h"
+#include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
+#include "api/transport/bitrate_settings.h"
 #include "api/transport/field_trial_based_config.h"
+#include "api/transport/rtp/rtp_source.h"
+#include "call/audio_receive_stream.h"
+#include "call/audio_send_stream.h"
+#include "call/audio_state.h"
 #include "call/call.h"
+#include "call/call_config.h"
 #include "media/base/codec.h"
 #include "media/base/fake_media_engine.h"
 #include "media/base/fake_network_interface.h"
 #include "media/base/fake_rtp.h"
 #include "media/base/media_channel.h"
+#include "media/base/media_config.h"
 #include "media/base/media_constants.h"
+#include "media/base/media_engine.h"
+#include "media/base/stream_params.h"
 #include "media/engine/fake_webrtc_call.h"
 #include "modules/audio_device/include/mock_audio_device.h"
 #include "modules/audio_mixer/audio_mixer_impl.h"
 #include "modules/audio_processing/include/mock_audio_processing.h"
+#include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/byte_order.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/dscp.h"
 #include "rtc_base/numerics/safe_conversions.h"
+#include "rtc_base/thread.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_audio_decoder_factory.h"
 #include "test/mock_audio_encoder_factory.h"
@@ -3942,6 +3974,94 @@ TEST(WebRtcVoiceEngineTest, CollectRecvCodecs) {
     rtc::scoped_refptr<webrtc::AudioProcessing> apm =
         use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
     webrtc::FieldTrialBasedConfig field_trials;
+    cricket::WebRtcVoiceEngine engine(
+        task_queue_factory.get(), adm.get(), unused_encoder_factory,
+        mock_decoder_factory, nullptr, apm, nullptr, field_trials);
+    engine.Init();
+    auto codecs = engine.recv_codecs();
+    EXPECT_EQ(11u, codecs.size());
+
+    // Rather than just ASSERTing that there are enough codecs, ensure that we
+    // can check the actual values safely, to provide better test results.
+    auto get_codec = [&codecs](size_t index) -> const cricket::Codec& {
+      static const cricket::Codec missing_codec =
+          cricket::CreateAudioCodec(0, "<missing>", 0, 0);
+      if (codecs.size() > index)
+        return codecs[index];
+      return missing_codec;
+    };
+
+    // Ensure the general codecs are generated first and in order.
+    for (size_t i = 0; i != specs.size(); ++i) {
+      EXPECT_EQ(specs[i].format.name, get_codec(i).name);
+      EXPECT_EQ(specs[i].format.clockrate_hz, get_codec(i).clockrate);
+      EXPECT_EQ(specs[i].format.num_channels, get_codec(i).channels);
+      EXPECT_EQ(specs[i].format.parameters, get_codec(i).params);
+    }
+
+    // Find the index of a codec, or -1 if not found, so that we can easily
+    // check supplementary codecs are ordered after the general codecs.
+    auto find_codec = [&codecs](const webrtc::SdpAudioFormat& format) -> int {
+      for (size_t i = 0; i != codecs.size(); ++i) {
+        const cricket::Codec& codec = codecs[i];
+        if (absl::EqualsIgnoreCase(codec.name, format.name) &&
+            codec.clockrate == format.clockrate_hz &&
+            codec.channels == format.num_channels) {
+          return rtc::checked_cast<int>(i);
+        }
+      }
+      return -1;
+    };
+
+    // Ensure all supplementary codecs are generated last. Their internal
+    // ordering is not important. Without this cast, the comparison turned
+    // unsigned and, thus, failed for -1.
+    const int num_specs = static_cast<int>(specs.size());
+    EXPECT_GE(find_codec({"cn", 8000, 1}), num_specs);
+    EXPECT_GE(find_codec({"cn", 16000, 1}), num_specs);
+    EXPECT_EQ(find_codec({"cn", 32000, 1}), -1);
+    EXPECT_GE(find_codec({"telephone-event", 8000, 1}), num_specs);
+    EXPECT_GE(find_codec({"telephone-event", 16000, 1}), num_specs);
+    EXPECT_GE(find_codec({"telephone-event", 32000, 1}), num_specs);
+    EXPECT_GE(find_codec({"telephone-event", 48000, 1}), num_specs);
+  }
+}
+
+TEST(WebRtcVoiceEngineTest, CollectRecvCodecsWithLatePtAssignment) {
+  webrtc::test::ScopedKeyValueConfig field_trials(
+      "WebRTC-PayloadTypesInTransport/Enabled/");
+
+  for (bool use_null_apm : {false, true}) {
+    std::vector<webrtc::AudioCodecSpec> specs;
+    webrtc::AudioCodecSpec spec1{{"codec1", 48000, 2, {{"param1", "value1"}}},
+                                 {48000, 2, 16000, 10000, 20000}};
+    spec1.info.allow_comfort_noise = false;
+    spec1.info.supports_network_adaption = true;
+    specs.push_back(spec1);
+    webrtc::AudioCodecSpec spec2{{"codec2", 32000, 1}, {32000, 1, 32000}};
+    spec2.info.allow_comfort_noise = false;
+    specs.push_back(spec2);
+    specs.push_back(webrtc::AudioCodecSpec{
+        {"codec3", 16000, 1, {{"param1", "value1b"}, {"param2", "value2"}}},
+        {16000, 1, 13300}});
+    specs.push_back(
+        webrtc::AudioCodecSpec{{"codec4", 8000, 1}, {8000, 1, 64000}});
+    specs.push_back(
+        webrtc::AudioCodecSpec{{"codec5", 8000, 2}, {8000, 1, 64000}});
+
+    std::unique_ptr<webrtc::TaskQueueFactory> task_queue_factory =
+        webrtc::CreateDefaultTaskQueueFactory();
+    rtc::scoped_refptr<webrtc::MockAudioEncoderFactory> unused_encoder_factory =
+        webrtc::MockAudioEncoderFactory::CreateUnusedFactory();
+    rtc::scoped_refptr<webrtc::MockAudioDecoderFactory> mock_decoder_factory =
+        rtc::make_ref_counted<webrtc::MockAudioDecoderFactory>();
+    EXPECT_CALL(*mock_decoder_factory.get(), GetSupportedDecoders())
+        .WillOnce(Return(specs));
+    rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm =
+        webrtc::test::MockAudioDeviceModule::CreateNice();
+
+    rtc::scoped_refptr<webrtc::AudioProcessing> apm =
+        use_null_apm ? nullptr : webrtc::AudioProcessingBuilder().Create();
     cricket::WebRtcVoiceEngine engine(
         task_queue_factory.get(), adm.get(), unused_encoder_factory,
         mock_decoder_factory, nullptr, apm, nullptr, field_trials);
