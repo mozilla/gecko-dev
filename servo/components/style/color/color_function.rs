@@ -5,7 +5,7 @@
 //! Output of parsing a color function, e.g. rgb(..), hsl(..), color(..)
 
 use crate::{color::ColorFlags, values::normalize};
-use cssparser::color::{PredefinedColorSpace, OPAQUE};
+use cssparser::color::{clamp_floor_256_f32, OPAQUE};
 
 use super::{
     component::ColorComponent,
@@ -15,13 +15,13 @@ use super::{
 };
 
 /// Represents a specified color function.
-#[derive(Debug)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum ColorFunction {
     /// <https://drafts.csswg.org/css-color-4/#rgb-functions>
     Rgb(
-        ColorComponent<u8>,                 // red
-        ColorComponent<u8>,                 // green
-        ColorComponent<u8>,                 // blue
+        ColorComponent<NumberOrPercentage>, // red
+        ColorComponent<NumberOrPercentage>, // green
+        ColorComponent<NumberOrPercentage>, // blue
         ColorComponent<NumberOrPercentage>, // alpha
     ),
     /// <https://drafts.csswg.org/css-color-4/#the-hsl-notation>
@@ -70,7 +70,7 @@ pub enum ColorFunction {
     ),
     /// <https://drafts.csswg.org/css-color-4/#color-function>
     Color(
-        PredefinedColorSpace,
+        ColorSpace,
         ColorComponent<NumberOrPercentage>, // red / x
         ColorComponent<NumberOrPercentage>, // green / y
         ColorComponent<NumberOrPercentage>, // blue / z
@@ -81,30 +81,34 @@ pub enum ColorFunction {
 impl ColorFunction {
     /// Try to resolve the color function to an [`AbsoluteColor`] that does not
     /// contain any variables (currentcolor, color components, etc.).
-    pub fn resolve_to_absolute(&self) -> AbsoluteColor {
-        macro_rules! value {
-            ($v:expr) => {{
-                match $v {
-                    ColorComponent::None => None,
-                    // value should be Copy.
-                    ColorComponent::Value(value) => Some(*value),
-                }
-            }};
-        }
-
+    pub fn resolve_to_absolute(&self) -> Result<AbsoluteColor, ()> {
         macro_rules! alpha {
             ($alpha:expr) => {{
-                value!($alpha).map(|value| normalize(value.to_number(1.0)).clamp(0.0, OPAQUE))
+                $alpha
+                    .resolve(None)?
+                    .map(|value| normalize(value.to_number(1.0)).clamp(0.0, OPAQUE))
             }};
         }
 
-        match self {
+        Ok(match self {
             ColorFunction::Rgb(r, g, b, alpha) => {
-                let r = value!(r).unwrap_or(0);
-                let g = value!(g).unwrap_or(0);
-                let b = value!(b).unwrap_or(0);
+                #[inline]
+                fn resolve(component: &ColorComponent<NumberOrPercentage>) -> Result<u8, ()> {
+                    // TODO(tlouw): We need to pass an origin color to resolve.
+                    Ok(clamp_floor_256_f32(
+                        component
+                            .resolve(None)?
+                            .map(|value| value.to_number(u8::MAX as f32))
+                            .unwrap_or(0.0),
+                    ))
+                }
 
-                AbsoluteColor::srgb_legacy(r, g, b, alpha!(alpha).unwrap_or(0.0))
+                AbsoluteColor::srgb_legacy(
+                    resolve(r)?,
+                    resolve(g)?,
+                    resolve(b)?,
+                    alpha!(alpha).unwrap_or(0.0),
+                )
             },
             ColorFunction::Hsl(h, s, l, alpha, is_legacy_syntax) => {
                 // Percent reference range for S and L: 0% = 0.0, 100% = 100.0
@@ -113,15 +117,15 @@ impl ColorFunction {
 
                 let mut result = AbsoluteColor::new(
                     ColorSpace::Hsl,
-                    value!(h).map(|angle| normalize_hue(angle.degrees())),
-                    value!(s).map(|s| {
+                    h.resolve(None)?.map(|angle| normalize_hue(angle.degrees())),
+                    s.resolve(None)?.map(|s| {
                         if *is_legacy_syntax {
                             s.to_number(SATURATION_RANGE).clamp(0.0, SATURATION_RANGE)
                         } else {
                             s.to_number(SATURATION_RANGE)
                         }
                     }),
-                    value!(l).map(|l| {
+                    l.resolve(None)?.map(|l| {
                         if *is_legacy_syntax {
                             l.to_number(LIGHTNESS_RANGE).clamp(0.0, LIGHTNESS_RANGE)
                         } else {
@@ -144,15 +148,15 @@ impl ColorFunction {
 
                 let mut result = AbsoluteColor::new(
                     ColorSpace::Hwb,
-                    value!(h).map(|angle| normalize_hue(angle.degrees())),
-                    value!(w).map(|w| {
+                    h.resolve(None)?.map(|angle| normalize_hue(angle.degrees())),
+                    w.resolve(None)?.map(|w| {
                         if *is_legacy_syntax {
                             w.to_number(WHITENESS_RANGE).clamp(0.0, WHITENESS_RANGE)
                         } else {
                             w.to_number(WHITENESS_RANGE)
                         }
                     }),
-                    value!(b).map(|b| {
+                    b.resolve(None)?.map(|b| {
                         if *is_legacy_syntax {
                             b.to_number(BLACKNESS_RANGE).clamp(0.0, BLACKNESS_RANGE)
                         } else {
@@ -176,9 +180,9 @@ impl ColorFunction {
 
                 AbsoluteColor::new(
                     ColorSpace::Lab,
-                    value!(l).map(|l| l.to_number(LIGHTNESS_RANGE)),
-                    value!(a).map(|a| a.to_number(A_B_RANGE)),
-                    value!(b).map(|b| b.to_number(A_B_RANGE)),
+                    l.resolve(None)?.map(|l| l.to_number(LIGHTNESS_RANGE)),
+                    a.resolve(None)?.map(|a| a.to_number(A_B_RANGE)),
+                    b.resolve(None)?.map(|b| b.to_number(A_B_RANGE)),
                     alpha!(alpha),
                 )
             },
@@ -190,9 +194,9 @@ impl ColorFunction {
 
                 AbsoluteColor::new(
                     ColorSpace::Lch,
-                    value!(l).map(|l| l.to_number(LIGHTNESS_RANGE)),
-                    value!(c).map(|c| c.to_number(CHROMA_RANGE)),
-                    value!(h).map(|angle| normalize_hue(angle.degrees())),
+                    l.resolve(None)?.map(|l| l.to_number(LIGHTNESS_RANGE)),
+                    c.resolve(None)?.map(|c| c.to_number(CHROMA_RANGE)),
+                    h.resolve(None)?.map(|angle| normalize_hue(angle.degrees())),
                     alpha!(alpha),
                 )
             },
@@ -204,9 +208,9 @@ impl ColorFunction {
 
                 AbsoluteColor::new(
                     ColorSpace::Oklab,
-                    value!(l).map(|l| l.to_number(LIGHTNESS_RANGE)),
-                    value!(a).map(|a| a.to_number(A_B_RANGE)),
-                    value!(b).map(|b| b.to_number(A_B_RANGE)),
+                    l.resolve(None)?.map(|l| l.to_number(LIGHTNESS_RANGE)),
+                    a.resolve(None)?.map(|a| a.to_number(A_B_RANGE)),
+                    b.resolve(None)?.map(|b| b.to_number(A_B_RANGE)),
                     alpha!(alpha),
                 )
             },
@@ -218,19 +222,19 @@ impl ColorFunction {
 
                 AbsoluteColor::new(
                     ColorSpace::Oklch,
-                    value!(l).map(|l| l.to_number(LIGHTNESS_RANGE)),
-                    value!(c).map(|c| c.to_number(CHROMA_RANGE)),
-                    value!(h).map(|angle| normalize_hue(angle.degrees())),
+                    l.resolve(None)?.map(|l| l.to_number(LIGHTNESS_RANGE)),
+                    c.resolve(None)?.map(|c| c.to_number(CHROMA_RANGE)),
+                    h.resolve(None)?.map(|angle| normalize_hue(angle.degrees())),
                     alpha!(alpha),
                 )
             },
             ColorFunction::Color(color_space, r, g, b, alpha) => AbsoluteColor::new(
                 (*color_space).into(),
-                value!(r).map(|c| c.to_number(1.0)),
-                value!(g).map(|c| c.to_number(1.0)),
-                value!(b).map(|c| c.to_number(1.0)),
+                r.resolve(None)?.map(|c| c.to_number(1.0)),
+                g.resolve(None)?.map(|c| c.to_number(1.0)),
+                b.resolve(None)?.map(|c| c.to_number(1.0)),
                 alpha!(alpha),
             ),
-        }
+        })
     }
 }

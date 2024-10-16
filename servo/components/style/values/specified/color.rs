@@ -798,7 +798,13 @@ impl ToComputedValue for Color {
     type ComputedValue = ComputedColor;
 
     fn to_computed_value(&self, context: &Context) -> ComputedColor {
-        self.to_computed_color(Some(context)).unwrap()
+        self.to_computed_color(Some(context)).unwrap_or_else(|| {
+            debug_assert!(
+                false,
+                "Specified color could not be resolved to a computed color!"
+            );
+            ComputedColor::Absolute(AbsoluteColor::BLACK)
+        })
     }
 
     fn from_computed_value(computed: &ComputedColor) -> Self {

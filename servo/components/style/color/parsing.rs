@@ -22,7 +22,7 @@ use crate::{
     },
 };
 use cssparser::{
-    color::{clamp_floor_256_f32, clamp_unit_f32, parse_hash_color, PredefinedColorSpace, OPAQUE},
+    color::{parse_hash_color, PredefinedColorSpace, OPAQUE},
     match_ignore_ascii_case, CowRcStr, Parser, Token,
 };
 use style_traits::{ParseError, StyleParseErrorKind};
@@ -100,9 +100,16 @@ pub fn parse_color_with<'i, 't>(
         Token::Function(ref name) => {
             let name = name.clone();
             return input.parse_nested_block(|arguments| {
-                Ok(SpecifiedColor::from_absolute_color(
-                    parse_color_function(context, name, arguments)?.resolve_to_absolute(),
-                ))
+                let color_function = parse_color_function(context, name, arguments)?;
+                // TODO(tlouw): A color function can be valid, but not resolvable. This check
+                //              assumes that if we can't resolve it, it's invalid.
+                // TODO(tlouw): Specified colors should not be resolved here and stored as is.
+                if let Ok(resolved) = color_function.resolve_to_absolute() {
+                    Ok(SpecifiedColor::from_absolute_color(resolved))
+                } else {
+                    // We should store the unresolvable value here in the specifed color.
+                    Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                }
             });
         },
         _ => Err(()),
@@ -139,16 +146,6 @@ fn parse_color_function<'i, 't>(
     arguments.expect_exhausted()?;
 
     Ok(color)
-}
-
-impl ColorComponent<NumberOrPercentage> {
-    /// Return true if the component contains a percentage.
-    pub fn is_percentage(&self) -> Result<bool, ()> {
-        Ok(match self {
-            Self::Value(NumberOrPercentage::Percentage { .. }) => true,
-            _ => false,
-        })
-    }
 }
 
 /// Parse the relative color syntax "from" syntax `from <color>`.
@@ -197,8 +194,6 @@ fn parse_rgb<'i, 't>(
         }),
     };
 
-    let location = arguments.current_source_location();
-
     let maybe_red = component_parser.parse_number_or_percentage(arguments, true)?;
 
     // If the first component is not "none" and is followed by a comma, then we
@@ -209,71 +204,28 @@ fn parse_rgb<'i, 't>(
         arguments.try_parse(|p| p.expect_comma()).is_ok();
 
     Ok(if is_legacy_syntax {
-        let Ok(is_percentage) = maybe_red.is_percentage() else {
-            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        };
-        let (red, green, blue) = if is_percentage {
-            let red = maybe_red.map_value(|v| clamp_unit_f32(v.to_number(1.0)));
-            let green = component_parser
-                .parse_percentage(arguments, false)?
-                .map_value(clamp_unit_f32);
+        let (green, blue) = if maybe_red.is_percentage() {
+            let green = component_parser.parse_percentage(arguments, false)?;
             arguments.expect_comma()?;
-            let blue = component_parser
-                .parse_percentage(arguments, false)?
-                .map_value(clamp_unit_f32);
-            (red, green, blue)
+            let blue = component_parser.parse_percentage(arguments, false)?;
+            (green, blue)
         } else {
-            let red = maybe_red.map_value(|v| clamp_floor_256_f32(v.to_number(255.0)));
-            let green = component_parser
-                .parse_number(arguments, false)?
-                .map_value(clamp_floor_256_f32);
+            let green = component_parser.parse_number(arguments, false)?;
             arguments.expect_comma()?;
-            let blue = component_parser
-                .parse_number(arguments, false)?
-                .map_value(clamp_floor_256_f32);
-            (red, green, blue)
+            let blue = component_parser.parse_number(arguments, false)?;
+            (green, blue)
         };
 
         let alpha = component_parser.parse_legacy_alpha(arguments)?;
 
-        ColorFunction::Rgb(red, green, blue, alpha)
+        ColorFunction::Rgb(maybe_red, green, blue, alpha)
     } else {
         let green = component_parser.parse_number_or_percentage(arguments, true)?;
         let blue = component_parser.parse_number_or_percentage(arguments, true)?;
 
         let alpha = component_parser.parse_modern_alpha(arguments)?;
 
-        // When using the relative color syntax (having an origin color), the
-        // resulting color is always in the modern syntax.
-        if component_parser.origin_color.is_some() {
-            fn adjust(v: NumberOrPercentage) -> NumberOrPercentage {
-                if let NumberOrPercentage::Number { value } = v {
-                    NumberOrPercentage::Number {
-                        value: value / 255.0,
-                    }
-                } else {
-                    v
-                }
-            }
-
-            ColorFunction::Color(
-                PredefinedColorSpace::Srgb,
-                maybe_red.map_value(adjust),
-                green.map_value(adjust),
-                blue.map_value(adjust),
-                alpha,
-            )
-        } else {
-            fn clamp(v: NumberOrPercentage) -> u8 {
-                clamp_floor_256_f32(v.to_number(255.0))
-            }
-
-            let red = maybe_red.map_value(clamp);
-            let green = green.map_value(clamp);
-            let blue = blue.map_value(clamp);
-
-            ColorFunction::Rgb(red, green, blue, alpha)
-        }
+        ColorFunction::Rgb(maybe_red, green, blue, alpha)
     })
 }
 
@@ -301,13 +253,9 @@ fn parse_hsl<'i, 't>(
         arguments.try_parse(|p| p.expect_comma()).is_ok();
 
     let (saturation, lightness, alpha) = if is_legacy_syntax {
-        let saturation = component_parser
-            .parse_percentage(arguments, false)?
-            .map_value(|unit_value| NumberOrPercentage::Percentage { unit_value });
+        let saturation = component_parser.parse_percentage(arguments, false)?;
         arguments.expect_comma()?;
-        let lightness = component_parser
-            .parse_percentage(arguments, false)?
-            .map_value(|unit_value| NumberOrPercentage::Percentage { unit_value });
+        let lightness = component_parser.parse_percentage(arguments, false)?;
         let alpha = component_parser.parse_legacy_alpha(arguments)?;
         (saturation, lightness, alpha)
     } else {
@@ -440,11 +388,11 @@ fn parse_color_with_color_space<'i, 't>(
 
     let alpha = component_parser.parse_modern_alpha(arguments)?;
 
-    Ok(ColorFunction::Color(color_space, c1, c2, c3, alpha))
+    Ok(ColorFunction::Color(color_space.into(), c1, c2, c3, alpha))
 }
 
 /// Either a number or a percentage.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum NumberOrPercentage {
     /// `<number>`.
     Number {
@@ -499,7 +447,7 @@ impl ColorComponentType for NumberOrPercentage {
 }
 
 /// Either an angle or a number.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum NumberOrAngle {
     /// `<number>`.
     Number {
@@ -620,26 +568,21 @@ impl<'a, 'b: 'a> ComponentParser<'a, 'b> {
         &self,
         input: &mut Parser<'i, 't>,
         allow_none: bool,
-    ) -> Result<ColorComponent<f32>, ParseError<'i>> {
+    ) -> Result<ColorComponent<NumberOrPercentage>, ParseError<'i>> {
         let location = input.current_source_location();
 
-        // We can use the [NumberOrPercentage] type here, because parsing it
-        // doesn't have any more overhead than just parsing a percentage on its
-        // own.
-        Ok(
-            match ColorComponent::<NumberOrPercentage>::parse(
-                self.context,
-                input,
-                allow_none,
-                self.origin_color.as_ref(),
-            )? {
-                ColorComponent::None => ColorComponent::None,
-                ColorComponent::Value(NumberOrPercentage::Percentage { unit_value }) => {
-                    ColorComponent::Value(unit_value)
-                },
-                _ => return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            },
-        )
+        let value = ColorComponent::<NumberOrPercentage>::parse(
+            self.context,
+            input,
+            allow_none,
+            self.origin_color.as_ref(),
+        )?;
+
+        if !value.is_percentage() {
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(value)
     }
 
     /// Parse a `<number>` value.
@@ -647,8 +590,21 @@ impl<'a, 'b: 'a> ComponentParser<'a, 'b> {
         &self,
         input: &mut Parser<'i, 't>,
         allow_none: bool,
-    ) -> Result<ColorComponent<f32>, ParseError<'i>> {
-        ColorComponent::parse(self.context, input, allow_none, self.origin_color.as_ref())
+    ) -> Result<ColorComponent<NumberOrPercentage>, ParseError<'i>> {
+        let location = input.current_source_location();
+
+        let value = ColorComponent::<NumberOrPercentage>::parse(
+            self.context,
+            input,
+            allow_none,
+            self.origin_color.as_ref(),
+        )?;
+
+        if !value.is_number() {
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(value)
     }
 
     /// Parse a `<number>` or `<percentage>` value.
@@ -685,6 +641,40 @@ impl<'a, 'b: 'a> ComponentParser<'a, 'b> {
             Ok(ColorComponent::Value(NumberOrPercentage::Number {
                 value: self.origin_color.map(|c| c.alpha).unwrap_or(OPAQUE),
             }))
+        }
+    }
+}
+
+impl ColorComponent<NumberOrPercentage> {
+    /// Return true if the value contained inside is/can resolve to a percentage.
+    /// Also returns false if the node is invalid somehow.
+    fn is_number(&self) -> bool {
+        match self {
+            Self::None => true,
+            Self::Value(value) => matches!(value, NumberOrPercentage::Number { .. }),
+            Self::Calc(node) => {
+                if let Ok(unit) = node.unit() {
+                    unit.is_empty()
+                } else {
+                    false
+                }
+            },
+        }
+    }
+
+    /// Return true if the value contained inside is/can resolve to a percentage.
+    /// Also returns false if the node is invalid somehow.
+    fn is_percentage(&self) -> bool {
+        match self {
+            Self::None => true,
+            Self::Value(value) => matches!(value, NumberOrPercentage::Percentage { .. }),
+            Self::Calc(node) => {
+                if let Ok(unit) = node.unit() {
+                    unit == CalcUnits::PERCENTAGE
+                } else {
+                    false
+                }
+            },
         }
     }
 }
