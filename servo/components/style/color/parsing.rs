@@ -395,16 +395,10 @@ fn parse_color_with_color_space<'i, 't>(
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum NumberOrPercentage {
     /// `<number>`.
-    Number {
-        /// The numeric value parsed, as a float.
-        value: f32,
-    },
+    Number(f32),
     /// `<percentage>`
-    Percentage {
-        /// The value as a float, divided by 100 so that the nominal range is
-        /// 0.0 to 1.0.
-        unit_value: f32,
-    },
+    /// The value as a float, divided by 100 so that the nominal range is 0.0 to 1.0.
+    Percentage(f32),
 }
 
 impl NumberOrPercentage {
@@ -412,15 +406,15 @@ impl NumberOrPercentage {
     /// [0..percent_basis].
     pub fn to_number(&self, percentage_basis: f32) -> f32 {
         match *self {
-            Self::Number { value } => value,
-            Self::Percentage { unit_value } => unit_value * percentage_basis,
+            Self::Number(value) => value,
+            Self::Percentage(unit_value) => unit_value * percentage_basis,
         }
     }
 }
 
 impl ColorComponentType for NumberOrPercentage {
     fn from_value(value: f32) -> Self {
-        Self::Number { value }
+        Self::Number(value)
     }
 
     fn units() -> CalcUnits {
@@ -429,8 +423,8 @@ impl ColorComponentType for NumberOrPercentage {
 
     fn try_from_token(token: &Token) -> Result<Self, ()> {
         Ok(match *token {
-            Token::Number { value, .. } => Self::Number { value },
-            Token::Percentage { unit_value, .. } => Self::Percentage { unit_value },
+            Token::Number { value, .. } => Self::Number(value),
+            Token::Percentage { unit_value, .. } => Self::Percentage(unit_value),
             _ => {
                 return Err(());
             },
@@ -439,8 +433,8 @@ impl ColorComponentType for NumberOrPercentage {
 
     fn try_from_leaf(leaf: &SpecifiedLeaf) -> Result<Self, ()> {
         Ok(match *leaf {
-            SpecifiedLeaf::Percentage(unit_value) => Self::Percentage { unit_value },
-            SpecifiedLeaf::Number(value) => Self::Number { value },
+            SpecifiedLeaf::Percentage(unit_value) => Self::Percentage(unit_value),
+            SpecifiedLeaf::Number(value) => Self::Number(value),
             _ => return Err(()),
         })
     }
@@ -450,15 +444,10 @@ impl ColorComponentType for NumberOrPercentage {
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
 pub enum NumberOrAngle {
     /// `<number>`.
-    Number {
-        /// The numeric value parsed, as a float.
-        value: f32,
-    },
+    Number(f32),
     /// `<angle>`
-    Angle {
-        /// The value as a number of degrees.
-        degrees: f32,
-    },
+    /// The value as a number of degrees.
+    Angle(f32),
 }
 
 impl NumberOrAngle {
@@ -466,15 +455,15 @@ impl NumberOrAngle {
     /// degrees, because it is the canonical unit.
     pub fn degrees(&self) -> f32 {
         match *self {
-            Self::Number { value } => value,
-            Self::Angle { degrees } => degrees,
+            Self::Number(value) => value,
+            Self::Angle(degrees) => degrees,
         }
     }
 }
 
 impl ColorComponentType for NumberOrAngle {
     fn from_value(value: f32) -> Self {
-        Self::Number { value }
+        Self::Number(value)
     }
 
     fn units() -> CalcUnits {
@@ -483,7 +472,7 @@ impl ColorComponentType for NumberOrAngle {
 
     fn try_from_token(token: &Token) -> Result<Self, ()> {
         Ok(match *token {
-            Token::Number { value, .. } => Self::Number { value },
+            Token::Number { value, .. } => Self::Number(value),
             Token::Dimension {
                 value, ref unit, ..
             } => {
@@ -491,7 +480,7 @@ impl ColorComponentType for NumberOrAngle {
                     SpecifiedAngle::parse_dimension(value, unit, /* from_calc = */ false)
                         .map(|angle| angle.degrees())?;
 
-                NumberOrAngle::Angle { degrees }
+                NumberOrAngle::Angle(degrees)
             },
             _ => {
                 return Err(());
@@ -501,10 +490,8 @@ impl ColorComponentType for NumberOrAngle {
 
     fn try_from_leaf(leaf: &SpecifiedLeaf) -> Result<Self, ()> {
         Ok(match *leaf {
-            SpecifiedLeaf::Angle(angle) => Self::Angle {
-                degrees: angle.degrees(),
-            },
-            SpecifiedLeaf::Number(value) => Self::Number { value },
+            SpecifiedLeaf::Angle(angle) => Self::Angle(angle.degrees()),
+            SpecifiedLeaf::Number(value) => Self::Number(value),
             _ => return Err(()),
         })
     }
@@ -624,9 +611,7 @@ impl<'a, 'b: 'a> ComponentParser<'a, 'b> {
             arguments.expect_comma()?;
             self.parse_number_or_percentage(arguments, false)
         } else {
-            Ok(ColorComponent::Value(NumberOrPercentage::Number {
-                value: OPAQUE,
-            }))
+            Ok(ColorComponent::Value(NumberOrPercentage::Number(OPAQUE)))
         }
     }
 
@@ -638,9 +623,9 @@ impl<'a, 'b: 'a> ComponentParser<'a, 'b> {
             arguments.expect_delim('/')?;
             self.parse_number_or_percentage(arguments, true)
         } else {
-            Ok(ColorComponent::Value(NumberOrPercentage::Number {
-                value: self.origin_color.map(|c| c.alpha).unwrap_or(OPAQUE),
-            }))
+            Ok(ColorComponent::Value(NumberOrPercentage::Number(
+                self.origin_color.map(|c| c.alpha).unwrap_or(OPAQUE),
+            )))
         }
     }
 }
