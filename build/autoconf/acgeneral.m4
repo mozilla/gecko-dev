@@ -1,3 +1,5 @@
+//test
+
 dnl Parameterized macros.
 dnl Requires GNU m4.
 dnl This file is part of Autoconf.
