@@ -1204,10 +1204,6 @@ struct arena_t {
   explicit arena_t(arena_params_t* aParams, bool aIsPrivate);
   ~arena_t();
 
-  void ResetSmallAllocRandomization();
-
-  void InitPRNG() MOZ_REQUIRES(mLock);
-
  private:
   void InitChunk(arena_chunk_t* aChunk, size_t aMinCommittedPages);
 
@@ -3395,40 +3391,6 @@ void arena_bin_t::Init(SizeClass aSizeClass) {
   mSizeDivisor = FastDivisor<uint16_t>(aSizeClass.Size(), try_run_size);
 }
 
-void arena_t::ResetSmallAllocRandomization() {
-  if (MOZ_UNLIKELY(opt_randomize_small)) {
-    MaybeMutexAutoLock lock(mLock);
-    InitPRNG();
-  }
-  mRandomizeSmallAllocations = opt_randomize_small;
-}
-
-void arena_t::InitPRNG() {
-  // Both another thread could race and the code backing RandomUint64
-  // (arc4random for example) may allocate memory while here, so we must
-  // ensure to start the mPRNG initialization only once and to not hold
-  // the lock while initializing.
-  mIsPRNGInitializing = true;
-  {
-    mLock.Unlock();
-    mozilla::Maybe<uint64_t> prngState1 = mozilla::RandomUint64();
-    mozilla::Maybe<uint64_t> prngState2 = mozilla::RandomUint64();
-    mLock.Lock();
-
-    mozilla::non_crypto::XorShift128PlusRNG prng(prngState1.valueOr(0),
-                                                 prngState2.valueOr(0));
-    if (mPRNG) {
-      *mPRNG = prng;
-    } else {
-      void* backing =
-          base_alloc(sizeof(mozilla::non_crypto::XorShift128PlusRNG));
-      mPRNG = new (backing)
-          mozilla::non_crypto::XorShift128PlusRNG(std::move(prng));
-    }
-  }
-  mIsPRNGInitializing = false;
-}
-
 void* arena_t::MallocSmall(size_t aSize, bool aZero) {
   void* ret;
   arena_bin_t* bin;
@@ -3467,7 +3429,25 @@ void* arena_t::MallocSmall(size_t aSize, bool aZero) {
 
     if (MOZ_UNLIKELY(mRandomizeSmallAllocations && mPRNG == nullptr &&
                      !mIsPRNGInitializing)) {
-      InitPRNG();
+      // Both another thread could race and the code backing RandomUint64
+      // (arc4random for example) may allocate memory while here, so we must
+      // ensure to start the mPRNG initialization only once and to not hold
+      // the lock while initializing.
+      mIsPRNGInitializing = true;
+      mozilla::non_crypto::XorShift128PlusRNG* prng;
+      {
+        // TODO: I think no MaybeMutexAutoUnlock or similar exists, should it?
+        mLock.Unlock();
+        mozilla::Maybe<uint64_t> prngState1 = mozilla::RandomUint64();
+        mozilla::Maybe<uint64_t> prngState2 = mozilla::RandomUint64();
+        void* backing =
+            base_alloc(sizeof(mozilla::non_crypto::XorShift128PlusRNG));
+        prng = new (backing) mozilla::non_crypto::XorShift128PlusRNG(
+            prngState1.valueOr(0), prngState2.valueOr(0));
+        mLock.Lock();
+      }
+      mPRNG = prng;
+      mIsPRNGInitializing = false;
     }
     MOZ_ASSERT(!mRandomizeSmallAllocations || mPRNG);
 
@@ -4898,7 +4878,6 @@ inline void MozJemalloc::jemalloc_stats_internal(
 
   // Gather runtime settings.
   aStats->opt_junk = opt_junk;
-  aStats->opt_randomize_small = opt_randomize_small;
   aStats->opt_zero = opt_zero;
   aStats->quantum = kQuantum;
   aStats->quantum_max = kMaxQuantumClass;
@@ -5187,39 +5166,6 @@ inline void MozJemalloc::moz_dispose_arena(arena_id_t aArenaId) {
 inline void MozJemalloc::moz_set_max_dirty_page_modifier(int32_t aModifier) {
   gArenas.SetDefaultMaxDirtyPageModifier(aModifier);
 }
-
-#if defined(MOZ_ENABLE_FORKSERVER)
-inline void MozJemalloc::jemalloc_reset_small_alloc_randomization(
-    bool aRandomizeSmall) {
-  // When this process got forked by ForkServer then it inherited the existing
-  // state of mozjemalloc. Specifically, parsing of MALLOC_OPTIONS has already
-  // been done but it may not reflect anymore the current set of options after
-  // the fork().
-  //
-  // Content process will have randomization on small malloc disabled via the
-  // MALLOC_OPTIONS environment variable set by parent process, missing this
-  // will lead to serious performance regressions because CPU prefetch will
-  // break, cf bug 1912262.  However on forkserver-forked Content processes, the
-  // environment is not yet reset when the postfork child handler is being
-  // called.
-  //
-  // This API is here to allow those forkserver-forked Content processes to
-  // notify jemalloc to turn off the randomization on small allocations and
-  // perform the required reinitialization of already existing arena's PRNG.
-  // It is important to make sure that the PRNG state is properly re-initialized
-  // otherwise child processes would share all the same state.
-
-  {
-    AutoLock<StaticMutex> lock(gInitLock);
-    opt_randomize_small = aRandomizeSmall;
-  }
-
-  MutexAutoLock lock(gArenas.mLock);
-  for (auto* arena : gArenas.iter()) {
-    arena->ResetSmallAllocRandomization();
-  }
-}
-#endif
 
 #define MALLOC_DECL(name, return_type, ...)                          \
   inline return_type MozJemalloc::moz_arena_##name(                  \
