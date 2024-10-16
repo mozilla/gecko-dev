@@ -6,7 +6,6 @@
 #include "mozilla/intl/LineBreaker.h"
 
 #include "jisx4051class.h"
-#include "LineBreakCache.h"
 #include "nsComplexBreaker.h"
 #include "nsTArray.h"
 #include "nsUnicodeProperties.h"
@@ -28,9 +27,8 @@
 #  include <mutex>
 #endif
 
-using namespace mozilla;
-using namespace mozilla::intl;
 using namespace mozilla::unicode;
+using namespace mozilla::intl;
 
 /*
 
@@ -1104,56 +1102,31 @@ void LineBreaker::ComputeBreakPositions(
       return;
     }
 
-    // Check the cache.
-    LineBreakCache::Key key{aChars, aLength, aWordBreak, aLevel,
-                            aIsChineseOrJapanese};
-    auto entry = LineBreakCache::Cache()->Lookup(key);
-    if (entry) {
-      auto& breakBefore = entry.Data().mBreaks;
-      LineBreakCache::CopyAndFill(breakBefore, aBreakBefore,
-                                  aBreakBefore + aLength);
-      return;
-    }
-
     memset(aBreakBefore, 0, aLength);
 
     CheckedInt<int32_t> length = aLength;
-    if (length.isValid()) {
-      const bool useDefault =
-          UseDefaultLineSegmenter(aWordBreak, aLevel, aIsChineseOrJapanese);
-      capi::ICU4XLineSegmenter* lineSegmenter = GetLineSegmenter(
-          useDefault, aWordBreak, aLevel, aIsChineseOrJapanese);
-      ICU4XLineBreakIteratorUtf16 iterator(
-          capi::ICU4XLineSegmenter_segment_utf16(lineSegmenter, aChars,
-                                                 aLength));
-
-      while (true) {
-        const int32_t nextPos = iterator.next();
-        if (nextPos < 0 || nextPos >= length.value()) {
-          break;
-        }
-        aBreakBefore[nextPos] = 1;
-      }
-
-      if (!useDefault) {
-        capi::ICU4XLineSegmenter_destroy(lineSegmenter);
-      }
+    if (!length.isValid()) {
+      return;
     }
 
-    // As a very simple memory saving measure we trim off trailing elements that
-    // are false before caching.
-    auto* afterLastTrue = aBreakBefore + aLength;
-    while (!*(afterLastTrue - 1)) {
-      if (--afterLastTrue == aBreakBefore) {
+    const bool useDefault =
+        UseDefaultLineSegmenter(aWordBreak, aLevel, aIsChineseOrJapanese);
+    capi::ICU4XLineSegmenter* lineSegmenter =
+        GetLineSegmenter(useDefault, aWordBreak, aLevel, aIsChineseOrJapanese);
+    ICU4XLineBreakIteratorUtf16 iterator(
+        capi::ICU4XLineSegmenter_segment_utf16(lineSegmenter, aChars, aLength));
+
+    while (true) {
+      const int32_t nextPos = iterator.next();
+      if (nextPos < 0 || nextPos >= length.value()) {
         break;
       }
+      aBreakBefore[nextPos] = 1;
     }
 
-    entry.Set(LineBreakCache::Entry{
-        nsString(aChars, aLength),
-        nsTArray<uint8_t>(aBreakBefore, afterLastTrue - aBreakBefore),
-        aWordBreak, aLevel, aIsChineseOrJapanese});
-
+    if (!useDefault) {
+      capi::ICU4XLineSegmenter_destroy(lineSegmenter);
+    }
     return;
   }
 #endif
