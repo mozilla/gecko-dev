@@ -135,7 +135,7 @@ struct LaunchResults {
   UniqueBEProcessCapabilityGrant mForegroundCapabilityGrant;
 #endif
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
-  RefPtr<AbstractSandboxBroker> mSandboxBroker;
+  UniquePtr<SandboxBroker> mSandboxBroker;
 #endif
 };
 typedef mozilla::MozPromise<LaunchResults, LaunchError, true>
@@ -457,13 +457,6 @@ GeckoChildProcessHost::~GeckoChildProcessHost() {
       mChildProcessHandle = 0;
     }
   }
-
-#if defined(MOZ_SANDBOX) && defined(XP_WIN)
-  if (mSandboxBroker) {
-    mSandboxBroker->Shutdown();
-    mSandboxBroker = nullptr;
-  }
-#endif
 }
 
 base::ProcessHandle GeckoChildProcessHost::GetChildProcessHandle() {
@@ -1570,7 +1563,7 @@ Result<Ok, LaunchError> WindowsProcessLauncher::DoSetup() {
   }
 
 #  if defined(MOZ_SANDBOX)
-  mResults.mSandboxBroker = new SandboxBroker();
+  mResults.mSandboxBroker = MakeUnique<SandboxBroker>();
 
   // XXX: Bug 1124167: We should get rid of the process specific logic for
   // sandboxing in this class at some point. Unfortunately it will take a bit
