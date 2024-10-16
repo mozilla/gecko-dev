@@ -28,16 +28,16 @@ const {
 // before calling "c" function only once.
 const TEST_URL = `data:text/html,<!DOCTYPE html><meta charset=utf8><script>
     window.onclick = () => {
-      for(let i = 0; i < 100000; i++) {
-        a();
-        b();
+      for(let i = 0; i < 30000; i++) {
+        a(window, i);
+        b(document.body);
       }
       c();
     };
-    function a() {};
-    function b() {};
+    function a(win, i) { return win; };
+    function b(body) { return body; };
     function c() {};
-  </script>`;
+  </script><body>JS Tracer test</body>`;
 
 /**
  * This test tracks the rendering speed of all JavaScript Tracer output methods.
@@ -51,6 +51,12 @@ module.exports = async function () {
     "devtools.debugger.features.javascript-tracing",
     true
   );
+
+  Services.prefs.setBoolPref(
+    "devtools.debugger.javascript-tracing-values",
+    true
+  );
+
   const tab = await testSetup(TEST_URL);
   const messageManager = tab.linkedBrowser.messageManager;
 
