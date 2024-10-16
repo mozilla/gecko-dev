@@ -326,8 +326,7 @@ TEST_F(TelemetryTestFixture, ScalarEventSummary) {
   const char* kLongestEvent =
       "oohwowlookthiscategoryissolong#thismethodislongtooo#"
       "thisobjectisnoslouch";
-  TelemetryScalar::SummarizeEvent(nsCString(kLongestEvent), ProcessID::Parent,
-                                  false /* aDynamic */);
+  TelemetryScalar::SummarizeEvent(nsCString(kLongestEvent), ProcessID::Parent);
 
   // Check the recorded value.
   JS::Rooted<JS::Value> scalarsSnapshot(cx.GetJSContext());
@@ -341,8 +340,7 @@ TEST_F(TelemetryTestFixture, ScalarEventSummary) {
   const char* kTooLongEvent =
       "oohwowlookthiscategoryissolong#thismethodislongtooo#"
       "thisobjectisnoslouch2";
-  TelemetryScalar::SummarizeEvent(nsCString(kTooLongEvent), ProcessID::Parent,
-                                  false /* aDynamic */);
+  TelemetryScalar::SummarizeEvent(nsCString(kTooLongEvent), ProcessID::Parent);
 
   GetScalarsSnapshot(true, cx.GetJSContext(), &scalarsSnapshot);
   CheckNumberOfProperties(kScalarName, cx.GetJSContext(), scalarsSnapshot, 1);
@@ -353,7 +351,7 @@ TEST_F(TelemetryTestFixture, ScalarEventSummary) {
     std::ostringstream eventName;
     eventName << "category#method#object" << i;
     TelemetryScalar::SummarizeEvent(nsCString(eventName.str().c_str()),
-                                    ProcessID::Parent, false /* aDynamic */);
+                                    ProcessID::Parent);
   }
 
   GetScalarsSnapshot(true, cx.GetJSContext(), &scalarsSnapshot);
@@ -362,37 +360,11 @@ TEST_F(TelemetryTestFixture, ScalarEventSummary) {
 // Don't run this part in debug builds as that intentionally asserts.
 #ifndef DEBUG
   TelemetryScalar::SummarizeEvent(nsCString("whoops#too#many"),
-                                  ProcessID::Parent, false /* aDynamic */);
+                                  ProcessID::Parent);
 
   GetScalarsSnapshot(true, cx.GetJSContext(), &scalarsSnapshot);
   CheckNumberOfProperties(kScalarName, cx.GetJSContext(), scalarsSnapshot, 500);
 #endif  // #ifndef DEBUG
-}
-
-TEST_F(TelemetryTestFixture, ScalarEventSummary_Dynamic) {
-  AutoJSContextWithGlobal cx(mCleanGlobal);
-
-  // Make sure we don't get scalars from other tests.
-  Unused << mTelemetry->ClearScalars();
-
-  const char* kScalarName = "telemetry.dynamic_event_counts";
-  const char* kLongestEvent =
-      "oohwowlookthiscategoryissolong#thismethodislongtooo#"
-      "thisobjectisnoslouch";
-  TelemetryScalar::SummarizeEvent(nsCString(kLongestEvent), ProcessID::Parent,
-                                  true /* aDynamic */);
-  TelemetryScalar::SummarizeEvent(nsCString(kLongestEvent), ProcessID::Content,
-                                  true /* aDynamic */);
-
-  // Check the recorded value.
-  JS::Rooted<JS::Value> scalarsSnapshot(cx.GetJSContext());
-  GetScalarsSnapshot(true, cx.GetJSContext(), &scalarsSnapshot,
-                     ProcessID::Dynamic);
-
-  // Recording in parent or content doesn't matter for dynamic scalars
-  // which all end up in the same place.
-  CheckKeyedUintScalar(kScalarName, kLongestEvent, cx.GetJSContext(),
-                       scalarsSnapshot, 2);
 }
 
 TEST_F(TelemetryTestFixture, TestKeyedScalarAllowedKeys) {

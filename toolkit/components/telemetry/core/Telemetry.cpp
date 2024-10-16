@@ -1590,16 +1590,6 @@ TelemetryImpl::ClearScalars() {
 // Telemetry Event IDL implementation.
 
 NS_IMETHODIMP
-TelemetryImpl::RecordEvent(const nsACString& aCategory,
-                           const nsACString& aMethod, const nsACString& aObject,
-                           JS::Handle<JS::Value> aValue,
-                           JS::Handle<JS::Value> aExtra, JSContext* aCx,
-                           uint8_t optional_argc) {
-  return TelemetryEvent::RecordEvent(aCategory, aMethod, aObject, aValue,
-                                     aExtra, aCx, optional_argc);
-}
-
-NS_IMETHODIMP
 TelemetryImpl::SnapshotEvents(uint32_t aDataset, bool aClear,
                               uint32_t aEventLimit, JSContext* aCx,
                               uint8_t optional_argc,
@@ -1609,16 +1599,10 @@ TelemetryImpl::SnapshotEvents(uint32_t aDataset, bool aClear,
 }
 
 NS_IMETHODIMP
-TelemetryImpl::RegisterEvents(const nsACString& aCategory,
-                              JS::Handle<JS::Value> aEventData, JSContext* cx) {
-  return TelemetryEvent::RegisterEvents(aCategory, aEventData, false, cx);
-}
-
-NS_IMETHODIMP
 TelemetryImpl::RegisterBuiltinEvents(const nsACString& aCategory,
                                      JS::Handle<JS::Value> aEventData,
                                      JSContext* cx) {
-  return TelemetryEvent::RegisterEvents(aCategory, aEventData, true, cx);
+  return TelemetryEvent::RegisterBuiltinEvents(aCategory, aEventData, cx);
 }
 
 NS_IMETHODIMP

@@ -505,21 +505,6 @@ interface nsITelemetry : nsISupports
   void flushBatchedChildTelemetry();
 
   /**
-   * Record an event in Telemetry.
-   *
-   * @param aCategory The category name.
-   * @param aMethod The method name.
-   * @param aObject The object name.
-   * @param aValue An optional string value to record.
-   * @param aExtra An optional object of the form (string -> string).
-   *               It should only contain registered extra keys.
-   *
-   * @throws NS_ERROR_INVALID_ARG When trying to record an unknown event.
-   */
-  [implicit_jscontext, optional_argc]
-  void recordEvent(in ACString aCategory, in ACString aMethod, in ACString aObject, [optional] in jsval aValue, [optional] in jsval extra);
-
-  /**
    * Serializes the recorded events to a JSON-appropriate array and optionally resets them.
    * The returned structure looks like this:
    *   [
@@ -538,9 +523,11 @@ interface nsITelemetry : nsISupports
   jsval snapshotEvents(in uint32_t aDataset, [optional] in boolean aClear, [optional] in uint32_t aEventLimit);
 
   /**
-   * Register new events to record them from addons. This allows registering multiple
-   * events for a category. They will be valid only for the current Firefox session.
-   * Note that events shipping in Firefox should be registered in Events.yaml.
+   * Parent process only. Register dynamic builtin events.
+   *
+   * This function is only meant to be used to support the "artifact build"/
+   * "build faster" developers by allowing to add new events without rebuilding
+   * the C++ components including the headers files.
    *
    * @param aCategory The unique category the events are registered in.
    * @param aEventData An object that contains registration data for 1-N events of the form:
@@ -562,17 +549,6 @@ interface nsITelemetry : nsISupports
    * @param aEventData.<name>.expired Optional, whether this event entry is expired. This allows
    *                                  recording it without error, but it will be discarded. Defaults to false.
    */
-  [implicit_jscontext]
-  void registerEvents(in ACString aCategory, in jsval aEventData);
-
-  /**
-   * Parent process only. Register dynamic builtin events. The parameters
-   * have the same meaning as the usual |registerEvents| function.
-   *
-   * This function is only meant to be used to support the "artifact build"/
-   * "build faster" developers by allowing to add new events without rebuilding
-   * the C++ components including the headers files.
-  */
   [implicit_jscontext]
   void registerBuiltinEvents(in ACString aCategory, in jsval aEventData);
 

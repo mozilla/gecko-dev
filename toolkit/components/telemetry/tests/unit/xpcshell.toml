@@ -22,9 +22,6 @@ generated-files = [
   "restartless.xpi",
 ]
 
-["test_ChildEvents.js"]
-skip-if = ["os == 'android'"] # Disabled due to crashes (see bug 1331366)
-
 ["test_ChildHistograms.js"]
 skip-if = ["os == 'android'"] # Disabled due to crashes (see bug 1331366)
 tags = "addons"
@@ -71,9 +68,6 @@ skip-if = ["os == 'android'"]
 
 ["test_TelemetryAndroidEnvironment.js"]
 
-["test_TelemetryChildEvents_buildFaster.js"]
-skip-if = ["os == 'android'"] # Disabled due to crashes (see bug 1331366)
-
 ["test_TelemetryClientID_reset.js"]
 skip-if = ["os == 'android'"] # Disabled as Android/GeckoView doesn't run TelemetryController
 
@@ -100,11 +94,6 @@ skip-if = [
   "os == 'android'",
   "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1807929
 ]
-
-["test_TelemetryEvents.js"]
-
-["test_TelemetryEvents_buildFaster.js"]
-skip-if = ["os == 'win' && msix"] # https://bugzilla.mozilla.org/show_bug.cgi?id=1807929
 
 ["test_TelemetryFlagClear.js"]
 
@@ -174,8 +163,6 @@ run-sequentially = "very high failure rate in parallel"
 
 ["test_UtilityScalars.js"]
 run-if = ["os == 'win'"]
-
-["test_bug1555798.js"]
 
 ["test_client_id.js"]
 
