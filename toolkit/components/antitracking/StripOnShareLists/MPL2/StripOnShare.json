@@ -64,32 +64,14 @@
   },
   "amazon": {
     "queryParams": [
-      "__mk_de_DE",
-      "aaxitk",
-      "content-id",
-      "crid",
-      "dib",
-      "dib_tag",
-      "hsa_cr_id",
       "keywords",
-      "lp_asins",
-      "lp_query",
-      "lp_slot",
-      "pd_rd_plhdr",
       "pd_rd_r",
       "pd_rd_w",
       "pd_rd_wg",
       "pf_rd_r",
       "pf_rd_p",
-      "psc",
-      "qid",
-      "ref_",
-      "sbo",
-      "sprefix",
-      "s_prefix",
-      "sp_csd",
       "sr",
-      "store_ref"
+      "content-id"
     ],
     "topLevelSites": [
       "www.amazon.com",
