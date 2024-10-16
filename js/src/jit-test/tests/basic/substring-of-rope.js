@@ -23,3 +23,41 @@ function testSameSubstring() {
   }
 }
 testSameSubstring();
+
+// If the substring is exactly the left or right child, we should return it
+// without flattening the rope.
+function testLeftRightSubstring() {
+  var left = "abcdefghijklmnopqrstuvwxyz";
+  var right = "012345678901234567890123456789";
+  var rope = newRope(left, right);
+  for (var i = 0; i < 10; i++) {
+    assertSameAddress(rope.substring(0, left.length), left);
+    assertSameAddress(rope.substring(left.length), right);
+    assertEq(isRope(rope), true); // Still a rope.
+  }
+}
+testLeftRightSubstring();
+
+function testSubstringSpansBoth() {
+  var left = "abcdefghijklmnopqrstuvwxyz";
+  var right = "012345678901234567890123456789";
+  var rope = newRope(left, right);
+
+  // If the substring spans both left and right children but fits in an inline
+  // string, don't flatten the rope.
+  for (var i = 0; i < 10; i++) {
+    var substrInline = rope.substring(left.length - 5, left.length + 5);
+    if (hasStringRepresentation) {
+      assertEq(stringRepresentation(substrInline).includes("InlineString"), true);
+    }
+    assertEq(substrInline, "vwxyz01234");
+    assertEq(isRope(rope), true); // Still a rope.
+  }
+
+  // If the substring doesn't fit in an inline string, we flatten the rope and
+  // return a dependent string.
+  var substrLong = rope.substring(0, rope.length - 1);
+  assertEq(isRope(rope), false);
+  assertEq(isRope(substrLong), false);
+}
+testSubstringSpansBoth();
