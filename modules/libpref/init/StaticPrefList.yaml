@@ -10855,7 +10855,7 @@
 -   name: media.ffmpeg.encoder.enabled
     type: RelaxedAtomicBool
 #if !defined(MOZ_WIDGET_ANDROID)
-    value: @IS_NIGHTLY_BUILD@
+    value: true
 #else
     value: false
 #endif
