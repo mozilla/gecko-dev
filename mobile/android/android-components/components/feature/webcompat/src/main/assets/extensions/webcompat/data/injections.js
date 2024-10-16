@@ -1260,6 +1260,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1856915",
+    platform: "android",
+    domain: "login.yahoo.com",
+    bug: "1856915",
+    contentScripts: {
+      matches: ["*://login.yahoo.com/account/*"],
+      css: [
+        {
+          file: "injections/css/bug1856915-login.yahoo.com-unhide-password-button-fix.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
