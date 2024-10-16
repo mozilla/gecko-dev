@@ -104,7 +104,7 @@ async function renderProviders() {
   }
 
   // Add extra controls after the providers
-  addOption("---").disabled = true;
+  select.appendChild(document.createElement("hr"));
   document.l10n.setAttributes(addOption(), "genai-provider-view-details");
 
   // Update provider telemetry
