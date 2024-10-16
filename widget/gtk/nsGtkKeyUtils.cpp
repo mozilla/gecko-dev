@@ -685,15 +685,23 @@ void KeymapWrapper::SetModifierMasks(xkb_keymap* aKeymap) {
 /* This keymap routine is derived from weston-2.0.0/clients/simple-im.c
  */
 void KeymapWrapper::HandleKeymap(uint32_t format, int fd, uint32_t size) {
+  MOZ_LOG(gKeyLog, LogLevel::Info,
+          ("KeymapWrapper::HandleKeymap() format %d fd %d size %d", format, fd,
+           size));
   KeymapWrapper::ResetKeyboard();
 
   if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
+    MOZ_LOG(gKeyLog, LogLevel::Info,
+            ("KeymapWrapper::HandleKeymap(): format is not "
+             "WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1!"));
     close(fd);
     return;
   }
 
   char* mapString = (char*)mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
   if (mapString == MAP_FAILED) {
+    MOZ_LOG(gKeyLog, LogLevel::Info,
+            ("KeymapWrapper::HandleKeymap(): failed to allocate shm!"));
     close(fd);
     return;
   }
@@ -707,7 +715,8 @@ void KeymapWrapper::HandleKeymap(uint32_t format, int fd, uint32_t size) {
   close(fd);
 
   if (!keymap) {
-    NS_WARNING("keyboard_handle_keymap(): Failed to compile keymap!\n");
+    MOZ_LOG(gKeyLog, LogLevel::Info,
+            ("KeymapWrapper::HandleKeymap(): Failed to compile keymap!"));
     return;
   }
 
