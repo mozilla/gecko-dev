@@ -23,9 +23,12 @@ interface nsIBounceTrackingProtection : nsISupports {
     *  without risking data loss.
     *
     *  For toggling the feature in privacy settings UI switch between
-    *  MODE_ENABLED and MODE_NO_PURGE. This is important so that user activation
-    *  signals are still collected even if the feature is "turned off" for the
-    *  user.
+    *  MODE_ENABLED and MODE_ENABLED_DRY_RUN. This is important so that user
+    *  activation signals and telemetry are still collected even if the feature
+    *  is "turned off" for the user. In the future when we're done collecting
+    *  telemetry we may switch this to MODE_ENABLED_STANDBY where we still
+    *  collect user activation signals but do not simulate purging.
+    *
     *  Fully enabling / disabling the feature (MODE_DISABLED -> x or x ->
     *  MODE_DISABLED) requires a restart to apply.
     */

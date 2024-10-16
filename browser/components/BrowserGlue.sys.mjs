@@ -5246,6 +5246,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.fingerprintingProtection": null,
         "privacy.fingerprintingProtection.pbmode": null,
         "network.cookie.cookieBehavior.optInPartitioning": null,
+        "privacy.bounceTrackingProtection.mode": null,
       },
       standard: {
         "network.cookie.cookieBehavior": null,
@@ -5267,6 +5268,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.fingerprintingProtection": null,
         "privacy.fingerprintingProtection.pbmode": null,
         "network.cookie.cookieBehavior.optInPartitioning": null,
+        "privacy.bounceTrackingProtection.mode": null,
       },
     };
     let type = "strict";
@@ -5474,6 +5476,16 @@ var ContentBlockingCategoriesPrefs = {
           this.CATEGORY_PREFS[type][
             "network.cookie.cookieBehavior.optInPartitioning"
           ] = false;
+          break;
+        case "btp":
+          this.CATEGORY_PREFS[type]["privacy.bounceTrackingProtection.mode"] =
+            Ci.nsIBounceTrackingProtection.MODE_ENABLED;
+          break;
+        case "-btp":
+          // We currently consider MODE_ENABLED_DRY_RUN the "off" state. See
+          // nsIBounceTrackingProtection.idl for details.
+          this.CATEGORY_PREFS[type]["privacy.bounceTrackingProtection.mode"] =
+            Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN;
           break;
         default:
           console.error(`Error: Unknown rule observed ${item}`);

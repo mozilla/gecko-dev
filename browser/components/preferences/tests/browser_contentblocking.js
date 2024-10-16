@@ -35,6 +35,7 @@ const FPP_PREF = "privacy.fingerprintingProtection";
 const FPP_PBM_PREF = "privacy.fingerprintingProtection.pbmode";
 const THIRD_PARTY_COOKIE_DEPRECATION_PREF =
   "network.cookie.cookieBehavior.optInPartitioning";
+const BTP_PREF = "privacy.bounceTrackingProtection.mode";
 
 const { EnterprisePolicyTesting, PoliciesPrefTracker } =
   ChromeUtils.importESModule(
@@ -342,6 +343,7 @@ add_task(async function testContentBlockingStandardCategory() {
     [FPP_PREF]: null,
     [FPP_PBM_PREF]: null,
     [THIRD_PARTY_COOKIE_DEPRECATION_PREF]: null,
+    [BTP_PREF]: null,
   };
 
   for (let pref in prefs) {
@@ -411,6 +413,10 @@ add_task(async function testContentBlockingStandardCategory() {
   Services.prefs.setBoolPref(
     THIRD_PARTY_COOKIE_DEPRECATION_PREF,
     !Services.prefs.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF)
+  );
+  Services.prefs.setIntPref(
+    BTP_PREF,
+    Ci.nsIBounceTrackingProtection.MODE_ENABLED
   );
 
   for (let pref in prefs) {
@@ -491,6 +497,10 @@ add_task(async function testContentBlockingStrictCategory() {
     Ci.nsICookieService.BEHAVIOR_LIMIT_FOREIGN
   );
   Services.prefs.setBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF, false);
+  Services.prefs.setIntPref(
+    BTP_PREF,
+    Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN
+  );
   let strict_pref = Services.prefs.getStringPref(STRICT_PREF).split(",");
 
   await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
@@ -813,6 +823,20 @@ add_task(async function testContentBlockingStrictCategory() {
           Services.prefs.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
           false,
           `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} has been set to false`
+        );
+        break;
+      case "btp":
+        is(
+          Services.prefs.getIntPref(BTP_PREF),
+          Ci.nsIBounceTrackingProtection.MODE_ENABLED,
+          `${BTP_PREF} has been set to MODE_ENABLED`
+        );
+        break;
+      case "-btp":
+        is(
+          Services.prefs.getIntPref(BTP_PREF),
+          Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN,
+          `${BTP_PREF} has been set to MODE_ENABLED_DRY_RUN`
         );
         break;
       default:

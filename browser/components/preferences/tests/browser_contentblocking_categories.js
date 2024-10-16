@@ -29,6 +29,7 @@ const FPP_PREF = "privacy.fingerprintingProtection";
 const FPP_PBM_PREF = "privacy.fingerprintingProtection.pbmode";
 const THIRD_PARTY_COOKIE_DEPRECATION_PREF =
   "network.cookie.cookieBehavior.optInPartitioning";
+const BTP_PREF = "privacy.bounceTrackingProtection.mode";
 const STRICT_DEF_PREF = "browser.contentblocking.features.strict";
 
 // Tests that the content blocking standard category definition is based on the default settings of
@@ -115,6 +116,10 @@ add_task(async function testContentBlockingStandardDefinition() {
     !Services.prefs.prefHasUserValue(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
     `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has the default value`
   );
+  ok(
+    !Services.prefs.prefHasUserValue(BTP_PREF),
+    `${BTP_PREF} pref has the default value`
+  );
 
   let defaults = Services.prefs.getDefaultBranch("");
   let originalTP = defaults.getBoolPref(TP_PREF);
@@ -137,6 +142,7 @@ add_task(async function testContentBlockingStandardDefinition() {
   let originalFPP = defaults.getBoolPref(FPP_PREF);
   let originalFPPPBM = defaults.getBoolPref(FPP_PBM_PREF);
   let original3PCD = defaults.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF);
+  let originalBTP = defaults.getIntPref(BTP_PREF);
 
   let nonDefaultNCB;
   switch (originalNCB) {
@@ -175,6 +181,7 @@ add_task(async function testContentBlockingStandardDefinition() {
   defaults.setBoolPref(FPP_PREF, !originalFPP);
   defaults.setBoolPref(FPP_PBM_PREF, !originalFPPPBM);
   defaults.setBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF, !original3PCD);
+  defaults.setIntPref(BTP_PREF, Ci.nsIBounceTrackingProtection.MODE_ENABLED);
 
   ok(
     !Services.prefs.prefHasUserValue(TP_PREF),
@@ -248,6 +255,10 @@ add_task(async function testContentBlockingStandardDefinition() {
     !Services.prefs.prefHasUserValue(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
     `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has the default value`
   );
+  ok(
+    !Services.prefs.prefHasUserValue(BTP_PREF),
+    `${BTP_PREF} pref has the default value`
+  );
 
   // cleanup
   defaults.setIntPref(NCB_PREF, originalNCB);
@@ -269,6 +280,7 @@ add_task(async function testContentBlockingStandardDefinition() {
   defaults.setBoolPref(FPP_PREF, originalFPP);
   defaults.setBoolPref(FPP_PBM_PREF, originalFPPPBM);
   defaults.setBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF, original3PCD);
+  defaults.setIntPref(BTP_PREF, originalBTP);
 });
 
 // Tests that the content blocking strict category definition changes the behavior
@@ -279,7 +291,7 @@ add_task(async function testContentBlockingStrictDefinition() {
   let originalStrictPref = defaults.getStringPref(STRICT_DEF_PREF);
   defaults.setStringPref(
     STRICT_DEF_PREF,
-    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,3pcd"
+    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,3pcd,btp"
   );
   Services.prefs.setStringPref(CAT_PREF, "strict");
   is(
@@ -294,7 +306,7 @@ add_task(async function testContentBlockingStrictDefinition() {
   );
   is(
     Services.prefs.getStringPref(STRICT_DEF_PREF),
-    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,3pcd",
+    "tp,tpPrivate,fp,cm,cookieBehavior0,cookieBehaviorPBM0,stp,emailTP,emailTPPrivate,lvl2,rp,rpTop,ocsp,qps,qpsPBM,fpp,fppPrivate,3pcd,btp",
     `${STRICT_DEF_PREF} changed to what we set.`
   );
 
@@ -388,6 +400,11 @@ add_task(async function testContentBlockingStrictDefinition() {
     true,
     `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has been set to true`
   );
+  is(
+    Services.prefs.getIntPref(BTP_PREF),
+    Ci.nsIBounceTrackingProtection.MODE_ENABLED,
+    `${BTP_PREF} pref has been set to MODE_ENABLED`
+  );
 
   // Note, if a pref is not listed it will use the default value, however this is only meant as a
   // backup if a mistake is made. The UI will not respond correctly.
@@ -464,10 +481,14 @@ add_task(async function testContentBlockingStrictDefinition() {
     !Services.prefs.prefHasUserValue(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
     `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has the default value`
   );
+  ok(
+    !Services.prefs.prefHasUserValue(BTP_PREF),
+    `${BTP_PREF} pref has the default value`
+  );
 
   defaults.setStringPref(
     STRICT_DEF_PREF,
-    "-tpPrivate,-fp,-cm,-tp,cookieBehavior3,cookieBehaviorPBM2,-stp,-emailTP,-emailTPPrivate,-lvl2,-rp,-ocsp,-qps,-qpsPBM,-fpp,-fppPrivate,-3pcd"
+    "-tpPrivate,-fp,-cm,-tp,cookieBehavior3,cookieBehaviorPBM2,-stp,-emailTP,-emailTPPrivate,-lvl2,-rp,-ocsp,-qps,-qpsPBM,-fpp,-fppPrivate,-3pcd,-btp"
   );
   is(
     Services.prefs.getBoolPref(TP_PREF),
@@ -558,6 +579,11 @@ add_task(async function testContentBlockingStrictDefinition() {
     Services.prefs.getBoolPref(THIRD_PARTY_COOKIE_DEPRECATION_PREF),
     false,
     `${THIRD_PARTY_COOKIE_DEPRECATION_PREF} pref has been set to false`
+  );
+  is(
+    Services.prefs.getIntPref(BTP_PREF),
+    Ci.nsIBounceTrackingProtection.MODE_ENABLED_DRY_RUN,
+    `${BTP_PREF} pref has been set to MODE_ENABLED_DRY_RUN`
   );
 
   // cleanup
