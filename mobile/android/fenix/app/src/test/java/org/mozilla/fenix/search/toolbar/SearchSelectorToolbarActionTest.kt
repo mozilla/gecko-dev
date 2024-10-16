@@ -124,7 +124,10 @@ class SearchSelectorToolbarActionTest {
             verify {
                 view.setIcon(
                     icon = searchEngineIcon,
-                    contentDescription = testSearchEngine.name,
+                    contentDescription = testContext.getString(
+                        R.string.search_engine_icon_content_description,
+                        testSearchEngine.name,
+                    ),
                 )
             }
         }
@@ -155,7 +158,10 @@ class SearchSelectorToolbarActionTest {
             verify(exactly = 1) {
                 view.setIcon(
                     icon = searchEngineIcon,
-                    contentDescription = testSearchEngine.name,
+                    contentDescription = testContext.getString(
+                        R.string.search_engine_icon_content_description,
+                        testSearchEngine.name,
+                    ),
                 )
             }
         }
@@ -183,7 +189,10 @@ class SearchSelectorToolbarActionTest {
             verify(exactly = 1) {
                 view.setIcon(
                     icon = searchEngineIcon,
-                    contentDescription = testSearchEngine.name,
+                    contentDescription = testContext.getString(
+                        R.string.search_engine_icon_content_description,
+                        testSearchEngine.name,
+                    ),
                 )
             }
 
@@ -200,7 +209,10 @@ class SearchSelectorToolbarActionTest {
             verify(exactly = 1) {
                 view.setIcon(
                     icon = searchEngineIcon,
-                    contentDescription = testSearchEngine.name,
+                    contentDescription = testContext.getString(
+                        R.string.search_engine_icon_content_description,
+                        testSearchEngine.name,
+                    ),
                 )
             }
 
@@ -219,13 +231,19 @@ class SearchSelectorToolbarActionTest {
             verify(exactly = 1) {
                 view.setIcon(
                     icon = searchEngineIcon,
-                    contentDescription = testSearchEngine.name,
+                    contentDescription = testContext.getString(
+                        R.string.search_engine_icon_content_description,
+                        testSearchEngine.name,
+                    ),
                 )
             }
             verify(exactly = 1) {
                 view.setIcon(
                     icon = searchEngineIcon,
-                    contentDescription = newSearchEngine.name,
+                    contentDescription = testContext.getString(
+                        R.string.search_engine_icon_content_description,
+                        newSearchEngine.name,
+                    ),
                 )
             }
         }

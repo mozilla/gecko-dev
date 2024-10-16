@@ -53,7 +53,10 @@ class SearchSelectorToolbarAction(
             initialSearchEngine?.let {
                 this.setIcon(
                     icon = initialSearchEngine.getScaledIcon(this.context),
-                    contentDescription = initialSearchEngine.name,
+                    contentDescription = context.getString(
+                        R.string.search_engine_icon_content_description,
+                        initialSearchEngine.name,
+                    ),
                 )
             }
 
@@ -99,7 +102,10 @@ class SearchSelectorToolbarAction(
                                     setTint(view.context.getColorFromAttr(R.attr.textPrimary))
                                 }
                             },
-                            contentDescription = searchEngine.name,
+                            contentDescription = view.context.getString(
+                                R.string.search_engine_icon_content_description,
+                                searchEngine.name,
+                            ),
                         )
                     }
             }.also {
