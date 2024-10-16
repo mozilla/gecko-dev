@@ -1440,6 +1440,24 @@ const AVAILABLE_UA_OVERRIDES = [
       },
     },
   },
+  {
+    /*
+     * Bug 1899948 - UA override for tv.partner.co.il
+     * Webcompat issue #64703 - https://webcompat.com/issues/64703
+     *
+     * Site blocks Firefox, but seems to work with a UA spoof.
+     */
+    id: "1899948",
+    platform: "all",
+    domain: "tv.partner.co.il",
+    bug: "1899948",
+    config: {
+      matches: ["*://tv.partner.co.il/*"],
+      uaTransformer: () => {
+        return UAHelpers.getDeviceAppropriateChromeUA();
+      },
+    },
+  },
 ];
 
 module.exports = AVAILABLE_UA_OVERRIDES;
