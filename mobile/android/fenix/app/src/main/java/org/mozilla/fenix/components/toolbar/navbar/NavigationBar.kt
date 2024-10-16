@@ -429,7 +429,7 @@ private fun MenuButton(
         ) {
             Icon(
                 painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                contentDescription = stringResource(id = R.string.mozac_browser_menu_button),
+                contentDescription = stringResource(id = R.string.content_description_menu),
                 tint = tint,
             )
         }
