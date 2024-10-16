@@ -37,8 +37,7 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(TrustedTypePolicyFactory)
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(TrustedTypePolicyFactory)
 
-  explicit TrustedTypePolicyFactory(nsIGlobalObject* aGlobalObject)
-      : mGlobalObject{aGlobalObject} {}
+  explicit TrustedTypePolicyFactory(nsIGlobalObject* aGlobalObject);
 
   // Required for Web IDL binding.
   nsIGlobalObject* GetParentObject() const { return mGlobalObject; }
@@ -83,14 +82,11 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
   }
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-defaultpolicy
-  TrustedTypePolicy* GetDefaultPolicy() const {
-    // TODO: impl
-    return nullptr;
-  }
+  TrustedTypePolicy* GetDefaultPolicy() const { return mDefaultPolicy; }
 
  private:
-  // Required because this class is ref-counted.
-  virtual ~TrustedTypePolicyFactory() = default;
+  // Virtual destructor required because this class is ref-counted.
+  virtual ~TrustedTypePolicyFactory();
 
   enum class PolicyCreation { Blocked, Allowed };
 
@@ -101,6 +97,8 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
   RefPtr<nsIGlobalObject> mGlobalObject;
 
   nsTArray<nsString> mCreatedPolicyNames;
+
+  RefPtr<TrustedTypePolicy> mDefaultPolicy;
 };
 
 }  // namespace dom
