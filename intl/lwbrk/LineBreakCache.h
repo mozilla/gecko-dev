@@ -13,6 +13,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/MruCache.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/intl/Segmenter.h"
 
 namespace mozilla {
 namespace intl {
@@ -21,11 +22,19 @@ namespace {
 struct LBCacheKey {
   const char16_t* mText;
   uint32_t mLength;
+  // ICU4X segmenter results depend on these flags, so they need to be part
+  // of the cache key. (Legacy ComplexBreaker just leaves them as default.)
+  WordBreakRule mWordBreak = WordBreakRule::Normal;
+  LineBreakRule mLineBreak = LineBreakRule::Auto;
+  bool mIsChineseOrJapanese = false;
 };
 
 struct LBCacheEntry {
   nsString mText;
   nsTArray<uint8_t> mBreaks;
+  WordBreakRule mWordBreak = WordBreakRule::Normal;
+  LineBreakRule mLineBreak = LineBreakRule::Auto;
+  bool mIsChineseOrJapanese = false;
 };
 }  // namespace
 
@@ -50,11 +59,19 @@ class LineBreakCache
   }
 
   static HashNumber Hash(const Key& aKey) {
-    return HashString(aKey.mText, aKey.mLength);
+    HashNumber h = HashString(aKey.mText, aKey.mLength);
+    h = AddToHash(h, aKey.mWordBreak);
+    h = AddToHash(h, aKey.mLineBreak);
+    h = AddToHash(h, aKey.mIsChineseOrJapanese);
+    return h;
   }
 
   static bool Match(const Key& aKey, const Entry& aEntry) {
-    return nsDependentSubstring(aKey.mText, aKey.mLength).Equals(aEntry.mText);
+    return nsDependentSubstring(aKey.mText, aKey.mLength)
+               .Equals(aEntry.mText) &&
+           aKey.mWordBreak == aEntry.mWordBreak &&
+           aKey.mLineBreak == aEntry.mLineBreak &&
+           aKey.mIsChineseOrJapanese == aEntry.mIsChineseOrJapanese;
   }
 
   static void CopyAndFill(const nsTArray<uint8_t>& aCachedBreakBefore,
