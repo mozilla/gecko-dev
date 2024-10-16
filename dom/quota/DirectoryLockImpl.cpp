@@ -368,14 +368,13 @@ RefPtr<ClientDirectoryLock> DirectoryLockImpl::SpecializeForClient(
     return nullptr;
   }
 
-  RefPtr<DirectoryLockImpl> lock =
-      Create(mQuotaManager, PersistenceScope::CreateFromValue(aPersistenceType),
-             aOriginMetadata.mSuffix, aOriginMetadata.mGroup,
-             OriginScope::FromOrigin(aOriginMetadata.mOrigin),
-             aOriginMetadata.mStorageOrigin, aOriginMetadata.mIsPrivate,
-             Nullable<Client::Type>(aClientType),
-             /* aExclusive */ false, mInternal,
-             ShouldUpdateLockIdTableFlag::Yes, mCategory);
+  RefPtr<DirectoryLockImpl> lock = Create(
+      mQuotaManager, PersistenceScope::CreateFromValue(aPersistenceType),
+      aOriginMetadata.mSuffix, aOriginMetadata.mGroup,
+      OriginScope::FromOrigin(aOriginMetadata), aOriginMetadata.mStorageOrigin,
+      aOriginMetadata.mIsPrivate, Nullable<Client::Type>(aClientType),
+      /* aExclusive */ false, mInternal, ShouldUpdateLockIdTableFlag::Yes,
+      mCategory);
   if (NS_WARN_IF(!Overlaps(*lock))) {
     return nullptr;
   }

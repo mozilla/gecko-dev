@@ -12,6 +12,7 @@
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Variant.h"
+#include "mozilla/dom/quota/CommonMetadata.h"
 #include "nsStringFlags.h"
 #include "nsStringFwd.h"
 
@@ -19,23 +20,24 @@ namespace mozilla::dom::quota {
 
 class OriginScope {
   class Origin {
-    nsCString mOrigin;
+    const PrincipalMetadata mPrincipalMetadata;
     nsCString mOriginNoSuffix;
     UniquePtr<OriginAttributes> mAttributes;
 
    public:
-    explicit Origin(const nsACString& aOrigin) : mOrigin(aOrigin) {
+    explicit Origin(const PrincipalMetadata& aPrincipalMetadata)
+        : mPrincipalMetadata(aPrincipalMetadata) {
       InitMembers();
     }
 
     Origin(const Origin& aOther)
-        : mOrigin(aOther.mOrigin),
+        : mPrincipalMetadata(aOther.mPrincipalMetadata),
           mOriginNoSuffix(aOther.mOriginNoSuffix),
           mAttributes(MakeUnique<OriginAttributes>(*aOther.mAttributes)) {}
 
     Origin(Origin&& aOther) = default;
 
-    const nsACString& GetOrigin() const { return mOrigin; }
+    const nsACString& GetOrigin() const { return mPrincipalMetadata.mOrigin; }
 
     const nsACString& GetOriginNoSuffix() const { return mOriginNoSuffix; }
 
@@ -49,17 +51,18 @@ class OriginScope {
     void InitMembers() {
       mAttributes = MakeUnique<OriginAttributes>();
 
-      MOZ_ALWAYS_TRUE(
-          mAttributes->PopulateFromOrigin(mOrigin, mOriginNoSuffix));
+      MOZ_ALWAYS_TRUE(mAttributes->PopulateFromOrigin(
+          mPrincipalMetadata.mOrigin, mOriginNoSuffix));
     }
   };
 
   class Prefix {
+    const PrincipalMetadata mPrincipalMetadata;
     nsCString mOriginNoSuffix;
 
    public:
-    explicit Prefix(const nsACString& aOriginNoSuffix)
-        : mOriginNoSuffix(aOriginNoSuffix) {}
+    explicit Prefix(const PrincipalMetadata& aPrincipalMetadata)
+        : mOriginNoSuffix(aPrincipalMetadata.mOrigin) {}
 
     const nsCString& GetOriginNoSuffix() const { return mOriginNoSuffix; }
   };
@@ -107,12 +110,12 @@ class OriginScope {
   OriginScope() : mData(Null()) {}
 
   // XXX Consider renaming these static methods to Create
-  static OriginScope FromOrigin(const nsACString& aOrigin) {
-    return OriginScope(std::move(Origin(aOrigin)));
+  static OriginScope FromOrigin(const PrincipalMetadata& aPrincipalMetadata) {
+    return OriginScope(std::move(Origin(aPrincipalMetadata)));
   }
 
-  static OriginScope FromPrefix(const nsACString& aPrefix) {
-    return OriginScope(std::move(Prefix(aPrefix)));
+  static OriginScope FromPrefix(const PrincipalMetadata& aPrincipalMetadata) {
+    return OriginScope(std::move(Prefix(aPrincipalMetadata)));
   }
 
   static OriginScope FromPattern(const OriginAttributesPattern& aPattern) {
@@ -133,12 +136,12 @@ class OriginScope {
 
   bool IsNull() const { return mData.is<Null>(); }
 
-  void SetFromOrigin(const nsACString& aOrigin) {
-    mData = AsVariant(Origin(aOrigin));
+  void SetFromOrigin(const PrincipalMetadata& aPrincipalMetadata) {
+    mData = AsVariant(Origin(aPrincipalMetadata));
   }
 
-  void SetFromPrefix(const nsACString& aPrefix) {
-    mData = AsVariant(Prefix(aPrefix));
+  void SetFromPrefix(const PrincipalMetadata& aPrincipalMetadata) {
+    mData = AsVariant(Prefix(aPrincipalMetadata));
   }
 
   void SetFromPattern(const OriginAttributesPattern& aPattern) {
