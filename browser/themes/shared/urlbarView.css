@@ -949,7 +949,7 @@
 .urlbarView-results[searchmodesource=actions] {
   white-space: wrap;
 
-  > .urlbarView-row {
+  > .urlbarView-row[dynamicType="actions"] {
     display: inline-flex;
   }
 }
