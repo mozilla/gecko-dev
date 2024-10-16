@@ -3266,7 +3266,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
         float appPerDev = PresContext()->AppUnitsPerDevPixel();
         auto transform = nsDisplayTransform::GetResultingTransformMatrix(
             this, nsPoint(), appPerDev,
-            nsDisplayTransform::kTransformRectFlags);
+            nsDisplayTransform::kTransformRectFlags &
+                ~nsDisplayTransform::OFFSET_BY_ORIGIN);
         nsRect untransformedDirtyRect;
         if (nsDisplayTransform::UntransformRect(dirtyRect, overflow, transform,
                                                 appPerDev,
