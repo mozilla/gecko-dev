@@ -5982,7 +5982,8 @@ export var AboutHomeStartupCache = {
 
   // The following values are as possible values for the
   // browser.startup.abouthome_cache_result scalar. Keep these in sync with the
-  // scalar definition in Scalars.yaml. See setDeferredResult for more
+  // scalar definition in Scalars.yaml and the matching Glean metric in
+  // browser/components/metrics.yaml. See setDeferredResult for more
   // information.
   CACHE_RESULT_SCALARS: {
     UNSET: 0,
@@ -6195,8 +6196,7 @@ export var AboutHomeStartupCache = {
       this._cacheTask.arm();
     }
 
-    Services.telemetry.scalarSet(
-      "browser.startup.abouthome_cache_shutdownwrite",
+    Glean.browserStartup.abouthomeCacheShutdownwrite.set(
       this._cacheTask.isArmed
     );
 
@@ -6698,10 +6698,7 @@ export var AboutHomeStartupCache = {
   recordResult(result) {
     // Note: this can be called very early on in the lifetime of
     // AboutHomeStartupCache, so things like this.log might not exist yet.
-    Services.telemetry.scalarSet(
-      "browser.startup.abouthome_cache_result",
-      result
-    );
+    Glean.browserStartup.abouthomeCacheResult.set(result);
   },
 
   /**

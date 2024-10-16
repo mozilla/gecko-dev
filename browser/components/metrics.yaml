@@ -154,3 +154,86 @@ upgrade_dialog:
           event's `value` parameter.
         type: string
     telemetry_mirror: Upgrade_dialog_Trigger_Reason
+
+browser.startup:
+  abouthome_cache_result:
+    type: quantity
+    description: >
+      How the about:home startup cache functioned on startup.
+
+      0: Result value was never set (error case)
+      1: Cache did not exist
+      2: Cache page stream was corrupt / inaccessible
+      3: Cache script stream was corrupt / inaccessible
+      4: Cache was invalidated by a version bump
+      5: Cache was valid, but read too late to be useful.
+      6: Cache was valid and used.
+      7: Cache is disabled.
+      8: User did not load about:home on its own by default.
+      9: Cache is disabled because about:newtab preloading is disabled.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.startup.abouthome_cache_result.
+    bugs:
+      - https://bugzil.la/1622263
+      - https://bugzil.la/1614351
+      - https://bugzil.la/1683101
+      - https://bugzil.la/1714258
+      - https://bugzil.la/1730042
+      - https://bugzil.la/1754641
+      - https://bugzil.la/1781978
+      - https://bugzil.la/1811151
+      - https://bugzil.la/1841926
+    data_reviews:
+      - https://bugzil.la/1622263
+      - https://bugzil.la/1614351
+      - https://bugzil.la/1683101
+      - https://bugzil.la/1714258
+      - https://bugzil.la/1730042
+      - https://bugzil.la/1754641
+      - https://bugzil.la/1781978
+      - https://bugzil.la/1811151
+      - https://bugzil.la/1841926
+    notification_emails:
+      - mconley@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    unit: CACHE_RESULT_SCALARS
+    telemetry_mirror: BROWSER_STARTUP_ABOUTHOME_CACHE_RESULT
+    no_lint:
+      - COMMON_PREFIX
+
+  abouthome_cache_shutdownwrite:
+    type: boolean
+    description: >
+      True if the about:home startup cache was written via the
+      AsyncShutdown blocker.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.startup.abouthome_cache_shutdownwrite.
+    bugs:
+      - https://bugzil.la/1622263
+      - https://bugzil.la/1614351
+      - https://bugzil.la/1683101
+      - https://bugzil.la/1714258
+      - https://bugzil.la/1730042
+      - https://bugzil.la/1754641
+      - https://bugzil.la/1781978
+      - https://bugzil.la/1811151
+      - https://bugzil.la/1841926
+    data_reviews:
+      - https://bugzil.la/1622263
+      - https://bugzil.la/1614351
+      - https://bugzil.la/1683101
+      - https://bugzil.la/1714258
+      - https://bugzil.la/1730042
+      - https://bugzil.la/1754641
+      - https://bugzil.la/1781978
+      - https://bugzil.la/1811151
+      - https://bugzil.la/1841926
+    notification_emails:
+      - mconley@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_STARTUP_ABOUTHOME_CACHE_SHUTDOWNWRITE
+    no_lint:
+      - COMMON_PREFIX
