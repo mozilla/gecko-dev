@@ -4,10 +4,6 @@ const { FormAutofill } = ChromeUtils.importESModule(
   "resource://autofill/FormAutofill.sys.mjs"
 );
 
-ChromeUtils.defineESModuleGetters(this, {
-  Region: "resource://gre/modules/Region.sys.mjs",
-});
-
 requestLongerTimeout(6);
 
 add_setup(async function () {

@@ -3,10 +3,6 @@
 // This test verifies that the address fillin popup appears correctly when
 // the required fields have been given values.
 
-const { Region } = ChromeUtils.importESModule(
-  "resource://gre/modules/Region.sys.mjs"
-);
-
 // Test when all required fields are present.
 add_task(
   async function test_doorhanger_shown_when_contain_all_required_fields() {

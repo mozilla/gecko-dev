@@ -43,7 +43,6 @@ add_task(async function test_parseStreetAddress() {
 
     const options = {
       trim: true,
-      ignore_case: true,
     };
 
     const expectedSN = AddressParser.normalizeString(expected[0], options);

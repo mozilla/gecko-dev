@@ -1,9 +1,5 @@
 "use strict";
 
-const { Region } = ChromeUtils.importESModule(
-  "resource://gre/modules/Region.sys.mjs"
-);
-
 add_task(async function test_doorhanger_shown_with_lowercase_postalcode() {
   const initialHomeRegion = Region._home;
   const initialCurrentRegion = Region._current;

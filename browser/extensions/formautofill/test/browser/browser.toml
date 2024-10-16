@@ -22,6 +22,8 @@ skip-if = [
   "os == 'mac'",
 ]
 
+["browser_autofill_address_housenumber.js"]
+
 ["browser_autofill_address_select.js"]
 
 ["browser_autofill_address_select_inexact.js"]

@@ -1,8 +1,5 @@
 "use strict";
 
-const { Region } = ChromeUtils.importESModule(
-  "resource://gre/modules/Region.sys.mjs"
-);
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [

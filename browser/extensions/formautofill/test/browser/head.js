@@ -33,6 +33,10 @@ const { FormAutofillUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/shared/FormAutofillUtils.sys.mjs"
 );
 
+const { Region } = ChromeUtils.importESModule(
+  "resource://gre/modules/Region.sys.mjs"
+);
+
 let { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -1379,6 +1383,8 @@ async function triggerCapture(browser, submitButtonSelector, fillSelectors) {
  *        Array of preferences to be set before running the test.
  * @param {object} patterns.profile
  *        The profile to autofill. This is required only when running autofill test
+ * @param {Array} patterns.region
+ *        Region to assign before running the test
  * @param {Array} patterns.expectedResult
  *        The expected result of this heuristic test. See below for detailed explanation
  * @param {Function} patterns.onTestComplete
@@ -1492,6 +1498,15 @@ async function add_heuristic_tests(
 
     info(`Test "${testPattern.description}"`);
 
+    let regionInfo = null;
+    if (testPattern.region) {
+      regionInfo = { home: Region._home, current: Region._current };
+
+      const region = testPattern.region;
+      Region._setCurrentRegion(region);
+      Region._setHomeRegion(region);
+    }
+
     if (testPattern.prefs) {
       await SpecialPowers.pushPrefEnv({
         set: testPattern.prefs,
@@ -1595,6 +1610,11 @@ async function add_heuristic_tests(
 
     if (testPattern.prefs) {
       await SpecialPowers.popPrefEnv();
+    }
+
+    if (regionInfo) {
+      Region._setCurrentRegion(regionInfo.home);
+      Region._setHomeRegion(regionInfo.current);
     }
   }
 

@@ -166,4 +166,25 @@ add_heuristic_tests([
       },
     ],
   },
+  {
+    description: "address field matches house number",
+    fixtureData: `
+        <html><body><form>
+          <label for="strasse">Street</label>
+          <input id="strasse">
+          <label for="haus">Haus</label>
+          <input id="haus">
+          <label for="adresszusatz"></label>
+          <input id="adresszusatz">
+        </form></body></html>`,
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "address-line1", reason: "update-heuristic" },
+          { fieldName: "address-housenumber", reason: "regex-heuristic" },
+          { fieldName: "address-line2", reason: "regex-heuristic" },
+        ],
+      },
+    ],
+  },
 ]);

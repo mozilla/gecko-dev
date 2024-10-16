@@ -1597,6 +1597,29 @@ export class AddressesBase extends AutofillRecords {
   }
 
   _normalizeAddressFields(address) {
+    if (address["address-housenumber"]) {
+      let streetField = "";
+      if (address["address-line1"]) {
+        streetField = "address-line1";
+      } else if (address["street-address"]) {
+        streetField = "street-address";
+      }
+      if (streetField) {
+        let region = address.country || FormAutofill.DEFAULT_REGION;
+        let reversed = lazy.FormAutofillUtils.getAddressReversed(region);
+
+        if (reversed) {
+          address[streetField] =
+            address[streetField] + " " + address["address-housenumber"];
+        } else {
+          address[streetField] =
+            address["address-housenumber"] + " " + address[streetField];
+        }
+      }
+
+      delete address["address-housenumber"];
+    }
+
     if (AddressRecord.STREET_ADDRESS_COMPONENTS.some(c => !!address[c])) {
       // Treat "street-address" as "address-line1" if it contains only one line
       // and "address-line1" is omitted.
