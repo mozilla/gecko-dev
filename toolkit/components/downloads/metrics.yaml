@@ -35,3 +35,20 @@ downloads:
           All other downloads not in the list are marked as other.
         type: string
     telemetry_mirror: Downloads_Added_Fileextension
+
+  file_opened:
+    type: counter
+    description: >
+      The count of how many times files were opened from the download
+      panel.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar downloads.file_opened.
+    bugs:
+      - https://bugzil.la/1627676
+    data_reviews:
+      - https://bugzil.la/1627676
+    notification_emails:
+      - rtestard@mozilla.com
+      - emalysz@mozilla.com
+    expires: never
+    telemetry_mirror: DOWNLOADS_FILE_OPENED

@@ -180,7 +180,7 @@ var DownloadsPanel = {
    * only when data is ready.
    */
   showPanel(openedManually = false, isKeyPress = false) {
-    Services.telemetry.scalarAdd("downloads.panel_shown", 1);
+    Glean.downloads.panelShown.add(1);
     DownloadsCommon.log("Opening the downloads panel.");
 
     this._openedManually = openedManually;

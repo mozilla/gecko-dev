@@ -812,7 +812,7 @@ Download.prototype = {
     }
 
     if (this._launchedFromPanel) {
-      Services.telemetry.scalarAdd("downloads.file_opened", 1);
+      Glean.downloads.fileOpened.add(1);
     }
 
     return lazy.DownloadIntegration.launchDownload(this, options);
