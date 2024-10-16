@@ -44,7 +44,7 @@ function searchBookmarks(aSearchString) {
     // eslint-disable-next-line no-self-assign
     tree.place = tree.place;
   } else {
-    Services.telemetry.keyedScalarAdd("sidebar.search", "bookmarks", 1);
+    Glean.sidebar.search.bookmarks.add(1);
     gCumulativeSearches++;
     tree.applyFilter(aSearchString, PlacesUtils.bookmarks.userContentRoots);
   }
@@ -57,11 +57,7 @@ function updateTelemetry(urlsOpened = []) {
   searchesHistogram.add(gCumulativeSearches);
   clearCumulativeCounter();
 
-  Services.telemetry.keyedScalarAdd(
-    "sidebar.link",
-    "bookmarks",
-    urlsOpened.length
-  );
+  Glean.sidebar.link.bookmarks.add(urlsOpened.length);
 }
 
 function clearCumulativeCounter() {

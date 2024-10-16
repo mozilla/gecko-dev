@@ -86,11 +86,7 @@ function updateTelemetry(urlsOpened = []) {
   filterCountHistogram.add(gCumulativeFilterCount);
   clearCumulativeCounters();
 
-  Services.telemetry.keyedScalarAdd(
-    "sidebar.link",
-    "history",
-    urlsOpened.length
-  );
+  Glean.sidebar.link.history.add(urlsOpened.length);
 }
 
 function searchHistory(aInput) {
@@ -149,7 +145,7 @@ function searchHistory(aInput) {
   // Since we're trying to measure how often the searchbar was used, we should first
   // check if there's an input string before collecting telemetry.
   if (aInput) {
-    Services.telemetry.keyedScalarAdd("sidebar.search", "history", 1);
+    Glean.sidebar.search.history.add(1);
     gCumulativeSearches++;
   }
 

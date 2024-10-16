@@ -116,6 +116,35 @@ sidebar:
       - vsabino@mozilla.com
     send_in_pings:
       - metrics
+  search:
+    type: labeled_counter
+    description: >
+      The number of searches from the sidebar, per view (e.g.: bookmarks,
+      history).
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar sidebar.search.
+    bugs:
+      - https://bugzil.la/1648524
+    data_reviews:
+      - https://bugzil.la/1648524
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: SIDEBAR_SEARCH
+  link:
+    type: labeled_counter
+    description: >
+      The number of history items opened from the History sidebar.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar sidebar.link.
+    bugs:
+      - https://bugzil.la/1815706
+    data_reviews:
+      - https://bugzil.la/1815706
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: SIDEBAR_LINK
 history:
   sidebar_toggle:
     type: event

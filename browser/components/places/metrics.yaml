@@ -1,0 +1,60 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Bookmarks & History'
+
+library:
+  link:
+    type: labeled_counter
+    description: >
+      The number of history or bookmark items opened from the Library
+      window
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar library.link.
+    bugs:
+      - https://bugzil.la/1815906
+    data_reviews:
+      - https://bugzil.la/1815906
+    notification_emails:
+      - firefox-view-engineers@mozilla.com
+    expires: never
+    telemetry_mirror: LIBRARY_LINK
+
+  opened:
+    type: labeled_counter
+    description: >
+      The number of times the Library window was opened, keyed by
+      'history' or 'bookmarks'
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar library.opened.
+    bugs:
+      - https://bugzil.la/1815906
+    data_reviews:
+      - https://bugzil.la/1815906
+    notification_emails:
+      - firefox-view-engineers@mozilla.com
+    expires: never
+    telemetry_mirror: LIBRARY_OPENED
+
+  search:
+    type: labeled_counter
+    description: >
+      The number of history-specific or bookmark-specific searches made
+      from the Library window
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar library.search.
+    bugs:
+      - https://bugzil.la/1815906
+    data_reviews:
+      - https://bugzil.la/1815906
+    notification_emails:
+      - firefox-view-engineers@mozilla.com
+    expires: never
+    telemetry_mirror: LIBRARY_SEARCH

@@ -187,9 +187,9 @@ var PlacesOrganizer = {
       if (historyNode.childCount > 0) {
         this._places.selectNode(historyNode.getChild(0));
       }
-      Services.telemetry.keyedScalarAdd("library.opened", "history", 1);
+      Glean.library.opened.history.add(1);
     } else {
-      Services.telemetry.keyedScalarAdd("library.opened", "bookmarks", 1);
+      Glean.library.opened.bookmarks.add(1);
     }
 
     // clear the back-stack
@@ -862,7 +862,7 @@ var PlacesSearchBox = {
     switch (PlacesSearchBox.filterCollection) {
       case "bookmarks":
         currentView.applyFilter(filterString, this.folders);
-        Services.telemetry.keyedScalarAdd("library.search", "bookmarks", 1);
+        Glean.library.search.bookmarks.add(1);
         this.cumulativeBookmarkSearches++;
         break;
       case "history": {
@@ -883,7 +883,7 @@ var PlacesSearchBox = {
           TelemetryStopwatch.start(HISTORY_LIBRARY_SEARCH_TELEMETRY);
           currentView.applyFilter(filterString, null, true);
           TelemetryStopwatch.finish(HISTORY_LIBRARY_SEARCH_TELEMETRY);
-          Services.telemetry.keyedScalarAdd("library.search", "history", 1);
+          Glean.library.search.history.add(1);
           this.cumulativeHistorySearches++;
         }
         break;
@@ -994,11 +994,7 @@ function updateTelemetry(urlsOpened) {
     // Clear cumulative search counter
     PlacesSearchBox.cumulativeBookmarkSearches = 0;
 
-    Services.telemetry.keyedScalarAdd(
-      "library.link",
-      "bookmarks",
-      urlsOpened.length
-    );
+    Glean.library.link.bookmarks.add(urlsOpened.length);
     return;
   }
 
@@ -1011,11 +1007,7 @@ function updateTelemetry(urlsOpened) {
   // Clear cumulative search counter
   PlacesSearchBox.cumulativeHistorySearches = 0;
 
-  Services.telemetry.keyedScalarAdd(
-    "library.link",
-    "history",
-    historyLinks.length
-  );
+  Glean.library.link.history.add(historyLinks.length);
 }
 
 /**
