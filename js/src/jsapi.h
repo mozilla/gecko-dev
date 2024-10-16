@@ -954,7 +954,7 @@ class MOZ_RAII JS_PUBLIC_API AutoFilename {
  * record, this will also return false.
  */
 extern JS_PUBLIC_API bool DescribeScriptedCaller(
-    JSContext* cx, AutoFilename* filename, uint32_t* lineno = nullptr,
+    AutoFilename* filename, JSContext* cx, uint32_t* lineno = nullptr,
     JS::ColumnNumberOneOrigin* column = nullptr);
 
 extern JS_PUBLIC_API JSObject* GetScriptedCallerGlobal(JSContext* cx);

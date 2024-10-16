@@ -1731,7 +1731,7 @@ static void MaybeCurrentCaller(nsACString& aFilename, uint32_t& aLineNum,
 
   JS::AutoFilename scriptFilename;
   JS::ColumnNumberOneOrigin columnNum;
-  if (JS::DescribeScriptedCaller(cx, &scriptFilename, &aLineNum, &columnNum)) {
+  if (JS::DescribeScriptedCaller(&scriptFilename, cx, &aLineNum, &columnNum)) {
     if (const char* file = scriptFilename.get()) {
       aFilename = nsDependentCString(file);
     }

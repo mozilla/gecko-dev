@@ -349,7 +349,7 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
 
   // Figure out who's calling us
   JS::AutoFilename filename;
-  if (!JS::DescribeScriptedCaller(cx, &filename)) {
+  if (!JS::DescribeScriptedCaller(&filename, cx)) {
     // No scripted frame means we don't know who's calling, bail.
     return NS_ERROR_FAILURE;
   }

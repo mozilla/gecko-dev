@@ -1030,7 +1030,7 @@ nsresult EventListenerManager::SetEventHandler(nsAtom* aName,
     JS::ColumnNumberOneOrigin columnNum;
 
     JSContext* cx = nsContentUtils::GetCurrentJSContext();
-    if (cx && !JS::DescribeScriptedCaller(cx, nullptr, &lineNum, &columnNum)) {
+    if (cx && !JS::DescribeScriptedCaller(nullptr, cx, &lineNum, &columnNum)) {
       JS_ClearPendingException(cx);
     }
 

@@ -4430,7 +4430,7 @@ void Document::NoteScriptTrackingStatus(const nsACString& aURL,
 
 bool Document::IsScriptTracking(JSContext* aCx) const {
   JS::AutoFilename filename;
-  if (!JS::DescribeScriptedCaller(aCx, &filename)) {
+  if (!JS::DescribeScriptedCaller(&filename, aCx)) {
     return false;
   }
   return mTrackingScripts.Contains(nsDependentCString(filename.get()));

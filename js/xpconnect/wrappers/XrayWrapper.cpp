@@ -220,7 +220,7 @@ bool ReportWrapperDenial(JSContext* cx, HandleId id, WrapperDenialType type,
   AutoFilename filename;
   uint32_t line = 0;
   JS::ColumnNumberOneOrigin column;
-  DescribeScriptedCaller(cx, &filename, &line, &column);
+  DescribeScriptedCaller(&filename, cx, &line, &column);
 
   // Warn to the terminal for the logs.
   NS_WARNING(

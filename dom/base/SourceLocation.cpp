@@ -52,7 +52,7 @@ JSCallingLocation JSCallingLocation::Get(JSContext* aCx) {
   JS::AutoFilename filename;
   uint32_t line;
   JS::ColumnNumberOneOrigin column;
-  if (!JS::DescribeScriptedCaller(aCx, &filename, &line, &column)) {
+  if (!JS::DescribeScriptedCaller(&filename, aCx, &line, &column)) {
     return result;
   }
   nsCString file;

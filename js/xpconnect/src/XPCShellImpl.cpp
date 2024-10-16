@@ -163,7 +163,7 @@ static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
   return false;
 #else
   JS::AutoFilename filename;
-  if (JS::DescribeScriptedCaller(cx, &filename) && filename.get()) {
+  if (JS::DescribeScriptedCaller(&filename, cx) && filename.get()) {
     NS_ConvertUTF8toUTF16 filenameString(filename.get());
 
 #  if defined(XP_WIN)

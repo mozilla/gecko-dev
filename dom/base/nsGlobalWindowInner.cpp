@@ -5008,7 +5008,7 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
   // minified scripts which is more common in Web content that is loaded in the
   // content process.
   uint32_t* linenop = XRE_IsParentProcess() ? &lineno : nullptr;
-  bool hasFrame = JS::DescribeScriptedCaller(aCx, &filename, linenop);
+  bool hasFrame = JS::DescribeScriptedCaller(&filename, aCx, linenop);
 
   // Record the slow script event if we haven't done so already for this inner
   // window (which represents a particular page to the user).

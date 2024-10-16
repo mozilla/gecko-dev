@@ -1417,7 +1417,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
     uint32_t lineno;
     JS::ColumnNumberOneOrigin column;
     JS::AutoFilename file;
-    if (!JS::DescribeScriptedCaller(aGlobal.Context(), &file, &lineno,
+    if (!JS::DescribeScriptedCaller(&file, aGlobal.Context(), &lineno,
                                     &column)) {
       NS_WARNING("Failed to get line number and filename in workers.");
     }
@@ -1664,7 +1664,7 @@ nsresult WebSocketImpl::Init(nsIGlobalObject* aWindowGlobal, JSContext* aCx,
     uint32_t lineno;
     JS::ColumnNumberOneOrigin column;
     JS::AutoFilename file;
-    if (JS::DescribeScriptedCaller(aCx, &file, &lineno, &column)) {
+    if (JS::DescribeScriptedCaller(&file, aCx, &lineno, &column)) {
       mScriptFile = file.get();
       mScriptLine = lineno;
       mScriptColumn = column.oneOriginValue();

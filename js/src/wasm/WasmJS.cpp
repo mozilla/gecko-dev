@@ -380,7 +380,7 @@ static bool DescribeScriptedCaller(JSContext* cx, ScriptedCaller* caller,
   // back to the more ordinary false-if-error form.
 
   JS::AutoFilename af;
-  if (JS::DescribeScriptedCaller(cx, &af, &caller->line)) {
+  if (JS::DescribeScriptedCaller(&af, cx, &caller->line)) {
     caller->filename =
         FormatIntroducedFilename(af.get(), caller->line, introducer);
     if (!caller->filename) {

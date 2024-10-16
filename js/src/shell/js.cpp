@@ -4432,7 +4432,7 @@ static bool EvalInContext(JSContext* cx, unsigned argc, Value* vp) {
   JS::AutoFilename filename;
   uint32_t lineno;
 
-  DescribeScriptedCaller(cx, &filename, &lineno);
+  DescribeScriptedCaller(&filename, cx, &lineno);
   {
     sobj = UncheckedUnwrap(sobj, true);
 
@@ -6967,7 +6967,7 @@ static bool ThisFilename(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   JS::AutoFilename filename;
-  if (!DescribeScriptedCaller(cx, &filename) || !filename.get()) {
+  if (!DescribeScriptedCaller(&filename, cx) || !filename.get()) {
     args.rval().setString(cx->runtime()->emptyString);
     return true;
   }

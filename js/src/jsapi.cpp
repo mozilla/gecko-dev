@@ -4674,7 +4674,7 @@ const char* AutoFilename::get() const {
   return filename_.as<UniqueChars>().get();
 }
 
-JS_PUBLIC_API bool DescribeScriptedCaller(JSContext* cx, AutoFilename* filename,
+JS_PUBLIC_API bool DescribeScriptedCaller(AutoFilename* filename, JSContext* cx,
                                           uint32_t* lineno,
                                           JS::ColumnNumberOneOrigin* column) {
   if (filename) {
