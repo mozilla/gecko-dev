@@ -58,6 +58,11 @@ sudo snap install --name firefox --dangerous ./firefox.snap
 
 RUNTIME_VERSION=$(snap run firefox --version | awk '{ print $3 }')
 
+mkdir -p ~/.config/pip/ && cat > ~/.config/pip/pip.conf <<EOF
+[global]
+break-system-packages = true
+EOF
+
 python3 -m pip install --user -r requirements.txt
 
 # Required otherwise copy/paste does not work
