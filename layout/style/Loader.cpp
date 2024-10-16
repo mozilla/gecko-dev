@@ -991,6 +991,7 @@ static void RecordUseCountersIfNeeded(Document* aDoc,
     return;
   }
   Servo_UseCounters_Merge(docCounters, sheetCounters);
+  aDoc->MaybeWarnAboutZoom();
 }
 
 bool Loader::MaybePutIntoLoadsPerformed(SheetLoadData& aLoadData) {
