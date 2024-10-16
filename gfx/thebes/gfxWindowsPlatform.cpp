@@ -29,6 +29,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Telemetry.h"
 
 #include "plbase64.h"
@@ -1217,8 +1218,7 @@ void gfxWindowsPlatform::RecordStartupTelemetry() {
     allSupportedColorSpaces |= colorSpace;
   }
 
-  Telemetry::ScalarSet(
-      Telemetry::ScalarID::GFX_HDR_WINDOWS_DISPLAY_COLORSPACE_BITFIELD,
+  glean::gfx_hdr::windows_display_colorspace_bitfield.Set(
       allSupportedColorSpaces);
 }
 

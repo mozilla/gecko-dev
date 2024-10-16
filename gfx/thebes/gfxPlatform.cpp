@@ -1073,10 +1073,10 @@ void gfxPlatform::ReportTelemetry() {
     for (const auto& screen : screenManager.CurrentScreenList()) {
       supportsHDR |= screen->GetIsHDR();
     }
-    Telemetry::ScalarSet(Telemetry::ScalarID::GFX_SUPPORTS_HDR, supportsHDR);
+    glean::gfx::supports_hdr.Set(supportsHDR);
 
     bool tmpWritable = IsOsTempDirWritable();
-    Telemetry::ScalarSet(Telemetry::ScalarID::GFX_TMP_WRITABLE, tmpWritable);
+    glean::gfx::tmp_writable.Set(tmpWritable);
   }
 
   nsString adapterDesc;
@@ -2973,8 +2973,7 @@ void gfxPlatform::InitWebRenderConfig() {
     gfxVars::SetUseWebRenderCompositor(true);
   }
 
-  Telemetry::ScalarSet(
-      Telemetry::ScalarID::GFX_OS_COMPOSITOR,
+  glean::gfx::os_compositor.Set(
       gfx::gfxConfig::IsEnabled(gfx::Feature::WEBRENDER_COMPOSITOR));
 
   if (gfxConfig::IsEnabled(Feature::WEBRENDER_PARTIAL)) {

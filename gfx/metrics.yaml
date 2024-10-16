@@ -312,6 +312,90 @@ gfx:
       - perf-telemetry-alerts@mozilla.com
     expires: never
 
+  skipped_composites:
+    type: counter
+    description: >
+      Number of skipped composites, happening when rendering is too slow
+      to keep up with content.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar gfx.skipped_composites.
+    bugs:
+      - https://bugzil.la/1797975
+    data_reviews:
+      - https://bugzil.la/1797975
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: GFX_SKIPPED_COMPOSITES
+
+  os_compositor:
+    type: boolean
+    description: >
+      Boolean indicating whether the os compositor is being used by
+      WebRender. Only collected in the first subsession.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar gfx.os_compositor.
+    bugs:
+      - https://bugzil.la/1623492
+    data_reviews:
+      - https://bugzil.la/1623492
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - jmuizelaar@mozilla.com
+    expires: never
+    telemetry_mirror: GFX_OS_COMPOSITOR
+
+  linux_window_protocol:
+    type: string
+    description: >
+      Windowing protocol on Linux. Can be Wayland, WaylandDRM, XWayland,
+      or X11
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar gfx.linux_window_protocol.
+    bugs:
+      - https://bugzil.la/1645732
+    data_reviews:
+      - https://bugzil.la/1645732
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - aosmond@mozilla.com
+      - mkaply@mozilla.com
+    expires: never
+    telemetry_mirror: GFX_LINUX_WINDOW_PROTOCOL
+
+  supports_hdr:
+    type: boolean
+    description: >
+      Does the hardware support accurate display of HDR content
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar gfx.supports_hdr.
+    bugs:
+      - https://bugzil.la/1798067
+    data_reviews:
+      - https://bugzil.la/1798067
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - bwerth@mozilla.com
+    expires: never
+    telemetry_mirror: GFX_SUPPORTS_HDR
+
+  tmp_writable:
+    type: boolean
+    description: >
+      Is the system temporary directory writable
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar gfx.tmp_writable.
+    bugs:
+      - https://bugzil.la/1923741
+    data_reviews:
+      - https://bugzil.la/1923741
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - aosmond@mozilla.com
+    expires: 134
+    telemetry_mirror: GFX_TMP_WRITABLE
+
 gfx.display:
   count:
     description: >
@@ -948,3 +1032,47 @@ performance.interaction:
       - perf-telemetry-alerts@mozilla.com
       - sefeng@mozilla.com
     expires: never
+
+gfx.hdr:
+  windows_display_colorspace_bitfield:
+    type: quantity
+    description: >
+      A bitfield representation of the available DXGI color spaces of the
+      connected displays on Windows. See (https://docs.microsoft.com/en-
+      us/windows/desktop/api/dxgicommon/ne-dxgicommon-
+      dxgi_color_space_type) for definitions of color spaces. Each N'th
+      bit of this scalar indicates whether the DXGI color space with index
+      'N' is available on at least one connected monitor.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar gfx.hdr.windows_display_colorspace_bitfield.
+    bugs:
+      - https://bugzil.la/1514840
+      - https://bugzil.la/1690597
+    data_reviews:
+      - https://bugzil.la/1514840
+      - https://bugzil.la/1690597
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - jmuizelaaar@mozilla.com
+    expires: never
+    unit: bitfield
+    telemetry_mirror: GFX_HDR_WINDOWS_DISPLAY_COLORSPACE_BITFIELD
+    no_lint:
+      - UNIT_IN_NAME
+
+apz:
+  scrollwheel_overshoot:
+    type: counter
+    description: >
+      Count of overshoot events, where the user reverses scrollwheel
+      direction soon after the last scrollwheel input.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar apz.scrollwheel_overshoot.
+    bugs:
+      - https://bugzil.la/1836870
+    data_reviews:
+      - https://bugzil.la/1836870
+    notification_emails:
+      - botond@mozilla.com
+    expires: 134
+    telemetry_mirror: APZ_SCROLLWHEEL_OVERSHOOT

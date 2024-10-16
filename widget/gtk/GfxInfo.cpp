@@ -20,7 +20,7 @@
 
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/SSE.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/XREAppData.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/GUniquePtr.h"
@@ -1370,8 +1370,7 @@ GfxInfo::GetWindowProtocol(nsAString& aWindowProtocol) {
   } else {
     aWindowProtocol = GfxDriverInfo::GetWindowProtocol(WindowProtocol::X11);
   }
-  Telemetry::ScalarSet(Telemetry::ScalarID::GFX_LINUX_WINDOW_PROTOCOL,
-                       aWindowProtocol);
+  glean::gfx::linux_window_protocol.Set(NS_ConvertUTF16toUTF8(aWindowProtocol));
   return NS_OK;
 }
 

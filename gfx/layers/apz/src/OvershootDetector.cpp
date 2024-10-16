@@ -7,7 +7,7 @@
 #include "OvershootDetector.h"
 
 #include "InputData.h"
-#include "mozilla/Telemetry.h"  // for Telemetry
+#include "mozilla/glean/GleanMetrics.h"
 
 namespace mozilla {
 namespace layers {
@@ -57,7 +57,7 @@ void OvershootDetector::Update(const ScrollWheelInput& aInput) {
         break;
     }
     if (reversed) {
-      Telemetry::ScalarAdd(Telemetry::ScalarID::APZ_SCROLLWHEEL_OVERSHOOT, 1);
+      glean::apz::scrollwheel_overshoot.Add(1);
     }
   }
 
