@@ -7,6 +7,7 @@
 TEST_DIRS += ["gtest"]
 
 EXPORTS.mozilla.intl += [
+    "LineBreakCache.h",
     "LineBreaker.h",
     "nsComplexBreaker.h",
     "Segmenter.h",
@@ -14,6 +15,7 @@ EXPORTS.mozilla.intl += [
 ]
 
 UNIFIED_SOURCES += [
+    "LineBreakCache.cpp",
     "LineBreaker.cpp",
     "Segmenter.cpp",
     "WordBreaker.cpp",

@@ -118,7 +118,7 @@
 #include "mozilla/css/ImageLoader.h"
 #include "gfxUserFontSet.h"
 #include "RestoreTabContentObserver.h"
-#include "mozilla/intl/nsComplexBreaker.h"
+#include "mozilla/intl/LineBreakCache.h"
 
 #include "nsRLBoxExpatDriver.h"
 #include "RLBoxWOFF2Types.h"
@@ -274,7 +274,7 @@ nsresult nsLayoutStatics::Initialize() {
 
   RestoreTabContentObserver::Initialize();
 
-  ComplexBreaker::Initialize();
+  mozilla::intl::LineBreakCache::Initialize();
 
   RLBoxExpatSandboxPool::Initialize();
 
@@ -386,5 +386,5 @@ void nsLayoutStatics::Shutdown() {
 
   RestoreTabContentObserver::Shutdown();
 
-  ComplexBreaker::Shutdown();
+  mozilla::intl::LineBreakCache::Shutdown();
 }
