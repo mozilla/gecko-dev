@@ -51,6 +51,8 @@ class SnapTestsBase:
         options.add_argument("-profile")
         options.add_argument(snap_profile_path)
         self._driver = webdriver.Firefox(service=driver_service, options=options)
+        self._driver.set_window_position(0, 0)
+        self._driver.set_window_size(1280, 1024)
 
         self._logger = structuredlog.StructuredLogger(self.__class__.__name__)
         self._logger.add_handler(
