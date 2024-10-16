@@ -559,6 +559,7 @@ add_task(async function testCertificateTransparency() {
   // non-debug builds (see below).
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["security.pki.certificate_transparency.mode", 2],
       [
         "security.test.built_in_root_hash",
         "8D:9D:57:09:E5:7D:D5:C6:4B:BE:24:70:E9:E5:BF:FF:16:F6:F2:C2:49:4E:0F:B9:37:1C:DD:3A:0E:10:45:F4",
