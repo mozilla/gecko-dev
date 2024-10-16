@@ -237,3 +237,259 @@ browser.startup:
     telemetry_mirror: BROWSER_STARTUP_ABOUTHOME_CACHE_SHUTDOWNWRITE
     no_lint:
       - COMMON_PREFIX
+
+datasanitization:
+  privacy_sanitize_sanitize_on_shutdown:
+    type: boolean
+    description: >
+      A boolean reporting the value of the
+      privacy.sanitize.sanitizeOnShutdown pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_sanitize_sanitizeOnShutdown.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_SANITIZE_SANITIZEONSHUTDOWN
+
+  privacy_clear_on_shutdown_cookies:
+    type: boolean
+    description: >
+      A boolean reporting the value of the privacy.clearOnShutdown.cookies
+      pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_cookies.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_COOKIES
+
+  privacy_clear_on_shutdown_history:
+    type: boolean
+    description: >
+      A boolean reporting the value of the privacy.clearOnShutdown.history
+      pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_history.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_HISTORY
+
+  privacy_clear_on_shutdown_formdata:
+    type: boolean
+    description: >
+      A boolean reporting the value of the
+      privacy.clearOnShutdown.formdata pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_formdata.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_FORMDATA
+
+  privacy_clear_on_shutdown_downloads:
+    type: boolean
+    description: >
+      A boolean reporting the value of the
+      privacy.clearOnShutdown.downloads pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_downloads.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_DOWNLOADS
+
+  privacy_clear_on_shutdown_cache:
+    type: boolean
+    description: >
+      A boolean reporting the value of the privacy.clearOnShutdown.cache
+      pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_cache.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_CACHE
+
+  privacy_clear_on_shutdown_sessions:
+    type: boolean
+    description: >
+      A boolean reporting the value of the
+      privacy.clearOnShutdown.sessions pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_sessions.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_SESSIONS
+
+  privacy_clear_on_shutdown_offline_apps:
+    type: boolean
+    description: >
+      A boolean reporting the value of the
+      privacy.clearOnShutdown.offlineApps pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_offlineApps.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_OFFLINEAPPS
+
+  privacy_clear_on_shutdown_site_settings:
+    type: boolean
+    description: >
+      A boolean reporting the value of the
+      privacy.clearOnShutdown.siteSettings pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_siteSettings.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_SITESETTINGS
+
+  privacy_clear_on_shutdown_open_windows:
+    type: boolean
+    description: >
+      A boolean reporting the value of the
+      privacy.clearOnShutdown.openWindows pref.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.privacy_clearOnShutdown_openWindows.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+    notification_emails:
+      - ewright@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DATASANITIZATION_PRIVACY_CLEARONSHUTDOWN_OPENWINDOWS
+
+  session_permission_exceptions:
+    type: quantity
+    description: >
+      A count of how many "session" cookie exceptions a user has set.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar datasanitization.session_permission_exceptions.
+    bugs:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+      - https://bugzil.la/1744559
+    data_reviews:
+      - https://bugzil.la/1589753
+      - https://bugzil.la/1617241
+      - https://bugzil.la/1645089
+      - https://bugzil.la/1678210
+      - https://bugzil.la/1744559
+    notification_emails:
+      - pbz@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    unit: unknown
+    telemetry_mirror: DATASANITIZATION_SESSION_PERMISSION_EXCEPTIONS
