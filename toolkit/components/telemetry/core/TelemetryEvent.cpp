@@ -980,8 +980,8 @@ void TelemetryEvent::RecordEventNative(
   PROFILER_MARKER("Event", TELEMETRY, {}, EventMarker, category, method, object,
                   value);
 
+  RecordEventResult res;
   if (!XRE_IsParentProcess()) {
-    RecordEventResult res;
     {
       StaticMutexAutoLock lock(gTelemetryEventsMutex);
       res = ::ShouldRecordChildEvent(lock, category, method, object);
@@ -1004,8 +1004,43 @@ void TelemetryEvent::RecordEventNative(
       return;
     }
 
-    ::RecordEvent(lock, ProcessID::Parent, timestamp, category, method, object,
-                  value, extra);
+    res = ::RecordEvent(lock, ProcessID::Parent, timestamp, category, method,
+                        object, value, extra);
+  }
+
+  // Trigger warnings or errors where needed.
+  switch (res) {
+    case RecordEventResult::UnknownEvent: {
+      nsPrintfCString msg(R"(Unknown event: ["%s", "%s", "%s"])",
+                          category.get(), method.get(), object.get());
+      LogToBrowserConsole(nsIScriptError::errorFlag,
+                          NS_ConvertUTF8toUTF16(msg));
+      PROFILER_MARKER_TEXT("EventError", TELEMETRY,
+                           mozilla::MarkerStack::Capture(), msg);
+      return;
+    }
+    case RecordEventResult::InvalidExtraKey: {
+      nsPrintfCString msg(R"(Invalid extra key for event ["%s", "%s", "%s"].)",
+                          category.get(), method.get(), object.get());
+      LogToBrowserConsole(nsIScriptError::warningFlag,
+                          NS_ConvertUTF8toUTF16(msg));
+      PROFILER_MARKER_TEXT("EventError", TELEMETRY,
+                           mozilla::MarkerStack::Capture(), msg);
+      return;
+    }
+    case RecordEventResult::StorageLimitReached: {
+      LogToBrowserConsole(nsIScriptError::warningFlag,
+                          u"Event storage limit reached."_ns);
+      nsCOMPtr<nsIObserverService> serv =
+          mozilla::services::GetObserverService();
+      if (serv) {
+        serv->NotifyObservers(nullptr, "event-telemetry-storage-limit-reached",
+                              nullptr);
+      }
+      return;
+    }
+    default:
+      return;
   }
 }
 

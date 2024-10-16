@@ -44,7 +44,7 @@ function fail() {
 
 function recordEvents(howMany) {
   for (let i = 0; i < howMany; i++) {
-    Telemetry.recordEvent("telemetry.test", "test1", "object1");
+    Glean.telemetryTest.test1Object1.record();
   }
 }
 
@@ -84,7 +84,7 @@ add_task(async function test_eventLimitReached() {
   recordEvents(999);
   fakePolicy(
     () => {
-      Telemetry.recordEvent("telemetry.test", "test2", "object1");
+      Glean.telemetryTest.test2Object1.record();
       fakePolicy(pass, pass, (type, payload, options) => {
         checkPingStructure(type, payload, options);
         Assert.ok(options.addClientId, "Adds the client id.");
@@ -112,7 +112,7 @@ add_task(async function test_eventLimitReached() {
     fail
   );
   // Now trigger the submit.
-  Telemetry.recordEvent("telemetry.test", "test1", "object1");
+  Glean.telemetryTest.test1Object1.record();
   Assert.equal(pingCount, 1, "Should have sent a ping");
 
   // With a recent MAX ping sent, record another max amount of events (and then two extras).
@@ -120,8 +120,8 @@ add_task(async function test_eventLimitReached() {
   recordEvents(998);
   fakePolicy(
     callback => {
-      Telemetry.recordEvent("telemetry.test", "test2", "object2");
-      Telemetry.recordEvent("telemetry.test", "test2", "object2");
+      Glean.telemetryTest.test2Object2.record();
+      Glean.telemetryTest.test2Object2.record();
       fakePolicy(pass, pass, (type, payload, options) => {
         checkPingStructure(type, payload, options);
         Assert.ok(options.addClientId, "Adds the client id.");

@@ -1,0 +1,66 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# This file is for Internal Telemetry Test Use Only.
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - "Toolkit :: Telemetry"
+
+telemetry.test:
+  test1_object1:
+    type: event
+    description: >
+      This is a test entry for Telemetry.
+      This event was generated to correspond to the Legacy Telemetry event
+      telemetry.test.test1#object1.
+    bugs: &telemetry_test_test1_bugs
+      - https://bugzil.la/1286606
+    data_reviews: &telemetry_test_test1_data_reviews
+      - https://bugzil.la/1286606
+    notification_emails: &telemetry_test_test1_emails
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    extra_keys: &telemetry_test_test1_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      key1:
+        description: >
+          This is just a test description.
+        type: string
+      key2:
+        description: >
+          This is another test description.
+        type: string
+    telemetry_mirror: TelemetryTest_Test1_Object1
+
+  test2_object1:
+    type: event
+    description: >
+      This is a test entry for Telemetry.
+      This event was generated to correspond to the Legacy Telemetry event
+      telemetry.test.test2#object1.
+    bugs: *telemetry_test_test1_bugs
+    data_reviews: *telemetry_test_test1_data_reviews
+    notification_emails: *telemetry_test_test1_emails
+    expires: never
+    extra_keys: *telemetry_test_test1_extra
+    telemetry_mirror: TelemetryTest_Test2_Object1
+
+  test2_object2:
+    type: event
+    description: >
+      This is a test entry for Telemetry.
+      This event was generated to correspond to the Legacy Telemetry event
+      telemetry.test.test2#object2.
+    bugs: *telemetry_test_test1_bugs
+    data_reviews: *telemetry_test_test1_data_reviews
+    notification_emails: *telemetry_test_test1_emails
+    expires: never
+    extra_keys: *telemetry_test_test1_extra
+    telemetry_mirror: TelemetryTest_Test2_Object2

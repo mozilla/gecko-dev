@@ -132,6 +132,7 @@ background_tasks_metrics = [
 # Order is lexicographical, enforced by t/c/glean/tests/pytest/test_yaml_indices.py
 test_metrics = [
     "toolkit/components/glean/tests/test_metrics.yaml",
+    "toolkit/components/telemetry/tests/test_metrics.yaml",
 ]
 
 # The list of all Glean metrics.yaml files, relative to the top src dir.
