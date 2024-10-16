@@ -11,7 +11,7 @@ const TEST_PATH = getRootDirectory(gTestPath).replace(
 );
 
 add_task(async function test_browsingContextWithNoOpenerHasCrossGroupOpener() {
-  const onNewTab = BrowserTestUtils.waitForNewTab(gBrowser, TEST_PATH);
+  const onNewTab = BrowserTestUtils.waitForNewTab(gBrowser, TEST_PATH, true);
   const openerBrowsingContext = await SpecialPowers.spawn(
     gBrowser.selectedBrowser,
     [TEST_PATH],
@@ -21,8 +21,6 @@ add_task(async function test_browsingContextWithNoOpenerHasCrossGroupOpener() {
     }
   );
   const newTab = await onNewTab;
-
-  await BrowserTestUtils.browserLoaded(newTab.linkedBrowser, false, TEST_PATH);
 
   const browsingContext = newTab.linkedBrowser.browsingContext;
   Assert.equal(
