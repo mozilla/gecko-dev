@@ -198,6 +198,11 @@ passwords-origin-tooltip = Enter the exact address where you’ll sign in to thi
 passwords-username-tooltip = Enter the username, email address, or account number you use to sign in.
 passwords-password-tooltip = Enter the password used to sign in to this account.
 
+## Password Card
+
+passwords-list-label =
+  .aria-label = Passwords
+
 website-icon =
   .alt = Website Icon
 copy-icon =

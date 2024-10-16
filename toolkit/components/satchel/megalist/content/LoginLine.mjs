@@ -10,11 +10,6 @@ import {
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
 class LoginLine extends MozLitElement {
-  static shadowRootOptions = {
-    ...MozLitElement.shadowRootOptions,
-    delegatesFocus: true,
-  };
-
   static properties = {
     value: { type: String },
     labelL10nId: { type: String },
@@ -40,10 +35,7 @@ class LoginLine extends MozLitElement {
     return ifDefined(this.#canCopy() ? "data-after" : undefined);
   }
 
-  #handleLineClick() {
-    if (!this.#canCopy()) {
-      return;
-    }
+  #handleCopyAnimation() {
     if (!this.lineContainer.classList.contains("copied")) {
       this.lineContainer.classList.add("copied");
       this.#copyTimeoutID = setTimeout(() => {
@@ -51,6 +43,19 @@ class LoginLine extends MozLitElement {
         this.#copyTimeoutID = null;
       }, 4000);
     }
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    if (!this.#canCopy()) {
+      return;
+    }
+    this.addEventListener("click", () => this.#handleCopyAnimation());
+    this.addEventListener("keypress", e => {
+      if (e.code === "Enter" || e.code === "Space") {
+        this.#handleCopyAnimation();
+      }
+    });
   }
 
   disconnectedCallback() {
@@ -72,16 +77,7 @@ class LoginLine extends MozLitElement {
         rel="stylesheet"
         href="chrome://global/content/megalist/LoginLine.css"
       />
-      <div
-        class="line-container"
-        tabindex="0"
-        @click=${() => this.#handleLineClick()}
-        @keypress=${e => {
-          if (e.code == "Enter") {
-            this.#handleLineClick();
-          }
-        }}
-      >
+      <div class="line-container">
         <div class="input-container">
           <div class="label-container">
             <label
@@ -185,7 +181,8 @@ class ConcealedLoginLine extends MozLitElement {
         href="chrome://global/content/megalist/LoginLine.css"
       />
       <login-line
-        tabIndex="0"
+        role="option"
+        tabindex="-1"
         data-l10n-id="password-login-line"
         lineType="password"
         inputType=${this.#inputType}
@@ -194,7 +191,8 @@ class ConcealedLoginLine extends MozLitElement {
         ?alert=${this.alert}
         @click=${this.onLineClick}
         @keypress=${e => {
-          if (e.key === "Enter") {
+          if (e.code === "Enter" || e.code === "Space") {
+            e.preventDefault();
             this.onLineClick();
           }
         }}
@@ -202,15 +200,14 @@ class ConcealedLoginLine extends MozLitElement {
       </login-line>
       <div class="reveal-button-container">
         <moz-button
+          role="option"
           class="reveal-button"
           type="icon ghost"
           data-l10n-id=${this.#revealBtnLabel}
           iconSrc=${this.#revealIconSrc()}
-          @mousedown=${e => e.preventDefault()}
           @keypress=${e => {
-            if (e.key === "Enter") {
+            if (e.code === "Enter") {
               this.revealBtn.setAttribute("data-l10n-id", this.#revealBtnLabel);
-              this.loginLine.focus();
               this.onButtonClick();
             }
           }}
