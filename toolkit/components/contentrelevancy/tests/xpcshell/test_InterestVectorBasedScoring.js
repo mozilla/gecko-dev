@@ -43,6 +43,9 @@ const SINGLE_INTEREST_HIT = [Interest.ANIMALS];
 const MULTI_INTEREST_HITS = [Interest.ANIMALS, Interest.EDUCATION];
 const INTEREST_MISSES = [Interest.SPORTS, Interest.NEWS];
 const INTEREST_INCONCLUSIVE = [Interest.INCONCLUSIVE];
+// Original encoding for `Interest.EDUCATION`
+const SINGLE_INTEREST_HIT_ORIGINAL_ENCODING = [6];
+const INTEREST_INCONCLUSIVE_ORIGINAL_ENCODING = [0];
 const INVALID_INTEREST = [-1];
 
 add_setup(() => {
@@ -117,7 +120,7 @@ add_task(async function test_score() {
   Assert.greater(
     scoreSingleHit,
     0,
-    "Single interest hit should be yield a positive score"
+    "Single interest hit should yield a positive score"
   );
 
   const scoreMultiHits = await ContentRelevancyManager.score(
@@ -165,6 +168,37 @@ add_task(async function test_score_invalid_interests() {
     ContentRelevancyManager.score(INVALID_INTEREST),
     /Invalid interest value/,
     "Should throw for invalid interest"
+  );
+
+  ContentRelevancyManager.uninit();
+  gSandbox.restore();
+});
+
+add_task(async function test_score_with_interest_adjustment() {
+  gFakeStore.userInterestVector.resolves(TEST_INTEREST_VECTOR);
+
+  ContentRelevancyManager.init(gFakeRustRelevancyStore);
+
+  const score = await ContentRelevancyManager.score(
+    SINGLE_INTEREST_HIT_ORIGINAL_ENCODING,
+    true // Adjustment needed for original encoded interests.
+  );
+
+  Assert.greater(
+    score,
+    0,
+    "Single interest hit w/ original encoding should yield a positive score"
+  );
+
+  const scoreInconclusive = await ContentRelevancyManager.score(
+    INTEREST_INCONCLUSIVE_ORIGINAL_ENCODING,
+    true // Adjustment needed for original encoded interests.
+  );
+
+  Assert.equal(
+    0,
+    scoreInconclusive,
+    "Interest INCONCLUSIVE w/ original encoding should yield relevance score 0"
   );
 
   ContentRelevancyManager.uninit();

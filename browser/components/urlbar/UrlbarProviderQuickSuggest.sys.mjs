@@ -14,7 +14,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/ContentRelevancyManager.sys.mjs",
   CONTEXTUAL_SERVICES_PING_TYPES:
     "resource:///modules/PartnerLinkAttribution.sys.mjs",
-  Interest: "resource://gre/modules/RustRelevancy.sys.mjs",
   MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   SearchUtils: "resource://gre/modules/SearchUtils.sys.mjs",
@@ -883,20 +882,11 @@ class ProviderQuickSuggest extends UrlbarProvider {
   async #updateScorebyRelevance(suggestions) {
     for (let suggestion of suggestions) {
       if (suggestion.categories?.length) {
-        // UniFFI currently uses 1-based encoding for enums regardless of how
-        // it's defined upstream. Manually adjust that until that off-by-1
-        // handling gets fixed in the future.
-        //
-        // `INCONCLUSIVE` should be 0 as defined by upstream. If not, increment
-        // the categories by 1 provided by Merino or Remote Settings as they
-        // are guaranteed to use the correct encoding.
-        let categories = suggestion.categories;
-        if (lazy.Interest.INCONCLUSIVE !== 0) {
-          categories = categories.map(category => ++category);
-        }
-
         try {
-          let score = await lazy.ContentRelevancyManager.score(categories);
+          let score = await lazy.ContentRelevancyManager.score(
+            suggestion.categories,
+            true // adjustment needed b/c Merino uses the original encoding
+          );
           let oldScore = suggestion.score;
           if (isNaN(oldScore)) {
             oldScore = DEFAULT_SUGGESTION_SCORE;
