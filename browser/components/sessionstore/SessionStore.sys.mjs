@@ -765,6 +765,22 @@ export var SessionStore = {
   purgeDataForPrivateWindow(win) {
     return SessionStoreInternal.purgeDataForPrivateWindow(win);
   },
+
+  /**
+   * Add a tab group to the session's saved group list.
+   * @param {MozTabbrowserTabGroup} tabGroup - The group to save
+   */
+  addSavedTabGroup(tabGroup) {
+    return SessionStoreInternal.addSavedTabGroup(tabGroup);
+  },
+
+  /**
+   * Remove a tab group to the session's saved group list.
+   * @param {MozTabbrowserTabGroup} tabGroup - The group to remove
+   */
+  removeSavedTabGroup(tabGroup) {
+    return SessionStoreInternal.removeSavedTabGroup(tabGroup);
+  },
 };
 
 // Freeze the SessionStore object. We don't want anyone to modify it.
@@ -857,6 +873,9 @@ var SessionStoreInternal = {
 
   // states for all recently closed windows
   _closedWindows: [],
+
+  // states for all closed tab groups
+  _savedGroups: [],
 
   // collection of session states yet to be restored
   _statesToRestore: {},
@@ -4690,6 +4709,7 @@ var SessionStoreInternal = {
       windows: total,
       selectedWindow: ix + 1,
       _closedWindows: lastClosedWindowsCopy,
+      savedGroups: this._savedGroups,
       session,
       global: this._globalState.getState(),
     };
@@ -7177,6 +7197,17 @@ var SessionStoreInternal = {
     if (browser && browser.frameLoader) {
       browser.frameLoader.requestEpochUpdate(options.epoch);
     }
+  },
+
+  addSavedTabGroup(tabGroup) {
+    this.removeSavedTabGroup(tabGroup.id);
+    this._savedGroups.push(lazy.TabGroupState.clone(tabGroup));
+  },
+
+  removeSavedTabGroup(tabGroupId) {
+    this._savedGroups = this._savedGroups.filter(
+      group => group.id !== tabGroupId
+    );
   },
 };
 
