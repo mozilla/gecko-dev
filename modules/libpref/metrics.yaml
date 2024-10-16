@@ -38,3 +38,21 @@ security:
           The name of the pref.
         type: string
     telemetry_mirror: Security_Prefusage_Contentprocess
+
+preferences:
+  prefs_file_was_invalid:
+    type: boolean
+    description: >
+      Set to true if a failure occurred reading profile/prefs.js.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar preferences.prefs_file_was_invalid.
+    bugs:
+      - https://bugzil.la/1367813
+      - https://bugzil.la/1682571
+    data_reviews:
+      - https://bugzil.la/1367813
+      - https://bugzil.la/1682571
+    notification_emails:
+      - kwright@mozilla.com
+    expires: never
+    telemetry_mirror: PREFERENCES_PREFS_FILE_WAS_INVALID

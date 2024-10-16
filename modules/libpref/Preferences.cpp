@@ -42,7 +42,6 @@
 #include "mozilla/StaticPrefsAll.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/SyncRunnable.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Try.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/URLPreloader.h"
@@ -4376,8 +4375,7 @@ already_AddRefed<nsIFile> Preferences::ReadSavedPrefs() {
       // Save a backup copy of the current (invalid) prefs file, since all prefs
       // from the error line to the end of the file will be lost (bug 361102).
       // TODO we should notify the user about it (bug 523725).
-      Telemetry::ScalarSet(
-          Telemetry::ScalarID::PREFERENCES_PREFS_FILE_WAS_INVALID, true);
+      glean::preferences::prefs_file_was_invalid.Set(true);
       MakeBackupPrefFile(file);
     }
   }
