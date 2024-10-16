@@ -99,7 +99,7 @@ export class DataSourceBase {
     // OS auth is only supported on Windows and macOS
     if (
       AppConstants.platform == "linux" &&
-      "passwords-export-os-auth-dialog-message"
+      messageId.includes("os-auth-dialog")
     ) {
       return null;
     }

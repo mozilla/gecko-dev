@@ -32,6 +32,7 @@ export class MegalistAlpha extends MozLitElement {
     this.records = [];
     this.header = null;
     this.notification = null;
+    this.reauthResolver = null;
     this.displayMode = DISPLAY_MODES.ALL;
 
     window.addEventListener("MessageFromViewModel", ev =>
@@ -117,6 +118,17 @@ export class MegalistAlpha extends MozLitElement {
     this.notification = notification;
   }
 
+  receiveReauthResponse(isAuthorized) {
+    this.reauthResolver?.(isAuthorized);
+  }
+
+  reauthCommandHandler(commandFn) {
+    return new Promise((resolve, _reject) => {
+      this.reauthResolver = resolve;
+      commandFn();
+    });
+  }
+
   #createLoginRecords(snapshots) {
     const header = snapshots.shift();
     const records = [];
@@ -153,6 +165,7 @@ export class MegalistAlpha extends MozLitElement {
       .username=${username}
       .password=${password}
       .messageToViewModel=${this.#messageToViewModel.bind(this)}
+      .reauthCommandHandler=${commandFn => this.reauthCommandHandler(commandFn)}
     >
     </password-card>`;
   }

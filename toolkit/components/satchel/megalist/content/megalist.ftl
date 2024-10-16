@@ -55,6 +55,18 @@ passwords-export-os-auth-dialog-message-win = To export your passwords, enter yo
 # notes are only valid for English. only provide the reason that account verification is needed. Do not put a complete sentence here.
 passwords-export-os-auth-dialog-message-macosx = export saved passwords
 
+# This message can be seen when attempting to reveal a password in contextual password manager on Windows
+passwords-reveal-password-os-auth-dialog-message-win = To view your password, enter your Windows login credentials. This helps protect the security of your accounts.
+# The MacOS string is preceded by the operating system with "Firefox is trying to ".
+# Only provide the reason that account verification is needed. Do not put a complete sentence here.
+passwords-reveal-password-os-auth-dialog-message-macosx = reveal the saved password
+
+# This message can be seen when attempting to copy a password in contextual password manager on Windows.
+passwords-copy-password-os-auth-dialog-message-win = To copy your password, enter your Windows login credentials. This helps protect the security of your accounts.
+# The MacOS string is preceded by the operating system with "Firefox is trying to ".
+# Only provide the reason that account verification is needed. Do not put a complete sentence here.
+passwords-copy-password-os-auth-dialog-message-macosx = copy the saved password
+
 passwords-import-file-picker-title = Import Passwords
 passwords-import-file-picker-import-button = Import
 

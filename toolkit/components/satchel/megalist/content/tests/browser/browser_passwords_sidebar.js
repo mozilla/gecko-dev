@@ -11,6 +11,10 @@ const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
 );
 
+const { OSKeyStore } = ChromeUtils.importESModule(
+  "resource://gre/modules/OSKeyStore.sys.mjs"
+);
+
 const EXPECTED_PASSWORD_CARD_VALUES = [
   {
     originLine: { value: "example1.com" },
@@ -119,17 +123,13 @@ add_task(async function test_login_line_commands() {
       OSKeyStoreTestUtils.canTestOSKeyStoreLogin() &&
       selector === "passwordLine"
     ) {
-      loginLineInput =
-        card[selector].loginLine.shadowRoot.querySelector("input");
-      /* Once we pass the prompt message and pref to #verifyUser in MegalistViewModel,
-       * we will have to do something like this:
-       * let reauthObserved = Promise.resolve();
-       * if (OSKeyStore.canReauth()) {
-       *		reauthObserved = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
-       * }
-       * ...
-       * await reauthObserved;
-       */
+      const loginLine = card[selector].loginLine;
+      loginLineInput = loginLine.shadowRoot.querySelector("input");
+      let reauthObserved = Promise.resolve();
+      if (OSKeyStore.canReauth()) {
+        reauthObserved = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
+      }
+
       await SimpleTest.promiseClipboardChange(
         expectedPasswordCard[selector].value,
         () => {
@@ -137,9 +137,28 @@ add_task(async function test_login_line_commands() {
           loginLineInput.click();
         }
       );
+      await reauthObserved;
+
+      const revealBtn = card[selector].revealBtn;
+      const revealBtnPromise = BrowserTestUtils.waitForMutationCondition(
+        loginLine,
+        {
+          attributeFilter: ["inputtype"],
+        },
+        () => loginLine.getAttribute("inputtype") === "text"
+      );
+      info("click on reveal button");
+      revealBtn.click();
+      await revealBtnPromise;
+      is(
+        loginLineInput.value,
+        expectedPasswordCard[selector].value,
+        "password revealed"
+      );
     }
   }
 
+  LoginTestUtils.clearData();
   BrowserTestUtils.addTab(gBrowser, "about:blank");
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
   SidebarController.hide();

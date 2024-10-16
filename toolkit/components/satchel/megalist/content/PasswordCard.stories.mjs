@@ -26,6 +26,7 @@ const Template = ({ website, username, password }) => {
       .username=${username}
       .password=${password}
       .messageToViewModel=${() => {}}
+      .reauthCommandHandler=${() => true}
     >
     </password-card>
   `;

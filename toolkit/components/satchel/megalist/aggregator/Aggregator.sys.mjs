@@ -66,8 +66,10 @@ export class Aggregator {
     );
 
     if (source && source[functionName]) {
-      source[functionName](params);
+      return source[functionName](params);
     }
+
+    return null;
   }
 
   /**

@@ -20,6 +20,7 @@ export class PasswordCard extends MozLitElement {
     username: { type: Object },
     password: { type: Object },
     messageToViewModel: { type: Function },
+    reauthCommandHandler: { type: Function },
   };
 
   static get queries() {
@@ -142,12 +143,9 @@ export class PasswordCard extends MozLitElement {
         .value=${this.origin.value}
         .favIcon=${this.origin.valueIcon}
         ?alert=${this.origin.breached}
-        @click=${() => this.#onOriginLineClick(this.origin.lineIndex)}
-        @keypress=${e => {
-          if (e.code === "Enter" || e.code === "Space") {
-            e.preventDefault();
-            this.#onOriginLineClick(this.origin.lineIndex);
-          }
+        .onLineClick=${() => {
+          this.#onOriginLineClick(this.origin.lineIndex);
+          return true;
         }}
       >
       </login-line>
@@ -166,14 +164,11 @@ export class PasswordCard extends MozLitElement {
         lineType="username"
         labelL10nId="passwords-username-label"
         .value=${this.username.value}
-        ?alert=${this.username.value.length === 0}
-        @click=${() => this.#onCopyButtonClick(this.username.lineIndex)}
-        @keypress=${e => {
-          if (e.code === "Enter" || e.code === "Space") {
-            e.preventDefault();
-            this.#onCopyButtonClick(this.username.lineIndex);
-          }
+        .onLineClick=${() => {
+          this.#onCopyButtonClick(this.username.lineIndex);
+          return true;
         }}
+        ?alert=${this.username.value.length === 0}
       >
       </login-line>
     `;
@@ -187,13 +182,16 @@ export class PasswordCard extends MozLitElement {
         .value=${this.password.value}
         .visible=${!this.password.concealed}
         ?alert=${this.password.vulnerable}
-        .onLineClick=${() => {
-          this.#onCopyButtonClick(this.password.lineIndex);
-        }}
+        .onLineClick=${() =>
+          this.reauthCommandHandler(() =>
+            this.#onCopyButtonClick(this.password.lineIndex)
+          )}
         .onButtonClick=${() =>
-          this.#onPasswordRevealClick(
-            this.password.concealed,
-            this.password.lineIndex
+          this.reauthCommandHandler(() =>
+            this.#onPasswordRevealClick(
+              this.password.concealed,
+              this.password.lineIndex
+            )
           )}
       >
       </concealed-login-line>

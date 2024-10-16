@@ -7,7 +7,8 @@ import { DefaultAggregator } from "resource://gre/modules/megalist/aggregator/De
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  OSKeyStore: "resource://gre/modules/OSKeyStore.sys.mjs",
+  LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
+  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
 });
 
 /**
@@ -31,11 +32,13 @@ export class MegalistViewModel {
   #snapshots = [];
   #searchText = "";
   #messageToView;
+  #authExpirationTime;
 
   static #aggregator = new DefaultAggregator();
 
   constructor(messageToView) {
     this.#messageToView = messageToView;
+    this.#authExpirationTime = Number.NEGATIVE_INFINITY;
     MegalistViewModel.#aggregator.attachViewModel(this);
   }
 
@@ -168,31 +171,32 @@ export class MegalistViewModel {
     if (snapshot) {
       const commands = snapshot.commands;
       commandId = commandId ?? commands[0]?.id;
-      const mustVerify = commands.find(c => c.id == commandId)?.verify;
-      if (!mustVerify || (await this.#verifyUser())) {
-        // TODO:Enter the prompt message and pref for #verifyUser()
+      const command = snapshot.commands.find(c => c.id == commandId);
+      if (!command?.verify || (await this.#promptForReauth(command))) {
         await snapshot[`execute${commandId}`]?.(value);
       }
     }
   }
 
-  async #verifyUser(
-    promptMessage,
-    prefName,
-    captionDialog = "",
-    parentWindow = null,
-    generateKeyIfNotAvailable = false
-  ) {
-    if (!this.getOSAuthEnabled(prefName)) {
-      promptMessage = false;
-    }
-    let result = await lazy.OSKeyStore.ensureLoggedIn(
-      promptMessage,
-      captionDialog,
-      parentWindow,
-      generateKeyIfNotAvailable
+  async #promptForReauth(command) {
+    const { isAuthorized } = await lazy.LoginHelper.requestReauth(
+      lazy.BrowserWindowTracker.getTopWindow().gBrowser,
+      this.getOSAuthEnabled(),
+      this.#authExpirationTime,
+      command.OSAuthPromptMessage,
+      command.OSAuthCaptionMessage
     );
-    return result.authenticated;
+
+    if (isAuthorized) {
+      const authTimeoutMs = MegalistViewModel.#aggregator.callFunction(
+        "LoginDataSource",
+        "getAuthTimeoutMs"
+      );
+      this.#authExpirationTime = Date.now() + authTimeoutMs;
+    }
+
+    this.#messageToView("ReauthResponse", isAuthorized);
+    return isAuthorized;
   }
 
   /**

@@ -17,6 +17,7 @@ class LoginLine extends MozLitElement {
     inputType: { type: String },
     favIcon: { type: String },
     alert: { type: Boolean },
+    onLineClick: { type: Function },
   };
 
   #copyTimeoutID;
@@ -45,15 +46,22 @@ class LoginLine extends MozLitElement {
     }
   }
 
-  connectedCallback() {
-    super.connectedCallback();
-    if (!this.#canCopy()) {
+  async #onClick() {
+    const isAuthorized = await this.onLineClick();
+    if (!isAuthorized || !this.#canCopy()) {
       return;
     }
-    this.addEventListener("click", () => this.#handleCopyAnimation());
-    this.addEventListener("keypress", e => {
+    this.#handleCopyAnimation();
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    this.addEventListener("click", this.#onClick);
+    this.addEventListener("keypress", async e => {
       if (e.code === "Enter" || e.code === "Space") {
-        this.#handleCopyAnimation();
+        e.preventDefault();
+        await this.#onClick();
       }
     });
   }
@@ -175,6 +183,14 @@ class ConcealedLoginLine extends MozLitElement {
         "chrome://browser/content/aboutlogins/icons/password.svg";
   }
 
+  async #onRevealButtonClick() {
+    const isAuthorized = await this.onButtonClick();
+    if (!isAuthorized) {
+      return;
+    }
+    this.revealBtn.setAttribute("data-l10n-id", this.#revealBtnLabel);
+  }
+
   render() {
     return html` <link
         rel="stylesheet"
@@ -189,13 +205,8 @@ class ConcealedLoginLine extends MozLitElement {
         labelL10nId=${this.labelL10nId}
         .value=${this.#displayValue}
         ?alert=${this.alert}
-        @click=${this.onLineClick}
-        @keypress=${e => {
-          if (e.code === "Enter" || e.code === "Space") {
-            e.preventDefault();
-            this.onLineClick();
-          }
-        }}
+        .onLineClick=${this.onLineClick}
+        }
       >
       </login-line>
       <div class="reveal-button-container">
@@ -205,16 +216,12 @@ class ConcealedLoginLine extends MozLitElement {
           type="icon ghost"
           data-l10n-id=${this.#revealBtnLabel}
           iconSrc=${this.#revealIconSrc()}
-          @keypress=${e => {
+          @keypress=${async e => {
             if (e.code === "Enter") {
-              this.revealBtn.setAttribute("data-l10n-id", this.#revealBtnLabel);
-              this.onButtonClick();
+              await this.#onRevealButtonClick();
             }
           }}
-          @click=${() => {
-            this.revealBtn.setAttribute("data-l10n-id", this.#revealBtnLabel);
-            this.onButtonClick();
-          }}
+          @click=${this.#onRevealButtonClick}
         ></moz-button>
       </div>`;
   }

@@ -7,6 +7,9 @@ import { LoginHelper } from "resource://gre/modules/LoginHelper.sys.mjs";
 import { DataSourceBase } from "resource://gre/modules/megalist/aggregator/datasources/DataSourceBase.sys.mjs";
 import { LoginCSVImport } from "resource://gre/modules/LoginCSVImport.sys.mjs";
 import { LoginExport } from "resource://gre/modules/LoginExport.sys.mjs";
+import { setTimeout, clearTimeout } from "resource://gre/modules/Timer.sys.mjs";
+
+const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -76,6 +79,16 @@ export class LoginDataSource extends DataSourceBase {
       usernameLabel: { id: "passwords-username-label" },
       passwordLabel: { id: "passwords-password-label" },
       passwordsDisabled: { id: "passwords-disabled" },
+      revealPasswordOSAuthDialogPrompt: {
+        id: this.getPlatformFtl(
+          "passwords-reveal-password-os-auth-dialog-message"
+        ),
+      },
+      copyPasswordOSAuthDialogPrompt: {
+        id: this.getPlatformFtl(
+          "passwords-copy-password-os-auth-dialog-message"
+        ),
+      },
       passwordOSAuthDialogCaption: { id: "passwords-os-auth-dialog-caption" },
       passwordsImportFilePickerTitle: {
         id: "passwords-import-file-picker-title",
@@ -277,11 +290,18 @@ export class LoginDataSource extends DataSourceBase {
         },
         commands: {
           value: [
-            { ...copyCommand, verify: true },
+            {
+              ...copyCommand,
+              verify: true,
+              OSAuthPromptMessage: strings.copyPasswordOSAuthDialogPrompt,
+              OSAuthCaptionMessage: strings.passwordOSAuthDialogCaption,
+            },
             {
               id: "Reveal",
               label: "command-reveal",
               verify: true,
+              OSAuthPromptMessage: strings.revealPasswordOSAuthDialogPrompt,
+              OSAuthCaptionMessage: strings.passwordOSAuthDialogCaption,
             },
             { id: "Conceal", label: "command-conceal" },
             editCommand,
@@ -291,6 +311,11 @@ export class LoginDataSource extends DataSourceBase {
         executeReveal: {
           value() {
             this.concealed = false;
+            clearTimeout(this.concealPasswordTimeout);
+            this.concealPasswordTimeout = setTimeout(
+              () => this.executeConceal(),
+              AUTH_TIMEOUT_MS
+            );
             this.refreshOnScreen();
           },
         },
@@ -688,6 +713,10 @@ export class LoginDataSource extends DataSourceBase {
     this.#header.value.total = 0;
     this.#header.value.alerts = 0;
     this.refreshAllLinesOnScreen();
+  }
+
+  getAuthTimeoutMs() {
+    return AUTH_TIMEOUT_MS;
   }
 
   observe(_subj, topic, message) {
