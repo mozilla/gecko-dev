@@ -157,7 +157,7 @@ bool nsWindow::OnPaint(uint32_t aNestingLevel) {
   KnowsCompositor* knowsCompositor = renderer->AsKnowsCompositor();
   WebRenderLayerManager* layerManager = renderer->AsWebRender();
 
-  const bool didResize = !mBounds.IsEqualEdges(mLastPaintBounds);
+  const bool didResize = mBounds.Size() != mLastPaintBounds.Size();
 
   if (didResize && knowsCompositor && layerManager) {
     // Do an early async composite so that we at least have something on the

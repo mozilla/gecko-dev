@@ -953,6 +953,9 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
       // default prefs on Windows. Bug 1673092 tracks lining this up with
       // that more correctly instead of hard-coding it.
       SetNonClientMargins(LayoutDeviceIntMargin(0, 2, 2, 2));
+      // The skeleton UI already painted over the NC area, so there's no need
+      // to do that again; the effective non-client margins haven't changed.
+      mNeedsNCAreaClear = false;
 
       // Reset the WNDPROC for this window and its whole class, as we had
       // to use our own WNDPROC when creating the the skeleton UI window.
@@ -1591,6 +1594,13 @@ void nsWindow::Show(bool aState) {
     // The first time we decide to actually show the window is when we decide
     // that we've taken over the window from the skeleton UI, and we should
     // no longer treat resizes / moves specially.
+    //
+    // NOTE(emilio): mIsShowingPreXULSkeletonUI feels a bit odd, or at least
+    // misnamed. During regular startup we create the skeleton UI, then the
+    // early blank window consumes it, and at that point we set
+    // mIsShowingPreXULSkeletonUI to false, but in fact, we're still showing
+    // the skeleton UI (because the blank window is, well, blank). We should
+    // consider guarding this with !mIsEarlyBlankWindow...
     mIsShowingPreXULSkeletonUI = false;
     // Concomitantly, this is also when we change the cursor away from the
     // default "wait" cursor.
@@ -2738,6 +2748,8 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
   }
 
   UpdateOpaqueRegionInternal();
+  // We probably shouldn't need to clear the NC-area if we're an opaque window,
+  // but we need to in order to work around bug 642851.
   mNeedsNCAreaClear = true;
 
   if (aReflowWindow) {
@@ -2750,8 +2762,14 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
 }
 
 nsresult nsWindow::SetNonClientMargins(const LayoutDeviceIntMargin& margins) {
-  if (!mIsTopWidgetWindow || mBorderStyle == BorderStyle::None) {
+  if (!mIsTopWidgetWindow || mBorderStyle == BorderStyle::None ||
+      margins.top < -1 || margins.bottom < -1 || margins.left < -1 ||
+      margins.right < -1) {
     return NS_ERROR_INVALID_ARG;
+  }
+
+  if (mNonClientMargins == margins) {
+    return NS_OK;
   }
 
   if (mHideChrome) {
@@ -2759,29 +2777,18 @@ nsresult nsWindow::SetNonClientMargins(const LayoutDeviceIntMargin& margins) {
     mFutureMarginsToUse = true;
     return NS_OK;
   }
+
   mFutureMarginsToUse = false;
 
-  // Request for a reset
-  if (margins.top == -1 && margins.left == -1 && margins.right == -1 &&
-      margins.bottom == -1) {
-    mCustomNonClient = false;
-    mNonClientMargins = margins;
-    // Force a reflow of content based on the new client
-    // dimensions.
-    ResetLayout();
-    return NS_OK;
-  }
-
-  if (margins.top < -1 || margins.bottom < -1 || margins.left < -1 ||
-      margins.right < -1) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
+  // -1 margins request a reset
+  mCustomNonClient = margins != LayoutDeviceIntMargin(-1, -1, -1, -1);
   mNonClientMargins = margins;
-  mCustomNonClient = true;
-  if (!UpdateNonClientMargins()) {
-    NS_WARNING("UpdateNonClientMargins failed!");
-    return NS_OK;
+
+  // Force a reflow of content based on the new client dimensions.
+  if (mCustomNonClient) {
+    UpdateNonClientMargins();
+  } else {
+    ResetLayout();
   }
 
   return NS_OK;
@@ -5094,7 +5101,8 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
        * do seem to always send a WM_NCPAINT message, so let's update on that.
        */
       gfxDWriteFont::UpdateSystemTextVars();
-      if (mCustomNonClient) {
+      if (mCustomNonClient &&
+          mTransparencyMode == TransparencyMode::Transparent) {
         // We rely on dwm for glass / semi-transparent window painting, so we
         // just need to make sure to clear the non-client area next time we get
         // around to doing a main-thread paint.
