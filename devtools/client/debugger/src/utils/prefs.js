@@ -49,6 +49,7 @@ if (isNode()) {
   pref("devtools.debugger.javascript-tracing-on-next-interaction", false);
   pref("devtools.debugger.javascript-tracing-on-next-load", false);
   pref("devtools.debugger.javascript-tracing-function-return", false);
+  pref("devtools.debugger.show-content-scripts", false);
   pref("devtools.debugger.hide-ignored-sources", false);
   pref("devtools.debugger.source-map-ignore-list-enabled", true);
   pref("devtools.debugger.features.wasm", true);
@@ -124,6 +125,7 @@ export const prefs = new PrefsHelper("devtools", {
     "Bool",
     "debugger.javascript-tracing-function-return",
   ],
+  showContentScripts: ["Bool", "debugger.show-content-scripts"],
   hideIgnoredSources: ["Bool", "debugger.hide-ignored-sources"],
   sourceMapIgnoreListEnabled: [
     "Bool",

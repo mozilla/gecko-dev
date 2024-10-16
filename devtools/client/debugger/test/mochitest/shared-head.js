@@ -3154,7 +3154,7 @@ function assertMenuItemChecked(menuItem, isChecked) {
 async function toggleDebbuggerSettingsMenuItem(dbg, { className, isChecked }) {
   const menuButton = findElementWithSelector(
     dbg,
-    ".debugger-settings-menu-button"
+    ".command-bar .debugger-settings-menu-button"
   );
   const { parent } = dbg.panel.panelWin;
   const { document } = parent;
@@ -3163,6 +3163,38 @@ async function toggleDebbuggerSettingsMenuItem(dbg, { className, isChecked }) {
   // Waits for the debugger settings panel to appear.
   await waitFor(() => {
     const menuListEl = document.querySelector("#debugger-settings-menu-list");
+    // Lets check the offsetParent property to make sure the menu list is actually visible
+    // by its parents display property being no longer "none".
+    return menuListEl && menuListEl.offsetParent !== null;
+  });
+
+  const menuItem = document.querySelector(className);
+
+  assertMenuItemChecked(menuItem, isChecked);
+
+  menuItem.click();
+
+  // Waits for the debugger settings panel to disappear.
+  await waitFor(() => menuButton.getAttribute("aria-expanded") === "false");
+}
+
+async function toggleSourcesTreeSettingsMenuItem(
+  dbg,
+  { className, isChecked }
+) {
+  const menuButton = findElementWithSelector(
+    dbg,
+    ".sources-list .debugger-settings-menu-button"
+  );
+  const { parent } = dbg.panel.panelWin;
+  const { document } = parent;
+
+  menuButton.click();
+  // Waits for the debugger settings panel to appear.
+  await waitFor(() => {
+    const menuListEl = document.querySelector(
+      "#sources-tree-settings-menu-list"
+    );
     // Lets check the offsetParent property to make sure the menu list is actually visible
     // by its parents display property being no longer "none".
     return menuListEl && menuListEl.offsetParent !== null;

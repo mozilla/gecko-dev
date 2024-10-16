@@ -7,13 +7,27 @@
 "use strict";
 
 add_task(async function () {
-  await pushPref("devtools.chrome.enabled", true);
   const extension = await installAndStartContentScriptExtension();
 
-  let dbg = await initDebugger(
-    "doc-content-script-sources.html",
-    "content_script.js"
+  let dbg = await initDebugger("doc-content-script-sources.html");
+  ok(
+    sourceExists(dbg, "content_script.js"),
+    "The extension content script exists in the reducer"
   );
+
+  info("But the content script isn't visible by default");
+  await waitForSourcesInSourceTree(dbg, []);
+
+  info("Enable the content script setting");
+  await toggleSourcesTreeSettingsMenuItem(dbg, {
+    className: ".debugger-settings-menu-item-show-content-scripts",
+    isChecked: false,
+  });
+
+  info("The extension content script should now be visible in the source tree");
+  await waitForSourcesInSourceTree(dbg, ["content_script.js"]);
+
+  await waitForSources(dbg, "content_script.js");
   await selectSource(dbg, "content_script.js");
   await closeTab(dbg, "content_script.js");
 

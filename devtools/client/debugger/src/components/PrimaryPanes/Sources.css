@@ -48,6 +48,14 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  position: relative;
+}
+
+.sources-list .debugger-settings-menu-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  z-index: 5;
 }
 
 .sources-list .sources-clear-root-container {

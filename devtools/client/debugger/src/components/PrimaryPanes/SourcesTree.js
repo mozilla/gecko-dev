@@ -15,6 +15,10 @@ import {
 } from "devtools/client/shared/vendor/react-dom-factories";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import { connect } from "devtools/client/shared/vendor/react-redux";
+const MenuButton = require("resource://devtools/client/shared/components/menu/MenuButton.js");
+const MenuItem = require("resource://devtools/client/shared/components/menu/MenuItem.js");
+const MenuList = require("resource://devtools/client/shared/components/menu/MenuList.js");
+import { prefs } from "../../utils/prefs";
 
 // Selectors
 import {
@@ -310,6 +314,49 @@ class SourcesTree extends Component {
     return null;
   }
 
+  renderSettingsButton() {
+    const { toolboxDoc } = this.context;
+    return React.createElement(
+      MenuButton,
+      {
+        menuId: "sources-tree-settings-menu-button",
+        toolboxDoc,
+        className:
+          "devtools-button command-bar-button debugger-settings-menu-button",
+        title: L10N.getStr("sources-settings.button.label"),
+        "aria-label": L10N.getStr("sources-settings.button.label"),
+      },
+      () => this.renderSettingsMenuItems()
+    );
+  }
+
+  renderSettingsMenuItems() {
+    return React.createElement(
+      MenuList,
+      {
+        id: "sources-tree-settings-menu-list",
+      },
+      React.createElement(MenuItem, {
+        key: "debugger-settings-menu-item-hide-ignored-sources",
+        className: "menu-item debugger-settings-menu-item-hide-ignored-sources",
+        checked: prefs.hideIgnoredSources,
+        label: L10N.getStr("settings.hideIgnoredSources.label"),
+        tooltip: L10N.getStr("settings.hideIgnoredSources.tooltip"),
+        onClick: () =>
+          this.props.setHideOrShowIgnoredSources(!prefs.hideIgnoredSources),
+      }),
+      React.createElement(MenuItem, {
+        key: "debugger-settings-menu-item-show-content-scripts",
+        className: "menu-item debugger-settings-menu-item-show-content-scripts",
+        checked: prefs.showContentScripts,
+        label: L10N.getStr("sources-settings.showContentScripts.label"),
+        tooltip: L10N.getStr("sources-settings.showContentScripts.tooltip"),
+        onClick: () =>
+          this.props.setShowContentScripts(!prefs.showContentScripts),
+      })
+    );
+  }
+
   render() {
     const { projectRoot } = this.props;
     return div(
@@ -319,6 +366,7 @@ class SourcesTree extends Component {
           "sources-list-custom-root": !!projectRoot,
         }),
       },
+      this.renderSettingsButton(),
       this.isEmpty()
         ? this.renderEmptyElement(L10N.getStr("noSourcesText"))
         : React.createElement(
@@ -331,6 +379,10 @@ class SourcesTree extends Component {
     );
   }
 }
+
+SourcesTree.contextTypes = {
+  toolboxDoc: PropTypes.object,
+};
 
 const mapStateToProps = state => {
   return {
@@ -350,4 +402,5 @@ export default connect(mapStateToProps, {
   focusItem: actions.focusItem,
   clearProjectDirectoryRoot: actions.clearProjectDirectoryRoot,
   setHideOrShowIgnoredSources: actions.setHideOrShowIgnoredSources,
+  setShowContentScripts: actions.setShowContentScripts,
 })(SourcesTree);

@@ -41,3 +41,7 @@ export function clearProjectDirectoryRoot() {
     name: "",
   };
 }
+
+export function setShowContentScripts(shouldShow) {
+  return { type: "SHOW_CONTENT_SCRIPTS", shouldShow };
+}

@@ -224,9 +224,7 @@ export function copyToClipboard(location) {
 }
 
 export function setHideOrShowIgnoredSources(shouldHide) {
-  return ({ dispatch }) => {
-    dispatch({ type: "HIDE_IGNORED_SOURCES", shouldHide });
-  };
+  return { type: "HIDE_IGNORED_SOURCES", shouldHide };
 }
 
 export function toggleSourceMapIgnoreList(shouldEnable) {
