@@ -16,6 +16,7 @@
 #include "nsIFrame.h"
 #include "nsIFrameInlines.h"
 #include "nsLayoutUtils.h"
+#include "PresShell.h"
 
 namespace mozilla {
 
@@ -84,9 +85,8 @@ void StickyScrollContainer::ComputeStickyOffsets(nsIFrame* aFrame) {
     return;
   }
 
-  nsSize scrollContainerSize = scrollContainerFrame->GetScrolledFrame()
-                                   ->GetContentRectRelativeToSelf()
-                                   .Size();
+  nsSize scrollContainerSize =
+      scrollContainerFrame->GetScrolledFrameSizeAccountingForDynamicToolbar();
 
   nsMargin computedOffsets;
   const nsStylePosition* position = aFrame->StylePosition();
@@ -195,7 +195,8 @@ void StickyScrollContainer::ComputeStickyLimits(nsIFrame* aFrame,
                        computedOffsets->top - sfOffset.y);
   }
 
-  nsSize sfSize = scrolledFrame->GetContentRectRelativeToSelf().Size();
+  nsSize sfSize =
+      mScrollContainerFrame->GetScrolledFrameSizeAccountingForDynamicToolbar();
 
   // Bottom
   if (computedOffsets->bottom != NS_AUTOOFFSET &&
@@ -388,4 +389,10 @@ void StickyScrollContainer::ScrollPositionDidChange(nscoord aX, nscoord aY) {
   UpdatePositions(nsPoint(aX, aY), nullptr);
 }
 
+void StickyScrollContainer::MarkFramesForReflow() {
+  PresShell* ps = mScrollContainerFrame->PresShell();
+  for (nsIFrame* frame : mFrames.IterFromShallowest()) {
+    ps->FrameNeedsReflow(frame, IntrinsicDirty::None, NS_FRAME_IS_DIRTY);
+  }
+}
 }  // namespace mozilla

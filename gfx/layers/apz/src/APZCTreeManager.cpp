@@ -939,11 +939,7 @@ void APZCTreeManager::SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
     }
 
     ScreenPoint translation = apz::ComputeFixedMarginsOffset(
-        GetCompositorFixedLayerMargins(lock), sides,
-        // For sticky layers, we don't need to factor
-        // mGeckoFixedLayerMargins because Gecko doesn't shift the
-        // position of sticky elements for dynamic toolbar movements.
-        ScreenMargin());
+        GetCompositorFixedLayerMargins(lock), sides, mGeckoFixedLayerMargins);
 
     LayerToParentLayerMatrix4x4 transform =
         LayerToParentLayerMatrix4x4::Translation(ViewAs<ParentLayerPixel>(
@@ -2195,8 +2191,9 @@ void APZCTreeManager::AdjustEventPointForDynamicToolbar(
           aHit.mNode.Get(lock), AsyncTransformConsumer::eForEventHandling);
     }
     MutexAutoLock lock(mMapLock);
-    aEventPoint -= RoundedToInt(apz::ComputeFixedMarginsOffset(
-        GetCompositorFixedLayerMargins(lock), sideBits, ScreenMargin()));
+    aEventPoint -= RoundedToInt(
+        apz::ComputeFixedMarginsOffset(GetCompositorFixedLayerMargins(lock),
+                                       sideBits, mGeckoFixedLayerMargins));
   }
 }
 

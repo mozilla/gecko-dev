@@ -193,6 +193,7 @@
 #include "prenv.h"
 #include "prinrval.h"
 #include "ScrollSnap.h"
+#include "StickyScrollContainer.h"
 #include "Units.h"
 #include "VisualViewport.h"
 #include "XULTreeElement.h"
@@ -11435,6 +11436,21 @@ void PresShell::MarkFixedFramesForReflow(IntrinsicDirty aIntrinsicDirty) {
       FrameNeedsReflow(childFrame, aIntrinsicDirty, NS_FRAME_IS_DIRTY);
     }
   }
+}
+
+void PresShell::MarkStickyFramesForReflow() {
+  ScrollContainerFrame* sc = GetRootScrollContainerFrame();
+  if (!sc) {
+    return;
+  }
+
+  StickyScrollContainer* ssc =
+      StickyScrollContainer::GetStickyScrollContainerForScrollFrame(sc);
+  if (!ssc) {
+    return;
+  }
+
+  ssc->MarkFramesForReflow();
 }
 
 static void AppendSubtree(nsIDocShell* aDocShell,

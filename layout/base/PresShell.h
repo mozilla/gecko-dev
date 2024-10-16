@@ -1475,6 +1475,12 @@ class PresShell final : public nsStubDocumentObserver,
    */
   void MarkFixedFramesForReflow(IntrinsicDirty aIntrinsicDirty);
 
+  /**
+   * Similar to above MarkFixedFramesForReflow, but for sticky position children
+   * stuck to the root frame.
+   */
+  void MarkStickyFramesForReflow();
+
   void MaybeReflowForInflationScreenSizeChange();
 
   // This function handles all the work after VisualViewportSize is set

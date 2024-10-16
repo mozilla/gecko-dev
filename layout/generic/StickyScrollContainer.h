@@ -91,6 +91,11 @@ class StickyScrollContainer final : public nsIScrollPositionListener {
    */
   bool IsStuckInYDirection(nsIFrame* aFrame) const;
 
+  /**
+   * Calls FrameNeedsReflow on all sticky position children.
+   */
+  void MarkFramesForReflow();
+
  private:
   explicit StickyScrollContainer(ScrollContainerFrame* aScrollContainerFrame);
 
