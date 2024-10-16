@@ -66,7 +66,6 @@ Important outstanding bugs:
 
 | Pref | Description |
 | ---- | ----------- |
-| places.forgetThisSite.clearByBaseDomain | Switches “Forget about this site” to clear for the whole base domain rather than just the host. |
 | privacy.sanitize.sanitizeOnShutdown | Whether to clear data on Firefox shutdown. |
 | privacy.clearOnShutdown.* | Categories of data to be cleared on shutdown. True = clear category. Data is only cleared if privacy.sanitize.sanitizeOnShutdown is enabled.|
 | privacy.clearHistory.* | Categories of data to be cleared in the clear history or browser context. True = clear category.|

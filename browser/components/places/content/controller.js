@@ -77,12 +77,6 @@ function PlacesController(aView) {
     return Services.dirsvc.get("ProfD", Ci.nsIFile).leafName;
   });
 
-  XPCOMUtils.defineLazyPreferenceGetter(
-    this,
-    "forgetSiteClearByBaseDomain",
-    "places.forgetThisSite.clearByBaseDomain",
-    false
-  );
   ChromeUtils.defineESModuleGetters(this, {
     ForgetAboutSite: "resource://gre/modules/ForgetAboutSite.sys.mjs",
   });
@@ -1414,11 +1408,7 @@ PlacesController.prototype = {
       return;
     }
 
-    if (this.forgetSiteClearByBaseDomain) {
-      await this.ForgetAboutSite.removeDataFromBaseDomain(host);
-    } else {
-      await this.ForgetAboutSite.removeDataFromDomain(host);
-    }
+    await this.ForgetAboutSite.removeDataFromBaseDomain(host);
   },
 
   showInFolder(aBookmarkGuid) {
