@@ -373,105 +373,63 @@ impl style_traits::ToCss for ColorFunction {
             false
         };
 
+        macro_rules! serialize_alpha {
+            ($alpha_component:expr) => {{
+                if !is_opaque && !matches!($alpha_component, ColorComponent::AlphaOmitted) {
+                    dest.write_str(" / ")?;
+                    $alpha_component.to_css(dest)?;
+                }
+            }};
+        }
+
+        macro_rules! serialize_components {
+            ($c0:expr, $c1:expr, $c2:expr) => {{
+                debug_assert!(!matches!($c0, ColorComponent::AlphaOmitted));
+                debug_assert!(!matches!($c1, ColorComponent::AlphaOmitted));
+                debug_assert!(!matches!($c2, ColorComponent::AlphaOmitted));
+
+                $c0.to_css(dest)?;
+                dest.write_str(" ")?;
+                $c1.to_css(dest)?;
+                dest.write_str(" ")?;
+                $c2.to_css(dest)?;
+            }};
+        }
+
         match self {
-            Self::Rgb(_, r, g, b, alpha) => {
-                r.to_css(dest)?;
-                dest.write_str(" ")?;
-                g.to_css(dest)?;
-                dest.write_str(" ")?;
-                b.to_css(dest)?;
-
-                if !is_opaque {
-                    dest.write_str(" / ")?;
-                    alpha.to_css(dest)?;
-                }
+            Self::Rgb(_, c0, c1, c2, alpha) => {
+                serialize_components!(c0, c1, c2);
+                serialize_alpha!(alpha);
             },
-            Self::Hsl(_, h, s, l, alpha) => {
-                h.to_css(dest)?;
-                dest.write_str(" ")?;
-                s.to_css(dest)?;
-                dest.write_str(" ")?;
-                l.to_css(dest)?;
-
-                if !is_opaque {
-                    dest.write_str(" / ")?;
-                    alpha.to_css(dest)?;
-                }
+            Self::Hsl(_, c0, c1, c2, alpha) => {
+                serialize_components!(c0, c1, c2);
+                serialize_alpha!(alpha);
             },
-            Self::Hwb(_, h, w, b, alpha) => {
-                h.to_css(dest)?;
-                dest.write_str(" ")?;
-                w.to_css(dest)?;
-                dest.write_str(" ")?;
-                b.to_css(dest)?;
-
-                if !is_opaque {
-                    dest.write_str(" / ")?;
-                    alpha.to_css(dest)?;
-                }
+            Self::Hwb(_, c0, c1, c2, alpha) => {
+                serialize_components!(c0, c1, c2);
+                serialize_alpha!(alpha);
             },
-            Self::Lab(_, l, a, b, alpha) => {
-                l.to_css(dest)?;
-                dest.write_str(" ")?;
-                a.to_css(dest)?;
-                dest.write_str(" ")?;
-                b.to_css(dest)?;
-
-                if !is_opaque {
-                    dest.write_str(" / ")?;
-                    alpha.to_css(dest)?;
-                }
+            Self::Lab(_, c0, c1, c2, alpha) => {
+                serialize_components!(c0, c1, c2);
+                serialize_alpha!(alpha);
             },
-            Self::Lch(_, l, c, h, alpha) => {
-                l.to_css(dest)?;
-                dest.write_str(" ")?;
-                c.to_css(dest)?;
-                dest.write_str(" ")?;
-                h.to_css(dest)?;
-
-                if !is_opaque {
-                    dest.write_str(" / ")?;
-                    alpha.to_css(dest)?;
-                }
+            Self::Lch(_, c0, c1, c2, alpha) => {
+                serialize_components!(c0, c1, c2);
+                serialize_alpha!(alpha);
             },
-            Self::Oklab(_, l, a, b, alpha) => {
-                l.to_css(dest)?;
-                dest.write_str(" ")?;
-                a.to_css(dest)?;
-                dest.write_str(" ")?;
-                b.to_css(dest)?;
-
-                if !is_opaque {
-                    dest.write_str(" / ")?;
-                    alpha.to_css(dest)?;
-                }
+            Self::Oklab(_, c0, c1, c2, alpha) => {
+                serialize_components!(c0, c1, c2);
+                serialize_alpha!(alpha);
             },
-            Self::Oklch(_, l, c, h, alpha) => {
-                l.to_css(dest)?;
-                dest.write_str(" ")?;
-                c.to_css(dest)?;
-                dest.write_str(" ")?;
-                h.to_css(dest)?;
-
-                if !is_opaque {
-                    dest.write_str(" / ")?;
-                    alpha.to_css(dest)?;
-                }
+            Self::Oklch(_, c0, c1, c2, alpha) => {
+                serialize_components!(c0, c1, c2);
+                serialize_alpha!(alpha);
             },
-            Self::Color(_, r, g, b, alpha, color_space) => {
+            Self::Color(_, c0, c1, c2, alpha, color_space) => {
                 color_space.to_css(dest)?;
                 dest.write_str(" ")?;
-
-                r.to_css(dest)?;
-                dest.write_str(" ")?;
-                g.to_css(dest)?;
-                dest.write_str(" ")?;
-                b.to_css(dest)?;
-
-                if !is_opaque {
-                    dest.write_str(" / ")?;
-                    alpha.to_css(dest)?;
-                }
+                serialize_components!(c0, c1, c2);
+                serialize_alpha!(alpha);
             },
         }
 
