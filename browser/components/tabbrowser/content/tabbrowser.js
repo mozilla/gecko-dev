@@ -3015,6 +3015,28 @@
       this.removeTabs(group.tabs, options);
     },
 
+    /**
+     * Removes a tab from a group. This has no effect on tabs that are not
+     * already in a group.
+     *
+     * @param tab The tab to ungroup
+     */
+    ungroupTab(tab) {
+      if (!tab.group) {
+        return;
+      }
+
+      let oldPosition = tab._tPos;
+      let wasFocused = document.activeElement == this.selectedTab;
+      let adjacentTab = gBrowser.tabContainer.findNextTab(
+        tab.group.tabs.at(-1)
+      );
+
+      gBrowser.tabContainer.insertBefore(tab, adjacentTab);
+
+      this._updateAfterMoveTabTo(tab, oldPosition, wasFocused);
+    },
+
     adoptTabGroup(group, index) {
       if (group.ownerDocument == document) {
         return;
@@ -7980,31 +8002,37 @@ var TabContextMenu = {
     let contextMoveTabToGroup = document.getElementById(
       "context_moveTabToGroup"
     );
+    let contextUngroupTab = document.getElementById("context_ungroupTab");
 
     if (gBrowser._tabGroupsEnabled) {
-      let availableTabGroups = gBrowser
+      let selectedGroupCount = 0;
+      if (multiselectionContext) {
+        selectedGroupCount = new Set(
+          // the filter is necessary to remove the "null" group
+          gBrowser.selectedTabs.map(t => t.group).filter(g => g)
+        ).size;
+      } else if (this.contextTab.group) {
+        selectedGroupCount = 1;
+      }
+
+      // Determine whether or not the "current" tab group should appear in the move context menu
+      let availableGroupsToMoveTo = gBrowser
         .getAllTabGroups()
         .sort((a, b) => a.createdDate - b.createdDate);
 
-      // Determine whether or not the "current" tab group should appear in the context menu
       let groupToFilter;
-      if (
-        gBrowser.selectedTabs.length > 1 && // if we have multiple tabs selected ...
-        gBrowser.selectedTabs.includes(this.contextTab) && // and we are operating on the selection ...
-        new Set(gBrowser.selectedTabs.map(t => t.group)).size == 1 // and all the tabs are in the same group
-      ) {
+      if (multiselectionContext && selectedGroupCount == 1) {
         groupToFilter = gBrowser.selectedTabs[0].group;
       } else if (gBrowser.selectedTabs.length == 1) {
         groupToFilter = this.contextTab.group;
       }
-
       if (groupToFilter) {
-        availableTabGroups = availableTabGroups.filter(
+        availableGroupsToMoveTo = availableGroupsToMoveTo.filter(
           group => group !== groupToFilter
         );
       }
 
-      if (!availableTabGroups.length) {
+      if (!availableGroupsToMoveTo.length) {
         contextMoveTabToGroup.hidden = true;
         contextMoveTabToNewGroup.hidden = false;
         contextMoveTabToNewGroup.setAttribute("data-l10n-args", tabCountInfo);
@@ -8016,7 +8044,7 @@ var TabContextMenu = {
         const submenu = contextMoveTabToGroup.querySelector("menupopup");
         submenu.querySelectorAll("[tab-group-id]").forEach(el => el.remove());
 
-        availableTabGroups.forEach(group => {
+        availableGroupsToMoveTo.forEach(group => {
           let item = document.createXULElement("menuitem");
           item.setAttribute("tab-group-id", group.id);
           if (group.label) {
@@ -8037,9 +8065,16 @@ var TabContextMenu = {
           submenu.appendChild(item);
         });
       }
+
+      contextUngroupTab.hidden = !selectedGroupCount;
+      let groupInfo = JSON.stringify({
+        groupCount: selectedGroupCount,
+      });
+      contextUngroupTab.setAttribute("data-l10n-args", groupInfo);
     } else {
       contextMoveTabToNewGroup.hidden = true;
       contextMoveTabToGroup.hidden = true;
+      contextUngroupTab.hidden = true;
     }
 
     // Only one of Reload_Tab/Reload_Selected_Tabs should be visible.
@@ -8338,17 +8373,23 @@ var TabContextMenu = {
 
   moveTabsToNewGroup() {
     gBrowser.addTabGroup(
-      gBrowser.selectedTabs.includes(this.contextTab)
-        ? gBrowser.selectedTabs
-        : [this.contextTab]
+      this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab]
     );
   },
 
   moveTabsToGroup(group) {
     group.addTabs(
-      gBrowser.selectedTabs.includes(TabContextMenu.contextTab)
-        ? gBrowser.selectedTabs
-        : [TabContextMenu.contextTab]
+      this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab]
     );
+  },
+
+  ungroupTabs() {
+    if (this.contextTab.multiselected) {
+      for (let tab of gBrowser.selectedTabs) {
+        gBrowser.ungroupTab(tab);
+      }
+    } else {
+      gBrowser.ungroupTab(this.contextTab);
+    }
   },
 };

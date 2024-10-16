@@ -156,10 +156,8 @@
      *
      */
     ungroupTabs() {
-      let adjacentTab = gBrowser.tabContainer.findNextTab(this.tabs.at(-1));
-
       for (let tab of this.tabs) {
-        gBrowser.tabContainer.insertBefore(tab, adjacentTab);
+        gBrowser.ungroupTab(tab);
       }
     }
 

@@ -31,3 +31,15 @@ tab-group-editor-action-delete = Delete group
 tab-group-editor-done =
   .label = Done
   .accessKey = D
+
+##
+
+# Variables:
+#  $groupCount (Number): the number of tab groups that are affected by the action.
+tab-context-ungroup-tab =
+  .label =
+      { $groupCount ->
+          [1] Remove from Group
+         *[other] Remove from Groups
+      }
+  .accesskey = R

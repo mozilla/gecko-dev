@@ -19,6 +19,9 @@ document.addEventListener(
         case "context_moveTabToNewGroup":
           TabContextMenu.moveTabsToNewGroup();
           break;
+        case "context_ungroupTab":
+          TabContextMenu.ungroupTabs();
+          break;
         case "context_reloadTab":
           gBrowser.reloadTab(TabContextMenu.contextTab);
           break;
