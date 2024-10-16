@@ -13,6 +13,11 @@ namespace mozilla::dom {
 // https://w3c.github.io/trusted-types/dist/spec/#integration-with-content-security-policy
 static constexpr nsLiteralString kValidRequireTrustedTypesForDirectiveValue =
     u"'script'"_ns;
+
+// https://github.com/w3c/trusted-types/issues/542
+constexpr nsLiteralString kTrustedTypesOnlySinkGroup =
+    kValidRequireTrustedTypesForDirectiveValue;
+
 }  // namespace mozilla::dom
 
 #endif  // DOM_SECURITY_TRUSTED_TYPES_TRUSTEDTYPESCONSTANTS_H_

@@ -232,6 +232,8 @@ class DOMRect;
 class DOMRectList;
 class Flex;
 class Grid;
+class OwningTrustedHTMLOrNullIsEmptyString;
+class TrustedHTMLOrNullIsEmptyString;
 
 // IID for the dom::Element interface
 #define NS_ELEMENT_IID                               \
@@ -1620,9 +1622,21 @@ class Element : public FragmentOrElement {
   void CloneAnimationsFrom(const Element& aOther);
 
   virtual void GetInnerHTML(nsAString& aInnerHTML, OOMReporter& aError);
-  virtual void SetInnerHTML(const nsAString& aInnerHTML,
-                            nsIPrincipal* aSubjectPrincipal,
-                            ErrorResult& aError);
+
+  // https://html.spec.whatwg.org/#dom-parsing-and-serialization:dom-element-innerhtml
+  // @param aInnerHTML will always be of type `NullIsEmptyString`.
+  void GetInnerHTML(OwningTrustedHTMLOrNullIsEmptyString& aInnerHTML,
+                    OOMReporter& aError);
+
+  // https://html.spec.whatwg.org/#dom-parsing-and-serialization:dom-element-innerhtml
+  void SetInnerHTML(const TrustedHTMLOrNullIsEmptyString& aInnerHTML,
+                    nsIPrincipal* aSubjectPrincipal, ErrorResult& aError);
+
+  // Call this method only with trusted, i.e. non-attacker-controlled, strings.
+  virtual void SetInnerHTMLTrusted(const nsAString& aInnerHTML,
+                                   nsIPrincipal* aSubjectPrincipal,
+                                   ErrorResult& aError);
+
   void GetOuterHTML(nsAString& aOuterHTML);
   void SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError);
   void InsertAdjacentHTML(const nsAString& aPosition,

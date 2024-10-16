@@ -33,10 +33,12 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
                                            nsGenericHTMLElement)
 
   void GetInnerHTML(nsAString& aInnerHTML, OOMReporter& aError) override;
-  virtual void SetInnerHTML(const nsAString& aInnerHTML,
-                            nsIPrincipal* aSubjectPrincipal,
-                            mozilla::ErrorResult& aError) override;
 
+  void SetInnerHTMLTrusted(const nsAString& aInnerHTML,
+                           nsIPrincipal* aSubjectPrincipal,
+                           mozilla::ErrorResult& aError) override;
+
+ public:
   // nsIScriptElement
   virtual void GetScriptText(nsAString& text) const override;
   virtual void GetScriptCharset(nsAString& charset) override;

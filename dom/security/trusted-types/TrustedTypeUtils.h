@@ -9,6 +9,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/DOMString.h"
+#include "mozilla/dom/SessionStoreUtils.h"
 #include "mozilla/dom/TrustedTypesBinding.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupportsImpl.h"
@@ -20,20 +21,32 @@ namespace mozilla {
 
 class ErrorResult;
 
+template <typename T>
+class Maybe;
+
 namespace dom {
 
 class TrustedHTMLOrString;
+class TrustedHTMLOrNullIsEmptyString;
 
 namespace TrustedTypeUtils {
 
 // https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm
 // specialized for TrustedHTML.
+//
 // @param aCSP May be null.
-void GetTrustedTypesCompliantString(const TrustedHTMLOrString& aInput,
-                                    nsIContentSecurityPolicy* aCSP,
-                                    const nsAString& aSink,
-                                    const nsAString& aSinkGroup,
-                                    nsAString& aResult, ErrorResult& aError);
+// @param aResultHolder Keeps the compliant string alive when necessary.
+// @return The compliant string if aError didn't fail.
+const nsAString* GetTrustedTypesCompliantString(
+    const TrustedHTMLOrString& aInput, nsIContentSecurityPolicy* aCSP,
+    const nsAString& aSink, const nsAString& aSinkGroup,
+    Maybe<nsAutoString>& aResultHolder, ErrorResult& aError);
+const nsAString* GetTrustedTypesCompliantString(
+    const TrustedHTMLOrNullIsEmptyString& aInput,
+    nsIContentSecurityPolicy* aCSP, const nsAString& aSink,
+    const nsAString& aSinkGroup, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError);
+
 }  // namespace TrustedTypeUtils
 
 }  // namespace dom
@@ -59,7 +72,8 @@ void GetTrustedTypesCompliantString(const TrustedHTMLOrString& aInput,
     }                                                                  \
                                                                        \
     /* This is always unforged data, because it's only instantiated    \
-       from the befriended `TrustedType*` classes. */                  \
+       from the befriended `TrustedType*` classes and other trusted    \
+       functions . */                                                  \
     const nsString mData;                                              \
                                                                        \
    private:                                                            \

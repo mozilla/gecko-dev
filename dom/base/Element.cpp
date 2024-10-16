@@ -4161,9 +4161,55 @@ void Element::GetInnerHTML(nsAString& aInnerHTML, OOMReporter& aError) {
   GetMarkup(false, aInnerHTML);
 }
 
-void Element::SetInnerHTML(const nsAString& aInnerHTML,
+void Element::GetInnerHTML(OwningTrustedHTMLOrNullIsEmptyString& aInnerHTML,
+                           OOMReporter& aError) {
+  GetInnerHTML(aInnerHTML.SetAsNullIsEmptyString(), aError);
+}
+
+// The global object's CSP may differ from the owner-document's one.
+// E.g. when a document is created via
+// `document.implementation.createHTMLDocument("")` is not connected to a
+// browsing context.
+static nsIContentSecurityPolicy* GetCspFromScopeObjectsInnerWindow(
+    const Document& aOwnerDoc, ErrorResult& aError) {
+  nsIGlobalObject* globalObject = aOwnerDoc.GetScopeObject();
+  if (!globalObject) {
+    aError.ThrowTypeError("No global object");
+    return nullptr;
+  }
+
+  nsPIDOMWindowInner* piDOMWindowInner = globalObject->GetAsInnerWindow();
+  if (!piDOMWindowInner) {
+    aError.ThrowTypeError("No inner window");
+    return nullptr;
+  }
+
+  return piDOMWindowInner->GetCsp();
+}
+
+void Element::SetInnerHTML(const TrustedHTMLOrNullIsEmptyString& aInnerHTML,
                            nsIPrincipal* aSubjectPrincipal,
                            ErrorResult& aError) {
+  constexpr nsLiteralString sink = u"Element innerHTML"_ns;
+
+  nsIContentSecurityPolicy* csp =
+      GetCspFromScopeObjectsInnerWindow(*OwnerDoc(), aError);
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aInnerHTML, csp, sink, kTrustedTypesOnlySinkGroup,
+          compliantStringHolder, aError);
+
+  if (aError.Failed()) {
+    return;
+  }
+
+  SetInnerHTMLTrusted(*compliantString, aSubjectPrincipal, aError);
+}
+
+void Element::SetInnerHTMLTrusted(const nsAString& aInnerHTML,
+                                  nsIPrincipal* aSubjectPrincipal,
+                                  ErrorResult& aError) {
   SetInnerHTMLInternal(aInnerHTML, aError);
 }
 
@@ -4227,49 +4273,22 @@ void Element::SetOuterHTML(const nsAString& aOuterHTML, ErrorResult& aError) {
 
 enum nsAdjacentPosition { eBeforeBegin, eAfterBegin, eBeforeEnd, eAfterEnd };
 
-// https://html.spec.whatwg.org/#the-insertadjacenthtml()-method
-struct InsertAdjacentHTMLConstants {
-  // https://github.com/w3c/trusted-types/issues/542
-  static constexpr nsLiteralString kSinkGroup =
-      kValidRequireTrustedTypesForDirectiveValue;
-
-  static constexpr nsLiteralString kSink = u"Element insertAdjacentHTML"_ns;
-};
-
-// The global object's CSP may differ from the owner-document's one.
-// E.g. when a document is created via
-// `document.implementation.createHTMLDocument("")` is not connected to a
-// browsing context.
-static nsIContentSecurityPolicy* GetCspFromScopeObjectsInnerWindow(
-    const Document& aOwnerDoc, ErrorResult& aError) {
-  nsIGlobalObject* globalObject = aOwnerDoc.GetScopeObject();
-  if (!globalObject) {
-    aError.ThrowTypeError("No global object");
-    return nullptr;
-  }
-
-  nsPIDOMWindowInner* piDOMWindowInner = globalObject->GetAsInnerWindow();
-  if (!piDOMWindowInner) {
-    aError.ThrowTypeError("No inner window");
-    return nullptr;
-  }
-
-  return piDOMWindowInner->GetCsp();
-}
-
 void Element::InsertAdjacentHTML(
     const nsAString& aPosition, const TrustedHTMLOrString& aTrustedHTMLOrString,
     ErrorResult& aError) {
+  constexpr nsLiteralString kSink = u"Element insertAdjacentHTML"_ns;
+
   nsIContentSecurityPolicy* csp =
       GetCspFromScopeObjectsInnerWindow(*OwnerDoc(), aError);
   if (aError.Failed()) {
     return;
   }
 
-  nsAutoString compliantString;
-  TrustedTypeUtils::GetTrustedTypesCompliantString(
-      aTrustedHTMLOrString, csp, InsertAdjacentHTMLConstants::kSink,
-      InsertAdjacentHTMLConstants::kSinkGroup, compliantString, aError);
+  Maybe<nsAutoString> compliantStringHolder;
+  const nsAString* compliantString =
+      TrustedTypeUtils::GetTrustedTypesCompliantString(
+          aTrustedHTMLOrString, csp, kSink, kTrustedTypesOnlySinkGroup,
+          compliantStringHolder, aError);
 
   if (aError.Failed()) {
     return;
@@ -4325,7 +4344,7 @@ void Element::InsertAdjacentHTML(
       contextLocal = nsGkAtoms::body;
     }
     aError = nsContentUtils::ParseFragmentHTML(
-        compliantString, destination, contextLocal, contextNs,
+        *compliantString, destination, contextLocal, contextNs,
         doc->GetCompatibilityMode() == eCompatibility_NavQuirks, true);
     // HTML5 parser has notified, but not fired mutation events.
     nsContentUtils::FireMutationEventsForDirectParsing(doc, destination,
@@ -4335,7 +4354,7 @@ void Element::InsertAdjacentHTML(
 
   // couldn't parse directly
   RefPtr<DocumentFragment> fragment = nsContentUtils::CreateContextualFragment(
-      destination, compliantString, true, aError);
+      destination, *compliantString, true, aError);
   if (aError.Failed()) {
     return;
   }

@@ -259,10 +259,10 @@ partial interface Element {
   [Pref="layout.css.zoom.enabled"] readonly attribute double currentCSSZoom;
 };
 
-// http://domparsing.spec.whatwg.org/#extensions-to-the-element-interface
+// https://html.spec.whatwg.org/multipage/dynamic-markup-insertion.html#dom-parsing-and-serialization
 partial interface Element {
   [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, Pure, SetterThrows, GetterCanOOM]
-  attribute [LegacyNullToEmptyString] DOMString innerHTML;
+  attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
   [CEReactions, Pure, SetterThrows]
   attribute [LegacyNullToEmptyString] DOMString outerHTML;
   [CEReactions, Throws]

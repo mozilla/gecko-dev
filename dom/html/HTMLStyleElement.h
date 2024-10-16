@@ -32,9 +32,12 @@ class HTMLStyleElement final : public nsGenericHTMLElement,
 
   void GetInnerHTML(nsAString& aInnerHTML, OOMReporter& aError) override;
   using nsGenericHTMLElement::SetInnerHTML;
-  virtual void SetInnerHTML(const nsAString& aInnerHTML,
-                            nsIPrincipal* aSubjectPrincipal,
-                            mozilla::ErrorResult& aError) override;
+
+  void SetInnerHTMLTrusted(const nsAString& aInnerHTML,
+                           nsIPrincipal* aSubjectPrincipal,
+                           mozilla::ErrorResult& aError) override;
+
+ public:
   virtual void SetTextContentInternal(const nsAString& aTextContent,
                                       nsIPrincipal* aSubjectPrincipal,
                                       mozilla::ErrorResult& aError) override;

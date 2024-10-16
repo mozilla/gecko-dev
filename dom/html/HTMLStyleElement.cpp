@@ -137,10 +137,10 @@ void HTMLStyleElement::GetInnerHTML(nsAString& aInnerHTML,
   }
 }
 
-void HTMLStyleElement::SetInnerHTML(const nsAString& aInnerHTML,
-                                    nsIPrincipal* aScriptedPrincipal,
-                                    ErrorResult& aError) {
-  SetTextContentInternal(aInnerHTML, aScriptedPrincipal, aError);
+void HTMLStyleElement::SetInnerHTMLTrusted(const nsAString& aInnerHTML,
+                                           nsIPrincipal* aSubjectPrincipal,
+                                           ErrorResult& aError) {
+  SetTextContentInternal(aInnerHTML, aSubjectPrincipal, aError);
 }
 
 void HTMLStyleElement::SetTextContentInternal(const nsAString& aTextContent,

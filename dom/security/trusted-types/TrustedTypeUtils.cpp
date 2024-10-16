@@ -6,6 +6,7 @@
 
 #include "mozilla/dom/TrustedTypeUtils.h"
 
+#include "mozilla/Maybe.h"
 #include "mozilla/StaticPrefs_dom.h"
 
 #include "mozilla/dom/CSPViolationData.h"
@@ -106,48 +107,52 @@ static void ProcessValueWithADefaultPolicy(RefPtr<TrustedHTML>& aResult,
   aResult = nullptr;
 }
 
-void GetTrustedTypesCompliantString(const TrustedHTMLOrString& aInput,
-                                    nsIContentSecurityPolicy* aCSP,
-                                    const nsAString& aSink,
-                                    const nsAString& aSinkGroup,
-                                    nsAString& aResult, ErrorResult& aError) {
-  if (!StaticPrefs::dom_security_trusted_types_enabled()) {
-    // A `TrustedHTML` string might've been created before the pref was set to
-    //  `false`.
-    aResult = aInput.IsString() ? aInput.GetAsString()
-                                : aInput.GetAsTrustedHTML().mData;
-    return;
+#define IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING_FOR_TRUSTED_HTML(              \
+    _class, _stringCheck, _stringGetter)                                       \
+  const nsAString* GetTrustedTypesCompliantString(                             \
+      const _class& aInput, nsIContentSecurityPolicy* aCSP,                    \
+      const nsAString& aSink, const nsAString& aSinkGroup,                     \
+      Maybe<nsAutoString>& aResultHolder, ErrorResult& aError) {               \
+    if (!StaticPrefs::dom_security_trusted_types_enabled()) {                  \
+      /* A `TrustedHTML` string might've been created before the pref was set  \
+        to `false`. */                                                         \
+      return &(aInput._stringCheck() ? aInput._stringGetter()                  \
+                                     : aInput.GetAsTrustedHTML().mData);       \
+    }                                                                          \
+                                                                               \
+    if (aInput.IsTrustedHTML()) {                                              \
+      return &aInput.GetAsTrustedHTML().mData;                                 \
+    }                                                                          \
+                                                                               \
+    if (!DoesSinkTypeRequireTrustedTypes(aCSP, aSinkGroup)) {                  \
+      return &aInput._stringGetter();                                          \
+    }                                                                          \
+                                                                               \
+    RefPtr<TrustedHTML> convertedInput;                                        \
+    ProcessValueWithADefaultPolicy(convertedInput, aError);                    \
+                                                                               \
+    if (aError.Failed()) {                                                     \
+      return nullptr;                                                          \
+    }                                                                          \
+                                                                               \
+    if (!convertedInput) {                                                     \
+      if (ShouldSinkTypeMismatchViolationBeBlockedByCSP(                       \
+              aCSP, aSink, aSinkGroup, aInput._stringGetter()) ==              \
+          SinkTypeMismatch::Value::Allowed) {                                  \
+        return &aInput._stringGetter();                                        \
+      }                                                                        \
+                                                                               \
+      aError.ThrowTypeError("Sink type mismatch violation blocked by CSP"_ns); \
+      return nullptr;                                                          \
+    }                                                                          \
+                                                                               \
+    aResultHolder = Some(convertedInput->mData);                               \
+    return aResultHolder.ptr();                                                \
   }
 
-  if (aInput.IsTrustedHTML()) {
-    aResult = aInput.GetAsTrustedHTML().mData;
-    return;
-  }
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING_FOR_TRUSTED_HTML(TrustedHTMLOrString,
+                                                         IsString, GetAsString)
+IMPL_GET_TRUSTED_TYPES_COMPLIANT_STRING_FOR_TRUSTED_HTML(
+    TrustedHTMLOrNullIsEmptyString, IsNullIsEmptyString, GetAsNullIsEmptyString)
 
-  if (!DoesSinkTypeRequireTrustedTypes(aCSP, aSinkGroup)) {
-    aResult = aInput.GetAsString();
-    return;
-  }
-
-  RefPtr<TrustedHTML> convertedInput;
-  ProcessValueWithADefaultPolicy(convertedInput, aError);
-
-  if (aError.Failed()) {
-    return;
-  }
-
-  if (!convertedInput) {
-    if (ShouldSinkTypeMismatchViolationBeBlockedByCSP(aCSP, aSink, aSinkGroup,
-                                                      aInput.GetAsString()) ==
-        SinkTypeMismatch::Value::Allowed) {
-      aResult = aInput.GetAsString();
-      return;
-    }
-
-    aError.ThrowTypeError("Sink type mismatch violation blocked by CSP"_ns);
-    return;
-  }
-
-  aResult = convertedInput->mData;
-}
 }  // namespace mozilla::dom::TrustedTypeUtils

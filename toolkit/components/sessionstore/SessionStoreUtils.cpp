@@ -19,6 +19,7 @@
 #include "mozilla/dom/CustomElementRegistry.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/FormData.h"
 #include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/HTMLElement.h"
@@ -33,6 +34,7 @@
 #include "mozilla/dom/SessionStoreUtils.h"
 #include "mozilla/dom/SessionStoreUtilsBinding.h"
 #include "mozilla/dom/ToJSValue.h"
+#include "mozilla/dom/TrustedHTML.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/sessionstore/SessionStoreTypes.h"
 #include "mozilla/dom/txIXPathContext.h"
@@ -1297,12 +1299,12 @@ static void SetSessionData(JSContext* aCx, Element* aElement,
   }
 }
 
-MOZ_CAN_RUN_SCRIPT
-static void SetInnerHTML(Document& aDocument, const nsString& aInnerHTML) {
+MOZ_CAN_RUN_SCRIPT static void SetInnerHTML(Document& aDocument,
+                                            const nsAString& aInnerHTML) {
   RefPtr<Element> bodyElement = aDocument.GetBody();
   if (bodyElement && bodyElement->IsInDesignMode()) {
     IgnoredErrorResult rv;
-    bodyElement->SetInnerHTML(aInnerHTML, aDocument.NodePrincipal(), rv);
+    bodyElement->SetInnerHTMLTrusted(aInnerHTML, aDocument.NodePrincipal(), rv);
     if (!rv.Failed()) {
       nsContentUtils::DispatchInputEvent(bodyElement);
     }

@@ -145,9 +145,9 @@ void HTMLScriptElement::GetInnerHTML(nsAString& aInnerHTML,
   }
 }
 
-void HTMLScriptElement::SetInnerHTML(const nsAString& aInnerHTML,
-                                     nsIPrincipal* aScriptedPrincipal,
-                                     ErrorResult& aError) {
+void HTMLScriptElement::SetInnerHTMLTrusted(const nsAString& aInnerHTML,
+                                            nsIPrincipal* aSubjectPrincipal,
+                                            ErrorResult& aError) {
   aError = nsContentUtils::SetNodeTextContent(this, aInnerHTML, true);
 }
 
