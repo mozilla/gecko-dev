@@ -42,6 +42,19 @@ add_task(async function test_tabGroupCreateAndAddTab() {
   await removeTabGroup(group);
 });
 
+add_task(async function test_tabGroupCreateAndAddTabAtPosition() {
+  let tabs = createManyTabs(10);
+  let tabToGroup = tabs[5];
+  let originalPos = tabToGroup._tPos;
+  gBrowser.addTabGroup([tabs[5]], { insertBefore: tabs[5] });
+
+  Assert.equal(tabToGroup._tPos, originalPos, "tab has not changed position");
+
+  tabs.forEach(t => {
+    BrowserTestUtils.removeTab(t);
+  });
+});
+
 add_task(async function test_getTabGroups() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let group1 = gBrowser.addTabGroup([tab1]);
@@ -1022,16 +1035,10 @@ add_task(async function test_removeFromGroupForSingleTab() {
  */
 add_task(async function test_removeFromGroupForMultipleTabs() {
   // initial tab strip: [group1, group1, group1, none, none, group2, group2, none, group3, none]
-  // TODO tabs are created and then grouped in order, since currently tab
-  // groups are always appended to the end of the tab strip. if this is
-  // addressed, this test can be simplified
-  let tabs = createManyTabs(3);
-  gBrowser.addTabGroup([tabs[0], tabs[1], tabs[2]]);
-  tabs.push(...createManyTabs(4));
-  gBrowser.addTabGroup([tabs[5], tabs[6]]);
-  tabs.push(...createManyTabs(2));
-  gBrowser.addTabGroup([tabs[8]]);
-  tabs.push(...createManyTabs(1));
+  let tabs = createManyTabs(10);
+  gBrowser.addTabGroup([tabs[0], tabs[1], tabs[2]], { insertBefore: tabs[0] });
+  gBrowser.addTabGroup([tabs[5], tabs[6]], { insertBefore: tabs[5] });
+  gBrowser.addTabGroup([tabs[8]], { insertBefore: tabs[8] });
 
   // Click the first tab in our test group to make sure the default tab at the
   // start of the tab strip is deselected

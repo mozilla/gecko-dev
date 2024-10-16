@@ -2980,8 +2980,12 @@
      *   If no color specified, will attempt to assign an unused group color.
      * @param {string} [options.label]
      *   Label for the group.
+     * @param {MozTabbrowserTab} [options.insertBefore]
+     *   An optional argument that accepts a single tab, which, if passed, will
+     *   cause the group to be inserted just before this tab in the tab strip. By
+     *   default, the group will be created at the end of the tab strip.
      */
-    addTabGroup(tabs, { color = null, label = "" } = {}) {
+    addTabGroup(tabs, { color = null, label = "", insertBefore = null } = {}) {
       if (!tabs?.length) {
         throw new Error("Cannot create tab group with zero tabs");
       }
@@ -2992,8 +2996,9 @@
 
       let id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
       let group = this._createTabGroup(id, color, false, label);
-      this.tabContainer.appendChild(group);
+      this.tabContainer.insertBefore(group, insertBefore);
       group.addTabs(tabs);
+
       group.dispatchEvent(new CustomEvent("TabGroupCreate", { bubbles: true }));
       return group;
     },
@@ -8373,7 +8378,8 @@ var TabContextMenu = {
 
   moveTabsToNewGroup() {
     gBrowser.addTabGroup(
-      this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab]
+      this.contextTab.multiselected ? gBrowser.selectedTabs : [this.contextTab],
+      { insertBefore: this.contextTab }
     );
   },
 
