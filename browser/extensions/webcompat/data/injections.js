@@ -1274,6 +1274,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1841730",
+    platform: "desktop",
+    domain: "www.korg.com",
+    bug: "1841730",
+    contentScripts: {
+      matches: ["*://www.korg.com/*/support/download/product/*"],
+      js: [
+        {
+          file: "injections/js/bug1841730-www.korg.com-fix-broken-page-loads.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
