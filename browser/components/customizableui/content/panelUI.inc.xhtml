@@ -28,8 +28,7 @@
   <!-- This menu is here because not having it in the menu in which it's used flickers
        when hover styles overlap. See https://bugzilla.mozilla.org/show_bug.cgi?id=1378427 .
        -->
-  <menupopup id="customizationPanelItemContextMenu"
-             onpopupshowing="gCustomizeMode.onPanelContextMenuShowing(event); ToolbarContextMenu.updateExtension(this)">
+  <menupopup id="customizationPanelItemContextMenu">
     <menuitem id="customizationPanelItemContextMenuManageExtension"
               data-lazy-l10n-id="toolbar-context-menu-manage-extension"
               contexttype="toolbaritem"

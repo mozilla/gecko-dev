@@ -384,6 +384,10 @@ document.addEventListener(
         case "unified-extensions-context-menu":
           gUnifiedExtensions.updateContextMenu(event.target, event);
           break;
+        case "customizationPanelItemContextMenu":
+          gCustomizeMode.onPanelContextMenuShowing(event);
+          ToolbarContextMenu.updateExtension(event.target);
+          break;
       }
     });
 
