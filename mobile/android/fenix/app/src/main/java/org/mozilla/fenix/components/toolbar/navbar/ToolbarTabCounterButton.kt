@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.components.toolbar.navbar
 
-import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -67,8 +66,10 @@ fun ToolbarTabCounterButton(
                         } ?: false
                     }
 
-                    contentDescription = createContentDescription(context, tabCount)
-
+                    contentDescription = context.getString(
+                        R.string.mozac_tab_counter_open_tab_tray,
+                        tabCount.toString(),
+                    )
                     toggleCounterMask(isPrivateMode)
                     setBackgroundResource(
                         context.theme.resolveAttribute(
@@ -86,7 +87,10 @@ fun ToolbarTabCounterButton(
                 .testTag(NavBarTestTags.tabCounterButton),
             update = { tabCounter ->
                 tabCounter.setCount(tabCount)
-                tabCounter.contentDescription = createContentDescription(tabCounter.context, tabCount)
+                tabCounter.contentDescription = tabCounter.context.getString(
+                    R.string.mozac_tab_counter_open_tab_tray,
+                    tabCount.toString(),
+                )
             },
         )
     }
@@ -127,13 +131,5 @@ private fun ToolbarTabCounterButtonWithFeltPrivacyPreview() {
                 onClick = {},
             )
         }
-    }
-}
-
-private fun createContentDescription(context: Context, count: Int): String {
-    return if (count == 1) {
-        context.getString(R.string.mozac_tab_counter_open_tab_tray_single)
-    } else {
-        context.getString(R.string.mozac_tab_counter_open_tab_tray_plural, count.toString())
     }
 }
