@@ -105,6 +105,7 @@ class nsLoadGroup : public nsILoadGroup,
   nsWeakPtr mParentLoadGroup;
 
   nsresult mStatus{NS_OK};
+  nsresult mDefaultStatus{NS_OK};
   bool mIsCanceling{false};
   bool mDefaultLoadIsTimed{false};
   bool mBrowsingContextDiscarded{false};
