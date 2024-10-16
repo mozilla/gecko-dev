@@ -94,7 +94,7 @@ internal fun ToolsSubmenu(
                         iconPainter = webExtensionMenuItem.icon?.let { icon ->
                             BitmapPainter(image = icon.asImageBitmap())
                         } ?: painterResource(R.drawable.mozac_ic_web_extension_default_icon),
-                        iconTint = FirefoxTheme.colors.textPrimary,
+                        iconTint = FirefoxTheme.colors.iconSecondary,
                         enabled = webExtensionMenuItem.enabled,
                         badgeText = webExtensionMenuItem.badgeText,
                         badgeTextColor = webExtensionMenuItem.badgeTextColor,
