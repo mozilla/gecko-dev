@@ -14,12 +14,19 @@ class ConfigDict(Dict[str, str]):
         self.base_path = base_path
         dict.__init__(self, *args, **kwargs)
 
+    def _normalize_path(self, path: str) -> str:
+        os.path.expanduser(path)
+        return os.path.abspath(os.path.join(self.base_path, path))
+
     def get_path(self, key: str, default:Optional[str] = None) -> Optional[str]:
         if key not in self:
             return default
-        path = self[key]
-        os.path.expanduser(path)
-        return os.path.abspath(os.path.join(self.base_path, path))
+        return self._normalize_path(self[key])
+
+    def get_paths(self, key: str, default:Optional[list[str]] = None) -> Optional[list[str]]:
+        if key not in self:
+            return default
+        return [self._normalize_path(item.strip()) for item in self[key].split(";")]
 
 
 def read(config_path: str) -> Mapping[str, ConfigDict]:
