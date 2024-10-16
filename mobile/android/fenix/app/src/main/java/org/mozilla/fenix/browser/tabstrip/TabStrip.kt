@@ -474,7 +474,7 @@ private class TabUIStateParameterProvider : PreviewParameterProvider<TabStripSta
         )
 }
 
-@Preview(device = Devices.TABLET)
+@Preview(device = Devices.PIXEL_TABLET)
 @Composable
 private fun TabStripPreview(
     @PreviewParameter(TabUIStateParameterProvider::class) tabStripState: TabStripState,
@@ -484,7 +484,7 @@ private fun TabStripPreview(
     }
 }
 
-@Preview(device = Devices.TABLET)
+@Preview(device = Devices.PIXEL_TABLET)
 @Composable
 private fun TabStripPreviewDarkMode(
     @PreviewParameter(TabUIStateParameterProvider::class) tabStripState: TabStripState,
@@ -494,7 +494,7 @@ private fun TabStripPreviewDarkMode(
     }
 }
 
-@Preview(device = Devices.TABLET)
+@Preview(device = Devices.PIXEL_TABLET)
 @Composable
 private fun TabStripPreviewPrivateMode(
     @PreviewParameter(TabUIStateParameterProvider::class) tabStripState: TabStripState,
@@ -533,7 +533,7 @@ private fun FirefoxColors.tabSelectedBackground(isPrivate: Boolean): Color =
         layer2
     }
 
-@Preview(device = Devices.TABLET)
+@Preview(device = Devices.PIXEL_TABLET)
 @Composable
 private fun TabStripPreview() {
     val browserStore = BrowserStore()
