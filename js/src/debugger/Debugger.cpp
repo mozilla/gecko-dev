@@ -538,7 +538,6 @@ Debugger::Debugger(JSContext* cx, NativeObject* dbg)
       inspectNativeCallArguments(false),
       collectCoverageInfo(false),
       shouldAvoidSideEffects(false),
-      nativeTracing(false),
       observedGCs(cx->zone()),
       allocationsLog(cx),
       trackingAllocationSites(false),
@@ -3519,9 +3518,6 @@ bool Debugger::hookObservesAllExecution(Hook which) {
 }
 
 Debugger::IsObserving Debugger::observesAllExecution() const {
-  if (nativeTracing) {
-    return Observing;
-  }
   if (!!getHook(OnEnterFrame)) {
     return Observing;
   }
@@ -4243,10 +4239,6 @@ struct MOZ_STACK_CLASS Debugger::CallData {
   CallData(JSContext* cx, const CallArgs& args, Debugger* dbg)
       : cx(cx), args(args), dbg(dbg) {}
 
-#ifdef MOZ_EXECUTION_TRACING
-  bool getNativeTracing();
-  bool setNativeTracing();
-#endif
   bool getOnDebuggerStatement();
   bool setOnDebuggerStatement();
   bool getOnExceptionUnwind();
@@ -4299,9 +4291,6 @@ struct MOZ_STACK_CLASS Debugger::CallData {
   bool disableAsyncStack();
   bool enableUnlimitedStacksCapturing();
   bool disableUnlimitedStacksCapturing();
-#ifdef MOZ_EXECUTION_TRACING
-  bool collectNativeTrace();
-#endif
 
   using Method = bool (CallData::*)();
 
@@ -4410,67 +4399,6 @@ bool Debugger::setGarbageCollectionHook(JSContext* cx, const CallArgs& args,
 
   return true;
 }
-
-#ifdef MOZ_EXECUTION_TRACING
-bool Debugger::CallData::getNativeTracing() {
-  args.rval().set(BooleanValue(dbg->nativeTracing));
-  return true;
-}
-
-bool Debugger::CallData::collectNativeTrace() {
-  if (!dbg->nativeTracing) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_NATIVE_TRACING_MUST_BE_ENABLED);
-    return false;
-  }
-
-  RootedObject result(cx, NewPlainObject(cx));
-  if (!result) {
-    return false;
-  }
-
-  if (cx->hasExecutionTracer()) {
-    if (!cx->getExecutionTracer().getTrace(cx, result)) {
-      return false;
-    }
-  }
-
-  dbg->nativeTracing = false;
-  cx->disableExecutionTracing();
-  if (!dbg->updateObservesAllExecutionOnDebuggees(
-          cx, dbg->observesAllExecution())) {
-    return false;
-  }
-
-  args.rval().setObject(*result);
-  return true;
-}
-
-bool Debugger::CallData::setNativeTracing() {
-  if (!args.requireAtLeast(cx, "Debugger.nativeTracing", 1)) {
-    return false;
-  }
-  bool wasEnabled = dbg->nativeTracing;
-  dbg->nativeTracing = ToBoolean(args[0]);
-  if (wasEnabled != dbg->nativeTracing) {
-    if (dbg->nativeTracing) {
-      if (!cx->enableExecutionTracing()) {
-        ReportOutOfMemory(cx);
-        return false;
-      }
-    } else {
-      cx->disableExecutionTracing();
-    }
-  }
-
-  if (!dbg->updateObservesAllExecutionOnDebuggees(
-          cx, dbg->observesAllExecution())) {
-    return false;
-  }
-
-  return true;
-}
-#endif
 
 bool Debugger::CallData::getOnDebuggerStatement() {
   return getHookImpl(cx, args, *dbg, OnDebuggerStatement);
@@ -6929,7 +6857,6 @@ bool Debugger::CallData::disableUnlimitedStacksCapturing() {
 }
 
 const JSPropertySpec Debugger::properties[] = {
-    JS_DEBUG_PSGS("nativeTracing", getNativeTracing, setNativeTracing),
     JS_DEBUG_PSGS("onDebuggerStatement", getOnDebuggerStatement,
                   setOnDebuggerStatement),
     JS_DEBUG_PSGS("onExceptionUnwind", getOnExceptionUnwind,
@@ -6984,36 +6911,7 @@ const JSFunctionSpec Debugger::methods[] = {
                 enableUnlimitedStacksCapturing, 1),
     JS_DEBUG_FN("disableUnlimitedStacksCapturing",
                 disableUnlimitedStacksCapturing, 1),
-    JS_DEBUG_FN("collectNativeTrace", collectNativeTrace, 0),
     JS_FS_END,
-};
-
-const JSPropertySpec Debugger::static_properties[]{
-    JS_INT32_PS("TRACING_EVENT_KIND_FUNCTION_ENTER",
-                int32_t(ExecutionTrace::EventKind::FunctionEnter),
-                JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_INT32_PS("TRACING_EVENT_KIND_FUNCTION_LEAVE",
-                int32_t(ExecutionTrace::EventKind::FunctionLeave),
-                JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_INT32_PS("TRACING_EVENT_KIND_LABEL_ENTER",
-                int32_t(ExecutionTrace::EventKind::LabelEnter),
-                JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_INT32_PS("TRACING_EVENT_KIND_LABEL_LEAVE",
-                int32_t(ExecutionTrace::EventKind::LabelLeave),
-                JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_INT32_PS("IMPLEMENTATION_INTERPRETER",
-                int32_t(ExecutionTrace::ImplementationType::Interpreter),
-                JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_INT32_PS("IMPLEMENTATION_BASELINE",
-                int32_t(ExecutionTrace::ImplementationType::Baseline),
-                JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_INT32_PS("IMPLEMENTATION_ION",
-                int32_t(ExecutionTrace::ImplementationType::Ion),
-                JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_INT32_PS("IMPLEMENTATION_WASM",
-                int32_t(ExecutionTrace::ImplementationType::Wasm),
-                JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_PS_END,
 };
 
 const JSFunctionSpec Debugger::static_methods[]{
@@ -7437,11 +7335,10 @@ extern JS_PUBLIC_API bool JS_DefineDebuggerObject(JSContext* cx,
   RootedValue debuggeeWouldRunCtor(cx);
   Handle<GlobalObject*> global = obj.as<GlobalObject>();
 
-  debugProto =
-      InitClass(cx, global, &DebuggerPrototypeObject::class_, nullptr,
-                "Debugger", Debugger::construct, 1, Debugger::properties,
-                Debugger::methods, Debugger::static_properties,
-                Debugger::static_methods, debugCtor.address());
+  debugProto = InitClass(cx, global, &DebuggerPrototypeObject::class_, nullptr,
+                         "Debugger", Debugger::construct, 1,
+                         Debugger::properties, Debugger::methods, nullptr,
+                         Debugger::static_methods, debugCtor.address());
   if (!debugProto) {
     return false;
   }

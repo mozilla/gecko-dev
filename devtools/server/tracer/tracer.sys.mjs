@@ -138,8 +138,6 @@ const customLazy = {
  * @param {Boolean} options.traceFunctionReturn
  *        Optional setting to enable when the tracing should notify about frame exit.
  *        i.e. when a function call returns or throws.
- * @param {Boolean} options.useNativeTracing
- *        Optional setting to enable the native tracing implementation.
  * @param {String} options.filterFrameSourceUrl
  *        Optional setting to restrict all traces to only a given source URL.
  *        This is a loose check, so any source whose URL includes the passed string will be traced.
@@ -219,7 +217,6 @@ class JavaScriptTracer {
     this.traceSteps = !!options.traceSteps;
     this.traceValues = !!options.traceValues;
     this.traceFunctionReturn = !!options.traceFunctionReturn;
-    this.useNativeTracing = !!options.useNativeTracing;
     this.maxDepth = options.maxDepth;
     this.maxRecords = options.maxRecords;
     this.records = 0;
@@ -298,11 +295,7 @@ class JavaScriptTracer {
   #startTracing() {
     this.isTracing = true;
 
-    if (this.useNativeTracing) {
-      this.dbg.nativeTracing = true;
-    } else {
-      this.dbg.onEnterFrame = this.onEnterFrame;
-    }
+    this.dbg.onEnterFrame = this.onEnterFrame;
 
     if (this.traceDOMEvents) {
       this.startTracingDOMEvents();
@@ -337,7 +330,6 @@ class JavaScriptTracer {
             win.browsingContext.browserId == browserId
           ) {
             this.dbg.addDebuggee(g);
-            this.dbg.nativeTracing = this.useNativeTracing;
             this.debuggerNotificationObserver.connect(win);
           }
         } catch (e) {}
@@ -509,17 +501,6 @@ class JavaScriptTracer {
   }
 
   /**
-   * If native tracing is enabled, get the trace from the native tracer
-   */
-  maybeGetNativeTrace() {
-    if (this.useNativeTracing) {
-      return this.dbg.collectNativeTrace();
-    }
-
-    return null;
-  }
-
-  /**
    * Stop observing execution.
    *
    * @param {String} reason
@@ -531,11 +512,7 @@ class JavaScriptTracer {
       return;
     }
 
-    if (!this.useNativeTracing) {
-      this.dbg.nativeTracing = false;
-    } else {
-      this.dbg.onEnterFrame = undefined;
-    }
+    this.dbg.onEnterFrame = undefined;
 
     this.dbg.removeAllDebuggees();
     this.dbg.onNewGlobalObject = undefined;
@@ -1031,17 +1008,6 @@ function stopTracing() {
 }
 
 /**
- * If native tracing is enabled, get the trace from the native tracer
- */
-function maybeGetNativeTrace() {
-  if (activeTracer) {
-    return activeTracer.maybeGetNativeTrace();
-  }
-  console.warn("Can't get a native trace as we were not tracing.");
-  return null;
-}
-
-/**
  * Listen for tracing updates.
  *
  * The listener object may expose the following methods:
@@ -1142,7 +1108,6 @@ function syncPause(duration) {
 export const JSTracer = {
   startTracing,
   stopTracing,
-  maybeGetNativeTrace,
   addTracingListener,
   removeTracingListener,
   NEXT_INTERACTION_MESSAGE,
