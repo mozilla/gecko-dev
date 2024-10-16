@@ -1246,6 +1246,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1879879",
+    platform: "all",
+    domain: "developers.pinterest.com",
+    bug: "1879879",
+    contentScripts: {
+      matches: ["*://developers.pinterest.com/docs/*"],
+      css: [
+        {
+          file: "injections/css/bug1879879-developers.pinterest.com-list-alignment-fix.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
