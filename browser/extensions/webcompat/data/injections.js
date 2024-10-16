@@ -1302,6 +1302,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1924500",
+    platform: "desktop",
+    domain: "www.tiktok.com",
+    bug: "1924500",
+    contentScripts: {
+      matches: ["*://www.tiktok.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1924500-www.tiktok.com-fix-captcha-slider.js",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
