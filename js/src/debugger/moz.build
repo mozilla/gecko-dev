@@ -23,10 +23,12 @@ UNIFIED_SOURCES = [
     "DebuggerMemory.cpp",
     "DebugScript.cpp",
     "Environment.cpp",
-    "ExecutionTracer.cpp",
     "Frame.cpp",
     "NoExecute.cpp",
     "Object.cpp",
     "Script.cpp",
     "Source.cpp",
 ]
+
+if CONFIG["MOZ_EXECUTION_TRACING"]:
+    UNIFIED_SOURCES += ["ExecutionTracer.cpp"]
