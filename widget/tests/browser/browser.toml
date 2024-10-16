@@ -17,6 +17,10 @@ run-if = ["os == 'win'"]
 
 ["browser_test_contentCommand_immediately_after_setSelection.js"]
 
+["browser_test_contentCommand_insertText_with_selection_cache.js"]
+
+["browser_test_contentCommand_replaceText_with_selection_cache.js"]
+
 ["browser_test_fullscreen_size.js"]
 
 ["browser_test_ime_state_after_body_removed_and_reconnected_in_designMode.js"]

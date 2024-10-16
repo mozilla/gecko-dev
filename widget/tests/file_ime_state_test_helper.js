@@ -99,7 +99,9 @@ class TIPWrapper {
   #mTIP = null;
   #mFocusBlurNotifications = [];
   #mFocusBlurListener;
+  #mSelectionChangeListener;
   #mWindow;
+  #mSelection;
 
   constructor(aWindow) {
     this.#mWindow = aWindow;
@@ -145,9 +147,26 @@ class TIPWrapper {
         break;
       case "notify-focus":
       case "notify-blur":
+        this.#mSelection = undefined;
         this.#mFocusBlurNotifications.push(aNotification.type);
         if (this.#mFocusBlurListener) {
           this.#mFocusBlurListener(aNotification.type);
+        }
+        break;
+      case "notify-selection-change":
+        this.#mSelection = {
+          hasRange: aNotification.hasRange,
+          offset: aNotification.hasRange ? aNotification.offset : undefined,
+          text: aNotification.hasRange ? aNotification.text : undefined,
+          collapsed: aNotification.collapsed,
+          length: aNotification.hasRange ? aNotification.length : undefined,
+          reversed: aNotification.hasRange ? aNotification.reversed : undefined,
+          writingMode: aNotification.writingMode,
+          causedByComposition: aNotification.causedByComposition,
+          occurredDuringComposition: aNotification.occurredDuringComposition,
+        };
+        if (this.#mSelectionChangeListener) {
+          this.#mSelectionChangeListener(this.selectionCache);
         }
         break;
     }
@@ -163,6 +182,13 @@ class TIPWrapper {
    */
   set onIMEFocusBlur(aListener) {
     this.#mFocusBlurListener = aListener;
+  }
+
+  /**
+   * @param {Function} aListener
+   */
+  set onSelectionChange(aListener) {
+    this.#mSelectionChangeListener = aListener;
   }
 
   get focusBlurNotifications() {
@@ -183,6 +209,13 @@ class TIPWrapper {
       this.#mFocusBlurNotifications[this.#mFocusBlurNotifications.length - 1] ==
         "notify-focus"
     );
+  }
+
+  get selectionCache() {
+    if (this.#mSelection === undefined) {
+      return undefined;
+    }
+    return this.#mWindow.structuredClone(this.#mSelection);
   }
 
   clearFocusBlurNotifications() {
