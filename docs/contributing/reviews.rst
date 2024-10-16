@@ -173,6 +173,9 @@ Review groups
    * - #preferences-reviewers
      - Firefox for Desktop Preferences (Options) user interface
      - `Member list <https://phabricator.services.mozilla.com/project/members/132/>`__
+   * - #recomp-reviewers or #reusable-components-reviewers
+     - UI Widgets, Design Tokens, Storybook
+     - `Member list <https://phabricator.services.mozilla.com/project/members/185/>`__
    * - #remote-debugging-reviewers
      - Remote Debugging UI & tools
      - `Member list <https://phabricator.services.mozilla.com/project/members/108/>`__
