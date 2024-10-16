@@ -183,7 +183,7 @@ bool ExecutionTracer::onEnterFrame(JSContext* cx, AbstractFramePtr frame) {
 
   DebuggerFrameType type = GetFrameType(frame);
   if (type == DebuggerFrameType::Call) {
-    if (frame.isFunctionFrame()) {
+    if (frame.isFunctionFrame() && !frame.callee()->isSelfHostedBuiltin()) {
       inlineData_.beginWritingEntry();
       inlineData_.write(uint8_t(InlineEntryType::StackFunctionEnter));
       if (!writeFunctionFrame(cx, frame)) {
@@ -201,7 +201,7 @@ bool ExecutionTracer::onLeaveFrame(JSContext* cx, AbstractFramePtr frame) {
 
   DebuggerFrameType type = GetFrameType(frame);
   if (type == DebuggerFrameType::Call) {
-    if (frame.isFunctionFrame()) {
+    if (frame.isFunctionFrame() && !frame.callee()->isSelfHostedBuiltin()) {
       inlineData_.beginWritingEntry();
       inlineData_.write(uint8_t(InlineEntryType::StackFunctionLeave));
       if (!writeFunctionFrame(cx, frame)) {
