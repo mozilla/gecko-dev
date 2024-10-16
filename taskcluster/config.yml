@@ -923,11 +923,16 @@ workers:
             implementation: generic-worker
             os: linux
             worker-type: 't-linux-vm-2204-wayland'
-        t-linux-wayland-snap:
+        t-linux-2204-wayland-snap:
             provisioner: '{trust-domain}-t'
             implementation: generic-worker
             os: linux
             worker-type: 't-linux-2204-wayland-snap'
+        t-linux-2404-wayland-snap:
+            provisioner: '{trust-domain}-t'
+            implementation: generic-worker
+            os: linux
+            worker-type: 't-linux-2404-wayland-snap'
         t-osx-1015-r8:
             provisioner: releng-hardware
             implementation: generic-worker

@@ -467,6 +467,11 @@ snap_test_type
 
 For Snap tests tasks, used to disambiguate task label
 
+snap_test_release
+=================
+
+For Snap tests tasks, used to disambiguate task label by distro release
+
 .. _primary one: https://taskcluster-taskgraph.readthedocs.io/en/latest/reference/transforms/from_deps.html#primary-kind
 
 build-type
