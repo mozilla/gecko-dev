@@ -1,18 +1,13 @@
 "use strict";
 
-/** @type {Window} */
-let win;
-
-add_setup(async () => {
-  win = await promiseNewWindowLoaded();
-  SessionStoreTestUtils.init(this, win);
-});
+const ORIG_STATE = SessionStore.getBrowserState();
 
 registerCleanupFunction(async () => {
-  await BrowserTestUtils.closeWindow(win);
+  await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });
 
 add_task(async function test_RestoreSingleGroup() {
+  let win = await promiseNewWindowLoaded();
   let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
   let aboutCrashesTab = BrowserTestUtils.addTab(win.gBrowser, "about:crashes");
   const { id: originalTabGroupId } = win.gBrowser.addTabGroup(
@@ -67,4 +62,6 @@ add_task(async function test_RestoreSingleGroup() {
     !tabGroup.collapsed,
     "tab group collapsed state should be restored"
   );
+
+  await BrowserTestUtils.closeWindow(win);
 });

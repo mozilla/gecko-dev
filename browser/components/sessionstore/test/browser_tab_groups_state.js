@@ -1,15 +1,9 @@
 "use strict";
 
-/** @type {Window} */
-let win;
-
-add_setup(async () => {
-  win = await promiseNewWindowLoaded();
-  SessionStoreTestUtils.init(this, win);
-});
+const ORIG_STATE = SessionStore.getBrowserState();
 
 registerCleanupFunction(async () => {
-  await BrowserTestUtils.closeWindow(win);
+  await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });
 
 /**
@@ -21,6 +15,7 @@ function findTabStateByUrl(windowState, url) {
 }
 
 add_task(async function test_TabGroupsInState() {
+  let win = await promiseNewWindowLoaded();
   let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
   let aboutCrashesTab = BrowserTestUtils.addTab(win.gBrowser, "about:crashes");
   BrowserTestUtils.addTab(win.gBrowser, "about:about");
@@ -101,4 +96,5 @@ add_task(async function test_TabGroupsInState() {
     group.collapsed,
     "updated tab group collapsed state should be recorded in state"
   );
+  await BrowserTestUtils.closeWindow(win);
 });

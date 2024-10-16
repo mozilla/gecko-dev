@@ -1,18 +1,13 @@
 "use strict";
 
-/** @type {Window} */
-let win;
-
-add_setup(async () => {
-  win = await promiseNewWindowLoaded();
-  SessionStoreTestUtils.init(this, win);
-});
+const ORIG_STATE = SessionStore.getBrowserState();
 
 registerCleanupFunction(async () => {
-  await BrowserTestUtils.closeWindow(win);
+  await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });
 
 add_task(async function test_ZeroTabGroups() {
+  let win = await promiseNewWindowLoaded();
   const state = ss.getWindowState(win);
 
   Assert.equal(state.windows.length, 1, "should have state from 1 window");
@@ -31,4 +26,5 @@ add_task(async function test_ZeroTabGroups() {
     0,
     "none of the tabs should refer to a tab group"
   );
+  await BrowserTestUtils.closeWindow(win);
 });

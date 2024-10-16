@@ -1,18 +1,13 @@
 "use strict";
 
-/** @type {Window} */
-let win;
-
-add_setup(async () => {
-  win = await promiseNewWindowLoaded();
-  SessionStoreTestUtils.init(this, win);
-});
+const ORIG_STATE = SessionStore.getBrowserState();
 
 registerCleanupFunction(async () => {
-  await BrowserTestUtils.closeWindow(win);
+  await SessionStoreTestUtils.promiseBrowserState(ORIG_STATE);
 });
 
 add_task(async function test_RestoreMultipleGroups() {
+  let win = await promiseNewWindowLoaded();
   BrowserTestUtils.addTab(win.gBrowser, "about:about");
 
   let aboutMozillaTab = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
@@ -22,7 +17,6 @@ add_task(async function test_RestoreMultipleGroups() {
     { color: "red", label: "mozilla stuff" }
   );
   const mozillaTabGroupId = mozillaTabGroup.id;
-
   BrowserTestUtils.addTab(win.gBrowser, "about:robots");
 
   let aboutCrashesTab = BrowserTestUtils.addTab(win.gBrowser, "about:crashes");
@@ -136,4 +130,6 @@ add_task(async function test_RestoreMultipleGroups() {
     systemTabGroup.collapsed,
     "tab group collapsed state should be restored"
   );
+
+  await BrowserTestUtils.closeWindow(win);
 });
