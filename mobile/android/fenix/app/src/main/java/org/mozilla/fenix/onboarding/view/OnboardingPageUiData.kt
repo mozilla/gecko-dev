@@ -39,6 +39,9 @@ data class OnboardingPageUiData(
         NOTIFICATION_PERMISSION(
             telemetryId = "notification",
         ),
+        ADD_ONS(
+            telemetryId = "add_ons",
+        ),
     }
 }
 

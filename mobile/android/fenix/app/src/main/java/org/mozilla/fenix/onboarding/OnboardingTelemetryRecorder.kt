@@ -88,6 +88,17 @@ class OnboardingTelemetryRecorder {
                     ),
                 )
             }
+
+            OnboardingPageUiData.Type.ADD_ONS -> {
+                Onboarding.addOnsCard.record(
+                    Onboarding.AddOnsCardExtra(
+                        action = ACTION_IMPRESSION,
+                        elementType = ET_ONBOARDING_CARD,
+                        sequenceId = sequenceId,
+                        sequencePosition = sequencePosition,
+                    ),
+                )
+            }
         }
     }
 

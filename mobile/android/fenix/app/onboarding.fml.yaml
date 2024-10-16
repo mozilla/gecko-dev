@@ -115,6 +115,45 @@ objects:
           A list of strings corresponding to targeting expressions.
           The card will not be shown if any expression is `true`.
         default: [ NEVER ]
+      add-ons-data:
+        type: List<AddOnData>
+        description: >
+          An optional list of add-ons which will be shown in add-on onboarding card.
+        default: [ ]
+
+  AddOnData:
+      description: An object to describe an add-on to be installed from the onboarding card.
+      fields:
+        install-url:
+          type: Text
+          description: The url from where the add-on can be installed.
+          # This should never be defaulted.
+          default: ""
+        name:
+          type: Text
+          description: The name of the add-on to be displayed to the user.
+          # This should never be defaulted.
+          default: ""
+        description:
+          type: Text
+          description: A small description of the add-on to be displayed to the user.
+          # This should never be defaulted.
+          default: ""
+        icon-res:
+          type: Image
+          description: The resource id of the icon of the add-on to be displayed.
+          # This should never be defaulted.
+          default: ic_onboarding_welcome
+        average-rating:
+          type: String
+          description: The average rating of the add-on.
+          # This should never be defaulted.
+          default: "0.0"
+        review-count:
+          type: String
+          description: The amount of reviews the add-on has.
+          # This should never be defaulted.
+          default: "0.0"
 
 enums:
 
@@ -129,3 +168,5 @@ enums:
         description: Allows user to enable notification permission.
       add-search-widget:
         description: Allows user to add search widget to homescreen.
+      add-ons:
+        description: Allows user to install add-ons from onboarding.
