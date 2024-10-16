@@ -1288,6 +1288,20 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
+  {
+    id: "bug1895051",
+    platform: "all",
+    domain: "www.zhihu.com",
+    bug: "1895051",
+    contentScripts: {
+      matches: ["*://www.zhihu.com/question/*"],
+      css: [
+        {
+          file: "injections/css/bug1895051-www.zhihu.com-broken-button-fix.css",
+        },
+      ],
+    },
+  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
