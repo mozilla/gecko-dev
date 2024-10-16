@@ -17,7 +17,7 @@ XPCOMUtils.defineLazyServiceGetter(
 
 async function flush() {
   try {
-    await ProfileService.asyncFlush();
+    ProfileService.flush();
     rebuildProfileList();
   } catch (e) {
     let [title, msg, button] = await document.l10n.formatValues([

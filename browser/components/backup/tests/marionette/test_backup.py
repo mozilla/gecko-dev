@@ -279,15 +279,15 @@ class BackupTest(MarionetteTestCase):
         self.marionette.instance.profile = originalProfile
         self.marionette.start_session()
         self.marionette.set_context("chrome")
-        self.marionette.execute_async_script(
+        self.marionette.execute_script(
             """
-          let [newProfileName, outerResolve] = arguments;
+          let newProfileName = arguments[0];
           let profileSvc = Cc["@mozilla.org/toolkit/profile-service;1"].getService(
             Ci.nsIToolkitProfileService
           );
           let profile = profileSvc.getProfileByName(newProfileName);
           profile.remove(true);
-          profileSvc.asyncFlush().then(outerResolve);
+          profileSvc.flush();
         """,
             script_args=[newProfileName],
         )
