@@ -153,13 +153,14 @@ PersistentBufferProviderAccelerated::Create(gfx::IntSize aSize,
   }
 
   RefPtr<PersistentBufferProviderAccelerated> provider =
-      new PersistentBufferProviderAccelerated(texture);
+      new PersistentBufferProviderAccelerated(remoteTextureOwnerId, texture);
   return provider.forget();
 }
 
 PersistentBufferProviderAccelerated::PersistentBufferProviderAccelerated(
+    RemoteTextureOwnerId aRemoteTextureOwnerId,
     const RefPtr<TextureClient>& aTexture)
-    : mTexture(aTexture) {
+    : mRemoteTextureOwnerId(aRemoteTextureOwnerId), mTexture(aTexture) {
   MOZ_COUNT_CTOR(PersistentBufferProviderAccelerated);
 }
 

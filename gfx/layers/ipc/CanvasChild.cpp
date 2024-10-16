@@ -11,6 +11,7 @@
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/gfx/CanvasManagerChild.h"
+#include "mozilla/gfx/CanvasShutdownManager.h"
 #include "mozilla/gfx/DrawTargetRecording.h"
 #include "mozilla/gfx/Tools.h"
 #include "mozilla/gfx/Rect.h"
@@ -276,7 +277,7 @@ CanvasChild::CanvasChild(dom::ThreadSafeWorkerRef* aWorkerRef)
 
 CanvasChild::~CanvasChild() { MOZ_ASSERT(!mWorkerRef); }
 
-static void NotifyCanvasDeviceReset() {
+static void NotifyCanvasDeviceChanged() {
   nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (obs) {
     obs->NotifyObservers(nullptr, "canvas-device-reset", nullptr);
@@ -286,8 +287,20 @@ static void NotifyCanvasDeviceReset() {
 ipc::IPCResult CanvasChild::RecvNotifyDeviceChanged() {
   NS_ASSERT_OWNINGTHREAD(CanvasChild);
 
-  NotifyCanvasDeviceReset();
+  NotifyCanvasDeviceChanged();
   mRecorder->RecordEvent(RecordedDeviceChangeAcknowledged());
+  return IPC_OK();
+}
+
+ipc::IPCResult CanvasChild::RecvNotifyDeviceReset(
+    const nsTArray<RemoteTextureOwnerId>& aOwnerIds) {
+  NS_ASSERT_OWNINGTHREAD(CanvasChild);
+
+  if (auto* manager = gfx::CanvasShutdownManager::MaybeGet()) {
+    manager->OnRemoteCanvasReset(aOwnerIds);
+  }
+
+  mRecorder->RecordEvent(RecordedDeviceResetAcknowledged());
   return IPC_OK();
 }
 
@@ -301,7 +314,7 @@ ipc::IPCResult CanvasChild::RecvDeactivate() {
   if (auto* cm = gfx::CanvasManagerChild::Get()) {
     cm->DeactivateCanvas();
   }
-  NotifyCanvasDeviceReset();
+  NotifyCanvasDeviceChanged();
   return IPC_OK();
 }
 

@@ -9,6 +9,7 @@ include "mozilla/layers/LayersMessageUtils.h";
 include "mozilla/layers/CanvasTranslator.h";
 
 [MoveOnly] using mozilla::CrossProcessSemaphoreHandle from "mozilla/ipc/CrossProcessSemaphore.h";
+using mozilla::layers::RemoteTextureOwnerId from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::TextureType from "mozilla/layers/LayersTypes.h";
 [MoveOnly] using mozilla::ipc::SharedMemory::Handle from "mozilla/ipc/SharedMemory.h";
 using mozilla::gfx::BackendType from "mozilla/gfx/Types.h";
@@ -71,6 +72,11 @@ child:
    * Notify that the canvas device used by the translator has changed.
    */
   async NotifyDeviceChanged();
+
+  /**
+   * Notify that the canvas device used by the translator has been reset.
+   */
+  async NotifyDeviceReset(RemoteTextureOwnerId[] aOwners);
 
   /**
    * Deactivate remote canvas, which will cause fall back to software.

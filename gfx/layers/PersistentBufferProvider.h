@@ -31,7 +31,6 @@ namespace layers {
 class CompositableForwarder;
 class FwdTransactionTracker;
 class KnowsCompositor;
-struct RemoteTextureOwnerId;
 class TextureClient;
 
 /**
@@ -79,6 +78,10 @@ class PersistentBufferProvider : public RefCounted<PersistentBufferProvider>,
       already_AddRefed<gfx::SourceSurface> aSnapshot) = 0;
 
   virtual TextureClient* GetTextureClient() { return nullptr; }
+
+  virtual Maybe<RemoteTextureOwnerId> GetRemoteTextureOwnerId() const {
+    return Nothing();
+  }
 
   virtual void OnMemoryPressure() {}
 
@@ -170,6 +173,10 @@ class PersistentBufferProviderAccelerated : public PersistentBufferProvider {
 
   void ReturnSnapshot(already_AddRefed<gfx::SourceSurface> aSnapshot) override;
 
+  Maybe<RemoteTextureOwnerId> GetRemoteTextureOwnerId() const override {
+    return Some(mRemoteTextureOwnerId);
+  }
+
   bool PreservesDrawingState() const override { return true; }
 
   void OnShutdown() override { Destroy(); }
@@ -183,11 +190,13 @@ class PersistentBufferProviderAccelerated : public PersistentBufferProvider {
 
  protected:
   explicit PersistentBufferProviderAccelerated(
+      RemoteTextureOwnerId aRemoteTextureOwnerId,
       const RefPtr<TextureClient>& aTexture);
   ~PersistentBufferProviderAccelerated() override;
 
   void Destroy();
 
+  RemoteTextureOwnerId mRemoteTextureOwnerId;
   RefPtr<TextureClient> mTexture;
 
   RefPtr<gfx::DrawTarget> mDrawTarget;

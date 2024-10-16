@@ -9,6 +9,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/ThreadLocal.h"
+#include "mozilla/layers/LayersTypes.h"
 #include <set>
 
 namespace mozilla {
@@ -34,6 +35,8 @@ class CanvasShutdownManager final {
 
   void OnRemoteCanvasLost();
   void OnRemoteCanvasRestored();
+  void OnRemoteCanvasReset(
+      const nsTArray<layers::RemoteTextureOwnerId>& aOwnerIds);
 
  private:
   explicit CanvasShutdownManager(dom::StrongWorkerRef* aWorkerRef);

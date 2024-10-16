@@ -148,6 +148,11 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   void DeviceChangeAcknowledged();
 
   /**
+   * Marks that device reset processing in the writing process has finished.
+   */
+  void DeviceResetAcknowledged();
+
+  /**
    * Used during playback of events to create DrawTargets. For the
    * CanvasTranslator this means creating TextureDatas and getting the
    * DrawTargets from those.

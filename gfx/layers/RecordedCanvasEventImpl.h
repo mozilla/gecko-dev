@@ -47,7 +47,8 @@ const EventType RECYCLE_BUFFER = EventType(EventType::LAST + 15);
 const EventType DROP_BUFFER = EventType(EventType::LAST + 16);
 const EventType PREPARE_SHMEM = EventType(EventType::LAST + 17);
 const EventType PRESENT_TEXTURE = EventType(EventType::LAST + 18);
-const EventType LAST_CANVAS_EVENT_TYPE = PRESENT_TEXTURE;
+const EventType DEVICE_RESET_ACKNOWLEDGED = EventType(EventType::LAST + 19);
+const EventType LAST_CANVAS_EVENT_TYPE = DEVICE_RESET_ACKNOWLEDGED;
 
 class RecordedCanvasBeginTransaction final
     : public RecordedEventDerived<RecordedCanvasBeginTransaction> {
@@ -485,6 +486,38 @@ template <class S>
 RecordedDeviceChangeAcknowledged::RecordedDeviceChangeAcknowledged(S& aStream)
     : RecordedEventDerived(DEVICE_CHANGE_ACKNOWLEDGED) {}
 
+class RecordedDeviceResetAcknowledged final
+    : public RecordedEventDerived<RecordedDeviceResetAcknowledged> {
+ public:
+  RecordedDeviceResetAcknowledged()
+      : RecordedEventDerived(DEVICE_RESET_ACKNOWLEDGED) {}
+
+  template <class S>
+  MOZ_IMPLICIT RecordedDeviceResetAcknowledged(S& aStream);
+
+  bool PlayCanvasEvent(CanvasTranslator* aTranslator) const;
+
+  template <class S>
+  void Record(S& aStream) const;
+
+  std::string GetName() const final {
+    return "RecordedDeviceResetAcknowledged";
+  }
+};
+
+inline bool RecordedDeviceResetAcknowledged::PlayCanvasEvent(
+    CanvasTranslator* aTranslator) const {
+  aTranslator->DeviceResetAcknowledged();
+  return true;
+}
+
+template <class S>
+void RecordedDeviceResetAcknowledged::Record(S& aStream) const {}
+
+template <class S>
+RecordedDeviceResetAcknowledged::RecordedDeviceResetAcknowledged(S& aStream)
+    : RecordedEventDerived(DEVICE_RESET_ACKNOWLEDGED) {}
+
 class RecordedCanvasDrawTargetCreation final
     : public RecordedEventDerived<RecordedCanvasDrawTargetCreation> {
  public:
@@ -779,7 +812,8 @@ RecordedPresentTexture::RecordedPresentTexture(S& aStream)
   f(RECYCLE_BUFFER, RecordedRecycleBuffer);                         \
   f(DROP_BUFFER, RecordedDropBuffer);                               \
   f(PREPARE_SHMEM, RecordedPrepareShmem);                           \
-  f(PRESENT_TEXTURE, RecordedPresentTexture);
+  f(PRESENT_TEXTURE, RecordedPresentTexture);                       \
+  f(DEVICE_RESET_ACKNOWLEDGED, RecordedDeviceResetAcknowledged);
 
 }  // namespace layers
 }  // namespace mozilla

@@ -862,6 +862,8 @@ void CanvasTranslator::DeviceChangeAcknowledged() {
   }
 }
 
+void CanvasTranslator::DeviceResetAcknowledged() { DeviceChangeAcknowledged(); }
+
 bool CanvasTranslator::CreateReferenceTexture() {
   if (mReferenceTextureData) {
     mReferenceTextureData->Unlock();

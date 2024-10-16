@@ -11,6 +11,7 @@
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/gfx/CanvasManagerChild.h"
+#include "mozilla/layers/PersistentBufferProvider.h"
 
 using namespace mozilla::dom;
 
@@ -132,6 +133,31 @@ void CanvasShutdownManager::OnRemoteCanvasRestored() {
   // dispatch for anything that risks re-entrancy.
   for (const auto& canvas : mActiveCanvas) {
     canvas->OnRemoteCanvasRestored();
+  }
+}
+
+void CanvasShutdownManager::OnRemoteCanvasReset(
+    const nsTArray<layers::RemoteTextureOwnerId>& aOwnerIds) {
+  if (aOwnerIds.IsEmpty()) {
+    return;
+  }
+
+  for (const auto& canvas : mActiveCanvas) {
+    auto* bufferProvider = canvas->GetBufferProvider();
+    if (!bufferProvider) {
+      continue;
+    }
+
+    Maybe<layers::RemoteTextureOwnerId> ownerId =
+        bufferProvider->GetRemoteTextureOwnerId();
+    if (!ownerId) {
+      continue;
+    }
+
+    if (aOwnerIds.Contains(*ownerId)) {
+      canvas->OnRemoteCanvasLost();
+      canvas->OnRemoteCanvasRestored();
+    }
   }
 }
 

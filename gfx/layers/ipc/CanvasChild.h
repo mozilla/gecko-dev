@@ -46,6 +46,9 @@ class CanvasChild final : public PCanvasChild, public SupportsWeakPtr {
 
   ipc::IPCResult RecvNotifyDeviceChanged();
 
+  ipc::IPCResult RecvNotifyDeviceReset(
+      const nsTArray<RemoteTextureOwnerId>& aOwnerIds);
+
   ipc::IPCResult RecvDeactivate();
 
   ipc::IPCResult RecvBlockCanvas();
