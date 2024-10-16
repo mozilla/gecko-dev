@@ -72,6 +72,7 @@ pub enum MathFunction {
 
 /// A leaf node inside a `Calc` expression's AST.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[repr(u8)]
 pub enum Leaf {
     /// `<length>`
     Length(NoCalcLength),

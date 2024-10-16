@@ -503,6 +503,7 @@ cbindgen-types = [
     { gecko = "StyleSystemFont", servo = "crate::values::specified::font::SystemFont" },
     { gecko = "StyleGenericColorOrAuto", servo = "crate::values::generics::color::ColorOrAuto" },
     { gecko = "StyleGenericScrollbarColor", servo = "crate::values::generics::ui::ScrollbarColor" },
+    { gecko = "StyleColorComponent", servo = "crate::color::component::ColorComponent" },
     { gecko = "StyleAbsoluteColor", servo = "crate::color::AbsoluteColor" },
     { gecko = "StyleOrigin", servo = "crate::stylesheets::Origin" },
     { gecko = "StyleGenericVerticalAlign", servo = "crate::values::generics::box_::VerticalAlign" },

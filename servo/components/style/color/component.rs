@@ -14,8 +14,8 @@ use crate::{
     parser::ParserContext,
     values::{
         animated::ToAnimatedValue,
-        generics::calc::CalcUnits,
-        specified::calc::{CalcNode as SpecifiedCalcNode, Leaf as SpecifiedLeaf},
+        generics::calc::{CalcUnits, GenericCalcNode},
+        specified::calc::Leaf,
     },
 };
 use cssparser::{color::OPAQUE, Parser, Token};
@@ -23,13 +23,14 @@ use style_traits::{ParseError, StyleParseErrorKind, ToCss};
 
 /// A single color component.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[repr(u8)]
 pub enum ColorComponent<ValueType> {
     /// The "none" keyword.
     None,
     /// A absolute value.
     Value(ValueType),
     /// A calc() value.
-    Calc(Box<SpecifiedCalcNode>),
+    Calc(Box<GenericCalcNode<Leaf>>),
     /// Used when alpha components are not specified.
     AlphaOmitted,
 }
@@ -59,7 +60,7 @@ pub trait ColorComponentType: Sized + Clone {
 
     /// Try to create a new component from the given [CalcNodeLeaf] that was
     /// resolved from a [CalcNode].
-    fn try_from_leaf(leaf: &SpecifiedLeaf) -> Result<Self, ()>;
+    fn try_from_leaf(leaf: &Leaf) -> Result<Self, ()>;
 }
 
 impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
@@ -85,17 +86,17 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                     return Err(location.new_unexpected_token_error(t.clone()));
                 }
 
-                let node = SpecifiedCalcNode::Leaf(SpecifiedLeaf::ColorComponent(channel_keyword));
+                let node = GenericCalcNode::Leaf(Leaf::ColorComponent(channel_keyword));
                 Ok(ColorComponent::Calc(Box::new(node)))
             },
             Token::Function(ref name) => {
-                let function = SpecifiedCalcNode::math_function(context, name, location)?;
+                let function = GenericCalcNode::math_function(context, name, location)?;
                 let units = if rcs_enabled() {
                     ValueType::units() | CalcUnits::COLOR_COMPONENT
                 } else {
                     ValueType::units()
                 };
-                let mut node = SpecifiedCalcNode::parse(context, input, function, units)?;
+                let mut node = GenericCalcNode::parse(context, input, function, units)?;
 
                 if rcs_enabled() {
                     // Check that we only have allowed channel_keywords.
@@ -103,11 +104,11 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                     //              better, do the validation during parsing the calc node.
                     let mut is_valid = true;
                     node.visit_depth_first(|node| {
-                        let SpecifiedCalcNode::Leaf(leaf) = node else {
+                        let GenericCalcNode::Leaf(leaf) = node else {
                             return;
                         };
 
-                        let SpecifiedLeaf::ColorComponent(channel_keyword) = leaf else {
+                        let Leaf::ColorComponent(channel_keyword) = leaf else {
                             return;
                         };
 
@@ -144,12 +145,12 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
             ColorComponent::Calc(node) => {
                 let Ok(resolved_leaf) = node.resolve_map(|leaf| {
                     Ok(match leaf {
-                        SpecifiedLeaf::ColorComponent(channel_keyword) => {
+                        Leaf::ColorComponent(channel_keyword) => {
                             if let Some(origin_color) = origin_color {
                                 if let Ok(value) =
                                     origin_color.get_component_by_channel_keyword(*channel_keyword)
                                 {
-                                    SpecifiedLeaf::Number(value.unwrap_or(0.0))
+                                    Leaf::Number(value.unwrap_or(0.0))
                                 } else {
                                     return Err(());
                                 }
@@ -194,8 +195,7 @@ impl<ValueType: ToCss> ToCss for ColorComponent<ValueType> {
                 // it again here.
                 // There are some contradicting wpt's, which depends on resolution of:
                 // <https://github.com/web-platform-tests/wpt/issues/47921>
-                if let SpecifiedCalcNode::Leaf(SpecifiedLeaf::ColorComponent(channel_keyword)) =
-                    node.as_ref()
+                if let GenericCalcNode::Leaf(Leaf::ColorComponent(channel_keyword)) = node.as_ref()
                 {
                     channel_keyword.to_css(dest)?;
                 } else {

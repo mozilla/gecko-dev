@@ -5,7 +5,7 @@
 //! Write colors into CSS strings.
 
 use super::{
-    parsing::{NumberOrAngle, NumberOrPercentage},
+    parsing::{NumberOrAngleComponent, NumberOrPercentageComponent},
     AbsoluteColor, ColorFlags, ColorSpace,
 };
 use crate::values::normalize;
@@ -41,7 +41,7 @@ impl<'a> ToCss for ModernComponent<'a> {
     }
 }
 
-impl ToCss for NumberOrPercentage {
+impl ToCss for NumberOrPercentageComponent {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
@@ -56,7 +56,7 @@ impl ToCss for NumberOrPercentage {
     }
 }
 
-impl ToCss for NumberOrAngle {
+impl ToCss for NumberOrAngleComponent {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,

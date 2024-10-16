@@ -9,80 +9,82 @@ use std::fmt::Write;
 use super::{
     component::ColorComponent,
     convert::normalize_hue,
-    parsing::{NumberOrAngle, NumberOrPercentage},
+    parsing::{NumberOrAngleComponent, NumberOrPercentageComponent},
     AbsoluteColor, ColorFlags, ColorSpace,
 };
 use crate::values::{
-    computed::color::Color as ComputedColor, normalize, specified::color::Color as SpecifiedColor,
+    computed::color::Color as ComputedColor, generics::Optional, normalize,
+    specified::color::Color as SpecifiedColor,
 };
 use cssparser::color::{clamp_floor_256_f32, OPAQUE};
 
 /// Represents a specified color function.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
-pub enum ColorFunction<Color> {
+#[repr(u8)]
+pub enum ColorFunction<OriginColor> {
     /// <https://drafts.csswg.org/css-color-4/#rgb-functions>
     Rgb(
-        Option<Color>,                      // origin
-        ColorComponent<NumberOrPercentage>, // red
-        ColorComponent<NumberOrPercentage>, // green
-        ColorComponent<NumberOrPercentage>, // blue
-        ColorComponent<NumberOrPercentage>, // alpha
+        Optional<OriginColor>,                       // origin
+        ColorComponent<NumberOrPercentageComponent>, // red
+        ColorComponent<NumberOrPercentageComponent>, // green
+        ColorComponent<NumberOrPercentageComponent>, // blue
+        ColorComponent<NumberOrPercentageComponent>, // alpha
     ),
     /// <https://drafts.csswg.org/css-color-4/#the-hsl-notation>
     Hsl(
-        Option<Color>,                      // origin
-        ColorComponent<NumberOrAngle>,      // hue
-        ColorComponent<NumberOrPercentage>, // saturation
-        ColorComponent<NumberOrPercentage>, // lightness
-        ColorComponent<NumberOrPercentage>, // alpha
+        Optional<OriginColor>,                       // origin
+        ColorComponent<NumberOrAngleComponent>,      // hue
+        ColorComponent<NumberOrPercentageComponent>, // saturation
+        ColorComponent<NumberOrPercentageComponent>, // lightness
+        ColorComponent<NumberOrPercentageComponent>, // alpha
     ),
     /// <https://drafts.csswg.org/css-color-4/#the-hwb-notation>
     Hwb(
-        Option<Color>,                      // origin
-        ColorComponent<NumberOrAngle>,      // hue
-        ColorComponent<NumberOrPercentage>, // whiteness
-        ColorComponent<NumberOrPercentage>, // blackness
-        ColorComponent<NumberOrPercentage>, // alpha
+        Optional<OriginColor>,                       // origin
+        ColorComponent<NumberOrAngleComponent>,      // hue
+        ColorComponent<NumberOrPercentageComponent>, // whiteness
+        ColorComponent<NumberOrPercentageComponent>, // blackness
+        ColorComponent<NumberOrPercentageComponent>, // alpha
     ),
     /// <https://drafts.csswg.org/css-color-4/#specifying-lab-lch>
     Lab(
-        Option<Color>,                      // origin
-        ColorComponent<NumberOrPercentage>, // lightness
-        ColorComponent<NumberOrPercentage>, // a
-        ColorComponent<NumberOrPercentage>, // b
-        ColorComponent<NumberOrPercentage>, // alpha
+        Optional<OriginColor>,                       // origin
+        ColorComponent<NumberOrPercentageComponent>, // lightness
+        ColorComponent<NumberOrPercentageComponent>, // a
+        ColorComponent<NumberOrPercentageComponent>, // b
+        ColorComponent<NumberOrPercentageComponent>, // alpha
     ),
     /// <https://drafts.csswg.org/css-color-4/#specifying-lab-lch>
     Lch(
-        Option<Color>,                      // origin
-        ColorComponent<NumberOrPercentage>, // lightness
-        ColorComponent<NumberOrPercentage>, // chroma
-        ColorComponent<NumberOrAngle>,      // hue
-        ColorComponent<NumberOrPercentage>, // alpha
+        Optional<OriginColor>,                       // origin
+        ColorComponent<NumberOrPercentageComponent>, // lightness
+        ColorComponent<NumberOrPercentageComponent>, // chroma
+        ColorComponent<NumberOrAngleComponent>,      // hue
+        ColorComponent<NumberOrPercentageComponent>, // alpha
     ),
     /// <https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch>
     Oklab(
-        Option<Color>,                      // origin
-        ColorComponent<NumberOrPercentage>, // lightness
-        ColorComponent<NumberOrPercentage>, // a
-        ColorComponent<NumberOrPercentage>, // b
-        ColorComponent<NumberOrPercentage>, // alpha
+        Optional<OriginColor>,                       // origin
+        ColorComponent<NumberOrPercentageComponent>, // lightness
+        ColorComponent<NumberOrPercentageComponent>, // a
+        ColorComponent<NumberOrPercentageComponent>, // b
+        ColorComponent<NumberOrPercentageComponent>, // alpha
     ),
     /// <https://drafts.csswg.org/css-color-4/#specifying-oklab-oklch>
     Oklch(
-        Option<Color>,                      // origin
-        ColorComponent<NumberOrPercentage>, // lightness
-        ColorComponent<NumberOrPercentage>, // chroma
-        ColorComponent<NumberOrAngle>,      // hue
-        ColorComponent<NumberOrPercentage>, // alpha
+        Optional<OriginColor>,                       // origin
+        ColorComponent<NumberOrPercentageComponent>, // lightness
+        ColorComponent<NumberOrPercentageComponent>, // chroma
+        ColorComponent<NumberOrAngleComponent>,      // hue
+        ColorComponent<NumberOrPercentageComponent>, // alpha
     ),
     /// <https://drafts.csswg.org/css-color-4/#color-function>
     Color(
-        Option<Color>,                      // origin
-        ColorComponent<NumberOrPercentage>, // red / x
-        ColorComponent<NumberOrPercentage>, // green / y
-        ColorComponent<NumberOrPercentage>, // blue / z
-        ColorComponent<NumberOrPercentage>, // alpha
+        Optional<OriginColor>,                       // origin
+        ColorComponent<NumberOrPercentageComponent>, // red / x
+        ColorComponent<NumberOrPercentageComponent>, // green / y
+        ColorComponent<NumberOrPercentageComponent>, // blue / z
+        ColorComponent<NumberOrPercentageComponent>, // alpha
         ColorSpace,
     ),
 }
@@ -101,7 +103,7 @@ impl ColorFunction<AbsoluteColor> {
             ColorFunction::Rgb(origin_color, r, g, b, alpha) => {
                 #[inline]
                 fn resolve(
-                    component: &ColorComponent<NumberOrPercentage>,
+                    component: &ColorComponent<NumberOrPercentageComponent>,
                     origin_color: Option<&AbsoluteColor>,
                 ) -> Result<u8, ()> {
                     Ok(clamp_floor_256_f32(
@@ -112,8 +114,9 @@ impl ColorFunction<AbsoluteColor> {
                     ))
                 }
 
-                let origin_color =
-                    origin_color.map(|o| o.to_color_space(ColorSpace::Srgb).into_srgb_legacy());
+                let origin_color = origin_color
+                    .as_ref()
+                    .map(|o| o.to_color_space(ColorSpace::Srgb).into_srgb_legacy());
 
                 let r = resolve(r, origin_color.as_ref())?;
                 let g = resolve(g, origin_color.as_ref())?;
@@ -138,7 +141,9 @@ impl ColorFunction<AbsoluteColor> {
                 //   color to be out of gamut and not clamp.
                 let use_rgb_sytax = origin_color.is_none();
 
-                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Hsl));
+                let origin_color = origin_color
+                    .as_ref()
+                    .map(|o| o.to_color_space(ColorSpace::Hsl));
 
                 let mut result = AbsoluteColor::new(
                     ColorSpace::Hsl,
@@ -179,7 +184,9 @@ impl ColorFunction<AbsoluteColor> {
                 const WHITENESS_RANGE: f32 = 100.0;
                 const BLACKNESS_RANGE: f32 = 100.0;
 
-                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Hwb));
+                let origin_color = origin_color
+                    .as_ref()
+                    .map(|o| o.to_color_space(ColorSpace::Hwb));
 
                 let mut result = AbsoluteColor::new(
                     ColorSpace::Hwb,
@@ -214,7 +221,9 @@ impl ColorFunction<AbsoluteColor> {
                 const LIGHTNESS_RANGE: f32 = 100.0;
                 const A_B_RANGE: f32 = 125.0;
 
-                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Lab));
+                let origin_color = origin_color
+                    .as_ref()
+                    .map(|o| o.to_color_space(ColorSpace::Lab));
 
                 AbsoluteColor::new(
                     ColorSpace::Lab,
@@ -233,7 +242,9 @@ impl ColorFunction<AbsoluteColor> {
                 const LIGHTNESS_RANGE: f32 = 100.0;
                 const CHROMA_RANGE: f32 = 150.0;
 
-                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Lch));
+                let origin_color = origin_color
+                    .as_ref()
+                    .map(|o| o.to_color_space(ColorSpace::Lch));
 
                 AbsoluteColor::new(
                     ColorSpace::Lch,
@@ -252,7 +263,9 @@ impl ColorFunction<AbsoluteColor> {
                 const LIGHTNESS_RANGE: f32 = 1.0;
                 const A_B_RANGE: f32 = 0.4;
 
-                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Oklab));
+                let origin_color = origin_color
+                    .as_ref()
+                    .map(|o| o.to_color_space(ColorSpace::Oklab));
 
                 AbsoluteColor::new(
                     ColorSpace::Oklab,
@@ -271,7 +284,9 @@ impl ColorFunction<AbsoluteColor> {
                 const LIGHTNESS_RANGE: f32 = 1.0;
                 const CHROMA_RANGE: f32 = 0.4;
 
-                let origin_color = origin_color.map(|o| o.to_color_space(ColorSpace::Oklch));
+                let origin_color = origin_color
+                    .as_ref()
+                    .map(|o| o.to_color_space(ColorSpace::Oklch));
 
                 AbsoluteColor::new(
                     ColorSpace::Oklch,
@@ -285,9 +300,19 @@ impl ColorFunction<AbsoluteColor> {
                 )
             },
             ColorFunction::Color(origin_color, r, g, b, alpha, color_space) => {
-                let origin_color = origin_color.map(|o| o.to_color_space(*color_space));
+                let origin_color = origin_color.as_ref().map(|o| {
+                    let mut result = o.to_color_space(*color_space);
+
+                    // If the origin color was a `rgb(..)` function, we should
+                    // make sure it doesn't have the legacy flag any more so
+                    // that it is recognized as a `color(srgb ..)` function.
+                    result.flags.set(ColorFlags::IS_LEGACY_SRGB, false);
+
+                    result
+                });
+
                 AbsoluteColor::new(
-                    (*color_space).into(),
+                    *color_space,
                     r.resolve(origin_color.as_ref())?.map(|c| c.to_number(1.0)),
                     g.resolve(origin_color.as_ref())?.map(|c| c.to_number(1.0)),
                     b.resolve(origin_color.as_ref())?.map(|c| c.to_number(1.0)),
@@ -328,7 +353,7 @@ impl<Color> ColorFunction<Color> {
         macro_rules! map {
             ($f:ident, $o:expr, $c0:expr, $c1:expr, $c2:expr, $alpha:expr) => {{
                 ColorFunction::$f(
-                    $o.as_ref().and_then(f),
+                    $o.as_ref().and_then(f).into(),
                     $c0.clone(),
                     $c1.clone(),
                     $c2.clone(),
@@ -345,7 +370,7 @@ impl<Color> ColorFunction<Color> {
             ColorFunction::Oklab(o, c0, c1, c2, alpha) => map!(Oklab, o, c0, c1, c2, alpha),
             ColorFunction::Oklch(o, c0, c1, c2, alpha) => map!(Oklch, o, c0, c1, c2, alpha),
             ColorFunction::Color(o, c0, c1, c2, alpha, color_space) => ColorFunction::Color(
-                o.as_ref().and_then(f),
+                o.as_ref().and_then(f).into(),
                 c0.clone(),
                 c1.clone(),
                 c2.clone(),
@@ -414,7 +439,7 @@ impl<C: style_traits::ToCss> style_traits::ToCss for ColorFunction<C> {
             },
         };
 
-        if let Some(origin_color) = origin_color {
+        if let Optional::Some(origin_color) = origin_color {
             dest.write_str("from ")?;
             origin_color.to_css(dest)?;
             dest.write_str(" ")?;

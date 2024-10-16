@@ -51,6 +51,7 @@ pub const PX_PER_PC: CSSFloat = PX_PER_PT * 12.;
 /// added here, `custom_properties::NonCustomReferences::from_unit`
 /// must also be updated. Consult the comment in that function as to why.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[repr(u8)]
 pub enum FontRelativeLength {
     /// A "em" value: https://drafts.csswg.org/css-values/#em
     #[css(dimension)]
@@ -458,6 +459,7 @@ enum ViewportUnit {
 ///
 /// <https://drafts.csswg.org/css-values/#viewport-relative-lengths>
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[repr(u8)]
 pub enum ViewportPercentageLength {
     /// <https://drafts.csswg.org/css-values/#valdef-length-vw>
     #[css(dimension)]
@@ -713,6 +715,7 @@ impl ViewportPercentageLength {
 
 /// HTML5 "character width", as defined in HTML5 § 14.5.4.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[repr(C)]
 pub struct CharacterWidth(pub i32);
 
 impl CharacterWidth {
@@ -730,6 +733,7 @@ impl CharacterWidth {
 
 /// Represents an absolute length with its unit
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[repr(u8)]
 pub enum AbsoluteLength {
     /// An absolute length in pixels (px)
     #[css(dimension)]
@@ -831,6 +835,7 @@ impl PartialOrd for AbsoluteLength {
 ///
 /// <https://drafts.csswg.org/css-contain-3/#container-lengths>
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[repr(u8)]
 pub enum ContainerRelativeLength {
     /// 1% of query container's width
     #[css(dimension)]
@@ -958,6 +963,7 @@ impl ContainerRelativeLength {
 ///
 /// <https://drafts.csswg.org/css-values/#lengths>
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[repr(u8)]
 pub enum NoCalcLength {
     /// An absolute length
     ///
@@ -2014,7 +2020,8 @@ impl Size {
         parse_size_non_length!(Size, input, "auto" => Auto);
         parse_fit_content_function!(Size, input, context, allow_quirks);
 
-        if let Ok(length) = input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(length) =
+            input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks)) {
             return Ok(GenericSize::LengthPercentage(length));
         }
         Ok(Self::AnchorSizeFunction(Box::new(GenericAnchorSizeFunction::parse(context, input)?)))
@@ -2049,10 +2056,14 @@ impl MaxSize {
         parse_size_non_length!(MaxSize, input, "none" => None);
         parse_fit_content_function!(MaxSize, input, context, allow_quirks);
 
-        if let Ok(length) = input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(length) =
+            input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks))
+        {
             return Ok(GenericMaxSize::LengthPercentage(length));
         }
-        Ok(Self::AnchorSizeFunction(Box::new(GenericAnchorSizeFunction::parse(context, input)?)))
+        Ok(Self::AnchorSizeFunction(Box::new(
+            GenericAnchorSizeFunction::parse(context, input)?,
+        )))
     }
 }
 

@@ -84,7 +84,6 @@ exclude = [
   "NS_LogDtor",
   "SelectorList",
   "AuthorStyles",
-  "ColorFunction",
 ]
 include = [
   "AnchorName",

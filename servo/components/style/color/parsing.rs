@@ -14,11 +14,8 @@ use super::{
 use crate::{
     parser::{Parse, ParserContext},
     values::{
-        generics::calc::CalcUnits,
-        specified::{
-            angle::Angle as SpecifiedAngle, calc::Leaf as SpecifiedLeaf,
-            color::Color as SpecifiedColor,
-        },
+        generics::{calc::CalcUnits, Optional},
+        specified::{angle::Angle as SpecifiedAngle, calc::Leaf, color::Color as SpecifiedColor},
     },
 };
 use cssparser::{
@@ -35,6 +32,7 @@ pub fn rcs_enabled() -> bool {
 
 /// Represents a channel keyword inside a color.
 #[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, PartialOrd, ToCss, ToShmem)]
+#[repr(u8)]
 pub enum ChannelKeyword {
     /// alpha
     Alpha,
@@ -240,14 +238,14 @@ fn parse_rgb<'i, 't>(
 
         let alpha = parse_legacy_alpha(context, arguments, RGB_CHANNEL_KEYWORDS)?;
 
-        ColorFunction::Rgb(origin_color, maybe_red, green, blue, alpha)
+        ColorFunction::Rgb(origin_color.into(), maybe_red, green, blue, alpha)
     } else {
         let green = parse_number_or_percentage(context, arguments, true, RGB_CHANNEL_KEYWORDS)?;
         let blue = parse_number_or_percentage(context, arguments, true, RGB_CHANNEL_KEYWORDS)?;
 
         let alpha = parse_modern_alpha(context, arguments, RGB_CHANNEL_KEYWORDS)?;
 
-        ColorFunction::Rgb(origin_color, maybe_red, green, blue, alpha)
+        ColorFunction::Rgb(origin_color.into(), maybe_red, green, blue, alpha)
     })
 }
 
@@ -283,7 +281,7 @@ fn parse_hsl<'i, 't>(
     };
 
     Ok(ColorFunction::Hsl(
-        origin_color,
+        origin_color.into(),
         hue,
         saturation,
         lightness,
@@ -307,7 +305,7 @@ fn parse_hwb<'i, 't>(
     let alpha = parse_modern_alpha(context, arguments, HWB_CHANNEL_KEYWORDS)?;
 
     Ok(ColorFunction::Hwb(
-        origin_color,
+        origin_color.into(),
         hue,
         whiteness,
         blackness,
@@ -316,11 +314,11 @@ fn parse_hwb<'i, 't>(
 }
 
 type IntoLabFn<Output> = fn(
-    origin: Option<SpecifiedColor>,
-    l: ColorComponent<NumberOrPercentage>,
-    a: ColorComponent<NumberOrPercentage>,
-    b: ColorComponent<NumberOrPercentage>,
-    alpha: ColorComponent<NumberOrPercentage>,
+    origin: Optional<SpecifiedColor>,
+    l: ColorComponent<NumberOrPercentageComponent>,
+    a: ColorComponent<NumberOrPercentageComponent>,
+    b: ColorComponent<NumberOrPercentageComponent>,
+    alpha: ColorComponent<NumberOrPercentageComponent>,
 ) -> Output;
 
 #[inline]
@@ -336,15 +334,15 @@ fn parse_lab_like<'i, 't>(
 
     let alpha = parse_modern_alpha(context, arguments, LAB_CHANNEL_KEYWORDS)?;
 
-    Ok(into_color(origin_color, lightness, a, b, alpha))
+    Ok(into_color(origin_color.into(), lightness, a, b, alpha))
 }
 
 type IntoLchFn<Output> = fn(
-    origin: Option<SpecifiedColor>,
-    l: ColorComponent<NumberOrPercentage>,
-    a: ColorComponent<NumberOrPercentage>,
-    b: ColorComponent<NumberOrAngle>,
-    alpha: ColorComponent<NumberOrPercentage>,
+    origin: Optional<SpecifiedColor>,
+    l: ColorComponent<NumberOrPercentageComponent>,
+    a: ColorComponent<NumberOrPercentageComponent>,
+    b: ColorComponent<NumberOrAngleComponent>,
+    alpha: ColorComponent<NumberOrPercentageComponent>,
 ) -> Output;
 
 #[inline]
@@ -360,7 +358,13 @@ fn parse_lch_like<'i, 't>(
 
     let alpha = parse_modern_alpha(context, arguments, LCH_CHANNEL_KEYWORDS)?;
 
-    Ok(into_color(origin_color, lightness, chroma, hue, alpha))
+    Ok(into_color(
+        origin_color.into(),
+        lightness,
+        chroma,
+        hue,
+        alpha,
+    ))
 }
 
 /// Parse the color() function.
@@ -389,7 +393,7 @@ fn parse_color_with_color_space<'i, 't>(
     let alpha = parse_modern_alpha(context, arguments, allowed_channel_keywords)?;
 
     Ok(ColorFunction::Color(
-        origin_color,
+        origin_color.into(),
         c1,
         c2,
         c3,
@@ -400,7 +404,8 @@ fn parse_color_with_color_space<'i, 't>(
 
 /// Either a percentage or a number.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
-pub enum NumberOrPercentage {
+#[repr(u8)]
+pub enum NumberOrPercentageComponent {
     /// `<number>`.
     Number(f32),
     /// `<percentage>`
@@ -408,7 +413,7 @@ pub enum NumberOrPercentage {
     Percentage(f32),
 }
 
-impl NumberOrPercentage {
+impl NumberOrPercentageComponent {
     /// Return the value as a number. Percentages will be adjusted to the range
     /// [0..percent_basis].
     pub fn to_number(&self, percentage_basis: f32) -> f32 {
@@ -419,7 +424,7 @@ impl NumberOrPercentage {
     }
 }
 
-impl ColorComponentType for NumberOrPercentage {
+impl ColorComponentType for NumberOrPercentageComponent {
     fn from_value(value: f32) -> Self {
         Self::Number(value)
     }
@@ -438,10 +443,10 @@ impl ColorComponentType for NumberOrPercentage {
         })
     }
 
-    fn try_from_leaf(leaf: &SpecifiedLeaf) -> Result<Self, ()> {
+    fn try_from_leaf(leaf: &Leaf) -> Result<Self, ()> {
         Ok(match *leaf {
-            SpecifiedLeaf::Percentage(unit_value) => Self::Percentage(unit_value),
-            SpecifiedLeaf::Number(value) => Self::Number(value),
+            Leaf::Percentage(unit_value) => Self::Percentage(unit_value),
+            Leaf::Number(value) => Self::Number(value),
             _ => return Err(()),
         })
     }
@@ -449,7 +454,8 @@ impl ColorComponentType for NumberOrPercentage {
 
 /// Either an angle or a number.
 #[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
-pub enum NumberOrAngle {
+#[repr(u8)]
+pub enum NumberOrAngleComponent {
     /// `<number>`.
     Number(f32),
     /// `<angle>`
@@ -457,7 +463,7 @@ pub enum NumberOrAngle {
     Angle(f32),
 }
 
-impl NumberOrAngle {
+impl NumberOrAngleComponent {
     /// Return the angle in degrees. `NumberOrAngle::Number` is returned as
     /// degrees, because it is the canonical unit.
     pub fn degrees(&self) -> f32 {
@@ -468,7 +474,7 @@ impl NumberOrAngle {
     }
 }
 
-impl ColorComponentType for NumberOrAngle {
+impl ColorComponentType for NumberOrAngleComponent {
     fn from_value(value: f32) -> Self {
         Self::Number(value)
     }
@@ -487,7 +493,7 @@ impl ColorComponentType for NumberOrAngle {
                     SpecifiedAngle::parse_dimension(value, unit, /* from_calc = */ false)
                         .map(|angle| angle.degrees())?;
 
-                NumberOrAngle::Angle(degrees)
+                NumberOrAngleComponent::Angle(degrees)
             },
             _ => {
                 return Err(());
@@ -495,10 +501,10 @@ impl ColorComponentType for NumberOrAngle {
         })
     }
 
-    fn try_from_leaf(leaf: &SpecifiedLeaf) -> Result<Self, ()> {
+    fn try_from_leaf(leaf: &Leaf) -> Result<Self, ()> {
         Ok(match *leaf {
-            SpecifiedLeaf::Angle(angle) => Self::Angle(angle.degrees()),
-            SpecifiedLeaf::Number(value) => Self::Number(value),
+            Leaf::Angle(angle) => Self::Angle(angle.degrees()),
+            Leaf::Number(value) => Self::Number(value),
             _ => return Err(()),
         })
     }
@@ -522,8 +528,8 @@ impl ColorComponentType for f32 {
         }
     }
 
-    fn try_from_leaf(leaf: &SpecifiedLeaf) -> Result<Self, ()> {
-        if let SpecifiedLeaf::Number(value) = *leaf {
+    fn try_from_leaf(leaf: &Leaf) -> Result<Self, ()> {
+        if let Leaf::Number(value) = *leaf {
             Ok(value)
         } else {
             Err(())
@@ -537,7 +543,7 @@ fn parse_number_or_angle<'i, 't>(
     input: &mut Parser<'i, 't>,
     allow_none: bool,
     allowed_channel_keywords: &[ChannelKeyword],
-) -> Result<ColorComponent<NumberOrAngle>, ParseError<'i>> {
+) -> Result<ColorComponent<NumberOrAngleComponent>, ParseError<'i>> {
     ColorComponent::parse(context, input, allow_none, allowed_channel_keywords)
 }
 
@@ -547,10 +553,10 @@ fn parse_percentage<'i, 't>(
     input: &mut Parser<'i, 't>,
     allow_none: bool,
     allowed_channel_keywords: &[ChannelKeyword],
-) -> Result<ColorComponent<NumberOrPercentage>, ParseError<'i>> {
+) -> Result<ColorComponent<NumberOrPercentageComponent>, ParseError<'i>> {
     let location = input.current_source_location();
 
-    let value = ColorComponent::<NumberOrPercentage>::parse(
+    let value = ColorComponent::<NumberOrPercentageComponent>::parse(
         context,
         input,
         allow_none,
@@ -570,10 +576,10 @@ fn parse_number<'i, 't>(
     input: &mut Parser<'i, 't>,
     allow_none: bool,
     allowed_channel_keywords: &[ChannelKeyword],
-) -> Result<ColorComponent<NumberOrPercentage>, ParseError<'i>> {
+) -> Result<ColorComponent<NumberOrPercentageComponent>, ParseError<'i>> {
     let location = input.current_source_location();
 
-    let value = ColorComponent::<NumberOrPercentage>::parse(
+    let value = ColorComponent::<NumberOrPercentageComponent>::parse(
         context,
         input,
         allow_none,
@@ -593,7 +599,7 @@ fn parse_number_or_percentage<'i, 't>(
     input: &mut Parser<'i, 't>,
     allow_none: bool,
     allowed_channel_keywords: &[ChannelKeyword],
-) -> Result<ColorComponent<NumberOrPercentage>, ParseError<'i>> {
+) -> Result<ColorComponent<NumberOrPercentageComponent>, ParseError<'i>> {
     ColorComponent::parse(context, input, allow_none, allowed_channel_keywords)
 }
 
@@ -601,7 +607,7 @@ fn parse_legacy_alpha<'i, 't>(
     context: &ParserContext,
     arguments: &mut Parser<'i, 't>,
     allowed_channel_keywords: &[ChannelKeyword],
-) -> Result<ColorComponent<NumberOrPercentage>, ParseError<'i>> {
+) -> Result<ColorComponent<NumberOrPercentageComponent>, ParseError<'i>> {
     if !arguments.is_exhausted() {
         arguments.expect_comma()?;
         parse_number_or_percentage(context, arguments, false, allowed_channel_keywords)
@@ -614,7 +620,7 @@ fn parse_modern_alpha<'i, 't>(
     context: &ParserContext,
     arguments: &mut Parser<'i, 't>,
     allowed_channel_keywords: &[ChannelKeyword],
-) -> Result<ColorComponent<NumberOrPercentage>, ParseError<'i>> {
+) -> Result<ColorComponent<NumberOrPercentageComponent>, ParseError<'i>> {
     if !arguments.is_exhausted() {
         arguments.expect_delim('/')?;
         parse_number_or_percentage(context, arguments, true, allowed_channel_keywords)
@@ -623,13 +629,13 @@ fn parse_modern_alpha<'i, 't>(
     }
 }
 
-impl ColorComponent<NumberOrPercentage> {
+impl ColorComponent<NumberOrPercentageComponent> {
     /// Return true if the value contained inside is/can resolve to a percentage.
     /// Also returns false if the node is invalid somehow.
     fn could_be_number(&self) -> bool {
         match self {
             Self::None | Self::AlphaOmitted => true,
-            Self::Value(value) => matches!(value, NumberOrPercentage::Number { .. }),
+            Self::Value(value) => matches!(value, NumberOrPercentageComponent::Number { .. }),
             Self::Calc(node) => {
                 if let Ok(unit) = node.unit() {
                     unit.is_empty()
@@ -645,7 +651,7 @@ impl ColorComponent<NumberOrPercentage> {
     fn could_be_percentage(&self) -> bool {
         match self {
             Self::None | Self::AlphaOmitted => true,
-            Self::Value(value) => matches!(value, NumberOrPercentage::Percentage { .. }),
+            Self::Value(value) => matches!(value, NumberOrPercentageComponent::Percentage { .. }),
             Self::Calc(node) => {
                 if let Ok(unit) = node.unit() {
                     unit == CalcUnits::PERCENTAGE
