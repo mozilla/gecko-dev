@@ -332,9 +332,11 @@ button.text-link .button-text {
 
   &:not([disabled]) {
     &:hover {
+      color: var(--button-text-color-hover);
       background-color: var(--button-background-color-hover);
     }
     &:hover:active {
+      color: var(--button-text-color-active);
       background-color: var(--button-background-color-active);
     }
     &[default],
@@ -343,6 +345,7 @@ button.text-link .button-text {
       background-color: var(--color-accent-primary);
 
       &:hover {
+        color: var(--button-text-color-primary-hover);
         background-color: var(--color-accent-primary-hover);
       }
       &:hover:active {
