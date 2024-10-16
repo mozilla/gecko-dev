@@ -835,5 +835,11 @@ SocketProcessChild::GetIPCClientCertsActor() {
   return actor.forget();
 }
 
+mozilla::ipc::IPCResult SocketProcessChild::RecvHasThirdPartyRoots(
+    const bool& aResult) {
+  nsHttpHandler::SetHasThirdPartyRoots(aResult);
+  return IPC_OK();
+}
+
 }  // namespace net
 }  // namespace mozilla
