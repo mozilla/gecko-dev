@@ -50,6 +50,11 @@ body {
   &:not([chromehidden~="toolbar"]) {
     min-width: 450px;
     min-height: 120px;
+
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media (-moz-bool-pref: "sidebar.verticalTabs") {
+      min-width: 670px;
+    }
   }
 
   /* z-indices that fight on the browser stack */
