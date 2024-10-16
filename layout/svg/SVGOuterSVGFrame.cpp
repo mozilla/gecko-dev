@@ -787,9 +787,6 @@ void SVGOuterSVGAnonChildFrame::BuildDisplayList(
 }
 
 bool SVGOuterSVGFrame::HasChildrenOnlyTransform(Matrix* aTransform) const {
-  // Our elements 'transform' attribute is applied to our SVGOuterSVGFrame
-  // parent, and the element's children-only transforms are applied to us, the
-  // anonymous child frame.
   auto* content = static_cast<SVGSVGElement*>(GetContent());
   if (!content->HasChildrenOnlyTransform()) {
     return false;
@@ -798,22 +795,6 @@ bool SVGOuterSVGFrame::HasChildrenOnlyTransform(Matrix* aTransform) const {
     // Outer-<svg> doesn't use x/y, so we can use the child-to-user-space
     // transform here.
     *aTransform = gfx::ToMatrix(content->ChildToUserSpaceTransform());
-    if (aTransform->HasNonTranslation()) {
-      // The nsDisplayTransform code will apply this transform to our inner kid,
-      // including to its frame position.  We don't want our frame position to
-      // be scaled though, so we need to correct for that in the transform.
-      // XXX Yeah, this is a bit hacky.
-      // viewBox, currentScale and currentTranslate should only produce a
-      // rectilinear transform.
-      MOZ_ASSERT(aTransform->IsRectilinear(),
-                 "Non-rectilinear transform will break the following logic");
-      CSSPoint pos =
-          CSSPixel::FromAppUnits(GetContentRectRelativeToSelf().TopLeft());
-      CSSPoint scaledPos =
-          CSSPoint(aTransform->_11 * pos.x, aTransform->_22 * pos.y);
-      CSSPoint deltaPos = scaledPos - pos;
-      *aTransform *= Matrix::Translation(-deltaPos.x, -deltaPos.y);
-    }
   }
   return true;
 }
