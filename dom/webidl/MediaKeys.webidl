@@ -18,7 +18,7 @@ enum MediaKeySessionType {
   // persistent-usage-record,
 };
 
-// https://w3c.github.io/encrypted-media/#idl-def-hdcpversion
+// https://www.w3.org/TR/eme-hdcp-version-registry/
 enum HDCPVersion {
     "1.0",
     "1.1",
@@ -32,6 +32,8 @@ enum HDCPVersion {
 };
 
 // https://w3c.github.io/encrypted-media/#idl-def-mediakeyspolicy
+// The spec uses DOMString, but it's equivalent for us to use enum. We will keep
+// the enum up to date with the registry.
 dictionary MediaKeysPolicy {
   HDCPVersion minHdcpVersion;
 };
