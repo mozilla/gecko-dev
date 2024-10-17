@@ -456,13 +456,14 @@ TEST_F(VideoFrameConverterTest, ClearFutureFramesOnJumpingBack) {
   EXPECT_GT(conversionTime1 - start, future3 - start);
 }
 
-// We check that the no frame is converted while inactive, and that on
+// We check that no frame is converted while inactive, and that on
 // activating the most recently queued frame gets converted.
 TEST_F(VideoFrameConverterTest, NoConversionsWhileInactive) {
   auto framesPromise = TakeNConvertedFrames(1);
   TimeStamp now = TimeStamp::Now();
-  TimeStamp future1 = now - TimeDuration::FromMilliseconds(1);
-  TimeStamp future2 = now;
+  TimeStamp future1 = now + TimeDuration::FromMilliseconds(10);
+  TimeStamp future2 = now + TimeDuration::FromMilliseconds(20);
+  TimeDuration activeDelay = TimeDuration::FromMilliseconds(100);
   mConverter->QueueVideoChunk(GenerateChunk(640, 480, future1), false);
   mConverter->QueueVideoChunk(GenerateChunk(800, 600, future2), false);
 
@@ -470,7 +471,7 @@ TEST_F(VideoFrameConverterTest, NoConversionsWhileInactive) {
   auto q = TaskQueue::Create(GetMediaThreadPool(MediaThreadType::WEBRTC_WORKER),
                              "VideoFrameConverterTest");
   auto timer = MakeRefPtr<MediaTimer<TimeStamp>>(false);
-  timer->WaitFor(TimeStamp::DurationType::FromMilliseconds(100), __func__)
+  timer->WaitUntil(now + activeDelay, __func__)
       ->Then(q, __func__,
              [converter = mConverter] { converter->SetActive(true); });
 
@@ -480,6 +481,10 @@ TEST_F(VideoFrameConverterTest, NoConversionsWhileInactive) {
   Unused << conversionTime;
   EXPECT_EQ(frame.width(), 800);
   EXPECT_EQ(frame.height(), 600);
+  EXPECT_GT(frame.timestamp_us(), dom::RTCStatsTimestamp::FromMozTime(
+                                      mTimestampMaker, now + activeDelay)
+                                      .ToRealtime()
+                                      .us());
   EXPECT_FALSE(IsFrameBlack(frame));
 }
 
