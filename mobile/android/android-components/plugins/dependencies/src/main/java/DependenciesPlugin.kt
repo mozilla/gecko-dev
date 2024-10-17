@@ -106,7 +106,7 @@ object Versions {
         const val androidx_test = "1.6.1"
         const val androidx_test_espresso = "3.6.1"
         const val androidx_test_ext = "1.2.1"
-        const val androidx_test_orchestrator = "1.5.0"
+        const val androidx_test_orchestrator = "1.5.1"
         const val androidx_test_runner = "1.6.1"
         const val androidx_test_uiautomator = "2.3.0"
         const val falcon = "2.2.0"
