@@ -318,15 +318,15 @@
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Tillbaka till huvudmenyn</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-    <string name="browser_main_menu_handlebar_content_description">Stäng huvudmenyn</string>
+    <string name="browser_main_menu_handlebar_content_description">Stäng huvudmenybladet</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
-    <string name="browser_extensions_menu_handlebar_content_description">Stäng menyblad för tillägg</string>
+    <string name="browser_extensions_menu_handlebar_content_description">Stäng menybladet för tillägg</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
-    <string name="browser_save_menu_handlebar_content_description">Stäng menyfältet spara</string>
+    <string name="browser_save_menu_handlebar_content_description">Stäng menyblad för spara</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
-    <string name="browser_tools_menu_handlebar_content_description">Stäng verktygsmenyn</string>
+    <string name="browser_tools_menu_handlebar_content_description">Stäng menyblad för verktyg</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
-    <string name="browser_custom_tab_menu_handlebar_content_description">Stäng menyblad med anpassad flik</string>
+    <string name="browser_custom_tab_menu_handlebar_content_description">Stäng menyblad för anpassad flik</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Läsvy, översätt, skriv ut, dela, öppna app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -522,7 +522,7 @@
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Antispårning pärla. Stoppa osynliga trackers och spionannonser.</string>
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Antispårningspärla. Stoppa osynliga trackers och spionannonser.</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
     <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -530,7 +530,7 @@
     <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Anpassat mörkt läge för mobil webben.</string>
+    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Anpassat mörkt läge för mobilwebben.</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1435,7 +1435,7 @@
     <!-- Category header of a preference that allows a user to alter settings related to web content. -->
     <string name="preferences_category_content">Innehåll</string>
     <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
-    <string name="preference_feature_desktop_mode_default">Begär alltid för datorer</string>
+    <string name="preference_feature_desktop_mode_default">Begär alltid datorwebbplats</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->

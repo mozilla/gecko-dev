@@ -259,11 +259,11 @@
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s har inaktiverats på grund av säkerhets- eller stabilitetsproblem.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted_1">Detta tillägg är blockerad för att bryta mot Mozillas policyer och har inaktiverats.</string>
+    <string name="mozac_feature_addons_status_blocklisted_1">Det här tillägget är blockerat på grund av att det bryter mot Mozillas policyer och har inaktiverats.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
     <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Det här tillägget bryter mot Mozillas policyer och har inaktiverats. Du kan aktivera det, men det kan vara riskabelt.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
-    <string name="mozac_feature_addons_status_softblocked_1">Detta tillägg är begränsat för att bryta mot Mozillas policyer och har inaktiverats. Du kan aktivera det, men det kan vara riskabelt.</string>
+    <string name="mozac_feature_addons_status_softblocked_1">Det här tillägget är begränsat på grund av att det bryter mot Mozillas policyer och har inaktiverats. Du kan aktivera det, men det kan vara riskabelt.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
     <string name="mozac_feature_addons_status_softblocked_re_enabled">Detta tillägg bryter mot Mozillas policyer. Att använda det kan vara riskabelt.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->

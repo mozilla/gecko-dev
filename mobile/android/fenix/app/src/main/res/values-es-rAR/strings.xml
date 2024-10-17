@@ -316,15 +316,15 @@
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Volver al menu principal</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-    <string name="browser_main_menu_handlebar_content_description">Cerrar la hoja del menú principal</string>
+    <string name="browser_main_menu_handlebar_content_description">Cerrar hoja del menú principal</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
-    <string name="browser_extensions_menu_handlebar_content_description">Cerrar hoja de menú de extensiones</string>
+    <string name="browser_extensions_menu_handlebar_content_description">Cerrar hoja del menú de extensiones</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
-    <string name="browser_save_menu_handlebar_content_description">Cerrar guardar hoja de menú</string>
+    <string name="browser_save_menu_handlebar_content_description">Cerra hoja del menú guardar</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
-    <string name="browser_tools_menu_handlebar_content_description">Cerrar hoja de menú de herramientas</string>
+    <string name="browser_tools_menu_handlebar_content_description">Cerrar hoja del menú herramientas</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
-    <string name="browser_custom_tab_menu_handlebar_content_description">Cerrar hoja de menú de pestaña personalizada</string>
+    <string name="browser_custom_tab_menu_handlebar_content_description">Cerrar hoja del menú pestaña personalizada</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Vista de lectura, traducir, imprimir, compartir, abrir aplicación</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -503,25 +503,25 @@
 
     <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated -->
-    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Personaliza Firefox con extensiones</string>
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Personalizar Firefox con extensiones</string>
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Agregue extensiones de terceros para mejorar su seguridad, productividad y más.</string>
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Agregá extensiones de terceros para mejorar tu seguridad, productividad y más.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Explorar más extensiones.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Empezá a navegar.</string>
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Empezar a navegar.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">Explorar más extensiones</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">Empezar a navegar</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
-    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">Origen de uBlock</string>
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
     <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Bloquea anuncios de forma eficaz y eficiente.</string>
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Bloquea publicidades de forma eficaz y eficiente.</string>
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
-    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Tejón de privacidad</string>
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Gema anti-rastreo. Detén a los rastreadores invisibles y a los anuncios que espían.</string>
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Gema anti-rastreo. Frená a los rastreadores invisibles y a las publicidades que espían.</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Buscar por imagen</string>
     <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->

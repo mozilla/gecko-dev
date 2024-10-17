@@ -314,15 +314,15 @@
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Voltar ao menu principal</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-    <string name="browser_main_menu_handlebar_content_description">Fechar folha do menu principal</string>
+    <string name="browser_main_menu_handlebar_content_description">Fechar a folha do menu principal</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
-    <string name="browser_extensions_menu_handlebar_content_description">Fechar folha do menu de extensões</string>
+    <string name="browser_extensions_menu_handlebar_content_description">Fechar a folha do menu de extensões</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
-    <string name="browser_save_menu_handlebar_content_description">Fechar folha de menu</string>
+    <string name="browser_save_menu_handlebar_content_description">Fechar a folha do menu</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
-    <string name="browser_tools_menu_handlebar_content_description">Fechar folha do menu de ferramentas</string>
+    <string name="browser_tools_menu_handlebar_content_description">Fechar a folha do menu de ferramentas</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
-    <string name="browser_custom_tab_menu_handlebar_content_description">Fechar folha de menu de separador personalizado</string>
+    <string name="browser_custom_tab_menu_handlebar_content_description">Fechar a folha do menu de separador personalizado</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Vista de Leitura, Traduzir, Imprimir, Partilhar, Abrir Aplicação</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -502,7 +502,7 @@
     Note: The word "Firefox" should NOT be translated -->
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Personalize o seu Firefox com extensões</string>
     <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Adicione extensões de terceiros para melhorar a sua segurança, produtividade, e muito mais.</string>
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Adicione extensões de terceiros para melhorar a sua segurança, produtividade e muito mais.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Explorar mais extensões.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -516,13 +516,13 @@
     <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Bloqueie anúncios de forma eficaz e eficiente.</string>
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
-    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Texugo de privacidade</string>
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Joia anti-rastreamento. Impeça rastreadores invisíveis e anúncios espiões.</string>
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Uma preciosidade anti-rastreamento. Impeça rastreadores invisíveis e anúncios espiões.</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
     <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Veja uma foto interessante e saiba mais acerca da mesma.</string>
+    <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Veja uma foto interessante e saiba mais sobre a mesma.</string>
     <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -1428,7 +1428,7 @@
     <!-- Category header of a preference that allows a user to alter settings related to web content. -->
     <string name="preferences_category_content">Conteúdo</string>
     <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
-    <string name="preference_feature_desktop_mode_default">Pedir sempre o site de computador</string>
+    <string name="preference_feature_desktop_mode_default">Solicitar sempre o site de computador</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->

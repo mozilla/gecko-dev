@@ -87,7 +87,6 @@
     <string name="share_dialog_title">හරහා බෙදාගන්න</string>
 
     <string name="notification_erase_title_android_14">පිරික්සුම් ඉතිහාසය මකන්නද?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">ඔබගේ පිරික්සුම් ඉතිහාසය ආරක්‍ෂිතව මැකීමට මෙම දැනුම්දීම මත තට්ටු කරන්න හෝ හිස් කරන්න.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -126,23 +125,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">ෆෝකස්හි සොයන්න</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">ෆෝකස්හි සොයන්න</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">ක්ලාර්හි සොයන්න</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">ක්ලාර්හි සොයන්න</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">ෆෝකස් බීටා හි සොයන්න</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">ෆෝකස් බීටා හි සොයන්න</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">ෆෝකස් නයිට්ලි හි සොයන්න</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">ෆෝකස් නයිට්ලි හි සොයන්න</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s ඔබව පාලනයේ තබයි.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ඔබව පාලනයේ තබයි.</p>
 <p>පෞද්. අතිරික්සුවක් ලෙස යොදාගන්න:
   <ul>
   <li>යෙදුමෙහි සොයන්න සහ පිරික්සන්න</li>
@@ -498,7 +497,7 @@
     <string name="error_hostLookup_title">සේවාදායකය හමු නොවුණි</string>
 
     <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">වසන්න</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">වසන්න</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -590,9 +589,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">පිරික්සුම් ඉතිහාසය මකන්න</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">අන් පටිති වසන්න</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">ෆයර්ෆොක්ස් බාගන්න</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් බාගන්න</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -601,23 +603,23 @@
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[<a href="%2$s">මොසිල්ලා පොදු බලපත්‍රය</a> සහ අනෙකුත් විවෘත මූලාශ්‍ර බලපත්‍රවල නියම යටතේ ඔබට %1$s ලබා ගැනීමට හැකිය.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<a href="%2$s">මොසිල්ලා පොදු බලපත්‍රය</a> සහ අනෙකුත් විවෘත මූලාශ්‍ර බලපත්‍රවල නියම යටතේ ඔබට %1$s ලබා ගැනීමට හැකිය.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Mozilla පදනමේ හෝ Mozilla, Firefox හෝ %1$s ආදී නම් හෝ ලාංඡන ඇතුළුව ඕනෑම පාර්ශ්වයක වෙළඳ ලකුණු සඳහා ඔබට කිසිදු අයිතියක් හෝ බලපත්‍රයක් ලබා දී නැත. අතිරේක තොරතුරු <a href="%2$s">මෙතැන</a> තිබේ.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Mozilla පදනමේ හෝ Mozilla, Firefox හෝ %1$s ආදී නම් හෝ ලාංඡන ඇතුළුව ඕනෑම පාර්ශ්වයක වෙළඳ ලකුණු සඳහා ඔබට කිසිදු අයිතියක් හෝ බලපත්‍රයක් ලබා දී නැත. අතිරේක තොරතුරු <a href="%2$s">මෙතැන</a> තිබේ.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[%1$s සඳහා අතිරේක මූලාශ්‍ර කේත වෙනත් විවිධ නොමිලේ සහ විවෘත මූලාශ්‍ර <a href="%2$s">බලපත්‍ර</a> යටතේ තිබේ.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s සඳහා අතිරේක මූලාශ්‍ර කේත වෙනත් විවිධ නොමිලේ සහ විවෘත මූලාශ්‍ර <a href="%2$s">බලපත්‍ර</a> යටතේ තිබේ.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[ඩිස්කනෙක්ට් සමාගම වෙතින් සපයන ලද අවහිර ලේඛනයක් ද %1$s භාවිතා කරයි. එය <a href="%2$s">ජීඑන්යූ සාමාන්‍ය පොදු බලපත්‍රය අනු. 3</a> යටතේ ස්වාධීන ව්‍යාපෘතියකි, සහ <a href="%3$s">මෙහි</a> තිබේ.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ඩිස්කනෙක්ට් සමාගම වෙතින් සපයන ලද අවහිර ලේඛනයක් ද %1$s භාවිතා කරයි. එය <a href="%2$s">ජීඑන්යූ සාමාන්‍ය පොදු බලපත්‍රය අනු. 3</a> යටතේ ස්වාධීන ව්‍යාපෘතියකි, සහ <a href="%3$s">මෙහි</a> තිබේ.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">පරිශ්‍රීලක නාමය</string>
@@ -809,7 +811,7 @@
     <string name="preference_studies">අධ්‍යන</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">ෆයර්ෆොක්ස් මගින් කලින් කලට අධ්‍යන ස්ථාපනය කර ධාවනය කරයි.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් මගින් කලින් කලට අධ්‍යන ස්ථාපනය කර ධාවනය කරයි.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">තව දැනගන්න</string>
@@ -911,9 +913,6 @@
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">මාරු වන්න</string>
 
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">පූර්ණ තිර ප්‍රකාරයට ඇතුල් වෙමින්</string>
-
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">වහාම නව පටිත්තක සබැඳියට මාරු වන්න</string>
 
@@ -1013,7 +1012,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[වැඩි ආරක්‍ෂාවක් සඳහා %1$s හැකි සෑම විටම HTTPS සම්බන්ධතාවයක් භාවිතයට උත්සාහ කරයි.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[වැඩි ආරක්‍ෂාවක් සඳහා %1$s හැකි සෑම විටම HTTPS සම්බන්ධතාවයක් භාවිතයට උත්සාහ කරයි.
  <a href="%2$s">තව දැනගන්න</a> <br/><br/>
  සැකසුම් > පෞද්ගලිකත්‍වය හා ආරක්‍ෂාව > ආරක්‍ෂාව හරහා සැකසුම වෙනස් කරන්න.]]></string>
 
@@ -1077,7 +1076,8 @@
     of the app (e.g. &quot;Focus&quot;) --&gt;
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු අභිනය භාවිතා කරන්න</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු අභිනය භාවිතා කරන්න</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු බොත්තම ඔබන්න</string>
-</resources>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">පූර්ණ තිරයෙන් පිටවීමට මුදුනින් ඇද ආපසු බොත්තම ඔබන්න</string>
+
+    </resources>
