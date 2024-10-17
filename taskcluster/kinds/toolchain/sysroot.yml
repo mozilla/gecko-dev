@@ -77,12 +77,12 @@ sysroot-wasm32-wasi-clang-8.0:
             - linux64-clang-8.0
             - wasm32-wasi-compiler-rt-8.0
 
-sysroot-wasm32-wasi-clang-18:
+sysroot-wasm32-wasi-clang-19:
     description: "Sysroot for wasi"
     attributes:
         local-toolchain: true
     treeherder:
-        symbol: TL(sysroot-wasi-18)
+        symbol: TL(sysroot-wasi-19)
     run:
         script: build-sysroot-wasi.sh
         arguments:
@@ -96,11 +96,11 @@ sysroot-wasm32-wasi-clang-18:
         toolchain-artifact: public/build/sysroot-wasm32-wasi.tar.zst
     fetches:
         fetch:
-            - clang-18
+            - clang-19
             - wasi-sdk
         toolchain:
-            - linux64-clang-18-stage1
-            - wasm32-wasi-compiler-rt-18
+            - linux64-clang-19-stage1
+            - wasm32-wasi-compiler-rt-19
 
 sysroot-wasm32-wasi-clang-trunk:
     description: "Sysroot for wasi"
