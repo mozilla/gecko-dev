@@ -105,15 +105,17 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942#TDB
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - edgul@mozilla.com
-    expires: 134
+    expires: 146
 
   cookie_count_partitioned:
     type: custom_distribution
@@ -127,15 +129,17 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942#TDB
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - edgul@mozilla.com
-    expires: 134
+    expires: 146
 
   cookie_count_unpartitioned:
     type: custom_distribution
@@ -149,15 +153,17 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942#TDB
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - edgul@mozilla.com
-    expires: 134
+    expires: 146
 
   cookie_count_part_by_key:
     type: custom_distribution
@@ -172,15 +178,17 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942#TDB
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - edgul@mozilla.com
-    expires: 134
+    expires: 146
 
   cookie_count_unpart_by_key:
     type: custom_distribution
@@ -195,15 +203,17 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942#TDB
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - edgul@mozilla.com
-    expires: 134
+    expires: 146
 
   cookie_purge_max:
     type: custom_distribution
@@ -219,15 +229,17 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942#TDB
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - edgul@mozilla.com
-    expires: 134
+    expires: 146
 
   cookie_purge_entry_max:
     type: custom_distribution
@@ -243,15 +255,17 @@ networking:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1828942#TDB
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1892158
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - edgul@mozilla.com
-    expires: 134
+    expires: 146
 
   cookie_chips_partition_limit_overflow:
     type: custom_distribution
@@ -264,14 +278,16 @@ networking:
     unit: integer
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1878391
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1878391
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1922606
     data_sensitivity:
       - technical
     notification_emails:
       - necko@mozilla.com
       - edgul@mozilla.com
-    expires: 134
+    expires: 146
 
   sqlite_cookies_block_main_thread:
     type: timing_distribution
