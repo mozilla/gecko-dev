@@ -170,7 +170,6 @@ class RegionMiddlewareTest {
         // null RegionState
         `when`(middlewareContext.store).thenReturn(store)
         `when`(regionManager.region()).thenReturn(null)
-        `when`(store.state).thenReturn(BrowserState(distributionId = "testId"))
 
         middleware.invoke(
             middlewareContext,
@@ -185,7 +184,6 @@ class RegionMiddlewareTest {
         // non null RegionState
         `when`(middlewareContext.store).thenReturn(store)
         `when`(regionManager.region()).thenReturn(RegionState("US", "US"))
-        `when`(store.state).thenReturn(BrowserState(distributionId = "testId"))
 
         middleware.invoke(
             middlewareContext,
@@ -201,12 +199,66 @@ class RegionMiddlewareTest {
         `when`(middlewareContext.store).thenReturn(store)
         `when`(regionManager.region()).thenReturn(null)
         `when`(regionManager.update()).thenReturn(RegionState("DE", "DE"))
-        `when`(store.state).thenReturn(BrowserState(distributionId = "testId"))
 
         middleware.invoke(
             middlewareContext,
             {},
             UpdateDistribution("testId"),
+        )
+
+        dispatcher.scheduler.advanceUntilIdle()
+
+        verify(store).dispatch(SearchAction.SetRegionAction(RegionState("DE", "DE"), "testId"))
+    }
+
+    @Test
+    fun `WHEN the RefreshSearchEngines action is received THEN the distribution is updated`() = runTestOnMain {
+        val middleware = RegionMiddleware(FakeContext(), locationService, dispatcher)
+        val middlewareContext: MiddlewareContext<BrowserState, BrowserAction> = mock()
+        val regionManager: RegionManager = mock()
+        middleware.regionManager = regionManager
+        val store: BrowserStore = mock()
+
+        // null RegionState
+        `when`(middlewareContext.store).thenReturn(store)
+        `when`(regionManager.region()).thenReturn(null)
+        `when`(store.state).thenReturn(BrowserState(distributionId = "testId"))
+
+        middleware.invoke(
+            middlewareContext,
+            {},
+            RefreshSearchEnginesAction,
+        )
+
+        dispatcher.scheduler.advanceUntilIdle()
+
+        verify(store).dispatch(SearchAction.SetRegionAction(RegionState.Default, "testId"))
+
+        // non null RegionState
+        `when`(middlewareContext.store).thenReturn(store)
+        `when`(regionManager.region()).thenReturn(RegionState("US", "US"))
+        `when`(store.state).thenReturn(BrowserState(distributionId = "testId"))
+
+        middleware.invoke(
+            middlewareContext,
+            {},
+            RefreshSearchEnginesAction,
+        )
+
+        dispatcher.scheduler.advanceUntilIdle()
+
+        verify(store).dispatch(SearchAction.SetRegionAction(RegionState("US", "US"), "testId"))
+
+        // region manager update has a new RegionState
+        `when`(middlewareContext.store).thenReturn(store)
+        `when`(regionManager.region()).thenReturn(null)
+        `when`(regionManager.update()).thenReturn(RegionState("DE", "DE"))
+        `when`(store.state).thenReturn(BrowserState(distributionId = "testId"))
+
+        middleware.invoke(
+            middlewareContext,
+            {},
+            RefreshSearchEnginesAction,
         )
 
         dispatcher.scheduler.advanceUntilIdle()

@@ -43,8 +43,10 @@ class RegionMiddleware(
         next: (BrowserAction) -> Unit,
         action: BrowserAction,
     ) {
-        if (action is InitAction || action is SearchAction.RefreshSearchEnginesAction || action is UpdateDistribution) {
+        if (action is InitAction || action is SearchAction.RefreshSearchEnginesAction) {
             updateJob = determineRegion(context.store)
+        } else if (action is UpdateDistribution) {
+            updateJob = determineRegion(context.store, action.distributionId)
         }
 
         next(action)
@@ -53,10 +55,11 @@ class RegionMiddleware(
     @OptIn(DelicateCoroutinesApi::class)
     private fun determineRegion(
         store: Store<BrowserState, BrowserAction>,
+        newDistributionId: String? = null,
     ) = GlobalScope.launch(ioDispatcher) {
         // Get the region state from the RegionManager. If there's none then dispatch the default
         // region to be used.
-        val distributionId = store.state.distributionId
+        val distributionId = newDistributionId ?: store.state.distributionId
         val region = regionManager.region()
         if (region != null) {
             store.dispatch(SearchAction.SetRegionAction(region, distributionId))
