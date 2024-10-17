@@ -117,4 +117,65 @@ TEST(DOM_Quota_OriginScope, MatchesOrigin)
   }
 }
 
+TEST(DOM_Quota_OriginScope, MatchesGroup)
+{
+  {
+    const auto originScope(OriginScope::FromOrigin(
+        GetPrincipalMetadata("mozilla.org"_ns, "http://www.mozilla.org"_ns)));
+
+    ASSERT_TRUE(originScope.Matches(OriginScope::FromGroup("mozilla.org"_ns)));
+    ASSERT_FALSE(originScope.Matches(
+        OriginScope::FromGroup("mozilla.org^userContextId=1"_ns)));
+    ASSERT_FALSE(originScope.Matches(OriginScope::FromGroup("mozilla.com"_ns)));
+  }
+
+  {
+    const auto originScope(OriginScope::FromOrigin(GetPrincipalMetadata(
+        "userContextId=1"_ns, "mozilla.org"_ns, "http://www.mozilla.org"_ns)));
+
+    ASSERT_FALSE(originScope.Matches(OriginScope::FromGroup("mozilla.org"_ns)));
+    ASSERT_TRUE(originScope.Matches(
+        OriginScope::FromGroup("mozilla.org^userContextId=1"_ns)));
+    ASSERT_FALSE(originScope.Matches(OriginScope::FromGroup("mozilla.com"_ns)));
+  }
+
+  {
+    const auto originScope(OriginScope::FromPrefix(
+        GetPrincipalMetadata("mozilla.org"_ns, "http://www.mozilla.org"_ns)));
+
+    ASSERT_TRUE(originScope.Matches(OriginScope::FromGroup("mozilla.org"_ns)));
+    ASSERT_TRUE(originScope.Matches(
+        OriginScope::FromGroup("mozilla.org^userContextId=1"_ns)));
+    ASSERT_FALSE(originScope.Matches(OriginScope::FromGroup("mozilla.com"_ns)));
+  }
+
+  {
+    const auto originScope(
+        OriginScope::FromJSONPattern(u"{ \"userContextId\": 1 }"_ns));
+
+    ASSERT_FALSE(originScope.Matches(OriginScope::FromGroup("mozilla.org"_ns)));
+    ASSERT_TRUE(originScope.Matches(
+        OriginScope::FromGroup("mozilla.org^userContextId=1"_ns)));
+    ASSERT_FALSE(originScope.Matches(OriginScope::FromGroup("mozilla.com"_ns)));
+  }
+
+  {
+    const auto originScope(OriginScope::FromGroup("mozilla.org"_ns));
+
+    ASSERT_TRUE(originScope.Matches(OriginScope::FromGroup("mozilla.org"_ns)));
+    ASSERT_FALSE(originScope.Matches(
+        OriginScope::FromGroup("mozilla.org^userContextId=1"_ns)));
+    ASSERT_FALSE(originScope.Matches(OriginScope::FromGroup("mozilla.com"_ns)));
+  }
+
+  {
+    const auto originScope(OriginScope::FromNull());
+
+    ASSERT_TRUE(originScope.Matches(OriginScope::FromGroup("mozilla.org"_ns)));
+    ASSERT_TRUE(originScope.Matches(
+        OriginScope::FromGroup("mozilla.org^userContextId=1"_ns)));
+    ASSERT_TRUE(originScope.Matches(OriginScope::FromGroup("mozilla.com"_ns)));
+  }
+}
+
 }  //  namespace mozilla::dom::quota
