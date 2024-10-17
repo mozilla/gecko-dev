@@ -402,6 +402,3 @@ https://123.123.123.123:443    privileged,nocert
 # Domain with HSTS preloaded
 http://includesubdomains.preloaded.test:80       privileged
 https://includesubdomains.preloaded.test:443     privileged
-
-# Domain with a hyphen at the end of a label.
-https://hyphen-.example.com:443             privileged,cert=wildcard.pem

@@ -971,14 +971,11 @@ export class NodeServer {
 // address. For simplicity, the regexp below captures all canonical IPv6
 // addresses (e.g. [::1]), but may also match valid non-canonical IPv6 addresses
 // (e.g. [::127.0.0.1]) and even invalid bracketed addresses ([::], [99999::]).
-//
-// For compatibility, domainlabels may begin and/or end with hyphens, which
-// strictly speaking violates these specifications.
 
 const HOST_REGEX = new RegExp(
   "^(?:" +
     // *( domainlabel "." )
-    "(?:[a-z0-9-]*?\\.)*" +
+    "(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)*" +
     // toplabel [ "." ]
     "[a-z](?:[a-z0-9-]*[a-z0-9])?\\.?" +
     "|" +

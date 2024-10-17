@@ -1,3 +1,0 @@
-subject:*.example.com
-issuer:printableString/CN=Temporary Certificate Authority/O=Mozilla Testing/OU=Profile Guided Optimization
-extension:subjectAlternativeName:*.example.com
