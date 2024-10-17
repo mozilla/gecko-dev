@@ -4423,9 +4423,11 @@ void Document::NoteScriptTrackingStatus(const nsACString& aURL,
                                         bool aIsTracking) {
   if (aIsTracking) {
     mTrackingScripts.Insert(aURL);
-  } else {
-    MOZ_ASSERT(!mTrackingScripts.Contains(aURL));
   }
+  // Ideally, whether a given script is tracking or not should be consistent,
+  // but there is a race so that it is not, when loading real sites in debug
+  // builds. See bug 1925286.
+  // MOZ_ASSERT_IF(!aIsTracking, !mTrackingScripts.Contains(aURL));
 }
 
 bool Document::IsScriptTracking(JSContext* aCx) const {
