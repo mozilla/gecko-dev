@@ -609,7 +609,7 @@
     <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s non pote automaticamente rejectar requestas de cookies sur iste sito. Tu pote inviar un requesta pro supportar iste sito in futuro.</string>
 
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
-    <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Disactiva lo e %1$s clarara le cookies e recargara iste sito. Isto pote disconnecter le section o vacuara le carrettos de compras.</string>
+    <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Disactiva lo e %1$s radera le cookies e recargara iste sito. Isto pote clauder tu session o vacuar le carrettos de compras.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">Activa lo e %1$s essayara refusar automaticamente le bandieras pro cookies sur iste sito.</string>
 
@@ -2208,9 +2208,9 @@
     <!-- Label that indicates a site is using a insecure connection -->
     <string name="quick_settings_sheet_insecure_connection_2">Connexion non secur</string>
     <!-- Label to clear site data -->
-    <string name="clear_site_data">Clarar le cookies e le datos de sito</string>
+    <string name="clear_site_data">Rader le cookies e le datos de sito</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site -->
-    <string name="confirm_clear_site_data"><![CDATA[Es tu secur que tu vole clarar tote le cookies e datos pro iste sito <b>%s</b>?]]></string>
+    <string name="confirm_clear_site_data"><![CDATA[Es tu secur que tu vole rader tote le cookies e datos pro iste sito <b>%s</b>?]]></string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites-->
     <string name="confirm_clear_permissions_on_all_sites">Es tu secur que tu vole rader tote le permissiones sur tote le sitos?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site-->

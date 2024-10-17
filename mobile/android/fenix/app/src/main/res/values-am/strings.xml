@@ -96,9 +96,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">የእኛ በጣም ኃይለኛ የግላዊነት ባህሪ ግን የድረ-ገጽ ተሻጋሪ መከታተያዎችን ያገላል።</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">የእኛ በጣም ኃይለኛ የግላዊነት ባህሪ ግን የድረ-ገጽ ተሻጋሪ መከታተያዎችን ያገላል።</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">ስለ አጠቃላይ የኩኪ ጥበቃ ይወቁ</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">ስለ አጠቃላይ የኩኪ ጥበቃ ይወቁ</string>
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -117,9 +117,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">አዲስ፡- አንድ ጊዜ መታ ወደ ኋላ እና ወደፊት ቀስቶች</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">አዲስ፡- አንድ ጊዜ መታ ወደ ኋላ እና ወደፊት ቀስቶች</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">ሁልጊዜ ጣትዎ ጫፍ ላይ ባለው ፈጣን አሰሳ ይደሰቱ።</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ሁልጊዜ ጣትዎ ጫፍ ላይ ባለው ፈጣን አሰሳ ይደሰቱ።</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">የካሜራ ፈቃድ ያስፈልጋል። ወደ አንድሮይድ ቅንብሮች ይሂዱ፣ ፈቃዶችን ይንኩ እና ፍቀድን ይንኩ።</string>
@@ -298,7 +298,7 @@
     <string name="browser_menu_switch_to_mobile_site">ወደ ሞባይል ጣቢያ ቀይር</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">መሳሪያዎች</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">ወደ ዋናው ምናሌ ተመለስ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">የአንባቢ እይታ፣ ትርጉም፣ ማተም፣ አጋራ፣ መተግበሪያ ከፋች</string>
@@ -397,7 +397,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">የእርስዎን ግላዊ መነሻ ገጽ ያግኙ። የቅርብ ጊዜ ትሮች፣ እልባቶች እና የፍለጋ ውጤቶች እዚህ ይታያሉ።</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">የእርስዎን ግላዊ መነሻ ገጽ ያግኙ። የቅርብ ጊዜ ትሮች፣ እልባቶች እና የፍለጋ ውጤቶች እዚህ ይታያሉ።</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">ወደ የግል በይነመረብ እንኳን በደህና መጡ</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -565,13 +565,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">ተወው</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">ጥያቄ ላክ</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">ጣቢያ ለመጨመር ይጠይቁ</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">ጥያቄ ላክ</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">ለዚህ ጣቢያ ድጋፍ ይጠይቁ?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">%1$s ኩኪዎችን በራስ-እንዳይቀበል ጠይቅ</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">ለዚህ ጣቢያ ድጋፍ ይጠይቁ?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">ጥያቄው ተልኳል</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -579,19 +575,15 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">የድጋፍ ጥያቄው ተልኳል</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">በአሁኑ ጊዜ የማይደገፍ ድረ-ገፅ</string>
+    <string name="reduce_cookie_banner_unsupported_site">በአሁኑ ጊዜ የማይደገፍ ድረ-ገፅ</string>
 
 
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">ጣቢያው አይደገፍም</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">ለ%1$s የኩኪ ባነር ማገጃ ይብራ?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">ለ%1$s የኩኪ ባነር ማገጃ ይጥፋ?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s በዚህ ጣቢያ ላይ የኩኪ ጥያቄዎችን በራስ ሰር ውድቅ ማድረግ አይችልም። ለወደፊቱ ይህንን ጣቢያ ለመደገፍ ጥያቄ መላክ ይችላሉ።</string>
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">በአሁኑ ሰዓት በዚህ ጣቢያ ላይ ብቅ-ባዮችን በራስ-ሰር መቃወም አንችልም።</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s በዚህ ጣቢያ ላይ የኩኪ ጥያቄዎችን በራስ ሰር ውድቅ ማድረግ አይችልም። ለወደፊቱ ይህንን ጣቢያ ለመደገፍ ጥያቄ መላክ ይችላሉ።</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">አጥፋ እና %1$s ኩኪዎችን አጽድቶ ይህን ጣቢያ እንደገና ይጭናል። ይህ ሊያስወጣዎት ወይም የግዢ ጋሪዎችን ባዶ ሊያደርግ ይችላል።</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -1188,6 +1180,16 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">ትርን ወደነበረበት መልስ</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s እንደገና መጀመር ነበረበት</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">የብልሽት ሪፖርቶችን በራስ-ሰር ይላኩ</string>
+
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">ዝጋ</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">የብልሽት ሪፖርት ላክ</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">እርግጠኛ ነዎት ይህን አቃፊ መሰረዝ ይፈልጋሉ?</string>
@@ -1234,8 +1236,12 @@
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">አቃፊ</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">ውስጥ አስቀምጥ</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">ስም</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">ስም</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">አቃፊ አክል</string>
     <!-- Bookmark select folder screen title -->
@@ -1264,11 +1270,14 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">አዲስ አቃፊ ያክሉ</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">ዕልባቶችን ዝጋ</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">ዕልባቶችን ዝጋ</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">እልባቶችን ፈልግ</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">የንጥል ምናሌ ለ%s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">እስካሁን ምንም ዕልባቶች የሉም</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2425,14 +2434,14 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">አሁን አይሆንም</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">ከመግዛትዎ በፊት — የዚህን ምርት ግምገማዎች ማመን እንደሚችሉ ይወቁ።</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ከመግዛትዎ በፊት — የዚህን ምርት ግምገማዎች ማመን እንደሚችሉ ይወቁ።</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">የግምገማ አረጋጋጭን ይሞክሩት</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">የግምገማ አረጋጋጭን ይሞክሩት</string>
 
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">እነዚህ ግምገማዎች አስተማማኝ ናቸው? የተስተካከለ ደረጃን ለማየት አሁን ያረጋግጡ።</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">እነዚህ ግምገማዎች አስተማማኝ ናቸው? የተስተካከለ ደረጃን ለማየት አሁን ያረጋግጡ።</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">የግምገማ አረጋጋጭን ይክፈቱ</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">የግምገማ አረጋጋጭን ይክፈቱ</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2786,9 +2795,9 @@
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">በFirefox መነሻ ገጽዎ ምን ያህል ረክተዋል?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">በFirefox ማተምን የተሻለ ለማድረግ ያግዙ። አንድ ሰከንድ ብቻ ነው የሚወስደው</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">በFirefox ውስጥ በማተም ምን ያህል ረክተዋል?</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">በFirefox መነሻ ገጽዎ ምን ያህል ረክተዋል?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
@@ -2820,9 +2829,9 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">ከሙሉ ስክሪን ለመውጣት ከላይ ይጎትቱ እና ወደኋላ የእጅ ምልክትን ይጠቀሙ</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">ከሙሉ ስክሪን ለመውጣት ከላይ ይጎትቱ እና ወደኋላ የእጅ ምልክትን ይጠቀሙ</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">ከሙሉ ስክሪን ለመውጣት ከላይ ጎትት እና ወደኋላ ተመለስን ተጫን</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">ከሙሉ ስክሪን ለመውጣት ከላይ ጎትት እና ወደኋላ ተመለስን ተጫን</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
