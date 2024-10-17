@@ -151,6 +151,24 @@ const METRICS = [
     false,
     JSON.stringify({ time_unit: "nanosecond" }),
   ],
+  [
+    "boolean",
+    "jog_ipc",
+    "jog_unordered_bool",
+    ["test-only"],
+    `"ping"`,
+    false,
+    JSON.stringify({ permit_non_commutative_operations_over_ipc: true }),
+  ],
+  [
+    "labeled_boolean",
+    "jog_ipc",
+    "jog_unordered_labeled_bool",
+    ["test-only"],
+    `"ping"`,
+    false,
+    JSON.stringify({ permit_non_commutative_operations_over_ipc: true }),
+  ],
 ];
 
 add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
@@ -219,6 +237,10 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
 
   Glean.jogIpc.jogLabeledTimingDist.label1.stopAndAccumulate(l2); // 10ms
   Glean.jogIpc.jogLabeledTimingDist.label1.stopAndAccumulate(l3); // 5ms
+
+  Glean.jogIpc.jogUnorderedBool.set(true);
+
+  Glean.jogIpc.jogUnorderedLabeledBool.aLabel.set(true);
 });
 
 add_task(
@@ -347,5 +369,9 @@ add_task(
         0
       )
     );
+
+    Assert.ok(Glean.jogIpc.jogUnorderedBool.testGetValue());
+
+    Assert.ok(Glean.jogIpc.jogUnorderedLabeledBool.aLabel.testGetValue());
   }
 );

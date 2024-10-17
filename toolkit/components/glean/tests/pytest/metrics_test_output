@@ -398,6 +398,44 @@ pub mod test {
         TimingDistributionMetric::new(15.into(), meta, TimeUnit::Nanosecond)
     });
 
+    #[allow(non_upper_case_globals)]
+    /// generated from test.unordered_boolean_metric
+    ///
+    /// A multi-line
+    /// description
+    pub static unordered_boolean_metric: Lazy<BooleanMetric> = Lazy::new(|| {
+        let meta =
+            CommonMetricData {
+                name: "unordered_boolean_metric".into(),
+                category: "test".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
+                disabled: false,
+                ..Default::default()
+            };
+        BooleanMetric::with_unordered_ipc(16.into(), meta)
+    });
+
+    #[allow(non_upper_case_globals)]
+    /// generated from test.unordered_labeled_boolean_metric
+    ///
+    /// A multi-line
+    /// description
+    pub static unordered_labeled_boolean_metric: Lazy<LabeledMetric<LabeledBooleanMetric, super::DynamicLabel>> = Lazy::new(|| {
+        let meta =
+            LabeledMetricData::Common {
+                cmd: CommonMetricData {
+                    name: "unordered_labeled_boolean_metric".into(),
+                    category: "test".into(),
+                    send_in_pings: vec!["metrics".into()],
+                    lifetime: Lifetime::Ping,
+                    disabled: false,
+                    ..Default::default()
+                },
+            };
+        LabeledMetric::with_unordered_ipc(17.into(), meta, None)
+    });
+
 }
 pub mod test_nested {
     use crate::private::*;
@@ -438,7 +476,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        ObjectMetric::new(16.into(), meta)
+        ObjectMetric::new(18.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -456,7 +494,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        DatetimeMetric::new(17.into(), meta, TimeUnit::Millisecond)
+        DatetimeMetric::new(19.into(), meta, TimeUnit::Millisecond)
     });
 
     #[allow(non_upper_case_globals)]
@@ -474,7 +512,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        EventMetric::new(18.into(), meta)
+        EventMetric::new(20.into(), meta)
     });
 
     #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
@@ -509,7 +547,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        EventMetric::new(19.into(), meta)
+        EventMetric::new(21.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -527,7 +565,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        DenominatorMetric::new(20.into(), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}])
+        DenominatorMetric::new(22.into(), meta, vec![CommonMetricData {name: "rate_with_external_denominator".into(), category: "test.nested".into(), send_in_pings: vec!["metrics".into()], lifetime: Lifetime::Ping, disabled: false,  ..Default::default()}])
     });
 
     #[allow(non_upper_case_globals)]
@@ -537,7 +575,7 @@ pub mod test_nested {
     /// description
     pub static optimizable_counter_metric: Lazy<CounterMetric> = Lazy::new(|| {
         CounterMetric::codegen_new(
-            21,
+            23,
             "test.nested",
             "optimizable_counter_metric",
             "metrics"
@@ -559,7 +597,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        QuantityMetric::new(22.into(), meta)
+        QuantityMetric::new(24.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -577,7 +615,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        RateMetric::new(23.into(), meta)
+        RateMetric::new(25.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -595,7 +633,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        NumeratorMetric::new(24.into(), meta)
+        NumeratorMetric::new(26.into(), meta)
     });
 
     #[allow(non_upper_case_globals)]
@@ -613,7 +651,7 @@ pub mod test_nested {
                 disabled: false,
                 ..Default::default()
             };
-        UuidMetric::new(25.into(), meta)
+        UuidMetric::new(27.into(), meta)
     });
 
 }
@@ -627,15 +665,16 @@ pub(crate) mod __glean_metric_maps {
     use once_cell::sync::Lazy;
 
     pub static BOOLEAN_MAP: Lazy<HashMap<MetricId, &Lazy<BooleanMetric>>> = Lazy::new(|| {
-        let mut map = HashMap::with_capacity(1);
+        let mut map = HashMap::with_capacity(2);
         map.insert(1.into(), &super::test::boolean_metric);
+        map.insert(16.into(), &super::test::unordered_boolean_metric);
         map
     });
 
     pub static COUNTER_MAP: Lazy<HashMap<MetricId, &Lazy<CounterMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(2);
         map.insert(2.into(), &super::test::counter_metric);
-        map.insert(21.into(), &super::test_nested::optimizable_counter_metric);
+        map.insert(23.into(), &super::test_nested::optimizable_counter_metric);
         map
     });
 
@@ -683,44 +722,44 @@ pub(crate) mod __glean_metric_maps {
 
     pub static DATETIME_MAP: Lazy<HashMap<MetricId, &Lazy<DatetimeMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(17.into(), &super::test_nested::datetime_metric);
+        map.insert(19.into(), &super::test_nested::datetime_metric);
         map
     });
 
     pub static DENOMINATOR_MAP: Lazy<HashMap<MetricId, &Lazy<DenominatorMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(20.into(), &super::test_nested::external_denominator);
+        map.insert(22.into(), &super::test_nested::external_denominator);
         map
     });
 
     pub static QUANTITY_MAP: Lazy<HashMap<MetricId, &Lazy<QuantityMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(22.into(), &super::test_nested::quantity_metric);
+        map.insert(24.into(), &super::test_nested::quantity_metric);
         map
     });
 
     pub static RATE_MAP: Lazy<HashMap<MetricId, &Lazy<RateMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(23.into(), &super::test_nested::rate_metric);
+        map.insert(25.into(), &super::test_nested::rate_metric);
         map
     });
 
     pub static NUMERATOR_MAP: Lazy<HashMap<MetricId, &Lazy<NumeratorMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(24.into(), &super::test_nested::rate_with_external_denominator);
+        map.insert(26.into(), &super::test_nested::rate_with_external_denominator);
         map
     });
 
     pub static UUID_MAP: Lazy<HashMap<MetricId, &Lazy<UuidMetric>>> = Lazy::new(|| {
         let mut map = HashMap::with_capacity(1);
-        map.insert(25.into(), &super::test_nested::uuid_metric);
+        map.insert(27.into(), &super::test_nested::uuid_metric);
         map
     });
 
 
     pub(crate) fn set_object_by_id(metric_id: u32, value: String) -> Result<(), ()> {
         match metric_id {
-          16 => {
+          18 => {
               super::test_nested::an_object.set_string(value);
               Ok(())
           }
@@ -745,7 +784,7 @@ pub(crate) mod __glean_metric_maps {
     /// Panics if no object by the given metric ID could be found.
     pub(crate) fn object_test_get_value(metric_id: u32, ping_name: Option<String>) -> Option<String> {
         match metric_id {
-           16 => super::test_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
+           18 => super::test_nested::an_object.test_get_value_as_str(ping_name.as_deref()),
            _ => panic!("No object for metric id {}", metric_id),
         }
     }
@@ -767,7 +806,7 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) fn object_test_get_error(metric_id: u32) -> Option<String> {
         #[cfg(feature = "with_gecko")]
         match metric_id {
-           16 => test_get_errors!(super::test_nested::an_object),
+           18 => test_get_errors!(super::test_nested::an_object),
            _ => panic!("No object for metric id {}", metric_id),
         }
 
@@ -791,11 +830,11 @@ pub(crate) mod __glean_metric_maps {
     /// or an `EventRecordingError::InvalidExtraKey` if the `extra` map could not be deserialized.
     pub(crate) fn record_event_by_id(metric_id: u32, extra: HashMap<String, String>) -> Result<(), EventRecordingError> {
         match metric_id {
-          18 => {
+          20 => {
               super::test_nested::event_metric.record_raw(extra);
               Ok(())
           }
-          19 => {
+          21 => {
               super::test_nested::event_metric_with_extra.record_raw(extra);
               Ok(())
           }
@@ -819,7 +858,7 @@ pub(crate) mod __glean_metric_maps {
     /// but some are passed in.
     pub(crate) fn record_event_by_id_with_time(metric_id: MetricId, timestamp: u64, extra: HashMap<String, String>) -> Result<(), EventRecordingError> {
         match metric_id {
-          MetricId(18) => {
+          MetricId(20) => {
               if extra_keys_len(&super::test_nested::event_metric) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -827,7 +866,7 @@ pub(crate) mod __glean_metric_maps {
               super::test_nested::event_metric.record_with_time(timestamp, extra);
               Ok(())
           }
-          MetricId(19) => {
+          MetricId(21) => {
               if extra_keys_len(&super::test_nested::event_metric_with_extra) == 0 && !extra.is_empty() {
                 return Err(EventRecordingError::InvalidExtraKey);
               }
@@ -856,8 +895,8 @@ pub(crate) mod __glean_metric_maps {
     /// Panics if no event by the given metric ID could be found.
     pub(crate) fn event_test_get_value_wrapper(metric_id: u32, ping_name: Option<String>) -> Option<Vec<RecordedEvent>> {
         match metric_id {
-           18 => super::test_nested::event_metric.test_get_value(ping_name.as_deref()),
-           19 => super::test_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
+           20 => super::test_nested::event_metric.test_get_value(ping_name.as_deref()),
+           21 => super::test_nested::event_metric_with_extra.test_get_value(ping_name.as_deref()),
            _ => panic!("No event for metric id {}", metric_id),
         }
     }
@@ -881,8 +920,8 @@ pub(crate) mod __glean_metric_maps {
     pub(crate) fn event_test_get_error(metric_id: u32) -> Option<String> {
         #[cfg(feature = "with_gecko")]
         match metric_id {
-           18 => test_get_errors!(super::test_nested::event_metric),
-           19 => test_get_errors!(super::test_nested::event_metric_with_extra),
+           20 => test_get_errors!(super::test_nested::event_metric),
+           21 => test_get_errors!(super::test_nested::event_metric_with_extra),
            _ => panic!("No event for metric id {}", metric_id),
         }
 
@@ -911,6 +950,7 @@ pub(crate) mod __glean_metric_maps {
         match metric_id {
             4 => super::test::labeled_boolean_metric.get(label),
             5 => super::test::labeled_boolean_metric_labels.get(label),
+            17 => super::test::unordered_labeled_boolean_metric.get(label),
             _ => panic!("No labeled_boolean for metric id {}", metric_id),
         }
     }

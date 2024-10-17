@@ -39,10 +39,34 @@ so we forbid setting a String metric from multiple processes.
 * Quantity's `set` (this is the metric type's only operation)
 
 This list may grow over time as new metric types are added.
-If there's an operation/metric type on this list that you need to use in a non-parent process,
+
+#### The Unsafety Valve: `permit_non_commutative_operations_over_ipc`
+
+If you wish to forgo FOG's protections and guarantees around ordering,
+and use non-commutative operations in child processes,
+you may mark your metric definition with the
+`permit_non_commutative_operations_over_ipc` metadata property,
+like so:
+
+```yaml
+unordered_category:
+  unordered_boolean_metric:
+    type: boolean
+    metadata:
+      permit_non_commutative_operations_over_ipc: true
+    ...
+```
+
+This presently only supports:
+* Boolean metrics
+* Labeled Boolean metrics
+
+```{note}
+If there's an metric type not on this list that you need to use in a non-parent process,
 please reach out
 [on the #glean channel](https://chat.mozilla.org/#/room/#glean:mozilla.org)
 and we'll help you out.
+```
 
 ### Process Agnosticism
 

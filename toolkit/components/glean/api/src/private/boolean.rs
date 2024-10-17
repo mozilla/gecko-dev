@@ -9,7 +9,7 @@ use glean::traits::Boolean;
 
 use super::{CommonMetricData, MetricId};
 
-use crate::ipc::need_ipc;
+use crate::ipc::{need_ipc, with_ipc_payload};
 
 #[cfg(feature = "with_gecko")]
 use super::profiler_utils::{lookup_canonical_metric_name, LookupError};
@@ -64,6 +64,7 @@ pub enum BooleanMetric {
         inner: Arc<glean::private::BooleanMetric>,
     },
     Child(BooleanMetricIpc),
+    UnorderedChild(MetricId),
 }
 #[derive(Clone, Debug)]
 pub struct BooleanMetricIpc;
@@ -81,11 +82,28 @@ impl BooleanMetric {
         }
     }
 
+    pub fn with_unordered_ipc(id: MetricId, meta: CommonMetricData) -> Self {
+        if need_ipc() {
+            BooleanMetric::UnorderedChild(id)
+        } else {
+            Self::new(id, meta)
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn metric_id(&self) -> MetricId {
+        match self {
+            BooleanMetric::Parent { id, .. } => *id,
+            BooleanMetric::UnorderedChild(id) => *id,
+            _ => panic!("Can't get a metric_id from a non-ipc-supporting child boolean metric."),
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn child_metric(&self) -> Self {
         match self {
             BooleanMetric::Parent { id: _, inner: _ } => BooleanMetric::Child(BooleanMetricIpc),
-            BooleanMetric::Child(_) => panic!("Can't get a child metric from a child metric"),
+            _ => panic!("Can't get a child metric from a child metric"),
         }
     }
 }
@@ -120,6 +138,25 @@ impl Boolean for BooleanMetric {
                 assert!(!crate::ipc::is_in_automation(), "Attempted to set boolean metric in non-main process, which is forbidden. This panics in automation.");
                 // TODO: Record an error.
             }
+            BooleanMetric::UnorderedChild(id) => {
+                #[cfg(feature = "with_gecko")]
+                gecko_profiler::add_marker(
+                    "Boolean::set",
+                    gecko_profiler_category!(Telemetry),
+                    Default::default(),
+                    BooleanMetricMarker {
+                        id: *id,
+                        val: value,
+                    },
+                );
+                with_ipc_payload(move |payload| {
+                    if let Some(v) = payload.booleans.get_mut(&id) {
+                        *v = value;
+                    } else {
+                        payload.booleans.insert(*id, value);
+                    }
+                });
+            }
         }
     }
 
@@ -139,7 +176,7 @@ impl Boolean for BooleanMetric {
         let ping_name = ping_name.into().map(|s| s.to_string());
         match self {
             BooleanMetric::Parent { id: _, inner } => inner.test_get_value(ping_name),
-            BooleanMetric::Child(_) => {
+            _ => {
                 panic!("Cannot get test value for boolean metric in non-main process!",)
             }
         }
@@ -161,7 +198,7 @@ impl Boolean for BooleanMetric {
     pub fn test_get_num_recorded_errors(&self, error: glean::ErrorType) -> i32 {
         match self {
             BooleanMetric::Parent { id: _, inner } => inner.test_get_num_recorded_errors(error),
-            BooleanMetric::Child(_) => panic!(
+            _ => panic!(
                 "Cannot get the number of recorded errors for boolean metric in non-main process!"
             ),
         }
@@ -183,7 +220,7 @@ mod test {
     }
 
     #[test]
-    fn boolean_ipc() {
+    fn boolean_no_ipc() {
         // BooleanMetric doesn't support IPC.
         let _lock = lock_test();
 
@@ -209,6 +246,32 @@ mod test {
         assert!(
             false == parent_metric.test_get_value("store1").unwrap(),
             "Boolean metrics should only work in the parent process"
+        );
+    }
+
+    #[test]
+    fn boolean_unordered_ipc() {
+        // BooleanMetric::UnorderedChild _does_ support IPC.
+        let _lock = lock_test();
+
+        let parent_metric = &metrics::test_only_ipc::an_unordered_bool;
+
+        parent_metric.set(false);
+
+        {
+            let child_metric = parent_metric.child_metric();
+
+            // scope for need_ipc RAII
+            let _raii = ipc::test_set_need_ipc(true);
+
+            child_metric.set(true);
+        }
+
+        assert!(ipc::replay_from_buf(&ipc::take_buf().unwrap()).is_ok());
+
+        assert!(
+            !parent_metric.test_get_value("store1").unwrap(),
+            "Boolean metrics can unsafely work in child processes"
         );
     }
 }

@@ -543,6 +543,27 @@ test_only.ipc:
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_COUNTER
+  an_unordered_bool:
+    type: boolean
+    description: |
+      This is a test-only metric.
+      Just flagging things unorderedly in child processes.
+    metadata:
+      permit_non_commutative_operations_over_ipc: true
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923035
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+    telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_UNORDERED_BOOL
   a_bool:
     type: boolean
     description: |
@@ -563,6 +584,27 @@ test_only.ipc:
     no_lint:
       - COMMON_PREFIX
     telemetry_mirror: TELEMETRY_TEST_BOOLEAN_KIND
+  an_unordered_labeled_boolean:
+    type: labeled_boolean
+    description: |
+      This is a test-only metric.
+      Just flagging labeled things unorderedly in child processes.
+    metadata:
+      permit_non_commutative_operations_over_ipc: true
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1923035
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1688281#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+    telemetry_mirror: TELEMETRY_TEST_MIRROR_FOR_UNORDERED_LABELED_BOOL
   a_date:
     type: datetime
     time_unit: second

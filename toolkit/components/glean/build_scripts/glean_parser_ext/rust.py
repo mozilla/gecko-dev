@@ -92,9 +92,12 @@ def ctor(obj):
     Necessary because LabeledMetric<T> is constructed using LabeledMetric::new
     not LabeledMetric<T>::new
     """
+    suffix = "::new"
+    if obj.metadata.get("permit_non_commutative_operations_over_ipc", False):
+        suffix = "::with_unordered_ipc"
     if getattr(obj, "labeled", False):
-        return "LabeledMetric::new"
-    return class_name(obj.type) + "::new"
+        return f"LabeledMetric{suffix}"
+    return f"{class_name(obj.type)}{suffix}"
 
 
 def type_name(obj):

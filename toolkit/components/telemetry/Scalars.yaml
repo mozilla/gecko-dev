@@ -9261,6 +9261,29 @@ telemetry.test:
     record_in_processes: ["all"]
     release_channel_collection: opt-out
 
+  mirror_for_unordered_bool:
+    bug_numbers: [1923035]
+    description: >
+      Test only. This is a mirror probe for a Glean boolean metric.
+    expires: never
+    kind: boolean
+    notification_emails: [glean-team@mozilla.com]
+    products: ["firefox", "thunderbird"]
+    record_in_processes: ["all"]
+    release_channel_collection: opt-out
+
+  mirror_for_unordered_labeled_bool:
+    bug_numbers: [1923035]
+    description: >
+      Test only. This is a mirror probe for a Glean labeled_boolean metric.
+    expires: never
+    kind: boolean
+    keyed: true
+    notification_emails: [glean-team@mozilla.com]
+    products: ["firefox", "thunderbird"]
+    record_in_processes: ["all"]
+    release_channel_collection: opt-out
+
 opaque.response.blocking:
   cross_origin_opaque_response_count:
     bug_numbers:

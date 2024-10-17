@@ -95,6 +95,10 @@ add_task({ skip_if: () => runningInParent }, async function run_child_stuff() {
 
   Glean.testOnly.whereHasTheTimeGone.relatively.stopAndAccumulate(l2); // 10ms
   Glean.testOnly.whereHasTheTimeGone.relatively.stopAndAccumulate(l3); // 5ms
+
+  Glean.testOnlyIpc.anUnorderedBool.set(true);
+
+  Glean.testOnlyIpc.anUnorderedLabeledBoolean.aLabel.set(true);
 });
 
 add_task(
@@ -199,6 +203,16 @@ add_task(
         (acc, [, count]) => acc + count,
         0
       )
+    );
+
+    Assert.ok(
+      Glean.testOnlyIpc.anUnorderedBool.testGetValue(),
+      "IPC works for boolean metrics that ask for it."
+    );
+
+    Assert.ok(
+      Glean.testOnlyIpc.anUnorderedLabeledBoolean.aLabel.testGetValue(),
+      "IPC works for labeled_boolean metrics that ask for it."
     );
   }
 );

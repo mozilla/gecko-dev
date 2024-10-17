@@ -22,6 +22,17 @@ CommonMetricData {
 }
 {%- endmacro -%}
 
+{% macro metric_ctor(metric_type_name, metric_type, ctor='new') %}
+{{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}{{ ctor }}{% endif %}(metric_id.into(), meta
+{%- for arg_name in metric_type.args if not metric_type_name.startswith('labeled_') and arg_name not in common_metric_data_args -%}
+    , {{ arg_name }}.unwrap()
+{%- endfor -%}
+{%- if metric_type_name.startswith('labeled_') -%}
+    , labels
+{%- endif -%}
+)
+{%- endmacro -%}
+
 use std::borrow::Cow;
 use std::sync::atomic::{AtomicU32, Ordering};
 use crate::private::{
@@ -116,6 +127,7 @@ map of argument name to argument type. I may regret this if I need it again. #}
     numerators: Option<Vec<CommonMetricData>>,
 {# And, don't forget the list of acceptable labels for a labeled metric. #}
     labels: Option<Vec<Cow<'static, str>>>,
+    permit_non_commutative_operations_over_ipc: Option<bool>,
 ) -> Result<(u32, u32), Box<dyn std::error::Error>> {
     let metric_id = NEXT_METRIC_ID.fetch_add(1, Ordering::SeqCst);
     let metric32 = match metric_type {
@@ -153,14 +165,15 @@ map of argument name to argument type. I may regret this if I need it again. #}
                 {%- else -%}
                 {{ common_metric_data(metric_type)|indent(12) }};
                 {% endif %}
-            let metric = {{ metric_type_name|Camelize if not metric_type_name.startswith('labeled_') else "Labeled"}}Metric::{% if metric_type_name == 'event' %}with_runtime_extra_keys{% else %}new{% endif %}(metric_id.into(), meta
-            {%- for arg_name in metric_type.args if not metric_type_name.startswith('labeled_') and arg_name not in common_metric_data_args -%}
-                , {{ arg_name }}.unwrap()
-            {%- endfor -%}
-            {%- if metric_type_name.startswith('labeled_') -%}
-                , labels
-            {%- endif -%}
-            );
+            {% if sometimes_supports_noncommutative_operations(metric_type_name) %}
+            let metric = if permit_non_commutative_operations_over_ipc.unwrap_or(false) {
+                {{ metric_ctor(metric_type_name, metric_type, ctor="with_unordered_ipc") }}
+            } else {
+                {{ metric_ctor(metric_type_name, metric_type) }}
+            };
+            {% else %}
+            let metric = {{ metric_ctor(metric_type_name, metric_type) }};
+            {% endif %}
             let metric32: u32 = ({{metric_type.id}} << {{ID_BITS}}) | metric_id;
             assert!(
                 __jog_metric_maps::{{metric_type_name.upper()}}_MAP.write()?.insert(metric_id.into(), metric).is_none(),
