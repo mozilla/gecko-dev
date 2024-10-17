@@ -21,7 +21,6 @@
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
-#include "mozilla/Sprintf.h"
 #include "mozilla/TextUtils.h"
 
 #include <algorithm>
@@ -3607,11 +3606,157 @@ static bool date_setYear(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-/* constants for toString, toUTCString */
-static const char* const days[] = {"Sun", "Mon", "Tue", "Wed",
-                                   "Thu", "Fri", "Sat"};
-static const char* const months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+/**
+ * Simple date formatter for toISOString, toUTCString, and FormatDate.
+ */
+class DateFormatter {
+  // Longest possible string is 36 characters. Round up to the next multiple of
+  // sixteen.
+  static constexpr size_t BufferLength = 48;
+
+  char buffer_[BufferLength] = {};
+  char* ptr_ = buffer_;
+
+  size_t written() const { return size_t(ptr_ - buffer_); }
+
+  static constexpr uint32_t powerOfTen(uint32_t exp) {
+    uint32_t result = 1;
+    while (exp--) {
+      result *= 10;
+    }
+    return result;
+  }
+
+  // Add |N| digits, padded with zeroes.
+  template <uint32_t N>
+  void digits(uint32_t value) {
+    static_assert(1 <= N && N <= 6);
+    MOZ_ASSERT(written() + N <= BufferLength);
+
+    constexpr uint32_t divisor = powerOfTen(N - 1);
+    MOZ_ASSERT(value < divisor * 10);
+
+    uint32_t quot = value / divisor;
+    [[maybe_unused]] uint32_t rem = value % divisor;
+
+    *ptr_++ = char('0' + quot);
+    if constexpr (N > 1) {
+      digits<N - 1>(rem);
+    }
+  }
+
+  // Constants for toString and toUTCString.
+  static constexpr char const days[][4] = {
+      "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
+  };
+  static constexpr char const months[][4] = {
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  };
+
+ public:
+  std::string_view string() const { return {buffer_, written()}; }
+
+  auto& literal(char ch) {
+    MOZ_ASSERT(written() + 1 <= BufferLength);
+    *ptr_++ = ch;
+    return *this;
+  }
+
+  template <size_t N>
+  auto& literal(const char (&str)[N]) {
+    static_assert(N > 0);
+    size_t length = N - 1;
+    MOZ_ASSERT(written() + length <= BufferLength);
+    std::memcpy(ptr_, str, length);
+    ptr_ += length;
+    return *this;
+  }
+
+  auto& year(int32_t value) {
+    MOZ_ASSERT(-999'999 <= value && value <= 999'999);
+    if (value < 0) {
+      literal('-');
+      value = std::abs(value);
+    }
+    if (value <= 9999) {
+      digits<4>(value);
+    } else if (value <= 99999) {
+      digits<5>(value);
+    } else {
+      digits<6>(value);
+    }
+    return *this;
+  }
+
+  auto& isoYear(int32_t value) {
+    MOZ_ASSERT(-999'999 <= value && value <= 999'999);
+    if (0 <= value && value <= 9999) {
+      digits<4>(value);
+    } else {
+      literal(value < 0 ? '-' : '+');
+      digits<6>(std::abs(value));
+    }
+    return *this;
+  }
+
+  auto& month(int32_t value) {
+    MOZ_ASSERT(1 <= value && value <= 12);
+    digits<2>(value);
+    return *this;
+  }
+
+  auto& day(int32_t value) {
+    MOZ_ASSERT(1 <= value && value <= 31);
+    digits<2>(value);
+    return *this;
+  }
+
+  auto& hour(int32_t value) {
+    MOZ_ASSERT(0 <= value && value <= 23);
+    digits<2>(value);
+    return *this;
+  }
+
+  auto& minute(int32_t value) {
+    MOZ_ASSERT(0 <= value && value <= 59);
+    digits<2>(value);
+    return *this;
+  }
+
+  auto& second(int32_t value) {
+    MOZ_ASSERT(0 <= value && value <= 59);
+    digits<2>(value);
+    return *this;
+  }
+
+  auto& time(int32_t h, int32_t m, int32_t s) {
+    return hour(h).literal(':').minute(m).literal(':').second(s);
+  }
+
+  auto& millisecond(int32_t value) {
+    MOZ_ASSERT(0 <= value && value <= 999);
+    digits<3>(value);
+    return *this;
+  }
+
+  auto& monthName(int32_t value) {
+    MOZ_ASSERT(0 <= value && value < 12);
+    return literal(months[value]);
+  }
+
+  auto& weekDay(int32_t value) {
+    MOZ_ASSERT(0 <= value && value < 7);
+    return literal(days[value]);
+  }
+
+  auto& timeZoneOffset(int32_t value) {
+    MOZ_ASSERT(-2400 < value && value < 2400);
+    literal(value < 0 ? '-' : '+');
+    digits<4>(std::abs(value));
+    return *this;
+  }
+};
 
 /**
  * 21.4.4.43 Date.prototype.toUTCString ( )
@@ -3643,12 +3788,19 @@ static bool date_toUTCString(JSContext* cx, unsigned argc, Value* vp) {
   auto [year, month, day] = ToYearMonthDay(epochMilliseconds);
   auto [hour, minute, second] = ToHourMinuteSecond(epochMilliseconds);
 
-  char buf[100];
-  SprintfLiteral(buf, "%s, %.2d %s %.4d %.2d:%.2d:%.2d GMT",
-                 days[WeekDay(epochMilliseconds)], day, months[month], year,
-                 hour, minute, second);
+  DateFormatter fmt{};
+  fmt.weekDay(WeekDay(epochMilliseconds))
+      .literal(", ")
+      .day(day)
+      .literal(' ')
+      .monthName(month)
+      .literal(' ')
+      .year(year)
+      .literal(' ')
+      .time(hour, minute, second)
+      .literal(" GMT");
 
-  JSString* str = NewStringCopyZ<CanGC>(cx, buf);
+  JSString* str = NewStringCopy<CanGC>(cx, fmt.string());
   if (!str) {
     return false;
   }
@@ -3690,16 +3842,19 @@ static bool date_toISOString(JSContext* cx, unsigned argc, Value* vp) {
   auto [year, month, day] = ToYearMonthDay(epochMilliseconds);
   auto [hour, minute, second] = ToHourMinuteSecond(epochMilliseconds);
 
-  char buf[100];
-  if (year < 0 || year > 9999) {
-    SprintfLiteral(buf, "%+.6d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ", year, month + 1,
-                   day, hour, minute, second, msFromTime(epochMilliseconds));
-  } else {
-    SprintfLiteral(buf, "%.4d-%.2d-%.2dT%.2d:%.2d:%.2d.%.3dZ", year, month + 1,
-                   day, hour, minute, second, msFromTime(epochMilliseconds));
-  }
+  DateFormatter fmt{};
+  fmt.isoYear(year)
+      .literal('-')
+      .month(month + 1)
+      .literal('-')
+      .day(day)
+      .literal('T')
+      .time(hour, minute, second)
+      .literal('.')
+      .millisecond(msFromTime(epochMilliseconds))
+      .literal('Z');
 
-  JSString* str = NewStringCopyZ<CanGC>(cx, buf);
+  JSString* str = NewStringCopy<CanGC>(cx, fmt.string());
   if (!str) {
     return false;
   }
@@ -3906,33 +4061,47 @@ static bool FormatDate(JSContext* cx, DateTimeInfo::ForceUTC forceUTC,
     }
   }
 
-  char buf[100];
+  DateFormatter fmt{};
   switch (format) {
     case FormatSpec::DateTime: {
       /* Tue Oct 31 2000 09:41:40 GMT-0800 */
       auto [year, month, day] = ToYearMonthDay(localTime);
       auto [hour, minute, second] = ToHourMinuteSecond(localTime);
-      SprintfLiteral(buf, "%s %s %.2d %.4d %.2d:%.2d:%.2d GMT%+.4d",
-                     days[int(WeekDay(localTime))], months[month], day, year,
-                     hour, minute, second, offset);
+
+      fmt.weekDay(WeekDay(localTime))
+          .literal(' ')
+          .monthName(month)
+          .literal(' ')
+          .day(day)
+          .literal(' ')
+          .year(year)
+          .literal(' ')
+          .time(hour, minute, second)
+          .literal(" GMT")
+          .timeZoneOffset(offset);
       break;
     }
     case FormatSpec::Date: {
       /* Tue Oct 31 2000 */
       auto [year, month, day] = ToYearMonthDay(localTime);
-      SprintfLiteral(buf, "%s %s %.2d %.4d", days[int(WeekDay(localTime))],
-                     months[month], day, year);
+
+      fmt.weekDay(WeekDay(localTime))
+          .literal(' ')
+          .monthName(month)
+          .literal(' ')
+          .day(day)
+          .literal(' ')
+          .year(year);
       break;
     }
     case FormatSpec::Time:
       /* 09:41:40 GMT-0800 */
       auto [hour, minute, second] = ToHourMinuteSecond(localTime);
-      SprintfLiteral(buf, "%.2d:%.2d:%.2d GMT%+.4d", hour, minute, second,
-                     offset);
+      fmt.time(hour, minute, second).literal(" GMT").timeZoneOffset(offset);
       break;
   }
 
-  RootedString str(cx, NewStringCopyZ<CanGC>(cx, buf));
+  RootedString str(cx, NewStringCopy<CanGC>(cx, fmt.string()));
   if (!str) {
     return false;
   }
