@@ -112,10 +112,10 @@ void js::ReportNotObjectArg(JSContext* cx, const char* nth, const char* fun,
   MOZ_ASSERT(!v.isObject());
 
   UniqueChars bytes;
-  if (const char* chars = ValueToSourceForError(cx, v, bytes)) {
-    JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr,
-                               JSMSG_OBJECT_REQUIRED_ARG, nth, fun, chars);
-  }
+  const char* chars = ValueToSourceForError(cx, v, bytes);
+  MOZ_ASSERT(chars);
+  JS_ReportErrorNumberLatin1(cx, GetErrorMessage, nullptr,
+                             JSMSG_OBJECT_REQUIRED_ARG, nth, fun, chars);
 }
 
 JS_PUBLIC_API const char* JS::InformalValueTypeName(const Value& v) {

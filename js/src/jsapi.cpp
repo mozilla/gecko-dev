@@ -1642,10 +1642,7 @@ JS_PUBLIC_API bool JS::GetFirstArgumentAsTypeHint(JSContext* cx,
 
   UniqueChars bytes;
   const char* source = ValueToSourceForError(cx, args.get(0), bytes);
-  if (!source) {
-    ReportOutOfMemory(cx);
-    return false;
-  }
+  MOZ_ASSERT(source);
 
   JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                            JSMSG_NOT_EXPECTED_TYPE, "Symbol.toPrimitive",

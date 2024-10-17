@@ -791,9 +791,14 @@ const char* js::ValueToSourceForError(JSContext* cx, HandleValue val,
 
   AutoClearPendingException acpe(cx);
 
+  // This function must always return a non-null string. If the conversion to
+  // string fails due to OOM, we return this string instead.
+  static constexpr char ErrorConvertingToStringMsg[] =
+      "<<error converting value to string>>";
+
   RootedString str(cx, JS_ValueToSource(cx, val));
   if (!str) {
-    return "<<error converting value to string>>";
+    return ErrorConvertingToStringMsg;
   }
 
   JSStringBuilder sb(cx);
@@ -820,33 +825,39 @@ const char* js::ValueToSourceForError(JSContext* cx, HandleValue val,
       s = "the object ";
     }
     if (!sb.append(s, strlen(s))) {
-      return "<<error converting value to string>>";
+      return ErrorConvertingToStringMsg;
     }
   } else if (val.isNumber()) {
     if (!sb.append("the number ")) {
-      return "<<error converting value to string>>";
+      return ErrorConvertingToStringMsg;
     }
   } else if (val.isString()) {
     if (!sb.append("the string ")) {
-      return "<<error converting value to string>>";
+      return ErrorConvertingToStringMsg;
     }
   } else if (val.isBigInt()) {
     if (!sb.append("the BigInt ")) {
-      return "<<error converting value to string>>";
+      return ErrorConvertingToStringMsg;
     }
   } else {
     MOZ_ASSERT(val.isBoolean() || val.isSymbol());
     bytes = StringToNewUTF8CharsZ(cx, *str);
+    if (!bytes) {
+      return ErrorConvertingToStringMsg;
+    }
     return bytes.get();
   }
   if (!sb.append(str)) {
-    return "<<error converting value to string>>";
+    return ErrorConvertingToStringMsg;
   }
   str = sb.finishString();
   if (!str) {
-    return "<<error converting value to string>>";
+    return ErrorConvertingToStringMsg;
   }
   bytes = StringToNewUTF8CharsZ(cx, *str);
+  if (!bytes) {
+    return ErrorConvertingToStringMsg;
+  }
   return bytes.get();
 }
 

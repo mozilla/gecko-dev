@@ -121,6 +121,8 @@ class AutoClearPendingException {
   ~AutoClearPendingException() { JS_ClearPendingException(cx); }
 };
 
+// Convert the given value to a string for use in an error message. This
+// function never returns nullptr and never reports an exception.
 extern const char* ValueToSourceForError(JSContext* cx, HandleValue val,
                                          JS::UniqueChars& bytes);
 
