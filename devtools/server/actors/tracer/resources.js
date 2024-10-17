@@ -6,10 +6,7 @@
 
 const { throttle } = require("resource://devtools/shared/throttle.js");
 
-const {
-  makeDebuggeeValue,
-  createValueGripForTarget,
-} = require("devtools/server/actors/object/utils");
+const { makeDebuggeeValue } = require("devtools/server/actors/object/utils");
 
 const {
   TYPES,
@@ -163,7 +160,7 @@ class ResourcesTracingListener {
       ChromeUtils.dateNow(),
       depth,
       type,
-      createValueGripForTarget(this.targetActor, dbgObj),
+      this.traceActor.createValueGrip(dbgObj),
     ]);
     this.throttleEmitTraces();
     return false;
@@ -324,7 +321,7 @@ class ResourcesTracingListener {
         }
         // Instantiate a object actor so that the tools can easily inspect these objects
         const dbgObj = makeDebuggeeValue(this.targetActor, arg);
-        args.push(createValueGripForTarget(this.targetActor, dbgObj));
+        args.push(this.traceActor.createValueGrip(dbgObj));
       }
       argNames = frame.callee.script.parameterNames;
     }
@@ -415,7 +412,7 @@ class ResourcesTracingListener {
       }
       // Instantiate a object actor so that the tools can easily inspect these objects
       const dbgObj = makeDebuggeeValue(this.targetActor, rv);
-      returnedValue = createValueGripForTarget(this.targetActor, dbgObj);
+      returnedValue = this.traceActor.createValueGrip(dbgObj);
     }
 
     const frameIndex = this.#getFrameIndex(
