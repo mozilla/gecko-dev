@@ -84,6 +84,7 @@ support-files = [
   "8ch-s16.wav",
   "../../webrtc/tests/mochitests/mediaStreamPlayback.js",
   "../../webrtc/tests/mochitests/head.js",
+  "0-frame.flac"
 ]
 
 ["test_OfflineAudioContext.html"]
