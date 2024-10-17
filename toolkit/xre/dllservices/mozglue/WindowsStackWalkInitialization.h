@@ -7,19 +7,12 @@
 #ifndef mozilla_WindowsStackWalkInitialization_h
 #define mozilla_WindowsStackWalkInitialization_h
 
-#include "mozilla/Array.h"
 #include "mozilla/Types.h"
 
 namespace mozilla {
 
 #if defined(_M_AMD64) || defined(_M_ARM64)
 MFBT_API void WindowsStackWalkInitialization();
-
-MFBT_API bool CollectStackWalkLocks(Array<void*, 2>& aStackWalkLocks);
-
-MFBT_API void* ExtractLockFromCurrentCpuContext(void* aContext);
-
-MFBT_API bool ValidateStackWalkLocks(const Array<void*, 2>& aStackWalkLocks);
 #endif  // _M_AMD64 || _M_ARM64
 
 }  // namespace mozilla
