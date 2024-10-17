@@ -73,6 +73,10 @@
   _(DataViewSetBigUint64)                          \
                                                    \
   _(DateGetTime)                                   \
+  _(DateGetFullYear)                               \
+  _(DateGetMonth)                                  \
+  _(DateGetDate)                                   \
+  _(DateGetDay)                                    \
                                                    \
   _(FunctionBind)                                  \
                                                    \

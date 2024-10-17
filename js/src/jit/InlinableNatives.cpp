@@ -297,6 +297,10 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::DataViewSetBigInt64:
     case InlinableNative::DataViewSetBigUint64:
     case InlinableNative::DateGetTime:
+    case InlinableNative::DateGetFullYear:
+    case InlinableNative::DateGetMonth:
+    case InlinableNative::DateGetDate:
+    case InlinableNative::DateGetDay:
     case InlinableNative::FunctionBind:
     case InlinableNative::MapGet:
     case InlinableNative::MapHas:

@@ -10463,6 +10463,67 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDateGetTime(
   return AttachDecision::Attach;
 }
 
+AttachDecision InlinableNativeIRGenerator::tryAttachDateGet(
+    DateComponent component) {
+  // Ensure |this| is a DateObject.
+  if (!thisval_.isObject() || !thisval_.toObject().is<DateObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Can't check DateTime cache when time zone is forced to UTC.
+  if (cx_->realm()->creationOptions().forceUTC()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  initializeInputOperand();
+
+  // Guard callee is the Date native function.
+  emitNativeCalleeGuard();
+
+  // Guard |this| is a DateObject.
+  ValOperandId thisValId =
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
+  ObjOperandId objId = writer.guardToObject(thisValId);
+  emitOptimisticClassGuard(objId, &thisval_.toObject(), GuardClassKind::Date);
+
+  // Fill in the local time slots.
+  writer.dateFillLocalTimeSlots(objId);
+
+  switch (component) {
+    case DateComponent::FullYear:
+      writer.loadFixedSlotResult(objId, DateObject::offsetOfLocalYearSlot());
+      break;
+    case DateComponent::Month:
+      writer.loadFixedSlotResult(objId, DateObject::offsetOfLocalMonthSlot());
+      break;
+    case DateComponent::Date:
+      writer.loadFixedSlotResult(objId, DateObject::offsetOfLocalDateSlot());
+      break;
+    case DateComponent::Day:
+      writer.loadFixedSlotResult(objId, DateObject::offsetOfLocalDaySlot());
+      break;
+  }
+
+  writer.returnFromIC();
+
+  switch (component) {
+    case DateComponent::FullYear:
+      trackAttached("DateGetFullYear");
+      break;
+    case DateComponent::Month:
+      trackAttached("DateGetMonth");
+      break;
+    case DateComponent::Date:
+      trackAttached("DateGetDate");
+      break;
+    case DateComponent::Day:
+      trackAttached("DateGetDay");
+      break;
+  }
+  return AttachDecision::Attach;
+}
+
 AttachDecision CallIRGenerator::tryAttachFunCall(HandleFunction callee) {
   MOZ_ASSERT(callee->isNativeWithoutJitEntry());
 
@@ -12170,6 +12231,14 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
     case InlinableNative::DateGetTime:
     case InlinableNative::IntrinsicThisTimeValue:
       return tryAttachDateGetTime(native);
+    case InlinableNative::DateGetFullYear:
+      return tryAttachDateGet(DateComponent::FullYear);
+    case InlinableNative::DateGetMonth:
+      return tryAttachDateGet(DateComponent::Month);
+    case InlinableNative::DateGetDate:
+      return tryAttachDateGet(DateComponent::Date);
+    case InlinableNative::DateGetDay:
+      return tryAttachDateGet(DateComponent::Day);
 
     // Testing functions.
     case InlinableNative::TestBailout:

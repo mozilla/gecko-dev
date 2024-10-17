@@ -142,6 +142,18 @@ class DateObject : public NativeObject {
   static constexpr size_t offsetOfLocalTimeSlot() {
     return getFixedSlotOffset(LOCAL_TIME_SLOT);
   }
+  static constexpr size_t offsetOfLocalYearSlot() {
+    return getFixedSlotOffset(LOCAL_YEAR_SLOT);
+  }
+  static constexpr size_t offsetOfLocalMonthSlot() {
+    return getFixedSlotOffset(LOCAL_MONTH_SLOT);
+  }
+  static constexpr size_t offsetOfLocalDateSlot() {
+    return getFixedSlotOffset(LOCAL_DATE_SLOT);
+  }
+  static constexpr size_t offsetOfLocalDaySlot() {
+    return getFixedSlotOffset(LOCAL_DAY_SLOT);
+  }
 };
 
 }  // namespace js
