@@ -290,12 +290,11 @@ password-card {
 
 .searchContainer {
   height: 32px;
-  padding: 8px;
+  padding-inline-start: var(--space-small);
   cursor: text;
-  border-radius: 4px;
+  border-radius: var(--border-radius-small);
   border: 1px solid var(--in-content-border-color);
   box-sizing: border-box;
-  width: 100%;
   display: flex;
 
   &:focus-within {
@@ -307,10 +306,10 @@ password-card {
   background-image: url(chrome://global/skin/icons/search-textbox.svg);
   background-position: center;
   background-repeat: no-repeat;
-  fill: currentColor;
   -moz-context-properties: fill;
-  width: 18px;
-  margin-inline-end: 4px;
+  fill: currentColor;
+  width: var(--icon-size-default);
+  margin-inline-end: var(--space-xsmall);
   flex-shrink: 0;
 }
 
@@ -318,6 +317,7 @@ password-card {
   border: none;
   background-color: transparent;
   outline: none;
+  width: 100%;
 }
 
 .first-row {

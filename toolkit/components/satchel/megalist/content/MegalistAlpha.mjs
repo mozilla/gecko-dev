@@ -196,7 +196,12 @@ export class MegalistAlpha extends MozLitElement {
 
   renderSearch() {
     return html`
-      <div class="searchContainer">
+      <div
+        class="searchContainer"
+        @click=${() => {
+          this.shadowRoot.querySelector(".search").focus();
+        }}
+      >
         <div class="searchIcon"></div>
         <input
           class="search"
