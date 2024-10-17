@@ -829,11 +829,13 @@ void TelemetryEvent::RecordEventNative(
     case RecordEventResult::StorageLimitReached: {
       LogToBrowserConsole(nsIScriptError::warningFlag,
                           u"Event storage limit reached."_ns);
-      nsCOMPtr<nsIObserverService> serv =
-          mozilla::services::GetObserverService();
-      if (serv) {
-        serv->NotifyObservers(nullptr, "event-telemetry-storage-limit-reached",
-                              nullptr);
+      if (NS_IsMainThread()) {
+        nsCOMPtr<nsIObserverService> serv =
+            mozilla::services::GetObserverService();
+        if (serv) {
+          serv->NotifyObservers(
+              nullptr, "event-telemetry-storage-limit-reached", nullptr);
+        }
       }
       return;
     }
