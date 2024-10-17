@@ -47,19 +47,12 @@ export default class MozButton extends MozLitElement {
     type: { type: String, reflect: true },
     size: { type: String, reflect: true },
     disabled: { type: Boolean, reflect: true },
-    title: { type: String, state: true },
-    titleAttribute: { type: String, attribute: "title", reflect: true },
+    title: { type: String, mapped: true },
     tooltipText: { type: String, fluent: true },
-    ariaLabelAttribute: {
-      type: String,
-      attribute: "aria-label",
-      reflect: true,
-    },
-    ariaLabel: { type: String, state: true },
+    ariaLabel: { type: String, mapped: true },
     iconSrc: { type: String },
     hasVisibleLabel: { type: Boolean, state: true },
-    accessKeyAttribute: { type: String, attribute: "accesskey", reflect: true },
-    accessKey: { type: String, state: true },
+    accessKey: { type: String, mapped: true },
   };
 
   static queries = {
@@ -74,21 +67,6 @@ export default class MozButton extends MozLitElement {
     this.size = "default";
     this.disabled = false;
     this.hasVisibleLabel = !!this.label;
-  }
-
-  willUpdate(changes) {
-    if (changes.has("titleAttribute")) {
-      this.title = this.titleAttribute;
-      this.titleAttribute = null;
-    }
-    if (changes.has("ariaLabelAttribute")) {
-      this.ariaLabel = this.ariaLabelAttribute;
-      this.ariaLabelAttribute = null;
-    }
-    if (changes.has("accessKeyAttribute")) {
-      this.accessKey = this.accessKeyAttribute;
-      this.accessKeyAttribute = null;
-    }
   }
 
   // Delegate clicks on host to the button element.

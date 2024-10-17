@@ -34,12 +34,7 @@ export default class MozCheckbox extends MozLitElement {
     checked: { type: Boolean, reflect: true },
     disabled: { type: Boolean, reflect: true },
     description: { type: String, fluent: true },
-    accessKeyAttribute: {
-      type: String,
-      attribute: "accesskey",
-      reflect: true,
-    },
-    accessKey: { type: String, state: true },
+    accessKey: { type: String, mapped: true },
     supportPage: { type: String, attribute: "support-page" },
   };
 
@@ -86,13 +81,6 @@ export default class MozCheckbox extends MozLitElement {
   redispatchEvent(event) {
     let newEvent = new Event(event.type, event);
     this.dispatchEvent(newEvent);
-  }
-
-  willUpdate(changes) {
-    if (changes.has("accessKeyAttribute")) {
-      this.accessKey = this.accessKeyAttribute;
-      this.accessKeyAttribute = null;
-    }
   }
 
   iconTemplate() {

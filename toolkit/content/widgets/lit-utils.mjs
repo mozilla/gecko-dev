@@ -63,6 +63,16 @@ function queryAll(el, selector) {
  *
  *******
  *
+ * Mapped properties support (moving a standard attribute to rendered content)
+ *
+ * When you want to accept a standard attribute such as accesskey, title or
+ * aria-label at the component level but it should really be set on a child
+ * element then you can set the `mapped: true` option in your property
+ * definition and the attribute will be removed from the host when it is set.
+ * Note that the attribute can not be unset once it is set.
+ *
+ *******
+ *
  * Test helper for sending events after a change: `dispatchOnUpdateComplete`
  *
  * When some async stuff is going on and you want to wait for it in a test, you
@@ -104,6 +114,25 @@ export class MozLitElement extends LitElement {
         }
       }
     }
+  }
+
+  static createProperty(attrName, options) {
+    if (options.mapped) {
+      let domAttrPropertyName = `${attrName}Attribute`;
+      let domAttrName = options.attribute ?? attrName.toLowerCase();
+      if (attrName.startsWith("aria")) {
+        domAttrName = domAttrName.replace("aria", "aria-");
+      }
+      this.mappedAttributes ??= [];
+      this.mappedAttributes.push([attrName, domAttrPropertyName]);
+      options.state = true;
+      super.createProperty(domAttrPropertyName, {
+        type: String,
+        attribute: domAttrName,
+        reflect: true,
+      });
+    }
+    return super.createProperty(attrName, options);
   }
 
   constructor() {
@@ -153,6 +182,22 @@ export class MozLitElement extends LitElement {
     ) {
       this.#l10n.disconnectRoot(this.renderRoot);
       this.#l10nRootConnected = false;
+    }
+  }
+
+  willUpdate(changes) {
+    this.#handleMappedAttributeChange(changes);
+  }
+
+  #handleMappedAttributeChange(changes) {
+    if (!this.constructor.mappedAttributes) {
+      return;
+    }
+    for (let [attrName, domAttrName] of this.constructor.mappedAttributes) {
+      if (changes.has(domAttrName)) {
+        this[attrName] = this[domAttrName];
+        this[domAttrName] = null;
+      }
     }
   }
 

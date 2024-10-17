@@ -84,6 +84,26 @@ class MyCustomElement extends MozLitElement {
 }
 ```
 
+#### It provides the mapped attribute helpers for standard web attributes
+
+When you want to accept a standard attribute such as accesskey, title or
+aria-label at the component level but it should really be set on a child
+element then you can set the `mapped: true` option in your property
+definition and the attribute will be removed from the host when it is set.
+Note that the attribute can not be unset once it is set.
+
+```js
+class MyElement extends MozLitElement {
+  static properties = {
+    accessKey: { type: String, mapped: true },
+  };
+
+  render() {
+    return html`<button accesskey=${this.accessKey}>Hello</button>`;
+  }
+}
+```
+
 #### It implements support for Lit's `@query` and `@queryAll` decorators
 
 The Lit library includes `@query` and `@queryAll` [decorators](https://lit.dev/docs/components/shadow-dom/#@query-@queryall-and-@queryasync-decorators) that provide an easy way of finding elements within the internal component DOM. These do not work in `mozilla-central` as we do not have support for JavaScript decorators. Instead, `MozLitElement` provides equivalent [DOM querying functionality](https://searchfox.org/mozilla-central/source/toolkit/content/widgets/lit-utils.mjs#87-99) via defining a static `queries` property on the subclass. For example the following Lit code that queries the component's DOM for certain selectors and assigns the results to different class properties:

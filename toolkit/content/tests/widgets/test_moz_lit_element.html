@@ -52,6 +52,9 @@ example-label =
           message: { type: String, fluent: true },
           tooltipText: { type: String, fluent: true },
           renamedAttribute: { type: String, fluent: true, attribute: "rename" },
+          mappedAttribute: { type: String, mapped: true, attribute: "mapped" },
+          accessKey: { type: String, mapped: true },
+          ariaLabel: { type: String, mapped: true },
         };
 
         render() {
@@ -79,6 +82,20 @@ example-label =
         "Example label!And a message!Also a tooltiptext!Also renamed!",
         "Text rendered automatically on upgrade"
       );
+    });
+
+    add_task(async function testMappedAttributes() {
+      let el = await renderTemplate(
+        html`<example-element accesskey="f" mapped="mapped-val" aria-label="Label!"></example-element>`
+      );
+      is(el.accessKey, "f", "accessKey property is correct");
+      ok(!el.hasAttribute("accesskey"), "accesskey attribute was removed");
+
+      is(el.mappedAttribute, "mapped-val", "mappedAttribute is mapped with custom attribute");
+      ok(!el.hasAttribute("mapped"), "mapped attribute was removed");
+
+      is(el.ariaLabel, "Label!", "ariaLabel property is set");
+      ok(!el.hasAttribute("aria-label"), "aria-label was removed");
     });
   </script>
 </head>

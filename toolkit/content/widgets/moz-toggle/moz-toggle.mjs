@@ -28,8 +28,7 @@ export default class MozToggle extends MozLitElement {
     label: { type: String },
     description: { type: String },
     ariaLabel: { type: String, attribute: "aria-label" },
-    accessKeyAttribute: { type: String, attribute: "accesskey", reflect: true },
-    accessKey: { type: String, state: true },
+    accessKey: { type: String, mapped: true },
   };
 
   static get queries() {
@@ -64,13 +63,6 @@ export default class MozToggle extends MozLitElement {
   // Delegate focus to the input element
   focus() {
     this.buttonEl.focus();
-  }
-
-  willUpdate(changes) {
-    if (changes.has("accessKeyAttribute")) {
-      this.accessKey = this.accessKeyAttribute;
-      this.accessKeyAttribute = null;
-    }
   }
 
   descriptionTemplate() {

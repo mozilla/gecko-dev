@@ -235,12 +235,7 @@ export class MozRadio extends MozLitElement {
   #controller;
 
   static properties = {
-    accessKey: { type: String, state: true },
-    accessKeyAttribute: {
-      type: String,
-      attribute: "accesskey",
-      reflect: true,
-    },
+    accessKey: { type: String, mapped: true },
     checked: { type: Boolean, reflect: true },
     description: { type: String, fluent: true },
     disabled: { type: Boolean, reflect: true },
@@ -277,6 +272,8 @@ export class MozRadio extends MozLitElement {
   }
 
   willUpdate(changedProperties) {
+    super.willUpdate(changedProperties);
+
     // Handle setting checked directly via JS.
     if (
       changedProperties.has("checked") &&
@@ -305,11 +302,6 @@ export class MozRadio extends MozLitElement {
         // Update buttons via moz-radio-group for proper keyboard nav behavior.
         this.#controller.syncFocusState();
       }
-    }
-
-    if (changedProperties.has("accessKeyAttribute")) {
-      this.accessKey = this.accessKeyAttribute;
-      this.accessKeyAttribute = null;
     }
   }
 
