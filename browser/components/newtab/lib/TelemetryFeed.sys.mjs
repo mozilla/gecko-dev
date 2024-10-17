@@ -60,24 +60,25 @@ XPCOMUtils.defineLazyPreferenceGetter(
     Glean.newtabHandoffPreference.enabled.set(new_value)
 );
 
+export const PREF_IMPRESSION_ID = "impressionId";
+export const TELEMETRY_PREF = "telemetry";
+export const EVENTS_TELEMETRY_PREF = "telemetry.ut.events";
+export const PREF_UNIFIED_ADS_SPOCS_ENABLED = "unifiedAds.spocs.enabled";
+export const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.tiles.enabled";
+const PREF_SHOW_SPONSORED_STORIES = "showSponsored";
+const PREF_SHOW_SPONSORED_TOPSITES = "showSponsoredTopSites";
+
 // This is a mapping table between the user preferences and its encoding code
 export const USER_PREFS_ENCODING = {
   showSearch: 1 << 0,
   "feeds.topsites": 1 << 1,
   "feeds.section.topstories": 1 << 2,
   "feeds.section.highlights": 1 << 3,
-  showSponsored: 1 << 5,
+  [PREF_SHOW_SPONSORED_STORIES]: 1 << 5,
   "asrouter.userprefs.cfr.addons": 1 << 6,
   "asrouter.userprefs.cfr.features": 1 << 7,
-  showSponsoredTopSites: 1 << 8,
+  [PREF_SHOW_SPONSORED_TOPSITES]: 1 << 8,
 };
-
-export const PREF_IMPRESSION_ID = "impressionId";
-export const TELEMETRY_PREF = "telemetry";
-export const EVENTS_TELEMETRY_PREF = "telemetry.ut.events";
-export const PREF_UNIFIED_ADS_SPOCS_ENABLED = "unifiedAds.spocs.enabled";
-export const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.tiles.enabled";
-const PREF_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 
 // Used as the missing value for timestamps in the session ping
 const TIMESTAMP_MISSING_VALUE = -1;
@@ -113,9 +114,9 @@ const ACTIVITY_STREAM_PREF_BRANCH = "browser.newtabpage.activity-stream.";
 const NEWTAB_PING_PREFS = {
   showSearch: Glean.newtabSearch.enabled,
   "feeds.topsites": Glean.topsites.enabled,
-  showSponsoredTopSites: Glean.topsites.sponsoredEnabled,
+  [PREF_SHOW_SPONSORED_TOPSITES]: Glean.topsites.sponsoredEnabled,
   "feeds.section.topstories": Glean.pocket.enabled,
-  showSponsored: Glean.pocket.sponsoredStoriesEnabled,
+  [PREF_SHOW_SPONSORED_STORIES]: Glean.pocket.sponsoredStoriesEnabled,
   topSitesRows: Glean.topsites.rows,
   showWeather: Glean.newtab.weatherEnabled,
 };
@@ -130,6 +131,20 @@ export class TelemetryFeed {
     this._aboutHomeSeen = false;
     this._classifySite = classifySite;
     this._browserOpenNewtabStart = null;
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "SHOW_SPONSORED_STORIES_ENABLED",
+      `${ACTIVITY_STREAM_PREF_BRANCH}${PREF_SHOW_SPONSORED_STORIES}`,
+      false
+    );
+
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "SHOW_SPONSORED_TOPSITES_ENABLED",
+      `${ACTIVITY_STREAM_PREF_BRANCH}${PREF_SHOW_SPONSORED_TOPSITES}`,
+      false
+    );
   }
 
   get telemetryEnabled() {
@@ -145,13 +160,7 @@ export class TelemetryFeed {
       PREF_UNIFIED_ADS_SPOCS_ENABLED
     );
 
-    // Check PREF_UPLOAD_ENABLED if data reporting is allowed
-    const uploadEnabled = Services.prefs.getBoolPref(
-      PREF_UPLOAD_ENABLED,
-      false
-    );
-
-    return unifiedAdsSpocsEnabled && uploadEnabled;
+    return unifiedAdsSpocsEnabled && this.SHOW_SPONSORED_STORIES_ENABLED;
   }
 
   get canSendUnifiedAdsTilesCallbacks() {
@@ -159,13 +168,7 @@ export class TelemetryFeed {
       PREF_UNIFIED_ADS_TILES_ENABLED
     );
 
-    // Check PREF_UPLOAD_ENABLED if data reporting is allowed
-    const uploadEnabled = Services.prefs.getBoolPref(
-      PREF_UPLOAD_ENABLED,
-      false
-    );
-
-    return unifiedAdsTilesEnabled && uploadEnabled;
+    return unifiedAdsTilesEnabled && this.SHOW_SPONSORED_TOPSITES_ENABLED;
   }
 
   get telemetryClientId() {
@@ -1463,7 +1466,7 @@ export class TelemetryFeed {
     if (isChanged) {
       switch (fullPrefName) {
         case `${ACTIVITY_STREAM_PREF_BRANCH}feeds.topsites`:
-        case `${ACTIVITY_STREAM_PREF_BRANCH}showSponsoredTopSites`:
+        case `${ACTIVITY_STREAM_PREF_BRANCH}${PREF_SHOW_SPONSORED_TOPSITES}`:
           Glean.topsites.prefChanged.record({
             pref_name: fullPrefName,
             new_value: Services.prefs.getBoolPref(fullPrefName),
