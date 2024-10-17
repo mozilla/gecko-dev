@@ -173,11 +173,20 @@ private fun BookmarksState.updateSelectedFolder(folder: SelectFolderItem): Bookm
         )
     }
     bookmarksSelectFolderState?.outerSelectionGuid != null -> {
-        copy(
+        val alwaysTryUpdate = copy(
             bookmarksMultiselectMoveState = bookmarksMultiselectMoveState?.copy(destination = folder.guid),
-            bookmarksEditBookmarkState = bookmarksEditBookmarkState?.copy(folder = folder.folder),
             bookmarksSelectFolderState = bookmarksSelectFolderState.copy(outerSelectionGuid = folder.guid),
         )
+        if (bookmarksEditBookmarkState == null) {
+            alwaysTryUpdate.copy(
+                bookmarksEditFolderState = bookmarksEditFolderState?.copy(parent = folder.folder),
+                bookmarksAddFolderState = bookmarksAddFolderState?.copy(parent = folder.folder),
+            )
+        } else {
+            alwaysTryUpdate.copy(
+                bookmarksEditBookmarkState = bookmarksEditBookmarkState.copy(folder = folder.folder),
+            )
+        }
     }
 
     else -> this
@@ -193,16 +202,25 @@ private fun BookmarksState.toggleSelectionOf(item: BookmarkItem): BookmarksState
 private fun BookmarksState.respondToBackClick(): BookmarksState = when {
     // we check select folder state first because it can be the most deeply nested, e.g.
     // select -> add -> select
-    bookmarksSelectFolderState?.innerSelectionGuid != null -> copy(
-        bookmarksSelectFolderState = bookmarksSelectFolderState.copy(innerSelectionGuid = null),
-    )
+    bookmarksSelectFolderState != null -> {
+        when {
+            bookmarksSelectFolderState.innerSelectionGuid != null -> {
+                copy(
+                    bookmarksSelectFolderState = bookmarksSelectFolderState.copy(innerSelectionGuid = null),
+                )
+            }
+            bookmarksAddFolderState != null && bookmarksEditBookmarkState != null -> {
+                copy(bookmarksAddFolderState = null)
+            }
+            else -> copy(
+                bookmarksMultiselectMoveState = null,
+                bookmarksSelectFolderState = null,
+            )
+        }
+    }
     bookmarksAddFolderState != null -> {
         copy(bookmarksAddFolderState = null)
     }
-    bookmarksSelectFolderState != null -> copy(
-        bookmarksMultiselectMoveState = null,
-        bookmarksSelectFolderState = null,
-    )
     bookmarksEditFolderState != null -> copy(bookmarksEditFolderState = null)
     bookmarksEditBookmarkState != null -> copy(bookmarksEditBookmarkState = null)
     else -> this

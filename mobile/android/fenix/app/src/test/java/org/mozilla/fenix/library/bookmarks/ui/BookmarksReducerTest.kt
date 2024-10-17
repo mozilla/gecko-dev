@@ -212,8 +212,12 @@ class BookmarksReducerTest {
     }
 
     @Test
-    fun `GIVEN the add folder screen has been reached from the select folder screen WHEN select folder state is still available`() {
+    fun `GIVEN the add folder screen has been reached from the select folder screen WHEN back clicked THEN only inner selection is removed`() {
         val state = BookmarksState.default.copy(
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                bookmark = BookmarkItem.Bookmark("url", "title", "url", "guid"),
+                folder = BookmarkItem.Folder("parentTitle", "parentGuid"),
+            ),
             bookmarksAddFolderState = BookmarksAddFolderState(
                 parent = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
@@ -222,14 +226,15 @@ class BookmarksReducerTest {
                 folderBeingAddedTitle = "",
             ),
             bookmarksSelectFolderState = BookmarksSelectFolderState(
-                outerSelectionGuid = "guid0",
+                outerSelectionGuid = "outerGuid",
+                innerSelectionGuid = "innerGuid",
             ),
         )
 
         val result = bookmarksReducer(state, BackClicked)
 
-        assertNull(result.bookmarksAddFolderState)
-        assertEquals("guid0", result.bookmarksSelectFolderState?.outerSelectionGuid)
+        assertNull(result.bookmarksSelectFolderState?.innerSelectionGuid)
+        assertEquals("outerGuid", result.bookmarksSelectFolderState?.outerSelectionGuid)
     }
 
     @Test
