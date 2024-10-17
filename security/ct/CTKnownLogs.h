@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-static const PRTime kCTExpirationTime = INT64_C(1736161639000000);
+static const PRTime kCTExpirationTime = INT64_C(1736420734000000);
 
 namespace mozilla::ct {
 
@@ -382,7 +382,7 @@ const CTLogInfo kCTLogList[] = {
      "\x6f",
      91},
     {"Sectigo 'Mammoth2026h1'", CTLogState::Admissible,
-     1722312000000,  // 2024-07-30T04:00:00Z
+     1728925200000,  // 2024-10-14T17:00:00Z
      3,              // operated by Sectigo
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x9e\xcb\x0c\x8a\x51\xcc\x8a\xe2\x0b"
@@ -392,7 +392,7 @@ const CTLogInfo kCTLogList[] = {
      "\xc4",
      91},
     {"Sectigo 'Mammoth2026h2'", CTLogState::Admissible,
-     1722312000000,  // 2024-07-30T04:00:00Z
+     1728925200000,  // 2024-10-14T17:00:00Z
      3,              // operated by Sectigo
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xec\x83\x61\xf2\xd7\xb4\xbb\xe4\xe4"
@@ -402,7 +402,7 @@ const CTLogInfo kCTLogList[] = {
      "\xb6",
      91},
     {"Sectigo 'Sabre2026h1'", CTLogState::Admissible,
-     1722312000000,  // 2024-07-30T04:00:00Z
+     1728925200000,  // 2024-10-14T17:00:00Z
      3,              // operated by Sectigo
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x84\x26\xbc\x36\xbd\xd8\x8d\x3c\x87"
@@ -412,7 +412,7 @@ const CTLogInfo kCTLogList[] = {
      "\x60",
      91},
     {"Sectigo 'Sabre2026h2'", CTLogState::Admissible,
-     1722312000000,  // 2024-07-30T04:00:00Z
+     1728925200000,  // 2024-10-14T17:00:00Z
      3,              // operated by Sectigo
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xce\x35\xca\xec\x39\x07\x82\xda\x77"
