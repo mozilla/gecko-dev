@@ -207,7 +207,7 @@ TaskbarWindowPreview::SetOverlayIcon(imgIContainer* aStatusIcon,
   HICON hIcon = nullptr;
   if (aStatusIcon) {
     rv = nsWindowGfx::CreateIcon(
-        aStatusIcon, false, LayoutDeviceIntPoint(),
+        aStatusIcon, nullptr, false, LayoutDeviceIntPoint(),
         nsWindowGfx::GetIconMetrics(nsWindowGfx::kSmallIcon), &hIcon);
     NS_ENSURE_SUCCESS(rv, rv);
   }

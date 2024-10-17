@@ -231,7 +231,7 @@ WindowsUIUtils::SetWindowIcon(mozIDOMWindowProxy* aWindow,
   if (aSmallIcon) {
     HICON hIcon = nullptr;
     rv = nsWindowGfx::CreateIcon(
-        aSmallIcon, false, mozilla::LayoutDeviceIntPoint(),
+        aSmallIcon, nullptr, false, mozilla::LayoutDeviceIntPoint(),
         nsWindowGfx::GetIconMetrics(nsWindowGfx::kSmallIcon), &hIcon);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -241,7 +241,7 @@ WindowsUIUtils::SetWindowIcon(mozIDOMWindowProxy* aWindow,
   if (aBigIcon) {
     HICON hIcon = nullptr;
     rv = nsWindowGfx::CreateIcon(
-        aBigIcon, false, mozilla::LayoutDeviceIntPoint(),
+        aBigIcon, nullptr, false, mozilla::LayoutDeviceIntPoint(),
         nsWindowGfx::GetIconMetrics(nsWindowGfx::kRegularIcon), &hIcon);
     NS_ENSURE_SUCCESS(rv, rv);
 
