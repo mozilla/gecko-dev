@@ -113,9 +113,6 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
 
   already_AddRefed<dom::Promise> RequestDevice(
       const dom::GPUDeviceDescriptor& aDesc, ErrorResult& aRv);
-
-  already_AddRefed<dom::Promise> RequestAdapterInfo(
-      const dom::Sequence<nsString>& aUnmaskHints, ErrorResult& aRv) const;
 };
 
 }  // namespace webgpu
