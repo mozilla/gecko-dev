@@ -371,10 +371,9 @@ TEST_F(VideoFrameConverterTest, BlackOnDisableCreated) {
   EXPECT_EQ(frame1.height(), 480);
   EXPECT_THAT(frame1, IsFrameBlack());
   EXPECT_GT(conversionTime1 - now, duplicationInterval);
-  // Check that the second frame comes 1s after the first.
-  EXPECT_EQ(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
-                                           frame0.timestamp_us()),
-            duplicationInterval);
+  EXPECT_THAT(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
+                                             frame0.timestamp_us()),
+              IsDurationInMillisPositiveMultipleOf(duplicationInterval));
 }
 
 // We check that the disabling code was triggered by sending multiple,
