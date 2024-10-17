@@ -49,6 +49,8 @@ class DebugVideoFrameConverter
       const dom::RTCStatsTimestampMaker& aTimestampMaker)
       : VideoFrameConverterImpl(aTimestampMaker) {}
 
+  using VideoFrameConverterImpl::mLastFrameQueuedForProcessing;
+  using VideoFrameConverterImpl::ProcessVideoFrame;
   using VideoFrameConverterImpl::QueueForProcessing;
   using VideoFrameConverterImpl::RegisterListener;
 };
@@ -539,10 +541,13 @@ TEST_F(VideoFrameConverterTest, TimestampPropagation) {
 }
 
 TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
+  // Do this in a task on the converter's TaskQueue, so it can call into
+  // QueueForProcessing directly.
   TimeStamp now = TimeStamp::Now();
   TimeDuration d1 = TimeDuration::FromMilliseconds(10);
-  TimeDuration d2 = d1 + TimeDuration::FromMicroseconds(1);
   TimeDuration duplicationInterval = TimeDuration::FromMilliseconds(50);
+  TimeDuration d2 = d1 * 2;
+  TimeDuration d3 = d2 - TimeDuration::FromMilliseconds(1);
 
   auto framesPromise = TakeNConvertedFrames(1);
   mConverter->SetActive(true);
@@ -551,18 +556,20 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
 
   framesPromise = TakeNConvertedFrames(2);
 
-  // Time is now ~t1. This processes an extra frame using t=now().
-  mConverter->SetActive(false);
-  mConverter->SetActive(true);
   mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
-
-  // This processes a new chunk with an earlier timestamp than the extra frame
-  // above. But it gets processed after the extra frame, so time will appear to
-  // go backwards. This simulates a frame from the pacer being in flight when we
-  // flip SetActive() above. This frame is expected to get ignored.
   Unused << WaitFor(InvokeAsync(mConverter->mTaskQueue, __func__, [&] {
+    // Time is now ~t1. This processes an extra frame similar to what
+    // `SetActive(false); SetActive(true);` (using t=now()) would do.
+    mConverter->mLastFrameQueuedForProcessing.mTime = now + d2;
+    mConverter->ProcessVideoFrame(mConverter->mLastFrameQueuedForProcessing);
+
+    // This queues a new chunk with an earlier timestamp than the extra frame
+    // above. But it gets processed after the extra frame, so time will appear
+    // to go backwards. This simulates a frame from the pacer being in flight
+    // when we flip SetActive() above, for time t' < t. This frame is expected
+    // to get ignored.
     mConverter->QueueForProcessing(
-        GenerateChunk(800, 600, now + d2).mFrame.GetImage(), now + d2,
+        GenerateChunk(800, 600, now + d3).mFrame.GetImage(), now + d3,
         gfx::IntSize(800, 600), false);
     return GenericPromise::CreateAndResolve(true, __func__);
   }));
@@ -572,34 +579,33 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
     frames.insert(frames.end(), std::make_move_iterator(newFrames.begin()),
                   std::make_move_iterator(newFrames.end()));
   }
+
+  auto t0 = dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now)
+                .ToRealtime()
+                .us();
   ASSERT_EQ(frames.size(), 3U);
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
   EXPECT_THAT(frame0, Not(IsFrameBlack()));
-  EXPECT_EQ(frame0.timestamp_us(),
-            dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d1)
-                .ToRealtime()
-                .us());
-  EXPECT_GE(conversionTime0 - now, d1);
+  EXPECT_NEAR(frame0.timestamp_us() - t0,
+              static_cast<int64_t>(d1.ToMicroseconds()), 1);
 
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
   EXPECT_THAT(frame1, Not(IsFrameBlack()));
-  EXPECT_GT(frame1.timestamp_us(),
-            dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d2)
-                .ToRealtime()
-                .us());
-  EXPECT_GE(conversionTime1 - now, d2);
+  EXPECT_NEAR(frame1.timestamp_us() - t0,
+              static_cast<int64_t>(d2.ToMicroseconds()), 1);
+  EXPECT_GE(conversionTime1 - now, d1);
 
   const auto& [frame2, conversionTime2] = frames[2];
   EXPECT_EQ(frame2.width(), 640);
   EXPECT_EQ(frame2.height(), 480);
   EXPECT_THAT(frame2, Not(IsFrameBlack()));
-  EXPECT_EQ(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
-                                           frame1.timestamp_us()),
-            duplicationInterval);
+  EXPECT_NEAR(frame2.timestamp_us() - t0,
+              static_cast<int64_t>((d2 + duplicationInterval).ToMicroseconds()),
+              1);
   EXPECT_GE(conversionTime2 - now, d2 + duplicationInterval);
 }
 
