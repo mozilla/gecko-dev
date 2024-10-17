@@ -1059,20 +1059,3 @@ gfx.hdr:
     telemetry_mirror: GFX_HDR_WINDOWS_DISPLAY_COLORSPACE_BITFIELD
     no_lint:
       - UNIT_IN_NAME
-
-apz:
-  scrollwheel_overshoot:
-    type: counter
-    description: >
-      Count of overshoot events, where the user reverses scrollwheel
-      direction soon after the last scrollwheel input.
-      This metric was generated to correspond to the Legacy Telemetry
-      scalar apz.scrollwheel_overshoot.
-    bugs:
-      - https://bugzil.la/1836870
-    data_reviews:
-      - https://bugzil.la/1836870
-    notification_emails:
-      - botond@mozilla.com
-    expires: 134
-    telemetry_mirror: APZ_SCROLLWHEEL_OVERSHOOT
