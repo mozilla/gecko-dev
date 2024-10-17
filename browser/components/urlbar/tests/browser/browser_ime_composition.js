@@ -212,9 +212,6 @@ async function test_composition(keepPanelOpenDuringImeComposition) {
   EventUtils.synthesizeKey("KEY_Backspace", {});
   EventUtils.synthesizeKey("KEY_Backspace", {});
   Assert.equal(gURLBar.value, "", "Check urlbar value");
-  await UrlbarTestUtils.promisePopupClose(window, () => {
-    EventUtils.synthesizeKey("KEY_Escape", {});
-  });
 
   info("With autofill, compositionstart shouldn't open the popup");
   Assert.ok(!UrlbarTestUtils.isPopupOpen(window), "Popup should be closed");

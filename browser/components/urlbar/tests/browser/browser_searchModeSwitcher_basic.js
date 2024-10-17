@@ -156,9 +156,12 @@ add_task(async function detect_searchmode_changes() {
   }, "The searchMode name has been removed when we exit search mode");
 });
 
-function focusSwitcher(win = window) {
-  EventUtils.synthesizeKey("l", { accelKey: true }, win);
-  EventUtils.synthesizeKey("KEY_Escape", {}, win);
+async function focusSwitcher(win = window) {
+  if (!win.gURLBar.focused) {
+    let focus = BrowserTestUtils.waitForEvent(win.gURLBar.inputField, "focus");
+    EventUtils.synthesizeKey("l", { accelKey: true }, win);
+    await focus;
+  }
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, win);
 }
 
@@ -171,8 +174,8 @@ async function test_open_switcher(openKey) {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
 
-  info("Open the urlbar and open the switcher via keyboard");
-  focusSwitcher();
+  info(`Open the urlbar and open the switcher via keyboard (${openKey})`);
+  await focusSwitcher();
   EventUtils.synthesizeKey(openKey);
   await promiseMenuOpen;
 
@@ -191,9 +194,9 @@ async function test_dont_open_switcher(dontOpenKey) {
   let opened = () => {
     popupOpened = true;
   };
-  info("Open the urlbar and open the switcher via keyboard");
+  info("Pressing key that should not open the switcher");
   popup.addEventListener("popupshown", opened);
-  focusSwitcher();
+  await focusSwitcher();
   EventUtils.synthesizeKey(dontOpenKey);
 
   /* eslint-disable mozilla/no-arbitrary-setTimeout */
@@ -213,8 +216,8 @@ async function test_navigate_switcher(navKey, navTimes, searchMode) {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
 
-  info("Open the urlbar and open the switcher via keyboard");
-  focusSwitcher();
+  info("Open the urlbar and open the switcher via Enter key");
+  await focusSwitcher();
   EventUtils.synthesizeKey("KEY_Enter");
   await promiseMenuOpen;
 
@@ -268,8 +271,8 @@ add_task(async function open_settings() {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
 
-  info("Open the urlbar and open the switcher via keyboard");
-  focusSwitcher();
+  info("Open the urlbar and open the switcher via Enter key");
+  await focusSwitcher();
   EventUtils.synthesizeKey("KEY_Enter");
   await promiseMenuOpen;
 
@@ -307,7 +310,7 @@ add_task(async function open_settings_with_there_is_already_opened_settings() {
   let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
 
   info("Open the urlbar and open the switcher via keyboard in the new window");
-  focusSwitcher(newWin);
+  await focusSwitcher(newWin);
   EventUtils.synthesizeKey("KEY_Enter", {}, newWin);
   await promiseMenuOpen;
 
