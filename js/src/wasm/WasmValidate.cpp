@@ -1720,6 +1720,14 @@ static bool DecodeTypeSection(Decoder& d, CodeMetadata* codeMeta) {
       }
     }
 
+    // Check if we've reached our implementation defined limit of type
+    // definitions.
+    mozilla::CheckedUint32 newNumTypes(codeMeta->types->length());
+    newNumTypes += recGroupLength;
+    if (!newNumTypes.isValid() || newNumTypes.value() > MaxTypes) {
+      return d.fail("too many types");
+    }
+
     // Start a recursion group. This will extend the type context with empty
     // type definitions to be filled.
     MutableRecGroup recGroup = codeMeta->types->startRecGroup(recGroupLength);
@@ -1734,11 +1742,8 @@ static bool DecodeTypeSection(Decoder& d, CodeMetadata* codeMeta) {
       uint32_t typeIndex =
           codeMeta->types->length() - recGroupLength + recGroupTypeIndex;
 
-      // Check if we've reached our implementation defined limit of type
-      // definitions.
-      if (typeIndex >= MaxTypes) {
-        return d.fail("too many types");
-      }
+      // This is ensured by above
+      MOZ_ASSERT(typeIndex < MaxTypes);
 
       uint8_t form;
       const TypeDef* superTypeDef = nullptr;

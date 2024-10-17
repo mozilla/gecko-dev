@@ -916,6 +916,10 @@ class RecGroup : public AtomicRefCounted<RecGroup> {
   // Compute the size in bytes of a recursion group with the specified amount
   // of types.
   static constexpr size_t sizeOfRecGroup(uint32_t numTypes) {
+    // TypeDef can find containing RecGroup using only a 32-bit offset
+    static_assert(offsetof(RecGroup, types_) + sizeof(TypeDef) * MaxTypes <=
+                  UINT32_MAX);
+    // We will not overflow in our calculation here
     static_assert(MaxTypes <= SIZE_MAX / sizeof(TypeDef));
     return sizeof(RecGroup) + sizeof(TypeDef) * numTypes;
   }
@@ -925,6 +929,9 @@ class RecGroup : public AtomicRefCounted<RecGroup> {
   // type definitions are initialized so that strong references to external
   // recursion groups are taken.
   static RefPtr<RecGroup> allocate(uint32_t numTypes) {
+    // Validation must ensure this
+    MOZ_RELEASE_ASSERT(numTypes <= MaxTypes);
+
     // Allocate the recursion group with the correct size
     RecGroup* recGroup = (RecGroup*)js_malloc(sizeOfRecGroup(numTypes));
     if (!recGroup) {
