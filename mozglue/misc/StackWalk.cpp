@@ -6,6 +6,7 @@
 
 /* API for getting a stack trace of the C/C++ stack on the current thread */
 
+#include "mozilla/Array.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
@@ -123,10 +124,57 @@ class FrameSkipper {
 CRITICAL_SECTION gDbgHelpCS;
 
 #  if defined(_M_AMD64) || defined(_M_ARM64)
-// Because various Win64 APIs acquire function-table locks, we need a way of
-// preventing stack walking while those APIs are being called. Otherwise, the
-// stack walker may suspend a thread holding such a lock, and deadlock when the
-// stack unwind code attempts to wait for that lock.
+// We must use RtlLookupFunctionEntry to do stack walking on x86-64 and arm64,
+// but internally this function does a blocking shared acquire of SRW locks
+// that live in ntdll and are not exported. This is problematic when we want to
+// suspend a thread and walk its stack, like we do in the profiler and the
+// background hang reporter. If the suspended thread happens to hold one of the
+// locks exclusively while suspended, then the stack walking thread will
+// deadlock if it calls RtlLookupFunctionEntry.
+//
+// Note that we only care about deadlocks between the stack walking thread and
+// the suspended thread. Any other deadlock scenario is considered out of
+// scope, because they are unlikely to be our fault -- these other scenarios
+// imply that some thread that we did not suspend is stuck holding one of the
+// locks exclusively, and exclusive acquisition of these locks only happens for
+// a brief time during Microsoft API calls (e.g. LdrLoadDll, LdrUnloadDll).
+//
+// We use one of two alternative strategies to gracefully fail to capture a
+// stack instead of running into a deadlock:
+//    (1) collect pointers to the ntdll internal locks at stack walk
+//        initialization, then try to acquire them non-blockingly before
+//        initiating any stack walk;
+// or (2) mark all code paths that can potentially end up doing an exclusive
+//        acquisition of the locks as stack walk suppression paths, then check
+//        if any thread is currently on a stack walk suppression path before
+//        initiating any stack walk;
+//
+// Strategy (2) can only avoid all deadlocks under the easily wronged
+// assumption that we have correctly identified all existing paths that should
+// be stack suppression paths. With strategy (2) we cannot collect stacks e.g.
+// during the whole duration of a DLL load happening on any thread so the
+// profiling results are worse.
+//
+// Strategy (1) guarantees no deadlock. It also gives better profiling results
+// because it is more fine-grained. Therefore we always prefer strategy (1),
+// and we only use strategy (2) as a fallback.
+
+// Strategy (1): Ntdll Internal Locks
+//
+// The external stack walk initialization code will feed us pointers to the
+// ntdll internal locks. Once we have them, we no longer need to rely on
+// strategy (2).
+static Atomic<bool> sStackWalkLocksInitialized;
+static Array<SRWLOCK*, 2> sStackWalkLocks;
+
+MFBT_API
+void InitializeStackWalkLocks(const Array<void*, 2>& aStackWalkLocks) {
+  sStackWalkLocks[0] = reinterpret_cast<SRWLOCK*>(aStackWalkLocks[0]);
+  sStackWalkLocks[1] = reinterpret_cast<SRWLOCK*>(aStackWalkLocks[1]);
+  sStackWalkLocksInitialized = true;
+}
+
+// Strategy (2): Stack Walk Suppressions
 //
 // We're using an atomic counter rather than a critical section because we
 // don't require mutual exclusion with the stack walker. If the stack walker
@@ -155,6 +203,24 @@ AutoSuppressStackWalking::AutoSuppressStackWalking() { SuppressStackWalking(); }
 MFBT_API
 AutoSuppressStackWalking::~AutoSuppressStackWalking() {
   DesuppressStackWalking();
+}
+
+bool IsStackWalkingSafe() {
+  // Use strategy (1), if initialized.
+  if (sStackWalkLocksInitialized) {
+    bool isSafe = false;
+    if (::TryAcquireSRWLockShared(sStackWalkLocks[0])) {
+      if (::TryAcquireSRWLockShared(sStackWalkLocks[1])) {
+        isSafe = true;
+        ::ReleaseSRWLockShared(sStackWalkLocks[1]);
+      }
+      ::ReleaseSRWLockShared(sStackWalkLocks[0]);
+    }
+    return isSafe;
+  }
+
+  // Otherwise, fall back to strategy (2).
+  return sStackWalkSuppressions == 0;
 }
 
 static uint8_t* sJitCodeRegionStart;
@@ -375,17 +441,18 @@ static void DoMozStackWalkThread(MozWalkStackCallback aCallback,
 #  endif
 
 #  if defined(_M_AMD64) || defined(_M_ARM64)
-  // If there are any active suppressions, then at least one thread (we don't
-  // know which) is holding a lock that can deadlock RtlVirtualUnwind. Since
-  // that thread may be the one that we're trying to unwind, we can't proceed.
+  // If at least one thread (we don't know which) may be holding a lock that
+  // can deadlock RtlLookupFunctionEntry, we can't proceed because that thread
+  // may be the one that we're trying to walk the stack of.
   //
-  // But if there are no suppressions, then our target thread can't be holding
-  // a lock, and it's safe to proceed. By virtue of being suspended, the target
-  // thread can't acquire any new locks during the unwind process, so we only
-  // need to do this check once. After that, sStackWalkSuppressions can be
-  // changed by other threads while we're unwinding, and that's fine because
-  // we can't deadlock with those threads.
-  if (sStackWalkSuppressions) {
+  // But if there is no such thread by this point, then our target thread can't
+  // be holding a lock, so it's safe to proceed. By virtue of being suspended,
+  // the target thread can't acquire any new locks during our stack walking, so
+  // we only need to do this check once. Other threads may temporarily acquire
+  // the locks while we're walking the stack, but that's mostly fine -- calling
+  // RtlLookupFunctionEntry will make us wait for them to release the locks,
+  // but at least we won't deadlock.
+  if (!IsStackWalkingSafe()) {
     return;
   }
 

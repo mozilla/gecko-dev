@@ -159,6 +159,9 @@ run-if = ["os == 'win'"]
 ["TestStackCookie"]
 run-if = ["os == 'win'"]
 
+["TestStackWalkInitialization"]
+run-if = ["os == 'win' && processor == 'x86_64'"]
+
 ["TestTextUtils"]
 
 ["TestThreadSafeWeakPtr"]
