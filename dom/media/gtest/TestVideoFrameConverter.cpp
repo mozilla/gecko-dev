@@ -209,12 +209,13 @@ TEST_F(VideoFrameConverterTest, Duplication) {
   auto framesPromise = TakeNConvertedFrames(2);
   TimeStamp now = TimeStamp::Now();
   TimeStamp future1 = now + TimeDuration::FromMilliseconds(100);
+  TimeDuration duplicationInterval = TimeDuration::FromMilliseconds(20);
   VideoChunk chunk = GenerateChunk(640, 480, future1);
   mConverter->SetActive(true);
-  mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
+  mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
   mConverter->QueueVideoChunk(chunk, false);
   auto frames = WaitFor(framesPromise).unwrap();
-  EXPECT_GT(TimeStamp::Now() - now, TimeDuration::FromMilliseconds(1100));
+  EXPECT_GT(TimeStamp::Now() - now, future1 + duplicationInterval - now);
   ASSERT_EQ(frames.size(), 2U);
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
@@ -226,8 +227,10 @@ TEST_F(VideoFrameConverterTest, Duplication) {
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
   EXPECT_FALSE(IsFrameBlack(frame1));
-  EXPECT_GT(conversionTime1 - now, TimeDuration::FromMilliseconds(1100));
-  EXPECT_EQ(frame1.timestamp_us() - frame0.timestamp_us(), USECS_PER_S);
+  EXPECT_GT(conversionTime1 - now, future1 + duplicationInterval - now);
+  EXPECT_EQ(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
+                                           frame0.timestamp_us()),
+            duplicationInterval);
 
   // Check that we re-used the old buffer.
   EXPECT_EQ(frame0.video_frame_buffer(), frame1.video_frame_buffer());
@@ -335,17 +338,18 @@ TEST_F(VideoFrameConverterTest, DropsOld) {
 TEST_F(VideoFrameConverterTest, BlackOnDisableCreated) {
   auto framesPromise = TakeNConvertedFrames(2);
   TimeStamp now = TimeStamp::Now();
-  TimeStamp future1 = now + TimeDuration::FromMilliseconds(100);
-  TimeStamp future2 = now + TimeDuration::FromMilliseconds(200);
-  TimeStamp future3 = now + TimeDuration::FromMilliseconds(400);
+  TimeStamp future1 = now + TimeDuration::FromMilliseconds(10);
+  TimeStamp future2 = now + TimeDuration::FromMilliseconds(20);
+  TimeStamp future3 = now + TimeDuration::FromMilliseconds(40);
+  TimeDuration duplicationInterval = TimeDuration::FromMilliseconds(10);
   mConverter->SetActive(true);
-  mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
+  mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
   mConverter->SetTrackEnabled(false);
   mConverter->QueueVideoChunk(GenerateChunk(800, 600, future1), false);
   mConverter->QueueVideoChunk(GenerateChunk(800, 600, future2), false);
   mConverter->QueueVideoChunk(GenerateChunk(800, 600, future3), false);
   auto frames = WaitFor(framesPromise).unwrap();
-  EXPECT_GT(TimeStamp::Now() - now, TimeDuration::FromSeconds(1));
+  EXPECT_GT(TimeStamp::Now() - now, duplicationInterval);
   ASSERT_EQ(frames.size(), 2U);
   // The first frame was created instantly by SetTrackEnabled().
   const auto& [frame0, conversionTime0] = frames[0];
@@ -353,14 +357,17 @@ TEST_F(VideoFrameConverterTest, BlackOnDisableCreated) {
   EXPECT_EQ(frame0.height(), 480);
   EXPECT_TRUE(IsFrameBlack(frame0));
   EXPECT_GT(conversionTime0 - now, TimeDuration::FromSeconds(0));
-  // The second frame was created by the same-frame timer (after 1s).
+  // The second frame was created by the same-frame timer. (We check multiples
+  // because timing and scheduling can make it slower than requested)
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
   EXPECT_TRUE(IsFrameBlack(frame1));
-  EXPECT_GT(conversionTime1 - now, TimeDuration::FromSeconds(1));
+  EXPECT_GT(conversionTime1 - now, duplicationInterval);
   // Check that the second frame comes 1s after the first.
-  EXPECT_EQ(frame1.timestamp_us(), frame0.timestamp_us() + PR_USEC_PER_SEC);
+  EXPECT_EQ(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
+                                           frame0.timestamp_us()),
+            duplicationInterval);
 }
 
 // We check that the disabling code was triggered by sending multiple,
@@ -369,11 +376,12 @@ TEST_F(VideoFrameConverterTest, BlackOnDisableCreated) {
 // duplicationInterval. This version queues a frame before disabling.
 TEST_F(VideoFrameConverterTest, BlackOnDisableDuplicated) {
   TimeStamp now = TimeStamp::Now();
-  TimeStamp future1 = now + TimeDuration::FromMilliseconds(100);
-  TimeStamp future2 = now + TimeDuration::FromMilliseconds(200);
-  TimeStamp future3 = now + TimeDuration::FromMilliseconds(400);
+  TimeStamp future1 = now + TimeDuration::FromMilliseconds(10);
+  TimeStamp future2 = now + TimeDuration::FromMilliseconds(20);
+  TimeStamp future3 = now + TimeDuration::FromMilliseconds(40);
+  TimeDuration duplicationInterval = TimeDuration::FromMilliseconds(100);
   mConverter->SetActive(true);
-  mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
+  mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
   mConverter->QueueVideoChunk(GenerateChunk(800, 600, future1), false);
   mConverter->QueueVideoChunk(GenerateChunk(800, 600, future2), false);
   mConverter->QueueVideoChunk(GenerateChunk(800, 600, future3), false);
@@ -395,45 +403,44 @@ TEST_F(VideoFrameConverterTest, BlackOnDisableDuplicated) {
   EXPECT_EQ(frame1.height(), 600);
   EXPECT_TRUE(IsFrameBlack(frame1));
   EXPECT_GT(conversionTime1 - now, future1 - now);
-  // The third frame was created by the same-frame timer (after 1s).
+  // The third frame was created by the same-frame timer.
   const auto& [frame2, conversionTime2] = frames[1];
   EXPECT_EQ(frame2.width(), 800);
   EXPECT_EQ(frame2.height(), 600);
   EXPECT_TRUE(IsFrameBlack(frame2));
-  EXPECT_GT(conversionTime2 - now,
-            future1 - now + TimeDuration::FromSeconds(1));
-  // Check that the third frame comes 1s after the second.
-  EXPECT_EQ(frame2.timestamp_us(), frame1.timestamp_us() + PR_USEC_PER_SEC);
+  EXPECT_GT(conversionTime2 - now, future1 - now + duplicationInterval);
+  // Check that the third frame comes a duplicationInterval after the second.
+  EXPECT_EQ(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
+                                           frame1.timestamp_us()),
+            duplicationInterval);
 }
 
 TEST_F(VideoFrameConverterTest, ClearFutureFramesOnJumpingBack) {
   TimeStamp start = TimeStamp::Now();
-  TimeStamp future1 = start + TimeDuration::FromMilliseconds(100);
+  TimeStamp future1 = start + TimeDuration::FromMilliseconds(10);
 
   auto framesPromise = TakeNConvertedFrames(1);
   mConverter->SetActive(true);
-  mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
   mConverter->QueueVideoChunk(GenerateChunk(640, 480, future1), false);
   auto frames = WaitFor(framesPromise).unwrap();
 
-  // We are now at t=100ms+. Queue a future frame and jump back in time to
+  // We are now at t=10ms+. Queue a future frame and jump back in time to
   // signal a reset.
 
   framesPromise = TakeNConvertedFrames(1);
   TimeStamp step1 = TimeStamp::Now();
   ASSERT_GT(step1 - start, future1 - start);
-  TimeStamp future2 = step1 + TimeDuration::FromMilliseconds(200);
-  TimeStamp future3 = step1 + TimeDuration::FromMilliseconds(100);
-  ASSERT_LT(future2 - start, future1 + TimeDuration::FromSeconds(1) - start);
+  TimeStamp future2 = step1 + TimeDuration::FromMilliseconds(20);
+  TimeStamp future3 = step1 + TimeDuration::FromMilliseconds(10);
   mConverter->QueueVideoChunk(GenerateChunk(800, 600, future2), false);
   VideoChunk nullChunk;
   nullChunk.mFrame = VideoFrame(nullptr, gfx::IntSize(800, 600));
   nullChunk.mTimeStamp = step1;
   mConverter->QueueVideoChunk(nullChunk, false);
 
-  // We queue one more chunk after the reset so we don't have to wait a full
-  // second for the same-frame timer. It has a different time and resolution
-  // so we can differentiate them.
+  // We queue one more chunk after the reset so we don't have to wait for the
+  // same-frame timer. It has a different time and resolution so we can
+  // differentiate them.
   mConverter->QueueVideoChunk(GenerateChunk(320, 240, future3), false);
 
   {
@@ -523,8 +530,9 @@ TEST_F(VideoFrameConverterTest, TimestampPropagation) {
 
 TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
   TimeStamp now = TimeStamp::Now();
-  TimeDuration d1 = TimeDuration::FromMilliseconds(100);
+  TimeDuration d1 = TimeDuration::FromMilliseconds(10);
   TimeDuration d2 = d1 + TimeDuration::FromMicroseconds(1);
+  TimeDuration duplicationInterval = TimeDuration::FromMilliseconds(50);
 
   auto framesPromise = TakeNConvertedFrames(1);
   mConverter->SetActive(true);
@@ -536,7 +544,7 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
   // Time is now ~t1. This processes an extra frame using t=now().
   mConverter->SetActive(false);
   mConverter->SetActive(true);
-  mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
+  mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
 
   // This processes a new chunk with an earlier timestamp than the extra frame
   // above. But it gets processed after the extra frame, so time will appear to
@@ -579,27 +587,30 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
   EXPECT_EQ(frame2.width(), 640);
   EXPECT_EQ(frame2.height(), 480);
   EXPECT_FALSE(IsFrameBlack(frame2));
-  EXPECT_EQ(frame2.timestamp_us(), frame1.timestamp_us() + USECS_PER_S);
-  EXPECT_GE(conversionTime2 - now, d2 + TimeDuration::FromSeconds(1));
+  EXPECT_EQ(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
+                                           frame1.timestamp_us()),
+            duplicationInterval);
+  EXPECT_GE(conversionTime2 - now, d2 + duplicationInterval);
 }
 
 TEST_F(VideoFrameConverterTest, SameFrameTimerRacingWithPacing) {
   TimeStamp now = TimeStamp::Now();
-  TimeDuration d1 = TimeDuration::FromMilliseconds(100);
+  TimeDuration d1 = TimeDuration::FromMilliseconds(10);
+  TimeDuration duplicationInterval = TimeDuration::FromMilliseconds(5);
   TimeDuration d2 =
-      d1 + TimeDuration::FromSeconds(1) - TimeDuration::FromMicroseconds(1);
+      d1 + duplicationInterval - TimeDuration::FromMilliseconds(1);
 
   auto framesPromise = TakeNConvertedFrames(3);
   mConverter->SetActive(true);
-  mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
+  mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
   mConverter->QueueVideoChunk(GenerateChunk(640, 480, now + d1), false);
   mConverter->QueueVideoChunk(GenerateChunk(640, 480, now + d2), false);
   auto frames = WaitFor(framesPromise).unwrap();
 
-  // The expected order here (in timestamps) is t1, t2, t2+1s.
+  // The expected order here (in timestamps) is t1, t2, t2+5ms.
   //
   // If the same-frame timer doesn't check what is queued we could end up with
-  // t1, t1+1s, t2.
+  // t1, t1+5ms, t2.
 
   ASSERT_EQ(frames.size(), 3U);
   const auto& [frame0, conversionTime0] = frames[0];
@@ -627,9 +638,9 @@ TEST_F(VideoFrameConverterTest, SameFrameTimerRacingWithPacing) {
   EXPECT_EQ(frame2.height(), 480);
   EXPECT_FALSE(IsFrameBlack(frame2));
   EXPECT_EQ(frame2.timestamp_us(),
-            dom::RTCStatsTimestamp::FromMozTime(
-                mTimestampMaker, now + d2 + TimeDuration::FromSeconds(1))
+            dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker,
+                                                now + d2 + duplicationInterval)
                 .ToRealtime()
                 .us());
-  EXPECT_GE(conversionTime2 - now, d2 + TimeDuration::FromSeconds(1));
+  EXPECT_GE(conversionTime2 - now, d2 + duplicationInterval);
 }
