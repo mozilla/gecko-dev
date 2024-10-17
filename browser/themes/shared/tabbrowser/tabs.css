@@ -358,7 +358,7 @@
       }
 
       #TabsToolbar[brighttext] &[progress]:not([selected])::before {
-        fill: var(--lwt-tab-loading-fill-inactive, #84c1ff);
+        fill: #84c1ff;
       }
     }
   }
