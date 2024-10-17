@@ -10324,6 +10324,163 @@ static void LineStartsOrEndsAtHardLineBreak(nsTextFrame* aFrame,
   }
 }
 
+bool nsTextFrame::AppendRenderedText(AppendRenderedTextState& aState,
+                                     RenderedText& aResult) {
+  if (HasAnyStateBits(NS_FRAME_IS_DIRTY)) {
+    // We don't trust dirty frames, especially when computing rendered text.
+    return false;
+  }
+
+  // Ensure the text run and grab the gfxSkipCharsIterator for it
+  gfxSkipCharsIterator iter = EnsureTextRun(nsTextFrame::eInflated);
+  if (!mTextRun) {
+    return false;
+  }
+  gfxSkipCharsIterator tmpIter = iter;
+
+  // Check if the frame starts/ends at a hard line break, to determine
+  // whether whitespace should be trimmed.
+  bool startsAtHardBreak, endsAtHardBreak;
+  if (!HasAnyStateBits(TEXT_START_OF_LINE | TEXT_END_OF_LINE)) {
+    startsAtHardBreak = endsAtHardBreak = false;
+  } else if (nsBlockFrame* thisLc = do_QueryFrame(FindLineContainer(this))) {
+    if (thisLc != aState.mLineContainer) {
+      // Setup line cursor when needed.
+      aState.mLineContainer = thisLc;
+      aState.mLineContainer->SetupLineCursorForQuery();
+    }
+    LineStartsOrEndsAtHardLineBreak(this, aState.mLineContainer,
+                                    &startsAtHardBreak, &endsAtHardBreak);
+  } else {
+    // Weird situation where we have a line layout without a block.
+    // No soft breaks occur in this situation.
+    startsAtHardBreak = endsAtHardBreak = true;
+  }
+
+  // Whether we need to trim whitespaces after the text frame.
+  // TrimmedOffsetFlags::Default will allow trimming; we set NoTrim* flags
+  // in the cases where this should not occur.
+  TrimmedOffsetFlags trimFlags = TrimmedOffsetFlags::Default;
+  if (!IsAtEndOfLine() ||
+      aState.mTrimTrailingWhitespace != TrailingWhitespace::Trim ||
+      !endsAtHardBreak) {
+    trimFlags |= TrimmedOffsetFlags::NoTrimAfter;
+  }
+
+  // Whether to trim whitespaces before the text frame.
+  if (!startsAtHardBreak) {
+    trimFlags |= TrimmedOffsetFlags::NoTrimBefore;
+  }
+
+  TrimmedOffsets trimmedOffsets =
+      GetTrimmedOffsets(aState.mTextFrag, trimFlags);
+  bool trimmedSignificantNewline = trimmedOffsets.GetEnd() < GetContentEnd() &&
+                                   HasSignificantTerminalNewline();
+  uint32_t skippedToRenderedStringOffset =
+      aState.mOffsetInRenderedString -
+      tmpIter.ConvertOriginalToSkipped(trimmedOffsets.mStart);
+  uint32_t nextOffsetInRenderedString =
+      tmpIter.ConvertOriginalToSkipped(trimmedOffsets.GetEnd()) +
+      (trimmedSignificantNewline ? 1 : 0) + skippedToRenderedStringOffset;
+
+  if (aState.mOffsetType == TextOffsetType::OffsetsInRenderedText) {
+    if (nextOffsetInRenderedString <= aState.mStartOffset) {
+      aState.mOffsetInRenderedString = nextOffsetInRenderedString;
+      return true;
+    }
+    if (!aState.mHaveOffsets) {
+      aResult.mOffsetWithinNodeText = tmpIter.ConvertSkippedToOriginal(
+          aState.mStartOffset - skippedToRenderedStringOffset);
+      aResult.mOffsetWithinNodeRenderedText = aState.mStartOffset;
+      aState.mHaveOffsets = true;
+    }
+    if (aState.mOffsetInRenderedString >= aState.mEndOffset) {
+      return false;
+    }
+  } else {
+    if (uint32_t(GetContentEnd()) <= aState.mStartOffset) {
+      aState.mOffsetInRenderedString = nextOffsetInRenderedString;
+      return true;
+    }
+    if (!aState.mHaveOffsets) {
+      aResult.mOffsetWithinNodeText = aState.mStartOffset;
+      // Skip trimmed space when computed the rendered text offset.
+      int32_t clamped =
+          std::max<int32_t>(aState.mStartOffset, trimmedOffsets.mStart);
+      aResult.mOffsetWithinNodeRenderedText =
+          tmpIter.ConvertOriginalToSkipped(clamped) +
+          skippedToRenderedStringOffset;
+      MOZ_ASSERT(aResult.mOffsetWithinNodeRenderedText >=
+                         aState.mOffsetInRenderedString &&
+                     aResult.mOffsetWithinNodeRenderedText <= INT32_MAX,
+                 "Bad offset within rendered text");
+      aState.mHaveOffsets = true;
+    }
+    if (uint32_t(mContentOffset) >= aState.mEndOffset) {
+      return false;
+    }
+  }
+
+  int32_t startOffset;
+  int32_t endOffset;
+  if (aState.mOffsetType == TextOffsetType::OffsetsInRenderedText) {
+    startOffset = tmpIter.ConvertSkippedToOriginal(
+        aState.mStartOffset - skippedToRenderedStringOffset);
+    endOffset = tmpIter.ConvertSkippedToOriginal(aState.mEndOffset -
+                                                 skippedToRenderedStringOffset);
+  } else {
+    startOffset = aState.mStartOffset;
+    endOffset = std::min<uint32_t>(INT32_MAX, aState.mEndOffset);
+  }
+
+  // If startOffset and/or endOffset are inside of trimmedOffsets' range,
+  // then clamp the edges of trimmedOffsets accordingly.
+  int32_t origTrimmedOffsetsEnd = trimmedOffsets.GetEnd();
+  trimmedOffsets.mStart =
+      std::max<uint32_t>(trimmedOffsets.mStart, startOffset);
+  trimmedOffsets.mLength =
+      std::min<uint32_t>(origTrimmedOffsetsEnd, endOffset) -
+      trimmedOffsets.mStart;
+  if (trimmedOffsets.mLength <= 0) {
+    aState.mOffsetInRenderedString = nextOffsetInRenderedString;
+    return true;
+  }
+
+  const nsStyleText* textStyle = StyleText();
+  iter.SetOriginalOffset(trimmedOffsets.mStart);
+  while (iter.GetOriginalOffset() < trimmedOffsets.GetEnd()) {
+    int32_t runLength;
+    bool isSkipped = iter.IsOriginalCharSkipped(&runLength);
+    runLength =
+        std::min(runLength, trimmedOffsets.GetEnd() - iter.GetOriginalOffset());
+    if (isSkipped) {
+      MOZ_ASSERT(runLength >= 0);
+      for (uint32_t i = 0; i < static_cast<uint32_t>(runLength); ++i) {
+        const char16_t ch = aState.mTextFrag->CharAt(
+            AssertedCast<uint32_t>(iter.GetOriginalOffset() + i));
+        if (ch == CH_SHY) {
+          // We should preserve soft hyphens. They can't be transformed.
+          aResult.mString.Append(ch);
+        }
+      }
+    } else {
+      TransformChars(this, textStyle, mTextRun, iter.GetSkippedOffset(),
+                     aState.mTextFrag, iter.GetOriginalOffset(), runLength,
+                     aResult.mString);
+    }
+    iter.AdvanceOriginal(runLength);
+  }
+
+  if (trimmedSignificantNewline && GetContentEnd() <= endOffset) {
+    // A significant newline was trimmed off (we must be
+    // white-space:pre-line). Put it back.
+    aResult.mString.Append('\n');
+  }
+  aState.mOffsetInRenderedString = nextOffsetInRenderedString;
+
+  return true;
+}
+
 nsIFrame::RenderedText nsTextFrame::GetRenderedText(
     uint32_t aStartOffset, uint32_t aEndOffset, TextOffsetType aOffsetType,
     TrailingWhitespace aTrimTrailingWhitespace) {
@@ -10337,174 +10494,21 @@ nsIFrame::RenderedText nsTextFrame::GetRenderedText(
 
   // The handling of offsets could be more efficient...
   RenderedText result;
-  nsBlockFrame* lineContainer = nullptr;
-  nsTextFrame* textFrame;
-  const nsTextFragment* textFrag = TextFragment();
-  uint32_t offsetInRenderedString = 0;
-  bool haveOffsets = false;
+  AppendRenderedTextState state{aStartOffset, aEndOffset, aOffsetType,
+                                aTrimTrailingWhitespace, TextFragment()};
 
-  for (textFrame = this; textFrame;
+  for (nsTextFrame* textFrame = this; textFrame;
        textFrame = textFrame->GetNextContinuation()) {
-    if (textFrame->HasAnyStateBits(NS_FRAME_IS_DIRTY)) {
-      // We don't trust dirty frames, especially when computing rendered text.
+    if (!textFrame->AppendRenderedText(state, result)) {
       break;
     }
-
-    // Ensure the text run and grab the gfxSkipCharsIterator for it
-    gfxSkipCharsIterator iter =
-        textFrame->EnsureTextRun(nsTextFrame::eInflated);
-    if (!textFrame->mTextRun) {
-      break;
-    }
-    gfxSkipCharsIterator tmpIter = iter;
-
-    // Check if the frame starts/ends at a hard line break, to determine
-    // whether whitespace should be trimmed.
-    bool startsAtHardBreak, endsAtHardBreak;
-    if (!HasAnyStateBits(TEXT_START_OF_LINE | TEXT_END_OF_LINE)) {
-      startsAtHardBreak = endsAtHardBreak = false;
-    } else if (nsBlockFrame* thisLc =
-                   do_QueryFrame(FindLineContainer(textFrame))) {
-      if (thisLc != lineContainer) {
-        // Setup line cursor when needed.
-        lineContainer = thisLc;
-        lineContainer->SetupLineCursorForQuery();
-      }
-      LineStartsOrEndsAtHardLineBreak(textFrame, lineContainer,
-                                      &startsAtHardBreak, &endsAtHardBreak);
-    } else {
-      // Weird situation where we have a line layout without a block.
-      // No soft breaks occur in this situation.
-      startsAtHardBreak = endsAtHardBreak = true;
-    }
-
-    // Whether we need to trim whitespaces after the text frame.
-    // TrimmedOffsetFlags::Default will allow trimming; we set NoTrim* flags
-    // in the cases where this should not occur.
-    TrimmedOffsetFlags trimFlags = TrimmedOffsetFlags::Default;
-    if (!textFrame->IsAtEndOfLine() ||
-        aTrimTrailingWhitespace != TrailingWhitespace::Trim ||
-        !endsAtHardBreak) {
-      trimFlags |= TrimmedOffsetFlags::NoTrimAfter;
-    }
-
-    // Whether to trim whitespaces before the text frame.
-    if (!startsAtHardBreak) {
-      trimFlags |= TrimmedOffsetFlags::NoTrimBefore;
-    }
-
-    TrimmedOffsets trimmedOffsets =
-        textFrame->GetTrimmedOffsets(textFrag, trimFlags);
-    bool trimmedSignificantNewline =
-        trimmedOffsets.GetEnd() < GetContentEnd() &&
-        HasSignificantTerminalNewline();
-    uint32_t skippedToRenderedStringOffset =
-        offsetInRenderedString -
-        tmpIter.ConvertOriginalToSkipped(trimmedOffsets.mStart);
-    uint32_t nextOffsetInRenderedString =
-        tmpIter.ConvertOriginalToSkipped(trimmedOffsets.GetEnd()) +
-        (trimmedSignificantNewline ? 1 : 0) + skippedToRenderedStringOffset;
-
-    if (aOffsetType == TextOffsetType::OffsetsInRenderedText) {
-      if (nextOffsetInRenderedString <= aStartOffset) {
-        offsetInRenderedString = nextOffsetInRenderedString;
-        continue;
-      }
-      if (!haveOffsets) {
-        result.mOffsetWithinNodeText = tmpIter.ConvertSkippedToOriginal(
-            aStartOffset - skippedToRenderedStringOffset);
-        result.mOffsetWithinNodeRenderedText = aStartOffset;
-        haveOffsets = true;
-      }
-      if (offsetInRenderedString >= aEndOffset) {
-        break;
-      }
-    } else {
-      if (uint32_t(textFrame->GetContentEnd()) <= aStartOffset) {
-        offsetInRenderedString = nextOffsetInRenderedString;
-        continue;
-      }
-      if (!haveOffsets) {
-        result.mOffsetWithinNodeText = aStartOffset;
-        // Skip trimmed space when computed the rendered text offset.
-        int32_t clamped =
-            std::max<int32_t>(aStartOffset, trimmedOffsets.mStart);
-        result.mOffsetWithinNodeRenderedText =
-            tmpIter.ConvertOriginalToSkipped(clamped) +
-            skippedToRenderedStringOffset;
-        MOZ_ASSERT(
-            result.mOffsetWithinNodeRenderedText >= offsetInRenderedString &&
-                result.mOffsetWithinNodeRenderedText <= INT32_MAX,
-            "Bad offset within rendered text");
-        haveOffsets = true;
-      }
-      if (uint32_t(textFrame->mContentOffset) >= aEndOffset) {
-        break;
-      }
-    }
-
-    int32_t startOffset;
-    int32_t endOffset;
-    if (aOffsetType == TextOffsetType::OffsetsInRenderedText) {
-      startOffset = tmpIter.ConvertSkippedToOriginal(
-          aStartOffset - skippedToRenderedStringOffset);
-      endOffset = tmpIter.ConvertSkippedToOriginal(
-          aEndOffset - skippedToRenderedStringOffset);
-    } else {
-      startOffset = aStartOffset;
-      endOffset = std::min<uint32_t>(INT32_MAX, aEndOffset);
-    }
-
-    // If startOffset and/or endOffset are inside of trimmedOffsets' range,
-    // then clamp the edges of trimmedOffsets accordingly.
-    int32_t origTrimmedOffsetsEnd = trimmedOffsets.GetEnd();
-    trimmedOffsets.mStart =
-        std::max<uint32_t>(trimmedOffsets.mStart, startOffset);
-    trimmedOffsets.mLength =
-        std::min<uint32_t>(origTrimmedOffsetsEnd, endOffset) -
-        trimmedOffsets.mStart;
-    if (trimmedOffsets.mLength <= 0) {
-      offsetInRenderedString = nextOffsetInRenderedString;
-      continue;
-    }
-
-    const nsStyleText* textStyle = textFrame->StyleText();
-    iter.SetOriginalOffset(trimmedOffsets.mStart);
-    while (iter.GetOriginalOffset() < trimmedOffsets.GetEnd()) {
-      int32_t runLength;
-      bool isSkipped = iter.IsOriginalCharSkipped(&runLength);
-      runLength = std::min(runLength,
-                           trimmedOffsets.GetEnd() - iter.GetOriginalOffset());
-      if (isSkipped) {
-        MOZ_ASSERT(runLength >= 0);
-        for (uint32_t i = 0; i < static_cast<uint32_t>(runLength); ++i) {
-          const char16_t ch = textFrag->CharAt(
-              AssertedCast<uint32_t>(iter.GetOriginalOffset() + i));
-          if (ch == CH_SHY) {
-            // We should preserve soft hyphens. They can't be transformed.
-            result.mString.Append(ch);
-          }
-        }
-      } else {
-        TransformChars(textFrame, textStyle, textFrame->mTextRun,
-                       iter.GetSkippedOffset(), textFrag,
-                       iter.GetOriginalOffset(), runLength, result.mString);
-      }
-      iter.AdvanceOriginal(runLength);
-    }
-
-    if (trimmedSignificantNewline && GetContentEnd() <= endOffset) {
-      // A significant newline was trimmed off (we must be
-      // white-space:pre-line). Put it back.
-      result.mString.Append('\n');
-    }
-    offsetInRenderedString = nextOffsetInRenderedString;
   }
 
-  if (!haveOffsets) {
-    result.mOffsetWithinNodeText = textFrag->GetLength();
-    result.mOffsetWithinNodeRenderedText = offsetInRenderedString;
+  if (!state.mHaveOffsets) {
+    result.mOffsetWithinNodeText = state.mTextFrag->GetLength();
+    result.mOffsetWithinNodeRenderedText = state.mOffsetInRenderedString;
   }
+
   return result;
 }
 
