@@ -216,7 +216,7 @@ export function LanguageSwitcher(props) {
         >
           <img
             className="language-loader"
-            src="chrome://browser/skin/tabbrowser/tab-connecting.png"
+            src="chrome://global/skin/icons/loading.svg"
             alt=""
           />
           <Localized text={content.languageSwitcher.waiting} />
@@ -242,7 +242,7 @@ export function LanguageSwitcher(props) {
         >
           <img
             className="language-loader"
-            src="chrome://browser/skin/tabbrowser/tab-connecting.png"
+            src="chrome://global/skin/icons/loading.svg"
             alt=""
           />
           <Localized text={content.languageSwitcher.downloading} />

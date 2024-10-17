@@ -1349,41 +1349,16 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   height: 16px;
   width: 16px;
 
-  @media (prefers-reduced-motion: reduce) {
-    &[busy] {
-      list-style-image: url("chrome://global/skin/icons/loading.svg");
-      -moz-context-properties: fill;
-      fill: currentColor;
-      opacity: 0.4;
-    }
-
-    &[progress] {
-      opacity: 0.8;
-    }
+  &[busy] {
+    list-style-image: url("chrome://global/skin/icons/loading.svg");
+    -moz-context-properties: fill;
+    fill: currentColor;
+    opacity: 0.7;
   }
 
-  @media (prefers-reduced-motion: no-preference) {
-    &[busy] {
-      list-style-image: image-set(
-        url("chrome://browser/skin/tabbrowser/tab-connecting.png"),
-        url("chrome://browser/skin/tabbrowser/tab-connecting@2x.png") 2x
-      );
-    }
-
-    &[progress] {
-      list-style-image: image-set(
-        url("chrome://browser/skin/tabbrowser/tab-loading.png"),
-        url("chrome://browser/skin/tabbrowser/tab-loading@2x.png") 2x
-      );
-
-      /* FIXME: This should probably also apply in regular dark mode? */
-      :root[lwt-popup="dark"] &[progress]:not([selected]) {
-        list-style-image: image-set(
-          url("chrome://browser/skin/tabbrowser/tab-loading-inverted.png"),
-          url("chrome://browser/skin/tabbrowser/tab-loading-inverted@2x.png") 2x
-        );
-      }
-    }
+  &[progress] {
+    color: var(--tab-loading-fill);
+    opacity: 1;
   }
 }
 

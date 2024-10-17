@@ -2533,18 +2533,14 @@ html {
   background-image: url("chrome://activity-stream/content/data/content/assets/long-zap.svg");
 }
 .onboardingContainer .language-loader {
-  filter: invert(1);
+  -moz-context-properties: fill;
+  fill: currentColor;
   margin-inline-end: 10px;
   position: relative;
   top: 3px;
   width: 16px;
   height: 16px;
   margin-top: -6px;
-}
-@media (prefers-color-scheme: dark) {
-  .onboardingContainer .language-loader {
-    filter: invert(0);
-  }
 }
 .onboardingContainer .tiles-single-select-container {
   display: flex;

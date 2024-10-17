@@ -1531,19 +1531,14 @@ html {
   }
 
   .language-loader {
-    filter: invert(1);
+    -moz-context-properties: fill;
+    fill: currentColor;
     margin-inline-end: 10px;
     position: relative;
     top: 3px;
     width: 16px;
     height: 16px;
     margin-top: -6px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .language-loader {
-      filter: invert(0);
-    }
   }
 
   .tiles-single-select-container {

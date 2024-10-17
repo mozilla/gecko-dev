@@ -1845,7 +1845,7 @@ function LanguageSwitcher(props) {
     type: "button"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("img", {
     className: "language-loader",
-    src: "chrome://browser/skin/tabbrowser/tab-connecting.png",
+    src: "chrome://global/skin/icons/loading.svg",
     alt: ""
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: content.languageSwitcher.waiting
@@ -1869,7 +1869,7 @@ function LanguageSwitcher(props) {
     type: "button"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("img", {
     className: "language-loader",
-    src: "chrome://browser/skin/tabbrowser/tab-connecting.png",
+    src: "chrome://global/skin/icons/loading.svg",
     alt: ""
   }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: content.languageSwitcher.downloading
