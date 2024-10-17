@@ -657,6 +657,7 @@
   MACRO_(yield, "yield")                                                       \
   MACRO_(zero, "zero")                                                         \
   MACRO_(zip, "zip")                                                           \
+  MACRO_(zipKeyed, "zipKeyed")                                                 \
   /* Type names must be contiguous and ordered; see js::TypeName. */           \
   MACRO_(undefined, "undefined")                                               \
   MACRO_(object, "object")                                                     \

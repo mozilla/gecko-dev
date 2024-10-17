@@ -984,4 +984,13 @@ function IteratorFind(predicate) {
 function IteratorZip(predicate) {
   return false;
 }
+
+/**
+ * Iterator.zipKeyed ( iterables [, options] )
+ *
+ * https://tc39.es/proposal-joint-iteration/#sec-iterator.zipkeyed
+ */
+function IteratorZipKeyed(predicate) {
+  return false;
+}
 #endif
