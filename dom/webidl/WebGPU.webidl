@@ -120,6 +120,8 @@ interface GPUAdapter {
 
     [Throws]
     Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
+    [Throws]
+    Promise<GPUAdapterInfo> requestAdapterInfo(optional sequence<DOMString> unmaskHints = []);
 };
 
 dictionary GPUDeviceDescriptor

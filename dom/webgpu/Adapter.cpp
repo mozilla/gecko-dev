@@ -485,4 +485,23 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
   return promise.forget();
 }
 
+// -
+
+already_AddRefed<dom::Promise> Adapter::RequestAdapterInfo(
+    const dom::Sequence<nsString>& /*aUnmaskHints*/, ErrorResult& aRv) const {
+  dom::AutoJSAPI api;
+  if (api.Init(GetParentObject())) {
+    JS::WarnUTF8(api.cx(),
+                 "`GPUAdapter.requestAdapterInfo()` is deprecated. "
+                 "Please use `GPUAdapter.info` instead.");
+  }
+
+  RefPtr<dom::Promise> promise = dom::Promise::Create(GetParentObject(), aRv);
+  if (!promise) return nullptr;
+
+  RefPtr<AdapterInfo> rai = mInfo;
+  promise->MaybeResolve(rai);
+  return promise.forget();
+}
+
 }  // namespace mozilla::webgpu
