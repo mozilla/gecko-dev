@@ -18,6 +18,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [blockedCountByType](#blockedcountbytype)
 * [browserIsSelected](#browserisselected)
 * [browserSettings](#browsersettings)
+* [canCreateSelectableProfiles](#cancreateselectableprofiles)
 * [creditCardsSaved](#creditcardssaved)
 * [currentDate](#currentdate)
 * [defaultPDFHandler](#defaultpdfhandler)
@@ -35,6 +36,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [hasMigratedHistory](#hasmigratedhistory)
 * [hasMigratedPasswords](#hasmigratedpasswords)
 * [hasPinnedTabs](#haspinnedtabs)
+* [hasSelectableProfiles](#hasselectableprofiles)
 * [homePageSettings](#homepagesettings)
 * [isBackgroundTaskMode](#isbackgroundtaskmode)
 * [isChinaRepack](#ischinarepack)
@@ -1030,6 +1032,14 @@ A boolean. `true` if the user is configured to use the embedded Migration Wizard
 ### `isRTAMO`
 
 A boolean. `true` when [RTAMO](first-run.md#return-to-amo-rtamo) has been used to download Firefox, `false` otherwise.
+
+### `canCreateSelectableProfiles`
+
+A boolean. `true` when both the current install and current profile support creating additional profiles using the `SelectableProfileService`; `false` otherwise.
+
+### `hasSelectableProfiles`
+
+A boolean. `true` when the `toolkit.profiles.storeID` pref has a value. Indicates that the profile is part of a profile group managed by the `SelectableProfileService`, and the user has used the multiple profiles feature. `false` otherwise.
 
 ### `isMSIX`
 

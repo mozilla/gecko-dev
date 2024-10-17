@@ -50,6 +50,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   HomePage: "resource:///modules/HomePage.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
+  // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+  SelectableProfileService:
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
   TargetingContext: "resource://messaging-system/targeting/Targeting.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   TelemetrySession: "resource://gre/modules/TelemetrySession.sys.mjs",
@@ -166,6 +169,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
       ? parseInt(lastSeenString, 10)
       : 0;
   }
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "profileStoreID",
+  "toolkit.profiles.storeID",
+  null
 );
 
 XPCOMUtils.defineLazyServiceGetters(lazy, {
@@ -576,6 +585,15 @@ const TargetingGetters = {
   },
   get currentDate() {
     return new Date();
+  },
+  get canCreateSelectableProfiles() {
+    if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+      return null;
+    }
+    return !!lazy.SelectableProfileService?.groupToolkitProfile;
+  },
+  get hasSelectableProfiles() {
+    return !!lazy.profileStoreID;
   },
   get profileAgeCreated() {
     return lazy.ProfileAge().then(times => times.created);

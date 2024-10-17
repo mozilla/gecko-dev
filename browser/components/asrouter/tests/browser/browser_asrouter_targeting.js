@@ -211,6 +211,50 @@ add_task(async function checkCurrentDate() {
   );
 });
 
+add_task(async function check_canCreateSelectableProfiles() {
+  if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
+    // `mochitest-browser` suite `add_task` does not yet support
+    // `properties.skip_if`.
+    ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
+    return;
+  }
+
+  is(
+    await ASRouterTargeting.Environment.canCreateSelectableProfiles,
+    true,
+    "should return true if the current profile is valid for use with SelectableProfileService"
+  );
+
+  const message = { id: "foo", targeting: "canCreateSelectableProfiles" };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select correct item by canCreateSelectableProfiles"
+  );
+});
+
+add_task(async function check_hasSelectableProfiles() {
+  is(
+    await ASRouterTargeting.Environment.hasSelectableProfiles,
+    false,
+    "should return false before the pref is set"
+  );
+
+  await pushPrefs(["toolkit.profiles.storeID", "someValue"]);
+  is(
+    await ASRouterTargeting.Environment.hasSelectableProfiles,
+    true,
+    "should return true if the pref is set"
+  );
+
+  const message = { id: "foo", targeting: "hasSelectableProfiles" };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select correct item by hasSelectableProfiles"
+  );
+});
+
 add_task(async function check_usesFirefoxSync() {
   await pushPrefs(["services.sync.username", "someone@foo.com"]);
   is(

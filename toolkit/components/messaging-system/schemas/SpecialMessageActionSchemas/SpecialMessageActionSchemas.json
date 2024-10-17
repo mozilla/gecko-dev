@@ -665,6 +665,18 @@
           "required": ["data", "type"],
           "additionalProperties": false,
           "description": "Sets the visibility of the bookmarks toolbar"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["CREATE_NEW_SELECTABLE_PROFILE"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Creates a new user profile using SelectableProfileService and launches it in a new instance"
         }
       ]
     }

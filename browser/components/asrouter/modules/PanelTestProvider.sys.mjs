@@ -20,6 +20,56 @@ const isMSIX =
 
 const MESSAGES = () => [
   {
+    id: "NEW_PROFILE_SPOTLIGHT",
+    groups: [],
+    targeting: "canCreateSelectableProfiles && !hasSelectableProfiles",
+    trigger: {
+      id: "defaultBrowserCheck",
+    },
+    template: "spotlight",
+    content: {
+      template: "multistage",
+      modal: "tab",
+      screens: [
+        {
+          id: "SCREEN_1",
+          content: {
+            logo: {
+              imageURL:
+                "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/a3c640c8-7594-4bb2-bc18-8b4744f3aaf2.gif",
+            },
+            title: {
+              raw: "Say hello to Firefox profiles",
+              paddingBlock: "8px",
+            },
+            subtitle: {
+              raw: "Easily switch between browsing for work and fun. Profiles keep your browsing info, including search history and passwords, totally separate so you can stay organized.",
+            },
+            dismiss_button: {
+              action: {
+                dismiss: true,
+              },
+            },
+            primary_button: {
+              label: "Create a profile",
+              action: {
+                navigate: true,
+                type: "CREATE_NEW_SELECTABLE_PROFILE",
+              },
+            },
+            secondary_button: {
+              label: "Not now",
+              action: {
+                dismiss: true,
+              },
+            },
+          },
+        },
+      ],
+      transitions: true,
+    },
+  },
+  {
     id: "WNP_THANK_YOU",
     template: "update_action",
     content: {
