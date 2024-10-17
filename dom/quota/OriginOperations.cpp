@@ -3416,12 +3416,11 @@ nsresult EstimateOp::DoInit(QuotaManager& aQuotaManager) {
 RefPtr<BoolPromise> EstimateOp::OpenDirectory() {
   AssertIsOnOwningThread();
 
-  // XXX In theory, we should be locking entire group, not just one origin.
   return OpenStorageDirectory(
       PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                       PERSISTENCE_TYPE_DEFAULT,
                                       PERSISTENCE_TYPE_PRIVATE),
-      OriginScope::FromOrigin(mOriginMetadata), Nullable<Client::Type>(),
+      OriginScope::FromGroup(mOriginMetadata.mGroup), Nullable<Client::Type>(),
       /* aExclusive */ false,
       /* aInitializeOrigins */ true);
 }
