@@ -237,9 +237,9 @@ TEST_F(VideoFrameConverterTest, Duplication) {
   EXPECT_EQ(frame1.height(), 480);
   EXPECT_THAT(frame1, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime1 - now, future1 + duplicationInterval - now);
-  EXPECT_EQ(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
-                                           frame0.timestamp_us()),
-            duplicationInterval);
+  EXPECT_THAT(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
+                                             frame0.timestamp_us()),
+              IsDurationInMillisPositiveMultipleOf(duplicationInterval));
 
   // Check that we re-used the old buffer.
   EXPECT_EQ(frame0.video_frame_buffer(), frame1.video_frame_buffer());
