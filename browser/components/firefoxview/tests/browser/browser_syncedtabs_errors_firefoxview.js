@@ -198,7 +198,7 @@ add_task(async function test_sync_error_signed_out() {
     await TestUtils.waitForCondition(
       () =>
         syncedTabsComponent.emptyState.shadowRoot.textContent.includes(
-          "sign in to your account"
+          "sign in or sign up for an account"
         ),
       "Sign in header is shown."
     );
@@ -291,7 +291,7 @@ add_task(async function test_password_change_disconnect_error() {
     await TestUtils.waitForCondition(
       () =>
         syncedTabsComponent.emptyState.shadowRoot.textContent.includes(
-          "sign in to your account"
+          "sign in or sign up for an account"
         ),
       "The expected synced tabs empty state header is shown."
     );

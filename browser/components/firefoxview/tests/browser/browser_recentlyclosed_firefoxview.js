@@ -465,7 +465,7 @@ add_task(async function test_empty_states() {
     );
     emptyStateCard = recentlyClosedComponent.emptyState;
     ok(
-      emptyStateCard.headerEl.textContent.includes("Nothing to show"),
+      emptyStateCard.headerEl.textContent.includes("You’re in control"),
       "Empty state with never remember history header has the expected text."
     );
     ok(
