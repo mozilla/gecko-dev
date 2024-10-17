@@ -41,7 +41,6 @@ class nsHttpResponseHead {
   nsHttpResponseHead() = default;
 
   nsHttpResponseHead(const nsHttpResponseHead& aOther);
-  nsHttpResponseHead(nsHttpResponseHead&& aOther);
   nsHttpResponseHead& operator=(const nsHttpResponseHead& aOther);
 
   void Enter() const MOZ_CAPABILITY_ACQUIRE(mRecursiveMutex) {

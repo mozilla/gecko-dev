@@ -407,7 +407,7 @@ already_AddRefed<nsIEventTarget> HttpTransactionParent::GetNeckoTarget() {
 }
 
 mozilla::ipc::IPCResult HttpTransactionParent::RecvOnStartRequest(
-    const nsresult& aStatus, Maybe<nsHttpResponseHead>&& aResponseHead,
+    const nsresult& aStatus, const Maybe<nsHttpResponseHead>& aResponseHead,
     nsITransportSecurityInfo* aSecurityInfo, const bool& aProxyConnectFailed,
     const TimingStructArgs& aTimings, const int32_t& aProxyConnectResponseCode,
     nsTArray<uint8_t>&& aDataForSniffer, const Maybe<nsCString>& aAltSvcUsed,
@@ -417,19 +417,18 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnStartRequest(
     const uint32_t& aCaps, const TimeStamp& aOnStartRequestStartTime) {
   mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
       this, [self = UnsafePtr<HttpTransactionParent>(this), aStatus,
-             aResponseHead = std::move(aResponseHead),
-             securityInfo = nsCOMPtr{aSecurityInfo}, aProxyConnectFailed,
-             aTimings, aProxyConnectResponseCode,
+             aResponseHead, securityInfo = nsCOMPtr{aSecurityInfo},
+             aProxyConnectFailed, aTimings, aProxyConnectResponseCode,
              aDataForSniffer = CopyableTArray{std::move(aDataForSniffer)},
              aAltSvcUsed, aDataToChildProcess, aRestarted,
              aHTTPSSVCReceivedStage, aSupportsHttp3, aMode, aTrrSkipReason,
              aCaps, aOnStartRequestStartTime]() mutable {
         self->DoOnStartRequest(
-            aStatus, std::move(aResponseHead), securityInfo,
-            aProxyConnectFailed, aTimings, aProxyConnectResponseCode,
-            std::move(aDataForSniffer), aAltSvcUsed, aDataToChildProcess,
-            aRestarted, aHTTPSSVCReceivedStage, aSupportsHttp3, aMode,
-            aTrrSkipReason, aCaps, aOnStartRequestStartTime);
+            aStatus, aResponseHead, securityInfo, aProxyConnectFailed, aTimings,
+            aProxyConnectResponseCode, std::move(aDataForSniffer), aAltSvcUsed,
+            aDataToChildProcess, aRestarted, aHTTPSSVCReceivedStage,
+            aSupportsHttp3, aMode, aTrrSkipReason, aCaps,
+            aOnStartRequestStartTime);
       }));
   return IPC_OK();
 }
@@ -454,7 +453,7 @@ static void TimingStructArgsToTimingsStruct(const TimingStructArgs& aArgs,
 }
 
 void HttpTransactionParent::DoOnStartRequest(
-    const nsresult& aStatus, Maybe<nsHttpResponseHead>&& aResponseHead,
+    const nsresult& aStatus, const Maybe<nsHttpResponseHead>& aResponseHead,
     nsITransportSecurityInfo* aSecurityInfo, const bool& aProxyConnectFailed,
     const TimingStructArgs& aTimings, const int32_t& aProxyConnectResponseCode,
     nsTArray<uint8_t>&& aDataForSniffer, const Maybe<nsCString>& aAltSvcUsed,
@@ -483,8 +482,7 @@ void HttpTransactionParent::DoOnStartRequest(
   mOnStartRequestStartTime = aOnStartRequestStartTime;
 
   if (aResponseHead.isSome()) {
-    mResponseHead =
-        MakeUnique<nsHttpResponseHead>(std::move(aResponseHead.ref()));
+    mResponseHead = MakeUnique<nsHttpResponseHead>(aResponseHead.ref());
   }
   mProxyConnectFailed = aProxyConnectFailed;
   TimingStructArgsToTimingsStruct(aTimings, mTimings);

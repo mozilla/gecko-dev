@@ -483,8 +483,7 @@ HttpTransactionChild::OnStartRequest(nsIRequest* aRequest) {
   }
 
   Unused << SendOnStartRequest(
-      status, std::move(optionalHead), securityInfo,
-      mTransaction->ProxyConnectFailed(),
+      status, optionalHead, securityInfo, mTransaction->ProxyConnectFailed(),
       ToTimingStructArgs(mTransaction->Timings()), proxyConnectResponseCode,
       dataForSniffer, optionalAltSvcUsed, !!mDataBridgeParent,
       mTransaction->TakeRestartedState(), mTransaction->HTTPSSVCReceivedStage(),

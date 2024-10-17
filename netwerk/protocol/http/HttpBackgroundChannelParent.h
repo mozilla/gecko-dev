@@ -40,7 +40,7 @@ class HttpBackgroundChannelParent final : public PHttpBackgroundChannelParent {
   void OnChannelClosed();
 
   // To send OnStartRequest message over background channel.
-  bool OnStartRequest(nsHttpResponseHead&& aResponseHead,
+  bool OnStartRequest(const nsHttpResponseHead& aResponseHead,
                       const bool& aUseResponseHead,
                       const nsHttpHeaderArray& aRequestHeaders,
                       const HttpChannelOnStartRequestArgs& aArgs,
