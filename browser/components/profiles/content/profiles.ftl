@@ -46,15 +46,12 @@ delete-profile-logins = Passwords
 delete-profile-cancel = Cancel
 delete-profile-confirm = Delete
 
+appmenu-other-profiles = Other profiles
 appmenu-manage-profiles =
     .label = Manage profiles
 appmenu-create-profile =
-    .label = Create a new profile
+    .label = New profile
+appmenu-edit-profile =
+    .aria-label = Edit profile
 
-## Variables
-##   $profilename (String) - The name of the profile.
-
-appmenuitem-profiles =
-    .label = Profiles | { $profilename }
-appmenu-close-profile =
-    .label = Close { $profilename } profile
+appmenu-profiles = Profiles
