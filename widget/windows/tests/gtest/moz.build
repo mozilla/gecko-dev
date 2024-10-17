@@ -7,13 +7,10 @@
 UNIFIED_SOURCES += [
     "TestJumpListBuilder.cpp",
     "TestWinDND.cpp",
-    "TestWindowGfx.cpp",
     "TestWinUtils.cpp",
 ]
 
 LOCAL_INCLUDES += [
-    "/gfx/cairo/cairo/src",
-    "/image",
     "/widget",
     "/widget/windows",
 ]
