@@ -31,4 +31,6 @@ self.addEventListener("message", function (event) {
 // Wait for the canInstall flag to be flipped before completing the install.
 self.addEventListener("install", function (event) {
   event.waitUntil(waitUntil(() => canInstall));
+  // Log an early message to check cached log messages in tests.
+  console.log("service worker installed");
 });

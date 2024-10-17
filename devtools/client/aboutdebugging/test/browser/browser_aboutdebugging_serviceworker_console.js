@@ -63,6 +63,13 @@ add_task(async function () {
   const webconsole = await toolbox.selectTool("webconsole");
   const { hud } = webconsole;
 
+  info(
+    "Checked that (cached) messages logged before opening the toolbox are displayed"
+  );
+  await waitFor(() =>
+    findMessageByType(hud, "service worker installed", ".log")
+  );
+
   info("Evaluate location in the console");
   await executeAndWaitForMessage(hud, "this.location.toString()", SW_URL);
   ok(true, "Got the location logged in the console");
