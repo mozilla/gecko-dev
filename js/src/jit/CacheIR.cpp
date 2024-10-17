@@ -45,6 +45,7 @@
 #include "vm/BoundFunctionObject.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/Compartment.h"
+#include "vm/DateObject.h"
 #include "vm/Iteration.h"
 #include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/ProxyObject.h"
@@ -2083,6 +2084,8 @@ const JSClass* js::jit::ClassFor(GuardClassKind kind) {
       return &SetObject::class_;
     case GuardClassKind::Map:
       return &MapObject::class_;
+    case GuardClassKind::Date:
+      return &DateObject::class_;
   }
   MOZ_CRASH("unexpected kind");
 }
@@ -2104,6 +2107,7 @@ void IRGenerator::emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
     case GuardClassKind::ResizableDataView:
     case GuardClassKind::Set:
     case GuardClassKind::Map:
+    case GuardClassKind::Date:
       MOZ_ASSERT(obj->hasClass(ClassFor(kind)));
       break;
 
@@ -10422,6 +10426,43 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapGet() {
   return AttachDecision::Attach;
 }
 
+AttachDecision InlinableNativeIRGenerator::tryAttachDateGetTime(
+    InlinableNative native) {
+  MOZ_ASSERT_IF(native == InlinableNative::IntrinsicThisTimeValue,
+                argc_ == 1 && args_[0].isInt32());
+
+  // Ensure |this| is a DateObject.
+  if (!thisval_.isObject() || !thisval_.toObject().is<DateObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  initializeInputOperand();
+
+  if (native == InlinableNative::DateGetTime) {
+    // Guard callee is the 'getTime' (or 'valueOf') native function.
+    emitNativeCalleeGuard();
+  } else {
+    // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
+    MOZ_ASSERT(native == InlinableNative::IntrinsicThisTimeValue);
+  }
+
+  // Guard |this| is a DateObject.
+  ValOperandId thisValId =
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
+  ObjOperandId objId = writer.guardToObject(thisValId);
+  emitOptimisticClassGuard(objId, &thisval_.toObject(), GuardClassKind::Date);
+
+  writer.loadFixedSlotTypedResult(objId, DateObject::offsetOfUTCTimeSlot(),
+                                  ValueType::Double);
+
+  writer.returnFromIC();
+
+  trackAttached(native == InlinableNative::DateGetTime ? "DateGetTime"
+                                                       : "ThisTimeValue");
+  return AttachDecision::Attach;
+}
+
 AttachDecision CallIRGenerator::tryAttachFunCall(HandleFunction callee) {
   MOZ_ASSERT(callee->isNativeWithoutJitEntry());
 
@@ -12124,6 +12165,11 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return tryAttachMapHas();
     case InlinableNative::MapGet:
       return tryAttachMapGet();
+
+    // Date natives and intrinsics.
+    case InlinableNative::DateGetTime:
+    case InlinableNative::IntrinsicThisTimeValue:
+      return tryAttachDateGetTime(native);
 
     // Testing functions.
     case InlinableNative::TestBailout:

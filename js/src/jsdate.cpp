@@ -37,6 +37,7 @@
 #ifdef JS_HAS_TEMPORAL_API
 #  include "builtin/temporal/Instant.h"
 #endif
+#include "jit/InlinableNatives.h"
 #include "js/CallAndConstruct.h"  // JS::IsCallable
 #include "js/Conversions.h"
 #include "js/Date.h"
@@ -4450,7 +4451,7 @@ static const JSFunctionSpec date_static_methods[] = {
 };
 
 static const JSFunctionSpec date_methods[] = {
-    JS_FN("getTime", date_getTime, 0, 0),
+    JS_INLINABLE_FN("getTime", date_getTime, 0, 0, DateGetTime),
     JS_FN("getTimezoneOffset", date_getTimezoneOffset, 0, 0),
     JS_FN("getYear", date_getYear, 0, 0),
     JS_FN("getFullYear", date_getFullYear, 0, 0),
@@ -4504,7 +4505,7 @@ static const JSFunctionSpec date_methods[] = {
     JS_FN("toJSON", date_toJSON, 1, 0),
     JS_FN("toSource", date_toSource, 0, 0),
     JS_FN("toString", date_toString, 0, 0),
-    JS_FN("valueOf", date_valueOf, 0, 0),
+    JS_INLINABLE_FN("valueOf", date_valueOf, 0, 0, DateGetTime),
     JS_SYM_FN(toPrimitive, date_toPrimitive, 1, JSPROP_READONLY),
     JS_FS_END,
 };

@@ -132,6 +132,10 @@ class DateObject : public NativeObject {
   const js::Value& localSecondsIntoYear() const {
     return getReservedSlot(LOCAL_SECONDS_INTO_YEAR_SLOT);
   }
+
+  static constexpr size_t offsetOfUTCTimeSlot() {
+    return getFixedSlotOffset(UTC_TIME_SLOT);
+  }
 };
 
 }  // namespace js

@@ -2184,7 +2184,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
                     IntrinsicSubstringKernel),
     JS_FN("ThisNumberValueForToLocaleString", ThisNumberValueForToLocaleString,
           0, 0),
-    JS_FN("ThisTimeValue", intrinsic_ThisTimeValue, 1, 0),
+    JS_INLINABLE_FN("ThisTimeValue", intrinsic_ThisTimeValue, 1, 0,
+                    IntrinsicThisTimeValue),
 #ifdef ENABLE_RECORD_TUPLE
     JS_FN("ThisTupleValue", intrinsic_ThisTupleValue, 1, 0),
 #endif

@@ -72,6 +72,8 @@
   _(DataViewSetBigInt64)                           \
   _(DataViewSetBigUint64)                          \
                                                    \
+  _(DateGetTime)                                   \
+                                                   \
   _(FunctionBind)                                  \
                                                    \
   _(IntlGuardToCollator)                           \
@@ -237,6 +239,8 @@
   _(IntrinsicRegExpExecForTest)                    \
   _(IntrinsicTypedArrayByteOffset)                 \
   _(IntrinsicTypedArrayElementSize)                \
+                                                   \
+  _(IntrinsicThisTimeValue)                        \
                                                    \
   INLINABLE_EXPLICIT_RESOURCE_MANAGEMENENT_LIST(_) \
   INLINABLE_NATIVE_FUZZILLI_LIST(_)

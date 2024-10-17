@@ -534,6 +534,7 @@ enum class GuardClassKind : uint8_t {
   BoundFunction,
   Set,
   Map,
+  Date,
 };
 
 const JSClass* ClassFor(GuardClassKind kind);
