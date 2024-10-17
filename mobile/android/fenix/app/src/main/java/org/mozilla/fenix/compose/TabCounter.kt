@@ -85,14 +85,10 @@ fun TabCounter(
         }
     }
 
-    val normalTabsContentDescription = if (tabCount == 1) {
-        stringResource(id = R.string.mozac_tab_counter_open_tab_tray_single)
-    } else {
-        stringResource(
-            id = R.string.mozac_tab_counter_open_tab_tray_plural,
-            formattedTabCount,
-        )
-    }
+    val normalTabsContentDescription = stringResource(
+        R.string.mozac_tab_counter_open_tab_tray,
+        formattedTabCount,
+    )
 
     val counterBoxWidthDp =
         dimensionResource(id = mozilla.components.ui.tabcounter.R.dimen.mozac_tab_counter_box_width_height)

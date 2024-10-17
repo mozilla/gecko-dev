@@ -75,14 +75,10 @@ class TabCounter @JvmOverloads constructor(
     }
 
     private fun updateContentDescription(count: Int) {
-        counterRoot.contentDescription = if (count == 1) {
-            context?.getString(R.string.mozac_tab_counter_open_tab_tray_single)
-        } else {
-            String.format(
-                context.getString(R.string.mozac_tab_counter_open_tab_tray_plural),
-                count.toString(),
-            )
-        }
+        counterRoot.contentDescription = context.getString(
+            R.string.mozac_tab_counter_open_tab_tray,
+            count.toString(),
+        )
     }
 
     fun setCountWithAnimation(count: Int) {
