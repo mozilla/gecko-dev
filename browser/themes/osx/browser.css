@@ -40,13 +40,6 @@
   }
 }
 
-#browser,
-#navigator-toolbox {
-  /* #browser and #navigator-toolbox must have relative positions so that the
-     latter can slide over the former in fullscreen mode. */
-  position: relative;
-}
-
 /** Begin titlebar **/
 
 .browser-titlebar {
