@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-10-05T13:16:08.987429+00:00'
+updated_at: '2024-10-16T08:28:06.317673+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -931,6 +931,10 @@ people:
     bmo_id: 603840
     name: Sarah Clements
     nick: sclements
+  - &scunnane
+    bmo_id: 703413
+    name: Stephanie Cunnane
+    nick: scunnane
   - &sefeng
     bmo_id: 625922
     name: Sean Feng
@@ -3689,8 +3693,9 @@ modules:
           - *standard8
         peers:
           - *daleharvey
-          - *mcheang
           - *jteow
+          - *mcheang
+          - *scunnane
         machine_name: search
 
       - name: Security and Privacy UI
@@ -4444,5 +4449,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 2e733439b1df731727cf34f2a9b75005bef3ff00
-  export: 6f82081c80190cf2a4cea31ae3c0d3b1cbb0acf3
+  config: 7217f00cccafd42ed649d638849425ed6356310e
+  export: 3960a6fc6efb357302da10709df7d617a7660bd1
