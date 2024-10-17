@@ -83,6 +83,9 @@ Review groups
    * - Name
      - Owns
      - Members
+   * - #anchor-positioning-reviewers
+     - Anchor positioning - related style and layout code
+     - `Member list <https://phabricator.services.mozilla.com/project/members/216/>`__
    * - #anti-tracking
      - `Core: Anti-Tracking </mots/index.html#core-anti-tracking>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/157/>`__
@@ -137,6 +140,9 @@ Review groups
    * - #layout-reviewers
      - Layout
      - `Member list <https://phabricator.services.mozilla.com/project/members/126/>`__
+   * - #layout-grid-reviewers
+     - layout/grid
+     - `Member list <https://phabricator.services.mozilla.com/project/members/215/>`__
    * - #linter-reviewers
      - tools/lint/*
      - `Member list <https://phabricator.services.mozilla.com/project/members/119/>`__
@@ -206,6 +212,9 @@ Review groups
    * - #urlbar-reviewers
      - `Urlbar (Address Bar) </mots/index.html#address-bar>`__
      - `Member list <https://phabricator.services.mozilla.com/project/members/211/>`__
+   * - #view-transitions-reviewers or #view-transitions or #vt
+     - View Transitions (dom/view-transitions, and the relevant style / layout / gfx code).
+     - `Member list <https://phabricator.services.mozilla.com/project/members/217/>`__
    * - #webcompat-reviewers
      - System addons maintained by the Web Compatibility team
      - `Member list <https://phabricator.services.mozilla.com/project/members/124/>`__
