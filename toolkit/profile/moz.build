@@ -34,6 +34,9 @@ LOCAL_INCLUDES += [
     "../xre",
 ]
 
+if CONFIG["MOZ_HAS_REMOTE"]:
+    LOCAL_INCLUDES += ["../components/remote"]
+
 FINAL_LIBRARY = "xul"
 
 for var in ("MOZ_APP_NAME", "MOZ_APP_BASENAME"):

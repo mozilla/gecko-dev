@@ -32,6 +32,14 @@ XPCOMUtils.defineLazyServiceGetter(
 
 const PROFILES_CRYPTO_SALT_LENGTH_BYTES = 16;
 
+async function attemptFlush() {
+  try {
+    await lazy.ProfileService.asyncFlush();
+  } catch (e) {
+    await lazy.ProfileService.asyncFlushCurrentProfile();
+  }
+}
+
 /**
  * The service that manages selectable profiles
  */
@@ -100,7 +108,7 @@ class SelectableProfileServiceClass {
       .replace("{", "")
       .split("-")[0];
     this.#groupToolkitProfile.storeID = storageID;
-    lazy.ProfileService.flush();
+    await attemptFlush();
   }
 
   async getProfilesStorePath() {
@@ -317,7 +325,7 @@ class SelectableProfileServiceClass {
     }
 
     this.#groupToolkitProfile.storeID = null;
-    lazy.ProfileService.flush();
+    await attemptFlush();
     await this.vacuumAndCloseGroupDB();
   }
 
@@ -386,7 +394,7 @@ class SelectableProfileServiceClass {
       return;
     }
     this.#groupToolkitProfile.rootDir = await this.currentProfile.rootDir;
-    lazy.ProfileService.flush();
+    await attemptFlush();
   }
 
   /**
@@ -395,13 +403,13 @@ class SelectableProfileServiceClass {
    *
    * @param {boolean} shouldShow Whether or not we should show the profile selector
    */
-  showProfileSelectorWindow(shouldShow) {
+  async showProfileSelectorWindow(shouldShow) {
     if (shouldShow === this.groupToolkitProfile.showProfileSelector) {
       return;
     }
 
     this.groupToolkitProfile.showProfileSelector = shouldShow;
-    lazy.ProfileService.flush();
+    await attemptFlush();
   }
 
   /**

@@ -2698,7 +2698,7 @@ export class BackupService extends EventTarget {
       );
       await IOUtils.writeJSON(postRecoveryPath, postRecovery);
 
-      profileSvc.flush();
+      await profileSvc.asyncFlush();
 
       if (shouldLaunch) {
         Services.startup.createInstanceWithProfile(profile);
