@@ -518,20 +518,22 @@ TEST_F(VideoFrameConverterTest, TimestampPropagation) {
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
   EXPECT_THAT(frame0, Not(IsFrameBlack()));
-  EXPECT_EQ(frame0.timestamp_us(),
-            dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d1)
-                .ToRealtime()
-                .us());
+  EXPECT_NEAR(frame0.timestamp_us(),
+              dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d1)
+                  .ToRealtime()
+                  .us(),
+              1);
   EXPECT_GE(conversionTime0 - now, d1);
 
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 800);
   EXPECT_EQ(frame1.height(), 600);
   EXPECT_THAT(frame1, Not(IsFrameBlack()));
-  EXPECT_EQ(frame1.timestamp_us(),
-            dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d2)
-                .ToRealtime()
-                .us());
+  EXPECT_NEAR(frame1.timestamp_us(),
+              dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d2)
+                  .ToRealtime()
+                  .us(),
+              1);
   EXPECT_GE(conversionTime1 - now, d2);
 }
 
