@@ -96,12 +96,12 @@
       function verifyCheckedState(selectedButton) {
         ok(selectedButton.checked, "The expected radio button is checked.");
         is(
-          selectedButton.radioButton.getAttribute("aria-checked"),
+          selectedButton.inputEl.getAttribute("aria-checked"),
           "true",
           "The checked radio button has the correct aria-checked value."
         );
         is(
-          selectedButton.radioButton.tabIndex,
+          selectedButton.inputEl.tabIndex,
           0,
           "The checked radio button is focusable."
         );
@@ -110,12 +110,12 @@
           .forEach(button => {
             ok(!button.checked, "All other buttons are unchecked.");
             is(
-              button.radioButton.getAttribute("aria-checked"),
+              button.inputEl.getAttribute("aria-checked"),
               "false",
               "All other buttons have the correct aria-checked value."
             );
             is(
-              button.radioButton.tabIndex,
+              button.inputEl.tabIndex,
               -1,
               "All other buttons are not focusable."
             );
@@ -275,7 +275,7 @@
       );
       [secondRadioButton, thirdRadioButton].forEach(button =>
         is(
-          button.radioButton.getAttribute("tabindex"),
+          button.inputEl.getAttribute("tabindex"),
           "-1",
           "All other buttons are not tab focusable."
         )
@@ -440,7 +440,7 @@
       radioGroup.addEventListener("input", trackEvent);
 
       // Verify that clicking on a radio button emits the right events in the correct order.
-      synthesizeMouseAtCenter(thirdButton.radioButton, {});
+      synthesizeMouseAtCenter(thirdButton.inputEl, {});
       await new Promise(r => setTimeout(r, 0));
 
       verifyEvents([
@@ -494,7 +494,7 @@
       // Verify we don't get any events from disabled radio groups or buttons.
       radioGroup.disabled = true;
       await radioGroup.updateComplete;
-      synthesizeMouseAtCenter(firstButton.radioButton, {});
+      synthesizeMouseAtCenter(firstButton.inputEl, {});
       await new Promise(r => setTimeout(r, 0));
       verifyEvents([]);
       radioGroup.disabled = false;
@@ -545,7 +545,7 @@
           `Radio group fieldset is ${state}.`
         );
         radioButtons.forEach(button =>
-          ok(checkElementState(button.radioButton), `All radio buttons are ${state}.`)
+          ok(checkElementState(button.inputEl), `All radio buttons are ${state}.`)
         );
       }
 
@@ -556,12 +556,12 @@
       firstRadioButton.disabled = true;
       await firstRadioButton.updateComplete;
       ok(
-        firstRadioButton.radioButton.hasAttribute("disabled"),
+        firstRadioButton.inputEl.hasAttribute("disabled"),
         "The first radio button is now disabled."
       );
       otherButtons.forEach(button =>
         ok(
-          !button.radioButton.hasAttribute("disabled"),
+          !button.inputEl.hasAttribute("disabled"),
           "All other buttons are still enabled."
         )
       );
@@ -582,12 +582,12 @@
       radioGroup.disabled = false;
       await radioGroup.updateComplete;
       ok(
-        firstRadioButton.radioButton.hasAttribute("disabled"),
+        firstRadioButton.inputEl.hasAttribute("disabled"),
         "The first radio button is still disabled."
       );
       otherButtons.forEach(button =>
         ok(
-          !button.radioButton.hasAttribute("disabled"),
+          !button.inputEl.hasAttribute("disabled"),
           "All other buttons are now enabled."
         )
       );
@@ -618,7 +618,7 @@
       let [firstButton, secondButton, thirdButton] = radioButtons;
 
       is(
-        firstButton.radioButton.getAttribute("aria-describedby"),
+        firstButton.inputEl.getAttribute("aria-describedby"),
         "description",
         "Radio input is described by the description element."
       );
@@ -629,7 +629,7 @@
       );
 
       is(
-        secondButton.radioButton.getAttribute("aria-describedby"),
+        secondButton.inputEl.getAttribute("aria-describedby"),
         "description",
         "Radio input is described by the description element."
       );
@@ -643,7 +643,7 @@
       );
 
       is(
-        thirdButton.radioButton.getAttribute("aria-describedby"),
+        thirdButton.inputEl.getAttribute("aria-describedby"),
         "description",
         "Radio input is described by the description element."
       );
@@ -680,7 +680,7 @@
       );
       isnot(
         firstRadio.shadowRoot.activeElement,
-        firstRadio.radioButton,
+        firstRadio.inputEl,
         "Radio input element is not focused."
       );
       ok(!firstRadio.checked, "Radio button is not checked.");
@@ -699,7 +699,7 @@
       );
       is(
         firstRadio.shadowRoot.activeElement,
-        firstRadio.radioButton,
+        firstRadio.inputEl,
         "Radio input element is focused after accesskey is pressed."
       );
       ok(firstRadio.checked, "Radio button is checked after accesskey is pressed.");

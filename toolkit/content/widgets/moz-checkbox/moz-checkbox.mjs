@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, ifDefined, when } from "../vendor/lit.all.mjs";
-import { MozLitElement } from "../lit-utils.mjs";
+import { html, ifDefined } from "../vendor/lit.all.mjs";
+import { MozBaseInputElement } from "../lit-utils.mjs";
 
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-label.mjs";
@@ -25,40 +25,14 @@ import "chrome://global/content/elements/moz-support-link.mjs";
  * @property {string} description - The text for the description element that helps describe the checkbox
  * @property {string} supportPage - Name of the SUMO support page to link to.
  */
-export default class MozCheckbox extends MozLitElement {
+export default class MozCheckbox extends MozBaseInputElement {
   static properties = {
-    label: { type: String, fluent: true },
-    name: { type: String },
-    value: { type: String },
-    iconSrc: { type: String },
     checked: { type: Boolean, reflect: true },
-    disabled: { type: Boolean, reflect: true },
-    description: { type: String, fluent: true },
-    accessKey: { type: String, mapped: true },
-    supportPage: { type: String, attribute: "support-page" },
   };
-
-  static get queries() {
-    return {
-      checkboxEl: "#moz-checkbox",
-      labelEl: "label",
-      icon: ".icon",
-      descriptionEl: "#description",
-    };
-  }
 
   constructor() {
     super();
     this.checked = false;
-    this.disabled = false;
-  }
-
-  click() {
-    this.checkboxEl.click();
-  }
-
-  focus() {
-    this.checkboxEl.focus();
   }
 
   /**
@@ -83,68 +57,20 @@ export default class MozCheckbox extends MozLitElement {
     this.dispatchEvent(newEvent);
   }
 
-  iconTemplate() {
-    if (this.iconSrc) {
-      return html`<img src=${this.iconSrc} role="presentation" class="icon" />`;
-    }
-    return "";
-  }
-
-  descriptionTemplate() {
+  inputTemplate() {
     return html`
-      <span id="description" class="description text-deemphasized">
-        ${this.description ?? html`<slot name="description"></slot>`}
-      </span>
-    `;
-  }
-
-  supportLinkTemplate() {
-    return html`<slot name="support-link">
-      ${when(
-        this.supportPage,
-        () =>
-          html`<a
-            is="moz-support-link"
-            support-page=${this.supportPage}
-            part="support-link"
-          ></a>`
-      )}
-    </slot>`;
-  }
-
-  render() {
-    return html`
-      <link
-        rel="stylesheet"
-        href="chrome://global/content/elements/moz-checkbox.css"
+      <input
+        id="input"
+        type="checkbox"
+        name=${this.name}
+        value=${this.value}
+        .checked=${this.checked}
+        @click=${this.handleStateChange}
+        @change=${this.redispatchEvent}
+        .disabled=${this.disabled}
+        aria-describedby="description"
+        accesskey=${ifDefined(this.accessKey)}
       />
-      <label
-        is="moz-label"
-        for="moz-checkbox"
-        part="label"
-        shownaccesskey=${ifDefined(this.accessKey)}
-      >
-        <input
-          id="moz-checkbox"
-          type="checkbox"
-          name=${this.name}
-          value=${this.value}
-          .checked=${this.checked}
-          @click=${this.handleStateChange}
-          @change=${this.redispatchEvent}
-          .disabled=${this.disabled}
-          aria-describedby="description"
-          accesskey=${ifDefined(this.accessKey)}
-        />
-        <span class="label-content">
-          ${this.iconTemplate()}
-          <span class="text">
-            <span class="label">${this.label}</span>
-            ${this.supportLinkTemplate()}
-          </span>
-        </span>
-      </label>
-      ${this.descriptionTemplate()}
     `;
   }
 }

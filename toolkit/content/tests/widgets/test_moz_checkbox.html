@@ -55,19 +55,19 @@
 
       // Ensure label is set on moz-checkbox and inner label
       is(
-        mozCheckbox1.labelEl.innerText,
+        mozCheckbox1.labelEl.innerText.trim(),
         "test label 1",
         "inner label of moz-checkbox-1 is correct"
       );
       is(
-        mozCheckbox2.labelEl.innerText,
+        mozCheckbox2.labelEl.innerText.trim(),
         "test label 2",
         "inner label of moz-checkbox-2 is correct"
       );
-      is(mozCheckbox3.labelEl.innerText, "test label 3", "inner label of moz-checkbox-3 is correct");
-      is(mozCheckbox4.labelEl.innerText, "test label 4", "inner label of moz-checkbox-4 is correct");
-      is(mozCheckbox5.labelEl.innerText, "test label 5", "inner label of moz-checkbox-5 is correct");
-      is(mozCheckbox6.labelEl.innerText, "test label 6", "inner label of moz-checkbox-4 is correct");
+      is(mozCheckbox3.labelEl.innerText.trim(), "test label 3", "inner label of moz-checkbox-3 is correct");
+      is(mozCheckbox4.labelEl.innerText.trim(), "test label 4", "inner label of moz-checkbox-4 is correct");
+      is(mozCheckbox5.labelEl.innerText.trim(), "test label 5", "inner label of moz-checkbox-5 is correct");
+      is(mozCheckbox6.labelEl.innerText.trim(), "test label 6", "inner label of moz-checkbox-6 is correct");
 
       // Ensure checked attribute is set on moz-checkbox and inner checkbox
       ok(
@@ -79,17 +79,17 @@
         "moz-checkbox-2 should be checked on initial render"
       );
       ok(
-        !mozCheckbox1.checkboxEl.checked,
+        !mozCheckbox1.inputEl.checked,
         "inner checkbox of moz-checkbox-1 should not be checked on initial render");
       ok(
-        mozCheckbox2.checkboxEl.checked,
+        mozCheckbox2.inputEl.checked,
         "inner checkbox of moz-checkbox-2 should be checked on initial render");
       ok(
         !mozCheckbox3.checked,
         "moz-checkbox-3 should not be checked on initial render"
       );
       ok(
-        !mozCheckbox3.checkboxEl.checked,
+        !mozCheckbox3.inputEl.checked,
         "inner checkbox of moz-checkbox-3 should not be checked on initial render"
       );
       ok(
@@ -97,7 +97,7 @@
         "moz-checkbox-4 should not be checked on initial render"
       );
       ok(
-        !mozCheckbox4.checkboxEl.checked,
+        !mozCheckbox4.inputEl.checked,
         "inner checkbox of moz-checkbox-4 should not be checked on initial render"
       );
       ok(
@@ -105,7 +105,7 @@
         "moz-checkbox-5 should not be checked on initial render"
       );
       ok(
-        !mozCheckbox5.checkboxEl.checked,
+        !mozCheckbox5.inputEl.checked,
         "inner checkbox of moz-checkbox-5 should not be checked on initial render"
       );
       ok(
@@ -113,17 +113,17 @@
         "moz-checkbox-6 should not be checked on initial render"
       );
       ok(
-        !mozCheckbox6.checkboxEl.checked,
+        !mozCheckbox6.inputEl.checked,
         "inner checkbox of moz-checkbox-6 should not be checked on initial render"
       );
 
       // Ensure name propagates
-      is(mozCheckbox2.checkboxEl.name, "checkbox-2", "name gets set on input");
+      is(mozCheckbox2.inputEl.name, "checkbox-2", "name gets set on input");
 
       // Ensure value propagates
-      is(mozCheckbox1.checkboxEl.value, "one", "value gets set on input 1");
-      is(mozCheckbox2.checkboxEl.value, "two", "value gets set on input 2");
-      is(mozCheckbox3.checkboxEl.value, "three", "value gets set on input 3");
+      is(mozCheckbox1.inputEl.value, "one", "value gets set on input 1");
+      is(mozCheckbox2.inputEl.value, "two", "value gets set on input 2");
+      is(mozCheckbox3.inputEl.value, "three", "value gets set on input 3");
 
       // Ensure disabled attribute is set on moz-checkbox and inner checkbox
       ok(
@@ -151,27 +151,27 @@
         "moz-checkbox-6 should not be disabled on initial render"
       );
       ok(
-        !mozCheckbox1.checkboxEl.disabled,
+        !mozCheckbox1.inputEl.disabled,
         "inner checkbox of moz-checkbox-1 should not be disabled on initial render"
       );
       ok(
-        !mozCheckbox2.checkboxEl.disabled,
+        !mozCheckbox2.inputEl.disabled,
         "inner checkbox of moz-checkbox-2 should not be disabled on initial render"
       );
       ok(
-        mozCheckbox3.checkboxEl.disabled,
+        mozCheckbox3.inputEl.disabled,
         "inner checkbox of moz-checkbox-3 should be disabled on initial render"
       );
       ok(
-        !mozCheckbox4.checkboxEl.disabled,
+        !mozCheckbox4.inputEl.disabled,
         "inner checkbox of moz-checkbox-4 should not be disabled on initial render"
       );
       ok(
-        !mozCheckbox5.checkboxEl.disabled,
+        !mozCheckbox5.inputEl.disabled,
         "inner checkbox of moz-checkbox-5 should not be disabled on initial render"
       );
       ok(
-        !mozCheckbox6.checkboxEl.disabled,
+        !mozCheckbox6.inputEl.disabled,
         "inner checkbox of moz-checkbox-6 should not be disabled on initial render"
       );
     });
@@ -228,7 +228,7 @@
 
       // Ensure that clicking the inner checkbox element emits the expected
       // events in the correct order.
-      synthesizeMouseAtCenter(mozCheckbox1.checkboxEl, {});
+      synthesizeMouseAtCenter(mozCheckbox1.inputEl, {});
       await TestUtils.waitForTick();
 
       verifyEvents([
@@ -297,7 +297,7 @@
       // Ensure clicking on a disabled moz-checkbox does not send
       // any events.
 
-      synthesizeMouseAtCenter(mozCheckbox3.checkboxEl, {});
+      synthesizeMouseAtCenter(mozCheckbox3.inputEl, {});
       await TestUtils.waitForTick();
 
       verifyEvents([]);
@@ -353,7 +353,7 @@
         "The description element markup should have the correct text"
       );
       is(
-        mozCheckbox4.checkboxEl.getAttribute("aria-describedby"),
+        mozCheckbox4.inputEl.getAttribute("aria-describedby"),
         "description",
         "The input element should be described by the 'description' slot"
       );
@@ -369,7 +369,7 @@
         "The slotted element markup should have the correct text"
       );
       is(
-        mozCheckbox5.checkboxEl.getAttribute("aria-describedby"),
+        mozCheckbox5.inputEl.getAttribute("aria-describedby"),
         "description",
         "The input element should be described by the 'description' slot"
       );
@@ -385,7 +385,7 @@
         "The description element markup should have the correct text"
       );
       is(
-        mozCheckbox6.checkboxEl.getAttribute("aria-describedby"),
+        mozCheckbox6.inputEl.getAttribute("aria-describedby"),
         "description",
         "The input element should be described by the 'description' slot"
       );
@@ -404,7 +404,7 @@
       isnot(document.activeElement, mozCheckbox1, "Checkbox is not focused.");
       isnot(
         mozCheckbox1.shadowRoot.activeElement,
-        mozCheckbox1.checkboxEl,
+        mozCheckbox1.inputEl,
         "Checkbox input element is not focused."
       );
       ok(!mozCheckbox1.checked, "Checkbox is not checked.");
@@ -423,7 +423,7 @@
       );
       is(
         mozCheckbox1.shadowRoot.activeElement,
-        mozCheckbox1.checkboxEl,
+        mozCheckbox1.inputEl,
         "Checkbox input element is focused after accesskey is pressed."
       );
       ok(mozCheckbox1.checked, "Checkbox is checked after accesskey is pressed.");

@@ -76,7 +76,7 @@ add_task(async function testResetAll() {
   // Modify the state of some of the features.
 
   EventUtils.synthesizeMouseAtCenter(
-    doc.getElementById("test-featureC").checkboxEl,
+    doc.getElementById("test-featureC").inputEl,
     {},
     gBrowser.contentWindow
   );
