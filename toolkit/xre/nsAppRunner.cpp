@@ -312,7 +312,6 @@ extern const char gToolkitBuildID[];
 static nsIProfileLock* gProfileLock;
 #if defined(MOZ_HAS_REMOTE)
 static RefPtr<nsRemoteService> gRemoteService;
-static RefPtr<nsStartupLock> gStartupLock;
 #endif
 
 int gRestartArgc;
@@ -2035,11 +2034,6 @@ nsresult ScopedXPCOMStartup::SetWindowCreator(nsINativeAppSupport* native) {
 
 #ifdef MOZ_HAS_REMOTE
 /* static */ already_AddRefed<nsIRemoteService> GetRemoteService() {
-  AssertIsOnMainThread();
-
-  if (!gRemoteService) {
-    gRemoteService = new nsRemoteService();
-  }
   nsCOMPtr<nsIRemoteService> remoteService = gRemoteService.get();
   return remoteService.forget();
 }
@@ -2673,12 +2667,6 @@ static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
                                               nsIProfileLock** aResult) {
   nsresult rv;
 
-  // We aren't going to start this instance so we can unblock other instances
-  // from starting up.
-#if defined(MOZ_HAS_REMOTE)
-  gStartupLock = nullptr;
-#endif
-
   bool exists;
   aProfileDir->Exists(&exists);
   if (!exists) {
@@ -2776,6 +2764,11 @@ static ReturnAbortOnError ProfileLockedDialog(nsIFile* aProfileDir,
         SaveFileToEnv("XRE_PROFILE_PATH", aProfileDir);
         SaveFileToEnv("XRE_PROFILE_LOCAL_PATH", aProfileLocalDir);
 
+#if defined(MOZ_HAS_REMOTE)
+        if (gRemoteService) {
+          gRemoteService->UnlockStartup();
+        }
+#endif
         return LaunchChild(false, true);
       }
     } else {
@@ -2795,12 +2788,6 @@ static ReturnAbortOnError ShowProfileDialog(
   nsCOMPtr<nsIFile> profD, profLD;
   bool offline = false;
   int32_t dialogReturn;
-
-  // We aren't going to start this instance so we can unblock other instances
-  // from starting up.
-#if defined(MOZ_HAS_REMOTE)
-  gStartupLock = nullptr;
-#endif
 
   {
     ScopedXPCOMStartup xpcom;
@@ -2888,7 +2875,11 @@ static ReturnAbortOnError ShowProfileDialog(
     gRestartArgv[gRestartArgc++] = const_cast<char*>("-os-restarted");
     gRestartArgv[gRestartArgc] = nullptr;
   }
-
+#if defined(MOZ_HAS_REMOTE)
+  if (gRemoteService) {
+    gRemoteService->UnlockStartup();
+  }
+#endif
   return LaunchChild(false, true);
 }
 
@@ -4343,7 +4334,8 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
   CheckArg("no-remote");
 
 #if defined(MOZ_HAS_REMOTE)
-  // Handle the --new-instance command line arguments.
+  // Handle the --new-instance command line arguments. Setup the environment to
+  // better accommodate other components and various restart scenarios.
   ar = CheckArg("new-instance");
   if (ar == ARG_FOUND || EnvHasValue("MOZ_NEW_INSTANCE")) {
     mDisableRemoteClient = true;
@@ -4853,13 +4845,9 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 #endif
 #if defined(MOZ_HAS_REMOTE)
   // handle --remote now that xpcom is fired up
-  gRemoteService = new nsRemoteService();
+  gRemoteService = new nsRemoteService(gAppData->remotingName);
   if (gRemoteService) {
-    gRemoteService->SetProgram(gAppData->remotingName);
-    gStartupLock = gRemoteService->LockStartup();
-    if (!gStartupLock) {
-      NS_WARNING("Failed to lock for startup, continuing anyway.");
-    }
+    gRemoteService->LockStartup();
   }
 #endif
 #if defined(MOZ_WIDGET_GTK)
@@ -4968,18 +4956,18 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 
         if (NS_SUCCEEDED(rv)) {
           *aExitFlag = true;
-          gStartupLock = nullptr;
+          gRemoteService->UnlockStartup();
           return 0;
         }
 
         if (rv == NS_ERROR_INVALID_ARG) {
-          gStartupLock = nullptr;
+          gRemoteService->UnlockStartup();
           return 1;
         }
       }
     }
   }
-#endif /* MOZ_HAS_REMOTE */
+#endif
 
 #if defined(MOZ_UPDATER) && !defined(MOZ_WIDGET_ANDROID)
 #  ifdef XP_WIN
@@ -5115,8 +5103,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS || rv == NS_ERROR_ABORT) {
     *aExitFlag = true;
     return 0;
-  }
-  if (NS_FAILED(rv)) {
+  } else if (NS_FAILED(rv)) {
     return 1;
   }
 
@@ -5161,8 +5148,7 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
       if (rv == NS_ERROR_LAUNCHED_CHILD_PROCESS || rv == NS_ERROR_ABORT) {
         *aExitFlag = true;
         return 0;
-      }
-      if (NS_FAILED(rv)) {
+      } else if (NS_FAILED(rv)) {
         return 1;
       }
     } else {
@@ -5730,9 +5716,9 @@ nsresult XREMain::XRE_mainRun() {
       // proxy window.
       if (gRemoteService) {
         gRemoteService->StartupServer();
-        gStartupLock = nullptr;
+        gRemoteService->UnlockStartup();
       }
-#endif
+#endif /* MOZ_WIDGET_GTK */
 
       mNativeApp->Enable();
     }
@@ -6061,10 +6047,9 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   // remote to this instance.
   if (gRemoteService) {
     gRemoteService->ShutdownServer();
-    gStartupLock = nullptr;
     gRemoteService = nullptr;
   }
-#endif
+#endif /* MOZ_WIDGET_GTK */
 
   mScopedXPCOM = nullptr;
 

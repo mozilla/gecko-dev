@@ -16,21 +16,6 @@
 #include "nsSimpleEnumerator.h"
 #include "nsProfileLock.h"
 #include "nsINIParser.h"
-#include "mozilla/MozPromise.h"
-#include "nsProxyRelease.h"
-
-class nsStartupLock;
-
-struct CurrentProfileData {
-  nsCString mPath;
-  nsCString mStoreID;
-  bool mShowSelector;
-};
-
-struct IniData {
-  nsCString mProfiles;
-  nsCString mInstalls;
-};
 
 class nsToolkitProfile final
     : public nsIToolkitProfile,
@@ -85,7 +70,7 @@ class nsToolkitProfileLock final : public nsIProfileLock {
 
 class nsToolkitProfileService final : public nsIToolkitProfileService {
  public:
-  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_ISUPPORTS
   NS_DECL_NSITOOLKITPROFILESERVICE
 
   nsresult SelectStartupProfile(int* aArgc, char* aArgv[], bool aIsResetting,
@@ -95,9 +80,6 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   nsresult CreateResetProfile(nsIToolkitProfile** aNewProfile);
   nsresult ApplyResetProfile(nsIToolkitProfile* aOldProfile);
   void CompleteStartup();
-
-  using AsyncFlushPromise =
-      mozilla::MozPromise<bool /* ignored */, nsresult, false>;
 
  private:
   friend class nsToolkitProfile;
@@ -134,12 +116,6 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   void SetNormalDefault(nsToolkitProfile* aProfile);
   already_AddRefed<nsToolkitProfile> GetDefaultProfile();
   nsresult GetLocalDirFromRootDir(nsIFile* aRootDir, nsIFile** aResult);
-  void FlushProfileData(
-      const nsMainThreadPtrHandle<nsStartupLock>& aStartupLock,
-      const CurrentProfileData* aProfileInfo);
-  void BuildIniData(nsCString& aProfilesIniData, nsCString& aInstallsIniData);
-  nsresult FlushData(const nsCString& aProfilesIniData,
-                     const nsCString& aInstallsIniData);
 
   // Returns the known install hashes from the installs database. Modifying the
   // installs database is safe while iterating the returned array.
@@ -197,9 +173,6 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   bool mProfileDBExists;
   int64_t mProfileDBFileSize;
   PRTime mProfileDBModifiedTime;
-
-  // A background task queue for the async flushing operations.
-  nsCOMPtr<nsISerialEventTarget> mAsyncQueue;
 
   static nsToolkitProfileService* gService;
 
