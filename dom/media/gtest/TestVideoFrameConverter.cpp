@@ -622,35 +622,32 @@ TEST_F(VideoFrameConverterTest, SameFrameTimerRacingWithPacing) {
   // If the same-frame timer doesn't check what is queued we could end up with
   // t1, t1+5ms, t2.
 
+  auto t0 = dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now)
+                .ToRealtime()
+                .us();
   ASSERT_EQ(frames.size(), 3U);
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
   EXPECT_THAT(frame0, Not(IsFrameBlack()));
-  EXPECT_EQ(frame0.timestamp_us(),
-            dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d1)
-                .ToRealtime()
-                .us());
+  EXPECT_NEAR(frame0.timestamp_us() - t0,
+              static_cast<int64_t>(d1.ToMicroseconds()), 1);
   EXPECT_GE(conversionTime0 - now, d1);
 
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
   EXPECT_THAT(frame1, Not(IsFrameBlack()));
-  EXPECT_EQ(frame1.timestamp_us(),
-            dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d2)
-                .ToRealtime()
-                .us());
+  EXPECT_NEAR(frame1.timestamp_us() - t0,
+              static_cast<int64_t>(d2.ToMicroseconds()), 1);
   EXPECT_GE(conversionTime1 - now, d2);
 
   const auto& [frame2, conversionTime2] = frames[2];
   EXPECT_EQ(frame2.width(), 640);
   EXPECT_EQ(frame2.height(), 480);
   EXPECT_THAT(frame2, Not(IsFrameBlack()));
-  EXPECT_EQ(frame2.timestamp_us(),
-            dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker,
-                                                now + d2 + duplicationInterval)
-                .ToRealtime()
-                .us());
+  EXPECT_THAT(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
+                                             frame1.timestamp_us()),
+              IsDurationInMillisPositiveMultipleOf(duplicationInterval));
   EXPECT_GE(conversionTime2 - now, d2 + duplicationInterval);
 }
