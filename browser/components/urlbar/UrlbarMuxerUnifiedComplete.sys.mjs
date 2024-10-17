@@ -1144,11 +1144,10 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
     }
 
     // Save some state to dedupe results that only differ by the ref of their URL.
-    // Even though here we are considering tab results to find the top ref,
-    // we'll never dedupe them.
+    // Even though we are considering tab results and URL results of all sources
+    // here to find the top ref, we will only dedupe URL results with history source.
     if (
-      (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY &&
-        result.type == UrlbarUtils.RESULT_TYPE.URL) ||
+      result.type == UrlbarUtils.RESULT_TYPE.URL ||
       result.type == UrlbarUtils.RESULT_TYPE.TAB_SWITCH
     ) {
       let { base, ref } = UrlbarUtils.extractRefFromUrl(result.payload.url);

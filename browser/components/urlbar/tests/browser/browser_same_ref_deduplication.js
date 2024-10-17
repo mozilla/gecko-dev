@@ -156,6 +156,42 @@ add_task(async function test_count_tabs_as_duplicates() {
   await PlacesUtils.history.clear();
 });
 
+add_task(async function test_count_bookmarks_as_duplicates() {
+  let urlBase = "https://example.com/page1";
+  let title = "Dummy test page";
+  await PlacesTestUtils.addVisits([
+    { url: urlBase, title, visitDate: oneWeekAgo },
+    // This one will have the highest frecency and be bookmarked.
+    { url: urlBase + "#ref1", title, visitDate: oneWeekAgo },
+    { url: urlBase + "#ref1", title, visitDate: twoWeeksAgo },
+    { url: urlBase + "#ref2", title, visitDate: oneWeekAgo },
+  ]);
+
+  let bookmarkGuid = await PlacesUtils.bookmarks.insert({
+    url: urlBase + "#ref1",
+    title,
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+  });
+
+  await urlbarQuery(title);
+  let historyResults = await getResultsHavingSource(RESULT_SOURCE.HISTORY);
+  let bookmarkResults = await getResultsHavingSource(RESULT_SOURCE.BOOKMARKS);
+  Assert.equal(
+    historyResults.length,
+    0,
+    "Sites with lower frecency got deduplicated"
+  );
+  Assert.equal(bookmarkResults.length, 1, "One bookmark result");
+  Assert.equal(
+    bookmarkResults[0].url,
+    urlBase + "#ref1",
+    "The bookmark result is the site with the highest frecency"
+  );
+
+  await PlacesUtils.history.clear();
+  await PlacesUtils.bookmarks.remove(bookmarkGuid);
+});
+
 add_task(async function test_not_deduplicate_different_titles() {
   let urlBase = "https://example.com/page";
   await PlacesTestUtils.addVisits([
