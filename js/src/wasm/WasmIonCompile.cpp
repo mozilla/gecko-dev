@@ -258,9 +258,9 @@ class FunctionCompiler {
     // Indicates that the call is a return/tail call.
     bool returnCall = false;
 
-    // The control structure for the nearest enclosing try-catch. This is
+    // The landing pad patches for the nearest enclosing try-catch. This is
     // non-null iff the call is catchable.
-    TryControl* tryControl = nullptr;
+    ControlInstructionVector* tryLandingPadPatches = nullptr;
 
     // The index of the try note for a catchable call.
     uint32_t tryNoteIndex = UINT32_MAX;
@@ -271,7 +271,7 @@ class FunctionCompiler {
     // The block to take for exceptional execution for a catchable call.
     MBasicBlock* prePadBlock = nullptr;
 
-    bool isCatchable() const { return tryControl != nullptr; }
+    bool isCatchable() const { return tryLandingPadPatches != nullptr; }
   };
 
   // While compiling a wasm function to Ion, we maintain a stack of
@@ -353,13 +353,21 @@ class FunctionCompiler {
   uint32_t loopDepth_;
   uint32_t blockDepth_;
   PendingBlockTargetVector pendingBlocks_;
-  // Control flow patches created by `delegate` instructions that target the
-  // outermost label of this function. These will be bound to a pad that will
-  // do a rethrow in `emitBodyDelegateThrowPad`.
-  ControlInstructionVector bodyDelegatePadPatches_;
+  // Control flow patches for exceptions that are caught without a landing
+  // pad they can directly jump to. This happens when either:
+  //  (1) `delegate` targets the function body label.
+  //  (2) A `try` ends without any cases, and there is no enclosing `try`.
+  //  (3) There is no `try` in this function, but a caller function (when
+  //      inlining) has a `try`.
+  //
+  // These exceptions will be rethrown using `emitBodyRethrowPad`.
+  ControlInstructionVector bodyRethrowPadPatches_;
   // A vector of the returns in this function for use when we're being inlined
   // into another function.
   PendingInlineReturnVector pendingInlineReturns_;
+  // A block that all uncaught exceptions in this function will jump to. The
+  // inline caller will link this to the nearest enclosing catch handler.
+  MBasicBlock* pendingInlineCatchBlock_;
 
   // Instance pointer argument to the current function.
   MWasmParameter* instancePointer_;
@@ -403,6 +411,7 @@ class FunctionCompiler {
         maxStackArgBytes_(0),
         loopDepth_(0),
         blockDepth_(0),
+        pendingInlineCatchBlock_(nullptr),
         instancePointer_(nullptr),
         stackResultPointer_(nullptr),
         tryNotes_(tryNotes),
@@ -434,6 +443,7 @@ class FunctionCompiler {
         maxStackArgBytes_(0),
         loopDepth_(callerCompiler_->loopDepth_),
         blockDepth_(0),
+        pendingInlineCatchBlock_(nullptr),
         instancePointer_(callerCompiler_->instancePointer_),
         stackResultPointer_(nullptr),
         tryNotes_(callerCompiler_->tryNotes_),
@@ -641,6 +651,9 @@ class FunctionCompiler {
     MOZ_ASSERT_IF(
         compilerEnv().mode() == CompileMode::LazyTiering,
         codeMeta_.getFuncDefCallRefs(funcIndex()).length == numCallRefs_);
+    MOZ_ASSERT_IF(!isInlined(),
+                  pendingInlineReturns_.empty() && !pendingInlineCatchBlock_);
+    MOZ_ASSERT(bodyRethrowPadPatches_.empty());
   }
 
   /************************* Read-only interface (after local scope setup) */
@@ -2549,12 +2562,6 @@ class FunctionCompiler {
       return false;
     }
 
-    // We temporarily do not support inlining when there's a try handler
-    // active.
-    if (inTryCode()) {
-      return false;
-    }
-
     // We do not support inlining a callee which uses tail calls
     FeatureUsage funcFeatureUsage = codeMeta().funcDefFeatureUsage(funcIndex);
     if (funcFeatureUsage & FeatureUsage::ReturnCall) {
@@ -2573,10 +2580,54 @@ class FunctionCompiler {
                                DefVector* results) {
     const PendingInlineReturnVector& calleeReturns =
         calleeCompiler.pendingInlineReturns_;
+    MBasicBlock* calleeCatchBlock = calleeCompiler.pendingInlineCatchBlock_;
     const FuncType& calleeFuncType = calleeCompiler.funcType();
+    MBasicBlock* lastBlockBeforeCall = curBlock_;
 
     // Add the observed features from the inlined function to this function
     iter_.addFeatureUsage(calleeCompiler.featureUsage());
+
+    // Create a block, if needed, to handle exceptions from the callee function
+    if (calleeCatchBlock) {
+      ControlInstructionVector* tryLandingPadPatches;
+      bool inTryCode = inTryBlock(&tryLandingPadPatches);
+
+      // The callee compiler should never create a catch block unless we have
+      // a landing pad for it
+      MOZ_RELEASE_ASSERT(inTryCode);
+
+      // Create a block in our function to jump to the nearest try block. We
+      // cannot just use the callee's catch block for this, as the slots on it
+      // are set up for all the locals from that function. We need to create a
+      // new block in our function with the slots for this function, that then
+      // does the jump to the landing pad. Ion should be able to optimize this
+      // away using jump threading.
+      MBasicBlock* callerCatchBlock = nullptr;
+      if (!newBlock(nullptr, &callerCatchBlock)) {
+        return false;
+      }
+
+      // Our catch block inherits all of the locals state from immediately
+      // before the inlined call
+      callerCatchBlock->inheritSlots(lastBlockBeforeCall);
+
+      // The callee catch block jumps to our catch block
+      calleeCatchBlock->end(MGoto::New(alloc(), callerCatchBlock));
+
+      // Our catch block has the callee rethrow block as a predecessor, but
+      // ignores all phi's, because we use our own locals state.
+      if (!callerCatchBlock->addPredecessorWithoutPhis(calleeCatchBlock)) {
+        return false;
+      }
+
+      // Our catch block ends with a patch to jump to the enclosing try block.
+      MBasicBlock* prevBlock = curBlock_;
+      curBlock_ = callerCatchBlock;
+      if (!endWithPadPatch(tryLandingPadPatches)) {
+        return false;
+      }
+      curBlock_ = prevBlock;
+    }
 
     // If there were no returns, then we are now in dead code
     if (calleeReturns.empty()) {
@@ -2585,7 +2636,6 @@ class FunctionCompiler {
     }
 
     // Create a block to join all of the returns from the inlined function
-    MBasicBlock* lastBlockBeforeCall = curBlock_;
     MBasicBlock* joinAfterCall = nullptr;
     if (!newBlock(nullptr, &joinAfterCall)) {
       return false;
@@ -2879,7 +2929,8 @@ class FunctionCompiler {
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Symbolic);
-    if (!beginCatchableCall(callState)) {
+    if (builtin.failureMode != FailureMode::Infallible &&
+        !beginCatchableCall(callState)) {
       return false;
     }
 
@@ -3531,7 +3582,7 @@ class FunctionCompiler {
         }
       }
     }
-    for (MControlInstruction* patch : bodyDelegatePadPatches_) {
+    for (MControlInstruction* patch : bodyRethrowPadPatches_) {
       MBasicBlock* block = patch->block();
       if (block->loopDepth() >= loopEntry->loopDepth()) {
         fixupRedundantPhis(block);
@@ -3756,29 +3807,50 @@ class FunctionCompiler {
 
   /********************************************************** Exceptions ***/
 
-  bool inTryBlockFrom(uint32_t fromRelativeDepth, TryControl** tryControl) {
+  bool inTryBlockFrom(uint32_t fromRelativeDepth,
+                      uint32_t* tryRelativeDepth) const {
     uint32_t relativeDepth;
-    if (iter().controlFindInnermostFrom(
+    if (iter_.controlFindInnermostFrom(
             [](LabelKind kind, const Control& control) {
               return control.tryControl != nullptr &&
                      control.tryControl->inBody;
             },
             fromRelativeDepth, &relativeDepth)) {
-      *tryControl = iter().controlItem(relativeDepth).tryControl.get();
+      *tryRelativeDepth = relativeDepth;
       return true;
     }
 
-    *tryControl = nullptr;
+    if (callerCompiler_ && callerCompiler_->inTryCode()) {
+      *tryRelativeDepth = iter_.controlStackDepth() - 1;
+      return true;
+    }
+
     return false;
   }
 
-  bool inTryBlock(TryControl** tryControl) {
-    return inTryBlockFrom(0, tryControl);
+  bool inTryBlockFrom(uint32_t fromRelativeDepth,
+                      ControlInstructionVector** landingPadPatches) {
+    uint32_t tryRelativeDepth;
+    if (!inTryBlockFrom(fromRelativeDepth, &tryRelativeDepth)) {
+      return false;
+    }
+
+    if (tryRelativeDepth == iter().controlStackDepth() - 1) {
+      *landingPadPatches = &bodyRethrowPadPatches_;
+    } else {
+      *landingPadPatches =
+          &iter().controlItem(tryRelativeDepth).tryControl->landingPadPatches;
+    }
+    return true;
   }
 
-  bool inTryCode() {
-    TryControl* tryControl;
-    return inTryBlock(&tryControl);
+  bool inTryBlock(ControlInstructionVector** landingPadPatches) {
+    return inTryBlockFrom(0, landingPadPatches);
+  }
+
+  bool inTryCode() const {
+    uint32_t tryRelativeDepth;
+    return inTryBlockFrom(0, &tryRelativeDepth);
   }
 
   MDefinition* loadTag(uint32_t tagIndex) {
@@ -3830,10 +3902,11 @@ class FunctionCompiler {
     return postBarrierPrecise(/*lineOrBytecode=*/0, exceptionTagAddr, tag);
   }
 
-  [[nodiscard]] bool endWithPadPatch(TryControl* tryControl) {
+  [[nodiscard]] bool endWithPadPatch(
+      ControlInstructionVector* tryLandingPadPatches) {
     MGoto* jumpToLandingPad = MGoto::New(alloc());
     curBlock_->end(jumpToLandingPad);
-    return tryControl->landingPadPatches.emplaceBack(jumpToLandingPad);
+    return tryLandingPadPatches->emplaceBack(jumpToLandingPad);
   }
 
   [[nodiscard]] bool delegatePadPatches(const ControlInstructionVector& patches,
@@ -3844,12 +3917,9 @@ class FunctionCompiler {
 
     // Find where we are delegating the pad patches to.
     ControlInstructionVector* targetPatches;
-    TryControl* targetTryControl;
-    if (inTryBlockFrom(relativeDepth, &targetTryControl)) {
-      targetPatches = &targetTryControl->landingPadPatches;
-    } else {
+    if (!inTryBlockFrom(relativeDepth, &targetPatches)) {
       MOZ_ASSERT(relativeDepth <= blockDepth_ - 1);
-      targetPatches = &bodyDelegatePadPatches_;
+      targetPatches = &bodyRethrowPadPatches_;
     }
 
     // Append the delegate's pad patches to the target's.
@@ -3863,7 +3933,7 @@ class FunctionCompiler {
 
   [[nodiscard]]
   bool beginCatchableCall(CallCompileState* callState) {
-    if (!inTryBlock(&callState->tryControl)) {
+    if (!inTryBlock(&callState->tryLandingPadPatches)) {
       MOZ_ASSERT(!callState->isCatchable());
       return true;
     }
@@ -3882,7 +3952,7 @@ class FunctionCompiler {
 
   [[nodiscard]]
   bool finishCatchableCall(CallCompileState* callState) {
-    if (!callState->tryControl) {
+    if (!callState->tryLandingPadPatches) {
       return true;
     }
 
@@ -3895,7 +3965,7 @@ class FunctionCompiler {
                                                callState->tryNoteIndex));
 
     // End with a pending jump to the landing pad
-    if (!endWithPadPatch(callState->tryControl)) {
+    if (!endWithPadPatch(callState->tryLandingPadPatches)) {
       return false;
     }
 
@@ -3919,14 +3989,14 @@ class FunctionCompiler {
     if (!newBlock(pred, landingPad)) {
       return false;
     }
-    ins->replaceSuccessor(0, *landingPad);
+    ins->replaceSuccessor(MGoto::TargetIndex, *landingPad);
     for (size_t i = 1; i < landingPadPatches.length(); i++) {
       ins = landingPadPatches[i];
       pred = ins->block();
       if (!(*landingPad)->addPredecessor(alloc(), pred)) {
         return false;
       }
-      ins->replaceSuccessor(0, *landingPad);
+      ins->replaceSuccessor(MGoto::TargetIndex, *landingPad);
     }
 
     // Clear the now bound pad patches.
@@ -4256,7 +4326,7 @@ class FunctionCompiler {
       case LabelKind::Try: {
         // This is a catchless try, we must delegate all throwing instructions
         // to the nearest enclosing try block if one exists, or else to the
-        // body block which will handle it in emitBodyDelegateThrowPad. We
+        // body block which will handle it in emitBodyRethrowPad. We
         // specify a relativeDepth of '1' to delegate outside of the still
         // active try block.
         uint32_t relativeDepth = 1;
@@ -4306,19 +4376,28 @@ class FunctionCompiler {
     return finishBlock(defs);
   }
 
-  [[nodiscard]] bool emitBodyDelegateThrowPad(Control& control) {
+  [[nodiscard]] bool emitBodyRethrowPad(Control& control) {
     // If there are no throwing instructions pending, we don't need to do
     // anything
-    if (bodyDelegatePadPatches_.empty()) {
+    if (bodyRethrowPadPatches_.empty()) {
       return true;
     }
 
     // Create a landing pad for any throwing instructions
     MBasicBlock* padBlock;
-    if (!createTryLandingPad(bodyDelegatePadPatches_, &padBlock)) {
+    if (!createTryLandingPad(bodyRethrowPadPatches_, &padBlock)) {
       return false;
     }
 
+    // If we're inlined into another function, we save the landing pad to be
+    // linked later directly to our caller's landing pad. See
+    // `finishedInlinedCallDirect`.
+    if (callerCompiler_ && callerCompiler_->inTryCode()) {
+      pendingInlineCatchBlock_ = padBlock;
+      return true;
+    }
+
+    // Otherwise we need to grab the pending exception and rethrow it.
     MDefinition* pendingException;
     MDefinition* pendingExceptionTag;
     if (!consumePendingException(&padBlock, &pendingException,
@@ -4333,6 +4412,8 @@ class FunctionCompiler {
       return false;
     }
     curBlock_ = prevBlock;
+
+    MOZ_ASSERT(bodyRethrowPadPatches_.empty());
     return true;
   }
 
@@ -4437,15 +4518,15 @@ class FunctionCompiler {
 
     // Check if there is a local catching try control, and if so, then add a
     // pad-patch to its tryPadPatches.
-    TryControl* tryControl;
-    if (inTryBlock(&tryControl)) {
+    ControlInstructionVector* tryLandingPadPatches;
+    if (inTryBlock(&tryLandingPadPatches)) {
       // Set the pending exception state, the landing pad will read from this
       if (!setPendingExceptionState(exn, tag)) {
         return false;
       }
 
       // End with a pending jump to the landing pad
-      if (!endWithPadPatch(tryControl)) {
+      if (!endWithPadPatch(tryLandingPadPatches)) {
         return false;
       }
       curBlock_ = nullptr;
@@ -5625,7 +5706,7 @@ static bool EmitEnd(FunctionCompiler& f) {
   switch (kind) {
     case LabelKind::Body: {
       MOZ_ASSERT(!control.tryControl);
-      if (!f.emitBodyDelegateThrowPad(control)) {
+      if (!f.emitBodyRethrowPad(control)) {
         return false;
       }
       if (!f.finishBlock(&postJoinDefs)) {

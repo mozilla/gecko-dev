@@ -287,6 +287,7 @@ class ControlStackEntry {
   }
   uint32_t valueStackBase() const { return valueStackBase_; }
   ControlItem& controlItem() { return typeAndItem_.second(); }
+  const ControlItem& controlItem() const { return typeAndItem_.second(); }
   void setPolymorphicBase() { polymorphicBase_ = true; }
   bool polymorphicBase() const { return polymorphicBase_; }
 
@@ -932,7 +933,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
   // via a parameter.
   template <typename Predicate>
   bool controlFindInnermostFrom(Predicate predicate, uint32_t fromRelativeDepth,
-                                uint32_t* foundRelativeDepth) {
+                                uint32_t* foundRelativeDepth) const {
     int32_t fromAbsoluteDepth = controlStack_.length() - fromRelativeDepth - 1;
     for (int32_t i = fromAbsoluteDepth; i >= 0; i--) {
       if (predicate(controlStack_[i].kind(), controlStack_[i].controlItem())) {
