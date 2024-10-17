@@ -2509,7 +2509,7 @@ void gfxPlatform::InitAcceleration() {
                       "FEATURE_REMOTE_CANVAS_NO_GPU_PROCESS"_ns);
     }
 
-#if defined(XP_WIN) && defined(NIGHTLY_BUILD)
+#ifdef XP_WIN
     // If D2D is explicitly disabled on Windows, then don't use remote canvas.
     // This prevents it from interfering with Accelerated Canvas2D.
     if (StaticPrefs::gfx_direct2d_disabled_AtStartup() &&
@@ -2518,9 +2518,7 @@ void gfxPlatform::InitAcceleration() {
                               "Disabled without Direct2D",
                               "FEATURE_REMOTE_CANVAS_NO_DIRECT2D"_ns);
     }
-#endif
-
-#ifndef XP_WIN
+#else
     gfxConfig::ForceDisable(Feature::REMOTE_CANVAS, FeatureStatus::Blocked,
                             "Platform not supported",
                             "FEATURE_REMOTE_CANVAS_NOT_WINDOWS"_ns);
