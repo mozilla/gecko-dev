@@ -145,7 +145,7 @@
 
   function encrypt(localKey, remoteShare, salt, data) {
     return webCrypto
-      .importKey("raw", remoteShare, P256DH, false, ["deriveBits"])
+      .importKey("raw", remoteShare, P256DH, false, [])
       .then(remoteKey =>
         webCrypto.deriveBits(
           { name: P256DH.name, public: remoteKey },

@@ -371,9 +371,7 @@ class Decoder {
    */
   async computeSharedSecret() {
     let [appServerKey, subscriptionPrivateKey] = await Promise.all([
-      crypto.subtle.importKey("raw", this.senderKey, ECDH_KEY, false, [
-        "deriveBits",
-      ]),
+      crypto.subtle.importKey("raw", this.senderKey, ECDH_KEY, false, []),
       crypto.subtle.importKey("jwk", this.privateKey, ECDH_KEY, false, [
         "deriveBits",
       ]),
@@ -868,7 +866,7 @@ class aes128gcmEncoder {
       receiverPublicKey,
       ECDH_KEY,
       false,
-      ["deriveBits"]
+      []
     );
 
     return crypto.subtle.deriveBits(

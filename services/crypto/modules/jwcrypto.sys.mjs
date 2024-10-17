@@ -51,7 +51,7 @@ class JWCrypto {
       key,
       ECDH_PARAMS,
       false,
-      ["deriveKey"]
+      []
     );
     if (key.hasOwnProperty("kid")) {
       header.kid = key.kid;
@@ -129,7 +129,7 @@ class JWCrypto {
       header.epk,
       ECDH_PARAMS,
       false,
-      ["deriveKey"]
+      []
     );
     // Do ECDH agreement to get the content encryption key.
     const contentKey = await deriveECDHSharedAESKey(key, peerPublicKey, [
