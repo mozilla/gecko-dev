@@ -726,6 +726,7 @@ void MediaPipelineTransmit::RegisterListener() {
     return;
   }
   mConverter = VideoFrameConverter::Create(GetTimestampMaker());
+  mConverter->SetIdleFrameDuplicationInterval(TimeDuration::FromSeconds(1));
   mFrameListener = mConverter->VideoFrameConvertedEvent().Connect(
       mConverter->mTaskQueue,
       [listener = mListener](webrtc::VideoFrame aFrame) {

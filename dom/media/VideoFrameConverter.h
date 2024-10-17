@@ -52,7 +52,7 @@ class VideoFrameConverter {
             GetMediaThreadPool(MediaThreadType::WEBRTC_WORKER),
             "VideoFrameConverter")),
         mPacer(MakeAndAddRef<Pacer<FrameToProcess>>(
-            mTaskQueue, TimeDuration::FromSeconds(1))),
+            mTaskQueue, mIdleFrameDuplicationInterval)),
         mBufferPool(false, CONVERTER_BUFFER_POOL_SIZE) {
     MOZ_COUNT_CTOR(VideoFrameConverter);
   }
@@ -155,6 +155,14 @@ class VideoFrameConverter {
         })));
   }
 
+  void SetIdleFrameDuplicationInterval(TimeDuration aInterval) {
+    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
+        __func__, [self = RefPtr(this), this, aInterval] {
+          mIdleFrameDuplicationInterval = aInterval;
+        })));
+    mPacer->SetDuplicationInterval(aInterval);
+  }
+
   void Shutdown() {
     mPacer->Shutdown()->Then(mTaskQueue, __func__,
                              [self = RefPtr<VideoFrameConverter>(this), this] {
@@ -251,33 +259,37 @@ class VideoFrameConverter {
     }
 
     if (frame.Serial() == mLastFrameQueuedForProcessing.Serial()) {
-      // This is the same frame as the last one. We limit the same-frame rate to
-      // 1 second, and rewrite the time so the frame-gap is in whole seconds.
+      // This is the same frame as the last one. We limit the same-frame rate,
+      // and rewrite the time so the frame-gap is in multiples of the
+      // duplication interval.
       //
-      // The pacer only starts duplicating frames every second if there is no
-      // flow of frames into it. There are other reasons the same frame could
-      // repeat here, and at a shorter interval than one second. For instance
-      // after the sender is disabled (SetTrackEnabled) but there is still a
-      // flow of frames into the pacer. All disabled frames have the same
-      // serial.
-      if (int32_t diffSec = static_cast<int32_t>(
-              (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds());
-          diffSec != 0) {
+      // The pacer only starts duplicating frames if there is no flow of frames
+      // into it. There are other reasons the same frame could repeat here, and
+      // at a shorter interval than the duplication interval. For instance after
+      // the sender is disabled (SetTrackEnabled) but there is still a flow of
+      // frames into the pacer. All disabled frames have the same serial.
+      if (auto diff = frame.mTime - mLastFrameQueuedForProcessing.mTime;
+          diff >= mIdleFrameDuplicationInterval) {
+        auto diff_us = static_cast<int64_t>(diff.ToMicroseconds());
+        auto idle_interval_us = static_cast<int64_t>(
+            mIdleFrameDuplicationInterval.ToMicroseconds());
+        auto multiples = diff_us / idle_interval_us;
+        MOZ_ASSERT(multiples > 0);
         MOZ_LOG(
             gVideoFrameConverterLog, LogLevel::Verbose,
             ("VideoFrameConverter %p: Rewrote time interval for a duplicate "
              "frame from %.3fs to %.3fs",
              this,
              (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds(),
-             static_cast<float>(diffSec)));
+             (mIdleFrameDuplicationInterval * multiples).ToSeconds()));
         frame.mTime = mLastFrameQueuedForProcessing.mTime +
-                      TimeDuration::FromSeconds(diffSec);
+                      (mIdleFrameDuplicationInterval * multiples);
       } else {
         MOZ_LOG(
             gVideoFrameConverterLog, LogLevel::Verbose,
-            ("VideoFrameConverter %p: Dropping a duplicate frame because a "
-             "second hasn't passed (%.3fs)",
-             this,
+            ("VideoFrameConverter %p: Dropping a duplicate frame because the "
+             "duplication interval (%.3fs) hasn't passed (%.3fs)",
+             this, mIdleFrameDuplicationInterval.ToSeconds(),
              (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds()));
         return;
       }
@@ -429,6 +441,8 @@ class VideoFrameConverter {
   const RefPtr<TaskQueue> mTaskQueue;
 
  protected:
+  TimeDuration mIdleFrameDuplicationInterval = TimeDuration::Forever();
+
   // Used to pace future frames close to their rendering-time. Thread-safe.
   const RefPtr<Pacer<FrameToProcess>> mPacer;
 

@@ -51,8 +51,22 @@ class Pacer {
             }
             RefPtr<QueueItem> dropping = mQueue.Pop();
           }
-          mQueue.Push(MakeAndAddRef<QueueItem>(std::move(aItem), aTime));
+          mQueue.Push(MakeAndAddRef<QueueItem>(std::move(aItem), aTime, false));
           EnsureTimerScheduled(aTime);
+        })));
+  }
+
+  void SetDuplicationInterval(TimeDuration aInterval) {
+    MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
+        __func__, [this, self = RefPtr(this), aInterval] {
+          if (auto* next = mQueue.PeekFront(); next && next->mIsDuplicate) {
+            // Adjust the time of the next duplication frame.
+            next->mTime =
+                std::max(TimeStamp::Now(),
+                         next->mTime - mDuplicationInterval + aInterval);
+            EnsureTimerScheduled(next->mTime);
+          }
+          mDuplicationInterval = aInterval;
         })));
   }
 
@@ -109,7 +123,7 @@ class Pacer {
           // No future frame within the duplication interval exists. Schedule
           // a copy.
           mQueue.PushFront(MakeAndAddRef<QueueItem>(
-              item->mItem, item->mTime + mDuplicationInterval));
+              item->mItem, item->mTime + mDuplicationInterval, true));
         }
         mPacedItemEvent.Notify(std::move(item->mItem), item->mTime);
         continue;
@@ -128,17 +142,21 @@ class Pacer {
 
  public:
   const RefPtr<TaskQueue> mTaskQueue;
-  const TimeDuration mDuplicationInterval;
 
  protected:
   struct QueueItem {
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(QueueItem)
 
-    QueueItem(T aItem, TimeStamp aTime)
-        : mItem(std::forward<T>(aItem)), mTime(aTime) {}
+    QueueItem(T aItem, TimeStamp aTime, bool aIsDuplicate)
+        : mItem(std::forward<T>(aItem)),
+          mTime(aTime),
+          mIsDuplicate(aIsDuplicate) {
+      MOZ_ASSERT(!aTime.IsNull());
+    }
 
     T mItem;
     TimeStamp mTime;
+    bool mIsDuplicate;
 
    private:
     ~QueueItem() = default;
@@ -146,6 +164,10 @@ class Pacer {
 
   // Accessed on mTaskQueue.
   nsRefPtrDeque<QueueItem> mQueue;
+
+  // Maximum interval at which a frame should be issued, even if it means
+  // duplicating the previous.
+  TimeDuration mDuplicationInterval;
 
   // Accessed on mTaskQueue.
   RefPtr<MediaTimer<TimeStamp>> mTimer;
