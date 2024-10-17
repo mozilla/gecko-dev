@@ -934,7 +934,8 @@ async function changeContentInputValue(
 async function verifyConfirmationHint(
   browser,
   forceClose,
-  anchorID = "password-notification-icon"
+  anchorID = "password-notification-icon",
+  expectedL10nMessageId = null
 ) {
   let hintElem = browser.ownerGlobal.ConfirmationHint._panel;
   await BrowserTestUtils.waitForPopupEvent(hintElem, "shown");
@@ -950,6 +951,12 @@ async function verifyConfirmationHint(
       "Hint should be anchored on the expected notification icon"
     );
     info("verifyConfirmationHint, hint is shown and has its anchorNode");
+    if (expectedL10nMessageId) {
+      const l10nMessageId = hintElem
+        .querySelector("#confirmation-hint-message")
+        .getAttribute("data-l10n-id");
+      Assert.equal(l10nMessageId, expectedL10nMessageId);
+    }
     if (forceClose) {
       await closePopup(hintElem);
     } else {
