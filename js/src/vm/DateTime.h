@@ -244,6 +244,12 @@ class DateTimeInfo {
   }
 #endif /* JS_HAS_INTL_API */
 
+  // JIT access.
+  static const void* addressOfUTCToLocalOffsetSeconds() {
+    static_assert(sizeof(decltype(utcToLocalOffsetSeconds)) == sizeof(int32_t));
+    return &DateTimeInfo::utcToLocalOffsetSeconds;
+  }
+
  private:
   // The method below should only be called via js::ResetTimeZoneInternal().
   friend void js::ResetTimeZoneInternal(ResetTimeZoneMode);

@@ -3510,6 +3510,13 @@
   args:
     map: ObjId
 
+- name: DateFillLocalTimeSlots
+  shared: true
+  transpile: true
+  cost_estimate: 4
+  args:
+    date: ObjId
+
 - name: ArrayFromArgumentsObjectResult
   shared: true
   transpile: true

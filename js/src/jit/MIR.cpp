@@ -7438,6 +7438,12 @@ AliasSet MMapObjectSize::getAliasSet() const {
   return AliasSet::Load(AliasSet::MapOrSetHashTable);
 }
 
+AliasSet MDateFillLocalTimeSlots::getAliasSet() const {
+  // Reads and stores fixed slots. Additional reads from DateTimeInfo don't need
+  // to be tracked, because they don't interact with other alias set states.
+  return AliasSet::Store(AliasSet::FixedSlot);
+}
+
 MBindFunction* MBindFunction::New(TempAllocator& alloc, MDefinition* target,
                                   uint32_t argc, JSObject* templateObj) {
   auto* ins = new (alloc) MBindFunction(templateObj);

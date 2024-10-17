@@ -136,6 +136,12 @@ class DateObject : public NativeObject {
   static constexpr size_t offsetOfUTCTimeSlot() {
     return getFixedSlotOffset(UTC_TIME_SLOT);
   }
+  static constexpr size_t offsetOfUTCTimeZoneOffsetSlot() {
+    return getFixedSlotOffset(UTC_TIME_ZONE_OFFSET_SLOT);
+  }
+  static constexpr size_t offsetOfLocalTimeSlot() {
+    return getFixedSlotOffset(LOCAL_TIME_SLOT);
+  }
 };
 
 }  // namespace js

@@ -32,6 +32,7 @@
 #include "util/Unicode.h"
 #include "vm/ArrayObject.h"
 #include "vm/Compartment.h"
+#include "vm/DateObject.h"
 #include "vm/Float16.h"
 #include "vm/Interpreter.h"
 #include "vm/JSAtomUtils.h"  // AtomizeString
@@ -3090,6 +3091,11 @@ float Float16ToFloat32(int32_t value) {
 int32_t Float32ToFloat16(float value) {
   AutoUnsafeCallWithABI unsafe;
   return static_cast<int32_t>(js::float16{value}.toRawBits());
+}
+
+void DateFillLocalTimeSlots(DateObject* dateObj) {
+  AutoUnsafeCallWithABI unsafe;
+  dateObj->fillLocalTimeSlots();
 }
 
 JSAtom* AtomizeStringNoGC(JSContext* cx, JSString* str) {

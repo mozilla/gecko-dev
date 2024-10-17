@@ -3319,6 +3319,14 @@
   congruent_to: if_operands_equal
   alias_set: custom
 
+- name: DateFillLocalTimeSlots
+  operands:
+    date: Object
+  congruent_to: if_operands_equal
+  alias_set: custom
+  generate_lir: true
+  lir_temps: 1
+
 - name: PostIntPtrConversion
   gen_boilerplate: false
 

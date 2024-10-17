@@ -10810,6 +10810,16 @@ bool CacheIRCompiler::emitMapSizeResult(ObjOperandId mapId) {
   return true;
 }
 
+bool CacheIRCompiler::emitDateFillLocalTimeSlots(ObjOperandId dateId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register date = allocator.useRegister(masm, dateId);
+  AutoScratchRegister scratch(allocator, masm);
+
+  masm.dateFillLocalTimeSlots(date, scratch, liveVolatileRegs());
+  return true;
+}
+
 bool CacheIRCompiler::emitArrayFromArgumentsObjectResult(ObjOperandId objId,
                                                          uint32_t shapeOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

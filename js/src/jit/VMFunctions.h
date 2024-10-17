@@ -29,6 +29,7 @@ namespace js {
 
 class AbstractGeneratorObject;
 class ArrayObject;
+class DateObject;
 class GlobalObject;
 class InterpreterFrame;
 class LexicalScope;
@@ -710,6 +711,8 @@ float RoundFloat16ToFloat32(double d);
 
 float Float16ToFloat32(int32_t value);
 int32_t Float32ToFloat16(float value);
+
+void DateFillLocalTimeSlots(DateObject* dateObj);
 
 JSAtom* AtomizeStringNoGC(JSContext* cx, JSString* str);
 
