@@ -5,8 +5,6 @@
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const BACKUP_STATE_PREF = "sidebar.backupState";
-
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -14,11 +12,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
 });
 XPCOMUtils.defineLazyPreferenceGetter(lazy, "sidebarNimbus", "sidebar.nimbus");
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "sidebarBackupState",
-  BACKUP_STATE_PREF
-);
 
 export const SidebarManager = {
   /**
@@ -66,35 +59,6 @@ export const SidebarManager = {
         setPref(pref, lazy.NimbusFeatures[featureId].getVariable(pref))
       );
     });
-  },
-
-  /**
-   * Provide a system-level "backup" state to be stored for those using "Never
-   * remember history" or "Clear history when browser closes".
-   *
-   * If it doesn't exist or isn't parsable, return `null`.
-   *
-   * @returns {object}
-   */
-  getBackupState() {
-    try {
-      return JSON.parse(lazy.sidebarBackupState);
-    } catch (e) {
-      Services.prefs.clearUserPref(BACKUP_STATE_PREF);
-      return null;
-    }
-  },
-
-  /**
-   * Set the backup state.
-   *
-   * @param {object} state
-   */
-  setBackupState(state) {
-    if (!state) {
-      return;
-    }
-    Services.prefs.setStringPref(BACKUP_STATE_PREF, JSON.stringify(state));
   },
 };
 
