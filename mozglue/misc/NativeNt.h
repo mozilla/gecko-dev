@@ -913,6 +913,12 @@ class MOZ_RAII PEHeaders final {
                                     IMAGE_SCN_MEM_READ);
   }
 
+  // There may be other data sections in the binary besides .data
+  Maybe<Span<const uint8_t>> GetDataSectionInfo() const {
+    return FindSection(".data", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                    IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE);
+  }
+
   static bool IsValid(PIMAGE_IMPORT_DESCRIPTOR aImpDesc) {
     return aImpDesc && aImpDesc->OriginalFirstThunk != 0;
   }
