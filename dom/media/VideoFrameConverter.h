@@ -30,9 +30,11 @@
 // the encoder.
 #define CONVERTER_BUFFER_POOL_SIZE 5
 
-namespace mozilla {
+extern mozilla::LazyLogModule gMediaPipelineLog;
+#define LOG(level, msg, ...) \
+  MOZ_LOG(gMediaPipelineLog, level, (msg, ##__VA_ARGS__))
 
-static mozilla::LazyLogModule gVideoFrameConverterLog("VideoFrameConverter");
+namespace mozilla {
 
 // An async video frame format converter.
 //
@@ -100,9 +102,8 @@ class VideoFrameConverter {
           if (mActive == aActive) {
             return;
           }
-          MOZ_LOG(gVideoFrameConverterLog, LogLevel::Debug,
-                  ("VideoFrameConverter %p is now %s", this,
-                   aActive ? "active" : "inactive"));
+          LOG(LogLevel::Debug, "VideoFrameConverter %p is now %s", this,
+              aActive ? "active" : "inactive");
           mActive = aActive;
           if (aActive && mLastFrameQueuedForProcessing.Serial() != -2) {
             // After activating, we re-process the last image that was queued
@@ -125,9 +126,8 @@ class VideoFrameConverter {
           if (mTrackEnabled == aTrackEnabled) {
             return;
           }
-          MOZ_LOG(gVideoFrameConverterLog, LogLevel::Debug,
-                  ("VideoFrameConverter %p Track is now %s", this,
-                   aTrackEnabled ? "enabled" : "disabled"));
+          LOG(LogLevel::Debug, "VideoFrameConverter %p Track is now %s", this,
+              aTrackEnabled ? "enabled" : "disabled");
           mTrackEnabled = aTrackEnabled;
           if (!aTrackEnabled) {
             // After disabling we immediately send a frame as black, so it can
@@ -221,15 +221,14 @@ class VideoFrameConverter {
   void VideoFrameConverted(webrtc::VideoFrame aVideoFrame, int32_t aSerial) {
     MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
 
-    MOZ_LOG(
-        gVideoFrameConverterLog, LogLevel::Verbose,
-        ("VideoFrameConverter %p: Converted a frame. Diff from last: %.3fms",
-         this,
-         static_cast<double>(aVideoFrame.timestamp_us() -
-                             (mLastFrameConverted
-                                  ? mLastFrameConverted->mFrame.timestamp_us()
-                                  : aVideoFrame.timestamp_us())) /
-             1000));
+    LOG(LogLevel::Verbose,
+        "VideoFrameConverter %p: Converted a frame. Diff from last: %.3fms",
+        this,
+        static_cast<double>(aVideoFrame.timestamp_us() -
+                            (mLastFrameConverted
+                                 ? mLastFrameConverted->mFrame.timestamp_us()
+                                 : aVideoFrame.timestamp_us())) /
+            1000);
 
     // Check that time doesn't go backwards
     MOZ_ASSERT_IF(mLastFrameConverted,
@@ -249,12 +248,11 @@ class VideoFrameConverter {
                          aForceBlack || !mTrackEnabled};
 
     if (frame.mTime <= mLastFrameQueuedForProcessing.mTime) {
-      MOZ_LOG(
-          gVideoFrameConverterLog, LogLevel::Debug,
-          ("VideoFrameConverter %p: Dropping a frame because time did not "
-           "progress (%.3fs)",
-           this,
-           (mLastFrameQueuedForProcessing.mTime - frame.mTime).ToSeconds()));
+      LOG(LogLevel::Debug,
+          "VideoFrameConverter %p: Dropping a frame because time did not "
+          "progress (%.3fs)",
+          this,
+          (mLastFrameQueuedForProcessing.mTime - frame.mTime).ToSeconds());
       return;
     }
 
@@ -275,22 +273,20 @@ class VideoFrameConverter {
             mIdleFrameDuplicationInterval.ToMicroseconds());
         auto multiples = diff_us / idle_interval_us;
         MOZ_ASSERT(multiples > 0);
-        MOZ_LOG(
-            gVideoFrameConverterLog, LogLevel::Verbose,
-            ("VideoFrameConverter %p: Rewrote time interval for a duplicate "
-             "frame from %.3fs to %.3fs",
-             this,
-             (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds(),
-             (mIdleFrameDuplicationInterval * multiples).ToSeconds()));
+        LOG(LogLevel::Verbose,
+            "VideoFrameConverter %p: Rewrote time interval for a duplicate "
+            "frame from %.3fs to %.3fs",
+            this,
+            (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds(),
+            (mIdleFrameDuplicationInterval * multiples).ToSeconds());
         frame.mTime = mLastFrameQueuedForProcessing.mTime +
                       (mIdleFrameDuplicationInterval * multiples);
       } else {
-        MOZ_LOG(
-            gVideoFrameConverterLog, LogLevel::Verbose,
-            ("VideoFrameConverter %p: Dropping a duplicate frame because the "
-             "duplication interval (%.3fs) hasn't passed (%.3fs)",
-             this, mIdleFrameDuplicationInterval.ToSeconds(),
-             (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds()));
+        LOG(LogLevel::Verbose,
+            "VideoFrameConverter %p: Dropping a duplicate frame because the "
+            "duplication interval (%.3fs) hasn't passed (%.3fs)",
+            this, mIdleFrameDuplicationInterval.ToSeconds(),
+            (frame.mTime - mLastFrameQueuedForProcessing.mTime).ToSeconds());
         return;
       }
     }
@@ -298,10 +294,9 @@ class VideoFrameConverter {
     mLastFrameQueuedForProcessing = std::move(frame);
 
     if (!mActive) {
-      MOZ_LOG(
-          gVideoFrameConverterLog, LogLevel::Debug,
-          ("VideoFrameConverter %p: Ignoring a frame because we're inactive",
-           this));
+      LOG(LogLevel::Debug,
+          "VideoFrameConverter %p: Ignoring a frame because we're inactive",
+          this);
       return;
     }
 
@@ -315,12 +310,11 @@ class VideoFrameConverter {
     MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
 
     if (aFrame.mTime < mLastFrameQueuedForProcessing.mTime) {
-      MOZ_LOG(
-          gVideoFrameConverterLog, LogLevel::Debug,
-          ("VideoFrameConverter %p: Dropping a frame that is %.3f seconds "
-           "behind latest",
-           this,
-           (mLastFrameQueuedForProcessing.mTime - aFrame.mTime).ToSeconds()));
+      LOG(LogLevel::Debug,
+          "VideoFrameConverter %p: Dropping a frame that is %.3f seconds "
+          "before latest",
+          this,
+          (mLastFrameQueuedForProcessing.mTime - aFrame.mTime).ToSeconds());
       return;
     }
 
@@ -345,15 +339,15 @@ class VideoFrameConverter {
         MOZ_DIAGNOSTIC_ASSERT(false,
                               "Buffers not leaving scope except for "
                               "reconfig, should never leak");
-        MOZ_LOG(gVideoFrameConverterLog, LogLevel::Warning,
-                ("VideoFrameConverter %p: Creating a buffer for a black video "
-                 "frame failed",
-                 this));
+        LOG(LogLevel::Warning,
+            "VideoFrameConverter %p: Creating a buffer for a black video "
+            "frame failed",
+            this);
         return;
       }
 
-      MOZ_LOG(gVideoFrameConverterLog, LogLevel::Verbose,
-              ("VideoFrameConverter %p: Sending a black video frame", this));
+      LOG(LogLevel::Verbose,
+          "VideoFrameConverter %p: Sending a black video frame", this);
       webrtc::I420Buffer::SetBlack(buffer.get());
 
       VideoFrameConverted(webrtc::VideoFrame::Builder()
@@ -387,8 +381,8 @@ class VideoFrameConverter {
                 data->mCbCrStride, data->mCrChannel, data->mCbCrStride,
                 [image] { /* keep reference alive*/ });
 
-        MOZ_LOG(gVideoFrameConverterLog, LogLevel::Verbose,
-                ("VideoFrameConverter %p: Sending an I420 video frame", this));
+        LOG(LogLevel::Verbose,
+            "VideoFrameConverter %p: Sending an I420 video frame", this);
         VideoFrameConverted(webrtc::VideoFrame::Builder()
                                 .set_video_frame_buffer(video_frame_buffer)
                                 .set_timestamp_us(time.us())
@@ -405,8 +399,8 @@ class VideoFrameConverter {
       ++mFramesDropped;
 #endif
       MOZ_DIAGNOSTIC_ASSERT(mFramesDropped <= 100, "Buffers must be leaking");
-      MOZ_LOG(gVideoFrameConverterLog, LogLevel::Warning,
-              ("VideoFrameConverter %p: Creating a buffer failed", this));
+      LOG(LogLevel::Warning, "VideoFrameConverter %p: Creating a buffer failed",
+          this);
       return;
     }
 
@@ -422,8 +416,8 @@ class VideoFrameConverter {
                       buffer->MutableDataV(), buffer->StrideV());
 
     if (NS_FAILED(rv)) {
-      MOZ_LOG(gVideoFrameConverterLog, LogLevel::Warning,
-              ("VideoFrameConverter %p: Image conversion failed", this));
+      LOG(LogLevel::Warning, "VideoFrameConverter %p: Image conversion failed",
+          this);
       return;
     }
     rec.Record();
@@ -462,5 +456,7 @@ class VideoFrameConverter {
 };
 
 }  // namespace mozilla
+
+#undef LOG
 
 #endif  // VideoFrameConverter_h

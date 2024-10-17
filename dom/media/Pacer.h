@@ -12,6 +12,10 @@
 #ifndef DOM_MEDIA_PACER_H_
 #  define DOM_MEDIA_PACER_H_
 
+extern mozilla::LazyLogModule gMediaPipelineLog;
+#  define LOG(level, msg, ...) \
+    MOZ_LOG(gMediaPipelineLog, level, (msg, ##__VA_ARGS__))
+
 namespace mozilla {
 
 /**
@@ -34,17 +38,25 @@ class Pacer {
   Pacer(RefPtr<TaskQueue> aTaskQueue, TimeDuration aDuplicationInterval)
       : mTaskQueue(std::move(aTaskQueue)),
         mDuplicationInterval(aDuplicationInterval),
-        mTimer(MakeAndAddRef<MediaTimer<TimeStamp>>()) {}
+        mTimer(MakeAndAddRef<MediaTimer<TimeStamp>>()) {
+    LOG(LogLevel::Info, "Pacer %p constructed. Duplication interval is %.2fms",
+        this, mDuplicationInterval.ToMilliseconds());
+  }
 
   /**
    * Enqueues an item and schedules a timer to pass it on to PacedItemEvent() at
    * t=aTime. Already queued items with t>=aTime will be dropped.
    */
   void Enqueue(T aItem, TimeStamp aTime) {
+    LOG(LogLevel::Verbose, "Pacer %p: Enqueue t=%.4fs now=%.4fs", this,
+        (aTime - mStart).ToSeconds(), (TimeStamp::Now() - mStart).ToSeconds());
     MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
         __func__,
         [this, self = RefPtr<Pacer>(this), aItem = std::move(aItem), aTime] {
           MOZ_DIAGNOSTIC_ASSERT(!mIsShutdown);
+          LOG(LogLevel::Verbose, "Pacer %p: InnerEnqueue t=%.4fs, now=%.4fs",
+              self.get(), (aTime - mStart).ToSeconds(),
+              (TimeStamp::Now() - mStart).ToSeconds());
           while (const auto* item = mQueue.Peek()) {
             if (item->mTime < aTime) {
               break;
@@ -57,8 +69,14 @@ class Pacer {
   }
 
   void SetDuplicationInterval(TimeDuration aInterval) {
+    LOG(LogLevel::Info, "Pacer %p: SetDuplicationInterval(%.3fs) now=%.4fs",
+        this, aInterval.ToSeconds(), (TimeStamp::Now() - mStart).ToSeconds());
     MOZ_ALWAYS_SUCCEEDS(mTaskQueue->Dispatch(NS_NewRunnableFunction(
         __func__, [this, self = RefPtr(this), aInterval] {
+          LOG(LogLevel::Debug,
+              "Pacer %p: InnerSetDuplicationInterval(%.3fs) now=%.4fs",
+              self.get(), aInterval.ToSeconds(),
+              (TimeStamp::Now() - mStart).ToSeconds());
           if (auto* next = mQueue.PeekFront(); next && next->mIsDuplicate) {
             // Adjust the time of the next duplication frame.
             next->mTime =
@@ -71,8 +89,12 @@ class Pacer {
   }
 
   RefPtr<GenericPromise> Shutdown() {
+    LOG(LogLevel::Info, "Pacer %p: Shutdown, now=%.4fs", this,
+        (TimeStamp::Now() - mStart).ToSeconds());
     return InvokeAsync(
         mTaskQueue, __func__, [this, self = RefPtr<Pacer>(this)] {
+          LOG(LogLevel::Debug, "Pacer %p: InnerShutdown, now=%.4fs", self.get(),
+              (TimeStamp::Now() - mStart).ToSeconds());
           mIsShutdown = true;
           mTimer->Cancel();
           mQueue.Erase();
@@ -98,10 +120,17 @@ class Pacer {
       mCurrentTimerTarget = Nothing();
     }
 
+    LOG(LogLevel::Verbose, "Pacer %p: Waiting until t=%.4fs", this,
+        (aTime - mStart).ToSeconds());
     mTimer->WaitUntil(aTime, __func__)
         ->Then(
             mTaskQueue, __func__,
-            [this, self = RefPtr<Pacer>(this)] { OnTimerTick(); },
+            [this, self = RefPtr<Pacer>(this), aTime] {
+              LOG(LogLevel::Verbose, "Pacer %p: OnTimerTick t=%.4fs, now=%.4fs",
+                  self.get(), (aTime - mStart).ToSeconds(),
+                  (TimeStamp::Now() - mStart).ToSeconds());
+              OnTimerTick();
+            },
             [] {
               // Timer was rejected. This is fine.
             });
@@ -125,6 +154,9 @@ class Pacer {
           mQueue.PushFront(MakeAndAddRef<QueueItem>(
               item->mItem, item->mTime + mDuplicationInterval, true));
         }
+        LOG(LogLevel::Verbose, "Pacer %p: NotifyPacedItem t=%.4fs, now=%.4fs",
+            this, (item->mTime - mStart).ToSeconds(),
+            (TimeStamp::Now() - mStart).ToSeconds());
         mPacedItemEvent.Notify(std::move(item->mItem), item->mTime);
         continue;
       }
@@ -142,6 +174,10 @@ class Pacer {
 
  public:
   const RefPtr<TaskQueue> mTaskQueue;
+
+#  ifdef MOZ_LOGGING
+  const TimeStamp mStart = TimeStamp::Now();
+#  endif
 
  protected:
   struct QueueItem {
@@ -182,5 +218,7 @@ class Pacer {
 };
 
 }  // namespace mozilla
+
+#  undef LOG
 
 #endif
