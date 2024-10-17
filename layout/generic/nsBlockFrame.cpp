@@ -8342,8 +8342,10 @@ bool nsBlockFrame::BlockNeedsFloatManager(nsIFrame* aBlock) {
 
 /* static */
 bool nsBlockFrame::BlockCanIntersectFloats(nsIFrame* aFrame) {
-  return aFrame->IsBlockFrameOrSubclass() && !aFrame->IsReplaced() &&
-         !aFrame->HasAnyStateBits(NS_BLOCK_BFC);
+  // NS_BLOCK_BFC is block specific bit, check first as an optimization, it's
+  // okay because we also check that it is a block frame.
+  return !aFrame->HasAnyStateBits(NS_BLOCK_BFC) && !aFrame->IsReplaced() &&
+         aFrame->IsBlockFrameOrSubclass();
 }
 
 // Note that this width can vary based on the vertical position.
