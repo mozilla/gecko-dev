@@ -11335,7 +11335,8 @@ static bool IsFrameRectScrolledOutOfView(const nsIFrame* aTarget,
 
   nsIFrame* parent = clipParent->GetParent();
   if (!parent) {
-    return false;
+    return nsLayoutUtils::FrameRectIsScrolledOutOfViewInCrossProcess(
+        clipParent, transformedRect);
   }
 
   return IsFrameRectScrolledOutOfView(clipParent, transformedRect, parent);
