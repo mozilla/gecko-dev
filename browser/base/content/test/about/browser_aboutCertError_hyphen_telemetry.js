@@ -3,8 +3,8 @@
 
 "use strict";
 
-const ISSUED_BY_CCA_SITE = "https://issued-by-cca.example.com";
-const UNKNOWN_ISSUER_SITE = "https://untrusted.example.com";
+const HYPHEN_LABEL_SITE = "https://hyphen-.example.com";
+const DOMAIN_MISMATCH_SITE = "https://mismatch.badcertdomain.example.com";
 
 registerCleanupFunction(async () => {
   await resetTelemetry();
@@ -21,7 +21,7 @@ async function resetTelemetry() {
   });
 }
 
-async function checkTelemetry(expectedIssuedByCCA) {
+async function checkTelemetry(expectedHyphenCompat) {
   let loadEvent = await TestUtils.waitForCondition(() => {
     let events = Services.telemetry.snapshotEvents(
       Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
@@ -34,18 +34,18 @@ async function checkTelemetry(expectedIssuedByCCA) {
     "security.ui.certerror",
     "load",
     "aboutcerterror",
-    "SEC_ERROR_UNKNOWN_ISSUER",
+    "SSL_ERROR_BAD_CERT_DOMAIN",
     {
       is_frame: "false",
       has_sts: "false",
-      channel_status: "2153390067",
-      issued_by_cca: expectedIssuedByCCA,
-      hyphen_compat: "false",
+      channel_status: "2153394164",
+      issued_by_cca: "false",
+      hyphen_compat: expectedHyphenCompat,
     },
   ]);
 }
 
-add_task(async function test_cca_site() {
+add_task(async function test_site_with_hyphen() {
   await resetTelemetry();
   let browser;
   let pageLoaded;
@@ -54,7 +54,7 @@ add_task(async function test_cca_site() {
     () => {
       gBrowser.selectedTab = BrowserTestUtils.addTab(
         gBrowser,
-        ISSUED_BY_CCA_SITE
+        HYPHEN_LABEL_SITE
       );
       browser = gBrowser.selectedBrowser;
       pageLoaded = BrowserTestUtils.waitForErrorPage(browser);
@@ -63,12 +63,13 @@ add_task(async function test_cca_site() {
   );
   info("Loading and waiting for the certificate error page");
   await pageLoaded;
-  // Check that telemetry indicates this was issued by CCA.
+  // Check that telemetry indicates this error was caused by the hyphen in the
+  // domain name.
   await checkTelemetry("true");
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 
-add_task(async function test_non_cca_site() {
+add_task(async function test_domain_mismatch_site() {
   await resetTelemetry();
   let browser;
   let pageLoaded;
@@ -77,7 +78,7 @@ add_task(async function test_non_cca_site() {
     () => {
       gBrowser.selectedTab = BrowserTestUtils.addTab(
         gBrowser,
-        UNKNOWN_ISSUER_SITE
+        DOMAIN_MISMATCH_SITE
       );
       browser = gBrowser.selectedBrowser;
       pageLoaded = BrowserTestUtils.waitForErrorPage(browser);
@@ -86,7 +87,8 @@ add_task(async function test_non_cca_site() {
   );
   info("Loading and waiting for the certificate error page");
   await pageLoaded;
-  // Check that telemetry indicates this was not issued by CCA.
+  // Check that telemetry indicates this error was not caused by a hyphen in
+  // the domain name.
   await checkTelemetry("false");
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
