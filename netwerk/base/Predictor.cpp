@@ -181,6 +181,9 @@ Predictor::Action::OnCacheEntryAvailable(nsICacheEntry* entry, bool isNew,
   MOZ_ASSERT(NS_IsMainThread(), "Got cache entry off main thread!");
 
   nsAutoCString targetURI, sourceURI;
+  if (!mTargetURI) {
+    return NS_ERROR_UNEXPECTED;
+  }
   mTargetURI->GetAsciiSpec(targetURI);
   if (mSourceURI) {
     mSourceURI->GetAsciiSpec(sourceURI);
@@ -571,7 +574,7 @@ Predictor::PredictNative(nsIURI* targetURI, nsIURI* sourceURI,
   // waiting on the less-important predictor-only cache entry
   RefPtr<Predictor::Action> uriAction = new Predictor::Action(
       Predictor::Action::IS_FULL_URI, Predictor::Action::DO_PREDICT, argReason,
-      targetURI, nullptr, verifier, this);
+      uriKey, nullptr, verifier, this);
   nsAutoCString uriKeyStr;
   uriKey->GetAsciiSpec(uriKeyStr);
   PREDICTOR_LOG(("    Predict uri=%s reason=%d action=%p", uriKeyStr.get(),
