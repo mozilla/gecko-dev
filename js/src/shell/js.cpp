@@ -5321,11 +5321,7 @@ static bool ParseModule(JSContext* cx, unsigned argc, Value* vp) {
       if (JS_LinearStringEqualsLiteral(linearStr, "json")) {
         jsonModule = true;
       } else if (!JS_LinearStringEqualsLiteral(linearStr, "js")) {
-        UniqueChars modType = JS_EncodeStringToUTF8(cx, str);
-        JS_ReportErrorASCII(
-            cx,
-            "unexpected moduleType string (expected 'js' or 'json'), got %s",
-            modType.get());
+        JS_ReportErrorASCII(cx, "moduleType string ('js' or 'json') expected");
         return false;
       }
     }
