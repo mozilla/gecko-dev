@@ -42,14 +42,15 @@ class FrameListener {
   MediaEventProducer<webrtc::VideoFrame, TimeStamp> mVideoFrameConvertedEvent;
 };
 
-class DebugVideoFrameConverter : public VideoFrameConverter {
+class DebugVideoFrameConverter
+    : public VideoFrameConverterImpl<FrameDroppingPolicy::Disabled> {
  public:
   explicit DebugVideoFrameConverter(
       const dom::RTCStatsTimestampMaker& aTimestampMaker)
-      : VideoFrameConverter(aTimestampMaker) {}
+      : VideoFrameConverterImpl(aTimestampMaker) {}
 
-  using VideoFrameConverter::QueueForProcessing;
-  using VideoFrameConverter::RegisterListener;
+  using VideoFrameConverterImpl::QueueForProcessing;
+  using VideoFrameConverterImpl::RegisterListener;
 };
 
 class VideoFrameConverterTest : public ::testing::Test {
