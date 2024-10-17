@@ -211,6 +211,7 @@ add_task(async function test_network_markers_service_worker_use() {
         domainLookupStart: Expect.number(),
         domainLookupEnd: Expect.number(),
         connectStart: Expect.number(),
+        secureConnectionStart: Expect.number(),
         tcpConnectEnd: Expect.number(),
         connectEnd: Expect.number(),
         requestStart: Expect.number(),

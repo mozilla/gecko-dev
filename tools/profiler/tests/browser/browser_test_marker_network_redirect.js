@@ -83,6 +83,7 @@ add_task(async function test_network_markers_redirect_simple() {
         domainLookupStart: Expect.number(),
         domainLookupEnd: Expect.number(),
         connectStart: Expect.number(),
+        secureConnectionStart: Expect.number(),
         tcpConnectEnd: Expect.number(),
         connectEnd: Expect.number(),
         requestStart: Expect.number(),
@@ -113,6 +114,7 @@ add_task(async function test_network_markers_redirect_simple() {
       domainLookupStart: Expect.number(),
       domainLookupEnd: Expect.number(),
       connectStart: Expect.number(),
+      secureConnectionStart: Expect.number(),
       tcpConnectEnd: Expect.number(),
       connectEnd: Expect.number(),
       requestStart: Expect.number(),
@@ -241,6 +243,7 @@ add_task(async function test_network_markers_redirect_resources() {
       domainLookupStart: Expect.number(),
       domainLookupEnd: Expect.number(),
       connectStart: Expect.number(),
+      secureConnectionStart: Expect.number(),
       tcpConnectEnd: Expect.number(),
       connectEnd: Expect.number(),
     };
