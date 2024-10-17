@@ -14,6 +14,7 @@
 #include "YUVBufferGenerator.h"
 
 using namespace mozilla;
+using testing::Not;
 
 class VideoFrameConverterTest;
 
@@ -85,9 +86,14 @@ static bool IsPlane(const uint8_t* aData, int aWidth, int aHeight, int aStride,
   return true;
 }
 
-static bool IsFrameBlack(const webrtc::VideoFrame& aFrame) {
+MATCHER(IsFrameBlack,
+        std::string(nsPrintfCString("%s all black pixels",
+                                    negation ? "doesn't have" : "has")
+                        .get())) {
+  static_assert(
+      std::is_same_v<webrtc::VideoFrame, std::decay_t<decltype(arg)>>);
   RefPtr<webrtc::I420BufferInterface> buffer =
-      aFrame.video_frame_buffer()->ToI420().get();
+      arg.video_frame_buffer()->ToI420().get();
   return IsPlane(buffer->DataY(), buffer->width(), buffer->height(),
                  buffer->StrideY(), 0x00) &&
          IsPlane(buffer->DataU(), buffer->ChromaWidth(), buffer->ChromaHeight(),
@@ -156,7 +162,7 @@ TEST_F(VideoFrameConverterTest, BasicConversion) {
   const auto& [frame, conversionTime] = frames[0];
   EXPECT_EQ(frame.width(), 640);
   EXPECT_EQ(frame.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame));
+  EXPECT_THAT(frame, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime - now, TimeDuration::FromMilliseconds(0));
 }
 
@@ -173,7 +179,7 @@ TEST_F(VideoFrameConverterTest, BasicPacing) {
   const auto& [frame, conversionTime] = frames[0];
   EXPECT_EQ(frame.width(), 640);
   EXPECT_EQ(frame.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame));
+  EXPECT_THAT(frame, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime - now, future - now);
 }
 
@@ -194,13 +200,13 @@ TEST_F(VideoFrameConverterTest, MultiPacing) {
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime0 - now, future1 - now);
 
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime1, future2);
   EXPECT_GT(conversionTime1 - now, conversionTime0 - now);
 }
@@ -220,13 +226,13 @@ TEST_F(VideoFrameConverterTest, Duplication) {
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime0, future1);
 
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime1 - now, future1 + duplicationInterval - now);
   EXPECT_EQ(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
                                            frame0.timestamp_us()),
@@ -265,13 +271,13 @@ TEST_F(VideoFrameConverterTest, MutableDuplication) {
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime0 - now, future1 - now);
 
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, Not(IsFrameBlack()));
   EXPECT_EQ(frame0.video_frame_buffer(), frame1.video_frame_buffer());
   EXPECT_GT(conversionTime1 - now, future1 - now + noDuplicationPeriod);
   EXPECT_THAT(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
@@ -282,7 +288,7 @@ TEST_F(VideoFrameConverterTest, MutableDuplication) {
   const auto& [frame2, conversionTime2] = frames[2];
   EXPECT_EQ(frame2.width(), 640);
   EXPECT_EQ(frame2.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame2));
+  EXPECT_THAT(frame2, Not(IsFrameBlack()));
   EXPECT_EQ(frame0.video_frame_buffer(), frame2.video_frame_buffer());
   EXPECT_GT(conversionTime2 - now, noDuplicationPeriod + duplicationInterval1);
   EXPECT_THAT(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
@@ -292,7 +298,7 @@ TEST_F(VideoFrameConverterTest, MutableDuplication) {
   const auto& [frame3, conversionTime3] = frames[3];
   EXPECT_EQ(frame3.width(), 640);
   EXPECT_EQ(frame3.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame3));
+  EXPECT_THAT(frame3, Not(IsFrameBlack()));
   EXPECT_EQ(frame0.video_frame_buffer(), frame3.video_frame_buffer());
   EXPECT_GT(conversionTime3 - now,
             noDuplicationPeriod + duplicationInterval1 + duplicationInterval2);
@@ -303,7 +309,7 @@ TEST_F(VideoFrameConverterTest, MutableDuplication) {
   const auto& [frame4, conversionTime4] = frames[4];
   EXPECT_EQ(frame4.width(), 640);
   EXPECT_EQ(frame4.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame4));
+  EXPECT_THAT(frame4, Not(IsFrameBlack()));
   EXPECT_EQ(frame0.video_frame_buffer(), frame4.video_frame_buffer());
   EXPECT_GT(conversionTime4 - now, noDuplicationPeriod + duplicationInterval1 +
                                        duplicationInterval2 * 2);
@@ -326,7 +332,7 @@ TEST_F(VideoFrameConverterTest, DropsOld) {
   const auto& [frame, conversionTime] = frames[0];
   EXPECT_EQ(frame.width(), 640);
   EXPECT_EQ(frame.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame));
+  EXPECT_THAT(frame, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime - now, future2 - now);
 }
 
@@ -355,14 +361,14 @@ TEST_F(VideoFrameConverterTest, BlackOnDisableCreated) {
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
-  EXPECT_TRUE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, IsFrameBlack());
   EXPECT_GT(conversionTime0 - now, TimeDuration::FromSeconds(0));
   // The second frame was created by the same-frame timer. (We check multiples
   // because timing and scheduling can make it slower than requested)
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
-  EXPECT_TRUE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, IsFrameBlack());
   EXPECT_GT(conversionTime1 - now, duplicationInterval);
   // Check that the second frame comes 1s after the first.
   EXPECT_EQ(TimeDuration::FromMicroseconds(frame1.timestamp_us() -
@@ -392,7 +398,7 @@ TEST_F(VideoFrameConverterTest, BlackOnDisableDuplicated) {
   // The first frame was queued.
   EXPECT_EQ(frame0.width(), 800);
   EXPECT_EQ(frame0.height(), 600);
-  EXPECT_FALSE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime0 - now, future1 - now);
 
   auto frames = WaitFor(TakeNConvertedFrames(2)).unwrap();
@@ -401,13 +407,13 @@ TEST_F(VideoFrameConverterTest, BlackOnDisableDuplicated) {
   const auto& [frame1, conversionTime1] = frames[0];
   EXPECT_EQ(frame1.width(), 800);
   EXPECT_EQ(frame1.height(), 600);
-  EXPECT_TRUE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, IsFrameBlack());
   EXPECT_GT(conversionTime1 - now, future1 - now);
   // The third frame was created by the same-frame timer.
   const auto& [frame2, conversionTime2] = frames[1];
   EXPECT_EQ(frame2.width(), 800);
   EXPECT_EQ(frame2.height(), 600);
-  EXPECT_TRUE(IsFrameBlack(frame2));
+  EXPECT_THAT(frame2, IsFrameBlack());
   EXPECT_GT(conversionTime2 - now, future1 - now + duplicationInterval);
   // Check that the third frame comes a duplicationInterval after the second.
   EXPECT_EQ(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
@@ -454,12 +460,12 @@ TEST_F(VideoFrameConverterTest, ClearFutureFramesOnJumpingBack) {
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime0 - start, future1 - start);
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 320);
   EXPECT_EQ(frame1.height(), 240);
-  EXPECT_FALSE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, Not(IsFrameBlack()));
   EXPECT_GT(conversionTime1 - start, future3 - start);
 }
 
@@ -492,7 +498,7 @@ TEST_F(VideoFrameConverterTest, NoConversionsWhileInactive) {
                                       mTimestampMaker, now + activeDelay)
                                       .ToRealtime()
                                       .us());
-  EXPECT_FALSE(IsFrameBlack(frame));
+  EXPECT_THAT(frame, Not(IsFrameBlack()));
 }
 
 TEST_F(VideoFrameConverterTest, TimestampPropagation) {
@@ -510,7 +516,7 @@ TEST_F(VideoFrameConverterTest, TimestampPropagation) {
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, Not(IsFrameBlack()));
   EXPECT_EQ(frame0.timestamp_us(),
             dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d1)
                 .ToRealtime()
@@ -520,7 +526,7 @@ TEST_F(VideoFrameConverterTest, TimestampPropagation) {
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 800);
   EXPECT_EQ(frame1.height(), 600);
-  EXPECT_FALSE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, Not(IsFrameBlack()));
   EXPECT_EQ(frame1.timestamp_us(),
             dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d2)
                 .ToRealtime()
@@ -566,7 +572,7 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, Not(IsFrameBlack()));
   EXPECT_EQ(frame0.timestamp_us(),
             dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d1)
                 .ToRealtime()
@@ -576,7 +582,7 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, Not(IsFrameBlack()));
   EXPECT_GT(frame1.timestamp_us(),
             dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d2)
                 .ToRealtime()
@@ -586,7 +592,7 @@ TEST_F(VideoFrameConverterTest, IgnoreOldFrames) {
   const auto& [frame2, conversionTime2] = frames[2];
   EXPECT_EQ(frame2.width(), 640);
   EXPECT_EQ(frame2.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame2));
+  EXPECT_THAT(frame2, Not(IsFrameBlack()));
   EXPECT_EQ(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
                                            frame1.timestamp_us()),
             duplicationInterval);
@@ -616,7 +622,7 @@ TEST_F(VideoFrameConverterTest, SameFrameTimerRacingWithPacing) {
   const auto& [frame0, conversionTime0] = frames[0];
   EXPECT_EQ(frame0.width(), 640);
   EXPECT_EQ(frame0.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame0));
+  EXPECT_THAT(frame0, Not(IsFrameBlack()));
   EXPECT_EQ(frame0.timestamp_us(),
             dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d1)
                 .ToRealtime()
@@ -626,7 +632,7 @@ TEST_F(VideoFrameConverterTest, SameFrameTimerRacingWithPacing) {
   const auto& [frame1, conversionTime1] = frames[1];
   EXPECT_EQ(frame1.width(), 640);
   EXPECT_EQ(frame1.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame1));
+  EXPECT_THAT(frame1, Not(IsFrameBlack()));
   EXPECT_EQ(frame1.timestamp_us(),
             dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker, now + d2)
                 .ToRealtime()
@@ -636,7 +642,7 @@ TEST_F(VideoFrameConverterTest, SameFrameTimerRacingWithPacing) {
   const auto& [frame2, conversionTime2] = frames[2];
   EXPECT_EQ(frame2.width(), 640);
   EXPECT_EQ(frame2.height(), 480);
-  EXPECT_FALSE(IsFrameBlack(frame2));
+  EXPECT_THAT(frame2, Not(IsFrameBlack()));
   EXPECT_EQ(frame2.timestamp_us(),
             dom::RTCStatsTimestamp::FromMozTime(mTimestampMaker,
                                                 now + d2 + duplicationInterval)
