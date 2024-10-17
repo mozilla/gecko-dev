@@ -13,8 +13,8 @@ origin:
   url: "https://perfetto.dev"
   license: Apache-2.0
 
-  release: v47.0 (2024-08-07T12:54:13+00:00).
-  revision: v47.0
+  release: v48.1 (2024-10-14T16:20:44+00:00).
+  revision: v48.1
 
 updatebot:
   maintainer-phab: denispal

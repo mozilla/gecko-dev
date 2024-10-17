@@ -5215,20 +5215,53 @@ ScopedMmap ReadMmapWholeFile(const char* fname) {
 
 // gen_amalgamated expanded: #include "perfetto/base/status.h"
 
-#include <stdarg.h>
 #include <algorithm>
+#include <cstdarg>
+#include <cstdio>
+#include <string>
+#include <utility>
 
-namespace perfetto {
-namespace base {
+namespace perfetto::base {
 
 Status ErrStatus(const char* format, ...) {
-  char buffer[1024];
-  va_list ap;
-  va_start(ap, format);
-  vsnprintf(buffer, sizeof(buffer), format, ap);
-  va_end(ap);
-  Status status(buffer);
-  return status;
+  std::string buf;
+  buf.resize(1024);
+  for (;;) {
+    va_list ap;
+    va_start(ap, format);
+    int N = vsnprintf(buf.data(), buf.size() - 1, format, ap);
+    va_end(ap);
+
+    if (N <= 0) {
+      buf = "[printf format error]";
+      break;
+    }
+
+    auto sN = static_cast<size_t>(N);
+    if (sN > buf.size() - 1) {
+      // Indicates that the string was truncated and sN is the "number of
+      // non-null bytes which would be needed to fit the result". This is the
+      // C99 standard behaviour in the case of truncation. In that case, resize
+      // the buffer to match the returned value (with + 1 for the null
+      // terminator) and try again.
+      buf.resize(sN + 1);
+      continue;
+    }
+    if (sN == buf.size() - 1) {
+      // Indicates that the string was likely truncated and sN is just the
+      // number of bytes written into the string. This is the behaviour of
+      // non-standard compilers (MSVC) etc. In that case, just double the
+      // storage and try again.
+      buf.resize(sN * 2);
+      continue;
+    }
+
+    // Otherwise, indicates the string was written successfully: we need to
+    // resize to match the number of non-null bytes and return.
+    buf.resize(sN);
+    break;
+  }
+  return Status(std::move(buf));
 }
 
 std::optional<std::string_view> Status::GetPayload(
@@ -5269,8 +5302,7 @@ bool Status::ErasePayload(std::string_view type_url) {
   return erased;
 }
 
-}  // namespace base
-}  // namespace perfetto
+}  // namespace perfetto::base
 // gen_amalgamated begin source: src/base/string_splitter.cc
 // gen_amalgamated begin header: include/perfetto/ext/base/string_splitter.h
 /*
@@ -6558,7 +6590,6 @@ std::optional<int32_t> GetTimezoneOffsetMins() {
 
 #if PERFETTO_BUILDFLAG(PERFETTO_OS_LINUX) || \
     PERFETTO_BUILDFLAG(PERFETTO_OS_ANDROID)
-#include <linux/prctl.h>
 #include <sys/prctl.h>
 
 #ifndef PR_GET_TAGGED_ADDR_CTRL
@@ -7391,9 +7422,9 @@ constexpr uint64_t kWatchdogDefaultMemorySlack = 32 * 1024 * 1024;  // 32 MiB.
 constexpr uint32_t kWatchdogDefaultMemoryWindow = 30 * 1000;  // 30 seconds.
 
 inline void RunTaskWithWatchdogGuard(const std::function<void()>& task) {
-  // Maximum time a single task can take in a TaskRunner before the
-  // program suicides.
-  constexpr int64_t kWatchdogMillis = 30000;  // 30s
+  // The longest duration allowed for a single task within the TaskRunner.
+  // Exceeding this limit will trigger program termination.
+  constexpr int64_t kWatchdogMillis = 180000;  // 180s
 
   Watchdog::Timer handle = base::Watchdog::GetInstance()->CreateFatalTimer(
       kWatchdogMillis, WatchdogCrashReason::kTaskRunnerHung);
@@ -7920,6 +7951,10 @@ class UnixTaskRunner : public TaskRunner {
   // delayed tasks don't count even if they are due to run.
   bool IsIdleForTesting();
 
+  // Pretends (for the purposes of running delayed tasks) that time advanced by
+  // `ms`.
+  void AdvanceTimeForTesting(uint32_t ms);
+
   // TaskRunner implementation:
   void PostTask(std::function<void()>) override;
   void PostDelayedTask(std::function<void()>, uint32_t delay_ms) override;
@@ -7959,6 +7994,7 @@ class UnixTaskRunner : public TaskRunner {
   std::deque<std::function<void()>> immediate_tasks_;
   std::multimap<TimeMillis, std::function<void()>> delayed_tasks_;
   bool quit_ = false;
+  TimeMillis advanced_time_for_testing_ = TimeMillis(0);
 
   struct WatchTask {
     std::function<void()> callback;
@@ -8319,6 +8355,11 @@ bool UnixTaskRunner::IsIdleForTesting() {
   return immediate_tasks_.empty();
 }
 
+void UnixTaskRunner::AdvanceTimeForTesting(uint32_t ms) {
+  std::lock_guard<std::mutex> lock(lock_);
+  advanced_time_for_testing_ += TimeMillis(ms);
+}
+
 void UnixTaskRunner::UpdateWatchTasksLocked() {
   PERFETTO_DCHECK_THREAD(thread_checker_);
 #if !PERFETTO_BUILDFLAG(PERFETTO_OS_WIN)
@@ -8353,7 +8394,7 @@ void UnixTaskRunner::RunImmediateAndDelayedTask() {
     }
     if (!delayed_tasks_.empty()) {
       auto it = delayed_tasks_.begin();
-      if (now >= it->first) {
+      if (now + advanced_time_for_testing_ >= it->first) {
         delayed_task = std::move(it->second);
         delayed_tasks_.erase(it);
       }
@@ -8453,7 +8494,8 @@ int UnixTaskRunner::GetDelayMsToNextTaskLocked() const {
   if (!immediate_tasks_.empty())
     return 0;
   if (!delayed_tasks_.empty()) {
-    TimeMillis diff = delayed_tasks_.begin()->first - GetWallTimeMs();
+    TimeMillis diff = delayed_tasks_.begin()->first - GetWallTimeMs() -
+                      advanced_time_for_testing_;
     return std::max(0, static_cast<int>(diff.count()));
   }
   return -1;
@@ -8475,7 +8517,8 @@ void UnixTaskRunner::PostDelayedTask(std::function<void()> task,
   TimeMillis runtime = GetWallTimeMs() + TimeMillis(delay_ms);
   {
     std::lock_guard<std::mutex> lock(lock_);
-    delayed_tasks_.insert(std::make_pair(runtime, std::move(task)));
+    delayed_tasks_.insert(
+        std::make_pair(runtime + advanced_time_for_testing_, std::move(task)));
   }
   WakeUp();
 }
@@ -13375,18 +13418,22 @@ namespace perfetto {
 namespace protos {
 namespace gen {
 
-PerfEvents::PerfEvents() = default;
-PerfEvents::~PerfEvents() = default;
-PerfEvents::PerfEvents(const PerfEvents&) = default;
-PerfEvents& PerfEvents::operator=(const PerfEvents&) = default;
-PerfEvents::PerfEvents(PerfEvents&&) noexcept = default;
-PerfEvents& PerfEvents::operator=(PerfEvents&&) = default;
+FollowerEvent::FollowerEvent() = default;
+FollowerEvent::~FollowerEvent() = default;
+FollowerEvent::FollowerEvent(const FollowerEvent&) = default;
+FollowerEvent& FollowerEvent::operator=(const FollowerEvent&) = default;
+FollowerEvent::FollowerEvent(FollowerEvent&&) noexcept = default;
+FollowerEvent& FollowerEvent::operator=(FollowerEvent&&) = default;
 
-bool PerfEvents::operator==(const PerfEvents& other) const {
-  return ::protozero::internal::gen_helpers::EqualsField(unknown_fields_, other.unknown_fields_);
+bool FollowerEvent::operator==(const FollowerEvent& other) const {
+  return ::protozero::internal::gen_helpers::EqualsField(unknown_fields_, other.unknown_fields_)
+   && ::protozero::internal::gen_helpers::EqualsField(counter_, other.counter_)
+   && ::protozero::internal::gen_helpers::EqualsField(tracepoint_, other.tracepoint_)
+   && ::protozero::internal::gen_helpers::EqualsField(raw_event_, other.raw_event_)
+   && ::protozero::internal::gen_helpers::EqualsField(name_, other.name_);
 }
 
-bool PerfEvents::ParseFromArray(const void* raw, size_t size) {
+bool FollowerEvent::ParseFromArray(const void* raw, size_t size) {
   unknown_fields_.clear();
   bool packed_error = false;
 
@@ -13396,6 +13443,18 @@ bool PerfEvents::ParseFromArray(const void* raw, size_t size) {
       _has_field_.set(field.id());
     }
     switch (field.id()) {
+      case 1 /* counter */:
+        field.get(&counter_);
+        break;
+      case 2 /* tracepoint */:
+        (*tracepoint_).ParseFromArray(field.data(), field.size());
+        break;
+      case 3 /* raw_event */:
+        (*raw_event_).ParseFromArray(field.data(), field.size());
+        break;
+      case 4 /* name */:
+        ::protozero::internal::gen_helpers::DeserializeString(field, &name_);
+        break;
       default:
         field.SerializeAndAppendTo(&unknown_fields_);
         break;
@@ -13404,19 +13463,39 @@ bool PerfEvents::ParseFromArray(const void* raw, size_t size) {
   return !packed_error && !dec.bytes_left();
 }
 
-std::string PerfEvents::SerializeAsString() const {
+std::string FollowerEvent::SerializeAsString() const {
   ::protozero::internal::gen_helpers::MessageSerializer msg;
   Serialize(msg.get());
   return msg.SerializeAsString();
 }
 
-std::vector<uint8_t> PerfEvents::SerializeAsArray() const {
+std::vector<uint8_t> FollowerEvent::SerializeAsArray() const {
   ::protozero::internal::gen_helpers::MessageSerializer msg;
   Serialize(msg.get());
   return msg.SerializeAsArray();
 }
 
-void PerfEvents::Serialize(::protozero::Message* msg) const {
+void FollowerEvent::Serialize(::protozero::Message* msg) const {
+  // Field 1: counter
+  if (_has_field_[1]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(1, counter_, msg);
+  }
+
+  // Field 2: tracepoint
+  if (_has_field_[2]) {
+    (*tracepoint_).Serialize(msg->BeginNestedMessage<::protozero::Message>(2));
+  }
+
+  // Field 3: raw_event
+  if (_has_field_[3]) {
+    (*raw_event_).Serialize(msg->BeginNestedMessage<::protozero::Message>(3));
+  }
+
+  // Field 4: name
+  if (_has_field_[4]) {
+    ::protozero::internal::gen_helpers::SerializeString(4, name_, msg);
+  }
+
   protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
 }
 
@@ -13563,6 +13642,52 @@ void PerfEvents_Tracepoint::Serialize(::protozero::Message* msg) const {
     ::protozero::internal::gen_helpers::SerializeString(2, filter_, msg);
   }
 
+  protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
+}
+
+
+PerfEvents::PerfEvents() = default;
+PerfEvents::~PerfEvents() = default;
+PerfEvents::PerfEvents(const PerfEvents&) = default;
+PerfEvents& PerfEvents::operator=(const PerfEvents&) = default;
+PerfEvents::PerfEvents(PerfEvents&&) noexcept = default;
+PerfEvents& PerfEvents::operator=(PerfEvents&&) = default;
+
+bool PerfEvents::operator==(const PerfEvents& other) const {
+  return ::protozero::internal::gen_helpers::EqualsField(unknown_fields_, other.unknown_fields_);
+}
+
+bool PerfEvents::ParseFromArray(const void* raw, size_t size) {
+  unknown_fields_.clear();
+  bool packed_error = false;
+
+  ::protozero::ProtoDecoder dec(raw, size);
+  for (auto field = dec.ReadField(); field.valid(); field = dec.ReadField()) {
+    if (field.id() < _has_field_.size()) {
+      _has_field_.set(field.id());
+    }
+    switch (field.id()) {
+      default:
+        field.SerializeAndAppendTo(&unknown_fields_);
+        break;
+    }
+  }
+  return !packed_error && !dec.bytes_left();
+}
+
+std::string PerfEvents::SerializeAsString() const {
+  ::protozero::internal::gen_helpers::MessageSerializer msg;
+  Serialize(msg.get());
+  return msg.SerializeAsString();
+}
+
+std::vector<uint8_t> PerfEvents::SerializeAsArray() const {
+  ::protozero::internal::gen_helpers::MessageSerializer msg;
+  Serialize(msg.get());
+  return msg.SerializeAsArray();
+}
+
+void PerfEvents::Serialize(::protozero::Message* msg) const {
   protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
 }
 
@@ -16544,7 +16669,7 @@ bool FtraceConfig::ParseFromArray(const void* raw, size_t size) {
       case 11 /* drain_period_ms */:
         field.get(&drain_period_ms_);
         break;
-      case 26 /* drain_buffer_percent */:
+      case 29 /* drain_buffer_percent */:
         field.get(&drain_buffer_percent_);
         break;
       case 12 /* compact_sched */:
@@ -16646,9 +16771,9 @@ void FtraceConfig::Serialize(::protozero::Message* msg) const {
     ::protozero::internal::gen_helpers::SerializeVarInt(11, drain_period_ms_, msg);
   }
 
-  // Field 26: drain_buffer_percent
-  if (_has_field_[26]) {
-    ::protozero::internal::gen_helpers::SerializeVarInt(26, drain_buffer_percent_, msg);
+  // Field 29: drain_buffer_percent
+  if (_has_field_[29]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(29, drain_buffer_percent_, msg);
   }
 
   // Field 12: compact_sched
@@ -18337,6 +18462,7 @@ PerfEventConfig& PerfEventConfig::operator=(PerfEventConfig&&) = default;
 bool PerfEventConfig::operator==(const PerfEventConfig& other) const {
   return ::protozero::internal::gen_helpers::EqualsField(unknown_fields_, other.unknown_fields_)
    && ::protozero::internal::gen_helpers::EqualsField(timebase_, other.timebase_)
+   && ::protozero::internal::gen_helpers::EqualsField(followers_, other.followers_)
    && ::protozero::internal::gen_helpers::EqualsField(callstack_sampling_, other.callstack_sampling_)
    && ::protozero::internal::gen_helpers::EqualsField(ring_buffer_read_period_ms_, other.ring_buffer_read_period_ms_)
    && ::protozero::internal::gen_helpers::EqualsField(ring_buffer_pages_, other.ring_buffer_pages_)
@@ -18355,7 +18481,11 @@ bool PerfEventConfig::operator==(const PerfEventConfig& other) const {
    && ::protozero::internal::gen_helpers::EqualsField(additional_cmdline_count_, other.additional_cmdline_count_);
 }
 
+int PerfEventConfig::followers_size() const { return static_cast<int>(followers_.size()); }
+void PerfEventConfig::clear_followers() { followers_.clear(); }
+FollowerEvent* PerfEventConfig::add_followers() { followers_.emplace_back(); return &followers_.back(); }
 bool PerfEventConfig::ParseFromArray(const void* raw, size_t size) {
+  followers_.clear();
   target_installed_by_.clear();
   target_pid_.clear();
   target_cmdline_.clear();
@@ -18372,6 +18502,10 @@ bool PerfEventConfig::ParseFromArray(const void* raw, size_t size) {
     switch (field.id()) {
       case 15 /* timebase */:
         (*timebase_).ParseFromArray(field.data(), field.size());
+        break;
+      case 19 /* followers */:
+        followers_.emplace_back();
+        followers_.back().ParseFromArray(field.data(), field.size());
         break;
       case 16 /* callstack_sampling */:
         (*callstack_sampling_).ParseFromArray(field.data(), field.size());
@@ -18450,6 +18584,11 @@ void PerfEventConfig::Serialize(::protozero::Message* msg) const {
   // Field 15: timebase
   if (_has_field_[15]) {
     (*timebase_).Serialize(msg->BeginNestedMessage<::protozero::Message>(15));
+  }
+
+  // Field 19: followers
+  for (auto& it : followers_) {
+    it.Serialize(msg->BeginNestedMessage<::protozero::Message>(19));
   }
 
   // Field 16: callstack_sampling
@@ -18976,7 +19115,8 @@ bool SysStatsConfig::operator==(const SysStatsConfig& other) const {
    && ::protozero::internal::gen_helpers::EqualsField(diskstat_period_ms_, other.diskstat_period_ms_)
    && ::protozero::internal::gen_helpers::EqualsField(psi_period_ms_, other.psi_period_ms_)
    && ::protozero::internal::gen_helpers::EqualsField(thermal_period_ms_, other.thermal_period_ms_)
-   && ::protozero::internal::gen_helpers::EqualsField(cpuidle_period_ms_, other.cpuidle_period_ms_);
+   && ::protozero::internal::gen_helpers::EqualsField(cpuidle_period_ms_, other.cpuidle_period_ms_)
+   && ::protozero::internal::gen_helpers::EqualsField(gpufreq_period_ms_, other.gpufreq_period_ms_);
 }
 
 bool SysStatsConfig::ParseFromArray(const void* raw, size_t size) {
@@ -19033,6 +19173,9 @@ bool SysStatsConfig::ParseFromArray(const void* raw, size_t size) {
         break;
       case 13 /* cpuidle_period_ms */:
         field.get(&cpuidle_period_ms_);
+        break;
+      case 14 /* gpufreq_period_ms */:
+        field.get(&gpufreq_period_ms_);
         break;
       default:
         field.SerializeAndAppendTo(&unknown_fields_);
@@ -19118,6 +19261,11 @@ void SysStatsConfig::Serialize(::protozero::Message* msg) const {
   // Field 13: cpuidle_period_ms
   if (_has_field_[13]) {
     ::protozero::internal::gen_helpers::SerializeVarInt(13, cpuidle_period_ms_, msg);
+  }
+
+  // Field 14: gpufreq_period_ms
+  if (_has_field_[14]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(14, gpufreq_period_ms_, msg);
   }
 
   protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
@@ -23223,8 +23371,6 @@ void TraceConfig_BufferConfig::Serialize(::protozero::Message* msg) const {
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/track_event/log_message.pbzero.cc
 // Intentionally empty (crbug.com/998165)
-// gen_amalgamated begin source: gen/protos/perfetto/trace/track_event/pixel_modem.pbzero.cc
-// Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/track_event/process_descriptor.pbzero.cc
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/track_event/range_of_interest.pbzero.cc
@@ -25395,7 +25541,8 @@ bool ChromeLatencyInfo::operator==(const ChromeLatencyInfo& other) const {
    && ::protozero::internal::gen_helpers::EqualsField(component_info_, other.component_info_)
    && ::protozero::internal::gen_helpers::EqualsField(is_coalesced_, other.is_coalesced_)
    && ::protozero::internal::gen_helpers::EqualsField(gesture_scroll_id_, other.gesture_scroll_id_)
-   && ::protozero::internal::gen_helpers::EqualsField(touch_id_, other.touch_id_);
+   && ::protozero::internal::gen_helpers::EqualsField(touch_id_, other.touch_id_)
+   && ::protozero::internal::gen_helpers::EqualsField(input_type_, other.input_type_);
 }
 
 int ChromeLatencyInfo::component_info_size() const { return static_cast<int>(component_info_.size()); }
@@ -25433,6 +25580,9 @@ bool ChromeLatencyInfo::ParseFromArray(const void* raw, size_t size) {
         break;
       case 7 /* touch_id */:
         field.get(&touch_id_);
+        break;
+      case 8 /* input_type */:
+        field.get(&input_type_);
         break;
       default:
         field.SerializeAndAppendTo(&unknown_fields_);
@@ -25488,6 +25638,11 @@ void ChromeLatencyInfo::Serialize(::protozero::Message* msg) const {
   // Field 7: touch_id
   if (_has_field_[7]) {
     ::protozero::internal::gen_helpers::SerializeVarInt(7, touch_id_, msg);
+  }
+
+  // Field 8: input_type
+  if (_has_field_[8]) {
+    ::protozero::internal::gen_helpers::SerializeVarInt(8, input_type_, msg);
   }
 
   protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
@@ -27104,83 +27259,6 @@ void LogMessage::Serialize(::protozero::Message* msg) const {
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
-// gen_amalgamated begin source: gen/protos/perfetto/trace/track_event/pixel_modem.gen.cc
-// gen_amalgamated expanded: #include "perfetto/protozero/gen_field_helpers.h"
-// gen_amalgamated expanded: #include "perfetto/protozero/message.h"
-// gen_amalgamated expanded: #include "perfetto/protozero/packed_repeated_fields.h"
-// gen_amalgamated expanded: #include "perfetto/protozero/proto_decoder.h"
-// gen_amalgamated expanded: #include "perfetto/protozero/scattered_heap_buffer.h"
-// DO NOT EDIT. Autogenerated by Perfetto cppgen_plugin
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
-// gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/pixel_modem.gen.h"
-
-namespace perfetto {
-namespace protos {
-namespace gen {
-
-PixelModemEventInsight::PixelModemEventInsight() = default;
-PixelModemEventInsight::~PixelModemEventInsight() = default;
-PixelModemEventInsight::PixelModemEventInsight(const PixelModemEventInsight&) = default;
-PixelModemEventInsight& PixelModemEventInsight::operator=(const PixelModemEventInsight&) = default;
-PixelModemEventInsight::PixelModemEventInsight(PixelModemEventInsight&&) noexcept = default;
-PixelModemEventInsight& PixelModemEventInsight::operator=(PixelModemEventInsight&&) = default;
-
-bool PixelModemEventInsight::operator==(const PixelModemEventInsight& other) const {
-  return ::protozero::internal::gen_helpers::EqualsField(unknown_fields_, other.unknown_fields_)
-   && ::protozero::internal::gen_helpers::EqualsField(detokenized_message_, other.detokenized_message_);
-}
-
-bool PixelModemEventInsight::ParseFromArray(const void* raw, size_t size) {
-  unknown_fields_.clear();
-  bool packed_error = false;
-
-  ::protozero::ProtoDecoder dec(raw, size);
-  for (auto field = dec.ReadField(); field.valid(); field = dec.ReadField()) {
-    if (field.id() < _has_field_.size()) {
-      _has_field_.set(field.id());
-    }
-    switch (field.id()) {
-      case 1 /* detokenized_message */:
-        ::protozero::internal::gen_helpers::DeserializeString(field, &detokenized_message_);
-        break;
-      default:
-        field.SerializeAndAppendTo(&unknown_fields_);
-        break;
-    }
-  }
-  return !packed_error && !dec.bytes_left();
-}
-
-std::string PixelModemEventInsight::SerializeAsString() const {
-  ::protozero::internal::gen_helpers::MessageSerializer msg;
-  Serialize(msg.get());
-  return msg.SerializeAsString();
-}
-
-std::vector<uint8_t> PixelModemEventInsight::SerializeAsArray() const {
-  ::protozero::internal::gen_helpers::MessageSerializer msg;
-  Serialize(msg.get());
-  return msg.SerializeAsArray();
-}
-
-void PixelModemEventInsight::Serialize(::protozero::Message* msg) const {
-  // Field 1: detokenized_message
-  if (_has_field_[1]) {
-    ::protozero::internal::gen_helpers::SerializeString(1, detokenized_message_, msg);
-  }
-
-  protozero::internal::gen_helpers::SerializeUnknownFields(unknown_fields_, msg);
-}
-
-}  // namespace perfetto
-}  // namespace protos
-}  // namespace gen
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 // gen_amalgamated begin source: gen/protos/perfetto/trace/track_event/process_descriptor.gen.cc
 // gen_amalgamated expanded: #include "perfetto/protozero/gen_field_helpers.h"
 // gen_amalgamated expanded: #include "perfetto/protozero/message.h"
@@ -28050,7 +28128,6 @@ void TrackDescriptor::Serialize(::protozero::Message* msg) const {
 // gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/track_event.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/source_location.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/screenshot.gen.h"
-// gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/pixel_modem.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/chrome_window_handle_event_info.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/chrome_user_event.gen.h"
 // gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/chrome_renderer_scheduler_state.gen.h"
@@ -28319,7 +28396,6 @@ bool TrackEvent::operator==(const TrackEvent& other) const {
    && ::protozero::internal::gen_helpers::EqualsField(chrome_content_settings_event_info_, other.chrome_content_settings_event_info_)
    && ::protozero::internal::gen_helpers::EqualsField(chrome_active_processes_, other.chrome_active_processes_)
    && ::protozero::internal::gen_helpers::EqualsField(screenshot_, other.screenshot_)
-   && ::protozero::internal::gen_helpers::EqualsField(pixel_modem_event_insight_, other.pixel_modem_event_insight_)
    && ::protozero::internal::gen_helpers::EqualsField(source_location_, other.source_location_)
    && ::protozero::internal::gen_helpers::EqualsField(source_location_iid_, other.source_location_iid_)
    && ::protozero::internal::gen_helpers::EqualsField(chrome_message_pump_, other.chrome_message_pump_)
@@ -28463,9 +28539,6 @@ bool TrackEvent::ParseFromArray(const void* raw, size_t size) {
         break;
       case 50 /* screenshot */:
         (*screenshot_).ParseFromArray(field.data(), field.size());
-        break;
-      case 51 /* pixel_modem_event_insight */:
-        (*pixel_modem_event_insight_).ParseFromArray(field.data(), field.size());
         break;
       case 33 /* source_location */:
         (*source_location_).ParseFromArray(field.data(), field.size());
@@ -28679,11 +28752,6 @@ void TrackEvent::Serialize(::protozero::Message* msg) const {
   // Field 50: screenshot
   if (_has_field_[50]) {
     (*screenshot_).Serialize(msg->BeginNestedMessage<::protozero::Message>(50));
-  }
-
-  // Field 51: pixel_modem_event_insight
-  if (_has_field_[51]) {
-    (*pixel_modem_event_insight_).Serialize(msg->BeginNestedMessage<::protozero::Message>(51));
   }
 
   // Field 33: source_location
@@ -29062,6 +29130,8 @@ void TrackEvent_LegacyEvent::Serialize(::protozero::Message* msg) const {
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/dcvsh.pbzero.cc
 // Intentionally empty (crbug.com/998165)
+// gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/devfreq.pbzero.cc
+// Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/dma_fence.pbzero.cc
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/dmabuf_heap.pbzero.cc
@@ -29125,6 +29195,8 @@ void TrackEvent_LegacyEvent::Serialize(::protozero::Message* msg) const {
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/panel.pbzero.cc
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/perf_trace_counters.pbzero.cc
+// Intentionally empty (crbug.com/998165)
+// gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/pixel_mm.pbzero.cc
 // Intentionally empty (crbug.com/998165)
 // gen_amalgamated begin source: gen/protos/perfetto/trace/ftrace/power.pbzero.cc
 // Intentionally empty (crbug.com/998165)
@@ -29554,6 +29626,7 @@ bool IdAllocatorGeneric::IsEmpty() const {
 #include <stddef.h>
 
 #include <memory>
+#include <utility>
 
 // gen_amalgamated expanded: #include "perfetto/base/export.h"
 // gen_amalgamated expanded: #include "perfetto/base/platform_handle.h"
@@ -29579,7 +29652,20 @@ class PERFETTO_EXPORT_COMPONENT SharedMemory {
   // this object region when destroyed.
   virtual ~SharedMemory();
 
-  virtual void* start() const = 0;
+  // Read/write and read-only access to underlying buffer. The non-const method
+  // is implemented in terms of the const one so subclasses need only provide a
+  // single implementation; implementing in the opposite order would be unsafe
+  // since subclasses could effectively mutate state from inside a const method.
+  //
+  // N.B. This signature implements "deep const" that ties the constness of this
+  // object to the constness of the underlying buffer, as opposed to "shallow
+  // const" that would have the signature `void* start() const;`; this is less
+  // flexible for callers but prevents corner cases where it's transitively
+  // possible to change this object's state via the controlled memory.
+  void* start() { return const_cast<void*>(std::as_const(*this).start()); }
+  virtual const void* start() const = 0;
+
+
   virtual size_t size() const = 0;
 };
 
@@ -29630,7 +29716,8 @@ class InProcessSharedMemory : public SharedMemory {
   }
 
   // SharedMemory implementation.
-  void* start() const override;
+  using SharedMemory::start;  // Equal priority to const and non-const versions
+  const void* start() const override;
   size_t size() const override;
 
   class Factory : public SharedMemory::Factory {
@@ -29671,7 +29758,7 @@ namespace perfetto {
 InProcessSharedMemory::~InProcessSharedMemory() = default;
 InProcessSharedMemory::Factory::~Factory() = default;
 
-void* InProcessSharedMemory::start() const {
+const void* InProcessSharedMemory::start() const {
   return mem_.Get();
 }
 size_t InProcessSharedMemory::size() const {
@@ -32311,10 +32398,6 @@ class TraceWriterImpl : public TraceWriter,
     return protobuf_stream_writer_.written();
   }
 
-  void ResetChunkForTesting() {
-    cur_chunk_ = SharedMemoryABI::Chunk();
-    cur_chunk_packet_count_inflated_ = false;
-  }
   bool drop_packets_for_testing() const { return drop_packets_; }
 
  private:
@@ -39103,6 +39186,9 @@ static_assert(std::is_same<internal::BufferId, BufferID>::value,
 // gen_amalgamated expanded: #include "protos/perfetto/trace/trace_packet_defaults.pbzero.h"
 // gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/debug_annotation.pbzero.h"
 // gen_amalgamated expanded: #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
+#if PERFETTO_BUILDFLAG(PERFETTO_OS_MAC)
+#include <os/signpost.h>
+#endif
 
 using perfetto::protos::pbzero::ClockSnapshot;
 
@@ -39492,6 +39578,18 @@ void TrackEventInternal::ResetIncrementalState(
       track_defaults->add_extra_counter_track_uuids(
           thread_time_counter_track.uuid);
     }
+
+#if PERFETTO_BUILDFLAG(PERFETTO_OS_MAC)
+    // Emit a MacOS point-of-interest signpost to synchonize Mac profiler time
+    // with boot time.
+    // TODO(leszeks): Consider allowing synchronization against other clocks
+    // than boot time.
+    static os_log_t log_handle = os_log_create(
+        "dev.perfetto.clock_sync", OS_LOG_CATEGORY_POINTS_OF_INTEREST);
+    os_signpost_event_emit(
+        log_handle, OS_SIGNPOST_ID_EXCLUSIVE, "boottime", "%" PRId64,
+        static_cast<uint64_t>(perfetto::base::GetBootTimeNs().count()));
+#endif
 
     if (tls_state.default_clock != static_cast<uint32_t>(GetClockId())) {
       ClockSnapshot* clocks = packet->set_clock_snapshot();
@@ -40958,9 +41056,11 @@ enum class PerfettoStatsdAtom {
   // Checkpoints inside perfetto_cmd before tracing is finished.
   kTraceBegin = 1,
   kBackgroundTraceBegin = 2,
-  kCloneTraceBegin = 55,
-  kCloneTriggerTraceBegin = 56,
+  kCmdCloneTraceBegin = 55,
+  kCmdCloneTriggerTraceBegin = 56,
   kOnConnect = 3,
+  kCmdOnSessionClone = 58,
+  kCmdOnTriggerSessionClone = 59,
 
   // Guardrails inside perfetto_cmd before tracing is finished.
   kOnTimeout = 16,
@@ -41249,8 +41349,8 @@ const char* GetVersionCode();
 #ifndef GEN_PERFETTO_VERSION_GEN_H_
 #define GEN_PERFETTO_VERSION_GEN_H_
 
-#define PERFETTO_VERSION_STRING() "v47.0-a85300002"
-#define PERFETTO_VERSION_SCM_REVISION() "a853000023857ebd63b4c72802d795ba13a4ff33"
+#define PERFETTO_VERSION_STRING() "v48.1-8fc0fb096"
+#define PERFETTO_VERSION_SCM_REVISION() "8fc0fb09660d380577f2a8e68131255b03a28b79"
 
 #endif  // GEN_PERFETTO_VERSION_GEN_H_
 /*
@@ -46082,7 +46182,7 @@ class TracingServiceImpl : public TracingService {
                              base::ScopedFile);
   void ChangeTraceConfig(ConsumerEndpointImpl*, const TraceConfig&);
 
-  base::Status StartTracing(TracingSessionID);
+  void StartTracing(TracingSessionID);
   void DisableTracing(TracingSessionID, bool disable_immediately = false);
   void Flush(TracingSessionID tsid,
              uint32_t timeout_ms,
@@ -46400,8 +46500,8 @@ class TracingServiceImpl : public TracingService {
     // Set to true on the first call to MaybeNotifyAllDataSourcesStarted().
     bool did_notify_all_data_source_started = false;
 
-    // Stores all lifecycle events of a particular type (i.e. associated with a
-    // single field id in the TracingServiceEvent proto).
+    // Stores simple lifecycle events of a particular type (i.e. associated with
+    // a single field id in the TracingServiceEvent proto).
     struct LifecycleEvent {
       LifecycleEvent(uint32_t f_id, uint32_t m_size = 1)
           : field_id(f_id), max_size(m_size), timestamps(m_size) {}
@@ -46420,6 +46520,17 @@ class TracingServiceImpl : public TracingService {
       base::CircularQueue<int64_t> timestamps;
     };
     std::vector<LifecycleEvent> lifecycle_events;
+
+    // Stores arbitrary lifecycle events that don't fit in lifecycle_events as
+    // serialized TracePacket protos.
+    struct ArbitraryLifecycleEvent {
+      int64_t timestamp;
+      std::vector<uint8_t> data;
+    };
+
+    std::optional<ArbitraryLifecycleEvent> slow_start_event;
+
+    std::vector<ArbitraryLifecycleEvent> last_flush_events;
 
     using ClockSnapshotData = ClockSnapshotVector;
 
@@ -46534,8 +46645,9 @@ class TracingServiceImpl : public TracingService {
   void MaybeEmitReceivedTriggers(TracingSession*, std::vector<TracePacket>*);
   void MaybeEmitRemoteClockSync(TracingSession*, std::vector<TracePacket>*);
   void MaybeNotifyAllDataSourcesStarted(TracingSession*);
-  void OnFlushTimeout(TracingSessionID, FlushRequestID);
+  void OnFlushTimeout(TracingSessionID, FlushRequestID, FlushFlags);
   void OnDisableTracingTimeout(TracingSessionID);
+  void OnAllDataSourceStartedTimeout(TracingSessionID);
   void DisableTracingNotifyConsumerAndFlushFile(TracingSession*);
   void PeriodicFlushTask(TracingSessionID, bool post_next_only);
   void CompleteFlush(TracingSessionID tsid,
@@ -46638,7 +46750,6 @@ class TracingServiceImpl : public TracingService {
 
   bool smb_scraping_enabled_ = false;
   bool lockdown_mode_ = false;
-  uint32_t min_write_period_ms_ = 100;       // Overridable for testing.
   int64_t trigger_window_ns_ = kOneDayInNs;  // Overridable for testing.
 
   std::minstd_rand trigger_probability_rand_;
@@ -46804,6 +46915,8 @@ namespace {
 constexpr int kMaxBuffersPerConsumer = 128;
 constexpr uint32_t kDefaultSnapshotsIntervalMs = 10 * 1000;
 constexpr int kDefaultWriteIntoFilePeriodMs = 5000;
+constexpr int kMinWriteIntoFilePeriodMs = 100;
+constexpr uint32_t kAllDataSourceStartedTimeout = 20000;
 constexpr int kMaxConcurrentTracingSessions = 15;
 constexpr int kMaxConcurrentTracingSessionsPerUid = 5;
 constexpr int kMaxConcurrentTracingSessionsForStatsdUid = 10;
@@ -46816,6 +46929,8 @@ constexpr uint32_t kMaxTracingDurationMillis = 7 * 24 * kMillisPerHour;
 // These apply only if enable_extra_guardrails is true.
 constexpr uint32_t kGuardrailsMaxTracingBufferSizeKb = 128 * 1024;
 constexpr uint32_t kGuardrailsMaxTracingDurationMillis = 24 * kMillisPerHour;
+
+constexpr size_t kMaxLifecycleEventsListedDataSources = 32;
 
 #if PERFETTO_BUILDFLAG(PERFETTO_OS_WIN) || PERFETTO_BUILDFLAG(PERFETTO_OS_NACL)
 struct iovec {
@@ -47664,8 +47779,8 @@ base::Status TracingServiceImpl::EnableTracing(ConsumerEndpointImpl* consumer,
     uint32_t write_period_ms = cfg.file_write_period_ms();
     if (write_period_ms == 0)
       write_period_ms = kDefaultWriteIntoFilePeriodMs;
-    if (write_period_ms < min_write_period_ms_)
-      write_period_ms = min_write_period_ms_;
+    if (write_period_ms < kMinWriteIntoFilePeriodMs)
+      write_period_ms = kMinWriteIntoFilePeriodMs;
     tracing_session->write_period_ms = write_period_ms;
     tracing_session->max_file_size_bytes = cfg.max_file_size_bytes();
     tracing_session->bytes_written_into_file = 0;
@@ -47821,7 +47936,7 @@ base::Status TracingServiceImpl::EnableTracing(ConsumerEndpointImpl* consumer,
   // TraceConfig.trigger_config(). If both are specified which ever one occurs
   // first will initiate the trace.
   if (!cfg.deferred_start() && !has_start_trigger)
-    return StartTracing(tsid);
+    StartTracing(tsid);
 
   return base::OkStatus();
 }
@@ -47942,14 +48057,14 @@ void TracingServiceImpl::ChangeTraceConfig(ConsumerEndpointImpl* consumer,
   }
 }
 
-base::Status TracingServiceImpl::StartTracing(TracingSessionID tsid) {
+void TracingServiceImpl::StartTracing(TracingSessionID tsid) {
   PERFETTO_DCHECK_THREAD(thread_checker_);
 
   auto weak_this = weak_ptr_factory_.GetWeakPtr();
   TracingSession* tracing_session = GetTracingSession(tsid);
   if (!tracing_session) {
-    return PERFETTO_SVC_ERR(
-        "StartTracing() failed, invalid session ID %" PRIu64, tsid);
+    PERFETTO_ELOG("StartTracing() failed, invalid session ID %" PRIu64, tsid);
+    return;
   }
 
   MaybeLogUploadEvent(tracing_session->config, tracing_session->trace_uuid,
@@ -47959,8 +48074,9 @@ base::Status TracingServiceImpl::StartTracing(TracingSessionID tsid) {
     MaybeLogUploadEvent(
         tracing_session->config, tracing_session->trace_uuid,
         PerfettoStatsdAtom::kTracedStartTracingInvalidSessionState);
-    return PERFETTO_SVC_ERR("StartTracing() failed, invalid session state: %d",
-                            tracing_session->state);
+    PERFETTO_ELOG("StartTracing() failed, invalid session state: %d",
+                  tracing_session->state);
+    return;
   }
 
   tracing_session->state = TracingSession::STARTED;
@@ -48053,7 +48169,17 @@ base::Status TracingServiceImpl::StartTracing(TracingSessionID tsid) {
   }
 
   MaybeNotifyAllDataSourcesStarted(tracing_session);
-  return base::OkStatus();
+
+  // `did_notify_all_data_source_started` is only set if a consumer is
+  // connected.
+  if (tracing_session->consumer_maybe_null) {
+    task_runner_->PostDelayedTask(
+        [weak_this, tsid] {
+          if (weak_this)
+            weak_this->OnAllDataSourceStartedTimeout(tsid);
+        },
+        kAllDataSourceStartedTimeout);
+  }
 }
 
 // static
@@ -48125,7 +48251,6 @@ void TracingServiceImpl::DisableTracing(TracingSessionID tsid,
       return;
 
     case TracingSession::CLONED_READ_ONLY:
-      PERFETTO_DLOG("DisableTracing() cannot be called on a cloned session");
       return;
 
     // This is either:
@@ -48224,6 +48349,54 @@ void TracingServiceImpl::NotifyDataSourceStarted(
     // If all data sources are started, notify the consumer.
     MaybeNotifyAllDataSourcesStarted(&tracing_session);
   }  // for (tracing_session)
+}
+
+void TracingServiceImpl::OnAllDataSourceStartedTimeout(TracingSessionID tsid) {
+  PERFETTO_DCHECK_THREAD(thread_checker_);
+  TracingSession* tracing_session = GetTracingSession(tsid);
+  // It would be possible to check for `AllDataSourceInstancesStarted()` here,
+  // but it doesn't make much sense, because a data source can be registered
+  // after the session has started. Therefore this is tied to
+  // `did_notify_all_data_source_started`: if that notification happened, do not
+  // record slow data sources.
+  if (!tracing_session || !tracing_session->consumer_maybe_null ||
+      tracing_session->did_notify_all_data_source_started) {
+    return;
+  }
+
+  int64_t timestamp = base::GetBootTimeNs().count();
+
+  protozero::HeapBuffered<protos::pbzero::TracePacket> packet;
+  packet->set_timestamp(static_cast<uint64_t>(timestamp));
+  packet->set_trusted_uid(static_cast<int32_t>(uid_));
+  packet->set_trusted_packet_sequence_id(kServicePacketSequenceID);
+
+  size_t i = 0;
+  protos::pbzero::TracingServiceEvent::DataSources* slow_data_sources =
+      packet->set_service_event()->set_slow_starting_data_sources();
+  for (const auto& [producer_id, ds_instance] :
+       tracing_session->data_source_instances) {
+    if (ds_instance.state == DataSourceInstance::STARTED) {
+      continue;
+    }
+    ProducerEndpointImpl* producer = GetProducer(producer_id);
+    if (!producer) {
+      continue;
+    }
+    if (++i > kMaxLifecycleEventsListedDataSources) {
+      break;
+    }
+    auto* ds = slow_data_sources->add_data_source();
+    ds->set_producer_name(producer->name_);
+    ds->set_data_source_name(ds_instance.data_source_name);
+    PERFETTO_LOG(
+        "Data source failed to start within 20s data_source=\"%s\", "
+        "producer=\"%s\", tsid=%" PRIu64,
+        ds_instance.data_source_name.c_str(), producer->name_.c_str(), tsid);
+  }
+
+  tracing_session->slow_start_event = TracingSession::ArbitraryLifecycleEvent{
+      timestamp, packet.SerializeAsArray()};
 }
 
 void TracingServiceImpl::MaybeNotifyAllDataSourcesStarted(
@@ -48531,6 +48704,11 @@ void TracingServiceImpl::Flush(TracingSessionID tsid,
     return;
   }
 
+  SnapshotLifecyleEvent(
+      tracing_session,
+      protos::pbzero::TracingServiceEvent::kFlushStartedFieldNumber,
+      false /* snapshot_clocks */);
+
   std::map<ProducerID, std::vector<DataSourceInstanceID>> data_source_instances;
   for (const auto& [producer_id, ds_inst] :
        tracing_session->data_source_instances) {
@@ -48566,6 +48744,8 @@ void TracingServiceImpl::FlushDataSourceInstances(
     return;
   }
 
+  tracing_session->last_flush_events.clear();
+
   ++tracing_session->flushes_requested;
   FlushRequestID flush_request_id = ++last_flush_request_id_;
   PendingFlush& pending_flush =
@@ -48591,9 +48771,9 @@ void TracingServiceImpl::FlushDataSourceInstances(
 
   auto weak_this = weak_ptr_factory_.GetWeakPtr();
   task_runner_->PostDelayedTask(
-      [weak_this, tsid = tracing_session->id, flush_request_id] {
+      [weak_this, tsid = tracing_session->id, flush_request_id, flush_flags] {
         if (weak_this)
-          weak_this->OnFlushTimeout(tsid, flush_request_id);
+          weak_this->OnFlushTimeout(tsid, flush_request_id, flush_flags);
       },
       timeout_ms);
 }
@@ -48627,7 +48807,8 @@ void TracingServiceImpl::NotifyFlushDoneForProducer(
 }
 
 void TracingServiceImpl::OnFlushTimeout(TracingSessionID tsid,
-                                        FlushRequestID flush_request_id) {
+                                        FlushRequestID flush_request_id,
+                                        FlushFlags flush_flags) {
   TracingSession* tracing_session = GetTracingSession(tsid);
   if (!tracing_session)
     return;
@@ -48635,9 +48816,51 @@ void TracingServiceImpl::OnFlushTimeout(TracingSessionID tsid,
   if (it == tracing_session->pending_flushes.end())
     return;  // Nominal case: flush was completed and acked on time.
 
+  PendingFlush& pending_flush = it->second;
+
   // If there were no producers to flush, consider it a success.
-  bool success = it->second.producers.empty();
-  auto callback = std::move(it->second.callback);
+  bool success = pending_flush.producers.empty();
+  auto callback = std::move(pending_flush.callback);
+  // If flush failed and this is a "final" flush, log which data sources were
+  // slow.
+  if ((flush_flags.reason() == FlushFlags::Reason::kTraceClone ||
+       flush_flags.reason() == FlushFlags::Reason::kTraceStop) &&
+      !success) {
+    int64_t timestamp = base::GetBootTimeNs().count();
+
+    protozero::HeapBuffered<protos::pbzero::TracePacket> packet;
+    packet->set_timestamp(static_cast<uint64_t>(timestamp));
+    packet->set_trusted_uid(static_cast<int32_t>(uid_));
+    packet->set_trusted_packet_sequence_id(kServicePacketSequenceID);
+
+    size_t i = 0;
+    protos::pbzero::TracingServiceEvent::DataSources* event =
+        packet->set_service_event()->set_last_flush_slow_data_sources();
+    for (const auto& producer_id : pending_flush.producers) {
+      ProducerEndpointImpl* producer = GetProducer(producer_id);
+      if (!producer) {
+        continue;
+      }
+      if (++i > kMaxLifecycleEventsListedDataSources) {
+        break;
+      }
+
+      auto ds_id_range =
+          tracing_session->data_source_instances.equal_range(producer_id);
+      for (auto ds_it = ds_id_range.first; ds_it != ds_id_range.second;
+           ds_it++) {
+        auto* ds = event->add_data_source();
+        ds->set_producer_name(producer->name_);
+        ds->set_data_source_name(ds_it->second.data_source_name);
+        if (++i > kMaxLifecycleEventsListedDataSources) {
+          break;
+        }
+      }
+    }
+
+    tracing_session->last_flush_events.push_back(
+        {timestamp, packet.SerializeAsArray()});
+  }
   tracing_session->pending_flushes.erase(it);
   CompleteFlush(tsid, std::move(callback), success);
 }
@@ -50327,6 +50550,20 @@ void TracingServiceImpl::EmitSystemInfo(std::vector<TracePacket>* packets) {
     PERFETTO_ELOG("Unable to read ro.boot.hardware.revision");
   }
 
+  std::string hw_ufs_value = base::GetAndroidProp("ro.boot.hardware.ufs");
+  if (!hw_ufs_value.empty()) {
+    info->set_android_storage_model(hw_ufs_value);
+  } else {
+    PERFETTO_ELOG("Unable to read ro.boot.hardware.ufs");
+  }
+
+  std::string hw_ddr_value = base::GetAndroidProp("ro.boot.hardware.ddr");
+  if (!hw_ddr_value.empty()) {
+    info->set_android_ram_model(hw_ddr_value);
+  } else {
+    PERFETTO_ELOG("Unable to read ro.boot.hardware.ddr");
+  }
+
 #endif  // PERFETTO_BUILDFLAG(PERFETTO_OS_ANDROID)
   packet->set_trusted_uid(static_cast<int32_t>(uid_));
   packet->set_trusted_packet_sequence_id(kServicePacketSequenceID);
@@ -50353,6 +50590,18 @@ void TracingServiceImpl::EmitLifecycleEvents(
     }
     event.timestamps.clear();
   }
+
+  if (tracing_session->slow_start_event.has_value()) {
+    const TracingSession::ArbitraryLifecycleEvent& event =
+        *tracing_session->slow_start_event;
+    timestamped_packets.emplace_back(event.timestamp, std::move(event.data));
+  }
+  tracing_session->slow_start_event.reset();
+
+  for (auto& event : tracing_session->last_flush_events) {
+    timestamped_packets.emplace_back(event.timestamp, std::move(event.data));
+  }
+  tracing_session->last_flush_events.clear();
 
   // We sort by timestamp here to ensure that the "sequence" of lifecycle
   // packets has monotonic timestamps like other sequences in the trace.
@@ -50580,6 +50829,9 @@ base::Status TracingServiceImpl::FlushAndCloneSession(
     }
   }
 
+  SnapshotLifecyleEvent(
+      session, protos::pbzero::TracingServiceEvent::kFlushStartedFieldNumber,
+      false /* snapshot_clocks */);
   clone_op.pending_flush_cnt = bufs_groups.size();
   for (const std::set<BufferID>& buf_group : bufs_groups) {
     FlushDataSourceInstances(
@@ -50788,6 +51040,8 @@ base::Status TracingServiceImpl::FinishCloneSession(
   src->num_triggers_emitted_into_trace = 0;
   cloned_session->lifecycle_events =
       std::vector<TracingSession::LifecycleEvent>(src->lifecycle_events);
+  cloned_session->slow_start_event = src->slow_start_event;
+  cloned_session->last_flush_events = src->last_flush_events;
   cloned_session->initial_clock_snapshot = src->initial_clock_snapshot;
   cloned_session->clock_snapshot_ring_buffer = src->clock_snapshot_ring_buffer;
   cloned_session->invalid_packets = src->invalid_packets;
@@ -51520,11 +51774,14 @@ TracingServiceImpl::TracingSession::TracingSession(
       config(new_config),
       snapshot_periodic_task(task_runner),
       timed_stop_task(task_runner) {
-  // all_data_sources_flushed is special because we store up to 64 events of
-  // this type. Other events will go through the default case in
+  // all_data_sources_flushed (and flush_started) is special because we store up
+  // to 64 events of this type. Other events will go through the default case in
   // SnapshotLifecycleEvent() where they will be given a max history of 1.
   lifecycle_events.emplace_back(
       protos::pbzero::TracingServiceEvent::kAllDataSourcesFlushedFieldNumber,
+      64 /* max_size */);
+  lifecycle_events.emplace_back(
+      protos::pbzero::TracingServiceEvent::kFlushStartedFieldNumber,
       64 /* max_size */);
 }
 
@@ -61179,7 +61436,8 @@ class PosixSharedMemory : public SharedMemory {
   int fd() const { return fd_.get(); }
 
   // SharedMemory implementation.
-  void* start() const override { return start_; }
+  using SharedMemory::start;  // Equal priority to const and non-const versions
+  const void* start() const override { return start_; }
   size_t size() const override { return size_; }
 
  private:
@@ -61391,7 +61649,8 @@ class SharedMemoryWindows : public SharedMemory {
   const base::ScopedPlatformHandle& handle() const { return handle_; }
 
   // SharedMemory implementation.
-  void* start() const override { return start_; }
+  using SharedMemory::start;  // Equal priority to const and non-const versions
+  const void* start() const override { return start_; }
   size_t size() const override { return size_; }
 
  private:
@@ -64892,7 +65151,11 @@ bool ServiceIPCHostImpl::DoStart() {
   svc_ = TracingService::CreateInstance(std::move(shm_factory), task_runner_,
                                         init_opts_);
 
-  if (producer_ipc_ports_.empty() || !consumer_ipc_port_) {
+  if (producer_ipc_ports_.empty() || !consumer_ipc_port_ ||
+      std::any_of(producer_ipc_ports_.begin(), producer_ipc_ports_.end(),
+                  [](const std::unique_ptr<ipc::Host>& port) {
+                    return port == nullptr;
+                  })) {
     Shutdown();
     return false;
   }
