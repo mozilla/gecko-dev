@@ -276,27 +276,18 @@ export function isMapScopesEnabled(state) {
   return state.pause.mapScopes;
 }
 
-export function getInlinePreviews(state, thread, frameId) {
+export function getInlinePreviews(state) {
   if (state.tracerFrames?.previews) {
     return state.tracerFrames?.previews;
   }
+  const thread = getCurrentThread(state);
+  const frameId = getSelectedFrameId(state, thread);
   if (frameId) {
     return getThreadPauseState(state.pause, thread).inlinePreview[
       getGeneratedFrameId(frameId)
     ];
   }
   return null;
-}
-
-// This is only used by tests
-export function getSelectedInlinePreviews(state) {
-  const thread = getCurrentThread(state);
-  const frameId = getSelectedFrameId(state, thread);
-  if (!frameId) {
-    return null;
-  }
-
-  return getInlinePreviews(state, thread, frameId);
 }
 
 export function getLastExpandedScopes(state, thread) {

@@ -135,9 +135,8 @@ class InlinePreviews extends Component {
 }
 
 const mapStateToProps = (state, props) => {
-  const thread = getCurrentThread(state);
-  const selectedFrame = getSelectedFrame(state, thread);
-  const previews = getInlinePreviews(state, thread, selectedFrame?.id);
+  const selectedFrame = getSelectedFrame(state, getCurrentThread(state));
+  const previews = getInlinePreviews(state);
   // When we are paused, render only if currently open file is the one where debugger is paused
   if (
     (selectedFrame &&

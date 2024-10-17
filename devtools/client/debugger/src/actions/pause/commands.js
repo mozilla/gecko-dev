@@ -40,7 +40,7 @@ export function selectThread(thread) {
       serverRequests.push(dispatch(selectLocation(selectedFrame.location)));
       serverRequests.push(dispatch(fetchFrames(thread)));
 
-      serverRequests.push(dispatch(fetchScopes(selectedFrame)));
+      serverRequests.push(dispatch(fetchScopes()));
     }
 
     await Promise.all(serverRequests);

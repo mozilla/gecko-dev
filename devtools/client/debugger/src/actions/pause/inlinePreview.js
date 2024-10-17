@@ -7,6 +7,8 @@ import {
   getGeneratedFrameScope,
   getInlinePreviews,
   getSelectedLocation,
+  getSelectedFrame,
+  getCurrentThread,
 } from "../../selectors/index";
 import { features } from "../../utils/prefs";
 import { validateSelectedFrame } from "../../utils/context";
@@ -24,16 +26,24 @@ function getLocalScopeLevels(originalAstScopes) {
   return levels;
 }
 
-export function generateInlinePreview(selectedFrame) {
+/**
+ * Update the inline previews for the currently selected frame.
+ */
+export function generateInlinePreview() {
   return async function ({ dispatch, getState, parserWorker, client }) {
     if (!features.inlinePreview) {
       return null;
     }
 
     // Avoid regenerating inline previews when we already have preview data
-    if (getInlinePreviews(getState(), selectedFrame.thread, selectedFrame.id)) {
+    if (getInlinePreviews(getState())) {
       return null;
     }
+
+    const selectedFrame = getSelectedFrame(
+      getState(),
+      getCurrentThread(getState())
+    );
 
     const originalFrameScopes = getOriginalFrameScope(
       getState(),
@@ -63,6 +73,7 @@ export function generateInlinePreview(selectedFrame) {
     }
 
     const originalAstScopes = await parserWorker.getScopes(selectedLocation);
+    // Bailout if we resumed or moved to another frame while computing the scope
     validateSelectedFrame(getState(), selectedFrame);
 
     if (!originalAstScopes) {
@@ -113,6 +124,8 @@ export function generateInlinePreview(selectedFrame) {
         allPreviews.push(...previewsFromBindings);
       });
       await Promise.all(previewBindings);
+      // Bailout if we resumed or moved to another frame while fetching the values from the backend
+      validateSelectedFrame(getState(), selectedFrame);
 
       scopes = scopes.parent;
     }

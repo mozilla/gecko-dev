@@ -607,7 +607,7 @@ function waitForResumed(dbg) {
 }
 
 function waitForInlinePreviews(dbg) {
-  return waitForState(dbg, () => dbg.selectors.getSelectedInlinePreviews());
+  return waitForState(dbg, () => dbg.selectors.getInlinePreviews());
 }
 
 function waitForCondition(dbg, condition) {
