@@ -639,6 +639,28 @@ urlbar-result-action-calculator-result = = { $result }
 
 ## Strings used for buttons in the urlbar
 
+# Searchmode Switcher button
+# Variables:
+#   $engine (String): the current default search engine.
+urlbar-searchmode-button =
+    .label = { $engine }, Pick a Search Engine
+    .tooltiptext = { $engine }, Pick a Search Engine
+urlbar-searchmode-dropmarker =
+    .tooltiptext = Pick a Search Engine
+urlbar-searchmode-bookmarks =
+    .label = Bookmarks
+urlbar-searchmode-tabs =
+    .label = Tabs
+urlbar-searchmode-history =
+    .label = History
+urlbar-searchmode-actions =
+    .label = Actions
+urlbar-searchmode-exit-button =
+    .tooltiptext = Close
+
+urlbar-searchmode-popup-description = This time search with:
+urlbar-searchmode-popup-search-settings = Search Settings
+
 # Label prompting user to search with a particular search engine.
 #  $engine (String): the name of a search engine that searches a specific site
 urlbar-result-search-with = Search with { $engine }

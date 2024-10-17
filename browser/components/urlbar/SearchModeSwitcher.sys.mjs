@@ -12,7 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 ChromeUtils.defineLazyGetter(lazy, "SearchModeSwitcherL10n", () => {
-  return new Localization(["preview/enUS-searchFeatures.ftl"]);
+  return new Localization(["browser/browser.ftl"]);
 });
 
 /**
