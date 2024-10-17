@@ -396,9 +396,9 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
   NS_ENSURE_SUCCESS(rv, rv);
   MOZ_ASSERT(!pageSpec.IsEmpty(), "Page spec must not be empty.");
 
-  nsAutoCString pageHost;
-  // It's expected that some URIs may not have a host.
-  Unused << aPageURI->GetHost(pageHost);
+  nsAutoCString pageHostAndPort;
+  // It's expected that some URIs may not have a host/port.
+  Unused << aPageURI->GetHostPort(pageHostAndPort);
 
   const uint16_t THRESHOLD_WIDTH = 64;
 
@@ -424,7 +424,8 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
       "UNION ALL "
       "SELECT width, icon_url, root, (flags & %d) as isRich "
       "FROM moz_icons i "
-      "WHERE fixed_icon_url_hash = hash(fixup_url(:host) || '/favicon.ico') "
+      "WHERE fixed_icon_url_hash = hash(fixup_url(:hostAndPort) || "
+      "'/favicon.ico') "
       "ORDER BY %s width DESC, root ASC",
       nsIFaviconService::ICONDATA_FLAGS_RICH,
       nsIFaviconService::ICONDATA_FLAGS_RICH,
@@ -438,7 +439,7 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
 
   rv = URIBinder::Bind(stmt, "url"_ns, pageSpec);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = stmt->BindUTF8StringByName("host"_ns, pageHost);
+  rv = stmt->BindUTF8StringByName("hostAndPort"_ns, pageHostAndPort);
   NS_ENSURE_SUCCESS(rv, rv);
   int32_t hashIdx = PromiseFlatCString(pageSpec).RFind("#");
   rv = stmt->BindInt32ByName("hash_idx"_ns, hashIdx + 1);

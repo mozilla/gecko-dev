@@ -382,3 +382,68 @@ add_task(async function test_with_user_pass() {
     }
   }
 });
+
+add_task(async function test_icon_with_port() {
+  const ICON_DATAURL_PAGE_WITHOUT_PORT =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2P4v5ThPwAG7wKklwQ/bwAAAABJRU5ErkJggg==";
+  let faviconForPageWithoutPort = await fetchIconForSpec(
+    ICON_DATAURL_PAGE_WITHOUT_PORT
+  );
+
+  const TEST_URI_WITH_PORT = NetUtil.newURI("http://example.com:5000/");
+  const FAVICON_URI_WITH_PORT = NetUtil.newURI(
+    "http://example.com:5000/favicon.ico"
+  );
+
+  const TEST_URI_WITHOUT_PORT = NetUtil.newURI("http://example.com/");
+  const FAVICON_URI_WITHOUT_PORT = NetUtil.newURI(
+    "http://example.com/favicon.ico"
+  );
+
+  await PlacesTestUtils.addVisits(TEST_URI_WITHOUT_PORT);
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI_WITHOUT_PORT,
+    FAVICON_URI_WITHOUT_PORT,
+    ICON_DATAURL_PAGE_WITHOUT_PORT
+  );
+
+  await PlacesTestUtils.addVisits(TEST_URI_WITH_PORT);
+  await PlacesTestUtils.setFaviconForPage(
+    TEST_URI_WITH_PORT,
+    FAVICON_URI_WITH_PORT,
+    ICON_DATAURL
+  );
+
+  let { data, contentType } = await fetchIconForSpec(
+    "page-icon:" + TEST_URI_WITH_PORT.spec
+  );
+
+  Assert.equal(
+    contentType,
+    gFavicon.contentType,
+    "Correct content type for favicon with port"
+  );
+  Assert.deepEqual(
+    data,
+    gFavicon.data,
+    "Got the correct favicon data for URL with port"
+  );
+
+  let icon = await fetchIconForSpec("page-icon:" + TEST_URI_WITHOUT_PORT.spec);
+
+  data = icon.data;
+  contentType = icon.contentType;
+
+  Assert.equal(
+    contentType,
+    faviconForPageWithoutPort.contentType,
+    "Correct content type for favicon without port"
+  );
+  Assert.deepEqual(
+    data,
+    faviconForPageWithoutPort.data,
+    "Got the correct favicon data for URL without port"
+  );
+
+  await PlacesUtils.history.clear();
+});

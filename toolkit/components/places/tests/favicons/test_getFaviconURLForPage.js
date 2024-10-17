@@ -91,3 +91,48 @@ add_task(async function test_fallback() {
     "The page should also have its icon"
   );
 });
+
+add_task(async function test_URIsWithPort() {
+  const URL_WITH_PORT = "https://www.example.com:5000/";
+  const ICON_URL = URL_WITH_PORT + "favicon.ico";
+  const URL_WITHOUT_PORT = "https://www.example.com/";
+  const ICON_URL_NO_PORT = URL_WITHOUT_PORT + "favicon.ico";
+
+  info("Set icon for the URL with the port");
+  await PlacesTestUtils.addVisits(URL_WITH_PORT);
+  let dataURL = await readFileDataAsDataURL(
+    do_get_file("favicon-normal16.png"),
+    "image/png"
+  );
+  await PlacesTestUtils.setFaviconForPage(URL_WITH_PORT, ICON_URL, dataURL);
+
+  Assert.equal(
+    await getFaviconUrlForPage(URL_WITH_PORT),
+    ICON_URL,
+    "The favicon of the URL with the port should be chosen"
+  );
+
+  info("Set icon for the URL without the port");
+  await PlacesTestUtils.addVisits(URL_WITHOUT_PORT);
+  let dataURL32 = await readFileDataAsDataURL(
+    do_get_file("favicon-normal32.png"),
+    "image/png"
+  );
+  await PlacesTestUtils.setFaviconForPage(
+    URL_WITHOUT_PORT,
+    ICON_URL_NO_PORT,
+    dataURL32
+  );
+
+  Assert.equal(
+    await getFaviconUrlForPage(URL_WITH_PORT),
+    ICON_URL,
+    "The favicon of the URL with the port should still be chosen when both are defined"
+  );
+
+  Assert.equal(
+    await getFaviconUrlForPage(URL_WITHOUT_PORT),
+    ICON_URL_NO_PORT,
+    "The favicon of the URL without the port should be chosen correctly when there is an icon defined for the url with a port"
+  );
+});
