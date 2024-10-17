@@ -105,14 +105,14 @@ class VideoFrameConverterImpl {
           mActive = aActive;
           if (aActive && mLastFrameQueuedForProcessing.Serial() != -2) {
             // After activating, we re-process the last image that was queued
-            // for processing so it can be immediately sent.
-            mLastFrameQueuedForProcessing.mTime = time;
-
-            MOZ_ALWAYS_SUCCEEDS(
-                mTaskQueue->Dispatch(NewRunnableMethod<FrameToProcess>(
-                    "VideoFrameConverterImpl::ProcessVideoFrame", this,
-                    &VideoFrameConverterImpl::ProcessVideoFrame,
-                    mLastFrameQueuedForProcessing)));
+            // for processing so it can be immediately sent. The image is reset
+            // so it doesn't get dropped if within the duplicate frame interval.
+            QueueForProcessing(std::move(mLastFrameQueuedForProcessing.mImage),
+                               std::max(mLastFrameQueuedForProcessing.mTime +
+                                            TimeDuration::FromMicroseconds(1),
+                                        time),
+                               mLastFrameQueuedForProcessing.mSize,
+                               mLastFrameQueuedForProcessing.mForceBlack);
           }
         })));
   }
@@ -132,15 +132,12 @@ class VideoFrameConverterImpl {
             // be seen quickly, even if no frames are flowing. If no frame has
             // been queued for processing yet, we use the FrameToProcess default
             // size (640x480).
-            mLastFrameQueuedForProcessing.mTime = time;
-            mLastFrameQueuedForProcessing.mForceBlack = true;
-            mLastFrameQueuedForProcessing.mImage = nullptr;
-
-            MOZ_ALWAYS_SUCCEEDS(
-                mTaskQueue->Dispatch(NewRunnableMethod<FrameToProcess>(
-                    "VideoFrameConverterImpl::ProcessVideoFrame", this,
-                    &VideoFrameConverterImpl::ProcessVideoFrame,
-                    mLastFrameQueuedForProcessing)));
+            QueueForProcessing(/* aImage= */ nullptr,
+                               std::max(mLastFrameQueuedForProcessing.mTime +
+                                            TimeDuration::FromMicroseconds(1),
+                                        time),
+                               mLastFrameQueuedForProcessing.mSize,
+                               /* aForceBlack= */ true);
           }
         })));
   }
