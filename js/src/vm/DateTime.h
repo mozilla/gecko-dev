@@ -7,6 +7,7 @@
 #ifndef vm_DateTime_h
 #define vm_DateTime_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/UniquePtr.h"
 
 #include <stdint.h>
@@ -120,6 +121,14 @@ class DateTimeInfo {
   static ExclusiveData<DateTimeInfo>* instance;
   static ExclusiveData<DateTimeInfo>* instanceUTC;
 
+  static constexpr int32_t InvalidOffset = INT32_MIN;
+
+  // Additional cache to avoid the mutex overhead. Uses "relaxed" semantics
+  // because it's acceptable if time zone offset changes aren't propagated right
+  // away to all other threads.
+  static inline mozilla::Atomic<int32_t, mozilla::Relaxed>
+      utcToLocalOffsetSeconds{InvalidOffset};
+
   friend class ExclusiveData<DateTimeInfo>;
 
   friend bool InitDateTimeState();
@@ -162,8 +171,22 @@ class DateTimeInfo {
    * operating system.
    */
   static int32_t utcToLocalStandardOffsetSeconds(ForceUTC forceUTC) {
+    // UTC offset is always zero.
+    if (forceUTC == ForceUTC::Yes) {
+      return 0;
+    }
+
+    // First try the cached offset to avoid any mutex overhead.
+    int32_t offset = utcToLocalOffsetSeconds;
+    if (offset != InvalidOffset) {
+      return offset;
+    }
+
+    // If that fails, use the mutex-synchronized code path.
     auto guard = acquireLockWithValidTimeZone(forceUTC);
-    return guard->utcToLocalStandardOffsetSeconds_;
+    offset = guard->utcToLocalStandardOffsetSeconds_;
+    utcToLocalOffsetSeconds = offset;
+    return offset;
   }
 
   enum class TimeZoneOffset { UTC, Local };
@@ -229,6 +252,9 @@ class DateTimeInfo {
     {
       auto guard = instance->lock();
       guard->internalResetTimeZone(mode);
+
+      // Mark the cached value as invalid.
+      utcToLocalOffsetSeconds = InvalidOffset;
     }
     {
       // Only needed to initialize the default state and any later call will
