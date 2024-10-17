@@ -203,7 +203,7 @@ void HTMLDialogElement::ShowModal(ErrorResult& aError) {
     if (FireToggleEvent(u"closed"_ns, u"open"_ns, u"beforetoggle"_ns)) {
       return;
     }
-    if (Open()) {
+    if (Open() || !IsInComposedDoc() || IsPopoverOpen()) {
       return;
     }
     QueueToggleEventTask();
