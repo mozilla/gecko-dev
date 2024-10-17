@@ -99,8 +99,7 @@ nsresult nsTextEquivUtils::GetTextEquivFromIDRefs(
   if (!content) return NS_OK;
 
   nsIContent* refContent = nullptr;
-  AssociatedElementsIterator iter(aAccessible->Document(), content,
-                                  aIDRefsAttr);
+  IDRefsIterator iter(aAccessible->Document(), content, aIDRefsAttr);
   while ((refContent = iter.NextElem())) {
     if (!aTextEquiv.IsEmpty()) aTextEquiv += ' ';
 
