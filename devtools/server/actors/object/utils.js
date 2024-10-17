@@ -24,19 +24,6 @@ loader.lazyRequireGetter(
   true
 );
 
-loader.lazyRequireGetter(
-  this,
-  "ObjectActor",
-  "resource://devtools/server/actors/object.js",
-  true
-);
-loader.lazyRequireGetter(
-  this,
-  "PauseScopedObjectActor",
-  "resource://devtools/server/actors/pause-scoped.js",
-  true
-);
-
 
 loader.lazyRequireGetter(
   this,
@@ -189,10 +176,8 @@ function createValueGrip(threadActor, value, pool, depth = 0, objectActorAttribu
           missingArguments: value.missingArguments,
         };
       }
-      return createObjectGrip(
-        threadActor,
+      return pool.createObjectGrip(
         value,
-        pool,
         depth,
         objectActorAttributes,
       );
@@ -528,69 +513,7 @@ function createValueGripForTarget(
   depth = 0,
   objectActorAttributes = {}
 ) {
-  return createValueGrip(targetActor.threadActor, value, targetActor, depth, objectActorAttributes);
-}
-
-/**
- * Create a grip for the given object.
- *
- * @param ThreadActor threadActor 
- *        The Thread Actor the passed objec relates to.
- * @param object object
- *        The object you want.
- * @param object pool
- *        A Pool where the new actor instance is added.
- * @param Number depth
- *        Depth of the object compared to the top level object,
- *        when we are inspecting nested attributes.
- * @param object [objectActorAttributes]
- *        An optional object whose properties will be assigned to the ObjectActor being created.
- * @param object
- *        The object grip.
- */
-function createObjectGrip(
-  threadActor,
-  object,
-  pool,
-  depth,
-  objectActorAttributes = {},
-) {
-  const isGripForThreadActor = pool == threadActor.threadLifetimePool || pool == threadActor.pauseLifetimePool;
-
-  // When we are creating object actors within the thread actor pools,
-  // we have some caching to prevent instantiating object actors twice for the same JS object.
-  if (isGripForThreadActor) {
-    if (!pool.objectActors) {
-      pool.objectActors = new WeakMap();
-    }
-
-    if (pool.objectActors.has(object)) {
-      return pool.objectActors.get(object).form({ depth });
-    }
-
-    // Even if we are currently creating objects actors while being paused,
-    // in threadActor.pauseLifetimePool, we are looking into threadLifetimePool
-    // in case we created an actor for that object *before* pausing.
-    if (threadActor.threadLifetimePool.objectActors.has(object)) {
-      return threadActor.threadLifetimePool.objectActors.get(object).form({ depth });
-    }
-  }
-
-  const ActorClass = isGripForThreadActor ? PauseScopedObjectActor : ObjectActor;
-
-  const actor = new ActorClass(threadActor, object, {
-    // custom formatters are injecting their own attributes here
-    ...objectActorAttributes,
-  });
-  pool.manage(actor);
-
-  if (isGripForThreadActor) {
-    pool.objectActors.set(object, actor);
-  }
-
-  // Pass the current depth to form method so that it can communicate it to the previewers.
-  // So that the actor form output may change depending on the current depth of the object within the requested preview.
-  return actor.form({ depth });
+  return createValueGrip(targetActor.threadActor, value, targetActor.objectsPool, depth, objectActorAttributes);
 }
 
 module.exports = {

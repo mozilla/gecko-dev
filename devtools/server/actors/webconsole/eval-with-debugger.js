@@ -701,12 +701,14 @@ function getDbgGlobal(options, dbg, webConsole) {
     return { bindSelf: null, dbgGlobal };
   }
 
-  // For objects related to console messages, they will be registered under the Target Actor
-  // instead of the WebConsoleActor. That's because console messages are resources and all resources
-  // are emitted by the Target Actor.
-  const actor =
-    webConsole.getActorByID(options.selectedObjectActor) ||
-    webConsole.targetActor.getActorByID(options.selectedObjectActor);
+  // All the Object Actors are collected in the Target Actor's "objectsPool",
+  // except for objects communicated by the thread actor on pause,
+  // or by the JS Tracer.
+  // But the "selected object actor" is generated via the console actor evaluation,
+  // which stores its objects actor in the target's shared pool.
+  const actor = webConsole.targetActor.objectsPool.getActorByID(
+    options.selectedObjectActor
+  );
 
   if (!actor) {
     return { bindSelf: null, dbgGlobal };

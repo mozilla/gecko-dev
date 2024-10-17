@@ -15,6 +15,9 @@ const { threadSpec } = require("resource://devtools/shared/specs/thread.js");
 const {
   createValueGrip,
 } = require("resource://devtools/server/actors/object/utils.js");
+const {
+  ObjectActorPool,
+} = require("resource://devtools/server/actors/object/ObjectActorPool.js");
 const DevToolsUtils = require("resource://devtools/shared/DevToolsUtils.js");
 const Debugger = require("Debugger");
 const { assert, dumpn, reportException } = DevToolsUtils;
@@ -270,7 +273,7 @@ class ThreadActor extends Actor {
 
   get threadLifetimePool() {
     if (!this._threadLifetimePool) {
-      this._threadLifetimePool = new Pool(this.conn, "thread");
+      this._threadLifetimePool = new ObjectActorPool(this, "thread", true);
       this._threadLifetimePool.objectActors = new WeakMap();
     }
     return this._threadLifetimePool;
@@ -1653,7 +1656,7 @@ class ThreadActor extends Actor {
     // Create the actor pool that will hold the pause actor and its
     // children.
     assert(!this._pausePool, "No pause pool should exist yet");
-    this._pausePool = new Pool(this.conn, "pause");
+    this._pausePool = new ObjectActorPool(this, "pause", true);
 
     // Give children of the pause pool a quick link back to the
     // thread...

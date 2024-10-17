@@ -346,7 +346,11 @@ class WebConsoleActor extends Actor {
    * @return object
    */
   createValueGrip(value) {
-    return createValueGrip(this.targetActor.threadActor, value, this);
+    return createValueGrip(
+      this.targetActor.threadActor,
+      value,
+      this.targetActor.objectsPool
+    );
   }
 
   /**
@@ -1583,7 +1587,9 @@ class WebConsoleActor extends Actor {
     const needEntries = ["Map", "WeakMap", "Set", "WeakSet"].includes(dataType);
     const ignoreNonIndexedProperties = isArray(tableItemGrip);
 
-    const tableItemActor = this.getActorByID(tableItemGrip.actor);
+    const tableItemActor = this.targetActor.objectsPool.getActorByID(
+      tableItemGrip.actor
+    );
     if (!tableItemActor) {
       return null;
     }
@@ -1607,7 +1613,8 @@ class WebConsoleActor extends Actor {
             const grip = desc[key];
 
             // We need to load sub-properties as well to render the table in a nice way.
-            const actor = grip && this.getActorByID(grip.actor);
+            const actor =
+              grip && this.targetActor.objectsPool.getActorByID(grip.actor);
             if (actor) {
               const res = actor
                 .enumProperties({

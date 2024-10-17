@@ -10,6 +10,9 @@ const {
   getResourceWatcher,
 } = require("resource://devtools/server/actors/resources/index.js");
 const Targets = require("devtools/server/actors/targets/index");
+const {
+  ObjectActorPool,
+} = require("resource://devtools/server/actors/object/ObjectActorPool.js");
 
 const { throttle } = require("resource://devtools/shared/throttle.js");
 const RESOURCES_THROTTLING_DELAY = 100;
@@ -43,6 +46,16 @@ class BaseTargetActor extends Actor {
       this.emitResources.bind(this),
       RESOURCES_THROTTLING_DELAY
     );
+  }
+
+  // Whenever createValueGripForTarget is used, any Object Actor will be added to this pool
+  get objectsPool() {
+    if (this._objectsPool) {
+      return this._objectsPool;
+    }
+    this._objectsPool = new ObjectActorPool(this.threadActor, "target-objects");
+    this.manage(this._objectsPool);
+    return this._objectsPool;
   }
 
   #throttledResources;

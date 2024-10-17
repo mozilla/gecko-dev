@@ -160,7 +160,9 @@ function getConsoleTableMessageItems(targetActor, result) {
   const needEntries = ["Map", "WeakMap", "Set", "WeakSet"].includes(dataType);
   const ignoreNonIndexedProperties = isArray(tableItemGrip);
 
-  const tableItemActor = targetActor.getActorByID(tableItemGrip.actor);
+  const tableItemActor = targetActor.objectsPool.getActorByID(
+    tableItemGrip.actor
+  );
   if (!tableItemActor) {
     return null;
   }
@@ -184,7 +186,8 @@ function getConsoleTableMessageItems(targetActor, result) {
           const grip = desc[key];
 
           // We need to load sub-properties as well to render the table in a nice way.
-          const actor = grip && targetActor.getActorByID(grip.actor);
+          const actor =
+            grip && targetActor.objectsPool.getActorByID(grip.actor);
           if (actor) {
             const res = actor
               .enumProperties({
