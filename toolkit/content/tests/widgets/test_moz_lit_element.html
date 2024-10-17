@@ -28,6 +28,7 @@ example-label =
   .message = And a message!
   .tooltiptext = Also a tooltiptext!
   .rename = Also renamed!
+  .accesskey = E
         `,
       }];
       const source = L10nFileSource.createMock("test", "app", ["en-US"], "/localization/{locale}", fs);
@@ -53,12 +54,12 @@ example-label =
           tooltipText: { type: String, fluent: true },
           renamedAttribute: { type: String, fluent: true, attribute: "rename" },
           mappedAttribute: { type: String, mapped: true, attribute: "mapped" },
-          accessKey: { type: String, mapped: true },
           ariaLabel: { type: String, mapped: true },
+          accessKey: { type: String, mapped: true, fluent: true },
         };
 
         render() {
-          return this.label + this.message + this.tooltipText + this.renamedAttribute;
+          return this.label + this.message + this.tooltipText + this.renamedAttribute + this.accessKey;
         }
 
         updated(changes) {
@@ -75,13 +76,20 @@ example-label =
       window.el = el;
       defineExampleElement();
       is(el.shadowRoot.textContent, "", "There's no text");
-      is(el.dataset.l10nAttrs, "label,message,tooltiptext,rename", "data-l10n-attrs is set");
+      is(
+        el.dataset.l10nAttrs,
+        "label,message,tooltiptext,rename,accesskey",
+        "data-l10n-attrs is set"
+      );
       await new Promise(r => el.addEventListener("label-changed", r, { once: true }));
       is(
         el.shadowRoot.textContent,
-        "Example label!And a message!Also a tooltiptext!Also renamed!",
+        "Example label!And a message!Also a tooltiptext!Also renamed!E",
         "Text rendered automatically on upgrade"
       );
+
+      is(el.accessKey, "E", "accessKey is mapped with custom attribute");
+      ok(!el.hasAttribute("accesskey"), "renamed attribute was removed");
     });
 
     add_task(async function testMappedAttributes() {

@@ -107,19 +107,6 @@ export class MozLitElement extends LitElement {
   #l10nObj;
   #l10nRootConnected = false;
 
-  static _finalizeFluentProperties() {
-    if (!this.fluentProperties) {
-      this.fluentProperties = [];
-      for (let [propName, attributes] of this.elementProperties.entries()) {
-        if (attributes.fluent) {
-          this.fluentProperties.push(
-            attributes.attribute || propName.toLowerCase()
-          );
-        }
-      }
-    }
-  }
-
   static createProperty(attrName, options) {
     if (options.mapped) {
       let domAttrPropertyName = `${attrName}Attribute`;
@@ -135,6 +122,10 @@ export class MozLitElement extends LitElement {
         attribute: domAttrName,
         reflect: true,
       });
+    }
+    if (options.fluent) {
+      this.fluentProperties ??= [];
+      this.fluentProperties.push(options.attribute || attrName.toLowerCase());
     }
     return super.createProperty(attrName, options);
   }
@@ -155,7 +146,6 @@ export class MozLitElement extends LitElement {
         }
       }
     }
-    this.constructor._finalizeFluentProperties();
   }
 
   connectedCallback() {
@@ -168,7 +158,7 @@ export class MozLitElement extends LitElement {
       this.#l10n.connectRoot(this.renderRoot);
       this.#l10nRootConnected = true;
 
-      if (this.constructor.fluentProperties.length) {
+      if (this.constructor.fluentProperties?.length) {
         this.dataset.l10nAttrs = this.constructor.fluentProperties.join(",");
         if (this.dataset.l10nId) {
           this.#l10n.translateElements([this]);
