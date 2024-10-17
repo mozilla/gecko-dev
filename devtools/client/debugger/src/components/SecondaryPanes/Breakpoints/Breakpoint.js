@@ -25,7 +25,6 @@ import { isLineBlackboxed } from "../../../utils/source";
 import {
   getSelectedFrame,
   getSelectedSource,
-  getCurrentThread,
   isSourceMapIgnoreListEnabled,
   isSourceOnSourceMapIgnoreList,
   getBlackBoxRanges,
@@ -221,7 +220,7 @@ const mapStateToProps = (state, props) => {
       props.breakpoint.location.line,
       isSourceOnIgnoreList
     ),
-    frame: getFormattedFrame(state, getCurrentThread(state)),
+    frame: getFormattedFrame(state),
   };
 };
 

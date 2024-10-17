@@ -77,7 +77,7 @@ export function validateSelectedFrame(state, selectedFrame) {
     throw new ContextError("Selected thread has changed");
   }
 
-  const newSelectedFrame = getSelectedFrame(state, newThread);
+  const newSelectedFrame = getSelectedFrame(state);
   // Compare frame's IDs as frame objects are cloned during mapping
   if (selectedFrame.id != newSelectedFrame?.id) {
     throw new ContextError("Selected frame changed");

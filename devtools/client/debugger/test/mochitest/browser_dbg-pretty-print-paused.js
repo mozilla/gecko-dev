@@ -8,7 +8,6 @@
 
 add_task(async function () {
   const dbg = await initDebugger("doc-minified.html", "math.min.js");
-  const thread = dbg.selectors.getCurrentThread();
 
   await selectSource(dbg, "math.min.js");
   await addBreakpoint(dbg, "math.min.js", 2);
@@ -21,7 +20,7 @@ add_task(async function () {
   await waitForSelectedSource(dbg, "math.min.js:formatted");
   await waitForState(
     dbg,
-    () => dbg.selectors.getSelectedFrame(thread).location.line == 18
+    () => dbg.selectors.getSelectedFrame().location.line == 18
   );
   assertPausedAtSourceAndLine(
     dbg,

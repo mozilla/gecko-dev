@@ -145,7 +145,7 @@ export function getPausedPreview(target, tokenPos, editor) {
       return null;
     }
     const thread = getCurrentThread(getState());
-    const selectedFrame = getSelectedFrame(getState(), thread);
+    const selectedFrame = getSelectedFrame(getState());
     if (!selectedFrame) {
       return null;
     }

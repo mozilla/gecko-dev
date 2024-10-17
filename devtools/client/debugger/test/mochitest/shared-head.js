@@ -655,11 +655,7 @@ function isSelectedFrameSelected(dbg) {
 function isFrameSelected(dbg, index, title) {
   const $frame = findElement(dbg, "frame", index);
 
-  const {
-    selectors: { getSelectedFrame, getCurrentThread },
-  } = dbg;
-
-  const frame = getSelectedFrame(getCurrentThread());
+  const frame = dbg.selectors.getSelectedFrame();
 
   const elSelected = $frame.classList.contains("selected");
   const titleSelected = frame.displayName == title;

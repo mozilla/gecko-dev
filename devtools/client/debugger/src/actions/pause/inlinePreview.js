@@ -8,7 +8,6 @@ import {
   getSelectedFrameInlinePreviews,
   getSelectedLocation,
   getSelectedFrame,
-  getCurrentThread,
 } from "../../selectors/index";
 import { features } from "../../utils/prefs";
 import { validateSelectedFrame } from "../../utils/context";
@@ -40,10 +39,7 @@ export function generateInlinePreview() {
       return null;
     }
 
-    const selectedFrame = getSelectedFrame(
-      getState(),
-      getCurrentThread(getState())
-    );
+    const selectedFrame = getSelectedFrame(getState());
 
     const originalFrameScopes = getOriginalFrameScope(
       getState(),

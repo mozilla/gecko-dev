@@ -13,7 +13,7 @@ import { isFrameBlackBoxed } from "../utils/source";
 import { createSelector } from "devtools/client/shared/vendor/reselect";
 
 export const getSelectedFrame = createSelector(
-  (state, thread) => state.pause.threads[thread],
+  (state, thread) => state.pause.threads[thread || getCurrentThread(state)],
   threadPauseState => {
     if (!threadPauseState) return null;
     const { selectedFrameId, frames } = threadPauseState;

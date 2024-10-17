@@ -203,11 +203,7 @@ class DebuggerPanel {
    * or null if the debugger isn't paused.
    */
   getSelectedFrameActorID() {
-    const thread = this._selectors.getCurrentThread(this._getState());
-    const selectedFrame = this._selectors.getSelectedFrame(
-      this._getState(),
-      thread
-    );
+    const selectedFrame = this._selectors.getSelectedFrame(this._getState());
     if (selectedFrame) {
       return selectedFrame.id;
     }

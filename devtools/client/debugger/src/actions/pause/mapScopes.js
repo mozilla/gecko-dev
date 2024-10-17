@@ -9,7 +9,6 @@ import {
   getGeneratedFrameScope,
   getOriginalFrameScope,
   getFirstSourceActorForGeneratedSource,
-  getCurrentThread,
 } from "../../selectors/index";
 import {
   loadOriginalSourceText,
@@ -90,7 +89,7 @@ export function toggleMapScopes() {
 
     // Ignore the call if there is no selected frame (we are not paused?)
     const state = getState();
-    const selectedFrame = getSelectedFrame(state, getCurrentThread(state));
+    const selectedFrame = getSelectedFrame(state);
     if (!selectedFrame) {
       return;
     }

@@ -29,7 +29,6 @@ import {
   getIsCurrentThreadPaused,
   getSelectedFrame,
   getOriginalFrameScope,
-  getCurrentThread,
 } from "../../selectors/index";
 import { getExpressionResultGripAndFront } from "../../utils/expressions";
 
@@ -426,7 +425,7 @@ class Expressions extends Component {
 }
 
 const mapStateToProps = state => {
-  const selectedFrame = getSelectedFrame(state, getCurrentThread(state));
+  const selectedFrame = getSelectedFrame(state);
   const selectedSource = getSelectedSource(state);
   const isPaused = getIsCurrentThreadPaused(state);
   const mapScopesEnabled = isMapScopesEnabled(state);

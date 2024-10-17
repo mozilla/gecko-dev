@@ -16,7 +16,6 @@ import {
   getFrameworkGroupingState,
   getSelectedFrame,
   getCurrentThreadFrames,
-  getCurrentThread,
   getShouldSelectOriginalLocation,
   getSelectedTraceIndex,
 } from "../../../selectors/index";
@@ -209,7 +208,7 @@ Frames.contextTypes = { l10n: PropTypes.object };
 const mapStateToProps = state => ({
   frames: getCurrentThreadFrames(state),
   frameworkGroupingOn: getFrameworkGroupingState(state),
-  selectedFrame: getSelectedFrame(state, getCurrentThread(state)),
+  selectedFrame: getSelectedFrame(state),
   isTracerFrameSelected: getSelectedTraceIndex(state) != null,
   shouldDisplayOriginalLocation: getShouldSelectOriginalLocation(state),
   disableFrameTruncate: false,

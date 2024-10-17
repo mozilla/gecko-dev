@@ -516,7 +516,7 @@ function getRenderWhyPauseDelay(state, thread) {
 
 const mapStateToProps = state => {
   const thread = getCurrentThread(state);
-  const selectedFrame = getSelectedFrame(state, thread);
+  const selectedFrame = getSelectedFrame(state);
   const pauseReason = getPauseReason(state, thread);
   const shouldBreakpointsPaneOpenOnPause = getShouldBreakpointsPaneOpenOnPause(
     state,

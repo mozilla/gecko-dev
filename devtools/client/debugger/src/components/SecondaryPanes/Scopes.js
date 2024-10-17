@@ -16,7 +16,6 @@ import actions from "../../actions/index";
 
 import {
   getSelectedFrame,
-  getCurrentThread,
   getSelectedSource,
   getGeneratedFrameScope,
   getOriginalFrameScope,
@@ -348,7 +347,7 @@ class Scopes extends PureComponent {
 
 const mapStateToProps = state => {
   // This component doesn't need any prop when we are not paused
-  const selectedFrame = getSelectedFrame(state, getCurrentThread(state));
+  const selectedFrame = getSelectedFrame(state);
   if (!selectedFrame) {
     return {};
   }

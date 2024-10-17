@@ -4,7 +4,7 @@
 
 import { originalToGeneratedId } from "devtools/client/shared/source-map-loader/index";
 import { getSelectedLocation } from "./sources";
-import { getCurrentThread, getSelectedFrame } from "./pause";
+import { getSelectedFrame } from "./pause";
 
 function getGeneratedId(source) {
   if (source.isOriginal) {
@@ -19,9 +19,8 @@ function getGeneratedId(source) {
  * selected.
  */
 export function isSelectedFrameVisible(state) {
-  const thread = getCurrentThread(state);
   const selectedLocation = getSelectedLocation(state);
-  const selectedFrame = getSelectedFrame(state, thread);
+  const selectedFrame = getSelectedFrame(state);
 
   if (!selectedFrame || !selectedLocation) {
     return false;

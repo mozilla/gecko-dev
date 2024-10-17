@@ -6,7 +6,6 @@ import {
   getGeneratedFrameScope,
   getOriginalFrameScope,
   getSelectedFrame,
-  getCurrentThread,
 } from "../../selectors/index";
 import { mapScopes } from "./mapScopes";
 import { generateInlinePreview } from "./inlinePreview";
@@ -19,10 +18,7 @@ import { validateSelectedFrame } from "../../utils/context";
  */
 export function fetchScopes() {
   return async function ({ dispatch, getState, client }) {
-    const selectedFrame = getSelectedFrame(
-      getState(),
-      getCurrentThread(getState())
-    );
+    const selectedFrame = getSelectedFrame(getState());
     // See if we already fetched the scopes.
     // We may have pause on multiple thread and re-select a paused thread
     // for which we already fetched the scopes.

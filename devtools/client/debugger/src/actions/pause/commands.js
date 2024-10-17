@@ -22,8 +22,11 @@ export function selectThread(thread) {
       return;
     }
     dispatch({ type: "SELECT_THREAD", thread });
+    if (getCurrentThread(getState()) !== thread) {
+      throw new Error("The thread wasn't selected");
+    }
 
-    const selectedFrame = getSelectedFrame(getState(), thread);
+    const selectedFrame = getSelectedFrame(getState());
 
     const serverRequests = [];
     // Update the watched expressions as we may never have evaluated them against this thread
@@ -60,7 +63,7 @@ export function command(type) {
     // For now, all commands are by default against the currently selected thread
     const thread = getCurrentThread(getState());
 
-    const frame = getSelectedFrame(getState(), thread);
+    const frame = getSelectedFrame(getState());
 
     return dispatch({
       type: "COMMAND",
