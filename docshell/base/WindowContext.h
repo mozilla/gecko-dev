@@ -137,6 +137,8 @@ class WindowContext : public nsISupports, public nsWrapperCache {
     return GetShouldResistFingerprinting();
   }
 
+  bool UsingStorageAccess() const { return GetUsingStorageAccess(); }
+
   Nullable<uint64_t> GetOverriddenFingerprintingSettingsWebIDL() const {
     Maybe<RFPTarget> overriddenFingerprintingSettings =
         GetOverriddenFingerprintingSettings();

@@ -34,6 +34,9 @@ interface WindowContext {
 
   readonly attribute boolean shouldResistFingerprinting;
 
+  // True if this window is using unpartitioned cookies.
+  readonly attribute boolean usingStorageAccess;
+
   // The granular fingerprinting protection overrides for the context. We will
   // use the granular overrides to decide which fingerprinting protection we
   // want to enable in the context due to the WebCompat reason. The value can be
