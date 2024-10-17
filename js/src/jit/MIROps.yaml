@@ -3327,6 +3327,36 @@
   generate_lir: true
   lir_temps: 1
 
+- name: DateHoursFromSecondsIntoYear
+  operands:
+    secondsIntoYear: Value
+  result_type: Value
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: none
+  generate_lir: true
+  lir_temps: 2
+
+- name: DateMinutesFromSecondsIntoYear
+  operands:
+    secondsIntoYear: Value
+  result_type: Value
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: none
+  generate_lir: true
+  lir_temps: 2
+
+- name: DateSecondsFromSecondsIntoYear
+  operands:
+    secondsIntoYear: Value
+  result_type: Value
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: none
+  generate_lir: true
+  lir_temps: 2
+
 - name: PostIntPtrConversion
   gen_boilerplate: false
 

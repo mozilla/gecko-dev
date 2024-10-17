@@ -111,3 +111,72 @@ function testDateGetFullYearMonthDateDay() {
   }
 }
 testDateGetFullYearMonthDateDay();
+
+function testDateGetHours() {
+  var timeValues = [
+    0,
+    12,
+    23,
+    NaN,
+  ];
+
+  for (var i = 0; i < 250; ++i) {
+    var t = timeValues[i & 3];
+
+    // Create a new Date object with an uninitialized local time cache.
+    var d = new Date(2000, 0, 1, t);
+
+    // First call to getHours initializes the cache.
+    assertEq(d.getHours(), t);
+
+    // Second call to getHours uses the cached value.
+    assertEq(d.getHours(), t);
+  }
+}
+testDateGetHours();
+
+function testDateGetMinutes() {
+  var timeValues = [
+    0,
+    30,
+    59,
+    NaN,
+  ];
+
+  for (var i = 0; i < 250; ++i) {
+    var t = timeValues[i & 3];
+
+    // Create a new Date object with an uninitialized local time cache.
+    var d = new Date(2000, 0, 1, 0, t);
+
+    // First call to getMinutes initializes the cache.
+    assertEq(d.getMinutes(), t);
+
+    // Second call to getMinutes uses the cached value.
+    assertEq(d.getMinutes(), t);
+  }
+}
+testDateGetMinutes();
+
+function testDateGetSeconds() {
+  var timeValues = [
+    0,
+    30,
+    59,
+    NaN,
+  ];
+
+  for (var i = 0; i < 250; ++i) {
+    var t = timeValues[i & 3];
+
+    // Create a new Date object with an uninitialized local time cache.
+    var d = new Date(2000, 0, 1, 0, 0, t);
+
+    // First call to getSeconds initializes the cache.
+    assertEq(d.getSeconds(), t);
+
+    // Second call to getSeconds uses the cached value.
+    assertEq(d.getSeconds(), t);
+  }
+}
+testDateGetSeconds();

@@ -642,6 +642,9 @@ class MOZ_RAII InlinableNativeIRGenerator {
     Month,
     Date,
     Day,
+    Hours,
+    Minutes,
+    Seconds,
   };
 
   AttachDecision tryAttachArrayPush();

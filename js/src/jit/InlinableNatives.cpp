@@ -301,6 +301,9 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::DateGetMonth:
     case InlinableNative::DateGetDate:
     case InlinableNative::DateGetDay:
+    case InlinableNative::DateGetHours:
+    case InlinableNative::DateGetMinutes:
+    case InlinableNative::DateGetSeconds:
     case InlinableNative::FunctionBind:
     case InlinableNative::MapGet:
     case InlinableNative::MapHas:

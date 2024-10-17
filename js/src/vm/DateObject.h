@@ -154,6 +154,9 @@ class DateObject : public NativeObject {
   static constexpr size_t offsetOfLocalDaySlot() {
     return getFixedSlotOffset(LOCAL_DAY_SLOT);
   }
+  static constexpr size_t offsetOfLocalSecondsIntoYearSlot() {
+    return getFixedSlotOffset(LOCAL_SECONDS_INTO_YEAR_SLOT);
+  }
 };
 
 }  // namespace js

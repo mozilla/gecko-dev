@@ -10503,6 +10503,24 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDateGet(
     case DateComponent::Day:
       writer.loadFixedSlotResult(objId, DateObject::offsetOfLocalDaySlot());
       break;
+    case DateComponent::Hours: {
+      ValOperandId secondsIntoYearValId = writer.loadFixedSlot(
+          objId, DateObject::offsetOfLocalSecondsIntoYearSlot());
+      writer.dateHoursFromSecondsIntoYearResult(secondsIntoYearValId);
+      break;
+    }
+    case DateComponent::Minutes: {
+      ValOperandId secondsIntoYearValId = writer.loadFixedSlot(
+          objId, DateObject::offsetOfLocalSecondsIntoYearSlot());
+      writer.dateMinutesFromSecondsIntoYearResult(secondsIntoYearValId);
+      break;
+    }
+    case DateComponent::Seconds: {
+      ValOperandId secondsIntoYearValId = writer.loadFixedSlot(
+          objId, DateObject::offsetOfLocalSecondsIntoYearSlot());
+      writer.dateSecondsFromSecondsIntoYearResult(secondsIntoYearValId);
+      break;
+    }
   }
 
   writer.returnFromIC();
@@ -10519,6 +10537,15 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDateGet(
       break;
     case DateComponent::Day:
       trackAttached("DateGetDay");
+      break;
+    case DateComponent::Hours:
+      trackAttached("DateGetHours");
+      break;
+    case DateComponent::Minutes:
+      trackAttached("DateGetMinutes");
+      break;
+    case DateComponent::Seconds:
+      trackAttached("DateGetSeconds");
       break;
   }
   return AttachDecision::Attach;
@@ -12239,6 +12266,12 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
       return tryAttachDateGet(DateComponent::Date);
     case InlinableNative::DateGetDay:
       return tryAttachDateGet(DateComponent::Day);
+    case InlinableNative::DateGetHours:
+      return tryAttachDateGet(DateComponent::Hours);
+    case InlinableNative::DateGetMinutes:
+      return tryAttachDateGet(DateComponent::Minutes);
+    case InlinableNative::DateGetSeconds:
+      return tryAttachDateGet(DateComponent::Seconds);
 
     // Testing functions.
     case InlinableNative::TestBailout:

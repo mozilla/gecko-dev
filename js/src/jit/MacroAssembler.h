@@ -5849,6 +5849,30 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void dateFillLocalTimeSlots(Register obj, Register scratch,
                               const LiveRegisterSet& volatileRegs);
 
+ private:
+  void udiv32ByConstant(Register src, uint32_t divisor, Register dest);
+
+  void umod32ByConstant(Register src, uint32_t divisor, Register dest,
+                        Register scratch);
+
+  template <typename GetTimeFn>
+  void dateTimeFromSecondsIntoYear(ValueOperand secondsIntoYear,
+                                   ValueOperand output, Register scratch1,
+                                   Register scratch2, GetTimeFn getTimeFn);
+
+ public:
+  void dateHoursFromSecondsIntoYear(ValueOperand secondsIntoYear,
+                                    ValueOperand output, Register scratch1,
+                                    Register scratch2);
+
+  void dateMinutesFromSecondsIntoYear(ValueOperand secondsIntoYear,
+                                      ValueOperand output, Register scratch1,
+                                      Register scratch2);
+
+  void dateSecondsFromSecondsIntoYear(ValueOperand secondsIntoYear,
+                                      ValueOperand output, Register scratch1,
+                                      Register scratch2);
+
   void computeImplicitThis(Register env, ValueOperand output, Label* slowPath);
 
  private:

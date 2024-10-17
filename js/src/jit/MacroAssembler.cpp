@@ -3464,6 +3464,124 @@ void MacroAssembler::dateFillLocalTimeSlots(
   bind(&done);
 }
 
+void MacroAssembler::udiv32ByConstant(Register src, uint32_t divisor,
+                                      Register dest) {
+  auto rmc = ReciprocalMulConstants::computeUnsignedDivisionConstants(divisor);
+  MOZ_ASSERT(rmc.multiplier <= UINT32_MAX, "division needs scratch register");
+
+  // We first compute |q = (M * n) >> 32), where M = rmc.multiplier.
+  mulHighUnsigned32(Imm32(rmc.multiplier), src, dest);
+
+  // Finish the computation |q = floor(n / d)|.
+  rshift32(Imm32(rmc.shiftAmount), dest);
+}
+
+void MacroAssembler::umod32ByConstant(Register src, uint32_t divisor,
+                                      Register dest, Register scratch) {
+  MOZ_ASSERT(dest != scratch);
+
+  auto rmc = ReciprocalMulConstants::computeUnsignedDivisionConstants(divisor);
+  MOZ_ASSERT(rmc.multiplier <= UINT32_MAX, "division needs scratch register");
+
+  if (src != dest) {
+    move32(src, dest);
+  }
+
+  // We first compute |q = (M * n) >> 32), where M = rmc.multiplier.
+  mulHighUnsigned32(Imm32(rmc.multiplier), dest, scratch);
+
+  // Finish the computation |q = floor(n / d)|.
+  rshift32(Imm32(rmc.shiftAmount), scratch);
+
+  // Compute the remainder from |r = n - q * d|.
+  mul32(Imm32(divisor), scratch);
+  sub32(scratch, dest);
+}
+
+template <typename GetTimeFn>
+void MacroAssembler::dateTimeFromSecondsIntoYear(ValueOperand secondsIntoYear,
+                                                 ValueOperand output,
+                                                 Register scratch1,
+                                                 Register scratch2,
+                                                 GetTimeFn getTimeFn) {
+#ifdef DEBUG
+  Label okValue;
+  branchTestInt32(Assembler::Equal, secondsIntoYear, &okValue);
+  branchTestValue(Assembler::Equal, secondsIntoYear, JS::NaNValue(), &okValue);
+  assumeUnreachable("secondsIntoYear is an int32 or NaN");
+  bind(&okValue);
+#endif
+
+  moveValue(secondsIntoYear, output);
+
+  Label done;
+  fallibleUnboxInt32(secondsIntoYear, scratch1, &done);
+
+#ifdef DEBUG
+  Label okInt;
+  branchTest32(Assembler::NotSigned, scratch1, scratch1, &okInt);
+  assumeUnreachable("secondsIntoYear is an unsigned int32");
+  bind(&okInt);
+#endif
+
+  getTimeFn(scratch1, scratch1, scratch2);
+
+  tagValue(JSVAL_TYPE_INT32, scratch1, output);
+
+  bind(&done);
+}
+
+void MacroAssembler::dateHoursFromSecondsIntoYear(ValueOperand secondsIntoYear,
+                                                  ValueOperand output,
+                                                  Register scratch1,
+                                                  Register scratch2) {
+  // Inline implementation of seconds-into-year to local hours computation from
+  // date_getHours.
+
+  // Compute `(yearSeconds / SecondsPerHour) % HoursPerDay`.
+  auto hoursFromSecondsIntoYear = [this](Register src, Register dest,
+                                         Register scratch) {
+    udiv32ByConstant(src, SecondsPerHour, dest);
+    umod32ByConstant(dest, HoursPerDay, dest, scratch);
+  };
+
+  dateTimeFromSecondsIntoYear(secondsIntoYear, output, scratch1, scratch2,
+                              hoursFromSecondsIntoYear);
+}
+
+void MacroAssembler::dateMinutesFromSecondsIntoYear(
+    ValueOperand secondsIntoYear, ValueOperand output, Register scratch1,
+    Register scratch2) {
+  // Inline implementation of seconds-into-year to local minutes computation
+  // from date_getMinutes.
+
+  // Compute `(yearSeconds / SecondsPerMinute) % MinutesPerHour`.
+  auto minutesFromSecondsIntoYear = [this](Register src, Register dest,
+                                           Register scratch) {
+    udiv32ByConstant(src, SecondsPerMinute, dest);
+    umod32ByConstant(dest, MinutesPerHour, dest, scratch);
+  };
+
+  dateTimeFromSecondsIntoYear(secondsIntoYear, output, scratch1, scratch2,
+                              minutesFromSecondsIntoYear);
+}
+
+void MacroAssembler::dateSecondsFromSecondsIntoYear(
+    ValueOperand secondsIntoYear, ValueOperand output, Register scratch1,
+    Register scratch2) {
+  // Inline implementation of seconds-into-year to local seconds computation
+  // from date_getSeconds.
+
+  // Compute `yearSeconds % SecondsPerMinute`.
+  auto secondsFromSecondsIntoYear = [this](Register src, Register dest,
+                                           Register scratch) {
+    umod32ByConstant(src, SecondsPerMinute, dest, scratch);
+  };
+
+  dateTimeFromSecondsIntoYear(secondsIntoYear, output, scratch1, scratch2,
+                              secondsFromSecondsIntoYear);
+}
+
 void MacroAssembler::computeImplicitThis(Register env, ValueOperand output,
                                          Label* slowPath) {
   // Inline implementation of ComputeImplicitThis.

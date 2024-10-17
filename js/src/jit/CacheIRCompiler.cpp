@@ -10820,6 +10820,51 @@ bool CacheIRCompiler::emitDateFillLocalTimeSlots(ObjOperandId dateId) {
   return true;
 }
 
+bool CacheIRCompiler::emitDateHoursFromSecondsIntoYearResult(
+    ValOperandId secondsIntoYearId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoOutputRegister output(*this);
+  ValueOperand secondsIntoYear =
+      allocator.useValueRegister(masm, secondsIntoYearId);
+  AutoScratchRegisterMaybeOutput scratch1(allocator, masm, output);
+  AutoScratchRegister scratch2(allocator, masm);
+
+  masm.dateHoursFromSecondsIntoYear(secondsIntoYear, output.valueReg(),
+                                    scratch1, scratch2);
+  return true;
+}
+
+bool CacheIRCompiler::emitDateMinutesFromSecondsIntoYearResult(
+    ValOperandId secondsIntoYearId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoOutputRegister output(*this);
+  ValueOperand secondsIntoYear =
+      allocator.useValueRegister(masm, secondsIntoYearId);
+  AutoScratchRegisterMaybeOutput scratch1(allocator, masm, output);
+  AutoScratchRegister scratch2(allocator, masm);
+
+  masm.dateMinutesFromSecondsIntoYear(secondsIntoYear, output.valueReg(),
+                                      scratch1, scratch2);
+  return true;
+}
+
+bool CacheIRCompiler::emitDateSecondsFromSecondsIntoYearResult(
+    ValOperandId secondsIntoYearId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoOutputRegister output(*this);
+  ValueOperand secondsIntoYear =
+      allocator.useValueRegister(masm, secondsIntoYearId);
+  AutoScratchRegisterMaybeOutput scratch1(allocator, masm, output);
+  AutoScratchRegister scratch2(allocator, masm);
+
+  masm.dateSecondsFromSecondsIntoYear(secondsIntoYear, output.valueReg(),
+                                      scratch1, scratch2);
+  return true;
+}
+
 bool CacheIRCompiler::emitArrayFromArgumentsObjectResult(ObjOperandId objId,
                                                          uint32_t shapeOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

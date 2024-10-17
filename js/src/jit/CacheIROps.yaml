@@ -3517,6 +3517,27 @@
   args:
     date: ObjId
 
+- name: DateHoursFromSecondsIntoYearResult
+  shared: true
+  transpile: true
+  cost_estimate: 2
+  args:
+    secondsIntoYear: ValId
+
+- name: DateMinutesFromSecondsIntoYearResult
+  shared: true
+  transpile: true
+  cost_estimate: 2
+  args:
+    secondsIntoYear: ValId
+
+- name: DateSecondsFromSecondsIntoYearResult
+  shared: true
+  transpile: true
+  cost_estimate: 2
+  args:
+    secondsIntoYear: ValId
+
 - name: ArrayFromArgumentsObjectResult
   shared: true
   transpile: true

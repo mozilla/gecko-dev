@@ -77,6 +77,9 @@
   _(DateGetMonth)                                  \
   _(DateGetDate)                                   \
   _(DateGetDay)                                    \
+  _(DateGetHours)                                  \
+  _(DateGetMinutes)                                \
+  _(DateGetSeconds)                                \
                                                    \
   _(FunctionBind)                                  \
                                                    \

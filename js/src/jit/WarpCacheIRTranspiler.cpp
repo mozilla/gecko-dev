@@ -5492,6 +5492,39 @@ bool WarpCacheIRTranspiler::emitDateFillLocalTimeSlots(ObjOperandId dateId) {
   return true;
 }
 
+bool WarpCacheIRTranspiler::emitDateHoursFromSecondsIntoYearResult(
+    ValOperandId secondsIntoYearId) {
+  MDefinition* secondsIntoYear = getOperand(secondsIntoYearId);
+
+  auto* ins = MDateHoursFromSecondsIntoYear::New(alloc(), secondsIntoYear);
+  add(ins);
+
+  pushResult(ins);
+  return true;
+}
+
+bool WarpCacheIRTranspiler::emitDateMinutesFromSecondsIntoYearResult(
+    ValOperandId secondsIntoYearId) {
+  MDefinition* secondsIntoYear = getOperand(secondsIntoYearId);
+
+  auto* ins = MDateMinutesFromSecondsIntoYear::New(alloc(), secondsIntoYear);
+  add(ins);
+
+  pushResult(ins);
+  return true;
+}
+
+bool WarpCacheIRTranspiler::emitDateSecondsFromSecondsIntoYearResult(
+    ValOperandId secondsIntoYearId) {
+  MDefinition* secondsIntoYear = getOperand(secondsIntoYearId);
+
+  auto* ins = MDateSecondsFromSecondsIntoYear::New(alloc(), secondsIntoYear);
+  add(ins);
+
+  pushResult(ins);
+  return true;
+}
+
 bool WarpCacheIRTranspiler::emitTruthyResult(OperandId inputId) {
   MDefinition* input = getOperand(inputId);
 
