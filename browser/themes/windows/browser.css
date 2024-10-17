@@ -31,11 +31,14 @@
       &:not([lwtheme]) {
         background-color: transparent;
 
-        /* Hide the Firefox buttons since Windows draws their own.
-         * FIXME(emilio): Find a way of hiding the native buttons, or make them
-         * taller, this is very hacky. */
-        .titlebar-buttonbox {
-          opacity: 0;
+        /* Accent color in titlebar overrides Mica. */
+        @media not (-moz-windows-accent-color-in-titlebar) {
+          /* Hide the Firefox buttons since Windows draws their own.
+           * FIXME(emilio): Find a way of hiding the native buttons, or make them
+           * taller, this is very hacky. */
+          .titlebar-buttonbox {
+            opacity: 0;
+          }
         }
       }
     }
