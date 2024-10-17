@@ -67,7 +67,7 @@ TEST_F(PacerTestIntLongDuplication, Single) {
   auto d1 = TimeDuration::FromMilliseconds(100);
   EnqueueSoon(1, now + d1);
 
-  auto [i, time] = WaitFor(TakeN(mPacer->PacedItemEvent(), 1)).unwrap()[0];
+  auto [i, time] = WaitFor(mPacer->PacedItemEvent());
   EXPECT_GE(TimeStamp::Now() - now, d1);
   EXPECT_EQ(i, 1);
   EXPECT_EQ(time - now, d1);
@@ -78,7 +78,7 @@ TEST_F(PacerTestIntLongDuplication, Past) {
   auto d1 = TimeDuration::FromMilliseconds(100);
   EnqueueSoon(1, now - d1);
 
-  auto [i, time] = WaitFor(TakeN(mPacer->PacedItemEvent(), 1)).unwrap()[0];
+  auto [i, time] = WaitFor(mPacer->PacedItemEvent());
   EXPECT_GE(TimeStamp::Now() - now, -d1);
   EXPECT_EQ(i, 1);
   EXPECT_EQ(time - now, -d1);

@@ -26,12 +26,21 @@ namespace mozilla {
  * caller to create the needed tasks, as JS would. A noteworthy API that relies
  * on stable state is MediaTrackGraph::GetInstance.
  */
-template <ListenerPolicy Lp, typename T>
-inline auto WaitFor(MediaEventSourceImpl<Lp, T>& aEvent) {
-  Maybe<T> value;
+template <ListenerPolicy Lp, typename First, typename... Rest>
+inline auto WaitFor(MediaEventSourceImpl<Lp, First, Rest...>& aEvent) {
+  constexpr size_t num_params = 1 + sizeof...(Rest);
+  using Storage =
+      std::conditional_t<num_params == 1, First, std::tuple<First, Rest...>>;
+  Maybe<Storage> value;
   MediaEventListener listener = aEvent.Connect(
-      AbstractThread::GetCurrent(),
-      [&](T&& aValue) { value = Some(std::forward<T>(aValue)); });
+      AbstractThread::GetCurrent(), [&value](First&& aFirst, Rest&&... aRest) {
+        if constexpr (num_params == 1) {
+          value = Some<Storage>(std::forward<First>(aFirst));
+        } else {
+          value = Some<Storage>(
+              {std::forward<First>(aFirst), std::forward<Rest...>(aRest...)});
+        }
+      });
   SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
       "WaitFor(MediaEventSource<T>& aEvent)"_ns,
       [&] { return value.isSome(); });
