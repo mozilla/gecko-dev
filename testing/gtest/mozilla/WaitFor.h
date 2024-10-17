@@ -110,26 +110,23 @@ inline auto TakeN(MediaEventSourceImpl<Lp, Args...>& aEvent,
                   size_t aN) -> RefPtr<TakeNPromise<Args...>> {
   using Storage = std::vector<std::tuple<Args...>>;
   using Promise = TakeNPromise<Args...>;
+  using Holder = media::Refcountable<MozPromiseHolder<Promise>>;
   using Values = media::Refcountable<Storage>;
   using Listener = media::Refcountable<MediaEventListener>;
-  RefPtr<Values> values = MakeRefPtr<Values>();
+  auto values = MakeRefPtr<Values>();
   values->reserve(aN);
-  RefPtr<Listener> listener = MakeRefPtr<Listener>();
-  auto promise = InvokeAsync(
-      AbstractThread::GetCurrent(), __func__, [values, aN]() mutable {
-        SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
-            "TakeN(MediaEventSourceImpl<Lp, Args...>& aEvent, size_t aN)"_ns,
-            [&] { return values->size() == aN; });
-        return Promise::CreateAndResolve(std::move(*values), __func__);
-      });
+  auto listener = MakeRefPtr<Listener>();
+  auto holder = MakeRefPtr<Holder>();
   *listener = aEvent.Connect(AbstractThread::GetCurrent(),
-                             [values, listener, aN](Args... aValue) {
+                             [values, listener, aN, holder](Args... aValue) {
                                values->push_back({aValue...});
                                if (values->size() == aN) {
                                  listener->Disconnect();
+                                 holder->Resolve(std::move(*values),
+                                                 "TakeN listener callback");
                                }
                              });
-  return promise;
+  return holder->Ensure(__func__);
 }
 
 /**
