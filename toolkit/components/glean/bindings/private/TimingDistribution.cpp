@@ -241,7 +241,6 @@ extern "C" NS_EXPORT void GIFFT_TimingDistributionCancel(uint32_t aMetricId,
 // Called from within FOG's Rust impl.
 extern "C" NS_EXPORT void GIFFT_LabeledTimingDistributionStart(
     uint32_t aMetricId, const nsACString& aLabel, TimerId aTimerId) {
-  printf_stderr("Labeled Timing Distribution START\n");
   auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
   if (mirrorId) {
     mozilla::glean::GetLabelTimerIdToStartsLock().apply([&](const auto& lock) {
@@ -255,7 +254,6 @@ extern "C" NS_EXPORT void GIFFT_LabeledTimingDistributionStart(
 // Called from within FOG's Rust impl.
 extern "C" NS_EXPORT void GIFFT_LabeledTimingDistributionStopAndAccumulate(
     uint32_t aMetricId, const nsACString& aLabel, TimerId aTimerId) {
-  printf_stderr("Labeled Timing Distribution STOP AND ACCUMULATE\n");
   auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
   if (mirrorId) {
     mozilla::glean::GetLabelTimerIdToStartsLock().apply([&](const auto& lock) {
@@ -284,7 +282,6 @@ extern "C" NS_EXPORT void GIFFT_LabeledTimingDistributionAccumulateRawMillis(
 // Called from within FOG's Rust impl.
 extern "C" NS_EXPORT void GIFFT_LabeledTimingDistributionCancel(
     uint32_t aMetricId, const nsACString& aLabel, TimerId aTimerId) {
-  printf_stderr("Labeled Timing Distribution CANCEL\n");
   auto mirrorId = mozilla::glean::HistogramIdForMetric(aMetricId);
   if (mirrorId) {
     mozilla::glean::GetLabelTimerIdToStartsLock().apply([&](const auto& lock) {
