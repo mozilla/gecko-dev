@@ -13,9 +13,7 @@
 
 namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(RenderPassEncoder, mParent, mUsedBindGroups,
-                          mUsedBuffers, mUsedPipelines, mUsedTextureViews,
-                          mUsedRenderBundles)
+GPU_IMPL_CYCLE_COLLECTION(RenderPassEncoder, mParent)
 GPU_IMPL_JS_WRAP(RenderPassEncoder)
 
 void ffiWGPURenderPassDeleter::operator()(ffi::WGPURecordedRenderPass* raw) {

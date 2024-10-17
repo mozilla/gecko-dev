@@ -13,8 +13,7 @@
 
 namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(ComputePassEncoder, mParent, mUsedBindGroups,
-                          mUsedPipelines)
+GPU_IMPL_CYCLE_COLLECTION(ComputePassEncoder, mParent)
 GPU_IMPL_JS_WRAP(ComputePassEncoder)
 
 void ffiWGPUComputePassDeleter::operator()(ffi::WGPURecordedComputePass* raw) {

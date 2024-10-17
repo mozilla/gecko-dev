@@ -16,8 +16,7 @@
 
 namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(RenderBundleEncoder, mParent, mUsedBindGroups,
-                          mUsedBuffers, mUsedPipelines, mUsedTextureViews)
+GPU_IMPL_CYCLE_COLLECTION(RenderBundleEncoder, mParent)
 GPU_IMPL_JS_WRAP(RenderBundleEncoder)
 
 void ffiWGPURenderBundleEncoderDeleter::operator()(
