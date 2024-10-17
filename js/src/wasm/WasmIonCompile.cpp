@@ -70,10 +70,17 @@ struct TryControl {
   ControlInstructionVector landingPadPatches;
   // For `try_table`, the list of tagged catches and labels to branch to.
   TryTableCatchVector catches;
+  // The pending exception for the try's landing pad.
+  MDefinition* pendingException;
+  // The pending exception's tag for the try's landing pad.
+  MDefinition* pendingExceptionTag;
   // Whether this try is in the body and should catch any thrown exception.
   bool inBody;
 
-  TryControl() : inBody(false) {}
+  TryControl()
+      : pendingException(nullptr),
+        pendingExceptionTag(nullptr),
+        inBody(false) {}
 
   // Reset the try control for when it is cached in FunctionCompiler.
   void reset() {
@@ -3782,17 +3789,20 @@ class FunctionCompiler {
     return tag;
   }
 
-  void loadPendingExceptionState(MInstruction** exception, MInstruction** tag) {
-    *exception = MWasmLoadInstance::New(
+  void loadPendingExceptionState(MDefinition** pendingException,
+                                 MDefinition** pendingExceptionTag) {
+    auto* exception = MWasmLoadInstance::New(
         alloc(), instancePointer_, wasm::Instance::offsetOfPendingException(),
         MIRType::WasmAnyRef, AliasSet::Load(AliasSet::WasmPendingException));
-    curBlock_->add(*exception);
+    curBlock_->add(exception);
+    *pendingException = exception;
 
-    *tag = MWasmLoadInstance::New(
+    auto* tag = MWasmLoadInstance::New(
         alloc(), instancePointer_,
         wasm::Instance::offsetOfPendingExceptionTag(), MIRType::WasmAnyRef,
         AliasSet::Load(AliasSet::WasmPendingException));
-    curBlock_->add(*tag);
+    curBlock_->add(tag);
+    *pendingExceptionTag = tag;
   }
 
   [[nodiscard]] bool setPendingExceptionState(MDefinition* exception,
@@ -3894,22 +3904,15 @@ class FunctionCompiler {
     return true;
   }
 
-  // Create a landing pad for a try block if there are any throwing
-  // instructions. This is also used for the implicit rethrow landing pad used
-  // for delegate instructions that target the outermost label.
-  [[nodiscard]] bool createTryLandingPadIfNeeded(
-      ControlInstructionVector& landingPadPatches, MBasicBlock** landingPad) {
-    // If there are no pad-patches for this try control, it means there are no
-    // instructions in the try code that could throw an exception. In this
-    // case, all the catches are dead code, and the try code ends up equivalent
-    // to a plain wasm block.
-    if (landingPadPatches.empty()) {
-      *landingPad = nullptr;
-      return true;
-    }
+  // Create a landing pad for a try block. This is also used for the implicit
+  // rethrow landing pad used for delegate instructions that target the
+  // outermost label.
+  [[nodiscard]]
+  bool createTryLandingPad(ControlInstructionVector& landingPadPatches,
+                           MBasicBlock** landingPad) {
+    MOZ_ASSERT(!landingPadPatches.empty());
 
-    // Otherwise, if there are (pad-) branches from places in the try code that
-    // may throw an exception, bind these branches to a new landing pad
+    // Bind the branches from exception throwing code to a new landing pad
     // block. This is done similarly to what is done in bindBranches.
     MControlInstruction* ins = landingPadPatches[0];
     MBasicBlock* pred = ins->block();
@@ -3926,27 +3929,31 @@ class FunctionCompiler {
       ins->replaceSuccessor(0, *landingPad);
     }
 
-    // Set up the slots in the landing pad block.
-    if (!setupLandingPadSlots(landingPad)) {
-      return false;
-    }
-
     // Clear the now bound pad patches.
     landingPadPatches.clear();
     return true;
   }
 
-  [[nodiscard]] bool createTryTableLandingPad(TryControl* tryControl) {
+  [[nodiscard]]
+  bool createTryTableLandingPad(TryControl* tryControl) {
+    // If there were no patches, then there were no throwing instructions and
+    // we don't need to do anything.
+    if (tryControl->landingPadPatches.empty()) {
+      return true;
+    }
+
+    // Create the landing pad block and bind all the throwing instructions
     MBasicBlock* landingPad;
-    if (!createTryLandingPadIfNeeded(tryControl->landingPadPatches,
-                                     &landingPad)) {
+    if (!createTryLandingPad(tryControl->landingPadPatches, &landingPad)) {
       return false;
     }
 
-    // If there is no landing pad created, no exceptions were possibly thrown
-    // and we don't need to do anything here.
-    if (!landingPad) {
-      return true;
+    // Get the pending exception from the instance
+    MDefinition* pendingException;
+    MDefinition* pendingExceptionTag;
+    if (!consumePendingException(&landingPad, &pendingException,
+                                 &pendingExceptionTag)) {
+      return false;
     }
 
     MBasicBlock* originalBlock = curBlock_;
@@ -3954,18 +3961,11 @@ class FunctionCompiler {
 
     bool hadCatchAll = false;
     for (const TryTableCatch& tryTableCatch : tryControl->catches) {
-      MOZ_ASSERT(numPushed(curBlock_) == 2);
-
       // Handle a catch_all by jumping to the target block
       if (tryTableCatch.tagIndex == CatchAllIndex) {
-        // Get the exception from the slots we pushed when adding
-        // control flow patches.
-        curBlock_->pop();
-        MDefinition* exception = curBlock_->pop();
-
         // Capture the exnref value if we need to
         DefVector values;
-        if (tryTableCatch.captureExnRef && !values.append(exception)) {
+        if (tryTableCatch.captureExnRef && !values.append(pendingException)) {
           return false;
         }
 
@@ -3990,16 +3990,12 @@ class FunctionCompiler {
         return false;
       }
 
-      // Get the exception and its tag from the slots we pushed when adding
-      // control flow patches.
-      MDefinition* exceptionTag = curBlock_->pop();
-      curBlock_->pop();
-
       // Branch to the catch block if the exception's tag matches this catch
       // block's tag.
       MDefinition* catchTag = loadTag(tryTableCatch.tagIndex);
-      MDefinition* matchesCatchTag = compare(exceptionTag, catchTag, JSOp::Eq,
-                                             MCompare::Compare_WasmAnyRef);
+      MDefinition* matchesCatchTag =
+          compare(pendingExceptionTag, catchTag, JSOp::Eq,
+                  MCompare::Compare_WasmAnyRef);
       curBlock_->end(
           MTest::New(alloc(), matchesCatchTag, catchBlock, fallthroughBlock));
 
@@ -4007,18 +4003,13 @@ class FunctionCompiler {
       // object.
       curBlock_ = catchBlock;
 
-      // Remove the tag and exception slots from the block, they are no
-      // longer necessary.
-      curBlock_->pop();
-      MDefinition* exception = curBlock_->pop();
-      MOZ_ASSERT(numPushed(curBlock_) == 0);
-
       // Extract the exception values for the catch block
       DefVector values;
-      if (!loadExceptionValues(exception, tryTableCatch.tagIndex, &values)) {
+      if (!loadExceptionValues(pendingException, tryTableCatch.tagIndex,
+                               &values)) {
         return false;
       }
-      if (tryTableCatch.captureExnRef && !values.append(exception)) {
+      if (tryTableCatch.captureExnRef && !values.append(pendingException)) {
         return false;
       }
 
@@ -4031,12 +4022,7 @@ class FunctionCompiler {
 
     // If there was no catch_all, we must rethrow this exception.
     if (!hadCatchAll) {
-      MOZ_ASSERT(numPushed(curBlock_) == 2);
-      MDefinition* tag = curBlock_->pop();
-      MDefinition* exception = curBlock_->pop();
-      MOZ_ASSERT(numPushed(curBlock_) == 0);
-
-      if (!throwFrom(exception, tag)) {
+      if (!throwFrom(pendingException, pendingExceptionTag)) {
         return false;
       }
     }
@@ -4045,16 +4031,17 @@ class FunctionCompiler {
     return true;
   }
 
-  // Consume the pending exception state from instance, and set up the slots
-  // of the landing pad with the exception state.
-  [[nodiscard]] bool setupLandingPadSlots(MBasicBlock** landingPad) {
+  // Consume the pending exception state from instance. This will clear out the
+  // previous value.
+  [[nodiscard]]
+  bool consumePendingException(MBasicBlock** landingPad,
+                               MDefinition** pendingException,
+                               MDefinition** pendingExceptionTag) {
     MBasicBlock* prevBlock = curBlock_;
     curBlock_ = *landingPad;
 
     // Load the pending exception and tag
-    MInstruction* exception;
-    MInstruction* tag;
-    loadPendingExceptionState(&exception, &tag);
+    loadPendingExceptionState(pendingException, pendingExceptionTag);
 
     // Clear the pending exception and tag
     auto* null = constantNullRef();
@@ -4062,13 +4049,8 @@ class FunctionCompiler {
       return false;
     }
 
-    // Push the exception and its tag on the stack to make them available
-    // to the landing pad blocks.
-    if (!curBlock_->ensureHasSlots(2)) {
-      return false;
-    }
-    curBlock_->push(exception);
-    curBlock_->push(tag);
+    // The landing pad may have changed from loading and clearing the pending
+    // exception state.
     *landingPad = curBlock_;
 
     curBlock_ = prevBlock;
@@ -4143,13 +4125,27 @@ class FunctionCompiler {
     // If we are switching from the try block, create the landing pad. This is
     // guaranteed to happen once and only once before processing catch blocks.
     if (fromKind == LabelKind::Try) {
-      MBasicBlock* padBlock = nullptr;
-      if (!createTryLandingPadIfNeeded(control.tryControl->landingPadPatches,
-                                       &padBlock)) {
-        return false;
+      if (!control.tryControl->landingPadPatches.empty()) {
+        // Create the landing pad block and bind all the throwing instructions
+        MBasicBlock* padBlock = nullptr;
+        if (!createTryLandingPad(control.tryControl->landingPadPatches,
+                                 &padBlock)) {
+          return false;
+        }
+
+        // Store the pending exception and tag on the control item for future
+        // use in catch handlers.
+        if (!consumePendingException(
+                &padBlock, &control.tryControl->pendingException,
+                &control.tryControl->pendingExceptionTag)) {
+          return false;
+        }
+
+        // Set the control block for this try-catch to the landing pad.
+        control.block = padBlock;
+      } else {
+        control.block = nullptr;
       }
-      // Set the control block for this try-catch to the landing pad.
-      control.block = padBlock;
     }
 
     // If there is no landing pad, then this and following catches are dead
@@ -4161,6 +4157,11 @@ class FunctionCompiler {
 
     // Switch to the landing pad.
     curBlock_ = control.block;
+
+    // We should have a pending exception and tag if we were able to create a
+    // landing pad.
+    MOZ_ASSERT(control.tryControl->pendingException);
+    MOZ_ASSERT(control.tryControl->pendingExceptionTag);
 
     // Handle a catch_all by immediately jumping to a new block. We require a
     // new block (as opposed to just emitting the catch_all code in the current
@@ -4174,10 +4175,6 @@ class FunctionCompiler {
       }
       // Compilation will continue in the catch_all block.
       curBlock_ = catchAllBlock;
-      // Remove the tag and exception slots from the block, they are no
-      // longer necessary.
-      curBlock_->pop();
-      curBlock_->pop();
       return true;
     }
 
@@ -4191,16 +4188,12 @@ class FunctionCompiler {
       return false;
     }
 
-    // Get the exception and its tag from the slots we pushed when adding
-    // control flow patches.
-    MDefinition* exceptionTag = curBlock_->pop();
-    MDefinition* exception = curBlock_->pop();
-
     // Branch to the catch block if the exception's tag matches this catch
     // block's tag.
     MDefinition* catchTag = loadTag(tagIndex);
     MDefinition* matchesCatchTag =
-        compare(exceptionTag, catchTag, JSOp::Eq, MCompare::Compare_WasmAnyRef);
+        compare(control.tryControl->pendingExceptionTag, catchTag, JSOp::Eq,
+                MCompare::Compare_WasmAnyRef);
     curBlock_->end(
         MTest::New(alloc(), matchesCatchTag, catchBlock, fallthroughBlock));
 
@@ -4211,14 +4204,10 @@ class FunctionCompiler {
     // object.
     curBlock_ = catchBlock;
 
-    // Remove the tag and exception slots from the block, they are no
-    // longer necessary.
-    curBlock_->pop();
-    exception = curBlock_->pop();
-
     // Extract the exception values for the catch block
     DefVector values;
-    if (!loadExceptionValues(exception, tagIndex, &values)) {
+    if (!loadExceptionValues(control.tryControl->pendingException, tagIndex,
+                             &values)) {
       return false;
     }
     iter().setResults(values.length(), values);
@@ -4285,9 +4274,8 @@ class FunctionCompiler {
         if (padBlock) {
           MBasicBlock* prevBlock = curBlock_;
           curBlock_ = padBlock;
-          MDefinition* tag = curBlock_->pop();
-          MDefinition* exception = curBlock_->pop();
-          if (!throwFrom(exception, tag)) {
+          if (!throwFrom(control.tryControl->pendingException,
+                         control.tryControl->pendingExceptionTag)) {
             return false;
           }
           curBlock_ = prevBlock;
@@ -4319,23 +4307,29 @@ class FunctionCompiler {
   }
 
   [[nodiscard]] bool emitBodyDelegateThrowPad(Control& control) {
+    // If there are no throwing instructions pending, we don't need to do
+    // anything
+    if (bodyDelegatePadPatches_.empty()) {
+      return true;
+    }
+
     // Create a landing pad for any throwing instructions
     MBasicBlock* padBlock;
-    if (!createTryLandingPadIfNeeded(bodyDelegatePadPatches_, &padBlock)) {
+    if (!createTryLandingPad(bodyDelegatePadPatches_, &padBlock)) {
       return false;
     }
 
-    // If no landing pad was necessary, then we don't need to do anything here
-    if (!padBlock) {
-      return true;
+    MDefinition* pendingException;
+    MDefinition* pendingExceptionTag;
+    if (!consumePendingException(&padBlock, &pendingException,
+                                 &pendingExceptionTag)) {
+      return false;
     }
 
     // Switch to the landing pad and rethrow the exception
     MBasicBlock* prevBlock = curBlock_;
     curBlock_ = padBlock;
-    MDefinition* tag = curBlock_->pop();
-    MDefinition* exception = curBlock_->pop();
-    if (!throwFrom(exception, tag)) {
+    if (!throwFrom(pendingException, pendingExceptionTag)) {
       return false;
     }
     curBlock_ = prevBlock;
@@ -4475,19 +4469,10 @@ class FunctionCompiler {
     }
 
     Control& control = iter().controlItem(relativeDepth);
-    MBasicBlock* pad = control.block;
-    MOZ_ASSERT(pad);
-    MOZ_ASSERT(pad->nslots() > 1);
     MOZ_ASSERT(iter().controlKind(relativeDepth) == LabelKind::Catch ||
                iter().controlKind(relativeDepth) == LabelKind::CatchAll);
-
-    // The exception will always be the last slot in the landing pad.
-    size_t exnSlotPosition = pad->nslots() - 2;
-    MDefinition* tag = pad->getSlot(exnSlotPosition + 1);
-    MDefinition* exception = pad->getSlot(exnSlotPosition);
-    MOZ_ASSERT(exception->type() == MIRType::WasmAnyRef &&
-               tag->type() == MIRType::WasmAnyRef);
-    return throwFrom(exception, tag);
+    return throwFrom(control.tryControl->pendingException,
+                     control.tryControl->pendingExceptionTag);
   }
 
   /******************************** WasmGC: low level load/store helpers ***/
