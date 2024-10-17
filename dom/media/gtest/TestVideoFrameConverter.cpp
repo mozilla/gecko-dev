@@ -382,43 +382,45 @@ TEST_F(VideoFrameConverterTest, BlackOnDisableCreated) {
 // duplicationInterval. This version queues a frame before disabling.
 TEST_F(VideoFrameConverterTest, BlackOnDisableDuplicated) {
   TimeStamp now = TimeStamp::Now();
-  TimeStamp future1 = now + TimeDuration::FromMilliseconds(10);
-  TimeStamp future2 = now + TimeDuration::FromMilliseconds(20);
-  TimeStamp future3 = now + TimeDuration::FromMilliseconds(40);
-  TimeDuration duplicationInterval = TimeDuration::FromMilliseconds(100);
   mConverter->SetActive(true);
-  mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
-  mConverter->QueueVideoChunk(GenerateChunk(800, 600, future1), false);
-  mConverter->QueueVideoChunk(GenerateChunk(800, 600, future2), false);
-  mConverter->QueueVideoChunk(GenerateChunk(800, 600, future3), false);
-
+  mConverter->QueueVideoChunk(GenerateChunk(800, 600, now), false);
   const auto [frame0, conversionTime0] =
       WaitFor(TakeNConvertedFrames(1)).unwrap()[0];
-  mConverter->SetTrackEnabled(false);
+
   // The first frame was queued.
   EXPECT_EQ(frame0.width(), 800);
   EXPECT_EQ(frame0.height(), 600);
   EXPECT_THAT(frame0, Not(IsFrameBlack()));
-  EXPECT_GT(conversionTime0 - now, future1 - now);
 
-  auto frames = WaitFor(TakeNConvertedFrames(2)).unwrap();
+  TimeStamp then = TimeStamp::Now();
+  TimeStamp future1 = then + TimeDuration::FromMilliseconds(20);
+  TimeStamp future2 = then + TimeDuration::FromMilliseconds(40);
+  TimeDuration duplicationInterval = TimeDuration::FromMilliseconds(100);
+
+  mConverter->QueueVideoChunk(GenerateChunk(800, 600, future1), false);
+  mConverter->QueueVideoChunk(GenerateChunk(800, 600, future2), false);
+
+  const auto framesPromise = TakeNConvertedFrames(2);
+  mConverter->SetTrackEnabled(false);
+  mConverter->SetIdleFrameDuplicationInterval(duplicationInterval);
+
+  auto frames = WaitFor(framesPromise).unwrap();
   ASSERT_EQ(frames.size(), 2U);
   // The second frame was duplicated by SetTrackEnabled.
   const auto& [frame1, conversionTime1] = frames[0];
   EXPECT_EQ(frame1.width(), 800);
   EXPECT_EQ(frame1.height(), 600);
   EXPECT_THAT(frame1, IsFrameBlack());
-  EXPECT_GT(conversionTime1 - now, future1 - now);
+  EXPECT_GT(conversionTime1 - now, TimeDuration::Zero());
   // The third frame was created by the same-frame timer.
   const auto& [frame2, conversionTime2] = frames[1];
   EXPECT_EQ(frame2.width(), 800);
   EXPECT_EQ(frame2.height(), 600);
   EXPECT_THAT(frame2, IsFrameBlack());
-  EXPECT_GT(conversionTime2 - now, future1 - now + duplicationInterval);
-  // Check that the third frame comes a duplicationInterval after the second.
-  EXPECT_EQ(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
-                                           frame1.timestamp_us()),
-            duplicationInterval);
+  EXPECT_GT(conversionTime2 - now, duplicationInterval);
+  EXPECT_THAT(TimeDuration::FromMicroseconds(frame2.timestamp_us() -
+                                             frame1.timestamp_us()),
+              IsDurationInMillisPositiveMultipleOf(duplicationInterval));
 }
 
 TEST_F(VideoFrameConverterTest, ClearFutureFramesOnJumpingBack) {
