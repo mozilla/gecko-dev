@@ -154,47 +154,6 @@ def support_vcs_checkout(config, job, taskdesc, sparse=False):
         taskdesc["worker"]["taskcluster-proxy"] = True
 
 
-def generic_worker_hg_commands(
-    base_repo, head_repo, head_rev, path, sparse_profile=None
-):
-    """Obtain commands needed to obtain a Mercurial checkout on generic-worker.
-
-    Returns two command strings. One performs the checkout. Another logs.
-    """
-    args = [
-        r'"c:\Program Files\Mercurial\hg.exe"',
-        "robustcheckout",
-        "--sharebase",
-        r"y:\hg-shared",
-        "--purge",
-        "--upstream",
-        base_repo,
-        "--revision",
-        head_rev,
-    ]
-
-    if sparse_profile:
-        args.extend(["--config", "extensions.sparse="])
-        args.extend(["--sparseprofile", sparse_profile])
-
-    args.extend(
-        [
-            head_repo,
-            path,
-        ]
-    )
-
-    logging_args = [
-        b":: TinderboxPrint:<a href={source_repo}/rev/{revision} "
-        b"title='Built from {repo_name} revision {revision}'>{revision}</a>"
-        b"\n".format(
-            revision=head_rev, source_repo=head_repo, repo_name=head_repo.split("/")[-1]
-        ),
-    ]
-
-    return [" ".join(args), " ".join(logging_args)]
-
-
 def setup_secrets(config, job, taskdesc):
     """Set up access to secrets via taskcluster-proxy.  The value of
     run['secrets'] should be a boolean or a list of secret names that
