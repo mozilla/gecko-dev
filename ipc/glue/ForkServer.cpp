@@ -205,6 +205,13 @@ bool ForkServer::OnMessageReceived(UniquePtr<IPC::Message> message) {
     return false;
   }
 
+#if defined(MOZ_MEMORY) && defined(DEBUG)
+  jemalloc_stats_t stats;
+  jemalloc_stats(&stats);
+  MOZ_ASSERT(stats.narenas == 1,
+             "ForkServer before fork()/clone() should have a single arena.");
+#endif
+
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   mozilla::SandboxLaunch launcher;
   if (!launcher.Prepare(&options)) {
