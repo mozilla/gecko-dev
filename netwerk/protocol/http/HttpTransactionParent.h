@@ -48,7 +48,7 @@ class HttpTransactionParent final : public PHttpTransactionParent,
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
   mozilla::ipc::IPCResult RecvOnStartRequest(
-      const nsresult& aStatus, const Maybe<nsHttpResponseHead>& aResponseHead,
+      const nsresult& aStatus, Maybe<nsHttpResponseHead>&& aResponseHead,
       nsITransportSecurityInfo* aSecurityInfo, const bool& aProxyConnectFailed,
       const TimingStructArgs& aTimings,
       const int32_t& aProxyConnectResponseCode,
@@ -110,7 +110,7 @@ class HttpTransactionParent final : public PHttpTransactionParent,
   void GetStructFromInfo(nsHttpConnectionInfo* aInfo,
                          HttpConnectionInfoCloneArgs& aArgs);
   void DoOnStartRequest(
-      const nsresult& aStatus, const Maybe<nsHttpResponseHead>& aResponseHead,
+      const nsresult& aStatus, Maybe<nsHttpResponseHead>&& aResponseHead,
       nsITransportSecurityInfo* aSecurityInfo, const bool& aProxyConnectFailed,
       const TimingStructArgs& aTimings,
       const int32_t& aProxyConnectResponseCode,

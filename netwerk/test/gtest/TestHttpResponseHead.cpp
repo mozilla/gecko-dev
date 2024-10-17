@@ -173,5 +173,31 @@ TEST(ContentTypeParsing, CommentHandling3)
   ASSERT_TRUE(contentCharset.EqualsLiteral("gbk"));
 }
 
+TEST(TestHttpResponseHead, MoveConstructor)
+{
+  // Construct an initial response head
+  nsHttpResponseHead originalHead;
+  Unused << originalHead.ParseStatusLine("HTTP/1.1 200 OK"_ns);
+  Unused << originalHead.ParseHeaderLine("content-type: text/plain"_ns);
+  Unused << originalHead.ParseHeaderLine("content-length: 1408"_ns);
+
+  // Move construct a new object from the initial one
+  nsHttpResponseHead movedHead(std::move(originalHead));
+
+  // Ensure the moved head retains the original status
+  ASSERT_EQ(movedHead.Status(), 200);
+  nsCString value;
+  ASSERT_EQ(movedHead.GetHeader(nsHttp::Content_Type, value), NS_OK);
+  ASSERT_EQ(value, "text/plain"_ns);
+  ASSERT_EQ(movedHead.GetHeader(nsHttp::Content_Length, value), NS_OK);
+  ASSERT_EQ(value, "1408"_ns);
+
+  // Check original object is in an unspecified state
+  ASSERT_EQ(originalHead.GetHeader(nsHttp::Content_Type, value),
+            NS_ERROR_NOT_AVAILABLE);
+  ASSERT_FALSE(originalHead.HasHeader(nsHttp::Content_Type));
+  ASSERT_FALSE(originalHead.HasHeader(nsHttp::Content_Length));
+}
+
 }  // namespace net
 }  // namespace mozilla

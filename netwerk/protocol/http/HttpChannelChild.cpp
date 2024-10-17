@@ -1507,9 +1507,9 @@ mozilla::ipc::IPCResult HttpChannelChild::RecvRedirect1Begin(
     const uint32_t& aRegistrarId, nsIURI* aNewUri,
     const uint32_t& aNewLoadFlags, const uint32_t& aRedirectFlags,
     const ParentLoadInfoForwarderArgs& aLoadInfoForwarder,
-    const nsHttpResponseHead& aResponseHead,
-    nsITransportSecurityInfo* aSecurityInfo, const uint64_t& aChannelId,
-    const NetAddr& aOldPeerAddr, const ResourceTimingStructArgs& aTiming) {
+    nsHttpResponseHead&& aResponseHead, nsITransportSecurityInfo* aSecurityInfo,
+    const uint64_t& aChannelId, const NetAddr& aOldPeerAddr,
+    const ResourceTimingStructArgs& aTiming) {
   // TODO: handle security info
   LOG(("HttpChannelChild::RecvRedirect1Begin [this=%p]\n", this));
   // We set peer address of child to the old peer,
@@ -1522,7 +1522,7 @@ mozilla::ipc::IPCResult HttpChannelChild::RecvRedirect1Begin(
   mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
       this, [self = UnsafePtr<HttpChannelChild>(this), aRegistrarId,
              newUri = RefPtr{aNewUri}, aNewLoadFlags, aRedirectFlags,
-             aLoadInfoForwarder, aResponseHead,
+             aLoadInfoForwarder, aResponseHead = std::move(aResponseHead),
              aSecurityInfo = nsCOMPtr{aSecurityInfo}, aChannelId, aTiming]() {
         self->Redirect1Begin(aRegistrarId, newUri, aNewLoadFlags,
                              aRedirectFlags, aLoadInfoForwarder, aResponseHead,
