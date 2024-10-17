@@ -200,31 +200,6 @@ struct IonCompilePolicy {
 
 using IonOpIter = OpIter<IonCompilePolicy>;
 
-class FunctionCompiler;
-
-// CallCompileState describes a call that is being compiled.
-
-class CallCompileState {
-  // A generator object that is passed each argument as it is compiled.
-  WasmABIArgGenerator abi_;
-
-  // Accumulates the register arguments while compiling arguments.
-  MWasmCallBase::Args regArgs_;
-
-  // Reserved argument for passing Instance* to builtin instance method calls.
-  ABIArg instanceArg_;
-
-  // The stack area in which the callee will write stack return values, or
-  // nullptr if no stack results.
-  MWasmStackResultArea* stackResultArea_ = nullptr;
-
-  // Indicates that the call is a return/tail call.
-  bool returnCall = false;
-
-  // Only FunctionCompiler should be directly manipulating CallCompileState.
-  friend class FunctionCompiler;
-};
-
 // Encapsulates the compilation of a single function in an asm.js module. The
 // function compiler handles the creation and final backend compilation of the
 // MIR graph.
@@ -257,6 +232,40 @@ class FunctionCompiler {
   };
   using PendingInlineReturnVector =
       Vector<PendingInlineReturn, 1, SystemAllocPolicy>;
+
+  // CallCompileState describes a call that is being compiled.
+  struct CallCompileState {
+    // A generator object that is passed each argument as it is compiled.
+    WasmABIArgGenerator abi;
+
+    // Accumulates the register arguments while compiling arguments.
+    MWasmCallBase::Args regArgs;
+
+    // Reserved argument for passing Instance* to builtin instance method calls.
+    ABIArg instanceArg;
+
+    // The stack area in which the callee will write stack return values, or
+    // nullptr if no stack results.
+    MWasmStackResultArea* stackResultArea = nullptr;
+
+    // Indicates that the call is a return/tail call.
+    bool returnCall = false;
+
+    // The control structure for the nearest enclosing try-catch. This is
+    // non-null iff the call is catchable.
+    TryControl* tryControl = nullptr;
+
+    // The index of the try note for a catchable call.
+    uint32_t tryNoteIndex = UINT32_MAX;
+
+    // The block to take for fallthrough execution for a catchable call.
+    MBasicBlock* fallthroughBlock = nullptr;
+
+    // The block to take for exceptional execution for a catchable call.
+    MBasicBlock* prePadBlock = nullptr;
+
+    bool isCatchable() const { return tryControl != nullptr; }
+  };
 
   // While compiling a wasm function to Ion, we maintain a stack of
   // `FunctionCompiler`s.  There is always at least one element in the stack,
@@ -2221,27 +2230,26 @@ class FunctionCompiler {
   // stack space required for each individual call (as determined by the call
   // ABI).
 
-  // Operations that modify a CallCompileState.
-
-  [[nodiscard]] bool passInstance(MIRType instanceType,
-                                  CallCompileState* args) {
+  [[nodiscard]]
+  bool passInstanceCallArg(MIRType instanceType, CallCompileState* callState) {
     if (inDeadCode()) {
       return true;
     }
 
     // Should only pass an instance once.  And it must be a non-GC pointer.
-    MOZ_ASSERT(args->instanceArg_ == ABIArg());
+    MOZ_ASSERT(callState->instanceArg == ABIArg());
     MOZ_ASSERT(instanceType == MIRType::Pointer);
-    args->instanceArg_ = args->abi_.next(MIRType::Pointer);
+    callState->instanceArg = callState->abi.next(MIRType::Pointer);
     return true;
   }
 
-  // Do not call this directly.  Call one of the passArg() variants instead.
-  [[nodiscard]] bool passArgWorker(MDefinition* argDef, MIRType type,
-                                   CallCompileState* call) {
+  // Do not call this directly.  Call one of the passCallArg() variants instead.
+  [[nodiscard]]
+  bool passCallArgWorker(MDefinition* argDef, MIRType type,
+                         CallCompileState* callState) {
     MOZ_ASSERT(argDef->type() == type);
 
-    ABIArg arg = call->abi_.next(type);
+    ABIArg arg = callState->abi.next(type);
     switch (arg.kind()) {
 #ifdef JS_CODEGEN_REGISTER_PAIR
       case ABIArg::GPR_PAIR: {
@@ -2251,15 +2259,15 @@ class FunctionCompiler {
         auto mirHigh =
             MWrapInt64ToInt32::New(alloc(), argDef, /* bottomHalf = */ false);
         curBlock_->add(mirHigh);
-        return call->regArgs_.append(
+        return callState->regArgs.append(
                    MWasmCallBase::Arg(AnyRegister(arg.gpr64().low), mirLow)) &&
-               call->regArgs_.append(
+               callState->regArgs.append(
                    MWasmCallBase::Arg(AnyRegister(arg.gpr64().high), mirHigh));
       }
 #endif
       case ABIArg::GPR:
       case ABIArg::FPU:
-        return call->regArgs_.append(MWasmCallBase::Arg(arg.reg(), argDef));
+        return callState->regArgs.append(MWasmCallBase::Arg(arg.reg(), argDef));
       case ABIArg::Stack: {
         auto* mir =
             MWasmStackArg::New(alloc(), arg.offsetFromArgBase(), argDef);
@@ -2273,42 +2281,44 @@ class FunctionCompiler {
   }
 
   template <typename VecT>
-  [[nodiscard]] bool passArgs(const DefVector& argDefs, const VecT& types,
-                              CallCompileState* call) {
+  [[nodiscard]]
+  bool passCallArgs(const DefVector& argDefs, const VecT& types,
+                    CallCompileState* callState) {
     MOZ_ASSERT(argDefs.length() == types.length());
     for (uint32_t i = 0; i < argDefs.length(); i++) {
       MDefinition* def = argDefs[i];
       ValType type = types[i];
-      if (!passArg(def, type, call)) {
+      if (!passCallArg(def, type, callState)) {
         return false;
       }
     }
     return true;
   }
 
-  [[nodiscard]] bool passArg(MDefinition* argDef, MIRType type,
-                             CallCompileState* call) {
+  [[nodiscard]]
+  bool passCallArg(MDefinition* argDef, MIRType type,
+                   CallCompileState* callState) {
     if (inDeadCode()) {
       return true;
     }
-    return passArgWorker(argDef, type, call);
+    return passCallArgWorker(argDef, type, callState);
   }
 
-  [[nodiscard]] bool passArg(MDefinition* argDef, ValType type,
-                             CallCompileState* call) {
+  [[nodiscard]]
+  bool passCallArg(MDefinition* argDef, ValType type,
+                   CallCompileState* callState) {
     if (inDeadCode()) {
       return true;
     }
-    return passArgWorker(argDef, type.toMIRType(), call);
+    return passCallArgWorker(argDef, type.toMIRType(), callState);
   }
-
-  void markReturnCall(CallCompileState* call) { call->returnCall = true; }
 
   // If the call returns results on the stack, prepare a stack area to receive
   // them, and pass the address of the stack area to the callee as an additional
   // argument.
-  [[nodiscard]] bool passStackResultAreaCallArg(const ResultType& resultType,
-                                                CallCompileState* call) {
+  [[nodiscard]]
+  bool passStackResultAreaCallArg(const ResultType& resultType,
+                                  CallCompileState* callState) {
     if (inDeadCode()) {
       return true;
     }
@@ -2334,35 +2344,54 @@ class FunctionCompiler {
       stackResultArea->initResult(iter.index() - base, loc);
     }
     curBlock_->add(stackResultArea);
-    MDefinition* def = call->returnCall ? (MDefinition*)stackResultPointer_
-                                        : (MDefinition*)stackResultArea;
-    if (!passArg(def, MIRType::StackResults, call)) {
+    MDefinition* def = callState->returnCall ? (MDefinition*)stackResultPointer_
+                                             : (MDefinition*)stackResultArea;
+    if (!passCallArg(def, MIRType::StackResults, callState)) {
       return false;
     }
-    call->stackResultArea_ = stackResultArea;
+    callState->stackResultArea = stackResultArea;
     return true;
   }
 
-  [[nodiscard]] bool finishCall(CallCompileState* call) {
+  [[nodiscard]]
+  bool finishCallArgs(CallCompileState* callState) {
     if (inDeadCode()) {
       return true;
     }
 
-    if (!call->regArgs_.append(
+    if (!callState->regArgs.append(
             MWasmCallBase::Arg(AnyRegister(InstanceReg), instancePointer_))) {
       return false;
     }
 
-    uint32_t stackBytes = call->abi_.stackBytesConsumedSoFar();
+    uint32_t stackBytes = callState->abi.stackBytesConsumedSoFar();
 
     maxStackArgBytes_ = std::max(maxStackArgBytes_, stackBytes);
     return true;
   }
 
-  // Wrappers for creating various kinds of calls.
+  [[nodiscard]]
+  bool emitCallArgs(const FuncType& funcType, const DefVector& args,
+                    CallCompileState* callState) {
+    for (size_t i = 0, n = funcType.args().length(); i < n; ++i) {
+      if (!mirGen().ensureBallast()) {
+        return false;
+      }
+      if (!passCallArg(args[i], funcType.args()[i], callState)) {
+        return false;
+      }
+    }
 
-  [[nodiscard]] bool collectUnaryCallResult(MIRType type,
-                                            MDefinition** result) {
+    ResultType resultType = ResultType::Vector(funcType.results());
+    if (!passStackResultAreaCallArg(resultType, callState)) {
+      return false;
+    }
+
+    return finishCallArgs(callState);
+  }
+
+  [[nodiscard]]
+  bool collectUnaryCallResult(MIRType type, MDefinition** result) {
     MInstruction* def;
     switch (type) {
       case MIRType::Int32:
@@ -2399,9 +2428,10 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] bool collectCallResults(const ResultType& type,
-                                        MWasmStackResultArea* stackResultArea,
-                                        DefVector* results) {
+  [[nodiscard]]
+  bool collectCallResults(const ResultType& type,
+                          MWasmStackResultArea* stackResultArea,
+                          DefVector* results) {
     if (!results->reserve(type.length())) {
       return false;
     }
@@ -2471,23 +2501,22 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] bool catchableCall(const CallSiteDesc& desc,
-                                   const CalleeDesc& callee,
-                                   const MWasmCallBase::Args& args,
-                                   const ArgTypeVector& argTypes,
-                                   MDefinition* indexOrRef = nullptr) {
-    MWasmCallTryDesc tryDesc;
-    if (!beginTryCall(&tryDesc)) {
+  [[nodiscard]]
+  bool call(CallCompileState* callState, const CallSiteDesc& desc,
+            const CalleeDesc& callee, const ArgTypeVector& argTypes,
+            MDefinition* indexOrRef = nullptr) {
+    if (!beginCatchableCall(callState)) {
       return false;
     }
 
     MInstruction* ins;
-    if (tryDesc.inTry) {
-      ins = MWasmCallCatchable::New(alloc(), desc, callee, args,
-                                    StackArgAreaSizeUnaligned(argTypes),
-                                    tryDesc, indexOrRef);
+    if (callState->isCatchable()) {
+      ins = MWasmCallCatchable::New(
+          alloc(), desc, callee, callState->regArgs,
+          StackArgAreaSizeUnaligned(argTypes), callState->tryNoteIndex,
+          callState->fallthroughBlock, callState->prePadBlock, indexOrRef);
     } else {
-      ins = MWasmCallUncatchable::New(alloc(), desc, callee, args,
+      ins = MWasmCallUncatchable::New(alloc(), desc, callee, callState->regArgs,
                                       StackArgAreaSizeUnaligned(argTypes),
                                       indexOrRef);
     }
@@ -2496,7 +2525,7 @@ class FunctionCompiler {
     }
     curBlock_->add(ins);
 
-    return finishTryCall(&tryDesc);
+    return finishCatchableCall(callState);
   }
 
   [[nodiscard]]
@@ -2599,39 +2628,45 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] bool callDirect(const FuncType& funcType, uint32_t funcIndex,
-                                uint32_t lineOrBytecode,
-                                const CallCompileState& call,
-                                DefVector* results) {
+  [[nodiscard]]
+  bool callDirect(const FuncType& funcType, uint32_t funcIndex,
+                  uint32_t lineOrBytecode, const DefVector& args,
+                  DefVector* results) {
     MOZ_ASSERT(!inDeadCode());
 
+    CallCompileState callState;
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Func);
     ResultType resultType = ResultType::Vector(funcType.results());
     auto callee = CalleeDesc::function(funcIndex);
-    ArgTypeVector args(funcType);
+    ArgTypeVector argTypes(funcType);
 
-    if (!catchableCall(desc, callee, call.regArgs_, args)) {
-      return false;
-    }
-    return collectCallResults(resultType, call.stackResultArea_, results);
+    return emitCallArgs(funcType, args, &callState) &&
+           call(&callState, desc, callee, argTypes) &&
+           collectCallResults(resultType, callState.stackResultArea, results);
   }
 
-  [[nodiscard]] bool returnCallDirect(const FuncType& funcType,
-                                      uint32_t funcIndex,
-                                      uint32_t lineOrBytecode,
-                                      const CallCompileState& call,
-                                      DefVector* results) {
+  [[nodiscard]]
+  bool returnCallDirect(const FuncType& funcType, uint32_t funcIndex,
+                        uint32_t lineOrBytecode, const DefVector& args,
+                        DefVector* results) {
     MOZ_ASSERT(!inDeadCode());
 
     // We do not support tail calls in inlined functions.
     MOZ_RELEASE_ASSERT(!isInlined());
 
+    CallCompileState callState;
+    callState.returnCall = true;
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::ReturnFunc);
     auto callee = CalleeDesc::function(funcIndex);
-    ArgTypeVector args(funcType);
+    ArgTypeVector argTypes(funcType);
 
-    auto ins = MWasmReturnCall::New(alloc(), desc, callee, call.regArgs_,
-                                    StackArgAreaSizeUnaligned(args), nullptr);
+    if (!emitCallArgs(funcType, args, &callState)) {
+      return false;
+    }
+
+    auto ins =
+        MWasmReturnCall::New(alloc(), desc, callee, callState.regArgs,
+                             StackArgAreaSizeUnaligned(argTypes), nullptr);
     if (!ins) {
       return false;
     }
@@ -2640,22 +2675,28 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] bool returnCallImport(unsigned globalDataOffset,
-                                      uint32_t lineOrBytecode,
-                                      const CallCompileState& call,
-                                      const FuncType& funcType,
-                                      DefVector* results) {
+  [[nodiscard]]
+  bool returnCallImport(unsigned globalDataOffset, uint32_t lineOrBytecode,
+                        const FuncType& funcType, const DefVector& args,
+                        DefVector* results) {
     MOZ_ASSERT(!inDeadCode());
 
     // We do not support tail calls in inlined functions.
     MOZ_RELEASE_ASSERT(!isInlined());
 
+    CallCompileState callState;
+    callState.returnCall = true;
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Import);
     auto callee = CalleeDesc::import(globalDataOffset);
-    ArgTypeVector args(funcType);
+    ArgTypeVector argTypes(funcType);
 
-    auto* ins = MWasmReturnCall::New(alloc(), desc, callee, call.regArgs_,
-                                     StackArgAreaSizeUnaligned(args), nullptr);
+    if (!emitCallArgs(funcType, args, &callState)) {
+      return false;
+    }
+
+    auto* ins =
+        MWasmReturnCall::New(alloc(), desc, callee, callState.regArgs,
+                             StackArgAreaSizeUnaligned(argTypes), nullptr);
     if (!ins) {
       return false;
     }
@@ -2664,11 +2705,10 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] bool returnCallIndirect(uint32_t funcTypeIndex,
-                                        uint32_t tableIndex, MDefinition* index,
-                                        uint32_t lineOrBytecode,
-                                        const CallCompileState& call,
-                                        DefVector* results) {
+  [[nodiscard]]
+  bool returnCallIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
+                          MDefinition* index, uint32_t lineOrBytecode,
+                          const DefVector& args, DefVector* results) {
     MOZ_ASSERT(!inDeadCode());
 
     // We do not support tail calls in inlined functions.
@@ -2678,6 +2718,8 @@ class FunctionCompiler {
     CallIndirectId callIndirectId =
         CallIndirectId::forFuncType(codeMeta_, funcTypeIndex);
 
+    CallCompileState callState;
+    callState.returnCall = true;
     CalleeDesc callee;
     MOZ_ASSERT(callIndirectId.kind() != CallIndirectIdKind::AsmJS);
     const TableDesc& table = codeMeta_.tables[tableIndex];
@@ -2685,15 +2727,20 @@ class FunctionCompiler {
         CalleeDesc::wasmTable(codeMeta_, table, tableIndex, callIndirectId);
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Indirect);
-    ArgTypeVector args(funcType);
+    ArgTypeVector argTypes(funcType);
+
+    if (!emitCallArgs(funcType, args, &callState)) {
+      return false;
+    }
 
     MDefinition* index32 = tableIndexToI32(table.indexType(), index);
     if (!index32) {
       return false;
     }
 
-    auto* ins = MWasmReturnCall::New(alloc(), desc, callee, call.regArgs_,
-                                     StackArgAreaSizeUnaligned(args), index32);
+    auto* ins =
+        MWasmReturnCall::New(alloc(), desc, callee, callState.regArgs,
+                             StackArgAreaSizeUnaligned(argTypes), index32);
     if (!ins) {
       return false;
     }
@@ -2702,12 +2749,13 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] bool callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
-                                  MDefinition* index, uint32_t lineOrBytecode,
-                                  const CallCompileState& call,
-                                  DefVector* results) {
+  [[nodiscard]]
+  bool callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
+                    MDefinition* index, uint32_t lineOrBytecode,
+                    const DefVector& args, DefVector* results) {
     MOZ_ASSERT(!inDeadCode());
 
+    CallCompileState callState;
     const FuncType& funcType = (*codeMeta_.types)[funcTypeIndex].funcType();
     CallIndirectId callIndirectId =
         CallIndirectId::forFuncType(codeMeta_, funcTypeIndex);
@@ -2740,38 +2788,37 @@ class FunctionCompiler {
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Indirect);
-    ArgTypeVector args(funcType);
+    ArgTypeVector argTypes(funcType);
     ResultType resultType = ResultType::Vector(funcType.results());
 
-    if (!catchableCall(desc, callee, call.regArgs_, args, index)) {
-      return false;
-    }
-    return collectCallResults(resultType, call.stackResultArea_, results);
+    return emitCallArgs(funcType, args, &callState) &&
+           call(&callState, desc, callee, argTypes, index) &&
+           collectCallResults(resultType, callState.stackResultArea, results);
   }
 
-  [[nodiscard]] bool callImport(unsigned instanceDataOffset,
-                                uint32_t lineOrBytecode,
-                                const CallCompileState& call,
-                                const FuncType& funcType, DefVector* results) {
+  [[nodiscard]]
+  bool callImport(unsigned instanceDataOffset, uint32_t lineOrBytecode,
+                  const FuncType& funcType, const DefVector& args,
+                  DefVector* results) {
     MOZ_ASSERT(!inDeadCode());
 
+    CallCompileState callState;
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Import);
     auto callee = CalleeDesc::import(instanceDataOffset);
-    ArgTypeVector args(funcType);
+    ArgTypeVector argTypes(funcType);
     ResultType resultType = ResultType::Vector(funcType.results());
 
-    if (!catchableCall(desc, callee, call.regArgs_, args)) {
-      return false;
-    }
-    return collectCallResults(resultType, call.stackResultArea_, results);
+    return emitCallArgs(funcType, args, &callState) &&
+           call(&callState, desc, callee, argTypes) &&
+           collectCallResults(resultType, callState.stackResultArea, results);
   }
 
-  [[nodiscard]] bool builtinCall(const SymbolicAddressSignature& builtin,
-                                 uint32_t lineOrBytecode,
-                                 const CallCompileState& call,
-                                 MDefinition** def) {
+  [[nodiscard]]
+  bool builtinCall(CallCompileState* callState,
+                   const SymbolicAddressSignature& builtin,
+                   uint32_t lineOrBytecode, MDefinition** result) {
     if (inDeadCode()) {
-      *def = nullptr;
+      *result = nullptr;
       return true;
     }
 
@@ -2779,58 +2826,204 @@ class FunctionCompiler {
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Symbolic);
     auto callee = CalleeDesc::builtin(builtin.identity);
-    auto* ins = MWasmCallUncatchable::New(alloc(), desc, callee, call.regArgs_,
-                                          StackArgAreaSizeUnaligned(builtin));
+
+    auto* ins =
+        MWasmCallUncatchable::New(alloc(), desc, callee, callState->regArgs,
+                                  StackArgAreaSizeUnaligned(builtin));
     if (!ins) {
       return false;
     }
-
     curBlock_->add(ins);
 
-    return collectUnaryCallResult(builtin.retType, def);
+    return collectUnaryCallResult(builtin.retType, result);
   }
 
-  [[nodiscard]] bool builtinInstanceMethodCall(
-      const SymbolicAddressSignature& builtin, uint32_t lineOrBytecode,
-      const CallCompileState& call, MDefinition** def = nullptr) {
-    MOZ_ASSERT_IF(!def, builtin.retType == MIRType::None);
+  [[nodiscard]]
+  bool builtinCall1(const SymbolicAddressSignature& builtin,
+                    uint32_t lineOrBytecode, MDefinition* arg,
+                    MDefinition** result) {
+    CallCompileState callState;
+    return passCallArg(arg, builtin.argTypes[0], &callState) &&
+           finishCallArgs(&callState) &&
+           builtinCall(&callState, builtin, lineOrBytecode, result);
+  }
+
+  [[nodiscard]]
+  bool builtinCall2(const SymbolicAddressSignature& builtin,
+                    uint32_t lineOrBytecode, MDefinition* arg1,
+                    MDefinition* arg2, MDefinition** result) {
+    CallCompileState callState;
+    return passCallArg(arg1, builtin.argTypes[0], &callState) &&
+           passCallArg(arg2, builtin.argTypes[1], &callState) &&
+           finishCallArgs(&callState) &&
+           builtinCall(&callState, builtin, lineOrBytecode, result);
+  }
+
+  [[nodiscard]]
+  bool instanceCall(CallCompileState* callState,
+                    const SymbolicAddressSignature& builtin,
+                    uint32_t lineOrBytecode, MDefinition** result = nullptr) {
+    MOZ_ASSERT_IF(!result, builtin.retType == MIRType::None);
     if (inDeadCode()) {
-      if (def) {
-        *def = nullptr;
+      if (result) {
+        *result = nullptr;
       }
       return true;
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Symbolic);
-    MWasmCallTryDesc tryDesc;
-    if (!beginTryCall(&tryDesc)) {
+    if (!beginCatchableCall(callState)) {
       return false;
     }
 
     MInstruction* ins;
-    if (tryDesc.inTry) {
+    if (callState->isCatchable()) {
       ins = MWasmCallCatchable::NewBuiltinInstanceMethodCall(
           alloc(), desc, builtin.identity, builtin.failureMode,
-          call.instanceArg_, call.regArgs_, StackArgAreaSizeUnaligned(builtin),
-          tryDesc);
+          callState->instanceArg, callState->regArgs,
+          StackArgAreaSizeUnaligned(builtin), callState->tryNoteIndex,
+          callState->fallthroughBlock, callState->prePadBlock);
     } else {
       ins = MWasmCallUncatchable::NewBuiltinInstanceMethodCall(
           alloc(), desc, builtin.identity, builtin.failureMode,
-          call.instanceArg_, call.regArgs_, StackArgAreaSizeUnaligned(builtin));
+          callState->instanceArg, callState->regArgs,
+          StackArgAreaSizeUnaligned(builtin));
     }
     if (!ins) {
       return false;
     }
     curBlock_->add(ins);
 
-    if (!finishTryCall(&tryDesc)) {
+    if (!finishCatchableCall(callState)) {
       return false;
     }
 
-    if (!def) {
+    if (!result) {
       return true;
     }
-    return collectUnaryCallResult(builtin.retType, def);
+    return collectUnaryCallResult(builtin.retType, result);
+  }
+
+  /*********************************************** Instance call helpers ***/
+
+  // Do not call this function directly -- it offers no protection against
+  // mis-counting of arguments.  Instead call one of
+  // ::emitInstanceCall{0,1,2,3,4,5,6}.
+  //
+  // Emits a call to the Instance function indicated by `callee`.  This is
+  // assumed to take an Instance pointer as its first argument.  The remaining
+  // args are taken from `args`, which is assumed to hold `numArgs` entries.
+  // If `result` is non-null, the MDefinition* holding the return value is
+  // written to `*result`.
+  [[nodiscard]]
+  bool emitInstanceCallN(uint32_t lineOrBytecode,
+                         const SymbolicAddressSignature& callee,
+                         MDefinition** args, size_t numArgs,
+                         MDefinition** result = nullptr) {
+    // Check that the first formal parameter is plausibly an Instance pointer.
+    MOZ_ASSERT(callee.numArgs > 0);
+    MOZ_ASSERT(callee.argTypes[0] == MIRType::Pointer);
+    // Check we agree on the number of args.
+    MOZ_ASSERT(numArgs + 1 /* the instance pointer */ == callee.numArgs);
+    // Check we agree on whether a value is returned.
+    MOZ_ASSERT((result == nullptr) == (callee.retType == MIRType::None));
+
+    // If we are in dead code, it can happen that some of the `args` entries
+    // are nullptr, which will look like an OOM to the logic below.  So exit
+    // at this point.  `passInstanceCallArg`, `passCallArg`, `finishCall` and
+    // `instanceCall` all do nothing in dead code, so it's valid
+    // to exit here.
+    if (inDeadCode()) {
+      if (result) {
+        *result = nullptr;
+      }
+      return true;
+    }
+
+    // Check all args for signs of OOMness before attempting to allocating any
+    // more memory.
+    for (size_t i = 0; i < numArgs; i++) {
+      if (!args[i]) {
+        if (result) {
+          *result = nullptr;
+        }
+        return false;
+      }
+    }
+
+    // Finally, construct the call.
+    CallCompileState callState;
+    if (!passInstanceCallArg(callee.argTypes[0], &callState)) {
+      return false;
+    }
+    for (size_t i = 0; i < numArgs; i++) {
+      if (!passCallArg(args[i], callee.argTypes[i + 1], &callState)) {
+        return false;
+      }
+    }
+    if (!finishCallArgs(&callState)) {
+      return false;
+    }
+    return instanceCall(&callState, callee, lineOrBytecode, result);
+  }
+
+  [[nodiscard]]
+  bool emitInstanceCall0(uint32_t lineOrBytecode,
+                         const SymbolicAddressSignature& callee,
+                         MDefinition** result = nullptr) {
+    MDefinition* args[0] = {};
+    return emitInstanceCallN(lineOrBytecode, callee, args, 0, result);
+  }
+  [[nodiscard]]
+  bool emitInstanceCall1(uint32_t lineOrBytecode,
+                         const SymbolicAddressSignature& callee,
+                         MDefinition* arg1, MDefinition** result = nullptr) {
+    MDefinition* args[1] = {arg1};
+    return emitInstanceCallN(lineOrBytecode, callee, args, 1, result);
+  }
+  [[nodiscard]]
+  bool emitInstanceCall2(uint32_t lineOrBytecode,
+                         const SymbolicAddressSignature& callee,
+                         MDefinition* arg1, MDefinition* arg2,
+                         MDefinition** result = nullptr) {
+    MDefinition* args[2] = {arg1, arg2};
+    return emitInstanceCallN(lineOrBytecode, callee, args, 2, result);
+  }
+  [[nodiscard]]
+  bool emitInstanceCall3(uint32_t lineOrBytecode,
+                         const SymbolicAddressSignature& callee,
+                         MDefinition* arg1, MDefinition* arg2,
+                         MDefinition* arg3, MDefinition** result = nullptr) {
+    MDefinition* args[3] = {arg1, arg2, arg3};
+    return emitInstanceCallN(lineOrBytecode, callee, args, 3, result);
+  }
+  [[nodiscard]]
+  bool emitInstanceCall4(uint32_t lineOrBytecode,
+                         const SymbolicAddressSignature& callee,
+                         MDefinition* arg1, MDefinition* arg2,
+                         MDefinition* arg3, MDefinition* arg4,
+                         MDefinition** result = nullptr) {
+    MDefinition* args[4] = {arg1, arg2, arg3, arg4};
+    return emitInstanceCallN(lineOrBytecode, callee, args, 4, result);
+  }
+  [[nodiscard]]
+  bool emitInstanceCall5(uint32_t lineOrBytecode,
+                         const SymbolicAddressSignature& callee,
+                         MDefinition* arg1, MDefinition* arg2,
+                         MDefinition* arg3, MDefinition* arg4,
+                         MDefinition* arg5, MDefinition** result = nullptr) {
+    MDefinition* args[5] = {arg1, arg2, arg3, arg4, arg5};
+    return emitInstanceCallN(lineOrBytecode, callee, args, 5, result);
+  }
+  [[nodiscard]]
+  bool emitInstanceCall6(uint32_t lineOrBytecode,
+                         const SymbolicAddressSignature& callee,
+                         MDefinition* arg1, MDefinition* arg2,
+                         MDefinition* arg3, MDefinition* arg4,
+                         MDefinition* arg5, MDefinition* arg6,
+                         MDefinition** result = nullptr) {
+    MDefinition* args[6] = {arg1, arg2, arg3, arg4, arg5, arg6};
+    return emitInstanceCallN(lineOrBytecode, callee, args, 6, result);
   }
 
   [[nodiscard]] bool stackSwitch(MDefinition* suspender, MDefinition* fn,
@@ -2859,37 +3052,42 @@ class FunctionCompiler {
   }
 
 #ifdef ENABLE_WASM_GC
-  [[nodiscard]] bool callRef(const FuncType& funcType, MDefinition* ref,
-                             uint32_t lineOrBytecode,
-                             const CallCompileState& call, DefVector* results) {
+  [[nodiscard]]
+  bool callRef(const FuncType& funcType, MDefinition* ref,
+               uint32_t lineOrBytecode, const DefVector& args,
+               DefVector* results) {
     MOZ_ASSERT(!inDeadCode());
 
+    CallCompileState callState;
     CalleeDesc callee = CalleeDesc::wasmFuncRef();
-
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::FuncRef);
-    ArgTypeVector args(funcType);
+    ArgTypeVector argTypes(funcType);
     ResultType resultType = ResultType::Vector(funcType.results());
 
-    if (!catchableCall(desc, callee, call.regArgs_, args, ref)) {
-      return false;
-    }
-    return collectCallResults(resultType, call.stackResultArea_, results);
+    return emitCallArgs(funcType, args, &callState) &&
+           call(&callState, desc, callee, argTypes, ref) &&
+           collectCallResults(resultType, callState.stackResultArea, results);
   }
 
 #  ifdef ENABLE_WASM_TAIL_CALLS
-  [[nodiscard]] bool returnCallRef(const FuncType& funcType, MDefinition* ref,
-                                   uint32_t lineOrBytecode,
-                                   const CallCompileState& call,
-                                   DefVector* results) {
+  [[nodiscard]]
+  bool returnCallRef(const FuncType& funcType, MDefinition* ref,
+                     uint32_t lineOrBytecode, const DefVector& args,
+                     DefVector* results) {
     MOZ_ASSERT(!inDeadCode());
 
+    CallCompileState callState;
+    callState.returnCall = true;
     CalleeDesc callee = CalleeDesc::wasmFuncRef();
-
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::FuncRef);
-    ArgTypeVector args(funcType);
+    ArgTypeVector argTypes(funcType);
 
-    auto* ins = MWasmReturnCall::New(alloc(), desc, callee, call.regArgs_,
-                                     StackArgAreaSizeUnaligned(args), ref);
+    if (!emitCallArgs(funcType, args, &callState)) {
+      return false;
+    }
+
+    auto* ins = MWasmReturnCall::New(alloc(), desc, callee, callState.regArgs,
+                                     StackArgAreaSizeUnaligned(argTypes), ref);
     if (!ins) {
       return false;
     }
@@ -2970,27 +3168,28 @@ class FunctionCompiler {
     // `memoryBase`, and make the call.
     const SymbolicAddressSignature& callee = *builtinModuleFunc.sig();
 
-    CallCompileState args;
-    if (!passInstance(callee.argTypes[0], &args) ||
-        !passArgs(params, builtinModuleFunc.funcType()->args(), &args)) {
+    CallCompileState callState;
+    if (!passInstanceCallArg(callee.argTypes[0], &callState) ||
+        !passCallArgs(params, builtinModuleFunc.funcType()->args(),
+                      &callState)) {
       return false;
     }
 
     if (builtinModuleFunc.usesMemory()) {
-      if (!passArg(memoryBase(0), MIRType::Pointer, &args)) {
+      if (!passCallArg(memoryBase(0), MIRType::Pointer, &callState)) {
         return false;
       }
     }
 
-    if (!finishCall(&args)) {
+    if (!finishCallArgs(&callState)) {
       return false;
     }
 
     bool hasResult = !builtinModuleFunc.funcType()->results().empty();
     MDefinition* result = nullptr;
     MDefinition** resultOutParam = hasResult ? &result : nullptr;
-    if (!builtinInstanceMethodCall(callee, readBytecodeOffset(), args,
-                                   resultOutParam)) {
+    if (!instanceCall(&callState, callee, readBytecodeOffset(),
+                      resultOutParam)) {
       return false;
     }
 
@@ -3550,21 +3749,29 @@ class FunctionCompiler {
 
   /********************************************************** Exceptions ***/
 
-  bool inTryBlockFrom(uint32_t fromRelativeDepth, uint32_t* relativeDepth) {
-    return iter().controlFindInnermostFrom(
-        [](LabelKind kind, const Control& control) {
-          return control.tryControl != nullptr && control.tryControl->inBody;
-        },
-        fromRelativeDepth, relativeDepth);
+  bool inTryBlockFrom(uint32_t fromRelativeDepth, TryControl** tryControl) {
+    uint32_t relativeDepth;
+    if (iter().controlFindInnermostFrom(
+            [](LabelKind kind, const Control& control) {
+              return control.tryControl != nullptr &&
+                     control.tryControl->inBody;
+            },
+            fromRelativeDepth, &relativeDepth)) {
+      *tryControl = iter().controlItem(relativeDepth).tryControl.get();
+      return true;
+    }
+
+    *tryControl = nullptr;
+    return false;
   }
 
-  bool inTryBlock(uint32_t* relativeDepth) {
-    return inTryBlockFrom(0, relativeDepth);
+  bool inTryBlock(TryControl** tryControl) {
+    return inTryBlockFrom(0, tryControl);
   }
 
   bool inTryCode() {
-    uint32_t relativeDepth;
-    return inTryBlock(&relativeDepth);
+    TryControl* tryControl;
+    return inTryBlock(&tryControl);
   }
 
   MDefinition* loadTag(uint32_t tagIndex) {
@@ -3613,16 +3820,10 @@ class FunctionCompiler {
     return postBarrierPrecise(/*lineOrBytecode=*/0, exceptionTagAddr, tag);
   }
 
-  [[nodiscard]] bool addPadPatch(MControlInstruction* ins,
-                                 size_t relativeTryDepth) {
-    Control& control = iter().controlItem(relativeTryDepth);
-    return control.tryControl->landingPadPatches.emplaceBack(ins);
-  }
-
-  [[nodiscard]] bool endWithPadPatch(uint32_t relativeTryDepth) {
+  [[nodiscard]] bool endWithPadPatch(TryControl* tryControl) {
     MGoto* jumpToLandingPad = MGoto::New(alloc());
     curBlock_->end(jumpToLandingPad);
-    return addPadPatch(jumpToLandingPad, relativeTryDepth);
+    return tryControl->landingPadPatches.emplaceBack(jumpToLandingPad);
   }
 
   [[nodiscard]] bool delegatePadPatches(const ControlInstructionVector& patches,
@@ -3633,11 +3834,9 @@ class FunctionCompiler {
 
     // Find where we are delegating the pad patches to.
     ControlInstructionVector* targetPatches;
-    uint32_t targetRelativeDepth;
-    if (inTryBlockFrom(relativeDepth, &targetRelativeDepth)) {
-      targetPatches = &iter()
-                           .controlItem(targetRelativeDepth)
-                           .tryControl->landingPadPatches;
+    TryControl* targetTryControl;
+    if (inTryBlockFrom(relativeDepth, &targetTryControl)) {
+      targetPatches = &targetTryControl->landingPadPatches;
     } else {
       MOZ_ASSERT(relativeDepth <= blockDepth_ - 1);
       targetPatches = &bodyDelegatePadPatches_;
@@ -3652,41 +3851,46 @@ class FunctionCompiler {
     return true;
   }
 
-  [[nodiscard]] bool beginTryCall(MWasmCallTryDesc* call) {
-    call->inTry = inTryBlock(&call->relativeTryDepth);
-    if (!call->inTry) {
+  [[nodiscard]]
+  bool beginCatchableCall(CallCompileState* callState) {
+    if (!inTryBlock(&callState->tryControl)) {
+      MOZ_ASSERT(!callState->isCatchable());
       return true;
     }
+    MOZ_ASSERT(callState->isCatchable());
+
     // Allocate a try note
     if (!tryNotes_.append(wasm::TryNote())) {
       return false;
     }
-    call->tryNoteIndex = tryNotes_.length() - 1;
+    callState->tryNoteIndex = tryNotes_.length() - 1;
+
     // Allocate blocks for fallthrough and exceptions
-    return newBlock(curBlock_, &call->fallthroughBlock) &&
-           newBlock(curBlock_, &call->prePadBlock);
+    return newBlock(curBlock_, &callState->fallthroughBlock) &&
+           newBlock(curBlock_, &callState->prePadBlock);
   }
 
-  [[nodiscard]] bool finishTryCall(MWasmCallTryDesc* call) {
-    if (!call->inTry) {
+  [[nodiscard]]
+  bool finishCatchableCall(CallCompileState* callState) {
+    if (!callState->tryControl) {
       return true;
     }
 
     // Switch to the prePadBlock
     MBasicBlock* callBlock = curBlock_;
-    curBlock_ = call->prePadBlock;
+    curBlock_ = callState->prePadBlock;
 
     // Mark this as the landing pad for the call
-    curBlock_->add(
-        MWasmCallLandingPrePad::New(alloc(), callBlock, call->tryNoteIndex));
+    curBlock_->add(MWasmCallLandingPrePad::New(alloc(), callBlock,
+                                               callState->tryNoteIndex));
 
     // End with a pending jump to the landing pad
-    if (!endWithPadPatch(call->relativeTryDepth)) {
+    if (!endWithPadPatch(callState->tryControl)) {
       return false;
     }
 
     // Compilation continues in the fallthroughBlock.
-    curBlock_ = call->fallthroughBlock;
+    curBlock_ = callState->fallthroughBlock;
     return true;
   }
 
@@ -4239,15 +4443,15 @@ class FunctionCompiler {
 
     // Check if there is a local catching try control, and if so, then add a
     // pad-patch to its tryPadPatches.
-    uint32_t relativeTryDepth;
-    if (inTryBlock(&relativeTryDepth)) {
+    TryControl* tryControl;
+    if (inTryBlock(&tryControl)) {
       // Set the pending exception state, the landing pad will read from this
       if (!setPendingExceptionState(exn, tag)) {
         return false;
       }
 
       // End with a pending jump to the landing pad
-      if (!endWithPadPatch(relativeTryDepth)) {
+      if (!endWithPadPatch(tryControl)) {
         return false;
       }
       curBlock_ = nullptr;
@@ -4284,123 +4488,6 @@ class FunctionCompiler {
     MOZ_ASSERT(exception->type() == MIRType::WasmAnyRef &&
                tag->type() == MIRType::WasmAnyRef);
     return throwFrom(exception, tag);
-  }
-
-  /*********************************************** Instance call helpers ***/
-
-  // Do not call this function directly -- it offers no protection against
-  // mis-counting of arguments.  Instead call one of
-  // ::emitInstanceCall{0,1,2,3,4,5,6}.
-  //
-  // Emits a call to the Instance function indicated by `callee`.  This is
-  // assumed to take an Instance pointer as its first argument.  The remaining
-  // args are taken from `args`, which is assumed to hold `numArgs` entries.
-  // If `result` is non-null, the MDefinition* holding the return value is
-  // written to `*result`.
-  [[nodiscard]] bool emitInstanceCallN(uint32_t lineOrBytecode,
-                                       const SymbolicAddressSignature& callee,
-                                       MDefinition** args, size_t numArgs,
-                                       MDefinition** result = nullptr) {
-    // Check that the first formal parameter is plausibly an Instance pointer.
-    MOZ_ASSERT(callee.numArgs > 0);
-    MOZ_ASSERT(callee.argTypes[0] == MIRType::Pointer);
-    // Check we agree on the number of args.
-    MOZ_ASSERT(numArgs + 1 /* the instance pointer */ == callee.numArgs);
-    // Check we agree on whether a value is returned.
-    MOZ_ASSERT((result == nullptr) == (callee.retType == MIRType::None));
-
-    // If we are in dead code, it can happen that some of the `args` entries
-    // are nullptr, which will look like an OOM to the logic below.  So exit
-    // at this point.  `passInstance`, `passArg`, `finishCall` and
-    // `builtinInstanceMethodCall` all do nothing in dead code, so it's valid
-    // to exit here.
-    if (inDeadCode()) {
-      if (result) {
-        *result = nullptr;
-      }
-      return true;
-    }
-
-    // Check all args for signs of OOMness before attempting to allocating any
-    // more memory.
-    for (size_t i = 0; i < numArgs; i++) {
-      if (!args[i]) {
-        if (result) {
-          *result = nullptr;
-        }
-        return false;
-      }
-    }
-
-    // Finally, construct the call.
-    CallCompileState ccsArgs;
-    if (!passInstance(callee.argTypes[0], &ccsArgs)) {
-      return false;
-    }
-    for (size_t i = 0; i < numArgs; i++) {
-      if (!passArg(args[i], callee.argTypes[i + 1], &ccsArgs)) {
-        return false;
-      }
-    }
-    if (!finishCall(&ccsArgs)) {
-      return false;
-    }
-    return builtinInstanceMethodCall(callee, lineOrBytecode, ccsArgs, result);
-  }
-
-  [[nodiscard]] bool emitInstanceCall0(uint32_t lineOrBytecode,
-                                       const SymbolicAddressSignature& callee,
-                                       MDefinition** result = nullptr) {
-    MDefinition* args[0] = {};
-    return emitInstanceCallN(lineOrBytecode, callee, args, 0, result);
-  }
-  [[nodiscard]] bool emitInstanceCall1(uint32_t lineOrBytecode,
-                                       const SymbolicAddressSignature& callee,
-                                       MDefinition* arg1,
-                                       MDefinition** result = nullptr) {
-    MDefinition* args[1] = {arg1};
-    return emitInstanceCallN(lineOrBytecode, callee, args, 1, result);
-  }
-  [[nodiscard]] bool emitInstanceCall2(uint32_t lineOrBytecode,
-                                       const SymbolicAddressSignature& callee,
-                                       MDefinition* arg1, MDefinition* arg2,
-                                       MDefinition** result = nullptr) {
-    MDefinition* args[2] = {arg1, arg2};
-    return emitInstanceCallN(lineOrBytecode, callee, args, 2, result);
-  }
-  [[nodiscard]] bool emitInstanceCall3(uint32_t lineOrBytecode,
-                                       const SymbolicAddressSignature& callee,
-                                       MDefinition* arg1, MDefinition* arg2,
-                                       MDefinition* arg3,
-                                       MDefinition** result = nullptr) {
-    MDefinition* args[3] = {arg1, arg2, arg3};
-    return emitInstanceCallN(lineOrBytecode, callee, args, 3, result);
-  }
-  [[nodiscard]] bool emitInstanceCall4(uint32_t lineOrBytecode,
-                                       const SymbolicAddressSignature& callee,
-                                       MDefinition* arg1, MDefinition* arg2,
-                                       MDefinition* arg3, MDefinition* arg4,
-                                       MDefinition** result = nullptr) {
-    MDefinition* args[4] = {arg1, arg2, arg3, arg4};
-    return emitInstanceCallN(lineOrBytecode, callee, args, 4, result);
-  }
-  [[nodiscard]] bool emitInstanceCall5(uint32_t lineOrBytecode,
-                                       const SymbolicAddressSignature& callee,
-                                       MDefinition* arg1, MDefinition* arg2,
-                                       MDefinition* arg3, MDefinition* arg4,
-                                       MDefinition* arg5,
-                                       MDefinition** result = nullptr) {
-    MDefinition* args[5] = {arg1, arg2, arg3, arg4, arg5};
-    return emitInstanceCallN(lineOrBytecode, callee, args, 5, result);
-  }
-  [[nodiscard]] bool emitInstanceCall6(uint32_t lineOrBytecode,
-                                       const SymbolicAddressSignature& callee,
-                                       MDefinition* arg1, MDefinition* arg2,
-                                       MDefinition* arg3, MDefinition* arg4,
-                                       MDefinition* arg5, MDefinition* arg6,
-                                       MDefinition** result = nullptr) {
-    MDefinition* args[6] = {arg1, arg2, arg3, arg4, arg5, arg6};
-    return emitInstanceCallN(lineOrBytecode, callee, args, 6, result);
   }
 
   /******************************** WasmGC: low level load/store helpers ***/
@@ -5889,25 +5976,6 @@ static bool EmitInlineCall(FunctionCompiler& callerCompiler,
   return callerCompiler.finishInlinedCallDirect(calleeCompiler, results);
 }
 
-static bool EmitCallArgs(FunctionCompiler& f, const FuncType& funcType,
-                         const DefVector& args, CallCompileState* call) {
-  for (size_t i = 0, n = funcType.args().length(); i < n; ++i) {
-    if (!f.mirGen().ensureBallast()) {
-      return false;
-    }
-    if (!f.passArg(args[i], funcType.args()[i], call)) {
-      return false;
-    }
-  }
-
-  ResultType resultType = ResultType::Vector(funcType.results());
-  if (!f.passStackResultAreaCallArg(resultType, call)) {
-    return false;
-  }
-
-  return f.finishCall(call);
-}
-
 static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
   uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
 
@@ -5940,14 +6008,9 @@ static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
       return f.callBuiltinModuleFunc(builtinModuleFunc, args);
     }
 
-    CallCompileState call;
-    if (!EmitCallArgs(f, funcType, args, &call)) {
-      return false;
-    }
-
     uint32_t instanceDataOffset =
         f.codeMeta().offsetOfFuncImportInstanceData(funcIndex);
-    if (!f.callImport(instanceDataOffset, lineOrBytecode, call, funcType,
+    if (!f.callImport(instanceDataOffset, lineOrBytecode, funcType, args,
                       &results)) {
       return false;
     }
@@ -5958,11 +6021,7 @@ static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
         return false;
       }
     } else {
-      CallCompileState call;
-      if (!EmitCallArgs(f, funcType, args, &call)) {
-        return false;
-      }
-      if (!f.callDirect(funcType, funcIndex, lineOrBytecode, call, &results)) {
+      if (!f.callDirect(funcType, funcIndex, lineOrBytecode, args, &results)) {
         return false;
       }
     }
@@ -5995,15 +6054,8 @@ static bool EmitCallIndirect(FunctionCompiler& f, bool oldStyle) {
     return true;
   }
 
-  const FuncType& funcType = (*f.codeMeta().types)[funcTypeIndex].funcType();
-
-  CallCompileState call;
-  if (!EmitCallArgs(f, funcType, args, &call)) {
-    return false;
-  }
-
   DefVector results;
-  if (!f.callIndirect(funcTypeIndex, tableIndex, callee, lineOrBytecode, call,
+  if (!f.callIndirect(funcTypeIndex, tableIndex, callee, lineOrBytecode, args,
                       &results)) {
     return false;
   }
@@ -6044,22 +6096,16 @@ static bool EmitReturnCall(FunctionCompiler& f) {
 
   const FuncType& funcType = f.codeMeta().getFuncType(funcIndex);
 
-  CallCompileState call;
-  f.markReturnCall(&call);
-  if (!EmitCallArgs(f, funcType, args, &call)) {
-    return false;
-  }
-
   DefVector results;
   if (f.codeMeta().funcIsImport(funcIndex)) {
     uint32_t globalDataOffset =
         f.codeMeta().offsetOfFuncImportInstanceData(funcIndex);
-    if (!f.returnCallImport(globalDataOffset, lineOrBytecode, call, funcType,
+    if (!f.returnCallImport(globalDataOffset, lineOrBytecode, funcType, args,
                             &results)) {
       return false;
     }
   } else {
-    if (!f.returnCallDirect(funcType, funcIndex, lineOrBytecode, call,
+    if (!f.returnCallDirect(funcType, funcIndex, lineOrBytecode, args,
                             &results)) {
       return false;
     }
@@ -6083,17 +6129,9 @@ static bool EmitReturnCallIndirect(FunctionCompiler& f) {
     return true;
   }
 
-  const FuncType& funcType = (*f.codeMeta().types)[funcTypeIndex].funcType();
-
-  CallCompileState call;
-  f.markReturnCall(&call);
-  if (!EmitCallArgs(f, funcType, args, &call)) {
-    return false;
-  }
-
   DefVector results;
   return f.returnCallIndirect(funcTypeIndex, tableIndex, callee, lineOrBytecode,
-                              call, &results);
+                              args, &results);
 }
 #endif
 
@@ -6113,14 +6151,8 @@ static bool EmitReturnCallRef(FunctionCompiler& f) {
     return true;
   }
 
-  CallCompileState call;
-  f.markReturnCall(&call);
-  if (!EmitCallArgs(f, *funcType, args, &call)) {
-    return false;
-  }
-
   DefVector results;
-  return f.returnCallRef(*funcType, callee, lineOrBytecode, call, &results);
+  return f.returnCallRef(*funcType, callee, lineOrBytecode, args, &results);
 }
 #endif
 
@@ -6655,17 +6687,8 @@ static bool EmitUnaryMathBuiltinCall(FunctionCompiler& f,
     return true;
   }
 
-  CallCompileState call;
-  if (!f.passArg(input, callee.argTypes[0], &call)) {
-    return false;
-  }
-
-  if (!f.finishCall(&call)) {
-    return false;
-  }
-
   MDefinition* def;
-  if (!f.builtinCall(callee, lineOrBytecode, call, &def)) {
+  if (!f.builtinCall1(callee, lineOrBytecode, input, &def)) {
     return false;
   }
 
@@ -6680,7 +6703,6 @@ static bool EmitBinaryMathBuiltinCall(FunctionCompiler& f,
 
   uint32_t lineOrBytecode = f.readCallSiteLineOrBytecode();
 
-  CallCompileState call;
   MDefinition* lhs;
   MDefinition* rhs;
   // This call to readBinary assumes both operands have the same type.
@@ -6689,20 +6711,8 @@ static bool EmitBinaryMathBuiltinCall(FunctionCompiler& f,
     return false;
   }
 
-  if (!f.passArg(lhs, callee.argTypes[0], &call)) {
-    return false;
-  }
-
-  if (!f.passArg(rhs, callee.argTypes[1], &call)) {
-    return false;
-  }
-
-  if (!f.finishCall(&call)) {
-    return false;
-  }
-
   MDefinition* def;
-  if (!f.builtinCall(callee, lineOrBytecode, call, &def)) {
+  if (!f.builtinCall2(callee, lineOrBytecode, lhs, rhs, &def)) {
     return false;
   }
 
@@ -8019,14 +8029,8 @@ static bool EmitSpeculativeInlineCallRef(
     return false;
   }
 
-  // Perform a general indirect call to the callee func we have
-  CallCompileState call;
-  if (!EmitCallArgs(f, funcType, args, &call)) {
-    return false;
-  }
-
   DefVector callResults;
-  if (!f.callRef(funcType, actualCalleeFunc, bytecodeOffset, call,
+  if (!f.callRef(funcType, actualCalleeFunc, bytecodeOffset, args,
                  &callResults)) {
     return false;
   }
@@ -8071,13 +8075,8 @@ static bool EmitCallRef(FunctionCompiler& f) {
     return true;
   }
 
-  CallCompileState call;
-  if (!EmitCallArgs(f, *funcType, args, &call)) {
-    return false;
-  }
-
   DefVector results;
-  if (!f.callRef(*funcType, callee, bytecodeOffset, call, &results)) {
+  if (!f.callRef(*funcType, callee, bytecodeOffset, args, &results)) {
     return false;
   }
 

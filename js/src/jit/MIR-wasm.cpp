@@ -763,20 +763,17 @@ MDefinition* MWasmUnsignedToFloat32::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
-MWasmCallCatchable* MWasmCallCatchable::New(TempAllocator& alloc,
-                                            const wasm::CallSiteDesc& desc,
-                                            const wasm::CalleeDesc& callee,
-                                            const Args& args,
-                                            uint32_t stackArgAreaSizeUnaligned,
-                                            const MWasmCallTryDesc& tryDesc,
-                                            MDefinition* tableIndexOrRef) {
-  MOZ_ASSERT(tryDesc.inTry);
+MWasmCallCatchable* MWasmCallCatchable::New(
+    TempAllocator& alloc, const wasm::CallSiteDesc& desc,
+    const wasm::CalleeDesc& callee, const Args& args,
+    uint32_t stackArgAreaSizeUnaligned, uint32_t tryNoteIndex,
+    MBasicBlock* fallthroughBlock, MBasicBlock* prePadBlock,
+    MDefinition* tableIndexOrRef) {
+  MWasmCallCatchable* call = new (alloc)
+      MWasmCallCatchable(desc, callee, stackArgAreaSizeUnaligned, tryNoteIndex);
 
-  MWasmCallCatchable* call = new (alloc) MWasmCallCatchable(
-      desc, callee, stackArgAreaSizeUnaligned, tryDesc.tryNoteIndex);
-
-  call->setSuccessor(FallthroughBranchIndex, tryDesc.fallthroughBlock);
-  call->setSuccessor(PrePadBranchIndex, tryDesc.prePadBlock);
+  call->setSuccessor(FallthroughBranchIndex, fallthroughBlock);
+  call->setSuccessor(PrePadBranchIndex, prePadBlock);
 
   MOZ_ASSERT_IF(callee.isTable() || callee.isFuncRef(), tableIndexOrRef);
   if (!call->initWithArgs(alloc, call, args, tableIndexOrRef)) {
@@ -790,10 +787,12 @@ MWasmCallCatchable* MWasmCallCatchable::NewBuiltinInstanceMethodCall(
     TempAllocator& alloc, const wasm::CallSiteDesc& desc,
     const wasm::SymbolicAddress builtin, wasm::FailureMode failureMode,
     const ABIArg& instanceArg, const Args& args,
-    uint32_t stackArgAreaSizeUnaligned, const MWasmCallTryDesc& tryDesc) {
+    uint32_t stackArgAreaSizeUnaligned, uint32_t tryNoteIndex,
+    MBasicBlock* fallthroughBlock, MBasicBlock* prePadBlock) {
   auto callee = wasm::CalleeDesc::builtinInstanceMethod(builtin);
   MWasmCallCatchable* call = MWasmCallCatchable::New(
-      alloc, desc, callee, args, stackArgAreaSizeUnaligned, tryDesc, nullptr);
+      alloc, desc, callee, args, stackArgAreaSizeUnaligned, tryNoteIndex,
+      fallthroughBlock, prePadBlock, nullptr);
   if (!call) {
     return nullptr;
   }
