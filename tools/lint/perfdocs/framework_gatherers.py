@@ -490,7 +490,7 @@ class MozperftestGatherer(FrameworkGatherer):
 
             # Get the tests from perftest.toml
             test_manifest = TestManifest([str(path)], strict=False)
-            test_list = test_manifest.active_tests(exists=False, disabled=False)
+            test_list = test_manifest.active_tests(exists=False, disabled=True)
             for test in test_list:
                 si = ScriptInfo(test["path"])
                 self.script_infos[si["name"]] = si
