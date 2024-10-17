@@ -23,7 +23,6 @@ prefs = [
 ]
 
 ["browser_dbg-keyboard-navigation.js"]
-skip-if = ["cm6"]
 
 ["browser_dbg-keyboard-shortcuts-modal.js"]
 

@@ -10,20 +10,21 @@ add_task(async function () {
   const dbg = await initDebugger("doc-scripts.html", "simple2.js");
   const doc = dbg.win.document;
 
-  const focusableEditorElement = isCm6Enabled ? ".cm-content" : ".CodeMirror";
+  const focusableEditorElementSelector = isCm6Enabled
+    ? ".cm-content"
+    : ".CodeMirror";
 
   await selectSource(dbg, "simple2.js");
 
-  await waitForElement(dbg, "codeMirror");
+  const focusableEditorElement = await waitForElementWithSelector(
+    dbg,
+    focusableEditorElementSelector
+  );
 
   info("Focus on the editor");
-  findElementWithSelector(dbg, focusableEditorElement).focus();
+  focusableEditorElement.focus();
 
-  is(
-    findElementWithSelector(dbg, focusableEditorElement),
-    doc.activeElement,
-    "Editor is focused"
-  );
+  is(doc.activeElement, focusableEditorElement, "Editor is focused");
 
   info(
     "Press shift + tab to navigate out of the editor to the previous tab element"
@@ -31,13 +32,13 @@ add_task(async function () {
   pressKey(dbg, "ShiftTab");
 
   is(
+    doc.activeElement.className,
     findElementWithSelector(
       dbg,
       isCm6Enabled
         ? ".cm6-dt-foldgutter__toggle-button"
         : ".command-bar-button.toggle-button.end"
     ).className,
-    doc.activeElement.className,
     "The left sidebar toggle button is focused"
   );
 
@@ -45,7 +46,7 @@ add_task(async function () {
   pressKey(dbg, "Tab");
 
   is(
-    findElementWithSelector(dbg, focusableEditorElement),
+    findElementWithSelector(dbg, focusableEditorElementSelector),
     doc.activeElement,
     "Editor is focused again"
   );
