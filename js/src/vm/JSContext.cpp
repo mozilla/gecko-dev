@@ -1373,6 +1373,15 @@ void ExternalValueArray::trace(JSTracer* trc) {
 
 bool JSContext::enableExecutionTracing() {
   if (!executionTracer_) {
+    for (RealmsIter realm(runtime()); !realm.done(); realm.next()) {
+      if (realm->debuggerObservesCoverage()) {
+        JS_ReportErrorNumberASCII(
+            this, GetErrorMessage, nullptr,
+            JSMSG_DEBUG_EXCLUSIVE_EXECUTION_TRACE_COVERAGE);
+        return false;
+      }
+    }
+
     executionTracer_ = js::MakeUnique<ExecutionTracer>();
 
     if (!executionTracer_) {

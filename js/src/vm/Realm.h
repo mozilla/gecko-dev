@@ -700,12 +700,18 @@ class JS::Realm : public JS::shadow::Realm {
   bool isTracingExecution() { return isTracingExecution_; }
 
   void enableExecutionTracing() {
+    MOZ_ASSERT(!debuggerObservesCoverage());
+
     isTracingExecution_ = true;
     setIsDebuggee();
     updateDebuggerObservesAllExecution();
   }
 
   void disableExecutionTracing() {
+    if (!isTracingExecution_) {
+      return;
+    }
+
     isTracingExecution_ = false;
     // updateDebuggerObservesAllExecution always wants isDebuggee to be true,
     // so we just have weird ordering here to play nicely with it

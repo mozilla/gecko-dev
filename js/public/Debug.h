@@ -58,6 +58,8 @@ extern JS_PUBLIC_API void JS_TracerLeaveLabelTwoByte(JSContext* cx,
 // recording every entrance into / exit from a function for the given context.
 // The trace can be read via JS_TracerSnapshotTrace, and populates the
 // ExecutionTrace struct defined below.
+//
+// This throws if the code coverage is active for any realm in the context.
 extern JS_PUBLIC_API bool JS_TracerBeginTracing(JSContext* cx);
 
 // This ends execution tracing for the JSContext, discards the tracing

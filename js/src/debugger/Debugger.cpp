@@ -4623,6 +4623,12 @@ bool Debugger::CallData::setCollectCoverageInfo() {
     return false;
   }
 
+  if (cx->realm()->isTracingExecution()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_DEBUG_EXCLUSIVE_EXECUTION_TRACE_COVERAGE);
+    return false;
+  }
+
   dbg->collectCoverageInfo = ToBoolean(args[0]);
 
   IsObserving observing = dbg->collectCoverageInfo ? Observing : NotObserving;
