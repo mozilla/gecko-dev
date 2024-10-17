@@ -909,7 +909,6 @@ class Editor extends PureComponent {
             mapScopesEnabled)
           ? React.createElement(InlinePreviews, {
               editor,
-              selectedSource,
             })
           : null,
         highlightedLineRange
@@ -977,7 +976,6 @@ class Editor extends PureComponent {
           (selectedSource.isOriginal && mapScopesEnabled))
         ? React.createElement(InlinePreviews, {
             editor,
-            selectedSource,
           })
         : null
     );

@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
+import { getSourceByActorId } from "./sources.js";
+const {
+  TRACER_FIELDS_INDEXES,
+} = require("resource://devtools/server/actors/tracer.js");
+
 export function getSelectedTraceIndex(state) {
   return state.tracerFrames?.selectedTraceIndex;
 }
@@ -40,4 +45,17 @@ export function getTraceDomEvent(state) {
 }
 export function getTraceHighlightedDomEvents(state) {
   return state.tracerFrames?.highlightedDomEvents || [];
+}
+export function getSelectedTraceSource(state) {
+  const trace = getAllTraces(state)[getSelectedTraceIndex(state)];
+  if (!trace) {
+    return null;
+  }
+  const frameIndex = trace[TRACER_FIELDS_INDEXES.FRAME_INDEX];
+  const frames = getTraceFrames(state);
+  const frame = frames[frameIndex];
+  if (!frame) {
+    return null;
+  }
+  return getSourceByActorId(state, frame.sourceId);
 }

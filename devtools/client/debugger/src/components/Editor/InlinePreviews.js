@@ -11,11 +11,7 @@ import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 import InlinePreviewRow from "./InlinePreviewRow";
 import InlinePreview from "./InlinePreview";
 import { connect } from "devtools/client/shared/vendor/react-redux";
-import {
-  getSelectedFrame,
-  getCurrentThread,
-  getInlinePreviews,
-} from "../../selectors/index";
+import { getInlinePreviews } from "../../selectors/index";
 
 import { features } from "../../utils/prefs";
 import { markerTypes } from "../../constants";
@@ -134,15 +130,9 @@ class InlinePreviews extends Component {
   }
 }
 
-const mapStateToProps = (state, props) => {
-  const selectedFrame = getSelectedFrame(state, getCurrentThread(state));
+const mapStateToProps = state => {
   const previews = getInlinePreviews(state);
-  // When we are paused, render only if currently open file is the one where debugger is paused
-  if (
-    (selectedFrame &&
-      selectedFrame.location.source.id !== props.selectedSource.id) ||
-    !hasPreviews(previews)
-  ) {
+  if (!hasPreviews(previews)) {
     return {
       previews: null,
     };
