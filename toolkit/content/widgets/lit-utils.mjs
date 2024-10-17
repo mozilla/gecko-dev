@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { LitElement } from "chrome://global/content/vendor/lit.all.mjs";
+import {
+  LitElement,
+  html,
+  ifDefined,
+} from "chrome://global/content/vendor/lit.all.mjs";
 
 /**
  * Helper for our replacement of @query. Used with `static queries` property.
@@ -219,5 +223,120 @@ export class MozLitElement extends LitElement {
     if (this.#l10n) {
       this.#l10n.translateFragment(this.renderRoot);
     }
+  }
+}
+
+/**
+ * A base input element. Provides common layout and properties for our design
+ * system input elements.
+ *
+ * Subclasses must implement the inputTemplate() method which returns the input
+ * template for this specific input element with its id set to "input".
+ *
+ * @property {string} label - The text of the label element
+ * @property {string} name - The name of the input control
+ * @property {string} value - The value of the input control
+ * @property {boolean} disabled - The disabled state of the input control
+ * @property {string} iconSrc - The src for an optional icon
+ * @property {string} description - The text for the description element that helps describe the input control
+ * @property {string} supportPage - Name of the SUMO support page to link to.
+ */
+export class MozBaseInputElement extends MozLitElement {
+  static properties = {
+    label: { type: String, fluent: true },
+    name: { type: String },
+    value: { type: String },
+    iconSrc: { type: String },
+    disabled: { type: Boolean, reflect: true },
+    description: { type: String, fluent: true },
+    supportPage: { type: String, attribute: "support-page" },
+    accessKey: { type: String, mapped: true, fluent: true },
+  };
+
+  constructor() {
+    super();
+    this.disabled = false;
+  }
+
+  get inputEl() {
+    return this.renderRoot.getElementById("input");
+  }
+
+  get labelEl() {
+    return this.renderRoot.querySelector("label");
+  }
+
+  get icon() {
+    return this.renderRoot.querySelector(".icon");
+  }
+
+  get descriptionEl() {
+    return this.renderRoot.getElementById("description");
+  }
+
+  click() {
+    this.inputEl.click();
+  }
+
+  focus() {
+    this.inputEl.focus();
+  }
+
+  inputTemplate() {
+    throw new Error(
+      "inputTemplate() must be implemented and provide the input element"
+    );
+  }
+
+  render() {
+    return html`
+      <link
+        rel="stylesheet"
+        href="chrome://global/content/elements/moz-input-common.css"
+      />
+      <label
+        is="moz-label"
+        part="label"
+        for="input"
+        shownaccesskey=${ifDefined(this.accessKey)}
+      >
+        ${this.inputTemplate()}${this.labelTemplate()}
+      </label>
+      ${this.descriptionTemplate()}
+    `;
+  }
+
+  labelTemplate() {
+    return html`<span class="label-content">
+      ${this.iconTemplate()}
+      <span class="text">${this.label}</span>
+      ${this.supportLinkTemplate()}
+    </span>`;
+  }
+
+  descriptionTemplate() {
+    return html`
+      <div id="description" class="description text-deemphasized">
+        ${this.description ?? html`<slot name="description"></slot>`}
+      </div>
+    `;
+  }
+
+  iconTemplate() {
+    if (this.iconSrc) {
+      return html`<img src=${this.iconSrc} role="presentation" class="icon" />`;
+    }
+    return "";
+  }
+
+  supportLinkTemplate() {
+    if (this.supportPage) {
+      return html`<a
+        is="moz-support-link"
+        support-page=${this.supportPage}
+        part="support-link"
+      ></a>`;
+    }
+    return html`<slot name="support-link"></slot>`;
   }
 }

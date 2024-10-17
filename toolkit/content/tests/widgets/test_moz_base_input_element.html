@@ -1,0 +1,84 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MozBaseInputElement Tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script>
+    let html, render, renderTarget, defaultTemplate, ifDefined, MozBaseInputElement;
+    const { BrowserTestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/BrowserTestUtils.sys.mjs");
+
+    async function renderTemplate(template = defaultTemplate) {
+      render(template, renderTarget);
+      return renderTarget.firstElementChild;
+    }
+
+    function defineExampleElement() {
+      class ExampleElement extends MozBaseInputElement {
+        inputTemplate() {
+          return html`
+            <input id="input" accesskey=${ifDefined(this.accessKey)} />
+          `;
+        }
+      }
+      customElements.define("example-input-element", ExampleElement);
+    }
+
+    add_setup(async function setup() {
+      ({ html, ifDefined, render } = await import(
+        "chrome://global/content/vendor/lit.all.mjs"
+      ));
+      ({ MozBaseInputElement } = await import(
+        "chrome://global/content/lit-utils.mjs"
+      ));
+      renderTarget = document.getElementById("render");
+
+      defaultTemplate = html`
+        <example-input-element label="Example label!" description="With a description too." accesskey="x"></example-element>
+      `;
+      defineExampleElement();
+    });
+
+    add_task(async function testInputElements() {
+      let el = await renderTemplate();
+
+      let labelEl = el.shadowRoot.querySelector("label");
+      let descriptionEl = el.shadowRoot.querySelector(".description");
+      let inputEl = el.shadowRoot.querySelector("input");
+
+      is(labelEl.innerText.trim(), "Example label!", "Label is correct");
+      is(labelEl.getAttribute("shownaccesskey"), "x", "Accesskey is shown");
+
+      is(descriptionEl.innerText.trim(), "With a description too.", "Description is set");
+
+      is(el.accessKey, "x", "Accesskey is set on host");
+      is(inputEl.accessKey, "x", "Accesskey is set on input");
+
+      let iconEl = el.shadowRoot.querySelector("img");
+      let supportLinkEl = el.shadowRoot.querySelector("a");
+      ok(!iconEl, "No icon");
+      ok(!supportLinkEl, "No support link");
+
+      el.iconSrc = "foo.png";
+      el.supportPage = "bar";
+      await el.updateComplete;
+
+      iconEl = el.shadowRoot.querySelector("img");
+      supportLinkEl = el.shadowRoot.querySelector("a");
+
+      is(
+        iconEl.src,
+        "chrome://mochitests/content/chrome/toolkit/content/tests/widgets/foo.png",
+        "icon is created"
+      );
+      is(supportLinkEl.href, "https://support.mozilla.org/bar", "support link created");
+    });
+  </script>
+</head>
+<body>
+  <div id="render"></div>
+</body>
+</html>

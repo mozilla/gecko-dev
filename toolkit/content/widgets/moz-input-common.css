@@ -1,0 +1,57 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+@import url("chrome://global/skin/design-system/text-and-typography.css");
+
+@layer input-common {
+  :host {
+    --input-height: var(--size-item-small);
+    --input-width: var(--size-item-small);
+    --input-space-offset: calc(var(--input-width) + var(--space-small));
+    --input-margin-block-adjust: calc((1lh - var(--input-height)) / 2);
+    --input-margin-inline-start-adjust: calc(-1 * var(--input-space-offset));
+  }
+
+  label {
+    display: block;
+    padding-inline-start: var(--input-space-offset);
+  }
+
+  #input {
+    -moz-theme: non-native;
+    min-width: var(--input-width);
+    min-height: var(--input-height);
+    accent-color: var(--color-accent-primary);
+    font-size: inherit;
+    /* Bug 1901865: Due to the "MS Shell Dlg 2" font, we need inherits to
+    * keep the checkbox aligned */
+    font-family: inherit;
+    line-height: inherit;
+    vertical-align: top;
+    margin-block: var(--input-margin-block-adjust);
+    margin-inline-start: var(--input-margin-inline-start-adjust);
+  }
+
+  .label-content {
+    position: relative;
+  }
+
+  .icon {
+    position: absolute;
+    width: var(--icon-size-default);
+    height: var(--icon-size-default);
+    margin-block: var(--input-margin-block-adjust);
+    -moz-context-properties: fill, fill-opacity, stroke;
+    fill: currentColor;
+    stroke: currentColor;
+
+    + .text {
+      margin-inline-start: calc(var(--icon-size-default) + var(--space-small));
+    }
+  }
+
+  .description {
+    margin-inline-start: var(--input-space-offset);
+  }
+}
