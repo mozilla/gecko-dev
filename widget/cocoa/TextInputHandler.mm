@@ -1823,13 +1823,12 @@ bool TextInputHandler::HandleKeyDownEvent(NSEvent* aNativeEvent,
        GetCharacters([aNativeEvent characters]),
        GetCharacters([aNativeEvent charactersIgnoringModifiers])));
 
-  // We should hide the mouse cursor until the next mousemove, unless the
-  // Command key or the space bar was pressed. We hide the mouse cursor even if
-  // the key event will be handled by IME (i.e., even without dispatching
-  // eKeyPress events).
-  if (!([aNativeEvent modifierFlags] & NSEventModifierFlagCommand) &&
-      !([[aNativeEvent charactersIgnoringModifiers] isEqualToString:@" "] &&
-        !IsEditableContent())) {
+  // We should hide the mouse cursor until the next mousemove, unless we aren't
+  // dealing with editable content or the Command key was pressed. We hide the
+  // mouse cursor even if the key event will be handled by IME (i.e., even
+  // without dispatching eKeyPress events).
+  if (IsEditableContent() &&
+      !([aNativeEvent modifierFlags] & NSEventModifierFlagCommand)) {
     [NSCursor setHiddenUntilMouseMoves:YES];
   }
 
