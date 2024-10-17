@@ -13039,6 +13039,8 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "wasm-js-string-builtins",
                         "Enable WebAssembly js-string-builtins proposal.") ||
       !op.addBoolOption('\0', "enable-promise-try", "Enable Promise.try") ||
+      !op.addBoolOption('\0', "enable-iterator-sequencing",
+                        "Enable Iterator Sequencing") ||
       !op.addBoolOption('\0', "enable-math-sumprecise",
                         "Enable Math.sumPrecise") ||
       !op.addBoolOption('\0', "enable-error-iserror", "Enable Error.isError") ||
@@ -13124,6 +13126,9 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   }
   if (op.getBoolOption("enable-error-iserror")) {
     JS::Prefs::setAtStartup_experimental_error_iserror(true);
+  }
+  if (op.getBoolOption("enable-iterator-sequencing")) {
+    JS::Prefs::setAtStartup_experimental_iterator_sequencing(true);
   }
   if (op.getBoolOption("enable-math-sumprecise")) {
     JS::Prefs::setAtStartup_experimental_math_sumprecise(true);
