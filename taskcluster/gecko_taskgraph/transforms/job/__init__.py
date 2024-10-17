@@ -16,6 +16,7 @@ import logging
 import mozpack.path as mozpath
 from packaging.version import Version
 from taskgraph.transforms.base import TransformSequence
+from taskgraph.transforms.run import rewrite_when_to_optimization
 from taskgraph.util.copy import deepcopy
 from taskgraph.util.python_path import import_sibling_modules
 from taskgraph.util.schema import Schema, validate_schema
@@ -109,26 +110,7 @@ job_description_schema = Schema(
 
 transforms = TransformSequence()
 transforms.add_validate(job_description_schema)
-
-
-@transforms.add
-def rewrite_when_to_optimization(config, jobs):
-    for job in jobs:
-        when = job.pop("when", {})
-        if not when:
-            yield job
-            continue
-
-        files_changed = when.get("files-changed")
-
-        # implicitly add task config directory.
-        files_changed.append(f"{config.path}/**")
-
-        # "only when files changed" implies "skip if files have not changed"
-        job["optimization"] = {"skip-unless-changed": files_changed}
-
-        assert "when" not in job
-        yield job
+transforms.add(rewrite_when_to_optimization)
 
 
 @transforms.add
