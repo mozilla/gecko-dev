@@ -37,6 +37,10 @@ class OriginScope {
 
     Origin(Origin&& aOther) = default;
 
+    const PrincipalMetadata& GetPrincipalMetadata() const {
+      return mPrincipalMetadata;
+    }
+
     const nsACString& GetOrigin() const { return mPrincipalMetadata.mOrigin; }
 
     const nsACString& GetOriginNoSuffix() const { return mOriginNoSuffix; }
@@ -153,6 +157,12 @@ class OriginScope {
   }
 
   void SetFromNull() { mData = AsVariant(Null()); }
+
+  const PrincipalMetadata& GetPrincipalMetadata() const {
+    MOZ_ASSERT(IsOrigin());
+
+    return mData.as<Origin>().GetPrincipalMetadata();
+  }
 
   const nsACString& GetOrigin() const {
     MOZ_ASSERT(IsOrigin());

@@ -27,10 +27,7 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
   const NotNull<RefPtr<QuotaManager>> mQuotaManager;
 
   const PersistenceScope mPersistenceScope;
-  const nsCString mSuffix;
-  const nsCString mGroup;
   const OriginScope mOriginScope;
-  const nsCString mStorageOrigin;
   const Nullable<Client::Type> mClientType;
   MozPromiseHolder<BoolPromise> mAcquirePromiseHolder;
   nsCOMPtr<nsITimer> mAcquireTimer;
@@ -40,8 +37,6 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
   nsTArray<NotNull<DirectoryLockImpl*>> mBlockedOn;
 
   const int64_t mId;
-
-  const bool mIsPrivate;
 
   const bool mExclusive;
 
@@ -62,9 +57,7 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
  public:
   DirectoryLockImpl(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
                     const PersistenceScope& aPersistenceScope,
-                    const nsACString& aSuffix, const nsACString& aGroup,
                     const OriginScope& aOriginScope,
-                    const nsACString& aStorageOrigin, bool aIsPrivate,
                     const Nullable<Client::Type>& aClientType, bool aExclusive,
                     bool aInternal,
                     ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
@@ -77,9 +70,7 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
       bool aExclusive) {
     return Create(std::move(aQuotaManager),
                   PersistenceScope::CreateFromValue(aPersistenceType),
-                  aOriginMetadata.mSuffix, aOriginMetadata.mGroup,
                   OriginScope::FromOrigin(aOriginMetadata),
-                  aOriginMetadata.mStorageOrigin, aOriginMetadata.mIsPrivate,
                   Nullable<Client::Type>(aClientType), aExclusive, false,
                   ShouldUpdateLockIdTableFlag::Yes,
                   DirectoryLockCategory::None);
@@ -93,15 +84,12 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
     MOZ_ASSERT(!aOriginMetadata.mOrigin.IsEmpty());
     MOZ_ASSERT(!aOriginMetadata.mStorageOrigin.IsEmpty());
 
-    return Create(std::move(aQuotaManager),
-                  PersistenceScope::CreateFromValue(aPersistenceType),
-                  aOriginMetadata.mSuffix, aOriginMetadata.mGroup,
-                  OriginScope::FromOrigin(aOriginMetadata),
-                  aOriginMetadata.mStorageOrigin, aOriginMetadata.mIsPrivate,
-                  Nullable<Client::Type>(),
-                  /* aExclusive */ true, /* aInternal */ true,
-                  ShouldUpdateLockIdTableFlag::No,
-                  DirectoryLockCategory::UninitOrigins);
+    return Create(
+        std::move(aQuotaManager),
+        PersistenceScope::CreateFromValue(aPersistenceType),
+        OriginScope::FromOrigin(aOriginMetadata), Nullable<Client::Type>(),
+        /* aExclusive */ true, /* aInternal */ true,
+        ShouldUpdateLockIdTableFlag::No, DirectoryLockCategory::UninitOrigins);
   }
 
   static RefPtr<UniversalDirectoryLock> CreateInternal(
@@ -110,8 +98,8 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
       const OriginScope& aOriginScope,
       const Nullable<Client::Type>& aClientType, bool aExclusive,
       DirectoryLockCategory aCategory) {
-    return Create(std::move(aQuotaManager), aPersistenceScope, ""_ns, ""_ns,
-                  aOriginScope, ""_ns, false, aClientType, aExclusive, true,
+    return Create(std::move(aQuotaManager), aPersistenceScope, aOriginScope,
+                  aClientType, aExclusive, true,
                   ShouldUpdateLockIdTableFlag::Yes, aCategory);
   }
 
@@ -226,11 +214,10 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
   }
 
   quota::OriginMetadata OriginMetadata() const override {
-    MOZ_DIAGNOSTIC_ASSERT(!mGroup.IsEmpty());
+    MOZ_DIAGNOSTIC_ASSERT(mOriginScope.IsOrigin());
 
-    return quota::OriginMetadata{
-        mSuffix,        mGroup,     nsCString(Origin()),
-        mStorageOrigin, mIsPrivate, GetPersistenceType()};
+    return quota::OriginMetadata{mOriginScope.GetPrincipalMetadata(),
+                                 GetPersistenceType()};
   }
 
   const nsACString& Origin() const override {
@@ -271,9 +258,8 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
 
   static RefPtr<DirectoryLockImpl> Create(
       MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      const PersistenceScope& aPersistenceScope, const nsACString& aSuffix,
-      const nsACString& aGroup, const OriginScope& aOriginScope,
-      const nsACString& aStorageOrigin, bool aIsPrivate,
+      const PersistenceScope& aPersistenceScope,
+      const OriginScope& aOriginScope,
       const Nullable<Client::Type>& aClientType, bool aExclusive,
       bool aInternal, ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
       DirectoryLockCategory aCategory) {
@@ -281,16 +267,13 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
     MOZ_ASSERT_IF(!aInternal, aPersistenceScope.IsValue());
     MOZ_ASSERT_IF(!aInternal,
                   aPersistenceScope.GetValue() != PERSISTENCE_TYPE_INVALID);
-    MOZ_ASSERT_IF(!aInternal, !aGroup.IsEmpty());
     MOZ_ASSERT_IF(!aInternal, aOriginScope.IsOrigin());
-    MOZ_ASSERT_IF(!aInternal, !aStorageOrigin.IsEmpty());
     MOZ_ASSERT_IF(!aInternal, !aClientType.IsNull());
     MOZ_ASSERT_IF(!aInternal, aClientType.Value() < Client::TypeMax());
 
     return MakeRefPtr<DirectoryLockImpl>(
-        std::move(aQuotaManager), aPersistenceScope, aSuffix, aGroup,
-        aOriginScope, aStorageOrigin, aIsPrivate, aClientType, aExclusive,
-        aInternal, aShouldUpdateLockIdTableFlag, aCategory);
+        std::move(aQuotaManager), aPersistenceScope, aOriginScope, aClientType,
+        aExclusive, aInternal, aShouldUpdateLockIdTableFlag, aCategory);
   }
 
   void AcquireInternal();
