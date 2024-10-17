@@ -59,7 +59,7 @@ tasks:
                 - linux64-clang
                 - linux64-nasm
                 - linux64-node
-                - linux64-rust-searchfox
+                - linux64-rust
                 - linux64-cbindgen
                 - linux64-dump_syms
                 - linux64-pkgconf
@@ -95,7 +95,7 @@ tasks:
                 - linux64-libdmg
                 - linux64-nasm
                 - linux64-node
-                - linux64-rust-searchfox
+                - linux64-rust-cross
                 - linux64-cbindgen
                 - linux64-dump_syms
                 - macosx64-sdk
@@ -134,7 +134,7 @@ tasks:
                 - linux64-libdmg
                 - linux64-nasm
                 - linux64-node
-                - linux64-rust-searchfox
+                - linux64-rust-cross
                 - linux64-cbindgen
                 - linux64-dump_syms
                 - macosx64-sdk
@@ -174,7 +174,7 @@ tasks:
                 - linux64-libdmg
                 - linux64-nasm
                 - linux64-node
-                - linux64-rust-searchfox
+                - linux64-rust-ios
                 - linux64-cbindgen
                 - linux64-dump_syms
                 - ios-sdk
@@ -208,7 +208,7 @@ tasks:
         fetches:
             toolchain:
                 - linux64-clang
-                - linux64-rust-searchfox
+                - linux64-rust-cross
                 - linux64-rust-size
                 - linux64-nasm
                 - linux64-node
@@ -255,7 +255,7 @@ tasks:
                 - android-sdk-linux
                 - linux64-jdk
                 - linux64-clang
-                - linux64-rust-searchfox
+                - linux64-rust-cross
                 - linux64-rust-size
                 - linux64-cbindgen
                 - linux64-dump_syms
