@@ -603,6 +603,18 @@ DistributionCustomizer.prototype = {
           );
         }
       } catch (e) {}
+      // If a theme was specified in the distribution, and it's a new profile,
+      // set the theme as default.
+      try {
+        const activeThemeID = Services.prefs.getCharPref(
+          "extensions.activeThemeID"
+        );
+        if (activeThemeID) {
+          lazy.AddonManager.getAddonByID(activeThemeID).then(addon =>
+            addon?.enable()
+          );
+        }
+      } catch (e) {}
     }
 
     let prefDefaultsApplied = this._prefDefaultsApplied || !this._ini;
