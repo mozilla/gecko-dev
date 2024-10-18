@@ -55,9 +55,9 @@ void ProcessChild::AddPlatformBuildID(geckoargs::ChildProcessArgs& aExtraArgs) {
 
 /* static */
 bool ProcessChild::InitPrefs(int aArgc, char* aArgv[]) {
-  Maybe<SharedMemoryHandle> prefsHandle =
+  Maybe<UniqueFileHandle> prefsHandle =
       geckoargs::sPrefsHandle.Get(aArgc, aArgv);
-  Maybe<SharedMemoryHandle> prefMapHandle =
+  Maybe<UniqueFileHandle> prefMapHandle =
       geckoargs::sPrefMapHandle.Get(aArgc, aArgv);
   Maybe<uint64_t> prefsLen = geckoargs::sPrefsLen.Get(aArgc, aArgv);
   Maybe<uint64_t> prefMapSize = geckoargs::sPrefMapSize.Get(aArgc, aArgv);

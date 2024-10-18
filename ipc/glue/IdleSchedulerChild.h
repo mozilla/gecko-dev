@@ -9,9 +9,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/RefPtr.h"
 #include "mozilla/ipc/PIdleSchedulerChild.h"
-#include "mozilla/ipc/SharedMemory.h"
 
 class nsIIdlePeriod;
 
@@ -58,7 +56,7 @@ class IdleSchedulerChild final : public PIdleSchedulerChild {
   friend class BackgroundChildImpl;
 
   // See IdleScheduleParent::sActiveChildCounter
-  RefPtr<SharedMemory> mActiveCounter = MakeRefPtr<SharedMemory>();
+  base::SharedMemory mActiveCounter;
 
   IdlePeriodState* mIdlePeriodState = nullptr;
 

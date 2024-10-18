@@ -6,6 +6,7 @@
 #include "SocketProcessImpl.h"
 
 #include "base/command_line.h"
+#include "base/shared_memory.h"
 #include "base/string_util.h"
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/Preferences.h"

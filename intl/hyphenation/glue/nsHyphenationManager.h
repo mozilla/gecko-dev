@@ -6,9 +6,8 @@
 #ifndef nsHyphenationManager_h__
 #define nsHyphenationManager_h__
 
-#include "base/process.h"
+#include "base/shared_memory.h"
 #include "mozilla/Omnijar.h"
-#include "mozilla/ipc/SharedMemory.h"
 #include "nsHashKeys.h"
 #include "nsAtomHashKeys.h"
 #include "nsInterfaceHashtable.h"
@@ -28,7 +27,7 @@ class nsHyphenationManager : public nsIObserver {
   already_AddRefed<nsHyphenator> GetHyphenator(nsAtom* aLocale);
 
   void ShareHyphDictToProcess(nsIURI* aURI, base::ProcessId aPid,
-                              mozilla::ipc::SharedMemory::Handle* aOutHandle,
+                              base::SharedMemoryHandle* aOutHandle,
                               uint32_t* aOutSize);
 
   static nsHyphenationManager* Instance();

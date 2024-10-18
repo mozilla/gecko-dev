@@ -2381,7 +2381,7 @@ mozilla::ipc::IPCResult ContentChild::RecvRegisterStringBundles(
 
   for (auto& descriptor : aDescriptors) {
     stringBundleService->RegisterContentBundle(
-        descriptor.bundleURL(), descriptor.mapHandle(), descriptor.mapSize());
+        descriptor.bundleURL(), descriptor.mapFile(), descriptor.mapSize());
   }
 
   return IPC_OK();
@@ -2394,7 +2394,7 @@ mozilla::ipc::IPCResult ContentChild::RecvUpdateL10nFileSources(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvUpdateSharedData(
-    SharedMemoryHandle&& aMapHandle, const uint32_t& aMapSize,
+    const FileDescriptor& aMapFile, const uint32_t& aMapSize,
     nsTArray<IPCBlob>&& aBlobs, nsTArray<nsCString>&& aChangedKeys) {
   nsTArray<RefPtr<BlobImpl>> blobImpls(aBlobs.Length());
   for (auto& ipcBlob : aBlobs) {
@@ -2402,12 +2402,12 @@ mozilla::ipc::IPCResult ContentChild::RecvUpdateSharedData(
   }
 
   if (mSharedData) {
-    mSharedData->Update(std::move(aMapHandle), aMapSize, std::move(blobImpls),
+    mSharedData->Update(aMapFile, aMapSize, std::move(blobImpls),
                         std::move(aChangedKeys));
   } else {
     mSharedData =
         new SharedMap(ContentProcessMessageManager::Get()->GetParentObject(),
-                      std::move(aMapHandle), aMapSize, std::move(blobImpls));
+                      aMapFile, aMapSize, std::move(blobImpls));
   }
 
   return IPC_OK();
@@ -2475,7 +2475,7 @@ mozilla::ipc::IPCResult ContentChild::RecvRebuildFontList(
 
 mozilla::ipc::IPCResult ContentChild::RecvFontListShmBlockAdded(
     const uint32_t& aGeneration, const uint32_t& aIndex,
-    SharedMemoryHandle&& aHandle) {
+    base::SharedMemoryHandle&& aHandle) {
   if (gfxPlatform::Initialized()) {
     gfxPlatformFontList::PlatformFontList()->ShmBlockAdded(aGeneration, aIndex,
                                                            std::move(aHandle));

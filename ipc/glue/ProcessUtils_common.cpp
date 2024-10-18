@@ -8,7 +8,6 @@
 
 #include "mozilla/Preferences.h"
 #include "mozilla/GeckoArgs.h"
-#include "mozilla/RefPtr.h"
 #include "mozilla/dom/RemoteType.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/UniquePtrExtensions.h"
@@ -40,7 +39,8 @@ SharedPreferenceSerializer::SharedPreferenceSerializer(
 bool SharedPreferenceSerializer::SerializeToSharedMemory(
     const GeckoProcessType aDestinationProcessType,
     const nsACString& aDestinationRemoteType) {
-  mPrefMapHandle = Preferences::EnsureSnapshot(&mPrefMapSize);
+  mPrefMapHandle =
+      Preferences::EnsureSnapshot(&mPrefMapSize).TakePlatformHandle();
 
   bool destIsWebContent =
       aDestinationProcessType == GeckoProcessType_Content &&
@@ -52,31 +52,30 @@ bool SharedPreferenceSerializer::SerializeToSharedMemory(
   Preferences::SerializePreferences(prefs, destIsWebContent);
   mPrefsLength = prefs.Length();
 
-  RefPtr<SharedMemory> shm = MakeRefPtr<SharedMemory>();
+  base::SharedMemory shm;
   // Set up the shared memory.
-  if (!shm->Create(prefs.Length())) {
+  if (!shm.Create(prefs.Length())) {
     NS_ERROR("failed to create shared memory in the parent");
     return false;
   }
-  if (!shm->Map(prefs.Length())) {
+  if (!shm.Map(prefs.Length())) {
     NS_ERROR("failed to map shared memory in the parent");
     return false;
   }
 
   // Copy the serialized prefs into the shared memory.
-  memcpy(static_cast<char*>(shm->Memory()), prefs.get(), mPrefsLength);
+  memcpy(static_cast<char*>(shm.memory()), prefs.get(), mPrefsLength);
 
-  mPrefsHandle = shm->TakeHandleAndUnmap();
+  mPrefsHandle = shm.TakeHandle();
   return true;
 }
 
 void SharedPreferenceSerializer::AddSharedPrefCmdLineArgs(
     mozilla::ipc::GeckoChildProcessHost& procHost,
     geckoargs::ChildProcessArgs& aExtraOpts) const {
-  SharedMemoryHandle prefsHandle = SharedMemory::CloneHandle(GetPrefsHandle());
+  UniqueFileHandle prefsHandle = DuplicateFileHandle(GetPrefsHandle());
   MOZ_RELEASE_ASSERT(prefsHandle, "failed to duplicate prefs handle");
-  SharedMemoryHandle prefMapHandle =
-      SharedMemory::CloneHandle(GetPrefMapHandle());
+  UniqueFileHandle prefMapHandle = DuplicateFileHandle(GetPrefMapHandle());
   MOZ_RELEASE_ASSERT(prefMapHandle, "failed to duplicate pref map handle");
 
   // Pass the handles and lengths via command line flags.
@@ -95,7 +94,7 @@ SharedPreferenceDeserializer::~SharedPreferenceDeserializer() {
 }
 
 bool SharedPreferenceDeserializer::DeserializeFromSharedMemory(
-    SharedMemoryHandle aPrefsHandle, SharedMemoryHandle aPrefMapHandle,
+    UniqueFileHandle aPrefsHandle, UniqueFileHandle aPrefMapHandle,
     uint64_t aPrefsLen, uint64_t aPrefMapSize) {
   if (!aPrefsHandle || !aPrefMapHandle || !aPrefsLen || !aPrefMapSize) {
     return false;
@@ -112,23 +111,21 @@ bool SharedPreferenceDeserializer::DeserializeFromSharedMemory(
   Preferences::InitSnapshot(mPrefMapHandle.ref(), *mPrefMapSize);
 
   // Set up early prefs from the shared memory.
-  if (!mShmem->SetHandle(std::move(aPrefsHandle),
-                         SharedMemory::RightsReadOnly)) {
+  if (!mShmem.SetHandle(std::move(aPrefsHandle), /* read_only */ true)) {
     NS_ERROR("failed to open shared memory in the child");
     return false;
   }
-  if (!mShmem->Map(*mPrefsLen)) {
+  if (!mShmem.Map(*mPrefsLen)) {
     NS_ERROR("failed to map shared memory in the child");
     return false;
   }
-  Preferences::DeserializePreferences(static_cast<char*>(mShmem->Memory()),
+  Preferences::DeserializePreferences(static_cast<char*>(mShmem.memory()),
                                       *mPrefsLen);
 
   return true;
 }
 
-const SharedMemoryHandle& SharedPreferenceDeserializer::GetPrefMapHandle()
-    const {
+const FileDescriptor& SharedPreferenceDeserializer::GetPrefMapHandle() const {
   MOZ_ASSERT(mPrefMapHandle.isSome());
 
   return mPrefMapHandle.ref();
@@ -141,12 +138,12 @@ void ExportSharedJSInit(mozilla::ipc::GeckoChildProcessHost& procHost,
   return;
 #else
   auto& shmem = xpc::SelfHostedShmem::GetSingleton();
-  SharedMemoryHandle handle = SharedMemory::CloneHandle(shmem.Handle());
+  UniqueFileHandle handle = DuplicateFileHandle(shmem.Handle());
   size_t len = shmem.Content().Length();
 
   // If the file is not found or the content is empty, then we would start the
   // content process without this optimization.
-  if (!SharedMemory::IsHandleValid(handle) || !len) {
+  if (!handle || !len) {
     return;
   }
 
@@ -156,7 +153,7 @@ void ExportSharedJSInit(mozilla::ipc::GeckoChildProcessHost& procHost,
 #endif
 }
 
-bool ImportSharedJSInit(SharedMemoryHandle aJsInitHandle, uint64_t aJsInitLen) {
+bool ImportSharedJSInit(UniqueFileHandle aJsInitHandle, uint64_t aJsInitLen) {
   // This is an optimization, and as such we can safely recover if the command
   // line argument are not provided.
   if (!aJsInitLen || !aJsInitHandle) {

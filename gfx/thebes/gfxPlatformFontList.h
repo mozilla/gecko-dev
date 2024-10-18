@@ -19,7 +19,6 @@
 #include "gfxPlatform.h"
 #include "SharedFontList.h"
 
-#include "base/process.h"
 #include "nsIMemoryReporter.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EnumeratedArray.h"
@@ -27,8 +26,9 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RangedArray.h"
 #include "mozilla/RecursiveMutex.h"
-#include "mozilla/ipc/SharedMemory.h"
 #include "nsLanguageAtomService.h"
+
+#include "base/shared_memory.h"
 
 namespace mozilla {
 namespace fontlist {
@@ -355,19 +355,18 @@ class gfxPlatformFontList : public gfxFontInfoLoader {
   // be shared to the given processId.
   void ShareFontListShmBlockToProcess(uint32_t aGeneration, uint32_t aIndex,
                                       base::ProcessId aPid,
-                                      mozilla::ipc::SharedMemory::Handle* aOut);
+                                      base::SharedMemoryHandle* aOut);
 
   // Populate the array aBlocks with the complete list of shmem handles ready
   // to be shared to the given processId.
-  void ShareFontListToProcess(
-      nsTArray<mozilla::ipc::SharedMemory::Handle>* aBlocks,
-      base::ProcessId aPid);
+  void ShareFontListToProcess(nsTArray<base::SharedMemoryHandle>* aBlocks,
+                              base::ProcessId aPid);
 
   void ShmBlockAdded(uint32_t aGeneration, uint32_t aIndex,
-                     mozilla::ipc::SharedMemory::Handle aHandle);
+                     base::SharedMemoryHandle aHandle);
 
-  mozilla::ipc::SharedMemory::Handle ShareShmBlockToProcess(
-      uint32_t aIndex, base::ProcessId aPid);
+  base::SharedMemoryHandle ShareShmBlockToProcess(uint32_t aIndex,
+                                                  base::ProcessId aPid);
 
   void SetCharacterMap(uint32_t aGeneration, uint32_t aFamilyIndex, bool aAlias,
                        uint32_t aFaceIndex, const gfxSparseBitSet& aMap);
