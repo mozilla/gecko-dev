@@ -193,4 +193,9 @@
     <dimen name="accessibility_min_height">48dp</dimen>
     <dimen name="tap_increase_16">16dp</dimen>
     <dimen name="tap_increase_2">2dp</dimen>
+
+    <!-- Browser Menu -->
+    <dimen name="browser_menu_max_width">640dp</dimen>
+    <dimen name="browser_menu_padding">56dp</dimen>
+
 </resources>
