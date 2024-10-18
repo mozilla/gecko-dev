@@ -134,7 +134,7 @@ export const GenAI = {
           "https://www.anthropic.com/legal/archive/628feec9-7df9-4d38-bc69-fbf104df47b0",
         linksId: "genai-settings-chat-claude-links",
         name: "Anthropic Claude",
-        maxLength: 14000,
+        maxLength: 15020,
         tooltipId: "genai-onboarding-claude-tooltip",
       },
     ],
@@ -153,19 +153,19 @@ export const GenAI = {
         link2: "https://openai.com/privacy",
         linksId: "genai-settings-chat-chatgpt-links",
         name: "ChatGPT",
-        maxLength: 14000,
+        maxLength: 14140,
         tooltipId: "genai-onboarding-chatgpt-tooltip",
       },
     ],
     [
-      "https://www.bing.com/chat?sendquery=1",
+      "https://copilot.microsoft.com",
       {
         id: "copilot",
         link1: "https://www.bing.com/new/termsofuse",
         link2: "https://go.microsoft.com/fwlink/?LinkId=521839",
         linksId: "genai-settings-chat-copilot-links",
         name: "Copilot",
-        maxLength: 3900,
+        maxLength: 3260,
       },
     ],
     [
@@ -224,7 +224,7 @@ export const GenAI = {
         link2: "https://mistral.ai/terms/#privacy-policy",
         linksId: "genai-settings-chat-lechat-links",
         name: "Le Chat Mistral",
-        maxLength: 3600,
+        maxLength: 3680,
         tooltipId: "genai-onboarding-lechat-tooltip",
       },
     ],
@@ -612,6 +612,20 @@ export const GenAI = {
   },
 
   /**
+   * Approximately adjust query limit for encoding and other text in prompt,
+   * e.g., page title, per-prompt instructions. Generally more conservative as
+   * going over the limit results in server errors.
+   *
+   * @param {number} maxLength optional of the provider request URI
+   * @returns {number} adjusted length estimate
+   */
+  estimateSelectionLimit(maxLength = 8000) {
+    // Could try to be smarter including the selected text with URI encoding,
+    // base URI length, other parts of the prompt (especially for custom)
+    return Math.round(maxLength * 0.85) - 500;
+  },
+
+  /**
    * Updates chat prompt prefix.
    */
   async prepareChatPromptPrefix() {
@@ -620,14 +634,6 @@ export const GenAI = {
       this.chatLastPrefix != lazy.chatPromptPrefix
     ) {
       try {
-        // Approximately adjust query limit for encoding and other text in
-        // prompt, e.g., page title, per-prompt instructions. Generally more
-        // conservative as going over the limit results in server errors.
-        const limit =
-          Math.round(
-            (this.chatProviders.get(lazy.chatProvider)?.maxLength ?? 8000) * 0.9
-          ) - 300;
-
         // Check json for localized prefix
         const prefixObj = JSON.parse(lazy.chatPromptPrefix);
         this.chatPromptPrefix = (
@@ -636,7 +642,9 @@ export const GenAI = {
               id: prefixObj.l10nId,
               args: {
                 tabTitle: "%tabTitle%",
-                selection: `%selection|${limit}%`,
+                selection: `%selection|${this.estimateSelectionLimit(
+                  this.chatProviders.get(lazy.chatProvider)?.maxLength
+                )}%`,
               },
             },
           ])

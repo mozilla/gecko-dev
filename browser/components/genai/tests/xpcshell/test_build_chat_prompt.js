@@ -138,6 +138,20 @@ add_task(async function test_prompt_prefix() {
 });
 
 /**
+ * Check that selection limits are estimated
+ */
+add_task(async function test_estimate_limit() {
+  const length = 1234;
+  const limit = GenAI.estimateSelectionLimit(length);
+  Assert.ok(limit, "Got some limit");
+  Assert.ok(limit < length, "Limit smaller than length");
+
+  const defaultLimit = GenAI.estimateSelectionLimit();
+  Assert.ok(defaultLimit, "Got a default limit");
+  Assert.ok(defaultLimit > limit, "Default uses a larger length");
+});
+
+/**
  * Check that prefix pref supports dynamic limit
  */
 add_task(async function test_prompt_limit() {
