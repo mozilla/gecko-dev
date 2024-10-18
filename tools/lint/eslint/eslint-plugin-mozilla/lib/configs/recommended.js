@@ -5,9 +5,17 @@
 "use strict";
 
 /**
- * The configuration is based on eslint:recommended config. The details for all
- * the ESLint rules, and which ones are in the recommended configuration can
- * be found here:
+ * The configuration is based on eslint:recommended config. It defines the
+ * recommended rules for all files, as well as for rules relating to modules
+ * and other module like files.
+ *
+ * The configuration intentionally does not specify the globals for the
+ * majority of files. The globals will only be specified for Mozilla specific
+ * files (e.g. system modules). The subscriber to this configuration is expect
+ * to include the correct globals that they require in their project.
+ *
+ * The details for all the ESLint rules, and which ones are in the ESLint
+ * recommended configuration can be found here:
  *
  * https://eslint.org/docs/rules/
  *
@@ -28,13 +36,6 @@
  *     - This doesn't reveal any actual errors, and is a lot of work to address.
  */
 module.exports = {
-  env: {
-    browser: true,
-    es2022: true,
-    "mozilla/privileged": true,
-    "mozilla/specific": true,
-  },
-
   // The prettier configuration here comes from eslint-config-prettier and
   // turns off all of ESLint's rules related to formatting.
   extends: ["eslint:recommended"],
@@ -45,7 +46,8 @@ module.exports = {
       // so we turn that off for those. Though we do have our own special
       // environment for them.
       env: {
-        browser: false,
+        "mozilla/privileged": true,
+        "mozilla/specific": true,
         "mozilla/sysmjs": true,
       },
       files: ["**/*.sys.mjs"],
@@ -101,10 +103,7 @@ module.exports = {
     },
     {
       env: {
-        browser: false,
-        "mozilla/privileged": false,
         "mozilla/sjs": true,
-        "mozilla/specific": false,
       },
       files: ["**/*.sjs"],
       rules: {
@@ -115,7 +114,6 @@ module.exports = {
     },
     {
       env: {
-        browser: false,
         worker: true,
       },
       files: [

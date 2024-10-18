@@ -54,6 +54,9 @@ module.exports = {
   ignorePatterns,
   // Ignore eslint configurations in parent directories.
   root: true,
+  env: {
+    es2024: true,
+  },
   // New rules and configurations should generally be added in
   // tools/lint/eslint/eslint-plugin-mozilla/lib/configs/recommended.js to
   // allow external repositories that use the plugin to pick them up as well.
@@ -64,6 +67,27 @@ module.exports = {
   ],
   plugins: ["mozilla", "html", "import", "json"],
   overrides: [
+    {
+      files: ["*.*"],
+      // The browser environment is not available for system modules, sjs, workers
+      // or any of the xpcshell-test files.
+      excludedFiles: [
+        "*.sys.mjs",
+        "*.sjs",
+        "**/?(*.)worker.?(m)js",
+        ...testPaths.xpcshell.map(filePath => `${filePath}**`),
+      ],
+      env: {
+        browser: true,
+      },
+    },
+    {
+      files: ["*.*"],
+      env: {
+        "mozilla/privileged": true,
+        "mozilla/specific": true,
+      },
+    },
     {
       files: [
         // All .eslintrc.js files are in the node environment, so turn that
