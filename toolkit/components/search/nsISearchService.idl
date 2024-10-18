@@ -205,15 +205,6 @@ interface nsISearchEngine : nsISupports
    * @return the reporting URL.
    */
   readonly attribute AString clickUrl;
-
-  /**
-   * The URL of the homepage of the engine. Defaults to the pre path
-   * of the search URL but search engines can specify an arbitrary URL.
-   *
-   * @return the URL of the search engine home page.
-   */
-  readonly attribute AString searchForm;
-
 };
 
 [scriptable, uuid(0dc93e51-a7bf-4a16-862d-4b3469ff6206)]
