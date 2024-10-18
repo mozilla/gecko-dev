@@ -135,6 +135,9 @@ function renderMore() {
         .appendChild(topDoc.createXULElement("menupopup"));
       menu.id = "chatbot-menupopup";
       node.menu = menu;
+      menu.addEventListener("popuphidden", () => {
+        button.setAttribute("aria-expanded", false);
+      });
     }
     menu.innerHTML = "";
 
@@ -195,6 +198,7 @@ function renderMore() {
       }
     });
     menu.openPopup(button, "after_start");
+    button.setAttribute("aria-expanded", true);
     Glean.genaiChatbot.sidebarMoreMenuDisplay.record({ provider: providerId });
   });
 }

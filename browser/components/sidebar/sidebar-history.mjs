@@ -37,6 +37,7 @@ export class SidebarHistory extends SidebarPage {
     this._menuSortByDate = doc.getElementById("sidebar-history-sort-by-date");
     this._menuSortBySite = doc.getElementById("sidebar-history-sort-by-site");
     this._menu.addEventListener("command", this);
+    this._menu.addEventListener("popuphidden", this);
     this.addContextMenuListeners();
     this.addSidebarFocusedListeners();
     this.controller.updateCache();
@@ -45,6 +46,7 @@ export class SidebarHistory extends SidebarPage {
   disconnectedCallback() {
     super.disconnectedCallback();
     this._menu.removeEventListener("command", this);
+    this._menu.removeEventListener("popuphiding", this);
     this.removeContextMenuListeners();
     this.removeSidebarFocusedListeners();
   }
@@ -72,6 +74,14 @@ export class SidebarHistory extends SidebarPage {
         break;
       default:
         super.handleCommandEvent(e);
+        break;
+    }
+  }
+
+  handleEvent(e) {
+    switch (e.type) {
+      case "popuphidden":
+        this.menuButton.setAttribute("aria-expanded", false);
         break;
     }
   }
@@ -231,6 +241,7 @@ export class SidebarHistory extends SidebarPage {
       ? "after_start" // Sidebar is on the left. Open menu to the right.
       : "after_end"; // Sidebar is on the right. Open menu to the left.
     this._menu.openPopup(e.target, menuPos, 0, 0, false, false, e);
+    this.menuButton.setAttribute("aria-expanded", true);
   }
 
   willUpdate() {
@@ -268,6 +279,9 @@ export class SidebarHistory extends SidebarPage {
           <moz-button
             class="menu-button"
             @click=${this.openMenu}
+            data-l10n-id="sidebar-options-menu-button"
+            aria-haspopup="menu"
+            aria-expanded="false"
             view=${this.view}
             size="small"
             type="icon ghost"
