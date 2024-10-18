@@ -113,6 +113,10 @@ class nsTLiteralString : public mozilla::detail::nsTStringRepr<T> {
 extern template class nsTLiteralString<char>;
 extern template class nsTLiteralString<char16_t>;
 
+template <typename Char>
+struct fmt::formatter<nsTLiteralString<Char>, Char>
+    : fmt::formatter<mozilla::detail::nsTStringRepr<Char>, Char> {};
+
 namespace mozilla {
 constexpr MOZ_IMPLICIT StaticString::StaticString(nsLiteralCString const& str)
     : mStr(str.get()) {}

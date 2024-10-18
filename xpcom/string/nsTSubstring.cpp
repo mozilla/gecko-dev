@@ -5,11 +5,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "double-conversion/double-conversion.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Printf.h"
 #include "mozilla/ResultExtensions.h"
+
+#include <iterator>
+#include "fmt/format.h"
+#include "fmt/xchar.h"
 
 #include "nsASCIIMask.h"
 #include "nsCharTraits.h"
@@ -1087,6 +1092,73 @@ void nsTSubstring<T>::StripCRLF() {
   // instead of just calling it does somewhat help with performance
   // but it is not worth it given the duplicated code.
   StripTaggedASCII(mozilla::ASCIIMask::MaskCRLF());
+}
+
+// An adapter type for a `nsTSubstring<T>` to provide a std::string-like
+// interface for `{fmt}`.
+template <typename T>
+class nsTSubstringStdCollectionAdapter {
+ public:
+  using value_type = T;
+
+  explicit nsTSubstringStdCollectionAdapter(nsTSubstring<T>& aString)
+      : mSize(aString.Length()), mHandle(InfallibleBulkWrite(aString)) {}
+
+  ~nsTSubstringStdCollectionAdapter() { mHandle.Finish(mSize, false); }
+
+  size_t size() const { return mSize; }
+  void resize(size_t aNewSize) {
+    EnsureCapacity(aNewSize);
+    mSize = aNewSize;
+    // XXX: technically resize should zero-initialize any new bytes to match
+    // std::string.
+  }
+
+  T& operator[](size_t i) {
+    MOZ_RELEASE_ASSERT(i < mSize);
+    return mHandle.Elements()[i];
+  }
+  const T& operator[](size_t i) const {
+    MOZ_RELEASE_ASSERT(i < mSize);
+    return mHandle.Elements()[i];
+  }
+
+ private:
+  void EnsureCapacity(size_t aNewCapacity) {
+    if (aNewCapacity > mHandle.Length()) {
+      auto result = mHandle.RestartBulkWrite(aNewCapacity, mSize, false);
+      if (result.isErr()) {
+        ::NS_ABORT_OOM(aNewCapacity * sizeof(value_type));
+      }
+    }
+  }
+  static mozilla::BulkWriteHandle<T> InfallibleBulkWrite(
+      nsTSubstring<T>& aString) {
+    size_t length = aString.Length();
+    auto res = aString.BulkWrite(length, length, false);
+    if (res.isErr()) {
+      ::NS_ABORT_OOM(length * sizeof(value_type));
+    }
+    return res.unwrap();
+  }
+
+  size_t mSize;
+  mozilla::BulkWriteHandle<T> mHandle;
+};
+
+// Mark the collection as contiguous for {fmt} so that the buffer will be used
+// directly.
+namespace fmt {
+template <typename T>
+struct is_contiguous<nsTSubstringStdCollectionAdapter<T>> : std::true_type {};
+}  // namespace fmt
+
+template <typename T>
+void nsTSubstring<T>::AppendVfmt(
+    fmt::basic_string_view<char_type> aFormatStr,
+    fmt::basic_format_args<fmt::buffered_context<char_type>> aArgs) {
+  nsTSubstringStdCollectionAdapter<char_type> adapter{*this};
+  fmt::vformat_to(std::back_inserter(adapter), aFormatStr, aArgs);
 }
 
 template <typename T>

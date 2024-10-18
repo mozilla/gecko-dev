@@ -58,6 +58,10 @@ class NS_LossyConvertUTF16toASCII : public nsAutoCString {
   NS_LossyConvertUTF16toASCII(char) = delete;
 };
 
+template <>
+struct fmt::formatter<NS_LossyConvertUTF16toASCII, char>
+    : fmt::formatter<nsAutoCString, char> {};
+
 class NS_ConvertASCIItoUTF16 : public nsAutoString {
  public:
   explicit NS_ConvertASCIItoUTF16(const char* aCString) {
@@ -80,6 +84,10 @@ class NS_ConvertASCIItoUTF16 : public nsAutoString {
   // NOT TO BE IMPLEMENTED
   NS_ConvertASCIItoUTF16(char16_t) = delete;
 };
+
+template <>
+struct fmt::formatter<NS_ConvertASCIItoUTF16, char16_t>
+    : fmt::formatter<nsAutoString, char16_t> {};
 
 /**
  * A helper class that converts a UTF-16 string to UTF-8
@@ -108,6 +116,10 @@ class NS_ConvertUTF16toUTF8 : public nsAutoCString {
   NS_ConvertUTF16toUTF8(char) = delete;
 };
 
+template <>
+struct fmt::formatter<NS_ConvertUTF16toUTF8, char>
+    : fmt::formatter<nsAutoCString, char> {};
+
 class NS_ConvertUTF8toUTF16 : public nsAutoString {
  public:
   explicit NS_ConvertUTF8toUTF16(const char* aCString) {
@@ -130,6 +142,10 @@ class NS_ConvertUTF8toUTF16 : public nsAutoString {
   // NOT TO BE IMPLEMENTED
   NS_ConvertUTF8toUTF16(char16_t) = delete;
 };
+
+template <>
+struct fmt::formatter<NS_ConvertUTF8toUTF16, char16_t>
+    : fmt::formatter<nsAutoString, char16_t> {};
 
 /**
  * Converts an integer (signed/unsigned, 32/64bit) to its decimal string

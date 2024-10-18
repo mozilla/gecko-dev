@@ -238,6 +238,10 @@ class nsTString : public nsTSubstring<T> {
 extern template class nsTString<char>;
 extern template class nsTString<char16_t>;
 
+template <typename Char>
+struct fmt::formatter<nsTString<Char>, Char>
+    : fmt::formatter<nsTSubstring<Char>, Char> {};
+
 /**
  * nsTAutoStringN
  *
@@ -367,6 +371,10 @@ class MOZ_NON_MEMMOVABLE nsTAutoStringN : public nsTString<T> {
 // Externs for the most common nsTAutoStringN variations.
 extern template class nsTAutoStringN<char, 64>;
 extern template class nsTAutoStringN<char16_t, 64>;
+
+template <typename Char, size_t N>
+struct fmt::formatter<nsTAutoStringN<Char, N>, Char>
+    : fmt::formatter<nsTString<Char>, Char> {};
 
 //
 // nsAutoString stores pointers into itself which are invalidated when an
