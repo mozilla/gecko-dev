@@ -80,7 +80,8 @@
 
     static get inheritedAttributes() {
       return {
-        ".tab-background": "selected=visuallyselected,fadein,multiselected",
+        ".tab-background":
+          "selected=visuallyselected,fadein,multiselected,dragover-createGroup",
         ".tab-line": "selected=visuallyselected,multiselected",
         ".tab-loading-burst": "pinned,bursting,notselectedsinceload",
         ".tab-content":

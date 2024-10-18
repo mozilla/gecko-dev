@@ -1003,6 +1003,7 @@ pref("browser.tabs.hoverPreview.enabled", true);
 pref("browser.tabs.hoverPreview.showThumbnails", true);
 
 pref("browser.tabs.groups.enabled", false);
+pref("browser.tabs.groups.dragOverThresholdPercent", 20);
 
 pref("browser.tabs.firefox-view.logLevel", "Warn");
 

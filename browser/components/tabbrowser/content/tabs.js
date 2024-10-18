@@ -890,18 +890,16 @@
           incrementDropIndex = false;
         }
 
-        let shouldTranslate;
+        let shouldTranslate =
+          !gReduceMotion && !("groupDropIndex" in draggedTab._dragData);
         if (this.#isContainerVerticalPinnedExpanded(draggedTab)) {
-          shouldTranslate =
-            ((oldTranslateX && oldTranslateX != newTranslateX) ||
-              (oldTranslateY && oldTranslateY != newTranslateY)) &&
-            !gReduceMotion;
+          shouldTranslate &&=
+            (oldTranslateX && oldTranslateX != newTranslateX) ||
+            (oldTranslateY && oldTranslateY != newTranslateY);
         } else if (this.verticalMode) {
-          shouldTranslate =
-            oldTranslateY && oldTranslateY != newTranslateY && !gReduceMotion;
+          shouldTranslate &&= oldTranslateY && oldTranslateY != newTranslateY;
         } else {
-          shouldTranslate =
-            oldTranslateX && oldTranslateX != newTranslateX && !gReduceMotion;
+          shouldTranslate &&= oldTranslateX && oldTranslateX != newTranslateX;
         }
 
         if (shouldTranslate) {
@@ -939,6 +937,10 @@
             }
           }
         } else {
+          let groupTab =
+            "groupDropIndex" in draggedTab._dragData
+              ? this.allTabs[draggedTab._dragData.groupDropIndex]
+              : null;
           this._finishAnimateTabMove();
           if (dropIndex !== false) {
             for (let tab of movingTabs) {
@@ -947,6 +949,11 @@
                 dropIndex++;
               }
             }
+          }
+          if (groupTab) {
+            gBrowser.addTabGroup([groupTab, ...movingTabs], {
+              insertBefore: draggedTab,
+            });
           }
         }
       } else if (draggedTab) {
@@ -1724,7 +1731,8 @@
 
     #animateExpandedPinnedTabMove(event) {
       let draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
-      let movingTabs = draggedTab._dragData.movingTabs;
+      let dragData = draggedTab._dragData;
+      let movingTabs = dragData.movingTabs;
 
       if (!this.hasAttribute("movingtab")) {
         this.toggleAttribute("movingtab", true);
@@ -1734,36 +1742,32 @@
         }
       }
 
-      if (!("animLastScreenX" in draggedTab._dragData)) {
-        draggedTab._dragData.animLastScreenX = draggedTab._dragData.screenX;
-      }
-      if (!("animLastScreenY" in draggedTab._dragData)) {
-        draggedTab._dragData.animLastScreenY = draggedTab._dragData.screenY;
-      }
+      dragData.animLastScreenX ??= dragData.screenX;
+      dragData.animLastScreenY ??= dragData.screenY;
 
       let screenX = event.screenX;
       let screenY = event.screenY;
 
       if (
-        screenY == draggedTab._dragData.animLastScreenY &&
-        screenX == draggedTab._dragData.animLastScreenX
+        screenY == dragData.animLastScreenY &&
+        screenX == dragData.animLastScreenX
       ) {
         return;
       }
 
       let tabs = this.visibleTabs.slice(0, gBrowser._numPinnedTabs);
 
-      let directionX = screenX > draggedTab._dragData.animLastScreenX;
-      let directionY = screenY > draggedTab._dragData.animLastScreenY;
-      draggedTab._dragData.animLastScreenY = screenY;
-      draggedTab._dragData.animLastScreenX = screenX;
+      let directionX = screenX > dragData.animLastScreenX;
+      let directionY = screenY > dragData.animLastScreenY;
+      dragData.animLastScreenY = screenY;
+      dragData.animLastScreenX = screenX;
 
-      let tabWidth = draggedTab.getBoundingClientRect().width;
-      let tabHeight = draggedTab.getBoundingClientRect().height;
+      let { width: tabWidth, height: tabHeight } =
+        draggedTab.getBoundingClientRect();
       let shiftSizeX = tabWidth * movingTabs.length;
       let shiftSizeY = tabHeight;
-      draggedTab._dragData.tabWidth = tabWidth;
-      draggedTab._dragData.tabHeight = tabHeight;
+      dragData.tabWidth = tabWidth;
+      dragData.tabHeight = tabHeight;
 
       // Move the dragged tab based on the mouse position.
       let firstTabInRow;
@@ -1785,8 +1789,8 @@
       let lastMovingTabScreenY = movingTabs.at(-1).screenY;
       let firstMovingTabScreenX = movingTabs[0].screenX;
       let firstMovingTabScreenY = movingTabs[0].screenY;
-      let translateX = screenX - draggedTab._dragData.screenX;
-      let translateY = screenY - draggedTab._dragData.screenY;
+      let translateX = screenX - dragData.screenX;
+      let translateY = screenY - dragData.screenY;
       let firstBoundX = firstTabInRow.screenX - firstMovingTabScreenX;
       let firstBoundY = firstTabInRow.screenY - firstMovingTabScreenY;
       let lastBoundX =
@@ -1804,8 +1808,8 @@
         tab.style.transform = `translate(${translateX}px, ${translateY}px)`;
       }
 
-      draggedTab._dragData.translateX = translateX;
-      draggedTab._dragData.translateY = translateY;
+      dragData.translateX = translateX;
+      dragData.translateY = translateY;
 
       // Determine what tab we're dragging over.
       // * Single tab dragging: Point of reference is the center of the dragged tab. If that
@@ -1828,10 +1832,7 @@
       let tabCenterY = directionY ? lastTabCenterY : firstTabCenterY;
 
       let newIndex = -1;
-      let oldIndex =
-        "animDropIndex" in draggedTab._dragData
-          ? draggedTab._dragData.animDropIndex
-          : movingTabs[0]._tPos;
+      let oldIndex = dragData.animDropIndex ?? movingTabs[0]._tPos;
 
       let low = 0;
       let high = tabs.length - 1;
@@ -1904,7 +1905,7 @@
       if (newIndex < 0 || newIndex == oldIndex) {
         return;
       }
-      draggedTab._dragData.animDropIndex = newIndex;
+      dragData.animDropIndex = newIndex;
 
       // Shift background tabs to leave a gap where the dragged tab
       // would currently be dropped.
@@ -1919,7 +1920,8 @@
 
     _animateTabMove(event) {
       let draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
-      let movingTabs = draggedTab._dragData.movingTabs;
+      let dragData = draggedTab._dragData;
+      let movingTabs = dragData.movingTabs;
 
       if (!this.hasAttribute("movingtab")) {
         this.toggleAttribute("movingtab", true);
@@ -1929,14 +1931,12 @@
         }
       }
 
-      if (!("animLastScreenPos" in draggedTab._dragData)) {
-        draggedTab._dragData.animLastScreenPos = this.verticalMode
-          ? draggedTab._dragData.screenY
-          : draggedTab._dragData.screenX;
-      }
+      dragData.animLastScreenPos ??= this.verticalMode
+        ? dragData.screenY
+        : dragData.screenX;
 
       let screen = this.verticalMode ? event.screenY : event.screenX;
-      if (screen == draggedTab._dragData.animLastScreenPos) {
+      if (screen == dragData.animLastScreenPos) {
         return;
       }
 
@@ -1953,22 +1953,22 @@
         movingTabs = [...movingTabs].reverse();
       }
 
-      let directionMove = screen > draggedTab._dragData.animLastScreenPos;
-      draggedTab._dragData.animLastScreenPos = screen;
+      let directionForward = screen > dragData.animLastScreenPos;
+      dragData.animLastScreenPos = screen;
 
       let screenAxis = this.verticalMode ? "screenY" : "screenX";
       let size = this.verticalMode ? "height" : "width";
       let translateAxis = this.verticalMode ? "translateY" : "translateX";
       let scrollDirection = this.verticalMode ? "scrollTop" : "scrollLeft";
-      let tabWidth = draggedTab.getBoundingClientRect().width;
-      let tabHeight = draggedTab.getBoundingClientRect().height;
-      let translateX = event.screenX - draggedTab._dragData.screenX;
-      let translateY = event.screenY - draggedTab._dragData.screenY;
+      let { width: tabWidth, height: tabHeight } =
+        draggedTab.getBoundingClientRect();
+      let translateX = event.screenX - dragData.screenX;
+      let translateY = event.screenY - dragData.screenY;
 
-      draggedTab._dragData.tabWidth = tabWidth;
-      draggedTab._dragData.tabHeight = tabHeight;
-      draggedTab._dragData.translateX = translateX;
-      draggedTab._dragData.translateY = translateY;
+      dragData.tabWidth = tabWidth;
+      dragData.tabHeight = tabHeight;
+      dragData.translateX = translateX;
+      dragData.translateY = translateY;
 
       // Move the dragged tab based on the mouse position.
       let firstTab = tabs[0];
@@ -1977,11 +1977,10 @@
       let firstMovingTabScreen = movingTabs[0][screenAxis];
       let tabSize = this.verticalMode ? tabHeight : tabWidth;
       let shiftSize = lastMovingTabScreen + tabSize - firstMovingTabScreen;
-      let translate = screen - draggedTab._dragData[screenAxis];
+      let translate = screen - dragData[screenAxis];
       if (!pinned) {
         translate +=
-          this.arrowScrollbox.scrollbox[scrollDirection] -
-          draggedTab._dragData.scrollPos;
+          this.arrowScrollbox.scrollbox[scrollDirection] - dragData.scrollPos;
       }
       let firstBound = firstTab[screenAxis] - firstMovingTabScreen;
       let lastBound =
@@ -1994,7 +1993,7 @@
         tab.style.transform = `${translateAxis}(${translate}px)`;
       }
 
-      draggedTab._dragData.translatePos = translate;
+      dragData.translatePos = translate;
 
       // Determine what tab we're dragging over.
       // * Single tab dragging: Point of reference is the center of the dragged tab. If that
@@ -2005,20 +2004,11 @@
       //   mouse is moving from top to bottom, the bottom reference gets activated,
       //   otherwise the top reference will be used. Everything else works the same
       //   as single tab dragging.
-      // * We're doing a binary search in order to reduce the amount of
-      //   tabs we need to check.
 
       tabs = tabs.filter(t => !movingTabs.includes(t) || t == draggedTab);
       let firstTabCenter = firstMovingTabScreen + translate + tabSize / 2;
       let lastTabCenter = lastMovingTabScreen + translate + tabSize / 2;
-      let tabCenter = directionMove ? lastTabCenter : firstTabCenter;
-      let newIndex = -1;
-      let oldIndex =
-        "animDropIndex" in draggedTab._dragData
-          ? draggedTab._dragData.animDropIndex
-          : movingTabs[0]._tPos;
-      let low = 0;
-      let high = tabs.length - 1;
+      let tabCenter = directionForward ? lastTabCenter : firstTabCenter;
       let getTabShift = (tab, dropIndex) => {
         if (tab._tPos < draggedTab._tPos && tab._tPos >= dropIndex) {
           return this.#rtlMode ? -shiftSize : shiftSize;
@@ -2029,32 +2019,91 @@
         return 0;
       };
 
-      while (low <= high) {
-        let mid = Math.floor((low + high) / 2);
-        if (tabs[mid] == draggedTab && ++mid > high) {
-          break;
-        }
-        screen = tabs[mid][screenAxis] + getTabShift(tabs[mid], oldIndex);
+      // We're doing a binary search in order to reduce the amount of
+      // tabs we need to check.
+      let oldIndex = dragData.animDropIndex ?? movingTabs[0]._tPos;
+      let tabDropIndexFromPoint = point => {
+        let index = -1;
+        let low = 0;
+        let high = tabs.length - 1;
+        while (low <= high) {
+          let mid = Math.floor((low + high) / 2);
+          if (tabs[mid] == draggedTab && ++mid > high) {
+            break;
+          }
+          screen = tabs[mid][screenAxis] + getTabShift(tabs[mid], oldIndex);
 
-        if (screen > tabCenter) {
-          high = mid - 1;
-        } else if (
-          screen + tabs[mid].getBoundingClientRect()[size] <
-          tabCenter
+          if (screen > point) {
+            high = mid - 1;
+          } else if (screen + tabs[mid].getBoundingClientRect()[size] < point) {
+            low = mid + 1;
+          } else {
+            index = tabs[mid]._tPos;
+            break;
+          }
+        }
+        if (index >= oldIndex) {
+          index++;
+        }
+        return index;
+      };
+      let newIndex = tabDropIndexFromPoint(tabCenter);
+      if (newIndex < 0) {
+        newIndex = oldIndex;
+      }
+      dragData.animDropIndex = newIndex;
+
+      if (gBrowser._tabGroupsEnabled && !pinned) {
+        let dragOverGroupingThreshold =
+          Services.prefs.getIntPref(
+            "browser.tabs.groups.dragOverThresholdPercent"
+          ) / 100;
+        dragOverGroupingThreshold = Math.max(0, dragOverGroupingThreshold);
+        dragOverGroupingThreshold = Math.min(0.5, dragOverGroupingThreshold);
+        let groupPoint =
+          (directionForward
+            ? lastMovingTabScreen + tabSize * (1 - dragOverGroupingThreshold)
+            : firstMovingTabScreen + tabSize * dragOverGroupingThreshold) +
+          translate;
+        let groupDropIndex = tabDropIndexFromPoint(groupPoint);
+        if (directionForward) {
+          groupDropIndex--;
+        }
+        if (
+          "groupDropIndex" in dragData &&
+          dragData.groupDropIndex != groupDropIndex
         ) {
-          low = mid + 1;
+          tabs[dragData.groupDropIndex]?.removeAttribute(
+            "dragover-createGroup"
+          );
+          delete dragData.groupDropIndex;
+        }
+        if (groupDropIndex >= 0) {
+          dragData.groupDropIndex = groupDropIndex;
+          this.toggleAttribute("movingtab-createGroup", true);
+          tabs[groupDropIndex].toggleAttribute("dragover-createGroup", true);
+
+          let groupColorCode = gBrowser.tabGroupMenu.nextUnusedColor;
+          this.style.setProperty(
+            "--dragover-tab-group-color",
+            `var(--tab-group-color-${groupColorCode})`
+          );
+          this.style.setProperty(
+            "--dragover-tab-group-color-invert",
+            `var(--tab-group-color-${groupColorCode}-invert)`
+          );
+          this.style.setProperty(
+            "--dragover-tab-group-color-pale",
+            `var(--tab-group-color-${groupColorCode}-pale)`
+          );
         } else {
-          newIndex = tabs[mid]._tPos;
-          break;
+          this.removeAttribute("movingtab-createGroup");
         }
       }
-      if (newIndex >= oldIndex) {
-        newIndex++;
-      }
-      if (newIndex < 0 || newIndex == oldIndex) {
+
+      if (newIndex == oldIndex) {
         return;
       }
-      draggedTab._dragData.animDropIndex = newIndex;
 
       // Shift background tabs to leave a gap where the dragged tab
       // would currently be dropped.
@@ -2074,9 +2123,11 @@
 
       for (let tab of this.visibleTabs) {
         tab.style.transform = "";
+        tab.removeAttribute("dragover-createGroup");
       }
 
       this.removeAttribute("movingtab");
+      this.removeAttribute("movingtab-createGroup");
       gNavToolbox.removeAttribute("movingtab");
 
       this._handleTabSelect();

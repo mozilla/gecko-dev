@@ -2996,7 +2996,10 @@
 
       let id = `${Date.now()}-${Math.round(Math.random() * 100)}`;
       let group = this._createTabGroup(id, color, false, label);
-      this.tabContainer.insertBefore(group, insertBefore);
+      this.tabContainer.insertBefore(
+        group,
+        insertBefore?.group ?? insertBefore
+      );
       group.addTabs(tabs);
 
       group.dispatchEvent(new CustomEvent("TabGroupCreate", { bubbles: true }));
