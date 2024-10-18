@@ -842,13 +842,13 @@ var dataProviders = {
 
       desc.isFallbackAdapter = adapter.isFallbackAdapter;
 
-      const adapterInfo = await adapter.requestAdapterInfo();
+      const adapterInfo = adapter.info;
       // We can't directly enumerate properties of instances of `GPUAdapterInfo`s, so use the prototype instead.
       const adapterInfoObj = {};
       for (const k of Object.keys(Object.getPrototypeOf(adapterInfo)).sort()) {
         adapterInfoObj[k] = adapterInfo[k];
       }
-      desc[`requestAdapterInfo()`] = adapterInfoObj;
+      desc.info = adapterInfoObj;
 
       desc.features = Array.from(adapter.features).sort();
 
