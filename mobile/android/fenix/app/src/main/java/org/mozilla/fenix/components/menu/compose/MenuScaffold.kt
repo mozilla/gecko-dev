@@ -17,6 +17,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.mozilla.fenix.compose.Divider
+import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * A scaffold for a menu UI that implements the basic layout structure with [header] and [content].
@@ -42,9 +44,15 @@ internal fun MenuScaffold(
             Spacer(modifier = Modifier.height(8.dp))
         }
 
+        val scrollState = rememberScrollState()
+
+        if (scrollState.value != 0) {
+            Divider(color = FirefoxTheme.colors.borderPrimary)
+        }
+
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
                 .padding(
                     start = 16.dp,
                     top = 12.dp,
