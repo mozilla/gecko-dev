@@ -94,6 +94,11 @@ class MozharnessRunner(MozbuildObject):
                 "config": desktop_unittest_config
                 + ["--mochitest-suite", "mochitest-browser-media"],
             },
+            "mochitest-browser-translations": {
+                "script": "desktop_unittest.py",
+                "config": desktop_unittest_config
+                + ["--mochitest-suite", "mochitest-browser-translations"],
+            },
             "mochitest-devtools-chrome": {
                 "script": "desktop_unittest.py",
                 "config": desktop_unittest_config

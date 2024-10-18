@@ -433,6 +433,30 @@ mochitest-browser-screenshots:
         mochitest-flavor: browser
     allow-software-gl-layers: false
 
+mochitest-browser-translations:
+    description: "Mochitest browser translations"
+    suite:
+        name: mochitest-browser-translations
+    treeherder-symbol: M(tr8ns)
+    schedules-component: mochitest-browser-translations
+    loopback-video: true
+    test-manifest-loader: null
+    run-on-projects:
+        by-test-platform:
+            android.*: []
+            default: built-projects
+    tier: default
+    max-run-time:
+        by-test-platform:
+            .*asan.*: 1800
+            .*tsan.*: 2400
+            default: 1200
+    mozharness:
+        mochitest-flavor: browser
+    instance-size: default
+    allow-software-gl-layers: false
+    virtualization: virtual
+
 mochitest-chrome:
     description: "Mochitest chrome run"
     treeherder-symbol: M(c)

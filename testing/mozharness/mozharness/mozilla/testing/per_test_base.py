@@ -226,6 +226,11 @@ class SingleTestMixin(object):
                 ): "mochitest-browser-media",
                 (
                     "mochitest-browser-chrome",
+                    "translations",
+                    None,
+                ): "mochitest-browser-translations",
+                (
+                    "mochitest-browser-chrome",
                     "devtools",
                     None,
                 ): "mochitest-devtools-chrome",

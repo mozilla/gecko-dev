@@ -292,6 +292,7 @@ class AutoTry:
         "chrome": ["mochitest-o"],
         "browser-a11y": ["mochitest-ba"],
         "browser-media": ["mochitest-bmda"],
+        "browser-translations": ["mochitest-btr8ns"],
         "browser-chrome": [
             "mochitest-browser-chrome-1",
             "mochitest-e10s-browser-chrome-1",
@@ -315,6 +316,7 @@ class AutoTry:
         "browser-chrome": "mochitest-bc",
         "browser-a11y": "mochitest-ba",
         "browser-media": "mochitest-bmda",
+        "browser-translations": "mochitest-btr8ns",
         "devtools-chrome": "mochitest-dt",
         "crashtest": "crashtest",
         "reftest": "reftest",
@@ -378,6 +380,9 @@ class AutoTry:
 
                 if "subsuite" in t and t["subsuite"] == "media-bc":
                     flavor = "browser-media"
+
+                if "subsuite" in t and t["subsuite"] == "translations":
+                    flavor = "browser-translations"
 
                 if flavor in ["crashtest", "reftest"]:
                     manifest_relpath = os.path.relpath(t["manifest"], self.topsrcdir)

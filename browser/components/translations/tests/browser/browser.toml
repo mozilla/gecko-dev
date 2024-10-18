@@ -1,4 +1,5 @@
 [DEFAULT]
+subsuite = "translations"
 support-files = [
   "head.js",
   "!/toolkit/components/translations/tests/browser/shared-head.js",
