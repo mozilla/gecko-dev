@@ -148,16 +148,16 @@ class VendorPython(MozbuildObject):
             _purge_vendor_dir(vendor_dir)
             self._extract(tmp, vendor_dir, keep_extra_files)
 
+        vendored_lock_file_hash_file.write_text(
+            encoding="utf-8", data=hash_file_text(uv_lock_file)
+        )
+
         self.repository.add_remove_files(vendor_dir)
         # explicitly add the content of the egg-info directory as it is
         # covered by the hgignore pattern.
         egg_info_files = list(vendor_dir.glob("**/*.egg-info/*"))
         if egg_info_files:
-            self.repository.add_remove_files(*egg_info_files)
-
-        vendored_lock_file_hash_file.write_text(
-            encoding="utf-8", data=hash_file_text(uv_lock_file)
-        )
+            self.repository.add_remove_files(*egg_info_files, force=True)
 
     def _extract(self, src, dest, keep_extra_files=False):
         """extract source distribution into vendor directory"""

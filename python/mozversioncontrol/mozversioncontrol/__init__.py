@@ -217,7 +217,7 @@ class Repository(object):
         """
 
     @abc.abstractmethod
-    def add_remove_files(self, *paths: Union[str, Path]):
+    def add_remove_files(self, *paths: Union[str, Path], force: bool = False):
         """Add and remove files under `paths` in this repository's working copy."""
 
     @abc.abstractmethod
@@ -550,7 +550,7 @@ class HgRepository(Repository):
             return_codes=(1,),
         ).split()
 
-    def add_remove_files(self, *paths: Union[str, Path]):
+    def add_remove_files(self, *paths: Union[str, Path], force: bool = False):
         if not paths:
             return
 
@@ -867,13 +867,20 @@ class GitRepository(Repository):
         ).splitlines()
         return [f for f in files if f]
 
-    def add_remove_files(self, *paths: Union[str, Path]):
+    def add_remove_files(self, *paths: Union[str, Path], force: bool = False):
         if not paths:
             return
 
         paths = [str(path) for path in paths]
 
-        self._run("add", *paths)
+        cmd = ["add"]
+
+        if force:
+            cmd.append("-f")
+
+        cmd.extend(paths)
+
+        self._run(*cmd)
 
     def forget_add_remove_files(self, *paths: Union[str, Path]):
         if not paths:
@@ -1112,7 +1119,7 @@ class SrcRepository(Repository):
     def get_outgoing_files(self, diff_filter="ADM", upstream=None):
         return []
 
-    def add_remove_files(self, *paths: Union[str, Path]):
+    def add_remove_files(self, *paths: Union[str, Path], force: bool = False):
         pass
 
     def forget_add_remove_files(self, *paths: Union[str, Path]):
