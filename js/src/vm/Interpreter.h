@@ -643,21 +643,13 @@ bool OptimizeSpreadCall(JSContext* cx, HandleValue arg,
 bool OptimizeGetIterator(JSContext* cx, HandleValue arg, bool* result);
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-bool GetDisposeMethod(JSContext* cx, JS::Handle<JS::Value> obj, UsingHint hint,
-                      JS::MutableHandle<JS::Value> disposeMethod);
+enum class SyncDisposalClosureSlots : uint8_t {
+  Method,
+};
+bool SyncDisposalClosure(JSContext* cx, unsigned argc, JS::Value* vp);
 
 ErrorObject* CreateSuppressedError(JSContext* cx, JS::Handle<JS::Value> error,
                                    JS::Handle<JS::Value> suppressed);
-
-bool CreateDisposableResource(JSContext* cx, JS::Handle<JS::Value> objVal,
-                              UsingHint hint,
-                              JS::Handle<mozilla::Maybe<JS::Value>> methodVal,
-                              JS::MutableHandle<JS::Value> result);
-
-bool AddDisposableResource(JSContext* cx,
-                           JS::Handle<ArrayObject*> disposeCapability,
-                           JS::Handle<JS::Value> val, UsingHint hint,
-                           JS::Handle<mozilla::Maybe<JS::Value>> methodVal);
 
 bool AddDisposableResourceToCapability(JSContext* cx, JS::Handle<JSObject*> env,
                                        JS::Handle<JS::Value> val,
