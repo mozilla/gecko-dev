@@ -507,6 +507,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   static bool GetParentalControlsEnabled() { return sParentalControlsEnabled; }
   static void UpdateParentalControlsEnabled(bool waitForCompletion);
   static void CheckThirdPartyRoots();
+  static void SetHasThirdPartyRoots(bool aResult);
 
  private:
   nsHttpHandler();
