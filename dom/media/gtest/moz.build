@@ -63,7 +63,6 @@ UNIFIED_SOURCES += [
     "TestMuxer.cpp",
     "TestOggWriter.cpp",
     "TestOpusParser.cpp",
-    "TestPacer.cpp",
     "TestRust.cpp",
     "TestTimeUnit.cpp",
     "TestVideoSegment.cpp",
@@ -92,6 +91,7 @@ if CONFIG["OS_TARGET"] != "Android":
 if CONFIG["MOZ_WEBRTC"] and CONFIG["OS_TARGET"] != "Android":
     UNIFIED_SOURCES += [
         "TestAudioDeviceEnumerator.cpp",
+        "TestPacer.cpp",
         "TestVideoFrameConverter.cpp",
     ]
 
