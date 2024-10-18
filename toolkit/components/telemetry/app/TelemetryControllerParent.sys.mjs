@@ -1034,7 +1034,7 @@ var Impl = {
         await lazy.ClientID.resetIdentifiers();
         this._clientID = await lazy.ClientID.getClientID();
         this._profileGroupID = await lazy.ClientID.getProfileGroupID();
-        Services.telemetry.scalarSet("telemetry.data_upload_optin", true);
+        Glean.telemetry.dataUploadOptin.set(true);
 
         await this.saveUninstallPing().catch(e =>
           this._log.warn("_onUploadPrefChange - saveUninstallPing failed", e)

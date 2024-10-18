@@ -68,3 +68,20 @@ legacy.telemetry:
     no_lint:
       - BASELINE_PING
     send_in_pings: *client_id_pings
+
+telemetry:
+  data_upload_optin:
+    type: boolean
+    description: >
+      User opted into sending Telemetry data again.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar telemetry.data_upload_optin.
+    bugs:
+      - https://bugzil.la/1445921
+    data_reviews:
+      - https://bugzil.la/1445921
+    notification_emails:
+      - jrediger@mozilla.com
+      - telemetry-client-dev@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_DATA_UPLOAD_OPTIN
