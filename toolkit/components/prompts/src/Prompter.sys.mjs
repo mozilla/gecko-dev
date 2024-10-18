@@ -687,6 +687,24 @@ var InternalPromptUtils = {
     let defaultButtonNum = (flags & BUTTON_DEFAULT_MASK) >> 24;
     let isDelayEnabled = flags & Ci.nsIPrompt.BUTTON_DELAY_ENABLE;
 
+    // Sanity check: If the flags indicate there should be no button0 then flags
+    // must equal BUTTON_NONE (notably, it must include BUTTON_NONE_ENABLE_BIT).
+    let allowNoButtons = flags == Ci.nsIPromptService.BUTTON_NONE;
+    const NO_BUTTON0 =
+      Ci.nsIPrompt.BUTTON_POS_0 * Ci.nsIPrompt.BUTTON_TITLE_IS_STRING;
+    if (!allowNoButtons && !button0 && (flags & NO_BUTTON0) == NO_BUTTON0) {
+      throw new Error(
+        `Request for modal prompt with no buttons requires flags to be ` +
+          `BUTTON_NONE.  Got ${flags}`
+      );
+    }
+    if (allowNoButtons && (button0 || button1 || button2)) {
+      throw new Error(
+        `Request for modal prompt with no buttons requires button names to be ` +
+          `null.  Got ${button0}, ${button1}, ${button2}`
+      );
+    }
+
     // Flags can be used to select a specific pre-defined button label or
     // a caller-supplied string (button0/button1/button2). If no flags are
     // set for a button, then the button won't be shown.
@@ -732,6 +750,7 @@ var InternalPromptUtils = {
       buttonLabels[2],
       defaultButtonNum,
       isDelayEnabled,
+      allowNoButtons,
     ];
   },
 
@@ -1459,11 +1478,18 @@ class ModalPrompter {
       ...extraArgs,
     };
 
-    let [label0, label1, label2, defaultButtonNum, isDelayEnabled] =
-      InternalPromptUtils.confirmExHelper(flags, button0, button1, button2);
+    let [
+      label0,
+      label1,
+      label2,
+      defaultButtonNum,
+      isDelayEnabled,
+      allowNoButtons,
+    ] = InternalPromptUtils.confirmExHelper(flags, button0, button1, button2);
 
     args.defaultButtonNum = defaultButtonNum;
     args.enableDelay = isDelayEnabled;
+    args.allowNoButtons = allowNoButtons;
 
     if (label0) {
       args.button0Label = label0;

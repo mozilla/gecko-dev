@@ -58,6 +58,13 @@ interface nsIPrompt : nsISupports
 
     const unsigned long SHOW_SPINNER               = 1 << 27;
 
+    // Part of BUTTON_NONE.  This is not a button flag.
+    const unsigned long BUTTON_NONE_ENABLE_BIT    = 1 << 28;
+
+    const unsigned long BUTTON_NONE =
+        BUTTON_NONE_ENABLE_BIT |
+        BUTTON_TITLE_IS_STRING * BUTTON_POS_0;
+
     const unsigned long STD_OK_CANCEL_BUTTONS      = (BUTTON_TITLE_OK * BUTTON_POS_0) +
                                                     (BUTTON_TITLE_CANCEL * BUTTON_POS_1);
     const unsigned long STD_YES_NO_BUTTONS         = (BUTTON_TITLE_YES * BUTTON_POS_0) +

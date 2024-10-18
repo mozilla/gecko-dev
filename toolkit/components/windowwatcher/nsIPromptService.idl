@@ -267,16 +267,30 @@ interface nsIPromptService : nsISupports
    */
   const unsigned long SHOW_SPINNER               = 1 << 27;
 
+  // Part of BUTTON_NONE.  This is not a button flag.  It protects callers from
+  // unwittingly creating buttonless dialogs, since they must be manually
+  // dismissed by code.  See BUTTON_NONE.
+  const unsigned long BUTTON_NONE_ENABLE_BIT    = 1 << 28;
+
+  /**
+   * BUTTON_NONE indicates that the prompt should have no buttons.  The prompt
+   * must be dismissed in code, by calling prompt.close() with a "dialogclosing"
+   * event.  This flag should not be combined with other BUTTON_ flags.
+   */
+  const unsigned long BUTTON_NONE =
+      BUTTON_NONE_ENABLE_BIT |
+      BUTTON_TITLE_IS_STRING * BUTTON_POS_0;
+
   /**
    * Selects the standard set of OK/Cancel buttons.
    */
-  const unsigned long STD_OK_CANCEL_BUTTONS      = (BUTTON_TITLE_OK     * BUTTON_POS_0) +
+  const unsigned long STD_OK_CANCEL_BUTTONS      = (BUTTON_TITLE_OK     * BUTTON_POS_0) |
                                                    (BUTTON_TITLE_CANCEL * BUTTON_POS_1);
 
   /**
    * Selects the standard set of Yes/No buttons.
    */
-  const unsigned long STD_YES_NO_BUTTONS         = (BUTTON_TITLE_YES * BUTTON_POS_0) +
+  const unsigned long STD_YES_NO_BUTTONS         = (BUTTON_TITLE_YES * BUTTON_POS_0) |
                                                    (BUTTON_TITLE_NO  * BUTTON_POS_1);
 
   // Indicates whether a prompt should be shown in-content, on tab level or as a separate window
@@ -321,14 +335,18 @@ interface nsIPromptService : nsISupports
    * assign the title to a particular button.  If BUTTON_TITLE_IS_STRING is
    * used for a button, the string parameter for that button will be used.  If
    * the value for a button position is zero, the button will not be shown.
+   * Note that button 0 will throw an exception if hidden this way.  Clients
+   * must use BUTTON_NONE if they wish to hide all buttons.
    *
    * In general, aButtonFlags is constructed per the following example:
    *
-   *   aButtonFlags = (BUTTON_POS_0) * (BUTTON_TITLE_AAA) +
-   *                  (BUTTON_POS_1) * (BUTTON_TITLE_BBB) +
-   *                   BUTTON_POS_1_DEFAULT;
+   *   aButtonFlags = (BUTTON_POS_0) * (BUTTON_TITLE_AAA) |
+   *                  (BUTTON_POS_1) * (BUTTON_TITLE_BBB) |
+   *                  BUTTON_POS_1_DEFAULT;
    *
    * where "AAA" and "BBB" correspond to one of the button titles.
+   * Some older code uses '+' instead of '|' for constructing flags.  Please
+   * use '|' for this, as shown here.
    */
   int32_t confirmEx(in mozIDOMWindowProxy aParent,
                     in wstring aDialogTitle,

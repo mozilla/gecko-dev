@@ -780,10 +780,7 @@ async function runTests(util) {
 
   promptDone = handlePrompt(state, action);
 
-  // BUTTON_TITLE_IS_STRING with no title removes the button.
-  flags =
-      Ci.nsIPromptService.BUTTON_TITLE_IS_STRING * Ci.nsIPromptService.BUTTON_POS_1 +
-      Ci.nsIPromptService.BUTTON_TITLE_IS_STRING * Ci.nsIPromptService.BUTTON_POS_0;
+  flags = Ci.nsIPromptService.BUTTON_NONE;
   promptArgs = [
     "TestTitle",
     "This is the confirmEx text.",
@@ -802,6 +799,34 @@ async function runTests(util) {
   );
 
   await promptDone;
+
+  // =====
+info("Starting test: ConfirmEx (invalid request for no buttons)");
+  // BUTTON_TITLE_IS_STRING with no title removes the button.  This is forbidden
+  // for button0 unless flags includes
+  // Ci.nsIPromptService.BUTTON_NONE_ENABLE_BIT.
+  flags =
+      Ci.nsIPromptService.BUTTON_TITLE_IS_STRING *
+          Ci.nsIPromptService.BUTTON_POS_0;
+
+  promptArgs = [
+    "TestTitle",
+    "This is the confirmEx text.",
+    flags,
+    null,
+    null,
+    null,
+    null,
+    util.useAsync ? false : {},
+  ];
+
+  let gotException = false;
+  try {
+    await util.prompt("confirmEx", promptArgs);
+  } catch {
+    gotException = true;
+  }
+  ok(gotException, "Received exception for invalid button request");
 
   // =====
   info("Starting test: ConfirmEx (ok/cancel, ok)");

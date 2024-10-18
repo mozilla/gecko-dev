@@ -68,6 +68,11 @@ export class CommonDialog {
         if (this.args.button3Label) {
           numButtons++;
         }
+        if (numButtons == 0 && !this.args.allowNoButtons) {
+          throw new Error(
+            "A dialog with no buttons requires the allowNoButtons argument"
+          );
+        }
         this.numButtons = numButtons;
         this.hasInputField = false;
         this.iconClass = ["question-icon"];

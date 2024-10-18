@@ -362,13 +362,10 @@ void Geolocation::ReallowWithSystemPermissionOrCancel(
   bool geckoWillPrompt =
       GetLocationOSPermission() ==
       geolocation::SystemGeolocationPermissionBehavior::GeckoWillPromptUser;
-  // This combination of flags removes the default yes and no buttons and adds a
-  // spinner to the title.
-  const auto kSpinnerNoButtonFlags = nsIPromptService::BUTTON_TITLE_IS_STRING *
-                                         nsIPromptService::BUTTON_POS_0 +
-                                     nsIPromptService::BUTTON_TITLE_IS_STRING *
-                                         nsIPromptService::BUTTON_POS_1 +
-                                     nsIPromptService::SHOW_SPINNER;
+  // This combination of flags removes all buttons and adds a spinner to the
+  // title.
+  const auto kSpinnerNoButtonFlags =
+      nsIPromptService::BUTTON_NONE | nsIPromptService::SHOW_SPINNER;
   // This combination of flags indicates there is only one button labeled
   // "Cancel".
   const auto kCancelButtonFlags =
