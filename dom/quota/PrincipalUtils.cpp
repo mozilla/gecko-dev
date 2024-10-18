@@ -174,6 +174,32 @@ Result<PrincipalInfo, nsresult> PrincipalMetadataToPrincipalInfo(
   return std::move(principalInfo);
 }
 
+nsAutoCString GetGroupFromValidatedPrincipalInfo(
+    const PrincipalInfo& aPrincipalInfo) {
+  MOZ_ASSERT(IsPrincipalInfoValid(aPrincipalInfo));
+
+  switch (aPrincipalInfo.type()) {
+    case PrincipalInfo::TSystemPrincipalInfo: {
+      return nsAutoCString{GetGroupForChrome()};
+    }
+
+    case PrincipalInfo::TContentPrincipalInfo: {
+      const ContentPrincipalInfo& info =
+          aPrincipalInfo.get_ContentPrincipalInfo();
+
+      nsAutoCString suffix;
+
+      info.attrs().CreateSuffix(suffix);
+
+      return info.baseDomain() + suffix;
+    }
+
+    default: {
+      MOZ_CRASH("Should never get here!");
+    }
+  }
+}
+
 nsAutoCString GetOriginFromValidatedPrincipalInfo(
     const PrincipalInfo& aPrincipalInfo) {
   MOZ_ASSERT(IsPrincipalInfoValid(aPrincipalInfo));
@@ -293,11 +319,13 @@ Result<nsAutoCString, nsresult> GetOriginFromWindow(
 
 PrincipalMetadata GetInfoForChrome() {
   return {{},
-          GetOriginForChrome(),
+          GetGroupForChrome(),
           GetOriginForChrome(),
           GetOriginForChrome(),
           false};
 }
+
+nsLiteralCString GetGroupForChrome() { return nsLiteralCString{kChromeOrigin}; }
 
 nsLiteralCString GetOriginForChrome() {
   return nsLiteralCString{kChromeOrigin};

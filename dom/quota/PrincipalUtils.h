@@ -42,6 +42,9 @@ Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
 Result<mozilla::ipc::PrincipalInfo, nsresult> PrincipalMetadataToPrincipalInfo(
     const PrincipalMetadata& aPrincipalMetadata);
 
+nsAutoCString GetGroupFromValidatedPrincipalInfo(
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
+
 nsAutoCString GetOriginFromValidatedPrincipalInfo(
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
@@ -56,6 +59,8 @@ Result<nsAutoCString, nsresult> GetOriginFromPrincipal(
 
 Result<nsAutoCString, nsresult> GetOriginFromWindow(
     nsPIDOMWindowOuter* aWindow);
+
+nsLiteralCString GetGroupForChrome();
 
 nsLiteralCString GetOriginForChrome();
 
