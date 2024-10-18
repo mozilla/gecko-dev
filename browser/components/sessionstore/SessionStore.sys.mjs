@@ -5668,7 +5668,6 @@ var SessionStoreInternal = {
       ) {
         aWindow.SidebarController.showInitially(aSidebar.command);
       }
-      aWindow.SidebarController.uiStateInitialized = true;
     }
     if (aWindow.SidebarController.sidebarRevampEnabled) {
       const { SidebarController } = aWindow;

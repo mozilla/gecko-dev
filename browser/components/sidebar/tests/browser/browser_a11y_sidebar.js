@@ -82,7 +82,6 @@ add_task(async function test_menu_items_labeled() {
     "All buttons are shown."
   );
 
-  SidebarController.toggleExpanded(false);
   await sidebar.updateComplete;
   for (const button of allButtons) {
     const view = button.getAttribute("view");
@@ -90,7 +89,7 @@ add_task(async function test_menu_items_labeled() {
     ok(!button.hasVisibleLabel, `Collapsed ${view} button has no label.`);
   }
 
-  SidebarController.toggleExpanded(true);
+  SidebarController.sidebarMain.expanded = true;
   await sidebar.updateComplete;
   for (const button of allButtons) {
     const view = button.getAttribute("view");
