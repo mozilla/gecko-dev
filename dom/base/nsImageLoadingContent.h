@@ -224,7 +224,7 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
   void BindToTree(mozilla::dom::BindContext&, nsINode& aParent);
   void UnbindFromTree();
 
-  void OnLoadComplete(imgIRequest* aRequest, nsresult aStatus);
+  void OnLoadComplete(imgIRequest* aRequest, uint32_t aImageStatus);
   void OnUnlockedDraw();
   void OnImageIsAnimated(imgIRequest* aRequest);
 

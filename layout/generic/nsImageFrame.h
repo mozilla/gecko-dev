@@ -295,7 +295,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   void OnSizeAvailable(imgIRequest* aRequest, imgIContainer* aImage);
   void OnFrameUpdate(imgIRequest* aRequest, const nsIntRect* aRect);
-  void OnLoadComplete(imgIRequest* aRequest, nsresult aStatus);
+  void OnLoadComplete(imgIRequest* aRequest);
   mozilla::IntrinsicSize ComputeIntrinsicSize(
       bool aIgnoreContainment = false) const;
   // Whether the image frame should use the mapped aspect ratio from width=""
@@ -305,7 +305,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
   /**
    * Notification that aRequest will now be the current request.
    */
-  void NotifyNewCurrentRequest(imgIRequest* aRequest, nsresult aStatus);
+  void NotifyNewCurrentRequest(imgIRequest* aRequest);
 
   /// Always sync decode our image when painting if @aForce is true.
   void SetForceSyncDecoding(bool aForce) { mForceSyncDecoding = aForce; }
