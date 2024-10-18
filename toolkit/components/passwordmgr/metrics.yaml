@@ -728,6 +728,26 @@ pwmgr:
         type: string
     telemetry_mirror: Pwmgr_Sort_List
 
+  potentially_breached_passwords:
+    type: quantity
+    description: >
+      The number of potentially breached passwords, as determined by
+      LoginBreaches.getPotentialBreachesByLoginGUID.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar pwmgr.potentially_breached_passwords.
+    bugs:
+      - https://bugzil.la/1577808
+    data_reviews:
+      - https://bugzil.la/1577808
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - passwords-dev@mozilla.org
+    expires: never
+    unit: passwords
+    telemetry_mirror: PWMGR_POTENTIALLY_BREACHED_PASSWORDS
+    no_lint:
+      - UNIT_IN_NAME
+
 form_autocomplete:
   show_logins:
     type: event
