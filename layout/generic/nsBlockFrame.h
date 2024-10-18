@@ -674,7 +674,7 @@ class nsBlockFrame : public nsContainerFrame {
    * whether this block is in a block formatting-context whose root block has
    * -webkit-line-clamp: <n>.
    */
-  bool IsInLineClampContext() const;
+  bool IsInLineClampContext() const { return !!GetLineClampRoot(); }
 
   /**
    * @return false iff this block does not have a float on any child list.
@@ -683,6 +683,9 @@ class nsBlockFrame : public nsContainerFrame {
   bool MaybeHasFloats() const;
 
  protected:
+  nsBlockFrame* GetLineClampRoot() const;
+  nscoord ApplyLineClamp(nscoord aContentBlockEndEdge);
+
   /** grab overflow lines from this block's prevInFlow, and make them
    * part of this block's mLines list.
    * @return true if any lines were drained.
