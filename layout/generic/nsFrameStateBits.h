@@ -553,18 +553,16 @@ FRAME_STATE_BIT(Block, 26, NS_BLOCK_HAS_CLEAR_CHILDREN)
 // even if it has no actual first-letter frame among its descendants.
 FRAME_STATE_BIT(Block, 27, NS_BLOCK_HAS_FIRST_LETTER_STYLE)
 
-// NS_BLOCK_HAS_OUTSIDE_MARKER and NS_BLOCK_HAS_INSIDE_MARKER
-// means the block has an associated ::marker frame, they are mutually
-// exclusive.
-FRAME_STATE_BIT(Block, 28, NS_BLOCK_HAS_OUTSIDE_MARKER)
-FRAME_STATE_BIT(Block, 29, NS_BLOCK_HAS_INSIDE_MARKER)
+// NS_BLOCK_HAS_MARKER means the block has an associated ::marker frame, inside
+// or outside depending on list-style-position.
+FRAME_STATE_BIT(Block, 28, NS_BLOCK_HAS_MARKER)
 
 // Something in the block has changed that requires Bidi resolution to be
 // performed on the block. This flag must be either set on all blocks in a
 // continuation chain or none of them.
-FRAME_STATE_BIT(Block, 30, NS_BLOCK_NEEDS_BIDI_RESOLUTION)
+FRAME_STATE_BIT(Block, 29, NS_BLOCK_NEEDS_BIDI_RESOLUTION)
 
-// bits 31 free.
+// bits 30 and 31 free.
 
 // NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS indicates that exactly one line in this
 // block has the LineClampEllipsis flag set, and that such a line must be found
