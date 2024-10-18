@@ -72,6 +72,11 @@ fun createNimbus(context: Context, urlString: String?): NimbusApi {
         }
         recordedContext = RecordedNimbusContext(
             isFirstRun = isAppFirstRun,
+            utmSource = context.settings().utmSource,
+            utmMedium = context.settings().utmMedium,
+            utmCampaign = context.settings().utmCampaign,
+            utmTerm = context.settings().utmTerm,
+            utmContent = context.settings().utmContent,
         )
     }.build(appInfo).also { nimbusApi ->
         nimbusApi.recordIsReady(FxNimbus.features.nimbusIsReady.value().eventCount)

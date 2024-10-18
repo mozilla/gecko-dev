@@ -29,6 +29,11 @@ class RecordedNimbusContextTest {
     fun `GIVEN an instance of RecordedNimbusContext WHEN serialized to JSON THEN its JSON structure matches the expected value`() {
         val context = RecordedNimbusContext(
             isFirstRun = true,
+            utmSource = "",
+            utmMedium = "",
+            utmCampaign = "",
+            utmTerm = "",
+            utmContent = "",
         )
 
         // RecordedNimbusContext.toJson() returns
@@ -40,6 +45,11 @@ class RecordedNimbusContextTest {
             contextAsJson,
             buildJsonObject {
                 put("is_first_run", true)
+                put("install_referrer_response_utm_source", "")
+                put("install_referrer_response_utm_medium", "")
+                put("install_referrer_response_utm_campaign", "")
+                put("install_referrer_response_utm_term", "")
+                put("install_referrer_response_utm_content", "")
             },
         )
     }
@@ -48,6 +58,11 @@ class RecordedNimbusContextTest {
     fun `GIVEN an instance of RecordedNimbusContext WHEN record called THEN the value recorded to Glean should match the expected value`() {
         RecordedNimbusContext(
             isFirstRun = true,
+            utmSource = "",
+            utmMedium = "",
+            utmCampaign = "",
+            utmTerm = "",
+            utmContent = "",
         ).record()
 
         val recordedValue = GleanNimbus.recordedNimbusContext.testGetValue()
@@ -57,6 +72,11 @@ class RecordedNimbusContextTest {
             recordedValue?.jsonObject,
             buildJsonObject {
                 put("isFirstRun", true)
+                put("installReferrerResponseUtmSource", "")
+                put("installReferrerResponseUtmMedium", "")
+                put("installReferrerResponseUtmCampaign", "")
+                put("installReferrerResponseUtmTerm", "")
+                put("installReferrerResponseUtmContent", "")
             },
         )
     }

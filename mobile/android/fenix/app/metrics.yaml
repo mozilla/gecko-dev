@@ -12056,6 +12056,21 @@ nimbus_system:
       properties:
         is_first_run:
           type: boolean
+        # Campaign source of the install referrer response
+        install_referrer_response_utm_source:
+          type: string
+        # Campaign medium of the install referrer response
+        install_referrer_response_utm_medium:
+          type: string
+        # Campaign name of the install referrer response
+        install_referrer_response_utm_campaign:
+          type: string
+        # Campaign term of the install referrer response
+        install_referrer_response_utm_term:
+          type: string
+        # Campaign content of the install referrer response
+        install_referrer_response_utm_content:
+          type: string
     description: |
       The Nimbus context object that is recorded to Glean
     bugs:

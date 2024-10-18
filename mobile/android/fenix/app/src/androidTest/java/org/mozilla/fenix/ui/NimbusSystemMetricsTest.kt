@@ -19,5 +19,10 @@ class NimbusSystemMetricsTest : TestSetup() {
         val value = NimbusSystem.recordedNimbusContext.testGetValue()
 
         Assert.assertTrue(value?.jsonObject?.get("isFirstRun")?.jsonPrimitive?.booleanOrNull ?: false)
+        Assert.assertTrue(value?.jsonObject?.get("installReferrerResponseUtmSource")?.jsonPrimitive?.isString ?: false)
+        Assert.assertTrue(value?.jsonObject?.get("installReferrerResponseUtmMedium")?.jsonPrimitive?.isString ?: false)
+        Assert.assertTrue(value?.jsonObject?.get("installReferrerResponseUtmCampaign")?.jsonPrimitive?.isString ?: false)
+        Assert.assertTrue(value?.jsonObject?.get("installReferrerResponseUtmTerm")?.jsonPrimitive?.isString ?: false)
+        Assert.assertTrue(value?.jsonObject?.get("installReferrerResponseUtmContent")?.jsonPrimitive?.isString ?: false)
     }
 }

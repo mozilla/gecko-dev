@@ -19,11 +19,21 @@ import org.mozilla.fenix.GleanMetrics.NimbusSystem
  */
 class RecordedNimbusContext(
     val isFirstRun: Boolean,
+    val utmSource: String,
+    val utmMedium: String,
+    val utmCampaign: String,
+    val utmTerm: String,
+    val utmContent: String,
 ) : RecordedContext {
     override fun record() {
         NimbusSystem.recordedNimbusContext.set(
             NimbusSystem.RecordedNimbusContextObject(
                 isFirstRun = isFirstRun,
+                installReferrerResponseUtmSource = utmSource,
+                installReferrerResponseUtmMedium = utmMedium,
+                installReferrerResponseUtmCampaign = utmCampaign,
+                installReferrerResponseUtmTerm = utmTerm,
+                installReferrerResponseUtmContent = utmContent,
             ),
         )
     }
@@ -31,6 +41,11 @@ class RecordedNimbusContext(
     override fun toJson(): JsonObject {
         val obj = JSONObject()
         obj.put("is_first_run", isFirstRun)
+        obj.put("install_referrer_response_utm_source", utmSource)
+        obj.put("install_referrer_response_utm_medium", utmMedium)
+        obj.put("install_referrer_response_utm_campaign", utmCampaign)
+        obj.put("install_referrer_response_utm_term", utmTerm)
+        obj.put("install_referrer_response_utm_content", utmContent)
         return obj
     }
 }
