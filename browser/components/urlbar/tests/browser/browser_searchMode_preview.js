@@ -16,7 +16,7 @@ add_setup(async function () {
   });
 
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+    set: [["browser.urlbar.suggest.quickactions", false]],
   });
   if (UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")) {
     await SpecialPowers.pushPrefEnv({

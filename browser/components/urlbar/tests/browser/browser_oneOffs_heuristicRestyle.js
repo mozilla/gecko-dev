@@ -279,12 +279,6 @@ add_setup(async function () {
   );
 });
 
-add_setup(async () => {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
-  });
-});
-
 add_task(async function arrow_engine_url() {
   await doArrowTest("mozilla.or", UrlbarUtils.RESULT_TYPE.URL, false);
 });

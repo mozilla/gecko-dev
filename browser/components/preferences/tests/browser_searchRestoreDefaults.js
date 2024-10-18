@@ -8,10 +8,6 @@ const { SearchUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/SearchUtils.sys.mjs"
 );
 add_task(async function test_restore_functionality() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
-  });
-
   // Ensure no engines are hidden to begin with.
   for (let engine of await Services.search.getAppProvidedEngines()) {
     if (engine.hidden) {

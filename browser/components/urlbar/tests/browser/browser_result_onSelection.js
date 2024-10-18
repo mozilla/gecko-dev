@@ -4,10 +4,6 @@
 "use strict";
 
 add_task(async function test() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
-  });
-
   let results = [
     new UrlbarResult(
       UrlbarUtils.RESULT_TYPE.URL,

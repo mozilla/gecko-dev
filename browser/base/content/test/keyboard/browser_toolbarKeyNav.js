@@ -120,8 +120,6 @@ const BOOKMARKS_COUNT = 100;
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
-      // TODO: Reenable in https://bugzilla.mozilla.org/show_bug.cgi?id=1923388
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
       ["browser.toolbars.keyboard_navigation", true],
       ["accessibility.tabfocus", 7],
     ],

@@ -16,7 +16,6 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.urlbar.clipboard.featureGate", true],
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
       ["browser.urlbar.suggest.clipboard", true],
     ],
   });

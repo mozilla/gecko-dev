@@ -25,7 +25,6 @@ async function test_copy_values(testValues, trimHttps) {
 
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
       ["browser.urlbar.trimURLs", true],
       ["browser.urlbar.trimHttps", trimHttps],
       // avoid prompting about phishing

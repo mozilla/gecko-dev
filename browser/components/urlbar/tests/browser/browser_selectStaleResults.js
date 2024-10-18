@@ -13,7 +13,7 @@ ChromeUtils.defineESModuleGetters(this, {
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+    set: [["browser.urlbar.suggest.quickactions", false]],
   });
 
   // We'll later replace this, so ensure it's restored.

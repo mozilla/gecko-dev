@@ -16,10 +16,7 @@
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     // The example.com engine can interfere with this test.
-    set: [
-      ["browser.urlbar.suggest.engines", false],
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
-    ],
+    set: [["browser.urlbar.suggest.engines", false]],
   });
   await cleanUp();
 });

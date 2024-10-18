@@ -17,7 +17,8 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.urlbar.suggest.searches", true],
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
+      ["browser.urlbar.suggest.quickactions", false],
+      ["browser.urlbar.shortcuts.quickactions", false],
     ],
   });
   engine = await SearchTestUtils.installOpenSearchEngine({

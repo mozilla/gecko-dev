@@ -29,7 +29,6 @@ add_setup(async function () {
         "browser.newtabpage.activity-stream.default.sites",
         "http://example.com/",
       ],
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
     ],
   });
   await updateTopSites(sites => sites.length);

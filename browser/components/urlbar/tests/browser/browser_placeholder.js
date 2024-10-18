@@ -36,9 +36,6 @@ var noEngineString;
 SearchTestUtils.init(this);
 
 add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
-  });
   let originalOrder = (await Services.search.getEngines()).map(e => e.id);
   await SearchTestUtils.updateRemoteSettingsConfig(CONFIG);
   appDefaultEngine = await Services.search.getDefault();

@@ -9,9 +9,6 @@
 
 const ENGINE_NAME = "Example";
 add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
-  });
   await SearchTestUtils.installSearchExtension({
     name: ENGINE_NAME,
   });

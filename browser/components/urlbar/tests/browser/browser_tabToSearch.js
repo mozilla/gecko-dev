@@ -25,7 +25,6 @@ add_setup(async function () {
       // Disable onboarding results for general tests. They are enabled in tests
       // that specifically address onboarding.
       ["browser.urlbar.tabToSearch.onboard.interactionsLeft", 0],
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
     ],
   });
 

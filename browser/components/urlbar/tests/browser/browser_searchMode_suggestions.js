@@ -66,7 +66,7 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.search.separatePrivateDefault.ui.enabled", false],
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
+      ["browser.urlbar.suggest.quickactions", false],
       ["browser.urlbar.suggest.trending", false],
       ["browser.urlbar.suggest.recentsearches", false],
     ],
@@ -112,6 +112,7 @@ add_task(async function emptySearch_behavior() {
       },
     ]);
     await UrlbarTestUtils.promisePopupClose(window);
+    await SpecialPowers.popPrefEnv();
   });
 
   await PlacesUtils.history.clear();
@@ -140,6 +141,7 @@ add_task(async function emptySearch_local() {
     ]);
     await UrlbarTestUtils.exitSearchMode(window, { clickClose: true });
     await UrlbarTestUtils.promisePopupClose(window);
+    await SpecialPowers.popPrefEnv();
   });
 
   await PlacesUtils.history.clear();

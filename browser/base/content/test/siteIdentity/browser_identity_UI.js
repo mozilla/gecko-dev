@@ -82,9 +82,6 @@ var tests = [
 ];
 
 add_task(async function test() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
-  });
   ok(gIdentityHandler, "gIdentityHandler should exist");
 
   await BrowserTestUtils.openNewForegroundTab(gBrowser);

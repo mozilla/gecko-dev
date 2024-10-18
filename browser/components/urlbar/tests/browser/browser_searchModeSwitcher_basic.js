@@ -674,11 +674,9 @@ add_task(async function test_open_state() {
 
 add_task(async function nimbusScotchBonnetEnableOverride() {
   info("Setup initial local pref");
-  let defaultBranch = Services.prefs.getDefaultBranch("browser.urlbar.");
-  let initialValue = defaultBranch.getBoolPref("scotchBonnet.enableOverride");
-  defaultBranch.setBoolPref("scotchBonnet.enableOverride", false);
-  UrlbarPrefs.clear("scotchBonnet.enableOverride");
-
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   await TestUtils.waitForCondition(() => {
     return BrowserTestUtils.isHidden(
       gURLBar.querySelector("#urlbar-searchmode-switcher")
@@ -699,7 +697,7 @@ add_task(async function nimbusScotchBonnetEnableOverride() {
   Assert.ok(true, "Search mode switcher should be visible");
 
   await cleanUpNimbusEnable();
-  defaultBranch.setBoolPref("scotchBonnet.enableOverride", initialValue);
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function nimbusLogEnabled() {

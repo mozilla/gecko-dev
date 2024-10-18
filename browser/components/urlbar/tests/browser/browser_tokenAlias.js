@@ -37,10 +37,7 @@ add_setup(async function () {
   // Search results aren't shown in quantumbar unless search suggestions are
   // enabled.
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.suggest.searches", true],
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
-    ],
+    set: [["browser.urlbar.suggest.searches", true]],
   });
 
   // When typing `@`, we are getting token alias engine results and restrict

@@ -14,10 +14,7 @@ add_setup(async function () {
     false
   );
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.suggest.quickactions", false],
-      ["browser.urlbar.scotchBonnet.enableOverride", false],
-    ],
+    set: [["browser.urlbar.suggest.quickactions", false]],
   });
 
   for (let i = 0; i < UrlbarPrefs.get("maxRichResults"); i++) {

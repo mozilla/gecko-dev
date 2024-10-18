@@ -4,9 +4,6 @@
 "use strict";
 
 add_task(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
-  });
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: "about:blank" },
     async function () {
