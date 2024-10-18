@@ -633,19 +633,13 @@
       <html:slot name="treecols"></html:slot>
       <stack class="tree-stack" flex="1">
         <hbox class="tree-rows" flex="1">
-          <hbox flex="1" class="tree-bodybox">
-            <html:slot name="treechildren"></html:slot>
-          </hbox>
+          <html:slot name="treechildren"></html:slot>
           <scrollbar height="0" minwidth="0" minheight="0" orient="vertical"
                      class="hidevscroll-scrollbar scrollbar-topmost"
                      ></scrollbar>
         </hbox>
         <html:input class="tree-input" type="text" hidden="true"/>
       </stack>
-      <hbox class="hidehscroll-box">
-        <scrollbar orient="horizontal" flex="1" increment="16" class="scrollbar-topmost" ></scrollbar>
-        <scrollcorner class="hidevscroll-scrollcorner"></scrollcorner>
-      </hbox>
       `;
     }
 
@@ -681,7 +675,6 @@
 
     static get inheritedAttributes() {
       return {
-        ".hidehscroll-box": "collapsed=hidehscroll",
         ".hidevscroll-scrollbar": "collapsed=hidevscroll",
         ".hidevscroll-scrollcorner": "collapsed=hidevscroll",
       };
@@ -697,7 +690,6 @@
       }
 
       this.setAttribute("hidevscroll", "true");
-      this.setAttribute("hidehscroll", "true");
 
       this.initializeAttributeInheritance();
 
@@ -727,9 +719,7 @@
         if (event.target.tagName != "treechildren") {
           return;
         }
-        if (event.detail == 1) {
-          this.setAttribute("hidehscroll", "true");
-        } else if (event.detail == 0) {
+        if (event.detail == 0) {
           this.setAttribute("hidevscroll", "true");
         }
         event.stopPropagation();
@@ -739,9 +729,7 @@
         if (event.target.tagName != "treechildren") {
           return;
         }
-        if (event.detail == 1) {
-          this.removeAttribute("hidehscroll");
-        } else if (event.detail == 0) {
+        if (event.detail == 0) {
           this.removeAttribute("hidevscroll");
         }
         event.stopPropagation();
@@ -1249,13 +1237,12 @@
         columns.reverse();
       }
       var currentX = this.getBoundingClientRect().x;
-      var adjustedX = aX + this.horizontalPosition;
       for (var i = 0; i < columns.length; ++i) {
         col = columns[i];
         var cw = col.element.getBoundingClientRect().width;
         if (cw > 0) {
           currentX += cw;
-          if (currentX - cw * aThresh > adjustedX) {
+          if (currentX - cw * aThresh > aX) {
             return col.element;
           }
         }

@@ -59,8 +59,6 @@ class XULTreeElement final : public nsXULElement {
 
   int32_t RowWidth();
 
-  int32_t HorizontalPosition();
-
   void EnsureCellIsVisible(int32_t row, nsTreeColumn* col, ErrorResult& aRv);
 
   void ScrollToRow(int32_t aRow);

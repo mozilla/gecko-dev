@@ -88,18 +88,12 @@ nsresult nsTreeColumn::GetRect(nsTreeBodyFrame* aBodyFrame, nscoord aY,
     return NS_ERROR_FAILURE;
   }
 
-  const bool isRTL =
-      aBodyFrame->StyleVisibility()->mDirection == StyleDirection::Rtl;
   *aResult = frame->GetRect();
   if (frame->StyleVisibility()->IsCollapse()) {
     aResult->SizeTo(nsSize());
   }
   aResult->y = aY;
   aResult->height = aHeight;
-  if (isRTL)
-    aResult->x += aBodyFrame->mAdjustWidth;
-  else if (IsLastVisible(aBodyFrame))
-    aResult->width += aBodyFrame->mAdjustWidth;
   return NS_OK;
 }
 
@@ -122,7 +116,6 @@ nsresult nsTreeColumn::GetWidthInTwips(nsTreeBodyFrame* aBodyFrame,
     return NS_ERROR_FAILURE;
   }
   *aResult = frame->GetRect().width;
-  if (IsLastVisible(aBodyFrame)) *aResult += aBodyFrame->mAdjustWidth;
   return NS_OK;
 }
 

@@ -239,7 +239,6 @@ nsTreeBodyFrame::nsTreeBodyFrame(ComputedStyle* aStyle,
       mHorzPosition(0),
       mOriginalHorzWidth(-1),
       mHorzWidth(0),
-      mAdjustWidth(0),
       mRowHeight(0),
       mIndentation(0),
       mUpdateBatchNest(0),
@@ -248,7 +247,6 @@ nsTreeBodyFrame::nsTreeBodyFrame(ComputedStyle* aStyle,
       mFocused(false),
       mHasFixedRowCount(false),
       mVerticalOverflow(false),
-      mHorizontalOverflow(false),
       mReflowCallbackPosted(false),
       mCheckingOverflow(false) {
   mColumns = new nsTreeColumns(this);
@@ -370,7 +368,7 @@ void nsTreeBodyFrame::EnsureView() {
 }
 
 void nsTreeBodyFrame::ManageReflowCallback() {
-  const nscoord horzWidth = CalcHorzWidth(GetScrollParts());
+  const nscoord horzWidth = mRect.width;
   if (!mReflowCallbackPosted) {
     if (!mLastReflowRect || !mLastReflowRect->IsEqualEdges(mRect) ||
         mHorzWidth != horzWidth) {
@@ -412,7 +410,7 @@ bool nsTreeBodyFrame::ReflowFinished() {
   if (mView) {
     CalcInnerBox();
     ScrollParts parts = GetScrollParts();
-    mHorzWidth = CalcHorzWidth(parts);
+    mHorzWidth = mRect.width;
     if (!mHasFixedRowCount) {
       mPageLength =
           (mRowHeight > 0) ? (mInnerBox.height / mRowHeight) : mRowCount;
@@ -563,11 +561,7 @@ int32_t nsTreeBodyFrame::RowHeight() const {
 }
 
 int32_t nsTreeBodyFrame::RowWidth() {
-  return nsPresContext::AppUnitsToIntCSSPixels(CalcHorzWidth(GetScrollParts()));
-}
-
-int32_t nsTreeBodyFrame::GetHorizontalPosition() const {
-  return nsPresContext::AppUnitsToIntCSSPixels(mHorzPosition);
+  return nsPresContext::AppUnitsToIntCSSPixels(mRect.width);
 }
 
 Maybe<CSSIntRegion> nsTreeBodyFrame::GetSelectionRegion() {
@@ -713,23 +707,9 @@ nsresult nsTreeBodyFrame::InvalidateRange(int32_t aStart, int32_t aEnd) {
 
 static void FindScrollParts(nsIFrame* aCurrFrame,
                             nsTreeBodyFrame::ScrollParts* aResult) {
-  if (!aResult->mColumnsScrollFrame) {
-    ScrollContainerFrame* f = do_QueryFrame(aCurrFrame);
-    if (f) {
-      aResult->mColumnsFrame = aCurrFrame;
-      aResult->mColumnsScrollFrame = f;
-    }
-  }
-
   if (nsScrollbarFrame* sf = do_QueryFrame(aCurrFrame)) {
-    if (!sf->IsHorizontal()) {
-      if (!aResult->mVScrollbar) {
-        aResult->mVScrollbar = sf;
-      }
-    } else {
-      if (!aResult->mHScrollbar) {
-        aResult->mHScrollbar = sf;
-      }
+    if (!sf->IsHorizontal() && !aResult->mVScrollbar) {
+      aResult->mVScrollbar = sf;
     }
     // don't bother searching inside a scrollbar
     return;
@@ -737,24 +717,19 @@ static void FindScrollParts(nsIFrame* aCurrFrame,
 
   nsIFrame* child = aCurrFrame->PrincipalChildList().FirstChild();
   while (child && !child->GetContent()->IsRootOfNativeAnonymousSubtree() &&
-         (!aResult->mVScrollbar || !aResult->mHScrollbar ||
-          !aResult->mColumnsScrollFrame)) {
+         !aResult->mVScrollbar) {
     FindScrollParts(child, aResult);
     child = child->GetNextSibling();
   }
 }
 
 nsTreeBodyFrame::ScrollParts nsTreeBodyFrame::GetScrollParts() {
-  ScrollParts result = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+  ScrollParts result;
   XULTreeElement* tree = GetBaseElement();
   if (nsIFrame* treeFrame = tree ? tree->GetPrimaryFrame() : nullptr) {
     // The way we do this, searching through the entire frame subtree, is pretty
     // dumb! We should know where these frames are.
     FindScrollParts(treeFrame, &result);
-    if (result.mHScrollbar) {
-      result.mHScrollbar->SetScrollbarMediatorContent(GetContent());
-      result.mHScrollbarContent = result.mHScrollbar->GetContent()->AsElement();
-    }
     if (result.mVScrollbar) {
       result.mVScrollbar->SetScrollbarMediatorContent(GetContent());
       result.mVScrollbarContent = result.mVScrollbar->GetContent()->AsElement();
@@ -776,14 +751,6 @@ void nsTreeBodyFrame::UpdateScrollbars(const ScrollParts& aParts) {
     // 'this' might be deleted here
   }
 
-  if (weakFrame.IsAlive() && aParts.mHScrollbar) {
-    nsAutoString curPos;
-    curPos.AppendInt(mHorzPosition);
-    aParts.mHScrollbarContent->SetAttr(kNameSpaceID_None, nsGkAtoms::curpos,
-                                       curPos, true);
-    // 'this' might be deleted here
-  }
-
   if (weakFrame.IsAlive() && mScrollbarActivity) {
     mScrollbarActivity->ActivityOccurred();
   }
@@ -791,8 +758,6 @@ void nsTreeBodyFrame::UpdateScrollbars(const ScrollParts& aParts) {
 
 void nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts) {
   bool verticalOverflowChanged = false;
-  bool horizontalOverflowChanged = false;
-
   if (!mVerticalOverflow && mRowCount > mPageLength) {
     mVerticalOverflow = true;
     verticalOverflowChanged = true;
@@ -801,24 +766,7 @@ void nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts) {
     verticalOverflowChanged = true;
   }
 
-  if (aParts.mColumnsFrame) {
-    nsRect bounds = aParts.mColumnsFrame->GetRect();
-    if (bounds.width != 0) {
-      /* Ignore overflows that are less than half a pixel. Yes these happen
-         all over the place when flex boxes are compressed real small.
-         Probably a result of a rounding errors somewhere in the layout code. */
-      bounds.width += nsPresContext::CSSPixelsToAppUnits(0.5f);
-      if (!mHorizontalOverflow && bounds.width < mHorzWidth) {
-        mHorizontalOverflow = true;
-        horizontalOverflowChanged = true;
-      } else if (mHorizontalOverflow && bounds.width >= mHorzWidth) {
-        mHorizontalOverflow = false;
-        horizontalOverflowChanged = true;
-      }
-    }
-  }
-
-  if (!horizontalOverflowChanged && !verticalOverflowChanged) {
+  if (!verticalOverflowChanged) {
     return;
   }
 
@@ -828,21 +776,11 @@ void nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts) {
   RefPtr<mozilla::PresShell> presShell = presContext->GetPresShell();
   nsCOMPtr<nsIContent> content = mContent;
 
-  if (verticalOverflowChanged) {
-    InternalScrollPortEvent event(
-        true, mVerticalOverflow ? eScrollPortOverflow : eScrollPortUnderflow,
-        nullptr);
-    event.mOrient = InternalScrollPortEvent::eVertical;
-    EventDispatcher::Dispatch(content, presContext, &event);
-  }
-
-  if (horizontalOverflowChanged) {
-    InternalScrollPortEvent event(
-        true, mHorizontalOverflow ? eScrollPortOverflow : eScrollPortUnderflow,
-        nullptr);
-    event.mOrient = InternalScrollPortEvent::eHorizontal;
-    EventDispatcher::Dispatch(content, presContext, &event);
-  }
+  InternalScrollPortEvent event(
+      true, mVerticalOverflow ? eScrollPortOverflow : eScrollPortUnderflow,
+      nullptr);
+  event.mOrient = InternalScrollPortEvent::eVertical;
+  EventDispatcher::Dispatch(content, presContext, &event);
 
   // The synchronous event dispatch above can trigger reflow notifications.
   // Flush those explicitly now, so that we can guard against potential infinite
@@ -862,8 +800,7 @@ void nsTreeBodyFrame::CheckOverflow(const ScrollParts& aParts) {
   mCheckingOverflow = false;
 }
 
-void nsTreeBodyFrame::InvalidateScrollbars(const ScrollParts& aParts,
-                                           AutoWeakFrame& aWeakColumnsFrame) {
+void nsTreeBodyFrame::InvalidateScrollbars(const ScrollParts& aParts) {
   if (mUpdateBatchNest || !mView) return;
   AutoWeakFrame weakFrame(this);
 
@@ -888,30 +825,6 @@ void nsTreeBodyFrame::InvalidateScrollbars(const ScrollParts& aParts,
     aParts.mVScrollbarContent->SetAttr(kNameSpaceID_None,
                                        nsGkAtoms::pageincrement, pageStr, true);
     NS_ENSURE_TRUE_VOID(weakFrame.IsAlive());
-  }
-
-  if (aParts.mHScrollbar && aParts.mColumnsFrame &&
-      aWeakColumnsFrame.IsAlive()) {
-    // And now Horizontal scrollbar
-    nsRect bounds = aParts.mColumnsFrame->GetRect();
-    nsAutoString maxposStr;
-
-    maxposStr.AppendInt(mHorzWidth > bounds.width ? mHorzWidth - bounds.width
-                                                  : 0);
-    aParts.mHScrollbarContent->SetAttr(kNameSpaceID_None, nsGkAtoms::maxpos,
-                                       maxposStr, true);
-    NS_ENSURE_TRUE_VOID(weakFrame.IsAlive());
-
-    nsAutoString pageStr;
-    pageStr.AppendInt(bounds.width);
-    aParts.mHScrollbarContent->SetAttr(kNameSpaceID_None,
-                                       nsGkAtoms::pageincrement, pageStr, true);
-    NS_ENSURE_TRUE_VOID(weakFrame.IsAlive());
-
-    pageStr.Truncate();
-    pageStr.AppendInt(nsPresContext::CSSPixelsToAppUnits(16));
-    aParts.mHScrollbarContent->SetAttr(kNameSpaceID_None, nsGkAtoms::increment,
-                                       pageStr, true);
   }
 
   if (weakFrame.IsAlive() && mScrollbarActivity) {
@@ -2189,31 +2102,6 @@ void nsTreeBodyFrame::CalcInnerBox() {
   AdjustForBorderPadding(mComputedStyle, mInnerBox);
 }
 
-nscoord nsTreeBodyFrame::CalcHorzWidth(const ScrollParts& aParts) {
-  // Compute the adjustment to the last column. This varies depending on the
-  // visibility of the columnpicker and the scrollbar.
-  if (aParts.mColumnsFrame)
-    mAdjustWidth = mRect.width - aParts.mColumnsFrame->GetRect().width;
-  else
-    mAdjustWidth = 0;
-
-  nscoord width = 0;
-
-  // We calculate this from the scrollable frame, so that it
-  // properly covers all contingencies of what could be
-  // scrollable (columns, body, etc...)
-
-  if (aParts.mColumnsScrollFrame) {
-    width = aParts.mColumnsScrollFrame->GetScrollRange().width +
-            aParts.mColumnsScrollFrame->GetScrollPortRect().width;
-  }
-
-  // If no horz scrolling periphery is present, then just return our width
-  if (width == 0) width = mRect.width;
-
-  return width;
-}
-
 nsIFrame::Cursor nsTreeBodyFrame::GetCursor(const nsPoint& aPoint) {
   // Check the GetScriptHandlingObject so we don't end up running code when
   // the document is a zombie.
@@ -2545,8 +2433,7 @@ ImgDrawResult nsTreeBodyFrame::PaintTreeBody(gfxContext& aRenderingContext,
         (mRowHeight > 0) ? (mInnerBox.height / mRowHeight) : mRowCount;
   }
 
-  if (oldPageCount != mPageLength ||
-      mHorzWidth != CalcHorzWidth(GetScrollParts())) {
+  if (oldPageCount != mPageLength || mHorzWidth != mRect.width) {
     // Schedule a ResizeReflow that will update our info properly.
     PresShell()->FrameNeedsReflow(this, IntrinsicDirty::FrameAndAncestors,
                                   NS_FRAME_IS_DIRTY);
@@ -3612,33 +3499,7 @@ nsresult nsTreeBodyFrame::EnsureCellIsVisible(int32_t aRow,
   if (!aCol) return NS_ERROR_INVALID_ARG;
 
   ScrollParts parts = GetScrollParts();
-
-  nscoord result = -1;
-  nsresult rv;
-
-  nscoord columnPos;
-  rv = aCol->GetXInTwips(this, &columnPos);
-  if (NS_FAILED(rv)) return rv;
-
-  nscoord columnWidth;
-  rv = aCol->GetWidthInTwips(this, &columnWidth);
-  if (NS_FAILED(rv)) return rv;
-
-  // If the start of the column is before the
-  // start of the horizontal view, then scroll
-  if (columnPos < mHorzPosition) result = columnPos;
-  // If the end of the column is past the end of
-  // the horizontal view, then scroll
-  else if ((columnPos + columnWidth) > (mHorzPosition + mInnerBox.width))
-    result = ((columnPos + columnWidth) - (mHorzPosition + mInnerBox.width)) +
-             mHorzPosition;
-
-  if (result != -1) {
-    rv = ScrollHorzInternal(parts, result);
-    if (NS_FAILED(rv)) return rv;
-  }
-
-  rv = EnsureRowIsVisibleInternal(parts, aRow);
+  nsresult rv = EnsureRowIsVisibleInternal(parts, aRow);
   NS_ENSURE_SUCCESS(rv, rv);
   UpdateScrollbars(parts);
   return rv;
@@ -3694,35 +3555,6 @@ nsresult nsTreeBodyFrame::ScrollInternal(const ScrollParts& aParts,
   return NS_OK;
 }
 
-nsresult nsTreeBodyFrame::ScrollHorzInternal(const ScrollParts& aParts,
-                                             int32_t aPosition) {
-  if (!mView || !aParts.mColumnsScrollFrame || !aParts.mHScrollbar)
-    return NS_OK;
-
-  if (aPosition == mHorzPosition) return NS_OK;
-
-  if (aPosition < 0 || aPosition > mHorzWidth) return NS_OK;
-
-  nsRect bounds = aParts.mColumnsFrame->GetRect();
-  if (aPosition > (mHorzWidth - bounds.width))
-    aPosition = mHorzWidth - bounds.width;
-
-  mHorzPosition = aPosition;
-
-  Invalidate();
-
-  // Update the column scroll view
-  AutoWeakFrame weakFrame(this);
-  aParts.mColumnsScrollFrame->ScrollTo(nsPoint(mHorzPosition, 0),
-                                       ScrollMode::Instant);
-  if (!weakFrame.IsAlive()) {
-    return NS_ERROR_FAILURE;
-  }
-  // And fire off an event about it all
-  PostScrollEvent();
-  return NS_OK;
-}
-
 void nsTreeBodyFrame::ScrollByPage(nsScrollbarFrame* aScrollbar,
                                    int32_t aDirection,
                                    ScrollSnapFlags aSnapFlags) {
@@ -3755,6 +3587,7 @@ void nsTreeBodyFrame::ScrollByUnit(
 }
 
 void nsTreeBodyFrame::RepeatButtonScroll(nsScrollbarFrame* aScrollbar) {
+  MOZ_ASSERT(!aScrollbar->IsHorizontal());
   ScrollParts parts = GetScrollParts();
   int32_t increment = aScrollbar->GetIncrement();
   int32_t direction = 0;
@@ -3763,18 +3596,8 @@ void nsTreeBodyFrame::RepeatButtonScroll(nsScrollbarFrame* aScrollbar) {
   } else if (increment > 0) {
     direction = 1;
   }
-  bool isHorizontal = aScrollbar->IsHorizontal();
-
   AutoWeakFrame weakFrame(this);
-  if (isHorizontal) {
-    int32_t curpos = aScrollbar->MoveToNewPosition(
-        nsScrollbarFrame::ImplementsScrollByUnit::No);
-    if (weakFrame.IsAlive()) {
-      ScrollHorzInternal(parts, curpos);
-    }
-  } else {
-    ScrollToRowInternal(parts, mTopRowIndex + direction);
-  }
+  ScrollToRowInternal(parts, mTopRowIndex + direction);
 
   if (weakFrame.IsAlive() && mScrollbarActivity) {
     mScrollbarActivity->ActivityOccurred();
@@ -3798,10 +3621,6 @@ void nsTreeBodyFrame::ThumbMoved(nsScrollbarFrame* aScrollbar, nscoord aOldPos,
     nscoord newIndex = nsPresContext::AppUnitsToIntCSSPixels(aNewPos);
     nscoord newrow = (rh > 0) ? (newIndex / rh) : 0;
     ScrollInternal(parts, newrow);
-    // Horizontal Scrollbar
-  } else if (parts.mHScrollbar == aScrollbar) {
-    int32_t newIndex = nsPresContext::AppUnitsToIntCSSPixels(aNewPos);
-    ScrollHorzInternal(parts, newIndex);
   }
   if (weakFrame.IsAlive()) {
     UpdateScrollbars(parts);
@@ -4218,13 +4037,12 @@ class nsOverflowChecker : public Runnable {
 bool nsTreeBodyFrame::FullScrollbarsUpdate(bool aNeedsFullInvalidation) {
   ScrollParts parts = GetScrollParts();
   AutoWeakFrame weakFrame(this);
-  AutoWeakFrame weakColumnsFrame(parts.mColumnsFrame);
   UpdateScrollbars(parts);
   NS_ENSURE_TRUE(weakFrame.IsAlive(), false);
   if (aNeedsFullInvalidation) {
     Invalidate();
   }
-  InvalidateScrollbars(parts, weakColumnsFrame);
+  InvalidateScrollbars(parts);
   NS_ENSURE_TRUE(weakFrame.IsAlive(), false);
 
   // Overflow checking dispatches synchronous events, which can cause infinite

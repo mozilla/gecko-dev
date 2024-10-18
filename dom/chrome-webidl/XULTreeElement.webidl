@@ -53,11 +53,6 @@ interface XULTreeElement : XULElement
   readonly attribute long rowWidth;
 
   /**
-   * Get the pixel position of the horizontal scrollbar.
-   */
-  readonly attribute long horizontalPosition;
-
-  /**
    * Get the index of the first visible row.
    */
   long getFirstVisibleRow();

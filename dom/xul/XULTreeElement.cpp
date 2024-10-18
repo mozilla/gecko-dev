@@ -212,14 +212,6 @@ int32_t XULTreeElement::GetLastVisibleRow() {
   return 0;
 }
 
-int32_t XULTreeElement::HorizontalPosition() {
-  nsTreeBodyFrame* body = GetTreeBodyFrame();
-  if (body) {
-    return body->GetHorizontalPosition();
-  }
-  return 0;
-}
-
 int32_t XULTreeElement::GetPageLength() {
   nsTreeBodyFrame* body = GetTreeBodyFrame();
   if (body) {

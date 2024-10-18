@@ -3639,9 +3639,6 @@ void EventStateManager::DecideGestureEvent(WidgetGestureNotifyEvent* aEvent,
 
     // Special check for trees
     if (nsTreeBodyFrame* treeFrame = do_QueryFrame(current)) {
-      if (treeFrame->GetHorizontalOverflow()) {
-        panDirection = WidgetGestureNotifyEvent::ePanHorizontal;
-      }
       if (treeFrame->GetVerticalOverflow()) {
         panDirection = WidgetGestureNotifyEvent::ePanVertical;
       }
