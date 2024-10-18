@@ -368,6 +368,31 @@ class TemporaryStorageInitializedOp final : public InitializedRequestBase {
   bool GetResolveValue() override;
 };
 
+class TemporaryGroupInitializedOp final
+    : public ResolvableNormalOriginOp<bool> {
+  const PrincipalInfo mPrincipalInfo;
+  PrincipalMetadata mPrincipalMetadata;
+  bool mInitialized;
+
+ public:
+  explicit TemporaryGroupInitializedOp(
+      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+      const PrincipalInfo& aPrincipalInfo);
+
+ private:
+  ~TemporaryGroupInitializedOp() = default;
+
+  nsresult DoInit(QuotaManager& aQuotaManager) override;
+
+  RefPtr<BoolPromise> OpenDirectory() override;
+
+  nsresult DoDirectoryWork(QuotaManager& aQuotaManager) override;
+
+  bool GetResolveValue() override;
+
+  void CloseDirectory() override;
+};
+
 class InitializedOriginRequestBase : public ResolvableNormalOriginOp<bool> {
  protected:
   const PrincipalInfo mPrincipalInfo;
@@ -466,6 +491,30 @@ class InitTemporaryStorageOp final : public ResolvableNormalOriginOp<bool> {
 
  private:
   ~InitTemporaryStorageOp() = default;
+
+  RefPtr<BoolPromise> OpenDirectory() override;
+
+  nsresult DoDirectoryWork(QuotaManager& aQuotaManager) override;
+
+  bool GetResolveValue() override;
+
+  void CloseDirectory() override;
+};
+
+class InitializeTemporaryGroupOp final : public ResolvableNormalOriginOp<bool> {
+  const PrincipalInfo mPrincipalInfo;
+  PrincipalMetadata mPrincipalMetadata;
+  RefPtr<UniversalDirectoryLock> mDirectoryLock;
+
+ public:
+  InitializeTemporaryGroupOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+                             const PrincipalInfo& aPrincipalInfo,
+                             RefPtr<UniversalDirectoryLock> aDirectoryLock);
+
+ private:
+  ~InitializeTemporaryGroupOp() = default;
+
+  nsresult DoInit(QuotaManager& aQuotaManager) override;
 
   RefPtr<BoolPromise> OpenDirectory() override;
 
@@ -991,6 +1040,13 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryStorageInitializedOp(
   return MakeRefPtr<TemporaryStorageInitializedOp>(std::move(aQuotaManager));
 }
 
+RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryGroupInitializedOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
+  return MakeRefPtr<TemporaryGroupInitializedOp>(std::move(aQuotaManager),
+                                                 aPrincipalInfo);
+}
+
 RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
@@ -1025,6 +1081,14 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitTemporaryStorageOp(
     RefPtr<UniversalDirectoryLock> aDirectoryLock) {
   return MakeRefPtr<InitTemporaryStorageOp>(std::move(aQuotaManager),
                                             std::move(aDirectoryLock));
+}
+
+RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryGroupOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const PrincipalInfo& aPrincipalInfo,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock) {
+  return MakeRefPtr<InitializeTemporaryGroupOp>(
+      std::move(aQuotaManager), aPrincipalInfo, std::move(aDirectoryLock));
 }
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentOriginOp(
@@ -1819,6 +1883,53 @@ bool TemporaryStorageInitializedOp::GetResolveValue() {
   return mInitialized;
 }
 
+TemporaryGroupInitializedOp::TemporaryGroupInitializedOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const PrincipalInfo& aPrincipalInfo)
+    : ResolvableNormalOriginOp(std::move(aQuotaManager),
+                               "dom::quota::TemporaryGroupInitializedOp"),
+      mPrincipalInfo(aPrincipalInfo),
+      mInitialized(false) {
+  AssertIsOnOwningThread();
+}
+
+nsresult TemporaryGroupInitializedOp::DoInit(QuotaManager& aQuotaManager) {
+  AssertIsOnOwningThread();
+
+  QM_TRY_UNWRAP(mPrincipalMetadata, GetInfoFromValidatedPrincipalInfo(
+                                        aQuotaManager, mPrincipalInfo));
+
+  mPrincipalMetadata.AssertInvariants();
+
+  return NS_OK;
+}
+
+RefPtr<BoolPromise> TemporaryGroupInitializedOp::OpenDirectory() {
+  AssertIsOnOwningThread();
+
+  return BoolPromise::CreateAndResolve(true, __func__);
+}
+
+nsresult TemporaryGroupInitializedOp::DoDirectoryWork(
+    QuotaManager& aQuotaManager) {
+  AssertIsOnIOThread();
+
+  AUTO_PROFILER_LABEL("TemporaryGroupInitializedOp::DoDirectoryWork", OTHER);
+
+  mInitialized =
+      aQuotaManager.IsTemporaryGroupInitializedInternal(mPrincipalMetadata);
+
+  return NS_OK;
+}
+
+bool TemporaryGroupInitializedOp::GetResolveValue() {
+  AssertIsOnOwningThread();
+
+  return mInitialized;
+}
+
+void TemporaryGroupInitializedOp::CloseDirectory() { AssertIsOnOwningThread(); }
+
 InitializedOriginRequestBase::InitializedOriginRequestBase(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager, const char* aName,
     const PrincipalInfo& aPrincipalInfo)
@@ -2017,6 +2128,65 @@ bool InitTemporaryStorageOp::GetResolveValue() {
 }
 
 void InitTemporaryStorageOp::CloseDirectory() {
+  AssertIsOnOwningThread();
+
+  DropDirectoryLock(mDirectoryLock);
+}
+
+InitializeTemporaryGroupOp::InitializeTemporaryGroupOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const PrincipalInfo& aPrincipalInfo,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock)
+    : ResolvableNormalOriginOp(std::move(aQuotaManager),
+                               "dom::quota::InitializeTemporaryGroupOp"),
+      mPrincipalInfo(aPrincipalInfo),
+      mDirectoryLock(std::move(aDirectoryLock)) {
+  AssertIsOnOwningThread();
+}
+
+nsresult InitializeTemporaryGroupOp::DoInit(QuotaManager& aQuotaManager) {
+  AssertIsOnOwningThread();
+
+  QM_TRY_UNWRAP(mPrincipalMetadata, GetInfoFromValidatedPrincipalInfo(
+                                        aQuotaManager, mPrincipalInfo));
+
+  mPrincipalMetadata.AssertInvariants();
+
+  return NS_OK;
+}
+
+RefPtr<BoolPromise> InitializeTemporaryGroupOp::OpenDirectory() {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mDirectoryLock);
+
+  return BoolPromise::CreateAndResolve(true, __func__);
+}
+
+nsresult InitializeTemporaryGroupOp::DoDirectoryWork(
+    QuotaManager& aQuotaManager) {
+  AssertIsOnIOThread();
+
+  AUTO_PROFILER_LABEL("InitializeTemporaryGroupOp::DoDirectoryWork", OTHER);
+
+  QM_TRY(OkIf(aQuotaManager.IsStorageInitializedInternal()),
+         NS_ERROR_NOT_INITIALIZED);
+
+  QM_TRY(OkIf(aQuotaManager.IsTemporaryStorageInitializedInternal()),
+         NS_ERROR_NOT_INITIALIZED);
+
+  QM_TRY(aQuotaManager.EnsureTemporaryGroupIsInitializedInternal(
+      mPrincipalMetadata));
+
+  return NS_OK;
+}
+
+bool InitializeTemporaryGroupOp::GetResolveValue() {
+  AssertIsOnOwningThread();
+
+  return true;
+}
+
+void InitializeTemporaryGroupOp::CloseDirectory() {
   AssertIsOnOwningThread();
 
   DropDirectoryLock(mDirectoryLock);

@@ -18,6 +18,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
+#include "mozilla/ThreadBound.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/dom/quota/Assertions.h"
@@ -88,6 +89,7 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class InitOp;
   friend class InitializePersistentOriginOp;
   friend class InitializePersistentStorageOp;
+  friend class InitializeTemporaryGroupOp;
   friend class InitializeTemporaryOriginOp;
   friend class InitTemporaryStorageOp;
   friend class OriginInfo;
@@ -391,6 +393,26 @@ class QuotaManager final : public BackgroundThreadObject {
   nsresult EnsurePersistentStorageIsInitializedInternal();
 
  public:
+  RefPtr<BoolPromise> InitializeTemporaryGroup(
+      const PrincipalInfo& aPrincipalInfo);
+
+  RefPtr<BoolPromise> InitializeTemporaryGroup(
+      const PrincipalInfo& aPrincipalInfo,
+      RefPtr<UniversalDirectoryLock> aDirectoryLock);
+
+  RefPtr<BoolPromise> TemporaryGroupInitialized(
+      const PrincipalInfo& aPrincipalInfo);
+
+  bool IsTemporaryGroupInitialized(const PrincipalInfo& aPrincipalInfo);
+
+  bool IsTemporaryGroupInitializedInternal(
+      const PrincipalMetadata& aPrincipalMetadata) const;
+
+ private:
+  Result<Ok, nsresult> EnsureTemporaryGroupIsInitializedInternal(
+      const PrincipalMetadata& aPrincipalMetadata);
+
+ public:
   RefPtr<BoolPromise> InitializePersistentOrigin(
       const PrincipalInfo& aPrincipalInfo);
 
@@ -650,6 +672,8 @@ class QuotaManager final : public BackgroundThreadObject {
 
   void LockedRemoveQuotaForOrigin(const OriginMetadata& aOriginMetadata);
 
+  bool LockedHasGroupInfoPair(const nsACString& aGroup) const;
+
   already_AddRefed<GroupInfo> LockedGetOrCreateGroupInfo(
       PersistenceType aPersistenceType, const nsACString& aSuffix,
       const nsACString& aGroup);
@@ -850,6 +874,12 @@ class QuotaManager final : public BackgroundThreadObject {
   DirectoryLockTable mTemporaryDirectoryLockTable;
   DirectoryLockTable mDefaultDirectoryLockTable;
   DirectoryLockTable mPrivateDirectoryLockTable;
+
+  // Things touched on the owning (PBackground) thread only.
+  struct BackgroundThreadAccessible {
+    nsTHashSet<nsCString> mInitializedGroups;
+  };
+  ThreadBound<BackgroundThreadAccessible> mBackgroundThreadAccessible;
 
   using BoolArray = AutoTArray<bool, PERSISTENCE_TYPE_INVALID>;
   nsTHashMap<nsCStringHashKeyWithDisabledMemmove, BoolArray>

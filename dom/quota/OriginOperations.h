@@ -75,6 +75,10 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentStorageInitializedOp(
 RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryStorageInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
 
+RefPtr<ResolvableNormalOriginOp<bool>> CreateTemporaryGroupInitializedOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
+
 RefPtr<ResolvableNormalOriginOp<bool>> CreatePersistentOriginInitializedOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
@@ -94,6 +98,11 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentStorageOp(
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitTemporaryStorageOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock);
+
+RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryGroupOp(
+    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+    const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
     RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentOriginOp(

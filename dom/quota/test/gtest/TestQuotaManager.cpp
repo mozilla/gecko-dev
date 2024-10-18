@@ -1528,6 +1528,263 @@ TEST_F(TestQuotaManager,
 }
 
 TEST_F(TestQuotaManager,
+       InitializeTemporaryGroup_OtherExclusiveDirectoryLockAcquired) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  PerformOnBackgroundThread([]() {
+    auto testOriginMetadata = GetTestOriginMetadata();
+
+    nsCOMPtr<nsIPrincipal> principal =
+        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+    mozilla::ipc::PrincipalInfo principalInfo;
+    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+           QM_TEST_FAIL);
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    {
+      auto value = Await(quotaManager->InitializeStorage());
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+    }
+
+    {
+      auto value = Await(quotaManager->InitializeTemporaryStorage());
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+    }
+
+    RefPtr<UniversalDirectoryLock> directoryLock =
+        quotaManager->CreateDirectoryLockInternal(
+            PersistenceScope::CreateFromValue(PERSISTENCE_TYPE_PERSISTENT),
+            OriginScope::FromGroup(testOriginMetadata.mGroup),
+            Nullable<Client::Type>(),
+            /* aExclusive */ true);
+
+    {
+      auto value = Await(directoryLock->Acquire());
+      ASSERT_TRUE(value.IsResolve());
+    }
+
+    {
+      auto value = Await(quotaManager->InitializeTemporaryGroup(principalInfo));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsTemporaryGroupInitialized(principalInfo));
+    }
+
+    DropDirectoryLock(directoryLock);
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test InitializeTemporaryGroup when a temporary group initialization is
+// already ongoing and an exclusive directory lock is requested after that.
+TEST_F(TestQuotaManager,
+       InitializeTemporaryGroup_OngoingWithExclusiveDirectoryLock) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  PerformOnBackgroundThread([]() {
+    auto testOriginMetadata = GetTestOriginMetadata();
+
+    nsCOMPtr<nsIPrincipal> principal =
+        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+    mozilla::ipc::PrincipalInfo principalInfo;
+    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+           QM_TEST_FAIL);
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    RefPtr<UniversalDirectoryLock> directoryLock =
+        quotaManager->CreateDirectoryLockInternal(
+            PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
+                                            PERSISTENCE_TYPE_DEFAULT),
+            OriginScope::FromGroup(testOriginMetadata.mGroup),
+            Nullable<Client::Type>(),
+            /* aExclusive */ true);
+
+    nsTArray<RefPtr<BoolPromise>> promises;
+
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+    promises.AppendElement(
+        quotaManager->InitializeTemporaryGroup(principalInfo)
+            ->Then(GetCurrentSerialEventTarget(), __func__,
+                   [&directoryLock](
+                       const BoolPromise::ResolveOrRejectValue& aValue) {
+                     // The exclusive directory lock must be dropped when the
+                     // first temporary group initialization is finished,
+                     // otherwise it would endlessly block the second temporary
+                     // group initialization.
+                     DropDirectoryLock(directoryLock);
+
+                     if (aValue.IsReject()) {
+                       return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                           __func__);
+                     }
+
+                     return BoolPromise::CreateAndResolve(true, __func__);
+                   }));
+    promises.AppendElement(directoryLock->Acquire());
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+    promises.AppendElement(
+        quotaManager->InitializeTemporaryGroup(principalInfo));
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryGroupInitialized(principalInfo));
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+// Test InitializeTemporaryGroup when a temporary group initialization already
+// finished.
+TEST_F(TestQuotaManager, InitializeTemporaryGroup_Finished) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  PerformOnBackgroundThread([]() {
+    auto testOriginMetadata = GetTestOriginMetadata();
+
+    nsCOMPtr<nsIPrincipal> principal =
+        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+    mozilla::ipc::PrincipalInfo principalInfo;
+    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+           QM_TEST_FAIL);
+
+    nsTArray<RefPtr<BoolPromise>> promises;
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+    promises.AppendElement(
+        quotaManager->InitializeTemporaryGroup(principalInfo));
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryGroupInitialized(principalInfo));
+    }
+
+    promises.Clear();
+
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+    promises.AppendElement(
+        quotaManager->InitializeTemporaryGroup(principalInfo));
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryGroupInitialized(principalInfo));
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+TEST_F(TestQuotaManager,
+       InitializeTemporaryGroup_FinishedWithScheduledShutdown) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  PerformOnBackgroundThread([]() {
+    auto testOriginMetadata = GetTestOriginMetadata();
+
+    nsCOMPtr<nsIPrincipal> principal =
+        BasePrincipal::CreateContentPrincipal(testOriginMetadata.mOrigin);
+    QM_TRY(MOZ_TO_RESULT(principal), QM_TEST_FAIL);
+
+    mozilla::ipc::PrincipalInfo principalInfo;
+    QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)),
+           QM_TEST_FAIL);
+
+    nsTArray<RefPtr<BoolPromise>> promises;
+
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+    promises.AppendElement(
+        quotaManager->InitializeTemporaryGroup(principalInfo));
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryGroupInitialized(principalInfo));
+    }
+
+    promises.Clear();
+
+    promises.AppendElement(quotaManager->ShutdownStorage());
+    promises.AppendElement(quotaManager->InitializeStorage());
+    promises.AppendElement(quotaManager->InitializeTemporaryStorage());
+    promises.AppendElement(
+        quotaManager->InitializeTemporaryGroup(principalInfo));
+
+    {
+      auto value =
+          Await(BoolPromise::All(GetCurrentSerialEventTarget(), promises));
+      ASSERT_TRUE(value.IsResolve());
+
+      ASSERT_TRUE(quotaManager->IsStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryStorageInitialized());
+      ASSERT_TRUE(quotaManager->IsTemporaryGroupInitialized(principalInfo));
+    }
+  });
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
+TEST_F(TestQuotaManager,
        InitializePersistentOrigin_FinishedWithScheduledShutdown) {
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 

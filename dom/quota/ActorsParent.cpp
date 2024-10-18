@@ -5493,6 +5493,135 @@ nsresult QuotaManager::EnsurePersistentStorageIsInitializedInternal() {
       innerFunc);
 }
 
+RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
+    const PrincipalInfo& aPrincipalInfo) {
+  AssertIsOnOwningThread();
+
+  QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
+                GetInfoFromValidatedPrincipalInfo(*this, aPrincipalInfo),
+                CreateAndRejectBoolPromise);
+
+  RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
+      PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
+                                      PERSISTENCE_TYPE_DEFAULT),
+      OriginScope::FromGroup(principalMetadata.mGroup),
+      Nullable<Client::Type>(),
+      /* aExclusive */ false);
+
+  // If temporary group is initialized but there's a clear storage or shutdown
+  // storage operation already scheduled, we can't immediately resolve the
+  // promise and return from the function because the clear and shutdown
+  // storage operation uninitializes storage.
+  if (IsTemporaryGroupInitialized(aPrincipalInfo) &&
+      !IsDirectoryLockBlockedByUninitStorageOperation(directoryLock)) {
+    return BoolPromise::CreateAndResolve(true, __func__);
+  }
+
+  return directoryLock->Acquire()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [self = RefPtr(this), aPrincipalInfo,
+       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+        if (aValue.IsReject()) {
+          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
+        }
+
+        return self->InitializeTemporaryGroup(aPrincipalInfo,
+                                              std::move(directoryLock));
+      });
+}
+
+RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
+    const PrincipalInfo& aPrincipalInfo,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aDirectoryLock);
+  MOZ_ASSERT(aDirectoryLock->Acquired());
+
+  // If temporary group is initialized and the directory lock for the
+  // initialize temporary group operation is acquired, we can immediately
+  // resolve the promise and return from the function because there can't be a
+  // clear storage or shutdown storage operation which would uninitialize
+  // temporary storage.
+  if (IsTemporaryGroupInitialized(aPrincipalInfo)) {
+    DropDirectoryLock(aDirectoryLock);
+
+    return BoolPromise::CreateAndResolve(true, __func__);
+  }
+
+  auto initializeTemporaryGroupOp = CreateInitializeTemporaryGroupOp(
+      WrapMovingNotNullUnchecked(this), aPrincipalInfo,
+      std::move(aDirectoryLock));
+
+  RegisterNormalOriginOp(*initializeTemporaryGroupOp);
+
+  initializeTemporaryGroupOp->RunImmediately();
+
+  return Map<BoolPromise>(
+      initializeTemporaryGroupOp->OnResults(),
+      [self = RefPtr(this),
+       group = GetGroupFromValidatedPrincipalInfo(aPrincipalInfo)](
+          const BoolPromise::ResolveOrRejectValue& aValue) {
+        self->mBackgroundThreadAccessible.Access()->mInitializedGroups.Insert(
+            group);
+
+        return aValue.ResolveValue();
+      });
+}
+
+RefPtr<BoolPromise> QuotaManager::TemporaryGroupInitialized(
+    const PrincipalInfo& aPrincipalInfo) {
+  AssertIsOnOwningThread();
+
+  auto temporaryGroupInitializedOp = CreateTemporaryGroupInitializedOp(
+      WrapMovingNotNullUnchecked(this), aPrincipalInfo);
+
+  RegisterNormalOriginOp(*temporaryGroupInitializedOp);
+
+  temporaryGroupInitializedOp->RunImmediately();
+
+  return temporaryGroupInitializedOp->OnResults();
+}
+
+bool QuotaManager::IsTemporaryGroupInitialized(
+    const PrincipalInfo& aPrincipalInfo) {
+  AssertIsOnOwningThread();
+
+  auto group = GetGroupFromValidatedPrincipalInfo(aPrincipalInfo);
+
+  return mBackgroundThreadAccessible.Access()->mInitializedGroups.Contains(
+      group);
+}
+
+bool QuotaManager::IsTemporaryGroupInitializedInternal(
+    const PrincipalMetadata& aPrincipalMetadata) const {
+  AssertIsOnIOThread();
+
+  MutexAutoLock lock(mQuotaMutex);
+
+  return LockedHasGroupInfoPair(aPrincipalMetadata.mGroup);
+}
+
+Result<Ok, nsresult> QuotaManager::EnsureTemporaryGroupIsInitializedInternal(
+    const PrincipalMetadata& aPrincipalMetadata) {
+  AssertIsOnIOThread();
+  MOZ_DIAGNOSTIC_ASSERT(mStorageConnection);
+  MOZ_DIAGNOSTIC_ASSERT(mTemporaryStorageInitializedInternal);
+
+  const auto innerFunc = [](const auto&) -> mozilla::Result<Ok, nsresult> {
+    // XXX For now, we don't need to do any temporary origin initialization
+    // here because temporary storage initialization still initializes all
+    // temporary origins. This will change with the planned asynchronous
+    // temporary origin initialization done in the background.
+
+    return Ok{};
+  };
+
+  return ExecuteGroupInitialization(
+      aPrincipalMetadata.mGroup, GroupInitialization::TemporaryGroup,
+      "dom::quota::FirstOriginInitializationAttempt::TemporaryGroup"_ns,
+      innerFunc);
+}
+
 RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
     const PrincipalInfo& aPrincipalInfo) {
   AssertIsOnOwningThread();
@@ -6215,6 +6344,7 @@ RefPtr<BoolPromise> QuotaManager::ClearStorage() {
         }
 
         self->mInitializedOrigins.Clear();
+        self->mBackgroundThreadAccessible.Access()->mInitializedGroups.Clear();
         self->mTemporaryStorageInitialized = false;
         self->mStorageInitialized = false;
 
@@ -6284,6 +6414,7 @@ RefPtr<BoolPromise> QuotaManager::ShutdownStorage(
         }
 
         self->mInitializedOrigins.Clear();
+        self->mBackgroundThreadAccessible.Access()->mInitializedGroups.Clear();
         self->mTemporaryStorageInitialized = false;
         self->mStorageInitialized = false;
 
@@ -6639,6 +6770,12 @@ void QuotaManager::LockedRemoveQuotaForOrigin(
       }
     }
   }
+}
+
+bool QuotaManager::LockedHasGroupInfoPair(const nsACString& aGroup) const {
+  mQuotaMutex.AssertCurrentThreadOwns();
+
+  return mGroupInfoPairs.Get(aGroup, nullptr);
 }
 
 already_AddRefed<GroupInfo> QuotaManager::LockedGetOrCreateGroupInfo(
