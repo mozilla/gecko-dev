@@ -456,6 +456,12 @@ mochitest-browser-translations:
     instance-size: default
     allow-software-gl-layers: false
     virtualization: virtual
+    fetches:
+        fetch:
+            - translations.inference
+            - translations.esen.lex
+            - translations.esen.model
+            - translations.esen.vocab
 
 mochitest-chrome:
     description: "Mochitest chrome run"

@@ -17,5 +17,6 @@ tasks-from:
     - cft-chromedriver-fetch.yml
     - toolchain-clang-tidy-external.yml
     - toolchains.yml
+    - translations-fetch.yml
     - updatebot.yml
     - onnxruntime-web-fetch.yml
