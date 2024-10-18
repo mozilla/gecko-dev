@@ -12,7 +12,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "nsAnonymousTemporaryFile.h"
 
 #include <wchar.h>
@@ -132,8 +132,9 @@ NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIPrintSettings* aPrintSettings,
   // version number or other product differentiating string.  (True for doPDF,
   // novaPDF, PDF-XChange and Soda PDF, for example.)
   if (mOutputFormat == nsIPrintSettings::kOutputFormatPDF) {
-    Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_TARGET_TYPE,
-                         u"pdf_file"_ns, 1);
+    glean::printing::target_type
+        .EnumGet(glean::printing::TargetTypeLabel::ePdfFile)
+        .Add(1);
   } else if (StringBeginsWith(printerName, u"Microsoft Print to PDF"_ns) ||
              StringBeginsWith(printerName, u"Adobe PDF"_ns) ||
              StringBeginsWith(printerName, u"Bullzip PDF Printer"_ns) ||
@@ -150,21 +151,25 @@ NS_IMETHODIMP nsDeviceContextSpecWin::Init(nsIPrintSettings* aPrintSettings,
              StringBeginsWith(printerName, u"Solid PDF Creator"_ns) ||
              StringBeginsWith(printerName,
                               u"Universal Document Converter"_ns)) {
-    Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_TARGET_TYPE,
-                         u"pdf_file"_ns, 1);
+    glean::printing::target_type
+        .EnumGet(glean::printing::TargetTypeLabel::ePdfFile)
+        .Add(1);
   } else if (printerName.EqualsLiteral("Microsoft XPS Document Writer")) {
-    Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_TARGET_TYPE,
-                         u"xps_file"_ns, 1);
+    glean::printing::target_type
+        .EnumGet(glean::printing::TargetTypeLabel::eXpsFile)
+        .Add(1);
   } else {
     nsAString::const_iterator start, end;
     printerName.BeginReading(start);
     printerName.EndReading(end);
     if (CaseInsensitiveFindInReadable(u"pdf"_ns, start, end)) {
-      Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_TARGET_TYPE,
-                           u"pdf_unknown"_ns, 1);
+      glean::printing::target_type
+          .EnumGet(glean::printing::TargetTypeLabel::ePdfUnknown)
+          .Add(1);
     } else {
-      Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_TARGET_TYPE,
-                           u"unknown"_ns, 1);
+      glean::printing::target_type
+          .EnumGet(glean::printing::TargetTypeLabel::eUnknown)
+          .Add(1);
     }
   }
 

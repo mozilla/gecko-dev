@@ -163,7 +163,7 @@ var PrintEventHandler = {
   _noPreviewUpdateSettings: new Set(["numCopies", "printDuplex"]),
 
   async init() {
-    Services.telemetry.scalarAdd("printing.preview_opened_tm", 1);
+    Glean.printing.previewOpenedTm.add(1);
 
     this.printPreviewEl =
       ourBrowser.parentElement.querySelector("print-preview");
@@ -298,17 +298,14 @@ var PrintEventHandler = {
       // system dialog the title will be used to generate the prepopulated
       // filename in the file picker.
       settings.title = this.activeTitle;
-      Services.telemetry.scalarAdd("printing.dialog_opened_via_preview_tm", 1);
+      Glean.printing.dialogOpenedViaPreviewTm.add(1);
       const doPrint = await this._showPrintDialog(
         window,
         this.hasSelection,
         settings
       );
       if (!doPrint) {
-        Services.telemetry.scalarAdd(
-          "printing.dialog_via_preview_cancelled_tm",
-          1
-        );
+        Glean.printing.dialogViaPreviewCancelledTm.add(1);
         window.close();
         return;
       }
@@ -450,7 +447,7 @@ var PrintEventHandler = {
   },
 
   cancelPrint() {
-    Services.telemetry.scalarAdd("printing.preview_cancelled_tm", 1);
+    Glean.printing.previewCancelledTm.add(1);
     window.close();
   },
 
@@ -626,11 +623,7 @@ var PrintEventHandler = {
   async onUserSettingsChange(changedSettings = {}) {
     let previewableChange = false;
     for (let [setting, value] of Object.entries(changedSettings)) {
-      Services.telemetry.keyedScalarAdd(
-        "printing.settings_changed",
-        setting,
-        1
-      );
+      Glean.printing.settingsChanged[setting].add(1);
       // Update the list of user-changed settings, which we attempt to maintain
       // across printer changes.
       this._userChangedSettings[setting] = value;
@@ -1049,7 +1042,7 @@ var PrintEventHandler = {
 
   reportPrintingError(aMessage) {
     logger.debug("reportPrintingError:", aMessage);
-    Services.telemetry.keyedScalarAdd("printing.error", aMessage, 1);
+    Glean.printing.error[aMessage].add(1);
   },
 
   /**

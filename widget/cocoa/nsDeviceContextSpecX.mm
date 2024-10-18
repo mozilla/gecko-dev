@@ -17,7 +17,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 
 #include "AppleUtils.h"
 #include "nsCocoaUtils.h"
@@ -144,8 +144,9 @@ NS_IMETHODIMP nsDeviceContextSpecX::Init(nsIPrintSettings* aPS,
     // We don't actually currently support/use kOutputFormatPDF on mac, but
     // this is for completeness in case we add that (we probably need to in
     // order to support adding links into saved PDFs, for example).
-    Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_TARGET_TYPE,
-                         u"pdf_file"_ns, 1);
+    glean::printing::target_type
+        .EnumGet(glean::printing::TargetTypeLabel::ePdfFile)
+        .Add(1);
   } else {
     PMDestinationType destination;
     OSStatus status = ::PMSessionGetDestinationType(
@@ -153,11 +154,13 @@ NS_IMETHODIMP nsDeviceContextSpecX::Init(nsIPrintSettings* aPS,
     if (status == noErr && (destination == kPMDestinationFile ||
                             destination == kPMDestinationPreview ||
                             destination == kPMDestinationProcessPDF)) {
-      Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_TARGET_TYPE,
-                           u"pdf_file"_ns, 1);
+      glean::printing::target_type
+          .EnumGet(glean::printing::TargetTypeLabel::ePdfFile)
+          .Add(1);
     } else {
-      Telemetry::ScalarAdd(Telemetry::ScalarID::PRINTING_TARGET_TYPE,
-                           u"unknown"_ns, 1);
+      glean::printing::target_type
+          .EnumGet(glean::printing::TargetTypeLabel::eUnknown)
+          .Add(1);
     }
   }
 

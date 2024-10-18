@@ -60,6 +60,7 @@ gecko_metrics = [
     "toolkit/components/normandy/metrics.yaml",
     "toolkit/components/passwordmgr/metrics.yaml",
     "toolkit/components/pdfjs/metrics.yaml",
+    "toolkit/components/printing/metrics.yaml",
     "toolkit/components/processtools/metrics.yaml",
     "toolkit/components/reader/metrics.yaml",
     "toolkit/components/reportbrokensite/metrics.yaml",

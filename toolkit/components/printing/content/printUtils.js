@@ -488,11 +488,7 @@ var PrintUtils = {
       msg
     );
 
-    Services.telemetry.keyedScalarAdd(
-      "printing.error",
-      this._getErrorCodeForNSResult(nsresult),
-      1
-    );
+    Glean.printing.error[this._getErrorCodeForNSResult(nsresult)].add(1);
   },
 
   getPrintSettings(aPrinterName, aDefaultsOnly, aAllowPseudoPrinter = true) {

@@ -1,0 +1,183 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Printing'
+
+printing:
+  dialog_opened_via_preview_tm:
+    type: counter
+    description: >
+      A counter incremented every time a user opens the system print
+      dialog from the print preview interface.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar printing.dialog_opened_via_preview_tm.
+    bugs:
+      - https://bugzil.la/1657220
+    data_reviews:
+      - https://bugzil.la/1657220
+    notification_emails:
+      - jwatt@jwatt.org
+      - emalysz@mozilla.com
+    expires: never
+    telemetry_mirror: PRINTING_DIALOG_OPENED_VIA_PREVIEW_TM
+
+  dialog_via_preview_cancelled_tm:
+    type: counter
+    description: >
+      A counter incremented every time a user cancels a system print
+      dialog that they opened from the print preview interface.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar printing.dialog_via_preview_cancelled_tm.
+    bugs:
+      - https://bugzil.la/1657220
+    data_reviews:
+      - https://bugzil.la/1657220
+    notification_emails:
+      - jwatt@jwatt.org
+    expires: never
+    telemetry_mirror: PRINTING_DIALOG_VIA_PREVIEW_CANCELLED_TM
+
+  error:
+    type: labeled_counter
+    description: >
+      A counter incremented every time the user encounters an error
+      printing. The result is split into keys which represent the values
+      of error codes related to printing. Possible values are listed in
+      'keys'. "FAILURE" is a catch-all code for an error we don't
+      recognize.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar printing.error.
+    bugs:
+      - https://bugzil.la/1630105
+    data_reviews:
+      - https://bugzil.la/1630105
+    notification_emails:
+      - jaws@mozilla.com
+      - jwatt@jwatt.org
+    expires: never
+    labels:
+      - GFX_PRINTER_NO_PRINTER_AVAILABLE
+      - GFX_PRINTER_NAME_NOT_FOUND
+      - GFX_PRINTER_COULD_NOT_OPEN_FILE
+      - GFX_PRINTER_STARTDOC
+      - GFX_PRINTER_ENDDOC
+      - GFX_PRINTER_STARTPAGE
+      - GFX_PRINTER_DOC_IS_BUSY
+      - ABORT
+      - NOT_AVAILABLE
+      - NOT_IMPLEMENTED
+      - OUT_OF_MEMORY
+      - UNEXPECTED
+      - FAILURE
+      - FALLBACK_PAPER_LIST
+      - LAST_USED_PRINTER
+      - PAPER_MARGINS
+      - PRINT_DESTINATIONS
+      - PRINT_PREVIEW
+      - PRINTER_LIST
+      - PRINTER_PROPERTIES
+      - PRINTER_SETTINGS
+      - UNWRITEABLE_MARGIN
+    telemetry_mirror: PRINTING_ERROR
+
+  preview_opened_tm:
+    type: counter
+    description: >
+      A counter incremented every time a user opens print preview.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar printing.preview_opened_tm.
+    bugs:
+      - https://bugzil.la/1657220
+    data_reviews:
+      - https://bugzil.la/1657220
+    notification_emails:
+      - jwatt@jwatt.org
+      - emalysz@mozilla.com
+    expires: never
+    telemetry_mirror: PRINTING_PREVIEW_OPENED_TM
+
+  preview_cancelled_tm:
+    type: counter
+    description: >
+      A counter incremented every time a user exits print preview without
+      printing.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar printing.preview_cancelled_tm.
+    bugs:
+      - https://bugzil.la/1657220
+    data_reviews:
+      - https://bugzil.la/1657220
+    notification_emails:
+      - jwatt@jwatt.org
+      - emalysz@mozilla.com
+    expires: never
+    telemetry_mirror: PRINTING_PREVIEW_CANCELLED_TM
+
+  settings_changed:
+    type: labeled_counter
+    description: >
+      A count of how many times the user changed a setting in print
+      preview, broken down per setting.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar printing.settings_changed.
+    bugs:
+      - https://bugzil.la/1653386
+    data_reviews:
+      - https://bugzil.la/1653386
+    notification_emails:
+      - emalysz@mozilla.com
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: PRINTING_SETTINGS_CHANGED
+
+  silent_print:
+    type: counter
+    description: >
+      A counter incremented every time a silent print (a print without a
+      print settings dialog being opened) is initiated.  This happens when
+      extensions invoke ExtensionAPI.tabs.saveAsPDF, for example, or when
+      the print.always_print_silent pref is set.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar printing.silent_print.
+    bugs:
+      - https://bugzil.la/1600623
+    data_reviews:
+      - https://bugzil.la/1600623
+    notification_emails:
+      - jwatt@jwatt.org
+    expires: never
+    telemetry_mirror: PRINTING_SILENT_PRINT
+
+  target_type:
+    type: labeled_counter
+    description: >
+      A counter incremented every time the user prints to a certain target
+      type.  The 'pdf_unknown' count is for printers with names that we
+      don't know about/check for, but that have 'pdf' in their name, and
+      is mainly a sanity check that we're not missing significant counts
+      in 'pdf_file'. For the most part, the 'unknown' count will be prints
+      to a physical printer, but we can't know for sure since third party
+      drivers could also be print to file drivers that we don't otherwise
+      catch in the other counts.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar printing.target_type.
+    bugs:
+      - https://bugzil.la/1600623
+    data_reviews:
+      - https://bugzil.la/1600623
+    notification_emails:
+      - jwatt@jwatt.org
+    expires: never
+    labels:
+      - pdf_file
+      - pdf_unknown
+      - xps_file
+      - unknown
+    telemetry_mirror: PRINTING_TARGET_TYPE
