@@ -157,6 +157,7 @@ and members in classes or structs.
     "ns[C]String" -> "nsLiteral[C]String" [style=dashed];
     "nsAuto[C]StringN" -> "nsPromiseFlat[C]String";
     "nsAuto[C]StringN" -> "nsPrintfCString";
+    "nsAuto[C]StringN" -> "nsFmtCString";
 
 The following is a list of the most common concrete classes. Once you are
 familiar with them, see the appendix describing What Class to Use When.
@@ -184,6 +185,11 @@ familiar with them, see the appendix describing What Class to Use When.
 * ``nsPrintfCString`` - derived from ``nsCString``, this string behaves like an
   ``nsAutoCString``. The constructor takes parameters which allows it to
   construct a 8-bit string from a printf-style format string and parameter
+  list.
+
+* ``nsFmtCString`` - derived from ``nsCString``, this string behaves like an
+  ``nsAutoCString``. The constructor takes parameters which allows it to
+  construct a 8-bit string from an {fmt}-style format string and parameter
   list.
 
 There are also a number of concrete classes that are created as a side-effect
@@ -903,6 +909,7 @@ list between the ``SetCapacity()`` call and operations from the list):
 * ``AppendASCII()``
 * ``AppendLiteral()``
 * ``AppendPrintf()``
+* ``AppendFmt()``
 * ``AppendInt()``
 * ``AppendFloat()``
 * ``LossyAppendUTF16toASCII()``
