@@ -481,6 +481,12 @@ document.addEventListener(
       .addEventListener("dragstart", event => {
         gIdentityHandler.onDragStart(event);
       });
+
+    document
+      .getElementById("tracking-protection-icon-container")
+      .addEventListener("focus", () => {
+        gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();
+      });
   },
   { once: true }
 );
