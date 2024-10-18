@@ -42,14 +42,6 @@ class SelectableProfileServiceClass {
   #groupToolkitProfile = null;
   #currentProfile = null;
   #everyWindowCallbackId = "SelectableProfileService";
-  #defaultAvatars = [
-    "book",
-    "briefcase",
-    "flower",
-    "heart",
-    "shopping",
-    "star",
-  ];
 
   constructor() {
     if (Cu.isInAutomation) {
@@ -390,10 +382,7 @@ class SelectableProfileServiceClass {
    * as the path of the nsToolkitProfile for the group.
    */
   async setDefaultProfileForGroup() {
-    if (
-      !this.currentProfile ||
-      this.#groupToolkitProfile.rootDir.path === this.currentProfile.path
-    ) {
+    if (this.#groupToolkitProfile.rootDir.path === this.currentProfile.path) {
       return;
     }
     this.#groupToolkitProfile.rootDir = await this.currentProfile.rootDir;
@@ -554,10 +543,9 @@ class SelectableProfileServiceClass {
     let [defaultName] = lazy.profilesLocalization.formatMessagesSync([
       { id: "default-profile-name", args: { number: nextProfileNumber } },
     ]);
-    let randomIndex = Math.floor(Math.random() * this.#defaultAvatars.length);
     let newProfile = {
       name: defaultName.value,
-      avatar: this.#defaultAvatars[randomIndex],
+      avatar: "default",
       themeL10nId: "default",
       themeFg: "var(--text-color)",
       themeBg: "var(--background-color-box)",

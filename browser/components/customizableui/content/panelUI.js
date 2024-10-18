@@ -340,6 +340,9 @@ const PanelUI = {
       case "appMenu-fxa-label2":
         gSync.toggleAccountPanel(target, aEvent);
         break;
+      case "appMenu-profiles-button":
+        gProfiles.updateView(target);
+        break;
       case "appMenu-bookmarks-button":
         BookmarkingUI.showSubView(target);
         break;

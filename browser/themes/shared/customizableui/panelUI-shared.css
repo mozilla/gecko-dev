@@ -1125,18 +1125,6 @@ panelview .toolbarbutton-1,
   fill: currentColor;
 }
 
-#appMenu-profiles-button {
-  justify-content: space-between;
-}
-
-/* Set the --themeBg and --themeFg variables inline on the toolbarbutton */
-#appMenu-profiles-button.subviewbutton-iconic > .toolbarbutton-icon,
-.subviewbutton-iconic.profile-item > .toolbarbutton-icon {
-  -moz-context-properties: fill, stroke;
-  fill: var(--themeBg);
-  stroke: var(--themeFg);
-}
-
 /* Adjust the Zoom toolbaritem padding to have its height the same as other toolbarbuttons,
  * also in compact density and touch mode. */
 #appMenu-zoom-controls {
@@ -2128,63 +2116,32 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 /* ----- Profiles panels ----- */
 
-#PanelUI-profiles > toolbarseparator {
-  display: none;
+#profiles-edit-this-delete-button {
+  list-style-image: url("chrome://global/skin/icons/edit.svg");
 }
 
-#profiles-header-title {
-  margin-inline-end: 0;
-}
-
-#profiles-header-content {
-  max-width: 16em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-#profiles-edit-this-profile-button {
-  list-style-image: url("chrome://global/skin/icons/edit-outline.svg");
-  opacity: 1;
-  padding: var(--arrowpanel-header-back-icon-padding);
-  margin: 0;
-}
-
-#profiles-edit-this-profile-button > .toolbarbutton-text {
-  display: none;
-}
-
-#profiles-create-profile-button {
-  list-style-image: url("chrome://global/skin/icons/plus.svg");
+#profiles-delete-this-profile-button {
+  list-style-image: url("chrome://global/skin/icons/delete.svg");
 }
 
 #profile-icon-image {
   width: 75px;
   height: 75px;
-  -moz-context-properties: fill, stroke;
-  fill: var(--themeBg);
-  stroke: var(--themeFg);
-  border: 4px solid var(--panel-background);
-  border-radius: 40px;
+}
+
+#profile-name {
+  font-size: 1.667rem;
+  padding-block-start: var(--space-medium);
+}
+
+#this-profile-buttons {
+  justify-content: center;
 }
 
 #current-profile {
   align-items: center;
+  padding: var(--space-xxlarge) 0 var(--space-medium);
   gap: var(--space-small);
-  position: relative;
-}
-
-#half-height-profile {
-  background: var(--themeBg);
-  width: 100%;
-  height: 50%;
-  z-index: -1;
-  position: absolute;
-  top: 0;
-}
-
-#PanelUI-profiles > .panel-subview-body {
-  padding-block-start: 0;
 }
 
 /* ----- Content Analysis indicator panel ----- */
