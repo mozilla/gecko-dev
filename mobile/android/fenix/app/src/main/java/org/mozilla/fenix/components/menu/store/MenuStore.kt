@@ -41,6 +41,8 @@ private fun reducer(state: MenuState, action: MenuAction): MenuState {
         is MenuAction.Navigate,
         is MenuAction.ShowCFR,
         is MenuAction.DismissCFR,
+        is MenuAction.SaveMenuClicked,
+        is MenuAction.ToolsMenuClicked,
         -> state
 
         is MenuAction.RequestDesktopSite -> state.copy(isDesktopMode = true)

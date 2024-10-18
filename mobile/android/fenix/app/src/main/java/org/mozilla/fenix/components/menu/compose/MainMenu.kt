@@ -205,9 +205,11 @@ internal fun MainMenu(
             store.dispatch(MenuAction.FindInPage)
         },
         onToolsMenuClick = {
+            store.dispatch(MenuAction.ToolsMenuClicked)
             onToolsMenuClick()
         },
         onSaveMenuClick = {
+            store.dispatch(MenuAction.SaveMenuClicked)
             onSaveMenuClick()
         },
         onExtensionsMenuClick = {

@@ -206,6 +206,16 @@ sealed class MenuAction : Action {
     data object RequestMobileSite : MenuAction()
 
     /**
+     * [MenuAction] dispatched when the save menu item is clicked.
+     */
+    data object SaveMenuClicked : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when the save menu item is clicked.
+     */
+    data object ToolsMenuClicked : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a navigation event occurs for a specific destination.
      */
     sealed class Navigate : MenuAction() {
