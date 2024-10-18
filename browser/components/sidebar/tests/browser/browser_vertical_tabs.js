@@ -284,11 +284,17 @@ add_task(async function test_toggle_vertical_tabs() {
     }
   );
 
+  let newTabButton = document.getElementById("tabs-newtab-button");
   info("Open a new tab using the new tab button.");
-  EventUtils.synthesizeMouseAtCenter(
-    document.getElementById("tabs-newtab-button"),
-    {}
-  );
+  EventUtils.synthesizeMouseAtCenter(newTabButton, {});
+  is(gBrowser.tabs.length, 5, "Tabstrip now has six tabs");
+
+  // Middle click on new tab button should also open a new tab.
+  info("Open a new tab middle clicking the new tab button.");
+  // Make sure there is something in the clipboard that can be opened.
+  SpecialPowers.clipboardCopyString("about:blank");
+  EventUtils.synthesizeMouseAtCenter(newTabButton, { button: 1 });
+  is(gBrowser.tabs.length, 6, "Tabstrip now has five tabs");
 
   keyedScalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
@@ -300,7 +306,7 @@ add_task(async function test_toggle_vertical_tabs() {
 
   await checkTelemetryScalar(
     "browser.engagement.max_concurrent_vertical_tab_count",
-    5
+    6
   );
 
   // flip the pref to move the tabstrip horizontally
@@ -328,7 +334,7 @@ add_task(async function test_toggle_vertical_tabs() {
   TelemetryTestUtils.assertScalar(
     scalars,
     "browser.engagement.max_concurrent_tab_count",
-    5
+    6
   );
   TelemetryTestUtils.assertScalar(
     scalars,
