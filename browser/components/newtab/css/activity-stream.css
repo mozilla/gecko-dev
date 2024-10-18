@@ -1737,7 +1737,7 @@ main section {
     position: fixed;
     top: 0;
     width: 100%;
-    z-index: 1;
+    z-index: 3;
   }
   body:not(.inline-onboarding) .fixed-search .search-wrapper .search-inner-wrapper {
     min-height: 45px;
@@ -1835,7 +1835,7 @@ main section {
   inset-inline-start: 100%;
   position: absolute;
   top: 6.75px;
-  z-index: 8;
+  z-index: 2;
 }
 .context-menu > ul {
   list-style: none;
@@ -1940,7 +1940,7 @@ main section {
 .personalizeButtonWrapper {
   margin: 0;
   padding: 0;
-  z-index: 3;
+  z-index: 5;
 }
 @media (height < 700px) {
   .personalizeButtonWrapper {
@@ -3442,7 +3442,7 @@ main section {
   inset-inline-end: var(--space-xlarge);
   border: 0;
   background: none;
-  z-index: 2;
+  z-index: 4;
   border-radius: 2px;
 }
 .discoverystream-admin-toggle .icon-devtools {
@@ -3471,7 +3471,7 @@ main section {
   font-size: 14px;
   padding-inline-start: 240px;
   color: var(--newtab-text-primary-color);
-  z-index: 1;
+  z-index: 3;
 }
 .discoverystream-admin.collapsed {
   display: none;
@@ -4813,7 +4813,7 @@ main section {
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 0;
+  z-index: auto;
 }
 .ds-card.placeholder {
   display: flex;

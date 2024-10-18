@@ -2,7 +2,7 @@
   margin: 0;
   padding: 0;
   // z-index note: menu should cover fixed search bar and asrouter dev tools toggle button
-  z-index: 3;
+  z-index: 5;
 
   @media (height < 700px) {
     position: absolute;

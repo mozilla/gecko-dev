@@ -11,7 +11,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
   flex-direction: column;
   position: relative;
   // Bug 1914571: Reset the z-index threshold for topic labels
-  z-index: 0;
+  z-index: auto;
 
   &.placeholder {
     display: flex;
