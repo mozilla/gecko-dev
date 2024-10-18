@@ -567,6 +567,40 @@ QuotaManagerService::TemporaryStorageInitialized(nsIQuotaRequest** _retval) {
 }
 
 NS_IMETHODIMP
+QuotaManagerService::TemporaryGroupInitialized(nsIPrincipal* aPrincipal,
+                                               nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  QM_TRY(MOZ_TO_RESULT(StaticPrefs::dom_quotaManager_testing()),
+         NS_ERROR_UNEXPECTED);
+
+  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
+
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
+
+                   return principalInfo;
+                 }()));
+
+  RefPtr<Request> request = new Request();
+
+  mBackgroundActor->SendTemporaryGroupInitialized(principalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             BoolResponsePromiseResolveOrRejectCallback(request));
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 QuotaManagerService::PersistentOriginInitialized(nsIPrincipal* aPrincipal,
                                                  nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -709,6 +743,40 @@ QuotaManagerService::InitTemporaryStorage(nsIQuotaRequest** _retval) {
   mBackgroundActor->SendInitializeTemporaryStorage()->Then(
       GetCurrentSerialEventTarget(), __func__,
       BoolResponsePromiseResolveOrRejectCallback(request));
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+QuotaManagerService::InitializeTemporaryGroup(nsIPrincipal* aPrincipal,
+                                              nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  QM_TRY(MOZ_TO_RESULT(StaticPrefs::dom_quotaManager_testing()),
+         NS_ERROR_UNEXPECTED);
+
+  QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
+
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
+
+                   return principalInfo;
+                 }()));
+
+  RefPtr<Request> request = new Request();
+
+  mBackgroundActor->SendInitializeTemporaryGroup(principalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             BoolResponsePromiseResolveOrRejectCallback(request));
 
   request.forget(_retval);
   return NS_OK;

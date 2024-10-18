@@ -359,6 +359,30 @@ mozilla::ipc::IPCResult Quota::RecvTemporaryStorageInitialized(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult Quota::RecvTemporaryGroupInitialized(
+    const PrincipalInfo& aPrincipalInfo,
+    TemporaryOriginInitializedResolver&& aResolve) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveBoolResponseAndReturn(aResolve));
+
+  if (!TrustParams()) {
+    QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(aPrincipalInfo)),
+           QM_CUF_AND_IPC_FAIL(this));
+  }
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveBoolResponseAndReturn(aResolve));
+
+  quotaManager->TemporaryGroupInitialized(aPrincipalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
+
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult Quota::RecvPersistentOriginInitialized(
     const PrincipalInfo& aPrincipalInfo,
     PersistentOriginInitializedResolver&& aResolve) {
@@ -443,6 +467,30 @@ mozilla::ipc::IPCResult Quota::RecvInitializePersistentStorage(
   quotaManager->InitializePersistentStorage()->Then(
       GetCurrentSerialEventTarget(), __func__,
       BoolPromiseResolveOrRejectCallback(this, std::move(aResolver)));
+
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult Quota::RecvInitializeTemporaryGroup(
+    const PrincipalInfo& aPrincipalInfo,
+    InitializeTemporaryOriginResolver&& aResolve) {
+  AssertIsOnBackgroundThread();
+
+  QM_TRY(MOZ_TO_RESULT(!QuotaManager::IsShuttingDown()),
+         ResolveBoolResponseAndReturn(aResolve));
+
+  if (!TrustParams()) {
+    QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(aPrincipalInfo)),
+           QM_CUF_AND_IPC_FAIL(this));
+  }
+
+  QM_TRY_UNWRAP(const NotNull<RefPtr<QuotaManager>> quotaManager,
+                QuotaManager::GetOrCreate(),
+                ResolveBoolResponseAndReturn(aResolve));
+
+  quotaManager->InitializeTemporaryGroup(aPrincipalInfo)
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             BoolPromiseResolveOrRejectCallback(this, std::move(aResolve)));
 
   return IPC_OK();
 }
