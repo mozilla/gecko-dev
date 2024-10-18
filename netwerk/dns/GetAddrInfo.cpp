@@ -201,6 +201,15 @@ _DNSQuery_A_SingleLabel(const nsACString& aCanonHost, uint16_t aAddressFamily,
 // PORTABLE RUNTIME IMPLEMENTATION//
 ////////////////////////////////////
 
+static bool SkipIPv6DNSLookup() {
+#if defined(XP_WIN) || defined(XP_LINUX) || defined(XP_MACOSX)
+  return StaticPrefs::network_dns_skip_ipv6_when_no_addresses() &&
+         !nsINetworkLinkService::HasNonLocalIPv6Address();
+#else
+  return false;
+#endif
+}
+
 static MOZ_ALWAYS_INLINE nsresult
 _GetAddrInfo_Portable(const nsACString& aCanonHost, uint16_t aAddressFamily,
                       nsIDNSService::DNSFlags aFlags, AddrInfo** aAddrInfo) {
@@ -222,8 +231,7 @@ _GetAddrInfo_Portable(const nsACString& aCanonHost, uint16_t aAddressFamily,
     aAddressFamily = PR_AF_UNSPEC;
   }
 
-  if (StaticPrefs::network_dns_skip_ipv6_when_no_addresses() &&
-      !nsINetworkLinkService::HasNonLocalIPv6Address()) {
+  if (SkipIPv6DNSLookup()) {
     // If the family was AF_UNSPEC initially, make it AF_INET
     // when there are no IPv6 addresses.
     // If the DNS request specified IPv6 specifically, let it
