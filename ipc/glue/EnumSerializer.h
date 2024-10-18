@@ -68,7 +68,8 @@ struct EnumSerializer {
       CrashReporter::RecordAnnotationCString(
           CrashReporter::Annotation::IPCReadErrorReason, "Bad iter");
       return false;
-    } else if (!EnumValidator::IsLegalValue(value)) {
+    }
+    if (!EnumValidator::IsLegalValue(value)) {
       CrashReporter::RecordAnnotationCString(
           CrashReporter::Annotation::IPCReadErrorReason, "Illegal value");
       return false;
