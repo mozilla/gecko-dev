@@ -8,7 +8,7 @@
 
 #include "CacheCommon.h"
 
-#include "mozilla/dom/quota/QuotaManager.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "nsIPrincipal.h"
 #include "nsProxyRelease.h"
 #include "mozilla/RefPtr.h"
@@ -23,11 +23,11 @@ Result<SafeRefPtr<ManagerId>, nsresult> ManagerId::Create(
     nsIPrincipal* aPrincipal) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  // QuotaManager::GetOriginFromPrincipal() has special logic for system
+  // mozilla::dom::quota::GetOriginFromPrincipal() has special logic for system
   // and about: principals.  We need to use the same modified origin in
   // order to interpret calls from QM correctly.
   QM_TRY_INSPECT(const auto& quotaOrigin,
-                 QuotaManager::GetOriginFromPrincipal(aPrincipal));
+                 quota::GetOriginFromPrincipal(aPrincipal));
 
   return MakeSafeRefPtr<ManagerId>(aPrincipal, quotaOrigin, ConstructorGuard{});
 }

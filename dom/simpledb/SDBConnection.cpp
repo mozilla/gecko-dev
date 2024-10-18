@@ -26,7 +26,7 @@
 #include "mozilla/Variant.h"
 #include "mozilla/dom/PBackgroundSDBConnection.h"
 #include "mozilla/dom/TypedArray.h"
-#include "mozilla/dom/quota/QuotaManager.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/fallible.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
@@ -250,7 +250,7 @@ SDBConnection::Init(nsIPrincipal* aPrincipal,
     return NS_ERROR_INVALID_ARG;
   }
 
-  if (NS_WARN_IF(!quota::QuotaManager::IsPrincipalInfoValid(*principalInfo))) {
+  if (NS_WARN_IF(!quota::IsPrincipalInfoValid(*principalInfo))) {
     return NS_ERROR_INVALID_ARG;
   }
 

@@ -47,11 +47,9 @@
 class mozIStorageConnection;
 class nsIEventTarget;
 class nsIFile;
-class nsIPrincipal;
 class nsIRunnable;
 class nsIThread;
 class nsITimer;
-class nsPIDOMWindowOuter;
 
 namespace mozilla {
 
@@ -94,6 +92,10 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class InitTemporaryStorageOp;
   friend class OriginInfo;
   friend class ShutdownStorageOp;
+
+  friend Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
+      QuotaManager& aQuotaManager,
+      const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
   using PrincipalInfo = mozilla::ipc::PrincipalInfo;
   using DirectoryLockTable =
@@ -613,33 +615,6 @@ class QuotaManager final : public BackgroundThreadObject {
   static void GetStorageId(PersistenceType aPersistenceType,
                            const nsACString& aOrigin, Client::Type aClientType,
                            nsACString& aDatabaseId);
-
-  static bool IsPrincipalInfoValid(const PrincipalInfo& aPrincipalInfo);
-
-  static Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
-      QuotaManager& aQuotaManager, const PrincipalInfo& aPrincipalInfo);
-
-  static Result<PrincipalInfo, nsresult> PrincipalMetadataToPrincipalInfo(
-      const PrincipalMetadata& aPrincipalMetadata);
-
-  static nsAutoCString GetOriginFromValidatedPrincipalInfo(
-      const PrincipalInfo& aPrincipalInfo);
-
-  static Result<PrincipalMetadata, nsresult> GetInfoFromPrincipal(
-      nsIPrincipal* aPrincipal);
-
-  static Result<PrincipalMetadata, nsresult> GetInfoFromWindow(
-      nsPIDOMWindowOuter* aWindow);
-
-  static Result<nsAutoCString, nsresult> GetOriginFromPrincipal(
-      nsIPrincipal* aPrincipal);
-
-  static Result<nsAutoCString, nsresult> GetOriginFromWindow(
-      nsPIDOMWindowOuter* aWindow);
-
-  static nsLiteralCString GetOriginForChrome();
-
-  static PrincipalMetadata GetInfoForChrome();
 
   static bool IsOriginInternal(const nsACString& aOrigin);
 

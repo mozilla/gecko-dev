@@ -133,6 +133,7 @@
 #include "mozilla/dom/quota/OriginScope.h"
 #include "mozilla/dom/quota/PersistenceScope.h"
 #include "mozilla/dom/quota/PersistenceType.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/QuotaObject.h"
@@ -9035,7 +9036,7 @@ Factory::AllocPBackgroundIDBFactoryRequestParent(
 
   const PrincipalInfo& principalInfo = commonParams->principalInfo();
 
-  if (NS_AUUF_OR_WARN_IF(!QuotaManager::IsPrincipalInfoValid(principalInfo))) {
+  if (NS_AUUF_OR_WARN_IF(!quota::IsPrincipalInfoValid(principalInfo))) {
     IPC_FAIL(this, "Invalid principal!");
     return nullptr;
   }
@@ -9119,7 +9120,7 @@ mozilla::ipc::IPCResult Factory::RecvGetDatabases(
   QM_TRY(MOZ_TO_RESULT(IsValidPersistenceType(aPersistenceType)),
          QM_IPC_FAIL(this));
 
-  QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(aPrincipalInfo)),
+  QM_TRY(MOZ_TO_RESULT(quota::IsPrincipalInfoValid(aPrincipalInfo)),
          QM_IPC_FAIL(this));
 
   MOZ_ASSERT(aPrincipalInfo.type() == PrincipalInfo::TSystemPrincipalInfo ||
@@ -14756,9 +14757,9 @@ nsresult FactoryOp::Open() {
   QuotaManager* const quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  QM_TRY_UNWRAP(auto principalMetadata,
-                QuotaManager::GetInfoFromValidatedPrincipalInfo(
-                    *quotaManager, mPrincipalInfo));
+  QM_TRY_UNWRAP(
+      auto principalMetadata,
+      quota::GetInfoFromValidatedPrincipalInfo(*quotaManager, mPrincipalInfo));
 
   mOriginMetadata = {std::move(principalMetadata), mPersistenceType};
 

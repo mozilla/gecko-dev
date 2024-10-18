@@ -99,6 +99,7 @@
 #include "mozilla/dom/quota/FileUtils.h"
 #include "mozilla/dom/quota/MozPromiseUtils.h"
 #include "mozilla/dom/quota/PersistenceType.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/dom/quota/QuotaManagerImpl.h"
 #include "mozilla/dom/quota/QuotaManagerService.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
@@ -109,7 +110,6 @@
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundChild.h"
-#include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/net/ExtensionProtocolHandler.h"
 #include "mozilla/StorageOriginAttributes.h"
@@ -141,7 +141,6 @@
 #include "nsIPlatformInfo.h"
 #include "nsIPrincipal.h"
 #include "nsIRunnable.h"
-#include "nsIScriptObjectPrincipal.h"
 #include "nsISupports.h"
 #include "nsIThread.h"
 #include "nsITimer.h"
@@ -149,7 +148,6 @@
 #include "nsIWidget.h"
 #include "nsLiteralString.h"
 #include "nsNetUtil.h"
-#include "nsPIDOMWindow.h"
 #include "nsPrintfCString.h"
 #include "nsStandardURL.h"
 #include "nsServiceManagerUtils.h"
@@ -6516,297 +6514,6 @@ void QuotaManager::GetStorageId(PersistenceType aPersistenceType,
 }
 
 // static
-bool QuotaManager::IsPrincipalInfoValid(const PrincipalInfo& aPrincipalInfo) {
-  switch (aPrincipalInfo.type()) {
-    // A system principal is acceptable.
-    case PrincipalInfo::TSystemPrincipalInfo: {
-      return true;
-    }
-
-    // Validate content principals to ensure that the spec, originNoSuffix and
-    // baseDomain are sane.
-    case PrincipalInfo::TContentPrincipalInfo: {
-      const ContentPrincipalInfo& info =
-          aPrincipalInfo.get_ContentPrincipalInfo();
-
-      // Verify the principal spec parses.
-      nsCOMPtr<nsIURI> uri;
-      QM_TRY(MOZ_TO_RESULT(NS_NewURI(getter_AddRefs(uri), info.spec())), false);
-
-      nsCOMPtr<nsIPrincipal> principal =
-          BasePrincipal::CreateContentPrincipal(uri, info.attrs());
-      QM_TRY(MOZ_TO_RESULT(principal), false);
-
-      // Verify the principal originNoSuffix matches spec.
-      QM_TRY_INSPECT(const auto& originNoSuffix,
-                     MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(nsAutoCString, principal,
-                                                       GetOriginNoSuffix),
-                     false);
-
-      if (NS_WARN_IF(originNoSuffix != info.originNoSuffix())) {
-        QM_WARNING("originNoSuffix (%s) doesn't match passed one (%s)!",
-                   originNoSuffix.get(), info.originNoSuffix().get());
-        return false;
-      }
-
-      if (NS_WARN_IF(info.originNoSuffix().EqualsLiteral(kChromeOrigin))) {
-        return false;
-      }
-
-      if (NS_WARN_IF(info.originNoSuffix().FindChar('^', 0) != -1)) {
-        QM_WARNING("originNoSuffix (%s) contains the '^' character!",
-                   info.originNoSuffix().get());
-        return false;
-      }
-
-      // Verify the principal baseDomain exists.
-      if (NS_WARN_IF(info.baseDomain().IsVoid())) {
-        return false;
-      }
-
-      // Verify the principal baseDomain matches spec.
-      QM_TRY_INSPECT(const auto& baseDomain,
-                     MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(nsAutoCString, principal,
-                                                       GetBaseDomain),
-                     false);
-
-      if (NS_WARN_IF(baseDomain != info.baseDomain())) {
-        QM_WARNING("baseDomain (%s) doesn't match passed one (%s)!",
-                   baseDomain.get(), info.baseDomain().get());
-        return false;
-      }
-
-      return true;
-    }
-
-    default: {
-      break;
-    }
-  }
-
-  // Null and expanded principals are not acceptable.
-  return false;
-}
-
-// static
-Result<PrincipalMetadata, nsresult>
-QuotaManager::GetInfoFromValidatedPrincipalInfo(
-    QuotaManager& aQuotaManager, const PrincipalInfo& aPrincipalInfo) {
-  MOZ_ASSERT(IsPrincipalInfoValid(aPrincipalInfo));
-
-  switch (aPrincipalInfo.type()) {
-    case PrincipalInfo::TSystemPrincipalInfo: {
-      return GetInfoForChrome();
-    }
-
-    case PrincipalInfo::TContentPrincipalInfo: {
-      const ContentPrincipalInfo& info =
-          aPrincipalInfo.get_ContentPrincipalInfo();
-
-      nsCString suffix;
-      info.attrs().CreateSuffix(suffix);
-
-      nsCString origin = info.originNoSuffix() + suffix;
-
-      if (IsUUIDOrigin(origin)) {
-        QM_TRY_INSPECT(const auto& originalOrigin,
-                       aQuotaManager.GetOriginFromStorageOrigin(origin));
-
-        nsCOMPtr<nsIPrincipal> principal =
-            BasePrincipal::CreateContentPrincipal(originalOrigin);
-        QM_TRY(MOZ_TO_RESULT(principal));
-
-        PrincipalInfo principalInfo;
-        QM_TRY(
-            MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)));
-
-        return GetInfoFromValidatedPrincipalInfo(aQuotaManager, principalInfo);
-      }
-
-      PrincipalMetadata principalMetadata;
-
-      principalMetadata.mSuffix = suffix;
-
-      principalMetadata.mGroup = info.baseDomain() + suffix;
-
-      principalMetadata.mOrigin = origin;
-
-      if (info.attrs().IsPrivateBrowsing()) {
-        QM_TRY_UNWRAP(principalMetadata.mStorageOrigin,
-                      aQuotaManager.EnsureStorageOriginFromOrigin(origin));
-      } else {
-        principalMetadata.mStorageOrigin = origin;
-      }
-
-      principalMetadata.mIsPrivate = info.attrs().IsPrivateBrowsing();
-
-      return principalMetadata;
-    }
-
-    default: {
-      MOZ_ASSERT_UNREACHABLE("Should never get here!");
-      return Err(NS_ERROR_UNEXPECTED);
-    }
-  }
-}
-
-// static
-Result<PrincipalInfo, nsresult> QuotaManager::PrincipalMetadataToPrincipalInfo(
-    const PrincipalMetadata& aPrincipalMetadata) {
-  QM_TRY_INSPECT(
-      const auto& principal,
-      ([&aPrincipalMetadata]() -> Result<nsCOMPtr<nsIPrincipal>, nsresult> {
-        if (aPrincipalMetadata.mOrigin.EqualsLiteral(kChromeOrigin)) {
-          return nsCOMPtr<nsIPrincipal>(SystemPrincipal::Get());
-        }
-
-        return nsCOMPtr<nsIPrincipal>(
-            BasePrincipal::CreateContentPrincipal(aPrincipalMetadata.mOrigin));
-      }()));
-  QM_TRY(MOZ_TO_RESULT(principal));
-
-  PrincipalInfo principalInfo;
-  QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)));
-
-  return std::move(principalInfo);
-}
-
-// static
-nsAutoCString QuotaManager::GetOriginFromValidatedPrincipalInfo(
-    const PrincipalInfo& aPrincipalInfo) {
-  MOZ_ASSERT(IsPrincipalInfoValid(aPrincipalInfo));
-
-  switch (aPrincipalInfo.type()) {
-    case PrincipalInfo::TSystemPrincipalInfo: {
-      return nsAutoCString{GetOriginForChrome()};
-    }
-
-    case PrincipalInfo::TContentPrincipalInfo: {
-      const ContentPrincipalInfo& info =
-          aPrincipalInfo.get_ContentPrincipalInfo();
-
-      nsAutoCString suffix;
-
-      info.attrs().CreateSuffix(suffix);
-
-      return info.originNoSuffix() + suffix;
-    }
-
-    default: {
-      MOZ_CRASH("Should never get here!");
-    }
-  }
-}
-
-// static
-Result<PrincipalMetadata, nsresult> QuotaManager::GetInfoFromPrincipal(
-    nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(aPrincipal);
-
-  if (aPrincipal->IsSystemPrincipal()) {
-    return GetInfoForChrome();
-  }
-
-  if (aPrincipal->GetIsNullPrincipal()) {
-    NS_WARNING("IndexedDB not supported from this principal!");
-    return Err(NS_ERROR_FAILURE);
-  }
-
-  PrincipalMetadata principalMetadata;
-
-  QM_TRY(MOZ_TO_RESULT(aPrincipal->GetOrigin(principalMetadata.mOrigin)));
-
-  if (principalMetadata.mOrigin.EqualsLiteral(kChromeOrigin)) {
-    NS_WARNING("Non-chrome principal can't use chrome origin!");
-    return Err(NS_ERROR_FAILURE);
-  }
-
-  aPrincipal->OriginAttributesRef().CreateSuffix(principalMetadata.mSuffix);
-
-  nsAutoCString baseDomain;
-  QM_TRY(MOZ_TO_RESULT(aPrincipal->GetBaseDomain(baseDomain)));
-
-  MOZ_ASSERT(!baseDomain.IsEmpty());
-
-  principalMetadata.mGroup = baseDomain + principalMetadata.mSuffix;
-
-  principalMetadata.mStorageOrigin = principalMetadata.mOrigin;
-
-  principalMetadata.mIsPrivate = aPrincipal->GetIsInPrivateBrowsing();
-
-  return principalMetadata;
-}
-
-Result<PrincipalMetadata, nsresult> QuotaManager::GetInfoFromWindow(
-    nsPIDOMWindowOuter* aWindow) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aWindow);
-
-  nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(aWindow);
-  QM_TRY(OkIf(sop), Err(NS_ERROR_FAILURE));
-
-  nsCOMPtr<nsIPrincipal> principal = sop->GetPrincipal();
-  QM_TRY(OkIf(principal), Err(NS_ERROR_FAILURE));
-
-  return GetInfoFromPrincipal(principal);
-}
-
-// static
-Result<nsAutoCString, nsresult> QuotaManager::GetOriginFromPrincipal(
-    nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aPrincipal);
-
-  if (aPrincipal->IsSystemPrincipal()) {
-    return nsAutoCString{GetOriginForChrome()};
-  }
-
-  if (aPrincipal->GetIsNullPrincipal()) {
-    NS_WARNING("IndexedDB not supported from this principal!");
-    return Err(NS_ERROR_FAILURE);
-  }
-
-  QM_TRY_UNWRAP(const auto origin, MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(
-                                       nsAutoCString, aPrincipal, GetOrigin));
-
-  if (origin.EqualsLiteral(kChromeOrigin)) {
-    NS_WARNING("Non-chrome principal can't use chrome origin!");
-    return Err(NS_ERROR_FAILURE);
-  }
-
-  return origin;
-}
-
-// static
-Result<nsAutoCString, nsresult> QuotaManager::GetOriginFromWindow(
-    nsPIDOMWindowOuter* aWindow) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(aWindow);
-
-  nsCOMPtr<nsIScriptObjectPrincipal> sop = do_QueryInterface(aWindow);
-  QM_TRY(OkIf(sop), Err(NS_ERROR_FAILURE));
-
-  nsCOMPtr<nsIPrincipal> principal = sop->GetPrincipal();
-  QM_TRY(OkIf(principal), Err(NS_ERROR_FAILURE));
-
-  QM_TRY_RETURN(GetOriginFromPrincipal(principal));
-}
-
-// static
-PrincipalMetadata QuotaManager::GetInfoForChrome() {
-  return {{},
-          GetOriginForChrome(),
-          GetOriginForChrome(),
-          GetOriginForChrome(),
-          false};
-}
-
-// static
-nsLiteralCString QuotaManager::GetOriginForChrome() {
-  return nsLiteralCString{kChromeOrigin};
-}
-
-// static
 bool QuotaManager::IsOriginInternal(const nsACString& aOrigin) {
   MOZ_ASSERT(!aOrigin.IsEmpty());
 
@@ -7792,7 +7499,7 @@ nsresult StorageOperationBase::ProcessOriginDirectories() {
   for (auto& originProps : mOriginProps) {
     switch (originProps.mType) {
       case OriginProps::eChrome: {
-        originProps.mOriginMetadata = {QuotaManager::GetInfoForChrome(),
+        originProps.mOriginMetadata = {GetInfoForChrome(),
                                        *originProps.mPersistenceType};
         break;
       }
@@ -7811,8 +7518,7 @@ nsresult StorageOperationBase::ProcessOriginDirectories() {
             MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)));
 
         QM_WARNONLY_TRY_UNWRAP(
-            auto valid,
-            MOZ_TO_RESULT(quotaManager->IsPrincipalInfoValid(principalInfo)));
+            auto valid, MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)));
 
         if (!valid) {
           // Unknown directories during upgrade are allowed. Just warn if we
@@ -7822,9 +7528,9 @@ nsresult StorageOperationBase::ProcessOriginDirectories() {
           break;
         }
 
-        QM_TRY_UNWRAP(auto principalMetadata,
-                      QuotaManager::GetInfoFromValidatedPrincipalInfo(
-                          *quotaManager, principalInfo));
+        QM_TRY_UNWRAP(
+            auto principalMetadata,
+            GetInfoFromValidatedPrincipalInfo(*quotaManager, principalInfo));
 
         originProps.mOriginMetadata = {std::move(principalMetadata),
                                        *originProps.mPersistenceType};

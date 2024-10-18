@@ -12,6 +12,7 @@
 #include "mozilla/dom/FileSystemLog.h"
 #include "mozilla/dom/FileSystemManagerParent.h"
 #include "mozilla/dom/FileSystemTypes.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
@@ -34,8 +35,7 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
          [aResolver](const auto&) { aResolver(NS_ERROR_INVALID_ARG); });
 
   // This blocks Null and Expanded principals
-  QM_TRY(OkIf(quota::QuotaManager::IsPrincipalInfoValid(aPrincipalInfo)),
-         IPC_OK(),
+  QM_TRY(OkIf(quota::IsPrincipalInfoValid(aPrincipalInfo)), IPC_OK(),
          [aResolver](const auto&) { aResolver(NS_ERROR_DOM_SECURITY_ERR); });
 
   QM_TRY(quota::QuotaManager::EnsureCreated(), IPC_OK(),
@@ -44,10 +44,10 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
   auto* const quotaManager = quota::QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  QM_TRY_UNWRAP(auto principalMetadata,
-                quota::QuotaManager::GetInfoFromValidatedPrincipalInfo(
-                    *quotaManager, aPrincipalInfo),
-                IPC_OK(), [aResolver](const auto rv) { aResolver(rv); });
+  QM_TRY_UNWRAP(
+      auto principalMetadata,
+      quota::GetInfoFromValidatedPrincipalInfo(*quotaManager, aPrincipalInfo),
+      IPC_OK(), [aResolver](const auto rv) { aResolver(rv); });
 
   quota::OriginMetadata originMetadata(std::move(principalMetadata),
                                        quota::PERSISTENCE_TYPE_DEFAULT);

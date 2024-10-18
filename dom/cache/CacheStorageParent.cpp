@@ -11,12 +11,11 @@
 #include "mozilla/dom/cache/ActorUtils.h"
 #include "mozilla/dom/cache/CacheOpParent.h"
 #include "mozilla/dom/cache/ManagerId.h"
-#include "mozilla/dom/quota/QuotaManager.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/ipc/PBackgroundParent.h"
 
 namespace mozilla::dom::cache {
 
-using mozilla::dom::quota::QuotaManager;
 using mozilla::ipc::PBackgroundParent;
 using mozilla::ipc::PrincipalInfo;
 
@@ -24,7 +23,7 @@ using mozilla::ipc::PrincipalInfo;
 already_AddRefed<PCacheStorageParent> AllocPCacheStorageParent(
     PBackgroundParent* aManagingActor, Namespace aNamespace,
     const mozilla::ipc::PrincipalInfo& aPrincipalInfo) {
-  if (NS_WARN_IF(!QuotaManager::IsPrincipalInfoValid(aPrincipalInfo))) {
+  if (NS_WARN_IF(!quota::IsPrincipalInfoValid(aPrincipalInfo))) {
     MOZ_ASSERT(false);
     return nullptr;
   }

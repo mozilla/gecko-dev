@@ -39,6 +39,7 @@
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FileStreams.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
@@ -547,7 +548,7 @@ AllocPBackgroundSDBConnectionParent(const PersistenceType& aPersistenceType,
     return nullptr;
   }
 
-  if (NS_WARN_IF(!QuotaManager::IsPrincipalInfoValid(aPrincipalInfo))) {
+  if (NS_WARN_IF(!quota::IsPrincipalInfoValid(aPrincipalInfo))) {
     MOZ_CRASH_UNLESS_FUZZING();
     return nullptr;
   }
@@ -1102,13 +1103,13 @@ nsresult OpenOp::FinishOpen() {
   PersistenceType persistenceType = GetConnection()->GetPersistenceType();
 
   if (principalInfo.type() == PrincipalInfo::TSystemPrincipalInfo) {
-    mOriginMetadata = {QuotaManager::GetInfoForChrome(), persistenceType};
+    mOriginMetadata = {quota::GetInfoForChrome(), persistenceType};
   } else {
     MOZ_ASSERT(principalInfo.type() == PrincipalInfo::TContentPrincipalInfo);
 
-    QM_TRY_UNWRAP(auto principalMetadata,
-                  QuotaManager::GetInfoFromValidatedPrincipalInfo(
-                      *quotaManager, principalInfo));
+    QM_TRY_UNWRAP(
+        auto principalMetadata,
+        quota::GetInfoFromValidatedPrincipalInfo(*quotaManager, principalInfo));
 
     mOriginMetadata = {std::move(principalMetadata), persistenceType};
   }

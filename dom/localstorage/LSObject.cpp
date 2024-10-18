@@ -31,7 +31,7 @@
 #include "mozilla/dom/LocalStorageCommon.h"
 #include "mozilla/dom/PBackgroundLSRequest.h"
 #include "mozilla/dom/PBackgroundLSSharedTypes.h"
-#include "mozilla/dom/quota/QuotaManager.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
@@ -278,23 +278,20 @@ nsresult LSObject::CreateForWindow(nsPIDOMWindowInner* aWindow,
   MOZ_ASSERT(storagePrincipalInfo->type() ==
              PrincipalInfo::TContentPrincipalInfo);
 
-  if (NS_WARN_IF(
-          !quota::QuotaManager::IsPrincipalInfoValid(*storagePrincipalInfo))) {
+  if (NS_WARN_IF(!quota::IsPrincipalInfoValid(*storagePrincipalInfo))) {
     return NS_ERROR_FAILURE;
   }
 
 #ifdef DEBUG
-  QM_TRY_INSPECT(
-      const auto& principalMetadata,
-      quota::QuotaManager::GetInfoFromPrincipal(storagePrincipal.get()));
+  QM_TRY_INSPECT(const auto& principalMetadata,
+                 quota::GetInfoFromPrincipal(storagePrincipal.get()));
 
   MOZ_ASSERT(originAttrSuffix == principalMetadata.mSuffix);
 
   const auto& origin = principalMetadata.mOrigin;
 #else
-  QM_TRY_INSPECT(
-      const auto& origin,
-      quota::QuotaManager::GetOriginFromPrincipal(storagePrincipal.get()));
+  QM_TRY_INSPECT(const auto& origin,
+                 quota::GetOriginFromPrincipal(storagePrincipal.get()));
 #endif
 
   uint32_t privateBrowsingId;
@@ -373,8 +370,7 @@ nsresult LSObject::CreateForPrincipal(nsPIDOMWindowInner* aWindow,
       storagePrincipalInfo->type() == PrincipalInfo::TContentPrincipalInfo ||
       storagePrincipalInfo->type() == PrincipalInfo::TSystemPrincipalInfo);
 
-  if (NS_WARN_IF(
-          !quota::QuotaManager::IsPrincipalInfoValid(*storagePrincipalInfo))) {
+  if (NS_WARN_IF(!quota::IsPrincipalInfoValid(*storagePrincipalInfo))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -385,26 +381,26 @@ nsresult LSObject::CreateForPrincipal(nsPIDOMWindowInner* aWindow,
         &aPrincipal]() -> Result<quota::PrincipalMetadata, nsresult> {
         if (storagePrincipalInfo->type() ==
             PrincipalInfo::TSystemPrincipalInfo) {
-          return quota::QuotaManager::GetInfoForChrome();
+          return quota::GetInfoForChrome();
         }
 
-        QM_TRY_RETURN(quota::QuotaManager::GetInfoFromPrincipal(aPrincipal));
+        QM_TRY_RETURN(quota::GetInfoFromPrincipal(aPrincipal));
       }()));
 
   MOZ_ASSERT(originAttrSuffix == principalMetadata.mSuffix);
 
   const auto& origin = principalMetadata.mOrigin;
 #else
-  QM_TRY_INSPECT(
-      const auto& origin, ([&storagePrincipalInfo,
-                            &aPrincipal]() -> Result<nsAutoCString, nsresult> {
-        if (storagePrincipalInfo->type() ==
-            PrincipalInfo::TSystemPrincipalInfo) {
-          return nsAutoCString{quota::QuotaManager::GetOriginForChrome()};
-        }
+  QM_TRY_INSPECT(const auto& origin,
+                 ([&storagePrincipalInfo,
+                   &aPrincipal]() -> Result<nsAutoCString, nsresult> {
+                   if (storagePrincipalInfo->type() ==
+                       PrincipalInfo::TSystemPrincipalInfo) {
+                     return nsAutoCString{quota::GetOriginForChrome()};
+                   }
 
-        QM_TRY_RETURN(quota::QuotaManager::GetOriginFromPrincipal(aPrincipal));
-      }()));
+                   QM_TRY_RETURN(quota::GetOriginFromPrincipal(aPrincipal));
+                 }()));
 #endif
 
   Maybe<nsID> clientId;

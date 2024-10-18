@@ -25,8 +25,8 @@
 #include "mozilla/dom/PBackgroundLSSharedTypes.h"
 #include "mozilla/dom/PBackgroundLSSimpleRequest.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/dom/quota/PromiseUtils.h"
-#include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -165,7 +165,7 @@ nsresult CheckedPrincipalToPrincipalInfo(
     return rv;
   }
 
-  if (NS_WARN_IF(!quota::QuotaManager::IsPrincipalInfoValid(aPrincipalInfo))) {
+  if (NS_WARN_IF(!quota::IsPrincipalInfoValid(aPrincipalInfo))) {
     return NS_ERROR_FAILURE;
   }
 

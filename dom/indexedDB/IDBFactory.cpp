@@ -16,6 +16,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/IDBFactoryBinding.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/dom/BrowserChild.h"
@@ -129,7 +130,7 @@ Result<RefPtr<IDBFactory>, nsresult> IDBFactory::CreateForWindow(
   MOZ_ASSERT(principalInfo->type() == PrincipalInfo::TContentPrincipalInfo ||
              principalInfo->type() == PrincipalInfo::TSystemPrincipalInfo);
 
-  if (NS_WARN_IF(!QuotaManager::IsPrincipalInfoValid(*principalInfo))) {
+  if (NS_WARN_IF(!quota::IsPrincipalInfoValid(*principalInfo))) {
     IDB_REPORT_INTERNAL_ERR();
     return Err(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
   }
@@ -180,7 +181,7 @@ Result<RefPtr<IDBFactory>, nsresult> IDBFactory::CreateForMainThreadJS(
     return Err(rv);
   }
 
-  if (NS_WARN_IF(!QuotaManager::IsPrincipalInfoValid(*principalInfo))) {
+  if (NS_WARN_IF(!quota::IsPrincipalInfoValid(*principalInfo))) {
     return Err(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
   }
 
@@ -705,7 +706,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::OpenInternal(
       return nullptr;
     }
 
-    if (NS_WARN_IF(!QuotaManager::IsPrincipalInfoValid(principalInfo))) {
+    if (NS_WARN_IF(!quota::IsPrincipalInfoValid(principalInfo))) {
       IDB_REPORT_INTERNAL_ERR();
       aRv.Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
       return nullptr;

@@ -31,6 +31,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Unused.h"
 #include "mozilla/Variant.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/dom/quota/PQuota.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "mozilla/dom/quota/QuotaUsageRequestChild.h"
@@ -83,7 +84,7 @@ nsresult CheckedPrincipalToPrincipalInfo(nsIPrincipal* aPrincipal,
     return rv;
   }
 
-  if (NS_WARN_IF(!QuotaManager::IsPrincipalInfoValid(aPrincipalInfo))) {
+  if (NS_WARN_IF(!IsPrincipalInfoValid(aPrincipalInfo))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -577,18 +578,17 @@ QuotaManagerService::PersistentOriginInitialized(nsIPrincipal* aPrincipal,
 
   QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   RefPtr<Request> request = new Request();
 
@@ -628,18 +628,17 @@ QuotaManagerService::TemporaryOriginInitialized(
         return persistenceType.ref();
       }()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   RefPtr<Request> request = new Request();
 
@@ -727,18 +726,17 @@ QuotaManagerService::InitializePersistentOrigin(nsIPrincipal* aPrincipal,
 
   QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   auto request = MakeRefPtr<Request>();
 
@@ -778,18 +776,17 @@ QuotaManagerService::InitializeTemporaryOrigin(
         return persistenceType.ref();
       }()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   auto request = MakeRefPtr<Request>();
 
@@ -816,18 +813,17 @@ QuotaManagerService::InitializePersistentClient(nsIPrincipal* aPrincipal,
 
   QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   QM_TRY_INSPECT(const auto& clientType,
                  ([&aClientType]() -> Result<Client::Type, nsresult> {
@@ -877,18 +873,17 @@ QuotaManagerService::InitializeTemporaryClient(
         return persistenceType.ref();
       }()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   QM_TRY_INSPECT(const auto& clientType,
                  ([&aClientType]() -> Result<Client::Type, nsresult> {
@@ -929,8 +924,7 @@ QuotaManagerService::GetFullOriginMetadata(const nsACString& aPersistenceType,
 
   PrincipalInfo principalInfo;
   QM_TRY(MOZ_TO_RESULT(PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
-  QM_TRY(OkIf(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-         NS_ERROR_INVALID_ARG);
+  QM_TRY(OkIf(IsPrincipalInfoValid(principalInfo)), NS_ERROR_INVALID_ARG);
 
   RefPtr<Request> request = new Request();
 
@@ -985,18 +979,17 @@ QuotaManagerService::GetUsageForPrincipal(nsIPrincipal* aPrincipal,
 
   QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   RefPtr<UsageRequest> request = new UsageRequest(aPrincipal, aCallback);
 
@@ -1026,18 +1019,17 @@ QuotaManagerService::GetCachedUsageForPrincipal(nsIPrincipal* aPrincipal,
 
   QM_TRY(MOZ_TO_RESULT(EnsureBackgroundActor()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   RefPtr<Request> request = new Request();
 
@@ -1130,18 +1122,17 @@ QuotaManagerService::ClearStoragesForPrincipal(
         return persistenceType;
       }()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   RefPtr<Request> request = new Request();
 
@@ -1178,18 +1169,17 @@ QuotaManagerService::ClearStoragesForClient(nsIPrincipal* aPrincipal,
         return persistenceType;
       }()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   QM_TRY_INSPECT(const auto& clientType,
                  ([&aClientType]() -> Result<Client::Type, nsresult> {
@@ -1243,7 +1233,7 @@ QuotaManagerService::ClearStoragesForOriginPrefix(
         QM_TRY(MOZ_TO_RESULT(
             PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
+        QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
                Err(NS_ERROR_INVALID_ARG));
 
         if (principalInfo.type() == PrincipalInfo::TContentPrincipalInfo) {
@@ -1311,18 +1301,17 @@ QuotaManagerService::ResetStoragesForPrincipal(
         return persistenceType;
       }()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   RefPtr<Request> request = new Request();
 
@@ -1360,18 +1349,17 @@ QuotaManagerService::ResetStoragesForClient(nsIPrincipal* aPrincipal,
         return persistenceType;
       }()));
 
-  QM_TRY_INSPECT(
-      const auto& principalInfo,
-      ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
-        PrincipalInfo principalInfo;
-        QM_TRY(MOZ_TO_RESULT(
-            PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
+  QM_TRY_INSPECT(const auto& principalInfo,
+                 ([&aPrincipal]() -> Result<PrincipalInfo, nsresult> {
+                   PrincipalInfo principalInfo;
+                   QM_TRY(MOZ_TO_RESULT(
+                       PrincipalToPrincipalInfo(aPrincipal, &principalInfo)));
 
-        QM_TRY(MOZ_TO_RESULT(QuotaManager::IsPrincipalInfoValid(principalInfo)),
-               Err(NS_ERROR_INVALID_ARG));
+                   QM_TRY(MOZ_TO_RESULT(IsPrincipalInfoValid(principalInfo)),
+                          Err(NS_ERROR_INVALID_ARG));
 
-        return principalInfo;
-      }()));
+                   return principalInfo;
+                 }()));
 
   QM_TRY_INSPECT(const auto& clientType,
                  ([&aClientType]() -> Result<Client::Type, nsresult> {

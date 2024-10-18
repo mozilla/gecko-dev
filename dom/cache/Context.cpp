@@ -17,6 +17,7 @@
 #include "mozilla/dom/quota/Assertions.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
+#include "mozilla/dom/quota/PrincipalUtils.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/dom/quota/ThreadUtils.h"
@@ -371,8 +372,8 @@ Context::QuotaInitRunnable::Run() {
       MOZ_DIAGNOSTIC_ASSERT(quotaManager);
 
       QM_TRY_UNWRAP(auto principalMetadata,
-                    QuotaManager::GetInfoFromValidatedPrincipalInfo(
-                        *quotaManager, *mPrincipalInfo));
+                    quota::GetInfoFromValidatedPrincipalInfo(*quotaManager,
+                                                             *mPrincipalInfo));
 
       mDirectoryMetadata.emplace(std::move(principalMetadata));
 
