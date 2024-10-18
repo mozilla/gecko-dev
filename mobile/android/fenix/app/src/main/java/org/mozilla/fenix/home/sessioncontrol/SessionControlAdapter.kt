@@ -22,9 +22,9 @@ import org.mozilla.fenix.home.bookmarks.view.BookmarksHeaderViewHolder
 import org.mozilla.fenix.home.bookmarks.view.BookmarksViewHolder
 import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
-import org.mozilla.fenix.home.pocket.PocketCategoriesViewHolder
-import org.mozilla.fenix.home.pocket.PocketRecommendationsHeaderViewHolder
-import org.mozilla.fenix.home.pocket.PocketStoriesViewHolder
+import org.mozilla.fenix.home.pocket.view.PocketCategoriesViewHolder
+import org.mozilla.fenix.home.pocket.view.PocketRecommendationsHeaderViewHolder
+import org.mozilla.fenix.home.pocket.view.PocketStoriesViewHolder
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
 import org.mozilla.fenix.home.recenttabs.view.RecentTabViewHolder
 import org.mozilla.fenix.home.recenttabs.view.RecentTabsHeaderViewHolder

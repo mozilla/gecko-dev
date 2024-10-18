@@ -4,7 +4,7 @@
 
 @file:Suppress("MagicNumber")
 
-package org.mozilla.fenix.home.pocket
+package org.mozilla.fenix.home.pocket.ui
 
 import android.content.res.Configuration
 import android.graphics.Rect
@@ -72,6 +72,9 @@ import org.mozilla.fenix.compose.TabSubtitleWithInterdot
 import org.mozilla.fenix.compose.ext.onShown
 import org.mozilla.fenix.compose.inComposePreview
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.home.pocket.POCKET_STORIES_DEFAULT_CATEGORY_NAME
+import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
+import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
 import org.mozilla.fenix.theme.FirefoxTheme
 import kotlin.math.roundToInt
 

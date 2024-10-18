@@ -12,7 +12,7 @@ import mozilla.components.concept.storage.HistoryMetadataKey
 import org.junit.Before
 import org.junit.Test
 import org.mozilla.fenix.home.bookmarks.controller.BookmarksController
-import org.mozilla.fenix.home.pocket.PocketStoriesController
+import org.mozilla.fenix.home.pocket.controller.PocketStoriesController
 import org.mozilla.fenix.home.privatebrowsing.controller.PrivateBrowsingController
 import org.mozilla.fenix.home.recentsyncedtabs.controller.RecentSyncedTabController
 import org.mozilla.fenix.home.recenttabs.controller.RecentTabController

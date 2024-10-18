@@ -5,7 +5,7 @@
 package org.mozilla.fenix.home.interactor
 
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
-import org.mozilla.fenix.home.pocket.PocketStoriesInteractor
+import org.mozilla.fenix.home.pocket.interactor.PocketStoriesInteractor
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
 import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor

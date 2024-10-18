@@ -4,7 +4,7 @@
 
 @file:Suppress("MagicNumber")
 
-package org.mozilla.fenix.home.pocket
+package org.mozilla.fenix.home.pocket.view
 
 import android.view.View
 import androidx.compose.foundation.background
@@ -25,6 +25,8 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.ComposeViewHolder
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.home.pocket.interactor.PocketStoriesInteractor
+import org.mozilla.fenix.home.pocket.ui.PoweredByPocketHeader
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**

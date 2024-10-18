@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.home.pocket
+package org.mozilla.fenix.home.pocket.interactor
 
 import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
+import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 
 /**
  * Contract for all possible user interactions with the Pocket recommended stories feature.

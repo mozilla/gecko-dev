@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.home.pocket
+package org.mozilla.fenix.home.pocket.view
 
 import android.view.View
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,6 +24,10 @@ import org.mozilla.fenix.compose.ComposeViewHolder
 import org.mozilla.fenix.compose.SelectableChipColors
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.home.HomeSectionHeader
+import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
+import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
+import org.mozilla.fenix.home.pocket.interactor.PocketStoriesInteractor
+import org.mozilla.fenix.home.pocket.ui.PocketStoriesCategories
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.wallpapers.WallpaperState
 
