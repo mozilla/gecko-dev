@@ -418,6 +418,7 @@ class LoadInfo final : public nsILoadInfo {
       nsILoadInfo::NOT_INITIALIZED;
 
   bool mIsNewWindowTarget = false;
+  bool mSkipHTTPSUpgrade = false;
 };
 
 // This is exposed solely for testing purposes and should not be used outside of

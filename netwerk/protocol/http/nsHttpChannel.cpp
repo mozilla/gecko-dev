@@ -8270,6 +8270,11 @@ static void RecordHTTPSUpgradeTelemetry(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
           .Get("upgrade_exception"_ns)
           .Add(1);
       break;
+    case nsILoadInfo::SKIP_HTTPS_UPGRADE:
+      mozilla::glean::networking::http_to_https_upgrade_reason
+          .Get("skip_upgrade"_ns)
+          .Add(1);
+      break;
     default:
       MOZ_ASSERT(false, "what telemetry flag is set to end up here?");
   }

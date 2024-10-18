@@ -2476,4 +2476,16 @@ LoadInfo::SetIsNewWindowTarget(bool aIsNewWindowTarget) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+LoadInfo::GetSkipHTTPSUpgrade(bool* aSkipHTTPSUpgrade) {
+  *aSkipHTTPSUpgrade = mSkipHTTPSUpgrade;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+LoadInfo::SetSkipHTTPSUpgrade(bool aSkipHTTPSUpgrade) {
+  mSkipHTTPSUpgrade = aSkipHTTPSUpgrade;
+  return NS_OK;
+}
+
 }  // namespace mozilla::net
