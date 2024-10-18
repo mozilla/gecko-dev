@@ -321,7 +321,9 @@ END_TEST(testParseJSON_error)
 
 static bool Censor(JSContext* cx, unsigned argc, JS::Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  MOZ_RELEASE_ASSERT(args.length() == 3);
+  const unsigned expectedArgCount =
+      JS::Prefs::experimental_json_parse_with_source() ? 3 : 2;
+  MOZ_RELEASE_ASSERT(args.length() == expectedArgCount);
   MOZ_RELEASE_ASSERT(args[0].isString());
   args.rval().setNull();
   return true;

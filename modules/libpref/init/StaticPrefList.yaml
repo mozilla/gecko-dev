@@ -8075,7 +8075,7 @@
 
 -   name: javascript.options.experimental.json_parse_with_source
     type: bool
-    value: true
+    value: false
     mirror: always
     set_spidermonkey_pref: always
 
