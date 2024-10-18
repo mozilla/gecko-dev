@@ -3477,6 +3477,11 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
     // Update or create OriginInfo too if temporary storage was already
     // initialized.
     if (aQuotaManager.IsTemporaryStorageInitializedInternal()) {
+      FullOriginMetadata fullOriginMetadata =
+          FullOriginMetadata{originMetadata, /* aPersisted */ true, timestamp};
+
+      aQuotaManager.AddTemporaryOrigin(fullOriginMetadata);
+
       if (aQuotaManager.IsTemporaryOriginInitializedInternal(originMetadata)) {
         // In this case, we have a temporary origin which has been initialized
         // without ensuring respective origin directory. So OriginInfo already
@@ -3489,10 +3494,8 @@ nsresult PersistOp::DoDirectoryWork(QuotaManager& aQuotaManager) {
         // initialized yet. So OriginInfo needs to be created because the
         // origin directory has been just created.
 
-        aQuotaManager.InitQuotaForOrigin(
-            FullOriginMetadata{originMetadata, /* aPersisted */ true,
-                               timestamp},
-            ClientUsageArray(), /* aUsageBytes */ 0);
+        aQuotaManager.InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
+                                         /* aUsageBytes */ 0);
       }
     }
   } else {

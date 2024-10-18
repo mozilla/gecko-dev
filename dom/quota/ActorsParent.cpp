@@ -2104,6 +2104,20 @@ nsresult QuotaManager::Init() {
                     nsCOMPtr<nsIThread>, MOZ_SELECT_OVERLOAD(NS_NewNamedThread),
                     "QuotaManager IO"));
 
+  // XXX This could be eventually moved to nsThreadUtils.h or nsIThread
+  // could have an infallible method returning PRThread as return value.
+  auto PRThreadFromThread = [](nsIThread* aThread) {
+    MOZ_ASSERT(aThread);
+
+    PRThread* result;
+    MOZ_ALWAYS_SUCCEEDS(aThread->GetPRThread(&result));
+    MOZ_ASSERT(result);
+
+    return result;
+  };
+
+  mIOThreadAccessible.Transfer(PRThreadFromThread(*mIOThread));
+
   static_assert(Client::IDB == 0 && Client::DOMCACHE == 1 && Client::SDB == 2 &&
                     Client::FILESYSTEM == 3 && Client::LS == 4 &&
                     Client::TYPE_MAX == 5,
@@ -2608,6 +2622,8 @@ nsresult QuotaManager::LoadQuota() {
   // A list of all unaccessed default or temporary origins.
   nsTArray<FullOriginMetadata> unaccessedOrigins;
 
+  // XXX The list of all unaccessed default or temporary origins can be now
+  // generated from mAllTemporaryOrigins.
   auto MaybeCollectUnaccessedOrigin =
       [loadQuotaInfoStartTime = PR_Now(),
        &unaccessedOrigins](const auto& fullOriginMetadata) {
@@ -2633,6 +2649,7 @@ nsresult QuotaManager::LoadQuota() {
 
     auto autoRemoveQuota = MakeScopeExit([&] {
       RemoveQuota();
+      RemoveTemporaryOrigins();
       unaccessedOrigins.Clear();
     });
 
@@ -2757,12 +2774,16 @@ nsresult QuotaManager::LoadQuota() {
 
             MaybeCollectUnaccessedOrigin(fullOriginMetadata);
 
+            AddTemporaryOrigin(fullOriginMetadata);
+
             QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
                 fullOriginMetadata.mPersistenceType, fullOriginMetadata,
                 fullOriginMetadata.mLastAccessTime,
                 fullOriginMetadata.mPersisted, directory)));
           } else {
             MaybeCollectUnaccessedOrigin(fullOriginMetadata);
+
+            AddTemporaryOrigin(fullOriginMetadata);
 
             InitQuotaForOrigin(fullOriginMetadata, clientUsages, usage);
           }
@@ -2805,7 +2826,10 @@ nsresult QuotaManager::LoadQuota() {
         return false;
       }()));
 
-  auto autoRemoveQuota = MakeScopeExit([&] { RemoveQuota(); });
+  auto autoRemoveQuota = MakeScopeExit([&] {
+    RemoveQuota();
+    RemoveTemporaryOrigins();
+  });
 
   if (!loadQuotaFromCache ||
       !StaticPrefs::dom_quotaManager_loadQuotaFromCache() ||
@@ -3241,6 +3265,9 @@ QuotaManager::GetOrCreateTemporaryOriginDirectory(
 
     QM_TRY(MOZ_TO_RESULT(CreateDirectoryMetadata2(*directory, timestamp,
                                                   persisted, aOriginMetadata)));
+
+    AddTemporaryOrigin(
+        FullOriginMetadata{aOriginMetadata, persisted, timestamp});
   }
 
   return std::move(directory);
@@ -3695,6 +3722,8 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
 
                         if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
                           std::forward<OriginFunc>(aOriginFunc)(metadata);
+
+                          AddTemporaryOrigin(metadata);
                         }
 
                         QM_TRY(QM_OR_ELSE_WARN_IF(
@@ -3706,8 +3735,8 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
                             // Predicate.
                             IsDatabaseCorruptionError,
                             // Fallback.
-                            ([&childDirectory](
-                                 const nsresult rv) -> Result<Ok, nsresult> {
+                            ([&childDirectory, &metadata,
+                              this](const nsresult rv) -> Result<Ok, nsresult> {
                               // If the origin can't be initialized due to
                               // corruption, this is a permanent
                               // condition, and we need to remove all data
@@ -3715,6 +3744,8 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
 
                               QM_TRY(
                                   MOZ_TO_RESULT(childDirectory->Remove(true)));
+
+                              RemoveTemporaryOrigin(metadata);
 
                               return Ok{};
                             })));
@@ -3779,6 +3810,8 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
 
             if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
               std::forward<OriginFunc>(aOriginFunc)(info.mFullOriginMetadata);
+
+              AddTemporaryOrigin(info.mFullOriginMetadata);
             }
 
             // XXX We don't check corruption here ?
@@ -5949,10 +5982,15 @@ QuotaManager::EnsureTemporaryOriginIsInitializedInternal(
                                                     /* aPersisted */ false,
                                                     aOriginMetadata)));
 
+      FullOriginMetadata fullOriginMetadata =
+          FullOriginMetadata{aOriginMetadata,
+                             /* aPersisted */ false, timestamp};
+
+      AddTemporaryOrigin(fullOriginMetadata);
+
       // Don't need to traverse the directory, since it's empty.
-      InitQuotaForOrigin(FullOriginMetadata{aOriginMetadata,
-                                            /* aPersisted */ false, timestamp},
-                         ClientUsageArray(), /* aUsageBytes */ 0);
+      InitQuotaForOrigin(fullOriginMetadata, ClientUsageArray(),
+                         /* aUsageBytes */ 0);
     }
 
     // TODO: If the metadata file exists and we didn't call
@@ -6438,6 +6476,8 @@ void QuotaManager::ShutdownStorageInternal() {
         RemoveQuota();
       }
 
+      RemoveTemporaryOrigins();
+
       mTemporaryStorageInitializedInternal = false;
     }
 
@@ -6502,6 +6542,8 @@ void QuotaManager::OriginClearCompleted(
   if (aClientType.IsNull()) {
     if (aOriginMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT) {
       mInitializedOriginsInternal.RemoveElement(aOriginMetadata.mOrigin);
+    } else {
+      RemoveTemporaryOrigin(aOriginMetadata);
     }
 
     for (Client::Type type : AllClientTypes()) {
@@ -6517,6 +6559,8 @@ void QuotaManager::RepositoryClearCompleted(PersistenceType aPersistenceType) {
 
   if (aPersistenceType == PERSISTENCE_TYPE_PERSISTENT) {
     mInitializedOriginsInternal.Clear();
+  } else {
+    RemoveTemporaryOrigins(aPersistenceType);
   }
 
   for (Client::Type type : AllClientTypes()) {
@@ -7123,6 +7167,8 @@ Result<Ok, nsresult> QuotaManager::ArchiveOrigins(
     if (moved) {
       RemoveQuotaForOrigin(fullOriginMetadata.mPersistenceType,
                            fullOriginMetadata);
+
+      RemoveTemporaryOrigin(fullOriginMetadata);
     }
   }
 
@@ -7184,6 +7230,79 @@ bool QuotaManager::IsSanitizedOriginValid(const nsACString& aSanitizedOrigin) {
 
         return result == OriginParser::ValidOrigin;
       });
+}
+
+void QuotaManager::AddTemporaryOrigin(
+    const FullOriginMetadata& aFullOriginMetadata) {
+  AssertIsOnIOThread();
+  MOZ_ASSERT(IsBestEffortPersistenceType(aFullOriginMetadata.mPersistenceType));
+
+  auto& array =
+      mIOThreadAccessible.Access()->mAllTemporaryOrigins.LookupOrInsert(
+          aFullOriginMetadata.mGroup);
+
+  DebugOnly<bool> containsOrigin = array.Contains(
+      aFullOriginMetadata, [](const auto& aLeft, const auto& aRight) {
+        if (aLeft.mPersistenceType == aRight.mPersistenceType) {
+          return Compare(aLeft.mOrigin, aRight.mOrigin);
+        }
+        return aLeft.mPersistenceType > aRight.mPersistenceType ? 1 : -1;
+      });
+  MOZ_ASSERT(!containsOrigin);
+
+  array.AppendElement(aFullOriginMetadata);
+}
+
+void QuotaManager::RemoveTemporaryOrigin(
+    const OriginMetadata& aOriginMetadata) {
+  AssertIsOnIOThread();
+  MOZ_ASSERT(IsBestEffortPersistenceType(aOriginMetadata.mPersistenceType));
+
+  auto entry = mIOThreadAccessible.Access()->mAllTemporaryOrigins.Lookup(
+      aOriginMetadata.mGroup);
+  if (!entry) {
+    return;
+  }
+
+  auto& array = *entry;
+
+  DebugOnly<size_t> count =
+      array.RemoveElementsBy([&aOriginMetadata](const auto& originMetadata) {
+        return originMetadata.mPersistenceType ==
+                   aOriginMetadata.mPersistenceType &&
+               originMetadata.mOrigin == aOriginMetadata.mOrigin;
+      });
+  MOZ_ASSERT(count <= 1);
+
+  if (array.IsEmpty()) {
+    entry.Remove();
+  }
+}
+
+void QuotaManager::RemoveTemporaryOrigins(PersistenceType aPersistenceType) {
+  AssertIsOnIOThread();
+  MOZ_ASSERT(IsBestEffortPersistenceType(aPersistenceType));
+
+  auto ioThreadData = mIOThreadAccessible.Access();
+
+  for (auto iter = ioThreadData->mAllTemporaryOrigins.Iter(); !iter.Done();
+       iter.Next()) {
+    auto& array = iter.Data();
+
+    array.RemoveElementsBy([aPersistenceType](const auto& originMetadata) {
+      return originMetadata.mPersistenceType == aPersistenceType;
+    });
+
+    if (array.IsEmpty()) {
+      iter.Remove();
+    }
+  }
+}
+
+void QuotaManager::RemoveTemporaryOrigins() {
+  AssertIsOnIOThread();
+
+  mIOThreadAccessible.Access()->mAllTemporaryOrigins.Clear();
 }
 
 void QuotaManager::NoteInitializedOrigin(PersistenceType aPersistenceType,
