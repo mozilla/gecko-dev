@@ -131,11 +131,8 @@ EnterprisePoliciesManager.prototype = {
   },
 
   _reportEnterpriseTelemetry() {
-    Services.telemetry.scalarSet(
-      "policies.count",
-      Object.keys(this._parsedPolicies || {}).length
-    );
-    Services.telemetry.scalarSet("policies.is_enterprise", this.isEnterprise);
+    Glean.policies.count.set(Object.keys(this._parsedPolicies || {}).length);
+    Glean.policies.isEnterprise.set(this.isEnterprise);
   },
 
   _chooseProvider() {

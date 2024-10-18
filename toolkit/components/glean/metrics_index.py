@@ -53,6 +53,7 @@ gecko_metrics = [
     "toolkit/components/antitracking/metrics.yaml",
     "toolkit/components/cookiebanners/metrics.yaml",
     "toolkit/components/downloads/metrics.yaml",
+    "toolkit/components/enterprisepolicies/metrics.yaml",
     "toolkit/components/extensions/metrics.yaml",
     "toolkit/components/formautofill/metrics.yaml",
     "toolkit/components/glean/metrics.yaml",

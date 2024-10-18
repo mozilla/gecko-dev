@@ -1,0 +1,45 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Enterprise Policies'
+
+policies:
+  count:
+    type: quantity
+    description: >
+      A uint with the number of active enterprise policies, collected once
+      at startup.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar policies.count.
+    bugs:
+      - https://bugzil.la/1432897
+    data_reviews:
+      - https://bugzil.la/1432897
+    notification_emails:
+      - mkaply@mozilla.com
+    expires: never
+    unit: enterprise policies
+    telemetry_mirror: POLICIES_COUNT
+
+  is_enterprise:
+    type: boolean
+    description: >
+      Attempt to determine if the user is an enterprise user based on
+      various signals.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar policies.is_enterprise.
+    bugs:
+      - https://bugzil.la/1803804
+    data_reviews:
+      - https://bugzil.la/1803804
+    notification_emails:
+      - mkaply@mozilla.com
+    expires: never
+    telemetry_mirror: POLICIES_IS_ENTERPRISE
