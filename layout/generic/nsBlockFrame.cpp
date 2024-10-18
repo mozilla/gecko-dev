@@ -1170,18 +1170,23 @@ static LogicalSize CalculateContainingBlockSizeForAbsolutes(
 }
 
 /**
- * Returns aFrame if it is a non-BFC block frame, and null otherwise.
+ * Returns aFrame if it is an in-flow, non-BFC block frame, and null otherwise.
  *
  * This is used to determine whether to recurse into aFrame when applying
  * -webkit-line-clamp.
  */
 static const nsBlockFrame* GetAsLineClampDescendant(const nsIFrame* aFrame) {
-  if (const nsBlockFrame* block = do_QueryFrame(aFrame)) {
-    if (!block->HasAnyStateBits(NS_BLOCK_BFC)) {
-      return block;
-    }
+  const nsBlockFrame* block = do_QueryFrame(aFrame);
+  if (!block) {
+    return nullptr;
   }
-  return nullptr;
+  if (block->HasAllStateBits(NS_FRAME_OUT_OF_FLOW)) {
+    return nullptr;
+  }
+  if (block->HasAllStateBits(NS_BLOCK_BFC)) {
+    return nullptr;
+  }
+  return block;
 }
 
 static nsBlockFrame* GetAsLineClampDescendant(nsIFrame* aFrame) {
@@ -1343,7 +1348,19 @@ class MOZ_RAII LineClampLineIterator {
 };
 
 static bool ClearLineClampEllipsis(nsBlockFrame* aFrame) {
-  if (!aFrame->HasAnyStateBits(NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS)) {
+  if (aFrame->HasLineClampEllipsis()) {
+    MOZ_ASSERT(!aFrame->HasLineClampEllipsisDescendant());
+    for (auto& line : aFrame->Lines()) {
+      if (line.HasLineClampEllipsis()) {
+        line.ClearHasLineClampEllipsis();
+        aFrame->SetHasLineClampEllipsis(false);
+        return true;
+      }
+    }
+  }
+
+  if (aFrame->HasLineClampEllipsisDescendant()) {
+    aFrame->SetHasLineClampEllipsisDescendant(false);
     for (nsIFrame* f : aFrame->PrincipalChildList()) {
       if (nsBlockFrame* child = GetAsLineClampDescendant(f)) {
         if (ClearLineClampEllipsis(child)) {
@@ -1351,20 +1368,10 @@ static bool ClearLineClampEllipsis(nsBlockFrame* aFrame) {
         }
       }
     }
-    return false;
-  }
-
-  aFrame->RemoveStateBits(NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS);
-
-  for (auto& line : aFrame->Lines()) {
-    if (line.HasLineClampEllipsis()) {
-      line.ClearHasLineClampEllipsis();
-      return true;
-    }
   }
 
   // We didn't find a line with the ellipsis; it must have been deleted already.
-  return true;
+  return false;
 }
 
 void nsBlockFrame::ClearLineClampEllipsis() { ::ClearLineClampEllipsis(this); }
@@ -2019,9 +2026,7 @@ nsReflowStatus nsBlockFrame::TrialReflow(nsPresContext* aPresContext,
   }
 
   // Clear any existing -webkit-line-clamp ellipsis.
-  if (aReflowInput.mStyleDisplay->mWebkitLineClamp) {
-    ClearLineClampEllipsis();
-  }
+  ClearLineClampEllipsis();
 
   CheckFloats(state);
 
@@ -2052,7 +2057,7 @@ static nsLineBox* FindLineClampTarget(nsBlockFrame*& aFrame,
                                       nsBlockFrame* aStopAtFrame,
                                       StyleLineClamp aLineNumber) {
   MOZ_ASSERT(aLineNumber > 0);
-  MOZ_ASSERT(!aFrame->HasAnyStateBits(NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS),
+  MOZ_ASSERT(!aFrame->HasLineClampEllipsis(),
              "Should have been removed earlier in nsBlockReflow::Reflow");
 
   nsLineBox* target = nullptr;
@@ -2114,11 +2119,16 @@ nscoord nsBlockFrame::ApplyLineClamp(nscoord aContentBlockEndEdge) {
 
   // Mark the line as having an ellipsis so that TextOverflow will render it.
   line->SetHasLineClampEllipsis();
-  target->AddStateBits(NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS);
+  target->SetHasLineClampEllipsis(true);
 
   // Translate the b-end edge of the line up to aFrame's space.
   nscoord edge = line->BEnd();
   for (nsIFrame* f = target; f; f = f->GetParent()) {
+    MOZ_ASSERT(f->IsBlockFrameOrSubclass(),
+               "GetAsLineClampDescendant guarantees this");
+    if (f != target) {
+      static_cast<nsBlockFrame*>(f)->SetHasLineClampEllipsisDescendant(true);
+    }
     if (f == this) {
       break;
     }
@@ -7637,7 +7647,7 @@ static void DisplayLine(nsDisplayListBuilder* aBuilder,
                         const bool aLineInLine, const nsDisplayListSet& aLists,
                         nsBlockFrame* aFrame, TextOverflow* aTextOverflow,
                         uint32_t aLineNumberForTextOverflow, int32_t aDepth,
-                        int32_t& aDrawnLines) {
+                        int32_t& aDrawnLines, bool& aFoundLineClamp) {
 #ifdef DEBUG
   if (nsBlockFrame::gLamePaintMetrics) {
     aDrawnLines++;
@@ -7668,6 +7678,14 @@ static void DisplayLine(nsDisplayListBuilder* aBuilder,
   while (--n >= 0) {
     aFrame->BuildDisplayListForChild(aBuilder, kid, childLists, flags);
     kid = kid->GetNextSibling();
+  }
+
+  if (aFrame->HasLineClampEllipsisDescendant() && !aLineInLine) {
+    if (nsBlockFrame* f = GetAsLineClampDescendant(aLine->mFirstChild)) {
+      if (f->HasLineClampEllipsis() || f->HasLineClampEllipsisDescendant()) {
+        aFoundLineClamp = true;
+      }
+    }
   }
 
   if (aTextOverflow && aLineInLine) {
@@ -7774,12 +7792,14 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   // runs of text as a whole, which requires we iterate through all lines
   // to find our backplate size.
   nsLineBox* cursor =
-      (hasDescendantPlaceHolders || textOverflow.isSome() || backplateColor)
+      (hasDescendantPlaceHolders || textOverflow.isSome() || backplateColor ||
+       HasLineClampEllipsis() || HasLineClampEllipsisDescendant())
           ? nullptr
           : GetFirstLineContaining(aBuilder->GetDirtyRect().y);
   LineIterator line_end = LinesEnd();
 
   TextOverflow* textOverflowPtr = textOverflow.ptrOr(nullptr);
+  bool foundClamp = false;
 
   if (cursor) {
     for (LineIterator line = mLines.begin(cursor); line != line_end; ++line) {
@@ -7794,7 +7814,8 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
         if (ShouldDescendIntoLine(lineArea)) {
           DisplayLine(aBuilder, line, line->IsInline(), aLists, this, nullptr,
-                      0, depth, drawnLines);
+                      0, depth, drawnLines, foundClamp);
+          MOZ_ASSERT(!foundClamp);
         }
       }
     }
@@ -7825,7 +7846,7 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 
       if ((lineInLine && textOverflowPtr) || ShouldDescendIntoLine(lineArea)) {
         DisplayLine(aBuilder, line, lineInLine, aLists, this, textOverflowPtr,
-                    lineCount, depth, drawnLines);
+                    lineCount, depth, drawnLines, foundClamp);
       }
 
       if (!lineInLine && !curBackplateArea.IsEmpty()) {
@@ -7855,6 +7876,10 @@ void nsBlockFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
             curBackplateArea.OrWith(lineBackplate);
           }
         }
+      }
+      foundClamp = foundClamp || line->HasLineClampEllipsis();
+      if (foundClamp) {
+        break;
       }
       lineCount++;
     }

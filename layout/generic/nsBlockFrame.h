@@ -681,6 +681,28 @@ class nsBlockFrame : public nsContainerFrame {
    * This function is O(1).
    */
   bool MaybeHasFloats() const;
+  /**
+   * This indicates that exactly one line in this block has the
+   * LineClampEllipsis flag set, and that such a line must be found
+   * and have that flag cleared when reflowing this element's nearest legacy box
+   * container.
+   */
+  bool HasLineClampEllipsis() const {
+    return HasAnyStateBits(NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS);
+  }
+  /**
+   * This indicates that we have a descendant in our block formatting context
+   * that has such a line.
+   */
+  bool HasLineClampEllipsisDescendant() const {
+    return HasAnyStateBits(NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS_DESCENDANT);
+  }
+  void SetHasLineClampEllipsis(bool aValue) {
+    AddOrRemoveStateBits(NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS, aValue);
+  }
+  void SetHasLineClampEllipsisDescendant(bool aValue) {
+    AddOrRemoveStateBits(NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS_DESCENDANT, aValue);
+  }
 
  protected:
   nsBlockFrame* GetLineClampRoot() const;

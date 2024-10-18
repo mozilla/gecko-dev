@@ -562,18 +562,14 @@ FRAME_STATE_BIT(Block, 28, NS_BLOCK_HAS_MARKER)
 // continuation chain or none of them.
 FRAME_STATE_BIT(Block, 29, NS_BLOCK_NEEDS_BIDI_RESOLUTION)
 
-// bits 30 and 31 free.
-
-// NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS indicates that exactly one line in this
-// block has the LineClampEllipsis flag set, and that such a line must be found
-// and have that flag cleared when reflowing this element's nearest legacy box
-// container.
-FRAME_STATE_BIT(Block, 60, NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS)
+// See nsBlockFrame.h for docs
+FRAME_STATE_BIT(Block, 30, NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS)
+FRAME_STATE_BIT(Block, 31, NS_BLOCK_HAS_LINE_CLAMP_ELLIPSIS_DESCENDANT)
 
 // This block has had a child marked dirty, so before we reflow we need
 // to look through the lines to find any such children and mark
 // appropriate lines dirty.
-FRAME_STATE_BIT(Block, 61, NS_BLOCK_LOOK_FOR_DIRTY_FRAMES)
+FRAME_STATE_BIT(Block, 60, NS_BLOCK_LOOK_FOR_DIRTY_FRAMES)
 
 // Are our cached intrinsic inline sizes for font size inflation? i.e., what was
 // the current state of GetPresContext()->mInflationDisabledForShrinkWrap at the
@@ -583,13 +579,13 @@ FRAME_STATE_BIT(Block, 61, NS_BLOCK_LOOK_FOR_DIRTY_FRAMES)
 // to track this because it's the only thing that caches intrinsic inline sizes
 // that lives inside of things (form controls) that do intrinsic sizing with
 // font inflation enabled.
-FRAME_STATE_BIT(Block, 62, NS_BLOCK_INTRINSICS_INFLATED)
+FRAME_STATE_BIT(Block, 61, NS_BLOCK_INTRINSICS_INFLATED)
 
 // NS_BLOCK_HAS_FIRST_LETTER_CHILD means that there is an inflow first-letter
 // frame among the block's descendants. If there is a floating first-letter
 // frame, or the block has first-letter style but has no first letter, this
 // bit is not set. This bit is set on the first continuation only.
-FRAME_STATE_BIT(Block, 63, NS_BLOCK_HAS_FIRST_LETTER_CHILD)
+FRAME_STATE_BIT(Block, 62, NS_BLOCK_HAS_FIRST_LETTER_CHILD)
 
 // == Frame state bits that apply to image frames =============================
 
