@@ -13,7 +13,8 @@ void NaNExprChecker::registerMatchers(MatchFinder *AstMatcher) {
                     declRefExpr(hasType(qualType((isFloat())))).bind("lhs")))),
                 hasRHS(has(ignoringParenImpCasts(
                     declRefExpr(hasType(qualType((isFloat())))).bind("rhs")))),
-                unless(anyOf(isInSystemHeader(), isInWhitelistForNaNExpr()))))
+                isFirstParty(),
+                unless(isInWhitelistForNaNExpr())))
           .bind("node"),
       this);
 }
