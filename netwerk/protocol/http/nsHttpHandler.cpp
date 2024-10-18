@@ -217,6 +217,13 @@ HasThirdPartyRootsCallback::OnResult(bool aResult) {
                 network_http_http3_has_third_party_roots_found_in_automation()
           : aResult;
   LOG(("nsHttpHandler::sHasThirdPartyRoots:%d", (bool)sHasThirdPartyRoots));
+  if (nsIOService::UseSocketProcess() && XRE_IsParentProcess()) {
+    RefPtr<SocketProcessParent> socketParent =
+        SocketProcessParent::GetSingleton();
+    if (socketParent) {
+      Unused << socketParent->SendHasThirdPartyRoots(sHasThirdPartyRoots);
+    }
+  }
   return NS_OK;
 }
 
@@ -531,6 +538,8 @@ nsresult nsHttpHandler::Init() {
     obsService->AddObserver(this, "browser-delayed-startup-finished", true);
     obsService->AddObserver(this, "network:reset-http3-excluded-list", true);
     obsService->AddObserver(this, "network:socket-process-crashed", true);
+    obsService->AddObserver(this, "network:reset_third_party_roots_check",
+                            true);
 
     if (!IsNeckoChild()) {
       obsService->AddObserver(this, "net:current-browser-id", true);
@@ -599,6 +608,15 @@ void nsHttpHandler::CheckThirdPartyRoots() {
   if (certDB) {
     Unused << certDB->AsyncHasThirdPartyRoots(new HasThirdPartyRootsCallback());
   }
+}
+
+// static
+void nsHttpHandler::SetHasThirdPartyRoots(bool aResult) {
+  LOG(("nsHttpHandler::SetHasThirdPartyRoots result=%d", aResult));
+  MOZ_ASSERT(XRE_IsSocketProcess());
+
+  sHasThirdPartyRootsChecked = true;
+  sHasThirdPartyRoots = aResult;
 }
 
 const nsCString& nsHttpHandler::Http3QlogDir() {
@@ -2341,6 +2359,10 @@ nsHttpHandler::Observe(nsISupports* subject, const char* topic,
     ShutdownConnectionManager();
     mConnMgr = nullptr;
     Unused << InitConnectionMgr();
+  } else if (!strcmp(topic, "network:reset_third_party_roots_check")) {
+    sHasThirdPartyRoots = true;
+    sHasThirdPartyRootsChecked = false;
+    CheckThirdPartyRoots();
   }
 
   return NS_OK;
