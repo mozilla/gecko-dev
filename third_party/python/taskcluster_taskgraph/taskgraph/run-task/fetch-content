@@ -435,11 +435,49 @@ def extract_archive(path, dest_dir):
     log("%s extracted in %.3fs" % (path, time.time() - t0))
 
 
+def should_repack_archive(orig: pathlib.Path, dest: pathlib.Path, strip_components=0, add_prefix="") -> bool:
+    """
+    Determines whether we should attempt to repack an archive based on the naming conventions used
+    in the original file path, the destination file path, and any modifications such as stripping
+    components or adding a prefix.
+    """
+
+    if strip_components or add_prefix:
+        # If strip_components or add_prefix is specified, we should always repack.
+        return True
+
+    if orig.suffixes == dest.suffixes:
+        # If all suffixes are exactly the same, then a rename will suffice.
+        return False
+
+    if dest.suffixes[-2:] == [".tar", ".zst"]:
+        # If the destination is a ".tar.zst" file then we will always try to repack it ourselves.
+        return True
+
+    if orig.suffix == dest.suffix:
+        # If the final suffix is the same, this is likely just a rename.
+        #
+        # This may be a case where multiple suffixes were detected unnecessarily due to the file name
+        # containing a semantic version. For example the file "python-3.8.10-amd64.exe" would be detected
+        # to have three suffixes [".8", ".10-amd64", ".exe"]. Changing this to "python.exe" should be a
+        # simple rename, rather than a repack.
+        #
+        # In this case, we will try to determine if the original path has a supported archive suffix.
+        # If the original path is detected to be an archive, we will try to repack, otherwise rename.
+        return archive_type(orig) is not None
+
+    # Otherwise, if the paths aren't the same, assume it's an archive and try to repack.
+    #
+    # It would be best to fail early if the repack fails than to fail during a test because a renamed
+    # file was incorrect type after all.
+    return True
+
+
 def repack_archive(
     orig: pathlib.Path, dest: pathlib.Path, strip_components=0, prefix=""
 ):
     assert orig != dest
-    log("Repacking as %s" % dest)
+    log(f"Repacking {orig} as {dest}")
     orig_typ, ifh = open_stream(orig)
     typ = archive_type(dest)
     if not typ:
@@ -533,6 +571,9 @@ def repack_archive(
             else:
                 # We only change compression here. The tar stream is unchanged.
                 ctx.copy_stream(ifh, fh)
+
+        else:
+            raise Exception(f"Attempt to repack an archive of unsupported type {orig_typ}")
 
 
 def fetch_and_extract(url, dest_dir, extract=True, sha256=None, size=None):
@@ -773,8 +814,12 @@ def command_static_url(args):
         if gpg_sig_url:
             gpg_verify_path(dl_dest, gpg_key, gpg_signature)
 
-        if dl_dest != dest or args.strip_components or args.add_prefix:
+        if should_repack_archive(dl_dest, dest, args.strip_components, args.add_prefix):
             repack_archive(dl_dest, dest, args.strip_components, args.add_prefix)
+        elif dl_dest != dest:
+            log(f"Renaming {dl_dest} to {dest}")
+            dl_dest.rename(dest)
+
     except Exception:
         try:
             dl_dest.unlink()
@@ -783,7 +828,7 @@ def command_static_url(args):
 
         raise
 
-    if dl_dest != dest:
+    if dl_dest != dest and dl_dest.exists():
         log("Removing %s" % dl_dest)
         dl_dest.unlink()
 

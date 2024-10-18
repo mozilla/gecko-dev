@@ -1,6 +1,6 @@
 Metadata-Version: 2.3
 Name: taskcluster-taskgraph
-Version: 11.2.1
+Version: 11.2.4
 Summary: Build taskcluster taskgraphs
 Project-URL: Repository, https://github.com/taskcluster/taskgraph
 Project-URL: Issues, https://github.com/taskcluster/taskgraph/issues
@@ -14,6 +14,7 @@ Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
 Classifier: Topic :: Software Development
 Requires-Python: >=3.8
 Requires-Dist: appdirs>=1.4
