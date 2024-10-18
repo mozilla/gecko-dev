@@ -43,8 +43,8 @@ class CacheQuotaClient final : public quota::Client {
       PersistenceType aPersistenceType, const OriginMetadata& aOriginMetadata,
       const AtomicBool& aCanceled) override;
 
-  virtual void OnOriginClearCompleted(PersistenceType aPersistenceType,
-                                      const nsACString& aOrigin) override;
+  virtual void OnOriginClearCompleted(
+      const OriginMetadata& aOriginMetadata) override;
 
   void OnRepositoryClearCompleted(PersistenceType aPersistenceType) override;
 

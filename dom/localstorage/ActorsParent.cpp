@@ -2673,8 +2673,7 @@ class QuotaClient final : public mozilla::dom::quota::Client {
   nsresult AboutToClearOrigins(const PersistenceScope& aPersistenceScope,
                                const OriginScope& aOriginScope) override;
 
-  void OnOriginClearCompleted(PersistenceType aPersistenceType,
-                              const nsACString& aOrigin) override;
+  void OnOriginClearCompleted(const OriginMetadata& aOriginMetadata) override;
 
   void OnRepositoryClearCompleted(PersistenceType aPersistenceType) override;
 
@@ -8713,8 +8712,8 @@ nsresult QuotaClient::AboutToClearOrigins(
   return NS_OK;
 }
 
-void QuotaClient::OnOriginClearCompleted(PersistenceType aPersistenceType,
-                                         const nsACString& aOrigin) {
+void QuotaClient::OnOriginClearCompleted(
+    const OriginMetadata& aOriginMetadata) {
   AssertIsOnIOThread();
 }
 

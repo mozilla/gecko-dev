@@ -35,8 +35,8 @@ class FileSystemQuotaClient : public quota::Client {
       const quota::OriginMetadata& aOriginMetadata,
       const AtomicBool& aCanceled) override;
 
-  void OnOriginClearCompleted(quota::PersistenceType aPersistenceType,
-                              const nsACString& aOrigin) override;
+  void OnOriginClearCompleted(
+      const quota::OriginMetadata& aOriginMetadata) override;
 
   void OnRepositoryClearCompleted(
       quota::PersistenceType aPersistenceType) override;

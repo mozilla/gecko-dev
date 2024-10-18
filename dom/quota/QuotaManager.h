@@ -543,8 +543,7 @@ class QuotaManager final : public BackgroundThreadObject {
                                const OriginScope& aOriginScope,
                                const Nullable<Client::Type>& aClientType);
 
-  void OriginClearCompleted(PersistenceType aPersistenceType,
-                            const nsACString& aOrigin,
+  void OriginClearCompleted(const OriginMetadata& aOriginMetadata,
                             const Nullable<Client::Type>& aClientType);
 
   void RepositoryClearCompleted(PersistenceType aPersistenceType);

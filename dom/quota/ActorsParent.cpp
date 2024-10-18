@@ -6493,21 +6493,20 @@ nsresult QuotaManager::AboutToClearOrigins(
 }
 
 void QuotaManager::OriginClearCompleted(
-    PersistenceType aPersistenceType, const nsACString& aOrigin,
+    const OriginMetadata& aOriginMetadata,
     const Nullable<Client::Type>& aClientType) {
   AssertIsOnIOThread();
 
   if (aClientType.IsNull()) {
-    if (aPersistenceType == PERSISTENCE_TYPE_PERSISTENT) {
-      mInitializedOriginsInternal.RemoveElement(aOrigin);
+    if (aOriginMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT) {
+      mInitializedOriginsInternal.RemoveElement(aOriginMetadata.mOrigin);
     }
 
     for (Client::Type type : AllClientTypes()) {
-      (*mClients)[type]->OnOriginClearCompleted(aPersistenceType, aOrigin);
+      (*mClients)[type]->OnOriginClearCompleted(aOriginMetadata);
     }
   } else {
-    (*mClients)[aClientType.Value()]->OnOriginClearCompleted(aPersistenceType,
-                                                             aOrigin);
+    (*mClients)[aClientType.Value()]->OnOriginClearCompleted(aOriginMetadata);
   }
 }
 
@@ -7002,8 +7001,7 @@ void QuotaManager::ClearOrigins(
   }
 
   for (const auto& clearedOrigin : clearedOrigins) {
-    OriginClearCompleted(clearedOrigin.mPersistenceType, clearedOrigin.mOrigin,
-                         Nullable<Client::Type>());
+    OriginClearCompleted(clearedOrigin, Nullable<Client::Type>());
   }
 }
 

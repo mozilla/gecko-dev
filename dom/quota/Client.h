@@ -146,8 +146,8 @@ class Client {
     return NS_OK;
   }
 
-  virtual void OnOriginClearCompleted(PersistenceType aPersistenceType,
-                                      const nsACString& aOrigin) = 0;
+  virtual void OnOriginClearCompleted(
+      const OriginMetadata& aOriginMetadata) = 0;
 
   virtual void OnRepositoryClearCompleted(PersistenceType aPersistenceType) = 0;
 

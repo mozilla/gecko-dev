@@ -1248,8 +1248,8 @@ nsresult FinalizeOriginEvictionOp::DoDirectoryWork(
   AUTO_PROFILER_LABEL("FinalizeOriginEvictionOp::DoDirectoryWork", OTHER);
 
   for (const auto& lock : mLocks) {
-    aQuotaManager.OriginClearCompleted(
-        lock->GetPersistenceType(), lock->Origin(), Nullable<Client::Type>());
+    aQuotaManager.OriginClearCompleted(lock->OriginMetadata(),
+                                       Nullable<Client::Type>());
   }
 
   return NS_OK;
@@ -2802,8 +2802,8 @@ void ClearRequestBase::DeleteFilesInternal(
               aQuotaManager.RemoveQuotaForOrigin(aPersistenceType, metadata);
             }
 
-            aQuotaManager.OriginClearCompleted(
-                aPersistenceType, metadata.mOrigin, Nullable<Client::Type>());
+            aQuotaManager.OriginClearCompleted(metadata,
+                                               Nullable<Client::Type>());
 
             break;
           }
@@ -2840,8 +2840,8 @@ void ClearRequestBase::DeleteFilesInternal(
 
             aQuotaManager.RemoveQuotaForOrigin(aPersistenceType, metadata);
 
-            aQuotaManager.OriginClearCompleted(
-                aPersistenceType, metadata.mOrigin, Nullable<Client::Type>());
+            aQuotaManager.OriginClearCompleted(metadata,
+                                               Nullable<Client::Type>());
 
             break;
           }
@@ -3036,8 +3036,7 @@ void ClearClientOp::DeleteFiles(const ClientMetadata& aClientMetadata) {
     mQuotaManager->ResetUsageForClient(aClientMetadata);
   }
 
-  mQuotaManager->OriginClearCompleted(aClientMetadata.mPersistenceType,
-                                      aClientMetadata.mOrigin,
+  mQuotaManager->OriginClearCompleted(aClientMetadata,
                                       Nullable(aClientMetadata.mClientType));
 }
 

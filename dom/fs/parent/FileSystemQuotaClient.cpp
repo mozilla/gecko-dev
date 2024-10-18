@@ -104,7 +104,7 @@ Result<quota::UsageInfo, nsresult> FileSystemQuotaClient::GetUsageForOrigin(
 }
 
 void FileSystemQuotaClient::OnOriginClearCompleted(
-    quota::PersistenceType aPersistenceType, const nsACString& aOrigin) {
+    const quota::OriginMetadata& aOriginMetadata) {
   quota::AssertIsOnIOThread();
 }
 
