@@ -2379,10 +2379,20 @@ void DocAccessible::ContentRemoved(nsIContent* aContentNode) {
 }
 
 bool DocAccessible::RelocateARIAOwnedIfNeeded(nsIContent* aElement) {
-  RelatedAccIterator owners(mDoc, aElement, nsGkAtoms::aria_owns);
-  if (Accessible* owner = owners.Next()) {
-    mNotificationController->ScheduleRelocation(owner->AsLocal());
-    return true;
+  if (!aElement->HasID()) return false;
+
+  AttrRelProviders* list = GetRelProviders(
+      aElement->AsElement(), nsDependentAtomString(aElement->GetID()));
+  if (list) {
+    for (uint32_t idx = 0; idx < list->Length(); idx++) {
+      if (list->ElementAt(idx)->mRelAttr == nsGkAtoms::aria_owns) {
+        LocalAccessible* owner = GetAccessible(list->ElementAt(idx)->mContent);
+        if (owner) {
+          mNotificationController->ScheduleRelocation(owner);
+          return true;
+        }
+      }
+    }
   }
 
   return false;
