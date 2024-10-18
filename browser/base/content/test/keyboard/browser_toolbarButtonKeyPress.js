@@ -5,6 +5,10 @@
 
 const kDevPanelID = "PanelUI-developer-tools";
 
+add_setup(() =>
+  SidebarController.setUIState({ expanded: false, hidden: false })
+);
+
 /**
  * Test the behavior of key presses on various toolbar buttons.
  */

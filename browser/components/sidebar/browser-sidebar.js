@@ -400,6 +400,14 @@ var SidebarController = {
       this._tabstripOrientationObserverAdded = true;
     }
 
+    requestIdleCallback(() => {
+      if (!this.uiStateInitialized) {
+        // UI state has not been set by SessionStore. Use backup state for now.
+        const backupState = this.SidebarManager.getBackupState();
+        this.setUIState(backupState);
+      }
+    });
+
     this._initDeferred.resolve();
   },
 
@@ -412,8 +420,10 @@ var SidebarController = {
     let enumerator = Services.wm.getEnumerator("navigator:browser");
     if (!enumerator.hasMoreElements()) {
       let xulStore = Services.xulStore;
-
       xulStore.persist(this._title, "value");
+
+      const currentState = this.getUIState();
+      this.SidebarManager.setBackupState(currentState);
     }
 
     Services.obs.removeObserver(this, "intl:app-locales-changed");
@@ -436,6 +446,50 @@ var SidebarController = {
       this.sidebarMain.remove();
     }
     this._splitter.removeEventListener("command", this._browserResizeObserver);
+  },
+
+  getUIState() {
+    const state = { width: this._box.style.width, command: this.currentID };
+    if (this.sidebarRevampEnabled) {
+      state.expanded = this.sidebarMain.expanded;
+      state.hidden = this.sidebarContainer.hidden;
+    }
+    return state;
+  },
+
+  /**
+   * Update and store the UI state of the sidebar for this window.
+   *
+   * @param {object} state
+   * @param {string} state.width
+   *   Panel width of the sidebar.
+   * @param {string} state.command
+   *   Panel ID that is currently open.
+   * @param {boolean} state.expanded
+   *   Whether the sidebar launcher is expanded. (Revamp only)
+   * @param {boolean} state.hidden
+   *   Whether the sidebar is hidden. (Revamp only)
+   */
+  async setUIState(state) {
+    if (!state) {
+      return;
+    }
+    if (state.width) {
+      this._box.style.width = state.width;
+    }
+    if (state.command && this.currentID != state.command && !this.isOpen) {
+      await this.showInitially(state.command);
+    }
+    if (this.sidebarRevampEnabled) {
+      // The `sidebar-main` component is lazy-loaded in the `init()` method.
+      // Wait this out to ensure that it is connected to the DOM before making
+      // any changes.
+      await this.promiseInitialized;
+      this.toggleExpanded(state.expanded);
+      this.sidebarContainer.hidden = state.hidden;
+      this.updateToolbarButton();
+    }
+    this.uiStateInitialized = true;
   },
 
   /**
@@ -735,6 +789,7 @@ var SidebarController = {
       }
       // Try to adopt the sidebar state from the source window
       if (this.adoptFromWindow(sourceWindow)) {
+        this.uiStateInitialized = true;
         return;
       }
     }
@@ -764,6 +819,7 @@ var SidebarController = {
       // profile.
       this.lastOpenedId = commandID;
     }
+    this.uiStateInitialized = true;
   },
 
   /**

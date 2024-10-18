@@ -1992,6 +1992,10 @@ pref("sidebar.animation.duration-ms", 200);
 pref("sidebar.main.tools", "aichat,syncedtabs,history");
 pref("sidebar.verticalTabs", false);
 pref("sidebar.visibility", "always-show");
+// Sidebar UI state is stored per-window via session restore. Use this pref
+// as a backup to restore the sidebar UI state when a user has PPB mode on
+// or has history cleared on browser close.
+pref("sidebar.backupState", "{}");
 
 pref("browser.ml.chat.enabled", false);
 pref("browser.ml.chat.hideLocalhost", true);
