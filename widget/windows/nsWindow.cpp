@@ -2966,7 +2966,7 @@ static HCURSOR CursorForImage(const nsIWidget::Cursor& aCursor,
   LayoutDeviceIntPoint hotspot =
       RoundedToInt(CSSIntPoint(aCursor.mHotspotX, aCursor.mHotspotY) * aScale);
   HCURSOR cursor;
-  nsresult rv = nsWindowGfx::CreateIcon(aCursor.mContainer, true, hotspot,
+  nsresult rv = nsWindowGfx::CreateIcon(aCursor.mContainer, nullptr, true, hotspot,
                                         layoutSize, &cursor);
   if (NS_FAILED(rv)) {
     return nullptr;

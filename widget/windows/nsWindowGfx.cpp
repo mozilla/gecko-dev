@@ -34,6 +34,7 @@
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/Tools.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/SVGImageContext.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "nsGfxCIID.h"
 #include "gfxContext.h"
@@ -44,6 +45,7 @@
 #include "nsDebug.h"
 #include "WindowRenderer.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
+#include "ImageRegion.h"
 
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
@@ -468,8 +470,9 @@ LayoutDeviceIntSize nsWindowGfx::GetIconMetrics(IconSizeType aSizeType) {
   return LayoutDeviceIntSize(width, height);
 }
 
-nsresult nsWindowGfx::CreateIcon(imgIContainer* aContainer, bool aIsCursor,
-                                 LayoutDeviceIntPoint aHotspot,
+nsresult nsWindowGfx::CreateIcon(imgIContainer* aContainer,
+                                 nsISVGPaintContext* aSVGPaintContext,
+                                 bool aIsCursor, LayoutDeviceIntPoint aHotspot,
                                  LayoutDeviceIntSize aScaledSize,
                                  HICON* aIcon) {
   MOZ_ASSERT(aHotspot.x >= 0 && aHotspot.y >= 0);
@@ -477,62 +480,117 @@ nsresult nsWindowGfx::CreateIcon(imgIContainer* aContainer, bool aIsCursor,
              (aScaledSize.width == 0 && aScaledSize.height == 0));
 
   // Get the image data
-  RefPtr<SourceSurface> surface = aContainer->GetFrame(
-      imgIContainer::FRAME_CURRENT,
-      imgIContainer::FLAG_SYNC_DECODE | imgIContainer::FLAG_ASYNC_NOTIFY);
-  NS_ENSURE_TRUE(surface, NS_ERROR_NOT_AVAILABLE);
-
-  IntSize frameSize = surface->GetSize();
-  if (frameSize.IsEmpty()) {
-    return NS_ERROR_FAILURE;
-  }
-
-  IntSize iconSize(aScaledSize.width, aScaledSize.height);
-  if (iconSize == IntSize(0, 0)) {  // use frame's intrinsic size
-    iconSize = frameSize;
-  }
-
+  RefPtr<SourceSurface> surface;
   RefPtr<DataSourceSurface> dataSurface;
-  bool mappedOK;
   DataSourceSurface::MappedSurface map;
+  bool mappedOK;
 
-  if (iconSize != frameSize) {
-    // Scale the surface
-    dataSurface =
-        Factory::CreateDataSourceSurface(iconSize, SurfaceFormat::B8G8R8A8);
-    NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
-    mappedOK = dataSurface->Map(DataSourceSurface::MapType::READ_WRITE, &map);
-    NS_ENSURE_TRUE(mappedOK, NS_ERROR_FAILURE);
+  if (aContainer->GetType() == imgIContainer::TYPE_VECTOR) {
+    auto scaledSize = aScaledSize.ToUnknownSize();
 
-    RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(
-        BackendType::CAIRO, map.mData, dataSurface->GetSize(), map.mStride,
-        SurfaceFormat::B8G8R8A8);
-    if (!dt) {
-      gfxWarning()
-          << "nsWindowGfx::CreatesIcon failed in CreateDrawTargetForData";
-      return NS_ERROR_OUT_OF_MEMORY;
+    if (scaledSize.IsEmpty()) {
+      int32_t width, height;
+      nsresult rv = aContainer->GetWidth(&width);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      rv = aContainer->GetHeight(&height);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      NS_ENSURE_TRUE(width > 0 && height > 0, NS_ERROR_FAILURE);
+
+      scaledSize = IntSize(width, height);
     }
-    dt->DrawSurface(surface, Rect(0, 0, iconSize.width, iconSize.height),
-                    Rect(0, 0, frameSize.width, frameSize.height),
-                    DrawSurfaceOptions(),
-                    DrawOptions(1.0f, CompositionOp::OP_SOURCE));
-  } else if (surface->GetFormat() != SurfaceFormat::B8G8R8A8) {
-    // Convert format to SurfaceFormat::B8G8R8A8
-    dataSurface = gfxUtils::CopySurfaceToDataSourceSurfaceWithFormat(
-        surface, SurfaceFormat::B8G8R8A8);
-    NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
-    mappedOK = dataSurface->Map(DataSourceSurface::MapType::READ, &map);
-  } else {
+
+    RefPtr<DrawTarget> drawTarget =
+        gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
+            scaledSize, SurfaceFormat::B8G8R8A8);
+    if (!drawTarget || !drawTarget->IsValid()) {
+      NS_ERROR("Failed to create valid DrawTarget");
+      return NS_ERROR_FAILURE;
+    }
+
+    gfxContext context(drawTarget);
+
+    SVGImageContext svgContext;
+    svgContext.SetViewportSize(
+        Some(CSSIntSize(scaledSize.width, scaledSize.height)));
+    svgContext.SetColorScheme(Some(LookAndFeel::SystemColorScheme()));
+    SVGImageContext::MaybeStoreContextPaint(svgContext, aSVGPaintContext,
+                                            aContainer);
+
+    mozilla::image::ImgDrawResult res = aContainer->Draw(
+        &context, scaledSize, image::ImageRegion::Create(scaledSize),
+        imgIContainer::FRAME_CURRENT, SamplingFilter::POINT, svgContext,
+        imgIContainer::FLAG_SYNC_DECODE, 1.0);
+
+    if (res != mozilla::image::ImgDrawResult::SUCCESS) {
+      return NS_ERROR_FAILURE;
+    }
+
+    surface = drawTarget->Snapshot();
+    NS_ENSURE_TRUE(surface, NS_ERROR_NOT_AVAILABLE);
+
     dataSurface = surface->GetDataSurface();
     NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
     mappedOK = dataSurface->Map(DataSourceSurface::MapType::READ, &map);
+  } else {
+    surface = aContainer->GetFrame(
+        imgIContainer::FRAME_CURRENT,
+        imgIContainer::FLAG_SYNC_DECODE | imgIContainer::FLAG_ASYNC_NOTIFY);
+    NS_ENSURE_TRUE(surface, NS_ERROR_NOT_AVAILABLE);
+
+    IntSize frameSize = surface->GetSize();
+    if (frameSize.IsEmpty()) {
+      return NS_ERROR_FAILURE;
+    }
+
+    IntSize iconSize(aScaledSize.width, aScaledSize.height);
+
+    if (iconSize == IntSize(0, 0)) {  // use frame's intrinsic size
+      iconSize = frameSize;
+    }
+
+    if (iconSize != frameSize) {
+      // Scale the surface
+      dataSurface =
+          Factory::CreateDataSourceSurface(iconSize, SurfaceFormat::B8G8R8A8);
+      NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
+      mappedOK = dataSurface->Map(DataSourceSurface::MapType::READ_WRITE, &map);
+      NS_ENSURE_TRUE(mappedOK, NS_ERROR_FAILURE);
+
+      RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(
+          BackendType::CAIRO, map.mData, dataSurface->GetSize(), map.mStride,
+          SurfaceFormat::B8G8R8A8);
+      if (!dt) {
+        gfxWarning()
+            << "nsWindowGfx::CreatesIcon failed in CreateDrawTargetForData";
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
+      dt->DrawSurface(surface, Rect(0, 0, iconSize.width, iconSize.height),
+                      Rect(0, 0, frameSize.width, frameSize.height),
+                      DrawSurfaceOptions(),
+                      DrawOptions(1.0f, CompositionOp::OP_SOURCE));
+    } else if (surface->GetFormat() != SurfaceFormat::B8G8R8A8) {
+      // Convert format to SurfaceFormat::B8G8R8A8
+      dataSurface = gfxUtils::CopySurfaceToDataSourceSurfaceWithFormat(
+          surface, SurfaceFormat::B8G8R8A8);
+      NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
+      mappedOK = dataSurface->Map(DataSourceSurface::MapType::READ, &map);
+    } else {
+      dataSurface = surface->GetDataSurface();
+      NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
+      mappedOK = dataSurface->Map(DataSourceSurface::MapType::READ, &map);
+    }
   }
   NS_ENSURE_TRUE(dataSurface && mappedOK, NS_ERROR_FAILURE);
   MOZ_ASSERT(dataSurface->GetFormat() == SurfaceFormat::B8G8R8A8);
 
+  IntSize surfaceSize = surface->GetSize();
+
   uint8_t* data = nullptr;
   UniquePtr<uint8_t[]> autoDeleteArray;
-  if (map.mStride == BytesPerPixel(dataSurface->GetFormat()) * iconSize.width) {
+  if (map.mStride ==
+      BytesPerPixel(dataSurface->GetFormat()) * surfaceSize.width) {
     // Mapped data is already packed
     data = map.mData;
   } else {
@@ -549,8 +607,9 @@ nsresult nsWindowGfx::CreateIcon(imgIContainer* aContainer, bool aIsCursor,
     NS_ENSURE_TRUE(data, NS_ERROR_FAILURE);
   }
 
-  HBITMAP bmp = DataToBitmap(data, iconSize.width, -iconSize.height, 32);
-  uint8_t* a1data = Data32BitTo1Bit(data, iconSize.width, iconSize.height);
+  HBITMAP bmp = DataToBitmap(data, surfaceSize.width, -surfaceSize.height, 32);
+  uint8_t* a1data =
+      Data32BitTo1Bit(data, surfaceSize.width, surfaceSize.height);
   if (map.mData) {
     dataSurface->Unmap();
   }
@@ -558,7 +617,8 @@ nsresult nsWindowGfx::CreateIcon(imgIContainer* aContainer, bool aIsCursor,
     return NS_ERROR_FAILURE;
   }
 
-  HBITMAP mbmp = DataToBitmap(a1data, iconSize.width, -iconSize.height, 1);
+  HBITMAP mbmp =
+      DataToBitmap(a1data, surfaceSize.width, -surfaceSize.height, 1);
   free(a1data);
 
   ICONINFO info = {0};

@@ -190,7 +190,7 @@ nsresult StatusBarEntry::OnComplete(imgIContainer* aImage) {
   RefPtr<StatusBarEntry> kungFuDeathGrip = this;
 
   nsresult rv = nsWindowGfx::CreateIcon(
-      aImage, false, LayoutDeviceIntPoint(),
+      aImage, nullptr, false, LayoutDeviceIntPoint(),
       nsWindowGfx::GetIconMetrics(nsWindowGfx::kRegularIcon), &mIconData.hIcon);
   NS_ENSURE_SUCCESS(rv, rv);
 
