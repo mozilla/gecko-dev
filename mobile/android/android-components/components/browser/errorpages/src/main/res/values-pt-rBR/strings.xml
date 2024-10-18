@@ -85,12 +85,12 @@
 
     <!-- The error message shown when a website took long to load. -->
     <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[
-      <p>O site solicitado não respondeu a um pedido de conexão e o navegador deixou de esperar uma resposta.</p>
+      <p>O site solicitado não respondeu a um pedido de conexão e o navegador deixou de aguardar uma resposta.</p>
       <ul>
-        <li>O servidor pode estar sobrecarregado ou temporariamente indisponível? Tente novamente mais tarde.</li>
-        <li>Não consegue navegar para outros sites? Verifique a conexão de rede do computador.</li>
-        <li>Seu computador ou a rede são protegidos por um firewall ou proxy? Configurações incorretas podem interferir na navegação.</li>
-        <li>O problema persiste? Peça ajuda ao seu administrador de rede ou ao suporte do provedor de internet.</li>
+        <li>Será que o servidor está sobrecarregado ou temporariamente indisponível? Tente novamente mais tarde.</li>
+        <li>Não consegue navegar em outros sites? Verifique a conexão de rede do dispositivo.</li>
+        <li>Seu dispositivo ou a rede são protegidos por um firewall ou proxy? Configurações incorretas podem interferir na navegação.</li>
+        <li>O problema persiste? Peça ajuda ao administrador de rede ou ao suporte do provedor de internet.</li>
       </ul>
     ]]></string>
 
@@ -121,7 +121,7 @@
       <p>O navegador deixou de tentar obter o item solicitado. O site está redirecionando o pedido de uma forma que nunca será concluído.</p>
       <ul>
         <li>Você desativou ou bloqueou cookies exigidos por este site?</li>
-        <li>Se aceitar cookies do site não resolver, é provavelmente um problema de configuração do servidor, não no seu computador.</li>
+        <li>Se aceitar cookies do site não resolver, é provavelmente um problema de configuração do servidor, não no seu dispositivo.</li>
       </ul>
     ]]></string>
 
@@ -132,7 +132,7 @@
     <string name="mozac_browser_errorpages_offline_message"><![CDATA[
       <p>O navegador está operando em modo offline e não consegue se conectar com o item solicitado.</p>
       <ul>
-        <li>O computador está conectado a uma rede ativa?</li>
+        <li>O dispositivo está conectado a uma rede ativa?</li>
         <li>Pressione “Tentar novamente” para sair do modo offline e recarregar a página.</li>
       </ul>
     ]]></string>

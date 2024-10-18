@@ -93,9 +93,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Nossa funcziun per la protecziun da datas – la pli avanzada d\'enfin qua – isolescha fastizaders interpaginals.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Nossa funcziun per la protecziun da datas – la pli avanzada d\'enfin qua – isolescha fastizaders interpaginals.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Ve a savair dapli davart la protecziun totala cunter cookies</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Ve a savair dapli davart la protecziun totala cunter cookies</string>
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -105,8 +105,6 @@
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Navighescha pli svelt cun il nov sistem da navigaziun</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Questa trav vegn zuppentada cun defilar e lascha uschia dapli spazi per la navigaziun.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Sin ina website vegn questa trav zuppentada cun defilar engiu. Uschia resta dapli spazi per la navigaziun.</string>
@@ -116,9 +114,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Nov: frizzas enavant ed enavos per tutgar ina giada</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nov: frizzas enavant ed enavos per tutgar ina giada</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Navigaziun pli svelta – adina per mauns.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Navigaziun pli svelta – adina per mauns.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">L\'access a la camera è necessari. Acceda als parameters dad Android, smatga sin permissiuns e lura sin permetter.</string>
@@ -211,6 +209,11 @@
     <string name="browser_menu_extensions_banner_learn_more">Ulteriuras infurmaziuns</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Administrar las extensiuns</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Extensiuns recumandadas</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Agiuntar %1$s</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Scuvrir ulteriuras extensiuns</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -300,7 +303,7 @@
     <string name="browser_menu_switch_to_mobile_site">Midar a la website per mobils</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Utensils</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Enavos al menu principal</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Modus da lectura, translatar, stampar, cundivider, avrir app</string>
@@ -369,7 +372,7 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Scannar</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Scannar</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Parameters da la maschina da tschertgar</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -399,7 +402,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Emprenda d\'enconuscher tia pagina da partenza persunalisada. Tabs recents, segnapaginas e resultats da tschertga vegnan a cumparair qua.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Emprenda d\'enconuscher tia pagina da partenza persunalisada. Tabs recents, segnapaginas e resultats da tschertga vegnan a cumparair qua.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Bainvegni en in internet pli persunal</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -420,18 +423,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">Serrar</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">Communicaziuns ta gidan da far dapli cun %s</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">Sincronisescha tes tabs tranter apparats, administrescha las telechargiadas, retschaiva tips per profitar il meglier da la protecziun da datas da %s ed auter pli.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">Cuntinuar</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">Betg ussa</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Las directivas da Firefox per la protecziun da datas</string>
@@ -448,21 +439,12 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Dapli che 100 milliuns persunas protegian lur sfera privata cun tscherner in navigatur dad ina organisaziun senza finamira da profit.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Ils fastizaders enconuschents? Bloccads automaticamain. Extensiuns? Emprova tuttas 700. PDFs? Noss lectur integrà als administrescha senza problems.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Noss navigatur dad in\'organisaziun senza finamira da profit, gida ad evitar che interpresas ta persequiteschian a la zuppada en il web.\n
-\nLegia dapli dal tema en nossas infurmaziuns davart la protecziun da datas.</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">infurmaziuns davart la protecziun da datas</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Definir sco navigatur da standard</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Betg ussa</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Criptescha tias datas cun midar dad in apparat a tschel</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Sche ti es annunzià e sincroniseschas tias datas, es ti pli segir. Firefox criptescha tes pleds-clav, segnapaginas e dapli.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox criptescha tes pleds-clav, segnapaginas e dapli cura che ti sincroniseschas tias datas.</string>
@@ -545,7 +527,7 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Protecziun da datas e segirezza</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Autorisaziuns per la website</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Autorisaziuns per la website</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Modus privat</string>
     <!-- Preference for opening links in a private tab-->
@@ -891,6 +873,10 @@
     <string name="preferences_marketing_data">Datas da marketing</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Cundivida datas d\'utilisaziun da basa cun Adjust, noss purschider da marketing mobil</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Trametter automaticamain rapports da collaps</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Cundivida automaticamain datas da collaps cun Mozilla durant aviar en cas ch’i ha dà in collaps</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studis</string>
     <!-- Summary for studies preferences -->
@@ -1118,8 +1104,6 @@
     <string name="collection_open_tabs">Avrir ils tabs</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Num da collecziun</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Renumnar</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Allontanar</string>
 
@@ -1180,6 +1164,15 @@
     <string name="tab_crash_close">Serrar il tab</string>
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Restaurar il tab</string>
+
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s ha stuì reaviar</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Trametter automaticamain rapports da collaps</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Serrar</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Trametter in rapport da collaps</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
@@ -1260,12 +1253,21 @@
     <string name="bookmark_navigate_back_button_content_description">Turnar</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Agiuntar in nov ordinatur</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Serrar ils segnapaginas</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Tschertgar en ils segnapaginas</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Menu per %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Anc nagins segnapaginas</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Memorisescha websites durant che ti navigheschas. T’annunzia per ir per segnapaginas dad auters apparats sincronisads.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">S’annunziar per sincronisar</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Memorisescha websites durant che ti navigheschas. Nus vegnin era ad ir per segnapaginas dad auters apparats sincronisads.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Agiuntescha segnapaginas durant che ti navigheschas per che ti chattias pli tard puspè tias websites preferidas.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1458,17 +1460,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Serrar ils tabs privats</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Neutral</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">N’insumma betg satisfatg</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Betg satisfatg</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Satisfatg</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Fitg satisfatg</string>
-
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Serrar ils tabs privats?</string>
     <string name="notification_erase_text_android_14">Tutga u stauscha quest avis per serrar ils tabs privats.</string>
@@ -1548,8 +1539,6 @@
     <string name="tab_collection_dialog_message">Vuls ti propi stizzar %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Stizzar</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Midar al modus da maletg entir</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">Copià l\'URL</string>
 
@@ -1602,8 +1591,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Interval per stizzar</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">Stizza la cronologia (inclusivamain la cronologia sincronisada dad auters apparats), cookies ed autras datas da navigaziun.</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">Allontanescha la cronologia (inclusivamain la cronologia sincronisada dad auters apparats)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1722,8 +1709,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Criptominiers</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Improntaders dal det</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Improntaders enconuschents</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detagls</string>
@@ -1748,11 +1733,7 @@
     <string name="etp_cryptominers_title">Criptominiers</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Impedescha che scripts donnegius maldovran las resursas da tes apparat per generar daners digitals.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Improntaders dal det</string>
 
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Impedescha che infurmaziuns univocas vegnan rimnadas che permettan dad identifitgar tes apparat per ta fastizar.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">Impedescha la rimnada dad infurmaziuns univocas che permettan dad identifitgar tes apparat per ta fastizar.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2227,8 +2208,6 @@
     <string name="shortcut_name_hint">Num da la scursanida</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">URL da la scursanida</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Interrumper</string>
 
@@ -2294,7 +2273,7 @@
     <string name="radio_preference_info_content_description">Cliccar per ulteriurs detagls</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">Navigar ensi</string>
+    <string name="action_bar_up_description">Navigar ensi</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">Serrar</string>
@@ -2435,8 +2414,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Ulteriuras infurmaziuns</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">Cun tscherner «Gea, empruvar» acceptas ti las %2$s da %1$s e las %4$s da %3$s.</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">Cun tscherner «Gea, empruvar» acceptas ti las %2$s da %1$s e las %4$s da %3$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">infurmaziuns davart la protecziun da datas</string>
@@ -2447,15 +2424,13 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Betg ussa</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Ve a savair sche ti pos ta fidar da las recensiuns da quest product – avant che ti al cumpras.</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Ve a savair sche ti pos ta fidar da las recensiuns da quest product – avant che ti al cumpras.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Emprova il verificatur da recensiuns</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Emprova il verificatur da recensiuns</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Èn questas recensiuns fidablas? Controllescha ussa per vesair ina valitaziun rectifitgada.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Èn questas recensiuns fidablas? Controllescha ussa per vesair ina valitaziun rectifitgada.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Avrir il verificatur da recensiuns</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Avrir il verificatur da recensiuns</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Avrir la verificaziun da recensiuns</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2642,8 +2617,6 @@
     <string name="never_translate_site_dialog_cancel_preference">Interrumper</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Telechargiar linguas</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">Telechargiar linguas</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2700,14 +2673,6 @@
     <string name="delete_language_file_dialog_positive_button_text">Stizzar</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Interrumper</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Interrumper la telechargiada da %1$s?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Gea</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Na</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2802,23 +2767,27 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Jau n’utilisesch betg questa funcziun</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Jau n’utilisesch betg la tschertga en Firefox</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Quant satisfatg es ti da tia pagina da partenza da Firefox?</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Jau n’utilisesch betg la sincronisaziun</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Gida a meglierar la funcziun da stampa en Firefox. Quai cuzza mo in mumentin</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Gida a meglierar la tschertga en Firefox. I dura mo ina minuta</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Gida a meglierar la sincronisaziun en Firefox. I dura mo ina minuta</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Quant satisfatg es ti da la funcziun da stampa en Firefox?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Quant satisfatg es ti da tia pagina da partenza da Firefox?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Quant satisfatg es ti da l’experientscha cun la tschertga en Firefox?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Quant satisfatg es ti da l’experientscha cun la sincronisaziun en Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo da Firefox</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Icona da la funcziun d’enquista</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Avrir l’enquista</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Serrar l’enquista</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
@@ -2839,6 +2808,10 @@
     <string name="debug_drawer_cfr_tools_title">Utensils CFR</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Reinizialisar ils CFR</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Utensils da debugadi per Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
