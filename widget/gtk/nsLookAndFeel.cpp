@@ -1330,7 +1330,11 @@ static nsCString GetGtkSettingsStringKey(const char* aKey) {
 }
 
 static nsCString GetGtkTheme() {
-  return GetGtkSettingsStringKey("gtk-theme-name");
+  auto theme = GetGtkSettingsStringKey("gtk-theme-name");
+  if (theme.IsEmpty()) {
+    theme.AssignLiteral("Adwaita");
+  }
+  return theme;
 }
 
 static bool GetPreferDarkTheme() {
