@@ -119,8 +119,6 @@ class ScrollContainerFrame : public nsContainerFrame,
   void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
               const ReflowInput& aReflowInput,
               nsReflowStatus& aStatus) override;
-  void DidReflow(nsPresContext* aPresContext,
-                 const ReflowInput* aReflowInput) override;
 
   bool ComputeCustomOverflow(OverflowAreas& aOverflowAreas) final;
 
