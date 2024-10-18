@@ -100,7 +100,7 @@ TaskbarPreviewButton::SetImage(imgIContainer* img) {
   if (img) {
     nsresult rv;
     rv = nsWindowGfx::CreateIcon(
-        img, false, LayoutDeviceIntPoint(),
+        img, nullptr, false, LayoutDeviceIntPoint(),
         nsWindowGfx::GetIconMetrics(nsWindowGfx::kRegularIcon),
         &Button().hIcon);
     NS_ENSURE_SUCCESS(rv, rv);

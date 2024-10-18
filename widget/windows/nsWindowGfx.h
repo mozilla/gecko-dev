@@ -13,11 +13,25 @@
 #include "nsWindow.h"
 #include <imgIContainer.h>
 
+class nsISVGPaintContext;
+
 class nsWindowGfx {
  public:
   enum IconSizeType { kSmallIcon, kRegularIcon };
   static mozilla::LayoutDeviceIntSize GetIconMetrics(IconSizeType aSizeType);
-  static nsresult CreateIcon(imgIContainer* aContainer, bool aIsCursor,
+
+  /**
+   * Renders an imgIContainer to a HICON.
+   * aContainer - the image to render.
+   * aSVGContext - Optional CSS context properties to apply. Ignored if the
+   *               container is not an SVG image.
+   * aIsCursor - true if this icon will be used as a mouse cursor.
+   * aHotSpot - the position of the hot spot for a mouse cursor.
+   * aScaledSize - the size of the icon to generate.
+   * aIcon - Out parameter for the returned HICON. Required.
+   */
+  static nsresult CreateIcon(imgIContainer* aContainer,
+                             nsISVGPaintContext* aSVGContext, bool aIsCursor,
                              mozilla::LayoutDeviceIntPoint aHotspot,
                              mozilla::LayoutDeviceIntSize aScaledSize,
                              HICON* aIcon);
