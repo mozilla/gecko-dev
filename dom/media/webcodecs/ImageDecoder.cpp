@@ -17,8 +17,10 @@
 #include "mozilla/dom/VideoFrame.h"
 #include "mozilla/dom/VideoFrameBinding.h"
 #include "mozilla/dom/WebCodecsUtils.h"
+#include "mozilla/dom/WorkerRef.h"
 #include "mozilla/image/ImageUtils.h"
 #include "mozilla/image/SourceBuffer.h"
+#include "mozilla/media/MediaUtils.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "nsComponentManagerUtils.h"
@@ -83,7 +85,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(ImageDecoder)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCompletePromise)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOutstandingDecodes)
   NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER
-  NS_IMPL_CYCLE_COLLECTION_UNLINK_WEAK_PTR
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ImageDecoder)
@@ -127,9 +128,10 @@ JSObject* ImageDecoder::WrapObject(JSContext* aCx,
 
 void ImageDecoder::Destroy() {
   MOZ_LOG(gWebCodecsLog, LogLevel::Debug, ("ImageDecoder %p Destroy", this));
+  MOZ_ASSERT(mOutstandingDecodes.IsEmpty());
 
   if (mReadRequest) {
-    mReadRequest->Destroy();
+    mReadRequest->Destroy(/* aCancel */ false);
     mReadRequest = nullptr;
   }
 
@@ -144,6 +146,8 @@ void ImageDecoder::Destroy() {
   mSourceBuffer = nullptr;
   mDecoder = nullptr;
   mParent = nullptr;
+  mWorkerRef = nullptr;
+  mShutdownBlocker = nullptr;
 }
 
 void ImageDecoder::QueueConfigureMessage(
@@ -275,15 +279,11 @@ MessageProcessedResult ImageDecoder::ProcessDecodeMetadataMessage(
   // 1.1. Run the Establish Tracks algorithm.
   mDecoder->DecodeMetadata()->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [self = WeakPtr{this}](const image::DecodeMetadataResult& aMetadata) {
-        if (self) {
-          self->OnMetadataSuccess(aMetadata);
-        }
+      [self = RefPtr{this}](const image::DecodeMetadataResult& aMetadata) {
+        self->OnMetadataSuccess(aMetadata);
       },
-      [self = WeakPtr{this}](const nsresult& aErr) {
-        if (self) {
-          self->OnMetadataFailed(aErr);
-        }
+      [self = RefPtr{this}](const nsresult& aErr) {
+        self->OnMetadataFailed(aErr);
       });
   return MessageProcessedResult::Processed;
 }
@@ -564,6 +564,34 @@ void ImageDecoder::CheckOutstandingDecodes() {
 
 void ImageDecoder::Initialize(const GlobalObject& aGlobal,
                               const ImageDecoderInit& aInit, ErrorResult& aRv) {
+  if (NS_IsMainThread()) {
+    mShutdownBlocker = media::ShutdownBlockingTicket::Create(
+        u"ImageDecoder::mShutdownBlocker"_ns,
+        NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__);
+    if (mShutdownBlocker) {
+      mShutdownBlocker->ShutdownPromise()->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self = RefPtr{this}](bool /* aUnUsed*/) {
+            self->Close(MediaResult(NS_ERROR_DOM_ABORT_ERR, "Shutdown"_ns));
+          },
+          [self = RefPtr{this}](bool /* aUnUsed*/) {
+            self->Close(MediaResult(NS_ERROR_DOM_ABORT_ERR, "Shutdown"_ns));
+          });
+    }
+  } else if (WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate()) {
+    mWorkerRef = WeakWorkerRef::Create(workerPrivate, [self = RefPtr{this}]() {
+      self->Close(MediaResult(NS_ERROR_DOM_ABORT_ERR, "Shutdown"_ns));
+    });
+  }
+
+  if (NS_WARN_IF(!mWorkerRef && !mShutdownBlocker)) {
+    MOZ_LOG(
+        gWebCodecsLog, LogLevel::Error,
+        ("ImageDecoder %p Initialize -- create shutdown blocker failed", this));
+    aRv.ThrowInvalidStateError("Could not create shutdown blocker");
+    return;
+  }
+
   mCompletePromise = Promise::Create(mParent, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     MOZ_LOG(gWebCodecsLog, LogLevel::Error,
@@ -785,15 +813,11 @@ void ImageDecoder::RequestFrameCount(uint32_t aKnownFrameCount) {
   mDecoder->DecodeFrameCount(aKnownFrameCount)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [self = WeakPtr{this}](const image::DecodeFrameCountResult& aResult) {
-            if (self) {
-              self->OnFrameCountSuccess(aResult);
-            }
+          [self = RefPtr{this}](const image::DecodeFrameCountResult& aResult) {
+            self->OnFrameCountSuccess(aResult);
           },
-          [self = WeakPtr{this}](const nsresult& aErr) {
-            if (self) {
-              self->OnFrameCountFailed(aErr);
-            }
+          [self = RefPtr{this}](const nsresult& aErr) {
+            self->OnFrameCountFailed(aErr);
           });
 }
 
@@ -811,15 +835,11 @@ void ImageDecoder::RequestDecodeFrames(uint32_t aFramesToDecode) {
   mDecoder->DecodeFrames(aFramesToDecode)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [self = WeakPtr{this}](const image::DecodeFramesResult& aResult) {
-            if (self) {
-              self->OnDecodeFramesSuccess(aResult);
-            }
+          [self = RefPtr{this}](const image::DecodeFramesResult& aResult) {
+            self->OnDecodeFramesSuccess(aResult);
           },
-          [self = WeakPtr{this}](const nsresult& aErr) {
-            if (self) {
-              self->OnDecodeFramesFailed(aErr);
-            }
+          [self = RefPtr{this}](const nsresult& aErr) {
+            self->OnDecodeFramesFailed(aErr);
           });
 }
 
@@ -995,7 +1015,7 @@ void ImageDecoder::Close(const MediaResult& aResult) {
   }
 
   if (mReadRequest) {
-    mReadRequest->Destroy(/* aCycleCollect */ false);
+    mReadRequest->Destroy(/* aCancel */ true);
     mReadRequest = nullptr;
   }
 
@@ -1014,6 +1034,9 @@ void ImageDecoder::Close(const MediaResult& aResult) {
     aResult.RejectTo(mCompletePromise);
     mComplete = true;
   }
+
+  mWorkerRef = nullptr;
+  mShutdownBlocker = nullptr;
 }
 
 void ImageDecoder::Reset() {
