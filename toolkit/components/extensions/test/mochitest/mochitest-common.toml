@@ -302,6 +302,7 @@ skip-if = [
 skip-if = [
   "tsan", # Times out on TSan, bug 1612707
   "os == 'linux' && debug", # bug 1918637 (Close to perma fail on Linux debug)
+  "os == 'linux' && (asan || ccov)", # bug 1918637 (Fails intermittently similarly to Linux debug)
 ]
 
 ["test_ext_inIncognitoContext_window.html"]
