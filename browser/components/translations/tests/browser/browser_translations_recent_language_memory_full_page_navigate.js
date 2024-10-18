@@ -37,11 +37,11 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "fr",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "fr",
+      runInPage,
+    });
 
     await navigate("Navigate to a French page.", { url: FRENCH_PAGE_URL });
 

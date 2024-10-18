@@ -289,11 +289,11 @@ add_task(
       }
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "fa",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "fa",
+      runInPage,
+    });
 
     await cleanup();
   }

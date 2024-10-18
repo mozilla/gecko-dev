@@ -34,12 +34,12 @@ add_task(
     await FullPageTranslationsTestUtils.assertIsAlwaysTranslateLanguage("es", {
       checked: true,
     });
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
       runInPage,
-      "The page should be automatically translated."
-    );
+      message: "The page should be automatically translated.",
+    });
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",
@@ -99,12 +99,12 @@ add_task(
     await FullPageTranslationsTestUtils.assertIsAlwaysTranslateLanguage("es", {
       checked: true,
     });
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
       runInPage,
-      "The page should be automatically translated."
-    );
+      message: "The page should be automatically translated.",
+    });
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",

@@ -29,11 +29,11 @@ add_task(async function test_translations_panel_retry() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated(
-    "es",
-    "en",
-    runInPage
-  );
+  await FullPageTranslationsTestUtils.assertPageIsTranslated({
+    fromLanguage: "es",
+    toLanguage: "en",
+    runInPage,
+  });
 
   await FullPageTranslationsTestUtils.openPanel({
     expectedToLanguage: "en",
@@ -49,11 +49,11 @@ add_task(async function test_translations_panel_retry() {
     pivotTranslation: true,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated(
-    "es",
-    "fr",
-    runInPage
-  );
+  await FullPageTranslationsTestUtils.assertPageIsTranslated({
+    fromLanguage: "es",
+    toLanguage: "fr",
+    runInPage,
+  });
 
   await cleanup();
 });

@@ -122,11 +122,11 @@ add_task(
       }
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "fr",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "fr",
+      runInPage,
+    });
 
     await SelectTranslationsTestUtils.openPanel(runInPage, {
       selectFrenchSection: true,

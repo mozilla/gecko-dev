@@ -696,23 +696,26 @@ class FullPageTranslationsTestUtils {
       `{"fromLanguage":"${fromLangDisplay}","toLanguage":"${toLangDisplay}"}`
     );
   }
+
   /**
    * Asserts that the Spanish test page has been translated by checking
    * that the H1 element has been modified from its original form.
    *
-   * @param {string} fromLanguage - The BCP-47 language tag being translated from.
-   * @param {string} toLanguage - The BCP-47 language tag being translated into.
-   * @param {Function} runInPage - Allows running a closure in the content page.
-   * @param {string} message - An optional message to log to info.
-   * @param {ChromeWindow} [win]
+   * @param {object} options - The options for the assertion.
+   *
+   * @param {string} options.fromLanguage - The BCP-47 language tag being translated from.
+   * @param {string} options.toLanguage - The BCP-47 language tag being translated into.
+   * @param {Function} options.runInPage - Allows running a closure in the content page.
+   * @param {string} [options.message] - An optional message to log to info.
+   * @param {ChromeWindow} [options.win=window] - The window in which to perform the check (defaults to the current window).
    */
-  static async assertPageIsTranslated(
+  static async assertPageIsTranslated({
     fromLanguage,
     toLanguage,
     runInPage,
     message = null,
-    win = window
-  ) {
+    win = window,
+  }) {
     if (message) {
       info(message);
     }

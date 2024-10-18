@@ -50,11 +50,11 @@ add_task(
       { checked: false }
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    });
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",
@@ -101,11 +101,11 @@ add_task(
       }
     );
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    });
 
     await cleanup();
   }

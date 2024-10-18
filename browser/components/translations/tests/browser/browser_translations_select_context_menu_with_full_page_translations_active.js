@@ -45,11 +45,11 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    });
 
     await SelectTranslationsTestUtils.assertContextMenuTranslateSelectionItem(
       runInPage,
@@ -128,11 +128,11 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    });
 
     await SelectTranslationsTestUtils.assertContextMenuTranslateSelectionItem(
       runInPage,

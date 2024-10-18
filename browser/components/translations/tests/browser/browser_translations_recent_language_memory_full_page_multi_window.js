@@ -50,11 +50,11 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "uk",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "uk",
+      runInPage,
+    });
 
     await FullPageTranslationsTestUtils.openPanel({
       win: window1,
@@ -92,11 +92,11 @@ add_task(
 
     await focusWindow(window1);
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "uk",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "uk",
+      runInPage,
+    });
 
     await FullPageTranslationsTestUtils.openPanel({
       win: window1,
@@ -108,11 +108,11 @@ add_task(
       win: window1,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "fr",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "fr",
+      runInPage,
+    });
 
     await testPage2.cleanup();
     await BrowserTestUtils.closeWindow(window2);

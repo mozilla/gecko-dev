@@ -135,11 +135,11 @@ add_task(
     });
     await FullPageTranslationsTestUtils.clickTranslateButton();
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "ja",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "ja",
+      runInPage,
+    });
 
     await cleanup();
   }

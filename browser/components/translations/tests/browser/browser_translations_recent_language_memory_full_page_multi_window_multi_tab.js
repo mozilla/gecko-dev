@@ -233,13 +233,13 @@ add_task(
     info("Ensuring that the es-uk tab is translated correctly");
 
     await focusWindow(window2);
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "uk",
-      runInEsUkPage,
-      "The es-uk page should be translated to uk",
-      window2
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "uk",
+      runInPage: runInEsUkPage,
+      message: "The es-uk page should be translated to uk",
+      win: window2,
+    });
     await FullPageTranslationsTestUtils.openPanel({
       win: window2,
       expectedToLanguage: "sl",
@@ -249,13 +249,13 @@ add_task(
     info("Ensuring that the es-sl tab is translated correctly");
 
     await focusWindow(window1);
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "sl",
-      runInEsSlPage,
-      "The es-sl page should be translated to sl",
-      window1
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "sl",
+      runInPage: runInEsSlPage,
+      message: "The es-sl page should be translated to sl",
+      win: window1,
+    });
     await FullPageTranslationsTestUtils.openPanel({
       win: window1,
       expectedToLanguage: "uk",
@@ -265,13 +265,13 @@ add_task(
     info("Ensuring that the es-fa tab is translated correctly");
 
     await focusWindow(window2);
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "fa",
-      runInEsFaPage,
-      "The es-fa page should be translated to fa",
-      window2
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "fa",
+      runInPage: runInEsFaPage,
+      message: "The es-fa page should be translated to fa",
+      win: window2,
+    });
     await FullPageTranslationsTestUtils.openPanel({
       win: window2,
       expectedToLanguage: "uk",
@@ -280,13 +280,13 @@ add_task(
     info("Ensuring that the es-en tab is translated correctly");
 
     await focusWindow(window1);
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
-      runInEsEnPage,
-      "The es-en page should be translated to en",
-      window1
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage: runInEsEnPage,
+      message: "The es-en page should be translated to en",
+      win: window1,
+    });
     await FullPageTranslationsTestUtils.openPanel({
       win: window1,
       expectedToLanguage: "uk",

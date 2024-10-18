@@ -36,11 +36,11 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "uk",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "uk",
+      runInPage,
+    });
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",
@@ -55,11 +55,11 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "fr",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "fr",
+      runInPage,
+    });
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "uk",

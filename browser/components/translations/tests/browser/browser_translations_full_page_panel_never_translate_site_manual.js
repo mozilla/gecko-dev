@@ -34,11 +34,11 @@ add_task(
       downloadHandler: resolveDownloads,
     });
 
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    });
 
     await FullPageTranslationsTestUtils.openPanel({
       expectedToLanguage: "en",

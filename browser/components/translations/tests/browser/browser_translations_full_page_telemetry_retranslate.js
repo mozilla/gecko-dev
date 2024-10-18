@@ -31,11 +31,11 @@ add_task(async function test_translations_telemetry_retranslate() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated(
-    "fr",
-    "en",
-    runInPage
-  );
+  await FullPageTranslationsTestUtils.assertPageIsTranslated({
+    fromLanguage: "fr",
+    toLanguage: "en",
+    runInPage,
+  });
 
   await TestTranslationsTelemetry.assertLabeledCounter(
     Glean.translations.requestCount,
@@ -105,11 +105,11 @@ add_task(async function test_translations_telemetry_retranslate() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated(
-    "fr",
-    "uk",
-    runInPage
-  );
+  await FullPageTranslationsTestUtils.assertPageIsTranslated({
+    fromLanguage: "fr",
+    toLanguage: "uk",
+    runInPage,
+  });
 
   await TestTranslationsTelemetry.assertLabeledCounter(
     Glean.translations.requestCount,

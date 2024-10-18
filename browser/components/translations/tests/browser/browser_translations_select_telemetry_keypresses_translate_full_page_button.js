@@ -35,11 +35,11 @@ add_task(
     );
 
     await fullPageTranslationCompletePromise;
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "es",
-      "en",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "es",
+      toLanguage: "en",
+      runInPage,
+    });
 
     await closeAllOpenPanelsAndMenus();
 
@@ -86,11 +86,11 @@ add_task(
     );
 
     await fullPageTranslationCompletePromise;
-    await FullPageTranslationsTestUtils.assertPageIsTranslated(
-      "fr",
-      "en",
-      runInPage
-    );
+    await FullPageTranslationsTestUtils.assertPageIsTranslated({
+      fromLanguage: "fr",
+      toLanguage: "en",
+      runInPage,
+    });
 
     await closeAllOpenPanelsAndMenus();
 

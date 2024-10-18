@@ -69,11 +69,11 @@ add_task(async function test_translations_panel_switch_language() {
     downloadHandler: resolveDownloads,
   });
 
-  await FullPageTranslationsTestUtils.assertPageIsTranslated(
-    "en",
-    "fr",
-    runInPage
-  );
+  await FullPageTranslationsTestUtils.assertPageIsTranslated({
+    fromLanguage: "en",
+    toLanguage: "fr",
+    runInPage,
+  });
 
   await cleanup();
 });
