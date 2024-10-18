@@ -9,6 +9,7 @@ import android.os.Build
 import android.view.View
 import android.view.Window
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.test.robolectric.testContext
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -41,6 +42,7 @@ class WindowTest {
         openMocks(this)
 
         `when`(window.decorView).thenAnswer { decorView }
+        `when`(window.context).thenAnswer { testContext }
     }
 
     @After

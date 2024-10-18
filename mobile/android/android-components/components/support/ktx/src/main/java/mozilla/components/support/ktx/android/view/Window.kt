@@ -4,7 +4,6 @@
 
 package mozilla.components.support.ktx.android.view
 
-import android.os.Build
 import android.os.Build.VERSION.SDK_INT
 import android.view.Window
 import androidx.annotation.ColorInt
@@ -46,9 +45,11 @@ fun Window.createWindowInsetsController(): WindowInsetsControllerCompat {
  * Sets the status bar color.
  *
  * @param color The color to set as the status bar color.
+ * Note that If the app targets VANILLA_ICE_CREAM or above,
+ * the color will be transparent and cannot be changed.
  */
 fun Window.setStatusBarColorCompat(@ColorInt color: Int) {
-    if (SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+    if (context.applicationInfo.targetSdkVersion < VERSION_CODES.VANILLA_ICE_CREAM) {
         @Suppress("DEPRECATION")
         statusBarColor = color
     }
@@ -58,9 +59,11 @@ fun Window.setStatusBarColorCompat(@ColorInt color: Int) {
  * Sets the navigation bar color.
  *
  * @param color The color to set as the navigation bar color.
+ * Note that If the app targets VANILLA_ICE_CREAM or above,
+ * the color will be transparent and cannot be changed.
  */
 fun Window.setNavigationBarColorCompat(@ColorInt color: Int) {
-    if (SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+    if (context.applicationInfo.targetSdkVersion < VERSION_CODES.VANILLA_ICE_CREAM) {
         @Suppress("DEPRECATION")
         navigationBarColor = color
     }
@@ -70,9 +73,13 @@ fun Window.setNavigationBarColorCompat(@ColorInt color: Int) {
  * Sets the navigation bar divider color.
  *
  * @param color The color to set as the navigation bar divider color.
+ * Note that If the app targets VANILLA_ICE_CREAM or above,
+ * the color will be transparent and cannot be changed.
  */
 fun Window.setNavigationBarDividerColorCompat(@ColorInt color: Int?) {
-    if (SDK_INT >= Build.VERSION_CODES.P && SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+    if (SDK_INT >= VERSION_CODES.P &&
+        context.applicationInfo.targetSdkVersion < VERSION_CODES.VANILLA_ICE_CREAM
+    ) {
         @Suppress("DEPRECATION")
         navigationBarDividerColor = color ?: 0
     }
