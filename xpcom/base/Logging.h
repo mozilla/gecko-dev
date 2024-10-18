@@ -18,6 +18,8 @@
 #include "mozilla/Likely.h"
 #include "mozilla/LoggingCore.h"
 
+#include "fmt/format.h"
+
 #define MOZ_LOGGING_ENABLED 1
 
 // The mandatory extension we add to log files.  Note that rotate will append
@@ -113,6 +115,12 @@ class LogModule {
               va_list aArgs) const MOZ_FORMAT_PRINTF(4, 0);
 
   /**
+   * Use {fmt} for specifying format
+   */
+  void PrintvFmt(LogLevel aLevel, fmt::string_view aFmt,
+                 fmt::format_args aArgs) const;
+
+  /**
    * Retrieves the module name.
    */
   const char* Name() const { return mName; }
@@ -179,6 +187,12 @@ inline bool log_test(const LogModule* module, LogLevel level) {
 
 void log_print(const LogModule* aModule, LogLevel aLevel, const char* aFmt, ...)
     MOZ_FORMAT_PRINTF(3, 4);
+
+template <typename... T>
+inline void log_print_fmt(const LogModule* aModule, LogLevel aLevel,
+                          fmt::format_string<T...> aFmt, T&&... aArgs) {
+  aModule->PrintvFmt(aLevel, aFmt, fmt::make_format_args(aArgs...));
+}
 
 void log_print(const LogModule* aModule, LogLevel aLevel, TimeStamp* aStart,
                const char* aFmt, ...) MOZ_FORMAT_PRINTF(4, 5);
@@ -263,6 +277,14 @@ void log_print(const LogModule* aModule, LogLevel aLevel, TimeStamp* aStart,
                                    MOZ_LOG_EXPAND_ARGS _args);     \
       }                                                            \
     } while (0)
+#  define MOZ_LOG_FMT(_module, _level, _fmt, ...)                        \
+    do {                                                                 \
+      const ::mozilla::LogModule* moz_real_module = _module;             \
+      if (MOZ_LOG_TEST(moz_real_module, _level)) {                       \
+        mozilla::detail::log_print_fmt(moz_real_module, _level,          \
+                                       FMT_STRING(_fmt), ##__VA_ARGS__); \
+      }                                                                  \
+    } while (0)
 #else
 #  define MOZ_LOG(_module, _level, _args)                      \
     do {                                                       \
@@ -277,6 +299,13 @@ void log_print(const LogModule* aModule, LogLevel aLevel, TimeStamp* aStart,
         mozilla::detail::log_print(_module, _level, start,     \
                                    MOZ_LOG_EXPAND_ARGS _args); \
       }                                                        \
+    } while (0)
+#  define MOZ_LOG_FMT(_module, _level, _fmt, ...)                         \
+    do {                                                                  \
+      if (MOZ_LOG_TEST(_module, _level)) {                                \
+        mozilla::detail::log_print_fmt(_module, _level, FMT_STRING(_fmt), \
+                                       ##__VA_ARGS__);                    \
+      }                                                                   \
     } while (0)
 #endif
 
