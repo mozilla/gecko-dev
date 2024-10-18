@@ -59,6 +59,11 @@
     --tab-selected-outline-color: var(--lwt-tab-line-color, currentColor);
   }
 
+  --vertical-tabs-scrollbar-color: auto;
+  @media (-moz-platform: macos) {
+    --vertical-tabs-scrollbar-color: color-mix(in srgb, currentColor 26%, transparent) transparent;
+  }
+
   /* TAB GROUP COLORS
    * tab-group-color-* is used for expanded groups in light mode and collapsed groups in dark mode
    * tab-group-color-*-invert is used for expanded groups in dark mode
@@ -969,6 +974,7 @@ tab-group {
 
   &::part(scrollbox) {
     scrollbar-width: thin;
+    scrollbar-color: var(--vertical-tabs-scrollbar-color);
     overflow-y: auto;
   }
 }
@@ -1028,6 +1034,7 @@ tab-group {
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
+  scrollbar-color: var(--vertical-tabs-scrollbar-color);
   /* Fit slightly more than 5 tabs + padding before overflowing */
   max-height: calc(5 * (var(--tab-min-height) + 2 * var(--tab-block-margin)) + var(--space-large));
 
