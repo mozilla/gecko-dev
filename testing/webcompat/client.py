@@ -5,9 +5,12 @@
 import asyncio
 import contextlib
 import time
+from base64 import b64decode
+from io import BytesIO
 from urllib.parse import quote
 
 import webdriver
+from PIL import Image
 from webdriver.bidi.modules.script import ContextTarget
 
 
@@ -757,3 +760,12 @@ class Client:
           """,
             args=[element],
         )
+
+    def is_one_solid_color(self, element, max_fuzz=8):
+        # max_fuzz is needed as screenshots can have slight color bleeding/fringing
+        shotb64 = element.screenshot()
+        shot = Image.open(BytesIO(b64decode(shotb64))).convert("RGB")
+        for min, max in shot.getextrema():
+            if max - min > max_fuzz:
+                return False
+        return True

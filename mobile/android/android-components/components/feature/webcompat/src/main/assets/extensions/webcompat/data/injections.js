@@ -587,6 +587,7 @@ const AVAILABLE_INJECTIONS = [
         "*://*.lafoodbank.org/*", // 127006
         "*://rutamayacoffee.com/*", // 129353
         "*://ottoandspike.com.au/*", // bugzilla 1644602
+        "*://give.umrelief.org/give/*", // bugzilla 1916407
       ],
       js: [
         {
@@ -1047,6 +1048,20 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
+    id: "1922175",
+    platform: "all",
+    domain: "app.livingsecurity.com",
+    bug: "1922175",
+    contentScripts: {
+      matches: ["*://app.livingsecurity.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1896383-error-capturestacktrace-shim.js",
+        },
+      ],
+    },
+  },
+  {
     id: "bug1889326",
     platform: "desktop",
     domain: "Office 365 email handling prompt",
@@ -1171,6 +1186,132 @@ const AVAILABLE_INJECTIONS = [
       js: [
         {
           file: "injections/js/bug1899937-plus.nhk.jp-request-picture-in-picture.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1886616",
+    platform: "all",
+    domain: "www.six-group.com",
+    bug: "1886616",
+    contentScripts: {
+      matches: ["*://www.six-group.com/*/market-data/etf/etf-explorer.html*"],
+      css: [
+        {
+          file: "injections/css/bug1886616-www.six-group.com-select-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1896349",
+    platform: "all",
+    domain: "vivaldi.com",
+    bug: "1896349",
+    contentScripts: {
+      matches: ["*://vivaldi.com/*"],
+      css: [
+        {
+          file: "injections/css/bug1896349-vivaldi.com-selected-text-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1836872",
+    platform: "desktop",
+    domain: "docs.google.com",
+    bug: "1836872",
+    contentScripts: {
+      matches: ["*://docs.google.com/document/*"],
+      css: [
+        {
+          file: "injections/css/bug1836872-docs.google.com-font-submenus-inaccessible.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1779908",
+    platform: "desktop",
+    domain: "docs.google.com",
+    bug: "1779908",
+    contentScripts: {
+      matches: ["*://play.google.com/store/*"],
+      css: [
+        {
+          file: "injections/css/bug1779908-play.google.com-scrollbar-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1879879",
+    platform: "all",
+    domain: "developers.pinterest.com",
+    bug: "1879879",
+    contentScripts: {
+      matches: ["*://developers.pinterest.com/docs/*"],
+      css: [
+        {
+          file: "injections/css/bug1879879-developers.pinterest.com-list-alignment-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1856915",
+    platform: "android",
+    domain: "login.yahoo.com",
+    bug: "1856915",
+    contentScripts: {
+      matches: ["*://login.yahoo.com/account/*"],
+      css: [
+        {
+          file: "injections/css/bug1856915-login.yahoo.com-unhide-password-button-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1841730",
+    platform: "desktop",
+    domain: "www.korg.com",
+    bug: "1841730",
+    contentScripts: {
+      matches: ["*://www.korg.com/*/support/download/product/*"],
+      js: [
+        {
+          file: "injections/js/bug1841730-www.korg.com-fix-broken-page-loads.js",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1895051",
+    platform: "all",
+    domain: "www.zhihu.com",
+    bug: "1895051",
+    contentScripts: {
+      matches: ["*://www.zhihu.com/question/*"],
+      css: [
+        {
+          file: "injections/css/bug1895051-www.zhihu.com-broken-button-fix.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1924500",
+    platform: "desktop",
+    domain: "www.tiktok.com",
+    bug: "1924500",
+    contentScripts: {
+      matches: ["*://www.tiktok.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1924500-www.tiktok.com-fix-captcha-slider.js",
         },
       ],
     },
