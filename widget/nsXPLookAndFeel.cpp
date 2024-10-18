@@ -37,7 +37,7 @@
 #include "mozilla/widget/WidgetMessageUtils.h"
 #include "mozilla/dom/KeyboardEventBinding.h"
 #include "mozilla/RelativeLuminanceUtils.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/TelemetryScalarEnums.h"
 #include "mozilla/Try.h"
 
@@ -1163,8 +1163,7 @@ void nsXPLookAndFeel::RecordTelemetry() {
   sRecordedLookAndFeelTelemetry = true;
 
   int32_t i;
-  Telemetry::ScalarSet(
-      Telemetry::ScalarID::WIDGET_DARK_MODE,
+  glean::widget::dark_mode.Set(
       NS_SUCCEEDED(GetIntValue(IntID::SystemUsesDarkTheme, i)) && i != 0);
 
   RecordLookAndFeelSpecificTelemetry();

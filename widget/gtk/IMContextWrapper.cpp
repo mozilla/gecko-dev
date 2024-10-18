@@ -20,7 +20,7 @@
 #include "mozilla/MiscEvents.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_intl.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/ToString.h"
@@ -2303,8 +2303,7 @@ bool IMContextWrapper::DispatchCompositionStart(GtkIMContext* aContext) {
       // U+2026 is "..."
       im.Append(char16_t(0x2026));
     }
-    Telemetry::ScalarSet(Telemetry::ScalarID::WIDGET_IME_NAME_ON_LINUX, im,
-                         true);
+    glean::widget::ime_name_on_linux.Get(NS_ConvertUTF16toUTF8(im)).Set(true);
   }
 
   MOZ_LOG(gIMELog, LogLevel::Debug,

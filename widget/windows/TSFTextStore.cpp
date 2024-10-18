@@ -15,7 +15,7 @@
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_intl.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/ToString.h"
@@ -1625,8 +1625,8 @@ TSFStaticSink::OnActivated(DWORD dwProfileType, LANGID langid, REFCLSID rclsid,
       // 72 is kMaximumKeyStringLength in TelemetryScalar.cpp
       nsAutoString key;
       TSFStaticSink::GetActiveTIPNameForTelemetry(key);
-      Telemetry::ScalarSet(Telemetry::ScalarID::WIDGET_IME_NAME_ON_WINDOWS, key,
-                           true);
+      glean::widget::ime_name_on_windows.Get(NS_ConvertUTF16toUTF8(key))
+          .Set(true);
     }
     // Notify IMEHandler of changing active keyboard layout.
     IMEHandler::OnKeyboardLayoutChanged();
@@ -5246,9 +5246,9 @@ bool TSFTextStore::InsertTextAtSelectionInternal(const nsAString& aInsertStr,
   if (numberOfCRLFs) {
     nsAutoString key;
     if (TSFStaticSink::GetActiveTIPNameForTelemetry(key)) {
-      Telemetry::ScalarSet(
-          Telemetry::ScalarID::WIDGET_IME_NAME_ON_WINDOWS_INSERTED_CRLF, key,
-          true);
+      glean::widget::ime_name_on_windows_inserted_crlf
+          .Get(NS_ConvertUTF16toUTF8(key))
+          .Set(true);
     }
   }
 

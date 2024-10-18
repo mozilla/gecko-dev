@@ -78,3 +78,39 @@ file_dialog:
       in_shutdown:
         type: boolean
         description: Whether the application is currently shutting down.
+
+widget:
+  ime_name_on_windows:
+    type: labeled_boolean
+    description: >
+      Locale ID and name of IME which was selected by users on Windows.
+      This does NOT collect legacy IMM-IME names since we cannot get
+      readable names and we do not support IMM-IME so aggressively because
+      IME vendors should've already released TIP for TSF for supporting
+      Windows 8 or later completely.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar widget.ime_name_on_windows.
+    bugs:
+      - https://bugzil.la/1215818
+    data_reviews:
+      - https://bugzil.la/1215818
+    notification_emails:
+      - mnakano.birchill@mozilla.com
+    expires: never
+    telemetry_mirror: WIDGET_IME_NAME_ON_WINDOWS
+
+  ime_name_on_windows_inserted_crlf:
+    type: labeled_boolean
+    description: >
+      Same data as ime_name_on_windows, but only collecting IME names
+      which inserted CRLF to check whether the feature works.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar widget.ime_name_on_windows_inserted_crlf.
+    bugs:
+      - https://bugzil.la/1865256
+    data_reviews:
+      - https://bugzil.la/1865256
+    notification_emails:
+      - mnakano.birchill@mozilla.com
+    expires: never
+    telemetry_mirror: WIDGET_IME_NAME_ON_WINDOWS_INSERTED_CRLF

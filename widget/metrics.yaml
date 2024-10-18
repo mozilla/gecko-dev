@@ -8,23 +8,21 @@
 ---
 $schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
 $tags:
-  - 'Core :: Widget: Cocoa'
+  - 'Core :: Widget'
 
 widget:
-  ime_name_on_mac:
-    type: labeled_boolean
+  dark_mode:
+    type: boolean
     description: >
-      Name of IME which was selected by users on macOS.  The value is
-      Input Source ID if non-Japanese IME was open.  Otherwise, if
-      Japanese IME was open, the value is Bundle ID.  Input Source ID
-      includes input mode, but Bundle ID does not include input mode.
+      Whether the OS theme is dark.
       This metric was generated to correspond to the Legacy Telemetry
-      scalar widget.ime_name_on_mac.
+      scalar widget.dark_mode.
     bugs:
-      - https://bugzil.la/1215818
+      - https://bugzil.la/1601846
     data_reviews:
-      - https://bugzil.la/1215818
+      - https://bugzil.la/1601846
     notification_emails:
-      - mnakano.birchill@mozilla.com
+      - layout-telemetry-alerts@mozilla.com
+      - cmccormack@mozilla.com
     expires: never
-    telemetry_mirror: WIDGET_IME_NAME_ON_MAC
+    telemetry_mirror: WIDGET_DARK_MODE

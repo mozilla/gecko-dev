@@ -15,7 +15,7 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/StaticPrefs_intl.h"
 #include "mozilla/StaticPrefs_widget.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/ToString.h"
@@ -3227,8 +3227,7 @@ void IMEInputHandler::OnCurrentTextInputSourceChange(
       // U+2026 is "..."
       key.Append(char16_t(0x2026));
     }
-    Telemetry::ScalarSet(Telemetry::ScalarID::WIDGET_IME_NAME_ON_MAC, key,
-                         true);
+    glean::widget::ime_name_on_mac.Get(NS_ConvertUTF16toUTF8(key)).Set(true);
   }
 
   if (MOZ_LOG_TEST(gIMELog, LogLevel::Info)) {

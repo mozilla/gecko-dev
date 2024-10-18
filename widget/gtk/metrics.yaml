@@ -1,0 +1,46 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Widget: Gtk'
+
+widget:
+  ime_name_on_linux:
+    type: labeled_boolean
+    description: >
+      Name of active IM (e.g., xim, fcitx, ibus, etc) which was actually
+      set by env on Linux.  Different from Windows and macOS, this value
+      includes non-IME users even though this is recoded when first
+      compositionstart event because dead key is also implemented by IME
+      on Linux.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar widget.ime_name_on_linux.
+    bugs:
+      - https://bugzil.la/1215818
+    data_reviews:
+      - https://bugzil.la/1215818
+    notification_emails:
+      - mnakano.birchill@mozilla.com
+    expires: never
+    telemetry_mirror: WIDGET_IME_NAME_ON_LINUX
+
+  gtk_version:
+    type: string
+    description: >
+      The version of Gtk 3 in use.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar widget.gtk_version.
+    bugs:
+      - https://bugzil.la/1670145
+    data_reviews:
+      - https://bugzil.la/1670145
+    notification_emails:
+      - layout-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: WIDGET_GTK_VERSION
