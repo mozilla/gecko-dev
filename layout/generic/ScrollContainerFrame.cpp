@@ -1630,6 +1630,16 @@ void ScrollContainerFrame::Reflow(nsPresContext* aPresContext,
   PostOverflowEvent();
 }
 
+void ScrollContainerFrame::DidReflow(nsPresContext* aPresContext,
+                                     const ReflowInput* aReflowInput) {
+  nsContainerFrame::DidReflow(aPresContext, aReflowInput);
+  if (NeedsResnap()) {
+    PostPendingResnap();
+  } else {
+    PresShell()->PostPendingScrollAnchorAdjustment(Anchor());
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef DEBUG_FRAME_DUMP
@@ -6135,12 +6145,6 @@ bool ScrollContainerFrame::ReflowFinished() {
   mPostedReflowCallback = false;
 
   TryScheduleScrollAnimations();
-
-  if (NeedsResnap()) {
-    PostPendingResnap();
-  } else {
-    PresShell()->PostPendingScrollAnchorAdjustment(Anchor());
-  }
 
   if (mIsRoot) {
     if (mMinimumScaleSizeChanged && PresShell()->UsesMobileViewportSizing() &&
