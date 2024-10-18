@@ -1,0 +1,42 @@
+diff --git a/include/fmt/format.h b/include/fmt/format.h
+--- a/include/fmt/format.h
++++ b/include/fmt/format.h
+@@ -2294,17 +2294,17 @@ FMT_CONSTEXPR auto write(OutputIt out, b
+                          const format_specs& specs, locale_ref) -> OutputIt {
+   return write<Char>(out, s, specs);
+ }
+ template <typename Char, typename OutputIt>
+ FMT_CONSTEXPR auto write(OutputIt out, const Char* s, const format_specs& specs,
+                          locale_ref) -> OutputIt {
+   if (specs.type() == presentation_type::pointer)
+     return write_ptr<Char>(out, bit_cast<uintptr_t>(s), &specs);
+-  if (!s) report_error("string pointer is null");
++  if (!s) return write_bytes<Char>(out, "(null)", specs);
+   return write<Char>(out, basic_string_view<Char>(s), specs, {});
+ }
+ 
+ template <typename Char, typename OutputIt, typename T,
+           FMT_ENABLE_IF(is_integral<T>::value &&
+                         !std::is_same<T, bool>::value &&
+                         !std::is_same<T, Char>::value)>
+ FMT_CONSTEXPR auto write(OutputIt out, T value) -> OutputIt {
+@@ -3573,18 +3573,17 @@ FMT_CONSTEXPR auto write(OutputIt out, C
+   auto it = reserve(out, 1);
+   *it++ = value;
+   return base_iterator(out, it);
+ }
+ 
+ template <typename Char, typename OutputIt>
+ FMT_CONSTEXPR20 auto write(OutputIt out, const Char* value) -> OutputIt {
+   if (value) return write(out, basic_string_view<Char>(value));
+-  report_error("string pointer is null");
+-  return out;
++  return write_bytes<Char>(out, "(null)");
+ }
+ 
+ template <typename Char, typename OutputIt, typename T,
+           FMT_ENABLE_IF(std::is_same<T, void>::value)>
+ auto write(OutputIt out, const T* value, const format_specs& specs = {},
+            locale_ref = {}) -> OutputIt {
+   return write_ptr<Char>(out, bit_cast<uintptr_t>(value), &specs);
+ }
