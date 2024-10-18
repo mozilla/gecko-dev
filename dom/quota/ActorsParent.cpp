@@ -2610,9 +2610,9 @@ nsresult QuotaManager::LoadQuota() {
 
   auto MaybeCollectUnaccessedOrigin =
       [loadQuotaInfoStartTime = PR_Now(),
-       &unaccessedOrigins](auto& fullOriginMetadata) {
+       &unaccessedOrigins](const auto& fullOriginMetadata) {
         if (IsOriginUnaccessed(fullOriginMetadata, loadQuotaInfoStartTime)) {
-          unaccessedOrigins.AppendElement(std::move(fullOriginMetadata));
+          unaccessedOrigins.AppendElement(fullOriginMetadata);
         }
       };
 
@@ -2755,15 +2755,17 @@ nsresult QuotaManager::LoadQuota() {
             QM_TRY(OkIf(fullOriginMetadata.mIsPrivate == metadata.mIsPrivate),
                    Err(NS_ERROR_FAILURE));
 
+            MaybeCollectUnaccessedOrigin(fullOriginMetadata);
+
             QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
                 fullOriginMetadata.mPersistenceType, fullOriginMetadata,
                 fullOriginMetadata.mLastAccessTime,
                 fullOriginMetadata.mPersisted, directory)));
           } else {
+            MaybeCollectUnaccessedOrigin(fullOriginMetadata);
+
             InitQuotaForOrigin(fullOriginMetadata, clientUsages, usage);
           }
-
-          MaybeCollectUnaccessedOrigin(fullOriginMetadata);
 
           return Ok{};
         }));
@@ -3691,6 +3693,10 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
                           // they won't be accessed after initialization.
                         }
 
+                        if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
+                          std::forward<OriginFunc>(aOriginFunc)(metadata);
+                        }
+
                         QM_TRY(QM_OR_ELSE_WARN_IF(
                             // Expression.
                             MOZ_TO_RESULT(InitializeOrigin(
@@ -3712,10 +3718,6 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
 
                               return Ok{};
                             })));
-
-                        if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
-                          std::forward<OriginFunc>(aOriginFunc)(metadata);
-                        }
 
                         break;
                       }
@@ -3775,14 +3777,14 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
             QM_TRY(MOZ_TO_RESULT(
                 info.mOriginDirectory->RenameTo(nullptr, originDirName)));
 
+            if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
+              std::forward<OriginFunc>(aOriginFunc)(info.mFullOriginMetadata);
+            }
+
             // XXX We don't check corruption here ?
             QM_TRY(MOZ_TO_RESULT(InitializeOrigin(
                 aPersistenceType, info.mFullOriginMetadata, info.mTimestamp,
                 info.mPersisted, targetDirectory)));
-
-            if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
-              std::forward<OriginFunc>(aOriginFunc)(info.mFullOriginMetadata);
-            }
 
             return Ok{};
           }()),
