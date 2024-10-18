@@ -1,0 +1,82 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Privacy: Anti-Tracking'
+
+contentblocking:
+  category:
+    type: quantity
+    description: >
+      This scalar reports the value of the content blocking category pref
+      (0 = "standard", 1 = "strict", 2 = "custom", 3 = some other value,
+      this is not supported).
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar contentblocking.category.
+    bugs:
+      - https://bugzil.la/1529425
+    data_reviews:
+      - https://bugzil.la/1529425
+    notification_emails:
+      - privacy-team@mozilla.com
+    expires: never
+    unit: content blocking category
+    telemetry_mirror: CONTENTBLOCKING_CATEGORY
+
+  cryptomining_blocking_enabled:
+    type: boolean
+    description: >
+      True if cryptominer blocking is enabled globally at startup.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar contentblocking.cryptomining_blocking_enabled.
+    bugs:
+      - https://bugzil.la/1522919
+    data_reviews:
+      - https://bugzil.la/1522919
+    notification_emails:
+      - privacy-team@mozilla.com
+    expires: never
+    telemetry_mirror: CONTENTBLOCKING_CRYPTOMINING_BLOCKING_ENABLED
+
+  fingerprinting_blocking_enabled:
+    type: boolean
+    description: >
+      True if fingerprinter blocking is enabled globally at startup.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar contentblocking.fingerprinting_blocking_enabled.
+    bugs:
+      - https://bugzil.la/1522919
+    data_reviews:
+      - https://bugzil.la/1522919
+    notification_emails:
+      - privacy-team@mozilla.com
+    expires: never
+    telemetry_mirror: CONTENTBLOCKING_FINGERPRINTING_BLOCKING_ENABLED
+
+  trackers_blocked_count:
+    type: counter
+    description: >
+      A count of the number of tracking events blocked.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar contentblocking.trackers_blocked_count.
+    bugs:
+      - https://bugzil.la/1577030
+      - https://bugzil.la/1610894
+      - https://bugzil.la/1645088
+      - https://bugzil.la/1678209
+    data_reviews:
+      - https://bugzil.la/1577030
+      - https://bugzil.la/1610894
+      - https://bugzil.la/1645088
+      - https://bugzil.la/1678209
+    notification_emails:
+      - ewright@mozilla.com
+      - privacy-team@mozilla.com
+    expires: never
+    telemetry_mirror: CONTENTBLOCKING_TRACKERS_BLOCKED_COUNT
