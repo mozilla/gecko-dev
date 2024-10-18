@@ -45,7 +45,8 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
   MOZ_ASSERT(quotaManager);
 
   QM_TRY_UNWRAP(auto principalMetadata,
-                quotaManager->GetInfoFromValidatedPrincipalInfo(aPrincipalInfo),
+                quota::QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    *quotaManager, aPrincipalInfo),
                 IPC_OK(), [aResolver](const auto rv) { aResolver(rv); });
 
   quota::OriginMetadata originMetadata(std::move(principalMetadata),

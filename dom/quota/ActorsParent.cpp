@@ -3439,7 +3439,7 @@ Result<FullOriginMetadata, nsresult> QuotaManager::LoadFullOriginMetadata(
          Err(NS_ERROR_MALFORMED_URI));
 
   QM_TRY_UNWRAP(auto principalMetadata,
-                GetInfoFromValidatedPrincipalInfo(principalInfo));
+                GetInfoFromValidatedPrincipalInfo(*this, principalInfo));
 
   fullOriginMetadata.mSuffix = std::move(principalMetadata.mSuffix);
   fullOriginMetadata.mGroup = std::move(principalMetadata.mGroup);
@@ -3530,7 +3530,7 @@ Result<OriginMetadata, nsresult> QuotaManager::GetOriginMetadata(
          Err(NS_ERROR_MALFORMED_URI));
 
   QM_TRY_UNWRAP(auto principalMetadata,
-                GetInfoFromValidatedPrincipalInfo(principalInfo));
+                GetInfoFromValidatedPrincipalInfo(*this, principalInfo));
 
   QM_TRY_INSPECT(const auto& parentDirectory,
                  MOZ_TO_RESULT_INVOKE_MEMBER_TYPED(nsCOMPtr<nsIFile>,
@@ -5500,7 +5500,7 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
   AssertIsOnOwningThread();
 
   QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
-                GetInfoFromValidatedPrincipalInfo(aPrincipalInfo),
+                GetInfoFromValidatedPrincipalInfo(*this, aPrincipalInfo),
                 CreateAndRejectBoolPromise);
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
@@ -5671,7 +5671,7 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
   AssertIsOnOwningThread();
 
   QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
-                GetInfoFromValidatedPrincipalInfo(aPrincipalInfo),
+                GetInfoFromValidatedPrincipalInfo(*this, aPrincipalInfo),
                 CreateAndRejectBoolPromise);
 
   RefPtr<UniversalDirectoryLock> directoryLock = CreateDirectoryLockInternal(
@@ -6588,9 +6588,10 @@ bool QuotaManager::IsPrincipalInfoValid(const PrincipalInfo& aPrincipalInfo) {
   return false;
 }
 
+// static
 Result<PrincipalMetadata, nsresult>
 QuotaManager::GetInfoFromValidatedPrincipalInfo(
-    const PrincipalInfo& aPrincipalInfo) {
+    QuotaManager& aQuotaManager, const PrincipalInfo& aPrincipalInfo) {
   MOZ_ASSERT(IsPrincipalInfoValid(aPrincipalInfo));
 
   switch (aPrincipalInfo.type()) {
@@ -6609,7 +6610,7 @@ QuotaManager::GetInfoFromValidatedPrincipalInfo(
 
       if (IsUUIDOrigin(origin)) {
         QM_TRY_INSPECT(const auto& originalOrigin,
-                       GetOriginFromStorageOrigin(origin));
+                       aQuotaManager.GetOriginFromStorageOrigin(origin));
 
         nsCOMPtr<nsIPrincipal> principal =
             BasePrincipal::CreateContentPrincipal(originalOrigin);
@@ -6619,7 +6620,7 @@ QuotaManager::GetInfoFromValidatedPrincipalInfo(
         QM_TRY(
             MOZ_TO_RESULT(PrincipalToPrincipalInfo(principal, &principalInfo)));
 
-        return GetInfoFromValidatedPrincipalInfo(principalInfo);
+        return GetInfoFromValidatedPrincipalInfo(aQuotaManager, principalInfo);
       }
 
       PrincipalMetadata principalMetadata;
@@ -6632,7 +6633,7 @@ QuotaManager::GetInfoFromValidatedPrincipalInfo(
 
       if (info.attrs().IsPrivateBrowsing()) {
         QM_TRY_UNWRAP(principalMetadata.mStorageOrigin,
-                      EnsureStorageOriginFromOrigin(origin));
+                      aQuotaManager.EnsureStorageOriginFromOrigin(origin));
       } else {
         principalMetadata.mStorageOrigin = origin;
       }
@@ -7821,9 +7822,9 @@ nsresult StorageOperationBase::ProcessOriginDirectories() {
           break;
         }
 
-        QM_TRY_UNWRAP(
-            auto principalMetadata,
-            quotaManager->GetInfoFromValidatedPrincipalInfo(principalInfo));
+        QM_TRY_UNWRAP(auto principalMetadata,
+                      QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                          *quotaManager, principalInfo));
 
         originProps.mOriginMetadata = {std::move(principalMetadata),
                                        *originProps.mPersistenceType};

@@ -616,8 +616,8 @@ class QuotaManager final : public BackgroundThreadObject {
 
   static bool IsPrincipalInfoValid(const PrincipalInfo& aPrincipalInfo);
 
-  Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
-      const PrincipalInfo& aPrincipalInfo);
+  static Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
+      QuotaManager& aQuotaManager, const PrincipalInfo& aPrincipalInfo);
 
   static Result<PrincipalInfo, nsresult> PrincipalMetadataToPrincipalInfo(
       const PrincipalMetadata& aPrincipalMetadata);

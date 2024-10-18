@@ -1661,9 +1661,9 @@ GetOriginUsageOp::GetOriginUsageOp(
 nsresult GetOriginUsageOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -1831,9 +1831,9 @@ InitializedOriginRequestBase::InitializedOriginRequestBase(
 nsresult InitializedOriginRequestBase::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -2037,9 +2037,9 @@ InitializeOriginRequestBase::InitializeOriginRequestBase(
 nsresult InitializeOriginRequestBase::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -2149,9 +2149,9 @@ InitializeClientBase::InitializeClientBase(
 nsresult InitializeClientBase::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      PrincipalMetadata principalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   principalMetadata.AssertInvariants();
 
@@ -2267,9 +2267,9 @@ GetFullOriginMetadataOp::GetFullOriginMetadataOp(
 nsresult GetFullOriginMetadataOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      PrincipalMetadata principalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mParams.principalInfo()));
+  QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mParams.principalInfo()));
 
   principalMetadata.AssertInvariants();
 
@@ -2329,9 +2329,9 @@ GetCachedOriginUsageOp::GetCachedOriginUsageOp(
 nsresult GetCachedOriginUsageOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -2748,9 +2748,9 @@ ClearOriginOp::ClearOriginOp(
 nsresult ClearOriginOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -2815,9 +2815,9 @@ ClearClientOp::ClearClientOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
 nsresult ClearClientOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -2926,9 +2926,9 @@ ClearStoragesForOriginPrefixOp::ClearStoragesForOriginPrefixOp(
 nsresult ClearStoragesForOriginPrefixOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -3031,9 +3031,9 @@ ShutdownOriginOp::ShutdownOriginOp(
 nsresult ShutdownOriginOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -3120,9 +3120,9 @@ ShutdownClientOp::ShutdownClientOp(
 nsresult ShutdownClientOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -3176,9 +3176,9 @@ nsresult PersistRequestBase::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
   // Figure out which origin we're dealing with.
-  QM_TRY_UNWRAP(
-      mPrincipalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(mPrincipalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mPrincipalInfo));
 
   mPrincipalMetadata.AssertInvariants();
 
@@ -3402,9 +3402,9 @@ EstimateOp::EstimateOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
 nsresult EstimateOp::DoInit(QuotaManager& aQuotaManager) {
   AssertIsOnOwningThread();
 
-  QM_TRY_UNWRAP(
-      PrincipalMetadata principalMetadata,
-      aQuotaManager.GetInfoFromValidatedPrincipalInfo(mParams.principalInfo()));
+  QM_TRY_UNWRAP(PrincipalMetadata principalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    aQuotaManager, mParams.principalInfo()));
 
   principalMetadata.AssertInvariants();
 

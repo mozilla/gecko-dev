@@ -1106,9 +1106,9 @@ nsresult OpenOp::FinishOpen() {
   } else {
     MOZ_ASSERT(principalInfo.type() == PrincipalInfo::TContentPrincipalInfo);
 
-    QM_TRY_UNWRAP(
-        auto principalMetadata,
-        quotaManager->GetInfoFromValidatedPrincipalInfo(principalInfo));
+    QM_TRY_UNWRAP(auto principalMetadata,
+                  QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                      *quotaManager, principalInfo));
 
     mOriginMetadata = {std::move(principalMetadata), persistenceType};
   }

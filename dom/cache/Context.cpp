@@ -370,9 +370,9 @@ Context::QuotaInitRunnable::Run() {
       auto* const quotaManager = QuotaManager::Get();
       MOZ_DIAGNOSTIC_ASSERT(quotaManager);
 
-      QM_TRY_UNWRAP(
-          auto principalMetadata,
-          quotaManager->GetInfoFromValidatedPrincipalInfo(*mPrincipalInfo));
+      QM_TRY_UNWRAP(auto principalMetadata,
+                    QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                        *quotaManager, *mPrincipalInfo));
 
       mDirectoryMetadata.emplace(std::move(principalMetadata));
 

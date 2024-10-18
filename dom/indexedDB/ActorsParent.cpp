@@ -14756,9 +14756,9 @@ nsresult FactoryOp::Open() {
   QuotaManager* const quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  QM_TRY_UNWRAP(
-      auto principalMetadata,
-      quotaManager->GetInfoFromValidatedPrincipalInfo(mPrincipalInfo));
+  QM_TRY_UNWRAP(auto principalMetadata,
+                QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                    *quotaManager, mPrincipalInfo));
 
   mOriginMetadata = {std::move(principalMetadata), mPersistenceType};
 

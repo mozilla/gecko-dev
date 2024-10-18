@@ -6713,8 +6713,8 @@ nsresult PrepareDatastoreOp::Start() {
                PrincipalInfo::TContentPrincipalInfo);
 
     QM_TRY_UNWRAP(auto principalMetadata,
-                  QuotaManager::Get()->GetInfoFromValidatedPrincipalInfo(
-                      storagePrincipalInfo));
+                  QuotaManager::GetInfoFromValidatedPrincipalInfo(
+                      *QuotaManager::Get(), storagePrincipalInfo));
 
     mOriginMetadata.mSuffix = std::move(principalMetadata.mSuffix);
     mOriginMetadata.mGroup = std::move(principalMetadata.mGroup);
