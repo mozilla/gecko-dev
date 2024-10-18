@@ -73,7 +73,9 @@ export class MigrationWizardParent extends JSWindowActorParent {
 
     switch (message.name) {
       case "GetAvailableMigrators": {
-        let start = Cu.now();
+        if (!gHasOpenedBefore) {
+          Glean.migration.timeToProduceMigratorList.start();
+        }
 
         let availableMigrators = [];
         for (const key of MigrationUtils.availableMigratorKeys) {
@@ -98,13 +100,9 @@ export class MigrationWizardParent extends JSWindowActorParent {
             return b.lastModifiedDate - a.lastModifiedDate;
           });
 
-        let elapsed = Cu.now() - start;
         if (!gHasOpenedBefore) {
           gHasOpenedBefore = true;
-          Services.telemetry.scalarSet(
-            "migration.time_to_produce_migrator_list",
-            elapsed
-          );
+          Glean.migration.timeToProduceMigratorList.stop();
         }
 
         return filteredResults;
@@ -608,11 +606,7 @@ export class MigrationWizardParent extends JSWindowActorParent {
           return null;
         }
 
-        Services.telemetry.keyedScalarAdd(
-          "migration.discovered_migrators",
-          key,
-          sourceProfiles.length
-        );
+        Glean.migration.discoveredMigrators[key].add(sourceProfiles.length);
 
         let result = [];
         for (let profile of sourceProfiles) {
@@ -623,11 +617,7 @@ export class MigrationWizardParent extends JSWindowActorParent {
         return result;
       }
 
-      Services.telemetry.keyedScalarAdd(
-        "migration.discovered_migrators",
-        key,
-        1
-      );
+      Glean.migration.discoveredMigrators[key].add(1);
       return this.#serializeMigratorAndProfile(migrator, sourceProfiles);
     } catch (e) {
       console.error(`Could not get migrator with key ${key}`, e);

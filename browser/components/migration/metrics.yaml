@@ -339,3 +339,57 @@ browser.migration:
           A count of the number of other resource types that were migrated.
         type: quantity
     telemetry_mirror: BrowserMigration_MigrationFinished_Wizard
+
+migration:
+  uninstaller_profile_refresh:
+    type: boolean
+    description: >
+      Set when a profile refresh is initiated from the uninstaller.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar migration.uninstaller_profile_refresh.
+    bugs:
+      - https://bugzil.la/1634115
+      - https://bugzil.la/1672585
+    data_reviews:
+      - https://bugzil.la/1634115
+      - https://bugzil.la/1672585
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MIGRATION_UNINSTALLER_PROFILE_REFRESH
+
+  discovered_migrators:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the migration wizard detected
+      a browser / profile pair for a particular browser. This is
+      incremented every time the discovery occurs, so multiple openings of
+      the wizard will increase the counts each time.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar migration.discovered_migrators.
+    bugs:
+      - https://bugzil.la/1825655
+    data_reviews:
+      - https://bugzil.la/1825655
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: MIGRATION_DISCOVERED_MIGRATORS
+
+  time_to_produce_migrator_list:
+    type: timespan
+    description: >
+      The amount of time it took in milliseconds to produce the list of
+      migrators and profiles for the first time the migration wizard
+      opened during the process lifetime.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar migration.time_to_produce_migrator_list.
+    bugs:
+      - https://bugzil.la/1840917
+    data_reviews:
+      - https://bugzil.la/1840917
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    time_unit: millisecond
+    telemetry_mirror: MIGRATION_TIME_TO_PRODUCE_MIGRATOR_LIST

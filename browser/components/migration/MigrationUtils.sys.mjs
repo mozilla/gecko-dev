@@ -635,10 +635,7 @@ class MigrationUtils {
       // Record that the uninstaller requested a profile refresh
       if (Services.env.get("MOZ_UNINSTALLER_PROFILE_REFRESH")) {
         Services.env.set("MOZ_UNINSTALLER_PROFILE_REFRESH", "");
-        Services.telemetry.scalarSet(
-          "migration.uninstaller_profile_refresh",
-          true
-        );
+        Glean.migration.uninstallerProfileRefresh.set(true);
       }
 
       openStandaloneWindow(true /* blocking */);
