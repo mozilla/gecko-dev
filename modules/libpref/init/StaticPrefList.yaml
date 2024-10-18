@@ -3957,7 +3957,7 @@
 # downgraded again if the request failed.
 - name: dom.security.https_first
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 # If true, HTTPS-First will upgrade non-default ports
