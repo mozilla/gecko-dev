@@ -491,3 +491,36 @@ webrtcdtls:
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
     expires: 140
+
+webrtc.video:
+  recv_codec_used:
+    type: labeled_counter
+    description: >
+      The video codec used for receiving video on a WebRTC call.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar webrtc.video.recv_codec_used.
+    bugs:
+      - https://bugzil.la/1556766
+    data_reviews:
+      - https://bugzil.la/1556766
+    notification_emails:
+      - dminor@mozilla.com
+      - nohlmeier@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_RECV_CODEC_USED
+
+  send_codec_used:
+    type: labeled_counter
+    description: >
+      The video codec used for sending video on a WebRTC call.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar webrtc.video.send_codec_used.
+    bugs:
+      - https://bugzil.la/1556766
+    data_reviews:
+      - https://bugzil.la/1556766
+    notification_emails:
+      - dminor@mozilla.com
+      - nohlmeier@mozilla.com
+    expires: never
+    telemetry_mirror: WEBRTC_VIDEO_SEND_CODEC_USED

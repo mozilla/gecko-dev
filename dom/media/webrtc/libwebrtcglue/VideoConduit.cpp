@@ -81,7 +81,7 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/ReverseIterator.h"
 #include "mozilla/StateWatching.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/TelemetryHistogramEnums.h"
 #include "mozilla/TelemetryScalarEnums.h"
 #include "mozilla/Types.h"
@@ -989,10 +989,9 @@ void WebrtcVideoConduit::CreateSendStream() {
     return;
   }
 
-  nsAutoString codecName;
-  codecName.AssignASCII(mSendStreamConfig.rtp.payload_name.c_str());
-  Telemetry::ScalarAdd(Telemetry::ScalarID::WEBRTC_VIDEO_SEND_CODEC_USED,
-                       codecName, 1);
+  glean::webrtc_video::send_codec_used
+      .Get(nsDependentCString(mSendStreamConfig.rtp.payload_name.c_str()))
+      .Add(1);
 
   mSendStreamConfig.encoder_settings.encoder_factory = mEncoderFactory.get();
   mSendStreamConfig.encoder_settings.bitrate_allocator_factory =
@@ -1032,10 +1031,9 @@ void WebrtcVideoConduit::CreateRecvStream() {
   mRecvStreamConfig.renderer = this;
 
   for (auto& decoder : mRecvStreamConfig.decoders) {
-    nsAutoString codecName;
-    codecName.AssignASCII(decoder.video_format.name.c_str());
-    Telemetry::ScalarAdd(Telemetry::ScalarID::WEBRTC_VIDEO_RECV_CODEC_USED,
-                         codecName, 1);
+    glean::webrtc_video::recv_codec_used
+        .Get(nsDependentCString(decoder.video_format.name.c_str()))
+        .Add(1);
   }
 
   mRecvStreamConfig.decoder_factory = mDecoderFactory.get();
