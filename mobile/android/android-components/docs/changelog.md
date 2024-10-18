@@ -16,6 +16,9 @@ permalink: /changelog/
   * 🆕 `Window.setupPersistentInsets()` will setup handling persistent insets instead of the framework to allow for custom handling of dynamic insets [Bug 1911042](https://bugzilla.mozilla.org/show_bug.cgi?id=1911042)
   * 🆕 `ImeInsetsSynchronizer` allows synchronizing the resize animation for any View which should be shown at the top of the keyboard while this is showing or hiding. [Bug 1911042](https://bugzilla.mozilla.org/show_bug.cgi?id=1911042)
 
+* **ui-widgets**
+  * 🆕 New `mozac_material_ripple_minimum_interaction_size` drawable for a 48dp ripple to be used when `selectableItemBackgroundBorderless` is too big and `selectableItemBackground` is too small. [Bug 1920554](https://bugzilla.mozilla.org/show_bug.cgi?id=1920554).
+
 # 132.0
 * **feature-awesomebar**
   * The `onCancelEditing` now returns a result based on the `onStartEditing` and `onStopEditing` callback. [Bug 1917496](https://bugzilla.mozilla.org/show_bug.cgi?id=1917496)

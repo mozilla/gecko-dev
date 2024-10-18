@@ -12,15 +12,13 @@ import android.widget.RelativeLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.IconButton
+import androidx.compose.material.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import mozilla.components.support.ktx.android.content.res.resolveAttribute
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
@@ -50,42 +48,30 @@ fun NewTabButton(
     menu: TabCounterMenu? = null,
     onLongPress: () -> Unit = {},
 ) {
-    IconButton(
-        onClick = onClick, // This ensures the 48dp touch target for clicks.
-    ) {
-        AndroidView(
-            factory = { context ->
-                NewTabButton(context).apply {
-                    setOnClickListener {
-                        onClick() // This ensures clicks in the 34dp touch target are caught.
-                    }
-
-                    menu?.let { menu ->
-                        setOnLongClickListener {
-                            onLongPress()
-                            menu.menuController.show(anchor = it)
-                            true
-                        }
-                    }
-
-                    contentDescription = context.getString(R.string.library_new_tab)
-
-                    setBackgroundResource(
-                        context.theme.resolveAttribute(
-                            android.R.attr.selectableItemBackgroundBorderless,
-                        ),
-                    )
+    AndroidView(
+        factory = { context ->
+            NewTabButton(context).apply {
+                setOnClickListener {
+                    onClick()
                 }
-            },
-            modifier = Modifier
-                // The IconButton composable has a 48dp size and it's own ripple with a 24dp radius.
-                // The NewTabButton view has it's own inherent ripple that has a bigger radius
-                // so based on manual testing we set a size of 34dp for this View which would
-                // ensure it's ripple matches the composable one. Otherwise there is a visible mismatch.
-                .size(34.dp)
-                .testTag(NavBarTestTags.newTabButton),
-        )
-    }
+
+                menu?.let { menu ->
+                    setOnLongClickListener {
+                        onLongPress()
+                        menu.menuController.show(anchor = it)
+                        true
+                    }
+                }
+
+                contentDescription = context.getString(R.string.library_new_tab)
+
+                setBackgroundResource(R.drawable.mozac_material_ripple_minimum_interaction_size)
+            }
+        },
+        modifier = Modifier
+            .minimumInteractiveComponentSize()
+            .testTag(NavBarTestTags.newTabButton),
+    )
 }
 
 private class NewTabButton @JvmOverloads constructor(
