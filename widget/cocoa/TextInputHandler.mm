@@ -4547,17 +4547,10 @@ NSRect IMEInputHandler::FirstRectForCharacterRange(NSRange& aRange,
     actualRange.length = 0;
   }
 
-  nsIWidget* rootWidget = mWidget->GetTopLevelWidget();
-  NSWindow* rootWindow =
-      static_cast<NSWindow*>(rootWidget->GetNativeData(NS_NATIVE_WINDOW));
-  NSView* rootView =
-      static_cast<NSView*>(rootWidget->GetNativeData(NS_NATIVE_WIDGET));
-  if (!rootWindow || !rootView) {
-    return rect;
-  }
-  rect = nsCocoaUtils::DevPixelsToCocoaPoints(r, mWidget->BackingScaleFactor());
-  rect = [rootView convertRect:rect toView:nil];
-  rect.origin = nsCocoaUtils::ConvertPointToScreen(rootWindow, rect.origin);
+  // Widget relative -> Screen relative.
+  r += mWidget->WidgetToScreenOffset();
+  rect = nsCocoaUtils::GeckoRectToCocoaRectDevPix(
+      r, mWidget->BackingScaleFactor());
 
   if (aActualRange) {
     *aActualRange = actualRange;
