@@ -176,6 +176,13 @@ support-files = [
 
 ["test_save_sorted_engines.js"]
 
+["test_searchForm.js"]
+support-files = [
+  "opensearch/images.xml",
+  "opensearch/simple.xml",
+  "opensearch/suggestion.xml",
+]
+
 ["test_searchSuggest.js"]
 
 ["test_searchSuggest_cookies.js"]

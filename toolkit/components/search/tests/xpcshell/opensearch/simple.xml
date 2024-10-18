@@ -7,5 +7,4 @@
 <Url type="text/html" method="GET" template="https://example.com/search">
   <Param name="q" value="{searchTerms}"/>
 </Url>
-<SearchForm>https://example.com/</SearchForm>
 </OpenSearchDescription>
