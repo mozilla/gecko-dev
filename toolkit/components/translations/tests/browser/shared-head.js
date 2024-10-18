@@ -384,9 +384,7 @@ function createdReorderingMockedTranslatorPort() {
  * @returns {import("../../actors/TranslationsParent.sys.mjs").TranslationsParent}
  */
 function getTranslationsParent() {
-  return gBrowser.selectedBrowser.browsingContext.currentWindowGlobal.getActor(
-    "Translations"
-  );
+  return TranslationsParent.getTranslationsActor(gBrowser.selectedBrowser);
 }
 
 /**
@@ -521,10 +519,30 @@ async function setupActorTest({
   };
 }
 
+/**
+ * Creates and mocks remote settings for translations.
+ *
+ * @param {object} options - The options for creating and mocking remote settings.
+ * @param {Array<{fromLang: string, toLang: string}>} [options.languagePairs=LANGUAGE_PAIRS]
+ *  - The language pairs to be used.
+ * @param {boolean} [options.useMockedTranslator=true]
+ *  - Whether to use a mocked translator.
+ * @param {boolean} [options.autoDownloadFromRemoteSettings=false]
+ *  - Whether to automatically download from remote settings.
+ *
+ * @returns {Promise<object>} - An object containing the removeMocks function and remoteClients.
+ */
 async function createAndMockRemoteSettings({
   languagePairs = LANGUAGE_PAIRS,
+  useMockedTranslator = true,
   autoDownloadFromRemoteSettings = false,
 }) {
+  if (TranslationsParent.isTranslationsEngineMocked()) {
+    throw new Error(
+      "Attempt to mock the Translations Engine when it is already mocked."
+    );
+  }
+
   const remoteClients = {
     translationModels: await createTranslationModelsRemoteClient(
       autoDownloadFromRemoteSettings,
@@ -540,10 +558,11 @@ async function createAndMockRemoteSettings({
   TranslationsParent.clearCache();
   TranslationsPanelShared.clearLanguageListsCache();
 
-  TranslationsParent.mockTranslationsEngine(
-    remoteClients.translationModels.client,
-    remoteClients.translationsWasm.client
-  );
+  TranslationsParent.applyTestingMocks({
+    useMockedTranslator,
+    translationModelsRemoteClient: remoteClients.translationModels.client,
+    translationsWasmRemoteClient: remoteClients.translationsWasm.client,
+  });
 
   return {
     async removeMocks() {
@@ -551,10 +570,110 @@ async function createAndMockRemoteSettings({
       await remoteClients.translationModels.client.db.clear();
       await remoteClients.translationsWasm.client.db.clear();
 
-      TranslationsParent.unmockTranslationsEngine();
+      TranslationsParent.removeTestingMocks();
       TranslationsParent.clearCache();
       TranslationsPanelShared.clearLanguageListsCache();
     },
+    remoteClients,
+  };
+}
+
+/**
+ * Normalizes the backslashes or forward slashes in the given path
+ * to be correct for the current operating system.
+ *
+ * @param {string} path - The path to normalize.
+ *
+ * @returns {string} - The normalized path.
+ */
+function normalizePathForOS(path) {
+  if (Services.appinfo.OS === "WINNT") {
+    // On Windows, replace forward slashes with backslashes
+    return path.replace(/\//g, "\\");
+  }
+
+  // On Unix-like systems, replace backslashes with forward slashes
+  return path.replace(/\\/g, "/");
+}
+
+/**
+ * Returns true if the given path exists, otherwise false.
+ *
+ * @param {string} path - The path to check.
+ *
+ * @returns {Promise<boolean>}
+ */
+async function pathExists(path) {
+  try {
+    return await IOUtils.exists(path);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Creates remote settings for the file system.
+ *
+ * @param {Array<{fromLang: string, toLang: string}>} languagePairs - The language pairs to be used.
+ *
+ * @returns {Promise<object>} - An object containing the removeMocks function and remoteClients.
+ */
+async function createFileSystemRemoteSettings(languagePairs) {
+  const { removeMocks, remoteClients } = await createAndMockRemoteSettings({
+    languagePairs,
+    useMockedTranslator: false,
+    autoDownloadFromRemoteSettings: true,
+  });
+
+  const artifactDirectory = normalizePathForOS(
+    `${Services.env.get("MOZ_FETCHES_DIR")}`
+  );
+
+  if (!artifactDirectory) {
+    await removeMocks();
+    throw new Error(`
+
+      🚨 The MOZ_FETCHES_DIR environment variable is not set 🚨
+
+      If you are running a Translations end-to-end test locally, you will need to download the required artifacts to MOZ_FETCHES_DIR.
+      To configure MOZ_FETCHES_DIR to run Translations end-to-end tests locally, please run the following script:
+
+      ❯ python3 toolkit/components/translations/tests/scripts/download-translations-artifacts.py
+
+    `);
+  }
+
+  if (!PathUtils.isAbsolute(artifactDirectory)) {
+    await removeMocks();
+    throw new Error(`
+      The path exported to MOZ_FETCHES_DIR environment variable is a relative path.
+      Please export an absolute path to MOZ_FETCHES_DIR.
+    `);
+  }
+
+  const download = async record => {
+    const recordPath = normalizePathForOS(
+      `${artifactDirectory}/${record.name}`
+    );
+
+    if (!(await pathExists(recordPath))) {
+      throw new Error(`
+        The record ${record.name} was not found in ${artifactDirectory} specified by MOZ_FETCHES_DIR.
+        If you are running a Translations end-to-end test locally, you will need to download the required artifacts to MOZ_FETCHES_DIR.
+        To configure MOZ_FETCHES_DIR to run Translations end-to-end tests locally, please run toolkit/components/translations/tests/scripts/download-translations-artifacts.py
+      `);
+    }
+
+    return {
+      buffer: (await IOUtils.read(recordPath)).buffer,
+    };
+  };
+
+  remoteClients.translationsWasm.client.attachments.download = download;
+  remoteClients.translationModels.client.attachments.download = download;
+
+  return {
+    removeMocks,
     remoteClients,
   };
 }
@@ -633,6 +752,7 @@ class MockedA11yUtils {
 
 async function loadTestPage({
   languagePairs,
+  endToEndTest = false,
   autoDownloadFromRemoteSettings = false,
   page,
   prefs,
@@ -688,10 +808,12 @@ async function loadTestPage({
       }))
     );
 
-    const result = await createAndMockRemoteSettings({
-      languagePairs,
-      autoDownloadFromRemoteSettings,
-    });
+    const result = endToEndTest
+      ? await createFileSystemRemoteSettings(languagePairs)
+      : await createAndMockRemoteSettings({
+          languagePairs,
+          autoDownloadFromRemoteSettings,
+        });
     remoteClients = result.remoteClients;
     removeMocks = result.removeMocks;
   }

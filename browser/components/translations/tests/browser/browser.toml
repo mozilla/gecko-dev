@@ -22,6 +22,8 @@ support-files = [
 
 ["browser_translations_about_preferences_settings_ui.js"]
 
+["browser_translations_e2e_full_page_translate.js"]
+
 ["browser_translations_full_page_move_tab_to_new_window.js"]
 
 ["browser_translations_full_page_multiple_windows.js"]

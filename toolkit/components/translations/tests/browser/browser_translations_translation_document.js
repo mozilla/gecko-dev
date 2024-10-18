@@ -114,7 +114,7 @@ add_task(async function test_translated_div_element_and_visible_change() {
   cleanup();
 });
 
-add_task(async function test_translated_textnode() {
+add_task(async function test_translated_txtnode() {
   const { translate, htmlMatches, cleanup } = await createDoc(
     "This is a simple text translation."
   );

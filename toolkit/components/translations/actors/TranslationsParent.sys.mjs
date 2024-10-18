@@ -2471,22 +2471,24 @@ export class TranslationsParent extends JSWindowActorParent {
   }
 
   /**
-   * For testing purposes, allow the Translations Engine to be mocked. If called
-   * with `null` the mock is removed.
+   * Applies testing mocks to the TranslationsParent class.
    *
-   * @param {null | RemoteSettingsClient} [translationModelsRemoteClient]
-   * @param {null | RemoteSettingsClient} [translationsWasmRemoteClient]
+   * @param {object} options
+   * @param {boolean} [options.useMockedTranslator=true] - Whether to use a mocked translator.
+   * @param {RemoteSettingsClient} options.translationModelsRemoteClient - The remote client for translation models.
+   * @param {RemoteSettingsClient} options.translationsWasmRemoteClient - The remote client for translations WASM.
    */
-  static mockTranslationsEngine(
+  static applyTestingMocks({
+    useMockedTranslator = true,
     translationModelsRemoteClient,
-    translationsWasmRemoteClient
-  ) {
+    translationsWasmRemoteClient,
+  }) {
     lazy.console.log("Mocking RemoteSettings for the translations engine.");
     TranslationsParent.#translationModelsRemoteClient =
       translationModelsRemoteClient;
     TranslationsParent.#translationsWasmRemoteClient =
       translationsWasmRemoteClient;
-    TranslationsParent.#isTranslationsEngineMocked = true;
+    TranslationsParent.#isTranslationsEngineMocked = useMockedTranslator;
 
     translationModelsRemoteClient.on(
       "sync",
@@ -2522,7 +2524,7 @@ export class TranslationsParent extends JSWindowActorParent {
    * Remove the mocks for the translations engine, make sure and call clearCache after
    * to remove the cached values.
    */
-  static unmockTranslationsEngine() {
+  static removeTestingMocks() {
     lazy.console.log(
       "Removing RemoteSettings mock for the translations engine."
     );
