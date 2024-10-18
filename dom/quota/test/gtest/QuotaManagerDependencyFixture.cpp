@@ -359,13 +359,15 @@ void QuotaManagerDependencyFixture::InitializeTemporaryClient(
 }
 
 // static
+PrincipalMetadata QuotaManagerDependencyFixture::GetTestPrincipalMetadata() {
+  return {""_ns, "example.com"_ns, "http://example.com"_ns,
+          "http://example.com"_ns,
+          /* aIsPrivate */ false};
+}
+
+// static
 OriginMetadata QuotaManagerDependencyFixture::GetTestOriginMetadata() {
-  return {""_ns,
-          "example.com"_ns,
-          "http://example.com"_ns,
-          "http://example.com"_ns,
-          /* aIsPrivate */ false,
-          PERSISTENCE_TYPE_DEFAULT};
+  return {GetTestPrincipalMetadata(), PERSISTENCE_TYPE_DEFAULT};
 }
 
 // static
@@ -374,13 +376,16 @@ ClientMetadata QuotaManagerDependencyFixture::GetTestClientMetadata() {
 }
 
 // static
+PrincipalMetadata
+QuotaManagerDependencyFixture::GetOtherTestPrincipalMetadata() {
+  return {""_ns, "other-example.com"_ns, "http://other-example.com"_ns,
+          "http://other-example.com"_ns,
+          /* aIsPrivate */ false};
+}
+
+// static
 OriginMetadata QuotaManagerDependencyFixture::GetOtherTestOriginMetadata() {
-  return {""_ns,
-          "other-example.com"_ns,
-          "http://other-example.com"_ns,
-          "http://other-example.com"_ns,
-          /* aIsPrivate */ false,
-          PERSISTENCE_TYPE_DEFAULT};
+  return {GetOtherTestPrincipalMetadata(), PERSISTENCE_TYPE_DEFAULT};
 }
 
 // static

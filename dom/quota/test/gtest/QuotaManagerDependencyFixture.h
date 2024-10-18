@@ -200,9 +200,11 @@ class QuotaManagerDependencyFixture : public testing::Test {
     return sBackgroundTarget;
   }
 
+  static PrincipalMetadata GetTestPrincipalMetadata();
   static OriginMetadata GetTestOriginMetadata();
   static ClientMetadata GetTestClientMetadata();
 
+  static PrincipalMetadata GetOtherTestPrincipalMetadata();
   static OriginMetadata GetOtherTestOriginMetadata();
   static ClientMetadata GetOtherTestClientMetadata();
 
