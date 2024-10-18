@@ -859,7 +859,7 @@ class ScrollContainerFrame : public nsContainerFrame,
                                    ScrollSnapFlags::IntendedEndPosition);
 
   // nsIReflowCallback
-  bool ReflowFinished() final;
+  bool ReflowFinished() override;
   void ReflowCallbackCanceled() final;
 
   // nsIStatefulFrame

@@ -1009,7 +1009,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
    * Returns true if CheckForInterrupt has returned true since the last
    * ReflowStarted call. Cannot itself trigger an interrupt check.
    */
-  bool HasPendingInterrupt() { return mHasPendingInterrupt; }
+  bool HasPendingInterrupt() const { return mHasPendingInterrupt; }
   /**
    * Sets a flag that will trip a reflow interrupt. This only bypasses the
    * interrupt timeout and the pending event check; other checks such as whether

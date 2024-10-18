@@ -62,8 +62,7 @@ class nsListControlFrame final : public mozilla::ScrollContainerFrame,
   void Init(nsIContent* aContent, nsContainerFrame* aParent,
             nsIFrame* aPrevInFlow) final;
 
-  void DidReflow(nsPresContext* aPresContext,
-                 const ReflowInput* aReflowInput) final;
+  bool ReflowFinished() final;
   void Destroy(DestroyContext&) override;
 
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
@@ -310,11 +309,8 @@ class nsListControlFrame final : public mozilla::ScrollContainerFrame,
   // pass.  This only happens for auto heights.
   bool mMightNeedSecondPass : 1;
 
-  /**
-   * Set to aPresContext->HasPendingInterrupt() at the start of Reflow.
-   * Set to false at the end of DidReflow.
-   */
-  bool mHasPendingInterruptAtStartOfReflow : 1;
+  // True if our reflow got interrupted.
+  bool mReflowWasInterrupted : 1;
 
   // True if the selection can be set to nothing or disabled options.
   bool mForceSelection : 1;

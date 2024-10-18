@@ -52,8 +52,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsListControlFrame)
 nsListControlFrame::nsListControlFrame(ComputedStyle* aStyle,
                                        nsPresContext* aPresContext)
     : ScrollContainerFrame(aStyle, aPresContext, kClassID, false),
-      mMightNeedSecondPass(false),
-      mHasPendingInterruptAtStartOfReflow(false),
+      mReflowWasInterrupted(false),
       mForceSelection(false) {
   mChangesSinceDragStart = false;
 
@@ -253,9 +252,9 @@ void nsListControlFrame::Reflow(nsPresContext* aPresContext,
   NS_WARNING_ASSERTION(aReflowInput.ComputedISize() != NS_UNCONSTRAINEDSIZE,
                        "Must have a computed inline size");
 
-  SchedulePaint();
+  const bool hadPendingInterrupt = aPresContext->HasPendingInterrupt();
 
-  mHasPendingInterruptAtStartOfReflow = aPresContext->HasPendingInterrupt();
+  SchedulePaint();
 
   // If all the content and frames are here
   // then initialize it before reflow
@@ -383,6 +382,9 @@ void nsListControlFrame::Reflow(nsPresContext* aPresContext,
   // because ScrollContainerFrame just adds in the border....
   aStatus.Reset();
   ScrollContainerFrame::Reflow(aPresContext, aDesiredSize, state, aStatus);
+
+  mReflowWasInterrupted |=
+      !hadPendingInterrupt && aPresContext->HasPendingInterrupt();
 }
 
 bool nsListControlFrame::ShouldPropagateComputedBSizeToScrolledContent() const {
@@ -937,14 +939,8 @@ class AsyncReset final : public Runnable {
   bool mScroll;
 };
 
-void nsListControlFrame::DidReflow(nsPresContext* aPresContext,
-                                   const ReflowInput* aReflowInput) {
-  bool wasInterrupted = !mHasPendingInterruptAtStartOfReflow &&
-                        aPresContext->HasPendingInterrupt();
-
-  ScrollContainerFrame::DidReflow(aPresContext, aReflowInput);
-
-  if (mNeedToReset && !wasInterrupted) {
+bool nsListControlFrame::ReflowFinished() {
+  if (mNeedToReset && !mReflowWasInterrupted) {
     mNeedToReset = false;
     // Suppress scrolling to the selected element if we restored scroll
     // history state AND the list contents have not changed since we loaded
@@ -958,8 +954,8 @@ void nsListControlFrame::DidReflow(nsPresContext* aPresContext,
     const bool scroll = !DidHistoryRestore() || mPostChildrenLoadedReset;
     nsContentUtils::AddScriptRunner(new AsyncReset(this, scroll));
   }
-
-  mHasPendingInterruptAtStartOfReflow = false;
+  mReflowWasInterrupted = false;
+  return ScrollContainerFrame::ReflowFinished();
 }
 
 #ifdef DEBUG_FRAME_DUMP
