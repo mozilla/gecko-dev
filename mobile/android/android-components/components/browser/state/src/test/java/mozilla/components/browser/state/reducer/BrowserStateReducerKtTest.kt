@@ -4,6 +4,7 @@
 
 package mozilla.components.browser.state.reducer
 
+import mozilla.components.browser.state.action.UpdateDistribution
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabSessionState
@@ -238,5 +239,15 @@ class BrowserStateReducerKtTest {
         assertEquals(2, browserState.customTabs.size)
         assertEquals(updatedUrl, browserState.customTabs[0].content.url)
         assertEquals(initialUrl, browserState.customTabs[1].content.url)
+    }
+
+    @Test
+    fun `WHEN the browser state is reduced with an UpdateDistribution action THEN the distribution Id of the state is updated`() {
+        val browserState = BrowserState()
+        val action = UpdateDistribution("testId")
+
+        val reducedState = BrowserStateReducer.reduce(browserState, action)
+
+        assertEquals(reducedState.distributionId, "testId")
     }
 }

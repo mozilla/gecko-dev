@@ -1884,6 +1884,11 @@ sealed class SearchAction : BrowserAction() {
 }
 
 /**
+ * [BrowserAction] implements setting and updating the distribution
+ */
+data class UpdateDistribution(val distributionId: String?) : BrowserAction()
+
+/**
  * [BrowserAction] implementations for updating state needed for debugging. These actions should
  * be carefully considered before being used.
  *

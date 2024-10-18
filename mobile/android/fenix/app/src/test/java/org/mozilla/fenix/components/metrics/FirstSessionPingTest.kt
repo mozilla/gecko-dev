@@ -15,6 +15,8 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.spyk
 import io.mockk.verify
+import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.store.BrowserStore
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mozilla.fenix.FenixApplication
@@ -38,7 +40,13 @@ internal class FirstSessionPingTest {
         mockkStatic("org.mozilla.fenix.ext.ContextKt")
         every { mockedContext.settings() } returns mockedSettings
 
-        val mockAp = spyk(FirstSessionPing(mockedContext), recordPrivateCalls = true)
+        val mockedState: BrowserState = mockk(relaxed = true)
+        every { mockedState.distributionId } returns null
+
+        val mockedStore: BrowserStore = mockk(relaxed = true)
+        every { mockedStore.state } returns mockedState
+
+        val mockAp = spyk(FirstSessionPing(mockedContext, mockedStore), recordPrivateCalls = true)
         every { mockAp.wasAlreadyTriggered() } returns false
         every { mockAp.markAsTriggered() } just Runs
 
@@ -52,7 +60,7 @@ internal class FirstSessionPingTest {
 
     @Test
     fun `checkAndSend() doesn't trigger the ping again if it was marked as triggered`() {
-        val mockAp = spyk(FirstSessionPing(mockk()), recordPrivateCalls = true)
+        val mockAp = spyk(FirstSessionPing(mockk(), mockk()), recordPrivateCalls = true)
         every { mockAp.wasAlreadyTriggered() } returns true
 
         mockAp.checkAndSend()
@@ -72,7 +80,7 @@ internal class FirstSessionPingTest {
         val mockedContext: Context = mockk(relaxed = true)
         every { mockedContext.applicationContext } returns mockedApplication
 
-        val result = FirstSessionPing(mockedContext).installSourcePackage(Build.VERSION_CODES.R)
+        val result = FirstSessionPing(mockedContext, mockk()).installSourcePackage(Build.VERSION_CODES.R)
         assertEquals(testPackageName, result)
     }
 
@@ -87,7 +95,7 @@ internal class FirstSessionPingTest {
         val mockedContext: Context = mockk(relaxed = true)
         every { mockedContext.applicationContext } returns mockedApplication
 
-        val result = FirstSessionPing(mockedContext).installSourcePackage(Build.VERSION_CODES.R)
+        val result = FirstSessionPing(mockedContext, mockk()).installSourcePackage(Build.VERSION_CODES.R)
         assertEquals("", result)
     }
 
@@ -104,7 +112,7 @@ internal class FirstSessionPingTest {
         every { mockedContext.applicationContext } returns mockedApplication
 
         val result =
-            FirstSessionPing(mockedContext).installSourcePackage(Build.VERSION_CODES.R.plus(1))
+            FirstSessionPing(mockedContext, mockk()).installSourcePackage(Build.VERSION_CODES.R.plus(1))
         assertEquals(testPackageName, result)
     }
 
@@ -120,7 +128,7 @@ internal class FirstSessionPingTest {
         every { mockedContext.applicationContext } returns mockedApplication
 
         val result =
-            FirstSessionPing(mockedContext).installSourcePackage(Build.VERSION_CODES.R.plus(1))
+            FirstSessionPing(mockedContext, mockk()).installSourcePackage(Build.VERSION_CODES.R.plus(1))
         assertEquals("", result)
     }
 
@@ -137,7 +145,7 @@ internal class FirstSessionPingTest {
         every { mockedContext.applicationContext } returns mockedApplication
 
         val result =
-            FirstSessionPing(mockedContext).installSourcePackage(Build.VERSION_CODES.R.minus(1))
+            FirstSessionPing(mockedContext, mockk()).installSourcePackage(Build.VERSION_CODES.R.minus(1))
         assertEquals(testPackageName, result)
     }
 
@@ -154,7 +162,7 @@ internal class FirstSessionPingTest {
         every { mockedContext.applicationContext } returns mockedApplication
 
         val result =
-            FirstSessionPing(mockedContext).installSourcePackage(Build.VERSION_CODES.R.minus(1))
+            FirstSessionPing(mockedContext, mockk()).installSourcePackage(Build.VERSION_CODES.R.minus(1))
         assertEquals("", result)
     }
 }

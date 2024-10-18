@@ -14,6 +14,7 @@ import org.json.JSONObject
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.MetaAttribution
 import org.mozilla.fenix.GleanMetrics.PlayStoreAttribution
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.utils.Settings
 import java.io.UnsupportedEncodingException
@@ -44,8 +45,7 @@ class InstallReferrerMetricsService(private val context: Context) : MetricsServi
             object : InstallReferrerStateListener {
                 override fun onInstallReferrerSetupFinished(responseCode: Int) {
                     PlayStoreAttribution.attributionTime.stopAndAccumulate(timerId)
-                    val firstSession = FirstSessionPing(context)
-
+                    val firstSession = FirstSessionPing(context, context.components.core.store)
                     when (responseCode) {
                         InstallReferrerClient.InstallReferrerResponse.OK -> {
                             // Connection established.

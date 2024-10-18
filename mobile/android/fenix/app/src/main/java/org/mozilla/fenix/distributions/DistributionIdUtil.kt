@@ -5,6 +5,8 @@
 package org.mozilla.fenix.distributions
 
 import android.os.Build
+import mozilla.components.browser.state.action.UpdateDistribution
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.GleanMetrics.Partnerships
@@ -22,16 +24,26 @@ private const val VIVO_PREINSTALLED_FIREFOX_FILE_PATH = "/data/yzfswj/another/vi
 private const val VIVO_MANUFACTURER = "vivo"
 
 /**
+ * @param browserStore the browser store
  * @param appPreinstalledOnVivoDevice checks if the vivo preinstalled file exists.
  *
  * @return the distribution ID if one exists.
  */
-fun getDistributionId(appPreinstalledOnVivoDevice: () -> Boolean = { wasAppPreinstalledOnVivoDevice() }): String {
-    return when {
+fun getDistributionId(
+    browserStore: BrowserStore,
+    appPreinstalledOnVivoDevice: () -> Boolean = { wasAppPreinstalledOnVivoDevice() },
+): String {
+    browserStore.state.distributionId?.let { return it }
+
+    val distributionId = when {
         isDeviceVivo() && appPreinstalledOnVivoDevice() -> Distribution.VIVO_001.id
         Config.channel.isMozillaOnline -> Distribution.MOZILLA_ONLINE.id
         else -> Distribution.DEFAULT.id
     }
+
+    browserStore.dispatch(UpdateDistribution(distributionId))
+
+    return distributionId
 }
 
 private fun isDeviceVivo(): Boolean {
