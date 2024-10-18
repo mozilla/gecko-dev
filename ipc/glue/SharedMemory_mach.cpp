@@ -4,9 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/ipc/SharedMemoryImpl_mach.h"
+#include "mozilla/ipc/SharedMemory.h"
 
-#include <map>
+#include <utility>
 
 #include <mach/vm_map.h>
 #include <mach/mach_port.h>
@@ -21,7 +21,12 @@
 #  include <mach/mach_vm.h>
 #endif
 #include <pthread.h>
+#include <sys/mman.h>  // mprotect
 #include <unistd.h>
+
+#if defined(XP_MACOSX) && defined(__x86_64__)
+#  include "prenv.h"
+#endif
 
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Printf.h"
@@ -41,17 +46,6 @@
 
 namespace mozilla::ipc {
 
-SharedMemoryImpl::SharedMemoryImpl()
-    : mPort(MACH_PORT_NULL), mMemory(nullptr), mOpenRights(RightsReadWrite) {}
-
-bool SharedMemoryImpl::SetHandle(Handle aHandle, OpenRights aRights) {
-  MOZ_ASSERT(mPort == MACH_PORT_NULL, "already initialized");
-
-  mPort = std::move(aHandle);
-  mOpenRights = aRights;
-  return true;
-}
-
 static inline void* toPointer(mach_vm_address_t address) {
   return reinterpret_cast<void*>(static_cast<uintptr_t>(address));
 }
@@ -60,15 +54,15 @@ static inline mach_vm_address_t toVMAddress(void* pointer) {
   return static_cast<mach_vm_address_t>(reinterpret_cast<uintptr_t>(pointer));
 }
 
-bool SharedMemoryImpl::CreateImpl(size_t size) {
-  MOZ_ASSERT(mPort == MACH_PORT_NULL, "already initialized");
+void SharedMemory::ResetImpl() {};
 
+bool SharedMemory::CreateImpl(size_t size, bool freezable) {
   memory_object_size_t memoryObjectSize = round_page(size);
 
   kern_return_t kr =
       mach_make_memory_entry_64(mach_task_self(), &memoryObjectSize, 0,
                                 MAP_MEM_NAMED_CREATE | VM_PROT_DEFAULT,
-                                getter_Transfers(mPort), MACH_PORT_NULL);
+                                getter_Transfers(mHandle), MACH_PORT_NULL);
   if (kr != KERN_SUCCESS || memoryObjectSize < round_page(size)) {
     LOG_ERROR("Failed to make memory entry (%zu bytes). %s (%x)\n", size,
               mach_error_string(kr), kr);
@@ -78,33 +72,29 @@ bool SharedMemoryImpl::CreateImpl(size_t size) {
   return true;
 }
 
-bool SharedMemoryImpl::MapImpl(size_t size, void* fixedAddress) {
-  MOZ_ASSERT(mMemory == nullptr);
-
-  if (MACH_PORT_NULL == mPort) {
-    return false;
-  }
-
+Maybe<void*> MapMemory(size_t size, void* fixedAddress,
+                       const mozilla::UniqueMachSendRight& port,
+                       bool readOnly) {
   kern_return_t kr;
   mach_vm_address_t address = toVMAddress(fixedAddress);
 
   vm_prot_t vmProtection = VM_PROT_READ;
-  if (mOpenRights == RightsReadWrite) {
+  if (!readOnly) {
     vmProtection |= VM_PROT_WRITE;
   }
 
-  kr = mach_vm_map(mach_task_self(), &address, round_page(size), 0,
-                   fixedAddress ? VM_FLAGS_FIXED : VM_FLAGS_ANYWHERE,
-                   mPort.get(), 0, false, vmProtection, vmProtection,
-                   VM_INHERIT_NONE);
+  kr =
+      mach_vm_map(mach_task_self(), &address, round_page(size), 0,
+                  fixedAddress ? VM_FLAGS_FIXED : VM_FLAGS_ANYWHERE, port.get(),
+                  0, false, vmProtection, vmProtection, VM_INHERIT_NONE);
   if (kr != KERN_SUCCESS) {
     if (!fixedAddress) {
       LOG_ERROR(
           "Failed to map shared memory (%zu bytes) into %x, port %x. %s (%x)\n",
-          size, mach_task_self(), mach_port_t(mPort.get()),
+          size, mach_task_self(), mach_port_t(port.get()),
           mach_error_string(kr), kr);
     }
-    return false;
+    return Nothing();
   }
 
   if (fixedAddress && fixedAddress != toPointer(address)) {
@@ -113,17 +103,20 @@ bool SharedMemoryImpl::MapImpl(size_t size, void* fixedAddress) {
       LOG_ERROR(
           "Failed to unmap shared memory at unsuitable address "
           "(%zu bytes) from %x, port %x. %s (%x)\n",
-          size, mach_task_self(), mach_port_t(mPort.get()),
+          size, mach_task_self(), mach_port_t(port.get()),
           mach_error_string(kr), kr);
     }
-    return false;
+    return Nothing();
   }
 
-  mMemory = toPointer(address);
-  return true;
+  return Some(toPointer(address));
 }
 
-void* SharedMemoryImpl::FindFreeAddressSpace(size_t size) {
+Maybe<void*> SharedMemory::MapImpl(size_t size, void* fixedAddress) {
+  return MapMemory(size, fixedAddress, mHandle, mReadOnly);
+}
+
+void* SharedMemory::FindFreeAddressSpace(size_t size) {
   mach_vm_address_t address = 0;
   size = round_page(size);
   if (mach_vm_map(mach_task_self(), &address, size, 0, VM_FLAGS_ANYWHERE,
@@ -135,36 +128,57 @@ void* SharedMemoryImpl::FindFreeAddressSpace(size_t size) {
   return toPointer(address);
 }
 
-auto SharedMemoryImpl::CloneHandle() -> Handle {
-  return mozilla::RetainMachSendRight(mPort.get());
+auto SharedMemory::CloneHandle(const Handle& aHandle) -> Handle {
+  return mozilla::RetainMachSendRight(aHandle.get());
 }
 
-auto SharedMemoryImpl::TakeHandle() -> Handle {
-  mOpenRights = RightsReadWrite;
-  return std::move(mPort);
-}
-
-void SharedMemoryImpl::UnmapImpl(size_t mappedSize) {
-  if (!mMemory) {
-    return;
-  }
-  vm_address_t address = toVMAddress(mMemory);
+void SharedMemory::UnmapImpl(size_t nBytes, void* address) {
+  vm_address_t vm_address = toVMAddress(address);
   kern_return_t kr =
-      vm_deallocate(mach_task_self(), address, round_page(mappedSize));
+      vm_deallocate(mach_task_self(), vm_address, round_page(nBytes));
   if (kr != KERN_SUCCESS) {
     LOG_ERROR("Failed to deallocate shared memory. %s (%x)\n",
               mach_error_string(kr), kr);
-    return;
   }
-  mMemory = nullptr;
 }
 
-void* SharedMemoryImpl::MemoryImpl() const { return mMemory; }
-
-bool SharedMemoryImpl::IsHandleValid(const Handle& aHandle) const {
-  return aHandle != nullptr;
+Maybe<SharedMemory::Handle> SharedMemory::ReadOnlyCopyImpl() {
+  return Nothing();
 }
 
-auto SharedMemoryImpl::NULLHandle() -> Handle { return Handle(); }
+void SharedMemory::SystemProtect(char* aAddr, size_t aSize, int aRights) {
+  if (!SystemProtectFallible(aAddr, aSize, aRights)) {
+    MOZ_CRASH("can't mprotect()");
+  }
+}
+
+bool SharedMemory::SystemProtectFallible(char* aAddr, size_t aSize,
+                                         int aRights) {
+  int flags = 0;
+  if (aRights & RightsRead) flags |= PROT_READ;
+  if (aRights & RightsWrite) flags |= PROT_WRITE;
+  if (RightsNone == aRights) flags = PROT_NONE;
+
+  return 0 == mprotect(aAddr, aSize, flags);
+}
+
+#if defined(XP_MACOSX) && defined(__x86_64__)
+std::atomic<size_t> sPageSizeOverride = 0;
+#endif
+
+size_t SharedMemory::SystemPageSize() {
+#if defined(XP_MACOSX) && defined(__x86_64__)
+  if (sPageSizeOverride == 0) {
+    if (PR_GetEnv("MOZ_SHMEM_PAGESIZE_16K")) {
+      sPageSizeOverride = 16 * 1024;
+    } else {
+      sPageSizeOverride = sysconf(_SC_PAGESIZE);
+    }
+  }
+  return sPageSizeOverride;
+#else
+  return sysconf(_SC_PAGESIZE);
+#endif
+}
 
 }  // namespace mozilla::ipc
