@@ -29,6 +29,25 @@ data class OnboardingPageState(
 )
 
 /**
+ * Model containing data for [AddOnsOnboardingPage].
+ *
+ * @property imageRes Image resource for the main image to be displayed on the page.
+ * @property title Title of the page.
+ * @property description Description of the page.
+ * @property primaryButton [Action] for the primary button.
+ * @property addOnsUiData List of add-ons to install during onboarding.
+ * @property onRecordImpressionEvent Callback for recording impression event.
+ */
+data class OnboardingAddOnsPageState(
+    @DrawableRes val imageRes: Int,
+    val title: String,
+    val description: String,
+    val primaryButton: Action,
+    val addOnsUiData: List<OnboardingAddOn>,
+    val onRecordImpressionEvent: () -> Unit = {},
+)
+
+/**
  * Model containing text and action for a button.
  */
 data class Action(
@@ -42,4 +61,15 @@ data class Action(
 data class Caption(
     val text: String,
     val linkTextState: LinkTextState,
+)
+
+/**
+ * Model containing data for an add-on that's installable during onboarding.
+ */
+data class OnboardingAddOn(
+    @DrawableRes val iconRes: Int,
+    val name: String,
+    val description: String,
+    val averageRating: String,
+    val numberOfReviews: String,
 )
