@@ -120,7 +120,6 @@ import org.mozilla.fenix.ext.setNavigationIcon
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.systemGesturesInsets
 import org.mozilla.fenix.extension.WebExtensionPromptFeature
-import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.intent.AssistIntentProcessor
 import org.mozilla.fenix.home.intent.CrashReporterIntentProcessor
 import org.mozilla.fenix.home.intent.HomeDeepLinkIntentProcessor
@@ -168,7 +167,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     internal lateinit var binding: ActivityHomeBinding
     lateinit var themeManager: ThemeManager
     lateinit var browsingModeManager: BrowsingModeManager
-    lateinit var homeFragment: HomeFragment
 
     private var isVisuallyComplete = false
 
@@ -558,9 +556,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             }
 
             if (settings().checkIfFenixIsDefaultBrowserOnAppResume()) {
-                if (homeFragment.nativeDefaultBrowserPromptShownToUser) {
-                    Metrics.defaultBrowserChangedViaNativeSystemPrompt.record(NoExtras())
-                }
                 Events.defaultBrowserChanged.record(NoExtras())
             }
 
