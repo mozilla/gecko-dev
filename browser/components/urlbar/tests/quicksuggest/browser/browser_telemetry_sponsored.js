@@ -7,8 +7,6 @@
 
 "use strict";
 
-const { TELEMETRY_SCALARS } = UrlbarProviderQuickSuggest;
-
 const REMOTE_SETTINGS_RESULT = {
   id: 1,
   url: "https://example.com/sponsored",
@@ -62,9 +60,6 @@ add_tasks_with_rust(async function sponsored() {
       suggestion: REMOTE_SETTINGS_RESULT,
       // impression-only
       impressionOnly: {
-        scalars: {
-          [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-        },
         ping: {
           type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
           payload: {
@@ -82,10 +77,6 @@ add_tasks_with_rust(async function sponsored() {
       },
       // click
       click: {
-        scalars: {
-          [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-          [TELEMETRY_SCALARS.CLICK_SPONSORED]: position,
-        },
         pings: [
           {
             type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
@@ -120,10 +111,6 @@ add_tasks_with_rust(async function sponsored() {
         // dismiss
         {
           command: "dismiss",
-          scalars: {
-            [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-            [TELEMETRY_SCALARS.BLOCK_SPONSORED]: position,
-          },
           pings: [
             {
               type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
@@ -158,9 +145,6 @@ add_tasks_with_rust(async function sponsored() {
         // manage
         {
           command: "manage",
-          scalars: {
-            [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-          },
           pings: [
             {
               type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
@@ -199,9 +183,6 @@ add_tasks_with_rust(async function sponsoredBestMatch() {
     suggestion: REMOTE_SETTINGS_RESULT,
     // impression-only
     impressionOnly: {
-      scalars: {
-        [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-      },
       ping: {
         type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
         payload: {
@@ -219,10 +200,6 @@ add_tasks_with_rust(async function sponsoredBestMatch() {
     },
     // click
     click: {
-      scalars: {
-        [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-        [TELEMETRY_SCALARS.CLICK_SPONSORED]: position,
-      },
       pings: [
         {
           type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
@@ -257,10 +234,6 @@ add_tasks_with_rust(async function sponsoredBestMatch() {
       // dismiss
       {
         command: "dismiss",
-        scalars: {
-          [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-          [TELEMETRY_SCALARS.BLOCK_SPONSORED]: position,
-        },
         pings: [
           {
             type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
@@ -295,9 +268,6 @@ add_tasks_with_rust(async function sponsoredBestMatch() {
       // manage
       {
         command: "manage",
-        scalars: {
-          [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-        },
         pings: [
           {
             type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,

@@ -118,8 +118,6 @@ class _QuickSuggestTestUtils {
     }
     // If you add other properties to `this`, null them in `uninit()`.
 
-    Services.telemetry.clearScalars();
-
     scope.registerCleanupFunction?.(() => this.uninit());
   }
 
@@ -134,7 +132,6 @@ class _QuickSuggestTestUtils {
     for (let p of TEST_SCOPE_PROPERTIES) {
       this[p] = null;
     }
-    Services.telemetry.clearScalars();
   }
 
   get DEFAULT_CONFIG() {
@@ -1004,50 +1001,6 @@ class _QuickSuggestTestUtils {
   async assertNoQuickSuggestResults(window) {
     for (let i = 0; i < lazy.UrlbarTestUtils.getResultCount(window); i++) {
       await this.assertIsNotQuickSuggest(window, i);
-    }
-  }
-
-  /**
-   * Checks the values of all the quick suggest telemetry keyed scalars and,
-   * if provided, other non-quick-suggest keyed scalars. Scalar values are all
-   * assumed to be 1.
-   *
-   * @param {object} expectedKeysByScalarName
-   *   Maps scalar names to keys that are expected to be recorded. The value for
-   *   each key is assumed to be 1. If you expect a scalar to be incremented,
-   *   include it in this object; otherwise, don't include it.
-   */
-  assertScalars(expectedKeysByScalarName) {
-    let scalars = lazy.TelemetryTestUtils.getProcessScalars(
-      "parent",
-      true,
-      true
-    );
-
-    // Check all quick suggest scalars.
-    expectedKeysByScalarName = { ...expectedKeysByScalarName };
-    for (let scalarName of Object.values(
-      lazy.UrlbarProviderQuickSuggest.TELEMETRY_SCALARS
-    )) {
-      if (scalarName in expectedKeysByScalarName) {
-        lazy.TelemetryTestUtils.assertKeyedScalar(
-          scalars,
-          scalarName,
-          expectedKeysByScalarName[scalarName],
-          1
-        );
-        delete expectedKeysByScalarName[scalarName];
-      } else {
-        this.Assert.ok(
-          !(scalarName in scalars),
-          "Scalar should not be present: " + scalarName
-        );
-      }
-    }
-
-    // Check any other remaining scalars that were passed in.
-    for (let [scalarName, key] of Object.entries(expectedKeysByScalarName)) {
-      lazy.TelemetryTestUtils.assertKeyedScalar(scalars, scalarName, key, 1);
     }
   }
 

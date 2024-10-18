@@ -15,14 +15,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
 });
 
-const TELEMETRY_PREFIX = "contextual.services.quicksuggest";
-
-const TELEMETRY_SCALARS = {
-  BLOCK: `${TELEMETRY_PREFIX}.block_weather`,
-  CLICK: `${TELEMETRY_PREFIX}.click_weather`,
-  IMPRESSION: `${TELEMETRY_PREFIX}.impression_weather`,
-};
-
 /**
  * A provider that returns a suggested url to the user based on what
  * they have currently typed so they can navigate directly.
@@ -52,13 +44,6 @@ class ProviderWeather extends UrlbarProvider {
    */
   get type() {
     return UrlbarUtils.PROVIDER_TYPE.NETWORK;
-  }
-
-  /**
-   * @returns {object} An object mapping from mnemonics to scalar names.
-   */
-  get TELEMETRY_SCALARS() {
-    return { ...TELEMETRY_SCALARS };
   }
 
   getPriority(context) {
@@ -153,9 +138,6 @@ class ProviderWeather extends UrlbarProvider {
   }
 
   onEngagement(queryContext, controller, details) {
-    this.#sessionResult = details.result;
-    this.#engagementSelType = details.selType;
-
     this.#handlePossibleCommand(
       controller.view,
       details.result,
@@ -163,85 +145,9 @@ class ProviderWeather extends UrlbarProvider {
     );
   }
 
-  onImpression(state, queryContext, controller, providerVisibleResults) {
-    this.#sessionResult = providerVisibleResults[0].result;
-  }
-
-  onSearchSessionEnd(queryContext, _controller) {
-    if (this.#sessionResult) {
-      this.#recordEngagementTelemetry(
-        this.#sessionResult,
-        queryContext.isPrivate,
-        this.#engagementSelType
-      );
-    }
-
-    this.#sessionResult = null;
-    this.#engagementSelType = null;
-  }
-
-  /**
-   * Records engagement telemetry. This should be called only at the end of an
-   * engagement when a weather result is present or when a weather result is
-   * dismissed.
-   *
-   * @param {UrlbarResult} result
-   *   The weather result that was present (and possibly picked) at the end of
-   *   the engagement or that was dismissed.
-   * @param {boolean} isPrivate
-   *   Whether the engagement is in a private context.
-   * @param {string} selType
-   *   This parameter indicates the part of the row the user picked, if any, and
-   *   should be one of the following values:
-   *
-   *   - "": The user didn't pick the row or any part of it
-   *   - "weather": The user picked the main part of the row
-   *   - "dismiss": The user dismissed the result
-   *
-   *   An empty string means the user picked some other row to end the
-   *   engagement, not the weather row. In that case only impression telemetry
-   *   will be recorded.
-   *
-   *   A non-empty string means the user picked the weather row or some part of
-   *   it, and both impression and click telemetry will be recorded. The
-   *   non-empty-string values come from the `details.selType` passed in to
-   *   `onEngagement()`; see `TelemetryEvent.typeFromElement()`.
-   */
-  #recordEngagementTelemetry(result, isPrivate, selType) {
-    // Indexes recorded in quick suggest telemetry are 1-based, so add 1 to the
-    // 0-based `result.rowIndex`.
-    let telemetryResultIndex = result.rowIndex + 1;
-
-    // impression scalars
-    Services.telemetry.keyedScalarAdd(
-      TELEMETRY_SCALARS.IMPRESSION,
-      telemetryResultIndex,
-      1
-    );
-
-    // scalars related to clicking the result and other elements in its row
-    let clickScalars = [];
-    switch (selType) {
-      case "weather":
-        clickScalars.push(TELEMETRY_SCALARS.CLICK);
-        break;
-      case "dismiss":
-        clickScalars.push(TELEMETRY_SCALARS.BLOCK);
-        break;
-      default:
-        break;
-    }
-    for (let scalar of clickScalars) {
-      Services.telemetry.keyedScalarAdd(scalar, telemetryResultIndex, 1);
-    }
-  }
-
   #handlePossibleCommand(view, result, selType) {
     lazy.QuickSuggest.weather.handleCommand(view, result, selType);
   }
-
-  #sessionResult;
-  #engagementSelType;
 }
 
 export var UrlbarProviderWeather = new ProviderWeather();

@@ -134,8 +134,6 @@ async function setUpTelemetryTest({
  *   An object describing the expected impression-only telemetry, i.e.,
  *   telemetry recorded when an impression occurs but not a click. It must have
  *   the following properties:
- *     {object} scalars
- *       An object that maps expected scalar names to values.
  *     {object} ping
  *       The expected recorded custom telemetry ping. If no ping is expected,
  *       leave this undefined or pass null.
@@ -151,8 +149,6 @@ async function setUpTelemetryTest({
  *       A command name or array; this is passed directly to
  *       `UrlbarTestUtils.openResultMenuAndClickItem()` as the `commandOrArray`
  *       arg, so see its documentation for details.
- *     {object} scalars
- *       An object that maps expected scalar names to values.
  *     {Array} pings
  *       A list of expected recorded custom telemetry pings. If no pings are
  *       expected, pass an empty array.
@@ -185,8 +181,6 @@ async function doTelemetryTest({
       fireInputEvent: true,
     }),
 }) {
-  Services.telemetry.clearScalars();
-
   await doImpressionOnlyTest({
     index,
     suggestion,
@@ -236,8 +230,6 @@ async function doTelemetryTest({
  * @param {object} options.expected
  *   An object describing the expected impression-only telemetry. It must have
  *   the following properties:
- *     {object} scalars
- *       An object that maps expected scalar names to values.
  *     {object} ping
  *       The expected recorded custom telemetry ping. If no ping is expected,
  *       leave this undefined or pass null.
@@ -314,10 +306,6 @@ async function doImpressionOnlyTest({
   info("Waiting for page to load after clicking different row");
   await loadPromise;
 
-  // Check telemetry.
-  info("Checking scalars. Expected: " + JSON.stringify(expected.scalars));
-  QuickSuggestTestUtils.assertScalars(expected.scalars);
-
   Assert.equal(
     expectedPings.length,
     gleanPingCount.value,
@@ -347,8 +335,6 @@ async function doImpressionOnlyTest({
  * @param {object} options.expected
  *   An object describing the telemetry that's expected to be recorded when the
  *   selectable element is picked. It must have the following properties:
- *     {object} scalars
- *       An object that maps expected scalar names to values.
  *     {Array} pings
  *       A list of expected recorded custom telemetry pings. If no pings are
  *       expected, leave this undefined or pass an empty array.
@@ -386,9 +372,6 @@ async function doClickTest({
   await loadPromise;
   await TestUtils.waitForTick();
 
-  info("Checking scalars. Expected: " + JSON.stringify(expected.scalars));
-  QuickSuggestTestUtils.assertScalars(expected.scalars);
-
   Assert.equal(
     expectedPings.length,
     gleanPingCount.value,
@@ -420,8 +403,6 @@ async function doClickTest({
  * @param {object} options.expected
  *   An object describing the telemetry that's expected to be recorded when the
  *   selectable element is picked. It must have the following properties:
- *     {object} scalars
- *       An object that maps expected scalar names to values.
  *     {Array} pings
  *       A list of expected recorded custom telemetry pings. If no pings are
  *       expected, leave this undefined or pass an empty array.
@@ -476,9 +457,6 @@ async function doCommandTest({
       BrowserTestUtils.removeTab(gBrowser.selectedTab);
     }
   }
-
-  info("Checking scalars. Expected: " + JSON.stringify(expected.scalars));
-  QuickSuggestTestUtils.assertScalars(expected.scalars);
 
   Assert.equal(
     expectedPings.length,

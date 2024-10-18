@@ -5,7 +5,6 @@
 
 "use strict";
 
-const { TELEMETRY_SCALARS } = UrlbarProviderQuickSuggest;
 const { TIMESTAMP_TEMPLATE } = QuickSuggest;
 
 // Include the timestamp template in the suggestion URLs so we can make sure
@@ -46,8 +45,6 @@ add_setup(async function () {
 
   await QuickSuggest.blockedSuggestions._test_readyPromise;
   await QuickSuggest.blockedSuggestions.clear();
-
-  Services.telemetry.clearScalars();
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: [
@@ -179,17 +176,6 @@ async function doOneBasicBlockTest({ result, block }) {
 
   // Check Glean.
   Assert.equal(pingsSubmitted, 2, "Both Glean pings submitted.");
-
-  // Check telemetry scalars.
-  let scalars = {};
-  if (isSponsored) {
-    scalars[TELEMETRY_SCALARS.IMPRESSION_SPONSORED] = index;
-    scalars[TELEMETRY_SCALARS.BLOCK_SPONSORED] = index;
-  } else {
-    scalars[TELEMETRY_SCALARS.IMPRESSION_NONSPONSORED] = index;
-    scalars[TELEMETRY_SCALARS.BLOCK_NONSPONSORED] = index;
-  }
-  QuickSuggestTestUtils.assertScalars(scalars);
 
   await UrlbarTestUtils.promisePopupClose(window);
   await QuickSuggest.blockedSuggestions.clear();

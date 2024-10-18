@@ -191,7 +191,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.block_nonsponsored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -206,7 +210,11 @@ Changelog
   Firefox 101.0
     Introduced. [Bug 1761059_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1761059: https://bugzilla.mozilla.org/show_bug.cgi?id=1761059
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.block_nonsponsored_bestmatch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -239,7 +247,11 @@ Changelog
   Firefox 101.0
     Introduced. [Bug 1761059_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1761059: https://bugzilla.mozilla.org/show_bug.cgi?id=1761059
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.block_sponsored_bestmatch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -271,7 +283,11 @@ Changelog
   Firefox 110.0
     Introduced. [Bug 1804536_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1804536: https://bugzilla.mozilla.org/show_bug.cgi?id=1804536
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.click
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -302,7 +318,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.click_nav_notmatched
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -319,7 +339,11 @@ Changelog
   Firefox 112.0
     Introduced. [Bug 1819797_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.click_nav_shown_heuristic
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -336,7 +360,11 @@ Changelog
   Firefox 112.0
     Introduced. [Bug 1819797_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.click_nav_shown_nav
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -354,7 +382,11 @@ Changelog
   Firefox 112.0
     Introduced. [Bug 1819797_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.click_nav_superceded
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -371,7 +403,11 @@ Changelog
   Firefox 112.0
     Introduced. [Bug 1819797_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.click_nonsponsored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -385,7 +421,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.click_nonsponsored_bestmatch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -416,7 +456,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.click_sponsored_bestmatch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -447,7 +491,11 @@ Changelog
   Firefox 110.0
     Introduced. [Bug 1804536_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1804536: https://bugzilla.mozilla.org/show_bug.cgi?id=1804536
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.exposure_weather
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -519,7 +567,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.help_nonsponsored_bestmatch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -551,7 +603,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.help_sponsored_bestmatch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -632,7 +688,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.impression_nav_notmatched
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -650,7 +710,11 @@ Changelog
   Firefox 112.0
     Introduced. [Bug 1819797_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.impression_nav_shown
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -668,7 +732,11 @@ Changelog
   Firefox 112.0
     Introduced. [Bug 1819797_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.impression_nav_superceded
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -686,7 +754,11 @@ Changelog
   Firefox 112.0
     Introduced. [Bug 1819797_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.impression_nonsponsored
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -706,7 +778,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.impression_nonsponsored_bestmatch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -751,7 +827,11 @@ Changelog
   Firefox 109.0
     Introduced. [Bug 1800993_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 contextual.services.quicksuggest.impression_sponsored_bestmatch
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -797,7 +877,11 @@ Changelog
   Firefox 110.0
     Introduced. [Bug 1804536_]
 
+  Firefox 133.0
+    Removed. [Bug 1925355_]
+
 .. _1804536: https://bugzilla.mozilla.org/show_bug.cgi?id=1804536
+.. _1925355: https://bugzilla.mozilla.org/show_bug.cgi?id=1925355
 
 Events
 ------
