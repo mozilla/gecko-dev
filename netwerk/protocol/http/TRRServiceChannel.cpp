@@ -9,6 +9,7 @@
 
 #include "HttpLog.h"
 #include "AltServiceChild.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/Unused.h"
@@ -513,9 +514,8 @@ nsresult TRRServiceChannel::ContinueOnBeforeConnect() {
   mConnectionInfo->SetIPv6Disabled(mCaps & NS_HTTP_DISABLE_IPV6);
 
   if (mLoadFlags & LOAD_FRESH_CONNECTION) {
-    Telemetry::ScalarAdd(
-        Telemetry::ScalarID::NETWORKING_TRR_CONNECTION_CYCLE_COUNT,
-        NS_ConvertUTF8toUTF16(TRRService::ProviderKey()), 1);
+    glean::networking::trr_connection_cycle_count.Get(TRRService::ProviderKey())
+        .Add(1);
     nsresult rv =
         gHttpHandler->ConnMgr()->DoSingleConnectionCleanup(mConnectionInfo);
     LOG(

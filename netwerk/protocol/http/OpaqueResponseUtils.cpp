@@ -9,6 +9,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/JSValidatorParent.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "ErrorList.h"
 #include "nsContentUtils.h"
 #include "nsHttpResponseHead.h"
@@ -535,9 +536,7 @@ nsresult OpaqueResponseBlocker::ValidateJavaScript(HttpBaseChannel* aChannel,
     return rv;
   }
 
-  Telemetry::ScalarAdd(
-      Telemetry::ScalarID::OPAQUE_RESPONSE_BLOCKING_JAVASCRIPT_VALIDATION_COUNT,
-      1);
+  glean::opaque_response_blocking::javascript_validation_count.Add(1);
 
   LOGORB("Send %s to the validator", aURI->GetSpecOrDefault().get());
   // https://whatpr.org/fetch/1442.html#orb-algorithm, step 15

@@ -69,6 +69,7 @@
 #include "mozilla/net/SocketProcessParent.h"
 #include "mozilla/net/SocketProcessChild.h"
 #include "mozilla/ipc/URIUtils.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/AntiTrackingRedirectHeuristic.h"
@@ -355,14 +356,17 @@ nsresult nsHttpHandler::Init() {
   if (!IsNeckoChild()) {
     mActiveTabPriority =
         Preferences::GetBool(HTTP_PREF("active_tab_priority"), true);
-    std::bitset<3> usageOfHTTPSRRPrefs;
-    usageOfHTTPSRRPrefs[0] = StaticPrefs::network_dns_upgrade_with_https_rr();
-    usageOfHTTPSRRPrefs[1] = StaticPrefs::network_dns_use_https_rr_as_altsvc();
-    usageOfHTTPSRRPrefs[2] = StaticPrefs::network_dns_echconfig_enabled();
-    Telemetry::ScalarSet(Telemetry::ScalarID::NETWORKING_HTTPS_RR_PREFS_USAGE,
-                         static_cast<uint32_t>(usageOfHTTPSRRPrefs.to_ulong()));
-    Telemetry::ScalarSet(Telemetry::ScalarID::NETWORKING_HTTP3_ENABLED,
-                         StaticPrefs::network_http_http3_enable());
+    if (XRE_IsParentProcess()) {
+      std::bitset<3> usageOfHTTPSRRPrefs;
+      usageOfHTTPSRRPrefs[0] = StaticPrefs::network_dns_upgrade_with_https_rr();
+      usageOfHTTPSRRPrefs[1] =
+          StaticPrefs::network_dns_use_https_rr_as_altsvc();
+      usageOfHTTPSRRPrefs[2] = StaticPrefs::network_dns_echconfig_enabled();
+      glean::networking::https_rr_prefs_usage.Set(
+          static_cast<uint32_t>(usageOfHTTPSRRPrefs.to_ulong()));
+      glean::networking::http3_enabled.Set(
+          StaticPrefs::network_http_http3_enable());
+    }
 
     mActivityDistributor = components::HttpActivityDistributor::Service();
 
