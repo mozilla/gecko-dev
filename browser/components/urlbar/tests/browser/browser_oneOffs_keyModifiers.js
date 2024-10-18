@@ -39,7 +39,7 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.search.separatePrivateDefault.ui.enabled", false],
-      ["browser.urlbar.suggest.quickactions", false],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
     ],
   });
 

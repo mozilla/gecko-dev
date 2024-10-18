@@ -10,7 +10,10 @@ add_task(async function test_label_and_icon() {
   // Make sure that tabs are restored on demand as otherwise the tab will start
   // loading immediately and we can't check its icon and label.
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.sessionstore.restore_on_demand", true]],
+    set: [
+      ["browser.sessionstore.restore_on_demand", true],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
+    ],
   });
 
   // Create a new tab.

@@ -36,6 +36,7 @@ add_task(async function test_strikeout_on_no_https_trimming() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.urlbar.trimHttps", false],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
       ["security.insecure_connection_text.enabled", false],
       ["security.mixed_content.block_active_content", false],
     ],

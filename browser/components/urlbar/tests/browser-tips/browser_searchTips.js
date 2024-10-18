@@ -48,6 +48,7 @@ add_setup(async function () {
       // Set following prefs so tips are actually shown.
       ["browser.laterrun.bookkeeping.profileCreationTime", 0],
       ["browser.laterrun.bookkeeping.updateAppliedTime", 0],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
     ],
   });
 

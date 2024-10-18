@@ -2,13 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const SCOTCH_BONNET_PREF = "browser.urlbar.scotchBonnet.enableOverride";
+
 function test() {
   waitForExplicitFinish();
+  Services.prefs.setBoolPref(SCOTCH_BONNET_PREF, false);
 
   ok(PopupNotifications, "PopupNotifications object exists");
   ok(PopupNotifications.panel, "PopupNotifications panel exists");
 
   setup();
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(SCOTCH_BONNET_PREF);
+  });
 }
 
 const FALLBACK_ANCHOR = gURLBar.searchButton

@@ -13,6 +13,9 @@
 // in order to hit different branches in setURI.  Search mode should remain
 // active or be exited as appropriate.
 add_task(async function setURI() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   for (let test of [
     // initialURL, searchString, url, expectSearchMode
 

@@ -17,6 +17,9 @@ registerCleanupFunction(async function resetToolbar() {
 });
 
 add_task(async function setupHomeButton() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   // Put the home button in the pre-proton placement to test focus states.
   CustomizableUI.addWidgetToArea(
     "home-button",

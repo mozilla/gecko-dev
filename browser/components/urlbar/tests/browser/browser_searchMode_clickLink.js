@@ -16,6 +16,9 @@ const LINK_PAGE_URL =
 // branches in setURI.  Search mode should be exited in all cases, and the href
 // in the link should be opened.
 add_task(async function clickLink() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   for (let test of [
     // searchString, href to use in the link
     [LINK_PAGE_URL, LINK_PAGE_URL],

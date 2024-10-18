@@ -9,7 +9,10 @@ function focus_in_navbar() {
   return parent != null;
 }
 
+const SCOTCH_BONNET_PREF = "browser.urlbar.scotchBonnet.enableOverride";
+
 function test() {
+  Services.prefs.setBoolPref(SCOTCH_BONNET_PREF, false);
   // Put the home button in the pre-proton placement to test focus states.
   CustomizableUI.addWidgetToArea(
     "home-button",
@@ -17,6 +20,7 @@ function test() {
     CustomizableUI.getPlacementOfWidget("stop-reload-button").position + 1
   );
   registerCleanupFunction(async function resetToolbar() {
+    Services.prefs.clearUserPref(SCOTCH_BONNET_PREF);
     await CustomizableUI.reset();
   });
 

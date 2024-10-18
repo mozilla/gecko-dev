@@ -10,6 +10,9 @@
 const MAX_RESULTS = UrlbarPrefs.get("maxRichResults");
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   for (let i = 0; i < MAX_RESULTS; i++) {
     await PlacesTestUtils.addVisits("http://example.com/" + i);
   }

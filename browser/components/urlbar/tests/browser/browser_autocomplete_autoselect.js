@@ -47,6 +47,9 @@ function assertSelected_one_off(index) {
 }
 
 add_task(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   let maxResults = Services.prefs.getIntPref("browser.urlbar.maxRichResults");
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,

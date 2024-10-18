@@ -8,6 +8,9 @@
 "use strict";
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   await PlacesUtils.history.clear();
   await PlacesUtils.bookmarks.eraseEverything();
 

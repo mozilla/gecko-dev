@@ -9,6 +9,9 @@ const ORIGINAL_CHUNK_RESULTS_DELAY =
   UrlbarProvidersManager.CHUNK_RESULTS_DELAY_MS;
 
 add_setup(async function setup() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   let suggestionsEngine = await SearchTestUtils.installOpenSearchEngine({
     url: getRootDirectory(gTestPath) + "searchSuggestionEngine.xml",
   });

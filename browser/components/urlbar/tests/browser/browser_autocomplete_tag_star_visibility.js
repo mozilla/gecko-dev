@@ -9,6 +9,9 @@
  */
 
 add_task(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   registerCleanupFunction(async function () {
     await PlacesUtils.bookmarks.eraseEverything();
   });

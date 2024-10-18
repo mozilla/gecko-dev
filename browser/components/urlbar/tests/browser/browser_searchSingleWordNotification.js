@@ -3,6 +3,9 @@
 
 let gDNSResolved = false;
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   registerCleanupFunction(function () {
     Services.prefs.clearUserPref("browser.fixup.domainwhitelist.localhost");
   });

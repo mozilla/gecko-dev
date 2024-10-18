@@ -10,7 +10,7 @@
 // Enters search mode using the one-off buttons.
 add_task(async function switchTabs() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.suggest.quickactions", false]],
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
   });
 
   // Open three tabs.  We'll enter search mode in tabs 0 and 2.

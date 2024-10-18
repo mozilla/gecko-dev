@@ -9,7 +9,10 @@ const SEARCH_STRING = "chocolate cake";
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.showSearchTerms.featureGate", true]],
+    set: [
+      ["browser.urlbar.showSearchTerms.featureGate", true],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
+    ],
   });
   let cleanup = await installPersistTestEngines();
   registerCleanupFunction(async function () {
