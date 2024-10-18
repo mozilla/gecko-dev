@@ -4194,8 +4194,8 @@ class format_int {
  */
 #define FMT_STRING(s) FMT_STRING_IMPL(s, fmt::detail::compile_string)
 
-FMT_API auto vsystem_error(int error_code, string_view fmt, format_args args)
-    -> std::system_error;
+// FMT_API auto vsystem_error(int error_code, string_view fmt, format_args args)
+//     -> std::system_error;
 
 /**
  * Constructs `std::system_error` with a message formatted with
@@ -4212,11 +4212,11 @@ FMT_API auto vsystem_error(int error_code, string_view fmt, format_args args)
  *     if (!file)
  *       throw fmt::system_error(errno, "cannot open file '{}'", filename);
  */
-template <typename... T>
-auto system_error(int error_code, format_string<T...> fmt, T&&... args)
-    -> std::system_error {
-  return vsystem_error(error_code, fmt.str, vargs<T...>{{args...}});
-}
+// template <typename... T>
+// auto system_error(int error_code, format_string<T...> fmt, T&&... args)
+//     -> std::system_error {
+//   return vsystem_error(error_code, fmt.str, vargs<T...>{{args...}});
+// }
 
 /**
  * Formats an error message for an error returned by an operating system or a
@@ -4231,8 +4231,8 @@ auto system_error(int error_code, format_string<T...> fmt, T&&... args)
  * message corresponding to the error code.
  * `error_code` is a system error code as given by `errno`.
  */
-FMT_API void format_system_error(detail::buffer<char>& out, int error_code,
-                                 const char* message) noexcept;
+// FMT_API void format_system_error(detail::buffer<char>& out, int error_code,
+//                                  const char* message) noexcept;
 
 // Reports a system error without throwing an exception.
 // Can be used to report errors from destructors.

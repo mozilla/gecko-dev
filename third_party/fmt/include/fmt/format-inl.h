@@ -74,9 +74,10 @@ FMT_FUNC void do_report_error(format_func func, int error_code,
 
 // A wrapper around fwrite that throws on error.
 inline void fwrite_all(const void* ptr, size_t count, FILE* stream) {
-  size_t written = std::fwrite(ptr, 1, count, stream);
-  if (written < count)
-    FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
+  std::fwrite(ptr, 1, count, stream);
+  // size_t written = std::fwrite(ptr, 1, count, stream);
+  // if (written < count)
+  //   FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
 }
 
 #if FMT_USE_LOCALE
@@ -158,11 +159,11 @@ FMT_API FMT_FUNC auto format_facet<std::locale>::do_put(
 }
 #endif
 
-FMT_FUNC auto vsystem_error(int error_code, string_view fmt, format_args args)
-    -> std::system_error {
-  auto ec = std::error_code(error_code, std::generic_category());
-  return std::system_error(ec, vformat(fmt, args));
-}
+// FMT_FUNC auto vsystem_error(int error_code, string_view fmt, format_args args)
+//     -> std::system_error {
+//   auto ec = std::error_code(error_code, std::generic_category());
+//   return std::system_error(ec, vformat(fmt, args));
+// }
 
 namespace detail {
 
@@ -1423,12 +1424,12 @@ FMT_FUNC detail::utf8_to_utf16::utf8_to_utf16(string_view s) {
 
 FMT_FUNC void format_system_error(detail::buffer<char>& out, int error_code,
                                   const char* message) noexcept {
-  FMT_TRY {
-    auto ec = std::error_code(error_code, std::generic_category());
-    detail::write(appender(out), std::system_error(ec, message).what());
-    return;
-  }
-  FMT_CATCH(...) {}
+  // FMT_TRY {
+  //   auto ec = std::error_code(error_code, std::generic_category());
+  //   detail::write(appender(out), std::system_error(ec, message).what());
+  //   return;
+  // }
+  // FMT_CATCH(...) {}
   format_error_code(out, error_code, message);
 }
 
