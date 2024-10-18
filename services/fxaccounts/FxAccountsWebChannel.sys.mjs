@@ -186,6 +186,12 @@ FxAccountsWebChannel.prototype = {
   _webChannelOrigin: null,
 
   /**
+   * The promise which is handling the most recent webchannel message we received.
+   * Used to avoid us handling multiple messages concurrently.
+   */
+  _lastPromise: null,
+
+  /**
    * Release all resources that are in use.
    */
   tearDown() {
@@ -211,7 +217,7 @@ FxAccountsWebChannel.prototype = {
   },
 
   _receiveMessage(message, sendingContext) {
-    const { command, data } = message;
+    log.trace(`_receiveMessage for command ${message.command}`);
     let shouldCheckRemoteType =
       lazy.separatePrivilegedMozillaWebContentProcess &&
       lazy.separatedMozillaDomains.some(function (val) {
@@ -228,6 +234,26 @@ FxAccountsWebChannel.prototype = {
       return;
     }
 
+    // Here we do some promise dances to ensure we are never handling multiple messages
+    // concurrently, which can happen for async message handlers.
+    // Not all handlers are async, which is something we should clean up to make this simpler.
+    // Start with ensuring the last promise we saw is complete.
+    let lastPromise = this._lastPromise || Promise.resolve();
+    this._lastPromise = lastPromise
+      .then(() => {
+        return this._promiseMessage(message, sendingContext);
+      })
+      .catch(e => {
+        log.error("Handling webchannel message failed", e);
+        this._sendError(e, message, sendingContext);
+      })
+      .finally(() => {
+        this._lastPromise = null;
+      });
+  },
+
+  async _promiseMessage(message, sendingContext) {
+    const { command, data } = message;
     let browser = sendingContext.browsingContext.top.embedderElement;
     switch (command) {
       case COMMAND_PROFILE_CHANGE:
@@ -238,20 +264,14 @@ FxAccountsWebChannel.prototype = {
         );
         break;
       case COMMAND_LOGIN:
-        this._helpers
-          .login(data)
-          .catch(error => this._sendError(error, message, sendingContext));
+        await this._helpers.login(data);
         break;
       case COMMAND_OAUTH:
-        this._helpers
-          .oauthLogin(data)
-          .catch(error => this._sendError(error, message, sendingContext));
+        await this._helpers.oauthLogin(data);
         break;
       case COMMAND_LOGOUT:
       case COMMAND_DELETE:
-        this._helpers
-          .logout(data.uid)
-          .catch(error => this._sendError(error, message, sendingContext));
+        await this._helpers.logout(data.uid);
         break;
       case COMMAND_CAN_LINK_ACCOUNT:
         let canLinkAccount = this._helpers.shouldAllowRelink(data.email);
@@ -293,9 +313,7 @@ FxAccountsWebChannel.prototype = {
         this._helpers.openFirefoxView(browser, data.entryPoint);
         break;
       case COMMAND_CHANGE_PASSWORD:
-        this._helpers
-          .changePassword(data)
-          .catch(error => this._sendError(error, message, sendingContext));
+        await this._helpers.changePassword(data);
         break;
       case COMMAND_FXA_STATUS:
         log.debug("fxa_status received");
@@ -303,7 +321,7 @@ FxAccountsWebChannel.prototype = {
         const service = data && data.service;
         const isPairing = data && data.isPairing;
         const context = data && data.context;
-        this._helpers
+        await this._helpers
           .getFxaStatus(service, sendingContext, isPairing, context)
           .then(fxaStatus => {
             let response = {
@@ -312,8 +330,7 @@ FxAccountsWebChannel.prototype = {
               data: fxaStatus,
             };
             this._channel.send(response, sendingContext);
-          })
-          .catch(error => this._sendError(error, message, sendingContext));
+          });
         break;
       case COMMAND_PAIR_HEARTBEAT:
       case COMMAND_PAIR_SUPP_METADATA:
@@ -394,6 +411,10 @@ FxAccountsWebChannel.prototype = {
         try {
           this._receiveMessage(message, sendingContext);
         } catch (error) {
+          // this should be impossible - _receiveMessage will do this, but better safe than sorry.
+          log.error(
+            "Unexpected webchannel error escaped from promise error handlers"
+          );
           this._sendError(error, message, sendingContext);
         }
       }
@@ -515,6 +536,7 @@ FxAccountsWebChannelHelpers.prototype = {
         }
       }
     }
+    log.debug("Webchannel finished logging a user in.");
   },
 
   /**
