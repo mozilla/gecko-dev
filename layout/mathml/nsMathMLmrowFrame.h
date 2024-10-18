@@ -27,8 +27,8 @@ class nsMathMLmrowFrame final : public nsMathMLContainerFrame {
   friend nsIFrame* NS_NewMathMLmrowFrame(mozilla::PresShell* aPresShell,
                                          ComputedStyle* aStyle);
 
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
-                                    int32_t aModType) override;
+  nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+                            int32_t aModType) override;
 
   NS_IMETHOD
   InheritAutomaticData(nsIFrame* aParent) override;
@@ -38,7 +38,7 @@ class nsMathMLmrowFrame final : public nsMathMLContainerFrame {
     return TransmitAutomaticDataForMrowLikeElement();
   }
 
-  virtual eMathMLFrameType GetMathMLFrameType() override;
+  eMathMLFrameType GetMathMLFrameType() override;
 
   bool IsMrowLike() override {
     // <mrow> elements with a single child are treated identically to the case

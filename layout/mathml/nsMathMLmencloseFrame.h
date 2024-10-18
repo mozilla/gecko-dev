@@ -56,18 +56,18 @@ class nsMathMLmencloseFrame : public nsMathMLContainerFrame {
   nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
                  ReflowOutput& aDesiredSize) override;
 
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
-                                    int32_t aModType) override;
+  nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+                            int32_t aModType) override;
 
   void DidSetComputedStyle(ComputedStyle* aOldStyle) override;
 
-  virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
-                                const nsDisplayListSet& aLists) override;
+  void BuildDisplayList(nsDisplayListBuilder* aBuilder,
+                        const nsDisplayListSet& aLists) override;
 
   NS_IMETHOD
   InheritAutomaticData(nsIFrame* aParent) override;
 
-  virtual nscoord FixInterFrameSpacing(ReflowOutput& aDesiredSize) override;
+  nscoord FixInterFrameSpacing(ReflowOutput& aDesiredSize) override;
 
   bool IsMrowLike() override {
     return mFrames.FirstChild() != mFrames.LastChild() || !mFrames.FirstChild();

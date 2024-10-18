@@ -28,8 +28,8 @@ class nsMathMLmrootFrame : public nsMathMLContainerFrame {
 
   void DidSetComputedStyle(ComputedStyle* aOldStyle) override;
 
-  virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
-                    nsIFrame* aPrevInFlow) override;
+  void Init(nsIContent* aContent, nsContainerFrame* aParent,
+            nsIFrame* aPrevInFlow) override;
 
   NS_IMETHOD
   InheritAutomaticData(nsIFrame* aParent) final;
@@ -41,8 +41,8 @@ class nsMathMLmrootFrame : public nsMathMLContainerFrame {
                           nsFontMetrics* aFontMetrics, nscoord* aIndexOffset,
                           nscoord* aSqrOffset);
 
-  virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
-                                const nsDisplayListSet& aLists) override;
+  void BuildDisplayList(nsDisplayListBuilder* aBuilder,
+                        const nsDisplayListSet& aLists) override;
 
   uint8_t ScriptIncrement(nsIFrame* aFrame) override {
     return (aFrame && aFrame == mFrames.LastChild()) ? 2 : 0;

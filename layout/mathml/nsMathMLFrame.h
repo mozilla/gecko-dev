@@ -28,7 +28,7 @@ class nsMathMLFrame : public nsIMathMLFrame {
  public:
   // nsIMathMLFrame ---
 
-  virtual bool IsSpaceLike() override {
+  bool IsSpaceLike() override {
     return NS_MATHML_IS_SPACE_LIKE(mPresentationData.flags);
   }
 
@@ -50,7 +50,7 @@ class nsMathMLFrame : public nsIMathMLFrame {
     return NS_OK;
   }
 
-  virtual eMathMLFrameType GetMathMLFrameType() override;
+  eMathMLFrameType GetMathMLFrameType() override;
 
   NS_IMETHOD
   Stretch(mozilla::gfx::DrawTarget* aDrawTarget,

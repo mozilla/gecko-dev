@@ -266,8 +266,7 @@ class nsDisplaymtdBorder final : public nsDisplayBorder {
   nsDisplaymtdBorder(nsDisplayListBuilder* aBuilder, nsMathMLmtdFrame* aFrame)
       : nsDisplayBorder(aBuilder, aFrame) {}
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) const override {
+  nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override {
     *aSnap = true;
     nsStyleBorder styleBorder = *mFrame->StyleBorder();
     nsMathMLmtdFrame* frame = static_cast<nsMathMLmtdFrame*>(mFrame);
@@ -278,8 +277,7 @@ class nsDisplaymtdBorder final : public nsDisplayBorder {
     return bounds;
   }
 
-  virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     gfxContext* aCtx) override {
+  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override {
     nsStyleBorder styleBorder = *mFrame->StyleBorder();
     nsMathMLmtdFrame* frame = static_cast<nsMathMLmtdFrame*>(mFrame);
     ApplyBorderToStyle(frame, styleBorder);
@@ -306,9 +304,7 @@ class nsDisplaymtdBorder final : public nsDisplayBorder {
     return false;
   }
 
-  virtual bool IsInvisibleInRect(const nsRect& aRect) const override {
-    return false;
-  }
+  bool IsInvisibleInRect(const nsRect& aRect) const override { return false; }
 };
 
 #ifdef DEBUG
