@@ -11,7 +11,8 @@
   &[uidensity=touch] {
     --tab-min-height: 41px;
   }
-  --tab-collapsed-background-width: 36px;
+  /* Collapsed tabs should be square, so set width to match the min height */
+  --tab-collapsed-background-width: var(--tab-min-height);
   --tab-collapsed-width: calc(var(--tab-collapsed-background-width) + 2 * var(--tab-inner-inline-margin));
   --tab-inner-inline-margin: var(--space-medium);
   --tab-inline-padding: var(--space-medium);
@@ -89,6 +90,14 @@
   --tab-group-color-gray: #5E6A77;
   --tab-group-color-gray-invert: #99A6B4;
   --tab-group-color-gray-pale: #F2F9FF;
+}
+
+/* stylelint-disable-next-line media-query-no-invalid */
+@media (-moz-bool-pref: "sidebar.verticalTabs") {
+  :root {
+    --tab-min-height: 32px;
+    --tab-block-margin: 2px;
+  }
 }
 
 #tabbrowser-tabs {
@@ -1020,7 +1029,7 @@ tab-group {
   overflow-x: hidden;
   scrollbar-width: thin;
   /* Fit slightly more than 5 tabs + padding before overflowing */
-  max-height: 244px;
+  max-height: calc(5 * (var(--tab-min-height) + 2 * var(--tab-block-margin)) + var(--space-large));
 
   .tab-content {
     justify-content: center;
@@ -1122,6 +1131,10 @@ tab-group {
 
     .tabbrowser-tab {
       max-width: none;
+
+      .tab-close-button {
+        margin-inline-end: calc(-1 * var(--tab-close-button-padding));
+      }
 
       &:not(:hover) .tab-close-button:not([selected]) {
         display: none;

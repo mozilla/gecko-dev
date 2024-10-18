@@ -2,9 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-:host {
-  --button-size-icon: var(--tab-min-height);
-  --button-min-height: var(--button-size-icon);
+/* stylelint-disable-next-line media-query-no-invalid */
+@media (-moz-bool-pref: "sidebar.verticalTabs") {
+  :host {
+    --button-size-icon: var(--tab-min-height);
+    --button-min-height: var(--button-size-icon);
+    --button-border-radius: var(--border-radius-medium);
+  }
 }
 
 .wrapper {
@@ -33,7 +37,7 @@
 
   > moz-button:not(.tools-overflow) {
     --button-outer-padding-inline: var(--space-medium);
-    --button-outer-padding-block: var(--space-xsmall);
+    --button-outer-padding-block: var(--space-xxsmall);
 
     &:first-of-type {
       --button-outer-padding-block-start: var(--space-small);
