@@ -187,11 +187,12 @@ export var CrashManager = function (options) {
       case "pendingDumpsDir":
       case "submittedDumpsDir":
       case "eventsDirs":
-      case "storeDir":
+      case "storeDir": {
         let key = "_" + k;
         delete this[key];
         Object.defineProperty(this, key, { value });
         break;
+      }
       case "telemetryStoreSizeKey":
         this._telemetryStoreSizeKey = value;
         break;
@@ -432,7 +433,10 @@ CrashManager.prototype = Object.freeze({
 
         if (needsSave) {
           let store = await this._getStore();
-          await store.save();
+
+          if (store) {
+            await store.save();
+          }
         }
 
         for (let path of deletePaths) {
@@ -461,8 +465,11 @@ CrashManager.prototype = Object.freeze({
   pruneOldCrashes(date) {
     return (async () => {
       let store = await this._getStore();
-      store.pruneOldCrashes(date);
-      await store.save();
+
+      if (store) {
+        store.pruneOldCrashes(date);
+        await store.save();
+      }
     })();
   },
 
@@ -521,7 +528,7 @@ CrashManager.prototype = Object.freeze({
       }
 
       let store = await this._getStore();
-      if (store.addCrash(processType, crashType, id, date, metadata)) {
+      if (store && store.addCrash(processType, crashType, id, date, metadata)) {
         await store.save();
       }
 
@@ -596,6 +603,10 @@ CrashManager.prototype = Object.freeze({
    */
   async ensureCrashIsPresent(id) {
     let store = await this._getStore();
+    if (!store) {
+      return Promise.reject();
+    }
+
     let crash = store.getCrash(id);
 
     if (crash) {
@@ -618,7 +629,7 @@ CrashManager.prototype = Object.freeze({
    */
   async setRemoteCrashID(crashID, remoteID) {
     let store = await this._getStore();
-    if (store.setRemoteCrashID(crashID, remoteID)) {
+    if (store && store.setRemoteCrashID(crashID, remoteID)) {
       await store.save();
     }
   },
@@ -641,7 +652,7 @@ CrashManager.prototype = Object.freeze({
    */
   async addSubmissionAttempt(crashID, submissionID, date) {
     let store = await this._getStore();
-    if (store.addSubmissionAttempt(crashID, submissionID, date)) {
+    if (store && store.addSubmissionAttempt(crashID, submissionID, date)) {
       await store.save();
     }
   },
@@ -658,7 +669,10 @@ CrashManager.prototype = Object.freeze({
    */
   async addSubmissionResult(crashID, submissionID, date, result) {
     let store = await this._getStore();
-    if (store.addSubmissionResult(crashID, submissionID, date, result)) {
+    if (
+      store &&
+      store.addSubmissionResult(crashID, submissionID, date, result)
+    ) {
       await store.save();
     }
   },
@@ -673,7 +687,7 @@ CrashManager.prototype = Object.freeze({
    */
   async setCrashClassifications(crashID, classifications) {
     let store = await this._getStore();
-    if (store.setCrashClassifications(crashID, classifications)) {
+    if (store && store.setCrashClassifications(crashID, classifications)) {
       await store.save();
     }
   },
@@ -711,6 +725,10 @@ CrashManager.prototype = Object.freeze({
     return (async () => {
       let data = await IOUtils.read(entry.path);
       let store = await this._getStore();
+
+      if (!store) {
+        return this.EVENT_FILE_ERROR_UNKNOWN_EVENT;
+      }
 
       let decoder = new TextDecoder();
       data = decoder.decode(data);
@@ -1013,7 +1031,7 @@ CrashManager.prototype = Object.freeze({
       case "crash.main.2":
         return this.EVENT_FILE_ERROR_OBSOLETE;
 
-      case "crash.main.3":
+      case "crash.main.3": {
         let crashID = lines[0];
         let metadata = JSON.parse(lines[1]);
         store.addCrash(
@@ -1033,6 +1051,7 @@ CrashManager.prototype = Object.freeze({
         );
 
         break;
+      }
 
       case "crash.submission.1":
         if (lines.length == 3) {
@@ -1180,15 +1199,11 @@ CrashManager.prototype = Object.freeze({
     return (async () => {
       let store = await this._getStore();
 
+      if (!store) {
+        return [];
+      }
+
       return store.crashes;
-    })();
-  },
-
-  getCrashCountsByDay() {
-    return (async () => {
-      let store = await this._getStore();
-
-      return store._countsByDay;
     })();
   },
 });
