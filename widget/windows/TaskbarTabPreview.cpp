@@ -99,7 +99,7 @@ TaskbarTabPreview::SetIcon(imgIContainer* icon) {
   if (icon) {
     nsresult rv;
     rv = nsWindowGfx::CreateIcon(
-        icon, nullptr, false, LayoutDeviceIntPoint(),
+        icon, false, LayoutDeviceIntPoint(),
         nsWindowGfx::GetIconMetrics(nsWindowGfx::kSmallIcon), &hIcon);
     NS_ENSURE_SUCCESS(rv, rv);
   }
