@@ -73,11 +73,16 @@ var testData = [
     expectedVal: "2016-12-01"
   },
   {
-    // Type 275769 in the year field will set it to 0069, because the
-    // 5th digit will erase the previous 4 digits.
+    // Type 275769 in the year field will set it to 2757 and 69 will be set when a blur event happens.
     keys: ["0101275769"],
     initialVal: "",
-    expectedVal: "0069-01-01"
+    expectedVal: "2757-01-01"
+  },
+  {
+    // Type 02292024 in the input will set the year field to 2024.
+    keys: ["02292024"],
+    initialVal: "",
+    expectedVal: "2024-02-29"
   },
   {
     // Type 0000 in the year field will set it to the minimum year, which is

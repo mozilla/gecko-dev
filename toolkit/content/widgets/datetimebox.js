@@ -1171,9 +1171,6 @@ this.DateTimeBoxWidget = class {
         this.advanceToNextField();
       }
       targetField.setAttribute("typeBuffer", buffer);
-      if (!this.isAnyFieldEmpty()) {
-        this.setInputValueFromFields();
-      }
     }
   }
 
