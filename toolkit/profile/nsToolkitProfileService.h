@@ -184,7 +184,7 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   bool mUseDevEditionProfile;
   // True if this install should use a dedicated default profile.
   const bool mUseDedicatedProfile;
-  nsString mStartupReason;
+  nsCString mStartupReason;
   // Records the version of the profiles.ini file as it was when it was loaded
   // during startup.
   nsCString mStartupFileVersion;
