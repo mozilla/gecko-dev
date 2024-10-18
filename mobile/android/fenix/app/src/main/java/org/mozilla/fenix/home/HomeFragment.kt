@@ -98,6 +98,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.HomeScreen
 import org.mozilla.fenix.GleanMetrics.Homepage
+import org.mozilla.fenix.GleanMetrics.Metrics
 import org.mozilla.fenix.GleanMetrics.NavigationBar
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingShortcutCfr
 import org.mozilla.fenix.HomeActivity
@@ -185,6 +186,9 @@ import org.mozilla.fenix.GleanMetrics.TabStrip as TabStripMetrics
 
 @Suppress("TooManyFunctions", "LargeClass")
 class HomeFragment : Fragment() {
+    // This flag will be checked in HomeActivity to determine if user
+    // changed their default browser to Firefox through this OS prompt.
+    var nativeDefaultBrowserPromptShownToUser = false
     private val args by navArgs<HomeFragmentArgs>()
 
     @VisibleForTesting
@@ -1069,6 +1073,7 @@ class HomeFragment : Fragment() {
             // This is to avoid disk read violations on some devices such as samsung and pixel for android 9/10
             requireComponents.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
                 showSetAsDefaultBrowserPrompt()
+                nativeDefaultBrowserPromptShownToUser = true
             }
         }
 
@@ -1611,10 +1616,10 @@ class HomeFragment : Fragment() {
 
     @VisibleForTesting
     internal fun showSetAsDefaultBrowserPrompt() {
-        val settings = requireContext().settings()
-        settings.setAsDefaultPromptCalled()
-
-        activity?.openSetDefaultBrowserOption()
+        activity?.openSetDefaultBrowserOption().also {
+            Metrics.setAsDefaultBrowserNativePromptShown.record()
+            requireContext().settings().setAsDefaultPromptCalled()
+        }
     }
 
     companion object {
