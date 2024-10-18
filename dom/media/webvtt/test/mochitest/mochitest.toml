@@ -72,6 +72,12 @@ skip-if = ["true"]
 
 ["test_webvtt_positionalign.html"]
 
+["test_webvtt_resistfingerprinting.html"]
+support-files = [
+  "basicvtt-server.sjs",
+]
+run-sequentially = "An extension having the same id is installed/uninstalled in different tests"
+
 ["test_webvtt_seeking.html"]
 
 ["test_webvtt_update_display_after_adding_or_removing_cue.html"]

@@ -114,7 +114,8 @@ WebVTTListener::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
     mElement->SetReadyState(TextTrackReadyState::Loaded);
   }
 
-  mElement->CancelChannelAndListener();
+  // Prevent canceling the channel and listener if RFP is enabled.
+  mElement->CancelChannelAndListener(true);
 
   return aStatus;
 }

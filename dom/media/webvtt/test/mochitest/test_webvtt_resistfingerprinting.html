@@ -1,0 +1,76 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>WebVTT: ResistFingerprinting</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<div id="content">
+</div>
+<template id="video">
+  <video width="600" height="400" controls onloadeddata="handleOnLoadedData()">
+    <source src="gizmo.mp4" type="video/mp4">
+    <track label="VTT1" kind="subtitles" srclang="en" src="basicvtt-server.sjs?request=vtt&id=test_webvtt_resistfingerprinting.html" />
+    <track label="VTT2" kind="subtitles" srclang="es" src="basicvtt-server.sjs?request=vtt&id=test_webvtt_resistfingerprinting.html" />
+    <track label="VTT3" kind="subtitles" srclang="tr" src="basicvtt-server.sjs?request=vtt&id=test_webvtt_resistfingerprinting.html" default />
+  </video>
+</template>
+<script class="testbody" type="text/javascript">
+SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("Need to wait for all VTT files to be loaded");
+
+let iteration = "0";
+async function startTest() {
+  await SpecialPowers.pushPrefEnv({
+    "set": [
+      ["privacy.resistFingerprinting", true]
+    ]
+  });
+
+  iteration = await fetch("basicvtt-server.sjs?request=newIteration")
+    .then(response => response.text());
+
+  const video = document.getElementById("video").content.cloneNode(true);
+  video.querySelectorAll("track").forEach(track => {
+    track.src = track.src + iteration;
+  });
+  document.getElementById("content").appendChild(video);
+}
+
+async function handleOnLoadedData() {
+  // Wait for 5 minutes at most
+  for (let i = 0; i < 5 * 60; i++) {
+    const shouldEnd = await fetch("basicvtt-server.sjs?request=count&id=test_webvtt_resistfingerprinting.html" + iteration)
+      .then(response => response.text())
+      .then(text => {
+        info("Number of VTT files loaded: " + text);
+        const num = +text;
+        if (num === 3) {
+          ok(true, "All VTT files are loaded");
+          return true
+        }
+        if (num > 3) {
+          ok(false, "Too many VTT files are loaded");
+          return true;
+        }
+        return false;
+      }).catch(error => {
+        ok(false, "Failed to fetch count: " + error);
+        return true;
+      });
+    if (shouldEnd) {
+      break;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  await SpecialPowers.popPrefEnv();
+  SimpleTest.finish();
+}
+
+onload = startTest;
+</script>
+</body>
+</html>
