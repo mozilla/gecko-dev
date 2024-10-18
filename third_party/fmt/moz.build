@@ -1,0 +1,31 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+FINAL_LIBRARY = "mozglue"
+
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'mozglue')
+
+LOCAL_INCLUDES += [
+    "/mfbt/double-conversion",
+]
+
+EXPORTS.fmt += [
+  'include/fmt/args.h',
+  'include/fmt/base.h',
+  'include/fmt/chrono.h',
+  'include/fmt/color.h',
+  'include/fmt/format-inl.h',
+  'include/fmt/format.h',
+  'include/fmt/ostream.h',
+  'include/fmt/ranges.h',
+  'include/fmt/xchar.h',
+]
+
+UNIFIED_SOURCES += [
+  'src/format.cc',
+]
+

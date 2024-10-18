@@ -120,6 +120,12 @@ set_define("GTEST_OS_LINUX_ANDROID", linux_gtest_defines.os_linux_android)
 set_define("GTEST_USE_OWN_TR1_TUPLE", linux_gtest_defines.use_own_tr1_tuple)
 set_define("GTEST_HAS_CLONE", linux_gtest_defines.has_clone)
 
+set_define("FMT_API", "MFBT_API")
+set_define("FMT_ENFORCE_COMPILE_STRING", 1)
+set_define("FMT_USE_EXCEPTIONS", 0)
+set_define("FMT_USE_WRITE_CONSOLE", 1)
+set_define("FMT_USE_LOCALE", 0)
+
 option(
     "--enable-debug",
     nargs="?",
