@@ -331,11 +331,7 @@ export var AUSTLMY = {
         scalarKey = this.PATCH_PARTIAL;
       }
       try {
-        Services.telemetry.keyedScalarSet(
-          "update.bitshresult",
-          scalarKey,
-          aError.code
-        );
+        Glean.update.bitshresult[scalarKey].set(aError.code);
       } catch (e) {
         console.error(e);
       }
@@ -602,14 +598,14 @@ export var AUSTLMY = {
    * into the ready update directory.
    */
   pingMoveResult: function UT_pingMoveResult(aResult) {
-    Services.telemetry.keyedScalarAdd("update.move_result", aResult, 1);
+    Glean.update.moveResult[aResult].add(1);
   },
 
   pingSuppressPrompts: function UT_pingSuppressPrompts() {
     try {
       let val = Services.prefs.getBoolPref("app.update.suppressPrompts", false);
       if (val === true) {
-        Services.telemetry.scalarSet("update.suppress_prompts", true);
+        Glean.update.suppressPrompts.set(true);
       }
     } catch (e) {
       console.error(e);
@@ -618,7 +614,7 @@ export var AUSTLMY = {
 
   pingPinPolicy: function UT_pingPinPolicy(updatePin) {
     try {
-      Services.telemetry.scalarSet("update.version_pin", updatePin);
+      Glean.update.versionPin.set(updatePin);
     } catch (e) {
       console.error(e);
     }

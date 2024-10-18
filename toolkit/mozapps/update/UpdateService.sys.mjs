@@ -7391,7 +7391,7 @@ class RestartOnLastWindowClosed {
     }
 
     LOG("RestartOnLastWindowClosed.#maybeRestartBrowser - Restarting now");
-    Services.telemetry.scalarAdd("update.no_window_auto_restarts", 1);
+    Glean.update.noWindowAutoRestarts.add(1);
     Services.startup.quit(
       Ci.nsIAppStartup.eAttemptQuit |
         Ci.nsIAppStartup.eRestart |

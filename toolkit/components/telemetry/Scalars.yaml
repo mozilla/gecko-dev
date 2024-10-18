@@ -4705,8 +4705,6 @@ update:
       - 'fennec'
     record_in_processes:
       - main
-    operating_systems:
-      - windows
 
   move_result:
     bug_numbers:

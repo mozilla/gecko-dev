@@ -438,3 +438,113 @@ update:
     expires: never
     send_in_pings:
       - background-update
+
+  bitshresult:
+    type: labeled_counter
+    description: >
+      If a BITS download fails on the Windows side (that is to say, BITS
+      ecounters an error rather than Firefox failing to interact with
+      BITS), it will likely give an hresult error indicating what
+      happened. This probe reports those error codes to allow us to see if
+      BITS is commonly failing on some systems. This probe is keyed on the
+      type of update download, either "PARTIAL" or "COMPLETE".
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.bitshresult.
+    bugs:
+      - https://bugzil.la/1343669
+      - https://bugzil.la/1540193
+      - https://bugzil.la/1520321
+    data_reviews:
+      - https://bugzil.la/1343669
+      - https://bugzil.la/1540193
+      - https://bugzil.la/1520321
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_BITSHRESULT
+
+  move_result:
+    type: labeled_counter
+    description: >
+      Firefox keeps downloading updates in a different place from updates
+      that are ready to install. Once the download completes, the
+      resulting file has to be moved from the downloading update directory
+      to the ready update directory. This probe counts the results that we
+      get when attempting to perform this file move. Valid values for the
+      keys for this probe are stored in the MOVE_RESULT_* values in
+      UpdateTelemetry.sys.mjs.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.move_result.
+    bugs:
+      - https://bugzil.la/353804
+    data_reviews:
+      - https://bugzil.la/353804
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_MOVE_RESULT
+
+  no_window_auto_restarts:
+    type: counter
+    description: >
+      On macOS, all browser windows can be closed without exiting Firefox.
+      If there is an update pending in that case, and we can install it
+      silently, we restart automatically in order to do so. This probe
+      counts the number of times the browser restarts to silently install
+      a pending update.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.no_window_auto_restarts.
+    bugs:
+      - https://bugzil.la/1720742
+    data_reviews:
+      - https://bugzil.la/1720742
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_NO_WINDOW_AUTO_RESTARTS
+
+  suppress_prompts:
+    type: boolean
+    description: >
+      When an update is available and app.update.auto is disabled, a popup
+      is opened prompting the user to download and install the update. The
+      pref app.update.suppressPrompts causes Firefox Nightly to wait up to
+      7 days before showing the prompt, instead showing a badge and banner
+      in the meantime. It also prevents Nightly from showing update
+      restart prompts, instead showing a badge and banner immediately.
+      This value is set for the users who set this pref to true.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.suppress_prompts.
+    bugs:
+      - https://bugzil.la/1749155
+    data_reviews:
+      - https://bugzil.la/1749155
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+    expires: never
+    telemetry_mirror: UPDATE_SUPPRESS_PROMPTS
+
+  version_pin:
+    type: string
+    description: >
+      The AppUpdatePin Enterprise Policy controls the maximum version that
+      the browser can update to. If the policy is set, this probe will
+      report the policy's value. The possible policy values are "X." and
+      "X.Y.", where X is the pinned major version and Y is the pinned
+      minor version.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar update.version_pin.
+    bugs:
+      - https://bugzil.la/1762957
+    data_reviews:
+      - https://bugzil.la/1762957
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+      - bytesized@mozilla.com
+      - telemetry-client-dev@thunderbird.net
+    expires: never
+    telemetry_mirror: UPDATE_VERSION_PIN
