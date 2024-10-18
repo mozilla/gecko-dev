@@ -90,7 +90,8 @@ pub enum ColorFunction<OriginColor> {
 }
 
 impl ColorFunction<AbsoluteColor> {
-    fn resolve_to_absolute(&self) -> Result<AbsoluteColor, ()> {
+    /// Try to resolve into a valid absolute color.
+    pub fn resolve_to_absolute(&self) -> Result<AbsoluteColor, ()> {
         macro_rules! alpha {
             ($alpha:expr, $origin_color:expr) => {{
                 $alpha

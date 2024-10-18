@@ -19,7 +19,7 @@ use crate::{
     },
 };
 use cssparser::{color::OPAQUE, Parser, Token};
-use style_traits::{ParseError, StyleParseErrorKind, ToCss};
+use style_traits::{ParseError, ToCss};
 
 /// A single color component.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
@@ -69,7 +69,6 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
         allow_none: bool,
-        allowed_channel_keywords: &[ChannelKeyword],
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
 
@@ -81,11 +80,6 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                 let Ok(channel_keyword) = ChannelKeyword::from_ident(ident) else {
                     return Err(location.new_unexpected_token_error(t.clone()));
                 };
-
-                if !allowed_channel_keywords.contains(&channel_keyword) {
-                    return Err(location.new_unexpected_token_error(t.clone()));
-                }
-
                 let node = GenericCalcNode::Leaf(Leaf::ColorComponent(channel_keyword));
                 Ok(ColorComponent::Calc(Box::new(node)))
             },
@@ -97,31 +91,6 @@ impl<ValueType: ColorComponentType> ColorComponent<ValueType> {
                     ValueType::units()
                 };
                 let mut node = GenericCalcNode::parse(context, input, function, units)?;
-
-                if rcs_enabled() {
-                    // Check that we only have allowed channel_keywords.
-                    // TODO(tlouw): Optimize this to fail when we hit the first error, or even
-                    //              better, do the validation during parsing the calc node.
-                    let mut is_valid = true;
-                    node.visit_depth_first(|node| {
-                        let GenericCalcNode::Leaf(leaf) = node else {
-                            return;
-                        };
-
-                        let Leaf::ColorComponent(channel_keyword) = leaf else {
-                            return;
-                        };
-
-                        if !allowed_channel_keywords.contains(channel_keyword) {
-                            is_valid = false;
-                        }
-                    });
-                    if !is_valid {
-                        return Err(
-                            location.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                        );
-                    }
-                }
 
                 // TODO(tlouw): We only have to simplify the node when we have to store it, but we
                 //              only know if we have to store it much later when the whole color
