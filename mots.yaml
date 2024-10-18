@@ -381,10 +381,6 @@ people:
     bmo_id: 697145
     name: Gabriel Bustamante
     nick: gabriel
-  - &gbrown
-    bmo_id: 411471
-    name: Geoff Brown
-    nick: gbrown
   - &gcp
     bmo_id: 151147
     name: Gian-Carlo Pascutto
@@ -3917,12 +3913,13 @@ modules:
       - testing/mozharness/**/*
     excludes: []
     owners:
-      - *gbrown
+      - *ahal
     peers:
       - *jmaher
     meta:
       owners_emeritus:
         - Aki Sasaki
+        - Geoff Brown
       peers_emeritus:
         - Justin Wood
         - Tom Prince
