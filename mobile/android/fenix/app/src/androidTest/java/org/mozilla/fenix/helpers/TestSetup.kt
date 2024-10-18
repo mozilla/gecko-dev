@@ -17,6 +17,7 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.AppAndSystemHelper.allowOrPreventSystemUIFromReadingTheClipboard
 import org.mozilla.fenix.helpers.AppAndSystemHelper.enableOrDisableBackGestureNavigationOnDevice
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.Translations
 import org.mozilla.fenix.ui.robots.notificationShade
@@ -83,6 +84,9 @@ open class TestSetup {
         // Clear pre-existing notifications.
         notificationShade {
             cancelAllShownNotifications()
+            // Closes the notification tray if it's open, otherwise it's a no-op.
+            Log.i(TAG, "TestSetup: Trying to close the notification tray, in case it's open.")
+            mDevice.executeShellCommand("cmd statusbar collapse")
         }
 
         mockWebServer = MockWebServer().apply {

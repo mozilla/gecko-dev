@@ -33,17 +33,17 @@ gcloud:
     - class org.mozilla.fenix.ui.BookmarksTest#verifyAddBookmarkButtonTest
 
   device:
-    - model: Pixel2.arm
+    - model: MediumPhone.arm
       version: 26
       locale: en_US
-    - model: Pixel2.arm
-      version: 27
+    - model: MediumPhone.arm
+      version: 28
       locale: en_US
-    - model: redfin
+    - model: MediumPhone.arm
       version: 30
       locale: en_US
-    - model: x1q
-      version: 29
+    - model: MediumPhone.arm
+      version: 32
       locale: en_US
 
 flank:

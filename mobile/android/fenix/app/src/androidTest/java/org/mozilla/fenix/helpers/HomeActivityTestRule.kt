@@ -12,7 +12,6 @@ import android.view.ViewConfiguration.getLongPressTimeout
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.test.espresso.intent.rule.IntentsTestRule
 import androidx.test.rule.ActivityTestRule
-import androidx.test.uiautomator.UiSelector
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import org.junit.rules.TestRule
 import org.mozilla.fenix.HomeActivity
@@ -111,7 +110,6 @@ class HomeActivityTestRule(
         Log.i(TAG, "afterActivityFinished: Trying to reset all feature flags")
         resetAllFeatureFlags()
         Log.i(TAG, "afterActivityFinished: Successfully performed the reset of all feature flags")
-        closeNotificationShade()
     }
 
     companion object {
@@ -243,7 +241,6 @@ class HomeActivityIntentTestRule internal constructor(
     override fun afterActivityFinished() {
         super.afterActivityFinished()
         setLongTapTimeout(longTapUserPreference)
-        closeNotificationShade()
         Log.i(TAG, "afterActivityFinished: Trying to reset all feature flags")
         resetAllFeatureFlags()
         Log.i(TAG, "afterActivityFinished: Successfully performed the reset of all feature flags")
@@ -328,15 +325,4 @@ private fun skipOnboardingBeforeLaunch() {
     Log.i(TAG, "skipOnboardingBeforeLaunch: Trying to skip the onboarding before launching the app")
     FenixOnboarding(appContext).finish()
     Log.i(TAG, "skipOnboardingBeforeLaunch: Successfully skipped the onboarding before launching the app")
-}
-
-private fun closeNotificationShade() {
-    if (mDevice.findObject(
-            UiSelector().resourceId("com.android.systemui:id/notification_stack_scroller"),
-        ).exists()
-    ) {
-        Log.i(TAG, "closeNotificationShade: Trying to press device home button")
-        mDevice.pressHome()
-        Log.i(TAG, "closeNotificationShade: Pressed the device home button")
-    }
 }
