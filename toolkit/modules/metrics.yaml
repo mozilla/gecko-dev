@@ -190,3 +190,25 @@ jsonfile:
     telemetry_mirror: Jsonfile_Load_Autofillprofiles
     no_lint:
       - COMMON_PREFIX
+
+os.environment:
+  allowed_app_sources:
+    type: string
+    description: >
+      Indicates what sources the OS is currently configured to allow apps
+      to be installed from. Possible values are "Anywhere",
+      "Recommendations", "PreferStore", "StoreOnly", "NoSuchFeature", or
+      "Error". "Recommendations" allows installs from anywhere, but
+      recommends a comparable app from the store, if available.
+      "NoSuchFeature" will be reported on versions of Windows that do not
+      have an app source setting.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar os.environment.allowed_app_sources.
+    bugs:
+      - https://bugzil.la/1659157
+    data_reviews:
+      - https://bugzil.la/1659157
+    notification_emails:
+      - rtestard@mozilla.com
+    expires: never
+    telemetry_mirror: OS_ENVIRONMENT_ALLOWED_APP_SOURCES
