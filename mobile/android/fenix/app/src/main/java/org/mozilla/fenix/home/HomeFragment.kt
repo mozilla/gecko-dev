@@ -708,8 +708,28 @@ class HomeFragment : Fragment() {
                                     onItemTapped = { item ->
                                         if (item is TabCounterMenu.Item.NewTab) {
                                             browsingModeManager.mode = BrowsingMode.Normal
+                                            val directions =
+                                                NavGraphDirections.actionGlobalSearchDialog(
+                                                    sessionId = null,
+                                                )
+
+                                            findNavController().nav(
+                                                findNavController().currentDestination?.id,
+                                                directions,
+                                                BrowserAnimator.getToolbarNavOptions(activity),
+                                            )
                                         } else if (item is TabCounterMenu.Item.NewPrivateTab) {
                                             browsingModeManager.mode = BrowsingMode.Private
+                                            val directions =
+                                                NavGraphDirections.actionGlobalSearchDialog(
+                                                    sessionId = null,
+                                                )
+
+                                            findNavController().nav(
+                                                findNavController().currentDestination?.id,
+                                                directions,
+                                                BrowserAnimator.getToolbarNavOptions(activity),
+                                            )
                                         }
                                     },
                                     iconColor = when (activity.browsingModeManager.mode.isPrivate) {
