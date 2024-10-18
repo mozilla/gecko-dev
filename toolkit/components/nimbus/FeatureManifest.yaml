@@ -2164,6 +2164,19 @@ networking:
         branch: default
         pref: "network.cookie.chips.partitionLimitByteCapacity"
 
+disableHttp3:
+  description: "Whether HTTP/3 is disabled"
+  owner: kershaw@mozilla.com
+  hasExposure: false
+  variables:
+    withThirdPartyRoots:
+      description: If third party roots are detected, disable HTTP/3
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.http.http3.disable_when_third_party_roots_found"
+
+
 networkPrioritization:
   description: "Network request prioritization"
   owner: vgosu@mozilla.com
