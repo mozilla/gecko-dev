@@ -370,3 +370,58 @@ ocsp_request_time:
       - seceng-telemetry@mozilla.com
       - dkeeler@mozilla.com
     expires: never
+
+networking:
+  nss_initialization:
+    type: timespan
+    description: >
+      The time in milliseconds to initialize the NSS component in the
+      parent process.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar networking.nss_initialization.
+    bugs:
+      - https://bugzil.la/1628734
+    data_reviews:
+      - https://bugzil.la/1628734
+    notification_emails:
+      - mconley@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
+    time_unit: millisecond
+    telemetry_mirror: NETWORKING_NSS_INITIALIZATION
+
+  loading_certs_task:
+    type: timespan
+    description: >
+      The time in milliseconds to load any external certificates. This
+      occurs off of the main-thread, but can block main-thread operations.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar networking.loading_certs_task.
+    bugs:
+      - https://bugzil.la/1628734
+    data_reviews:
+      - https://bugzil.la/1628734
+    notification_emails:
+      - mconley@mozilla.com
+      - dkeeler@mozilla.com
+    expires: never
+    time_unit: millisecond
+    telemetry_mirror: NETWORKING_LOADING_CERTS_TASK
+
+security:
+  client_auth_cert_usage:
+    type: labeled_counter
+    description: >
+      Measures how many servers have requested a client authentication
+      certificate (key: "requested") and how many times the user has opted
+      to send one in response (key: "sent").
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar security.client_auth_cert_usage.
+    bugs:
+      - https://bugzil.la/1749884
+    data_reviews:
+      - https://bugzil.la/1749884
+    notification_emails:
+      - dkeeler@mozilla.com
+    expires: never
+    telemetry_mirror: SECURITY_CLIENT_AUTH_CERT_USAGE

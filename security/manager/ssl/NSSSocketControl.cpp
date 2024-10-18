@@ -491,8 +491,7 @@ void NSSSocketControl::ClientAuthCertificateSelected(
   bool sendingClientAuthCert = cert && key;
   if (sendingClientAuthCert) {
     mSentClientCert = true;
-    Telemetry::ScalarAdd(Telemetry::ScalarID::SECURITY_CLIENT_AUTH_CERT_USAGE,
-                         u"sent"_ns, 1);
+    glean::security::client_auth_cert_usage.Get("sent"_ns).Add(1);
   }
 
   Unused << SSL_ClientCertCallbackComplete(
