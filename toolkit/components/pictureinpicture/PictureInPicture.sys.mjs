@@ -72,11 +72,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 /**
- * Tracks the number of currently open player windows for Telemetry tracking
- */
-let gCurrentPlayerCount = 0;
-
-/**
  * To differentiate windows in the Telemetry Event Log, each Picture-in-Picture
  * player window is given a unique ID.
  */
@@ -255,6 +250,10 @@ export var PictureInPicture = {
 
   // Maps a WindowGlobal to count of eligible PiP videos
   weakGlobalToEligiblePipCount: new WeakMap(),
+
+  // Tracks the number of open player windows for Telemetry tracking.
+  currentPlayerCount: 0,
+  maxConcurrentPlayerCount: 0,
 
   /**
    * Returns the player window if one exists and if it hasn't yet been closed.
@@ -843,11 +842,13 @@ export var PictureInPicture = {
    *   the player component inside it has finished loading.
    */
   async handlePictureInPictureRequest(wgp, videoData) {
-    gCurrentPlayerCount += 1;
-
-    Services.telemetry.scalarSetMaximum(
-      "pictureinpicture.most_concurrent_players",
-      gCurrentPlayerCount
+    this.currentPlayerCount += 1;
+    this.maxConcurrentPlayerCount = Math.max(
+      this.maxConcurrentPlayerCount,
+      this.currentPlayerCount
+    );
+    Glean.pictureinpicture.mostConcurrentPlayers.set(
+      this.maxConcurrentPlayerCount
     );
 
     let browser = wgp.browsingContext.top.embedderElement;
@@ -930,7 +931,7 @@ export var PictureInPicture = {
     let browser = this.weakWinToBrowser.get(window);
     this.removeOriginatingWinFromWeakMap(browser);
 
-    gCurrentPlayerCount -= 1;
+    this.currentPlayerCount -= 1;
     // Saves the location of the Picture in Picture window
     this.savePosition(window);
     this.clearPipTabIcon(window);

@@ -5171,7 +5171,7 @@ BrowserGlue.prototype = {
 
     const observe = (subject, topic) => {
       const enabled = Services.prefs.getBoolPref(TOGGLE_ENABLED_PREF, false);
-      Services.telemetry.scalarSet("pictureinpicture.toggle_enabled", enabled);
+      Glean.pictureinpicture.toggleEnabled.set(enabled);
 
       // Record events when preferences change
       if (topic === "nsPref:changed") {

@@ -16,6 +16,10 @@ function getTelemetryMaxPipCount(resetMax = false) {
     "main",
     resetMax
   ).parent;
+  if (resetMax) {
+    PictureInPicture.maxConcurrentPlayerCount =
+      PictureInPicture.currentPlayerCount;
+  }
   return scalarData["pictureinpicture.most_concurrent_players"];
 }
 
