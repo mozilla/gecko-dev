@@ -105,7 +105,7 @@ export const Heuristics = {
   },
 
   // Keep this in sync with the description of networking.doh_heuristics_result
-  // defined in Scalars.yaml
+  // defined in Scalars.yaml and the equivalent Glean metric in metrics.yaml.
   Telemetry: {
     incomplete: 0,
     pass: 1,

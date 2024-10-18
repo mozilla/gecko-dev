@@ -279,3 +279,74 @@ security.doh.trr_performance:
           event's `value` parameter.
         type: string
     telemetry_mirror: SecurityDohTrrperformance_Trrselect_Dryrunresult
+
+networking:
+  doh_heuristics_attempts:
+    type: counter
+    description: >
+      The number of times we ran DoH heuristics.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar networking.doh_heuristics_attempts.
+    bugs:
+      - https://bugzil.la/1784258
+    data_reviews:
+      - https://bugzil.la/1784258
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORKING_DOH_HEURISTICS_ATTEMPTS
+
+  doh_heuristics_pass_count:
+    type: counter
+    description: >
+      The number of times we passed DoH heuristics.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar networking.doh_heuristics_pass_count.
+    bugs:
+      - https://bugzil.la/1784258
+    data_reviews:
+      - https://bugzil.la/1784258
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORKING_DOH_HEURISTICS_PASS_COUNT
+
+  doh_heuristics_result:
+    type: quantity
+    description: >
+      The value of this scalar indicates the result of the last heuristic
+      run. 0: "incomplete" 1: "pass" 2: "opt-out" 3: "manually-disabled"
+      4: "manually-enabled" 5: "enterprise-disabled" 6: "enterprise-
+      present" 7: "enterprise-enabled" 8: "vpn" 9: "proxy" 10: "nrpt" 11:
+      "parental" 12: "modifiedRoots" 13: "thirdPartyRoots" 14: "google"
+      15: "youtube" 16: "zscaler" 17: "canary" 18: "ignored"
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar networking.doh_heuristics_result.
+    bugs:
+      - https://bugzil.la/1784258
+    data_reviews:
+      - https://bugzil.la/1784258
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    unit: doh heuristic result
+    telemetry_mirror: NETWORKING_DOH_HEURISTICS_RESULT
+
+  doh_heuristic_ever_tripped:
+    type: labeled_boolean
+    description: >
+      True if this heuristic (key) was ever tripped during the session.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar networking.doh_heuristic_ever_tripped.
+    bugs:
+      - https://bugzil.la/1784258
+    data_reviews:
+      - https://bugzil.la/1784258
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: NETWORKING_DOH_HEURISTIC_EVER_TRIPPED
