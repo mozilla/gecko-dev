@@ -37,13 +37,6 @@ class AutoMemMap {
                             PRFileMapProtect prot = PR_PROT_READONLY,
                             size_t maybeSize = 0);
 
-  // Initializes the mapped memory with a shared memory handle. On
-  // Unix-like systems, this is identical to the above init() method. On
-  // Windows, the FileDescriptor must be a handle for a file mapping,
-  // rather than a file descriptor.
-  Result<Ok, nsresult> initWithHandle(const FileDescriptor& file, size_t size,
-                                      PRFileMapProtect prot = PR_PROT_READONLY);
-
   void reset();
 
   bool initialized() const { return addr; }
@@ -77,13 +70,6 @@ class AutoMemMap {
 
   AutoFDClose fd;
   PRFileMap* fileMap = nullptr;
-
-#ifdef XP_WIN
-  // We can't include windows.h in this header, since it gets included
-  // by some binding headers (which are explicitly incompatible with
-  // windows.h). So we can't use the HANDLE type here.
-  void* handle_ = nullptr;
-#endif
 
   uint32_t size_ = 0;
   void* addr = nullptr;

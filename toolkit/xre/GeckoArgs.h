@@ -8,6 +8,7 @@
 #include "mozilla/CmdLineAndEnvUtils.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtrExtensions.h"
+#include "mozilla/ipc/SharedMemory.h"
 
 #include <array>
 #include <cctype>
@@ -187,14 +188,14 @@ static CommandLineArg<const char*> sProfile{"-profile", "profile"};
 
 static CommandLineArg<UniqueFileHandle> sIPCHandle{"-ipcHandle", "ipchandle"};
 
-static CommandLineArg<UniqueFileHandle> sJsInitHandle{"-jsInitHandle",
-                                                      "jsinithandle"};
+static CommandLineArg<mozilla::ipc::SharedMemoryHandle> sJsInitHandle{
+    "-jsInitHandle", "jsinithandle"};
 static CommandLineArg<uint64_t> sJsInitLen{"-jsInitLen", "jsinitlen"};
-static CommandLineArg<UniqueFileHandle> sPrefsHandle{"-prefsHandle",
-                                                     "prefshandle"};
+static CommandLineArg<mozilla::ipc::SharedMemoryHandle> sPrefsHandle{
+    "-prefsHandle", "prefshandle"};
 static CommandLineArg<uint64_t> sPrefsLen{"-prefsLen", "prefslen"};
-static CommandLineArg<UniqueFileHandle> sPrefMapHandle{"-prefMapHandle",
-                                                       "prefmaphandle"};
+static CommandLineArg<mozilla::ipc::SharedMemoryHandle> sPrefMapHandle{
+    "-prefMapHandle", "prefmaphandle"};
 static CommandLineArg<uint64_t> sPrefMapSize{"-prefMapSize", "prefmapsize"};
 
 static CommandLineArg<uint64_t> sSandboxingKind{"-sandboxingKind",

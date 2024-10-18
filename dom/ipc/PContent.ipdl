@@ -137,7 +137,7 @@ using mozilla::dom::BrowsingContextInitializer from "mozilla/dom/BrowsingContext
 using mozilla::dom::PermitUnloadResult from "nsIDocumentViewer.h";
 using mozilla::dom::MaybeDiscardedWindowContext from "mozilla/dom/WindowContext.h";
 using mozilla::dom::WindowContextTransaction from "mozilla/dom/WindowContext.h";
-[MoveOnly] using base::SharedMemoryHandle from "base/shared_memory.h";
+[MoveOnly] using mozilla::ipc::SharedMemoryHandle from "mozilla/ipc/SharedMemory.h";
 using gfxSparseBitSet from "gfxFontUtils.h";
 using FontVisibility from "gfxFontEntry.h";
 using mozilla::dom::MediaControlAction from "mozilla/dom/MediaControlKeySource.h";
@@ -401,7 +401,7 @@ struct VisitedQueryResult
 struct StringBundleDescriptor
 {
     nsCString bundleURL;
-    FileDescriptor mapFile;
+    SharedMemoryHandle mapHandle;
     uint32_t mapSize;
 };
 
@@ -750,7 +750,7 @@ child:
 
     async RegisterStringBundles(StringBundleDescriptor[] stringBundles);
 
-    async UpdateSharedData(FileDescriptor mapFile, uint32_t aSize,
+    async UpdateSharedData(SharedMemoryHandle aMapHandle, uint32_t aSize,
                            IPCBlob[] blobs,
                            nsCString[] changedKeys);
 

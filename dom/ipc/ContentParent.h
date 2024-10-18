@@ -22,6 +22,7 @@
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/ipc/InputStreamUtils.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/HalTypes.h"
@@ -1127,7 +1128,7 @@ class ContentParent final : public PContentParent,
 
   mozilla::ipc::IPCResult RecvGetFontListShmBlock(
       const uint32_t& aGeneration, const uint32_t& aIndex,
-      base::SharedMemoryHandle* aOut);
+      mozilla::ipc::SharedMemory::Handle* aOut);
 
   mozilla::ipc::IPCResult RecvInitializeFamily(const uint32_t& aGeneration,
                                                const uint32_t& aFamilyIndex,
@@ -1150,9 +1151,9 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvStartCmapLoading(const uint32_t& aGeneration,
                                                const uint32_t& aStartIndex);
 
-  mozilla::ipc::IPCResult RecvGetHyphDict(nsIURI* aURIParams,
-                                          base::SharedMemoryHandle* aOutHandle,
-                                          uint32_t* aOutSize);
+  mozilla::ipc::IPCResult RecvGetHyphDict(
+      nsIURI* aURIParams, mozilla::ipc::SharedMemory::Handle* aOutHandle,
+      uint32_t* aOutSize);
 
   mozilla::ipc::IPCResult RecvNotifyBenchmarkResult(const nsAString& aCodecName,
                                                     const uint32_t& aDecodeFPS);
