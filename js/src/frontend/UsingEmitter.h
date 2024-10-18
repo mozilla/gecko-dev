@@ -116,9 +116,6 @@ class MOZ_STACK_CLASS UsingEmitter {
   [[nodiscard]] bool emitNonLocalJump(EmitterScope* present);
 
   [[nodiscard]] bool emitEnd();
-
-  [[nodiscard]] bool emitNonLocalJumpNeedingIteratorClose(
-      EmitterScope* present);
 };
 
 // This is a version of UsingEmitter specialized to help emit code for
