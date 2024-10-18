@@ -5,6 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsRemoteClient.h"
 #ifdef MOZ_WIDGET_GTK
 #  ifdef MOZ_ENABLE_DBUS
 #    include "nsDBusRemoteServer.h"
@@ -26,26 +27,40 @@
 #include "nsString.h"
 #include "nsServiceManagerUtils.h"
 #include "SpecialSystemDirectory.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 
-// Time to wait for the remoting service to start
-#define START_TIMEOUT_SEC 5
+// Time to wait for the startup lock
+#define START_TIMEOUT_MSEC 5000
 #define START_SLEEP_MSEC 100
-
-using namespace mozilla;
 
 extern int gArgc;
 extern char** gArgv;
 
 using namespace mozilla;
 
+nsStartupLock::nsStartupLock(nsIFile* aDir, nsProfileLock& aLock) : mDir(aDir) {
+  mLock = aLock;
+}
+
+nsStartupLock::~nsStartupLock() {
+  mLock.Unlock();
+  mLock.Cleanup();
+
+  mDir->Remove(false);
+}
+
 NS_IMPL_ISUPPORTS(nsRemoteService, nsIObserver, nsIRemoteService)
 
-nsRemoteService::nsRemoteService(const char* aProgram) : mProgram(aProgram) {
+nsRemoteService::nsRemoteService() : mProgram("mozilla") {
   ToLowerCase(mProgram);
 }
 
+void nsRemoteService::SetProgram(const char* aProgram) {
+  mProgram = aProgram;
+  ToLowerCase(mProgram);
+}
 void nsRemoteService::SetProfile(nsACString& aProfile) { mProfile = aProfile; }
 
 #ifdef MOZ_WIDGET_GTK
@@ -54,48 +69,122 @@ void nsRemoteService::SetStartupToken(nsACString& aStartupToken) {
 }
 #endif
 
-void nsRemoteService::LockStartup() {
-  nsCOMPtr<nsIFile> mutexDir;
-  nsresult rv = GetSpecialSystemDirectory(OS_TemporaryDirectory,
-                                          getter_AddRefs(mutexDir));
-  NS_ENSURE_SUCCESS_VOID(rv);
-  rv = mutexDir->AppendNative(mProgram);
-  NS_ENSURE_SUCCESS_VOID(rv);
-
+// Attempts to lock the given directory by polling until the timeout is reached.
+static nsresult AcquireLock(nsIFile* aMutexDir, double aTimeout,
+                            nsProfileLock& aProfileLock) {
   const mozilla::TimeStamp epoch = mozilla::TimeStamp::Now();
   do {
     // If we have been waiting for another instance to release the lock it will
-    // have deleted the lock directory when doing so we have to make sure it
+    // have deleted the lock directory when doing so so we have to make sure it
     // exists every time we poll for the lock.
-    rv = mutexDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
-    if (NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_ALREADY_EXISTS) {
-      mRemoteLockDir = mutexDir;
-    } else {
+    nsresult rv = aMutexDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
       NS_WARNING("Unable to create startup lock directory.");
-      return;
+      return rv;
     }
 
-    rv = mRemoteLock.Lock(mRemoteLockDir, nullptr);
+    rv = aProfileLock.Lock(aMutexDir, nullptr);
     if (NS_SUCCEEDED(rv)) {
-      return;
+      return NS_OK;
     }
 
-    mRemoteLockDir = nullptr;
     PR_Sleep(START_SLEEP_MSEC);
   } while ((mozilla::TimeStamp::Now() - epoch) <
-           mozilla::TimeDuration::FromSeconds(START_TIMEOUT_SEC));
+           mozilla::TimeDuration::FromMilliseconds(aTimeout));
 
-  NS_WARNING("Failed to lock for startup, continuing anyway.");
+  return NS_ERROR_FAILURE;
 }
 
-void nsRemoteService::UnlockStartup() {
-  if (mRemoteLockDir) {
-    mRemoteLock.Unlock();
-    mRemoteLock.Cleanup();
-
-    mRemoteLockDir->Remove(false);
-    mRemoteLockDir = nullptr;
+RefPtr<nsRemoteService::StartupLockPromise> nsRemoteService::AsyncLockStartup(
+    double aTimeout) {
+  // If startup is already locked we can just resolve immediately.
+  RefPtr<nsStartupLock> lock(mStartupLock);
+  if (lock) {
+    return StartupLockPromise::CreateAndResolve(lock, __func__);
   }
+
+  // If there is already an executing promise we can just return that otherwise
+  // we have to start a new one.
+  if (mStartupLockPromise) {
+    return mStartupLockPromise;
+  }
+
+  nsCOMPtr<nsIFile> mutexDir;
+  nsresult rv = GetSpecialSystemDirectory(OS_TemporaryDirectory,
+                                          getter_AddRefs(mutexDir));
+  if (NS_FAILED(rv)) {
+    return StartupLockPromise::CreateAndReject(rv, __func__);
+  }
+
+  rv = mutexDir->AppendNative(mProgram);
+  if (NS_FAILED(rv)) {
+    return StartupLockPromise::CreateAndReject(rv, __func__);
+  }
+
+  nsCOMPtr<nsISerialEventTarget> queue;
+  MOZ_ALWAYS_SUCCEEDS(NS_CreateBackgroundTaskQueue("StartupLockTaskQueue",
+                                                   getter_AddRefs(queue)));
+
+  mStartupLockPromise = InvokeAsync(
+      queue, __func__, [mutexDir = std::move(mutexDir), aTimeout]() {
+        nsProfileLock lock;
+        nsresult rv = AcquireLock(mutexDir, aTimeout, lock);
+        if (NS_SUCCEEDED(rv)) {
+          return StartupLockPromise::CreateAndResolve(
+              new nsStartupLock(mutexDir, lock), __func__);
+        }
+
+        return StartupLockPromise::CreateAndReject(rv, __func__);
+      });
+
+  // Note this is the guaranteed first `Then` and will run before any other
+  // `Then`s.
+  mStartupLockPromise->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [this, self = RefPtr{this}](
+          const StartupLockPromise::ResolveOrRejectValue& aResult) {
+        if (aResult.IsResolve()) {
+          mStartupLock = aResult.ResolveValue();
+        }
+        mStartupLockPromise = nullptr;
+      });
+
+  return mStartupLockPromise;
+}
+
+already_AddRefed<nsStartupLock> nsRemoteService::LockStartup() {
+  MOZ_RELEASE_ASSERT(!mStartupLockPromise,
+                     "Should not have started an asynchronous lock attempt");
+
+  // If we're already locked just return the current lock.
+  RefPtr<nsStartupLock> lock(mStartupLock);
+  if (lock) {
+    return lock.forget();
+  }
+
+  nsCOMPtr<nsIFile> mutexDir;
+  nsresult rv = GetSpecialSystemDirectory(OS_TemporaryDirectory,
+                                          getter_AddRefs(mutexDir));
+  if (NS_FAILED(rv)) {
+    return nullptr;
+  }
+
+  rv = mutexDir->AppendNative(mProgram);
+  if (NS_FAILED(rv)) {
+    return nullptr;
+  }
+
+  nsProfileLock profileLock;
+  rv = AcquireLock(mutexDir, START_TIMEOUT_MSEC, profileLock);
+
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to lock for startup, continuing anyway.");
+    return nullptr;
+  }
+
+  lock = new nsStartupLock(mutexDir, profileLock);
+  mStartupLock = lock;
+  return lock.forget();
 }
 
 nsresult nsRemoteService::SendCommandLine(const nsACString& aProfile,
@@ -203,10 +292,7 @@ void nsRemoteService::StartupServer() {
 
 void nsRemoteService::ShutdownServer() { mRemoteServer = nullptr; }
 
-nsRemoteService::~nsRemoteService() {
-  UnlockStartup();
-  ShutdownServer();
-}
+nsRemoteService::~nsRemoteService() { ShutdownServer(); }
 
 NS_IMETHODIMP
 nsRemoteService::Observe(nsISupports* aSubject, const char* aTopic,
