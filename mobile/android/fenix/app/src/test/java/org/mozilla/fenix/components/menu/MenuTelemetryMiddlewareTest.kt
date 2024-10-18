@@ -46,17 +46,17 @@ class MenuTelemetryMiddlewareTest {
 
         store.dispatch(MenuAction.AddBookmark).joinBlocking()
 
-        assertTelemetryRecorded(Events.browserMenuAction, item = "bookmark")
+        assertTelemetryRecorded(Events.browserMenuAction, item = "add_bookmark")
     }
 
     @Test
-    fun `WHEN navigating to edit a bookmark THEN record the bookmark browser menu telemetry`() {
+    fun `WHEN navigating to edit a bookmark THEN record the edit bookmark browser menu telemetry`() {
         val store = createStore()
         assertNull(Events.browserMenuAction.testGetValue())
 
         store.dispatch(MenuAction.Navigate.EditBookmark).joinBlocking()
 
-        assertTelemetryRecorded(Events.browserMenuAction, item = "bookmark")
+        assertTelemetryRecorded(Events.browserMenuAction, item = "edit_bookmark")
     }
 
     @Test
