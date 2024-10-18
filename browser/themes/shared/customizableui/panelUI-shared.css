@@ -802,11 +802,13 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 
 #fxa-menu-header-title {
   color: var(--arrowpanel-color);
+  text-wrap: wrap;
 }
 
 #fxa-menu-header-description {
   color: var(--text-color-deemphasized);
   font-weight: var(--font-weight-bold);
+  text-wrap: wrap;
 }
 
 #cta-menu-header-description {

@@ -1,6 +1,10 @@
 [DEFAULT]
 support-files = ["head.js"]
 
+["browser_appmenu_signin_cta_variants.js"]
+
+["browser_avatar_menu_signin_cta_variants.js"]
+
 ["browser_contextmenu_sendpage.js"]
 
 ["browser_contextmenu_sendtab.js"]

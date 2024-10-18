@@ -2676,6 +2676,46 @@ fxaClientAssociation:
         branch: user
         pref: identity.fxaccounts.telemetry.clientAssociationPing.enabled
 
+fxaAppMenuItem:
+  description: >-
+    Prefs to control the appearance and copy of the FxA sign-in button in the
+    AppMenu when signed out.
+  owner: mconley@mozilla.com
+  hasExposure: true
+  exposureDescription: >-
+    Exposure is recorded when the user is enrolled in an experiment using this
+    feature and the AppMenu on Firefox Desktop is opened.
+  variables:
+    ctaCopyVariant:
+      description: >-
+        One of the following values:
+          - control
+          - sync-devices
+          - backup-data
+          - backup-sync
+          - mobile
+      type: string
+
+fxaAvatarMenuItem:
+  description: >-
+    Prefs to control the appearance and copy of the FxA sign-in button in the
+    FxA avatar menu when signed out.
+  owner: mconley@mozilla.com
+  hasExposure: true
+  exposureDescription: >-
+    Exposure is recorded when the user is enrolled in an experiment using this
+    feature and the FxA avatar menu on Firefox Desktop is opened.
+  variables:
+    ctaCopyVariant:
+      description: >-
+        One of the following values:
+          - control
+          - sync-devices
+          - backup-data
+          - backup-sync
+          - mobile
+      type: string
+
 legacyHeartbeat:
   description: Normandy Heartbeat exposed to Nimbus
   owner: beth@mozilla.com

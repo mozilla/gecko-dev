@@ -96,6 +96,8 @@ export default class FxAMenuMessage extends MozLitElement {
           type="primary"
           tabindex="1"
           autofocus
+          title="${this.buttonText}"
+          aria-label="${this.buttonText}"
           >${this.buttonText}</moz-button
         >
       </div>
