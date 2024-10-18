@@ -974,7 +974,8 @@ function verifySectionAutofillResult(section, result, expectedSection) {
 
 function getSelectorFromFieldDetail(fieldDetail) {
   // identifier is set with `${element.id}/${element.name}`;
-  return `#${fieldDetail.identifier.split("/")[0]}`;
+  const id = fieldDetail.identifier.split("/")[0];
+  return `input#${id}, select#${id}`;
 }
 
 /**
@@ -1083,12 +1084,30 @@ async function findContext(browser, selector) {
     const find = await SpecialPowers.spawn(
       context,
       [selector],
-      async selector => !!content.document.querySelector(selector)
+      async selector => {
+        // This is a workaround to address issues when there are multiple
+        // elements with the same id and name on a page. This is a common pattern
+        // when sites use multiple iframes for credit card fields. Each iframe
+        // contains all the CC-related fields, but only one of the fields is visible.
+        // TODO: replace the following with an approach that can precisely find the
+        // element we want without basing on visibility.
+        const e = content.document.querySelector(selector);
+        if (e && content.HTMLInputElement.isInstance(e)) {
+          return !!(
+            e.checkVisibility({
+              checkOpacity: true,
+              checkVisibilityCSS: true,
+            }) && e.getAttribute("aria-hidden") != "true"
+          );
+        }
+        return !!e;
+      }
     );
     if (find) {
       return context;
     }
   }
+
   return null;
 }
 
@@ -1494,7 +1513,7 @@ async function add_heuristic_tests(
         `/document-builder.sjs?html=${encodeURIComponent(
           testPattern.fixtureData
         )}`
-      : `${BASE_URL}../${fixturePathPrefix}${testPattern.fixturePath}`;
+      : `${TOP_LEVEL_URL}../${fixturePathPrefix}${testPattern.fixturePath}`;
 
     info(`Test "${testPattern.description}"`);
 
@@ -1535,7 +1554,11 @@ async function add_heuristic_tests(
           });
         });
 
-        await BrowserTestUtils.synthesizeKey("VK_ESCAPE", {}, context);
+        try {
+          await BrowserTestUtils.synthesizeKey("VK_ESCAPE", {}, context);
+        } catch (e) {
+          // Error occurs when sending a key event to an invisible iframe, ignore the error.
+        }
       }
 
       // This is a workaround for when we set focus on elements across iframes (in the previous step).
@@ -1562,22 +1585,19 @@ async function add_heuristic_tests(
       if (options.testAutofill) {
         info(`test preview, autofill, and clear form`);
         let section;
+        let expected;
         let autofillTrigger = testPattern.autofillTrigger;
         if (autofillTrigger) {
-          if (!autofillTrigger.startsWith("#")) {
-            Assert.ok(false, `autofillTrigger must start with #`);
-          }
-          section = sections.find(s =>
-            s.fieldDetails.some(f =>
-              f.identifier.startsWith(autofillTrigger.substr(1))
-            )
+          const idx = testPattern.expectedResult.findIndex(expectedSection =>
+            expectedSection.fields.some(field => "autofill" in field)
           );
+          section = sections[idx];
+          expected = testPattern.expectedResult[idx];
         } else {
           section = sections[0];
+          expected = testPattern.expectedResult[0];
           autofillTrigger = getSelectorFromFieldDetail(section.fieldDetails[0]);
         }
-
-        const expected = testPattern.expectedResult[sections.indexOf(section)];
 
         await triggerAutofillAndPreview(
           browser,

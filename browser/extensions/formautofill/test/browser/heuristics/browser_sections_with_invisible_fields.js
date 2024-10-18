@@ -39,7 +39,7 @@ add_heuristic_tests([
             <input type="text" autocomplete="cc-number"/>
             <input type="text" autocomplete="cc-name"/>
             <input type="text" autocomplete="cc-exp"/>
-            <input type="text" autocomplete="cc-exp" style="display:none"/>
+            <select autocomplete="cc-exp" style="display:none"></select>
         </body></html>
       `,
     expectedResult: [
@@ -62,8 +62,8 @@ add_heuristic_tests([
         <html><body>
             <input type="text" autocomplete="cc-number""/>
             <input type="text" autocomplete="cc-name"/>
-            <input type="text" autocomplete="cc-exp" style="display:none"/>
-            <input type="text" autocomplete="cc-exp"/>
+            <select autocomplete="cc-exp" style="display:none"></select>
+            <select autocomplete="cc-exp"></select>
         </body></html>
       `,
     expectedResult: [
@@ -84,10 +84,10 @@ add_heuristic_tests([
     description: `Do not create a new section for an invisible field (match field is not adjacent)`,
     fixtureData: `
         <html><body>
-            <input type="text" autocomplete="cc-number"/>
+            <select autocomplete="cc-exp"></select>
             <input type="text" autocomplete="cc-name"/>
-            <input type="text" autocomplete="cc-exp"/>
-            <input type="text" autocomplete="cc-number" style="display:none"/>
+            <input type="text" autocomplete="cc-number"/>
+            <select autocomplete="cc-exp" style="display:none"></select>
         </body></html>
       `,
     expectedResult: [
@@ -96,10 +96,10 @@ add_heuristic_tests([
           reason: "autocomplete",
         },
         fields: [
-          { fieldName: "cc-number" },
-          { fieldName: "cc-name" },
           { fieldName: "cc-exp" },
+          { fieldName: "cc-name" },
           { fieldName: "cc-number" },
+          { fieldName: "cc-exp" },
         ],
       },
     ],
@@ -108,10 +108,10 @@ add_heuristic_tests([
     description: `Do not create a new section when the field with the same field name is an invisible field (match field is not adjacent)`,
     fixtureData: `
         <html><body>
-            <input type="text" autocomplete="cc-number" style="display:none"/>
+            <select autocomplete="cc-exp" style="display:none"></select>
             <input type="text" autocomplete="cc-name"/>
-            <input type="text" autocomplete="cc-exp"/>
             <input type="text" autocomplete="cc-number"/>
+            <select autocomplete="cc-exp"></select>
         </body></html>
       `,
     expectedResult: [
@@ -120,10 +120,10 @@ add_heuristic_tests([
           reason: "autocomplete",
         },
         fields: [
-          { fieldName: "cc-number" },
-          { fieldName: "cc-name" },
           { fieldName: "cc-exp" },
+          { fieldName: "cc-name" },
           { fieldName: "cc-number" },
+          { fieldName: "cc-exp" },
         ],
       },
     ],

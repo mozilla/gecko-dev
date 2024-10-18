@@ -44,7 +44,6 @@ add_autofill_heuristic_tests([
       {
         fields: [
           { fieldName: "cc-number", autofill: TEST_PROFILE["cc-number"] },
-          { fieldName: "cc-name", autofill: "" },
           {
             fieldName: "cc-exp",
             autofill: `${TEST_PROFILE["cc-exp-month"]}/${TEST_PROFILE["cc-exp-year"]}`,

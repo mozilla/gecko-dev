@@ -15,7 +15,6 @@ const TEST_PROFILE = {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["extensions.formautofill.loglevel", "Debug"],
       ["extensions.formautofill.creditCards.supported", "on"],
       ["extensions.formautofill.creditCards.enabled", true],
     ],

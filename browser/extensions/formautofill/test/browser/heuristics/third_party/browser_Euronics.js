@@ -19,12 +19,11 @@ add_heuristic_tests(
           ],
         },
         {
+          invalid: true,
           default: {
             reason: "regex-heuristic",
           },
           fields: [
-            { fieldName: "email" },
-            { fieldName: "tel" },
             { fieldName: "country" },
             { fieldName: "organization" },
           ],

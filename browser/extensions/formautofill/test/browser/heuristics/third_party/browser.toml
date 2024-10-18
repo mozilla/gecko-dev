@@ -21,6 +21,8 @@ support-files = [
 
 ["browser_HomeDepot.js"]
 
+["browser_Inkbox.js"]
+
 ["browser_Lufthansa.js"]
 
 ["browser_Lush.js"]
