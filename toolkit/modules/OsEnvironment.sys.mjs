@@ -45,17 +45,19 @@ export let OsEnvironment = {
       return;
     }
 
+    const appSourceScalar = "os.environment.allowed_app_sources";
+
     let haveAppSourcesFeature;
     try {
       haveAppSourcesFeature =
         OsEnvironment.Policy.windowsVersionHasAppSourcesFeature();
     } catch (ex) {
       console.error(ex);
-      Glean.osEnvironment.allowedAppSources.set("Error");
+      Services.telemetry.scalarSet(appSourceScalar, "Error");
       return;
     }
     if (!haveAppSourcesFeature) {
-      Glean.osEnvironment.allowedAppSources.set("NoSuchFeature");
+      Services.telemetry.scalarSet(appSourceScalar, "NoSuchFeature");
       return;
     }
 
@@ -64,7 +66,7 @@ export let OsEnvironment = {
       allowedAppSources = OsEnvironment.Policy.getAllowedAppSources();
     } catch (ex) {
       console.error(ex);
-      Glean.osEnvironment.allowedAppSources.set("Error");
+      Services.telemetry.scalarSet(appSourceScalar, "Error");
       return;
     }
     if (allowedAppSources === undefined) {
@@ -87,6 +89,6 @@ export let OsEnvironment = {
       allowedAppSources = "Error";
     }
 
-    Glean.osEnvironment.allowedAppSources.set(allowedAppSources);
+    Services.telemetry.scalarSet(appSourceScalar, allowedAppSources);
   },
 };

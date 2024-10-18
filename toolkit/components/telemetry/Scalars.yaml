@@ -2567,6 +2567,8 @@ os.environment:
       - 'firefox'
     record_in_processes:
       - main
+    operating_systems:
+      - "windows"
 
   allowed_app_sources:
     bug_numbers:
@@ -2588,6 +2590,8 @@ os.environment:
       - 'thunderbird'
     record_in_processes:
       - main
+    operating_systems:
+      - "windows"
 
   launch_method:
     bug_numbers:
@@ -2610,6 +2614,8 @@ os.environment:
       - firefox
     record_in_processes:
       - main
+    operating_systems:
+      - windows
 
   launched_to_handle:
     bug_numbers:
@@ -2636,6 +2642,8 @@ os.environment:
       - firefox
     record_in_processes:
       - main
+    operating_systems:
+      - windows
 
   invoked_to_handle:
     bug_numbers:
@@ -2663,6 +2671,8 @@ os.environment:
       - firefox
     record_in_processes:
       - main
+    operating_systems:
+      - windows
 
   is_default_handler:
     bug_numbers:
@@ -2685,6 +2695,8 @@ os.environment:
       - firefox
     record_in_processes:
       - main
+    operating_systems:
+      - windows
 
   is_kept_in_dock:
     bug_numbers:
@@ -2700,6 +2712,8 @@ os.environment:
       - firefox
     record_in_processes:
       - main
+    operating_systems:
+      - mac
 
   is_taskbar_pinned:
     bug_numbers:
@@ -2716,6 +2730,8 @@ os.environment:
       - firefox
     record_in_processes:
       - main
+    operating_systems:
+      - windows
 
   is_taskbar_pinned_private:
     bug_numbers:
@@ -2731,6 +2747,8 @@ os.environment:
       - firefox
     record_in_processes:
       - main
+    operating_systems:
+      - windows
 
 pictureinpicture:
   most_concurrent_players:

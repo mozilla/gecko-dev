@@ -1903,8 +1903,11 @@ BrowserGlue.prototype = {
         Services.startup.secondsSinceLastOSRestart;
       let isColdStartup =
         nowSeconds - secondsSinceLastOSRestart > lastCheckSeconds;
-      Glean.startup.isCold.set(isColdStartup);
-      Glean.startup.secondsSinceLastOsRestart.set(secondsSinceLastOSRestart);
+      Services.telemetry.scalarSet("startup.is_cold", isColdStartup);
+      Services.telemetry.scalarSet(
+        "startup.seconds_since_last_os_restart",
+        secondsSinceLastOSRestart
+      );
     } catch (ex) {
       console.error(ex);
     }
@@ -2624,7 +2627,8 @@ BrowserGlue.prototype = {
           );
 
           try {
-            Glean.osEnvironment.isTaskbarPinned.set(
+            Services.telemetry.scalarSet(
+              "os.environment.is_taskbar_pinned",
               await shellService.isCurrentAppPinnedToTaskbarAsync(
                 winTaskbar.defaultGroupId
               )
@@ -2636,7 +2640,8 @@ BrowserGlue.prototype = {
               AppConstants.platform === "win" &&
               !Services.sysinfo.getProperty("hasWinPackageId")
             ) {
-              Glean.osEnvironment.isTaskbarPinnedPrivate.set(
+              Services.telemetry.scalarSet(
+                "os.environment.is_taskbar_pinned_private",
                 await shellService.isCurrentAppPinnedToTaskbarAsync(
                   winTaskbar.defaultPrivateGroupId
                 )
@@ -2669,7 +2674,10 @@ BrowserGlue.prototype = {
           if (gThisInstanceIsTaskbarTab) {
             classification = "TaskbarTab";
           }
-          Glean.osEnvironment.launchMethod.set(classification);
+          Services.telemetry.scalarSet(
+            "os.environment.launch_method",
+            classification
+          );
         },
       },
 
@@ -2803,7 +2811,9 @@ BrowserGlue.prototype = {
         condition: AppConstants.platform == "win",
         task: () => {
           [".pdf", "mailto"].every(x => {
-            Glean.osEnvironment.isDefaultHandler[x].set(
+            Services.telemetry.keyedScalarSet(
+              "os.environment.is_default_handler",
+              x,
               lazy.ShellService.isDefaultHandlerFor(x)
             );
             return true;
@@ -2844,7 +2854,8 @@ BrowserGlue.prototype = {
         condition: AppConstants.platform == "macosx",
         task: () => {
           try {
-            Glean.osEnvironment.isKeptInDock.set(
+            Services.telemetry.scalarSet(
+              "os.environment.is_kept_in_dock",
               Cc["@mozilla.org/widget/macdocksupport;1"].getService(
                 Ci.nsIMacDockSupport
               ).isAppInDock
