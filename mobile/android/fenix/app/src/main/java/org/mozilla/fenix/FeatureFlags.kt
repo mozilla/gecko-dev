@@ -87,4 +87,9 @@ object FeatureFlags {
      * Enables Homepage as a New Tab.
      */
     const val homepageAsNewTab = false
+
+    /**
+     * Enables Merino content recommendations.
+     */
+    const val merinoContentRecommendations = false
 }

@@ -102,6 +102,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreference>(R.string.pref_key_pocket_content_recommendations).apply {
+            isVisible = Config.channel.isNightlyOrDebug
+            isChecked = context.settings().showContentRecommendations
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_enable_fxsuggest).apply {
             isVisible = FeatureFlags.fxSuggest
             isChecked = context.settings().enableFxSuggest

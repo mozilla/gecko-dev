@@ -1649,6 +1649,14 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Indicates if Merino content recommendations should be shown.
+     */
+    var showContentRecommendations by booleanPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_pocket_content_recommendations),
+        default = FeatureFlags.merinoContentRecommendations,
+    )
+
+    /**
      *  Whether or not to display the Pocket sponsored stories parameter secret settings.
      */
     var useCustomConfigurationForSponsoredStories by booleanPreference(
