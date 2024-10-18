@@ -420,7 +420,7 @@ export const ContentAnalysis = {
         element.ownerDocument,
         "content-analysis-panel-description"
       ),
-      "content-analysis-panel-text",
+      "content-analysis-panel-text-styled",
       { agentName: lazy.agentName }
     );
     panelUI.showSubView("content-analysis-panel", element);
