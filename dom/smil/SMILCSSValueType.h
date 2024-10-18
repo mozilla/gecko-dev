@@ -96,7 +96,8 @@ class SMILCSSValueType : public SMILType {
    *
    * Returns whether the declaration changed.
    */
-  static bool SetPropertyValues(const SMILValue&, mozilla::DeclarationBlock&);
+  static bool SetPropertyValues(nsCSSPropertyID, const SMILValue&,
+                                mozilla::DeclarationBlock&);
 
   /**
    * Return the CSS property animated by the specified value.

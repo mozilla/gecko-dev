@@ -481,13 +481,15 @@ SMILValue SMILCSSValueType::ValueFromAnimationValue(
 }
 
 // static
-bool SMILCSSValueType::SetPropertyValues(const SMILValue& aValue,
+bool SMILCSSValueType::SetPropertyValues(nsCSSPropertyID aPropertyId,
+                                         const SMILValue& aValue,
                                          DeclarationBlock& aDecl) {
   MOZ_ASSERT(aValue.mType == &SMILCSSValueType::sSingleton,
              "Unexpected SMIL value type");
   const ValueWrapper* wrapper = ExtractValueWrapper(aValue);
   if (!wrapper) {
-    return false;
+    return Servo_DeclarationBlock_RemovePropertyById(aDecl.Raw(), aPropertyId,
+                                                     {});
   }
 
   bool changed = false;
