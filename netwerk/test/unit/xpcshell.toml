@@ -781,13 +781,6 @@ skip-if = [
 ]
 run-sequentially = "node server exceptions dont replay well"
 
-["test_http3_with_third_party_roots.js"]
-skip-if = [
-  "os == 'win'",
-  "socketprocess_networking",
-]
-run-sequentially = "node server exceptions dont replay well"
-
 ["test_httpResponseTimeout.js"]
 skip-if = ["os == 'win' && socketprocess_networking"]
 
