@@ -182,6 +182,10 @@ def main():
         if "_memory_" in filename:
             continue
 
+        # {fmt} can do transient allocations when formatting strings
+        if "third_party_fmt" in filename:
+            continue
+
         # Ignore the fuzzing code imported from m-c
         if "Fuzzer" in filename:
             continue
