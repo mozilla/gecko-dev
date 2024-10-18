@@ -12,7 +12,6 @@
 #include "js/PropertyAndElement.h"
 #include "js/PropertySpec.h"
 #include "vm/GlobalObject.h"
-#include "vm/Interpreter.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
 #include "vm/UsingHint.h"
@@ -116,8 +115,7 @@ using namespace js;
   }
 
   JS::Rooted<JS::Value> val(cx, args.get(0));
-  if (!AddDisposableResource(cx, disposeCapability, val, UsingHint::Sync,
-                             JS::NothingHandleValue)) {
+  if (!AddDisposableResource(cx, disposeCapability, val, UsingHint::Sync)) {
     return false;
   }
 
@@ -168,10 +166,8 @@ using namespace js;
     return false;
   }
 
-  JS::Rooted<mozilla::Maybe<JS::Value>> onDisposeVal(cx,
-                                                     mozilla::Some(onDispose));
   if (!AddDisposableResource(cx, disposeCapability, JS::UndefinedHandleValue,
-                             UsingHint::Sync, onDisposeVal)) {
+                             UsingHint::Sync, onDispose)) {
     return false;
   }
 
@@ -292,8 +288,7 @@ using namespace js;
     return false;
   }
 
-  JS::Rooted<mozilla::Maybe<JS::Value>> FVal(cx,
-                                             mozilla::Some(ObjectValue(*F)));
+  JS::Rooted<JS::Value> FVal(cx, ObjectValue(*F));
   if (!AddDisposableResource(cx, disposeCapability, JS::UndefinedHandleValue,
                              UsingHint::Sync, FVal)) {
     return false;

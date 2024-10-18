@@ -59,45 +59,68 @@ bool js::ThrowIfOnDisposeNotCallable(JSContext* cx,
 // Explicit Resource Management Proposal
 // CreateDisposableResource ( V, hint [ , method ] )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-createdisposableresource
-bool js::CreateDisposableResource(
-    JSContext* cx, JS::Handle<JS::Value> obj, UsingHint hint,
-    JS::Handle<mozilla::Maybe<JS::Value>> methodVal,
-    JS::MutableHandle<JS::Value> result) {
+// Steps 1, 3.
+bool js::CreateDisposableResource(JSContext* cx, JS::Handle<JS::Value> objVal,
+                                  UsingHint hint,
+                                  JS::MutableHandle<JS::Value> result) {
   // Step 1. If method is not present, then
+  // (implicit)
   JS::Rooted<JS::Value> method(cx);
   JS::Rooted<JS::Value> object(cx);
-  if (!methodVal.isSome()) {
-    // Step 1.a. If V is either null or undefined, then
-    if (obj.isNullOrUndefined()) {
-      // Step 1.a.i. Set V to undefined.
-      // Step 1.a.ii. Set method to undefined.
-      object.setUndefined();
-      method.setUndefined();
-    } else {
-      // Step 1.b. Else,
-      // Step 1.b.i. If V is not an Object, throw a TypeError exception.
-      if (!obj.isObject()) {
-        return ThrowCheckIsObject(cx, CheckIsObjectKind::Disposable);
-      }
-
-      // Step 1.b.ii. Set method to ? GetDisposeMethod(V, hint).
-      // Step 1.b.iii. If method is undefined, throw a TypeError exception.
-      object.set(obj);
-      if (!GetDisposeMethod(cx, object, hint, &method)) {
-        return false;
-      }
-    }
+  // Step 1.a. If V is either null or undefined, then
+  if (objVal.isNullOrUndefined()) {
+    // Step 1.a.i. Set V to undefined.
+    // Step 1.a.ii. Set method to undefined.
+    object.setUndefined();
+    method.setUndefined();
   } else {
-    // Step 2. Else,
-    // Step 2.a. If IsCallable(method) is false, throw a TypeError exception.
-    if (!IsCallable(*methodVal)) {
-      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                JSMSG_DISPOSE_NOT_CALLABLE);
+    // Step 1.b. Else,
+    // Step 1.b.i. If V is not an Object, throw a TypeError exception.
+    if (!objVal.isObject()) {
+      return ThrowCheckIsObject(cx, CheckIsObjectKind::Disposable);
+    }
+
+    // Step 1.b.ii. Set method to ? GetDisposeMethod(V, hint).
+    // Step 1.b.iii. If method is undefined, throw a TypeError exception.
+    object.set(objVal);
+    if (!GetDisposeMethod(cx, object, hint, &method)) {
       return false;
     }
-    object.set(obj);
-    method.set(*methodVal);
   }
+
+  // Step 3. Return the
+  //         DisposableResource Record { [[ResourceValue]]: V, [[Hint]]: hint,
+  //         [[DisposeMethod]]: method }.
+  DisposableRecordObject* disposableRecord =
+      DisposableRecordObject::create(cx, object, method, hint);
+  if (!disposableRecord) {
+    return false;
+  }
+  result.set(ObjectValue(*disposableRecord));
+
+  return true;
+}
+
+// Explicit Resource Management Proposal
+// CreateDisposableResource ( V, hint [ , method ] )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-createdisposableresource
+// Steps 2, 3.
+bool js::CreateDisposableResource(JSContext* cx, JS::Handle<JS::Value> obj,
+                                  UsingHint hint,
+                                  JS::Handle<JS::Value> methodVal,
+                                  JS::MutableHandle<JS::Value> result) {
+  JS::Rooted<JS::Value> method(cx);
+  JS::Rooted<JS::Value> object(cx);
+
+  // Step 2. Else,
+  // Step 2.a. If IsCallable(method) is false, throw a TypeError exception.
+  if (!IsCallable(methodVal)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_DISPOSE_NOT_CALLABLE);
+    return false;
+  }
+  object.set(obj);
+  method.set(methodVal);
 
   // Step 3. Return the
   //         DisposableResource Record { [[ResourceValue]]: V, [[Hint]]: hint,
@@ -115,38 +138,46 @@ bool js::CreateDisposableResource(
 // Explicit Resource Management Proposal
 // 7.5.4 AddDisposableResource ( disposeCapability, V, hint [ , method ] )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
-// TODO: It is known at compile time whether or not methodVal will be present.
-// thus consider splitting the function to avoid the branching. (Bug 1913999)
-bool js::AddDisposableResource(
-    JSContext* cx, JS::Handle<ArrayObject*> disposeCapability,
-    JS::Handle<JS::Value> val, UsingHint hint,
-    JS::Handle<mozilla::Maybe<JS::Value>> methodVal) {
+// Steps 1, 3.
+bool js::AddDisposableResource(JSContext* cx,
+                               JS::Handle<ArrayObject*> disposeCapability,
+                               JS::Handle<JS::Value> val, UsingHint hint) {
   JS::Rooted<JS::Value> resource(cx);
 
   // Step 1. If method is not present, then
-  if (!methodVal.isSome()) {
-    // Step 1.a. If V is either null or undefined and hint is sync-dispose,
-    // return unused.
-    if (val.isNullOrUndefined() && hint == UsingHint::Sync) {
-      return true;
-    }
-
-    // Step 1.c. Let resource be ? CreateDisposableResource(V, hint).
-    if (!CreateDisposableResource(cx, val, hint, methodVal, &resource)) {
-      return false;
-    }
-  } else {
-    // Step 2. Else,
-    // Step 2.a. Assert: V is undefined.
-    MOZ_ASSERT(val.isUndefined());
-
-    // Step 2.b. Let resource be ? CreateDisposableResource(undefined, hint,
-    // method).
-    if (!CreateDisposableResource(cx, val, hint, methodVal, &resource)) {
-      return false;
-    }
+  // (implicit)
+  // Step 1.a. If V is either null or undefined and hint is sync-dispose,
+  // return unused.
+  if (val.isNullOrUndefined() && hint == UsingHint::Sync) {
+    return true;
   }
 
+  // Step 1.c. Let resource be ? CreateDisposableResource(V, hint).
+  if (!CreateDisposableResource(cx, val, hint, &resource)) {
+    return false;
+  }
+
+  // Step 3. Append resource to disposeCapability.[[DisposableResourceStack]].
+  return NewbornArrayPush(cx, disposeCapability, resource);
+}
+
+// Explicit Resource Management Proposal
+// 7.5.4 AddDisposableResource ( disposeCapability, V, hint [ , method ] )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
+bool js::AddDisposableResource(JSContext* cx,
+                               JS::Handle<ArrayObject*> disposeCapability,
+                               JS::Handle<JS::Value> val, UsingHint hint,
+                               JS::Handle<JS::Value> methodVal) {
+  JS::Rooted<JS::Value> resource(cx);
+  // Step 2. Else,
+  // Step 2.a. Assert: V is undefined.
+  MOZ_ASSERT(val.isUndefined());
+
+  // Step 2.b. Let resource be ? CreateDisposableResource(undefined, hint,
+  // method).
+  if (!CreateDisposableResource(cx, val, hint, methodVal, &resource)) {
+    return false;
+  }
   // Step 3. Append resource to disposeCapability.[[DisposableResourceStack]].
   return NewbornArrayPush(cx, disposeCapability, resource);
 }

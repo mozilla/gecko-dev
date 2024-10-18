@@ -6,7 +6,6 @@
 
 #include "builtin/AsyncDisposableStackObject.h"
 
-#include "vm/Interpreter.h"
 #include "vm/UsingHint.h"
 
 #include "vm/JSObject-inl.h"
@@ -117,8 +116,7 @@ using namespace js;
   }
 
   JS::Rooted<JS::Value> val(cx, args.get(0));
-  if (!AddDisposableResource(cx, disposeCapability, val, UsingHint::Async,
-                             JS::NothingHandleValue)) {
+  if (!AddDisposableResource(cx, disposeCapability, val, UsingHint::Async)) {
     return false;
   }
 
@@ -258,10 +256,8 @@ using namespace js;
     return false;
   }
 
-  JS::Rooted<mozilla::Maybe<JS::Value>> onDisposeAsyncVal(
-      cx, mozilla::Some(onDisposeAsync));
   if (!AddDisposableResource(cx, disposeCapability, JS::UndefinedHandleValue,
-                             UsingHint::Async, onDisposeAsyncVal)) {
+                             UsingHint::Async, onDisposeAsync)) {
     return false;
   }
 
@@ -332,8 +328,7 @@ using namespace js;
     return false;
   }
 
-  JS::Rooted<mozilla::Maybe<JS::Value>> FVal(cx,
-                                             mozilla::Some(ObjectValue(*F)));
+  JS::Rooted<JS::Value> FVal(cx, ObjectValue(*F));
   if (!AddDisposableResource(cx, disposeCapability, JS::UndefinedHandleValue,
                              UsingHint::Async, FVal)) {
     return false;

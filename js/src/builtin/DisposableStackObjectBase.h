@@ -25,12 +25,19 @@ bool AdoptClosure(JSContext* cx, unsigned argc, JS::Value* vp);
 
 bool AddDisposableResource(JSContext* cx,
                            JS::Handle<ArrayObject*> disposeCapability,
+                           JS::Handle<JS::Value> val, UsingHint hint);
+
+bool AddDisposableResource(JSContext* cx,
+                           JS::Handle<ArrayObject*> disposeCapability,
                            JS::Handle<JS::Value> val, UsingHint hint,
-                           JS::Handle<mozilla::Maybe<JS::Value>> methodVal);
+                           JS::Handle<JS::Value> methodVal);
 
 bool CreateDisposableResource(JSContext* cx, JS::Handle<JS::Value> objVal,
                               UsingHint hint,
-                              JS::Handle<mozilla::Maybe<JS::Value>> methodVal,
+                              JS::MutableHandle<JS::Value> result);
+
+bool CreateDisposableResource(JSContext* cx, JS::Handle<JS::Value> objVal,
+                              UsingHint hint, JS::Handle<JS::Value> methodVal,
                               JS::MutableHandle<JS::Value> result);
 
 bool GetDisposeMethod(JSContext* cx, JS::Handle<JS::Value> obj, UsingHint hint,
