@@ -1100,7 +1100,7 @@ nsresult JsepSessionImpl::HandleNegotiatedSession(
     }
 
     // Skip disabled m-sections.
-    if (answer.GetMediaSection(i).GetPort() == 0) {
+    if (mSdpHelper.MsectionIsDisabled(answer.GetMediaSection(i))) {
       transceiver->mTransport.Close();
       transceiver->SetStopped();
       transceiver->Disassociate();
