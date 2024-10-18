@@ -793,6 +793,13 @@ class QuotaManager final : public BackgroundThreadObject {
                                         Initialization, StringGenerator>&>;
 
   template <typename Func>
+  auto ExecuteGroupInitialization(const nsACString& aGroup,
+                                  const GroupInitialization aInitialization,
+                                  const nsACString& aContext, Func&& aFunc)
+      -> std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                        Initialization, StringGenerator>&>;
+
+  template <typename Func>
   auto ExecuteOriginInitialization(const nsACString& aOrigin,
                                    const OriginInitialization aInitialization,
                                    const nsACString& aContext, Func&& aFunc)

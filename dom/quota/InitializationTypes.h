@@ -35,6 +35,12 @@ enum class Initialization {
   PersistentRepository = 1 << 11,
 };
 
+enum class GroupInitialization {
+  None = 0,
+  PersistentGroup = 1 << 0,
+  TemporaryGroup = 1 << 1,
+};
+
 enum class OriginInitialization {
   None = 0,
   PersistentOrigin = 1 << 0,
@@ -42,6 +48,7 @@ enum class OriginInitialization {
 };
 
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(Initialization)
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(GroupInitialization)
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(OriginInitialization)
 
 class StringGenerator final {
@@ -50,18 +57,38 @@ class StringGenerator final {
   static nsLiteralCString GetString(Initialization aInitialization);
 
   // TODO: Use constexpr here once bug 1594094 is addressed.
+  static nsLiteralCString GetString(GroupInitialization aGroupInitialization);
+
+  // TODO: Use constexpr here once bug 1594094 is addressed.
   static nsLiteralCString GetString(OriginInitialization aOriginInitialization);
 };
 
 using OriginInitializationInfo =
     FirstInitializationAttempts<OriginInitialization, StringGenerator>;
 
+using GroupInitializationInfo =
+    FirstInitializationAttempts<GroupInitialization, StringGenerator>;
+
 class InitializationInfo
     : public FirstInitializationAttempts<Initialization, StringGenerator> {
+  nsTHashMap<nsCStringHashKey, GroupInitializationInfo>
+      mGroupInitializationInfos;
   nsTHashMap<nsCStringHashKey, OriginInitializationInfo>
       mOriginInitializationInfos;
 
  public:
+  GroupInitializationInfo& MutableGroupInitializationInfoRef(
+      const nsACString& aGroup) {
+    return *mGroupInitializationInfos.Lookup(aGroup);
+  }
+
+  GroupInitializationInfo& MutableGroupInitializationInfoRef(
+      const nsACString& aGroup, const CreateIfNonExistent&) {
+    return mGroupInitializationInfos.LookupOrInsert(aGroup);
+  }
+
+  void ResetGroupInitializationInfos() { mGroupInitializationInfos.Clear(); }
+
   OriginInitializationInfo& MutableOriginInitializationInfoRef(
       const nsACString& aOrigin) {
     return *mOriginInitializationInfos.Lookup(aOrigin);

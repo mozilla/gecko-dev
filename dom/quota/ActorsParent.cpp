@@ -7207,6 +7207,18 @@ auto QuotaManager::ExecuteInitialization(const Initialization aInitialization,
 }
 
 template <typename Func>
+auto QuotaManager::ExecuteGroupInitialization(
+    const nsACString& aGroup, const GroupInitialization aInitialization,
+    const nsACString& aContext, Func&& aFunc)
+    -> std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                      Initialization, StringGenerator>&> {
+  return quota::ExecuteInitialization(
+      mInitializationInfo.MutableGroupInitializationInfoRef(
+          aGroup, CreateIfNonExistent{}),
+      aInitialization, aContext, std::forward<Func>(aFunc));
+}
+
+template <typename Func>
 auto QuotaManager::ExecuteOriginInitialization(
     const nsACString& aOrigin, const OriginInitialization aInitialization,
     const nsACString& aContext, Func&& aFunc)
