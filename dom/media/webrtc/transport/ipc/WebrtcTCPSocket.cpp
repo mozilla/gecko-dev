@@ -449,6 +449,11 @@ nsresult WebrtcTCPSocket::OpenWithHttpProxy() {
     return NS_ERROR_FAILURE;
   }
 
+  if (!mTls &&
+      mozilla::StaticPrefs::media_webrtc_disallow_HTTPS_upgrade_for_TURN()) {
+    loadInfo->SetSkipHTTPSUpgrade(true);
+  }
+
   rv = localChannel->SetLoadInfo(loadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 

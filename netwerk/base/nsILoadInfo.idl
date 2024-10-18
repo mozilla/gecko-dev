@@ -1588,6 +1588,7 @@ interface nsILoadInfo : nsISupports
     HTTPS_RR = (1 << 10),
     WEB_EXTENSION_UPGRADE = (1 << 11),
     UPGRADE_EXCEPTION = (1 << 12),
+    SKIP_HTTPS_UPGRADE = (1 << 13),
   };
 
   /**
@@ -1600,4 +1601,8 @@ interface nsILoadInfo : nsISupports
    */
   [infallible] attribute boolean isNewWindowTarget;
 
+  /**
+   * When true, this load will never be upgraded to HTTPS.
+   */
+  [infallible] attribute boolean skipHTTPSUpgrade;
 };
