@@ -361,12 +361,10 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   void GatherAndStoreOverflow(ReflowOutput* aMetrics);
 
   /**
-   * Call DidReflow() if the NS_FRAME_IN_REFLOW frame bit is set on aFirst and
-   * all its next siblings up to, but not including, aStop.
-   * aStop == nullptr meaning all next siblings with the bit set.
-   * The method does nothing if aFirst == nullptr.
+   * Call DidReflow() if the NS_FRAME_IN_REFLOW frame bit is set on aFirst
+   * and all its next siblings. The method does nothing if aFirst == nullptr.
    */
-  static void DidReflowChildren(nsIFrame* aFirst, nsIFrame* aStop = nullptr);
+  static void DidReflowChildren(nsIFrame* aFirst);
 
   /**
    * Recompute mIntrinsicISize if it's not already up to date.

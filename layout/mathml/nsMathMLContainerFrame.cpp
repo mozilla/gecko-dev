@@ -1343,22 +1343,16 @@ nscoord nsMathMLContainerFrame::FixInterFrameSpacing(
 }
 
 /* static */
-void nsMathMLContainerFrame::DidReflowChildren(nsIFrame* aFirst,
-                                               nsIFrame* aStop)
-
-{
-  if (MOZ_UNLIKELY(!aFirst)) return;
-
-  for (nsIFrame* frame = aFirst; frame != aStop;
-       frame = frame->GetNextSibling()) {
-    NS_ASSERTION(frame, "aStop isn't a sibling");
-    if (frame->HasAnyStateBits(NS_FRAME_IN_REFLOW)) {
-      // finish off principal descendants, too
-      nsIFrame* grandchild = frame->PrincipalChildList().FirstChild();
-      if (grandchild) DidReflowChildren(grandchild, nullptr);
-
-      frame->DidReflow(frame->PresContext(), nullptr);
+void nsMathMLContainerFrame::DidReflowChildren(nsIFrame* aFirst) {
+  for (nsIFrame* frame = aFirst; frame; frame = frame->GetNextSibling()) {
+    if (!frame->HasAnyStateBits(NS_FRAME_IN_REFLOW)) {
+      continue;
     }
+    if (nsIFrame* grandchild = frame->PrincipalChildList().FirstChild()) {
+      // Finish off principal descendants, too
+      DidReflowChildren(grandchild);
+    }
+    frame->DidReflow(frame->PresContext(), nullptr);
   }
 }
 
