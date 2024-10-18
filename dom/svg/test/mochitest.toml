@@ -78,6 +78,8 @@ support-files = [
 
 ["test_dataTypesModEvents.html"]
 
+["test_dynamic-move-under-mouse.html"]
+
 ["test_fragments.html"]
 
 ["test_getCTM.html"]
