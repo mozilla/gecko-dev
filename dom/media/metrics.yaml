@@ -201,3 +201,93 @@ media.playback:
     notification_emails:
       - media-alerts@mozilla.com
     expires: never
+
+media:
+  element_in_page_count:
+    type: counter
+    description: >
+      The number of times a document hierarchy contained at least one
+      HTMLMediaElement. In addition, the telemetry probe
+      'MIXED_CONTENT_UNBLOCK_COUNTER' records the total number of loaded
+      top level content documents, which can help us calculate the result
+      of the percentage of documents using media.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar media.element_in_page_count.
+    bugs:
+      - https://bugzil.la/1476456
+      - https://bugzil.la/1499803
+      - https://bugzil.la/1570634
+      - https://bugzil.la/1652108
+    data_reviews:
+      - https://bugzil.la/1476456
+      - https://bugzil.la/1499803
+      - https://bugzil.la/1570634
+      - https://bugzil.la/1652108
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEDIA_ELEMENT_IN_PAGE_COUNT
+
+  decode_error_per_mime_type:
+    type: labeled_counter
+    description: >
+      Count the number of times the media with a specific mime type (Eg.
+      audio/vorbis, that would be used as the key) encounters a decode
+      error during playback.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar media.decode_error_per_mime_type.
+    bugs:
+      - https://bugzil.la/1688775
+      - https://bugzil.la/1804291
+    data_reviews:
+      - https://bugzil.la/1688775
+      - https://bugzil.la/1804291
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEDIA_DECODE_ERROR_PER_MIME_TYPE
+
+  video_hardware_decoding_support:
+    type: labeled_boolean
+    description: >
+      Record whether hardware decoding is supported for the specific video
+      codec. The key is the type of video codec, eg. video/vp9.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar media.video_hardware_decoding_support.
+    metadata:
+      permit_non_commutative_operations_over_ipc: true
+    bugs:
+      - https://bugzil.la/1733722
+      - https://bugzil.la/1754657
+      - https://bugzil.la/1811157
+    data_reviews:
+      - https://bugzil.la/1733722
+      - https://bugzil.la/1754657
+      - https://bugzil.la/1811157
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEDIA_VIDEO_HARDWARE_DECODING_SUPPORT
+
+  video_hd_hardware_decoding_support:
+    type: labeled_boolean
+    description: >
+      Record whether hardware decoding is supported for the specific video
+      codec, this only records video in HD (1280*720) or higher resultion.
+      The key is the type of video codec, eg. video/vp9.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar media.video_hd_hardware_decoding_support.
+    metadata:
+      permit_non_commutative_operations_over_ipc: true
+    bugs:
+      - https://bugzil.la/1741286
+      - https://bugzil.la/1754657
+      - https://bugzil.la/1811157
+    data_reviews:
+      - https://bugzil.la/1741286
+      - https://bugzil.la/1754657
+      - https://bugzil.la/1811157
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    telemetry_mirror: MEDIA_VIDEO_HD_HARDWARE_DECODING_SUPPORT

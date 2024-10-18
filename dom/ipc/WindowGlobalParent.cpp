@@ -1567,7 +1567,7 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
     Accumulate(Telemetry::MIXED_CONTENT_PAGE_LOAD, mixedContentLevel);
 
     if (GetDocTreeHadMedia()) {
-      ScalarAdd(Telemetry::ScalarID::MEDIA_ELEMENT_IN_PAGE_COUNT, 1);
+      glean::media::element_in_page_count.Add(1);
     }
   }
 

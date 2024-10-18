@@ -1795,17 +1795,15 @@ void MediaFormatReader::NotifyNewOutput(
             wasHardwareAccelerated != decoder.mIsHardwareAccelerated) {
           decoder.mHasReportedVideoHardwareSupportTelemtry = true;
           VideoData* videoData = sample->As<VideoData>();
-          Telemetry::ScalarSet(
-              Telemetry::ScalarID::MEDIA_VIDEO_HARDWARE_DECODING_SUPPORT,
-              NS_ConvertUTF8toUTF16(decoder.GetCurrentInfo()->mMimeType),
-              !!decoder.mIsHardwareAccelerated);
+          glean::media::video_hardware_decoding_support
+              .Get(decoder.GetCurrentInfo()->mMimeType)
+              .Set(!!decoder.mIsHardwareAccelerated);
           static constexpr gfx::IntSize HD_VIDEO_SIZE{1280, 720};
           if (videoData->mDisplay.width >= HD_VIDEO_SIZE.Width() &&
               videoData->mDisplay.height >= HD_VIDEO_SIZE.Height()) {
-            Telemetry::ScalarSet(
-                Telemetry::ScalarID::MEDIA_VIDEO_HD_HARDWARE_DECODING_SUPPORT,
-                NS_ConvertUTF8toUTF16(decoder.GetCurrentInfo()->mMimeType),
-                !!decoder.mIsHardwareAccelerated);
+            glean::media::video_hd_hardware_decoding_support
+                .Get(decoder.GetCurrentInfo()->mMimeType)
+                .Set(!!decoder.mIsHardwareAccelerated);
           }
         }
         // As the real video decoder creation might be delayed, we want to
@@ -2425,9 +2423,8 @@ void MediaFormatReader::Update(TrackType aTrack) {
     } else if (decoder.HasFatalError()) {
       nsCString mimeType = decoder.GetCurrentInfo()->mMimeType;
       if (!mimeType.IsEmpty()) {
-        Telemetry::ScalarAdd(
-            Telemetry::ScalarID::MEDIA_DECODE_ERROR_PER_MIME_TYPE,
-            NS_ConvertUTF8toUTF16(mimeType), 1 /* error count */);
+        glean::media::decode_error_per_mime_type.Get(mimeType).Add(
+            1 /* error count */);
       }
       LOG("Rejecting %s promise for %s : DECODE_ERROR", TrackTypeToStr(aTrack),
           mimeType.get());
