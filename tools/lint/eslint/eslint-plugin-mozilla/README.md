@@ -4,17 +4,11 @@ A collection of rules that help enforce JavaScript coding standard in the Mozill
 
 These are primarily developed and used within the Firefox build system ([mozilla-central](https://hg.mozilla.org/mozilla-central/)), but are made available for other related projects to use as well.
 
-## Notes
-
-If you use prettier in your setup, you may need to extend from eslint-config-prettier
-to ensure that any rules that conflict with prettier are disabled.
-See [here for more information](https://github.com/prettier/eslint-config-prettier?tab=readme-ov-file#installation).
-
-## Installation
+## Usage
 
 ### Within mozilla-central:
 
-```
+```sh
 $ ./mach eslint --setup
 ```
 
@@ -22,15 +16,46 @@ $ ./mach eslint --setup
 
 Install ESLint [ESLint](http://eslint.org):
 
-```
+```sh
 $ npm i eslint --save-dev
 ```
 
 Next, install `eslint-plugin-mozilla`:
 
-```
+```sh
 $ npm install eslint-plugin-mozilla --save-dev
 ```
+
+#### Flat config
+
+```js
+import mozilla from "eslint-plugin-mozilla"
+
+export default [
+  ...mozilla.configs["flat/recommended"];
+]
+```
+
+The recommended configuration does not set up globals for all files. It
+only sets the globals in the environment for Mozilla specific files, e.g. system
+modules, sjs files and workers.
+
+If you use some of the other configurations, note that they are objects rather
+than arrays.
+
+#### Legacy Configuration
+
+```js
+{
+  "extends": ["plugin:mozilla/recommended"]
+}
+```
+
+#### Notes
+
+If you use prettier in your setup, you may need to extend from eslint-config-prettier
+to ensure that any rules that conflict with prettier are disabled.
+See [here for more information](https://github.com/prettier/eslint-config-prettier?tab=readme-ov-file#installation).
 
 ## Documentation
 
@@ -45,17 +70,16 @@ The sources can be found at:
 
 ## Bugs
 
-Please file bugs in Bugzilla in the Lint component of the Testing product.
+Please file bugs in Bugzilla in the Lint and Formatting component of the Developer Infrastructure product.
 
-* [Existing bugs](https://bugzilla.mozilla.org/buglist.cgi?resolution=---&query_format=advanced&component=Lint&product=Testing)
-* [New bugs](https://bugzilla.mozilla.org/enter_bug.cgi?product=Testing&component=Lint)
+* [Existing bugs](https://bugzilla.mozilla.org/buglist.cgi?resolution=---&list_id=17273428&product=Developer%20Infrastructure&query_format=advanced&component=Lint%20and%20Formatting)
+* [New bugs](https://bugzilla.mozilla.org/enter_bug.cgi?component=Lint%20and%20Formatting&product=Developer%20Infrastructure)
 
 ## Tests
 
 The tests can only be run from within mozilla-central. To run the tests:
 
-```
-./mach eslint --setup
-cd tools/lint/eslint/eslint-plugin-mozilla
-npm run test
+```sh
+$ ./mach npm --prefix tools/lint/eslint/eslint-plugin-mozilla ci
+$ ./mach npm --prefix tools/lint/eslint/eslint-plugin-mozilla test
 ```

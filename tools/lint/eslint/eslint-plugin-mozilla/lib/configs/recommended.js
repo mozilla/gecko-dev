@@ -4,6 +4,8 @@
 
 "use strict";
 
+const js = require("@eslint/js");
+
 /**
  * The configuration is based on eslint:recommended config. It defines the
  * recommended rules for all files, as well as for rules relating to modules
@@ -35,103 +37,8 @@
  *   no-useless-escape - bug 1881262.
  *     - This doesn't reveal any actual errors, and is a lot of work to address.
  */
-module.exports = {
-  // The prettier configuration here comes from eslint-config-prettier and
-  // turns off all of ESLint's rules related to formatting.
-  extends: ["eslint:recommended"],
 
-  overrides: [
-    {
-      // System mjs files files are not loaded in the browser scope,
-      // so we turn that off for those. Though we do have our own special
-      // environment for them.
-      env: {
-        "mozilla/privileged": true,
-        "mozilla/specific": true,
-        "mozilla/sysmjs": true,
-      },
-      files: ["**/*.sys.mjs"],
-      rules: {
-        "mozilla/lazy-getter-object-name": "error",
-        "mozilla/reject-eager-module-in-lazy-getter": "error",
-        "mozilla/reject-global-this": "error",
-        "mozilla/reject-globalThis-modification": "error",
-        // For all system modules, we expect no properties to need importing,
-        // hence reject everything.
-        "mozilla/reject-importGlobalProperties": ["error", "everything"],
-        "mozilla/reject-mixing-eager-and-lazy": "error",
-        "mozilla/reject-top-level-await": "error",
-      },
-    },
-    {
-      files: ["**/*.mjs", "**/*.jsx", "**/?(*.)worker.?(m)js"],
-      rules: {
-        // We enable builtinGlobals for modules and workers due to their
-        // contained scopes.
-        "no-redeclare": ["error", { builtinGlobals: true }],
-        "no-shadow": ["error", { allow: ["event"], builtinGlobals: true }],
-        // Modules and workers are far easier to check for no-unused-vars on a
-        // global scope, than our content files. Hence we turn that on here.
-        "no-unused-vars": [
-          "error",
-          {
-            argsIgnorePattern: "^_",
-            vars: "all",
-          },
-        ],
-      },
-    },
-    {
-      excludedFiles: ["**/*.sys.mjs"],
-      files: ["**/*.mjs"],
-      rules: {
-        "mozilla/reject-import-system-module-from-non-system": "error",
-        "mozilla/reject-lazy-imports-into-globals": "error",
-      },
-    },
-    {
-      files: ["**/*.mjs", "**/*.jsx"],
-      parserOptions: {
-        sourceType: "module",
-      },
-      rules: {
-        "mozilla/use-static-import": "error",
-        // This rule defaults to not allowing "use strict" in module files since
-        // they are always loaded in strict mode.
-        strict: "error",
-      },
-    },
-    {
-      env: {
-        "mozilla/sjs": true,
-      },
-      files: ["**/*.sjs"],
-      rules: {
-        // For sjs files, reject everything as we should update the sandbox
-        // to include the globals we need, as these are test-only files.
-        "mozilla/reject-importGlobalProperties": ["error", "everything"],
-      },
-    },
-    {
-      env: {
-        worker: true,
-      },
-      files: [
-        // Most files should use the `.worker.` format to be consistent with
-        // other items like `.sys.mjs`, but we allow simply calling the file
-        // "worker" as well.
-        "**/?(*.)worker.?(m)js",
-      ],
-    },
-  ],
-
-  parserOptions: {
-    ecmaVersion: "latest",
-  },
-
-  // When adding items to this file please check for effects on sub-directories.
-  plugins: ["no-unsanitized"],
-
+const coreRules = {
   // When adding items to this file please check for effects on all of toolkit
   // and browser
   rules: {
@@ -329,5 +236,139 @@ module.exports = {
 
     // This may conflict with prettier, so turn it off.
     "prefer-arrow-callback": "off",
+  },
+};
+
+const extraRules = [
+  {
+    // System mjs files files are not loaded in the browser scope,
+    // so we turn that off for those. Though we do have our own special
+    // environment for them.
+    env: {
+      "mozilla/privileged": true,
+      "mozilla/specific": true,
+      "mozilla/sysmjs": true,
+    },
+    files: ["**/*.sys.mjs"],
+    name: "mozilla/recommended/system-modules",
+    rules: {
+      "mozilla/lazy-getter-object-name": "error",
+      "mozilla/reject-eager-module-in-lazy-getter": "error",
+      "mozilla/reject-global-this": "error",
+      "mozilla/reject-globalThis-modification": "error",
+      // For all system modules, we expect no properties to need importing,
+      // hence reject everything.
+      "mozilla/reject-importGlobalProperties": ["error", "everything"],
+      "mozilla/reject-mixing-eager-and-lazy": "error",
+      "mozilla/reject-top-level-await": "error",
+    },
+  },
+  {
+    files: ["**/*.mjs", "**/*.jsx", "**/?(*.)worker.?(m)js"],
+    name: "mozilla/recommended/file-scoped-globals-rules",
+    rules: {
+      // We enable builtinGlobals for modules and workers due to their
+      // contained scopes.
+      "no-redeclare": ["error", { builtinGlobals: true }],
+      "no-shadow": ["error", { allow: ["event"], builtinGlobals: true }],
+      // Modules and workers are far easier to check for no-unused-vars on a
+      // global scope, than our content files. Hence we turn that on here.
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          vars: "all",
+        },
+      ],
+    },
+  },
+  {
+    files: ["**/*.mjs"],
+    ignores: ["**/*.sys.mjs"],
+    name: "mozilla/recommended/modules-not-system-modules",
+    rules: {
+      "mozilla/reject-import-system-module-from-non-system": "error",
+      "mozilla/reject-lazy-imports-into-globals": "error",
+    },
+  },
+  {
+    files: ["**/*.mjs", "**/*.jsx"],
+    name: "mozilla/recommended/module-only",
+    parserOptions: {
+      sourceType: "module",
+    },
+    rules: {
+      "mozilla/use-static-import": "error",
+      // This rule defaults to not allowing "use strict" in module files since
+      // they are always loaded in strict mode.
+      strict: "error",
+    },
+  },
+  {
+    env: {
+      "mozilla/sjs": true,
+    },
+    files: ["**/*.sjs"],
+    name: "mozilla/recommended/sjs",
+    rules: {
+      // For sjs files, reject everything as we should update the sandbox
+      // to include the globals we need, as these are test-only files.
+      "mozilla/reject-importGlobalProperties": ["error", "everything"],
+    },
+  },
+  {
+    env: {
+      worker: true,
+    },
+    files: [
+      // Most files should use the `.worker.` format to be consistent with
+      // other items like `.sys.mjs`, but we allow simply calling the file
+      // "worker" as well.
+      "**/?(*.)worker.?(m)js",
+    ],
+  },
+];
+
+const legacyConfig = {
+  extends: ["eslint:recommended"],
+
+  overrides: structuredClone(extraRules),
+
+  parserOptions: {
+    // If this changes, ensure the version in `flatConfig` is updated, as well
+    // as the return value of `helpers.getECMAVersion()`.
+    ecmaVersion: "latest",
+  },
+
+  // When adding items to this file please check for effects on sub-directories.
+  plugins: ["no-unsanitized"],
+
+  rules: coreRules.rules,
+};
+
+// Note: plugins are added in the top-level index.js file. This is to avoid
+// needing to import them multiple times for different configs.
+const flatConfig = [
+  {
+    languageOptions: {
+      // If this changes, ensure the version in `legacyConfig` is updated, as well
+      // as the return value of `helpers.getECMAVersion()`.
+      ecmaVersion: "latest",
+    },
+    name: "mozilla/recommended/main-rules",
+    rules: {
+      ...js.configs.recommended.rules,
+      ...coreRules.rules,
+    },
+  },
+  ...structuredClone(extraRules),
+];
+
+module.exports = {
+  getConfig(configType) {
+    if (configType == "flat") {
+      return flatConfig;
+    }
+    return legacyConfig;
   },
 };

@@ -13,7 +13,6 @@ const estraverse = require("estraverse");
 const path = require("path");
 const fs = require("fs");
 const toml = require("toml-eslint-parser");
-const recommendedConfig = require("./configs/recommended");
 
 var gRootDir = null;
 var directoryManifests = new Map();
@@ -297,12 +296,13 @@ module.exports = {
   },
 
   /**
-   * Returns the ECMA version of the recommended config.
+   * Returns the ECMA version as the latest. It is generally assumed that we will
+   * always use the latest version in the configuration.
    *
-   * @return {Number} The ECMA version of the recommended config.
+   * @return {string} The ECMA version to use.
    */
   getECMAVersion() {
-    return recommendedConfig.parserOptions.ecmaVersion;
+    return "latest";
   },
 
   /**
