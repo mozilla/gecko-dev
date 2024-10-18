@@ -33,10 +33,6 @@ class nsPrintfCString : public nsAutoCStringN<16> {
   }
 };
 
-template <>
-struct fmt::formatter<nsPrintfCString, char> : fmt::formatter<nsCString, char> {
-};
-
 /**
  *
  *
@@ -64,9 +60,5 @@ class nsVprintfCString : public nsAutoCStringN<16> {
     AppendVprintf(aFormat, aArgs);
   }
 };
-
-template <>
-struct fmt::formatter<nsVprintfCString, char>
-    : fmt::formatter<nsCString, char> {};
 
 #endif  // !defined(nsPrintfCString_h___)

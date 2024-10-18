@@ -25,7 +25,6 @@
 #include "NSPRLogModulesParser.h"
 #include "nsXULAppAPI.h"
 #include "LogCommandLineHandler.h"
-#include "fmt/format.h"
 
 #include "prenv.h"
 #ifdef XP_WIN
@@ -578,43 +577,12 @@ class LogModuleManager {
              va_list aArgs) MOZ_FORMAT_PRINTF(4, 0) {
     Print(aName, aLevel, nullptr, "", aFmt, aArgs);
   }
-  void PrintFmt(const char* aName, LogLevel aLevel, fmt::string_view aFmt,
-                fmt::format_args aArgs) {
-    PrintFmt(aName, aLevel, nullptr, "", aFmt, aArgs);
-  }
-
-  void PrintFmt(const char* aName, LogLevel aLevel, const TimeStamp* aStart,
-                const char* aPrepend, fmt::string_view aFmt,
-                fmt::format_args aArgs) {
-    AutoSuspendLateWriteChecks suspendLateWriteChecks;
-    const size_t kBuffSize = 1024;
-    char buff[kBuffSize];
-
-    char* buffToWrite = buff;
-    UniquePtr<char[]> allocatedBuff;
-    size_t charsWritten;
-
-    auto [out, size] = fmt::vformat_to_n(buff, kBuffSize - 1, aFmt, aArgs);
-    *out = '\0';
-    charsWritten = size + 1;
-
-    // We may have maxed out, allocate a buffer and re-format
-    if (charsWritten > kBuffSize) {
-      allocatedBuff = MakeUnique<char[]>(charsWritten + 1);  // + final \0
-      auto [out, size] =
-          fmt::vformat_to_n(allocatedBuff.get(), charsWritten, aFmt, aArgs);
-      MOZ_ASSERT(size == charsWritten);
-      *out = '\0';
-      charsWritten++;
-      buffToWrite = allocatedBuff.get();
-    }
-    ActuallyLog(aName, aLevel, aStart, aPrepend, buffToWrite, charsWritten);
-  }
 
   void Print(const char* aName, LogLevel aLevel, const TimeStamp* aStart,
              const char* aPrepend, const char* aFmt, va_list aArgs)
       MOZ_FORMAT_PRINTF(6, 0) {
     AutoSuspendLateWriteChecks suspendLateWriteChecks;
+    long pid = static_cast<long>(base::GetCurrentProcId());
     const size_t kBuffSize = 1024;
     char buff[kBuffSize];
 
@@ -640,13 +608,7 @@ class LogModuleManager {
       buffToWrite = allocatedBuff.get();
       charsWritten = strlen(buffToWrite);
     }
-    ActuallyLog(aName, aLevel, aStart, aPrepend, buffToWrite, charsWritten);
-  }
 
-  void ActuallyLog(const char* aName, LogLevel aLevel, const TimeStamp* aStart,
-                   const char* aPrepend, const char* aLogMessage,
-                   size_t aLogMessageSize) {
-    long pid = static_cast<long>(base::GetCurrentProcId());
     if (profiler_thread_is_being_profiled_for_markers()) {
       struct LogMarker {
         static constexpr Span<const char> MarkerTypeName() {
@@ -678,12 +640,12 @@ class LogModuleManager {
                   : MarkerTiming::InstantNow(),
            MarkerStack::MaybeCapture(mCaptureProfilerStack)},
           LogMarker{}, ProfilerString8View::WrapNullTerminatedString(aName),
-          ProfilerString8View::WrapNullTerminatedString(aLogMessage));
+          ProfilerString8View::WrapNullTerminatedString(buffToWrite));
     }
 
     // Determine if a newline needs to be appended to the message.
     const char* newline = "";
-    if (aLogMessageSize == 0 || aLogMessage[aLogMessageSize - 1] != '\n') {
+    if (charsWritten == 0 || buffToWrite[charsWritten - 1] != '\n') {
       newline = "\n";
     }
 
@@ -720,10 +682,10 @@ class LogModuleManager {
       if (!mIsRaw) {
         fprintf_stderr(out, "%s[%s %ld: %s]: %s/%s %s%s", aPrepend,
                        nsDebugImpl::GetMultiprocessMode(), pid,
-                       currentThreadName, ToLogStr(aLevel), aName, aLogMessage,
+                       currentThreadName, ToLogStr(aLevel), aName, buffToWrite,
                        newline);
       } else {
-        fprintf_stderr(out, "%s%s%s", aPrepend, aLogMessage, newline);
+        fprintf_stderr(out, "%s%s%s", aPrepend, buffToWrite, newline);
       }
     } else {
       if (aStart) {
@@ -747,7 +709,7 @@ class LogModuleManager {
             start.tm_hour, start.tm_min, start.tm_sec, start.tm_usec,
             now.tm_hour, now.tm_min, now.tm_sec, now.tm_usec,
             duration.ToMilliseconds(), nsDebugImpl::GetMultiprocessMode(), pid,
-            currentThreadName, ToLogStr(aLevel), aName, aLogMessage, newline);
+            currentThreadName, ToLogStr(aLevel), aName, buffToWrite, newline);
       } else {
         PRExplodedTime now;
         PR_ExplodeTime(PR_Now(), PR_GMTParameters, &now);
@@ -757,7 +719,7 @@ class LogModuleManager {
                        aPrepend, now.tm_year, now.tm_month + 1, now.tm_mday,
                        now.tm_hour, now.tm_min, now.tm_sec, now.tm_usec,
                        nsDebugImpl::GetMultiprocessMode(), pid,
-                       currentThreadName, ToLogStr(aLevel), aName, aLogMessage,
+                       currentThreadName, ToLogStr(aLevel), aName, buffToWrite,
                        newline);
       }
     }
@@ -930,14 +892,6 @@ void LogModule::Printv(LogLevel aLevel, const TimeStamp* aStart,
 
   // Forward to LogModule manager w/ level and name
   sLogModuleManager->Print(Name(), aLevel, aStart, "", aFmt, aArgs);
-}
-
-void LogModule::PrintvFmt(LogLevel aLevel, fmt::string_view aFmt,
-                          fmt::format_args aArgs) const {
-  MOZ_ASSERT(sLogModuleManager != nullptr);
-
-  // Forward to LogModule manager w/ level and name
-  sLogModuleManager->PrintFmt(Name(), aLevel, aFmt, aArgs);
 }
 
 }  // namespace mozilla

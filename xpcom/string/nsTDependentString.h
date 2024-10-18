@@ -123,8 +123,4 @@ class nsTDependentString : public nsTString<T> {
 extern template class nsTDependentString<char>;
 extern template class nsTDependentString<char16_t>;
 
-template <typename Char>
-struct fmt::formatter<nsTDependentString<Char>, Char>
-    : fmt::formatter<nsTString<Char>, Char> {};
-
 #endif

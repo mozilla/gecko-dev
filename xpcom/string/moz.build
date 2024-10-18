@@ -13,7 +13,6 @@ EXPORTS += [
     "nsCharTraits.h",
     "nsDependentString.h",
     "nsDependentSubstring.h",
-    "nsFmtString.h",
     "nsLiteralString.h",
     "nsPrintfCString.h",
     "nsPromiseFlatString.h",

@@ -12,7 +12,6 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "nsStringFwd.h"
-#include "nsFmtString.h"
 
 #include <utility>
 
@@ -26,24 +25,21 @@ extern mozilla::LazyLogModule gWebCodecsLog;
 
 namespace mozilla::dom {
 
-#define LOGD(fmt, ...) \
-  MOZ_LOG_FMT(gWebCodecsLog, LogLevel::Debug, fmt, ##__VA_ARGS__)
+#ifdef LOG_INTERNAL
+#  undef LOG_INTERNAL
+#endif  // LOG_INTERNAL
+#define LOG_INTERNAL(level, msg, ...) \
+  MOZ_LOG(gWebCodecsLog, LogLevel::level, (msg, ##__VA_ARGS__))
 
-#define LOGE(fmt, ...) \
-  MOZ_LOG_FMT(gWebCodecsLog, LogLevel::Error, fmt, ##__VA_ARGS__)
+#ifdef LOGD
+#  undef LOGD
+#endif  // LOGD
+#define LOGD(msg, ...) LOG_INTERNAL(Debug, msg, ##__VA_ARGS__)
 
-[[nodiscard]] Result<Ok, nsCString> LogAndReturnErr(const char* aLiteral) {
-  MOZ_LOG(gWebCodecsLog, LogLevel::Debug, ("%s", aLiteral));
-  return Err(nsCString(aLiteral));
-}
-
-template <typename... Args>
-[[nodiscard]] Result<Ok, nsCString> LogAndReturnErr(
-    fmt::format_string<Args...> aFmt, Args&&... aArgs) {
-  nsFmtCString str(aFmt, std::forward<Args>(aArgs)...);
-  MOZ_LOG(gWebCodecsLog, LogLevel::Debug, ("%s", str.get()));
-  return Err(str);
-}
+#ifdef LOGE
+#  undef LOGE
+#endif  // LOGE
+#define LOGE(msg, ...) LOG_INTERNAL(Error, msg, ##__VA_ARGS__)
 
 // Only needed for refcounted objects.
 //
@@ -160,13 +156,19 @@ Result<Ok, nsCString> IsValidAudioDataInit(const AudioDataInit& aInit) {
   // The sample rate is an uint32_t within Gecko
   uint32_t integerSampleRate = SaturatingCast<uint32_t>(aInit.mSampleRate);
   if (integerSampleRate == 0) {
-    return LogAndReturnErr("sampleRate must be positive");
+    auto msg = nsLiteralCString("sampleRate must be positive");
+    LOGD("%s", msg.get());
+    return Err(msg);
   }
   if (aInit.mNumberOfFrames == 0) {
-    return LogAndReturnErr("mNumberOfFrames must be positive");
+    auto msg = nsLiteralCString("mNumberOfFrames must be positive");
+    LOGD("%s", msg.get());
+    return Err(msg);
   }
   if (aInit.mNumberOfChannels == 0) {
-    return LogAndReturnErr("mNumberOfChannels must be positive");
+    auto msg = nsLiteralCString("mNumberOfChannels must be positive");
+    LOGD("%s", msg.get());
+    return Err(msg);
   }
 
   CheckedInt<uint64_t> bytesNeeded = aInit.mNumberOfFrames;
@@ -174,11 +176,11 @@ Result<Ok, nsCString> IsValidAudioDataInit(const AudioDataInit& aInit) {
   bytesNeeded *= BytesPerSamples(aInit.mFormat);
 
   if (!bytesNeeded.isValid()) {
-    return LogAndReturnErr(
-        FMT_STRING("Overflow when computing the number of bytes needed to hold "
-                   "audio samples ({}*{}*{})"),
-        aInit.mNumberOfFrames, aInit.mNumberOfChannels,
-        BytesPerSamples(aInit.mFormat));
+    auto msg = nsPrintfCString(
+        "Overflow when computing the number of bytes needed to hold audio "
+        "samples");
+    LOGD("%s", msg.get());
+    return Err(msg);
   }
 
   uint64_t arraySizeBytes = ProcessTypedArraysFixed(
@@ -186,9 +188,12 @@ Result<Ok, nsCString> IsValidAudioDataInit(const AudioDataInit& aInit) {
         return aData.LengthBytes();
       });
   if (arraySizeBytes < bytesNeeded.value()) {
-    return LogAndReturnErr(
-        FMT_STRING("Array of size {} not big enough, should be at least {}"),
-        arraySizeBytes, bytesNeeded.value());
+    auto msg =
+        nsPrintfCString("Array of size %" PRIu64
+                        " not big enough, should be at least %" PRIu64 " bytes",
+                        arraySizeBytes, bytesNeeded.value());
+    LOGD("%s", msg.get());
+    return Err(msg);
   }
   return Ok();
 }
@@ -198,9 +203,9 @@ already_AddRefed<AudioData> AudioData::Constructor(const GlobalObject& aGlobal,
                                                    const AudioDataInit& aInit,
                                                    ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  LOGD("[{}] AudioData(fmt: {}, rate: {}, ch: {}, ts: {})",
-       fmt::ptr(global.get()), GetEnumString(aInit.mFormat).get(),
-       aInit.mSampleRate, aInit.mNumberOfChannels, aInit.mTimestamp);
+  LOGD("[%p] AudioData(fmt: %s, rate: %f, ch: %" PRIu32 ", ts: %" PRId64 ")",
+       global.get(), GetEnumString(aInit.mFormat).get(), aInit.mSampleRate,
+       aInit.mNumberOfChannels, aInit.mTimestamp);
   if (!global) {
     LOGE("Global unavailable");
     aRv.Throw(NS_ERROR_FAILURE);
@@ -307,16 +312,17 @@ size_t AudioData::ComputeCopyElementCount(
   if (IsInterleaved(destFormat.value())) {
     if (aOptions.mPlaneIndex > 0) {
       auto msg = "Interleaved format, but plane index > 0"_ns;
-      LOGD("{}", msg.get());
+      LOGD("%s", msg.get());
       aRv.ThrowRangeError(msg);
       return 0;
     }
   } else {
     if (aOptions.mPlaneIndex >= mNumberOfChannels) {
-      auto msg = nsFmtCString(FMT_STRING("Plane index {} greater or equal "
-                                         "than the number of channels {}"),
-                              aOptions.mPlaneIndex, mNumberOfChannels);
-      LOGD("{}", msg.get());
+      auto msg = nsPrintfCString(
+          "Plane index %" PRIu32
+          " greater or equal than the number of channels %" PRIu32,
+          aOptions.mPlaneIndex, mNumberOfChannels);
+      LOGD("%s", msg.get());
       aRv.ThrowRangeError(msg);
       return 0;
     }
@@ -326,10 +332,10 @@ size_t AudioData::ComputeCopyElementCount(
   uint64_t frameCount = mNumberOfFrames;
   // 7
   if (aOptions.mFrameOffset >= frameCount) {
-    auto msg = nsFmtCString(
-        FMT_STRING("Frame offset of {} greater or equal than frame count {}"),
-        aOptions.mFrameOffset, frameCount);
-    LOGD("{}", msg.get());
+    auto msg = nsPrintfCString("Frame offset of %" PRIu32
+                               " greater or equal than frame count %" PRIu64,
+                               aOptions.mFrameOffset, frameCount);
+    LOGD("%s", msg.get());
     aRv.ThrowRangeError(msg);
     return 0;
   }
@@ -337,11 +343,11 @@ size_t AudioData::ComputeCopyElementCount(
   uint64_t copyFrameCount = frameCount - aOptions.mFrameOffset;
   if (aOptions.mFrameCount.WasPassed()) {
     if (aOptions.mFrameCount.Value() > copyFrameCount) {
-      auto msg = nsFmtCString(FMT_STRING("Passed copy frame count of {} "
-                                         "greater than available source frames "
-                                         "for copy of {}"),
-                              aOptions.mFrameCount.Value(), copyFrameCount);
-      LOGD("{}", msg.get());
+      auto msg = nsPrintfCString(
+          "Passed copy frame count of %" PRIu32
+          " greater than available source frames for copy of %" PRIu64,
+          aOptions.mFrameCount.Value(), copyFrameCount);
+      LOGD("%s", msg.get());
       aRv.ThrowRangeError(msg);
       return 0;
     }
@@ -363,7 +369,7 @@ uint32_t AudioData::AllocationSize(const AudioDataCopyToOptions& aOptions,
   AssertIsOnOwningThread();
   if (!mResource) {
     auto msg = "allocationSize called on detached AudioData"_ns;
-    LOGD("{}", msg.get());
+    LOGD("%s", msg.get());
     aRv.ThrowInvalidStateError(msg);
     return 0;
   }
@@ -379,7 +385,7 @@ uint32_t AudioData::AllocationSize(const AudioDataCopyToOptions& aOptions,
   }
   if (destFormat.isNothing()) {
     auto msg = "AudioData has an unknown format"_ns;
-    LOGD("{}", msg.get());
+    LOGD("%s", msg.get());
     // See https://github.com/w3c/webcodecs/issues/727 -- it isn't clear yet
     // what to do here
     aRv.ThrowRangeError(msg);
@@ -466,18 +472,18 @@ nsCString AudioData::ToString() const {
   if (!mResource) {
     return nsCString("AudioData[detached]");
   }
-  return nsFmtCString(FMT_STRING("AudioData[{} bytes {} {}Hz {} x {}ch]"),
-                      mResource->Data().LengthBytes(),
-                      GetEnumString(mAudioSampleFormat.value()).get(),
-                      mSampleRate, mNumberOfFrames, mNumberOfChannels);
+  return nsPrintfCString("AudioData[%zu bytes %s %fHz %" PRIu32 "x%" PRIu32
+                         "ch]",
+                         mResource->Data().LengthBytes(),
+                         GetEnumString(mAudioSampleFormat.value()).get(),
+                         mSampleRate, mNumberOfFrames, mNumberOfChannels);
 }
 
 nsCString CopyToToString(size_t aDestBufSize,
                          const AudioDataCopyToOptions& aOptions) {
-  return nsFmtCString(
-      FMT_STRING(
-          "AudioDataCopyToOptions[data: {} bytes, {}, frame count: {}, frame "
-          "offset: {}, plane: {}]"),
+  return nsPrintfCString(
+      "AudioDataCopyToOptions[data: %zu bytes %s frame count:%" PRIu32
+      " frame offset: %" PRIu32 "  plane: %" PRIu32 "]",
       aDestBufSize,
       aOptions.mFormat.WasPassed()
           ? GetEnumString(aOptions.mFormat.Value()).get()
@@ -541,12 +547,12 @@ void AudioData::CopyTo(
         return aData.LengthBytes();
       });
 
-  LOGD("AudioData::CopyTo {} -> {}", ToString().get(),
-       CopyToToString(destLength, aOptions).get(), 4);
+  LOGD("AudioData::CopyTo %s -> %s", ToString().get(),
+       CopyToToString(destLength, aOptions).get());
 
   if (!mResource) {
     auto msg = "copyTo called on closed AudioData"_ns;
-    LOGD("{}", msg.get());
+    LOGD("%s", msg.get());
     aRv.ThrowInvalidStateError(msg);
     return;
   }
@@ -565,10 +571,11 @@ void AudioData::CopyTo(
   CheckedInt<uint32_t> copyLength = bytesPerSample;
   copyLength *= copyElementCount;
   if (copyLength.value() > destLength) {
-    auto msg = nsFmtCString(FMT_STRING("destination buffer of length {} too "
-                                       "small for copying {} elements"),
-                            destLength, bytesPerSample * copyElementCount);
-    LOGD("{}", msg.get());
+    auto msg = nsPrintfCString(
+        "destination buffer of length %zu too small for copying %" PRIu64
+        "  elements",
+        destLength, bytesPerSample * copyElementCount);
+    LOGD("%s", msg.get());
     aRv.ThrowRangeError(msg);
     return;
   }
@@ -595,7 +602,7 @@ already_AddRefed<AudioData> AudioData::Clone(ErrorResult& aRv) {
 
   if (!mResource) {
     auto msg = "No media resource in the AudioData now"_ns;
-    LOGD("{}", msg.get());
+    LOGD("%s", msg.get());
     aRv.ThrowInvalidStateError(msg);
     return nullptr;
   }
@@ -719,5 +726,6 @@ RefPtr<mozilla::AudioData> AudioData::ToAudioData() const {
 
 #undef LOGD
 #undef LOGE
+#undef LOG_INTERNAL
 
 }  // namespace mozilla::dom

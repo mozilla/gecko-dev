@@ -38,4 +38,3 @@ Writing new XPCOM interfaces/classes
    xpidl
    writing-xpcom-interface
    cc-macros
-   fmt-in-gecko.md
