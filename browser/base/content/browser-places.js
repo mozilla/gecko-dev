@@ -1583,16 +1583,6 @@ var BookmarkingUI = {
     }
   },
 
-  openLibraryIfLinkClicked(event) {
-    if (
-      ((event.type == "click" && event.button == 0) ||
-        (event.type == "keydown" && event.keyCode == KeyEvent.DOM_VK_RETURN)) &&
-      event.target.localName == "a"
-    ) {
-      PlacesCommandHook.showPlacesOrganizer("BookmarksToolbar");
-    }
-  },
-
   _uninitView: function BUI__uninitView() {
     // When an element with a placesView attached is removed and re-inserted,
     // XBL reapplies the binding causing any kind of issues and possible leaks,

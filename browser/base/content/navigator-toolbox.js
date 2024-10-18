@@ -235,7 +235,9 @@ document.addEventListener(
           break;
 
         case "personal-toolbar-empty-description":
-          BookmarkingUI.openLibraryIfLinkClicked(event);
+          if (isLeftClick && event.target.localName == "a") {
+            PlacesCommandHook.showPlacesOrganizer("BookmarksToolbar");
+          }
           break;
 
         case "home-button":
@@ -285,6 +287,7 @@ document.addEventListener(
         #shopping-sidebar-button,
         #urlbar-zoom-button,
         #star-button-box,
+        #personal-toolbar-empty-description,
         #home-button,
         #tracking-protection-icon-container,
         #identity-icon-box,
@@ -333,6 +336,12 @@ document.addEventListener(
             event,
             element
           );
+          break;
+
+        case "personal-toolbar-empty-description":
+          if (isLikeLeftClick && event.target.localName == "a") {
+            PlacesCommandHook.showPlacesOrganizer("BookmarksToolbar");
+          }
           break;
 
         case "home-button":
