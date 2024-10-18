@@ -15,13 +15,11 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
 import androidx.core.view.isVisible
-import androidx.core.widget.TextViewCompat
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.browser.toolbar.R
 
 private const val TITLE_VIEW_WEIGHT = 5.7f
 private const val URL_VIEW_WEIGHT = 4.3f
-private const val AUTO_SIZE_STEP_GRANULARITY = 1
 
 /**
  * View displaying the URL and optionally the title of a website.
@@ -47,14 +45,6 @@ internal class OriginView @JvmOverloads constructor(
     internal val urlView = TextView(context).apply {
         id = R.id.mozac_browser_toolbar_url_view
         setTextSize(TypedValue.COMPLEX_UNIT_PX, textSizeUrlNormal)
-
-        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
-            this,
-            resources.getInteger(R.integer.mozac_browser_toolbar_url_auto_text_size_min),
-            resources.getInteger(R.integer.mozac_browser_toolbar_url_auto_text_size_max),
-            AUTO_SIZE_STEP_GRANULARITY,
-            TypedValue.COMPLEX_UNIT_SP,
-        )
         gravity = Gravity.CENTER_VERTICAL
 
         setSingleLine()
