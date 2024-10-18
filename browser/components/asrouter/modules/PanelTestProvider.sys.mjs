@@ -888,8 +888,8 @@ const MESSAGES = () => [
         },
       },
       imageURL:
-        "chrome://activity-stream/content/data/content/assets/fox-doodle-waving-static.png",
-      imageVerticalOffset: -24,
+        "chrome://browser/content/asrouter/assets/fox-with-box-on-cloud.svg",
+      imageVerticalOffset: -20,
     },
     skip_in_tests: "TODO",
     trigger: {
