@@ -7,6 +7,8 @@
 #include "nsISupports.idl"
 
 interface imgIContainer;
+interface nsIURI;
+interface nsISVGPaintContext;
 
 /**
  * Starting in Windows 7, applications can display an overlay on the icon in
@@ -25,6 +27,10 @@ interface nsITaskbarOverlayIconController : nsISupports
    * @param statusDescription The alt text version of the information
    *                          conveyed by the overlay, for accessibility
    *                          purposes.
+   * @param paintContext Optional context information used when passing an SVG
+   *                     image. This allows the caller to set the context-fill
+   *                     and context-stroke properties that would normally
+   *                     be provided by CSS.
    *
    * @note The behavior for window groups is managed by Windows.
    * - If an overlay icon is set for any window in a window group and another
@@ -35,5 +41,6 @@ interface nsITaskbarOverlayIconController : nsISupports
    *   still available, then that previous overlay is displayed.
    */
   void setOverlayIcon(in imgIContainer statusIcon,
-                      in AString statusDescription);
+                      in AString statusDescription,
+                      [optional] in nsISVGPaintContext paintContext);
 };
