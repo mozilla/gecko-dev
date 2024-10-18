@@ -21,7 +21,6 @@ namespace dom {
 class ImageDecoder;
 class ReadableStream;
 class ReadableStreamDefaultReader;
-class WeakWorkerRef;
 
 struct ImageDecoderReadRequest final : public ReadRequest {
  public:
@@ -33,7 +32,7 @@ struct ImageDecoderReadRequest final : public ReadRequest {
 
   bool Initialize(const GlobalObject& aGlobal, ImageDecoder* aDecoder,
                   ReadableStream& aStream);
-  void Destroy(bool aCycleCollect = true);
+  void Destroy(bool aCancel);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void ChunkSteps(JSContext* aCx,
                                               JS::Handle<JS::Value> aChunk,
@@ -54,7 +53,6 @@ struct ImageDecoderReadRequest final : public ReadRequest {
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void Cancel();
   void Complete(const MediaResult& aResult);
 
-  RefPtr<WeakWorkerRef> mWorkerRef;
   RefPtr<ImageDecoder> mDecoder;
   RefPtr<ReadableStreamDefaultReader> mReader;
   RefPtr<image::SourceBuffer> mSourceBuffer;
