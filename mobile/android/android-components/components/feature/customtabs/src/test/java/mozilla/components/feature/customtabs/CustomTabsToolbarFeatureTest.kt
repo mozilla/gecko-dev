@@ -163,6 +163,7 @@ class CustomTabsToolbarFeatureTest {
         )
         val window: Window = mock()
         `when`(window.decorView).thenReturn(mock())
+        `when`(window.context).thenReturn(testContext)
         val feature = CustomTabsToolbarFeature(store, toolbar, sessionId = "mozilla", useCases = useCases, window = window) {}
 
         feature.init(tab.config)
@@ -203,6 +204,7 @@ class CustomTabsToolbarFeatureTest {
         )
         val window: Window = mock()
         `when`(window.decorView).thenReturn(mock())
+        `when`(window.context).thenReturn(testContext)
         `when`(window.insetsController).thenReturn(mock())
 
         val feature = CustomTabsToolbarFeature(store, toolbar, sessionId = "mozilla", useCases = useCases, window = window) {}
@@ -241,6 +243,7 @@ class CustomTabsToolbarFeatureTest {
         )
         val window: Window = mock()
         `when`(window.decorView).thenReturn(mock())
+        `when`(window.context).thenReturn(testContext)
         `when`(window.insetsController).thenReturn(mock())
         val initialDisplayToolbarColors = toolbar.display.colors
 
@@ -305,6 +308,7 @@ class CustomTabsToolbarFeatureTest {
         )
         val window: Window = mock()
         `when`(window.decorView).thenReturn(mock())
+        `when`(window.context).thenReturn(testContext)
         `when`(window.insetsController).thenReturn(mock())
 
         run {
@@ -349,6 +353,7 @@ class CustomTabsToolbarFeatureTest {
         )
         val window: Window = mock()
         `when`(window.decorView).thenReturn(mock())
+        `when`(window.context).thenReturn(testContext)
         `when`(window.insetsController).thenReturn(mock())
 
         run {
@@ -394,6 +399,7 @@ class CustomTabsToolbarFeatureTest {
         )
         val window: Window = mock()
         `when`(window.decorView).thenReturn(mock())
+        `when`(window.context).thenReturn(testContext)
         `when`(window.insetsController).thenReturn(mock())
 
         run {
@@ -439,6 +445,7 @@ class CustomTabsToolbarFeatureTest {
         )
         val window: Window = mock()
         `when`(window.decorView).thenReturn(mock())
+        `when`(window.context).thenReturn(testContext)
         `when`(window.insetsController).thenReturn(mock())
 
         run {
