@@ -426,7 +426,7 @@
     <string name="search_header_menu_item_2">이번만 검색:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">%s 검색 엔진</string>
+    <string name="search_engine_icon_content_description">%s 검색 엔진</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -1299,7 +1299,7 @@
     <!-- Bookmark folder editing screen title -->
     <string name="edit_bookmark_folder_fragment_title">폴더 편집</string>
     <!-- Bookmark sign in button message -->
-    <string name="bookmark_sign_in_button">동기화된 북마크를 보려면 로그인하세요</string>
+    <string name="bookmark_sign_in_button">동기화된 북마크를 보시려면 로그인하세요</string>
     <!-- Bookmark URL editing field label -->
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
@@ -2010,7 +2010,7 @@
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">비밀번호 숨기기</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
-    <string name="logins_biometric_prompt_message_2">저장된 비밀번호를 보려면 잠금 해제하세요</string>
+    <string name="logins_biometric_prompt_message_2">저장된 비밀번호를 보시려면 잠금 해제하세요</string>
     <!-- Title of warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_title_2">저장된 비밀번호를 보호하세요</string>
     <!-- Message of warning dialog if users have no device authentication set up -->
@@ -2104,7 +2104,7 @@
     <!-- Error message for card name on card validation -->
     <string name="credit_cards_name_on_card_validation_error_message_2">이름 추가</string>
     <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
-    <string name="credit_cards_biometric_prompt_message">저장된 카드를 보려면 잠금 해제하세요</string>
+    <string name="credit_cards_biometric_prompt_message">저장된 카드를 보시려면 잠금 해제하세요</string>
     <!-- Title of warning dialog if users have no device authentication set up -->
     <string name="credit_cards_warning_dialog_title_2">저장된 결제 방법을 보호하세요</string>
     <!-- Message of warning dialog if users have no device authentication set up -->
@@ -2551,7 +2551,7 @@
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">리뷰 검사기 사용해보기</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">이 리뷰는 신뢰할 수 있나요? 조정된 평점을 보려면 지금 확인하세요.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">이 리뷰는 신뢰할 수 있나요? 조정된 평점을 보시려면 지금 확인하세요.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">리뷰 검사기 열기</string>
 
