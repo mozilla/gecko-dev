@@ -1124,11 +1124,11 @@ export var PlacesDBUtils = {
         },
       },
       {
-        scalar: "places.pages_need_frecency_recalculation",
+        quantity: Glean.places.pagesNeedFrecencyRecalculation,
         query: "SELECT count(*) FROM moz_places WHERE recalc_frecency = 1",
       },
       {
-        scalar: "places.previousday_visits",
+        quantity: Glean.places.previousdayVisits,
         query: `SELECT COUNT(*) from moz_places
                       WHERE hidden=0 AND last_visit_date < (strftime('%s', 'now', 'start of day') * 1000000)
                       AND last_visit_date > (strftime('%s', 'now', 'start of day', '-1 day') * 1000000)
@@ -1152,8 +1152,8 @@ export var PlacesDBUtils = {
       probeValues[probe.histogram || probe.scalar] = val;
       if (probe.histogram) {
         Services.telemetry.getHistogramById(probe.histogram).add(val);
-      } else if (probe.scalar) {
-        Services.telemetry.scalarSet(probe.scalar, val);
+      } else if (probe.quantity) {
+        probe.quantity.set(val);
       } else {
         throw new Error("Unknwon telemetry probe type");
       }
