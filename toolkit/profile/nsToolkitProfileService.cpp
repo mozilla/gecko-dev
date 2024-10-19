@@ -58,7 +58,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIToolkitShellService.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "nsProxyRelease.h"
 #ifdef MOZ_HAS_REMOTE
 #  include "nsRemoteService.h"
@@ -644,7 +644,7 @@ nsToolkitProfileService::nsToolkitProfileService()
 #else
       mUseDedicatedProfile(false),
 #endif
-      mStartupReason(u"unknown"_ns),
+      mStartupReason("unknown"_ns),
       mStartupFileVersion("0"_ns),
       mMaybeLockProfile(false),
       mUpdateChannel(MOZ_STRINGIFY(MOZ_UPDATE_CHANNEL)),
@@ -666,12 +666,9 @@ void nsToolkitProfileService::CompleteStartup() {
     return;
   }
 
-  ScalarSet(mozilla::Telemetry::ScalarID::STARTUP_PROFILE_SELECTION_REASON,
-            mStartupReason);
-  ScalarSet(mozilla::Telemetry::ScalarID::STARTUP_PROFILE_DATABASE_VERSION,
-            NS_ConvertUTF8toUTF16(mStartupFileVersion));
-  ScalarSet(mozilla::Telemetry::ScalarID::STARTUP_PROFILE_COUNT,
-            static_cast<uint32_t>(mProfiles.length()));
+  glean::startup::profile_selection_reason.Set(mStartupReason);
+  glean::startup::profile_database_version.Set(mStartupFileVersion);
+  glean::startup::profile_count.Set(static_cast<uint32_t>(mProfiles.length()));
 
   // If we started into an unmanaged profile in a profile group, set the group
   // profile to be the managed profile belonging to the group.
@@ -1525,7 +1522,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
         rv = MaybeMakeDefaultDedicatedProfile(profile, &result);
         NS_ENSURE_SUCCESS(rv, rv);
         if (result) {
-          mStartupReason = u"restart-claimed-default"_ns;
+          mStartupReason = "restart-claimed-default"_ns;
 
           mCurrent = profile;
         } else {
@@ -1538,7 +1535,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
           rv = Flush();
           NS_ENSURE_SUCCESS(rv, rv);
 
-          mStartupReason = u"restart-skipped-default"_ns;
+          mStartupReason = "restart-skipped-default"_ns;
           *aDidCreate = true;
         }
 
@@ -1551,13 +1548,13 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
     }
 
     if (EnvHasValue("XRE_RESTARTED_BY_PROFILE_MANAGER")) {
-      mStartupReason = u"profile-manager"_ns;
+      mStartupReason = "profile-manager"_ns;
     } else if (EnvHasValue("XRE_RESTARTED_BY_PROFILE_SELECTOR")) {
-      mStartupReason = u"profile-selector"_ns;
+      mStartupReason = "profile-selector"_ns;
     } else if (aIsResetting) {
-      mStartupReason = u"profile-reset"_ns;
+      mStartupReason = "profile-reset"_ns;
     } else {
-      mStartupReason = u"restart"_ns;
+      mStartupReason = "restart"_ns;
     }
 
     mCurrent = profile;
@@ -1587,7 +1584,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
       return NS_ERROR_FAILURE;
     }
 
-    mStartupReason = u"argument-profile"_ns;
+    mStartupReason = "argument-profile"_ns;
 
     GetProfileByDir(lf, nullptr, getter_AddRefs(mCurrent));
     NS_ADDREF(*aRootDir = lf);
@@ -1649,7 +1646,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
   if (ar) {
     mCurrent = GetProfileByName(nsDependentCString(arg));
     if (mCurrent) {
-      mStartupReason = u"argument-p"_ns;
+      mStartupReason = "argument-p"_ns;
 
       mCurrent->GetRootDir(aRootDir);
       mCurrent->GetLocalDir(aLocalDir);
@@ -1688,7 +1685,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
     if (BackgroundTasks::IsEphemeralProfileTaskName(taskName)) {
       // Background task mode does not enable legacy telemetry, so this is for
       // completeness and testing only.
-      mStartupReason = u"backgroundtask-ephemeral"_ns;
+      mStartupReason = "backgroundtask-ephemeral"_ns;
 
       nsCOMPtr<nsIFile> rootDir;
       rv = GetSpecialSystemDirectory(OS_TemporaryDirectory,
@@ -1706,7 +1703,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
     } else {
       // Background task mode does not enable legacy telemetry, so this is for
       // completeness and testing only.
-      mStartupReason = u"backgroundtask-not-ephemeral"_ns;
+      mStartupReason = "backgroundtask-not-ephemeral"_ns;
 
       // A non-ephemeral profile is required.
       nsCOMPtr<nsIFile> rootDir;
@@ -1859,7 +1856,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
           rv = MaybeMakeDefaultDedicatedProfile(profile, &result);
           NS_ENSURE_SUCCESS(rv, rv);
           if (result) {
-            mStartupReason = u"firstrun-claimed-default"_ns;
+            mStartupReason = "firstrun-claimed-default"_ns;
 
             mCurrent = profile;
             rootDir.forget(aRootDir);
@@ -1895,9 +1892,9 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (skippedDefaultProfile) {
-        mStartupReason = u"firstrun-skipped-default"_ns;
+        mStartupReason = "firstrun-skipped-default"_ns;
       } else {
-        mStartupReason = u"firstrun-created-default"_ns;
+        mStartupReason = "firstrun-created-default"_ns;
       }
 
       // Use the new profile.
@@ -1920,7 +1917,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
 
   // Let the caller know that the profile was selected by default.
   *aWasDefaultSelection = true;
-  mStartupReason = u"default"_ns;
+  mStartupReason = "default"_ns;
 
   // Use the selected profile.
   mCurrent->GetRootDir(aRootDir);

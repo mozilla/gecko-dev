@@ -493,3 +493,39 @@ datasanitization:
     expires: never
     unit: unknown
     telemetry_mirror: DATASANITIZATION_SESSION_PERMISSION_EXCEPTIONS
+
+startup:
+  is_cold:
+    type: boolean
+    description: >
+      Whether or not this startup is the first startup since OS reboot
+      (according to our best guess.)
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar startup.is_cold.
+    bugs:
+      - https://bugzil.la/1542833
+    data_reviews:
+      - https://bugzil.la/1542833
+    notification_emails:
+      - dothayer@mozilla.com
+    expires: never
+    telemetry_mirror: STARTUP_IS_COLD
+
+  seconds_since_last_os_restart:
+    type: quantity
+    description: >
+      The time in seconds between the first browser window loading, and
+      the time the OS started. This can give us an indication of whether
+      starting the browser may have been the first thing the user did
+      after starting their computer.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar startup.seconds_since_last_os_restart.
+    bugs:
+      - https://bugzil.la/1654063
+    data_reviews:
+      - https://bugzil.la/1654063
+    notification_emails:
+      - dothayer@mozilla.com
+    expires: never
+    unit: seconds
+    telemetry_mirror: STARTUP_SECONDS_SINCE_LAST_OS_RESTART

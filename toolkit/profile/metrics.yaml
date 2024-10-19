@@ -1,0 +1,113 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Startup and Profile System'
+
+startup:
+  profile_selection_reason:
+    type: string
+    description: >
+      How the profile was selected during startup. One of the following reasons:
+        unknown:
+          Generally should not happen, set as a default in case no other reason
+          occured.
+        profile-manager:
+          The profile was selected by the profile manager.
+        profile-selector:
+          The profile was selected by the profile selector window.
+        profile-reset:
+          The profile was selected for reset, normally this would mean a restart.
+        restart:
+          The user restarted the application, the same profile as previous will
+          be used.
+        argument-profile:
+          The profile was selected by the --profile command line argument.
+        argument-p:
+          The profile was selected by the -p command line argument.
+        firstrun-claimed-default:
+          A first run of a dedicated profiles build chose the old default
+          profile to be the default for this install.
+        firstrun-skipped-default:
+          A first run of a dedicated profiles build skipped over the old default
+          profile and created a new profile.
+        restart-claimed-default:
+          A first run of a dedicated profiles build after a restart chose the
+          old default profile to be the default for this install.
+        restart-skipped-default:
+          A first run of a dedicated profiles build after a restart skipped over
+          the old default profile and created a new profile.
+        firstrun-created-default:
+          A first run of the application created a new profile to use.
+        default:
+          The default profile was selected as normal.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar startup.profile_selection_reason.
+    bugs:
+      - https://bugzil.la/1522934
+      - https://bugzil.la/1570652
+      - https://bugzil.la/1623406
+      - https://bugzil.la/1749887
+      - https://bugzil.la/1893667
+    data_reviews:
+      - https://bugzil.la/1522934
+      - https://bugzil.la/1570652
+      - https://bugzil.la/1623406
+      - https://bugzil.la/1749887
+      - https://bugzil.la/1893667
+    notification_emails:
+      - dtownsend@mozilla.com
+      - rtestard@mozilla.com
+      - gkaberere@mozilla.com
+      - jhollek@mozilla.com
+      - echo@mozilla.com
+      - shong@mozilla.com
+      - jhirsch@mozilla.com
+    expires: never
+    telemetry_mirror: STARTUP_PROFILE_SELECTION_REASON
+
+  profile_database_version:
+    type: string
+    description: >
+      The version of the profiles.ini database loaded during startup. A
+      value of "0" is used to indicate that no file was present during
+      startup.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar startup.profile_database_version.
+    bugs:
+      - https://bugzil.la/1878339
+      - https://bugzil.la/1916867
+    data_reviews:
+      - https://bugzil.la/1878339
+      - https://bugzil.la/1916867
+    notification_emails:
+      - dtownsend@mozilla.com
+      - kbryant@mozilla.com
+    expires: 140
+    telemetry_mirror: STARTUP_PROFILE_DATABASE_VERSION
+
+  profile_count:
+    type: quantity
+    description: >
+      This records the number of known profiles after startup completes.
+      This includes any profiles that were created during startup.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar startup.profile_count.
+    bugs:
+      - https://bugzil.la/1878339
+      - https://bugzil.la/1916867
+    data_reviews:
+      - https://bugzil.la/1878339
+      - https://bugzil.la/1916867
+    notification_emails:
+      - dtownsend@mozilla.com
+      - kbryant@mozilla.com
+    expires: 140
+    unit: profiles
+    telemetry_mirror: STARTUP_PROFILE_COUNT
