@@ -91,7 +91,7 @@
 
     <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
     <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[
-      <p>A böngésző megszakította a kért elem lekérésére irányuló kísérleteket. A webhely oly módon irányította át a kérést, hogy az soha nem teljesülhet.</p>
+      <p>A böngésző megszakította a kért elem lekérésére irányuló kísérleteket. A webhely oly módon irányította át a kérést, hogy az sosem teljesülhet.</p>
       <ul>
         <li>Letiltotta a webhely által megkövetelt sütiket?</li>
         <li>Ha a webhely sütijeinek elfogadása nem oldja meg a problémát, valószínűleg a kiszolgáló beállításában van a hiba, nem az Ön számítógépében.</li>

@@ -186,10 +186,12 @@
     <string name="mozac_feature_addons_failed_to_translate">Traduccion pas trobada tan per la lenga %1$s coma la lenga per defaut %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s installat corrèctament</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Fracàs de l’installacion de %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Fracàs de l’installacion d’aquesta extension.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Impossible d’installar l’extension</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Es pas estat possible de telecargar aquesta extension a causa d’un fracàs de la connexion.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -199,7 +201,7 @@
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">Èra pas possible d’installar %1$s pr’amor qu’es pas compatible amb %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">%1$s a pas pogut èsser installat perque presenta un grand risc de problèmas d’instabilitat o de seguretat.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s a pas pogut èsser installat perque presenta un grand risc de problèmas d’instabilitat o de seguretat.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s a pas pogut èsser installat perque sonque una organizacion utilizant de politicas d\'entrepresa pòt l’installar, e aquò es pas pres en carga sus aquesta platafòrma.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
@@ -246,8 +248,10 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">D\'acòrdi</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Ne saber mai</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Afichar los detalhs</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s es estat desactivat en seguida de problèmas de seguretat o d’estabilitat.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s es estat desactivat en seguida de problèmas de seguretat o d’estabilitat.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">Se podiá pas verificar que %1$s foguèsse segur e foguèt desactivat.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

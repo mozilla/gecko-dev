@@ -119,11 +119,11 @@
     <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_permissions_dialog_title">Czy dodać „%1$s”?</string>
     <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_optional_permissions_dialog_title">Dodatek „%1$s” prosi o nowe uprawnienia.</string>
+    <string name="mozac_feature_addons_optional_permissions_dialog_title">Rozszerzenie „%1$s” prosi o nowe uprawnienia.</string>
     <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-    <string name="mozac_feature_addons_permissions_dialog_subtitle">Ten dodatek wymaga następujących uprawnień:</string>
+    <string name="mozac_feature_addons_permissions_dialog_subtitle">To rozszerzenie wymaga następujących uprawnień:</string>
     <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
-    <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">Ten dodatek prosi o nadanie następujących uprawnień:</string>
+    <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">To rozszerzenie prosi o nadanie następujących uprawnień:</string>
     <!-- This is a button to add (install) an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_add">Dodaj</string>
     <!-- This is a button to allow the optional permissions requested by an add-on . -->
@@ -133,7 +133,7 @@
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">Anuluj</string>
     <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_install_addon_content_description_2">Zainstaluj dodatek „%1$s”</string>
+    <string name="mozac_feature_addons_install_addon_content_description_2">Zainstaluj rozszerzenie „%1$s”</string>
     <!-- This is the label of a button to cancel an ongoing add-on installation. -->
     <string name="mozac_feature_addons_install_addon_dialog_cancel">Anuluj</string>
     <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
@@ -185,11 +185,13 @@
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
     <string name="mozac_feature_addons_failed_to_translate">Nie odnaleziono tłumaczenia dla używanego języka (%1$s) ani domyślnego języka (%2$s)</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_installed">Zainstalowano dodatek „%1$s”</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_install">Instalacja dodatku „%1$s” się nie powiodła</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <string name="mozac_feature_addons_successfully_installed">Zainstalowano rozszerzenie „%1$s”</string>
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_failed_to_install">Instalacja rozszerzenia „%1$s” się nie powiodła</string>
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Instalacja tego rozszerzenia się nie powiodła.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Nie można zainstalować rozszerzenia</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">Nie udało się zainstalować tego rozszerzenia z powodu błędu połączenia.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -197,27 +199,33 @@
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was not signed. -->
     <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">To rozszerzenie nie może zostać zainstalowane, ponieważ nie zostało zweryfikowane.</string>
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
-    <string name="mozac_feature_addons_failed_to_install_incompatible_error">Dodatek „%1$s” nie może zostać zainstalowany, ponieważ nie jest on zgodny z aplikacją %2$s %3$s.</string>
+    <string name="mozac_feature_addons_failed_to_install_incompatible_error">Rozszerzenie „%1$s” nie może zostać zainstalowane, ponieważ nie jest ono zgodne z aplikacją %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">Dodatek „%1$s” nie może zostać zainstalowany, ponieważ obarczony jest on wysokim ryzykiem utraty stabilności lub problemów z bezpieczeństwem.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">Rozszerzenie „%1$s” nie może zostać zainstalowane, ponieważ obarczone jest ono wysokim ryzykiem utraty stabilności lub problemów z bezpieczeństwem.</string>
+    <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_blocklisted_2">Rozszerzenie „%1$s” narusza zasady Mozilli i nie można go instalować w aplikacji %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_admin_install_only">Dodatek „%1$s” nie może zostać zainstalowany, ponieważ może go instalować wyłącznie organizacja korzystająca z zasad organizacji, które nie są obsługiwane na tej platformie.</string>
+    <string name="mozac_feature_addons_admin_install_only">Rozszerzenie „%1$s” nie może zostać zainstalowane, ponieważ może je instalować wyłącznie organizacja korzystająca z zasad organizacji, które nie są obsługiwane na tej platformie.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">Rozszerzenie „%1$s” narusza zasady Mozilli i nie można go instalować.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_soft_blocked_1">Rozszerzenie „%1$s” narusza zasady Mozilli i nie można go instalować w aplikacji %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_enabled">Włączono dodatek „%1$s”</string>
+    <string name="mozac_feature_addons_successfully_enabled">Włączono rozszerzenie „%1$s”</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_enable">Włączenie dodatku „%1$s” się nie powiodło</string>
+    <string name="mozac_feature_addons_failed_to_enable">Włączenie rozszerzenia „%1$s” się nie powiodło</string>
     <!-- Text shown after successfully disabled an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_disabled">Wyłączono dodatek „%1$s”</string>
+    <string name="mozac_feature_addons_successfully_disabled">Wyłączono rozszerzenie „%1$s”</string>
     <!-- Text shown after failed to disable an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_disable">Wyłączenie dodatku „%1$s” się nie powiodło</string>
+    <string name="mozac_feature_addons_failed_to_disable">Wyłączenie rozszerzenia „%1$s” się nie powiodło</string>
     <!-- Text shown after successfully uninstalled an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_uninstalled">Odinstalowano dodatek „%1$s”</string>
+    <string name="mozac_feature_addons_successfully_uninstalled">Odinstalowano rozszerzenie „%1$s”</string>
     <!-- Text shown after failed to uninstall an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_uninstall">Odinstalowanie dodatku „%1$s” się nie powiodło</string>
+    <string name="mozac_feature_addons_failed_to_uninstall">Odinstalowanie rozszerzenia „%1$s” się nie powiodło</string>
     <!-- Text shown after successfully removed an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_successfully_removed" tools:ignore="UnusedResources">Usunięto dodatek „%1$s”</string>
+    <string name="mozac_feature_addons_successfully_removed" tools:ignore="UnusedResources">Usunięto rozszerzenie „%1$s”</string>
     <!-- Text shown after failed to remove an add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">Usunięcie dodatku „%1$s” się nie powiodło</string>
+    <string name="mozac_feature_addons_failed_to_remove" tools:ignore="UnusedResources">Usunięcie rozszerzenia „%1$s” się nie powiodło</string>
     <!-- Label shown to indicate that the add-on was migrated from a previous version of the app. %1$s is the app name most of the case it will be Firefox. -->
     <string name="mozac_feature_addons_migrated_from_a_previous_version_label" tools:ignore="UnusedResources">Ten dodatek został przeniesiony z poprzedniej wersji programu %1$s</string>
     <!-- Text shown in not yet supported add-ons section. -->
@@ -241,15 +249,25 @@
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_title">Dodano „%1$s” do programu %2$s</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
-    <string name="mozac_feature_addons_installed_dialog_description_2">Otwórz dodatek „%1$s” z menu programu %2$s.</string>
+    <string name="mozac_feature_addons_installed_dialog_description_2">Otwórz rozszerzenie „%1$s” z menu programu %2$s.</string>
     <!-- Confirmation button text for the dialog when add-on installation is completed. -->
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">OK</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Więcej informacji</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Szczegóły</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">Dodatek „%1$s” został wyłączony z powodu problemów z bezpieczeństwem lub stabilnością.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">Rozszerzenie „%1$s” zostało wyłączone z powodu problemów z bezpieczeństwem lub stabilnością.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">To rozszerzenie jest zablokowane z powodu naruszenia zasad Mozilli i zostało wyłączone.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">To rozszerzenie narusza zasady Mozilli i zostało wyłączone. Można je włączyć, ale może to być ryzykowne.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">To rozszerzenie jest ograniczone z powodu naruszania zasad Mozilli i zostało wyłączone. Można je włączyć, ale może to być ryzykowne.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">To rozszerzenie narusza zasady Mozilli. Korzystanie z niego może być ryzykowne.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_unsigned">Dodatek „%1$s” nie mógł zostać zweryfikowany jako bezpieczny i został wyłączony.</string>
+    <string name="mozac_feature_addons_status_unsigned">Rozszerzenie „%1$s” nie mogło zostać zweryfikowane jako bezpieczne i zostało wyłączone.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
-    <string name="mozac_feature_addons_status_incompatible">Dodatek „%1$s” nie jest zgodny z używaną wersją aplikacji %2$s (wersja %3$s).</string>
+    <string name="mozac_feature_addons_status_incompatible">Rozszerzenie „%1$s” nie jest zgodne z używaną wersją aplikacji %2$s (wersja %3$s).</string>
 </resources>

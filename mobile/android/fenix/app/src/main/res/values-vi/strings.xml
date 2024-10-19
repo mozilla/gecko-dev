@@ -108,8 +108,6 @@
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Duyệt nhanh hơn với điều hướng mới</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Thanh này sẽ ẩn đi khi bạn cuộn xuống để có thêm không gian duyệt.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Trên trang web, thanh này sẽ ẩn đi khi bạn cuộn xuống để có thêm không gian duyệt.</string>
@@ -219,8 +217,6 @@
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">Thêm %1$s</string>
-    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Thêm tiện ích</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Khám phá tiện tích khác</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -315,6 +311,16 @@
     <string name="browser_menu_tools">Công cụ</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Quay lại menu chính</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">Đóng bảng menu chính</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+    <string name="browser_extensions_menu_handlebar_content_description">Đóng bảng menu tiện ích</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+    <string name="browser_save_menu_handlebar_content_description">Đóng bảng menu lưu</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+    <string name="browser_tools_menu_handlebar_content_description">Đóng bảng menu công cụ</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+    <string name="browser_custom_tab_menu_handlebar_content_description">Đóng bảng menu thẻ tuỳ chỉnh</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Chế độ đọc, dịch, in, chia sẻ, mở ứng dụng</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -382,7 +388,9 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Quét</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Quét</string>
+    <!-- Button in the search view that lets a user search by scanning a QR code -->
+    <string name="search_scan_button_2">Quét mã QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Cài đặt công cụ tìm kiếm</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -434,18 +442,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">Đóng</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">Thông báo giúp bạn làm được nhiều việc hơn với %s</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">Đồng bộ hóa các thẻ của bạn giữa các thiết bị, quản lý tải xuống, nhận các mẹo về cách tận dụng tối đa khả năng bảo vệ quyền riêng tư của %s và nhiều hơn nữa.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">Tiếp tục</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">Không phải bây giờ</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Thông báo về quyền riêng tư Firefox</string>
@@ -462,21 +458,12 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Hơn 100 triệu người bảo vệ quyền riêng tư của mình bằng cách chọn trình duyệt được hỗ trợ bởi tổ chức phi lợi nhuận.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Trình theo dõi được biết đến? Sẽ bị chặn tự động. Tiện ích mở rộng? Hãy thử tất cả 700 cái. Đọc PDF? Trình đọc tích hợp của chúng tôi giúp bạn dễ dàng quản lý chúng.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Trình duyệt được tài trợ bởi tổ chức phi lợi nhuận của chúng tôi giúp ngăn các công ty bí mật theo dõi bạn trên web.\n\nTìm hiểu thêm về thông báo quyền riêng tư của chúng tôi.
-</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">thông báo bảo mật</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Đặt làm trình duyệt mặc định</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Không phải bây giờ</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Luôn mã hóa khi bạn chuyển đổi giữa nhiều thiết bị</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Khi bạn đăng nhập và đồng bộ hóa, bạn sẽ an toàn hơn. Firefox mã hóa mật khẩu, dấu trang của bạn và hơn thế nữa.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox mã hóa mật khẩu, dấu trang và nhiều nội dung khác khi bạn đồng bộ hóa.</string>
@@ -506,6 +493,36 @@
     <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Thêm tiện ích Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Không phải bây giờ</string>
+
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Tùy chỉnh Firefox của bạn với tiện ích mở rộng</string>
+    <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Thêm tiện ích mở rộng của bên thứ ba để nâng cao tính bảo mật, năng suất của bạn và hơn thế nữa.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Khám phá các tiện ích mở rộng khác.</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Bắt đầu duyệt web.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">Khám phá các tiện ích mở rộng khác</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">Bắt đầu duyệt web</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Chặn quảng cáo hiệu quả.</string>
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Chặn các trình theo dõi vô hình và quảng cáo gián điệp.</string>
+    <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
+    <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Xem một bức ảnh thú vị và tìm hiểu thêm về nó.</string>
+    <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Chế độ tối tùy chỉnh cho web di động.</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -559,7 +576,9 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Riêng tư và bảo mật</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Quyền hạn trang web</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Quyền hạn trang web</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">Cài đặt trang</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Duyệt web riêng tư</string>
     <!-- Preference for opening links in a private tab-->
@@ -1138,8 +1157,6 @@
 
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Tên bộ sưu tập</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Đổi tên</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Xóa</string>
 
@@ -1225,6 +1242,8 @@
     <string name="bookmark_saved_in_folder_snackbar">Đã lưu trong “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">CHỈNH SỬA</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">Di chuyển</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Chỉnh sửa</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1282,6 +1301,10 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">HOÀN TÁC</string>
 
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">Đã xóa %s</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Đã xoá %s mục</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Nhập từ tìm kiếm</string>
 
@@ -1289,8 +1312,6 @@
     <string name="bookmark_navigate_back_button_content_description">Điều hướng quay lại</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Thêm một thư mục mới</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Đóng dấu trang</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Tìm kiếm dấu trang</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -1306,6 +1327,9 @@
     <string name="bookmark_empty_list_authenticated_description">Lưu các trang web khi bạn duyệt. Chúng tôi cũng sẽ lấy dấu trang từ các thiết bị được đồng bộ hóa khác cho bạn.</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
     <string name="bookmark_empty_list_folder_description">Thêm dấu trang khi bạn duyệt để bạn có thể tìm thấy các trang web yêu thích của mình sau này.</string>
+
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Thư mục mới</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1390,6 +1414,13 @@
     <string name="studies_on">Bật</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Tắt</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">Quyền hạn</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">Nội dung</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">Luôn yêu cầu trang web máy tính</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1497,17 +1528,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Đóng các thẻ riêng tư</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Trung lập</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Rất không hài lòng</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Không hài lòng</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Hài lòng</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Rất hài lòng</string>
-
 
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Đóng các thẻ riêng tư?</string>
@@ -1560,6 +1580,8 @@
     <string name="snackbar_num_tabs_closed">Thẻ đã đóng: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Đã lưu dấu trang!</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Đã lưu dấu trang trong “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Đã thêm vào lối tắt!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1587,8 +1609,6 @@
     <string name="tab_collection_dialog_message">Bạn có chắc chắn muốn xóa %1$s không?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Xóa</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Đã vào chế độ toàn màn hình</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">Đã sao chép URL</string>
     <!-- Sample text for accessibility font size -->
@@ -1638,8 +1658,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Khoảng thời gian để xóa</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">Xóa lịch sử (bao gồm lịch sử đã đồng bộ hóa từ các thiết bị khác), cookie và dữ liệu duyệt web khác.</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">Xóa lịch sử (bao gồm lịch sử đã đồng bộ hóa từ thiết bị khác)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1756,8 +1774,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Tiền điện tử</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Vân tay</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Dấu vết đã biết</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Chi tiết</string>
@@ -1781,10 +1797,6 @@
     <string name="etp_cryptominers_title">Tiền điện tử</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Ngăn chặn các tập lệnh độc hại truy cập vào thiết bị của bạn để khai thác tiền điện tử.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Vân tay</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Ngăn chặn việc thu thập dữ liệu nhận dạng duy nhất về thiết bị của bạn có thể được sử dụng cho mục đích theo dõi.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">Ngăn chặn việc thu thập dữ liệu nhận dạng duy nhất về thiết bị của bạn có thể được sử dụng cho mục đích theo dõi.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2252,8 +2264,6 @@
     <string name="shortcut_name_hint">Tên lối tắt</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">URL lối tắt</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Huỷ bỏ</string>
 
@@ -2319,7 +2329,7 @@
     <string name="radio_preference_info_content_description">Chạm để biết thêm chi tiết</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">Điều hướng lên</string>
+    <string name="action_bar_up_description">Điều hướng lên</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">Đóng</string>
@@ -2460,8 +2470,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Tìm hiểu thêm</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">Bằng cách chọn “Có, hãy thử nó” bạn đồng ý với %2$s của %1$s và %4$s của %3$s.</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">Bằng cách chọn “Có, hãy thử nó” bạn đồng ý với %2$s của %1$s và %4$s của %3$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">thông báo bảo mật</string>
@@ -2479,8 +2487,6 @@
     <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Những đánh giá này có đáng tin cậy không? Kiểm tra ngay bây giờ để xem xếp hạng được điều chỉnh.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Mở trình kiểm tra đánh giá</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Mở trình kiểm tra đánh giá</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2672,8 +2678,6 @@
     <string name="never_translate_site_dialog_cancel_preference">Hủy bỏ</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Tải xuống các ngôn ngữ</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">Tải xuống ngôn ngữ</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2730,14 +2734,6 @@
     <string name="delete_language_file_dialog_positive_button_text">Xóa</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Hủy bỏ</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Dừng tải xuống %1$s?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Đồng ý</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Không</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2834,8 +2830,6 @@
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Tôi không sử dụng tìm kiếm trên Firefox</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">Tôi không sử dụng đồng bộ hoá</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Bạn hài lòng với trang chủ Firefox của mình đến mức nào?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Giúp việc in ấn trong Firefox tốt hơn. Chỉ mất một giây</string>
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2855,8 +2849,6 @@
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefox</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Biểu tượng tính năng khảo sát</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Mở khảo sát</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Đóng khảo sát</string>
     <!-- Content description for "X" button that is closing microsurvey. -->

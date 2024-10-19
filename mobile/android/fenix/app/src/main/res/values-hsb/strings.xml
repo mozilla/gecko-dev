@@ -206,9 +206,14 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Přiswojće sej %s</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">Sće rozšěrjenja instalował, ale nic zmóžnił</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_body">Rozšěrjenja waše přehladowanje polěpšuja, wot měnjenja napohlada a wukona %s do polěpšenja priwatnosće a wěstoty.</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">Zo byšće rozšěrjenja wužiwał, zmóžńće je w nastajenjach abo wubjerće “%s” deleka.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Dalše informacije</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -418,7 +423,7 @@
     <string name="search_header_menu_item_2">Tónkróć pytać w:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">Pytawa %s</string>
+    <string name="search_engine_icon_content_description">Pytawa %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
