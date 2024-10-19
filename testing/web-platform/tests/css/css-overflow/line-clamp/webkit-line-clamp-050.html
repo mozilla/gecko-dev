@@ -16,11 +16,15 @@
     border: medium solid green;
     padding: 15px;
   }
+  span {
+    /* TODO: Remove once we don't paint clamped lines */
+    color: transparent;
+  }
 </style>
 <div class="clamp">
   Line1
-  <div>Line2<br>Line3</div>
-  Line4
+  <div>Line2<br><span>Line3</span></div>
+  <span>Line4</span>
   <div>Line5<br>Line6</div>
   Line7
 </div>
