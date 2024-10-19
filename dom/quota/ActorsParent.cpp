@@ -105,6 +105,7 @@
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/dom/quota/ScopedLogExtraInfo.h"
 #include "mozilla/dom/quota/StreamUtils.h"
+#include "mozilla/dom/quota/ThreadUtils.h"
 #include "mozilla/dom/simpledb/ActorsParent.h"
 #include "mozilla/fallible.h"
 #include "mozilla/ipc/BackgroundChild.h"
@@ -4019,6 +4020,9 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
         FullOriginMetadata{aOriginMetadata, aPersisted, aAccessTime},
         clientUsages, usage.value());
   }
+
+  SleepIfEnabled(
+      StaticPrefs::dom_quotaManager_originInitialization_pauseOnIOThreadMs());
 
   QM_LOG(
       ("Ending origin initialization for: %s", aOriginMetadata.mOrigin.get()));
