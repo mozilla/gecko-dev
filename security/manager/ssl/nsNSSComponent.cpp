@@ -93,6 +93,13 @@ int nsNSSComponent::mInstanceCount = 0;
 // Forward declaration.
 nsresult CommonInit();
 
+template <const glean::impl::TimespanMetric* metric>
+class MOZ_RAII AutoGleanTimer {
+ public:
+  explicit AutoGleanTimer() { metric->Start(); }
+  ~AutoGleanTimer() { metric->Stop(); }
+};
+
 // Take an nsIFile and get a UTF-8-encoded c-string representation of the
 // location of that file (encapsulated in an nsACString).
 // This operation is generally to be avoided, except when interacting with
@@ -504,8 +511,7 @@ nsresult LoadLoadableCertsTask::Dispatch() {
 
 NS_IMETHODIMP
 LoadLoadableCertsTask::Run() {
-  Telemetry::AutoScalarTimer<Telemetry::ScalarID::NETWORKING_LOADING_CERTS_TASK>
-      timer;
+  AutoGleanTimer<&glean::networking::loading_certs_task> timer;
 
   nsresult loadLoadableRootsResult = LoadLoadableRoots();
   if (NS_WARN_IF(NS_FAILED(loadLoadableRootsResult))) {
@@ -1687,8 +1693,7 @@ nsresult nsNSSComponent::Init() {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  Telemetry::AutoScalarTimer<Telemetry::ScalarID::NETWORKING_NSS_INITIALIZATION>
-      timer;
+  AutoGleanTimer<&glean::networking::nss_initialization> timer;
 
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("Beginning NSS initialization\n"));
 
