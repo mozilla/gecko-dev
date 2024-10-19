@@ -1544,6 +1544,8 @@ QuotaManager::Observer::Observe(nsISupports* aSubject, const char* aTopic,
         isNetworkPath);
 #endif
 
+    QM_LOG(("Base path: %s", NS_ConvertUTF16toUTF8(*gBasePath).get()));
+
     gStorageName = new nsString();
 
     rv = Preferences::GetString("dom.quotaManager.storageName", *gStorageName);
@@ -3843,6 +3845,9 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
                                         const OriginMetadata& aOriginMetadata,
                                         int64_t aAccessTime, bool aPersisted,
                                         nsIFile* aDirectory, bool aForGroup) {
+  QM_LOG(("Starting origin initialization for: %s",
+          aOriginMetadata.mOrigin.get()));
+
   AssertIsOnIOThread();
 
   // The ScopedLogExtraInfo is not set here on purpose, so the callers can
@@ -3854,6 +3859,9 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
   if (trackQuota && !aForGroup &&
       StaticPrefs::
           dom_quotaManager_temporaryStorage_lazyOriginInitialization()) {
+    QM_LOG(("Skipping origin initialization for: %s (it will be done lazily)",
+            aOriginMetadata.mOrigin.get()));
+
     return NS_OK;
   }
 
@@ -4011,6 +4019,9 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
         FullOriginMetadata{aOriginMetadata, aPersisted, aAccessTime},
         clientUsages, usage.value());
   }
+
+  QM_LOG(
+      ("Ending origin initialization for: %s", aOriginMetadata.mOrigin.get()));
 
   return NS_OK;
 }
