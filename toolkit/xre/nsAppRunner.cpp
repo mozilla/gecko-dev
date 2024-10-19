@@ -5756,8 +5756,7 @@ nsresult XREMain::XRE_mainRun() {
 #if defined(XP_WIN)
     LauncherResult<bool> isAdminWithoutUac = IsAdminWithoutUac();
     if (isAdminWithoutUac.isOk()) {
-      Telemetry::ScalarSet(
-          Telemetry::ScalarID::OS_ENVIRONMENT_IS_ADMIN_WITHOUT_UAC,
+      glean::os_environment::is_admin_without_uac.Set(
           isAdminWithoutUac.unwrap());
     }
 #endif /* XP_WIN */

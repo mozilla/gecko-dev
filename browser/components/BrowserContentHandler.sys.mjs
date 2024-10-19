@@ -1231,9 +1231,9 @@ function handURIToExistingBrowser(
  *        truth-y if Firefox was launched/started rather than running and invoked.
  */
 function maybeRecordToHandleTelemetry(uri, isLaunch) {
-  let scalar = isLaunch
-    ? "os.environment.launched_to_handle"
-    : "os.environment.invoked_to_handle";
+  let counter = isLaunch
+    ? Glean.osEnvironment.launchedToHandle
+    : Glean.osEnvironment.invokedToHandle;
 
   if (uri instanceof Ci.nsIFileURL) {
     let extension = "." + uri.fileExtension.toLowerCase();
@@ -1251,17 +1251,17 @@ function maybeRecordToHandleTelemetry(uri, isLaunch) {
       ".webp",
     ]);
     if (registeredExtensions.has(extension)) {
-      Services.telemetry.keyedScalarAdd(scalar, extension, 1);
+      counter[extension].add(1);
     } else {
-      Services.telemetry.keyedScalarAdd(scalar, ".<other extension>", 1);
+      counter[".<other extension>"].add(1);
     }
   } else if (uri) {
     let scheme = uri.scheme.toLowerCase();
     let registeredSchemes = new Set(["about", "http", "https", "mailto"]);
     if (registeredSchemes.has(scheme)) {
-      Services.telemetry.keyedScalarAdd(scalar, scheme, 1);
+      counter[scheme].add(1);
     } else {
-      Services.telemetry.keyedScalarAdd(scalar, "<other protocol>", 1);
+      counter["<other protocol>"].add(1);
     }
   }
 }
