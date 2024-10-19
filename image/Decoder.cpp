@@ -93,9 +93,19 @@ Decoder::~Decoder() {
 
 void Decoder::SetSurfaceFlags(SurfaceFlags aSurfaceFlags) {
   MOZ_ASSERT(!mInitialized);
+  MOZ_ASSERT(!(mSurfaceFlags & SurfaceFlags::NO_COLORSPACE_CONVERSION) ||
+             !(mSurfaceFlags & SurfaceFlags::TO_SRGB_COLORSPACE));
   mSurfaceFlags = aSurfaceFlags;
   if (mSurfaceFlags & SurfaceFlags::NO_COLORSPACE_CONVERSION) {
     mCMSMode = CMSMode::Off;
+  }
+  if (mSurfaceFlags & SurfaceFlags::TO_SRGB_COLORSPACE) {
+    // CMSMode::TaggedOnly and CMSMode::All are equivalent when the
+    // TO_SRGB_COLORSPACE flag is set (for untagged images CMSMode::All assumes
+    // they are in sRGB space so it does nothing, which is same as what
+    // CMSMode::TaggedOnly does for untagged images). We just want to avoid
+    // CMSMode::Off so that the sRGB conversion actually happens.
+    mCMSMode = CMSMode::All;
   }
 }
 
