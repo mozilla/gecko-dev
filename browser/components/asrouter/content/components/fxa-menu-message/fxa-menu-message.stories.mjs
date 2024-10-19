@@ -36,9 +36,9 @@ export const Default = Template.bind({});
 Default.args = {
   buttonText: "Sign up",
   imageURL:
-    "chrome://browser/content/asrouter/assets/fox-with-box-on-cloud.svg",
+    "chrome://activity-stream/content/data/content/assets/fox-doodle-waving-static.png",
   primaryText: "Bounce between devices",
   secondaryText:
     "Sync and encrypt your bookmarks, passwords, and more on all your devices.",
-  imageVerticalOffset: -20,
+  imageVerticalOffset: -24,
 };

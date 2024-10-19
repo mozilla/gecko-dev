@@ -12,7 +12,3 @@ browser.jar:
   content/browser/asrouter/render.js                                     (content/render.js)
   content/browser/asrouter/schemas/BackgroundTaskMessagingExperiment.schema.json     (content-src/schemas/BackgroundTaskMessagingExperiment.schema.json)
   content/browser/asrouter/schemas/MessagingExperiment.schema.json                   (content-src/schemas/MessagingExperiment.schema.json)
-  content/browser/asrouter/assets/fox-with-box-on-cloud.svg              (content/assets/fox-with-box-on-cloud.svg)
-  content/browser/asrouter/assets/fox-with-devices.svg                   (content/assets/fox-with-devices.svg)
-  content/browser/asrouter/assets/fox-with-locked-box.svg                (content/assets/fox-with-locked-box.svg)
-  content/browser/asrouter/assets/fox-with-mobile.svg                    (content/assets/fox-with-mobile.svg)

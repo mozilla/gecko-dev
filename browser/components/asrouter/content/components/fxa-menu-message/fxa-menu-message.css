@@ -36,7 +36,6 @@
   display: flex;
   justify-content: center;
   margin-block-start: var(--illustration-margin-block-offset);
-  margin-block-end: var(--space-xsmall);
   pointer-events: none;
 }
 
