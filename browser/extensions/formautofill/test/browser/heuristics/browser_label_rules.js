@@ -55,4 +55,28 @@ add_heuristic_tests([
       },
     ],
   },
+  {
+    fixtureData: `
+        <html>
+        <body>
+          <form>
+            <div><input id="fname"><label>First name</label></div>
+            <div><input id="thel"><label>Last name</label></div>
+            <div><input id="line1"><label>Street</label></div>
+            <div><label>Postal Code</label><input id="pc"></div>
+          </form>
+        </body>
+        </html>`,
+    expectedResult: [
+      {
+        description: `label does not have a directly specified control`,
+        fields: [
+          { fieldName: "given-name", reason: "regex-heuristic" },
+          { fieldName: "family-name", reason: "regex-heuristic" },
+          { fieldName: "street-address", reason: "regex-heuristic" },
+          { fieldName: "postal-code", reason: "regex-heuristic" },
+        ],
+      },
+    ],
+  },
 ]);
