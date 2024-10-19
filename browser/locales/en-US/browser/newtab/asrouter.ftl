@@ -275,3 +275,21 @@ root-certificate-succession-infobar-secondary-button =
 fxa-menu-message-close-button =
     .title = Close
     .aria-label = Close
+
+fxa-menu-message-sign-up-button = Sign up
+
+fxa-menu-message-sync-devices-primary-text = Sync all your devices
+fxa-menu-message-sync-devices-secondary-text = Instantly get your info — like bookmarks and passwords — everywhere you use { -brand-short-name }.
+fxa-menu-message-sync-devices-collapsed-text = Sync all your devices
+
+fxa-menu-message-backup-data-primary-text = Back up your browser data
+fxa-menu-message-backup-data-secondary-text = Automatically protect bookmarks, passwords, and other info on all your devices.
+fxa-menu-message-backup-data-collapsed-text = Back up browser data
+
+fxa-menu-message-backup-sync-primary-text = Keep your data safe and synced
+fxa-menu-message-backup-sync-secondary-text = Sync backs up most of your data so you can access it everywhere you use { -brand-short-name }.
+fxa-menu-message-backup-sync-collapsed-text = Sync and back up data
+
+fxa-menu-message-mobile-primary-text = Send tabs to your phone
+fxa-menu-message-mobile-secondary-text = Pick up where you left off instantly when you sync your tabs with a mobile device.
+fxa-menu-message-mobile-collapsed-text = Sync with your phone
