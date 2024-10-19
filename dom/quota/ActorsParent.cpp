@@ -5310,12 +5310,24 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
 
   RefPtr<UniversalDirectoryLock> temporaryStorageDirectoryLock;
 
+  RefPtr<UniversalDirectoryLock> groupDirectoryLock;
+
   if (IsBestEffortPersistenceType(persistenceType)) {
     temporaryStorageDirectoryLock = CreateDirectoryLockForInitialization(
         *this,
         PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
                                         PERSISTENCE_TYPE_DEFAULT),
         OriginScope::FromNull(), mTemporaryStorageInitialized,
+        IsDirectoryLockBlockedByUninitStorageOperation,
+        MakeBackInserter(promises));
+
+    const bool groupInitialized = IsTemporaryGroupInitialized(principalInfo);
+
+    groupDirectoryLock = CreateDirectoryLockForInitialization(
+        *this,
+        PersistenceScope::CreateFromSet(PERSISTENCE_TYPE_TEMPORARY,
+                                        PERSISTENCE_TYPE_DEFAULT),
+        OriginScope::FromGroup(aClientMetadata.mGroup), groupInitialized,
         IsDirectoryLockBlockedByUninitStorageOperation,
         MakeBackInserter(promises));
   }
@@ -5358,10 +5370,18 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
                  MaybeInitialize(std::move(temporaryStorageDirectoryLock), this,
                                  &QuotaManager::InitializeTemporaryStorage))
           ->Then(GetCurrentSerialEventTarget(), __func__,
+                 MaybeInitialize(std::move(groupDirectoryLock),
+                                 [self = RefPtr(this), principalInfo](
+                                     RefPtr<UniversalDirectoryLock>
+                                         groupDirectoryLock) mutable {
+                                   return self->InitializeTemporaryGroup(
+                                       principalInfo,
+                                       std::move(groupDirectoryLock));
+                                 }))
+          ->Then(GetCurrentSerialEventTarget(), __func__,
                  MaybeInitialize(
                      std::move(originDirectoryLock),
-                     [self = RefPtr(this), persistenceType,
-                      principalInfo = std::move(principalInfo),
+                     [self = RefPtr(this), persistenceType, principalInfo,
                       aCreateIfNonExistent](RefPtr<UniversalDirectoryLock>
                                                 originDirectoryLock) mutable {
                        if (persistenceType == PERSISTENCE_TYPE_PERSISTENT) {
