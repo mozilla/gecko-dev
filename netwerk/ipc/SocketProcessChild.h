@@ -156,6 +156,8 @@ class SocketProcessChild final : public PSocketProcessChild {
   already_AddRefed<psm::IPCClientCertsChild> GetIPCClientCertsActor();
   void CloseIPCClientCertsActor();
 
+  mozilla::ipc::IPCResult RecvHasThirdPartyRoots(const bool& aResult);
+
  protected:
   friend class SocketProcessImpl;
   ~SocketProcessChild();
