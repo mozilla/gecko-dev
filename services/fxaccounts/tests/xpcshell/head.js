@@ -27,6 +27,27 @@ const MOCK_ACCOUNT_KEYS = {
   },
 };
 
+function ensureOauthConfigured() {
+  Services.prefs.setBoolPref("identity.fxaccounts.oauth.enabled", true);
+  Services.prefs.setStringPref(
+    "identity.fxaccounts.contextParam",
+    "oauth_webchannel_v1"
+  );
+}
+
+function ensureOauthNotConfigured() {
+  Services.prefs.setBoolPref("identity.fxaccounts.oauth.enabled", false);
+  Services.prefs.setStringPref(
+    "identity.fxaccounts.contextParam",
+    "fx_desktop_v3"
+  );
+}
+
+function resetOauthConfig() {
+  Services.prefs.clearUserPref("identity.fxaccounts.oauth.enabled");
+  Services.prefs.clearUserPref("identity.fxaccounts.contextParam");
+}
+
 (function initFxAccountsTestingInfrastructure() {
   do_get_profile();
 

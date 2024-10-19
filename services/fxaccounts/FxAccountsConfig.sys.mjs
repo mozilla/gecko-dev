@@ -343,10 +343,14 @@ export var FxAccountsConfig = {
   },
 
   async _getAuthParams() {
+    let params = { service: SYNC_PARAM };
     if (this._isOAuthFlow()) {
       const scopes = [SCOPE_APP_SYNC, SCOPE_PROFILE];
-      return lazy.fxAccounts._internal.beginOAuthFlow(scopes);
+      Object.assign(
+        params,
+        await lazy.fxAccounts._internal.beginOAuthFlow(scopes)
+      );
     }
-    return { service: SYNC_PARAM };
+    return params;
   },
 };

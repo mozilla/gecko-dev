@@ -956,6 +956,7 @@ add_task(async function test_helpers_getFxAStatus_extra_engines() {
     },
   });
 
+  ensureOauthNotConfigured();
   Services.prefs.setBoolPref(
     "services.sync.engine.creditcards.available",
     true
@@ -965,7 +966,46 @@ add_task(async function test_helpers_getFxAStatus_extra_engines() {
   let fxaStatus = await helpers.getFxaStatus("sync", mockSendingContext);
   ok(!!fxaStatus);
   ok(!!fxaStatus.signedInUser);
+  // in the non-oauth flows we only expect "extra" engines.
   deepEqual(fxaStatus.capabilities.engines, ["creditcards"]);
+  resetOauthConfig();
+});
+
+add_task(async function test_helpers_getFxAStatus_engines_oauth() {
+  let helpers = new FxAccountsWebChannelHelpers({
+    fxAccounts: {
+      _internal: {
+        getUserAccountData() {
+          return Promise.resolve({
+            email: "testuser@testuser.com",
+            sessionToken: "sessionToken",
+            uid: "uid",
+            verified: true,
+          });
+        },
+      },
+    },
+    privateBrowsingUtils: {
+      isBrowserPrivate: () => true,
+    },
+  });
+
+  ensureOauthConfigured();
+  let fxaStatus = await helpers.getFxaStatus("sync", mockSendingContext);
+  ok(!!fxaStatus);
+  ok(!!fxaStatus.signedInUser);
+  // in the oauth flows we expect all engines.
+  deepEqual(fxaStatus.capabilities.engines, [
+    "addons",
+    "addresses",
+    "bookmarks",
+    "creditcards",
+    "history",
+    "passwords",
+    "preferences",
+    "tabs",
+  ]);
+  resetOauthConfig();
 });
 
 add_task(async function test_helpers_getFxaStatus_allowed_signedInUser() {

@@ -553,15 +553,14 @@ FxAccountsWebChannelHelpers.prototype = {
   async oauthLogin(oauthData) {
     log.debug("Webchannel is completing the oauth flow");
     const xps = await this._initializeSync();
-    const { code, state, declinedSyncEngines, offeredSyncEngines } = oauthData;
     const { sessionToken } =
       await this._fxAccounts._internal.getUserAccountData(["sessionToken"]);
     // First we finish the ongoing oauth flow
     const { scopedKeys, refreshToken } =
       await this._fxAccounts._internal.completeOAuthFlow(
         sessionToken,
-        code,
-        state
+        oauthData.code,
+        oauthData.state
       );
 
     // We don't currently use the refresh token in Firefox Desktop, lets be good citizens and revoke it.
@@ -572,9 +571,26 @@ FxAccountsWebChannelHelpers.prototype = {
 
     // Now that we have the scoped keys, we set our status to verified
     await this._fxAccounts._internal.setUserVerified();
-    this._setEnabledEngines(offeredSyncEngines, declinedSyncEngines);
-    log.debug("Webchannel is enabling sync");
-    xps.Weave.Service.configure();
+    // And work out what should be enabled.
+    const services = oauthData.services;
+    log.trace("Webchannel is enabling services", services);
+    if (services) {
+      if (services.sync) {
+        // User has enabled Sync.
+        log.debug("Webchannel is enabling sync");
+        const { offeredEngines, declinedEngines } = services.sync;
+        this._setEnabledEngines(offeredEngines, declinedEngines);
+        xps.Weave.Service.configure();
+      }
+    } else {
+      // To support fxa before it knew to send `services`, we assume it missing means "enable sync" and that the top-level
+      // payload has `offeredSyncEngines` and `declinedSyncEngines`
+      // TODO: remove this branch as soon as the above branch starts working - only old FxA servers need this!
+      const { declinedSyncEngines, offeredSyncEngines } = oauthData;
+      log.debug("Webchannel is enabling sync (deprecated message format");
+      this._setEnabledEngines(offeredSyncEngines, declinedSyncEngines);
+      xps.Weave.Service.configure();
+    }
   },
 
   /**
