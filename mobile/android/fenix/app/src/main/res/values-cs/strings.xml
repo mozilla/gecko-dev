@@ -112,8 +112,6 @@
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Prohlížejte rychleji s novou navigací</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Tato lišta se při posouvání dolů skryje a získáte tak další prostor na prohlížení.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Na webové stránce se tato lišta při posouvání dolů skryje a získáte tak další prostor na prohlížení.</string>
@@ -212,6 +210,8 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Přizpůsobte si aplikaci %s</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">Máte nainstalovány rozšíření, ale nejsou povolené</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_body">Rozšíření zvyšují úroveň procházení - od změny vzhledu a výkonu prohlížeče %s až po zvýšení ochrany soukromí a bezpečnosti.</string>
@@ -224,8 +224,6 @@
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">Přidat %1$s</string>
-    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Přidat rozšíření</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Objevit další rozšíření</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -322,6 +320,14 @@
     <string name="browser_menu_tools">Nástroje</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Zpět do hlavní nabídky</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">Zavřít seznam hlavní nabídky</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+    <string name="browser_extensions_menu_handlebar_content_description">Zavřít seznam s nabídnou rozšíření</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+    <string name="browser_save_menu_handlebar_content_description">Zavřít seznam s nabídkou uložení</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+    <string name="browser_tools_menu_handlebar_content_description">Zavřít seznam s nabídkou nástrojů</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Zobrazení čtečky, Překlad, Tisk, Sdílet, Otevřít aplikaci</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -391,7 +397,9 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Naskenovat</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Naskenovat</string>
+    <!-- Button in the search view that lets a user search by scanning a QR code -->
+    <string name="search_scan_button_2">Naskenovat QR kód</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Nastavení vyhledávače</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -419,7 +427,7 @@
     <string name="search_header_menu_item_2">Tentokrát hledat v:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">Vyhledávač %s</string>
+    <string name="search_engine_icon_content_description">Vyhledávač %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -443,18 +451,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">Zavřít</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">Oznámení vám pomohou s aplikací %s udělat více</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">Synchronizujte své panely mezi zařízeními, spravujte stahování a získejte tipy, jak co nejlépe v aplikaci %s využívat ochranu soukromí a další.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">Pokračovat</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">Teď ne</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Zásady ochrany osobních údajů</string>
@@ -471,20 +467,12 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Více než 100 milionů lidí chrání své soukromí tak, že si volí prohlížeč od neziskové organizace.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Známe sledovací prvky? Automaticky zablokováno. Rozšíření? Vyzkoušejte všech 700. PDF? Naše vestavěná čtečka usnadňuje jejich správu.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Náš neziskový prohlížeč pomáhá zabránit společnostem v tajném sledování vašeho prohlížení webu.\n\nZjistěte více v našich zásadách ochrany osobních údajů.</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">zásadách ochrany osobních údajů</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Nastavit jako výchozí prohlížeč</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Teď ne</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Při přecházení mezi zařízeními buďte šifrovaní</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Když jste přihlášeni a synchronizujete, jste ve větším bezpečí. Firefox šifruje vaše hesla, záložky a další data.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox při synchronizaci zašifruje vaše hesla, záložky a další položky.</string>
@@ -514,6 +502,21 @@
     <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Přidat miniaplikaci Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Teď ne</string>
+
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Začít prohlížet.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">Podívejte se na další rozšíření</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">Začít prohlížet</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Účinné a efektivní blokování reklam.</string>
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Klenot proti sledování. Zastavte neviditelné sledovací prvky a špehující reklamy.</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -567,7 +570,9 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Soukromí a zabezpečení</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Oprávnění serverů</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Oprávnění serverů</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">Nastavení serveru</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Anonymní prohlížení</string>
     <!-- Preference for opening links in a private tab-->
@@ -1154,8 +1159,6 @@
 
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Název sbírky</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Přejmenovat</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Odebrat</string>
 
@@ -1242,6 +1245,8 @@
     <string name="bookmark_saved_in_folder_snackbar">Uloženo do “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">UPRAVIT</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">Přesunout</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Upravit</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1308,8 +1313,6 @@
     <string name="bookmark_navigate_back_button_content_description">Návrat zpět</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Přidat novou složku</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Zavřít záložky</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Hledat v záložkách</string>
 
@@ -1326,6 +1329,9 @@
     <string name="bookmark_empty_list_authenticated_description">Ukládejte si stránky během prohlížení. Získáme také záložky z ostatních synchronizovaných zařízení.</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
     <string name="bookmark_empty_list_folder_description">Během procházení si můžete přidávat záložky, abyste později našli své oblíbené stránky.</string>
+
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Nová složka</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1411,6 +1417,11 @@
     <string name="studies_on">Zapnuto</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Vypnuto</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">Oprávnění</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">Obsah</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1521,20 +1532,6 @@
     <string name="notification_pbm_delete_text_2">Zavřít anonymní panely</string>
 
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Neutrální</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Velmi nespokojený/á</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Nespokojený/á</string>
-
-
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Spokojený/á</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Velmi spokojený/á</string>
-
-
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Zavřít anonymní panely?</string>
 
@@ -1616,8 +1613,6 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Odstranit</string>
 
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Spuštěn režim celé obrazovky</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL adresa zkopírována</string>
     <!-- Sample text for accessibility font size -->
@@ -1668,8 +1663,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Časové období mazání</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">Odstraní historii (včetně synchronizované historie z ostatních zařízení), cookies a související data.</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">Odebere historii (včetně synchronizované historie z jiných zařízení)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1788,8 +1781,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Těžbu kryptoměn</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Vytváření otisku prohlížeče</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Známé vytváření otisků prohlížeče</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Podrobnosti</string>
@@ -1813,10 +1804,6 @@
     <string name="etp_cryptominers_title">Těžba kryptoměn</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Zabraňuje skriptům přístup k vašemu zařízení pro účel těžby digitálních měn.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Vytváření otisku prohlížeče</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Zastaví shromažďování dat o vašem zařízení, která mohou být využita k vaší identifikaci nebo vašemu sledování.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">Zastaví shromažďování dat o vašem zařízení, která mohou být využita k vaší identifikaci nebo vašemu sledování.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2288,8 +2275,6 @@
     <string name="shortcut_name_hint">Název zkratky</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">Adresa zkratky</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Zrušit</string>
 
@@ -2356,7 +2341,7 @@
     <string name="radio_preference_info_content_description">Pro více informací klepněte zde</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">Přejít nahoru</string>
+    <string name="action_bar_up_description">Přejít nahoru</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">Zavřít</string>
@@ -2497,8 +2482,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Zjistit více</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">Výběrem možnosti “Ano, vyzkoušet” souhlasíte s %2$s prohlížeče %1$s a %4$s společnosti %3$s.</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">Výběrem možnosti “Ano, vyzkoušet” souhlasíte s %2$s prohlížeče %1$s a %4$s společnosti %3$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">oznámení o ochraně osobních údajů</string>
@@ -2516,8 +2499,6 @@
     <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Jsou tyto recenze spolehlivé? Zkontrolujte si nyní upravené hodnocení.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Otevřít kontrolu recenzí</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Otevřít kontrolu recenzí</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2707,8 +2688,6 @@
     <string name="never_translate_site_dialog_cancel_preference">Zrušit</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Stažení jazyků</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">Stáhnout jazyky</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2767,14 +2746,6 @@
     <string name="delete_language_file_dialog_positive_button_text">Smazat</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Zrušit</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Přerušit stahování souboru %1$s?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ano</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ne</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2871,8 +2842,6 @@
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Vyhledávání ve Firefoxu nepoužívám</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">Nepoužívám synchronizaci</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Jak jste spokojeni se svou domovskou stránkou Firefoxu?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Pomozte nám vylepšit tisk z Firefoxu. Zabere to jenom chvilku</string>
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2892,8 +2861,6 @@
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefoxu</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Ikona funkce průzkumu</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Otevře průzkum</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Zavře průzkum</string>
     <!-- Content description for "X" button that is closing microsurvey. -->

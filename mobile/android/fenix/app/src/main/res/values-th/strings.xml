@@ -106,8 +106,6 @@
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">เรียกดูเร็วขึ้นด้วยการนำทางแบบใหม่</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">แถบนี้จะซ่อนตัวเมื่อคุณเลื่อนหน้าจอลง เพื่อเพิ่มเนื้อที่สำหรับการเรียกดูเว็บ</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">เมื่อเข้าเว็บไซต์ แถบนี้จะซ่อนตัวเมื่อคุณเลื่อนหน้าจอลง เพื่อเพิ่มเนื้อที่สำหรับการเรียกดูเว็บ</string>
@@ -218,8 +216,6 @@
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">เพิ่ม %1$s</string>
-    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">เพิ่มส่วนขยาย</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">ค้นพบส่วนขยายเพิ่มเติม</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -380,7 +376,9 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">สแกน</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">สแกน</string>
+    <!-- Button in the search view that lets a user search by scanning a QR code -->
+    <string name="search_scan_button_2">สแกนคิวอาร์โค้ด</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">การตั้งค่าเครื่องมือค้นหา</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -407,7 +405,7 @@
     <string name="search_header_menu_item_2">ครั้งนี้ค้นหาใน:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">เครื่องมือค้นหา %s</string>
+    <string name="search_engine_icon_content_description">เครื่องมือค้นหา %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -433,18 +431,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">ปิด</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">การแจ้งเตือนช่วยให้คุณทำสิ่งต่างๆ ได้มากขึ้นด้วย %s</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">ซิงค์แท็บของคุณระหว่างอุปกรณ์ต่างๆ จัดการการดาวน์โหลด รับคำแนะนำเกี่ยวกับการใช้ประโยชน์สูงสุดจากการปกป้องความเป็นส่วนตัวของ %s และอื่นๆ</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">ดำเนินการต่อ</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">ไม่ใช่ตอนนี้</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">ประกาศความเป็นส่วนตัวของ Firefox</string>
@@ -461,20 +447,12 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">ผู้คนมากกว่า 100 ล้านคนปกป้องความเป็นส่วนตัวของตัวเองด้วยการเลือกเบราว์เซอร์ที่ได้รับการสนับสนุนจากองค์กรไม่แสวงหาผลกำไร</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">เครื่องมือติดตามที่รู้จักล่ะ? จะปิดกั้นให้โดยอัตโนมัติเลย ส่วนขยายล่ะ? ลองดูส่วนขยายทั้งหมดกว่า 700 อันเลย ไฟล์ PDF ล่ะ? ใช้ตัวอ่านภายในตัวของเราเลยเพื่อให้จัดการไฟล์เหล่านั้นได้ง่าย</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">เบราว์เซอร์ที่ได้รับการสนับสนุนจากองค์กรไม่แสวงหาผลกำไรของเราช่วยหยุดบริษัทต่าง ๆ ไม่ให้แอบติดตามคุณทางเว็บได้\n\nเรียนรู้เพิ่มเติมในประกาศความเป็นส่วนตัวของเรา</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">ประกาศความเป็นส่วนตัว</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">ตั้งเป็นเบราว์เซอร์เริ่มต้น</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">ไม่ใช่ตอนนี้</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">คงการเข้ารหัสเมื่อคุณเปลี่ยนจากอุปกรณ์เครื่องหนึ่งไปยังอีกเครื่องหนึ่ง</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">เมื่อคุณลงชื่อเข้าและซิงค์แล้ว คุณจะปลอดภัยยิ่งขึ้น Firefox จะเข้ารหัสลับรหัสผ่าน ที่คั่นหน้า และอื่น ๆ ของคุณ</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox เข้ารหัสรหัสผ่าน ที่คั่นหน้า และอื่นๆ ของคุณเมื่อคุณซิงค์</string>
@@ -504,6 +482,23 @@
     <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">เพิ่มวิดเจ็ต Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ไม่ใช่ตอนนี้</string>
+
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">สำรวจส่วนขยายอื่น ๆ</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">เริ่มการเรียกดู</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">สำรวจส่วนขยายอื่น ๆ</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">เริ่มการเรียกดู</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">ค้นหาด้วยภาพ</string>
+    <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">ชมภาพที่น่าสนใจและศึกษาข้อมูลเพิ่มเติมเกี่ยวกับภาพนั้น</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -557,8 +552,10 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">ความเป็นส่วนตัวและความปลอดภัย</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">สิทธิอนุญาตไซต์</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">สิทธิอนุญาตไซต์</string>
 
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">การตั้งค่าไซต์</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">การเรียกดูแบบส่วนตัว</string>
     <!-- Preference for opening links in a private tab-->
@@ -1141,8 +1138,6 @@
 
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">ชื่อชุดสะสม</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">เปลี่ยนชื่อ</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">เอาออก</string>
 
@@ -1228,6 +1223,8 @@
     <string name="bookmark_saved_in_folder_snackbar">บันทึกไว้ใน “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">แก้ไข</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">ย้าย</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">แก้ไข</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1285,6 +1282,10 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">เลิกทำ</string>
 
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">ลบ %s แล้ว</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">รายการที่ถูกลบ: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">ป้อนคำค้นหา</string>
 
@@ -1292,8 +1293,6 @@
     <string name="bookmark_navigate_back_button_content_description">นำทางย้อนกลับ</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">เพิ่มโฟลเดอร์ใหม่</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">ปิดที่คั่นหน้า</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">ค้นหาที่คั่นหน้า</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -1310,6 +1309,9 @@
     <string name="bookmark_empty_list_authenticated_description">บันทึกไซต์ขณะที่คุณเรียกดู นอกจากนี้ เราจะดึงที่คั่นหน้าจากอุปกรณ์อื่น ๆ ที่ซิงค์มาให้คุณด้วย</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
     <string name="bookmark_empty_list_folder_description">เพิ่มที่คั่นหน้าขณะที่คุณเรียกดูเพื่อให้คุณสามารถหาไซต์โปรดของคุณได้ในภายหลัง</string>
+
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">โฟลเดอร์ใหม่</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1393,6 +1395,11 @@
     <string name="studies_on">เปิด</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">ปิด</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">การอนุญาต</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">เนื้อหา</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1501,17 +1508,6 @@
     <string name="notification_pbm_delete_text_2">ปิดแท็บส่วนตัว</string>
 
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">เฉยๆ</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">ไม่พอใจมาก</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">ไม่พอใจ</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">พึงพอใจ</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">พึงพอใจมาก</string>
-
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">ปิดแท็บส่วนตัว?</string>
 
@@ -1591,8 +1587,6 @@
     <string name="tab_collection_dialog_message">คุณแน่ใจหรือไม่ว่าต้องการลบ %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">ลบ</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">เข้าสู่โหมดเต็มหน้าจอ</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">คัดลอก URL แล้ว</string>
     <!-- Sample text for accessibility font size -->
@@ -1643,8 +1637,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">ช่วงเวลาที่จะลบ</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">ลบประวัติ (รวมถึงประวัติที่ซิงค์จากอุปกรณ์อื่น) คุกกี้ และข้อมูลการเรียกดูอื่น ๆ</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">ลบประวัติ (รวมถึงประวัติที่ซิงค์จากอุปกรณ์อื่น)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1764,8 +1756,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">ตัวขุดเหรียญดิจิทัล</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">ลายนิ้วมือดิจิทัล</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">ลายนิ้วมือดิจิทัลที่รู้จัก</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">รายละเอียด</string>
@@ -1789,10 +1779,6 @@
     <string name="etp_cryptominers_title">ตัวขุดเหรียญดิจิทัล</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">ป้องกันไม่ให้สคริปต์ที่เป็นอันตรายเข้าถึงอุปกรณ์ของคุณเพื่อขุดเหรียญสกุลเงินดิจิทัล</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">ลายนิ้วมือดิจิทัล</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">หยุดไม่ให้รวบรวมข้อมูลเกี่ยวกับอุปกรณ์ของคุณที่ระบุตัวตนได้ที่ไม่ซ้ำกันที่สามารถใช้เพื่อวัตถุประสงค์ในการติดตาม</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">หยุดไม่ให้รวบรวมข้อมูลเกี่ยวกับอุปกรณ์ของคุณที่ระบุตัวตนได้ที่ไม่ซ้ำกันที่สามารถใช้เพื่อวัตถุประสงค์ในการติดตาม</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2266,8 +2252,6 @@
     <string name="shortcut_name_hint">ชื่อทางลัด</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">URL ทางลัด</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ตกลง</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">ยกเลิก</string>
 
@@ -2333,7 +2317,7 @@
     <string name="radio_preference_info_content_description">คลิกเพื่อดูรายละเอียดเพิ่มเติม</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">นำทางขึ้นไปด้านบน</string>
+    <string name="action_bar_up_description">นำทางขึ้นไปด้านบน</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">ปิด</string>
@@ -2474,8 +2458,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">เรียนรู้เพิ่มเติม</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">การเลือก “ใช่ ลองใช้เลย” ถือว่าคุณยอมรับ%2$sของ %1$s และ%4$sของ %3$s</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">การเลือก “ใช่ ลองใช้เลย” ถือว่าคุณยอมรับ%2$sของ %1$s และ%4$sของ %3$s</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">ประกาศความเป็นส่วนตัว</string>
@@ -2493,8 +2475,6 @@
     <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">บทวิจารณ์เหล่านี้เชื่อถือได้หรือไม่? ตรวจสอบตอนนี้เพื่อดูคะแนนที่ปรับแล้ว</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">เปิดเครื่องมือตรวจสอบบทวิจารณ์</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">เปิดเครื่องมือตรวจสอบบทวิจารณ์</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2684,8 +2664,6 @@
     <string name="never_translate_site_dialog_cancel_preference">ยกเลิก</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">ดาวน์โหลดภาษา</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">ดาวน์โหลดภาษา</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2743,14 +2721,6 @@
     <string name="delete_language_file_dialog_positive_button_text">ลบ</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">ยกเลิก</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">ยกเลิกการดาวน์โหลดภาษา %1$s หรือไม่?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">ใช่</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">ไม่</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2847,8 +2817,6 @@
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">ฉันไม่ใช้การค้นหาบน Firefox</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">ฉันไม่ใช้การซิงค์</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">คุณพึงพอใจกับหน้าแรกของ Firefox มากน้อยเพียงใด?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">ช่วยเราทำให้ระบบการพิมพ์ใน Firefox ดีขึ้น โดยสละเวลาเพียงนาทีเดียว</string>
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2868,8 +2836,6 @@
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">โลโก้ Firefox</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">ไอคอนคุณลักษณะแบบสำรวจ</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">เปิดแบบสำรวจ</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">ปิดแบบสำรวจ</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
