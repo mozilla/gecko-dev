@@ -290,10 +290,10 @@ class nsListControlFrame final : public mozilla::ScrollContainerFrame,
   uint32_t GetNumberOfRows();
 
   // Data Members
-  int32_t mStartSelectionIndex;
-  int32_t mEndSelectionIndex;
+  int32_t mStartSelectionIndex = 0;
+  int32_t mEndSelectionIndex = 0;
 
-  uint32_t mNumDisplayRows;
+  uint32_t mNumDisplayRows = 0;
   bool mChangesSinceDragStart : 1;
 
   // Has the user selected a visible item since we showed the dropdown?
@@ -311,9 +311,6 @@ class nsListControlFrame final : public mozilla::ScrollContainerFrame,
 
   // True if our reflow got interrupted.
   bool mReflowWasInterrupted : 1;
-
-  // True if the selection can be set to nothing or disabled options.
-  bool mForceSelection : 1;
 
   RefPtr<mozilla::HTMLSelectEventListener> mEventListener;
 
