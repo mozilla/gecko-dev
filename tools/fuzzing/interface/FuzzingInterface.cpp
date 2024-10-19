@@ -33,7 +33,6 @@ LazyLogModule gFuzzingLog("nsFuzzing");
 __AFL_FUZZ_INIT();
 
 int afl_interface_raw(FuzzingTestFuncRaw testFunc) {
-  __AFL_INIT();
   char* testFilePtr = getenv("MOZ_FUZZ_TESTFILE");
   uint8_t* buf = NULL;
 
