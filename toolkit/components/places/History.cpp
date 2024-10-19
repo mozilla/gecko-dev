@@ -1268,8 +1268,7 @@ class InsertVisitedURIs final : public Runnable {
       rv = stmt->GetInt64(0, &aPlace.triggeringPlaceId);
       NS_ENSURE_SUCCESS(rv, rv);
     } else {
-      Telemetry::ScalarAdd(
-          Telemetry::ScalarID::PLACES_SPONSORED_VISIT_NO_TRIGGERING_URL, 1);
+      glean::places::sponsored_visit_no_triggering_url.Add(1);
     }
 
     aPlace.source = nsINavHistoryService::VISIT_SOURCE_SPONSORED;
