@@ -14,8 +14,6 @@
 #include "TaskbarPreviewButton.h"
 #include "nsWindow.h"
 #include "nsWindowGfx.h"
-#include "imgLoader.h"
-#include "nsISVGPaintContext.h"
 
 namespace mozilla {
 namespace widget {
@@ -196,8 +194,7 @@ TaskbarWindowPreview::SetProgressState(nsTaskbarProgressState aState,
 
 NS_IMETHODIMP
 TaskbarWindowPreview::SetOverlayIcon(imgIContainer* aStatusIcon,
-                                     const nsAString& aStatusDescription,
-                                     nsISVGPaintContext* aPaintContext) {
+                                     const nsAString& aStatusDescription) {
   nsresult rv;
   if (aStatusIcon) {
     // The image shouldn't be animated
@@ -210,7 +207,7 @@ TaskbarWindowPreview::SetOverlayIcon(imgIContainer* aStatusIcon,
   HICON hIcon = nullptr;
   if (aStatusIcon) {
     rv = nsWindowGfx::CreateIcon(
-        aStatusIcon, aPaintContext, false, LayoutDeviceIntPoint(),
+        aStatusIcon, false, LayoutDeviceIntPoint(),
         nsWindowGfx::GetIconMetrics(nsWindowGfx::kSmallIcon), &hIcon);
     NS_ENSURE_SUCCESS(rv, rv);
   }
