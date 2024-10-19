@@ -1,0 +1,31 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+[scriptable, uuid(a2568d74-be41-46a5-abfc-6dbab0b80f95)]
+interface nsIMLUtils : nsISupports {
+
+  /**
+  * Checks if there's enough memory to load and use the model.
+  *
+  * This API will first check the amount of physical memory on the system
+  * and return false if is under aMinMemoryRequirement.
+  *
+  * Then it will check if aModelSize fits in the available memory.
+  *
+  * aMinMemoryRequirement can be used to determine a percentage of memory the
+  * model is allowed to use in the available block.
+  *
+  * arguments:
+  * - aModelSizeInMemory - The model size in memory in bytes
+  * - aThresholdPercentage - A Threshold percentage in the range [0, 100]
+  * - aMinMemoryRequirement - A minimum memory requirement in bytes
+  */
+  boolean hasEnoughMemoryToInfer(
+      in unsigned long long aModelSizeInMemory,
+      in unsigned long aThresholdPercentage,
+      in unsigned long long aMinMemoryRequirement
+  );
+};

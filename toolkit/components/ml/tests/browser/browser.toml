@@ -15,7 +15,6 @@ skip-if = [
 ]
 
 ["browser_ml_engine.js"]
-skip-if = ["os == 'linux'"]    # see bug 1911083
 
 ["browser_ml_engine_process.js"]
 

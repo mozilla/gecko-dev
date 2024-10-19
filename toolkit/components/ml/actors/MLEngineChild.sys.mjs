@@ -48,6 +48,40 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "browser.ml.modelHubUrlTemplate"
 );
 XPCOMUtils.defineLazyPreferenceGetter(lazy, "LOG_LEVEL", "browser.ml.logLevel");
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "CHECK_FOR_MEMORY",
+  "browser.ml.checkForMemory"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "MINIMUM_PHYSICAL_MEMORY",
+  "browser.ml.minimumPhysicalMemory"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "MAXIMUM_MEMORY_PRESSURE",
+  "browser.ml.maximumMemoryPressure"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "QUEUE_WAIT_TIMEOUT",
+  "browser.ml.queueWaitTimeout"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "QUEUE_WAIT_INTERVAL",
+  "browser.ml.queueWaitInterval"
+);
+
+XPCOMUtils.defineLazyServiceGetter(
+  lazy,
+  "mlUtils",
+  "@mozilla.org/ml-utils;1",
+  "nsIMLUtils"
+);
+
+const ONE_GiB = 1024 * 1024 * 1024;
 
 /**
  * The engine child is responsible for the life cycle and instantiation of the local
@@ -583,6 +617,97 @@ async function getModelFile({
 }
 
 /**
+ * A collection that maps model identifiers to their known memory usage.
+ * This list will migrate to RS in a collection that contains known memory usage.
+ */
+const MODEL_MEMORY_USAGE = {
+  "mozilla/distilvit:4:q8:wasm": ONE_GiB,
+  "testing/greedy:1:q8:wasm": 100 * ONE_GiB,
+};
+
+/**
+ * Gets the memory usage for a given model pipeline configuration.
+ * If the model is unknown, it defaults to 2GB.
+ *
+ * @param {PipelineOptions} pipelineOptions - Configuration options for the model pipeline.
+ *
+ * @returns {Promise<number>} The memory usage for the model in bytes. Defaults to 2 * ONE_GiB if the model is not recognized.
+ */
+async function getModelMemoryUsage(pipelineOptions) {
+  const key = `${pipelineOptions.modelId.toLowerCase()}:${
+    pipelineOptions.numThreads
+  }:${pipelineOptions.dtype}:${pipelineOptions.device}`;
+
+  lazy.console.debug(`Checking memory uage for key ${key}`);
+  // This list will migrate to RS in a collection that contains known memory usage:
+  // See Bug 1924958
+  // For now just an example:
+  // For unknown models we ask for 2GB
+  return MODEL_MEMORY_USAGE[key] || 2 * ONE_GiB;
+}
+
+/**
+ * Repeatedly checks if there is enough memory to infer, at the specified `interval` (in seconds),
+ * until either sufficient memory is available or the `timeout` (in seconds) is reached.
+ *
+ * @param {object} options - The options for the memory check.
+ * @param {PipelineOptions} options.pipelineOptions - The options for the pipeline.
+ * @param {number} options.interval - The interval (in seconds) between memory checks.
+ * @param {number} options.timeout - The maximum amount of time (in seconds) to continue checking for memory availability.
+ *
+ * @returns {Promise<void>} Resolves when there is enough memory, or rejects if the timeout is reached.
+ */
+async function waitForEnoughMemory({ pipelineOptions, interval, timeout }) {
+  const estimatedMemoryUsage = await getModelMemoryUsage(pipelineOptions);
+
+  lazy.console.debug(
+    `Estimated memory usage: ${Math.round(
+      estimatedMemoryUsage / (1024 * 1024)
+    )}MiB`
+  );
+
+  return new Promise((resolve, reject) => {
+    const startTime = Date.now();
+
+    const checkMemory = () => {
+      try {
+        const canInfer = lazy.mlUtils.hasEnoughMemoryToInfer(
+          estimatedMemoryUsage,
+          lazy.MAXIMUM_MEMORY_PRESSURE,
+          lazy.MINIMUM_PHYSICAL_MEMORY * ONE_GiB
+        );
+
+        if (canInfer) {
+          lazy.console.debug("Enough memory available to start inference.");
+          resolve(); // Resolve the promise when there's enough memory.
+        } else {
+          lazy.console.warn(
+            `We are tight in memory for ${pipelineOptions.modelId} (estimated: ${estimatedMemoryUsage})`
+          );
+
+          // TODO : check the `executionPriority` flag:
+          // - if 0, kill any 2 and try again, and then any 1 and try again
+          // - if 1, kill any 2 and try again
+          // - if 2, wait
+          if (Date.now() - startTime >= timeout * 1000) {
+            reject(
+              new Error("Timeout reached while waiting for enough memory.")
+            );
+          } else {
+            lazy.setTimeout(checkMemory, interval * 1000); // Retry after `interval` milliseconds.
+          }
+        }
+      } catch (err) {
+        lazy.console.error("Failed to get memory estimation", err);
+        reject(err); // Reject if an error occurs during memory check.
+      }
+    };
+
+    checkMemory(); // Initial check.
+  });
+}
+
+/**
  * Wrapper around the ChromeWorker that runs the inference.
  */
 class InferenceEngine {
@@ -607,6 +732,22 @@ class InferenceEngine {
     getModelFileFn,
     getInferenceProcessInfoFn,
   }) {
+    // Before we start the worker, we want to make sure we have the resources to run it.
+    if (lazy.CHECK_FOR_MEMORY) {
+      try {
+        await waitForEnoughMemory({
+          pipelineOptions,
+          interval: lazy.QUEUE_WAIT_INTERVAL,
+          timeout: lazy.QUEUE_WAIT_TIMEOUT,
+        });
+      } catch (error) {
+        // Handle the error when there isn't enough memory or a timeout is reached
+        lazy.console.error("Failed to allocate enough memory:", error);
+
+        // TODO: kill existing engines if they are not a priority
+        throw error;
+      }
+    }
     /** @type {BasePromiseWorker} */
     const worker = new lazy.BasePromiseWorker(
       "chrome://global/content/ml/MLEngine.worker.mjs",

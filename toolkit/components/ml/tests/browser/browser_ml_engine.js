@@ -19,6 +19,8 @@ async function setup({ disabled = false, prefs = [], records = null } = {}) {
       ["browser.ml.enable", !disabled],
       ["browser.ml.logLevel", "All"],
       ["browser.ml.modelCacheTimeout", 1000],
+      ["browser.ml.checkForMemory", true],
+      ["browser.ml.queueWaitTimeout", 2],
       ...prefs,
     ],
   });
@@ -711,6 +713,7 @@ add_task(async function test_ml_engine_get_status() {
         device: null,
         dtype: "q8",
         numThreads: null,
+        executionPriority: "NORMAL",
       },
       engineId: "default-engine",
     },
@@ -727,5 +730,32 @@ add_task(async function test_ml_engine_get_status() {
 
   await EngineProcess.destroyMLEngine();
 
+  await cleanup();
+});
+
+add_task(async function test_ml_engine_not_enough_memory() {
+  const { cleanup, remoteClients } = await setup();
+
+  info("Get the greedy engine");
+  const engineInstance = await createEngine({
+    modelId: "testing/greedy",
+    taskName: "summarization",
+    dtype: "q8",
+    numThreads: 1,
+    device: "wasm",
+  });
+  info("Run the inference");
+  const inferencePromise = engineInstance.run({ data: "This gets echoed." });
+
+  info("Wait for the pending downloads.");
+  await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
+
+  await Assert.rejects(
+    inferencePromise,
+    /Timeout reached while waiting for enough memory/,
+    "The call should be rejected because of a lack of memory"
+  );
+
+  await EngineProcess.destroyMLEngine();
   await cleanup();
 });

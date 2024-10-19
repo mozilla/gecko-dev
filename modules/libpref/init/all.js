@@ -3774,6 +3774,17 @@ pref("browser.ml.modelHubUrlTemplate", "{model}/{revision}");
 pref("browser.ml.modelCacheMaxSizeBytes", 1073741824);
 // Model cache timeout in ms
 pref("browser.ml.modelCacheTimeout", 120000);
+// Minimal Physical RAM required in GB
+pref("browser.ml.minimumPhysicalMemory", 4);
+// Check for memory before running
+pref("browser.ml.checkForMemory", false);
+// Maximum memory pressure (%)
+pref("browser.ml.maximumMemoryPressure", 80);
+// Queue wait timeout in seconds
+pref("browser.ml.queueWaitTimeout", 60);
+// Queue wait checks interval in seconds
+pref("browser.ml.queueWaitInterval", 1);
+
 
 // When a user cancels this number of authentication dialogs coming from
 // a single web page in a row, all following authentication dialogs will

@@ -336,6 +336,12 @@ export class MLEngineParent extends JSWindowActorParent {
       ...parsedUrl,
     });
 
+    lazy.console.debug(
+      `Model ${parsedUrl.model} was fetched from ${url}, size ${Math.round(
+        data.byteLength / (1024 * 1024)
+      )}MiB`
+    );
+
     return [data, headers];
   }
 

@@ -18,9 +18,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   getInferenceProcessInfo: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
-const { EngineProcess, PipelineOptions } = ChromeUtils.importESModule(
-  "chrome://global/content/ml/EngineProcess.sys.mjs"
-);
+const { ExecutionPriority, EngineProcess, PipelineOptions } =
+  ChromeUtils.importESModule(
+    "chrome://global/content/ml/EngineProcess.sys.mjs"
+  );
 
 /**
  * Preferences for machine learning enablement and model hub configuration.
@@ -586,6 +587,7 @@ async function runInference() {
     dtype,
     numThreads,
     timeoutMS: THIRTY_SECONDS,
+    executionPriority: ExecutionPriority.LOW,
   };
 
   appendTextConsole("Creating engine if needed");

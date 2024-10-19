@@ -4,6 +4,7 @@
 
 SPHINX_TREES["/toolkit/components/ml"] = "docs"
 
+
 JAR_MANIFESTS += ["jar.mn"]
 
 with Files("**"):
@@ -13,5 +14,20 @@ DIRS += ["actors"]
 
 BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
 
+XPIDL_SOURCES += ["nsIMLUtils.idl"]
+
+UNIFIED_SOURCES += ["MLUtils.cpp"]
+EXPORTS.mozilla.ml += ["MLUtils.h"]
+
 with Files("docs/**"):
     SCHEDULES.exclusive = ["docs"]
+
+XPCOM_MANIFESTS += [
+    "components.conf",
+]
+
+XPIDL_MODULE = "ml"
+
+include("/ipc/chromium/chromium-config.mozbuild")
+
+FINAL_LIBRARY = "xul"

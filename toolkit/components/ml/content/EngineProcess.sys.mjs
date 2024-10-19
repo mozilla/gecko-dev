@@ -17,6 +17,29 @@ ChromeUtils.defineESModuleGetters(
  */
 
 /**
+ * Enum for execution priority.
+ *
+ * Defines the priority of the task:
+ *
+ * - "High" is absolutely needed for Firefox.
+ * - "Normal" is the default priority.
+ * - "Low" is for 3rd party calls.
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const ExecutionPriority = {
+  /** High priority, needed for Firefox */
+  HIGH: "HIGH",
+
+  /** Normal priority, default */
+  NORMAL: "NORMAL",
+
+  /** Low priority, used for 3rd party calls */
+  LOW: "LOW",
+};
+
+/**
  * @typedef {import("../../translations/actors/TranslationsEngineParent.sys.mjs").TranslationsEngineParent} TranslationsEngineParent
  */
 
@@ -158,6 +181,15 @@ export class PipelineOptions {
   numThreads = null;
 
   /**
+   * Execution priority
+   *
+   * Defines the priority of the task
+   *
+   * @type {ExecutionPriority}
+   */
+  executionPriority = ExecutionPriority.NORMAL;
+
+  /**
    * Create a PipelineOptions instance.
    *
    * @param {object} options - The options for the pipeline. Must include mandatory fields.
@@ -191,6 +223,7 @@ export class PipelineOptions {
       "device",
       "dtype",
       "numThreads",
+      "executionPriority",
     ];
 
     if (options instanceof PipelineOptions) {
@@ -233,6 +266,7 @@ export class PipelineOptions {
       device: this.device,
       dtype: this.dtype,
       numThreads: this.numThreads,
+      executionPriority: this.executionPriority,
     };
   }
 
