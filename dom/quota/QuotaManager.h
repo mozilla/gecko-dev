@@ -744,7 +744,7 @@ class QuotaManager final : public BackgroundThreadObject {
   nsresult InitializeOrigin(PersistenceType aPersistenceType,
                             const OriginMetadata& aOriginMetadata,
                             int64_t aAccessTime, bool aPersisted,
-                            nsIFile* aDirectory);
+                            nsIFile* aDirectory, bool aForGroup = false);
 
   using OriginInfosFlatTraversable =
       nsTArray<NotNull<RefPtr<const OriginInfo>>>;

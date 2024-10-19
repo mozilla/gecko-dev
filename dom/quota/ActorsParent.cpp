@@ -2614,6 +2614,8 @@ void QuotaManager::RemoveQuota() {
   MOZ_ASSERT(mTemporaryStorageUsage == 0, "Should be zero!");
 }
 
+// XXX Rename this method because the method doesn't load full quota
+// information if origin initialization is done lazily.
 nsresult QuotaManager::LoadQuota() {
   AssertIsOnIOThread();
   MOZ_ASSERT(mStorageConnection);
@@ -3840,7 +3842,7 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
 nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
                                         const OriginMetadata& aOriginMetadata,
                                         int64_t aAccessTime, bool aPersisted,
-                                        nsIFile* aDirectory) {
+                                        nsIFile* aDirectory, bool aForGroup) {
   AssertIsOnIOThread();
 
   // The ScopedLogExtraInfo is not set here on purpose, so the callers can
@@ -3848,6 +3850,12 @@ nsresult QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
   // as well.
 
   const bool trackQuota = aPersistenceType != PERSISTENCE_TYPE_PERSISTENT;
+
+  if (trackQuota && !aForGroup &&
+      StaticPrefs::
+          dom_quotaManager_temporaryStorage_lazyOriginInitialization()) {
+    return NS_OK;
+  }
 
   // We need to initialize directories of all clients if they exists and also
   // get the total usage to initialize the quota.
@@ -5689,8 +5697,11 @@ Result<Ok, nsresult> QuotaManager::EnsureTemporaryGroupIsInitializedInternal(
       // XXX Check corruption here!
       QM_TRY(MOZ_TO_RESULT(InitializeOrigin(metadata.mPersistenceType, metadata,
                                             metadata.mLastAccessTime,
-                                            metadata.mPersisted, directory)));
+                                            metadata.mPersisted, directory,
+                                            /* aForGroup */ true)));
     }
+
+    // XXX Evict origins that exceed their group limit here.
 
     return Ok{};
   };
@@ -6224,7 +6235,15 @@ nsresult QuotaManager::EnsureTemporaryStorageIsInitializedInternal() {
 
     mTemporaryStorageInitializedInternal = true;
 
-    CleanupTemporaryStorage();
+    // If origin initialization is done lazily, then there's either no quota
+    // information at this point (if the cache couldn't be used) or only
+    // partial quota information (origins accessed in a previous session
+    // require full initialization). Given that, the cleanup can't be done
+    // at this point yet.
+    if (!StaticPrefs::
+            dom_quotaManager_temporaryStorage_lazyOriginInitialization()) {
+      CleanupTemporaryStorage();
+    }
 
     if (mCacheUsable) {
       QM_TRY(InvalidateCache(*mStorageConnection));
