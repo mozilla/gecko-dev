@@ -402,6 +402,12 @@ Java_org_mozilla_gecko_mozglue_GeckoLoader_nativeRun(JNIEnv* jenv, jclass jc,
 
     SetGeckoProcessType(argv[--argc]);
     SetGeckoChildID(argv[--argc]);
+#if defined(MOZ_MEMORY)
+    // XRE_IsContentProcess is not accessible here
+    jemalloc_reset_small_alloc_randomization(
+        /* aRandomizeSmall */ GetGeckoProcessType() !=
+        GeckoProcessType_Content);
+#endif
 
     gBootstrap->XRE_SetAndroidChildFds(jenv, jfds);
 
@@ -425,8 +431,14 @@ extern "C" APKOPEN_EXPORT mozglueresult ChildProcessInit(int argc,
   if (argc < 2) {
     return FAILURE;
   }
+
   SetGeckoProcessType(argv[--argc]);
   SetGeckoChildID(argv[--argc]);
+#if defined(MOZ_MEMORY)
+  // XRE_IsContentProcess is not accessible here
+  jemalloc_reset_small_alloc_randomization(
+      /* aRandomizeSmall */ GetGeckoProcessType() != GeckoProcessType_Content);
+#endif
 
   if (loadNSSLibs() != SUCCESS) {
     return FAILURE;

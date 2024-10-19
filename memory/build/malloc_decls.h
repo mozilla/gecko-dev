@@ -114,12 +114,9 @@ MALLOC_DECL(jemalloc_free_dirty_pages, void)
 // after lowering the max dirty pages threshold to get RSS back to normal.
 MALLOC_DECL(jemalloc_free_excess_dirty_pages, void)
 
-// Only used by ForkServer after forking new child processes.
 // Change the value of opt_randomize_small to control small allocation
 // randomization and maybe perform a reinitialization of the arena's PRNG.
-#    if defined(MOZ_ENABLE_FORKSERVER)
 MALLOC_DECL(jemalloc_reset_small_alloc_randomization, void, bool)
-#    endif
 
 // Opt in or out of a thread local arena (bool argument is whether to opt-in
 // (true) or out (false)).
