@@ -603,11 +603,11 @@ add_task(async function test_urlbar_text_after_previewed_search_mode() {
   info("Open urlbar with a query that shows DuckDuckGo search engine");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: "duck",
+    value: "@duck",
   });
 
   // Sanity check.
-  const target = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
+  const target = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
   Assert.equal(target.result.payload.engine, "DuckDuckGo");
   Assert.ok(target.result.payload.providesSearchMode);
 
@@ -615,7 +615,7 @@ add_task(async function test_urlbar_text_after_previewed_search_mode() {
   EventUtils.synthesizeKey("KEY_Tab", {});
   await UrlbarTestUtils.assertSearchMode(window, {
     engineName: "DuckDuckGo",
-    entry: "tabtosearch_onboard",
+    entry: "keywordoffer",
     source: 3,
     isPreview: true,
   });
