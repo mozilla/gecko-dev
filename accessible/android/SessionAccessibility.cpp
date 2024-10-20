@@ -338,12 +338,7 @@ void SessionAccessibility::Copy(int32_t aID) {
 void SessionAccessibility::Paste(int32_t aID) {
   if (Accessible* acc = GetAccessibleByID(aID)) {
     if (auto* textAcc = acc->AsHyperTextBase()) {
-      int32_t startSel, endSel;
-      GetSelectionOrCaret(textAcc, &startSel, &endSel);
-      if (startSel != endSel) {
-        textAcc->DeleteText(startSel, endSel);
-      }
-      textAcc->PasteText(startSel);
+      textAcc->PasteText(nsIAccessibleText::TEXT_OFFSET_CARET);
     }
   }
 }

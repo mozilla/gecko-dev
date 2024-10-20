@@ -997,7 +997,13 @@ void HyperTextAccessible::DeleteText(int32_t aStartPos, int32_t aEndPos) {
 void HyperTextAccessible::PasteText(int32_t aPosition) {
   RefPtr<EditorBase> editorBase = GetEditor();
   if (editorBase) {
-    SetSelectionRange(aPosition, aPosition);
+    // If the caller wants to paste at the caret, we don't need to set the
+    // selection. If there is text already selected, this also allows the caller
+    // to replace it, just as would happen when pasting using the keyboard or
+    // GUI.
+    if (aPosition != nsIAccessibleText::TEXT_OFFSET_CARET) {
+      SetSelectionRange(aPosition, aPosition);
+    }
     editorBase->PasteAsAction(nsIClipboard::kGlobalClipboard,
                               EditorBase::DispatchPasteEvent::Yes);
   }

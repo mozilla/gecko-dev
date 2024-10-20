@@ -50,7 +50,11 @@ interface nsIAccessibleEditableText : nsISupports
    * Pastes text from the clipboard.
    *
    * @param position - index at which to insert the text from the system
-   *                   clipboard into the text represented by this object.
+   *                   clipboard into the text represented by this object. If
+   *                   this is TEXT_OFFSET_CARET, the text will be pasted at the
+   *                   caret just as it would be when pasting using the keyboard
+   *                   or GUI. This means that if text is already selected, it
+   *                   will be replaced with the pasted text.
    */
   [can_run_script]
   void pasteText(in long position);
