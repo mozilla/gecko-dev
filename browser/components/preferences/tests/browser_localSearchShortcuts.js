@@ -14,11 +14,13 @@ ChromeUtils.defineESModuleGetters(this, {
 });
 
 let gTree;
-const isRestrictKeywordsFeatureOn = UrlbarPrefs.getScotchBonnetPref(
-  "searchRestrictKeywords.featureGate"
-);
+const isRestrictKeywordsFeatureOn = () =>
+  UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate");
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   let prefs = await openPreferencesViaOpenPreferencesAPI("search", {
     leaveOpen: true,
   });
@@ -165,10 +167,10 @@ add_task(async function keywordNotEditable_enterKey() {
     let keyword = tokenToKeyword.get(shortcut.restrict).toLowerCase();
     Assert.equal(
       gTree.view.getCellText(row, col),
-      isRestrictKeywordsFeatureOn
+      isRestrictKeywordsFeatureOn()
         ? `@${keyword}, ${shortcut.restrict}`
         : shortcut.restrict,
-      isRestrictKeywordsFeatureOn
+      isRestrictKeywordsFeatureOn()
         ? "Sanity check: Keyword column has correct restriction keyword and char initially"
         : "Sanity check: Keyword column has correct restriction char initially"
     );
@@ -184,10 +186,10 @@ add_task(async function keywordNotEditable_enterKey() {
 
     Assert.equal(
       gTree.view.getCellText(row, col),
-      isRestrictKeywordsFeatureOn
+      isRestrictKeywordsFeatureOn()
         ? `@${keyword}, ${shortcut.restrict}`
         : shortcut.restrict,
-      isRestrictKeywordsFeatureOn
+      isRestrictKeywordsFeatureOn()
         ? "Keyword column is still restriction keyword and char"
         : "Keyword column is still restriction char"
     );
@@ -207,10 +209,10 @@ add_task(async function keywordNotEditable_click() {
     );
     Assert.equal(
       gTree.view.getCellText(row, col),
-      isRestrictKeywordsFeatureOn
+      isRestrictKeywordsFeatureOn()
         ? `@${keyword}, ${shortcut.restrict}`
         : shortcut.restrict,
-      isRestrictKeywordsFeatureOn
+      isRestrictKeywordsFeatureOn()
         ? "Sanity check: Keyword column has correct restriction keyword and char initially"
         : "Sanity check: Keyword column has correct restriction char initially"
     );
@@ -250,10 +252,10 @@ add_task(async function keywordNotEditable_click() {
 
     Assert.equal(
       gTree.view.getCellText(row, col),
-      isRestrictKeywordsFeatureOn
+      isRestrictKeywordsFeatureOn()
         ? `@${keyword}, ${shortcut.restrict}`
         : shortcut.restrict,
-      isRestrictKeywordsFeatureOn
+      isRestrictKeywordsFeatureOn()
         ? "Keyword column is still restriction keyword and char"
         : "Keyword column is still restriction char"
     );

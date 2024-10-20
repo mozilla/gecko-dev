@@ -128,6 +128,10 @@ add_setup(async function () {
     set: [["browser.urlbar.showSearchSuggestionsFirst", false]],
   });
 
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
+
   // Make sure to restore the engine once we're done.
   registerCleanupFunction(async function () {
     Services.telemetry.canRecordExtended = oldCanRecord;

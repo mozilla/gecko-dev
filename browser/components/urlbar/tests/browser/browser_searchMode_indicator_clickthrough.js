@@ -11,7 +11,10 @@
 add_task(async function test() {
   // Avoid remote connections.
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.search.suggest.enabled", false]],
+    set: [
+      ["browser.search.suggest.enabled", false],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
+    ],
   });
 
   await BrowserTestUtils.withNewTab("about:robots", async () => {

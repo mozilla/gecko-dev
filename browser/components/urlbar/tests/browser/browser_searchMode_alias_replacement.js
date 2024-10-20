@@ -19,6 +19,9 @@ const TEST_SPACES = [" ", "\u3000", " \u3000", "\u3000 "];
 let defaultEngine, aliasEngine;
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   defaultEngine = await SearchTestUtils.installOpenSearchEngine({
     url: getRootDirectory(gTestPath) + TEST_ENGINE_BASENAME,
     setAsDefault: true,

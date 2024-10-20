@@ -45,6 +45,7 @@ function testValues(trimmedProtocol, notTrimmedProtocol) {
 add_task(async function () {
   const PREF_TRIM_URLS = "browser.urlbar.trimURLs";
   const PREF_TRIM_HTTPS = "browser.urlbar.trimHttps";
+  const PREF_SCOTCHBONNET = "browser.urlbar.scotchBonnet.enableOverride";
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
@@ -52,10 +53,12 @@ add_task(async function () {
     BrowserTestUtils.removeTab(tab);
     Services.prefs.clearUserPref(PREF_TRIM_URLS);
     Services.prefs.clearUserPref(PREF_TRIM_HTTPS);
+    Services.prefs.clearUserPref(PREF_SCOTCHBONNET);
     gURLBar.setURI();
   });
 
   Services.prefs.setBoolPref(PREF_TRIM_HTTPS, false);
+  Services.prefs.setBoolPref(PREF_SCOTCHBONNET, false);
 
   // Avoid search service sync init warnings due to URIFixup, when running the
   // test alone.

@@ -22,6 +22,8 @@ prefs = [
   "extensions.screenshots.disabled=false",
   # Need to keep the revamped sidebar off until Bug 1905212 is done
   "sidebar.revamp=false",
+  # TODO: Renable in Bug 1923381
+  "browser.urlbar.scotchBonnet.enableOverride=false",
 ]
 support-files = ["head.js"]
 

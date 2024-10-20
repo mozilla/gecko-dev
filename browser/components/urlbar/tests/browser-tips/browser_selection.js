@@ -8,6 +8,12 @@
 const HELP_URL = "about:mozilla";
 const TIP_URL = "about:about";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
+});
+
 add_task(async function tipIsSecondResult() {
   let results = [
     new UrlbarResult(

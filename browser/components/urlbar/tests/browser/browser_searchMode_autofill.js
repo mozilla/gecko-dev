@@ -18,7 +18,7 @@ add_setup(async function () {
   await Services.search.moveEngine(defaultEngine, 0);
 
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.suggest.quickactions", false]],
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
   });
 
   registerCleanupFunction(async () => {

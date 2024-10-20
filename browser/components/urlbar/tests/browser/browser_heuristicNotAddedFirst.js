@@ -9,6 +9,9 @@
 // When the heuristic result is not the first result added, it should still be
 // selected.
 add_task(async function slowHeuristicSelected() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   // First, add a provider that adds a heuristic result on a delay.  Both this
   // provider and the one below have a high priority so that only they are used
   // during the test.

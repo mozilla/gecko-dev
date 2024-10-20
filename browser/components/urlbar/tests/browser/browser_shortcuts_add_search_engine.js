@@ -15,7 +15,10 @@ const BASE_URL =
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.suggest.searches", false]],
+    set: [
+      ["browser.urlbar.suggest.searches", false],
+      ["browser.urlbar.scotchBonnet.enableOverride", false],
+    ],
   });
   // Ensure initial state.
   UrlbarTestUtils.getOneOffSearchButtons(window).invalidateCache();

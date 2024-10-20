@@ -14,6 +14,9 @@ const DEFAULT_HELP_URL =
   "awesome-bar-result-menu";
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
   // Add enough results to fill up the view.
   await PlacesUtils.history.clear();
   for (let i = 0; i < MAX_RESULTS; i++) {
