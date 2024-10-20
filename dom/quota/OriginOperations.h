@@ -96,9 +96,9 @@ RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializePersistentStorageOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
-RefPtr<ResolvableNormalOriginOp<bool>> CreateInitTemporaryStorageOp(
-    MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    RefPtr<UniversalDirectoryLock> aDirectoryLock);
+RefPtr<ResolvableNormalOriginOp<MaybePrincipalMetadataArray, true>>
+CreateInitTemporaryStorageOp(MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+                             RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateInitializeTemporaryGroupOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,

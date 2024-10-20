@@ -41,7 +41,8 @@ Result<quota::UsageInfo, nsresult> FileSystemQuotaClient::InitOrigin(
   DebugOnly<quota::QuotaManager*> quotaManager = quota::QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
-  MOZ_ASSERT(!quotaManager->IsTemporaryStorageInitializedInternal());
+  MOZ_ASSERT(
+      !quotaManager->IsTemporaryOriginInitializedInternal(aOriginMetadata));
 
   {
     QM_TRY_INSPECT(const nsCOMPtr<nsIFile>& databaseFile,
