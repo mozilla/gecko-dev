@@ -12,13 +12,11 @@ namespace mozilla {
 namespace gfx {
 
 inline Maybe<float> PathOps::ArcParams::GetRadius() const {
-  if (!transform.HasNonAxisAlignedTransform() &&
-      FuzzyEqual(transform._11, transform._22) && transform._11 > 0.0f) {
+  // Do a quick check for a uniform scale and/or translation transform. In the
+  // worst case scenario, failing just causes a fallback to ArcToBezier.
+  if (transform._11 == transform._22 && transform._12 == 0.0f &&
+      transform._21 == 0.0f && transform._11 > 0.0f) {
     return Some(transform._11);
-  }
-  auto scale = transform.ScaleFactors();
-  if (scale.AreScalesSame() && scale.xScale > 0.0f) {
-    return Some(scale.xScale);
   }
   return Nothing();
 }
