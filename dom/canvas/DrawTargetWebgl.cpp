@@ -1447,8 +1447,9 @@ inline Maybe<Rect> DrawTargetWebgl::RectClippedToViewport(
 // such that when transformed and clipped in the shader it will not round bits
 // from the mantissa in a way that will diverge in a noticeable way from path
 // geometry calculated by the path fallback.
-static inline bool RectInsidePrecisionLimits(const RectDouble& aRect) {
-  return RectDouble(-(1 << 20), -(1 << 20), 2 << 20, 2 << 20).Contains(aRect);
+template <typename R>
+static inline bool RectInsidePrecisionLimits(const R& aRect) {
+  return R(-(1 << 20), -(1 << 20), 2 << 20, 2 << 20).Contains(aRect);
 }
 
 void DrawTargetWebgl::ClearRect(const Rect& aRect) {
@@ -3319,6 +3320,10 @@ bool SharedContextWebgl::DrawPathAccel(
   // If the path is empty, then there is nothing to draw.
   if (bounds.IsEmpty()) {
     return true;
+  }
+  // Avoid integer conversion errors with abnormally large paths.
+  if (!RectInsidePrecisionLimits(bounds)) {
+    return false;
   }
   IntRect viewport(IntPoint(), mViewportSize);
   if (aShadow) {
