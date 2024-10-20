@@ -5,6 +5,7 @@
 package mozilla.components.support.ktx.android.view
 
 import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES
 import android.view.Window
 import androidx.annotation.ColorInt
 import androidx.core.view.WindowInsetsControllerCompat
