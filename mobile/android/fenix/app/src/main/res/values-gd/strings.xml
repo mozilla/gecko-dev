@@ -406,7 +406,7 @@
     <string name="search_header_menu_item_2">Dèan lorg an-seo an turas seo:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">An t-einnsean-luirg %s</string>
+    <string name="search_engine_icon_content_description">An t-einnsean-luirg %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -643,7 +643,7 @@
     <!-- Preference for accessibility -->
     <string name="preferences_accessibility">So-ruigsinneachd</string>
     <!-- Preference to override the Mozilla account server -->
-    <string name="preferences_override_account_server">Frithealaiche cunntas Mozilla gnàthaichte</string>
+    <string name="preferences_override_account_server">Frithealaiche chunntasan Mozilla gnàthaichte</string>
     <!-- Preference to override the Sync token server -->
     <string name="preferences_override_sync_tokenserver">Frithealaiche sioncronachaidh gnàthaichte</string>
     <!-- Preference category for account information -->
@@ -1780,6 +1780,8 @@
     <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
     <string name="preferences_android_autofill_description">Fèin-lìon ainmean-chleachdaichean is faclan-faire ann an aplacaidean eile air an uidheam agad.</string>
 
+    <!-- Preference for syncing saved passwords in Fenix -->
+    <string name="preferences_passwords_sync_logins_2">Sioncronaich na faclan-faire</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Eisgeachdan</string>
     <!-- Text on button to remove all saved login exceptions -->

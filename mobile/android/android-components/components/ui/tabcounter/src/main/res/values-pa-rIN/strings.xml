@@ -4,6 +4,9 @@
     <string name="mozac_tab_counter_open_tab_tray_single">1 ਟੈਬ ਖੁੱਲ੍ਹੀ ਹੈ। ਟੈਬਾਂ ਵਿੱਚ ਬਦਲਣ ਲਈ ਛੂਹੋ।</string>
     <!-- Message announced to the user when tab tray is selected with multiple tabs -->
     <string name="mozac_tab_counter_open_tab_tray_plural">%1$s ਟੈਬਾਂ ਖੁੱਲ੍ਹੀਆਂ। ਟੈਬਾਂ ਵਿੱਚ ਸਵਿੱਚ ਕਰਨ ਵਾਸਤੇ ਟੈਪ ਕਰੋ।</string>
+    <!-- Message announced to the user when tab tray is selected
+    The %1$s will be replaced by the number of opened tabs -->
+    <string name="mozac_tab_counter_open_tab_tray">ਟੈਬਾਂ ਖੁੱਲ੍ਹੀਆਂ: %1$s। ਟੈਬਾਂ ਬਦਲਣ ਲਈ ਛੂਹੋ।</string>
     <!-- Browser menu button that creates a new tab -->
     <string name="mozac_browser_menu_new_tab">ਨਵੀਂ ਟੈਬ</string>
     <!-- Browser menu button that creates a private tab -->
