@@ -802,14 +802,17 @@ ScreenOrientation::DispatchChangeEventAndResolvePromise() {
   RefPtr<ScreenOrientation> self = this;
   return NS_NewRunnableFunction(
       "dom::ScreenOrientation::DispatchChangeEvent", [self, doc]() {
-        DebugOnly<nsresult> rv = self->DispatchTrustedEvent(u"change"_ns);
-        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "DispatchTrustedEvent failed");
+        RefPtr<Promise> pendingPromise;
         if (doc) {
-          Promise* pendingPromise = doc->GetOrientationPendingPromise();
+          pendingPromise = doc->GetOrientationPendingPromise();
           if (pendingPromise) {
-            pendingPromise->MaybeResolveWithUndefined();
             doc->ClearOrientationPendingPromise();
           }
+        }
+        DebugOnly<nsresult> rv = self->DispatchTrustedEvent(u"change"_ns);
+        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "DispatchTrustedEvent failed");
+        if (pendingPromise) {
+          pendingPromise->MaybeResolveWithUndefined();
         }
       });
 }
