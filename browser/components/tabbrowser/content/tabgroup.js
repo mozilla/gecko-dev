@@ -10,7 +10,7 @@
   class MozTabbrowserTabGroup extends MozXULElement {
     static markup = `
       <vbox class="tab-group-label-container" pack="center">
-        <label class="tab-group-label" crop="end"/>
+        <label class="tab-group-label"/>
       </vbox>
       <html:slot/>
       `;
@@ -24,7 +24,7 @@
 
     static get inheritedAttributes() {
       return {
-        ".tab-group-label": "value=label,tooltiptext=label",
+        ".tab-group-label": "text=label,tooltiptext=label",
       };
     }
 

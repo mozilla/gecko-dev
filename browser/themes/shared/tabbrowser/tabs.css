@@ -778,16 +778,13 @@ tab-group {
 }
 
 .tab-group-label {
-  align-items: center;
-
+  text-align: center;
   font-weight: var(--font-weight-bold);
-
-  /* Copied .tab-label settings */
-  margin-inline: 0;
-  line-height: 1.7;  /* override 'normal' in case of fallback math fonts with huge metrics */
+  text-overflow: ellipsis;
   white-space: nowrap;
-
+  overflow: hidden;
   border-radius: var(--tab-border-radius);
+  line-height: 2;
   min-height: 2em;
   min-width: 2em;
   max-width: 10em;
