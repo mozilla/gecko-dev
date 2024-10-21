@@ -63,7 +63,10 @@ body {
   --browser-stack-z-index-rdm-toolbar: 3;
 
   /* z-indices that fight in the general browser / toolbox area */
-  --browser-area-z-index-toolbox: 1;
+  --browser-area-z-index-toolbox: 0;
+  --browser-area-z-index-sidebar: 1;
+  --browser-area-z-index-tabbox: 2;
+  --browser-area-z-index-sidebar-splitter: 3;
 
   --toolbarbutton-border-radius: 4px;
   --identity-box-margin-inline: 4px;
@@ -125,12 +128,6 @@ body {
 #navigator-toolbox {
   appearance: none;
   position: relative;
-
-  /*
-   Should paint on top of our sibling #browser (even when preceding it in the DOM)
-   TODO(sfoster): we need a broader re-think of stacking and paint order.
-   See bug 1921257 and bug 1921811.
-   */
   z-index: var(--browser-area-z-index-toolbox);
 
   background-color: var(--toolbox-non-lwt-bgcolor);
@@ -312,13 +309,6 @@ body {
 
   &[tabs-hidden] {
     border-top-style: none;
-  }
-
-  /* The address bar needs to be able to render outside of the toolbar, but as
-   * long as it's within the toolbar's bounds we can clip the toolbar so that the
-   * rendering pipeline doesn't reserve an enormous texture for it. */
-  &:not([urlbar-exceeds-toolbar-bounds]) {
-    overflow: clip;
   }
 
   :root[sessionrestored][lwtheme] & {

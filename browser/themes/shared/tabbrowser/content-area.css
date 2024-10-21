@@ -46,6 +46,7 @@
 
 #tabbrowser-tabbox {
   position: relative;
+  z-index: var(--browser-area-z-index-tabbox);
   margin: 0;
 
   /* stylelint-disable-next-line media-query-no-invalid */

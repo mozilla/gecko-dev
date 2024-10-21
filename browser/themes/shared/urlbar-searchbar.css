@@ -44,15 +44,28 @@
   }
 }
 
+#urlbar {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  box-sizing: border-box;
+
+  /* Reset UA popover rules */
+  width: initial;
+  height: initial;
+  inset: auto;
+  border: none;
+  padding: initial;
+  overflow: initial;
+  color: initial;
+  background-color: initial;
+}
+
 #urlbar,
 #searchbar {
   /* Setting a min-width to let the location & search bars maintain a constant
    * width in case they haven't been resized manually. (bug 965772) */
   min-width: 1px;
-}
-
-#urlbar,
-#searchbar {
   min-height: var(--urlbar-min-height);
   text-shadow: none;
   color: var(--toolbar-field-color);
@@ -248,15 +261,13 @@
 }
 
 #urlbar-container[breakout] {
-  position: relative;
   min-height: var(--urlbar-container-height);
 }
 
 #urlbar[breakout] {
   display: block;
-  position: absolute;
-  width: 100%;
   height: var(--urlbar-height);
+  width: var(--urlbar-width);
 
   > .urlbar-input-container {
     width: 100%;
@@ -271,22 +282,26 @@
 
 #urlbar[breakout][breakout-extend],
 #urlbar[breakout][breakout-extend-disabled][open] {
-  /* The z-index needs to be big enough to trump other positioned UI pieces
-     that we want to overlay. 3 is used in the tab bar. */
-  z-index: 3;
   height: auto;
 }
 
 #urlbar[breakout][breakout-extend] {
-  top: 0;
-  left: calc(-1 * var(--urlbar-margin-inline));
-  width: calc(100% + 2 * var(--urlbar-margin-inline));
+  margin-left: calc(-1 * var(--urlbar-margin-inline));
+  width: calc(var(--urlbar-width) + 2 * var(--urlbar-margin-inline));
 
   > .urlbar-input-container {
     height: var(--urlbar-container-height);
     padding-block: calc((var(--urlbar-container-height) - var(--urlbar-height)) / 2 + var(--urlbar-container-padding));
     padding-inline: calc(var(--urlbar-margin-inline) + var(--urlbar-container-padding));
   }
+}
+
+#urlbar[breakout][breakout-extend-disabled][open] {
+  /*
+    Bug 1925712: To avoid flickering in perf tests, which apply the breakout-extend-disabled
+    rather than breakout-extended attribute, we need to add some top offset.
+  */
+  margin-top: 3px;
 }
 
 @keyframes urlbar-grow {
