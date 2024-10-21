@@ -65,6 +65,21 @@ seen at the bottom of the dashboard. As of this writing, the alerts have some
 noise [to be cleaned up](https://bugzilla.mozilla.org/show_bug.cgi?id=1843406)
 before we can automatically act on them.
 
+## Local Debugging
+Local debugging involves logging telemetry to console and/or using Glean's ergonomic test APIs and/or the Glean Debug Ping Viewer which you can learn more about on `about:glean`.
+
+The simplest way to understand the telemetry you'll generate is to turn on logging. In `about:config` set `browser.newtabpage.activity-stream.telemetry` to `true` and `messaging-system.log` to `debug`.
+
+You can now play around with the message you care about using
+[ASRouter devtools](https://firefox-source-docs.mozilla.org/browser/components/asrouter/docs/debugging-docs.html) with the logs generating in the browser console.
+
+To monitor events using `about:glean` you can use the following mach command. This will turn on telemetry logging and open `about:glean`.
+```MOZ_LOG="glean_core::upload:3" ./mach run --setpref browser.newtabpage.activity-stream.telemetry=true about:glean```
+
+* Click the checkbox in step 3 ('Optional. Check the preceding box if you want pings to also be logged when they are submitted...')
+* Click the 'Apply settings and submit ping' button in step 4
+* Visit `about:welcome` (there may be a delay before the ping shows up in the terminal)
+
 ## Appendix: A Short Glean Primer, as it applies to this project (courtesy of Chris H-C)
 
 * [Glean](https://mozilla.github.io/glean/book/) is a data collection library by
@@ -81,8 +96,6 @@ before we can automatically act on them.
   days](https://blog.mozilla.org/data/2021/12/14/this-week-in-glean-how-long-must-i-wait-before-i-can-see-my-data/).
 * Make a mistake? No worries. Changes are quick and easy and are reflected in
   the received data within a day.
-* Local debugging involves using Glean's ergonomic test APIs and/or the Glean
-  Debug Ping Viewer which you can learn more about on `about:glean`.
 * If you have any questions, the Glean Team is available across a lot of
   timezones on the [`#glean:mozilla.org` channel](https://chat.mozilla.org/#/room/#glean:mozilla.org) on Matrix and Slack `#data-help`.
 
