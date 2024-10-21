@@ -38,7 +38,7 @@ class FileSystemChildMetadata;
 }  // namespace fs
 
 namespace quota {
-class DirectoryLock;
+class ClientDirectoryLock;
 class QuotaManager;
 }  // namespace quota
 
@@ -99,7 +99,7 @@ class FileSystemDataManager
     return mIOTaskQueue.get();
   }
 
-  Maybe<quota::DirectoryLock&> MaybeDirectoryLockRef() const {
+  Maybe<quota::ClientDirectoryLock&> MaybeDirectoryLockRef() const {
     return ToMaybeRef(mDirectoryLock.get());
   }
 
@@ -172,7 +172,7 @@ class FileSystemDataManager
   const NotNull<nsCOMPtr<nsISerialEventTarget>> mBackgroundTarget;
   const NotNull<nsCOMPtr<nsIEventTarget>> mIOTarget;
   const NotNull<RefPtr<TaskQueue>> mIOTaskQueue;
-  RefPtr<quota::DirectoryLock> mDirectoryLock;
+  RefPtr<quota::ClientDirectoryLock> mDirectoryLock;
   UniquePtr<FileSystemDatabaseManager> mDatabaseManager;
   MozPromiseHolder<BoolPromise> mOpenPromiseHolder;
   MozPromiseHolder<BoolPromise> mClosePromiseHolder;
