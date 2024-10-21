@@ -22,7 +22,7 @@ task it should upload a WebM file.
 
 Updating reference screenshots
 ==============================
- - `./mach try fuzzy --push-to-lando --full --env TEST_COLLECT_REFERENCE=1 -q "'snap-upstream-test"`
+ - `./mach try fuzzy --full --env TEST_COLLECT_REFERENCE=1 -q "'snap-upstream-test"`
  - note the successfull task id you want to source
  - you need curl and jq installed
  - ./update-references.sh <TASK_ID>
