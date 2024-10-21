@@ -84,12 +84,22 @@ nsTArray<RefPtr<DirectoryLockImpl>> DirectoryLockImpl::LocksMustWaitFor()
   return LocksMustWaitForInternal<RefPtr<DirectoryLockImpl>>();
 }
 
+DirectoryLockImpl::PrepareInfo DirectoryLockImpl::Prepare() const {
+  return PrepareInfo{*this};
+}
+
 RefPtr<BoolPromise> DirectoryLockImpl::Acquire() {
+  auto prepareInfo = Prepare();
+
+  return Acquire(std::move(prepareInfo));
+}
+
+RefPtr<BoolPromise> DirectoryLockImpl::Acquire(PrepareInfo&& aPrepareInfo) {
   AssertIsOnOwningThread();
 
   RefPtr<BoolPromise> result = mAcquirePromiseHolder.Ensure(__func__);
 
-  AcquireInternal();
+  AcquireInternal(std::move(aPrepareInfo));
 
   return result;
 }
@@ -309,14 +319,14 @@ nsTArray<T> DirectoryLockImpl::LocksMustWaitForInternal() const {
   return locks;
 }
 
-void DirectoryLockImpl::AcquireInternal() {
+void DirectoryLockImpl::AcquireInternal(PrepareInfo&& aPrepareInfo) {
   AssertIsOnOwningThread();
 
   mQuotaManager->AddPendingDirectoryLock(*this);
 
   // See if this lock needs to wait. This has to be done before the lock is
   // registered, we would be comparing the lock against itself otherwise.
-  mBlockedOn = LocksMustWaitForInternal<NotNull<DirectoryLockImpl*>>();
+  mBlockedOn = std::move(aPrepareInfo.mBlockedOn);
 
   // After the traversal of existing locks is done, this lock can be
   // registered and will become an existing lock as well.

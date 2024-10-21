@@ -14,6 +14,7 @@
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/RefPtr.h"
@@ -39,6 +40,10 @@ enum class ShouldUpdateLockIdTableFlag { No, Yes };
 
 // XXX Rename to DirectoryLockBase.
 class DirectoryLockImpl {
+ public:
+  class PrepareInfo;
+
+ private:
   friend class ClientDirectoryLock;
   friend class OriginDirectoryLock;
   friend class QuotaManager;
@@ -111,7 +116,11 @@ class DirectoryLockImpl {
 
   bool Dropped() const { return mDropped; }
 
+  PrepareInfo Prepare() const;
+
   RefPtr<BoolPromise> Acquire();
+
+  RefPtr<BoolPromise> Acquire(PrepareInfo&& aPrepareInfo);
 
   void AcquireImmediately();
 
@@ -224,11 +233,36 @@ class DirectoryLockImpl {
   template <typename T>
   nsTArray<T> LocksMustWaitForInternal() const;
 
-  void AcquireInternal();
+  void AcquireInternal(PrepareInfo&& aPrepareInfo);
 
   void Invalidate();
 
   void Unregister();
+};
+
+class MOZ_RAII DirectoryLockImpl::PrepareInfo {
+  friend class DirectoryLockImpl;
+
+  nsTArray<NotNull<DirectoryLockImpl*>> mBlockedOn;
+
+ public:
+  // Disable copy constructor and assignment operator
+  PrepareInfo(const PrepareInfo&) = delete;
+  PrepareInfo& operator=(const PrepareInfo&) = delete;
+
+  // Move constructor and move assignment operator
+  PrepareInfo(PrepareInfo&&) noexcept = default;
+  PrepareInfo& operator=(PrepareInfo&&) noexcept = default;
+
+  const nsTArray<NotNull<DirectoryLockImpl*>>& BlockedOnRef() const {
+    return mBlockedOn;
+  }
+
+ private:
+  explicit PrepareInfo(const DirectoryLockImpl& aDirectoryLock)
+      : mBlockedOn(
+            aDirectoryLock
+                .LocksMustWaitForInternal<NotNull<DirectoryLockImpl*>>()) {}
 };
 
 }  // namespace mozilla::dom::quota
