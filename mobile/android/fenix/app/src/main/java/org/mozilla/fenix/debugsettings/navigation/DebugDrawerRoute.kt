@@ -10,6 +10,8 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.storage.LoginsStorage
 import org.mozilla.fenix.R
+import org.mozilla.fenix.debugsettings.cfrs.CfrToolsState
+import org.mozilla.fenix.debugsettings.cfrs.CfrToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
 import org.mozilla.fenix.debugsettings.gleandebugtools.ui.GleanDebugToolsScreen
 import org.mozilla.fenix.debugsettings.logins.LoginsTools
@@ -52,15 +54,17 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
          * Transforms the values of [DebugDrawerRoute] into a list of [DebugDrawerDestination]s.
          *
          * @param debugDrawerStore [DebugDrawerStore] used to dispatch navigation actions.
-         * @param gleanDebugToolsStore [GleanDebugToolsStore] used to dispatch glean debug tools actions.
          * @param browserStore [BrowserStore] used to access [BrowserState].
+         * @param cfrToolsStore [CfrToolsStore] used to access [CfrToolsState].
+         * @param gleanDebugToolsStore [GleanDebugToolsStore] used to dispatch glean debug tools actions.
          * @param loginsStorage [LoginsStorage] used to access logins for [LoginsScreen].
          * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
          */
         fun generateDebugDrawerDestinations(
             debugDrawerStore: DebugDrawerStore,
-            gleanDebugToolsStore: GleanDebugToolsStore,
             browserStore: BrowserStore,
+            cfrToolsStore: CfrToolsStore,
+            gleanDebugToolsStore: GleanDebugToolsStore,
             loginsStorage: LoginsStorage,
             inactiveTabsEnabled: Boolean,
         ): List<DebugDrawerDestination> =
@@ -97,7 +101,7 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
                             debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.CfrTools)
                         }
                         content = {
-                            CfrToolsScreen()
+                            CfrToolsScreen(cfrToolsStore = cfrToolsStore)
                         }
                     }
 

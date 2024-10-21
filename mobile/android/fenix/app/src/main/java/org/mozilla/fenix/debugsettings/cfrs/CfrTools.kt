@@ -17,11 +17,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.SwitchWithLabel
@@ -29,10 +27,12 @@ import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
- * CFR Tools UI for [DebugDrawer] that allows for the CFR states to be reset.
+ * CFR Tools UI that allows for the CFR states to be reset.
  */
 @Composable
-fun CfrTools() {
+fun CfrTools(
+    cfrToolsStore: CfrToolsStore,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -40,23 +40,18 @@ fun CfrTools() {
             .padding(vertical = FirefoxTheme.space.small),
         verticalArrangement = Arrangement.spacedBy(FirefoxTheme.space.small),
     ) {
-        ResetCfrTool()
+        ResetCfrTool(cfrToolsStore = cfrToolsStore)
     }
 }
 
 @Suppress("LongMethod")
 @Composable
-private fun ResetCfrTool() {
-    var addPrivateTabToHomeCfrShown by rememberSaveable { mutableStateOf(false) }
-    var homepageNavToolbarCfrShown by rememberSaveable { mutableStateOf(false) }
-    var homepageSyncCfrShown by rememberSaveable { mutableStateOf(false) }
-    var wallpaperSelectorCfrShown by rememberSaveable { mutableStateOf(false) }
-    var inactiveTabsCfrShown by rememberSaveable { mutableStateOf(false) }
-    var tabAutoCloseBannerCfrShown by rememberSaveable { mutableStateOf(false) }
-    var cookieBannerBlockerCfrShown by rememberSaveable { mutableStateOf(false) }
-    var cookieBannersPrivateModeCfrShown by rememberSaveable { mutableStateOf(false) }
-    var navButtonsCfrShown by rememberSaveable { mutableStateOf(false) }
-    var openInAppCfrShown by rememberSaveable { mutableStateOf(false) }
+private fun ResetCfrTool(
+    cfrToolsStore: CfrToolsStore,
+) {
+    val cfrPreferences by cfrToolsStore.observeAsState(initialValue = cfrToolsStore.state) { state ->
+        state
+    }
 
     Column(
         modifier = Modifier
@@ -94,9 +89,10 @@ private fun ResetCfrTool() {
             CfrToggle(
                 title = stringResource(R.string.debug_drawer_cfr_tools_private_mode_title),
                 description = stringResource(R.string.debug_drawer_cfr_tools_private_mode_description),
-                checked = addPrivateTabToHomeCfrShown,
+                checked = cfrPreferences.addPrivateTabToHomeShown,
+                enabled = false,
                 onCfrToggle = {
-                    addPrivateTabToHomeCfrShown = !addPrivateTabToHomeCfrShown
+                    cfrToolsStore.dispatch(CfrToolsAction.AddPrivateTabToHomeShownToggled)
                 },
             )
 
@@ -104,9 +100,9 @@ private fun ResetCfrTool() {
                 CfrToggle(
                     title = stringResource(R.string.debug_drawer_cfr_tools_homepage_nav_toolbar_title),
                     description = stringResource(R.string.debug_drawer_cfr_tools_homepage_nav_toolbar_description),
-                    checked = homepageNavToolbarCfrShown,
+                    checked = cfrPreferences.homepageNavToolbarShown,
                     onCfrToggle = {
-                        homepageNavToolbarCfrShown = !homepageNavToolbarCfrShown
+                        cfrToolsStore.dispatch(CfrToolsAction.HomepageNavToolbarShownToggled)
                     },
                 )
             }
@@ -114,18 +110,9 @@ private fun ResetCfrTool() {
             CfrToggle(
                 title = stringResource(R.string.debug_drawer_cfr_tools_homepage_sync_title),
                 description = stringResource(R.string.debug_drawer_cfr_tools_homepage_sync_description),
-                checked = homepageSyncCfrShown,
+                checked = cfrPreferences.homepageSyncShown,
                 onCfrToggle = {
-                    homepageSyncCfrShown = !homepageSyncCfrShown
-                },
-            )
-
-            CfrToggle(
-                title = stringResource(R.string.debug_drawer_cfr_tools_wallpaper_selector_title),
-                description = stringResource(R.string.debug_drawer_cfr_tools_wallpaper_selector_description),
-                checked = wallpaperSelectorCfrShown,
-                onCfrToggle = {
-                    wallpaperSelectorCfrShown = !wallpaperSelectorCfrShown
+                    cfrToolsStore.dispatch(CfrToolsAction.HomepageSyncShownToggled)
                 },
             )
         }
@@ -141,18 +128,18 @@ private fun ResetCfrTool() {
             CfrToggle(
                 title = stringResource(R.string.debug_drawer_cfr_tools_inactive_tabs_title),
                 description = stringResource(R.string.debug_drawer_cfr_tools_inactive_tabs_description),
-                checked = inactiveTabsCfrShown,
+                checked = cfrPreferences.inactiveTabsShown,
                 onCfrToggle = {
-                    inactiveTabsCfrShown = !inactiveTabsCfrShown
+                    cfrToolsStore.dispatch(CfrToolsAction.InactiveTabsShownToggled)
                 },
             )
 
             CfrToggle(
                 title = stringResource(R.string.debug_drawer_cfr_tools_tab_auto_close_title),
                 description = stringResource(R.string.debug_drawer_cfr_tools_tab_auto_close_description),
-                checked = tabAutoCloseBannerCfrShown,
+                checked = cfrPreferences.tabAutoCloseBannerShown,
                 onCfrToggle = {
-                    tabAutoCloseBannerCfrShown = !tabAutoCloseBannerCfrShown
+                    cfrToolsStore.dispatch(CfrToolsAction.TabAutoCloseBannerShownToggled)
                 },
             )
         }
@@ -165,32 +152,17 @@ private fun ResetCfrTool() {
                 text = stringResource(R.string.debug_drawer_cfr_tools_toolbar_cfr_title),
             )
 
-            CfrToggle(
-                title = stringResource(R.string.debug_drawer_cfr_tools_cookie_banner_blocker_title),
-                description = stringResource(R.string.debug_drawer_cfr_tools_cookie_banner_blocker_description),
-                checked = cookieBannerBlockerCfrShown,
-                onCfrToggle = {
-                    cookieBannerBlockerCfrShown = !cookieBannerBlockerCfrShown
-                },
-            )
-
-            CfrToggle(
-                title = stringResource(R.string.debug_drawer_cfr_tools_cookie_banners_private_mode_title),
-                description = stringResource(R.string.debug_drawer_cfr_tools_cookie_banners_private_mode_description),
-                checked = cookieBannersPrivateModeCfrShown,
-                onCfrToggle = {
-                    cookieBannersPrivateModeCfrShown = !cookieBannersPrivateModeCfrShown
-                },
-            )
-
-            CfrToggle(
-                title = stringResource(R.string.debug_drawer_cfr_tools_navigation_buttons_title),
-                description = stringResource(R.string.debug_drawer_cfr_tools_navigation_buttons_description),
-                checked = navButtonsCfrShown,
-                onCfrToggle = {
-                    navButtonsCfrShown = !navButtonsCfrShown
-                },
-            )
+            if (FeatureFlags.navigationToolbarEnabled) {
+                CfrToggle(
+                    title = stringResource(R.string.debug_drawer_cfr_tools_navigation_buttons_title),
+                    description = stringResource(R.string.debug_drawer_cfr_tools_navigation_buttons_description),
+                    checked = cfrPreferences.navButtonsShown,
+                    enabled = false,
+                    onCfrToggle = {
+                        cfrToolsStore.dispatch(CfrToolsAction.NavButtonsShownToggled)
+                    },
+                )
+            }
         }
 
         Column(
@@ -204,9 +176,9 @@ private fun ResetCfrTool() {
             CfrToggle(
                 title = stringResource(R.string.debug_drawer_cfr_tools_open_in_app_title),
                 description = stringResource(R.string.debug_drawer_cfr_tools_open_in_app_description),
-                checked = openInAppCfrShown,
+                checked = cfrPreferences.openInAppShown,
                 onCfrToggle = {
-                    openInAppCfrShown = !openInAppCfrShown
+                    cfrToolsStore.dispatch(CfrToolsAction.OpenInAppShownToggled)
                 },
             )
         }
@@ -221,6 +193,7 @@ private fun ResetCfrTool() {
  * @param title The title of the CFR.
  * @param description The description of the CFR.
  * @param checked Whether the CFR has already been triggered and shown to the user.
+ * @param enabled Whether the CFR toggle is enabled.
  * @param onCfrToggle Invoked when the user clicks to toggle the visibility of a CFR.
  */
 @Composable
@@ -228,6 +201,7 @@ private fun CfrToggle(
     title: String,
     description: String,
     checked: Boolean,
+    enabled: Boolean = true,
     onCfrToggle: () -> Unit,
 ) {
     SwitchWithLabel(
@@ -235,6 +209,7 @@ private fun CfrToggle(
         checked = checked,
         modifier = Modifier.padding(horizontal = FirefoxTheme.space.small),
         description = description,
+        enabled = enabled,
     ) {
         onCfrToggle()
     }
@@ -260,13 +235,14 @@ private fun CfrSectionTitle(
 @Composable
 @FlexibleWindowLightDarkPreview
 private fun CfrToolsPreview() {
+    val cfrToolsStore = CfrToolsStore()
     FirefoxTheme {
         Column(
             modifier = Modifier.background(
                 color = FirefoxTheme.colors.layer1,
             ),
         ) {
-            CfrTools()
+            CfrTools(cfrToolsStore = cfrToolsStore)
         }
     }
 }

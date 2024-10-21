@@ -171,10 +171,6 @@
     <string name="debug_drawer_cfr_tools_homepage_sync_title">Homepage Sync</string>
     <!-- The homepage sync CFR description in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_sync_description">Displayed the first time visiting the homepage after signing-in and the Homepage Navigation Toolbar CFR has been shown.</string>
-    <!-- The wallpaper selector CFR title in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_wallpaper_selector_title">Wallpaper Selector</string>
-    <!-- The wallpaper selector CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_wallpaper_selector_description">Displayed when the user navigates to the homepage in normal browsing mode and the Homepage Navigation Toolbar CFR has been shown. Also, note that all wallpapers must have been downloaded and the user has not clicked on a different wallpaper in the wallpaper screen in the settings.</string>
     <!-- The inactive tabs CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_inactive_tabs_title">Inactive Tabs</string>
     <!-- The inactive tabs CFR description in CFR Tools -->
@@ -183,14 +179,6 @@
     <string name="debug_drawer_cfr_tools_tab_auto_close_title">Tab Auto Close</string>
     <!-- The tab auto close banner description in CFR Tools -->
     <string name="debug_drawer_cfr_tools_tab_auto_close_description">Displayed the first time the user has at least 6 normal tabs or 6 private tabs open at once and a CFR has not been shown in at least 3 days.</string>
-    <!-- The cookie banner blocker CFR title in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_cookie_banner_blocker_title">Cookie Banner Blocker</string>
-    <!-- The cookie banner blocker CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_cookie_banner_blocker_description">Displayed the first time the user navigates to a webpage in PBM.</string>
-    <!-- The cookie banners private mode banner title in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_cookie_banners_private_mode_title">Cookie Banners Private Mode</string>
-    <!-- The cookie banners private mode banner description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_cookie_banners_private_mode_description">Displayed the first time user clicks on search bar in PBM.</string>
     <!-- The navigation buttons CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_navigation_buttons_title">Navigation Buttons</string>
     <!-- The navigation buttons CFR description in CFR Tools -->

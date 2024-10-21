@@ -12,6 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
@@ -19,6 +21,10 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.debugsettings.cfrs.CfrToolsPreferencesMiddleware
+import org.mozilla.fenix.debugsettings.cfrs.CfrToolsState
+import org.mozilla.fenix.debugsettings.cfrs.CfrToolsStore
+import org.mozilla.fenix.debugsettings.cfrs.DefaultCfrPreferencesRepository
 import org.mozilla.fenix.debugsettings.gleandebugtools.DefaultGleanDebugToolsStorage
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsMiddleware
 import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsState
@@ -48,10 +54,22 @@ fun FenixOverlay(
     inactiveTabsEnabled: Boolean,
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     FenixOverlay(
         browserStore = browserStore,
-        loginsStorage = loginsStorage,
+        cfrToolsStore = CfrToolsStore(
+            middlewares = listOf(
+                CfrToolsPreferencesMiddleware(
+                    cfrPreferencesRepository = DefaultCfrPreferencesRepository(
+                        context = LocalContext.current,
+                        lifecycleOwner = lifecycleOwner,
+                        coroutineScope = lifecycleOwner.lifecycleScope,
+                    ),
+                    coroutineScope = lifecycleOwner.lifecycleScope,
+                ),
+            ),
+        ),
         gleanDebugToolsStore = GleanDebugToolsStore(
             middlewares = listOf(
                 GleanDebugToolsMiddleware(
@@ -73,6 +91,7 @@ fun FenixOverlay(
                 ),
             ),
         ),
+        loginsStorage = loginsStorage,
         inactiveTabsEnabled = inactiveTabsEnabled,
     )
 }
@@ -81,6 +100,7 @@ fun FenixOverlay(
  * Overlay for presenting Fenix-wide debugging content.
  *
  * @param browserStore [BrowserStore] used to access [BrowserState].
+ * @param cfrToolsStore [CfrToolsStore] used to access [CfrToolsState].
  * @param gleanDebugToolsStore [GleanDebugToolsStore] used to access [GleanDebugToolsState].
  * @param loginsStorage [LoginsStorage] used to access logins for [LoginsTools].
  * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
@@ -88,6 +108,7 @@ fun FenixOverlay(
 @Composable
 private fun FenixOverlay(
     browserStore: BrowserStore,
+    cfrToolsStore: CfrToolsStore,
     gleanDebugToolsStore: GleanDebugToolsStore,
     loginsStorage: LoginsStorage,
     inactiveTabsEnabled: Boolean,
@@ -109,8 +130,9 @@ private fun FenixOverlay(
     val debugDrawerDestinations = remember {
         DebugDrawerRoute.generateDebugDrawerDestinations(
             debugDrawerStore = debugDrawerStore,
-            gleanDebugToolsStore = gleanDebugToolsStore,
             browserStore = browserStore,
+            cfrToolsStore = cfrToolsStore,
+            gleanDebugToolsStore = gleanDebugToolsStore,
             inactiveTabsEnabled = inactiveTabsEnabled,
             loginsStorage = loginsStorage,
         )
@@ -146,6 +168,7 @@ private fun FenixOverlayPreview() {
             BrowserState(selectedTabId = selectedTab.id, tabs = listOf(selectedTab)),
         ),
         gleanDebugToolsStore = GleanDebugToolsStore(),
+        cfrToolsStore = CfrToolsStore(),
         inactiveTabsEnabled = true,
         loginsStorage = FakeLoginsStorage(),
     )
