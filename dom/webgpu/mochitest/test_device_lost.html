@@ -30,9 +30,45 @@
         is(deviceLostReason.message, "", "Destroy message should be blank");
       };
 
+      const drop_causes_lost_is_unobservable = async function () {
+        const adapter = await navigator.gpu.requestAdapter();
+        ok(adapter !== undefined, "adapter !== undefined");
+
+        let lostPromise;
+        // Create a scope with a device that will go out of scope
+        // and then be dropped.
+        {
+          const device = await adapter.requestDevice();
+          ok(device !== undefined, "device !== undefined");
+
+          lostPromise = device.lost;
+        }
+
+        SimpleTest.requestFlakyTimeout(
+          "Racing against promise that should never resolve."
+        );
+        const TIMEOUT_MS = 5000;
+        let timeoutPromise = new Promise(resolve => {
+          let timeoutValue = { reason: "timeout", message: "" };
+          // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+          setTimeout(() => resolve(timeoutValue), TIMEOUT_MS);
+        });
+
+        const firstPromise = await Promise.race([lostPromise, timeoutPromise]);
+        is(
+          firstPromise.reason,
+          "timeout",
+          "timeoutPromise should return before lostPromise."
+        );
+        // Check the message so we output some indication of what incorrectly
+        // resolved the lost promise.
+        is(firstPromise.message, "", "the message should be blank.");
+      };
+
       SimpleTest.waitForExplicitFinish();
 
       destroy_causes_lost()
+        .then(() => drop_causes_lost_is_unobservable())
         .catch(e => ok(false, `Unhandled exception ${e}`))
         .finally(() => SimpleTest.finish());
     </script>

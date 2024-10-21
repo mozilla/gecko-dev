@@ -160,7 +160,7 @@ ipc::IPCResult WebGPUChild::RecvDropAction(const ipc::ByteBuf& aByteBuf) {
   return IPC_OK();
 }
 
-void WebGPUChild::ResolveLostForDeviceId(RawId aDeviceId,
+bool WebGPUChild::ResolveLostForDeviceId(RawId aDeviceId,
                                          Maybe<uint8_t> aReason,
                                          const nsAString& aMessage) {
   RefPtr<Device> device;
@@ -169,23 +169,31 @@ void WebGPUChild::ResolveLostForDeviceId(RawId aDeviceId,
     device = itr->second.get();
     MOZ_ASSERT(device);
   }
-
-  if (device) {
-    if (aReason.isSome()) {
-      dom::GPUDeviceLostReason reason =
-          static_cast<dom::GPUDeviceLostReason>(*aReason);
-      device->ResolveLost(Some(reason), aMessage);
-    } else {
-      device->ResolveLost(Nothing(), aMessage);
-    }
+  if (!device) {
+    // We must have unregistered the device already.
+    return false;
   }
+
+  if (aReason.isSome()) {
+    dom::GPUDeviceLostReason reason =
+        static_cast<dom::GPUDeviceLostReason>(*aReason);
+    MOZ_ASSERT(reason == dom::GPUDeviceLostReason::Destroyed,
+               "There is only one valid GPUDeviceLostReason value.");
+    device->ResolveLost(Some(reason), aMessage);
+  } else {
+    device->ResolveLost(Nothing(), aMessage);
+  }
+
+  return true;
 }
 
 ipc::IPCResult WebGPUChild::RecvDeviceLost(RawId aDeviceId,
                                            Maybe<uint8_t> aReason,
                                            const nsACString& aMessage) {
   auto message = NS_ConvertUTF8toUTF16(aMessage);
-  ResolveLostForDeviceId(aDeviceId, aReason, message);
+  DebugOnly<bool> success = ResolveLostForDeviceId(aDeviceId, aReason, message);
+  MOZ_ASSERT(success,
+             "Shouldn't receive device lost on an unregistered device.");
   return IPC_OK();
 }
 
@@ -229,15 +237,11 @@ void WebGPUChild::UnregisterDevice(RawId aDeviceId) {
   if (CanSend()) {
     SendDeviceDrop(aDeviceId);
   }
-  ResolveLostForDeviceId(aDeviceId, Nothing(),
-                         u"WebGPUChild unregistered device"_ns);
   mDeviceMap.erase(aDeviceId);
 }
 
 void WebGPUChild::FreeUnregisteredInParentDevice(RawId aId) {
   ffi::wgpu_client_kill_device_id(mClient.get(), aId);
-  ResolveLostForDeviceId(aId, Nothing(),
-                         u"WebGPUChild unregistered device in parent"_ns);
   mDeviceMap.erase(aId);
 }
 
@@ -250,13 +254,8 @@ void WebGPUChild::ActorDestroy(ActorDestroyReason) {
 
   for (const auto& targetIter : deviceMap) {
     RefPtr<Device> device = targetIter.second.get();
-    if (!device) {
-      // The Device may have gotten freed when we resolved the Promise for
-      // another Device in the map.
-      continue;
-    }
-
-    device->ResolveLost(Nothing(), u"WebGPUChild destroyed"_ns);
+    MOZ_ASSERT(device);
+    ResolveLostForDeviceId(device->mId, Nothing(), u"WebGPUChild destroyed"_ns);
   }
 }
 
