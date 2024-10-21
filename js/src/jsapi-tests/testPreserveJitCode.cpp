@@ -7,7 +7,6 @@
 #include "jit/Ion.h"                      // js::jit::IsIonEnabled
 #include "js/CallAndConstruct.h"          // JS::CallFunction
 #include "js/CompilationAndEvaluation.h"  // JS::CompileFunction
-#include "js/EnvironmentChain.h"          // JS::EnvironmentChain
 #include "js/GlobalObject.h"              // JS_NewGlobalObject
 #include "js/SourceText.h"                // JS::Source{Ownership,Text}
 #include "jsapi-tests/tests.h"
@@ -70,9 +69,9 @@ bool testPreserveJitCode(bool preserveJitCode, unsigned remainingIonScripts) {
   options.setFileAndLine(__FILE__, 1);
 
   JS::RootedFunction fun(cx);
-  JS::EnvironmentChain emptyEnvChain(cx, JS::SupportUnscopables::No);
-  fun =
-      JS::CompileFunction(cx, emptyEnvChain, options, "f", 0, nullptr, srcBuf);
+  JS::RootedObjectVector emptyScopeChain(cx);
+  fun = JS::CompileFunction(cx, emptyScopeChain, options, "f", 0, nullptr,
+                            srcBuf);
   CHECK(fun);
 
   RootedValue value(cx);

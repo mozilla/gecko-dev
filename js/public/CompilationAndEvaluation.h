@@ -27,7 +27,6 @@ union Utf8Unit;
 
 namespace JS {
 
-class JS_PUBLIC_API EnvironmentChain;
 class JS_PUBLIC_API InstantiateOptions;
 class JS_PUBLIC_API ReadOnlyCompileOptions;
 
@@ -85,12 +84,12 @@ extern JS_PUBLIC_API bool JS_ExecuteScript(JSContext* cx,
  * objects that should end up on the script's scope chain.
  */
 extern JS_PUBLIC_API bool JS_ExecuteScript(JSContext* cx,
-                                           const JS::EnvironmentChain& envChain,
+                                           JS::HandleObjectVector envChain,
                                            JS::Handle<JSScript*> script,
                                            JS::MutableHandle<JS::Value> rval);
 
 extern JS_PUBLIC_API bool JS_ExecuteScript(JSContext* cx,
-                                           const JS::EnvironmentChain& envChain,
+                                           JS::HandleObjectVector envChain,
                                            JS::Handle<JSScript*> script);
 
 namespace JS {
@@ -109,8 +108,7 @@ extern JS_PUBLIC_API bool Evaluate(JSContext* cx,
  * the global object on it; that's implicit.  It needs to contain the other
  * objects that should end up on the script's scope chain.
  */
-extern JS_PUBLIC_API bool Evaluate(JSContext* cx,
-                                   const JS::EnvironmentChain& envChain,
+extern JS_PUBLIC_API bool Evaluate(JSContext* cx, HandleObjectVector envChain,
                                    const ReadOnlyCompileOptions& options,
                                    SourceText<char16_t>& srcBuf,
                                    MutableHandle<Value> rval);
@@ -175,7 +173,7 @@ extern JS_PUBLIC_API JSScript* CompileUtf8Path(
  * global must not be explicitly included in the scope chain.
  */
 extern JS_PUBLIC_API JSFunction* CompileFunction(
-    JSContext* cx, const JS::EnvironmentChain& envChain,
+    JSContext* cx, HandleObjectVector envChain,
     const ReadOnlyCompileOptions& options, const char* name, unsigned nargs,
     const char* const* argnames, SourceText<char16_t>& srcBuf);
 
@@ -187,7 +185,7 @@ extern JS_PUBLIC_API JSFunction* CompileFunction(
  * global must not be explicitly included in the scope chain.
  */
 extern JS_PUBLIC_API JSFunction* CompileFunction(
-    JSContext* cx, const JS::EnvironmentChain& envChain,
+    JSContext* cx, HandleObjectVector envChain,
     const ReadOnlyCompileOptions& options, const char* name, unsigned nargs,
     const char* const* argnames, SourceText<mozilla::Utf8Unit>& srcBuf);
 
@@ -196,7 +194,7 @@ extern JS_PUBLIC_API JSFunction* CompileFunction(
  * Rust-friendly ergonomics.
  */
 extern JS_PUBLIC_API JSFunction* CompileFunctionUtf8(
-    JSContext* cx, const JS::EnvironmentChain& envChain,
+    JSContext* cx, HandleObjectVector envChain,
     const ReadOnlyCompileOptions& options, const char* name, unsigned nargs,
     const char* const* argnames, const char* utf8, size_t length);
 

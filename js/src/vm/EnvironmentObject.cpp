@@ -10,7 +10,6 @@
 
 #include "builtin/Array.h"
 #include "builtin/ModuleObject.h"
-#include "js/EnvironmentChain.h"  // JS::EnvironmentChain
 #include "js/Exception.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/StackLimits.h"    // js::AutoCheckRecursionLimit
@@ -718,9 +717,10 @@ JSObject* js::GetThisObject(JSObject* obj) {
   return obj;
 }
 
-WithEnvironmentObject* WithEnvironmentObject::create(
-    JSContext* cx, HandleObject object, HandleObject enclosing,
-    Handle<WithScope*> scope, JS::SupportUnscopables supportUnscopables) {
+WithEnvironmentObject* WithEnvironmentObject::create(JSContext* cx,
+                                                     HandleObject object,
+                                                     HandleObject enclosing,
+                                                     Handle<WithScope*> scope) {
   Rooted<SharedShape*> shape(cx,
                              EmptyEnvironmentShape<WithEnvironmentObject>(cx));
   if (!shape) {
@@ -738,22 +738,17 @@ WithEnvironmentObject* WithEnvironmentObject::create(
   obj->initReservedSlot(OBJECT_SLOT, ObjectValue(*object));
   obj->initReservedSlot(THIS_SLOT, ObjectValue(*thisObj));
   if (scope) {
-    MOZ_ASSERT(supportUnscopables == JS::SupportUnscopables::Yes,
-               "with-statements must support Symbol.unscopables");
-    obj->initReservedSlot(SCOPE_OR_SUPPORT_UNSCOPABLES_SLOT,
-                          PrivateGCThingValue(scope));
+    obj->initReservedSlot(SCOPE_SLOT, PrivateGCThingValue(scope));
   } else {
-    Value v = BooleanValue(supportUnscopables == JS::SupportUnscopables::Yes);
-    obj->initReservedSlot(SCOPE_OR_SUPPORT_UNSCOPABLES_SLOT, v);
+    obj->initReservedSlot(SCOPE_SLOT, NullValue());
   }
 
   return obj;
 }
 
 WithEnvironmentObject* WithEnvironmentObject::createNonSyntactic(
-    JSContext* cx, HandleObject object, HandleObject enclosing,
-    JS::SupportUnscopables supportUnscopables) {
-  return create(cx, object, enclosing, nullptr, supportUnscopables);
+    JSContext* cx, HandleObject object, HandleObject enclosing) {
+  return create(cx, object, enclosing, nullptr);
 }
 
 static inline bool IsUnscopableDotName(JSContext* cx, HandleId id) {
@@ -816,9 +811,8 @@ static bool with_LookupProperty(JSContext* cx, HandleObject obj, HandleId id,
   }
 
   if (propp->isFound()) {
-    bool scopable = true;
-    if (obj->as<WithEnvironmentObject>().supportUnscopables() &&
-        !CheckUnscopables(cx, actual, id, &scopable)) {
+    bool scopable;
+    if (!CheckUnscopables(cx, actual, id, &scopable)) {
       return false;
     }
     if (!scopable) {
@@ -846,7 +840,7 @@ static bool with_HasProperty(JSContext* cx, HandleObject obj, HandleId id,
   if (!HasProperty(cx, actual, id, foundp)) {
     return false;
   }
-  if (!*foundp || !obj->as<WithEnvironmentObject>().supportUnscopables()) {
+  if (!*foundp) {
     return true;
   }
 
@@ -944,7 +938,7 @@ const JSClass NonSyntacticVariablesObject::class_ = {
 };
 
 NonSyntacticLexicalEnvironmentObject* js::CreateNonSyntacticEnvironmentChain(
-    JSContext* cx, const JS::EnvironmentChain& envChain) {
+    JSContext* cx, HandleObjectVector envChain) {
   // Callers are responsible for segregating the NonSyntactic case from simple
   // compilation cases.
   MOZ_RELEASE_ASSERT(!envChain.empty());
@@ -2443,12 +2437,9 @@ class DebugEnvironmentProxyHandler : public NurseryAllocableProxyHandler {
 
     if (isWith) {
       size_t j = 0;
-      bool supportUnscopables =
-          env->as<WithEnvironmentObject>().supportUnscopables();
       for (size_t i = 0; i < props.length(); i++) {
-        bool inScope = true;
-        if (supportUnscopables &&
-            !CheckUnscopables(cx, env, props[i], &inScope)) {
+        bool inScope;
+        if (!CheckUnscopables(cx, env, props[i], &inScope)) {
           return false;
         }
         if (inScope) {
@@ -3438,14 +3429,13 @@ JSObject* js::GetDebugEnvironmentForGlobalLexicalEnvironment(JSContext* cx) {
 }
 
 WithEnvironmentObject* js::CreateObjectsForEnvironmentChain(
-    JSContext* cx, const JS::EnvironmentChain& chain,
-    HandleObject terminatingEnv) {
+    JSContext* cx, HandleObjectVector chain, HandleObject terminatingEnv) {
   MOZ_ASSERT(!chain.empty());
 
 #ifdef DEBUG
   for (size_t i = 0; i < chain.length(); ++i) {
-    cx->check(chain.chain()[i]);
-    MOZ_ASSERT(!chain.chain()[i]->isUnqualifiedVarObj());
+    cx->check(chain[i]);
+    MOZ_ASSERT(!chain[i]->isUnqualifiedVarObj());
   }
 #endif
 
@@ -3454,8 +3444,8 @@ WithEnvironmentObject* js::CreateObjectsForEnvironmentChain(
   Rooted<WithEnvironmentObject*> withEnv(cx);
   RootedObject enclosingEnv(cx, terminatingEnv);
   for (size_t i = chain.length(); i > 0;) {
-    withEnv = WithEnvironmentObject::createNonSyntactic(
-        cx, chain.chain()[--i], enclosingEnv, chain.supportUnscopables());
+    withEnv =
+        WithEnvironmentObject::createNonSyntactic(cx, chain[--i], enclosingEnv);
     if (!withEnv) {
       return nullptr;
     }
@@ -3480,24 +3470,14 @@ JSObject* WithEnvironmentObject::withThis() const {
 }
 
 bool WithEnvironmentObject::isSyntactic() const {
-  Value v = getReservedSlot(SCOPE_OR_SUPPORT_UNSCOPABLES_SLOT);
-  MOZ_ASSERT(v.isPrivateGCThing() || v.isBoolean());
+  Value v = getReservedSlot(SCOPE_SLOT);
+  MOZ_ASSERT(v.isPrivateGCThing() || v.isNull());
   return v.isPrivateGCThing();
-}
-
-bool WithEnvironmentObject::supportUnscopables() const {
-  if (isSyntactic()) {
-    return true;
-  }
-  Value v = getReservedSlot(SCOPE_OR_SUPPORT_UNSCOPABLES_SLOT);
-  MOZ_ASSERT(v.isBoolean());
-  return v.isTrue();
 }
 
 WithScope& WithEnvironmentObject::scope() const {
   MOZ_ASSERT(isSyntactic());
-  Value v = getReservedSlot(SCOPE_OR_SUPPORT_UNSCOPABLES_SLOT);
-  return *static_cast<WithScope*>(v.toGCThing());
+  return *static_cast<WithScope*>(getReservedSlot(SCOPE_SLOT).toGCThing());
 }
 
 ModuleEnvironmentObject* js::GetModuleEnvironmentForScript(JSScript* script) {

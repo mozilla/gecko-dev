@@ -124,9 +124,8 @@
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions, JS::CompileOptions, JS::OwningCompileOptions, JS::DecodeOptions, JS::InstantiateOptions
 #include "js/ContextOptions.h"  // JS::ContextOptions{,Ref}
-#include "js/Debug.h"  // JS::dbg::ShouldAvoidSideEffects, JS::ExecutionTrace
-#include "js/EnvironmentChain.h"            // JS::EnvironmentChain
-#include "js/Equality.h"                    // JS::SameValue
+#include "js/Debug.h"     // JS::dbg::ShouldAvoidSideEffects, JS::ExecutionTrace
+#include "js/Equality.h"  // JS::SameValue
 #include "js/ErrorReport.h"                 // JS::PrintError
 #include "js/Exception.h"                   // JS::StealPendingExceptionStack
 #include "js/experimental/BindingAllocs.h"  // JS_NewObjectWithGivenProtoAndUseAllocSite
@@ -2694,7 +2693,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
   bool saveIncrementalBytecode = false;
   bool execute = true;
   bool assertEqBytecode = false;
-  JS::EnvironmentChain envChain(cx, JS::SupportUnscopables::No);
+  JS::RootedObjectVector envChain(cx);
   RootedObject callerGlobal(cx, cx->global());
 
   options.setIntroductionType("js shell evaluate")
@@ -2782,13 +2781,6 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    if (!JS_GetProperty(cx, opts, "supportUnscopables", &v)) {
-      return false;
-    }
-    if (!v.isUndefined()) {
-      envChain.setSupportUnscopables(JS::SupportUnscopables(ToBoolean(v)));
-    }
-
     // We cannot load or save the bytecode if we have no object where the
     // bytecode cache is stored.
     if (loadBytecode || saveIncrementalBytecode) {
@@ -2804,7 +2796,7 @@ static bool Evaluate(JSContext* cx, unsigned argc, Value* vp) {
     // Wrap the envChainObject list into target realm.
     JSAutoRealm ar(cx, global);
     for (size_t i = 0; i < envChain.length(); ++i) {
-      if (!JS_WrapObject(cx, envChain.chain()[i])) {
+      if (!JS_WrapObject(cx, envChain[i])) {
         return false;
       }
     }
@@ -9754,8 +9746,6 @@ static const JSFunctionSpecWithHelp shell_functions[] = {
 "      envChainObject: object to put on the scope chain, with its fields added\n"
 "         as var bindings, akin to how elements are added to the environment in\n"
 "         event handlers in Gecko.\n"
-"      supportUnscopables: if true, support Symbol.unscopables lookups for\n"
-"         envChainObject, similar to (syntactic) with-statements.\n"
 ),
 
     JS_FN_HELP("run", Run, 1, 0,

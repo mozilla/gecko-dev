@@ -11,7 +11,6 @@
 
 #include "frontend/CompilationStencil.h"
 #include "js/CompilationAndEvaluation.h"
-#include "js/EnvironmentChain.h"  // JS::EnvironmentChain
 #include "js/experimental/CompileScript.h"
 #include "js/experimental/JSStencil.h"
 #include "js/Modules.h"
@@ -137,11 +136,11 @@ BEGIN_TEST(testStencil_NonSyntactic) {
   CHECK(obj);
   CHECK(JS_SetProperty(cx, obj, "x", val));
 
-  JS::EnvironmentChain envChain(cx, JS::SupportUnscopables::No);
-  CHECK(envChain.append(obj));
+  JS::RootedObjectVector chain(cx);
+  CHECK(chain.append(obj));
 
   JS::RootedValue rval(cx);
-  CHECK(JS_ExecuteScript(cx, envChain, script, &rval));
+  CHECK(JS_ExecuteScript(cx, chain, script, &rval));
   CHECK(rval.isNumber() && rval.toNumber() == 42);
 
   return true;

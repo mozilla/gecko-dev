@@ -45,8 +45,6 @@
 
 namespace JS {
 
-class JS_PUBLIC_API EnvironmentChain;
-
 /**
  * Allocate a new environment in the current compartment that is compatible with
  * JSM shared loading.
@@ -70,7 +68,7 @@ extern JS_PUBLIC_API bool ExecuteInJSMEnvironment(JSContext* cx,
 // temporarily placed on the environment chain.
 extern JS_PUBLIC_API bool ExecuteInJSMEnvironment(
     JSContext* cx, Handle<JSScript*> script, Handle<JSObject*> jsmEnv,
-    const EnvironmentChain& targetObj);
+    Handle<StackGCVector<JSObject*>> targetObj);
 
 // Used by native methods to determine the JSMEnvironment of caller if possible
 // by looking at stack frames. Returns nullptr if top frame isn't a scripted

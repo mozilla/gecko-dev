@@ -20,11 +20,6 @@
 #include "vm/Scope.h"
 #include "vm/ScopeKind.h"  // ScopeKind
 
-namespace JS {
-class JS_PUBLIC_API EnvironmentChain;
-enum class SupportUnscopables : bool;
-};  // namespace JS
-
 namespace js {
 
 class AbstractGeneratorObject;
@@ -180,11 +175,6 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *
  *    Does not hold 'let' or 'const' bindings.
  *
- *    The embedding can specify whether these non-syntactic WithEnvironment
- *    objects support Symbol.unscopables similar to syntactic 'with' statements
- *    in JS. In Firefox, we support Symbol.unscopables only for DOM event
- *    handlers because this is required by the spec.
- *
  * 2. NonSyntacticVariablesObject
  *
  *    When the embedding wants qualified 'var' bindings and unqualified
@@ -244,8 +234,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   GlobalLexicalEnvironmentObject[this=global]
  *       |
- *   WithEnvironmentObject [SupportUnscopables=No] wrapping target
- *     (qualified 'var's)
+ *   WithEnvironmentObject wrapping target (qualified 'var's)
  *       |
  *   NonSyntacticLexicalEnvironmentObject[this=target] (lexical vars)
  *
@@ -274,8 +263,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   NonSyntacticLexicalEnvironmentObject[this=nsvo]
  *       |
- *   WithEnvironmentObject [SupportUnscopables=No] wrapping target
- *     (qualified 'var's)
+ *   WithEnvironmentObject wrapping target (qualified 'var's)
  *       |
  *   NonSyntacticLexicalEnvironmentObject[this=target] (lexical vars)
  *
@@ -310,7 +298,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   NonSyntacticVariablesObject (qualified 'var's and unqualified names)
  *       |
- *   WithEnvironmentObject [SupportUnscopables=No] wrapping messageManager
+ *   WithEnvironmentObject wrapping messageManager
  *       |
  *   NonSyntacticLexicalEnvironmentObject[this=messageManager] (lexical vars)
  *
@@ -327,8 +315,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   GlobalLexicalEnvironmentObject[this=global]
  *       |
- *   WithEnvironmentObject [SupportUnscopables=No] wrapping messageManager
- *     (qualified 'var's)
+ *   WithEnvironmentObject wrapping messageManager (qualified 'var's)
  *       |
  *   NonSyntacticLexicalEnvironmentObject[this=messageManager] (lexical vars)
  *
@@ -347,13 +334,13 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   GlobalLexicalEnvironmentObject[this=global]
  *       |
- *   WithEnvironmentObject [SupportUnscopables=Yes] wrapping eN
+ *   WithEnvironmentObject wrapping eN
  *       |
  *      ...
  *       |
- *   WithEnvironmentObject [SupportUnscopables=Yes] wrapping e1
+ *   WithEnvironmentObject wrapping e1
  *       |
- *   WithEnvironmentObject [SupportUnscopables=Yes] wrapping e0
+ *   WithEnvironmentObject wrapping e0
  *       |
  *   NonSyntacticLexicalEnvironmentObject [this=*unused*]
  *
@@ -368,9 +355,9 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *      ...
  *       |
- *   WithEnvironmentObject [SupportUnscopables=Yes] wrapping e1
+ *   WithEnvironmentObject wrapping e1
  *       |
- *   WithEnvironmentObject [SupportUnscopables=Yes] wrapping e0
+ *   WithEnvironmentObject wrapping e0
  *       |
  *   NonSyntacticLexicalEnvironmentObject [this=*unused*]
  *       |
@@ -396,8 +383,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   [DebugProxy] CallObject (qualified 'var's)
  *       |
- *   WithEnvironmentObject [SupportUnscopables=No] wrapping bindings
- *     (conflicting 'var's and names)
+ *   WithEnvironmentObject wrapping bindings (conflicting 'var's and names)
  *
  * If the script has direct eval, BlockLexicalEnvironmentObject is created for
  * it:
@@ -408,8 +394,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   [DebugProxy] CallObject (qualified 'var's)
  *       |
- *   WithEnvironmentObject [SupportUnscopables=No] wrapping bindings
- *     (conflicting 'var's and names)
+ *   WithEnvironmentObject wrapping bindings (conflicting 'var's and names)
  *       |
  *   BlockLexicalEnvironmentObject (lexical vars, and conflicting lexical vars)
  *
@@ -430,8 +415,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   GlobalLexicalEnvironmentObject[this=global] (lexical vars)
  *       |
- *   WithEnvironmentObject [SupportUnscopables=No] wrapping object with
- *     not-conflicting bindings
+ *   WithEnvironmentObject wrapping object with not-conflicting bindings
  *
  * If `options.useInnerBindings` is true, all bindings are stored into the
  * bindings object wrapped by WithEnvironmentObject, and they shadow globals
@@ -440,8 +424,7 @@ extern PropertyName* EnvironmentCoordinateNameSlow(JSScript* script,
  *       |
  *   GlobalLexicalEnvironmentObject[this=global] (lexical vars)
  *       |
- *   WithEnvironmentObject [SupportUnscopables=No] wrapping object with all
- *     bindings
+ *   WithEnvironmentObject wrapping object with all bindings
  *
  * NOTE: If `options.useInnerBindings` is true, and if lexical variable names
  *       conflict with the bindings object's properties, the write on them
@@ -999,16 +982,13 @@ class NonSyntacticVariablesObject : public EnvironmentObject {
 };
 
 NonSyntacticLexicalEnvironmentObject* CreateNonSyntacticEnvironmentChain(
-    JSContext* cx, const JS::EnvironmentChain& envChain);
+    JSContext* cx, JS::HandleObjectVector envChain);
 
 // With environment objects on the run-time environment chain.
 class WithEnvironmentObject : public EnvironmentObject {
   static constexpr uint32_t OBJECT_SLOT = 1;
   static constexpr uint32_t THIS_SLOT = 2;
-  // For syntactic with-environments this slot stores the js::Scope*.
-  // For non-syntactic with-environments it stores a boolean indicating whether
-  // we need to look up and use Symbol.unscopables.
-  static constexpr uint32_t SCOPE_OR_SUPPORT_UNSCOPABLES_SLOT = 3;
+  static constexpr uint32_t SCOPE_SLOT = 3;
 
  public:
   static const JSClass class_;
@@ -1016,12 +996,12 @@ class WithEnvironmentObject : public EnvironmentObject {
   static constexpr uint32_t RESERVED_SLOTS = 4;
   static constexpr ObjectFlags OBJECT_FLAGS = {};
 
-  static WithEnvironmentObject* create(
-      JSContext* cx, HandleObject object, HandleObject enclosing,
-      Handle<WithScope*> scope, JS::SupportUnscopables supportUnscopables);
-  static WithEnvironmentObject* createNonSyntactic(
-      JSContext* cx, HandleObject object, HandleObject enclosing,
-      JS::SupportUnscopables supportUnscopables);
+  static WithEnvironmentObject* create(JSContext* cx, HandleObject object,
+                                       HandleObject enclosing,
+                                       Handle<WithScope*> scope);
+  static WithEnvironmentObject* createNonSyntactic(JSContext* cx,
+                                                   HandleObject object,
+                                                   HandleObject enclosing);
 
   /* Return the 'o' in 'with (o)'. */
   JSObject& object() const;
@@ -1036,10 +1016,6 @@ class WithEnvironmentObject : public EnvironmentObject {
    * via JSAPI to CompileFunction or script evaluation.
    */
   bool isSyntactic() const;
-
-  // Whether Symbol.unscopables must be supported for this with-environment.
-  // This always returns true for syntactic with-environments.
-  bool supportUnscopables() const;
 
   // For syntactic with environment objects, the with scope.
   WithScope& scope() const;
@@ -1589,8 +1565,7 @@ inline bool IsFrameInitialEnvironment(AbstractFramePtr frame,
 }
 
 WithEnvironmentObject* CreateObjectsForEnvironmentChain(
-    JSContext* cx, const JS::EnvironmentChain& envChain,
-    HandleObject terminatingEnv);
+    JSContext* cx, HandleObjectVector chain, HandleObject terminatingEnv);
 
 ModuleObject* GetModuleObjectForScript(JSScript* script);
 
