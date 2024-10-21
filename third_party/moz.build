@@ -105,3 +105,6 @@ with Files("abseil-cpp/**"):
 
 with Files("build_overrides/**"):
     BUG_COMPONENT = ("Core", "WebRTC")
+
+with Files("fmt"):
+    BUG_COMPONENT = ("Core", "MFBT")

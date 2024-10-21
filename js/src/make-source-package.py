@@ -180,6 +180,7 @@ rsync_filter_list = """
 
 + /.cargo/config.toml.in
 
++ /third_party/fmt/**
 + /third_party/function2/**
 - /third_party/python/gyp
 + /third_party/python/**

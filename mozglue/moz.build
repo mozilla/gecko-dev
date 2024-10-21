@@ -25,3 +25,5 @@ DIRS += [
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"]:
     TEST_DIRS += ["tests"]
+
+DIRS += ["/third_party/fmt"]
