@@ -9,7 +9,7 @@ import platform
 import sys
 
 from mach.decorators import Command
-from mozbuild.base import MozbuildObject
+from mozbuild.base import BuildEnvironmentNotFoundException, MozbuildObject
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -120,7 +120,12 @@ class InterventionTest(MozbuildObject):
         platform = kwargs["platform"]
         binary = kwargs["binary"]
         device_serial = kwargs["device_serial"]
-        is_gve_build = command_context.substs.get("MOZ_APP_NAME") == "fennec"
+        try:
+            is_gve_build = command_context.substs.get("MOZ_APP_NAME") == "fennec"
+        except BuildEnvironmentNotFoundException:
+            # If we don't have a build, just use the logic below to choose between
+            # desktop and Android
+            is_gve_build = False
 
         if platform == "android" or (
             platform is None and binary is None and (device_serial or is_gve_build)
