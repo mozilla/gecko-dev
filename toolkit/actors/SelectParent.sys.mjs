@@ -281,6 +281,14 @@ export var SelectParentHelper = {
   },
 
   open(browser, menulist, rect, isOpenedViaTouch, selectParentActor) {
+    if (
+      (browser && !browser.browsingContext.isActive) ||
+      !menulist.ownerDocument.hasFocus()
+    ) {
+      selectParentActor.sendAsyncMessage("Forms:DismissedDropDown", {});
+      return;
+    }
+
     this._actor = selectParentActor;
     menulist.hidden = false;
     this._currentBrowser = browser;
