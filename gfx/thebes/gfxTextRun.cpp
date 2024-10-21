@@ -2601,37 +2601,14 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
   do {
     redo = false;
 
-    if (sizeof(T) == sizeof(uint8_t) && !transformedString) {
-      if (MOZ_UNLIKELY(MOZ_LOG_TEST(log, LogLevel::Warning))) {
-        nsAutoCString lang;
-        mLanguage->ToUTF8String(lang);
-        nsAutoCString str((const char*)aString, aLength);
-        nsAutoCString styleString;
-        mStyle.style.ToString(styleString);
-        auto defaultLanguageGeneric = GetDefaultGeneric(mLanguage);
-        MOZ_LOG(
-            log, LogLevel::Warning,
-            ("(%s) fontgroup: [%s] default: %s lang: %s script: %d "
-             "len %d weight: %g stretch: %g%% style: %s size: %6.2f %zu-byte "
-             "TEXTRUN [%s] ENDTEXTRUN\n",
-             (mStyle.systemFont ? "textrunui" : "textrun"),
-             FamilyListToString(mFamilyList).get(),
-             (defaultLanguageGeneric == StyleGenericFontFamily::Serif
-                  ? "serif"
-                  : (defaultLanguageGeneric == StyleGenericFontFamily::SansSerif
-                         ? "sans-serif"
-                         : "none")),
-             lang.get(), static_cast<int>(Script::LATIN), aLength,
-             mStyle.weight.ToFloat(), mStyle.stretch.ToFloat(),
-             styleString.get(), mStyle.size, sizeof(T), str.get()));
-      }
+    // split into script runs so that script can potentially influence
+    // the font matching process below
+    gfxScriptItemizer scriptRuns;
+    const char16_t* textPtr = nullptr;
 
-      // the text is still purely 8-bit; bypass the script-run itemizer
-      // and treat it as a single Latin run
-      InitScriptRun(aDrawTarget, aTextRun, aString, 0, aLength, Script::LATIN,
-                    aMFR);
+    if (sizeof(T) == sizeof(uint8_t) && !transformedString) {
+      scriptRuns.SetText(aString, aLength);
     } else {
-      const char16_t* textPtr;
       if (transformedString) {
         textPtr = transformedString.get();
       } else {
@@ -2640,38 +2617,46 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
         textPtr = reinterpret_cast<const char16_t*>(aString);
       }
 
-      // split into script runs so that script can potentially influence
-      // the font matching process below
-      gfxScriptItemizer scriptRuns;
       scriptRuns.SetText(textPtr, aLength);
+    }
 
-      while (gfxScriptItemizer::Run run = scriptRuns.Next()) {
-        if (MOZ_UNLIKELY(MOZ_LOG_TEST(log, LogLevel::Warning))) {
-          nsAutoCString lang;
-          mLanguage->ToUTF8String(lang);
-          nsAutoCString styleString;
-          mStyle.style.ToString(styleString);
-          auto defaultLanguageGeneric = GetDefaultGeneric(mLanguage);
-          MOZ_LOG(log, LogLevel::Warning,
-                  ("(%s) fontgroup: [%s] default: %s lang: %s script: %d "
-                   "len %d weight: %g stretch: %g%% style: %s size: %6.2f "
-                   "%zu-byte TEXTRUN [%s] ENDTEXTRUN\n",
-                   (mStyle.systemFont ? "textrunui" : "textrun"),
-                   FamilyListToString(mFamilyList).get(),
-                   (defaultLanguageGeneric == StyleGenericFontFamily::Serif
-                        ? "serif"
-                        : (defaultLanguageGeneric ==
-                                   StyleGenericFontFamily::SansSerif
-                               ? "sans-serif"
-                               : "none")),
-                   lang.get(), static_cast<int>(run.mScript), run.mLength,
-                   mStyle.weight.ToFloat(), mStyle.stretch.ToFloat(),
-                   styleString.get(), mStyle.size, sizeof(T),
-                   NS_ConvertUTF16toUTF8(textPtr + run.mOffset, run.mLength)
+    while (gfxScriptItemizer::Run run = scriptRuns.Next()) {
+      if (MOZ_UNLIKELY(MOZ_LOG_TEST(log, LogLevel::Warning))) {
+        nsAutoCString lang;
+        mLanguage->ToUTF8String(lang);
+        nsAutoCString styleString;
+        mStyle.style.ToString(styleString);
+        auto defaultLanguageGeneric = GetDefaultGeneric(mLanguage);
+        MOZ_LOG(
+            log, LogLevel::Warning,
+            ("(%s) fontgroup: [%s] default: %s lang: %s script: %d "
+             "len %d weight: %g stretch: %g%% style: %s size: %6.2f "
+             "%zu-byte TEXTRUN [%s] ENDTEXTRUN\n",
+             (mStyle.systemFont ? "textrunui" : "textrun"),
+             FamilyListToString(mFamilyList).get(),
+             (defaultLanguageGeneric == StyleGenericFontFamily::Serif
+                  ? "serif"
+                  : (defaultLanguageGeneric == StyleGenericFontFamily::SansSerif
+                         ? "sans-serif"
+                         : "none")),
+             lang.get(), static_cast<int>(run.mScript), run.mLength,
+             mStyle.weight.ToFloat(), mStyle.stretch.ToFloat(),
+             styleString.get(), mStyle.size, sizeof(T),
+             textPtr
+                 ? NS_ConvertUTF16toUTF8(textPtr + run.mOffset, run.mLength)
+                       .get()
+                 : nsPromiseFlatCString(
+                       nsDependentCSubstring(
+                           reinterpret_cast<const char*>(aString) + run.mOffset,
+                           run.mLength))
                        .get()));
-        }
+      }
 
+      if (textPtr) {
         InitScriptRun(aDrawTarget, aTextRun, textPtr + run.mOffset, run.mOffset,
+                      run.mLength, run.mScript, aMFR);
+      } else {
+        InitScriptRun(aDrawTarget, aTextRun, aString + run.mOffset, run.mOffset,
                       run.mLength, run.mScript, aMFR);
       }
     }
