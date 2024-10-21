@@ -121,23 +121,10 @@ static inline bool SameScript(Script runScript, Script currCharScript,
          UnicodeProperties::HasScript(aCurrCh, runScript);
 }
 
-gfxScriptItemizer::gfxScriptItemizer(const char16_t* src, uint32_t length)
-    : textPtr(src), textLength(length) {
-  reset();
-}
-
-void gfxScriptItemizer::SetText(const char16_t* src, uint32_t length) {
-  textPtr = src;
-  textLength = length;
-
-  reset();
-}
-
-bool gfxScriptItemizer::Next(uint32_t& aRunStart, uint32_t& aRunLimit,
-                             Script& aRunScript) {
+gfxScriptItemizer::Run gfxScriptItemizer::Next() {
   /* if we've fallen off the end of the text, we're done */
   if (scriptLimit >= textLength) {
-    return false;
+    return Run{};
   }
 
   SYNC_FIXUP();
@@ -243,14 +230,8 @@ bool gfxScriptItemizer::Next(uint32_t& aRunStart, uint32_t& aRunLimit,
     }
   }
 
-  aRunStart = scriptStart;
-  aRunLimit = scriptLimit;
-
-  if (scriptCode == Script::COMMON && fallbackScript != Script::UNKNOWN) {
-    aRunScript = fallbackScript;
-  } else {
-    aRunScript = scriptCode;
-  }
-
-  return true;
+  return Run{scriptStart, scriptLimit - scriptStart,
+             (scriptCode == Script::COMMON && fallbackScript != Script::UNKNOWN)
+                 ? fallbackScript
+                 : scriptCode};
 }

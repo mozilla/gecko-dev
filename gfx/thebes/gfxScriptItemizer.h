@@ -51,30 +51,29 @@
 #define GFX_SCRIPTITEMIZER_H
 
 #include <stdint.h>
+#include "mozilla/Attributes.h"
 #include "mozilla/intl/UnicodeScriptCodes.h"
 
 #define PAREN_STACK_DEPTH 32
 
 class gfxScriptItemizer {
  public:
-  typedef mozilla::intl::Script Script;
+  using Script = mozilla::intl::Script;
 
-  gfxScriptItemizer(const char16_t* src, uint32_t length);
+  gfxScriptItemizer(const char16_t* aText, uint32_t aLength)
+      : textPtr(aText), textLength(aLength) {}
 
-  void SetText(const char16_t* src, uint32_t length);
+  struct Run {
+    uint32_t mOffset = 0;
+    uint32_t mLength = 0;
+    Script mScript = Script::COMMON;
 
-  bool Next(uint32_t& aRunStart, uint32_t& aRunLimit, Script& aRunScript);
+    MOZ_IMPLICIT operator bool() const { return mLength > 0; }
+  };
+
+  Run Next();
 
  protected:
-  void reset() {
-    scriptStart = 0;
-    scriptLimit = 0;
-    scriptCode = Script::INVALID;
-    parenSP = -1;
-    pushCount = 0;
-    fixupCount = 0;
-  }
-
   void push(uint32_t endPairChar, Script newScriptCode);
   void pop();
   void fixup(Script newScriptCode);
@@ -84,17 +83,17 @@ class gfxScriptItemizer {
     Script scriptCode;
   };
 
-  const char16_t* textPtr;
-  uint32_t textLength;
+  const char16_t* const textPtr;
+  const uint32_t textLength;
 
-  uint32_t scriptStart;
-  uint32_t scriptLimit;
-  Script scriptCode;
+  uint32_t scriptStart = 0;
+  uint32_t scriptLimit = 0;
+  Script scriptCode = Script::INVALID;
 
   struct ParenStackEntry parenStack[PAREN_STACK_DEPTH];
-  uint32_t parenSP;
-  uint32_t pushCount;
-  uint32_t fixupCount;
+  uint32_t parenSP = -1;
+  uint32_t pushCount = 0;
+  uint32_t fixupCount = 0;
 };
 
 #endif /* GFX_SCRIPTITEMIZER_H */

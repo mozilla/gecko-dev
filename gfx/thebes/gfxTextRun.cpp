@@ -2644,16 +2644,13 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
       // the font matching process below
       gfxScriptItemizer scriptRuns(textPtr, aLength);
 
-      uint32_t runStart = 0, runLimit = aLength;
-      Script runScript = Script::LATIN;
-      while (scriptRuns.Next(runStart, runLimit, runScript)) {
+      while (gfxScriptItemizer::Run run = scriptRuns.Next()) {
         if (MOZ_UNLIKELY(MOZ_LOG_TEST(log, LogLevel::Warning))) {
           nsAutoCString lang;
           mLanguage->ToUTF8String(lang);
           nsAutoCString styleString;
           mStyle.style.ToString(styleString);
           auto defaultLanguageGeneric = GetDefaultGeneric(mLanguage);
-          uint32_t runLen = runLimit - runStart;
           MOZ_LOG(log, LogLevel::Warning,
                   ("(%s) fontgroup: [%s] default: %s lang: %s script: %d "
                    "len %d weight: %g stretch: %g%% style: %s size: %6.2f "
@@ -2666,14 +2663,15 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
                                    StyleGenericFontFamily::SansSerif
                                ? "sans-serif"
                                : "none")),
-                   lang.get(), static_cast<int>(runScript), runLen,
+                   lang.get(), static_cast<int>(run.mScript), run.mLength,
                    mStyle.weight.ToFloat(), mStyle.stretch.ToFloat(),
                    styleString.get(), mStyle.size, sizeof(T),
-                   NS_ConvertUTF16toUTF8(textPtr + runStart, runLen).get()));
+                   NS_ConvertUTF16toUTF8(textPtr + run.mOffset, run.mLength)
+                       .get()));
         }
 
-        InitScriptRun(aDrawTarget, aTextRun, textPtr + runStart, runStart,
-                      runLimit - runStart, runScript, aMFR);
+        InitScriptRun(aDrawTarget, aTextRun, textPtr + run.mOffset, run.mOffset,
+                      run.mLength, run.mScript, aMFR);
       }
     }
 
