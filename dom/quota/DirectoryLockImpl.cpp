@@ -310,7 +310,8 @@ void DirectoryLockImpl::AcquireInternal() {
 
   mQuotaManager->AddPendingDirectoryLock(*this);
 
-  // See if this lock needs to wait.
+  // See if this lock needs to wait. This has to be done before the lock is
+  // registered, we would be comparing the lock against itself otherwise.
   bool blocked = false;
 
   // XXX It is probably unnecessary to iterate this in reverse order.
@@ -323,9 +324,12 @@ void DirectoryLockImpl::AcquireInternal() {
     }
   }
 
+  // After the traversal of existing locks is done, this lock can be
+  // registered and will become an existing lock as well.
   mQuotaManager->RegisterDirectoryLock(*this);
 
-  // Otherwise, notify the open listener immediately.
+  // If this lock is not blocked by some other existing lock, notify the open
+  // listener immediately and return.
   if (!blocked) {
     NotifyOpenListener();
     return;
