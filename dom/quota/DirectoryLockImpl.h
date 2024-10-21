@@ -40,17 +40,21 @@ enum class ShouldUpdateLockIdTableFlag { No, Yes };
 
 class DirectoryLockImpl final : public ClientDirectoryLock,
                                 public UniversalDirectoryLock {
+  friend class QuotaManager;
+
   const NotNull<RefPtr<QuotaManager>> mQuotaManager;
 
   const PersistenceScope mPersistenceScope;
   const OriginScope mOriginScope;
   const Nullable<Client::Type> mClientType;
+
   MozPromiseHolder<BoolPromise> mAcquirePromiseHolder;
   nsCOMPtr<nsITimer> mAcquireTimer;
-  std::function<void()> mInvalidateCallback;
 
   nsTArray<NotNull<DirectoryLockImpl*>> mBlocking;
   nsTArray<NotNull<DirectoryLockImpl*>> mBlockedOn;
+
+  std::function<void()> mInvalidateCallback;
 
   const int64_t mId;
 
@@ -66,8 +70,8 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
 
   bool mRegistered;
   FlippedOnce<true> mPending;
-  FlippedOnce<false> mInvalidated;
   FlippedOnce<false> mAcquired;
+  FlippedOnce<false> mInvalidated;
   FlippedOnce<false> mDropped;
 
  public:
@@ -78,112 +82,6 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
                     bool aInternal,
                     ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
                     DirectoryLockCategory aCategory);
-
-  static RefPtr<ClientDirectoryLock> Create(
-      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      PersistenceType aPersistenceType,
-      const quota::OriginMetadata& aOriginMetadata, Client::Type aClientType,
-      bool aExclusive) {
-    return Create(std::move(aQuotaManager),
-                  PersistenceScope::CreateFromValue(aPersistenceType),
-                  OriginScope::FromOrigin(aOriginMetadata),
-                  Nullable<Client::Type>(aClientType), aExclusive, false,
-                  ShouldUpdateLockIdTableFlag::Yes,
-                  DirectoryLockCategory::None);
-  }
-
-  static RefPtr<OriginDirectoryLock> CreateForEviction(
-      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      PersistenceType aPersistenceType,
-      const quota::OriginMetadata& aOriginMetadata) {
-    MOZ_ASSERT(aPersistenceType != PERSISTENCE_TYPE_INVALID);
-    MOZ_ASSERT(!aOriginMetadata.mOrigin.IsEmpty());
-    MOZ_ASSERT(!aOriginMetadata.mStorageOrigin.IsEmpty());
-
-    return Create(
-        std::move(aQuotaManager),
-        PersistenceScope::CreateFromValue(aPersistenceType),
-        OriginScope::FromOrigin(aOriginMetadata), Nullable<Client::Type>(),
-        /* aExclusive */ true, /* aInternal */ true,
-        ShouldUpdateLockIdTableFlag::No, DirectoryLockCategory::UninitOrigins);
-  }
-
-  static RefPtr<UniversalDirectoryLock> CreateInternal(
-      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      const PersistenceScope& aPersistenceScope,
-      const OriginScope& aOriginScope,
-      const Nullable<Client::Type>& aClientType, bool aExclusive,
-      DirectoryLockCategory aCategory) {
-    return Create(std::move(aQuotaManager), aPersistenceScope, aOriginScope,
-                  aClientType, aExclusive, true,
-                  ShouldUpdateLockIdTableFlag::Yes, aCategory);
-  }
-
-  void AssertIsOnOwningThread() const
-#ifdef DEBUG
-      ;
-#else
-  {
-  }
-#endif
-
-  bool IsInternal() const { return mInternal; }
-
-  void SetRegistered(bool aRegistered) { mRegistered = aRegistered; }
-
-  bool IsPending() const { return mPending; }
-
-  // Ideally, we would have just one table (instead of these two:
-  // QuotaManager::mDirectoryLocks and QuotaManager::mDirectoryLockIdTable) for
-  // all registered locks. However, some directory locks need to be accessed off
-  // the PBackground thread, so the access must be protected by the quota mutex.
-  // The problem is that directory locks for eviction must be currently created
-  // while the mutex lock is already acquired. So we decided to have two tables
-  // for now and to not register directory locks for eviction in
-  // QuotaManager::mDirectoryLockIdTable. This can be improved in future after
-  // some refactoring of the mutex locking.
-  bool ShouldUpdateLockIdTable() const { return mShouldUpdateLockIdTable; }
-
-  bool ShouldUpdateLockTable() {
-    return !mInternal &&
-           mPersistenceScope.GetValue() != PERSISTENCE_TYPE_PERSISTENT;
-  }
-
-  bool Overlaps(const DirectoryLockImpl& aLock) const;
-
-  // Test whether this DirectoryLock needs to wait for the given lock.
-  bool MustWaitFor(const DirectoryLockImpl& aLock) const;
-
-  void AddBlockingLock(DirectoryLockImpl& aLock) {
-    AssertIsOnOwningThread();
-
-    mBlocking.AppendElement(WrapNotNull(&aLock));
-  }
-
-  const nsTArray<NotNull<DirectoryLockImpl*>>& GetBlockedOnLocks() {
-    return mBlockedOn;
-  }
-
-  void AddBlockedOnLock(DirectoryLockImpl& aLock) {
-    AssertIsOnOwningThread();
-
-    mBlockedOn.AppendElement(WrapNotNull(&aLock));
-  }
-
-  void MaybeUnblock(DirectoryLockImpl& aLock) {
-    AssertIsOnOwningThread();
-
-    mBlockedOn.RemoveElement(&aLock);
-    if (mBlockedOn.IsEmpty()) {
-      NotifyOpenListener();
-    }
-  }
-
-  void NotifyOpenListener();
-
-  void Invalidate();
-
-  void Unregister();
 
   // DirectoryLock interface
 
@@ -272,6 +170,46 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
  private:
   ~DirectoryLockImpl();
 
+  static RefPtr<ClientDirectoryLock> Create(
+      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+      PersistenceType aPersistenceType,
+      const quota::OriginMetadata& aOriginMetadata, Client::Type aClientType,
+      bool aExclusive) {
+    return Create(std::move(aQuotaManager),
+                  PersistenceScope::CreateFromValue(aPersistenceType),
+                  OriginScope::FromOrigin(aOriginMetadata),
+                  Nullable<Client::Type>(aClientType), aExclusive, false,
+                  ShouldUpdateLockIdTableFlag::Yes,
+                  DirectoryLockCategory::None);
+  }
+
+  static RefPtr<OriginDirectoryLock> CreateForEviction(
+      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+      PersistenceType aPersistenceType,
+      const quota::OriginMetadata& aOriginMetadata) {
+    MOZ_ASSERT(aPersistenceType != PERSISTENCE_TYPE_INVALID);
+    MOZ_ASSERT(!aOriginMetadata.mOrigin.IsEmpty());
+    MOZ_ASSERT(!aOriginMetadata.mStorageOrigin.IsEmpty());
+
+    return Create(
+        std::move(aQuotaManager),
+        PersistenceScope::CreateFromValue(aPersistenceType),
+        OriginScope::FromOrigin(aOriginMetadata), Nullable<Client::Type>(),
+        /* aExclusive */ true, /* aInternal */ true,
+        ShouldUpdateLockIdTableFlag::No, DirectoryLockCategory::UninitOrigins);
+  }
+
+  static RefPtr<UniversalDirectoryLock> CreateInternal(
+      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
+      const PersistenceScope& aPersistenceScope,
+      const OriginScope& aOriginScope,
+      const Nullable<Client::Type>& aClientType, bool aExclusive,
+      DirectoryLockCategory aCategory) {
+    return Create(std::move(aQuotaManager), aPersistenceScope, aOriginScope,
+                  aClientType, aExclusive, true,
+                  ShouldUpdateLockIdTableFlag::Yes, aCategory);
+  }
+
   static RefPtr<DirectoryLockImpl> Create(
       MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
       const PersistenceScope& aPersistenceScope,
@@ -292,7 +230,73 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
         aExclusive, aInternal, aShouldUpdateLockIdTableFlag, aCategory);
   }
 
+  void AssertIsOnOwningThread() const
+#ifdef DEBUG
+      ;
+#else
+  {
+  }
+#endif
+
+  bool IsInternal() const { return mInternal; }
+
+  void SetRegistered(bool aRegistered) { mRegistered = aRegistered; }
+
+  bool IsPending() const { return mPending; }
+
+  // Ideally, we would have just one table (instead of these two:
+  // QuotaManager::mDirectoryLocks and QuotaManager::mDirectoryLockIdTable) for
+  // all registered locks. However, some directory locks need to be accessed off
+  // the PBackground thread, so the access must be protected by the quota mutex.
+  // The problem is that directory locks for eviction must be currently created
+  // while the mutex lock is already acquired. So we decided to have two tables
+  // for now and to not register directory locks for eviction in
+  // QuotaManager::mDirectoryLockIdTable. This can be improved in future after
+  // some refactoring of the mutex locking.
+  bool ShouldUpdateLockIdTable() const { return mShouldUpdateLockIdTable; }
+
+  bool ShouldUpdateLockTable() {
+    return !mInternal &&
+           mPersistenceScope.GetValue() != PERSISTENCE_TYPE_PERSISTENT;
+  }
+
+  bool Overlaps(const DirectoryLockImpl& aLock) const;
+
+  // Test whether this DirectoryLock needs to wait for the given lock.
+  bool MustWaitFor(const DirectoryLockImpl& aLock) const;
+
+  void AddBlockingLock(DirectoryLockImpl& aLock) {
+    AssertIsOnOwningThread();
+
+    mBlocking.AppendElement(WrapNotNull(&aLock));
+  }
+
+  const nsTArray<NotNull<DirectoryLockImpl*>>& GetBlockedOnLocks() {
+    return mBlockedOn;
+  }
+
+  void AddBlockedOnLock(DirectoryLockImpl& aLock) {
+    AssertIsOnOwningThread();
+
+    mBlockedOn.AppendElement(WrapNotNull(&aLock));
+  }
+
+  void MaybeUnblock(DirectoryLockImpl& aLock) {
+    AssertIsOnOwningThread();
+
+    mBlockedOn.RemoveElement(&aLock);
+    if (mBlockedOn.IsEmpty()) {
+      NotifyOpenListener();
+    }
+  }
+
+  void NotifyOpenListener();
+
   void AcquireInternal();
+
+  void Invalidate();
+
+  void Unregister();
 };
 
 }  // namespace mozilla::dom::quota
