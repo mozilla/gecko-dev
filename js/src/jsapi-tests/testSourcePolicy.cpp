@@ -5,6 +5,7 @@
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 
 #include "js/CompilationAndEvaluation.h"  // JS::CompileFunction, JS::Evaluate
+#include "js/EnvironmentChain.h"          // JS::EnvironmentChain
 #include "js/GlobalObject.h"              // JS_NewGlobalObject
 #include "js/MemoryFunctions.h"
 #include "js/SourceText.h"  // JS::Source{Ownership,Text}
@@ -41,13 +42,13 @@ BEGIN_TEST(testBug795104) {
   CHECK(JS::Evaluate(cx, opts, srcBuf, &unused));
 
   JS::RootedFunction fun(cx);
-  JS::RootedObjectVector emptyScopeChain(cx);
+  JS::EnvironmentChain emptyEnvChain(cx, JS::SupportUnscopables::No);
 
   // But when compiling a function we don't want to use no-rval
   // mode, since it's not supported for functions.
   opts.setNoScriptRval(false);
 
-  fun = JS::CompileFunction(cx, emptyScopeChain, opts, "f", 0, nullptr, srcBuf);
+  fun = JS::CompileFunction(cx, emptyEnvChain, opts, "f", 0, nullptr, srcBuf);
   CHECK(fun);
 
   JS_free(cx, s);

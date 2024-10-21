@@ -23,6 +23,7 @@
 #include "frontend/Parser.h"  // frontend::Parser, frontend::ParseGoal
 #include "js/CharacterEncoding.h"  // JS::UTF8Chars, JS::ConstUTF8CharsZ, JS::UTF8CharsToNewTwoByteCharsZ
 #include "js/ColumnNumber.h"            // JS::ColumnNumberOneOrigin
+#include "js/EnvironmentChain.h"        // JS::EnvironmentChain
 #include "js/experimental/JSStencil.h"  // JS::Stencil
 #include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
 #include "js/RootingAPI.h"              // JS::Rooted
@@ -299,7 +300,7 @@ class FunctionCompiler {
     return funStr_.append(srcBuf.get(), srcBuf.length());
   }
 
-  JSFunction* finish(HandleObjectVector envChain,
+  JSFunction* finish(const JS::EnvironmentChain& envChain,
                      const ReadOnlyCompileOptions& optionsArg) {
     using js::frontend::FunctionSyntaxKind;
 
@@ -381,7 +382,7 @@ class FunctionCompiler {
 };
 
 JS_PUBLIC_API JSFunction* JS::CompileFunction(
-    JSContext* cx, HandleObjectVector envChain,
+    JSContext* cx, const EnvironmentChain& envChain,
     const ReadOnlyCompileOptions& options, const char* name, unsigned nargs,
     const char* const* argnames, SourceText<char16_t>& srcBuf) {
   ManualReportFrontendContext fc(cx);
@@ -397,7 +398,7 @@ JS_PUBLIC_API JSFunction* JS::CompileFunction(
 }
 
 JS_PUBLIC_API JSFunction* JS::CompileFunction(
-    JSContext* cx, HandleObjectVector envChain,
+    JSContext* cx, const EnvironmentChain& envChain,
     const ReadOnlyCompileOptions& options, const char* name, unsigned nargs,
     const char* const* argnames, SourceText<Utf8Unit>& srcBuf) {
   ManualReportFrontendContext fc(cx);
@@ -413,7 +414,7 @@ JS_PUBLIC_API JSFunction* JS::CompileFunction(
 }
 
 JS_PUBLIC_API JSFunction* JS::CompileFunctionUtf8(
-    JSContext* cx, HandleObjectVector envChain,
+    JSContext* cx, const EnvironmentChain& envChain,
     const ReadOnlyCompileOptions& options, const char* name, unsigned nargs,
     const char* const* argnames, const char* bytes, size_t length) {
   SourceText<Utf8Unit> srcBuf;
@@ -495,7 +496,7 @@ MOZ_NEVER_INLINE static bool ExecuteScript(JSContext* cx, HandleObject envChain,
   return Execute(cx, script, envChain, rval);
 }
 
-static bool ExecuteScript(JSContext* cx, HandleObjectVector envChain,
+static bool ExecuteScript(JSContext* cx, const JS::EnvironmentChain& envChain,
                           HandleScript script, MutableHandleValue rval) {
   RootedObject env(cx, CreateNonSyntacticEnvironmentChain(cx, envChain));
   if (!env) {
@@ -520,13 +521,14 @@ MOZ_NEVER_INLINE JS_PUBLIC_API bool JS_ExecuteScript(JSContext* cx,
 }
 
 MOZ_NEVER_INLINE JS_PUBLIC_API bool JS_ExecuteScript(
-    JSContext* cx, HandleObjectVector envChain, HandleScript scriptArg,
+    JSContext* cx, const JS::EnvironmentChain& envChain, HandleScript scriptArg,
     MutableHandleValue rval) {
   return ExecuteScript(cx, envChain, scriptArg, rval);
 }
 
 MOZ_NEVER_INLINE JS_PUBLIC_API bool JS_ExecuteScript(
-    JSContext* cx, HandleObjectVector envChain, HandleScript scriptArg) {
+    JSContext* cx, const JS::EnvironmentChain& envChain,
+    HandleScript scriptArg) {
   RootedValue rval(cx);
   return ExecuteScript(cx, envChain, scriptArg, &rval);
 }
@@ -576,7 +578,7 @@ JS_PUBLIC_API bool JS::Evaluate(JSContext* cx,
                               srcBuf, rval);
 }
 
-JS_PUBLIC_API bool JS::Evaluate(JSContext* cx, HandleObjectVector envChain,
+JS_PUBLIC_API bool JS::Evaluate(JSContext* cx, const EnvironmentChain& envChain,
                                 const ReadOnlyCompileOptions& options,
                                 SourceText<char16_t>& srcBuf,
                                 MutableHandleValue rval) {

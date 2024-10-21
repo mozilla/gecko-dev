@@ -21,6 +21,7 @@
 #include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionValue
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
+#include "js/EnvironmentChain.h"  // JS::EnvironmentChain
 #include "js/experimental/JSStencil.h"
 #include "js/GCVector.h"
 #include "js/JSON.h"
@@ -1212,7 +1213,7 @@ void nsMessageManagerScriptExecutor::LoadScriptInternal(
         }
       } else {
         JS::Rooted<JS::Value> rval(cx);
-        JS::RootedVector<JSObject*> envChain(cx);
+        JS::EnvironmentChain envChain(cx, JS::SupportUnscopables::No);
         if (!envChain.append(aMessageManager)) {
           return;
         }
