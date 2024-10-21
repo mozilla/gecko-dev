@@ -2642,7 +2642,8 @@ void gfxFontGroup::InitTextRun(DrawTarget* aDrawTarget, gfxTextRun* aTextRun,
 
       // split into script runs so that script can potentially influence
       // the font matching process below
-      gfxScriptItemizer scriptRuns(textPtr, aLength);
+      gfxScriptItemizer scriptRuns;
+      scriptRuns.SetText(textPtr, aLength);
 
       while (gfxScriptItemizer::Run run = scriptRuns.Next()) {
         if (MOZ_UNLIKELY(MOZ_LOG_TEST(log, LogLevel::Warning))) {

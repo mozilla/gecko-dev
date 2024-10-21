@@ -122,6 +122,9 @@ static inline bool SameScript(Script runScript, Script currCharScript,
 }
 
 gfxScriptItemizer::Run gfxScriptItemizer::Next() {
+  MOZ_ASSERT(textLength == 0 || (textIs8bit && textPtr._1b) ||
+             (!textIs8bit && textPtr._2b));
+
   /* if we've fallen off the end of the text, we're done */
   if (scriptLimit >= textLength) {
     return Run{};
@@ -136,11 +139,11 @@ gfxScriptItemizer::Run gfxScriptItemizer::Next() {
     Script sc;
     uint32_t startOfChar = scriptLimit;
 
-    ch = textPtr[scriptLimit];
+    ch = textIs8bit ? textPtr._1b[scriptLimit] : textPtr._2b[scriptLimit];
 
     /* decode UTF-16 (may be surrogate pair) */
     if (NS_IS_HIGH_SURROGATE(ch) && scriptLimit < textLength - 1) {
-      uint32_t low = textPtr[scriptLimit + 1];
+      uint32_t low = textPtr._2b[scriptLimit + 1];
       if (NS_IS_LOW_SURROGATE(low)) {
         ch = SURROGATE_TO_UCS4(ch, low);
         scriptLimit += 1;

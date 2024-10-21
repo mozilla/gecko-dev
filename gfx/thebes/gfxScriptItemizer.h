@@ -60,8 +60,21 @@ class gfxScriptItemizer {
  public:
   using Script = mozilla::intl::Script;
 
-  gfxScriptItemizer(const char16_t* aText, uint32_t aLength)
-      : textPtr(aText), textLength(aLength) {}
+  gfxScriptItemizer() = default;
+  gfxScriptItemizer(const gfxScriptItemizer& aOther) = delete;
+  gfxScriptItemizer(gfxScriptItemizer&& aOther) = delete;
+
+  void SetText(const char16_t* aText, uint32_t aLength) {
+    textPtr._2b = aText;
+    textLength = aLength;
+    textIs8bit = false;
+  }
+
+  void SetText(const unsigned char* aText, uint32_t aLength) {
+    textPtr._1b = aText;
+    textLength = aLength;
+    textIs8bit = true;
+  }
 
   struct Run {
     uint32_t mOffset = 0;
@@ -83,8 +96,12 @@ class gfxScriptItemizer {
     Script scriptCode;
   };
 
-  const char16_t* const textPtr;
-  const uint32_t textLength;
+  union {
+    const char16_t* _2b;
+    const unsigned char* _1b;
+  } textPtr;
+  uint32_t textLength;
+  bool textIs8bit;
 
   uint32_t scriptStart = 0;
   uint32_t scriptLimit = 0;
