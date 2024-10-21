@@ -151,7 +151,7 @@ fun Dropdown(
                         canShowCheckItems = true,
                         offset = if (isInLandscapeMode) {
                             DpOffset(
-                                -contextMenuWidthDp + ICON_SIZE,
+                                -contextMenuWidthDp,
                                 ICON_SIZE,
                             )
                         } else {
