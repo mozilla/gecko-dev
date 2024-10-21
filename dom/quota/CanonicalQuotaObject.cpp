@@ -10,7 +10,7 @@
 #include "GroupInfoPair.h"
 #include "mozilla/dom/StorageActivityService.h"
 #include "mozilla/dom/quota/AssertionsImpl.h"
-#include "mozilla/dom/quota/DirectoryLock.h"
+#include "mozilla/dom/quota/OriginDirectoryLock.h"
 #include "mozilla/dom/quota/NotifyUtils.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/ipc/BackgroundParent.h"

@@ -77,8 +77,9 @@ class NS_NO_VTABLE DirectoryLock {
   virtual void Log() const = 0;
 };
 
-// A directory lock specialized for a given origin directory.
-class NS_NO_VTABLE OriginDirectoryLock : public DirectoryLock {
+// A directory lock specialized for a given client directory (inside an origin
+// directory).
+class NS_NO_VTABLE ClientDirectoryLock : public DirectoryLock {
  public:
   // 'Get' prefix is to avoid name collisions with the enum
   virtual PersistenceType GetPersistenceType() const = 0;
@@ -86,12 +87,7 @@ class NS_NO_VTABLE OriginDirectoryLock : public DirectoryLock {
   virtual quota::OriginMetadata OriginMetadata() const = 0;
 
   virtual const nsACString& Origin() const = 0;
-};
 
-// A directory lock specialized for a given client directory (inside an origin
-// directory).
-class NS_NO_VTABLE ClientDirectoryLock : public OriginDirectoryLock {
- public:
   virtual Client::Type ClientType() const = 0;
 };
 
