@@ -11,6 +11,7 @@
   &[uidensity=touch] {
     --tab-min-height: 41px;
   }
+  --tab-group-label-height: max(1.5em, var(--tab-min-height) - 14px);
   /* Collapsed tabs should be square, so set width to match the min height */
   --tab-collapsed-background-width: var(--tab-min-height);
   --tab-collapsed-width: calc(var(--tab-collapsed-background-width) + 2 * var(--tab-inner-inline-margin));
@@ -784,9 +785,9 @@ tab-group {
   white-space: nowrap;
   overflow: hidden;
   border-radius: var(--tab-border-radius);
-  line-height: 2;
-  min-height: 2em;
-  min-width: 2em;
+  line-height: calc(var(--tab-group-label-height) - 2px);
+  min-height: var(--tab-group-label-height);
+  min-width: var(--tab-group-label-height);
   max-width: 10em;
   padding-inline: 4px;
   color: light-dark(var(--tab-group-color-pale), ButtonText);
