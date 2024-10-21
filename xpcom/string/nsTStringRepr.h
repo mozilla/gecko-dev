@@ -11,6 +11,9 @@
 #include <string_view>
 #include <type_traits>  // std::enable_if
 
+#include "fmt/format.h"
+#include "fmt/xchar.h"
+
 #include "mozilla/Char16.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/fallible.h"
@@ -554,5 +557,16 @@ inline bool operator>(const mozilla::detail::nsTStringRepr<T>& aLhs,
                       const mozilla::detail::nsTStringRepr<T>& aRhs) {
   return Compare(aLhs, aRhs) > 0;
 }
+
+template <typename Char>
+struct fmt::formatter<mozilla::detail::nsTStringRepr<Char>, Char>
+    : fmt::formatter<basic_string_view<Char>, Char> {
+  template <typename FormatContext>
+  constexpr auto format(const mozilla::detail::nsTStringRepr<Char>& aVal,
+                        FormatContext& aCtx) const -> decltype(aCtx.out()) {
+    return formatter<basic_string_view<Char>, Char>::format(
+        basic_string_view<Char>{aVal.BeginReading(), aVal.Length()}, aCtx);
+  }
+};
 
 #endif

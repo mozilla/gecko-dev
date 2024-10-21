@@ -115,6 +115,10 @@ class MOZ_STACK_CLASS nsTPromiseFlatString : public nsTString<T> {
 extern template class nsTPromiseFlatString<char>;
 extern template class nsTPromiseFlatString<char16_t>;
 
+template <typename Char>
+struct fmt::formatter<nsTPromiseFlatString<Char>, Char>
+    : fmt::formatter<nsTString<Char>, Char> {};
+
 // We template this so that the constructor is chosen based on the type of the
 // parameter. This allows us to reject attempts to promise a flat flat string.
 template <class T>

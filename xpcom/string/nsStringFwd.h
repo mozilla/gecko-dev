@@ -40,6 +40,8 @@ class nsTDependentString;
 template <typename T>
 class nsTDependentSubstring;
 template <typename T>
+class nsTFmtString;
+template <typename T>
 class nsTPromiseFlatString;
 template <typename T>
 class nsTLiteralString;
@@ -69,6 +71,7 @@ template <size_t N>
 using nsAutoStringN = nsTAutoStringN<char16_t, N>;
 using nsDependentString = nsTDependentString<char16_t>;
 using nsDependentSubstring = nsTDependentSubstring<char16_t>;
+using nsFmtString = nsTFmtString<char16_t>;
 using nsPromiseFlatString = nsTPromiseFlatString<char16_t>;
 using nsStringComparator = nsTStringComparator<char16_t>;
 using nsLiteralString = nsTLiteralString<char16_t>;
@@ -84,6 +87,7 @@ template <size_t N>
 using nsAutoCStringN = nsTAutoStringN<char, N>;
 using nsDependentCString = nsTDependentString<char>;
 using nsDependentCSubstring = nsTDependentSubstring<char>;
+using nsFmtCString = nsTFmtString<char>;
 using nsPromiseFlatCString = nsTPromiseFlatString<char>;
 using nsCStringComparator = nsTStringComparator<char>;
 using nsLiteralCString = nsTLiteralString<char>;

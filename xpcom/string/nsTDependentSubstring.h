@@ -104,6 +104,10 @@ class nsTDependentSubstring : public nsTSubstring<T> {
 extern template class nsTDependentSubstring<char>;
 extern template class nsTDependentSubstring<char16_t>;
 
+template <typename Char>
+struct fmt::formatter<nsTDependentSubstring<Char>, Char>
+    : fmt::formatter<nsTSubstring<Char>, Char> {};
+
 template <typename T>
 inline const nsTDependentSubstring<T> Substring(const nsTSubstring<T>& aStr,
                                                 size_t aStartPos,
