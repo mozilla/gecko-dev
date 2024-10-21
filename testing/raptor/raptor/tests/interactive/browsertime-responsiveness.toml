@@ -22,7 +22,8 @@ support_class = "browsertime_pageload.py"
 # see bug 1737822 for more information. Instead, use `navigate(URL)` after starting
 # calling `measure.start(ALIAS)`.
 
-["cnn-nav"]
+[cnn-nav]
+playback_version = "11.0.0"
 browser_cycles = 10 # used with --cold
 playback_pageset_manifest = "mitm7-linux-firefox-cnn-nav.manifest"
 test_cmds = [
@@ -37,7 +38,7 @@ test_cmds = [
 ]
 test_url = "https://www.cnn.com/"
 
-["facebook-nav"]
+[facebook-nav]
 browser_cycles = 10 # used with --cold
 page_timeout = 90000
 playback_pageset_manifest = "mitm6-windows-firefox-facebook-nav.manifest"
@@ -61,7 +62,7 @@ test_cmds = [
 ]
 test_url = "https://www.facebook.com"
 
-["reddit-billgates-ama"]
+[reddit-billgates-ama]
 page_timeout = 240000 # at most 4 minutes required per browser cycle
 browser_cycles = 10 # used with --cold
 playback_pageset_manifest = "mitm6-windows-firefox-reddit-billgates-ama.manifest"
@@ -77,7 +78,7 @@ test_cmds = [
 ]
 test_url = "https://www.reddit.com/"
 
-["reddit-billgates-post-1"]
+[reddit-billgates-post-1]
 browser_cycles = 10 # used with --cold
 page_timeout = 90000
 playback_pageset_manifest = "mitm6-windows-firefox-reddit-billgates-post.manifest"
@@ -98,7 +99,7 @@ test_cmds = [
 ]
 test_url = "https://www.reddit.com/user/thisisbillgates/"
 
-["reddit-billgates-post-2"]
+[reddit-billgates-post-2]
 browser_cycles = 10 # used with --cold
 page_timeout = 90000
 playback_pageset_manifest = "mitm6-windows-firefox-reddit-billgates-post.manifest"

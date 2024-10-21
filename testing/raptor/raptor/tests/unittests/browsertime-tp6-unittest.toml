@@ -10,18 +10,18 @@ page_cycles = 25
 page_timeout = 60000
 playback = "mitmproxy"
 playback_pageset_manifest = "mitm7-linux-firefox-{subtest}.manifest"
-playback_version = "8.1.1"
+playback_version = "11.0.0"
 type = "pageload"
 unit = "ms"
 
-["test-page-1"]
+[test-page-1]
 test_url = "https://www.amazon.com/s?k=laptop&ref=nb_sb_noss_1"
 
-["test-page-2"]
+[test-page-2]
 test_url = "https://www.facebook.com"
 
-["test-page-3"]
+[test-page-3]
 test_url = "https://www.google.com/search?hl=en&q=barack+obama&cad=h"
 
-["test-page-4"]
+[test-page-4]
 test_url = "https://www.youtube.com"

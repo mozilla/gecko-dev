@@ -10,7 +10,7 @@ page_cycles = 25
 page_timeout = 60000
 playback = "mitmproxy"
 playback_pageset_manifest = "mitm7-linux-firefox-{subtest}.manifest"
-playback_version = "8.1.1"
+playback_version = "11.0.0"
 type = "pageload"
 unit = "ms"
 use_live_sites = false
@@ -19,78 +19,79 @@ support_class = "browsertime_pageload.py"
 
 # Keep this list in alphabetical order
 
-["amazon"]
+[amazon]
 playback_pageset_manifest = "mitm8-linux-firefox-amazon.manifest"
 benchmark_page = false
 test_url = "https://www.amazon.com/s?k=laptop&ref=nb_sb_noss_1"
 secondary_url = "https://www.amazon.com/Acer-A515-46-R14K-Quad-Core-Processor-Backlit/dp/B08VKNVDDR/ref=sr_1_3?dchild=1&keywords=laptop&qid=1627047187&sr=8-3"
 
-["bing-search"]
+[bing-search]
 playback_pageset_manifest = "mitm8-darwin-firefox-bing-search.manifest"
 test_url = "https://www.bing.com/search?q=barack+obama"
 
-["buzzfeed"]
+[buzzfeed]
 benchmark_page = false
 secondary_url = "https://www.buzzfeed.com/quizzes"
 test_url = "https://www.buzzfeed.com/"
 
-["cnn"]
+[cnn]
 playback_pageset_manifest = "mitm8-linux-firefox-cnn.manifest"
 secondary_url = "https://www.cnn.com/weather"
 test_url = "https://www.cnn.com/2021/03/22/weather/climate-change-warm-waters-lake-michigan/index.html"
 
-["ebay"]
+[ebay]
 playback_pageset_manifest = "mitm8-linux-firefox-ebay.manifest"
 secondary_url = "https://www.ebay.com/deals"
 test_url = "https://www.ebay.com/"
 
-["espn"]
+[espn]
 benchmark_page = false
 test_url = "http://www.espn.com/nba/story/_/page/allstarweekend25788027/the-comparison-lebron-james-michael-jordan-their-own-words"
 secondary_url = "https://www.espn.com/nba/draft/news"
 
-["expedia"]
+[expedia]
 playback_pageset_manifest = "mitm8-darwin-firefox-expedia.manifest"
 secondary_url = "https://groups.expedia.com/Group-Rate/?locale=en_US&ol=1"
 test_url = "https://expedia.com/Hotel-Search?destination=New+York%2C+New+York&latLong=40.756680%2C-73.986470&regionId=178293&startDate=&endDate=&rooms=1&_xpid=11905%7C1&adults=2"
 
-["facebook"]
+[facebook]
+playback_version = "8.1.1"
 playback_pageset_manifest = "mitm6-linux-firefox-facebook.manifest"
 secondary_url = "https://www.facebook.com/marketplace/?ref=bookmark"
 test_url = "https://www.facebook.com"
 
-["fandom"]
+[fandom]
 benchmark_page = false
 playback_pageset_manifest = "mitm5-linux-firefox-fandom.manifest"
 test_url = "https://www.fandom.com/articles/fallout-76-will-live-and-die-on-the-creativity-of-its-playerbase"
 
-["google-docs"]
+[google-docs]
 playback_pageset_manifest = "mitm8-linux-firefox-google-docs.manifest"
 page_complete_wait_time = 8000
 secondary_url = "https://docs.google.com/document/d/1vUnn0ePU-ynArE1OdxyEHXR2G0sl74ja_st_4OOzlgE/preview"
 test_url = "https://docs.google.com/document/d/1US-07msg12slQtI_xchzYxcKlTs6Fp7WqIc6W5GK5M8/edit?usp=sharing"
 
-["google-mail"]
+[google-mail]
 benchmark_page = false
 playback_pageset_manifest = "mitm5-linux-firefox-google-mail.manifest"
 test_url = "https://mail.google.com/"
 
-["google-search"]
+[google-search]
 playback_pageset_manifest = "mitm8-linux-firefox-google-search.manifest"
 test_url = "https://www.google.com/search?hl=en&q=barack+obama&cad=h"
 
-["google-slides"]
+[google-slides]
 benchmark_page = false
 playback_pageset_manifest = "mitm8-linux-firefox-google-slides.manifest"
 secondary_url = "https://docs.google.com/presentation/d/e/2PACX-1vRWwPQQFMDkSR4RtYc7HSAGm-hoprespfemIk5SatJxd2o8yrFfrMeAAUkjdfalC5PpjJ9ZKgfsuQ1T/pub?start=false&loop=false&delayms=3000"
 test_url = "https://docs.google.com/presentation/d/1Ici0ceWwpFvmIb3EmKeWSq_vAQdmmdFcWqaiLqUkJng/edit?usp=sharing"
 
-["imdb"]
+[imdb]
 playback_pageset_manifest = "mitm8-linux-firefox-imdb.manifest"
 test_url = "https://www.imdb.com/title/tt0084967/?ref_=nv_sr_2"
 secondary_url = "https://www.imdb.com/title/tt0084967/episodes/?ref_=tt_ov_epl"
 
-["imgur"]
+[imgur]
 benchmark_page = false
 playback_pageset_manifest = "mitm8-linux-firefox-imgur.manifest"
 preferences = ['media.autoplay.default=5',
@@ -102,60 +103,64 @@ preferences = ['media.autoplay.default=5',
 secondary_url = "https://imgur.com/gallery/WuOobqV"
 test_url = "https://imgur.com/gallery/uTI7fKy"
 
-["instagram"]
+[instagram]
 playback_pageset_manifest = "mitm8-darwin-firefox-instagram.manifest"
 secondary_url = "https://www.instagram.com/nobelprize_org/"
 test_url = "https://www.instagram.com/"
 
-["linkedin"]
+[linkedin]
+playback_version = "8.1.1"
 playback_pageset_manifest = "mitm6-linux-firefox-linkedin.manifest"
 secondary_url = "https://www.linkedin.com/in/thommy-harris-hk-385723106/"
 test_url = "https://www.linkedin.com/feed/"
 
-["microsoft"]
+[microsoft]
 playback_pageset_manifest = "mitm8-linux-firefox-microsoft.manifest"
 secondary_url = "https://support.microsoft.com/en-us"
 test_url = "https://www.microsoft.com/en-us/"
 
-["netflix"]
+[netflix]
+playback_version = "8.1.1"
 playback_pageset_manifest = "mitm6-linux-firefox-netflix.manifest"
 secondary_url = "https://www.netflix.com/title/699257"
 test_url = "https://www.netflix.com/title/80117263"
 
-["nytimes"]
+[nytimes]
 secondary_url = "https://www.nytimes.com/section/opinion/columnists"
 test_url = "https://www.nytimes.com/2020/02/19/opinion/surprise-medical-bill.html"
 
-["office"]
+[office]
 secondary_url = "https://www.office.com/"
 test_url = "https://www.office.com/launch/powerpoint?auth=1"
 
-["outlook"]
+[outlook]
 playback_pageset_manifest = "mitm5-linux-firefox-live.manifest"
 test_url = "https://outlook.live.com/mail/inbox"
 
-["paypal"]
+[paypal]
 playback_pageset_manifest = "mitm5-linux-firefox-paypal.manifest"
 test_url = "https://www.paypal.com/myaccount/summary/"
 
-["pinterest"]
+[pinterest]
+playback_version = "8.1.1"
 benchmark_page = false
 playback_pageset_manifest = "mitm6-linux-firefox-pinterest.manifest"
 secondary_url = "https://www.pinterest.com/today/best/halloween-costumes-for-your-furry-friends/75787/"
 test_url = "https://pinterest.com/"
 
-["reddit"]
+[reddit]
 benchmark_page = false
 playback_pageset_manifest = "mitm8-linux-firefox-reddit.manifest"
 secondary_url = "https://www.reddit.com/r/technology/"
 test_url = "https://www.reddit.com/r/technology/comments/9sqwyh/we_posed_as_100_senators_to_run_ads_on_facebook/"
 
-["tumblr"]
+[tumblr]
+playback_version = "8.1.1"
 playback_pageset_manifest = "mitm6-linux-firefox-tumblr.manifest"
 secondary_url = "https://www.tumblr.com/tagged/funny+cats?sort=top"
 test_url = "https://www.tumblr.com/dashboard"
 
-["twitch"]
+[twitch]
 measure = "fcp, loadtime, ContentfulSpeedIndex, PerceptualSpeedIndex, SpeedIndex, FirstVisualChange, LastVisualChange"
 alert_on = "fcp, loadtime, ContentfulSpeedIndex, PerceptualSpeedIndex, SpeedIndex, FirstVisualChange, LastVisualChange"
 playback_pageset_manifest = "mitm8-linux-firefox-twitch.manifest"
@@ -168,25 +173,25 @@ preferences = ['media.autoplay.default=5',
                'media.block-autoplay-until-in-foreground=true',
 ]
 
-["twitter"]
+[twitter]
 benchmark_page = false
 playback_pageset_manifest = "mitm5-linux-firefox-twitter.manifest"
 test_url = "https://twitter.com/BarackObama"
 
-["wikia"]
+[wikia]
 benchmark_page = false
 secondary_url = "https://marvel.fandom.com/wiki/Celestials"
 test_url = "https://marvel.fandom.com/wiki/Black_Panther"
 
-["wikipedia"]
+[wikipedia]
 secondary_url = "https://en.wikipedia.org/wiki/Joe_Biden"
 test_url = "https://en.wikipedia.org/wiki/Barack_Obama"
 
-["yahoo-mail"]
+[yahoo-mail]
 benchmark_page = false
 playback_pageset_manifest = "mitm5-linux-firefox-yahoo-mail.manifest"
 test_url = "https://mail.yahoo.com/"
 
-["youtube"]
+[youtube]
 secondary_url = "https://www.youtube.com/watch?v=JrdEMERq8MA"
 test_url = "https://www.youtube.com"

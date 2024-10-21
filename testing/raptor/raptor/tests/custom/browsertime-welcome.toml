@@ -9,7 +9,7 @@ owner = "PerfTest Team"
 page_cycles = 25
 page_timeout = 60000
 playback = "mitmproxy"
-playback_version = "8.1.1"
+playback_version = "11.0.0"
 type = "pageload"
 unit = "ms"
 use_live_sites = false
@@ -17,7 +17,7 @@ support_class = "browsertime_pageload.py"
 
 # raptor-browsertime first-install about:welcome pageload test
 
-["welcome"]
+[welcome]
 # Bug 1867507 - This test isn't producing a largestContentfulPaint
 alert_on = "fcp, loadtime, ContentfulSpeedIndex, PerceptualSpeedIndex, SpeedIndex, FirstVisualChange, LastVisualChange"
 measure = "fcp, loadtime, ContentfulSpeedIndex, PerceptualSpeedIndex, SpeedIndex, FirstVisualChange, LastVisualChange"

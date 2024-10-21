@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import json
 import os
+import platform
 import signal
 import socket
 import sys
@@ -39,6 +40,7 @@ class Mitmproxy(Playback):
         self.port = None
         self.mitmproxy_proc = None
         self.mitmdump_path = None
+        self.mitmdump_path_dir = None
         self.record_mode = config.get("record", False)
         self.recording = None
         self.playback_files = []
@@ -116,6 +118,28 @@ class Mitmproxy(Playback):
         LOG.info("Playback tool: %s" % self.config["playback_tool"])
         LOG.info("Playback tool version: %s" % self.config["playback_version"])
 
+    def generate_mitmdump_path(self):
+        mitmdump_path_tail = ["mitmdump"]
+        if self.config["playback_version"] == "11.0.0" and sys.platform == "darwin":
+            # For MacOS newer versions have a different folder structure.
+            # Prepend this new path
+            mitmdump_path_tail = [
+                "mitmproxy.app",
+                "Contents",
+                "MacOS",
+            ] + mitmdump_path_tail
+
+        # mitmproxy is unpacked here
+        self.mitmdump_path_dir = os.path.normpath(
+            os.path.join(
+                self.mozproxy_dir,
+                "mitmdump-%s" % self.config["playback_version"],
+            )
+        )
+        self.mitmdump_path = os.path.normpath(
+            os.path.join(self.mitmdump_path_dir, *mitmdump_path_tail)
+        )
+
     def download_mitm_bin(self):
         # Download and setup mitm binaries
 
@@ -125,23 +149,22 @@ class Mitmproxy(Playback):
             "mitmproxy-rel-bin-%s-{platform}.manifest"
             % self.config["playback_version"],
         )
-        transformed_manifest = transform_platform(manifest, self.config["platform"])
+        transformed_manifest = transform_platform(
+            manifest,
+            self.config["platform"],
+            platform.processor(),
+            self.config["playback_version"],
+        )
 
         # generate the mitmdump_path
-        self.mitmdump_path = os.path.normpath(
-            os.path.join(
-                self.mozproxy_dir,
-                "mitmdump-%s" % self.config["playback_version"],
-                "mitmdump",
-            )
-        )
+        self.generate_mitmdump_path()
 
         # Check if mitmproxy bin exists
         if os.path.exists(self.mitmdump_path):
             LOG.info("mitmproxy binary already exists. Skipping download")
         else:
             # Download and unpack mitmproxy binary
-            download_path = os.path.dirname(self.mitmdump_path)
+            download_path = self.mitmdump_path_dir
             LOG.info("create mitmproxy %s dir" % self.config["playback_version"])
             if not os.path.exists(download_path):
                 os.makedirs(download_path)
@@ -293,7 +316,7 @@ class Mitmproxy(Playback):
         else:
             # playback mode
             if len(self.playback_files) > 0:
-                if self.config["playback_version"] in ["8.1.1", "10.4.2"]:
+                if self.config["playback_version"] in ["8.1.1", "11.0.0"]:
                     command.extend(
                         [
                             "--set",

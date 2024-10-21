@@ -41,6 +41,36 @@ def test_transform_platform_processor(processor):
         assert "_x64" in transformed
 
 
+@pytest.mark.parametrize(
+    "platform, processor, version",
+    [
+        ("mac", None, None),
+        ("mac", "arm", None),
+        ("mac", "arm", "11.0.0"),
+        ("mac", None, "11.0.0"),
+        ("mac", None, "8.1.1"),
+    ],
+)
+def test_transform_platform_macos_arm(platform, processor, version):
+    # For this test assume platform is mac for all
+    transformed = transform_platform(
+        "mitmproxy-rel-bin-{platform}.manifest", platform, processor, version
+    )
+    assert "{platform}" not in transformed
+    if processor == "arm" and version != "11.0.0":
+        assert "osx-arm64" not in transformed
+    if processor == "arm" and version == "11.0.0":
+        assert "osx-arm64" in transformed
+    if not processor and not version:
+        # include check for .manifest extension so no ambiguity
+        assert "osx.manifest" in transformed
+    if not processor and version == "11.0.0":
+        # E.g. intel macs using latest mitmproxy
+        assert "osx.manifest" in transformed
+    if not processor and version != "11.0.0":
+        assert "osx.manifest" in transformed
+
+
 @patch("logger.logger.RaptorLogger.info")
 def test_write_yml_file(mock_info):
     yml_file = os.path.join(tempfile.mkdtemp(), "utils.yaml")

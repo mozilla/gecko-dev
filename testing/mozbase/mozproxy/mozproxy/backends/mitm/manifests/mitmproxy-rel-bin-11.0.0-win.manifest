@@ -1,0 +1,10 @@
+[
+  {
+    "filename": "mitmproxy-11.0.0-windows-x86_64.zip",
+    "size": 77930913,
+    "algorithm": "sha512",
+    "digest": "d2bf43bade8f20c9d9df6cb50bced4d4d0b17a7f6d854d1244b777a808945785d4ec7799185082a34962eceb4a714c74058086065ee833165bd4c54ea1ac5c92",
+    "unpack": true,
+    "visibility": "public"
+  }
+]

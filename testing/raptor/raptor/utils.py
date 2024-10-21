@@ -96,7 +96,9 @@ def flatten(data, parent_dir, sep="/"):
     return result
 
 
-def transform_platform(str_to_transform, config_platform, config_processor=None):
+def transform_platform(
+    str_to_transform, config_platform, config_processor=None, mitmproxy_version=None
+):
     """Transform platform name i.e. 'mitmproxy-rel-bin-{platform}.manifest'
     transforms to 'mitmproxy-rel-bin-osx.manifest'.
     Also transform '{x64}' if needed for 64 bit / win 10"""
@@ -106,7 +108,14 @@ def transform_platform(str_to_transform, config_platform, config_processor=None)
     if "win" in config_platform:
         platform_id = "win"
     elif config_platform == "mac":
-        platform_id = "osx"
+        # Bug 1920821
+        # If we are using mitmproxy 11 we need to ensure platform_id is configured
+        # correctly for the folder structure. Having this check also keeps the ability to
+        # playback on older versions which don't have ARM support
+        if config_processor == "arm" and mitmproxy_version == "11.0.0":
+            platform_id = "osx-arm64"
+        else:
+            platform_id = "osx"
     else:
         platform_id = "linux64"
 

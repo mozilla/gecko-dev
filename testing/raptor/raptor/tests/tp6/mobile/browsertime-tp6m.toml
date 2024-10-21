@@ -20,7 +20,7 @@ support_class = "browsertime_pageload.py"
 ## Keep this test list in alphabetical order
 
 [allrecipes]
-playback_version = "10.4.2"
+playback_version = "11.0.0"
 test_url = "https://www.allrecipes.com/"
 playback_pageset_manifest = "mitm8-android-gve-{subtest}.manifest"
 
@@ -31,7 +31,7 @@ test_url = "https://www.amazon.com"
 test_url = "https://www.amazon.com/s/ref=nb_sb_noss_2/139-6317191-5622045?url=search-alias%3Daps&field-keywords=mobile+phone"
 
 [bild-de]
-playback_version = "10.4.2"
+playback_version = "11.0.0"
 playback_pageset_manifest = "mitm8-android-fenix-{subtest}.manifest"
 test_url = "https://www.bild.de/sport/american-football/nfl/super-bowl-rekordquote-fuer-die-nfl-87139668.bild.html"
 
@@ -87,7 +87,7 @@ test_url = "https://www.google.com/search?q=restaurants+near+me"
 test_url = "https://m.imdb.com/"
 
 [instagram]
-playback_version = "10.4.2"
+playback_version = "11.0.0"
 login = true
 playback_pageset_manifest = "mitm8-android-gve-{subtest}.manifest"
 test_url = "https://www.instagram.com"
@@ -99,7 +99,7 @@ test_url = "https://support.microsoft.com/en-us"
 test_url = "https://www.reddit.com"
 
 [sina]
-playback_version = "10.4.2"
+playback_version = "11.0.0"
 playback_pageset_manifest = "mitm8-android-fenix-{subtest}.manifest"
 test_url = "https://www.sina.com.cn/"
 
