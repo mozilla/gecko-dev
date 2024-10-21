@@ -4,7 +4,6 @@
 
 package mozilla.components.feature.downloads.ext
 
-import android.annotation.TargetApi
 import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
@@ -17,7 +16,6 @@ import androidx.core.content.getSystemService
  *
  * Deprecated in Android Q, use MediaStore on that version.
  */
-@TargetApi(Build.VERSION_CODES.P)
 @Suppress("Deprecation", "LongParameterList")
 internal fun Context.addCompletedDownload(
     title: String,
