@@ -21,6 +21,7 @@ vendoring:
   tracking: commit
   patches:
     - print-null-string.patch
+    - use-double-conversion.patch
 
   exclude:
     - test
