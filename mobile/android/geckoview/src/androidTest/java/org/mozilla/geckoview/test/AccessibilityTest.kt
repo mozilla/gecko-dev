@@ -1405,13 +1405,6 @@ class AccessibilityTest : BaseSessionTest() {
 
     @Test
     fun autoFill_navigation() {
-        // Fails with BFCache in the parent.
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1715480
-        sessionRule.setPrefsUntilTestEnd(
-            mapOf(
-                "fission.bfcacheInParent" to false,
-            ),
-        )
         fun countAutoFillNodes(
             cond: (AccessibilityNodeInfo) -> Boolean =
                 { it.className == "android.widget.EditText" },
