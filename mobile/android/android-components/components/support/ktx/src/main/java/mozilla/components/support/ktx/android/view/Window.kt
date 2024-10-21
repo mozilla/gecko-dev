@@ -16,6 +16,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat.Type.displayCutout
 import androidx.core.view.WindowInsetsCompat.Type.systemBars
 import androidx.core.view.WindowInsetsControllerCompat
+import mozilla.components.support.ktx.android.content.isEdgeToEdgeDisabled
 import mozilla.components.support.utils.ColorUtils.isDark
 
 /**
@@ -53,13 +54,14 @@ fun Window.createWindowInsetsController(): WindowInsetsControllerCompat {
  * Sets the status bar color.
  *
  * @param color The color to set as the status bar color.
- * Note that If the app targets VANILLA_ICE_CREAM or above,
- * the color will be transparent and cannot be changed.
+ * Note that if edge-to-edge behavior is enabled, the color will be transparent and cannot be changed.
  */
 fun Window.setStatusBarColorCompat(@ColorInt color: Int) {
-    if (context.applicationInfo.targetSdkVersion < VERSION_CODES.VANILLA_ICE_CREAM) {
+    if (context.isEdgeToEdgeDisabled()) {
         @Suppress("DEPRECATION")
         statusBarColor = color
+    } else {
+        // setting status bar color has no effect
     }
 }
 
@@ -67,13 +69,14 @@ fun Window.setStatusBarColorCompat(@ColorInt color: Int) {
  * Sets the navigation bar color.
  *
  * @param color The color to set as the navigation bar color.
- * Note that If the app targets VANILLA_ICE_CREAM or above,
- * the color will be transparent and cannot be changed.
+ * Note that if edge-to-edge behavior is enabled, the color will be transparent and cannot be changed.
  */
 fun Window.setNavigationBarColorCompat(@ColorInt color: Int) {
-    if (context.applicationInfo.targetSdkVersion < VERSION_CODES.VANILLA_ICE_CREAM) {
+    if (context.isEdgeToEdgeDisabled()) {
         @Suppress("DEPRECATION")
         navigationBarColor = color
+    } else {
+        // setting navigation bar color has no effect
     }
 }
 
@@ -81,15 +84,14 @@ fun Window.setNavigationBarColorCompat(@ColorInt color: Int) {
  * Sets the navigation bar divider color.
  *
  * @param color The color to set as the navigation bar divider color.
- * Note that If the app targets VANILLA_ICE_CREAM or above,
- * the color will be transparent and cannot be changed.
+ * Note that if edge-to-edge behavior is enabled, the color will be transparent and cannot be changed.
  */
 fun Window.setNavigationBarDividerColorCompat(@ColorInt color: Int?) {
-    if (SDK_INT >= VERSION_CODES.P &&
-        context.applicationInfo.targetSdkVersion < VERSION_CODES.VANILLA_ICE_CREAM
-    ) {
+    if (SDK_INT >= VERSION_CODES.P && context.isEdgeToEdgeDisabled()) {
         @Suppress("DEPRECATION")
         navigationBarDividerColor = color ?: 0
+    } else {
+        // setting navigation bar divider color has no effect
     }
 }
 
