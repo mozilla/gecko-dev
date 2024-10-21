@@ -2078,7 +2078,7 @@
           );
           delete dragData.groupDropIndex;
         }
-        if (groupDropIndex >= 0) {
+        if (groupDropIndex in tabs) {
           dragData.groupDropIndex = groupDropIndex;
           this.toggleAttribute("movingtab-createGroup", true);
           tabs[groupDropIndex].toggleAttribute("dragover-createGroup", true);
