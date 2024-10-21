@@ -52,7 +52,7 @@ RefPtr<WaylandShmPool> WaylandShmPool::Create(nsWaylandDisplay* aWaylandDisplay,
 
   RefPtr<WaylandShmPool> shmPool = new WaylandShmPool();
 
-  shmPool->mShm = MakeUnique<base::SharedMemory>();
+  shmPool->mShm = MakeRefPtr<ipc::SharedMemory>();
   if (!shmPool->mShm->Create(aSize)) {
     NS_WARNING("WaylandShmPool: Unable to allocate shared memory!");
     return nullptr;
@@ -77,7 +77,7 @@ void* WaylandShmPool::GetImageData() {
     NS_WARNING("WaylandShmPool: Failed to map Shm!");
     return nullptr;
   }
-  mImageData = mShm->memory();
+  mImageData = mShm->Memory();
   return mImageData;
 }
 

@@ -9,8 +9,8 @@
 
 #include "mozilla/dom/MozSharedMapBinding.h"
 
-#include "mozilla/AutoMemMap.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtr.h"
@@ -53,12 +53,13 @@ namespace ipc {
  * WritableSharedMap instances.
  */
 class SharedMap : public DOMEventTargetHelper {
-  using FileDescriptor = mozilla::ipc::FileDescriptor;
+  using SharedMemory = mozilla::ipc::SharedMemory;
+  using SharedMemoryHandle = mozilla::ipc::SharedMemoryHandle;
 
  public:
   SharedMap();
 
-  SharedMap(nsIGlobalObject* aGlobal, const FileDescriptor&, size_t,
+  SharedMap(nsIGlobalObject* aGlobal, SharedMemoryHandle&&, size_t,
             nsTArray<RefPtr<BlobImpl>>&& aBlobs);
 
   // Returns true if the map contains the given (UTF-8) key.
@@ -96,7 +97,7 @@ class SharedMap : public DOMEventTargetHelper {
    * memory region for this map. The file descriptor may be passed between
    * processes, and used to update corresponding instances in child processes.
    */
-  FileDescriptor CloneMapFile() const;
+  SharedMemoryHandle CloneHandle() const;
 
   /**
    * Returns the size of the memory mapped region that backs this map. Must be
@@ -104,14 +105,14 @@ class SharedMap : public DOMEventTargetHelper {
    * descriptor returned by CloneMapFile() in order to initialize or update a
    * child SharedMap.
    */
-  size_t MapSize() const { return mMap.size(); }
+  size_t MapSize() const { return mMap->Size(); }
 
   /**
    * Updates this instance to reflect the contents of the shared memory region
-   * in the given map file, and broadcasts a change event for the given set of
+   * in the given map handle, and broadcasts a change event for the given set of
    * changed (UTF-8-encoded) keys.
    */
-  void Update(const FileDescriptor& aMapFile, size_t aMapSize,
+  void Update(SharedMemoryHandle&& aMapHandle, size_t aMapSize,
               nsTArray<RefPtr<BlobImpl>>&& aBlobs,
               nsTArray<nsCString>&& aChangedKeys);
 
@@ -262,12 +263,8 @@ class SharedMap : public DOMEventTargetHelper {
   Result<Ok, nsresult> MaybeRebuild();
   void MaybeRebuild() const;
 
-  // Note: This header is included by WebIDL binding headers, and therefore
-  // can't include "windows.h". Since FileDescriptor.h does include "windows.h"
-  // on Windows, we can only forward declare FileDescriptor, and can't include
-  // it as an inline member.
-  UniquePtr<FileDescriptor> mMapFile;
-  // The size of the memory-mapped region backed by mMapFile, in bytes.
+  SharedMemoryHandle mMapHandle;
+  // The size of the memory-mapped region backed by mMap, in bytes.
   size_t mMapSize = 0;
 
   mutable nsClassHashtable<nsCStringHashKey, Entry> mEntries;
@@ -276,14 +273,14 @@ class SharedMap : public DOMEventTargetHelper {
   // Manages the memory mapping of the current snapshot. This is initialized
   // lazily after each SharedMap construction or updated, based on the values in
   // mMapFile and mMapSize.
-  loader::AutoMemMap mMap;
+  RefPtr<SharedMemory> mMap = MakeRefPtr<SharedMemory>();
 
   bool mWritable = false;
 
   // Returns a pointer to the beginning of the memory mapped snapshot. Entry
   // offsets are relative to this pointer, and Entry objects access their
   // structured clone data by indexing this pointer.
-  char* Data() { return mMap.get<char>().get(); }
+  char* Data() { return static_cast<char*>(mMap->Memory()); }
 };
 
 class WritableSharedMap final : public SharedMap {

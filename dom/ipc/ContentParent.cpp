@@ -8,7 +8,6 @@
 #include "mozilla/DebugOnly.h"
 
 #include "base/basictypes.h"
-#include "base/shared_memory.h"
 
 #include "ContentParent.h"
 #include "mozilla/ipc/ProcessUtils.h"
@@ -151,6 +150,7 @@
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/FileDescriptorUtils.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/ipc/TestShellParent.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/layers/ImageBridgeParent.h"
@@ -1526,11 +1526,12 @@ void ContentParent::GetAllEvenIfDead(nsTArray<ContentParent*>& aArray) {
 
 void ContentParent::BroadcastStringBundle(
     const StringBundleDescriptor& aBundle) {
-  AutoTArray<StringBundleDescriptor, 1> array;
-  array.AppendElement(aBundle);
-
   for (auto* cp : AllProcesses(eLive)) {
-    Unused << cp->SendRegisterStringBundles(array);
+    AutoTArray<StringBundleDescriptor, 1> array;
+    array.AppendElement(StringBundleDescriptor(
+        aBundle.bundleURL(), SharedMemory::CloneHandle(aBundle.mapHandle()),
+        aBundle.mapSize()));
+    Unused << cp->SendRegisterStringBundles(std::move(array));
   }
 }
 
@@ -1544,9 +1545,9 @@ void ContentParent::BroadcastShmBlockAdded(uint32_t aGeneration,
                                            uint32_t aIndex) {
   auto* pfl = gfxPlatformFontList::PlatformFontList();
   for (auto* cp : AllProcesses(eLive)) {
-    base::SharedMemoryHandle handle =
+    SharedMemory::Handle handle =
         pfl->ShareShmBlockToProcess(aIndex, cp->Pid());
-    if (handle == base::SharedMemory::NULLHandle()) {
+    if (handle == SharedMemory::NULLHandle()) {
       // If something went wrong here, we just skip it; the child will need to
       // request the block as needed, at some performance cost.
       continue;
@@ -5680,7 +5681,7 @@ mozilla::ipc::IPCResult ContentParent::RecvShutdownPerfStats(
 
 mozilla::ipc::IPCResult ContentParent::RecvGetFontListShmBlock(
     const uint32_t& aGeneration, const uint32_t& aIndex,
-    base::SharedMemoryHandle* aOut) {
+    SharedMemory::Handle* aOut) {
   auto* fontList = gfxPlatformFontList::PlatformFontList();
   MOZ_RELEASE_ASSERT(fontList, "gfxPlatformFontList not initialized?");
   fontList->ShareFontListShmBlockToProcess(aGeneration, aIndex, Pid(), aOut);
@@ -5732,7 +5733,7 @@ mozilla::ipc::IPCResult ContentParent::RecvStartCmapLoading(
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvGetHyphDict(
-    nsIURI* aURI, base::SharedMemoryHandle* aOutHandle, uint32_t* aOutSize) {
+    nsIURI* aURI, SharedMemory::Handle* aOutHandle, uint32_t* aOutSize) {
   if (!aURI) {
     return IPC_FAIL(this, "aURI must not be null.");
   }

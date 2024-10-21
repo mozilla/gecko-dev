@@ -9,7 +9,6 @@
 
 #include "nsIMemoryReporter.h"
 #include "nsIObserver.h"
-#include "base/shared_memory.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PreferenceSheet.h"
@@ -17,6 +16,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UserAgentStyleSheetID.h"
 #include "mozilla/css/Loader.h"
+#include "mozilla/ipc/SharedMemory.h"
 
 class nsIFile;
 class nsIURI;
@@ -60,18 +60,18 @@ class GlobalStyleSheetCache final : public nsIObserver,
   // Called early on in a content process' life from
   // ContentChild::InitSharedUASheets, before the GlobalStyleSheetCache
   // singleton has been created.
-  static void SetSharedMemory(base::SharedMemoryHandle aHandle,
+  static void SetSharedMemory(mozilla::ipc::SharedMemory::Handle aHandle,
                               uintptr_t aAddress);
 
   // Obtain a shared memory handle for the shared UA sheets to pass into a
   // content process.  Called by ContentParent::InitInternal shortly after
   // a content process has been created.
-  base::SharedMemoryHandle CloneHandle();
+  mozilla::ipc::SharedMemoryHandle CloneHandle();
 
   // Returns the address of the shared memory segment that holds the shared UA
   // sheets.
   uintptr_t GetSharedMemoryAddress() {
-    return sSharedMemory ? uintptr_t(sSharedMemory->memory()) : 0;
+    return sSharedMemory.IsEmpty() ? 0 : uintptr_t(sSharedMemory.data());
   }
 
   // Size of the shared memory buffer we'll create to store the shared UA
@@ -120,7 +120,7 @@ class GlobalStyleSheetCache final : public nsIObserver,
   RefPtr<StyleSheet> mUserContentSheet;
 
   // Shared memory segment storing shared style sheets.
-  static StaticAutoPtr<base::SharedMemory> sSharedMemory;
+  static Span<uint8_t> sSharedMemory;
 
   // How much of the shared memory buffer we ended up using.  Used for memory
   // reporting in the parent process.

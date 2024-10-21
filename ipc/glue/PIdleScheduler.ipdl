@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBackground;
 using mozilla::TimeDuration from "mozilla/TimeStamp.h";
-[MoveOnly] using base::SharedMemoryHandle from "base/shared_memory.h";
+[MoveOnly] using mozilla::ipc::SharedMemoryHandle from "mozilla/ipc/SharedMemory.h";
 namespace mozilla {
 namespace ipc {
 
@@ -32,8 +32,7 @@ namespace ipc {
  *   process, child process informs the scheduler and the process is moved back
  *   to the default queue.
  */
-async protocol PIdleScheduler
-{
+async protocol PIdleScheduler {
   manager PBackground;
 
 child:
@@ -44,8 +43,8 @@ parent:
   async RequestIdleTime(uint64_t id, TimeDuration budget);
   async IdleTimeUsed(uint64_t id);
 
-  // Child can send explicit Schedule message to parent if it thinks parent process
-  // might be able to let some other process to use idle time.
+  // Child can send explicit Schedule message to parent if it thinks parent
+  // process might be able to let some other process to use idle time.
   async Schedule();
 
   // Note, these two messages can be sent even before InitForIdleUse.
@@ -53,7 +52,7 @@ parent:
   async PrioritizedOperationDone();
 
   // Ask if now would be a good time to GC
-  async RequestGC() returns (bool may_gc);
+  async RequestGC() returns(bool may_gc);
 
   // Let the parent know when we start a GC without asking first.
   async StartedGC();
@@ -61,10 +60,10 @@ parent:
   // Called for ending any kind of GC.
   async DoneGC();
 
-  // This message is never sent. Each PIdleScheduler actor will stay alive as long as
-  // its PBackground manager.
+  // This message is never sent. Each PIdleScheduler actor will stay alive as
+  // long as its PBackground manager.
   async __delete__();
 };
 
-} // namespace ipc
-} // namespace mozilla
+}  // namespace ipc
+}  // namespace mozilla

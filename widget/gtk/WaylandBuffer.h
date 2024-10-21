@@ -10,12 +10,13 @@
 #include "DMABufSurface.h"
 #include "GLContext.h"
 #include "MozFramebuffer.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Types.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/RefPtr.h"
 #include "nsTArray.h"
 #include "nsWaylandDisplay.h"
-#include "base/shared_memory.h"
 
 namespace mozilla::widget {
 
@@ -36,7 +37,7 @@ class WaylandShmPool {
 
   wl_shm_pool* mShmPool = nullptr;
   void* mImageData = nullptr;
-  UniquePtr<base::SharedMemory> mShm;
+  RefPtr<ipc::SharedMemory> mShm;
   int mSize = 0;
 };
 

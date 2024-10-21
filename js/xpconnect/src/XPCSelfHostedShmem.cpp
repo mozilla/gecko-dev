@@ -43,8 +43,8 @@ void xpc::SelfHostedShmem::InitFromParent(ContentType aXdr) {
   MOZ_ASSERT(!mLen, "Shouldn't call this more than once");
 
   size_t len = aXdr.Length();
-  auto shm = mozilla::MakeUnique<base::SharedMemory>();
-  if (NS_WARN_IF(!shm->CreateFreezeable(len))) {
+  auto shm = mozilla::MakeRefPtr<mozilla::ipc::SharedMemory>();
+  if (NS_WARN_IF(!shm->CreateFreezable(len))) {
     return;
   }
 
@@ -52,27 +52,29 @@ void xpc::SelfHostedShmem::InitFromParent(ContentType aXdr) {
     return;
   }
 
-  void* address = shm->memory();
+  void* address = shm->Memory();
   memcpy(address, aXdr.Elements(), aXdr.LengthBytes());
 
-  base::SharedMemory roCopy;
-  if (NS_WARN_IF(!shm->ReadOnlyCopy(&roCopy))) {
+  RefPtr<mozilla::ipc::SharedMemory> roCopy =
+      mozilla::MakeRefPtr<mozilla::ipc::SharedMemory>();
+  if (NS_WARN_IF(!shm->ReadOnlyCopy(&*roCopy))) {
     return;
   }
 
   mMem = std::move(shm);
-  mHandle = roCopy.TakeHandle();
+  mHandle = roCopy->TakeHandleAndUnmap();
   mLen = len;
 }
 
-bool xpc::SelfHostedShmem::InitFromChild(::base::SharedMemoryHandle aHandle,
-                                         size_t aLen) {
+bool xpc::SelfHostedShmem::InitFromChild(
+    mozilla::ipc::SharedMemoryHandle aHandle, size_t aLen) {
   MOZ_ASSERT(!XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mLen, "Shouldn't call this more than once");
 
-  auto shm = mozilla::MakeUnique<base::SharedMemory>();
-  if (NS_WARN_IF(!shm->SetHandle(std::move(aHandle), /* read_only */ true))) {
+  auto shm = mozilla::MakeRefPtr<mozilla::ipc::SharedMemory>();
+  if (NS_WARN_IF(!shm->SetHandle(std::move(aHandle),
+                                 mozilla::ipc::SharedMemory::RightsReadOnly))) {
     return false;
   }
 
@@ -92,10 +94,10 @@ xpc::SelfHostedShmem::ContentType xpc::SelfHostedShmem::Content() const {
     MOZ_ASSERT(mLen == 0);
     return ContentType();
   }
-  return ContentType(reinterpret_cast<uint8_t*>(mMem->memory()), mLen);
+  return ContentType(reinterpret_cast<uint8_t*>(mMem->Memory()), mLen);
 }
 
-const mozilla::UniqueFileHandle& xpc::SelfHostedShmem::Handle() const {
+const mozilla::ipc::SharedMemoryHandle& xpc::SelfHostedShmem::Handle() const {
   return mHandle;
 }
 
