@@ -1784,4 +1784,5 @@ def target_tasks_os_integration(full_task_graph, parameters, graph_config):
         l
         for l, t in full_task_graph.tasks.items()
         if t.attributes.get("unittest_variant") == "os-integration"
+        and standard_filter(t, parameters)
     ]
