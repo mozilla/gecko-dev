@@ -482,11 +482,15 @@ document.addEventListener(
         gIdentityHandler.onDragStart(event);
       });
 
-    document
-      .getElementById("tracking-protection-icon-container")
-      .addEventListener("focus", () => {
-        gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();
-      });
+    let trackingProtectionIconContainer = document.getElementById(
+      "tracking-protection-icon-container"
+    );
+    trackingProtectionIconContainer.addEventListener("focus", () => {
+      gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();
+    });
+    trackingProtectionIconContainer.addEventListener("mouseover", () => {
+      gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();
+    });
   },
   { once: true }
 );
