@@ -475,6 +475,16 @@ NS_IMETHODIMP BounceTrackingProtectionStorage::GetName(nsAString& aName) {
 }
 
 nsresult BounceTrackingProtectionStorage::Init() {
+  nsresult rv = InitInternal();
+  if (NS_FAILED(rv)) {
+    MonitorAutoLock lock(mMonitor);
+    mErrored.Flip();
+    mMonitor.NotifyAll();
+  }
+  return rv;
+}
+
+nsresult BounceTrackingProtectionStorage::InitInternal() {
   MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug, ("%s", __FUNCTION__));
 
   // Init shouldn't be called if the feature is disabled.
@@ -491,12 +501,8 @@ nsresult BounceTrackingProtectionStorage::Init() {
 
   bool closed;
   nsresult rv = shutdownBarrier->GetIsClosed(&closed);
-  if (closed || NS_WARN_IF(NS_FAILED(rv))) {
-    MonitorAutoLock lock(mMonitor);
-    mShuttingDown.Flip();
-    mMonitor.NotifyAll();
-    return NS_ERROR_ILLEGAL_DURING_SHUTDOWN;
-  }
+  NS_ENSURE_TRUE(!closed, NS_ERROR_ILLEGAL_DURING_SHUTDOWN);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = shutdownBarrier->AddBlocker(
       this, NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__, u""_ns);
@@ -526,7 +532,7 @@ nsresult BounceTrackingProtectionStorage::Init() {
 
   RefPtr<BounceTrackingProtectionStorage> self = this;
 
-  mBackgroundThread->Dispatch(
+  return mBackgroundThread->Dispatch(
       NS_NewRunnableFunction("BounceTrackingProtectionStorage::Init",
                              [self]() {
                                MonitorAutoLock lock(self->mMonitor);
@@ -548,8 +554,6 @@ nsresult BounceTrackingProtectionStorage::Init() {
                                self->mMonitor.NotifyAll();
                              }),
       NS_DISPATCH_EVENT_MAY_BLOCK);
-
-  return NS_OK;
 }
 
 nsresult BounceTrackingProtectionStorage::CreateDatabaseConnection() {
