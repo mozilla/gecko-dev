@@ -343,11 +343,14 @@ ul.children + .tag-line::before {
 }
 
 .newattr {
-  /* offset the element so it doesn't take any space when not focused */
-  margin-inline-start: calc(-1 * var(--markup-new-attr-size));
+  /* Place the new attr "button" over the ">" char */
+  width: 1ch;
+  margin-inline-end: -1ch;
 
+  /* Make the button 1 char wide (it's easier to do it with a pseudo element as the element
+     is inline and we don't want to mess the vertical alignment) */
   &::before {
-    content: "\00a0\00a0" / "";
+    content: "\00a0" / "";
   }
 
   &:focus-visible {
@@ -358,6 +361,11 @@ ul.children + .tag-line::before {
     background-position: center;
     -moz-context-properties: fill;
     fill: var(--theme-icon-color);
+
+    /* When focused, make the button 2 chars wide */
+    &::before {
+      content: "\00a0\00a0" / "";
+    }
   }
 }
 
