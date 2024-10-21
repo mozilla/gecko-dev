@@ -35,6 +35,8 @@ class PersistenceScope;
 // Basic directory lock interface shared by all other directory lock classes.
 // The class must contain pure virtual functions only to avoid problems with
 // multiple inheritance.
+//
+// XXX Unused, remove this class.
 class NS_NO_VTABLE DirectoryLock {
  public:
   NS_INLINE_DECL_PURE_VIRTUAL_REFCOUNTING

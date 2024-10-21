@@ -77,11 +77,12 @@ bool DirectoryLockImpl::MustWait() const {
   return false;
 }
 
-nsTArray<RefPtr<DirectoryLock>> DirectoryLockImpl::LocksMustWaitFor() const {
+nsTArray<RefPtr<DirectoryLockImpl>> DirectoryLockImpl::LocksMustWaitFor()
+    const {
   AssertIsOnOwningThread();
   MOZ_ASSERT(!mRegistered);
 
-  nsTArray<RefPtr<DirectoryLock>> locks;
+  nsTArray<RefPtr<DirectoryLockImpl>> locks;
 
   for (DirectoryLockImpl* const existingLock : mQuotaManager->mDirectoryLocks) {
     if (MustWaitFor(*existingLock)) {

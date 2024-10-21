@@ -21,7 +21,6 @@
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/CommonMetadata.h"
-#include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockCategory.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/OriginScope.h"
@@ -38,7 +37,8 @@ class QuotaManager;
 
 enum class ShouldUpdateLockIdTableFlag { No, Yes };
 
-class DirectoryLockImpl : public DirectoryLock {
+// XXX Rename to DirectoryLockBase.
+class DirectoryLockImpl {
   friend class ClientDirectoryLock;
   friend class OriginDirectoryLock;
   friend class QuotaManager;
@@ -85,39 +85,37 @@ class DirectoryLockImpl : public DirectoryLock {
                     ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
                     DirectoryLockCategory aCategory);
 
-  // DirectoryLock interface
+  NS_INLINE_DECL_REFCOUNTING(DirectoryLockImpl)
 
-  NS_INLINE_DECL_REFCOUNTING(DirectoryLockImpl, override)
+  int64_t Id() const { return mId; }
 
-  int64_t Id() const override { return mId; }
-
-  const PersistenceScope& PersistenceScopeRef() const override {
+  const PersistenceScope& PersistenceScopeRef() const {
     return mPersistenceScope;
   }
 
-  const OriginScope& GetOriginScope() const override { return mOriginScope; }
+  const OriginScope& GetOriginScope() const { return mOriginScope; }
 
-  const Nullable<Client::Type>& NullableClientType() const override {
+  const Nullable<Client::Type>& NullableClientType() const {
     return mClientType;
   }
 
-  DirectoryLockCategory Category() const override { return mCategory; }
+  DirectoryLockCategory Category() const { return mCategory; }
 
-  bool Acquired() const override { return mAcquired; }
+  bool Acquired() const { return mAcquired; }
 
-  bool MustWait() const override;
+  bool MustWait() const;
 
-  nsTArray<RefPtr<DirectoryLock>> LocksMustWaitFor() const override;
+  nsTArray<RefPtr<DirectoryLockImpl>> LocksMustWaitFor() const;
 
-  bool Invalidated() const override { return mInvalidated; }
+  bool Invalidated() const { return mInvalidated; }
 
-  bool Dropped() const override { return mDropped; }
+  bool Dropped() const { return mDropped; }
 
-  RefPtr<BoolPromise> Acquire() override;
+  RefPtr<BoolPromise> Acquire();
 
-  void AcquireImmediately() override;
+  void AcquireImmediately();
 
-  void AssertIsAcquiredExclusively() override
+  void AssertIsAcquiredExclusively()
 #ifdef DEBUG
       ;
 #else
@@ -125,11 +123,11 @@ class DirectoryLockImpl : public DirectoryLock {
   }
 #endif
 
-  RefPtr<BoolPromise> Drop() override;
+  RefPtr<BoolPromise> Drop();
 
-  void OnInvalidate(std::function<void()>&& aCallback) override;
+  void OnInvalidate(std::function<void()>&& aCallback);
 
-  void Log() const override;
+  void Log() const;
 
  private:
   virtual ~DirectoryLockImpl();
