@@ -272,24 +272,6 @@ export class UrlbarInput {
     this.window.addEventListener("customizationstarting", this);
     this.window.addEventListener("aftercustomization", this);
 
-    const menubar = this.window.document.getElementById("toolbar-menubar");
-    if (menubar) {
-      menubar.addEventListener("DOMMenuBarInactive", this);
-      menubar.addEventListener("DOMMenuBarActive", this);
-    }
-
-    if (this._toolbar) {
-      // TODO(emilio): This could use CSS anchor positioning rather than this
-      // ResizeObserver, eventually.
-      let observer = new this.window.ResizeObserver(([entry]) => {
-        this.textbox.style.setProperty(
-          "--urlbar-width",
-          px(entry.borderBoxSize[0].inlineSize)
-        );
-      });
-      observer.observe(this.textbox.parentNode);
-    }
-
     this.updateLayoutBreakout();
 
     this._initCopyCutController();
@@ -2159,8 +2141,6 @@ export class UrlbarInput {
       return;
     }
 
-    this._updateTextboxPosition();
-
     if (Cu.isInAutomation) {
       if (lazy.UrlbarPrefs.get("disableExtendForTests")) {
         this.setAttribute("breakout-extend-disabled", "true");
@@ -2169,9 +2149,8 @@ export class UrlbarInput {
       this.removeAttribute("breakout-extend-disabled");
     }
 
+    this._toolbar.setAttribute("urlbar-exceeds-toolbar-bounds", "true");
     this.setAttribute("breakout-extend", "true");
-
-    this.textbox.showPopover();
 
     // Enable the animation only after the first extend call to ensure it
     // doesn't run when opening a new window.
@@ -2185,7 +2164,6 @@ export class UrlbarInput {
   }
 
   endLayoutExtend() {
-    this._updateTextboxPosition();
     // If reduce motion is enabled, we want to collapse the Urlbar here so the
     // user sees only sees two states: not expanded, and expanded with the view
     // open.
@@ -2194,6 +2172,7 @@ export class UrlbarInput {
     }
 
     this.removeAttribute("breakout-extend");
+    this._toolbar.removeAttribute("urlbar-exceeds-toolbar-bounds");
   }
 
   /**
@@ -2410,27 +2389,6 @@ export class UrlbarInput {
     this.view.close();
   }
 
-  _updateTextboxPosition() {
-    if (this.view.isOpen) {
-      // We need to adjust the position of the textbox by measuring its container
-      this.textbox.style.top = px(
-        getBoundsWithoutFlushing(this.textbox.parentNode).top
-      );
-    } else {
-      this.textbox.style.top = "";
-    }
-  }
-
-  _updateTextboxPositionNextFrame() {
-    // Allow for any layout changes to take place (e.g. when the menubar becomes
-    // inactive) before re-measuring to position the textbox
-    this.window.requestAnimationFrame(() => {
-      this.window.requestAnimationFrame(() => {
-        this._updateTextboxPosition();
-      });
-    });
-  }
-
   async _updateLayoutBreakoutDimensions() {
     // When this method gets called a second time before the first call
     // finishes, we need to disregard the first one.
@@ -2438,12 +2396,6 @@ export class UrlbarInput {
     this._layoutBreakoutUpdateKey = updateKey;
 
     this.removeAttribute("breakout");
-    try {
-      this.textbox.hidePopover();
-    } catch (ex) {
-      // No big deal if not a popover already.
-    }
-
     this.textbox.parentNode.removeAttribute("breakout");
 
     await this.window.promiseDocumentFlushed(() => {});
@@ -4667,18 +4619,6 @@ export class UrlbarInput {
     this._initCopyCutController();
     this._initPasteAndGo();
     this._initStripOnShare();
-  }
-
-  _on_DOMMenuBarActive() {
-    if (this.hasAttribute("breakout")) {
-      this._updateTextboxPositionNextFrame();
-    }
-  }
-
-  _on_DOMMenuBarInactive() {
-    if (this.hasAttribute("breakout")) {
-      this._updateTextboxPositionNextFrame();
-    }
   }
 
   #allTextSelectedOnKeyDown = false;
