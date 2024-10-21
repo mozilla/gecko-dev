@@ -26,6 +26,7 @@ class ProfileResetCleanupResultTask : public mozilla::Runnable {
   NS_IMETHOD Run() override {
     MOZ_ASSERT(NS_IsMainThread());
     mWorkerThread->Shutdown();
+    gProfileResetCleanupCompleted = true;
     return NS_OK;
   }
 
@@ -69,7 +70,6 @@ class ProfileResetCleanupAsyncTask : public mozilla::Runnable {
         NS_WARNING("Could not remove the old local profile directory (cache)");
       }
     }
-    gProfileResetCleanupCompleted = true;
 
     nsCOMPtr<nsIRunnable> resultRunnable = new ProfileResetCleanupResultTask();
     NS_DispatchToMainThread(resultRunnable);
