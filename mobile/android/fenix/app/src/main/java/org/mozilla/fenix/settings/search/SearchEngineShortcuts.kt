@@ -159,7 +159,7 @@ private fun SearchItem(
                 .size(24.dp),
             bitmap = engine.icon.asImageBitmap(),
             contentDescription = stringResource(
-                id = R.string.search_engine_icon_content_description,
+                id = R.string.search_engine_icon_content_description_1,
                 engine.name,
             ),
         )

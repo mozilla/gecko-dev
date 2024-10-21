@@ -145,7 +145,7 @@ class SettingsSubMenuSearchRobot {
         availableShortcutsEngines.forEach {
             Log.i(TAG, "verifyManageShortcutsList: Trying to verify that the ${it.name} alternative search engine is displayed")
             testRule.onNodeWithText(it.name)
-                .assert(hasAnySibling(hasContentDescription("${it.name} search engine")))
+                .assert(hasAnySibling(hasContentDescription("Search engine: ${it.name}")))
                 .assertIsDisplayed()
             Log.i(TAG, "verifyManageShortcutsList: Verify that the ${it.name} alternative search engine is displayed")
         }

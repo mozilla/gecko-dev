@@ -54,7 +54,7 @@ class SearchSelectorToolbarAction(
                 this.setIcon(
                     icon = initialSearchEngine.getScaledIcon(this.context),
                     contentDescription = context.getString(
-                        R.string.search_engine_icon_content_description,
+                        R.string.search_engine_icon_content_description_1,
                         initialSearchEngine.name,
                     ),
                 )
@@ -103,7 +103,7 @@ class SearchSelectorToolbarAction(
                                 }
                             },
                             contentDescription = view.context.getString(
-                                R.string.search_engine_icon_content_description,
+                                R.string.search_engine_icon_content_description_1,
                                 searchEngine.name,
                             ),
                         )
