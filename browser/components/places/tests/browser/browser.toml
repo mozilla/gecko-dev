@@ -95,8 +95,6 @@ support-files = ["pageopeningwindow.html"]
 
 ["browser_bookmarks_toolbar_telemetry.js"]
 
-["browser_bookmarks_checkDefaultBookmarks.js"]
-
 ["browser_bug427633_no_newfolder_if_noip.js"]
 
 ["browser_bug485100-change-case-loses-tag.js"]
