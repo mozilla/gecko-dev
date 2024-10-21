@@ -61,6 +61,7 @@ editor/libeditor/tests/browserscope/lib/richtext/
 editor/libeditor/tests/browserscope/lib/richtext2/
 extensions/spellcheck/hunspell/src/
 function2/
+fmt/
 gfx/angle/checkout/
 gfx/cairo/
 gfx/graphite2/
