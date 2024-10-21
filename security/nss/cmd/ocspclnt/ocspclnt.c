@@ -555,7 +555,7 @@ print_raw_certificates(FILE *out_file, SECItem **raw_certs, int level)
     while ((raw_cert = raw_certs[i++]) != NULL) {
         snprintf(cert_label, sizeof(cert_label), "Certificate (%d)", i);
         (void)SECU_PrintSignedData(out_file, raw_cert, cert_label, level + 1,
-                                   (SECU_PPFunc)SECU_PrintCertificate);
+                                   SECU_PrintCertificate);
     }
 }
 

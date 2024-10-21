@@ -690,7 +690,7 @@ X25519_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey)
         return SECFailure;
     }
 
-    rv = method->pt_mul(publicKey, (SECItem *) privateKey, NULL);
+    rv = method->pt_mul(publicKey, (SECItem *)privateKey, NULL);
     return rv;
 }
 
@@ -708,5 +708,5 @@ EC_DerivePublicKey(const SECItem *privateKey, const ECParams *ecParams, SECItem 
         return SECFailure;
     }
 
-    return method->pt_mul(publicKey, (SECItem *) privateKey, NULL);
+    return method->pt_mul(publicKey, (SECItem *)privateKey, NULL);
 }

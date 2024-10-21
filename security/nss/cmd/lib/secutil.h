@@ -213,7 +213,7 @@ SECU_PrintCertificateNames(CERTCertDBHandle *handle, PRFileDesc *out,
 int SECU_CheckCertNameExists(CERTCertDBHandle *handle, char *nickname);
 
 /* Dump contents of cert req */
-extern int SECU_PrintCertificateRequest(FILE *out, SECItem *der, char *m,
+extern int SECU_PrintCertificateRequest(FILE *out, const SECItem *der, const char *m,
                                         int level);
 
 /* Dump contents of certificate */
@@ -223,7 +223,7 @@ extern int SECU_PrintCertificate(FILE *out, const SECItem *der, const char *m,
 extern int SECU_PrintCertificateBasicInfo(FILE *out, const SECItem *der, const char *m,
                                           int level);
 
-extern int SECU_PrintDumpDerIssuerAndSerial(FILE *out, SECItem *der, char *m,
+extern int SECU_PrintDumpDerIssuerAndSerial(FILE *out, const SECItem *der, const char *m,
                                             int level);
 
 /* Dump contents of a DER certificate name (issuer or subject) */
@@ -270,10 +270,10 @@ extern SECStatus SEC_PrintCertificateAndTrust(CERTCertificate *cert,
                                               const char *label,
                                               CERTCertTrust *trust);
 
-extern int SECU_PrintCrl(FILE *out, SECItem *der, char *m, int level);
+extern int SECU_PrintCrl(FILE *out, const SECItem *der, const char *m, int level);
 
 extern void
-SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m, int level);
+SECU_PrintCRLInfo(FILE *out, CERTCrl *crl, const char *m, int level);
 
 extern void SECU_PrintString(FILE *out, const SECItem *si, const char *m,
                              int level);

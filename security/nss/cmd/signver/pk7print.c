@@ -487,7 +487,7 @@ sv_PrintCRLInfo(FILE *out, CERTCrl *crl, char *m)
 }
 
 int
-sv_PrintCertificate(FILE *out, SECItem *der, char *m, int level)
+sv_PrintCertificate(FILE *out, const SECItem *der, const char *m, int level)
 {
     PLArenaPool *arena = NULL;
     CERTCertificate *c;

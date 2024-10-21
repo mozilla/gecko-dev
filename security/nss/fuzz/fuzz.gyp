@@ -103,6 +103,18 @@
       },
     },
     {
+      'target_name': 'nssfuzz-pkcs7',
+      'type': 'executable',
+      'sources': [
+        'asn1_mutators.cc',
+        'pkcs7_target.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        'fuzz_base',
+      ],
+    },
+    {
       'target_name': 'nssfuzz-pkcs8',
       'type': 'executable',
       'sources': [
@@ -364,6 +376,7 @@
         'nssfuzz-certDN',
         'nssfuzz-dtls-client',
         'nssfuzz-dtls-server',
+        'nssfuzz-pkcs7',
         'nssfuzz-pkcs8',
         'nssfuzz-pkcs12',
         'nssfuzz-quickder',

@@ -17,10 +17,10 @@
 #include <stdio.h>
 
 #ifdef SECUTIL_NEW
-typedef int (*SECU_PPFunc)(PRFileDesc *out, SECItem *item,
-                           char *msg, int level);
+typedef int (*SECU_PPFunc)(PRFileDesc *out, const SECItem *item,
+                           const char *msg, int level);
 #else
-typedef int (*SECU_PPFunc)(FILE *out, SECItem *item, char *msg, int level);
+typedef int (*SECU_PPFunc)(FILE *out, const SECItem *item, const char *msg, int level);
 #endif
 
 /* print out an error message */

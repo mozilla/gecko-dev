@@ -449,10 +449,10 @@ p12U_ReadPKCS12File(SECItem *uniPwp, char *in_file, PK11SlotInfo *slot,
 
     /* revert the option setting */
     if (forceUnicode != pk12uForceUnicode) {
-        rv = NSS_OptionSet(__NSS_PKCS12_DECODE_FORCE_UNICODE, pk12uForceUnicode);
-        if (rv != SECSuccess) {
+        if (SECSuccess != NSS_OptionSet(__NSS_PKCS12_DECODE_FORCE_UNICODE, pk12uForceUnicode)) {
             SECU_PrintError(progName, "PKCS12 decoding failed to set option");
             pk12uErrno = PK12UERR_DECODEVERIFY;
+            rv = SECFailure;
         }
     }
     /* rv has been set at this point */
@@ -819,7 +819,7 @@ P12U_ListPKCS12File(char *in_file, PK11SlotInfo *slot,
                     } else if (SECU_PrintSignedData(stdout, dip->der,
                                                     (dip->hasKey) ? "(has private key)"
                                                                   : "",
-                                                    0, (SECU_PPFunc)SECU_PrintCertificate) !=
+                                                    0, SECU_PrintCertificate) !=
                                0) {
                         SECU_PrintError(progName, "PKCS12 print cert bag failed");
                     }

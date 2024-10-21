@@ -147,7 +147,7 @@ main(int argc, char **argv)
     if (PORT_Strcmp(typeTag, SEC_CT_CERTIFICATE) == 0 ||
         PORT_Strcmp(typeTag, "c") == 0) {
         rv = SECU_PrintSignedData(outFile, &data, "Certificate", 0,
-                                  (SECU_PPFunc)SECU_PrintCertificate);
+                                  SECU_PrintCertificate);
     } else if (PORT_Strcmp(typeTag, SEC_CT_CERTIFICATE_ID) == 0 ||
                PORT_Strcmp(typeTag, "ci") == 0) {
         rv = SECU_PrintSignedContent(outFile, &data, 0, 0,

@@ -4,6 +4,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
+import ast
+import base64
+import dataclasses
 import hashlib
 import itertools
 import os
@@ -20,6 +23,7 @@ TSTCLNT_ARGS = [
     "-D",  # Run without a cert database
     "-Q",  # Quit after handshake
     "-b",  # Load the default "builtins" root CA module
+    "-CCC",  # Include PEM format certificate dumps
     "--enable-rfc8701-grease",
     "--enable-ch-extension-permutation",
     "--zlib-certificate-compression",
@@ -29,10 +33,60 @@ TSTCLNT_ARGS = [
     ECH_CONFIGS,
 ]
 
+NS_CERT_HEADER = "-----BEGIN CERTIFICATE-----"
+NS_CERT_TRAILER = "-----END CERTIFICATE-----"
+
+
+@dataclasses.dataclass
+class HandshakeData:
+    client = b""
+    server = b""
+    certificates = []
+
+
+def parse_strace_line(line):
+    match = re.search(r"\"(\\x[a-f0-9]{2})+\"", line)
+    if match is None:
+        return b""
+
+    data = ast.literal_eval("b" + match.group(0))
+    return data
+
+
+def parse_tstclnt_output(output):
+    hs_data = HandshakeData()
+    certificate = False
+
+    for line in output.splitlines():
+        if line.startswith("sendto("):
+            hs_data.client += parse_strace_line(line)
+            continue
+
+        if line.startswith("recvfrom(") and hs_data.client:
+            hs_data.server += parse_strace_line(line)
+            continue
+
+        if line == NS_CERT_HEADER:
+            certificate = ""
+            continue
+
+        if line == NS_CERT_TRAILER:
+            hs_data.certificates.append(base64.b64decode(certificate))
+            certificate = False
+            continue
+
+        # Check if we are currently in a certificate block by abusing
+        # ✦.✧̣̇˚. dynamic typing ˚.✦⋆.
+        if isinstance(certificate, str):
+            certificate += line
+            continue
+
+    return hs_data
+
 
 def brrrrr(hosts, args):
-    tstclnt_bin = os.path.join(args.nss, "bin/tstclnt")
-    ld_libary_path = os.path.join(args.nss, "lib")
+    tstclnt_bin = os.path.join(args.nss_build, "bin/tstclnt")
+    ld_libary_path = os.path.join(args.nss_build, "lib")
 
     for host in hosts:
         try:
@@ -45,61 +99,31 @@ def brrrrr(hosts, args):
                                     },
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE,
-                                    timeout=1,
+                                    timeout=2,
                                     text=True)
         except subprocess.TimeoutExpired:
             print("Getting handshake timed out for:", host, file=sys.stderr)
             continue
 
-        client_data = bytearray()
-        server_data = bytearray()
+        hs_data = parse_tstclnt_output(result.stderr)
 
-        lines = result.stderr.splitlines()
-        for line in lines:
-            sendto = line.startswith("sendto(")
-            recvfrom = line.startswith("recvfrom(")
+        if hs_data.client:
+            filename = hashlib.sha1(hs_data.client).hexdigest()
+            filepath = os.path.join(args.output, "tls-server-corpus", filename)
+            with open(filepath, "wb") as f:
+                f.write(hs_data.client)
 
-            if not (sendto or recvfrom):
-                continue
+        if hs_data.server:
+            filename = hashlib.sha1(hs_data.server).hexdigest()
+            filepath = os.path.join(args.output, "tls-client-corpus", filename)
+            with open(filepath, "wb") as f:
+                f.write(hs_data.server)
 
-            match = re.search(r"(\\x[a-f0-9]{2})+", line)
-            if match is None:
-                continue
-
-            data = bytearray.fromhex(match.group(0).replace("\\x", ""))
-
-            # After the initial "Client Hello", each sent/received data
-            # block can be added accordingly.
-            if not client_data:
-                if len(data) > 5 and data[0] == 0x16 and data[5] == 0x01:
-                    client_data = data
-
-                continue
-
-            if sendto:
-                client_data += data
-                continue
-
-            assert recvfrom
-            server_data += data
-
-        if not (client_data and server_data):
-            print("Failed to get handshake for:", host, file=sys.stderr)
-            continue
-
-        # The data sent by the client is used as the corpus for the TLS
-        # server target as it simulates a server receiving client data.
-        filename = hashlib.sha1(client_data).hexdigest()
-        with open(os.path.join(args.output, "tls-server-corpus", filename),
-                  "wb") as f:
-            f.write(client_data)
-
-        # The data sent by the server is used as the corpus for the TLS
-        # client target as it simulates a client receiving server data.
-        filename = hashlib.sha1(server_data).hexdigest()
-        with open(os.path.join(args.output, "tls-client-corpus", filename),
-                  "wb") as f:
-            f.write(server_data)
+        for certificate in hs_data.certificates:
+            filename = hashlib.sha1(certificate).hexdigest()
+            filepath = os.path.join(args.output, "quickder-corpus", filename)
+            with open(filepath, "wb") as f:
+                f.write(certificate)
 
 
 def main():
@@ -118,15 +142,16 @@ def main():
 
     # For use in automation (e.g. MozillaSecurity/orion), the output
     # corpus directories should follow the following scheme: $name-corpus.
+    os.makedirs(os.path.join(args.output, "quickder-corpus"), exist_ok=True)
     os.makedirs(os.path.join(args.output, "tls-server-corpus"), exist_ok=True)
     os.makedirs(os.path.join(args.output, "tls-client-corpus"), exist_ok=True)
 
-    chunks = itertools.batched(hosts, len(hosts) // args.threads)
+    batches = itertools.batched(hosts, len(hosts) // args.threads)
     threads = []
 
-    while chunk := next(chunks, None):
+    while batch := next(batches, None):
         thread = threading.Thread(target=brrrrr, args=(
-            chunk,
+            batch,
             args,
         ))
         thread.daemon = True

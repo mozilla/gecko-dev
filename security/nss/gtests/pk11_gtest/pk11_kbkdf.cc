@@ -134,28 +134,32 @@ TEST_F(Pkcs11KbkdfTest, TestAdditionalKey) {
 
 TEST_F(Pkcs11KbkdfTest, TestPRFs) {
   // Table 161 of PKCS#11 v3.0 / Table 192 of PKCS#11 v3.1.
-  CK_SP800_108_PRF_TYPE allowedPRFs[] = {CKM_SHA_1_HMAC,
-                                         CKM_SHA224_HMAC,
-                                         CKM_SHA256_HMAC,
-                                         CKM_SHA384_HMAC,
-                                         CKM_SHA512_HMAC,
-                                         CKM_SHA3_224_HMAC,
-                                         CKM_SHA3_256_HMAC,
-                                         CKM_SHA3_384_HMAC,
-                                         CKM_SHA3_512_HMAC,
-                                         /* CKM_DES3_CMAC, */
-                                         CKM_AES_CMAC};
-  CK_SP800_108_PRF_TYPE disallowedPRFs[] = {CKM_MD2_HMAC,
-                                            CKM_MD5_HMAC,
-                                            CKM_RIPEMD128_HMAC,
-                                            CKM_RIPEMD160_HMAC};
+  CK_SP800_108_PRF_TYPE allowedPRFs[] = {
+      CKM_SHA_1_HMAC,
+      CKM_SHA224_HMAC,
+      CKM_SHA256_HMAC,
+      CKM_SHA384_HMAC,
+      CKM_SHA512_HMAC,
+      CKM_SHA3_224_HMAC,
+      CKM_SHA3_256_HMAC,
+      CKM_SHA3_384_HMAC,
+      CKM_SHA3_512_HMAC,
+      /* CKM_DES3_CMAC, */
+      CKM_AES_CMAC,
+  };
+  CK_SP800_108_PRF_TYPE disallowedPRFs[] = {
+      CKM_MD2_HMAC,
+      CKM_MD5_HMAC,
+      CKM_RIPEMD128_HMAC,
+      CKM_RIPEMD160_HMAC,
+  };
 
   CK_BYTE inputKey[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
                         0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 
   CK_SP800_108_COUNTER_FORMAT iterator = {CK_FALSE, 8};
   CK_BYTE fixedData[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-                        0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+                         0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
 
   CK_PRF_DATA_PARAM dataParams[] = {
       {CK_SP800_108_BYTE_ARRAY, fixedData,

@@ -264,11 +264,13 @@ failure:
     return CKR_MECHANISM_PARAM_INVALID;
 }
 
-static PRBool kbkdf_ValidPRF(CK_SP800_108_PRF_TYPE prf) {
+static PRBool
+kbkdf_ValidPRF(CK_SP800_108_PRF_TYPE prf)
+{
     // See Table 161 of PKCS#11 v3.0 or Table 192 of PKCS#11 v3.1.
     switch (prf) {
         case CKM_AES_CMAC:
-        /* case CKM_DES3_CMAC: */
+            /* case CKM_DES3_CMAC: */
             return PR_TRUE;
         case CKM_SHA_1_HMAC:
         case CKM_SHA224_HMAC:
