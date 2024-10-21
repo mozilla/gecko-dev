@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.6.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.6.1)" variant="all" version="8.6.1">
+<issues format="6" by="lint 8.7.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.7.1)" variant="all" version="8.7.1">
 
     <issue
         id="ScopedStorage"
@@ -706,6 +706,1359 @@
     </issue>
 
     <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Докоснете или изчистете това известие, за да изтриете сигурно историята на сърфирането.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-bg/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toqueu o esborreu aquesta notificació per a esborrar de manera segura l\&apos;historial de navegació.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ca/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Picchichjate o spazzate sta nutificazione per squassà di manera sicura a vostra cronolugia di navigazione.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-co/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tapio neu gau\&apos;r hysbysiad hwn i ddileu eich hanes pori yn ddiogel.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cy/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tippen oder löschen Sie diese Benachrichtigung, um Ihre Browser-Chronik sicher zu löschen.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Pótusniśo toś tu powěźeńku abo lašujśo ju, aby swóju pśeglědowańsku historiju wěsće wulašował.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-dsb/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tap or clear this notification to securely erase your browsing history.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rCA/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tap or clear this notification to securely erase your browsing history.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rGB/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tocá o borrá esta notificación para eliminar de forma segura tu historial de navegación.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rAR/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toca o elimina esta notificación para borrar de forma segura tu historial de navegación.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rCL/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toca o elimina esta notificación para borrar de forma segura tu historial de navegación.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rMX/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Sakatu edo garbitu jakinarazpen hau zure nabigatze-historia ezabatzeko.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eu/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Napauta tai tyhjennä tämä ilmoitus tyhjentääksesi selaushistoriasi turvallisesti.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fi/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tik op dizze notifikaasje of slút him om jo navigaasjeskiednis feilich te wiskje.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fy-rNL/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Dodirni ili izbriši ovu obavijest za sigurno brisanje tvoje povijesti pregledavanja.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hr/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Podótkńće so tuteje zdźělenki abo zhašejće ju, zo byšće swoju přehladowansku historiju wěsće zhašał.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hsb/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Koppintson vagy törölje ezt az értesítést a böngészési előzmények biztonságos törléséhez.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hu/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>검색 기록을 안전하게 삭제하려면 이 알림을 탭하거나 지우세요.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ko/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tapp po gordhyllo an gwarnyans ma dhe dhilea dha istori peuri yn tiogel.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kw/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>ແຕະ ຫຼື ລຶບການແຈ້ງເຕືອນນີ້ເພື່ອລຶບປະຫວັດການທ່ອງເວັບຂອງທ່ານຢ່າງປອດໄພ.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-lo/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Trykk eller fjern dette varselet for å slette nettleserhistorikken din på en sikker måte.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tocatz aquesta notificacion o suprimissètz-la per escafar l’istoric de navegacion d’una manièra segura.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-oc/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toque ou remova esta notificação para limpar com segurança o histórico de navegação.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tapnite ali odstranite to obvestilo za varen izbris zgodovine brskanja.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sl/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Që të fshihet në mënyrë të siguruar historiku juaj i shfletimit, prekeni, ose spastrojeni këtë njoftim.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sq/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toél atawa beresihan iber ieu pikeun mupus jujutan langlangan anjeun kalayan aman.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-su/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tryck på eller rensa den här aviseringen för att säkert radera din webbhistorik.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sv-rSE/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Барои ба таври бехатар пок кардани таърихи тамошо, лутфан, ба ин огоҳнома зер кунед ё онро тоза намоед.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tg/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>แตะหรือล้างการแจ้งเตือนนี้เพื่อลบประวัติการท่องเว็บของคุณอย่างปลอดภัย&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-th/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Gezinti geçmişinizi güvenli bir şekilde silmek için bu bildirime dokunun veya bildirimi temizleyin.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tr/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Торкніться або приберіть це сповіщення, щоб надійно стерти свою історію перегляду.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-uk/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Nhấn hoặc xóa thông báo này để xóa lịch sử duyệt web của bạn một cách an toàn.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-vi/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>点按或清除此通知，即可安全清除浏览历史。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>點擊或滑掉這則通知，即可安全地清除您的瀏覽紀錄。&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="87"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>انقر أو امسح هذا الإشعار لمسح سجل تصفحك بأمان.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ar/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tuŝetu aŭ viŝu tiun ĉi sciigon por sekure viŝi vian retuman historion.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eo/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Toca o elimina esta notificación para borrar de forma segura tu historial de navegación.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rES/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Appuyez sur cette notification ou supprimez-la pour effacer votre historique de navigation de façon sécurisée.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tocar ou borrar esta notificación para borrar de forma segura o seu historial de navegación.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-gl/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tocca o cancella questa notifica per eliminare in modo sicuro la cronologia di navigazione.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>יש להקיש או לנקות התרעה זו כדי למחוק בצורה מאובטחת את היסטוריית הגלישה שלך.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-iw/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Шолу журналын қауіпсіз түрде өшіру үшін осы хабарландыруды шертіңіз немесе тазартыңыз.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kk/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Kuaxin a xíín xina notificación sa naa a nnánukunu.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-meh/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tik op deze notificatie of sluit hem om uw navigatiegeschiedenis veilig te wissen.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>ਤੁਹਾਡੇ ਬਰਾਊਜ਼ ਕਰਨ ਦੇ ਅਤੀਤ ਨੂੰ ਸੁਰੱਖਿਅਤ ਢੰਗ ਨਾਲ ਮਿਟਾਉਣ ਲਈ ਇਸ ਨੋਟੀਫਿਕੇਸ਼ਨ ਨੂੰ ਛੂਹੋ ਜਾਂ ਸਾਫ਼ ਕਰੋ।&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pa-rIN/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Chachapa\&apos; on chachupu\&apos; we ub\&apos;ixikil are chi man k\&apos;o ta uk\&apos;axk\&apos;olil chi rij uyujik ucholajil b\&apos;anoj.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-quc/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Ťuknutím alebo vymazaním tohto upozornenia bezpečne vymažete svoju históriu prehliadania.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sk/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Гизү тарихыгызны хәвефсез рәвештә бетерү өчен бу искәртүгә басыгыз яки аны чистартыгыз.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tt/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Pulse wa borrar le notificación utia\&apos;al u borrar seguramente u historial navegación.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-yua/strings.xml"
+            line="88"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>የአሰሳ ታሪክዎን ደህንነቱ በተጠበቀ መልኩ ለማጥፋት ይህን ማሳወቂያ መታ ያድርጉ ወይም ያጽዱ።&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-am/strings.xml"
+            line="89"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tryk på eller ryd denne meddelelse for at slette din browser-historik på en sikker måde.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-da/strings.xml"
+            line="89"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Πατήστε ή εκκαθαρίστε αυτήν την ειδοποίηση για να διαγράψετε με ασφάλεια το ιστορικό περιήγησής σας.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-el/strings.xml"
+            line="89"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Sit ɣef telɣut-a neɣ kkes-itt i wakken ad tekkseḍ azray-ik n tunigin s wudem aɣelsan.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kab/strings.xml"
+            line="89"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Нажмите или снимите это уведомление, чтобы надежно удалить свою историю просмотра.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ru/strings.xml"
+            line="89"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Націсніце або ачысціце гэта апавяшчэнне, каб надзейна сцерці гісторыю аглядання.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-be/strings.xml"
+            line="90"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Kana moj sojsa unq’a vaa’ ni alon see uva’ pajlat kuxh la sojsa unq’a vee’ chukeltu ve’te’.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ixl/strings.xml"
+            line="90"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Tocje o scancele cheste notifiche par eliminâ in mût sigûr la tô cronologjie di navigazion.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fur/strings.xml"
+            line="91"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>آپݨی براؤزنگ تاریخ کوں محفوظ طریقے نال مٹاوݨ کیتے ایں اطلاع نامے تے انگل پھیرو یا صاف کرو۔&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-skr/strings.xml"
+            line="91"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;notification_erase_text_android_14&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;notification_erase_text_android_14&quot; moz:RemovedIn=&quot;124&quot; tools:ignore=&quot;UnusedResources&quot;>Ýttu á eða hreinsaðu þessa tilkynningu til að eyða vafurferli þínum á öruggan hátt.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-is/strings.xml"
+            line="92"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Tikalaki ne modoj pantallaj patawak&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ppl/strings.xml"
+            line="895"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Nok pa chijun ruwa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cak/strings.xml"
+            line="906"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Entering full screen mode&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rGB/strings.xml"
+            line="906"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Daûr a jentrâ in modalitât plen schermi&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fur/strings.xml"
+            line="907"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>עברת למצב מסך מלא&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-iw/strings.xml"
+            line="908"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Fara í fullan skjá&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-is/strings.xml"
+            line="914"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Уваход у поўнаэкранны рэжым&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-be/strings.xml"
+            line="917"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Ба реҷаи экрани пурра ворид шуда истодааст&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tg/strings.xml"
+            line="918"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Hiàj nanunj da\&apos; huā ngè riña aga\&apos;a&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-trs/strings.xml"
+            line="923"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Esteu en mode de pantalla completa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ca/strings.xml"
+            line="924"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Memasuki mode layar penuh&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-in/strings.xml"
+            line="925"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>پوری سکرین موڈ وچ داخل تھیندا پئے&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-skr/strings.xml"
+            line="925"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>ወደ ሙሉ ማያ ገጽ ሁነታ በመግባት ላይ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-am/strings.xml"
+            line="926"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>სრულ ეკრანზე გაშლა&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ka/strings.xml"
+            line="926"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Mòde plen ecran actiu&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-oc/strings.xml"
+            line="926"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Улазим у режим целог екрана&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sr/strings.xml"
+            line="926"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Pokretanje cjeloekranskog prikaza&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hr/strings.xml"
+            line="927"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>الدخول في وضع ملء الشاشة&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ar/strings.xml"
+            line="928"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Kivunɨ nu pantalla ka´nu&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-meh/strings.xml"
+            line="928"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Тулы экран режимына күчү&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tt/strings.xml"
+            line="928"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>전체 화면 모드로 들어가기&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ko/strings.xml"
+            line="929"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot;>Gweythresa modh skrin leun&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kw/strings.xml"
+            line="929"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Sama pantalla kanu&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-mix/strings.xml"
+            line="929"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Asup ka mode layar pinuh&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-su/strings.xml"
+            line="929"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Режим на цял екран&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-bg/strings.xml"
+            line="930"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Accediendo a pantalla completa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rES/strings.xml"
+            line="930"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Pantaila osoko moduan sartzen&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eu/strings.xml"
+            line="930"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Толық экран режиміне өту&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kk/strings.xml"
+            line="930"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Accediendo a pantalla completa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rMX/strings.xml"
+            line="931"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>ਪੂਰੀ ਸਕਰੀਨ ਢੰਗ ਵਿੱਚ ਜਾ ਰਿਹਾ ਹੈ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pa-rIN/strings.xml"
+            line="931"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Plenekrana reĝimo aktiva&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-eo/strings.xml"
+            line="932"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Pasando a modo de pantalla completa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rCL/strings.xml"
+            line="932"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Połna wobrazowka so pokazuje&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hsb/strings.xml"
+            line="932"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Starter fullskjermmodus&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nb-rNO/strings.xml"
+            line="932"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Đã vào chế độ toàn màn hình&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-vi/strings.xml"
+            line="932"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Vollbildmodus wird gestartet&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/strings.xml"
+            line="933"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Entering full screen mode&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-en-rCA/strings.xml"
+            line="933"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Siirrytään koko näytön tilaan&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fi/strings.xml"
+            line="933"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>ເຂົ້າສູ່ໂມດເຕັມຫນ້າຈໍ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-lo/strings.xml"
+            line="933"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Entrando no modo de tela inteira&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-pt-rBR/strings.xml"
+            line="933"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Startar fullskärmsläge&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sv-rSE/strings.xml"
+            line="933"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>เข้าสู่โหมดเต็มหน้าจอ&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-th/strings.xml"
+            line="933"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Вхід у повноекранний режим&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-uk/strings.xml"
+            line="933"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Fuldskærmstilstand aktiveret&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-da/strings.xml"
+            line="934"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Połna wobrazowka se pokazujo&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-dsb/strings.xml"
+            line="934"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Cambiando a pantalla completa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-es-rAR/strings.xml"
+            line="934"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Folslein skerm wurdt iepene&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fy-rNL/strings.xml"
+            line="934"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Belépés a teljes képernyős módba&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-hu/strings.xml"
+            line="934"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Passato a schermo intero&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-it/strings.xml"
+            line="934"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Volledig scherm wordt geopend&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-nl/strings.xml"
+            line="934"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Bol spustený režim celej obrazovky&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sk/strings.xml"
+            line="934"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Mynd i’r sgrin lawn&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-cy/strings.xml"
+            line="935"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Mode plein écran activé&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-fr/strings.xml"
+            line="935"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Вход в полноэкранный режим&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ru/strings.xml"
+            line="935"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Vstopanje v celozaslonski način&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sl/strings.xml"
+            line="935"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Táan u yokol ti\&apos; modo pantalla completa&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-yua/strings.xml"
+            line="935"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Modu di screnu sanu attivatu&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-co/strings.xml"
+            line="937"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>La eel kaajayil chitu’&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-ixl/strings.xml"
+            line="937"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Askar n ugdil ačaran yermed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-kab/strings.xml"
+            line="937"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Po hyhet në mënyrën “Sa krejt ekrani”&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-sq/strings.xml"
+            line="939"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>进入全屏模式&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rCN/strings.xml"
+            line="939"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Tam ekran moduna geçiliyor&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-tr/strings.xml"
+            line="940"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>進入全螢幕模式&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-zh-rTW/strings.xml"
+            line="940"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ExtraTranslation"
+        message="&quot;full_screen_notification&quot; is translated here but not found in default locale"
+        errorLine1="    &lt;string name=&quot;full_screen_notification&quot; moz:removedIn=&quot;130&quot; tools:ignore=&quot;UnusedResources&quot;>Είσοδος σε λειτουργία πλήρους οθόνης&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-el/strings.xml"
+            line="942"
+            column="13"/>
+    </issue>
+
+    <issue
         id="DataExtractionRules"
         message="The attribute `android:allowBackup` is deprecated from Android 12 and higher and may be removed in future versions. Consider adding the attribute `android:dataExtractionRules` specifying an `@xml` resource which configures cloud backups and device transfers on Android 12 and higher."
         errorLine1="        android:allowBackup=&quot;false&quot;"
@@ -723,7 +2076,7 @@
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/focus/autocomplete/AutocompleteListFragment.kt"
-            line="211"
+            line="213"
             column="17"/>
     </issue>
 
@@ -734,7 +2087,7 @@
         errorLine2="                    ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/focus/exceptions/ExceptionsListFragment.kt"
-            line="216"
+            line="218"
             column="21"/>
     </issue>
 
@@ -1417,6 +2770,17 @@
         <location
             file="src/main/res/values/colors.xml"
             line="78"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.onboardingCloseButtonColor` appears to be unused"
+        errorLine1="    &lt;color name=&quot;onboardingCloseButtonColor&quot;>#F2F2F7&lt;/color>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="86"
             column="12"/>
     </issue>
 
@@ -2314,7 +3678,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="122"
+            line="121"
             column="13"/>
     </issue>
 
@@ -2325,7 +3689,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="131"
+            line="130"
             column="13"/>
     </issue>
 
@@ -2336,7 +3700,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="135"
+            line="134"
             column="13"/>
     </issue>
 
@@ -2347,7 +3711,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="139"
+            line="138"
             column="13"/>
     </issue>
 
@@ -2358,7 +3722,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="185"
+            line="184"
             column="13"/>
     </issue>
 
@@ -2369,7 +3733,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="196"
+            line="195"
             column="13"/>
     </issue>
 
@@ -2380,7 +3744,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="225"
+            line="224"
             column="13"/>
     </issue>
 
@@ -2391,7 +3755,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="234"
+            line="233"
             column="13"/>
     </issue>
 
@@ -2402,7 +3766,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="237"
+            line="236"
             column="13"/>
     </issue>
 
@@ -2413,7 +3777,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="243"
+            line="242"
             column="13"/>
     </issue>
 
@@ -2424,7 +3788,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="246"
+            line="245"
             column="13"/>
     </issue>
 
@@ -2435,7 +3799,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="261"
+            line="260"
             column="13"/>
     </issue>
 
@@ -2446,7 +3810,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="273"
+            line="272"
             column="13"/>
     </issue>
 
@@ -2457,7 +3821,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="292"
+            line="291"
             column="13"/>
     </issue>
 
@@ -2468,7 +3832,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="330"
+            line="329"
             column="13"/>
     </issue>
 
@@ -2479,7 +3843,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="408"
+            line="407"
             column="13"/>
     </issue>
 
@@ -2490,7 +3854,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="422"
+            line="421"
             column="13"/>
     </issue>
 
@@ -2501,7 +3865,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="426"
+            line="425"
             column="13"/>
     </issue>
 
@@ -2512,7 +3876,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="430"
+            line="429"
             column="13"/>
     </issue>
 
@@ -2523,7 +3887,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="434"
+            line="433"
             column="13"/>
     </issue>
 
@@ -2534,7 +3898,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="437"
+            line="436"
             column="13"/>
     </issue>
 
@@ -2545,7 +3909,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="441"
+            line="440"
             column="13"/>
     </issue>
 
@@ -2556,7 +3920,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="456"
+            line="455"
             column="13"/>
     </issue>
 
@@ -2567,7 +3931,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="460"
+            line="459"
             column="13"/>
     </issue>
 
@@ -2578,7 +3942,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="464"
+            line="463"
             column="13"/>
     </issue>
 
@@ -2589,7 +3953,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="466"
+            line="465"
             column="13"/>
     </issue>
 
@@ -2600,7 +3964,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="468"
+            line="467"
             column="13"/>
     </issue>
 
@@ -2611,7 +3975,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="471"
+            line="470"
             column="13"/>
     </issue>
 
@@ -2622,7 +3986,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="473"
+            line="472"
             column="13"/>
     </issue>
 
@@ -2633,7 +3997,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="476"
+            line="475"
             column="13"/>
     </issue>
 
@@ -2644,7 +4008,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="478"
+            line="477"
             column="13"/>
     </issue>
 
@@ -2655,7 +4019,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="546"
+            line="545"
             column="13"/>
     </issue>
 
@@ -2666,7 +4030,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="551"
+            line="550"
             column="13"/>
     </issue>
 
@@ -2677,7 +4041,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="556"
+            line="555"
             column="13"/>
     </issue>
 
@@ -2688,7 +4052,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="614"
+            line="613"
             column="13"/>
     </issue>
 
@@ -2699,7 +4063,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="615"
+            line="614"
             column="13"/>
     </issue>
 
@@ -2710,7 +4074,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="616"
+            line="615"
             column="13"/>
     </issue>
 
@@ -2721,7 +4085,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="620"
+            line="619"
             column="13"/>
     </issue>
 
@@ -2732,7 +4096,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="621"
+            line="620"
             column="13"/>
     </issue>
 
@@ -2743,7 +4107,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="623"
+            line="622"
             column="13"/>
     </issue>
 
@@ -2754,7 +4118,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="626"
+            line="625"
             column="13"/>
     </issue>
 
@@ -2765,7 +4129,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="633"
+            line="632"
             column="13"/>
     </issue>
 
@@ -2776,7 +4140,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="637"
+            line="636"
             column="13"/>
     </issue>
 
@@ -2787,7 +4151,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="640"
+            line="639"
             column="13"/>
     </issue>
 
@@ -2798,7 +4162,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="643"
+            line="642"
             column="13"/>
     </issue>
 
@@ -2809,7 +4173,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="645"
+            line="644"
             column="13"/>
     </issue>
 
@@ -2820,7 +4184,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="647"
+            line="646"
             column="13"/>
     </issue>
 
@@ -2831,7 +4195,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="650"
+            line="649"
             column="13"/>
     </issue>
 
@@ -2842,7 +4206,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="831"
+            line="830"
             column="13"/>
     </issue>
 
@@ -2853,7 +4217,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="838"
+            line="837"
             column="13"/>
     </issue>
 
@@ -2864,7 +4228,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="842"
+            line="841"
             column="13"/>
     </issue>
 
@@ -2875,7 +4239,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="867"
+            line="866"
             column="13"/>
     </issue>
 
@@ -2886,7 +4250,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="872"
+            line="871"
             column="13"/>
     </issue>
 
@@ -2897,7 +4261,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="877"
+            line="876"
             column="13"/>
     </issue>
 
@@ -2908,7 +4272,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="883"
+            line="882"
             column="13"/>
     </issue>
 
@@ -2919,7 +4283,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="889"
+            line="888"
             column="13"/>
     </issue>
 
@@ -2930,7 +4294,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="894"
+            line="893"
             column="13"/>
     </issue>
 
@@ -2941,7 +4305,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="897"
+            line="896"
             column="13"/>
     </issue>
 
@@ -2952,7 +4316,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="900"
+            line="899"
             column="13"/>
     </issue>
 
@@ -2963,7 +4327,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="906"
+            line="902"
             column="13"/>
     </issue>
 
@@ -2974,7 +4338,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="930"
+            line="926"
             column="13"/>
     </issue>
 
@@ -2985,7 +4349,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="933"
+            line="929"
             column="13"/>
     </issue>
 
@@ -2996,7 +4360,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1008"
+            line="1004"
             column="13"/>
     </issue>
 
@@ -3007,7 +4371,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1011"
+            line="1007"
             column="13"/>
     </issue>
 
@@ -3018,7 +4382,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1017"
+            line="1013"
             column="13"/>
     </issue>
 
@@ -3029,7 +4393,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1032"
+            line="1028"
             column="13"/>
     </issue>
 
@@ -3040,7 +4404,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="117"
+            line="123"
             column="12"/>
     </issue>
 
@@ -3051,7 +4415,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="130"
+            line="136"
             column="12"/>
     </issue>
 
@@ -3062,7 +4426,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="151"
+            line="157"
             column="12"/>
     </issue>
 
@@ -3073,7 +4437,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="159"
+            line="165"
             column="12"/>
     </issue>
 
@@ -3084,7 +4448,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="164"
+            line="170"
             column="12"/>
     </issue>
 
@@ -3095,7 +4459,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="174"
+            line="180"
             column="12"/>
     </issue>
 
@@ -3106,7 +4470,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="196"
+            line="202"
             column="12"/>
     </issue>
 
@@ -3117,7 +4481,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="204"
+            line="210"
             column="12"/>
     </issue>
 
@@ -3128,7 +4492,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="209"
+            line="215"
             column="12"/>
     </issue>
 
@@ -3139,7 +4503,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="213"
+            line="219"
             column="12"/>
     </issue>
 
@@ -3150,7 +4514,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="217"
+            line="223"
             column="12"/>
     </issue>
 
@@ -3161,7 +4525,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="221"
+            line="227"
             column="12"/>
     </issue>
 
@@ -3172,7 +4536,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="226"
+            line="232"
             column="12"/>
     </issue>
 
@@ -3273,7 +4637,7 @@
         errorLine2="                                          ^">
         <location
             file="src/main/java/org/mozilla/focus/autocomplete/AutocompleteListFragment.kt"
-            line="307"
+            line="309"
             column="43"/>
     </issue>
 
@@ -3284,7 +4648,7 @@
         errorLine2="                                          ^">
         <location
             file="src/main/java/org/mozilla/focus/exceptions/ExceptionsListFragment.kt"
-            line="301"
+            line="303"
             column="43"/>
     </issue>
 
@@ -3356,7 +4720,7 @@
 
     <issue
         id="RtlHardcoded"
-        message="Redundant attribute `paddingLeft`; already defining `paddingStart` with `targetSdkVersion` 34"
+        message="Redundant attribute `paddingLeft`; already defining `paddingStart` with `targetSdkVersion` 35"
         errorLine1="        android:paddingLeft=&quot;5dp&quot;/>"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~">
         <location
