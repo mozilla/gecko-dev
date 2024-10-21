@@ -80,19 +80,8 @@ bool DirectoryLockImpl::MustWait() const {
 nsTArray<RefPtr<DirectoryLockImpl>> DirectoryLockImpl::LocksMustWaitFor()
     const {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(!mRegistered);
 
-  nsTArray<RefPtr<DirectoryLockImpl>> locks;
-
-  // XXX It is probably unnecessary to iterate this in reverse order.
-  for (DirectoryLockImpl* const existingLock :
-       Reversed(mQuotaManager->mDirectoryLocks)) {
-    if (MustWaitFor(*existingLock)) {
-      locks.AppendElement(existingLock);
-    }
-  }
-
-  return locks;
+  return LocksMustWaitForInternal<RefPtr<DirectoryLockImpl>>();
 }
 
 RefPtr<BoolPromise> DirectoryLockImpl::Acquire() {
@@ -296,6 +285,24 @@ void DirectoryLockImpl::NotifyOpenListener() {
 
     Unregister();
   }
+}
+
+template <typename T>
+nsTArray<T> DirectoryLockImpl::LocksMustWaitForInternal() const {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(!mRegistered);
+
+  nsTArray<T> locks;
+
+  // XXX It is probably unnecessary to iterate this in reverse order.
+  for (DirectoryLockImpl* const existingLock :
+       Reversed(mQuotaManager->mDirectoryLocks)) {
+    if (MustWaitFor(*existingLock)) {
+      locks.AppendElement(existingLock);
+    }
+  }
+
+  return locks;
 }
 
 void DirectoryLockImpl::AcquireInternal() {

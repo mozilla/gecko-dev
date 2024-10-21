@@ -221,6 +221,9 @@ class DirectoryLockImpl {
 
   void NotifyOpenListener();
 
+  template <typename T>
+  nsTArray<T> LocksMustWaitForInternal() const;
+
   void AcquireInternal();
 
   void Invalidate();
