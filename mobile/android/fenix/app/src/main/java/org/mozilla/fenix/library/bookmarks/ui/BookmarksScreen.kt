@@ -892,7 +892,7 @@ private fun EditFolderTopBar(
             IconButton(onClick = onDeleteClick) {
                 Icon(
                     painter = painterResource(R.drawable.mozac_ic_delete_24),
-                    contentDescription = stringResource(R.string.bookmark_add_new_folder_button_content_description),
+                    contentDescription = stringResource(R.string.bookmark_delete_folder_content_description),
                     tint = FirefoxTheme.colors.iconPrimary,
                 )
             }
@@ -1128,7 +1128,7 @@ private fun EditBookmarkTopBar(
             IconButton(onClick = onDeleteClicked) {
                 Icon(
                     painter = painterResource(R.drawable.mozac_ic_delete_24),
-                    contentDescription = stringResource(R.string.bookmark_add_new_folder_button_content_description),
+                    contentDescription = stringResource(R.string.bookmark_delete_bookmark_content_description),
                     tint = FirefoxTheme.colors.iconPrimary,
                 )
             }
