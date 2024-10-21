@@ -27,7 +27,7 @@ struct OriginMetadata;
 class QuotaManager;
 
 // A directory lock specialized for a given origin directory.
-class OriginDirectoryLock final : public DirectoryLockImpl {
+class OriginDirectoryLock : public DirectoryLockImpl {
   friend class QuotaManager;
 
  public:

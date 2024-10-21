@@ -9,7 +9,7 @@
 
 #include "nsStringFwd.h"
 #include "mozilla/dom/quota/Client.h"
-#include "mozilla/dom/quota/DirectoryLockImpl.h"
+#include "mozilla/dom/quota/OriginDirectoryLock.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 
 template <class T>
@@ -40,29 +40,18 @@ class UniversalDirectoryLock;
 
 // A directory lock specialized for a given client directory (inside an origin
 // directory).
-class ClientDirectoryLock final : public DirectoryLockImpl {
+class ClientDirectoryLock final : public OriginDirectoryLock {
   friend class QuotaManager;
   friend class UniversalDirectoryLock;
 
  public:
-  using DirectoryLockImpl::DirectoryLockImpl;
+  using OriginDirectoryLock::OriginDirectoryLock;
 
-  // XXX These getters shouldn't exist in the base class, but since some
+  // XXX This getter shouldn't exist in the root class, but since some
   // consumers don't use proper casting to ClientDirectoryLock yet, we keep
-  // them in the base class and have explicit forwarding here.
+  // it in the root class and have explicit forwarding here.
 
-  // 'Get' prefix is to avoid name collisions with the enum
-  PersistenceType GetPersistenceType() const {
-    return DirectoryLockImpl::GetPersistenceType();
-  }
-
-  quota::OriginMetadata OriginMetadata() const {
-    return DirectoryLockImpl::OriginMetadata();
-  }
-
-  const nsACString& Origin() const { return DirectoryLockImpl::Origin(); }
-
-  Client::Type ClientType() const { return DirectoryLockImpl::ClientType(); }
+  Client::Type ClientType() const { return OriginDirectoryLock::ClientType(); }
 
  private:
   static RefPtr<ClientDirectoryLock> Create(
