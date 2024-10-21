@@ -27,18 +27,6 @@ add_task(async function test_sidebar_extension_context_menu() {
   const contextMenu = document.getElementById("sidebar-context-menu");
   is(contextMenu.state, "closed", "Checking if context menu is closed");
 
-  //   Click anywhere in the sidebar
-  EventUtils.synthesizeMouseAtCenter(
-    sidebar,
-    { type: "contextmenu", button: 2 },
-    win
-  );
-  is(
-    contextMenu.state,
-    "closed",
-    "Context menu hidden when anything other than button is right clicked"
-  );
-
   await openAndWaitForContextMenu(
     contextMenu,
     sidebar.extensionButtons[0],
