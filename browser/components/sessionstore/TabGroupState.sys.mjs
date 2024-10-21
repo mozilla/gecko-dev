@@ -11,29 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 /**
  * Module that contains tab group state collection methods.
  */
-export const TabGroupState = Object.freeze({
-  /**
-   * @param {MozTabbrowserTabGroup} tabGroup
-   *   Tab group browser element
-   * @returns {TabGroupStateData}
-   *   Serialized tab group data
-   */
-  collect(tabGroup) {
-    return TabGroupStateInternal.collect(tabGroup);
-  },
-
-  /**
-   * @param {MozTabbrowserTabGroup} tabGroup
-   *   Tab group browser element
-   * @returns {object}
-   *   Serialized tab group data
-   */
-  clone(tabGroup) {
-    return TabGroupStateInternal.clone(tabGroup);
-  },
-});
-
-const TabGroupStateInternal = {
+class _TabGroupState {
   /**
    * Collect data related to a single tab group, synchronously.
    *
@@ -49,7 +27,7 @@ const TabGroupStateInternal = {
       color: tabGroup.color,
       collapsed: tabGroup.collapsed,
     };
-  },
+  }
 
   /**
    * Collect data related to a single tab group, including all of the tabs
@@ -64,5 +42,7 @@ const TabGroupStateInternal = {
     const groupState = this.collect(tabGroup);
     groupState.tabs = tabGroup.tabs.map(tab => lazy.TabState.collect(tab));
     return groupState;
-  },
-};
+  }
+}
+
+export const TabGroupState = new _TabGroupState();
