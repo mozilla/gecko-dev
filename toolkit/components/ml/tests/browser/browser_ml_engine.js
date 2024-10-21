@@ -20,6 +20,7 @@ async function setup({ disabled = false, prefs = [], records = null } = {}) {
       ["browser.ml.logLevel", "All"],
       ["browser.ml.modelCacheTimeout", 1000],
       ["browser.ml.checkForMemory", true],
+      ["browser.ml.defaultMemoryUsage", 0.0000001], // 100 bytes
       ["browser.ml.queueWaitTimeout", 2],
       ...prefs,
     ],
