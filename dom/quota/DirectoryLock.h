@@ -7,19 +7,33 @@
 #ifndef DOM_QUOTA_DIRECTORYLOCK_H_
 #define DOM_QUOTA_DIRECTORYLOCK_H_
 
+#include <cstdint>
+#include <functional>
+
+#include "nscore.h"
+#include "nsISupportsImpl.h"
+#include "nsStringFwd.h"
 #include "nsTArrayForwardDeclare.h"
-#include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/quota/Client.h"
+#include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 
 template <class T>
 class RefPtr;
 
+namespace mozilla::dom {
+
+template <typename T>
+struct Nullable;
+
+}  // namespace mozilla::dom
+
 namespace mozilla::dom::quota {
 
-class ClientDirectoryLock;
 enum class DirectoryLockCategory : uint8_t;
 struct OriginMetadata;
+class OriginScope;
+class PersistenceScope;
 
 // Basic directory lock interface shared by all other directory lock classes.
 // The class must contain pure virtual functions only to avoid problems with

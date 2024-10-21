@@ -7,18 +7,34 @@
 #ifndef DOM_QUOTA_DIRECTORYLOCKIMPL_H_
 #define DOM_QUOTA_DIRECTORYLOCKIMPL_H_
 
+#include <cstdint>
+#include <functional>
+#include <utility>
+
+#include "nsISupportsImpl.h"
+#include "nsTArray.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/NotNull.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/dom/FlippedOnce.h"
+#include "mozilla/dom/Nullable.h"
+#include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/CommonMetadata.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockCategory.h"
+#include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/OriginScope.h"
 #include "mozilla/dom/quota/PersistenceScope.h"
+#include "mozilla/dom/quota/PersistenceType.h"
 #include "nsCOMPtr.h"
 
 class nsITimer;
 
 namespace mozilla::dom::quota {
+
+struct OriginMetadata;
+class QuotaManager;
 
 enum class ShouldUpdateLockIdTableFlag { No, Yes };
 

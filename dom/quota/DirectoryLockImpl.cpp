@@ -6,8 +6,12 @@
 
 #include "DirectoryLockImpl.h"
 
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsString.h"
+#include "nsThreadUtils.h"
 #include "mozilla/ReverseIterator.h"
-#include "mozilla/dom/quota/Client.h"
+#include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 
 namespace mozilla::dom::quota {
