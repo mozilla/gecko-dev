@@ -20,7 +20,7 @@ add_task(async function () {
   let elementFromPoint = x => arrowScrollbox._elementFromPoint(x);
   let nextLeftElement = () => elementFromPoint(left(scrollbox) - 1);
   let nextRightElement = () => elementFromPoint(right(scrollbox) + 1);
-  let firstScrollable = () => gBrowser.tabs[gBrowser._numPinnedTabs];
+  let firstScrollable = () => gBrowser.tabs[gBrowser.pinnedTabCount];
   let waitForNextFrame = async function () {
     await new Promise(requestAnimationFrame);
     await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));

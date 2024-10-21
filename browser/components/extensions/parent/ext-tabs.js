@@ -1153,7 +1153,7 @@ this.tabs = class extends ExtensionAPIPersistent {
             // the current set of pinned tabs. Unpinned tabs, likewise, can only
             // be moved to a position after the current set of pinned tabs.
             // Attempts to move a tab to an illegal position are ignored.
-            let numPinned = gBrowser._numPinnedTabs;
+            let numPinned = gBrowser.pinnedTabCount;
             let ok = nativeTab.pinned
               ? insertionPoint <= numPinned
               : insertionPoint >= numPinned;

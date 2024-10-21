@@ -407,8 +407,8 @@ var BrowserCommands = {
       (event.ctrlKey || event.metaKey || event.altKey) &&
       gBrowser.selectedTab.pinned
     ) {
-      if (gBrowser.visibleTabs.length > gBrowser._numPinnedTabs) {
-        gBrowser.tabContainer.selectedIndex = gBrowser._numPinnedTabs;
+      if (gBrowser.visibleTabs.length > gBrowser.pinnedTabCount) {
+        gBrowser.tabContainer.selectedIndex = gBrowser.pinnedTabCount;
       }
       return;
     }

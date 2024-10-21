@@ -105,7 +105,7 @@ add_task(async function test_pinned_horizontal_tabs() {
     "#vertical-pinned-tabs-container"
   );
 
-  is(tabbrowser._numPinnedTabs, 1, "One tab is pinned in horizontal tabstrip");
+  is(tabbrowser.pinnedTabCount, 1, "One tab is pinned in horizontal tabstrip");
   ok(tabs[3].pinned, "Third tab is pinned");
 
   // flip the pref to move the tabstrip into the sidebar
@@ -127,10 +127,10 @@ add_task(async function test_pinned_horizontal_tabs() {
     1,
     "One tab is pinned in vertical pinned tabs container"
   );
-  is(tabbrowser._numPinnedTabs, 1, "One tab is pinned in global tabstrip");
+  is(tabbrowser.pinnedTabCount, 1, "One tab is pinned in global tabstrip");
 
   tabbrowser.unpinTab(tabs[3]);
-  is(tabbrowser._numPinnedTabs, 0, "No tabs are pinned in the global tabstrip");
+  is(tabbrowser.pinnedTabCount, 0, "No tabs are pinned in the global tabstrip");
   is(
     verticalPinnedTabsContainer.children.length,
     0,
@@ -146,7 +146,7 @@ add_task(async function test_pinned_horizontal_tabs() {
     "Two tabs are pinned in the vertical pinned tabs container"
   );
 
-  is(tabbrowser._numPinnedTabs, 2, "Two tabs are pinned in global tabstrip");
+  is(tabbrowser.pinnedTabCount, 2, "Two tabs are pinned in global tabstrip");
   indexTest(
     1,
     1,
@@ -200,7 +200,7 @@ add_task(async function test_pinned_horizontal_tabs() {
     "Pinned tabs are no longer in vertical pinned tabs container"
   );
   is(
-    tabbrowser._numPinnedTabs,
+    tabbrowser.pinnedTabCount,
     3,
     "One tab is still pinned in global tabstrip"
   );

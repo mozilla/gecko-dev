@@ -3396,7 +3396,7 @@ BrowserGlue.prototype = {
       windowcount++;
       let tabbrowser = win.gBrowser;
       if (tabbrowser) {
-        pagecount += tabbrowser.visibleTabs.length - tabbrowser._numPinnedTabs;
+        pagecount += tabbrowser.visibleTabs.length - tabbrowser.pinnedTabCount;
       }
     }
 

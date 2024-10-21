@@ -9,7 +9,7 @@ add_task(async function () {
   }
 
   function assertNumberOfPinnedTabs(num, msg) {
-    is(gBrowser._numPinnedTabs, num, msg);
+    is(gBrowser.pinnedTabCount, num, msg);
   }
 
   // check prerequisites

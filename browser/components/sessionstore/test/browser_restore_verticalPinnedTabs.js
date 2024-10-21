@@ -75,7 +75,7 @@ add_task(async function test_pinned_tabs_restored_position() {
   );
   is(
     verticalPinnedTabsContainer.children.length,
-    gBrowser._numPinnedTabs,
+    gBrowser.pinnedTabCount,
     "Three tabs are in the vertical pinned tabs container"
   );
 

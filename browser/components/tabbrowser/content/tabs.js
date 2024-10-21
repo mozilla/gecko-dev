@@ -538,7 +538,7 @@
       if (this.#isContainerVerticalPinnedExpanded(tab)) {
         // In expanded vertical mode, the max number of pinned tabs per row is dynamic
         // Set this before adjusting dragged tab's position
-        let pinnedTabs = this.visibleTabs.slice(0, gBrowser._numPinnedTabs);
+        let pinnedTabs = this.visibleTabs.slice(0, gBrowser.pinnedTabCount);
         let tabsPerRow = 0;
         let position = 0;
         for (let pinnedTab of pinnedTabs) {
@@ -1499,7 +1499,7 @@
           let rect = ele => {
             return window.windowUtils.getBoundsWithoutFlushing(ele);
           };
-          let tab = this.visibleTabs[gBrowser._numPinnedTabs];
+          let tab = this.visibleTabs[gBrowser.pinnedTabCount];
           if (tab && rect(tab).width <= this._tabClipWidth) {
             this.setAttribute("closebuttons", "activetab");
           } else {
@@ -1562,7 +1562,7 @@
         if (isEndTab && !this._hasTabTempMaxWidth) {
           return;
         }
-        let numPinned = gBrowser._numPinnedTabs;
+        let numPinned = gBrowser.pinnedTabCount;
         // Force tabs to stay the same width, unless we're closing the last tab,
         // which case we need to let them expand just enough so that the overall
         // tabbar width is the same.
@@ -1642,9 +1642,9 @@
       let verticalTabsContainer = document.getElementById(
         "vertical-pinned-tabs-container"
       );
-      let numPinned = gBrowser._numPinnedTabs;
+      let numPinned = gBrowser.pinnedTabCount;
 
-      if (gBrowser._numPinnedTabs !== verticalTabsContainer.children.length) {
+      if (gBrowser.pinnedTabCount !== verticalTabsContainer.children.length) {
         let tabs = this.visibleTabs;
         for (let i = 0; i < numPinned; i++) {
           tabs[i].style.marginInlineStart = "";
@@ -1672,7 +1672,7 @@
 
     _positionPinnedTabs() {
       let tabs = this.visibleTabs;
-      let numPinned = gBrowser._numPinnedTabs;
+      let numPinned = gBrowser.pinnedTabCount;
       let absPositionHorizontalTabs =
         this.overflowing && tabs.length > numPinned && numPinned > 0;
 
@@ -1755,7 +1755,7 @@
         return;
       }
 
-      let tabs = this.visibleTabs.slice(0, gBrowser._numPinnedTabs);
+      let tabs = this.visibleTabs.slice(0, gBrowser.pinnedTabCount);
 
       let directionX = screenX > dragData.animLastScreenX;
       let directionY = screenY > dragData.animLastScreenY;
@@ -1941,7 +1941,7 @@
       }
 
       let pinned = draggedTab.pinned;
-      let numPinned = gBrowser._numPinnedTabs;
+      let numPinned = gBrowser.pinnedTabCount;
       let tabs = this.allTabs.slice(
         pinned ? 0 : numPinned,
         pinned ? numPinned : undefined
@@ -2277,9 +2277,9 @@
       function newIndex(aTab, index) {
         // Don't allow mixing pinned and unpinned tabs.
         if (aTab.pinned) {
-          return Math.min(index, gBrowser._numPinnedTabs - 1);
+          return Math.min(index, gBrowser.pinnedTabCount - 1);
         }
-        return Math.max(index, gBrowser._numPinnedTabs);
+        return Math.max(index, gBrowser.pinnedTabCount);
       }
     }
 

@@ -396,91 +396,7 @@
       return count;
     },
 
-    getDuplicateTabsToClose(aTab) {
-      // One would think that a set is better, but it would need to copy all
-      // the strings instead of just keeping references to the nsIURI objects,
-      // and the array is presumed to be small anyways.
-      let keys = [];
-      let keyForTab = tab => {
-        let uri = tab.linkedBrowser?.currentURI;
-        if (!uri) {
-          return null;
-        }
-        return {
-          uri,
-          userContextId: tab.userContextId,
-        };
-      };
-      let keyEquals = (a, b) => {
-        return a.userContextId == b.userContextId && a.uri.equals(b.uri);
-      };
-      if (aTab.multiselected) {
-        for (let tab of this.selectedTabs) {
-          let key = keyForTab(tab);
-          if (key) {
-            keys.push(key);
-          }
-        }
-      } else {
-        let key = keyForTab(aTab);
-        if (key) {
-          keys.push(key);
-        }
-      }
-
-      if (!keys.length) {
-        return [];
-      }
-
-      let duplicateTabs = [];
-      for (let tab of this.tabs) {
-        if (tab == aTab || tab.pinned) {
-          continue;
-        }
-        if (aTab.multiselected && tab.multiselected) {
-          continue;
-        }
-        let key = keyForTab(tab);
-        if (key && keys.some(k => keyEquals(k, key))) {
-          duplicateTabs.push(tab);
-        }
-      }
-
-      return duplicateTabs;
-    },
-
-    getAllDuplicateTabsToClose() {
-      let lastSeenTabs = this.tabs.toSorted(
-        (a, b) => b.lastSeenActive - a.lastSeenActive
-      );
-      let duplicateTabs = [];
-      let keys = [];
-      for (let tab of lastSeenTabs) {
-        const uri = tab.linkedBrowser?.currentURI;
-        if (!uri) {
-          // Can't tell if it's a duplicate without a URI.
-          // Safest to leave it be.
-          continue;
-        }
-
-        const key = {
-          uri,
-          userContextId: tab.userContextId,
-        };
-        if (
-          !tab.pinned &&
-          keys.some(
-            k => k.userContextId == key.userContextId && k.uri.equals(key.uri)
-          )
-        ) {
-          duplicateTabs.push(tab);
-        }
-        keys.push(key);
-      }
-      return duplicateTabs;
-    },
-
-    get _numPinnedTabs() {
+    get pinnedTabCount() {
       for (var i = 0; i < this.tabs.length; i++) {
         if (!this.tabs[i].pinned) {
           break;
@@ -881,7 +797,7 @@
         this.verticalPinnedTabsContainer.appendChild(aTab);
         this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
       } else {
-        this.moveTabTo(aTab, this._numPinnedTabs);
+        this.moveTabTo(aTab, this.pinnedTabCount);
       }
       aTab.setAttribute("pinned", "true");
       this._updateTabBarForPinnedTabs();
@@ -903,7 +819,7 @@
         this.tabContainer.arrowScrollbox.prepend(aTab);
         this._updateAfterMoveTabTo(aTab, oldPosition, wasFocused);
       } else {
-        this.moveTabTo(aTab, this._numPinnedTabs - 1);
+        this.moveTabTo(aTab, this.pinnedTabCount - 1);
         aTab.removeAttribute("pinned");
       }
       aTab.style.marginInlineStart = "";
@@ -3481,8 +3397,8 @@
           // inserted in the DOM. If the tab is not yet in the DOM,
           // just insert it in the right place from the start.
           if (!tab.parentNode) {
-            tab._tPos = this._numPinnedTabs;
-            this.tabContainer.insertBefore(tab, this.tabs[this._numPinnedTabs]);
+            tab._tPos = this.pinnedTabCount;
+            this.tabContainer.insertBefore(tab, this.tabs[this.pinnedTabCount]);
             tab.toggleAttribute("pinned", true);
             this.tabContainer._invalidateCachedTabs();
             // Then ensure all the tab open/pinning information is sent.
@@ -3772,9 +3688,9 @@
       // Ensure index is within bounds.
       if (pinned) {
         index = Math.max(index, 0);
-        index = Math.min(index, this._numPinnedTabs);
+        index = Math.min(index, this.pinnedTabCount);
       } else {
-        index = Math.max(index, this._numPinnedTabs);
+        index = Math.max(index, this.pinnedTabCount);
         index = Math.min(index, this.tabs.length);
       }
 
@@ -3857,6 +3773,90 @@
         tabsToEnd.push(tabs[i]);
       }
       return tabsToEnd;
+    },
+
+    getDuplicateTabsToClose(aTab) {
+      // One would think that a set is better, but it would need to copy all
+      // the strings instead of just keeping references to the nsIURI objects,
+      // and the array is presumed to be small anyways.
+      let keys = [];
+      let keyForTab = tab => {
+        let uri = tab.linkedBrowser?.currentURI;
+        if (!uri) {
+          return null;
+        }
+        return {
+          uri,
+          userContextId: tab.userContextId,
+        };
+      };
+      let keyEquals = (a, b) => {
+        return a.userContextId == b.userContextId && a.uri.equals(b.uri);
+      };
+      if (aTab.multiselected) {
+        for (let tab of this.selectedTabs) {
+          let key = keyForTab(tab);
+          if (key) {
+            keys.push(key);
+          }
+        }
+      } else {
+        let key = keyForTab(aTab);
+        if (key) {
+          keys.push(key);
+        }
+      }
+
+      if (!keys.length) {
+        return [];
+      }
+
+      let duplicateTabs = [];
+      for (let tab of this.tabs) {
+        if (tab == aTab || tab.pinned) {
+          continue;
+        }
+        if (aTab.multiselected && tab.multiselected) {
+          continue;
+        }
+        let key = keyForTab(tab);
+        if (key && keys.some(k => keyEquals(k, key))) {
+          duplicateTabs.push(tab);
+        }
+      }
+
+      return duplicateTabs;
+    },
+
+    getAllDuplicateTabsToClose() {
+      let lastSeenTabs = this.tabs.toSorted(
+        (a, b) => b.lastSeenActive - a.lastSeenActive
+      );
+      let duplicateTabs = [];
+      let keys = [];
+      for (let tab of lastSeenTabs) {
+        const uri = tab.linkedBrowser?.currentURI;
+        if (!uri) {
+          // Can't tell if it's a duplicate without a URI.
+          // Safest to leave it be.
+          continue;
+        }
+
+        const key = {
+          uri,
+          userContextId: tab.userContextId,
+        };
+        if (
+          !tab.pinned &&
+          keys.some(
+            k => k.userContextId == key.userContextId && k.uri.equals(key.uri)
+          )
+        ) {
+          duplicateTabs.push(tab);
+        }
+        keys.push(key);
+      }
+      return duplicateTabs;
     },
 
     removeDuplicateTabs(aTab) {
@@ -5450,9 +5450,9 @@
 
       // Don't allow mixing pinned and unpinned tabs.
       if (aTab.pinned) {
-        aIndex = Math.min(aIndex, this._numPinnedTabs - 1);
+        aIndex = Math.min(aIndex, this.pinnedTabCount - 1);
       } else {
-        aIndex = Math.max(aIndex, this._numPinnedTabs);
+        aIndex = Math.max(aIndex, this.pinnedTabCount);
       }
       if (oldPosition == aIndex) {
         return;
@@ -5555,7 +5555,7 @@
         createLazyBrowser,
       };
 
-      let numPinned = this._numPinnedTabs;
+      let numPinned = this.pinnedTabCount;
       if (aIndex < numPinned || (aTab.pinned && aIndex == numPinned)) {
         params.pinned = true;
       }
@@ -8147,7 +8147,7 @@ var TabContextMenu = {
     let contextMoveTabToStart = document.getElementById("context_moveToStart");
     let isFirstTab =
       tabsToMove[0] == visibleTabs[0] ||
-      tabsToMove[0] == visibleTabs[gBrowser._numPinnedTabs];
+      tabsToMove[0] == visibleTabs[gBrowser.pinnedTabCount];
     contextMoveTabToStart.disabled = isFirstTab && allSelectedTabsAdjacent;
 
     document.getElementById("context_openTabInWindow").disabled =
