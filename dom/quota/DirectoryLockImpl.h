@@ -191,6 +191,16 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
 
   int64_t Id() const override { return mId; }
 
+  const PersistenceScope& PersistenceScopeRef() const override {
+    return mPersistenceScope;
+  }
+
+  const OriginScope& GetOriginScope() const override { return mOriginScope; }
+
+  const Nullable<Client::Type>& NullableClientType() const override {
+    return mClientType;
+  }
+
   DirectoryLockCategory Category() const override { return mCategory; }
 
   bool Acquired() const override { return mAcquired; }
@@ -253,16 +263,6 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
   }
 
   // UniversalDirectoryLock interface
-
-  const PersistenceScope& PersistenceScopeRef() const override {
-    return mPersistenceScope;
-  }
-
-  const OriginScope& GetOriginScope() const override { return mOriginScope; }
-
-  const Nullable<Client::Type>& NullableClientType() const override {
-    return mClientType;
-  }
 
   RefPtr<ClientDirectoryLock> SpecializeForClient(
       PersistenceType aPersistenceType,
