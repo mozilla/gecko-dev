@@ -830,6 +830,10 @@ var PrintEventHandler = {
       // This resolves with a PrintPreviewSuccessInfo dictionary.
       let { sourceVersion } = this.viewSettings;
       let sourceURI = this.activeURI;
+      // The printing backend can't generate a title for the selection document
+      // since it is only a fragment of the page, give it the active title.
+      settings.title =
+        this.viewSettings.sourceVersion == "selection" ? this.activeTitle : "";
       this._lastPrintPreviewSettings = settings;
       ({
         totalPageCount,
