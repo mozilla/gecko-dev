@@ -114,39 +114,6 @@ class MessageChannel : HasResultCodes {
  public:
   using Message = IPC::Message;
 
-  struct UntypedCallbackHolder {
-    UntypedCallbackHolder(int32_t aActorId, Message::msgid_t aReplyMsgId,
-                          RejectCallback&& aReject)
-        : mActorId(aActorId),
-          mReplyMsgId(aReplyMsgId),
-          mReject(std::move(aReject)) {}
-
-    virtual ~UntypedCallbackHolder() = default;
-
-    void Reject(ResponseRejectReason&& aReason) { mReject(std::move(aReason)); }
-
-    int32_t mActorId;
-    Message::msgid_t mReplyMsgId;
-    RejectCallback mReject;
-  };
-
-  template <typename Value>
-  struct CallbackHolder : public UntypedCallbackHolder {
-    CallbackHolder(int32_t aActorId, Message::msgid_t aReplyMsgId,
-                   ResolveCallback<Value>&& aResolve, RejectCallback&& aReject)
-        : UntypedCallbackHolder(aActorId, aReplyMsgId, std::move(aReject)),
-          mResolve(std::move(aResolve)) {}
-
-    void Resolve(Value&& aReason) { mResolve(std::move(aReason)); }
-
-    ResolveCallback<Value> mResolve;
-  };
-
- private:
-  static Atomic<size_t> gUnresolvedResponses;
-  friend class PendingResponseReporter;
-
- public:
   static constexpr int32_t kNoTimeout = INT32_MIN;
 
   using ScopedPort = mozilla::ipc::ScopedPort;
@@ -235,28 +202,10 @@ class MessageChannel : HasResultCodes {
   void SetChannelFlags(ChannelFlags aFlags) { mFlags = aFlags; }
   ChannelFlags GetChannelFlags() { return mFlags; }
 
-  // Asynchronously send a message to the other side of the channel
-  bool Send(UniquePtr<Message> aMsg) MOZ_EXCLUDES(*mMonitor);
-
-  // Asynchronously send a message to the other side of the channel
-  // and wait for asynchronous reply.
-  template <typename Value>
-  void Send(UniquePtr<Message> aMsg, int32_t aActorId,
-            Message::msgid_t aReplyMsgId, ResolveCallback<Value>&& aResolve,
-            RejectCallback&& aReject) MOZ_EXCLUDES(*mMonitor) {
-    int32_t seqno = NextSeqno();
-    aMsg->set_seqno(seqno);
-    if (!Send(std::move(aMsg))) {
-      aReject(ResponseRejectReason::SendError);
-      return;
-    }
-
-    UniquePtr<UntypedCallbackHolder> callback =
-        MakeUnique<CallbackHolder<Value>>(
-            aActorId, aReplyMsgId, std::move(aResolve), std::move(aReject));
-    mPendingResponses.insert(std::make_pair(seqno, std::move(callback)));
-    gUnresolvedResponses++;
-  }
+  // Asynchronously send a message to the other side of the channel.
+  // If aSeqno is non-null, it will be set to the seqno of the sent message.
+  bool Send(UniquePtr<Message> aMsg, int32_t* aSeqno = nullptr)
+      MOZ_EXCLUDES(*mMonitor);
 
   bool SendBuildIDsMatchMessage(const char* aParentBuildID)
       MOZ_EXCLUDES(*mMonitor);
@@ -270,14 +219,6 @@ class MessageChannel : HasResultCodes {
       MOZ_EXCLUDES(*mMonitor);
 
   bool CanSend() const MOZ_EXCLUDES(*mMonitor);
-
-  // Remove and return a callback that needs reply
-  UniquePtr<UntypedCallbackHolder> PopCallback(const Message& aMsg,
-                                               int32_t aActorId);
-
-  // Used to reject and remove pending responses owned by the given
-  // actor when it's about to be destroyed.
-  void RejectPendingResponsesForActor(int32_t aActorId);
 
   // If sending a sync message returns an error, this function gives a more
   // descriptive error message.
@@ -613,7 +554,6 @@ class MessageChannel : HasResultCodes {
   };
 
   typedef LinkedList<RefPtr<MessageTask>> MessageQueue;
-  typedef std::map<size_t, UniquePtr<UntypedCallbackHolder>> CallbackMap;
   typedef IPC::Message::msgid_t msgid_t;
 
  private:
@@ -769,9 +709,6 @@ class MessageChannel : HasResultCodes {
   // This member is only accessed on the worker thread, and so is not protected
   // by mMonitor.
   bool mOnCxxStack = false;
-
-  // Map of async Callbacks that are still waiting replies.
-  CallbackMap mPendingResponses;
 
 #ifdef XP_WIN
   HANDLE mEvent;

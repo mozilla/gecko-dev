@@ -20,6 +20,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/FunctionRef.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/MoveOnlyFunction.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
@@ -178,8 +179,8 @@ class IProtocol : public HasResultCodes {
     ManagedEndpointDropped
   };
 
-  typedef base::ProcessId ProcessId;
-  typedef IPC::Message Message;
+  using ProcessId = base::ProcessId;
+  using Message = IPC::Message;
 
   IProtocol(ProtocolId aProtoId, Side aSide)
       : mId(0),
@@ -273,22 +274,9 @@ class IProtocol : public HasResultCodes {
                              int32_t aId = kNullActorId);
 
   // Helpers for calling `Send` on our underlying IPC channel.
-  bool ChannelSend(UniquePtr<IPC::Message> aMsg);
+  bool ChannelSend(UniquePtr<IPC::Message> aMsg, int32_t* aSeqno = nullptr);
   bool ChannelSend(UniquePtr<IPC::Message> aMsg,
                    UniquePtr<IPC::Message>* aReply);
-  template <typename Value>
-  void ChannelSend(UniquePtr<IPC::Message> aMsg,
-                   IPC::Message::msgid_t aReplyMsgId,
-                   ResolveCallback<Value>&& aResolve,
-                   RejectCallback&& aReject) {
-    if (CanSend()) {
-      GetIPCChannel()->Send(std::move(aMsg), Id(), aReplyMsgId,
-                            std::move(aResolve), std::move(aReject));
-    } else {
-      WarnMessageDiscarded(aMsg.get());
-      aReject(ResponseRejectReason::SendError);
-    }
-  }
 
   // Internal method called when the actor becomes connected.
   already_AddRefed<ActorLifecycleProxy> ActorConnected();
@@ -306,6 +294,10 @@ class IProtocol : public HasResultCodes {
   const UntypedManagedContainer* GetManagedActors(ProtocolId aProtocol) const {
     return const_cast<IProtocol*>(this)->GetManagedActors(aProtocol);
   }
+
+  // Called internally to reject the callbacks for all async-returns methods
+  // in-progress on this actor with the `ActorDestroyed` ResponseRejectReason.
+  virtual void RejectPendingResponses() {}
 
   // Called when the actor has been destroyed due to an error, a __delete__
   // message, or a __doom__ reply.
@@ -760,6 +752,29 @@ class IPDLResolverInner final {
 
   UniquePtr<IPC::Message> mReply;
   RefPtr<WeakActorLifecycleProxy> mWeakProxy;
+};
+
+// Member type added by the IPDL compiler to actors with async-returns messages.
+// Manages a table mapping outstanding async message seqnos to the corresponding
+// IPDL-generated callback which handles validating, deserializing, and
+// dispatching the reply.
+class IPDLAsyncReturnsCallbacks : public HasResultCodes {
+ public:
+  // Internal handler signature. A null message argument signals that the
+  // callback should be rejected due to actor destruction.
+  using Callback =
+      mozilla::MoveOnlyFunction<Result(IProtocol*, const IPC::Message*)>;
+
+  void AddCallback(int32_t aSeqno, Callback aCallback);
+  Result GotReply(IProtocol* aActor, const IPC::Message& aMessage);
+  void RejectPendingResponses();
+
+ private:
+  // NOTE: We expect this table to be quite small most of the time (usually 0-1
+  // entries), so use a sorted array as backing storage to reduce unnecessary
+  // overhead.
+  using Entry = std::pair<int32_t, Callback>;
+  nsTArray<Entry> mMap;
 };
 
 }  // namespace ipc

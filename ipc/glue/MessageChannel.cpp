@@ -305,25 +305,6 @@ class AutoEnterTransaction {
   UniquePtr<IPC::Message> mReply;
 };
 
-class PendingResponseReporter final : public nsIMemoryReporter {
-  ~PendingResponseReporter() = default;
-
- public:
-  NS_DECL_THREADSAFE_ISUPPORTS
-
-  NS_IMETHOD
-  CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
-                 bool aAnonymize) override {
-    MOZ_COLLECT_REPORT(
-        "unresolved-ipc-responses", KIND_OTHER, UNITS_COUNT,
-        MessageChannel::gUnresolvedResponses,
-        "Outstanding IPC async message responses that are still not resolved.");
-    return NS_OK;
-  }
-};
-
-NS_IMPL_ISUPPORTS(PendingResponseReporter, nsIMemoryReporter)
-
 class ChannelCountReporter final : public nsIMemoryReporter {
   ~ChannelCountReporter() = default;
 
@@ -424,8 +405,6 @@ static void TryRegisterStrongMemoryReporter() {
   }
 }
 
-Atomic<size_t> MessageChannel::gUnresolvedResponses;
-
 MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
     : mName(aName), mListener(aListener), mMonitor(new RefCountedMonitor()) {
   MOZ_COUNT_CTOR(ipc::MessageChannel);
@@ -435,7 +414,6 @@ MessageChannel::MessageChannel(const char* aName, IToplevelProtocol* aListener)
   MOZ_RELEASE_ASSERT(mEvent, "CreateEvent failed! Nothing is going to work!");
 #endif
 
-  TryRegisterStrongMemoryReporter<PendingResponseReporter>();
   TryRegisterStrongMemoryReporter<ChannelCountReporter>();
 }
 
@@ -490,7 +468,6 @@ MessageChannel::~MessageChannel() {
 
   // Double-check other properties for thoroughness.
   MOZ_RELEASE_ASSERT(!mLink);
-  MOZ_RELEASE_ASSERT(mPendingResponses.empty());
   MOZ_RELEASE_ASSERT(!mChannelErrorTask);
   MOZ_RELEASE_ASSERT(mPending.isEmpty());
   MOZ_RELEASE_ASSERT(!mShutdownTask);
@@ -603,16 +580,6 @@ void MessageChannel::Clear() {
   if (NS_IsMainThread() && gParentProcessBlocker == this) {
     gParentProcessBlocker = nullptr;
   }
-
-  gUnresolvedResponses -= mPendingResponses.size();
-  {
-    CallbackMap map = std::move(mPendingResponses);
-    MonitorAutoUnlock unlock(*mMonitor);
-    for (auto& pair : map) {
-      pair.second->Reject(ResponseRejectReason::ChannelClosed);
-    }
-  }
-  mPendingResponses.clear();
 
   SetIsCrossProcess(false);
 
@@ -741,21 +708,24 @@ bool MessageChannel::OpenOnSameThread(MessageChannel* aTargetChan,
          Open(std::move(porta), aSide, channelId, currentThread);
 }
 
-bool MessageChannel::Send(UniquePtr<Message> aMsg) {
+bool MessageChannel::Send(UniquePtr<Message> aMsg, int32_t* aSeqno) {
   MOZ_RELEASE_ASSERT(!aMsg->is_sync());
   MOZ_RELEASE_ASSERT(aMsg->nested_level() != IPC::Message::NESTED_INSIDE_SYNC);
+  AssertWorkerThread();
+  mMonitor->AssertNotCurrentThreadOwns();
 
   AutoSetValue<bool> setOnCxxStack(mOnCxxStack, true);
 
-  AssertWorkerThread();
-  mMonitor->AssertNotCurrentThreadOwns();
+  if (aMsg->seqno() == 0) {
+    aMsg->set_seqno(NextSeqno());
+  }
+  if (aSeqno) {
+    *aSeqno = aMsg->seqno();
+  }
+
   if (MSG_ROUTING_NONE == aMsg->routing_id()) {
     ReportMessageRouteError("MessageChannel::Send");
     return false;
-  }
-
-  if (aMsg->seqno() == 0) {
-    aMsg->set_seqno(NextSeqno());
   }
 
   MonitorAutoLock lock(*mMonitor);
@@ -810,35 +780,6 @@ void MessageChannel::FlushLazySendMessages() {
   // Send all lazy messages, then clear the queue.
   for (auto& msg : messages) {
     mLink->SendMessage(std::move(msg));
-  }
-}
-
-UniquePtr<MessageChannel::UntypedCallbackHolder> MessageChannel::PopCallback(
-    const Message& aMsg, int32_t aActorId) {
-  auto iter = mPendingResponses.find(aMsg.seqno());
-  if (iter != mPendingResponses.end() && iter->second->mActorId == aActorId &&
-      iter->second->mReplyMsgId == aMsg.type()) {
-    UniquePtr<MessageChannel::UntypedCallbackHolder> ret =
-        std::move(iter->second);
-    mPendingResponses.erase(iter);
-    gUnresolvedResponses--;
-    return ret;
-  }
-  return nullptr;
-}
-
-void MessageChannel::RejectPendingResponsesForActor(int32_t aActorId) {
-  auto itr = mPendingResponses.begin();
-  while (itr != mPendingResponses.end()) {
-    if (itr->second.get()->mActorId != aActorId) {
-      ++itr;
-      continue;
-    }
-    itr->second.get()->Reject(ResponseRejectReason::ActorDestroyed);
-    // Take special care of advancing the iterator since we are
-    // removing it while iterating.
-    itr = mPendingResponses.erase(itr);
-    gUnresolvedResponses--;
   }
 }
 
