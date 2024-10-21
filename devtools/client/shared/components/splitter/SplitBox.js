@@ -67,6 +67,32 @@ class SplitBox extends Component {
     };
   }
 
+  static getDerivedStateFromProps(props, state) {
+    if (
+      props.endPanelControl === state.prevEndPanelControl &&
+      props.splitterSize === state.prevSplitterSize &&
+      props.vert === state.prevVert
+    ) {
+      return null;
+    }
+
+    const newState = {};
+    if (props.endPanelControl !== state.prevEndPanelControl) {
+      newState.endPanelControl = props.endPanelControl;
+      newState.prevEndPanelControl = props.endPanelControl;
+    }
+    if (props.splitterSize !== state.prevSplitterSize) {
+      newState.splitterSize = props.splitterSize;
+      newState.prevSplitterSize = props.splitterSize;
+    }
+    if (props.vert !== state.prevVert) {
+      newState.vert = props.vert;
+      newState.prevVert = props.vert;
+    }
+
+    return newState;
+  }
+
   constructor(props) {
     super(props);
 
@@ -82,6 +108,13 @@ class SplitBox extends Component {
       vert: props.vert,
       // Size of the splitter handle bar.
       splitterSize: props.splitterSize,
+      // The state for above 3 properties are derived from props, but also managed by the component itself.
+      // SplitBox manages it's own state but sometimes the parent will pass in new props which will
+      // override the current state of the component. So we need track the prev value of these props so that
+      // compare them to the props change and derive new state whenever these 3 props change.
+      prevEndPanelControl: props.endPanelControl,
+      prevVert: props.vert,
+      prevSplitterSize: props.splitterSize,
       // Width of controlled panel.
       width: props.initialWidth || props.initialSize,
       // Height of controlled panel.
@@ -91,23 +124,6 @@ class SplitBox extends Component {
     this.onStartMove = this.onStartMove.bind(this);
     this.onStopMove = this.onStopMove.bind(this);
     this.onMove = this.onMove.bind(this);
-  }
-
-  // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const { endPanelControl, splitterSize, vert } = nextProps;
-
-    if (endPanelControl != this.props.endPanelControl) {
-      this.setState({ endPanelControl });
-    }
-
-    if (splitterSize != this.props.splitterSize) {
-      this.setState({ splitterSize });
-    }
-
-    if (vert !== this.props.vert) {
-      this.setState({ vert });
-    }
   }
 
   shouldComponentUpdate(nextProps, nextState) {
