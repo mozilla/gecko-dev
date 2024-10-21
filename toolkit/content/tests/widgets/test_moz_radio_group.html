@@ -2,44 +2,37 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>MozRadio and MozRadioGroup Tests</title>
+  <title>MozRadioGroup Tests</title>
   <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
   <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
   <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script src="input-test-helpers.js"></script>
   <script>
-    const { BrowserTestUtils } = ChromeUtils.importESModule(
-      "resource://testing-common/BrowserTestUtils.sys.mjs"
+    const { TestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/TestUtils.sys.mjs"
     );
 
-    let html, render, renderTarget, defaultTemplate;
+    let testHelpers = new InputTestHelpers();
+    let literal, html;
 
     add_setup(async function setup() {
-      ({ html, render } = await import(
-        "chrome://global/content/vendor/lit.all.mjs"
-      ));
-      renderTarget = document.getElementById("render");
-      defaultTemplate = html`
+      ({ literal, html } = await testHelpers.setupLit());
+      let defaultTemplate = html`
         <moz-radio-group name="test-name" label="Radio group label">
           <moz-radio checked value="first" label="First"></moz-radio>
           <moz-radio value="second" label="Second"></moz-radio>
           <moz-radio value="third" label="Third"></moz-radio>
         </moz-radio-group>
       `;
+      await testHelpers.setupInputTests(literal`moz-radio`, defaultTemplate);
     });
 
-    async function renderRadioElements(template = defaultTemplate) {
-      render(template, renderTarget);
-      let radioGroup = renderTarget.querySelector("moz-radio-group");
-      let radioButtons = renderTarget.querySelectorAll("moz-radio");
-      await radioGroup.updateComplete;
-      return { radioGroup, radioButtons: [...radioButtons] };
-    }
-
-    // Verify label text.
-    add_task(async function testRadioLabels() {
+    // Verify the radio group label.
+    add_task(async function testRadioGroupLabel() {
       const TEST_LABEL = "Testing...";
-      let { radioGroup, radioButtons } = await renderRadioElements();
+      let renderTarget = await testHelpers.renderInputElements();
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
 
       is(
         radioGroup.fieldset.label,
@@ -53,20 +46,6 @@
         TEST_LABEL,
         "Radio group label text is updated."
       );
-
-      let firstRadioButton = radioButtons[0];
-      is(
-        firstRadioButton.labelEl.innerText.trim(),
-        "First",
-        "Radio button label text is set."
-      );
-      firstRadioButton.label = TEST_LABEL;
-      await firstRadioButton.updateComplete;
-      is(
-        firstRadioButton.labelEl.innerText.trim(),
-        TEST_LABEL,
-        "Radio button label text is updated."
-      );
     });
 
     // Verify that each radio button is given the name of the radio group.
@@ -74,7 +53,10 @@
       const FIRST_NAME = "test-name";
       const SECOND_NAME = "test-name-two";
 
-      let { radioGroup, radioButtons } = await renderRadioElements();
+      let renderTarget = await testHelpers.renderInputElements();
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let radioButtons = renderTarget.querySelectorAll("moz-radio");
+
       is(radioGroup.name, FIRST_NAME, "Radio group has the expected name.");
       radioButtons.forEach(button => {
         is(button.name, FIRST_NAME, "Group name propagates to each button.");
@@ -90,7 +72,9 @@
 
     // Verify effects and methods of changing radio button checked state.
     add_task(async function testChangeRadioButtonChecked() {
-      let { radioGroup, radioButtons } = await renderRadioElements();
+      let renderTarget = await testHelpers.renderInputElements();
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let radioButtons = [...renderTarget.querySelectorAll("moz-radio")];
       let [firstButton, secondButton, thirdButton] = radioButtons;
 
       function verifyCheckedState(selectedButton) {
@@ -114,11 +98,7 @@
               "false",
               "All other buttons have the correct aria-checked value."
             );
-            is(
-              button.inputEl.tabIndex,
-              -1,
-              "All other buttons are not focusable."
-            );
+            is(button.inputEl.tabIndex, -1, "All other buttons are not focusable.");
           });
         is(
           radioGroup.value,
@@ -144,8 +124,9 @@
     // Verify that changing the radio group's value updates the checked state of
     // its moz-radio children.
     add_task(async function testChangeRadioGroupValue() {
-      let { radioGroup, radioButtons } = await renderRadioElements();
-      let [firstButton, , thirdButton] = radioButtons;
+      let renderTarget = await testHelpers.renderInputElements();
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let [firstButton, , thirdButton] = renderTarget.querySelectorAll("moz-radio");
 
       synthesizeMouseAtCenter(firstButton, {});
       await radioGroup.updateComplete;
@@ -179,8 +160,10 @@
         is(radioGroup.value, button.value, "Radio group value is updated.");
       }
 
-      let { radioGroup, radioButtons } = await renderRadioElements();
-      let [firstButton, secondButton, thirdButton] = radioButtons;
+      let renderTarget = await testHelpers.renderInputElements();
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let [firstButton, secondButton, thirdButton] = renderTarget.querySelectorAll("moz-radio");
+
       firstButton.click();
       is(
         document.activeElement,
@@ -257,8 +240,9 @@
         </moz-radio-group>
         <button tabindex="0" id="after">After group/button></button>
       `;
-      let { radioGroup, radioButtons } = await renderRadioElements(template);
-      let [firstRadioButton, secondRadioButton, thirdRadioButton] = radioButtons;
+      let renderTarget = await testHelpers.renderInputElements(template);
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let [firstButton, secondButton, thirdButton] = renderTarget.querySelectorAll("moz-radio");
       let [beforeButton, afterButton] = renderTarget.querySelectorAll("button");
 
       ok(
@@ -270,10 +254,10 @@
       synthesizeKey("KEY_Tab", {});
       is(
         document.activeElement,
-        firstRadioButton,
+        firstButton,
         "First radio button is tab focusable when all buttons un-checked."
       );
-      [secondRadioButton, thirdRadioButton].forEach(button =>
+      [secondButton, thirdButton].forEach(button =>
         is(
           button.inputEl.getAttribute("tabindex"),
           "-1",
@@ -291,23 +275,23 @@
       synthesizeKey("KEY_Tab", { shiftKey: true });
       is(
         document.activeElement,
-        firstRadioButton,
+        firstButton,
         "Focus moves back to the first radio button."
       );
 
       synthesizeKey("KEY_ArrowDown", {});
       is(
         document.activeElement,
-        secondRadioButton,
+        secondButton,
         "Focus moves to the second radio button with down arrow keypress."
       );
       is(
         radioGroup.value,
-        secondRadioButton.value,
+        secondButton.value,
         "Radio group value updates to second radio button value."
       );
 
-      secondRadioButton.checked = false;
+      secondButton.checked = false;
       await radioGroup.updateComplete;
       synthesizeKey("KEY_Tab", { shiftKey: true });
       ok(
@@ -316,18 +300,18 @@
       );
       is(
         document.activeElement,
-        firstRadioButton,
+        firstButton,
         "First radio button becomes focusable again."
       );
 
       synthesizeKey("KEY_Tab", { shiftKey: true });
-      firstRadioButton.disabled = true;
-      secondRadioButton.disabled = true;
+      firstButton.disabled = true;
+      secondButton.disabled = true;
       await radioGroup.updateComplete;
       synthesizeKey("KEY_Tab");
       is(
         document.activeElement,
-        thirdRadioButton,
+        thirdButton,
         "First non-disabled radio button is focusable when all buttons are un-checked."
       );
     });
@@ -343,8 +327,9 @@
         </moz-radio-group>
         <button id="after">after group</button>
       `;
-      let { radioGroup, radioButtons } = await renderRadioElements(disabledTemplate);
-      let [firstRadioButton, secondRadioButton, thirdRadioButton] = radioButtons;
+      let renderTarget = await testHelpers.renderInputElements(disabledTemplate);
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let [firstButton, secondButton, thirdButton] = renderTarget.querySelectorAll("moz-radio");
 
       let afterButton = document.getElementById("after");
       let beforeButton = document.getElementById("before");
@@ -352,11 +337,11 @@
       synthesizeKey("KEY_Tab", {});
       is(
         document.activeElement,
-        secondRadioButton,
+        secondButton,
         "The second radio button should receive focus when the first radio button is disabled"
       );
       is(
-        firstRadioButton.disabled,
+        firstButton.disabled,
         true,
         "First radio button should still be disabled"
       );
@@ -364,12 +349,12 @@
       synthesizeKey("KEY_ArrowDown", {});
       is(
         document.activeElement,
-        thirdRadioButton,
+        thirdButton,
         "Focus should move to the third radio button"
       );
       await radioGroup.updateComplete;
-      ok(thirdRadioButton.checked, "Third radio button gets checked");
-      is(radioGroup.value, thirdRadioButton.value, "Radio group value is updated");
+      ok(thirdButton.checked, "Third radio button gets checked");
+      is(radioGroup.value, thirdButton.value, "Radio group value is updated");
 
       synthesizeKey("KEY_Tab", {});
       is(
@@ -381,55 +366,18 @@
       synthesizeKey("KEY_Tab", { shiftKey: true });
       is(
         document.activeElement,
-        thirdRadioButton,
+        thirdButton,
         "Focus should move back to the checked radio button"
       );
     });
 
     // Verify expected events emitted in the correct order.
     add_task(async function testRadioEvents() {
-      let { radioGroup, radioButtons } = await renderRadioElements();
+      let renderTarget = await testHelpers.renderInputElements();
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let radioButtons = renderTarget.querySelectorAll("moz-radio");
       let [firstButton, secondButton, thirdButton] = radioButtons;
-
-      let seenEvents = [];
-
-      function trackEvent(event) {
-        seenEvents.push({
-          type: event.type,
-          value: event.target.value,
-          checked: event.target.checked,
-          localName: event.currentTarget.localName,
-        });
-      }
-
-      function verifyEvents(expectedEvents) {
-        is(
-          seenEvents.length,
-          expectedEvents.length,
-          "Radio elements emit the expected number of events."
-        );
-        expectedEvents.forEach((eventInfo, index) => {
-          let seenEventInfo = seenEvents[index];
-          is(seenEventInfo.type, eventInfo.type, "Event type is correct.");
-          is(
-            seenEventInfo.value,
-            eventInfo.value,
-            "Event target value is correct."
-          );
-          is(
-            seenEventInfo.localName,
-            eventInfo.localName,
-            "Event is emitted from the correct element."
-          );
-          if (eventInfo.hasOwnProperty("checked")) {
-            is(
-              seenEventInfo.checked,
-              eventInfo.checked,
-              "Event checked state is correct."
-            );
-          }
-        });
-      }
+      let { trackEvent, verifyEvents } = testHelpers.getInputEventHelpers();
 
       radioButtons.forEach(button => {
         button.addEventListener("click", trackEvent);
@@ -441,7 +389,7 @@
 
       // Verify that clicking on a radio button emits the right events in the correct order.
       synthesizeMouseAtCenter(thirdButton.inputEl, {});
-      await new Promise(r => setTimeout(r, 0));
+      await TestUtils.waitForTick();
 
       verifyEvents([
         { type: "click", value: "third", localName: "moz-radio", checked: true },
@@ -451,14 +399,11 @@
         { type: "change", value: "third", localName: "moz-radio-group" },
       ]);
 
-      // Reset seen events.
-      seenEvents = [];
-
       // Verify that keyboard navigation emits the right events in the correct order.
       synthesizeKey("KEY_ArrowUp", {});
       await radioGroup.updateComplete;
       is(radioGroup.value, secondButton.value, "Radiogroup value is updated.");
-      await new Promise(r => setTimeout(r, 0));
+      await TestUtils.waitForTick();
 
       verifyEvents([
         { type: "click", value: "second", localName: "moz-radio", checked: true },
@@ -468,72 +413,46 @@
         { type: "change", value: "second", localName: "moz-radio-group" },
       ]);
 
-      // Reset seen events.
-      seenEvents = [];
-
       // Verify that changing the group's value directly doesn't emit any events.
       radioGroup.value = firstButton.value;
       await radioGroup.updateComplete;
       ok(firstButton.checked, "Expected radio button is checked.");
-      await new Promise(r => setTimeout(r, 0));
+      await TestUtils.waitForTick();
       verifyEvents([]);
-
-      // Reset seen events.
-      seenEvents = [];
 
       // Verify that changing a radio button's checked state directly doesn't emit any events.
       secondButton.checked = true;
       await radioGroup.updateComplete;
       is(radioGroup.value, secondButton.value, "Radiogroup value is updated.");
-      await new Promise(r => setTimeout(r, 0));
+      await TestUtils.waitForTick();
       verifyEvents([]);
 
-      // Reset seen events.
-      seenEvents = [];
-
-      // Verify we don't get any events from disabled radio groups or buttons.
+      // Verify we don't get any events from disabled radio groups.
       radioGroup.disabled = true;
       await radioGroup.updateComplete;
       synthesizeMouseAtCenter(firstButton.inputEl, {});
-      await new Promise(r => setTimeout(r, 0));
+      await TestUtils.waitForTick();
       verifyEvents([]);
       radioGroup.disabled = false;
       await radioGroup.updateComplete;
 
-      // Reset seen events.
-      seenEvents = [];
-
+      // Verify we don't get any events from disabled radio buttons.
       thirdButton.disabled = true;
       await radioGroup.updateComplete;
       thirdButton.click();
-      await new Promise(r => setTimeout(r, 0));
+      await TestUtils.waitForTick();
       verifyEvents([]);
       thirdButton.disabled = false;
       await radioGroup.updateComplete;
     });
 
-    // Verify setting iconSrc displays an icon in the radio button.
-    add_task(async function testRadioButtonIcon() {
-      const ICON_SRC = "chrome://global/skin/icons/edit-copy.svg";
-      let { radioButtons } = await renderRadioElements();
-      let [firstRadioButton] = radioButtons;
-
-      ok(!firstRadioButton.icon, "No icon element present if iconSrc isn't set.");
-      firstRadioButton.iconSrc = ICON_SRC;
-      await firstRadioButton.updateComplete;
-      ok(firstRadioButton.icon, "Radio button displays an icon.");
-      is(
-        firstRadioButton.icon.getAttribute("src"),
-        ICON_SRC,
-        "Radio button icon uses the expected source."
-      );
-    });
-
     // Verify disabling the group disables all buttons in the group as well as
     // the ways it's possible to disable/enable individual buttons.
     add_task(async function testDisablingRadioElements() {
-      let { radioGroup, radioButtons } = await renderRadioElements();
-      let [firstRadioButton, ...otherButtons] = radioButtons;
+      let renderTarget = await testHelpers.renderInputElements();
+      let radioGroup = renderTarget.querySelector("moz-radio-group");
+      let radioButtons = renderTarget.querySelectorAll("moz-radio");
+      let [firstButton, ...otherButtons] = radioButtons;
 
       function verifyElementStates(state) {
         let checkElementState = element =>
@@ -553,10 +472,10 @@
       verifyElementStates("enabled");
 
       // Verify it's possible to disable a single radio button independently.
-      firstRadioButton.disabled = true;
-      await firstRadioButton.updateComplete;
+      firstButton.disabled = true;
+      await firstButton.updateComplete;
       ok(
-        firstRadioButton.inputEl.hasAttribute("disabled"),
+        firstButton.inputEl.hasAttribute("disabled"),
         "The first radio button is now disabled."
       );
       otherButtons.forEach(button =>
@@ -573,8 +492,8 @@
 
       // Verify it's not possible to enable a single radio button when the
       // parent group is disabled.
-      firstRadioButton.disabled = false;
-      await firstRadioButton.updateComplete;
+      firstButton.disabled = false;
+      await firstButton.updateComplete;
       verifyElementStates("disabled");
 
       // Re-enable the radio group. The independently disabled radio button
@@ -582,7 +501,7 @@
       radioGroup.disabled = false;
       await radioGroup.updateComplete;
       ok(
-        firstRadioButton.inputEl.hasAttribute("disabled"),
+        firstButton.inputEl.hasAttribute("disabled"),
         "The first radio button is still disabled."
       );
       otherButtons.forEach(button =>
@@ -593,205 +512,12 @@
       );
 
       // Verify it's possible to enable a single radio button independently.
-      firstRadioButton.disabled = false;
-      await firstRadioButton.updateComplete;
+      firstButton.disabled = false;
+      await firstButton.updateComplete;
       verifyElementStates("enabled");
-    });
-
-    add_task(async function testButtonDescriptions() {
-      const ATTR_DESCRIPTION = "This description is set via an attribute."
-      const SLOTTED_DESCRIPTION = "This description is set via a slot."
-
-      let template = html`
-        <moz-radio-group name="test-name" label="Radio group label">
-          <moz-radio checked value="first" label="First" description=${ATTR_DESCRIPTION}></moz-radio>
-          <moz-radio value="second" label="Second">
-            <span slot="description">${SLOTTED_DESCRIPTION}</span>
-          </moz-radio>
-          <moz-radio checked value="third" label="Third" description=${ATTR_DESCRIPTION}>
-            <span slot="description">${SLOTTED_DESCRIPTION}</span>
-          </moz-radio>
-        </moz-radio-group>
-      `;
-
-      let { radioButtons } = await renderRadioElements(template);
-      let [firstButton, secondButton, thirdButton] = radioButtons;
-
-      is(
-        firstButton.inputEl.getAttribute("aria-describedby"),
-        "description",
-        "Radio input is described by the description element."
-      );
-      is(
-        firstButton.descriptionEl.innerText,
-        ATTR_DESCRIPTION,
-        "Description element has the expected text when set via an attribute."
-      );
-
-      is(
-        secondButton.inputEl.getAttribute("aria-describedby"),
-        "description",
-        "Radio input is described by the description element."
-      );
-      let slottedText = secondButton.descriptionEl
-        .querySelector("slot[name=description]")
-        .assignedElements()[0].innerText;
-      is(
-        slottedText,
-        SLOTTED_DESCRIPTION,
-        "Description element has the expected text when set via a slot."
-      );
-
-      is(
-        thirdButton.inputEl.getAttribute("aria-describedby"),
-        "description",
-        "Radio input is described by the description element."
-      );
-      is(
-        thirdButton.descriptionEl.innerText,
-        ATTR_DESCRIPTION,
-        "Attribute text takes precedence over slotted text."
-      );
-    });
-
-    add_task(async function testRadioButtonAccesskey() {
-      const UNIQUE_ACCESS_KEY = "F";
-      const SHARED_ACCESS_KEY = "d"
-
-      let accessKeyTemplate = html`
-        <moz-radio-group name="test-name" label="Radio group label">
-          <moz-radio value="first" label="First" accesskey=${UNIQUE_ACCESS_KEY}></moz-radio>
-          <moz-radio checked value="second" label="Second" accesskey=${SHARED_ACCESS_KEY}></moz-radio>
-          <moz-radio value="third" label="Third" accesskey=${SHARED_ACCESS_KEY}></moz-radio>
-        </moz-radio-group>
-      `;
-
-      let { radioButtons } = await renderRadioElements(
-        accessKeyTemplate
-      );
-      let [firstRadio, secondRadio, thirdRadio] = radioButtons;
-
-      // Validate that activating a unique accesskey focuses and checks the radio input.
-      firstRadio.blur();
-      isnot(
-        document.activeElement,
-        firstRadio,
-        "First radio button is not focused."
-      );
-      isnot(
-        firstRadio.shadowRoot.activeElement,
-        firstRadio.inputEl,
-        "Radio input element is not focused."
-      );
-      ok(!firstRadio.checked, "Radio button is not checked.");
-
-      synthesizeKey(
-        UNIQUE_ACCESS_KEY,
-        navigator.platform.includes("Mac")
-          ? { altKey: true, ctrlKey: true }
-          : { altKey: true, shiftKey: true }
-      );
-
-      is(
-        document.activeElement,
-        firstRadio,
-        "Radio button recieves focus after accesskey is pressed."
-      );
-      is(
-        firstRadio.shadowRoot.activeElement,
-        firstRadio.inputEl,
-        "Radio input element is focused after accesskey is pressed."
-      );
-      ok(firstRadio.checked, "Radio button is checked after accesskey is pressed.");
-
-      // Validate that activating a shared accesskey toggles focus between inputs.
-      synthesizeKey(
-        SHARED_ACCESS_KEY,
-        navigator.platform.includes("Mac")
-          ? { altKey: true, ctrlKey: true }
-          : { altKey: true, shiftKey: true }
-      );
-
-      is(
-        document.activeElement,
-        secondRadio,
-        "Focus moves to the radio button with the shared accesskey."
-      );
-      ok(!secondRadio.checked, "Second radio button is not checked.");
-
-      synthesizeKey(
-        SHARED_ACCESS_KEY,
-        navigator.platform.includes("Mac")
-          ? { altKey: true, ctrlKey: true }
-          : { altKey: true, shiftKey: true }
-      );
-
-      is(
-        document.activeElement,
-        thirdRadio,
-        "Focus cycles between radio buttons with the same accesskey."
-      );
-      ok(!thirdRadio.checked, "Third radio button is not checked.");
-    });
-
-    add_task(async function testSupportLink() {
-      const LEARN_MORE_TEXT = "Learn more"
-
-      let supportLinktempalte = html`
-        <moz-radio-group name="test-name" label="Radio group label">
-          <moz-radio value="first" label="First" support-page="test-page"></moz-radio>
-          <moz-radio value="third" label="Second">
-            <a slot="support-link" href="www.example.com">Help me!</a>
-          </moz-radio>
-        </moz-radio-group>
-      `;
-
-      let { radioButtons } = await renderRadioElements(
-        supportLinktempalte
-      );
-      let [firstRadio, secondRadio] = radioButtons;
-
-      let supportLink = firstRadio.shadowRoot.querySelector(
-        "a[is=moz-support-link]"
-      );
-      // Ensure translations have finished before checking label contents.
-      await BrowserTestUtils.waitForMutationCondition(
-        supportLink,
-        { childList: true },
-        () => supportLink.textContent.trim()
-      );
-
-      ok(supportLink, "Support link is rendered when supportPage attribute is set.");
-      ok(
-        supportLink.href.includes("test-page"),
-        "Support link href points to the expected SUMO page."
-      );
-      is(
-        supportLink.innerText,
-        LEARN_MORE_TEXT,
-        "Support link uses the default label text."
-      );
-
-      let slottedSupportLink = secondRadio.shadowRoot
-        .querySelector("slot[name=support-link]")
-        .assignedElements()[0];
-      ok(
-        slottedSupportLink,
-        "Links can also be rendered using the support-link slot."
-      );
-      ok(
-        slottedSupportLink.href.includes("www.example.com"),
-        "Slotted link uses the expected url."
-      );
-      is(
-        slottedSupportLink.innerText,
-        "Help me!",
-        "Slotted link uses non-default label text."
-      );
     });
   </script>
 </head>
 <body>
-  <div id="render"></div>
 </body>
 </html>

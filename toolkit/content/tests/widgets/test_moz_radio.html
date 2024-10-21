@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>MozRadio Tests</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+  <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css"/>
+  <script src="input-test-helpers.js"></script>
+  <script>
+    let testHelpers = new InputTestHelpers();
+
+    add_setup(async function setup() {
+      let { literal, html } = await testHelpers.setupLit();
+      let wrapperFn = template => html`
+        <moz-radio-group name="test-name" label="Radio group label">
+          ${template}
+        </moz-radio-group>
+      `;
+      await testHelpers.setupInputTests(literal`moz-radio`, null, wrapperFn);
+    });
+
+    add_task(async function testMozRadioProperties() {
+      await testHelpers.testCommonInputProperties("moz-radio");
+    });
+  </script>
+</head>
+<body>
+</body>
+</html>
