@@ -21,6 +21,10 @@ export class DeleteProfileCard extends MozLitElement {
     data: { type: Object },
   };
 
+  static queries = {
+    headerAvatar: "#header-avatar",
+  };
+
   connectedCallback() {
     super.connectedCallback();
 
@@ -37,10 +41,22 @@ export class DeleteProfileCard extends MozLitElement {
     let titleEl = document.querySelector("title");
     titleEl.setAttribute(
       "data-l10n-args",
-      JSON.stringify({ profilename: this.data.name })
+      JSON.stringify({ profilename: this.data.profile.name })
     );
 
     this.initialized = true;
+  }
+
+  updated() {
+    super.updated();
+
+    if (!this.data?.profile) {
+      return;
+    }
+
+    let { themeFg, themeBg } = this.data.profile;
+    this.headerAvatar.style.fill = themeBg;
+    this.headerAvatar.style.stroke = themeFg;
   }
 
   cancelDelete() {
@@ -66,41 +82,52 @@ export class DeleteProfileCard extends MozLitElement {
       />
       <moz-card
         ><div id="delete-profile-card">
-          <img width="80" height="80" src="${this.data.avatar}" />
+          <img
+            id="header-avatar"
+            width="80"
+            height="80"
+            src="chrome://browser/content/profiles/assets/80_${this.data.profile
+              .avatar}.svg"
+          />
           <div id="profile-content">
-            <h1
-              data-l10n-id="delete-profile-header"
-              data-l10n-args="${JSON.stringify({
-                profilename: this.data.name,
-              })}"
-            ></h1>
-            <h2 data-l10n-id="delete-profile-description"></h2>
-            <ul>
-              <li id="windows">
+            <div>
+              <h1
+                data-l10n-id="delete-profile-header"
+                data-l10n-args="${JSON.stringify({
+                  profilename: this.data.profile.name,
+                })}"
+              ></h1>
+              <p
+                class="sub-header"
+                data-l10n-id="delete-profile-description"
+              ></p>
+            </div>
+            <div class="data-list">
+              <div class="data-list-item" id="windows">
                 <span data-l10n-id="delete-profile-windows"></span>
-                <span class="count">${this.data.windowCount}</span>
-              </li>
-              <li id="tabs">
+                <b>${this.data.windowCount}</b>
+              </div>
+              <div class="data-list-item" id="tabs">
                 <span data-l10n-id="delete-profile-tabs"></span>
-                <span class="count">${this.data.tabCount}</span>
-              </li>
-              <li id="bookmarks">
+                <b>${this.data.tabCount}</b>
+              </div>
+              <div class="data-list-item" id="bookmarks">
                 <span data-l10n-id="delete-profile-bookmarks"></span>
-                <span class="count">${this.data.bookmarkCount}</span>
-              </li>
-              <li id="history">
+                <b>${this.data.bookmarkCount}</b>
+              </div>
+              <div class="data-list-item" id="history">
                 <span data-l10n-id="delete-profile-history"></span>
-                <span class="count">${this.data.historyCount}</span>
-              </li>
-              <li id="autofill">
+                <b>${this.data.historyCount}</b>
+              </div>
+              <div class="data-list-item" id="autofill">
                 <span data-l10n-id="delete-profile-autofill"></span>
-                <span class="count">${this.data.autofillCount}</span>
-              </li>
-              <li id="logins">
+                <b>${this.data.autofillCount}</b>
+              </div>
+              <div class="data-list-item" id="logins">
                 <span data-l10n-id="delete-profile-logins"></span>
-                <span class="count">${this.data.loginCount}</span>
-              </li>
-            </ul>
+                <b>${this.data.loginCount}</b>
+              </div>
+            </div>
             <moz-button-group>
               <moz-button
                 id="cancel-delete"

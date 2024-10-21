@@ -181,8 +181,7 @@ export class ProfilesParent extends JSWindowActorParent {
         break;
       }
       case "Profiles:GetDeleteProfileContent": {
-        let avatar = SelectableProfileService.currentProfile.avatar;
-        let name = SelectableProfileService.currentProfile.name;
+        let profileObj = SelectableProfileService.currentProfile.toObject();
         let windowCount = lazy.EveryWindow.readyWindows.length;
         let tabCount = lazy.EveryWindow.readyWindows
           .flatMap(win => win.gBrowser.openTabCount)
@@ -206,8 +205,7 @@ export class ProfilesParent extends JSWindowActorParent {
           lazy.formAutofillStorage.creditCards?._data.length;
 
         return {
-          avatar,
-          name,
+          profile: profileObj,
           windowCount,
           tabCount,
           bookmarkCount,

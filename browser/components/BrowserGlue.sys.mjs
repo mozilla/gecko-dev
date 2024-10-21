@@ -669,6 +669,7 @@ let JSWINDOWACTORS = {
       "chrome://browser/content/places/bookmarksSidebar.xhtml",
       "about:firefoxview",
       "about:editprofile",
+      "about:deleteprofile",
     ],
   },
 

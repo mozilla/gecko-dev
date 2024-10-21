@@ -15,6 +15,7 @@ browser.jar:
     content/browser/profiles/profile-card.mjs     (content/profile-card.mjs)
     content/browser/profiles/profile-selector.css (content/profile-selector.css)
     content/browser/profiles/profile-selector.mjs (content/profile-selector.mjs)
+    content/browser/profiles/profiles-pages.css   (content/profiles-pages.css)
     content/browser/profiles/profiles-theme-card.css (content/profiles-theme-card.css)
     content/browser/profiles/profiles-theme-card.mjs (content/profiles-theme-card.mjs)
     content/browser/profiles/profiles.html        (content/profiles.html)
