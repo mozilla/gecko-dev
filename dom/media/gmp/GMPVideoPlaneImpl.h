@@ -7,29 +7,20 @@
 #define GMPVideoPlaneImpl_h_
 
 #include "gmp-video-plane.h"
-#include "mozilla/ipc/Shmem.h"
+#include "nsTArray.h"
 
 namespace mozilla::gmp {
 
-class GMPVideoHostImpl;
 class GMPPlaneData;
 
 class GMPPlaneImpl final : public GMPPlane {
  public:
-  explicit GMPPlaneImpl(GMPVideoHostImpl* aHost);
-  GMPPlaneImpl(const ipc::Shmem& aBuffer, const GMPPlaneData& aPlaneData,
-               GMPVideoHostImpl* aHost);
-  virtual ~GMPPlaneImpl();
+  GMPPlaneImpl() = default;
+  GMPPlaneImpl(nsTArray<uint8_t>&& aArrayBuffer,
+               const GMPPlaneData& aPlaneData);
+  virtual ~GMPPlaneImpl() = default;
 
-  // This is called during a normal destroy sequence, which is
-  // when a consumer is finished or during XPCOM shutdown.
-  void DoneWithAPI();
-  // This is called when something has gone wrong - specicifically,
-  // a child process has crashed. Does not attempt to release Shmem,
-  // as the Shmem has already been released.
-  void ActorDestroyed();
-
-  bool InitPlaneData(ipc::Shmem& aBuffer, GMPPlaneData& aPlaneData);
+  bool InitPlaneData(nsTArray<uint8_t>& aArrayBuffer, GMPPlaneData& aPlaneData);
 
   // GMPPlane
   GMPErr CreateEmptyPlane(int32_t aAllocatedSize, int32_t aStride,
@@ -47,12 +38,10 @@ class GMPPlaneImpl final : public GMPPlane {
 
  private:
   GMPErr MaybeResize(int32_t aNewSize);
-  void DestroyBuffer();
 
-  ipc::Shmem mBuffer;
-  int32_t mSize;
-  int32_t mStride;
-  GMPVideoHostImpl* mHost;
+  nsTArray<uint8_t> mArrayBuffer;
+  int32_t mSize = 0;
+  int32_t mStride = 0;
 };
 
 }  // namespace mozilla::gmp
