@@ -36,7 +36,9 @@ assertEq(Number.prototype.toExponential.call(NaN, { valueOf() { x = 20; return 1
 assertEq(x, 20);
 
 // With NaN, function throwing an exception.
-assertThrows(() => Number.prototype.toExponential.call(NaN, { valueOf() { throw "hello"; } }));
+assertThrowsValue(
+  () => Number.prototype.toExponential.call(NaN, { valueOf() { throw "hello"; } }),
+  "hello");
 
 // Not a number throws TypeError
 assertThrowsInstanceOf(() => Number.prototype.toExponential.call("Hello"), TypeError);

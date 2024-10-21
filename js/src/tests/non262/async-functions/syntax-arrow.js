@@ -80,10 +80,10 @@ if (typeof Reflect !== "undefined" && Reflect.parse) {
     assertThrowsInstanceOf(() => Reflect.parse("'use strict'; async X => yield"), SyntaxError);
     assertThrowsInstanceOf(() => Reflect.parse("'use strict'; async X => {yield}"), SyntaxError);
 
-    assertThrows(() => Reflect.parse("function* g() { async yield => X }"));
-    assertThrows(() => Reflect.parse("function* g() { async (yield) => X }"));
-    assertThrows(() => Reflect.parse("function* g() { async ([yield]) => X }"));
-    assertThrows(() => Reflect.parse("function* g() { async ({yield}) => X }"));
+    assertThrowsInstanceOf(() => Reflect.parse("function* g() { async yield => X }"), SyntaxError);
+    assertThrowsInstanceOf(() => Reflect.parse("function* g() { async (yield) => X }"), SyntaxError);
+    assertThrowsInstanceOf(() => Reflect.parse("function* g() { async ([yield]) => X }"), SyntaxError);
+    assertThrowsInstanceOf(() => Reflect.parse("function* g() { async ({yield}) => X }"), SyntaxError);
 
     // Not async functions.
     Reflect.parse("async ()");

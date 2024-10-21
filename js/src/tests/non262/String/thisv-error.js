@@ -9,24 +9,17 @@ function testName(thisv) {
     // Aliases
     "trimLeft",
     "trimRight",
-    // Returns empty string
-    "constructor"
   ]
 
   var keys = Object.getOwnPropertyNames(String.prototype);
   for (var key of keys) {
-    var message;
-    try {
-      String.prototype[key].call(thisv);
-    } catch (e) {
-      message = e.message;
-    }
-
-    var expected = `String.prototype.${key} called on incompatible ${thisv}`;
-    if (failures.includes(key)) {
-      assertEq(message !== expected, true)
+    if (key === "constructor") {
+      assertEq(String.prototype[key].call(thisv), "");
+    } else if (failures.includes(key)) {
+      assertThrowsInstanceOf(() => String.prototype[key].call(thisv), TypeError, key);
     } else {
-      assertEq(message, expected);
+      var expected = `String.prototype.${key} called on incompatible ${thisv}`;
+      assertThrowsInstanceOfWithMessage(() => String.prototype[key].call(thisv), TypeError, expected, key)
     }
   }
 }

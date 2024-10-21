@@ -32,6 +32,14 @@ var myRegExp = {
     if (unicode) flags += "u";
     return flags;
   },
+  get global() {
+    // This getter should not be invoked, because we override the flags getter.
+    log += "get:global,"
+  },
+  get unicode() {
+    // This getter should not be invoked, because we override the flags getter.
+    log += "get:unicode,"
+  },
   get lastIndex() {
     log += "get:lastIndex,";
     return lastIndexResult[n];

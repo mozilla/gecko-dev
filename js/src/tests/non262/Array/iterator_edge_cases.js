@@ -16,9 +16,7 @@ function TestArrayIteratorWrappers() {
     assertDeepEq(iter.next.call(newGlobal().eval('[5][Symbol.iterator]()')),
 		 { value: 5, done: false })
 }
-if (typeof newGlobal === "function") {
-    TestArrayIteratorWrappers();
-}
+TestArrayIteratorWrappers();
 
 // Tests that calling |next| on an array iterator after iteration has finished
 // doesn't get the array's |length| property.
