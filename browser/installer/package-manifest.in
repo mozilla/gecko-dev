@@ -401,12 +401,6 @@ bin/libfreebl_64int_3.so
 #endif
 #endif
 
-; [ minidump-analyzer ]
-;
-#ifdef MOZ_CRASHREPORTER
-@BINPATH@/minidump-analyzer@BIN_SUFFIX@
-#endif
-
 ; [ Ping Sender ]
 ;
 @BINPATH@/pingsender@BIN_SUFFIX@

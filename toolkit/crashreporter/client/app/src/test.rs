@@ -192,10 +192,6 @@ impl GuiTest {
         // Create a default mock environment which allows successful operation.
         let mut mock = mock::builder();
         mock.set(
-            Command::mock("work_dir/minidump-analyzer"),
-            Box::new(|_| Ok(crate::std::process::success_output())),
-        )
-        .set(
             Command::mock("work_dir/pingsender"),
             Box::new(|_| Ok(crate::std::process::success_output())),
         )
@@ -452,29 +448,8 @@ fn no_dump_file() {
 }
 
 #[test]
-fn minidump_analyzer_error() {
-    mock::builder()
-        .set(
-            Command::mock("work_dir/minidump-analyzer"),
-            Box::new(|_| Err(ErrorKind::NotFound.into())),
-        )
-        .set(
-            crate::std::env::MockCurrentExe,
-            "work_dir/crashreporter".into(),
-        )
-        .run(|| {
-            let cfg = test_config();
-            assert!(try_run(&mut Arc::new(cfg)).is_err());
-        });
-}
-
-#[test]
 fn no_extra_file() {
     mock::builder()
-        .set(
-            Command::mock("work_dir/minidump-analyzer"),
-            Box::new(|_| Ok(crate::std::process::success_output())),
-        )
         .set(
             crate::std::env::MockCurrentExe,
             "work_dir/crashreporter".into(),

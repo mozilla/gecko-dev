@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use anyhow::Context;
-use clap::Parser;
 use futures_executor::{block_on, ThreadPool};
 use minidump::{
     system_info::Cpu, Minidump, MinidumpException, MinidumpMemoryList, MinidumpMiscInfo,
@@ -14,10 +13,11 @@ use minidump_unwind::{
     symbols::debuginfo::DebugInfoSymbolProvider, symbols::SymbolProvider, walk_stack, CallStack,
     CallStackInfo, SystemInfo,
 };
+use std::borrow::Cow;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use serde_json::{json, Value as JsonValue};
@@ -26,26 +26,147 @@ use serde_json::{json, Value as JsonValue};
 mod windows;
 
 /// Analyze a minidump file to augment a corresponding .extra file with stack trace information.
-#[derive(Parser, Debug)]
-#[clap(version)]
-struct Args {
-    /// Generate all stacks, rather than just those of the crashing thread.
-    #[clap(long = "full")]
+#[derive(Debug)]
+pub struct MinidumpAnalyzer<'a> {
     all_stacks: bool,
-
-    /// The minidump file to analyze.
-    minidump: PathBuf,
+    minidump: &'a Path,
+    extras: Option<&'a Path>,
 }
 
-impl Args {
-    /// Get the extra file.
-    ///
-    /// This file is derived from the minidump file path.
-    pub fn extra_file(&self) -> PathBuf {
-        let mut ret = self.minidump.clone();
-        ret.set_extension("extra");
-        ret
+impl<'a> MinidumpAnalyzer<'a> {
+    /// Create a new MinidumpAnalyzer for the given minidump file.
+    pub fn new(minidump: &'a Path) -> Self {
+        MinidumpAnalyzer {
+            all_stacks: false,
+            minidump,
+            extras: None,
+        }
     }
+
+    /// Generate all stacks, rather than just those of the crashing thread.
+    pub fn all_threads(mut self, value: bool) -> Self {
+        self.all_stacks = value;
+        self
+    }
+
+    /// Set the extras file explicitly, rather than deriving from the minidump path.
+    pub fn extras_file(mut self, path: &'a Path) -> Self {
+        self.extras = Some(path);
+        self
+    }
+
+    /// Analyze the thread(s) and put stacks in the associated .extra file.
+    pub fn analyze(self) -> anyhow::Result<()> {
+        let extra_file = self
+            .extras
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Owned(extra_path_from_minidump(&self.minidump)));
+        let extra_file = extra_file.as_ref();
+
+        log::info!("minidump file path: {}", self.minidump.display());
+        log::info!("extra file path: {}", extra_file.display());
+
+        let minidump = Minidump::read_path(&self.minidump).context("while reading minidump")?;
+
+        let mut extra_json = parse_extra_file(extra_file)?;
+
+        let proc = processor::Processor::new(&minidump)?;
+
+        let (crashing_thread_idx, call_stacks) = proc.get_call_stacks(self.all_stacks)?;
+        let crash_type = proc.crash_reason();
+        let crash_address = proc.crash_address();
+        let used_modules = get_used_modules(&call_stacks, proc.main_module());
+
+        // Set the `StackTraces` field in the extra JSON data.
+        extra_json["StackTraces"] = json!({
+            "status": call_stack_status(&call_stacks),
+            "crash_info": {
+                "type": crash_type,
+                "address": format!("{crash_address:#x}"),
+                "crashing_thread": crashing_thread_idx
+                // TODO: "assertion" when there's no crash indicator
+            },
+            "main_module": proc.main_module().and_then(|m| module_index(&used_modules, m)),
+            "modules": used_modules.iter().map(|module| {
+                let code_file = module.code_file();
+                let code_file_path: &std::path::Path = code_file.as_ref().as_ref();
+                json!({
+                    "base_addr": format!("{:#x}", module.base_address()),
+                    "end_addr": format!("{:#x}", module.base_address() + module.size()),
+                    "filename": code_file_path.file_name().map(|s| s.to_string_lossy()),
+                    "code_id": module.code_identifier().as_ref().map(|id| id.as_str()),
+                    "debug_file": module.debug_file().as_deref(),
+                    "debug_id": module.debug_identifier().map(|debug| debug.breakpad().to_string()),
+                    "version": module.version().as_deref()
+                })
+            }).collect::<Vec<_>>(),
+            "unloaded_modules": proc.unloaded_modules().map(|module| {
+                let code_file = module.code_file();
+                let code_file_path: &std::path::Path = code_file.as_ref().as_ref();
+                json!({
+                    "base_addr": format!("{:#x}", module.base_address()),
+                    "end_addr": format!("{:#x}", module.base_address() + module.size()),
+                    "filename": code_file_path.file_name().map(|s| s.to_string_lossy()),
+                    "code_id": module.code_identifier().as_ref().map(|id| id.as_str()),
+                })
+            }).collect::<Vec<_>>(),
+            "threads": call_stacks.iter().map(|call_stack| call_stack_to_json(call_stack, &used_modules)).collect::<Vec<_>>()
+        });
+
+        // StackTraces should not have null values (upstream processing expects the values to be
+        // omitted).
+        remove_nulls(&mut extra_json["StackTraces"]);
+
+        let module_signature_info = proc.module_signature_info();
+        if !module_signature_info.is_null() {
+            // ModuleSignatureInfo is sent as a crash annotation so must be string. This differs from
+            // StackTraces which isn't actually sent (it's just read and removed by the crash
+            // reporter client).
+            extra_json["ModuleSignatureInfo"] = serde_json::to_string(&module_signature_info)
+                .unwrap()
+                .into();
+        }
+
+        std::fs::write(extra_file, extra_json.to_string())
+            .context("while writing modified extra file")?;
+
+        Ok(())
+    }
+}
+
+fn extra_path_from_minidump(minidump: &Path) -> PathBuf {
+    let mut ret = minidump.to_owned();
+    ret.set_extension("extra");
+    ret
+}
+
+/// Parse the extra file (JSON).
+fn parse_extra_file(path: &Path) -> anyhow::Result<JsonValue> {
+    let mut extra_file_content = String::new();
+
+    File::open(path)
+        .context("while opening extra file")?
+        .read_to_string(&mut extra_file_content)
+        .context("while reading extra file")?;
+
+    serde_json::from_str(&extra_file_content).context("while parsing extra file JSON")
+}
+
+/// Get a list of modules used in call stacks, ordered by base address.
+fn get_used_modules<'a>(
+    call_stacks: impl IntoIterator<Item = &'a CallStack>,
+    main_module: Option<&'a MinidumpModule>,
+) -> Vec<&'a MinidumpModule> {
+    let mut v = call_stacks
+        .into_iter()
+        .flat_map(|call_stack| call_stack.frames.iter())
+        .filter_map(|frame| frame.module.as_ref())
+        // Always include the main module.
+        .chain(main_module)
+        .collect::<Vec<_>>();
+    v.sort_by_key(|m| m.base_address());
+    v.dedup_by_key(|m| m.base_address());
+    v
 }
 
 mod processor {
@@ -61,6 +182,7 @@ mod processor {
         module_list: MinidumpModuleList,
         unloaded_module_list: MinidumpUnloadedModuleList,
         memory_list: UnifiedMemoryList<'a>,
+        thread_list: MinidumpThreadList<'a>,
         system_info: MinidumpSystemInfo,
         processor_system_info: SystemInfo,
         exception: MinidumpException<'a>,
@@ -110,6 +232,7 @@ mod processor {
             let memory_list = minidump
                 .get_stream::<MinidumpMemoryList>()
                 .unwrap_or_default();
+            let thread_list = minidump.get_stream::<MinidumpThreadList>()?;
             let exception = minidump.get_stream::<MinidumpException>()?;
 
             // TODO Something like SystemInfo::current() to get the active system's info?
@@ -140,6 +263,7 @@ mod processor {
                     module_list,
                     unloaded_module_list,
                     memory_list: UnifiedMemoryList::Memory(memory_list),
+                    thread_list,
                     system_info,
                     processor_system_info,
                     exception,
@@ -154,15 +278,25 @@ mod processor {
             &self.context.system_info
         }
 
-        /// Get the minidump exception.
-        pub fn exception(&self) -> &MinidumpException {
-            &self.context.exception
+        /// Get the crash reason string.
+        pub fn crash_reason(&self) -> String {
+            self.context
+                .exception
+                .get_crash_reason(self.system_info().os, self.system_info().cpu)
+                .to_string()
+        }
+
+        /// Get the crash address.
+        pub fn crash_address(&self) -> u64 {
+            self.context
+                .exception
+                .get_crash_address(self.system_info().os, self.system_info().cpu)
         }
 
         /// Get call stacks for the given threads.
         ///
         /// Call stacks will be concurrently calculated.
-        pub fn thread_call_stacks<'b>(
+        fn thread_call_stacks<'b>(
             &self,
             threads: impl IntoIterator<Item = &'b MinidumpThread<'b>>,
         ) -> anyhow::Result<Vec<CallStack>> {
@@ -174,6 +308,35 @@ mod processor {
             ))
             .into_iter()
             .collect())
+        }
+
+        /// Get the call stacks to process.
+        ///
+        /// The first value in the returned tuple is the crashing thread index. The second value is the
+        /// set of call stacks to process.
+        pub fn get_call_stacks(&self, all_stacks: bool) -> anyhow::Result<(usize, Vec<CallStack>)> {
+            // Derive additional arguments used in stack walking.
+            let crashing_thread = self
+                .context
+                .thread_list
+                .get_thread(self.context.exception.get_crashing_thread_id())
+                .ok_or(anyhow::anyhow!(
+                    "exception thread id missing in thread list"
+                ))?;
+
+            Ok(if all_stacks {
+                (
+                    self.context
+                        .thread_list
+                        .threads
+                        .iter()
+                        .position(|t| t.raw.thread_id == crashing_thread.raw.thread_id)
+                        .expect("get_thread() returned a thread that doesn't exist"),
+                    self.thread_call_stacks(&self.context.thread_list.threads)?,
+                )
+            } else {
+                (0, self.thread_call_stacks([crashing_thread])?)
+            })
         }
 
         /// Get all modules, ordered by address.
@@ -301,136 +464,6 @@ impl SymbolProvider for BoxedSymbolProvider {
     fn pending_stats(&self) -> minidump_unwind::PendingSymbolStats {
         self.0.pending_stats()
     }
-}
-
-use processor::Processor;
-
-pub fn main() {
-    env_logger::init();
-
-    if let Err(e) = try_main() {
-        eprintln!("{e}");
-        std::process::exit(1);
-    }
-}
-
-fn try_main() -> anyhow::Result<()> {
-    let args = Args::parse();
-    let extra_file = args.extra_file();
-
-    log::info!("minidump file path: {}", args.minidump.display());
-    log::info!("extra file path: {}", extra_file.display());
-
-    let minidump = Minidump::read_path(&args.minidump).context("while reading minidump")?;
-
-    let mut extra_json: JsonValue = {
-        let mut extra_file_content = String::new();
-        File::open(&extra_file)
-            .context("while opening extra file")?
-            .read_to_string(&mut extra_file_content)
-            .context("while reading extra file")?;
-
-        serde_json::from_str(&extra_file_content).context("while parsing extra file JSON")?
-    };
-
-    // Read relevant information from the minidump.
-    let proc = Processor::new(&minidump)?;
-    let thread_list = minidump.get_stream::<MinidumpThreadList>()?;
-
-    // Derive additional arguments used in stack walking.
-    let crashing_thread = thread_list
-        .get_thread(proc.exception().get_crashing_thread_id())
-        .ok_or(anyhow::anyhow!(
-            "exception thread id missing in thread list"
-        ))?;
-
-    let (crashing_thread_idx, call_stacks) = if args.all_stacks {
-        (
-            thread_list
-                .threads
-                .iter()
-                .position(|t| t.raw.thread_id == crashing_thread.raw.thread_id)
-                .expect("get_thread() returned a thread that doesn't exist"),
-            proc.thread_call_stacks(&thread_list.threads)?,
-        )
-    } else {
-        (0, proc.thread_call_stacks([crashing_thread])?)
-    };
-
-    let crash_type = proc
-        .exception()
-        .get_crash_reason(proc.system_info().os, proc.system_info().cpu)
-        .to_string();
-    let crash_address = proc
-        .exception()
-        .get_crash_address(proc.system_info().os, proc.system_info().cpu);
-
-    let used_modules = {
-        let mut v = call_stacks
-            .iter()
-            .flat_map(|call_stack| call_stack.frames.iter())
-            .filter_map(|frame| frame.module.as_ref())
-            // Always include the main module.
-            .chain(proc.main_module())
-            .collect::<Vec<_>>();
-        v.sort_by_key(|m| m.base_address());
-        v.dedup_by_key(|m| m.base_address());
-        v
-    };
-
-    extra_json["StackTraces"] = json!({
-        "status": call_stack_status(&call_stacks),
-        "crash_info": {
-            "type": crash_type,
-            "address": format!("{crash_address:#x}"),
-            "crashing_thread": crashing_thread_idx
-            // TODO: "assertion" when there's no crash indicator
-        },
-        "main_module": proc.main_module().and_then(|m| module_index(&used_modules, m)),
-        "modules": used_modules.iter().map(|module| {
-            let code_file = module.code_file();
-            let code_file_path: &std::path::Path = code_file.as_ref().as_ref();
-            json!({
-                "base_addr": format!("{:#x}", module.base_address()),
-                "end_addr": format!("{:#x}", module.base_address() + module.size()),
-                "filename": code_file_path.file_name().map(|s| s.to_string_lossy()),
-                "code_id": module.code_identifier().as_ref().map(|id| id.as_str()),
-                "debug_file": module.debug_file().as_deref(),
-                "debug_id": module.debug_identifier().map(|debug| debug.breakpad().to_string()),
-                "version": module.version().as_deref()
-            })
-        }).collect::<Vec<_>>(),
-        "unloaded_modules": proc.unloaded_modules().map(|module| {
-            let code_file = module.code_file();
-            let code_file_path: &std::path::Path = code_file.as_ref().as_ref();
-            json!({
-                "base_addr": format!("{:#x}", module.base_address()),
-                "end_addr": format!("{:#x}", module.base_address() + module.size()),
-                "filename": code_file_path.file_name().map(|s| s.to_string_lossy()),
-                "code_id": module.code_identifier().as_ref().map(|id| id.as_str()),
-            })
-        }).collect::<Vec<_>>(),
-        "threads": call_stacks.iter().map(|call_stack| call_stack_to_json(call_stack, &used_modules)).collect::<Vec<_>>()
-    });
-
-    // StackTraces should not have null values (upstream processing expects the values to be
-    // omitted).
-    remove_nulls(&mut extra_json["StackTraces"]);
-
-    let module_signature_info = proc.module_signature_info();
-    if !module_signature_info.is_null() {
-        // ModuleSignatureInfo is sent as a crash annotation so must be string. This differs from
-        // StackTraces which isn't actually sent (it's just read and removed by the crash
-        // reporter client).
-        extra_json["ModuleSignatureInfo"] = serde_json::to_string(&module_signature_info)
-            .unwrap()
-            .into();
-    }
-
-    std::fs::write(&extra_file, extra_json.to_string())
-        .context("while writing modified extra file")?;
-
-    Ok(())
 }
 
 /// Get the index of `needle` in `modules`.

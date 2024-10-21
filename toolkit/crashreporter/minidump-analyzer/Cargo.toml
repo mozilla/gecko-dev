@@ -7,15 +7,10 @@ readme = "README.md"
 license = "MPL-2.0"
 edition = "2021"
 
-[[bin]]
-name = "minidump-analyzer"
-
 [dependencies]
 anyhow = "1.0.69"
 async-trait = "0.1"
 breakpad-symbols = "0.22"
-clap = { version = "4", default-features = false, features = ["std", "cargo", "wrap_help", "derive"] }
-env_logger = { version = "0.10.0", default-features = false }
 futures-executor = { version = "0.3", features = ["thread-pool"] }
 futures-util = { version = "0.3", features = ["channel"] }
 lazy_static = "1.4.0"
@@ -35,3 +30,10 @@ features = [
     "Win32_Storage_FileSystem",
     "Win32_UI_WindowsAndMessaging",
 ]
+
+[dev-dependencies]
+crash-handler = "0.6"
+minidumper = "0.8"
+json = "0.12.4"
+sadness-generator = "0.5.0"
+tempfile = "3.3.0"
