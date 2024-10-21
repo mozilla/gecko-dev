@@ -757,15 +757,14 @@ tab-group {
 
 .tab-group-label-container {
   /*
-   * Provide some empty space to either side of the tab group label
+   * Provide some empty space to either side of the tab group label.
    * Use margin on the left because the ::after underline should not extend
-   * to the left beyond the tab group label. Left margin should be larger in
-   * order to make the tab group look more separated from other tabs.
+   * to the left beyond the tab group label.
    * Use padding on the right because the ::after underline should extend
    * to the right to connect to the underline of the first tab in the group.
    */
-  margin-inline-start: calc(var(--tab-overflow-clip-margin) + var(--tab-block-margin));
-  padding-inline-end: var(--tab-overflow-clip-margin);
+  margin-inline-start: 3px;
+  padding-inline-end: 3px;
 
   position: relative;
 
@@ -797,7 +796,7 @@ tab-group {
   tab-group[collapsed] > .tab-group-label-container > & {
     background-color: light-dark(var(--tab-group-color-pale), var(--tab-group-color));
     color: light-dark(var(--tab-group-color), var(--tab-group-color-pale));
-    outline: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-pale));
+    border: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-pale));
   }
 }
 
