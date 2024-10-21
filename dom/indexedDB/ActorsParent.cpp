@@ -122,6 +122,7 @@
 #include "mozilla/dom/quota/CachingDatabaseConnection.h"
 #include "mozilla/dom/quota/CheckedUnsafePtr.h"
 #include "mozilla/dom/quota/Client.h"
+#include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/DebugOnlyMacro.h"
 #include "mozilla/dom/quota/DirectoryLock.h"

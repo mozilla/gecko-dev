@@ -12,11 +12,9 @@
 
 #include "nscore.h"
 #include "nsISupportsImpl.h"
-#include "nsStringFwd.h"
 #include "nsTArrayForwardDeclare.h"
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
-#include "mozilla/dom/quota/PersistenceType.h"
 
 template <class T>
 class RefPtr;
@@ -31,7 +29,6 @@ struct Nullable;
 namespace mozilla::dom::quota {
 
 enum class DirectoryLockCategory : uint8_t;
-struct OriginMetadata;
 class OriginScope;
 class PersistenceScope;
 
@@ -75,20 +72,6 @@ class NS_NO_VTABLE DirectoryLock {
   virtual void OnInvalidate(std::function<void()>&& aCallback) = 0;
 
   virtual void Log() const = 0;
-};
-
-// A directory lock specialized for a given client directory (inside an origin
-// directory).
-class NS_NO_VTABLE ClientDirectoryLock : public DirectoryLock {
- public:
-  // 'Get' prefix is to avoid name collisions with the enum
-  virtual PersistenceType GetPersistenceType() const = 0;
-
-  virtual quota::OriginMetadata OriginMetadata() const = 0;
-
-  virtual const nsACString& Origin() const = 0;
-
-  virtual Client::Type ClientType() const = 0;
 };
 
 template <typename T>

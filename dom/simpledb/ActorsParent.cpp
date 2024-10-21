@@ -35,6 +35,7 @@
 #include "mozilla/dom/PBackgroundSDBRequestParent.h"
 #include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/dom/quota/Client.h"
+#include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"

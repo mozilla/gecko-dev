@@ -25,6 +25,7 @@
 #include "mozilla/dom/FileSystemLog.h"
 #include "mozilla/dom/FileSystemManagerParent.h"
 #include "mozilla/dom/QMResult.h"
+#include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/ClientImpl.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"

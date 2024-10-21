@@ -92,6 +92,7 @@
 #include "mozilla/dom/quota/AssertionsImpl.h"
 #include "mozilla/dom/quota/CheckedUnsafePtr.h"
 #include "mozilla/dom/quota/Client.h"
+#include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/Config.h"
 #include "mozilla/dom/quota/Constants.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
@@ -5443,7 +5444,7 @@ RefPtr<ClientDirectoryLock> QuotaManager::CreateDirectoryLock(
     const ClientMetadata& aClientMetadata, bool aExclusive) {
   AssertIsOnOwningThread();
 
-  return DirectoryLockImpl::Create(
+  return ClientDirectoryLock::Create(
       WrapNotNullUnchecked(this), aClientMetadata.mPersistenceType,
       aClientMetadata, aClientMetadata.mClientType, aExclusive);
 }

@@ -38,7 +38,8 @@ class QuotaManager;
 
 enum class ShouldUpdateLockIdTableFlag { No, Yes };
 
-class DirectoryLockImpl : public ClientDirectoryLock {
+class DirectoryLockImpl : public DirectoryLock {
+  friend class ClientDirectoryLock;
   friend class OriginDirectoryLock;
   friend class QuotaManager;
   friend class UniversalDirectoryLock;
@@ -130,70 +131,8 @@ class DirectoryLockImpl : public ClientDirectoryLock {
 
   void Log() const override;
 
-  // ClientDirectoryLock interface
-
-  PersistenceType GetPersistenceType() const override {
-    MOZ_DIAGNOSTIC_ASSERT(mPersistenceScope.IsValue());
-
-    return mPersistenceScope.GetValue();
-  }
-
-  quota::OriginMetadata OriginMetadata() const override {
-    MOZ_DIAGNOSTIC_ASSERT(mOriginScope.IsOrigin());
-
-    return quota::OriginMetadata{mOriginScope.GetPrincipalMetadata(),
-                                 GetPersistenceType()};
-  }
-
-  const nsACString& Origin() const override {
-    MOZ_DIAGNOSTIC_ASSERT(mOriginScope.IsOrigin());
-    MOZ_DIAGNOSTIC_ASSERT(!mOriginScope.GetOrigin().IsEmpty());
-
-    return mOriginScope.GetOrigin();
-  }
-
-  Client::Type ClientType() const override {
-    MOZ_DIAGNOSTIC_ASSERT(!mClientType.IsNull());
-    MOZ_DIAGNOSTIC_ASSERT(mClientType.Value() < Client::TypeMax());
-
-    return mClientType.Value();
-  }
-
  private:
   virtual ~DirectoryLockImpl();
-
-  static RefPtr<ClientDirectoryLock> Create(
-      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      PersistenceType aPersistenceType,
-      const quota::OriginMetadata& aOriginMetadata, Client::Type aClientType,
-      bool aExclusive) {
-    return Create(std::move(aQuotaManager),
-                  PersistenceScope::CreateFromValue(aPersistenceType),
-                  OriginScope::FromOrigin(aOriginMetadata),
-                  Nullable<Client::Type>(aClientType), aExclusive, false,
-                  ShouldUpdateLockIdTableFlag::Yes,
-                  DirectoryLockCategory::None);
-  }
-
-  static RefPtr<DirectoryLockImpl> Create(
-      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      const PersistenceScope& aPersistenceScope,
-      const OriginScope& aOriginScope,
-      const Nullable<Client::Type>& aClientType, bool aExclusive,
-      bool aInternal, ShouldUpdateLockIdTableFlag aShouldUpdateLockIdTableFlag,
-      DirectoryLockCategory aCategory) {
-    MOZ_ASSERT_IF(aOriginScope.IsOrigin(), !aOriginScope.GetOrigin().IsEmpty());
-    MOZ_ASSERT_IF(!aInternal, aPersistenceScope.IsValue());
-    MOZ_ASSERT_IF(!aInternal,
-                  aPersistenceScope.GetValue() != PERSISTENCE_TYPE_INVALID);
-    MOZ_ASSERT_IF(!aInternal, aOriginScope.IsOrigin());
-    MOZ_ASSERT_IF(!aInternal, !aClientType.IsNull());
-    MOZ_ASSERT_IF(!aInternal, aClientType.Value() < Client::TypeMax());
-
-    return MakeRefPtr<DirectoryLockImpl>(
-        std::move(aQuotaManager), aPersistenceScope, aOriginScope, aClientType,
-        aExclusive, aInternal, aShouldUpdateLockIdTableFlag, aCategory);
-  }
 
   void AssertIsOnOwningThread() const
 #ifdef DEBUG
@@ -202,6 +141,33 @@ class DirectoryLockImpl : public ClientDirectoryLock {
   {
   }
 #endif
+
+  PersistenceType GetPersistenceType() const {
+    MOZ_DIAGNOSTIC_ASSERT(mPersistenceScope.IsValue());
+
+    return mPersistenceScope.GetValue();
+  }
+
+  quota::OriginMetadata OriginMetadata() const {
+    MOZ_DIAGNOSTIC_ASSERT(mOriginScope.IsOrigin());
+
+    return quota::OriginMetadata{mOriginScope.GetPrincipalMetadata(),
+                                 GetPersistenceType()};
+  }
+
+  const nsACString& Origin() const {
+    MOZ_DIAGNOSTIC_ASSERT(mOriginScope.IsOrigin());
+    MOZ_DIAGNOSTIC_ASSERT(!mOriginScope.GetOrigin().IsEmpty());
+
+    return mOriginScope.GetOrigin();
+  }
+
+  Client::Type ClientType() const {
+    MOZ_DIAGNOSTIC_ASSERT(!mClientType.IsNull());
+    MOZ_DIAGNOSTIC_ASSERT(mClientType.Value() < Client::TypeMax());
+
+    return mClientType.Value();
+  }
 
   bool IsInternal() const { return mInternal; }
 

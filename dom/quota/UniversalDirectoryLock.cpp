@@ -15,6 +15,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/ReverseIterator.h"
 #include "mozilla/dom/Nullable.h"
+#include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/CommonMetadata.h"
 #include "mozilla/dom/quota/OriginScope.h"
 #include "mozilla/dom/quota/PersistenceScope.h"
@@ -38,12 +39,12 @@ RefPtr<ClientDirectoryLock> UniversalDirectoryLock::SpecializeForClient(
     return nullptr;
   }
 
-  RefPtr<DirectoryLockImpl> lock =
-      Create(mQuotaManager, PersistenceScope::CreateFromValue(aPersistenceType),
-             OriginScope::FromOrigin(aOriginMetadata),
-             Nullable<Client::Type>(aClientType),
-             /* aExclusive */ false, mInternal,
-             ShouldUpdateLockIdTableFlag::Yes, mCategory);
+  RefPtr<ClientDirectoryLock> lock = ClientDirectoryLock::Create(
+      mQuotaManager, PersistenceScope::CreateFromValue(aPersistenceType),
+      OriginScope::FromOrigin(aOriginMetadata),
+      Nullable<Client::Type>(aClientType),
+      /* aExclusive */ false, mInternal, ShouldUpdateLockIdTableFlag::Yes,
+      mCategory);
   if (NS_WARN_IF(!Overlaps(*lock))) {
     return nullptr;
   }

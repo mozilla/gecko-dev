@@ -15,6 +15,7 @@
 #include "mozilla/dom/cache/Manager.h"
 #include "mozilla/dom/cache/ManagerId.h"
 #include "mozilla/dom/quota/Assertions.h"
+#include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/PrincipalUtils.h"
