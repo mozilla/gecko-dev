@@ -8,7 +8,6 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/dom/quota/ClientDirectoryLock.h"
-#include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/OriginScope.h"
 #include "mozilla/dom/quota/PersistenceScope.h"

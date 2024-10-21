@@ -7,7 +7,6 @@
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/CommonMetadata.h"
-#include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/FileStreams.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/gtest/MozAssertions.h"

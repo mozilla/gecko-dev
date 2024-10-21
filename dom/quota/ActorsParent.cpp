@@ -95,7 +95,6 @@
 #include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/Config.h"
 #include "mozilla/dom/quota/Constants.h"
-#include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FileUtils.h"
 #include "mozilla/dom/quota/MozPromiseUtils.h"
@@ -1324,7 +1323,7 @@ bool IsOriginUnaccessed(const FullOriginMetadata& aFullOriginMetadata,
 }
 
 bool IsDirectoryLockBlockedBy(
-    const RefPtr<DirectoryLock>& aDirectoryLock,
+    const RefPtr<UniversalDirectoryLock>& aDirectoryLock,
     const EnumSet<DirectoryLockCategory>& aCategories) {
   const auto locks = aDirectoryLock->LocksMustWaitFor();
   return std::any_of(locks.cbegin(), locks.cend(),
@@ -1334,13 +1333,13 @@ bool IsDirectoryLockBlockedBy(
 }
 
 bool IsDirectoryLockBlockedByUninitStorageOperation(
-    const RefPtr<DirectoryLock>& aDirectoryLock) {
+    const RefPtr<UniversalDirectoryLock>& aDirectoryLock) {
   return IsDirectoryLockBlockedBy(aDirectoryLock,
                                   DirectoryLockCategory::UninitStorage);
 }
 
 bool IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation(
-    const RefPtr<DirectoryLock>& aDirectoryLock) {
+    const RefPtr<UniversalDirectoryLock>& aDirectoryLock) {
   return IsDirectoryLockBlockedBy(aDirectoryLock,
                                   {DirectoryLockCategory::UninitStorage,
                                    DirectoryLockCategory::UninitOrigins});
