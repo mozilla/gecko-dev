@@ -9,6 +9,8 @@ toolkit.jar:
    content/global/aboutLogging.html
    content/global/aboutNetError.mjs
    content/global/aboutNetError.html
+   content/global/aboutNetErrorHelpers.mjs
+   content/global/net-error-card.mjs
    content/global/aboutNetworking.js
    content/global/aboutNetworking.html
 #ifndef ANDROID
