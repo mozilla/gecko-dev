@@ -665,6 +665,7 @@ public class ContentBlocking {
      *     ContentBlocking.SafeBrowsing} flags.
      * @return This Settings instance.
      */
+    @SuppressLint("WrongConstant") // https://issuetracker.google.com/issues/373506497
     public @NonNull Settings setSafeBrowsing(final @CBSafeBrowsing int cat) {
       mSbMalware.commit(ContentBlocking.catToSbMalware(cat));
       mSbPhishing.commit(ContentBlocking.catToSbPhishing(cat));
