@@ -84,7 +84,9 @@ nsTArray<RefPtr<DirectoryLockImpl>> DirectoryLockImpl::LocksMustWaitFor()
 
   nsTArray<RefPtr<DirectoryLockImpl>> locks;
 
-  for (DirectoryLockImpl* const existingLock : mQuotaManager->mDirectoryLocks) {
+  // XXX It is probably unnecessary to iterate this in reverse order.
+  for (DirectoryLockImpl* const existingLock :
+       Reversed(mQuotaManager->mDirectoryLocks)) {
     if (MustWaitFor(*existingLock)) {
       locks.AppendElement(existingLock);
     }
