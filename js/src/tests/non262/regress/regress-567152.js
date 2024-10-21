@@ -1,7 +1,6 @@
 // Any copyright is dedicated to the Public Domain.
 // http://creativecommons.org/licenses/publicdomain/
-// Contributors: Gary Kwong <gary@rumblingedge.com>,
-//               Jason Orendorff <jorendorff@mozilla.com>
+// Contributors: Gary Kwong <gary@rumblingedge.com>, Jason Orendorff <jorendorff@mozilla.com>
 
 function c(a) {
     this.f = function () { a; };

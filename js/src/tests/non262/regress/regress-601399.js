@@ -2,9 +2,8 @@
 /*
  * Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/licenses/publicdomain/
- *
- * Test courtesy of Olov Lassus <olov.lassus@gmail.com>.
  */
+// Test courtesy of Olov Lassus <olov.lassus@gmail.com>.
 
 function keys(o) {
     var a = [];
