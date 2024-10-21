@@ -298,7 +298,11 @@ nsTArray<T> DirectoryLockImpl::LocksMustWaitForInternal() const {
   for (DirectoryLockImpl* const existingLock :
        Reversed(mQuotaManager->mDirectoryLocks)) {
     if (MustWaitFor(*existingLock)) {
-      locks.AppendElement(existingLock);
+      if constexpr (std::is_same_v<T, NotNull<DirectoryLockImpl*>>) {
+        locks.AppendElement(WrapNotNull(existingLock));
+      } else {
+        locks.AppendElement(existingLock);
+      }
     }
   }
 
@@ -312,17 +316,7 @@ void DirectoryLockImpl::AcquireInternal() {
 
   // See if this lock needs to wait. This has to be done before the lock is
   // registered, we would be comparing the lock against itself otherwise.
-  bool blocked = false;
-
-  // XXX It is probably unnecessary to iterate this in reverse order.
-  for (DirectoryLockImpl* const existingLock :
-       Reversed(mQuotaManager->mDirectoryLocks)) {
-    if (MustWaitFor(*existingLock)) {
-      existingLock->AddBlockingLock(*this);
-      AddBlockedOnLock(*existingLock);
-      blocked = true;
-    }
-  }
+  mBlockedOn = LocksMustWaitForInternal<NotNull<DirectoryLockImpl*>>();
 
   // After the traversal of existing locks is done, this lock can be
   // registered and will become an existing lock as well.
@@ -330,9 +324,16 @@ void DirectoryLockImpl::AcquireInternal() {
 
   // If this lock is not blocked by some other existing lock, notify the open
   // listener immediately and return.
-  if (!blocked) {
+  if (mBlockedOn.IsEmpty()) {
     NotifyOpenListener();
     return;
+  }
+
+  // Add this lock as a blocking lock to all locks which block it, so the
+  // locks can update this lock when they are unregistered and eventually
+  // unblock this lock.
+  for (auto& blockedOnLock : mBlockedOn) {
+    blockedOnLock->AddBlockingLock(*this);
   }
 
   mAcquireTimer = NS_NewTimer();
