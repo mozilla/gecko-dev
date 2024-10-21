@@ -12,6 +12,8 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Sprintf.h"
 
+#include "fmt/format.h"
+
 #include <cinttypes>
 #include <cstring>
 #include <type_traits>
@@ -82,44 +84,54 @@ constexpr uint64_t safe_integer_unsigned() {
 
 template <typename T>
 const char* TypeToString();
-template <typename T>
-const char* TypeToFormatString();
 
-#define T2S(type, formatstring)                             \
-  template <>                                               \
-  inline constexpr const char* TypeToString<type>() {       \
-    return #type;                                           \
-  }                                                         \
-  template <>                                               \
-  inline constexpr const char* TypeToFormatString<type>() { \
-    return "%" formatstring;                                \
+#define T2S(type)                                     \
+  template <>                                         \
+  inline constexpr const char* TypeToString<type>() { \
+    return #type;                                     \
   }
 
-T2S(uint8_t, PRIu8);
-T2S(uint16_t, PRIu16);
-T2S(uint32_t, PRIu32);
-T2S(uint64_t, PRIu64);
-T2S(int8_t, PRId8);
-T2S(int16_t, PRId16);
-T2S(int32_t, PRId32);
-T2S(int64_t, PRId64);
-T2S(char16_t, PRIu16);  // print as a number
-T2S(char32_t, PRIu32);  // print as a number
+T2S(uint8_t);
+T2S(uint16_t);
+T2S(uint32_t);
+T2S(uint64_t);
+T2S(int8_t);
+T2S(int16_t);
+T2S(int32_t);
+T2S(int64_t);
+T2S(char16_t);
+T2S(char32_t);
 #if defined(XP_DARWIN) || defined(XP_WIN) || defined(__wasm__)
-T2S(long, "ld");
-T2S(unsigned long, "lu");
+T2S(long);
+T2S(unsigned long);
 #endif
-T2S(float, "f");
-T2S(double, "lf");
+T2S(float);
+T2S(double);
 
 #undef T2S
 
 template <typename In, typename Out>
 inline void DiagnosticMessage(In aIn, char aDiagnostic[1024]) {
-  char number[128];
-  SprintfBuf(number, 128, TypeToFormatString<In>(), aIn);
-  SprintfBuf(aDiagnostic, 1024, "Cannot cast %s from %s to %s: out of range",
-             number, TypeToString<In>(), TypeToString<Out>());
+  if constexpr (std::is_same_v<In, char> || std::is_same_v<In, wchar_t> ||
+                std::is_same_v<In, char16_t> || std::is_same_v<In, char32_t>) {
+    static_assert(sizeof(wchar_t) <= sizeof(int32_t));
+    // Characters types are printed in hexadecimal for two reasons:
+    // - to easily debug problems with non-printable characters.
+    // - {fmt} refuses to format a string with mixed character type.
+    // It's always possible to cast them to int64_t for lossless printing of the
+    // value.
+    auto [out, size] = fmt::format_to_n(
+        aDiagnostic, 1023,
+        FMT_STRING("Cannot cast {:x} from {} to {}: out of range"),
+        static_cast<int64_t>(aIn), TypeToString<In>(), TypeToString<Out>());
+    *out = 0;
+  } else {
+    auto [out, size] = fmt::format_to_n(
+        aDiagnostic, 1023,
+        FMT_STRING("Cannot cast {} from {} to {}: out of range"), aIn,
+        TypeToString<In>(), TypeToString<Out>());
+    *out = 0;
+  }
 }
 
 // This is working around https://gcc.gnu.org/bugzilla/show_bug.cgi?id=81676,
