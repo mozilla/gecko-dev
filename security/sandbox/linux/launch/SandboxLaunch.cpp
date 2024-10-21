@@ -625,14 +625,24 @@ pid_t SandboxLaunch::Fork() {
   // can't run atfork hooks.)
   sigset_t oldSigs;
   BlockAllSignals(&oldSigs);
+
+#if defined(MOZ_ENABLE_FORKSERVER)
   run_moz_pthread_atfork_handlers_prefork();
+#endif
+
   pid_t pid = ForkWithFlags(mFlags);
   if (pid != 0) {
+#if defined(MOZ_ENABLE_FORKSERVER)
     run_moz_pthread_atfork_handlers_postfork_parent();
+#endif
+
     RestoreSignals(&oldSigs);
     return pid;
   }
+
+#if defined(MOZ_ENABLE_FORKSERVER)
   run_moz_pthread_atfork_handlers_postfork_child();
+#endif
 
   // WARNING: all code from this point on (and in StartChrootServer)
   // must be async signal safe.  In particular, it cannot do anything
