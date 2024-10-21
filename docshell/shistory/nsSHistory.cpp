@@ -1350,7 +1350,7 @@ void nsSHistory::LoadURIOrBFCache(LoadEntryResult& aLoadEntry) {
         canonicalBC->GetActiveSessionHistoryEntry();
     MOZ_ASSERT(she);
     RefPtr<nsFrameLoader> frameLoader = she->GetFrameLoader();
-    if (frameLoader &&
+    if (frameLoader && canonicalBC->Group()->Toplevels().Length() == 1 &&
         (!currentShe || (she->SharedInfo() != currentShe->SharedInfo() &&
                          !currentShe->GetFrameLoader()))) {
       bool canSave = (!currentShe || currentShe->GetSaveLayoutStateFlag()) &&

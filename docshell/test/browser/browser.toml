@@ -93,6 +93,8 @@ skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1607713
 ["browser_bfcache_copycommand.js"]
 skip-if = ["os == 'linux' && bits == 64"] # Bug 1730593
 
+["browser_bfcache_after_auxiliary.js"]
+
 ["browser_browsingContext-01.js"]
 https_first_disabled = true
 
