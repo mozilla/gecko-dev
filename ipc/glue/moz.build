@@ -79,7 +79,14 @@ EXPORTS.mozilla.ipc += [
 ]
 
 if CONFIG["OS_ARCH"] == "WINNT":
-    SOURCES += ["WindowsMessageLoop.cpp"]
+    SOURCES += [
+        "SharedMemory_windows.cpp",
+        "WindowsMessageLoop.cpp",
+    ]
+else:
+    UNIFIED_SOURCES += [
+        "SharedMemory_posix.cpp",
+    ]
 
 if CONFIG["OS_ARCH"] == "WINNT":
     SOURCES += [
@@ -108,14 +115,11 @@ else:
     ]
 
 if CONFIG["OS_ARCH"] == "Darwin":
-    SOURCES += ["SharedMemory_mach.cpp"]
-elif CONFIG["OS_ARCH"] == "WINNT":
-    SOURCES += ["SharedMemory_windows.cpp"]
-elif CONFIG["OS_TARGET"] == "Android":
-    SOURCES += ["SharedMemory_android.cpp"]
+    EXPORTS.mozilla.ipc += ["SharedMemoryImpl_mach.h"]
+    SOURCES += ["SharedMemoryImpl_mach.cpp"]
 else:
-    SOURCES += ["SharedMemory_posix.cpp"]
-
+    EXPORTS.mozilla.ipc += ["SharedMemoryImpl_chromium.h"]
+    SOURCES += ["SharedMemoryImpl_chromium.cpp"]
 
 if CONFIG["OS_ARCH"] == "Linux":
     UNIFIED_SOURCES += [

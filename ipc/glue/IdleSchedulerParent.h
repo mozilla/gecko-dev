@@ -11,9 +11,8 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/LinkedList.h"
-#include "mozilla/RefPtr.h"
 #include "mozilla/ipc/PIdleSchedulerParent.h"
-#include "mozilla/ipc/SharedMemory.h"
+#include "base/shared_memory.h"
 #include <bitset>
 
 #define NS_IDLE_SCHEDULER_COUNTER_ARRAY_LENGHT 1024
@@ -89,7 +88,7 @@ class IdleSchedulerParent final
   // This way the global activity can be checked in a fast way by just looking
   // at [0] value.
   // [1] is used for cpu count for child processes.
-  static RefPtr<SharedMemory> sActiveChildCounter;
+  static base::SharedMemory* sActiveChildCounter;
   // A bit is set if there is a child with child Id as the offset.
   // The bit is used to check per child specific activity counters in
   // sActiveChildCounter.

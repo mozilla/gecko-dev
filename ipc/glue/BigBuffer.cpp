@@ -6,7 +6,6 @@
 
 #include "mozilla/ipc/BigBuffer.h"
 
-#include "chrome/common/ipc_message_utils.h"
 #include "mozilla/ipc/SharedMemory.h"
 #include "nsDebug.h"
 

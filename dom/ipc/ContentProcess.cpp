@@ -7,6 +7,7 @@
 #include "mozilla/ipc/IOThreadChild.h"
 
 #include "ContentProcess.h"
+#include "base/shared_memory.h"
 #include "mozilla/Preferences.h"
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
@@ -77,7 +78,7 @@ void ContentProcess::InfallibleInit(int aArgc, char* aArgv[]) {
       geckoargs::sParentBuildID.Get(aArgc, aArgv);
 
   // command line: -jsInitHandle handle -jsInitLen length
-  Maybe<mozilla::ipc::SharedMemoryHandle> jsInitHandle =
+  Maybe<UniqueFileHandle> jsInitHandle =
       geckoargs::sJsInitHandle.Get(aArgc, aArgv);
   Maybe<uint64_t> jsInitLen = geckoargs::sJsInitLen.Get(aArgc, aArgv);
 

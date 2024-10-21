@@ -32,9 +32,8 @@ void IdleSchedulerChild::Init(IdlePeriodState* aIdlePeriodState) {
   auto resolve =
       [&](std::tuple<mozilla::Maybe<SharedMemoryHandle>, uint32_t>&& aResult) {
         if (std::get<0>(aResult)) {
-          mActiveCounter->SetHandle(std::move(*std::get<0>(aResult)),
-                                    SharedMemory::RightsReadWrite);
-          mActiveCounter->Map(sizeof(int32_t));
+          mActiveCounter.SetHandle(std::move(*std::get<0>(aResult)), false);
+          mActiveCounter.Map(sizeof(int32_t));
           mChildId = std::get<1>(aResult);
           if (mChildId && mIdlePeriodState && mIdlePeriodState->IsActive()) {
             SetActive();
@@ -54,23 +53,23 @@ IPCResult IdleSchedulerChild::RecvIdleTime(uint64_t aId, TimeDuration aBudget) {
 }
 
 void IdleSchedulerChild::SetActive() {
-  if (mChildId && CanSend() && mActiveCounter->Memory()) {
+  if (mChildId && CanSend() && mActiveCounter.memory()) {
     ++(static_cast<Atomic<int32_t>*>(
-        mActiveCounter->Memory())[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER]);
-    ++(static_cast<Atomic<int32_t>*>(mActiveCounter->Memory())[mChildId]);
+        mActiveCounter.memory())[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER]);
+    ++(static_cast<Atomic<int32_t>*>(mActiveCounter.memory())[mChildId]);
   }
 }
 
 bool IdleSchedulerChild::SetPaused() {
-  if (mChildId && CanSend() && mActiveCounter->Memory()) {
-    --(static_cast<Atomic<int32_t>*>(mActiveCounter->Memory())[mChildId]);
+  if (mChildId && CanSend() && mActiveCounter.memory()) {
+    --(static_cast<Atomic<int32_t>*>(mActiveCounter.memory())[mChildId]);
     // The following expression reduces the global activity count and checks if
     // it drops below the cpu counter limit.
-    return (static_cast<Atomic<int32_t>*>(mActiveCounter->Memory())
-                [NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER])-- ==
-           static_cast<Atomic<int32_t>*>(
+    return (static_cast<Atomic<int32_t>*>(
                mActiveCounter
-                   ->Memory())[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER];
+                   .memory())[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER])-- ==
+           static_cast<Atomic<int32_t>*>(
+               mActiveCounter.memory())[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER];
   }
 
   return false;
