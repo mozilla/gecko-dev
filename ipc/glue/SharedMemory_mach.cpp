@@ -143,7 +143,44 @@ void SharedMemory::UnmapImpl(size_t nBytes, void* address) {
 }
 
 Maybe<SharedMemory::Handle> SharedMemory::ReadOnlyCopyImpl() {
-  return Nothing();
+  memory_object_size_t memoryObjectSize = round_page(mAllocSize);
+
+  mozilla::UniqueMachSendRight port;
+
+  void* address = mMemory.get();
+  bool unmap = false;
+
+  if (!address) {
+    // Temporarily map memory (as readonly) to get an address.
+    if (auto memory = MapMemory(memoryObjectSize, nullptr, mHandle, true)) {
+      address = *memory;
+      unmap = true;
+    } else {
+      return Nothing();
+    }
+  }
+
+  kern_return_t kr = mach_make_memory_entry_64(
+      mach_task_self(), &memoryObjectSize,
+      static_cast<memory_object_offset_t>(reinterpret_cast<uintptr_t>(address)),
+      VM_PROT_READ, getter_Transfers(port), MACH_PORT_NULL);
+
+  if (unmap) {
+    kern_return_t kr =
+        vm_deallocate(mach_task_self(), toVMAddress(address), memoryObjectSize);
+    if (kr != KERN_SUCCESS) {
+      LOG_ERROR("Failed to deallocate shared memory. %s (%x)\n",
+                mach_error_string(kr), kr);
+    }
+  }
+
+  if (kr != KERN_SUCCESS || memoryObjectSize < round_page(mAllocSize)) {
+    LOG_ERROR("Failed to make memory entry (%zu bytes). %s (%x)\n", mAllocSize,
+              mach_error_string(kr), kr);
+    return Nothing();
+  }
+
+  return Some(std::move(port));
 }
 
 void SharedMemory::SystemProtect(char* aAddr, size_t aSize, int aRights) {
