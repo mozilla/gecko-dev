@@ -53,8 +53,8 @@ class MediaQueryList final : public DOMEventTargetHelper,
   // WebIDL methods
   void GetMedia(nsACString& aMedia) const;
   bool Matches();
-  void AddListener(EventListener* aListener, ErrorResult& aRv);
-  void RemoveListener(EventListener* aListener, ErrorResult& aRv);
+  void AddListener(EventListener* aListener);
+  void RemoveListener(EventListener* aListener);
 
   IMPL_EVENT_HANDLER(change)
 

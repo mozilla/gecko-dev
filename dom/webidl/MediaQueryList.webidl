@@ -16,10 +16,8 @@ interface MediaQueryList : EventTarget {
   readonly attribute UTF8String media;
   readonly attribute boolean matches;
 
-  [Throws]
   undefined addListener(EventListener? listener);
 
-  [Throws]
   undefined removeListener(EventListener? listener);
 
            attribute EventHandler onchange;

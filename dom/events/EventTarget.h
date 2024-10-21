@@ -69,11 +69,9 @@ class EventTarget : public nsISupports, public nsWrapperCache {
                                                    ErrorResult& aRv);
   void AddEventListener(const nsAString& aType, EventListener* aCallback,
                         const AddEventListenerOptionsOrBoolean& aOptions,
-                        const Nullable<bool>& aWantsUntrusted,
-                        ErrorResult& aRv);
+                        const Nullable<bool>& aWantsUntrusted);
   void RemoveEventListener(const nsAString& aType, EventListener* aCallback,
-                           const EventListenerOptionsOrBoolean& aOptions,
-                           ErrorResult& aRv);
+                           const EventListenerOptionsOrBoolean& aOptions);
 
  protected:
   /**

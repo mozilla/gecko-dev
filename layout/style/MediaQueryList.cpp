@@ -68,7 +68,7 @@ bool MediaQueryList::Matches() {
   return mMatches;
 }
 
-void MediaQueryList::AddListener(EventListener* aListener, ErrorResult& aRv) {
+void MediaQueryList::AddListener(EventListener* aListener) {
   if (!aListener) {
     return;
   }
@@ -76,11 +76,10 @@ void MediaQueryList::AddListener(EventListener* aListener, ErrorResult& aRv) {
   AddEventListenerOptionsOrBoolean options;
   options.SetAsBoolean() = false;
 
-  AddEventListener(u"change"_ns, aListener, options, Nullable<bool>(), aRv);
+  AddEventListener(u"change"_ns, aListener, options, Nullable<bool>());
 }
 
-void MediaQueryList::RemoveListener(EventListener* aListener,
-                                    ErrorResult& aRv) {
+void MediaQueryList::RemoveListener(EventListener* aListener) {
   if (!aListener) {
     return;
   }
@@ -88,7 +87,7 @@ void MediaQueryList::RemoveListener(EventListener* aListener,
   EventListenerOptionsOrBoolean options;
   options.SetAsBoolean() = false;
 
-  RemoveEventListener(u"change"_ns, aListener, options, aRv);
+  RemoveEventListener(u"change"_ns, aListener, options);
 }
 
 bool MediaQueryList::HasListeners() const {
