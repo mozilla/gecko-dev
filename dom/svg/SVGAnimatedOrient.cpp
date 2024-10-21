@@ -140,14 +140,15 @@ bool SVGAnimatedOrient::GetValueFromString(const nsAString& aString,
     return false;
   }
 
-  RangedPtr<const char16_t> iter = SVGContentUtils::GetStartRangedPtr(token);
-  const RangedPtr<const char16_t> end = SVGContentUtils::GetEndRangedPtr(token);
+  nsAString::const_iterator iter, end;
+  token.BeginReading(iter);
+  token.EndReading(end);
 
   if (!SVGContentUtils::ParseNumber(iter, end, aValue)) {
     return false;
   }
 
-  const nsAString& units = Substring(iter.get(), end.get());
+  const nsAString& units = Substring(iter, end);
   *aUnitType = GetAngleUnitTypeForString(units);
   return *aUnitType != SVG_ANGLETYPE_UNKNOWN;
 }

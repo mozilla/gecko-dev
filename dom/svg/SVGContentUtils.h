@@ -12,7 +12,6 @@
 
 #include "mozilla/gfx/2D.h"  // for StrokeOptions
 #include "mozilla/gfx/Matrix.h"
-#include "mozilla/RangedPtr.h"
 #include "nsError.h"
 #include "nsStringFwd.h"
 #include "nsTArray.h"
@@ -86,7 +85,7 @@ class SVGContentUtils {
         mDashPattern = mSmallArray;
         return mSmallArray;
       }
-      Float* nonConstArray = new (mozilla::fallible) Float[aDashCount];
+      Float* nonConstArray = new (fallible) Float[aDashCount];
       mDashPattern = nonConstArray;
       return nonConstArray;
     }
@@ -136,7 +135,7 @@ class SVGContentUtils {
    * XXX document the conditions under which these may fail, and what they
    * return in those cases.
    */
-  static float GetFontSize(const mozilla::dom::Element* aElement);
+  static float GetFontSize(const dom::Element* aElement);
   static float GetFontSize(const nsIFrame* aFrame);
   static float GetFontSize(const ComputedStyle*, nsPresContext*);
   /*
@@ -146,7 +145,7 @@ class SVGContentUtils {
    * XXX document the conditions under which these may fail, and what they
    * return in those cases.
    */
-  static float GetFontXHeight(const mozilla::dom::Element* aElement);
+  static float GetFontXHeight(const dom::Element* aElement);
   static float GetFontXHeight(const nsIFrame* aFrame);
   static float GetFontXHeight(const ComputedStyle*, nsPresContext*);
 
@@ -157,7 +156,7 @@ class SVGContentUtils {
    * Requires the element be styled - if not, a default value assuming
    * the font-size of 16px and line-height of 1.2 is returned.
    */
-  static float GetLineHeight(const mozilla::dom::Element* aElement);
+  static float GetLineHeight(const dom::Element* aElement);
 
   /*
    * Report a localized error message to the error console.
@@ -192,7 +191,7 @@ class SVGContentUtils {
    */
   static bool EstablishesViewport(const nsIContent* aContent);
 
-  static mozilla::dom::SVGViewportElement* GetNearestViewportElement(
+  static dom::SVGViewportElement* GetNearestViewportElement(
       const nsIContent* aContent);
 
   /* enum for specifying coordinate direction for ObjectSpace/UserSpace */
@@ -218,12 +217,6 @@ class SVGContentUtils {
       float aViewboxY, float aViewboxWidth, float aViewboxHeight,
       const SVGPreserveAspectRatio& aPreserveAspectRatio);
 
-  static mozilla::RangedPtr<const char16_t> GetStartRangedPtr(
-      const nsAString& aString);
-
-  static mozilla::RangedPtr<const char16_t> GetEndRangedPtr(
-      const nsAString& aString);
-
   /**
    * Parses the sign (+ or -) of a number and moves aIter to the next
    * character if a sign is found.
@@ -231,16 +224,15 @@ class SVGContentUtils {
    * @return false if we hit the end of the string (i.e. if aIter is initially
    *         at aEnd, or if we reach aEnd right after the sign character).
    */
-  static inline bool ParseOptionalSign(
-      mozilla::RangedPtr<const char16_t>& aIter,
-      const mozilla::RangedPtr<const char16_t>& aEnd,
-      int32_t& aSignMultiplier) {
+  static inline bool ParseOptionalSign(nsAString::const_iterator& aIter,
+                                       const nsAString::const_iterator& aEnd,
+                                       int32_t& aSignMultiplier) {
     if (aIter == aEnd) {
       return false;
     }
     aSignMultiplier = *aIter == '-' ? -1 : 1;
 
-    mozilla::RangedPtr<const char16_t> iter(aIter);
+    nsAString::const_iterator iter(aIter);
 
     if (*iter == '-' || *iter == '+') {
       ++iter;
@@ -260,8 +252,8 @@ class SVGContentUtils {
    * after the end of the number, otherwise it is left unchanged
    */
   template <class floatType>
-  static bool ParseNumber(mozilla::RangedPtr<const char16_t>& aIter,
-                          const mozilla::RangedPtr<const char16_t>& aEnd,
+  static bool ParseNumber(nsAString::const_iterator& aIter,
+                          const nsAString::const_iterator& aEnd,
                           floatType& aValue);
 
   /**
@@ -280,8 +272,8 @@ class SVGContentUtils {
    * If parsing succeeds, aIter is updated so that it points to the character
    * after the end of the number, otherwise it is left unchanged
    */
-  static bool ParseInteger(mozilla::RangedPtr<const char16_t>& aIter,
-                           const mozilla::RangedPtr<const char16_t>& aEnd,
+  static bool ParseInteger(nsAString::const_iterator& aIter,
+                           const nsAString::const_iterator& aEnd,
                            int32_t& aValue);
 
   /**
@@ -310,8 +302,7 @@ class SVGContentUtils {
    * Returns a path
    * string formatted as an SVG path
    */
-  static already_AddRefed<mozilla::gfx::Path> GetPath(
-      const nsACString& aPathString);
+  static already_AddRefed<gfx::Path> GetPath(const nsACString& aPathString);
 
   /**
    *  Returns true if aContent is one of the elements whose stroke is guaranteed

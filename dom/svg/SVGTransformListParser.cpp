@@ -48,7 +48,7 @@ bool SVGTransformListParser::ParseTransforms() {
 }
 
 bool SVGTransformListParser::ParseTransform() {
-  RangedPtr<const char16_t> start(mIter);
+  nsAString::const_iterator start(mIter);
   while (IsAsciiAlpha(*mIter)) {
     ++mIter;
     if (mIter == mEnd) {
@@ -61,7 +61,7 @@ bool SVGTransformListParser::ParseTransform() {
     return false;
   }
 
-  const nsAString& transform = Substring(start.get(), mIter.get());
+  const nsAString& transform = Substring(start, mIter);
   nsStaticAtom* keyAtom = NS_GetStaticAtom(transform);
 
   if (!keyAtom || !SkipWsp()) {

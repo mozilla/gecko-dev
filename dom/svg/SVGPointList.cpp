@@ -55,9 +55,9 @@ nsresult SVGPointList::SetValueFromString(const nsAString& aValue) {
   while (tokenizer.hasMoreTokens()) {
     const nsAString& token = tokenizer.nextToken();
 
-    RangedPtr<const char16_t> iter = SVGContentUtils::GetStartRangedPtr(token);
-    const RangedPtr<const char16_t> end =
-        SVGContentUtils::GetEndRangedPtr(token);
+    nsAString::const_iterator iter, end;
+    token.BeginReading(iter);
+    token.EndReading(end);
 
     float x;
     if (!SVGContentUtils::ParseNumber(iter, end, x)) {
@@ -75,7 +75,7 @@ nsresult SVGPointList::SetValueFromString(const nsAString& aValue) {
     } else {
       // It's possible for the token to be 10-30 which has
       // no separator but needs to be parsed as 10, -30
-      const nsAString& leftOver = Substring(iter.get(), end.get());
+      const nsAString& leftOver = Substring(iter, end);
       if (leftOver[0] != '-' || !SVGContentUtils::ParseNumber(leftOver, y)) {
         rv = NS_ERROR_DOM_SYNTAX_ERR;
         break;

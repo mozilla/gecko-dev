@@ -91,13 +91,14 @@ static bool GetValueFromString(const nsAString& aString, float& aValue,
     return false;
   }
 
-  RangedPtr<const char16_t> iter = SVGContentUtils::GetStartRangedPtr(token);
-  const RangedPtr<const char16_t> end = SVGContentUtils::GetEndRangedPtr(token);
+  nsAString::const_iterator iter, end;
+  token.BeginReading(iter);
+  token.EndReading(end);
 
   if (!SVGContentUtils::ParseNumber(iter, end, aValue)) {
     return false;
   }
-  const nsAString& units = Substring(iter.get(), end.get());
+  const nsAString& units = Substring(iter, end);
   *aUnitType = SVGLength::GetUnitTypeForString(units);
   return *aUnitType != SVGLength_Binding::SVG_LENGTHTYPE_UNKNOWN;
 }

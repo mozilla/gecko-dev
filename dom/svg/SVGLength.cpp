@@ -48,8 +48,9 @@ bool SVGLength::SetValueFromString(const nsAString& aString) {
     return false;
   }
 
-  RangedPtr<const char16_t> iter = SVGContentUtils::GetStartRangedPtr(token);
-  const RangedPtr<const char16_t> end = SVGContentUtils::GetEndRangedPtr(token);
+  nsAString::const_iterator iter, end;
+  aString.BeginReading(iter);
+  aString.EndReading(end);
 
   float value;
 
@@ -57,7 +58,7 @@ bool SVGLength::SetValueFromString(const nsAString& aString) {
     return false;
   }
 
-  const nsAString& units = Substring(iter.get(), end.get());
+  const nsAString& units = Substring(iter, end);
   uint16_t unitType = GetUnitTypeForString(units);
   if (unitType == SVG_LENGTHTYPE_UNKNOWN) {
     return false;

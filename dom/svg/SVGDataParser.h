@@ -7,8 +7,7 @@
 #ifndef DOM_SVG_SVGDATAPARSER_H_
 #define DOM_SVG_SVGDATAPARSER_H_
 
-#include "mozilla/RangedPtr.h"
-#include "nsStringFwd.h"
+#include "nsAString.h"
 
 namespace mozilla {
 
@@ -27,8 +26,8 @@ class SVGDataParser {
   // Returns true if there are more characters to read, false otherwise.
   bool SkipWsp();
 
-  mozilla::RangedPtr<const char16_t> mIter;
-  const mozilla::RangedPtr<const char16_t> mEnd;
+  nsAString::const_iterator mIter;
+  nsAString::const_iterator mEnd;
 };
 
 }  // namespace mozilla

@@ -10,9 +10,10 @@
 
 namespace mozilla {
 
-SVGDataParser::SVGDataParser(const nsAString& aValue)
-    : mIter(SVGContentUtils::GetStartRangedPtr(aValue)),
-      mEnd(SVGContentUtils::GetEndRangedPtr(aValue)) {}
+SVGDataParser::SVGDataParser(const nsAString& aValue) {
+  aValue.BeginReading(mIter);
+  aValue.EndReading(mEnd);
+}
 
 bool SVGDataParser::SkipCommaWsp() {
   if (!SkipWsp()) {
