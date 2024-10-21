@@ -38,9 +38,9 @@ class QuotaManager;
 
 enum class ShouldUpdateLockIdTableFlag { No, Yes };
 
-class DirectoryLockImpl final : public ClientDirectoryLock,
-                                public UniversalDirectoryLock {
+class DirectoryLockImpl : public ClientDirectoryLock {
   friend class QuotaManager;
+  friend class UniversalDirectoryLock;
 
   const NotNull<RefPtr<QuotaManager>> mQuotaManager;
 
@@ -160,15 +160,8 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
     return mClientType.Value();
   }
 
-  // UniversalDirectoryLock interface
-
-  RefPtr<ClientDirectoryLock> SpecializeForClient(
-      PersistenceType aPersistenceType,
-      const quota::OriginMetadata& aOriginMetadata,
-      Client::Type aClientType) const override;
-
  private:
-  ~DirectoryLockImpl();
+  virtual ~DirectoryLockImpl();
 
   static RefPtr<ClientDirectoryLock> Create(
       MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
@@ -197,17 +190,6 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
         OriginScope::FromOrigin(aOriginMetadata), Nullable<Client::Type>(),
         /* aExclusive */ true, /* aInternal */ true,
         ShouldUpdateLockIdTableFlag::No, DirectoryLockCategory::UninitOrigins);
-  }
-
-  static RefPtr<UniversalDirectoryLock> CreateInternal(
-      MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-      const PersistenceScope& aPersistenceScope,
-      const OriginScope& aOriginScope,
-      const Nullable<Client::Type>& aClientType, bool aExclusive,
-      DirectoryLockCategory aCategory) {
-    return Create(std::move(aQuotaManager), aPersistenceScope, aOriginScope,
-                  aClientType, aExclusive, true,
-                  ShouldUpdateLockIdTableFlag::Yes, aCategory);
   }
 
   static RefPtr<DirectoryLockImpl> Create(

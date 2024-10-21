@@ -105,6 +105,7 @@
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/dom/quota/ScopedLogExtraInfo.h"
 #include "mozilla/dom/quota/StreamUtils.h"
+#include "mozilla/dom/quota/UniversalDirectoryLock.h"
 #include "mozilla/dom/quota/ThreadUtils.h"
 #include "mozilla/dom/simpledb/ActorsParent.h"
 #include "mozilla/fallible.h"
@@ -5452,9 +5453,9 @@ RefPtr<UniversalDirectoryLock> QuotaManager::CreateDirectoryLockInternal(
     DirectoryLockCategory aCategory) {
   AssertIsOnOwningThread();
 
-  return DirectoryLockImpl::CreateInternal(WrapNotNullUnchecked(this),
-                                           aPersistenceScope, aOriginScope,
-                                           aClientType, aExclusive, aCategory);
+  return UniversalDirectoryLock::CreateInternal(
+      WrapNotNullUnchecked(this), aPersistenceScope, aOriginScope, aClientType,
+      aExclusive, aCategory);
 }
 
 bool QuotaManager::IsPendingOrigin(

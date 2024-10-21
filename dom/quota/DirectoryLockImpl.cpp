@@ -6,7 +6,6 @@
 
 #include "DirectoryLockImpl.h"
 
-#include "nsDebug.h"
 #include "nsError.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
@@ -86,7 +85,7 @@ nsTArray<RefPtr<DirectoryLock>> DirectoryLockImpl::LocksMustWaitFor() const {
 
   for (DirectoryLockImpl* const existingLock : mQuotaManager->mDirectoryLocks) {
     if (MustWaitFor(*existingLock)) {
-      locks.AppendElement(static_cast<UniversalDirectoryLock*>(existingLock));
+      locks.AppendElement(existingLock);
     }
   }
 
@@ -219,57 +218,6 @@ void DirectoryLockImpl::Log() const {
   for (auto blockedOn : mBlockedOn) {
     blockedOn->Log();
   }
-}
-
-RefPtr<ClientDirectoryLock> DirectoryLockImpl::SpecializeForClient(
-    PersistenceType aPersistenceType,
-    const quota::OriginMetadata& aOriginMetadata,
-    Client::Type aClientType) const {
-  AssertIsOnOwningThread();
-  MOZ_ASSERT(aPersistenceType != PERSISTENCE_TYPE_INVALID);
-  MOZ_ASSERT(!aOriginMetadata.mGroup.IsEmpty());
-  MOZ_ASSERT(!aOriginMetadata.mOrigin.IsEmpty());
-  MOZ_ASSERT(aClientType < Client::TypeMax());
-  MOZ_ASSERT(mAcquirePromiseHolder.IsEmpty());
-  MOZ_ASSERT(mBlockedOn.IsEmpty());
-
-  if (NS_WARN_IF(mExclusive)) {
-    return nullptr;
-  }
-
-  RefPtr<DirectoryLockImpl> lock =
-      Create(mQuotaManager, PersistenceScope::CreateFromValue(aPersistenceType),
-             OriginScope::FromOrigin(aOriginMetadata),
-             Nullable<Client::Type>(aClientType),
-             /* aExclusive */ false, mInternal,
-             ShouldUpdateLockIdTableFlag::Yes, mCategory);
-  if (NS_WARN_IF(!Overlaps(*lock))) {
-    return nullptr;
-  }
-
-#ifdef DEBUG
-  for (DirectoryLockImpl* const existingLock :
-       Reversed(mQuotaManager->mDirectoryLocks)) {
-    if (existingLock != this && !existingLock->MustWaitFor(*this)) {
-      MOZ_ASSERT(!existingLock->MustWaitFor(*lock));
-    }
-  }
-#endif
-
-  for (const auto& blockedLock : mBlocking) {
-    if (blockedLock->MustWaitFor(*lock)) {
-      lock->AddBlockingLock(*blockedLock);
-      blockedLock->AddBlockedOnLock(*lock);
-    }
-  }
-
-  mQuotaManager->RegisterDirectoryLock(*lock);
-
-  if (mInvalidated) {
-    lock->Invalidate();
-  }
-
-  return lock;
 }
 
 #ifdef DEBUG

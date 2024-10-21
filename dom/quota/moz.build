@@ -48,6 +48,7 @@ EXPORTS.mozilla.dom.quota += [
     "DecryptingInputStream_impl.h",
     "DirectoryLock.h",
     "DirectoryLockCategory.h",
+    "DirectoryLockImpl.h",
     "DirectoryLockInlines.h",
     "DummyCipherStrategy.h",
     "EncryptedBlock.h",
@@ -91,6 +92,7 @@ EXPORTS.mozilla.dom.quota += [
     "StreamUtils.h",
     "StringifyUtils.h",
     "ThreadUtils.h",
+    "UniversalDirectoryLock.h",
     "UsageInfo.h",
 ]
 
@@ -149,6 +151,7 @@ UNIFIED_SOURCES += [
     "StreamUtils.cpp",
     "StringifyUtils.cpp",
     "ThreadUtils.cpp",
+    "UniversalDirectoryLock.cpp",
 ]
 
 IPDL_SOURCES += [

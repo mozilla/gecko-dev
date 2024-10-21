@@ -95,23 +95,6 @@ class NS_NO_VTABLE ClientDirectoryLock : public OriginDirectoryLock {
   virtual Client::Type ClientType() const = 0;
 };
 
-// A directory lock for universal use. A universal lock can handle any possible
-// combination of nullable persistence type, origin scope and nullable client
-// type.
-//
-// For example, if the persistence type is set to null, origin scope is null
-// and the client type is set to Client::IDB, then the lock will cover
-// <profile>/storage/*/*/idb
-//
-// If no property is set, then the lock will cover the entire storage directory
-// and its subdirectories.
-class UniversalDirectoryLock : public DirectoryLock {
- public:
-  virtual RefPtr<ClientDirectoryLock> SpecializeForClient(
-      PersistenceType aPersistenceType, const OriginMetadata& aOriginMetadata,
-      Client::Type aClientType) const = 0;
-};
-
 template <typename T>
 constexpr void SafeDropDirectoryLock(RefPtr<T>& aDirectoryLock);
 

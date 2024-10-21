@@ -15,6 +15,7 @@
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/QuotaManager.h"
+#include "mozilla/dom/quota/UniversalDirectoryLock.h"
 
 namespace mozilla::dom::quota {
 

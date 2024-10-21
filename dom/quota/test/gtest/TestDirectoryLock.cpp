@@ -9,6 +9,7 @@
 #include "gtest/gtest.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/dom/quota/OriginScope.h"
+#include "mozilla/dom/quota/UniversalDirectoryLock.h"
 
 namespace mozilla::dom::quota::test {
 

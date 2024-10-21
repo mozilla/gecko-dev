@@ -95,6 +95,7 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class OriginInfo;
   friend class PersistOp;
   friend class ShutdownStorageOp;
+  friend class UniversalDirectoryLock;
 
   friend Result<PrincipalMetadata, nsresult> GetInfoFromValidatedPrincipalInfo(
       QuotaManager& aQuotaManager,
