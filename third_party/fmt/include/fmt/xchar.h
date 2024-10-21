@@ -291,8 +291,9 @@ inline void vprint(std::FILE* f, wstring_view fmt, wformat_args args) {
   auto buf = wmemory_buffer();
   detail::vformat_to(buf, fmt, args);
   buf.push_back(L'\0');
-  if (std::fputws(buf.data(), f) == -1)
-    FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
+  std::fputws(buf.data(), f);
+  // if (std::fputws(buf.data(), f) == -1)
+  //   FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
 }
 
 inline void vprint(wstring_view fmt, wformat_args args) {

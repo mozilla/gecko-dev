@@ -1,0 +1,176 @@
+diff --git a/include/fmt/format-inl.h b/include/fmt/format-inl.h
+--- a/include/fmt/format-inl.h
++++ b/include/fmt/format-inl.h
+@@ -69,19 +69,20 @@ FMT_FUNC void do_report_error(format_fun
+   func(full_message, error_code, message);
+   // Don't use fwrite_all because the latter may throw.
+   if (std::fwrite(full_message.data(), full_message.size(), 1, stderr) > 0)
+     std::fputc('\n', stderr);
+ }
+ 
+ // A wrapper around fwrite that throws on error.
+ inline void fwrite_all(const void* ptr, size_t count, FILE* stream) {
+-  size_t written = std::fwrite(ptr, 1, count, stream);
+-  if (written < count)
+-    FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
++  std::fwrite(ptr, 1, count, stream);
++  // size_t written = std::fwrite(ptr, 1, count, stream);
++  // if (written < count)
++  //   FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
+ }
+ 
+ #if FMT_USE_LOCALE
+ using std::locale;
+ using std::numpunct;
+ using std::use_facet;
+ 
+ template <typename Locale, enable_if_t<(sizeof(Locale::collate) != 0), int>>
+@@ -153,21 +154,21 @@ template <typename Locale> format_facet<
+ template <>
+ FMT_API FMT_FUNC auto format_facet<std::locale>::do_put(
+     appender out, loc_value val, const format_specs& specs) const -> bool {
+   return val.visit(
+       detail::loc_writer<>{out, specs, separator_, grouping_, decimal_point_});
+ }
+ #endif
+ 
+-FMT_FUNC auto vsystem_error(int error_code, string_view fmt, format_args args)
+-    -> std::system_error {
+-  auto ec = std::error_code(error_code, std::generic_category());
+-  return std::system_error(ec, vformat(fmt, args));
+-}
++// FMT_FUNC auto vsystem_error(int error_code, string_view fmt, format_args args)
++//     -> std::system_error {
++//   auto ec = std::error_code(error_code, std::generic_category());
++//   return std::system_error(ec, vformat(fmt, args));
++// }
+ 
+ namespace detail {
+ 
+ template <typename F>
+ inline auto operator==(basic_fp<F> x, basic_fp<F> y) -> bool {
+   return x.f == y.f && x.e == y.e;
+ }
+ 
+@@ -1418,22 +1419,22 @@ FMT_FUNC detail::utf8_to_utf16::utf8_to_
+     }
+     return true;
+   });
+   buffer_.push_back(0);
+ }
+ 
+ FMT_FUNC void format_system_error(detail::buffer<char>& out, int error_code,
+                                   const char* message) noexcept {
+-  FMT_TRY {
+-    auto ec = std::error_code(error_code, std::generic_category());
+-    detail::write(appender(out), std::system_error(ec, message).what());
+-    return;
+-  }
+-  FMT_CATCH(...) {}
++  // FMT_TRY {
++  //   auto ec = std::error_code(error_code, std::generic_category());
++  //   detail::write(appender(out), std::system_error(ec, message).what());
++  //   return;
++  // }
++  // FMT_CATCH(...) {}
+   format_error_code(out, error_code, message);
+ }
+ 
+ FMT_FUNC void report_system_error(int error_code,
+                                   const char* message) noexcept {
+   do_report_error(format_system_error, error_code, message);
+ }
+ 
+diff --git a/include/fmt/format.h b/include/fmt/format.h
+--- a/include/fmt/format.h
++++ b/include/fmt/format.h
+@@ -4189,55 +4189,55 @@ class format_int {
+  *
+  * **Example**:
+  *
+  *     // A compile-time error because 'd' is an invalid specifier for strings.
+  *     std::string s = fmt::format(FMT_STRING("{:d}"), "foo");
+  */
+ #define FMT_STRING(s) FMT_STRING_IMPL(s, fmt::detail::compile_string)
+ 
+-FMT_API auto vsystem_error(int error_code, string_view fmt, format_args args)
+-    -> std::system_error;
++// FMT_API auto vsystem_error(int error_code, string_view fmt, format_args args)
++//     -> std::system_error;
+ 
+ /**
+  * Constructs `std::system_error` with a message formatted with
+  * `fmt::format(fmt, args...)`.
+  * `error_code` is a system error code as given by `errno`.
+  *
+  * **Example**:
+  *
+  *     // This throws std::system_error with the description
+  *     //   cannot open file 'madeup': No such file or directory
+  *     // or similar (system message may vary).
+  *     const char* filename = "madeup";
+  *     FILE* file = fopen(filename, "r");
+  *     if (!file)
+  *       throw fmt::system_error(errno, "cannot open file '{}'", filename);
+  */
+-template <typename... T>
+-auto system_error(int error_code, format_string<T...> fmt, T&&... args)
+-    -> std::system_error {
+-  return vsystem_error(error_code, fmt.str, vargs<T...>{{args...}});
+-}
++// template <typename... T>
++// auto system_error(int error_code, format_string<T...> fmt, T&&... args)
++//     -> std::system_error {
++//   return vsystem_error(error_code, fmt.str, vargs<T...>{{args...}});
++// }
+ 
+ /**
+  * Formats an error message for an error returned by an operating system or a
+  * language runtime, for example a file opening error, and writes it to `out`.
+  * The format is the same as the one used by `std::system_error(ec, message)`
+  * where `ec` is `std::error_code(error_code, std::generic_category())`.
+  * It is implementation-defined but normally looks like:
+  *
+  *     <message>: <system-message>
+  *
+  * where `<message>` is the passed message and `<system-message>` is the system
+  * message corresponding to the error code.
+  * `error_code` is a system error code as given by `errno`.
+  */
+-FMT_API void format_system_error(detail::buffer<char>& out, int error_code,
+-                                 const char* message) noexcept;
++// FMT_API void format_system_error(detail::buffer<char>& out, int error_code,
++//                                  const char* message) noexcept;
+ 
+ // Reports a system error without throwing an exception.
+ // Can be used to report errors from destructors.
+ FMT_API void report_system_error(int error_code, const char* message) noexcept;
+ 
+ inline auto vformat(detail::locale_ref loc, string_view fmt, format_args args)
+     -> std::string {
+   auto buf = memory_buffer();
+diff --git a/include/fmt/xchar.h b/include/fmt/xchar.h
+--- a/include/fmt/xchar.h
++++ b/include/fmt/xchar.h
+@@ -286,18 +286,19 @@ inline auto formatted_size(const S& fmt,
+                      fmt::make_format_args<buffered_context<Char>>(args...));
+   return buf.count();
+ }
+ 
+ inline void vprint(std::FILE* f, wstring_view fmt, wformat_args args) {
+   auto buf = wmemory_buffer();
+   detail::vformat_to(buf, fmt, args);
+   buf.push_back(L'\0');
+-  if (std::fputws(buf.data(), f) == -1)
+-    FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
++  std::fputws(buf.data(), f);
++  // if (std::fputws(buf.data(), f) == -1)
++  //   FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
+ }
+ 
+ inline void vprint(wstring_view fmt, wformat_args args) {
+   vprint(stdout, fmt, args);
+ }
+ 
+ template <typename... T>
+ void print(std::FILE* f, wformat_string<T...> fmt, T&&... args) {
