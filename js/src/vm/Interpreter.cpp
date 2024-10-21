@@ -31,6 +31,7 @@
 #include "jit/BaselineJIT.h"
 #include "jit/Jit.h"
 #include "jit/JitRuntime.h"
+#include "js/EnvironmentChain.h"      // JS::SupportUnscopables
 #include "js/experimental/JitInfo.h"  // JSJitInfo
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/StackLimits.h"    // js::AutoCheckRecursionLimit
@@ -1071,8 +1072,8 @@ bool js::EnterWithOperation(JSContext* cx, AbstractFramePtr frame,
   }
 
   RootedObject envChain(cx, frame.environmentChain());
-  WithEnvironmentObject* withobj =
-      WithEnvironmentObject::create(cx, obj, envChain, scope);
+  WithEnvironmentObject* withobj = WithEnvironmentObject::create(
+      cx, obj, envChain, scope, JS::SupportUnscopables::Yes);
   if (!withobj) {
     return false;
   }

@@ -19,6 +19,7 @@
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
 #include "js/Date.h"
+#include "js/EnvironmentChain.h"
 #include "js/GCVector.h"
 #include "js/HeapAPI.h"
 #include "js/Modules.h"
@@ -80,7 +81,7 @@ nsresult nsJSUtils::UpdateFunctionDebugMetadata(
 }
 
 nsresult nsJSUtils::CompileFunction(AutoJSAPI& jsapi,
-                                    JS::HandleVector<JSObject*> aScopeChain,
+                                    const JS::EnvironmentChain& aEnvChain,
                                     JS::CompileOptions& aOptions,
                                     const nsACString& aName, uint32_t aArgCount,
                                     const char** aArgArray,
@@ -88,12 +89,12 @@ nsresult nsJSUtils::CompileFunction(AutoJSAPI& jsapi,
                                     JSObject** aFunctionObject) {
   JSContext* cx = jsapi.cx();
   MOZ_ASSERT(js::GetContextRealm(cx));
-  MOZ_ASSERT_IF(aScopeChain.length() != 0,
-                js::IsObjectInContextCompartment(aScopeChain[0], cx));
+  MOZ_ASSERT_IF(aEnvChain.length() != 0,
+                js::IsObjectInContextCompartment(aEnvChain.chain()[0], cx));
 
   // Do the junk Gecko is supposed to do before calling into JSAPI.
-  for (size_t i = 0; i < aScopeChain.length(); ++i) {
-    JS::ExposeObjectToActiveJS(aScopeChain[i]);
+  for (size_t i = 0; i < aEnvChain.length(); ++i) {
+    JS::ExposeObjectToActiveJS(aEnvChain.chain()[i]);
   }
 
   // Compile.
@@ -106,7 +107,7 @@ nsresult nsJSUtils::CompileFunction(AutoJSAPI& jsapi,
   }
 
   JS::Rooted<JSFunction*> fun(
-      cx, JS::CompileFunction(cx, aScopeChain, aOptions,
+      cx, JS::CompileFunction(cx, aEnvChain, aOptions,
                               PromiseFlatCString(aName).get(), aArgCount,
                               aArgArray, source));
   if (!fun) {
@@ -122,14 +123,14 @@ bool nsJSUtils::IsScriptable(JS::Handle<JSObject*> aEvaluationGlobal) {
   return xpc::Scriptability::AllowedIfExists(aEvaluationGlobal);
 }
 
-static bool AddScopeChainItem(JSContext* aCx, nsINode* aNode,
-                              JS::MutableHandleVector<JSObject*> aScopeChain) {
+static bool AddEnvChainItem(JSContext* aCx, nsINode* aNode,
+                            JS::EnvironmentChain& aEnvChain) {
   JS::Rooted<JS::Value> val(aCx);
   if (!GetOrCreateDOMReflector(aCx, aNode, &val)) {
     return false;
   }
 
-  if (!aScopeChain.append(&val.toObject())) {
+  if (!aEnvChain.append(&val.toObject())) {
     return false;
   }
 
@@ -137,11 +138,10 @@ static bool AddScopeChainItem(JSContext* aCx, nsINode* aNode,
 }
 
 /* static */
-bool nsJSUtils::GetScopeChainForElement(
-    JSContext* aCx, Element* aElement,
-    JS::MutableHandleVector<JSObject*> aScopeChain) {
+bool nsJSUtils::GetEnvironmentChainForElement(JSContext* aCx, Element* aElement,
+                                              JS::EnvironmentChain& aEnvChain) {
   for (nsINode* cur = aElement; cur; cur = cur->GetScopeChainParent()) {
-    if (!AddScopeChainItem(aCx, cur, aScopeChain)) {
+    if (!AddEnvChainItem(aCx, cur, aEnvChain)) {
       return false;
     }
   }

@@ -12,6 +12,7 @@
 #include "frontend/BytecodeCompiler.h"  // frontend::CompileEvalScript
 #include "gc/HashUtil.h"
 #include "js/CompilationAndEvaluation.h"
+#include "js/EnvironmentChain.h"       // JS::EnvironmentChain
 #include "js/friend/ErrorMessages.h"   // js::GetErrorMessage, JSMSG_*
 #include "js/friend/JSMEnvironment.h"  // JS::NewJSMEnvironment, JS::ExecuteInJSMEnvironment, JS::GetJSMEnvironmentOfScriptedCaller, JS::IsJSMEnvironment
 #include "js/friend/WindowProxy.h"     // js::IsWindowProxy
@@ -410,7 +411,7 @@ JS_PUBLIC_API bool js::ExecuteInFrameScriptEnvironment(
     return false;
   }
 
-  RootedObjectVector envChain(cx);
+  JS::EnvironmentChain envChain(cx, JS::SupportUnscopables::No);
   if (!envChain.append(objArg)) {
     return false;
   }
@@ -461,14 +462,13 @@ JS_PUBLIC_API JSObject* JS::NewJSMEnvironment(JSContext* cx) {
 JS_PUBLIC_API bool JS::ExecuteInJSMEnvironment(JSContext* cx,
                                                HandleScript scriptArg,
                                                HandleObject varEnv) {
-  RootedObjectVector emptyChain(cx);
+  JS::EnvironmentChain emptyChain(cx, JS::SupportUnscopables::No);
   return ExecuteInJSMEnvironment(cx, scriptArg, varEnv, emptyChain);
 }
 
-JS_PUBLIC_API bool JS::ExecuteInJSMEnvironment(JSContext* cx,
-                                               HandleScript scriptArg,
-                                               HandleObject varEnv,
-                                               HandleObjectVector targetObj) {
+JS_PUBLIC_API bool JS::ExecuteInJSMEnvironment(
+    JSContext* cx, HandleScript scriptArg, HandleObject varEnv,
+    const EnvironmentChain& targetObj) {
   cx->check(varEnv);
   MOZ_ASSERT(
       ObjectRealm::get(varEnv).getNonSyntacticLexicalEnvironment(varEnv));

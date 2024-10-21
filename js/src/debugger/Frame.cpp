@@ -41,6 +41,7 @@
 #include "jit/JSJitFrameIter.h"         // for InlineFrameIterator
 #include "jit/RematerializedFrame.h"    // for RematerializedFrame
 #include "js/CallArgs.h"                // for CallArgs
+#include "js/EnvironmentChain.h"        // JS::EnvironmentChain
 #include "js/friend/ErrorMessages.h"    // for GetErrorMessage, JSMSG_*
 #include "js/GCVector.h"                // for JS::StackGCVector
 #include "js/Object.h"                  // for SetReservedSlot
@@ -954,7 +955,7 @@ static WithEnvironmentObject* CreateBindingsEnv(
     }
   }
 
-  RootedObjectVector envChain(cx);
+  JS::EnvironmentChain envChain(cx, JS::SupportUnscopables::No);
   if (!envChain.append(bindingsObj)) {
     return nullptr;
   }
