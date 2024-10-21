@@ -403,10 +403,6 @@ nsresult HTMLSelectEventListener::MouseDown(dom::Event* aMouseEvent) {
     return NS_OK;
   }
 
-  if (!IsInActiveTab(mElement->OwnerDoc())) {
-    return NS_OK;
-  }
-
   // only allow selection with the left button
   // if a right button click is on the combobox itself
   // or on the select when in listbox mode, then let the click through
