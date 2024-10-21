@@ -37,11 +37,12 @@ class nsTString;
 template <typename T>
 class nsTSubstring;
 
-
-template <typename T> struct type_identity {
+template <typename T>
+struct type_identity {
   using type = T;
 };
-template <typename T> using type_identity_t = typename type_identity<T>::type;
+template <typename T>
+using type_identity_t = typename type_identity<T>::type;
 
 namespace mozilla {
 
@@ -739,8 +740,7 @@ class nsTSubstring : public mozilla::detail::nsTStringRepr<T> {
 
   template <typename... Args>
   void AppendFmt(
-      fmt::basic_format_string<char_type, type_identity_t<Args>...>
-          aFormatStr,
+      fmt::basic_format_string<char_type, type_identity_t<Args>...> aFormatStr,
       Args&&... aArgs) {
     AppendVfmt(
         aFormatStr,
