@@ -19,6 +19,8 @@ vendoring:
   url: https://github.com/fmtlib/fmt
   source-hosting: github
   tracking: commit
+  patches:
+    - print-null-string.patch
 
   exclude:
     - test
