@@ -562,7 +562,7 @@ pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, No
 /// A computed value for `min-width`, `min-height`, `width` or `height` property.
 pub type Size = GenericSize<NonNegativeLengthPercentage>;
 
-/// A computed value for `max-width` or `min-height` property.
+/// A computed value for `max-width` or `max-height` property.
 pub type MaxSize = GenericMaxSize<NonNegativeLengthPercentage>;
 
 /// A computed value for `anchor-size` runction.
