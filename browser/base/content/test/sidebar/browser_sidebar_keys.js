@@ -1,6 +1,10 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+add_setup(() =>
+  SidebarController.setUIState({ expanded: false, hidden: false })
+);
+
 async function testSidebarKeyToggle(key, options, expectedSidebarId) {
   EventUtils.synthesizeMouseAtCenter(gURLBar.textbox, {});
   let promiseShown = BrowserTestUtils.waitForEvent(window, "SidebarShown");
