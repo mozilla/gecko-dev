@@ -138,6 +138,13 @@ bool UtilityProcessImpl::Init(int aArgc, char* aArgv[]) {
     return false;
   }
 
+#if defined(MOZ_MEMORY) && defined(DEBUG)
+  jemalloc_stats_t stats;
+  jemalloc_stats(&stats);
+  MOZ_ASSERT(stats.opt_randomize_small,
+             "Utility process should randomize small allocations");
+#endif
+
   return mUtility->Init(TakeInitialEndpoint(), nsCString(*parentBuildID),
                         *sandboxingKind);
 }
