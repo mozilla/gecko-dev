@@ -65,11 +65,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "DEFAULT_MODEL_MEMORY_USAGE",
-  "browser.ml.defaultModelMemoryUsage"
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "QUEUE_WAIT_TIMEOUT",
   "browser.ml.queueWaitTimeout"
 );
@@ -636,7 +631,7 @@ const MODEL_MEMORY_USAGE = {
  *
  * @param {PipelineOptions} pipelineOptions - Configuration options for the model pipeline.
  *
- * @returns {Promise<number>} The memory usage for the model in bytes.
+ * @returns {Promise<number>} The memory usage for the model in bytes. Defaults to 2 * ONE_GiB if the model is not recognized.
  */
 async function getModelMemoryUsage(pipelineOptions) {
   const key = `${pipelineOptions.modelId.toLowerCase()}:${
@@ -647,8 +642,8 @@ async function getModelMemoryUsage(pipelineOptions) {
   // This list will migrate to RS in a collection that contains known memory usage:
   // See Bug 1924958
   // For now just an example:
-  // For unknown models we ask for a fixed value
-  return MODEL_MEMORY_USAGE[key] || lazy.DEFAULT_MODEL_MEMORY_USAGE * ONE_GiB;
+  // For unknown models we ask for 2GB
+  return MODEL_MEMORY_USAGE[key] || 2 * ONE_GiB;
 }
 
 /**
