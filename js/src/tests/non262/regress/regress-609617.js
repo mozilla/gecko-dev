@@ -9,14 +9,14 @@ var expect = "pass";
 
 var x = "fail";
 function f() {
-    var x = "pass"; 
+    var x = "pass";
     delete(eval("actual = x"));
 }
 f();
 assertEq(actual, expect);
 
 function g() { return 1 }
-function h() { function g() { throw 2; } eval('g()')++; } 
+function h() { function g() { throw 2; } eval('g()')++; }
 
 assertThrowsValue(h, 2);
 

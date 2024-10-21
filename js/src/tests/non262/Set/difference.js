@@ -336,7 +336,7 @@ for (let thisValue of [
     let setLike = {
       size,
       has() {
-        throw new Error("Unexpected call to |keys| method");
+        throw new Error("Unexpected call to |has| method");
       },
       keys() {
         assertEq(this, setLike);
