@@ -49,7 +49,6 @@ export let RemotePageAccessManager = {
         "security.enterprise_roots.auto-enabled",
         "security.certerror.hideAddException",
         "network.trr.display_fallback_warning",
-        "security.certerrors.felt-privacy-v1",
       ],
       RPMGetIntPref: [
         "security.dialog_enable_delay",
@@ -103,7 +102,6 @@ export let RemotePageAccessManager = {
         "security.xfocsp.errorReporting.enabled",
         "security.xfocsp.hideOpenInNewWindow",
         "network.trr.display_fallback_warning",
-        "security.certerrors.felt-privacy-v1",
       ],
       RPMSetPref: [
         "security.xfocsp.errorReporting.automatic",

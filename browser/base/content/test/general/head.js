@@ -289,24 +289,13 @@ function promiseOnBookmarkItemAdded(aExpectedURI) {
   });
 }
 
-async function loadBadCertPage(url, feltPrivacy = false) {
+async function loadBadCertPage(url) {
   let loaded = BrowserTestUtils.waitForErrorPage(gBrowser.selectedBrowser);
   BrowserTestUtils.startLoadingURIString(gBrowser.selectedBrowser, url);
   await loaded;
 
-  await SpecialPowers.spawn(
-    gBrowser.selectedBrowser,
-    [feltPrivacy],
-    async isFeltPrivacy => {
-      if (isFeltPrivacy) {
-        let netErrorCard =
-          content.document.querySelector("net-error-card").wrappedJSObject;
-        await netErrorCard.updateComplete;
-        netErrorCard.handleProceedToUrlClick();
-      } else {
-        content.document.getElementById("exceptionDialogButton").click();
-      }
-    }
-  );
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
+    content.document.getElementById("exceptionDialogButton").click();
+  });
   await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 }

@@ -5,27 +5,23 @@
 /* eslint-env mozilla/remote-page */
 /* eslint-disable import/no-unassigned-import */
 
-import { NetErrorCard } from "chrome://global/content/net-error-card.mjs";
 import {
-  gIsCertError,
-  gErrorCode,
-  gHasSts,
-  searchParams,
-  getHostName,
-  getSubjectAltNames,
-  getFailedCertificatesAsPEMString,
-  recordSecurityUITelemetry,
-  getCSSClass,
-} from "chrome://global/content/aboutNetErrorHelpers.mjs";
+  parse,
+  pemToDER,
+} from "chrome://global/content/certviewer/certDecoder.mjs";
 
 const formatter = new Intl.DateTimeFormat();
 
 const HOST_NAME = getHostName();
 
-const FELT_PRIVACY_REFRESH = RPMGetBoolPref(
-  "security.certerrors.felt-privacy-v1",
-  false
-);
+function getHostName() {
+  try {
+    return new URL(RPMGetInnerMostURI(document.location.href)).hostname;
+  } catch (error) {
+    console.error("Could not parse URL", error);
+  }
+  return "";
+}
 
 // Used to check if we have a specific localized message for an error.
 const KNOWN_ERROR_TITLE_IDS = new Set([
@@ -70,6 +66,25 @@ const KNOWN_ERROR_TITLE_IDS = new Set([
 /* global KNOWN_ERROR_MESSAGE_IDS */
 const ERROR_MESSAGES_FTL = "toolkit/neterror/nsserrors.ftl";
 
+// The following parameters are parsed from the error URL:
+//   e - the error code
+//   s - custom CSS class to allow alternate styling/favicons
+//   d - error description
+//   captive - "true" to indicate we're behind a captive portal.
+//             Any other value is ignored.
+
+// Note that this file uses document.documentURI to get
+// the URL (with the format from above). This is because
+// document.location.href gets the current URI off the docshell,
+// which is the URL displayed in the location bar, i.e.
+// the URI that the user attempted to load.
+
+let searchParams = new URLSearchParams(document.documentURI.split("?")[1]);
+
+let gErrorCode = searchParams.get("e");
+let gIsCertError = gErrorCode == "nssBadCert";
+let gHasSts = gIsCertError && getCSSClass() === "badStsCert";
+
 // If the location of the favicon changes, FAVICON_CERTERRORPAGE_URL and/or
 // FAVICON_ERRORPAGE_URL in toolkit/components/places/nsFaviconService.idl
 // should also be updated.
@@ -77,6 +92,10 @@ document.getElementById("favicon").href =
   gIsCertError || gErrorCode == "nssFailure2"
     ? "chrome://global/skin/icons/warning.svg"
     : "chrome://global/skin/icons/info.svg";
+
+function getCSSClass() {
+  return searchParams.get("s");
+}
 
 function getDescription() {
   return searchParams.get("d");
@@ -975,6 +994,37 @@ function initPageCertError() {
   setCertErrorDetails();
 }
 
+async function recordSecurityUITelemetry(category, name, errorInfo) {
+  // Truncate the error code to avoid going over the allowed
+  // string size limit for telemetry events.
+  let errorCode = errorInfo.errorCodeString.substring(0, 40);
+  let extraKeys = {
+    value: errorCode,
+    is_frame: window.parent != window,
+  };
+  if (category == "securityUiCerterror") {
+    extraKeys.has_sts = gHasSts;
+  }
+  if (name.startsWith("load")) {
+    extraKeys.channel_status = errorInfo.channelStatus;
+  }
+  if (category == "securityUiCerterror" && name.startsWith("load")) {
+    extraKeys.issued_by_cca = false;
+    let issuer = errorInfo.certChainStrings.at(-1);
+    if (issuer && errorCode == "SEC_ERROR_UNKNOWN_ISSUER") {
+      try {
+        let parsed = await parse(pemToDER(issuer));
+        extraKeys.issued_by_cca =
+          parsed.issuer.dn == "c=IN, o=India PKI, cn=CCA India 2022 SPL" ||
+          parsed.issuer.dn == "c=IN, o=India PKI, cn=CCA India 2015 SPL";
+      } catch (e) {
+        console.error("error parsing issuer certificate:", e);
+      }
+    }
+  }
+  RPMRecordGleanEvent(category, name, extraKeys);
+}
+
 function recordClickTelemetry(e) {
   let target = e.originalTarget;
   let telemetryId = target.dataset.telemetryId;
@@ -1030,6 +1080,44 @@ function onReturnButtonClick() {
 function copyPEMToClipboard() {
   const errorText = document.getElementById("certificateErrorText");
   navigator.clipboard.writeText(errorText.textContent);
+}
+
+async function getFailedCertificatesAsPEMString() {
+  let locationUrl = document.location.href;
+  let failedCertInfo = document.getFailedCertSecurityInfo();
+  let errorMessage = failedCertInfo.errorMessage;
+  let hasHSTS = failedCertInfo.hasHSTS.toString();
+  let hasHPKP = failedCertInfo.hasHPKP.toString();
+  let [hstsLabel, hpkpLabel, failedChainLabel] =
+    await document.l10n.formatValues([
+      { id: "cert-error-details-hsts-label", args: { hasHSTS } },
+      { id: "cert-error-details-key-pinning-label", args: { hasHPKP } },
+      { id: "cert-error-details-cert-chain-label" },
+    ]);
+
+  let certStrings = failedCertInfo.certChainStrings;
+  let failedChainCertificates = "";
+  for (let der64 of certStrings) {
+    let wrapped = der64.replace(/(\S{64}(?!$))/g, "$1\r\n");
+    failedChainCertificates +=
+      "-----BEGIN CERTIFICATE-----\r\n" +
+      wrapped +
+      "\r\n-----END CERTIFICATE-----\r\n";
+  }
+
+  let details =
+    locationUrl +
+    "\r\n\r\n" +
+    errorMessage +
+    "\r\n\r\n" +
+    hstsLabel +
+    "\r\n" +
+    hpkpLabel +
+    "\r\n\r\n" +
+    failedChainLabel +
+    "\r\n\r\n" +
+    failedChainCertificates;
+  return details;
 }
 
 function setCertErrorDetails() {
@@ -1265,6 +1353,21 @@ function setCertErrorDetails() {
   }
 }
 
+async function getSubjectAltNames(failedCertInfo) {
+  const serverCertBase64 = failedCertInfo.certChainStrings[0];
+  const parsed = await parse(pemToDER(serverCertBase64));
+  const subjectAltNamesExtension = parsed.ext.san;
+  const subjectAltNames = [];
+  if (subjectAltNamesExtension) {
+    for (let [key, value] of subjectAltNamesExtension.altNames) {
+      if (key === "DNS Name" && value.length) {
+        subjectAltNames.push(value);
+      }
+    }
+  }
+  return subjectAltNames;
+}
+
 // The optional argument is only here for testing purposes.
 function setTechnicalDetailsOnCertError(
   failedCertInfo = document.getFailedCertSecurityInfo()
@@ -1473,36 +1576,13 @@ function setFocus(selector, position = "afterbegin") {
   }
 }
 
-function shouldUseFeltPrivacyRefresh() {
-  if (!FELT_PRIVACY_REFRESH) {
-    return false;
-  }
-
-  let failedCertInfo;
-  try {
-    failedCertInfo = document.getFailedCertSecurityInfo();
-  } catch {
-    return false;
-  }
-
-  return NetErrorCard.ERROR_CODES.has(failedCertInfo.errorCodeString);
+for (let button of document.querySelectorAll(".try-again")) {
+  button.addEventListener("click", function () {
+    retryThis(this);
+  });
 }
 
-if (!shouldUseFeltPrivacyRefresh()) {
-  for (let button of document.querySelectorAll(".try-again")) {
-    button.addEventListener("click", function () {
-      retryThis(this);
-    });
-  }
+initPage();
 
-  initPage();
-
-  // Dispatch this event so tests can detect that we finished loading the error page.
-  document.dispatchEvent(
-    new CustomEvent("AboutNetErrorLoad", { bubbles: true })
-  );
-} else {
-  customElements.define("net-error-card", NetErrorCard);
-  document.body.classList.add("felt-privacy-body");
-  document.body.replaceChildren(document.createElement("net-error-card"));
-}
+// Dispatch this event so tests can detect that we finished loading the error page.
+document.dispatchEvent(new CustomEvent("AboutNetErrorLoad", { bubbles: true }));

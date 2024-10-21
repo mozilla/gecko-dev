@@ -165,35 +165,6 @@ button:disabled {
   margin-top: 10px;
 }
 
-/* Felt Privacy v1 LARGER SCREEN! */
-/* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "security.certerrors.felt-privacy-v1") {
-  .felt-privacy-body {
-    justify-content: start;
-  }
-
-  net-error-card {
-    width: min(100%, 720px);
-    min-width: min-content;
-    margin-top: 150px;
-  }
-
-  .felt-privacy-container {
-    display: flex;
-    flex-direction: row;
-  }
-
-  .img-container > img {
-    width: 8.75em;
-    margin-block-start: 2em;
-    margin-inline-end: 2.5em;
-  }
-
-  #viewCertificate {
-    margin: 0;
-  }
-}
-
 @media only screen and (max-width: 959px) {
   #certificateErrorText {
     /* The encoded certificate chain looks better when we're not
