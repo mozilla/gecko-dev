@@ -805,9 +805,7 @@ void ContentChild::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
       }));
 #endif
 
-// Bug 1925181: Unrelated to forkserver, the android content processes are
-// created in a way that makes them not follow this option correctly
-#if defined(MOZ_MEMORY) && defined(DEBUG) && !defined(ANDROID)
+#if defined(MOZ_MEMORY) && defined(DEBUG)
   jemalloc_stats_t stats;
   jemalloc_stats(&stats);
   MOZ_ASSERT(!stats.opt_randomize_small,

@@ -5188,13 +5188,15 @@ inline void MozJemalloc::moz_set_max_dirty_page_modifier(int32_t aModifier) {
   gArenas.SetDefaultMaxDirtyPageModifier(aModifier);
 }
 
-#if defined(MOZ_ENABLE_FORKSERVER)
 inline void MozJemalloc::jemalloc_reset_small_alloc_randomization(
     bool aRandomizeSmall) {
   // When this process got forked by ForkServer then it inherited the existing
   // state of mozjemalloc. Specifically, parsing of MALLOC_OPTIONS has already
   // been done but it may not reflect anymore the current set of options after
   // the fork().
+  //
+  // Similar behavior is also present on Android where it is also required to
+  // perform this step.
   //
   // Content process will have randomization on small malloc disabled via the
   // MALLOC_OPTIONS environment variable set by parent process, missing this
@@ -5203,11 +5205,11 @@ inline void MozJemalloc::jemalloc_reset_small_alloc_randomization(
   // environment is not yet reset when the postfork child handler is being
   // called.
   //
-  // This API is here to allow those forkserver-forked Content processes to
-  // notify jemalloc to turn off the randomization on small allocations and
-  // perform the required reinitialization of already existing arena's PRNG.
-  // It is important to make sure that the PRNG state is properly re-initialized
-  // otherwise child processes would share all the same state.
+  // This API is here to allow those Content processes (spawned by ForkServer or
+  // Android service) to notify jemalloc to turn off the randomization on small
+  // allocations and perform the required reinitialization of already existing
+  // arena's PRNG.  It is important to make sure that the PRNG state is properly
+  // re-initialized otherwise child processes would share all the same state.
 
   {
     AutoLock<StaticMutex> lock(gInitLock);
@@ -5219,7 +5221,6 @@ inline void MozJemalloc::jemalloc_reset_small_alloc_randomization(
     arena->ResetSmallAllocRandomization();
   }
 }
-#endif
 
 #define MALLOC_DECL(name, return_type, ...)                          \
   inline return_type MozJemalloc::moz_arena_##name(                  \
