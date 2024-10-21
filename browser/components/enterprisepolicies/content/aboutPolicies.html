@@ -28,17 +28,29 @@
     <script src="chrome://browser/content/policies/aboutPolicies.js"></script>
   </head>
   <body id="body">
-    <div id="categories">
-      <div class="category" selected="true" id="category-active" tabindex="0">
-        <label class="category-name" data-l10n-id="active-policies-tab"></label>
-      </div>
-      <div class="category" id="category-documentation" tabindex="0">
-        <label class="category-name" data-l10n-id="documentation-tab"></label>
-      </div>
-      <div class="category" id="category-errors" tabindex="0">
-        <label class="category-name" data-l10n-id="errors-tab"></label>
-      </div>
-    </div>
+    <moz-page-nav id="categories-nav">
+      <moz-page-nav-button
+        data-l10n-id="active-policies-tab"
+        id="category-active"
+        view="view-one"
+        iconSrc="chrome://browser/content/policies/policies-active.svg"
+      >
+      </moz-page-nav-button>
+      <moz-page-nav-button
+        data-l10n-id="documentation-tab"
+        id="category-documentation"
+        view="view-two"
+        iconSrc="chrome://browser/content/policies/policies-documentation.svg"
+      >
+      </moz-page-nav-button>
+      <moz-page-nav-button
+        data-l10n-id="errors-tab"
+        id="category-errors"
+        view="view-three"
+        iconSrc="chrome://browser/content/policies/policies-error.svg"
+      >
+      </moz-page-nav-button>
+    </moz-page-nav>
     <div class="main-content">
       <div class="header">
         <h1

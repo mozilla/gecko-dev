@@ -20,31 +20,6 @@ body {
   padding-inline-start: 1rem;
 }
 
-/** Categories **/
-
-.category {
-  cursor: pointer;
-  /* Center category names */
-  display: flex;
-  align-items: center;
-}
-
-.category .category-name {
-  pointer-events: none;
-}
-
-#category-active {
-  background-image: url("chrome://browser/content/policies/policies-active.svg");
-}
-
-#category-documentation {
-  background-image: url("chrome://browser/content/policies/policies-documentation.svg");
-}
-
-#category-errors {
-  background-image: url("chrome://browser/content/policies/policies-error.svg");
-}
-
 /** Content area **/
 
 .main-content {
