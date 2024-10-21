@@ -682,7 +682,6 @@ add_test(function test_getKeyForScope() {
       fxa.keys.getKeyForScope(SCOPE_APP_SYNC).then(() => {
         fxa._internal.getUserAccountData().then(user3 => {
           // Now we should have keys
-          Assert.equal(fxa._internal.isUserEmailVerified(user3), true);
           Assert.equal(!!user3.verified, true);
           Assert.notEqual(null, user3.scopedKeys);
           Assert.equal(user3.keyFetchToken, undefined);
@@ -692,6 +691,26 @@ add_test(function test_getKeyForScope() {
       });
     });
   });
+});
+
+add_task(async function test_oauth_verification() {
+  ensureOauthConfigured();
+  let fxa = new MockFxAccounts();
+  let user = getTestUser("eusebius");
+  user.verified = true;
+
+  await fxa.setSignedInUser(user);
+  let fetched = await fxa.getSignedInUser();
+  Assert.ok(!fetched.verified);
+
+  fxa._withCurrentAccountState(state => {
+    state.updateUserAccountData({ scopedKeys: { test: { foo: "bar" } } });
+  });
+
+  fetched = await fxa.getSignedInUser();
+  Assert.ok(fetched.verified);
+
+  resetOauthConfig();
 });
 
 add_task(
