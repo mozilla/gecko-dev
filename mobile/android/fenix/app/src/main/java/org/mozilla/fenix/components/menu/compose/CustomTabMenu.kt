@@ -89,7 +89,7 @@ internal fun CustomTabMenu(
             Divider(color = FirefoxTheme.colors.borderSecondary)
 
             MenuItem(
-                label = stringResource(id = R.string.browser_menu_share),
+                label = stringResource(id = R.string.browser_menu_share_2),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_share_android_24),
                 onClick = onShareMenuClick,
             )
