@@ -2073,15 +2073,18 @@
           "groupDropIndex" in dragData &&
           dragData.groupDropIndex != groupDropIndex
         ) {
-          tabs[dragData.groupDropIndex]?.removeAttribute(
+          this.allTabs[dragData.groupDropIndex]?.removeAttribute(
             "dragover-createGroup"
           );
           delete dragData.groupDropIndex;
         }
-        if (groupDropIndex in tabs) {
+        if (groupDropIndex in this.allTabs) {
           dragData.groupDropIndex = groupDropIndex;
           this.toggleAttribute("movingtab-createGroup", true);
-          tabs[groupDropIndex].toggleAttribute("dragover-createGroup", true);
+          this.allTabs[groupDropIndex].toggleAttribute(
+            "dragover-createGroup",
+            true
+          );
 
           let groupColorCode = gBrowser.tabGroupMenu.nextUnusedColor;
           this.style.setProperty(
