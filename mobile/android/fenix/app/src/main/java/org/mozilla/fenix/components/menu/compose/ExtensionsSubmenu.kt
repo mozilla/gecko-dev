@@ -146,28 +146,30 @@ private fun RecommendedAddons(
     onDiscoverMoreExtensionsMenuClick: () -> Unit,
 ) {
     Column {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val recommendedSectionContentDescription =
-                stringResource(id = R.string.browser_menu_recommended_section_content_description)
-            Text(
-                text = stringResource(id = R.string.mozac_feature_addons_recommended_section),
+        if (recommendedAddons.isNotEmpty()) {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .semantics {
-                        heading()
-                        this.contentDescription = recommendedSectionContentDescription
-                    },
-                color = FirefoxTheme.colors.textSecondary,
-                style = FirefoxTheme.typography.subtitle2,
-            )
-        }
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val recommendedSectionContentDescription =
+                    stringResource(id = R.string.browser_menu_recommended_section_content_description)
+                Text(
+                    text = stringResource(id = R.string.mozac_feature_addons_recommended_section),
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics {
+                            heading()
+                            this.contentDescription = recommendedSectionContentDescription
+                        },
+                    color = FirefoxTheme.colors.textSecondary,
+                    style = FirefoxTheme.typography.subtitle2,
+                )
+            }
 
-        Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+        }
 
         MenuGroup {
             for (addon in recommendedAddons) {
