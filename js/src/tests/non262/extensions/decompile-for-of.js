@@ -2,14 +2,10 @@
 
 var x;
 function check(code, msg) {
-    var s = "no exception thrown";
-    try {
-        eval(code);
-    } catch (exc) {
-        s = exc.message;
-    }
-
-    assertEq(s, msg);
+    assertThrowsInstanceOfWithMessage(
+        () => eval(code),
+        TypeError,
+        msg);
 }
 
 x = {};

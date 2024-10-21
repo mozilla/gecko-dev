@@ -19,20 +19,15 @@ function test()
 {
   printBugNumber(BUGNUMBER);
   printStatus (summary);
- 
+
   function f(x) {
     var [a, b, [c0, c1]] = [x, x, x];
   }
-
-  expect = /TypeError: .*\[\.\.\.\]\[Symbol.iterator\]\(\)\.next\(\)\.value is null/;
-  actual = 'No Error';
-  try
-  {
-    f(null);
-  }
-  catch(ex)
-  {
-    actual = ex + '';
-  }
-  reportMatch(expect, actual, summary);
+  assertThrowsInstanceOfWithMessageCheck(
+    () => f(null),
+    TypeError,
+    message => /.*\[\.\.\.\]\[Symbol.iterator\]\(\)\.next\(\)\.value is null/.exec(message) !== null
+  );
 }
+
+reportCompare(0, 0);

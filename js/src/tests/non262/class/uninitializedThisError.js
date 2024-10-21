@@ -1,12 +1,6 @@
 function checkErr(f) {
-    var expected = "must call super constructor before using 'this' in derived class constructor";
-    try {
-        f();
-        assertEq(0, 1);
-    } catch (e) {
-        assertEq(e.name, "ReferenceError");
-        assertEq(e.message, expected);
-    }
+    assertThrowsInstanceOfWithMessage(f, ReferenceError,
+        "must call super constructor before using 'this' in derived class constructor");
 }
 class TestNormal extends class {} {
     constructor() { this; }

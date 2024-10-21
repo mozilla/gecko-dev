@@ -2,13 +2,10 @@
 // ArrayIterator object.
 function TestArrayIteratorPrototypeConfusion() {
     var iter = [][Symbol.iterator]();
-    try {
-        iter.next.call(Object.getPrototypeOf(iter))
-        throw new Error("Call did not throw");
-    } catch (e) {
-        assertEq(e instanceof TypeError, true);
-        assertEq(e.message, "next method called on incompatible Array Iterator");
-    }
+    assertThrowsInstanceOfWithMessage(
+        () => iter.next.call(Object.getPrototypeOf(iter)),
+        TypeError,
+        "next method called on incompatible Array Iterator");
 }
 TestArrayIteratorPrototypeConfusion();
 

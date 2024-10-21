@@ -16,16 +16,11 @@ var JSMSG_DEPRECATED_OCTAL_ESCAPE = "octal escape sequences can't be used in unt
 var JSMSG_DEPRECATED_EIGHT_OR_NINE_ESCAPE = "the escapes \\8 and \\9 can't be used in untagged template literals or in strict mode code";
 
 function checkPrologue(val, msg) {
-  try {
-    eval('function invalid () { "' + val + '"; "use strict"; }');
-  } catch(e) {
-    assertEq(e.name, "SyntaxError");
-    assertEq(e.message, msg);
-    return;
-  }
-
-  // If it comes here, then test has failed
-  assertEq("No Errors", "SyntaxError");
+  assertThrowsInstanceOfWithMessage(
+    () => eval('function invalid () { "' + val + '"; "use strict"; }'),
+    SyntaxError,
+    msg
+  );
 }
 
 checkPrologue('\\8', JSMSG_DEPRECATED_EIGHT_OR_NINE_ESCAPE);
@@ -33,16 +28,11 @@ checkPrologue('\\222', JSMSG_DEPRECATED_OCTAL_ESCAPE);
 checkPrologue('\\222\\8', JSMSG_DEPRECATED_EIGHT_OR_NINE_ESCAPE);
 
 function checkAfter(val, msg) {
-  try {
-    eval('function invalid () { "use strict" \n ' + val + ' }');
-  } catch(e) {
-    assertEq(e.name, "SyntaxError");
-    assertEq(e.message, msg);
-    return;
-  }
-
-  // If it comes here, then test has failed
-  assertEq("No Errors", "SyntaxError");
+  assertThrowsInstanceOfWithMessage(
+    () => eval('function invalid () { "use strict" \n ' + val + ' }'),
+    SyntaxError,
+    msg
+  );
 }
 
 checkAfter('0755', JSMSG_DEPRECATED_OCTAL_LITERAL);

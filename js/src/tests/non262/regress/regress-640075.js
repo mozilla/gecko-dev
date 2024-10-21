@@ -5,11 +5,9 @@
  */
 
 "use strict";
-try {
-    eval("(function() { eval(); function eval() {} })");
-    assertEq(0, 1);
-} catch (e) {
-    assertEq(e.name, "SyntaxError");
-}
+assertThrowsInstanceOf(
+    () => eval("(function() { eval(); function eval() {} })"),
+    SyntaxError
+)
 
 reportCompare(0, 0, "ok");

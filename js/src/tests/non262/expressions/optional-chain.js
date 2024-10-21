@@ -11,15 +11,7 @@ function shouldBe(actual, expected) {
 }
 
 function shouldThrowSyntaxError(script) {
-    let error;
-    try {
-        eval(script);
-    } catch (e) {
-        error = e;
-    }
-
-    if (!(error instanceof SyntaxError))
-        throw new Error('Expected SyntaxError!');
+    assertThrowsInstanceOf(() => eval(script), SyntaxError);
 }
 
 function shouldNotThrowSyntaxError(script) {
@@ -35,30 +27,11 @@ function shouldNotThrowSyntaxError(script) {
 }
 
 function shouldThrowTypeError(func, messagePrefix) {
-    let error;
-    try {
-        func();
-    } catch (e) {
-        error = e;
-    }
-
-    if (!(error instanceof TypeError))
-        throw new Error('Expected TypeError!');
-
-    if (!error.message.includes(messagePrefix))
-        throw new Error(`TypeError has wrong message!, expected ${messagePrefix} but got ${error.message}`);
+    assertThrowsInstanceOfWithMessageContains(func, TypeError, messagePrefix);
 }
 
 function shouldThrowReferenceError(script) {
-    let error;
-    try {
-        eval(script);
-    } catch (e) {
-        error = e;
-    }
-
-    if (!(error instanceof ReferenceError))
-        throw new Error('Expected ReferenceError!');
+    assertThrowsInstanceOf(() => eval(script), ReferenceError);
 }
 
 function testBasicSuccessCases() {

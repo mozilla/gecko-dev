@@ -35,14 +35,8 @@ testName(undefined);
 
 // On-off test for Symbol.iterator
 function testIterator(thisv) {
-  var message;
-  try {
-    String.prototype[Symbol.iterator].call(thisv);
-  } catch (e) {
-    message = e.message;
-  }
-
-  assertEq(message, `String.prototype[Symbol.iterator] called on incompatible ${thisv}`);
+  assertThrowsInstanceOfWithMessage(() => String.prototype[Symbol.iterator].call(thisv), TypeError,
+    `String.prototype[Symbol.iterator] called on incompatible ${thisv}`);
 }
 testIterator(null);
 testIterator(undefined);

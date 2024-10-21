@@ -130,15 +130,34 @@
     };
   }
 
-  if (typeof global.assertThrowsInstanceOf === 'undefined') {
-    global.assertThrowsInstanceOf = function assertThrowsInstanceOf(f, ctor, msg) {
+  if (typeof global.assertThrownErrorContains === 'undefined') {
+    global.assertThrownErrorContains = function assertThrownErrorContains(thunk, substr) {
+      try {
+        thunk();
+      } catch (e) {
+        if (e.message.indexOf(substr) !== -1)
+          return;
+        throw new Error("Expected error containing " + substr + ", got " + e);
+      }
+      throw new Error("Expected error containing " + substr + ", no exception thrown");
+    };
+  }
+
+  if (typeof global.assertThrowsInstanceOfWithMessageCheck === 'undefined') {
+    global.assertThrowsInstanceOfWithMessageCheck = function assertThrowsInstanceOfWithMessageCheck(f, ctor, check, msg) {
       var fullmsg;
       try {
         f();
       } catch (exc) {
-        if (exc instanceof ctor)
-          return;
-        fullmsg = `Assertion failed: expected exception ${ctor.name}, got ${exc}`;
+        if (!(exc instanceof ctor))
+          fullmsg = `Assertion failed: expected exception ${ctor.name}, got ${exc}`;
+        else {
+          var result = check(exc.message);
+          if (!result)
+            fullmsg = `Assertion failed: expected exception with message, got ${exc}`;
+          else
+            return;
+        }
       }
 
       if (fullmsg === undefined)
@@ -148,6 +167,24 @@
 
       throw new Error(fullmsg);
     };
+  }
+
+  if (typeof global.assertThrowsInstanceOf === 'undefined') {
+    global.assertThrowsInstanceOf = function assertThrowsInstanceOf(f, ctor, msg) {
+      assertThrowsInstanceOfWithMessageCheck(f, ctor, _ => true, msg);
+    };
+  }
+
+  if (typeof global.assertThrowsInstanceOfWithMessage === 'undefined') {
+    global.assertThrowsInstanceOfWithMessage = function assertThrowsInstanceOfWithMessage(f, ctor, expected, msg) {
+      assertThrowsInstanceOfWithMessageCheck(f, ctor, message => message === expected, msg);
+    }
+  }
+
+  if (typeof global.assertThrowsInstanceOfWithMessageContains === 'undefined') {
+    global.assertThrowsInstanceOfWithMessageContains = function assertThrowsInstanceOfWithMessageContains(f, ctor, substr, msg) {
+      assertThrowsInstanceOfWithMessageCheck(f, ctor, message => message.indexOf(substr) !== -1, msg);
+    }
   }
 
   global.assertDeepEq = (function(){

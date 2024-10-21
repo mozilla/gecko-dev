@@ -41,16 +41,7 @@ assertEq(strictReturnThis.bind("foopy")(), "foopy");
 
 function expectThrowTypeError(fun)
 {
-  try
-  {
-    var r = fun();
-    throw new Error("didn't throw TypeError, returned " + r);
-  }
-  catch (e)
-  {
-    assertEq(e instanceof TypeError, true,
-             "didn't throw TypeError, got: " + e);
-  }
+  assertThrowsInstanceOf(fun, TypeError);
 }
 
 /*
