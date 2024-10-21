@@ -91,20 +91,23 @@ XPCOMUtils.defineLazyPreferenceGetter(
 // These engines were added years after Sync had been introduced, they need
 // special handling since they are system add-ons and are un-available on
 // older versions of Firefox.
+// These are only used in the non-oauth flows.
 const EXTRA_ENGINES = ["addresses", "creditcards"];
 
 // These engines will be displayed to the user to pick which they would like to
-// use
-const CHOOSE_WHAT_TO_SYNC = [
+// use.
+const CHOOSE_WHAT_TO_SYNC_ALWAYS_AVAILABLE = [
   "addons",
-  "addresses",
   "bookmarks",
   "creditcards",
   "history",
   "passwords",
-  "preferences",
+  "prefs",
   "tabs",
 ];
+
+// Engines which we need to inspect a pref to see if they are available in the oauth flows.
+const CHOOSE_WHAT_TO_SYNC_OPTIONALLY_AVAILABLE = ["addresses"];
 
 /**
  * A helper function that extracts the message and stack from an error object.
@@ -691,11 +694,22 @@ FxAccountsWebChannelHelpers.prototype = {
   },
   _getCapabilities() {
     if (lazy.oauthEnabled) {
+      let engines = Array.from(CHOOSE_WHAT_TO_SYNC_ALWAYS_AVAILABLE);
+      for (let optionalEngine of CHOOSE_WHAT_TO_SYNC_OPTIONALLY_AVAILABLE) {
+        if (
+          Services.prefs.getBoolPref(
+            `services.sync.engine.${optionalEngine}.available`,
+            false
+          )
+        ) {
+          engines.push(optionalEngine);
+        }
+      }
       return {
         multiService: true,
         pairing: lazy.pairingEnabled,
         choose_what_to_sync: true,
-        engines: CHOOSE_WHAT_TO_SYNC,
+        engines,
       };
     }
     return {

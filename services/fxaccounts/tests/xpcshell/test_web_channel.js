@@ -990,6 +990,8 @@ add_task(async function test_helpers_getFxAStatus_engines_oauth() {
     },
   });
 
+  // disable the "addresses" engine.
+  Services.prefs.setBoolPref("services.sync.engine.addresses.available", false);
   ensureOauthConfigured();
   let fxaStatus = await helpers.getFxaStatus("sync", mockSendingContext);
   ok(!!fxaStatus);
@@ -997,14 +999,28 @@ add_task(async function test_helpers_getFxAStatus_engines_oauth() {
   // in the oauth flows we expect all engines.
   deepEqual(fxaStatus.capabilities.engines, [
     "addons",
-    "addresses",
     "bookmarks",
     "creditcards",
     "history",
     "passwords",
-    "preferences",
+    "prefs",
     "tabs",
   ]);
+
+  // try again with addresses enabled.
+  Services.prefs.setBoolPref("services.sync.engine.addresses.available", true);
+  fxaStatus = await helpers.getFxaStatus("sync", mockSendingContext);
+  deepEqual(fxaStatus.capabilities.engines, [
+    "addons",
+    "bookmarks",
+    "creditcards",
+    "history",
+    "passwords",
+    "prefs",
+    "tabs",
+    "addresses",
+  ]);
+
   resetOauthConfig();
 });
 
