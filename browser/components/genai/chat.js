@@ -265,6 +265,13 @@ addEventListener("unload", () => {
  * @param {number} length optional show fewer screens
  */
 function showOnboarding(length) {
+  const ACTIONS = Object.freeze({
+    OPEN_URL: "OPEN_URL",
+    CHATBOT_SELECT: "chatbot:select",
+    CHATBOT_PERSIST: "chatbot:persist",
+    CHATBOT_REVERT: "chatbot:revert",
+  });
+
   // Insert onboarding container and render with script
   const root = document.createElement("div");
   root.id = "multi-stage-message-root";
@@ -321,13 +328,13 @@ function showOnboarding(length) {
                     args: lazy.supportLink,
                     where: "tabshifted",
                   },
-                  type: "OPEN_URL",
+                  type: ACTIONS.OPEN_URL,
                 },
               },
               tiles: {
                 action: { picker: "<event>" },
                 data: [...providerConfigs.values()].map(config => ({
-                  action: config.id,
+                  action: { type: ACTIONS.CHATBOT_SELECT, config },
                   id: config.id,
                   label: config.name,
                   tooltip: { string_id: config.tooltipId },
@@ -346,13 +353,12 @@ function showOnboarding(length) {
               primary_button: {
                 action: {
                   navigate: true,
-                  // Handle with AWSelectTheme
-                  theme: true,
+                  type: ACTIONS.CHATBOT_PERSIST,
                 },
                 label: { string_id: "genai-onboarding-primary" },
               },
               additional_button: {
-                action: { dismiss: true },
+                action: { dismiss: true, type: ACTIONS.CHATBOT_REVERT },
                 label: { string_id: "genai-onboarding-secondary" },
                 style: "link",
               },
@@ -436,13 +442,6 @@ function showOnboarding(length) {
         }
       });
     },
-    AWSelectTheme() {
-      const { value } = document.querySelector("label:has(.selected) input");
-      Services.prefs.setStringPref(
-        "browser.ml.chat.provider",
-        providerConfigs.get(value).url
-      );
-    },
     AWSendEventTelemetry({ event, event_context: { source }, message_id }) {
       const { provider } = window.AWSendEventTelemetry;
       const step = message_id.match(/chat_pick/) ? 1 : 2;
@@ -488,40 +487,58 @@ function showOnboarding(length) {
           break;
       }
     },
-    AWSendToParent(message, action) {
+    AWSendToParent(_message, action) {
       switch (action.type) {
-        case "OPEN_URL":
+        case ACTIONS.OPEN_URL:
           lazy.SpecialMessageActions.handleAction(action, topChromeWindow);
           return;
-      }
+        case ACTIONS.CHATBOT_PERSIST: {
+          const { value } = document.querySelector(
+            "label:has(.selected) input"
+          );
+          Services.prefs.setStringPref(
+            "browser.ml.chat.provider",
+            providerConfigs.get(value).url
+          );
+          break;
+        }
+        case ACTIONS.CHATBOT_REVERT: {
+          request();
+          break;
+        }
+        // Handle single select provider choice
+        case ACTIONS.CHATBOT_SELECT: {
+          const { config } = action;
+          if (!config) break;
 
-      // Handle single select provider choice
-      const config = providerConfigs.get(action);
-      if (config) {
-        document.querySelector(".primary").disabled = false;
+          request(config.url);
+          document.querySelector(".primary").disabled = false;
 
-        // Set max-height to trigger transition
-        document.querySelectorAll("label .text div").forEach(div => {
-          const selected =
-            div.closest("label").querySelector("input").value == action;
-          div.style.maxHeight = selected ? div.scrollHeight + "px" : 0;
-          const a = div.querySelector("a");
-          if (a) {
-            a.tabIndex = selected ? 0 : -1;
+          // Set max-height to trigger transition
+          document.querySelectorAll("label .text div").forEach(div => {
+            const selected =
+              div.closest("label").querySelector("input").value == action;
+            div.style.maxHeight = selected ? div.scrollHeight + "px" : 0;
+            const a = div.querySelector("a");
+            if (a) {
+              a.tabIndex = selected ? 0 : -1;
+            }
+          });
+
+          // Update potentially multiple links for the provider
+          const links = document.querySelector(".link-paragraph");
+          if (links.dataset.l10nId != config.linksId) {
+            links.innerHTML = "";
+            for (let i = 1; i <= 3; i++) {
+              const link = links.appendChild(document.createElement("a"));
+              const name = (link.dataset.l10nName = `link${i}`);
+              link.href = config[name];
+              link.setAttribute("value", name);
+            }
+            document.l10n.setAttributes(links, config.linksId);
           }
-        });
 
-        // Update potentially multiple links for the provider
-        const links = document.querySelector(".link-paragraph");
-        if (links.dataset.l10nId != config.linksId) {
-          links.innerHTML = "";
-          for (let i = 1; i <= 3; i++) {
-            const link = links.appendChild(document.createElement("a"));
-            const name = (link.dataset.l10nName = `link${i}`);
-            link.href = config[name];
-            link.setAttribute("value", name);
-          }
-          document.l10n.setAttributes(links, config.linksId);
+          break;
         }
       }
     },

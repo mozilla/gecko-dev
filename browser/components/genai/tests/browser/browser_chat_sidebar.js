@@ -62,7 +62,7 @@ add_task(async function test_sidebar_onboarding() {
   Services.fog.testResetFOG();
   await SidebarController.show("viewGenaiChatSidebar");
 
-  const { document } = SidebarController.browser.contentWindow;
+  const { document, browserPromise } = SidebarController.browser.contentWindow;
   const label = await TestUtils.waitForCondition(() =>
     document.querySelector("label:has(.localhost)")
   );
@@ -72,8 +72,17 @@ add_task(async function test_sidebar_onboarding() {
   Assert.equal(events.length, 1, "Displayed onboarding once");
   Assert.equal(events[0].extra.provider, "none", "Opened with no provider");
   Assert.equal(events[0].extra.step, "1", "First step");
+  const browser = await browserPromise;
+  Assert.equal(browser.currentURI.spec, "about:blank", "Nothing loaded yet");
 
   label.click();
+
+  await TestUtils.waitForCondition(
+    () => browser.currentURI.spec != "about:blank",
+    "Should have previewed provider"
+  );
+
+  Assert.ok(browser.currentURI.spec, "Provider previewed");
 
   const pickButton = await TestUtils.waitForCondition(() =>
     document.querySelector(".chat_pick .primary:not([disabled])")
