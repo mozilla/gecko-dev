@@ -60,7 +60,7 @@ def android_sdk_version():
     return namespace(
         build_tools_version="35.0.0",
         compile_sdk_version="35",
-        target_sdk_version="34",
+        target_sdk_version="35",
         min_sdk_version="21",
     )
 
