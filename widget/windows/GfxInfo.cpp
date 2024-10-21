@@ -1873,6 +1873,12 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
                                 "FEATURE_FAILURE_CHROME_BUG_800950");
 #endif
 
+    APPEND_TO_DRIVER_BLOCKLIST2(
+        OperatingSystem::Windows10, DeviceFamily::NvidiaPascal,
+        nsIGfxInfo::FEATURE_WEBRENDER_COMPOSITOR,
+        nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_COMPARISON_IGNORED,
+        V(0, 0, 0, 0), "FEATURE_FAILURE_BUG_1923697");
+
     // WebRender is unable to use scissored clears in some cases
     APPEND_TO_DRIVER_BLOCKLIST2(
         OperatingSystem::Windows, DeviceFamily::IntelAll,

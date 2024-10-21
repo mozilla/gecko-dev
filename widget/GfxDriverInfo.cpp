@@ -492,6 +492,39 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
     case DeviceFamily::Nvidia8800GTS:
       APPEND_DEVICE(0x0193);
       break;
+    case DeviceFamily::NvidiaPascal:
+      APPEND_DEVICE(0x1d01);
+      APPEND_DEVICE(0x1d10);
+      APPEND_DEVICE(0x1d12);
+      APPEND_DEVICE(0x1c81);
+      APPEND_DEVICE(0x1c82);
+      APPEND_DEVICE(0x1c83);
+      APPEND_DEVICE(0x1c8c);
+      APPEND_DEVICE(0x1c8d);
+      APPEND_DEVICE(0x1c8f);
+      APPEND_DEVICE(0x1c92);
+      APPEND_DEVICE(0x1c02);
+      APPEND_DEVICE(0x1c03);
+      APPEND_DEVICE(0x1c20);
+      APPEND_DEVICE(0x1c23);
+      APPEND_DEVICE(0x1c60);
+      APPEND_DEVICE(0x1c61);
+      APPEND_DEVICE(0x1c62);
+      APPEND_DEVICE(0x1b81);
+      APPEND_DEVICE(0x1b82);
+      APPEND_DEVICE(0x1b83);
+      APPEND_DEVICE(0x1b84);
+      APPEND_DEVICE(0x1ba0);
+      APPEND_DEVICE(0x1ba1);
+      APPEND_DEVICE(0x1ba2);
+      APPEND_DEVICE(0x1be0);
+      APPEND_DEVICE(0x1be1);
+      APPEND_DEVICE(0x1b06);
+      APPEND_DEVICE(0x1b00);
+      APPEND_DEVICE(0x1b02);
+      APPEND_DEVICE(0x17e4);
+      APPEND_DEVICE(0x174d);
+      break;
     case DeviceFamily::Bug1137716:
       APPEND_DEVICE(0x0a29);
       APPEND_DEVICE(0x0a2b);
@@ -722,6 +755,7 @@ const nsAString& GfxDriverInfo::GetDeviceVendor(DeviceFamily id) {
     case DeviceFamily::Geforce7300GT:
     case DeviceFamily::Nvidia310M:
     case DeviceFamily::Nvidia8800GTS:
+    case DeviceFamily::NvidiaPascal:
     case DeviceFamily::Bug1137716:
       vendor = DeviceVendor::NVIDIA;
       break;
