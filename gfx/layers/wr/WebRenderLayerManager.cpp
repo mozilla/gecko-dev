@@ -707,19 +707,11 @@ void WebRenderLayerManager::FlushRendering(wr::RenderReasons aReasons) {
     aReasons = aReasons | wr::RenderReasons::RESIZE;
   }
 
-  bool synchronouslyRepaintOnResize = mWidget->SynchronouslyRepaintOnResize();
-#if defined(XP_WIN)
-  // When DirectComposition is used, synchronously repaint on resize is not
-  // required.
-  // XXX Reduce sync resizing conditions.
-  synchronouslyRepaintOnResize |= !WrBridge()->GetCompositorUseDComp();
-#endif
-
   // Check for the conditions where we we force a sync flush. The first
   // flush for this child should always be sync. Resizes should be
   // sometimes be sync. Everything else can be async.
   if (!mHasFlushedThisChild ||
-      (resizing && (synchronouslyRepaintOnResize ||
+      (resizing && (mWidget->SynchronouslyRepaintOnResize() ||
                     StaticPrefs::layers_force_synchronous_resize()))) {
     cBridge->SendFlushRendering(aReasons);
   } else {
