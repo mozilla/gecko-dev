@@ -3774,8 +3774,10 @@ pref("browser.ml.modelHubUrlTemplate", "{model}/{revision}");
 pref("browser.ml.modelCacheMaxSizeBytes", 1073741824);
 // Model cache timeout in ms
 pref("browser.ml.modelCacheTimeout", 120000);
-// Minimal Physical RAM required in GB
+// Minimal Physical RAM required in GiB
 pref("browser.ml.minimumPhysicalMemory", 4);
+// Default memory usage for a model in GiB
+pref("browser.ml.defaultModelMemoryUsage", 2);
 // Check for memory before running
 pref("browser.ml.checkForMemory", false);
 // Maximum memory pressure (%)

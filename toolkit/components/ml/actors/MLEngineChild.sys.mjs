@@ -65,6 +65,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "DEFAULT_MODEL_MEMORY_USAGE",
+  "browser.ml.defaultModelMemoryUsage"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "QUEUE_WAIT_TIMEOUT",
   "browser.ml.queueWaitTimeout"
 );
@@ -631,7 +636,7 @@ const MODEL_MEMORY_USAGE = {
  *
  * @param {PipelineOptions} pipelineOptions - Configuration options for the model pipeline.
  *
- * @returns {Promise<number>} The memory usage for the model in bytes. Defaults to 2 * ONE_GiB if the model is not recognized.
+ * @returns {Promise<number>} The memory usage for the model in bytes.
  */
 async function getModelMemoryUsage(pipelineOptions) {
   const key = `${pipelineOptions.modelId.toLowerCase()}:${
@@ -642,8 +647,8 @@ async function getModelMemoryUsage(pipelineOptions) {
   // This list will migrate to RS in a collection that contains known memory usage:
   // See Bug 1924958
   // For now just an example:
-  // For unknown models we ask for 2GB
-  return MODEL_MEMORY_USAGE[key] || 2 * ONE_GiB;
+  // For unknown models we ask for a fixed value
+  return MODEL_MEMORY_USAGE[key] || lazy.DEFAULT_MODEL_MEMORY_USAGE * ONE_GiB;
 }
 
 /**
@@ -659,12 +664,11 @@ async function getModelMemoryUsage(pipelineOptions) {
  */
 async function waitForEnoughMemory({ pipelineOptions, interval, timeout }) {
   const estimatedMemoryUsage = await getModelMemoryUsage(pipelineOptions);
-
-  lazy.console.debug(
-    `Estimated memory usage: ${Math.round(
-      estimatedMemoryUsage / (1024 * 1024)
-    )}MiB`
+  const estimatedMemoryUsageMiB = Math.round(
+    estimatedMemoryUsage / (1024 * 1024)
   );
+
+  lazy.console.debug(`Estimated memory usage: ${estimatedMemoryUsageMiB}MiB`);
 
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
@@ -682,7 +686,7 @@ async function waitForEnoughMemory({ pipelineOptions, interval, timeout }) {
           resolve(); // Resolve the promise when there's enough memory.
         } else {
           lazy.console.warn(
-            `We are tight in memory for ${pipelineOptions.modelId} (estimated: ${estimatedMemoryUsage})`
+            `We are tight in memory for ${pipelineOptions.modelId} (estimated: ${estimatedMemoryUsageMiB})`
           );
 
           // TODO : check the `executionPriority` flag:
