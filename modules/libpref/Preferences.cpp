@@ -6157,7 +6157,6 @@ static const PrefListEntry sDynamicPrefOverrideList[]{
     PREF_LIST_ENTRY("accessibility.tabfocus"),
     PREF_LIST_ENTRY("app.update.channel"),
     PREF_LIST_ENTRY("apz.subtest"),
-    PREF_LIST_ENTRY("autoadmin.global_config_url"),  // Bug 1780575
     PREF_LIST_ENTRY("browser.contentblocking.category"),
     PREF_LIST_ENTRY("browser.dom.window.dump.file"),
     PREF_LIST_ENTRY("browser.search.region"),
