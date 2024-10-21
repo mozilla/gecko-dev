@@ -1528,6 +1528,8 @@ abstract class BaseBrowserFragment :
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> browserToolbar })
+                        } else if (currentMicrosurvey == null || activity.isMicrosurveyPromptDismissed.value) {
+                            Divider()
                         }
 
                         NavigationButtonsCFR(context = context, activity = activity)
@@ -1791,7 +1793,7 @@ abstract class BaseBrowserFragment :
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> browserToolbar })
-                        } else {
+                        } else if (currentMicrosurvey == null || activity.isMicrosurveyPromptDismissed.value) {
                             Divider()
                         }
                     }

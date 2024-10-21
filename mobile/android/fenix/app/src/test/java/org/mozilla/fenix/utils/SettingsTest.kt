@@ -4,7 +4,9 @@
 
 package org.mozilla.fenix.utils
 
+import android.content.Context
 import io.mockk.every
+import io.mockk.mockkStatic
 import io.mockk.spyk
 import mozilla.components.concept.engine.Engine.HttpsOnlyMode.DISABLED
 import mozilla.components.concept.engine.Engine.HttpsOnlyMode.ENABLED
@@ -23,6 +25,8 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.components.toolbar.ToolbarPosition
+import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.settings.deletebrowsingdata.DeleteBrowsingDataOnQuitType
@@ -1037,5 +1041,110 @@ class SettingsTest {
         val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
 
         assertEquals(0, bottomToolbarContainerHeight)
+    }
+
+    @Test
+    fun `GIVEN all of address bar, navbar and microsurvey are shown at bottom WHEN getBottomToolbarHeight THEN returns the combined height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns true
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+
+        mockkStatic(Context::shouldAddNavigationBar) {
+            every { any<Context>().shouldAddNavigationBar() } returns true
+
+            val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
+
+            assertEquals(235, bottomToolbarHeight)
+        }
+    }
+
+    @Test
+    fun `GIVEN the navbar and the microsurvey are shown WHEN getBottomToolbarHeight THEN returns the combined height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns true
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+
+        mockkStatic(Context::shouldAddNavigationBar) {
+            every { any<Context>().shouldAddNavigationBar() } returns true
+
+            val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
+
+            assertEquals(179, bottomToolbarHeight)
+        }
+    }
+
+    @Test
+    fun `GIVEN the address bar and the navbar are shown at bottom WHEN getBottomToolbarHeight THEN returns the combined height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns false
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+
+        mockkStatic(Context::shouldAddNavigationBar) {
+            every { any<Context>().shouldAddNavigationBar() } returns true
+
+            val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
+
+            assertEquals(104, bottomToolbarHeight)
+        }
+    }
+
+    @Test
+    fun `GIVEN the address bar and the microsurvey are shown at bottom WHEN getBottomToolbarHeight THEN returns the combined height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns true
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+
+        mockkStatic(Context::shouldAddNavigationBar) {
+            every { any<Context>().shouldAddNavigationBar() } returns false
+
+            val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
+
+            assertEquals(187, bottomToolbarHeight)
+        }
+    }
+
+    @Test
+    fun `GIVEN just the navbar is shown at bottom WHEN getBottomToolbarHeight THEN returns it's height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns false
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+
+        mockkStatic(Context::shouldAddNavigationBar) {
+            every { any<Context>().shouldAddNavigationBar() } returns true
+
+            val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
+
+            assertEquals(49, bottomToolbarHeight)
+        }
+    }
+
+    @Test
+    fun `GIVEN just the microsurvey is shown at bottom WHEN getBottomToolbarHeight THEN returns it's height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns true
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+
+        mockkStatic(Context::shouldAddNavigationBar) {
+            every { any<Context>().shouldAddNavigationBar() } returns false
+
+            val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
+
+            assertEquals(131, bottomToolbarHeight)
+        }
+    }
+
+    @Test
+    fun `GIVEN just the addressbar is shown at bottom WHEN getBottomToolbarHeight THEN returns it's height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns false
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+
+        mockkStatic(Context::shouldAddNavigationBar) {
+            every { any<Context>().shouldAddNavigationBar() } returns false
+
+            val bottomToolbarHeight = settings.getBottomToolbarHeight(testContext)
+
+            assertEquals(56, bottomToolbarHeight)
+        }
     }
 }
