@@ -24,6 +24,8 @@ const DISPLAY_MODES = {
   ALL: "SortByName",
 };
 
+const INPUT_CHANGE_DELAY = 300;
+
 export class MegalistAlpha extends MozLitElement {
   constructor() {
     super();
@@ -34,6 +36,7 @@ export class MegalistAlpha extends MozLitElement {
     this.notification = null;
     this.reauthResolver = null;
     this.displayMode = DISPLAY_MODES.ALL;
+    this.inputChangeTimeout = null;
 
     window.addEventListener("MessageFromViewModel", ev =>
       this.#onMessageFromViewModel(ev)
@@ -68,7 +71,11 @@ export class MegalistAlpha extends MozLitElement {
   #onInputChange(e) {
     const searchText = e.target.value;
     this.searchText = searchText;
-    this.#messageToViewModel("UpdateFilter", { searchText });
+
+    this.#debounce(
+      () => this.#messageToViewModel("UpdateFilter", { searchText }),
+      INPUT_CHANGE_DELAY
+    )();
   }
 
   #onAddButtonClick() {
@@ -142,6 +149,15 @@ export class MegalistAlpha extends MozLitElement {
     }
 
     return [header, records];
+  }
+
+  #debounce(callback, delay) {
+    return () => {
+      clearTimeout(this.inputChangeTimeout);
+      this.inputChangeTimeout = setTimeout(() => {
+        callback();
+      }, delay);
+    };
   }
 
   // TODO: This should be passed to virtualized list with an explicit height.
