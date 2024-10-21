@@ -17,7 +17,7 @@ use windows_sys::Win32::{
 };
 
 // Our windows-targets doesn't link wintrust correctly.
-#[link(name = "wintrust")]
+#[link(name = "wintrust", kind = "static")]
 extern "C" {}
 
 type DWORD = u32;

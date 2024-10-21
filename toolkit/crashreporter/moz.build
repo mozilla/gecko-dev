@@ -64,7 +64,10 @@ if CONFIG["MOZ_CRASHREPORTER"]:
             DIRS += ["rust_minidump_writer_linux"]
 
     if CONFIG["OS_TARGET"] != "Android":
-        DIRS += ["client/app"]
+        DIRS += [
+            "client/app",
+            "minidump-analyzer",
+        ]
 
     DIRS += [
         "mozannotation_client",

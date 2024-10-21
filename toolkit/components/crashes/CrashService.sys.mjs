@@ -8,8 +8,7 @@ import { AsyncShutdown } from "resource://gre/modules/AsyncShutdown.sys.mjs";
 // Set to true if the application is quitting
 var gQuitting = false;
 
-// Tracks all the running instances of the crash reporter client (for minidump
-// analysis).
+// Tracks all the running instances of the minidump-analyzer
 var gRunningProcesses = new Set();
 
 /**
@@ -30,13 +29,9 @@ async function maybeRunMinidumpAnalyzer(minidumpPath, allThreads) {
   );
 }
 
-function getCrashReporterPath() {
-  const binPrefix =
-    AppConstants.platform === "macosx"
-      ? "crashreporter.app/Contents/MacOS/"
-      : "";
+function getMinidumpAnalyzerPath() {
   const binSuffix = AppConstants.platform === "win" ? ".exe" : "";
-  const exeName = binPrefix + "crashreporter" + binSuffix;
+  const exeName = "minidump-analyzer" + binSuffix;
 
   let exe = Services.dirsvc.get("GreBinD", Ci.nsIFile);
   exe.append(exeName);
@@ -45,9 +40,8 @@ function getCrashReporterPath() {
 }
 
 /**
- * Run the crash reporter's analyzer tool to gather stack traces from the
- * minidump. The stack traces will be stored in the .extra file under the
- * StackTraces= entry.
+ * Run the minidump analyzer tool to gather stack traces from the minidump. The
+ * stack traces will be stored in the .extra file under the StackTraces= entry.
  *
  * @param minidumpPath {string} The path to the minidump file
  * @param allThreads {bool} Gather stack traces for all threads, not just the
@@ -59,8 +53,8 @@ function getCrashReporterPath() {
 function runMinidumpAnalyzer(minidumpPath, allThreads) {
   return new Promise((resolve, reject) => {
     try {
-      let exe = getCrashReporterPath();
-      let args = ["--analyze", minidumpPath];
+      let exe = getMinidumpAnalyzerPath();
+      let args = [minidumpPath];
       let process = Cc["@mozilla.org/process/util;1"].createInstance(
         Ci.nsIProcess
       );
@@ -69,7 +63,7 @@ function runMinidumpAnalyzer(minidumpPath, allThreads) {
       process.noShell = true;
 
       if (allThreads) {
-        args.push("--full");
+        args.unshift("--full");
       }
 
       process.runAsync(args, args.length, (subject, topic) => {

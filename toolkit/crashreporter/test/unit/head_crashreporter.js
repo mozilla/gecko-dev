@@ -103,13 +103,9 @@ function getMinidump() {
   return null;
 }
 
-function getCrashReporterPath() {
-  const binPrefix =
-    AppConstants.platform === "macosx"
-      ? "crashreporter.app/Contents/MacOS/"
-      : "";
+function getMinidumpAnalyzerPath() {
   const binSuffix = AppConstants.platform === "win" ? ".exe" : "";
-  const exeName = binPrefix + "crashreporter" + binSuffix;
+  const exeName = "minidump-analyzer" + binSuffix;
 
   let exe = Services.dirsvc.get("GreBinD", Ci.nsIFile);
   exe.append(exeName);
@@ -117,11 +113,14 @@ function getCrashReporterPath() {
   return exe;
 }
 
-function runMinidumpAnalyzer(dumpFile) {
-  let bin = getCrashReporterPath();
+function runMinidumpAnalyzer(dumpFile, additionalArgs) {
+  let bin = getMinidumpAnalyzerPath();
   let process = Cc["@mozilla.org/process/util;1"].createInstance(Ci.nsIProcess);
   process.init(bin);
-  let args = ["--analyze"];
+  let args = [];
+  if (additionalArgs) {
+    args = args.concat(additionalArgs);
+  }
   args.push(dumpFile.path);
   process.run(true /* blocking */, args, args.length);
 }

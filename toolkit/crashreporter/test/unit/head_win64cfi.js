@@ -182,19 +182,20 @@ function assertStack(stack, expected) {
   }
 }
 
-// Performs a crash, runs crashreporter minidump analyzer, and checks expected
-// stack analysis.
+// Performs a crash, runs minidump-analyzer, and checks expected stack analysis.
 //
 // how: The crash to perform. Constants defined in both CrashTestUtils.sys.mjs
 //   and nsTestCrasher.cpp (i.e. CRASH_X64CFI_PUSH_NONVOL)
 // expectedStack: An array of {"symbol", "trust"} where trust is "cfi",
 //   "context", "scan", et al. May be null if you don't need to check the stack.
-async function do_x64CFITest(how, expectedStack) {
+// minidumpAnalyzerArgs: An array of additional arguments to pass to
+//   minidump-analyzer.exe.
+async function do_x64CFITest(how, expectedStack, minidumpAnalyzerArgs) {
   // Setup is run in the subprocess so we cannot use any closures.
   let setupFn = "crashType = CrashTestUtils." + how + ";";
 
   let callbackFn = async function (minidumpFile, extra, extraFile) {
-    runMinidumpAnalyzer(minidumpFile);
+    runMinidumpAnalyzer(minidumpFile, minidumpAnalyzerArgs);
 
     // Refresh updated extra data
     extra = await IOUtils.readJSON(extraFile.path);

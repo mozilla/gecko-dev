@@ -16,7 +16,6 @@ glean = { workspace = true }
 intl-memoizer = "0.5"
 libloading = "0.8"
 log = "0.4.17"
-minidump-analyzer = { path = "../../minidump-analyzer" }
 mozbuild = "0.1"
 mozilla-central-workspace-hack = { version = "0.1", features = ["crashreporter"], optional = true }
 once_cell = "1"
