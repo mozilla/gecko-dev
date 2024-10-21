@@ -1364,11 +1364,6 @@ BrowserGlue.prototype = {
           // likely sees the profile selector on launch.
           if (Services.prefs.getBoolPref(launchOnLoginPref)) {
             Glean.launchOnLogin.lastProfileDisableStartup.record();
-            Services.telemetry.recordEvent(
-              "launch_on_login",
-              "last_profile_disable",
-              "startup"
-            );
             // Disable launch on login messaging if we are disabling the
             // feature.
             Services.prefs.setBoolPref(
