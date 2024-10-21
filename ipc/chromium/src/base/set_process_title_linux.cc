@@ -144,6 +144,45 @@ void setproctitle(const char* fmt, ...) {
   if (!buggy_kernel && size < argv_size) {
     g_argv_end[-1] = '.';
   }
+
+  const size_t previous_size = g_argv_end - g_argv_start - 1;
+  ssize_t need_to_save = static_cast<ssize_t>(size - previous_size);
+
+  // The argv part has grown so there is less room for the environ part.
+  // Selectively removing a few environment variables so this can fit.
+  //
+  // The goal is trying to make sure that the environment in the
+  // /proc/PID/environ content for crashes is useful
+  const char* kEnvSkip[] = {"HOME=", "LS_COLORS=", "PATH=", "XDG_DATA_DIRS="};
+  const size_t kEnvElems = sizeof(kEnvSkip) / sizeof(kEnvSkip[0]);
+
+  size_t environ_size = 0;
+  for (size_t i = 0; environ[i]; ++i) {
+    bool skip = false;
+    const size_t var_size = strlen(environ[i]) + 1;
+
+    for (size_t remI = 0; need_to_save > 0 && remI < kEnvElems; ++remI) {
+      const char* thisEnv = kEnvSkip[remI];
+      size_t thisEnvSize = sizeof(kEnvSkip[remI]);
+      int diff = strncmp(environ[i], thisEnv, thisEnvSize);
+      if (diff == 0) {
+        need_to_save -= static_cast<ssize_t>(var_size);
+        skip = true;
+        break;
+      }
+    }
+
+    if (skip) {
+      continue;
+    }
+
+    char* env_start = g_argv_end + environ_size;
+    if ((env_start + var_size) < g_envp_end) {
+      const size_t var_size_copied =
+          snprintf(env_start, var_size, "%s", environ[i]);
+      environ_size += var_size_copied + 1 /* account for null */;
+    }
+  }
 }
 
 // A version of this built into glibc would not need this function, since
