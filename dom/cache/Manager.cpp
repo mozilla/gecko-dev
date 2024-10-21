@@ -24,6 +24,7 @@
 #include "mozilla/dom/cache/Types.h"
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/ClientImpl.h"
+#include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/StringifyUtils.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/ipc/BackgroundParent.h"

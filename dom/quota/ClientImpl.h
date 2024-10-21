@@ -7,8 +7,6 @@
 #ifndef DOM_QUOTA_CLIENTIMPL_H_
 #define DOM_QUOTA_CLIENTIMPL_H_
 
-#include "mozilla/dom/quota/DirectoryLock.h"
-
 namespace mozilla::dom::quota {
 
 // static
