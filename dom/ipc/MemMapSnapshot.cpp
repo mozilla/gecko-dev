@@ -6,39 +6,40 @@
 
 #include "MemMapSnapshot.h"
 
-#include "mozilla/AutoMemMap.h"
 #include "mozilla/ResultExtensions.h"
-#include "mozilla/Try.h"
-#include "mozilla/ipc/FileDescriptor.h"
 
 namespace mozilla::ipc {
 
 Result<Ok, nsresult> MemMapSnapshot::Init(size_t aSize) {
-  MOZ_ASSERT(!mInitialized);
+  MOZ_ASSERT(!mMem);
 
-  if (NS_WARN_IF(!mMem.CreateFreezeable(aSize))) {
+  auto aMem = MakeRefPtr<SharedMemory>();
+  if (NS_WARN_IF(!aMem->CreateFreezable(aSize))) {
     return Err(NS_ERROR_FAILURE);
   }
-  if (NS_WARN_IF(!mMem.Map(aSize))) {
+  if (NS_WARN_IF(!aMem->Map(aSize))) {
     return Err(NS_ERROR_FAILURE);
   }
 
-  mInitialized = true;
+  mMem = std::move(aMem);
   return Ok();
 }
 
-Result<Ok, nsresult> MemMapSnapshot::Finalize(loader::AutoMemMap& aMem) {
-  MOZ_ASSERT(mInitialized);
+Result<Ok, nsresult> MemMapSnapshot::Finalize(RefPtr<SharedMemory>& aMem) {
+  MOZ_ASSERT(mMem);
 
-  if (NS_WARN_IF(!mMem.Freeze())) {
+  auto size = mMem->Size();
+  if (NS_WARN_IF(!mMem->Freeze())) {
     return Err(NS_ERROR_FAILURE);
   }
-  // TakeHandle resets mMem, so call max_size first.
-  size_t size = mMem.max_size();
-  FileDescriptor memHandle(mMem.TakeHandle());
-  MOZ_TRY(aMem.initWithHandle(memHandle, size));
 
-  mInitialized = false;
+  aMem = std::move(mMem);
+
+  // We need to re-map the memory as `Freeze()` unmaps it.
+  if (NS_WARN_IF(!aMem->Map(size))) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
   return Ok();
 }
 

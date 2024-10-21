@@ -7,9 +7,9 @@
 #ifndef dom_ipc_SharedStringMap_h
 #define dom_ipc_SharedStringMap_h
 
-#include "mozilla/AutoMemMap.h"
 #include "mozilla/Result.h"
 #include "mozilla/dom/ipc/StringTable.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "nsTHashMap.h"
 
 namespace mozilla::dom::ipc {
@@ -30,8 +30,6 @@ class SharedStringMapBuilder;
  * freed before process shutdown. Do not use it for short-lived mappings.
  */
 class SharedStringMap {
-  using FileDescriptor = mozilla::ipc::FileDescriptor;
-
  public:
   /**
    * The header at the beginning of the shared memory region describing its
@@ -90,7 +88,7 @@ class SharedStringMap {
   // Note: These constructors are infallible on the premise that this class
   // is used primarily in cases where it is critical to platform
   // functionality.
-  explicit SharedStringMap(const FileDescriptor&, size_t);
+  explicit SharedStringMap(const mozilla::ipc::SharedMemoryHandle&, size_t);
   explicit SharedStringMap(SharedStringMapBuilder&&);
 
   /**
@@ -148,21 +146,23 @@ class SharedStringMap {
   }
 
   /**
-   * Returns a copy of the read-only file descriptor which backs the shared
-   * memory region for this map. The file descriptor may be passed between
-   * processes, and used to construct new instances of SharedStringMap with
-   * the same data as this instance.
+   * Returns a copy of the read-only shared memory handle which backs the shared
+   * memory region for this map. The handle may be passed between processes, and
+   * used to construct new instances of SharedStringMap with the same data as
+   * this instance.
    */
-  FileDescriptor CloneFileDescriptor() const;
+  mozilla::ipc::SharedMemoryHandle CloneHandle() const;
 
-  size_t MapSize() const { return mMap.size(); }
+  size_t MapSize() const { return mMappedMemory.size(); }
 
  protected:
   ~SharedStringMap() = default;
 
  private:
   // Type-safe getters for values in the shared memory region:
-  const Header& GetHeader() const { return mMap.get<Header>()[0]; }
+  const Header& GetHeader() const {
+    return *reinterpret_cast<const Header*>(mMappedMemory.data());
+  }
 
   RangedPtr<const Entry> Entries() const {
     return {reinterpret_cast<const Entry*>(&GetHeader() + 1), EntryCount()};
@@ -171,18 +171,22 @@ class SharedStringMap {
   uint32_t EntryCount() const { return GetHeader().mEntryCount; }
 
   StringTable<nsCString> KeyTable() const {
-    auto& header = GetHeader();
-    return {{&mMap.get<uint8_t>()[header.mKeyStringsOffset],
+    const auto& header = GetHeader();
+    return {{&mMappedMemory.data()[header.mKeyStringsOffset],
              header.mKeyStringsSize}};
   }
 
   StringTable<nsString> ValueTable() const {
-    auto& header = GetHeader();
-    return {{&mMap.get<uint8_t>()[header.mValueStringsOffset],
+    const auto& header = GetHeader();
+    return {{&mMappedMemory.data()[header.mValueStringsOffset],
              header.mValueStringsSize}};
   }
 
-  loader::AutoMemMap mMap;
+  mozilla::ipc::SharedMemoryHandle mHandle;
+  // This is a leaked shared memory mapping (see the constructor definition for
+  // an explanation). It replaces AutoMemMap::setPersistent behavior as part of
+  // bug 1454816.
+  Span<uint8_t> mMappedMemory;
 };
 
 /**
@@ -201,10 +205,10 @@ class MOZ_RAII SharedStringMapBuilder {
 
   /**
    * Finalizes the binary representation of the map, writes it to a shared
-   * memory region, and then initializes the given AutoMemMap with a reference
+   * memory region, and then initializes the given SharedMemory with a reference
    * to the read-only copy of it.
    */
-  Result<Ok, nsresult> Finalize(loader::AutoMemMap& aMap);
+  Result<Ok, nsresult> Finalize(RefPtr<mozilla::ipc::SharedMemory>& aMap);
 
  private:
   using Entry = SharedStringMap::Entry;

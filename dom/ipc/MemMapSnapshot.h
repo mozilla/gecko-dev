@@ -9,17 +9,13 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/RangedPtr.h"
 #include "mozilla/Result.h"
-#include "base/shared_memory.h"
+#include "mozilla/ipc/SharedMemory.h"
 #include "ErrorList.h"
 
-namespace mozilla {
-namespace loader {
-class AutoMemMap;
-}
-
-namespace ipc {
+namespace mozilla::ipc {
 
 /**
  * A helper class for creating a read-only snapshot of memory-mapped data.
@@ -35,20 +31,18 @@ namespace ipc {
 class MOZ_RAII MemMapSnapshot {
  public:
   Result<Ok, nsresult> Init(size_t aSize);
-  Result<Ok, nsresult> Finalize(loader::AutoMemMap& aMap);
+  Result<Ok, nsresult> Finalize(RefPtr<SharedMemory>& aMem);
 
   template <typename T>
   RangedPtr<T> Get() {
-    MOZ_ASSERT(mInitialized);
-    return {static_cast<T*>(mMem.memory()), mMem.max_size() / sizeof(T)};
+    MOZ_ASSERT(mMem);
+    return {static_cast<T*>(mMem->Memory()), mMem->MaxSize() / sizeof(T)};
   }
 
  private:
-  base::SharedMemory mMem;
-  bool mInitialized = false;
+  RefPtr<SharedMemory> mMem;
 };
 
-}  // namespace ipc
-}  // namespace mozilla
+}  // namespace mozilla::ipc
 
 #endif  // dom_ipc_MemMapSnapshot_h
