@@ -84,22 +84,24 @@ export class SidebarPage extends MozLitElement {
    *
    * @param {Event} e
    *   The event to check.
-   * @param {string} tagName
-   *   The tag name of the element to match.
+   * @param {string} localName
+   *   The name of the element to match.
    * @returns {Element | null}
    *   The matching element, or `null` if no match is found.
    */
-  findTriggerNode(e, tagName) {
-    let element = e.explicitOriginalTarget.flattenedTreeParentNode;
-    if (element.tagName !== tagName.toUpperCase()) {
+  findTriggerNode(e, localName) {
+    let elements = [
+      e.explicitOriginalTarget,
+      e.originalTarget.flattenedTreeParentNode,
       // Event might be in shadow DOM, check the host element.
-      const { host } = element.getRootNode();
-      if (host?.tagName !== tagName.toUpperCase()) {
-        return null;
+      e.explicitOriginalTarget.flattenedTreeParentNode.getRootNode().host,
+    ];
+    for (let el of elements) {
+      if (el.localName == localName) {
+        return el;
       }
-      element = host;
     }
-    return element;
+    return null;
   }
 
   /**

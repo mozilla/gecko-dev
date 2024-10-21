@@ -93,14 +93,26 @@ export default class SidebarMain extends MozLitElement {
 
   onSidebarPopupShowing(event) {
     // Store the context menu target which holds the id required for managing sidebar items
-    this.contextMenuTarget =
-      event.explicitOriginalTarget.flattenedTreeParentNode.flattenedTreeParentNode;
+    let targetHost = event.explicitOriginalTarget.getRootNode().host;
+    let toolbarContextMenuTarget =
+      event.explicitOriginalTarget.flattenedTreeParentNode
+        .flattenedTreeParentNode;
+    let isToolbarTarget = false;
+    if (targetHost?.localName === "moz-button") {
+      this.contextMenuTarget = targetHost;
+    } else if (
+      document
+        .getElementById("vertical-tabs")
+        .contains(toolbarContextMenuTarget)
+    ) {
+      this.contextMenuTarget = toolbarContextMenuTarget;
+      isToolbarTarget = true;
+    }
+
     if (
       this.contextMenuTarget.getAttribute("extensionId") ||
       this.contextMenuTarget.className.includes("tab") ||
-      document
-        .getElementById("vertical-tabs")
-        .contains(this.contextMenuTarget.flattenedTreeParentNode)
+      isToolbarTarget
     ) {
       this.updateExtensionContextMenuItems();
       return;
