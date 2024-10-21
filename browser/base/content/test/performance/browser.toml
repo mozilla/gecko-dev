@@ -100,14 +100,10 @@ skip-if = ["os == 'win'"] #Bug 1455054
 ["browser_toolbariconcolor_restyles.js"]
 
 ["browser_urlbar_keyed_search.js"]
-skip-if = ["win11_2009 && bits == 32"] # # Disabled on Win32 because of intermittent OOM failures (bug 1448241)
+skip-if = ["true"]  # Bug 1926118: Disabled until the test can be revisited to measure performance under representative conditions.
 
 ["browser_urlbar_search.js"]
-skip-if = [
-  "os == 'linux' && (debug || ccov)", # Disabled on Linux debug and ccov due to intermittent timeouts. Bug 1414126.
-  "os == 'win' && (debug || ccov)", # Disabled on Windows debug and ccov due to intermittent timeouts. bug 1426611.
-  "win11_2009 && bits == 32",
-]
+skip-if = ["true"]  # Bug 1926118: Disabled until the test can be revisited to measure performance under representative conditions.
 
 ["browser_vsync_accessibility.js"]
 
