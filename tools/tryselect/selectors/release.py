@@ -87,6 +87,7 @@ def run(
     message="{msg}",
     closed_tree=False,
     push_to_lando=False,
+    push_to_vcs=False,
 ):
     app_version = attr.evolve(version, beta_number=None, is_esr=False)
 
@@ -157,4 +158,5 @@ def run(
         try_task_config=task_config,
         files_to_change=files_to_change,
         push_to_lando=push_to_lando,
+        push_to_vcs=push_to_vcs,
     )

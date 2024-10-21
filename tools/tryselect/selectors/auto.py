@@ -87,6 +87,7 @@ def run(
     tasks_regex_exclude=None,
     try_config_params=None,
     push_to_lando=False,
+    push_to_vcs=False,
     **ignored
 ):
     msg = message.format(msg="Tasks automatically selected.")
@@ -115,4 +116,5 @@ def run(
         dry_run=dry_run,
         closed_tree=closed_tree,
         push_to_lando=push_to_lando,
+        push_to_vcs=push_to_vcs,
     )

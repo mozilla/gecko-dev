@@ -57,12 +57,12 @@ def test_get_sys_argv():
         "fuzzy",
         "--full",
         "--artifact",
-        "--push-to-lando",
+        "--push-to-vcs",
         "--query",
         "'android-hw !shippable !nofis",
         "--no-push",
     ]
-    expected_string = './mach try fuzzy --full --artifact --push-to-lando --query "\'android-hw !shippable !nofis" --no-push'
+    expected_string = './mach try fuzzy --full --artifact --push-to-vcs --query "\'android-hw !shippable !nofis" --no-push'
     assert push.get_sys_argv(input_argv) == expected_string
 
 

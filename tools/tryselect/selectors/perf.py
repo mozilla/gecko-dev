@@ -1277,6 +1277,7 @@ class PerfParser(CompareParser):
                         dry_run=dry_run,
                         closed_tree=False,
                         allow_log_capture=True,
+                        push_to_vcs=True,
                     )
 
                 PerfParser.push_info.base_revision = log_processor.revision
@@ -1305,6 +1306,7 @@ class PerfParser(CompareParser):
                     dry_run=dry_run,
                     closed_tree=False,
                     allow_log_capture=True,
+                    push_to_vcs=True,
                 )
 
             PerfParser.push_info.new_revision = log_processor.revision

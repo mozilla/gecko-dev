@@ -47,6 +47,8 @@ ERROR please commit changes before continuing
 
 MAX_HISTORY = 10
 
+MACH_TRY_PUSH_TO_VCS = os.getenv("MACH_TRY_PUSH_TO_VCS") == "1"
+
 here = os.path.abspath(os.path.dirname(__file__))
 build = MozbuildObject.from_environment(cwd=here)
 vcs = get_repository_object(build.topsrcdir)
@@ -199,6 +201,7 @@ def push_to_try(
     files_to_change=None,
     allow_log_capture=False,
     push_to_lando=False,
+    push_to_vcs=False,
 ):
     push = not stage_changes and not dry_run
     check_working_directory(push)
@@ -248,15 +251,19 @@ def push_to_try(
 
         return
 
+    if push_to_lando or not push_to_vcs:
+        print("Note: `--push-to-lando` is now the default behaviour of `mach try`.")
+        print("Note: Use `--push-to-vcs` to push changes to try directly.")
+
     try:
-        if push_to_lando:
-            push_to_lando_try(vcs, commit_message, changed_files)
-        else:
+        if push_to_vcs or MACH_TRY_PUSH_TO_VCS:
             vcs.push_to_try(
                 commit_message,
                 changed_files=changed_files,
                 allow_log_capture=allow_log_capture,
             )
+        else:
+            push_to_lando_try(vcs, commit_message, changed_files)
     except MissingVCSExtension as e:
         if e.ext == "push-to-try":
             print(HG_PUSH_TO_TRY_NOT_FOUND)

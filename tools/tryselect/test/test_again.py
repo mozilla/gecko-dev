@@ -26,6 +26,8 @@ def test_try_again(monkeypatch):
             ["foo", "bar"],
             {"try_task_config": {"use-artifact-builds": True}},
         ),
+        # Push to VCS instead of Lando so the push fails but history is generated.
+        push_to_vcs=True,
     )
 
     assert os.path.isfile(push.history_path)

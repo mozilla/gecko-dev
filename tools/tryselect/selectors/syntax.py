@@ -705,6 +705,7 @@ class AutoTry:
             dry_run=kwargs["dry_run"],
             closed_tree=kwargs["closed_tree"],
             push_to_lando=kwargs["push_to_lando"],
+            push_to_vcs=kwargs["push_to_vcs"],
         )
 
 
