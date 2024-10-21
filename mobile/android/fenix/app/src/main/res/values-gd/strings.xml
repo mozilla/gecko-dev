@@ -202,9 +202,14 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Thoir dreach pearsanta air %s</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">Stàlaich thu leudachain ach cha do chuir thu an comas iad</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_body">Cuiridh leudachain comasan a bharrachd ris a’ bhrabhsadh a nì thu, eadar dreach is làimhseachadh %s agus prìobhaideachd is sàbhailteachd a bharrachd.</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">Feumaidh tu leudachan a chur an comas mus urrainn dhut an cleachdadh no le bhith a’ taghadh “%s” gu h-ìosal.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Barrachd fiosrachaidh</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -310,6 +315,8 @@
     <string name="browser_main_menu_handlebar_content_description">An siota airson am prìomh-chlàr-taice a dhùnadh</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
     <string name="browser_extensions_menu_handlebar_content_description">An siota airson clàr-taice nan leudachan a dhùnadh</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+    <string name="browser_save_menu_handlebar_content_description">An siota airson clàr-taice an t-sàbhalaidh a dhùnadh</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
     <string name="browser_tools_menu_handlebar_content_description">An siota airson clàr-taice nan innealan a dhùnadh</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
@@ -646,8 +653,12 @@
     <string name="preferences_override_account_server">Frithealaiche chunntasan Mozilla gnàthaichte</string>
     <!-- Preference to override the Sync token server -->
     <string name="preferences_override_sync_tokenserver">Frithealaiche sioncronachaidh gnàthaichte</string>
+    <!-- Toast shown after updating the Mozilla account/Sync server override preferences -->
+    <string name="toast_override_account_sync_server_done">Chaidh frithealaichte nan cunntasan Mozilla no an t-sioncronachaidh atharrachadh. Fàg an aplacaid gus na h-atharraichean a chur an gnìomh…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Cunntas</string>
+    <!-- Preference for changing where the AddressBar is positioned -->
+    <string name="preferences_toolbar_2">Ionad bàr an t-seòlaidh</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">An t-ùrlar</string>
     <!-- Preference for customizing the home screen -->
@@ -658,10 +669,14 @@
     <string name="preferences_customize">Gnàthaich</string>
     <!-- Preference description for banner about signing in -->
     <string name="preferences_sign_in_description_2">Clàraich a-steach gus na tabaichean, comharran-lìn, faclan-faire is mòran a bharrachd a shioncronachadh.</string>
+    <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
+    <string name="preferences_account_default_name_2">Cunntas Mozilla</string>
     <!-- Preference text for account title when there was an error syncing FxA -->
     <string name="preferences_account_sync_error">Ceangail ris às ùr airson leantainn air an t-sioncronachadh</string>
     <!-- Preference for language -->
     <string name="preferences_language">Cànan</string>
+    <!-- Preference for translations -->
+    <string name="preferences_translations">Eadar-theangaich</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">Roghainnean dàta</string>
     <!-- Preference for data collection -->
@@ -686,6 +701,16 @@
     <string name="preferences_account_settings">Roghainnean a’ chunntais</string>
     <!-- Preference for enabling url autocomplete-->
     <string name="preferences_enable_autocomplete_urls">URLaichean fèin-choileanaidh</string>
+    <!-- Preference title for switch preference to show sponsored Firefox Suggest search suggestions -->
+    <string name="preferences_show_sponsored_suggestions">Molaidhean o na sponsairean</string>
+    <!-- Summary for preference to show sponsored Firefox Suggest search suggestions.
+         The first parameter is the name of the application. -->
+    <string name="preferences_show_sponsored_suggestions_summary">Cùm taic ri %1$s ’s tu ag aontachadh ri molaidhean sponsairichte o àm gu àm</string>
+    <!-- Preference title for switch preference to show Firefox Suggest search suggestions for web content.
+         The first parameter is the name of the application. -->
+    <string name="preferences_show_nonsponsored_suggestions">Molaidhean o %1$s</string>
+    <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
+    <string name="preferences_show_nonsponsored_suggestions_summary">Faigh molaidhean on lìon co-cheangailte ris na lorg thu</string>
     <!-- Preference for open links in third party apps -->
     <string name="preferences_open_links_in_apps">Fosgail ceanglaichean ann an aplacaidean</string>
     <!-- Preference for open links in third party apps always open in apps option -->
@@ -697,6 +722,15 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">Manaidsear nan luchdadh a-nuas on taobh a-muigh</string>
 
+    <!-- Preference for enabling gecko engine logs -->
+    <string name="preferences_enable_gecko_logs">Cuir an comas logaichean Gecko</string>
+    <!-- Message to indicate users that we are quitting the application to apply the changes -->
+    <string name="quit_application">A’ dùnadh na h-aplacaid gus na h-atharraichean a chur an sàs…</string>
+
+    <!-- Preference for extensions -->
+    <string name="preferences_extensions">Leudachain</string>
+    <!-- Preference for installing a local extension -->
+    <string name="preferences_install_local_extension">Stàlaich leudachan o fhaidhle</string>
     <!-- Preference for notifications -->
     <string name="preferences_notifications">Brathan</string>
 
@@ -705,6 +739,21 @@
     <!-- Summary for notification preference indicating notifications are not allowed -->
     <string name="notifications_not_allowed_summary">Gun chead</string>
 
+    <!-- Add-on Permissions -->
+    <!-- The title of the required permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">Riatanach</string>
+    <!-- The title of the optional permissions section from addon's permissions screen -->
+    <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">Roghainneil</string>
+    <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
+    <string name="addons_permissions_allow_for_all_sites" tools:ignore="UnusedResources">Ceadaich do gach làrach</string>
+    <!-- The subtitle for the allow for all sites preference toggle -->
+    <string name="addons_permissions_allow_for_all_sites_subtitle" tools:ignore="UnusedResources">Ma tha earbsa agad san leudachan seo, ’s urrainn dhut a cheadachadh air gach làrach-lìn.</string>
+    <!-- The text shown when an extension does not require permissions -->
+    <string name="addons_does_not_require_permissions">Chan eil an leudachan seo feumach air cead sam bith.</string>
+
+    <!-- Add-on Preferences -->
+    <!-- Preference to customize the configured AMO (addons.mozilla.org) collection -->
+    <string name="preferences_customize_extension_collection">Cruinneachadh de leudachain ghnàthaichte</string>
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">Ceart ma-thà</string>
     <!-- Button caption to abort the add-on collection configuration -->
@@ -714,9 +763,14 @@
     <!-- Hint displayed on input field for custom collection user ID-->
     <string name="customize_addon_collection_user_hint">Sealbhadair a’ chruinneachaidh (ID a’ chleachdaiche)</string>
 
+    <!-- Toast shown after confirming the custom extension collection configuration -->
+    <string name="toast_customize_extension_collection_done">Chaidh cruinneachadh nan leudachan atharrachadh. Fàg an aplacaid gus na h-atharraichean a chur an gnìomh…</string>
+
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Till gu far an robh thu</string>
+    <!-- Title for the customize home screen section with bookmarks. -->
+    <string name="customize_toggle_bookmarks">Comharran-lìn</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">Air tadhal orra o chionn goirid</string>
@@ -750,6 +804,12 @@
     <string name="wallpaper_learn_more">Barrachd fiosrachaidh</string>
     <!-- Text for classic wallpapers title. The first parameter is the Firefox name. -->
     <string name="wallpaper_classic_title">%s clasaigeach</string>
+    <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
+    <string name="wallpaper_artist_series_title">Sreath luchd-ealain</string>
+    <!-- Description text for the artist series wallpapers with learn more link. The first parameter is the learn more string defined in wallpaper_learn_more. "Independent voices" is the name of the wallpaper collection -->
+    <string name="wallpaper_artist_series_description_with_learn_more">Cruinneachadh nan guthan neo-eisimeileach. %s</string>
+    <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
+    <string name="wallpaper_artist_series_description">Cruinneachadh nan guthan neo-eisimeileach.</string>
     <!-- Wallpaper onboarding dialog header text. -->
     <string name="wallpapers_onboarding_dialog_title_text">Feuch steall dhathan air</string>
     <!-- Wallpaper onboarding dialog body text. -->
@@ -757,6 +817,21 @@
     <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">Rùraich pàipearan-balla eile</string>
 
+    <!-- Add-ons general availability nimbus message-->
+    <!-- Title of the Nimbus message for extension general availability-->
+    <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Tha leudachain ùra ri am faighinn</string>
+    <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Tha barrachd air ceud leudachan ann leis an doir thu dreach pearsanta air Firefox.</string>
+    <!-- Button text of the Nimbus message for extensions general availability. -->
+    <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Rùraich na leudachain</string>
+
+    <!-- Extension process crash dialog to user -->
+    <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
+    <string name="extension_process_crash_dialog_title">Tha na leudachain à comas an-dràsta fhèin</string>
+    <!-- This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
+    The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
+    The first parameter is the application name. -->
+    <string name="extension_process_crash_dialog_message">Tha co-dhiù aon leudachan ann a tha a’ fàgail an t-siostaim agad neo-sheasmhach. Cha b’ urrainn dha %1$s na leudachain ath-thòiseachadh.\n\nCha dèid na leudachain ath-thòiseachadh rè an t-seisein làithrich agad.\n\nDh’fhaoidte gun urrainn dhut a chur ceart le bhith a’ toirt air falbh nan leudachan no le bhith ’gan cur à comas.</string>
     <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
     <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">Feuch is ath-thòisich na leudachain</string>
     <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1160,6 +1235,8 @@
     <string name="bookmark_saved_in_folder_snackbar">Air a shàbhaladh an-seo: “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">DEASAICH</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">Gluais</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Deasaich</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1217,6 +1294,10 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">NEO-DHÈAN</string>
 
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">Chaidh %s a sguabadh às</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Chaidh na nithean a sguabadh às, %s dhiubh</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Cuir a-steach briathran-luirg</string>
 
@@ -1236,6 +1317,11 @@
     <string name="bookmark_empty_list_guest_cta">Clàraich a-steach a shioncronachadh</string>
     <!-- Description for the bookmark list empty state when you're signed into sync. -->
     <string name="bookmark_empty_list_authenticated_description">Sàbhail làraichean is tu ri brabhsadh. Gheibh sinn greim cuideachd air na comharran-lìn a th’ agad air uidheaman sioncronaichte eile.</string>
+
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Cuir comharran-lìn ris fhad ’s a nì thu brabhsadh is faigh cothrom orra a-rithist gun duilgheadas.</string>
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Pasgan ùr</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1319,6 +1405,13 @@
     <string name="studies_on">Air</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Dheth</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">Ceadan</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">Susbaint</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">Iarr an làrach desktop an-còmhnaidh</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1476,6 +1569,8 @@
     <string name="snackbar_num_tabs_closed">Chaidh na tabaichean a dhùnadh, %1$s dhiubh</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Chaidh na comharran-lìn a shàbhaladh!</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Chaidh na comharran-lìn a shàbhaladh ann an “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Chaidh a chur ris na h-ath-ghoiridean!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1659,6 +1754,8 @@
     <string name="preference_enhanced_tracking_protection_custom_cookies_4">Briosgaid sam bith (chan obraich cuid a làraichean ri linn)</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for cookies-->
     <string name="preference_enhanced_tracking_protection_custom_cookies_5">Cuir balla mu bhriosgaidean a leanas riut air feadh làraichean</string>
+    <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: &-->
+    <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">Iarr air làraichean-lìn gun a bhith a’ co-roinneadh is a’ reic dàta</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
     <string name="preference_enhanced_tracking_protection_custom_tracking_content">Susbaint tracaidh</string>
     <!-- Option for enhanced tracking protection for the custom protection settings for tracking content-->
@@ -1667,6 +1764,8 @@
     <string name="preference_enhanced_tracking_protection_custom_tracking_content_2">Ann an tabaichean prìobhaideach a-mhàin</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Criopto-mhèinneadairean</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Lorgaichean-meur as aithne dhuinn</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Mion-fhiosrachadh</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1689,6 +1788,8 @@
     <string name="etp_cryptominers_title">Criopto-mhèinneadairean</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Cumaidh seo sgriobtaichean droch-rùnach air falbh on uidheam agad is iad airson airgead digiteach a mhèinnearachd.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Cuiridh seo bacadh air cruinneachadh de dhàta àraidh mun uidheam agad leis am b’ urrainnear do thracadh.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Susbaint tracaidh</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1714,6 +1815,8 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Falamhaich briosgaidean a chaidh a shuidheachadh an cois ath-stiùiridh gu làraichean-lìn a tha nan tracaichean aithnichte.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Lorgaichean-meur fo amharas</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Chaidh pàirt dhe na tracaichean comharraichte gu h-ìosal a dhì-bhacadh air an duilleag seo on a ghabh thu eadar-ghnìomh leotha *.</string>
@@ -1782,6 +1885,8 @@
 
     <!-- Preference for syncing saved passwords in Fenix -->
     <string name="preferences_passwords_sync_logins_2">Sioncronaich na faclan-faire</string>
+    <!-- Preference for syncing saved passwords in Fenix, when not signed in-->
+    <string name="preferences_passwords_sync_logins_across_devices_2">Sioncronaich faclan-faire air feadh uidheaman</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Eisgeachdan</string>
     <!-- Text on button to remove all saved login exceptions -->

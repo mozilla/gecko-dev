@@ -18,8 +18,6 @@
     <!-- Text for password field in an authentication dialog. -->
     <string name="mozac_feature_prompt_password_hint">የይለፍ ቃል</string>
     <!-- Negative confirmation that we should not save the new or updated login -->
-    <string name="mozac_feature_prompt_dont_save" moz:removedIn="125" tools:ignore="UnusedResources">አታስቀምጥ</string>
-    <!-- Negative confirmation that we should not save the new or updated login -->
     <string name="mozac_feature_prompt_dont_save_2">አሁን አይሆንም</string>
     <!-- Negative confirmation that we should never save a login for this site -->
     <string name="mozac_feature_prompt_never_save">በጭራሽ አታስቀምጥ</string>
@@ -28,29 +26,17 @@
     <!-- Positive confirmation that we should save the new or updated login -->
     <string name="mozac_feature_prompt_save_confirmation">አስቀምጥ</string>
     <!-- Negative confirmation that we should not save the updated login -->
-    <string name="mozac_feature_prompt_dont_update" moz:removedIn="125" tools:ignore="UnusedResources">አታዘምን</string>
-    <!-- Negative confirmation that we should not save the updated login -->
     <string name="mozac_feature_prompt_dont_update_2">አሁን አይሆንም</string>
     <!-- Positive confirmation that we should save the updated login -->
     <string name="mozac_feature_prompt_update_confirmation">አዘምን</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_empty_password" moz:removedIn="125" tools:ignore="UnusedResources">የይለፍ ቃል ባዶ መሆን የለበትም</string>
-    <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_empty_password_2">የይለፍ ቃል ያስገቡ</string>
-    <!-- Error text displayed underneath the login field when it is in an error case -->
-    <string name="mozac_feature_prompt_error_unknown_cause" moz:removedIn="125" tools:ignore="UnusedResources">መግባትን ማስቀመጥ አልተቻለም</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_unknown_cause_2">የይለፍ ቃል ማስቀመጥ አልተቻለም</string>
-    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new login. -->
-    <string name="mozac_feature_prompt_login_save_headline" moz:removedIn="125" tools:ignore="UnusedResources">ይህ መግቢያ ይቀመጥ?</string>
     <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
     <string name="mozac_feature_prompt_login_save_headline_2">የይለፍ ቃል ይቀመጥ?</string>
-    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_update_headline" moz:removedIn="125" tools:ignore="UnusedResources">ይህ መግቢያ ይዘምን?</string>
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">የይለፍ ቃል ይዘምን?</string>
-    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">የተጠቃሚ ስም በተቀመጠው ይለፍ ቃል ላይ ይታከል?</string>
 
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_add_username_headline_2">የተጠቃሚ ስም ይዘምን?</string>
@@ -99,20 +85,12 @@
     <string name="mozac_feature_prompts_dec">ታሕ</string>
     <!-- Title of the time picker dialog. -->
     <string name="mozac_feature_prompts_set_time">ስዓት ይሙሉ</string>
-    <!-- Option in expanded select login prompt that links to login settings -->
-    <string name="mozac_feature_prompts_manage_logins" moz:removedIn="125" tools:ignore="UnusedResources">መግቢያዎችን ያስተዳድሩ</string>
     <!-- Option in expanded select password prompt that links to password settings -->
     <string name="mozac_feature_prompts_manage_logins_2">የይለፍ ቃሎችን አስተዳድር</string>
-    <!-- Content description for expanding the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_expand_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">የተጠቆሙ መግቢያዎችን ዘርጋ</string>
     <!-- Content description for expanding the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_expand_logins_content_description_2">የተቀመጡ የይለፍ ቃሎችን ዘርጋ</string>
-    <!-- Content description for collapsing the saved logins options in the select login prompt -->
-    <string name="mozac_feature_prompts_collapse_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">የተጠቆሙ መግቢያዎችን ሰብስብ</string>
     <!-- Content description for collapsing the saved passwords options in the select password prompt -->
     <string name="mozac_feature_prompts_collapse_logins_content_description_2">የተቀመጡ የይለፍ ቃሎችን ሰብስብ</string>
-    <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
-    <string name="mozac_feature_prompts_saved_logins" moz:removedIn="125" tools:ignore="UnusedResources">የተጠቆሙ መግቢያዎች</string>
 
     <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
     <string name="mozac_feature_prompts_saved_logins_2">የተቀመጡ የይለፍ ቃሎች</string>
@@ -129,9 +107,10 @@
     <string name="mozac_feature_prompts_suggest_strong_password_title">ጠንካራ የይለፍ ቃል ይጠቀሙ?</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">ጠንካራ በዘፈቀደ የመነጨ የይለፍ ቃል በመጠቀም መለያዎችዎን ይጠብቁ። የይለፍ ቃላትዎን በመለያዎ ውስጥ በማስቀመጥ ፈጣን መዳረሻ ያግኙ።</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ጠንካራ በዘፈቀደ የመነጨ የይለፍ ቃል በመጠቀም መለያዎችዎን ይጠብቁ። ለወደፊት ጥቅም ወደ መለያዎ ይቀመጣል።</string>
+
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">ጠንካራ በዘፈቀደ የመነጨ የይለፍ ቃል በመጠቀም መለያዎችዎን ይጠብቁ። ለወደፊት ጥቅም ወደ መለያዎ ይቀመጣል።</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">ጠንካራ በዘፈቀደ የመነጨ የይለፍ ቃል በመጠቀም መለያዎን ይጠብቁ። ለወደፊት ጥቅም በመለያዎ ውስጥ ይቀመጣል።</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">የይለፍ ቃል ተጠቀም</string>
@@ -154,20 +133,12 @@
     <string name="mozac_feature_prompt_repost_negative_button_text">ተወው</string>
 
     <!-- Credit Card Autofill -->
-    <!-- Header for the select credit card prompt to allow users to fill a form with a saved credit card. -->
-    <string name="mozac_feature_prompts_select_credit_card" moz:removedIn="125" tools:ignore="UnusedResources">ክሬዲት ካርድ ይምረጡ</string>
     <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
     <string name="mozac_feature_prompts_select_credit_card_2">የተቀመጠ ካርድ ተጠቀም</string>
-    <!-- Content description for expanding the select credit card options in the select credit card prompt. -->
-    <string name="mozac_feature_prompts_expand_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">የተጠቆሙ ክሬዲት ካርዶችን ዘርጋ</string>
     <!-- Content description for expanding the saved card options in the select card prompt. -->
     <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">የተቀመጡ ካርዶችን ዘርጋ</string>
-    <!-- Content description for collapsing the select credit card options in the select credit prompt. -->
-    <string name="mozac_feature_prompts_collapse_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">የተጠቆሙ ክሬዲት ካርዶችን ሰብስብ</string>
     <!-- Content description for collapsing the saved card options in the select prompt. -->
     <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">የተቀመጡ ካርዶችን ሰብስብ</string>
-    <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
-    <string name="mozac_feature_prompts_manage_credit_cards" moz:removedIn="125" tools:ignore="UnusedResources">ክሬዲት ካርዶችን ያስተዳድሩ</string>
     <!-- Option in the expanded select card prompt that links to cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards_2">ካርዶችን ያስተዳድሩ</string>
     <!-- Text for the title of a save credit card dialog. -->
@@ -175,21 +146,14 @@
     <!-- Text for the title of an update credit card dialog. -->
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">የካርድ ማብቂያ ቀን ይዘምን?</string>
 
-    <!-- Subtitle text displayed under the title of the save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_body" moz:removedIn="125" tools:ignore="UnusedResources">የካርድ ቁጥር ይሰወራል ። የደህንነት የሚስጥር ፅሑፍ አይቀመጥም።</string>
-
     <!-- Subtitle text displayed under the title of the saved card dialog. Parameter will be replaced by app name-->
     <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s የካርድ ቁጥርዎን ያመስጥራል። የደህንነት ኮድዎ አይቀመጥም።</string>
 
     <!-- Address Autofill -->
     <!-- Header for the select address prompt to allow users to fill a form with a saved address. -->
     <string name="mozac_feature_prompts_select_address_2">አድራሻ ይምረጡ</string>
-    <!-- Content description for expanding the select addresses options in the select address prompt. -->
-    <string name="mozac_feature_prompts_expand_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">የተጠቆሙ አድራሻዎችን ዘርጋ</string>
     <!-- Content description for expanding the saved addresses options in the select address prompt. -->
     <string name="mozac_feature_prompts_expand_address_content_description_2">የተቀመጡ አድራሻዎችን ዘርጋ</string>
-    <!-- Content description for collapsing the select address options in the select address prompt. -->
-    <string name="mozac_feature_prompts_collapse_address_content_description" moz:removedIn="125" tools:ignore="UnusedResources">የተጠቆሙ አድራሻዎችን ሰብስብ</string>
     <!-- Content description for collapsing the saved address options in the select address prompt. -->
     <string name="mozac_feature_prompts_collapse_address_content_description_2">የተቀመጡ አድራሻዎችን ሰብስብ</string>
     <!-- Text for the manage addresses button. -->

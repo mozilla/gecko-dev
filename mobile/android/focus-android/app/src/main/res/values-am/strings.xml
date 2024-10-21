@@ -86,7 +86,6 @@
     <string name="share_dialog_title">ያጋሩ በ</string>
 
     <string name="notification_erase_title_android_14">የአሰሳ ታሪክን ይጥፋ?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">የአሰሳ ታሪክዎን ደህንነቱ በተጠበቀ መልኩ ለማጥፋት ይህን ማሳወቂያ መታ ያድርጉ ወይም ያጽዱ።</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -516,7 +515,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">ዝጋ</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">ዝጋ</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -606,6 +605,9 @@
 
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">የማሰሻ ታሪክን አጥፋ</string>
+
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">ሌሎች ትሮችን ዝጋ</string>
 
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
@@ -922,9 +924,6 @@
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">ቀይር</string>
 
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">ወደ ሙሉ ማያ ገጽ ሁነታ በመግባት ላይ</string>
-
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">ወደ አገናኝ አዲስ ትር ወዲያውኑ ቀይር</string>
 
@@ -1096,7 +1095,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">ከሙሉ እይታ ለመውጣት ከላይ ይጎትቱ እና ወደኋላ የእጅ ምልክትን ይጠቀሙ</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">ከሙሉ እይታ ለመውጣት ከላይ ይጎትቱ እና ወደኋላ የእጅ ምልክትን ይጠቀሙ</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">ከሙሉ እይታ ለመውጣት ከላይ ይጎትቱ እና ወደኋላ ተመለስን ይጠቀሙ</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">ከሙሉ እይታ ለመውጣት ከላይ ይጎትቱ እና ወደኋላ ተመለስን ይጠቀሙ</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">ከላይ ይጎትቱ እና ለመውጣት ወደ ኋላ በእጅ ያመላክቱ</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">ከላይ ይጎትቱ እና ለመውጣት ወደ ኋላ ምልክትን ይጫኑ</string>
 </resources>

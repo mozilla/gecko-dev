@@ -204,9 +204,14 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">ทำให้ %s เป็นของคุณเอง</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">คุณได้ติดตั้งส่วนขยายไว้แล้ว แต่ไม่ได้เปิดใช้งาน</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_body">ส่วนขยายช่วยยกระดับการท่องเว็บของคุณ ตั้งแต่การเปลี่ยนแปลงลักษณะและประสิทธิภาพของ %s ไปจนถึงการเพิ่มความเป็นส่วนตัวและความปลอดภัย</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">หากต้องการใช้ส่วนขยาย โปรดเปิดใช้งานในการตั้งค่าหรือเลือก “%s” ด้านล่าง</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">เรียนรู้เพิ่มเติม</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -308,6 +313,16 @@
     <string name="browser_menu_tools">เครื่องมือ</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">กลับสู่เมนูหลัก</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">ปิดแผ่นเมนูหลัก</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+    <string name="browser_extensions_menu_handlebar_content_description">ปิดแผ่นเมนูส่วนขยาย</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+    <string name="browser_save_menu_handlebar_content_description">ปิดแผ่นเมนูบันทึก</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+    <string name="browser_tools_menu_handlebar_content_description">ปิดแผ่นเมนูเครื่องมือ</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+    <string name="browser_custom_tab_menu_handlebar_content_description">ปิดแผ่นเมนูแท็บกำหนดเอง</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">มุมมองผู้อ่าน, แปล, พิมพ์, แบ่งปัน, เปิดแอป</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -483,6 +498,11 @@
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">ไม่ใช่ตอนนี้</string>
 
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">ปรับแต่ง Firefox ของคุณด้วยส่วนขยาย</string>
+    <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">เพิ่มส่วนขยายของบุคคลที่สามเพื่อเพิ่มความปลอดภัย ประสิทธิภาพการทำงาน และอื่นๆ ของคุณ</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">สำรวจส่วนขยายอื่น ๆ</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
@@ -493,12 +513,21 @@
     <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">เริ่มการเรียกดู</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">บล็อคโฆษณาอย่างมีประสิทธิภาพและได้ผล</string>
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">หยุดตัวติดตามที่คุณมองไม่เห็นและโฆษณาที่สอดส่องคุณด้วยสุดยอดเครื่องมือป้องกันการติดตาม</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">ค้นหาด้วยภาพ</string>
     <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">ชมภาพที่น่าสนใจและศึกษาข้อมูลเพิ่มเติมเกี่ยวกับภาพนั้น</string>
+
+    <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">โหมดมืดแบบกำหนดเองสำหรับเว็บมือถือ</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -1401,6 +1430,9 @@
     <!-- Category header of a preference that allows a user to alter settings related to web content. -->
     <string name="preferences_category_content">เนื้อหา</string>
 
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">ขอไซต์สำหรับเดสก์ท็อปเสมอ</string>
+
     <!-- Collections -->
     <!-- Collections header on home fragment -->
     <string name="collections_header">ชุดสะสม</string>
@@ -1560,6 +1592,8 @@
     <string name="snackbar_num_tabs_closed">จำนวนแท็บที่ปิด: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">บันทึกที่คั่นหน้าแล้ว!</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">บันทึกที่คั่นหน้าใน “%s” แล้ว!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">เพิ่มทางลัดแล้ว!</string>
     <!-- Text shown in snackbar when user closes a private tab -->

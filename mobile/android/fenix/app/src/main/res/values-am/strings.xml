@@ -198,13 +198,23 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">%s የራስዎ ያድርጉት</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">የተጫኑ ቅጥያዎች አሉዎት፣ ግን አልነቁም</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_body">ቅጥያዎች የአሰሳዎን ደረጃ ከፍ ያደርጋሉ፣ %s ምን እንደሚመስል እና እንዴት እንደሚሰራ ከመቀየር ጀምሮ እስከ ግላዊነትን እና ደህንነትን ማሳደግ ድረስ።</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">ቅጥያዎችን ለመጠቀም በቅንብሮች ውስጥ ወይም ከታች “%s” ን በመምረጥ አንቃቸው።</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">ተጨማሪ ይወቁ</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">ቅጥያዎችን ያስተዳድሩ</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">የሚመከሩ ቅጥያዎች</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">ያክሉ %1$s</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">ተጨማሪ ቅጥያዎችን ያግኙ</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -229,6 +239,8 @@
     <string name="browser_menu_add_to_homescreen">ወደ መነሻ ማያ ገጽ ጨምር</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">ወደ መነሻ ማያ ገጽ አክል…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">የXiaomi መሳሪያዎች ወደ መነሻ ስክሪን አቋራጮችን ለመጨመር ተጨማሪ ፈቃዶች ያስፈልጉ ይሆናል። እባክዎን ቅንብሮችዎን ያረጋግጡ።</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">ዳግም አስምር</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -298,6 +310,16 @@
     <string name="browser_menu_tools">መሳሪያዎች</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">ወደ ዋናው ምናሌ ተመለስ</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">ዋናውን የምናሌ ገፅ ዝጋ</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+    <string name="browser_extensions_menu_handlebar_content_description">የቅጥያዎች ምናሌ ገፅን ዝጋ</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+    <string name="browser_save_menu_handlebar_content_description">የማስቀመጥ ምናሌ ገፅን ዝጋ</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+    <string name="browser_tools_menu_handlebar_content_description">የመሳሪያዎች ምናሌ ገፅን ዝጋ</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+    <string name="browser_custom_tab_menu_handlebar_content_description">ብጁ የትር ምናሌ ገፅን ዝጋ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">የአንባቢ እይታ፣ ትርጉም፣ ማተም፣ አጋራ፣ መተግበሪያ ከፋች</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -366,6 +388,8 @@
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
     <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">ቃኝ</string>
+    <!-- Button in the search view that lets a user search by scanning a QR code -->
+    <string name="search_scan_button_2">የQR ኮድ ይቃኙ</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">የፍለጋ ፍርግም ቅንብሮች</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -468,6 +492,37 @@
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">አሁን አይሆንም</string>
 
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Firefoxዎን በቅጥያዎች ያብጁት</string>
+    <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">የእርስዎን ደህንነት፣ ምርታማነት እና ሌሎችንም ለማሻሻል የሶስተኛ ወገን ቅጥያዎችን ያክሉ።</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">ተጨማሪ ቅጥያዎችን ያስሱ።</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">ማሰስ ጀምር።</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">ተጨማሪ ቅጥያዎችን ያስሱ</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">ማሰስ ይጀምሩ</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">ማስታወቂያዎችን በብቃት እና በጥራት አግድ።</string>
+
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">ፀረ-ክትትል ዕንቁ. የማይታዩ መከታተያዎች እና የስለላ ማስታወቂያዎችን ያቁሙ።</string>
+    <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">በምስል ይፈልጉ</string>
+    <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">አንድ አስደሳች ፎቶ ይመልከቱ እና ስለሱ የበለጠ ይረዱ።</string>
+    <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">ለሞባይል ድር ብጁ ጨለማ ሁነታ።</string>
+
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
     <string name="search_widget_content_description_2">አዲስ %1$s ትር ክፈት</string>
@@ -520,6 +575,8 @@
     <string name="preferences_category_privacy_security">ግላዊነት እና ደህንነት</string>
     <!-- Preference for advanced site permissions -->
     <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">የድረ-ገፅ ፈቃዶች</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">የጣቢያ ቅንብሮች</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">የግል አሰሳ</string>
     <!-- Preference for opening links in a private tab-->
@@ -867,6 +924,10 @@
     <string name="preferences_marketing_data">የግብይት ውሂብ</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">የሞባይል ግብይት አቅራቢያችን ከሆነው ከአጀስት ጋር መሰረታዊ የአጠቃቀም መረጃን ያካፍላል</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">የብልሽት ሪፖርቶችን በራስ-ሰር አስገባ</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">ብልሽቶች ከተከሰቱ በኋላ ከMozilla መጀመር ጋር የብልሽት ውሂብን በራስ-ሰር ያጋራል</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">ጥናቶች</string>
     <!-- Summary for studies preferences -->
@@ -1240,6 +1301,10 @@
     <string name="bookmark_deletion_multiple_snackbar_message_3">የተመረጡ አቃፊዎችን በመሰረዝ ላይ</string>
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">ቀልብስ</string>
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">%s ተሰርዟል</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">የተሰረዙ ነገሮች፡- %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">የፍለጋ ህብረ ቁምፊ ያስገቡ</string>
 
@@ -1254,6 +1319,17 @@
 
     <!-- Title for the bookmark list empty state-->
     <string name="bookmark_empty_list_title">እስካሁን ምንም ዕልባቶች የሉም</string>
+
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">ሲያስሱ ጣቢያዎችን ያስቀምጡ። ከሌሎች የተመሳሰሉ መሳሪያዎች ዕልባቶችን ለመውሰድ ይግቡ።</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">ለማመሳሰል ይግቡ</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">ሲያስሱ ጣቢያዎችን ያስቀምጡ። ከሌሎች የተመሳሰሉ መሳሪያዎች ዕልባቶችን እንይዛለን።</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">ቆይተው የሚወዷቸውን ጣቢያዎች ማግኘት እንዲችሉ በሚያስሱበት ጊዜ ዕልባቶችን ያክሉ።</string>
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">አዲስ አቃፊ</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1336,6 +1412,13 @@
     <string name="studies_on">በርቷል</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">ጠፍቷል</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">ፈቃዶች</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">ይዘት</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">ሁልጊዜ የዴስክቶፕ ጣቢያን ይጠይቁ</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1493,6 +1576,8 @@
     <string name="snackbar_num_tabs_closed">ትሮች ተዘግተዋል፡- %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">እልባቶች ተቀምጠዋል!</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">ዕልባቶች በ “%s” ውስጥ ተቀምጠዋል!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">ወደ አቋራጮች ታክሏል!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -2787,6 +2872,10 @@
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
     <string name="exit_fullscreen_with_gesture_short">ከላይ ይጎትቱ እና ለመውጣት የእጅ ምልክት ይጠቀሙ</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">ከላይ ይጎትቱ እና ለመውጣት ወደ ኋላ ምልክትን ይጫኑ</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
