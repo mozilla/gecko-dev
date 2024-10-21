@@ -42,7 +42,7 @@ task-defaults:
 
 marionette-unittest:
     description: "Marionette unittest run"
-    treeherder-symbol: Mn-unit
+    treeherder-symbol: Mn(unit)
     max-run-time:
         by-test-platform:
             .*asan.*: 3600
@@ -58,7 +58,7 @@ marionette-unittest:
 
 marionette:
     description: "Marionette integration run"
-    treeherder-symbol: Mn
+    treeherder-symbol: Mn()
     max-run-time:
         by-test-platform:
             .*asan.*: 3600
