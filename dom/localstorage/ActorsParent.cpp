@@ -77,7 +77,6 @@
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/ClientImpl.h"
-#include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/FirstInitializationAttemptsImpl.h"
 #include "mozilla/dom/quota/HashKeys.h"
@@ -1470,7 +1469,7 @@ class ConnectionThread final {
  */
 class Datastore final
     : public SupportsCheckedUnsafePtr<CheckIf<DiagnosticAssertEnabled>> {
-  RefPtr<DirectoryLock> mDirectoryLock;
+  RefPtr<ClientDirectoryLock> mDirectoryLock;
   RefPtr<Connection> mConnection;
   RefPtr<QuotaObject> mQuotaObject;
   nsCOMPtr<nsIRunnable> mCompleteCallback;
@@ -1525,13 +1524,13 @@ class Datastore final
   // Created by PrepareDatastoreOp.
   Datastore(const OriginMetadata& aOriginMetadata, uint32_t aPrivateBrowsingId,
             int64_t aUsage, int64_t aSizeOfKeys, int64_t aSizeOfItems,
-            RefPtr<DirectoryLock>&& aDirectoryLock,
+            RefPtr<ClientDirectoryLock>&& aDirectoryLock,
             RefPtr<Connection>&& aConnection,
             RefPtr<QuotaObject>&& aQuotaObject,
             nsTHashMap<nsStringHashKey, LSValue>& aValues,
             nsTArray<LSItemInfo>&& aOrderedItems);
 
-  Maybe<DirectoryLock&> MaybeDirectoryLockRef() const {
+  Maybe<ClientDirectoryLock&> MaybeDirectoryLockRef() const {
     AssertIsOnBackgroundThread();
 
     return ToMaybeRef(mDirectoryLock.get());
@@ -2258,8 +2257,8 @@ class PrepareDatastoreOp
   mozilla::glean::TimerId mProcessingTimerId;
   RefPtr<PrepareDatastoreOp> mDelayedOp;
   RefPtr<ClientDirectoryLock> mPendingDirectoryLock;
-  RefPtr<DirectoryLock> mDirectoryLock;
-  RefPtr<DirectoryLock> mExtraDirectoryLock;
+  RefPtr<ClientDirectoryLock> mDirectoryLock;
+  RefPtr<ClientDirectoryLock> mExtraDirectoryLock;
   RefPtr<Connection> mConnection;
   RefPtr<Datastore> mDatastore;
   UniquePtr<ArchivedOriginScope> mArchivedOriginScope;
@@ -2294,7 +2293,7 @@ class PrepareDatastoreOp
   PrepareDatastoreOp(const LSRequestParams& aParams,
                      const Maybe<ContentParentId>& aContentParentId);
 
-  Maybe<DirectoryLock&> MaybeDirectoryLockRef() const {
+  Maybe<ClientDirectoryLock&> MaybeDirectoryLockRef() const {
     AssertIsOnBackgroundThread();
 
     if (mDirectoryLock) {
@@ -2381,7 +2380,7 @@ class PrepareDatastoreOp
   // IPDL overrides.
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
-  void DirectoryLockAcquired(DirectoryLock* aLock);
+  void DirectoryLockAcquired(ClientDirectoryLock* aLock);
 
   void DirectoryLockFailed();
 };
@@ -4411,7 +4410,7 @@ void ConnectionThread::Shutdown() {
 Datastore::Datastore(const OriginMetadata& aOriginMetadata,
                      uint32_t aPrivateBrowsingId, int64_t aUsage,
                      int64_t aSizeOfKeys, int64_t aSizeOfItems,
-                     RefPtr<DirectoryLock>&& aDirectoryLock,
+                     RefPtr<ClientDirectoryLock>&& aDirectoryLock,
                      RefPtr<Connection>&& aConnection,
                      RefPtr<QuotaObject>&& aQuotaObject,
                      nsTHashMap<nsStringHashKey, LSValue>& aValues,
@@ -7691,7 +7690,7 @@ void PrepareDatastoreOp::ActorDestroy(ActorDestroyReason aWhy) {
   }
 }
 
-void PrepareDatastoreOp::DirectoryLockAcquired(DirectoryLock* aLock) {
+void PrepareDatastoreOp::DirectoryLockAcquired(ClientDirectoryLock* aLock) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mState == State::Nesting);
   MOZ_ASSERT(mNestedState == NestedState::DirectoryOpenPending);
