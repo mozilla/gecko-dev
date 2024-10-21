@@ -282,15 +282,6 @@
       ]
     },
     {
-      "login": false,
-      "name": "fandom",
-      "test_url": "https://www.fandom.com/articles/fallout-76-will-live-and-die-on-the-creativity-of-its-playerbase",
-      "test_cmds": [
-        ["click.byXpathAndWait", "/html/body/div[9]/div/div/div[2]/div[1]"],
-        ["click.byXpathAndWait", "/html/body/div[9]/div/div/div[2]/div[2]"]
-      ]
-    },
-    {
       "login": true,
       "name": "google",
       "test_url": "https://www.google.com/search?hl=en&q=barack+obama&cad=h",
@@ -599,6 +590,15 @@
         ["navigate", "https://www.facebook.com/friends/"],
         ["wait.byTime", 5000],
         ["measure.stop", ""]
+      ]
+    },
+    {
+      "login": false,
+      "name": "fandom",
+      "test_url": "https://www.fandom.com/articles/fallout-76-will-live-and-die-on-the-creativity-of-its-playerbase",
+      "test_cmds": [
+        ["click.byXpathAndWait", "/html/body/div[9]/div/div/div[2]/div[1]"],
+        ["click.byXpathAndWait", "/html/body/div[9]/div/div/div[2]/div[2]"]
       ]
     }
   ]

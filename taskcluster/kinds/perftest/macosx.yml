@@ -291,3 +291,27 @@ perfstats:
             --browsertime-iterations 10
             --hooks testing/performance/hooks_perfstats.py
             testing/performance/perftest_perfstats.js
+
+record-websites:
+    description: Run mozperftest to record desktop websites
+    treeherder:
+        symbol: perftest(rec)
+    attributes:
+        cron: false
+    run-on-projects: []
+    scopes:
+        - secrets:get:project/releng/gecko/build/level-{level}/conditioned-profiles
+        - secrets:get:project/perftest/gecko/level-{level}/perftest-login
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $MOZ_FETCHES_DIR &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor desktop-browser
+            --verbose
+            --browsertime-binary ${MOZ_FETCHES_DIR}/target.dmg
+            --browsertime-geckodriver ${MOZ_FETCHES_DIR}/geckodriver
+            --proxy
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks testing/performance/hooks_recording.py
+            testing/performance/perftest_record.js
