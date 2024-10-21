@@ -336,7 +336,7 @@ win64-custom-car:
         toolchain-artifact: public/build/car_win64.tar.zst
     fetches:
         toolchain:
-            - win64-vs2022
+            - win64-vs2022-car
 
 browsertime:
     description: "npm install browsertime node_modules"
@@ -507,6 +507,23 @@ nsis:
         toolchain:
             - linux64-clang-toolchain
             - sysroot-x86_64-linux-gnu
+
+win64-vs2022-car:
+    description: "VS 2022 toolchain with SDK 10.0.26100.x, for CaR builds"
+    attributes:
+        local-toolchain: true
+    treeherder:
+        symbol: TW64(msvc2022-car)
+    worker:
+        env:
+            MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE: system
+    run:
+        script: get_vs.py
+        arguments:
+            - build/vs/vs2022-car.yaml
+        resources:
+            - build/vs/vs2022-car.yaml
+        toolchain-artifact: project/gecko/vs/vs.tar.zst
 
 win64-vs2022:
     description: "VS 2022"
