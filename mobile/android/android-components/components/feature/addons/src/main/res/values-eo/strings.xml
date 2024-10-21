@@ -186,10 +186,12 @@
     <string name="mozac_feature_addons_failed_to_translate">Traduko netrovita, nek por la lokaĵaro %1$s nek por la norma lingvo %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">%1$s sukcese instalita</string>
-    <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
+    <!-- Text shown after failing to install an add-on (when add-on type isn't supported or an unknown has errored). %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">Malsukcesa instalo de %1$s</string>
-    <!-- Text shown after failing to install an extension for which we don't have its name. -->
+    <!-- Text shown after failing to install an extension for which we don't have its name (when add-on type isn't supported or an unknown has errored). -->
     <string name="mozac_feature_addons_extension_failed_to_install">Malsukcesa instalo de tiu ĉi etendaĵo.</string>
+    <!-- Text shown when installing an add-on has failed. -->
+    <string name="mozac_feature_addons_cant_install_extension">Ne eblas instali etendaĵon</string>
     <!-- Text shown when attempting to install an extension and a network error happened. -->
     <string name="mozac_feature_addons_extension_failed_to_install_network_error">La etendaĵo ne povis esti elŝutita pro eraro en la konekto.</string>
     <!-- Text shown when attempting to install an extension and the downloaded file is corrupted. -->
@@ -199,9 +201,15 @@
     <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
     <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s ne povi esti instalita ĉar ĝi ne kongruas kun %2$s %3$s.</string>
     <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_blocklisted_1">%1$s ne povis esti instalita ĉar ĝi tre riskas okazigi stabilecajn aŭ sekurecajn problemojn.</string>
+    <string name="mozac_feature_addons_blocklisted_1" moz:removedIn="133" tools:ignore="UnusedResources">%1$s ne povis esti instalita ĉar ĝi tre riskas okazigi stabilecajn aŭ sekurecajn problemojn.</string>
+    <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_blocklisted_2">%1$s malobservas politikojn de Mozilla kaj ne povas esti instalita en %2$s.</string>
     <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
     <string name="mozac_feature_addons_admin_install_only">%1$s ne povis esti instalita ĉar ĝin oni nur povas instali en organizo kiu uzas entreprenajn politikojn, kiuj ne estas subtenataj en tiu ĉi platformo.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_soft_blocked" moz:removedIn="133" tools:ignore="UnusedResources">%1$s malobservas politikojn de Mozilla kaj ne povas esti instalita.</string>
+    <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_soft_blocked_1">%1$s malobservas politikojn de Mozilla kaj ne povas esti instalita en %2$s.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">%1$s sukcese aktivigita</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -246,8 +254,18 @@
     <string name="mozac_feature_addons_installed_dialog_okay_button_2">Akcepti</string>
     <!-- "Learn more" link displayed below an add-on status message. -->
     <string name="mozac_feature_addons_status_learn_more">Pli da informo</string>
+    <!-- "See details" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_see_details">Montri detalojn</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
-    <string name="mozac_feature_addons_status_blocklisted">%1$s estis malaktivigita pro sekurecaj kaj stabilecaj problemoj.</string>
+    <string name="mozac_feature_addons_status_blocklisted" moz:removedIn="133" tools:ignore="UnusedResources">%1$s estis malaktivigita pro sekurecaj kaj stabilecaj problemoj.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted_1">Tiu ĉi etendaĵo estis blokita pro malobservo de la politikoj de Mozilla kaj ĝi estis do malaktivigita.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked" moz:removedIn="133" tools:ignore="UnusedResources">Tiu ĉi etendaĵo malobservas politikojn de Mozilla kaj ĝi estis do malaktivigita. Vi povas reaktivigi ĝin, sed tio povus esti riska.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked. -->
+    <string name="mozac_feature_addons_status_softblocked_1">Tiu ĉi etendaĵo estis blokita pro malobservo de la politikoj de Mozilla kaj ĝi estis do malaktivigita. Vi povas reaktivigi ĝin, sed tio povus esti riska.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been soft-blocked but the user re-enabled it. -->
+    <string name="mozac_feature_addons_status_softblocked_re_enabled">Tiu ĉi etendaĵo malobservas la politikojn de Mozilla. Uzi ĝin povas esti riske.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_status_unsigned">Ne eblis konfirmi ke %1$s estas sekura kaj ĝi estis do malaktivigita.</string>
     <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->

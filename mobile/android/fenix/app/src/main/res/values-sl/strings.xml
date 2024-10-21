@@ -317,6 +317,16 @@
     <string name="browser_menu_tools">Orodja</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Nazaj na glavni meni</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">Zapri glavni meni</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+    <string name="browser_extensions_menu_handlebar_content_description">Zapri meni razširitev</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
+    <string name="browser_save_menu_handlebar_content_description">Zapri meni za shranjevanje</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar tools menu. -->
+    <string name="browser_tools_menu_handlebar_content_description">Zapri meni orodij</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
+    <string name="browser_custom_tab_menu_handlebar_content_description">Zapri meni zavihkov po meri</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Bralni pogled, Prevedi, Natisni, Deli, Odpri aplikacijo</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -494,6 +504,8 @@
     <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated -->
     <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Prilagodite si Firefox z razširitvami</string>
+    <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Dodajte razširitve neodvisnih ponudnikov za večjo varnost, produktivnost in drugo.</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
     <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Raziščite več razširitev.</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->

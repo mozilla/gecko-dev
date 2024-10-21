@@ -1106,7 +1106,7 @@
     <!-- Category header of a preference that allows a user to enable or disable the inactive tabs feature -->
     <string name="preferences_inactive_tabs">이전 탭을 비활성으로 이동</string>
     <!-- Title of inactive tabs preference -->
-    <string name="preferences_inactive_tabs_title">2주 동안 보지 않은 탭은 비활동 섹션으로 이동됩니다.</string>
+    <string name="preferences_inactive_tabs_title">2주 동안 보지 않은 탭은 비활동 섹션으로 이동</string>
 
     <!-- Studies -->
     <!-- Title of the remove studies button -->
