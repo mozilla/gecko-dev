@@ -9,7 +9,6 @@ async function* gen() {
 let iter = gen().filter(x => x % 2);
 
 for (const v of [1, 3]) {
-  console.log(iter);
   iter.next().then(
     ({done, value}) => {
       assertEq(done, false);

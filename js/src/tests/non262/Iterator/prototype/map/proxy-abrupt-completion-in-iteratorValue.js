@@ -43,8 +43,6 @@ try {
   assertEq(exc, 'error');
 }
 
-console.log(log.join('\n'));
-
 assertEq(
   log.join('\n'),
 `get: map

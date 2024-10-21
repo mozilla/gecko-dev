@@ -11,7 +11,6 @@ let iter = gen().asIndexedPairs();
 for (const v of [[0, 1], [1, 2], [2, 3]]) {
   iter.next().then(
     result => {
-      console.log(result);
       assertEq(result.done, false);
       assertEq(result.value[0], v[0]);
       assertEq(result.value[1], v[1]);
