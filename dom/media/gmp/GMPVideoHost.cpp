@@ -5,6 +5,8 @@
 
 #include "GMPVideoHost.h"
 #include "mozilla/Assertions.h"
+#include "GMPSharedMemManager.h"
+#include "GMPVideoPlaneImpl.h"
 #include "GMPVideoi420FrameImpl.h"
 #include "GMPVideoEncodedFrameImpl.h"
 
@@ -71,6 +73,10 @@ void GMPVideoHostImpl::ActorDestroyed() {
     mEncodedFrames[i - 1]->DoneWithAPI();
     mEncodedFrames.RemoveElementAt(i - 1);
   }
+  for (uint32_t i = mDecodedFrames.Length(); i > 0; i--) {
+    mDecodedFrames[i - 1]->DoneWithAPI();
+    mDecodedFrames.RemoveElementAt(i - 1);
+  }
   mSharedMemMgr = nullptr;
 }
 
@@ -89,6 +95,15 @@ void GMPVideoHostImpl::EncodedFrameCreated(
 
 void GMPVideoHostImpl::EncodedFrameDestroyed(GMPVideoEncodedFrameImpl* aFrame) {
   MOZ_ALWAYS_TRUE(mEncodedFrames.RemoveElement(aFrame));
+}
+
+void GMPVideoHostImpl::DecodedFrameCreated(
+    GMPVideoi420FrameImpl* aDecodedFrame) {
+  mDecodedFrames.AppendElement(aDecodedFrame);
+}
+
+void GMPVideoHostImpl::DecodedFrameDestroyed(GMPVideoi420FrameImpl* aFrame) {
+  MOZ_ALWAYS_TRUE(mDecodedFrames.RemoveElement(aFrame));
 }
 
 }  // namespace mozilla::gmp

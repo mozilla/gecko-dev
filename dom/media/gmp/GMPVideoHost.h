@@ -16,6 +16,7 @@ namespace mozilla::gmp {
 class GMPSharedMemManager;
 class GMPPlaneImpl;
 class GMPVideoEncodedFrameImpl;
+class GMPVideoi420FrameImpl;
 
 class GMPVideoHostImpl : public GMPVideoHost {
  public:
@@ -30,6 +31,8 @@ class GMPVideoHostImpl : public GMPVideoHost {
   void PlaneDestroyed(GMPPlaneImpl* aPlane);
   void EncodedFrameCreated(GMPVideoEncodedFrameImpl* aEncodedFrame);
   void EncodedFrameDestroyed(GMPVideoEncodedFrameImpl* aFrame);
+  void DecodedFrameCreated(GMPVideoi420FrameImpl* aDecodedFrame);
+  void DecodedFrameDestroyed(GMPVideoi420FrameImpl* aFrame);
 
   // GMPVideoHost
   GMPErr CreateFrame(GMPVideoFrameFormat aFormat,
@@ -47,6 +50,7 @@ class GMPVideoHostImpl : public GMPVideoHost {
   // can't use us any more.
   nsTArray<GMPPlaneImpl*> mPlanes;
   nsTArray<GMPVideoEncodedFrameImpl*> mEncodedFrames;
+  nsTArray<GMPVideoi420FrameImpl*> mDecodedFrames;
 };
 
 }  // namespace mozilla::gmp

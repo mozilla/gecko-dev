@@ -8,27 +8,28 @@
 
 #include "gmp-video-frame-i420.h"
 #include "mozilla/ipc/Shmem.h"
-#include "GMPVideoPlaneImpl.h"
 #include "mozilla/Maybe.h"
 
 namespace mozilla::gmp {
 
+class GMPPlaneData;
 class GMPVideoi420FrameData;
+class GMPVideoHostImpl;
 
-class GMPVideoi420FrameImpl : public GMPVideoi420Frame {
-  friend struct IPC::ParamTraits<mozilla::gmp::GMPVideoi420FrameImpl>;
-
+class GMPVideoi420FrameImpl final : public GMPVideoi420Frame {
  public:
   explicit GMPVideoi420FrameImpl(GMPVideoHostImpl* aHost);
   GMPVideoi420FrameImpl(const GMPVideoi420FrameData& aFrameData,
                         GMPVideoHostImpl* aHost);
   virtual ~GMPVideoi420FrameImpl();
 
+  // This is called during a normal destroy sequence, which is
+  // when a consumer is finished or during XPCOM shutdown.
+  void DoneWithAPI();
+
   static bool CheckFrameData(const GMPVideoi420FrameData& aFrameData);
 
   bool InitFrameData(GMPVideoi420FrameData& aFrameData);
-  const GMPPlaneImpl* GetPlane(GMPPlaneType aType) const;
-  GMPPlaneImpl* GetPlane(GMPPlaneType aType);
 
   // GMPVideoFrame
   GMPVideoFrameFormat GetFrameFormat() override;
@@ -61,16 +62,38 @@ class GMPVideoi420FrameImpl : public GMPVideoi420Frame {
   bool IsZeroSize() const override;
   void ResetSize() override;
 
+  uint8_t* Buffer();
+  const uint8_t* Buffer() const;
+  int32_t AllocatedSize() const;
+
  private:
+  struct GMPFramePlane {
+    explicit GMPFramePlane(const GMPPlaneData& aPlaneData);
+    GMPFramePlane() = default;
+    void InitPlaneData(GMPPlaneData& aPlaneData);
+    void Copy(uint8_t* aDst, int32_t aDstOffset, const uint8_t* aSrc,
+              int32_t aSize, int32_t aStride);
+
+    int32_t mOffset = 0;
+    int32_t mSize = 0;
+    int32_t mStride = 0;
+  };
+
+  const GMPFramePlane* GetPlane(GMPPlaneType aType) const;
+  GMPFramePlane* GetPlane(GMPPlaneType aType);
   bool CheckDimensions(int32_t aWidth, int32_t aHeight, int32_t aStride_y,
                        int32_t aStride_u, int32_t aStride_v, int32_t aSize_y,
                        int32_t aSize_u, int32_t aSize_v);
   bool CheckDimensions(int32_t aWidth, int32_t aHeight, int32_t aStride_y,
                        int32_t aStride_u, int32_t aStride_v);
+  GMPErr MaybeResize(int32_t aNewSize);
+  void DestroyBuffer();
 
-  GMPPlaneImpl mYPlane;
-  GMPPlaneImpl mUPlane;
-  GMPPlaneImpl mVPlane;
+  GMPVideoHostImpl* mHost;
+  ipc::Shmem mBuffer;
+  GMPFramePlane mYPlane;
+  GMPFramePlane mUPlane;
+  GMPFramePlane mVPlane;
   int32_t mWidth;
   int32_t mHeight;
   uint64_t mTimestamp;

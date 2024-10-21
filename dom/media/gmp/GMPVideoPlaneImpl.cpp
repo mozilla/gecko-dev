@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GMPVideoPlaneImpl.h"
+#include <algorithm>
 #include "mozilla/gmp/GMPTypes.h"
 #include "GMPVideoHost.h"
 #include "GMPSharedMemManager.h"
@@ -16,13 +17,15 @@ GMPPlaneImpl::GMPPlaneImpl(GMPVideoHostImpl* aHost)
   mHost->PlaneCreated(this);
 }
 
-GMPPlaneImpl::GMPPlaneImpl(const GMPPlaneData& aPlaneData,
+GMPPlaneImpl::GMPPlaneImpl(const ipc::Shmem& aBuffer,
+                           const GMPPlaneData& aPlaneData,
                            GMPVideoHostImpl* aHost)
-    : mBuffer(aPlaneData.mBuffer()),
+    : mBuffer(aBuffer),
       mSize(aPlaneData.mSize()),
       mStride(aPlaneData.mStride()),
       mHost(aHost) {
   MOZ_ASSERT(mHost);
+  MOZ_ASSERT(aPlaneData.mOffset() == 0);
   mHost->PlaneCreated(this);
 }
 
@@ -49,8 +52,9 @@ void GMPPlaneImpl::ActorDestroyed() {
   mHost = nullptr;
 }
 
-bool GMPPlaneImpl::InitPlaneData(GMPPlaneData& aPlaneData) {
-  aPlaneData.mBuffer() = mBuffer;
+bool GMPPlaneImpl::InitPlaneData(ipc::Shmem& aBuffer,
+                                 GMPPlaneData& aPlaneData) {
+  aBuffer = mBuffer;
   aPlaneData.mSize() = mSize;
   aPlaneData.mStride() = mStride;
 
@@ -123,7 +127,7 @@ GMPErr GMPPlaneImpl::Copy(const GMPPlane& aPlane) {
   }
 
   if (planeimpl.Buffer() && planeimpl.mSize > 0) {
-    memcpy(Buffer(), planeimpl.Buffer(), mSize);
+    memcpy(Buffer(), planeimpl.Buffer(), std::min(mSize, planeimpl.mSize));
   }
 
   mSize = planeimpl.mSize;
