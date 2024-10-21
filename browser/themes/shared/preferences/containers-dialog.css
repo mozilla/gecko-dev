@@ -42,9 +42,9 @@ radio > .userContext-icon {
 }
 
 .radio-buttons > radio[focused=true] {
-  outline-color: var(--in-content-accent-color);
+  outline-color: var(--color-accent-primary);
 }
 
 .radio-buttons > radio:hover:active {
-  outline-color: var(--in-content-accent-color-active);
+  outline-color: var(--color-accent-primary);
 }

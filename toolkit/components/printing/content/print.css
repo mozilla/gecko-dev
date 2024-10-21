@@ -255,7 +255,7 @@ input[type="radio"]:disabled + span > label {
   background-size: var(--size-item-small);
   background-position: left center;
   -moz-context-properties: fill;
-  fill: var(--in-content-accent-color);
+  fill: var(--color-accent-primary);
   padding-inline-start: calc(var(--size-item-small) + var(--space-xsmall));
 
   &:dir(rtl) {

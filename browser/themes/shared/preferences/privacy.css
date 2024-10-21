@@ -5,7 +5,7 @@
 /* Permissions */
 
 .highlighting-group {
-  --section-highlight-background-color: color-mix(in srgb, var(--in-content-accent-color) 20%, transparent);
+  --section-highlight-background-color: color-mix(in srgb, var(--color-accent-primary) 20%, transparent);
 }
 
 .permission-icon {
@@ -184,12 +184,12 @@
 }
 
 .privacy-detailedoption.selected {
-  border-color: var(--in-content-accent-color);
+  border-color: var(--color-accent-primary);
 }
 
 @media (forced-colors) {
   .privacy-detailedoption.selected {
-    outline: 2px solid var(--in-content-accent-color);
+    outline: 2px solid var(--color-accent-primary);
   }
 }
 

@@ -82,7 +82,7 @@ h2 {
 .category[badge-count]::after {
   display: inline-block;
   min-width: 20px;
-  background-color: var(--in-content-accent-color);
+  background-color: var(--color-accent-primary);
   color: var(--in-content-primary-button-text-color);
   font-weight: bold;
   /* Use a large border-radius to get semi-circles on the sides. */
@@ -603,7 +603,7 @@ button.addon-detail-description-toggle {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: var(--in-content-accent-color);;
+  background-color: var(--color-accent-primary);;
 }
 
 panel-item[action="remove"]::part(button) {
@@ -722,7 +722,7 @@ button.tab-button:hover {
 button.tab-button[selected],
 button.tab-button[selected]:hover {
   border-top-color: currentColor;
-  color: var(--in-content-accent-color);
+  color: var(--color-accent-primary);
 }
 
 @media (prefers-contrast) {

@@ -114,7 +114,7 @@ td:first-child {
 }
 
 .profiler-active {
-  fill: var(--in-content-accent-color);
+  fill: var(--color-accent-primary);
 }
 td:not(:hover) > .profiler-icon:not(.profiler-active) {
   display: none;

@@ -36,7 +36,7 @@
   background-color: var(--in-content-button-background-active);
 }
 .asrouter-admin .sidebar .category[data-selected] {
-  color: var(--in-content-accent-color);
+  color: var(--color-accent-primary);
 }
 .asrouter-admin .main-panel {
   margin-block: 12px;

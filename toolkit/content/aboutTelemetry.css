@@ -277,7 +277,7 @@ section:not(.active) {
 }
 
 .bar-inner {
-  background-color: var(--in-content-accent-color);
+  background-color: var(--color-accent-primary);
   border: 1px solid rgba(0,0,0,0.1);
   border-radius: 2px;
 }
