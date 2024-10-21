@@ -27,9 +27,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarQueryContext: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarProviderOpenTabs: "resource:///modules/UrlbarProviderOpenTabs.sys.mjs",
-  UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
-  UrlbarProviderActionsSearchMode:
-    "resource:///modules/UrlbarProviderActionsSearchMode.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
@@ -982,26 +979,6 @@ export class UrlbarInput {
       `pickElement ${element} with event ${event?.type}, result: ${result}`
     );
     if (!result) {
-      return;
-    }
-    if (
-      element?.dataset.action &&
-      element?.dataset.action != "tabswitch" &&
-      result.providerName != lazy.UrlbarProviderActionsSearchMode.name
-    ) {
-      this.controller.engagementEvent.record(event, {
-        result,
-        element,
-        searchString: this._lastSearchString,
-        selType: "action",
-        searchSource: this.getSearchSource(event),
-      });
-      this.view.close();
-      let provider = lazy.UrlbarProvidersManager.getActionProvider(
-        element.dataset.providerName
-      );
-      let { queryContext } = this.controller._lastQueryContextWrapper || {};
-      provider.pickAction(queryContext, this.controller, element);
       return;
     }
     this.pickResult(result, event, element);

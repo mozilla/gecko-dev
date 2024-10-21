@@ -15,7 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 // These prefs are relative to the `browser.urlbar` branch.
-const ENABLED_PREF = "quickactions.enabled";
+const ENABLED_PREF = "suggest.quickactions";
 const MATCH_IN_PHRASE_PREF = "quickactions.matchInPhrase";
 const MIN_SEARCH_PREF = "quickactions.minimumSearchString";
 
@@ -29,7 +29,7 @@ class ProviderQuickActions extends ActionsProvider {
 
   isActive(queryContext) {
     return (
-      lazy.UrlbarPrefs.getScotchBonnetPref(ENABLED_PREF) &&
+      lazy.UrlbarPrefs.get(ENABLED_PREF) &&
       !queryContext.searchMode &&
       queryContext.trimmedSearchString.length < 50 &&
       queryContext.trimmedSearchString.length >=
@@ -37,7 +37,7 @@ class ProviderQuickActions extends ActionsProvider {
     );
   }
 
-  async queryAction(queryContext) {
+  async queryActions(queryContext) {
     let input = queryContext.trimmedLowerCaseSearchString;
     let results = await this.getActions(input);
 
@@ -59,15 +59,18 @@ class ProviderQuickActions extends ActionsProvider {
       return null;
     }
 
-    let action = this.#actions.get(results[0]);
-    return new ActionsResult({
-      key: results[0],
-      l10nId: action.label,
-      icon: action.icon,
-      dataset: {
-        action: results[0],
-        inputLength: queryContext.trimmedSearchString.length,
-      },
+    return results.map(key => {
+      let action = this.#actions.get(key);
+      return new ActionsResult({
+        key,
+        l10nId: action.label,
+        icon: action.icon,
+        dataset: {
+          action: key,
+          inputLength: queryContext.trimmedSearchString.length,
+        },
+        onPick: action.onPick,
+      });
     });
   }
 

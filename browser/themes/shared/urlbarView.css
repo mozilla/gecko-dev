@@ -52,9 +52,8 @@
   --urlbarView-labeled-row-label-top: calc(-1.27em - 2px);
   --urlbarView-labeled-tip-margin-top-extra: 8px;
 
-  --urlbarView-action-button-background-color: light-dark(white, var(--color-gray-90));
-  --urlbarView-action-button-hover-color: light-dark(var(--color-gray-70), var(--color-gray-05));
-  --urlbarView-action-button-selected-color: light-dark(var(--color-gray-90), var(--urlbarView-action-button-background-color));
+  --urlbarView-action-button-background-color: color-mix(in srgb, var(--urlbarView-hover-background) 50%, transparent);
+  --urlbarView-action-button-hover-background-color: var(--urlbarView-hover-background);
 
   &:-moz-locale-dir(rtl) {
     --urlbarView-action-slide-in-distance: -200px;
@@ -962,14 +961,14 @@
 
 .urlbarView-action-btn {
   font-size: smaller;
-  color: var(--toolbar-field-focus-color);
+  font-weight: var(--font-weight-bold);
   border-radius: var(--toolbarbutton-border-radius);
   border: 1px solid transparent;
   padding: .4em .6em;
   display: inline-flex;
   align-items: center;
   background-color: var(--urlbarView-action-button-background-color);
-  box-shadow: 0 0px 4px rgba(0, 0, 0, 0.23);
+  margin-inline-end: var(--space-large);
 
   > img {
     width: 16px;
@@ -979,14 +978,12 @@
   }
 
   &:hover {
-    color: var(--urlbarView-result-button-hover-color);
-    background-color: var(--urlbarView-action-button-hover-color);
+    background-color: var(--urlbarView-action-button-hover-background-color);
   }
 
-  &[selected] {
-    color: light-dark(var(--urlbarView-result-button-hover-color), var(--toolbar-field-focus-color));
-    background-color: var(--urlbarView-action-button-selected-color);
-    border-color: light-dark(transparent, white);
+  &[selected],
+  &:hover:active {
+    outline: var(--focus-outline);
   }
 
   &.urlbarView-userContext {

@@ -12,6 +12,7 @@ import {
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   OpenSearchEngine: "resource://gre/modules/OpenSearchEngine.sys.mjs",
   loadAndParseOpenSearchEngine:
     "resource://gre/modules/OpenSearchLoader.sys.mjs",
@@ -43,7 +44,7 @@ class ProviderContextualSearch extends ActionsProvider {
     );
   }
 
-  async queryAction(queryContext, controller) {
+  async queryActions(queryContext) {
     let instance = this.queryInstance;
     const hostname = URL.parse(queryContext.currentPage)?.hostname;
 
@@ -52,7 +53,7 @@ class ProviderContextualSearch extends ActionsProvider {
       return null;
     }
 
-    let engine = await this.fetchEngine(controller);
+    let engine = await this.fetchEngine();
     let icon = engine?.icon || (await engine?.getIconURL?.());
     let defaultEngine = lazy.UrlbarSearchUtils.getDefaultEngine();
 
@@ -64,16 +65,22 @@ class ProviderContextualSearch extends ActionsProvider {
       return null;
     }
 
-    return new ActionsResult({
-      key: "contextual-search",
-      l10nId: "urlbar-result-search-with",
-      l10nArgs: { engine: engine.name || engine.title },
-      icon,
-    });
+    return [
+      new ActionsResult({
+        key: "contextual-search",
+        l10nId: "urlbar-result-search-with",
+        l10nArgs: { engine: engine.name || engine.title },
+        icon,
+        onPick: (context, controller) => {
+          this.pickAction(context, controller);
+        },
+      }),
+    ];
   }
 
-  async fetchEngine(controller) {
-    let browser = controller.browserWindow.gBrowser.selectedBrowser;
+  async fetchEngine() {
+    let browser =
+      lazy.BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser;
     let hostname = browser?.currentURI.host;
 
     if (this.engines.has(hostname)) {
@@ -90,8 +97,8 @@ class ProviderContextualSearch extends ActionsProvider {
     return engines[0] ?? browser?.engines?.[0];
   }
 
-  async pickAction(queryContext, controller, _element) {
-    let engine = await this.fetchEngine(controller);
+  async pickAction(queryContext, controller) {
+    let engine = await this.fetchEngine();
     let enterSeachMode = true;
 
     if (engine.uri && !queryContext.private) {

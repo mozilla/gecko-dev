@@ -30,6 +30,7 @@ Preferences.addAll([
   { id: "browser.urlbar.trending.featureGate", type: "bool" },
   { id: "browser.urlbar.recentsearches.featureGate", type: "bool" },
   { id: "browser.urlbar.suggest.recentsearches", type: "bool" },
+  { id: "browser.urlbar.scotchBonnet.enableOverride", type: "bool" },
 ]);
 
 const ENGINE_FLAVOR = "text/x-moz-search-engine";
@@ -446,8 +447,13 @@ var gSearchPane = {
 
   _initQuickActionsSection() {
     let showPref = Preferences.get("browser.urlbar.quickactions.showPrefs");
+    let scotchBonnet = Preferences.get(
+      "browser.urlbar.scotchBonnet.enableOverride"
+    );
     let showQuickActionsGroup = () => {
-      document.getElementById("quickActionsBox").hidden = !showPref.value;
+      document.getElementById("quickActionsBox").hidden = !(
+        showPref.value || scotchBonnet.value
+      );
     };
     showPref.on("change", showQuickActionsGroup);
     showQuickActionsGroup();

@@ -33,6 +33,8 @@ var localProviderModules = {
     "resource:///modules/UrlbarProviderAboutPages.sys.mjs",
   UrlbarProviderActionsSearchMode:
     "resource:///modules/UrlbarProviderActionsSearchMode.sys.mjs",
+  UrlbarProviderGlobalActions:
+    "resource:///modules/UrlbarProviderGlobalActions.sys.mjs",
   UrlbarProviderAliasEngines:
     "resource:///modules/UrlbarProviderAliasEngines.sys.mjs",
   UrlbarProviderAutofill: "resource:///modules/UrlbarProviderAutofill.sys.mjs",
@@ -85,14 +87,6 @@ var localMuxerModules = {
   UrlbarMuxerUnifiedComplete:
     "resource:///modules/UrlbarMuxerUnifiedComplete.sys.mjs",
 };
-
-import { ActionsProviderQuickActions } from "resource:///modules/ActionsProviderQuickActions.sys.mjs";
-import { ActionsProviderContextualSearch } from "resource:///modules/ActionsProviderContextualSearch.sys.mjs";
-
-let globalActionsProviders = [
-  ActionsProviderContextualSearch,
-  ActionsProviderQuickActions,
-];
 
 const DEFAULT_MUXER = "UnifiedComplete";
 
@@ -208,17 +202,6 @@ class ProvidersManager {
   }
 
   /**
-   * Returns the provider with the given name.
-   *
-   * @param {string} name
-   *   The provider name.
-   * @returns {UrlbarProvider} The provider.
-   */
-  getActionProvider(name) {
-    return globalActionsProviders.find(p => p.name == name);
-  }
-
-  /**
    * Registers a muxer object with the manager.
    *
    * @param {object} muxer
@@ -323,14 +306,6 @@ class ProvidersManager {
       // We continue anyway, because we want the user to be able to search their
       // history and bookmarks even if search engines are not available.
     }
-
-    // All current global actions are currently memory lookups so it is safe to
-    // wait on them.
-    this.#globalAction = lazy.UrlbarPrefs.getScotchBonnetPref(
-      "secondaryActions.featureGate"
-    )
-      ? await this.pickGlobalAction(queryContext, controller)
-      : null;
 
     if (query.canceled) {
       return;
@@ -510,25 +485,6 @@ class ProvidersManager {
         details
       );
     }
-  }
-
-  #globalAction = null;
-
-  async pickGlobalAction(queryContext, controller) {
-    for (let provider of globalActionsProviders) {
-      if (provider.isActive(queryContext)) {
-        let action = await provider.queryAction(queryContext, controller);
-        if (action) {
-          action.providerName = provider.name;
-          return action;
-        }
-      }
-    }
-    return null;
-  }
-
-  getGlobalAction() {
-    return this.#globalAction;
   }
 }
 

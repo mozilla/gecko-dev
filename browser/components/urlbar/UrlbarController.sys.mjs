@@ -1046,6 +1046,7 @@ class TelemetryEvent {
       .join(",");
     let actions = currentResults
       .map((r, i) => lazy.UrlbarUtils.searchEngagementTelemetryAction(r, i))
+      .filter(v => v)
       .join(",");
     const search_engine_default_id = Services.search.defaultEngine.telemetryId;
 

@@ -33,7 +33,7 @@ add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["browser.urlbar.quickactions.enabled", true],
-      ["browser.urlbar.secondaryActions.featureGate", true],
+      ["browser.urlbar.scotchBonnet.enableOverride", true],
     ],
   });
 
@@ -238,14 +238,14 @@ add_task(async function test_whitespace() {
     value: "",
   });
   const countForEmpty = window.document.querySelectorAll(
-    ".urlbarView-quickaction-button"
+    ".urlbarView-action-btn"
   ).length;
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: " ",
   });
   const countForWhitespace = window.document.querySelectorAll(
-    ".urlbarView-quickaction-button"
+    ".urlbarView-action-btn"
   ).length;
   Assert.equal(
     countForEmpty,

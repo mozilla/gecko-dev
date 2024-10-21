@@ -15,6 +15,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   UrlbarProviderOpenTabs: "resource:///modules/UrlbarProviderOpenTabs.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
+  UrlbarProviderGlobalActions:
+    "resource:///modules/UrlbarProviderGlobalActions.sys.mjs",
   UrlbarProviderQuickSuggest:
     "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
   UrlbarProviderRecentSearches:
@@ -341,10 +343,18 @@ export class UrlbarView {
         }
         return;
       }
-      this.selectedRowIndex = Math.max(
-        0,
-        Math.min(end, selectedRowIndex + amount * (reverse ? -1 : 1))
-      );
+
+      let index = Math.min(end, selectedRowIndex + amount * (reverse ? -1 : 1));
+      // When navigating with arrow keys we skip rows that contain
+      // global actions.
+      if (
+        this.#rows.children[index]?.result.providerName ==
+          lazy.UrlbarProviderGlobalActions.name &&
+        this.#rows.children.length > 2
+      ) {
+        index = index + (reverse ? -1 : 1);
+      }
+      this.selectedRowIndex = Math.max(0, index);
       return;
     }
 
@@ -1780,10 +1790,7 @@ export class UrlbarView {
     item._content.id = item.id + "-inner";
 
     let isFirstChild = item === this.#rows.children[0];
-    let secAction =
-      result.heuristic || isFirstChild
-        ? lazy.UrlbarProvidersManager.getGlobalAction()
-        : result.payload.action;
+    let secAction = result.payload.action;
     let container = item.querySelector(".urlbarView-actions-container");
     if (secAction && !container) {
       item.appendChild(this.#createSecondaryAction(secAction, isFirstChild));

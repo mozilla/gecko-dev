@@ -243,6 +243,7 @@ urlbar:
         description: >
           The type of the result the user selected. The `unknown` type should
           not occur and indicates a bug. The possible types are:
+          `action`,
           `addon`,
           `autofill_about`,
           `autofill_adaptive`,
@@ -369,6 +370,7 @@ urlbar:
           Comma separated list of result types in the order they were shown to
           the user. The `unknown` type should not occur and indicates a bug. The
           possible types are:
+          `action`,
           `addon`,
           `autofill_about`,
           `autofill_adaptive`,

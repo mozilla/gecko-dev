@@ -13,10 +13,7 @@ ChromeUtils.defineESModuleGetters(this, {
 
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.secondaryActions.featureGate", true],
-      ["browser.urlbar.quickactions.enabled", true],
-    ],
+    set: [["browser.urlbar.secondaryActions.featureGate", true]],
   });
 
   ActionsProviderQuickActions.addAction("testaction", {

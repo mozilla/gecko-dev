@@ -1508,6 +1508,8 @@ export var UrlbarUtils = {
             return "fxsuggest_data_sharing_opt_in";
           case "Weather":
             return "weather";
+          case "UrlbarProviderGlobalActions":
+            return "action";
         }
         break;
       case UrlbarUtils.RESULT_TYPE.KEYWORD:
@@ -1605,13 +1607,11 @@ export var UrlbarUtils = {
     return "unknown";
   },
 
-  searchEngagementTelemetryAction(result, index) {
-    let action =
-      index == 0
-        ? lazy.UrlbarProvidersManager.getGlobalAction()
-        : result.payload.action;
-
-    return action?.key ?? "none";
+  searchEngagementTelemetryAction(result) {
+    if (result.providerName != "UrlbarProviderGlobalActions") {
+      return result.payload.action?.key ?? "none";
+    }
+    return result.payload.results.map(({ key }) => key).join(",");
   },
 
   _getQuickSuggestTelemetryType(result) {
