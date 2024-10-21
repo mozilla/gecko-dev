@@ -209,8 +209,7 @@ class SharedStringBundle final : public nsStringBundleBase {
    * called in child processes, for bundles initially created in the parent
    * process.
    */
-  void SetMapFile(const mozilla::ipc::SharedMemoryHandle& aHandle,
-                  size_t aSize);
+  void SetMapFile(const FileDescriptor& aFile, size_t aSize);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECLARE_STATIC_IID_ACCESSOR(SHAREDSTRINGBUNDLE_IID)
@@ -223,16 +222,16 @@ class SharedStringBundle final : public nsStringBundleBase {
    * parent process, and may be used to send shared string bundles to child
    * processes.
    */
-  mozilla::ipc::SharedMemoryHandle CloneHandle() const {
+  FileDescriptor CloneFileDescriptor() const {
     MOZ_ASSERT(XRE_IsParentProcess());
-    if (mMapHandle.isSome()) {
-      return mozilla::ipc::SharedMemory::CloneHandle(mMapHandle.ref());
+    if (mMapFile.isSome()) {
+      return mMapFile.ref();
     }
-    return mStringMap->CloneHandle();
+    return mStringMap->CloneFileDescriptor();
   }
 
   size_t MapSize() const {
-    if (mMapHandle.isSome()) {
+    if (mMapFile.isSome()) {
       return mMapSize;
     }
     if (mStringMap) {
@@ -241,14 +240,14 @@ class SharedStringBundle final : public nsStringBundleBase {
     return 0;
   }
 
-  bool Initialized() const { return mStringMap || mMapHandle.isSome(); }
+  bool Initialized() const { return mStringMap || mMapFile.isSome(); }
 
   StringBundleDescriptor GetDescriptor() const {
     MOZ_ASSERT(Initialized());
 
     StringBundleDescriptor descriptor;
     descriptor.bundleURL() = BundleURL();
-    descriptor.mapHandle() = CloneHandle();
+    descriptor.mapFile() = CloneFileDescriptor();
     descriptor.mapSize() = MapSize();
     return descriptor;
   }
@@ -274,7 +273,7 @@ class SharedStringBundle final : public nsStringBundleBase {
  private:
   RefPtr<SharedStringMap> mStringMap;
 
-  Maybe<mozilla::ipc::SharedMemoryHandle> mMapHandle;
+  Maybe<FileDescriptor> mMapFile;
   size_t mMapSize;
 };
 
@@ -522,9 +521,9 @@ nsresult nsStringBundle::LoadProperties() {
 nsresult SharedStringBundle::LoadProperties() {
   if (mStringMap) return NS_OK;
 
-  if (mMapHandle.isSome()) {
-    mStringMap = new SharedStringMap(mMapHandle.ref(), mMapSize);
-    mMapHandle.reset();
+  if (mMapFile.isSome()) {
+    mStringMap = new SharedStringMap(mMapFile.ref(), mMapSize);
+    mMapFile.reset();
     return NS_OK;
   }
 
@@ -577,11 +576,10 @@ nsresult SharedStringBundle::LoadProperties() {
   return NS_OK;
 }
 
-void SharedStringBundle::SetMapFile(
-    const mozilla::ipc::SharedMemoryHandle& aHandle, size_t aSize) {
+void SharedStringBundle::SetMapFile(const FileDescriptor& aFile, size_t aSize) {
   MOZ_ASSERT(XRE_IsContentProcess());
   mStringMap = nullptr;
-  mMapHandle.emplace(mozilla::ipc::SharedMemory::CloneHandle(aHandle));
+  mMapFile.emplace(aFile);
   mMapSize = aSize;
 }
 
@@ -829,8 +827,8 @@ void nsStringBundleService::SendContentBundles(ContentParent* aContentParent) {
 }
 
 void nsStringBundleService::RegisterContentBundle(
-    const nsACString& aBundleURL,
-    const mozilla::ipc::SharedMemoryHandle& aMapHandle, size_t aMapSize) {
+    const nsACString& aBundleURL, const FileDescriptor& aMapFile,
+    size_t aMapSize) {
   RefPtr<StringBundleProxy> proxy;
 
   bundleCacheEntry_t* cacheEntry = mBundleMap.Get(aBundleURL);
@@ -848,7 +846,7 @@ void nsStringBundleService::RegisterContentBundle(
 
   auto bundle = MakeBundleRefPtr<SharedStringBundle>(
       PromiseFlatCString(aBundleURL).get());
-  bundle->SetMapFile(aMapHandle, aMapSize);
+  bundle->SetMapFile(aMapFile, aMapSize);
 
   if (proxy) {
     proxy->Retarget(bundle);

@@ -17,7 +17,7 @@
 
 namespace mozilla::ipc {
 
-RefPtr<SharedMemory> IdleSchedulerParent::sActiveChildCounter = nullptr;
+base::SharedMemory* IdleSchedulerParent::sActiveChildCounter = nullptr;
 std::bitset<NS_IDLE_SCHEDULER_COUNTER_ARRAY_LENGHT>
     IdleSchedulerParent::sInUseChildCounters;
 LinkedList<IdleSchedulerParent> IdleSchedulerParent::sIdleAndGCRequests;
@@ -107,9 +107,9 @@ void IdleSchedulerParent::CalculateNumIdleTasks() {
       std::min(std::max(sNumCPUs / sPrefConcurrentGCsCPUDivisor, 1u),
                sPrefConcurrentGCsMax);
 
-  if (sActiveChildCounter && sActiveChildCounter->Memory()) {
+  if (sActiveChildCounter && sActiveChildCounter->memory()) {
     static_cast<Atomic<int32_t>*>(
-        sActiveChildCounter->Memory())[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER] =
+        sActiveChildCounter->memory())[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER] =
         static_cast<int32_t>(sMaxConcurrentIdleTasksInChildProcesses);
   }
   IdleSchedulerParent::Schedule(nullptr);
@@ -120,13 +120,13 @@ IdleSchedulerParent::~IdleSchedulerParent() {
   // that is the case.
   if (mChildId) {
     sInUseChildCounters[mChildId] = false;
-    if (sActiveChildCounter && sActiveChildCounter->Memory() &&
+    if (sActiveChildCounter && sActiveChildCounter->memory() &&
         static_cast<Atomic<int32_t>*>(
-            sActiveChildCounter->Memory())[mChildId]) {
+            sActiveChildCounter->memory())[mChildId]) {
       --static_cast<Atomic<int32_t>*>(
           sActiveChildCounter
-              ->Memory())[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER];
-      static_cast<Atomic<int32_t>*>(sActiveChildCounter->Memory())[mChildId] =
+              ->memory())[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER];
+      static_cast<Atomic<int32_t>*>(sActiveChildCounter->memory())[mChildId] =
           0;
     }
   }
@@ -154,6 +154,7 @@ IdleSchedulerParent::~IdleSchedulerParent() {
   sChildProcessesAlive--;
   if (sChildProcessesAlive == 0) {
     MOZ_ASSERT(sIdleAndGCRequests.isEmpty());
+    delete sActiveChildCounter;
     sActiveChildCounter = nullptr;
 
     if (sStarvationPreventer) {
@@ -177,23 +178,24 @@ IPCResult IdleSchedulerParent::RecvInitForIdleUse(
   // Create a shared memory object which is shared across all the relevant
   // processes.
   if (!sActiveChildCounter) {
-    sActiveChildCounter = MakeRefPtr<SharedMemory>();
+    sActiveChildCounter = new base::SharedMemory();
     size_t shmemSize = NS_IDLE_SCHEDULER_COUNTER_ARRAY_LENGHT * sizeof(int32_t);
     if (sActiveChildCounter->Create(shmemSize) &&
         sActiveChildCounter->Map(shmemSize)) {
-      memset(sActiveChildCounter->Memory(), 0, shmemSize);
+      memset(sActiveChildCounter->memory(), 0, shmemSize);
       sInUseChildCounters[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER] = true;
       sInUseChildCounters[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER] = true;
       static_cast<Atomic<int32_t>*>(
           sActiveChildCounter
-              ->Memory())[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER] =
+              ->memory())[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER] =
           static_cast<int32_t>(sMaxConcurrentIdleTasksInChildProcesses);
     } else {
+      delete sActiveChildCounter;
       sActiveChildCounter = nullptr;
     }
   }
-  Maybe<SharedMemory::Handle> activeCounter;
-  if (SharedMemory::Handle handle =
+  Maybe<SharedMemoryHandle> activeCounter;
+  if (SharedMemoryHandle handle =
           sActiveChildCounter ? sActiveChildCounter->CloneHandle() : nullptr) {
     activeCounter.emplace(std::move(handle));
   }
@@ -210,7 +212,7 @@ IPCResult IdleSchedulerParent::RecvInitForIdleUse(
   // If there wasn't an empty item, we'll fallback to 0.
   mChildId = unusedId;
 
-  aResolve(std::tuple<mozilla::Maybe<SharedMemory::Handle>&&, const uint32_t&>(
+  aResolve(std::tuple<mozilla::Maybe<SharedMemoryHandle>&&, const uint32_t&>(
       std::move(activeCounter), mChildId));
   return IPC_OK();
 }
@@ -320,7 +322,7 @@ int32_t IdleSchedulerParent::ActiveCount() {
   if (sActiveChildCounter) {
     return (static_cast<Atomic<int32_t>*>(
         sActiveChildCounter
-            ->Memory())[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER]);
+            ->memory())[NS_IDLE_SCHEDULER_INDEX_OF_ACTIVITY_COUNTER]);
   }
   return 0;
 }

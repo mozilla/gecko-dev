@@ -3833,7 +3833,7 @@ void Preferences::DeserializePreferences(char* aStr, size_t aPrefsLen) {
 }
 
 /* static */
-mozilla::ipc::SharedMemoryHandle Preferences::EnsureSnapshot(size_t* aSize) {
+FileDescriptor Preferences::EnsureSnapshot(size_t* aSize) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -3883,12 +3883,11 @@ mozilla::ipc::SharedMemoryHandle Preferences::EnsureSnapshot(size_t* aSize) {
   }
 
   *aSize = gSharedMap->MapSize();
-  return gSharedMap->CloneHandle();
+  return gSharedMap->CloneFileDescriptor();
 }
 
 /* static */
-void Preferences::InitSnapshot(const mozilla::ipc::SharedMemoryHandle& aHandle,
-                               size_t aSize) {
+void Preferences::InitSnapshot(const FileDescriptor& aHandle, size_t aSize) {
   MOZ_ASSERT(!XRE_IsParentProcess());
   MOZ_ASSERT(!gSharedMap);
 

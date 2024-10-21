@@ -8,6 +8,7 @@
 #include "SandboxInfo.h"
 #include "SandboxLogging.h"
 
+#include "base/shared_memory.h"
 #include "mozilla/Array.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Omnijar.h"
@@ -18,7 +19,6 @@
 #include "mozilla/StaticMutex.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
-#include "mozilla/ipc/SharedMemory.h"
 #include "nsComponentManagerUtils.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -323,7 +323,7 @@ static void AddLdLibraryEnvPaths(SandboxBroker::Policy* aPolicy) {
 
 static void AddSharedMemoryPaths(SandboxBroker::Policy* aPolicy, pid_t aPid) {
   std::string shmPath("/dev/shm");
-  if (ipc::SharedMemory::AppendPosixShmPrefix(&shmPath, aPid)) {
+  if (base::SharedMemory::AppendPosixShmPrefix(&shmPath, aPid)) {
     aPolicy->AddPrefix(rdwrcr, shmPath.c_str());
   }
 }

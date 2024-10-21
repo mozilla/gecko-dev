@@ -120,7 +120,7 @@ class ContentChild final : public PContentChild,
                  const mozilla::dom::ipc::StructuredCloneData& aInitialData,
                  bool aIsReadyForBackgroundProcessing);
 
-  void InitSharedUASheets(Maybe<SharedMemoryHandle>&& aHandle,
+  void InitSharedUASheets(Maybe<base::SharedMemoryHandle>&& aHandle,
                           uintptr_t aAddress);
 
   void InitGraphicsDeviceData(const ContentDeviceData& aData);
@@ -314,7 +314,7 @@ class ContentChild final : public PContentChild,
       nsTArray<L10nFileSourceDescriptor>&& aDescriptors);
 
   mozilla::ipc::IPCResult RecvUpdateSharedData(
-      SharedMemoryHandle&& aMapHandle, const uint32_t& aMapSize,
+      const FileDescriptor& aMapFile, const uint32_t& aMapSize,
       nsTArray<IPCBlob>&& aBlobs, nsTArray<nsCString>&& aChangedKeys);
 
   mozilla::ipc::IPCResult RecvFontListChanged();
@@ -334,7 +334,7 @@ class ContentChild final : public PContentChild,
   mozilla::ipc::IPCResult RecvRebuildFontList(const bool& aFullRebuild);
   mozilla::ipc::IPCResult RecvFontListShmBlockAdded(
       const uint32_t& aGeneration, const uint32_t& aIndex,
-      SharedMemoryHandle&& aHandle);
+      base::SharedMemoryHandle&& aHandle);
 
   mozilla::ipc::IPCResult RecvUpdateAppLocales(
       nsTArray<nsCString>&& aAppLocales);
@@ -510,9 +510,9 @@ class ContentChild final : public PContentChild,
   mozilla::ipc::IPCResult RecvSetXPCOMProcessAttributes(
       XPCOMInitData&& aXPCOMInit, const StructuredCloneData& aInitialData,
       FullLookAndFeel&& aLookAndFeelData, SystemFontList&& aFontList,
-      Maybe<SharedMemoryHandle>&& aSharedUASheetHandle,
+      Maybe<base::SharedMemoryHandle>&& aSharedUASheetHandle,
       const uintptr_t& aSharedUASheetAddress,
-      nsTArray<SharedMemoryHandle>&& aSharedFontListBlocks,
+      nsTArray<base::SharedMemoryHandle>&& aSharedFontListBlocks,
       const bool& aIsReadyForBackgroundProcessing);
 
   mozilla::ipc::IPCResult RecvProvideAnonymousTemporaryFile(
@@ -542,7 +542,7 @@ class ContentChild final : public PContentChild,
   // for use during gfx initialization.
   SystemFontList& SystemFontList() { return mFontList; }
 
-  nsTArray<SharedMemoryHandle>& SharedFontListBlocks() {
+  nsTArray<base::SharedMemoryHandle>& SharedFontListBlocks() {
     return mSharedFontListBlocks;
   }
 
@@ -831,7 +831,7 @@ class ContentChild final : public PContentChild,
   // Temporary storage for look and feel data.
   FullLookAndFeel mLookAndFeelData;
   // Temporary storage for list of shared-fontlist memory blocks.
-  nsTArray<SharedMemoryHandle> mSharedFontListBlocks;
+  nsTArray<base::SharedMemoryHandle> mSharedFontListBlocks;
 
   AppInfo mAppInfo;
 
