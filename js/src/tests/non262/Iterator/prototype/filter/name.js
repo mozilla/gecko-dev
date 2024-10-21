@@ -1,7 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
 /*---
 esid: pending
-description: %Iterator.prototype%.filter.name value and descriptor.
+description: "%Iterator.prototype%.filter.name value and descriptor."
 info: >
   17 ECMAScript Standard Built-in Objects
 features: [iterator-helpers]

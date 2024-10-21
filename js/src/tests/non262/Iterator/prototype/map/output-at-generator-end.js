@@ -1,9 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-//
-
 /*---
 esid: pending
-description: %Iterator.prototype%.map outputs correct value at end of iterator.
+description: "%Iterator.prototype%.map outputs correct value at end of iterator."
 info:
 features: [iterator-helpers]
 ---*/

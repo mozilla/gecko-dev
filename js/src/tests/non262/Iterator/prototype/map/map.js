@@ -2,7 +2,7 @@
 
 /*---
 esid: pending
-description: %Iterator.prototype%.map value and descriptor.
+description: "%Iterator.prototype%.map value and descriptor."
 info: >
   17 ECMAScript Standard Built-in Objects
 features: [iterator-helpers]

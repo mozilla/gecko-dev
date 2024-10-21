@@ -1,9 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-//
-
 /*---
 esid: pending
-description: %Iterator.prototype%.map calls return when yield throws.
+description: "%Iterator.prototype%.map calls return when yield throws."
 info: >
 features: [iterator-helpers]
 ---*/

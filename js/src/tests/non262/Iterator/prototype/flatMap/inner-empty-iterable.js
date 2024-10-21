@@ -1,10 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-
-//
-//
 /*---
 esid: pending
-description: %Iterator.prototype%.flatMap skips empty inner iterables.
+description: "%Iterator.prototype%.flatMap skips empty inner iterables."
 info: >
   Iterator Helpers proposal 2.1.5.7
   1. Repeat,

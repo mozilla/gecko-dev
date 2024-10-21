@@ -4,7 +4,7 @@
 //
 /*---
 esid: pending
-description: %Iterator.prototype%.take returns if the iterator is done.
+description: "%Iterator.prototype%.take returns if the iterator is done."
 info: >
   Iterator Helpers proposal 2.1.5.4
   2. Repeat,

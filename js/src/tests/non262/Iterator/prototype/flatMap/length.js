@@ -1,9 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-//
-
 /*---
 esid: pending
-description: %Iterator.prototype%.flatMap length value and descriptor.
+description: "%Iterator.prototype%.flatMap length value and descriptor."
 info: >
   17 ECMAScript Standard Built-in Objects
 includes: [propertyHelper.js]

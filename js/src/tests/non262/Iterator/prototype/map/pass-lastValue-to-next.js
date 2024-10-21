@@ -1,9 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-//
-
 /*---
 esid: pending
-description: %Iterator.prototype%.map passes lastValue to the `next` call.
+description: "%Iterator.prototype%.map passes lastValue to the `next` call."
 info: >
   Iterator Helpers Proposal 2.1.5.2
 features: [iterator-helpers]

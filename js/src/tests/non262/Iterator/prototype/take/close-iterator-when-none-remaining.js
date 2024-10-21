@@ -4,7 +4,7 @@
 //
 /*---
 esid: pending
-description: %Iterator.prototype%.take closes the iterator when remaining is 0.
+description: "%Iterator.prototype%.take closes the iterator when remaining is 0."
 info: >
   Iterator Helpers proposal 2.1.5.4
 features: [iterator-helpers]

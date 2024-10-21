@@ -1,10 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-
-//
-//
 /*---
 esid: pending
-description: %Iterator.prototype%.flatMap innerIterator can be a generator.
+description: "%Iterator.prototype%.flatMap innerIterator can be a generator."
 info: >
   Iterator Helpers proposal 2.1.5.7
 features: [iterator-helpers]

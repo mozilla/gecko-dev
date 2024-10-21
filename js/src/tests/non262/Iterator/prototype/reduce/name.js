@@ -1,6 +1,6 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator')) -- Iterator is not enabled unconditionally
 /*---
-  `name` property of Iterator.prototype.reduce.
+description: "`name` property of Iterator.prototype.reduce."
 ---*/
 
 const propDesc = Reflect.getOwnPropertyDescriptor(Iterator.prototype.reduce, 'name');

@@ -1,10 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-
-//
-//
 /*---
 esid: pending
-description: %Iterator.prototype%.flatMap closes the iterator when innerComplete throws.
+description: "%Iterator.prototype%.flatMap closes the iterator when innerComplete throws."
 info: >
   Iterator Helpers proposal 2.1.5.7
   1. Repeat,

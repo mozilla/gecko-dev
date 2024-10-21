@@ -1,11 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator')) -- Iterator is not enabled unconditionally
-//
-//
-
 /*---
 esid: pending
-description: %Iterator.prototype%.map works even if the global Symbol has been clobbered..
-info: 
+description: "%Iterator.prototype%.map works even if the global Symbol has been clobbered.."
 features: [iterator-helpers, Symbol, Symbol.iterator]
 ---*/
 

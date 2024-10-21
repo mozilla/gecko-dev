@@ -4,7 +4,6 @@
 /*---
 esid: pending
 description: Lazy %Iterator.prototype% methods access specified properties only.
-info: >
 features: [iterator-helpers]
 ---*/
 

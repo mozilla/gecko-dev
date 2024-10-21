@@ -1,9 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-//
-
 /*---
 esid: pending
-description: %Iterator.prototype%.map accesses specified properties only.
+description: "%Iterator.prototype%.map accesses specified properties only."
 info: >
 features: [iterator-helpers]
 ---*/

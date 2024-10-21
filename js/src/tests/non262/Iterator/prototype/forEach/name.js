@@ -1,6 +1,6 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator')) -- Iterator is not enabled unconditionally
 /*---
-  `name` property of Iterator.prototype.forEach.
+description: "`name` property of Iterator.prototype.forEach."
 ---*/
 
 const propDesc = Reflect.getOwnPropertyDescriptor(Iterator.prototype.forEach, 'name');

@@ -1,9 +1,7 @@
 // |reftest| skip-if(!this.hasOwnProperty('Iterator'))
-//
-
 /*---
 esid: pending
-description: %Iterator.prototype%.map does not call return when IteratorValue returns an abrupt completion.
+description: "%Iterator.prototype%.map does not call return when IteratorValue returns an abrupt completion."
 info: >
 features: [iterator-helpers]
 ---*/
