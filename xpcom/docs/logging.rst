@@ -443,6 +443,12 @@ A basic interface is provided in the form of 2 macros and an enum class.
 |                                        | *   message: A printf-style message to output. Must be enclosed in         |
 |                                        |     parentheses.                                                           |
 +----------------------------------------+----------------------------------------------------------------------------+
+| MOZ_LOG_FMT(module, level, message)    | Outputs the given message if the module has the given log level enabled:   |
+|                                        |                                                                            |
+|                                        | *   module: The log module to use.                                         |
+|                                        | *   level: The log level of the message.                                   |
+|                                        | *   message: An {fmt} style message to output.                             |
++----------------------------------------+----------------------------------------------------------------------------+
 | MOZ_LOG_TEST(module, level)            | Checks if the module has the given level enabled:                          |
 |                                        |                                                                            |
 |                                        | *    module: The log module to use.                                        |
