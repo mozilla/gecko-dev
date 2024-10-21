@@ -8,3 +8,4 @@ Application Update
    BackgroundUpdates
    MaintenanceServiceTests
    SettingUpAnUpdateServer
+   InAppUpdateProcess
