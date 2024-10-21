@@ -1706,6 +1706,9 @@ void Loader::AddPerformanceEntryForCachedSheet(SheetLoadData& aLoadData) {
   if (!aLoadData.mNetworkMetadata) {
     return;
   }
+  if (!mDocument) {
+    return;
+  }
 
   nsAutoCString name;
   aLoadData.mURI->GetSpec(name);

@@ -31,6 +31,8 @@ void AddPerformanceEntryForCache(
     const nsString& aEntryName, const nsString& aInitiatorType,
     const SubResourceNetworkMetadataHolder* aNetworkMetadata,
     TimeStamp aStartTime, TimeStamp aEndTime, dom::Document* aDocument) {
+  MOZ_ASSERT(aDocument);
+
   if (!aNetworkMetadata || !aNetworkMetadata->GetPerfData()) {
     return;
   }
