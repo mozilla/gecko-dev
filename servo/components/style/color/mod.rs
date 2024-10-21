@@ -170,6 +170,7 @@ impl ColorSpace {
 
 /// Flags used when serializing colors.
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq, ToShmem)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[repr(C)]
 pub struct ColorFlags(u8);
 bitflags! {

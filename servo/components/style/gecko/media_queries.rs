@@ -17,7 +17,7 @@ use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
 use crate::values::computed::font::GenericFontFamily;
 use crate::values::computed::{ColorScheme, Length, NonNegativeLength};
-use crate::values::specified::color::{SystemColor, ColorSchemeFlags};
+use crate::values::specified::color::{ColorSchemeFlags, ForcedColors, SystemColor};
 use crate::values::specified::font::{FONT_MEDIUM_LINE_HEIGHT_PX, FONT_MEDIUM_PX};
 use crate::values::specified::ViewportVariant;
 use crate::values::{CustomIdent, KeyframesName};
@@ -28,8 +28,6 @@ use servo_arc::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 use std::{cmp, fmt};
 use style_traits::{CSSPixel, DevicePixel};
-
-use super::media_features::ForcedColors;
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
 /// and contains all the viewport rule state.

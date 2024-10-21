@@ -7,10 +7,10 @@
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::media_queries::{Device, MediaType};
-use crate::parser::ParserContext;
 use crate::queries::feature::{AllowsRanges, Evaluator, FeatureFlags, QueryFeatureDescription};
 use crate::queries::values::Orientation;
 use crate::values::computed::{CSSPixelLength, Context, Ratio, Resolution};
+use crate::values::specified::color::ForcedColors;
 use crate::values::AtomString;
 use app_units::Au;
 use euclid::default::Size2D;
@@ -271,27 +271,6 @@ fn eval_prefers_contrast(context: &Context, query_value: Option<PrefersContrast>
     match query_value {
         Some(v) => v == prefers_contrast,
         None => prefers_contrast != PrefersContrast::NoPreference,
-    }
-}
-
-/// Possible values for the forced-colors media query.
-/// https://drafts.csswg.org/mediaqueries-5/#forced-colors
-#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
-#[repr(u8)]
-pub enum ForcedColors {
-    /// Page colors are not being forced.
-    None,
-    /// Page colors would be forced in content.
-    #[parse(condition = "ParserContext::chrome_rules_enabled")]
-    Requested,
-    /// Page colors are being forced.
-    Active,
-}
-
-impl ForcedColors {
-    /// Returns whether forced-colors is active for this page.
-    pub fn is_active(self) -> bool {
-        matches!(self, Self::Active)
     }
 }
 

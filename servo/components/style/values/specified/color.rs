@@ -1113,3 +1113,24 @@ pub enum ForcedColorAdjust {
     /// Respect specified colors.
     None,
 }
+
+/// Possible values for the forced-colors media query.
+/// <https://drafts.csswg.org/mediaqueries-5/#forced-colors>
+#[derive(Clone, Copy, Debug, FromPrimitive, Parse, PartialEq, ToCss)]
+#[repr(u8)]
+pub enum ForcedColors {
+    /// Page colors are not being forced.
+    None,
+    /// Page colors would be forced in content.
+    #[parse(condition = "ParserContext::chrome_rules_enabled")]
+    Requested,
+    /// Page colors are being forced.
+    Active,
+}
+
+impl ForcedColors {
+    /// Returns whether forced-colors is active for this page.
+    pub fn is_active(self) -> bool {
+        matches!(self, Self::Active)
+    }
+}
