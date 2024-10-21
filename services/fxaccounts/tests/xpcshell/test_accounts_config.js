@@ -6,6 +6,9 @@
 const { FxAccounts } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccounts.sys.mjs"
 );
+const { CLIENT_IS_THUNDERBIRD } = ChromeUtils.importESModule(
+  "resource://gre/modules/FxAccountsCommon.sys.mjs"
+);
 
 add_task(
   async function test_non_https_remote_server_uri_with_requireHttps_false() {
@@ -28,7 +31,10 @@ add_task(
     Assert.equal(url.searchParams.get("service"), "sync");
     Assert.equal(url.searchParams.get("entrypoint"), "test");
     Assert.equal(url.searchParams.get("action"), "email");
-    Assert.equal(url.searchParams.get("client_id"), "5882386c6d801776");
+    Assert.equal(
+      url.searchParams.get("client_id"),
+      CLIENT_IS_THUNDERBIRD ? "8269bacd7bbc7f80" : "5882386c6d801776"
+    );
     Assert.equal(url.searchParams.get("response_type"), "code");
 
     Services.prefs.clearUserPref("identity.fxaccounts.remote.root");
@@ -72,6 +78,11 @@ add_task(async function test_is_production_config() {
 
 add_task(async function test_promise_account_service_param() {
   ensureOauthNotConfigured();
+  Services.prefs.setStringPref("identity.fxaccounts.autoconfig.uri", "");
+  Services.prefs.setStringPref(
+    "identity.fxaccounts.remote.root",
+    "https://accounts.firefox.com/"
+  );
   Assert.equal(
     await FxAccounts.config.promiseConnectAccountURI("test", {
       service: "custom-service",
@@ -85,7 +96,10 @@ add_task(async function test_promise_account_service_param() {
     })
   );
   Assert.equal(url.searchParams.get("context"), "oauth_webchannel_v1");
-  Assert.equal(url.searchParams.get("client_id"), "5882386c6d801776");
+  Assert.equal(
+    url.searchParams.get("client_id"),
+    CLIENT_IS_THUNDERBIRD ? "8269bacd7bbc7f80" : "5882386c6d801776"
+  );
   Assert.equal(url.searchParams.get("service"), "custom-service");
   resetOauthConfig();
 });
