@@ -244,6 +244,7 @@ class CertVerifier {
   ~CertVerifier();
 
   void ClearOCSPCache() { mOCSPCache.Clear(); }
+  void ClearTrustCache() { trust_cache_clear(mTrustCache.get()); }
 
   const OcspDownloadConfig mOCSPDownloadConfig;
   const bool mOCSPStrict;
@@ -274,6 +275,9 @@ class CertVerifier {
   // This will also be beneficial in situations where different sites use
   // different certificates that happen to be issued by the same intermediate.
   UniquePtr<SignatureCache, decltype(&signature_cache_free)> mSignatureCache;
+  // Similarly, this caches the results of looking up the trust of a
+  // certificate in NSS, which is slow.
+  UniquePtr<TrustCache, decltype(&trust_cache_free)> mTrustCache;
 
   void LoadKnownCTLogs();
   mozilla::pkix::Result VerifyCertificateTransparencyPolicy(

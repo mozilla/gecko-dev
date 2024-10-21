@@ -190,11 +190,25 @@ SECStatus ChangeCertTrustWithPossibleAuthentication(
     PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
     return SECFailure;
   }
+
+  RefPtr<SharedCertVerifier> certVerifier(GetDefaultCertVerifier());
+  if (!certVerifier) {
+    PR_SetError(SEC_ERROR_LIBRARY_FAILURE, 0);
+    return SECFailure;
+  }
+
   // NSS ignores the first argument to CERT_ChangeCertTrust
   SECStatus srv = CERT_ChangeCertTrust(nullptr, cert.get(), &trust);
-  if (srv == SECSuccess || PR_GetError() != SEC_ERROR_TOKEN_NOT_LOGGED_IN) {
-    return srv;
+  if (srv != SECSuccess && PR_GetError() != SEC_ERROR_TOKEN_NOT_LOGGED_IN) {
+    return SECFailure;
   }
+  if (srv == SECSuccess) {
+    certVerifier->ClearTrustCache();
+    return SECSuccess;
+  }
+
+  // CERT_ChangeCertTrust failed with SEC_ERROR_TOKEN_NOT_LOGGED_IN, so
+  // authenticate and try again.
   if (cert->slot) {
     // If this certificate is on an external PKCS#11 token, we have to
     // authenticate to that token.
@@ -207,7 +221,13 @@ SECStatus ChangeCertTrustWithPossibleAuthentication(
   if (srv != SECSuccess) {
     return srv;
   }
-  return CERT_ChangeCertTrust(nullptr, cert.get(), &trust);
+  srv = CERT_ChangeCertTrust(nullptr, cert.get(), &trust);
+  if (srv != SECSuccess) {
+    return srv;
+  }
+
+  certVerifier->ClearTrustCache();
+  return SECSuccess;
 }
 
 static nsresult ImportCertsIntoPermanentStorage(

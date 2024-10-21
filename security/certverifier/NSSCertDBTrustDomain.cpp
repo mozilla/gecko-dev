@@ -69,6 +69,7 @@ namespace psm {
 NSSCertDBTrustDomain::NSSCertDBTrustDomain(
     SECTrustType certDBTrustType, OCSPFetching ocspFetching,
     OCSPCache& ocspCache, SignatureCache* signatureCache,
+    TrustCache* trustCache,
     /*optional but shouldn't be*/ void* pinArg, TimeDuration ocspTimeoutSoft,
     TimeDuration ocspTimeoutHard, uint32_t certShortLifetimeInDays,
     unsigned int minRSABits, ValidityCheckingMode validityCheckingMode,
@@ -84,6 +85,7 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(
       mOCSPFetching(ocspFetching),
       mOCSPCache(ocspCache),
       mSignatureCache(signatureCache),
+      mTrustCache(trustCache),
       mPinArg(pinArg),
       mOCSPTimeoutSoft(ocspTimeoutSoft),
       mOCSPTimeoutHard(ocspTimeoutHard),
@@ -398,6 +400,40 @@ Result NSSCertDBTrustDomain::FindIssuer(Input encodedIssuerName,
                          keepGoing);
 }
 
+void HashTrustParams(EndEntityOrCA endEntityOrCA, const CertPolicyId& policy,
+                     Input certDER, SECTrustType trustType,
+                     /*out*/ Maybe<nsTArray<uint8_t>>& sha512Hash) {
+  sha512Hash.reset();
+  Digest digest;
+  if (NS_FAILED(digest.Begin(SEC_OID_SHA512))) {
+    return;
+  }
+  if (NS_FAILED(digest.Update(reinterpret_cast<const uint8_t*>(&endEntityOrCA),
+                              sizeof(endEntityOrCA)))) {
+    return;
+  }
+  if (NS_FAILED(
+          digest.Update(reinterpret_cast<const uint8_t*>(&policy.numBytes),
+                        sizeof(policy.numBytes)))) {
+    return;
+  }
+  if (NS_FAILED(digest.Update(policy.bytes, policy.numBytes))) {
+    return;
+  }
+  if (NS_FAILED(digest.Update(certDER.UnsafeGetData(), certDER.GetLength()))) {
+    return;
+  }
+  if (NS_FAILED(digest.Update(reinterpret_cast<const uint8_t*>(&trustType),
+                              sizeof(trustType)))) {
+    return;
+  }
+  nsTArray<uint8_t> result;
+  if (NS_FAILED(digest.End(result))) {
+    return;
+  }
+  sha512Hash.emplace(std::move(result));
+}
+
 Result NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
                                           const CertPolicyId& policy,
                                           Input candidateCertDER,
@@ -454,6 +490,18 @@ Result NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
       trustLevel = TrustLevel::InheritsTrust;
       return Success;
     }
+  }
+
+  mozilla::glean::cert_trust_cache::total.Add(1);
+  Maybe<nsTArray<uint8_t>> sha512Hash;
+  HashTrustParams(endEntityOrCA, policy, candidateCertDER, mCertDBTrustType,
+                  sha512Hash);
+  uint8_t cachedTrust = 0;
+  if (sha512Hash.isSome() &&
+      trust_cache_get(mTrustCache, sha512Hash.ref().Elements(), &cachedTrust)) {
+    mozilla::glean::cert_trust_cache::hits.AddToNumerator(1);
+    trustLevel = static_cast<TrustLevel>(cachedTrust);
+    return Success;
   }
 
   // Synchronously dispatch a task to the socket thread to construct a
@@ -539,6 +587,10 @@ Result NSSCertDBTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
   nsresult rv = SyncRunnable::DispatchToThread(socketThread, getTrustTask);
   if (NS_FAILED(rv)) {
     return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  }
+  if (result == Success && sha512Hash.isSome()) {
+    uint8_t trust = static_cast<uint8_t>(trustLevel);
+    trust_cache_insert(mTrustCache, sha512Hash.ref().Elements(), trust);
   }
   return result;
 }
