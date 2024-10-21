@@ -270,6 +270,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=933681
       gPrototypeProperties[c] = ["constructor", "name", "message", "stack"];
       gConstructorProperties[c] = constructorProps([]);
   }
+
+  if (typeof Error.isError === "function") {
+    gConstructorProperties.Error.push("isError");
+  }
+
   // toString and toSource only live on the parent proto (Error.prototype).
   gPrototypeProperties.Error.push('toString');
   gPrototypeProperties.Error.push('toSource');

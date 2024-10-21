@@ -37,6 +37,7 @@
 #include "js/Value.h"
 #include "js/Wrapper.h"
 #include "util/StringBuilder.h"
+#include "vm/ErrorReporting.h"
 #include "vm/GlobalObject.h"
 #include "vm/Iteration.h"
 #include "vm/JSAtomUtils.h"  // ClassName
@@ -93,6 +94,17 @@ static const JSFunctionSpec error_methods[] = {
     JS_FS_END,
 };
 
+#ifdef NIGHTLY_BUILD
+static bool exn_isError(JSContext* cx, unsigned argc, Value* vp);
+#endif
+
+static const JSFunctionSpec error_static_methods[] = {
+#ifdef NIGHTLY_BUILD
+    JS_FN("isError", exn_isError, 1, 0),
+#endif
+    JS_FS_END,
+};
+
 // Error.prototype and NativeError.prototype have own .message and .name
 // properties.
 #define COMMON_ERROR_PROPERTIES(name) \
@@ -146,8 +158,8 @@ IMPLEMENT_NATIVE_ERROR_PROPERTIES(RuntimeError)
    JSProto_Error | ClassSpec::DontDefineConstructor}
 
 const ClassSpec ErrorObject::classSpecs[JSEXN_ERROR_LIMIT] = {
-    {ErrorObject::createConstructor, ErrorObject::createProto, nullptr, nullptr,
-     error_methods, error_properties},
+    {ErrorObject::createConstructor, ErrorObject::createProto,
+     error_static_methods, nullptr, error_methods, error_properties},
 
     IMPLEMENT_NATIVE_ERROR_SPEC(InternalError),
     IMPLEMENT_NATIVE_ERROR_SPEC(AggregateError),
@@ -906,3 +918,50 @@ static bool exn_toSource(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setString(str);
   return true;
 }
+
+#ifdef NIGHTLY_BUILD
+
+/**
+ * Error.isError Proposal
+ * Error.isError ( arg )
+ * https://tc39.es/proposal-is-error/#sec-error.iserror
+ * IsError ( argument )
+ * https://tc39.es/proposal-is-error/#sec-iserror
+ */
+static bool exn_isError(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  // Error.isError ( arg )
+  // Step 1. Return IsError(arg).
+
+  // IsError ( argument )
+  // Step 1. If argument is not an Object, return false.
+  if (!args.get(0).isObject()) {
+    args.rval().setBoolean(false);
+    return true;
+  }
+
+  JSObject* unwrappedObject = CheckedUnwrapStatic(&args.get(0).toObject());
+  if (!unwrappedObject) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_OBJECT_ACCESS_DENIED);
+    return false;
+  }
+
+  if (JS_IsDeadWrapper(unwrappedObject)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, JSMSG_DEAD_OBJECT);
+    return false;
+  }
+
+  // Step 2. If argument has an [[ErrorData]] internal slot, return true.
+  if (unwrappedObject->is<ErrorObject>()) {
+    args.rval().setBoolean(true);
+    return true;
+  }
+
+  // Step 3. Return false
+  args.rval().setBoolean(false);
+  return true;
+}
+
+#endif

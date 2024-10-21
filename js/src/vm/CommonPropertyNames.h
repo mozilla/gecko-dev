@@ -323,6 +323,7 @@
   MACRO_(isDisjointFrom, "isDisjointFrom")                                     \
   MACRO_(isEntryPoint, "isEntryPoint")                                         \
   MACRO_(isExtensible, "isExtensible")                                         \
+  MACRO_(isError, "isError")                                                   \
   MACRO_(isFinite, "isFinite")                                                 \
   MACRO_(isNaN, "isNaN")                                                       \
   MACRO_(IsNullOrUndefined, "IsNullOrUndefined")                               \
