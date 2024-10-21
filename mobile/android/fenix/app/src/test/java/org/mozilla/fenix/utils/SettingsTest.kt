@@ -1014,7 +1014,7 @@ class SettingsTest {
 
         val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
 
-        assertEquals(48, bottomToolbarContainerHeight)
+        assertEquals(49, bottomToolbarContainerHeight)
     }
 
     @Test

@@ -616,9 +616,11 @@ class HomeFragment : Fragment() {
             content = {
                 FirefoxTheme {
                     Column {
-                        if (!activity.isMicrosurveyPromptDismissed.value &&
-                            !context.settings().shouldShowNavigationBarCFR
-                        ) {
+                        val shouldShowNavBarCFR =
+                            context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
+                        val shouldShowMicrosurveyPrompt = !activity.isMicrosurveyPromptDismissed.value
+
+                        if (shouldShowMicrosurveyPrompt && !shouldShowNavBarCFR) {
                             currentMicrosurvey
                                 ?.let {
                                     if (isToolbarAtBottom) {
@@ -657,6 +659,11 @@ class HomeFragment : Fragment() {
 
                         if (isToolbarAtBottom) {
                             AndroidView(factory = { _ -> binding.toolbarLayout })
+                        } else if (
+                            currentMicrosurvey == null ||
+                            (shouldShowMicrosurveyPrompt && !shouldShowNavBarCFR)
+                        ) {
+                            Divider()
                         }
 
                         val showCFR =
@@ -840,8 +847,9 @@ class HomeFragment : Fragment() {
                         val activity = requireActivity() as HomeActivity
                         val shouldShowNavBarCFR =
                             context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
+                        val shouldShowMicrosurveyPrompt = !activity.isMicrosurveyPromptDismissed.value
 
-                        if (!activity.isMicrosurveyPromptDismissed.value && !shouldShowNavBarCFR) {
+                        if (shouldShowMicrosurveyPrompt && !shouldShowNavBarCFR) {
                             currentMicrosurvey
                                 ?.let {
                                     if (isToolbarAtTheBottom) {
@@ -878,7 +886,10 @@ class HomeFragment : Fragment() {
 
                         if (isToolbarAtTheBottom) {
                             AndroidView(factory = { _ -> binding.toolbarLayout })
-                        } else {
+                        } else if (
+                            currentMicrosurvey == null ||
+                            (shouldShowMicrosurveyPrompt && !shouldShowNavBarCFR)
+                        ) {
                             Divider()
                         }
                     }
