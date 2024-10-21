@@ -318,6 +318,17 @@ bool ForkServer::RunForkServer(int* aArgc, char*** aArgv) {
   MOZ_ASSERT(!XRE_IsForkServerProcess(),
              "fork server created another fork server?");
 
+  // This is now a child process, and it may even be a Content process.
+  // It is required that the PRNG at least is re-initialized so the same state
+  // is not shared accross all child processes, and in case of a Content process
+  // it is also required that the small allocation are not being randomized ;
+  // failing to do so will lead to performance regressions, e.g. as in
+  // bug 1912262.
+#if defined(MOZ_MEMORY)
+  jemalloc_reset_small_alloc_randomization(
+      /* aRandomizeSmall */ !XRE_IsContentProcess());
+#endif
+
   // Open log files again with right names and the new PID.
   nsTraceRefcnt::ReopenLogFilesAfterFork(XRE_GetProcessTypeString());
 
