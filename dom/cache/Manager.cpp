@@ -25,7 +25,6 @@
 #include "mozilla/dom/quota/Client.h"
 #include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/ClientImpl.h"
-#include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/StringifyUtils.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/ipc/BackgroundParent.h"
@@ -42,8 +41,8 @@
 
 namespace mozilla::dom::cache {
 
+using mozilla::dom::quota::ClientDirectoryLock;
 using mozilla::dom::quota::CloneFileAndAppend;
-using mozilla::dom::quota::DirectoryLock;
 
 namespace {
 
@@ -2087,7 +2086,7 @@ void Manager::Shutdown() {
   }
 }
 
-Maybe<DirectoryLock&> Manager::MaybeDirectoryLockRef() const {
+Maybe<ClientDirectoryLock&> Manager::MaybeDirectoryLockRef() const {
   NS_ASSERT_OWNINGTHREAD(Manager);
   MOZ_DIAGNOSTIC_ASSERT(mContext);
 
