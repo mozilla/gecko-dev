@@ -29,10 +29,10 @@
   global.raisesException = function raisesException(exception) {
     return function (code) {
       try {
-	eval(code);
-	return false;
+        eval(code);
+        return false;
       } catch (actual) {
-	return actual instanceof exception;
+        return actual instanceof exception;
       }
     };
   };
