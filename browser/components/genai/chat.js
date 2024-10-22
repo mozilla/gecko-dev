@@ -517,7 +517,7 @@ function showOnboarding(length) {
           // Set max-height to trigger transition
           document.querySelectorAll("label .text div").forEach(div => {
             const selected =
-              div.closest("label").querySelector("input").value == action;
+              div.closest("label").querySelector("input").value == config.id;
             div.style.maxHeight = selected ? div.scrollHeight + "px" : 0;
             const a = div.querySelector("a");
             if (a) {

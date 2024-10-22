@@ -82,6 +82,11 @@ add_task(async function test_sidebar_onboarding() {
     "Should have previewed provider"
   );
 
+  Assert.notEqual(
+    document.querySelector(":has(> .selected) [style]").style.maxHeight,
+    "0px",
+    "Selected provider expanded"
+  );
   Assert.ok(browser.currentURI.spec, "Provider previewed");
 
   const pickButton = await TestUtils.waitForCondition(() =>
