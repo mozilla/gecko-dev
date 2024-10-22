@@ -332,11 +332,6 @@ private fun BookmarksListTopBar(
     val folderTitle by store.observeAsState(store.state.currentFolder.title) { store.state.currentFolder.title }
     var showMenu by remember { mutableStateOf(false) }
     Box {
-        BookmarkListOverflowMenu(
-            showMenu = showMenu,
-            onDismissRequest = { showMenu = false },
-            store = store,
-        )
         TopAppBar(
             backgroundColor = FirefoxTheme.colors.layer1,
             title = {
@@ -413,14 +408,21 @@ private fun BookmarksListTopBar(
                                 tint = FirefoxTheme.colors.iconPrimary,
                             )
                         }
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                                    contentDescription = stringResource(
+                                        R.string.content_description_menu,
+                                    ),
+                                    tint = FirefoxTheme.colors.iconPrimary,
+                                )
+                            }
 
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(
-                                painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                                contentDescription = stringResource(
-                                    R.string.content_description_menu,
-                                ),
-                                tint = FirefoxTheme.colors.iconPrimary,
+                            BookmarkListOverflowMenu(
+                                showMenu = showMenu,
+                                onDismissRequest = { showMenu = false },
+                                store = store,
                             )
                         }
                     }
