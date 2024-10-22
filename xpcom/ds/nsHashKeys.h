@@ -363,8 +363,8 @@ class nsRefPtrHashKey : public PLDHashEntryHdr {
 
 template <class T>
 inline void ImplCycleCollectionTraverse(
-    nsCycleCollectionTraversalCallback& aCallback, nsRefPtrHashKey<T>& aField,
-    const char* aName, uint32_t aFlags = 0) {
+    nsCycleCollectionTraversalCallback& aCallback,
+    const nsRefPtrHashKey<T>& aField, const char* aName, uint32_t aFlags = 0) {
   CycleCollectionNoteChild(aCallback, aField.GetKey(), aName, aFlags);
 }
 

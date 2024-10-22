@@ -23,6 +23,7 @@ class nsUniquePtrConverter {
   using DataType = mozilla::UniquePtr<T>;
 
   static UserDataType Unwrap(DataType& src) { return src.get(); }
+  static UserDataType Unwrap(const DataType& src) { return src.get(); }
   static DataType Wrap(UserDataType&& src) { return DataType(std::move(src)); }
   static DataType Wrap(const UserDataType& src) { return DataType(src); }
 };

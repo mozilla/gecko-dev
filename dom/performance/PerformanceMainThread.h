@@ -191,12 +191,12 @@ class PerformanceMainThread final : public Performance,
 };
 
 inline void ImplCycleCollectionTraverse(
-    nsCycleCollectionTraversalCallback& aCallback, TextFrameUnions& aField,
-    const char* aName, uint32_t aFlags = 0) {
-  for (auto& entry : aField) {
-    ImplCycleCollectionTraverse(
-        aCallback, entry, "TextFrameUnions's key (nsRefPtrHashKey<Element>)",
-        aFlags);
+    nsCycleCollectionTraversalCallback& aCallback,
+    const TextFrameUnions& aField, const char* aName, uint32_t aFlags = 0) {
+  for (const auto& entry : aField) {
+    CycleCollectionNoteChild(aCallback, entry.GetKey(),
+                             "TextFrameUnions's key (nsRefPtrHashKey<Element>)",
+                             aFlags);
   }
 }
 
