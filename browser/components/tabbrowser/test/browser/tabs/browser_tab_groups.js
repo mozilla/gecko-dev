@@ -1125,13 +1125,19 @@ add_task(async function test_tabGroupCreatePanel() {
   await panelShown;
   Assert.ok(tabgroupEditor.createMode, "Group editor is in create mode");
   // Edit panel should be populated with correct group details
-  Assert.ok(
-    nameField.value == group.label,
+  Assert.equal(
+    document.activeElement,
+    nameField,
+    "Create panel's input is focused initially"
+  );
+  Assert.equal(
+    nameField.value,
+    group.label,
     "Create panel's input populated with correct name"
   );
-  Assert.ok(
-    tabgroupPanel.querySelector("input[name='tab-group-color']:checked")
-      .value == group.color,
+  Assert.equal(
+    tabgroupPanel.querySelector("input[name='tab-group-color']:checked").value,
+    group.color,
     "Create panel's colorpicker has correct color pre-selected"
   );
 
@@ -1149,18 +1155,20 @@ add_task(async function test_tabGroupCreatePanel() {
   nameField.focus();
   nameField.value = "";
   EventUtils.sendString("Shopping");
-  Assert.ok(
-    group.label == "Shopping",
+  Assert.equal(
+    group.label,
+    "Shopping",
     "Group label changed when input value changed"
   );
   tabgroupPanel.querySelector("#tab-group-editor-swatch-red").click();
-  Assert.ok(
-    group.color == "red",
+  Assert.equal(
+    group.color,
+    "red",
     "Group color changed to red after clicking red swatch"
   );
-  Assert.ok(
-    tabgroupPanel.querySelector("input[name='tab-group-color']:checked")
-      .value == "red",
+  Assert.equal(
+    tabgroupPanel.querySelector("input[name='tab-group-color']:checked").value,
+    "red",
     "Red swatch radio selected after clicking red swatch"
   );
 
@@ -1168,24 +1176,40 @@ add_task(async function test_tabGroupCreatePanel() {
   panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   tabgroupPanel.querySelector("#tab-group-editor-button-create").click();
   await panelHidden;
-  Assert.ok(tabgroupPanel.state == "closed", "Tabgroup edit panel is closed");
-  Assert.ok(group.label == "Shopping");
-  Assert.ok(group.color == "red");
+  Assert.equal(tabgroupPanel.state, "closed", "Tabgroup edit panel is closed");
+  Assert.equal(group.label, "Shopping");
+  Assert.equal(group.color, "red");
 
-  // right-clicking on the group label reopens the panel in edit mode
-  panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
-  EventUtils.synthesizeMouseAtCenter(
-    group.querySelector(".tab-group-label"),
-    { type: "contextmenu", button: 2 },
-    window
-  );
-  await panelShown;
-  Assert.ok(tabgroupPanel.state == "open", "Tabgroup edit panel is open");
-  Assert.ok(!tabgroupEditor.createMode, "Group editor is not in create mode");
+  let rightClickGroupLabel = async () => {
+    // right-clicking on the group label reopens the panel in edit mode
+    panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+    EventUtils.synthesizeMouseAtCenter(
+      group.querySelector(".tab-group-label"),
+      { type: "contextmenu", button: 2 },
+      window
+    );
+    await panelShown;
+    Assert.equal(tabgroupPanel.state, "open", "Tabgroup edit panel is open");
+    Assert.ok(!tabgroupEditor.createMode, "Group editor is not in create mode");
+  };
 
+  // Panel dismissed after hitting Enter and group remains
+  await rightClickGroupLabel();
+  panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  EventUtils.synthesizeKey("VK_RETURN");
+  await panelHidden;
+  Assert.equal(tabgroupPanel.state, "closed", "Tabgroup edit panel is closed");
+  Assert.equal(group.label, "Shopping");
+  Assert.equal(group.color, "red");
+
+  await rightClickGroupLabel();
+  info("Esc key should should close the edit panel");
   panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
   EventUtils.synthesizeKey("KEY_Escape");
   await panelHidden;
+  Assert.equal(tabgroupPanel.state, "closed", "Tabgroup edit panel is closed");
+  Assert.equal(group.label, "Shopping");
+  Assert.equal(group.color, "red");
   gBrowser.removeTabGroup(group, { animate: false });
 });
 

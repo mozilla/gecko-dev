@@ -97,7 +97,7 @@
       });
 
       this.#createButton.addEventListener("click", () => {
-        this.#handleCreate();
+        this.#panel.hidePopup();
       });
 
       this.#nameField.addEventListener("input", () => {
@@ -118,7 +118,10 @@
           this.#handleUngroup();
         });
 
-      this.addEventListener("change", this);
+      this.panel.addEventListener("popupshown", this);
+      this.panel.addEventListener("popuphidden", this);
+      this.panel.addEventListener("keypress", this);
+      this.#swatchesContainer.addEventListener("change", this);
     }
 
     #populateSwatches() {
@@ -214,6 +217,20 @@
       });
     }
 
+    on_popupshown() {
+      this.#nameField.focus();
+    }
+
+    on_popuphidden() {
+      this.activeGroup = null;
+    }
+
+    on_keypress(event) {
+      if (event.keyCode == KeyEvent.DOM_VK_RETURN) {
+        this.#panel.hidePopup();
+      }
+    }
+
     /**
      * change handler for color input
      */
@@ -229,11 +246,6 @@
     #handleCancel() {
       this.activeGroup.ungroupTabs();
       this.#panel.hidePopup();
-    }
-
-    #handleCreate() {
-      this.#panel.hidePopup();
-      this.activeGroup = null;
     }
 
     async #handleNewTabInGroup() {
