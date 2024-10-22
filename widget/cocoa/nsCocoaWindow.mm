@@ -120,7 +120,8 @@ static void RollUpPopups(nsIRollupListener::AllowAnimations aAllowAnimations =
 }
 
 nsCocoaWindow::nsCocoaWindow()
-    : mWindow(nil),
+    : mParent(nullptr),
+      mWindow(nil),
       mDelegate(nil),
       mPopupContentView(nil),
       mFullscreenTransitionAnimation(nil),
@@ -187,7 +188,25 @@ void nsCocoaWindow::DestroyNativeWindow() {
 nsCocoaWindow::~nsCocoaWindow() {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
-  RemoveAllChildren();
+  // Notify the children that we're gone.  Popup windows (e.g. tooltips) can
+  // have nsChildView children.  'kid' is an nsChildView object if and only if
+  // its 'type' is 'WindowType::Child'.
+  // childView->ResetParent() can change our list of children while it's
+  // being iterated, so the way we iterate the list must allow for this.
+  for (nsIWidget* kid = mLastChild; kid;) {
+    const WindowType kidType = kid->GetWindowType();
+    if (kidType == WindowType::Child) {
+      RefPtr<nsChildView> childView = static_cast<nsChildView*>(kid);
+      kid = kid->GetPrevSibling();
+      childView->ResetParent();
+    } else {
+      RefPtr<nsCocoaWindow> childWindow = static_cast<nsCocoaWindow*>(kid);
+      kid = kid->GetPrevSibling();
+      RemoveChild(childWindow);
+      childWindow->mParent = nullptr;
+    }
+  }
+
   if (mWindow && mWindowMadeHere) {
     CancelAllTransitions();
     DestroyNativeWindow();
@@ -256,6 +275,7 @@ nsresult nsCocoaWindow::Create(nsIWidget* aParent, const DesktopIntRect& aRect,
 
   Inherited::BaseCreate(aParent, aInitData);
 
+  mParent = aParent;
   mAlwaysOnTop = aInitData->mAlwaysOnTop;
   mIsAlert = aInitData->mIsAlert;
 
@@ -570,6 +590,7 @@ void nsCocoaWindow::Destroy() {
 
   nsBaseWidget::OnDestroy();
   nsBaseWidget::Destroy();
+  mParent = nullptr;
 }
 
 void* nsCocoaWindow::GetNativeData(uint32_t aDataType) {
@@ -665,7 +686,7 @@ void nsCocoaWindow::SetModal(bool aModal) {
   // incompatible with the modal event loop in AppWindow::ShowModal() (each of
   // these event loops is "exclusive", and can't run at the same time as other
   // (similar) event loops).
-  for (auto* ancestorWidget = mParent; ancestorWidget;
+  for (auto* ancestorWidget = mParent.get(); ancestorWidget;
        ancestorWidget = ancestorWidget->GetParent()) {
     if (ancestorWidget->GetWindowType() == WindowType::Child) {
       continue;
@@ -856,6 +877,20 @@ bool nsCocoaWindow::NeedsRecreateToReshow() {
   // the "Assign To" setting. i.e., to display where the parent window is.
   return mWindowType == WindowType::Popup && mWasShown &&
          NSScreen.screens.count > 1;
+}
+
+void nsCocoaWindow::SetParent(nsIWidget* aNewParent) {
+  // TODO(emilio): Do we need to reparent the native widget? We never did...
+
+  if (mParent) {
+    mParent->RemoveChild(this);
+  }
+
+  mParent = aNewParent;
+
+  if (mParent) {
+    mParent->AddChild(this);
+  }
 }
 
 WindowRenderer* nsCocoaWindow::GetWindowRenderer() {

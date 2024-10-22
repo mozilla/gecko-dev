@@ -333,7 +333,6 @@ struct AutoObserverNotifier {
  */
 class nsIWidget : public nsISupports {
  protected:
-  friend class nsBaseWidget;
   typedef mozilla::dom::BrowserChild BrowserChild;
 
  public:
@@ -399,7 +398,13 @@ class nsIWidget : public nsISupports {
 
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IWIDGET_IID)
 
-  nsIWidget() = default;
+  nsIWidget()
+      : mLastChild(nullptr),
+        mPrevSibling(nullptr),
+        mOnDestroyCalled(false),
+        mWindowType(WindowType::Child) {
+    ClearNativeTouchSequence(nullptr);
+  }
 
   /**
    * Create and initialize a widget.
@@ -524,7 +529,7 @@ class nsIWidget : public nsISupports {
    *
    * @param     aNewParent   new parent
    */
-  void SetParent(nsIWidget* aNewParent);
+  virtual void SetParent(nsIWidget* aNewParent) = 0;
 
   /**
    * Return the parent Widget of this Widget or nullptr if this is a
@@ -533,17 +538,24 @@ class nsIWidget : public nsISupports {
    * @return the parent widget or nullptr if it does not have a parent
    *
    */
-  nsIWidget* GetParent() const { return mParent; }
-
-  /** Gets called when mParent changes after creation. */
-  virtual void DidChangeParent(nsIWidget* aOldParent) {}
+  virtual nsIWidget* GetParent(void) = 0;
 
   /**
    * Return the top level Widget of this Widget
    *
    * @return the top level widget
    */
-  nsIWidget* GetTopLevelWidget();
+  virtual nsIWidget* GetTopLevelWidget() = 0;
+
+  /**
+   * Return the top (non-sheet) parent of this Widget if it's a sheet,
+   * or nullptr if this isn't a sheet (or some other error occurred).
+   * Sheets are only supported on some platforms (currently only macOS).
+   *
+   * @return the top (non-sheet) parent widget or nullptr
+   *
+   */
+  virtual nsIWidget* GetSheetWindowParent(void) = 0;
 
   /**
    * Return the physical DPI of the screen containing the window ...
@@ -1197,15 +1209,15 @@ class nsIWidget : public nsISupports {
   /**
    * Internal methods
    */
+
+  //@{
+  virtual void AddChild(nsIWidget* aChild) = 0;
+  virtual void RemoveChild(nsIWidget* aChild) = 0;
   virtual void* GetNativeData(uint32_t aDataType) = 0;
   virtual void FreeNativeData(void* data, uint32_t aDataType) = 0;  //~~~
 
- protected:
-  void AddToChildList(nsIWidget* aChild);
-  void RemoveFromChildList(nsIWidget* aChild);
-  void RemoveAllChildren();
+  //@}
 
- public:
   /**
    * Set the widget's title.
    * Must be called after Create.
@@ -1839,6 +1851,13 @@ class nsIWidget : public nsISupports {
   static already_AddRefed<nsIWidget> CreateHeadlessWidget();
 
   /**
+   * Reparent this widget's native widget.
+   * @param aNewParent the native widget of aNewParent is the new native
+   *                   parent widget
+   */
+  virtual void ReparentNativeWidget(nsIWidget* aNewParent) = 0;
+
+  /**
    * Return true if widget has it's own GL context
    */
   virtual bool HasGLContext() { return false; }
@@ -2071,14 +2090,12 @@ class nsIWidget : public nsISupports {
   // lastchild pointers are weak, which is fine as long as they are
   // maintained properly.
   nsCOMPtr<nsIWidget> mFirstChild;
-  nsIWidget* MOZ_NON_OWNING_REF mLastChild = nullptr;
+  nsIWidget* MOZ_NON_OWNING_REF mLastChild;
   nsCOMPtr<nsIWidget> mNextSibling;
-  nsIWidget* MOZ_NON_OWNING_REF mPrevSibling = nullptr;
-  // Keeps us alive.
-  nsIWidget* MOZ_NON_OWNING_REF mParent = nullptr;
+  nsIWidget* MOZ_NON_OWNING_REF mPrevSibling;
   // When Destroy() is called, the sub class should set this true.
-  bool mOnDestroyCalled = false;
-  WindowType mWindowType = WindowType::Child;
+  bool mOnDestroyCalled;
+  WindowType mWindowType;
   WidgetType mWidgetType = WidgetType::Native;
 };
 

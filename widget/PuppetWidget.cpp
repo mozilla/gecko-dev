@@ -96,15 +96,26 @@ PuppetWidget::~PuppetWidget() { Destroy(); }
 void PuppetWidget::InfallibleCreate(nsIWidget* aParent,
                                     const LayoutDeviceIntRect& aRect,
                                     widget::InitData* aInitData) {
-  BaseCreate(aParent, aInitData);
+  // FIXME(emilio): Why aParent = nullptr? Can we even get here with non-null
+  // aParent?
+  BaseCreate(/* aParent = */ nullptr, aInitData);
 
   mBounds = aRect;
   mEnabled = true;
   mVisible = true;
 
+  mDrawTarget = gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
+      IntSize(1, 1), SurfaceFormat::B8G8R8A8);
+
   mNeedIMEStateInit = MightNeedIMEFocus(aInitData);
 
-  Resize(mBounds.X(), mBounds.Y(), mBounds.Width(), mBounds.Height(), false);
+  PuppetWidget* parent = static_cast<PuppetWidget*>(aParent);
+  if (parent) {
+    parent->SetChild(this);
+    mWindowRenderer = parent->GetWindowRenderer();
+  } else {
+    Resize(mBounds.X(), mBounds.Y(), mBounds.Width(), mBounds.Height(), false);
+  }
   mMemoryPressureObserver = MemoryPressureObserver::Create(this);
 }
 
@@ -137,6 +148,7 @@ void PuppetWidget::Destroy() {
     mMemoryPressureObserver->Unregister();
     mMemoryPressureObserver = nullptr;
   }
+  mChild = nullptr;
   if (mWindowRenderer) {
     mWindowRenderer->Destroy();
   }
@@ -150,6 +162,10 @@ void PuppetWidget::Show(bool aState) {
 
   bool wasVisible = mVisible;
   mVisible = aState;
+
+  if (mChild) {
+    mChild->mVisible = aState;
+  }
 
   if (!wasVisible && mVisible) {
     // The previously attached widget listener is handy if
@@ -170,6 +186,11 @@ void PuppetWidget::Resize(double aWidth, double aHeight, bool aRepaint) {
   LayoutDeviceIntRect oldBounds = mBounds;
   mBounds.SizeTo(
       LayoutDeviceIntSize(NSToIntRound(aWidth), NSToIntRound(aHeight)));
+
+  if (mChild) {
+    mChild->Resize(aWidth, aHeight, aRepaint);
+    return;
+  }
 
   // XXX: roc says that |aRepaint| dictates whether or not to
   // invalidate the expanded area
@@ -204,6 +225,11 @@ void PuppetWidget::Invalidate(const LayoutDeviceIntRect& aRect) {
   debug_DumpInvalidate(stderr, this, &aRect, "PuppetWidget", 0);
 #endif
 
+  if (mChild) {
+    mChild->Invalidate(aRect);
+    return;
+  }
+
   if (mBrowserChild && !aRect.IsEmpty() && !mWidgetPaintTask.IsPending()) {
     mWidgetPaintTask = new WidgetPaintTask(this);
     nsCOMPtr<nsIRunnable> event(mWidgetPaintTask.get());
@@ -235,6 +261,9 @@ nsresult PuppetWidget::DispatchEvent(WidgetGUIEvent* aEvent,
 #ifdef DEBUG
   debug_DumpEvent(stdout, aEvent->mWidget, aEvent, "PuppetWidget", 0);
 #endif
+
+  MOZ_ASSERT(!mChild || mChild->mWindowType == WindowType::Popup,
+             "Unexpected event dispatch!");
 
   MOZ_ASSERT(!aEvent->AsKeyboardEvent() ||
                  aEvent->mFlags.mIsSynthesizedForTests ||
@@ -906,6 +935,14 @@ void PuppetWidget::SetCursor(const Cursor& aCursor) {
   }
   mCursor = aCursor;
   mUpdateCursor = false;
+}
+
+void PuppetWidget::SetChild(PuppetWidget* aChild) {
+  MOZ_ASSERT(this != aChild, "can't parent a widget to itself");
+  MOZ_ASSERT(!aChild->mChild,
+             "fake widget 'hierarchy' only expected to have one level");
+
+  mChild = aChild;
 }
 
 NS_IMETHODIMP

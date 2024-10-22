@@ -304,6 +304,8 @@ class nsChildView final : public nsBaseWidget {
   void Show(bool aState) override;
   bool IsVisible() const override;
 
+  void SetParent(nsIWidget* aNewParent) override;
+  nsIWidget* GetParent() override;
   float GetDPI() override;
 
   void Move(double aX, double aY) override;
@@ -461,6 +463,8 @@ class nsChildView final : public nsBaseWidget {
                         const bool aIsVertical,
                         const LayoutDeviceIntPoint& aPoint) override;
 
+  void ResetParent();
+
   static bool DoHasPendingInputEvent();
   static uint32_t GetCurrentInputEventCount();
   static void UpdateCurrentInputEventCount();
@@ -469,7 +473,7 @@ class nsChildView final : public nsBaseWidget {
 
   nsCocoaWindow* GetAppWindowWidget() const;
 
-  void DidChangeParent(nsIWidget*) override;
+  void ReparentNativeWidget(nsIWidget* aNewParent) override;
 
   mozilla::widget::TextInputHandler* GetTextInputHandler() {
     return mTextInputHandler;
@@ -558,6 +562,7 @@ class nsChildView final : public nsBaseWidget {
   InputContext mInputContext;
 
   NSView* mParentView;
+  nsCOMPtr<nsIWidget> mParentWidget;
 
 #ifdef ACCESSIBILITY
   // weak ref to this childview's associated mozAccessible for speed reasons

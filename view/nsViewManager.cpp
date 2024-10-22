@@ -662,13 +662,21 @@ void nsViewManager::DispatchEvent(WidgetGUIEvent* aEvent, nsView* aView,
 void nsViewManager::ReparentChildWidgets(nsView* aView, nsIWidget* aNewWidget) {
   MOZ_ASSERT(aNewWidget, "null widget");
 
-  if (nsIWidget* widget = aView->GetWidget()) {
+  if (aView->HasWidget()) {
     // Check to see if the parent widget is the
     // same as the new parent. If not then reparent
     // the widget, otherwise there is nothing more
     // to do for the view and its descendants
-    if (widget->GetParent() != aNewWidget) {
-      widget->SetParent(aNewWidget);
+    nsIWidget* widget = aView->GetWidget();
+    nsIWidget* parentWidget = widget->GetParent();
+    if (parentWidget) {
+      // Child widget
+      if (parentWidget != aNewWidget) {
+        widget->SetParent(aNewWidget);
+      }
+    } else {
+      // Toplevel widget (popup, dialog, etc)
+      widget->ReparentNativeWidget(aNewWidget);
     }
     return;
   }

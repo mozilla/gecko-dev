@@ -187,10 +187,10 @@ class nsWindow final : public nsBaseWidget {
    */
   nsWindow* GetParentWindowBase(bool aIncludeOwner);
 
-  bool IsTopLevelWidget() const {
-    return mWindowType == WindowType::TopLevel ||
-           mWindowType == WindowType::Dialog;
-  }
+  /*
+   * Return true if this is a top level widget.
+   */
+  bool IsTopLevelWidget() { return mIsTopWidgetWindow; }
 
   // nsIWidget interface
   using nsBaseWidget::Create;  // for Create signature not overridden here
@@ -198,9 +198,10 @@ class nsWindow final : public nsBaseWidget {
                                 const LayoutDeviceIntRect& aRect,
                                 InitData* aInitData = nullptr) override;
   void Destroy() override;
+  void SetParent(nsIWidget* aNewParent) override;
+  nsIWidget* GetParent(void) override;
   float GetDPI() override;
   double GetDefaultScaleInternal() override;
-  void DidChangeParent(nsIWidget* aOldParent) override;
   int32_t LogToPhys(double aValue);
   mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() override {
     if (mozilla::widget::WinUtils::IsPerMonitorDPIAware()) {
@@ -383,6 +384,8 @@ class nsWindow final : public nsBaseWidget {
   void SetTaskbarPreview(nsITaskbarWindowPreview* preview) {
     mTaskbarPreview = do_GetWeakReference(preview);
   }
+
+  void ReparentNativeWidget(nsIWidget* aNewParent) override;
 
   // Open file picker tracking
   void PickerOpen();
@@ -759,6 +762,7 @@ class nsWindow final : public nsBaseWidget {
 
   InputContext mInputContext;
 
+  nsCOMPtr<nsIWidget> mParent;
   nsIntSize mLastSize = nsIntSize(0, 0);
   nsIntPoint mLastPoint;
   HWND mWnd = nullptr;
@@ -766,6 +770,7 @@ class nsWindow final : public nsBaseWidget {
   mozilla::Maybe<WNDPROC> mPrevWndProc;
   IMEContext mDefaultIMC;
   HDEVNOTIFY mDeviceNotifyHandle = nullptr;
+  bool mIsTopWidgetWindow = false;
   bool mInDtor = false;
   bool mIsVisible = false;
   bool mIsCloaked = false;

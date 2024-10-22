@@ -303,6 +303,8 @@ class PuppetWidget final : public nsBaseWidget,
  private:
   void Paint();
 
+  void SetChild(PuppetWidget* aChild);
+
   nsresult RequestIMEToCommitComposition(bool aCancel);
   nsresult NotifyIMEOfFocusChange(const IMENotification& aIMENotification);
   nsresult NotifyIMEOfSelectionChange(const IMENotification& aIMENotification);
@@ -345,8 +347,14 @@ class PuppetWidget final : public nsBaseWidget,
   // it's possible for BrowserChild to outlive the PuppetWidget, we clear
   // this weak reference in Destroy()
   BrowserChild* mBrowserChild;
+  // The "widget" to which we delegate events if we don't have an
+  // event handler.
+  RefPtr<PuppetWidget> mChild;
   nsRevocableEventPtr<WidgetPaintTask> mWidgetPaintTask;
   RefPtr<layers::MemoryPressureObserver> mMemoryPressureObserver;
+  // XXX/cjones: keeping this around until we teach LayerManager to do
+  // retained-content-only transactions
+  RefPtr<DrawTarget> mDrawTarget;
   // IME
   IMENotificationRequests mIMENotificationRequestsOfParent;
   InputContext mInputContext;
