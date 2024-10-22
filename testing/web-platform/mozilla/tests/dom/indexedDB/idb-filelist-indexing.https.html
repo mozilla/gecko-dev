@@ -1,0 +1,163 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+var fileCounter = 0;
+var globalIdx = 0;
+
+const fileListSize = 3;
+const elementSize = 8196;
+
+function makeFileList(dataGenerators) {
+  const fileOpts = { type: "text/plain" };
+
+  const dataTransfer = new DataTransfer();
+  dataGenerators.forEach((generator, i) => {
+    const file = new File(generator(i), "test_" + fileCounter, fileOpts);
+    dataTransfer.items.add(file);
+    ++fileCounter;
+  });
+
+  return dataTransfer.files;
+}
+
+function indexTest(testName, indexValueName, elements) {
+  promise_test(async t => {
+    const dbName = "indexTest_" + indexValueName;
+
+    const array = new Uint32Array(elementSize);
+    crypto.getRandomValues(array);
+    const randomFile = new Blob(array);
+
+    const fileListStatic = makeFileList(
+      Array(fileListSize).fill(() => [randomFile])
+    );
+
+    const makeDataItem = keyName => {
+      return { key: keyName, idx: globalIdx++, fileList: fileListStatic, blob: randomFile };
+    };
+
+    const objectStoreInfo = [
+        {
+          name: "FileLists",
+          options: { keyPath: "key" },
+          data: makeDataItem("A"),
+        },
+        {
+          name: "Other FileLists",
+          options: { keyPath: "key" },
+          data: makeDataItem("B"),
+        },
+      ];
+
+
+    let db = await new Promise((resolve, reject) => {
+      const openReq = indexedDB.open(dbName, 1);
+      openReq.onerror = () => {
+        reject(openReq.error);
+      };
+      openReq.onupgradeneeded = ev => {
+        const dbObj = ev.target.result;
+        for (const info of objectStoreInfo) {
+          const objectStore = dbObj.createObjectStore(info.name, info.options);
+          objectStore.add(info.data);
+        }
+      };
+      openReq.onsuccess = () => {
+        resolve(openReq.result);
+      };
+    });
+
+    t.add_cleanup(() => {
+      if (db) {
+        db.close();
+        indexedDB.deleteDatabase(db.name);
+      }
+    });
+
+    db.close();
+
+    db = await new Promise((resolve, reject) => {
+      const openReq = indexedDB.open(dbName, 2);
+      openReq.onerror = () => {
+        reject(openReq.error);
+      };
+      openReq.onupgradeneeded = ev => {
+        let objectStore = event.target.transaction.objectStore("FileLists");
+        objectStore.createIndex("test", indexValueName, {unique: false});
+      };
+      openReq.onsuccess = () => {
+        resolve(openReq.result);
+      };
+    });
+
+    db.close();
+
+    db = await new Promise((resolve, reject) => {
+      const openReq = indexedDB.open(dbName, 2);
+      let done = false;
+      openReq.onerror = () => {
+        reject(openReq.error);
+      };
+      openReq.onupgradeneeded = () => {
+        done = true;
+        reject(openReq.error);
+      };
+      openReq.onsuccess = () => {
+        if (!done) {
+          resolve(openReq.result);
+        }
+      };
+    });
+
+    let tx = db.transaction(["FileLists"], "readonly");
+    let store = tx.objectStore("FileLists");
+    t.step(() => {
+      assert_equals(store.indexNames.length, 1, "Do we have exactly one index?");
+      assert_equals(store.indexNames[0], "test", "Is the only index name as expected?");
+    });
+
+    let testIndex = store.index("test");
+    request = testIndex.openCursor();
+    var cursorItems = 0;
+    await new Promise((resolve, reject) => {
+      request.onerror = () => reject(request.error);
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          cursorItems = cursorItems + 1;
+          cursor.continue();
+        } else {
+          t.step(() => {
+            assert_equals(cursorItems, elements);
+          });
+          resolve();
+        }
+      };
+    });
+    t.done();
+  }, testName);
+}
+
+// FileList - exposed in Workers, but not constructable.
+if ("document" in self) {
+  indexTest("Indexing on an integer value of an object containing a filelist should work", "idx", 1);
+
+  indexTest("Indexing on a filelist value of an object containing a filelist should work", "filelist", 0);
+
+  indexTest("Indexing on a blob value of an object containing a filelist should work", "blob", 0);
+}
+
+</script>
+</body>
+</html>
