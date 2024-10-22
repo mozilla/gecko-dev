@@ -24,53 +24,53 @@ webidl Selection;
 [builtinclass, scriptable, uuid(3801c9d4-8e69-4bfc-9edb-b58278621f8f)]
 interface nsISelectionController : nsISelectionDisplay
 {
-   // Begin of RawSelectionType values.
-   const short SELECTION_NONE                      = 0;
-   // Corresponds to the Selection exposed via window.getSelection() and
-   // document.getSelection().
-   const short SELECTION_NORMAL                    = 1;
-   // Corresponds to the Selection used for spellchecking in <textarea>s and
-   // "contentEditable" elements.
-   const short SELECTION_SPELLCHECK                = 2;
-   const short SELECTION_IME_RAWINPUT              = 3;
-   const short SELECTION_IME_SELECTEDRAWTEXT       = 4;
-   const short SELECTION_IME_CONVERTEDTEXT         = 5;
-   const short SELECTION_IME_SELECTEDCONVERTEDTEXT = 6;
-   // For accessibility API usage
-   const short SELECTION_ACCESSIBILITY             = 7;
-   const short SELECTION_FIND                      = 8;
-   const short SELECTION_URLSECONDARY              = 9;
-   const short SELECTION_URLSTRIKEOUT              = 10;
-   const short SELECTION_TARGET_TEXT               = 11;
-   // Custom Highlight API
-   // (see https://drafts.csswg.org/css-highlight-api-1/#enumdef-highlighttype)
-   const short SELECTION_HIGHLIGHT                 = 12;
-   // End of RawSelectionType values.
-   const short NUM_SELECTIONTYPES                  = 13;
+  // Begin of RawSelectionType values.
+  const short SELECTION_NONE                      = 0;
+  // Corresponds to the Selection exposed via window.getSelection() and
+  // document.getSelection().
+  const short SELECTION_NORMAL                    = 1;
+  // Corresponds to the Selection used for spellchecking in <textarea>s and
+  // "contentEditable" elements.
+  const short SELECTION_SPELLCHECK                = 2;
+  const short SELECTION_IME_RAWINPUT              = 3;
+  const short SELECTION_IME_SELECTEDRAWTEXT       = 4;
+  const short SELECTION_IME_CONVERTEDTEXT         = 5;
+  const short SELECTION_IME_SELECTEDCONVERTEDTEXT = 6;
+  // For accessibility API usage
+  const short SELECTION_ACCESSIBILITY             = 7;
+  const short SELECTION_FIND                      = 8;
+  const short SELECTION_URLSECONDARY              = 9;
+  const short SELECTION_URLSTRIKEOUT              = 10;
+  const short SELECTION_TARGET_TEXT               = 11;
+  // Custom Highlight API
+  // (see https://drafts.csswg.org/css-highlight-api-1/#enumdef-highlighttype)
+  const short SELECTION_HIGHLIGHT                 = 12;
+  // End of RawSelectionType values.
+  const short NUM_SELECTIONTYPES                  = 13;
 
-   // SelectionRegion values:
-   const short SELECTION_ANCHOR_REGION = 0;
-   const short SELECTION_FOCUS_REGION = 1;
-   const short SELECTION_WHOLE_SELECTION = 2;
-   const short NUM_SELECTION_REGIONS = 3;
+  // SelectionRegion values:
+  const short SELECTION_ANCHOR_REGION = 0;
+  const short SELECTION_FOCUS_REGION = 1;
+  const short SELECTION_WHOLE_SELECTION = 2;
+  const short NUM_SELECTION_REGIONS = 3;
 
-   const short SELECTION_OFF = 0;
-   const short SELECTION_HIDDEN =1;//>HIDDEN displays selection
-   const short SELECTION_ON = 2;
-   const short SELECTION_DISABLED = 3;
-   const short SELECTION_ATTENTION = 4;
+  const short SELECTION_OFF = 0;
+  const short SELECTION_HIDDEN =1;//>HIDDEN displays selection
+  const short SELECTION_ON = 2;
+  const short SELECTION_DISABLED = 3;
+  const short SELECTION_ATTENTION = 4;
 
-   /**
+  /**
    * SetDisplaySelection will set the display mode for the selection. OFF,ON,DISABLED
    */
-    void    setDisplaySelection(in short toggle);
+  void setDisplaySelection(in short toggle);
 
-   /**
+  /**
    * GetDisplaySelection will get the display mode for the selection. OFF,ON,DISABLED
    */
-    short   getDisplaySelection();
+  short getDisplaySelection();
 
-   /**
+  /**
    * GetSelection will return the selection that the presentation
    *  shell may implement.
    *
@@ -78,44 +78,44 @@ interface nsISelectionController : nsISelectionDisplay
    *              of RawSelectionType values.
    * @param _return will hold the return value
    */
-    [binaryname(GetSelectionFromScript)]
-    Selection getSelection(in short type);
+  [binaryname(GetSelectionFromScript)]
+  Selection getSelection(in short type);
 
-   /**
+  /**
    * Return the selection object corresponding to a selection type.
    */
-    [noscript,nostdcall,notxpcom,binaryname(GetSelection)]
-    Selection getDOMSelection(in short aType);
+  [noscript,nostdcall,notxpcom,binaryname(GetSelection)]
+  Selection getDOMSelection(in short aType);
 
-   /**
-    * Called when the selection controller should take the focus.
-    *
-    * This will take care to hide the previously-focused selection, show this
-    * selection, and repaint both.
-    */
-   [noscript,nostdcall,notxpcom]
-   void selectionWillTakeFocus();
+  /**
+   * Called when the selection controller should take the focus.
+   *
+   * This will take care to hide the previously-focused selection, show this
+   * selection, and repaint both.
+   */
+  [noscript,nostdcall,notxpcom]
+  void selectionWillTakeFocus();
 
-   /**
-    * Called when the selection controller has lost the focus.
-    *
-    * This will take care to hide and repaint the selection.
-    */
-   [noscript,nostdcall,notxpcom]
-   void selectionWillLoseFocus();
+  /**
+   * Called when the selection controller has lost the focus.
+   *
+   * This will take care to hide and repaint the selection.
+   */
+  [noscript,nostdcall,notxpcom]
+  void selectionWillLoseFocus();
 
-   const short SCROLL_SYNCHRONOUS = 1 << 1;
-   const short SCROLL_FIRST_ANCESTOR_ONLY = 1 << 2;
-   const short SCROLL_OVERFLOW_HIDDEN = 1 << 3;
-   const short SCROLL_FOR_CARET_MOVE = 1 << 4;
+  const short SCROLL_SYNCHRONOUS = 1 << 1;
+  const short SCROLL_FIRST_ANCESTOR_ONLY = 1 << 2;
+  const short SCROLL_OVERFLOW_HIDDEN = 1 << 3;
+  const short SCROLL_FOR_CARET_MOVE = 1 << 4;
 
-   // No flag scrolls to nearest.
-   const short SCROLL_VERTICAL_NEAREST = 0;
-   const short SCROLL_VERTICAL_START = 1 << 5;
-   const short SCROLL_VERTICAL_CENTER = 1 << 6;
-   const short SCROLL_VERTICAL_END = 1 << 7;
+  // No flag scrolls to nearest.
+  const short SCROLL_VERTICAL_NEAREST = 0;
+  const short SCROLL_VERTICAL_START = 1 << 5;
+  const short SCROLL_VERTICAL_CENTER = 1 << 6;
+  const short SCROLL_VERTICAL_END = 1 << 7;
 
-   /**
+  /**
    * ScrollSelectionIntoView scrolls a region of the selection,
    * so that it is visible in the scrolled view.
    *
@@ -137,159 +137,157 @@ interface nsISelectionController : nsISelectionDisplay
    * Note that if isSynchronous is true, then this might flush the pending
    * reflow. It's dangerous for some objects. See bug 418470 comment 12.
    */
-    void scrollSelectionIntoView(in short type, in short region, in short flags);
+  void scrollSelectionIntoView(in short type, in short region, in short flags);
 
-   /**
+  /**
    * RepaintSelection repaints the selection specified by aType.
    *
    * @param aType specifies the selection to repaint.
    */
-    void repaintSelection(in short type);
+  void repaintSelection(in short type);
 
-   /**
+  /**
    * Set the caret as enabled or disabled. An enabled caret will
    * draw or blink when made visible. A disabled caret will never show up.
    * Can be called any time.
-   * @param aEnable PR_TRUE to enable caret.  PR_FALSE to disable.
+   * @param aEnable true to enable caret.  false to disable.
    * @return always NS_OK
    */
+  void setCaretEnabled(in boolean enabled);
 
-    void setCaretEnabled(in boolean enabled);
-
-   /**
+  /**
    * Set the caret readonly or not. An readonly caret will
    * draw but not blink when made visible.
-   * @param aReadOnly PR_TRUE to enable caret.  PR_FALSE to disable.
+   * @param aReadOnly true to enable caret.  false to disable.
    * @return always NS_OK
    */
-    void setCaretReadOnly(in boolean readOnly);
+  void setCaretReadOnly(in boolean readOnly);
 
-   /**
+  /**
    * Gets the current state of the caret.
    * @param aEnabled  [OUT] set to the current caret state, as set by SetCaretEnabled
    * @return   if aOutEnabled==null, returns NS_ERROR_INVALID_ARG
    *           else NS_OK
    */
-    boolean getCaretEnabled();
+  boolean getCaretEnabled();
 
-    /**
-    * This is true if the caret is enabled, visible, and currently blinking.
-    * This is still true when the caret is enabled, visible, but in its "off"
-    * blink cycle.
-    */
-    readonly attribute boolean caretVisible;
+  /**
+   * This is true if the caret is enabled, visible, and currently blinking.
+   * This is still true when the caret is enabled, visible, but in its "off"
+   * blink cycle.
+   */
+  readonly attribute boolean caretVisible;
 
-   /**
+  /**
    * Show the caret even in selections. By default the caret is hidden unless the
    * selection is collapsed. Use this function to show the caret even in selections.
-   * @param aVisibility PR_TRUE to show the caret in selections.  PR_FALSE to hide.
+   * @param aVisibility true to show the caret in selections.  false to hide.
    * @return always NS_OK
    */
-    void setCaretVisibilityDuringSelection(in boolean visibility);
+  void setCaretVisibilityDuringSelection(in boolean visibility);
 
-   /** CharacterMove will move the selection one character forward/backward in the document.
-   *  this will also have the effect of collapsing the selection if the aExtend = PR_FALSE
+  /** CharacterMove will move the selection one character forward/backward in the document.
+   *  this will also have the effect of collapsing the selection if the aExtend = false
    *  the "point" of selection that is extended is considered the "focus" point.
    *  or the last point adjusted by the selection.
-   *  @param aForward forward or backward if PR_FALSE
+   *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
-    void characterMove(in boolean forward, in boolean extend);
+  void characterMove(in boolean forward, in boolean extend);
 
-   /** PhysicalMove will move the selection one "unit" in a given direction
+  /** PhysicalMove will move the selection one "unit" in a given direction
    *  within the document.
-   *  this will also have the effect of collapsing the selection if the aExtend = PR_FALSE
+   *  this will also have the effect of collapsing the selection if the aExtend = false
    *  the "point" of selection that is extended is considered the "focus" point.
    *  or the last point adjusted by the selection.
    *  @param aDirection
    *  @param aAmount    character/line; word/lineBoundary
    *  @param aExtend    should it collapse the selection of extend it?
    */
-    void physicalMove(in short direction, in short amount, in boolean extend);
+  void physicalMove(in short direction, in short amount, in boolean extend);
 
-   /**
-    * nsFrameSelection::PhysicalMove depends on the ordering of these values;
-    * do not change without checking there!
-    */
-   const short MOVE_LEFT = 0;
-   const short MOVE_RIGHT = 1;
-   const short MOVE_UP = 2;
-   const short MOVE_DOWN = 3;
+  /**
+   * nsFrameSelection::PhysicalMove depends on the ordering of these values;
+   * do not change without checking there!
+   */
+  const short MOVE_LEFT = 0;
+  const short MOVE_RIGHT = 1;
+  const short MOVE_UP = 2;
+  const short MOVE_DOWN = 3;
 
-   /** WordMove will move the selection one word forward/backward in the document.
-   *  this will also have the effect of collapsing the selection if the aExtend = PR_FALSE
+  /** WordMove will move the selection one word forward/backward in the document.
+   *  this will also have the effect of collapsing the selection if the aExtend = false
    *  the "point" of selection that is extended is considered the "focus" point.
    *  or the last point adjusted by the selection.
-   *  @param aForward forward or backward if PR_FALSE
+   *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
+  void wordMove(in boolean forward, in boolean extend);
 
-    void wordMove(in boolean forward, in boolean extend);
-
-    /** LineMove will move the selection one line forward/backward in the document.
-   *  this will also have the effect of collapsing the selection if the aExtend = PR_FALSE
+  /** LineMove will move the selection one line forward/backward in the document.
+   *  this will also have the effect of collapsing the selection if the aExtend = false
    *  the "point" of selection that is extended is considered the "focus" point.
    *  or the last point adjusted by the selection.
-   *  @param aForward forward or backward if PR_FALSE
+   *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
-    void lineMove(in boolean forward, in boolean extend);
+  void lineMove(in boolean forward, in boolean extend);
 
   /** IntraLineMove will move the selection to the front of the line or end of the line
    *  in the document.
-   *  this will also have the effect of collapsing the selection if the aExtend = PR_FALSE
+   *  this will also have the effect of collapsing the selection if the aExtend = false
    *  the "point" of selection that is extended is considered the "focus" point.
    *  or the last point adjusted by the selection.
-   *  @param aForward forward or backward if PR_FALSE
+   *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
-    void intraLineMove(in boolean forward, in boolean extend);
+  void intraLineMove(in boolean forward, in boolean extend);
 
   /** PageMove will move the selection one page forward/backward in the document.
-   *  this will also have the effect of collapsing the selection if the aExtend = PR_FALSE
+   *  this will also have the effect of collapsing the selection if the aExtend = false
    *  the "point" of selection that is extended is considered the "focus" point.
    *  or the last point adjusted by the selection.
-   *  @param aForward forward or backward if PR_FALSE
+   *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
-    [can_run_script]
-    void pageMove(in boolean forward, in boolean extend);
+  [can_run_script]
+  void pageMove(in boolean forward, in boolean extend);
 
   /** CompleteScroll will move page view to the top or bottom of the document
-   *  @param aForward forward or backward if PR_FALSE
+   *  @param aForward forward or backward if false
    */
-    void completeScroll(in boolean forward);
+  void completeScroll(in boolean forward);
 
   /** CompleteMove will move page view to the top or bottom of the document
-   *  this will also have the effect of collapsing the selection if the aExtend = PR_FALSE
+   *  this will also have the effect of collapsing the selection if the aExtend = false
    *  the "point" of selection that is extended is considered the "focus" point.
    *  or the last point adjusted by the selection.
-   *  @param aForward forward or backward if PR_FALSE
+   *  @param aForward forward or backward if false
    *  @param aExtend  should it collapse the selection of extend it?
    */
-    [can_run_script]
-    void completeMove(in boolean forward, in boolean extend);
+  [can_run_script]
+  void completeMove(in boolean forward, in boolean extend);
 
 
   /** ScrollPage will scroll the page without affecting the selection.
    *  @param aForward scroll forward or backwards in selection
    */
-    void scrollPage(in boolean forward);
+  void scrollPage(in boolean forward);
 
   /** ScrollLine will scroll line up or down dependent on the boolean
    *  @param aForward scroll forward or backwards in selection
    */
-    void scrollLine(in boolean forward);
+  void scrollLine(in boolean forward);
 
   /** ScrollCharacter will scroll right or left dependent on the boolean
    *  @param aRight if true will scroll right. if not will scroll left.
    */
-    void scrollCharacter(in boolean right);
+  void scrollCharacter(in boolean right);
 };
 %{ C++
-   #define NS_ISELECTIONCONTROLLER_CID \
-   { 0x513b9460, 0xd56a, 0x4c4e, \
-   { 0xb6, 0xf9, 0x0b, 0x8a, 0xe4, 0x37, 0x2a, 0x3b }}
+  #define NS_ISELECTIONCONTROLLER_CID \
+  { 0x513b9460, 0xd56a, 0x4c4e, \
+  { 0xb6, 0xf9, 0x0b, 0x8a, 0xe4, 0x37, 0x2a, 0x3b }}
 
 namespace mozilla {
 
