@@ -331,12 +331,31 @@ private fun BookmarksListTopBar(
     }
     val folderTitle by store.observeAsState(store.state.currentFolder.title) { store.state.currentFolder.title }
     var showMenu by remember { mutableStateOf(false) }
+
+    val backgroundColor = if (selectedItems.isEmpty()) {
+        FirefoxTheme.colors.layer1
+    } else {
+        FirefoxTheme.colors.layerAccent
+    }
+
+    val textColor = if (selectedItems.isEmpty()) {
+        FirefoxTheme.colors.textPrimary
+    } else {
+        FirefoxTheme.colors.textOnColorPrimary
+    }
+
+    val iconColor = if (selectedItems.isEmpty()) {
+        FirefoxTheme.colors.textPrimary
+    } else {
+        FirefoxTheme.colors.iconOnColor
+    }
+
     Box {
         TopAppBar(
-            backgroundColor = FirefoxTheme.colors.layer1,
+            backgroundColor = backgroundColor,
             title = {
                 Text(
-                    color = FirefoxTheme.colors.textPrimary,
+                    color = textColor,
                     style = FirefoxTheme.typography.headline6,
                     text = if (selectedItems.isNotEmpty()) {
                         val total = selectedItems.size + (recursiveCount ?: 0)
@@ -351,7 +370,7 @@ private fun BookmarksListTopBar(
                     Icon(
                         painter = painterResource(R.drawable.mozac_ic_back_24),
                         contentDescription = stringResource(R.string.bookmark_navigate_back_button_content_description),
-                        tint = FirefoxTheme.colors.iconPrimary,
+                        tint = iconColor,
                     )
                 }
             },
@@ -367,7 +386,7 @@ private fun BookmarksListTopBar(
                                     contentDescription = stringResource(
                                         R.string.bookmark_add_folder,
                                     ),
-                                    tint = FirefoxTheme.colors.iconPrimary,
+                                    tint = iconColor,
                                 )
                             }
                         }
@@ -377,7 +396,7 @@ private fun BookmarksListTopBar(
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_move_24),
                                 contentDescription = stringResource(R.string.bookmark_menu_move_button),
-                                tint = FirefoxTheme.colors.iconPrimary,
+                                tint = iconColor,
                             )
                         }
 
@@ -387,7 +406,7 @@ private fun BookmarksListTopBar(
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_delete_24),
                                 contentDescription = stringResource(R.string.bookmark_menu_delete_button),
-                                tint = FirefoxTheme.colors.iconPrimary,
+                                tint = iconColor,
                             )
                         }
                     }
@@ -397,7 +416,7 @@ private fun BookmarksListTopBar(
                                 Icon(
                                     painter = painterResource(R.drawable.mozac_ic_edit_24),
                                     contentDescription = stringResource(R.string.bookmark_menu_edit_button),
-                                    tint = FirefoxTheme.colors.iconPrimary,
+                                    tint = iconColor,
                                 )
                             }
                         }
@@ -405,7 +424,7 @@ private fun BookmarksListTopBar(
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_move_24),
                                 contentDescription = stringResource(R.string.bookmark_menu_move_button),
-                                tint = FirefoxTheme.colors.iconPrimary,
+                                tint = iconColor,
                             )
                         }
                         Box {
@@ -415,7 +434,7 @@ private fun BookmarksListTopBar(
                                     contentDescription = stringResource(
                                         R.string.content_description_menu,
                                     ),
-                                    tint = FirefoxTheme.colors.iconPrimary,
+                                    tint = iconColor,
                                 )
                             }
 
