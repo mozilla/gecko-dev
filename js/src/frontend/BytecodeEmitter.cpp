@@ -5858,14 +5858,20 @@ bool BytecodeEmitter::emitForOf(ForNode* forOfLoop,
   // Certain builtins (e.g. Array.from) are implemented in self-hosting
   // as for-of loops.
   auto selfHostedIter = getSelfHostedIterFor(forHeadExpr);
-  ForOfEmitter forOf(
-      this, headLexicalEmitterScope, selfHostedIter, iterKind
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-      ,
-      forOfHead->kid1()->isKind(ParseNodeKind::UsingDecl) ||
-              forOfHead->kid1()->isKind(ParseNodeKind::AwaitUsingDecl)
-          ? ForOfEmitter::HasUsingDeclarationInHead::Yes
-          : ForOfEmitter::HasUsingDeclarationInHead::No
+  ForOfEmitter::HeadUsingDeclarationKind headUsingDeclKind =
+      ForOfEmitter::HeadUsingDeclarationKind::None;
+  if (forOfHead->kid1()->isKind(ParseNodeKind::UsingDecl)) {
+    headUsingDeclKind = ForOfEmitter::HeadUsingDeclarationKind::Sync;
+  } else if (forOfHead->kid1()->isKind(ParseNodeKind::AwaitUsingDecl)) {
+    headUsingDeclKind = ForOfEmitter::HeadUsingDeclarationKind::Async;
+  }
+#endif
+
+  ForOfEmitter forOf(this, headLexicalEmitterScope, selfHostedIter, iterKind
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+                     ,
+                     headUsingDeclKind
 #endif
   );
 

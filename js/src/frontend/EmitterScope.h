@@ -192,7 +192,8 @@ class EmitterScope : public Nestable<EmitterScope> {
 
   [[nodiscard]] bool prepareForDisposableAssignment(UsingHint hint);
 
-  [[nodiscard]] bool prepareForForOfLoopIteration(BytecodeEmitter* bce);
+  [[nodiscard]] bool prepareForForOfLoopIteration(BytecodeEmitter* bce,
+                                                  bool hasAwaitUsing);
 
   [[nodiscard]] bool prepareForForOfIteratorCloseOnThrow();
 

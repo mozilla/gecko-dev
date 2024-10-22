@@ -366,9 +366,10 @@ bool EmitterScope::prepareForDisposableAssignment(UsingHint hint) {
   return usingEmitter_->prepareForAssignment(hint);
 }
 
-bool EmitterScope::prepareForForOfLoopIteration(BytecodeEmitter* bce) {
+bool EmitterScope::prepareForForOfLoopIteration(BytecodeEmitter* bce,
+                                                bool hasAwaitUsing) {
   if (hasDisposables()) {
-    forOfDisposalEmitter_.emplace(bce, usingEmitter_->hasAwaitUsing());
+    forOfDisposalEmitter_.emplace(bce, hasAwaitUsing);
     return forOfDisposalEmitter_->prepareForForOfLoopIteration();
   }
   return true;
