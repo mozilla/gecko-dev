@@ -2416,9 +2416,6 @@ pref("browser.tabs.remote.warmup.unloadDelayMs", 2000);
 pref("browser.tabs.crashReporting.sendReport", true);
 pref("browser.tabs.crashReporting.includeURL", false);
 
-// Enables the "Unload Tab" context menu item
-pref("browser.tabs.unloadTabInContextMenu", false);
-
 // If true, unprivileged extensions may use experimental APIs on
 // nightly and developer edition.
 pref("extensions.experiments.enabled", false);

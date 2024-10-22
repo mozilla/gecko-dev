@@ -194,10 +194,6 @@ https_first_disabled = true
 
 ["browser_multiselect_tabs_reorder.js"]
 
-["browser_multiselect_tabs_unload.js"]
-
-["browser_multiselect_tabs_unload_with_beforeunload.js"]
-
 ["browser_multiselect_tabs_using_Ctrl.js"]
 
 ["browser_multiselect_tabs_using_Shift.js"]

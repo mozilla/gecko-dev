@@ -49,7 +49,6 @@ close-tabs-to-the-end-vertical =
 close-other-tabs =
     .label = Close Other Tabs
     .accesskey = o
-
 reload-tabs =
     .label = Reload Tabs
     .accesskey = R
