@@ -6,6 +6,8 @@ import sys
 import unittest
 from urllib.parse import quote
 
+import mozinfo
+
 from marionette_driver import errors
 from marionette_driver.by import By
 from marionette_harness import MarionetteTestCase
@@ -195,6 +197,10 @@ class TestQuitRestart(MarionetteTestCase):
         self.marionette.restart(in_app=False)
         self.assertEqual(self.marionette.session.get("test:fooBar"), True)
 
+    @unittest.skipIf(
+        mozinfo.info["tsan"] == True,
+        "Bug 1925308 - socket.timeout: Process unexpectedly quit without restarting",
+    )
     def test_restart_safe_mode(self):
         try:
             self.assertFalse(self.is_safe_mode, "Safe Mode is unexpectedly enabled")
