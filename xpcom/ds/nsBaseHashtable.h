@@ -282,10 +282,11 @@ class nsBaseHashtable
     : protected nsTHashtable<nsBaseHashtableET<KeyClass, DataType>> {
   using Base = nsTHashtable<nsBaseHashtableET<KeyClass, DataType>>;
   typedef mozilla::fallible_t fallible_t;
+  template <typename KC, typename DT, typename UDT, typename C>
   friend inline void ::ImplCycleCollectionTraverse(
       nsCycleCollectionTraversalCallback&,
-      const nsBaseHashtable<KeyClass, DataType, UserDataType, Converter>&,
-      const char* aName, uint32_t aFlags);
+      const nsBaseHashtable<KC, DT, UDT, C>&, const char* aName,
+      uint32_t aFlags);
 
  public:
   typedef typename KeyClass::KeyType KeyType;
