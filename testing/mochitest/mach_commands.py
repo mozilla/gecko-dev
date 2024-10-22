@@ -550,5 +550,31 @@ def run_junit(command_context, no_install, **kwargs):
             "mach-mochitest", kwargs, {default_format: sys.stdout}, format_args
         )
 
+    if kwargs.get("mach_test") and kwargs.get("test_objects"):
+        test_classes = []
+        test_objects = kwargs.get("test_objects")
+        for test_object in test_objects:
+            test_classes.append(classname_for_test(test_object["name"]))
+        kwargs["test_filters"] = test_classes
+
     mochitest = command_context._spawn(MochitestRunner)
     return mochitest.run_geckoview_junit_test(command_context._mach_context, **kwargs)
+
+
+def classname_for_test(test):
+    """Convert path of test file to gradle recognized test suite name"""
+    test_path = os.path.join(
+        "mobile",
+        "android",
+        "geckoview",
+        "src",
+        "androidTest",
+        "java",
+    )
+    return (
+        os.path.normpath(test)
+        .split(os.path.normpath(test_path))[-1]
+        .removeprefix(os.path.sep)
+        .replace(os.path.sep, ".")
+        .removesuffix(".kt")
+    )

@@ -382,6 +382,18 @@ TEST_SUITES = {
         "mach_command": "android-test",
         "kwargs": {"subproject": "focus"},
     },
+    "geckoview": {
+        "aliases": ("gv",),
+        "build_flavor": "geckoview",
+        "mach_command": "geckoview-junit",
+        "kwargs": {"no_install": "false", "mach_test": "true"},
+    },
+    "junit": {
+        "aliases": ("j",),
+        "build_flavor": "geckoview",
+        "mach_command": "geckoview-junit",
+        "kwargs": {"no_install": "false", "mach_test": "true"},
+    },
 }
 """Definitions of all test suites and the metadata needed to run and process
 them. Each test suite definition can contain the following keys.
@@ -434,6 +446,7 @@ _test_flavors = {
     "xpcshell": "xpcshell",
     "fenix": "fenix",
     "focus": "focus",
+    "geckoview": "geckoview",
 }
 
 _test_subsuites = {
@@ -647,6 +660,7 @@ class TestResolver(MozbuildObject):
         self._puppeteer_loaded = False
         self._fenix_loaded = False
         self._focus_loaded = False
+        self._geckoview_junit_loaded = False
         self._tests_loaded = False
         self._wpt_loaded = False
         self.meta_tags = {}
@@ -826,6 +840,11 @@ class TestResolver(MozbuildObject):
         ):
             self.add_focus_manifest_data()
 
+        if flavor in ("", "geckoview", "junit", None) and (
+            any(self.is_geckoview_junit_path(p) for p in paths) or paths == [None]
+        ):
+            self.add_geckoview_junit_manifest_data()
+
         candidate_paths = set()
 
         for path in sorted(paths):
@@ -879,6 +898,11 @@ class TestResolver(MozbuildObject):
         if path is None:
             return True
         return mozpath.match(path, "mobile/android/focus-android/**")
+
+    def is_geckoview_junit_path(self, path):
+        if path is None:
+            return True
+        return mozpath.match(path, "mobile/android/geckoview/**")
 
     def add_puppeteer_manifest_data(self):
         if self._puppeteer_loaded:
@@ -976,6 +1000,43 @@ class TestResolver(MozbuildObject):
                     )
 
         self._focus_loaded = True
+
+    def add_geckoview_junit_manifest_data(self):
+        if self._geckoview_junit_loaded:
+            return
+
+        self._reset_state()
+
+        test_path = os.path.join(
+            self.topsrcdir,
+            "mobile",
+            "android",
+            "geckoview",
+            "src",
+            "androidTest",
+            "java",
+        )
+        for root, dirs, paths in os.walk(test_path):
+            if "test" in root:
+                for filename in fnmatch.filter(paths, "*.kt"):
+                    path = os.path.join(root, filename)
+                    self._tests.append(
+                        {
+                            "path": os.path.abspath(path),
+                            "flavor": "geckoview",
+                            "here": os.path.dirname(path),
+                            "manifest": None,
+                            "name": path,
+                            "file_relpath": path,
+                            "head": "",
+                            "support-files": "",
+                            "subsuite": "",
+                            "dir_relpath": os.path.dirname(path),
+                            "srcdir_relpath": path,
+                        }
+                    )
+
+        self._geckooview_junit_loaded = True
 
     def is_wpt_path(self, path):
         """Checks if path forms part of the known web-platform-test paths.
