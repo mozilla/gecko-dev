@@ -1670,8 +1670,11 @@ nsFrameSelection* PresShell::GetLastFocusedFrameSelection() {
 
 NS_IMETHODIMP
 PresShell::ScrollSelectionIntoView(RawSelectionType aRawSelectionType,
-                                   SelectionRegion aRegion, int16_t aFlags) {
-  if (!mSelection) return NS_ERROR_NULL_POINTER;
+                                   SelectionRegion aRegion,
+                                   ControllerScrollFlags aFlags) {
+  if (!mSelection) {
+    return NS_ERROR_NULL_POINTER;
+  }
 
   RefPtr<nsFrameSelection> frameSelection = mSelection;
   return frameSelection->ScrollSelectionIntoView(
@@ -2473,8 +2476,9 @@ PresShell::CompleteMove(bool aForward, bool aExtend) {
   return ScrollSelectionIntoView(
       nsISelectionController::SELECTION_NORMAL,
       nsISelectionController::SELECTION_FOCUS_REGION,
-      nsISelectionController::SCROLL_SYNCHRONOUS |
-          nsISelectionController::SCROLL_FOR_CARET_MOVE);
+      nsISelectionController::ControllerScrollFlags(
+          nsISelectionController::SCROLL_SYNCHRONOUS |
+          nsISelectionController::SCROLL_FOR_CARET_MOVE));
 }
 
 // end implementations nsISelectionController

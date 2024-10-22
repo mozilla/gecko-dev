@@ -104,16 +104,24 @@ interface nsISelectionController : nsISelectionDisplay
   [noscript,nostdcall,notxpcom]
   void selectionWillLoseFocus();
 
-  const short SCROLL_SYNCHRONOUS = 1 << 1;
-  const short SCROLL_FIRST_ANCESTOR_ONLY = 1 << 2;
-  const short SCROLL_OVERFLOW_HIDDEN = 1 << 3;
-  const short SCROLL_FOR_CARET_MOVE = 1 << 4;
-
-  // No flag scrolls to nearest.
-  const short SCROLL_VERTICAL_NEAREST = 0;
-  const short SCROLL_VERTICAL_START = 1 << 5;
-  const short SCROLL_VERTICAL_CENTER = 1 << 6;
-  const short SCROLL_VERTICAL_END = 1 << 7;
+  cenum ControllerScrollFlags : 8 {
+    // Scrolls the selection into view before returning.
+    SCROLL_SYNCHRONOUS = 1 << 1,
+    // Only the first ancestor will be scrolled into view.
+    // Note that this flushes layout, and thus can run script.
+    // See bug 418470 comment 12.
+    SCROLL_FIRST_ANCESTOR_ONLY = 1 << 2,
+    // Scrolls even if overflow is set to hidden.
+    SCROLL_OVERFLOW_HIDDEN = 1 << 3,
+    // set to indicate whether scrolling is in response to the caret being
+    // moved. Does not affect behavior (used for telemetry purposes only).
+    SCROLL_FOR_CARET_MOVE = 1 << 4,
+    // No flag scrolls to nearest, vertically.
+    SCROLL_VERTICAL_NEAREST = 0,
+    SCROLL_VERTICAL_START = 1 << 5,
+    SCROLL_VERTICAL_CENTER = 1 << 6,
+    SCROLL_VERTICAL_END = 1 << 7,
+  };
 
   /**
    * ScrollSelectionIntoView scrolls a region of the selection,
@@ -122,22 +130,9 @@ interface nsISelectionController : nsISelectionDisplay
    * @param aType the selection to scroll into view.  This value must be one
    *              of RawSelectionType values.
    * @param aRegion the region inside the selection to scroll into view. //SelectionRegion
-   * @param aFlags the scroll flags.  Valid bits include:
-   * SCROLL_SYNCHRONOUS: when set, scrolls the selection into view
-   * before returning. If not set, posts a request which is processed
-   * at some point after the method returns.
-   * SCROLL_FIRST_ANCESTOR_ONLY: if set, only the first ancestor will be scrolled
-   * into view.
-   * SCROLL_OVERFLOW_HIDDEN: if set, scrolls even if the overflow is specified
-   * as hidden.
-   * SCROLL_FOR_CARET_MOVE: set to indicate whether scrolling is in response
-   * to the caret being moved. Does not affect behavior (used for telemetry
-   * purposes only).
-   *
-   * Note that if isSynchronous is true, then this might flush the pending
-   * reflow. It's dangerous for some objects. See bug 418470 comment 12.
+   * @param aFlags the scroll flags.
    */
-  void scrollSelectionIntoView(in short type, in short region, in short flags);
+  void scrollSelectionIntoView(in short type, in short region, in nsISelectionController_ControllerScrollFlags flags);
 
   /**
    * RepaintSelection repaints the selection specified by aType.

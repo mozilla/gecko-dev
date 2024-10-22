@@ -528,8 +528,9 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
         selectionController->ScrollSelectionIntoView(
             nsISelectionController::SELECTION_NORMAL,
             nsISelectionController::SELECTION_WHOLE_SELECTION,
-            nsISelectionController::SCROLL_VERTICAL_CENTER |
-                nsISelectionController::SCROLL_SYNCHRONOUS);
+            nsISelectionController::ControllerScrollFlags(
+                nsISelectionController::SCROLL_VERTICAL_CENTER |
+                nsISelectionController::SCROLL_SYNCHRONOUS));
       }
 
       SetCurrentWindow(window);

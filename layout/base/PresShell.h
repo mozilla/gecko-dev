@@ -1259,7 +1259,7 @@ class PresShell final : public nsStubDocumentObserver,
   NS_IMETHOD GetDisplaySelection(int16_t* aToggle) override;
   NS_IMETHOD ScrollSelectionIntoView(RawSelectionType aRawSelectionType,
                                      SelectionRegion aRegion,
-                                     int16_t aFlags) override;
+                                     ControllerScrollFlags aFlags) override;
   NS_IMETHOD RepaintSelection(RawSelectionType aRawSelectionType) override;
   void SelectionWillTakeFocus() override;
   void SelectionWillLoseFocus() override;

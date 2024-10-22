@@ -355,7 +355,8 @@ class TextInputSelectionController final : public nsSupportsWeakReference,
                                     Selection** aSelection) override;
   Selection* GetSelection(RawSelectionType aRawSelectionType) override;
   NS_IMETHOD ScrollSelectionIntoView(RawSelectionType aRawSelectionType,
-                                     int16_t aRegion, int16_t aFlags) override;
+                                     SelectionRegion aRegion,
+                                     ControllerScrollFlags aFlags) override;
   NS_IMETHOD RepaintSelection(RawSelectionType aRawSelectionType) override;
   nsresult RepaintSelection(nsPresContext* aPresContext,
                             SelectionType aSelectionType);
@@ -482,7 +483,8 @@ Selection* TextInputSelectionController::GetSelection(
 
 NS_IMETHODIMP
 TextInputSelectionController::ScrollSelectionIntoView(
-    RawSelectionType aRawSelectionType, int16_t aRegion, int16_t aFlags) {
+    RawSelectionType aRawSelectionType, SelectionRegion aRegion,
+    ControllerScrollFlags aFlags) {
   if (!mFrameSelection) {
     return NS_ERROR_NULL_POINTER;
   }
@@ -670,8 +672,9 @@ TextInputSelectionController::PageMove(bool aForward, bool aExtend) {
   return ScrollSelectionIntoView(
       nsISelectionController::SELECTION_NORMAL,
       nsISelectionController::SELECTION_FOCUS_REGION,
-      nsISelectionController::SCROLL_SYNCHRONOUS |
-          nsISelectionController::SCROLL_FOR_CARET_MOVE);
+      nsISelectionController::ControllerScrollFlags(
+          nsISelectionController::SCROLL_SYNCHRONOUS |
+          nsISelectionController::SCROLL_FOR_CARET_MOVE));
 }
 
 NS_IMETHODIMP
