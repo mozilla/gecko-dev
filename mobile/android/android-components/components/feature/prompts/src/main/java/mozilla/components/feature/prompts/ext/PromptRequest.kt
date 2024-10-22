@@ -26,11 +26,10 @@ internal val PROMPTS_TO_EXIT_FULLSCREEN_FOR = listOf<KClass<out PromptRequest>>(
  * Convenience method for executing code if the current [PromptRequest] is one that
  * should not be shown in fullscreen tabs.
  */
-internal inline fun <reified T> T.executeIfWindowedPrompt(
+internal inline fun PromptRequest.executeIfWindowedPrompt(
     block: () -> Unit,
-) where T : PromptRequest {
-    PROMPTS_TO_EXIT_FULLSCREEN_FOR
-        .firstOrNull {
-            this::class == it
-        }?.let { block.invoke() }
+) {
+    if (PROMPTS_TO_EXIT_FULLSCREEN_FOR.any { this::class == it }) {
+        block.invoke()
+    }
 }

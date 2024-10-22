@@ -76,9 +76,9 @@ fun <T, R> Flow<List<T>>.filterChanged(transform: (T) -> R): Flow<T> {
  * Returned Flow: "banana", "bus, "apple", "big", "coconut", "circle", "home"
  * ``
  */
-fun <T, R> Flow<T>.ifAnyChanged(transform: (T) -> Array<R>): Flow<T> {
+fun <T> Flow<T>.ifAnyChanged(transform: (T) -> Array<Any?>): Flow<T> {
     var observedValueOnce = false
-    var lastMappedValues: Array<R>? = null
+    var lastMappedValues: Array<Any?>? = null
 
     return filter { value ->
         val mapped = transform(value)

@@ -54,7 +54,7 @@ class SelectionActionDelegateTest : BaseSessionTest() {
     companion object {
         @get:Parameters(name = "{0}")
         @JvmStatic
-        val parameters: List<Array<out Any>> = listOf(
+        val parameters: List<Array<Any>> = listOf(
             arrayOf("#text", ContentType.DIV, "lorem", false),
             arrayOf("#input", ContentType.EDITABLE_ELEMENT, "ipsum", true),
             arrayOf("#textarea", ContentType.EDITABLE_ELEMENT, "dolor", true),
