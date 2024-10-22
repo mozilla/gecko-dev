@@ -386,7 +386,7 @@ internal class BookmarksMiddleware(
                 when (node.type) {
                     BookmarkNodeType.ITEM -> BookmarkItem.Bookmark(
                         url = node.url!!,
-                        title = node.title!!,
+                        title = node.title ?: node.url!!,
                         previewImageUrl = node.url!!,
                         guid = node.guid,
                     )
