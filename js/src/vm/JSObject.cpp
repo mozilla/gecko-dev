@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "jsapi.h"
+#include "jsdate.h"
 #include "jsexn.h"
 #include "jsfriendapi.h"
 #include "jsnum.h"
@@ -2506,6 +2507,12 @@ bool JS::OrdinaryToPrimitive(JSContext* cx, HandleObject obj, JSType hint,
       NumberObject* nobj = &obj->as<NumberObject>();
       if (HasNativeMethodPure(nobj, cx->names().valueOf, num_valueOf, cx)) {
         vp.setNumber(nobj->unbox());
+        return true;
+      }
+    } else if (clasp == &DateObject::class_) {
+      DateObject* dateObj = &obj->as<DateObject>();
+      if (HasNativeMethodPure(dateObj, cx->names().valueOf, date_valueOf, cx)) {
+        vp.set(dateObj->UTCTime());
         return true;
       }
     }
