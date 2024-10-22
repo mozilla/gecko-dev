@@ -285,9 +285,6 @@ interface nsISelectionController : nsISelectionDisplay
   void scrollCharacter(in boolean right);
 };
 %{ C++
-  #define NS_ISELECTIONCONTROLLER_CID \
-  { 0x513b9460, 0xd56a, 0x4c4e, \
-  { 0xb6, 0xf9, 0x0b, 0x8a, 0xe4, 0x37, 0x2a, 0x3b }}
 
 namespace mozilla {
 
