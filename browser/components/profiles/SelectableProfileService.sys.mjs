@@ -588,10 +588,11 @@ class SelectableProfileServiceClass {
   }
 
   /**
-   * Create and launch a new SelectableProfile and add it to the group datastore.
-   * This is an unmanaged profile from the nsToolkitProfile perspective.
+   * If the user has never created a SelectableProfile before, the group
+   * datastore will be created and the currently running toolkit profile will
+   * be added to the datastore.
    */
-  async createNewProfile() {
+  async maybeSetupDataStore() {
     // Create the profiles db and set the storeID on the toolkit profile if it
     // doesn't exist so we can init the service.
     await this.maybeCreateProfilesStorePath();
@@ -605,6 +606,20 @@ class SelectableProfileServiceClass {
       let originalProfile = await this.#createProfile(path);
       this.#currentProfile = originalProfile;
     }
+  }
+
+  /**
+   * Create and launch a new SelectableProfile and add it to the group datastore.
+   * This is an unmanaged profile from the nsToolkitProfile perspective.
+   *
+   * If the user has never created a SelectableProfile before, the group
+   * datastore will be lazily created and the currently running toolkit profile
+   * will be added to the datastore along with the newly created profile.
+   *
+   * Launches the new SelectableProfile in a new instance after creating it.
+   */
+  async createNewProfile() {
+    await this.maybeSetupDataStore();
 
     let profile = await this.#createProfile();
     this.launchInstance(profile);

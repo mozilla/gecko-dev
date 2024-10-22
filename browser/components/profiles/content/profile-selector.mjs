@@ -43,7 +43,7 @@ export class ProfileSelector extends MozLitElement {
 
     this.selectableProfileService = SelectableProfileService;
 
-    await this.selectableProfileService.init();
+    await this.selectableProfileService.maybeSetupDataStore();
     this.profiles = await this.selectableProfileService.getAllProfiles();
 
     if (!this.profiles.length) {
