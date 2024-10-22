@@ -53,6 +53,8 @@ class AppLinksUseCasesTest {
     private val layerActivity = "com.example2.app.intentActivity"
     private val appIntentWithPackageAndFallback =
         "intent://com.example.app#Intent;package=com.example.com;S.browser_fallback_url=https://example.com;end"
+    private val appIntentWithPackageAndPlayStoreFallback =
+        "intent://com.example.app#Intent;package=com.example.com;S.browser_fallback_url=https?://play.google.com/store/abc;end"
 
     @Before
     fun setup() {
@@ -671,5 +673,17 @@ class AppLinksUseCasesTest {
         subject.updateLaunchInApp { true }
         redirect = subject.interceptedAppLinkRedirect(appUrl)
         assertTrue(redirect.isRedirect())
+    }
+
+    @Test
+    fun `WHEN opening a app scheme uri WITH fallback URL WHERE the URL is Google PlayStore THEN ignore fallback URL`() {
+        val context = createContext(Triple(appIntentWithPackageAndPlayStoreFallback, appPackage, ""))
+
+        val subject = AppLinksUseCases(context, { false })
+        val redirect = subject.interceptedAppLinkRedirect(appIntentWithPackageAndPlayStoreFallback)
+        assertTrue(redirect.hasExternalApp())
+        assertFalse(redirect.hasFallback())
+        assertTrue(redirect.marketplaceIntent != null)
+        assertNull(redirect.fallbackUrl)
     }
 }
