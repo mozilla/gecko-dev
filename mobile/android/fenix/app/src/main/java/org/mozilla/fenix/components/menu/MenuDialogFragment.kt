@@ -16,6 +16,8 @@ import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +71,10 @@ import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
 import org.mozilla.fenix.theme.FirefoxTheme
+import org.mozilla.fenix.utils.DELAY_MS_MAIN_MENU
+import org.mozilla.fenix.utils.DELAY_MS_SUB_MENU
+import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
+import org.mozilla.fenix.utils.DURATION_MS_SUB_MENU
 import org.mozilla.fenix.utils.contentGrowth
 import org.mozilla.fenix.utils.enterMenu
 import org.mozilla.fenix.utils.enterSubmenu
@@ -348,16 +354,33 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         targetState = contentState,
                         transitionSpec = {
                             if (contentState == Route.MainMenu) {
-                                (enterMenu()).togetherWith(
-                                    exitSubmenu(),
+                                (
+                                    enterMenu(
+                                        duration = DURATION_MS_MAIN_MENU,
+                                        delay = DELAY_MS_MAIN_MENU,
+                                        easing = LinearOutSlowInEasing,
+                                    )
+                                    ).togetherWith(
+                                    exitSubmenu(DURATION_MS_MAIN_MENU, FastOutLinearInEasing),
                                 ) using SizeTransform { initialSize, targetSize ->
-                                    contentGrowth(initialSize, targetSize)
+                                    contentGrowth(initialSize, targetSize, DURATION_MS_MAIN_MENU)
                                 }
                             } else {
-                                enterSubmenu().togetherWith(
-                                    exitMenu(),
+                                enterSubmenu(
+                                    duration = DURATION_MS_SUB_MENU,
+                                    delay = DELAY_MS_SUB_MENU,
+                                    easing = LinearOutSlowInEasing,
+                                ).togetherWith(
+                                    exitMenu(
+                                        duration = DURATION_MS_SUB_MENU,
+                                        easing = FastOutLinearInEasing,
+                                    ),
                                 ) using SizeTransform { initialSize, targetSize ->
-                                    contentGrowth(initialSize, targetSize)
+                                    contentGrowth(
+                                        initialSize = initialSize,
+                                        targetSize = targetSize,
+                                        duration = DURATION_MS_SUB_MENU,
+                                    )
                                 }
                             }
                         },
