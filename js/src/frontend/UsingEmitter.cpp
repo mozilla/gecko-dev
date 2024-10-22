@@ -749,9 +749,17 @@ bool UsingEmitter::emitDisposeResourcesForEnvironment(
 }
 
 bool UsingEmitter::prepareForDisposableScopeBody() {
+  MOZ_ASSERT(state_ == State::Start);
   tryEmitter_.emplace(bce_, TryEmitter::Kind::TryFinally,
                       TryEmitter::ControlKind::NonSyntactic);
-  return tryEmitter_->emitTry();
+  if (!tryEmitter_->emitTry()) {
+    return false;
+  }
+
+#ifdef DEBUG
+  state_ = State::DisposableScopeBody;
+#endif
+  return true;
 }
 
 // Explicit Resource Management Proposal
@@ -981,6 +989,7 @@ bool UsingEmitter::emitCreateDisposableResource(UsingHint hint) {
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
 // Steps 1, 3-4.
 bool UsingEmitter::prepareForAssignment(UsingHint hint) {
+  MOZ_ASSERT(state_ == State::DisposableScopeBody);
   MOZ_ASSERT(bce_->innermostEmitterScope()->hasDisposables());
 
   if (hint == UsingHint::Async) {
@@ -1095,6 +1104,7 @@ bool ForOfDisposalEmitter::emitEnd() {
 }
 
 bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {
+  MOZ_ASSERT(state_ == State::DisposableScopeBody);
   MOZ_ASSERT(present->hasDisposables());
 
   if (!emitDisposeResourcesForEnvironment(*present)) {
@@ -1106,6 +1116,7 @@ bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {
 }
 
 bool UsingEmitter::emitEnd() {
+  MOZ_ASSERT(state_ == State::DisposableScopeBody);
   EmitterScope* es = bce_->innermostEmitterScopeNoCheck();
   MOZ_ASSERT(es->hasDisposables());
   MOZ_ASSERT(tryEmitter_.isSome());
@@ -1160,6 +1171,9 @@ bool UsingEmitter::emitEnd() {
     return false;
   }
 
+#ifdef DEBUG
+  state_ = State::End;
+#endif
   return true;
 }
 

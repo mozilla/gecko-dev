@@ -74,14 +74,60 @@ class MOZ_STACK_CLASS DisposalEmitter {
   [[nodiscard]] bool emitEnd(EmitterScope& es);
 };
 
+// Class for emitting bytecode for using declarations.
+//
+// Usage: (check for the return value is omitted for simplicity)
+//
+//  at the point of scope start
+//    UsingEmitter ue(bce);
+//    ue.prepareForDisposableScopeBody();
+//
+//  at the point of using decl assignment, e.g. `using x = y;`
+//    ue.prepareForAssignment(UsingHint::Normal);
+//    emit_Assignment();
+//
+//  at points requiring non-local jumps, like break, continue
+//    ue.emitNonLocalJump(&currentScope);
+//
+//  at the point of scope end
+//    ue.emitEnd();
 class MOZ_STACK_CLASS UsingEmitter {
  private:
   mozilla::Maybe<TryEmitter> tryEmitter_;
 
-  // TODO: add state transition graph and state
-  // management for this emitter. (Bug 1904346)
-
   bool hasAwaitUsing_ = false;
+
+#ifdef DEBUG
+  // The state of this emitter.
+  //
+  // +-------+  prepareForDisposableScopeBody
+  // | Start |---------------------------------+
+  // +-------+                                 |
+  //                                           |
+  //   +---------------------------------------+
+  //   |
+  //   |       +---------------------+     emitEnd   +-----+
+  //   +-->+-->| DisposableScopeBody |--+----------->| End |
+  //       ^   +---------------------+  |            +-----+
+  //       |                            |
+  //       |    prepareForAssignment    |
+  //       +<---------------------------+
+  //       ^                            |
+  //       |    emitNonLocalJump        |
+  //       +----------------------------+
+  //
+  enum class State {
+    // The initial state.
+    Start,
+
+    // After calling prepareForDisposableScopeBody.
+    DisposableScopeBody,
+
+    // After calling emitEnd.
+    End
+  };
+  State state_ = State::Start;
+#endif
 
   [[nodiscard]] bool emitGetDisposeMethod(UsingHint hint);
 
