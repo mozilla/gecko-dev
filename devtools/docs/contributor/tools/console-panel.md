@@ -7,130 +7,43 @@ The Console panel is responsible for rendering all logs coming from the current 
 Internal architecture of the Console panel (the client side) is described
 on the following diagram.
 
-<figure class="hero">
-  <pre class="diagram">
-┌──────────────────────────────┐               ┌────────────────────────┐
-│           DevTools           │               │    WebConsolePanel     │
-│[client/framework/devtools.js]│               │       [panel.js]       │
-└──────────────────────────────┘               └────────────────────────┘
-                │                                           │
-                                                            │
-     openBrowserConsole() or                                │
-     toggleBrowserConsole()                                 │
-                │                                           │
-                ▼                                           │
-┌──────────────────────────────┐                          {hud}
-│    BrowserConsoleManager     │                            │
-│ [browser-console-manager.js] │                            │
-└──────────────────────────────┘                            │
-                │                                           │
-                │                                           │
-      {_browserConsole}                                     │
-                │                                           │
-                ▼ 0..1                                      ▼ 1
-┌──────────────────────────────┐               ┌────────────────────────┐
-│        BrowserConsole        │               │       WebConsole       │
-│     [browser-console.js]     │─ ─ extends ─ ▶│    [webconsole.js]     │
-└──────────────────────────────┘               └──────────────1─────────┘
-                                                            │
-                                                          {ui}
-                                                            │
-                                                            ▼ 1
-                                               ┌────────────────────────┐
-                                               │      WebConsoleUI      │
-                                               │   [webconsole-ui.js]   │
-                                               └────────────────────────┘
-                                                            │
-                                                       {wrapper}
-                                                            │
-                                                            │
-                                                            ▼ 1
-                                               ┌────────────────────────┐
-                                               │   WebConsoleWrapper    │
-                                               │[webconsole-wrapper.js] │
-                                               └────────────────────────┘
-                                                            │
-                                                        <renders>
-                                                            │
-                                                            ▼
-                                               ┌────────────────────────┐
-                                               │          App           │
-                                               └────────────────────────┘
-    </pre>
-  <figcaption>Elements between curly bracket on arrows represent the property name of the reference (for example, the WebConsolePanel as a `hud` property that is a reference to the WebConsole instance)</figcaption>
-</figure>
+```{mermaid}
+flowchart TB
+DevTools["DevTools<br/>[client/framework/devtools.js]"]
+-- "openBrowserConsole() or<br/>toggleBrowserConsole()"
+--> BrowserConsoleManager["BrowserConsoleManager<br/>[browser-console-manager.js]"]
+-- "{_browserConsole}"
+--> BrowserConsole["BrowserConsole<br/>[browser-console.js]"];
+WebConsolePanel["WebConsolePanel<br/>[panel.js]"] -- "{hud}" --> WebConsole["WebConsole[webconsole.js]"]
+-- "{ui}" --> WebConsoleUI["WebConsoleUI<br/>[webconsole-ui.js]"]
+-- "{wrapper}" --> WebConsoleWrapper["WebConsoleWrapper<br/>[webconsole-wrapper.js]"]
+-- "ReactDOM.render" --> App;
+BrowserConsole -- extends --> WebConsole;
+```
+
 
 ## Components
 
 The Console panel UI is built on top of [React](../frontend/react.md). It defines set of React components in `components` directory
 The React architecture is described on the following diagram.
 
-<figure class="hero">
-  <pre class="diagram">
-┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
-  WebConsole React components                                                                                                                                          │
-│ [/components]                                                       ┌────────────────────────┐
-                                                                      │          App           │                                                                       │
-│                                                                     └────────────────────────┘
-                                                                                   │                                                                                   │
-│                                                                                  │
-        ┌───────────────────┬──────────────────────┬───────────────────┬───────────┴─────────┬───────────────────────┬────────────────────┬─────────────────┐          │
-│       │                   │                      │                   │                     │                       │                    │                 │
-        ▼                   ▼                      ▼                   ▼                     ▼                       ▼                    ▼                 ▼          │       ┌────────────────────────────────────────┐
-│ ┌──────────┐     ┌────────────────┐     ┌────────────────┐     ┌───────────┐    ┌────────────────────┐     ┌──────────────┐     ┌──────────────┐     ┌─────────┐             │                 Editor                 │
-  │ SideBar  │     │NotificationBox │     │ ConfirmDialog  │     │ FilterBar │    │ ReverseSearchInput │     │ConsoleOutput │     │EditorToolbar │     │ JSTerm  │──.editor───▶│              <CodeMirror>              │
-│ └──────────┘     └────────────────┘     │    <portal>    │     └───────────┘    └────────────────────┘     └──────────────┘     └──────────────┘     └─────────┘             │ [client/shared/sourceeditor/editor.js] │
-        │                                 └────────────────┘           │                                             │                                                 │       └────────────────────────────────────────┘
-│       │                                                    ┌─────────┴─────────────┐                               │
-        │                                                    │                       │                               │                                                 │
-│       │                                                    ▼                       ▼                               ▼
-        │                                          ┌──────────────────┐   ┌───────────────────┐            ┌──────────────────┐                                        │
-│       │                                          │   FilterButton   │   │  ConsoleSettings  │            │ MessageContainer │
-        │                                          └──────────────────┘   └───────────────────┘            └──────────────────┘                                        │
-│       │                                                                                                            │
-        │                                                                                                            │                                                 │
-│       │                                                                                                            │
-        │                                                                                                            ▼                                                 │
-│       │                                                                                                  ┌──────────────────┐
-        │                                                                                                  │     Message      │                                        │
-│       │                                                                                                  └──────────────────┘
-        │                                                                                                            │                                                 │         ┌─────────────────────────────────────┐
-│       │                                                                                                            │                                                           │                Frame                │
-        │                                  ┌─────────────────────┬─────────────────────┬─────────────────────┬───────┴─────────────┬─────────────────────┬─────────────┼─────┬──▶│ [client/shared/components/Frame.js] │
-│       │                                  │                     │                     │                     │                     │                     │                   │   └─────────────────────────────────────┘
-        │                                  ▼                     ▼                     ▼                     ▼                     ▼                     ▼             │     │
-│       │                        ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐          │   ┌────────────────────────────────────────┐
-        │                        │  MessageIndent   │  │   MessageIcon    │  │  CollapseButton  │  │ GripMessageBody  │  │   ConsoleTable   │  │  MessageRepeat   │    │     │   │               SmartTrace               │
-│       │                        └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────────┘  └──────────────────┘          ├──▶│[client/shared/components/SmartTrace.js]│
-        │                                                                                                    │                     │                                   │     │   └────────────────────────────────────────┘
-└ ─ ─ ─ ┼ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─      │
-        │                                                                                                    │                     │                                         │   ┌──────────────────────────────────────────────────┐
-        │                                                                                                    │                     │                                         │   │                   TabboxPanel                    │
-        │                                                                                                    ├─────────────────────┘                                         └──▶│[client/netmonitor/src/components/TabboxPanel.js] │
-        │                                                                                                    │                                                                   └──────────────────────────────────────────────────┘
-        │                                                                                                    │
-        │                                                                                                    │
-        │                                                                                                    ▼
-        │                                                                ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
-        │                                                                  Reps                                       ┌──────────────────────┐  │
-        │                                                                │ [client/shared/components/reps/reps.js]    │   ObjectInspector    │
-        │                                                                                                             └──────────────────────┘  │
-        │                                                                │                                                        │
-        │                                                                                                                         ▼             │
-        │                                                                │                                            ┌──────────────────────┐
-        │                                                                                                             │ ObjectInspectorItem  │  │
-        │                                                                │                                            └──────────────────────┘
-        └───────────────────────────────────────────────────────────────▶                                                         │             │
-                                                                         │                                                        ▼
-                                                                                                                      ┌──────────────────────┐  │
-                                                                         │                                         ┌─▶│         Rep          │
-                                                                                                                   │  └──────────────────────┘  │
-                                                                         │                                         │              │
-                                                                                                                   │              │             │
-                                                                         │                                         └──────────────┘
-                                                                          ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
-  </pre>
-</figure>
+```{mermaid}
+flowchart TB
+subgraph React Components
+direction TB
+App --> SideBar & NotificationBox & ConfirmDialog & FilterBar & ReverseSearchInput & ConsoleOutput & EditorToolbar & JSTerm
+FilterBar --> FilterButton & ConsoleSettings
+ConsoleOutput --> MessageContainer --> Message
+Message --> MessageIndent & MessageIcon & CollapseButton & GripMessageBody & ConsoleTable & MessageRepeat
+end
+subgraph Reps
+direction TB
+ObjectInspector["ObjectInspector"] --> ObjectIspectorItem --> Rep["Rep<br/>[client/shared/components/reps/reps/rep.js"] --> Rep
+end
+Sidebar & ConsoleTable & GripMessageBody --> Reps
+Message --> Frame["Frame<br/>[client/shared/components/Frame.js]"] & SmartTrace["SmartTrace<br/>[client/shared/components/SmartTrace.js]"] & TabboxPanel["TabboxPanel<br/>[client/netmonitor/src/components/TabboxPanel.js]"]
+JSTerm -- editor --> Editor["Editor<br/>[client/shared/sourceeditor/editor.js]"]
+```
 
 There are several external components we use from the WebConsole:
 - ObjectInspector/Rep: Used to display a variable in the console output and handle expanding the variable when it's not a primitive.
