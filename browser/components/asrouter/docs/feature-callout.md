@@ -279,11 +279,6 @@ interface FeatureCallout {
             type: "multiselect";
             // Depends on the type, but we only support "multiselect" currently.
             data: MultiSelectItem[];
-            // By default, multiselect items appear in the order they're listed
-            // in the data array. Set this to true to randomize the order. This
-            // is most commonly used to randomize the order of answer choices
-            // for a survey question, to avoid the first-choice bias.
-            randomize?: boolean;
             // Allows CSS overrides of the multiselect container.
             style?: {
               color?: string;
@@ -475,6 +470,15 @@ interface MultiSelectItem {
   // Set to true to make it selected/checked by default.
   defaultValue: false;
   label?: Label;
+  // By default, multiselect items appear in the order they're listed
+  // in the data array. Set this to true to randomize the order. This
+  // is most commonly used to randomize the order of answer choices
+  // for a survey question, to avoid the first-choice bias.
+  // Instead of randomizing the entire set, we randomize specific
+  // items. Any adjacent items with randomize will be randomized in-place. So
+  // if there are 4 items with randomize, followed by 1 nonrandom item, the 4
+  // will be randomized but the 5th will stay at the bottom.
+  randomize?: boolean;
   // CSS overrides for the div box containing the item and its optional label.
   style?: {
     color?: string;
