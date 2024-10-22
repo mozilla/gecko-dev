@@ -568,10 +568,14 @@ def get_compiler_info(configure_cache, compiler, language):
                 version = Version("12.0.0")
             elif version < "14.0":
                 version = Version("13.0.0")
-            elif version < "15.0":
+            elif version < "14.3":
                 version = Version("14.0.0")
+            elif version < "15.0":
+                version = Version("15.0.0")
+            elif version < "16.0":
+                version = Version("16.0.0")
             else:
-                version = Version("14.0.0.or.more")
+                version = Version("17.0.6.or.more")
 
     return namespace(
         type=type,
