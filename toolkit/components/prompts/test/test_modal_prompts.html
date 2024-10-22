@@ -780,7 +780,7 @@ async function runTests(util) {
 
   promptDone = handlePrompt(state, action);
 
-  flags = Ci.nsIPromptService.BUTTON_NONE;
+  flags = Ci.nsIPromptService.BUTTON_NONE | Ci.nsIPromptService.SHOW_SPINNER;
   promptArgs = [
     "TestTitle",
     "This is the confirmEx text.",
@@ -801,7 +801,7 @@ async function runTests(util) {
   await promptDone;
 
   // =====
-info("Starting test: ConfirmEx (invalid request for no buttons)");
+  info("Starting test: ConfirmEx (invalid request for no buttons)");
   // BUTTON_TITLE_IS_STRING with no title removes the button.  This is forbidden
   // for button0 unless flags includes
   // Ci.nsIPromptService.BUTTON_NONE_ENABLE_BIT.

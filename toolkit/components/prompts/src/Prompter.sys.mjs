@@ -688,8 +688,10 @@ var InternalPromptUtils = {
     let isDelayEnabled = flags & Ci.nsIPrompt.BUTTON_DELAY_ENABLE;
 
     // Sanity check: If the flags indicate there should be no button0 then flags
-    // must equal BUTTON_NONE (notably, it must include BUTTON_NONE_ENABLE_BIT).
-    let allowNoButtons = flags == Ci.nsIPromptService.BUTTON_NONE;
+    // must contain BUTTON_NONE (notably, it must include BUTTON_NONE_ENABLE_BIT).
+    let allowNoButtons =
+      (flags & Ci.nsIPromptService.BUTTON_NONE) ==
+      Ci.nsIPromptService.BUTTON_NONE;
     const NO_BUTTON0 =
       Ci.nsIPrompt.BUTTON_POS_0 * Ci.nsIPrompt.BUTTON_TITLE_IS_STRING;
     if (!allowNoButtons && !button0 && (flags & NO_BUTTON0) == NO_BUTTON0) {
