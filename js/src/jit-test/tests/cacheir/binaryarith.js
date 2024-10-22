@@ -278,6 +278,11 @@ warmup(funURsh5, [[null, 1, 0], [5, null, 5], [63, null, 63], [null, 20, 0]]);
 var funURsh6 = (a, b) => { return a >>> b; }
 warmup(funURsh6, [[void 0, 1, 0], [5, void 0, 5], [63, void 0, 63], [void 0, 20, 0]]);
 
+var funDateSub = (a, b) => { return a - b; }
+warmup(funDateSub, [[new Date("2024-09-20T19:54:27.432Z"), new Date("2024-09-20T19:54:27.427Z"), 5],
+                    [new Date("2024-09-20T19:54:27.432Z"), 1726862067427, 5],
+                    [1726862067427, new Date("2024-09-20T19:54:27.432Z"), -5]]);
+
 
 // Other Test cases that Have been useful:
 for (var k=0; k < 30; k++) {

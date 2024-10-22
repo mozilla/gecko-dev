@@ -921,6 +921,7 @@ class MOZ_RAII BinaryArithIRGenerator : public IRGenerator {
   AttachDecision tryAttachBigIntPtr();
   AttachDecision tryAttachStringInt32Arith();
   AttachDecision tryAttachStringNumberArith();
+  AttachDecision tryAttachDateArith();
 
  public:
   BinaryArithIRGenerator(JSContext* cx, HandleScript, jsbytecode* pc,

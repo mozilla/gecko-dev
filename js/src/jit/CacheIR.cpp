@@ -11,6 +11,7 @@
 #include "mozilla/FloatingPoint.h"
 
 #include "jsapi.h"
+#include "jsdate.h"
 #include "jsmath.h"
 #include "jsnum.h"
 
@@ -14067,6 +14068,8 @@ AttachDecision BinaryArithIRGenerator::tryAttachStub() {
   // prefer to attach the more specialized Int32 IC if it is possible.
   TRY_ATTACH(tryAttachStringNumberArith());
 
+  TRY_ATTACH(tryAttachDateArith());
+
   trackAttached(IRGenerator::NotAttached);
   return AttachDecision::NoAction;
 }
@@ -14701,6 +14704,174 @@ AttachDecision BinaryArithIRGenerator::tryAttachStringNumberArith() {
     default:
       MOZ_CRASH("Unhandled op in tryAttachStringNumberArith");
   }
+
+  writer.returnFromIC();
+  return AttachDecision::Attach;
+}
+
+static bool CheckPropertyIsNativeFunction(JSContext* cx, JSObject* obj,
+                                          jsbytecode* pc, PropertyKey propKey,
+                                          JSNative nativeFn, JSFunction** fn,
+                                          NativeObject** holder, size_t* slot) {
+  Maybe<PropertyInfo> prop;
+  NativeGetPropKind kind =
+      CanAttachNativeGetProp(cx, obj, propKey, holder, &prop, pc);
+  if (kind != NativeGetPropKind::Slot) {
+    return false;
+  }
+
+  MOZ_ASSERT(holder);
+  MOZ_ASSERT(prop->isDataProperty());
+
+  *slot = prop->slot();
+  Value calleeVal = (*holder)->getSlot(*slot);
+  if (!calleeVal.isObject() || !calleeVal.toObject().is<JSFunction>()) {
+    return false;
+  }
+
+  if (!IsNativeFunction(calleeVal, nativeFn)) {
+    return false;
+  }
+
+  *fn = &calleeVal.toObject().as<JSFunction>();
+  return true;
+}
+
+static void EmitGuardPropertyIsNativeFunction(CacheIRWriter& writer,
+                                              JSObject* dateObj, JSFunction* fn,
+                                              NativeObject* holder, size_t slot,
+                                              ObjOperandId objId) {
+  MOZ_ASSERT(holder);
+  ObjOperandId holderId =
+      EmitReadSlotGuard(writer, &dateObj->as<NativeObject>(), holder, objId);
+  ValOperandId calleeValId = EmitLoadSlot(writer, holder, holderId, slot);
+  ObjOperandId calleeId = writer.guardToObject(calleeValId);
+  writer.guardSpecificFunction(calleeId, fn);
+}
+
+AttachDecision BinaryArithIRGenerator::tryAttachDateArith() {
+  // Only support subtractions
+  if (op_ != JSOp::Sub) {
+    return AttachDecision::NoAction;
+  }
+
+  // At least one side must be an object.
+  if (!lhs_.isObject() && !rhs_.isObject()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Must be either object or numbers.
+  if (!lhs_.isObject() && !lhs_.isNumber()) {
+    return AttachDecision::NoAction;
+  }
+
+  if (!rhs_.isObject() && !rhs_.isNumber()) {
+    return AttachDecision::NoAction;
+  }
+
+  // We can only operate on Date objects.
+  if (lhs_.isObject() && !lhs_.toObject().is<DateObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  if (rhs_.isObject() && !rhs_.toObject().is<DateObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  JSFunction* lhsDateValueOfFn = nullptr;
+  NativeObject* lhsDateValueOfHolder = nullptr;
+  size_t lhsDateValueOfSlot;
+
+  JSFunction* lhsToPrimitiveFn = nullptr;
+  NativeObject* lhsToPrimitiveHolder = nullptr;
+  size_t lhsToPrimitiveSlot;
+
+  if (lhs_.isObject()) {
+    if (!CheckPropertyIsNativeFunction(
+            cx_, &lhs_.toObject(), pc_, NameToId(cx_->names().valueOf),
+            date_valueOf, &lhsDateValueOfFn, &lhsDateValueOfHolder,
+            &lhsDateValueOfSlot)) {
+      return AttachDecision::NoAction;
+    }
+
+    if (!CheckPropertyIsNativeFunction(
+            cx_, &lhs_.toObject(), pc_,
+            PropertyKey::Symbol(cx_->wellKnownSymbols().toPrimitive),
+            date_toPrimitive, &lhsToPrimitiveFn, &lhsToPrimitiveHolder,
+            &lhsToPrimitiveSlot)) {
+      return AttachDecision::NoAction;
+    }
+  }
+
+  JSFunction* rhsDateValueOfFn = nullptr;
+  NativeObject* rhsDateValueOfHolder = nullptr;
+  size_t rhsDateValueOfSlot;
+
+  JSFunction* rhsToPrimitiveFn = nullptr;
+  NativeObject* rhsToPrimitiveHolder = nullptr;
+  size_t rhsToPrimitiveSlot;
+
+  if (rhs_.isObject()) {
+    if (!CheckPropertyIsNativeFunction(
+            cx_, &rhs_.toObject(), pc_, NameToId(cx_->names().valueOf),
+            date_valueOf, &rhsDateValueOfFn, &rhsDateValueOfHolder,
+            &rhsDateValueOfSlot)) {
+      return AttachDecision::NoAction;
+    }
+
+    if (!CheckPropertyIsNativeFunction(
+            cx_, &rhs_.toObject(), pc_,
+            PropertyKey::Symbol(cx_->wellKnownSymbols().toPrimitive),
+            date_toPrimitive, &rhsToPrimitiveFn, &rhsToPrimitiveHolder,
+            &rhsToPrimitiveSlot)) {
+      return AttachDecision::NoAction;
+    }
+  }
+
+  ValOperandId lhsId(writer.setInputOperandId(0));
+  ValOperandId rhsId(writer.setInputOperandId(1));
+
+  NumberOperandId lhsNumId;
+  NumberOperandId rhsNumId;
+
+  if (lhs_.isObject()) {
+    ObjOperandId lhsObjId = writer.guardToObject(lhsId);
+    // The shape guard in EmitGuardPropertyIsNativeFunction ensures the object
+    // is a Date object.
+    EmitGuardPropertyIsNativeFunction(writer, &lhs_.toObject(),
+                                      lhsDateValueOfFn, lhsDateValueOfHolder,
+                                      lhsDateValueOfSlot, lhsObjId);
+    EmitGuardPropertyIsNativeFunction(writer, &lhs_.toObject(),
+                                      lhsToPrimitiveFn, lhsToPrimitiveHolder,
+                                      lhsToPrimitiveSlot, lhsObjId);
+
+    ValOperandId lhsUtcValId =
+        writer.loadFixedSlot(lhsObjId, DateObject::offsetOfUTCTimeSlot());
+    lhsNumId = writer.guardIsNumber(lhsUtcValId);
+  } else {
+    MOZ_ASSERT(lhs_.isNumber());
+    lhsNumId = writer.guardIsNumber(lhsId);
+  }
+
+  if (rhs_.isObject()) {
+    ObjOperandId rhsObjId = writer.guardToObject(rhsId);
+    EmitGuardPropertyIsNativeFunction(writer, &rhs_.toObject(),
+                                      rhsDateValueOfFn, rhsDateValueOfHolder,
+                                      rhsDateValueOfSlot, rhsObjId);
+    EmitGuardPropertyIsNativeFunction(writer, &rhs_.toObject(),
+                                      rhsToPrimitiveFn, rhsToPrimitiveHolder,
+                                      rhsToPrimitiveSlot, rhsObjId);
+
+    ValOperandId rhsUtcValId =
+        writer.loadFixedSlot(rhsObjId, DateObject::offsetOfUTCTimeSlot());
+    rhsNumId = writer.guardIsNumber(rhsUtcValId);
+  } else {
+    MOZ_ASSERT(rhs_.isNumber());
+    rhsNumId = writer.guardIsNumber(rhsId);
+  }
+
+  writer.doubleSubResult(lhsNumId, rhsNumId);
+  trackAttached("BinaryArith.DateSub");
 
   writer.returnFromIC();
   return AttachDecision::Attach;

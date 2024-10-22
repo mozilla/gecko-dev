@@ -4384,7 +4384,7 @@ bool js::date_valueOf(JSContext* cx, unsigned argc, Value* vp) {
  *
  * ES2025 draft rev 76814cbd5d7842c2a99d28e6e8c7833f1de5bee0
  */
-static bool date_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
+bool js::date_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Steps 1-2.
