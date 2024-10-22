@@ -13,7 +13,7 @@ enum AlphaOption {
 };
 
 // [Serializable, Transferable] are implemented without adding attributes here.
-[Exposed=(Window,DedicatedWorker), Pref="dom.media.webcodecs.enabled"]
+[Exposed=(Window,DedicatedWorker), Func="mozilla::dom::VideoFrame::PrefEnabled"]
 interface VideoFrame {
   // The constructors should be shorten to:
   //   ```

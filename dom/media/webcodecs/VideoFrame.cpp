@@ -19,6 +19,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Try.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/CanvasUtils.h"
@@ -1416,6 +1417,12 @@ JSObject* VideoFrame::WrapObject(JSContext* aCx,
   AssertIsOnOwningThread();
 
   return VideoFrame_Binding::Wrap(aCx, this, aGivenProto);
+}
+
+/* static */
+bool VideoFrame::PrefEnabled(JSContext* aCx, JSObject* aObj) {
+  return StaticPrefs::dom_media_webcodecs_enabled() ||
+         StaticPrefs::dom_media_webcodecs_image_decoder_enabled();
 }
 
 // The following constructors are defined in

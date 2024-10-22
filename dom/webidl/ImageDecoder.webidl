@@ -31,7 +31,7 @@ dictionary ImageDecodeResult {
 
 [Exposed=(Window,DedicatedWorker),
  SecureContext,
- Func="mozilla::dom::ImageDecoder::PrefEnabled"]
+ Pref="dom.media.webcodecs.image-decoder.enabled"]
 interface ImageTrack {
   readonly attribute boolean animated;
   readonly attribute unsigned long frameCount;
@@ -41,7 +41,7 @@ interface ImageTrack {
 
 [Exposed=(Window,DedicatedWorker),
  SecureContext,
- Func="mozilla::dom::ImageDecoder::PrefEnabled"]
+ Pref="dom.media.webcodecs.image-decoder.enabled"]
 interface ImageTrackList {
   getter ImageTrack (unsigned long index);
 
@@ -53,7 +53,7 @@ interface ImageTrackList {
 
 [Exposed=(Window,DedicatedWorker),
  SecureContext,
- Func="mozilla::dom::ImageDecoder::PrefEnabled"]
+ Pref="dom.media.webcodecs.image-decoder.enabled"]
 interface ImageDecoder {
   [Throws]
   constructor(ImageDecoderInit init);

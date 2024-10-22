@@ -3241,7 +3241,7 @@
 # WebCodecs API - Image decoder
 - name: dom.media.webcodecs.image-decoder.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Number of seconds of very quiet or silent audio before considering the audio

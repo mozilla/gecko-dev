@@ -7,7 +7,7 @@
  * https://w3c.github.io/webcodecs/#videocolorspace
  */
 
-[Exposed=(Window,DedicatedWorker), Pref="dom.media.webcodecs.enabled"]
+[Exposed=(Window,DedicatedWorker), Func="mozilla::dom::VideoFrame::PrefEnabled"]
 interface VideoColorSpace {
   [Throws]
   constructor(optional VideoColorSpaceInit init = {});

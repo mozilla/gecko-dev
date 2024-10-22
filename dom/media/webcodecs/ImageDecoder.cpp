@@ -421,11 +421,6 @@ void ImageDecoder::CheckOutstandingDecodes() {
   }
 }
 
-/* static */ bool ImageDecoder::PrefEnabled(JSContext* aCx, JSObject* aObj) {
-  return StaticPrefs::dom_media_webcodecs_enabled() &&
-         StaticPrefs::dom_media_webcodecs_image_decoder_enabled();
-}
-
 /* static */ already_AddRefed<ImageDecoder> ImageDecoder::Constructor(
     const GlobalObject& aGlobal, const ImageDecoderInit& aInit,
     ErrorResult& aRv) {
