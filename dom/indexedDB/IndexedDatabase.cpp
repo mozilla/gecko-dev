@@ -10,8 +10,10 @@
 #include "IDBDatabase.h"
 
 #include "mozilla/dom/FileBlobImpl.h"
+#include "mozilla/dom/FileList.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "mozilla/dom/URLSearchParams.h"
+#include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "MainThreadUtils.h"
 #include "jsapi.h"
@@ -201,6 +203,31 @@ class ValueDeserializationHelperBase {
   }
 
   template <typename StructuredCloneFile>
+  static already_AddRefed<File> CreateUnwrappedFile(
+      JSContext* aCx, IDBDatabase* aDatabase, const StructuredCloneFile& aFile,
+      const BlobOrFileData& aData) {
+    MOZ_ASSERT(aCx);
+    MOZ_ASSERT(aData.tag == SCTAG_DOM_FILE ||
+               aData.tag == SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE);
+    MOZ_ASSERT(aFile.Type() == StructuredCloneFileBase::eBlob);
+
+    const auto blob = ValueDeserializationHelper<StructuredCloneFile>::GetBlob(
+        aCx, aDatabase, aFile);
+    if (NS_WARN_IF(!blob)) {
+      return nullptr;
+    }
+
+    blob->Impl()->SetLazyData(aData.name, aData.type, aData.size,
+                              aData.lastModifiedDate * PR_USEC_PER_MSEC);
+
+    MOZ_ASSERT(blob->IsFile());
+    RefPtr<File> file = blob->ToFile();
+    MOZ_ASSERT(file);
+
+    return file.forget();
+  }
+
+  template <typename StructuredCloneFile>
   static bool CreateAndWrapBlobOrFile(JSContext* aCx, IDBDatabase* aDatabase,
                                       const StructuredCloneFile& aFile,
                                       const BlobOrFileData& aData,
@@ -211,45 +238,42 @@ class ValueDeserializationHelperBase {
                aData.tag == SCTAG_DOM_BLOB);
     MOZ_ASSERT(aFile.Type() == StructuredCloneFileBase::eBlob);
 
+    if (aData.tag == SCTAG_DOM_FILE ||
+        aData.tag == SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE) {
+      RefPtr<File> file =
+          ValueDeserializationHelper<StructuredCloneFile>::CreateUnwrappedFile(
+              aCx, aDatabase, aFile, aData);
+      return WrapAsJSObject(aCx, file, aResult);
+    }
+
     const auto blob = ValueDeserializationHelper<StructuredCloneFile>::GetBlob(
         aCx, aDatabase, aFile);
     if (NS_WARN_IF(!blob)) {
       return false;
     }
 
-    if (aData.tag == SCTAG_DOM_BLOB) {
-      blob->Impl()->SetLazyData(VoidString(), aData.type, aData.size,
-                                INT64_MAX);
-      MOZ_ASSERT(!blob->IsFile());
+    MOZ_ASSERT(aData.tag == SCTAG_DOM_BLOB);
+    blob->Impl()->SetLazyData(VoidString(), aData.type, aData.size, INT64_MAX);
+    MOZ_ASSERT(!blob->IsFile());
 
-      // XXX The comment below is somewhat confusing, since it seems to imply
-      // that this branch is only executed when called from ActorsParent, but
-      // it's executed from both the parent and the child side code.
+    // XXX The comment below is somewhat confusing, since it seems to imply
+    // that this branch is only executed when called from ActorsParent, but
+    // it's executed from both the parent and the child side code.
 
-      // ActorsParent sends here a kind of half blob and half file wrapped into
-      // a DOM File object. DOM File and DOM Blob are a WebIDL wrapper around a
-      // BlobImpl object. SetLazyData() has just changed the BlobImpl to be a
-      // Blob (see the previous assert), but 'blob' still has the WebIDL DOM
-      // File wrapping.
-      // Before exposing it to content, we must recreate a DOM Blob object.
+    // ActorsParent sends here a kind of half blob and half file wrapped into
+    // a DOM File object. DOM File and DOM Blob are a WebIDL wrapper around a
+    // BlobImpl object. SetLazyData() has just changed the BlobImpl to be a
+    // Blob (see the previous assert), but 'blob' still has the WebIDL DOM
+    // File wrapping.
+    // Before exposing it to content, we must recreate a DOM Blob object.
 
-      const RefPtr<Blob> exposedBlob =
-          Blob::Create(blob->GetParentObject(), blob->Impl());
-      if (NS_WARN_IF(!exposedBlob)) {
-        return false;
-      }
-
-      return WrapAsJSObject(aCx, exposedBlob, aResult);
+    const RefPtr<Blob> exposedBlob =
+        Blob::Create(blob->GetParentObject(), blob->Impl());
+    if (NS_WARN_IF(!exposedBlob)) {
+      return false;
     }
 
-    blob->Impl()->SetLazyData(aData.name, aData.type, aData.size,
-                              aData.lastModifiedDate * PR_USEC_PER_MSEC);
-
-    MOZ_ASSERT(blob->IsFile());
-    const RefPtr<File> file = blob->ToFile();
-    MOZ_ASSERT(file);
-
-    return WrapAsJSObject(aCx, file, aResult);
+    return WrapAsJSObject(aCx, exposedBlob, aResult);
   }
 };
 
@@ -360,7 +384,8 @@ JSObject* CommonStructuredCloneReadCallback(
                     SCTAG_DOM_MUTABLEFILE == 0xffff8004 &&
                     SCTAG_DOM_FILE == 0xffff8005 &&
                     SCTAG_DOM_WASM_MODULE == 0xffff8006 &&
-                    SCTAG_DOM_URLSEARCHPARAMS == 0xffff8014,
+                    SCTAG_DOM_URLSEARCHPARAMS == 0xffff8014 &&
+                    SCTAG_DOM_FILELIST == 0xffff8003,
                 "You changed our structured clone tag values and just ate "
                 "everyone's IndexedDB data.  I hope you are happy.");
 
@@ -405,6 +430,81 @@ JSObject* CommonStructuredCloneReadCallback(
 
   using StructuredCloneFile =
       typename StructuredCloneReadInfo::StructuredCloneFile;
+
+  if (aTag == SCTAG_DOM_FILELIST) {
+    const auto& files = aCloneReadInfo->Files();
+
+    uint32_t fileListLength = aData;
+
+    if (fileListLength > files.Length()) {
+      MOZ_ASSERT(false, "Bad file list length value!");
+
+      return nullptr;
+    }
+
+    // We need to ensure that all RAII smart pointers which may trigger GC are
+    // destroyed on return prior to this JS::Rooted being destroyed and
+    // unrooting the pointer. This scope helps make this intent more explicit.
+    JS::Rooted<JSObject*> obj(aCx);
+    {
+      nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(aCx);
+      if (!global) {
+        MOZ_ASSERT(false, "Could not access global!");
+
+        return nullptr;
+      }
+
+      RefPtr<FileList> fileList = new FileList(global);
+
+      for (uint32_t i = 0u; i < fileListLength; ++i) {
+        uint32_t tag = UINT32_MAX;
+        uint32_t index = UINT32_MAX;
+        if (!JS_ReadUint32Pair(aReader, &tag, &index)) {
+          return nullptr;
+        }
+
+        if (tag != SCTAG_DOM_FILE) {
+          MOZ_ASSERT(false, "Unexpected tag!");
+
+          return nullptr;
+        }
+
+        if (uint64_t(index) >= files.Length()) {
+          MOZ_ASSERT(false, "Bad index!");
+
+          return nullptr;
+        }
+
+        BlobOrFileData data;
+        if (NS_WARN_IF(!ReadBlobOrFile(aReader, tag, &data))) {
+          return nullptr;
+        }
+
+        auto& fileObj = aCloneReadInfo->MutableFile(index);
+
+        RefPtr<File> file = ValueDeserializationHelper<
+            StructuredCloneFile>::CreateUnwrappedFile(aCx, aDatabase, fileObj,
+                                                      data);
+        if (!file) {
+          MOZ_ASSERT(false, "Could not deserialize file!");
+
+          return nullptr;
+        }
+
+        if (!fileList->Append(file)) {
+          MOZ_ASSERT(false, "Could not extend filelist!");
+
+          return nullptr;
+        }
+      }
+
+      if (!WrapAsJSObject(aCx, fileList, &obj)) {
+        return nullptr;
+      }
+    }
+
+    return obj;
+  }
 
   if (aTag == SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE ||
       aTag == SCTAG_DOM_BLOB || aTag == SCTAG_DOM_FILE ||

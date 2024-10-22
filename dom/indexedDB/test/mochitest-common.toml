@@ -239,6 +239,8 @@ skip-if = ["os == 'android'"]
 
 ["test_file_transaction_abort.html"]
 
+["test_file_filelist.html"]
+
 ["test_getAll.html"]
 
 ["test_getFileId.html"]

@@ -1,0 +1,228 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+var fileCounter = 0;
+var dbCounter = 0;
+
+const fileListSize = 3;
+const elementSize = 8196;
+
+/**
+ * Acknowledgement:
+ * This test takes inspiration from IndexedDB/structured-clone.any.js
+ * but the focus is on the variations of the filelist serialization.
+ */
+function addCloneTest(testName, orig, verifyFunc) {
+  promise_test(async t => {
+    const requestToFinish = req => {
+      return new Promise((resolve, reject) => {
+        req.onerror = () => {
+          reject(req.error);
+        };
+        req.onblocked = () => {
+          reject("Unexpected block");
+        };
+        req.onupgradeneeded = () => {
+          reject("Unexpected upgrade");
+        };
+        req.onsuccess = ev => {
+          resolve(ev.target.result);
+        };
+      });
+    };
+
+    const txEvents = [
+      "abort",
+      "complete",
+      "error",
+    ];
+
+    const dbName = "db_" + dbCounter;
+    ++dbCounter;
+
+    const performRequest = async (query) => {
+      const db = await new Promise((resolve, reject) => {
+        const openReq = indexedDB.open(dbName, 1);
+        openReq.onerror = () => {
+          reject(openReq.error);
+        };
+        openReq.onupgradeneeded = ev => {
+          const dbObj = ev.target.result;
+          const store = dbObj.createObjectStore("store");
+          // This index is not used, but evaluating key path on each put()
+          // call will exercise (de)serialization.
+          store.createIndex("index", "dummyKeyPath");
+        };
+        openReq.onsuccess = () => {
+          resolve(openReq.result);
+        };
+      });
+
+      t.add_cleanup(() => {
+        if (db) {
+          db.close();
+          indexedDB.deleteDatabase(db.name);
+        }
+      });
+
+      let result = undefined;
+      try {
+        const tx = db.transaction("store", "readwrite");
+        const store = tx.objectStore("store");
+        result = await requestToFinish(query(store));
+        await new EventWatcher(t, tx, txEvents).wait_for("complete");
+      } finally {
+        db.close();
+      }
+
+      return result;
+    };
+
+    await performRequest(store => store.put(orig, "key"));
+    const clone = await performRequest(store => store.get("key"));
+
+    assert_not_equals(orig, clone);
+    await verifyFunc(orig, clone);
+  }, testName);
+}
+
+function makeFileList(dataGenerators) {
+  const fileOpts = { type: "text/plain" };
+  const dataTransfer = new DataTransfer();
+  dataGenerators.forEach((generator, i) => {
+    const file = new File(generator(i), "test_" + fileCounter, fileOpts);
+    dataTransfer.items.add(file);
+    ++fileCounter;
+  });
+
+  return dataTransfer.files;
+}
+
+const compareCloneToOrig = async (orig, clone) => {
+  assert_equals(orig.length, clone.length);
+  assert_equals(orig.length, fileListSize);
+  for (let i = 0; i < orig.length; ++i) {
+    const origFile = orig.item(i);
+    const cloneFile = clone.item(i);
+    assert_equals(origFile.name, cloneFile.name);
+    assert_equals(await origFile.text(), await cloneFile.text());
+  }
+};
+
+const compareObjects = async (orig, clone) => {
+  assert_true("value" in orig);
+  assert_true("value" in clone);
+
+  return await compareCloneToOrig(orig.value, clone.value);
+};
+
+const compareArrays = async (orig, clone) => {
+  assert_equals(orig.length, 1);
+  assert_equals(clone.length, 1);
+
+  return await compareCloneToOrig(orig[0], clone[0]);
+};
+
+const randomLetters = n => {
+  const chars = "abcd";
+  const someLetter = () => chars[Math.floor(Math.random() * chars.length)];
+  return Array(n).fill().map(someLetter).join("");
+};
+
+// FileList - exposed in Workers, but not constructable.
+if ("document" in self) {
+  const addTestCases = (dataName, dataGenerator) => {
+    const fileListStatic = makeFileList(
+      Array(fileListSize).fill(dataGenerator)
+    );
+
+    addCloneTest(
+      "Serialize filelist containing " + dataName,
+      fileListStatic,
+      compareCloneToOrig
+    );
+
+    addCloneTest(
+      "Serialize object with filelist containing " + dataName,
+      { value: fileListStatic },
+      compareObjects
+    );
+
+    addCloneTest(
+      "Serialize array with filelist containing " + dataName,
+      [fileListStatic],
+      compareArrays
+    );
+
+    const baseData = dataGenerator();
+
+    // Currently it's legal for the same File to appear in a FileList
+    // multiple times. This was the subject of some brief discussion
+    // at TPAC 2024 and it's possible that as FileList moves entirely
+    // into the HTML spec this may change.
+    // In the meantime we want to make sure we support this case and
+    // that IndexedDB's optimizations related to File-interning
+    // don't break things, although that logic is tested more thoroughly
+    // in test_file_filelist.html
+    const fileListRepeated = makeFileList(
+      Array(fileListSize).fill(() => {
+        return baseData;
+      })
+    );
+
+    addCloneTest(
+      "Serialize filelist containing repeated " + dataName,
+      fileListRepeated,
+      compareCloneToOrig
+    );
+
+    addCloneTest(
+      "Serialize object with filelist containing repeated " + dataName,
+      { value: fileListRepeated },
+      compareObjects
+    );
+
+    addCloneTest(
+      "Serialize array with filelist containing repeated " + dataName,
+      [fileListRepeated],
+      compareArrays
+    );
+  };
+
+  const genString = () => {
+    return [randomLetters(elementSize)];
+  };
+
+  addTestCases("random string", genString);
+
+  const genArray = () => {
+    const array = new Uint32Array(elementSize);
+    crypto.getRandomValues(array);
+    return array;
+  };
+
+  addTestCases("random typed array", genArray);
+
+  const genBlob = () => {
+    const array = new Uint32Array(elementSize);
+    crypto.getRandomValues(array);
+    return [new Blob(array)];
+  };
+
+  addTestCases("random blob", genBlob);
+}
+
+</script>
+</body>
+</html>

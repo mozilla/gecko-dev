@@ -1,0 +1,146 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+<title>Indexed Database Filelist Serialization Blob Sharing Test</title>
+
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+
+<script type="text/javascript">
+  // Arbitrary values chosen to ensure
+  // we have at least a first/middle/last file and a moderate payload size
+  // that we would never choose to store inline
+  // in the structured serialization payload
+  // if we started doing that for small blobs/files.
+  const fileListSize = 3;
+  const elementSize = 100000;
+
+  async function testSteps() {
+    const makeFileList = aFile => {
+      const dataTransfer = new DataTransfer();
+      for (let i = 0; i < fileListSize; ++i) {
+        // Currently it's legal to add the same File
+        // to a FileList multiple times
+        // but this may change in the future;
+        // there was some brief discussion about this at TPAC 2024.
+        dataTransfer.items.add(aFile);
+      }
+
+      return dataTransfer.files;
+    };
+
+    const dbName = window.location.pathname;
+
+    // This is a test of IndexedDB's Blob/File-interning logic
+    // and we expect randomFile to be persisted to disk
+    // by our IndexedDB impl exactly once and so all Files
+    // retrieved from the database should have the same underlying file id.
+    const randomFile = getRandomFile("random.bin", elementSize);
+    const fileId = 1;
+
+    const objectStoreInfo = [
+      {
+        name: "FileLists",
+        options: {},
+        data: { key: "A", fileList: makeFileList(randomFile) },
+      },
+      {
+        name: "Other FileLists",
+        options: {},
+        data: { key: "B", fileList: makeFileList(randomFile) },
+      },
+    ];
+
+    let request = indexedDB.open(dbName, /*version*/ 1);
+    let event = await expectingUpgrade(request);
+    let db = event.target.result;
+    db.onerror = errorHandler;
+
+    // Add filelists in version change transaction
+    for (let info of objectStoreInfo) {
+      let objectStore = db.createObjectStore(info.name, info.options);
+      objectStore.add(info.data.fileList, info.data.key);
+    }
+
+    event = await expectingSuccess(request);
+    db = event.target.result;
+    db.onerror = errorHandler;
+
+    let refResult;
+    let refList;
+    for (let info of objectStoreInfo) {
+      let objectStore = db.transaction([info.name]).objectStore(info.name);
+
+      event = await expectingSuccess(objectStore.get(info.data.key));
+      let result = event.target.result;
+
+      if (!refList) {
+        refList = result;
+      }
+
+      const expectedLength = info.data.fileList.length;
+      is(result.length, expectedLength, "Do filelist lengths match?");
+      for (let i = 0; i < result.length; ++i) {
+        await verifyBlobAsync(result.item(i), randomFile, fileId);
+
+        if (!refResult) {
+          refResult = result.item(i);
+          continue;
+        }
+
+        is(
+          getFilePath(result.item(i)),
+          getFilePath(refResult),
+          "The same os file"
+        );
+      }
+    }
+
+    // Add filelist in a regular read-write transaction
+    for (let i = 0; i < objectStoreInfo.length; i++) {
+      let info = objectStoreInfo[i];
+
+      let objectStore = db
+        .transaction([info.name], "readwrite")
+        .objectStore(info.name);
+
+      request = objectStore.add(refList, "C");
+      event = await expectingSuccess(request);
+
+      is(event.target.result, "C", "Got correct key");
+
+      request = objectStore.get("C");
+      event = await expectingSuccess(request);
+
+      let result = event.target.result;
+      const expectedLength = info.data.fileList.length;
+      is(result.length, expectedLength, "Do filelist lengths match?");
+      for (let i = 0; i < result.length; ++i) {
+        await verifyBlobAsync(result.item(i), randomFile, fileId);
+
+        is(
+          getFilePath(result.item(i)),
+          getFilePath(refResult),
+          "The same os file"
+        );
+      }
+    }
+
+    // Two object store infos * two file lists * three items plus
+    // original file called randomFile
+    is(bufferCache.length, 13, "Correct length");
+  }
+</script>
+<script type="text/javascript" src="file.js"></script>
+<script type="text/javascript" src="helpers.js"></script>
+
+</head>
+
+<body onload="runTest()">
+</body>
+
+</html>
