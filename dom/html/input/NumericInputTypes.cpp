@@ -79,13 +79,9 @@ bool NumericInputTypeBase::ConvertNumberToString(
   MOZ_ASSERT(aValue.isFinite(), "aValue must be a valid non-Infinite number.");
 
   aResultString.Truncate();
+  aResultString.AssignASCII(aValue.toString().c_str());
 
-  char buf[32];
-  bool ok = aValue.toString(buf, ArrayLength(buf));
-  aResultString.AssignASCII(buf);
-  MOZ_ASSERT(ok, "buf not big enough");
-
-  return ok;
+  return true;
 }
 
 /* input type=number */

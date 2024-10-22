@@ -974,19 +974,6 @@ String Decimal::toString() const
     return builder.toString();
 }
 
-bool Decimal::toString(char* strBuf, size_t bufLength) const
-{
-  ASSERT(bufLength > 0);
-  String str = toString();
-  size_t length = str.copy(strBuf, bufLength);
-  if (length < bufLength) {
-    strBuf[length] = '\0';
-    return true;
-  }
-  strBuf[bufLength - 1] = '\0';
-  return false;
-}
-
 Decimal Decimal::zero(Sign sign)
 {
     return Decimal(EncodedData(sign, EncodedData::ClassZero));

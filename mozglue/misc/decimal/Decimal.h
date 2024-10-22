@@ -222,7 +222,6 @@ public:
     MFBT_API double toDouble() const;
     // Note: toString method supports infinity and nan but fromString not.
     MFBT_API std::string toString() const;
-    MFBT_API bool toString(char* strBuf, size_t bufLength) const;
 
     static MFBT_API Decimal fromDouble(double);
     // fromString supports following syntax EBNF:
