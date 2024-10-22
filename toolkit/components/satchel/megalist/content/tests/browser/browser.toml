@@ -5,6 +5,8 @@ support-files = [
   "head.js",
 ]
 
+["browser_passwords_empty.js"]
+
 ["browser_passwords_filter.js"]
 
 ["browser_passwords_sidebar.js"]

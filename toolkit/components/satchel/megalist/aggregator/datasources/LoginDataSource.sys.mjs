@@ -624,7 +624,7 @@ export class LoginDataSource extends DataSourceBase {
         login.password.toUpperCase().includes(searchText)
     );
 
-    this.#header.value.statsTotal = stats.total;
+    this.#header.value.count = stats.count;
   }
 
   /**

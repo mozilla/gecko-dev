@@ -275,7 +275,8 @@ virtualized-list {
 }
 
 /* Password Card styles */
-password-card {
+password-card,
+.empty-state-card {
   margin-block: var(--space-small);
 }
 
@@ -336,4 +337,14 @@ password-card {
 
 .selected::part(button) {
   background-color: var(--button-background-color-active);
+}
+
+.no-logins-card-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+
+  > moz-button {
+    width: 100%
+  }
 }

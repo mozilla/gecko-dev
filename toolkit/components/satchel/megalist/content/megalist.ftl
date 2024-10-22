@@ -247,6 +247,24 @@ hide-password-button =
   .aria-label = Hide Password
   .title = Hide Password
 
+# The message displayed when the search text does not match any of the user's saved logins.
+passwords-no-passwords-found-header =
+  .heading = No passwords found
+passwords-no-passwords-found-message = Try a different search term and try again.
+
+## When the user has no saved passwords, we display the following messages to inform the user they can save
+## their passwords safely and securely in Firefox:
+
+# This string encourages the user to save their passwords in Firefox (the "safe spot").
+passwords-no-passwords-header = Save your passwords to a safe spot.
+# This string informs that we (Firefox) store all passwords securely and will notify them of any breaches and alerts their
+# passwords may be involved in.
+passwords-no-passwords-message = All passwords are encrypted and we’ll watch out for breaches and alerts if you’re affected.
+# This string encourages the user to save their passwords to Firefox again.
+passwords-no-passwords-get-started-message = Add them here to get started.
+# This string is displayed in a button. If the user clicks it, they will be taken to a form to create a new password.
+passwords-add-manually = Add manually
+
 ## Payments
 
 payments-command-create = Add Payment Method

@@ -11,7 +11,7 @@ const EXPECTED_SNAPSHOTS_DATA = [
   // header data
   {
     lineIndex: 0,
-    value: { total: 3, alerts: 0, statsTotal: 3 },
+    value: { total: 3, alerts: 0, count: 3 },
     field: undefined,
   },
 

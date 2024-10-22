@@ -207,7 +207,63 @@ export class MegalistAlpha extends MozLitElement {
             ${this.records.map(record => this.renderListItem(record))}
           </div>
         `
-      : "";
+      : this.renderEmptyState();
+  }
+
+  renderEmptyState() {
+    if (this.header) {
+      const { total, count } = this.header.value;
+      if (!total) {
+        return this.renderNoLoginsCard();
+      } else if (!count) {
+        return this.renderEmptySearchResults();
+      }
+    }
+
+    return "";
+  }
+
+  renderNoLoginsCard() {
+    return html`
+      <moz-card class="empty-state-card">
+        <div class="no-logins-card-content">
+          <strong
+            class="no-logins-card-heading"
+            data-l10n-id="passwords-no-passwords-header"
+          ></strong>
+          <p data-l10n-id="passwords-no-passwords-message"></p>
+          <p data-l10n-id="passwords-no-passwords-get-started-message"></p>
+          <div class="no-logins-card-buttons">
+            <moz-button
+              data-l10n-id="passwords-command-import-from-browser"
+              type="primary"
+              @click=${() => this.#sendCommand("ImportFromBrowser")}
+            ></moz-button>
+            <moz-button
+              data-l10n-id="passwords-command-import"
+              @click=${() => this.#sendCommand("Import")}
+            ></moz-button>
+            <moz-button
+              data-l10n-id="passwords-add-manually"
+              @click=${() => {}}
+            ></moz-button>
+          </div>
+        </div>
+      </moz-card>
+    `;
+  }
+
+  renderEmptySearchResults() {
+    return html` <moz-card
+      class="empty-state-card"
+      data-l10n-id="passwords-no-passwords-found-header"
+      data-l10n-attrs="heading"
+    >
+      <div
+        class="empty-search-results"
+        data-l10n-id="passwords-no-passwords-found-message"
+      ></div>
+    </moz-card>`;
   }
 
   renderSearch() {
