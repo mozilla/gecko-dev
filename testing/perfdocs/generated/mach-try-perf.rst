@@ -166,6 +166,45 @@ After you have pasted the json values, press the ``Trigger`` button.
 
 Ideally, you should be able to use compare view to be more specific in the retriggers you do for tasks/tests that show a difference that they want to double-check.
 
+
+Add extra-arguments/options to try run
+--------------------------------------
+
+To add additional arguments to a try tun, there are several approaches you can consider:
+
+
+Use Treeherder
+^^^^^^^^^^^^^^
+
+This method assumes that you already have the job that has been run and you want to run it again, but this time to add extra options as well. First select the task that you want to add extra options:
+
+ .. image:: ./th_select_task.png
+    :width: 300
+
+Then, click the three dots icon in the task action bar and select ``Custom Action``:
+
+ .. image:: ./th_custom_action.png
+    :width: 300
+
+A window will open where you need to select ``raptor-extra-options``. There you can add all the options you need (e.g. extra_options: 'verbose browser-cycles=3'). After finishing, press the ``Trigger`` button.
+
+ .. image:: ./th_raptor_extra_option.png
+    :width: 500
+
+Modify the yml file
+^^^^^^^^^^^^^^^^^^^
+
+This method involves identifying the YML file that contains the test you are interested in and modifying or adding the extra-options key. Under this key you can add all the parameters you desire.
+
+ .. image:: ./extra-options.png
+    :width: 500
+
+Use extra-args option
+^^^^^^^^^^^^^^^^^^^^^
+
+An alternative method is to utilize the ``--extra-args`` argument to try perf command (e.g. --extra-args verbose post-startup-delay=1).
+
+
 .. _Running Alert Tests:
 
 Running Alert Tests
