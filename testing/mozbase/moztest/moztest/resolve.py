@@ -382,6 +382,12 @@ TEST_SUITES = {
         "mach_command": "android-test",
         "kwargs": {"subproject": "focus"},
     },
+    "android-components": {
+        "aliases": ("ac",),
+        "build_flavor": "android-components",
+        "mach_command": "android-test",
+        "kwargs": {"subproject": "android-components"},
+    },
     "geckoview": {
         "aliases": ("gv",),
         "build_flavor": "geckoview",
@@ -446,6 +452,7 @@ _test_flavors = {
     "xpcshell": "xpcshell",
     "fenix": "fenix",
     "focus": "focus",
+    "android-components": "android-components",
     "geckoview": "geckoview",
 }
 
@@ -659,6 +666,7 @@ class TestResolver(MozbuildObject):
         # These suites aren't registered in moz.build so require special handling.
         self._puppeteer_loaded = False
         self._fenix_loaded = False
+        self._ac_loaded = False
         self._focus_loaded = False
         self._geckoview_junit_loaded = False
         self._tests_loaded = False
@@ -840,6 +848,11 @@ class TestResolver(MozbuildObject):
         ):
             self.add_focus_manifest_data()
 
+        if flavor in ("", "android-components", None) and (
+            any(self.is_ac_path(p) for p in paths) or paths == [None]
+        ):
+            self.add_ac_manifest_data()
+
         if flavor in ("", "geckoview", "junit", None) and (
             any(self.is_geckoview_junit_path(p) for p in paths) or paths == [None]
         ):
@@ -898,6 +911,11 @@ class TestResolver(MozbuildObject):
         if path is None:
             return True
         return mozpath.match(path, "mobile/android/focus-android/**")
+
+    def is_ac_path(self, path):
+        if path is None:
+            return True
+        return mozpath.match(path, "mobile/android/android-components/**")
 
     def is_geckoview_junit_path(self, path):
         if path is None:
@@ -1000,6 +1018,39 @@ class TestResolver(MozbuildObject):
                     )
 
         self._focus_loaded = True
+
+    def add_ac_manifest_data(self):
+        if self._ac_loaded:
+            return
+
+        self._reset_state()
+
+        test_path = os.path.join(
+            self.topsrcdir, "mobile", "android", "android-components"
+        )
+
+        test_subdir_path = os.path.join("src", "test", "java")
+        for root, dirs, paths in os.walk(test_path):
+            if test_subdir_path in root:
+                for filename in fnmatch.filter(paths, "*.kt"):
+                    path = os.path.join(root, filename)
+                    self._tests.append(
+                        {
+                            "path": os.path.abspath(path),
+                            "flavor": "android-components",
+                            "here": os.path.dirname(path),
+                            "manifest": None,
+                            "name": path,
+                            "file_relpath": path,
+                            "head": "",
+                            "support-files": "",
+                            "subsuite": "",
+                            "dir_relpath": os.path.dirname(path),
+                            "srcdir_relpath": path,
+                        }
+                    )
+
+        self._ac_loaded = True
 
     def add_geckoview_junit_manifest_data(self):
         if self._geckoview_junit_loaded:
