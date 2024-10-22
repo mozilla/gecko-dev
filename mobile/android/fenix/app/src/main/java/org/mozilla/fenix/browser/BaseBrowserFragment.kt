@@ -1590,10 +1590,10 @@ abstract class BaseBrowserFragment :
             ),
             onCFRShown = {
                 NavigationBar.navigationButtonsCfrShown.record(NoExtras())
-            },
-            onDismiss = {
                 context.settings().shouldShowNavigationButtonsCFR = false
                 context.settings().lastCfrShownTimeInMillis = System.currentTimeMillis()
+            },
+            onDismiss = {
                 NavigationBar.navigationButtonsCfrDismissed.record(NoExtras())
             },
             text = {
