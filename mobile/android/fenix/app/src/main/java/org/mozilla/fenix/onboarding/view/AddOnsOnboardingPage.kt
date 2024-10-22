@@ -44,11 +44,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.startActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
+import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private const val MINIMUM_SCREEN_HEIGHT_FOR_IMAGE = 640
@@ -102,13 +104,22 @@ fun AddOnsOnboardingPage(pageState: OnboardingAddOnsPageState) {
 
 @Composable
 private fun MoreExtensionsLink() {
+    val context = LocalContext.current
+    val url = SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
+
     LinkText(
         text = stringResource(R.string.onboarding_add_on_explore_more_extensions_2),
         linkTextStates = listOf(
             LinkTextState(
                 text = stringResource(R.string.onboarding_add_on_explore_more_extensions_2),
-                url = "",
-                onClick = {},
+                url = url,
+                onClick = {
+                    val intent = SupportUtils.createSandboxCustomTabIntent(
+                        context = context,
+                        url = url,
+                    )
+                    startActivity(context, intent, null)
+                },
             ),
         ),
     )
