@@ -1338,19 +1338,9 @@ bool IsDirectoryLockBlockedByUninitStorageOperation(
                                   DirectoryLockCategory::UninitStorage);
 }
 
-bool IsDirectoryLockBlockedBy(
-    const RefPtr<UniversalDirectoryLock>& aDirectoryLock,
-    const EnumSet<DirectoryLockCategory>& aCategories) {
-  const auto locks = aDirectoryLock->LocksMustWaitFor();
-  return std::any_of(locks.cbegin(), locks.cend(),
-                     [&aCategories](const auto& lock) {
-                       return aCategories.contains(lock->Category());
-                     });
-}
-
 bool IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation(
-    const RefPtr<UniversalDirectoryLock>& aDirectoryLock) {
-  return IsDirectoryLockBlockedBy(aDirectoryLock,
+    const DirectoryLockImpl::PrepareInfo& aPrepareInfo) {
+  return IsDirectoryLockBlockedBy(aPrepareInfo,
                                   {DirectoryLockCategory::UninitStorage,
                                    DirectoryLockCategory::UninitOrigins});
 }
@@ -5764,6 +5754,8 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
       OriginScope::FromOrigin(principalMetadata), Nullable<Client::Type>(),
       /* aExclusive */ false);
 
+  auto prepareInfo = directoryLock->Prepare();
+
   // If persistent origin is initialized but there's a clear storage, shutdown
   // storage, clear origin, or shutdown origin operation already scheduled, we
   // can't immediately resolve the promise and return from the function because
@@ -5772,21 +5764,22 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
   // operations uninitialize origins directly.
   if (IsPersistentOriginInitialized(aPrincipalInfo) &&
       !IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation(
-          directoryLock)) {
+          prepareInfo)) {
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
-  return directoryLock->Acquire()->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [self = RefPtr(this), aPrincipalInfo,
-       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-        if (aValue.IsReject()) {
-          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
-        }
+  return directoryLock->Acquire(std::move(prepareInfo))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [self = RefPtr(this), aPrincipalInfo, directoryLock](
+                 const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+               if (aValue.IsReject()) {
+                 return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                     __func__);
+               }
 
-        return self->InitializePersistentOrigin(aPrincipalInfo,
-                                                std::move(directoryLock));
-      });
+               return self->InitializePersistentOrigin(
+                   aPrincipalInfo, std::move(directoryLock));
+             });
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializePersistentOrigin(
@@ -5935,6 +5928,8 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
       OriginScope::FromOrigin(principalMetadata), Nullable<Client::Type>(),
       /* aExclusive */ false);
 
+  auto prepareInfo = directoryLock->Prepare();
+
   // If temporary origin is initialized but there's a clear storage, shutdown
   // storage, clear origin, or shutdown origin operation already scheduled, we
   // can't immediately resolve the promise and return from the function because
@@ -5943,23 +5938,24 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
   // operations uninitialize origins directly.
   if (IsTemporaryOriginInitialized(aPersistenceType, aPrincipalInfo) &&
       !IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation(
-          directoryLock)) {
+          prepareInfo)) {
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
-  return directoryLock->Acquire()->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [self = RefPtr(this), aPersistenceType, aPrincipalInfo,
-       aCreateIfNonExistent,
-       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-        if (aValue.IsReject()) {
-          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
-        }
+  return directoryLock->Acquire(std::move(prepareInfo))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [self = RefPtr(this), aPersistenceType, aPrincipalInfo,
+              aCreateIfNonExistent, directoryLock](
+                 const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+               if (aValue.IsReject()) {
+                 return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                     __func__);
+               }
 
-        return self->InitializeTemporaryOrigin(aPersistenceType, aPrincipalInfo,
-                                               aCreateIfNonExistent,
-                                               std::move(directoryLock));
-      });
+               return self->InitializeTemporaryOrigin(
+                   aPersistenceType, aPrincipalInfo, aCreateIfNonExistent,
+                   std::move(directoryLock));
+             });
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializeTemporaryOrigin(
