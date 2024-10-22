@@ -7340,8 +7340,8 @@ void HTMLMediaElement::DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
 }
 
 bool HTMLMediaElement::IsEventAttributeNameInternal(nsAtom* aName) {
-  return aName == nsGkAtoms::onencrypted ||
-         nsGenericHTMLElement::IsEventAttributeNameInternal(aName);
+  return nsContentUtils::IsEventAttributeName(
+      aName, EventNameType_HTML | EventNameType_HTMLMedia);
 }
 
 void HTMLMediaElement::NotifyWaitingForKey() {

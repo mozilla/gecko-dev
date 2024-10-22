@@ -488,6 +488,10 @@ NS_EVENT_MESSAGE(eToggle)
 NS_EVENT_MESSAGE(eClose)
 NS_EVENT_MESSAGE(eCancel)
 
+// Media element events.
+NS_EVENT_MESSAGE(eEncrypted)
+NS_EVENT_MESSAGE(eWaitingForKey)
+
 NS_EVENT_MESSAGE(eScrollend)
 
 #ifdef UNDEF_NS_EVENT_MESSAGE_FIRST_LAST
