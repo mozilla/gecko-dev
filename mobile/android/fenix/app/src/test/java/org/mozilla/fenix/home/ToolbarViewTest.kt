@@ -25,7 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.databinding.FragmentHomeBinding
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 
@@ -103,7 +103,7 @@ class ToolbarViewTest {
 
     @Test
     fun `GIVEN device is tablet WHEN updateLayout is called THEN tab counter and menu are visible and initialized`() {
-        every { testContext.isTablet() } returns true
+        every { testContext.isLargeWindow() } returns true
 
         every { testContext.settings().navigationToolbarEnabled } returns false
 

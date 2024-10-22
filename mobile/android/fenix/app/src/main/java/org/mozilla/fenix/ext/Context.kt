@@ -23,6 +23,7 @@ import org.mozilla.fenix.components.metrics.MetricController
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.settings.advanced.getSelectedLocale
 import org.mozilla.fenix.theme.AcornWindowSize
+import org.mozilla.fenix.utils.isLargeScreenSize
 import java.lang.String.format
 import java.util.Locale
 
@@ -149,9 +150,13 @@ fun Context.tabClosedUndoMessage(private: Boolean): String =
     }
 
 /**
- * Returns true if the device is a tablet
+ * Helper function used to determine whether the app's total *window* size is at least that of a tablet.
+ * This relies on the window size check from [AcornWindowSize]. To determine whether the device's
+ * *physical* size is at least the size of a tablet, use [Context.isLargeScreenSize] instead.
+ *
+ * @return true if the app has a large window size akin to a tablet.
  */
-fun Context.isTablet(): Boolean = AcornWindowSize.isTablet(this)
+fun Context.isLargeWindow(): Boolean = AcornWindowSize.isLargeWindow(this)
 
 /**
  *  This will record an event in the Nimbus internal event store. Used for behavioral targeting.

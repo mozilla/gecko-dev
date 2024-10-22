@@ -28,7 +28,7 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.ThemeManager
 
@@ -215,7 +215,7 @@ class DefaultToolbarIntegration(
     }
 
     private fun buildTabCounterMenu(): TabCounterMenu? =
-        when ((context.settings().navigationToolbarEnabled && context.isTablet())) {
+        when ((context.settings().navigationToolbarEnabled && context.isLargeWindow())) {
             true -> null
             false -> FenixTabCounterMenu(
                 context = context,

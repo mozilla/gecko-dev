@@ -35,7 +35,7 @@ import org.mozilla.fenix.components.toolbar.navbar.updateNavBarForConfigurationC
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.databinding.TabPreviewBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.ThemeManager
@@ -68,7 +68,7 @@ class TabPreview @JvmOverloads constructor(
         val isNavBarVisible = context.shouldAddNavigationBar()
         val isNavBarEnabled = context.settings().navigationToolbarEnabled
         val isLandscape = context.isLandscape()
-        val isTablet = context.isTablet()
+        val isTablet = context.isLargeWindow()
         val isToolbarAtTop = context.settings().toolbarPosition == ToolbarPosition.TOP
 
         binding.fakeToolbar.isVisible = !isNavBarEnabled
@@ -175,7 +175,7 @@ class TabPreview @JvmOverloads constructor(
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         if (context.settings().navigationToolbarEnabled) {
-            val isTablet = context.isTablet()
+            val isTablet = context.isLargeWindow()
             val isLandscape = context.isLandscape()
 
             initNavBarLandscapeChanges(isTablet || isLandscape)

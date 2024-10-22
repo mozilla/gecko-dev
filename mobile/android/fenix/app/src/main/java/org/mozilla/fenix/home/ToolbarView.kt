@@ -24,7 +24,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.increaseTapAreaVertically
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.toolbar.ToolbarInteractor
 import org.mozilla.fenix.utils.ToolbarPopupWindow
@@ -118,7 +118,7 @@ class ToolbarView(
         browsingModeManager = homeActivity.browsingModeManager,
         navController = homeFragment.findNavController(),
         tabCounter = binding.tabButton,
-        showLongPressMenu = !(context.settings().navigationToolbarEnabled && context.isTablet()),
+        showLongPressMenu = !(context.settings().navigationToolbarEnabled && context.isLargeWindow()),
     )
 
     /**
@@ -206,7 +206,7 @@ class ToolbarView(
     private fun updateMargins() {
         if (context.settings().navigationToolbarEnabled) {
             val marginStart = context.resources.getDimensionPixelSize(R.dimen.toolbar_horizontal_margin)
-            val marginEnd = if (context.isLandscape() || context.isTablet()) {
+            val marginEnd = if (context.isLandscape() || context.isLargeWindow()) {
                 context.resources.getDimensionPixelSize(R.dimen.home_item_horizontal_short_margin)
             } else {
                 context.resources.getDimensionPixelSize(R.dimen.home_item_horizontal_margin)

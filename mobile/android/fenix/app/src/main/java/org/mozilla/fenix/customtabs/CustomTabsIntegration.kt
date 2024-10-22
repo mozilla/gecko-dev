@@ -42,7 +42,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.utils.Settings
 
@@ -200,7 +200,7 @@ class CustomTabsIntegration(
             updateAddressBarNavigationActions(
                 context = context,
                 isLandscape = orientation == OrientationMode.Landscape,
-                isTablet = context.isTablet(),
+                isTablet = context.isLargeWindow(),
             )
 
             browserToolbarView.updateMenuVisibility(

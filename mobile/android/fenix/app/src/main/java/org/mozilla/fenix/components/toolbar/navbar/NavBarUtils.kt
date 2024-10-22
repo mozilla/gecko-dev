@@ -11,7 +11,7 @@ import mozilla.components.support.utils.ext.isLandscape
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.toolbar.ToolbarContainerView
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 
 /**
@@ -20,7 +20,7 @@ import org.mozilla.fenix.ext.settings
  * NB: don't use it with the app context – it doesn't get recreated when a foldable changes its modes.
  */
 fun Context.shouldAddNavigationBar() = settings().navigationToolbarEnabled && !isLandscape() &&
-    !isTablet() && !isTabStripEnabled()
+    !isLargeWindow() && !isTabStripEnabled()
 
 /**
  *

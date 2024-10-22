@@ -47,7 +47,7 @@ import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarIntegration
 import org.mozilla.fenix.ext.application
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.onboarding.FenixOnboarding
@@ -398,11 +398,11 @@ class BrowserFragmentTest {
         mockkStatic(AppCompatResources::class)
         every { AppCompatResources.getDrawable(context, any()) } returns mockk()
 
-        every { browserFragment.isTablet() } returns true
+        every { browserFragment.isLargeWindow() } returns true
         browserFragment.onConfigurationChanged(mockk(relaxed = true))
         verify(exactly = 3) { browserToolbar.addNavigationAction(any()) }
 
-        every { browserFragment.isTablet() } returns false
+        every { browserFragment.isLargeWindow() } returns false
         browserFragment.onConfigurationChanged(mockk(relaxed = true))
         verify(exactly = 3) { browserToolbar.removeNavigationAction(any()) }
 
@@ -427,7 +427,7 @@ class BrowserFragmentTest {
         mockkStatic(AppCompatResources::class)
         every { AppCompatResources.getDrawable(context, any()) } returns mockk()
 
-        every { browserFragment.isTablet() } returns true
+        every { browserFragment.isLargeWindow() } returns true
         browserFragment.onConfigurationChanged(mockk(relaxed = true))
         verify(exactly = 3) { browserToolbar.addNavigationAction(any()) }
 
@@ -455,7 +455,7 @@ class BrowserFragmentTest {
         mockkStatic(AppCompatResources::class)
         every { AppCompatResources.getDrawable(context, any()) } returns mockk()
 
-        every { browserFragment.isTablet() } returns false
+        every { browserFragment.isLargeWindow() } returns false
         browserFragment.onConfigurationChanged(mockk(relaxed = true))
         verify(exactly = 0) { browserToolbar.addNavigationAction(any()) }
         verify(exactly = 0) { browserToolbar.removeNavigationAction(any()) }

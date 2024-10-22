@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.mozilla.fenix.utils.isLargeScreenSize
 
 /**
  * The baseline dimension primitives for size, space, and window size.
@@ -320,23 +321,27 @@ enum class AcornWindowSize(
         )
 
         /**
-         * Helper function used to determine when the user's device is at least the size of a tablet.
+         * Helper function used to determine when the app's total *window* size is at least the
+         * size of a tablet. To determine whether the device's *physical* size is at least
+         * the size of a tablet, use [Context.isLargeScreenSize] instead.
          *
-         * @return The [AcornWindowSize] that corresponds to the current window width.
+         * @return true if the app has a window size that is not [AcornWindowSize.Small].
          */
         @Composable
-        fun isTablet(): Boolean = getWindowSizeToken(
+        fun isLargeWindow(): Boolean = getWindowSizeToken(
             configuration = LocalConfiguration.current,
             measureUsingAllScreenEdges = true,
         ).isNotSmall()
 
         /**
-         * Helper function used to determine when the user's device is at least the size of a tablet.
+         * Helper function used to determine when the app's total *window* size is at least the
+         * size of a tablet. To determine whether the device's *physical* size is at least
+         * the size of a tablet, use [Context.isLargeScreenSize] instead.
          *
          * @param context [Context] used to obtain the current [Configuration].
-         * @return The [AcornWindowSize] that corresponds to the current window width.
+         * @return true if the app has a window size that is not [AcornWindowSize.Small].
          */
-        fun isTablet(context: Context): Boolean = getWindowSizeToken(
+        fun isLargeWindow(context: Context): Boolean = getWindowSizeToken(
             configuration = context.resources.configuration,
             measureUsingAllScreenEdges = true,
         ).isNotSmall()

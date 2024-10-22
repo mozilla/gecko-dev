@@ -37,7 +37,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
 
@@ -149,7 +149,7 @@ class BrowserToolbarCFRPresenterTest {
      */
     private fun createPresenterThatShowsCFRs(
         context: Context = mockk {
-            every { isTablet() } returns false
+            every { isLargeWindow() } returns false
         },
         anchor: View = mockk(),
         browserStore: BrowserStore = mockk(),

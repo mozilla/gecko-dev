@@ -48,7 +48,7 @@ import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.isTablet
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
@@ -111,7 +111,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             context = context,
             redesignEnabled = context.settings().navigationToolbarEnabled,
             isLandscape = context.isLandscape(),
-            isTablet = isTablet(),
+            isTablet = isLargeWindow(),
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
             feltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
         )
@@ -524,7 +524,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
             context = requireContext(),
             redesignEnabled = requireContext().settings().navigationToolbarEnabled,
             isLandscape = requireContext().isLandscape(),
-            isTablet = isTablet(),
+            isTablet = isLargeWindow(),
             isPrivate = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
             feltPrivateBrowsingEnabled = requireContext().settings().feltPrivateBrowsingEnabled,
         )

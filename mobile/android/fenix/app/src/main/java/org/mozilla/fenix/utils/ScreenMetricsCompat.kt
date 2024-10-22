@@ -12,6 +12,7 @@ import android.util.Size
 import android.view.WindowManager
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
+import org.mozilla.fenix.ext.isLargeWindow
 import kotlin.math.min
 
 private const val LARGE_SCREEN_THRESHOLD_DP = 600
@@ -19,6 +20,8 @@ private const val LARGE_SCREEN_THRESHOLD_DP = 600
 /**
  * Returns true if the device has a large screen size. This is determined by the smallest width
  * of the screen (not window). This value will not change over the course of the app's lifecycle.
+ * To determine whether the app's window size is at least that of a tablet, consider using
+ * [Context.isLargeWindow] instead.
  */
 fun Context.isLargeScreenSize(): Boolean =
     smallestScreenWidthDp() >= LARGE_SCREEN_THRESHOLD_DP

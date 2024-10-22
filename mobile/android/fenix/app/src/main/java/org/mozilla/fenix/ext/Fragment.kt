@@ -149,8 +149,8 @@ fun Fragment.registerForActivityResult(
 /**
  *  Checks whether the current fragment is running on a tablet.
  */
-fun Fragment.isTablet(): Boolean {
-    return requireContext().isTablet()
+fun Fragment.isLargeWindow(): Boolean {
+    return requireContext().isLargeWindow()
 }
 
 /**
