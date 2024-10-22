@@ -484,7 +484,7 @@ class PuppeteerRunner(MozbuildObject):
             "test",
             "--",
             "--shard",
-            "'" + this_chunk + "-" + total_chunks + "'",
+            f"{this_chunk}-{total_chunks}",
             "--test-suite",
             test_command,
         ] + mocha_options
