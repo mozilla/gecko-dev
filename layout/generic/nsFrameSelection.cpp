@@ -720,7 +720,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
     return NS_ERROR_NULL_POINTER;
   }
 
-  int32_t scrollFlags = Selection::SCROLL_FOR_CARET_MOVE;
+  int32_t scrollFlags = 0;
   if (sel->IsEditorSelection()) {
     // If caret moves in editor, it should cause scrolling even if it's in
     // overflow: hidden;.
@@ -1653,9 +1653,6 @@ nsresult nsFrameSelection::ScrollSelectionIntoView(SelectionType aSelectionType,
   if (aFlags & nsISelectionController::SCROLL_OVERFLOW_HIDDEN) {
     flags |= Selection::SCROLL_OVERFLOW_HIDDEN;
   }
-  if (aFlags & nsISelectionController::SCROLL_FOR_CARET_MOVE) {
-    flags |= Selection::SCROLL_FOR_CARET_MOVE;
-  }
 
   // After ScrollSelectionIntoView(), the pending notifications might be
   // flushed and PresShell/PresContext/Frames may be dead. See bug 418470.
@@ -1860,8 +1857,7 @@ nsresult nsFrameSelection::PageMove(bool aForward, bool aExtend,
   }
   return ScrollSelectionIntoView(
       SelectionType::eNormal, nsISelectionController::SELECTION_FOCUS_REGION,
-      nsISelectionController::SCROLL_SYNCHRONOUS |
-          nsISelectionController::SCROLL_FOR_CARET_MOVE);
+      nsISelectionController::SCROLL_SYNCHRONOUS);
 }
 
 nsresult nsFrameSelection::PhysicalMove(int16_t aDirection, int16_t aAmount,

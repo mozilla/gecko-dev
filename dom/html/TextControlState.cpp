@@ -669,12 +669,9 @@ TextInputSelectionController::PageMove(bool aForward, bool aExtend) {
   // Similarly, if there is no scrollable frame, we should move the editor
   // frame into the view for making it clearer which element handles
   // PageDown/PageUp.
-  return ScrollSelectionIntoView(
-      nsISelectionController::SELECTION_NORMAL,
-      nsISelectionController::SELECTION_FOCUS_REGION,
-      nsISelectionController::ControllerScrollFlags(
-          nsISelectionController::SCROLL_SYNCHRONOUS |
-          nsISelectionController::SCROLL_FOR_CARET_MOVE));
+  return ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
+                                 nsISelectionController::SELECTION_FOCUS_REGION,
+                                 nsISelectionController::SCROLL_SYNCHRONOUS);
 }
 
 NS_IMETHODIMP
