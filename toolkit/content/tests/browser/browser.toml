@@ -40,6 +40,7 @@ fail-if = ["a11y_checks"] # Bug 1854538 clicked browser may not be focusable
 skip-if = [
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64'",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl", # Bug 1710788
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && socketprocess_networking", # Bug 1775543
 ]
 
 ["browser_bug451286.js"]
