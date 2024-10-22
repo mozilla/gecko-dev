@@ -15,6 +15,7 @@ import org.mozilla.fenix.settings.DataChoicesFragment
 import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 import org.mozilla.fenix.ui.robots.notificationShade
+import org.mozilla.fenix.utils.DURATION_MS_TRANSLATIONS
 import org.mozilla.fenix.utils.exitMenu
 
 /**
@@ -108,7 +109,7 @@ class SettingsPrivacyTest : TestSetup() {
         }.openSettingsSubMenuNotifications {
             verifyAllSystemNotificationsToggleState(true)
             verifyPrivateBrowsingSystemNotificationsToggleState(true)
-            exitMenu()
+            exitMenu(DURATION_MS_TRANSLATIONS)
         }
     }
 }
