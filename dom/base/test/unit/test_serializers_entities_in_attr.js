@@ -106,3 +106,23 @@ for (let type of ["xml", "xhtml", "htmlBasic", "html"]) {
     );
   }
 }
+
+// Verify that we don't escape entities in attributes with JS code.
+const docWithJS = new DOMParser().parseFromString("<root></root>", "text/xml");
+const rootWithJS = docWithJS.documentElement;
+const htmlNS = "http://www.w3.org/1999/xhtml";
+const jsCode = "x < 2 || y > 3";
+let div = docWithJS.createElementNS(htmlNS, "div");
+div.setAttribute("href", `javascript:${jsCode}`);
+div.setAttribute("src", `javascript:${jsCode}`);
+div.setAttribute("onclick", jsCode);
+div.setAttribute("onload", jsCode);
+rootWithJS.appendChild(div);
+for (let type of ["xml", "xhtml", "htmlBasic", "html"]) {
+  let str = encoders[type](docWithJS).encodeToString();
+  Assert.equal(
+    str.search("&[a-z]+;"),
+    -1,
+    `${type} encoding does not escape entities in attributes with JS code`
+  );
+}
