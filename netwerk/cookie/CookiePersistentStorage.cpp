@@ -1838,6 +1838,8 @@ void CookiePersistentStorage::InitDBConn() {
       RefPtr<Cookie> invalidCookie =
           Cookie::Create(*tuple.cookie, tuple.originAttributes);
       cleanupCookies.AppendElement(invalidCookie);
+      mozilla::glean::networking::
+          cookie_count_invalid_first_party_partitioned_in_db.Add(1);
       continue;
     }
 
