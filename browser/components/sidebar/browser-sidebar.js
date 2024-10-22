@@ -94,7 +94,7 @@ var SidebarController = {
           keyId: "key_gotoHistory",
           menuL10nId: "menu-view-history-button",
           revampL10nId: "sidebar-menu-history-label",
-          iconUrl: "chrome://browser/content/firefoxview/view-history.svg",
+          iconUrl: "chrome://browser/skin/history.svg",
           contextMenuId: this.sidebarRevampEnabled
             ? "sidebar-history-context-menu"
             : undefined,
@@ -112,7 +112,7 @@ var SidebarController = {
           classAttribute: "sync-ui-item",
           menuL10nId: "menu-view-synced-tabs-sidebar",
           revampL10nId: "sidebar-menu-synced-tabs-label",
-          iconUrl: "chrome://browser/content/firefoxview/view-syncedtabs.svg",
+          iconUrl: "chrome://browser/skin/synced-tabs.svg",
           contextMenuId: this.sidebarRevampEnabled
             ? "sidebar-synced-tabs-context-menu"
             : undefined,
@@ -144,7 +144,7 @@ var SidebarController = {
         menuL10nId: "menu-view-genai-chat",
         // Bug 1900915 to expose as conditional tool
         revampL10nId: "sidebar-menu-genai-chat-label",
-        iconUrl: "chrome://mozapps/skin/extensions/category-discover.svg",
+        iconUrl: "chrome://global/skin/icons/highlights.svg",
       }
     );
 
@@ -179,7 +179,7 @@ var SidebarController = {
       this._sidebars.set("viewCustomizeSidebar", {
         url: "chrome://browser/content/sidebar/sidebar-customize.html",
         revampL10nId: "sidebar-menu-customize-label",
-        iconUrl: "chrome://browser/skin/preferences/category-general.svg",
+        iconUrl: "chrome://global/skin/icons/settings.svg",
         gleanEvent: Glean.sidebarCustomize.panelToggle,
       });
     }
