@@ -251,8 +251,8 @@ nsresult nsCoreUtils::ScrollSubstringTo(nsIFrame* aFrame, nsRange* aRange,
   selection->AddRangeAndSelectFramesAndNotifyListeners(*aRange, IgnoreErrors());
 
   selection->ScrollIntoView(nsISelectionController::SELECTION_ANCHOR_REGION,
-                            aVertical, aHorizontal,
-                            Selection::SCROLL_SYNCHRONOUS);
+                            aVertical, aHorizontal, ScrollFlags::None,
+                            SelectionScrollMode::SyncNoFlush);
 
   selection->CollapseToStart(IgnoreErrors());
 

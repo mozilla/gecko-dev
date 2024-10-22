@@ -3635,19 +3635,20 @@ nsIFrame* Selection::GetSelectionEndPointGeometry(SelectionRegion aRegion,
 
 NS_IMETHODIMP
 Selection::ScrollSelectionIntoViewEvent::Run() {
-  if (!mSelection) return NS_OK;  // event revoked
-
-  int32_t flags = Selection::SCROLL_DO_FLUSH | Selection::SCROLL_SYNCHRONOUS;
+  if (!mSelection) {
+    // event revoked
+    return NS_OK;
+  }
 
   const RefPtr<Selection> selection{mSelection};
   selection->mScrollEvent.Forget();
-  selection->ScrollIntoView(mRegion, mVerticalScroll, mHorizontalScroll,
-                            mFlags | flags);
+  selection->ScrollIntoView(mRegion, mVerticalScroll, mHorizontalScroll, mFlags,
+                            SelectionScrollMode::SyncFlush);
   return NS_OK;
 }
 
 nsresult Selection::PostScrollSelectionIntoViewEvent(SelectionRegion aRegion,
-                                                     int32_t aFlags,
+                                                     ScrollFlags aFlags,
                                                      ScrollAxis aVertical,
                                                      ScrollAxis aHorizontal) {
   // If we've already posted an event, revoke it and place a new one at the
@@ -3668,7 +3669,8 @@ nsresult Selection::PostScrollSelectionIntoViewEvent(SelectionRegion aRegion,
 
 nsresult Selection::ScrollIntoView(SelectionRegion aRegion,
                                    ScrollAxis aVertical, ScrollAxis aHorizontal,
-                                   int32_t aFlags) {
+                                   ScrollFlags aScrollFlags,
+                                   SelectionScrollMode aMode) {
   if (!mFrameSelection) {
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -3682,9 +3684,13 @@ nsresult Selection::ScrollIntoView(SelectionRegion aRegion,
     return NS_OK;
   }
 
-  if (!(aFlags & Selection::SCROLL_SYNCHRONOUS))
-    return PostScrollSelectionIntoViewEvent(aRegion, aFlags, aVertical,
+  if (aMode == SelectionScrollMode::Async) {
+    return PostScrollSelectionIntoViewEvent(aRegion, aScrollFlags, aVertical,
                                             aHorizontal);
+  }
+
+  MOZ_ASSERT(aMode == SelectionScrollMode::SyncFlush ||
+             aMode == SelectionScrollMode::SyncNoFlush);
 
   // From this point on, the presShell may get destroyed by the calls below, so
   // hold on to it using a strong reference to ensure the safety of the
@@ -3696,7 +3702,7 @@ nsresult Selection::ScrollIntoView(SelectionRegion aRegion,
   // is that some callers might scroll to the wrong place.  Those should
   // either manually flush if they're in a safe position for it or use the
   // async version of this method.
-  if (aFlags & Selection::SCROLL_DO_FLUSH) {
+  if (aMode == SelectionScrollMode::SyncFlush) {
     presShell->GetDocument()->FlushPendingNotifications(FlushType::Layout);
 
     // Reget the presshell, since it might have been Destroy'ed.
@@ -3706,29 +3712,18 @@ nsresult Selection::ScrollIntoView(SelectionRegion aRegion,
     }
   }
 
-  //
-  // Scroll the selection region into view.
-  //
-
   nsRect rect;
   nsIFrame* frame = GetSelectionAnchorGeometry(aRegion, &rect);
-  if (!frame) return NS_ERROR_FAILURE;
+  if (!frame) {
+    return NS_ERROR_FAILURE;
+  }
 
   // Scroll vertically to get the caret into view, but only if the container
   // is perceived to be scrollable in that direction (i.e. there is a visible
   // vertical scrollbar or the scroll range is at least one device pixel)
   aVertical.mOnlyIfPerceivedScrollableDirection = true;
-
-  auto scrollFlags = ScrollFlags::None;
-  if (aFlags & Selection::SCROLL_FIRST_ANCESTOR_ONLY) {
-    scrollFlags |= ScrollFlags::ScrollFirstAncestorOnly;
-  }
-  if (aFlags & Selection::SCROLL_OVERFLOW_HIDDEN) {
-    scrollFlags |= ScrollFlags::ScrollOverflowHidden;
-  }
-
   presShell->ScrollFrameIntoView(frame, Some(rect), aVertical, aHorizontal,
-                                 scrollFlags);
+                                 aScrollFlags);
   return NS_OK;
 }
 

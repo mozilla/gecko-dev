@@ -54,6 +54,18 @@ class DocGroup;
 
 namespace mozilla {
 
+enum class SelectionScrollMode : uint8_t {
+  // Don't scroll synchronously. We'll flush when the scroll event fires so we
+  // make sure to scroll to the right place.
+  Async,
+  // Scroll synchronously, without flushing layout.
+  SyncNoFlush,
+  // Scroll synchronously, flushing layout. You MUST hold a strong ref on
+  // 'this' for the duration of this call.  This might destroy arbitrary
+  // layout objects.
+  SyncFlush,
+};
+
 namespace dom {
 
 /**
@@ -220,24 +232,14 @@ class Selection final : public nsSupportsWeakReference,
                                          nsRect* aRect);
 
   nsresult PostScrollSelectionIntoViewEvent(SelectionRegion aRegion,
-                                            int32_t aFlags,
+                                            ScrollFlags aFlags,
                                             ScrollAxis aVertical,
                                             ScrollAxis aHorizontal);
-  enum {
-    SCROLL_SYNCHRONOUS = 1 << 1,
-    SCROLL_FIRST_ANCESTOR_ONLY = 1 << 2,
-    SCROLL_DO_FLUSH =
-        1 << 3,  // only matters if SCROLL_SYNCHRONOUS is passed too
-    SCROLL_OVERFLOW_HIDDEN = 1 << 5,
-  };
-  // If aFlags doesn't contain SCROLL_SYNCHRONOUS, then we'll flush when
-  // the scroll event fires so we make sure to scroll to the right place.
-  // Otherwise, if SCROLL_DO_FLUSH is also in aFlags, then this method will
-  // flush layout and you MUST hold a strong ref on 'this' for the duration
-  // of this call.  This might destroy arbitrary layout objects.
-  MOZ_CAN_RUN_SCRIPT nsresult
-  ScrollIntoView(SelectionRegion aRegion, ScrollAxis aVertical = ScrollAxis(),
-                 ScrollAxis aHorizontal = ScrollAxis(), int32_t aFlags = 0);
+
+  MOZ_CAN_RUN_SCRIPT nsresult ScrollIntoView(
+      SelectionRegion, ScrollAxis aVertical = ScrollAxis(),
+      ScrollAxis aHorizontal = ScrollAxis(), ScrollFlags = ScrollFlags::None,
+      SelectionScrollMode = SelectionScrollMode::Async);
 
  private:
   static bool IsUserSelectionCollapsed(
@@ -903,7 +905,7 @@ class Selection final : public nsSupportsWeakReference,
 
     ScrollSelectionIntoViewEvent(Selection* aSelection, SelectionRegion aRegion,
                                  ScrollAxis aVertical, ScrollAxis aHorizontal,
-                                 int32_t aFlags)
+                                 ScrollFlags aFlags)
         : Runnable("dom::Selection::ScrollSelectionIntoViewEvent"),
           mSelection(aSelection),
           mRegion(aRegion),
@@ -919,7 +921,7 @@ class Selection final : public nsSupportsWeakReference,
     SelectionRegion mRegion;
     ScrollAxis mVerticalScroll;
     ScrollAxis mHorizontalScroll;
-    int32_t mFlags;
+    ScrollFlags mFlags;
   };
 
   /**

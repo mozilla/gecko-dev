@@ -769,8 +769,7 @@ nsresult IMEContentObserver::MaybeHandleSelectionEvent(
       mSelectionData.StartOffset() == aEvent->mOffset &&
       mSelectionData.Length() == aEvent->mLength) {
     if (RefPtr<Selection> selection = mSelection) {
-      selection->ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION,
-                                ScrollAxis(), ScrollAxis(), 0);
+      selection->ScrollIntoView(nsISelectionController::SELECTION_FOCUS_REGION);
     }
     aEvent->mSucceeded = true;
     return NS_OK;
