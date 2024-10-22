@@ -4310,7 +4310,7 @@ class FunctionCompiler {
         return false;
       }
       auto* load = MWasmLoadFieldKA::New(
-          alloc(), exception, data, offsets[i], params[i].toMIRType(),
+          alloc(), exception, data, offsets[i], i, params[i].toMIRType(),
           MWideningOp::None, AliasSet::Load(AliasSet::Any));
       if (!load || !values->append(load)) {
         return false;
@@ -4460,9 +4460,9 @@ class FunctionCompiler {
       uint32_t offset = tagType->argOffsets()[i];
 
       if (!type.isRefRepr()) {
-        auto* store = MWasmStoreFieldKA::New(alloc(), exception, data, offset,
-                                             argValues[i], MNarrowingOp::None,
-                                             AliasSet::Store(AliasSet::Any));
+        auto* store = MWasmStoreFieldKA::New(
+            alloc(), exception, data, offset, i, argValues[i],
+            MNarrowingOp::None, AliasSet::Store(AliasSet::Any));
         if (!store) {
           return false;
         }
@@ -4636,7 +4636,8 @@ class FunctionCompiler {
   [[nodiscard]] bool writeGcValueAtBasePlusOffset(
       uint32_t lineOrBytecode, StorageType type, MDefinition* keepAlive,
       AliasSet::Flag aliasBitset, MDefinition* value, MDefinition* base,
-      uint32_t offset, bool needsTrapInfo, WasmPreBarrierKind preBarrierKind) {
+      uint32_t offset, uint32_t fieldIndex, bool needsTrapInfo,
+      WasmPreBarrierKind preBarrierKind) {
     MOZ_ASSERT(aliasBitset != 0);
     MOZ_ASSERT(keepAlive->type() == MIRType::WasmAnyRef);
     MOZ_ASSERT(type.widenToValType().toMIRType() == value->type());
@@ -4648,7 +4649,7 @@ class FunctionCompiler {
         maybeTrap.emplace(getTrapSiteInfo());
       }
       auto* store = MWasmStoreFieldKA::New(
-          alloc(), keepAlive, base, offset, value, narrowingOp,
+          alloc(), keepAlive, base, offset, fieldIndex, value, narrowingOp,
           AliasSet::Store(aliasBitset), maybeTrap);
       if (!store) {
         return false;
@@ -4736,7 +4737,7 @@ class FunctionCompiler {
   [[nodiscard]] MDefinition* readGcValueAtBasePlusOffset(
       StorageType type, FieldWideningOp fieldWideningOp, MDefinition* keepAlive,
       AliasSet::Flag aliasBitset, MDefinition* base, uint32_t offset,
-      bool needsTrapInfo) {
+      uint32_t fieldIndex, bool needsTrapInfo) {
     MOZ_ASSERT(aliasBitset != 0);
     MOZ_ASSERT(keepAlive->type() == MIRType::WasmAnyRef);
     MIRType mirType;
@@ -4746,8 +4747,9 @@ class FunctionCompiler {
     if (needsTrapInfo) {
       maybeTrap.emplace(getTrapSiteInfo());
     }
+
     auto* load = MWasmLoadFieldKA::New(alloc(), keepAlive, base, offset,
-                                       mirType, mirWideningOp,
+                                       fieldIndex, mirType, mirWideningOp,
                                        AliasSet::Load(aliasBitset), maybeTrap);
     if (!load) {
       return nullptr;
@@ -4824,8 +4826,8 @@ class FunctionCompiler {
     }
 
     auto* structObject = MWasmNewStructObject::New(
-        alloc(), instancePointer_, typeDefData, isOutline, zeroFields,
-        allocKind, bytecodeOffset());
+        alloc(), instancePointer_, typeDefData, typeDef.structType(), isOutline,
+        zeroFields, allocKind, bytecodeOffset());
     if (!structObject) {
       return nullptr;
     }
@@ -4880,9 +4882,9 @@ class FunctionCompiler {
                                        ? AliasSet::WasmStructOutlineDataArea
                                        : AliasSet::WasmStructInlineDataArea;
 
-    return writeGcValueAtBasePlusOffset(lineOrBytecode, fieldType, structObject,
-                                        fieldAliasSet, value, base, areaOffset,
-                                        needsTrapInfo, preBarrierKind);
+    return writeGcValueAtBasePlusOffset(
+        lineOrBytecode, fieldType, structObject, fieldAliasSet, value, base,
+        areaOffset, fieldIndex, needsTrapInfo, preBarrierKind);
   }
 
   // Helper function for EmitStructGet: given a MIR pointer to a
@@ -4932,7 +4934,7 @@ class FunctionCompiler {
 
     return readGcValueAtBasePlusOffset(fieldType, wideningOp, structObject,
                                        fieldAliasSet, base, areaOffset,
-                                       needsTrapInfo);
+                                       fieldIndex, needsTrapInfo);
   }
 
   /********************************* WasmGC: address-arithmetic helpers ***/
@@ -8373,7 +8375,7 @@ static bool EmitArrayNewFixed(FunctionCompiler& f) {
     // `i * elemSize` is made safe by the assertions above.
     if (!f.writeGcValueAtBasePlusOffset(
             lineOrBytecode, elemType, arrayObject, AliasSet::WasmArrayDataArea,
-            values[numElements - 1 - i], base, i * elemSize, false,
+            values[numElements - 1 - i], base, i * elemSize, i, false,
             WasmPreBarrierKind::None)) {
       return false;
     }

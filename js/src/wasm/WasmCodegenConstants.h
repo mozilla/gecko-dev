@@ -28,6 +28,11 @@ static const unsigned MaxArgsForJitInlineCall = 8;
 static const unsigned MaxResultsForJitEntry = 1;
 static const unsigned MaxResultsForJitExit = 1;
 static const unsigned MaxResultsForJitInlineCall = MaxResultsForJitEntry;
+
+// The maximum number of fields in a struct to be optimized by scalar
+// replacement.
+static const unsigned MaxFieldsScalarReplacementStructs = 10;
+
 // The maximum number of results of a function call or block that may be
 // returned in registers.
 static const unsigned MaxRegisterResults = 1;

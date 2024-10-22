@@ -964,3 +964,31 @@ MDefinition* MWasmRefIsSubtypeOfConcrete::foldsTo(TempAllocator& alloc) {
   }
   return this;
 }
+
+bool MWasmStructState::init() {
+  // Reserve the size for the number of fields.
+  return fields_.resize(
+      wasmStruct_->toWasmNewStructObject()->structType().fields_.length());
+}
+
+MWasmStructState* MWasmStructState::New(TempAllocator& alloc,
+                                        MDefinition* structObject) {
+  MWasmStructState* state = new (alloc) MWasmStructState(alloc, structObject);
+  if (!state->init()) {
+    return nullptr;
+  }
+  return state;
+}
+
+MWasmStructState* MWasmStructState::Copy(TempAllocator& alloc,
+                                         MWasmStructState* state) {
+  MDefinition* newWasmStruct = state->wasmStruct();
+  MWasmStructState* res = new (alloc) MWasmStructState(alloc, newWasmStruct);
+  if (!res || !res->init()) {
+    return nullptr;
+  }
+  for (size_t i = 0; i < state->numFields(); i++) {
+    res->setField(i, state->getField(i));
+  }
+  return res;
+}

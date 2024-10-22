@@ -2492,15 +2492,18 @@ class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
 // 31-bit unsigned integer.
 class MWasmLoadFieldKA : public MBinaryInstruction, public NoTypePolicy::Data {
   uint32_t offset_;
+  uint32_t fieldIndex_;
   MWideningOp wideningOp_;
   AliasSet aliases_;
   MaybeTrapSiteInfo maybeTrap_;
 
   MWasmLoadFieldKA(MDefinition* ka, MDefinition* obj, size_t offset,
-                   MIRType type, MWideningOp wideningOp, AliasSet aliases,
+                   uint32_t fieldIndex, MIRType type, MWideningOp wideningOp,
+                   AliasSet aliases,
                    MaybeTrapSiteInfo maybeTrap = mozilla::Nothing())
       : MBinaryInstruction(classOpcode, ka, obj),
         offset_(uint32_t(offset)),
+        fieldIndex_(fieldIndex),
         wideningOp_(wideningOp),
         aliases_(aliases),
         maybeTrap_(maybeTrap) {
@@ -2526,6 +2529,7 @@ class MWasmLoadFieldKA : public MBinaryInstruction, public NoTypePolicy::Data {
   NAMED_OPERANDS((0, ka), (1, obj))
 
   uint32_t offset() const { return offset_; }
+  uint32_t fieldIndex() const { return fieldIndex_; }
   MWideningOp wideningOp() const { return wideningOp_; }
   AliasSet getAliasSet() const override { return aliases_; }
   MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
@@ -2607,16 +2611,18 @@ class MWasmLoadElementKA : public MTernaryInstruction,
 class MWasmStoreFieldKA : public MTernaryInstruction,
                           public NoTypePolicy::Data {
   uint32_t offset_;
+  uint32_t fieldIndex_;
   MNarrowingOp narrowingOp_;
   AliasSet aliases_;
   MaybeTrapSiteInfo maybeTrap_;
 
   MWasmStoreFieldKA(MDefinition* ka, MDefinition* obj, size_t offset,
-                    MDefinition* value, MNarrowingOp narrowingOp,
-                    AliasSet aliases,
+                    uint32_t fieldIndex, MDefinition* value,
+                    MNarrowingOp narrowingOp, AliasSet aliases,
                     MaybeTrapSiteInfo maybeTrap = mozilla::Nothing())
       : MTernaryInstruction(classOpcode, ka, obj, value),
         offset_(uint32_t(offset)),
+        fieldIndex_(fieldIndex),
         narrowingOp_(narrowingOp),
         aliases_(aliases),
         maybeTrap_(maybeTrap) {
@@ -2645,6 +2651,7 @@ class MWasmStoreFieldKA : public MTernaryInstruction,
   NAMED_OPERANDS((0, ka), (1, obj), (2, value))
 
   uint32_t offset() const { return offset_; }
+  uint32_t fieldIndex() const { return fieldIndex_; }
   MNarrowingOp narrowingOp() const { return narrowingOp_; }
   AliasSet getAliasSet() const override { return aliases_; }
   MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
@@ -2874,6 +2881,33 @@ class MWasmRefIsSubtypeOfAbstract : public MUnaryInstruction,
   MDefinition* foldsTo(TempAllocator& alloc) override;
 };
 
+// Represents the contents of all fields of a wasm struct.
+// This class will be used for scalar replacement of wasm structs.
+class MWasmStructState : public TempObject {
+ private:
+  MDefinition* wasmStruct_;
+  // Represents the fields of this struct.
+  Vector<MDefinition*, 0, JitAllocPolicy> fields_;
+
+  explicit MWasmStructState(TempAllocator& alloc, MDefinition* structObject)
+      : wasmStruct_(structObject), fields_(alloc) {}
+
+ public:
+  static MWasmStructState* New(TempAllocator& alloc, MDefinition* structObject);
+  static MWasmStructState* Copy(TempAllocator& alloc, MWasmStructState* state);
+
+  // Init the fields_ vector.
+  [[nodiscard]] bool init();
+
+  size_t numFields() const { return fields_.length(); }
+  MDefinition* wasmStruct() const { return wasmStruct_; }
+
+  // Get the field value based on the position of the field in the struct.
+  MDefinition* getField(uint32_t index) const { return fields_[index]; }
+  // Set the field offset based on the position of the field in the struct.
+  void setField(uint32_t index, MDefinition* def) { fields_[index] = def; }
+};
+
 // Tests if the wasm ref `ref` is a subtype of `superSTV`.
 // The actual super type definition must be known at compile time, so that the
 // subtyping depth of super type depth can be used.
@@ -2922,15 +2956,18 @@ class MWasmNewStructObject : public MBinaryInstruction,
   bool isOutline_;
   bool zeroFields_;
   gc::AllocKind allocKind_;
+  const wasm::StructType& structType_;
   wasm::BytecodeOffset bytecodeOffset_;
 
   MWasmNewStructObject(MDefinition* instance, MDefinition* typeDefData,
-                       bool isOutline, bool zeroFields, gc::AllocKind allocKind,
+                       const wasm::StructType& structType_, bool isOutline,
+                       bool zeroFields, gc::AllocKind allocKind,
                        wasm::BytecodeOffset bytecodeOffset)
       : MBinaryInstruction(classOpcode, instance, typeDefData),
         isOutline_(isOutline),
         zeroFields_(zeroFields),
         allocKind_(allocKind),
+        structType_(structType_),
         bytecodeOffset_(bytecodeOffset) {
     setResultType(MIRType::WasmAnyRef);
   }
@@ -2951,6 +2988,7 @@ class MWasmNewStructObject : public MBinaryInstruction,
   bool zeroFields() const { return zeroFields_; }
   gc::AllocKind allocKind() const { return allocKind_; }
   wasm::BytecodeOffset bytecodeOffset() const { return bytecodeOffset_; }
+  const wasm::StructType& structType() { return structType_; }
 };
 
 class MWasmNewArrayObject : public MTernaryInstruction,
