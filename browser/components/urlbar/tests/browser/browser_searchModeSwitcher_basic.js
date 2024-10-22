@@ -87,6 +87,22 @@ add_task(async function basic() {
   await UrlbarTestUtils.assertSearchMode(window, null);
 });
 
+add_task(async function privileged_chicklet() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    window.gBrowser,
+    "about:config"
+  );
+
+  Assert.ok(
+    BrowserTestUtils.isVisible(
+      tab.ownerGlobal.document.querySelector("#identity-box")
+    ),
+    "Chicklet is visible on privileged pages."
+  );
+
+  BrowserTestUtils.removeTab(tab);
+});
+
 function updateEngine(fun) {
   let updated = SearchTestUtils.promiseSearchNotification(
     SearchUtils.MODIFIED_TYPE.CHANGED,
