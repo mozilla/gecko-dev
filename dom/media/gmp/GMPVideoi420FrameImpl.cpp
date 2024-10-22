@@ -45,9 +45,27 @@ GMPVideoi420FrameImpl::GMPVideoi420FrameImpl(GMPVideoHostImpl* aHost)
 }
 
 GMPVideoi420FrameImpl::GMPVideoi420FrameImpl(
-    const GMPVideoi420FrameData& aFrameData, GMPVideoHostImpl* aHost)
+    const GMPVideoi420FrameData& aFrameData, ipc::Shmem&& aShmemBuffer,
+    GMPVideoHostImpl* aHost)
     : mHost(aHost),
-      mBuffer(aFrameData.mBuffer()),
+      mShmemBuffer(std::move(aShmemBuffer)),
+      mYPlane(aFrameData.mYPlane()),
+      mUPlane(aFrameData.mUPlane()),
+      mVPlane(aFrameData.mVPlane()),
+      mWidth(aFrameData.mWidth()),
+      mHeight(aFrameData.mHeight()),
+      mTimestamp(aFrameData.mTimestamp()),
+      mUpdatedTimestamp(aFrameData.mUpdatedTimestamp()),
+      mDuration(aFrameData.mDuration()) {
+  MOZ_ASSERT(aHost);
+  aHost->DecodedFrameCreated(this);
+}
+
+GMPVideoi420FrameImpl::GMPVideoi420FrameImpl(
+    const GMPVideoi420FrameData& aFrameData, nsTArray<uint8_t>&& aArrayBuffer,
+    GMPVideoHostImpl* aHost)
+    : mHost(aHost),
+      mArrayBuffer(std::move(aArrayBuffer)),
       mYPlane(aFrameData.mYPlane()),
       mUPlane(aFrameData.mUPlane()),
       mVPlane(aFrameData.mVPlane()),
@@ -75,8 +93,7 @@ void GMPVideoi420FrameImpl::DoneWithAPI() {
   mHost = nullptr;
 }
 
-bool GMPVideoi420FrameImpl::InitFrameData(GMPVideoi420FrameData& aFrameData) {
-  aFrameData.mBuffer() = mBuffer;
+void GMPVideoi420FrameImpl::InitFrameData(GMPVideoi420FrameData& aFrameData) {
   mYPlane.InitPlaneData(aFrameData.mYPlane());
   mUPlane.InitPlaneData(aFrameData.mUPlane());
   mVPlane.InitPlaneData(aFrameData.mVPlane());
@@ -85,11 +102,33 @@ bool GMPVideoi420FrameImpl::InitFrameData(GMPVideoi420FrameData& aFrameData) {
   aFrameData.mTimestamp() = mTimestamp;
   aFrameData.mUpdatedTimestamp() = mUpdatedTimestamp;
   aFrameData.mDuration() = mDuration;
+}
+
+bool GMPVideoi420FrameImpl::InitFrameData(GMPVideoi420FrameData& aFrameData,
+                                          ipc::Shmem& aShmemBuffer) {
+  if (!mShmemBuffer.IsReadable()) {
+    return false;
+  }
+
+  aShmemBuffer = mShmemBuffer;
 
   // This method is called right before Shmem is sent to another process.
   // We need to effectively zero out our member copy so that we don't
   // try to delete memory we don't own later.
-  mBuffer = ipc::Shmem();
+  mShmemBuffer = ipc::Shmem();
+
+  InitFrameData(aFrameData);
+  return true;
+}
+
+bool GMPVideoi420FrameImpl::InitFrameData(GMPVideoi420FrameData& aFrameData,
+                                          nsTArray<uint8_t>& aArrayBuffer) {
+  if (mShmemBuffer.IsReadable()) {
+    return false;
+  }
+
+  aArrayBuffer = std::move(mArrayBuffer);
+  InitFrameData(aFrameData);
   return true;
 }
 
@@ -101,7 +140,7 @@ void GMPVideoi420FrameImpl::Destroy() { delete this; }
 
 /* static */
 bool GMPVideoi420FrameImpl::CheckFrameData(
-    const GMPVideoi420FrameData& aFrameData) {
+    const GMPVideoi420FrameData& aFrameData, size_t aBufferSize) {
   // We may be passed the "wrong" shmem (one smaller than the actual size).
   // This implies a bug or serious error on the child size.  Ignore this frame
   // if so. Note: Size() greater than expected is also an error, but with no
@@ -118,9 +157,8 @@ bool GMPVideoi420FrameImpl::CheckFrameData(
       (aFrameData.mVPlane().mSize() <= 0) ||
       (aFrameData.mVPlane().mOffset() <
        aFrameData.mUPlane().mOffset() + aFrameData.mUPlane().mSize()) ||
-      (aFrameData.mBuffer().Size<uint8_t>() <
-       static_cast<size_t>(aFrameData.mVPlane().mOffset()) +
-           static_cast<size_t>(aFrameData.mVPlane().mSize())) ||
+      (aBufferSize < static_cast<size_t>(aFrameData.mVPlane().mOffset()) +
+                         static_cast<size_t>(aFrameData.mVPlane().mSize())) ||
       (aFrameData.mYPlane().mStride() < aFrameData.mWidth()) ||
       (aFrameData.mUPlane().mStride() < half_width) ||
       (aFrameData.mVPlane().mStride() < half_width) ||
@@ -218,31 +256,40 @@ GMPErr GMPVideoi420FrameImpl::MaybeResize(int32_t aNewSize) {
     return GMPGenericErr;
   }
 
+  if (!mArrayBuffer.IsEmpty()) {
+    if (!mArrayBuffer.SetLength(aNewSize, fallible)) {
+      return GMPAllocErr;
+    }
+    return GMPNoErr;
+  }
+
   ipc::Shmem new_mem;
-  if (!mHost->SharedMemMgr()->MgrAllocShmem(GMPSharedMem::kGMPFrameData,
-                                            aNewSize, &new_mem) ||
-      !new_mem.get<uint8_t>()) {
+  if (!mHost->SharedMemMgr()->MgrTakeShmem(GMPSharedMemClass::Decoded, aNewSize,
+                                           &new_mem) &&
+      !mArrayBuffer.SetLength(aNewSize, fallible)) {
     return GMPAllocErr;
   }
 
-  if (mBuffer.IsReadable()) {
-    memcpy(new_mem.get<uint8_t>(), Buffer(),
-           std::min(AllocatedSize(), aNewSize));
+  if (mShmemBuffer.IsReadable()) {
+    if (new_mem.IsWritable()) {
+      memcpy(new_mem.get<uint8_t>(), mShmemBuffer.get<uint8_t>(), aNewSize);
+    }
+    mHost->SharedMemMgr()->MgrGiveShmem(GMPSharedMemClass::Decoded,
+                                        std::move(mShmemBuffer));
   }
 
-  DestroyBuffer();
-
-  mBuffer = new_mem;
+  mShmemBuffer = new_mem;
 
   return GMPNoErr;
 }
 
 void GMPVideoi420FrameImpl::DestroyBuffer() {
-  if (mHost && mBuffer.IsWritable()) {
-    mHost->SharedMemMgr()->MgrDeallocShmem(GMPSharedMem::kGMPFrameData,
-                                           mBuffer);
+  if (mHost && mShmemBuffer.IsWritable()) {
+    mHost->SharedMemMgr()->MgrGiveShmem(GMPSharedMemClass::Decoded,
+                                        std::move(mShmemBuffer));
   }
-  mBuffer = ipc::Shmem();
+  mShmemBuffer = ipc::Shmem();
+  mArrayBuffer.Clear();
 }
 
 GMPErr GMPVideoi420FrameImpl::CreateEmptyFrame(int32_t aWidth, int32_t aHeight,
@@ -305,7 +352,7 @@ GMPErr GMPVideoi420FrameImpl::CreateFrame(
     return err;
   }
 
-  uint8_t* bufferPtr = mBuffer.get<uint8_t>();
+  uint8_t* bufferPtr = Buffer();
   mYPlane.Copy(bufferPtr, 0, aBuffer_y, aSize_y, aStride_y);
   mUPlane.Copy(bufferPtr, aSize_y, aBuffer_u, aSize_u, aStride_u);
   mVPlane.Copy(bufferPtr, aSize_y + aSize_u, aBuffer_v, aSize_v, aStride_v);
@@ -320,7 +367,7 @@ GMPErr GMPVideoi420FrameImpl::CopyFrame(const GMPVideoi420Frame& aFrame) {
   auto& f = static_cast<const GMPVideoi420FrameImpl&>(aFrame);
 
   int32_t bufferSize = f.mYPlane.mSize + f.mUPlane.mSize + f.mVPlane.mSize;
-  if (size_t(bufferSize) != f.mBuffer.Size<uint8_t>()) {
+  if (bufferSize != AllocatedSize()) {
     return GMPGenericErr;
   }
 
@@ -338,14 +385,15 @@ GMPErr GMPVideoi420FrameImpl::CopyFrame(const GMPVideoi420Frame& aFrame) {
   mUpdatedTimestamp = f.mUpdatedTimestamp;
   mDuration = f.mDuration;
 
-  memcpy(mBuffer.get<uint8_t>(), f.mBuffer.get<uint8_t>(), bufferSize);
+  memcpy(Buffer(), f.Buffer(), bufferSize);
 
   return GMPNoErr;
 }
 
 void GMPVideoi420FrameImpl::SwapFrame(GMPVideoi420Frame* aFrame) {
   auto f = static_cast<GMPVideoi420FrameImpl*>(aFrame);
-  std::swap(mBuffer, f->mBuffer);
+  mArrayBuffer.SwapElements(f->mArrayBuffer);
+  std::swap(mShmemBuffer, f->mShmemBuffer);
   std::swap(mYPlane, f->mYPlane);
   std::swap(mUPlane, f->mUPlane);
   std::swap(mVPlane, f->mVPlane);
@@ -356,10 +404,24 @@ void GMPVideoi420FrameImpl::SwapFrame(GMPVideoi420Frame* aFrame) {
   std::swap(mDuration, f->mDuration);
 }
 
-uint8_t* GMPVideoi420FrameImpl::Buffer() { return mBuffer.get<uint8_t>(); }
+uint8_t* GMPVideoi420FrameImpl::Buffer() {
+  if (mShmemBuffer.IsWritable()) {
+    return mShmemBuffer.get<uint8_t>();
+  }
+  if (!mArrayBuffer.IsEmpty()) {
+    return mArrayBuffer.Elements();
+  }
+  return nullptr;
+}
 
 const uint8_t* GMPVideoi420FrameImpl::Buffer() const {
-  return mBuffer.get<uint8_t>();
+  if (mShmemBuffer.IsReadable()) {
+    return mShmemBuffer.get<uint8_t>();
+  }
+  if (!mArrayBuffer.IsEmpty()) {
+    return mArrayBuffer.Elements();
+  }
+  return nullptr;
 }
 
 uint8_t* GMPVideoi420FrameImpl::Buffer(GMPPlaneType aType) {
@@ -381,10 +443,10 @@ const uint8_t* GMPVideoi420FrameImpl::Buffer(GMPPlaneType aType) const {
 }
 
 int32_t GMPVideoi420FrameImpl::AllocatedSize() const {
-  if (mBuffer.IsWritable()) {
-    return static_cast<int32_t>(mBuffer.Size<uint8_t>());
+  if (mShmemBuffer.IsWritable()) {
+    return static_cast<int32_t>(mShmemBuffer.Size<uint8_t>());
   }
-  return 0;
+  return static_cast<int32_t>(mArrayBuffer.Length());
 }
 
 int32_t GMPVideoi420FrameImpl::AllocatedSize(GMPPlaneType aType) const {

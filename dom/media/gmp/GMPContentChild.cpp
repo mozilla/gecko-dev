@@ -17,10 +17,6 @@ MessageLoop* GMPContentChild::GMPMessageLoop() {
   return mGMPChild->GMPMessageLoop();
 }
 
-void GMPContentChild::CheckThread() {
-  MOZ_ASSERT(mGMPChild->mGMPMessageLoop == MessageLoop::current());
-}
-
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
 mozilla::ipc::IPCResult GMPContentChild::RecvInitSandboxTesting(
     Endpoint<PSandboxTestingChild>&& aEndpoint) {

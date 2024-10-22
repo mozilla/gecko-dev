@@ -17,7 +17,7 @@ namespace mozilla {
 namespace gmp {
 
 [ChildImpl="GMPVideoEncoderChild", ParentImpl=virtual]
-sync protocol PGMPVideoEncoder
+async protocol PGMPVideoEncoder
 {
   manager PGMPContent;
 child:
@@ -25,23 +25,26 @@ child:
                    uint8_t[] aCodecSpecific,
                    int32_t aNumberOfCores,
                    uint32_t aMaxPayloadSize);
+  async GiveShmem(Shmem aOutputShmem);
   async Encode(GMPVideoi420FrameData aInputFrame,
+               Shmem aInputShmem,
                uint8_t[] aCodecSpecificInfo,
                GMPVideoFrameType[] aFrameTypes);
   async SetChannelParameters(uint32_t aPacketLoss, uint32_t aRTT);
   async SetRates(uint32_t aNewBitRate, uint32_t aFrameRate);
   async SetPeriodicKeyFrames(bool aEnable);
-  async EncodingComplete();
-  async ChildShmemForPool(Shmem aEncodedBuffer);
+  async __delete__();
 
 parent:
-  async __delete__();
-  async Encoded(GMPVideoEncodedFrameData aEncodedFrame,
+  async ReturnShmem(Shmem aInputShmem);
+  async EncodedShmem(GMPVideoEncodedFrameData aEncodedFrame,
+                Shmem aEncodedShmem,
+                uint8_t[] aCodecSpecificInfo);
+  async EncodedData(GMPVideoEncodedFrameData aEncodedFrame,
+                uint8_t[] aEncodedData,
                 uint8_t[] aCodecSpecificInfo);
   async Error(GMPErr aErr);
   async Shutdown();
-  async ParentShmemForPool(Shmem aFrameBuffer);
-  sync NeedShmem(uint32_t aEncodedBufferSize) returns (Shmem aMem);
 };
 
 } // namespace gmp

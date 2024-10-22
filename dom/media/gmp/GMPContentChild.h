@@ -7,7 +7,6 @@
 #define GMPContentChild_h_
 
 #include "mozilla/gmp/PGMPContentChild.h"
-#include "GMPSharedMemManager.h"
 
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
 #  include "mozilla/SandboxTestingChild.h"
@@ -21,7 +20,7 @@ class GMPChild;
  * This class allows the GMP process to receive requests to create GMP
  * decoder/encoder objects on behalf of the parent/content processes.
  */
-class GMPContentChild : public PGMPContentChild, public GMPSharedMem {
+class GMPContentChild final : public PGMPContentChild {
  public:
   // Mark AddRef and Release as `final`, as they overload pure virtual
   // implementations in PGMPContentChild.
@@ -52,9 +51,6 @@ class GMPContentChild : public PGMPContentChild, public GMPSharedMem {
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
   void ProcessingError(Result aCode, const char* aReason) override;
-
-  // GMPSharedMem
-  void CheckThread() override;
 
   void CloseActive();
   bool IsUsed();

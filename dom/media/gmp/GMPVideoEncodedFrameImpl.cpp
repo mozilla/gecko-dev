@@ -6,6 +6,7 @@
 #include "GMPVideoEncodedFrameImpl.h"
 #include "GMPVideoHost.h"
 #include "mozilla/gmp/GMPTypes.h"
+#include "mozilla/Unused.h"
 #include "GMPSharedMemManager.h"
 
 namespace mozilla::gmp {
@@ -25,7 +26,8 @@ GMPVideoEncodedFrameImpl::GMPVideoEncodedFrameImpl(GMPVideoHostImpl* aHost)
 }
 
 GMPVideoEncodedFrameImpl::GMPVideoEncodedFrameImpl(
-    const GMPVideoEncodedFrameData& aFrameData, GMPVideoHostImpl* aHost)
+    const GMPVideoEncodedFrameData& aFrameData, ipc::Shmem&& aShmemBuffer,
+    GMPVideoHostImpl* aHost)
     : mEncodedWidth(aFrameData.mEncodedWidth()),
       mEncodedHeight(aFrameData.mEncodedHeight()),
       mTimeStamp(aFrameData.mTimestamp()),
@@ -34,7 +36,24 @@ GMPVideoEncodedFrameImpl::GMPVideoEncodedFrameImpl(
       mSize(aFrameData.mSize()),
       mCompleteFrame(aFrameData.mCompleteFrame()),
       mHost(aHost),
-      mBuffer(aFrameData.mBuffer()),
+      mShmemBuffer(std::move(aShmemBuffer)),
+      mBufferType(aFrameData.mBufferType()) {
+  MOZ_ASSERT(aHost);
+  aHost->EncodedFrameCreated(this);
+}
+
+GMPVideoEncodedFrameImpl::GMPVideoEncodedFrameImpl(
+    const GMPVideoEncodedFrameData& aFrameData,
+    nsTArray<uint8_t>&& aArrayBuffer, GMPVideoHostImpl* aHost)
+    : mEncodedWidth(aFrameData.mEncodedWidth()),
+      mEncodedHeight(aFrameData.mEncodedHeight()),
+      mTimeStamp(aFrameData.mTimestamp()),
+      mDuration(aFrameData.mDuration()),
+      mFrameType(static_cast<GMPVideoFrameType>(aFrameData.mFrameType())),
+      mSize(aFrameData.mSize()),
+      mCompleteFrame(aFrameData.mCompleteFrame()),
+      mHost(aHost),
+      mArrayBuffer(std::move(aArrayBuffer)),
       mBufferType(aFrameData.mBufferType()) {
   MOZ_ASSERT(aHost);
   aHost->EncodedFrameCreated(this);
@@ -59,15 +78,13 @@ void GMPVideoEncodedFrameImpl::DoneWithAPI() {
   mHost = nullptr;
 }
 
-void GMPVideoEncodedFrameImpl::ActorDestroyed() {
-  // Simply clear out Shmem reference, do not attempt to
-  // properly free it. It has already been freed.
-  mBuffer = ipc::Shmem();
-  // No more host.
-  mHost = nullptr;
+/* static */
+bool GMPVideoEncodedFrameImpl::CheckFrameData(
+    const GMPVideoEncodedFrameData& aFrameData, size_t aBufferSize) {
+  return aFrameData.mSize() <= aBufferSize;
 }
 
-bool GMPVideoEncodedFrameImpl::RelinquishFrameData(
+void GMPVideoEncodedFrameImpl::RelinquishFrameData(
     GMPVideoEncodedFrameData& aFrameData) {
   aFrameData.mEncodedWidth() = mEncodedWidth;
   aFrameData.mEncodedHeight() = mEncodedHeight;
@@ -76,23 +93,44 @@ bool GMPVideoEncodedFrameImpl::RelinquishFrameData(
   aFrameData.mFrameType() = mFrameType;
   aFrameData.mSize() = mSize;
   aFrameData.mCompleteFrame() = mCompleteFrame;
-  aFrameData.mBuffer() = mBuffer;
   aFrameData.mBufferType() = mBufferType;
+}
+
+bool GMPVideoEncodedFrameImpl::RelinquishFrameData(
+    GMPVideoEncodedFrameData& aFrameData, ipc::Shmem& aShmemBuffer) {
+  if (!mShmemBuffer.IsReadable()) {
+    return false;
+  }
+
+  aShmemBuffer = mShmemBuffer;
 
   // This method is called right before Shmem is sent to another process.
   // We need to effectively zero out our member copy so that we don't
   // try to delete Shmem we don't own later.
-  mBuffer = ipc::Shmem();
+  mShmemBuffer = ipc::Shmem();
 
+  RelinquishFrameData(aFrameData);
+  return true;
+}
+
+bool GMPVideoEncodedFrameImpl::RelinquishFrameData(
+    GMPVideoEncodedFrameData& aFrameData, nsTArray<uint8_t>& aArrayBuffer) {
+  if (mShmemBuffer.IsReadable()) {
+    return false;
+  }
+
+  aArrayBuffer = std::move(mArrayBuffer);
+  RelinquishFrameData(aFrameData);
   return true;
 }
 
 void GMPVideoEncodedFrameImpl::DestroyBuffer() {
-  if (mHost && mBuffer.IsWritable()) {
-    mHost->SharedMemMgr()->MgrDeallocShmem(GMPSharedMem::kGMPEncodedData,
-                                           mBuffer);
+  if (mHost && mShmemBuffer.IsWritable()) {
+    mHost->SharedMemMgr()->MgrGiveShmem(GMPSharedMemClass::Encoded,
+                                        std::move(mShmemBuffer));
   }
-  mBuffer = ipc::Shmem();
+  mShmemBuffer = ipc::Shmem();
+  mArrayBuffer.Clear();
 }
 
 GMPErr GMPVideoEncodedFrameImpl::CreateEmptyFrame(uint32_t aSize) {
@@ -100,9 +138,9 @@ GMPErr GMPVideoEncodedFrameImpl::CreateEmptyFrame(uint32_t aSize) {
     DestroyBuffer();
   } else if (aSize > AllocatedSize()) {
     DestroyBuffer();
-    if (!mHost->SharedMemMgr()->MgrAllocShmem(GMPSharedMem::kGMPEncodedData,
-                                              aSize, &mBuffer) ||
-        !Buffer()) {
+    if (!mHost->SharedMemMgr()->MgrTakeShmem(GMPSharedMemClass::Encoded, aSize,
+                                             &mShmemBuffer) &&
+        !mArrayBuffer.SetLength(aSize, fallible)) {
       return GMPAllocErr;
     }
   }
@@ -174,27 +212,34 @@ void GMPVideoEncodedFrameImpl::SetAllocatedSize(uint32_t aNewSize) {
     return;
   }
 
-  ipc::Shmem new_mem;
-  if (!mHost->SharedMemMgr()->MgrAllocShmem(GMPSharedMem::kGMPEncodedData,
-                                            aNewSize, &new_mem) ||
-      !new_mem.get<uint8_t>()) {
+  if (!mArrayBuffer.IsEmpty()) {
+    Unused << mArrayBuffer.SetLength(aNewSize, fallible);
     return;
   }
 
-  if (mBuffer.IsReadable()) {
-    memcpy(new_mem.get<uint8_t>(), Buffer(), mSize);
+  ipc::Shmem new_mem;
+  if (!mHost->SharedMemMgr()->MgrTakeShmem(GMPSharedMemClass::Encoded, aNewSize,
+                                           &new_mem) &&
+      !mArrayBuffer.SetLength(aNewSize, fallible)) {
+    return;
   }
 
-  DestroyBuffer();
+  if (mShmemBuffer.IsReadable()) {
+    if (new_mem.IsWritable()) {
+      memcpy(new_mem.get<uint8_t>(), mShmemBuffer.get<uint8_t>(), mSize);
+    }
+    mHost->SharedMemMgr()->MgrGiveShmem(GMPSharedMemClass::Encoded,
+                                        std::move(mShmemBuffer));
+  }
 
-  mBuffer = new_mem;
+  mShmemBuffer = new_mem;
 }
 
 uint32_t GMPVideoEncodedFrameImpl::AllocatedSize() {
-  if (mBuffer.IsWritable()) {
-    return mBuffer.Size<uint8_t>();
+  if (mShmemBuffer.IsWritable()) {
+    return mShmemBuffer.Size<uint8_t>();
   }
-  return 0;
+  return mArrayBuffer.Length();
 }
 
 void GMPVideoEncodedFrameImpl::SetSize(uint32_t aSize) { mSize = aSize; }
@@ -208,10 +253,24 @@ void GMPVideoEncodedFrameImpl::SetCompleteFrame(bool aCompleteFrame) {
 bool GMPVideoEncodedFrameImpl::CompleteFrame() { return mCompleteFrame; }
 
 const uint8_t* GMPVideoEncodedFrameImpl::Buffer() const {
-  return mBuffer.get<uint8_t>();
+  if (mShmemBuffer.IsReadable()) {
+    return mShmemBuffer.get<uint8_t>();
+  }
+  if (!mArrayBuffer.IsEmpty()) {
+    return mArrayBuffer.Elements();
+  }
+  return nullptr;
 }
 
-uint8_t* GMPVideoEncodedFrameImpl::Buffer() { return mBuffer.get<uint8_t>(); }
+uint8_t* GMPVideoEncodedFrameImpl::Buffer() {
+  if (mShmemBuffer.IsWritable()) {
+    return mShmemBuffer.get<uint8_t>();
+  }
+  if (!mArrayBuffer.IsEmpty()) {
+    return mArrayBuffer.Elements();
+  }
+  return nullptr;
+}
 
 void GMPVideoEncodedFrameImpl::Destroy() { delete this; }
 

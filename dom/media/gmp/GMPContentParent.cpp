@@ -49,10 +49,6 @@ void GMPContentParent::ActorDestroy(ActorDestroyReason aWhy) {
              mChromiumCDMs.IsEmpty());
 }
 
-void GMPContentParent::CheckThread() {
-  MOZ_ASSERT(GMPEventTarget()->IsOnCurrentThread());
-}
-
 void GMPContentParent::ChromiumCDMDestroyed(ChromiumCDMParent* aCDM) {
   GMP_LOG_DEBUG("GMPContentParent::ChromiumCDMDestroyed(this=%p, aCDM=%p)",
                 this, aCDM);

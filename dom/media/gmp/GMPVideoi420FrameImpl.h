@@ -9,6 +9,7 @@
 #include "gmp-video-frame-i420.h"
 #include "mozilla/ipc/Shmem.h"
 #include "mozilla/Maybe.h"
+#include "nsTArray.h"
 
 namespace mozilla::gmp {
 
@@ -20,6 +21,9 @@ class GMPVideoi420FrameImpl final : public GMPVideoi420Frame {
  public:
   explicit GMPVideoi420FrameImpl(GMPVideoHostImpl* aHost);
   GMPVideoi420FrameImpl(const GMPVideoi420FrameData& aFrameData,
+                        ipc::Shmem&& aShmemBuffer, GMPVideoHostImpl* aHost);
+  GMPVideoi420FrameImpl(const GMPVideoi420FrameData& aFrameData,
+                        nsTArray<uint8_t>&& aArrayBuffer,
                         GMPVideoHostImpl* aHost);
   virtual ~GMPVideoi420FrameImpl();
 
@@ -27,9 +31,14 @@ class GMPVideoi420FrameImpl final : public GMPVideoi420Frame {
   // when a consumer is finished or during XPCOM shutdown.
   void DoneWithAPI();
 
-  static bool CheckFrameData(const GMPVideoi420FrameData& aFrameData);
+  static bool CheckFrameData(const GMPVideoi420FrameData& aFrameData,
+                             size_t aBufferSize);
 
-  bool InitFrameData(GMPVideoi420FrameData& aFrameData);
+  void InitFrameData(GMPVideoi420FrameData& aFrameData);
+  bool InitFrameData(GMPVideoi420FrameData& aFrameData,
+                     ipc::Shmem& aShmemBuffer);
+  bool InitFrameData(GMPVideoi420FrameData& aFrameData,
+                     nsTArray<uint8_t>& aArrayBuffer);
 
   // GMPVideoFrame
   GMPVideoFrameFormat GetFrameFormat() override;
@@ -90,7 +99,8 @@ class GMPVideoi420FrameImpl final : public GMPVideoi420Frame {
   void DestroyBuffer();
 
   GMPVideoHostImpl* mHost;
-  ipc::Shmem mBuffer;
+  nsTArray<uint8_t> mArrayBuffer;
+  ipc::Shmem mShmemBuffer;
   GMPFramePlane mYPlane;
   GMPFramePlane mUPlane;
   GMPFramePlane mVPlane;

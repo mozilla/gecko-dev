@@ -17,9 +17,9 @@ namespace mozilla::gmp {
 
 class GMPContentChild;
 
-class GMPVideoDecoderChild : public PGMPVideoDecoderChild,
-                             public GMPVideoDecoderCallback,
-                             public GMPSharedMemManager {
+class GMPVideoDecoderChild final : public PGMPVideoDecoderChild,
+                                   public GMPVideoDecoderCallback,
+                                   public GMPSharedMemManager {
   friend class PGMPVideoDecoderChild;
 
  public:
@@ -42,8 +42,8 @@ class GMPVideoDecoderChild : public PGMPVideoDecoderChild,
   void Error(GMPErr aError) override;
 
   // GMPSharedMemManager
-  bool Alloc(size_t aSize, Shmem* aMem) override;
-  void Dealloc(Shmem&& aMem) override;
+  bool MgrIsOnOwningThread() const override;
+  void MgrDeallocShmem(Shmem& aMem) override { DeallocShmem(aMem); }
 
  private:
   virtual ~GMPVideoDecoderChild();
@@ -52,23 +52,18 @@ class GMPVideoDecoderChild : public PGMPVideoDecoderChild,
   mozilla::ipc::IPCResult RecvInitDecode(const GMPVideoCodec& aCodecSettings,
                                          nsTArray<uint8_t>&& aCodecSpecific,
                                          const int32_t& aCoreCount);
+  mozilla::ipc::IPCResult RecvGiveShmem(ipc::Shmem&& aOutputShmem);
   mozilla::ipc::IPCResult RecvDecode(
-      const GMPVideoEncodedFrameData& aInputFrame, const bool& aMissingFrames,
-      nsTArray<uint8_t>&& aCodecSpecificInfo, const int64_t& aRenderTimeMs);
-  mozilla::ipc::IPCResult RecvChildShmemForPool(Shmem&& aFrameBuffer);
+      const GMPVideoEncodedFrameData& aInputFrame, ipc::Shmem&& aInputShmem,
+      const bool& aMissingFrames, nsTArray<uint8_t>&& aCodecSpecificInfo,
+      const int64_t& aRenderTimeMs);
   mozilla::ipc::IPCResult RecvReset();
   mozilla::ipc::IPCResult RecvDrain();
-  mozilla::ipc::IPCResult RecvDecodingComplete();
   void ActorDestroy(ActorDestroyReason why) override;
 
   GMPContentChild* mPlugin;
   GMPVideoDecoder* mVideoDecoder;
   GMPVideoHostImpl mVideoHost;
-
-  // Non-zero when a GMP is blocked spinning the IPC message loop while
-  // waiting on an NeedShmem to complete.
-  int mNeedShmemIntrCount;
-  bool mPendingDecodeComplete;
 };
 
 }  // namespace mozilla::gmp

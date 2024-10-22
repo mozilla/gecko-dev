@@ -11,66 +11,32 @@
 
 namespace mozilla::gmp {
 
-class GMPSharedMemManager;
-
-class GMPSharedMem {
- public:
-  typedef enum {
-    kGMPFrameData = 0,
-    kGMPEncodedData,
-    kGMPNumTypes
-  } GMPMemoryClasses;
-
-  // This is a heuristic - max of 10 free in the Child pool, plus those
-  // in-use for the encoder and decoder at the given moment and not yet
-  // returned to the parent pool (which is not included).  If more than
-  // this are needed, we presume the client has either crashed or hung
-  // (perhaps temporarily).
-  static const uint32_t kGMPBufLimit = 40;
-
-  GMPSharedMem() {
-    for (size_t i = 0; i < sizeof(mGmpAllocated) / sizeof(mGmpAllocated[0]);
-         i++) {
-      mGmpAllocated[i] = 0;
-    }
-  }
-  virtual ~GMPSharedMem() = default;
-
-  // Parent and child impls will differ here
-  virtual void CheckThread() = 0;
-
- protected:
-  friend class GMPSharedMemManager;
-
-  nsTArray<ipc::Shmem> mGmpFreelist[GMPSharedMem::kGMPNumTypes];
-  uint32_t mGmpAllocated[GMPSharedMem::kGMPNumTypes];
-};
+enum class GMPSharedMemClass { Decoded, Encoded };
 
 class GMPSharedMemManager {
  public:
-  explicit GMPSharedMemManager(GMPSharedMem* aData) : mData(aData) {}
-  virtual ~GMPSharedMemManager() = default;
+  GMPSharedMemManager() = default;
 
-  virtual bool MgrAllocShmem(GMPSharedMem::GMPMemoryClasses aClass,
-                             size_t aSize, ipc::Shmem* aMem);
-  virtual bool MgrDeallocShmem(GMPSharedMem::GMPMemoryClasses aClass,
-                               ipc::Shmem& aMem);
+  virtual ~GMPSharedMemManager();
 
-  // So we can know if data is "piling up" for the plugin - I.e. it's hung or
-  // crashed
-  virtual uint32_t NumInUse(GMPSharedMem::GMPMemoryClasses aClass);
+  bool MgrTakeShmem(GMPSharedMemClass aClass, ipc::Shmem* aMem);
+  bool MgrTakeShmem(GMPSharedMemClass aClass, size_t aSize, ipc::Shmem* aMem);
+  void MgrGiveShmem(GMPSharedMemClass aClass, ipc::Shmem&& aMem);
+  void MgrPurgeShmems();
 
-  // These have to be implemented using the AllocShmem/etc provided by the
-  // IPDL-generated interfaces, so have the Parent/Child implement them.
-  virtual bool Alloc(size_t aSize, ipc::Shmem* aMem) = 0;
-  virtual void Dealloc(ipc::Shmem&& aMem) = 0;
+  virtual bool MgrAllocShmem(size_t aSize, ipc::Shmem* aMem) { return false; }
+  virtual void MgrDeallocShmem(ipc::Shmem& aMem) = 0;
+
+ protected:
+  virtual bool MgrIsOnOwningThread() const = 0;
+
+  static constexpr size_t kMaxPools = 2;
 
  private:
-  nsTArray<ipc::Shmem>& GetGmpFreelist(GMPSharedMem::GMPMemoryClasses aTypes) {
-    return mData->mGmpFreelist[aTypes];
-  }
+  void PurgeSmallerShmem(nsTArray<ipc::Shmem>& aPool, size_t aSize);
 
-  GMPSharedMem* mData;
+  static constexpr size_t kMaxPoolLength = 16;
+  AutoTArray<ipc::Shmem, kMaxPoolLength> mPool[kMaxPools];
 };
 
 }  // namespace mozilla::gmp

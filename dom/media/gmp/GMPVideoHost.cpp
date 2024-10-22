@@ -73,6 +73,7 @@ void GMPVideoHostImpl::ActorDestroyed() {
     mDecodedFrames[i - 1]->DoneWithAPI();
     mDecodedFrames.RemoveElementAt(i - 1);
   }
+  mSharedMemMgr->MgrPurgeShmems();
   mSharedMemMgr = nullptr;
 }
 

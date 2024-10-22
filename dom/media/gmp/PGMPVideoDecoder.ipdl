@@ -16,25 +16,27 @@ namespace mozilla {
 namespace gmp {
 
 [ChildImpl="GMPVideoDecoderChild", ParentImpl=virtual]
-sync protocol PGMPVideoDecoder
+async protocol PGMPVideoDecoder
 {
   manager PGMPContent;
 child:
   async InitDecode(GMPVideoCodec aCodecSettings,
                    uint8_t[] aCodecSpecific,
                    int32_t aCoreCount);
+  async GiveShmem(Shmem aOutputShmem);
   async Decode(GMPVideoEncodedFrameData aInputFrame,
+               Shmem aInputShmem,
                bool aMissingFrames,
                uint8_t[] aCodecSpecificInfo,
                int64_t aRenderTimeMs);
   async Reset();
   async Drain();
-  async DecodingComplete();
-  async ChildShmemForPool(Shmem aFrameBuffer);
+  async __delete__();
 
 parent:
-  async __delete__();
-  async Decoded(GMPVideoi420FrameData aDecodedFrame);
+  async ReturnShmem(Shmem aInputShmem);
+  async DecodedData(GMPVideoi420FrameData aDecodedFrame, uint8_t[] aDecodedData);
+  async DecodedShmem(GMPVideoi420FrameData aDecodedFrame, Shmem aDecodedShmem);
   async ReceivedDecodedReferenceFrame(uint64_t aPictureId);
   async ReceivedDecodedFrame(uint64_t aPictureId);
   async InputDataExhausted();
@@ -42,8 +44,6 @@ parent:
   async ResetComplete();
   async Error(GMPErr aErr);
   async Shutdown();
-  async ParentShmemForPool(Shmem aEncodedBuffer);
-  sync NeedShmem(uint32_t aFrameBufferSize) returns (Shmem aMem);
 };
 
 } // namespace gmp

@@ -20,10 +20,10 @@ namespace mozilla::gmp {
 
 class GMPContentParent;
 
-class GMPVideoEncoderParent : public GMPVideoEncoderProxy,
-                              public PGMPVideoEncoderParent,
-                              public GMPSharedMemManager,
-                              public GMPCrashHelperHolder {
+class GMPVideoEncoderParent final : public GMPVideoEncoderProxy,
+                                    public PGMPVideoEncoderParent,
+                                    public GMPSharedMemManager,
+                                    public GMPCrashHelperHolder {
   friend class PGMPVideoEncoderParent;
 
  public:
@@ -51,26 +51,32 @@ class GMPVideoEncoderParent : public GMPVideoEncoderProxy,
   uint32_t GetPluginId() const override { return mPluginId; }
 
   // GMPSharedMemManager
-  bool Alloc(size_t aSize, Shmem* aMem) override {
+  bool MgrAllocShmem(size_t aSize, Shmem* aMem) override {
     return AllocShmem(aSize, aMem);
   }
-  void Dealloc(Shmem&& aMem) override { DeallocShmem(aMem); }
+
+  void MgrDeallocShmem(Shmem& aMem) override { DeallocShmem(aMem); }
+
+ protected:
+  bool MgrIsOnOwningThread() const override;
 
  private:
   virtual ~GMPVideoEncoderParent() = default;
 
   // PGMPVideoEncoderParent
   void ActorDestroy(ActorDestroyReason aWhy) override;
-  mozilla::ipc::IPCResult RecvEncoded(
+  mozilla::ipc::IPCResult RecvReturnShmem(ipc::Shmem&& aInputShmem) override;
+  mozilla::ipc::IPCResult RecvEncodedShmem(
+      const GMPVideoEncodedFrameData& aEncodedFrame, ipc::Shmem&& aEncodedShmem,
+      nsTArray<uint8_t>&& aCodecSpecificInfo) override;
+  mozilla::ipc::IPCResult RecvEncodedData(
       const GMPVideoEncodedFrameData& aEncodedFrame,
+      nsTArray<uint8_t>&& aEncodedData,
       nsTArray<uint8_t>&& aCodecSpecificInfo) override;
   mozilla::ipc::IPCResult RecvError(const GMPErr& aError) override;
   mozilla::ipc::IPCResult RecvShutdown() override;
-  mozilla::ipc::IPCResult RecvParentShmemForPool(Shmem&& aFrameBuffer) override;
-  mozilla::ipc::IPCResult RecvNeedShmem(const uint32_t& aEncodedBufferSize,
-                                        Shmem* aMem) override;
-  mozilla::ipc::IPCResult Recv__delete__() override;
 
+  size_t mEncodedShmemSize = 0;
   bool mIsOpen;
   bool mShuttingDown;
   bool mActorDestroyed;
