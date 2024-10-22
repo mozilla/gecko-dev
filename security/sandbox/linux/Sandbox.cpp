@@ -103,7 +103,6 @@ static SandboxReporterClient* gSandboxReporterClient;
 static void (*gChromiumSigSysHandler)(int, siginfo_t*, void*);
 
 static int TakeSandboxReporterFd() {
-  MOZ_RELEASE_ASSERT(PR_GetEnv("MOZ_SANDBOXED") != nullptr);
   MOZ_RELEASE_ASSERT(gSandboxReporterFd != -1);
   return std::exchange(gSandboxReporterFd, -1);
 }
@@ -517,17 +516,13 @@ static const Array<const char*, 1> kLibsThatWillCrash{
 
 void SandboxEarlyInit(Maybe<UniqueFileHandle>&& aSandboxReporter,
                       Maybe<UniqueFileHandle>&& aChrootClient) {
-  if (PR_GetEnv("MOZ_SANDBOXED") == nullptr) {
+  if (!aSandboxReporter) {
     return;
   }
 
   // Initialize the global sandbox reporter and chroot client FDs.
-  if (aSandboxReporter) {
-    gSandboxReporterFd = aSandboxReporter->release();
-  } else {
-    SANDBOX_LOG("Missing -sandboxReporter argument");
-    MOZ_CRASH("Missing -sandboxReporter argument");
-  }
+  gSandboxReporterFd = aSandboxReporter->release();
+
   if (aChrootClient) {
     gSandboxChrootClientFd = aChrootClient->release();
   }

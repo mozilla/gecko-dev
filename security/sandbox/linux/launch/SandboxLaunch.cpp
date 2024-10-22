@@ -253,9 +253,9 @@ static int GetEffectiveSandboxLevel(GeckoProcessType aType,
   auto info = SandboxInfo::Get();
   switch (aType) {
 #ifdef MOZ_ENABLE_FORKSERVER
-      // With this env MOZ_SANDBOXED will be set, and mozsandbox will
-      // be preloaded for the fork server.  Sandboxed child processes
-      // rely on wrappers defined by mozsandbox to work properly.
+      // With this mozsandbox will be preloaded for the fork server.  Sandboxed
+      // child processes rely on wrappers defined by mozsandbox to work
+      // properly.
     case GeckoProcessType_ForkServer:
       return 1;
       break;
@@ -304,9 +304,7 @@ bool SandboxLaunch::Configure(GeckoProcessType aType, SandboxingKind aKind,
   }
 
   // At this point, we know we'll be using sandboxing; generic
-  // sandboxing support goes here.  The MOZ_SANDBOXED env var tells
-  // the child process whether this is the case.
-  aOptions->env_map["MOZ_SANDBOXED"] = "1";
+  // sandboxing support goes here.
   PreloadSandboxLib(&aOptions->env_map);
   if (!AttachSandboxReporter(aExtraOpts)) {
     return false;

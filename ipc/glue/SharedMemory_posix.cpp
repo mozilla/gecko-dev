@@ -38,6 +38,7 @@
 #include "mozilla/ProfilerThreadSleep.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "prenv.h"
+#include "nsXULAppAPI.h"  // for XRE_IsParentProcess
 
 namespace mozilla::ipc {
 
@@ -134,6 +135,7 @@ static int memfd_create(const char* name, unsigned int flags) {
 // and if HaveMemfd should check whether this works.)
 
 static int DupReadOnly(int fd) {
+  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess());
   std::string path = StringPrintf("/proc/self/fd/%d", fd);
   // procfs opens probably won't EINTR, but checking for it can't hurt
   return HANDLE_EINTR(open(path.c_str(), O_RDONLY | O_CLOEXEC));
@@ -196,7 +198,7 @@ static bool HaveMemfd() {
     // isn't allowed (or meaningful) for memory created by another
     // process.
 
-    if (!PR_GetEnv("MOZ_SANDBOXED")) {
+    if (XRE_IsParentProcess()) {
       mozilla::UniqueFileHandle rofd(DupReadOnly(fd.get()));
       if (!rofd) {
         CHROMIUM_LOG(WARNING) << "read-only dup failed (" << strerror(errno)
@@ -237,6 +239,10 @@ bool SharedMemory::CreateImpl(size_t size, bool freezable) {
   DCHECK(size > 0);
   DCHECK(!mHandle);
   DCHECK(!mFrozenFile);
+
+  MOZ_DIAGNOSTIC_ASSERT(
+      !freezable || XRE_IsParentProcess(),
+      "Child processes may not create freezable shared memory");
 
   mozilla::UniqueFileHandle fd;
   mozilla::UniqueFileHandle frozen_fd;
