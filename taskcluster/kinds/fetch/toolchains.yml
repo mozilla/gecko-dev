@@ -488,9 +488,9 @@ jdk-8-linux64:
     description: Java 8 JDK
     fetch:
         type: static-url
-        url: https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u422-b05/OpenJDK8U-jdk_x64_linux_hotspot_8u422b05.tar.gz
-        sha256: 4c6056f6167fae73ace7c3080b78940be5c87d54f5b08894b3517eed1cbb2c06
-        size: 103022651
+        url: https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u432-b06/OpenJDK8U-jdk_x64_linux_hotspot_8u432b06.tar.gz
+        sha256: abaaa90deadf51bd28921453baf2992b3dff6171bb7142f5bdd14ef269f7b245
+        size: 103033330
         artifact-name: jdk-8.tar.zst
         strip-components: 1
         add-prefix: jdk-8/
