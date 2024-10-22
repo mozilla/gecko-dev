@@ -33,6 +33,7 @@ DIRS += [
 TEST_DIRS += ["tests"]
 
 EXPORTS += [
+    "nsAppShell.h",
     "nsdefs.h",
     "WindowHook.h",
     "WinUtils.h",

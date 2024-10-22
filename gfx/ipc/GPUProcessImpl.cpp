@@ -10,6 +10,7 @@
 #include "mozilla/GeckoArgs.h"
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
+#  include "nsAppShell.h"
 #  include "mozilla/sandboxTarget.h"
 #elif defined(__OpenBSD__) && defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxSettings.h"
@@ -24,6 +25,7 @@ GPUProcessImpl::~GPUProcessImpl() = default;
 
 bool GPUProcessImpl::Init(int aArgc, char* aArgv[]) {
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
+  nsAppShell::PrecacheEventWindow();
   mozilla::SandboxTarget::Instance()->StartSandbox();
 #elif defined(__OpenBSD__) && defined(MOZ_SANDBOX)
   StartOpenBSDSandbox(GeckoProcessType_GPU);

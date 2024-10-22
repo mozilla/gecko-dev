@@ -29,6 +29,8 @@ class nsAppShell final : public nsBaseAppShell {
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::Mutex Mutex;
 
+  static bool PrecacheEventWindow();
+
   nsresult Init();
   void DoProcessMoreGeckoEvents();
 
@@ -49,7 +51,9 @@ class nsAppShell final : public nsBaseAppShell {
   static LRESULT CALLBACK EventWindowProc(HWND, UINT, WPARAM, LPARAM);
 
  protected:
-  nsresult InitHiddenWindow();
+  static HWND StaticCreateEventWindow();
+  static HWND sPrecachedEventWnd;
+  nsresult InitEventWindow();
   HWND mEventWnd;
   bool mNativeCallbackPending;
 
