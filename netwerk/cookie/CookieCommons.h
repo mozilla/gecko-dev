@@ -126,6 +126,10 @@ class CookieCommons final {
                                            bool aInPrivateBrowsing,
                                            bool aUsingStorageAccess);
 
+  static bool IsFirstPartyPartitionedCookieWithoutCHIPS(
+      Cookie* aCookie, const nsACString& aBaseDomain,
+      const OriginAttributes& aOriginAttributes);
+
   static bool IsSchemeSupported(nsIPrincipal* aPrincipal);
   static bool IsSchemeSupported(nsIURI* aURI);
   static bool IsSchemeSupported(const nsACString& aScheme);
