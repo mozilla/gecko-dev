@@ -16,6 +16,7 @@ support-files = [
   "GlobalObjectsSandbox.js",
   "metadata2Restore_profile.zip",
   "metadataRestore_profile.zip",
+  "fileListUpgrade_profile.zip",
   "schema18upgrade_profile.zip",
   "schema21upgrade_profile.zip",
   "schema23upgrade_profile.zip",
@@ -55,6 +56,8 @@ skip-if = ["tsan"]
 ["test_database_onclose.js"]
 
 ["test_file_copy_failure.js"]
+
+["test_fileListUpgrade.js"]
 
 ["test_globalObjects_ipc.js"]
 skip-if = ["os == 'android'"]
