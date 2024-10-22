@@ -53,6 +53,7 @@ MACH_COMMANDS = {
     "addwidget": MachCommandReference("toolkit/content/widgets/mach_commands.py"),
     "android": MachCommandReference("mobile/android/mach_commands.py"),
     "android-emulator": MachCommandReference("mobile/android/mach_commands.py"),
+    "android-test": MachCommandReference("testing/android-test/mach_commands.py"),
     "artifact": MachCommandReference(
         "python/mozbuild/mozbuild/artifact_commands.py",
     ),
