@@ -681,6 +681,7 @@ private fun EmptyList(
                 text = stringResource(state.descriptionId()),
                 style = FirefoxTheme.typography.body2,
                 color = FirefoxTheme.colors.textPrimary,
+                textAlign = TextAlign.Center,
             )
             if (state is EmptyListState.NotAuthenticated) {
                 TextButton(
