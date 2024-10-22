@@ -10428,12 +10428,18 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapGet() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachDateGetTime(
     InlinableNative native) {
-  MOZ_ASSERT_IF(native == InlinableNative::IntrinsicThisTimeValue,
-                argc_ == 1 && args_[0].isInt32());
-
   // Ensure |this| is a DateObject.
   if (!thisval_.isObject() || !thisval_.toObject().is<DateObject>()) {
     return AttachDecision::NoAction;
+  }
+
+  if (native == InlinableNative::DateGetTime) {
+    // Expecting no arguments.
+    if (argc_ != 0) {
+      return AttachDecision::NoAction;
+    }
+  } else {
+    MOZ_ASSERT(argc_ == 1 && args_[0].isInt32());
   }
 
   // Initialize the input operand.
@@ -10467,6 +10473,11 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDateGet(
     DateComponent component) {
   // Ensure |this| is a DateObject.
   if (!thisval_.isObject() || !thisval_.toObject().is<DateObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Expecting no arguments.
+  if (argc_ != 0) {
     return AttachDecision::NoAction;
   }
 
