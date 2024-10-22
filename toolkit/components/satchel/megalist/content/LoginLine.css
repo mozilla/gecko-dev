@@ -68,7 +68,6 @@
     justify-content: end;
     align-items: center;
     height: var(--line-container-height);
-    margin-inline-end: var(--space-small);
     background-color: var(--background-color-box);
     padding: 3px;
     --button-text-color-ghost: var(--icon-color);
