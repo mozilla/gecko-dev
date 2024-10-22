@@ -5,6 +5,7 @@
 
 // Via webext-panels.xhtml
 /* import-globals-from browser.js */
+/* global windowRoot */
 
 ChromeUtils.defineESModuleGetters(this, {
   ExtensionParent: "resource://gre/modules/ExtensionParent.sys.mjs",
@@ -102,6 +103,11 @@ function getBrowser(panel) {
     },
     true
   );
+  browser.addEventListener("DOMWindowClose", () => {
+    if (panel.viewType == "sidebar") {
+      windowRoot.ownerGlobal.SidebarController.hide();
+    }
+  });
 
   const initBrowser = () => {
     ExtensionParent.apiManager.emit(
