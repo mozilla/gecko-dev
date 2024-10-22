@@ -68,9 +68,7 @@ class ConnectPage extends PureComponent {
     };
   }
 
-  // TODO: avoid the use of this method
-  // https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
     this.props.dispatch(Actions.selectPage(PAGE_TYPES.CONNECT));
   }
 
