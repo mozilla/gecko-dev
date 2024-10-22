@@ -3093,9 +3093,8 @@ nsresult EditorBase::ScrollSelectionFocusIntoView() const {
   }
 
   DebugOnly<nsresult> rvIgnored = selectionController->ScrollSelectionIntoView(
-      nsISelectionController::SELECTION_NORMAL,
-      nsISelectionController::SELECTION_FOCUS_REGION,
-      nsISelectionController::SCROLL_OVERFLOW_HIDDEN);
+      SelectionType::eNormal, nsISelectionController::SELECTION_FOCUS_REGION,
+      ScrollAxis(), ScrollAxis(), ScrollFlags::ScrollOverflowHidden);
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rvIgnored),
       "nsISelectionController::ScrollSelectionIntoView() failed, but ignored");

@@ -138,7 +138,7 @@ struct ScrollAxis final {
   bool mOnlyIfPerceivedScrollableDirection : 1;
 };
 
-enum class ScrollFlags {
+enum class ScrollFlags : uint8_t {
   None = 0,
   ScrollFirstAncestorOnly = 1 << 0,
   ScrollOverflowHidden = 1 << 1,

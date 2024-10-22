@@ -1276,4 +1276,26 @@ inline std::ostream& operator<<(
 
 }  // namespace mozilla
 
+inline nsresult nsISelectionController::ScrollSelectionIntoView(
+    mozilla::SelectionType aType, SelectionRegion aRegion,
+    const mozilla::ScrollAxis& aVertical = mozilla::ScrollAxis(),
+    const mozilla::ScrollAxis& aHorizontal = mozilla::ScrollAxis(),
+    mozilla::ScrollFlags aScrollFlags = mozilla::ScrollFlags::None,
+    mozilla::SelectionScrollMode aMode = mozilla::SelectionScrollMode::Async) {
+  RefPtr selection = GetSelection(mozilla::RawSelectionType(aType));
+  if (!selection) {
+    return NS_ERROR_FAILURE;
+  }
+  return selection->ScrollIntoView(aRegion, aVertical, aHorizontal,
+                                   aScrollFlags, aMode);
+}
+
+inline nsresult nsISelectionController::ScrollSelectionIntoView(
+    mozilla::SelectionType aType, SelectionRegion aRegion,
+    mozilla::SelectionScrollMode aMode) {
+  return ScrollSelectionIntoView(aType, aRegion, mozilla::ScrollAxis(),
+                                 mozilla::ScrollAxis(),
+                                 mozilla::ScrollFlags::None, aMode);
+}
+
 #endif  // mozilla_Selection_h__

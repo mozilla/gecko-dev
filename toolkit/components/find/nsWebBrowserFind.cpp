@@ -341,34 +341,34 @@ void nsWebBrowserFind::SetSelectionAndScroll(nsPIDOMWindowOuter* aWindow,
   selCon->SetDisplaySelection(nsISelectionController::SELECTION_ON);
   RefPtr<Selection> selection =
       selCon->GetSelection(nsISelectionController::SELECTION_NORMAL);
-  if (selection) {
-    selection->RemoveAllRanges(IgnoreErrors());
-    selection->AddRangeAndSelectFramesAndNotifyListeners(*aRange,
-                                                         IgnoreErrors());
-
-    if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
-      if (tcFrame) {
-        RefPtr<Element> newFocusedElement = Element::FromNode(content);
-        fm->SetFocus(newFocusedElement, nsIFocusManager::FLAG_NOSCROLL);
-      } else {
-        RefPtr<Element> result;
-        fm->MoveFocus(aWindow, nullptr, nsIFocusManager::MOVEFOCUS_CARET,
-                      nsIFocusManager::FLAG_NOSCROLL, getter_AddRefs(result));
-      }
-    }
-
-    // Scroll if necessary to make the selection visible:
-    // Must be the last thing to do - bug 242056
-
-    // After ScrollSelectionIntoView(), the pending notifications might be
-    // flushed and PresShell/PresContext/Frames may be dead. See bug 418470.
-    selCon->ScrollSelectionIntoView(
-        nsISelectionController::SELECTION_NORMAL,
-        nsISelectionController::SELECTION_WHOLE_SELECTION,
-        nsISelectionController::ControllerScrollFlags(
-            nsISelectionController::SCROLL_VERTICAL_CENTER |
-            nsISelectionController::SCROLL_SYNCHRONOUS));
+  if (!selection) {
+    return;
   }
+  selection->RemoveAllRanges(IgnoreErrors());
+  selection->AddRangeAndSelectFramesAndNotifyListeners(*aRange, IgnoreErrors());
+
+  if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+    if (tcFrame) {
+      RefPtr<Element> newFocusedElement = Element::FromNode(content);
+      fm->SetFocus(newFocusedElement, nsIFocusManager::FLAG_NOSCROLL);
+    } else {
+      RefPtr<Element> result;
+      fm->MoveFocus(aWindow, nullptr, nsIFocusManager::MOVEFOCUS_CARET,
+                    nsIFocusManager::FLAG_NOSCROLL, getter_AddRefs(result));
+    }
+  }
+
+  // Scroll if necessary to make the selection visible:
+  // Must be the last thing to do - bug 242056
+
+  // After ScrollSelectionIntoView(), the pending notifications might be
+  // flushed and PresShell/PresContext/Frames may be dead. See bug 418470.
+  // FIXME(emilio): Any reason this couldn't do selection->ScrollIntoView()
+  // directly, rather than re-requesting the selection?
+  selCon->ScrollSelectionIntoView(
+      SelectionType::eNormal, nsISelectionController::SELECTION_WHOLE_SELECTION,
+      ScrollAxis(WhereToScroll::Center), ScrollAxis(), ScrollFlags::None,
+      SelectionScrollMode::SyncFlush);
 }
 
 // Adapted from TextServicesDocument::GetDocumentContentRootNode

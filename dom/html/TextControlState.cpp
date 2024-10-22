@@ -382,6 +382,7 @@ class TextInputSelectionController final : public nsSupportsWeakReference,
   NS_IMETHOD ScrollCharacter(bool aRight) override;
   void SelectionWillTakeFocus() override;
   void SelectionWillLoseFocus() override;
+  using nsISelectionController::ScrollSelectionIntoView;
 
  private:
   RefPtr<nsFrameSelection> mFrameSelection;
@@ -669,9 +670,9 @@ TextInputSelectionController::PageMove(bool aForward, bool aExtend) {
   // Similarly, if there is no scrollable frame, we should move the editor
   // frame into the view for making it clearer which element handles
   // PageDown/PageUp.
-  return ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
+  return ScrollSelectionIntoView(SelectionType::eNormal,
                                  nsISelectionController::SELECTION_FOCUS_REGION,
-                                 nsISelectionController::SCROLL_SYNCHRONOUS);
+                                 SelectionScrollMode::SyncFlush);
 }
 
 NS_IMETHODIMP

@@ -7,12 +7,30 @@
 #include "nsISelectionDisplay.idl"
 
 %{C++
-typedef short SelectionRegion;
+using SelectionRegion = short;
+
 namespace mozilla {
 namespace dom {
 class Selection;
 } // namespace dom
+
+struct ScrollAxis;
+enum class ScrollFlags : uint8_t;
+enum class SelectionScrollMode : uint8_t;
+
+// RawSelectionType should be used to store nsISelectionController::SELECTION_*.
+using RawSelectionType = short;
+
+// SelectionTypeMask should be used to store bit-mask of selection types.
+// The value can be retrieved with ToSelectionTypeMask() and checking if
+// a selection type is in a mask with |SelectionType & SelectionTypeMask|.
+using SelectionTypeMask = uint16_t;
+
+// SelectionType should be used in internal handling because of type safe.
+enum class SelectionType : RawSelectionType;
+
 } // namespace mozilla
+
 %}
 
 interface nsIContent;
@@ -275,22 +293,26 @@ interface nsISelectionController : nsISelectionDisplay
    *  @param aRight if true will scroll right. if not will scroll left.
    */
   void scrollCharacter(in boolean right);
+
+%{C++
+  // Like the XPCOM method, but more convenient and flexible for C++ callers. Implemented in Selection.h
+  // TODO: Use `MOZ_CAN_RUN_SCRIPT`, but it's a bit tricky because whether it
+  // can run script depends on the SelectionScrollMode.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY inline nsresult ScrollSelectionIntoView(
+    mozilla::SelectionType, SelectionRegion,
+    const mozilla::ScrollAxis& aVertical, const mozilla::ScrollAxis& aHorizontal,
+    mozilla::ScrollFlags, mozilla::SelectionScrollMode);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY inline nsresult ScrollSelectionIntoView(
+    mozilla::SelectionType, SelectionRegion,
+    mozilla::SelectionScrollMode);
+%}
 };
-%{ C++
+%{C++
 
 namespace mozilla {
 
-// RawSelectionType should be used to store nsISelectionController::SELECTION_*.
-typedef short RawSelectionType;
-
-// SelectionTypeMask should be used to store bit-mask of selection types.
-// The value can be retrieved with ToSelectionTypeMask() and checking if
-// a selection type is in a mask with |SelectionType & SelectionTypeMask|.
-typedef uint16_t SelectionTypeMask;
-
-// SelectionType should be used in internal handling because of type safe.
-enum class SelectionType : RawSelectionType
-{
+// SelectionType should be used in internal handling code as it is type safe.
+enum class SelectionType : RawSelectionType {
   eInvalid = -1,
   eNone = nsISelectionController::SELECTION_NONE,
   eNormal = nsISelectionController::SELECTION_NORMAL,

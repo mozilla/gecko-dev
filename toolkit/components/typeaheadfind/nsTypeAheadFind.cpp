@@ -526,11 +526,10 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
         // ScrollSelectionIntoView.
         SetSelectionModeAndRepaint(nsISelectionController::SELECTION_ATTENTION);
         selectionController->ScrollSelectionIntoView(
-            nsISelectionController::SELECTION_NORMAL,
+            SelectionType::eNormal,
             nsISelectionController::SELECTION_WHOLE_SELECTION,
-            nsISelectionController::ControllerScrollFlags(
-                nsISelectionController::SCROLL_VERTICAL_CENTER |
-                nsISelectionController::SCROLL_SYNCHRONOUS));
+            ScrollAxis(WhereToScroll::Center), ScrollAxis(), ScrollFlags::None,
+            SelectionScrollMode::SyncFlush);
       }
 
       SetCurrentWindow(window);
