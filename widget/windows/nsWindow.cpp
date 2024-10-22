@@ -874,24 +874,18 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
 
   MOZ_DIAGNOSTIC_ASSERT(aInitData->mWindowType != WindowType::Invisible);
 
-  nsIWidget* baseParent = aInitData->mWindowType == WindowType::Dialog ||
-                                  aInitData->mWindowType == WindowType::TopLevel
-                              ? nullptr
-                              : aParent;
-
-  mIsTopWidgetWindow = (nullptr == baseParent);
+  mIsTopWidgetWindow = aInitData->mWindowType == WindowType::Dialog ||
+                       aInitData->mWindowType == WindowType::TopLevel;
   mBounds = aRect;
 
   // Ensure that the toolkit is created.
   nsToolkit::GetToolkit();
 
-  BaseCreate(baseParent, aInitData);
+  BaseCreate(aParent, aInitData);
+  mParent = aParent;
 
-  HWND parent = nullptr;
-  if (aParent) {  // has a nsIWidget parent
-    parent = (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW);
-    mParent = aParent;
-  }
+  HWND parent =
+      aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : nullptr;
 
   mIsRTL = aInitData->mRTL;
   mOpeningAnimationSuppressed = aInitData->mIsAnimationSuppressed;
@@ -1502,15 +1496,7 @@ void nsWindow::ReparentNativeWidget(nsIWidget* aNewParent) {
   }
 }
 
-nsIWidget* nsWindow::GetParent(void) {
-  if (mIsTopWidgetWindow) {
-    return nullptr;
-  }
-  if (mInDtor || mOnDestroyCalled) {
-    return nullptr;
-  }
-  return mParent;
-}
+nsIWidget* nsWindow::GetParent() { return mParent; }
 
 static int32_t RoundDown(double aDouble) {
   return aDouble > 0 ? static_cast<int32_t>(floor(aDouble))
@@ -6912,16 +6898,10 @@ void nsWindow::OnDestroy() {
 
   // Disconnects us from our parent, will call our GetParent().
   nsBaseWidget::Destroy();
+  mParent = nullptr;
 
   // Release references to children, device context, toolkit, and app shell.
   nsBaseWidget::OnDestroy();
-
-  // Clear our native parent handle.
-  // XXX Windows will take care of this in the proper order, and
-  // SetParent(nullptr)'s remove child on the parent already took place in
-  // nsBaseWidget's Destroy call above.
-  // SetParent(nullptr);
-  mParent = nullptr;
 
   // We have to destroy the native drag target before we null out our window
   // pointer.
