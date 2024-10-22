@@ -193,10 +193,10 @@ macro_rules! test_get_errors {
 ///
 /// # Arguments
 ///
-/// * `$id`						- The id of the labeled metric.
-/// * `$label`				- The (string) label of the submetric.
-/// * `$labeled_map`	- The name of the labeled metric's map for retrieval (JOG only).
-/// * `$labeled_get`	- The name of the labeled metric's get fn for retrieval.
+/// * `$id`           - The id of the labeled metric.
+/// * `$label`        - The (string) label of the submetric.
+/// * `$labeled_map`  - The name of the labeled metric's map for retrieval (JOG only).
+/// * `$labeled_get`  - The name of the labeled metric's get fn for retrieval.
 /// * `$submetric_map`- The name of the submetrics' map for storage.
 /// * `$metric_type`  - The submetric's type (needed for an internal closure).
 macro_rules! labeled_submetric_get {
@@ -248,9 +248,9 @@ macro_rules! labeled_submetric_get {
 ///
 /// # Arguments
 ///
-/// * `$id`						- The id of the labeled metric.
-/// * `$label`				- The (enum) label of the submetric.
-/// * `$labeled_get`	- The name of the labeled metric's get fn for retrieval.
+/// * `$id`           - The id of the labeled metric.
+/// * `$label`        - The (enum) label of the submetric.
+/// * `$labeled_get`  - The name of the labeled metric's get fn for retrieval.
 /// * `$submetric_map`- The name of the submetrics' map for storage.
 /// * `$metric_type`  - The submetric's type (needed for an internal closure).
 macro_rules! labeled_submetric_enum_get {
