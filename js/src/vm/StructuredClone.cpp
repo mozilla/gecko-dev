@@ -992,6 +992,7 @@ bool SCOutput::writeArray(const T* p, size_t nelems) {
   for (size_t i = 0; i < nelems; i++) {
     T value = NativeEndian::swapToLittleEndian(p[i]);
     if (!buf.AppendBytes(reinterpret_cast<char*>(&value), sizeof(value))) {
+      ReportOutOfMemory(context());
       return false;
     }
   }
@@ -1000,6 +1001,7 @@ bool SCOutput::writeArray(const T* p, size_t nelems) {
   size_t padbytes = ComputePadding(nelems, sizeof(T));
   char zeroes[sizeof(uint64_t)] = {0};
   if (!buf.AppendBytes(zeroes, padbytes)) {
+    ReportOutOfMemory(context());
     return false;
   }
 
@@ -1013,6 +1015,7 @@ bool SCOutput::writeArray<uint8_t>(const uint8_t* p, size_t nelems) {
   }
 
   if (!buf.AppendBytes(reinterpret_cast<const char*>(p), nelems)) {
+    ReportOutOfMemory(context());
     return false;
   }
 
@@ -1020,6 +1023,7 @@ bool SCOutput::writeArray<uint8_t>(const uint8_t* p, size_t nelems) {
   size_t padbytes = ComputePadding(nelems, 1);
   char zeroes[sizeof(uint64_t)] = {0};
   if (!buf.AppendBytes(zeroes, padbytes)) {
+    ReportOutOfMemory(context());
     return false;
   }
 
