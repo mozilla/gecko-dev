@@ -874,8 +874,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
 
   MOZ_DIAGNOSTIC_ASSERT(aInitData->mWindowType != WindowType::Invisible);
 
-  mIsTopWidgetWindow = aInitData->mWindowType == WindowType::Dialog ||
-                       aInitData->mWindowType == WindowType::TopLevel;
   mBounds = aRect;
 
   // Ensure that the toolkit is created.
@@ -1529,7 +1527,7 @@ nsWindow* nsWindow::GetParentWindow(bool aIncludeOwner) {
 }
 
 nsWindow* nsWindow::GetParentWindowBase(bool aIncludeOwner) {
-  if (mIsTopWidgetWindow) {
+  if (IsTopLevelWidget()) {
     // Must use a flag instead of mWindowType to tell if the window is the
     // owned by the topmost widget, because a child window can be embedded
     // inside a HWND which is not associated with a nsIWidget.
@@ -1960,7 +1958,7 @@ void nsWindow::Move(double aX, double aY) {
 #ifdef DEBUG
     // complain if a window is moved offscreen (legal, but potentially
     // worrisome)
-    if (mIsTopWidgetWindow) {  // only a problem for top-level windows
+    if (IsTopLevelWidget()) {  // only a problem for top-level windows
       // Make sure this window is actually on the screen before we move it
       // XXX: Needs multiple monitor support
       HDC dc = ::GetDC(mWnd);
@@ -2267,8 +2265,10 @@ void nsWindow::SuppressAnimation(bool aSuppress) {
 // Position (aX, aY) is specified in Windows screen (logical) pixels,
 // except when using per-monitor DPI, in which case it's device pixels.
 void nsWindow::ConstrainPosition(DesktopIntPoint& aPoint) {
-  if (!mIsTopWidgetWindow)  // only a problem for top-level windows
+  if (!IsTopLevelWidget()) {
+    // only a problem for top-level windows
     return;
+  }
 
   double dpiScale = GetDesktopToDeviceScale().scale;
 
@@ -2748,9 +2748,7 @@ bool nsWindow::UpdateNonClientMargins(bool aReflowWindow) {
 }
 
 nsresult nsWindow::SetNonClientMargins(const LayoutDeviceIntMargin& margins) {
-  if (!mIsTopWidgetWindow || mBorderStyle == BorderStyle::None ||
-      margins.top < -1 || margins.bottom < -1 || margins.left < -1 ||
-      margins.right < -1) {
+  if (!IsTopLevelWidget() || mBorderStyle == BorderStyle::None) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -5642,7 +5640,7 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
           } else {
             sJustGotDeactivate = true;
           }
-          if (mIsTopWidgetWindow) {
+          if (IsTopLevelWidget()) {
             mLastKeyboardLayout = KeyboardLayout::GetLayout();
           }
         } else {

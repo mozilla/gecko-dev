@@ -187,10 +187,10 @@ class nsWindow final : public nsBaseWidget {
    */
   nsWindow* GetParentWindowBase(bool aIncludeOwner);
 
-  /*
-   * Return true if this is a top level widget.
-   */
-  bool IsTopLevelWidget() { return mIsTopWidgetWindow; }
+  bool IsTopLevelWidget() const {
+    return mWindowType == WindowType::TopLevel ||
+           mWindowType == WindowType::Dialog;
+  }
 
   // nsIWidget interface
   using nsBaseWidget::Create;  // for Create signature not overridden here
@@ -770,7 +770,6 @@ class nsWindow final : public nsBaseWidget {
   mozilla::Maybe<WNDPROC> mPrevWndProc;
   IMEContext mDefaultIMC;
   HDEVNOTIFY mDeviceNotifyHandle = nullptr;
-  bool mIsTopWidgetWindow = false;
   bool mInDtor = false;
   bool mIsVisible = false;
   bool mIsCloaked = false;
