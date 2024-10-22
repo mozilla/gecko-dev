@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <title>nsIAccessible value testing for input@type=color element</title>
+  <link rel="stylesheet" type="text/css"
+        href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+
+  <script src="../common.js"></script>
+  <script src="../promisified-events.js"></script>
+
+  <script type="application/javascript">
+    async function doTest() {
+      const colorNode = getNode("color");
+      const color = getAccessible(colorNode);
+
+      colorNode.value = "#ff0000";
+      is(color.value, "100% red 0% green 0% blue");
+      colorNode.value = "#004000";
+      is(color.value, "0% red 25% green 0% blue");
+      colorNode.value = "#000080";
+      is(color.value, "0% red 0% green 50% blue");
+      colorNode.value = "#000000";
+      is(color.value, "0% red 0% green 0% blue");;
+      colorNode.value = "#4080ff";
+      is(color.value, "25% red 50% green 100% blue");
+
+      SimpleTest.finish();
+    }
+
+    SimpleTest.waitForExplicitFinish();
+    addA11yLoadEvent(doTest);
+  </script>
+</head>
+<body>
+  <p id="display"></p>
+  <div id="content" style="display: none">
+  </div>
+  <pre id="test">
+  </pre>
+
+  <!-- HTML5 input@type=color element -->
+  <input type="color" id="color">
+</body>
+</html>

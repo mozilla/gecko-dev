@@ -173,6 +173,30 @@ void HTMLButtonAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
   if (aIndex == eAction_Click) aName.AssignLiteral("press");
 }
 
+void HTMLButtonAccessible::Value(nsString& aValue) const {
+  if (HTMLInputElement* input = HTMLInputElement::FromNode(mContent)) {
+    if (input->IsInputColor()) {
+      nsAutoString value;
+      input->GetValue(value, CallerType::NonSystem);
+      Maybe<nscolor> maybeColor = HTMLInputElement::ParseSimpleColor(value);
+      if (maybeColor) {
+        const nscolor& color = maybeColor.ref();
+        Decimal r(static_cast<int>(NS_GET_R(color) / 2.55f)),
+            g(static_cast<int>(NS_GET_G(color) / 2.55f)),
+            b(static_cast<int>(NS_GET_B(color) / 2.55f));
+        nsAutoString rs(NS_ConvertUTF8toUTF16(r.toString()));
+        nsAutoString gs(NS_ConvertUTF8toUTF16(g.toString()));
+        nsAutoString bs(NS_ConvertUTF8toUTF16(b.toString()));
+        Accessible::TranslateString(u"inputColorValue"_ns, aValue,
+                                    {rs, gs, bs});
+        return;
+      }
+    }
+  }
+
+  HyperTextAccessible::Value(aValue);
+}
+
 uint64_t HTMLButtonAccessible::NativeState() const {
   uint64_t state = HyperTextAccessible::NativeState();
 
@@ -312,12 +336,10 @@ ENameValueFlag HTMLTextFieldAccessible::Name(nsString& aName) const {
 
 void HTMLTextFieldAccessible::Value(nsString& aValue) const {
   aValue.Truncate();
-  if (NativeState() & states::PROTECTED) {  // Don't return password text!
-    return;
-  }
 
   HTMLTextAreaElement* textArea = HTMLTextAreaElement::FromNode(mContent);
   if (textArea) {
+    MOZ_ASSERT(!(NativeState() & states::PROTECTED));
     textArea->GetValue(aValue);
     return;
   }
@@ -327,6 +349,13 @@ void HTMLTextFieldAccessible::Value(nsString& aValue) const {
     // Pass NonSystem as the caller type, to be safe.  We don't expect to have a
     // file input here.
     input->GetValue(aValue, CallerType::NonSystem);
+
+    if (NativeState() & states::PROTECTED) {  // Don't return password text!
+      const char16_t mask = TextEditor::PasswordMask();
+      for (size_t i = 0; i < aValue.Length(); i++) {
+        aValue.SetCharAt(mask, i);
+      }
+    }
   }
 }
 

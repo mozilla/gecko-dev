@@ -510,7 +510,8 @@ void Accessible::DebugPrint(const char* aPrefix,
 
 #endif
 
-void Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut) {
+void Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut,
+                                 const nsTArray<nsString>& aParams) {
   nsCOMPtr<nsIStringBundleService> stringBundleService =
       components::StringBundle::Service();
   if (!stringBundleService) return;
@@ -522,8 +523,14 @@ void Accessible::TranslateString(const nsString& aKey, nsAString& aStringOut) {
   if (!stringBundle) return;
 
   nsAutoString xsValue;
-  nsresult rv = stringBundle->GetStringFromName(
-      NS_ConvertUTF16toUTF8(aKey).get(), xsValue);
+  nsresult rv = NS_OK;
+  if (aParams.IsEmpty()) {
+    rv = stringBundle->GetStringFromName(NS_ConvertUTF16toUTF8(aKey).get(),
+                                         xsValue);
+  } else {
+    rv = stringBundle->FormatStringFromName(NS_ConvertUTF16toUTF8(aKey).get(),
+                                            aParams, xsValue);
+  }
   if (NS_SUCCEEDED(rv)) aStringOut.Assign(xsValue);
 }
 

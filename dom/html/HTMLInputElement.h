@@ -480,6 +480,8 @@ class HTMLInputElement final : public TextControlElement,
            mType == FormControlType::InputRadio;
   }
 
+  bool IsInputColor() const { return mType == FormControlType::InputColor; }
+
   bool Disabled() const { return GetBoolAttr(nsGkAtoms::disabled); }
 
   void SetDisabled(bool aValue, ErrorResult& aRv) {

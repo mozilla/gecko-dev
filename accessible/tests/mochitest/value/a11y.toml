@@ -3,6 +3,8 @@ support-files = "!/accessible/tests/mochitest/*.js"
 
 ["test_ariavalue.html"]
 
+["test_color.html"]
+
 ["test_datetime.html"]
 
 ["test_general.html"]
@@ -10,6 +12,8 @@ support-files = "!/accessible/tests/mochitest/*.js"
 ["test_meter.html"]
 
 ["test_number.html"]
+
+["test_password.html"]
 
 ["test_progress.html"]
 
