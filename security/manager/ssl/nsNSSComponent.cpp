@@ -1299,9 +1299,14 @@ static nsresult GetNSSProfilePath(nsAutoCString& aProfilePath) {
 // |profilePath| is encoded in UTF-8.
 static nsresult AttemptToRenamePKCS11ModuleDB(const nsACString& profilePath) {
   nsCOMPtr<nsIFile> profileDir;
+#ifdef XP_WIN
   // |profilePath| is encoded in UTF-8 because SQLite always takes UTF-8 file
   // paths regardless of the current system code page.
+  MOZ_TRY(NS_NewLocalFile(u""_ns, getter_AddRefs(profileDir)));
+  MOZ_TRY(profileDir->InitWithPath(NS_ConvertUTF8toUTF16(profilePath)));
+#else
   MOZ_TRY(NS_NewNativeLocalFile(profilePath, getter_AddRefs(profileDir)));
+#endif
   const char* moduleDBFilename = "pkcs11.txt";
   nsAutoCString destModuleDBFilename(moduleDBFilename);
   destModuleDBFilename.Append(".fips");
