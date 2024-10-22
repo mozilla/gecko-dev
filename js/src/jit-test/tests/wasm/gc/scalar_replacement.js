@@ -157,3 +157,45 @@ code =`
 
 module = new WebAssembly.Module(wasmTextToBinary(code));
 instance = new WebAssembly.Instance(module);
+
+// In this example, one struct is stored into another one.
+// The inner struct is escaping into the other one and will
+// not be optimized.
+// The outer struct will be optimized by Scalar Replacement.
+code =`
+(module
+  ;; Define a struct type for the inner struct
+  (type $InnerStruct (struct
+    (field (mut i32))
+  ))
+
+  ;; Define a struct type for the outer struct
+  (type $OuterStruct (struct
+    (field (mut i32))
+    (field (mut i32))
+    (field (ref $InnerStruct)) ;; Reference to InnerStruct
+  ))
+
+  ;; Define a function to create and fill both structs.
+  (func $createStructs (result (ref $InnerStruct))
+    (local $inner (ref $InnerStruct))
+    (local $outer (ref $OuterStruct))
+
+    i32.const 42
+    struct.new $InnerStruct
+    local.set $inner
+
+    i32.const 10
+    i32.const 20
+    local.get $inner
+    struct.new $OuterStruct
+    local.set $outer
+
+    ;; Return the inner struct
+    local.get $outer
+    struct.get $OuterStruct 2
+  )
+)`;
+
+module = new WebAssembly.Module(wasmTextToBinary(code));
+instance = new WebAssembly.Instance(module);

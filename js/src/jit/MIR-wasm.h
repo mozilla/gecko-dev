@@ -2676,16 +2676,18 @@ class MWasmStoreFieldKA : public MTernaryInstruction,
 class MWasmStoreFieldRefKA : public MAryInstruction<4>,
                              public NoTypePolicy::Data {
   uint32_t offset_;
+  uint32_t fieldIndex_;
   AliasSet aliases_;
   MaybeTrapSiteInfo maybeTrap_;
   WasmPreBarrierKind preBarrierKind_;
 
   MWasmStoreFieldRefKA(MDefinition* instance, MDefinition* ka, MDefinition* obj,
-                       size_t offset, MDefinition* value, AliasSet aliases,
-                       MaybeTrapSiteInfo maybeTrap,
+                       size_t offset, uint32_t fieldIndex, MDefinition* value,
+                       AliasSet aliases, MaybeTrapSiteInfo maybeTrap,
                        WasmPreBarrierKind preBarrierKind)
       : MAryInstruction<4>(classOpcode),
         offset_(uint32_t(offset)),
+        fieldIndex_(fieldIndex),
         aliases_(aliases),
         maybeTrap_(maybeTrap),
         preBarrierKind_(preBarrierKind) {
@@ -2718,6 +2720,7 @@ class MWasmStoreFieldRefKA : public MAryInstruction<4>,
   NAMED_OPERANDS((0, instance), (1, ka), (2, obj), (3, value))
 
   uint32_t offset() const { return offset_; }
+  uint32_t fieldIndex() const { return fieldIndex_; }
   AliasSet getAliasSet() const override { return aliases_; }
   MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
   WasmPreBarrierKind preBarrierKind() const { return preBarrierKind_; }
