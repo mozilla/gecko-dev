@@ -4710,8 +4710,14 @@ static bool Sleep_fn(JSContext* cx, unsigned argc, Value* vp) {
       duration = toWakeup - now;
     }
   }
+
+  if (sc->serviceInterrupt) {
+    JS::ReportUncatchableException(cx);
+    return false;
+  }
+
   args.rval().setUndefined();
-  return !sc->serviceInterrupt;
+  return true;
 }
 
 static void KillWatchdog(JSContext* cx) {
