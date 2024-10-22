@@ -77,7 +77,9 @@ class TrustedTypePolicyFactory : public nsWrapperCache {
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-getpropertytype
   void GetPropertyType(const nsAString& aTagName, const nsAString& aProperty,
-                       const nsAString& aElementNs, DOMString& aResult);
+                       const nsAString& aElementNs, DOMString& aResult) {
+    // TODO: impl
+  }
 
   // https://w3c.github.io/trusted-types/dist/spec/#dom-trustedtypepolicyfactory-defaultpolicy
   TrustedTypePolicy* GetDefaultPolicy() const { return mDefaultPolicy; }

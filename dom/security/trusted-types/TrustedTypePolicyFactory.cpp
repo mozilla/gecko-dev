@@ -190,48 +190,4 @@ already_AddRefed<TrustedScript> TrustedTypePolicyFactory::EmptyScript() {
   return result.forget();
 }
 
-static constexpr nsLiteralString kTrustedHTML = u"TrustedHTML"_ns;
-static constexpr nsLiteralString kTrustedScript = u"TrustedScript"_ns;
-static constexpr nsLiteralString kTrustedScriptURL = u"TrustedScriptURL"_ns;
-
-// TODO(fwang): Improve this API:
-// - Rename aTagName parameter to use aLocalName instead
-//   (https://github.com/w3c/trusted-types/issues/496)
-// - Remove ASCII-case-insensitivity for aTagName
-//  (https://github.com/w3c/trusted-types/issues/424)
-// - Make aElementNs default to HTML namespace, so special handling for an empty
-//   string is not needed (https://github.com/w3c/trusted-types/issues/381).
-void TrustedTypePolicyFactory::GetPropertyType(const nsAString& aTagName,
-                                               const nsAString& aProperty,
-                                               const nsAString& aElementNs,
-                                               DOMString& aResult) {
-  aResult.SetNull();
-  RefPtr<nsAtom> propertyAtom = NS_Atomize(aProperty);
-  if (aElementNs.IsEmpty() ||
-      aElementNs == nsDependentAtomString(nsGkAtoms::nsuri_xhtml)) {
-    if (nsContentUtils::EqualsIgnoreASCIICase(
-            aTagName, nsDependentAtomString(nsGkAtoms::iframe))) {
-      // HTMLIFrameElement
-      if (propertyAtom == nsGkAtoms::srcdoc) {
-        aResult.SetKnownLiveString(kTrustedHTML);
-      }
-    } else if (nsContentUtils::EqualsIgnoreASCIICase(
-                   aTagName, nsDependentAtomString(nsGkAtoms::script))) {
-      // HTMLScriptElement
-      if (propertyAtom == nsGkAtoms::innerText ||
-          propertyAtom == nsGkAtoms::text ||
-          propertyAtom == nsGkAtoms::textContent) {
-        aResult.SetKnownLiveString(kTrustedScript);
-      } else if (propertyAtom == nsGkAtoms::src) {
-        aResult.SetKnownLiveString(kTrustedScriptURL);
-      }
-    }
-  }
-  // *
-  if (propertyAtom == nsGkAtoms::innerHTML ||
-      propertyAtom == nsGkAtoms::outerHTML) {
-    aResult.SetKnownLiveString(kTrustedHTML);
-  }
-}
-
 }  // namespace mozilla::dom
