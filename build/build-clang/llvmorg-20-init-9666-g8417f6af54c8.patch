@@ -1,0 +1,29 @@
+From 8417f6af54c8f6dcf5893ab1352b50bf33c5a1ba Mon Sep 17 00:00:00 2001
+From: Hans Wennborg <hans@chromium.org>
+Date: Mon, 21 Oct 2024 17:51:42 +0200
+Subject: [PATCH] [win/asan] Fix instruction size for 44 0f b6 1a
+
+  movzx  r11d,BYTE PTR [rdx]
+
+is four bytes long.
+
+Follow-up to #111638
+---
+ compiler-rt/lib/interception/interception_win.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/compiler-rt/lib/interception/interception_win.cpp b/compiler-rt/lib/interception/interception_win.cpp
+index 4f60d4251303..077a536dd2a3 100644
+--- a/compiler-rt/lib/interception/interception_win.cpp
++++ b/compiler-rt/lib/interception/interception_win.cpp
+@@ -769,6 +769,7 @@ static size_t GetInstructionSize(uptr address, size_t* rel_offset = nullptr) {
+ 
+   switch (*(u32*)(address)) {
+     case 0x1ab60f44:  // 44 0f b6 1a : movzx r11d, BYTE PTR [rdx]
++      return 4;
+     case 0x24448b48:  // 48 8b 44 24 XX : mov rax, QWORD ptr [rsp + XX]
+     case 0x246c8948:  // 48 89 6C 24 XX : mov QWORD ptr [rsp + XX], rbp
+     case 0x245c8948:  // 48 89 5c 24 XX : mov QWORD PTR [rsp + XX], rbx
+-- 
+2.47.0.1.g59ce1bf855
+

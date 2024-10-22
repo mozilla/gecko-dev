@@ -1,0 +1,34 @@
+From ce4618a9c405bd8a9c1e096eb45e9ca83d3891f1 Mon Sep 17 00:00:00 2001
+From: Mike Hommey <mh@glandium.org>
+Date: Fri, 18 Oct 2024 21:42:03 +0900
+Subject: [PATCH] [ASan][windows] Recognize movzx r11d, BYTE PTR [rdx] in
+ interception_win (#111638)
+
+The instruction is present in some library in the 24H2 update for
+Windows 11:
+
+==8508==interception_win: unhandled instruction at 0x7ff83e193a40: 44 0f
+b6 1a 4c 8b d2 48
+
+This could be generalized, but getting all the ModR/M byte combinations
+right is tricky. Many other classes of instructions handled in this file
+could use some generalization too.
+---
+ compiler-rt/lib/interception/interception_win.cpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/compiler-rt/lib/interception/interception_win.cpp b/compiler-rt/lib/interception/interception_win.cpp
+index 4a6ff6656edb..4f60d4251303 100644
+--- a/compiler-rt/lib/interception/interception_win.cpp
++++ b/compiler-rt/lib/interception/interception_win.cpp
+@@ -768,6 +768,7 @@ static size_t GetInstructionSize(uptr address, size_t* rel_offset = nullptr) {
+   }
+ 
+   switch (*(u32*)(address)) {
++    case 0x1ab60f44:  // 44 0f b6 1a : movzx r11d, BYTE PTR [rdx]
+     case 0x24448b48:  // 48 8b 44 24 XX : mov rax, QWORD ptr [rsp + XX]
+     case 0x246c8948:  // 48 89 6C 24 XX : mov QWORD ptr [rsp + XX], rbp
+     case 0x245c8948:  // 48 89 5c 24 XX : mov QWORD PTR [rsp + XX], rbx
+-- 
+2.47.0.1.g59ce1bf855
+
