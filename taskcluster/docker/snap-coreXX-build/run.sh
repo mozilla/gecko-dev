@@ -27,7 +27,13 @@ USE_SNAP_FROM_STORE_OR_MC=${USE_SNAP_FROM_STORE_OR_MC:-0}
 
 TRY=0
 if [ "${BRANCH}" = "try" ]; then
-  SOURCE_BRANCH=nightly
+  if [ "${SOURCE_BRANCH}" = "try" ]; then
+    # This would happen when e.g.: mach try fuzzy -q "'snap 'build 'try"
+    # In this case we want to default to nightly from upstream, except if the
+    # user passes a SOURCE_BRANCH, with e.g.:
+    # SOURCE_REPO=... SOURCE_BRANCH=... mach try fuzzy -q "'snap 'build 'try"
+    SOURCE_BRANCH=nightly
+  fi
   TRY=1
 fi
 
