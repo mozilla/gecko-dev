@@ -128,6 +128,12 @@
         "browser.tabs.groups.enabled",
         false
       );
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "_unloadTabInContextMenu",
+        "browser.tabs.unloadTabInContextMenu",
+        false
+      );
 
       if (AppConstants.MOZ_CRASHREPORTER) {
         ChromeUtils.defineESModuleGetters(this, {
@@ -4788,6 +4794,28 @@
       return closedCount;
     },
 
+    async explicitUnloadTabs(tabs) {
+      let unloadBlocked = await this.runBeforeUnloadForTabs(tabs);
+      if (unloadBlocked) {
+        return;
+      }
+      if (tabs.some(tab => tab.selected)) {
+        // Unloading the currently selected tab.
+        // Need to select a different one before unloading.
+        let newTab = this._findTabToBlurTo(this.selectedTab, tabs);
+        if (newTab) {
+          this.selectedTab = newTab;
+        } else {
+          // probably unloading everything
+          // show Firefox View
+          FirefoxViewHandler.openTab();
+        }
+      }
+      for (let tab of tabs) {
+        this.discardBrowser(tab, true);
+      }
+    },
+
     /**
      * Handles opening a new tab with mouse middleclick.
      * @param node
@@ -8089,6 +8117,24 @@ var TabContextMenu = {
     document.getElementById("context_reloadTab").hidden = multiselectionContext;
     document.getElementById("context_reloadSelectedTabs").hidden =
       !multiselectionContext;
+    let unloadTabItem = document.getElementById("context_unloadTab");
+    if (gBrowser._unloadTabInContextMenu) {
+      let tabs = this.contextTab.multiselected
+        ? gBrowser.selectedTabs
+        : [this.contextTab];
+      // linkedPanel is false if the tab is already unloaded
+      // Cannot unload about: pages, etc., so skip browsers that are not remote
+      let unloadableTabs = tabs.filter(
+        t => t.linkedPanel && t.linkedBrowser?.isRemoteBrowser
+      );
+      unloadTabItem.hidden = unloadableTabs.length === 0;
+      unloadTabItem.setAttribute(
+        "data-l10n-args",
+        JSON.stringify({ tabCount: unloadableTabs.length })
+      );
+    } else {
+      unloadTabItem.hidden = true;
+    }
 
     // Show Play Tab menu item if the tab has attribute activemedia-blocked
     document.getElementById("context_playTab").hidden = !(
@@ -8376,6 +8422,14 @@ var TabContextMenu = {
       gBrowser.removeMultiSelectedTabs();
     } else {
       gBrowser.removeTab(this.contextTab, { animate: true });
+    }
+  },
+
+  explicitUnloadTabs() {
+    if (this.contextTab.multiselected) {
+      gBrowser.explicitUnloadTabs(gBrowser.selectedTabs);
+    } else {
+      gBrowser.explicitUnloadTabs([this.contextTab]);
     }
   },
 

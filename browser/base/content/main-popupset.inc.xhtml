@@ -32,6 +32,9 @@
     <menuitem id="context_playSelectedTabs" data-lazy-l10n-id="tab-context-play-tabs" hidden="true"/>
     <menuitem id="context_toggleMuteTab" />
     <menuitem id="context_toggleMuteSelectedTabs" hidden="true"/>
+    <menuitem id="context_unloadTab"
+              data-lazy-l10n-id="tab-context-unload-n-tabs"
+              data-l10n-args='{"tabCount": 1}'/>
     <menuitem id="context_pinTab" data-lazy-l10n-id="pin-tab"/>
     <menuitem id="context_unpinTab" data-lazy-l10n-id="unpin-tab" hidden="true"/>
     <menuitem id="context_pinSelectedTabs" data-lazy-l10n-id="pin-selected-tabs" hidden="true"/>
@@ -84,7 +87,7 @@
         <menuitem id="context_closeOtherTabs" data-lazy-l10n-id="close-other-tabs"/>
       </menupopup>
     </menu>
-    <menuitem id="context_undoCloseTab"
+   <menuitem id="context_undoCloseTab"
               data-lazy-l10n-id="tab-context-reopen-closed-tabs"
               data-l10n-args='{"tabCount": 1}'
               observes="History:UndoCloseTab"/>
