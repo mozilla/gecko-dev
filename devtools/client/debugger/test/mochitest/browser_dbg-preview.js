@@ -171,6 +171,10 @@ async function testHoveringInvalidTargetTokens(dbg) {
   // Move the cursor to the top left corner to have a clean state
   resetCursorPositionToTopLeftCorner(dbg);
 
+  // Wait for all the updates to the document to complete to make all
+  // token elements have been rendered
+  await waitForDocumentLoadComplete(dbg);
+
   const inlinePreviewEl = findElement(dbg, "inlinePreview");
   is(inlinePreviewEl.innerText, `myVar:"foo"`, "got expected inline preview");
 
@@ -229,6 +233,10 @@ async function testHoveringInvalidTargetTokens(dbg) {
 async function assertNoPreviews(dbg, expression, line, column) {
   // Move the cursor to the top left corner to have a clean state
   resetCursorPositionToTopLeftCorner(dbg);
+
+  // Wait for all the updates to the document to complete to make all
+  // token elements have been rendered
+  await waitForDocumentLoadComplete(dbg);
 
   // Hover the token
   const result = await Promise.race([
