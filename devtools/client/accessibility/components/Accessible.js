@@ -154,9 +154,17 @@ class Accessible extends Component {
     );
   }
 
-  // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
-  UNSAFE_componentWillReceiveProps({ accessibleFront }) {
-    const oldAccessibleFront = this.props.accessibleFront;
+  componentDidUpdate(prevProps) {
+    const oldAccessibleFront = prevProps.accessibleFront;
+    const { accessibleFront } = this.props;
+
+    if (
+      accessibleFront &&
+      !accessibleFront.isDestroyed() &&
+      accessibleFront !== oldAccessibleFront
+    ) {
+      window.emit(EVENTS.PROPERTIES_UPDATED);
+    }
 
     if (oldAccessibleFront) {
       if (
@@ -174,16 +182,6 @@ class Accessible extends Component {
       ACCESSIBLE_EVENTS.forEach(event =>
         accessibleFront.on(event, this.update)
       );
-    }
-  }
-
-  componentDidUpdate(prevProps) {
-    if (
-      this.props.accessibleFront &&
-      !this.props.accessibleFront.isDestroyed() &&
-      this.props.accessibleFront !== prevProps.accessibleFront
-    ) {
-      window.emit(EVENTS.PROPERTIES_UPDATED);
     }
   }
 
