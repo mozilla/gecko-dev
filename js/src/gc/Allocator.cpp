@@ -551,6 +551,10 @@ Arena* ArenaChunk::fetchNextFreeArena(GCRuntime* gc) {
 
 ArenaChunk* GCRuntime::takeOrAllocChunk(AutoLockGCBgAlloc& lock) {
   ArenaChunk* chunk = getOrAllocChunk(lock);
+  if (!chunk) {
+    return nullptr;
+  }
+
   emptyChunks(lock).remove(chunk);
   return chunk;
 }
