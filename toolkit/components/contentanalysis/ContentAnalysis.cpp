@@ -1674,7 +1674,7 @@ ContentAnalysis::MaybeExpandAndAnalyzeFolderContentRequest(
 #endif
 
   RefPtr<nsIFile> file;
-  rv = NS_NewLocalFile(filename, false, getter_AddRefs(file));
+  rv = NS_NewLocalFile(filename, getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, Err(rv));
 
   bool exists;

@@ -81,8 +81,8 @@ const char* nsUnixRemoteServer::HandleCommandLine(
   const char* workingDir = aBuffer.data() + offsetFilelist;
 
   nsCOMPtr<nsIFile> lf;
-  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(workingDir), true,
-                                      getter_AddRefs(lf));
+  nsresult rv =
+      NS_NewNativeLocalFile(nsDependentCString(workingDir), getter_AddRefs(lf));
   if (NS_FAILED(rv)) {
     return "509 internal error";
   }

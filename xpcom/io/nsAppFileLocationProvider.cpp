@@ -183,7 +183,7 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
   nsCOMPtr<nsIFile> localDir;
 
 #if defined(MOZ_WIDGET_COCOA)
-  NS_NewLocalFile(u""_ns, true, getter_AddRefs(localDir));
+  NS_NewLocalFile(u""_ns, getter_AddRefs(localDir));
   if (!localDir) {
     return NS_ERROR_FAILURE;
   }
@@ -207,7 +207,7 @@ nsresult nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
     return rv;
   }
 #elif defined(XP_UNIX)
-  rv = NS_NewNativeLocalFile(nsDependentCString(PR_GetEnv("HOME")), true,
+  rv = NS_NewNativeLocalFile(nsDependentCString(PR_GetEnv("HOME")),
                              getter_AddRefs(localDir));
   if (NS_FAILED(rv)) {
     return rv;

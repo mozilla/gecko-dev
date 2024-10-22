@@ -1748,14 +1748,16 @@ nsXULAppInfo::SetServerURL(nsIURL* aServerURL) {
 
 NS_IMETHODIMP
 nsXULAppInfo::GetMinidumpPath(nsIFile** aMinidumpPath) {
-  if (!CrashReporter::GetEnabled()) return NS_ERROR_NOT_INITIALIZED;
+  if (!CrashReporter::GetEnabled()) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
 
   nsAutoString path;
-  if (!CrashReporter::GetMinidumpPath(path)) return NS_ERROR_FAILURE;
+  if (!CrashReporter::GetMinidumpPath(path)) {
+    return NS_ERROR_FAILURE;
+  }
 
-  nsresult rv = NS_NewLocalFile(path, false, aMinidumpPath);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
+  return NS_NewLocalFile(path, aMinidumpPath);
 }
 
 NS_IMETHODIMP
@@ -3447,7 +3449,7 @@ static bool CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
   if (NS_FAILED(rv)) return false;
 
   nsCOMPtr<nsIFile> lf;
-  rv = NS_NewNativeLocalFile(""_ns, false, getter_AddRefs(lf));
+  rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(lf));
   if (NS_FAILED(rv)) return false;
 
   rv = lf->SetPersistentDescriptor(buf);
@@ -3461,7 +3463,7 @@ static bool CheckCompatibility(nsIFile* aProfileDir, const nsCString& aVersion,
     rv = parser.GetString("Compatibility", "LastAppDir", buf);
     if (NS_FAILED(rv)) return false;
 
-    rv = NS_NewNativeLocalFile(""_ns, false, getter_AddRefs(lf));
+    rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(lf));
     if (NS_FAILED(rv)) return false;
 
     rv = lf->SetPersistentDescriptor(buf);

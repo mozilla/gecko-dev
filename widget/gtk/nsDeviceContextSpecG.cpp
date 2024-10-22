@@ -96,7 +96,7 @@ already_AddRefed<PrintTarget> nsDeviceContextSpecGTK::MakePrintTarget() {
       return nullptr;
     }
     close(fd);
-    if (NS_FAILED(NS_NewNativeLocalFile(nsDependentCString(buf), false,
+    if (NS_FAILED(NS_NewNativeLocalFile(nsDependentCString(buf),
                                         getter_AddRefs(mSpoolFile)))) {
       unlink(buf);
       g_free(buf);
@@ -380,8 +380,7 @@ RefPtr<PrintEndDocumentPromise> nsDeviceContextSpecGTK::EndDocument() {
       nsCOMPtr<nsIFile> destFile;
       mPrintSettings->GetToFileName(targetPath);
 
-      nsresult rv =
-          NS_NewLocalFile(targetPath, false, getter_AddRefs(destFile));
+      nsresult rv = NS_NewLocalFile(targetPath, getter_AddRefs(destFile));
       if (NS_FAILED(rv)) {
         return PrintEndDocumentPromise::CreateAndReject(rv, __func__);
       }

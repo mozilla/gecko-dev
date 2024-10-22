@@ -141,10 +141,9 @@ class ScopedXPCOM final : public nsIDirectoryServiceProvider2 {
       return copy.forget();
     }
 
-    char* env = PR_GetEnv("MOZ_XRE_DIR");
     nsCOMPtr<nsIFile> greD;
-    if (env) {
-      NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), false, getter_AddRefs(greD));
+    if (char* env = PR_GetEnv("MOZ_XRE_DIR")) {
+      NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), getter_AddRefs(greD));
     }
 
     mGRED = greD;

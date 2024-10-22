@@ -753,7 +753,7 @@ bool nsToolkitProfileService::IsProfileForCurrentInstall(
   }
 
   nsCOMPtr<nsIFile> lastGreDir;
-  rv = NS_NewNativeLocalFile(""_ns, false, getter_AddRefs(lastGreDir));
+  rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(lastGreDir));
   NS_ENSURE_SUCCESS(rv, false);
 
   rv = lastGreDir->SetPersistentDescriptor(lastGreDirStr);
@@ -1117,7 +1117,7 @@ nsresult nsToolkitProfileService::Init() {
     }
 
     nsCOMPtr<nsIFile> rootDir;
-    rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(rootDir));
+    rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(rootDir));
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (isRelative) {
@@ -1615,7 +1615,7 @@ nsresult nsToolkitProfileService::SelectStartupProfile(
     nsCOMPtr<nsIToolkitProfile> profile;
     if (delim) {
       nsCOMPtr<nsIFile> lf;
-      rv = NS_NewNativeLocalFile(nsDependentCString(delim + 1), true,
+      rv = NS_NewNativeLocalFile(nsDependentCString(delim + 1),
                                  getter_AddRefs(lf));
       if (NS_FAILED(rv)) {
         PR_fprintf(PR_STDERR, "Error: profile path not valid.\n");
@@ -2678,7 +2678,7 @@ nsresult nsToolkitProfileService::GetLocalDirFromRootDir(nsIFile* aRootDir,
 
   nsCOMPtr<nsIFile> localDir;
   if (isRelative) {
-    rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
+    rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(localDir));
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = localDir->SetRelativeDescriptor(
@@ -2717,7 +2717,7 @@ nsresult XRE_GetFileFromPath(const char* aPath, nsIFile** aResult) {
   if (!fullPath) return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIFile> lf;
-  nsresult rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(lf));
+  nsresult rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(lf));
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsILocalFileMac> lfMac = do_QueryInterface(lf, &rv);
     if (NS_SUCCEEDED(rv)) {
@@ -2735,14 +2735,14 @@ nsresult XRE_GetFileFromPath(const char* aPath, nsIFile** aResult) {
 
   if (!realpath(aPath, fullPath)) return NS_ERROR_FAILURE;
 
-  return NS_NewNativeLocalFile(nsDependentCString(fullPath), true, aResult);
+  return NS_NewNativeLocalFile(nsDependentCString(fullPath), aResult);
 #elif defined(XP_WIN)
   WCHAR fullPath[MAXPATHLEN];
 
   if (!_wfullpath(fullPath, NS_ConvertUTF8toUTF16(aPath).get(), MAXPATHLEN))
     return NS_ERROR_FAILURE;
 
-  return NS_NewLocalFile(nsDependentString(fullPath), true, aResult);
+  return NS_NewLocalFile(nsDependentString(fullPath), aResult);
 
 #else
 #  error Platform-specific logic needed here.

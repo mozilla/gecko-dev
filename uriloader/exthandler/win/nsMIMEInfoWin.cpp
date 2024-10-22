@@ -372,7 +372,7 @@ void nsMIMEInfoWin::UpdateDefaultInfoIfStale() {
 bool nsMIMEInfoWin::GetLocalHandlerApp(const nsAString& aCommandHandler,
                                        nsCOMPtr<nsILocalHandlerApp>& aApp) {
   nsCOMPtr<nsIFile> locfile;
-  nsresult rv = NS_NewLocalFile(aCommandHandler, true, getter_AddRefs(locfile));
+  nsresult rv = NS_NewLocalFile(aCommandHandler, getter_AddRefs(locfile));
   if (NS_FAILED(rv)) return false;
 
   aApp = do_CreateInstance("@mozilla.org/uriloader/local-handler-app;1");

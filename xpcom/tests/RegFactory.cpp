@@ -35,7 +35,7 @@ void print_err(nsresult err) {
 nsresult Register(nsIComponentRegistrar* registrar, const char* path) {
   nsCOMPtr<nsIFile> file;
   nsresult rv =
-      NS_NewLocalFile(NS_ConvertUTF8toUTF16(path), true, getter_AddRefs(file));
+      NS_NewLocalFile(NS_ConvertUTF8toUTF16(path), getter_AddRefs(file));
   if (NS_FAILED(rv)) return rv;
   rv = registrar->AutoRegister(file);
   return rv;

@@ -141,11 +141,6 @@ XPCOM_API(nsresult) NS_GetComponentRegistrar(nsIComponentRegistrar** aResult);
  *       error (NS_ERROR_FILE_UNRECOGNIZED_PATH).
  *       |NS_NewNativeLocalFile|'s path must be in the
  *       filesystem charset.
- *   @param aFollowLinks
- *       This attribute will determine if the nsLocalFile will auto
- *       resolve symbolic links.  By default, this value will be false
- *       on all non unix systems.  On unix, this attribute is effectively
- *       a noop.
  * @param aResult Interface pointer to a new instance of an nsIFile
  *
  * @return NS_OK for success;
@@ -155,18 +150,17 @@ XPCOM_API(nsresult) NS_GetComponentRegistrar(nsIComponentRegistrar** aResult);
 #ifdef __cplusplus
 
 XPCOM_API(nsresult)
-NS_NewLocalFile(const nsAString& aPath, bool aFollowLinks, nsIFile** aResult);
+NS_NewLocalFile(const nsAString& aPath, nsIFile** aResult);
 
 XPCOM_API(nsresult)
-NS_NewNativeLocalFile(const nsACString& aPath, bool aFollowLinks,
-                      nsIFile** aResult);
+NS_NewNativeLocalFile(const nsACString& aPath, nsIFile** aResult);
 
 // Use NS_NewLocalFile if you already have a UTF-16 string.
 // Otherwise non-ASCII paths will break on some platforms
 // including Windows.
 class NS_ConvertUTF16toUTF8;
 nsresult NS_NewNativeLocalFile(const NS_ConvertUTF16toUTF8& aPath,
-                               bool aFollowLinks, nsIFile** aResult) = delete;
+                               nsIFile** aResult) = delete;
 
 #endif
 

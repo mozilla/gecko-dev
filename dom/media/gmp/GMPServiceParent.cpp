@@ -1068,7 +1068,7 @@ RefPtr<GenericPromise> GeckoMediaPluginServiceParent::AddOnGMPThread(
   GMP_LOG_DEBUG("%s::%s: %s", __CLASS__, __FUNCTION__, dir.get());
 
   nsCOMPtr<nsIFile> directory;
-  nsresult rv = NS_NewLocalFile(aDirectory, false, getter_AddRefs(directory));
+  nsresult rv = NS_NewLocalFile(aDirectory, getter_AddRefs(directory));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     GMP_LOG_DEBUG("%s::%s: failed to create nsIFile for dir=%s rv=%" PRIx32,
                   __CLASS__, __FUNCTION__, dir.get(),
@@ -1110,7 +1110,7 @@ void GeckoMediaPluginServiceParent::RemoveOnGMPThread(
                 NS_LossyConvertUTF16toASCII(aDirectory).get());
 
   nsCOMPtr<nsIFile> directory;
-  nsresult rv = NS_NewLocalFile(aDirectory, false, getter_AddRefs(directory));
+  nsresult rv = NS_NewLocalFile(aDirectory, getter_AddRefs(directory));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }

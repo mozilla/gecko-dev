@@ -1868,7 +1868,7 @@ nsLocalFile::GetParent(nsIFile** aParent) {
   *slashp = '\0';
 
   nsCOMPtr<nsIFile> localFile;
-  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(buffer), true,
+  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(buffer),
                                       getter_AddRefs(localFile));
 
   // make buffer whole again
@@ -2418,8 +2418,7 @@ nsLocalFile::Launch() {
 #endif
 }
 
-nsresult NS_NewNativeLocalFile(const nsACString& aPath, bool aFollowSymlinks,
-                               nsIFile** aResult) {
+nsresult NS_NewNativeLocalFile(const nsACString& aPath, nsIFile** aResult) {
   RefPtr<nsLocalFile> file = new nsLocalFile();
 
   if (!aPath.IsEmpty()) {
@@ -2537,14 +2536,13 @@ nsresult nsLocalFile::GetTarget(nsAString& aResult) {
   GET_UCS(GetNativeTarget, aResult);
 }
 
-nsresult NS_NewLocalFile(const nsAString& aPath, bool aFollowLinks,
-                         nsIFile** aResult) {
+nsresult NS_NewLocalFile(const nsAString& aPath, nsIFile** aResult) {
   nsAutoCString buf;
   nsresult rv = NS_CopyUnicodeToNative(aPath, buf);
   if (NS_FAILED(rv)) {
     return rv;
   }
-  return NS_NewNativeLocalFile(buf, aFollowLinks, aResult);
+  return NS_NewNativeLocalFile(buf, aResult);
 }
 
 // nsILocalFileMac
@@ -3066,7 +3064,7 @@ NS_IMETHODIMP nsLocalFile::InitWithFile(nsIFile* aFile) {
   return InitWithNativePath(nativePath);
 }
 
-nsresult NS_NewLocalFileWithFSRef(const FSRef* aFSRef, bool aFollowLinks,
+nsresult NS_NewLocalFileWithFSRef(const FSRef* aFSRef,
                                   nsILocalFileMac** aResult) {
   RefPtr<nsLocalFile> file = new nsLocalFile();
 
@@ -3078,7 +3076,7 @@ nsresult NS_NewLocalFileWithFSRef(const FSRef* aFSRef, bool aFollowLinks,
   return NS_OK;
 }
 
-nsresult NS_NewLocalFileWithCFURL(const CFURLRef aURL, bool aFollowLinks,
+nsresult NS_NewLocalFileWithCFURL(const CFURLRef aURL,
                                   nsILocalFileMac** aResult) {
   RefPtr<nsLocalFile> file = new nsLocalFile();
 

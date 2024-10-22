@@ -84,7 +84,7 @@ nsDeviceContextSpecAndroid::DoEndDocument() {
     nsAutoString targetPath;
     mPrintSettings->GetToFileName(targetPath);
     nsCOMPtr<nsIFile> destFile;
-    MOZ_TRY(NS_NewLocalFile(targetPath, false, getter_AddRefs(destFile)));
+    MOZ_TRY(NS_NewLocalFile(targetPath, getter_AddRefs(destFile)));
     nsAutoString destLeafName;
     MOZ_TRY(destFile->GetLeafName(destLeafName));
 

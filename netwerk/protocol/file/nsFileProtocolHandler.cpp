@@ -151,8 +151,8 @@ nsFileProtocolHandler::ReadShellLink(nsIFile* aFile, nsIURI** aURI) {
     return NS_ERROR_FAILURE;
   }
   nsCOMPtr<nsIFile> linkedFile;
-  MOZ_TRY(NS_NewLocalFile(nsDependentString(lpTemp), false,
-                          getter_AddRefs(linkedFile)));
+  MOZ_TRY(
+      NS_NewLocalFile(nsDependentString(lpTemp), getter_AddRefs(linkedFile)));
   return NS_NewFileURI(aURI, linkedFile);
 #else
   return NS_ERROR_NOT_AVAILABLE;

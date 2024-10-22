@@ -243,7 +243,7 @@ void mozHunspell::LoadDictionaryList(bool aNotifyChildProcesses) {
     rv = prefs->GetCharPref("spellchecker.dictionary_path", extDictPath);
     if (NS_SUCCEEDED(rv)) {
       // set the spellchecker.dictionary_path
-      rv = NS_NewNativeLocalFile(extDictPath, true, getter_AddRefs(dictDir));
+      rv = NS_NewNativeLocalFile(extDictPath, getter_AddRefs(dictDir));
     }
     if (dictDir) {
       LoadDictionariesFromDir(dictDir);
@@ -262,8 +262,7 @@ void mozHunspell::LoadDictionaryList(bool aNotifyChildProcesses) {
     char* nextPaths = env.BeginWriting();
     while ((currPath = NS_strtok(":", &nextPaths))) {
       nsCOMPtr<nsIFile> dir;
-      rv =
-          NS_NewNativeLocalFile(nsCString(currPath), true, getter_AddRefs(dir));
+      rv = NS_NewNativeLocalFile(nsCString(currPath), getter_AddRefs(dir));
       if (NS_SUCCEEDED(rv)) {
         dirs.AppendElement(dir);
       }

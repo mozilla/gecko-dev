@@ -135,7 +135,7 @@ void GetDirectoryListingTaskChild::SetSuccessRequestResult(
           data.get_FileSystemDirectoryListingResponseDirectory();
 
       nsCOMPtr<nsIFile> path;
-      aRv = NS_NewLocalFile(d.directoryRealPath(), true, getter_AddRefs(path));
+      aRv = NS_NewLocalFile(d.directoryRealPath(), getter_AddRefs(path));
       if (NS_WARN_IF(aRv.Failed())) {
         return;
       }
@@ -184,8 +184,7 @@ GetDirectoryListingTaskParent::Create(
   RefPtr<GetDirectoryListingTaskParent> task =
       new GetDirectoryListingTaskParent(aFileSystem, aParam, aParent);
 
-  aRv = NS_NewLocalFile(aParam.realPath(), true,
-                        getter_AddRefs(task->mTargetPath));
+  aRv = NS_NewLocalFile(aParam.realPath(), getter_AddRefs(task->mTargetPath));
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -214,8 +213,7 @@ FileSystemResponseValue GetDirectoryListingTaskParent::GetSuccessRequestResult(
   for (unsigned i = 0; i < mTargetData.Length(); i++) {
     if (mTargetData[i].mType == FileOrDirectoryPath::eFilePath) {
       nsCOMPtr<nsIFile> path;
-      nsresult rv =
-          NS_NewLocalFile(mTargetData[i].mPath, true, getter_AddRefs(path));
+      nsresult rv = NS_NewLocalFile(mTargetData[i].mPath, getter_AddRefs(path));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         continue;
       }
@@ -393,8 +391,7 @@ nsresult GetDirectoryListingTaskParent::MainThreadWork() {
     }
 
     nsCOMPtr<nsIFile> file;
-    nsresult rv =
-        NS_NewLocalFile(mTargetData[i].mPath, true, getter_AddRefs(file));
+    nsresult rv = NS_NewLocalFile(mTargetData[i].mPath, getter_AddRefs(file));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       continue;
     }

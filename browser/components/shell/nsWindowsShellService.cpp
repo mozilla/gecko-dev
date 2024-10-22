@@ -1734,7 +1734,7 @@ static nsresult PinCurrentAppToTaskbarImpl(
         return NS_ERROR_FAILURE;
       }
       nsAutoString exeStr(exePath);
-      nsresult rv = NS_NewLocalFile(exeStr, true, getter_AddRefs(exeFile));
+      nsresult rv = NS_NewLocalFile(exeStr, getter_AddRefs(exeFile));
       if (!NS_SUCCEEDED(rv)) {
         return NS_ERROR_FILE_NOT_FOUND;
       }

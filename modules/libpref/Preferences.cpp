@@ -2568,7 +2568,7 @@ nsPrefBranch::GetComplexValue(const char* aPrefName, const nsIID& aType,
     }
 
     nsCOMPtr<nsIFile> theFile;
-    rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(theFile));
+    rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(theFile));
     if (NS_FAILED(rv)) {
       return rv;
     }

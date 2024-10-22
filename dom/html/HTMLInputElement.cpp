@@ -397,7 +397,7 @@ static already_AddRefed<nsIFile> LastUsedDirectory(
     }
 
     nsCOMPtr<nsIFile> localFile;
-    nsresult rv = NS_NewLocalFile(path, true, getter_AddRefs(localFile));
+    nsresult rv = NS_NewLocalFile(path, getter_AddRefs(localFile));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return nullptr;
     }
@@ -2164,7 +2164,7 @@ void HTMLInputElement::MozSetFileNameArray(const Sequence<nsString>& aFileNames,
 
     if (!file) {
       // this is no "file://", try as local file
-      NS_NewLocalFile(aFileNames[i], false, getter_AddRefs(file));
+      NS_NewLocalFile(aFileNames[i], getter_AddRefs(file));
     }
 
     if (!file) {
@@ -2197,7 +2197,7 @@ void HTMLInputElement::MozSetDirectory(const nsAString& aDirectoryPath,
   }
 
   nsCOMPtr<nsIFile> file;
-  aRv = NS_NewLocalFile(aDirectoryPath, true, getter_AddRefs(file));
+  aRv = NS_NewLocalFile(aDirectoryPath, getter_AddRefs(file));
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
@@ -6285,8 +6285,7 @@ static nsTArray<OwningFileOrDirectory> RestoreFileContentData(
     } else {
       MOZ_ASSERT(it.type() == FileContentData::TnsString);
       nsCOMPtr<nsIFile> file;
-      nsresult rv =
-          NS_NewLocalFile(it.get_nsString(), true, getter_AddRefs(file));
+      nsresult rv = NS_NewLocalFile(it.get_nsString(), getter_AddRefs(file));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         continue;
       }

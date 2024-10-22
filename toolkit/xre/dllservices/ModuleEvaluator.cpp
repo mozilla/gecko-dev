@@ -83,7 +83,7 @@ bool ModuleEvaluator::ResolveKnownFolder(REFKNOWNFOLDERID aFolderId,
 
   ShellStringUniquePtr path(rawPath);
 
-  nsresult rv = NS_NewLocalFile(nsDependentString(path.get()), false, aOutFile);
+  nsresult rv = NS_NewLocalFile(nsDependentString(path.get()), aOutFile);
   return NS_SUCCEEDED(rv);
 }
 

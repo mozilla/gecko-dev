@@ -73,8 +73,8 @@ void CodeCoverageHandler::FlushCounters(const bool initialized) {
 
   nsCOMPtr<nsIFile> file;
 
-  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(outDir), false,
-                                      getter_AddRefs(file));
+  nsresult rv =
+      NS_NewNativeLocalFile(nsDependentCString(outDir), getter_AddRefs(file));
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   rv = file->AppendNative(

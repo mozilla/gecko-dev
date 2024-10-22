@@ -155,8 +155,7 @@ already_AddRefed<GetFilesTaskParent> GetFilesTaskParent::Create(
   RefPtr<GetFilesTaskParent> task =
       new GetFilesTaskParent(aFileSystem, aParam, aParent);
 
-  aRv = NS_NewLocalFile(aParam.realPath(), true,
-                        getter_AddRefs(task->mTargetPath));
+  aRv = NS_NewLocalFile(aParam.realPath(), getter_AddRefs(task->mTargetPath));
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }

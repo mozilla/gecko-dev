@@ -200,7 +200,6 @@ nsresult ProfileUnlockerWin::TryToTerminate(RM_UNIQUE_PROCESS& aProcess) {
   }
   nsCOMPtr<nsIFile> otherProcessImageName;
   if (NS_FAILED(NS_NewLocalFile(nsDependentString(imageName, imageNameLen),
-                                false,
                                 getter_AddRefs(otherProcessImageName)))) {
     return NS_ERROR_FAILURE;
   }
@@ -216,7 +215,7 @@ nsresult ProfileUnlockerWin::TryToTerminate(RM_UNIQUE_PROCESS& aProcess) {
   }
   nsCOMPtr<nsIFile> thisProcessImageName;
   if (NS_FAILED(NS_NewLocalFile(nsDependentString(imageName, imageNameLen),
-                                false, getter_AddRefs(thisProcessImageName)))) {
+                                getter_AddRefs(thisProcessImageName)))) {
     return NS_ERROR_FAILURE;
   }
   nsAutoString thisProcessLeafName;

@@ -162,7 +162,7 @@ static bool GetInstantiatorExecutable(const DWORD aPid,
   }
 
   nsCOMPtr<nsIFile> file;
-  nsresult rv = NS_NewLocalFile(nsDependentString(buf.get(), bufLen), false,
+  nsresult rv = NS_NewLocalFile(nsDependentString(buf.get(), bufLen),
                                 getter_AddRefs(file));
   if (NS_FAILED(rv)) {
     return false;

@@ -138,8 +138,8 @@ int RunGTestFunc(int* argc, char** argv) {
       char* path = PR_GetEnv("MOZ_GTEST_MINIDUMPS_PATH");
       nsCOMPtr<nsIFile> file;
       if (path) {
-        nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(path), true,
-                                      getter_AddRefs(file));
+        nsresult rv =
+            NS_NewLocalFile(NS_ConvertUTF8toUTF16(path), getter_AddRefs(file));
         if (NS_FAILED(rv)) {
           printf_stderr("Ignoring invalid MOZ_GTEST_MINIDUMPS_PATH\n");
         }

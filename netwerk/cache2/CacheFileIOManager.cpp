@@ -1311,7 +1311,7 @@ nsresult CacheFileIOManager::OnProfile() {
   nsCOMPtr<nsIFile> profilelessDirectory;
   char* cachePath = getenv("CACHE_DIRECTORY");
   if (!directory && cachePath && *cachePath) {
-    rv = NS_NewNativeLocalFile(nsDependentCString(cachePath), true,
+    rv = NS_NewNativeLocalFile(nsDependentCString(cachePath),
                                getter_AddRefs(directory));
     if (NS_SUCCEEDED(rv)) {
       // Save this directory as the profileless path.

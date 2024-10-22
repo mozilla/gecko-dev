@@ -179,7 +179,7 @@ static void AppendBlobImplAsDirectory(nsTArray<OwningFileOrDirectory>& aArray,
   }
 
   nsCOMPtr<nsIFile> file;
-  nsresult rv = NS_NewLocalFile(fullpath, true, getter_AddRefs(file));
+  nsresult rv = NS_NewLocalFile(fullpath, getter_AddRefs(file));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }

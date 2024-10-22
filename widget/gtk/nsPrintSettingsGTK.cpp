@@ -310,7 +310,7 @@ nsPrintSettingsGTK::SetToFileName(const nsAString& aToFileName) {
                          "pdf");
 
   nsCOMPtr<nsIFile> file;
-  nsresult rv = NS_NewLocalFile(aToFileName, true, getter_AddRefs(file));
+  nsresult rv = NS_NewLocalFile(aToFileName, getter_AddRefs(file));
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Convert the nsIFile to a URL

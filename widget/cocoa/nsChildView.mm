@@ -4493,7 +4493,7 @@ static CFTypeRefPtr<CFURLRef> GetPasteLocation(NSPasteboard* aPasteboard) {
                              stringFromPboardType:
                                  (NSString*)kPasteboardTypeFileURLPromise]]) {
         nsCOMPtr<nsIFile> targFile;
-        NS_NewLocalFile(u""_ns, true, getter_AddRefs(targFile));
+        NS_NewLocalFile(u""_ns, getter_AddRefs(targFile));
         nsCOMPtr<nsILocalFileMac> macLocalFile = do_QueryInterface(targFile);
         if (!macLocalFile) {
           NS_ERROR("No Mac local file");

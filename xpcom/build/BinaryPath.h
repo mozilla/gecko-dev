@@ -302,10 +302,9 @@ class BinaryPath {
       return rv;
     }
 #  ifdef XP_WIN
-    rv = NS_NewLocalFile(nsDependentString(exePath), true, getter_AddRefs(lf));
+    rv = NS_NewLocalFile(nsDependentString(exePath), getter_AddRefs(lf));
 #  else
-    rv = NS_NewNativeLocalFile(nsDependentCString(exePath), true,
-                               getter_AddRefs(lf));
+    rv = NS_NewNativeLocalFile(nsDependentCString(exePath), getter_AddRefs(lf));
 #  endif
     if (NS_FAILED(rv)) {
       return rv;

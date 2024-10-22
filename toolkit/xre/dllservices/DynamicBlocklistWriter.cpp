@@ -85,7 +85,7 @@ DynamicBlocklistWriter::DynamicBlocklistWriter(
 
 nsresult DynamicBlocklistWriter::WriteToFile(const nsAString& aName) const {
   nsCOMPtr<nsIFile> file;
-  MOZ_TRY(NS_NewLocalFile(aName, true, getter_AddRefs(file)));
+  MOZ_TRY(NS_NewLocalFile(aName, getter_AddRefs(file)));
 
   nsCOMPtr<nsIOutputStream> stream;
   MOZ_TRY(NS_NewSafeLocalFileOutputStream(getter_AddRefs(stream), file));

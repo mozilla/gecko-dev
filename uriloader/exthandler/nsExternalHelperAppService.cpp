@@ -869,7 +869,7 @@ nsresult nsExternalHelperAppService::GetFileTokenForPath(
   nsDependentString platformAppPath(aPlatformAppPath);
   // First, check if we have an absolute path
   nsIFile* localFile = nullptr;
-  nsresult rv = NS_NewLocalFile(platformAppPath, true, &localFile);
+  nsresult rv = NS_NewLocalFile(platformAppPath, &localFile);
   if (NS_SUCCEEDED(rv)) {
     *aFile = localFile;
     bool exists;

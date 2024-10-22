@@ -277,7 +277,7 @@ bool GMPProcessParent::FillMacSandboxInfo(MacSandboxInfo& aInfo) {
       "plugin dir path: %s",
       mGMPPath.c_str());
   nsCOMPtr<nsIFile> pluginDir;
-  nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(mGMPPath.c_str()), true,
+  nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(mGMPPath.c_str()),
                                 getter_AddRefs(pluginDir));
   if (NS_FAILED(rv)) {
     GMP_LOG_DEBUG(
@@ -347,8 +347,8 @@ bool GMPProcessParent::FillMacSandboxInfo(MacSandboxInfo& aInfo) {
 nsresult GMPProcessParent::NormalizePath(const char* aPath,
                                          PathString& aNormalizedPath) {
   nsCOMPtr<nsIFile> fileOrDir;
-  nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(aPath), true,
-                                getter_AddRefs(fileOrDir));
+  nsresult rv =
+      NS_NewLocalFile(NS_ConvertUTF8toUTF16(aPath), getter_AddRefs(fileOrDir));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = fileOrDir->Normalize();

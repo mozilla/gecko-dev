@@ -135,8 +135,7 @@ void CacheUseDOSDevicePathSyntaxPrefValue() {
 Result<nsCOMPtr<nsIFile>, nsresult> QM_NewLocalFile(const nsAString& aPath) {
   QM_TRY_UNWRAP(
       auto file,
-      MOZ_TO_RESULT_INVOKE_TYPED(nsCOMPtr<nsIFile>, NS_NewLocalFile, aPath,
-                                 /* aFollowLinks */ false),
+      MOZ_TO_RESULT_INVOKE_TYPED(nsCOMPtr<nsIFile>, NS_NewLocalFile, aPath),
       QM_PROPAGATE, [&aPath](const nsresult rv) {
         QM_WARNING("Failed to construct a file for path (%s)",
                    NS_ConvertUTF16toUTF8(aPath).get());

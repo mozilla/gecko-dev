@@ -756,7 +756,7 @@ bool MPRISServiceHandler::InitLocalImageFolder() {
     // The XDG_DATA_HOME points to the same location in the host and guest
     // filesystem.
     if (const auto* xdgDataHome = g_getenv("XDG_DATA_HOME")) {
-      rv = NS_NewNativeLocalFile(nsDependentCString(xdgDataHome), true,
+      rv = NS_NewNativeLocalFile(nsDependentCString(xdgDataHome),
                                  getter_AddRefs(mLocalImageFolder));
     }
   } else {

@@ -361,7 +361,7 @@ RefPtr<PrintEndDocumentPromise> nsDeviceContextSpecWin::EndDocument() {
 
   // We still need to move the file to its actual destination.
   nsCOMPtr<nsIFile> destFile;
-  auto rv = NS_NewLocalFile(targetPath, false, getter_AddRefs(destFile));
+  auto rv = NS_NewLocalFile(targetPath, getter_AddRefs(destFile));
   if (NS_FAILED(rv)) {
     return PrintEndDocumentPromise::CreateAndReject(rv, __func__);
   }

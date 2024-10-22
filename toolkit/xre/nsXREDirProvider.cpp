@@ -296,7 +296,7 @@ static nsresult GetSystemParentDirectory(nsIFile** aFile) {
       "/usr/lib/mozilla"_ns
 #    endif
       ;
-  rv = NS_NewNativeLocalFile(dirname, false, getter_AddRefs(localDir));
+  rv = NS_NewNativeLocalFile(dirname, getter_AddRefs(localDir));
 #  endif
 
   if (NS_SUCCEEDED(rv)) {
@@ -401,7 +401,7 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
 #    else
     static const char* const sysLExtDir = "/usr/share/mozilla/extensions";
 #    endif
-    rv = NS_NewNativeLocalFile(nsDependentCString(sysLExtDir), false,
+    rv = NS_NewNativeLocalFile(nsDependentCString(sysLExtDir),
                                getter_AddRefs(file));
 #  endif
   }
@@ -414,7 +414,7 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
 #if defined(XP_UNIX)
     nsPrintfCString path("/run/user/%d/%s/", getuid(), GetAppName());
     ToLowerCase(path);
-    rv = NS_NewNativeLocalFile(path, false, getter_AddRefs(file));
+    rv = NS_NewNativeLocalFile(path, getter_AddRefs(file));
 #endif
   } else if (!strcmp(aProperty, XRE_APP_DISTRIBUTION_DIR)) {
     bool persistent = false;
@@ -825,7 +825,7 @@ nsresult nsXREDirProvider::GetInstallHash(nsAString& aPathHash) {
     nsCOMPtr<nsILocalFileMac> macFile = do_QueryInterface(installDir);
     rv = macFile->GetFSRef(&ref);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = NS_NewLocalFileWithFSRef(&ref, true, getter_AddRefs(macFile));
+    rv = NS_NewLocalFileWithFSRef(&ref, getter_AddRefs(macFile));
     NS_ENSURE_SUCCESS(rv, rv);
     installDir = static_cast<nsIFile*>(macFile);
 #endif
@@ -1053,7 +1053,7 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
   OSErr err = ::FSFindFolder(kUserDomain, folderType, kCreateFolder, &fsRef);
   NS_ENSURE_FALSE(err, NS_ERROR_FAILURE);
 
-  rv = NS_NewNativeLocalFile(""_ns, true, getter_AddRefs(localDir));
+  rv = NS_NewNativeLocalFile(""_ns, getter_AddRefs(localDir));
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsILocalFileMac> dirFileMac = do_QueryInterface(localDir);
@@ -1066,7 +1066,7 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
 #elif defined(XP_IOS)
   nsAutoCString userDir;
   if (GetUIKitDirectory(aLocal, userDir)) {
-    rv = NS_NewNativeLocalFile(userDir, true, getter_AddRefs(localDir));
+    rv = NS_NewNativeLocalFile(userDir, getter_AddRefs(localDir));
   } else {
     rv = NS_ERROR_FAILURE;
   }
@@ -1085,7 +1085,7 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = NS_NewLocalFile(path, true, getter_AddRefs(localDir));
+  rv = NS_NewLocalFile(path, getter_AddRefs(localDir));
 #elif defined(XP_UNIX)
   const char* homeDir = getenv("HOME");
   if (!homeDir || !*homeDir) return NS_ERROR_FAILURE;
@@ -1098,15 +1098,15 @@ nsresult nsXREDirProvider::GetUserDataDirectoryHome(nsIFile** aFile,
     // If $XDG_CACHE_HOME is defined use it, otherwise use $HOME/.cache.
     const char* cacheHome = getenv("XDG_CACHE_HOME");
     if (cacheHome && *cacheHome) {
-      rv = NS_NewNativeLocalFile(nsDependentCString(cacheHome), true,
+      rv = NS_NewNativeLocalFile(nsDependentCString(cacheHome),
                                  getter_AddRefs(localDir));
     } else {
-      rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
+      rv = NS_NewNativeLocalFile(nsDependentCString(homeDir),
                                  getter_AddRefs(localDir));
       if (NS_SUCCEEDED(rv)) rv = localDir->AppendNative(".cache"_ns);
     }
   } else {
-    rv = NS_NewNativeLocalFile(nsDependentCString(homeDir), true,
+    rv = NS_NewNativeLocalFile(nsDependentCString(homeDir),
                                getter_AddRefs(localDir));
   }
 #else

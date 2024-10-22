@@ -556,7 +556,7 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
       // GetSpecialSystemDirectory(Unix_XDG_ConfigHome) ?
       nsCOMPtr<nsIFile> confDirOrXDGConfigHomeDir;
       if (!xdgConfigHome.IsEmpty()) {
-        rv = NS_NewNativeLocalFile(xdgConfigHome, true,
+        rv = NS_NewNativeLocalFile(xdgConfigHome,
                                    getter_AddRefs(confDirOrXDGConfigHomeDir));
         // confDirOrXDGConfigHomeDir = nsIFile($XDG_CONFIG_HOME)
       } else {

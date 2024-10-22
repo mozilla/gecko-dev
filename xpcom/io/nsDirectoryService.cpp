@@ -62,7 +62,7 @@ nsresult nsDirectoryService::GetCurrentProcessDirectory(nsIFile** aFile)
     if (!greHome) {
       return NS_ERROR_FAILURE;
     }
-    nsresult rv = NS_NewNativeLocalFile(nsDependentCString(greHome), true,
+    nsresult rv = NS_NewNativeLocalFile(nsDependentCString(greHome),
                                         getter_AddRefs(mXCurProcD));
     if (NS_FAILED(rv)) {
       return rv;

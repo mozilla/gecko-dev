@@ -39,7 +39,7 @@ nsresult WinRemoteMessageReceiver::ParseV2(const nsAString& aBuffer) {
 
   nsCOMPtr<nsIFile> workingDir;
   if (cch < aBuffer.Length()) {
-    NS_NewLocalFile(Substring(aBuffer, cch), false, getter_AddRefs(workingDir));
+    NS_NewLocalFile(Substring(aBuffer, cch), getter_AddRefs(workingDir));
   }
 
   int argc = parser.Argc();
@@ -79,7 +79,7 @@ nsresult WinRemoteMessageReceiver::ParseV3(const nsACString& aBuffer) {
   }
 
   nsresult rv = NS_NewLocalFile(
-      NS_ConvertUTF8toUTF16(Substring(aBuffer, pos, nextNul - pos)), false,
+      NS_ConvertUTF8toUTF16(Substring(aBuffer, pos, nextNul - pos)),
       getter_AddRefs(workingDir));
   NS_ENSURE_SUCCESS(rv, rv);
 

@@ -346,7 +346,7 @@ struct ParamTraits<mozilla::ModuleRecord> {
     if (resolvedDosName.IsEmpty()) {
       aResult->mResolvedDosName = nullptr;
     } else if (NS_FAILED(NS_NewLocalFile(
-                   resolvedDosName, false,
+                   resolvedDosName,
                    getter_AddRefs(aResult->mResolvedDosName)))) {
       return false;
     }

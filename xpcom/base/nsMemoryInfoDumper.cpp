@@ -615,7 +615,7 @@ nsMemoryInfoDumper::DumpMemoryReportsToNamedFile(
   // Create the file.
 
   nsCOMPtr<nsIFile> reportsFile;
-  nsresult rv = NS_NewLocalFile(aFilename, false, getter_AddRefs(reportsFile));
+  nsresult rv = NS_NewLocalFile(aFilename, getter_AddRefs(reportsFile));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

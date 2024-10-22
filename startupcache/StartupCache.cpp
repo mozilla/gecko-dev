@@ -186,8 +186,7 @@ nsresult StartupCache::Init() {
   // cache in.
   char* env = PR_GetEnv("MOZ_STARTUP_CACHE");
   if (env && *env) {
-    rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), false,
-                         getter_AddRefs(mFile));
+    rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), getter_AddRefs(mFile));
   } else {
     nsCOMPtr<nsIFile> file;
     rv = NS_GetSpecialDirectory("ProfLDS", getter_AddRefs(file));

@@ -960,8 +960,7 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject* aDataObject,
         // we have a file path in |data|. Create an nsLocalFile object.
         nsDependentString filepath(reinterpret_cast<char16_t*>(data));
         nsCOMPtr<nsIFile> file;
-        if (NS_SUCCEEDED(
-                NS_NewLocalFile(filepath, false, getter_AddRefs(file)))) {
+        if (NS_SUCCEEDED(NS_NewLocalFile(filepath, getter_AddRefs(file)))) {
           genericDataWrapper = do_QueryInterface(file);
         }
         free(data);
@@ -1159,7 +1158,7 @@ bool nsClipboard ::FindURLFromLocalFile(IDataObject* inDataObject, UINT inIndex,
     // file?
     const nsDependentString filepath(static_cast<char16_t*>(*outData));
     nsCOMPtr<nsIFile> file;
-    nsresult rv = NS_NewLocalFile(filepath, true, getter_AddRefs(file));
+    nsresult rv = NS_NewLocalFile(filepath, getter_AddRefs(file));
     if (NS_FAILED(rv)) {
       free(*outData);
       return dataFound;

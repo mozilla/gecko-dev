@@ -762,7 +762,7 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
         // multiple selection
         for (auto const& str : paths) {
           nsCOMPtr<nsIFile> file;
-          if (NS_SUCCEEDED(NS_NewLocalFile(str, false, getter_AddRefs(file)))) {
+          if (NS_SUCCEEDED(NS_NewLocalFile(str, getter_AddRefs(file)))) {
             self->mFiles.AppendObject(file);
           }
         }
@@ -908,7 +908,7 @@ nsresult nsFilePicker::Open(nsIFilePickerShownCallback* aCallback) {
           // file already exists.
           nsCOMPtr<nsIFile> file;
           nsresult rv =
-              NS_NewLocalFile(self->mUnicodeFile, false, getter_AddRefs(file));
+              NS_NewLocalFile(self->mUnicodeFile, getter_AddRefs(file));
 
           bool flag = false;
           if (NS_SUCCEEDED(rv) && NS_SUCCEEDED(file->Exists(&flag)) && flag) {
@@ -975,7 +975,7 @@ nsFilePicker::GetFile(nsIFile** aFile) {
   if (mUnicodeFile.IsEmpty()) return NS_OK;
 
   nsCOMPtr<nsIFile> file;
-  nsresult rv = NS_NewLocalFile(mUnicodeFile, false, getter_AddRefs(file));
+  nsresult rv = NS_NewLocalFile(mUnicodeFile, getter_AddRefs(file));
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1097,7 +1097,7 @@ void nsFilePicker::RememberLastUsedDirectory() {
   }
 
   nsCOMPtr<nsIFile> file;
-  if (NS_FAILED(NS_NewLocalFile(mUnicodeFile, false, getter_AddRefs(file)))) {
+  if (NS_FAILED(NS_NewLocalFile(mUnicodeFile, getter_AddRefs(file)))) {
     NS_WARNING("RememberLastUsedDirectory failed to init file path.");
     return;
   }

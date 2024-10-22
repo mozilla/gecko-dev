@@ -630,8 +630,8 @@ size_t URLPreloader::ShallowSizeOfIncludingThis(
 Result<FileLocation, nsresult> URLPreloader::CacheKey::ToFileLocation() {
   if (mType == TypeFile) {
     nsCOMPtr<nsIFile> file;
-    MOZ_TRY(NS_NewLocalFile(NS_ConvertUTF8toUTF16(mPath), false,
-                            getter_AddRefs(file)));
+    MOZ_TRY(
+        NS_NewLocalFile(NS_ConvertUTF8toUTF16(mPath), getter_AddRefs(file)));
     return FileLocation(file);
   }
 

@@ -3448,8 +3448,7 @@ nsLocalFile::Launch() {
   return NS_OK;
 }
 
-nsresult NS_NewLocalFile(const nsAString& aPath, bool aFollowLinks,
-                         nsIFile** aResult) {
+nsresult NS_NewLocalFile(const nsAString& aPath, nsIFile** aResult) {
   RefPtr<nsLocalFile> file = new nsLocalFile();
 
   if (!aPath.IsEmpty()) {
@@ -3622,15 +3621,14 @@ nsLocalFile::GetNativeTarget(nsACString& aResult) {
   return rv;
 }
 
-nsresult NS_NewNativeLocalFile(const nsACString& aPath, bool aFollowLinks,
-                               nsIFile** aResult) {
+nsresult NS_NewNativeLocalFile(const nsACString& aPath, nsIFile** aResult) {
   nsAutoString buf;
   nsresult rv = NS_CopyNativeToUnicode(aPath, buf);
   if (NS_FAILED(rv)) {
     *aResult = nullptr;
     return rv;
   }
-  return NS_NewLocalFile(buf, aFollowLinks, aResult);
+  return NS_NewLocalFile(buf, aResult);
 }
 
 void nsLocalFile::EnsureShortPath() {

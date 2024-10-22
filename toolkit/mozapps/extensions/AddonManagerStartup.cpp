@@ -428,12 +428,12 @@ Result<nsCOMPtr<nsIFile>, nsresult> Addon::FullPath() {
 
   // First check for an absolute path, in case we have a proxy file.
   nsCOMPtr<nsIFile> file;
-  if (NS_SUCCEEDED(NS_NewLocalFile(path, false, getter_AddRefs(file)))) {
+  if (NS_SUCCEEDED(NS_NewLocalFile(path, getter_AddRefs(file)))) {
     return std::move(file);
   }
 
   // If not an absolute path, fall back to a relative path from the location.
-  MOZ_TRY(NS_NewLocalFile(mLocation.Path(), false, getter_AddRefs(file)));
+  MOZ_TRY(NS_NewLocalFile(mLocation.Path(), getter_AddRefs(file)));
 
   MOZ_TRY(file->AppendRelativePath(path));
   return std::move(file);

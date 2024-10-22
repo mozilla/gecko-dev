@@ -861,7 +861,7 @@ nsZipReaderCache::Observe(nsISupports* aSubject, const char* aTopic,
       file = do_QueryInterface(aSubject);
     } else if (aSomeData) {
       nsDependentString fileName(aSomeData);
-      Unused << NS_NewLocalFile(fileName, false, getter_AddRefs(file));
+      Unused << NS_NewLocalFile(fileName, getter_AddRefs(file));
     }
 
     if (!file) return NS_OK;

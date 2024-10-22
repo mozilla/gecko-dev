@@ -416,7 +416,7 @@ static inline void my_u64tostring(uint64_t aValue, char* aBuffer,
 
 #ifdef XP_WIN
 static void CreateFileFromPath(const xpstring& path, nsIFile** file) {
-  NS_NewLocalFile(nsDependentString(path.c_str()), false, file);
+  NS_NewLocalFile(nsDependentString(path.c_str()), file);
 }
 
 static std::optional<xpstring> CreatePathFromFile(nsIFile* file) {
@@ -429,7 +429,7 @@ static std::optional<xpstring> CreatePathFromFile(nsIFile* file) {
 }
 #else
 static void CreateFileFromPath(const xpstring& path, nsIFile** file) {
-  NS_NewNativeLocalFile(nsDependentCString(path.c_str()), false, file);
+  NS_NewNativeLocalFile(nsDependentCString(path.c_str()), file);
 }
 
 MAYBE_UNUSED static std::optional<xpstring> CreatePathFromFile(nsIFile* file) {
@@ -2834,8 +2834,7 @@ static void SetCrashEventsDir(nsIFile* aDir) {
 
   const char* env = PR_GetEnv("CRASHES_EVENTS_DIR");
   if (env && *env) {
-    NS_NewNativeLocalFile(nsDependentCString(env), false,
-                          getter_AddRefs(eventsDir));
+    NS_NewNativeLocalFile(nsDependentCString(env), getter_AddRefs(eventsDir));
     EnsureDirectoryExists(eventsDir);
   }
 

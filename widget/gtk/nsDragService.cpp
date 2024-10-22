@@ -2162,7 +2162,7 @@ void nsDragSession::SourceDataGetXDND(nsITransferable* aItem,
   LOGDRAGSERVICE("  XdndDirectSave filepath is %s", fullpath.get());
 
   nsCOMPtr<nsIFile> file;
-  if (NS_FAILED(NS_NewNativeLocalFile(nsDependentCString(fullpath.get()), false,
+  if (NS_FAILED(NS_NewNativeLocalFile(nsDependentCString(fullpath.get()),
                                       getter_AddRefs(file)))) {
     LOGDRAGSERVICE("  failed to get local file");
     return;

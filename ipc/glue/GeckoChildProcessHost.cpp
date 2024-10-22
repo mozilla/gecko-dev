@@ -546,7 +546,7 @@ mozilla::BinPathType BaseProcessLauncher::GetPathToBinary(
     exePath = FilePath(char16ptr_t(gGREBinPath));
 #elif MOZ_WIDGET_COCOA
     nsCOMPtr<nsIFile> childProcPath;
-    NS_NewLocalFile(nsDependentString(gGREBinPath), false,
+    NS_NewLocalFile(nsDependentString(gGREBinPath),
                     getter_AddRefs(childProcPath));
 
     // We need to use an App Bundle on OS X so that we can hide

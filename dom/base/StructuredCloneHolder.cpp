@@ -695,7 +695,7 @@ already_AddRefed<Directory> ReadDirectoryInternal(
   }
 
   nsCOMPtr<nsIFile> file;
-  nsresult rv = NS_NewLocalFile(path, true, getter_AddRefs(file));
+  nsresult rv = NS_NewLocalFile(path, getter_AddRefs(file));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return nullptr;
   }

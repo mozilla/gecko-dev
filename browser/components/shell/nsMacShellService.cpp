@@ -224,8 +224,7 @@ nsMacShellService::OnStateChange(nsIWebProgress* aWebProgress,
 NS_IMETHODIMP
 nsMacShellService::ShowDesktopPreferences() {
   nsCOMPtr<nsIFile> lf;
-  nsresult rv =
-      NS_NewNativeLocalFile(DESKTOP_PREFPANE, true, getter_AddRefs(lf));
+  nsresult rv = NS_NewNativeLocalFile(DESKTOP_PREFPANE, getter_AddRefs(lf));
   NS_ENSURE_SUCCESS(rv, rv);
   bool exists;
   lf->Exists(&exists);

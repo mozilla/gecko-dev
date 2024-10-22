@@ -206,7 +206,7 @@ interface nsILocalFileMac : nsIFile
 %{C++
 extern "C"
 {
-NS_EXPORT nsresult NS_NewLocalFileWithFSRef(const FSRef* aFSRef, bool aFollowSymlinks, nsILocalFileMac** result);
-NS_EXPORT nsresult NS_NewLocalFileWithCFURL(const CFURLRef aURL, bool aFollowSymlinks, nsILocalFileMac** result);
+NS_EXPORT nsresult NS_NewLocalFileWithFSRef(const FSRef* aFSRef, nsILocalFileMac** result);
+NS_EXPORT nsresult NS_NewLocalFileWithCFURL(const CFURLRef aURL, nsILocalFileMac** result);
 }
 %}

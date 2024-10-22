@@ -1944,8 +1944,8 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
     nsCOMPtr<nsIFile> qlogDir;
     if (Preferences::GetBool(HTTP_PREF("http3.enable_qlog")) &&
         !mHttp3QlogDir.IsEmpty() &&
-        NS_SUCCEEDED(NS_NewNativeLocalFile(mHttp3QlogDir, false,
-                                           getter_AddRefs(qlogDir)))) {
+        NS_SUCCEEDED(
+            NS_NewNativeLocalFile(mHttp3QlogDir, getter_AddRefs(qlogDir)))) {
       // Here we do main thread IO, but since this only happens
       // when enabling a developer feature it's not a problem for users.
       rv = qlogDir->Create(nsIFile::DIRECTORY_TYPE, 0755);

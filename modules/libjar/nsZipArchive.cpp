@@ -97,8 +97,8 @@ class ZipArchiveLogger {
 
     if (!mFd) {
       nsCOMPtr<nsIFile> logFile;
-      nsresult rv = NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), false,
-                                    getter_AddRefs(logFile));
+      nsresult rv =
+          NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), getter_AddRefs(logFile));
       if (NS_FAILED(rv)) return;
 
       // Create the log file and its parent directory (in case it doesn't exist)

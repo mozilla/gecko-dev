@@ -262,12 +262,11 @@ nsresult nsFileChannel::Init() {
       NS_SUCCEEDED(file->IsSymlink(&symLink)) && symLink &&
 #ifdef XP_WIN
       NS_SUCCEEDED(file->GetTarget(fileTarget)) &&
-      NS_SUCCEEDED(
-          NS_NewLocalFile(fileTarget, true, getter_AddRefs(resolvedFile))) &&
+      NS_SUCCEEDED(NS_NewLocalFile(fileTarget, getter_AddRefs(resolvedFile))) &&
 #else
       NS_SUCCEEDED(file->GetNativeTarget(fileTarget)) &&
-      NS_SUCCEEDED(NS_NewNativeLocalFile(fileTarget, true,
-                                         getter_AddRefs(resolvedFile))) &&
+      NS_SUCCEEDED(
+          NS_NewNativeLocalFile(fileTarget, getter_AddRefs(resolvedFile))) &&
 #endif
       NS_SUCCEEDED(
           NS_NewFileURI(getter_AddRefs(targetURI), resolvedFile, nullptr))) {

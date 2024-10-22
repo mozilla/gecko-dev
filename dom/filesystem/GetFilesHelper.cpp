@@ -238,7 +238,7 @@ void GetFilesHelper::RunIO() {
   MOZ_ASSERT(!mListingCompleted);
 
   nsCOMPtr<nsIFile> file;
-  mErrorResult = NS_NewLocalFile(mDirectoryPath, true, getter_AddRefs(file));
+  mErrorResult = NS_NewLocalFile(mDirectoryPath, getter_AddRefs(file));
   if (NS_WARN_IF(NS_FAILED(mErrorResult))) {
     return;
   }

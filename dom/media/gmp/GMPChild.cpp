@@ -253,7 +253,7 @@ bool GMPChild::GetUTF8LibPath(nsACString& aOutLibPath) {
     MOZ_CRASH(explain);                                   \
   } while (false)
 
-  nsresult rv = NS_NewLocalFile(mPluginPath, true, getter_AddRefs(libFile));
+  nsresult rv = NS_NewLocalFile(mPluginPath, getter_AddRefs(libFile));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     GMP_PATH_CRASH("Failed to create file for plugin path");
     return false;
@@ -310,7 +310,7 @@ bool GMPChild::GetUTF8LibPath(nsACString& aOutLibPath) {
 bool GMPChild::GetPluginName(nsACString& aPluginName) const {
   // Extract the plugin directory name if possible.
   nsCOMPtr<nsIFile> libFile;
-  nsresult rv = NS_NewLocalFile(mPluginPath, true, getter_AddRefs(libFile));
+  nsresult rv = NS_NewLocalFile(mPluginPath, getter_AddRefs(libFile));
   NS_ENSURE_SUCCESS(rv, false);
 
   nsCOMPtr<nsIFile> parent;
@@ -463,8 +463,7 @@ GMPChild::MakeCDMHostVerificationPaths(const nsACString& aPluginLibPath) {
 
   CopyUTF8toUTF16(nsDependentCString(pluginContainer.c_str()), str);
   nsCOMPtr<nsIFile> path;
-  if (NS_FAILED(NS_NewLocalFile(str, true, /* aFollowLinks */
-                                getter_AddRefs(path))) ||
+  if (NS_FAILED(NS_NewLocalFile(str, getter_AddRefs(path))) ||
       !AppendHostPath(path, paths)) {
     // Without successfully determining plugin-container's path, we can't
     // determine libxul's or Firefox's. So give up.

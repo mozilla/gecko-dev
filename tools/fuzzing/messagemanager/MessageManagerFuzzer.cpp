@@ -52,7 +52,7 @@ void MessageManagerFuzzer::ReadFile(const char* path,
                                     nsTArray<nsCString>& aArray) {
   nsCOMPtr<nsIFile> file;
   nsresult rv =
-      NS_NewLocalFile(NS_ConvertUTF8toUTF16(path), true, getter_AddRefs(file));
+      NS_NewLocalFile(NS_ConvertUTF8toUTF16(path), getter_AddRefs(file));
   NS_ENSURE_SUCCESS_VOID(rv);
 
   bool exists = false;

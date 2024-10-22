@@ -790,7 +790,7 @@ void JumpListBuilder::DeleteIconFromDisk(const nsAString& aPath) {
   if (StringTail(aPath, 4).LowerCaseEqualsASCII(".ico")) {
     // Construct the parent path of the passed in path
     nsCOMPtr<nsIFile> icoFile;
-    nsresult rv = NS_NewLocalFile(aPath, true, getter_AddRefs(icoFile));
+    nsresult rv = NS_NewLocalFile(aPath, getter_AddRefs(icoFile));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;
     }

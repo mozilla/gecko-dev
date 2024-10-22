@@ -1621,7 +1621,7 @@ class nsCycleCollectorLogSinkToFile final : public nsICycleCollectorLogSink {
     // wouldn't work.
     nsIFile* logFile = nullptr;
     if (char* env = PR_GetEnv("MOZ_CC_LOG_DIRECTORY")) {
-      NS_NewNativeLocalFile(nsCString(env), /* followLinks = */ true, &logFile);
+      NS_NewNativeLocalFile(nsCString(env), &logFile);
     }
 
     // On Android or B2G, this function will open a file named

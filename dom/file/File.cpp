@@ -181,7 +181,7 @@ already_AddRefed<Promise> File::CreateFromFileName(
     const ChromeFilePropertyBag& aBag, SystemCallerGuarantee aGuarantee,
     ErrorResult& aRv) {
   nsCOMPtr<nsIFile> file;
-  aRv = NS_NewLocalFile(aPath, false, getter_AddRefs(file));
+  aRv = NS_NewLocalFile(aPath, getter_AddRefs(file));
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }

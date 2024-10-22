@@ -97,7 +97,7 @@ ModuleRecord::ModuleRecord(const nsAString& aResolvedNtPath)
   }
 
   nsresult rv =
-      NS_NewLocalFile(resolvedDosPath, false, getter_AddRefs(mResolvedDosName));
+      NS_NewLocalFile(resolvedDosPath, getter_AddRefs(mResolvedDosName));
   if (NS_FAILED(rv) || !mResolvedDosName) {
     return;
   }

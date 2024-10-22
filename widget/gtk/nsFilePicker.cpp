@@ -182,7 +182,7 @@ void ReadMultipleFiles(gpointer filename, gpointer array) {
   nsCOMPtr<nsIFile> localfile;
   nsresult rv =
       NS_NewNativeLocalFile(nsDependentCString(static_cast<char*>(filename)),
-                            false, getter_AddRefs(localfile));
+                            getter_AddRefs(localfile));
   if (NS_SUCCEEDED(rv)) {
     nsCOMArray<nsIFile>& files = *static_cast<nsCOMArray<nsIFile>*>(array);
     files.AppendObject(localfile);

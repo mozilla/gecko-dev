@@ -409,9 +409,8 @@ nsresult nsDumpUtils::OpenTempFile(const nsACString& aFilename, nsIFile** aFile,
   // For Android, first try the downloads directory which is world-readable
   // rather than the temp directory which is not.
   if (!*aFile) {
-    char* env = PR_GetEnv("DOWNLOADS_DIRECTORY");
-    if (env) {
-      NS_NewNativeLocalFile(nsCString(env), /* followLinks = */ true, aFile);
+    if (char* env = PR_GetEnv("DOWNLOADS_DIRECTORY")) {
+      NS_NewNativeLocalFile(nsCString(env), aFile);
     }
   }
 #endif
