@@ -62,6 +62,29 @@ add_task(async function test_profile_feature_jstracing() {
         0,
         "Found string for 'customEventHandler' method call"
       );
+      const navigatorUserAgentStringIdx = contentThread.stringTable.indexOf(
+        `(DOM) Navigator.userAgent`
+      );
+      Assert.greater(
+        navigatorUserAgentStringIdx,
+        0,
+        "Found string for 'navigator.userAgent' getter"
+      );
+      const clickMethodStringIdx = contentThread.stringTable.indexOf(
+        `(DOM) HTMLElement.click`
+      );
+      Assert.greater(
+        clickMethodStringIdx,
+        0,
+        "Found string for 'body.click' call"
+      );
+      const eventTargetDispatchEventStringIdx =
+        contentThread.stringTable.indexOf(`(DOM) EventTarget.dispatchEvent`);
+      Assert.greater(
+        clickMethodStringIdx,
+        0,
+        "Found string for 'window.dispatchEvent' call"
+      );
 
       // Then lookup for the matching frame, based on the string index
       const { frameTable } = contentThread;
@@ -121,6 +144,38 @@ add_task(async function test_profile_feature_jstracing() {
         frameTable.data[customEventHandlerFrameIdx][FRAME_CATEGORY_SLOT],
         FUNCTION_CALL_CATEGORY
       );
+      const clickMethodFrameIdx = frameTable.data.findIndex(
+        frame => frame[FRAME_LOCATION_SLOT] == clickMethodStringIdx
+      );
+      Assert.greater(
+        clickMethodFrameIdx,
+        0,
+        "Found frame for 'body.click' method call"
+      );
+      const navigatorUserAgentFrameIdx = frameTable.data.findIndex(
+        frame => frame[FRAME_LOCATION_SLOT] == navigatorUserAgentStringIdx
+      );
+      Assert.greater(
+        navigatorUserAgentFrameIdx,
+        0,
+        "Found frame for 'navigator.userAgent' getter"
+      );
+      Assert.equal(
+        frameTable.data[navigatorUserAgentFrameIdx][FRAME_CATEGORY_SLOT],
+        EVENT_CATEGORY
+      );
+      const eventTargetDispatchEventFrameIdx = frameTable.data.findIndex(
+        frame => frame[FRAME_LOCATION_SLOT] == eventTargetDispatchEventStringIdx
+      );
+      Assert.greater(
+        eventTargetDispatchEventFrameIdx,
+        0,
+        "Found frame for 'window.dispatchEvent' call"
+      );
+      Assert.equal(
+        frameTable.data[eventTargetDispatchEventFrameIdx][FRAME_CATEGORY_SLOT],
+        EVENT_CATEGORY
+      );
 
       // Finally, assert that the stacks are correct.
       // Each symbol's frame is visible in a stack, and the stack tree is valid
@@ -142,6 +197,15 @@ add_task(async function test_profile_feature_jstracing() {
       const customEventHandlerEventFrame = stackTable.data.find(
         stack => stack[STACK_FRAME_SLOT] == customEventHandlerFrameIdx
       );
+      const clickMethodFrame = stackTable.data.find(
+        stack => stack[STACK_FRAME_SLOT] == clickMethodFrameIdx
+      );
+      const navigatorUserAgentFrame = stackTable.data.find(
+        stack => stack[STACK_FRAME_SLOT] == navigatorUserAgentFrameIdx
+      );
+      const eventTargetDispatchEventFrame = stackTable.data.find(
+        stack => stack[STACK_FRAME_SLOT] == eventTargetDispatchEventFrameIdx
+      );
       Assert.equal(
         getCallerNameFromStackIdx(
           contentThread,
@@ -157,13 +221,23 @@ add_task(async function test_profile_feature_jstracing() {
       );
       Assert.equal(
         clickEventFrame[STACK_PREFIX_SLOT],
+        stackTable.data.indexOf(clickMethodFrame),
+        "'click' event fired from 'body.click' method call"
+      );
+      Assert.equal(
+        clickMethodFrame[STACK_PREFIX_SLOT],
         stackTable.data.indexOf(functionBFrame),
-        "'click' event fired from 'b()' method call"
+        "'body.click' method was called from 'b'"
+      );
+      Assert.equal(
+        navigatorUserAgentFrame[STACK_PREFIX_SLOT],
+        stackTable.data.indexOf(functionBFrame),
+        "'navigator.userAgent' was queried from 'b'"
       );
       Assert.equal(
         customEventFrame[STACK_PREFIX_SLOT],
-        stackTable.data.indexOf(functionBFrame),
-        "'CustomEvent' event fired from 'b()' method call"
+        stackTable.data.indexOf(eventTargetDispatchEventFrame),
+        "'CustomEvent' event fired from 'window.dispatchEvent()' method call"
       );
       Assert.equal(
         customEventHandlerEventFrame[STACK_PREFIX_SLOT],
