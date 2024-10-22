@@ -83,8 +83,6 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   bool hasAwaitUsing_ = false;
 
-  [[nodiscard]] bool emitThrowIfException();
-
   [[nodiscard]] bool emitGetDisposeMethod(UsingHint hint);
 
   [[nodiscard]] bool emitCreateDisposableResource(UsingHint hint);
@@ -93,6 +91,8 @@ class MOZ_STACK_CLASS UsingEmitter {
 
  protected:
   BytecodeEmitter* bce_;
+
+  [[nodiscard]] bool emitThrowIfException();
 
   [[nodiscard]] bool emitDisposeResourcesForEnvironment(
       EmitterScope& es,
@@ -109,11 +109,58 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   [[nodiscard]] bool prepareForAssignment(UsingHint hint);
 
-  [[nodiscard]] bool prepareForForOfLoopIteration();
-
-  [[nodiscard]] bool prepareForForOfIteratorCloseOnThrow();
-
   [[nodiscard]] bool emitNonLocalJump(EmitterScope* present);
+
+  [[nodiscard]] bool emitEnd();
+};
+
+// This is a version of UsingEmitter specialized to help emit code for
+// using declarations in for-of loop heads e.g.: `for (using x of y) {}`.
+//
+// Usage: (check for the return value is omitted for simplicity)
+//
+//   at the point of the for-of loop head
+//     ForOfDisposalEmitter disposeBeforeIter(bce, hasAwaitUsing);
+//     disposeBeforeIter.prepareForForOfLoopIteration();
+//     emit_Loop();
+//
+//   at the point of loop end
+//     prepare_IteratorClose();
+//     disposeBeforeIter.emitEnd();
+//
+class MOZ_STACK_CLASS ForOfDisposalEmitter : protected UsingEmitter {
+ private:
+#ifdef DEBUG
+  // The state of this emitter.
+  //
+  // +-------+  prepareForForOfLoopIteration   +-----------+
+  // | Start |-------------------------------->| Iteration |--+
+  // +-------+                                 +-----------+  |
+  //                                                          |
+  //   +------------------------------------------------------+
+  //   |
+  //   |  emitEnd  +-----+
+  //   +---------->| End |
+  //               +-----+
+  enum class State {
+    // The initial state.
+    Start,
+
+    // After calling prepareForForOfLoopIteration.
+    Iteration,
+
+    // After calling emitEnd.
+    End
+  };
+  State state_ = State::Start;
+#endif
+ public:
+  explicit ForOfDisposalEmitter(BytecodeEmitter* bce, bool hasAwaitUsing)
+      : UsingEmitter(bce) {
+    setHasAwaitUsing(hasAwaitUsing);
+  }
+
+  [[nodiscard]] bool prepareForForOfLoopIteration();
 
   [[nodiscard]] bool emitEnd();
 };

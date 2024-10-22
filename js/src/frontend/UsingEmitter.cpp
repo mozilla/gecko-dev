@@ -1040,7 +1040,8 @@ bool UsingEmitter::prepareForAssignment(UsingHint hint) {
   return true;
 }
 
-bool UsingEmitter::prepareForForOfLoopIteration() {
+bool ForOfDisposalEmitter::prepareForForOfLoopIteration() {
+  MOZ_ASSERT(state_ == State::Start);
   EmitterScope* es = bce_->innermostEmitterScopeNoCheck();
   MOZ_ASSERT(es->hasDisposables());
 
@@ -1049,10 +1050,19 @@ bool UsingEmitter::prepareForForOfLoopIteration() {
     return false;
   }
 
-  return emitThrowIfException();
+  if (!emitThrowIfException()) {
+    // [stack]
+    return false;
+  }
+
+#ifdef DEBUG
+  state_ = State::Iteration;
+#endif
+  return true;
 }
 
-bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
+bool ForOfDisposalEmitter::emitEnd() {
+  MOZ_ASSERT(state_ == State::Iteration);
   EmitterScope* es = bce_->innermostEmitterScopeNoCheck();
   MOZ_ASSERT(es->hasDisposables());
 
@@ -1073,8 +1083,15 @@ bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
     return false;
   }
 
-  return bce_->emit1(JSOp::Swap);
-  // [stack] EXC STACK
+  if (!bce_->emit1(JSOp::Swap)) {
+    // [stack] EXC STACK
+    return false;
+  }
+
+#ifdef DEBUG
+  state_ = State::End;
+#endif
+  return true;
 }
 
 bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {

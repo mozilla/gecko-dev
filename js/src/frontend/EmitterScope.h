@@ -13,9 +13,6 @@
 
 #include "ds/Nestable.h"
 #include "frontend/AbstractScopePtr.h"
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-#  include "frontend/BytecodeOffset.h"
-#endif
 #include "frontend/NameAnalysisTypes.h"
 #include "frontend/NameCollections.h"
 #include "frontend/Stencil.h"
@@ -53,6 +50,8 @@ class EmitterScope : public Nestable<EmitterScope> {
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
   mozilla::Maybe<UsingEmitter> usingEmitter_;
+
+  mozilla::Maybe<ForOfDisposalEmitter> forOfDisposalEmitter_;
 
  public:
   enum class BlockKind : uint8_t { Switch, ForOf, Other };
@@ -193,7 +192,7 @@ class EmitterScope : public Nestable<EmitterScope> {
 
   [[nodiscard]] bool prepareForDisposableAssignment(UsingHint hint);
 
-  [[nodiscard]] bool prepareForForOfLoopIteration();
+  [[nodiscard]] bool prepareForForOfLoopIteration(BytecodeEmitter* bce);
 
   [[nodiscard]] bool prepareForForOfIteratorCloseOnThrow();
 
