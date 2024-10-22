@@ -2822,9 +2822,14 @@ html {
   flex-grow: 0;
   flex-shrink: 0;
 }
-@media (prefers-contrast: no-preference) and (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark) {
   .onboardingContainer .multi-select-container {
     color: #CFCFD8;
+  }
+}
+@media (prefers-contrast) {
+  .onboardingContainer .multi-select-container {
+    color: var(--in-content-page-color);
   }
 }
 .onboardingContainer .mobile-downloads .qr-code-image {

@@ -1904,8 +1904,12 @@ html {
       }
     }
 
-    @media (prefers-contrast: no-preference) and (prefers-color-scheme: dark) {
+    @media (prefers-color-scheme: dark) {
       color: #CFCFD8;
+    }
+
+    @media (prefers-contrast) {
+      color: var(--in-content-page-color);
     }
   }
 
