@@ -359,16 +359,41 @@ void GCRuntime::sweepBackgroundThings(ZoneList& zones) {
     // HeapPtrs between things of different alloc kind regardless of
     // finalization order.
     //
-    // Periodically drop and reaquire the GC lock every so often to avoid
-    // blocking the main thread from allocating chunks.
-    static const size_t LockReleasePeriod = 32;
-
+    // Batch releases so as to periodically drop and reaquire the GC lock every
+    // so often to avoid blocking the main thread from allocating arenas. This
+    // is important for allocation-heavy workloads such as the splay benchmark.
+    //
+    // This block is equivalent to calling GCRuntime::releaseArena on each arena
+    // individually.
+    static constexpr size_t BatchSize = 32;
     while (emptyArenas) {
+      Arena* arenasToRelease[BatchSize];
+      size_t count = 0;
+
+      {
+        mozilla::Maybe<AutoLockGC> maybeLock;
+        if (zone->isAtomsZone()) {
+          // Required to synchronize access to AtomMarkingRuntime.
+          maybeLock.emplace(this);
+        }
+
+        // Take up to BatchSize arenas from emptyArenas list.
+        for (size_t i = 0; emptyArenas && i < BatchSize; i++) {
+          Arena* arena = emptyArenas;
+          emptyArenas = arena->next;
+
+          arena->release(this, maybeLock.ptrOr(nullptr));
+          arenasToRelease[i] = arena;
+          count++;
+        }
+      }
+
+      zone->gcHeapSize.removeBytes(ArenaSize * count, true, heapSize);
+
       AutoLockGC lock(this);
-      for (size_t i = 0; i < LockReleasePeriod && emptyArenas; i++) {
-        Arena* arena = emptyArenas;
-        emptyArenas = emptyArenas->next;
-        releaseArena(arena, lock);
+      for (size_t i = 0; i < count; i++) {
+        Arena* arena = arenasToRelease[i];
+        arena->chunk()->releaseArena(this, arena, lock);
       }
     }
 

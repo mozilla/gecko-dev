@@ -245,7 +245,8 @@ class alignas(ArenaSize) Arena {
   }
 
   // Return an allocated arena to its unallocated (free) state.
-  inline void release(GCRuntime* gc, const AutoLockGC& lock);
+  // The lock is required for arenas in an atoms zone.
+  inline void release(GCRuntime* gc, const AutoLockGC* maybeLock);
 
   uintptr_t address() const {
     checkAddress();

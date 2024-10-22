@@ -396,7 +396,7 @@ void GCRuntime::releaseArena(Arena* arena, const AutoLockGC& lock) {
   MOZ_ASSERT(TlsGCContext.get()->isFinalizing());
 
   arena->zone()->gcHeapSize.removeGCArena(heapSize);
-  arena->release(this, lock);
+  arena->release(this, &lock);
   arena->chunk()->releaseArena(this, arena, lock);
 }
 

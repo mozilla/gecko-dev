@@ -41,11 +41,12 @@ inline void js::gc::Arena::init(GCRuntime* gc, JS::Zone* zoneArg,
 #endif
 }
 
-inline void js::gc::Arena::release(GCRuntime* gc, const AutoLockGC& lock) {
+inline void js::gc::Arena::release(GCRuntime* gc, const AutoLockGC* maybeLock) {
   MOZ_ASSERT(allocated());
 
   if (zone_->isAtomsZone()) {
-    gc->atomMarking.unregisterArena(this, lock);
+    MOZ_ASSERT(maybeLock);
+    gc->atomMarking.unregisterArena(this, *maybeLock);
   }
 
   // Poison zone pointer to highlight UAF on released arenas in crash data.
