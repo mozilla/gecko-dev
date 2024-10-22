@@ -6752,16 +6752,8 @@ nsresult nsGlobalWindowOuter::OpenInternal(
   // If noopener is force-enabled for the current document, then set noopener to
   // true, and clear the name to "_blank".
   nsAutoString windowName(aName);
-  if (nsDocShell::Cast(GetDocShell())->NoopenerForceEnabled()) {
-    // FIXME: Eventually bypass force-enabling noopener if `aPrintKind !=
-    // PrintKind::None`, so that we can print pages with noopener force-enabled.
-    // This will require relaxing assertions elsewhere.
-    if (aPrintKind != PrintKind::None) {
-      NS_WARNING(
-          "printing frames with noopener force-enabled isn't supported yet");
-      return NS_ERROR_FAILURE;
-    }
-
+  if (nsDocShell::Cast(GetDocShell())->NoopenerForceEnabled() &&
+      aPrintKind == PrintKind::None) {
     MOZ_DIAGNOSTIC_ASSERT(aNavigate,
                           "cannot OpenNoNavigate if noopener is force-enabled");
 

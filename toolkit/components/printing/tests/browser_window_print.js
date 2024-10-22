@@ -158,23 +158,6 @@ add_task(async function test_print_another_iframe_and_remove() {
   );
 });
 
-add_task(async function test_window_print_coop_site() {
-  for (const base of [TEST_PATH, TEST_PATH_SITE]) {
-    const url = `${base}file_coop_header2.html`;
-    is(
-      document.querySelector(".printPreviewBrowser"),
-      null,
-      "There shouldn't be any print preview browser"
-    );
-    await BrowserTestUtils.withNewTab(url, async function (browser) {
-      await new PrintHelper(browser).waitForDialog();
-
-      ok(true, "Shouldn't crash");
-      gBrowser.getTabDialogBox(browser).abortAllDialogs();
-    });
-  }
-});
-
 add_task(async function test_window_print_iframe_remove_on_afterprint() {
   ok(
     !document.querySelector(".printPreviewBrowser"),

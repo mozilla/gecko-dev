@@ -416,9 +416,10 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
   } else if (aOpener) {
     // They are not same origin
     auto topPolicy = aOpener->Top()->GetOpenerPolicy();
-    MOZ_RELEASE_ASSERT(topPolicy == nsILoadInfo::OPENER_POLICY_UNSAFE_NONE ||
-                       topPolicy ==
-                           nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_ALLOW_POPUPS);
+    MOZ_RELEASE_ASSERT(
+        topPolicy == nsILoadInfo::OPENER_POLICY_UNSAFE_NONE ||
+        topPolicy == nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_ALLOW_POPUPS ||
+        aOptions.isForPrinting);
   } else if (!aParent && group->IsPotentiallyCrossOriginIsolated()) {
     // If we're creating a brand-new toplevel BC in a potentially cross-origin
     // isolated group, it should start out with a strict opener policy.

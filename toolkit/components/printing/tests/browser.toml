@@ -34,18 +34,18 @@ support-files = ["file_print.html"]
 ["browser_preview_navigation.js"]
 support-files = ["longerArticle.html"]
 
-["browser_preview_print_coop.js"]
-support-files = [
-  "file_coop_header.html",
-  "file_coop_header.html^headers^",
-]
-
 ["browser_preview_print_link_modulepreload.js"]
 support-files = ["file_link_modulepreload.html"]
 
 ["browser_print_bcg_id_overflow.js"]
 
 ["browser_print_context_menu.js"]
+
+["browser_print_coop.js"]
+support-files = [
+  "file_coop_header.html",
+  "file_coop_header.html^headers^",
+]
 
 ["browser_print_copies.js"]
 
@@ -111,6 +111,4 @@ support-files = [
   "file_window_print_iframe_remove_on_afterprint.html",
   "file_window_print_srcdoc_base_uri.html",
   "file_window_print_reentrant.html",
-  "file_coop_header2.html",
-  "file_coop_header2.html^headers^",
 ]

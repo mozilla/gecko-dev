@@ -1,7 +1,20 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<html>
-  <body>
-    <p>Hello world</p>
-  </body>
-</html>
+<p>Hello world</p>
+<iframe id="iframe"></iframe>
+<script>
+onload = function() {
+  let iframe = document.getElementById("iframe");
+  switch (location.search) {
+    case "?print":
+      window.print();
+      break;
+    case "?print-same-origin-frame":
+      iframe.src = `/document-builder.sjs?html=Hello<script>print()<\/script>`;
+      break;
+    case "?print-cross-origin-frame":
+      iframe.src = `https://example.org/document-builder.sjs?html=Hello<script>print()<\/script>`;
+      break;
+  }
+}
+</script>

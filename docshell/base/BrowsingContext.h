@@ -345,6 +345,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
     bool isPopupRequested = false;
     bool createdDynamically = false;
     bool topLevelCreatedByWebContent = false;
+    bool isForPrinting = false;
   };
 
   // Create a brand-new BrowsingContext object, but does not immediately attach

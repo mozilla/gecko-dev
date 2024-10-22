@@ -996,6 +996,7 @@ nsresult ContentChild::ProvideWindowCommon(
     parentSandboxFlags = doc->GetSandboxFlags();
   }
 
+  const bool isForPrinting = aOpenWindowInfo->GetIsForPrinting();
   // Certain conditions complicate the process of creating the new
   // BrowsingContext, and prevent us from using the
   // "CreateWindowInDifferentProcess" codepath.
@@ -1005,8 +1006,8 @@ nsresult ContentChild::ProvideWindowCommon(
   //    so that a static clone of the source document can be created.
   //  * Sandboxed popups require the full window creation codepath.
   //  * Loads with form or POST data require the full window creation codepath.
-  bool cannotLoadInDifferentProcess =
-      useRemoteSubframes || aOpenWindowInfo->GetIsForPrinting() ||
+  const bool cannotLoadInDifferentProcess =
+      useRemoteSubframes || isForPrinting ||
       (parentSandboxFlags &
        SANDBOX_PROPAGATES_TO_AUXILIARY_BROWSING_CONTEXTS) ||
       (aLoadState &&
@@ -1079,8 +1080,11 @@ nsresult ContentChild::ProvideWindowCommon(
 
   RefPtr<BrowsingContext> browsingContext = BrowsingContext::CreateDetached(
       nullptr, openerBC, nullptr, aName, BrowsingContext::Type::Content,
-      {.isPopupRequested = aIsPopupRequested,
-       .topLevelCreatedByWebContent = true});
+      BrowsingContext::CreateDetachedOptions{
+          .isPopupRequested = aIsPopupRequested,
+          .topLevelCreatedByWebContent = true,
+          .isForPrinting = isForPrinting,
+      });
   MOZ_ALWAYS_SUCCEEDS(browsingContext->SetRemoteTabs(true));
   MOZ_ALWAYS_SUCCEEDS(browsingContext->SetRemoteSubframes(useRemoteSubframes));
   MOZ_ALWAYS_SUCCEEDS(browsingContext->SetOriginAttributes(
