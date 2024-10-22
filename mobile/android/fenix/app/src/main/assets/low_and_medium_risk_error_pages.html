@@ -24,7 +24,9 @@
     <!-- PAGE CONTAINER (for styling purposes only) -->
     <div id="errorPageContainer">
       <!-- Error Image -->
-      <iframe id="errorImage" src="" frameborder="0"></iframe>
+      <div id="imageContainer">
+        <iframe id="errorImage" src="" frameborder="0"></iframe>
+      </div>
 
       <!-- Error Title -->
       <div id="errorTitle">
@@ -35,6 +37,8 @@
       <div id="errorLongContent">
         <div id="errorShortDesc"></div>
       </div>
+
+      <div id="errorLinkContent"><a id="errorCode"></a></div>
 
       <!-- Retry Button -->
       <button id="errorTryAgain"></button>

@@ -57,6 +57,11 @@ function injectValues(queryMap) {
     continueHttpButton.style.display = "none";
     backFromHttpButton.style.display = "none";
   }
+
+  if (queryMap.errorCode) {
+    const errorCode = document.getElementById("errorCode");
+    errorCode.textContent = queryMap.errorCode;
+  }
 }
 
 let advancedVisible = false;

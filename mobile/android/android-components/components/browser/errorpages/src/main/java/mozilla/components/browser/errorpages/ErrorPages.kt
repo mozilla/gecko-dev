@@ -38,6 +38,7 @@ object ErrorPages {
         val button = context.getString(errorType.refreshButtonRes)
         val description = descriptionOverride(errorType) ?: context.getString(errorType.messageRes, uri)
         val imageName = if (errorType.imageNameRes != null) context.getString(errorType.imageNameRes) + ".svg" else ""
+        val errorCode = if (errorType.errorCode != null) context.getString(errorType.errorCode) else ""
         val continueHttpButton = context.getString(R.string.mozac_browser_errorpages_httpsonly_button)
         val badCertAdvanced = context.getString(R.string.mozac_browser_errorpages_security_bad_cert_advanced)
         val badCertTechInfo = when (errorType) {
@@ -88,7 +89,8 @@ object ErrorPages {
             "&badCertGoBack=${badCertGoBack.urlEncode()}" +
             "&badCertAcceptTemporary=${badCertAcceptTemporary.urlEncode()}" +
             "&showContinueHttp=${showContinueHttp.urlEncode()}" +
-            "&continueHttpButton=${continueHttpButton.urlEncode()}"
+            "&continueHttpButton=${continueHttpButton.urlEncode()}" +
+            "&errorCode=${errorCode.urlEncode()}"
 
         urlEncodedErrorPage = urlEncodedErrorPage
             .replace("<ul>".urlEncode(), "<ul role=\"presentation\">".urlEncode())
@@ -104,6 +106,7 @@ enum class ErrorType(
     @StringRes val messageRes: Int,
     @StringRes val refreshButtonRes: Int = R.string.mozac_browser_errorpages_page_refresh,
     @StringRes val imageNameRes: Int? = null,
+    @StringRes val errorCode: Int? = null,
 ) {
     UNKNOWN(
         R.string.mozac_browser_errorpages_generic_title,
@@ -185,10 +188,11 @@ enum class ErrorType(
         imageNameRes = iconsR.string.mozac_error_confused,
     ),
     ERROR_NO_INTERNET(
-        R.string.mozac_browser_errorpages_no_internet_title,
-        R.string.mozac_browser_errorpages_no_internet_message,
+        R.string.mozac_browser_errorpages_no_internet_title_2,
+        R.string.mozac_browser_errorpages_no_internet_message_2,
         R.string.mozac_browser_errorpages_no_internet_refresh_button,
-        imageNameRes = iconsR.string.mozac_error_no_internet,
+        imageNameRes = iconsR.string.mozac_error_no_internet_connection,
+        errorCode = R.string.mozac_browser_errorpages_no_internet_error_code,
     ),
     ERROR_MALFORMED_URI(
         R.string.mozac_browser_errorpages_malformed_uri_title,

@@ -118,6 +118,7 @@ hr {
   max-width: 550px;
   margin: 0 auto;
   min-height: 100%;
+  align-content: center;
 }
 
 /* On large width devices, apply specific styles here. Often triggered by landscape mode or tablets */
@@ -146,4 +147,18 @@ hr {
 #advancedPanelButtonContainer {
   display: flex;
   justify-content: center;
+}
+
+#imageContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#errorLongContent {
+    margin: 16px 0px;
+}
+
+#errorTryAgain {
+  margin-top: 16px;
 }

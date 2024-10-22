@@ -896,7 +896,7 @@ class BrowserRobot {
 
     fun verifyNoInternetConnectionErrorMessage() =
         assertUIObjectExists(
-            itemContainingText(getStringResource(R.string.mozac_browser_errorpages_no_internet_title)),
+            itemContainingText(getStringResource(R.string.mozac_browser_errorpages_no_internet_title_2)),
             itemWithResId("errorTryAgain"),
         )
 
