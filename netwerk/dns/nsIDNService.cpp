@@ -51,6 +51,23 @@ static inline bool TLDEqualsLiteral(mozilla::Span<const char32_t> aTLD,
   return true;
 }
 
+template <int N>
+static inline bool TLDStartsWith(mozilla::Span<const char32_t> aTLD,
+                                 const char (&aStr)[N]) {
+  // Ensure the span is long enough to contain the prefix
+  if (aTLD.Length() < N - 1) {
+    return false;
+  }
+
+  for (size_t i = 0; i < N - 1; ++i) {
+    if (aTLD[i] != char32_t(aStr[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 static inline bool isOnlySafeChars(mozilla::Span<const char32_t> aLabel,
                                    const nsTArray<BlocklistRange>& aBlocklist) {
   if (aBlocklist.IsEmpty()) {
@@ -366,6 +383,9 @@ bool nsIDNService::IsLabelSafe(mozilla::Span<const char32_t> aLabel,
   if (!isOnlySafeChars(aLabel, mIDNBlocklist)) {
     return false;
   }
+
+  // Bug 1917119 - Avoid bypassing the doesTLDScriptMatch check
+  MOZ_DIAGNOSTIC_ASSERT(!TLDStartsWith(aTLD, "xn--"));
 
   mozilla::Span<const char32_t>::const_iterator current = aLabel.cbegin();
   mozilla::Span<const char32_t>::const_iterator end = aLabel.cend();
