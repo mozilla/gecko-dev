@@ -2506,6 +2506,12 @@
     <string name="review_quality_check_contextual_onboarding_learn_more">Mozillan %1$s auttaa välttämään puolueellisia ja epäaitoja arvosteluja. Tekoälymallimme kehittyy jatkuvasti suojatakseen sinua, kun teet ostoksia. %2$s</string>
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Lue lisää</string>
+    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
+    <string name="review_quality_check_contextual_onboarding_caption_4">Valitsemalla “Kyllä, kokeile” hyväksyt %1$sin %2$s ja %3$sin %4$s.</string>
+    <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">tietosuojakäytännön</string>
+    <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
+    <string name="review_quality_check_contextual_onboarding_terms_use">käyttöehdot</string>
     <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_primary_button_text">Kyllä, kokeile</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
