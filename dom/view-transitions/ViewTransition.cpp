@@ -7,14 +7,51 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/ViewTransitionBinding.h"
+#include "mozilla/ServoStyleConsts.h"
+#include "mozilla/WritingModes.h"
 #include "nsITimer.h"
+#include "Units.h"
+
+static inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback&, const nsRefPtrHashKey<nsAtom>&,
+    const char* aName, uint32_t aFlags = 0) {
+  // Nothing, but needed to compile.
+}
 
 namespace mozilla::dom {
+
+struct CapturedElementOldState {
+  // TODO: mImage
+
+  // Encompasses width and height.
+  CSSSize mSize;
+  StyleTransform mTransform;
+  // Encompasses writing-mode / direction / text-orientation.
+  WritingMode mWritingMode;
+  StyleBlend mMixBlendMode = StyleBlend::Normal;
+  StyleOwnedSlice<StyleFilter> mBackdropFilters;
+  StyleColorSchemeFlags mColorScheme{0};
+};
+
+// https://drafts.csswg.org/css-view-transitions/#captured-element
+struct ViewTransition::CapturedElement {
+  CapturedElementOldState mOldState;
+  RefPtr<Element> mNewElement;
+  // TODO: Style definitions as per:
+  // https://drafts.csswg.org/css-view-transitions/#captured-element-style-definitions
+};
+
+static inline void ImplCycleCollectionTraverse(
+    nsCycleCollectionTraversalCallback& aCb,
+    const UniquePtr<ViewTransition::CapturedElement>& aField, const char* aName,
+    uint32_t aFlags = 0) {
+  ImplCycleCollectionTraverse(aCb, aField->mNewElement, aName, aFlags);
+}
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(ViewTransition, mDocument,
                                       mUpdateCallback,
                                       mUpdateCallbackDonePromise, mReadyPromise,
-                                      mFinishedPromise)
+                                      mFinishedPromise, mNamedElements)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ViewTransition)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
