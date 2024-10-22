@@ -560,7 +560,8 @@ void nsWindow::OnDestroy(void) {
 
   // Remove association between this object and its parent and siblings.
   nsBaseWidget::Destroy();
-  mParent = nullptr;
+
+  RemoveAllChildren();
 
   NotifyWindowDestroyed();
 }
@@ -667,8 +668,6 @@ void nsWindow::Destroy() {
   OnDestroy();
 }
 
-nsIWidget* nsWindow::GetParent() { return mParent; }
-
 float nsWindow::GetDPI() {
   float dpi = 96.0f;
   nsCOMPtr<nsIScreen> screen = GetWidgetScreen();
@@ -719,41 +718,6 @@ DesktopToLayoutDeviceScale nsWindow::GetDesktopToDeviceScaleByScreen() {
   return nsBaseWidget::GetDesktopToDeviceScale();
 }
 
-// Reparent a child window to a new parent.
-void nsWindow::SetParent(nsIWidget* aNewParent) {
-  LOG("nsWindow::SetParent() new parent %p", aNewParent);
-  if (!mIsChildWindow) {
-    NS_WARNING("Used by child widgets only");
-    return;
-  }
-
-  nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
-  if (mParent) {
-    mParent->RemoveChild(this);
-  }
-  mParent = aNewParent;
-
-  // We're already deleted, quit.
-  if (!mGdkWindow || mIsDestroyed || !aNewParent) {
-    return;
-  }
-  aNewParent->AddChild(this);
-
-  auto* newParent = static_cast<nsWindow*>(aNewParent);
-
-  // New parent is deleted, quit.
-  if (newParent->mIsDestroyed) {
-    Destroy();
-    return;
-  }
-
-  GdkWindow* window = GetToplevelGdkWindow();
-  GdkWindow* parentWindow = newParent->GetToplevelGdkWindow();
-  LOG("  child GdkWindow %p set parent GdkWindow %p", window, parentWindow);
-  gdk_window_reparent(window, parentWindow, 0, 0);
-  SetHasMappedToplevel(newParent && newParent->mHasMappedToplevel);
-}
-
 bool nsWindow::WidgetTypeSupportsAcceleration() {
   if (IsSmallPopup()) {
     return false;
@@ -764,18 +728,26 @@ bool nsWindow::WidgetTypeSupportsAcceleration() {
   return true;
 }
 
-void nsWindow::ReparentNativeWidget(nsIWidget* aNewParent) {
-  MOZ_ASSERT(aNewParent, "null widget");
-  MOZ_ASSERT(!mIsDestroyed, "");
-  MOZ_ASSERT(!static_cast<nsWindow*>(aNewParent)->mIsDestroyed, "");
-  MOZ_ASSERT(
-      !mParent,
-      "nsWindow::ReparentNativeWidget() works on toplevel windows only.");
+void nsWindow::DidChangeParent(nsIWidget* aOldParent) {
+  LOG("nsWindow::DidChangeParent new parent %p -> %p\n", aOldParent, mParent);
+  if (!mParent) {
+    return;
+  }
 
-  auto* newParent = static_cast<nsWindow*>(aNewParent);
+  auto* newParent = static_cast<nsWindow*>(mParent);
+  if (mIsDestroyed || newParent->IsDestroyed()) {
+    return;
+  }
+
+  if (!IsTopLevelWindowType()) {
+    GdkWindow* window = GetToplevelGdkWindow();
+    GdkWindow* parentWindow = newParent->GetToplevelGdkWindow();
+    gdk_window_reparent(window, parentWindow, 0, 0);
+    SetHasMappedToplevel(newParent->mHasMappedToplevel);
+    return;
+  }
+
   GtkWindow* newParentWidget = GTK_WINDOW(newParent->GetGtkWidget());
-
-  LOG("nsWindow::ReparentNativeWidget new parent %p\n", newParent);
   GtkWindowSetTransientFor(GTK_WINDOW(mShell), newParentWidget);
 }
 
@@ -5875,8 +5847,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   // initialize all the common bits of this class
   BaseCreate(aParent, aInitData);
 
-  // and do our common creation
-  mParent = aParent;
   // save our bounds
   mBounds = aRect;
   LOG("  mBounds: x:%d y:%d w:%d h:%d\n", mBounds.x, mBounds.y, mBounds.width,

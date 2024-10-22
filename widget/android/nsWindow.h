@@ -71,7 +71,6 @@ class nsWindow final : public nsBaseWidget {
       bool aIsTopLevel);
 
  private:
-  RefPtr<nsWindow> mParent;
   nsCOMPtr<nsIUserIdleServiceInternal> mIdleService;
   mozilla::ScreenIntCoord mDynamicToolbarMaxHeight{0};
   mozilla::ScreenIntMargin mSafeAreaInsets;
@@ -159,8 +158,7 @@ class nsWindow final : public nsBaseWidget {
                                 const LayoutDeviceIntRect& aRect,
                                 InitData* aInitData) override;
   void Destroy() override;
-  void SetParent(nsIWidget* aNewParent) override;
-  nsIWidget* GetParent(void) override;
+  void DidChangeParent(nsIWidget* aNewParent) override;
   float GetDPI() override;
   double GetDefaultScaleInternal() override;
   void Show(bool aState) override;

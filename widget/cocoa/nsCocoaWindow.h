@@ -323,9 +323,6 @@ class nsCocoaWindow final : public nsBaseWidget {
 
   void SetPopupWindowLevel();
 
-  nsIWidget* GetParent() override { return mParent; }
-  void SetParent(nsIWidget*) override;
-
   bool InFullScreenMode() const { return mInFullScreenMode; }
 
   void PauseOrResumeCompositor(bool aPause) override;
@@ -381,7 +378,6 @@ class nsCocoaWindow final : public nsBaseWidget {
     return nsIWidget::CreateTopLevelWindow();
   }
 
-  nsCOMPtr<nsIWidget> mParent;
   BaseWindow* mWindow;  // our cocoa window [STRONG]
   WindowDelegate*
       mDelegate;  // our delegate for processing window msgs [STRONG]

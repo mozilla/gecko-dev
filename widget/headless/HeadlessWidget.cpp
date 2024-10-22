@@ -71,7 +71,6 @@ HeadlessWidget::HeadlessWidget()
       mVisible(false),
       mDestroyed(false),
       mAlwaysOnTop(false),
-      mTopLevel(nullptr),
       mCompositorWidget(nullptr),
       mSizeMode(nsSizeMode_Normal),
       mLastSizeMode(nsSizeMode_Normal),
@@ -120,20 +119,12 @@ void HeadlessWidget::Destroy() {
 nsresult HeadlessWidget::Create(nsIWidget* aParent,
                                 const LayoutDeviceIntRect& aRect,
                                 widget::InitData* aInitData) {
-  // FIXME(emilio): Why aParent = nullptr? Should just pass in aParent, most
-  // likely?
-  BaseCreate(/* aParent = */ nullptr, aInitData);
+  BaseCreate(aParent, aInitData);
 
   mBounds = aRect;
   mRestoreBounds = aRect;
 
   mAlwaysOnTop = aInitData && aInitData->mAlwaysOnTop;
-
-  if (aParent) {
-    mTopLevel = aParent->GetTopLevelWidget();
-  } else {
-    mTopLevel = this;
-  }
 
   return NS_OK;
 }
@@ -143,8 +134,6 @@ void HeadlessWidget::GetCompositorWidgetInitData(
   *aInitData =
       mozilla::widget::HeadlessCompositorWidgetInitData(GetClientSize());
 }
-
-nsIWidget* HeadlessWidget::GetTopLevelWidget() { return mTopLevel; }
 
 void HeadlessWidget::RaiseWindow() {
   MOZ_ASSERT(
@@ -202,7 +191,9 @@ void HeadlessWidget::SetFocus(Raise aRaise,
 
     // The toplevel only becomes active if it's currently visible; otherwise, it
     // will be activated anyway when it's shown.
-    if (topLevel->IsVisible()) topLevel->RaiseWindow();
+    if (topLevel->IsVisible()) {
+      topLevel->RaiseWindow();
+    }
   }
 }
 
@@ -239,7 +230,7 @@ void HeadlessWidget::MoveInternal(int32_t aX, int32_t aY) {
 }
 
 LayoutDeviceIntPoint HeadlessWidget::WidgetToScreenOffset() {
-  return mTopLevel->GetBounds().TopLeft();
+  return GetTopLevelWidget()->GetBounds().TopLeft();
 }
 
 WindowRenderer* HeadlessWidget::GetWindowRenderer() {

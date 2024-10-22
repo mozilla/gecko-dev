@@ -54,8 +54,6 @@ class HeadlessWidget : public nsBaseWidget {
                   widget::InitData* aInitData = nullptr) override;
   using nsBaseWidget::Create;  // for Create signature not overridden here
 
-  nsIWidget* GetTopLevelWidget() override;
-
   void GetCompositorWidgetInitData(
       mozilla::widget::CompositorWidgetInitData* aInitData) override;
 
@@ -144,7 +142,6 @@ class HeadlessWidget : public nsBaseWidget {
   bool mVisible;
   bool mDestroyed;
   bool mAlwaysOnTop;
-  nsIWidget* mTopLevel;
   HeadlessCompositorWidget* mCompositorWidget;
   nsSizeMode mSizeMode;
   // The size mode before entering fullscreen mode.
