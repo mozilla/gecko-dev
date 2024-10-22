@@ -42,6 +42,8 @@ extern JS_PUBLIC_API void JS_TracerEnterLabelLatin1(JSContext* cx,
 extern JS_PUBLIC_API void JS_TracerEnterLabelTwoByte(JSContext* cx,
                                                      const char16_t* label);
 
+extern JS_PUBLIC_API bool JS_TracerIsTracing(JSContext* cx);
+
 // If the JS execution tracer is running, this will generate a
 // ENTRY_KIND_LABEL_LEAVE entry with the specified label.
 // It is up to the consumer to decide what to do with a ENTRY_KIND_LABEL_LEAVE

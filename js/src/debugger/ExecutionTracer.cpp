@@ -476,6 +476,8 @@ void JS_TracerLeaveLabelLatin1(JSContext* cx, const char* label) {
   }
 }
 
+bool JS_TracerIsTracing(JSContext* cx) { return cx->hasExecutionTracer(); }
+
 bool JS_TracerBeginTracing(JSContext* cx) {
   CHECK_THREAD(cx);
   return cx->enableExecutionTracing();
