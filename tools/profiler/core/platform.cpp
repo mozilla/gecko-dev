@@ -6998,17 +6998,9 @@ void profiler_lookup_async_signal_dump_directory() {
     LOG("Found MOZ_UPLOAD_DIR at: %s", mozUploadDir);
     // We want to do the right thing, and turn this into an nsIFile. Go through
     // the motions here:
-    nsCOMPtr<nsIFile> mozUploadDirFile =
-        do_CreateInstance("@mozilla.org/file/local;1", &rv);
-
-    if (NS_FAILED(rv)) {
-      LOG("Failed to create nsIFile for MOZ_UPLOAD_DIR: %s, Error: %s",
-          mozUploadDir, GetStaticErrorName(rv));
-      return;
-    }
-
-    rv = mozUploadDirFile->InitWithNativePath(nsDependentCString(mozUploadDir));
-
+    nsCOMPtr<nsIFile> mozUploadDirFile;
+    rv = NS_NewNativeLocalFile(nsDependentCString(mozUploadDir),
+                               getter_AddRefs(mozUploadDirFile));
     if (NS_FAILED(rv)) {
       LOG("Failed to assign a filepath while creating MOZ_UPLOAD_DIR file "
           "%s, Error %s ",

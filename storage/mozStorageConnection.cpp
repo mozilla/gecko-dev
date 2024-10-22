@@ -677,11 +677,8 @@ class AsyncBackupDatabaseFile final : public Runnable, public nsITimerCallback {
     nsAutoString tempPath = originalPath;
     tempPath.AppendLiteral(".tmp");
 
-    nsCOMPtr<nsIFile> file =
-        do_CreateInstance("@mozilla.org/file/local;1", &rv);
-    DISPATCH_AND_RETURN_IF_FAILED(rv);
-
-    rv = file->InitWithPath(tempPath);
+    nsCOMPtr<nsIFile> file;
+    rv = NS_NewLocalFile(tempPath, getter_AddRefs(file));
     DISPATCH_AND_RETURN_IF_FAILED(rv);
 
     int srv = ::sqlite3_backup_step(mBackupHandle, mPagesPerStep);

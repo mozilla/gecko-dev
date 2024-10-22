@@ -1551,16 +1551,8 @@ already_AddRefed<HeapSnapshot> ChromeUtils::ReadHeapSnapshot(
     GlobalObject& global, const nsAString& filePath, ErrorResult& rv) {
   auto start = TimeStamp::Now();
 
-  nsresult nsrv;
-  nsCOMPtr<nsIFile> snapshotFile =
-      do_CreateInstance("@mozilla.org/file/local;1", &nsrv);
-
-  if (NS_FAILED(nsrv)) {
-    rv = nsrv;
-    return nullptr;
-  }
-
-  rv = snapshotFile->InitWithPath(filePath);
+  nsCOMPtr<nsIFile> snapshotFile;
+  rv = NS_NewLocalFile(filePath, getter_AddRefs(snapshotFile));
   if (rv.Failed()) {
     return nullptr;
   }

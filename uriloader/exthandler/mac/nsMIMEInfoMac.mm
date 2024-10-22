@@ -73,9 +73,7 @@ nsMIMEInfoMac::LaunchWithFile(nsIFile* aFile) {
     FSRef appFSRef;
     if (::LSGetApplicationForItem(&tempFileRef, kLSRolesAll, &appFSRef,
                                   nullptr) == noErr) {
-      app = (do_CreateInstance("@mozilla.org/file/local;1"));
-      if (!app) return NS_ERROR_FAILURE;
-      app->InitWithFSRef(&appFSRef);
+      MOZ_TRY(NS_NewLocalFileWithFSRef(&appFSRef, getter_AddRefs(app)));
     } else {
       return NS_ERROR_FAILURE;
     }

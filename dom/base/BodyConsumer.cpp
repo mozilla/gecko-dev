@@ -439,25 +439,17 @@ nsresult BodyConsumer::GetBodyLocalFile(nsIFile** aFile) const {
     return NS_OK;
   }
 
-  nsresult rv;
-  nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  rv = file->InitWithPath(mBodyLocalPath);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIFile> file;
+  MOZ_TRY(NS_NewLocalFile(mBodyLocalPath, getter_AddRefs(file)));
 
   bool exists;
-  rv = file->Exists(&exists);
-  NS_ENSURE_SUCCESS(rv, rv);
+  MOZ_TRY(file->Exists(&exists));
   if (!exists) {
     return NS_ERROR_FILE_NOT_FOUND;
   }
 
   bool isDir;
-  rv = file->IsDirectory(&isDir);
-  NS_ENSURE_SUCCESS(rv, rv);
+  MOZ_TRY(file->IsDirectory(&isDir));
   if (isDir) {
     return NS_ERROR_FILE_IS_DIRECTORY;
   }

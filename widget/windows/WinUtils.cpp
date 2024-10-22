@@ -900,26 +900,17 @@ NS_IMETHODIMP AsyncEncodeAndWriteIcon::Run() {
   FILE* file = _wfopen(mIconPath.get(), L"wb");
   if (!file) {
     // Maybe the directory doesn't exist; try creating it, then fopen again.
-    nsresult rv = NS_ERROR_FAILURE;
-    nsCOMPtr<nsIFile> comFile = do_CreateInstance("@mozilla.org/file/local;1");
-    if (comFile) {
-      rv = comFile->InitWithPath(mIconPath);
-      if (NS_SUCCEEDED(rv)) {
-        nsCOMPtr<nsIFile> dirPath;
-        comFile->GetParent(getter_AddRefs(dirPath));
-        if (dirPath) {
-          rv = dirPath->Create(nsIFile::DIRECTORY_TYPE, 0777);
-          if (NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_ALREADY_EXISTS) {
-            file = _wfopen(mIconPath.get(), L"wb");
-            if (!file) {
-              rv = NS_ERROR_FAILURE;
-            }
-          }
-        }
-      }
-    }
-    if (!file) {
+    nsCOMPtr<nsIFile> comFile;
+    MOZ_TRY(NS_NewLocalFile(mIconPath, getter_AddRefs(comFile)));
+    nsCOMPtr<nsIFile> dirPath;
+    MOZ_TRY(comFile->GetParent(getter_AddRefs(dirPath)));
+    nsresult rv = dirPath->Create(nsIFile::DIRECTORY_TYPE, 0777);
+    if (NS_FAILED(rv) && rv != NS_ERROR_FILE_ALREADY_EXISTS) {
       return rv;
+    }
+    file = _wfopen(mIconPath.get(), L"wb");
+    if (!file) {
+      return NS_ERROR_FAILURE;
     }
   }
   nsresult rv = gfxUtils::EncodeSourceSurface(surface, ImageType::ICO, u""_ns,

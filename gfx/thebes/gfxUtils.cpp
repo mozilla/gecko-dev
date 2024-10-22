@@ -1471,19 +1471,16 @@ void gfxUtils::WriteAsPNG(SourceSurface* aSurface, const char* aFile) {
 
   if (!file) {
     // Maybe the directory doesn't exist; try creating it, then fopen again.
-    nsresult rv = NS_ERROR_FAILURE;
-    nsCOMPtr<nsIFile> comFile = do_CreateInstance("@mozilla.org/file/local;1");
-    if (comFile) {
-      NS_ConvertUTF8toUTF16 utf16path((nsDependentCString(aFile)));
-      rv = comFile->InitWithPath(utf16path);
-      if (NS_SUCCEEDED(rv)) {
-        nsCOMPtr<nsIFile> dirPath;
-        comFile->GetParent(getter_AddRefs(dirPath));
-        if (dirPath) {
-          rv = dirPath->Create(nsIFile::DIRECTORY_TYPE, 0777);
-          if (NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_ALREADY_EXISTS) {
-            file = fopen(aFile, "wb");
-          }
+    nsCOMPtr<nsIFile> comFile;
+    nsresult rv = NS_NewNativeLocalFile(nsDependentCString(aFile),
+                                        getter_AddRefs(comFile));
+    if (NS_SUCCEEDED(rv)) {
+      nsCOMPtr<nsIFile> dirPath;
+      comFile->GetParent(getter_AddRefs(dirPath));
+      if (dirPath) {
+        rv = dirPath->Create(nsIFile::DIRECTORY_TYPE, 0777);
+        if (NS_SUCCEEDED(rv) || rv == NS_ERROR_FILE_ALREADY_EXISTS) {
+          file = fopen(aFile, "wb");
         }
       }
     }

@@ -92,11 +92,8 @@ nsCString GenerateRequestToken() {
 
 static nsresult GetFileDisplayName(const nsString& aFilePath,
                                    nsString& aFileDisplayName) {
-  nsresult rv;
-  nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = file->InitWithPath(aFilePath);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIFile> file;
+  MOZ_TRY(NS_NewLocalFile(aFilePath, getter_AddRefs(file)));
   return file->GetDisplayName(aFileDisplayName);
 }
 
@@ -347,10 +344,8 @@ nsresult ContentAnalysisRequest::GetFileDigest(const nsAString& aFilePath,
   mozilla::Digest digest;
   digest.Begin(SEC_OID_SHA256);
   PRFileDesc* fd = nullptr;
-  nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = file->InitWithPath(aFilePath);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIFile> file;
+  MOZ_TRY(NS_NewLocalFile(aFilePath, getter_AddRefs(file)));
   rv = file->OpenNSPRFileDesc(PR_RDONLY | nsIFile::OS_READAHEAD, 0, &fd);
   NS_ENSURE_SUCCESS(rv, rv);
   auto closeFile = MakeScopeExit([fd]() { PR_Close(fd); });
