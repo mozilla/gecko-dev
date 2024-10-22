@@ -1323,9 +1323,9 @@ bool IsOriginUnaccessed(const FullOriginMetadata& aFullOriginMetadata,
 }
 
 bool IsDirectoryLockBlockedBy(
-    const RefPtr<UniversalDirectoryLock>& aDirectoryLock,
+    const DirectoryLockImpl::PrepareInfo& aPrepareInfo,
     const EnumSet<DirectoryLockCategory>& aCategories) {
-  const auto locks = aDirectoryLock->LocksMustWaitFor();
+  const auto& locks = aPrepareInfo.BlockedOnRef();
   return std::any_of(locks.cbegin(), locks.cend(),
                      [&aCategories](const auto& lock) {
                        return aCategories.contains(lock->Category());
@@ -1333,9 +1333,19 @@ bool IsDirectoryLockBlockedBy(
 }
 
 bool IsDirectoryLockBlockedByUninitStorageOperation(
-    const RefPtr<UniversalDirectoryLock>& aDirectoryLock) {
-  return IsDirectoryLockBlockedBy(aDirectoryLock,
+    const DirectoryLockImpl::PrepareInfo& aPrepareInfo) {
+  return IsDirectoryLockBlockedBy(aPrepareInfo,
                                   DirectoryLockCategory::UninitStorage);
+}
+
+bool IsDirectoryLockBlockedBy(
+    const RefPtr<UniversalDirectoryLock>& aDirectoryLock,
+    const EnumSet<DirectoryLockCategory>& aCategories) {
+  const auto locks = aDirectoryLock->LocksMustWaitFor();
+  return std::any_of(locks.cbegin(), locks.cend(),
+                     [&aCategories](const auto& lock) {
+                       return aCategories.contains(lock->Category());
+                     });
 }
 
 bool IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation(
@@ -5039,25 +5049,28 @@ RefPtr<BoolPromise> QuotaManager::InitializeStorage() {
       Nullable<Client::Type>(),
       /* aExclusive */ false);
 
+  auto prepareInfo = directoryLock->Prepare();
+
   // If storage is initialized but there's a clear storage or shutdown storage
   // operation already scheduled, we can't immediately resolve the promise and
   // return from the function because the clear and shutdown storage operation
   // uninitializes storage.
   if (mStorageInitialized &&
-      !IsDirectoryLockBlockedByUninitStorageOperation(directoryLock)) {
+      !IsDirectoryLockBlockedByUninitStorageOperation(prepareInfo)) {
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
-  return directoryLock->Acquire()->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [self = RefPtr(this),
-       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-        if (aValue.IsReject()) {
-          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
-        }
+  return directoryLock->Acquire(std::move(prepareInfo))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [self = RefPtr(this), directoryLock](
+                 const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+               if (aValue.IsReject()) {
+                 return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                     __func__);
+               }
 
-        return self->InitializeStorage(std::move(directoryLock));
-      });
+               return self->InitializeStorage(std::move(directoryLock));
+             });
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializeStorage(
@@ -5477,25 +5490,29 @@ RefPtr<BoolPromise> QuotaManager::InitializePersistentStorage() {
       OriginScope::FromNull(), Nullable<Client::Type>(),
       /* aExclusive */ false);
 
+  auto prepareInfo = directoryLock->Prepare();
+
   // If persistent storage is initialized but there's a clear storage or
   // shutdown storage operation already scheduled, we can't immediately resolve
   // the promise and return from the function because the clear or shutdown
   // storage operation uninitializes storage.
   if (mPersistentStorageInitialized &&
-      !IsDirectoryLockBlockedByUninitStorageOperation(directoryLock)) {
+      !IsDirectoryLockBlockedByUninitStorageOperation(prepareInfo)) {
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
-  return directoryLock->Acquire()->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [self = RefPtr(this),
-       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-        if (aValue.IsReject()) {
-          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
-        }
+  return directoryLock->Acquire(std::move(prepareInfo))
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self = RefPtr(this), directoryLock](
+              const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+            if (aValue.IsReject()) {
+              return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                  __func__);
+            }
 
-        return self->InitializePersistentStorage(std::move(directoryLock));
-      });
+            return self->InitializePersistentStorage(std::move(directoryLock));
+          });
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializePersistentStorage(
@@ -5591,26 +5608,29 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
       Nullable<Client::Type>(),
       /* aExclusive */ false);
 
+  auto prepareInfo = directoryLock->Prepare();
+
   // If temporary group is initialized but there's a clear storage or shutdown
   // storage operation already scheduled, we can't immediately resolve the
   // promise and return from the function because the clear and shutdown
   // storage operation uninitializes storage.
   if (IsTemporaryGroupInitialized(aPrincipalInfo) &&
-      !IsDirectoryLockBlockedByUninitStorageOperation(directoryLock)) {
+      !IsDirectoryLockBlockedByUninitStorageOperation(prepareInfo)) {
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
-  return directoryLock->Acquire()->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [self = RefPtr(this), aPrincipalInfo,
-       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-        if (aValue.IsReject()) {
-          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
-        }
+  return directoryLock->Acquire(std::move(prepareInfo))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [self = RefPtr(this), aPrincipalInfo, directoryLock](
+                 const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+               if (aValue.IsReject()) {
+                 return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                     __func__);
+               }
 
-        return self->InitializeTemporaryGroup(aPrincipalInfo,
-                                              std::move(directoryLock));
-      });
+               return self->InitializeTemporaryGroup(aPrincipalInfo,
+                                                     std::move(directoryLock));
+             });
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializeTemporaryGroup(
@@ -6165,25 +6185,29 @@ RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage() {
       OriginScope::FromNull(), Nullable<Client::Type>(),
       /* aExclusive */ false);
 
+  auto prepareInfo = directoryLock->Prepare();
+
   // If temporary storage is initialized but there's a clear storage or
   // shutdown storage operation already scheduled, we can't immediately resolve
   // the promise and return from the function because the clear and shutdown
   // storage operation uninitializes storage.
   if (mTemporaryStorageInitialized &&
-      !IsDirectoryLockBlockedByUninitStorageOperation(directoryLock)) {
+      !IsDirectoryLockBlockedByUninitStorageOperation(prepareInfo)) {
     return BoolPromise::CreateAndResolve(true, __func__);
   }
 
-  return directoryLock->Acquire()->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [self = RefPtr(this),
-       directoryLock](const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-        if (aValue.IsReject()) {
-          return BoolPromise::CreateAndReject(aValue.RejectValue(), __func__);
-        }
+  return directoryLock->Acquire(std::move(prepareInfo))
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [self = RefPtr(this), directoryLock](
+              const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+            if (aValue.IsReject()) {
+              return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                  __func__);
+            }
 
-        return self->InitializeTemporaryStorage(std::move(directoryLock));
-      });
+            return self->InitializeTemporaryStorage(std::move(directoryLock));
+          });
 }
 
 RefPtr<BoolPromise> QuotaManager::InitializeTemporaryStorage(
