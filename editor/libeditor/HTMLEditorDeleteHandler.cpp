@@ -2297,7 +2297,7 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
          SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
   }
 
-  {
+  if (MOZ_LIKELY(pointToPutCaret.IsInContentNode())) {
     AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
                                            &pointToPutCaret);
     nsresult rv = aHTMLEditor.EnsureNoFollowingUnnecessaryLineBreak(
@@ -2456,7 +2456,7 @@ Result<CaretPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
 
-  {
+  if (MOZ_LIKELY(pointToPutCaret.IsInContentNode())) {
     AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
                                            &pointToPutCaret);
     nsresult rv = aHTMLEditor.EnsureNoFollowingUnnecessaryLineBreak(
@@ -2580,7 +2580,7 @@ HTMLEditor::AutoDeleteRangesHandler::HandleDeleteAtomicContent(
     }
   }
 
-  {
+  if (MOZ_LIKELY(pointToPutCaret.IsInContentNode())) {
     AutoTrackDOMPoint trackPointToPutCaret(aHTMLEditor.RangeUpdaterRef(),
                                            &pointToPutCaret);
     nsresult rv = aHTMLEditor.EnsureNoFollowingUnnecessaryLineBreak(
@@ -5092,7 +5092,7 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodes(
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
 
-  {
+  if (MOZ_LIKELY(aRange.EndRef().IsInContentNode())) {
     AutoTrackDOMRange trackRange(aHTMLEditor.RangeUpdaterRef(), &aRange);
     nsresult rv = aHTMLEditor.EnsureNoFollowingUnnecessaryLineBreak(
         aRange.EndRef(), aEditingHost);
