@@ -139,6 +139,8 @@ const REQUEST_STORAGE_ACCESS_LEARN_MORE =
   "https://developer.mozilla.org/docs/Web/API/Document/requestStorageAccess";
 const DOCTYPE_MODES_LEARN_MORE =
   "https://developer.mozilla.org/docs/Web/HTML/Quirks_Mode_and_Standards_Mode";
+const BOUNCE_TRACKING_PROTECTION_LEARN_MORE =
+  "https://firefox-source-docs.mozilla.org/toolkit/components/antitracking/anti-tracking/bounce-tracking-protection/index.html";
 
 const ErrorCategories = {
   "X-Frame-Options": X_FRAME_OPTIONS_LEARN_MORE,
@@ -154,6 +156,7 @@ const ErrorCategories = {
   requestStorageAccess: REQUEST_STORAGE_ACCESS_LEARN_MORE,
   HTTPSOnly: supportBaseURL + "https-only-prefs",
   HTML_PARSER__DOCTYPE: DOCTYPE_MODES_LEARN_MORE,
+  bounceTrackingProtection: BOUNCE_TRACKING_PROTECTION_LEARN_MORE,
 };
 
 const baseCorsErrorUrl =
