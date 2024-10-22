@@ -197,6 +197,65 @@ static constexpr nsLiteralString kTrustedScriptURL = u"TrustedScriptURL"_ns;
 // TODO(fwang): Improve this API:
 // - Rename aTagName parameter to use aLocalName instead
 //   (https://github.com/w3c/trusted-types/issues/496)
+// - Remove ASCII-case-insensitivity for aTagName and aAttribute
+//  (https://github.com/w3c/trusted-types/issues/424)
+// - Make aElementNs default to HTML namespace, so special handling for an empty
+//   string is not needed (https://github.com/w3c/trusted-types/issues/381).
+void TrustedTypePolicyFactory::GetAttributeType(const nsAString& aTagName,
+                                                const nsAString& aAttribute,
+                                                const nsAString& aElementNs,
+                                                const nsAString& aAttrNs,
+                                                DOMString& aResult) {
+  nsAutoString attribute;
+  nsContentUtils::ASCIIToLower(aAttribute, attribute);
+  RefPtr<nsAtom> attributeAtom = NS_Atomize(attribute);
+
+  // The spec is not really clear about which "event handler content attributes"
+  // we should consider, so we just include everything but XUL's specific ones.
+  // See https://github.com/w3c/trusted-types/issues/520.
+  if (aAttrNs.IsEmpty() &&
+      nsContentUtils::IsEventAttributeName(
+          attributeAtom, EventNameType_All & ~EventNameType_XUL)) {
+    // Event handler content attribute.
+    aResult.SetKnownLiveString(kTrustedScript);
+    return;
+  }
+  if (aElementNs.IsEmpty() ||
+      aElementNs == nsDependentAtomString(nsGkAtoms::nsuri_xhtml)) {
+    if (nsContentUtils::EqualsIgnoreASCIICase(
+            aTagName, nsDependentAtomString(nsGkAtoms::iframe))) {
+      // HTMLIFrameElement
+      if (aAttrNs.IsEmpty() && attributeAtom == nsGkAtoms::srcdoc) {
+        aResult.SetKnownLiveString(kTrustedHTML);
+        return;
+      }
+    } else if (nsContentUtils::EqualsIgnoreASCIICase(
+                   aTagName, nsDependentAtomString(nsGkAtoms::script))) {
+      // HTMLScriptElement
+      if (aAttrNs.IsEmpty() && attributeAtom == nsGkAtoms::src) {
+        aResult.SetKnownLiveString(kTrustedScriptURL);
+        return;
+      }
+    }
+  } else if (aElementNs == nsDependentAtomString(nsGkAtoms::nsuri_svg)) {
+    if (nsContentUtils::EqualsIgnoreASCIICase(
+            aTagName, nsDependentAtomString(nsGkAtoms::script))) {
+      // SVGScriptElement
+      if ((aAttrNs.IsEmpty() ||
+           aAttrNs == nsDependentAtomString(nsGkAtoms::nsuri_xlink)) &&
+          attributeAtom == nsGkAtoms::href) {
+        aResult.SetKnownLiveString(kTrustedScriptURL);
+        return;
+      }
+    }
+  }
+
+  aResult.SetNull();
+}
+
+// TODO(fwang): Improve this API:
+// - Rename aTagName parameter to use aLocalName instead
+//   (https://github.com/w3c/trusted-types/issues/496)
 // - Remove ASCII-case-insensitivity for aTagName
 //  (https://github.com/w3c/trusted-types/issues/424)
 // - Make aElementNs default to HTML namespace, so special handling for an empty
