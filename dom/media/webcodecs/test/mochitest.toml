@@ -5,9 +5,15 @@ prefs = [
   "dom.media.webcodecs.enabled=true",
   "dom.media.webcodecs.image-decoder.enabled=true",
 ]
-support-files = ["bug1921817.jpg"]
+support-files = [
+  "bug1921817.jpg",
+  "green.png",
+]
 
 ["test_videoFrame_mismatched_codedSize.html"]
 
 ["test_bug1921817.html"]
+scheme = "https"
+
+["test_imageDecoder_desiredSize.html"]
 scheme = "https"

@@ -45,11 +45,14 @@ class ImageDecoder::ControlMessage {
 class ImageDecoder::ConfigureMessage final
     : public ImageDecoder::ControlMessage {
  public:
-  explicit ConfigureMessage(ColorSpaceConversion aColorSpaceConversion)
-      : mColorSpaceConversion(aColorSpaceConversion) {}
+  explicit ConfigureMessage(const Maybe<gfx::IntSize>& aOutputSize,
+                            ColorSpaceConversion aColorSpaceConversion)
+      : mOutputSize(aOutputSize),
+        mColorSpaceConversion(aColorSpaceConversion) {}
 
   ConfigureMessage* AsConfigureMessage() override { return this; }
 
+  const Maybe<gfx::IntSize> mOutputSize;
   const ColorSpaceConversion mColorSpaceConversion;
 };
 
@@ -152,9 +155,10 @@ void ImageDecoder::Destroy() {
 }
 
 void ImageDecoder::QueueConfigureMessage(
+    const Maybe<gfx::IntSize>& aOutputSize,
     ColorSpaceConversion aColorSpaceConversion) {
   mControlMessageQueue.push(
-      MakeUnique<ConfigureMessage>(aColorSpaceConversion));
+      MakeUnique<ConfigureMessage>(aOutputSize, aColorSpaceConversion));
 }
 
 void ImageDecoder::QueueDecodeMetadataMessage() {
@@ -239,8 +243,8 @@ MessageProcessedResult ImageDecoder::ProcessConfigureMessage(
 
   // 3. Otherwise, assign the [[codec implementation]] internal slot with an
   // implementation supporting init.type
-  mDecoder =
-      image::ImageUtils::CreateDecoder(mSourceBuffer, type, surfaceFlags);
+  mDecoder = image::ImageUtils::CreateDecoder(mSourceBuffer, type,
+                                              aMsg->mOutputSize, surfaceFlags);
   if (NS_WARN_IF(!mDecoder)) {
     MOZ_LOG(gWebCodecsLog, LogLevel::Error,
             ("ImageDecoder %p Initialize -- failed to create platform decoder",
@@ -680,9 +684,17 @@ void ImageDecoder::Initialize(const GlobalObject& aGlobal,
     return;
   }
 
+  Maybe<gfx::IntSize> desiredSize;
+  if (aInit.mDesiredWidth.WasPassed() && aInit.mDesiredHeight.WasPassed()) {
+    desiredSize.emplace(
+        std::min(aInit.mDesiredWidth.Value(), static_cast<uint32_t>(INT32_MAX)),
+        std::min(aInit.mDesiredHeight.Value(),
+                 static_cast<uint32_t>(INT32_MAX)));
+  }
+
   // 10.2.2.17.3 / 10.2.2.18.6.
   //   Queue a control message to configure the image decoder with init.
-  QueueConfigureMessage(aInit.mColorSpaceConversion);
+  QueueConfigureMessage(desiredSize, aInit.mColorSpaceConversion);
 
   // 10.2.10.2.2.18.7. Queue a control message to decode track metadata.
   //

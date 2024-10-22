@@ -126,7 +126,7 @@ class ImageUtils {
  public:
   static already_AddRefed<AnonymousDecoder> CreateDecoder(
       SourceBuffer* aSourceBuffer, DecoderType aType,
-      SurfaceFlags aSurfaceFlags);
+      const Maybe<gfx::IntSize>& aOutputSize, SurfaceFlags aSurfaceFlags);
 
   static DecoderType GetDecoderType(const nsACString& aMimeType);
 

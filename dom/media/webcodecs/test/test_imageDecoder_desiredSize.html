@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title></title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<script>
+// Bug 1924775 - ESLint doesn't yet know about `ImageDecoder`.
+/* globals ImageDecoder:false */
+
+async function test(desiredWidth, desiredHeight, expectedWidth, expectedHeight) {
+  const imgResponse = await fetch("green.png");
+  const decoder = new ImageDecoder({
+    data: imgResponse.body,
+    type: "image/png",
+    desiredWidth,
+    desiredHeight,
+  });
+
+  // Should download all the data and decode metadata just fine.
+  await decoder.completed;
+  await decoder.tracks.ready;
+  is(decoder.tracks.length, 1, "Should have one track");
+  is(decoder.tracks[0].frameCount, 1, "Should have a single frame");
+
+  try {
+    const result = await decoder.decode();
+    ok(result.complete, "Should have complete image");
+    is(result.image.codedWidth, expectedWidth, "Should have expected width");
+    is(result.image.codedHeight, expectedHeight, "Should have expected height");
+  } catch (e) {
+    ok(false, "Decode image failed with " + e)
+  }
+
+  return Promise.resolve();
+}
+
+async function initTest() {
+  SimpleTest.waitForExplicitFinish();
+  try {
+    await test(10, 20, 10, 20);
+    await test(100, 300, 100, 100);
+    await test(500, 40, 100, 100);
+    await test(500, 300, 100, 100);
+  } catch (e) {
+    ok(false, "Unexpected error " + e);
+  } finally {
+    SimpleTest.finish();
+  }
+}
+
+initTest();
+</script>
+</body>
+</html>

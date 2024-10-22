@@ -14,6 +14,7 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/ImageDecoderBinding.h"
 #include "mozilla/dom/WebCodecsUtils.h"
+#include "mozilla/gfx/Point.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 
@@ -113,7 +114,8 @@ class ImageDecoder final : public nsISupports, public nsWrapperCache {
   void Reset(const MediaResult& aResult);
   void Close(const MediaResult& aResult);
 
-  void QueueConfigureMessage(ColorSpaceConversion aColorSpaceConversion);
+  void QueueConfigureMessage(const Maybe<gfx::IntSize>& aOutputSize,
+                             ColorSpaceConversion aColorSpaceConversion);
   void QueueDecodeMetadataMessage();
   void QueueDecodeFrameMessage();
 

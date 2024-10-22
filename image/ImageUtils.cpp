@@ -171,6 +171,12 @@ class AnonymousFramesDecoderTask final : public AnonymousDecoderTask {
                              ThreadSafeWeakPtr<AnonymousDecoder>&& aOwner)
       : AnonymousDecoderTask(std::move(aDecoder), std::move(aOwner)) {}
 
+  void SetOutputSize(const OrientedIntSize& aSize) {
+    if (mDecoder) {
+      mDecoder->SetOutputSize(aSize);
+    }
+  }
+
  protected:
   bool OnFrameAvailable(RefPtr<imgFrame>&& aFrame,
                         RefPtr<gfx::SourceSurface>&& aSurface) override {
@@ -194,8 +200,9 @@ class AnonymousFramesDecoderTask final : public AnonymousDecoderTask {
 
 class AnonymousDecoderImpl final : public AnonymousDecoder {
  public:
-  AnonymousDecoderImpl()
-      : mMutex("mozilla::image::AnonymousDecoderImpl::mMutex") {}
+  explicit AnonymousDecoderImpl(const Maybe<gfx::IntSize>& aOutputSize)
+      : mMutex("mozilla::image::AnonymousDecoderImpl::mMutex"),
+        mOutputSize(aOutputSize) {}
 
   ~AnonymousDecoderImpl() override { Destroy(); }
 
@@ -297,6 +304,23 @@ class AnonymousDecoderImpl final : public AnonymousDecoder {
              "animated %d",
              this, size.width, size.height, mMetadataResult.mRepetitions,
              mMetadataResult.mAnimated));
+
+    if (mOutputSize && !mMetadataResult.mAnimated && mFramesTask) {
+      if (mOutputSize->width <= size.width &&
+          mOutputSize->height <= size.height) {
+        MOZ_LOG(
+            sLog, LogLevel::Debug,
+            ("[%p] AnonymousDecoderImpl::OnMetadata -- use output size %dx%d",
+             this, mOutputSize->width, mOutputSize->height));
+        mFramesTask->SetOutputSize(
+            OrientedIntSize::FromUnknownSize(*mOutputSize));
+      } else {
+        MOZ_LOG(sLog, LogLevel::Debug,
+                ("[%p] AnonymousDecoderImpl::OnMetadata -- cannot use output "
+                 "size %dx%d, exceeds metadata size",
+                 this, mOutputSize->width, mOutputSize->height));
+      }
+    }
 
     if (!mMetadataResult.mAnimated) {
       mMetadataResult.mFrameCount = 1;
@@ -526,6 +550,7 @@ class AnonymousDecoderImpl final : public AnonymousDecoder {
   RefPtr<imgFrame> mLastFrame MOZ_GUARDED_BY(mMutex);
   DecodeMetadataResult mMetadataResult MOZ_GUARDED_BY(mMutex);
   DecodeFramesResult mPendingFramesResult MOZ_GUARDED_BY(mMutex);
+  Maybe<gfx::IntSize> mOutputSize MOZ_GUARDED_BY(mMutex);
   size_t mFramesToDecode MOZ_GUARDED_BY(mMutex) = 1;
   uint32_t mFrameCount MOZ_GUARDED_BY(mMutex) = 0;
   bool mMetadataTaskRunning MOZ_GUARDED_BY(mMutex) = false;
@@ -535,7 +560,7 @@ class AnonymousDecoderImpl final : public AnonymousDecoder {
 
 /* static */ already_AddRefed<AnonymousDecoder> ImageUtils::CreateDecoder(
     SourceBuffer* aSourceBuffer, DecoderType aType,
-    SurfaceFlags aSurfaceFlags) {
+    const Maybe<gfx::IntSize>& aOutputSize, SurfaceFlags aSurfaceFlags) {
   if (NS_WARN_IF(!aSourceBuffer)) {
     return nullptr;
   }
@@ -551,7 +576,7 @@ class AnonymousDecoderImpl final : public AnonymousDecoder {
     return nullptr;
   }
 
-  auto anonymousDecoder = MakeRefPtr<AnonymousDecoderImpl>();
+  auto anonymousDecoder = MakeRefPtr<AnonymousDecoderImpl>(aOutputSize);
   if (NS_WARN_IF(!anonymousDecoder->Initialize(std::move(decoder)))) {
     return nullptr;
   }
