@@ -54,7 +54,6 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.NavHostActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
@@ -74,6 +73,7 @@ import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksSyncMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksTelemetryMiddleware
+import org.mozilla.fenix.library.bookmarks.ui.LifecycleHolder
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
@@ -111,7 +111,14 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
             return ComposeView(requireContext()).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 val buildStore = { navController: NavHostController ->
-                    StoreProvider.get(this@BookmarkFragment) {
+                    val store = StoreProvider.get(this@BookmarkFragment) {
+                        val lifecycleHolder = LifecycleHolder(
+                            context = requireContext(),
+                            navController = this@BookmarkFragment.findNavController(),
+                            composeNavController = navController,
+                            homeActivity = (requireActivity() as HomeActivity),
+                        )
+
                         BookmarksStore(
                             initialState = BookmarksState.default,
                             middleware = listOf(
@@ -122,26 +129,26 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                     clipboardManager = requireActivity().getSystemService(),
                                     addNewTabUseCase = requireComponents.useCases.tabsUseCases.addTab,
                                     navigateToSignIntoSync = {
-                                        this@BookmarkFragment.findNavController()
+                                        lifecycleHolder.navController
                                             .navigate(
                                                 BookmarkFragmentDirections.actionGlobalTurnOnSync(
                                                     entrypoint = FenixFxAEntryPoint.BookmarkView,
                                                 ),
                                             )
                                     },
-                                    navController = navController,
-                                    exitBookmarks = { this@BookmarkFragment.findNavController().popBackStack() },
+                                    getNavController = { lifecycleHolder.composeNavController },
+                                    exitBookmarks = { lifecycleHolder.navController.popBackStack() },
                                     wasPreviousAppDestinationHome = {
-                                        this@BookmarkFragment.findNavController()
+                                        lifecycleHolder.navController
                                             .previousBackStackEntry?.destination?.id == R.id.homeFragment
                                     },
                                     navigateToSearch = {
-                                        this@BookmarkFragment.findNavController().navigate(
+                                        lifecycleHolder.navController.navigate(
                                             NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
                                         )
                                     },
                                     shareBookmark = { url, title ->
-                                        this@BookmarkFragment.findNavController().nav(
+                                        lifecycleHolder.navController.nav(
                                             R.id.bookmarkFragment,
                                             BookmarkFragmentDirections.actionGlobalShareFragment(
                                                 data = arrayOf(
@@ -153,20 +160,19 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                     showTabsTray = ::showTabTray,
                                     resolveFolderTitle = {
                                         friendlyRootTitle(
-                                            context = requireContext(),
+                                            context = lifecycleHolder.context,
                                             node = it,
-                                            rootTitles = composeRootTitles(requireContext()),
+                                            rootTitles = composeRootTitles(lifecycleHolder.context),
                                         ) ?: ""
                                     },
                                     showUrlCopiedSnackbar = {
                                         showSnackBarWithText(resources.getString(R.string.url_copied))
                                     },
                                     getBrowsingMode = {
-                                        (requireActivity() as? HomeActivity)
-                                            ?.browsingModeManager?.mode ?: BrowsingMode.Normal
+                                        lifecycleHolder.homeActivity.browsingModeManager.mode
                                     },
                                     openTab = { url, openInNewTab ->
-                                        (activity as HomeActivity).openToBrowserAndLoad(
+                                        lifecycleHolder.homeActivity.openToBrowserAndLoad(
                                             searchTermOrURL = url,
                                             newTab = openInNewTab,
                                             from = BrowserDirection.FromBookmarks,
@@ -177,8 +183,18 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                     },
                                 ),
                             ),
+                            lifecycleHolder = lifecycleHolder,
                         )
                     }
+
+                    store.lifecycleHolder?.apply {
+                        this.navController = this@BookmarkFragment.findNavController()
+                        this.composeNavController = navController
+                        this.homeActivity = (requireActivity() as HomeActivity)
+                        this.context = requireContext()
+                    }
+
+                    store
                 }
                 setContent {
                     FirefoxTheme {

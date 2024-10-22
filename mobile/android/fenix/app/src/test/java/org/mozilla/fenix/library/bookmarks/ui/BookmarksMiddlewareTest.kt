@@ -1270,7 +1270,7 @@ class BookmarksMiddlewareTest {
         bookmarksStorage = bookmarksStorage,
         clipboardManager = clipboardManager,
         addNewTabUseCase = addNewTabUseCase,
-        navController = navController,
+        getNavController = { navController },
         exitBookmarks = exitBookmarks,
         wasPreviousAppDestinationHome = wasPreviousAppDestinationHome,
         navigateToSearch = navigateToSearch,
