@@ -162,13 +162,11 @@ class nsWindow final : public nsBaseWidget {
                                 const LayoutDeviceIntRect& aRect,
                                 InitData* aInitData) override;
   void Destroy() override;
-  nsIWidget* GetParent() override;
   float GetDPI() override;
   double GetDefaultScaleInternal() override;
   mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScale() override;
   mozilla::DesktopToLayoutDeviceScale GetDesktopToDeviceScaleByScreen()
       override;
-  void SetParent(nsIWidget* aNewParent) override;
   void SetModal(bool aModal) override;
   bool IsVisible() const override;
   bool IsMapped() const override;
@@ -334,7 +332,7 @@ class nsWindow final : public nsBaseWidget {
   void SetTransparencyMode(TransparencyMode aMode) override;
   TransparencyMode GetTransparencyMode() override;
   void SetInputRegion(const InputRegion&) override;
-  void ReparentNativeWidget(nsIWidget* aNewParent) override;
+  void DidChangeParent(nsIWidget* aOldParent) override;
 
   nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
                                       NativeMouseMessage aNativeMessage,
@@ -492,7 +490,6 @@ class nsWindow final : public nsBaseWidget {
 
   void RegisterTouchWindow() override;
 
-  nsCOMPtr<nsIWidget> mParent;
   mozilla::Atomic<int, mozilla::Relaxed> mCeiledScaleFactor{1};
   double mFractionalScaleFactor = 0.0;
 

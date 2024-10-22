@@ -420,8 +420,29 @@ void nsBaseWidget::BaseCreate(nsIWidget* aParent, widget::InitData* aInitData) {
     mIsPIPWindow = aInitData->mPIPWindow;
   }
 
-  if (aParent) {
-    aParent->AddChild(this);
+  mParent = aParent;
+  if (mParent) {
+    mParent->AddToChildList(this);
+  }
+}
+
+void nsIWidget::SetParent(nsIWidget* aNewParent) {
+  nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
+  nsCOMPtr<nsIWidget> oldParent = mParent;
+  if (mParent) {
+    mParent->RemoveFromChildList(this);
+  }
+  mParent = aNewParent;
+  if (mParent) {
+    mParent->AddToChildList(this);
+  }
+  DidChangeParent(oldParent);
+}
+
+void nsIWidget::RemoveAllChildren() {
+  while (nsCOMPtr<nsIWidget> kid = mLastChild) {
+    kid->SetParent(nullptr);
+    MOZ_ASSERT(kid != mLastChild);
   }
 }
 
@@ -517,39 +538,19 @@ void nsBaseWidget::Destroy() {
   // Just in case our parent is the only ref to us
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
   // disconnect from the parent
-  nsIWidget* parent = GetParent();
-  if (parent) {
-    parent->RemoveChild(this);
+  if (mParent) {
+    mParent->RemoveFromChildList(this);
   }
+  mParent = nullptr;
 }
 
-//-------------------------------------------------------------------------
-//
-// Get this nsBaseWidget parent
-//
-//-------------------------------------------------------------------------
-nsIWidget* nsBaseWidget::GetParent(void) { return nullptr; }
-
-//-------------------------------------------------------------------------
-//
-// Get this nsBaseWidget top level widget
-//
-//-------------------------------------------------------------------------
-nsIWidget* nsBaseWidget::GetTopLevelWidget() {
-  nsIWidget *topLevelWidget = nullptr, *widget = this;
-  while (widget) {
-    topLevelWidget = widget;
-    widget = widget->GetParent();
+nsIWidget* nsIWidget::GetTopLevelWidget() {
+  auto* cur = this;
+  while (nsIWidget* parent = cur->GetParent()) {
+    cur = parent;
   }
-  return topLevelWidget;
+  return cur;
 }
-
-//-------------------------------------------------------------------------
-//
-// Get this nsBaseWidget's top (non-sheet) parent (if it's a sheet)
-//
-//-------------------------------------------------------------------------
-nsIWidget* nsBaseWidget::GetSheetWindowParent(void) { return nullptr; }
 
 float nsBaseWidget::GetDPI() { return 96.0f; }
 
@@ -597,7 +598,7 @@ RefPtr<mozilla::VsyncDispatcher> nsIWidget::GetVsyncDispatcher() {
 // Add a child to the list of children
 //
 //-------------------------------------------------------------------------
-void nsBaseWidget::AddChild(nsIWidget* aChild) {
+void nsIWidget::AddToChildList(nsIWidget* aChild) {
   MOZ_ASSERT(!aChild->GetNextSibling() && !aChild->GetPrevSibling(),
              "aChild not properly removed from its old child list");
 
@@ -618,7 +619,7 @@ void nsBaseWidget::AddChild(nsIWidget* aChild) {
 // Remove a child from the list of children
 //
 //-------------------------------------------------------------------------
-void nsBaseWidget::RemoveChild(nsIWidget* aChild) {
+void nsIWidget::RemoveFromChildList(nsIWidget* aChild) {
   MOZ_ASSERT(aChild->GetParent() == this, "Not one of our kids!");
 
   if (mLastChild == aChild) {

@@ -228,22 +228,7 @@ nsChildView::nsChildView()
       mIsDispatchPaint(false) {}
 
 nsChildView::~nsChildView() {
-  // Notify the children that we're gone.  childView->ResetParent() can change
-  // our list of children while it's being iterated, so the way we iterate the
-  // list must allow for this.
-  for (nsIWidget* kid = mLastChild; kid;) {
-    const WindowType kidType = kid->GetWindowType();
-    if (kidType == WindowType::Child) {
-      RefPtr<nsChildView> childView = static_cast<nsChildView*>(kid);
-      kid = kid->GetPrevSibling();
-      childView->ResetParent();
-    } else {
-      RefPtr<nsCocoaWindow> childWindow = static_cast<nsCocoaWindow*>(kid);
-      kid = kid->GetPrevSibling();
-      RemoveChild(childWindow);
-      childWindow->mParent = nullptr;
-    }
-  }
+  RemoveAllChildren();
 
   NS_WARNING_ASSERTION(
       mOnDestroyCalled,
@@ -263,7 +248,7 @@ nsChildView::~nsChildView() {
   // mGeckoChild are used throughout the ChildView class to tell if it's safe
   // to use a ChildView object.
   [mView widgetDestroyed];  // Safe if mView is nil.
-  mParentWidget = nil;
+  SetParent(nullptr);
   TearDownView();  // Safe if called twice.
 }
 
@@ -284,14 +269,8 @@ nsresult nsChildView::Create(nsIWidget* aParent,
 
   BaseCreate(aParent, aInitData);
 
-  mParentWidget = nil;
-  mParentView = nil;
-  if (aParent) {
-    // This is the popup window case. aParent is the nsCocoaWindow for the
-    // popup window, and mParentView will be its content view.
-    mParentWidget = aParent;
-    mParentView = (NSView*)aParent->GetNativeData(NS_NATIVE_WIDGET);
-  }
+  mParentView =
+      mParent ? (NSView*)mParent->GetNativeData(NS_NATIVE_WIDGET) : nullptr;
 
   // create our parallel NSView and hook it up to our parent. Recall
   // that NS_NATIVE_WIDGET is the NSView.
@@ -305,10 +284,11 @@ nsresult nsChildView::Create(nsIWidget* aParent,
   // If this view was created in a Gecko view hierarchy, the initial state
   // is hidden.  If the view is attached only to a native NSView but has
   // no Gecko parent (as in embedding), the initial state is visible.
-  if (mParentWidget)
+  if (mParent) {
     [mView setHidden:YES];
-  else
+  } else {
     mVisible = true;
+  }
 
   // Hook it up in the NSView hierarchy.
   if (mParentView) {
@@ -317,8 +297,9 @@ nsresult nsChildView::Create(nsIWidget* aParent,
 
   // if this is a ChildView, make sure that our per-window data
   // is set up
-  if ([mView isKindOfClass:[ChildView class]])
+  if ([mView isKindOfClass:[ChildView class]]) {
     [[WindowDataMap sharedWindowDataMap] ensureDataForWindow:[mView window]];
+  }
 
   NS_ASSERTION(!mTextInputHandler, "mTextInputHandler has already existed");
   mTextInputHandler = new TextInputHandler(this, mView);
@@ -394,7 +375,6 @@ void nsChildView::Destroy() {
   nsBaseWidget::Destroy();
 
   NotifyWindowDestroyed();
-  mParentWidget = nil;
 
   TearDownView();
 
@@ -543,61 +523,26 @@ void nsChildView::Show(bool aState) {
 }
 
 // Change the parent of this widget
-void nsChildView::SetParent(nsIWidget* aNewParent) {
+void nsChildView::DidChangeParent(nsIWidget*) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
-  if (mOnDestroyCalled) return;
+  if (mOnDestroyCalled) {
+    return;
+  }
 
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
 
-  if (mParentWidget) {
-    mParentWidget->RemoveChild(this);
-  }
-
-  if (aNewParent) {
-    ReparentNativeWidget(aNewParent);
-  } else {
-    [mView removeFromSuperview];
-    mParentView = nil;
-  }
-
-  mParentWidget = aNewParent;
-
-  if (mParentWidget) {
-    mParentWidget->AddChild(this);
-  }
-
-  NS_OBJC_END_TRY_IGNORE_BLOCK;
-}
-
-void nsChildView::ReparentNativeWidget(nsIWidget* aNewParent) {
-  NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
-
-  MOZ_ASSERT(aNewParent, "null widget");
-
-  if (mOnDestroyCalled) return;
-
-  NSView<mozView>* newParentView =
-      (NSView<mozView>*)aNewParent->GetNativeData(NS_NATIVE_WIDGET);
-  NS_ENSURE_TRUE_VOID(newParentView);
-
   // we hold a ref to mView, so this is safe
   [mView removeFromSuperview];
-  mParentView = newParentView;
-  [mParentView addSubview:mView];
+  mParentView = mParent
+                    ? (NSView<mozView>*)mParent->GetNativeData(NS_NATIVE_WIDGET)
+                    : nullptr;
+  if (mParentView) {
+    [mParentView addSubview:mView];
+  }
 
   NS_OBJC_END_TRY_IGNORE_BLOCK;
 }
-
-void nsChildView::ResetParent() {
-  if (!mOnDestroyCalled) {
-    if (mParentWidget) mParentWidget->RemoveChild(this);
-    if (mView) [mView removeFromSuperview];
-  }
-  mParentWidget = nullptr;
-}
-
-nsIWidget* nsChildView::GetParent() { return mParentWidget; }
 
 float nsChildView::GetDPI() {
   float dpi = 96.0;
@@ -653,7 +598,7 @@ LayoutDeviceIntRect nsChildView::GetBounds() {
 
 LayoutDeviceIntRect nsChildView::GetClientBounds() {
   LayoutDeviceIntRect rect = GetBounds();
-  if (!mParentWidget) {
+  if (!mParent) {
     // For top level widgets we want the position on screen, not the position
     // of this view inside the window.
     rect.MoveTo(WidgetToScreenOffset());
@@ -1293,7 +1238,7 @@ nsresult nsChildView::DispatchEvent(WidgetGUIEvent* event,
   // If the listener is NULL, check if the parent is a popup. If it is, then
   // this child is the popup content view attached to a popup. Get the
   // listener from the parent popup instead.
-  nsCOMPtr<nsIWidget> parentWidget = mParentWidget;
+  nsCOMPtr<nsIWidget> parentWidget = mParent;
   if (!listener && parentWidget) {
     if (parentWidget->GetWindowType() == WindowType::Popup) {
       // Check just in case event->mWidget isn't this widget
@@ -1314,11 +1259,10 @@ nsresult nsChildView::DispatchEvent(WidgetGUIEvent* event,
 
 nsIWidget* nsChildView::GetWidgetForListenerEvents() {
   // If there is no listener, use the parent popup's listener if that exists.
-  if (!mWidgetListener && mParentWidget &&
-      mParentWidget->GetWindowType() == WindowType::Popup) {
-    return mParentWidget;
+  if (!mWidgetListener && mParent &&
+      mParent->GetWindowType() == WindowType::Popup) {
+    return mParent;
   }
-
   return this;
 }
 

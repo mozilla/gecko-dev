@@ -2169,7 +2169,7 @@ void nsWindow::LogWindow(nsWindow* win, int index, int indent) {
   char spaces[] = "                    ";
   spaces[indent < 20 ? indent : 20] = 0;
   ALOG("%s [% 2d] 0x%p [parent 0x%p] [% 3d,% 3dx% 3d,% 3d] vis %d type %d",
-       spaces, index, win, win->mParent.get(), win->mBounds.x, win->mBounds.y,
+       spaces, index, win, win->mParent, win->mBounds.x, win->mBounds.y,
        win->mBounds.width, win->mBounds.height, win->mIsVisible,
        int(win->mWindowType));
   int i = 0;
@@ -2226,7 +2226,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
                         aInitData->mWindowType != WindowType::Invisible);
 
   BaseCreate(aParent, aInitData);
-  mParent = static_cast<nsWindow*>(aParent);
   MOZ_ASSERT_IF(!IsTopLevel(), aParent);
 
   if (IsTopLevel()) {
@@ -2251,13 +2250,7 @@ void nsWindow::Destroy() {
   // Stuff below may release the last ref to this
   nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
 
-  while (RefPtr<nsWindow> kid = static_cast<nsWindow*>(mLastChild)) {
-    // why do we still have children?
-    ALOG("### Warning: Destroying window %p and reparenting child %p to null!",
-         this, kid.get());
-    RemoveChild(kid);
-    kid->mParent = nullptr;
-  }
+  RemoveAllChildren();
 
   // Ensure the compositor has been shutdown before this nsWindow is potentially
   // deleted
@@ -2265,9 +2258,9 @@ void nsWindow::Destroy() {
 
   nsBaseWidget::Destroy();
 
-  if (IsTopLevel()) gTopLevelWindows.RemoveElement(this);
-
-  SetParent(nullptr);
+  if (IsTopLevel()) {
+    gTopLevelWindows.RemoveElement(this);
+  }
 
   nsBaseWidget::OnDestroy();
 
@@ -2311,26 +2304,12 @@ void nsWindow::OnGeckoViewReady() {
   acc->OnReady();
 }
 
-void nsWindow::SetParent(nsIWidget* aNewParent) {
-  if (mParent == aNewParent) {
-    return;
-  }
-
-  if (mParent) {
-    mParent->RemoveChild(this);
-  }
-
-  mParent = static_cast<nsWindow*>(aNewParent);
-
-  if (mParent) {
-    mParent->AddChild(this);
-  }
-
+void nsWindow::DidChangeParent(nsIWidget*) {
   // if we are now in the toplevel window's hierarchy, schedule a redraw
-  if (FindTopLevel() == nsWindow::TopWindow()) RedrawAll();
+  if (FindTopLevel() == nsWindow::TopWindow()) {
+    RedrawAll();
+  }
 }
-
-nsIWidget* nsWindow::GetParent() { return mParent; }
 
 RefPtr<MozPromise<bool, bool, false>> nsWindow::OnLoadRequest(
     nsIURI* aUri, int32_t aWindowType, int32_t aFlags,
@@ -2523,9 +2502,10 @@ void nsWindow::Invalidate(const LayoutDeviceIntRect& aRect) {}
 nsWindow* nsWindow::FindTopLevel() {
   nsWindow* toplevel = this;
   while (toplevel) {
-    if (toplevel->IsTopLevel()) return toplevel;
-
-    toplevel = toplevel->mParent;
+    if (toplevel->IsTopLevel()) {
+      return toplevel;
+    }
+    toplevel = static_cast<nsWindow*>(toplevel->mParent);
   }
 
   ALOG(
@@ -2586,10 +2566,8 @@ LayoutDeviceIntRect nsWindow::GetScreenBounds() {
 LayoutDeviceIntPoint nsWindow::WidgetToScreenOffset() {
   LayoutDeviceIntPoint p(0, 0);
 
-  for (nsWindow* w = this; !!w; w = w->mParent) {
-    p.x += w->mBounds.x;
-    p.y += w->mBounds.y;
-
+  for (nsWindow* w = this; !!w; w = static_cast<nsWindow*>(w->mParent)) {
+    p += w->mBounds.TopLeft();
     if (w->IsTopLevel()) {
       break;
     }
@@ -3080,8 +3058,7 @@ nsresult nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
 
   const auto& npzc = npzcSup->GetJavaNPZC();
   const auto& bounds = FindTopLevel()->mBounds;
-  aPoint.x -= bounds.x;
-  aPoint.y -= bounds.y;
+  aPoint -= bounds.TopLeft();
 
   DispatchToUiThread(
       "nsWindow::SynthesizeNativeTouchPoint",
@@ -3106,8 +3083,7 @@ nsresult nsWindow::SynthesizeNativeMouseEvent(
 
   const auto& npzc = npzcSup->GetJavaNPZC();
   const auto& bounds = FindTopLevel()->mBounds;
-  aPoint.x -= bounds.x;
-  aPoint.y -= bounds.y;
+  aPoint -= bounds.TopLeft();
 
   int32_t nativeMessage;
   switch (aNativeMessage) {

@@ -880,7 +880,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, const LayoutDeviceIntRect& aRect,
   nsToolkit::GetToolkit();
 
   BaseCreate(aParent, aInitData);
-  mParent = aParent;
 
   HWND parent =
       aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : nullptr;
@@ -1448,53 +1447,14 @@ void nsWindow::DissociateFromNativeWindow() {
   mPrevWndProc.reset();
 }
 
-/**************************************************************
- *
- * SECTION: nsIWidget::SetParent, nsIWidget::GetParent
- *
- * Set or clear the parent widgets using window properties, and
- * handles calculating native parent handles.
- *
- **************************************************************/
-
-// Get and set parent widgets
-void nsWindow::SetParent(nsIWidget* aNewParent) {
-  nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
-  nsIWidget* parent = GetParent();
-  if (parent) {
-    parent->RemoveChild(this);
-  }
-
-  mParent = aNewParent;
-
-  if (aNewParent) {
-    ReparentNativeWidget(aNewParent);
-    aNewParent->AddChild(this);
+void nsWindow::DidChangeParent(nsIWidget*) {
+  if (mWindowType == WindowType::Popup || !mWnd) {
     return;
   }
-  if (mWnd) {
-    // If we have no parent, SetParent should return the desktop.
-    VERIFY(::SetParent(mWnd, nullptr));
-    RecreateDirectManipulationIfNeeded();
-  }
+  HWND newParent = mParent ? (HWND)mParent->GetNativeData(NS_NATIVE_WINDOW) : nullptr;
+  ::SetParent(mWnd, newParent);
+  RecreateDirectManipulationIfNeeded();
 }
-
-void nsWindow::ReparentNativeWidget(nsIWidget* aNewParent) {
-  MOZ_ASSERT(aNewParent, "null widget");
-
-  mParent = aNewParent;
-  if (mWindowType == WindowType::Popup) {
-    return;
-  }
-  HWND newParent = (HWND)aNewParent->GetNativeData(NS_NATIVE_WINDOW);
-  NS_ASSERTION(newParent, "Parent widget has a null native window handle");
-  if (newParent && mWnd) {
-    ::SetParent(mWnd, newParent);
-    RecreateDirectManipulationIfNeeded();
-  }
-}
-
-nsIWidget* nsWindow::GetParent() { return mParent; }
 
 static int32_t RoundDown(double aDouble) {
   return aDouble > 0 ? static_cast<int32_t>(floor(aDouble))
@@ -6896,7 +6856,6 @@ void nsWindow::OnDestroy() {
 
   // Disconnects us from our parent, will call our GetParent().
   nsBaseWidget::Destroy();
-  mParent = nullptr;
 
   // Release references to children, device context, toolkit, and app shell.
   nsBaseWidget::OnDestroy();
