@@ -32,7 +32,6 @@ path = "src/lib.rs"
 
 [dependencies]
 anyhow = "1.0"
-ffi-support = "0.4"
 lazy_static = "1.4"
 log = "0.4"
 serde_derive = "1"
@@ -71,7 +70,7 @@ path = "../support/guid"
 features = ["random"]
 
 [dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 
 [dependencies.url]
 version = "2.1"
@@ -86,7 +85,7 @@ version = "0.10"
 default-features = false
 
 [build-dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 features = ["build"]
 
 [features]

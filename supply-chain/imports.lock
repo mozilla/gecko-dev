@@ -694,56 +694,56 @@ user-login = "Manishearth"
 user-name = "Manish Goregaokar"
 
 [[publisher.uniffi]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_bindgen]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_build]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_checksum_derive]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_core]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_macros]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_meta]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_testing]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 
 [[publisher.uniffi_udl]]
-version = "0.28.1"
-when = "2024-08-13"
+version = "0.28.2"
+when = "2024-10-08"
 user-id = 127697
 user-login = "bendk"
 

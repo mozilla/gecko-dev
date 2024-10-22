@@ -10,7 +10,7 @@
 
 use url::Url;
 
-use crate::Result;
+use crate::{ApiResult, Error, Result};
 
 /// Custom configuration for the client.
 /// Currently includes the following:
@@ -18,16 +18,19 @@ use crate::Result;
 /// - `server_url`: An optional custom Remote Settings server URL. Deprecated; please use `server` instead.
 /// - `bucket_name`: The optional name of the bucket containing the collection on the server. If not specified, the standard bucket will be used.
 /// - `collection_name`: The name of the collection for the settings server.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, uniffi::Record)]
 pub struct RemoteSettingsConfig {
-    pub server: Option<RemoteSettingsServer>,
-    pub server_url: Option<String>,
-    pub bucket_name: Option<String>,
     pub collection_name: String,
+    #[uniffi(default = None)]
+    pub bucket_name: Option<String>,
+    #[uniffi(default = None)]
+    pub server_url: Option<String>,
+    #[uniffi(default = None)]
+    pub server: Option<RemoteSettingsServer>,
 }
 
 /// The Remote Settings server that the client should use.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, uniffi::Enum)]
 pub enum RemoteSettingsServer {
     Prod,
     Stage,
@@ -36,7 +39,17 @@ pub enum RemoteSettingsServer {
 }
 
 impl RemoteSettingsServer {
-    pub fn url(&self) -> Result<Url> {
+    /// Get the [url::Url] for this server
+    #[error_support::handle_error(Error)]
+    pub fn url(&self) -> ApiResult<Url> {
+        self.get_url()
+    }
+
+    /// Internal version of `url()`.
+    ///
+    /// The difference is that it uses `Error` instead of `ApiError`.  This is what we need to use
+    /// inside the crate.
+    pub(crate) fn get_url(&self) -> Result<Url> {
         Ok(match self {
             Self::Prod => Url::parse("https://firefox.settings.services.mozilla.com").unwrap(),
             Self::Stage => Url::parse("https://firefox.settings.services.allizom.org").unwrap(),

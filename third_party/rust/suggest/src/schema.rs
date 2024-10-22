@@ -17,9 +17,9 @@ use sql_support::{
 ///  1. Bump this version.
 ///  2. Add a migration from the old version to the new version in
 ///     [`SuggestConnectionInitializer::upgrade_from`].
-///    a. If suggestions should be re-ingested after the migration, call `clear_database()` inside
-///       the migration.
-pub const VERSION: u32 = 26;
+///     a. If suggestions should be re-ingested after the migration, call `clear_database()` inside
+///        the migration.
+pub const VERSION: u32 = 27;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -47,6 +47,17 @@ CREATE TABLE keywords(
     full_keyword_id INTEGER NULL,
     rank INTEGER NOT NULL,
     PRIMARY KEY (keyword, suggestion_id)
+) WITHOUT ROWID;
+
+-- Metrics for the `keywords` table per provider. Not all providers use or
+-- update it. If you modify an existing provider to use this, you will need to
+-- populate this table somehow with metrics for the provider's existing
+-- keywords, for example as part of a schema migration.
+CREATE TABLE keywords_metrics(
+    record_id TEXT NOT NULL PRIMARY KEY,
+    provider INTEGER NOT NULL,
+    max_length INTEGER NOT NULL,
+    max_word_count INTEGER NOT NULL
 ) WITHOUT ROWID;
 
 -- full keywords are what we display to the user when a (partial) keyword matches
@@ -177,6 +188,32 @@ CREATE TABLE exposure_custom_details(
     FOREIGN KEY(suggestion_id) REFERENCES suggestions(id) ON DELETE CASCADE
 );
 CREATE INDEX exposure_custom_details_type ON exposure_custom_details(type);
+
+CREATE TABLE geonames(
+    id INTEGER PRIMARY KEY,
+    record_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    feature_class TEXT NOT NULL,
+    feature_code TEXT NOT NULL,
+    country_code TEXT NOT NULL,
+    admin1_code TEXT NOT NULL,
+    population INTEGER
+);
+CREATE INDEX geonames_feature_class ON geonames(feature_class);
+CREATE INDEX geonames_feature_code ON geonames(feature_code);
+
+CREATE TABLE geonames_alternates(
+    name TEXT NOT NULL,
+    geoname_id INTEGER NOT NULL,
+    PRIMARY KEY (name, geoname_id),
+    FOREIGN KEY(geoname_id) REFERENCES geonames(id) ON DELETE CASCADE
+) WITHOUT ROWID;
+
+CREATE TABLE geonames_metrics(
+    record_id TEXT NOT NULL PRIMARY KEY,
+    max_name_length INTEGER NOT NULL,
+    max_name_word_count INTEGER NOT NULL
+) WITHOUT ROWID;
 
 CREATE TABLE dismissed_suggestions (
     url TEXT PRIMARY KEY
@@ -440,6 +477,46 @@ CREATE TABLE exposure_custom_details(
     FOREIGN KEY(suggestion_id) REFERENCES suggestions(id) ON DELETE CASCADE
 );
 CREATE INDEX exposure_custom_details_type ON exposure_custom_details(type);
+                    ",
+                )?;
+                Ok(())
+            }
+            26 => {
+                // Create tables related to city-based weather.
+                tx.execute_batch(
+                    "
+CREATE TABLE keywords_metrics(
+    record_id TEXT NOT NULL PRIMARY KEY,
+    provider INTEGER NOT NULL,
+    max_length INTEGER NOT NULL,
+    max_word_count INTEGER NOT NULL
+) WITHOUT ROWID;
+
+CREATE TABLE geonames(
+    id INTEGER PRIMARY KEY,
+    record_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    feature_class TEXT NOT NULL,
+    feature_code TEXT NOT NULL,
+    country_code TEXT NOT NULL,
+    admin1_code TEXT NOT NULL,
+    population INTEGER
+);
+CREATE INDEX geonames_feature_class ON geonames(feature_class);
+CREATE INDEX geonames_feature_code ON geonames(feature_code);
+
+CREATE TABLE geonames_alternates(
+    name TEXT NOT NULL,
+    geoname_id INTEGER NOT NULL,
+    PRIMARY KEY (name, geoname_id),
+    FOREIGN KEY(geoname_id) REFERENCES geonames(id) ON DELETE CASCADE
+) WITHOUT ROWID;
+
+CREATE TABLE geonames_metrics(
+    record_id TEXT NOT NULL PRIMARY KEY,
+    max_name_length INTEGER NOT NULL,
+    max_name_word_count INTEGER NOT NULL
+) WITHOUT ROWID;
                     ",
                 )?;
                 Ok(())

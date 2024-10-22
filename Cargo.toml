@@ -57,8 +57,8 @@ resolver = "2"
 
 [workspace.dependencies]
 # Shared across multiple UniFFI consumers.
-uniffi = "0.28.1"
-uniffi_bindgen = "0.28.1"
+uniffi = "0.28.2"
+uniffi_bindgen = "0.28.2"
 # Shared across multiple application-services consumers.
 rusqlite = "0.31.0"
 # Shared across multiple glean consumers.
@@ -215,13 +215,13 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "85156e360a37d8517
 malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
 
 # application-services overrides to make updating them all simpler.
-interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "b10c1319e74041b2777e07657fc83dc879f841f4" }
-relevancy = { git = "https://github.com/mozilla/application-services", rev = "b10c1319e74041b2777e07657fc83dc879f841f4" }
-sql-support = { git = "https://github.com/mozilla/application-services", rev = "b10c1319e74041b2777e07657fc83dc879f841f4" }
-suggest = { git = "https://github.com/mozilla/application-services", rev = "b10c1319e74041b2777e07657fc83dc879f841f4" }
-sync15 = { git = "https://github.com/mozilla/application-services", rev = "b10c1319e74041b2777e07657fc83dc879f841f4" }
-tabs = { git = "https://github.com/mozilla/application-services", rev = "b10c1319e74041b2777e07657fc83dc879f841f4" }
-viaduct = { git = "https://github.com/mozilla/application-services", rev = "b10c1319e74041b2777e07657fc83dc879f841f4" }
-webext-storage = { git = "https://github.com/mozilla/application-services", rev = "b10c1319e74041b2777e07657fc83dc879f841f4" }
+interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
+relevancy = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
+sql-support = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
+suggest = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
+sync15 = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
+tabs = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
+viaduct = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
+webext-storage = { git = "https://github.com/mozilla/application-services", rev = "a0121f35125bd61ebd10fab969f6cfcc02f94d5a" }
 
 allocator-api2 = { path = "third_party/rust/allocator-api2" }

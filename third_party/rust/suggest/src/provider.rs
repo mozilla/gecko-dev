@@ -99,18 +99,18 @@ impl SuggestionProvider {
         }
     }
 
-    pub(crate) fn record_type(&self) -> SuggestRecordType {
+    pub(crate) fn record_types(&self) -> Vec<SuggestRecordType> {
         match self {
-            Self::Amp => SuggestRecordType::AmpWikipedia,
-            Self::Wikipedia => SuggestRecordType::AmpWikipedia,
-            Self::Amo => SuggestRecordType::Amo,
-            Self::Pocket => SuggestRecordType::Pocket,
-            Self::Yelp => SuggestRecordType::Yelp,
-            Self::Mdn => SuggestRecordType::Mdn,
-            Self::Weather => SuggestRecordType::Weather,
-            Self::AmpMobile => SuggestRecordType::AmpMobile,
-            Self::Fakespot => SuggestRecordType::Fakespot,
-            Self::Exposure => SuggestRecordType::Exposure,
+            Self::Amp => vec![SuggestRecordType::AmpWikipedia],
+            Self::Wikipedia => vec![SuggestRecordType::AmpWikipedia],
+            Self::Amo => vec![SuggestRecordType::Amo],
+            Self::Pocket => vec![SuggestRecordType::Pocket],
+            Self::Yelp => vec![SuggestRecordType::Yelp],
+            Self::Mdn => vec![SuggestRecordType::Mdn],
+            Self::Weather => vec![SuggestRecordType::Weather, SuggestRecordType::Geonames],
+            Self::AmpMobile => vec![SuggestRecordType::AmpMobile],
+            Self::Fakespot => vec![SuggestRecordType::Fakespot],
+            Self::Exposure => vec![SuggestRecordType::Exposure],
         }
     }
 }

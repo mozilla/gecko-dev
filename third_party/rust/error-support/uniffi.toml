@@ -4,4 +4,3 @@ package_name = "mozilla.appservices.errorsupport"
 [bindings.swift]
 ffi_module_name = "MozillaRustComponents"
 ffi_module_filename = "errorFFI"
-generate_module_map = false

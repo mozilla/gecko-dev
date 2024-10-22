@@ -21,13 +21,15 @@ pub(crate) trait RelevancyRemoteSettingsClient {
     fn get_attachment(&self, location: &str) -> Result<Vec<u8>>;
 }
 
-impl RelevancyRemoteSettingsClient for remote_settings::Client {
+impl RelevancyRemoteSettingsClient for remote_settings::RemoteSettings {
     fn get_records(&self) -> Result<RemoteSettingsResponse> {
-        Ok(remote_settings::Client::get_records(self)?)
+        Ok(remote_settings::RemoteSettings::get_records(self)?)
     }
 
     fn get_attachment(&self, location: &str) -> Result<Vec<u8>> {
-        Ok(remote_settings::Client::get_attachment(self, location)?)
+        Ok(remote_settings::RemoteSettings::get_attachment(
+            self, location,
+        )?)
     }
 }
 

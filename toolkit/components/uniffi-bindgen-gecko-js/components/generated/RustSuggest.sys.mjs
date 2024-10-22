@@ -1631,9 +1631,11 @@ export class FfiConverterTypeSuggestApiError extends FfiConverterArrayBuffer {
 export class SuggestProviderConfig {}
 SuggestProviderConfig.Weather = class extends SuggestProviderConfig{
     constructor(
+        score,
         minKeywordLength
         ) {
             super();
+            this.score = score;
             this.minKeywordLength = minKeywordLength;
         }
 }
@@ -1644,6 +1646,7 @@ export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuff
         switch (dataStream.readInt32()) {
             case 1:
                 return new SuggestProviderConfig.Weather(
+                    FfiConverterF64.read(dataStream),
                     FfiConverterI32.read(dataStream)
                     );
             default:
@@ -1654,6 +1657,7 @@ export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuff
     static write(dataStream, value) {
         if (value instanceof SuggestProviderConfig.Weather) {
             dataStream.writeInt32(1);
+            FfiConverterF64.write(dataStream, value.score);
             FfiConverterI32.write(dataStream, value.minKeywordLength);
             return;
         }
@@ -1664,6 +1668,7 @@ export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuff
         // Size of the Int indicating the variant
         let totalSize = 4;
         if (value instanceof SuggestProviderConfig.Weather) {
+            totalSize += FfiConverterF64.computeSize(value.score);
             totalSize += FfiConverterI32.computeSize(value.minKeywordLength);
             return totalSize;
         }
@@ -1802,9 +1807,15 @@ Suggestion.Mdn = class extends Suggestion{
 }
 Suggestion.Weather = class extends Suggestion{
     constructor(
+        city,
+        region,
+        country,
         score
         ) {
             super();
+            this.city = city;
+            this.region = region;
+            this.country = country;
             this.score = score;
         }
 }
@@ -1909,6 +1920,9 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
                     );
             case 7:
                 return new Suggestion.Weather(
+                    FfiConverterOptionalstring.read(dataStream),
+                    FfiConverterOptionalstring.read(dataStream),
+                    FfiConverterOptionalstring.read(dataStream),
                     FfiConverterF64.read(dataStream)
                     );
             case 8:
@@ -2002,6 +2016,9 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
         }
         if (value instanceof Suggestion.Weather) {
             dataStream.writeInt32(7);
+            FfiConverterOptionalstring.write(dataStream, value.city);
+            FfiConverterOptionalstring.write(dataStream, value.region);
+            FfiConverterOptionalstring.write(dataStream, value.country);
             FfiConverterF64.write(dataStream, value.score);
             return;
         }
@@ -2091,6 +2108,9 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
             return totalSize;
         }
         if (value instanceof Suggestion.Weather) {
+            totalSize += FfiConverterOptionalstring.computeSize(value.city);
+            totalSize += FfiConverterOptionalstring.computeSize(value.region);
+            totalSize += FfiConverterOptionalstring.computeSize(value.country);
             totalSize += FfiConverterF64.computeSize(value.score);
             return totalSize;
         }

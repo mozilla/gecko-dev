@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::config::RemoteSettingsConfig;
-use crate::error::{RemoteSettingsError, Result};
+use crate::error::{Error, Result};
 use crate::{RemoteSettingsServer, UniffiCustomTypeConverter};
 use parking_lot::Mutex;
 use serde::{Deserialize, Serialize};
@@ -35,13 +35,13 @@ impl Client {
             (Some(server), None) => server,
             (None, Some(server_url)) => RemoteSettingsServer::Custom { url: server_url },
             (None, None) => RemoteSettingsServer::Prod,
-            (Some(_), Some(_)) => Err(RemoteSettingsError::ConfigError(
+            (Some(_), Some(_)) => Err(Error::ConfigError(
                 "`RemoteSettingsConfig` takes either `server` or `server_url`, not both".into(),
             ))?,
         };
 
         let bucket_name = config.bucket_name.unwrap_or_else(|| String::from("main"));
-        let base_url = server.url()?;
+        let base_url = server.get_url()?;
 
         Ok(Self {
             base_url,
@@ -84,12 +84,12 @@ impl Client {
         let etag = resp
             .headers
             .get(HEADER_ETAG)
-            .ok_or_else(|| RemoteSettingsError::ResponseError("no etag header".into()))?;
+            .ok_or_else(|| Error::ResponseError("no etag header".into()))?;
         // Per https://docs.kinto-storage.org/en/stable/api/1.x/timestamps.html,
         // the `ETag` header value is a quoted integer. Trim the quotes before
         // parsing.
         let last_modified = etag.trim_matches('"').parse().map_err(|_| {
-            RemoteSettingsError::ResponseError(format!(
+            Error::ResponseError(format!(
                 "expected quoted integer in etag header; got `{}`",
                 etag
             ))
@@ -137,7 +137,7 @@ impl Client {
                     .json::<ServerInfo>()?;
                 let attachments_base_url = match server_info.capabilities.attachments {
                     Some(capability) => Url::parse(&capability.base_url)?,
-                    None => Err(RemoteSettingsError::AttachmentsUnsupportedError)?,
+                    None => Err(Error::AttachmentsUnsupportedError)?,
                 };
                 self.remote_state.lock().attachments_base_url = Some(attachments_base_url.clone());
                 attachments_base_url
@@ -161,7 +161,7 @@ impl Client {
         if resp.is_success() {
             Ok(resp)
         } else {
-            Err(RemoteSettingsError::ResponseError(format!(
+            Err(Error::ResponseError(format!(
                 "status code: {}",
                 resp.status
             )))
@@ -179,7 +179,7 @@ impl Client {
                 *current_state = BackoffState::Ok;
             } else {
                 let remaining = duration - elapsed_time;
-                return Err(RemoteSettingsError::BackoffError(remaining.as_secs()));
+                return Err(Error::BackoffError(remaining.as_secs()));
             }
         }
         Ok(())
@@ -215,7 +215,7 @@ impl Client {
 
 /// Data structure representing the top-level response from the Remote Settings.
 /// [last_modified] will be extracted from the etag header of the response.
-#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize, uniffi::Record)]
 pub struct RemoteSettingsResponse {
     pub records: Vec<RemoteSettingsRecord>,
     pub last_modified: u64,
@@ -228,7 +228,7 @@ struct RecordsResponse {
 
 /// A parsed Remote Settings record. Records can contain arbitrary fields, so clients
 /// are required to further extract expected values from the [fields] member.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, uniffi::Record)]
 pub struct RemoteSettingsRecord {
     pub id: String,
     pub last_modified: u64,
@@ -241,7 +241,7 @@ pub struct RemoteSettingsRecord {
 
 /// Attachment metadata that can be optionally attached to a [Record]. The [location] should
 /// included in calls to [Client::get_attachment].
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq, uniffi::Record)]
 pub struct Attachment {
     pub filename: String,
     pub mimetype: String,
@@ -250,10 +250,14 @@ pub struct Attachment {
     pub size: u64,
 }
 
-// At time of writing, UniFFI cannot rename iOS bindings and JsonObject conflicted with the declaration in Nimbus.
-// This shouldn't really impact Android, since the type is converted into the platform
-// JsonObject thanks to the UniFFI binding.
+// Define a UniFFI custom types to pass JSON objects across the FFI as a string
+//
+// This is named `RsJsonObject` because, UniFFI cannot currently rename iOS bindings and JsonObject
+// conflicted with the declaration in Nimbus. This shouldn't really impact Android, since the type
+// is converted into the platform JsonObject thanks to the UniFFI binding.
 pub type RsJsonObject = serde_json::Map<String, serde_json::Value>;
+uniffi::custom_type!(RsJsonObject, String);
+
 impl UniffiCustomTypeConverter for RsJsonObject {
     type Builtin = String;
     fn into_custom(val: Self::Builtin) -> uniffi::Result<Self> {
@@ -560,7 +564,7 @@ mod test {
         };
         match Client::new(config) {
             Ok(_) => panic!("Wanted config error; got client"),
-            Err(RemoteSettingsError::ConfigError(_)) => {}
+            Err(Error::ConfigError(_)) => {}
             Err(err) => panic!("Wanted config error; got {}", err),
         }
     }
@@ -637,10 +641,7 @@ mod test {
         let resp = client.get_attachment(attachment_location);
         server_info_m.expect(1).assert();
         attachment_m.expect(0).assert();
-        assert!(matches!(
-            resp,
-            Err(RemoteSettingsError::AttachmentsUnsupportedError)
-        ))
+        assert!(matches!(resp, Err(Error::AttachmentsUnsupportedError)))
     }
 
     #[test]
@@ -668,10 +669,7 @@ mod test {
 
         assert!(http_client.get_records().is_ok());
         let second_resp = http_client.get_records();
-        assert!(matches!(
-            second_resp,
-            Err(RemoteSettingsError::BackoffError(_))
-        ));
+        assert!(matches!(second_resp, Err(Error::BackoffError(_))));
         m.expect(1).assert();
     }
 
@@ -697,10 +695,7 @@ mod test {
         let http_client = Client::new(config).unwrap();
         assert!(http_client.get_records().is_err());
         let second_request = http_client.get_records();
-        assert!(matches!(
-            second_request,
-            Err(RemoteSettingsError::BackoffError(_))
-        ));
+        assert!(matches!(second_request, Err(Error::BackoffError(_))));
         m.expect(1).assert();
     }
 
@@ -876,7 +871,7 @@ mod test {
         drop(current_remote_state);
         assert!(matches!(
             http_client.get_records(),
-            Err(RemoteSettingsError::BackoffError(_))
+            Err(Error::BackoffError(_))
         ));
         // Then do the actual test.
         let mut current_remote_state = http_client.remote_state.lock();
@@ -1019,7 +1014,7 @@ mod test {
 
         let err = client.get_records().unwrap_err();
         assert!(
-            matches!(err, RemoteSettingsError::ResponseError(_)),
+            matches!(err, Error::ResponseError(_)),
             "Want response error for missing `ETag`; got {}",
             err
         );
@@ -1051,7 +1046,7 @@ mod test {
 
         let err = client.get_records().unwrap_err();
         assert!(
-            matches!(err, RemoteSettingsError::ResponseError(_)),
+            matches!(err, Error::ResponseError(_)),
             "Want response error for invalid `ETag`; got {}",
             err
         );

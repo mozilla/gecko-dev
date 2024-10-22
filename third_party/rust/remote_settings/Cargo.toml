@@ -17,7 +17,7 @@ authors = [
     "The Android Mobile Team <firefox-android-team@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
 ]
-build = "build.rs"
+build = false
 exclude = [
     "/android",
     "/ios",
@@ -41,12 +41,15 @@ serde_json = "1"
 thiserror = "1.0"
 url = "2.1"
 
+[dependencies.error-support]
+path = "../support/error"
+
 [dependencies.serde]
 version = "1"
 features = ["derive"]
 
 [dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 
 [dependencies.viaduct]
 path = "../viaduct"
@@ -63,5 +66,5 @@ features = ["preserve_order"]
 path = "../support/viaduct-reqwest"
 
 [build-dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 features = ["build"]

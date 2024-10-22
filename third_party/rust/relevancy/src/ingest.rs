@@ -10,7 +10,9 @@ use crate::rs::{
 use crate::url_hash::UrlHash;
 use crate::{Error, Interest, RelevancyDb, Result};
 use base64::{engine::general_purpose::STANDARD, Engine};
-use remote_settings::{Client, RemoteSettingsConfig, RemoteSettingsRecord, RemoteSettingsServer};
+use remote_settings::{
+    RemoteSettings, RemoteSettingsConfig, RemoteSettingsRecord, RemoteSettingsServer,
+};
 
 // Number of rows to write when inserting interest data before checking for interruption
 const WRITE_CHUNK_SIZE: usize = 100;
@@ -33,7 +35,7 @@ pub fn ensure_interest_data_populated(db: &RelevancyDb) -> Result<()> {
 }
 
 fn fetch_interest_data() -> Result<Vec<(Interest, UrlHash)>> {
-    let rs = Client::new(RemoteSettingsConfig {
+    let rs = RemoteSettings::new(RemoteSettingsConfig {
         collection_name: REMOTE_SETTINGS_COLLECTION.to_string(),
         server: Some(RemoteSettingsServer::Prod),
         server_url: None,

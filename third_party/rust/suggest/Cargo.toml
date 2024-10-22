@@ -83,7 +83,7 @@ version = "3.2.0"
 optional = true
 
 [dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 
 [dependencies.url]
 version = "2.1"
@@ -109,7 +109,7 @@ default-features = false
 path = "../support/rc_crypto"
 
 [build-dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 features = ["build"]
 
 [features]

@@ -68,7 +68,7 @@ path = "../../components/sync15"
 features = ["sync-engine"]
 
 [dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 
 [dependencies.url]
 version = "2.1"
@@ -81,9 +81,6 @@ tempfile = "3"
 version = "0.10"
 default-features = false
 
-[dev-dependencies.libsqlite3-sys]
-version = "0.28.0"
-
 [dev-dependencies.serde_json]
 version = "1"
 features = ["preserve_order"]
@@ -91,11 +88,8 @@ features = ["preserve_order"]
 [dev-dependencies.sql-support]
 path = "../support/sql"
 
-[build-dependencies.nss_build_common]
-path = "../support/rc_crypto/nss/nss_build_common"
-
 [build-dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 features = ["build"]
 
 [features]

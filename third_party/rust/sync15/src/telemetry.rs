@@ -782,8 +782,6 @@ impl SyncTelemetryPing {
     }
 }
 
-ffi_support::implement_into_ffi_by_json!(SyncTelemetryPing);
-
 #[cfg(test)]
 mod ping_tests {
     use super::*;

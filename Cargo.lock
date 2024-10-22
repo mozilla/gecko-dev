@@ -1764,7 +1764,7 @@ dependencies = [
 [[package]]
 name = "error-support"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "error-support-macros",
  "lazy_static",
@@ -1776,7 +1776,7 @@ dependencies = [
 [[package]]
 name = "error-support-macros"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3140,7 +3140,7 @@ dependencies = [
 [[package]]
 name = "interrupt-support"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "lazy_static",
  "parking_lot",
@@ -4443,7 +4443,7 @@ dependencies = [
 [[package]]
 name = "nss_build_common"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 
 [[package]]
 name = "nsstring"
@@ -4656,7 +4656,7 @@ checksum = "d01a5bd0424d00070b0098dd17ebca6f961a959dead1dbcbbbc1d1cd8d3deeba"
 [[package]]
 name = "payload-support"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "serde",
  "serde_derive",
@@ -5141,7 +5141,7 @@ checksum = "dbb5fb1acd8a1a18b3dd5be62d25485eb770e05afb408a9627d14d451bae12da"
 [[package]]
 name = "relevancy"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "anyhow",
  "base64 0.21.3",
@@ -5164,8 +5164,9 @@ dependencies = [
 [[package]]
 name = "remote_settings"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
+ "error-support",
  "log",
  "parking_lot",
  "serde",
@@ -5729,9 +5730,8 @@ dependencies = [
 [[package]]
 name = "sql-support"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
- "ffi-support",
  "interrupt-support",
  "lazy_static",
  "log",
@@ -5909,7 +5909,7 @@ checksum = "81cdd64d312baedb58e21336b31bc043b77e01cc99033ce76ef539f78e965ebc"
 [[package]]
 name = "suggest"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "anyhow",
  "chrono",
@@ -5961,7 +5961,7 @@ dependencies = [
 [[package]]
 name = "sync-guid"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "base64 0.21.3",
  "rand",
@@ -5972,11 +5972,10 @@ dependencies = [
 [[package]]
 name = "sync15"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "anyhow",
  "error-support",
- "ffi-support",
  "interrupt-support",
  "lazy_static",
  "log",
@@ -6004,7 +6003,7 @@ dependencies = [
 [[package]]
 name = "tabs"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "anyhow",
  "error-support",
@@ -6328,7 +6327,7 @@ checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 [[package]]
 name = "types"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "rusqlite",
  "serde",
@@ -6417,9 +6416,9 @@ checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
 name = "uniffi"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2db87def739fe4183947f8419d572d1849a4a09355eba4e988a2105cfd0ac6a7"
+checksum = "51ce6280c581045879e11b400bae14686a819df22b97171215d15549efa04ddb"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -6528,9 +6527,9 @@ dependencies = [
 
 [[package]]
 name = "uniffi_bindgen"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a112599c9556d1581e4a3d72019a74c2c3e122cc27f4af12577a429c4d5e614"
+checksum = "5e9f25730c9db2e878521d606f54e921edb719cdd94d735e7f97705d6796d024"
 dependencies = [
  "anyhow",
  "askama",
@@ -6552,9 +6551,9 @@ dependencies = [
 
 [[package]]
 name = "uniffi_build"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2b12684401d2a8508ca9c72a95bbc45906417e42fc80942abaf033bbf01aa33"
+checksum = "88dba57ac699bd8ec53d6a352c8dd0e479b33f698c5659831bb1e4ce468c07bd"
 dependencies = [
  "anyhow",
  "camino",
@@ -6563,9 +6562,9 @@ dependencies = [
 
 [[package]]
 name = "uniffi_checksum_derive"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a22dbe67c1c957ac6e7611bdf605a6218aa86b0eebeb8be58b70ae85ad7d73dc"
+checksum = "d2c801f0f05b06df456a2da4c41b9c2c4fdccc6b9916643c6c67275c4c9e4d07"
 dependencies = [
  "quote",
  "syn",
@@ -6573,13 +6572,12 @@ dependencies = [
 
 [[package]]
 name = "uniffi_core"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a0c35aaad30e3a9e6d4fe34e358d64dbc92ee09045b48591b05fc9f12e0905b"
+checksum = "61049e4db6212d0ede80982adf0e1d6fa224e6118387324c5cfbe3083dfb2252"
 dependencies = [
  "anyhow",
  "bytes",
- "camino",
  "log",
  "once_cell",
  "paste",
@@ -6588,9 +6586,9 @@ dependencies = [
 
 [[package]]
 name = "uniffi_macros"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db66474c5c61b0f7afc3b4995fecf9b72b340daa5ca0ef3da7778d75eb5482ea"
+checksum = "b40fd2249e0c5dcbd2bfa3c263db1ec981f7273dca7f4132bf06a272359a586c"
 dependencies = [
  "bincode",
  "camino",
@@ -6606,9 +6604,9 @@ dependencies = [
 
 [[package]]
 name = "uniffi_meta"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d898893f102e0e39b8bcb7e3d2188f4156ba280db32db9e8af1f122d057e9526"
+checksum = "c9ad57039b4fafdbf77428d74fff40e0908e5a1731e023c19cfe538f6d4a8ed6"
 dependencies = [
  "anyhow",
  "bytes",
@@ -6618,9 +6616,9 @@ dependencies = [
 
 [[package]]
 name = "uniffi_testing"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c6aa4f0cf9d12172d84fc00a35a6c1f3522b526daad05ae739f709f6941b9b6"
+checksum = "21fa171d4d258dc51bbd01893cc9608c1b62273d2f9ea55fb64f639e77824567"
 dependencies = [
  "anyhow",
  "camino",
@@ -6631,9 +6629,9 @@ dependencies = [
 
 [[package]]
 name = "uniffi_udl"
-version = "0.28.1"
+version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b044e9c519e0bb51e516ab6f6d8f4f4dcf900ce30d5ad07c03f924e2824f28e"
+checksum = "f52299e247419e7e2934bef2f94d7cccb0e6566f3248b1d48b160d8f369a2668"
 dependencies = [
  "anyhow",
  "textwrap",
@@ -6704,7 +6702,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 [[package]]
 name = "viaduct"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "ffi-support",
  "log",
@@ -6852,7 +6850,7 @@ dependencies = [
 [[package]]
 name = "webext-storage"
 version = "0.1.0"
-source = "git+https://github.com/mozilla/application-services?rev=b10c1319e74041b2777e07657fc83dc879f841f4#b10c1319e74041b2777e07657fc83dc879f841f4"
+source = "git+https://github.com/mozilla/application-services?rev=a0121f35125bd61ebd10fab969f6cfcc02f94d5a#a0121f35125bd61ebd10fab969f6cfcc02f94d5a"
 dependencies = [
  "anyhow",
  "error-support",
@@ -6860,7 +6858,6 @@ dependencies = [
  "interrupt-support",
  "lazy_static",
  "log",
- "nss_build_common",
  "parking_lot",
  "rusqlite",
  "serde",

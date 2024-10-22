@@ -21,7 +21,7 @@ impl RemoteSettingsBenchmarkClient {
     pub fn new() -> Result<Self> {
         let mut new_benchmark_client = Self::default();
         new_benchmark_client.fetch_data_with_client(
-            remote_settings::Client::new(remote_settings::RemoteSettingsConfig {
+            remote_settings::RemoteSettings::new(remote_settings::RemoteSettingsConfig {
                 server: None,
                 bucket_name: None,
                 collection_name: "quicksuggest".to_owned(),
@@ -30,7 +30,7 @@ impl RemoteSettingsBenchmarkClient {
             rs::Collection::Quicksuggest,
         )?;
         new_benchmark_client.fetch_data_with_client(
-            remote_settings::Client::new(remote_settings::RemoteSettingsConfig {
+            remote_settings::RemoteSettings::new(remote_settings::RemoteSettingsConfig {
                 server: None,
                 bucket_name: None,
                 collection_name: "fakespot-suggest-products".to_owned(),
@@ -43,7 +43,7 @@ impl RemoteSettingsBenchmarkClient {
 
     fn fetch_data_with_client(
         &mut self,
-        client: remote_settings::Client,
+        client: remote_settings::RemoteSettings,
         collection: rs::Collection,
     ) -> Result<()> {
         let response = client.get_records()?;

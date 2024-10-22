@@ -104,16 +104,16 @@ impl GetErrorHandling for Error {
             // Do nothing for interrupted errors, this is just normal operation.
             Self::Interrupted(_) => ErrorHandling::convert(SuggestApiError::Interrupted),
             // Network errors are expected to happen in practice.  Let's log, but not report them.
-            Self::RemoteSettings(RemoteSettingsError::RequestError(
-                viaduct::Error::NetworkError(e),
-            )) => ErrorHandling::convert(SuggestApiError::Network {
-                reason: e.to_string(),
-            })
-            .log_warning(),
+            Self::RemoteSettings(RemoteSettingsError::Network { reason }) => {
+                ErrorHandling::convert(SuggestApiError::Network {
+                    reason: reason.clone(),
+                })
+                .log_warning()
+            }
             // Backoff error shouldn't happen in practice, so let's report them for now.
             // If these do happen in practice and we decide that there is a valid reason for them,
             // then consider switching from reporting to Sentry to counting in Glean.
-            Self::RemoteSettings(RemoteSettingsError::BackoffError(seconds)) => {
+            Self::RemoteSettings(RemoteSettingsError::Backoff { seconds }) => {
                 ErrorHandling::convert(SuggestApiError::Backoff { seconds: *seconds })
                     .report_error("suggest-backoff")
             }

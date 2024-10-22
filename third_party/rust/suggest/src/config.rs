@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::rs::{DownloadedGlobalConfig, DownloadedWeatherData};
+use crate::rs::DownloadedGlobalConfig;
 
 /// Global Suggest configuration data.
 #[derive(Clone, Default, Debug, Deserialize, Serialize, PartialEq, Eq, uniffi::Record)]
@@ -22,15 +22,17 @@ impl From<&DownloadedGlobalConfig> for SuggestGlobalConfig {
 }
 
 /// Per-provider configuration data.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, uniffi::Enum)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, uniffi::Enum)]
 pub enum SuggestProviderConfig {
-    Weather { min_keyword_length: i32 },
-}
-
-impl From<&DownloadedWeatherData> for SuggestProviderConfig {
-    fn from(data: &DownloadedWeatherData) -> Self {
-        Self::Weather {
-            min_keyword_length: data.weather.min_keyword_length,
-        }
-    }
+    Weather {
+        /// Weather suggestion score.
+        score: f64,
+        /// Threshold for weather keyword prefix matching when a weather keyword
+        /// is the first term in a query. Zero means prefix matching is disabled
+        /// and weather keywords must be typed in full when they are first in
+        /// the query. (Ideally this would be an `Option` and `None` would mean
+        /// full keywords are required, but it's probably not worth the breaking
+        /// API change.) This threshold does not apply to city and region names.
+        min_keyword_length: i32,
+    },
 }

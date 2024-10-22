@@ -65,8 +65,8 @@ features = ["derive"]
 path = "../support/sql"
 
 [dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 
 [build-dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 features = ["build"]

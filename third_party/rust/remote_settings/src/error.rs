@@ -2,8 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#[derive(Debug, thiserror::Error)]
+use error_support::{ErrorHandling, GetErrorHandling};
+
+pub type ApiResult<T> = std::result::Result<T, RemoteSettingsError>;
+pub type Result<T> = std::result::Result<T, Error>;
+
+/// Public error class, this is what we return to consumers
+#[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum RemoteSettingsError {
+    /// Network error while making a remote settings request
+    #[error("Remote settings unexpected error: {reason}")]
+    Network { reason: String },
+
+    /// The server has asked the client to backoff.
+    #[error("Server asked the client to back off ({seconds} seconds remaining)")]
+    Backoff { seconds: u64 },
+
+    #[error("Remote settings error: {reason}")]
+    Other { reason: String },
+}
+
+/// Internal error class, this is what we use inside this crate
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
     #[error("JSON Error: {0}")]
     JSONError(#[from] serde_json::Error),
     #[error("Error writing downloaded attachment: {0}")]
@@ -26,4 +47,31 @@ pub enum RemoteSettingsError {
     ConfigError(String),
 }
 
-pub type Result<T, E = RemoteSettingsError> = std::result::Result<T, E>;
+// Define how our internal errors are handled and converted to external errors
+// See `support/error/README.md` for how this works, especially the warning about PII.
+impl GetErrorHandling for Error {
+    type ExternalError = RemoteSettingsError;
+
+    fn get_error_handling(&self) -> ErrorHandling<Self::ExternalError> {
+        match self {
+            // Network errors are expected to happen in practice.  Let's log, but not report them.
+            Self::RequestError(viaduct::Error::NetworkError(e)) => {
+                ErrorHandling::convert(RemoteSettingsError::Network {
+                    reason: e.to_string(),
+                })
+                .log_warning()
+            }
+            // Backoff error shouldn't happen in practice, so let's report them for now.
+            // If these do happen in practice and we decide that there is a valid reason for them,
+            // then consider switching from reporting to Sentry to counting in Glean.
+            Self::BackoffError(seconds) => {
+                ErrorHandling::convert(RemoteSettingsError::Backoff { seconds: *seconds })
+                    .report_error("suggest-backoff")
+            }
+            _ => ErrorHandling::convert(RemoteSettingsError::Other {
+                reason: self.to_string(),
+            })
+            .report_error("logins-unexpected"),
+        }
+    }
+}

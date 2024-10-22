@@ -74,8 +74,8 @@ pub(crate) trait Client {
 /// Implements the [Client] trait using a real remote settings client
 pub struct RemoteSettingsClient {
     // Create a separate client for each collection name
-    quicksuggest_client: remote_settings::Client,
-    fakespot_client: remote_settings::Client,
+    quicksuggest_client: remote_settings::RemoteSettings,
+    fakespot_client: remote_settings::RemoteSettings,
 }
 
 impl RemoteSettingsClient {
@@ -85,7 +85,7 @@ impl RemoteSettingsClient {
         server_url: Option<String>,
     ) -> Result<Self> {
         Ok(Self {
-            quicksuggest_client: remote_settings::Client::new(
+            quicksuggest_client: remote_settings::RemoteSettings::new(
                 remote_settings::RemoteSettingsConfig {
                     server: server.clone(),
                     bucket_name: bucket_name.clone(),
@@ -93,16 +93,18 @@ impl RemoteSettingsClient {
                     server_url: server_url.clone(),
                 },
             )?,
-            fakespot_client: remote_settings::Client::new(remote_settings::RemoteSettingsConfig {
-                server,
-                bucket_name,
-                collection_name: "fakespot-suggest-products".to_owned(),
-                server_url,
-            })?,
+            fakespot_client: remote_settings::RemoteSettings::new(
+                remote_settings::RemoteSettingsConfig {
+                    server,
+                    bucket_name,
+                    collection_name: "fakespot-suggest-products".to_owned(),
+                    server_url,
+                },
+            )?,
         })
     }
 
-    fn client_for_collection(&self, collection: Collection) -> &remote_settings::Client {
+    fn client_for_collection(&self, collection: Collection) -> &remote_settings::RemoteSettings {
         match collection {
             Collection::Fakespot => &self.fakespot_client,
             Collection::Quicksuggest => &self.quicksuggest_client,
@@ -196,7 +198,7 @@ pub(crate) enum SuggestRecord {
     #[serde(rename = "mdn-suggestions")]
     Mdn,
     #[serde(rename = "weather")]
-    Weather(DownloadedWeatherData),
+    Weather,
     #[serde(rename = "configuration")]
     GlobalConfig(DownloadedGlobalConfig),
     #[serde(rename = "amp-mobile-suggestions")]
@@ -205,6 +207,8 @@ pub(crate) enum SuggestRecord {
     Fakespot,
     #[serde(rename = "exposure-suggestions")]
     Exposure(DownloadedExposureRecord),
+    #[serde(rename = "geonames")]
+    Geonames,
 }
 
 /// Enum for the different record types that can be consumed.
@@ -223,6 +227,7 @@ pub enum SuggestRecordType {
     AmpMobile,
     Fakespot,
     Exposure,
+    Geonames,
 }
 
 impl From<&SuggestRecord> for SuggestRecordType {
@@ -233,12 +238,13 @@ impl From<&SuggestRecord> for SuggestRecordType {
             SuggestRecord::Icon => Self::Icon,
             SuggestRecord::Mdn => Self::Mdn,
             SuggestRecord::Pocket => Self::Pocket,
-            SuggestRecord::Weather(_) => Self::Weather,
+            SuggestRecord::Weather => Self::Weather,
             SuggestRecord::Yelp => Self::Yelp,
             SuggestRecord::GlobalConfig(_) => Self::GlobalConfig,
             SuggestRecord::AmpMobile => Self::AmpMobile,
             SuggestRecord::Fakespot => Self::Fakespot,
             SuggestRecord::Exposure(_) => Self::Exposure,
+            SuggestRecord::Geonames => Self::Geonames,
         }
     }
 }
@@ -267,6 +273,7 @@ impl SuggestRecordType {
             Self::AmpMobile,
             Self::Fakespot,
             Self::Exposure,
+            Self::Geonames,
         ]
     }
 
@@ -283,6 +290,7 @@ impl SuggestRecordType {
             Self::AmpMobile => "amp-mobile-suggestions",
             Self::Fakespot => "fakespot-suggestions",
             Self::Exposure => "exposure-suggestions",
+            Self::Geonames => "geonames",
         }
     }
 
@@ -628,21 +636,6 @@ impl FullOrPrefixKeywords<String> {
     }
 }
 
-/// Weather data to ingest from a weather record
-#[derive(Clone, Debug, Deserialize)]
-pub(crate) struct DownloadedWeatherData {
-    pub weather: DownloadedWeatherDataInner,
-}
-#[derive(Clone, Debug, Deserialize)]
-pub(crate) struct DownloadedWeatherDataInner {
-    pub min_keyword_length: i32,
-    pub keywords: Vec<String>,
-    // Remote settings doesn't support floats in record JSON so we use a
-    // stringified float instead. If a float can't be parsed, this will be None.
-    #[serde(default, deserialize_with = "de_stringified_f64")]
-    pub score: Option<f64>,
-}
-
 /// Global Suggest configuration data to ingest from a configuration record
 #[derive(Clone, Debug, Deserialize)]
 pub(crate) struct DownloadedGlobalConfig {
@@ -653,13 +646,6 @@ pub(crate) struct DownloadedGlobalConfigInner {
     /// The maximum number of times the user can click "Show less frequently"
     /// for a suggestion in the UI.
     pub show_less_frequently_cap: i32,
-}
-
-fn de_stringified_f64<'de, D>(deserializer: D) -> std::result::Result<Option<f64>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    String::deserialize(deserializer).map(|s| s.parse().ok())
 }
 
 #[cfg(test)]

@@ -4,4 +4,3 @@ package_name = "mozilla.appservices.sync15"
 [bindings.swift]
 ffi_module_name = "MozillaRustComponents"
 ffi_module_filename = "sync15FFI"
-generate_module_map = false

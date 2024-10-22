@@ -71,7 +71,7 @@ features = ["sync-engine"]
 path = "../support/types"
 
 [dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 
 [dev-dependencies]
 tempfile = "3.1"
@@ -82,5 +82,5 @@ features = ["humantime"]
 default-features = false
 
 [build-dependencies.uniffi]
-version = "0.28.0"
+version = "0.28.2"
 features = ["build"]

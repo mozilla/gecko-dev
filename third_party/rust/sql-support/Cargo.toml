@@ -27,7 +27,6 @@ name = "sql_support"
 path = "src/lib.rs"
 
 [dependencies]
-ffi-support = "0.4"
 lazy_static = "1.4"
 log = "0.4"
 parking_lot = ">=0.11,<=0.12"
