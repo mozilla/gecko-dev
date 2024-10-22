@@ -52,7 +52,6 @@ const TEST_URI = `data:text/html,${encodeURIComponent(`
 
 add_task(async function () {
   await pushPref("layout.css.starting-style-at-rules.enabled", true);
-  await pushPref("devtools.inspector.rule-view.starting-style", true);
   await addTab(TEST_URI);
   const { inspector, view } = await openRuleView();
 

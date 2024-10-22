@@ -60,12 +60,6 @@ loader.lazyGetter(this, "PSEUDO_ELEMENTS", () => {
 loader.lazyGetter(this, "FONT_VARIATIONS_ENABLED", () => {
   return Services.prefs.getBoolPref("layout.css.font-variations.enabled");
 });
-loader.lazyGetter(this, "DISPLAY_STARTING_STYLE_RULES", () => {
-  return Services.prefs.getBoolPref(
-    "devtools.inspector.rule-view.starting-style",
-    false
-  );
-});
 
 const NORMAL_FONT_WEIGHT = 400;
 const BOLD_FONT_WEIGHT = 700;
@@ -844,8 +838,7 @@ class PageStyleActor extends Actor {
    */
   _getElementRules(node, pseudo, inherited, options) {
     // we don't need to retrieve inherited starting style rules
-    const includeStartingStyleRules =
-      !inherited && DISPLAY_STARTING_STYLE_RULES;
+    const includeStartingStyleRules = !inherited;
     const domRules = InspectorUtils.getMatchingCSSRules(
       node,
       pseudo,
