@@ -584,6 +584,25 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN a undo snackbar is displayed WHEN another item is deleted THEN append the item to be deleted`() {
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(BookmarkItem.Folder("Bookmark Folder", "guid0")),
+            bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(listOf("guid0")),
+        )
+
+        val bookmarkToDelete = BookmarkItem.Bookmark(
+            guid = "guid1",
+            title = "title",
+            url = "url",
+            previewImageUrl = "previewImage",
+        )
+
+        val result = bookmarksReducer(state, BookmarksListMenuAction.Bookmark.DeleteClicked(bookmarkToDelete))
+        val expected = BookmarksSnackbarState.UndoDeletion(guidsToDelete = listOf("guid0", "guid1"))
+        assertEquals(expected, result.bookmarksSnackbarState)
+    }
+
+    @Test
     fun `GIVEN a list of a bookmarks WHEN a folder is deleted THEN load the number of nested bookmarks`() {
         val folder = BookmarkItem.Folder("Bookmark Folder", "guid0")
         val state = BookmarksState.default.copy(

@@ -129,6 +129,20 @@ internal sealed class BookmarksSnackbarState {
     data class UndoDeletion(val guidsToDelete: List<String>) : BookmarksSnackbarState()
 }
 
+internal fun BookmarksSnackbarState.addGuidToDelete(guid: String) = when (this) {
+    is BookmarksSnackbarState.UndoDeletion -> BookmarksSnackbarState.UndoDeletion(
+        guidsToDelete = this.guidsToDelete + listOf(guid),
+    )
+    else -> BookmarksSnackbarState.UndoDeletion(guidsToDelete = listOf(guid))
+}
+
+internal fun BookmarksSnackbarState.addGuidsToDelete(guids: List<String>) = when (this) {
+    is BookmarksSnackbarState.UndoDeletion -> BookmarksSnackbarState.UndoDeletion(
+        guidsToDelete = this.guidsToDelete + guids,
+    )
+    else -> BookmarksSnackbarState.UndoDeletion(guidsToDelete = guids)
+}
+
 internal data class BookmarksEditBookmarkState(
     val bookmark: BookmarkItem.Bookmark,
     val folder: BookmarkItem.Folder,

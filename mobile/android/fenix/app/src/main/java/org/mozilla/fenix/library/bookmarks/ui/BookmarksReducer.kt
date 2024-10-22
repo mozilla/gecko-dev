@@ -76,7 +76,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     is SelectFolderAction.ItemClicked -> state.updateSelectedFolder(action.folder)
     EditBookmarkAction.DeleteClicked -> state.copy(
         bookmarksSnackbarState = state.bookmarksEditBookmarkState?.let {
-            BookmarksSnackbarState.UndoDeletion(listOf(it.bookmark.guid))
+            state.bookmarksSnackbarState.addGuidToDelete(it.bookmark.guid)
         } ?: BookmarksSnackbarState.None,
         bookmarksEditBookmarkState = null,
     )
@@ -247,7 +247,9 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
                 )
             } else {
                 copy(
-                    bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(this.selectedItems.map { it.guid }),
+                    bookmarksSnackbarState = bookmarksSnackbarState.addGuidsToDelete(
+                        guids = this.selectedItems.map { it.guid },
+                    ),
                 )
             }
         }
@@ -265,9 +267,7 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
                 }
             } ?: this
         is BookmarksListMenuAction.Bookmark.DeleteClicked -> copy(
-            bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(
-                guidsToDelete = listOf(action.bookmark.guid),
-            ),
+            bookmarksSnackbarState = bookmarksSnackbarState.addGuidToDelete(action.bookmark.guid),
         )
         is BookmarksListMenuAction.Folder.DeleteClicked -> copy(
             bookmarksDeletionDialogState = DeletionDialogState.LoadingCount(listOf(action.folder.guid)),
