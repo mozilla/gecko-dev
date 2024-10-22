@@ -1010,6 +1010,33 @@ async function recordSecurityUITelemetry(category, name, errorInfo) {
   }
   if (category == "securityUiCerterror" && name.startsWith("load")) {
     extraKeys.issued_by_cca = false;
+    extraKeys.hyphen_compat = false;
+    // This issue only applies to certificate domain name mismatch errors where
+    // the first label in the domain name starts or ends with a hyphen.
+    let label = HOST_NAME.substring(0, HOST_NAME.indexOf("."));
+    if (
+      errorCode == "SSL_ERROR_BAD_CERT_DOMAIN" &&
+      (label.startsWith("-") || label.endsWith("-"))
+    ) {
+      try {
+        let subjectAltNames = await getSubjectAltNames(errorInfo);
+        for (let subjectAltName of subjectAltNames) {
+          // If the certificate has a wildcard entry that matches the domain
+          // name (e.g. '*.example.com' matches 'foo-.example.com'), then
+          // this error is probably due to Firefox disallowing hyphens in
+          // domain names when matching wildcard entries.
+          if (
+            subjectAltName.startsWith("*.") &&
+            subjectAltName.substring(1) == HOST_NAME.substring(label.length)
+          ) {
+            extraKeys.hyphen_compat = true;
+            break;
+          }
+        }
+      } catch (e) {
+        console.error("error parsing certificate:", e);
+      }
+    }
     let issuer = errorInfo.certChainStrings.at(-1);
     if (issuer && errorCode == "SEC_ERROR_UNKNOWN_ISSUER") {
       try {

@@ -3103,6 +3103,7 @@ security.ui.certerror:
       has_sts: If the error page is for a site with HSTS headers or with a pinned key.
       channel_status: The status of the failed channel, as an nsresult.
       issued_by_cca: If trusting the CCA India roots would fix this error.
+      hyphen_compat: If the error is due to a domain label starting or ending with a hyphen.
   click:
     objects: [
       "advanced_button",

@@ -40,6 +40,7 @@ async function checkTelemetry(expectedIssuedByCCA) {
       has_sts: "false",
       channel_status: "2153390067",
       issued_by_cca: expectedIssuedByCCA,
+      hyphen_compat: "false",
     },
   ]);
 }
