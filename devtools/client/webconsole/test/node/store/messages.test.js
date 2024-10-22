@@ -289,6 +289,16 @@ describe("Message reducer:", () => {
       expect(Object.keys(repeat).length).toBe(0);
     });
 
+    it("does not increment repeat after adding different Symbols", () => {
+      const { getState } = setupStore([
+        "console.log(Symbol.for('foo'))",
+        "console.log(Symbol.for('bar'))",
+      ]);
+
+      const repeat = getAllRepeatById(getState());
+      expect(Object.keys(repeat).length).toBe(0);
+    });
+
     it("adds a message in response to console.clear()", () => {
       const { dispatch, getState } = setupStore([]);
 

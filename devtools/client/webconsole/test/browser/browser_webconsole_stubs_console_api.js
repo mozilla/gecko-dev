@@ -152,6 +152,8 @@ function getCommands() {
     "console.debug('debug message');",
     "console.info('info message');",
     "console.error('error message');",
+    "console.log(Symbol.for('foo'))",
+    "console.log(Symbol.for('bar'))",
   ];
 
   const consoleApi = consoleApiCommands.map(cmd => ({

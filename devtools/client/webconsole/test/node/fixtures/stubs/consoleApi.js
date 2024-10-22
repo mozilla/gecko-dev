@@ -461,6 +461,44 @@ rawPackets.set(`console.error('error message');`, {
   "isAlreadyExistingResource": false
 });
 
+rawPackets.set(`console.log(Symbol.for('foo'))`, {
+  "arguments": [
+    {
+      "type": "symbol",
+      "actor": "server0.conn0.process7//symbol46",
+      "name": "foo"
+    }
+  ],
+  "columnNumber": 35,
+  "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/test-console-api.html",
+  "level": "log",
+  "lineNumber": 1,
+  "timeStamp": 1572867483805,
+  "sourceId": "server0.conn0.process7//source20",
+  "innerWindowID": 15032385537,
+  "resourceType": "console-message",
+  "isAlreadyExistingResource": false
+});
+
+rawPackets.set(`console.log(Symbol.for('bar'))`, {
+  "arguments": [
+    {
+      "type": "symbol",
+      "actor": "server0.conn0.process7//symbol48",
+      "name": "bar"
+    }
+  ],
+  "columnNumber": 35,
+  "filename": "https://example.com/browser/devtools/client/webconsole/test/browser/test-console-api.html",
+  "level": "log",
+  "lineNumber": 1,
+  "timeStamp": 1572867483805,
+  "sourceId": "server0.conn0.process7//source20",
+  "innerWindowID": 15032385537,
+  "resourceType": "console-message",
+  "isAlreadyExistingResource": false
+});
+
 rawPackets.set(`console.log('mymap')`, {
   "arguments": [
     "mymap",
