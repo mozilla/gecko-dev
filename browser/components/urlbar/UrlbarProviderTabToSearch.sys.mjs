@@ -132,8 +132,7 @@ class ProviderTabToSearch extends UrlbarProvider {
       queryContext.searchString &&
       queryContext.tokens.length == 1 &&
       !queryContext.searchMode &&
-      lazy.UrlbarPrefs.get("suggest.engines") &&
-      !lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")
+      lazy.UrlbarPrefs.get("suggest.engines")
     );
   }
 
