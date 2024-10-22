@@ -85,7 +85,7 @@ addons_manager:
         type: string
       method:
         description: >
-          The method used by the source to install the add-on (included when the source can use more than one, e.g. install events with source "about:addons" may have "install-from-file" or "url" as method), one of "amWebAPI", "drag-and-drop", "installTrigger", "install-from-file", "link", "management-webext-api", "sideload", "synthetic-install", "url", "product-updates". e.g. install events with source "about:addons" may have "install-from-file" or "drag-and-drop" as method), one of "amWebAPI", "drag-and-drop", "installTrigger", "install-from-file", "link", "management-webext-api", "sideload", "synthetic-install", "url", "product-updates", "manager".
+          The method used by the source to install the add-on (included when the source can use more than one, e.g. install events with source "about:addons" may have "install-from-file" or "url" as method), one of "amWebAPI", "drag-and-drop", "installTrigger", "install-from-file", "link", "management-webext-api", "sideload", "onboarding", "synthetic-install", "url", "product-updates". e.g. install events with source "about:addons" may have "install-from-file" or "drag-and-drop" as method), one of "amWebAPI", "drag-and-drop", "installTrigger", "install-from-file", "link", "management-webext-api", "sideload", "synthetic-install", "url", "product-updates", "manager".
         type: string
       num_strings:
         description: >

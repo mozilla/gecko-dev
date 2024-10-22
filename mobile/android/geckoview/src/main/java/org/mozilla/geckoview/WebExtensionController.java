@@ -733,7 +733,11 @@ public class WebExtensionController {
 
   /** The method used by the embedder to install the {@link WebExtension}. */
   @Retention(RetentionPolicy.SOURCE)
-  @StringDef({INSTALLATION_METHOD_MANAGER, INSTALLATION_METHOD_FROM_FILE})
+  @StringDef({
+    INSTALLATION_METHOD_MANAGER,
+    INSTALLATION_METHOD_FROM_FILE,
+    INSTALLATION_METHOD_ONBOARDING
+  })
   public @interface InstallationMethod {};
 
   /** Indicates the {@link WebExtension} was installed using from the embedder's add-ons manager. */
@@ -741,6 +745,9 @@ public class WebExtensionController {
 
   /** Indicates the {@link WebExtension} was installed from a file. */
   public static final String INSTALLATION_METHOD_FROM_FILE = "install-from-file";
+
+  /** Indicates the {@link WebExtension} was installed from the embedder's onboarding feature. */
+  public static final String INSTALLATION_METHOD_ONBOARDING = "onboarding";
 
   /**
    * Set whether an extension should be allowed to run in private browsing or not.

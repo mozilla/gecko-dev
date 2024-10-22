@@ -3726,6 +3726,24 @@ class GeckoEngineTest {
         verify(mockRuntime.settings).setFingerprintingProtectionOverrides("")
     }
 
+    @Test
+    fun `GIVEN an InstallationMethod WHEN calling toGeckoInstallationMethod THEN translate to counterpart WebExtensionController#INSTALLATION_METHOD`() {
+        assertEquals(
+            WebExtensionController.INSTALLATION_METHOD_MANAGER,
+            InstallationMethod.MANAGER.toGeckoInstallationMethod(),
+        )
+
+        assertEquals(
+            WebExtensionController.INSTALLATION_METHOD_FROM_FILE,
+            InstallationMethod.FROM_FILE.toGeckoInstallationMethod(),
+        )
+
+        assertEquals(
+            WebExtensionController.INSTALLATION_METHOD_ONBOARDING,
+            InstallationMethod.ONBOARDING.toGeckoInstallationMethod(),
+        )
+    }
+
     private fun createSocialTrackersLogEntryList(): List<ContentBlockingController.LogEntry> {
         val blockedLogEntry = object : ContentBlockingController.LogEntry() {}
 

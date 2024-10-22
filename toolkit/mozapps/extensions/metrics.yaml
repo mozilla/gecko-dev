@@ -81,7 +81,7 @@ addons_manager:
           install events with source "about:addons" may have
           "install-from-file" or "url" as method), one of: "amWebAPI",
           "drag-and-drop", "installTrigger", "install-from-file",
-          "link", "management-webext-api", "sideload",
+          "link", "management-webext-api", "sideload", "onboarding",
           "synthetic-install", "url", "product-updates".
         type: string
       num_strings:

@@ -2803,6 +2803,7 @@ package org.mozilla.geckoview {
     method @AnyThread @NonNull public GeckoResult<WebExtension> update(@NonNull WebExtension);
     field public static final String INSTALLATION_METHOD_FROM_FILE = "install-from-file";
     field public static final String INSTALLATION_METHOD_MANAGER = "manager";
+    field public static final String INSTALLATION_METHOD_ONBOARDING = "onboarding";
   }
 
   public static interface WebExtensionController.AddonManagerDelegate {

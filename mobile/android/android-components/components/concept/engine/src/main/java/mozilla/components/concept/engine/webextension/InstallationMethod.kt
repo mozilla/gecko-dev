@@ -17,4 +17,9 @@ enum class InstallationMethod {
      * Indicates the [WebExtension] was installed from a file.
      */
     FROM_FILE,
+
+    /**
+     * Indicates the [WebExtension] was installed from an onboarding feature.
+     */
+    ONBOARDING,
 }
