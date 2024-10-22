@@ -578,7 +578,6 @@ const NIMBUS_DEFAULTS = {
   quickSuggestRemoteSettingsDataType: "data",
   quickSuggestScoreMap: null,
   recordNavigationalSuggestionTelemetry: false,
-  weatherKeywords: null,
   weatherKeywordsMinimumLength: 0,
   weatherKeywordsMinimumLengthCap: 0,
   weatherSimpleUI: false,

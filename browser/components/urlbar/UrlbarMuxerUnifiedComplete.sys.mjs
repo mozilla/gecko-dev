@@ -21,7 +21,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
   UrlbarProviderTabToSearch:
     "resource:///modules/UrlbarProviderTabToSearch.sys.mjs",
-  UrlbarProviderWeather: "resource:///modules/UrlbarProviderWeather.sys.mjs",
   UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.sys.mjs",
 });
 
@@ -698,10 +697,7 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
         return true;
       }
 
-      if (
-        state.weatherResult ||
-        (state.quickSuggestResult && state.quickSuggestResult != result)
-      ) {
+      if (state.quickSuggestResult && state.quickSuggestResult != result) {
         // A Suggest result was already added.
         return false;
       }
@@ -1190,10 +1186,6 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
 
     if (result.providerName == lazy.UrlbarProviderQuickSuggest.name) {
       state.quickSuggestResult ??= result;
-    }
-
-    if (result.providerName == lazy.UrlbarProviderWeather.name) {
-      state.weatherResult = result;
     }
 
     state.hasUnitConversionResult =

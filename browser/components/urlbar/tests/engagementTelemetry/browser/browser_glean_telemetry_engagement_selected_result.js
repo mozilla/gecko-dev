@@ -534,9 +534,7 @@ add_task(async function selected_result_weather() {
   const cleanupQuickSuggest = await ensureQuickSuggestInit();
   await MerinoTestUtils.initWeather();
 
-  let provider = UrlbarPrefs.get("quickSuggestRustEnabled")
-    ? "UrlbarProviderQuickSuggest"
-    : "Weather";
+  let provider = "UrlbarProviderQuickSuggest";
   await doTest(async () => {
     await openPopup(MerinoTestUtils.WEATHER_KEYWORD);
     await selectRowByProvider(provider);

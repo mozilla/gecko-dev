@@ -22,7 +22,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UrlbarProviderRecentSearches:
     "resource:///modules/UrlbarProviderRecentSearches.sys.mjs",
   UrlbarProviderTopSites: "resource:///modules/UrlbarProviderTopSites.sys.mjs",
-  UrlbarProviderWeather: "resource:///modules/UrlbarProviderWeather.sys.mjs",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarSearchOneOffs: "resource:///modules/UrlbarSearchOneOffs.sys.mjs",
@@ -2382,10 +2381,7 @@ export class UrlbarView {
       }
     }
 
-    if (
-      row.result.isBestMatch ||
-      row.result.providerName == lazy.UrlbarProviderWeather.name
-    ) {
+    if (row.result.isBestMatch) {
       return { id: "urlbar-group-best-match" };
     }
 

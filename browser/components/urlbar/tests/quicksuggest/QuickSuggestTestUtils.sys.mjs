@@ -811,8 +811,7 @@ class _QuickSuggestTestUtils {
         result.payload.telemetryType = telemetryType || "weather";
       }
     } else {
-      result.payload.source = source || "merino";
-      result.payload.provider = provider || "accuweather";
+      throw new Error("Weather result not supported when Rust disabled");
     }
 
     return result;

@@ -538,21 +538,7 @@ urlbar:
       fallbackPref: browser.urlbar.weather.featureGate
       description: >-
         Feature gate that controls whether all aspects of the weather suggestion
-        feature are exposed to the user. See also `weatherKeywords` and
-        `weatherKeywordsMinimumLength`. In summary: To enable the weather
-        suggestion, set `weatherFeatureGate` to true, `weatherKeywords` to an
-        array of full keyword strings, and `weatherKeywordsMinimumLength` to a
-        non-zero integer. To disable the weather suggestion, leave out all
-        weather-related variables.
-    weatherKeywords:
-      type: json
-      description: >-
-        An array of full keyword strings that will trigger the weather
-        suggestion when the user types them in the address bar. If absent or
-        null, Firefox will fall back to the weather keywords defined in remote
-        settings. If neither Nimbus nor remote settings defines any keywords,
-        the weather suggestion will be disabled. See also
-        `weatherKeywordsMinimumLength`.
+        feature are exposed to the user.
     weatherKeywordsMinimumLength:
       type: int
       description: >-
@@ -561,8 +547,7 @@ urlbar:
         `weatherKeywordsMinimumLength` characters long. If this variable is
         absent or zero, Firefox will fall back to the minimum length defined in
         remote settings. If neither Nimbus nor remote settings defines a minimum
-        length, only full keywords will trigger the suggestion. See also
-        `weatherKeywords`.
+        length, only full keywords will trigger the suggestion.
     weatherKeywordsMinimumLengthCap:
       type: int
       description: >-

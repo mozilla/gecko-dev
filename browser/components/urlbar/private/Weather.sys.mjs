@@ -141,11 +141,6 @@ export class Weather extends BaseFeature {
   }
 
   get shouldEnable() {
-    // The feature itself is enabled by setting these prefs regardless of
-    // whether any config is defined. This is necessary to allow the feature to
-    // sync the config from remote settings and Nimbus. Suggestion fetches will
-    // not start until the config has been either synced from remote settings or
-    // set by Nimbus.
     return (
       lazy.UrlbarPrefs.get("weatherFeatureGate") &&
       lazy.UrlbarPrefs.get("suggest.weather")
@@ -160,26 +155,8 @@ export class Weather extends BaseFeature {
     return ["Weather"];
   }
 
-  isRustSuggestionTypeEnabled() {
-    // When weather keywords are defined in Nimbus, weather suggestions are
-    // served by UrlbarProviderWeather. Return false here so the quick suggest
-    // provider doesn't try to serve them too.
-    return !lazy.UrlbarPrefs.get("weatherKeywords");
-  }
-
   getSuggestionTelemetryType() {
     return "weather";
-  }
-
-  /**
-   * @returns {Set}
-   *   The set of keywords that should trigger the weather suggestion. This will
-   *   be null when the Rust backend is enabled and keywords are not defined by
-   *   Nimbus because in that case Rust manages the keywords. Otherwise, it will
-   *   also be null when no config is defined.
-   */
-  get keywords() {
-    return this.#keywords;
   }
 
   /**
@@ -233,27 +210,9 @@ export class Weather extends BaseFeature {
     return !maxKeywordLength || this.minKeywordLength < maxKeywordLength;
   }
 
-  update() {
-    let wasEnabled = this.isEnabled;
-    super.update();
-
-    // This method is called by `QuickSuggest` in a
-    // `NimbusFeatures.urlbar.onUpdate()` callback, when a change occurs to a
-    // Nimbus variable or to a pref that's a fallback for a Nimbus variable. A
-    // config-related variable or pref may have changed, so update keywords, but
-    // only if the feature was already enabled because if it wasn't,
-    // `enable(true)` was just called, which calls `#init()`, which calls
-    // `#updateKeywords()`.
-    if (wasEnabled && this.isEnabled) {
-      this.#updateKeywords();
-    }
-  }
-
   enable(enabled) {
-    if (enabled) {
-      this.#init();
-    } else {
-      this.#uninit();
+    if (!enabled) {
+      this.#merino = null;
     }
   }
 
@@ -270,20 +229,6 @@ export class Weather extends BaseFeature {
         this.minKeywordLength + 1
       );
     }
-  }
-
-  async onRemoteSettingsSync(rs) {
-    this.logger.debug("Loading weather config from remote settings");
-    let records = await rs.get({ filters: { type: "weather" } });
-    if (!this.isEnabled) {
-      return;
-    }
-
-    this.logger.debug("Got weather records: " + JSON.stringify(records));
-    this.#rsConfig = lazy.UrlbarUtils.copySnakeKeysToCamel(
-      records?.[0]?.weather || {}
-    );
-    this.#updateKeywords();
   }
 
   async makeResult(queryContext, _suggestion, searchString) {
@@ -510,78 +455,8 @@ export class Weather extends BaseFeature {
     let { rustBackend } = lazy.QuickSuggest;
     let config = rustBackend.isEnabled
       ? rustBackend.getConfigForSuggestionType(this.rustSuggestionTypes[0])
-      : this.#rsConfig;
+      : null;
     return config || {};
-  }
-
-  #init() {
-    // On feature init, we only update keywords and listen for changes that
-    // affect keywords.
-    this.#updateKeywords();
-    lazy.UrlbarPrefs.addObserver(this);
-    lazy.QuickSuggest.jsBackend.register(this);
-  }
-
-  #uninit() {
-    lazy.QuickSuggest.jsBackend.unregister(this);
-    lazy.UrlbarPrefs.removeObserver(this);
-    this.#keywords = null;
-    this.#merino = null;
-  }
-
-  #updateKeywords() {
-    this.logger.debug("Starting keywords update");
-
-    let nimbusKeywords = lazy.UrlbarPrefs.get("weatherKeywords");
-
-    // If the Rust backend is enabled and weather keywords aren't defined in
-    // Nimbus, Rust will manage the keywords.
-    if (lazy.UrlbarPrefs.get("quickSuggestRustEnabled") && !nimbusKeywords) {
-      this.logger.debug(
-        "Rust enabled, no keywords in Nimbus, deferring to Rust"
-      );
-      this.#keywords = null;
-      return;
-    }
-
-    // If the JS backend is enabled but no keywords are defined, we can't
-    // possibly serve a weather suggestion.
-    if (
-      !lazy.UrlbarPrefs.get("quickSuggestRustEnabled") &&
-      !this.#config.keywords &&
-      !nimbusKeywords
-    ) {
-      this.logger.debug("Rust disabled, no keywords in RS or Nimbus");
-      this.#keywords = null;
-      return;
-    }
-
-    // At this point, keywords exist and this feature will manage them.
-    let fullKeywords = nimbusKeywords || this.#config.keywords;
-    let minLength = this.minKeywordLength;
-    this.logger.debug(
-      "Updating keywords: " + JSON.stringify({ fullKeywords, minLength })
-    );
-
-    if (!minLength) {
-      this.logger.debug("Min length is undefined or zero, using full keywords");
-      this.#keywords = new Set(fullKeywords);
-    } else {
-      // Create keywords that are prefixes of the full keywords starting at the
-      // specified minimum length.
-      this.#keywords = new Set();
-      for (let full of fullKeywords) {
-        for (let i = minLength; i <= full.length; i++) {
-          this.#keywords.add(full.substring(0, i));
-        }
-      }
-    }
-  }
-
-  onPrefChanged(pref) {
-    if (pref == "weather.minKeywordLength") {
-      this.#updateKeywords();
-    }
   }
 
   get _test_merino() {
@@ -593,8 +468,6 @@ export class Weather extends BaseFeature {
   }
 
   #fetchInstance = null;
-  #keywords = null;
   #merino = null;
-  #rsConfig = null;
   #timeoutMs = MERINO_TIMEOUT_MS;
 }

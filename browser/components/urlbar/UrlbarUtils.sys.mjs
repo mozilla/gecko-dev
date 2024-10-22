@@ -1320,8 +1320,6 @@ export var UrlbarUtils = {
         if (result.providerName == "TabToSearch") {
           // This is the onboarding result.
           return "tabtosearch";
-        } else if (result.providerName == "Weather") {
-          return "weather";
         }
         return "dynamic";
       case UrlbarUtils.RESULT_TYPE.RESTRICT:
@@ -1506,8 +1504,6 @@ export var UrlbarUtils = {
             return this._getQuickSuggestTelemetryType(result);
           case "UrlbarProviderQuickSuggestContextualOptIn":
             return "fxsuggest_data_sharing_opt_in";
-          case "Weather":
-            return "weather";
           case "UrlbarProviderGlobalActions":
             return "action";
         }
@@ -1617,7 +1613,7 @@ export var UrlbarUtils = {
   _getQuickSuggestTelemetryType(result) {
     if (result.payload.telemetryType == "weather") {
       // Return "weather" without the usual source prefix for consistency with
-      // the weather result returned by UrlbarProviderWeather.
+      // past reporting of weather suggestions.
       return "weather";
     }
     let source = result.payload.source;
