@@ -61,7 +61,7 @@ private const val MINIMUM_SCREEN_HEIGHT_FOR_IMAGE = 640
  * @param pageState The page content that's displayed.
  */
 @Composable
-fun AddOnsOnboardingPage(pageState: OnboardingAddOnsPageState) {
+fun AddOnsOnboardingPage(pageState: OnboardingPageState) {
     // Base
     Column(
         modifier = Modifier
@@ -79,7 +79,7 @@ fun AddOnsOnboardingPage(pageState: OnboardingAddOnsPageState) {
 
                 Spacer(Modifier.height(16.dp))
 
-                AddOns(addOnsUiData)
+                addOns?.let { AddOns(it) }
 
                 Spacer(Modifier.height(5.dp))
 
@@ -127,7 +127,8 @@ private fun MoreExtensionsLink() {
 
 @Composable
 private fun Header(@DrawableRes imageRes: Int, title: String, description: String) {
-    val showHeaderImage = LocalConfiguration.current.screenHeightDp > MINIMUM_SCREEN_HEIGHT_FOR_IMAGE
+    val showHeaderImage =
+        LocalConfiguration.current.screenHeightDp > MINIMUM_SCREEN_HEIGHT_FOR_IMAGE
 
     if (showHeaderImage) {
         HeaderImage(imageRes)
@@ -186,7 +187,7 @@ private fun AddOnItem(addOnUiData: OnboardingAddOn) {
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.Start,
-            ) { AddOnDetails(name, description, averageRating, numberOfReviews) }
+            ) { AddOnDetails(name, description, averageRating, reviewCount) }
         }
 
         Spacer(Modifier.width(16.dp))
@@ -204,7 +205,7 @@ private fun AddOnDetails(
     name: String,
     description: String,
     averageRating: String,
-    numberOfReviews: String,
+    reviewCount: String,
 ) {
     Text(
         color = FirefoxTheme.colors.textSecondary,
@@ -222,7 +223,7 @@ private fun AddOnDetails(
 
     Spacer(Modifier.height(8.dp))
 
-    RatingAndReviewRow(averageRating, numberOfReviews)
+    RatingAndReviewRow(averageRating, reviewCount)
 }
 
 @Composable
@@ -256,19 +257,20 @@ private fun AddAddOnButton() {
 }
 
 @Composable
-private fun RatingAndReviewRow(rating: String, numberOfReviews: String) {
+private fun RatingAndReviewRow(rating: String, reviewCount: String) {
     Row {
         AverageRatingRow(rating)
 
         Spacer(Modifier.width(8.dp))
 
-        ReviewCountRow(numberOfReviews)
+        ReviewCountRow(reviewCount)
     }
 }
 
 @Composable
 private fun AverageRatingRow(rating: String) {
-    val ratingContentDescription = stringResource(R.string.onboarding_add_on_star_rating_content_description)
+    val ratingContentDescription =
+        stringResource(R.string.onboarding_add_on_star_rating_content_description)
     Row(
         Modifier
             .wrapContentWidth()
@@ -303,13 +305,13 @@ private fun AverageRatingRow(rating: String) {
 }
 
 @Composable
-private fun ReviewCountRow(numberOfReviews: String) {
+private fun ReviewCountRow(reviewCount: String) {
     Row(Modifier.wrapContentWidth()) {
         Text(
             color = FirefoxTheme.colors.textSecondary,
             style = FirefoxTheme.typography.caption,
             maxLines = 1,
-            text = stringResource(R.string.onboarding_add_on_reviews_label, numberOfReviews),
+            text = stringResource(R.string.onboarding_add_on_reviews_label, reviewCount),
         )
     }
 }
@@ -321,7 +323,7 @@ private fun ReviewCountRow(numberOfReviews: String) {
 private fun OnboardingPagePreview() {
     FirefoxTheme {
         AddOnsOnboardingPage(
-            pageState = OnboardingAddOnsPageState(
+            pageState = OnboardingPageState(
                 imageRes = R.drawable.ic_onboarding_add_ons,
                 title = stringResource(id = R.string.onboarding_add_on_header),
                 description = stringResource(id = R.string.onboarding_add_on_sub_header),
@@ -331,7 +333,7 @@ private fun OnboardingPagePreview() {
                     ),
                     onClick = {},
                 ),
-                addOnsUiData = with(LocalContext.current) {
+                addOns = with(LocalContext.current) {
                     listOf(
                         addOnItemUblock(this),
                         addOnItemPrivacyBadger(this),

@@ -10,12 +10,13 @@ import org.mozilla.fenix.compose.LinkTextState
 /**
  * Model containing data for [OnboardingPage].
  *
- * @property imageRes [DrawableRes] displayed on the page.
- * @property title [String] title of the page.
- * @property description [String] description of the page.
- * @property privacyCaption privacy caption to show and allow user to view on privacy policy.
- * @property primaryButton [Action] action for the primary button.
- * @property secondaryButton [Action] action for the secondary button.
+ * @property imageRes The main image to be displayed on the page.
+ * @property title Title of the page.
+ * @property description Description of the page.
+ * @property privacyCaption Optional privacy caption to show and allow user to view the privacy policy.
+ * @property primaryButton [Action] for the primary button.
+ * @property secondaryButton Optional [Action] for the secondary button.
+ * @property addOns Optional list of add-ons to install during onboarding.
  * @property onRecordImpressionEvent Callback for recording impression event.
  */
 data class OnboardingPageState(
@@ -25,25 +26,7 @@ data class OnboardingPageState(
     val privacyCaption: Caption? = null,
     val primaryButton: Action,
     val secondaryButton: Action? = null,
-    val onRecordImpressionEvent: () -> Unit = {},
-)
-
-/**
- * Model containing data for [AddOnsOnboardingPage].
- *
- * @property imageRes Image resource for the main image to be displayed on the page.
- * @property title Title of the page.
- * @property description Description of the page.
- * @property primaryButton [Action] for the primary button.
- * @property addOnsUiData List of add-ons to install during onboarding.
- * @property onRecordImpressionEvent Callback for recording impression event.
- */
-data class OnboardingAddOnsPageState(
-    @DrawableRes val imageRes: Int,
-    val title: String,
-    val description: String,
-    val primaryButton: Action,
-    val addOnsUiData: List<OnboardingAddOn>,
+    val addOns: List<OnboardingAddOn>? = null,
     val onRecordImpressionEvent: () -> Unit = {},
 )
 
@@ -71,5 +54,5 @@ data class OnboardingAddOn(
     val name: String,
     val description: String,
     val averageRating: String,
-    val numberOfReviews: String,
+    val reviewCount: String,
 )

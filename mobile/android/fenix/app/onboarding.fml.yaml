@@ -99,7 +99,7 @@ objects:
       secondary-button-label:
         type: Text
         description: The text to display on the secondary button.
-        # This should never be defaulted.
+        # This can be defaulted if the card type does not required it.
         default: ""
       prerequisites:
         type: List<ConditionName>

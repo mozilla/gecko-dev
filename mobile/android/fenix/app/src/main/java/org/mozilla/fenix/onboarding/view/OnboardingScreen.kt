@@ -57,6 +57,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param onSkipNotificationClick Invoked when negative button on notification page is clicked.
  * @param onAddFirefoxWidgetClick Invoked when positive button on add search widget page is clicked.
  * @param onSkipFirefoxWidgetClick Invoked when negative button on add search widget page is clicked.
+ * @param onAddOnsButtonClick Invoked when the primary button on add-ons page is clicked.
  * @param onFinish Invoked when the onboarding is completed.
  * @param onImpression Invoked when a page in the pager is displayed.
  */
@@ -72,6 +73,7 @@ fun OnboardingScreen(
     onSkipNotificationClick: () -> Unit,
     onAddFirefoxWidgetClick: () -> Unit,
     onSkipFirefoxWidgetClick: () -> Unit,
+    onAddOnsButtonClick: () -> Unit,
     onFinish: (pageType: OnboardingPageUiData) -> Unit,
     onImpression: (pageType: OnboardingPageUiData) -> Unit,
 ) {
@@ -151,6 +153,10 @@ fun OnboardingScreen(
             scrollToNextPageOrDismiss()
             onSkipFirefoxWidgetClick()
         },
+        onAddOnsButtonClick = {
+            scrollToNextPageOrDismiss()
+            onAddOnsButtonClick()
+        },
     )
 }
 
@@ -167,6 +173,7 @@ private fun OnboardingContent(
     onNotificationPermissionSkipClick: () -> Unit,
     onAddFirefoxWidgetClick: () -> Unit,
     onSkipFirefoxWidgetClick: () -> Unit,
+    onAddOnsButtonClick: () -> Unit,
 ) {
     val nestedScrollConnection = remember { DisableForwardSwipeNestedScrollConnection(pagerState) }
 
@@ -194,8 +201,9 @@ private fun OnboardingContent(
                 onNotificationPermissionSkipClick = onNotificationPermissionSkipClick,
                 onAddFirefoxWidgetClick = onAddFirefoxWidgetClick,
                 onAddFirefoxWidgetSkipClick = onSkipFirefoxWidgetClick,
+                onAddOnsButtonClick = onAddOnsButtonClick,
             )
-            OnboardingPage(pageState = onboardingPageState)
+            OnboardingPageForType(pageUiState.type, onboardingPageState)
         }
 
         PagerIndicator(
@@ -207,6 +215,19 @@ private fun OnboardingContent(
                 .align(Alignment.CenterHorizontally)
                 .padding(bottom = 16.dp),
         )
+    }
+}
+
+@Composable
+private fun OnboardingPageForType(type: OnboardingPageUiData.Type, state: OnboardingPageState) {
+    when (type) {
+        OnboardingPageUiData.Type.DEFAULT_BROWSER,
+        OnboardingPageUiData.Type.SYNC_SIGN_IN,
+        OnboardingPageUiData.Type.ADD_SEARCH_WIDGET,
+        OnboardingPageUiData.Type.NOTIFICATION_PERMISSION,
+        -> OnboardingPage(state)
+
+        OnboardingPageUiData.Type.ADD_ONS -> AddOnsOnboardingPage(state)
     }
 }
 
@@ -249,6 +270,7 @@ private fun OnboardingScreenPreview() {
             onNotificationPermissionSkipClick = {},
             onAddFirefoxWidgetClick = {},
             onSkipFirefoxWidgetClick = {},
+            onAddOnsButtonClick = {},
         )
     }
 }

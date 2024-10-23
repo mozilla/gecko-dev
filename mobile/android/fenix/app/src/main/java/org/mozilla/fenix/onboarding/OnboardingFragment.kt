@@ -178,6 +178,10 @@ class OnboardingFragment : Fragment() {
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.ADD_SEARCH_WIDGET),
                 )
             },
+            onAddOnsButtonClick = {
+                // Todo as part of https://bugzilla.mozilla.org/show_bug.cgi?id=1926296
+                throw NotImplementedError()
+            },
             onFinish = {
                 onFinish(it)
                 disableNavBarCFRForNewUser()

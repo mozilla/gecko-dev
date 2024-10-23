@@ -16,8 +16,9 @@ data class OnboardingPageUiData(
     val title: String,
     val description: String,
     val primaryButtonLabel: String,
-    val secondaryButtonLabel: String,
-    val privacyCaption: Caption?,
+    val secondaryButtonLabel: String? = null,
+    val privacyCaption: Caption? = null,
+    val addOns: List<OnboardingAddOn>? = null,
 ) {
     /**
      * Model for different types of Onboarding Pages.

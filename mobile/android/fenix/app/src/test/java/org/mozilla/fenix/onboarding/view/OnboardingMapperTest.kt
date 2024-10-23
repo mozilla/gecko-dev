@@ -39,6 +39,7 @@ class OnboardingMapperTest {
             onNotificationPermissionSkipClick = {},
             onAddFirefoxWidgetClick = {},
             onAddFirefoxWidgetSkipClick = {},
+            onAddOnsButtonClick = {},
         )
 
         assertEquals(expected, actual)
@@ -73,6 +74,7 @@ class OnboardingMapperTest {
             onNotificationPermissionSkipClick = {},
             onAddFirefoxWidgetClick = {},
             onAddFirefoxWidgetSkipClick = {},
+            onAddOnsButtonClick = {},
         )
 
         assertEquals(expected, actual)
@@ -107,6 +109,7 @@ class OnboardingMapperTest {
             onNotificationPermissionSkipClick = unitLambda,
             onAddFirefoxWidgetClick = {},
             onAddFirefoxWidgetSkipClick = {},
+            onAddOnsButtonClick = {},
         )
 
         assertEquals(expected, actual)
@@ -141,6 +144,65 @@ class OnboardingMapperTest {
             onNotificationPermissionSkipClick = {},
             onAddFirefoxWidgetClick = unitLambda,
             onAddFirefoxWidgetSkipClick = unitLambda,
+            onAddOnsButtonClick = {},
+        )
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `GIVEN an add-ons page WHEN mapToOnboardingPageState is called THEN creates the expected OnboardingPageState`() {
+        val addOns = listOf(
+            OnboardingAddOn(
+                R.drawable.ic_extensions_onboarding,
+                "test add-on 1",
+                "test 1 add-on description",
+                "5",
+                "12,345",
+            ),
+            OnboardingAddOn(
+                R.drawable.ic_extensions_onboarding,
+                "test add-on 2",
+                "test 2 add-on description",
+                "4.5",
+                "1,234",
+            ),
+            OnboardingAddOn(
+                R.drawable.ic_extensions_onboarding,
+                "test add-on 3",
+                "test 3 add-on description",
+                "4",
+                "123",
+            ),
+        )
+        val expected = OnboardingPageState(
+            imageRes = R.drawable.ic_onboarding_add_ons,
+            title = "add-ons title",
+            description = "add-ons body",
+            primaryButton = Action("add-ons primary button text", unitLambda),
+            addOns = addOns,
+        )
+
+        val onboardingPageUiData = OnboardingPageUiData(
+            type = OnboardingPageUiData.Type.ADD_ONS,
+            imageRes = R.drawable.ic_onboarding_add_ons,
+            title = "add-ons title",
+            description = "add-ons body",
+            primaryButtonLabel = "add-ons primary button text",
+            addOns = addOns,
+        )
+
+        val actual = mapToOnboardingPageState(
+            onboardingPageUiData = onboardingPageUiData,
+            onMakeFirefoxDefaultClick = {},
+            onMakeFirefoxDefaultSkipClick = {},
+            onSignInButtonClick = {},
+            onSignInSkipClick = {},
+            onNotificationPermissionButtonClick = {},
+            onNotificationPermissionSkipClick = {},
+            onAddFirefoxWidgetClick = {},
+            onAddFirefoxWidgetSkipClick = {},
+            onAddOnsButtonClick = unitLambda,
         )
 
         assertEquals(expected, actual)
@@ -150,7 +212,3 @@ class OnboardingMapperTest {
 private val unitLambda = { dummyUnitFunc() }
 
 private fun dummyUnitFunc() {}
-
-private fun dummyStringArgFunc(string: String) {
-    print(string)
-}
