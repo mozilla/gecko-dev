@@ -2276,7 +2276,6 @@ class PrepareDatastoreOp
   uint64_t mDatastoreId;
   NestedState mNestedState;
   const bool mForPreload;
-  const bool mEnableMigration;
   bool mDatabaseNotAvailable;
   // Set when the Datastore has been registered with gPrivateDatastores so that
   // it can be unregistered if an error is encountered in PrepareDatastoreOp.
@@ -6564,9 +6563,6 @@ PrepareDatastoreOp::PrepareDatastoreOp(
       mNestedState(NestedState::BeforeNesting),
       mForPreload(aParams.type() ==
                   LSRequestParams::TLSRequestPreloadDatastoreParams),
-      mEnableMigration(
-          StaticPrefs::
-              dom_storage_enable_migration_from_unsupported_legacy_implementation()),
       mDatabaseNotAvailable(false),
       mInvalidated(false)
 #ifdef DEBUG
@@ -6802,10 +6798,10 @@ nsresult PrepareDatastoreOp::OpenDirectory() {
   mNestedState = NestedState::DirectoryOpenPending;
 
   quotaManager
-      ->OpenClientDirectory(
-          {mOriginMetadata, mozilla::dom::quota::Client::LS},
-          /* aInitializeOrigin */ !mForPreload || mEnableMigration,
-          /* aCreateIfNonExistent */ false, SomeRef(mPendingDirectoryLock))
+      ->OpenClientDirectory({mOriginMetadata, mozilla::dom::quota::Client::LS},
+                            /* aInitializeOrigin */ true,
+                            /* aCreateIfNonExistent */ false,
+                            SomeRef(mPendingDirectoryLock))
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [self = RefPtr(this)](
@@ -7001,7 +6997,9 @@ nsresult PrepareDatastoreOp::DatabaseWork() {
     }
 
     bool hasDataForMigration =
-        mEnableMigration && mArchivedOriginScope->HasMatches(gArchivedOrigins);
+        StaticPrefs::
+            dom_storage_enable_migration_from_unsupported_legacy_implementation() &&
+        mArchivedOriginScope->HasMatches(gArchivedOrigins);
 
     // If there's nothing to preload (except the case when we want to migrate
     // data during preloading), then we can finish the operation without
