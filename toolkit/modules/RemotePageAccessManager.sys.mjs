@@ -176,12 +176,14 @@ export let RemotePageAccessManager = {
       RPMSendAsyncMessage: ["Profiles:CancelDelete", "Profiles:DeleteProfile"],
     },
     "about:editprofile": {
-      RPMSendQuery: ["Profiles:GetEditProfileContent"],
+      RPMSendQuery: [
+        "Profiles:GetEditProfileContent",
+        "Profiles:UpdateProfileTheme",
+      ],
       RPMSendAsyncMessage: [
         "Profiles:UpdateProfileName",
         "Profiles:UpdateProfileAvatar",
         "Profiles:OpenDeletePage",
-        "Profiles:UpdateProfileTheme",
       ],
     },
     "about:protections": {

@@ -221,8 +221,11 @@ export class ProfilesParent extends JSWindowActorParent {
       }
       case "Profiles:UpdateProfileTheme": {
         let themeId = message.data;
-        this.enableTheme(themeId);
-        break;
+        await this.enableTheme(themeId);
+        // The enable theme promise resolves after the
+        // "lightweight-theme-styling-update" observer so we know the profile
+        // theme is up to date at this point.
+        return SelectableProfileService.currentProfile.theme;
       }
     }
     return null;

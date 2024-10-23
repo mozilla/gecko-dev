@@ -101,8 +101,17 @@ export class EditProfileCard extends MozLitElement {
     RPMSendAsyncMessage("Profiles:UpdateProfileName", this.profile);
   }
 
-  updateTheme(newThemeId) {
-    RPMSendAsyncMessage("Profiles:UpdateProfileTheme", newThemeId);
+  async updateTheme(newThemeId) {
+    if (newThemeId === this.profile.themeL10nId) {
+      return;
+    }
+
+    let theme = await RPMSendQuery("Profiles:UpdateProfileTheme", newThemeId);
+    this.profile.themeL10nId = theme.themeL10nId;
+    this.profile.themeFg = theme.themeFg;
+    this.profile.themeBg = theme.themeBg;
+
+    this.requestUpdate();
   }
 
   async updateAvatar(newAvatar) {

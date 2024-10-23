@@ -120,6 +120,7 @@ class SelectableProfileServiceClass {
   ];
 
   constructor() {
+    this.themeObserver = this.themeObserver.bind(this);
     if (Cu.isInAutomation) {
       this.#groupToolkitProfile = {
         storeID: "12345678",
@@ -221,6 +222,11 @@ class SelectableProfileServiceClass {
     // to come after #currentProfile has been set.
     this.initWindowTracker();
 
+    Services.obs.addObserver(
+      this.themeObserver,
+      "lightweight-theme-styling-update"
+    );
+
     this.#initialized = true;
   }
 
@@ -230,6 +236,11 @@ class SelectableProfileServiceClass {
     }
 
     lazy.EveryWindow.unregisterCallback(this.#everyWindowCallbackId);
+
+    Services.obs.removeObserver(
+      this.themeObserver,
+      "lightweight-theme-styling-update"
+    );
 
     await this.closeConnection();
 
@@ -442,6 +453,28 @@ class SelectableProfileServiceClass {
    * instance has updated the database. Triggers refreshProfiles() and refreshPrefs().
    */
   observe() {}
+
+  /**
+   * The observer function that watches for theme changes and updates the
+   * current profile of a theme change.
+   *
+   * @param {object} aSubject The theme data
+   * @param {*} aTopic Should be "lightweight-theme-styling-update"
+   */
+  themeObserver(aSubject, aTopic) {
+    if (aTopic !== "lightweight-theme-styling-update") {
+      return;
+    }
+
+    let data = aSubject.wrappedJSObject;
+
+    let theme = data.theme;
+    this.currentProfile.theme = {
+      themeL10nId: theme.id,
+      themeFg: theme.textcolor,
+      themeBg: theme.accentcolor,
+    };
+  }
 
   /**
    * Init or update the current SelectableProfiles from the DB.
