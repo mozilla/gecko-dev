@@ -108,8 +108,6 @@
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Shfletoni më shpejt, me menunë e re të lëvizjeve</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Kjo shtyllë tkurret teksa rrëshqisni poshtë për hapësirë ekstra shfletimi.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Në një sajt, kjo shtyllë tkurret teksa rrëshqisni poshtë për hapësirë ekstra shfletimi.</string>
@@ -205,9 +203,14 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Bëjeni %s si e doni</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">Keni zgjerime të instaluara, por jo të aktivizuara</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_body">Zgjerimet e shpien më tej shfletimin tuaj, nga ndryshimi se si duket dhe funksionon %s e deri përforcimi i privatësisë dhe sigurisë.</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">Për t’i përdorur zgjerimet, aktivizojini te rregullimet, ose duke përzgjedhur “%s” më poshtë.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Mësoni më tepër</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -217,8 +220,6 @@
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">Shtoni %1$s</string>
-    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Shtoni zgjerim</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Zbuloni më tepër zgjerime</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -378,7 +379,9 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Skanoje</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Skanoje</string>
+    <!-- Button in the search view that lets a user search by scanning a QR code -->
+    <string name="search_scan_button_2">Skanonin kodin QR</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Rregullime motorësh kërkimesh</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -404,7 +407,7 @@
     <string name="search_header_menu_item_2">Këtë herë kërko me:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">Motor kërkimesh %s</string>
+    <string name="search_engine_icon_content_description">Motor kërkimesh %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -428,18 +431,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">Mbylle</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">Njoftimet ju ndihmojnë të arrini më tepër gjëra me %s</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">Njëkohësoni skedat tuaja nëpër pajisje, administroni shkarkime, merrni ndihmëza mbi shfrytëzimin në maksimum të mbrojtjes së privatësisë në %s, etj.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">Vazhdo</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">Jo tani</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Shënim mbi privatësinë në Firefox</string>
@@ -456,11 +447,6 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Më tepër se 100 milionë vetëm e mbrojnë privatësinë e tyre duke zgjedhur një shfletues që ka nga pas një ent jofitimprurës.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Gjurmues të ditur? Të bllokuar automatikisht. Zgjerime? Provojini krejt të 700-ët. PDF? Lexuesi ynë i brendshëm i bën të administrohen me lehtësi.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Shfletuesi ynë, me entin jofitimprurës nga pas, ndihmon të ndalen shoqëri t’ju ndjekin fshehtazi nëpër internet.\n\nMësoni më tepër te shënimi ynë mbi privatësinë.</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">shënim privatësie</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Vëre si shfletuesin parazgjedhje</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -468,9 +454,6 @@
 
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Jini i fshehtëzuar, kur hidheni nga një pajisje në tjetrën</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Kur keni bërë hyrjen në llogari dhe njëkohësim, jeni më të siguruar. Firefox-i fshehtëzon fjalëkalimet tuaja, faqerojtësit, etj.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox-i fshehtëzon fjalëkalimet tuaja, faqerojtësit, etj, kur bëni njëkohësimin.</string>
@@ -500,6 +483,44 @@
     <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Shtoni “widget” Firefox-i</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Jo tani</string>
+
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Përshtateni Firefox-in tuaj me zgjerime</string>
+    <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Shtoni zgjerime nga palë të treta, për të thelluar sigurinë tuaj, prodhimtarinë, etj.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Eksploroni më tepër zgjerime.</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Nisni shfletimin.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2">Eksploroni më tepër zgjerime</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2">Nisni shfletimin</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Bllokoni reklama vërtet dhe me efikasitet.</string>
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Xhevahir për anti-gjurmim. Ndalni gjurmues të padukshëm dhe reklama që spiunojnë.</string>
+    <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Kërko sipas Figurash</string>
+    <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Shihni një foto interesante dhe mësoni më tepër rreth saj.</string>
+    <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Lexues i Errët</string>
+    <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Mënyrë e errët e përshtatur , për web-in celular.</string>
+    <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+    <string name="onboarding_add_on_reviews_label">Shqyrtime: %1$s</string>
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">Ikonë shtese</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">Shtoni buton shtese</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">Vlerësuar me %1$s nga 5 gjithsej</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -554,7 +575,9 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Privatësi dhe siguri</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Leje sajti</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Leje sajti</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">Rregullime sajti</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Shfletim privat</string>
     <!-- Preference for opening links in a private tab-->
@@ -1137,8 +1160,6 @@
 
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Emër koleksioni</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Rimertojeni</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Hiqe</string>
 
@@ -1224,6 +1245,8 @@
     <string name="bookmark_saved_in_folder_snackbar">U ruajt te “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">PËRPUNOJENI</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">Lëvize</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Përpunoni</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1281,6 +1304,10 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">ZHBËJE</string>
 
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">U fshi %s</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Objekte të fshirë: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Jepni terma kërkimi</string>
 
@@ -1288,8 +1315,6 @@
     <string name="bookmark_navigate_back_button_content_description">Shko mbrapsht</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Shtoni një dosje të re</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Mbylli faqerojtësit</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Kërkoni te faqerojtësit</string>
 
@@ -1306,6 +1331,9 @@
     <string name="bookmark_empty_list_authenticated_description">Ruani sajte teksa shfletoni. Do të marrim gjithashtu faqerojtës nga pajisje të tjera të njëkohësuara.</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
     <string name="bookmark_empty_list_folder_description">Shtoni faqerojtës teksa shfletoni, që të mund të gjeni më vonë sajtet tuaj të parapëlqyer.</string>
+
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Dosje e re</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1390,6 +1418,13 @@
     <string name="studies_on">On</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Off</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">Leje</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">Lëndë</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">Kërko përherë sajtin për desktop</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1497,17 +1532,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Mbyllni skeda private</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Asnjanës</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Shumë i Pakënaqur</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Jo i kënaqur</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">I kënaqur</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Shumë i Kënaqur</string>
-
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Të mbyllen skeda private?</string>
     <string name="notification_erase_text_android_14">Prekeni, ose fërkoni mbi këtë njoftim, që të mbyllen skeda private.</string>
@@ -1559,6 +1583,8 @@
     <string name="snackbar_num_tabs_closed">Skeda të mbyllura: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Faqerojtësit u ruajtën! </string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Faqerojtësit u ruajtën te “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">U shtua te shkurtoret!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1586,8 +1612,6 @@
     <string name="tab_collection_dialog_message">Jeni i sigurt se doni të fshihet %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Fshije</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Po hyhet në mënyrën “Sa krejt ekrani”</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL-ja u kopjua</string>
     <!-- Sample text for accessibility font size -->
@@ -1639,8 +1663,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Interval kohor për t’u fshirë</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">Heq historikun (përfshi historik të njëkohësuar prej pajisjesh të tjera), cookie-t dhe të tjera të dhëna shfletimi.</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">Heq historikun (përfshi historik të njëkohësuar prej pajisjesh të tjera)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1760,8 +1782,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Nxjerrës kriptomonedhash</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Krijues shenjash gishtash</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Krijues Shenjash Gishtash të Ditur</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Hollësi</string>
@@ -1785,10 +1805,6 @@
     <string name="etp_cryptominers_title">Nxjerrës kriptomonedhash</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Parandalon hyrjen në pajisjen tuaj të programtheve dashakeqe për qëllime nxjerrje monedhash dixhitale.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Krijues shenjash gishtash</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Ndalon grumbullim të dhënash që lejojnë identifikim unik rreth pajisjes tuaj, të cilat mund të përdoren për qëllime gjurmimi.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">Ndalon grumbullim të dhënash që lejojnë identifikim unik rreth pajisjes tuaj, të cilat mund të përdoren për qëllime gjurmimi.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2261,8 +2277,6 @@
     <string name="shortcut_name_hint">Emër shkurtoreje</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">URL shkurtoreje</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Anuloje</string>
 
@@ -2327,7 +2341,7 @@
     <string name="radio_preference_info_content_description">Klikoni për më tepër hollësi</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">Lëvizni për sipër</string>
+    <string name="action_bar_up_description">Lëvizni për sipër</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">Mbylle</string>
@@ -2469,8 +2483,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Mësoni më tepër</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">Duke përzgjedhur “Po, provojeni”, pajtoheni me %2$s e %1$s  dhe %4$s të %3$s.</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">Duke përzgjedhur “Po, provojeni”, pajtoheni me %2$s e %1$s  dhe %4$s të %3$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">shënim privatësie</string>
@@ -2488,8 +2500,6 @@
     <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">A janë të besueshme këto shqyrtime? Provojeni tani, që të shihni vlerësim të përshtatur.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Hap kontrollorin e shqyrtimeve</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Hap kontrollorin e shqyrtimeve</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2681,8 +2691,6 @@
     <string name="never_translate_site_dialog_cancel_preference">Anuloje</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Shkarko Gjuhë</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">Gjuhë shkarkimesh</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2739,14 +2747,6 @@
     <string name="delete_language_file_dialog_positive_button_text">Fshije</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Anuloje</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Të anulohet shkarkimi i %1$s?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Po</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Jo</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2843,8 +2843,6 @@
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">S’përdor kërkim në Firefox</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">S’e përdor njëkohësimin</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Sa të kënaqur jeni me faqen hyrëse të Firefox-it?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Ndihmoni të përmirësojmë shtypjen në Firefox. Ha vetëm një sekondë</string>
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2864,8 +2862,6 @@
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Stemë Firefox-i</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Ikonë e veçorisë pyetësor</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Hapni pyetësorin</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Mbylleni pyetësorin</string>
     <!-- Content description for "X" button that is closing microsurvey. -->

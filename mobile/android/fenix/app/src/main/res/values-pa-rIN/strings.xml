@@ -521,9 +521,9 @@
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
     <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">ਬਰਾਊਜ਼ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ</string>
     <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_explore_more_extensions_2" tools:ignore="UnusedResources">ਹੋਰ ਇਕਸਟੈਨਸ਼ਨਾਂ ਦੀ ਪੜਤਾਲ ਕਰੋ</string>
+    <string name="onboarding_add_on_explore_more_extensions_2">ਹੋਰ ਇਕਸਟੈਨਸ਼ਨਾਂ ਦੀ ਪੜਤਾਲ ਕਰੋ</string>
     <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_start_browsing_button_2" tools:ignore="UnusedResources">ਬਰਾਊਜ਼ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ</string>
+    <string name="onboarding_add_on_start_browsing_button_2">ਬਰਾਊਜ਼ ਕਰਨਾ ਸ਼ੁਰੂ ਕਰੋ</string>
     <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
     <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -542,6 +542,15 @@
 
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
     <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">ਮੋਬਾਈਲ ਵੈੱਬ ਲਈ ਪਸੰਦੀਦਾ ਗੂੜ੍ਹਾ ਮੋਡ ਹੈ।</string>
+
+    <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+    <string name="onboarding_add_on_reviews_label">ਰੀਵਿਊ: %1$s</string>
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">ਐਡ-ਆਨ ਆਈਕਾਨ</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">ਐਡ-ਆਨ ਬਟਨ ਨੂੰ ਜੋੜੋ</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">5 ਵਿੱਚੋਂ %1$s ਰੇਟ ਕੀਤਾ</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->

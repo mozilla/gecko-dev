@@ -84,7 +84,6 @@
     <string name="share_dialog_title">Chia sẻ qua</string>
 
     <string name="notification_erase_title_android_14">Xóa lịch sử duyệt web?</string>
-    <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Nhấn hoặc xóa thông báo này để xóa lịch sử duyệt web của bạn một cách an toàn.</string>
 
     <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
     for Android 14+. -->
@@ -517,7 +516,7 @@
 
 
   <!-- Content description (not visible, for screen readers etc.): This is the description for the close button from the new onboarding flow screen one and two -->
-    <string name="onboarding_close_button_content_description">Đóng</string>
+    <string name="onboarding_close_button_content_description" moz:removedIn="133" tools:ignore="UnusedResources">Đóng</string>
 
     <!-- New Onboarding flow first screen title -->
     <!-- %1$s will be replaced by the app name and build variant(e.g. Firefox Focus, Firefox Klar Nightly) -->
@@ -631,7 +630,7 @@
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Bạn không được cấp bất kỳ quyền hoặc giấy phép nào đối với nhãn hiệu của Tổ chức Mozilla hoặc bất kỳ bên nào, bao gồm tên hoặc logo của Mozilla, Firefox hoặc %1$s. Thông tin bổ sung có thể được tìm thấy <a href="%2$s">tại đây</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Bạn không được cấp bất kỳ quyền hoặc giấy phép nào đối với nhãn hiệu của Mozilla Foundation hoặc bất kỳ bên nào, bao gồm tên hoặc logo của Mozilla, Firefox hoặc %1$s. Thông tin bổ sung có thể được tìm thấy <a href="%2$s">tại đây</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
@@ -927,9 +926,6 @@
 
     <!-- Label for the button in the snackbar that switches to the newly opened tab -->
     <string name="open_new_tab_snackbar">Chuyển</string>
-
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Đã vào chế độ toàn màn hình</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Chuyển sang liên kết trong thẻ mới ngay lập tức</string>
