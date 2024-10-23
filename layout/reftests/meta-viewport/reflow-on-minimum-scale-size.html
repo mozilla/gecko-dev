@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+html {
+  background: red;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  max-width: 100vw;
+  scrollbar-width: none;
+}
+body { margin: 0; }
+#headerChild {
+  position: absolute;
+  width: 100%;
+  height: 50px;
+  transform: translate3d(180px, 0, 0);
+}
+#filler {
+  width: 100%;
+  height: 150vh;
+  background-color: white;
+}
+</style>
+<body>
+<div id="headerChild"></div>
+<div id="filler"></div>
+<script>
+let counter = 180;
+function tick() {
+  if (counter >= 0) {
+    headerChild.style.transform = `translate3d(${counter}px, 0, 0)`;
+    counter--;
+    requestAnimationFrame(tick);
+  } else {
+    headerChild.style.transform = "translate(0,0)";
+    requestAnimationFrame(() => {
+      // Try to do visual-scroll horizontally if it's possible.
+      const utils = SpecialPowers.DOMWindowUtils;
+      utils.scrollToVisual(180, 0,
+          utils.UPDATE_TYPE_MAIN_THREAD,
+          utils.SCROLL_MODE_INSTANT);
+      document.documentElement.classList.remove("reftest-wait");
+    });
+  }
+}
+document.addEventListener("MozReftestInvalidate", tick);
+</script>
+</html>

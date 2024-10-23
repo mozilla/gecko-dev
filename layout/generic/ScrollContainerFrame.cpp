@@ -6361,7 +6361,10 @@ bool ScrollContainerFrame::ComputeCustomOverflow(
   bool needReflow = false;
   nsPoint scrollPosition = GetScrollPosition();
   if (overflowChange.contains(ScrollDirection::eHorizontal)) {
-    if (ss.mHorizontal != StyleOverflow::Hidden || scrollPosition.x) {
+    if (ss.mHorizontal != StyleOverflow::Hidden || scrollPosition.x ||
+        // If we are in minimum-scale size mode, we need to do a reflow to
+        // re-compute the minimum-scale size.
+        mIsUsingMinimumScaleSize) {
       needReflow = true;
     }
   }
