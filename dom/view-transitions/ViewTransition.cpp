@@ -260,7 +260,24 @@ void ViewTransition::Activate() {
     return;
   }
 
-  // TODO(emilio): Steps 2-7.
+  // TODO(emilio): Step 2: Set rendering suppression for view transitions to
+  // false.
+
+  // Step 3: If transition's initial snapshot containing block size is not
+  // equal to the snapshot containing block size, then skip the view transition
+  // for transition, and return.
+  if (mInitialSnapshotContainingBlockSize !=
+      SnapshotContainingBlockRect().Size()) {
+    return SkipTransition(SkipTransitionReason::Resize);
+  }
+
+  // Step 4: Capture the new state for transition.
+  if (auto skipReason = CaptureNewState()) {
+    // If failure is returned, then skip the view transition for transition...
+    return SkipTransition(*skipReason);
+  }
+
+  // TODO(emilio): Steps 5-7:
 
   // Step 8: Set transition's phase to "animating".
   mPhase = Phase::Animating;
@@ -373,7 +390,8 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
     }
     if (!usedTransitionNames.EnsureInserted(name)) {
       // If usedTransitionNames contains transitionName, then return failure.
-      result.emplace(SkipTransitionReason::DuplicateTransitionName);
+      result.emplace(
+          SkipTransitionReason::DuplicateTransitionNameCapturingOldState);
       return false;
     }
     // TODO: Set element's captured in a view transition to true.
@@ -398,6 +416,42 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
   // TODO step 9: For each element in captureElements, set element's captured
   // in a view transition to false.
 
+  return result;
+}
+
+// https://drafts.csswg.org/css-view-transitions-1/#capture-the-new-state
+Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
+  nsTHashSet<nsAtom*> usedTransitionNames;
+  Maybe<SkipTransitionReason> result;
+  ForEachFrame(mDocument, [&](nsIFrame* aFrame) {
+    // As a fast path we check for v-t-n first.
+    auto* name = DocumentScopedTransitionNameFor(aFrame);
+    if (!name) {
+      return true;
+    }
+    if (aFrame->IsHiddenByContentVisibilityOnAnyAncestor()) {
+      // If any flat tree ancestor of this element skips its contents, then
+      // continue.
+      return true;
+    }
+    if (aFrame->GetPrevContinuation() || aFrame->GetNextContinuation()) {
+      // If element has more than one box fragment, then continue.
+      return true;
+    }
+    if (!usedTransitionNames.EnsureInserted(name)) {
+      result.emplace(
+          SkipTransitionReason::DuplicateTransitionNameCapturingNewState);
+      return false;
+    }
+    auto& capturedElement = mNamedElements.LookupOrInsertWith(name, [&] {
+      // TODO(emilio): See if we need to store something different here (rather
+      // than the properties of the new element). Maybe identity / null / etc?
+      return MakeUnique<CapturedElement>(aFrame,
+                                         mInitialSnapshotContainingBlockSize);
+    });
+    capturedElement->mNewElement = aFrame->GetContent()->AsElement();
+    return true;
+  });
   return result;
 }
 
@@ -518,9 +572,17 @@ void ViewTransition::SkipTransition(
         readyPromise->MaybeRejectWithAbortError(
             "Skipped ViewTransition due to timeout");
         break;
-      case SkipTransitionReason::DuplicateTransitionName:
+      case SkipTransitionReason::DuplicateTransitionNameCapturingOldState:
         readyPromise->MaybeRejectWithInvalidStateError(
             "Duplicate view-transition-name value while capturing old state");
+        break;
+      case SkipTransitionReason::DuplicateTransitionNameCapturingNewState:
+        readyPromise->MaybeRejectWithInvalidStateError(
+            "Duplicate view-transition-name value while capturing new state");
+        break;
+      case SkipTransitionReason::Resize:
+        readyPromise->MaybeRejectWithInvalidStateError(
+            "Skipped view transition due to viewport resize");
         break;
       case SkipTransitionReason::UpdateCallbackRejected:
         readyPromise->MaybeReject(aUpdateCallbackRejectReason);

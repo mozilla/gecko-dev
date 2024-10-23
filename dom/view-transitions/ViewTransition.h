@@ -28,7 +28,9 @@ enum class SkipTransitionReason : uint8_t {
   ClobberedActiveTransition,
   Timeout,
   UpdateCallbackRejected,
-  DuplicateTransitionName,
+  DuplicateTransitionNameCapturingOldState,
+  DuplicateTransitionNameCapturingNewState,
+  Resize,
 };
 
 // https://drafts.csswg.org/css-view-transitions-1/#viewtransition-phase
@@ -70,6 +72,7 @@ class ViewTransition final : public nsISupports, public nsWrapperCache {
   void Timeout();
   void Setup();
   [[nodiscard]] Maybe<SkipTransitionReason> CaptureOldState();
+  [[nodiscard]] Maybe<SkipTransitionReason> CaptureNewState();
   void ClearNamedElements();
   void HandleFrame();
   void SkipTransition(SkipTransitionReason, JS::Handle<JS::Value>);
