@@ -79,25 +79,40 @@ class OrderedHashTable {
   friend class Range;
 
  private:
-  Data** hashTable;       // hash table (has hashBuckets() elements)
-  Data* data;             // data vector, an array of Data objects
-                          // data[0:dataLength] are constructed
-  uint32_t dataLength;    // number of constructed elements in data
-  uint32_t dataCapacity;  // size of data, in elements
-  uint32_t liveCount;     // dataLength less empty (removed) entries
-  uint32_t hashShift;     // multiplicative hash shift
+  // Hash table. Has hashBuckets() elements.
+  Data** hashTable = nullptr;
+
+  // Array of Data objects. Elements data[0:dataLength] are constructed and the
+  // total capacity is dataCapacity.
+  Data* data = nullptr;
+
+  // Number of constructed elements in data.
+  uint32_t dataLength = 0;
+
+  // Size of data, in elements.
+  uint32_t dataCapacity = 0;
+
+  // The number of elements in this table. This is different from dataLength
+  // because |data| can have empty/removed elements.
+  uint32_t liveCount = 0;
+
+  // Multiplicative hash shift.
+  uint32_t hashShift = 0;
 
   // List of all live Ranges on this table in malloc memory. Populated when
   // ranges are created.
-  Range* ranges;
+  Range* ranges = nullptr;
 
   // List of all live Ranges on this table in the GC nursery. Populated when
   // ranges are created. This is cleared at the start of minor GC and rebuilt
   // when ranges are moved.
-  Range* nurseryRanges;
+  Range* nurseryRanges = nullptr;
 
+  // Allocation policy for this table's memory allocations.
   AllocPolicy alloc;
-  mozilla::HashCodeScrambler hcs;  // don't reveal pointer hash codes
+
+  // Scrambler to not reveal pointer hash codes.
+  mozilla::HashCodeScrambler hcs;
 
   template <typename F>
   void forEachRange(F&& f) {
@@ -114,16 +129,7 @@ class OrderedHashTable {
 
  public:
   OrderedHashTable(AllocPolicy ap, mozilla::HashCodeScrambler hcs)
-      : hashTable(nullptr),
-        data(nullptr),
-        dataLength(0),
-        dataCapacity(0),
-        liveCount(0),
-        hashShift(0),
-        ranges(nullptr),
-        nurseryRanges(nullptr),
-        alloc(std::move(ap)),
-        hcs(hcs) {}
+      : alloc(std::move(ap)), hcs(hcs) {}
 
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!hashTable, "init must be called at most once");
@@ -362,13 +368,13 @@ class OrderedHashTable {
     OrderedHashTable* ht;
 
     /* The index of front() within ht->data. */
-    uint32_t i;
+    uint32_t i = 0;
 
     /*
      * The number of nonempty entries in ht->data to the left of front().
      * This is used when the table is resized or compacted.
      */
-    uint32_t count;
+    uint32_t count = 0;
 
     /*
      * Links in the doubly-linked list of active Ranges on ht.
@@ -388,7 +394,7 @@ class OrderedHashTable {
      * (This is private on purpose. End users must use ht->all().)
      */
     Range(OrderedHashTable* ht, Range** listp)
-        : ht(ht), i(0), count(0), prevp(listp), next(*listp) {
+        : ht(ht), prevp(listp), next(*listp) {
       *prevp = this;
       if (next) {
         next->prevp = &next;
@@ -910,14 +916,14 @@ class OrderedHashMap {
     }
 
    public:
-    Entry() : key(), value() {}
-    explicit Entry(const Key& k) : key(k), value() {}
+    Entry() = default;
+    explicit Entry(const Key& k) : key(k) {}
     template <typename V>
     Entry(const Key& k, V&& v) : key(k), value(std::forward<V>(v)) {}
     Entry(Entry&& rhs) : key(std::move(rhs.key)), value(std::move(rhs.value)) {}
 
-    const Key key;
-    Value value;
+    const Key key{};
+    Value value{};
 
     static size_t offsetOfKey() { return offsetof(Entry, key); }
     static size_t offsetOfValue() { return offsetof(Entry, value); }
