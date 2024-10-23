@@ -99,6 +99,7 @@ var SidebarController = {
             ? "sidebar-history-context-menu"
             : undefined,
           gleanEvent: Glean.history.sidebarToggle,
+          gleanClickEvent: Glean.sidebar.historyIconClick,
         }),
       ],
       [
@@ -116,6 +117,7 @@ var SidebarController = {
           contextMenuId: this.sidebarRevampEnabled
             ? "sidebar-synced-tabs-context-menu"
             : undefined,
+          gleanClickEvent: Glean.sidebar.syncedTabsIconClick,
         }),
       ],
       [
@@ -130,6 +132,7 @@ var SidebarController = {
           iconUrl: "chrome://browser/skin/bookmark-hollow.svg",
           disabled: true,
           gleanEvent: Glean.bookmarks.sidebarToggle,
+          gleanClickEvent: Glean.sidebar.bookmarksIconClick,
         }),
       ],
     ]);
@@ -145,6 +148,7 @@ var SidebarController = {
         // Bug 1900915 to expose as conditional tool
         revampL10nId: "sidebar-menu-genai-chat-label",
         iconUrl: "chrome://global/skin/icons/highlights.svg",
+        gleanClickEvent: Glean.sidebar.chatbotIconClick,
       }
     );
 
@@ -1615,6 +1619,28 @@ var SidebarController = {
       });
     } else if (sidebar.gleanEvent) {
       sidebar.gleanEvent.record({ opened });
+    }
+  },
+
+  /**
+   * Record to Glean when any of the sidebar icons are clicked.
+   *
+   * @param {string} commandID - Command ID of the icon.
+   * @param {boolean} expanded - Whether the sidebar was expanded when clicked.
+   */
+  recordIconClick(commandID, expanded) {
+    const sidebar = this.sidebars.get(commandID);
+    const isExtension = sidebar && Object.hasOwn(sidebar, "extensionId");
+    if (isExtension) {
+      const addonId = sidebar.extensionId;
+      Glean.sidebar.addonIconClick.record({
+        sidebar_open: expanded,
+        addon_id: AMTelemetry.getTrimmedString(addonId),
+      });
+    } else if (sidebar.gleanClickEvent) {
+      sidebar.gleanClickEvent.record({
+        sidebar_open: expanded,
+      });
     }
   },
 

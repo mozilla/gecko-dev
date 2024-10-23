@@ -3,7 +3,7 @@
 
 "use strict";
 
-requestLongerTimeout(2);
+requestLongerTimeout(10);
 
 const lazy = {};
 
@@ -36,6 +36,8 @@ add_task(async function test_metrics_initialized() {
 });
 
 add_task(async function test_sidebar_expand() {
+  SidebarController.toggleExpanded(false);
+
   info("Expand the sidebar.");
   EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
   await TestUtils.waitForCondition(
@@ -444,4 +446,69 @@ add_task(async function test_sidebar_position_rtl_ui() {
 
   sandbox.restore();
   await SpecialPowers.popPrefEnv();
+});
+
+async function testIconClick(expanded) {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.chat.enabled", true],
+      ["sidebar.main.tools", "aichat,syncedtabs,history,bookmarks"],
+    ],
+  });
+
+  const { sidebarMain } = SidebarController;
+  const gleanEvents = [
+    Glean.sidebar.chatbotIconClick,
+    Glean.sidebar.syncedTabsIconClick,
+    Glean.sidebar.historyIconClick,
+    Glean.sidebar.bookmarksIconClick,
+  ];
+  sidebarMain.toolButtons.forEach((button, i) => {
+    SidebarController.toggleExpanded(expanded);
+
+    info(`Click the icon for: ${button.getAttribute("view")}`);
+    EventUtils.synthesizeMouseAtCenter(button, {});
+
+    const events = gleanEvents[i].testGetValue();
+    Assert.equal(events?.length, 1, "One event was reported.");
+    Assert.deepEqual(
+      events?.[0].extra,
+      { sidebar_open: `${expanded}` },
+      `Event indicates the sidebar was ${expanded ? "expanded" : "collapsed"}.`
+    );
+  });
+
+  info("Load an extension.");
+  const extension = ExtensionTestUtils.loadExtension({ ...extData });
+  await extension.startup();
+  await extension.awaitMessage("sidebar");
+
+  SidebarController.toggleExpanded(expanded);
+
+  info("Click the icon for the extension.");
+  const extensionButton = sidebarMain.extensionButtons[0];
+  EventUtils.synthesizeMouseAtCenter(extensionButton, {});
+
+  const events = Glean.sidebar.addonIconClick.testGetValue();
+  Assert.equal(events?.length, 1, "One event was reported.");
+  Assert.equal(
+    events?.[0].extra.sidebar_open,
+    `${expanded}`,
+    `Event indicates the sidebar was ${expanded ? "expanded" : "collapsed"}.`
+  );
+  Assert.ok(events?.[0].extra.addon_id, "Event has the extension's ID.");
+
+  info("Unload the extension.");
+  await extension.unload();
+
+  await SpecialPowers.popPrefEnv();
+  Services.fog.testResetFOG();
+}
+
+add_task(async function test_icon_click_collapsed_sidebar() {
+  await testIconClick(false);
+});
+
+add_task(async function test_icon_click_expanded_sidebar() {
+  await testIconClick(true);
 });

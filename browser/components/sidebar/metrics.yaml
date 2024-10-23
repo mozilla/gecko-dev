@@ -145,6 +145,104 @@ sidebar:
       - rtestard@mozilla.com
     expires: never
     telemetry_mirror: SIDEBAR_LINK
+  chatbot_icon_click:
+    type: event
+    description: >
+      The chatbot icon was clicked.
+    bugs:
+      - https://bugzil.la/1923972
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226681
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      sidebar_open:
+        type: boolean
+        description: Whether the sidebar is expanded or collapsed.
+  history_icon_click:
+    type: event
+    description: >
+      The history icon was clicked.
+    bugs:
+      - https://bugzil.la/1923972
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226681
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      sidebar_open:
+        type: boolean
+        description: Whether the sidebar is expanded or collapsed.
+  synced_tabs_icon_click:
+    type: event
+    description: >
+      The synced tabs icon was clicked.
+    bugs:
+      - https://bugzil.la/1923972
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226681
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      sidebar_open:
+        type: boolean
+        description: Whether the sidebar is expanded or collapsed.
+  bookmarks_icon_click:
+    type: event
+    description: >
+      The bookmarks icon was clicked.
+    bugs:
+      - https://bugzil.la/1923972
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226681
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      sidebar_open:
+        type: boolean
+        description: Whether the sidebar is expanded or collapsed.
+  addon_icon_click:
+    type: event
+    description: >
+      An extension icon was clicked.
+    bugs:
+      - https://bugzil.la/1923972
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D226681
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      sidebar_open:
+        type: boolean
+        description: Whether the sidebar is expanded or collapsed.
+      addon_id:
+        type: string
+        description: The extension's ID.
 history:
   sidebar_toggle:
     type: event

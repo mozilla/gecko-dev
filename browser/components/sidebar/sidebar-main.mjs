@@ -241,6 +241,7 @@ export default class SidebarMain extends MozLitElement {
   }
 
   showView(view) {
+    window.SidebarController.recordIconClick(view, this.expanded);
     window.SidebarController.toggle(view);
     if (view === "viewCustomizeSidebar") {
       Glean.sidebarCustomize.iconClick.record();
