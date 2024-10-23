@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/// This shader renders radial graidents in a color or alpha target.
+/// This shader renders radial gradients in a color or alpha target.
 
 #include ps_quad,gradient
 
@@ -72,7 +72,7 @@ float approx_atan2(float y, float x) {
     r = if_then_else(float(x < 0.0),   3.14159274 - r, r);
     // To match atan2's behavior, -0.0 should count as negative and flip the sign of r.
     // Does this matter in practice in the context of conic gradients?
-    r = r * sign(y);
+    r = y < 0.0 ? -r : r;
 
     return r;
 }
