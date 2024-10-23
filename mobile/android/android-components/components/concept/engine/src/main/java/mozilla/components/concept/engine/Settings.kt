@@ -289,6 +289,11 @@ abstract class Settings {
      * Setting to control the web content isolation strategy used by fission.
      */
     open var webContentIsolationStrategy: WebContentIsolationStrategy? by UnsupportedSetting()
+
+    /**
+     * Setting to control whether network.fetchpriority.enabled is enabled.
+     */
+    open var fetchPriorityEnabled: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -346,6 +351,7 @@ data class DefaultSettings(
     override var userCharacteristicPingCurrentVersion: Int = 0,
     override var webContentIsolationStrategy: WebContentIsolationStrategy? =
         WebContentIsolationStrategy.ISOLATE_HIGH_VALUE,
+    override var fetchPriorityEnabled: Boolean = true,
     val getDesktopMode: () -> Boolean = { false },
 ) : Settings() {
     override val desktopModeEnabled: Boolean

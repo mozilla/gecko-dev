@@ -1369,6 +1369,10 @@ class GeckoEngine(
             set(value) {
                 value?.let { runtime.settings.setWebContentIsolationStrategy(it.intoWebContentIsolationStrategy()) }
             }
+
+        override var fetchPriorityEnabled: Boolean
+            get() = runtime.settings.fetchPriorityEnabled
+            set(value) { runtime.settings.setFetchPriorityEnabled(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1401,6 +1405,7 @@ class GeckoEngine(
             this.emailTrackerBlockingPrivateBrowsing = it.emailTrackerBlockingPrivateBrowsing
             this.userCharacteristicPingCurrentVersion = it.userCharacteristicPingCurrentVersion
             this.webContentIsolationStrategy = it.webContentIsolationStrategy
+            this.fetchPriorityEnabled = it.fetchPriorityEnabled
         }
     }
 

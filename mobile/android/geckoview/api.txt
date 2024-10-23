@@ -877,6 +877,7 @@ package org.mozilla.geckoview {
     method public boolean getExtensionsWebAPIEnabled();
     method @NonNull public Bundle getExtras();
     method public boolean getFdlibmMathEnabled();
+    method public boolean getFetchPriorityEnabled();
     method public boolean getFingerprintingProtection();
     method @NonNull public String getFingerprintingProtectionOverrides();
     method public boolean getFingerprintingProtectionPrivateBrowsing();
@@ -917,6 +918,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings setExtensionsProcessEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setExtensionsWebAPIEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setFdlibmMathEnabled(boolean);
+    method @NonNull public GeckoRuntimeSettings setFetchPriorityEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setFingerprintingProtection(boolean);
     method @NonNull public GeckoRuntimeSettings setFingerprintingProtectionOverrides(@NonNull String);
     method @NonNull public GeckoRuntimeSettings setFingerprintingProtectionPrivateBrowsing(boolean);

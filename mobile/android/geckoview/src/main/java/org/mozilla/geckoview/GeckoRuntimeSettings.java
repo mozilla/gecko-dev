@@ -673,6 +673,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new Pref<>("toolkit.telemetry.user_characteristics_ping.current_version", 0);
   /* package */ PrefWithoutDefault<Boolean> mDisableShip =
       new PrefWithoutDefault<Boolean>("fission.disableSessionHistoryInParent");
+  /* package */ final Pref<Boolean> mFetchPriorityEnabled =
+      new Pref<Boolean>("network.fetchpriority.enabled", false);
 
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
@@ -957,6 +959,26 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       final @NonNull Long timeframeMs) {
     mExtensionsProcessCrashTimeframe.commit(timeframeMs);
     return this;
+  }
+
+  /**
+   * Set the pref to control whether network.fetchpriority.enabled is enabled.
+   *
+   * @param enabled Whether to enable the Fetch Priority feature
+   * @return This GeckoRuntimeSettings instance
+   */
+  public @NonNull GeckoRuntimeSettings setFetchPriorityEnabled(final boolean enabled) {
+    mFetchPriorityEnabled.commit(enabled);
+    return this;
+  }
+
+  /**
+   * Get whether network.fetchpriority.enabled is enabled.
+   *
+   * @return Whether Fetch Priority is enabled
+   */
+  public boolean getFetchPriorityEnabled() {
+    return mFetchPriorityEnabled.get();
   }
 
   /**

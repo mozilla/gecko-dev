@@ -24,6 +24,7 @@ exclude: true
 - Added [`getFissionEnabled()`][133.9] on `GeckoRuntimeSettings` and [`fissionEnabled(boolean)`][133.10] on `GeckoRuntimeSettings.Builder` to control Fission on Android.
 - Added [`InstallException.extensionVersion`][133.11], which indicates the version of the extension that caused the exception.
 - Added [`WebExtensionController.INSTALLATION_METHOD_ONBOARDING`][133.12], which should be used when a `WebExtension` is installed from the embedder's onboarding feature.
+- Added support for controlling `network.fetchpriority.enabled` via [`GeckoRuntimeSettings.setFetchPriorityEnabled`][133.13]
 
 [133.1]: {{javadoc_uri}}/GeckoSession.html#getWebCompatInfo()
 [133.2]: {{javadoc_uri}}/GeckoRuntime.html#isInteractiveWidgetDefaultResizesVisual()
@@ -37,6 +38,7 @@ exclude: true
 [133.10]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#fissionEnabled(boolean)
 [133.11]: {{javadoc_uri}}/WebExtension.InstallException.html#extensionVersion
 [133.12]: {{javadoc_uri}}/WebExtensionController.html#INSTALLATION_METHOD_ONBOARDING
+[133.13]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setFetchPriorityEnabled
 
 ## v132
 -Added [`getDisableShip`][132.1] to get the setting for Session History in Parent (SHIP)) and [`disableShip`][132.2] to set the status of SHIP on the `GeckoRuntimeSettings` builder.
@@ -1640,4 +1642,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: b7b3d148d2e6435a28283601a24af9c99c964de5
+[api-version]: 14bb009beb6b3d6c98d9a5cfa1845b239a01125e

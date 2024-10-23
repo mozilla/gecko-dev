@@ -576,6 +576,15 @@ features:
         type: Boolean
         default: false
 
+  networking:
+    description: Enables networking features
+    variables:
+      fetchPriorityEnabled:
+        description: >
+          Enables or disables network.fetchpriority.enabled preference.
+        type: Boolean
+        default: true
+
 types:
   objects: {}
 

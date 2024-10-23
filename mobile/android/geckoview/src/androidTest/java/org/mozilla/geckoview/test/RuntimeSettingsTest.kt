@@ -601,4 +601,48 @@ class RuntimeSettingsTest : BaseSessionTest() {
             equalTo(5),
         )
     }
+
+    @Test
+    fun fetchPriorityEnabling() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        geckoRuntimeSettings.setFetchPriorityEnabled(true)
+
+        assertThat(
+            "Fetch Priority settings should be set to the expected value",
+            geckoRuntimeSettings.fetchPriorityEnabled,
+            equalTo(true),
+        )
+
+        val enabled =
+            (sessionRule.getPrefs("network.fetchpriority.enabled").get(0)) as Boolean
+
+        assertThat(
+            "Fetch Priority pref should be set to the expected value",
+            enabled,
+            equalTo(true),
+        )
+    }
+
+    @Test
+    fun fetchPriorityDisabling() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        geckoRuntimeSettings.setFetchPriorityEnabled(false)
+
+        assertThat(
+            "Fetch Priority settings should be set to the expected value",
+            geckoRuntimeSettings.fetchPriorityEnabled,
+            equalTo(false),
+        )
+
+        val enabled =
+            (sessionRule.getPrefs("network.fetchpriority.enabled").get(0)) as Boolean
+
+        assertThat(
+            "Fetch Priority pref should be set to the expected value",
+            enabled,
+            equalTo(false),
+        )
+    }
 }
