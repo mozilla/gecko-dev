@@ -392,6 +392,13 @@
   #identity-icon-box {
     max-width: 80px;
   }
+  /* This label expresses the non secure status. However, as the padlock icon is
+     enough to tell the status to user, hide the label when window gets small.
+     Except this usage, #identity-icon-label is used to show additional
+     information that could not tell by only icons. */
+  #identity-box[pageproxystate="valid"].notSecureText #identity-icon-label {
+    display: none;
+  }
   /* Contenxtual identity labels are user-customizable and can be very long,
      so we only show the colored icon when the window gets small. */
   #userContext-label {
