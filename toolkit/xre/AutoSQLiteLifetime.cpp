@@ -6,8 +6,6 @@
 #include "nsDebug.h"
 #include "AutoSQLiteLifetime.h"
 #include "sqlite3.h"
-#include "sqlite3_static_ext.h"
-#include "mozilla/DebugOnly.h"
 
 #ifdef MOZ_MEMORY
 #  include "mozmemory.h"
@@ -135,12 +133,7 @@ AutoSQLiteLifetime::AutoSQLiteLifetime() {
   if (sResult == SQLITE_OK) {
     // TODO (bug 1191405): do not preallocate the connections caches until we
     // have figured the impact on our consumers and memory.
-    ::sqlite3_config(SQLITE_CONFIG_PAGECACHE, NULL, 0, 0);
-
-    // Load the carray extension.
-    DebugOnly<int> srv =
-        ::sqlite3_auto_extension((void (*)(void))sqlite3_carray_init);
-    MOZ_ASSERT(srv == SQLITE_OK, "Should succeed loading carray extension");
+    sqlite3_config(SQLITE_CONFIG_PAGECACHE, NULL, 0, 0);
 
     // Explicitly initialize sqlite3.  Although this is implicitly called by
     // various sqlite3 functions (and the sqlite3_open calls in our case),

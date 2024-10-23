@@ -2107,8 +2107,9 @@ add_task(async function test_remove_invalid_url() {
     );
   });
 
-  await PT.Remove([folderGuid, guid]).transact();
-  await ensureNonExistent(folderGuid, guid, folderedGuid);
+  let guids = [folderGuid, guid];
+  await PT.Remove(guids).transact();
+  await ensureNonExistent(...guids, folderedGuid);
   // Shouldn't throw, should restore the folder but not the bookmarks.
   await PT.undo();
   await ensureNonExistent(guid, folderedGuid);
@@ -2117,7 +2118,7 @@ add_task(async function test_remove_invalid_url() {
     "The folder should have been re-created"
   );
   await PT.redo();
-  await ensureNonExistent(folderGuid, guid, folderedGuid);
+  await ensureNonExistent(guids, folderedGuid);
   // Cleanup
   await PT.clearTransactionsHistory();
   observer.reset();
