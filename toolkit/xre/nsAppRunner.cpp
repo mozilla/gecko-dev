@@ -1382,12 +1382,6 @@ nsXULAppInfo::GetFissionDecisionStatusString(nsACString& aResult) {
 
   EnsureFissionAutostartInitialized();
   switch (gFissionDecisionStatus) {
-    case eFissionExperimentControl:
-      aResult = "experimentControl";
-      break;
-    case eFissionExperimentTreatment:
-      aResult = "experimentTreatment";
-      break;
     case eFissionDisabledByE10sEnv:
       aResult = "disabledByE10sEnv";
       break;
@@ -1411,9 +1405,6 @@ nsXULAppInfo::GetFissionDecisionStatusString(nsACString& aResult) {
       break;
     case eFissionDisabledByE10sOther:
       aResult = "disabledByE10sOther";
-      break;
-    case eFissionEnabledByRollout:
-      aResult = "enabledByRollout";
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected enum value");

@@ -117,12 +117,6 @@ interface nsIXULRuntime : nsISupports
   // mapping in aboutSupport.js
   cenum FissionDecisionStatus : 8 {
     eFissionStatusUnknown = 0,
-    // Fission is disabled because the user is in the control group of a
-    // Normandy experiment.
-    eFissionExperimentControl = 1,
-    // Fission is enabled because the user is in the treatment group of a
-    // Normandy experiment.
-    eFissionExperimentTreatment = 2,
     // Fission is disabled because the `MOZ_FORCE_DISABLE_E10S` environment
     // variable is set.
     eFissionDisabledByE10sEnv = 3,
@@ -146,8 +140,6 @@ interface nsIXULRuntime : nsISupports
     eFissionDisabledByUserPref = 10,
     // Fission is disabled because e10s is disabled for some other reason.
     eFissionDisabledByE10sOther = 11,
-    // Fission is enabled by a Normandy phased rollout.
-    eFissionEnabledByRollout = 12,
   };
 
   /**

@@ -14544,8 +14544,6 @@ enum ContentWin32kLockdownState {
 
 enum FissionDecisionStatus {
   eFissionStatusUnknown = 0,
-  eFissionExperimentControl = 1,
-  eFissionExperimentTreatment = 2,
   eFissionDisabledByE10sEnv = 3,
   eFissionEnabledByEnv = 4,
   eFissionDisabledByEnv = 5,
@@ -14554,7 +14552,6 @@ enum FissionDecisionStatus {
   eFissionEnabledByUserPref = 9,
   eFissionDisabledByUserPref = 10,
   eFissionDisabledByE10sOther = 11,
-  eFissionEnabledByRollout = 12,
 }
 
 }
