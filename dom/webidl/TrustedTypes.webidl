@@ -55,11 +55,11 @@ interface TrustedTypePolicyFactory {
     DOMString? getAttributeType(
       DOMString tagName,
       DOMString attribute,
-      optional DOMString elementNs = "",
-      optional DOMString attrNs = "");
+      optional DOMString? elementNs = "",
+      optional DOMString? attrNs = "");
     DOMString? getPropertyType(
         DOMString tagName,
         DOMString property,
-        optional DOMString elementNs = "");
+        optional DOMString? elementNs = "");
     readonly attribute TrustedTypePolicy? defaultPolicy;
 };
