@@ -771,6 +771,7 @@ system_headers = [
     "soundtouch/SoundTouch.h",
     "spawn.h",
     "sqlite3.h",
+    "sqlite3_static_ext.h",
     "sslerr.h",
     "ssl.h",
     "sslproto.h",

@@ -22,6 +22,8 @@ sqlite3_bind_value
 sqlite3_bind_zeroblob
 sqlite3_busy_handler
 sqlite3_busy_timeout
+sqlite3_carray_bind
+sqlite3_carray_init
 sqlite3_changes
 sqlite3_changes64
 sqlite3_clear_bindings

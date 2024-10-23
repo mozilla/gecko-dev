@@ -32,6 +32,8 @@ vendoring:
   exclude:
     - "**"
   include:
+    - ext/misc/carray.h
+    - ext/misc/carray.c
     - LICENSE.md
     - VERSION
   keep:
@@ -44,6 +46,12 @@ vendoring:
     - action: move-file
       from: '{vendor_dir}/VERSION'
       to: '{vendor_dir}/VERSION.txt'
+    - action: move-file
+      from: '{vendor_dir}/ext/misc/carray.h'
+      to: '{yaml_dir}/ext/misc/carray.h'
+    - action: move-file
+      from: '{vendor_dir}/ext/misc/carray.c'
+      to: '{yaml_dir}/ext/misc/carray.c'
     - action: run-script
       script: '{yaml_dir}/vendor.sh'
       cwd: '{yaml_dir}'
