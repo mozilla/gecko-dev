@@ -143,6 +143,10 @@ void BrowsingContextWebProgress::UpdateAndNotifyListeners(
 }
 
 void BrowsingContextWebProgress::ContextDiscarded() {
+  if (mBounceTrackingState) {
+    mBounceTrackingState->OnBrowsingContextDiscarded();
+  }
+
   if (!mIsLoadingDocument) {
     return;
   }

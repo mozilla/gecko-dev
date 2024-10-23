@@ -211,6 +211,23 @@ void BounceTrackingState::ResetBounceTrackingRecord() {
   mBounceTrackingRecord = Nothing();
 }
 
+void BounceTrackingState::OnBrowsingContextDiscarded() {
+  MOZ_LOG(gBounceTrackingProtectionLog, LogLevel::Debug, ("%s", __FUNCTION__));
+  // We are about to be destroyed because the tab closed. This marks the end of
+  // the extended navigation (if any). Record stateful bounces.
+
+  // No ongoing extended navigation, nothing to record.
+  if (!mBounceTrackingRecord) {
+    return;
+  }
+
+  MOZ_ASSERT(mBounceTrackingProtection);
+  nsresult rv = mBounceTrackingProtection->RecordStatefulBounces(this);
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to record stateful bounces on BrowsingContext discard.");
+  }
+}
+
 const Maybe<BounceTrackingRecord>&
 BounceTrackingState::GetBounceTrackingRecord() {
   return mBounceTrackingRecord;

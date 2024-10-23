@@ -285,6 +285,9 @@ async function waitForRecordBounces(browser) {
  * @param {boolean} [options.skipSiteDataCleanup=false] - Skip the cleanup of
  * site data after the test. When this is enabled the caller is responsible for
  * cleaning up site data.
+ * @param {boolean} [options.closeTabAfterBounce=false] - Close the tab right
+ * after the bounce completes before the extended navigation ends as the result
+ * of a timeout or user interaction.
  */
 async function runTestBounce(options = {}) {
   let {
@@ -301,6 +304,7 @@ async function runTestBounce(options = {}) {
     originAttributes = {},
     postBounceCallback = () => {},
     skipSiteDataCleanup = false,
+    closeTabAfterBounce = false,
   } = options;
   info(`runTestBounce ${JSON.stringify(options)}`);
 
@@ -374,20 +378,37 @@ async function runTestBounce(options = {}) {
 
   await targetURLLoadedPromise;
 
-  // Navigate again with user gesture which triggers
-  // BounceTrackingProtection::RecordStatefulBounces. We could rely on the
-  // timeout (mClientBounceDetectionTimeout) here but that can cause races in
-  // debug where the load is quite slow.
-  let finalTargetURL = new URL(getBaseUrl(ORIGIN_C) + "file_start.html");
-  let finalLoadPromise = BrowserTestUtils.browserLoaded(
-    browser,
-    true,
-    initialURL.href
-  );
-  await navigateLinkClick(browser, finalTargetURL);
-  await finalLoadPromise;
+  // Caller requested to close the tab early. This should happen before the
+  // extended navigation ends due to timeout or user interaction with the
+  // destination site.
+  // In this case the extended navigation end is triggered by the tab close
+  // itself.
+  if (closeTabAfterBounce) {
+    // This either closes the normal or private browsing tab depending on
+    // 'usePrivateWindow'.
+    BrowserTestUtils.removeTab(tab);
+
+    // Make sure these don't get reused, the tab has been closed.
+    tab = null;
+    browser = null;
+  } else {
+    // Tab is still open.
+    // Navigate again with user gesture which triggers
+    // BounceTrackingProtection::RecordStatefulBounces. We could rely on the
+    // timeout (mClientBounceDetectionTimeout) here but that can cause races in
+    // debug where the load is quite slow.
+    let finalTargetURL = new URL(getBaseUrl(ORIGIN_C) + "file_start.html");
+    let finalLoadPromise = BrowserTestUtils.browserLoaded(
+      browser,
+      true,
+      initialURL.href
+    );
+    await navigateLinkClick(browser, finalTargetURL);
+    await finalLoadPromise;
+  }
 
   if (expectRecordBounces) {
+    info("Waiting for record-bounces to complete.");
     await promiseRecordBounces;
   } else {
     // If we don't expect classification to happen only wait for navigation from
@@ -406,12 +427,20 @@ async function runTestBounce(options = {}) {
       expectCandidate ? "" : "not "
     }have identified ${SITE_TRACKER} as a bounce tracker.`
   );
+
+  let expectedUserActivationHosts = [SITE_A];
+  if (!closeTabAfterBounce) {
+    // If we didn't close the tab early we should have user activation for the
+    // destination site.
+    expectedUserActivationHosts.push(SITE_B);
+  }
+
   Assert.deepEqual(
     bounceTrackingProtection
       .testGetUserActivationHosts(originAttributes)
       .map(entry => entry.siteHost)
       .sort(),
-    [SITE_A, SITE_B].sort(),
+    expectedUserActivationHosts.sort(),
     "Should only have user activation for sites where we clicked links."
   );
 
@@ -439,7 +468,10 @@ async function runTestBounce(options = {}) {
   }
 
   // Clean up
-  BrowserTestUtils.removeTab(tab);
+  // Tab might have been closed early.
+  if (tab) {
+    BrowserTestUtils.removeTab(tab);
+  }
   if (usePrivateWindow) {
     await BrowserTestUtils.closeWindow(win);
 

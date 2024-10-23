@@ -42,6 +42,8 @@ support-files = [
 
 ["browser_bouncetracking_stateful_web_worker.js"]
 
+["browser_bouncetracking_tab_close.js"]
+
 ["browser_bouncetracking_telemetry_purge_count.js"]
 
 ["browser_bouncetracking_telemetry_purge_duration.js"]

@@ -65,6 +65,10 @@ class BounceTrackingState : public nsIWebProgressListener,
 
   void ResetBounceTrackingRecord();
 
+  // The top level BrowsingContext and its BrowsingContextWebProgress are
+  // discarded (e.g. tab closed).
+  void OnBrowsingContextDiscarded();
+
   // Callback for when we received a response from the server and are about to
   // create a document for the response. Calls into
   // BounceTrackingState::OnResponseReceived.
