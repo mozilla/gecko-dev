@@ -92,14 +92,16 @@ nsClipboard::SetNativeClipboardData(nsITransferable* aTransferable,
     return rv;
   }
 
+  bool isPrivate = aTransferable->GetIsPrivateData();
+
   if (!html.IsEmpty() &&
       java::Clipboard::SetHTML(java::GeckoAppShell::GetApplicationContext(),
-                               text, html)) {
+                               text, html, isPrivate)) {
     return NS_OK;
   }
   if (!text.IsEmpty() &&
       java::Clipboard::SetText(java::GeckoAppShell::GetApplicationContext(),
-                               text)) {
+                               text, isPrivate)) {
     return NS_OK;
   }
 

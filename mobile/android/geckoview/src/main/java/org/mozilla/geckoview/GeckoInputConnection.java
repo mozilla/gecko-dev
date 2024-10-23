@@ -70,6 +70,7 @@ import org.mozilla.gecko.util.ThreadUtils;
   private ExtractedTextRequest mUpdateRequest;
   private final InputConnection mKeyInputConnection;
   private CursorAnchorInfo.Builder mCursorAnchorInfoBuilder;
+  private boolean mIsPrivateBrowsing;
 
   public static SessionTextInput.InputConnectionClient create(
       final GeckoSession session,
@@ -208,12 +209,13 @@ import org.mozilla.gecko.util.ThreadUtils;
         // If selection is empty, we'll select everything
         if (selStart == selEnd) {
           // Fill the clipboard
-          Clipboard.setText(view.getContext(), editable);
+          Clipboard.setText(view.getContext(), editable, mIsPrivateBrowsing);
           editable.clear();
         } else {
           Clipboard.setText(
               view.getContext(),
-              editable.subSequence(Math.min(selStart, selEnd), Math.max(selStart, selEnd)));
+              editable.subSequence(Math.min(selStart, selEnd), Math.max(selStart, selEnd)),
+              mIsPrivateBrowsing);
           editable.delete(selStart, selEnd);
         }
         break;
@@ -231,7 +233,7 @@ import org.mozilla.gecko.util.ThreadUtils;
                 : editable
                     .toString()
                     .substring(Math.min(selStart, selEnd), Math.max(selStart, selEnd));
-        Clipboard.setText(view.getContext(), copiedText);
+        Clipboard.setText(view.getContext(), copiedText, mIsPrivateBrowsing);
         break;
     }
     return true;
@@ -602,6 +604,9 @@ import org.mozilla.gecko.util.ThreadUtils;
       // to show some reasonable amount of the page (see bug 752709)
       outAttrs.imeOptions |= EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN;
     }
+
+    mIsPrivateBrowsing =
+        ((outAttrs.imeOptions & InputMethods.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0);
 
     if (DEBUG) {
       Log.d(
