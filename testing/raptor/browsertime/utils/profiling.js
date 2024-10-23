@@ -181,7 +181,7 @@ function logTest(name, test) {
     }
 
     if (context.options.browsertime.support_class) {
-      await startWindowsPowerProfiling();
+      await startWindowsPowerProfiling(context.index);
     }
 
     let iterationName = "iteration";
