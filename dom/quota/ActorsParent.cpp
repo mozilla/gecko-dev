@@ -5227,6 +5227,10 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
 
   nsTArray<RefPtr<BoolPromise>> promises;
 
+  // Directory locks for specific initializations can be null, indicating that
+  // either the initialization should not occur or it has already been
+  // completed.
+
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
       CreateDirectoryLockForInitialization(
           *this, PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
@@ -5319,7 +5323,8 @@ RefPtr<UniversalDirectoryLockPromise> QuotaManager::OpenStorageDirectory(
 }
 
 RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
-    const ClientMetadata& aClientMetadata, bool aCreateIfNonExistent,
+    const ClientMetadata& aClientMetadata, bool aInitializeOrigin,
+    bool aCreateIfNonExistent,
     Maybe<RefPtr<ClientDirectoryLock>&> aPendingDirectoryLockOut) {
   AssertIsOnOwningThread();
 
@@ -5332,6 +5337,10 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
       });
 
   nsTArray<RefPtr<BoolPromise>> promises;
+
+  // Directory locks for specific initializations can be null, indicating that
+  // either the initialization should not occur or it has already been
+  // completed.
 
   RefPtr<UniversalDirectoryLock> storageDirectoryLock =
       CreateDirectoryLockForInitialization(
@@ -5363,17 +5372,20 @@ RefPtr<ClientDirectoryLockPromise> QuotaManager::OpenClientDirectory(
         MakeBackInserter(promises));
   }
 
-  const bool originInitialized =
-      persistenceType == PERSISTENCE_TYPE_PERSISTENT
-          ? IsPersistentOriginInitialized(principalInfo)
-          : IsTemporaryOriginInitialized(persistenceType, principalInfo);
+  RefPtr<UniversalDirectoryLock> originDirectoryLock;
 
-  RefPtr<UniversalDirectoryLock> originDirectoryLock =
-      CreateDirectoryLockForInitialization(
-          *this, PersistenceScope::CreateFromValue(persistenceType),
-          OriginScope::FromOrigin(aClientMetadata), originInitialized,
-          IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation,
-          MakeBackInserter(promises));
+  if (aInitializeOrigin) {
+    const bool originInitialized =
+        persistenceType == PERSISTENCE_TYPE_PERSISTENT
+            ? IsPersistentOriginInitialized(principalInfo)
+            : IsTemporaryOriginInitialized(persistenceType, principalInfo);
+
+    originDirectoryLock = CreateDirectoryLockForInitialization(
+        *this, PersistenceScope::CreateFromValue(persistenceType),
+        OriginScope::FromOrigin(aClientMetadata), originInitialized,
+        IsDirectoryLockBlockedByUninitStorageOrUninitOriginsOperation,
+        MakeBackInserter(promises));
+  }
 
   RefPtr<ClientDirectoryLock> clientDirectoryLock =
       CreateDirectoryLock(aClientMetadata, /* aExclusive */ false);
