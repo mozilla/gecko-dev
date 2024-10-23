@@ -4339,7 +4339,7 @@
 # Whether the migration from unsupported legacy implementation is enabled.
 - name: dom.storage.enable_migration_from_unsupported_legacy_implementation
   type: RelaxedAtomicBool
-  value: true
+  value: false
   mirror: always
 
 # The amount of snapshot peak usage which is attempted to be pre-incremented

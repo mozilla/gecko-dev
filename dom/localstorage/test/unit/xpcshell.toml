@@ -72,8 +72,10 @@ run-sequentially = "this test depends on a file produced by test_databaseShadowi
 ["test_lsng_enabled.js"]
 
 ["test_migration.js"]
+prefs = ["dom.storage.enable_migration_from_unsupported_legacy_implementation=true"]
 
 ["test_migration_emptyValue.js"]
+prefs = ["dom.storage.enable_migration_from_unsupported_legacy_implementation=true"]
 support-files = ["migration_emptyValue_profile.zip",]
 
 ["test_old_lsng_pref.js"]
@@ -103,8 +105,10 @@ skip-if = ["tsan"] # Unreasonably slow, bug 1612707
 requesttimeoutfactor = 4
 
 ["test_stringLength.js"]
+prefs = ["dom.storage.enable_migration_from_unsupported_legacy_implementation=true"]
 
 ["test_stringLength2.js"]
+prefs = ["dom.storage.enable_migration_from_unsupported_legacy_implementation=true"]
 
 ["test_unicodeCharacters.js"]
 
@@ -113,3 +117,4 @@ requesttimeoutfactor = 4
 ["test_usage.js"]
 
 ["test_usageAfterMigration.js"]
+prefs = ["dom.storage.enable_migration_from_unsupported_legacy_implementation=true"]

@@ -41,6 +41,7 @@ support-files = [
 ["test_localStorageArchive1upgrade.js"]
 
 ["test_localStorageArchive4upgrade.js"]
+prefs = ["dom.storage.enable_migration_from_unsupported_legacy_implementation=true"]
 
 ["test_localStorageArchiveDowngrade.js"]
 
