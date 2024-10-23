@@ -128,7 +128,7 @@ bool SwitchEmitter::emitLexical(LexicalScope::ParserData* bindings) {
   if (!emitterScope_->enterLexical(bce_, ScopeKind::Lexical, bindings
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
                                    ,
-                                   EmitterScope::BlockKind::Switch
+                                   BlockKind::Switch
 #endif
                                    )) {
     return false;

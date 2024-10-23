@@ -338,7 +338,7 @@ void EmitterScope::dump(BytecodeEmitter* bce) {
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 bool EmitterScope::prepareForDisposableScopeBody(BytecodeEmitter* bce) {
   if (hasDisposables()) {
-    if (!usingEmitter_->prepareForDisposableScopeBody()) {
+    if (!usingEmitter_->prepareForDisposableScopeBody(blockKind_)) {
       return false;
     }
 

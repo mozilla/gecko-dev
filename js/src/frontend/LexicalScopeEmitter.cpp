@@ -15,7 +15,7 @@ bool LexicalScopeEmitter::emitScope(ScopeKind kind,
                                     LexicalScope::ParserData* bindings
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
                                     ,
-                                    EmitterScope::BlockKind blockKind
+                                    BlockKind blockKind
 #endif
 ) {
   MOZ_ASSERT(state_ == State::Start);

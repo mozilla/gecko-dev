@@ -17,6 +17,18 @@ namespace js::frontend {
 struct BytecodeEmitter;
 class EmitterScope;
 
+// This enum simply refers to the kind of block we are operating in. The present
+// use case of this is for disposal related code to special case the handling of
+// disposals in different blocks.
+enum class BlockKind : uint8_t {
+  Switch,
+  ForOf,
+
+  // Other here refers to any generic block which doesnt require any
+  // special handling.
+  Other
+};
+
 // Class for emitting bytecode for disposal loops.
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
 //
@@ -151,7 +163,7 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   void setHasAwaitUsing(bool hasAwaitUsing) { hasAwaitUsing_ = hasAwaitUsing; }
 
-  [[nodiscard]] bool prepareForDisposableScopeBody();
+  [[nodiscard]] bool prepareForDisposableScopeBody(BlockKind blockKind);
 
   [[nodiscard]] bool prepareForAssignment(UsingHint hint);
 

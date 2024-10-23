@@ -53,9 +53,6 @@ class EmitterScope : public Nestable<EmitterScope> {
 
   mozilla::Maybe<ForOfDisposalEmitter> forOfDisposalEmitter_;
 
- public:
-  enum class BlockKind : uint8_t { Switch, ForOf, Other };
-
  private:
   BlockKind blockKind_ = BlockKind::Other;
 #endif

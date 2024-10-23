@@ -5249,11 +5249,11 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitLexicalScope(
   }
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-  EmitterScope::BlockKind blockKind = EmitterScope::BlockKind::Other;
+  BlockKind blockKind = BlockKind::Other;
   if (body->isKind(ParseNodeKind::ForStmt) &&
       body->as<ForNode>().head()->isKind(ParseNodeKind::ForOf)) {
     MOZ_ASSERT(kind == ScopeKind::Lexical);
-    blockKind = EmitterScope::BlockKind::ForOf;
+    blockKind = BlockKind::ForOf;
   }
 #endif
 
