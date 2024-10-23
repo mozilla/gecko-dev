@@ -231,7 +231,15 @@ export class Weather extends BaseFeature {
     }
   }
 
-  async makeResult(queryContext, _suggestion, searchString) {
+  async filterSuggestions(suggestions) {
+    // Rust will return many suggestions when the query matches multiple cities,
+    // one suggestion per city. All suggestions will have the same score, but
+    // they'll be ordered by population size from largest to smallest. Take the
+    // first suggestion, the one with the largest population.
+    return suggestions.length ? [suggestions[0]] : suggestions;
+  }
+
+  async makeResult(queryContext, suggestion, searchString) {
     // The Rust component doesn't enforce a minimum keyword length, so discard
     // the suggestion if the search string isn't long enough. This conditional
     // will always be false for the JS backend since in that case keywords are
@@ -244,10 +252,20 @@ export class Weather extends BaseFeature {
       this.#merino = new lazy.MerinoClient(this.constructor.name);
     }
 
+    // Set up location params to pass to Merino. We need to null-check each
+    // suggestion property because `MerinoClient` will stringify null values.
+    let otherParams = {};
+    for (let key of ["city", "region", "country"]) {
+      if (suggestion[key]) {
+        otherParams[key] = suggestion[key];
+      }
+    }
+
     let merino = this.#merino;
     let fetchInstance = (this.#fetchInstance = {});
     let suggestions = await merino.fetch({
       query: "",
+      otherParams,
       providers: [MERINO_PROVIDER],
       timeoutMs: this.#timeoutMs,
       extraLatencyHistogram: HISTOGRAM_LATENCY,
@@ -260,7 +278,7 @@ export class Weather extends BaseFeature {
     if (!suggestions.length) {
       return null;
     }
-    let suggestion = suggestions[0];
+    suggestion = suggestions[0];
 
     let unit = Services.locale.regionalPrefsLocales[0] == "en-US" ? "f" : "c";
     return Object.assign(

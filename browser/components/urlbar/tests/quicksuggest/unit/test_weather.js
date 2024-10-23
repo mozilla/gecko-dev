@@ -17,7 +17,10 @@ add_setup(async () => {
       ["suggest.quicksuggest.nonsponsored", true],
       ["weather.featureGate", true],
     ],
-    remoteSettingsRecords: [QuickSuggestTestUtils.weatherRecord()],
+    remoteSettingsRecords: [
+      QuickSuggestTestUtils.weatherRecord(),
+      QuickSuggestTestUtils.geonamesRecord(),
+    ],
   });
 
   await MerinoTestUtils.initWeather();
@@ -448,6 +451,113 @@ add_task(async function nimbusOverride() {
     matches: [defaultResult],
   });
 });
+
+// Does a query that contains a city but no region.
+//
+// Note that the Rust component handles city/region parsing and has extensive
+// tests for that. Here we only need to make sure that Merino is called with the
+// city/region parsed by Rust and that the urlbar result has the correct city.
+add_task(async function cityWithoutRegion() {
+  // "waterloo" matches both Waterloo, IA and Waterloo, AL. The Rust component
+  // will return an array containing suggestions for both, and the suggestions
+  // will have the same score. We should make a urlbar result for the first
+  // suggestion in the array, which will be Waterloo, IA since it has a larger
+  // population.
+  await doCityTest({
+    query: "waterloo",
+    city: "Waterloo",
+    region: "IA",
+  });
+});
+
+// Does a query that contains a city and a region.
+add_task(async function cityWithRegion() {
+  await doCityTest({
+    query: "waterloo al",
+    city: "Waterloo",
+    region: "AL",
+  });
+});
+
+// When the query doesn't have a city, no location params should be passed to
+// Merino.
+add_task(async function noCity() {
+  await doCityTest({
+    query: "weather",
+    city: null,
+    region: null,
+    country: null,
+    expectedResultCity: WEATHER_SUGGESTION.city_name,
+  });
+});
+
+async function doCityTest({
+  query,
+  city,
+  region,
+  country = "US",
+  expectedResultCity = city,
+}) {
+  let expectedParams = {
+    q: "",
+    city,
+    region,
+    country,
+  };
+
+  let merinoCallCount = 0;
+
+  MerinoTestUtils.server.requestHandler = req => {
+    merinoCallCount++;
+    // If this fails, the Rust component returned multiple suggestions, which is
+    // fine and expected when a query matches multiple cities, but we should
+    // only ever make a urlbar result for the first one.
+    Assert.equal(merinoCallCount, 1, "Merino should be called only once");
+
+    let params = new URLSearchParams(req.queryString);
+    for (let [key, value] of Object.entries(expectedParams)) {
+      Assert.strictEqual(
+        params.get(key),
+        value,
+        "Param should be correct: " + key
+      );
+    }
+
+    let suggestion = { ...WEATHER_SUGGESTION };
+    if (city) {
+      suggestion = {
+        ...suggestion,
+        title: "Weather for " + city,
+        city_name: city,
+      };
+    }
+
+    return {
+      body: {
+        request_id: "request_id",
+        suggestions: [suggestion],
+      },
+    };
+  };
+
+  let context = createContext(query, {
+    providers: [UrlbarProviderQuickSuggest.name],
+    isPrivate: false,
+  });
+  await check_results({
+    context,
+    matches: [
+      QuickSuggestTestUtils.weatherResult({ city: expectedResultCity }),
+    ],
+  });
+
+  Assert.equal(
+    merinoCallCount,
+    1,
+    "Merino should have beeen called exactly once"
+  );
+  MerinoTestUtils.server.requestHandler = null;
+}
 
 function assertDisabled({ message }) {
   info("Asserting feature is disabled");

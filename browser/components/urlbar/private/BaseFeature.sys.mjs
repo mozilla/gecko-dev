@@ -179,9 +179,32 @@ export class BaseFeature {
   }
 
   /**
+   * If the feature corresponds to a type of suggestion, the subclass may
+   * override this method as necessary. It will be called once per query with
+   * all of the feature's suggestions that matched the query. It should return
+   * the subset that should be shown to the user. This is useful in cases where
+   * a source (Rust, Merino) may return many suggestions for the feature but
+   * only some of them should be shown, and the criteria for determining which
+   * to show are external to the source.
+   *
+   * `makeResult()` can also be used to filter suggestions by returning null for
+   * suggestions that should be discarded. Use `filterSuggestions()` when you
+   * need to know all matching suggestions in order to decide which to show.
+   *
+   * @param {Array} suggestions
+   *   The suggestions that matched a query.
+   * @returns {Array}
+   *   The subset of `suggestions` that should be shown (typically all).
+   */
+  async filterSuggestions(suggestions) {
+    return suggestions;
+  }
+
+  /**
    * If the feature corresponds to a type of suggestion, the subclass should
    * override this method. It should return a new `UrlbarResult` for a given
-   * suggestion, which can come from either remote settings or Merino.
+   * suggestion, which can come from either remote settings or Merino, or null
+   * if no result should be shown for the suggestion.
    *
    * @param {UrlbarQueryContext} _queryContext
    *   The query context.
@@ -191,8 +214,8 @@ export class BaseFeature {
    *   The search string that was used to fetch the suggestion. It may be
    *   different from `queryContext.searchString` due to trimming, lower-casing,
    *   etc. This is included as a param in case it's useful.
-   * @returns {UrlbarResult}
-   *   A new result for the suggestion.
+   * @returns {UrlbarResult|null}
+   *   A new result for the suggestion or null if a result should not be shown.
    */
   async makeResult(_queryContext, _suggestion, _searchString) {
     return null;

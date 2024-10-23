@@ -433,6 +433,22 @@ class MockMerinoServer {
   }
   set response(value) {
     this.#response = value;
+    this.#requestHandler = null;
+  }
+
+  /**
+   * If you need more control over responses than is allowed by setting
+   * `server.response`, you can use this to register a callback that will be
+   * called on each request. To unregister the callback, pass null or set
+   * `server.response`.
+   *
+   * @param {Function | null} callback
+   *   This function will be called on each request and passed the
+   *   `nsIHttpRequest`. It should return a response object as described by the
+   *   `server.response` jsdoc.
+   */
+  set requestHandler(callback) {
+    this.#requestHandler = callback;
   }
 
   /**
@@ -679,7 +695,7 @@ class MockMerinoServer {
     // Now set up and finish the response.
     httpResponse.processAsync();
 
-    let { response } = this;
+    let response = this.#requestHandler?.(httpRequest) || this.response;
 
     let finishResponse = () => {
       let status = response.status || 200;
@@ -758,6 +774,7 @@ class MockMerinoServer {
   #url = null;
   #baseURL = null;
   #response = null;
+  #requestHandler = null;
   #requests = [];
   #nextRequestDeferred = null;
   #nextDelayedResponseID = 0;

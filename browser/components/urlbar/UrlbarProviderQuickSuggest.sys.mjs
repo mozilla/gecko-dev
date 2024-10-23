@@ -140,38 +140,16 @@ class ProviderQuickSuggest extends UrlbarProvider {
       promises.push(this._fetchMerinoSuggestions(queryContext, searchString));
     }
 
-    // Wait for both sources to finish before adding a suggestion.
+    // Wait for both sources to finish.
     let values = await Promise.all(promises);
     if (instance != this.queryInstance) {
       return;
     }
 
-    let suggestions = values.flat();
-
-    // Ensure all suggestions have a `score` by falling back to the default
-    // score as necessary. If `quickSuggestScoreMap` is defined, override scores
-    // with the values it defines. It maps telemetry types to scores.
-    let scoreMap = lazy.UrlbarPrefs.get("quickSuggestScoreMap");
-    for (let suggestion of suggestions) {
-      if (isNaN(suggestion.score)) {
-        suggestion.score = DEFAULT_SUGGESTION_SCORE;
-      }
-      if (scoreMap) {
-        let telemetryType = this.#getSuggestionTelemetryType(suggestion);
-        if (scoreMap.hasOwnProperty(telemetryType)) {
-          let score = parseFloat(scoreMap[telemetryType]);
-          if (!isNaN(score)) {
-            suggestion.score = score;
-          }
-        }
-      }
+    let suggestions = await this.#filterAndSortSuggestions(values.flat());
+    if (instance != this.queryInstance) {
+      return;
     }
-
-    suggestions.sort((a, b) => b.score - a.score);
-
-    // All suggestions should have the following keys at this point. They are
-    // required for looking up the features that manage them.
-    let requiredKeys = ["source", "provider"];
 
     // Convert each suggestion into a result and add it. Don't add more than
     // `maxResults` visible results so we don't spam the muxer.
@@ -179,16 +157,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
     for (let suggestion of suggestions) {
       if (!remainingCount) {
         break;
-      }
-
-      for (let key of requiredKeys) {
-        if (!suggestion[key]) {
-          this.logger.error(
-            `Suggestion is missing required key '${key}': ` +
-              JSON.stringify(suggestion)
-          );
-          continue;
-        }
       }
 
       let canAdd = await this._canAddSuggestion(suggestion);
@@ -208,6 +176,74 @@ class ProviderQuickSuggest extends UrlbarProvider {
         }
       }
     }
+  }
+
+  async #filterAndSortSuggestions(suggestions) {
+    let requiredKeys = ["source", "provider"];
+    let scoreMap = lazy.UrlbarPrefs.get("quickSuggestScoreMap");
+    let suggestionsByFeature = new Map();
+    let indexesBySuggestion = new Map();
+
+    for (let i = 0; i < suggestions.length; i++) {
+      let suggestion = suggestions[i];
+
+      // Discard suggestions that don't have the required keys, which are used
+      // to look up their features. Normally this shouldn't ever happen.
+      if (!requiredKeys.every(key => suggestion[key])) {
+        this.logger.error(
+          "Suggestion is missing one or more required keys: " +
+            JSON.stringify({ requiredKeys, suggestion })
+        );
+        continue;
+      }
+
+      // Ensure all suggestions have scores. `quickSuggestScoreMap`, if defined,
+      // maps telemetry types to score overrides.
+      if (isNaN(suggestion.score)) {
+        suggestion.score = DEFAULT_SUGGESTION_SCORE;
+      }
+      if (scoreMap) {
+        let telemetryType = this.#getSuggestionTelemetryType(suggestion);
+        if (scoreMap.hasOwnProperty(telemetryType)) {
+          let score = parseFloat(scoreMap[telemetryType]);
+          if (!isNaN(score)) {
+            suggestion.score = score;
+          }
+        }
+      }
+
+      // Save some state used below to build the final list of suggestions.
+      let feature = this.#getFeature(suggestion);
+      let featureSuggestions = suggestionsByFeature.get(feature);
+      if (!featureSuggestions) {
+        featureSuggestions = [];
+        suggestionsByFeature.set(feature, featureSuggestions);
+      }
+      featureSuggestions.push(suggestion);
+      indexesBySuggestion.set(suggestion, i);
+    }
+
+    // Let each feature filter its suggestions.
+    suggestions = (
+      await Promise.all(
+        [...suggestionsByFeature].map(([feature, featureSuggestions]) =>
+          feature
+            ? feature.filterSuggestions(featureSuggestions)
+            : Promise.resolve(featureSuggestions)
+        )
+      )
+    ).flat();
+
+    // Sort the suggestions. When scores are equal, sort by original index to
+    // ensure a stable sort.
+    suggestions.sort((a, b) => {
+      return (
+        b.score - a.score ||
+        indexesBySuggestion.get(a) - indexesBySuggestion.get(b)
+      );
+    });
+
+    return suggestions;
   }
 
   onImpression(state, queryContext, controller, providerVisibleResults) {
