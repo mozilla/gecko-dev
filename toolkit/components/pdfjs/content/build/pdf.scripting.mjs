@@ -832,10 +832,6 @@ class RadioButtonField extends Field {
     this._hasBeenInitialized = true;
     this._value = data.value || "";
   }
-  get _siblings() {
-    return this._radioIds.filter(id => id !== this._id);
-  }
-  set _siblings(_) {}
   get value() {
     return this._value;
   }
@@ -3916,23 +3912,29 @@ function initSandbox(params) {
       obj.doc = _document;
       obj.fieldPath = name;
       obj.appObjects = appObjects;
-      const otherFields = annotations.slice(1);
       let field;
       switch (obj.type) {
         case "radiobutton":
           {
-            field = new RadioButtonField(otherFields, obj);
+            const otherButtons = annotations.slice(1);
+            field = new RadioButtonField(otherButtons, obj);
             break;
           }
         case "checkbox":
           {
-            field = new CheckboxField(otherFields, obj);
+            const otherButtons = annotations.slice(1);
+            field = new CheckboxField(otherButtons, obj);
             break;
           }
-        default:
-          if (otherFields.length > 0) {
-            obj.siblings = otherFields.map(x => x.id);
+        case "text":
+          if (annotations.length <= 1) {
+            field = new Field(obj);
+            break;
           }
+          obj.siblings = annotations.map(x => x.id).slice(1);
+          field = new Field(obj);
+          break;
+        default:
           field = new Field(obj);
       }
       const wrapped = new Proxy(field, proxyHandler);
@@ -4028,8 +4030,8 @@ function initSandbox(params) {
 
 ;// ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.8.30";
-const pdfjsBuild = "bde36f28b";
+const pdfjsVersion = "4.7.78";
+const pdfjsBuild = "81cf42df4";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };

@@ -3569,11 +3569,11 @@ body{
   mask-image:var(--toolbarButton-editorStamp-icon);
 }
 
-#printButton::before{
+:is(#printButton, #secondaryPrint)::before{
   mask-image:var(--toolbarButton-print-icon);
 }
 
-#downloadButton::before{
+:is(#downloadButton, #secondaryDownload)::before{
   mask-image:var(--toolbarButton-download-icon);
 }
 
