@@ -33,7 +33,7 @@ const TESTCASES = [
   ],
   ["file:///foo/bar", "file://"],
   ["file://foo/bar", "file://"],
-  ["randomprotocol://example.com", null],
+  ["randomprotocol://example.com", "randomprotocol://example.com"],
 ];
 
 for (let [input, expected, allowJS] of TESTCASES) {
