@@ -93,6 +93,8 @@ void CachingDatabaseConnection::Close() {
 
   MOZ_ALWAYS_SUCCEEDS((*mStorageConnection)->Close());
   mStorageConnection.destroy();
+
+  mClosed = true;
 }
 
 #if defined(DEBUG) || defined(NS_BUILD_REFCNT_LOGGING)

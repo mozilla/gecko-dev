@@ -17,6 +17,7 @@
 #include "nsISupportsImpl.h"
 #include "nsString.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/InitializedOnce.h"
 #include "mozilla/NotNull.h"
@@ -85,6 +86,8 @@ class CachingDatabaseConnection {
     return **mStorageConnection;
   }
 
+  bool Closed() const { return mClosed; }
+
   Result<CachedStatement, nsresult> GetCachedStatement(
       const nsACString& aQuery);
 
@@ -136,6 +139,7 @@ class CachingDatabaseConnection {
       mStorageConnection;
   nsInterfaceHashtable<nsCStringHashKey, mozIStorageStatement>
       mCachedStatements;
+  Atomic<bool> mClosed;
 };
 
 class CachingDatabaseConnection::CachedStatement final {
