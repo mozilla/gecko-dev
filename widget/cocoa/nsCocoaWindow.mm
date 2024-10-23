@@ -3650,14 +3650,9 @@ static bool ShouldShiftByMenubarHeightInFullscreen(nsCocoaWindow* aWindow) {
     default:
       break;
   }
-  // TODO: On notch-less macbooks, this creates extra space when the
-  // "automatically show and hide the menubar on fullscreen" option is unchecked
-  // (default checked). We tried to detect that in bug 1737831 but it wasn't
-  // reliable enough, see the regressions from that bug. For now, stick to the
-  // good behavior for default configurations (that is, shift by menubar height
-  // on notch-less macbooks, and don't for devices that have a notch). This will
-  // need refinement in the future.
-  return !ScreenHasNotch(aWindow);
+  return !ScreenHasNotch(aWindow) &&
+         ![NSUserDefaults.standardUserDefaults
+             integerForKey:@"AppleMenuBarVisibleInFullscreen"];
 }
 
 - (void)updateTitlebarShownAmount:(CGFloat)aShownAmount {
