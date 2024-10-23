@@ -904,6 +904,9 @@ def target_tasks_general_perf_testing(full_task_graph, parameters, graph_config)
         if "live" in try_name and "sheriffed" not in try_name:
             return False
 
+        if "network-bench" in try_name:
+            return False
+
         # Desktop selection
         if accept_raptor_desktop_build(platform):
             # Select some browsertime tasks as desktop smoke-tests
