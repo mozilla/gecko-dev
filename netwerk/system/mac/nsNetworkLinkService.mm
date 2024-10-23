@@ -427,6 +427,7 @@ bool nsNetworkLinkService::RoutingFromKernel(nsTArray<nsCString>& aHash) {
     LOG(("RoutingFromKernel: Can create a socket for network id"));
     return false;
   }
+  auto sockfd_guard = mozilla::MakeScopeExit([sockfd] { close(sockfd); });
 
   MOZ_ASSERT(!NS_IsMainThread());
 
