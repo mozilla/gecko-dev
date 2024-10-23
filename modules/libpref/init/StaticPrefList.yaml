@@ -1559,7 +1559,7 @@
 
 - name: browser.navigation.requireUserInteraction
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Indicates if about:newtab shows content (enabled) or just blank.
