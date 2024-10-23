@@ -30,6 +30,8 @@ class ViewportSizeHighlighter {
    *        Defaults to "viewport-size-highlighter-"
    * @param {Boolean} options.waitForDocumentToLoad: Option that will be passed to
    *        CanvasFrameAnonymousContentHelper. Defaults to true
+   * @param {Boolean} options.avoidForcedSynchronousLayoutUpdate: Option that will be passed to
+   *        CanvasFrameAnonymousContentHelper. Defaults to false
    */
   constructor(highlighterEnv, parent, options = {}) {
     this.env = highlighterEnv;
@@ -41,7 +43,11 @@ class ViewportSizeHighlighter {
     this.markup = new CanvasFrameAnonymousContentHelper(
       highlighterEnv,
       this._buildMarkup.bind(this),
-      { waitForDocumentToLoad: options?.waitForDocumentToLoad ?? true }
+      {
+        waitForDocumentToLoad: options?.waitForDocumentToLoad ?? true,
+        avoidForcedSynchronousLayoutUpdate:
+          options?.avoidForcedSynchronousLayoutUpdate ?? false,
+      }
     );
     this._onPageResize = this._onPageResize.bind(this);
     this.isReady = this.markup.initialize();

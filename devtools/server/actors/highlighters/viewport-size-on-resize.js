@@ -23,6 +23,12 @@ class ViewportSizeOnResizeHighlighter extends ViewportSizeHighlighter {
       prefix: "viewport-size-on-resize-highlighter-",
       hideTimeout: HIDE_TIMEOUT_MS,
       waitForDocumentToLoad: false,
+      // We don't want to force a layout update as the highlighter will probably be hidden
+      // to begin with and could cause animation to be triggered (as well as a warning
+      // message to be printed in the console).
+      // We don't care too much if we'd need the layout update anyway as the highlighter
+      // is shown on resize, which do trigger a layout update.
+      avoidForcedSynchronousLayoutUpdate: true,
     });
   }
 }
