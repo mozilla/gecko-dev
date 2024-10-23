@@ -420,6 +420,8 @@ https_first_disabled = true
 
 ["browser_restrict_keywords.js"]
 
+["browser_restrict_keywords_autofill.js"]
+
 ["browser_resultSpan.js"]
 
 ["browser_result_menu.js"]
