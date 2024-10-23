@@ -166,9 +166,7 @@ fi
 if $NEED_WINDOW_MANAGER; then
     # This is read by xsession to select the window manager
     . /etc/lsb-release
-    if [ $DISTRIBUTION == "Ubuntu" ] && [ $RELEASE == "16.04" ]; then
-        echo DESKTOP_SESSION=ubuntu > $HOME/.xsessionrc
-    elif [ $DISTRIBUTION == "Ubuntu" ] && [ $RELEASE == "18.04" ]; then
+    if [ $DISTRIBUTION == "Ubuntu" ] && [ $RELEASE == "18.04" ]; then
         echo export DESKTOP_SESSION=gnome > $HOME/.xsessionrc
         echo export XDG_CURRENT_DESKTOP=GNOME > $HOME/.xsessionrc
         if [ $MOZ_ENABLE_WAYLAND ]; then

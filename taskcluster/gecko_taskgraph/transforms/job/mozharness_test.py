@@ -156,10 +156,6 @@ def mozharness_test_on_docker(config, job, taskdesc):
 
     env["PYTHON"] = "python3"
 
-    # Legacy linux64 tests rely on compiz.
-    if test.get("docker-image", {}).get("in-tree") == "desktop1604-test":
-        env.update({"NEED_COMPIZ": "true"})
-
     # Bug 1602701/1601828 - use compiz on ubuntu1804 due to GTK asynchiness
     # when manipulating windows.
     if test.get("docker-image", {}).get("in-tree") == "ubuntu1804-test":
