@@ -277,12 +277,13 @@
   }
 
   &:hover > .toolbarbutton-icon {
-    background-color: #d70022;
-    color: white;
+    background-color: var(--button-background-color-destructive);
+    color: var(--button-text-color-destructive);
   }
 
   &:hover:active > .toolbarbutton-icon {
-    background-color: #ff0039;
+    background-color: var(--button-background-color-destructive-active);
+    color: var(--button-text-color-destructive-active);
   }
 
   @media not (-moz-gtk-csd-close-button) {

@@ -167,11 +167,12 @@
   }
 
   .titlebar-close:hover {
-    stroke: white;
-    background-color: hsl(355,86%,49%);
+    background-color: var(--button-background-color-destructive);
+    stroke: var(--button-text-color-destructive);
 
     &:active {
-      background-color: hsl(355,82%,69%);
+      background-color: var(--button-background-color-destructive-active);
+      stroke: var(--button-text-color-destructive-active);
     }
   }
 }
