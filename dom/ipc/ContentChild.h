@@ -310,6 +310,9 @@ class ContentChild final : public PContentChild,
   mozilla::ipc::IPCResult RecvRegisterStringBundles(
       nsTArray<StringBundleDescriptor>&& stringBundles);
 
+  mozilla::ipc::IPCResult RecvSimpleURIUnknownRemoteSchemes(
+      nsTArray<nsCString>&& aRemoteSchemes);
+
   mozilla::ipc::IPCResult RecvUpdateL10nFileSources(
       nsTArray<L10nFileSourceDescriptor>&& aDescriptors);
 

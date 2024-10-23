@@ -67,6 +67,7 @@ support-files = [
   "cookie_filtering_secure_resource_org.html^headers^",
   "cookie_filtering_square.png",
   "cookie_filtering_square.png^headers^",
+  "simple_unknown_uri_helpers.sys.mjs",
   "x_frame_options.html",
   "x_frame_options.html^headers^",
   "test_1629307.html",
@@ -186,6 +187,10 @@ skip-if = ["socketprocess_networking"] # Bug 1772209
 ["browser_resource_navigation.js"]
 
 ["browser_set_response_override.js"]
+
+["browser_simple_unknown_uris.js"]
+
+["browser_simple_unknown_uris_sync.js"]
 
 ["browser_speculative_connection_link_header.js"]
 
