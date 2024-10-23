@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <script>
+      ok(
+        SpecialPowers.getBoolPref("dom.webgpu.enabled"),
+        "Pref should be enabled."
+      );
+
+      SimpleTest.waitForExplicitFinish();
+
+      // This test has 3 phases:
+      // 1) Repeatedly call a function that creates some WebGPU objects with
+      //    some variations. One of the objects is always an encoder. Act on
+      //    those objects in ways that might confuse the cycle detector. All
+      //    of the objects *should* be garbage collectable, including the
+      //    encoders. Store a weak link to each of the encoders.
+      // 2) Invoke garbage collection.
+      // 3) Confirm all the encoders were garbage collected.
+
+      // Define some stuff we'll use in the various phases.
+      const gc_promise = () =>
+        new Promise(resolve => SpecialPowers.exactGC(resolve));
+
+      // Define an array of structs containing a label and a weak reference
+      // to an encoder, then fill it by executing a bunch of WebGPU commands.
+      let results = [];
+
+      // Here's our WebGPU test function, which we'll call with permuted
+      // parameters:
+      // label: string label to use in error messages
+      // encoderType: string in ["render", "compute", "bundle"].
+      // resourceExtraParam: boolean should one of the resources get an
+      //   added property with a scalar value. This can change the order that
+      //   things are processed by the cycle collector.
+      // resourceCycle: boolean should one of the resources get an added
+      //   property that is set to the encoder.
+      // endOrFinish: boolean should the encoder be ended. If not, it's just
+      //   dropped.
+      let test_func = async (
+        label,
+        encoderType,
+        resourceExtraParam,
+        resourceCycle,
+        endOrFinish
+      ) => {
+        const adapter = await navigator.gpu.requestAdapter();
+        const device = await adapter.requestDevice();
+
+        let encoder;
+        let pass;
+        let resource;
+        if (encoderType == "render") {
+          // Create some resources, and setup the pass.
+          encoder = device.createCommandEncoder();
+          const texture = device.createTexture({
+            size: { width: 1, height: 1, depthOrArrayLayers: 1 },
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.RENDER_ATTACHMENT,
+          });
+          const view = texture.createView();
+          pass = encoder.beginRenderPass({
+            colorAttachments: [
+              {
+                view,
+                loadOp: "load",
+                storeOp: "store",
+              },
+            ],
+          });
+          resource = view;
+        } else if (encoderType == "compute") {
+          // Create some resources, and setup the pass.
+          encoder = device.createCommandEncoder();
+          const pipeline = device.createComputePipeline({
+            layout: "auto",
+            compute: {
+              module: device.createShaderModule({
+                code: `
+                  struct Buffer { data: array<u32>, };
+                  @group(0) @binding(0) var<storage, read_write> buffer: Buffer;
+                  @compute @workgroup_size(1) fn main(
+                      @builtin(global_invocation_id) id: vec3<u32>) {
+                    buffer.data[id.x] = buffer.data[id.x] + 1u;
+                  }
+                `,
+              }),
+              entryPoint: "main",
+            },
+          });
+          pass = encoder.beginComputePass();
+          pass.setPipeline(pipeline);
+          resource = pipeline;
+        } else if (encoderType == "bundle") {
+          // Create some resources and setup the encoder.
+          const pipeline = device.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+              module: device.createShaderModule({
+                code: `
+                  @vertex fn vert_main() -> @builtin(position) vec4<f32> {
+                    return vec4<f32>(0.5, 0.5, 0.0, 1.0);
+                  }
+              `,
+              }),
+              entryPoint: "vert_main",
+            },
+            fragment: {
+              module: device.createShaderModule({
+                code: `
+                  struct Data {
+                    a : u32
+                  };
+
+                  @group(0) @binding(0) var<storage, read_write> data : Data;
+                  @fragment fn frag_main() -> @location(0) vec4<f32> {
+                    data.a = 0u;
+                    return vec4<f32>();
+                  }
+              `,
+              }),
+              entryPoint: "frag_main",
+              targets: [{ format: "rgba8unorm" }],
+            },
+            primitive: { topology: "point-list" },
+          });
+          encoder = device.createRenderBundleEncoder({
+            colorFormats: ["rgba8unorm"],
+          });
+          encoder.setPipeline(pipeline);
+          resource = pipeline;
+        }
+
+        if (resourceExtraParam) {
+          resource.extra = true;
+        }
+
+        if (resourceCycle) {
+          resource.encoder = encoder;
+        }
+
+        if (endOrFinish) {
+          if (encoderType == "render" || encoderType == "compute") {
+            pass.end();
+          } else if (encoderType == "bundle") {
+            encoder.finish();
+          }
+        }
+
+        // Get a weak ref to the encoder, which we'll check after GC to ensure
+        // that it got collected.
+        encoderWeakRef = SpecialPowers.Cu.getWeakReference(encoder);
+        ok(encoderWeakRef.get(), `${label} got encoder weak ref.`);
+
+        results.push({
+          label,
+          encoderWeakRef,
+        });
+      };
+
+      // The rest of the test will run in a promise chain. Define an async
+      // function to fill our results.
+      let call_test_func = async () => {
+        for (const encoderType of ["render", "compute", "bundle"]) {
+          for (const resourceExtraParam of [true, false]) {
+            for (const resourceCycle of [true, false]) {
+              for (const endOrFinish of [true, false]) {
+                const label = `[${encoderType}, ${resourceExtraParam}, ${resourceCycle}, ${endOrFinish}]`;
+                await test_func(
+                  label,
+                  encoderType,
+                  resourceExtraParam,
+                  resourceCycle,
+                  endOrFinish
+                );
+              }
+            }
+          }
+        }
+      };
+
+      // Phase 1: Start the promise chain and call test_func repeated to fill
+      // our results struct.
+      call_test_func()
+        // Phase 2: Do our garbage collection.
+        .then(gc_promise)
+        .then(gc_promise)
+        .then(gc_promise)
+        // Phase 3: Iterate over results and check that all of the encoders
+        // were garbage collected.
+        .then(() => {
+          for (result of results) {
+            ok(
+              !result.encoderWeakRef.get(),
+              `${result.label} cycle collected encoder.`
+            );
+          }
+        })
+        .catch(e => {
+          ok(false, `unhandled exception ${e}`);
+        })
+        .finally(() => {
+          SimpleTest.finish();
+        });
+    </script>
+  </body>
+</html>
