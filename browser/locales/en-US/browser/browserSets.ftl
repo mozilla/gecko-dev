@@ -104,6 +104,9 @@ nav-reload-shortcut =
 nav-stop-shortcut =
     .key = .
 
+ai-chatbot-sidebar-shortcut =
+    .key = I
+
 history-show-all-shortcut =
     .key = H
 
