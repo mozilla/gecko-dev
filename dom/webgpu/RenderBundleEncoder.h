@@ -40,7 +40,6 @@ class RenderBundleEncoder final : public ObjectBase, public ChildOf<Device> {
   nsTArray<RefPtr<const BindGroup>> mUsedBindGroups;
   nsTArray<RefPtr<const Buffer>> mUsedBuffers;
   nsTArray<RefPtr<const RenderPipeline>> mUsedPipelines;
-  nsTArray<RefPtr<const TextureView>> mUsedTextureViews;
 
  public:
   // programmable pass encoder

@@ -13,7 +13,8 @@
 
 namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(ComputePassEncoder, mParent)
+GPU_IMPL_CYCLE_COLLECTION(ComputePassEncoder, mParent, mUsedBindGroups,
+                          mUsedPipelines)
 GPU_IMPL_JS_WRAP(ComputePassEncoder)
 
 void ffiWGPUComputePassDeleter::operator()(ffi::WGPURecordedComputePass* raw) {
@@ -40,9 +41,10 @@ ComputePassEncoder::ComputePassEncoder(
 ComputePassEncoder::~ComputePassEncoder() { Cleanup(); }
 
 void ComputePassEncoder::Cleanup() {
-  if (mValid) {
-    End();
-  }
+  mValid = false;
+  mPass.release();
+  mUsedBindGroups.Clear();
+  mUsedPipelines.Clear();
 }
 
 void ComputePassEncoder::SetBindGroup(
@@ -111,12 +113,12 @@ void ComputePassEncoder::InsertDebugMarker(const nsAString& aString) {
 }
 
 void ComputePassEncoder::End() {
-  if (mValid) {
-    mValid = false;
-    auto* pass = mPass.release();
-    MOZ_ASSERT(pass);
-    mParent->EndComputePass(*pass);
+  if (!mValid) {
+    return;
   }
+  MOZ_ASSERT(!!mPass);
+  mParent->EndComputePass(*mPass);
+  Cleanup();
 }
 
 }  // namespace mozilla::webgpu

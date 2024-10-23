@@ -13,7 +13,9 @@
 
 namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(RenderPassEncoder, mParent)
+GPU_IMPL_CYCLE_COLLECTION(RenderPassEncoder, mParent, mUsedBindGroups,
+                          mUsedBuffers, mUsedPipelines, mUsedTextureViews,
+                          mUsedRenderBundles)
 GPU_IMPL_JS_WRAP(RenderPassEncoder)
 
 void ffiWGPURenderPassDeleter::operator()(ffi::WGPURecordedRenderPass* raw) {
@@ -172,9 +174,13 @@ RenderPassEncoder::RenderPassEncoder(CommandEncoder* const aParent,
 RenderPassEncoder::~RenderPassEncoder() { Cleanup(); }
 
 void RenderPassEncoder::Cleanup() {
-  if (mValid) {
-    End();
-  }
+  mValid = false;
+  mPass.release();
+  mUsedBindGroups.Clear();
+  mUsedBuffers.Clear();
+  mUsedPipelines.Clear();
+  mUsedTextureViews.Clear();
+  mUsedRenderBundles.Clear();
 }
 
 void RenderPassEncoder::SetBindGroup(
@@ -335,12 +341,12 @@ void RenderPassEncoder::InsertDebugMarker(const nsAString& aString) {
 }
 
 void RenderPassEncoder::End() {
-  if (mValid) {
-    mValid = false;
-    auto* pass = mPass.release();
-    MOZ_ASSERT(pass);
-    mParent->EndRenderPass(*pass);
+  if (!mValid) {
+    return;
   }
+  MOZ_ASSERT(!!mPass);
+  mParent->EndRenderPass(*mPass);
+  Cleanup();
 }
 
 }  // namespace mozilla::webgpu
