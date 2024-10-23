@@ -4,23 +4,26 @@
  *   maximum values.
  */
 
+let targetWidth = Services.prefs.getIntPref("privacy.window.maxInnerWidth");
+let targetHeight = Services.prefs.getIntPref("privacy.window.maxInnerHeight");
+
 OpenTest.run([
   {
-    settingWidth: 1025,
-    settingHeight: 1050,
-    targetWidth: 1000,
-    targetHeight: 1000,
+    settingWidth: targetWidth + 25,
+    settingHeight: targetHeight + 50,
+    targetWidth,
+    targetHeight,
   },
   {
     settingWidth: 9999,
     settingHeight: 9999,
-    targetWidth: 1000,
-    targetHeight: 1000,
+    targetWidth,
+    targetHeight,
   },
   {
-    settingWidth: 999,
-    settingHeight: 999,
-    targetWidth: 1000,
-    targetHeight: 1000,
+    settingWidth: targetWidth - 1,
+    settingHeight: targetHeight - 1,
+    targetWidth,
+    targetHeight,
   },
 ]);

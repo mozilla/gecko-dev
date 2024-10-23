@@ -306,19 +306,28 @@ async function calcMaximumAvailSize(aChromeWidth, aChromeHeight) {
   let availWidth = window.screen.availWidth;
   let availHeight = window.screen.availHeight;
 
-  // Ideally, we would round the window size as 1000x1000. But the available
-  // screen space might not suffice. So, we decide the size according to the
-  // available screen size.
-  let availContentWidth = Math.min(1000, availWidth - chromeUIWidth);
+  // Ideally, we would round the window size as
+  // privacy.window.maxInnerWidth x privacy.window.maxInnerHeight. But the
+  // available screen space might not suffice. So, we decide the size according
+  // to the available screen size.
+  let maxInnerWidth = Services.prefs.getIntPref("privacy.window.maxInnerWidth");
+  let maxInnerHeight = Services.prefs.getIntPref(
+    "privacy.window.maxInnerHeight"
+  );
+
+  let availContentWidth = Math.min(maxInnerWidth, availWidth - chromeUIWidth);
   let availContentHeight;
 
   // If it is GTK window, we would consider the system decorations when we
   // calculating avail content height since the system decorations won't be
   // reported when we get available screen dimensions.
   if (AppConstants.MOZ_WIDGET_GTK) {
-    availContentHeight = Math.min(1000, -40 + availHeight - chromeUIHeight);
+    availContentHeight = Math.min(
+      maxInnerHeight,
+      -40 + availHeight - chromeUIHeight
+    );
   } else {
-    availContentHeight = Math.min(1000, availHeight - chromeUIHeight);
+    availContentHeight = Math.min(maxInnerHeight, availHeight - chromeUIHeight);
   }
 
   // Rounded the desire size to the nearest 200x100.

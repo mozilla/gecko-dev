@@ -53,7 +53,7 @@ function checkForDefaultSetting(
   aRealHeight
 ) {
   // We can get the rounded size by subtracting twice the margin.
-  let targetWidth = aRealWidth - 2 * RFPHelper.steppedRange(aRealWidth);
+  let targetWidth = aRealWidth - 2 * RFPHelper.steppedRange(aRealWidth, true);
   let targetHeight = aRealHeight - 2 * RFPHelper.steppedRange(aRealHeight);
 
   // This platform-specific code is explained in the large comment below.
