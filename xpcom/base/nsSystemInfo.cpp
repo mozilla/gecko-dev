@@ -12,6 +12,7 @@
 #include "prio.h"
 #include "mozilla/SSE.h"
 #include "mozilla/arm.h"
+#include "mozilla/Hal.h"
 #include "mozilla/LazyIdleThread.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Sprintf.h"
@@ -1276,6 +1277,16 @@ nsresult CollectProcessInfo(ProcessInfo& info) {
 #else
   info.cpuCount = PR_GetNumberOfProcessors();
 #endif
+  if (Maybe<hal::HeterogeneousCpuInfo> hetCpuInfo =
+          hal::GetHeterogeneousCpuInfo()) {
+    info.cpuPCount = int32_t(hetCpuInfo->mBigCpus.Count());
+    info.cpuMCount = int32_t(hetCpuInfo->mMediumCpus.Count());
+    info.cpuECount = int32_t(hetCpuInfo->mLittleCpus.Count());
+  } else {
+    info.cpuPCount = physicalCPUs;
+    info.cpuMCount = 0;
+    info.cpuECount = 0;
+  }
 
   if (cpuSpeed >= 0) {
     info.cpuSpeed = cpuSpeed;
@@ -1762,6 +1773,18 @@ JSObject* GetJSObjForProcessInfo(JSContext* aCx, const ProcessInfo& info) {
   JS::Rooted<JS::Value> valCoreInfo(
       aCx, info.cpuCores ? JS::Int32Value(info.cpuCores) : JS::NullValue());
   JS_SetProperty(aCx, jsInfo, "cores", valCoreInfo);
+
+  JS::Rooted<JS::Value> valPCountInfo(
+      aCx, info.cpuCores ? JS::Int32Value(info.cpuPCount) : JS::NullValue());
+  JS_SetProperty(aCx, jsInfo, "pcount", valPCountInfo);
+
+  JS::Rooted<JS::Value> valMCountInfo(
+      aCx, info.cpuCores ? JS::Int32Value(info.cpuMCount) : JS::NullValue());
+  JS_SetProperty(aCx, jsInfo, "mcount", valMCountInfo);
+
+  JS::Rooted<JS::Value> valECountInfo(
+      aCx, info.cpuCores ? JS::Int32Value(info.cpuECount) : JS::NullValue());
+  JS_SetProperty(aCx, jsInfo, "ecount", valECountInfo);
 
   JSString* strVendor =
       JS_NewStringCopyN(aCx, info.cpuVendor.get(), info.cpuVendor.Length());

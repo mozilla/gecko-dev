@@ -56,6 +56,9 @@ struct ProcessInfo {
   bool isWindowsSMode = false;
   int32_t cpuCount = 0;
   int32_t cpuCores = 0;
+  int32_t cpuPCount = 0;
+  int32_t cpuMCount = 0;
+  int32_t cpuECount = 0;
   nsCString cpuVendor;
   nsCString cpuName;
   int32_t cpuFamily = 0;
