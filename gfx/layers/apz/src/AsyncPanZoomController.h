@@ -982,6 +982,7 @@ class AsyncPanZoomController {
     STANDARD, /* Default axis locking mode that remains locked until pan ends */
     STICKY,   /* Allow lock to be broken, with hysteresis */
     DOMINANT_AXIS, /* Only allow movement on one axis */
+    BREAKABLE,     /* Allow lock to be broken until the pan ends */
   };
 
   static AxisLockMode GetAxisLockMode();

@@ -849,7 +849,8 @@ AsyncPanZoomController::GetAxisLockMode() {
 }
 
 bool AsyncPanZoomController::UsingStatefulAxisLock() const {
-  return (GetAxisLockMode() == STANDARD || GetAxisLockMode() == STICKY);
+  return (GetAxisLockMode() == STANDARD || GetAxisLockMode() == STICKY ||
+          GetAxisLockMode() == BREAKABLE);
 }
 
 /* static */ AsyncPanZoomController::PinchLockMode
@@ -3499,7 +3500,8 @@ void AsyncPanZoomController::HandlePanning(double aAngle) {
 void AsyncPanZoomController::HandlePanningUpdate(
     const ScreenPoint& aPanDistance) {
   // If we're axis-locked, check if the user is trying to break the lock
-  if (GetAxisLockMode() == STICKY && !mPanDirRestricted) {
+  if ((GetAxisLockMode() == STICKY || GetAxisLockMode() == BREAKABLE) &&
+      !mPanDirRestricted) {
     ParentLayerPoint vector =
         ToParentLayerCoordinates(aPanDistance, mStartTouch);
 
@@ -3516,10 +3518,11 @@ void AsyncPanZoomController::HandlePanningUpdate(
           if (!apz::IsCloseToHorizontal(
                   angle, StaticPrefs::apz_axis_lock_breakout_angle())) {
             mY.SetAxisLocked(false);
-            // If we are within the lock angle from the Y axis, lock
-            // onto the Y axis.
+            // If we are within the lock angle from the Y axis and STICKY,
+            // lock onto the Y axis. BREAKABLE should not re-acquire the lock.
             if (apz::IsCloseToVertical(
-                    angle, StaticPrefs::apz_axis_lock_lock_angle())) {
+                    angle, StaticPrefs::apz_axis_lock_lock_angle()) &&
+                GetAxisLockMode() != BREAKABLE) {
               mX.SetAxisLocked(true);
               SetState(PANNING_LOCKED_Y);
             } else {
@@ -3532,10 +3535,11 @@ void AsyncPanZoomController::HandlePanningUpdate(
           if (!apz::IsCloseToVertical(
                   angle, StaticPrefs::apz_axis_lock_breakout_angle())) {
             mX.SetAxisLocked(false);
-            // If we are within the lock angle from the X axis, lock
-            // onto the X axis.
+            // If we are within the lock angle from the X axis and STICKY,
+            // lock onto the X axis. BREAKABLE should not re-acquire the lock.
             if (apz::IsCloseToHorizontal(
-                    angle, StaticPrefs::apz_axis_lock_lock_angle())) {
+                    angle, StaticPrefs::apz_axis_lock_lock_angle()) &&
+                GetAxisLockMode() != BREAKABLE) {
               mY.SetAxisLocked(true);
               SetState(PANNING_LOCKED_X);
             } else {
@@ -3545,7 +3549,11 @@ void AsyncPanZoomController::HandlePanningUpdate(
           break;
 
         case PANNING:
-          HandlePanning(angle);
+          // `HandlePanning` can re-acquire the axis lock, which we don't want
+          // to do if the lock is BREAKABLE
+          if (GetAxisLockMode() != BREAKABLE) {
+            HandlePanning(angle);
+          }
           break;
 
         default:
