@@ -8,6 +8,11 @@ AddonTestUtils.init(this);
 
 add_task(async function setup() {
   await ExtensionTestUtils.startAddonManager();
+
+  // FOG needs a profile directory to put its data in.
+  do_get_profile();
+  // FOG needs to be initialized in order for data to flow.
+  Services.fog.initializeFOG();
 });
 
 add_task(test_config_flag_needed);
@@ -31,5 +36,11 @@ add_task(function test_bytes_in_use() {
 add_task(function test_storage_onChanged_event_page() {
   return runWithPrefs([[STORAGE_SYNC_PREF, true]], () =>
     test_storage_change_event_page("sync")
+  );
+});
+
+add_task(async function test_storage_sync_telemetry() {
+  return runWithPrefs([[STORAGE_SYNC_PREF, true]], () =>
+    test_storage_sync_telemetry_quota("rust", true)
   );
 });

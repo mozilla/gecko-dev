@@ -366,6 +366,37 @@ extensions.data:
         type: string
     expires: 140
 
+  sync_usage_quotas:
+    type: event
+    description: |
+      These events record the basic stat about usage, and are collected the
+      first time an extension uses the sync storage API during a session.
+    bugs:
+      - https://bugzilla.mozilla.org/1915183
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D222442
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+    extra_keys:
+      addon_id:
+        description: Id of the addon.
+        type: string
+      total_size_bytes:
+        description: Size of the sync data.
+        type: quantity
+      items_count:
+        description: Number of items in sync storage.
+        type: quantity
+      items_over_quota:
+        description: Count of items larger than QUOTA_BYTES_PER_ITEM.
+        type: quantity
+      backend:
+        description: Backend engine used, currently either "kinto" or "rust"
+        type: string
+    expires: 140
+
 extensions.counters:
 
     browser_action_preload_result:

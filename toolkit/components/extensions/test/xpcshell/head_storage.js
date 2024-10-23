@@ -1398,3 +1398,58 @@ async function test_storage_change_event_page(areaName) {
 
   return runWithPrefs([["extensions.eventPages.enabled", true]], testFn);
 }
+
+async function test_storage_sync_telemetry_quota(backend, enforced = false) {
+  Services.fog.testResetFOG();
+  let id = "my-extension-id@23";
+
+  // Repeat twice to get the glean events "before" and "after".
+  for (let i = 0; i < 2; i++) {
+    let ext = ExtensionTestUtils.loadExtension({
+      manifest: {
+        browser_specific_settings: { gecko: { id: id } },
+        permissions: ["storage"],
+      },
+      background() {
+        browser.test.onMessage.addListener(async enforced => {
+          await browser.storage.sync.set({
+            a: "1",
+            b: "x".repeat(enforced ? 1_000 : 10_000),
+          });
+          browser.test.notifyPass("done");
+        });
+      },
+    });
+
+    await ext.startup();
+    ext.sendMessage(enforced);
+    await ext.awaitFinish("done");
+    await ext.unload();
+  }
+
+  let events = Glean.extensionsData.syncUsageQuotas.testGetValue();
+  events = events.filter(e => e.extra?.addon_id === id);
+
+  Assert.deepEqual(
+    events[0].extra,
+    {
+      addon_id: id,
+      total_size_bytes: 0,
+      items_count: 0,
+      items_over_quota: 0,
+      backend: backend,
+    },
+    "Expected event values before setting sync storage"
+  );
+  Assert.deepEqual(
+    events[1].extra,
+    {
+      addon_id: id,
+      total_size_bytes: enforced ? 1_007 : 10_007,
+      items_count: 2,
+      items_over_quota: enforced ? 0 : 1,
+      backend: backend,
+    },
+    "Expected event values after setting sync storage"
+  );
+}

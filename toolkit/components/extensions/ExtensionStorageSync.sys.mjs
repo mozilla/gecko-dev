@@ -82,6 +82,7 @@ export class ExtensionStorageSync {
     // migration failure, it will become false. In practice, this will only ever
     // happen on the first operation.
     this.migrationOk = true;
+    this.backend = "rust";
   }
 
   // The main entry-point to our bridge. It performs some important roles:

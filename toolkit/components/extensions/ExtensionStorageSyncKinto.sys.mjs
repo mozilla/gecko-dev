@@ -735,6 +735,7 @@ export class ExtensionStorageSyncKinto {
     this._fxaService = fxaService;
     this.cryptoCollection = new CryptoCollection(fxaService);
     this.listeners = new WeakMap();
+    this.backend = "kinto";
   }
 
   /**
