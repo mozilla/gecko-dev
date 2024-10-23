@@ -5431,7 +5431,7 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.25.0"
+version = "0.26.0"
 dependencies = [
  "bitflags 2.6.0",
  "cssparser",
