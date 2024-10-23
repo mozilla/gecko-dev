@@ -251,3 +251,95 @@ add_task(async function test_move_to_different_tab_bar() {
 
   await BrowserTestUtils.closeWindow(newWindow2);
 });
+
+add_task(async function test_drag_and_drop_to_bookmark_toolbar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.toolbars.bookmarks.visibility", "always"]],
+  });
+
+  await PlacesUtils.bookmarks.eraseEverything();
+  registerCleanupFunction(async () => {
+    await PlacesUtils.bookmarks.eraseEverything();
+  });
+
+  await testWithNewWindow(async function (newWindow) {
+    is(
+      await PlacesUtils.bookmarks.fetch({
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+        index: 0,
+      }),
+      null,
+      "The bookmark toolbar shouldn't have any item"
+    );
+
+    const bookmarkToolbar =
+      newWindow.document.getElementById("PlacesToolbarItems");
+
+    // Wait if the bookmark toolbar initialization hasn't finished.
+    await BrowserTestUtils.waitForMutationCondition(
+      bookmarkToolbar,
+      { attributes: true, childNodes: true, attributeFilter: ["collapsed"] },
+      () => !bookmarkToolbar.collapsed && !bookmarkToolbar.childNodes.length
+    );
+
+    newWindow.gBrowser.removeTab(newWindow.gBrowser.selectedTab);
+
+    const list = newWindow.document.getElementById(
+      "allTabsMenu-allTabsView-tabs"
+    );
+
+    assertOrder(getOrderOfList(list), [1, 2, 3, 4, 5], "0-th tab is closed");
+
+    is(
+      toIndex(newWindow.gBrowser.selectedTab.linkedBrowser.currentURI.spec),
+      1,
+      "1th tab is active"
+    );
+
+    const { PlacesTestUtils } = ChromeUtils.importESModule(
+      "resource://testing-common/PlacesTestUtils.sys.mjs"
+    );
+
+    const bookmarkPromise = PlacesTestUtils.waitForNotification(
+      "bookmark-added",
+      events => events.some(e => e.url == URL5)
+    );
+
+    // Drag and drop the 5st tab to the bookmark toolbar, while the active tab
+    // is the 1th tab.
+    const rows = list.querySelectorAll("toolbaritem");
+    EventUtils.synthesizeDrop(
+      rows[4],
+      bookmarkToolbar,
+      null,
+      "move",
+      newWindow,
+      newWindow,
+      { clientX: 0, clientY: 0 }
+    );
+
+    await bookmarkPromise;
+
+    is(
+      (
+        await PlacesUtils.bookmarks.fetch({
+          parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+          index: 0,
+        })
+      ).url.href,
+      URL5,
+      "5th tab should be bookmarked"
+    );
+
+    is(
+      await PlacesUtils.bookmarks.fetch({
+        parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+        index: 1,
+      }),
+      null,
+      "No other tabs should be bookmarked"
+    );
+  });
+
+  await SpecialPowers.popPrefEnv();
+});
