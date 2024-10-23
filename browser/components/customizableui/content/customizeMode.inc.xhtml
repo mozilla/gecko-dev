@@ -25,10 +25,7 @@
 </vbox>
 </box>
 <hbox id="customization-footer">
-<checkbox id="customization-titlebar-visibility-checkbox" class="customization-checkbox"
-# NB: because oncommand fires after click, by the time we've fired, the checkbox binding
-#    will already have switched the button's state, so this is correct:
-          oncommand="gCustomizeMode.toggleTitlebar(this.checked)" data-l10n-id="customize-mode-titlebar"/>
+<checkbox id="customization-titlebar-visibility-checkbox" class="customization-checkbox" data-l10n-id="customize-mode-titlebar"/>
 <button id="customization-toolbar-visibility-button" class="footer-button" type="menu" data-l10n-id="customize-mode-toolbars">
   <menupopup id="customization-toolbar-menu" onpopupshowing="if (event.target == this) ToolbarContextMenu.onViewToolbarsPopupShowing(event)"/>
 </button>
@@ -51,8 +48,7 @@
               onfocus="gCustomizeMode.updateUIDensity(this.mode);"
               onmouseover="gCustomizeMode.updateUIDensity(this.mode);"
               onblur="gCustomizeMode.resetUIDensity();"
-              onmouseout="gCustomizeMode.resetUIDensity();"
-              oncommand="gCustomizeMode.setUIDensity(this.mode);"/>
+              onmouseout="gCustomizeMode.resetUIDensity();"/>
     <menuitem id="customization-uidensity-menuitem-normal"
               class="menuitem-iconic customization-uidensity-menuitem"
               role="menuitemradio"
@@ -61,8 +57,7 @@
               onfocus="gCustomizeMode.updateUIDensity(this.mode);"
               onmouseover="gCustomizeMode.updateUIDensity(this.mode);"
               onblur="gCustomizeMode.resetUIDensity();"
-              onmouseout="gCustomizeMode.resetUIDensity();"
-              oncommand="gCustomizeMode.setUIDensity(this.mode);"/>
+              onmouseout="gCustomizeMode.resetUIDensity();"/>
 #ifndef XP_MACOSX
     <menuitem id="customization-uidensity-menuitem-touch"
               class="menuitem-iconic customization-uidensity-menuitem"
@@ -72,14 +67,12 @@
               onfocus="gCustomizeMode.updateUIDensity(this.mode);"
               onmouseover="gCustomizeMode.updateUIDensity(this.mode);"
               onblur="gCustomizeMode.resetUIDensity();"
-              onmouseout="gCustomizeMode.resetUIDensity();"
-              oncommand="gCustomizeMode.setUIDensity(this.mode);">
+              onmouseout="gCustomizeMode.resetUIDensity();">
     </menuitem>
     <spacer hidden="true" id="customization-uidensity-touch-spacer"/>
     <checkbox id="customization-uidensity-autotouchmode-checkbox"
               hidden="true"
-              data-l10n-id="customize-mode-uidensity-auto-touch-mode-checkbox"
-              oncommand="gCustomizeMode.updateAutoTouchMode(this.checked)"/>
+              data-l10n-id="customize-mode-uidensity-auto-touch-mode-checkbox"/>
 #endif
   </panel>
 </button>
@@ -92,7 +85,6 @@
 <button id="whimsy-button"
         type="checkbox"
         class="footer-button"
-        oncommand="gCustomizeMode.togglePong(this.checked);"
         hidden="true"/>
 
 <spacer id="customization-footer-spacer"/>
@@ -100,21 +92,17 @@
     <button id="customization-touchbar-button"
         class="footer-button"
         hidden="true"
-        oncommand="gCustomizeMode.customizeTouchBar();"
         data-l10n-id="customize-mode-touchbar-cmd"/>
     <spacer hidden="true" id="customization-touchbar-spacer"/>
 #endif
 <button id="customization-undo-reset-button"
         class="footer-button"
         hidden="true"
-        oncommand="gCustomizeMode.undoReset();"
         data-l10n-id="customize-mode-undo-cmd"/>
 <button id="customization-reset-button"
-        oncommand="gCustomizeMode.reset();"
         data-l10n-id="customize-mode-restore-defaults"
         class="footer-button"/>
 <button id="customization-done-button"
-        oncommand="gCustomizeMode.exit();"
         data-l10n-id="customize-mode-done"
         default="true"
         class="footer-button"/>

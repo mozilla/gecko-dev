@@ -116,6 +116,9 @@ export function CustomizeMode(aWindow) {
       container.lastChild
     );
   }
+
+  this._attachEventListeners();
+
   // There are two palettes - there's the palette that can be overlayed with
   // toolbar items in browser.xhtml. This is invisible, and never seen by the
   // user. Then there's the visible palette, which gets populated and displayed
@@ -1680,6 +1683,43 @@ CustomizeMode.prototype = {
 
     let wrapper = this.$("customModeWrapper");
     wrapper.replaceWith(wrapper.content);
+  },
+
+  _attachEventListeners() {
+    let container = this.$("customization-container");
+
+    container.addEventListener("command", event => {
+      switch (event.target.id) {
+        case "customization-titlebar-visibility-checkbox":
+          // NB: because command fires after click, by the time we've fired, the checkbox binding
+          //     will already have switched the button's state, so this is correct:
+          this.toggleTitlebar(event.target.checked);
+          break;
+        case "customization-uidensity-menuitem-compact":
+        case "customization-uidensity-menuitem-normal":
+        case "customization-uidensity-menuitem-touch":
+          this.setUIDensity(event.target.mode);
+          break;
+        case "customization-uidensity-autotouchmode-checkbox":
+          this.updateAutoTouchMode(event.target.checked);
+          break;
+        case "whimsy-button":
+          this.togglePong(event.target.checked);
+          break;
+        case "customization-touchbar-button":
+          this.customizeTouchBar();
+          break;
+        case "customization-undo-reset-button":
+          this.undoReset();
+          break;
+        case "customization-reset-button":
+          this.reset();
+          break;
+        case "customization-done-button":
+          this.exit();
+          break;
+      }
+    });
   },
 
   _updateTitlebarCheckbox() {
