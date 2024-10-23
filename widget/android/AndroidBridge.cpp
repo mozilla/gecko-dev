@@ -43,7 +43,6 @@ using namespace mozilla;
 
 AndroidBridge* AndroidBridge::sBridge = nullptr;
 static jobject sGlobalContext = nullptr;
-nsTHashMap<nsStringHashKey, nsString> AndroidBridge::sStoragePaths;
 
 jmethodID AndroidBridge::GetMethodID(JNIEnv* env, jclass jClass,
                                      const char* methodName,
@@ -311,18 +310,6 @@ nsAndroidBridge::GetDispatcherByName(const char* aName,
 }
 
 nsAndroidBridge::~nsAndroidBridge() {}
-
-hal::ScreenOrientation AndroidBridge::GetScreenOrientation() {
-  ALOG_BRIDGE("AndroidBridge::GetScreenOrientation");
-
-  int16_t orientation = java::GeckoAppShell::GetScreenOrientation();
-
-  return hal::ScreenOrientation(orientation);
-}
-
-uint16_t AndroidBridge::GetScreenAngle() {
-  return java::GeckoAppShell::GetScreenAngle();
-}
 
 nsresult AndroidBridge::GetProxyForURI(const nsACString& aSpec,
                                        const nsACString& aScheme,

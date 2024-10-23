@@ -18,7 +18,6 @@
 #include "nsIGeckoViewBridge.h"
 
 #include "mozilla/jni/Utils.h"
-#include "nsTHashMap.h"
 
 // Some debug #defines
 // #define DEBUG_ANDROID_EVENTS
@@ -31,7 +30,6 @@ class AutoLocalJNIFrame;
 namespace hal {
 class BatteryInformation;
 class NetworkInformation;
-enum class ScreenOrientation : uint32_t;
 }  // namespace hal
 
 class AndroidBridge final {
@@ -44,21 +42,6 @@ class AndroidBridge final {
   static void DeconstructBridge();
 
   static AndroidBridge* Bridge() { return sBridge; }
-
-  bool GetHandlersForURL(const nsAString& aURL,
-                         nsIMutableArray* handlersArray = nullptr,
-                         nsIHandlerApp** aDefaultApp = nullptr,
-                         const nsAString& aAction = u""_ns);
-
-  bool GetHandlersForMimeType(const nsAString& aMimeType,
-                              nsIMutableArray* handlersArray = nullptr,
-                              nsIHandlerApp** aDefaultApp = nullptr,
-                              const nsAString& aAction = u""_ns);
-
-  void GetMimeTypeFromExtensions(const nsACString& aFileExt,
-                                 nsCString& aMimeType);
-  void GetExtensionFromMimeType(const nsACString& aMimeType,
-                                nsACString& aFileExt);
 
   void Vibrate(const nsTArray<uint32_t>& aPattern);
 
@@ -73,9 +56,6 @@ class AndroidBridge final {
   void GetCurrentBatteryInformation(hal::BatteryInformation* aBatteryInfo);
 
   void GetCurrentNetworkInformation(hal::NetworkInformation* aNetworkInfo);
-
-  hal::ScreenOrientation GetScreenOrientation();
-  uint16_t GetScreenAngle();
 
   nsresult GetProxyForURI(const nsACString& aSpec, const nsACString& aScheme,
                           const nsACString& aHost, const int32_t aPort,
@@ -95,16 +75,7 @@ class AndroidBridge final {
                                      const char* methodName,
                                      const char* methodType);
 
-  static jni::Object::LocalRef ChannelCreate(jni::Object::Param);
-
-  static void InputStreamClose(jni::Object::Param obj);
-  static uint32_t InputStreamAvailable(jni::Object::Param obj);
-  static nsresult InputStreamRead(jni::Object::Param obj, char* aBuf,
-                                  uint32_t aCount, uint32_t* aRead);
-
  protected:
-  static nsTHashMap<nsStringHashKey, nsString> sStoragePaths;
-
   static AndroidBridge* sBridge;
 
   AndroidBridge();

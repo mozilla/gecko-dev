@@ -762,11 +762,6 @@ public class GeckoAppShell {
   }
 
   @WrapForJNI(calledFrom = "gecko")
-  public static String getExtensionFromMimeType(final String aMimeType) {
-    return MimeTypeMap.getSingleton().getExtensionFromMimeType(aMimeType);
-  }
-
-  @WrapForJNI(calledFrom = "gecko")
   public static String getMimeTypeFromExtensions(final String aFileExt) {
     final StringTokenizer st = new StringTokenizer(aFileExt, ".,; ");
     String type = null;
