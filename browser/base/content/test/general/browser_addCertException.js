@@ -10,76 +10,68 @@
 // dialog, using that to add an exception, and finally successfully visiting
 // the site, including showing the right identity box and control center icons.
 add_task(async function () {
-  for (let feltPrivacyEnabled of [true, false]) {
-    await SpecialPowers.pushPrefEnv({
-      set: [["security.certerrors.felt-privacy-v1", feltPrivacyEnabled]],
-    });
+  await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  await loadBadCertPage("https://expired.example.com");
 
-    await BrowserTestUtils.openNewForegroundTab(gBrowser);
-    await loadBadCertPage("https://expired.example.com", feltPrivacyEnabled);
+  let { gIdentityHandler } = gBrowser.ownerGlobal;
+  let promisePanelOpen = BrowserTestUtils.waitForEvent(
+    gBrowser.ownerGlobal,
+    "popupshown",
+    true,
+    event => event.target == gIdentityHandler._identityPopup
+  );
+  gIdentityHandler._identityIconBox.click();
+  await promisePanelOpen;
 
-    let { gIdentityHandler } = gBrowser.ownerGlobal;
-    let promisePanelOpen = BrowserTestUtils.waitForEvent(
-      gBrowser.ownerGlobal,
-      "popupshown",
-      true,
-      event => event.target == gIdentityHandler._identityPopup
-    );
-    gIdentityHandler._identityIconBox.click();
-    await promisePanelOpen;
+  let promiseViewShown = BrowserTestUtils.waitForEvent(
+    gIdentityHandler._identityPopup,
+    "ViewShown"
+  );
+  document.getElementById("identity-popup-security-button").click();
+  await promiseViewShown;
 
-    let promiseViewShown = BrowserTestUtils.waitForEvent(
-      gIdentityHandler._identityPopup,
-      "ViewShown"
-    );
-    document.getElementById("identity-popup-security-button").click();
-    await promiseViewShown;
+  is_element_visible(
+    document.getElementById("identity-icon"),
+    "Should see identity icon"
+  );
+  let identityIconImage = gBrowser.ownerGlobal
+    .getComputedStyle(document.getElementById("identity-icon"))
+    .getPropertyValue("list-style-image");
+  let securityViewBG = gBrowser.ownerGlobal
+    .getComputedStyle(
+      document
+        .getElementById("identity-popup-securityView")
+        .getElementsByClassName("identity-popup-security-connection")[0]
+    )
+    .getPropertyValue("list-style-image");
+  let securityContentBG = gBrowser.ownerGlobal
+    .getComputedStyle(
+      document
+        .getElementById("identity-popup-mainView")
+        .getElementsByClassName("identity-popup-security-connection")[0]
+    )
+    .getPropertyValue("list-style-image");
+  is(
+    identityIconImage,
+    'url("chrome://global/skin/icons/security-warning.svg")',
+    "Using expected icon image in the identity block"
+  );
+  is(
+    securityViewBG,
+    'url("chrome://global/skin/icons/security-warning.svg")',
+    "Using expected icon image in the Control Center main view"
+  );
+  is(
+    securityContentBG,
+    'url("chrome://global/skin/icons/security-warning.svg")',
+    "Using expected icon image in the Control Center subview"
+  );
 
-    is_element_visible(
-      document.getElementById("identity-icon"),
-      "Should see identity icon"
-    );
-    let identityIconImage = gBrowser.ownerGlobal
-      .getComputedStyle(document.getElementById("identity-icon"))
-      .getPropertyValue("list-style-image");
-    let securityViewBG = gBrowser.ownerGlobal
-      .getComputedStyle(
-        document
-          .getElementById("identity-popup-securityView")
-          .getElementsByClassName("identity-popup-security-connection")[0]
-      )
-      .getPropertyValue("list-style-image");
-    let securityContentBG = gBrowser.ownerGlobal
-      .getComputedStyle(
-        document
-          .getElementById("identity-popup-mainView")
-          .getElementsByClassName("identity-popup-security-connection")[0]
-      )
-      .getPropertyValue("list-style-image");
-    is(
-      identityIconImage,
-      'url("chrome://global/skin/icons/security-warning.svg")',
-      "Using expected icon image in the identity block"
-    );
-    is(
-      securityViewBG,
-      'url("chrome://global/skin/icons/security-warning.svg")',
-      "Using expected icon image in the Control Center main view"
-    );
-    is(
-      securityContentBG,
-      'url("chrome://global/skin/icons/security-warning.svg")',
-      "Using expected icon image in the Control Center subview"
-    );
+  gIdentityHandler._identityPopup.hidePopup();
 
-    gIdentityHandler._identityPopup.hidePopup();
-
-    let certOverrideService = Cc[
-      "@mozilla.org/security/certoverride;1"
-    ].getService(Ci.nsICertOverrideService);
-    certOverrideService.clearValidityOverride("expired.example.com", -1, {});
-    BrowserTestUtils.removeTab(gBrowser.selectedTab);
-
-    await SpecialPowers.popPrefEnv();
-  }
+  let certOverrideService = Cc[
+    "@mozilla.org/security/certoverride;1"
+  ].getService(Ci.nsICertOverrideService);
+  certOverrideService.clearValidityOverride("expired.example.com", -1, {});
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
