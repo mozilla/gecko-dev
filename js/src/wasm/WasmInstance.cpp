@@ -2342,8 +2342,11 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
   if (code().mode() == CompileMode::LazyTiering) {
     setRequestTierUpStub(code().sharedStubs().segment->base() +
                          code().requestTierUpStubOffset());
+    setUpdateCallRefMetricsStub(code().sharedStubs().segment->base() +
+                                code().updateCallRefMetricsStubOffset());
   } else {
     setRequestTierUpStub(nullptr);
+    setUpdateCallRefMetricsStub(nullptr);
   }
 
   // Initialize the hotness counters, if relevant.
@@ -2636,6 +2639,10 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
       ReportOutOfMemory(cx);
       return false;
     }
+    // A zeroed-out CallRefMetrics should satisfy
+    // CallRefMetrics::checkInvariants.
+    MOZ_ASSERT_IF(codeMeta().numCallRefMetrics > 0,
+                  callRefMetrics_[0].checkInvariants());
   } else {
     MOZ_ASSERT(codeMeta().numCallRefMetrics == 0);
   }
@@ -2753,21 +2760,83 @@ int32_t Instance::readHotnessCounter(uint32_t funcIndex) const {
 }
 
 void Instance::submitCallRefHints(uint32_t funcIndex) {
-  uint32_t callCountThreshold = JS::Prefs::wasm_inline_call_ref_threshold();
+#ifdef JS_JITSPEW
+  bool headerShown = false;
+#endif
+
+  float requiredHotnessFraction =
+      float(InliningHeuristics::rawCallRefPercent()) / 100.0;
+
+  // Limits as set by InliningHeuristics::InliningHeuristics().
+  const DebugOnly<float> epsilon = 0.000001;
+  MOZ_ASSERT(requiredHotnessFraction >= 0.1 - epsilon);
+  MOZ_ASSERT(requiredHotnessFraction <= 1.0 + epsilon);
+
   CallRefMetricsRange range = codeMeta().getFuncDefCallRefs(funcIndex);
   for (uint32_t callRefIndex = range.begin;
        callRefIndex < range.begin + range.length; callRefIndex++) {
     MOZ_RELEASE_ASSERT(callRefIndex < codeMeta().numCallRefMetrics);
+
     CallRefMetrics& metrics = callRefMetrics_[callRefIndex];
-    if (metrics.state == CallRefMetrics::State::Monomorphic &&
-        metrics.callCount >= callCountThreshold) {
-      uint32_t funcIndex =
-          wasm::ExportedFunctionToFuncIndex(metrics.monomorphicTarget);
-      codeMeta().setCallRefHint(callRefIndex,
-                                CallRefHint::inlineFunc(funcIndex));
+    MOZ_RELEASE_ASSERT(metrics.checkInvariants());
+
+    uint64_t totalCount = metrics.totalCount();
+    uint32_t targetFuncIndex = UINT32_MAX;
+    uint32_t targetBodySize = 0;
+    const char* skipReason = nullptr;
+
+    if (totalCount == 0) {
+      // See comments on definition of CallRefMetrics regarding overflow.
+      skipReason = "(callsite unused)";
+    } else if (metrics.targets[0] == nullptr) {
+      skipReason = "(all calls are cross-instance)";
     } else {
-      codeMeta().setCallRefHint(callRefIndex, CallRefHint::unknown());
+      targetFuncIndex = wasm::ExportedFunctionToFuncIndex(metrics.targets[0]);
+      if (codeMeta().funcIsImport(targetFuncIndex)) {
+        skipReason = "(target is an import)";
+      }
     }
+
+    MOZ_ASSERT_IF(!skipReason,
+                  targetFuncIndex != UINT32_MAX && targetFuncIndex < MaxFuncs);
+    if (!skipReason) {
+      // We assume slot 0 is the hottest of all the slots.  See comments on
+      // definition of CallRefMetrics for rationale.
+      targetBodySize = codeMeta().funcDefRange(targetFuncIndex).bodyLength;
+      if (2 * totalCount < targetBodySize) {
+        skipReason = "(callsite too cold)";
+      } else if ((float(metrics.counts[0]) / float(totalCount)) <
+                 requiredHotnessFraction) {
+        skipReason = "(no clear hottest)";
+      }
+    }
+
+    codeMeta().setCallRefHint(
+        callRefIndex, skipReason ? CallRefHint::unknown()
+                                 : CallRefHint::inlineFunc(targetFuncIndex));
+#ifdef JS_JITSPEW
+    if (!headerShown) {
+      JS_LOG(wasmCodeMetaStats, mozilla::LogLevel::Info,
+             "CM=..%06lx  CallRefMetrics for I=..%06lx fI=%-4u",
+             (unsigned long)(uintptr_t(&codeMeta()) & 0xFFFFFFL),
+             (unsigned long)(uintptr_t(this) & 0xFFFFFFL), funcIndex);
+      headerShown = true;
+    }
+
+    JS::UniqueChars countsStr;
+    for (size_t i = 0; i < CallRefMetrics::NUM_SLOTS; i++) {
+      countsStr =
+          JS_sprintf_append(std::move(countsStr), "%u ", metrics.counts[i]);
+    }
+    JS::UniqueChars targetStr = skipReason
+                                    ? JS_smprintf("%s", skipReason)
+                                    : JS_smprintf("fI %u", targetFuncIndex);
+
+    JS_LOG(wasmCodeMetaStats, mozilla::LogLevel::Info,
+           "CM=..%06lx    %sother:%u --> %s",
+           (unsigned long)(uintptr_t(&codeMeta()) & 0xFFFFFFL), countsStr.get(),
+           metrics.countOther, targetStr.get());
+#endif
   }
 }
 
@@ -2858,8 +2927,11 @@ void Instance::tracePrivate(JSTracer* trc) {
 
   if (callRefMetrics_) {
     for (uint32_t i = 0; i < codeMeta().numCallRefMetrics; i++) {
-      TraceNullableEdge(trc, &callRefMetrics_[i].monomorphicTarget,
-                        "indirect call target");
+      CallRefMetrics* metrics = &callRefMetrics_[i];
+      MOZ_ASSERT(metrics->checkInvariants());
+      for (size_t j = 0; j < CallRefMetrics::NUM_SLOTS; j++) {
+        TraceNullableEdge(trc, &metrics->targets[j], "indirect call target");
+      }
     }
   }
 

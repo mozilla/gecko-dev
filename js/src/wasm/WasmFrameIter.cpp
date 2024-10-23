@@ -720,6 +720,18 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
   MOZ_ASSERT_IF(!masm.oom(), PoppedFP == *ret - poppedFP);
 }
 
+// Generate the most minimal possible prologue: `push FP; FP := SP`.
+void wasm::GenerateMinimalPrologue(MacroAssembler& masm, uint32_t* entry) {
+  MOZ_ASSERT(masm.framePushed() == 0);
+  GenerateCallablePrologue(masm, entry);
+}
+
+// Generate the most minimal possible epilogue: `pop FP; return`.
+void wasm::GenerateMinimalEpilogue(MacroAssembler& masm, uint32_t* ret) {
+  MOZ_ASSERT(masm.framePushed() == 0);
+  GenerateCallableEpilogue(masm, /*framePushed=*/0, ExitReason::None(), ret);
+}
+
 void wasm::GenerateFunctionPrologue(MacroAssembler& masm,
                                     const CallIndirectId& callIndirectId,
                                     const Maybe<uint32_t>& tier1FuncIndex,
@@ -1176,6 +1188,7 @@ void ProfilingFrameIterator::initFromExitFP(const Frame* fp) {
     case CodeRange::TrapExit:
     case CodeRange::DebugStub:
     case CodeRange::RequestTierUpStub:
+    case CodeRange::UpdateCallRefMetricsStub:
     case CodeRange::Throw:
     case CodeRange::FarJumpIsland:
       MOZ_CRASH("Unexpected CodeRange kind");
@@ -1336,6 +1349,7 @@ bool js::wasm::StartUnwinding(const RegisterState& registers,
     case CodeRange::BuiltinThunk:
     case CodeRange::DebugStub:
     case CodeRange::RequestTierUpStub:
+    case CodeRange::UpdateCallRefMetricsStub:
 #if defined(JS_CODEGEN_MIPS64)
       if (codeRange->isThunk()) {
         // The FarJumpIsland sequence temporary scrambles ra.
@@ -1689,6 +1703,7 @@ void ProfilingFrameIterator::operator++() {
     case CodeRange::TrapExit:
     case CodeRange::DebugStub:
     case CodeRange::RequestTierUpStub:
+    case CodeRange::UpdateCallRefMetricsStub:
     case CodeRange::FarJumpIsland: {
       stackAddress_ = callerFP_;
       const auto* frame = Frame::fromUntaggedWasmExitFP(callerFP_);
@@ -1933,6 +1948,8 @@ const char* ProfilingFrameIterator::label() const {
   static const char trapDescription[] = "trap handling (in wasm)";
   static const char debugStubDescription[] = "debug trap handling (in wasm)";
   static const char requestTierUpDescription[] = "tier-up request (in wasm)";
+  static const char updateCallRefMetricsDescription[] =
+      "update call_ref metrics (in wasm)";
 
   if (!exitReason_.isFixed()) {
     return ThunkedNativeToDescription(exitReason_.symbolic());
@@ -1974,6 +1991,8 @@ const char* ProfilingFrameIterator::label() const {
       return debugStubDescription;
     case CodeRange::RequestTierUpStub:
       return requestTierUpDescription;
+    case CodeRange::UpdateCallRefMetricsStub:
+      return updateCallRefMetricsDescription;
     case CodeRange::FarJumpIsland:
       return "interstitial (in wasm)";
     case CodeRange::Throw:

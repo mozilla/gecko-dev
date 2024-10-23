@@ -987,7 +987,8 @@ struct BaseCompiler final {
                     CodeOffset* slowCallOffset);
   CodeOffset callImport(unsigned instanceDataOffset, const FunctionCall& call);
 #ifdef ENABLE_WASM_GC
-  void callRef(const Stk& calleeRef, const FunctionCall& call,
+  bool updateCallRefMetrics(size_t callRefIndex);
+  bool callRef(const Stk& calleeRef, const FunctionCall& call,
                mozilla::Maybe<size_t> callRefIndex, CodeOffset* fastCallOffset,
                CodeOffset* slowCallOffset);
 #  ifdef ENABLE_WASM_TAIL_CALLS

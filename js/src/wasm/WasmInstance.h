@@ -218,6 +218,10 @@ class alignas(16) Instance {
   // wasm function that calls it.
   void* requestTierUpStub_ = nullptr;
 
+  // Pointer to a per-module builtin stub that does the OOL component of a
+  // call-ref metrics update.
+  void* updateCallRefMetricsStub_ = nullptr;
+
   // The data must be the last field.  Globals for the module start here
   // and are inline in this structure.  16-byte alignment is required for SIMD
   // data.
@@ -287,6 +291,9 @@ class alignas(16) Instance {
   static constexpr size_t offsetOfRequestTierUpStub() {
     return offsetof(Instance, requestTierUpStub_);
   }
+  static constexpr size_t offsetOfUpdateCallRefMetricsStub() {
+    return offsetof(Instance, updateCallRefMetricsStub_);
+  }
 
   static constexpr size_t offsetOfRealm() { return offsetof(Instance, realm_); }
   static constexpr size_t offsetOfCx() { return offsetof(Instance, cx_); }
@@ -352,6 +359,9 @@ class alignas(16) Instance {
   void* debugStub() const { return debugStub_; }
   void setDebugStub(void* newStub) { debugStub_ = newStub; }
   void setRequestTierUpStub(void* newStub) { requestTierUpStub_ = newStub; }
+  void setUpdateCallRefMetricsStub(void* newStub) {
+    updateCallRefMetricsStub_ = newStub;
+  }
   JS::Realm* realm() const { return realm_; }
   bool debugEnabled() const { return !!maybeDebug_; }
   DebugState& debug() { return *maybeDebug_; }

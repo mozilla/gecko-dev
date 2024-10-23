@@ -269,19 +269,26 @@ void CodeMetadata::dumpStats() const {
          "CM=..%06lx  CodeMetadata::~CodeMetadata() <<<<",
          0xFFFFFF & (unsigned long)uintptr_t(this));
   JS_LOG(wasmCodeMetaStats, level, "  ------ Heuristic Settings ------");
-  JS_LOG(wasmCodeMetaStats, level, "     w_e_tiering_level  (1..9) = %u",
+  JS_LOG(wasmCodeMetaStats, level, "     w_lazy_tiering_level  (1..9) = %u",
          LazyTieringHeuristics::rawLevel());
-  JS_LOG(wasmCodeMetaStats, level, "     w_e_inlining_level (1..9) = %u",
+  JS_LOG(wasmCodeMetaStats, level, "     w_inlining_level      (1..9) = %u",
          InliningHeuristics::rawLevel());
-  JS_LOG(wasmCodeMetaStats, level, "     w_e_direct_inlining  = %s",
+  JS_LOG(wasmCodeMetaStats, level, "     w_direct_inlining   = %s",
          InliningHeuristics::rawDirectAllowed() ? "true" : "false");
-  JS_LOG(wasmCodeMetaStats, level, "     w_e_callRef_inlining = %s",
+  JS_LOG(wasmCodeMetaStats, level, "     w_call_ref_inlining = %s",
          InliningHeuristics::rawCallRefAllowed() ? "true" : "false");
+  JS_LOG(wasmCodeMetaStats, level,
+         "     w_call_ref_inlining_percent (10..100) = %u",
+         InliningHeuristics::rawCallRefPercent());
   JS_LOG(wasmCodeMetaStats, level, "  ------ Complete Tier ------");
   JS_LOG(wasmCodeMetaStats, level, "    %7zu functions in module",
          statsCopy.completeNumFuncs);
   JS_LOG(wasmCodeMetaStats, level, "    %7zu bytecode bytes in module",
          statsCopy.completeBCSize);
+  uint32_t nMetrics = numCallRefMetrics == UINT32_MAX ? 0 : numCallRefMetrics;
+  JS_LOG(wasmCodeMetaStats, level,
+         "    %7u CallRefMetrics in module (%zu bytes)", nMetrics,
+         size_t(nMetrics) * sizeof(CallRefMetrics));
   JS_LOG(wasmCodeMetaStats, level, "  ------ Partial Tier ------");
   JS_LOG(wasmCodeMetaStats, level, "    %7zu functions tiered up",
          statsCopy.partialNumFuncs);
@@ -289,11 +296,11 @@ void CodeMetadata::dumpStats() const {
          statsCopy.partialBCSize);
   JS_LOG(wasmCodeMetaStats, level, "    %7zu direct-calls inlined",
          statsCopy.partialNumFuncsInlinedDirect);
-  JS_LOG(wasmCodeMetaStats, level, "    %7zu callRef-calls inlined",
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu call_ref-calls inlined",
          statsCopy.partialNumFuncsInlinedCallRef);
   JS_LOG(wasmCodeMetaStats, level, "    %7zu direct-call bytecodes inlined",
          statsCopy.partialBCInlinedSizeDirect);
-  JS_LOG(wasmCodeMetaStats, level, "    %7zu callRef-call bytecodes inlined",
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu call_ref-call bytecodes inlined",
          statsCopy.partialBCInlinedSizeCallRef);
   JS_LOG(wasmCodeMetaStats, level, "    %7zu functions overran inlining budget",
          statsCopy.partialInlineBudgetOverruns);

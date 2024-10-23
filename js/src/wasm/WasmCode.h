@@ -1013,6 +1013,10 @@ class Code : public ShareableBase<Code> {
   // Offset of the request-tier-up stub in the `sharedStubs_` CodeBlock.
   uint32_t requestTierUpStubOffset_;
 
+  // Offset of the update-call-ref-metrics stub in the `sharedStubs_`
+  // CodeBlock.
+  uint32_t updateCallRefMetricsStubOffset_;
+
   // Methods for getting complete tiers, private while we're moving to partial
   // tiering.
   Tiers completeTiers() const;
@@ -1087,6 +1091,13 @@ class Code : public ShareableBase<Code> {
   uint32_t requestTierUpStubOffset() const { return requestTierUpStubOffset_; }
   void setRequestTierUpStubOffset(uint32_t offs) {
     requestTierUpStubOffset_ = offs;
+  }
+
+  uint32_t updateCallRefMetricsStubOffset() const {
+    return updateCallRefMetricsStubOffset_;
+  }
+  void setUpdateCallRefMetricsStubOffset(uint32_t offs) {
+    updateCallRefMetricsStubOffset_ = offs;
   }
 
   const Bytes& bytecode() const {

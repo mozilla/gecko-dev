@@ -414,17 +414,18 @@ using FuncOffsetsVector = Vector<FuncOffsets, 0, SystemAllocPolicy>;
 class CodeRange {
  public:
   enum Kind {
-    Function,           // function definition
-    InterpEntry,        // calls into wasm from C++
-    JitEntry,           // calls into wasm from jit code
-    ImportInterpExit,   // slow-path calling from wasm into C++ interp
-    ImportJitExit,      // fast-path calling from wasm into jit code
-    BuiltinThunk,       // fast-path calling from wasm into a C++ native
-    TrapExit,           // calls C++ to report and jumps to throw stub
-    DebugStub,          // calls C++ to handle debug event
-    RequestTierUpStub,  // calls C++ to request tier-2 compilation
-    FarJumpIsland,      // inserted to connect otherwise out-of-range insns
-    Throw               // special stack-unwinding stub jumped to by other stubs
+    Function,                  // function definition
+    InterpEntry,               // calls into wasm from C++
+    JitEntry,                  // calls into wasm from jit code
+    ImportInterpExit,          // slow-path calling from wasm into C++ interp
+    ImportJitExit,             // fast-path calling from wasm into jit code
+    BuiltinThunk,              // fast-path calling from wasm into a C++ native
+    TrapExit,                  // calls C++ to report and jumps to throw stub
+    DebugStub,                 // calls C++ to handle debug event
+    RequestTierUpStub,         // calls C++ to request tier-2 compilation
+    UpdateCallRefMetricsStub,  // updates a CallRefMetrics
+    FarJumpIsland,  // inserted to connect otherwise out-of-range insns
+    Throw           // special stack-unwinding stub jumped to by other stubs
   };
 
  private:
@@ -489,6 +490,9 @@ class CodeRange {
   bool isTrapExit() const { return kind() == TrapExit; }
   bool isDebugStub() const { return kind() == DebugStub; }
   bool isRequestTierUpStub() const { return kind() == RequestTierUpStub; }
+  bool isUpdateCallRefMetricsStub() const {
+    return kind() == UpdateCallRefMetricsStub;
+  }
   bool isThunk() const { return kind() == FarJumpIsland; }
 
   // Functions, import exits, debug stubs and JitEntry stubs have standard
@@ -497,7 +501,8 @@ class CodeRange {
 
   bool hasReturn() const {
     return isFunction() || isImportExit() || isDebugStub() ||
-           isRequestTierUpStub() || isJitEntry();
+           isRequestTierUpStub() || isUpdateCallRefMetricsStub() ||
+           isJitEntry();
   }
   uint32_t ret() const {
     MOZ_ASSERT(hasReturn());

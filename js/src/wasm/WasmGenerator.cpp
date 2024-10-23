@@ -91,6 +91,7 @@ ModuleGenerator::ModuleGenerator(const CodeMetadata& codeMeta,
       masm_(nullptr),
       debugStubCodeOffset_(0),
       requestTierUpStubCodeOffset_(0),
+      updateCallRefMetricsStubCodeOffset_(0),
       lastPatchedCallSite_(0),
       startOfUnpatchedCallsites_(0),
       numCallRefMetrics_(0),
@@ -328,6 +329,10 @@ void ModuleGenerator::noteCodeRange(uint32_t codeRangeIndex,
     case CodeRange::RequestTierUpStub:
       MOZ_ASSERT(!requestTierUpStubCodeOffset_);
       requestTierUpStubCodeOffset_ = codeRange.begin();
+      break;
+    case CodeRange::UpdateCallRefMetricsStub:
+      MOZ_ASSERT(!updateCallRefMetricsStubCodeOffset_);
+      updateCallRefMetricsStubCodeOffset_ = codeRange.begin();
       break;
     case CodeRange::TrapExit:
       MOZ_ASSERT(!linkData_->trapOffset);
@@ -1179,9 +1184,9 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
       codeMeta_->funcDefRanges[funcIndex - codeMeta_->numFuncImports]
           .bodyLength;
   JS_LOG(wasmCodeMetaStats, mozilla::LogLevel::Info,
-         "CM=..%06lx  MG::startPartialTier  sz=%-4u  %s",
-         (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL), bytecodeLen,
-         name.length() > 0 ? name.begin() : "(unknown-name)");
+         "CM=..%06lx  MG::startPartialTier  fI=%-5u  sz=%-5u  %s",
+         (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL), funcIndex,
+         bytecodeLen, name.length() > 0 ? name.begin() : "(unknown-name)");
 #endif
 
   if (!startCodeBlock(CodeBlock::kindFromTier(tier()))) {
@@ -1364,6 +1369,7 @@ SharedModule ModuleGenerator::finishModule(
   // Copy in a couple of offsets.
   code->setDebugStubOffset(debugStubCodeOffset_);
   code->setRequestTierUpStubOffset(requestTierUpStubCodeOffset_);
+  code->setUpdateCallRefMetricsStubOffset(updateCallRefMetricsStubCodeOffset_);
 
   // All the components are finished, so create the complete Module and start
   // tier-2 compilation if requested.

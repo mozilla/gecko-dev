@@ -1934,7 +1934,101 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
 }
 
 #ifdef ENABLE_WASM_GC
-void BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
+class OutOfLineUpdateCallRefMetrics : public OutOfLineCode {
+ public:
+  virtual void generate(MacroAssembler* masm) override {
+    // Call the stub pointed to by Instance::updateCallRefMetricsStub, then
+    // rejoin.  See "Register management" in BaseCompiler::updateCallRefMetrics
+    // for details of register management.
+    //
+    // The monitored call may or may not be cross-instance.  The stub will only
+    // modify `regMetrics`, `regFuncRef`, `regScratch` and `regMetrics*` (that
+    // is, the pointed-at CallRefMetrics) and cannot fail or trap.
+    masm->call(
+        Address(InstanceReg, Instance::offsetOfUpdateCallRefMetricsStub()));
+    masm->jump(rejoin());
+  }
+};
+
+// Generate code that updates the `callRefIndex`th CallRefMetrics attached to
+// the current Instance, to reflect the fact that this call site is just about
+// to make a call to the funcref to which WasmCallRefReg currently points.
+bool BaseCompiler::updateCallRefMetrics(size_t callRefIndex) {
+  AutoCreatedBy acb(masm, "BC::updateCallRefMetrics");
+
+  // See declaration of CallRefMetrics for comments about assignments of
+  // funcrefs to `CallRefMetrics::targets[]` fields.
+
+  // Register management: we will use three regs, `regMetrics`, `regFuncRef`,
+  // `regScratch` as detailed below.  All of them may be trashed.  But
+  // WasmCallRefReg needs to be unchanged across the update, so copy it into
+  // `regFuncRef` and use that instead of the original.
+  //
+  // At entry here, at entry to the OOL code, and at entry to the stub it
+  // calls, InstanceReg must be pointing at a valid Instance.
+  const Register regMetrics = WasmCallRefCallScratchReg0;  // CallRefMetrics*
+  const Register regFuncRef = WasmCallRefCallScratchReg1;  // FuncExtended*
+  const Register regScratch = WasmCallRefCallScratchReg2;  // scratch
+
+  OutOfLineCode* ool =
+      addOutOfLineCode(new (alloc_) OutOfLineUpdateCallRefMetrics());
+  if (!ool) {
+    return false;
+  }
+
+  // We only need one Rejoin label, so use ool->rejoin() for that.
+
+  // if (target == nullptr) goto Rejoin
+  masm.branchWasmAnyRefIsNull(/*isNull=*/true, WasmCallRefReg, ool->rejoin());
+
+  // regFuncRef = target (make a copy of WasmCallRefReg)
+  masm.mov(WasmCallRefReg, regFuncRef);
+
+  // regMetrics = thisInstance::callRefMetrics_ + <imm>
+  //
+  // Emit a patchable mov32 which will load the offset of the `CallRefMetrics`
+  // stored inside the `Instance::callRefMetrics_` array
+  const CodeOffset offsetOfCallRefOffset = masm.move32WithPatch(regScratch);
+  masm.callRefMetricsPatches()[callRefIndex].setOffset(
+      offsetOfCallRefOffset.offset());
+  // Get a pointer to the `CallRefMetrics` for this call_ref
+  masm.loadPtr(Address(InstanceReg, wasm::Instance::offsetOfCallRefMetrics()),
+               regMetrics);
+  masm.addPtr(regScratch, regMetrics);
+
+  // At this point, regFuncRef = the FuncExtended*, regMetrics = the
+  // CallRefMetrics* and we know regFuncRef is not null.
+  //
+  // if (target->instance != thisInstance) goto Out-Of-Line
+  const size_t instanceSlotOffset = FunctionExtended::offsetOfExtendedSlot(
+      FunctionExtended::WASM_INSTANCE_SLOT);
+  masm.loadPtr(Address(regFuncRef, instanceSlotOffset), regScratch);
+  masm.branchPtr(Assembler::NotEqual, InstanceReg, regScratch, ool->entry());
+
+  // At this point, regFuncRef = the FuncExtended*, regMetrics = the
+  // CallRefMetrics*, we know regFuncRef is not null and it's a same-instance
+  // call.
+  //
+  // if (target != metrics->targets[0]) goto Out-Of-Line
+  const size_t offsetOfTarget0 = CallRefMetrics::offsetOfTarget(0);
+  masm.loadPtr(Address(regMetrics, offsetOfTarget0), regScratch);
+  masm.branchPtr(Assembler::NotEqual, regScratch, regFuncRef, ool->entry());
+
+  // At this point, regFuncRef = the FuncExtended*, regMetrics = the
+  // CallRefMetrics*, we know regFuncRef is not null, it's a same-instance
+  // call, and it is to the destination `regMetrics->targets[0]`.
+  //
+  // metrics->count0++
+  const size_t offsetOfCount0 = CallRefMetrics::offsetOfCount(0);
+  masm.load32(Address(regMetrics, offsetOfCount0), regScratch);
+  masm.add32(Imm32(1), regScratch);
+  masm.store32(regScratch, Address(regMetrics, offsetOfCount0));
+
+  masm.bind(ool->rejoin());
+  return true;
+}
+
+bool BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
                            mozilla::Maybe<size_t> callRefIndex,
                            CodeOffset* fastCallOffset,
                            CodeOffset* slowCallOffset) {
@@ -1943,13 +2037,15 @@ void BaseCompiler::callRef(const Stk& calleeRef, const FunctionCall& call,
 
   loadRef(calleeRef, RegRef(WasmCallRefReg));
   if (compilerEnv_.mode() == CompileMode::LazyTiering) {
-    masm.updateCallRefMetrics(*callRefIndex, WasmCallRefReg,
-                              WasmCallRefCallScratchReg0,
-                              WasmCallRefCallScratchReg1);
+    if (!updateCallRefMetrics(*callRefIndex)) {
+      return false;
+    }
   } else {
     MOZ_ASSERT(callRefIndex.isNothing());
   }
+
   masm.wasmCallRef(desc, callee, fastCallOffset, slowCallOffset);
+  return true;
 }
 
 #  ifdef ENABLE_WASM_TAIL_CALLS
@@ -5593,7 +5689,10 @@ bool BaseCompiler::emitCallRef() {
   const Stk& callee = peek(results.count());
   CodeOffset fastCallOffset;
   CodeOffset slowCallOffset;
-  callRef(callee, baselineCall, callRefIndex, &fastCallOffset, &slowCallOffset);
+  if (!callRef(callee, baselineCall, callRefIndex, &fastCallOffset,
+               &slowCallOffset)) {
+    return false;
+  }
   if (!createStackMap("emitCallRef", fastCallOffset)) {
     return false;
   }

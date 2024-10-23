@@ -8421,12 +8421,6 @@
     mirror: always
     set_spidermonkey_pref: always
 
-- name: javascript.options.wasm_inline_call_ref_threshold
-  type: uint32_t
-  value: 1
-  mirror: always
-  set_spidermonkey_pref: always
-
 # Aggressiveness of lazy tiering, allowable: 1 .. 9
 # 1 = min (almost never, set tiering threshold to max possible, == 2^31-1)
 # 9 = max (request tier up at first call, set tiering threshold to zero)
@@ -8462,6 +8456,17 @@
 - name: javascript.options.wasm_call_ref_inlining
   type: bool
   value: true
+  mirror: always
+  set_spidermonkey_pref: always
+
+# When selecting a call_ref target for speculative inlining, this is the minimum
+# percentage of the total number of calls from the call site that a candidate
+# must have in order to be elegible for inlining.  Allowable: 10 .. 100 (%).
+# Setting it (eg) 75 means the hottest target must be 75% of all observed calls
+# to be considered for inlining.  Probably unwise to let this be much below 50.
+- name: javascript.options.wasm_call_ref_inlining_percent
+  type: uint32_t
+  value: 50
   mirror: always
   set_spidermonkey_pref: always
 

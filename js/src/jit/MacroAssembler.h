@@ -4037,9 +4037,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
                          const ReturnCallAdjustmentInfo& retCallInfo);
 #endif  // ENABLE_WASM_TAIL_CALLS
 
-  void updateCallRefMetrics(size_t callRefIndex, const Register funcRef,
-                            const Register scratch1, const Register scratch2);
-
   // WasmTableCallIndexReg must contain the index of the indirect call.
   // This is for asm.js calls only.
   CodeOffset asmCallIndirect(const wasm::CallSiteDesc& desc,

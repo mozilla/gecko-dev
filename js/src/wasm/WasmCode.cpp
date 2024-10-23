@@ -1266,7 +1266,8 @@ Code::Code(CompileMode mode, const CodeMetadata& codeMeta,
                        CacheableCharsVector()),
       trapCode_(nullptr),
       debugStubOffset_(0),
-      requestTierUpStubOffset_(0) {}
+      requestTierUpStubOffset_(0),
+      updateCallRefMetricsStubOffset_(0) {}
 
 bool Code::initialize(FuncImportVector&& funcImports,
                       UniqueCodeBlock sharedStubs,

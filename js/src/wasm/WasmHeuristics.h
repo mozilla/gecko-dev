@@ -128,6 +128,16 @@ class InliningHeuristics {
   static bool rawCallRefAllowed() {
     return JS::Prefs::wasm_call_ref_inlining();
   }
+  // For a call_ref site, returns the percentage of total calls made by that
+  // site, that any single target has to make in order to be considered as a
+  // candidate for speculative inlining.
+  static uint32_t rawCallRefPercent() {
+    uint32_t percent = JS::Prefs::wasm_call_ref_inlining_percent();
+    // Clamp to range 10 .. 100 (%).
+    percent = std::max<uint32_t>(10, percent);
+    percent = std::min<uint32_t>(100, percent);
+    return percent;
+  }
 
   // Given a call of kind `callKind` to a function of bytecode size
   // `bodyLength` at `inliningDepth`, decide whether the it is allowable to
