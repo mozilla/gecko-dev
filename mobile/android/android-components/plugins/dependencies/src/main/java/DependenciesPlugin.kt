@@ -99,7 +99,7 @@ object Versions {
         const val play_services_ads_id = "16.0.0"
         const val play_services_base = "18.5.0"
         const val play_services_fido = "21.1.0"
-        const val protobuf = "3.21.10" // Keep Protobuf in sync with the version used by AppServices.
+        const val protobuf = "4.28.2" // Keep Protobuf in sync with the version used by AppServices.
     }
 
     object Testing {
