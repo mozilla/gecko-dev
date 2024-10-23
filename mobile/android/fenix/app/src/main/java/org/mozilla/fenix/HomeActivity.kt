@@ -60,6 +60,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.concept.storage.HistoryMetadataKey
 import mozilla.components.feature.contextmenu.DefaultSelectionActionDelegate
+import mozilla.components.feature.customtabs.isCustomTabIntent
 import mozilla.components.feature.media.ext.findActiveMediaTab
 import mozilla.components.feature.privatemode.notification.PrivateNotificationFeature
 import mozilla.components.feature.search.BrowserStoreSearchAdapter
@@ -144,6 +145,7 @@ import org.mozilla.fenix.perf.StartupPathProvider
 import org.mozilla.fenix.perf.StartupTimeline
 import org.mozilla.fenix.perf.StartupTypeTelemetry
 import org.mozilla.fenix.session.PrivateNotificationService
+import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.shortcut.NewTabShortcutIntentProcessor.Companion.ACTION_OPEN_PRIVATE_TAB
 import org.mozilla.fenix.tabhistory.TabHistoryDialogFragment
 import org.mozilla.fenix.tabstray.TabsTrayFragment
@@ -192,6 +194,13 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                         searchTermOrURL = url,
                         newTab = true,
                         from = BrowserDirection.FromGlobal,
+                    )
+                } else {
+                    startActivity(
+                        SupportUtils.createCustomTabIntent(
+                            context = this,
+                            url = url,
+                        ),
                     )
                 }
             },
@@ -406,9 +415,12 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             extensionsProcessDisabledForegroundController,
             extensionsProcessDisabledBackgroundController,
             serviceWorkerSupport,
-            webExtensionPromptFeature,
             crashReporterBinding,
         )
+
+        if (!isCustomTabIntent(intent)) {
+            lifecycle.addObserver(webExtensionPromptFeature)
+        }
 
         if (shouldAddToRecentsScreen(intent)) {
             intent.removeExtra(START_IN_RECENTS_SCREEN)

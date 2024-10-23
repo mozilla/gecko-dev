@@ -16,6 +16,7 @@ import mozilla.components.browser.state.state.extension.WebExtensionPromptReques
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.webextension.WebExtensionInstallException
 import mozilla.components.feature.addons.Addon
+import mozilla.components.feature.addons.ui.PermissionsDialogFragment
 import mozilla.components.support.ktx.android.content.appVersionName
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
@@ -29,6 +30,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.utils.LinkTextView
 
 @RunWith(FenixRobolectricTestRunner::class)
@@ -389,5 +391,29 @@ class WebExtensionPromptFeatureTest {
             onLinkClicked(expectedUrl, true)
             dialog.dismiss()
         }
+    }
+
+    @Test
+    fun `WHEN clicking Learn More on the Permissions Dialog THEN open the correct SUMO page in a custom tab`() {
+        val addon: Addon = mockk(relaxed = true)
+
+        // Bug 1920564 - add finalized Learn More SUMO link for the install dialog
+        val expectedUrl = SupportUtils.getSumoURLForTopic(
+            testContext,
+            SupportUtils.SumoTopic.MANAGE_OPTIONAL_EXTENSION_PERMISSIONS,
+        )
+
+        val dialog = PermissionsDialogFragment.newInstance(
+            addon = addon,
+            forOptionalPermissions = false,
+            permissions = listOf("tabs"),
+            onLearnMoreClicked = {
+                onLinkClicked(expectedUrl, false)
+            },
+        )
+
+        dialog.onLearnMoreClicked?.invoke()
+
+        verify { onLinkClicked(expectedUrl, false) }
     }
 }

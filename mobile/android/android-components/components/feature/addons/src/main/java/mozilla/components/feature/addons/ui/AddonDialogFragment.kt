@@ -48,6 +48,8 @@ open class AddonDialogFragment : AppCompatDialogFragment() {
         @ColorRes
         val confirmButtonBackgroundColor: Int? = null,
         @ColorRes
+        val learnMoreLinkTextColor: Int? = null,
+        @ColorRes
         val confirmButtonTextColor: Int? = null,
         val confirmButtonRadius: Float? = null,
     )
