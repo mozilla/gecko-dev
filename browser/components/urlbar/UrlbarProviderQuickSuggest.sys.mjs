@@ -738,17 +738,22 @@ class ProviderQuickSuggest extends UrlbarProvider {
             suggestion.categories,
             true // adjustment needed b/c Merino uses the original encoding
           );
+          Glean.suggestRelevance.status.success.add(1);
           let oldScore = suggestion.score;
           if (isNaN(oldScore)) {
             oldScore = DEFAULT_SUGGESTION_SCORE;
           }
           suggestion.score = (oldScore + score) / 2;
+          Glean.suggestRelevance.outcome[
+            suggestion.score >= oldScore ? "boosted" : "decreased"
+          ].add(1);
           this.logger.debug(
             `Updated the suggestion score from '${oldScore}' to '${suggestion.score.toFixed(
               2
             )}'`
           );
         } catch (error) {
+          Glean.suggestRelevance.status.failure.add(1);
           this.logger.error(
             `Failed to update the suggestion score: '${error}'`
           );

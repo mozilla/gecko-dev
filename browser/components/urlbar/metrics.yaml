@@ -1023,3 +1023,46 @@ suggest:
     expires: "never"
     data_sensitivity:
       - technical
+
+# Relevance scoring & ranking metrics for Firefox Suggest.
+# This feature is still in the experimentation phase and all the metrics are
+# set to expire by 136 for now.
+suggest_relevance:
+  status:
+    type: labeled_counter
+    description: >
+      Count the successful / failed attempts of relevance scoring in
+      Firefox Suggest.
+    labels:
+      - success
+      - failure
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926315
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926315
+    notification_emails:
+      - disco-team@mozilla.com
+      - najiang@mozilla.com
+    expires: 136
+    data_sensitivity:
+      - technical
+  outcome:
+    type: labeled_counter
+    description: >
+      For each successful scoring, count whether the relevance score gets
+      boosted or decreased over the original score. Note that given how the
+      score is calculated, it's practically impossible to have the two scores
+      tied. If that's the case anyhow, it will increment the "boosted" counter.
+    labels:
+      - boosted
+      - decreased
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926315
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926315
+    notification_emails:
+      - disco-team@mozilla.com
+      - najiang@mozilla.com
+    expires: 136
+    data_sensitivity:
+      - technical
