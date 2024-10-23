@@ -3606,6 +3606,10 @@ pref("reader.parse-on-load.enabled", true);
 // because it'd slow things down too much
 pref("reader.parse-node-limit", 3000);
 
+// Whether or not debug mode is enabled in reader mode. If enabled, reader mode
+// will log what it's doing.
+pref("reader.debug", false);
+
 // Whether we include full URLs in browser console errors. This is disabled
 // by default because some platforms will persist these, leading to privacy issues.
 pref("reader.errors.includeURLs", false);

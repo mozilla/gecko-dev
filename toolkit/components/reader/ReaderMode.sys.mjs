@@ -405,6 +405,7 @@ export var ReaderMode = {
 
     let options = {
       classesToPreserve: CLASSES_TO_PRESERVE,
+      debug: Services.prefs.getBoolPref("reader.debug", false),
     };
 
     let article = null;
