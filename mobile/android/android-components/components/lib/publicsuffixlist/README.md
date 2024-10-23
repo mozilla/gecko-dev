@@ -29,7 +29,7 @@ publicSuffixList.prefetch().await()
 ```
 
 ```Kotlin
-// Extracting the effective top-level domain (eTLD)
+// Extracting the registrable domain domain (eTLD+1)
 publicSuffixList.getPublicSuffixPlusOne("www.mozilla.org") // -> mozilla.org
 publicSuffixList.getPublicSuffixPlusOne("www.bbc.co.uk") // -> bbc.co.uk
 publicSuffixList.getPublicSuffixPlusOne("a.b.ide.kyoto.jp") // -> b.ide.kyoto.jp
