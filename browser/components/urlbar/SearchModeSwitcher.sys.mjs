@@ -19,6 +19,7 @@ ChromeUtils.defineLazyGetter(lazy, "SearchModeSwitcherL10n", () => {
  * Implements the SearchModeSwitcher in the urlbar.
  */
 export class SearchModeSwitcher {
+  static DEFAULT_ICON = lazy.UrlbarUtils.ICON.SEARCH_GLASS;
   #engineListNeedsRebuild = true;
   #popup;
   #input;
@@ -208,8 +209,9 @@ export class SearchModeSwitcher {
     try {
       await lazy.UrlbarSearchUtils.init();
     } catch {
-      // We should still work if the SearchService is not working.
+      console.error("Search service failed to init");
     }
+
     let { label, icon } = await this.#getDisplayedEngineDetails(
       this.#input.searchMode
     );
@@ -217,18 +219,26 @@ export class SearchModeSwitcher {
     const keywordEnabled = lazy.UrlbarPrefs.get("keyword.enabled");
     const inSearchMode = this.#input.searchMode;
     if (!keywordEnabled && !inSearchMode) {
-      icon = lazy.UrlbarUtils.ICON.SEARCH_GLASS;
+      icon = SearchModeSwitcher.DEFAULT_ICON;
     }
 
     let iconUrl = icon ? `url(${icon})` : "";
     this.#input.document.getElementById(
       "searchmode-switcher-icon"
     ).style.listStyleImage = iconUrl;
-    this.#input.document.l10n.setAttributes(
-      this.#toolbarbutton,
-      "urlbar-searchmode-button",
-      { engine: label }
-    );
+
+    if (label) {
+      this.#input.document.l10n.setAttributes(
+        this.#toolbarbutton,
+        "urlbar-searchmode-button2",
+        { engine: label }
+      );
+    } else {
+      this.#input.document.l10n.setAttributes(
+        this.#toolbarbutton,
+        "urlbar-searchmode-button-no-engine"
+      );
+    }
 
     let labelEl = this.#input.document.getElementById(
       "searchmode-switcher-title"
@@ -252,6 +262,10 @@ export class SearchModeSwitcher {
   }
 
   async #getDisplayedEngineDetails(searchMode = null) {
+    if (!Services.search.hasSuccessfullyInitialized) {
+      return { label: null, icon: SearchModeSwitcher.DEFAULT_ICON };
+    }
+
     if (!searchMode || searchMode.engineName) {
       let engine = searchMode
         ? lazy.UrlbarSearchUtils.getEngineByName(searchMode.engineName)
@@ -271,7 +285,13 @@ export class SearchModeSwitcher {
   async #rebuildSearchModeList() {
     let container = this.#popup.querySelector(".panel-subview-body");
     container.replaceChildren();
-    let engines = await Services.search.getVisibleEngines();
+
+    let engines = [];
+    try {
+      engines = await Services.search.getVisibleEngines();
+    } catch {
+      console.error("Failed to fetch engines");
+    }
     let frag = this.#input.document.createDocumentFragment();
     let remoteContainer = this.#input.document.createXULElement("vbox");
     remoteContainer.className = "remote-options";

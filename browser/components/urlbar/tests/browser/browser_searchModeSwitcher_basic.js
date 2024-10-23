@@ -785,3 +785,63 @@ add_task(async function test_readonly() {
   await closedPopupPromise;
   gBrowser.removeCurrentTab();
 });
+
+add_task(async function test_search_service_fail() {
+  let newWin = await BrowserTestUtils.openNewBrowserWindow();
+
+  const stub = sinon
+    .stub(UrlbarSearchUtils, "init")
+    .rejects(new Error("Initialization failed"));
+
+  Services.search.wrappedJSObject.forceInitializationStatusForTests(
+    "not initialized"
+  );
+
+  // Force updateSearchIcon to be triggered
+  await SpecialPowers.pushPrefEnv({
+    set: [["keyword.enabled", false]],
+  });
+
+  let searchModeSwitcherButton = newWin.document.getElementById(
+    "searchmode-switcher-icon"
+  );
+
+  const searchGlassIconUrl = UrlbarUtils.ICON.SEARCH_GLASS;
+
+  // match and capture the URL inside `url("...")`
+  let regex = /url\("([^"]+)"\)/;
+  let searchModeSwitcherIconUrl = await BrowserTestUtils.waitForCondition(
+    () => searchModeSwitcherButton.style.listStyleImage.match(regex),
+    "Waiting for the search mode switcher icon to update after exiting search mode."
+  );
+
+  Assert.equal(
+    searchModeSwitcherIconUrl[1],
+    searchGlassIconUrl,
+    "The search mode switcher should have the search glass icon url since the search service init failed."
+  );
+
+  info("Open search mode switcher");
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(newWin);
+
+  info("Ensure local search modes are present in popup");
+  let localSearchModes = ["bookmarks", "history", "tabs"];
+  for (let searchMode of localSearchModes) {
+    popup.querySelector(`#search-button-${searchMode}`);
+    Assert.ok("Local search modes should be present");
+  }
+
+  let localSearchButton = popup.querySelector(
+    `#search-button-${localSearchModes[0]}`
+  );
+
+  let popupHidden = BrowserTestUtils.waitForEvent(popup, "popuphidden");
+  localSearchButton.click();
+  await popupHidden;
+
+  stub.restore();
+
+  Services.search.wrappedJSObject.forceInitializationStatusForTests("success");
+
+  await BrowserTestUtils.closeWindow(newWin);
+});
