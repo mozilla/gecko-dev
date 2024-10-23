@@ -4336,6 +4336,12 @@
   mirror: always
   do_not_use_directly: true
 
+# Whether the migration from unsupported legacy implementation is enabled.
+- name: dom.storage.enable_migration_from_unsupported_legacy_implementation
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # The amount of snapshot peak usage which is attempted to be pre-incremented
 # during snapshot creation.
 - name: dom.storage.snapshot_peak_usage.initial_preincrement
