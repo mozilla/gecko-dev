@@ -32,6 +32,52 @@ XPCOMUtils.defineLazyServiceGetter(
 
 const PROFILES_CRYPTO_SALT_LENGTH_BYTES = 16;
 
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    let imageTools = Cc["@mozilla.org/image/tools;1"].getService(Ci.imgITools);
+    let imageContainer;
+    let observer = imageTools.createScriptedObserver({
+      sizeAvailable() {
+        resolve(imageContainer);
+      },
+    });
+
+    imageTools.decodeImageFromChannelAsync(
+      url,
+      Services.io.newChannelFromURI(
+        url,
+        null,
+        Services.scriptSecurityManager.getSystemPrincipal(),
+        null, // aTriggeringPrincipal
+        Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+        Ci.nsIContentPolicy.TYPE_IMAGE
+      ),
+      (image, status) => {
+        if (!Components.isSuccessCode(status)) {
+          reject(new Components.Exception("Image loading failed", status));
+        } else {
+          imageContainer = image;
+        }
+      },
+      observer
+    );
+  });
+}
+
+async function updateTaskbar(iconUrl, profileName, strokeColor, fillColor) {
+  try {
+    let image = await loadImage(iconUrl);
+
+    if ("nsIMacDockSupport" in Ci) {
+      Cc["@mozilla.org/widget/macdocksupport;1"]
+        .getService(Ci.nsIMacDockSupport)
+        .setBadgeImage(image, { fillColor, strokeColor });
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 async function attemptFlush() {
   try {
     await lazy.ProfileService.asyncFlush();
