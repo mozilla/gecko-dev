@@ -179,7 +179,6 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
   FlippedOnce<false> mInitialized MOZ_GUARDED_BY(mMonitor);
   FlippedOnce<false> mErrored MOZ_GUARDED_BY(mMonitor);
   FlippedOnce<false> mShuttingDown MOZ_GUARDED_BY(mMonitor);
-  FlippedOnce<false> mFinalized MOZ_GUARDED_BY(mMonitor);
   uint32_t mPendingWrites MOZ_GUARDED_BY(mMonitor);
 
   // The database file handle. We can only create this in the main thread and

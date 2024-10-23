@@ -384,9 +384,6 @@ NS_IMETHODIMP BounceTrackingProtectionStorage::BlockShutdown(
               self->mDatabaseConnection = nullptr;
             }
 
-            self->mFinalized.Flip();
-            self->mMonitor.NotifyAll();
-
             nsresult rv = NS_DispatchToMainThread(NS_NewRunnableFunction(
                 "BounceTrackingProtectionStorage::BlockShutdown "
                 "- mainthread callback",
