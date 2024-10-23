@@ -378,7 +378,12 @@ class nsCocoaWindow final : public nsBaseWidget {
     return nsIWidget::CreateTopLevelWindow();
   }
 
-  BaseWindow* mWindow;  // our cocoa window [STRONG]
+  BaseWindow* mWindow;                // our cocoa window [STRONG]
+  BaseWindow* mClosedRetainedWindow;  // a second strong reference to our
+  // window upon closing it, held through our destructor. This is useful
+  // to ensure that macOS run loops which reference the window will still
+  // have something to point to even if they don't use proper retain and
+  // release patterns.
   WindowDelegate*
       mDelegate;  // our delegate for processing window msgs [STRONG]
   RefPtr<nsMenuBarX> mMenuBar;
