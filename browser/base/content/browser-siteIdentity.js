@@ -898,6 +898,7 @@ var gIdentityHandler = {
           warnTextOnInsecure
         ) {
           icon_label = gNavigatorBundle.getString("identity.notSecure.label");
+          tooltip = gNavigatorBundle.getString("identity.notSecure.tooltip");
           this._identityBox.classList.add("notSecureText");
         }
       } else if (this._isMixedActiveContentBlocked) {
