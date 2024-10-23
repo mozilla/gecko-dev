@@ -653,6 +653,36 @@ class _QuickSuggestTestUtils {
   }
 
   /**
+   * Returns a remote settings weather record.
+   *
+   * @returns {object}
+   *   A weather record for storing in remote settings.
+   */
+  weatherRecord({
+    keywords = ["weather"],
+    min_keyword_length = undefined,
+    score = 0.29,
+  } = {}) {
+    let [maxLen, maxWordCount] = keywords.reduce(
+      ([len, wordCount], kw) => [
+        Math.max(len, kw.length),
+        Math.max(wordCount, kw.split(/\s+/).filter(s => !!s).length),
+      ],
+      [0, 0]
+    );
+    return {
+      type: "weather",
+      attachment: {
+        keywords,
+        min_keyword_length,
+        score,
+        max_keyword_length: maxLen,
+        max_keyword_word_count: maxWordCount,
+      },
+    };
+  }
+
+  /**
    * Returns an expected AMO (addons) result that can be passed to
    * `check_results()` in xpcshell tests regardless of whether the Rust backend
    * is enabled.

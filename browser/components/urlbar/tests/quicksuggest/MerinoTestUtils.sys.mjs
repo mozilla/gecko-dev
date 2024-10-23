@@ -53,14 +53,6 @@ const RESPONSE_HISTOGRAM_VALUES = {
   no_suggestion: 4,
 };
 
-const WEATHER_KEYWORD = "weather";
-
-const WEATHER_RS_DATA = {
-  keywords: [WEATHER_KEYWORD],
-  min_keyword_length: 3,
-  score: "0.29",
-};
-
 const WEATHER_SUGGESTION = {
   title: "Weather for San Francisco",
   url: "https://example.com/weather",
@@ -170,24 +162,6 @@ class _MerinoTestUtils {
    */
   get GEOLOCATION() {
     return { ...GEOLOCATION_DATA.custom_details.geolocation };
-  }
-
-  /**
-   * @returns {string}
-   *   The weather keyword in `WEATHER_RS_DATA`. Can be used as a search string
-   *   to match the weather suggestion.
-   */
-  get WEATHER_KEYWORD() {
-    return WEATHER_KEYWORD;
-  }
-
-  /**
-   * @returns {object}
-   *   Default remote settings data that sets up `WEATHER_KEYWORD` as the
-   *   keyword for the weather suggestion.
-   */
-  get WEATHER_RS_DATA() {
-    return { ...WEATHER_RS_DATA };
   }
 
   /**

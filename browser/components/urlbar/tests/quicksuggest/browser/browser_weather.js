@@ -12,12 +12,7 @@ requestLongerTimeout(5);
 
 add_setup(async function () {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
-    remoteSettingsRecords: [
-      {
-        type: "weather",
-        weather: MerinoTestUtils.WEATHER_RS_DATA,
-      },
-    ],
+    remoteSettingsRecords: [QuickSuggestTestUtils.weatherRecord()],
     prefs: [["weather.featureGate", true]],
   });
   await MerinoTestUtils.initWeather();
@@ -27,7 +22,7 @@ add_setup(async function () {
 add_task(async function dom() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: MerinoTestUtils.WEATHER_KEYWORD,
+    value: "weather",
   });
 
   let resultIndex = 1;
@@ -56,7 +51,7 @@ add_task(async function test_weather_result_selection() {
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: MerinoTestUtils.WEATHER_KEYWORD,
+    value: "weather",
   });
 
   info(`Select the weather result`);
@@ -82,13 +77,9 @@ add_task(async function test_weather_result_selection() {
 add_task(async function showLessFrequentlyCapReached_manySearches() {
   // Set up a min keyword length and cap.
   await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "weather",
-      weather: {
-        keywords: ["weather"],
-        min_keyword_length: 3,
-      },
-    },
+    QuickSuggestTestUtils.weatherRecord({
+      min_keyword_length: 3,
+    }),
     {
       type: "configuration",
       configuration: {
@@ -165,10 +156,7 @@ add_task(async function showLessFrequentlyCapReached_manySearches() {
 
   await UrlbarTestUtils.promisePopupClose(window);
   await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "weather",
-      weather: MerinoTestUtils.WEATHER_RS_DATA,
-    },
+    QuickSuggestTestUtils.weatherRecord(),
   ]);
   UrlbarPrefs.clear("weather.minKeywordLength");
 });
@@ -178,13 +166,9 @@ add_task(async function showLessFrequentlyCapReached_manySearches() {
 add_task(async function showLessFrequentlyCapReached_oneSearch() {
   // Set up a min keyword length and cap.
   await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "weather",
-      weather: {
-        keywords: ["weather"],
-        min_keyword_length: 3,
-      },
-    },
+    QuickSuggestTestUtils.weatherRecord({
+      min_keyword_length: 3,
+    }),
     {
       type: "configuration",
       configuration: {
@@ -240,10 +224,7 @@ add_task(async function showLessFrequentlyCapReached_oneSearch() {
   gURLBar.view.resultMenu.hidePopup(true);
   await UrlbarTestUtils.promisePopupClose(window);
   await QuickSuggestTestUtils.setRemoteSettingsRecords([
-    {
-      type: "weather",
-      weather: MerinoTestUtils.WEATHER_RS_DATA,
-    },
+    QuickSuggestTestUtils.weatherRecord(),
   ]);
   UrlbarPrefs.clear("weather.minKeywordLength");
 });
@@ -252,7 +233,7 @@ add_task(async function showLessFrequentlyCapReached_oneSearch() {
 add_task(async function notInterested() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: MerinoTestUtils.WEATHER_KEYWORD,
+    value: "weather",
   });
   await doDismissTest("not_interested");
 });
@@ -261,7 +242,7 @@ add_task(async function notInterested() {
 add_task(async function notRelevant() {
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: MerinoTestUtils.WEATHER_KEYWORD,
+    value: "weather",
   });
   await doDismissTest("not_relevant");
 });
@@ -366,7 +347,7 @@ async function doSessionOngoingCommandTest(command) {
   // Trigger the suggestion.
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: MerinoTestUtils.WEATHER_KEYWORD,
+    value: "weather",
   });
 
   let resultIndex = 1;
@@ -397,7 +378,7 @@ add_task(async function manage() {
   await BrowserTestUtils.withNewTab({ gBrowser }, async browser => {
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      value: MerinoTestUtils.WEATHER_KEYWORD,
+      value: "weather",
     });
 
     let resultIndex = 1;
@@ -449,7 +430,7 @@ add_task(async function simpleUI() {
 
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
-      value: MerinoTestUtils.WEATHER_KEYWORD,
+      value: "weather",
     });
 
     let resultIndex = 1;

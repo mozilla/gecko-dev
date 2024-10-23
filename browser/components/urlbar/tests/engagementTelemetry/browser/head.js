@@ -108,10 +108,7 @@ async function ensureQuickSuggestInit({ ...args } = {}) {
           }),
         ],
       },
-      {
-        type: "weather",
-        weather: MerinoTestUtils.WEATHER_RS_DATA,
-      },
+      lazy.QuickSuggestTestUtils.weatherRecord(),
       {
         type: "exposure-suggestions",
         suggestion_type: "aaa",

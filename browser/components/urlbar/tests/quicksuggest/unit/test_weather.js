@@ -9,17 +9,15 @@
 const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_WEATHER_MS";
 const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE_WEATHER";
 
-const { WEATHER_RS_DATA, WEATHER_SUGGESTION } = MerinoTestUtils;
+const { WEATHER_SUGGESTION } = MerinoTestUtils;
 
 add_setup(async () => {
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
-    prefs: [["suggest.quicksuggest.nonsponsored", true]],
-    remoteSettingsRecords: [
-      {
-        type: "weather",
-        weather: WEATHER_RS_DATA,
-      },
+    prefs: [
+      ["suggest.quicksuggest.nonsponsored", true],
+      ["weather.featureGate", true],
     ],
+    remoteSettingsRecords: [QuickSuggestTestUtils.weatherRecord()],
   });
 
   await MerinoTestUtils.initWeather();
@@ -47,7 +45,7 @@ async function doBasicDisableAndEnableTest(pref) {
   });
 
   // No suggestion should be returned for a search.
-  let context = createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+  let context = createContext("weather", {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -66,7 +64,7 @@ async function doBasicDisableAndEnableTest(pref) {
   UrlbarPrefs.set(pref, true);
 
   // The suggestion should be returned for a search.
-  context = createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+  context = createContext("weather", {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -93,7 +91,7 @@ add_task(async function noSuggestion() {
   let { suggestions } = MerinoTestUtils.server.response.body;
   MerinoTestUtils.server.response.body.suggestions = [];
 
-  let context = createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+  let context = createContext("weather", {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -127,7 +125,7 @@ add_task(async function networkError() {
   });
 
   await MerinoTestUtils.server.withNetworkError(async () => {
-    let context = createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+    let context = createContext("weather", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     });
@@ -154,7 +152,7 @@ add_task(async function httpError() {
 
   MerinoTestUtils.server.response = { status: 500 };
 
-  let context = createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+  let context = createContext("weather", {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -192,7 +190,7 @@ add_task(async function clientTimeout() {
   // response.
   let responsePromise = QuickSuggest.weather._test_merino.waitForNextResponse();
 
-  let context = createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+  let context = createContext("weather", {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -325,7 +323,7 @@ async function doLocaleTest({ shouldRunTask, osUnit, unitsByLocale }) {
       callback: async () => {
         info("Checking locale: " + locale);
         await check_results({
-          context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+          context: createContext("weather", {
             providers: [UrlbarProviderQuickSuggest.name],
             isPrivate: false,
           }),
@@ -337,7 +335,7 @@ async function doLocaleTest({ shouldRunTask, osUnit, unitsByLocale }) {
         );
         Services.prefs.setBoolPref("intl.regional_prefs.use_os_locales", true);
         await check_results({
-          context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+          context: createContext("weather", {
             providers: [UrlbarProviderQuickSuggest.name],
             isPrivate: false,
           }),
@@ -360,7 +358,7 @@ add_task(async function block() {
   );
 
   // Do a search so we can get an actual result.
-  let context = createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+  let context = createContext("weather", {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -394,7 +392,7 @@ add_task(async function block() {
   );
 
   // Do a second search. Nothing should be returned.
-  context = createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+  context = createContext("weather", {
     providers: [UrlbarProviderQuickSuggest.name],
     isPrivate: false,
   });
@@ -417,7 +415,7 @@ add_task(async function nimbusOverride() {
   // Verify a search works as expected with the default remote settings weather
   // record (which was added in the init task).
   await check_results({
-    context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+    context: createContext("weather", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -431,7 +429,7 @@ add_task(async function nimbusOverride() {
 
   // The suggestion shouldn't be returned anymore.
   await check_results({
-    context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+    context: createContext("weather", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),
@@ -443,7 +441,7 @@ add_task(async function nimbusOverride() {
 
   // The suggestion should be returned again.
   await check_results({
-    context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+    context: createContext("weather", {
       providers: [UrlbarProviderQuickSuggest.name],
       isPrivate: false,
     }),

@@ -527,12 +527,6 @@ add_task(async function selected_result_input_field() {
 });
 
 add_task(async function selected_result_weather() {
-  // TODO bug 1925735: Remove this and the
-  // `eslint-disable-next-line no-unreachable` lines below
-  Assert.ok(true, "Skipping weather task: see bug 1925735");
-  return;
-
-  // eslint-disable-next-line no-unreachable
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.quickactions.enabled", false]],
   });
@@ -542,7 +536,7 @@ add_task(async function selected_result_weather() {
 
   let provider = "UrlbarProviderQuickSuggest";
   await doTest(async () => {
-    await openPopup(MerinoTestUtils.WEATHER_KEYWORD);
+    await openPopup("weather");
     await selectRowByProvider(provider);
     await doEnter();
 
@@ -556,7 +550,6 @@ add_task(async function selected_result_weather() {
     ]);
   });
 
-  // eslint-disable-next-line no-unreachable
   await cleanupQuickSuggest();
   await SpecialPowers.popPrefEnv();
 });
