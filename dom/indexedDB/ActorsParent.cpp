@@ -2174,7 +2174,6 @@ class Database final
   void AssertIsOnConnectionThread() const {
 #ifdef DEBUG
     if (mConnection) {
-      MOZ_ASSERT(mConnection);
       mConnection->AssertIsOnConnectionThread();
     } else {
       MOZ_ASSERT(!NS_IsMainThread());
