@@ -192,6 +192,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Timeout for Merino fetches (ms).
   ["merino.timeoutMs", 200],
 
+  // Set default NER threshold value of 0.5
+  ["nerThreshold", [0.5, "float"]],
+
   // Whether addresses and search results typed into the address bar
   // should be opened in new tabs by default.
   ["openintab", false],

@@ -320,6 +320,11 @@ support-files = ["file_urlbar_edit_dos.html"]
 ["browser_middleClick.js"]
 fail-if = ["a11y_checks"] # Bug 1854660 clicked element may not be focusable and/or labeled
 
+["browser_MLSuggest_integration.js"]
+support-files = [
+  "!/toolkit/components/ml/tests/browser/head.js",
+]
+
 ["browser_move_tab_to_new_window.js"]
 
 ["browser_new_tab_urlbar_reset.js"]
