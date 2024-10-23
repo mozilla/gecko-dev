@@ -857,19 +857,24 @@ tab-group {
     opacity: 0;
     margin: 0;
     position: absolute;
-
-    &:checked + .tab-group-editor-swatch {
-      outline: var(--focus-outline);
-      outline-offset: var(--focus-outline-offset);
-    }
   }
 
   .tab-group-editor-swatch {
-    display: block;
     width: 16px;
     height: 16px;
-    border-radius: 20%;
+    border-radius: var(--border-radius-small);
     background-color: light-dark(var(--tabgroup-swatch-color), var(--tabgroup-swatch-color-invert));
+
+    input:checked + & {
+      outline: var(--focus-outline);
+      outline-color: currentColor;
+      outline-offset: var(--focus-outline-offset);
+    }
+
+    input:focus-visible + & {
+      outline-color: var(--focus-outline-color);
+      box-shadow: 0 0 0 calc(var(--focus-outline-width) * 3) color-mix(in srgb, var(--focus-outline-color) 50%, transparent);
+    }
   }
 
   .tab-group-edit-actions,
