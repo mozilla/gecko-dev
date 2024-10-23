@@ -7753,7 +7753,7 @@ TEST_F(JsepSessionTest, TestBundleSupportWithZeroPort) {
   mSessionOff->SetRemoteDescription(kJsepSdpAnswer, answerSdp);
 
   // Ensure all the transcievers are still active bug 1923416
-  for (const auto offerTransceiver : GetTransceivers(*mSessionOff)) {
+  for (const auto& offerTransceiver : GetTransceivers(*mSessionOff)) {
     ASSERT_TRUE(offerTransceiver.mRecvTrack.GetActive());
     ASSERT_TRUE(offerTransceiver.mSendTrack.GetActive());
   }
