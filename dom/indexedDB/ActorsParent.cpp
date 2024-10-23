@@ -2173,7 +2173,15 @@ class Database final
 
   void AssertIsOnConnectionThread() const {
 #ifdef DEBUG
-    if (mConnection) {
+    // mConnection is used to cache the result from ConnectionPool's
+    // GetOrCreateConnection method (potentially avoiding a lock and a hash
+    // lookup). However, once the connection is closed, the task queue for the
+    // given database is also destroyed, so the connection, which caches the
+    // event target it was created on, is no longer reliable for asserting that
+    // the current thread is the connection thread (mConnection might be reset
+    // when EnsureConnection is called again, but in the meantime, we have to
+    // fallback to just checking the main thread and the PBackgroud thread).
+    if (mConnection && !mConnection->Closed()) {
       mConnection->AssertIsOnConnectionThread();
     } else {
       MOZ_ASSERT(!NS_IsMainThread());
