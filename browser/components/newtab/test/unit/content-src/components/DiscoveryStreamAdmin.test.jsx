@@ -67,7 +67,10 @@ describe("DiscoveryStreamAdmin", () => {
       wrapper = shallow(
         <DiscoveryStreamAdminUI
           dispatch={dispatch}
-          otherPrefs={{}}
+          otherPrefs={{
+            "discoverystream.contextualContent.selectedFeed": "foo",
+            "discoverystream.contextualContent.feeds": "foo, bar",
+          }}
           state={{
             DiscoveryStream: state,
             Weather: {
@@ -95,7 +98,10 @@ describe("DiscoveryStreamAdmin", () => {
       };
       wrapper = shallow(
         <DiscoveryStreamAdminUI
-          otherPrefs={{}}
+          otherPrefs={{
+            "discoverystream.contextualContent.selectedFeed": "foo",
+            "discoverystream.contextualContent.feeds": "foo, bar",
+          }}
           state={{
             DiscoveryStream: state,
             Weather: {

@@ -23,6 +23,8 @@ const PREF_SPOCS_STARTUPCACHE_ENABLED =
 const PREF_LIST_FEED_ENABLED = "discoverystream.contextualContent.enabled";
 const PREF_LIST_FEED_SELECTED_FEED =
   "discoverystream.contextualContent.selectedFeed";
+const PREF_FAKESPOT_ENABLED =
+  "discoverystream.contextualContent.fakespot.enabled";
 const INTERSECTION_RATIO = 0.5;
 const VISIBLE = "visible";
 const VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -321,6 +323,7 @@ export function RecentSavesContainer({
 }
 
 export class _CardGrid extends React.PureComponent {
+  // eslint-disable-next-line max-statements
   renderCards() {
     const prefs = this.props.Prefs.values;
     const {
@@ -448,20 +451,20 @@ export class _CardGrid extends React.PureComponent {
         }
       }
     }
-
     if (listFeedEnabled) {
-      const listFeed = (
-        <ListFeed
-          // only display recs that match selectedFeed for ListFeed
-          recs={this.props.data.recommendations.filter(
-            item => item.feedName === listFeedSelectedFeed
-          )}
-          firstVisibleTimestamp={this.props.firstVisibleTimestamp}
-          type={this.props.type}
-        />
-      );
-      // place the list feed as the 3rd element in the card grid
-      cards.splice(2, 1, listFeed);
+      const isFakespot = listFeedSelectedFeed === "fakespot";
+      const fakespotEnabled = prefs[PREF_FAKESPOT_ENABLED];
+      if (!isFakespot || (isFakespot && fakespotEnabled)) {
+        // Place the list feed as the 3rd element in the card grid
+        cards.splice(
+          2,
+          0,
+          this.renderListFeed(
+            this.props.data.recommendations,
+            listFeedSelectedFeed
+          )
+        );
+      }
     }
 
     let moreRecsHeader = "";
@@ -536,6 +539,24 @@ export class _CardGrid extends React.PureComponent {
         )}
       </>
     );
+  }
+
+  renderListFeed(recommendations, selectedFeed) {
+    const recs = recommendations.filter(item => item.feedName === selectedFeed);
+    const isFakespot = selectedFeed === "fakespot";
+    // remove duplicates from category list
+    const categories = [...new Set(recs.map(({ category }) => category))];
+    const listFeed = (
+      <ListFeed
+        // only display recs that match selectedFeed for ListFeed
+        recs={recs}
+        categories={isFakespot ? categories : []}
+        firstVisibleTimestamp={this.props.firstVisibleTimestamp}
+        type={this.props.type}
+        dispatch={this.props.dispatch}
+      />
+    );
+    return listFeed;
   }
 
   render() {

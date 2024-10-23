@@ -426,6 +426,33 @@ describe("<DSCard>", () => {
         })
       );
     });
+
+    it("fakespot onLinkClick should dispatch with the correct events", () => {
+      wrapper.setProps({
+        id: "fooidx",
+        pos: 1,
+        type: "foo",
+        isFakespot: true,
+        category: "fakespot",
+      });
+
+      sandbox
+        .stub(wrapper.instance(), "doesLinkTopicMatchSelectedTopic")
+        .returns(undefined);
+
+      wrapper.instance().onLinkClick();
+
+      assert.calledWith(
+        dispatch,
+        ac.DiscoveryStreamUserEvent({
+          event: "FAKESPOT_CLICK",
+          value: {
+            product_id: "fooidx",
+            category: "fakespot",
+          },
+        })
+      );
+    });
   });
 
   describe("DSCard with CTA", () => {
@@ -804,6 +831,32 @@ describe("Listfeed <DSCard />", () => {
     const excerpt_element = wrapper.find(".excerpt");
 
     assert.ok(!excerpt_element.exists());
+  });
+});
+
+describe("ListFeed fakespot <DSCard />", () => {
+  let wrapper;
+  let sandbox;
+  let dispatch;
+
+  beforeEach(() => {
+    sandbox = sinon.createSandbox();
+    dispatch = sandbox.stub();
+    wrapper = shallow(
+      <DSCard
+        dispatch={dispatch}
+        {...DEFAULT_PROPS}
+        isListFeed={true}
+        isFakespot={true}
+      />
+    );
+    wrapper.setState({ isSeen: true });
+  });
+
+  it("should not render source element", () => {
+    const source_element = wrapper.find(".source");
+
+    assert.ok(!source_element.exists());
   });
 });
 

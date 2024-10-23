@@ -48,6 +48,8 @@ activity_stream:
       "DRAG",
       "DROP",
       "IMPRESSION",
+      "FAKESPOT_CATEGORY",
+      "FAKESPOT_CLICK",
       "MIGRATION_CANCEL",
       "MIGRATION_START",
       "OPEN_NEWTAB_PREFS",

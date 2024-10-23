@@ -54,6 +54,7 @@ export class ImpressionStats extends React.PureComponent {
 
   _dispatchImpressionStats() {
     const { props } = this;
+    const { isFakespot } = props;
     const cards = props.rows;
 
     if (this.props.flightId) {
@@ -86,28 +87,43 @@ export class ImpressionStats extends React.PureComponent {
     }
 
     if (this._needsImpressionStats(cards)) {
-      props.dispatch(
-        ac.DiscoveryStreamImpressionStats({
-          source: props.source.toUpperCase(),
-          window_inner_width: window.innerWidth,
-          window_inner_height: window.innerHeight,
-          tiles: cards.map(link => ({
-            id: link.id,
-            pos: link.pos,
-            type: this.props.flightId ? "spoc" : "organic",
-            ...(link.shim ? { shim: link.shim } : {}),
-            recommendation_id: link.recommendation_id,
-            fetchTimestamp: link.fetchTimestamp,
-            scheduled_corpus_item_id: link.scheduled_corpus_item_id,
-            recommended_at: link.recommended_at,
-            received_rank: link.received_rank,
-            topic: link.topic,
-            is_list_card: link.is_list_card,
-          })),
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-        })
-      );
-      this.impressionCardGuids = cards.map(link => link.id);
+      if (isFakespot) {
+        props.dispatch(
+          ac.DiscoveryStreamImpressionStats({
+            source: props.source.toUpperCase(),
+            window_inner_width: window.innerWidth,
+            window_inner_height: window.innerHeight,
+            tiles: cards.map(link => ({
+              id: link.id,
+              type: "fakespot",
+              category: link.category,
+            })),
+          })
+        );
+      } else {
+        props.dispatch(
+          ac.DiscoveryStreamImpressionStats({
+            source: props.source.toUpperCase(),
+            window_inner_width: window.innerWidth,
+            window_inner_height: window.innerHeight,
+            tiles: cards.map(link => ({
+              id: link.id,
+              pos: link.pos,
+              type: this.props.flightId ? "spoc" : "organic",
+              ...(link.shim ? { shim: link.shim } : {}),
+              recommendation_id: link.recommendation_id,
+              fetchTimestamp: link.fetchTimestamp,
+              scheduled_corpus_item_id: link.scheduled_corpus_item_id,
+              recommended_at: link.recommended_at,
+              received_rank: link.received_rank,
+              topic: link.topic,
+              is_list_card: link.is_list_card,
+            })),
+            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+          })
+        );
+        this.impressionCardGuids = cards.map(link => link.id);
+      }
     }
   }
 

@@ -21,7 +21,8 @@ export class SafeAnchor extends React.PureComponent {
           type: at.OPEN_LINK,
           data: {
             event: { altKey, button, ctrlKey, metaKey, shiftKey },
-            referrer: "https://getpocket.com/recommendations",
+            referrer:
+              this.props.referrer || "https://getpocket.com/recommendations",
             // Use the anchor's url, which could have been cleaned up
             url: event.currentTarget.href,
           },

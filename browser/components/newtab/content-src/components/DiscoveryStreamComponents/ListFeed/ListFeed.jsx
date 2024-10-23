@@ -2,23 +2,66 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
 import { DSCard } from "../DSCard/DSCard";
-const PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE =
-  "discoverystream.contextualContent.listFeedTitle";
+import { ContextMenuButton } from "content-src/components/ContextMenu/ContextMenuButton";
+import { LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
+import { SafeAnchor } from "../SafeAnchor/SafeAnchor";
+import { actionCreators as ac } from "common/Actions.mjs";
+const PREF_LISTFEED_TITLE = "discoverystream.contextualContent.listFeedTitle";
+const PREF_FAKESPOT_CATEGROY =
+  "discoverystream.contextualContent.fakespot.defaultCategoryTitle";
+const PREF_FAKESPOT_FOOTER =
+  "discoverystream.contextualContent.fakespot.footerCopy";
+const PREF_FAKESPOT_CTA_COPY =
+  "discoverystream.contextualContent.fakespot.ctaCopy";
+const PREF_FAKESPOT_CTA_URL =
+  "discoverystream.contextualContent.fakespot.ctaUrl";
+const PREF_CONTEXTUAL_CONTENT_SELECTED_FEED =
+  "discoverystream.contextualContent.selectedFeed";
 
-function ListFeed({ type, firstVisibleTimestamp, recs }) {
-  const dispatch = useDispatch();
-  const listFeedTitle = useSelector(state => state.Prefs.values)[
-    PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE
-  ];
+function ListFeed({ type, firstVisibleTimestamp, recs, categories, dispatch }) {
+  const [selectedFakespotFeed, setSelectedFakespotFeed] = useState("");
+  const prefs = useSelector(state => state.Prefs.values);
+  const listFeedTitle = prefs[PREF_LISTFEED_TITLE];
+  const categoryTitle = prefs[PREF_FAKESPOT_CATEGROY];
+  const footerCopy = prefs[PREF_FAKESPOT_FOOTER];
+  const ctaCopy = prefs[PREF_FAKESPOT_CTA_COPY];
+  const ctaUrl = prefs[PREF_FAKESPOT_CTA_URL];
+
+  const isFakespot =
+    prefs[PREF_CONTEXTUAL_CONTENT_SELECTED_FEED] === "fakespot";
   // Todo: need to remove ads while using default recommendations, remove this line once API has been updated.
-  const listFeedRecs = recs.filter(rec => !rec.flight_id).slice(0, 5);
+  let listFeedRecs = selectedFakespotFeed
+    ? recs.filter(rec => rec.category === selectedFakespotFeed)
+    : recs;
+
+  function handleCtaClick() {
+    dispatch(
+      ac.OnlyToMain({
+        type: "FAKESPOT_CTA_CLICK",
+      })
+    );
+  }
+
+  function handleChange(e) {
+    setSelectedFakespotFeed(e.target.value);
+    dispatch(
+      ac.DiscoveryStreamUserEvent({
+        event: "FAKESPOT_CATEGORY",
+        value: {
+          category: e.target.value || "",
+        },
+      })
+    );
+  }
+
+  const contextMenuOptions = ["FakespotDismiss", "AboutFakespot"];
+
   const { length: listLength } = listFeedRecs;
   // determine if the list should take up all availible height or not
   const fullList = listLength >= 5;
-
   return (
     listLength > 0 && (
       <div
@@ -27,16 +70,49 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
         }`}
       >
         <div className="list-feed-inner-wrapper">
-          <h1 className="list-feed-title" id="list-feed-title">
-            <span className="icon icon-newsfeed"></span>
-            {listFeedTitle}
-          </h1>
+          {isFakespot ? (
+            <div className="fakespot-heading">
+              <div className="dropdown-wrapper">
+                <select
+                  className="fakespot-dropdown"
+                  name="fakespot-categories"
+                  value={selectedFakespotFeed}
+                  onChange={handleChange}
+                >
+                  <option value="">
+                    {categoryTitle || "Holiday Gift Guide"}
+                  </option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                <div className="context-menu-wrapper">
+                  <ContextMenuButton>
+                    <LinkMenu
+                      dispatch={dispatch}
+                      options={contextMenuOptions}
+                      shouldSendImpressionStats={true}
+                      site={{ url: "https://www.fakespot.com" }}
+                    />
+                  </ContextMenuButton>
+                </div>
+              </div>
+              <p className="fakespot-desc">{listFeedTitle}</p>
+            </div>
+          ) : (
+            <h1 className="list-feed-title" id="list-feed-title">
+              <span className="icon icon-newsfeed"></span>
+              {listFeedTitle}
+            </h1>
+          )}
           <div
             className="list-feed-content"
             role="menu"
             aria-labelledby="list-feed-title"
           >
-            {listFeedRecs.map((rec, index) => {
+            {listFeedRecs.slice(0, 5).map((rec, index) => {
               if (!rec || rec.placeholder) {
                 return (
                   <DSCard
@@ -76,9 +152,24 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
                   recommended_at={rec.recommended_at}
                   received_rank={rec.received_rank}
                   isListCard={true}
+                  isFakespot={isFakespot}
                 />
               );
             })}
+            {isFakespot && (
+              <div className="fakespot-footer">
+                <p>{footerCopy}</p>
+                <SafeAnchor
+                  className="fakespot-cta"
+                  url={ctaUrl}
+                  referrer={""}
+                  onLinkClick={handleCtaClick}
+                  dispatch={dispatch}
+                >
+                  {ctaCopy}
+                </SafeAnchor>
+              </div>
+            )}
           </div>
         </div>
       </div>

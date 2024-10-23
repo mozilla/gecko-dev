@@ -103,11 +103,19 @@ const PREF_SPOCS_STARTUP_CACHE_ENABLED =
   "discoverystream.spocs.startupCache.enabled";
 const PREF_CONTEXTUAL_CONTENT_ENABLED =
   "discoverystream.contextualContent.enabled";
-const PREF_CONTEXTUAL_CONTENT_FEEDS = "discoverystream.contextualContent.feeds";
+const PREF_FAKESPOT_ENABLED = "discoverystream.contextualContent.enabled";
 const PREF_CONTEXTUAL_CONTENT_SELECTED_FEED =
   "discoverystream.contextualContent.selectedFeed";
 const PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE =
   "discoverystream.contextualContent.listFeedTitle";
+const PREF_CONTEXTUAL_CONTENT_FAKESPOT_FOOTER =
+  "discoverystream.contextualContent.fakespot.footerCopy";
+const PREF_CONTEXTUAL_CONTENT_FAKESPOT_CATEGORY =
+  "discoverystream.contextualContent.fakespot.defaultCategoryTitle";
+const PREF_CONTEXTUAL_CONTENT_FAKESPOT_CTA_COPY =
+  "discoverystream.contextualContent.fakespot.ctaCopy";
+const PREF_CONTEXTUAL_CONTENT_FAKESPOT_CTA_URL =
+  "discoverystream.contextualContent.fakespot.ctaUrl";
 
 let getHardcodedLayout;
 
@@ -1549,9 +1557,11 @@ export class DiscoveryStreamFeed {
     };
   }
 
+  // eslint-disable-next-line max-statements
   async getComponentFeed(feedUrl, isStartup) {
     const cachedData = (await this.cache.get()) || {};
-    let contextualContentFeeds;
+    let isFakespot;
+    let selectedFeed;
     const { feeds } = cachedData;
 
     let feed = feeds ? feeds[feedUrl] : null;
@@ -1578,11 +1588,17 @@ export class DiscoveryStreamFeed {
         // Should we pass the feed param to the merino request
         const contextualContentEnabled =
           this.store.getState().Prefs.values[PREF_CONTEXTUAL_CONTENT_ENABLED];
-        contextualContentFeeds = this.store
-          .getState()
-          .Prefs.values[PREF_CONTEXTUAL_CONTENT_FEEDS]?.split(",")
-          .map(t => t.trim())
-          .filter(item => item);
+        selectedFeed =
+          this.store.getState().Prefs.values[
+            PREF_CONTEXTUAL_CONTENT_SELECTED_FEED
+          ];
+        isFakespot = selectedFeed === "fakespot";
+        const fakespotEnabled =
+          this.store.getState().Prefs.values[PREF_FAKESPOT_ENABLED];
+
+        const shouldFetchTBRFeed =
+          (contextualContentEnabled && !isFakespot) ||
+          (contextualContentEnabled && isFakespot && fakespotEnabled);
 
         headers.append("content-type", "application/json");
         options = {
@@ -1593,9 +1609,7 @@ export class DiscoveryStreamFeed {
             locale: this.locale,
             region: this.region,
             topics,
-            ...(contextualContentEnabled
-              ? { feeds: contextualContentFeeds || [] }
-              : {}),
+            ...(shouldFetchTBRFeed ? { feeds: [selectedFeed] } : {}),
           }),
         };
       } else if (this.isBff) {
@@ -1627,39 +1641,76 @@ export class DiscoveryStreamFeed {
             received_rank: item.receivedRank,
             recommended_at: feedResponse.recommendedAt,
           }));
-          if (feedResponse.feeds && contextualContentFeeds?.length) {
-            contextualContentFeeds.forEach(feedName => {
-              feedResponse.feeds[feedName]?.recommendations.forEach(item =>
-                recommendations.push({
-                  id: item.tileId,
-                  scheduled_corpus_item_id: item.scheduledCorpusItemId,
-                  url: item.url,
-                  title: item.title,
-                  topic: item.topic,
-                  excerpt: item.excerpt,
-                  publisher: item.publisher,
-                  raw_image_src: item.imageUrl,
-                  received_rank: item.receivedRank,
-                  recommended_at: feedResponse.recommendedAt,
-                  // property to determine if rec is used in ListFeed or not
-                  feedName,
-                })
-              );
-            });
-            const selectedFeed =
+          if (feedResponse.feeds && selectedFeed) {
+            const selectedFeedPref =
               this.store.getState().Prefs.values[
                 PREF_CONTEXTUAL_CONTENT_SELECTED_FEED
               ];
+
+            const keyName = isFakespot ? "products" : "recommendations";
+            const selectedFeedResponse = feedResponse.feeds[selectedFeedPref];
+
+            selectedFeedResponse?.[keyName]?.forEach(item =>
+              recommendations.push({
+                id: isFakespot ? item.id : item.tileId,
+                scheduled_corpus_item_id: item.scheduledCorpusItemId,
+                url: item.url,
+                title: item.title,
+                topic: item.topic,
+                excerpt: item.excerpt,
+                publisher: item.publisher,
+                raw_image_src: item.imageUrl,
+                received_rank: item.receivedRank,
+                recommended_at: feedResponse.recommendedAt,
+                // property to determine if rec is used in ListFeed or not
+                feedName: selectedFeed,
+                category: item.category,
+              })
+            );
+
             const prevTitle =
               this.store.getState().Prefs.values[
                 PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE
               ];
-            const feedTitle = feedResponse.feeds[selectedFeed].title;
+
+            const feedTitle = isFakespot
+              ? selectedFeedResponse.headerCopy
+              : selectedFeedResponse.title;
 
             if (feedTitle && feedTitle !== prevTitle) {
-              this.store.dispatch(
-                ac.SetPref(PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE, feedTitle)
-              );
+              if (isFakespot) {
+                this.store.dispatch(
+                  ac.SetPref(PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE, feedTitle)
+                );
+                this.store.dispatch(
+                  ac.SetPref(
+                    PREF_CONTEXTUAL_CONTENT_FAKESPOT_CATEGORY,
+                    selectedFeedResponse.defaultCategoryName
+                  )
+                );
+                this.store.dispatch(
+                  ac.SetPref(
+                    PREF_CONTEXTUAL_CONTENT_FAKESPOT_FOOTER,
+                    selectedFeedResponse.footerCopy
+                  )
+                );
+                this.store.dispatch(
+                  ac.SetPref(
+                    PREF_CONTEXTUAL_CONTENT_FAKESPOT_CTA_COPY,
+                    selectedFeedResponse.cta.ctaCopy
+                  )
+                );
+                this.store.dispatch(
+                  ac.SetPref(
+                    PREF_CONTEXTUAL_CONTENT_FAKESPOT_CTA_URL,
+                    selectedFeedResponse.cta.url
+                  )
+                );
+              } else {
+                this.store.dispatch(
+                  ac.SetPref(PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE, feedTitle)
+                );
+              }
             }
           }
         } else if (this.isBff) {
@@ -2148,6 +2199,7 @@ export class DiscoveryStreamFeed {
       case PREF_SPOC_POSITIONS:
       case PREF_UNIFIED_ADS_SPOCS_ENABLED:
       case PREF_CONTEXTUAL_CONTENT_ENABLED:
+      case PREF_CONTEXTUAL_CONTENT_SELECTED_FEED:
         // This is a config reset directly related to Discovery Stream pref.
         this.configReset();
         break;

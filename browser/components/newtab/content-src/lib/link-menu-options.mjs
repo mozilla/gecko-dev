@@ -381,4 +381,27 @@ export const LinkMenuOptions = {
       data: { url: site.url },
     }),
   }),
+  FakespotDismiss: () => ({
+    id: "newtab-menu-dismiss",
+    action: ac.OnlyToMain({
+      type: at.SET_PREF,
+      data: {
+        name: "discoverystream.contextualContent.fakespot.enabled",
+        value: false,
+      },
+    }),
+    impression: ac.OnlyToMain({
+      type: at.FAKESPOT_DISMISS,
+    }),
+  }),
+  AboutFakespot: site => ({
+    id: "newtab-menu-about-fakespot",
+    action: ac.OnlyToMain({
+      type: at.OPEN_LINK,
+      data: { url: site.url },
+    }),
+    impression: ac.OnlyToMain({
+      type: at.OPEN_ABOUT_FAKESPOT,
+    }),
+  }),
 };

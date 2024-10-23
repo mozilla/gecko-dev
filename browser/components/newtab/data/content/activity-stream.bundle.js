@@ -153,6 +153,8 @@ for (const type of [
   "DISCOVERY_STREAM_TOPICS_LOADING",
   "DISCOVERY_STREAM_USER_EVENT",
   "DOWNLOAD_CHANGED",
+  "FAKESPOT_CTA_CLICK",
+  "FAKESPOT_DISMISS",
   "FAKE_FOCUS_SEARCH",
   "FILL_SEARCH_TERM",
   "HANDOFF_SEARCH_TO_AWESOMEBAR",
@@ -166,6 +168,7 @@ for (const type of [
   "NEW_TAB_REHYDRATED",
   "NEW_TAB_STATE_REQUEST",
   "NEW_TAB_UNLOAD",
+  "OPEN_ABOUT_FAKESPOT",
   "OPEN_DOWNLOAD_FILE",
   "OPEN_LINK",
   "OPEN_NEW_WINDOW",
@@ -690,6 +693,7 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     this.handleWeatherSubmit = this.handleWeatherSubmit.bind(this);
     this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
     this.refreshTopicSelectionCache = this.refreshTopicSelectionCache.bind(this);
+    this.toggleTBRFeed = this.toggleTBRFeed.bind(this);
     this.state = {
       toggledStories: {},
       weatherQuery: ""
@@ -735,6 +739,11 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
   }
   showPlaceholder() {
     this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_SHOW_PLACEHOLDER);
+  }
+  toggleTBRFeed(e) {
+    const feed = e.target.value;
+    const selectedFeed = "discoverystream.contextualContent.selectedFeed";
+    this.props.dispatch(actionCreators.SetPref(selectedFeed, feed));
   }
   idleDaily() {
     this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_IDLE_DAILY);
@@ -882,6 +891,8 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       layout
     } = this.props.state.DiscoveryStream;
     const personalized = this.props.otherPrefs["discoverystream.personalization.enabled"];
+    const selectedFeed = this.props.otherPrefs["discoverystream.contextualContent.selectedFeed"];
+    const TBRFeeds = this.props.otherPrefs["discoverystream.contextualContent.feeds"].split(",").map(s => s.trim()).filter(item => item);
     return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
       className: "button",
       onClick: this.restorePrefDefaults
@@ -906,7 +917,14 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     }, "Refresh Topic selection count"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
       className: "button",
       onClick: this.showPlaceholder
-    }, "Show Placeholder Cards"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, prefToggles.map(pref => /*#__PURE__*/external_React_default().createElement(Row, {
+    }, "Show Placeholder Cards"), " ", /*#__PURE__*/external_React_default().createElement("select", {
+      className: "button",
+      onChange: this.toggleTBRFeed,
+      value: selectedFeed
+    }, TBRFeeds.map(feed => /*#__PURE__*/external_React_default().createElement("option", {
+      key: feed,
+      value: feed
+    }, feed))), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, prefToggles.map(pref => /*#__PURE__*/external_React_default().createElement(Row, {
       key: pref
     }, /*#__PURE__*/external_React_default().createElement("td", null, /*#__PURE__*/external_React_default().createElement(TogglePrefCheckbox, {
       checked: config[pref],
@@ -1874,6 +1892,29 @@ const LinkMenuOptions = {
       data: { url: site.url },
     }),
   }),
+  FakespotDismiss: () => ({
+    id: "newtab-menu-dismiss",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SET_PREF,
+      data: {
+        name: "discoverystream.contextualContent.fakespot.enabled",
+        value: false,
+      },
+    }),
+    impression: actionCreators.OnlyToMain({
+      type: actionTypes.FAKESPOT_DISMISS,
+    }),
+  }),
+  AboutFakespot: site => ({
+    id: "newtab-menu-about-fakespot",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_LINK,
+      data: { url: site.url },
+    }),
+    impression: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_ABOUT_FAKESPOT,
+    }),
+  }),
 };
 
 ;// CONCATENATED MODULE: ./content-src/components/LinkMenu/LinkMenu.jsx
@@ -2196,6 +2237,9 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
     const {
       props
     } = this;
+    const {
+      isFakespot
+    } = props;
     const cards = props.rows;
     if (this.props.flightId) {
       this.props.dispatch(actionCreators.OnlyToMain({
@@ -2224,28 +2268,41 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
       }
     }
     if (this._needsImpressionStats(cards)) {
-      props.dispatch(actionCreators.DiscoveryStreamImpressionStats({
-        source: props.source.toUpperCase(),
-        window_inner_width: window.innerWidth,
-        window_inner_height: window.innerHeight,
-        tiles: cards.map(link => ({
-          id: link.id,
-          pos: link.pos,
-          type: this.props.flightId ? "spoc" : "organic",
-          ...(link.shim ? {
-            shim: link.shim
-          } : {}),
-          recommendation_id: link.recommendation_id,
-          fetchTimestamp: link.fetchTimestamp,
-          scheduled_corpus_item_id: link.scheduled_corpus_item_id,
-          recommended_at: link.recommended_at,
-          received_rank: link.received_rank,
-          topic: link.topic,
-          is_list_card: link.is_list_card
-        })),
-        firstVisibleTimestamp: this.props.firstVisibleTimestamp
-      }));
-      this.impressionCardGuids = cards.map(link => link.id);
+      if (isFakespot) {
+        props.dispatch(actionCreators.DiscoveryStreamImpressionStats({
+          source: props.source.toUpperCase(),
+          window_inner_width: window.innerWidth,
+          window_inner_height: window.innerHeight,
+          tiles: cards.map(link => ({
+            id: link.id,
+            type: "fakespot",
+            category: link.category
+          }))
+        }));
+      } else {
+        props.dispatch(actionCreators.DiscoveryStreamImpressionStats({
+          source: props.source.toUpperCase(),
+          window_inner_width: window.innerWidth,
+          window_inner_height: window.innerHeight,
+          tiles: cards.map(link => ({
+            id: link.id,
+            pos: link.pos,
+            type: this.props.flightId ? "spoc" : "organic",
+            ...(link.shim ? {
+              shim: link.shim
+            } : {}),
+            recommendation_id: link.recommendation_id,
+            fetchTimestamp: link.fetchTimestamp,
+            scheduled_corpus_item_id: link.scheduled_corpus_item_id,
+            recommended_at: link.recommended_at,
+            received_rank: link.received_rank,
+            topic: link.topic,
+            is_list_card: link.is_list_card
+          })),
+          firstVisibleTimestamp: this.props.firstVisibleTimestamp
+        }));
+        this.impressionCardGuids = cards.map(link => link.id);
+      }
     }
   }
 
@@ -2393,7 +2450,7 @@ class SafeAnchor extends (external_React_default()).PureComponent {
             metaKey,
             shiftKey
           },
-          referrer: "https://getpocket.com/recommendations",
+          referrer: this.props.referrer || "https://getpocket.com/recommendations",
           // Use the anchor's url, which could have been cleaned up
           url: event.currentTarget.href
         }
@@ -2991,46 +3048,56 @@ class _DSCard extends (external_React_default()).PureComponent {
   onLinkClick() {
     const matchesSelectedTopic = this.doesLinkTopicMatchSelectedTopic();
     if (this.props.dispatch) {
-      this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
-        event: "CLICK",
-        source: this.props.type.toUpperCase(),
-        action_position: this.props.pos,
-        value: {
-          card_type: this.props.flightId ? "spoc" : "organic",
-          recommendation_id: this.props.recommendation_id,
-          tile_id: this.props.id,
-          ...(this.props.shim && this.props.shim.click ? {
-            shim: this.props.shim.click
-          } : {}),
-          fetchTimestamp: this.props.fetchTimestamp,
-          firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-          scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
-          recommended_at: this.props.recommended_at,
-          received_rank: this.props.received_rank,
-          topic: this.props.topic,
-          matches_selected_topic: matchesSelectedTopic,
-          selected_topics: this.props.selectedTopics,
-          is_list_card: this.props.isListCard
-        }
-      }));
-      this.props.dispatch(actionCreators.ImpressionStats({
-        source: this.props.type.toUpperCase(),
-        click: 0,
-        window_inner_width: this.props.windowObj.innerWidth,
-        window_inner_height: this.props.windowObj.innerHeight,
-        tiles: [{
-          id: this.props.id,
-          pos: this.props.pos,
-          ...(this.props.shim && this.props.shim.click ? {
-            shim: this.props.shim.click
-          } : {}),
-          type: this.props.flightId ? "spoc" : "organic",
-          recommendation_id: this.props.recommendation_id,
-          topic: this.props.topic,
-          selected_topics: this.props.selectedTopics,
-          is_list_card: this.props.isListCard
-        }]
-      }));
+      if (this.props.isFakespot) {
+        this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
+          event: "FAKESPOT_CLICK",
+          value: {
+            product_id: this.props.id,
+            category: this.props.category || ""
+          }
+        }));
+      } else {
+        this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
+          event: "CLICK",
+          source: this.props.type.toUpperCase(),
+          action_position: this.props.pos,
+          value: {
+            card_type: this.props.flightId ? "spoc" : "organic",
+            recommendation_id: this.props.recommendation_id,
+            tile_id: this.props.id,
+            ...(this.props.shim && this.props.shim.click ? {
+              shim: this.props.shim.click
+            } : {}),
+            fetchTimestamp: this.props.fetchTimestamp,
+            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+            recommended_at: this.props.recommended_at,
+            received_rank: this.props.received_rank,
+            topic: this.props.topic,
+            matches_selected_topic: matchesSelectedTopic,
+            selected_topics: this.props.selectedTopics,
+            is_list_card: this.props.isListCard
+          }
+        }));
+        this.props.dispatch(actionCreators.ImpressionStats({
+          source: this.props.type.toUpperCase(),
+          click: 0,
+          window_inner_width: this.props.windowObj.innerWidth,
+          window_inner_height: this.props.windowObj.innerHeight,
+          tiles: [{
+            id: this.props.id,
+            pos: this.props.pos,
+            ...(this.props.shim && this.props.shim.click ? {
+              shim: this.props.shim.click
+            } : {}),
+            type: this.props.flightId ? "spoc" : "organic",
+            recommendation_id: this.props.recommendation_id,
+            topic: this.props.topic,
+            selected_topics: this.props.selectedTopics,
+            is_list_card: this.props.isListCard
+          }]
+        }));
+      }
     }
   }
   onSaveClick() {
@@ -3252,7 +3319,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       isRecentSave,
       DiscoveryStream,
       saveToPocketCard,
-      isListCard
+      isListCard,
+      isFakespot
     } = this.props;
     if (this.props.placeholder || !this.state.isSeen) {
       // placeholder-seen is used to ensure the loading animation is only used if the card is visible.
@@ -3300,6 +3368,8 @@ class _DSCard extends (external_React_default()).PureComponent {
     const ctaButtonClassName = ctaButtonEnabled ? `ds-card-cta-button` : ``;
     const compactImagesClassName = compactImages ? `ds-card-compact-image` : ``;
     const imageGradientClassName = imageGradient ? `ds-card-image-gradient` : ``;
+    const listCardClassName = isListCard ? `list-feed-card` : ``;
+    const fakespotClassName = isFakespot ? `fakespot` : ``;
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
     let stpButton = () => {
@@ -3321,7 +3391,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       })));
     };
     return /*#__PURE__*/external_React_default().createElement("article", {
-      className: `ds-card ${isListCard ? "list-feed-card" : ""}${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
+      className: `ds-card ${listCardClassName} ${fakespotClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
       ref: this.setContextMenuButtonHostRef
     }, this.props.showTopics && this.props.topic && !isListCard && /*#__PURE__*/external_React_default().createElement("span", {
       className: "ds-card-topic",
@@ -3356,14 +3426,23 @@ class _DSCard extends (external_React_default()).PureComponent {
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
         topic: this.props.topic,
-        is_list_card: this.props.isListCard
+        is_list_card: isListCard,
+        isFakespot,
+        category: this.props.category
       }],
       dispatch: this.props.dispatch,
+      isFakespot: isFakespot,
       source: this.props.type,
       firstVisibleTimestamp: this.props.firstVisibleTimestamp
     })), ctaButtonVariant === "variant-b" && /*#__PURE__*/external_React_default().createElement("div", {
       className: "cta-header"
-    }, "Shop Now"), /*#__PURE__*/external_React_default().createElement(DefaultMeta, {
+    }, "Shop Now"), isFakespot ? /*#__PURE__*/external_React_default().createElement("div", {
+      className: "meta"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "info-wrap"
+    }, /*#__PURE__*/external_React_default().createElement("header", {
+      className: "title clamp"
+    }, this.props.title))) : /*#__PURE__*/external_React_default().createElement(DefaultMeta, {
       source: source,
       title: this.props.title,
       excerpt: excerpt,
@@ -3386,7 +3465,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-position-wrapper"
-    }, saveToPocketCard && !isListCard && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, !this.props.flightId && stpButton()), /*#__PURE__*/external_React_default().createElement(DSLinkMenu, {
+    }, saveToPocketCard && !isListCard && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, !this.props.flightId && stpButton()), !isFakespot && /*#__PURE__*/external_React_default().createElement(DSLinkMenu, {
       id: this.props.id,
       index: this.props.pos,
       dispatch: this.props.dispatch,
@@ -3688,16 +3767,48 @@ const TopicsWidget = (0,external_ReactRedux_namespaceObject.connect)(state => ({
 
 
 
-const PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE = "discoverystream.contextualContent.listFeedTitle";
+
+
+
+
+const PREF_LISTFEED_TITLE = "discoverystream.contextualContent.listFeedTitle";
+const PREF_FAKESPOT_CATEGROY = "discoverystream.contextualContent.fakespot.defaultCategoryTitle";
+const PREF_FAKESPOT_FOOTER = "discoverystream.contextualContent.fakespot.footerCopy";
+const PREF_FAKESPOT_CTA_COPY = "discoverystream.contextualContent.fakespot.ctaCopy";
+const PREF_FAKESPOT_CTA_URL = "discoverystream.contextualContent.fakespot.ctaUrl";
+const PREF_CONTEXTUAL_CONTENT_SELECTED_FEED = "discoverystream.contextualContent.selectedFeed";
 function ListFeed({
   type,
   firstVisibleTimestamp,
-  recs
+  recs,
+  categories,
+  dispatch
 }) {
-  const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
-  const listFeedTitle = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values)[PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE];
+  const [selectedFakespotFeed, setSelectedFakespotFeed] = (0,external_React_namespaceObject.useState)("");
+  const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
+  const listFeedTitle = prefs[PREF_LISTFEED_TITLE];
+  const categoryTitle = prefs[PREF_FAKESPOT_CATEGROY];
+  const footerCopy = prefs[PREF_FAKESPOT_FOOTER];
+  const ctaCopy = prefs[PREF_FAKESPOT_CTA_COPY];
+  const ctaUrl = prefs[PREF_FAKESPOT_CTA_URL];
+  const isFakespot = prefs[PREF_CONTEXTUAL_CONTENT_SELECTED_FEED] === "fakespot";
   // Todo: need to remove ads while using default recommendations, remove this line once API has been updated.
-  const listFeedRecs = recs.filter(rec => !rec.flight_id).slice(0, 5);
+  let listFeedRecs = selectedFakespotFeed ? recs.filter(rec => rec.category === selectedFakespotFeed) : recs;
+  function handleCtaClick() {
+    dispatch(actionCreators.OnlyToMain({
+      type: "FAKESPOT_CTA_CLICK"
+    }));
+  }
+  function handleChange(e) {
+    setSelectedFakespotFeed(e.target.value);
+    dispatch(actionCreators.DiscoveryStreamUserEvent({
+      event: "FAKESPOT_CATEGORY",
+      value: {
+        category: e.target.value || ""
+      }
+    }));
+  }
+  const contextMenuOptions = ["FakespotDismiss", "AboutFakespot"];
   const {
     length: listLength
   } = listFeedRecs;
@@ -3707,7 +3818,32 @@ function ListFeed({
     className: `list-feed ${fullList ? "full-height" : ""} ${listLength > 2 ? "span-2" : "span-1"}`
   }, /*#__PURE__*/external_React_default().createElement("div", {
     className: "list-feed-inner-wrapper"
-  }, /*#__PURE__*/external_React_default().createElement("h1", {
+  }, isFakespot ? /*#__PURE__*/external_React_default().createElement("div", {
+    className: "fakespot-heading"
+  }, /*#__PURE__*/external_React_default().createElement("div", {
+    className: "dropdown-wrapper"
+  }, /*#__PURE__*/external_React_default().createElement("select", {
+    className: "fakespot-dropdown",
+    name: "fakespot-categories",
+    value: selectedFakespotFeed,
+    onChange: handleChange
+  }, /*#__PURE__*/external_React_default().createElement("option", {
+    value: ""
+  }, categoryTitle || "Holiday Gift Guide"), categories.map(category => /*#__PURE__*/external_React_default().createElement("option", {
+    key: category,
+    value: category
+  }, category))), /*#__PURE__*/external_React_default().createElement("div", {
+    className: "context-menu-wrapper"
+  }, /*#__PURE__*/external_React_default().createElement(ContextMenuButton, null, /*#__PURE__*/external_React_default().createElement(LinkMenu, {
+    dispatch: dispatch,
+    options: contextMenuOptions,
+    shouldSendImpressionStats: true,
+    site: {
+      url: "https://www.fakespot.com"
+    }
+  })))), /*#__PURE__*/external_React_default().createElement("p", {
+    className: "fakespot-desc"
+  }, listFeedTitle)) : /*#__PURE__*/external_React_default().createElement("h1", {
     className: "list-feed-title",
     id: "list-feed-title"
   }, /*#__PURE__*/external_React_default().createElement("span", {
@@ -3716,7 +3852,7 @@ function ListFeed({
     className: "list-feed-content",
     role: "menu",
     "aria-labelledby": "list-feed-title"
-  }, listFeedRecs.map((rec, index) => {
+  }, listFeedRecs.slice(0, 5).map((rec, index) => {
     if (!rec || rec.placeholder) {
       return /*#__PURE__*/external_React_default().createElement(DSCard, {
         key: `list-card-${index}`,
@@ -3752,9 +3888,18 @@ function ListFeed({
       scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
       recommended_at: rec.recommended_at,
       received_rank: rec.received_rank,
-      isListCard: true
+      isListCard: true,
+      isFakespot: isFakespot
     });
-  }))));
+  }), isFakespot && /*#__PURE__*/external_React_default().createElement("div", {
+    className: "fakespot-footer"
+  }, /*#__PURE__*/external_React_default().createElement("p", null, footerCopy), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
+    className: "fakespot-cta",
+    url: ctaUrl,
+    referrer: "",
+    onLinkClick: handleCtaClick,
+    dispatch: dispatch
+  }, ctaCopy)))));
 }
 
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardGrid/CardGrid.jsx
@@ -3780,6 +3925,7 @@ const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const PREF_SPOCS_STARTUPCACHE_ENABLED = "discoverystream.spocs.startupCache.enabled";
 const PREF_LIST_FEED_ENABLED = "discoverystream.contextualContent.enabled";
 const PREF_LIST_FEED_SELECTED_FEED = "discoverystream.contextualContent.selectedFeed";
+const PREF_FAKESPOT_ENABLED = "discoverystream.contextualContent.fakespot.enabled";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
 const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -4030,6 +4176,7 @@ function RecentSavesContainer({
   }, recentSavesCards));
 }
 class _CardGrid extends (external_React_default()).PureComponent {
+  // eslint-disable-next-line max-statements
   renderCards() {
     const prefs = this.props.Prefs.values;
     const {
@@ -4142,15 +4289,12 @@ class _CardGrid extends (external_React_default()).PureComponent {
       }
     }
     if (listFeedEnabled) {
-      const listFeed = /*#__PURE__*/external_React_default().createElement(ListFeed
-      // only display recs that match selectedFeed for ListFeed
-      , {
-        recs: this.props.data.recommendations.filter(item => item.feedName === listFeedSelectedFeed),
-        firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-        type: this.props.type
-      });
-      // place the list feed as the 3rd element in the card grid
-      cards.splice(2, 1, listFeed);
+      const isFakespot = listFeedSelectedFeed === "fakespot";
+      const fakespotEnabled = prefs[PREF_FAKESPOT_ENABLED];
+      if (!isFakespot || isFakespot && fakespotEnabled) {
+        // Place the list feed as the 3rd element in the card grid
+        cards.splice(2, 0, this.renderListFeed(this.props.data.recommendations, listFeedSelectedFeed));
+      }
     }
     let moreRecsHeader = "";
     // For now this is English only.
@@ -4195,6 +4339,24 @@ class _CardGrid extends (external_React_default()).PureComponent {
     }))), /*#__PURE__*/external_React_default().createElement("div", {
       className: gridClassName
     }, cards)));
+  }
+  renderListFeed(recommendations, selectedFeed) {
+    const recs = recommendations.filter(item => item.feedName === selectedFeed);
+    const isFakespot = selectedFeed === "fakespot";
+    // remove duplicates from category list
+    const categories = [...new Set(recs.map(({
+      category
+    }) => category))];
+    const listFeed = /*#__PURE__*/external_React_default().createElement(ListFeed
+    // only display recs that match selectedFeed for ListFeed
+    , {
+      recs: recs,
+      categories: isFakespot ? categories : [],
+      firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+      type: this.props.type,
+      dispatch: this.props.dispatch
+    });
+    return listFeed;
   }
   render() {
     const {

@@ -781,7 +781,7 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.contextualContent.feeds",
     {
       title: "CSV list of possible topics for the contextual content feed",
-      value: "need_to_know",
+      value: "need_to_know, fakespot",
     },
   ],
   [
@@ -796,6 +796,41 @@ export const PREFS_CONFIG = new Map([
     "discoverystream.contextualContent.listFeedTitle",
     {
       title: "Title for currently selected feed",
+      value: "",
+    },
+  ],
+  [
+    "discoverystream.contextualContent.fakespot.defaultCategoryTitle",
+    {
+      title: "Title default category from fakespot endpoint",
+      value: "",
+    },
+  ],
+  [
+    "discoverystream.contextualContent.fakespot.footerCopy",
+    {
+      title: "footer copy for fakespot feed",
+      value: "",
+    },
+  ],
+  [
+    "discoverystream.contextualContent.fakespot.enabled",
+    {
+      title: "User controlled pref that displays fakespot feed",
+      value: true,
+    },
+  ],
+  [
+    "discoverystream.contextualContent.fakespot.ctaCopy",
+    {
+      title: "cta copy for fakespot feed",
+      value: "",
+    },
+  ],
+  [
+    "discoverystream.contextualContent.fakespot.ctaUrl",
+    {
+      title: "cta link for fakespot feed",
       value: "",
     },
   ],

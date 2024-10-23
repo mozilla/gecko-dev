@@ -73,7 +73,7 @@
     font-weight: var(--font-weight-bold);
     margin: 0;
 
-    .icon-newsfeed {
+    .icon {
       margin-inline-end: var(--space-small);
       transform: none;
       fill: var(--newtab-text-primary-color);
@@ -88,6 +88,132 @@
     display: flex;
     flex-direction: column;
     row-gap: var(--border-width);
+  }
+
+  .fakespot-dropdown {
+    background: transparent;
+    border: none;
+    border-radius: var(--border-radius-small);
+    -moz-context-properties: fill;
+    fill: currentColor;
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-bold);
+    margin-block: var(--space-xsmall);
+    padding-block: var(--space-small);
+    padding-inline-start: var(--space-medium);
+    position: relative;
+    max-width: 18ch;
+    text-overflow: ellipsis;
+
+    @media (min-width: $break-point-widest) {
+      max-width: none;
+      background-image: url('chrome://browser/skin/gift.svg');
+      background-repeat: no-repeat;
+      background-size: 16px;
+      background-position: left var(--space-medium) center;
+      padding-inline-start: var(--space-xxlarge);
+    }
+
+    &:hover {
+      background-color: var(--newtab-button-hover-background);;
+    }
+  }
+}
+
+.fakespot-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+  .dropdown-wrapper {
+    display: flex;
+    position: relative;
+    width: 100%;
+  }
+
+  .fakespot-desc {
+    padding-inline: var(--space-medium);
+    margin-block: 0 var(--space-small);
+    font-size: var(--font-size-small);
+  }
+
+  .context-menu-wrapper {
+    @include context-menu-button;
+
+    .context-menu {
+      inset-inline-start: auto;
+      inset-inline-end: var(--space-small);
+      inset-block-start: var(--space-xxlarge);
+    }
+
+    .context-menu-button {
+      opacity: 1;
+      transform: scale(1);
+      background-color: transparent;
+      border-radius: var(--border-radius-small);
+      box-shadow: none;
+      inset-inline-end: var(--space-small);
+      inset-block-start: var(--space-small);
+
+      &:is(:hover) {
+        background-color: var(--newtab-button-hover-background);
+      }
+
+      &:is(:focus-visible) {
+        outline-color: var(--newtab-button-focus-border);
+        background-color: var(--newtab-button-focus-background);
+        outline-width: 2px;
+      }
+
+      &:is(:active) {
+        background-color: var(--newtab-button-active-background);
+      }
+    }
+  }
+}
+
+.fakespot-footer {
+  align-items: center;
+  border-block-start: var(--border-width) solid var(--border-color-deemphasized);
+  border-end-start-radius: var(--border-radius-medium);
+  border-end-end-radius: var(--border-radius-medium);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-medium);
+
+
+  p {
+    font-size: var(--font-size-small);
+    margin-block-start: 0;
+  }
+
+  .fakespot-cta {
+    background-color: var(--button-background-color-primary);
+    border: var(--button-border);
+    border-color: var(--button-border-color-primary);
+    border-radius: var(--button-border-radius);
+    color: var(--button-text-color-primary);
+    font-size: var(--font-size-small);
+    font-weight: var(--button-font-weight);
+    padding: var(--button-padding);
+    text-decoration: none;
+    text-align: center;
+    align-self: stretch;
+
+    &:hover {
+      background-color: var(--button-background-color-primary-hover);
+      border-color: var(--button-border-color-primary-hover);
+      color: var(--button-text-color-primary-hover);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-outline);
+      outline-offset: var(--focus-outline-offset);
+    }
   }
 }
 
@@ -168,6 +294,11 @@
   padding-block: var(--space-large) var(--space-small);
   position: relative;
 
+  &.fakespot {
+    flex-direction: row;
+    min-height: 75px;
+  }
+
   .ds-card-link {
     inset-block-start: 0;
     inset-inline-start: 0;
@@ -234,7 +365,7 @@
     }
   }
 
-  &:last-child {
+  &:last-child:not(.fakespot) {
     border-end-start-radius: var(--border-radius-medium);
     border-end-end-radius: var(--border-radius-medium);
     border-start-start-radius: 0;

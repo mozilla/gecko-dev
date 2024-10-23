@@ -235,55 +235,65 @@ export class _DSCard extends React.PureComponent {
 
   onLinkClick() {
     const matchesSelectedTopic = this.doesLinkTopicMatchSelectedTopic();
-
     if (this.props.dispatch) {
-      this.props.dispatch(
-        ac.DiscoveryStreamUserEvent({
-          event: "CLICK",
-          source: this.props.type.toUpperCase(),
-          action_position: this.props.pos,
-          value: {
-            card_type: this.props.flightId ? "spoc" : "organic",
-            recommendation_id: this.props.recommendation_id,
-            tile_id: this.props.id,
-            ...(this.props.shim && this.props.shim.click
-              ? { shim: this.props.shim.click }
-              : {}),
-            fetchTimestamp: this.props.fetchTimestamp,
-            firstVisibleTimestamp: this.props.firstVisibleTimestamp,
-            scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
-            recommended_at: this.props.recommended_at,
-            received_rank: this.props.received_rank,
-            topic: this.props.topic,
-            matches_selected_topic: matchesSelectedTopic,
-            selected_topics: this.props.selectedTopics,
-            is_list_card: this.props.isListCard,
-          },
-        })
-      );
-
-      this.props.dispatch(
-        ac.ImpressionStats({
-          source: this.props.type.toUpperCase(),
-          click: 0,
-          window_inner_width: this.props.windowObj.innerWidth,
-          window_inner_height: this.props.windowObj.innerHeight,
-          tiles: [
-            {
-              id: this.props.id,
-              pos: this.props.pos,
+      if (this.props.isFakespot) {
+        this.props.dispatch(
+          ac.DiscoveryStreamUserEvent({
+            event: "FAKESPOT_CLICK",
+            value: {
+              product_id: this.props.id,
+              category: this.props.category || "",
+            },
+          })
+        );
+      } else {
+        this.props.dispatch(
+          ac.DiscoveryStreamUserEvent({
+            event: "CLICK",
+            source: this.props.type.toUpperCase(),
+            action_position: this.props.pos,
+            value: {
+              card_type: this.props.flightId ? "spoc" : "organic",
+              recommendation_id: this.props.recommendation_id,
+              tile_id: this.props.id,
               ...(this.props.shim && this.props.shim.click
                 ? { shim: this.props.shim.click }
                 : {}),
-              type: this.props.flightId ? "spoc" : "organic",
-              recommendation_id: this.props.recommendation_id,
+              fetchTimestamp: this.props.fetchTimestamp,
+              firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+              scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+              recommended_at: this.props.recommended_at,
+              received_rank: this.props.received_rank,
               topic: this.props.topic,
+              matches_selected_topic: matchesSelectedTopic,
               selected_topics: this.props.selectedTopics,
               is_list_card: this.props.isListCard,
             },
-          ],
-        })
-      );
+          })
+        );
+        this.props.dispatch(
+          ac.ImpressionStats({
+            source: this.props.type.toUpperCase(),
+            click: 0,
+            window_inner_width: this.props.windowObj.innerWidth,
+            window_inner_height: this.props.windowObj.innerHeight,
+            tiles: [
+              {
+                id: this.props.id,
+                pos: this.props.pos,
+                ...(this.props.shim && this.props.shim.click
+                  ? { shim: this.props.shim.click }
+                  : {}),
+                type: this.props.flightId ? "spoc" : "organic",
+                recommendation_id: this.props.recommendation_id,
+                topic: this.props.topic,
+                selected_topics: this.props.selectedTopics,
+                is_list_card: this.props.isListCard,
+              },
+            ],
+          })
+        );
+      }
     }
   }
 
@@ -540,8 +550,13 @@ export class _DSCard extends React.PureComponent {
   }
 
   render() {
-    const { isRecentSave, DiscoveryStream, saveToPocketCard, isListCard } =
-      this.props;
+    const {
+      isRecentSave,
+      DiscoveryStream,
+      saveToPocketCard,
+      isListCard,
+      isFakespot,
+    } = this.props;
     if (this.props.placeholder || !this.state.isSeen) {
       // placeholder-seen is used to ensure the loading animation is only used if the card is visible.
       const placeholderClassName = this.state.isSeen ? `placeholder-seen` : ``;
@@ -600,6 +615,8 @@ export class _DSCard extends React.PureComponent {
     const imageGradientClassName = imageGradient
       ? `ds-card-image-gradient`
       : ``;
+    const listCardClassName = isListCard ? `list-feed-card` : ``;
+    const fakespotClassName = isFakespot ? `fakespot` : ``;
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
 
@@ -628,12 +645,9 @@ export class _DSCard extends React.PureComponent {
         </button>
       );
     };
-
     return (
       <article
-        className={`ds-card ${
-          isListCard ? "list-feed-card" : ""
-        }${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
+        className={`ds-card ${listCardClassName} ${fakespotClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
         ref={this.setContextMenuButtonHostRef}
       >
         {this.props.showTopics && this.props.topic && !isListCard && (
@@ -675,10 +689,13 @@ export class _DSCard extends React.PureComponent {
                 recommended_at: this.props.recommended_at,
                 received_rank: this.props.received_rank,
                 topic: this.props.topic,
-                is_list_card: this.props.isListCard,
+                is_list_card: isListCard,
+                isFakespot,
+                category: this.props.category,
               },
             ]}
             dispatch={this.props.dispatch}
+            isFakespot={isFakespot}
             source={this.props.type}
             firstVisibleTimestamp={this.props.firstVisibleTimestamp}
           />
@@ -686,62 +703,71 @@ export class _DSCard extends React.PureComponent {
         {ctaButtonVariant === "variant-b" && (
           <div className="cta-header">Shop Now</div>
         )}
-        <DefaultMeta
-          source={source}
-          title={this.props.title}
-          excerpt={excerpt}
-          newSponsoredLabel={newSponsoredLabel}
-          timeToRead={timeToRead}
-          context={this.props.context}
-          context_type={this.props.context_type}
-          sponsor={this.props.sponsor}
-          sponsored_by_override={this.props.sponsored_by_override}
-          saveToPocketCard={saveToPocketCard}
-          ctaButtonVariant={ctaButtonVariant}
-          dispatch={this.props.dispatch}
-          spocMessageVariant={this.props.spocMessageVariant}
-          mayHaveThumbsUpDown={this.props.mayHaveThumbsUpDown}
-          onThumbsUpClick={this.onThumbsUpClick}
-          onThumbsDownClick={this.onThumbsDownClick}
-          state={this.state}
-          isListCard={isListCard}
-        />
+        {isFakespot ? (
+          <div className="meta">
+            <div className="info-wrap">
+              <header className="title clamp">{this.props.title}</header>
+            </div>
+          </div>
+        ) : (
+          <DefaultMeta
+            source={source}
+            title={this.props.title}
+            excerpt={excerpt}
+            newSponsoredLabel={newSponsoredLabel}
+            timeToRead={timeToRead}
+            context={this.props.context}
+            context_type={this.props.context_type}
+            sponsor={this.props.sponsor}
+            sponsored_by_override={this.props.sponsored_by_override}
+            saveToPocketCard={saveToPocketCard}
+            ctaButtonVariant={ctaButtonVariant}
+            dispatch={this.props.dispatch}
+            spocMessageVariant={this.props.spocMessageVariant}
+            mayHaveThumbsUpDown={this.props.mayHaveThumbsUpDown}
+            onThumbsUpClick={this.onThumbsUpClick}
+            onThumbsDownClick={this.onThumbsDownClick}
+            state={this.state}
+            isListCard={isListCard}
+          />
+        )}
 
         <div className="card-stp-button-hover-background">
           <div className="card-stp-button-position-wrapper">
             {saveToPocketCard && !isListCard && (
               <>{!this.props.flightId && stpButton()}</>
             )}
-
-            <DSLinkMenu
-              id={this.props.id}
-              index={this.props.pos}
-              dispatch={this.props.dispatch}
-              url={this.props.url}
-              title={this.props.title}
-              source={source}
-              type={this.props.type}
-              card_type={this.props.flightId ? "spoc" : "organic"}
-              pocket_id={this.props.pocket_id}
-              shim={this.props.shim}
-              bookmarkGuid={this.props.bookmarkGuid}
-              flightId={
-                !this.props.is_collection ? this.props.flightId : undefined
-              }
-              showPrivacyInfo={!!this.props.flightId}
-              onMenuUpdate={this.onMenuUpdate}
-              onMenuShow={this.onMenuShow}
-              saveToPocketCard={saveToPocketCard}
-              pocket_button_enabled={pocketButtonEnabled}
-              isRecentSave={isRecentSave}
-              recommendation_id={this.props.recommendation_id}
-              tile_id={this.props.id}
-              block_key={this.props.id}
-              scheduled_corpus_item_id={this.props.scheduled_corpus_item_id}
-              recommended_at={this.props.recommended_at}
-              received_rank={this.props.received_rank}
-              is_list_card={this.props.isListCard}
-            />
+            {!isFakespot && (
+              <DSLinkMenu
+                id={this.props.id}
+                index={this.props.pos}
+                dispatch={this.props.dispatch}
+                url={this.props.url}
+                title={this.props.title}
+                source={source}
+                type={this.props.type}
+                card_type={this.props.flightId ? "spoc" : "organic"}
+                pocket_id={this.props.pocket_id}
+                shim={this.props.shim}
+                bookmarkGuid={this.props.bookmarkGuid}
+                flightId={
+                  !this.props.is_collection ? this.props.flightId : undefined
+                }
+                showPrivacyInfo={!!this.props.flightId}
+                onMenuUpdate={this.onMenuUpdate}
+                onMenuShow={this.onMenuShow}
+                saveToPocketCard={saveToPocketCard}
+                pocket_button_enabled={pocketButtonEnabled}
+                isRecentSave={isRecentSave}
+                recommendation_id={this.props.recommendation_id}
+                tile_id={this.props.id}
+                block_key={this.props.id}
+                scheduled_corpus_item_id={this.props.scheduled_corpus_item_id}
+                recommended_at={this.props.recommended_at}
+                received_rank={this.props.received_rank}
+                is_list_card={this.props.isListCard}
+              />
+            )}
           </div>
         </div>
       </article>

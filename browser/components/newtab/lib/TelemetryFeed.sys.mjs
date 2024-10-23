@@ -923,6 +923,23 @@ export class TelemetryFeed {
         }
         break;
       }
+      case "FAKESPOT_CLICK": {
+        const { product_id, category } = action.data.value ?? {};
+        Glean.newtab.fakespotClick.record({
+          newtab_visit_id: session.session_id,
+          product_id,
+          category,
+        });
+        break;
+      }
+      case "FAKESPOT_CATEGORY": {
+        const { category } = action.data.value ?? {};
+        Glean.newtab.fakespotCategory.record({
+          newtab_visit_id: session.session_id,
+          category,
+        });
+        break;
+      }
     }
   }
 
@@ -1101,6 +1118,34 @@ export class TelemetryFeed {
       case at.TOPIC_SELECTION_USER_SAVE:
         this.handleTopicSelectionUserEvent(action);
         break;
+      case at.FAKESPOT_DISMISS: {
+        const session = this.sessions.get(au.getPortIdOfSender(action));
+        if (session) {
+          Glean.newtab.fakespotDismiss.record({
+            newtab_visit_id: session.session_id,
+          });
+        }
+        break;
+      }
+      case at.FAKESPOT_CTA_CLICK: {
+        const session = this.sessions.get(au.getPortIdOfSender(action));
+        if (session) {
+          Glean.newtab.fakespotCtaClick.record({
+            newtab_visit_id: session.session_id,
+          });
+        }
+        break;
+      }
+      case at.OPEN_ABOUT_FAKESPOT: {
+        const session = this.sessions.get(au.getPortIdOfSender(action));
+        if (session) {
+          Glean.newtab.fakespotAboutClick.record({
+            newtab_visit_id: session.session_id,
+          });
+        }
+        break;
+      }
+
       // The remaining action types come from ASRouter, which doesn't use
       // Actions from Actions.mjs, but uses these other custom strings.
       case msg.TOOLBAR_BADGE_TELEMETRY:
@@ -1315,24 +1360,33 @@ export class TelemetryFeed {
     const { tiles } = data;
 
     tiles.forEach(tile => {
-      Glean.pocket.impression.record({
-        newtab_visit_id: session.session_id,
-        is_sponsored: tile.type === "spoc",
-        position: tile.pos,
-        tile_id: tile.id,
-        topic: tile.topic,
-        selected_topics: tile.selectedTopics,
-        is_list_card: tile.is_list_card,
-        ...(tile.scheduled_corpus_item_id
-          ? {
-              scheduled_corpus_item_id: tile.scheduled_corpus_item_id,
-              received_rank: tile.received_rank,
-              recommended_at: tile.recommended_at,
-            }
-          : {
-              recommendation_id: tile.recommendation_id,
-            }),
-      });
+      // if the tile has a category it is a product tile from fakespot
+      if (tile.type === "fakespot") {
+        Glean.newtab.fakespotProductImpression.record({
+          newtab_visit_id: session.session_id,
+          product_id: tile.id,
+          category: tile.category,
+        });
+      } else {
+        Glean.pocket.impression.record({
+          newtab_visit_id: session.session_id,
+          is_sponsored: tile.type === "spoc",
+          position: tile.pos,
+          tile_id: tile.id,
+          topic: tile.topic,
+          selected_topics: tile.selectedTopics,
+          is_list_card: tile.is_list_card,
+          ...(tile.scheduled_corpus_item_id
+            ? {
+                scheduled_corpus_item_id: tile.scheduled_corpus_item_id,
+                received_rank: tile.received_rank,
+                recommended_at: tile.recommended_at,
+              }
+            : {
+                recommendation_id: tile.recommendation_id,
+              }),
+        });
+      }
       if (tile.shim) {
         if (this.canSendUnifiedAdsSpocCallbacks) {
           // Send unified ads callback event

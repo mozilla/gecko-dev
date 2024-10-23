@@ -131,6 +131,7 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
     this.refreshTopicSelectionCache =
       this.refreshTopicSelectionCache.bind(this);
+    this.toggleTBRFeed = this.toggleTBRFeed.bind(this);
     this.state = {
       toggledStories: {},
       weatherQuery: "",
@@ -191,6 +192,12 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
 
   showPlaceholder() {
     this.dispatchSimpleAction(at.DISCOVERY_STREAM_DEV_SHOW_PLACEHOLDER);
+  }
+
+  toggleTBRFeed(e) {
+    const feed = e.target.value;
+    const selectedFeed = "discoverystream.contextualContent.selectedFeed";
+    this.props.dispatch(ac.SetPref(selectedFeed, feed));
   }
 
   idleDaily() {
@@ -422,6 +429,14 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     const { config, layout } = this.props.state.DiscoveryStream;
     const personalized =
       this.props.otherPrefs["discoverystream.personalization.enabled"];
+    const selectedFeed =
+      this.props.otherPrefs["discoverystream.contextualContent.selectedFeed"];
+    const TBRFeeds = this.props.otherPrefs[
+      "discoverystream.contextualContent.feeds"
+    ]
+      .split(",")
+      .map(s => s.trim())
+      .filter(item => item);
     return (
       <div>
         <button className="button" onClick={this.restorePrefDefaults}>
@@ -450,7 +465,21 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
         <br />
         <button className="button" onClick={this.showPlaceholder}>
           Show Placeholder Cards
-        </button>
+        </button>{" "}
+        <select
+          className="button"
+          onChange={this.toggleTBRFeed}
+          value={selectedFeed}
+        >
+          {TBRFeeds.map(feed => (
+            <option key={feed} value={feed}>
+              {feed}
+            </option>
+          ))}
+        </select>
+        {/* <button className="button" onClick={this.toggleTBRFeed}>
+          Swap TBR feeds
+        </button> */}
         <table>
           <tbody>
             {prefToggles.map(pref => (
