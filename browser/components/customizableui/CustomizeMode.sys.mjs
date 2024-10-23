@@ -1720,6 +1720,31 @@ CustomizeMode.prototype = {
           break;
       }
     });
+
+    let updateDensity = event => {
+      switch (event.target.id) {
+        case "customization-uidensity-menuitem-compact":
+        case "customization-uidensity-menuitem-normal":
+        case "customization-uidensity-menuitem-touch":
+          this.updateUIDensity(event.target.mode);
+      }
+    };
+    let densityMenu = this.document.getElementById(
+      "customization-uidensity-menu"
+    );
+    densityMenu.addEventListener("focus", updateDensity);
+    densityMenu.addEventListener("mouseover", updateDensity);
+
+    let resetDensity = event => {
+      switch (event.target.id) {
+        case "customization-uidensity-menuitem-compact":
+        case "customization-uidensity-menuitem-normal":
+        case "customization-uidensity-menuitem-touch":
+          this.resetUIDensity();
+      }
+    };
+    densityMenu.addEventListener("blur", resetDensity);
+    densityMenu.addEventListener("mouseout", resetDensity);
   },
 
   _updateTitlebarCheckbox() {
