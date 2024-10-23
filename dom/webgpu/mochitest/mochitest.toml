@@ -39,8 +39,6 @@ scheme = "https"
 
 ["test_enabled.html"]
 
-["test_encoder_cycle_collection.html"]
-
 ["test_error_scope.html"]
 
 ["test_insecure_context.html"]
