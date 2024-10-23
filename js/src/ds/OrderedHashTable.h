@@ -114,6 +114,24 @@ class OrderedHashTable {
   // Scrambler to not reveal pointer hash codes.
   mozilla::HashCodeScrambler hcs;
 
+  // Logarithm base 2 of the number of buckets in the hash table initially.
+  static constexpr uint32_t InitialBucketsLog2 = 1;
+  static constexpr uint32_t InitialBuckets = 1 << InitialBucketsLog2;
+
+  // The maximum load factor (mean number of entries per bucket).
+  // It is an invariant that
+  //     dataCapacity == floor(hashBuckets() * FillFactor).
+  //
+  // The fill factor should be between 2 and 4, and it should be chosen so that
+  // the fill factor times sizeof(Data) is close to but <= a power of 2.
+  // This fixed fill factor was chosen to make the size of the data
+  // array, in bytes, close to a power of two when sizeof(T) is 16.
+  static constexpr double FillFactor = 8.0 / 3.0;
+
+  // The minimum permitted value of (liveCount / dataLength).
+  // If that ratio drops below this value, we shrink the table.
+  static constexpr double MinDataFill = 0.25;
+
   template <typename F>
   void forEachRange(F&& f) {
     Range* next;
@@ -134,7 +152,7 @@ class OrderedHashTable {
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!hashTable, "init must be called at most once");
 
-    uint32_t buckets = initialBuckets();
+    constexpr uint32_t buckets = InitialBuckets;
     Data** tableAlloc = alloc.template pod_malloc<Data*>(buckets);
     if (!tableAlloc) {
       return false;
@@ -143,7 +161,7 @@ class OrderedHashTable {
       tableAlloc[i] = nullptr;
     }
 
-    uint32_t capacity = uint32_t(buckets * fillFactor());
+    constexpr uint32_t capacity = uint32_t(buckets * FillFactor);
     Data* dataAlloc = alloc.template pod_malloc<Data>(capacity);
     if (!dataAlloc) {
       alloc.free_(tableAlloc, buckets);
@@ -157,7 +175,7 @@ class OrderedHashTable {
     dataLength = 0;
     dataCapacity = capacity;
     liveCount = 0;
-    hashShift = js::kHashNumberBits - initialBucketsLog2();
+    hashShift = js::kHashNumberBits - InitialBucketsLog2;
     MOZ_ASSERT(hashBuckets() == buckets);
     return true;
   }
@@ -280,8 +298,8 @@ class OrderedHashTable {
     forEachRange([pos](Range* range) { range->onRemove(pos); });
 
     // If many entries have been removed, try to shrink the table.
-    if (hashBuckets() > initialBuckets() &&
-        liveCount < dataLength * minDataFill()) {
+    if (hashBuckets() > InitialBuckets &&
+        liveCount < dataLength * MinDataFill) {
       if (!rehash(hashShift + 1)) {
         return false;
       }
@@ -675,30 +693,6 @@ class OrderedHashTable {
            mozilla::HashCodeScrambler::offsetOfMK1();
   }
 
- private:
-  /* Logarithm base 2 of the number of buckets in the hash table initially. */
-  static uint32_t initialBucketsLog2() { return 1; }
-  static uint32_t initialBuckets() { return 1 << initialBucketsLog2(); }
-
-  /*
-   * The maximum load factor (mean number of entries per bucket).
-   * It is an invariant that
-   *     dataCapacity == floor(hashBuckets() * fillFactor()).
-   *
-   * The fill factor should be between 2 and 4, and it should be chosen so that
-   * the fill factor times sizeof(Data) is close to but <= a power of 2.
-   * This fixed fill factor was chosen to make the size of the data
-   * array, in bytes, close to a power of two when sizeof(T) is 16.
-   */
-  static constexpr double fillFactor() { return 8.0 / 3.0; }
-
-  /*
-   * The minimum permitted value of (liveCount / dataLength).
-   * If that ratio drops below this value, we shrink the table.
-   */
-  static double minDataFill() { return 0.25; }
-
- public:
   HashNumber prepareHash(const Lookup& l) const {
     return mozilla::ScrambleHashCode(Ops::hash(l, hcs));
   }
@@ -804,7 +798,7 @@ class OrderedHashTable {
 
     // Ensure the new capacity fits into INT32_MAX.
     constexpr size_t maxCapacityLog2 =
-        mozilla::tl::FloorLog2<size_t(INT32_MAX / fillFactor())>::value;
+        mozilla::tl::FloorLog2<size_t(INT32_MAX / FillFactor)>::value;
     static_assert(maxCapacityLog2 < kHashNumberBits);
 
     // Fail if |(js::kHashNumberBits - newHashShift) > maxCapacityLog2|.
@@ -824,7 +818,7 @@ class OrderedHashTable {
       newHashTable[i] = nullptr;
     }
 
-    uint32_t newCapacity = uint32_t(newHashBuckets * fillFactor());
+    uint32_t newCapacity = uint32_t(newHashBuckets * FillFactor);
     Data* newData = alloc.template pod_malloc<Data>(newCapacity);
     if (!newData) {
       alloc.free_(newHashTable, newHashBuckets);
