@@ -131,7 +131,7 @@ class CustomTabsToolbarFeature(
 
         val readableColor = colorSchemeParams.getToolbarContrastColor(
             context = context,
-            shouldUpdateTheme = customTabsColorsConfig.isAnyColorUpdateAllowed(),
+            shouldUpdateTheme = customTabsColorsConfig.isAnyToolbarOrStatusBarColorUpdateAllowed(),
             fallbackColor = fallbackIconColor,
         ).also {
             iconColor = it
@@ -213,8 +213,11 @@ class CustomTabsToolbarFeature(
 
         when (customTabsColorsConfig.updateSystemNavigationBarColor) {
             true -> {
+                if (!customTabsColorsConfig.updateStatusBarColor) {
+                    window?.setNavigationBarTheme(getDefaultSystemBarsColor())
+                }
                 // Update navigation bar colors with custom tabs specified ones or keep the current colors.
-                if (navigationBarColor != null || navigationBarDividerColor != null) {
+                else if (navigationBarColor != null || navigationBarDividerColor != null) {
                     window?.setNavigationBarTheme(navigationBarColor, navigationBarDividerColor)
                 }
             }
@@ -411,6 +414,12 @@ data class CustomTabsColorsConfig(
      */
     fun isAnyColorUpdateAllowed() =
         updateStatusBarColor || updateSystemNavigationBarColor || updateToolbarsColor
+
+    /**
+     * Get if toolbar or status bar color customisation is allowed for application's UI elements.
+     */
+    fun isAnyToolbarOrStatusBarColorUpdateAllowed() =
+        updateStatusBarColor || updateToolbarsColor
 }
 
 /**
