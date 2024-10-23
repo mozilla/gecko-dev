@@ -40,6 +40,7 @@ pref(ui.useOverlayScrollbars,1) == overflow-hidden-region-with-negative-left-pos
 == not-able-to-scrollTo.html about:blank
 == min-scale-aspect-ratio.html about:blank
 pref(layout.dynamic-toolbar-max-height,100) == device-height-with-dynamic-toolbar.html device-height-with-dynamic-toolbar-ref.html
+== reflow-on-minimum-scale-size.html about:blank
 
 # The next two tests (desktop-mode.html and desktop-mode-cleanup.html) must run
 # consecutively; do not insert anything between them. (As the naming suggests,
