@@ -36,7 +36,7 @@ try_xvfb() {
     local max_retries=5
     xvfb_test=0
     until [ $retry_count -gt $max_retries ]; do
-        xvinfo || xvfb_test=$?
+        xvinfo; xvfb_test=$?
         if [ $xvfb_test != 255 ]; then
             retry_count=$(($max_retries + 1))
         else
