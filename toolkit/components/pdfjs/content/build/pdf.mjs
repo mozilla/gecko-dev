@@ -894,13 +894,15 @@ class BaseCMapReaderFactory {
       throw new Error("CMap name must be specified.");
     }
     const url = this.baseUrl + name + (this.isCompressed ? ".bcmap" : "");
-    const compressionType = this.isCompressed ? CMapCompressionType.BINARY : CMapCompressionType.NONE;
-    return this._fetchData(url, compressionType).catch(reason => {
+    return this._fetch(url).then(cMapData => ({
+      cMapData,
+      compressionType: this.isCompressed ? CMapCompressionType.BINARY : CMapCompressionType.NONE
+    })).catch(reason => {
       throw new Error(`Unable to load ${this.isCompressed ? "binary " : ""}CMap at: ${url}`);
     });
   }
-  _fetchData(url, compressionType) {
-    unreachable("Abstract method `_fetchData` called.");
+  async _fetch(url) {
+    unreachable("Abstract method `_fetch` called.");
   }
 }
 class BaseStandardFontDataFactory {
@@ -919,12 +921,12 @@ class BaseStandardFontDataFactory {
       throw new Error("Font filename must be specified.");
     }
     const url = `${this.baseUrl}${filename}`;
-    return this._fetchData(url).catch(reason => {
+    return this._fetch(url).catch(reason => {
       throw new Error(`Unable to load font data at: ${url}`);
     });
   }
-  _fetchData(url) {
-    unreachable("Abstract method `_fetchData` called.");
+  async _fetch(url) {
+    unreachable("Abstract method `_fetch` called.");
   }
 }
 class BaseSVGFactory {
@@ -1311,16 +1313,15 @@ async function fetchData(url, type = "text") {
   return response.text();
 }
 class DOMCMapReaderFactory extends BaseCMapReaderFactory {
-  _fetchData(url, compressionType) {
-    return fetchData(url, this.isCompressed ? "arraybuffer" : "text").then(data => ({
-      cMapData: data instanceof ArrayBuffer ? new Uint8Array(data) : stringToBytes(data),
-      compressionType
-    }));
+  async _fetch(url) {
+    const data = await fetchData(url, this.isCompressed ? "arraybuffer" : "text");
+    return data instanceof ArrayBuffer ? new Uint8Array(data) : stringToBytes(data);
   }
 }
 class DOMStandardFontDataFactory extends BaseStandardFontDataFactory {
-  _fetchData(url) {
-    return fetchData(url, "arraybuffer").then(data => new Uint8Array(data));
+  async _fetch(url) {
+    const data = await fetchData(url, "arraybuffer");
+    return new Uint8Array(data);
   }
 }
 class DOMSVGFactory extends BaseSVGFactory {
@@ -1527,14 +1528,14 @@ function noContextMenu(e) {
 function deprecated(details) {
   console.log("Deprecated API usage: " + details);
 }
-let pdfDateStringRegex;
 class PDFDateString {
+  static #regex;
   static toDateObject(input) {
     if (!input || typeof input !== "string") {
       return null;
     }
-    pdfDateStringRegex ||= new RegExp("^D:" + "(\\d{4})" + "(\\d{2})?" + "(\\d{2})?" + "(\\d{2})?" + "(\\d{2})?" + "(\\d{2})?" + "([Z|+|-])?" + "(\\d{2})?" + "'?" + "(\\d{2})?" + "'?");
-    const matches = pdfDateStringRegex.exec(input);
+    this.#regex ||= new RegExp("^D:" + "(\\d{4})" + "(\\d{2})?" + "(\\d{2})?" + "(\\d{2})?" + "(\\d{2})?" + "(\\d{2})?" + "([Z|+|-])?" + "(\\d{2})?" + "'?" + "(\\d{2})?" + "'?");
+    const matches = this.#regex.exec(input);
     if (!matches) {
       return null;
     }
@@ -3972,7 +3973,7 @@ class AnnotationEditor {
     fakeEditor.deleted = true;
     fakeEditor._uiManager.addToAnnotationStorage(fakeEditor);
   }
-  static initialize(l10n, _uiManager, options) {
+  static initialize(l10n, _uiManager) {
     AnnotationEditor._l10nResizer ||= Object.freeze({
       topLeft: "pdfjs-editor-resizer-top-left",
       topMiddle: "pdfjs-editor-resizer-top-middle",
@@ -3984,11 +3985,6 @@ class AnnotationEditor {
       middleLeft: "pdfjs-editor-resizer-middle-left"
     });
     AnnotationEditor._l10nPromise ||= new Map([...["pdfjs-editor-alt-text-button-label", "pdfjs-editor-alt-text-edit-button-label", "pdfjs-editor-alt-text-decorative-tooltip", "pdfjs-editor-new-alt-text-added-button-label", "pdfjs-editor-new-alt-text-missing-button-label", "pdfjs-editor-new-alt-text-to-review-button-label"].map(str => [str, l10n.get(str)]), ...["pdfjs-editor-new-alt-text-generated-alt-text-with-disclaimer"].map(str => [str, l10n.get.bind(l10n, str)])]);
-    if (options?.strings) {
-      for (const str of options.strings) {
-        AnnotationEditor._l10nPromise.set(str, l10n.get(str));
-      }
-    }
     if (AnnotationEditor._borderLineWidth !== -1) {
       return;
     }
@@ -4588,6 +4584,9 @@ class AnnotationEditor {
     }
     this.#selectOnPointerEvent(event);
   }
+  get isSelected() {
+    return this._uiManager.isSelected(this);
+  }
   #selectOnPointerEvent(event) {
     const {
       isMac
@@ -4599,7 +4598,9 @@ class AnnotationEditor {
     }
   }
   #setUpDragSession(event) {
-    const isSelected = this._uiManager.isSelected(this);
+    const {
+      isSelected
+    } = this;
     this._uiManager.setUpDragSession();
     const ac = new AbortController();
     const signal = this._uiManager.combinedSignal(ac);
@@ -6937,8 +6938,8 @@ class CanvasGraphics {
     }
   }
   _scaleImage(img, inverseTransform) {
-    const width = img.width;
-    const height = img.height;
+    const width = img.width ?? img.displayWidth;
+    const height = img.height ?? img.displayHeight;
     let widthScale = Math.max(Math.hypot(inverseTransform[0], inverseTransform[1]), 1);
     let heightScale = Math.max(Math.hypot(inverseTransform[2], inverseTransform[3]), 1);
     let paintWidth = width,
@@ -8441,6 +8442,7 @@ function wrapReason(reason) {
   }
 }
 class MessageHandler {
+  #messageAC = new AbortController();
   constructor(sourceName, targetName, comObj) {
     this.sourceName = sourceName;
     this.targetName = targetName;
@@ -8451,66 +8453,70 @@ class MessageHandler {
     this.streamControllers = Object.create(null);
     this.callbackCapabilities = Object.create(null);
     this.actionHandler = Object.create(null);
-    this._onComObjOnMessage = event => {
-      const data = event.data;
-      if (data.targetName !== this.sourceName) {
-        return;
+    comObj.addEventListener("message", this.#onMessage.bind(this), {
+      signal: this.#messageAC.signal
+    });
+  }
+  #onMessage({
+    data
+  }) {
+    if (data.targetName !== this.sourceName) {
+      return;
+    }
+    if (data.stream) {
+      this.#processStreamMessage(data);
+      return;
+    }
+    if (data.callback) {
+      const callbackId = data.callbackId;
+      const capability = this.callbackCapabilities[callbackId];
+      if (!capability) {
+        throw new Error(`Cannot resolve callback ${callbackId}`);
       }
-      if (data.stream) {
-        this.#processStreamMessage(data);
-        return;
+      delete this.callbackCapabilities[callbackId];
+      if (data.callback === CallbackKind.DATA) {
+        capability.resolve(data.data);
+      } else if (data.callback === CallbackKind.ERROR) {
+        capability.reject(wrapReason(data.reason));
+      } else {
+        throw new Error("Unexpected callback case");
       }
-      if (data.callback) {
-        const callbackId = data.callbackId;
-        const capability = this.callbackCapabilities[callbackId];
-        if (!capability) {
-          throw new Error(`Cannot resolve callback ${callbackId}`);
-        }
-        delete this.callbackCapabilities[callbackId];
-        if (data.callback === CallbackKind.DATA) {
-          capability.resolve(data.data);
-        } else if (data.callback === CallbackKind.ERROR) {
-          capability.reject(wrapReason(data.reason));
-        } else {
-          throw new Error("Unexpected callback case");
-        }
-        return;
-      }
-      const action = this.actionHandler[data.action];
-      if (!action) {
-        throw new Error(`Unknown action from worker: ${data.action}`);
-      }
-      if (data.callbackId) {
-        const cbSourceName = this.sourceName;
-        const cbTargetName = data.sourceName;
-        new Promise(function (resolve) {
-          resolve(action(data.data));
-        }).then(function (result) {
-          comObj.postMessage({
-            sourceName: cbSourceName,
-            targetName: cbTargetName,
-            callback: CallbackKind.DATA,
-            callbackId: data.callbackId,
-            data: result
-          });
-        }, function (reason) {
-          comObj.postMessage({
-            sourceName: cbSourceName,
-            targetName: cbTargetName,
-            callback: CallbackKind.ERROR,
-            callbackId: data.callbackId,
-            reason: wrapReason(reason)
-          });
+      return;
+    }
+    const action = this.actionHandler[data.action];
+    if (!action) {
+      throw new Error(`Unknown action from worker: ${data.action}`);
+    }
+    if (data.callbackId) {
+      const sourceName = this.sourceName,
+        targetName = data.sourceName,
+        comObj = this.comObj;
+      new Promise(function (resolve) {
+        resolve(action(data.data));
+      }).then(function (result) {
+        comObj.postMessage({
+          sourceName,
+          targetName,
+          callback: CallbackKind.DATA,
+          callbackId: data.callbackId,
+          data: result
         });
-        return;
-      }
-      if (data.streamId) {
-        this.#createStreamSink(data);
-        return;
-      }
-      action(data.data);
-    };
-    comObj.addEventListener("message", this._onComObjOnMessage);
+      }, function (reason) {
+        comObj.postMessage({
+          sourceName,
+          targetName,
+          callback: CallbackKind.ERROR,
+          callbackId: data.callbackId,
+          reason: wrapReason(reason)
+        });
+      });
+      return;
+    }
+    if (data.streamId) {
+      this.#createStreamSink(data);
+      return;
+    }
+    action(data.data);
   }
   on(actionName, handler) {
     const ah = this.actionHandler;
@@ -8802,7 +8808,8 @@ class MessageHandler {
     delete this.streamControllers[streamId];
   }
   destroy() {
-    this.comObj.removeEventListener("message", this._onComObjOnMessage);
+    this.#messageAC?.abort();
+    this.#messageAC = null;
   }
 }
 
@@ -8844,13 +8851,15 @@ class OptionalContentGroup {
   constructor(renderingIntent, {
     name,
     intent,
-    usage
+    usage,
+    rbGroups
   }) {
     this.#isDisplay = !!(renderingIntent & RenderingIntentFlag.DISPLAY);
     this.#isPrint = !!(renderingIntent & RenderingIntentFlag.PRINT);
     this.name = name;
     this.intent = intent;
     this.usage = usage;
+    this.rbGroups = rbGroups;
   }
   get visible() {
     if (this.#userSet) {
@@ -9014,11 +9023,20 @@ class OptionalContentConfig {
     warn(`Unknown group type ${group.type}.`);
     return true;
   }
-  setVisibility(id, visible = true) {
+  setVisibility(id, visible = true, preserveRB = true) {
     const group = this.#groups.get(id);
     if (!group) {
       warn(`Optional content group not found: ${id}`);
       return;
+    }
+    if (preserveRB && visible && group.rbGroups.length) {
+      for (const rbGroup of group.rbGroups) {
+        for (const otherId of rbGroup) {
+          if (otherId !== id) {
+            this.#groups.get(otherId)?._setVisible(INTERNAL, false, true);
+          }
+        }
+      }
     }
     group._setVisible(INTERNAL, !!visible, true);
     this.#cachedGetHash = null;
@@ -9042,13 +9060,13 @@ class OptionalContentConfig {
       }
       switch (operator) {
         case "ON":
-          group._setVisible(INTERNAL, true);
+          this.setVisibility(elem, true, preserveRB);
           break;
         case "OFF":
-          group._setVisible(INTERNAL, false);
+          this.setVisibility(elem, false, preserveRB);
           break;
         case "Toggle":
-          group._setVisible(INTERNAL, !group.visible);
+          this.setVisibility(elem, !group.visible, preserveRB);
           break;
       }
     }
@@ -9856,7 +9874,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.7.78",
+    apiVersion: "4.8.30",
     data,
     password,
     disableAutoFetch,
@@ -10560,7 +10578,7 @@ class PDFPageProxy {
   }
 }
 class LoopbackPort {
-  #listeners = new Set();
+  #listeners = new Map();
   #deferred = Promise.resolve();
   postMessage(obj, transfer) {
     const event = {
@@ -10569,18 +10587,36 @@ class LoopbackPort {
       } : null)
     };
     this.#deferred.then(() => {
-      for (const listener of this.#listeners) {
+      for (const [listener] of this.#listeners) {
         listener.call(this, event);
       }
     });
   }
-  addEventListener(name, listener) {
-    this.#listeners.add(listener);
+  addEventListener(name, listener, options = null) {
+    let rmAbort = null;
+    if (options?.signal instanceof AbortSignal) {
+      const {
+        signal
+      } = options;
+      if (signal.aborted) {
+        warn("LoopbackPort - cannot use an `aborted` signal.");
+        return;
+      }
+      const onAbort = () => this.removeEventListener(name, listener);
+      rmAbort = () => signal.removeEventListener("abort", onAbort);
+      signal.addEventListener("abort", onAbort);
+    }
+    this.#listeners.set(listener, rmAbort);
   }
   removeEventListener(name, listener) {
+    const rmAbort = this.#listeners.get(listener);
+    rmAbort?.();
     this.#listeners.delete(listener);
   }
   terminate() {
+    for (const [, rmAbort] of this.#listeners) {
+      rmAbort?.();
+    }
     this.#listeners.clear();
   }
 }
@@ -11528,8 +11564,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.7.78";
-const build = "81cf42df4";
+const version = "4.8.30";
+const build = "bde36f28b";
 
 ;// ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -11993,9 +12029,6 @@ class AnnotationElement {
       style
     } = container;
     style.zIndex = this.parent.zIndex++;
-    if (data.popupRef) {
-      container.setAttribute("aria-haspopup", "dialog");
-    }
     if (data.alternativeText) {
       container.title = data.alternativeText;
     }
@@ -12277,10 +12310,8 @@ class AnnotationElement {
   }
   _createPopup() {
     const {
-      container,
       data
     } = this;
-    container.setAttribute("aria-haspopup", "dialog");
     const popup = this.#popupElement = new PopupAnnotationElement({
       data: {
         color: data.color,
@@ -13500,6 +13531,7 @@ class PopupAnnotationElement extends AnnotationElement {
     const elementIds = [];
     for (const element of this.elements) {
       element.popup = popup;
+      element.container.ariaHasPopup = "dialog";
       elementIds.push(element.data.id);
       element.addHighlightArea();
     }
@@ -14060,10 +14092,10 @@ class InkAnnotationElement extends AnnotationElement {
       polyline.setAttribute("stroke-width", borderStyle.width || 1);
       polyline.setAttribute("stroke", "transparent");
       polyline.setAttribute("fill", "transparent");
-      if (!popupRef && this.hasPopupData) {
-        this._createPopup();
-      }
       svg.append(polyline);
+    }
+    if (!popupRef && this.hasPopupData) {
+      this._createPopup();
     }
     this.container.append(svg);
     this._editOnDoubleClick();
@@ -14430,9 +14462,7 @@ class FreeTextEditor extends AnnotationEditor {
     this.#fontSize = params.fontSize || FreeTextEditor._defaultFontSize;
   }
   static initialize(l10n, uiManager) {
-    AnnotationEditor.initialize(l10n, uiManager, {
-      strings: ["pdfjs-free-text-default-content"]
-    });
+    AnnotationEditor.initialize(l10n, uiManager);
     const style = getComputedStyle(document.documentElement);
     this._internalPadding = parseFloat(style.getPropertyValue("--freetext-padding"));
   }
@@ -14715,9 +14745,9 @@ class FreeTextEditor extends AnnotationEditor {
     this.editorDiv = document.createElement("div");
     this.editorDiv.className = "internal";
     this.editorDiv.setAttribute("id", this.#editorDivId);
-    this.editorDiv.setAttribute("data-l10n-id", "pdfjs-free-text");
+    this.editorDiv.setAttribute("data-l10n-id", "pdfjs-free-text2");
+    this.editorDiv.setAttribute("data-l10n-attrs", "default-content");
     this.enableEditing();
-    AnnotationEditor._l10nPromise.get("pdfjs-free-text-default-content").then(msg => this.editorDiv?.setAttribute("default-content", msg));
     this.editorDiv.contentEditable = true;
     const {
       style
@@ -15592,8 +15622,6 @@ class FreeHighlightOutline extends Outline {
 
 
 class ColorPicker {
-  #boundKeyDown = this.#keyDown.bind(this);
-  #boundPointerDown = this.#pointerDown.bind(this);
   #button = null;
   #buttonSwatch = null;
   #defaultColor;
@@ -15602,6 +15630,7 @@ class ColorPicker {
   #isMainColorPicker = false;
   #editor = null;
   #eventBus;
+  #openDropdownAC = null;
   #uiManager = null;
   #type;
   static #l10nColor = null;
@@ -15641,7 +15670,7 @@ class ColorPicker {
     button.addEventListener("click", this.#openDropdown.bind(this), {
       signal
     });
-    button.addEventListener("keydown", this.#boundKeyDown, {
+    button.addEventListener("keydown", this.#keyDown.bind(this), {
       signal
     });
     const swatch = this.#buttonSwatch = document.createElement("span");
@@ -15685,7 +15714,7 @@ class ColorPicker {
       });
       div.append(button);
     }
-    div.addEventListener("keydown", this.#boundKeyDown, {
+    div.addEventListener("keydown", this.#keyDown.bind(this), {
       signal
     });
     return div;
@@ -15755,9 +15784,12 @@ class ColorPicker {
       return;
     }
     this.#dropdownWasFromKeyboard = event.detail === 0;
-    window.addEventListener("pointerdown", this.#boundPointerDown, {
-      signal: this.#uiManager._signal
-    });
+    if (!this.#openDropdownAC) {
+      this.#openDropdownAC = new AbortController();
+      window.addEventListener("pointerdown", this.#pointerDown.bind(this), {
+        signal: this.#uiManager.combinedSignal(this.#openDropdownAC)
+      });
+    }
     if (this.#dropdown) {
       this.#dropdown.classList.remove("hidden");
       return;
@@ -15773,7 +15805,8 @@ class ColorPicker {
   }
   hideDropdown() {
     this.#dropdown?.classList.add("hidden");
-    window.removeEventListener("pointerdown", this.#boundPointerDown);
+    this.#openDropdownAC?.abort();
+    this.#openDropdownAC = null;
   }
   get #isDropdownVisible() {
     return this.#dropdown && !this.#dropdown.classList.contains("hidden");
@@ -16246,10 +16279,14 @@ class HighlightEditor extends AnnotationEditor {
     return div;
   }
   pointerover() {
-    this.parent.drawLayer.addClass(this.#outlineId, "hovered");
+    if (!this.isSelected) {
+      this.parent.drawLayer.addClass(this.#outlineId, "hovered");
+    }
   }
   pointerleave() {
-    this.parent.drawLayer.removeClass(this.#outlineId, "hovered");
+    if (!this.isSelected) {
+      this.parent.drawLayer.removeClass(this.#outlineId, "hovered");
+    }
   }
   #keydown(event) {
     HighlightEditor._keyboardManager.exec(this, event);
@@ -18544,9 +18581,6 @@ class AnnotationEditorLayer {
   toggleSelected(editor) {
     this.#uiManager.toggleSelected(editor);
   }
-  isSelected(editor) {
-    return this.#uiManager.isSelected(editor);
-  }
   unselect(editor) {
     this.#uiManager.unselect(editor);
   }
@@ -18883,8 +18917,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.7.78";
-const pdfjsBuild = "81cf42df4";
+const pdfjsVersion = "4.8.30";
+const pdfjsBuild = "bde36f28b";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

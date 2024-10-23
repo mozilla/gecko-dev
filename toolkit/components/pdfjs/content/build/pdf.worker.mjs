@@ -1064,6 +1064,9 @@ class BaseStream {
   get canAsyncDecodeImageFromBuffer() {
     return false;
   }
+  async getTransferableImage() {
+    return null;
+  }
   peekByte() {
     const peekedByte = this.getByte();
     if (peekedByte !== -1) {
@@ -2075,6 +2078,58 @@ function resizeRgbImage(src, dest, w1, h1, w2, h2, alpha01) {
     }
   }
 }
+function resizeRgbaImage(src, dest, w1, h1, w2, h2, alpha01) {
+  const xRatio = w1 / w2;
+  const yRatio = h1 / h2;
+  let newIndex = 0;
+  const xScaled = new Uint16Array(w2);
+  if (alpha01 === 1) {
+    for (let i = 0; i < w2; i++) {
+      xScaled[i] = Math.floor(i * xRatio);
+    }
+    const src32 = new Uint32Array(src.buffer);
+    const dest32 = new Uint32Array(dest.buffer);
+    const rgbMask = FeatureTest.isLittleEndian ? 0x00ffffff : 0xffffff00;
+    for (let i = 0; i < h2; i++) {
+      const buf = src32.subarray(Math.floor(i * yRatio) * w1);
+      for (let j = 0; j < w2; j++) {
+        dest32[newIndex++] |= buf[xScaled[j]] & rgbMask;
+      }
+    }
+  } else {
+    const COMPONENTS = 4;
+    const w1Scanline = w1 * COMPONENTS;
+    for (let i = 0; i < w2; i++) {
+      xScaled[i] = Math.floor(i * xRatio) * COMPONENTS;
+    }
+    for (let i = 0; i < h2; i++) {
+      const buf = src.subarray(Math.floor(i * yRatio) * w1Scanline);
+      for (let j = 0; j < w2; j++) {
+        const oldIndex = xScaled[j];
+        dest[newIndex++] = buf[oldIndex];
+        dest[newIndex++] = buf[oldIndex + 1];
+        dest[newIndex++] = buf[oldIndex + 2];
+      }
+    }
+  }
+}
+function copyRgbaImage(src, dest, alpha01) {
+  if (alpha01 === 1) {
+    const src32 = new Uint32Array(src.buffer);
+    const dest32 = new Uint32Array(dest.buffer);
+    const rgbMask = FeatureTest.isLittleEndian ? 0x00ffffff : 0xffffff00;
+    for (let i = 0, ii = src32.length; i < ii; i++) {
+      dest32[i] |= src32[i] & rgbMask;
+    }
+  } else {
+    let j = 0;
+    for (let i = 0, ii = src.length; i < ii; i += 4) {
+      dest[j++] = src[i];
+      dest[j++] = src[i + 1];
+      dest[j++] = src[i + 2];
+    }
+  }
+}
 class ColorSpace {
   constructor(name, numComps) {
     this.name = name;
@@ -2317,7 +2372,7 @@ class ColorSpace {
         case "I":
         case "Indexed":
           baseCS = this._parse(cs[1], xref, resources, pdfFunctionFactory);
-          const hiVal = xref.fetchIfRef(cs[2]) + 1;
+          const hiVal = Math.max(0, Math.min(xref.fetchIfRef(cs[2]), 255));
           const lookup = xref.fetchIfRef(cs[3]);
           return new IndexedCS(baseCS, hiVal, lookup);
         case "Separation":
@@ -2433,8 +2488,7 @@ class IndexedCS extends ColorSpace {
   constructor(base, highVal, lookup) {
     super("Indexed", 1);
     this.base = base;
-    this.highVal = highVal;
-    const length = base.numComps * highVal;
+    const length = base.numComps * (highVal + 1);
     this.lookup = new Uint8Array(length);
     if (lookup instanceof BaseStream) {
       const bytes = lookup.getBytes(length);
@@ -2545,6 +2599,13 @@ class DeviceRgbaCS extends ColorSpace {
   }
   isPassthrough(bits) {
     return bits === 8;
+  }
+  fillRgb(dest, originalWidth, originalHeight, width, height, actualHeight, bpc, comps, alpha01) {
+    if (originalHeight !== height || originalWidth !== width) {
+      resizeRgbaImage(comps, dest, originalWidth, originalHeight, width, height, alpha01);
+    } else {
+      copyRgbaImage(comps, dest, alpha01);
+    }
   }
 }
 class DeviceCmykCS extends ColorSpace {
@@ -3979,8 +4040,11 @@ class FlateStream extends DecodeStream {
         writable
       } = new DecompressionStream("deflate");
       const writer = writable.getWriter();
-      writer.write(bytes);
-      writer.close();
+      await writer.ready;
+      writer.write(bytes).then(async () => {
+        await writer.ready;
+        await writer.close();
+      }).catch(() => {});
       const chunks = [];
       let totalLength = 0;
       for await (const chunk of readable) {
@@ -7053,6 +7117,48 @@ function findNextFileMarker(data, currentPos, startPos = currentPos) {
     offset: newPos
   };
 }
+function prepareComponents(frame) {
+  const mcusPerLine = Math.ceil(frame.samplesPerLine / 8 / frame.maxH);
+  const mcusPerColumn = Math.ceil(frame.scanLines / 8 / frame.maxV);
+  for (const component of frame.components) {
+    const blocksPerLine = Math.ceil(Math.ceil(frame.samplesPerLine / 8) * component.h / frame.maxH);
+    const blocksPerColumn = Math.ceil(Math.ceil(frame.scanLines / 8) * component.v / frame.maxV);
+    const blocksPerLineForMcu = mcusPerLine * component.h;
+    const blocksPerColumnForMcu = mcusPerColumn * component.v;
+    const blocksBufferSize = 64 * blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
+    component.blockData = new Int16Array(blocksBufferSize);
+    component.blocksPerLine = blocksPerLine;
+    component.blocksPerColumn = blocksPerColumn;
+  }
+  frame.mcusPerLine = mcusPerLine;
+  frame.mcusPerColumn = mcusPerColumn;
+}
+function readDataBlock(data, offset) {
+  const length = readUint16(data, offset);
+  offset += 2;
+  let endOffset = offset + length - 2;
+  const fileMarker = findNextFileMarker(data, endOffset, offset);
+  if (fileMarker?.invalid) {
+    warn("readDataBlock - incorrect length, current marker is: " + fileMarker.invalid);
+    endOffset = fileMarker.offset;
+  }
+  const array = data.subarray(offset, endOffset);
+  offset += array.length;
+  return {
+    appData: array,
+    newOffset: offset
+  };
+}
+function skipData(data, offset) {
+  const length = readUint16(data, offset);
+  offset += 2;
+  const endOffset = offset + length - 2;
+  const fileMarker = findNextFileMarker(data, endOffset, offset);
+  if (fileMarker?.invalid) {
+    return fileMarker.offset;
+  }
+  return endOffset;
+}
 class JpegImage {
   constructor({
     decodeTransform = null,
@@ -7061,38 +7167,44 @@ class JpegImage {
     this._decodeTransform = decodeTransform;
     this._colorTransform = colorTransform;
   }
+  static canUseImageDecoder(data, colorTransform = -1) {
+    let offset = 0;
+    let numComponents = null;
+    let fileMarker = readUint16(data, offset);
+    offset += 2;
+    if (fileMarker !== 0xffd8) {
+      throw new JpegError("SOI not found");
+    }
+    fileMarker = readUint16(data, offset);
+    offset += 2;
+    markerLoop: while (fileMarker !== 0xffd9) {
+      switch (fileMarker) {
+        case 0xffc0:
+        case 0xffc1:
+        case 0xffc2:
+          numComponents = data[offset + (2 + 1 + 2 + 2)];
+          break markerLoop;
+        case 0xffff:
+          if (data[offset] !== 0xff) {
+            offset--;
+          }
+          break;
+      }
+      offset = skipData(data, offset);
+      fileMarker = readUint16(data, offset);
+      offset += 2;
+    }
+    if (numComponents === 4) {
+      return false;
+    }
+    if (numComponents === 3 && colorTransform === 0) {
+      return false;
+    }
+    return true;
+  }
   parse(data, {
     dnlScanLines = null
   } = {}) {
-    function readDataBlock() {
-      const length = readUint16(data, offset);
-      offset += 2;
-      let endOffset = offset + length - 2;
-      const fileMarker = findNextFileMarker(data, endOffset, offset);
-      if (fileMarker?.invalid) {
-        warn("readDataBlock - incorrect length, current marker is: " + fileMarker.invalid);
-        endOffset = fileMarker.offset;
-      }
-      const array = data.subarray(offset, endOffset);
-      offset += array.length;
-      return array;
-    }
-    function prepareComponents(frame) {
-      const mcusPerLine = Math.ceil(frame.samplesPerLine / 8 / frame.maxH);
-      const mcusPerColumn = Math.ceil(frame.scanLines / 8 / frame.maxV);
-      for (const component of frame.components) {
-        const blocksPerLine = Math.ceil(Math.ceil(frame.samplesPerLine / 8) * component.h / frame.maxH);
-        const blocksPerColumn = Math.ceil(Math.ceil(frame.scanLines / 8) * component.v / frame.maxV);
-        const blocksPerLineForMcu = mcusPerLine * component.h;
-        const blocksPerColumnForMcu = mcusPerColumn * component.v;
-        const blocksBufferSize = 64 * blocksPerColumnForMcu * (blocksPerLineForMcu + 1);
-        component.blockData = new Int16Array(blocksBufferSize);
-        component.blocksPerLine = blocksPerLine;
-        component.blocksPerColumn = blocksPerColumn;
-      }
-      frame.mcusPerLine = mcusPerLine;
-      frame.mcusPerColumn = mcusPerColumn;
-    }
     let offset = 0;
     let jfif = null;
     let adobe = null;
@@ -7128,7 +7240,11 @@ class JpegImage {
         case 0xffee:
         case 0xffef:
         case 0xfffe:
-          const appData = readDataBlock();
+          const {
+            appData,
+            newOffset
+          } = readDataBlock(data, offset);
+          offset = newOffset;
           if (fileMarker === 0xffe0) {
             if (appData[0] === 0x4a && appData[1] === 0x46 && appData[2] === 0x49 && appData[3] === 0x46 && appData[4] === 0) {
               jfif = {
@@ -7552,6 +7668,9 @@ class JpegStream extends DecodeStream {
     this.maybeLength = maybeLength;
     this.params = params;
   }
+  static get canUseImageDecoder() {
+    return shadow(this, "canUseImageDecoder", typeof ImageDecoder === "undefined" ? Promise.resolve(false) : ImageDecoder.isTypeSupported("image/jpeg"));
+  }
   get bytes() {
     return shadow(this, "bytes", this.stream.getBytes(this.maybeLength));
   }
@@ -7559,19 +7678,7 @@ class JpegStream extends DecodeStream {
   readBlock() {
     this.decodeImage();
   }
-  decodeImage(bytes) {
-    if (this.eof) {
-      return this.buffer;
-    }
-    bytes ||= this.bytes;
-    for (let i = 0, ii = bytes.length - 1; i < ii; i++) {
-      if (bytes[i] === 0xff && bytes[i + 1] === 0xd8) {
-        if (i > 0) {
-          bytes = bytes.subarray(i);
-        }
-        break;
-      }
-    }
+  get jpegOptions() {
     const jpegOptions = {
       decodeTransform: undefined,
       colorTransform: undefined
@@ -7600,7 +7707,25 @@ class JpegStream extends DecodeStream {
         jpegOptions.colorTransform = colorTransform;
       }
     }
-    const jpegImage = new JpegImage(jpegOptions);
+    return shadow(this, "jpegOptions", jpegOptions);
+  }
+  #skipUselessBytes(data) {
+    for (let i = 0, ii = data.length - 1; i < ii; i++) {
+      if (data[i] === 0xff && data[i + 1] === 0xd8) {
+        if (i > 0) {
+          data = data.subarray(i);
+        }
+        break;
+      }
+    }
+    return data;
+  }
+  decodeImage(bytes) {
+    if (this.eof) {
+      return this.buffer;
+    }
+    bytes = this.#skipUselessBytes(bytes || this.bytes);
+    const jpegImage = new JpegImage(this.jpegOptions);
     jpegImage.parse(bytes);
     const data = jpegImage.getData({
       width: this.drawWidth,
@@ -7616,6 +7741,37 @@ class JpegStream extends DecodeStream {
   }
   get canAsyncDecodeImageFromBuffer() {
     return this.stream.isAsync;
+  }
+  async getTransferableImage() {
+    if (!(await JpegStream.canUseImageDecoder)) {
+      return null;
+    }
+    const jpegOptions = this.jpegOptions;
+    if (jpegOptions.decodeTransform) {
+      return null;
+    }
+    let decoder;
+    try {
+      const bytes = this.canAsyncDecodeImageFromBuffer && (await this.stream.asyncGetBytes()) || this.bytes;
+      if (!bytes) {
+        return null;
+      }
+      const data = this.#skipUselessBytes(bytes);
+      if (!JpegImage.canUseImageDecoder(data, jpegOptions.colorTransform)) {
+        return null;
+      }
+      decoder = new ImageDecoder({
+        data,
+        type: "image/jpeg",
+        preferAnimation: false
+      });
+      return (await decoder.decode()).image;
+    } catch (reason) {
+      warn(`getTransferableImage - failed: "${reason}".`);
+      return null;
+    } finally {
+      decoder?.close();
+    }
   }
 }
 
@@ -29576,7 +29732,7 @@ class PDFImage {
     const bpc = this.bpc;
     const rowBytes = originalWidth * numComps * bpc + 7 >> 3;
     const mustBeResized = isOffscreenCanvasSupported && ImageResizer.needsToBeResized(drawWidth, drawHeight);
-    if (this.colorSpace.name === "DeviceRGBA") {
+    if (!this.smask && !this.mask && this.colorSpace.name === "DeviceRGBA") {
       imgData.kind = ImageKind.RGBA_32BPP;
       const imgArray = imgData.data = await this.getImageBytes(originalHeight * originalWidth * 4, {});
       if (isOffscreenCanvasSupported) {
@@ -29595,6 +29751,10 @@ class PDFImage {
         kind = ImageKind.RGB_24BPP;
       }
       if (kind && !this.smask && !this.mask && drawWidth === originalWidth && drawHeight === originalHeight) {
+        const image = await this.#getImage(originalWidth, originalHeight);
+        if (image) {
+          return image;
+        }
         const data = await this.getImageBytes(originalHeight * rowBytes, {});
         if (isOffscreenCanvasSupported) {
           if (mustBeResized) {
@@ -29637,6 +29797,10 @@ class PDFImage {
               break;
           }
           if (isHandled) {
+            const image = await this.#getImage(drawWidth, drawHeight);
+            if (image) {
+              return image;
+            }
             const rgba = await this.getImageBytes(imageLength, {
               drawWidth,
               drawHeight,
@@ -29776,6 +29940,19 @@ class PDFImage {
     }
     ctx.putImageData(imgData, 0, 0);
     const bitmap = canvas.transferToImageBitmap();
+    return {
+      data: null,
+      width,
+      height,
+      bitmap,
+      interpolate: this.interpolate
+    };
+  }
+  async #getImage(width, height) {
+    const bitmap = await this.image.getTransferableImage();
+    if (!bitmap) {
+      return null;
+    }
     return {
       data: null,
       width,
@@ -31268,6 +31445,11 @@ class PartialEvaluator {
           case OPS.setFillColorN:
             cs = stateManager.state.patternFillColorSpace;
             if (!cs) {
+              if (isNumberArray(args, null)) {
+                args = ColorSpace.singletons.gray.getRgb(args, 0);
+                fn = OPS.setFillRGBColor;
+                break;
+              }
               args = [];
               fn = OPS.setFillTransparent;
               break;
@@ -31282,6 +31464,11 @@ class PartialEvaluator {
           case OPS.setStrokeColorN:
             cs = stateManager.state.patternStrokeColorSpace;
             if (!cs) {
+              if (isNumberArray(args, null)) {
+                args = ColorSpace.singletons.gray.getRgb(args, 0);
+                fn = OPS.setStrokeRGBColor;
+                break;
+              }
               args = [];
               fn = OPS.setStrokeTransparent;
               break;
@@ -32933,12 +33120,19 @@ class PartialEvaluator {
     let fontFile, subtype, length1, length2, length3;
     try {
       fontFile = descriptor.get("FontFile", "FontFile2", "FontFile3");
+      if (fontFile) {
+        if (!(fontFile instanceof BaseStream)) {
+          throw new FormatError("FontFile should be a stream");
+        } else if (fontFile.isEmpty) {
+          throw new FormatError("FontFile is empty");
+        }
+      }
     } catch (ex) {
       if (!this.options.ignoreErrors) {
         throw ex;
       }
       warn(`translateFont - fetching "${fontName.name}" font file: "${ex}".`);
-      fontFile = new NullStream();
+      fontFile = null;
     }
     let isInternalFont = false;
     let glyphScaleFactors = null;
@@ -36279,8 +36473,11 @@ async function writeStream(stream, buffer, transform) {
     try {
       const cs = new CompressionStream("deflate");
       const writer = cs.writable.getWriter();
-      writer.write(bytes);
-      writer.close();
+      await writer.ready;
+      writer.write(bytes).then(async () => {
+        await writer.ready;
+        await writer.close();
+      }).catch(() => {});
       const buf = await new Response(cs.readable).arrayBuffer();
       bytes = new Uint8Array(buf);
       let newFilter, newParams;
@@ -37797,17 +37994,14 @@ class Catalog {
       if (!Array.isArray(groupsData)) {
         return shadow(this, "optionalContentConfig", null);
       }
-      const groups = [];
-      const groupRefs = new RefSet();
+      const groupRefCache = new RefSetCache();
       for (const groupRef of groupsData) {
-        if (!(groupRef instanceof Ref) || groupRefs.has(groupRef)) {
+        if (!(groupRef instanceof Ref) || groupRefCache.has(groupRef)) {
           continue;
         }
-        groupRefs.put(groupRef);
-        groups.push(this.#readOptionalContentGroup(groupRef));
+        groupRefCache.put(groupRef, this.#readOptionalContentGroup(groupRef));
       }
-      config = this.#readOptionalContentConfig(defaultConfig, groupRefs);
-      config.groups = groups;
+      config = this.#readOptionalContentConfig(defaultConfig, groupRefCache);
     } catch (ex) {
       if (ex instanceof MissingDataException) {
         throw ex;
@@ -37825,7 +38019,8 @@ class Catalog {
       usage: {
         print: null,
         view: null
-      }
+      },
+      rbGroups: []
     };
     const name = group.get("Name");
     if (typeof name === "string") {
@@ -37871,7 +38066,7 @@ class Catalog {
     }
     return obj;
   }
-  #readOptionalContentConfig(config, contentGroupRefs) {
+  #readOptionalContentConfig(config, groupRefCache) {
     function parseOnOff(refs) {
       const onParsed = [];
       if (Array.isArray(refs)) {
@@ -37879,7 +38074,7 @@ class Catalog {
           if (!(value instanceof Ref)) {
             continue;
           }
-          if (contentGroupRefs.has(value)) {
+          if (groupRefCache.has(value)) {
             onParsed.push(value.toString());
           }
         }
@@ -37892,7 +38087,7 @@ class Catalog {
       }
       const order = [];
       for (const value of refs) {
-        if (value instanceof Ref && contentGroupRefs.has(value)) {
+        if (value instanceof Ref && groupRefCache.has(value)) {
           parsedOrderRefs.put(value);
           order.push(value.toString());
           continue;
@@ -37906,7 +38101,7 @@ class Catalog {
         return order;
       }
       const hiddenGroups = [];
-      for (const groupRef of contentGroupRefs) {
+      for (const [groupRef] of groupRefCache.items()) {
         if (parsedOrderRefs.has(groupRef)) {
           continue;
         }
@@ -37942,9 +38137,28 @@ class Catalog {
         order: nestedOrder
       };
     }
+    function parseRBGroups(rbGroups) {
+      if (!Array.isArray(rbGroups)) {
+        return;
+      }
+      for (const value of rbGroups) {
+        const rbGroup = xref.fetchIfRef(value);
+        if (!Array.isArray(rbGroup) || !rbGroup.length) {
+          continue;
+        }
+        const parsedRbGroup = new Set();
+        for (const ref of rbGroup) {
+          if (ref instanceof Ref && groupRefCache.has(ref) && !parsedRbGroup.has(ref.toString())) {
+            parsedRbGroup.add(ref.toString());
+            groupRefCache.get(ref).rbGroups.push(parsedRbGroup);
+          }
+        }
+      }
+    }
     const xref = this.xref,
       parsedOrderRefs = new RefSet(),
       MAX_NESTED_LEVELS = 10;
+    parseRBGroups(config.get("RBGroups"));
     return {
       name: typeof config.get("Name") === "string" ? stringToPDFString(config.get("Name")) : null,
       creator: typeof config.get("Creator") === "string" ? stringToPDFString(config.get("Creator")) : null,
@@ -37952,7 +38166,7 @@ class Catalog {
       on: parseOnOff(config.get("ON")),
       off: parseOnOff(config.get("OFF")),
       order: parseOrder(config.get("Order")),
-      groups: null
+      groups: [...groupRefCache]
     };
   }
   setActualNumPages(num = null) {
@@ -55200,10 +55414,11 @@ class PDFDocument {
     }
   }
   get fieldObjects() {
-    if (!this.formInfo.hasFields) {
-      return shadow(this, "fieldObjects", Promise.resolve(null));
-    }
-    const promise = Promise.all([this.pdfManager.ensureDoc("annotationGlobals"), this.pdfManager.ensureCatalog("acroForm")]).then(async ([annotationGlobals, acroForm]) => {
+    const promise = this.pdfManager.ensureDoc("formInfo").then(async formInfo => {
+      if (!formInfo.hasFields) {
+        return null;
+      }
+      const [annotationGlobals, acroForm] = await Promise.all([this.pdfManager.ensureDoc("annotationGlobals"), this.pdfManager.ensureCatalog("acroForm")]);
       if (!annotationGlobals) {
         return null;
       }
@@ -55246,11 +55461,7 @@ class PDFDocument {
     return false;
   }
   get calculationOrderIds() {
-    const acroForm = this.catalog.acroForm;
-    if (!acroForm?.has("CO")) {
-      return shadow(this, "calculationOrderIds", null);
-    }
-    const calculationOrder = acroForm.get("CO");
+    const calculationOrder = this.catalog.acroForm?.get("CO");
     if (!Array.isArray(calculationOrder) || calculationOrder.length === 0) {
       return shadow(this, "calculationOrderIds", null);
     }
@@ -55260,10 +55471,7 @@ class PDFDocument {
         ids.push(id.toString());
       }
     }
-    if (ids.length === 0) {
-      return shadow(this, "calculationOrderIds", null);
-    }
-    return shadow(this, "calculationOrderIds", ids);
+    return shadow(this, "calculationOrderIds", ids.length ? ids : null);
   }
   get annotationGlobals() {
     return shadow(this, "annotationGlobals", AnnotationFactory.createGlobals(this.pdfManager));
@@ -55455,6 +55663,7 @@ function wrapReason(reason) {
   }
 }
 class MessageHandler {
+  #messageAC = new AbortController();
   constructor(sourceName, targetName, comObj) {
     this.sourceName = sourceName;
     this.targetName = targetName;
@@ -55465,66 +55674,70 @@ class MessageHandler {
     this.streamControllers = Object.create(null);
     this.callbackCapabilities = Object.create(null);
     this.actionHandler = Object.create(null);
-    this._onComObjOnMessage = event => {
-      const data = event.data;
-      if (data.targetName !== this.sourceName) {
-        return;
+    comObj.addEventListener("message", this.#onMessage.bind(this), {
+      signal: this.#messageAC.signal
+    });
+  }
+  #onMessage({
+    data
+  }) {
+    if (data.targetName !== this.sourceName) {
+      return;
+    }
+    if (data.stream) {
+      this.#processStreamMessage(data);
+      return;
+    }
+    if (data.callback) {
+      const callbackId = data.callbackId;
+      const capability = this.callbackCapabilities[callbackId];
+      if (!capability) {
+        throw new Error(`Cannot resolve callback ${callbackId}`);
       }
-      if (data.stream) {
-        this.#processStreamMessage(data);
-        return;
+      delete this.callbackCapabilities[callbackId];
+      if (data.callback === CallbackKind.DATA) {
+        capability.resolve(data.data);
+      } else if (data.callback === CallbackKind.ERROR) {
+        capability.reject(wrapReason(data.reason));
+      } else {
+        throw new Error("Unexpected callback case");
       }
-      if (data.callback) {
-        const callbackId = data.callbackId;
-        const capability = this.callbackCapabilities[callbackId];
-        if (!capability) {
-          throw new Error(`Cannot resolve callback ${callbackId}`);
-        }
-        delete this.callbackCapabilities[callbackId];
-        if (data.callback === CallbackKind.DATA) {
-          capability.resolve(data.data);
-        } else if (data.callback === CallbackKind.ERROR) {
-          capability.reject(wrapReason(data.reason));
-        } else {
-          throw new Error("Unexpected callback case");
-        }
-        return;
-      }
-      const action = this.actionHandler[data.action];
-      if (!action) {
-        throw new Error(`Unknown action from worker: ${data.action}`);
-      }
-      if (data.callbackId) {
-        const cbSourceName = this.sourceName;
-        const cbTargetName = data.sourceName;
-        new Promise(function (resolve) {
-          resolve(action(data.data));
-        }).then(function (result) {
-          comObj.postMessage({
-            sourceName: cbSourceName,
-            targetName: cbTargetName,
-            callback: CallbackKind.DATA,
-            callbackId: data.callbackId,
-            data: result
-          });
-        }, function (reason) {
-          comObj.postMessage({
-            sourceName: cbSourceName,
-            targetName: cbTargetName,
-            callback: CallbackKind.ERROR,
-            callbackId: data.callbackId,
-            reason: wrapReason(reason)
-          });
+      return;
+    }
+    const action = this.actionHandler[data.action];
+    if (!action) {
+      throw new Error(`Unknown action from worker: ${data.action}`);
+    }
+    if (data.callbackId) {
+      const sourceName = this.sourceName,
+        targetName = data.sourceName,
+        comObj = this.comObj;
+      new Promise(function (resolve) {
+        resolve(action(data.data));
+      }).then(function (result) {
+        comObj.postMessage({
+          sourceName,
+          targetName,
+          callback: CallbackKind.DATA,
+          callbackId: data.callbackId,
+          data: result
         });
-        return;
-      }
-      if (data.streamId) {
-        this.#createStreamSink(data);
-        return;
-      }
-      action(data.data);
-    };
-    comObj.addEventListener("message", this._onComObjOnMessage);
+      }, function (reason) {
+        comObj.postMessage({
+          sourceName,
+          targetName,
+          callback: CallbackKind.ERROR,
+          callbackId: data.callbackId,
+          reason: wrapReason(reason)
+        });
+      });
+      return;
+    }
+    if (data.streamId) {
+      this.#createStreamSink(data);
+      return;
+    }
+    action(data.data);
   }
   on(actionName, handler) {
     const ah = this.actionHandler;
@@ -55816,7 +56029,8 @@ class MessageHandler {
     delete this.streamControllers[streamId];
   }
   destroy() {
-    this.comObj.removeEventListener("message", this._onComObjOnMessage);
+    this.#messageAC?.abort();
+    this.#messageAC = null;
   }
 }
 
@@ -55986,7 +56200,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "4.7.78";
+    const workerVersion = "4.8.30";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -56550,8 +56764,8 @@ if (typeof window === "undefined" && !isNodeJS && typeof self !== "undefined" &&
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "4.7.78";
-const pdfjsBuild = "81cf42df4";
+const pdfjsVersion = "4.8.30";
+const pdfjsBuild = "bde36f28b";
 
 var __webpack_exports__WorkerMessageHandler = __webpack_exports__.WorkerMessageHandler;
 export { __webpack_exports__WorkerMessageHandler as WorkerMessageHandler };
