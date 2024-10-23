@@ -208,7 +208,10 @@ TEST(Fmt, IOError)
 {
   FILE* duped = fdopen(dup(fileno(stderr)), "w");
   fclose(duped);
+  // glibc will crash here on x86 Linux debug
+#    if defined(DEBUG) && defined(XP_LINUX) && !defined(__i386__)
   fmt::println(duped, FMT_STRING("Hi {}"), 14);
+#    endif
 }
 #  endif
 #endif
