@@ -299,7 +299,6 @@ class RecentlyClosedTabsInView extends ViewPage {
       descriptionHeader = "firefoxview-dont-remember-history-empty-header-2";
       descriptionLabels = [
         "firefoxview-dont-remember-history-empty-description-one",
-        "firefoxview-dont-remember-history-empty-description-two",
       ];
       descriptionLink = {
         url: "about:preferences#privacy",
