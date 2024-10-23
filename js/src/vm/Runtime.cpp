@@ -42,6 +42,7 @@
 #include "vm/PromiseObject.h"  // js::PromiseObject
 #include "vm/SharedImmutableStringsCache.h"
 #include "vm/Warnings.h"  // js::WarnNumberUC
+#include "wasm/WasmPI.h"
 #include "wasm/WasmSignalHandlers.h"
 
 #include "debugger/DebugAPI-inl.h"
@@ -387,6 +388,16 @@ void JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
       wasmInstances.lock()->sizeOfExcludingThis(mallocSizeOf);
 }
 
+static bool InvokeInterruptCallbacks(JSContext* cx) {
+  bool stop = false;
+  for (JSInterruptCallback cb : cx->interruptCallbacks()) {
+    if (!cb(cx)) {
+      stop = true;
+    }
+  }
+  return stop;
+}
+
 static bool HandleInterrupt(JSContext* cx, bool invokeCallback) {
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
 
@@ -408,11 +419,16 @@ static bool HandleInterrupt(JSContext* cx, bool invokeCallback) {
     return true;
   }
 
-  bool stop = false;
-  for (JSInterruptCallback cb : cx->interruptCallbacks()) {
-    if (!cb(cx)) {
-      stop = true;
-    }
+  bool stop;
+#ifdef ENABLE_WASM_JSPI
+  if (IsSuspendableStackActive(cx)) {
+    stop = wasm::CallOnMainStack(
+        cx, reinterpret_cast<wasm::CallOnMainStackFn>(InvokeInterruptCallbacks),
+        (void*)cx);
+  } else
+#endif
+  {
+    stop = InvokeInterruptCallbacks(cx);
   }
 
   if (!stop) {
