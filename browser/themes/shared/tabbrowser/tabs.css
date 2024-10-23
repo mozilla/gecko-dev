@@ -202,21 +202,21 @@
     display: block;
   }
 
-  #tabbrowser-tabs[movingtab] &:is([selected], [multiselected]) {
+  #tabbrowser-tabs[movingtab] > #tabbrowser-arrowscrollbox > &:is([selected], [multiselected]) {
     position: relative;
     z-index: 2;
     pointer-events: none; /* avoid blocking dragover events on scroll buttons */
   }
 
   @media (prefers-reduced-motion: no-preference) {
-    #tabbrowser-tabs[movingtab] &[fadein]:not([selected]):not([multiselected]),
-    &[multiselected-move-together],
+    #tabbrowser-tabs[movingtab] > #tabbrowser-arrowscrollbox > &[fadein]:not([selected]):not([multiselected]),
+    &[tab-grouping],
     &[tabdrop-samewindow] {
       transition: transform 200ms var(--animation-easing-function);
     }
   }
 
-  &[multiselected-move-together][multiselected]:not([selected]) {
+  &[tab-grouping][multiselected]:not([selected]) {
     z-index: 2;
   }
 
