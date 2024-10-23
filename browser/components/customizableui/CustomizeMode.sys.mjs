@@ -1756,6 +1756,10 @@ CustomizeMode.prototype = {
     };
     densityMenu.addEventListener("blur", resetDensity);
     densityMenu.addEventListener("mouseout", resetDensity);
+
+    this.$("customization-lwtheme-link").addEventListener("click", () => {
+      this.openAddonsManagerThemes();
+    });
   },
 
   _updateTitlebarCheckbox() {
