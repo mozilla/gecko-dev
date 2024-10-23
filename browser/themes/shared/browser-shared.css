@@ -487,12 +487,23 @@ menupopup::part(drop-indicator) {
 
 /* Private browsing indicator */
 
-#private-browsing-indicator-with-label {
+.private-browsing-indicator-with-label {
   align-items: center;
   margin-inline: 7px;
 
-  :root:not([privatebrowsingmode=temporary]) & {
+  :root:not([privatebrowsingmode=temporary]) &,
+  #nav-bar:not([tabs-hidden]) > & {
     display: none;
+  }
+
+  #nav-bar[tabs-hidden] > & {
+    margin-inline-end: 12px;
+
+  /* Hide the private browsing indicator
+    label when vertical tabs are enabled */
+    > .private-browsing-indicator-label {
+      display: none;
+    }
   }
 }
 
