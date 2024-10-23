@@ -339,7 +339,7 @@ void nsCocoaUtils::PrepareForNativeAppModalDialog() {
       "Main menu does not have any items, something is terribly wrong!");
 
   // Create new menu bar for use with modal dialog
-  NSMenu* newMenuBar = [[GeckoNSMenu alloc] initWithTitle:@""];
+  NSMenu* newMenuBar = [[NSMenu alloc] initWithTitle:@""];
 
   // Swap in our app menu. Note that the event target is whatever window is up
   // when the app modal dialog goes up.
