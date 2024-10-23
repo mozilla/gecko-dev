@@ -37,12 +37,14 @@
  *     void makeEmpty(Key*);
  */
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/Likely.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/TemplateLib.h"
 
+#include <memory>
 #include <tuple>
 #include <utility>
 
@@ -80,6 +82,8 @@ class OrderedHashTable {
 
  private:
   // Hash table. Has hashBuckets() elements.
+  // Note: a single malloc buffer is used for both the data_ and hashTable_
+  // arrays. data_ points to the start of this buffer.
   Data** hashTable_ = nullptr;
 
   // Array of Data objects. Elements data_[0:dataLength_] are constructed and
@@ -145,6 +149,42 @@ class OrderedHashTable {
     }
   }
 
+  static MOZ_ALWAYS_INLINE bool calcAllocSize(uint32_t dataCapacity,
+                                              uint32_t buckets,
+                                              size_t* numBytes) {
+    using CheckedSize = mozilla::CheckedInt<size_t>;
+    auto res = CheckedSize(dataCapacity) * sizeof(Data) +
+               CheckedSize(buckets) * sizeof(Data*);
+    if (MOZ_UNLIKELY(!res.isValid())) {
+      return false;
+    }
+    *numBytes = res.value();
+    return true;
+  }
+
+  // Allocate a single buffer that stores the data array followed by the hash
+  // table entries.
+  std::pair<Data*, Data**> allocateDataAndHashTable(uint32_t dataCapacity,
+                                                    uint32_t buckets) {
+    size_t numBytes;
+    if (MOZ_UNLIKELY(!calcAllocSize(dataCapacity, buckets, &numBytes))) {
+      alloc_.reportAllocOverflow();
+      return {};
+    }
+
+    void* buf = alloc_.template pod_malloc<uint8_t>(numBytes);
+    if (!buf) {
+      return {};
+    }
+
+    static_assert(sizeof(Data) % sizeof(Data*) == 0,
+                  "Hash table entries must be aligned properly");
+
+    Data* data = static_cast<Data*>(buf);
+    Data** table = reinterpret_cast<Data**>(data + dataCapacity);
+    return {data, table};
+  }
+
  public:
   OrderedHashTable(AllocPolicy ap, mozilla::HashCodeScrambler hcs)
       : alloc_(std::move(ap)), hcs_(hcs) {}
@@ -153,20 +193,14 @@ class OrderedHashTable {
     MOZ_ASSERT(!hashTable_, "init must be called at most once");
 
     constexpr uint32_t buckets = InitialBuckets;
-    Data** tableAlloc = alloc_.template pod_malloc<Data*>(buckets);
-    if (!tableAlloc) {
+    constexpr uint32_t capacity = uint32_t(buckets * FillFactor);
+
+    auto [dataAlloc, tableAlloc] = allocateDataAndHashTable(capacity, buckets);
+    if (!dataAlloc) {
       return false;
-    }
-    for (uint32_t i = 0; i < buckets; i++) {
-      tableAlloc[i] = nullptr;
     }
 
-    constexpr uint32_t capacity = uint32_t(buckets * FillFactor);
-    Data* dataAlloc = alloc_.template pod_malloc<Data>(capacity);
-    if (!dataAlloc) {
-      alloc_.free_(tableAlloc, buckets);
-      return false;
-    }
+    std::uninitialized_fill_n(tableAlloc, buckets, nullptr);
 
     // clear() requires that members are assigned only after all allocation
     // has succeeded, and that this->ranges_ is left untouched.
@@ -182,19 +216,18 @@ class OrderedHashTable {
 
   ~OrderedHashTable() {
     forEachRange([](Range* range) { range->onTableDestroyed(); });
-    if (hashTable_) {
-      // |hashBuckets()| isn't valid when |hashTable_| hasn't been created.
-      alloc_.free_(hashTable_, hashBuckets());
+
+    MOZ_ASSERT(!!data_ == !!hashTable_);
+
+    if (data_) {
+      freeData(data_, dataLength_, dataCapacity_, hashBuckets());
     }
-    freeData(data_, dataLength_, dataCapacity_);
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     size_t size = 0;
-    if (hashTable_) {
-      size += mallocSizeOf(hashTable_);
-    }
     if (data_) {
+      // Note: this also includes the hashTable_ array.
       size += mallocSizeOf(data_);
     }
     return size;
@@ -333,8 +366,7 @@ class OrderedHashTable {
         return false;
       }
 
-      alloc_.free_(oldHashTable, oldHashBuckets);
-      freeData(oldData, oldDataLength, oldDataCapacity);
+      freeData(oldData, oldDataLength, oldDataCapacity, oldHashBuckets);
       forEachRange([](Range* range) { range->onClear(); });
     }
 
@@ -710,9 +742,17 @@ class OrderedHashTable {
     }
   }
 
-  void freeData(Data* data, uint32_t length, uint32_t capacity) {
+  void freeData(Data* data, uint32_t length, uint32_t capacity,
+                uint32_t hashBuckets) {
+    MOZ_ASSERT(data);
+    MOZ_ASSERT(capacity > 0);
+
     destroyData(data, length);
-    alloc_.free_(data, capacity);
+
+    size_t numBytes;
+    MOZ_ALWAYS_TRUE(calcAllocSize(capacity, hashBuckets, &numBytes));
+
+    alloc_.free_(reinterpret_cast<uint8_t*>(data), numBytes);
   }
 
   Data* lookup(const Lookup& l, HashNumber h) {
@@ -811,21 +851,17 @@ class OrderedHashTable {
       return false;
     }
 
-    size_t newHashBuckets = size_t(1) << (js::kHashNumberBits - newHashShift);
-    Data** newHashTable = alloc_.template pod_malloc<Data*>(newHashBuckets);
-    if (!newHashTable) {
+    uint32_t newHashBuckets = uint32_t(1)
+                              << (js::kHashNumberBits - newHashShift);
+    uint32_t newCapacity = uint32_t(newHashBuckets * FillFactor);
+
+    auto [newData, newHashTable] =
+        allocateDataAndHashTable(newCapacity, newHashBuckets);
+    if (!newData) {
       return false;
-    }
-    for (uint32_t i = 0; i < newHashBuckets; i++) {
-      newHashTable[i] = nullptr;
     }
 
-    uint32_t newCapacity = uint32_t(newHashBuckets * FillFactor);
-    Data* newData = alloc_.template pod_malloc<Data>(newCapacity);
-    if (!newData) {
-      alloc_.free_(newHashTable, newHashBuckets);
-      return false;
-    }
+    std::uninitialized_fill_n(newHashTable, newHashBuckets, nullptr);
 
     Data* wp = newData;
     Data* end = data_ + dataLength_;
@@ -839,8 +875,7 @@ class OrderedHashTable {
     }
     MOZ_ASSERT(wp == newData + liveCount_);
 
-    alloc_.free_(hashTable_, hashBuckets());
-    freeData(data_, dataLength_, dataCapacity_);
+    freeData(data_, dataLength_, dataCapacity_, hashBuckets());
 
     hashTable_ = newHashTable;
     data_ = newData;
