@@ -385,6 +385,35 @@ nsresult FetchIconInfo(const RefPtr<Database>& aDB, uint16_t aPreferredWidth,
   return NS_OK;
 }
 
+nsresult FetchMostFrecentSubPageIcon(const RefPtr<Database>& aDB,
+                                     const nsACString& aPageRoot,
+                                     IconData& aIconData) {
+  nsCOMPtr<mozIStorageStatement> stmt = aDB->GetStatement(
+      "SELECT i.icon_url "
+      "FROM moz_pages_w_icons pwi "
+      "JOIN moz_icons_to_pages itp ON pwi.id = itp.page_id "
+      "JOIN moz_icons i ON itp.icon_id = i.id "
+      "JOIN moz_places p ON p.url_hash = pwi.page_url_hash "
+      "WHERE p.url BETWEEN :pageRoot AND :pageRoot || "
+      "X'FFFF' "
+      "ORDER BY p.frecency DESC, i.width DESC "
+      "LIMIT 1");
+  NS_ENSURE_STATE(stmt);
+  mozStorageStatementScoper scoperFallback(stmt);
+
+  nsresult rv = stmt->BindUTF8StringByName("pageRoot"_ns, aPageRoot);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  bool hasResult;
+
+  if (NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && hasResult) {
+    rv = stmt->GetUTF8String(0, aIconData.spec);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  return NS_OK;
+}
+
 nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
                           const nsCOMPtr<nsIURI>& aPageURI, IconData& aIconData,
                           uint16_t aPreferredWidth) {
@@ -533,6 +562,20 @@ nsresult FetchIconPerSpec(const RefPtr<Database>& aDB,
     if ((selectedIcon.width != aPreferredWidth) ||
         (preferNonRichIcons && selectedIcon.isRich)) {
       aIconData.spec = svgIcon.spec;
+    }
+  }
+
+  // If we reached this stage without finding an icon, we can check if the
+  // requested page spec is a host (no path) and if it contains any subpages
+  // that have an icon associated with them. If they do, we fetch the icon
+  // of the most frecent subpage.
+  if (aIconData.spec.IsEmpty()) {
+    nsAutoCString pageFilePath;
+    rv = aPageURI->GetFilePath(pageFilePath);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (pageFilePath == "/"_ns) {
+      rv = FetchMostFrecentSubPageIcon(aDB, pageSpec, aIconData);
+      NS_ENSURE_SUCCESS(rv, rv);
     }
   }
 

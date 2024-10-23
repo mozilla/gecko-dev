@@ -29,6 +29,7 @@ add_task(async function test_normal() {
 });
 
 add_task(async function test_missing() {
+  PlacesTestUtils.clearFavicons();
   let pageURI = NetUtil.newURI("http://example.com/missing");
 
   await new Promise(resolve => {
@@ -134,5 +135,42 @@ add_task(async function test_URIsWithPort() {
     await getFaviconUrlForPage(URL_WITHOUT_PORT),
     ICON_URL_NO_PORT,
     "The favicon of the URL without the port should be chosen correctly when there is an icon defined for the url with a port"
+  );
+});
+
+add_task(async function test_noRootIconFallback() {
+  await PlacesTestUtils.clearFavicons();
+  const ROOT_URL = "http://test.com";
+  const SUBPAGE_URLS = [
+    ROOT_URL + "/page",
+    ROOT_URL + "/about",
+    ROOT_URL + "/home",
+  ];
+
+  for (let i = 0; i < 10; i++) {
+    await PlacesTestUtils.addVisits(SUBPAGE_URLS[0]);
+  }
+  await PlacesTestUtils.addVisits(SUBPAGE_URLS[1]);
+  await PlacesTestUtils.addVisits(SUBPAGE_URLS[2]);
+
+  let dataURL32 = await readFileDataAsDataURL(
+    do_get_file("favicon-normal32.png"),
+    "image/png"
+  );
+
+  for (let url of SUBPAGE_URLS) {
+    await PlacesTestUtils.setFaviconForPage(
+      url,
+      url + "/favicon.ico",
+      dataURL32
+    );
+  }
+
+  await PlacesTestUtils.addVisits(ROOT_URL);
+
+  Assert.equal(
+    await getFaviconUrlForPage(ROOT_URL),
+    SUBPAGE_URLS[0] + "/favicon.ico",
+    "No root icon, should use icon from most frecent subpage"
   );
 });
