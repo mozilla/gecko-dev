@@ -8981,6 +8981,11 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
   nsCOMPtr<nsPIDOMWindowInner> win =
       scriptGlobal ? scriptGlobal->GetCurrentInnerWindow() : nullptr;
 
+  // The check for uninvoked directives must come before ScrollToAnchor() is
+  // called.
+  const bool hasTextDirectives =
+      doc->FragmentDirective()->HasUninvokedDirectives();
+
   // ScrollToAnchor doesn't necessarily cause us to scroll the window;
   // the function decides whether a scroll is appropriate based on the
   // arguments it receives.  But even if we don't end up scrolling,
@@ -9015,9 +9020,11 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
   // reference to avoid null derefs. See bug 914521.
   if (win) {
     // Fire a hashchange event URIs differ, and only in their hashes.
+    // If the fragment contains a directive, compare hasRef.
     bool doHashchange = aState.mSameExceptHashes &&
-                        (aState.mCurrentURIHasRef != aState.mNewURIHasRef ||
-                         !aState.mCurrentHash.Equals(aState.mNewHash));
+                        (!aState.mCurrentHash.Equals(aState.mNewHash) ||
+                         (hasTextDirectives &&
+                          aState.mCurrentURIHasRef != aState.mNewURIHasRef));
 
     if (aState.mHistoryNavBetweenSameDoc || doHashchange) {
       win->DispatchSyncPopState();

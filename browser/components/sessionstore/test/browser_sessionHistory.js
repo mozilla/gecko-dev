@@ -122,7 +122,7 @@ add_task(async function test_subframes() {
     "data:text/html;charset=utf-8," +
     "<iframe src=http%3A//example.com/ name=t></iframe>" +
     "<a id=a1 href=http%3A//example.com/1 target=t>clickme</a>" +
-    "<a id=a2 href=http%3A//example.com/%23 target=t>clickme</a>";
+    "<a id=a2 href=http%3A//example.com/%23section target=t>clickme</a>";
 
   // Create a new tab.
   let tab = BrowserTestUtils.addTab(gBrowser, URL);
