@@ -8,7 +8,7 @@ devices, and audiences:
    mobile browser is split into several different artifact layers:
 
   - `The fenix Android application </mobile/android/fenix.html>`_
-  - `The android-components Android library <https://github.com/mozilla-mobile/firefox-android/tree/main/android-components>`_
+  - `The android-components Android library <https://searchfox.org/mozilla-central/source/mobile/android/android-components>`_
   - `The GeckoView platform </mobile/android/geckoview>`_
 
 -  `Firefox for iOS <https://github.com/mozilla-mobile/firefox-ios>`_,
@@ -16,7 +16,7 @@ devices, and audiences:
 -  Building **Firefox Focus**, our privacy-focused browser for
 
   - `iOS <https://github.com/mozilla-mobile/focus-ios>`_
-  - `Android <https://github.com/mozilla-mobile/firefox-android/tree/main/focus-android>`_. This browser
+  - `Android <https://searchfox.org/mozilla-central/source/mobile/android/focus-android>`_. This browser
     also uses the android-components library and GeckoView platform, like Firefox for Android
 
 For both Desktop and Mobile development, please bear the following in

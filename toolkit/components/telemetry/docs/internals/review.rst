@@ -82,7 +82,7 @@ Considerations for all changes
 
   - To the :ref:`in-tree docs <Telemetry>`?
   - To the `firefox-data-docs <https://docs.telemetry.mozilla.org/>`_ (`repository <https://github.com/mozilla/firefox-data-docs>`_)?
-  - To the `glean documentation <https://github.com/mozilla-mobile/android-components/tree/master/components/service/glean>`_?
+  - To the `glean documentation <https://mozilla.github.io/glean/dev/>`_?
 
 - Following up:
 

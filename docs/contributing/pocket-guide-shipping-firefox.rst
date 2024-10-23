@@ -27,8 +27,7 @@ products which are released through what is commonly referred to as
 
 `Firefox Nightly <https://whattrainisitnow.com/release/?version=nightly>`__ offers access to the latest cutting edge features
 still under active development. Released every 12 hours with all the
-changes that have :ref:`landed <landing>` on mozilla-central for Desktop and on
-`main in firefox-android <https://github.com/mozilla-mobile/firefox-android/tree/main>`__ for Android.
+changes that have :ref:`landed <landing>` on mozilla-central for Desktop and Android.
 
 Every `4 weeks <https://whattrainisitnow.com/calendar/>`__, we
 :ref:`merge <merge>` the code from mozilla-central to our
