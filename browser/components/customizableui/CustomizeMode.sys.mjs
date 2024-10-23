@@ -1721,6 +1721,17 @@ CustomizeMode.prototype = {
       }
     });
 
+    container.addEventListener("popupshowing", event => {
+      switch (event.target.id) {
+        case "customization-toolbar-menu":
+          this.window.ToolbarContextMenu.onViewToolbarsPopupShowing(event);
+          break;
+        case "customization-uidensity-menu":
+          this.onUIDensityMenuShowing();
+          break;
+      }
+    });
+
     let updateDensity = event => {
       switch (event.target.id) {
         case "customization-uidensity-menuitem-compact":
