@@ -99,19 +99,16 @@ class OrderedHashTable {
   AllocPolicy alloc;
   mozilla::HashCodeScrambler hcs;  // don't reveal pointer hash codes
 
-  // TODO: This should be templated on a functor type and receive lambda
-  // arguments but this causes problems for the hazard analysis builds. See
-  // bug 1398213.
-  template <void (*f)(Range* range, uint32_t arg)>
-  void forEachRange(uint32_t arg = 0) {
+  template <typename F>
+  void forEachRange(F&& f) {
     Range* next;
     for (Range* r = ranges; r; r = next) {
       next = r->next;
-      f(r, arg);
+      f(r);
     }
     for (Range* r = nurseryRanges; r; r = next) {
       next = r->next;
-      f(r, arg);
+      f(r);
     }
   }
 
@@ -160,7 +157,7 @@ class OrderedHashTable {
   }
 
   ~OrderedHashTable() {
-    forEachRange<Range::onTableDestroyed>();
+    forEachRange([](Range* range) { range->onTableDestroyed(); });
     if (hashTable) {
       // |hashBuckets()| isn't valid when |hashTable| hasn't been created.
       alloc.free_(hashTable, hashBuckets());
@@ -274,7 +271,7 @@ class OrderedHashTable {
 
     // Update active Ranges.
     uint32_t pos = e - data;
-    forEachRange<&Range::onRemove>(pos);
+    forEachRange([pos](Range* range) { range->onRemove(pos); });
 
     // If many entries have been removed, try to shrink the table.
     if (hashBuckets() > initialBuckets() &&
@@ -314,7 +311,7 @@ class OrderedHashTable {
 
       alloc.free_(oldHashTable, oldHashBuckets);
       freeData(oldData, oldDataLength, oldDataCapacity);
-      forEachRange<&Range::onClear>();
+      forEachRange([](Range* range) { range->onClear(); });
     }
 
     MOZ_ASSERT(hashTable);
@@ -521,13 +518,6 @@ class OrderedHashTable {
     static size_t offsetOfCount() { return offsetof(Range, count); }
     static size_t offsetOfPrevP() { return offsetof(Range, prevp); }
     static size_t offsetOfNext() { return offsetof(Range, next); }
-
-    static void onTableDestroyed(Range* range, uint32_t arg) {
-      range->onTableDestroyed();
-    }
-    static void onRemove(Range* range, uint32_t arg) { range->onRemove(arg); }
-    static void onClear(Range* range, uint32_t arg) { range->onClear(); }
-    static void onCompact(Range* range, uint32_t arg) { range->onCompact(); }
   };
 
   class MutableRange : public Range {
@@ -751,7 +741,7 @@ class OrderedHashTable {
   void compacted() {
     // If we had any empty entries, compacting may have moved live entries
     // to the left within |data|. Notify all live Ranges of the change.
-    forEachRange<&Range::onCompact>();
+    forEachRange([](Range* range) { range->onCompact(); });
   }
 
   /* Compact the entries in |data| and rehash them. */
