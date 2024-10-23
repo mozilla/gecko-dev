@@ -704,8 +704,9 @@ class OrderedHashTable {
   }
 
   static void destroyData(Data* data, uint32_t length) {
-    for (Data* p = data + length; p != data;) {
-      (--p)->~Data();
+    Data* end = data + length;
+    for (Data* p = data; p != end; p++) {
+      p->~Data();
     }
   }
 
@@ -765,7 +766,8 @@ class OrderedHashTable {
     MOZ_ASSERT(wp == data_ + liveCount_);
 
     while (wp != end) {
-      (--end)->~Data();
+      wp->~Data();
+      wp++;
     }
     dataLength_ = liveCount_;
     compacted();
