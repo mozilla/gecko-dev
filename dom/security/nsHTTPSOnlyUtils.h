@@ -176,8 +176,8 @@ class nsHTTPSOnlyUtils {
    * @param aLoadInfo The loadinfo of the request triggering this exception to
    *                  be added (needs to match aURI)
    */
-  static nsresult AddHTTPSFirstExceptionForSession(
-      nsCOMPtr<nsIURI> aURI, nsILoadInfo* const aLoadInfo);
+  static nsresult AddHTTPSFirstException(nsCOMPtr<nsIURI> aURI,
+                                         nsILoadInfo* const aLoadInfo);
 
   /**
    * Determines which HTTPS-Only status flags should get propagated to

@@ -3842,7 +3842,6 @@ interface nsIHttpsOnlyModePermission extends nsISupports {
   readonly LOAD_INSECURE_BLOCK: 2;
   readonly LOAD_INSECURE_ALLOW_SESSION: 9;
   readonly HTTPSFIRST_LOAD_INSECURE_ALLOW: 10;
-  readonly HTTPSFIRST_LOAD_INSECURE_ALLOW_SESSION: 11;
 }
 
 // https://searchfox.org/mozilla-central/source/dom/serializers/nsIDocumentEncoder.idl

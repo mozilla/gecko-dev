@@ -557,7 +557,7 @@ nsHTTPSOnlyUtils::PotentiallyDowngradeHttpsFirstRequest(
 
   if (mozilla::StaticPrefs::
           dom_security_https_first_add_exception_on_failiure()) {
-    AddHTTPSFirstExceptionForSession(uri, loadInfo);
+    AddHTTPSFirstException(uri, loadInfo);
   }
 
   return newURI.forget();
@@ -689,9 +689,7 @@ bool nsHTTPSOnlyUtils::TestIfPrincipalIsExempt(nsIPrincipal* aPrincipal,
   return perm == nsIHttpsOnlyModePermission::LOAD_INSECURE_ALLOW ||
          perm == nsIHttpsOnlyModePermission::LOAD_INSECURE_ALLOW_SESSION ||
          (aCheckForHTTPSFirst &&
-          (perm == nsIHttpsOnlyModePermission::HTTPSFIRST_LOAD_INSECURE_ALLOW ||
-           perm == nsIHttpsOnlyModePermission::
-                       HTTPSFIRST_LOAD_INSECURE_ALLOW_SESSION));
+          perm == nsIHttpsOnlyModePermission::HTTPSFIRST_LOAD_INSECURE_ALLOW);
 }
 
 /* static */
@@ -957,7 +955,7 @@ bool nsHTTPSOnlyUtils::IsHttpDowngrade(nsIURI* aFromURI, nsIURI* aToURI) {
 }
 
 /* static */
-nsresult nsHTTPSOnlyUtils::AddHTTPSFirstExceptionForSession(
+nsresult nsHTTPSOnlyUtils::AddHTTPSFirstException(
     nsCOMPtr<nsIURI> aURI, nsILoadInfo* const aLoadInfo) {
   // We need to reconstruct a principal instead of taking one from the loadinfo,
   // as the permission needs a http scheme, while the passed URL or principals
@@ -978,14 +976,16 @@ nsresult nsHTTPSOnlyUtils::AddHTTPSFirstExceptionForSession(
 
   nsCString host;
   aURI->GetHost(host);
-  LogLocalizedString("HTTPSFirstAddingSessionException",
-                     {NS_ConvertUTF8toUTF16(host)}, nsIScriptError::warningFlag,
-                     aLoadInfo, aURI, true);
+  LogLocalizedString("HTTPSFirstAddingException", {NS_ConvertUTF8toUTF16(host)},
+                     nsIScriptError::warningFlag, aLoadInfo, aURI, true);
 
+  uint32_t lifetime =
+      mozilla::StaticPrefs::dom_security_https_first_exception_lifetime();
+  int64_t expirationTime = (PR_Now() / PR_USEC_PER_MSEC) + lifetime;
   rv = permMgr->AddFromPrincipal(
       principal, "https-only-load-insecure"_ns,
-      nsIHttpsOnlyModePermission::HTTPSFIRST_LOAD_INSECURE_ALLOW_SESSION,
-      nsIPermissionManager::EXPIRE_SESSION, 0);
+      nsIHttpsOnlyModePermission::HTTPSFIRST_LOAD_INSECURE_ALLOW,
+      nsIPermissionManager::EXPIRE_TIME, expirationTime);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

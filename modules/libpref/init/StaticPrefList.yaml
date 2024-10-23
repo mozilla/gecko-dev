@@ -4018,6 +4018,11 @@
   value: true
   mirror: always
 
+- name: dom.security.https_first_exception_lifetime
+  type: uint32_t
+  value: 7*24*60*60*1000 # 7 days in milliseconds
+  mirror: always
+
 - name: dom.security.unexpected_system_load_telemetry_enabled
   type: bool
   value: true

@@ -6185,7 +6185,7 @@ nsresult HttpBaseChannel::CheckRedirectLimit(nsIURI* aNewURI,
           mURI, aNewURI, mLoadInfo,
           {nsHTTPSOnlyUtils::UpgradeDowngradeEndlessLoopOptions::
                EnforceForHTTPSFirstMode})) {
-    nsHTTPSOnlyUtils::AddHTTPSFirstExceptionForSession(mURI, mLoadInfo);
+    nsHTTPSOnlyUtils::AddHTTPSFirstException(mURI, mLoadInfo);
   }
 
   return NS_OK;

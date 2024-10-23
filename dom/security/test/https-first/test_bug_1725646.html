@@ -59,7 +59,7 @@
               await SpecialPowers.testPermission(
                 "https-only-load-insecure",
                 SpecialPowers.Ci.nsIHttpsOnlyModePermission
-                  .HTTPSFIRST_LOAD_INSECURE_ALLOW_SESSION,
+                  .HTTPSFIRST_LOAD_INSECURE_ALLOW,
                 URL_A
               ),
               "A temporary HTTPS-First exception should have been added for the site"
