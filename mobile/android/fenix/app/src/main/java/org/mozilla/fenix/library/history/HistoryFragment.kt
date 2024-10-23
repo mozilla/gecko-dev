@@ -323,7 +323,10 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
             true
         }
         R.id.history_search -> {
-            historyStore.dispatch(HistoryFragmentAction.SearchClicked)
+            findNavController().nav(
+                R.id.historyFragment,
+                HistoryFragmentDirections.actionGlobalSearchDialog(null),
+            )
             true
         }
         R.id.history_delete -> {
