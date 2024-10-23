@@ -64,7 +64,7 @@ class History final : public BaseHistory,
 
   History();
 
-  nsresult QueueVisitedStatement(RefPtr<VisitedQuery>);
+  nsresult QueueVisitedStatement(RefPtr<VisitedQuery>&&);
 
   /**
    * Adds an entry in moz_places with the data in aVisitData.
