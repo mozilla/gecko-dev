@@ -82,7 +82,7 @@
       return {
         ".tab-background":
           "selected=visuallyselected,fadein,multiselected,dragover-createGroup",
-        ".tab-line": "selected=visuallyselected,multiselected",
+        ".tab-group-line": "selected=visuallyselected,multiselected",
         ".tab-loading-burst": "pinned,bursting,notselectedsinceload",
         ".tab-content":
           "pinned,selected=visuallyselected,titlechanged,attention",

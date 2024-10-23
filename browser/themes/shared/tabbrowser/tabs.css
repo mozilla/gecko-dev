@@ -723,29 +723,35 @@
 
 /* Tab Groups */
 
+/*
+ * .tab-group-line needs to span the drop shadows + space between tabs in the
+ * same tab group so that the whole tab group appears to be underlined by an
+ * unbroken line. However, the last tab in a tab group should have its group
+ * underline stop at the right edge of the tab itself, otherwise it looks
+ * like the tab group extends too far past the right edge of the tab.
+ */
+.tab-group-line {
+  display: none;
+  background-color: var(--tab-group-color, var(--dragover-tab-group-color));
+  height: 2px;
+  margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) calc(-1 * var(--tab-block-margin));
+
+  .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > & {
+    margin-inline-end: 0;
+  }
+
+  tab-group &,
+  #tabbrowser-tabs[movingtab]:not([movingtab-createGroup]) &:is([selected],[multiselected]) {
+    display: flex;
+  }
+}
+
 tab-group {
   /*
    * Let the tab bar flexbox distribute space between all tabs evenly, regardless of
    * whether they are children of the tab bar directly or children of tab groups
    */
   display: contents;
-
-  /*
-   * .tab-group-line needs to span the drop shadows + space between tabs in the
-   * same tab group so that the whole tab group appears to be underlined by an
-   * unbroken line. However, the last tab in a tab group should have its group
-   * underline stop at the right edge of the tab itself, otherwise it looks
-   * like the tab group extends too far past the right edge of the tab.
-   */
-  .tab-group-line {
-    background-color: var(--tab-group-color);
-    height: 2px;
-    margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) calc(-1 * var(--tab-block-margin));
-
-    .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > & {
-      margin-inline-end: 0;
-    }
-  }
 
   &[collapsed] > .tabbrowser-tab {
     min-width: 0;

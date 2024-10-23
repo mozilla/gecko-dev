@@ -2094,23 +2094,16 @@
             "dragover-createGroup",
             true
           );
-
-          let groupColorCode = gBrowser.tabGroupMenu.nextUnusedColor;
-          this.style.setProperty(
-            "--dragover-tab-group-color",
-            `var(--tab-group-color-${groupColorCode})`
-          );
-          this.style.setProperty(
-            "--dragover-tab-group-color-invert",
-            `var(--tab-group-color-${groupColorCode}-invert)`
-          );
-          this.style.setProperty(
-            "--dragover-tab-group-color-pale",
-            `var(--tab-group-color-${groupColorCode}-pale)`
-          );
+          this.#setDragOverGroupColor(gBrowser.tabGroupMenu.nextUnusedColor);
         } else {
           this.removeAttribute("movingtab-createGroup");
         }
+      }
+
+      if (gBrowser._tabGroupsEnabled && !("groupDropIndex" in dragData)) {
+        this.#setDragOverGroupColor(
+          this.allTabs[dragData.animDropIndex].group?.color
+        );
       }
 
       if (newIndex == oldIndex) {
@@ -2128,6 +2121,27 @@
       }
     }
 
+    #setDragOverGroupColor(groupColorCode) {
+      if (!groupColorCode) {
+        this.style.removeProperty("--dragover-tab-group-color");
+        this.style.removeProperty("--dragover-tab-group-color-invert");
+        this.style.removeProperty("--dragover-tab-group-color-pale");
+        return;
+      }
+      this.style.setProperty(
+        "--dragover-tab-group-color",
+        `var(--tab-group-color-${groupColorCode})`
+      );
+      this.style.setProperty(
+        "--dragover-tab-group-color-invert",
+        `var(--tab-group-color-${groupColorCode}-invert)`
+      );
+      this.style.setProperty(
+        "--dragover-tab-group-color-pale",
+        `var(--tab-group-color-${groupColorCode}-pale)`
+      );
+    }
+
     _finishAnimateTabMove() {
       if (!this.hasAttribute("movingtab")) {
         return;
@@ -2140,6 +2154,7 @@
 
       this.removeAttribute("movingtab");
       this.removeAttribute("movingtab-createGroup");
+      this.#setDragOverGroupColor(null);
       gNavToolbox.removeAttribute("movingtab");
 
       this._handleTabSelect();
