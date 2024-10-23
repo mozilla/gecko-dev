@@ -78,6 +78,19 @@ class Breakpoint extends PureComponent {
     }
   };
 
+  onKeyDown = event => {
+    // Handling only the Enter/Space keys, bail if another key was pressed
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    if (event.shiftKey) {
+      this.onDoubleClick();
+      return;
+    }
+    this.selectBreakpoint(event);
+  };
+
   selectBreakpoint = event => {
     event.preventDefault();
     const { selectSpecificLocation } = this.props;
@@ -151,6 +164,10 @@ class Breakpoint extends PureComponent {
         onClick: this.selectBreakpoint,
         onDoubleClick: this.onDoubleClick,
         onContextMenu: this.onContextMenu,
+        onKeyDown: this.onKeyDown,
+        role: "button",
+        tabIndex: 0,
+        title: text,
       },
       input({
         id: breakpoint.id,
@@ -167,7 +184,6 @@ class Breakpoint extends PureComponent {
           id: labelId,
           className: "breakpoint-label cm-s-mozilla devtools-monospace",
           onClick: this.selectBreakpoint,
-          title: text,
         },
         span({
           className: "cm-highlighted",

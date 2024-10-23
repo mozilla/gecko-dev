@@ -147,13 +147,6 @@ async function enableSecondBreakpoint(dbg) {
   await waitForAllElements(dbg, "breakpointItems", 2);
 }
 
-// modified method from browser_dbg-breakpoints-columns.js
-// use shortcut to open conditional panel.
-function setConditionalBreakpointWithKeyboardShortcut(dbg, condition) {
-  pressKey(dbg, "toggleCondPanel");
-  return typeInPanel(dbg, condition);
-}
-
 function setLogBreakpointWithKeyboardShortcut(dbg, condition) {
   pressKey(dbg, "toggleLogPanel");
   return typeInPanel(dbg, condition, true);

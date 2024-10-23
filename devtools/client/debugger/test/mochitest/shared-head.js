@@ -1081,6 +1081,12 @@ async function addBreakpoint(dbg, source, line, column, options) {
   );
 }
 
+// use shortcut to open conditional panel.
+function setConditionalBreakpointWithKeyboardShortcut(dbg, condition) {
+  pressKey(dbg, "toggleCondPanel");
+  return typeInPanel(dbg, condition);
+}
+
 /**
  * Similar to `addBreakpoint`, but uses the UI instead or calling
  * the actions directly. This only support breakpoint on lines,
@@ -1415,6 +1421,7 @@ const keyMappings = {
     code: "VK_RETURN",
     modifiers: { altKey: true },
   },
+  Space: { code: "VK_SPACE" },
   Up: { code: "VK_UP" },
   Down: { code: "VK_DOWN" },
   Right: { code: "VK_RIGHT" },
