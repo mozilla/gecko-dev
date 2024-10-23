@@ -289,7 +289,23 @@ NS_DEFINE_STATIC_IID_ACCESSOR(StorageBaseStatementInternal,
       _class, _optionalGuard, AdoptedBlob,                                     \
       (const nsACString& aWhere, uint8_t* aValue, uint32_t aValueSize),        \
       (uint32_t aWhere, uint8_t * aValue, uint32_t aValueSize),                \
-      (aWhere, aValue, aValueSize))
+      (aWhere, aValue, aValueSize))                                            \
+  BIND_GEN_IMPL(_class, _optionalGuard, ArrayOfIntegers,                       \
+                (const nsACString& aWhere, const nsTArray<int64_t>& aValue),   \
+                (uint32_t aWhere, const nsTArray<int64_t>& aValue),            \
+                (aWhere, aValue))                                              \
+  BIND_GEN_IMPL(_class, _optionalGuard, ArrayOfDoubles,                        \
+                (const nsACString& aWhere, const nsTArray<double>& aValue),    \
+                (uint32_t aWhere, const nsTArray<double>& aValue),             \
+                (aWhere, aValue))                                              \
+  BIND_GEN_IMPL(_class, _optionalGuard, ArrayOfStrings,                        \
+                (const nsACString& aWhere, const nsTArray<nsString>& aValue),  \
+                (uint32_t aWhere, const nsTArray<nsString>& aValue),           \
+                (aWhere, aValue))                                              \
+  BIND_GEN_IMPL(_class, _optionalGuard, ArrayOfUTF8Strings,                    \
+                (const nsACString& aWhere, const nsTArray<nsCString>& aValue), \
+                (uint32_t aWhere, const nsTArray<nsCString>& aValue),          \
+                (aWhere, aValue))
 
 }  // namespace storage
 }  // namespace mozilla

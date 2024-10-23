@@ -87,20 +87,31 @@ int variantToSQLiteT(T aObj, nsIVariant* aValue) {
       void* data;
       nsresult rv = aValue->GetAsArray(&arrayType, &iid, &count, &data);
       NS_ENSURE_SUCCESS(rv, SQLITE_MISMATCH);
-
-      // Check to make sure it's a supported type.
-      NS_ASSERTION(arrayType == nsIDataType::VTYPE_UINT8,
-                   "Invalid type passed!  You may leak!");
-      if (arrayType != nsIDataType::VTYPE_UINT8) {
-        // Technically this could leak with certain data types, but somebody was
-        // being stupid passing us this anyway.
-        free(data);
-        return SQLITE_MISMATCH;
+      if (arrayType == nsIDataType::VTYPE_UINT8) {
+        // The function should free the array accordingly!
+        return sqlite3_T_blob(aObj, data, count);
+      }
+      // Empty array is handled as NULL.
+      if (count == 0) {
+        return sqlite3_T_null(aObj);
+      }
+      if (arrayType == nsIDataType::VTYPE_INT32 ||
+          arrayType == nsIDataType::VTYPE_INT64) {
+        return sqlite3_T_array(aObj, data, count, CARRAY_INT64);
+      }
+      if (arrayType == nsIDataType::VTYPE_FLOAT ||
+          arrayType == nsIDataType::VTYPE_DOUBLE) {
+        return sqlite3_T_array(aObj, data, count, CARRAY_DOUBLE);
+      }
+      if (arrayType == nsIDataType::VTYPE_UTF8STRING) {
+        return sqlite3_T_array(aObj, data, count, CARRAY_TEXT);
       }
 
-      // Finally do our thing.  The function should free the array accordingly!
-      int rc = sqlite3_T_blob(aObj, data, count);
-      return rc;
+      MOZ_DIAGNOSTIC_ASSERT(false, "Unsupported type in Storage bound array");
+      // Technically this could leak with certain data types, but somebody was
+      // being incautious passing us this anyway.
+      free(data);
+      return SQLITE_MISMATCH;
     }
     // Maybe, it'll be possible to convert these
     // in future too.

@@ -103,6 +103,7 @@ if not CONFIG["MOZ_AVOID_DISK_REMNANT_ON_CLOSE"]:
 
 LOCAL_INCLUDES += [
     "/dom/base",
+    "/third_party/sqlite3/ext",
     "/third_party/sqlite3/src",
 ]
 

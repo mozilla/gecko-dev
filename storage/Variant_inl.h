@@ -22,7 +22,8 @@ namespace storage {
 //// Variant_base
 
 inline NS_IMPL_ADDREF(Variant_base) inline NS_IMPL_RELEASE(
-    Variant_base) inline NS_IMPL_QUERY_INTERFACE(Variant_base, nsIVariant)
+    Variant_base) inline NS_IMPL_QUERY_INTERFACE(Variant_base, nsIVariant,
+                                                 nsIInterfaceRequestor)
 
     ////////////////////////////////////////////////////////////////////////////////
     //// nsIVariant
