@@ -72,6 +72,20 @@ async function updateTaskbar(iconUrl, profileName, strokeColor, fillColor) {
       Cc["@mozilla.org/widget/macdocksupport;1"]
         .getService(Ci.nsIMacDockSupport)
         .setBadgeImage(image, { fillColor, strokeColor });
+    } else if ("nsIWinTaskbar" in Ci) {
+      lazy.EveryWindow.registerCallback(
+        "profiles",
+        win => {
+          let iconController = Cc["@mozilla.org/windows-taskbar;1"]
+            .getService(Ci.nsIWinTaskbar)
+            .getOverlayIconController(win.docShell);
+          iconController.setOverlayIcon(image, profileName, {
+            fillColor,
+            strokeColor,
+          });
+        },
+        () => {}
+      );
     }
   } catch (e) {
     console.error(e);
