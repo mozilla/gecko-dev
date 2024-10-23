@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ViewTransition.h"
-#include "mozilla/dom/Document.h"
-#include "mozilla/dom/Promise.h"
+#include "nsPresContext.h"
+#include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "mozilla/dom/ViewTransitionBinding.h"
 #include "mozilla/ServoStyleConsts.h"
@@ -20,23 +20,65 @@ static inline void ImplCycleCollectionTraverse(
 
 namespace mozilla::dom {
 
+// Set capture's old transform to a <transform-function> that would map
+// element's border box from the snapshot containing block origin to its
+// current visual position.
+//
+// Since we're using viewport as the snapshot origin, we can use
+// GetBoundingClientRect() effectively...
+//
+// TODO(emilio): This might need revision.
+static CSSToCSSMatrix4x4Flagged EffectiveTransform(nsIFrame* aFrame) {
+  CSSToCSSMatrix4x4Flagged matrix;
+  if (aFrame->GetSize().IsEmpty() || aFrame->Style()->IsRootElementStyle()) {
+    return matrix;
+  }
+
+  CSSSize untransformedSize = CSSSize::FromAppUnits(aFrame->GetSize());
+  CSSRect boundingRect = CSSRect::FromAppUnits(aFrame->GetBoundingClientRect());
+  if (boundingRect.Size() != untransformedSize) {
+    float sx = boundingRect.width / untransformedSize.width;
+    float sy = boundingRect.height / untransformedSize.height;
+    matrix = CSSToCSSMatrix4x4Flagged::Scaling(sx, sy, 0.0f);
+  }
+  if (boundingRect.TopLeft() != CSSPoint()) {
+    matrix.PostTranslate(boundingRect.x, boundingRect.y, 0.0f);
+  }
+  return matrix;
+}
+
 struct CapturedElementOldState {
   // TODO: mImage
 
   // Encompasses width and height.
-  CSSSize mSize;
-  StyleTransform mTransform;
+  nsSize mSize;
+  CSSToCSSMatrix4x4Flagged mTransform;
   // Encompasses writing-mode / direction / text-orientation.
   WritingMode mWritingMode;
   StyleBlend mMixBlendMode = StyleBlend::Normal;
   StyleOwnedSlice<StyleFilter> mBackdropFilters;
   StyleColorSchemeFlags mColorScheme{0};
+
+  CapturedElementOldState(nsIFrame* aFrame,
+                          const nsSize& aSnapshotContainingBlockSize)
+      : mSize(aFrame->Style()->IsRootElementStyle()
+                  ? aSnapshotContainingBlockSize
+                  : aFrame->GetRect().Size()),
+        mTransform(EffectiveTransform(aFrame)),
+        mWritingMode(aFrame->GetWritingMode()),
+        mMixBlendMode(aFrame->StyleEffects()->mMixBlendMode),
+        mBackdropFilters(aFrame->StyleEffects()->mBackdropFilters),
+        mColorScheme(aFrame->StyleUI()->mColorScheme.bits) {}
 };
 
 // https://drafts.csswg.org/css-view-transitions/#captured-element
 struct ViewTransition::CapturedElement {
   CapturedElementOldState mOldState;
   RefPtr<Element> mNewElement;
+
+  CapturedElement(nsIFrame* aFrame, const nsSize& aSnapshotContainingBlockSize)
+      : mOldState(aFrame, aSnapshotContainingBlockSize) {}
+
   // TODO: Style definitions as per:
   // https://drafts.csswg.org/css-view-transitions/#captured-element-style-definitions
 };
@@ -243,10 +285,135 @@ void ViewTransition::PerformPendingOperations() {
   }
 }
 
+// https://drafts.csswg.org/css-view-transitions/#snapshot-containing-block
+nsRect ViewTransition::SnapshotContainingBlockRect() const {
+  nsPresContext* pc = mDocument->GetPresContext();
+  // TODO(emilio): Ensure this is correct with Android's dynamic toolbar and
+  // scrollbars.
+  return pc ? pc->GetVisibleArea() : nsRect();
+}
+
+// FIXME(emilio): This should actually iterate in paint order.
+template <typename Callback>
+static bool ForEachChildFrame(nsIFrame* aFrame, const Callback& aCb) {
+  if (!aCb(aFrame)) {
+    return false;
+  }
+  for (auto& [list, id] : aFrame->ChildLists()) {
+    for (nsIFrame* f : list) {
+      if (!ForEachChildFrame(f, aCb)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+template <typename Callback>
+static void ForEachFrame(Document* aDoc, const Callback& aCb) {
+  PresShell* ps = aDoc->GetPresShell();
+  if (!ps) {
+    return;
+  }
+  nsIFrame* root = ps->GetRootFrame();
+  if (!root) {
+    return;
+  }
+  ForEachChildFrame(root, aCb);
+}
+
+// https://drafts.csswg.org/css-view-transitions-1/#document-scoped-view-transition-name
+static nsAtom* DocumentScopedTransitionNameFor(nsIFrame* aFrame) {
+  auto* name = aFrame->StyleUIReset()->mViewTransitionName._0.AsAtom();
+  if (name->IsEmpty()) {
+    return nullptr;
+  }
+  // TODO(emilio): This isn't quite correct, per spec we're supposed to only
+  // honor names coming from the document, but that's quite some magic,
+  // and it's getting actively discussed, see:
+  // https://github.com/w3c/csswg-drafts/issues/10808 and related
+  return name;
+}
+
+// https://drafts.csswg.org/css-view-transitions/#capture-the-old-state
+Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
+  MOZ_ASSERT(mNamedElements.IsEmpty());
+  // Steps 1/2 are variable declarations.
+  // Step 3: Let usedTransitionNames be a new set of strings.
+  nsTHashSet<nsAtom*> usedTransitionNames;
+  // Step 4: Let captureElements be a new list of elements.
+  AutoTArray<std::pair<nsIFrame*, nsAtom*>, 32> captureElements;
+
+  // Step 5: If the snapshot containing block size exceeds an
+  // implementation-defined maximum, then return failure.
+  // TODO(emilio): Implement a maximum if we deem it needed.
+  //
+  // Step 6: Set transition's initial snapshot containing block size to the
+  // snapshot containing block size.
+  mInitialSnapshotContainingBlockSize = SnapshotContainingBlockRect().Size();
+
+  // Step 7: For each element of every element that is connected, and has a node
+  // document equal to document, in paint order:
+  Maybe<SkipTransitionReason> result;
+  ForEachFrame(mDocument, [&](nsIFrame* aFrame) {
+    auto* name = DocumentScopedTransitionNameFor(aFrame);
+    if (!name) {
+      // As a fast path we check for v-t-n first.
+      // If transitionName is none, or element is not rendered, then continue.
+      return true;
+    }
+    if (aFrame->IsHiddenByContentVisibilityOnAnyAncestor()) {
+      // If any flat tree ancestor of this element skips its contents, then
+      // continue.
+      return true;
+    }
+    if (aFrame->GetPrevContinuation() || aFrame->GetNextContinuation()) {
+      // If element has more than one box fragment, then continue.
+      return true;
+    }
+    if (!usedTransitionNames.EnsureInserted(name)) {
+      // If usedTransitionNames contains transitionName, then return failure.
+      result.emplace(SkipTransitionReason::DuplicateTransitionName);
+      return false;
+    }
+    // TODO: Set element's captured in a view transition to true.
+    // (but note https://github.com/w3c/csswg-drafts/issues/11058).
+    captureElements.AppendElement(std::make_pair(aFrame, name));
+    return true;
+  });
+
+  if (result) {
+    return result;
+  }
+
+  // Step 8: For each element in captureElements:
+  for (auto& [f, name] : captureElements) {
+    MOZ_ASSERT(f);
+    MOZ_ASSERT(f->GetContent()->IsElement());
+    auto capture =
+        MakeUnique<CapturedElement>(f, mInitialSnapshotContainingBlockSize);
+    mNamedElements.InsertOrUpdate(name, std::move(capture));
+  }
+
+  // TODO step 9: For each element in captureElements, set element's captured
+  // in a view transition to false.
+
+  return result;
+}
+
 // https://drafts.csswg.org/css-view-transitions/#setup-view-transition
 void ViewTransition::Setup() {
-  // TODO(emilio): Steps 1-3: Capture old state.
-  //
+  // Step 2: Capture the old state for transition.
+  if (auto skipReason = CaptureOldState()) {
+    // If failure is returned, then skip the view transition for transition
+    // with an "InvalidStateError" DOMException in transition’s relevant Realm,
+    // and return.
+    return SkipTransition(*skipReason);
+  }
+
+  // TODO Step 3: Set document's rendering suppression for view transitions to
+  // true.
+
   // Step 4: Queue a global task on the DOM manipulation task source, given
   // transition's relevant global object, to perform the following steps:
   //   4.1: If transition's phase is "done", then abort these steps. That is
@@ -276,13 +443,20 @@ void ViewTransition::HandleFrame() {
   // TODO(emilio): Steps 5-6 (check CB size, update pseudo styles).
 }
 
+void ViewTransition::ClearNamedElements() {
+  // TODO(emilio): TODO: Set element's captured in a view transition to false.
+  mNamedElements.Clear();
+}
+
 // https://drafts.csswg.org/css-view-transitions-1/#clear-view-transition
 void ViewTransition::ClearActiveTransition() {
   // Steps 1-2
   MOZ_ASSERT(mDocument);
   MOZ_ASSERT(mDocument->GetActiveViewTransition() == this);
 
-  // TODO(emilio): Step 3 (clear named elements)
+  // Step 3
+  ClearNamedElements();
+
   // TODO(emilio): Step 4 (clear show transition tree flag)
   mDocument->ClearActiveViewTransition();
 }
@@ -343,6 +517,10 @@ void ViewTransition::SkipTransition(
       case SkipTransitionReason::Timeout:
         readyPromise->MaybeRejectWithAbortError(
             "Skipped ViewTransition due to timeout");
+        break;
+      case SkipTransitionReason::DuplicateTransitionName:
+        readyPromise->MaybeRejectWithInvalidStateError(
+            "Duplicate view-transition-name value while capturing old state");
         break;
       case SkipTransitionReason::UpdateCallbackRejected:
         readyPromise->MaybeReject(aUpdateCallbackRejectReason);
