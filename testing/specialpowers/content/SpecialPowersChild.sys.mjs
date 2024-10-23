@@ -475,10 +475,10 @@ export class SpecialPowersChild extends JSWindowActorChild {
     return this.sendQuery("Ping").then(aCallback);
   }
 
-  async registeredServiceWorkers() {
+  async registeredServiceWorkers(aForceCheck) {
     // Please see the comment in SpecialPowersParent.sys.mjs above
     // this._serviceWorkerListener's assignment for what this returns.
-    if (this._serviceWorkerRegistered) {
+    if (this._serviceWorkerRegistered || aForceCheck) {
       // This test registered at least one service worker. Send a synchronous
       // call to the parent to make sure that it called unregister on all of its
       // service workers.

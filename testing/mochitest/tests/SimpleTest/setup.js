@@ -228,7 +228,24 @@ if (params.timeoutAsPass) {
 }
 
 if (params.conditionedProfile) {
-  TestRunner.conditionedProfile = true;
+  TestRunner.conditionedProfile = {
+    knownServiceWorkers: null,
+  };
+  // Asynchronously populate knownServiceWorkers above.  Because we only check
+  // this list after awaiting a different call to registeredServiceWorkers() in
+  // SimpleTest.js's afterCleanup, we are guaranteed that the list will be
+  // populated before we check it.
+  //
+  // That said, the question is whether the list was sampled before the test
+  // could start and add a ServiceWorker.  And the answer is mainly yes because
+  // the request will make it to the parent process main thread before any call
+  // to register() can get there with very high probability.  (We are dealing
+  // with different top-level protocols so there are some theoretical
+  // opportunities for pathological scheduling but practically speaking it is
+  // very unlikely to happen.)
+  SpecialPowers.registeredServiceWorkers(/* aForce */ true).then(workers => {
+    TestRunner.conditionedProfile.knownServiceWorkers = workers;
+  });
 }
 
 if (params.comparePrefs) {
