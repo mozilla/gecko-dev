@@ -743,6 +743,7 @@ dependencies = [
  "rkv",
  "rust_cascade",
  "sha2",
+ "static_prefs",
  "storage_variant",
  "tempfile",
  "thin-vec",

@@ -15761,6 +15761,14 @@
 #endif
   mirror: never
 
+# The number of SCTs that must be "covered" by a CRLite filter before
+# we will enforce a result from that filter.
+- name: security.pki.crlite_timestamps_for_coverage
+  type: RelaxedAtomicUint32
+  value: 1
+  mirror: always
+  rust: true
+
 - name: security.pki.use_modern_crypto_with_pkcs12
   type: RelaxedAtomicBool
   value: true

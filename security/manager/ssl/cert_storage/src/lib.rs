@@ -30,8 +30,8 @@ use wr_malloc_size_of as malloc_size_of;
 
 use base64::prelude::*;
 use byteorder::{LittleEndian, NetworkEndian, ReadBytesExt, WriteBytesExt};
-use clubcard::ApproximateSizeOf;
-use clubcard_crlite::{CRLiteClubcard, CRLiteKey, CRLiteStatus};
+use clubcard::{ApproximateSizeOf, Queryable};
+use clubcard_crlite::{CRLiteClubcard, CRLiteKey, CRLiteQuery, CRLiteStatus};
 use crossbeam_utils::atomic::AtomicCell;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use moz_task::{create_background_task_queue, is_main_thread, Task, TaskRunnable};
@@ -225,14 +225,17 @@ impl CascadeWithMetadata {
     }
 
     fn filter_covers_some_timestamp(&self, timestamps: &[CRLiteTimestamp]) -> bool {
+        let mut covered_timestamp_count = 0;
         for entry in timestamps {
             if let Some(&(low, high)) = self.coverage.get(entry.log_id.as_ref()) {
                 if low <= entry.timestamp && entry.timestamp <= high {
-                    return true;
+                    covered_timestamp_count += 1;
                 }
             }
         }
-        false
+
+        covered_timestamp_count
+            >= static_prefs::pref!("security.pki.crlite_timestamps_for_coverage")
     }
 
     fn issuer_is_enrolled(&self, subject: &[u8], pub_key: &[u8]) -> bool {
@@ -317,7 +320,7 @@ impl Filter {
                 }
             }
             Filter::Clubcard(clubcard) => {
-                let timestamps = timestamps
+                let timestamp_iter = timestamps
                     .iter()
                     .map(|timestamp| {
                         (&*timestamp.log_id) /* ThinVec -> &[u8; 32] */
@@ -326,7 +329,20 @@ impl Filter {
                             .map(|log_id| (log_id, timestamp.timestamp))
                     })
                     .flatten();
-                match clubcard.contains(&clubcard_crlite_key, timestamps) {
+                let mut covered_timestamp_count = 0;
+                for timestamp in timestamp_iter.clone() {
+                    if CRLiteQuery::new(&clubcard_crlite_key, Some(timestamp))
+                        .in_universe(clubcard.universe())
+                    {
+                        covered_timestamp_count += 1;
+                    }
+                }
+                if covered_timestamp_count
+                    < static_prefs::pref!("security.pki.crlite_timestamps_for_coverage")
+                {
+                    return nsICertStorage::STATE_NOT_COVERED;
+                }
+                match clubcard.contains(&clubcard_crlite_key, timestamp_iter) {
                     CRLiteStatus::Good => nsICertStorage::STATE_UNSET,
                     CRLiteStatus::NotCovered => nsICertStorage::STATE_NOT_COVERED,
                     CRLiteStatus::NotEnrolled => nsICertStorage::STATE_NOT_ENROLLED,

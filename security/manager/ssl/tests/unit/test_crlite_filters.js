@@ -794,18 +794,22 @@ async function test_crlite_filters_and_check_revocation(filter_type) {
     0
   );
 
+  // NB: this will cause an OCSP request to be sent to localhost:80, but
+  // since an OCSP responder shouldn't be running on that port, this should
+  // fail safely.
+  Services.prefs.setCharPref("network.dns.localDomains", [
+    "ocsp.digicert.com",
+    "ocsp.godaddy.com",
+  ]);
+  Services.prefs.setBoolPref("security.OCSP.require", true);
+  Services.prefs.setIntPref("security.OCSP.enabled", 1);
+
   // This certificate has no embedded SCTs, so it is not guaranteed to be in
   // CT, so CRLite can't be guaranteed to give the correct answer, so it is
   // not consulted, and the implementation falls back to OCSP. Since the real
   // OCSP responder can't be reached, this results in a
   // SEC_ERROR_OCSP_SERVER_ERROR.
   let noSCTCert = constructCertFromFile("test_crlite_filters/no-sct.pem");
-  // NB: this will cause an OCSP request to be sent to localhost:80, but
-  // since an OCSP responder shouldn't be running on that port, this should
-  // fail safely.
-  Services.prefs.setCharPref("network.dns.localDomains", "ocsp.digicert.com");
-  Services.prefs.setBoolPref("security.OCSP.require", true);
-  Services.prefs.setIntPref("security.OCSP.enabled", 1);
   await checkCertErrorGenericAtTime(
     certdb,
     noSCTCert,
@@ -816,6 +820,22 @@ async function test_crlite_filters_and_check_revocation(filter_type) {
     "mail233.messagelabs.com",
     0
   );
+
+  // If we increase the number of timestamps required for coverage then
+  // even the valid certificate will fallback to OCSP.
+  Services.prefs.setIntPref("security.pki.crlite_timestamps_for_coverage", 100);
+  await checkCertErrorGenericAtTime(
+    certdb,
+    validCert,
+    SEC_ERROR_OCSP_SERVER_ERROR,
+    certificateUsageSSLServer,
+    new Date("2020-10-20T00:00:00Z").getTime() / 1000,
+    false,
+    "vpn.worldofspeed.org",
+    0
+  );
+  Services.prefs.clearUserPref("security.pki.crlite_timestamps_for_coverage");
+
   Services.prefs.clearUserPref("network.dns.localDomains");
   Services.prefs.clearUserPref("security.OCSP.require");
   Services.prefs.clearUserPref("security.OCSP.enabled");
