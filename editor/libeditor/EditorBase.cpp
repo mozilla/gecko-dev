@@ -3206,7 +3206,7 @@ Result<InsertTextResult, nsresult> EditorBase::InsertTextWithTransaction(
   if (NS_WARN_IF(!newTextNode->IsInComposedDoc())) {
     return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
   }
-  return InsertTextResult(EditorDOMPoint::AtEndOf(*newTextNode),
+  return InsertTextResult(EditorDOMPointInText::AtEndOf(*newTextNode),
                           EditorDOMPoint::AtEndOf(*newTextNode));
 }
 
@@ -3306,7 +3306,7 @@ EditorBase::InsertTextIntoTextNodeWithTransaction(
                  mComposition->GetContainerTextNode()->TextDataLength()));
   }();
 
-  EditorDOMPoint endOfInsertedText(
+  EditorDOMPointInText endOfInsertedText(
       pointToInsert.ContainerAs<Text>(),
       pointToInsert.Offset() + aStringToInsert.Length());
 
@@ -3351,20 +3351,13 @@ EditorBase::InsertTextIntoTextNodeWithTransaction(
   if (IsHTMLEditor() && isIMETransaction && mComposition) {
     RefPtr<Text> textNode = mComposition->GetContainerTextNode();
     if (textNode && !textNode->Length()) {
-      endOfInsertedText.Set(textNode);
-      AutoEditorDOMPointChildInvalidator lockIndex(endOfInsertedText);
       rv = DeleteNodeWithTransaction(*textNode);
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                           "EditorBase::DeleteNodeTransaction() failed");
       if (MOZ_LIKELY(!textNode->IsInComposedDoc())) {
         mComposition->OnTextNodeRemoved();
       }
       static_cast<CompositionTransaction*>(transaction.get())->MarkFixed();
-      if (NS_FAILED(rv)) {
-        NS_WARNING("EditorBase::DeleteNodeTransaction() failed");
-        return Err(rv);
-      }
-      if (NS_WARN_IF(!endOfInsertedText.IsSetAndValidInComposedDoc())) {
-        return Err(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
-      }
     }
   }
 

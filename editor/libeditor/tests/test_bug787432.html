@@ -12,6 +12,6 @@ var div = document.getElementById("test");
 getSelection().collapse(div.firstChild, 0);
 getSelection().extend(div.firstChild, 1);
 document.execCommand("inserttext", false, "x");
-is(div.innerHTML, '<span class="insert">x</span>',
+is(div.innerHTML, '<span class="insert">x</span><br>',
    "Empty <span> needs to not be removed");
 </script>

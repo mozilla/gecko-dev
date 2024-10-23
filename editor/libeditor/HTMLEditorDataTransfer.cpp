@@ -838,6 +838,20 @@ Result<EditActionResult, nsresult> HTMLEditor::HTMLWithContextInserter::Run(
     return Err(NS_ERROR_FAILURE);
   }
 
+  // Remove invisible `<br>` element at the point because if there is a `<br>`
+  // element at end of what we paste, it will make the existing invisible
+  // `<br>` element visible.
+  if (HTMLBRElement* invisibleBRElement =
+          GetInvisibleBRElementAtPoint(pointToInsert)) {
+    AutoEditorDOMPointChildInvalidator lockOffset(pointToInsert);
+    nsresult rv = mHTMLEditor.DeleteNodeWithTransaction(
+        MOZ_KnownLive(*invisibleBRElement));
+    if (NS_FAILED(rv)) {
+      NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed.");
+      return Err(rv);
+    }
+  }
+
   const bool insertionPointWasInLink =
       !!HTMLEditor::GetLinkElement(pointToInsert.GetContainer());
 
@@ -887,20 +901,6 @@ Result<EditActionResult, nsresult> HTMLEditor::HTMLWithContextInserter::Run(
 
   if (MOZ_UNLIKELY(!lastInsertedPoint.inspect().IsInComposedDoc())) {
     return EditActionResult::HandledResult();
-  }
-
-  if (MOZ_LIKELY(lastInsertedPoint.inspect().IsInContentNode())) {
-    const auto afterLastInsertedContent =
-        lastInsertedPoint.inspect().NextPointOrAfterContainer();
-    if (MOZ_LIKELY(afterLastInsertedContent.IsInContentNode())) {
-      nsresult rv = mHTMLEditor.EnsureNoFollowingUnnecessaryLineBreak(
-          afterLastInsertedContent, mEditingHost);
-      if (NS_FAILED(rv)) {
-        NS_WARNING(
-            "HTMLEditor::EnsureNoFollowingUnnecessaryLineBreak() failed");
-        return Err(rv);
-      }
-    }
   }
 
   const EditorDOMPoint pointToPutCaret =
