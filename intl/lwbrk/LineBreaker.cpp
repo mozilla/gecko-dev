@@ -1104,15 +1104,29 @@ void LineBreaker::ComputeBreakPositions(
       return;
     }
 
-    // Check the cache.
-    LineBreakCache::Key key{aChars, aLength, aWordBreak, aLevel,
-                            aIsChineseOrJapanese};
-    auto entry = LineBreakCache::Cache()->Lookup(key);
-    if (entry) {
-      auto& breakBefore = entry.Data().mBreaks;
-      LineBreakCache::CopyAndFill(breakBefore, aBreakBefore,
-                                  aBreakBefore + aLength);
-      return;
+    // We only cache line-breaks if we think the text is likely to hit the slow
+    // (LSTM) codepath in icu_segmenter. To avoid scanning the entire text just
+    // to make that decision, we probe every /kStride/ characters.
+    bool useCache = [=]() {
+      const uint32_t kStride = 8;
+      for (uint32_t i = 0; i < aLength; i += kStride) {
+        if (intl::UnicodeProperties::IsScriptioContinua(aChars[i])) {
+          return true;
+        }
+      }
+      return false;
+    }();
+    Maybe<LineBreakCache::Entry> entry;
+    if (useCache) {
+      LineBreakCache::KeyType key{aChars, aLength, aWordBreak, aLevel,
+                                  aIsChineseOrJapanese};
+      entry.emplace(LineBreakCache::Cache()->Lookup(key));
+      if (*entry) {
+        auto& breakBefore = entry->Data().mBreaks;
+        LineBreakCache::CopyAndFill(breakBefore, aBreakBefore,
+                                    aBreakBefore + aLength);
+        return;
+      }
     }
 
     memset(aBreakBefore, 0, aLength);
@@ -1140,19 +1154,21 @@ void LineBreaker::ComputeBreakPositions(
       }
     }
 
-    // As a very simple memory saving measure we trim off trailing elements that
-    // are false before caching.
-    auto* afterLastTrue = aBreakBefore + aLength;
-    while (!*(afterLastTrue - 1)) {
-      if (--afterLastTrue == aBreakBefore) {
-        break;
+    if (useCache) {
+      // As a very simple memory saving measure we trim off trailing elements
+      // that are false before caching.
+      auto* afterLastTrue = aBreakBefore + aLength;
+      while (!*(afterLastTrue - 1)) {
+        if (--afterLastTrue == aBreakBefore) {
+          break;
+        }
       }
-    }
 
-    entry.Set(LineBreakCache::Entry{
-        nsString(aChars, aLength),
-        nsTArray<uint8_t>(aBreakBefore, afterLastTrue - aBreakBefore),
-        aWordBreak, aLevel, aIsChineseOrJapanese});
+      entry->Set(LineBreakCache::EntryType{
+          nsString(aChars, aLength),
+          nsTArray<uint8_t>(aBreakBefore, afterLastTrue - aBreakBefore),
+          aWordBreak, aLevel, aIsChineseOrJapanese});
+    }
 
     return;
   }

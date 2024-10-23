@@ -252,6 +252,16 @@ class UnicodeProperties final {
     return u_getIntPropertyMaxValue(UCHAR_SCRIPT);
   }
 
+  // Return true if aChar belongs to a SEAsian script that is written without
+  // word spaces, so we need to use the "complex breaker" to find possible word
+  // boundaries. (https://en.wikipedia.org/wiki/Scriptio_continua)
+  static bool IsScriptioContinua(char16_t aChar) {
+    Script sc = GetScriptCode(aChar);
+    return sc == Script::THAI || sc == Script::MYANMAR || sc == Script::KHMER ||
+           sc == Script::JAVANESE || sc == Script::BALINESE ||
+           sc == Script::SUNDANESE || sc == Script::LAO;
+  }
+
   // The code point which has the most script extensions is 0x0965, which has 21
   // script extensions, so choose the vector size as 32 to prevent heap
   // allocation.

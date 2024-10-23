@@ -48,8 +48,8 @@ class LineBreakCache : public MruCache<detail::LBCacheKey, detail::LBCacheEntry,
   static void Initialize();
   static void Shutdown();
 
-  using Key = detail::LBCacheKey;
-  using Entry = detail::LBCacheEntry;
+  using KeyType = detail::LBCacheKey;
+  using EntryType = detail::LBCacheEntry;
 
   static LineBreakCache* Cache() {
     if (!sBreakCache) {
@@ -58,7 +58,7 @@ class LineBreakCache : public MruCache<detail::LBCacheKey, detail::LBCacheEntry,
     return sBreakCache;
   }
 
-  static HashNumber Hash(const Key& aKey) {
+  static HashNumber Hash(const KeyType& aKey) {
     HashNumber h = HashString(aKey.mText, aKey.mLength);
     h = AddToHash(h, aKey.mWordBreak);
     h = AddToHash(h, aKey.mLineBreak);
@@ -66,7 +66,7 @@ class LineBreakCache : public MruCache<detail::LBCacheKey, detail::LBCacheEntry,
     return h;
   }
 
-  static bool Match(const Key& aKey, const Entry& aEntry) {
+  static bool Match(const KeyType& aKey, const EntryType& aEntry) {
     return nsDependentSubstring(aKey.mText, aKey.mLength)
                .Equals(aEntry.mText) &&
            aKey.mWordBreak == aEntry.mWordBreak &&

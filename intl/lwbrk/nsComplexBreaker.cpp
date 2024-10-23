@@ -35,7 +35,7 @@ void ComplexBreaker::GetBreaks(const char16_t* aText, uint32_t aLength,
   MOZ_ASSERT(aBreakBefore, "aBreakBefore shouldn't be null");
 
   // Check the cache.
-  LineBreakCache::Key key{aText, aLength};
+  LineBreakCache::KeyType key{aText, aLength};
   auto entry = LineBreakCache::Cache()->Lookup(key);
   if (entry) {
     auto& breakBefore = entry.Data().mBreaks;
@@ -55,7 +55,7 @@ void ComplexBreaker::GetBreaks(const char16_t* aText, uint32_t aLength,
     }
   }
 
-  entry.Set(LineBreakCache::Entry{
+  entry.Set(LineBreakCache::EntryType{
       nsString(aText, aLength),
       nsTArray<uint8_t>(aBreakBefore, afterLastTrue - aBreakBefore)});
 }
