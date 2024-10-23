@@ -3358,6 +3358,12 @@ bookmarks:
         branch: user
         pref: browser.toolbars.bookmarks.visibility
       description: If the bookmarks toolbar should never, always, or only show on newtab.
+    showOtherBookmarks:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.toolbars.bookmarks.showOtherBookmarks
+      description: Display state of the "Other Bookmarks" toolbar button.
 
 cookieBannerHandling:
   description: Automatically handle cookie banners on the user's behalf.
