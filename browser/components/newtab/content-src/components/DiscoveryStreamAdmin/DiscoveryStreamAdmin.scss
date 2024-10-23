@@ -156,6 +156,11 @@
     }
   }
 
+  .large-data-container {
+    max-height: 500px;
+    overflow-y: scroll;
+  }
+
   .sourceLabel {
     background: var(--newtab-background-color-secondary);
     padding: 2px 5px;

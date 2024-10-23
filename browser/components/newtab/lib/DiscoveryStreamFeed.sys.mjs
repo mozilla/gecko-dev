@@ -44,7 +44,8 @@ const CACHE_KEY = "discovery_stream";
 const STARTUP_CACHE_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000; // 1 week
 const COMPONENT_FEEDS_UPDATE_TIME = 30 * 60 * 1000; // 30 minutes
 const SPOCS_FEEDS_UPDATE_TIME = 30 * 60 * 1000; // 30 minutes
-const DEFAULT_RECS_EXPIRE_TIME = 60 * 60 * 1000; // 1 hour
+const DEFAULT_RECS_ROTATION_TIME = 60 * 60 * 1000; // 1 hour
+const DEFAULT_RECS_IMPRESSION_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_LIFETIME_CAP = 500; // Guard against misconfiguration on the server
 const SPOCS_CAP_DURATION = 24 * 60 * 60; // 1 day in seconds.
 const FETCH_TIMEOUT = 45 * 1000;
@@ -89,7 +90,6 @@ const PREF_SHOW_SPONSORED_TOPSITES = "showSponsoredTopSites";
 const NIMBUS_VARIABLE_CONTILE_SOV_ENABLED = "topSitesContileSovEnabled";
 const PREF_SPOC_IMPRESSIONS = "discoverystream.spoc.impressions";
 const PREF_FLIGHT_BLOCKS = "discoverystream.flight.blocks";
-const PREF_REC_IMPRESSIONS = "discoverystream.rec.impressions";
 const PREF_COLLECTIONS_ENABLED =
   "discoverystream.sponsored-collections.enabled";
 const PREF_POCKET_BUTTON = "extensions.pocket.enabled";
@@ -261,6 +261,19 @@ export class DiscoveryStreamFeed {
         },
       })
     );
+  }
+
+  async setupDevtoolsState(isStartup = false) {
+    const cachedData = (await this.cache.get()) || {};
+    let impressions = cachedData.recsImpressions || {};
+
+    this.store.dispatch({
+      type: at.DISCOVERY_STREAM_DEV_IMPRESSIONS,
+      data: impressions,
+      meta: {
+        isStartup,
+      },
+    });
   }
 
   setupPrefs(isStartup = false) {
@@ -951,10 +964,6 @@ export class DiscoveryStreamFeed {
 
     // Each promise has a catch already built in, so no need to catch here.
     await Promise.all(newFeedsPromises);
-
-    if (this.componentFeedFetched) {
-      this.cleanUpTopRecImpressionPref(newFeeds);
-    }
     await this.cache.set("feeds", newFeeds);
     sendUpdate({
       type: at.DISCOVERY_STREAM_FEEDS_UPDATE,
@@ -1669,8 +1678,12 @@ export class DiscoveryStreamFeed {
           recommendations,
           "feed"
         );
-        const { recsExpireTime } = settings;
-        const rotatedItems = this.rotate(scoredItems, recsExpireTime);
+
+        // We can cleanup any impressions we have that are old before we rotate.
+        // In theory we can do this anywhere, but doing it just before rotate is optimal.
+        // Rotate is also the only place that uses these impressions.
+        await this.cleanUpTopRecImpressions();
+        const rotatedItems = await this.rotate(scoredItems);
         this.componentFeedFetched = true;
         feed = {
           lastUpdated: Date.now(),
@@ -1721,14 +1734,12 @@ export class DiscoveryStreamFeed {
         }
         const feedPromise = this.scoreItems(feed.data.recommendations, "feed");
         feedPromise.then(({ data: scoredItems, personalized }) => {
-          const { recsExpireTime } = feed.data.settings;
-          const recommendations = this.rotate(scoredItems, recsExpireTime);
           feed = {
             ...feed,
             personalized,
             data: {
               ...feed.data,
-              recommendations,
+              recommendations: scoredItems,
             },
           };
 
@@ -1846,19 +1857,22 @@ export class DiscoveryStreamFeed {
 
   // We have to rotate stories on the client so that
   // active stories are at the front of the list, followed by stories that have expired
-  // impressions i.e. have been displayed for longer than recsExpireTime.
-  rotate(recommendations, recsExpireTime) {
-    const maxImpressionAge = Math.max(
-      recsExpireTime * 1000 || DEFAULT_RECS_EXPIRE_TIME,
-      DEFAULT_RECS_EXPIRE_TIME
-    );
-    const impressions = this.readDataPref(PREF_REC_IMPRESSIONS);
+  // impressions i.e. have been displayed for longer than DEFAULT_RECS_ROTATION_TIME.
+  async rotate(recommendations) {
+    const cachedData = (await this.cache.get()) || {};
+    const impressions = cachedData.recsImpressions;
+
+    // If we have no impressions, don't bother checking.
+    if (!impressions) {
+      return recommendations;
+    }
+
     const expired = [];
     const active = [];
     for (const item of recommendations) {
       if (
         impressions[item.id] &&
-        Date.now() - impressions[item.id] >= maxImpressionAge
+        Date.now() - impressions[item.id] >= DEFAULT_RECS_ROTATION_TIME
       ) {
         expired.push(item);
       } else {
@@ -1894,6 +1908,7 @@ export class DiscoveryStreamFeed {
     await this.cache.set("feeds", {});
     await this.cache.set("spocs", {});
     await this.cache.set("sov", {});
+    await this.cache.set("recsImpressions", {});
   }
 
   async resetContentFeed() {
@@ -1910,7 +1925,6 @@ export class DiscoveryStreamFeed {
 
   resetDataPrefs() {
     this.writeDataPref(PREF_SPOC_IMPRESSIONS, {});
-    this.writeDataPref(PREF_REC_IMPRESSIONS, {});
     this.writeDataPref(PREF_FLIGHT_BLOCKS, {});
   }
 
@@ -1956,11 +1970,18 @@ export class DiscoveryStreamFeed {
     this.writeDataPref(PREF_SPOC_IMPRESSIONS, impressions);
   }
 
-  recordTopRecImpressions(recId) {
-    let impressions = this.readDataPref(PREF_REC_IMPRESSIONS);
+  async recordTopRecImpression(recId) {
+    const cachedData = (await this.cache.get()) || {};
+    let impressions = cachedData.recsImpressions || {};
+
     if (!impressions[recId]) {
       impressions = { ...impressions, [recId]: Date.now() };
-      this.writeDataPref(PREF_REC_IMPRESSIONS, impressions);
+      await this.cache.set("recsImpressions", impressions);
+
+      this.store.dispatch({
+        type: at.DISCOVERY_STREAM_DEV_IMPRESSIONS,
+        data: impressions,
+      });
     }
   }
 
@@ -2015,19 +2036,12 @@ export class DiscoveryStreamFeed {
     }
   }
 
-  // Clean up rec impression pref by removing all stories that are no
-  // longer part of the response.
-  cleanUpTopRecImpressionPref(newFeeds) {
-    // Need to build a single list of stories.
-    const activeStories = Object.keys(newFeeds)
-      .filter(currentValue => newFeeds[currentValue].data)
-      .reduce((accumulator, currentValue) => {
-        const { recommendations } = newFeeds[currentValue].data;
-        return accumulator.concat(recommendations.map(i => `${i.id}`));
-      }, []);
-    this.cleanUpImpressionPref(
-      id => !activeStories.includes(id),
-      PREF_REC_IMPRESSIONS
+  // Clean up rec impressions that are old.
+  async cleanUpTopRecImpressions() {
+    await this.cleanUpImpressionCache(
+      impression =>
+        Date.now() - impression >= DEFAULT_RECS_IMPRESSION_EXPIRE_TIME,
+      "recsImpressions"
     );
   }
 
@@ -2038,6 +2052,30 @@ export class DiscoveryStreamFeed {
   readDataPref(pref) {
     const prefVal = this.store.getState().Prefs.values[pref];
     return prefVal ? JSON.parse(prefVal) : {};
+  }
+
+  async cleanUpImpressionCache(isExpired, cacheKey) {
+    const cachedData = (await this.cache.get()) || {};
+    let impressions = cachedData[cacheKey];
+    let changed = false;
+
+    if (impressions) {
+      Object.keys(impressions).forEach(id => {
+        if (isExpired(impressions[id])) {
+          changed = true;
+          delete impressions[id];
+        }
+      });
+
+      if (changed) {
+        await this.cache.set(cacheKey, impressions);
+
+        this.store.dispatch({
+          type: at.DISCOVERY_STREAM_DEV_IMPRESSIONS,
+          data: impressions,
+        });
+      }
+    }
   }
 
   cleanUpImpressionPref(isExpired, pref) {
@@ -2142,7 +2180,7 @@ export class DiscoveryStreamFeed {
         );
 
         // when topics have been updated, make a new request from merino and clear impression cap
-        this.writeDataPref(PREF_REC_IMPRESSIONS, {});
+        await this.cache.set("recsImpressions", {});
         await this.resetContentFeed();
         this.refreshAll({ updateOpenTabs: true });
         break;
@@ -2217,6 +2255,9 @@ export class DiscoveryStreamFeed {
           await this.enable({ updateOpenTabs: true, isStartup: true });
         }
         Services.prefs.addObserver(PREF_POCKET_BUTTON, this);
+        // This function is async but just for devtools,
+        // so we don't need to wait for it.
+        this.setupDevtoolsState(true /* isStartup */);
         break;
       case at.TOPIC_SELECTION_MAYBE_LATER:
         this.topicSelectionMaybeLaterEvent();
@@ -2302,7 +2343,7 @@ export class DiscoveryStreamFeed {
           action.data.tiles[0] &&
           action.data.tiles[0].id
         ) {
-          this.recordTopRecImpressions(action.data.tiles[0].id);
+          this.recordTopRecImpression(action.data.tiles[0].id);
         }
         break;
       case at.DISCOVERY_STREAM_SPOC_IMPRESSION:

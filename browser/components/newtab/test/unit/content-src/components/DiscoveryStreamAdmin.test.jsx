@@ -60,6 +60,9 @@ describe("DiscoveryStreamAdmin", () => {
         feeds: {
           data: {},
         },
+        impressions: {
+          feed: {},
+        },
       };
       wrapper = shallow(
         <DiscoveryStreamAdminUI

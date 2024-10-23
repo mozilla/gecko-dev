@@ -67,6 +67,10 @@ export const INITIAL_STATE = {
       },
       loaded: false,
     },
+    // Used to show impressions in newtab devtools.
+    impressions: {
+      feed: {},
+    },
     spocs: {
       spocs_endpoint: "",
       lastUpdated: null,
@@ -735,6 +739,15 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         },
       };
     }
+    case at.DISCOVERY_STREAM_DEV_IMPRESSIONS:
+      return {
+        ...prevState,
+        impressions: {
+          ...prevState.impressions,
+          feed: action.data,
+        },
+      };
+
     case at.DISCOVERY_STREAM_SPOCS_CAPS:
       return {
         ...prevState,

@@ -121,6 +121,7 @@ for (const type of [
   "DISCOVERY_STREAM_CONFIG_SET_VALUE",
   "DISCOVERY_STREAM_DEV_EXPIRE_CACHE",
   "DISCOVERY_STREAM_DEV_IDLE_DAILY",
+  "DISCOVERY_STREAM_DEV_IMPRESSIONS",
   "DISCOVERY_STREAM_DEV_SHOW_PLACEHOLDER",
   "DISCOVERY_STREAM_DEV_SYNC_RS",
   "DISCOVERY_STREAM_DEV_SYSTEM_TICK",
@@ -805,6 +806,18 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     } = this.props.state.DiscoveryStream;
     return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, Object.keys(feeds.data).map(url => this.renderFeedData(url)));
   }
+  renderImpressionsData() {
+    const {
+      impressions
+    } = this.props.state.DiscoveryStream;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Feed Impressions"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, Object.keys(impressions.feed).map(key => {
+      return /*#__PURE__*/external_React_default().createElement(Row, {
+        key: key
+      }, /*#__PURE__*/external_React_default().createElement("td", {
+        className: "min"
+      }, key), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(impressions.feed[key]) || "(no data)"));
+    }))));
+  }
   renderSpocs() {
     const {
       spocs
@@ -910,7 +923,11 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       state: {
         Personalization: this.props.state.Personalization
       }
-    }), /*#__PURE__*/external_React_default().createElement("h3", null, "Spocs"), this.renderSpocs(), /*#__PURE__*/external_React_default().createElement("h3", null, "Feeds Data"), this.renderFeedsData(), /*#__PURE__*/external_React_default().createElement("h3", null, "Weather Data"), this.renderWeatherData());
+    }), /*#__PURE__*/external_React_default().createElement("h3", null, "Spocs"), this.renderSpocs(), /*#__PURE__*/external_React_default().createElement("h3", null, "Feeds Data"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "large-data-container"
+    }, this.renderFeedsData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Impressions Data"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "large-data-container"
+    }, this.renderImpressionsData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Weather Data"), this.renderWeatherData());
   }
 }
 class DiscoveryStreamAdminInner extends (external_React_default()).PureComponent {
@@ -6017,6 +6034,10 @@ const INITIAL_STATE = {
       },
       loaded: false,
     },
+    // Used to show impressions in newtab devtools.
+    impressions: {
+      feed: {},
+    },
     spocs: {
       spocs_endpoint: "",
       lastUpdated: null,
@@ -6685,6 +6706,15 @@ function DiscoveryStream(prevState = INITIAL_STATE.DiscoveryStream, action) {
         },
       };
     }
+    case actionTypes.DISCOVERY_STREAM_DEV_IMPRESSIONS:
+      return {
+        ...prevState,
+        impressions: {
+          ...prevState.impressions,
+          feed: action.data,
+        },
+      };
+
     case actionTypes.DISCOVERY_STREAM_SPOCS_CAPS:
       return {
         ...prevState,

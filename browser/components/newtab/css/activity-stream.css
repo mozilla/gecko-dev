@@ -3562,6 +3562,10 @@ main section {
 .discoverystream-admin table.errorReporting td[rowspan] {
   border: 1px solid var(--newtab-background-color-secondary);
 }
+.discoverystream-admin .large-data-container {
+  max-height: 500px;
+  overflow-y: scroll;
+}
 .discoverystream-admin .sourceLabel {
   background: var(--newtab-background-color-secondary);
   padding: 2px 5px;

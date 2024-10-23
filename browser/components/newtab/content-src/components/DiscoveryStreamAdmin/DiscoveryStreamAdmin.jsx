@@ -293,6 +293,27 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     );
   }
 
+  renderImpressionsData() {
+    const { impressions } = this.props.state.DiscoveryStream;
+    return (
+      <>
+        <h4>Feed Impressions</h4>
+        <table>
+          <tbody>
+            {Object.keys(impressions.feed).map(key => {
+              return (
+                <Row key={key}>
+                  <td className="min">{key}</td>
+                  <td>{relativeTime(impressions.feed[key]) || "(no data)"}</td>
+                </Row>
+              );
+            })}
+          </tbody>
+        </table>
+      </>
+    );
+  }
+
   renderSpocs() {
     const { spocs } = this.props.state.DiscoveryStream;
 
@@ -466,7 +487,11 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
         <h3>Spocs</h3>
         {this.renderSpocs()}
         <h3>Feeds Data</h3>
-        {this.renderFeedsData()}
+        <div className="large-data-container">{this.renderFeedsData()}</div>
+        <h3>Impressions Data</h3>
+        <div className="large-data-container">
+          {this.renderImpressionsData()}
+        </div>
         <h3>Weather Data</h3>
         {this.renderWeatherData()}
       </div>

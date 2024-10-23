@@ -15,7 +15,6 @@ const CONFIG_PREF_NAME = "discoverystream.config";
 const ENDPOINTS_PREF_NAME = "discoverystream.endpoints";
 const DUMMY_ENDPOINT = "https://getpocket.cdn.mozilla.net/dummy";
 const SPOC_IMPRESSION_TRACKING_PREF = "discoverystream.spoc.impressions";
-const REC_IMPRESSION_TRACKING_PREF = "discoverystream.rec.impressions";
 const THIRTY_MINUTES = 30 * 60 * 1000;
 const ONE_WEEK = 7 * 24 * 60 * 60 * 1000; // 1 week
 
@@ -1471,8 +1470,7 @@ describe("DiscoveryStreamFeed", () => {
   });
 
   describe("#rotate", () => {
-    it("should move seen first story to the back of the response", () => {
-      const recsExpireTime = 5600;
+    it("should move seen first story to the back of the response", async () => {
       const feedResponse = {
         recommendations: [
           {
@@ -1488,20 +1486,18 @@ describe("DiscoveryStreamFeed", () => {
             id: "fourth",
           },
         ],
-        settings: {
-          recsExpireTime,
-        },
       };
       const fakeImpressions = {
-        first: Date.now() - recsExpireTime * 1000,
+        first: Date.now() - 60 * 60 * 1000, // 1 hour
         third: Date.now(),
       };
-      sandbox.stub(feed, "readDataPref").returns(fakeImpressions);
+      const cache = {
+        recsImpressions: fakeImpressions,
+      };
+      sandbox.stub(feed.cache, "get").returns(Promise.resolve());
+      feed.cache.get.resolves(cache);
 
-      const result = feed.rotate(
-        feedResponse.recommendations,
-        feedResponse.settings.recsExpireTime
-      );
+      const result = await feed.rotate(feedResponse.recommendations);
 
       assert.equal(result[3].id, "first");
     });
@@ -1531,13 +1527,15 @@ describe("DiscoveryStreamFeed", () => {
 
       await feed.resetCache();
 
-      assert.callCount(feed.cache.set, 3);
+      assert.callCount(feed.cache.set, 4);
       const firstCall = feed.cache.set.getCall(0);
       const secondCall = feed.cache.set.getCall(1);
       const thirdCall = feed.cache.set.getCall(2);
+      const fourthCall = feed.cache.set.getCall(3);
       assert.deepEqual(firstCall.args, ["feeds", {}]);
       assert.deepEqual(secondCall.args, ["spocs", {}]);
       assert.deepEqual(thirdCall.args, ["sov", {}]);
+      assert.deepEqual(fourthCall.args, ["recsImpressions", {}]);
     });
   });
 
@@ -1922,68 +1920,55 @@ describe("DiscoveryStreamFeed", () => {
     });
   });
 
-  describe("#recordTopRecImpressions", () => {
-    it("should add a rec id to the rec impression pref", () => {
-      sandbox.stub(feed, "readDataPref").returns({});
-      sandbox.stub(feed, "writeDataPref");
+  describe("#recordTopRecImpression", () => {
+    it("should add a rec id to the rec impression pref", async () => {
+      const cache = {
+        recsImpressions: {},
+      };
+      sandbox.stub(feed.cache, "get").returns(Promise.resolve());
+      sandbox.stub(feed.cache, "set");
+      feed.cache.get.resolves(cache);
 
-      feed.recordTopRecImpressions("rec");
+      await feed.recordTopRecImpression("rec");
 
-      assert.calledWith(feed.writeDataPref, REC_IMPRESSION_TRACKING_PREF, {
+      assert.calledWith(feed.cache.set, "recsImpressions", {
         rec: 0,
       });
     });
-    it("should not add an impression if it already exists", () => {
-      sandbox.stub(feed, "readDataPref").returns({ rec: 4 });
-      sandbox.stub(feed, "writeDataPref");
+    it("should not add an impression if it already exists", async () => {
+      const cache = {
+        recsImpressions: { rec: 4 },
+      };
+      sandbox.stub(feed.cache, "get").returns(Promise.resolve());
+      sandbox.stub(feed.cache, "set");
+      feed.cache.get.resolves(cache);
 
-      feed.recordTopRecImpressions("rec");
+      await feed.recordTopRecImpression("rec");
 
-      assert.notCalled(feed.writeDataPref);
+      assert.notCalled(feed.cache.set);
     });
   });
 
-  describe("#cleanUpTopRecImpressionPref", () => {
-    it("should remove recs no longer being used", () => {
-      const newFeeds = {
-        "https://foo.com": {
-          data: {
-            recommendations: [
-              {
-                id: "rec1",
-              },
-              {
-                id: "rec2",
-              },
-            ],
-          },
-        },
-        "https://bar.com": {
-          data: {
-            recommendations: [
-              {
-                id: "rec3",
-              },
-              {
-                id: "rec4",
-              },
-            ],
-          },
-        },
-      };
+  describe("#cleanUpTopRecImpressions", () => {
+    it("should remove rec impressions older than 7 days", async () => {
       const fakeImpressions = {
-        rec2: Date.now() - 1,
-        rec3: Date.now() - 1,
-        rec5: Date.now() - 1,
+        rec2: Date.now(),
+        rec3: Date.now(),
+        rec5: Date.now() - 7 * 24 * 60 * 60 * 1000, // 7 days
       };
-      sandbox.stub(feed, "readDataPref").returns(fakeImpressions);
-      sandbox.stub(feed, "writeDataPref").returns();
 
-      feed.cleanUpTopRecImpressionPref(newFeeds);
+      const cache = {
+        recsImpressions: fakeImpressions,
+      };
+      sandbox.stub(feed.cache, "get").returns(Promise.resolve());
+      sandbox.stub(feed.cache, "set");
+      feed.cache.get.resolves(cache);
 
-      assert.calledWith(feed.writeDataPref, REC_IMPRESSION_TRACKING_PREF, {
-        rec2: -1,
-        rec3: -1,
+      await feed.cleanUpTopRecImpressions();
+
+      assert.calledWith(feed.cache.set, "recsImpressions", {
+        rec2: 0,
+        rec3: 0,
       });
     });
   });
@@ -2112,13 +2097,13 @@ describe("DiscoveryStreamFeed", () => {
 
   describe("#onAction: DISCOVERY_STREAM_IMPRESSION_STATS", () => {
     it("should call recordTopRecImpressions from DISCOVERY_STREAM_IMPRESSION_STATS", async () => {
-      sandbox.stub(feed, "recordTopRecImpressions").returns();
+      sandbox.stub(feed, "recordTopRecImpression").returns();
       await feed.onAction({
         type: at.DISCOVERY_STREAM_IMPRESSION_STATS,
         data: { tiles: [{ id: "seen" }] },
       });
 
-      assert.calledWith(feed.recordTopRecImpressions, "seen");
+      assert.calledWith(feed.recordTopRecImpression, "seen");
     });
   });
 
@@ -2986,7 +2971,6 @@ describe("DiscoveryStreamFeed", () => {
         sandbox
           .stub(feed, "scoreItems")
           .callsFake(val => ({ data: val, filtered: [], personalized: false }));
-        sandbox.stub(feed, "cleanUpTopRecImpressionPref").callsFake(val => val);
 
         const fakeCache = {
           feeds: { "foo.com": { lastUpdated: Date.now(), data: "data" } },
@@ -3041,12 +3025,6 @@ describe("DiscoveryStreamFeed", () => {
         },
       };
       sandbox.stub(feed.store, "getState").returns(fakeDiscoveryStream);
-      const recsExpireTime = 5600;
-      const fakeImpressions = {
-        first: Date.now() - recsExpireTime * 1000,
-        third: Date.now(),
-      };
-      sandbox.stub(feed, "readDataPref").returns(fakeImpressions);
       const fakeFeeds = {
         data: {
           "https://foo.com": {
@@ -3061,9 +3039,6 @@ describe("DiscoveryStreamFeed", () => {
                   item_score: 0.6,
                 },
               ],
-              settings: {
-                recsExpireTime,
-              },
             },
           },
           "https://bar.com": {
@@ -3082,9 +3057,6 @@ describe("DiscoveryStreamFeed", () => {
                   item_score: 0.8,
                 },
               ],
-              settings: {
-                recsExpireTime,
-              },
             },
           },
         },
@@ -3095,19 +3067,16 @@ describe("DiscoveryStreamFeed", () => {
           data: {
             recommendations: [
               {
-                id: "second",
-                item_score: 0.6,
-                score: 0.6,
-              },
-              {
                 id: "first",
                 item_score: 0.7,
                 score: 0.7,
               },
+              {
+                id: "second",
+                item_score: 0.6,
+                score: 0.6,
+              },
             ],
-            settings: {
-              recsExpireTime,
-            },
           },
         },
         "https://bar.com": {
@@ -3130,9 +3099,6 @@ describe("DiscoveryStreamFeed", () => {
                 score: 0.4,
               },
             ],
-            settings: {
-              recsExpireTime,
-            },
           },
         },
       };
