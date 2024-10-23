@@ -51,7 +51,6 @@ crashreporter-crash-details = You can view details of this crash at { $url }.
 
 # Error strings
 
-crashreporter-error-minidump-analyzer = Failed to run minidump-analyzer
 # $path (String) - the file path
 crashreporter-error-opening-file = Failed to open file ({ $path })
 # $path (String) - the file path

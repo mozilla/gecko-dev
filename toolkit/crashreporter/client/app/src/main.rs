@@ -33,7 +33,6 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
 use crate::std::sync::Arc;
-use anyhow::Context;
 use config::Config;
 
 // A few macros are defined here to allow use in all submodules via textual scope lookup.
@@ -58,6 +57,7 @@ macro_rules! ekey {
     };
 }
 
+mod analyze;
 mod async_task;
 mod config;
 mod data;
@@ -75,8 +75,22 @@ mod ui;
 #[cfg(test)]
 mod test;
 
-#[cfg(not(mock))]
 fn main() {
+    // Determine the mode in which to run. This is very simplistic, but need not be more permissive
+    // nor flexible since we control how the program is invoked.
+    if std::env::args_os()
+        .nth(1)
+        .map(|s| s == "--analyze")
+        .unwrap_or(false)
+    {
+        analyze::main()
+    } else {
+        report_main()
+    }
+}
+
+#[cfg(not(mock))]
+fn report_main() {
     let log_target = logging::init();
 
     let mut config = Config::new();
@@ -106,7 +120,7 @@ fn main() {
 }
 
 #[cfg(mock)]
-fn main() {
+fn report_main() {
     // TODO it'd be nice to be able to set these values at runtime in some way when running the
     // mock application.
 
@@ -151,10 +165,6 @@ fn main() {
     // Create a default mock environment which allows successful operation.
     let mut mock = mock::builder();
     mock.set(
-        Command::mock("work_dir/minidump-analyzer"),
-        Box::new(|_| Ok(crate::std::process::success_output())),
-    )
-    .set(
         Command::mock("work_dir/pingsender"),
         Box::new(|_| Ok(crate::std::process::success_output())),
     )
@@ -212,24 +222,16 @@ fn try_run(config: &mut Arc<Config>) -> anyhow::Result<bool> {
             Ok(false)
         }
     } else {
-        // Run minidump-analyzer to gather stack traces.
+        // Use minidump-analyzer to gather stack traces.
+        #[cfg(not(mock))]
         {
-            let analyzer_path = config.installation_program_path("minidump-analyzer");
-            let mut cmd = crate::process::background_command(&analyzer_path);
-            if config.dump_all_threads {
-                cmd.arg("--full");
-            }
-            cmd.arg(config.dump_file());
-            let output = cmd
-                .output()
-                .with_context(|| config.string("crashreporter-error-minidump-analyzer"))?;
-            if !output.status.success() {
-                log::warn!(
-                    "minidump-analyzer failed to run ({});\n\nstderr: {}\n\nstdout: {}",
-                    output.status,
-                    String::from_utf8_lossy(&output.stderr),
-                    String::from_utf8_lossy(&output.stdout),
-                );
+            if let Err(e) = minidump_analyzer::MinidumpAnalyzer::new(config.dump_file())
+                .all_threads(config.dump_all_threads)
+                .analyze()
+            {
+                // Minidump analysis gives optional additional information; if it fails, we should
+                // still proceed.
+                log::warn!("minidump analyzer failed: {e}");
             }
         }
 

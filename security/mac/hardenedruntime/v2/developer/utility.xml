@@ -2,8 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
      Entitlements to apply to non-browser executables such as updater,
-     pingsender, minidump-analyzer, and crashreporter during codesigning of
-     developer builds.
+     pingsender, and crashreporter during codesigning of developer builds.
 -->
 <plist version="1.0">
   <dict>

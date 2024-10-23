@@ -104,7 +104,7 @@ impl Config {
             )
         }
 
-        // We no longer use don't use `MOZ_CRASHREPORTER_RESTART_ARG_0`, see bug 1872920.
+        // We no longer use `MOZ_CRASHREPORTER_RESTART_ARG_0`, see bug 1872920.
         self.restart_args = (1..)
             .into_iter()
             .map_while(|arg_num| std::env::var_os(format!("{}_{}", ekey!("RESTART_ARG"), arg_num)))
