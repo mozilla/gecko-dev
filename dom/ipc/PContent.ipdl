@@ -750,8 +750,6 @@ child:
 
     async RegisterStringBundles(StringBundleDescriptor[] stringBundles);
 
-    async SimpleURIUnknownRemoteSchemes(nsCString[] remoteSchemes);
-
     async UpdateSharedData(SharedMemoryHandle aMapHandle, uint32_t aSize,
                            IPCBlob[] blobs,
                            nsCString[] changedKeys);

@@ -1188,6 +1188,8 @@ void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI);
 
 bool IsCoepCredentiallessEnabled(bool aIsOriginTrialCoepCredentiallessEnabled);
 
+void ParseSimpleURISchemes(const nsACString& schemeList);
+
 }  // namespace net
 }  // namespace mozilla
 

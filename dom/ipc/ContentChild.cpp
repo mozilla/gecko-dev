@@ -2398,13 +2398,6 @@ mozilla::ipc::IPCResult ContentChild::RecvRegisterStringBundles(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvSimpleURIUnknownRemoteSchemes(
-    nsTArray<nsCString>&& aRemoteSchemes) {
-  RefPtr<nsIOService> io = nsIOService::GetInstance();
-  io->SetSimpleURIUnknownRemoteSchemes(aRemoteSchemes);
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentChild::RecvUpdateL10nFileSources(
     nsTArray<mozilla::dom::L10nFileSourceDescriptor>&& aDescriptors) {
   L10nRegistry::RegisterFileSourcesFromParentProcess(aDescriptors);

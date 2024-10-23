@@ -27,7 +27,6 @@
 #include "nsTHashSet.h"
 #include "nsWeakReference.h"
 #include "nsNetCID.h"
-#include "SimpleURIUnknownSchemes.h"
 
 // We don't want to expose this observer topic.
 // Intended internal use only for remoting offline/inline events.
@@ -267,8 +266,6 @@ class nsIOService final : public nsIIOService,
   nsTHashSet<nsCString> mIOServiceTopicList;
 
   nsCOMPtr<nsIObserverService> mObserverService;
-
-  SimpleURIUnknownSchemes mSimpleURIUnknownSchemes;
 
  public:
   // Used for all default buffer sizes that necko allocates.

@@ -30,7 +30,6 @@ if not CONFIG["MOZ_BUILD_APP"].startswith("mobile/"):
         "translations-models.json",
         "translations-wasm.json",
         "url-classifier-skip-urls.json",
-        "url-parser-default-unknown-schemes-interventions.json",
         "websites-with-shared-credential-backends.json",
     ]
 

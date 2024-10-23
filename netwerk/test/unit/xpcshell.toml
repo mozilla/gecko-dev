@@ -526,6 +526,8 @@ skip-if = ["os == 'android'"] # Bug 1700483
 
 ["test_defaultURI.js"]
 
+["test_default_uri_bypass.js"]
+
 ["test_dns_by_type_resolve.js"]
 
 ["test_dns_cancel.js"]
@@ -1107,8 +1109,6 @@ run-sequentially = "tlsserver uses fixed port"
 skip-if = ["os != 'win'"]
 
 ["test_simple.js"]
-
-["test_simple_unknown_uris.js"]
 
 ["test_sockettransportsvc_available.js"]
 

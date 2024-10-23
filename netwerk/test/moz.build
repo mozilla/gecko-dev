@@ -25,7 +25,6 @@ XPCSHELL_TESTS_MANIFESTS += [
 TESTING_JS_MODULES += [
     "browser/cookie_filtering_helper.sys.mjs",
     "browser/early_hint_preload_test_helper.sys.mjs",
-    "browser/simple_unknown_uri_helpers.sys.mjs",
     "unit/test_http3_prio_helpers.js",
 ]
 

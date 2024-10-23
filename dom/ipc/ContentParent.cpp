@@ -1635,13 +1635,6 @@ void ContentParent::Init() {
   mQueuedPrefs.Clear();
 
   Unused << SendInitNextGenLocalStorageEnabled(NextGenLocalStorageEnabled());
-
-  // sending only the remote settings schemes to the content process
-  nsCOMPtr<nsIIOService> io(do_GetIOService());
-  MOZ_ASSERT(io, "No IO service for SimpleURI scheme broadcast to content");
-  nsTArray<nsCString> remoteSchemes;
-  MOZ_ALWAYS_SUCCEEDS(io->GetSimpleURIUnknownRemoteSchemes(remoteSchemes));
-  Unused << SendSimpleURIUnknownRemoteSchemes(std::move(remoteSchemes));
 }
 
 void ContentParent::AsyncSendShutDownMessage() {

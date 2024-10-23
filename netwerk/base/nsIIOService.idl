@@ -331,29 +331,6 @@ interface nsIIOService : nsISupports
      * @param aScheme the scheme to unregister a handler for.
      */
     void unregisterProtocolHandler(in ACString aScheme);
-
-    /**
-     * Updates the RemoteSettings-specified portion of the defaultURI bypass
-     * scheme list. The list is then merged with the user-specified pref list
-     * before broadcasting to all alive content processes that may need for URL
-     * parsing.
-     */
-    void setSimpleURIUnknownRemoteSchemes(in Array<ACString> aRemoteSchemes);
-
-    /**
-     * Checks if the provided scheme is in the list of unknown schemes that
-     * should use simpleURI as it's default parser. Where "unknown" scheme means
-     * non-special and otherwise non-common shemes like:
-     * http, about, jar, blob, ssh, etc
-     * See netwerk/base/nsNetUtil.cpp::NS_NewURI for the full list
-     */
-    [noscript] boolean isSimpleURIUnknownScheme(in ACString aScheme);
-
-    /**
-     * returns an array of the remote-settings specified unknown schemes that
-     * should use SimpleURI parser instead of defaultURI parser.
-     */
-    [noscript] Array<ACString> getSimpleURIUnknownRemoteSchemes();
 };
 
 %{C++

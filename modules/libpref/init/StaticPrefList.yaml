@@ -13746,18 +13746,18 @@
 # Whether to use the rust implemented DefaultURI for unknown scheme types
 - name: network.url.useDefaultURI
   type: RelaxedAtomicBool
-  value: true
+  value: false
   mirror: always
 
 # Allows use of a protocol exception list that will bypass defaultURI parser
-- name: network.url.simple_uri_unknown_schemes_enabled
+- name: network.url.some_schemes_bypass_defaultURI_fallback
   type: RelaxedAtomicBool
   value: true
   mirror: always
 
 # A list of schemes to allow for bypassing defaultURI as default
-# This is only used when network.url.simple_uri_unknown_schemes_enabled is true
-- name: network.url.simple_uri_unknown_schemes
+# This is only used when network.url.some_schemes_bypass_defaultURI_fallback is true
+- name: network.url.simple_uri_schemes
   type: String
   value: ""
   mirror: never

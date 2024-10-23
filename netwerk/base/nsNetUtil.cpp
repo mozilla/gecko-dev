@@ -1806,13 +1806,29 @@ class TlsAutoIncrement {
   T& mVar;
 };
 
+static nsTHashSet<nsCString> sSimpleURISchemes;
+static StaticRWLock sSchemeLock;
+
+namespace mozilla::net {
+
+void ParseSimpleURISchemes(const nsACString& schemeList) {
+  StaticAutoWriteLock lock(sSchemeLock);
+
+  sSimpleURISchemes.Clear();
+  for (const auto& scheme : schemeList.Split(',')) {
+    nsAutoCString s(scheme);
+    s.CompressWhitespace();
+    if (!s.IsEmpty()) {
+      sSimpleURISchemes.Insert(s);
+    }
+  }
+}
+
+}  // namespace mozilla::net
+
 nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
                    const char* aCharset /* = nullptr */,
                    nsIURI* aBaseURI /* = nullptr */) {
-  // we don't expect any other processes than: socket, content or parent
-  // to be able to create a URL
-  MOZ_ASSERT(XRE_IsSocketProcess() || XRE_IsContentProcess() ||
-             XRE_IsParentProcess());
   TlsAutoIncrement<decltype(gTlsURLRecursionCount)> inc(gTlsURLRecursionCount);
   if (inc.value() >= MAX_RECURSION_COUNT) {
     return NS_ERROR_MALFORMED_URI;
@@ -2006,14 +2022,11 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
 #endif
 
   auto mustUseSimpleURI = [](const nsCString& scheme) -> bool {
-    if (!StaticPrefs::network_url_simple_uri_unknown_schemes_enabled()) {
+    if (!StaticPrefs::network_url_some_schemes_bypass_defaultURI_fallback()) {
       return false;
     }
-
-    bool res = false;
-    RefPtr<nsIIOService> ios = do_GetIOService();
-    MOZ_ALWAYS_SUCCEEDS(ios->IsSimpleURIUnknownScheme(scheme, &res));
-    return res;
+    StaticAutoReadLock lock(sSchemeLock);
+    return sSimpleURISchemes.Contains(scheme);
   };
 
   if (aBaseURI) {

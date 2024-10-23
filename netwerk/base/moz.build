@@ -172,7 +172,6 @@ EXPORTS.mozilla.net += [
     "RedirectChannelRegistrar.h",
     "RequestContextService.h",
     "SimpleChannelParent.h",
-    "SimpleURIUnknownSchemes.h",
     "SSLTokensCache.h",
     "ThrottleQueue.h",
 ]
@@ -243,7 +242,6 @@ UNIFIED_SOURCES += [
     "SimpleBuffer.cpp",
     "SimpleChannel.cpp",
     "SimpleChannelParent.cpp",
-    "SimpleURIUnknownSchemes.cpp",
     "SSLTokensCache.cpp",
     "ThrottleQueue.cpp",
     "Tickler.cpp",
@@ -292,7 +290,6 @@ else:
 
 EXTRA_JS_MODULES += [
     "NetUtil.sys.mjs",
-    "SimpleURIUnknownSchemesRemoteObserver.sys.mjs",
 ]
 
 DIRS += ["mozurl", "rust-helper", "http-sfv", "idna_glue"]
