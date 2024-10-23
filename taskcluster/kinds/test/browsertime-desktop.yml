@@ -362,6 +362,12 @@ browsertime-benchmark:
                         safari-tp: []
                         default:
                             - [speedometer3, sp3]
+                windows11-64-.*-hw-ref.*:
+                    by-app:
+                        safari: []
+                        safari-tp: []
+                        default:
+                            - [speedometer3, sp3]
                 default:
                     by-app:
                         firefox:
@@ -447,11 +453,13 @@ browsertime-benchmark:
                             # Bug 1909894, windows 10 + sp3 temporarily
                             windows10-64.*shippable.*-qr.*: [mozilla-central]
                             (linux|windows11-64|macosx1015|macosx1400).*shippable-qr.*: [trunk]
+                            windows11-64-.*-hw-ref-shippable.*: [mozilla-central]
                             .*nightlyasrelease.*: [autoland, mozilla-central]
                             default: []
                     custom-car:
                         by-test-platform:
                             (linux|windows).*shippable-qr.*: [mozilla-central]
+                            windows11-64-.*-hw-ref-shippable.*: [mozilla-central]
                             default: []
                     safari-tp:
                         by-test-platform:
