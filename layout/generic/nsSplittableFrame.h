@@ -93,16 +93,6 @@ class nsSplittableFrame : public nsIFrame {
                     ClassID aID)
       : nsIFrame(aStyle, aPresContext, aID) {}
 
-  // Return the first-continuation for this frame if this frame is the
-  // first-continuation in the chain or if it has a cached first-continuation.
-  // Otherwise, return nullptr.
-  nsIFrame* GetFirstContinuationIfCached() const;
-
-  // Return the first-in-flow for this frame if this frame is the first-in-flow
-  // in the chain or if it has a cached first-in-flow. Otherwise, return
-  // nullptr.
-  nsIFrame* GetFirstInFlowIfCached() const;
-
   // Update the first-continuation and first-in-flow cache for this frame and
   // the next-continuations in the chain.
   //
@@ -171,6 +161,14 @@ class nsSplittableFrame : public nsIFrame {
 
   nsIFrame* mPrevContinuation = nullptr;
   nsIFrame* mNextContinuation = nullptr;
+
+  /**
+   * Cached pointers to the first-continuation and first-in-flow, if currently
+   * known. These may be null, in which case the first-* will need to be found
+   * by following the chain.
+   */
+  nsIFrame* mFirstContinuation = nullptr;
+  nsIFrame* mFirstInFlow = nullptr;
 };
 
 #endif /* nsSplittableFrame_h___ */
