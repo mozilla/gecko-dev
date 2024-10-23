@@ -693,6 +693,92 @@ TEST_F(TestQuotaManager,
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
 }
 
+TEST_F(TestQuotaManager, OpenClientDirectory_InitializeOrigin) {
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageNotInitialized());
+
+  auto backgroundTest = [](bool aInitializeOrigin) {
+    QuotaManager* quotaManager = QuotaManager::Get();
+    ASSERT_TRUE(quotaManager);
+
+    RefPtr<ClientDirectoryLock> directoryLock;
+
+    RefPtr<BoolPromise> promise =
+        quotaManager
+            ->OpenClientDirectory(GetTestClientMetadata(), aInitializeOrigin)
+            ->Then(
+                GetCurrentSerialEventTarget(), __func__,
+                [&directoryLock](
+                    ClientDirectoryLockPromise::ResolveOrRejectValue&& aValue) {
+                  if (aValue.IsReject()) {
+                    return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                        __func__);
+                  }
+
+                  [&aValue]() { ASSERT_TRUE(aValue.ResolveValue()); }();
+
+                  directoryLock = std::move(aValue.ResolveValue());
+
+                  return BoolPromise::CreateAndResolve(true, __func__);
+                })
+            ->Then(quotaManager->IOThread(), __func__,
+                   [aInitializeOrigin](
+                       const BoolPromise::ResolveOrRejectValue& aValue) {
+                     if (aValue.IsReject()) {
+                       return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                           __func__);
+                     }
+
+                     [aInitializeOrigin]() {
+                       QuotaManager* quotaManager = QuotaManager::Get();
+                       ASSERT_TRUE(quotaManager);
+
+                       ASSERT_EQ(
+                           quotaManager->IsTemporaryOriginInitializedInternal(
+                               GetTestOriginMetadata()),
+                           aInitializeOrigin);
+                     }();
+
+                     return BoolPromise::CreateAndResolve(true, __func__);
+                   })
+            ->Then(GetCurrentSerialEventTarget(), __func__,
+                   [&directoryLock](
+                       const BoolPromise::ResolveOrRejectValue& aValue) {
+                     DropDirectoryLock(directoryLock);
+
+                     if (aValue.IsReject()) {
+                       return BoolPromise::CreateAndReject(aValue.RejectValue(),
+                                                           __func__);
+                     }
+
+                     return BoolPromise::CreateAndResolve(true, __func__);
+                   });
+
+    {
+      auto value = Await(promise);
+      ASSERT_TRUE(value.IsResolve());
+      ASSERT_TRUE(value.ResolveValue());
+    }
+  };
+
+  ASSERT_NO_FATAL_FAILURE(
+      PerformOnBackgroundThread(backgroundTest, /* aInitializeOrigin */ true));
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginInitialized(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(ClearStoragesForOrigin(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(
+      PerformOnBackgroundThread(backgroundTest, /* aInitializeOrigin */ false));
+  ASSERT_NO_FATAL_FAILURE(
+      AssertTemporaryOriginNotInitialized(GetTestOriginMetadata()));
+
+  ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
+
+  ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
+}
+
 // Test simple InitializeStorage.
 TEST_F(TestQuotaManager, InitializeStorage_Simple) {
   ASSERT_NO_FATAL_FAILURE(ShutdownStorage());
