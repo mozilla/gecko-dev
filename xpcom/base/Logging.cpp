@@ -40,7 +40,7 @@
 // NB: Amount determined by performing a typical browsing session and finding
 //     the maximum number of modules instantiated, and padding up to the next
 //     power of 2.
-const uint32_t kInitialModuleCount = 256;
+const uint32_t kInitialModuleCount = 1024;
 // When rotate option is added to the modules list, this is the hardcoded
 // number of files we create and rotate.  When there is rotate:40,
 // we will keep four files per process, each limited to 10MB.  Sum is 40MB,
