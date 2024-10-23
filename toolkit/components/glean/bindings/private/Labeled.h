@@ -30,7 +30,7 @@ namespace impl {
 template <typename T, typename E>
 class Labeled {
  public:
-  constexpr explicit Labeled<T, E>(uint32_t id) : mId(id) {}
+  constexpr explicit Labeled(uint32_t id) : mId(id) {}
 
   /**
    * Gets a specific metric for a given label.
