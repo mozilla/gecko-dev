@@ -5,6 +5,10 @@
 var { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
 );
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  PageWireframes: "resource:///modules/sessionstore/PageWireframes.sys.mjs",
+});
 
 const ZERO_DELAY_ACTIVATION_TIME = 300;
 
@@ -54,6 +58,11 @@ export default class TabHoverPreviewPanel {
       "_prefShowPidAndActiveness",
       "browser.tabs.tooltipsShowPidAndActiveness",
       false
+    );
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "_prefCollectWireframes",
+      "browser.history.collectWireframes"
     );
 
     this._panelOpener = new TabPreviewPanelTimedFunction(
@@ -108,6 +117,16 @@ export default class TabHoverPreviewPanel {
     }
   }
 
+  _hasValidWireframeState(tab) {
+    return (
+      this._prefCollectWireframes &&
+      this._prefDisplayThumbnail &&
+      tab &&
+      !tab.selected &&
+      !!lazy.PageWireframes.getWireframeState(tab)
+    );
+  }
+
   _hasValidThumbnailState(tab) {
     return (
       this._prefDisplayThumbnail &&
@@ -122,6 +141,11 @@ export default class TabHoverPreviewPanel {
     let tab = this._tab;
 
     if (!this._hasValidThumbnailState(tab)) {
+      let wireframeElement = lazy.PageWireframes.getWireframeElementForTab(tab);
+      if (wireframeElement) {
+        this._thumbnailElement = wireframeElement;
+        this._updatePreview();
+      }
       return;
     }
     let thumbnailCanvas = this._win.document.createElement("canvas");
@@ -229,7 +253,8 @@ export default class TabHoverPreviewPanel {
     );
     thumbnailContainer.classList.toggle(
       "hide-thumbnail",
-      !this._hasValidThumbnailState(this._tab)
+      !this._hasValidThumbnailState(this._tab) &&
+        !this._hasValidWireframeState(this._tab)
     );
     if (thumbnailContainer.firstChild != this._thumbnailElement) {
       thumbnailContainer.replaceChildren();

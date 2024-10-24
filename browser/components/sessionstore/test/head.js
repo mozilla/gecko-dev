@@ -33,6 +33,10 @@ const { SessionStoreTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SessionStoreTestUtils.sys.mjs"
 );
 
+const { PageWireframes } = ChromeUtils.importESModule(
+  "resource:///modules/sessionstore/PageWireframes.sys.mjs"
+);
+
 const ss = SessionStore;
 SessionStoreTestUtils.init(this, window);
 
