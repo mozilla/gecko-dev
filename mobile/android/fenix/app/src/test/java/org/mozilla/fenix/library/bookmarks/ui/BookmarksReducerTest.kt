@@ -178,6 +178,23 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `WHEN a folder is created THEN remove the select folder state and update the edit bookmark state`() {
+        val state = BookmarksState.default.copy(
+            bookmarksSelectFolderState = BookmarksSelectFolderState(outerSelectionGuid = "guid"),
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                bookmark = BookmarkItem.Bookmark("url", "title", "url", "guid"),
+                folder = BookmarkItem.Folder("parentTitle", "parentGuid"),
+            ),
+        )
+
+        val folder = BookmarkItem.Folder("New Bookmark", "guid")
+        val result = bookmarksReducer(state, AddFolderAction.FolderCreated(folder))
+
+        assertEquals(folder, result.bookmarksEditBookmarkState?.folder)
+        assertNull(result.bookmarksSelectFolderState)
+    }
+
+    @Test
     fun `GIVEN we are on the add folder screen WHEN back is clicked THEN add folder state is removed`() {
         val state = BookmarksState.default.copy(
             bookmarksAddFolderState = BookmarksAddFolderState(

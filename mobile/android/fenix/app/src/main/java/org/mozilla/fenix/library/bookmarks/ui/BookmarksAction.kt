@@ -80,6 +80,7 @@ internal data object FirstSyncCompleted : BookmarksAction
 internal sealed class AddFolderAction {
     data class TitleChanged(val updatedText: String) : BookmarksAction
     data object ParentFolderClicked : BookmarksAction
+    data class FolderCreated(val folder: BookmarkItem.Folder) : BookmarksAction
 }
 
 /**

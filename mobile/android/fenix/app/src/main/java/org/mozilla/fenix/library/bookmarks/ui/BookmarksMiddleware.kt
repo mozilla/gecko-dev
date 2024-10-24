@@ -137,16 +137,18 @@ internal class BookmarksMiddleware(
                             val newFolderTitle =
                                 preReductionState.bookmarksAddFolderState.folderBeingAddedTitle
                             if (newFolderTitle.isNotEmpty()) {
-                                bookmarksStorage.addFolder(
+                                val guid = bookmarksStorage.addFolder(
                                     parentGuid = preReductionState.bookmarksAddFolderState.parent.guid,
                                     title = newFolderTitle,
                                 )
+                                val folder = BookmarkItem.Folder(
+                                    guid = guid,
+                                    title = newFolderTitle,
+                                )
+
+                                context.store.dispatch(AddFolderAction.FolderCreated(folder))
                             }
                             context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
-                        }
-
-                        if (preReductionState.bookmarksSelectFolderState != null) {
-                            context.store.tryDispatchLoadFolders()
                         }
                     }
 
@@ -232,6 +234,11 @@ internal class BookmarksMiddleware(
                             exitBookmarks()
                         }
                     }
+                }
+            }
+            is AddFolderAction.FolderCreated -> {
+                if (preReductionState.bookmarksSelectFolderState != null) {
+                    getNavController().popBackStack()
                 }
             }
             EditFolderAction.ParentFolderClicked,
