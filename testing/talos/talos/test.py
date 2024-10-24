@@ -676,10 +676,6 @@ class offscreencanvas_webcodecs_main_webgl_h264(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "CanvasRenderer,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -702,10 +698,6 @@ class offscreencanvas_webcodecs_main_webgl_vp9(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "CanvasRenderer,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -728,10 +720,6 @@ class offscreencanvas_webcodecs_main_webgl_av1(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "CanvasRenderer,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -754,10 +742,6 @@ class offscreencanvas_webcodecs_worker_webgl_h264(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "DOM Worker,CanvasRenderer,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -780,10 +764,6 @@ class offscreencanvas_webcodecs_worker_webgl_vp9(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "DOM Worker,CanvasRenderer,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -806,10 +786,6 @@ class offscreencanvas_webcodecs_worker_webgl_av1(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "DOM Worker,CanvasRenderer,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -834,10 +810,6 @@ class offscreencanvas_webcodecs_main_2d_h264(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "CanvasRenderer,CanvasWorker,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -862,10 +834,6 @@ class offscreencanvas_webcodecs_main_2d_vp9(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "CanvasRenderer,CanvasWorker,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -890,10 +858,6 @@ class offscreencanvas_webcodecs_main_2d_av1(PageloaderTest):
     gecko_profile_interval = 2
     gecko_profile_extra_threads = "CanvasRenderer,CanvasWorker,MediaSupervisor"
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -918,10 +882,6 @@ class offscreencanvas_webcodecs_worker_2d_h264(PageloaderTest):
         "DOM Worker,CanvasRenderer,CanvasWorker,MediaSupervisor"
     )
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -946,10 +906,6 @@ class offscreencanvas_webcodecs_worker_2d_vp9(PageloaderTest):
         "DOM Worker,CanvasRenderer,CanvasWorker,MediaSupervisor"
     )
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 
@@ -974,10 +930,6 @@ class offscreencanvas_webcodecs_worker_2d_av1(PageloaderTest):
         "DOM Worker,CanvasRenderer,CanvasWorker,MediaSupervisor"
     )
     win_counters = linux_counters = mac_counters = None
-    preferences = {
-        "dom.media.webcodecs.enabled": True,
-        "dom.media.webcodecs.force-osx-h264-enabled": True,
-    }
     filters = filter.ignore_first.prepare(1) + filter.median.prepare()
     unit = "ms"
 

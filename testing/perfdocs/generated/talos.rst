@@ -2958,7 +2958,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -3125,7 +3124,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -3292,7 +3290,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -3459,7 +3456,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -3626,7 +3622,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -3793,7 +3788,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -3960,7 +3954,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -4127,7 +4120,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -4294,7 +4286,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -4461,7 +4452,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -4628,7 +4618,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
@@ -4795,7 +4784,6 @@ For the sample commands found below, note that the capitalization used is import
    * gecko_profile_interval: 2
    * linux_counters: None
    * mac_counters: None
-   * preferences: {'dom.media.webcodecs.enabled': True, 'dom.media.webcodecs.force-osx-h264-enabled': True}
    * timeout: 600
    * tpchrome: False
    * tpcycles: 1
