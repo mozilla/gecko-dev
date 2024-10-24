@@ -1106,7 +1106,7 @@ export let BrowserUsageTelemetry = {
     let key = `${telemetryId(widgetId, false)}_${action}_${oldPos ?? "na"}_${
       newPos ?? "na"
     }_${reason}`;
-    Services.telemetry.keyedScalarAdd("browser.ui.customized_widgets", key, 1);
+    Glean.browserUi.customizedWidgets[key].add(1);
 
     if (newPos) {
       this.widgetMap.set(widgetId, newPos);
@@ -1132,11 +1132,7 @@ export let BrowserUsageTelemetry = {
 
     for (let [widgetId, position] of this.widgetMap.entries()) {
       let key = `${telemetryId(widgetId, false)}_pinned_${position}`;
-      Services.telemetry.keyedScalarSet(
-        "browser.ui.toolbar_widgets",
-        key,
-        true
-      );
+      Glean.browserUi.mirrorForToolbarWidgets[key].set(true);
     }
   },
 

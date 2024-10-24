@@ -410,6 +410,41 @@ browser.ui:
           widgetId:
             type: string
 
+  mirror_for_toolbar_widgets:
+    type: labeled_boolean
+    description: >
+      The widgets in the toolbars. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.toolbar_widgets.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_TOOLBAR_WIDGETS
+
+  customized_widgets:
+    type: labeled_counter
+    description: >
+      Records when widgets are added, removed or moved in the UI. See
+      https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.customized_widgets.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_CUSTOMIZED_WIDGETS
+
 homepage:
   preference_ignore:
     type: event

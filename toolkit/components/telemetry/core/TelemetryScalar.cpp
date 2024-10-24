@@ -939,9 +939,6 @@ void KeyedScalar::SetValue(const StaticMutexAutoLock& locker,
   if (sr != ScalarResult::Ok) {
     // Bug 1451813 - We now report which scalars exceed the key limit in
     // telemetry.keyed_scalars_exceed_limit.
-    if (sr == ScalarResult::KeyTooLong) {
-      MOZ_ASSERT(false, "Key too long to be recorded in the scalar.");
-    }
     return;
   }
 
@@ -956,9 +953,6 @@ void KeyedScalar::SetValue(const StaticMutexAutoLock& locker,
   if (sr != ScalarResult::Ok) {
     // Bug 1451813 - We now report which scalars exceed the key limit in
     // telemetry.keyed_scalars_exceed_limit.
-    if (sr == ScalarResult::KeyTooLong) {
-      MOZ_ASSERT(false, "Key too long to be recorded in the scalar.");
-    }
     return;
   }
 
@@ -973,9 +967,6 @@ void KeyedScalar::AddValue(const StaticMutexAutoLock& locker,
   if (sr != ScalarResult::Ok) {
     // Bug 1451813 - We now report which scalars exceed the key limit in
     // telemetry.keyed_scalars_exceed_limit.
-    if (sr == ScalarResult::KeyTooLong) {
-      MOZ_ASSERT(false, "Key too long to be recorded in the scalar.");
-    }
     return;
   }
 
@@ -990,10 +981,6 @@ void KeyedScalar::SetMaximum(const StaticMutexAutoLock& locker,
   if (sr != ScalarResult::Ok) {
     // Bug 1451813 - We now report which scalars exceed the key limit in
     // telemetry.keyed_scalars_exceed_limit.
-    if (sr == ScalarResult::KeyTooLong) {
-      MOZ_ASSERT(false, "Key too long to be recorded in the scalar.");
-    }
-
     return;
   }
 
