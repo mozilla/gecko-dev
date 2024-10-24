@@ -1534,3 +1534,267 @@ browser.search.adclicks:
       - rev-data@mozilla.com
     expires: never
     telemetry_mirror: BROWSER_SEARCH_ADCLICKS_UNKNOWN
+
+urlbar.searchmode:
+  bookmarkmenu:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecing the Search Bookmarks menu item in the
+      Library menu.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.bookmarkmenu.
+    bugs:
+      - https://bugzil.la/1665076
+    data_reviews:
+      - https://bugzil.la/1665076
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_BOOKMARKMENU
+
+  handoff:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after being handed off from the search bar on the new
+      tab page.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.handoff.
+    bugs:
+      - https://bugzil.la/1654680
+      - https://bugzil.la/1665076
+    data_reviews:
+      - https://bugzil.la/1654680
+      - https://bugzil.la/1665076
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_HANDOFF
+
+  keywordoffer:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecting a keyword offer result. The scalar key
+      for local search modes entered using a restrict keyword will be
+      suffixed with "keyword". For example: tabs_keyword,
+      bookmarks_keyword, history_keyword, and actions_keyword.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.keywordoffer.
+    bugs:
+      - https://bugzil.la/1654680
+      - https://bugzil.la/1919180
+    data_reviews:
+      - https://bugzil.la/1654680
+      - https://bugzil.la/1919180
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_KEYWORDOFFER
+
+  oneoff:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecting a one-off.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.oneoff.
+    bugs:
+      - https://bugzil.la/1654680
+    data_reviews:
+      - https://bugzil.la/1654680
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_ONEOFF
+
+  searchbutton:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode by unified search button.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.searchbutton.
+    bugs:
+      - https://bugzil.la/1919857
+    data_reviews:
+      - https://bugzil.la/1919857
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_SEARCHBUTTON
+
+  shortcut:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after pressing a keyboard shortcut.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.shortcut.
+    bugs:
+      - https://bugzil.la/1654680
+    data_reviews:
+      - https://bugzil.la/1654680
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_SHORTCUT
+
+  tabmenu:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecting the Search Tabs menu item in the Tab
+      Overflow menu.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.tabmenu.
+    bugs:
+      - https://bugzil.la/1665076
+    data_reviews:
+      - https://bugzil.la/1665076
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_TABMENU
+
+  tabtosearch:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecting a tab-to-search result.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.tabtosearch.
+    bugs:
+      - https://bugzil.la/1647923
+    data_reviews:
+      - https://bugzil.la/1647923
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_TABTOSEARCH
+
+  tabtosearch_onboard:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecting a tab-to-search onboarding result.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.tabtosearch_onboard.
+    bugs:
+      - https://bugzil.la/1665934
+    data_reviews:
+      - https://bugzil.la/1665934
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_TABTOSEARCH_ONBOARD
+
+  topsites_newtab:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecting a search shortcut Top Site on the New
+      Tab Page.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.topsites_newtab.
+    bugs:
+      - https://bugzil.la/1654680
+    data_reviews:
+      - https://bugzil.la/1654680
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_TOPSITES_NEWTAB
+
+  topsites_urlbar:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecting a search shortcut Top Site in the
+      Urlbar.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.topsites_urlbar.
+    bugs:
+      - https://bugzil.la/1654680
+    data_reviews:
+      - https://bugzil.la/1654680
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_TOPSITES_URLBAR
+
+  touchbar:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecting a search shortcut on the macOS Touch
+      Bar.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.touchbar.
+    bugs:
+      - https://bugzil.la/1657414
+    data_reviews:
+      - https://bugzil.la/1657414
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_TOUCHBAR
+
+  typed:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after typing an alias. The scalar keys for local search
+      modes entered by typing a restrict keyword will be suffixed with
+      "keyword". For example: tabs_keyword, bookmarks_keyword,
+      history_keyword, and actions_keyword. If instead search mode was
+      entered by typing a restrict symbol the key will be suffixed with
+      "symbol" (e.g. typing "%" will generate "tabs_symbol").
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.typed.
+    bugs:
+      - https://bugzil.la/1654680
+      - https://bugzil.la/1919180
+    data_reviews:
+      - https://bugzil.la/1654680
+      - https://bugzil.la/1919180
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_TYPED
+
+  historymenu:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode after selecing the Search History menu item in a History
+      menu.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.historymenu.
+    bugs:
+      - https://bugzil.la/1736939
+    data_reviews:
+      - https://bugzil.la/1736939
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_HISTORYMENU
+
+  other:
+    type: labeled_counter
+    description: >
+      A keyed uint recording how many times the user entered a particular
+      search mode from an unknown entry point. If values appear for this
+      probe in Telemetry, we should review the entry points to search
+      mode.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar urlbar.searchmode.other.
+    bugs:
+      - https://bugzil.la/1654680
+    data_reviews:
+      - https://bugzil.la/1654680
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: URLBAR_SEARCHMODE_OTHER

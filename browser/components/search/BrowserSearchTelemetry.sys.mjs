@@ -148,12 +148,9 @@ class BrowserSearchTelemetryHandler {
       return;
     }
 
-    let scalarKey = lazy.UrlbarSearchUtils.getSearchModeScalarKey(searchMode);
-    Services.telemetry.keyedScalarAdd(
-      "urlbar.searchmode." + searchMode.entry,
-      scalarKey,
-      1
-    );
+    let label = lazy.UrlbarSearchUtils.getSearchModeScalarKey(searchMode);
+    let name = searchMode.entry.replace(/_([a-z])/g, (m, p) => p.toUpperCase());
+    Glean.urlbarSearchmode[name]?.[label].add(1);
   }
 
   /**
