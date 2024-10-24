@@ -360,6 +360,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void SetPreloadCsp(nsIContentSecurityPolicy* aPreloadCsp);
   nsIContentSecurityPolicy* GetCsp();
 
+  virtual already_AddRefed<mozilla::dom::ServiceWorkerContainer>
+  GetServiceWorkerContainer() override;
+
   virtual RefPtr<mozilla::dom::ServiceWorker> GetOrCreateServiceWorker(
       const mozilla::dom::ServiceWorkerDescriptor& aDescriptor) override;
 

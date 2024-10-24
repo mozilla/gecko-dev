@@ -35,9 +35,15 @@ WorkerNavigator includes NavigatorLocks;
 // https://gpuweb.github.io/gpuweb/#navigator-gpu
 WorkerNavigator includes NavigatorGPU;
 
-
 // https://w3c.github.io/permissions/#webidl-2112232240
 [Exposed=(Worker)]
 partial interface WorkerNavigator {
   [SameObject] readonly attribute Permissions permissions;
+};
+
+// https://w3c.github.io/ServiceWorker/#navigator-serviceworker
+[Exposed=Worker]
+partial interface WorkerNavigator {
+  [Func="ServiceWorkersEnabled", SameObject]
+  readonly attribute ServiceWorkerContainer serviceWorker;
 };

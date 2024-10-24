@@ -853,6 +853,11 @@ WorkerGlobalScope::GetDebuggerNotificationType() const {
   return Some(EventCallbackDebuggerNotificationType::Global);
 }
 
+already_AddRefed<ServiceWorkerContainer>
+WorkerGlobalScope::GetServiceWorkerContainer() {
+  return RefPtr(Navigator())->ServiceWorker();
+}
+
 RefPtr<ServiceWorker> WorkerGlobalScope::GetOrCreateServiceWorker(
     const ServiceWorkerDescriptor& aDescriptor) {
   RefPtr<ServiceWorker> ref;

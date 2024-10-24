@@ -5873,6 +5873,11 @@ nsIContentSecurityPolicy* nsGlobalWindowInner::GetCsp() {
   return nullptr;
 }
 
+already_AddRefed<ServiceWorkerContainer>
+nsGlobalWindowInner::GetServiceWorkerContainer() {
+  return Navigator()->ServiceWorker();
+}
+
 RefPtr<ServiceWorker> nsGlobalWindowInner::GetOrCreateServiceWorker(
     const ServiceWorkerDescriptor& aDescriptor) {
   MOZ_ASSERT(NS_IsMainThread());

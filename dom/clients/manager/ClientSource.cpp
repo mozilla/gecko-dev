@@ -575,12 +575,12 @@ RefPtr<ClientOpPromise> ClientSource::PostMessage(
     const ClientPostMessageArgs& aArgs) {
   NS_ASSERT_OWNINGTHREAD(ClientSource);
 
-  // TODO: Currently this function only supports clients whose global
-  // object is a Window; it should also support those whose global
-  // object is a WorkerGlobalScope.
-  if (nsPIDOMWindowInner* const window = GetInnerWindow()) {
+  // (This only returns a global for windows or workers.)
+  nsIGlobalObject* global = GetGlobal();
+  if (global) {
     const RefPtr<ServiceWorkerContainer> container =
-        window->Navigator()->ServiceWorker();
+        global->GetServiceWorkerContainer();
+    MOZ_ASSERT_DEBUG_OR_FUZZING(container);
 
     // Note, EvictFromBFCache() may delete the ClientSource object
     // when bfcache lives in the child process.
@@ -590,8 +590,7 @@ RefPtr<ClientOpPromise> ClientSource::PostMessage(
   }
 
   CopyableErrorResult rv;
-  rv.ThrowNotSupportedError(
-      "postMessage to non-Window clients is not supported yet");
+  rv.ThrowInvalidStateError("Global discarded");
   return ClientOpPromise::CreateAndReject(rv, __func__);
 }
 

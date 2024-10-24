@@ -280,6 +280,7 @@ partial interface Navigator {
 };
 
 // Service Workers/Navigation Controllers
+// https://w3c.github.io/ServiceWorker/#navigator-serviceworker
 partial interface Navigator {
   [Func="ServiceWorkersEnabled", SameObject, BinaryName="serviceWorkerJS"]
   readonly attribute ServiceWorkerContainer serviceWorker;

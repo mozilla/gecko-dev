@@ -65,6 +65,7 @@ void ServiceWorkerContainerChild::MaybeStartTeardown() {
     return;
   }
   mTeardownStarted = true;
+  Send__delete__(this);
 }
 
 }  // namespace mozilla::dom

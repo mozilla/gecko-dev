@@ -11,6 +11,7 @@
 #include "mozilla/dom/ServiceWorkerRegistrationDescriptor.h"
 #include "nsTArray.h"
 
+class nsIGlobalObject;
 class nsIURI;
 
 namespace mozilla {
@@ -51,9 +52,25 @@ using NavigationPreloadGetStateCallback =
 bool ServiceWorkerRegistrationDataIsValid(
     const ServiceWorkerRegistrationData& aData);
 
-void ServiceWorkerScopeAndScriptAreValid(const ClientInfo& aClientInfo,
-                                         nsIURI* aScopeURI, nsIURI* aScriptURI,
-                                         ErrorResult& aRv);
+// Performs key spec validation steps of
+// https://w3c.github.io/ServiceWorker/#start-register-algorithm and
+// https://w3c.github.io/ServiceWorker/#register-algorithm as well as CSP
+// validation corresponding to
+// https://w3c.github.io/webappsec-csp/#directive-worker-src.
+//
+// This is extracted out of ServiceWorkerContainer::Register because we validate
+// both in the content process as the site of the call, as well as in the parent
+// process in the ServiceWorkerManager.
+//
+// On worker threads, this will involve use of a syncloop until Bug 1901387 is
+// addressed, allowing us to call CheckMayLoad off main-thread (OMT).
+//
+// A global may be optionally provided for reporting purposes; this is desired
+// when this is used by ServiceWorkerContainer::Register but not necessary in
+// the parent process.
+void ServiceWorkerScopeAndScriptAreValid(
+    const ClientInfo& aClientInfo, nsIURI* aScopeURI, nsIURI* aScriptURI,
+    ErrorResult& aRv, nsIGlobalObject* aGlobalForReporting = nullptr);
 
 bool ServiceWorkersEnabled(JSContext* aCx, JSObject* aGlobal);
 

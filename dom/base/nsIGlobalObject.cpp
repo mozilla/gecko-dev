@@ -17,6 +17,7 @@
 #include "mozilla/dom/Report.h"
 #include "mozilla/dom/ReportingObserver.h"
 #include "mozilla/dom/ServiceWorker.h"
+#include "mozilla/dom/ServiceWorkerContainer.h"
 #include "mozilla/dom/ServiceWorkerRegistration.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "nsContentUtils.h"
@@ -43,6 +44,7 @@ using mozilla::dom::ClientState;
 using mozilla::dom::Report;
 using mozilla::dom::ReportingObserver;
 using mozilla::dom::ServiceWorker;
+using mozilla::dom::ServiceWorkerContainer;
 using mozilla::dom::ServiceWorkerDescriptor;
 using mozilla::dom::ServiceWorkerRegistration;
 using mozilla::dom::ServiceWorkerRegistrationDescriptor;
@@ -302,6 +304,11 @@ Maybe<ServiceWorkerDescriptor> nsIGlobalObject::GetController() const {
   // By default globals do not have a service worker controller.  Only real
   // window and worker globals can currently be controlled as a client.
   return Maybe<ServiceWorkerDescriptor>();
+}
+
+already_AddRefed<ServiceWorkerContainer>
+nsIGlobalObject::GetServiceWorkerContainer() {
+  return nullptr;
 }
 
 RefPtr<ServiceWorker> nsIGlobalObject::GetOrCreateServiceWorker(

@@ -52,6 +52,7 @@ class Report;
 class ReportBody;
 class ReportingObserver;
 class ServiceWorker;
+class ServiceWorkerContainer;
 class ServiceWorkerRegistration;
 class ServiceWorkerRegistrationDescriptor;
 class StorageManager;
@@ -211,6 +212,9 @@ class nsIGlobalObject : public nsISupports {
 
   virtual mozilla::Maybe<mozilla::dom::ServiceWorkerDescriptor> GetController()
       const;
+
+  virtual already_AddRefed<mozilla::dom::ServiceWorkerContainer>
+  GetServiceWorkerContainer();
 
   // Get the DOM object for the given descriptor or attempt to create one.
   // Creation can still fail and return nullptr during shutdown, etc.

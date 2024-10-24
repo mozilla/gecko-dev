@@ -32,6 +32,7 @@ class StorageManager;
 class MediaCapabilities;
 class LockManager;
 class Permissions;
+class ServiceWorkerContainer;
 
 namespace network {
 class Connection;
@@ -48,6 +49,7 @@ class WorkerNavigator final : public nsWrapperCache {
   RefPtr<webgpu::Instance> mWebGpu;
   RefPtr<dom::LockManager> mLocks;
   RefPtr<dom::Permissions> mPermissions;
+  RefPtr<ServiceWorkerContainer> mServiceWorkerContainer;
   bool mOnline;
 
   WorkerNavigator(const NavigatorProperties& aProperties, bool aOnline);
@@ -117,6 +119,8 @@ class WorkerNavigator final : public nsWrapperCache {
   dom::LockManager* Locks();
 
   dom::Permissions* Permissions();
+
+  already_AddRefed<ServiceWorkerContainer> ServiceWorker();
 };
 
 }  // namespace dom

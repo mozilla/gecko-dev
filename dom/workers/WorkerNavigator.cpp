@@ -17,6 +17,7 @@
 #include "mozilla/dom/MediaCapabilities.h"
 #include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/Permissions.h"
+#include "mozilla/dom/ServiceWorkerContainer.h"
 #include "mozilla/dom/StorageManager.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerNavigatorBinding.h"
@@ -297,11 +298,25 @@ dom::Permissions* WorkerNavigator::Permissions() {
 
     nsIGlobalObject* global = workerPrivate->GlobalScope();
     MOZ_ASSERT(global);
-
     mPermissions = new dom::Permissions(global);
   }
 
   return mPermissions;
+}
+
+already_AddRefed<ServiceWorkerContainer> WorkerNavigator::ServiceWorker() {
+  if (!mServiceWorkerContainer) {
+    WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
+    MOZ_ASSERT(workerPrivate);
+
+    nsIGlobalObject* global = workerPrivate->GlobalScope();
+    MOZ_ASSERT(global);
+
+    mServiceWorkerContainer = ServiceWorkerContainer::Create(global);
+  }
+
+  RefPtr<ServiceWorkerContainer> ref = mServiceWorkerContainer;
+  return ref.forget();
 }
 
 }  // namespace mozilla::dom

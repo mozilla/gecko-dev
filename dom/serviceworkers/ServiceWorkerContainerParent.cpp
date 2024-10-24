@@ -20,11 +20,6 @@ void ServiceWorkerContainerParent::ActorDestroy(ActorDestroyReason aReason) {
   }
 }
 
-IPCResult ServiceWorkerContainerParent::RecvTeardown() {
-  Unused << Send__delete__(this);
-  return IPC_OK();
-}
-
 IPCResult ServiceWorkerContainerParent::RecvRegister(
     const IPCClientInfo& aClientInfo, const nsACString& aScopeURL,
     const nsACString& aScriptURL,

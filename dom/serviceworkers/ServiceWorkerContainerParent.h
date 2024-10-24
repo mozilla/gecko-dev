@@ -23,8 +23,6 @@ class ServiceWorkerContainerParent final
   // PServiceWorkerContainerParent
   void ActorDestroy(ActorDestroyReason aReason) override;
 
-  mozilla::ipc::IPCResult RecvTeardown() override;
-
   mozilla::ipc::IPCResult RecvRegister(
       const IPCClientInfo& aClientInfo, const nsACString& aScopeURL,
       const nsACString& aScriptURL,
