@@ -19,11 +19,13 @@ use wgh::Instance;
 use std::borrow::Cow;
 #[allow(unused_imports)]
 use std::mem;
-use std::os::raw::c_void;
+use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::slice;
 use std::sync::atomic::{AtomicU32, Ordering};
 
+#[allow(unused_imports)]
+use std::ffi::CString;
 use std::ffi::{c_long, c_ulong};
 
 #[cfg(target_os = "windows")]
@@ -722,10 +724,17 @@ pub extern "C" fn wgpu_vkimage_get_dma_buf_info(handle: &VkImageHandle) -> DMABu
 
 extern "C" {
     #[allow(dead_code)]
+    fn gfx_critical_note(msg: *const c_char);
+    #[allow(dead_code)]
     fn wgpu_server_use_external_texture_for_swap_chain(
         param: *mut c_void,
         swap_chain_id: SwapChainId,
     ) -> bool;
+    #[allow(dead_code)]
+    fn wgpu_server_disable_external_texture_for_swap_chain(
+        param: *mut c_void,
+        swap_chain_id: SwapChainId,
+    );
     #[allow(dead_code)]
     fn wgpu_server_ensure_external_texture_for_swap_chain(
         param: *mut c_void,
@@ -753,6 +762,98 @@ extern "C" {
 }
 
 impl Global {
+    #[cfg(target_os = "windows")]
+    fn create_texture_with_external_texture_d3d11(
+        &self,
+        device_id: id::DeviceId,
+        texture_id: id::TextureId,
+        desc: &wgc::resource::TextureDescriptor,
+        swap_chain_id: Option<SwapChainId>,
+    ) -> bool {
+        let dx12_device = unsafe {
+            self.device_as_hal::<wgc::api::Dx12, _, Option<Direct3D12::ID3D12Device>>(
+                device_id,
+                |hal_device| {
+                    if hal_device.is_none() {
+                        return None;
+                    }
+                    hal_device.map(|hal_device| hal_device.raw_device().clone())
+                },
+            )
+        };
+
+        if dx12_device.is_none() {
+            let msg = CString::new(format!("dx12 device is none")).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return false;
+        }
+
+        let dx12_device = dx12_device.unwrap();
+        let ret = unsafe {
+            wgpu_server_ensure_external_texture_for_swap_chain(
+                self.owner,
+                swap_chain_id.unwrap(),
+                device_id,
+                texture_id,
+                desc.size.width,
+                desc.size.height,
+                desc.format,
+                desc.usage,
+            )
+        };
+        if ret != true {
+            let msg = CString::new(format!("Failed to create external texture")).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return false;
+        }
+
+        let handle = unsafe { wgpu_server_get_external_texture_handle(self.owner, texture_id) };
+        if handle.is_null() {
+            let msg = CString::new(format!("Failed to get external texture handle")).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return false;
+        }
+        let mut resource: Option<Direct3D12::ID3D12Resource> = None;
+        let res =
+            unsafe { dx12_device.OpenSharedHandle(Foundation::HANDLE(handle), &mut resource) };
+        if res.is_err() || resource.is_none() {
+            let msg = CString::new(format!("Failed to open shared handle")).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return false;
+        }
+
+        let hal_texture = unsafe {
+            <wgh::api::Dx12 as wgh::Api>::Device::texture_from_raw(
+                resource.unwrap(),
+                wgt::TextureFormat::Bgra8Unorm,
+                wgt::TextureDimension::D2,
+                desc.size,
+                1,
+                1,
+            )
+        };
+        let (_, error) = unsafe {
+            self.create_texture_from_hal(Box::new(hal_texture), device_id, &desc, Some(texture_id))
+        };
+        if let Some(err) = error {
+            let msg = CString::new(format!("create_texture_from_hal() failed: {:?}", err)).unwrap();
+            unsafe {
+                gfx_critical_note(msg.as_ptr());
+            }
+            return false;
+        }
+
+        true
+    }
+
     fn device_action(
         &self,
         self_id: id::DeviceId,
@@ -775,98 +876,36 @@ impl Global {
                     return;
                 }
 
-                #[cfg(target_os = "windows")]
-                {
-                    let use_external_texture = if swap_chain_id.is_some() {
-                        unsafe {
-                            wgpu_server_use_external_texture_for_swap_chain(
-                                self.owner,
-                                swap_chain_id.unwrap(),
-                            )
-                        }
-                    } else {
-                        false
-                    };
+                let use_external_texture = if swap_chain_id.is_some() {
+                    unsafe {
+                        wgpu_server_use_external_texture_for_swap_chain(
+                            self.owner,
+                            swap_chain_id.unwrap(),
+                        )
+                    }
+                } else {
+                    false
+                };
 
-                    if use_external_texture {
-                        let dx12_device = unsafe {
-                            self.device_as_hal::<wgc::api::Dx12, _, Option<Direct3D12::ID3D12Device>>(
-                                self_id,
-                                |hal_device| {
-                                    hal_device.map(|hal_device| hal_device.raw_device().clone())
-                                },
-                            )
-                        };
-                        if let Some(dx12_device) = dx12_device {
-                            let ret = unsafe {
-                                wgpu_server_ensure_external_texture_for_swap_chain(
-                                    self.owner,
-                                    swap_chain_id.unwrap(),
-                                    self_id,
-                                    id,
-                                    desc.size.width,
-                                    desc.size.height,
-                                    desc.format,
-                                    desc.usage,
-                                )
-                            };
-                            if ret != true {
-                                self.create_texture_error(Some(id), &desc);
-                                error_buf.init(ErrMsg {
-                                    message: "Failed to create external texture",
-                                    r#type: ErrorBufferType::Internal,
-                                });
-                                return;
-                            }
-
-                            let handle =
-                                unsafe { wgpu_server_get_external_texture_handle(self.owner, id) };
-                            if handle.is_null() {
-                                self.create_texture_error(Some(id), &desc);
-                                error_buf.init(ErrMsg {
-                                    message: "Failed to get external texture handle",
-                                    r#type: ErrorBufferType::Internal,
-                                });
-                                return;
-                            }
-                            let mut resource: Option<Direct3D12::ID3D12Resource> = None;
-                            let res = unsafe {
-                                dx12_device
-                                    .OpenSharedHandle(Foundation::HANDLE(handle), &mut resource)
-                            };
-                            if res.is_err() || resource.is_none() {
-                                self.create_texture_error(Some(id), &desc);
-                                error_buf.init(ErrMsg {
-                                    message: "Failed to open shared handle",
-                                    r#type: ErrorBufferType::Internal,
-                                });
-                                return;
-                            }
-
-                            let hal_texture = unsafe {
-                                <wgh::api::Dx12 as wgh::Api>::Device::texture_from_raw(
-                                    resource.unwrap(),
-                                    wgt::TextureFormat::Bgra8Unorm,
-                                    wgt::TextureDimension::D2,
-                                    desc.size,
-                                    1,
-                                    1,
-                                )
-                            };
-                            let (_, error) = unsafe {
-                                self.create_texture_from_hal(
-                                    Box::new(hal_texture),
-                                    self_id,
-                                    &desc,
-                                    Some(id),
-                                )
-                            };
-                            if let Some(err) = error {
-                                error_buf.init(err);
-                            }
+                if use_external_texture {
+                    #[cfg(target_os = "windows")]
+                    {
+                        let is_created = self.create_texture_with_external_texture_d3d11(
+                            self_id,
+                            id,
+                            &desc,
+                            swap_chain_id,
+                        );
+                        if is_created {
                             return;
                         }
                     }
+                    unsafe {
+                        wgpu_server_disable_external_texture_for_swap_chain(
+                            self.owner,
+                            swap_chain_id.unwrap(),
+                        )
+                    };
                 }
 
                 let (_, error) = self.device_create_texture(self_id, &desc, Some(id));

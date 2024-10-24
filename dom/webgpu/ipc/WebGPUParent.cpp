@@ -43,6 +43,13 @@ extern bool wgpu_server_use_external_texture_for_swap_chain(
   return parent->UseExternalTextureForSwapChain(aSwapChainId);
 }
 
+extern void wgpu_server_disable_external_texture_for_swap_chain(
+    void* aParam, WGPUSwapChainId aSwapChainId) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  parent->DisableExternalTextureForSwapChain(aSwapChainId);
+}
+
 extern bool wgpu_server_ensure_external_texture_for_swap_chain(
     void* aParam, WGPUSwapChainId aSwapChainId, WGPUDeviceId aDeviceId,
     WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
@@ -221,7 +228,7 @@ class PresentationData {
 
  public:
   WeakPtr<WebGPUParent> mParent;
-  const bool mUseExternalTextureInSwapChain;
+  bool mUseExternalTextureInSwapChain;
   const RawId mDeviceId;
   const RawId mQueueId;
   const layers::RGBDescriptor mDesc;
@@ -1528,12 +1535,31 @@ bool WebGPUParent::UseExternalTextureForSwapChain(
   const auto& lookup = mPresentationDataMap.find(ownerId);
   if (lookup == mPresentationDataMap.end()) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    return IPC_OK();
+    return false;
   }
 
   RefPtr<PresentationData> data = lookup->second.get();
 
   return data->mUseExternalTextureInSwapChain;
+}
+
+void WebGPUParent::DisableExternalTextureForSwapChain(
+    ffi::WGPUSwapChainId aSwapChainId) {
+  auto ownerId = layers::RemoteTextureOwnerId{aSwapChainId._0};
+  const auto& lookup = mPresentationDataMap.find(ownerId);
+  if (lookup == mPresentationDataMap.end()) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return;
+  }
+
+  RefPtr<PresentationData> data = lookup->second.get();
+
+  if (data->mUseExternalTextureInSwapChain) {
+    gfxCriticalNote << "Disable ExternalTexture for SwapChain:  "
+                    << aSwapChainId._0;
+  }
+
+  data->mUseExternalTextureInSwapChain = false;
 }
 
 bool WebGPUParent::EnsureExternalTextureForSwapChain(

@@ -151,6 +151,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   bool UseExternalTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId);
 
+  void DisableExternalTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId);
+
   bool EnsureExternalTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId,
                                          ffi::WGPUDeviceId aDeviceId,
                                          ffi::WGPUTextureId aTextureId,
