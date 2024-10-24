@@ -584,7 +584,7 @@ namespace detail {
 
     fd.write(
         """
-const uint16_t sInterfacesSize = std::size(sInterfaces);
+const uint16_t sInterfacesSize = mozilla::ArrayLength(sInterfaces);
 
 } // namespace detail
 } // namespace xpt

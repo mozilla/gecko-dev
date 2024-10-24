@@ -206,7 +206,7 @@ static nsresult FindPinningInformation(
             ("pkpin: Querying pinsets for host: '%s'\n", evalHost));
     size_t foundEntryIndex;
     if (BinarySearchIf(kPublicKeyPinningPreloadList, 0,
-                       std::size(kPublicKeyPinningPreloadList),
+                       ArrayLength(kPublicKeyPinningPreloadList),
                        TransportSecurityPreloadBinarySearchComparator(evalHost),
                        &foundEntryIndex)) {
       foundEntry = &kPublicKeyPinningPreloadList[foundEntryIndex];

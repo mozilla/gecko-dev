@@ -468,7 +468,7 @@ struct RoleDescrComparator {
 
   if (subrole) {
     size_t idx = 0;
-    if (BinarySearchIf(sRoleDescrMap, 0, std::size(sRoleDescrMap),
+    if (BinarySearchIf(sRoleDescrMap, 0, ArrayLength(sRoleDescrMap),
                        RoleDescrComparator(subrole), &idx)) {
       return utils::LocalizedString(sRoleDescrMap[idx].description);
     }

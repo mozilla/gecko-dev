@@ -87,12 +87,12 @@ nsresult SVGFEOffsetElement::BindToTree(BindContext& aCtx, nsINode& aParent) {
 
 SVGElement::NumberAttributesInfo SVGFEOffsetElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              std::size(sNumberInfo));
+                              ArrayLength(sNumberInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFEOffsetElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 }  // namespace mozilla::dom

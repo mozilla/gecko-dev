@@ -133,11 +133,11 @@ bool SVGMarkerElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGMarkerElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 SVGElement::EnumAttributesInfo SVGMarkerElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 SVGAnimatedOrient* SVGMarkerElement::GetAnimatedOrient() { return &mOrient; }

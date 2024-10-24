@@ -838,7 +838,7 @@ void Theme::PaintMenulistArrow(nsIFrame* aFrame, DrawTarget& aDrawTarget,
   const auto arrowColor = sRGBColor::FromABGR(
       nsLayoutUtils::GetTextColor(aFrame, &nsStyleText::mWebkitTextFillColor));
   ThemeDrawing::PaintArrow(aDrawTarget, aRect, xs, ys, kPolygonSize,
-                           std::size(polygonX), arrowColor);
+                           ArrayLength(polygonX), arrowColor);
 }
 
 void Theme::PaintSpinnerButton(nsIFrame* aFrame, DrawTarget& aDrawTarget,
@@ -864,7 +864,7 @@ void Theme::PaintSpinnerButton(nsIFrame* aFrame, DrawTarget& aDrawTarget,
   }
 
   ThemeDrawing::PaintArrow(aDrawTarget, aRect, kPolygonX, polygonY,
-                           kPolygonSize, std::size(kPolygonX), borderColor);
+                           kPolygonSize, ArrayLength(kPolygonX), borderColor);
 }
 
 template <typename PaintBackendData>

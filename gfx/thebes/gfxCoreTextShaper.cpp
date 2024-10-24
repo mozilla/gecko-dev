@@ -39,7 +39,7 @@ CFDictionaryRef gfxCoreTextShaper::CreateAttrDict(bool aRightToLeft) {
   CFTypeRef attrs[] = {kCTFontAttributeName, kCTWritingDirectionAttributeName};
   CFTypeRef values[] = {mCTFont[0], dirArray};
   CFDictionaryRef attrDict = ::CFDictionaryCreate(
-      kCFAllocatorDefault, attrs, values, std::size(attrs),
+      kCFAllocatorDefault, attrs, values, ArrayLength(attrs),
       &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
   ::CFRelease(dirArray);
   return attrDict;
@@ -571,7 +571,7 @@ CTFontDescriptorRef gfxCoreTextShaper::CreateFontFeaturesDescriptor(
     CFTypeRef values[] = {type, selector};
     featureSettings[i] = ::CFDictionaryCreate(
         kCFAllocatorDefault, (const void**)keys, (const void**)values,
-        std::size(keys), &kCFTypeDictionaryKeyCallBacks,
+        ArrayLength(keys), &kCFTypeDictionaryKeyCallBacks,
         &kCFTypeDictionaryValueCallBacks);
 
     ::CFRelease(selector);
@@ -580,7 +580,7 @@ CTFontDescriptorRef gfxCoreTextShaper::CreateFontFeaturesDescriptor(
 
   CFArrayRef featuresArray =
       ::CFArrayCreate(kCFAllocatorDefault, (const void**)featureSettings,
-                      aCount,  // not std::size(featureSettings), as we
+                      aCount,  // not ArrayLength(featureSettings), as we
                                // may not have used all the allocated slots
                       &kCFTypeArrayCallBacks);
 
@@ -592,7 +592,7 @@ CTFontDescriptorRef gfxCoreTextShaper::CreateFontFeaturesDescriptor(
   const CFTypeRef attrValues[] = {featuresArray};
   CFDictionaryRef attributesDict = ::CFDictionaryCreate(
       kCFAllocatorDefault, (const void**)attrKeys, (const void**)attrValues,
-      std::size(attrKeys), &kCFTypeDictionaryKeyCallBacks,
+      ArrayLength(attrKeys), &kCFTypeDictionaryKeyCallBacks,
       &kCFTypeDictionaryValueCallBacks);
   ::CFRelease(featuresArray);
 

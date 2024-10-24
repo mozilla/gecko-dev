@@ -24,12 +24,12 @@ SVGTSpanElement::SVGTSpanElement(
     : SVGTSpanElementBase(std::move(aNodeInfo)) {}
 
 SVGElement::EnumAttributesInfo SVGTSpanElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 SVGElement::LengthAttributesInfo SVGTSpanElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 //----------------------------------------------------------------------

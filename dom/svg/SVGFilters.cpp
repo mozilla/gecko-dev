@@ -131,7 +131,7 @@ Size SVGFilterPrimitiveElement::GetKernelUnitLength(
 
 SVGElement::LengthAttributesInfo SVGFilterPrimitiveElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 SVGElement::NumberListInfo
@@ -253,18 +253,18 @@ void SVGComponentTransferFunctionElement::ComputeAttributes(
 SVGElement::NumberListAttributesInfo
 SVGComponentTransferFunctionElement::GetNumberListInfo() {
   return NumberListAttributesInfo(mNumberListAttributes, sNumberListInfo,
-                                  std::size(sNumberListInfo));
+                                  ArrayLength(sNumberListInfo));
 }
 
 SVGElement::EnumAttributesInfo
 SVGComponentTransferFunctionElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 SVGElement::NumberAttributesInfo
 SVGComponentTransferFunctionElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              std::size(sNumberInfo));
+                              ArrayLength(sNumberInfo));
 }
 
 /* virtual */
@@ -422,17 +422,17 @@ bool SVGFELightingElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 
 SVGElement::NumberAttributesInfo SVGFELightingElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              std::size(sNumberInfo));
+                              ArrayLength(sNumberInfo));
 }
 
 SVGElement::NumberPairAttributesInfo SVGFELightingElement::GetNumberPairInfo() {
   return NumberPairAttributesInfo(mNumberPairAttributes, sNumberPairInfo,
-                                  std::size(sNumberPairInfo));
+                                  ArrayLength(sNumberPairInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFELightingElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 }  // namespace mozilla::dom

@@ -182,7 +182,7 @@ nsTArray<std::pair<const char**, uint32_t>>
 gfxMacPlatformFontList::GetFilteredPlatformFontLists() {
   nsTArray<std::pair<const char**, uint32_t>> fontLists;
 
-  fontLists.AppendElement(std::make_pair(kBaseFonts, std::size(kBaseFonts)));
+  fontLists.AppendElement(std::make_pair(kBaseFonts, ArrayLength(kBaseFonts)));
 
   return fontLists;
 }

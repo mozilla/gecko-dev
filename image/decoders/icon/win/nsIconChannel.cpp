@@ -190,7 +190,7 @@ static bool GetSpecialFolderIcon(nsIFile* aFile, int aFolder, UINT aInfoFlags,
   nsAutoString fileNativePathStr;
   aFile->GetPath(fileNativePathStr);
   ::GetShortPathNameW(fileNativePathStr.get(), fileNativePath,
-                      std::size(fileNativePath));
+                      ArrayLength(fileNativePath));
 
   struct IdListDeleter {
     void operator()(ITEMIDLIST* ptr) { ::CoTaskMemFree(ptr); }
@@ -206,7 +206,7 @@ static bool GetSpecialFolderIcon(nsIFile* aFile, int aFolder, UINT aInfoFlags,
   wchar_t specialNativePath[MAX_PATH];
   ::SHGetPathFromIDListW(idList.get(), specialNativePath);
   ::GetShortPathNameW(specialNativePath, specialNativePath,
-                      std::size(specialNativePath));
+                      ArrayLength(specialNativePath));
 
   if (wcsicmp(fileNativePath, specialNativePath) != 0) {
     return false;

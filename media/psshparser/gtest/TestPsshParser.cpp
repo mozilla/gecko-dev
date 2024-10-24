@@ -131,40 +131,42 @@ TEST(PsshParser, ParseCencInitData)
   bool rv;
 
   rv = ParseCENCInitData(gGoogleWPTCencInitData,
-                         std::size(gGoogleWPTCencInitData), keyIds);
+                         MOZ_ARRAY_LENGTH(gGoogleWPTCencInitData), keyIds);
   EXPECT_TRUE(rv);
   EXPECT_EQ(1u, keyIds.size());
   EXPECT_EQ(16u, keyIds[0].size());
   EXPECT_EQ(0, memcmp(&keyIds[0].front(), &gGoogleWPTCencInitData[32], 16));
 
   rv = ParseCENCInitData(gW3SpecExampleCencInitData,
-                         std::size(gW3SpecExampleCencInitData), keyIds);
+                         MOZ_ARRAY_LENGTH(gW3SpecExampleCencInitData), keyIds);
   EXPECT_TRUE(rv);
   EXPECT_EQ(2u, keyIds.size());
   EXPECT_EQ(16u, keyIds[0].size());
   EXPECT_EQ(0, memcmp(&keyIds[0].front(), &gW3SpecExampleCencInitData[32], 16));
   EXPECT_EQ(0, memcmp(&keyIds[1].front(), &gW3SpecExampleCencInitData[48], 16));
 
-  rv = ParseCENCInitData(gOverflowBoxSize, std::size(gOverflowBoxSize), keyIds);
-  EXPECT_FALSE(rv);
-  EXPECT_EQ(0u, keyIds.size());
-
-  rv = ParseCENCInitData(gTooLargeKeyCountInitData,
-                         std::size(gTooLargeKeyCountInitData), keyIds);
-  EXPECT_FALSE(rv);
-  EXPECT_EQ(0u, keyIds.size());
-
-  rv = ParseCENCInitData(gNonCencInitData, std::size(gNonCencInitData), keyIds);
-  EXPECT_TRUE(rv);
-  EXPECT_EQ(0u, keyIds.size());
-
-  rv = ParseCENCInitData(gNonPSSHBoxZeroSize, std::size(gNonPSSHBoxZeroSize),
+  rv = ParseCENCInitData(gOverflowBoxSize, MOZ_ARRAY_LENGTH(gOverflowBoxSize),
                          keyIds);
   EXPECT_FALSE(rv);
   EXPECT_EQ(0u, keyIds.size());
 
+  rv = ParseCENCInitData(gTooLargeKeyCountInitData,
+                         MOZ_ARRAY_LENGTH(gTooLargeKeyCountInitData), keyIds);
+  EXPECT_FALSE(rv);
+  EXPECT_EQ(0u, keyIds.size());
+
+  rv = ParseCENCInitData(gNonCencInitData, MOZ_ARRAY_LENGTH(gNonCencInitData),
+                         keyIds);
+  EXPECT_TRUE(rv);
+  EXPECT_EQ(0u, keyIds.size());
+
+  rv = ParseCENCInitData(gNonPSSHBoxZeroSize,
+                         MOZ_ARRAY_LENGTH(gNonPSSHBoxZeroSize), keyIds);
+  EXPECT_FALSE(rv);
+  EXPECT_EQ(0u, keyIds.size());
+
   rv = ParseCENCInitData(g2xGoogleWPTCencInitData,
-                         std::size(g2xGoogleWPTCencInitData), keyIds);
+                         MOZ_ARRAY_LENGTH(g2xGoogleWPTCencInitData), keyIds);
   EXPECT_TRUE(rv);
   EXPECT_EQ(2u, keyIds.size());
   EXPECT_EQ(16u, keyIds[0].size());

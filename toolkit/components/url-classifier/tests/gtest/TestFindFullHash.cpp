@@ -60,7 +60,7 @@ TEST(UrlClassifierFindFullHash, Request)
   ASSERT_TRUE(r.ParseFromArray(&requestBinary[0], requestBinary.Length()));
 
   // Compare client states.
-  ASSERT_EQ(r.client_states_size(), (int)std::size(listStates));
+  ASSERT_EQ(r.client_states_size(), (int)ArrayLength(listStates));
   for (int i = 0; i < r.client_states_size(); i++) {
     auto s = r.client_states(i);
     ASSERT_TRUE(listStates[i].Equals(nsCString(s.c_str(), s.size())));
@@ -69,7 +69,7 @@ TEST(UrlClassifierFindFullHash, Request)
   auto threatInfo = r.threat_info();
 
   // Compare threat types.
-  ASSERT_EQ(threatInfo.threat_types_size(), (int)std::size(listStates));
+  ASSERT_EQ(threatInfo.threat_types_size(), (int)ArrayLength(listStates));
   for (int i = 0; i < threatInfo.threat_types_size(); i++) {
     uint32_t expectedThreatType;
     rv =
@@ -79,7 +79,7 @@ TEST(UrlClassifierFindFullHash, Request)
   }
 
   // Compare prefixes.
-  ASSERT_EQ(threatInfo.threat_entries_size(), (int)std::size(prefixes));
+  ASSERT_EQ(threatInfo.threat_entries_size(), (int)ArrayLength(prefixes));
   for (int i = 0; i < threatInfo.threat_entries_size(); i++) {
     auto p = threatInfo.threat_entries(i).hash();
     ASSERT_TRUE(prefixes[i].Equals(nsCString(p.c_str(), p.size())));
@@ -191,7 +191,7 @@ TEST(UrlClassifierFindFullHash, ParseRequest)
   PopulateDuration(*negCacheDuration, EXPECTED_NEG_CACHE_DURATION);
 
   // Init matches.
-  for (uint32_t i = 0; i < std::size(EXPECTED_MATCH); i++) {
+  for (uint32_t i = 0; i < ArrayLength(EXPECTED_MATCH); i++) {
     auto expected = EXPECTED_MATCH[i];
     auto match = r.mutable_matches()->Add();
     match->set_threat_type(expected.mThreatType);
@@ -212,5 +212,5 @@ TEST(UrlClassifierFindFullHash, ParseRequest)
       nsCString(s.c_str(), s.size()), callback);
   NS_ENSURE_SUCCESS_VOID(rv);
 
-  ASSERT_EQ(callbackCount, std::size(EXPECTED_MATCH));
+  ASSERT_EQ(callbackCount, ArrayLength(EXPECTED_MATCH));
 }

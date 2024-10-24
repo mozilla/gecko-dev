@@ -232,7 +232,7 @@ int32_t DoSNISocketConfig(PRFileDesc* aFd, const SECItem* aSrvNameArr,
     case Mlkem768x25519:
       SSL_SecretCallback(aFd, &SecretCallbackFailMlkem768x25519, (void*)host);
       SSL_NamedGroupConfig(aFd, mlkemTestNamedGroups,
-                           std::size(mlkemTestNamedGroups));
+                           mozilla::ArrayLength(mlkemTestNamedGroups));
       break;
     case None:
       break;

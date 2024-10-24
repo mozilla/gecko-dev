@@ -3497,9 +3497,9 @@ void nsWindow::SetIcon(const nsAString& aIconSpec) {
                                        u"48.png",  u"64.png", u"128.png",
                                        u"256.png", u".xpm",   u"16.xpm"};
 
-    for (uint32_t i = 0; i < std::size(extensions); i++) {
+    for (uint32_t i = 0; i < ArrayLength(extensions); i++) {
       // Don't bother looking for XPM versions if we found a PNG.
-      if (i == std::size(extensions) - 2 && foundIcon) break;
+      if (i == ArrayLength(extensions) - 2 && foundIcon) break;
 
       ResolveIconName(aIconSpec, nsDependentString(extensions[i]),
                       getter_AddRefs(iconFile));

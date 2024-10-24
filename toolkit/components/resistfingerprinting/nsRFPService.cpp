@@ -913,11 +913,12 @@ void nsRFPService::GetSpoofedUserAgent(nsACString& userAgent,
 
   // These magic numbers are the lengths of the UA string literals below.
   // Assume three-digit Firefox version numbers so we have room to grow.
-  size_t preallocatedLength = 13 +
-                              (isForHTTPHeader ? std::size(SPOOFED_HTTP_UA_OS)
-                                               : std::size(SPOOFED_UA_OS)) -
-                              1 + 5 + 3 + 10 +
-                              std::size(LEGACY_UA_GECKO_TRAIL) - 1 + 9 + 3 + 2;
+  size_t preallocatedLength =
+      13 +
+      (isForHTTPHeader ? mozilla::ArrayLength(SPOOFED_HTTP_UA_OS)
+                       : mozilla::ArrayLength(SPOOFED_UA_OS)) -
+      1 + 5 + 3 + 10 + mozilla::ArrayLength(LEGACY_UA_GECKO_TRAIL) - 1 + 9 + 3 +
+      2;
   userAgent.SetCapacity(preallocatedLength);
 
   // "Mozilla/5.0 (%s; rv:%d.0) Gecko/%d Firefox/%d.0"

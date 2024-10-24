@@ -910,11 +910,11 @@ static const char* NodeTypeAsString(nsINode* aNode) {
       "a DocumentFragment",
       "a Notation",
   };
-  static_assert(std::size(NodeTypeStrings) == nsINode::MAX_NODE_TYPE + 1,
+  static_assert(ArrayLength(NodeTypeStrings) == nsINode::MAX_NODE_TYPE + 1,
                 "Max node type out of range for our array");
 
   uint16_t nodeType = aNode->NodeType();
-  MOZ_RELEASE_ASSERT(nodeType < std::size(NodeTypeStrings),
+  MOZ_RELEASE_ASSERT(nodeType < ArrayLength(NodeTypeStrings),
                      "Uknown out-of-range node type");
   return NodeTypeStrings[nodeType];
 }

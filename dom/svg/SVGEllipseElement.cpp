@@ -96,7 +96,7 @@ bool SVGEllipseElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGEllipseElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 //----------------------------------------------------------------------

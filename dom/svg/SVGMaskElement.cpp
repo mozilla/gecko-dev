@@ -93,11 +93,11 @@ bool SVGMaskElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGMaskElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 SVGElement::EnumAttributesInfo SVGMaskElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 }  // namespace mozilla::dom

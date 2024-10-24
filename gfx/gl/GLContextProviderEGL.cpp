@@ -881,7 +881,7 @@ bool CreateConfig(EglDisplay& aEgl, EGLConfig* aConfig, int32_t aDepth,
                   bool aEnableDepthBuffer, bool aUseGles, bool aAllowFallback) {
   EGLConfig configs[64];
   std::vector<EGLint> attribs;
-  EGLint ncfg = std::size(configs);
+  EGLint ncfg = ArrayLength(configs);
 
   switch (aDepth) {
     case 16:

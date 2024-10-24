@@ -81,7 +81,7 @@ already_AddRefed<DOMSVGAnimatedLength> SVGLineElement::Y2() {
 
 SVGElement::LengthAttributesInfo SVGLineElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 //----------------------------------------------------------------------

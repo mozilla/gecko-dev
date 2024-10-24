@@ -1361,14 +1361,14 @@ void WinUtils::SetupKeyModifiersSequence(nsTArray<KeyPair>* aArray,
           KeyPair(VK_CONTROL, VK_LCONTROL, ScanCode::eControlLeft));
       aArray->AppendElement(KeyPair(VK_MENU, VK_RMENU, ScanCode::eAltRight));
     }
-    for (uint32_t i = std::size(sModifierKeyMap); i; --i) {
+    for (uint32_t i = ArrayLength(sModifierKeyMap); i; --i) {
       const uint32_t* map = sModifierKeyMap[i - 1];
       if (aModifiers & map[0]) {
         aArray->AppendElement(KeyPair(map[1], map[2], map[3]));
       }
     }
   } else {
-    for (uint32_t i = 0; i < std::size(sModifierKeyMap); ++i) {
+    for (uint32_t i = 0; i < ArrayLength(sModifierKeyMap); ++i) {
       const uint32_t* map = sModifierKeyMap[i];
       if (aModifiers & map[0]) {
         aArray->AppendElement(KeyPair(map[1], map[2], map[3]));
@@ -1797,8 +1797,8 @@ bool WinUtils::MakeLongPath(nsAString& aPath) {
   wchar_t tempPath[MAX_PATH + 1];
   DWORD longResult =
       GetLongPathNameW((char16ptr_t)PromiseFlatString(aPath).get(), tempPath,
-                       std::size(tempPath));
-  if (longResult > std::size(tempPath)) {
+                       ArrayLength(tempPath));
+  if (longResult > ArrayLength(tempPath)) {
     // Our buffer is too short, and we're guaranteeing <= MAX_PATH results.
     return false;
   } else if (longResult) {
@@ -1817,7 +1817,7 @@ bool WinUtils::UnexpandEnvVars(nsAString& aPath) {
   // PathUnExpandEnvStringsW returns false if it doesn't make any
   // substitutions. Silently continue using the unaltered path.
   if (PathUnExpandEnvStringsW((char16ptr_t)PromiseFlatString(aPath).get(),
-                              tempPath, std::size(tempPath))) {
+                              tempPath, ArrayLength(tempPath))) {
     aPath = tempPath;
     MOZ_ASSERT(aPath.Length() <= MAX_PATH);
   }

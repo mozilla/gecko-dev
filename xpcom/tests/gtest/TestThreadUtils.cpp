@@ -647,7 +647,7 @@ class IdleObject final {
  public:
   NS_INLINE_DECL_REFCOUNTING(IdleObject)
   IdleObject() {
-    for (uint32_t index = 0; index < std::size(mRunnableExecuted); ++index) {
+    for (uint32_t index = 0; index < ArrayLength(mRunnableExecuted); ++index) {
       mRunnableExecuted[index] = false;
       mSetIdleDeadlineCalled = false;
     }
@@ -661,7 +661,7 @@ class IdleObject final {
       << aKey << ": Method" << index << " should've executed";
     }
 
-    for (; index < std::size(mRunnableExecuted); ++index) {
+    for (; index < ArrayLength(mRunnableExecuted); ++index) {
       ASSERT_FALSE(mRunnableExecuted[index])
       << aKey << ": Method" << index << " shouldn't have executed";
     }

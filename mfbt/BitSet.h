@@ -107,7 +107,7 @@ class BitSet {
   }
 
   BitSet& operator|=(const BitSet<N, Word>& aOther) {
-    for (size_t i = 0; i < std::size(mStorage); i++) {
+    for (size_t i = 0; i < ArrayLength(mStorage); i++) {
       mStorage[i] |= aOther.mStorage[i];
     }
     return *this;
@@ -120,7 +120,7 @@ class BitSet {
   }
 
   BitSet& operator&=(const BitSet<N, Word>& aOther) {
-    for (size_t i = 0; i < std::size(mStorage); i++) {
+    for (size_t i = 0; i < ArrayLength(mStorage); i++) {
       mStorage[i] &= aOther.mStorage[i];
     }
     return *this;

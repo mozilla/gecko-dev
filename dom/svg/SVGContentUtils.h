@@ -81,7 +81,7 @@ class SVGContentUtils {
      * initialize the values in the buffer, since mDashPattern is const).
      */
     Float* InitDashPattern(size_t aDashCount) {
-      if (aDashCount <= std::size(mSmallArray)) {
+      if (aDashCount <= MOZ_ARRAY_LENGTH(mSmallArray)) {
         mDashPattern = mSmallArray;
         return mSmallArray;
       }

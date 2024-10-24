@@ -1026,7 +1026,7 @@ nsresult gfxFontUtils::RenameFont(const nsAString& aName,
                                            NAME_ID_POSTSCRIPT};
 
   // calculate new name table size
-  uint16_t nameCount = std::size(neededNameIDs);
+  uint16_t nameCount = ArrayLength(neededNameIDs);
 
   // leave room for null-terminator
   uint32_t nameStrLength = (aName.Length() + 1) * sizeof(char16_t);
@@ -1380,7 +1380,7 @@ const Encoding* gfxFontUtils::GetCharsetForFontName(uint16_t aPlatform,
       for (uint32_t i = 0; i < 2; ++i) {
         size_t idx;
         if (BinarySearchIf(gMacFontNameCharsets, 0,
-                           std::size(gMacFontNameCharsets),
+                           ArrayLength(gMacFontNameCharsets),
                            MacCharsetMappingComparator(searchValue), &idx)) {
           return gMacFontNameCharsets[idx].mEncoding;
         }
@@ -1391,13 +1391,13 @@ const Encoding* gfxFontUtils::GetCharsetForFontName(uint16_t aPlatform,
     } break;
 
     case PLATFORM_ID_ISO:
-      if (aScript < std::size(gISOFontNameCharsets)) {
+      if (aScript < ArrayLength(gISOFontNameCharsets)) {
         return gISOFontNameCharsets[aScript];
       }
       break;
 
     case PLATFORM_ID_MICROSOFT:
-      if (aScript < std::size(gMSFontNameCharsets)) {
+      if (aScript < ArrayLength(gMSFontNameCharsets)) {
         return gMSFontNameCharsets[aScript];
       }
       break;

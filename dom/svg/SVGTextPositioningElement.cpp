@@ -23,7 +23,7 @@ SVGElement::LengthListInfo SVGTextPositioningElement::sLengthListInfo[4] = {
 SVGElement::LengthListAttributesInfo
 SVGTextPositioningElement::GetLengthListInfo() {
   return LengthListAttributesInfo(mLengthListAttributes, sLengthListInfo,
-                                  std::size(sLengthListInfo));
+                                  ArrayLength(sLengthListInfo));
 }
 
 SVGElement::NumberListInfo SVGTextPositioningElement::sNumberListInfo[1] = {
@@ -32,7 +32,7 @@ SVGElement::NumberListInfo SVGTextPositioningElement::sNumberListInfo[1] = {
 SVGElement::NumberListAttributesInfo
 SVGTextPositioningElement::GetNumberListInfo() {
   return NumberListAttributesInfo(mNumberListAttributes, sNumberListInfo,
-                                  std::size(sNumberListInfo));
+                                  ArrayLength(sNumberListInfo));
 }
 
 //----------------------------------------------------------------------

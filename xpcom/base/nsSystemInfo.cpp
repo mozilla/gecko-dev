@@ -186,8 +186,9 @@ static nsresult GetFolderDiskInfo(nsIFile* file, FolderDiskInfo& info) {
   NS_ENSURE_SUCCESS(rv, rv);
   wchar_t volumeMountPoint[MAX_PATH] = {L'\\', L'\\', L'.', L'\\'};
   const size_t PREFIX_LEN = 4;
-  if (!::GetVolumePathNameW(filePath.get(), volumeMountPoint + PREFIX_LEN,
-                            std::size(volumeMountPoint) - PREFIX_LEN)) {
+  if (!::GetVolumePathNameW(
+          filePath.get(), volumeMountPoint + PREFIX_LEN,
+          mozilla::ArrayLength(volumeMountPoint) - PREFIX_LEN)) {
     return NS_ERROR_UNEXPECTED;
   }
   size_t volumeMountPointLen = wcslen(volumeMountPoint);
@@ -498,10 +499,12 @@ static nsresult GetWindowsSecurityCenterInfo(nsAString& aAVInfo,
   // Each output must match the corresponding entry in providerTypes.
   nsAString* outputs[] = {&aAVInfo, &aAntiSpyInfo, &aFirewallInfo};
 
-  static_assert(std::size(providerTypes) == std::size(outputs),
-                "Length of providerTypes and outputs arrays must match");
+  static_assert(
+      mozilla::ArrayLength(providerTypes) == mozilla::ArrayLength(outputs),
+      "Length of providerTypes and outputs arrays must match");
 
-  for (uint32_t index = 0; index < std::size(providerTypes); ++index) {
+  for (uint32_t index = 0; index < mozilla::ArrayLength(providerTypes);
+       ++index) {
     RefPtr<IWSCProductList> prodList;
     HRESULT hr = ::CoCreateInstance(clsid, nullptr, CLSCTX_INPROC_SERVER, iid,
                                     getter_AddRefs(prodList));
@@ -1384,7 +1387,7 @@ nsresult nsSystemInfo::Init() {
 #endif
   if (virtualMem) SetUint64Property(u"virtualmemsize"_ns, virtualMem);
 
-  for (uint32_t i = 0; i < std::size(cpuPropItems); i++) {
+  for (uint32_t i = 0; i < ArrayLength(cpuPropItems); i++) {
     rv = SetPropertyAsBool(NS_ConvertASCIItoUTF16(cpuPropItems[i].name),
                            cpuPropItems[i].propfun());
     if (NS_WARN_IF(NS_FAILED(rv))) {

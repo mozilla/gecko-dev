@@ -55,7 +55,7 @@ nsresult SVGFEMergeElement::BindToTree(BindContext& aCtx, nsINode& aParent) {
 
 SVGElement::StringAttributesInfo SVGFEMergeElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 }  // namespace mozilla::dom

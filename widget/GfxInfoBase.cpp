@@ -1605,7 +1605,7 @@ const char* chromebookProductList[] = {
 bool ProductIsChromebook(nsCString product) {
   size_t result;
   return BinarySearchIf(
-      chromebookProductList, 0, std::size(chromebookProductList),
+      chromebookProductList, 0, ArrayLength(chromebookProductList),
       [&](const char* const aValue) -> int {
         return strcmp(product.get(), aValue);
       },

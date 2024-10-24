@@ -482,7 +482,7 @@ class ProtoAndIfaceCache {
     JS::Heap<JSObject*>& EntrySlotMustExist(size_t i) { return (*this)[i]; }
 
     void Trace(JSTracer* aTracer) {
-      for (size_t i = 0; i < std::size(*this); ++i) {
+      for (size_t i = 0; i < ArrayLength(*this); ++i) {
         JS::TraceEdge(aTracer, &(*this)[i], "protoAndIfaceCache[i]");
       }
     }
@@ -497,7 +497,7 @@ class ProtoAndIfaceCache {
     PageTableCache() { memset(mPages.begin(), 0, sizeof(mPages)); }
 
     ~PageTableCache() {
-      for (size_t i = 0; i < std::size(mPages); ++i) {
+      for (size_t i = 0; i < ArrayLength(mPages); ++i) {
         delete mPages[i];
       }
     }
@@ -539,10 +539,10 @@ class ProtoAndIfaceCache {
     }
 
     void Trace(JSTracer* trc) {
-      for (size_t i = 0; i < std::size(mPages); ++i) {
+      for (size_t i = 0; i < ArrayLength(mPages); ++i) {
         Page* p = mPages[i];
         if (p) {
-          for (size_t j = 0; j < std::size(*p); ++j) {
+          for (size_t j = 0; j < ArrayLength(*p); ++j) {
             JS::TraceEdge(trc, &(*p)[j], "protoAndIfaceCache[i]");
           }
         }
@@ -551,7 +551,7 @@ class ProtoAndIfaceCache {
 
     size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) {
       size_t n = aMallocSizeOf(this);
-      for (size_t i = 0; i < std::size(mPages); ++i) {
+      for (size_t i = 0; i < ArrayLength(mPages); ++i) {
         n += aMallocSizeOf(mPages[i]);
       }
       return n;
@@ -1495,8 +1495,9 @@ inline Maybe<Enum> StringToEnum(const StringT& aString) {
 
 template <typename Enum>
 inline constexpr const nsLiteralCString& GetEnumString(Enum stringId) {
-  MOZ_RELEASE_ASSERT(static_cast<size_t>(stringId) <
-                     std::size(binding_detail::EnumStrings<Enum>::Values));
+  MOZ_RELEASE_ASSERT(
+      static_cast<size_t>(stringId) <
+      mozilla::ArrayLength(binding_detail::EnumStrings<Enum>::Values));
   return binding_detail::EnumStrings<Enum>::Values[static_cast<size_t>(
       stringId)];
 }

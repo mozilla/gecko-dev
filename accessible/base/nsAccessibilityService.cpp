@@ -453,9 +453,9 @@ uint64_t nsAccessibilityService::gCacheDomains =
     nsAccessibilityService::kDefaultCacheDomains;
 
 nsAccessibilityService::nsAccessibilityService()
-    : mHTMLMarkupMap(std::size(sHTMLMarkupMapList)),
-      mMathMLMarkupMap(std::size(sMathMLMarkupMapList)),
-      mXULMarkupMap(std::size(sXULMarkupMapList)) {}
+    : mHTMLMarkupMap(ArrayLength(sHTMLMarkupMapList)),
+      mMathMLMarkupMap(ArrayLength(sMathMLMarkupMapList)),
+      mXULMarkupMap(ArrayLength(sXULMarkupMapList)) {}
 
 nsAccessibilityService::~nsAccessibilityService() {
   NS_ASSERTION(IsShutdown(), "Accessibility wasn't shutdown!");
@@ -1082,10 +1082,10 @@ already_AddRefed<DOMStringList> nsAccessibilityService::GetStringStates(
 void nsAccessibilityService::GetStringEventType(uint32_t aEventType,
                                                 nsAString& aString) {
   static_assert(
-      nsIAccessibleEvent::EVENT_LAST_ENTRY == std::size(kEventTypeNames),
+      nsIAccessibleEvent::EVENT_LAST_ENTRY == ArrayLength(kEventTypeNames),
       "nsIAccessibleEvent constants are out of sync to kEventTypeNames");
 
-  if (aEventType >= std::size(kEventTypeNames)) {
+  if (aEventType >= ArrayLength(kEventTypeNames)) {
     aString.AssignLiteral("unknown");
     return;
   }
@@ -1095,10 +1095,11 @@ void nsAccessibilityService::GetStringEventType(uint32_t aEventType,
 
 void nsAccessibilityService::GetStringEventType(uint32_t aEventType,
                                                 nsACString& aString) {
-  MOZ_ASSERT(nsIAccessibleEvent::EVENT_LAST_ENTRY == std::size(kEventTypeNames),
-             "nsIAccessibleEvent constants are out of sync to kEventTypeNames");
+  MOZ_ASSERT(
+      nsIAccessibleEvent::EVENT_LAST_ENTRY == ArrayLength(kEventTypeNames),
+      "nsIAccessibleEvent constants are out of sync to kEventTypeNames");
 
-  if (aEventType >= std::size(kEventTypeNames)) {
+  if (aEventType >= ArrayLength(kEventTypeNames)) {
     aString.AssignLiteral("unknown");
     return;
   }
@@ -1536,7 +1537,7 @@ bool nsAccessibilityService::Init(uint64_t aCacheDomains) {
 
   eventListenerService->AddListenerChangeListener(this);
 
-  for (uint32_t i = 0; i < std::size(sHTMLMarkupMapList); i++) {
+  for (uint32_t i = 0; i < ArrayLength(sHTMLMarkupMapList); i++) {
     mHTMLMarkupMap.InsertOrUpdate(sHTMLMarkupMapList[i].tag,
                                   &sHTMLMarkupMapList[i]);
   }
@@ -1544,7 +1545,7 @@ bool nsAccessibilityService::Init(uint64_t aCacheDomains) {
     mMathMLMarkupMap.InsertOrUpdate(info.tag, &info);
   }
 
-  for (uint32_t i = 0; i < std::size(sXULMarkupMapList); i++) {
+  for (uint32_t i = 0; i < ArrayLength(sXULMarkupMapList); i++) {
     mXULMarkupMap.InsertOrUpdate(sXULMarkupMapList[i].tag,
                                  &sXULMarkupMapList[i]);
   }
@@ -1755,7 +1756,7 @@ void nsAccessibilityService::MarkupAttributes(
   if (!markupMap) return;
 
   dom::Element* el = aAcc->IsLocal() ? aAcc->AsLocal()->Elm() : nullptr;
-  for (uint32_t i = 0; i < std::size(markupMap->attrs); i++) {
+  for (uint32_t i = 0; i < ArrayLength(markupMap->attrs); i++) {
     const MarkupAttrInfo* info = markupMap->attrs + i;
     if (!info->name) break;
 

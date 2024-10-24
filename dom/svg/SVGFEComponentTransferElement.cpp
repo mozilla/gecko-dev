@@ -43,7 +43,7 @@ already_AddRefed<DOMSVGAnimatedString> SVGFEComponentTransferElement::In1() {
 SVGElement::StringAttributesInfo
 SVGFEComponentTransferElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 //--------------------------------------------

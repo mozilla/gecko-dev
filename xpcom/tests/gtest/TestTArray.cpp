@@ -64,7 +64,7 @@ constexpr int dummyArrayData[] = {4, 1, 2, 8};
 static const nsTArray<int>& DummyArray() {
   static nsTArray<int> sArray;
   if (sArray.IsEmpty()) {
-    sArray.AppendElements(dummyArrayData, std::size(dummyArrayData));
+    sArray.AppendElements(dummyArrayData, ArrayLength(dummyArrayData));
   }
   return sArray;
 }
@@ -86,11 +86,11 @@ TEST(TArray, int_AppendElements_PlainArray)
 {
   nsTArray<int> array;
 
-  int* ptr = array.AppendElements(dummyArrayData, std::size(dummyArrayData));
+  int* ptr = array.AppendElements(dummyArrayData, ArrayLength(dummyArrayData));
   ASSERT_EQ(&array[0], ptr);
   ASSERT_EQ(DummyArray(), array);
 
-  ptr = array.AppendElements(dummyArrayData, std::size(dummyArrayData));
+  ptr = array.AppendElements(dummyArrayData, ArrayLength(dummyArrayData));
   ASSERT_EQ(&array[DummyArray().Length()], ptr);
   nsTArray<int> expected;
   expected.AppendElements(DummyArray());
@@ -102,13 +102,13 @@ TEST(TArray, int_AppendElements_PlainArray_Fallible)
 {
   nsTArray<int> array;
 
-  int* ptr =
-      array.AppendElements(dummyArrayData, std::size(dummyArrayData), fallible);
+  int* ptr = array.AppendElements(dummyArrayData, ArrayLength(dummyArrayData),
+                                  fallible);
   ASSERT_EQ(&array[0], ptr);
   ASSERT_EQ(DummyArray(), array);
 
-  ptr =
-      array.AppendElements(dummyArrayData, std::size(dummyArrayData), fallible);
+  ptr = array.AppendElements(dummyArrayData, ArrayLength(dummyArrayData),
+                             fallible);
   ASSERT_EQ(&array[DummyArray().Length()], ptr);
   nsTArray<int> expected;
   expected.AppendElements(DummyArray());

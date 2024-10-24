@@ -3487,7 +3487,7 @@ nsCSSFrameConstructor::FindHTMLData(const Element& aElement,
       SIMPLE_TAG_CHAIN(details, nsCSSFrameConstructor::FindDetailsData),
   };
 
-  return FindDataByTag(aElement, aStyle, sHTMLData, std::size(sHTMLData));
+  return FindDataByTag(aElement, aStyle, sHTMLData, ArrayLength(sHTMLData));
 }
 
 /* static */
@@ -3610,7 +3610,7 @@ nsCSSFrameConstructor::FindInputData(const Element& aElement,
   }
 
   return FindDataByInt(int32_t(controlType), aElement, aStyle, sInputData,
-                       std::size(sInputData));
+                       ArrayLength(sInputData));
 }
 
 /* static */
@@ -3636,7 +3636,7 @@ nsCSSFrameConstructor::FindObjectData(const Element& aElement,
   };
 
   return FindDataByInt((int32_t)type, aElement, aStyle, sObjectData,
-                       std::size(sObjectData));
+                       ArrayLength(sObjectData));
 }
 
 /* static */
@@ -4132,7 +4132,7 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
       {nsGkAtoms::tooltip, kPopupData},
   };
 
-  return FindDataByTag(aElement, aStyle, sXULTagData, std::size(sXULTagData));
+  return FindDataByTag(aElement, aStyle, sXULTagData, ArrayLength(sXULTagData));
 }
 
 /* static */
@@ -4638,7 +4638,7 @@ nsCSSFrameConstructor::FindMathMLData(const Element& aElement,
       SIMPLE_MATHML_CREATE(menclose_, NS_NewMathMLmencloseFrame),
       SIMPLE_MATHML_CREATE(semantics_, NS_NewMathMLmrowFrame)};
 
-  return FindDataByTag(aElement, aStyle, sMathMLData, std::size(sMathMLData));
+  return FindDataByTag(aElement, aStyle, sMathMLData, ArrayLength(sMathMLData));
 }
 
 nsContainerFrame* nsCSSFrameConstructor::ConstructFrameWithAnonymousChild(
@@ -4945,7 +4945,7 @@ nsCSSFrameConstructor::FindSVGData(const Element& aElement,
       SIMPLE_SVG_CREATE(feTurbulence, NS_NewSVGFELeafFrame)};
 
   const FrameConstructionData* data =
-      FindDataByTag(aElement, aStyle, sSVGData, std::size(sSVGData));
+      FindDataByTag(aElement, aStyle, sSVGData, ArrayLength(sSVGData));
 
   if (!data) {
     data = &sContainerData;

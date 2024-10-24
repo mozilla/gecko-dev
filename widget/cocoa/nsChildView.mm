@@ -1473,7 +1473,7 @@ uint32_t nsChildView::GetCurrentInputEventCount() {
                                            kCGEventOtherMouseDragged};
 
   uint32_t eventCount = 0;
-  for (uint32_t i = 0; i < std::size(eventTypes); ++i) {
+  for (uint32_t i = 0; i < ArrayLength(eventTypes); ++i) {
     eventCount += CGEventSourceCounterForEventType(
         kCGEventSourceStateCombinedSessionState, eventTypes[i]);
   }

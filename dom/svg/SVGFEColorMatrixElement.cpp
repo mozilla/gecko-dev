@@ -120,18 +120,18 @@ nsresult SVGFEColorMatrixElement::BindToTree(BindContext& aCtx,
 // SVGElement methods
 
 SVGElement::EnumAttributesInfo SVGFEColorMatrixElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFEColorMatrixElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 SVGElement::NumberListAttributesInfo
 SVGFEColorMatrixElement::GetNumberListInfo() {
   return NumberListAttributesInfo(mNumberListAttributes, sNumberListInfo,
-                                  std::size(sNumberListInfo));
+                                  ArrayLength(sNumberListInfo));
 }
 
 }  // namespace mozilla::dom

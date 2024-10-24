@@ -61,7 +61,7 @@ int ParentMain(int argc, wchar_t* argv[]) {
   wchar_t* childArgv[] = {argv[0], childArgv_1};
 
   mozilla::UniquePtr<wchar_t[]> cmdLine(
-      mozilla::MakeCommandLine(std::size(childArgv), childArgv));
+      mozilla::MakeCommandLine(mozilla::ArrayLength(childArgv), childArgv));
 
   STARTUPINFOW si = {sizeof(si)};
   PROCESS_INFORMATION pi;

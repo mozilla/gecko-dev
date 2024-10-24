@@ -133,18 +133,18 @@ void SVGFEDropShadowElement::GetSourceImageNames(
 
 SVGElement::NumberAttributesInfo SVGFEDropShadowElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              std::size(sNumberInfo));
+                              ArrayLength(sNumberInfo));
 }
 
 SVGElement::NumberPairAttributesInfo
 SVGFEDropShadowElement::GetNumberPairInfo() {
   return NumberPairAttributesInfo(mNumberPairAttributes, sNumberPairInfo,
-                                  std::size(sNumberPairInfo));
+                                  ArrayLength(sNumberPairInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFEDropShadowElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 }  // namespace mozilla::dom

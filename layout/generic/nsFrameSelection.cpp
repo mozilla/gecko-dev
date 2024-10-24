@@ -365,7 +365,7 @@ nsFrameSelection::CreateRangeExtendedToSomewhere(
 
 nsFrameSelection::nsFrameSelection(PresShell* aPresShell, nsIContent* aLimiter,
                                    const bool aAccessibleCaretEnabled) {
-  for (size_t i = 0; i < std::size(mDomSelections); i++) {
+  for (size_t i = 0; i < ArrayLength(mDomSelections); i++) {
     mDomSelections[i] = new Selection(kPresentSelectionTypes[i], this);
   }
 
@@ -400,7 +400,7 @@ nsFrameSelection::~nsFrameSelection() = default;
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsFrameSelection)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsFrameSelection)
-  for (size_t i = 0; i < std::size(tmp->mDomSelections); ++i) {
+  for (size_t i = 0; i < ArrayLength(tmp->mDomSelections); ++i) {
     tmp->mDomSelections[i] = nullptr;
   }
   tmp->mHighlightSelections.Clear();
@@ -423,7 +423,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsFrameSelection)
           cb, tmp->mPresShell->GetDocument()->GetMarkedCCGeneration())) {
     return NS_SUCCESS_INTERRUPTED_TRAVERSE;
   }
-  for (size_t i = 0; i < std::size(tmp->mDomSelections); ++i) {
+  for (size_t i = 0; i < ArrayLength(tmp->mDomSelections); ++i) {
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDomSelections[i])
   }
 
@@ -1504,7 +1504,7 @@ UniquePtr<SelectionDetails> nsFrameSelection::LookUpSelection(
 
   UniquePtr<SelectionDetails> details;
 
-  for (size_t j = 0; j < std::size(mDomSelections); j++) {
+  for (size_t j = 0; j < ArrayLength(mDomSelections); j++) {
     if (mDomSelections[j]) {
       details = mDomSelections[j]->LookUpSelection(
           aContent, static_cast<uint32_t>(aContentOffset),
@@ -3044,7 +3044,7 @@ void nsFrameSelection::DisconnectFromPresShell() {
   }
 
   StopAutoScrollTimer();
-  for (size_t i = 0; i < std::size(mDomSelections); i++) {
+  for (size_t i = 0; i < ArrayLength(mDomSelections); i++) {
     mDomSelections[i]->Clear(nullptr);
   }
   mPresShell = nullptr;

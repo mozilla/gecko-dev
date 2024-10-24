@@ -413,11 +413,11 @@ OSStatus GatherEnterpriseCertsMacOS(nsTArray<EnterpriseCert>& certs,
   // this query. Further work (below) filters such certificates out.
   const CFStringRef keys[] = {kSecClass, kSecMatchLimit};
   const void* values[] = {kSecClassCertificate, kSecMatchLimitAll};
-  static_assert(std::size(keys) == std::size(values),
+  static_assert(ArrayLength(keys) == ArrayLength(values),
                 "mismatched SecItemCopyMatching key/value array sizes");
   // https://developer.apple.com/documentation/corefoundation/1516782-cfdictionarycreate
   ScopedCFType<CFDictionaryRef> searchDictionary(CFDictionaryCreate(
-      nullptr, (const void**)&keys, (const void**)&values, std::size(keys),
+      nullptr, (const void**)&keys, (const void**)&values, ArrayLength(keys),
       &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
   CFTypeRef items;
   // https://developer.apple.com/documentation/security/1398306-secitemcopymatching

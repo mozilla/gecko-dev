@@ -60,7 +60,7 @@ bool SVGFETileElement::AttributeAffectsRendering(int32_t aNameSpaceID,
 
 SVGElement::StringAttributesInfo SVGFETileElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              std::size(sStringInfo));
+                              ArrayLength(sStringInfo));
 }
 
 nsresult SVGFETileElement::BindToTree(BindContext& aCtx, nsINode& aParent) {

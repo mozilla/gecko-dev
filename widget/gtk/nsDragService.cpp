@@ -2586,7 +2586,7 @@ const char* nsDragSession::GetDragServiceTaskName(DragTask aTask) {
   static const char* taskNames[] = {"eDragTaskNone", "eDragTaskMotion",
                                     "eDragTaskLeave", "eDragTaskDrop",
                                     "eDragTaskSourceEnd"};
-  MOZ_ASSERT(size_t(aTask) < std::size(taskNames));
+  MOZ_ASSERT(size_t(aTask) < ArrayLength(taskNames));
   return taskNames[aTask];
 }
 #endif

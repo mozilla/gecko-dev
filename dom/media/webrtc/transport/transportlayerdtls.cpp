@@ -598,7 +598,7 @@ bool TransportLayerDtls::Setup() {
   }
 
   rv = SSL_NamedGroupConfig(ssl_fd.get(), NamedGroupPreferences,
-                            std::size(NamedGroupPreferences));
+                            mozilla::ArrayLength(NamedGroupPreferences));
   if (rv != SECSuccess) {
     MOZ_MTLOG(ML_ERROR, "Couldn't set named groups");
     return false;

@@ -82,7 +82,7 @@ bool SVGCircleElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGCircleElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              std::size(sLengthInfo));
+                              ArrayLength(sLengthInfo));
 }
 
 //----------------------------------------------------------------------

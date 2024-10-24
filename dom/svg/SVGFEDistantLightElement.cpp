@@ -61,7 +61,7 @@ already_AddRefed<DOMSVGAnimatedNumber> SVGFEDistantLightElement::Elevation() {
 
 SVGElement::NumberAttributesInfo SVGFEDistantLightElement::GetNumberInfo() {
   return NumberAttributesInfo(mNumberAttributes, sNumberInfo,
-                              std::size(sNumberInfo));
+                              ArrayLength(sNumberInfo));
 }
 
 }  // namespace mozilla::dom
