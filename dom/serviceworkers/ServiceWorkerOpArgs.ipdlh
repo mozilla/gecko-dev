@@ -69,7 +69,7 @@ struct ServiceWorkerExtensionAPIEventOpArgs {
 };
 
 struct ServiceWorkerMessageEventOpArgs {
-  ClientInfoAndState clientInfoAndState;
+  PostMessageSource source;
   ClonedOrErrorMessageData clonedData;
 };
 

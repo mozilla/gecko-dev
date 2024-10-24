@@ -55,6 +55,7 @@
 #include "mozilla/dom/Response.h"
 #include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/SafeRefPtr.h"
+#include "mozilla/dom/ServiceWorker.h"
 #include "mozilla/dom/ServiceWorkerBinding.h"
 #include "mozilla/dom/ServiceWorkerGlobalScopeBinding.h"
 #include "mozilla/dom/WorkerCommon.h"
@@ -1004,12 +1005,28 @@ class MessageEventOp final : public ExtendableEventOp {
       init.mPorts = std::move(ports);
     }
 
+    PostMessageSource& ipcSource =
+        mArgs.get_ServiceWorkerMessageEventOpArgs().source();
+    nsCString originSource;
+    switch (ipcSource.type()) {
+      case PostMessageSource::TClientInfoAndState:
+        originSource = ipcSource.get_ClientInfoAndState().info().url();
+        init.mSource.SetValue().SetAsClient() =
+            new Client(sgo, ipcSource.get_ClientInfoAndState());
+        break;
+      case PostMessageSource::TIPCServiceWorkerDescriptor:
+        originSource = ipcSource.get_IPCServiceWorkerDescriptor().scriptURL();
+        init.mSource.SetValue().SetAsServiceWorker() = ServiceWorker::Create(
+            sgo, ServiceWorkerDescriptor(
+                     ipcSource.get_IPCServiceWorkerDescriptor()));
+        break;
+      default:
+        MOZ_ASSERT_UNREACHABLE("Unexpected source type");
+        return false;
+    }
+
     nsCOMPtr<nsIURI> url;
-    nsresult result = NS_NewURI(getter_AddRefs(url),
-                                mArgs.get_ServiceWorkerMessageEventOpArgs()
-                                    .clientInfoAndState()
-                                    .info()
-                                    .url());
+    nsresult result = NS_NewURI(getter_AddRefs(url), originSource);
     if (NS_WARN_IF(NS_FAILED(result))) {
       RejectAll(result);
       rv.SuppressException();
@@ -1032,9 +1049,6 @@ class MessageEventOp final : public ExtendableEventOp {
     }
 
     CopyUTF8toUTF16(origin, init.mOrigin);
-
-    init.mSource.SetValue().SetAsClient() = new Client(
-        sgo, mArgs.get_ServiceWorkerMessageEventOpArgs().clientInfoAndState());
 
     rv.SuppressException();
     RefPtr<EventTarget> target = aWorkerPrivate->GlobalScope();

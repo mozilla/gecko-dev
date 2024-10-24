@@ -18,7 +18,7 @@ protocol PServiceWorker
 parent:
   async Teardown();
 
-  async PostMessage(ClonedOrErrorMessageData aClonedData, ClientInfoAndState aSource);
+  async PostMessage(ClonedOrErrorMessageData aClonedData, PostMessageSource aSource);
 
 child:
   async __delete__();

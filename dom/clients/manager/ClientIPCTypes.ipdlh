@@ -69,6 +69,21 @@ struct ClientInfoAndState
   IPCClientState state;
 };
 
+// ExtendableMessageEvent.source can be one of a `ServiceWorker`, a
+// `WindowClient`, or a `Client`.  We use the same `Client` binding for both
+// types of client (and they use the same underlying data source), but our
+// `ServiceWorker` binding needs different data.
+//
+// Note that ClientPostMessageArgs only needs to handle messages originating
+// from ServiceWorker instances because, until
+// https://github.com/w3c/ServiceWorker/issues/955 is addressed, the Clients API
+// is only exposed on ServiceWorkers, which means the source of such a message
+// will always be a ServiceWorker.
+union PostMessageSource {
+  ClientInfoAndState;
+  IPCServiceWorkerDescriptor;
+};
+
 struct ClientSourceExecutionReadyArgs
 {
   nsCString url;
@@ -96,6 +111,7 @@ struct ClientNavigateArgs
 struct ClientPostMessageArgs
 {
   ClonedMessageData clonedData;
+  // See PostMessageSource for why this can only be a ServiceWorker.
   IPCServiceWorkerDescriptor serviceWorker;
 };
 

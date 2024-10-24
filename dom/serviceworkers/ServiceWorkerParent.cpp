@@ -31,12 +31,11 @@ IPCResult ServiceWorkerParent::RecvTeardown() {
 
 IPCResult ServiceWorkerParent::RecvPostMessage(
     const ClonedOrErrorMessageData& aClonedData,
-    const ClientInfoAndState& aSource) {
+    const PostMessageSource& aSource) {
   RefPtr<ServiceWorkerCloneData> data = new ServiceWorkerCloneData();
   data->CopyFromClonedMessageData(aClonedData);
 
-  mProxy->PostMessage(std::move(data), ClientInfo(aSource.info()),
-                      ClientState::FromIPC(aSource.state()));
+  mProxy->PostMessage(std::move(data), aSource);
 
   return IPC_OK();
 }

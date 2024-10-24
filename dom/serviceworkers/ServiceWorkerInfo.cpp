@@ -240,11 +240,8 @@ uint64_t ServiceWorkerInfo::GetNextID() const {
 }
 
 void ServiceWorkerInfo::PostMessage(RefPtr<ServiceWorkerCloneData>&& aData,
-                                    const ClientInfo& aClientInfo,
-                                    const ClientState& aClientState) {
-  mServiceWorkerPrivate->SendMessageEvent(
-      std::move(aData),
-      ClientInfoAndState(aClientInfo.ToIPC(), aClientState.ToIPC()));
+                                    const PostMessageSource& aSource) {
+  mServiceWorkerPrivate->SendMessageEvent(std::move(aData), aSource);
 }
 
 void ServiceWorkerInfo::UpdateInstalledTime() {

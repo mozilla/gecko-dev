@@ -252,9 +252,24 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     return;
   }
 
-  mActor->SendPostMessage(
-      clonedData,
-      ClientInfoAndState(clientInfo.ref().ToIPC(), clientState.ref().ToIPC()));
+  // If this global is a ServiceWorker, we need this global's
+  // ServiceWorkerDescriptor.  While we normally try and normalize things
+  // through nsIGlobalObject, this is fairly one-off right now, so starting from
+  // worker-specific logic.
+  PostMessageSource source;
+  if (WorkerPrivate* wp = GetCurrentThreadWorkerPrivate()) {
+    if (wp->IsServiceWorker()) {
+      source = wp->GetServiceWorkerDescriptor().ToIPC();
+    } else {
+      source = ClientInfoAndState(clientInfo.ref().ToIPC(),
+                                  clientState.ref().ToIPC());
+    }
+  } else {
+    source =
+        ClientInfoAndState(clientInfo.ref().ToIPC(), clientState.ref().ToIPC());
+  }
+
+  mActor->SendPostMessage(clonedData, source);
 }
 
 void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,

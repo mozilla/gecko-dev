@@ -17,8 +17,7 @@
 
 namespace mozilla::dom {
 
-class ClientInfoAndState;
-class ClientState;
+class PostMessageSource;
 class ServiceWorkerCloneData;
 class ServiceWorkerPrivate;
 
@@ -78,8 +77,7 @@ class ServiceWorkerInfo final : public nsIServiceWorkerInfo {
   NS_DECL_NSISERVICEWORKERINFO
 
   void PostMessage(RefPtr<ServiceWorkerCloneData>&& aData,
-                   const ClientInfo& aClientInfo,
-                   const ClientState& aClientState);
+                   const PostMessageSource& aSource);
 
   class ServiceWorkerPrivate* WorkerPrivate() const {
     MOZ_ASSERT(mServiceWorkerPrivate);

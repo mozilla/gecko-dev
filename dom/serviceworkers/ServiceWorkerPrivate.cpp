@@ -816,8 +816,7 @@ nsresult ServiceWorkerPrivate::CheckScriptEvaluation(
 }
 
 nsresult ServiceWorkerPrivate::SendMessageEvent(
-    RefPtr<ServiceWorkerCloneData>&& aData,
-    const ClientInfoAndState& aClientInfoAndState) {
+    RefPtr<ServiceWorkerCloneData>&& aData, const PostMessageSource& aSource) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aData);
 
@@ -830,7 +829,7 @@ nsresult ServiceWorkerPrivate::SendMessageEvent(
   }
 
   ServiceWorkerMessageEventOpArgs args;
-  args.clientInfoAndState() = aClientInfoAndState;
+  args.source() = aSource;
   if (!aData->BuildClonedMessageData(args.clonedData())) {
     return NS_ERROR_DOM_DATA_CLONE_ERR;
   }

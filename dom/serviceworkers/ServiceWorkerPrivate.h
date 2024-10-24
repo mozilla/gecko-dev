@@ -38,7 +38,7 @@ class JSObjectHolder;
 
 namespace dom {
 
-class ClientInfoAndState;
+class PostMessageSource;
 class RemoteWorkerControllerChild;
 class ServiceWorkerCloneData;
 class ServiceWorkerInfo;
@@ -83,7 +83,7 @@ class ServiceWorkerPrivate final : public RemoteWorkerObserver {
   explicit ServiceWorkerPrivate(ServiceWorkerInfo* aInfo);
 
   nsresult SendMessageEvent(RefPtr<ServiceWorkerCloneData>&& aData,
-                            const ClientInfoAndState& aClientInfoAndState);
+                            const PostMessageSource& aSource);
 
   // This is used to validate the worker script and continue the installation
   // process.

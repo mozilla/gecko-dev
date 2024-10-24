@@ -101,17 +101,15 @@ void ServiceWorkerProxy::RevokeActor(ServiceWorkerParent* aActor) {
 }
 
 void ServiceWorkerProxy::PostMessage(RefPtr<ServiceWorkerCloneData>&& aData,
-                                     const ClientInfo& aClientInfo,
-                                     const ClientState& aClientState) {
+                                     const PostMessageSource& aSource) {
   AssertIsOnBackgroundThread();
   RefPtr<ServiceWorkerProxy> self = this;
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
-      __func__,
-      [self, data = std::move(aData), aClientInfo, aClientState]() mutable {
+      __func__, [self, data = std::move(aData), aSource]() mutable {
         if (!self->mInfo) {
           return;
         }
-        self->mInfo->PostMessage(std::move(data), aClientInfo, aClientState);
+        self->mInfo->PostMessage(std::move(data), aSource);
       });
   MOZ_ALWAYS_SUCCEEDS(SchedulerGroup::Dispatch(r.forget()));
 }
