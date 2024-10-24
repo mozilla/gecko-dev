@@ -55,12 +55,6 @@ export default class TabHoverPreviewPanel {
     );
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
-      "_prefShowPidAndActiveness",
-      "browser.tabs.tooltipsShowPidAndActiveness",
-      false
-    );
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
       "_prefCollectWireframes",
       "browser.history.collectWireframes"
     );
@@ -238,7 +232,7 @@ export default class TabHoverPreviewPanel {
     this._panel.querySelector(".tab-preview-uri").textContent =
       this._displayURI;
 
-    if (this._prefShowPidAndActiveness) {
+    if (this._win.gBrowser.showPidAndActiveness) {
       this._panel.querySelector(".tab-preview-pid").textContent =
         this._displayPids;
       this._panel.querySelector(".tab-preview-activeness").textContent =
