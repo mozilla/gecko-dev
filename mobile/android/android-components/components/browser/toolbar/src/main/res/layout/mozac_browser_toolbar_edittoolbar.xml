@@ -39,8 +39,8 @@
     <mozilla.components.browser.toolbar.internal.ActionContainer
         android:id="@+id/mozac_browser_toolbar_edit_actions_start"
         android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:layout_marginTop="8dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toEndOf="@id/mozac_browser_toolbar_edit_icon"
         mozac:actionContainerItemSize="56dp"
