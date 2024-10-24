@@ -21,7 +21,8 @@ body {
 }
 
 edit-profile-card,
-delete-profile-card {
+delete-profile-card,
+new-profile-card {
   display: block;
   max-width: 80%;
   margin-top: calc(2 * var(--space-xxlarge));

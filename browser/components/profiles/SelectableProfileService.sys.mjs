@@ -621,7 +621,10 @@ class SelectableProfileServiceClass {
         });`
     );
 
-    const prefsJs = prefsJsHeader.concat(prefsJsContent);
+    const prefsJs = prefsJsHeader.concat(
+      prefsJsContent,
+      'user_pref("browser.profiles.profile-name.updated", false);'
+    );
 
     await IOUtils.writeUTF8(prefsJsFilePath, prefsJs.join(LINEBREAK));
   }

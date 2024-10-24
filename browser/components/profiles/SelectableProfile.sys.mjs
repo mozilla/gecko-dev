@@ -70,6 +70,8 @@ export class SelectableProfile {
     this.#name = aName;
 
     this.saveUpdatesToDB();
+
+    Services.prefs.setBoolPref("browser.profiles.profile-name.updated", true);
   }
 
   /**

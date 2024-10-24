@@ -44,6 +44,8 @@ export class EditProfileCard extends MozLitElement {
   connectedCallback() {
     super.connectedCallback();
 
+    window.addEventListener("beforeunload", this);
+
     this.init();
   }
 
@@ -60,6 +62,21 @@ export class EditProfileCard extends MozLitElement {
     this.themes = themes;
 
     this.initialized = true;
+  }
+
+  handleEvent(event) {
+    switch (event.type) {
+      case "beforeunload": {
+        let newName = this.nameInput.value.trim();
+        if (newName === "") {
+          this.showErrorMessage("edit-profile-page-no-name");
+          event.preventDefault();
+        } else if (!this.isDuplicateName(newName)) {
+          this.updateName();
+        }
+        break;
+      }
+    }
   }
 
   debounce(callback) {
@@ -84,12 +101,12 @@ export class EditProfileCard extends MozLitElement {
   }
 
   updateName() {
-    this.savedMessage.parentElement.hidden = false;
+    this.showSavedMessage();
     if (this.saveMessageTimeoutId) {
       clearTimeout(this.saveMessageTimeoutId);
     }
     this.saveMessageTimeoutId = setTimeout(() => {
-      this.savedMessage.parentElement.hidden = true;
+      this.hideSavedMessage();
     }, SAVED_MESSAGE_TIMEOUT);
 
     let newName = this.nameInput.value.trim();
@@ -131,6 +148,7 @@ export class EditProfileCard extends MozLitElement {
   }
 
   async handleInputEvent() {
+    this.hideSavedMessage();
     let newName = this.nameInput.value.trim();
     if (newName === "") {
       this.showErrorMessage("edit-profile-page-no-name");
@@ -154,20 +172,36 @@ export class EditProfileCard extends MozLitElement {
     this.errorMessage.parentElement.hidden = true;
   }
 
+  showSavedMessage() {
+    this.savedMessage.parentElement.hidden = false;
+  }
+
+  hideSavedMessage() {
+    this.savedMessage.parentElement.hidden = true;
+  }
+
+  headerTemplate() {
+    return html`<h1 data-l10n-id="edit-profile-page-header"></h1>`;
+  }
+
+  nameInputTemplate() {
+    return html`<input
+      type="text"
+      id="profile-name"
+      size="64"
+      aria-errormessage="error-message"
+      value=${this.profile.name}
+      @input=${this.handleInputEvent}
+    />`;
+  }
+
   profilesNameTemplate() {
     return html`<div id="profile-name-area">
       <label
         data-l10n-id="edit-profile-page-profile-name-label"
         for="profile-name"
       ></label>
-      <input
-        type="text"
-        id="profile-name"
-        size="64"
-        aria-errormessage="error-message"
-        value=${this.profile.name}
-        @input=${this.handleInputEvent}
-      />
+      ${this.nameInputTemplate()}
       <div class="message-parent">
         <span class="message" hidden
           ><img
@@ -246,6 +280,14 @@ export class EditProfileCard extends MozLitElement {
     RPMSendAsyncMessage("Profiles:OpenDeletePage");
   }
 
+  buttonsTemplate() {
+    return html`<moz-button
+      data-l10n-id="edit-profile-page-delete-button"
+      @click=${this.onDeleteClick}
+      type="destructive"
+    ></moz-button>`;
+  }
+
   render() {
     if (!this.profile) {
       return null;
@@ -267,9 +309,7 @@ export class EditProfileCard extends MozLitElement {
               .avatar}.svg"
           />
           <div id="profile-content">
-            <h1 data-l10n-id="edit-profile-page-header"></h1>
-
-            ${this.profilesNameTemplate()}
+            ${this.headerTemplate()}${this.profilesNameTemplate()}
 
             <h3 data-l10n-id="edit-profile-page-theme-header"></h3>
             <div id="themes">${this.themesTemplate()}</div>
@@ -282,15 +322,10 @@ export class EditProfileCard extends MozLitElement {
             <h3 data-l10n-id="edit-profile-page-avatar-header"></h3>
             <div id="avatars">${this.avatarsTemplate()}</div>
 
-            <moz-button-group>
-              <moz-button
-                data-l10n-id="edit-profile-page-delete-button"
-                @click=${this.onDeleteClick}
-                type="destructive"
-              ></moz-button>
-            </moz-button-group>
-          </div></div
-      ></moz-card>`;
+            <moz-button-group>${this.buttonsTemplate()}</moz-button-group>
+          </div>
+        </div></moz-card
+      >`;
   }
 }
 

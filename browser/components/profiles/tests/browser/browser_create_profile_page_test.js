@@ -5,13 +5,17 @@
 
 const NEW_PROFILE_NAME = "This is a new profile name";
 
-add_task(async function test_edit_profile_name() {
+add_task(async function test_create_profile_name() {
   if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
     // `mochitest-browser` suite `add_task` does not yet support
     // `properties.skip_if`.
     ok(true, "Skipping because !AppConstants.MOZ_SELECTABLE_PROFILES");
     return;
   }
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.profiles.profile-name.updated", false]],
+  });
 
   let profile = await setupMockDB();
   let rootDir = await profile.rootDir;
@@ -26,25 +30,27 @@ add_task(async function test_edit_profile_name() {
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
-      url: "about:editprofile",
+      url: "about:newprofile",
     },
     async browser => {
       await SpecialPowers.spawn(
         browser,
         [NEW_PROFILE_NAME],
         async newProfileName => {
-          let editProfileCard =
-            content.document.querySelector("edit-profile-card").wrappedJSObject;
+          let newProfileCard =
+            content.document.querySelector("new-profile-card").wrappedJSObject;
 
           await ContentTaskUtils.waitForCondition(
-            () => editProfileCard.initialized,
-            "Waiting for edit-profile-card to be initialized"
+            () => newProfileCard.initialized,
+            "Waiting for new-profile-card to be initialized"
           );
 
-          await editProfileCard.updateComplete;
-          await editProfileCard.mozCard.updateComplete;
+          await newProfileCard.updateComplete;
+          await newProfileCard.mozCard.updateComplete;
 
-          let nameInput = editProfileCard.nameInput;
+          let nameInput = newProfileCard.nameInput;
+          Assert.equal(nameInput.value, "", "Profile is empty to start");
+
           nameInput.value = newProfileName;
           nameInput.dispatchEvent(new content.Event("input"));
         }
@@ -71,9 +77,11 @@ add_task(async function test_edit_profile_name() {
       );
     }
   );
+
+  await SpecialPowers.popPrefEnv();
 });
 
-add_task(async function test_edit_profile_avatar() {
+add_task(async function test_new_profile_avatar() {
   if (!AppConstants.MOZ_SELECTABLE_PROFILES) {
     // `mochitest-browser` suite `add_task` does not yet support
     // `properties.skip_if`.
@@ -94,22 +102,22 @@ add_task(async function test_edit_profile_avatar() {
   await BrowserTestUtils.withNewTab(
     {
       gBrowser,
-      url: "about:editprofile",
+      url: "about:newprofile",
     },
     async browser => {
       await SpecialPowers.spawn(browser, [], async () => {
-        let editProfileCard =
-          content.document.querySelector("edit-profile-card").wrappedJSObject;
+        let newProfileCard =
+          content.document.querySelector("new-profile-card").wrappedJSObject;
 
         await ContentTaskUtils.waitForCondition(
-          () => editProfileCard.initialized,
-          "Waiting for edit-profile-card to be initialized"
+          () => newProfileCard.initialized,
+          "Waiting for new-profile-card to be initialized"
         );
 
-        await editProfileCard.updateComplete;
-        await editProfileCard.mozCard.updateComplete;
+        await newProfileCard.updateComplete;
+        await newProfileCard.mozCard.updateComplete;
 
-        let avatars = editProfileCard.avatars;
+        let avatars = newProfileCard.avatars;
         avatars[0].click();
       });
 

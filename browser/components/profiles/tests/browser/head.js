@@ -113,11 +113,12 @@ async function setupMockDB() {
 
   // re-initialize because we updated the dirsvc
   await SelectableProfileService.uninit();
+  await SelectableProfileService.maybeCreateProfilesStorePath();
   await SelectableProfileService.init();
 
   let profile = await SelectableProfileService.createProfile({
     name: "testProfile",
-    avatar: "avatar",
+    avatar: "star",
     themeL10nId: "theme-id",
     themeFg: "redFG",
     themeBg: "blueBG",

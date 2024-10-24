@@ -670,6 +670,7 @@ let JSWINDOWACTORS = {
       "about:firefoxview",
       "about:editprofile",
       "about:deleteprofile",
+      "about:newprofile",
     ],
   },
 
@@ -767,7 +768,7 @@ let JSWINDOWACTORS = {
         DOMDocElementInserted: { wantUntrusted: true },
       },
     },
-    matches: ["about:editprofile", "about:deleteprofile"],
+    matches: ["about:editprofile", "about:deleteprofile", "about:newprofile"],
     enablePreference: "browser.profiles.enabled",
   },
 

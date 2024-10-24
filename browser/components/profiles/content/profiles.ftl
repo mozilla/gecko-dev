@@ -27,6 +27,15 @@ edit-profile-page-duplicate-name = Profile name already in use. Try a new name.
 
 edit-profile-page-profile-saved = Saved
 
+new-profile-page-title = New profile
+new-profile-page-header = Customize your new profile
+new-profile-page-header-description = Each profile keeps its unique browsing history and settings separate from your other profiles. Plus, { -brand-short-name }’s strong privacy protections are on by default.
+new-profile-page-learn-more = Learn more
+new-profile-page-input-placeholder =
+    .placeholder = Pick a name like “Work” or “Personal”
+new-profile-page-done-button =
+    .label = Done editing
+
 # Variables
 #   $profilename (String) - The name of the profile.
 delete-profile-page-title = Delete { $profilename } profile

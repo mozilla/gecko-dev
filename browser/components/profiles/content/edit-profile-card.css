@@ -70,19 +70,7 @@
   color: var(--icon-color-success);
 }
 
-#themes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xlarge);
-
-  /* TODO: bug 1886005 will implement the theme cards */
-  > moz-card {
-    flex: 1 0 18%;
-    width: 120px;
-    height: 78px;
-  }
-}
-
+#themes,
 #avatars {
   display: flex;
   flex-wrap: wrap;

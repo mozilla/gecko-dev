@@ -186,6 +186,20 @@ export let RemotePageAccessManager = {
         "Profiles:OpenDeletePage",
       ],
     },
+    "about:newprofile": {
+      RPMSendQuery: [
+        "Profiles:GetNewProfileContent",
+        "Profiles:UpdateProfileTheme",
+      ],
+      RPMSendAsyncMessage: [
+        "Profiles:UpdateProfileName",
+        "Profiles:UpdateProfileAvatar",
+        "Profiles:DeleteNewProfile",
+        "Profiles:CloseNewProfileTab",
+      ],
+      RPMGetBoolPref: ["browser.profiles.profile-name.updated"],
+      RPMGetFormatURLPref: ["app.support.baseURL"],
+    },
     "about:protections": {
       RPMSendAsyncMessage: [
         "OpenContentBlockingPreferences",
