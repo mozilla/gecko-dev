@@ -1994,6 +1994,10 @@ abstract class BaseBrowserFragment :
         if (findNavController().currentDestination?.id != R.id.searchDialogFragment) {
             view?.hideKeyboard()
         }
+
+        requireComponents.services.appLinksInterceptor.updateFragmentManger(
+            fragmentManager = null,
+        )
     }
 
     @CallSuper
@@ -2481,9 +2485,6 @@ abstract class BaseBrowserFragment :
 
         binding.engineView.setActivityContext(null)
         requireContext().accessibilityManager.removeAccessibilityStateChangeListener(this)
-        requireContext().components.services.appLinksInterceptor.updateFragmentManger(
-            fragmentManager = null,
-        )
 
         _bottomToolbarContainerView = null
         _browserToolbarView = null

@@ -263,10 +263,12 @@ class AppLinksInterceptor(
             return
         }
 
-        getOrCreateDialog(isPrivate, url).apply {
-            onConfirmRedirect = doOpenApp
-            onCancelRedirect = doNotOpenApp
-        }.showNow(fragmentManager, FRAGMENT_TAG)
+        if (!fragmentManager.isStateSaved) {
+            getOrCreateDialog(isPrivate, url).apply {
+                onConfirmRedirect = doOpenApp
+                onCancelRedirect = doNotOpenApp
+            }.showNow(fragmentManager, FRAGMENT_TAG)
+        }
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
