@@ -113,6 +113,10 @@ export class FakespotSuggestions extends BaseFeature {
     return !cap || this.showLessFrequentlyCount < cap;
   }
 
+  isSuggestionSponsored(_suggestion) {
+    return true;
+  }
+
   getSuggestionTelemetryType(suggestion) {
     return "fakespot_" + this.#parseProvider(suggestion);
   }

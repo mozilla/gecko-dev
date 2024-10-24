@@ -30,6 +30,8 @@ const FEATURES = {
     "resource:///modules/urlbar/private/PocketSuggestions.sys.mjs",
   SuggestBackendJs:
     "resource:///modules/urlbar/private/SuggestBackendJs.sys.mjs",
+  SuggestBackendMl:
+    "resource:///modules/urlbar/private/SuggestBackendMl.sys.mjs",
   SuggestBackendRust:
     "resource:///modules/urlbar/private/SuggestBackendRust.sys.mjs",
   Weather: "resource:///modules/urlbar/private/Weather.sys.mjs",
@@ -186,6 +188,9 @@ class _QuickSuggest {
       if (feature.rustSuggestionTypes.length) {
         this.#rustFeatures.add(feature);
       }
+      if (feature.mlIntent) {
+        this.#featuresByMlIntent.set(feature.mlIntent, feature);
+      }
 
       // Update the map from enabling preferences to features.
       let prefs = feature.enablingPreferences;
@@ -246,6 +251,20 @@ class _QuickSuggest {
    */
   getFeatureByRustSuggestionType(type) {
     return this.#featuresByRustSuggestionType.get(type);
+  }
+
+  /**
+   * Returns a Suggest feature by the ML intent name (as defined by
+   * `feature.mlIntent` and `MLSuggest`). Not all features support ML.
+   *
+   * @param {string} intent
+   *   The name of an ML intent.
+   * @returns {BaseFeature}
+   *   The feature object, an instance of a subclass of `BaseFeature`, or null
+   *   if no feature corresponds to the intent.
+   */
+  getFeatureByMlIntent(intent) {
+    return this.#featuresByMlIntent.get(intent);
   }
 
   /**
@@ -495,6 +514,9 @@ class _QuickSuggest {
 
   // Maps from Rust suggestion types to Suggest feature instances.
   #featuresByRustSuggestionType = new Map();
+
+  // Maps from ML intent strings to Suggest feature instances.
+  #featuresByMlIntent = new Map();
 
   // Set of feature instances that manage Rust suggestion types.
   #rustFeatures = new Set();

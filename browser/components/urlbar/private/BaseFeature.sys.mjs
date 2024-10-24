@@ -57,8 +57,8 @@ export class BaseFeature {
    *   If the subclass's `shouldEnable` implementation depends on any prefs that
    *   are not fallbacks for Nimbus variables, the subclass should override this
    *   getter and return their names in this array so that `update()` can be
-   *   called when they change. Names should be relative to `browser.urlbar.`.
-   *   It doesn't hurt to include prefs that are fallbacks for Nimbus variables,
+   *   called when they change. Names should be recognized by `UrlbarPrefs`. It
+   *   doesn't hurt to include prefs that are fallbacks for Nimbus variables,
    *   it's just not necessary because `QuickSuggest` will update all features
    *   whenever a `urlbar` Nimbus variable or its fallback pref changes.
    */
@@ -176,6 +176,22 @@ export class BaseFeature {
    */
   getRustProviderConstraints(_type) {
     return null;
+  }
+
+  /**
+   * If the feature corresponds to a type of suggestion, the subclass may
+   * override this method as necessary. It should return true if the given
+   * suggestion should be considered sponsored.
+   *
+   * @param {object} _suggestion
+   *   A suggestion from one of the Suggest sources (Rust, Merino, etc.).
+   *   Subclasses should not assume which source the suggestion is from, and
+   *   they should handle all possible sources as necessary.
+   * @returns {boolean}
+   *   Whether the suggestion should be considered sponsored.
+   */
+  isSuggestionSponsored(_suggestion) {
+    return false;
   }
 
   /**

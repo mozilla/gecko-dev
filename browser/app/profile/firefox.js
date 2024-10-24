@@ -553,6 +553,9 @@ pref("browser.urlbar.quicksuggest.ampTopPickCharThreshold", 0);
 // Comma-separated list of Suggest exposure suggestion types to enable.
 pref("browser.urlbar.quicksuggest.exposureSuggestionTypes", "");
 
+// Whether Suggest will use the ML backend in addition to Rust.
+pref("browser.urlbar.quicksuggest.mlEnabled", false);
+
 // Whether unit conversion is enabled.
 #ifdef NIGHTLY_BUILD
 pref("browser.urlbar.unitConversion.enabled", true);
@@ -676,6 +679,10 @@ pref("browser.urlbar.yelp.minKeywordLength", 4);
 
 // Whether Yelp suggestions should be shown as top picks.
 pref("browser.urlbar.yelp.priority", false);
+
+// Whether Yelp suggestions will be served from the Suggest ML backend instead
+// of Rust.
+pref("browser.urlbar.yelp.mlEnabled", false);
 
 // If `browser.urlbar.yelp.featureGate` is true, this controls whether
 // Yelp suggestions are turned on.

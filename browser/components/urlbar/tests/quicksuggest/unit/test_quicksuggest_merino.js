@@ -549,6 +549,7 @@ add_task(async function bestMatch() {
           url: "url",
           icon: null,
           qsSuggestion: "full_keyword",
+          isSponsored: false,
           isBlockable: true,
           blockL10n: {
             id: "urlbar-result-menu-dismiss-firefox-suggest",

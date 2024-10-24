@@ -122,9 +122,6 @@ if (AppConstants.MOZ_BACKGROUNDTASKS) {
 // referencing the listed file in a way that the test can't detect, or a
 // bug number to remove or use the file if it is indeed currently unreferenced.
 var allowlist = [
-  // See bug 1926381 for why this is hard to fix.
-  { file: "resource://app/modules/urlbar/private/MLSuggest.sys.mjs" },
-
   // security/manager/pki/resources/content/device_manager.js
   { file: "chrome://pippki/content/load_device.xhtml" },
 

@@ -661,7 +661,7 @@ function makeExpectedDefaultMerinoResult({ suggestion }) {
       source: "merino",
       provider: suggestion.provider,
       telemetryType: suggestion.provider,
-      isSponsored: suggestion.is_sponsored,
+      isSponsored: !!suggestion.is_sponsored,
       title: suggestion.title,
       url: suggestion.url,
       displayUrl: suggestion.url.replace(/^https:\/\//, ""),

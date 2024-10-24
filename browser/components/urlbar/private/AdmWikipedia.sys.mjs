@@ -48,6 +48,12 @@ export class AdmWikipedia extends BaseFeature {
     return ["Amp", "Wikipedia"];
   }
 
+  isSuggestionSponsored(suggestion) {
+    return suggestion.source == "rust"
+      ? suggestion.provider == "Amp"
+      : !NONSPONSORED_IAB_CATEGORIES.has(suggestion.iab_category);
+  }
+
   getSuggestionTelemetryType(suggestion) {
     return suggestion.is_sponsored ? "adm_sponsored" : "adm_nonsponsored";
   }

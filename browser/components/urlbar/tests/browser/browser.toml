@@ -17,6 +17,11 @@ prefs = [
   "sidebar.revamp=false",
 ]
 
+["browser_MLSuggest_integration.js"]
+support-files = [
+  "!/toolkit/components/ml/tests/browser/head.js",
+]
+
 ["browser_UrlbarInput_formatValue.js"]
 
 ["browser_UrlbarInput_formatValue_detachedTab.js"]
@@ -49,10 +54,10 @@ tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_remote_settings_sync.js"]
 
-["browser_UrlbarInput_searchTerms_revert_keyboard.js"]
+["browser_UrlbarInput_searchTerms_revert.js"]
 tags = "persisted-search"
 
-["browser_UrlbarInput_searchTerms_revert.js"]
+["browser_UrlbarInput_searchTerms_revert_keyboard.js"]
 tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_searchBar.js"]
@@ -319,11 +324,6 @@ support-files = ["file_urlbar_edit_dos.html"]
 
 ["browser_middleClick.js"]
 fail-if = ["a11y_checks"] # Bug 1854660 clicked element may not be focusable and/or labeled
-
-["browser_MLSuggest_integration.js"]
-support-files = [
-  "!/toolkit/components/ml/tests/browser/head.js",
-]
 
 ["browser_move_tab_to_new_window.js"]
 

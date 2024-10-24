@@ -34,8 +34,6 @@ XPCOMUtils.defineLazyServiceGetter(
 
 const SUGGEST_DATA_STORE_BASENAME = "suggest.sqlite";
 
-const SPONSORED_SUGGESTION_TYPES = new Set(["Amp", "Fakespot", "Yelp"]);
-
 // This ID is used to register our ingest timer with nsIUpdateTimerManager.
 const INGEST_TIMER_ID = "suggest-ingest";
 const INGEST_TIMER_LAST_UPDATE_PREF = `app.update.lastUpdateTime.${INGEST_TIMER_ID}`;
@@ -115,19 +113,47 @@ export class SuggestBackendRust extends BaseFeature {
     }
   }
 
-  async query(searchString) {
+  /**
+   * Queries the Rust component and returns all matching suggestions.
+   *
+   * @param {string} searchString
+   *   The search string.
+   * @param {Array} types
+   *   This is only intended to be used in special circumstances and normally
+   *   should not be specified. Array of suggestion types to query. By default
+   *   all enabled suggestion types are queried.
+   * @returns {Array}
+   *   Matching Rust suggestions.
+   */
+  async query(searchString, types = null) {
     if (!this.#store) {
       return [];
     }
 
     this.logger.debug("Handling query: " + JSON.stringify(searchString));
 
+    if (!types) {
+      types = this.#enabledSuggestionTypes;
+    } else {
+      types = types.map(type => {
+        let provider = this.#providerFromSuggestionType(type);
+        if (!provider) {
+          throw new Error("Unknown Rust suggestion type: " + type);
+        }
+        return { type, provider };
+      });
+    }
+
     let providers = [];
     let allProviderConstraints = {};
-    for (let { type, provider, providerConstraints } of this
-      .#enabledSuggestionTypes) {
+    for (let { type, provider } of types) {
       this.logger.debug(`Adding type to query: '${type}' (${provider})`);
       providers.push(provider);
+
+      let providerConstraints =
+        lazy.QuickSuggest.getFeatureByRustSuggestionType(
+          type
+        ).getRustProviderConstraints(type);
       if (providerConstraints) {
         allProviderConstraints = {
           ...allProviderConstraints,
@@ -158,7 +184,6 @@ export class SuggestBackendRust extends BaseFeature {
 
       suggestion.source = "rust";
       suggestion.provider = type;
-      suggestion.is_sponsored = SPONSORED_SUGGESTION_TYPES.has(type);
       if (suggestion.icon) {
         suggestion.icon_blob = new Blob([suggestion.icon], {
           type: suggestion.iconMimetype ?? "",
@@ -260,12 +285,10 @@ export class SuggestBackendRust extends BaseFeature {
    *   related data. Items have the following properties:
    *
    *   {string} type
-   *     A Rust suggestion type name as defined in `suggest.udl`, e.g., "Amp",
+   *     A Rust suggestion type name as defined in Rust, e.g., "Amp",
    *     "Wikipedia", "Mdn", etc.
    *   {number} provider
    *     An integer that identifies the provider of the suggestion type to Rust.
-   *   {object|null} providerConstraints
-   *     A plain JS object version of the type's provider constraints, if any.
    */
   get #enabledSuggestionTypes() {
     let items = [];
@@ -275,11 +298,7 @@ export class SuggestBackendRust extends BaseFeature {
           if (feature.isRustSuggestionTypeEnabled(type)) {
             let provider = this.#providerFromSuggestionType(type);
             if (provider) {
-              items.push({
-                type,
-                provider,
-                providerConstraints: feature.getRustProviderConstraints(type),
-              });
+              items.push({ type, provider });
             }
           }
         }

@@ -126,8 +126,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     let instance = this.queryInstance;
     let searchString = this._trimmedSearchString;
 
-    // There are two sources for quick suggest: the current remote settings
-    // backend (either JS or Rust) and Merino.
+    // Fetch suggestions from all enabled sources.
     let promises = [];
     let { backend } = lazy.QuickSuggest;
     if (backend?.isEnabled) {
@@ -138,6 +137,10 @@ class ProviderQuickSuggest extends UrlbarProvider {
       queryContext.allowRemoteResults()
     ) {
       promises.push(this._fetchMerinoSuggestions(queryContext, searchString));
+    }
+    let mlBackend = lazy.QuickSuggest.getFeature("SuggestBackendMl");
+    if (mlBackend.isEnabled) {
+      promises.push(mlBackend.query(searchString));
     }
 
     // Wait for both sources to finish.
@@ -197,6 +200,11 @@ class ProviderQuickSuggest extends UrlbarProvider {
         continue;
       }
 
+      // Set `is_sponsored` before continuing because
+      // `#getSuggestionTelemetryType()` and other things depend on it.
+      let feature = this.#getFeature(suggestion);
+      suggestion.is_sponsored = !!feature?.isSuggestionSponsored(suggestion);
+
       // Ensure all suggestions have scores. `quickSuggestScoreMap`, if defined,
       // maps telemetry types to score overrides.
       if (isNaN(suggestion.score)) {
@@ -213,7 +221,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
       }
 
       // Save some state used below to build the final list of suggestions.
-      let feature = this.#getFeature(suggestion);
       let featureSuggestions = suggestionsByFeature.get(feature);
       if (!featureSuggestions) {
         featureSuggestions = [];
@@ -312,17 +319,19 @@ class ProviderQuickSuggest extends UrlbarProvider {
    * @param {object} options
    *   Options object.
    * @param {string} options.source
-   *   The suggestion source, one of: "remote-settings", "merino", "rust"
+   *   The suggestion source, one of: "merino", "ml", "remote-settings", "rust"
    * @param {string} options.provider
    *   This value depends on `source`. The possible values per source are:
    *
+   *   merino:
+   *     The name of the Merino provider that serves the suggestion type
+   *   ml:
+   *     The name of the intent as determined by `MLSuggest`
    *   remote-settings:
    *     The name of the `BaseFeature` instance (`feature.name`) that manages
    *     the suggestion type
-   *   merino:
-   *     The name of the Merino provider that serves the suggestion type
    *   rust:
-   *     The name of the suggestion type as defined in `suggest.udl`
+   *     The name of the suggestion type as defined in Rust
    * @returns {BaseFeature}
    *   The feature instance or null if no feature was found.
    */
@@ -334,6 +343,8 @@ class ProviderQuickSuggest extends UrlbarProvider {
         return lazy.QuickSuggest.getFeatureByMerinoProvider(provider);
       case "rust":
         return lazy.QuickSuggest.getFeatureByRustSuggestionType(provider);
+      case "ml":
+        return lazy.QuickSuggest.getFeatureByMlIntent(provider);
     }
     return null;
   }
@@ -367,6 +378,15 @@ class ProviderQuickSuggest extends UrlbarProvider {
     let result;
     let feature = this.#getFeature(suggestion);
     if (!feature) {
+      // We specifically allow Merino to serve suggestion types that Firefox
+      // doesn't know about so that we can experiment with new types without
+      // requiring changes in Firefox. No other source should return unknown
+      // suggestion types with the possible exception of the ML backend: Its
+      // models are stored in remote settings and it may return newer intents
+      // that aren't recognized by older Firefoxes.
+      if (suggestion.source != "merino") {
+        return null;
+      }
       result = this.#makeDefaultResult(queryContext, suggestion);
     } else {
       result = await feature.makeResult(
@@ -380,8 +400,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
       }
     }
 
-    // `source` will be one of: "remote-settings", "merino", "rust".
-    // `provider` depends on `source`. See `#getFeature()` for possible values.
+    // See `#getFeature()` for possible values of `source` and `provider`.
     result.payload.source = suggestion.source;
     result.payload.provider = suggestion.provider;
     result.payload.telemetryType = this.#getSuggestionTelemetryType(suggestion);

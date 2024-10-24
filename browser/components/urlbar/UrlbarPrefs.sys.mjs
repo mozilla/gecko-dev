@@ -297,6 +297,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   //    `suggest.quicksuggest.sponsored` are true. Previously they were false.
   ["quicksuggest.migrationVersion", 0],
 
+  // Whether Suggest will use the ML backend in addition to Rust.
+  ["quicksuggest.mlEnabled", false],
+
   // The user's response to the Firefox Suggest online opt-in dialog.
   ["quicksuggest.onboardingDialogChoice", ""],
 
@@ -551,6 +554,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // the suggestion. 0 means the min length should be taken from Nimbus.
   ["yelp.minKeywordLength", 4],
 
+  // Whether Yelp suggestions will be served from the Suggest ML backend instead
+  // of Rust.
+  ["yelp.mlEnabled", false],
+
   // Whether Yelp suggestions should be shown as top picks. This is a fallback
   // pref for the `yelpSuggestPriority` Nimbus variable.
   ["yelp.priority", false],
@@ -562,6 +569,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
 const PREF_OTHER_DEFAULTS = new Map([
   ["browser.fixup.dns_first_for_single_words", false],
+  ["browser.ml.enable", false],
   ["browser.search.suggest.enabled", true],
   ["browser.search.suggest.enabled.private", false],
   ["keyword.enabled", true],

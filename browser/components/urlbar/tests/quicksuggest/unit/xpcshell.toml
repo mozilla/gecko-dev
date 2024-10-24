@@ -50,6 +50,8 @@ skip-if = ["true"] # Bug 1880214
 
 ["test_quicksuggest_yelp.js"]
 
+["test_quicksuggest_yelp_ml.js"]
+
 ["test_rust_ingest.js"]
 
 ["test_suggestionsMap.js"]

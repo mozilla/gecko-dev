@@ -431,6 +431,11 @@ urlbar:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.impressionCaps.nonSponsoredEnabled
       description: Whether non-sponsored suggestions are subject to impression frequency caps. If false, non-sponsored suggestions can be shown an unlimited number of times over any given period. If true, non-sponsored suggestion impressions will be subject to the caps in the remote settings configuration.
+    quickSuggestMlEnabled:
+      type: boolean
+      fallbackPref: browser.urlbar.quicksuggest.mlEnabled
+      description: >-
+        Whether Suggest will use the ML backend in addition to Rust.
     quickSuggestNonSponsoredEnabled:
       type: boolean
       description: Whether non-sponsored suggestions should be enabled by default. If this variable is specified, it will override the value implied by the scenario. It will never override the user's local preference to disable (or enable) non-sponsored suggestions, if the user has already toggled that preference.
@@ -572,6 +577,12 @@ urlbar:
       description: >-
         The minimum prefix length of a Yelp keyword the user must type to
         trigger the suggestion.
+    yelpMlEnabled:
+      type: boolean
+      fallbackPref: browser.urlbar.yelp.mlEnabled
+      description: >-
+        Whether Yelp suggestions will be served from the Suggest ML backend
+        instead of Rust.
     yelpFeatureGate:
       type: boolean
       fallbackPref: browser.urlbar.yelp.featureGate
