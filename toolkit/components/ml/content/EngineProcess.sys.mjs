@@ -17,11 +17,6 @@ ChromeUtils.defineESModuleGetters(
  */
 
 /**
- * Lists Firefox internal features
- */
-const FEATURES = ["pdfjs-alt-text"];
-
-/**
  * Enum for execution priority.
  *
  * Defines the priority of the task:
@@ -242,9 +237,6 @@ export class PipelineOptions {
       // We also ignore `null` values.
       if (!optionsKeys.includes(key) || options[key] == null) {
         return;
-      }
-      if (key === "featureId" && !FEATURES.includes(options[key])) {
-        throw Error(`Unknown featureId ${options[key]}`);
       }
       this[key] = options[key];
     });
