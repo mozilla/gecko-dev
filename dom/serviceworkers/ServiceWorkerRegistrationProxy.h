@@ -7,6 +7,7 @@
 #ifndef moz_dom_ServiceWorkerRegistrationProxy_h
 #define moz_dom_ServiceWorkerRegistrationProxy_h
 
+#include "mozilla/dom/ClientInfo.h"
 #include "mozilla/dom/PServiceWorkerRegistrationParent.h"
 #include "nsProxyRelease.h"
 #include "ServiceWorkerRegistrationDescriptor.h"
@@ -28,6 +29,7 @@ class ServiceWorkerRegistrationProxy final
 
   // Main thread only
   ServiceWorkerRegistrationDescriptor mDescriptor;
+  ClientInfo mListeningClientInfo;
   nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo> mReg;
 
   ~ServiceWorkerRegistrationProxy();
@@ -65,8 +67,9 @@ class ServiceWorkerRegistrationProxy final
       const ServiceWorkerRegistrationDescriptor& aDescriptor) override;
 
  public:
-  explicit ServiceWorkerRegistrationProxy(
-      const ServiceWorkerRegistrationDescriptor& aDescriptor);
+  ServiceWorkerRegistrationProxy(
+      const ServiceWorkerRegistrationDescriptor& aDescriptor,
+      const ClientInfo& aForClient);
 
   void Init(ServiceWorkerRegistrationParent* aActor);
 

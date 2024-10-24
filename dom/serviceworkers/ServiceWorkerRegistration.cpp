@@ -64,9 +64,15 @@ ServiceWorkerRegistration::ServiceWorkerRegistration(
     return;
   }
 
+  Maybe<ClientInfo> clientInfo = aGlobal->GetClientInfo();
+  if (clientInfo.isNothing()) {
+    Shutdown();
+    return;
+  }
+
   PServiceWorkerRegistrationChild* sentActor =
       parentActor->SendPServiceWorkerRegistrationConstructor(
-          actor, aDescriptor.ToIPC());
+          actor, aDescriptor.ToIPC(), clientInfo.ref().ToIPC());
   if (NS_WARN_IF(!sentActor)) {
     Shutdown();
     return;

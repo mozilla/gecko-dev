@@ -48,7 +48,8 @@ class ServiceWorkerRegistrationParent final
 
   ServiceWorkerRegistrationParent();
 
-  void Init(const IPCServiceWorkerRegistrationDescriptor& aDescriptor);
+  void Init(const IPCServiceWorkerRegistrationDescriptor& aDescriptor,
+            const IPCClientInfo& aForClient);
 
   void MaybeSendDelete();
 };

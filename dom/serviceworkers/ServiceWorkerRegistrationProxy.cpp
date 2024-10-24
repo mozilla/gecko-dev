@@ -167,8 +167,11 @@ bool ServiceWorkerRegistrationProxy::MatchesDescriptor(
 }
 
 ServiceWorkerRegistrationProxy::ServiceWorkerRegistrationProxy(
-    const ServiceWorkerRegistrationDescriptor& aDescriptor)
-    : mEventTarget(GetCurrentSerialEventTarget()), mDescriptor(aDescriptor) {}
+    const ServiceWorkerRegistrationDescriptor& aDescriptor,
+    const ClientInfo& aForClient)
+    : mEventTarget(GetCurrentSerialEventTarget()),
+      mDescriptor(aDescriptor),
+      mListeningClientInfo(aForClient) {}
 
 void ServiceWorkerRegistrationProxy::Init(
     ServiceWorkerRegistrationParent* aActor) {
@@ -318,8 +321,8 @@ ServiceWorkerRegistrationProxy::DelayedUpdate::Notify(nsITimer* aTimer) {
   NS_ENSURE_TRUE(swm, NS_ERROR_FAILURE);
 
   RefPtr<UpdateCallback> cb = new UpdateCallback(std::move(mPromise));
-  swm->Update(mProxy->mReg->Principal(), mProxy->mReg->Scope(),
-              std::move(mNewestWorkerScriptUrl), cb);
+  swm->Update(mProxy->mListeningClientInfo, mProxy->mReg->Principal(),
+              mProxy->mReg->Scope(), std::move(mNewestWorkerScriptUrl), cb);
 
   mTimer = nullptr;
   mProxy->mDelayedUpdate = nullptr;
@@ -377,8 +380,9 @@ RefPtr<ServiceWorkerRegistrationPromise> ServiceWorkerRegistrationProxy::Update(
           NS_ENSURE_TRUE_VOID(swm);
 
           RefPtr<UpdateCallback> cb = new UpdateCallback(std::move(promise));
-          swm->Update(self->mReg->Principal(), self->mReg->Scope(),
-                      std::move(newestWorkerScriptUrl), cb);
+          swm->Update(self->mListeningClientInfo, self->mReg->Principal(),
+                      self->mReg->Scope(), std::move(newestWorkerScriptUrl),
+                      cb);
         }
         scopeExit.release();
       });

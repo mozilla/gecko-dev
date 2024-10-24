@@ -134,10 +134,11 @@ ServiceWorkerRegistrationParent::~ServiceWorkerRegistrationParent() {
 }
 
 void ServiceWorkerRegistrationParent::Init(
-    const IPCServiceWorkerRegistrationDescriptor& aDescriptor) {
+    const IPCServiceWorkerRegistrationDescriptor& aDescriptor,
+    const IPCClientInfo& aForClient) {
   MOZ_DIAGNOSTIC_ASSERT(!mProxy);
   mProxy = new ServiceWorkerRegistrationProxy(
-      ServiceWorkerRegistrationDescriptor(aDescriptor));
+      ServiceWorkerRegistrationDescriptor(aDescriptor), ClientInfo(aForClient));
   mProxy->Init(this);
 }
 

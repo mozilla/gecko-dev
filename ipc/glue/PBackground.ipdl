@@ -258,7 +258,12 @@ parent:
 
   async PServiceWorkerContainer();
 
-  async PServiceWorkerRegistration(IPCServiceWorkerRegistrationDescriptor aDescriptor);
+  // Allows a global to listen for updates to a ServiceWorkerRegistration given
+  // receipt of a (static) snapshot via the descriptor.  `aForClient` identifies
+  // the global subscribing; in the future this will be mooted by Bug 1853706
+  // having this actor managed by an actor explicitly tied to a global.
+  async PServiceWorkerRegistration(IPCServiceWorkerRegistrationDescriptor aDescriptor,
+                                   IPCClientInfo aForClient);
 
   async PEndpointForReport(nsString aGroupName, PrincipalInfo aPrincipalInfo);
 

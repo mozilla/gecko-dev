@@ -25,12 +25,14 @@ void InitServiceWorkerContainerParent(PServiceWorkerContainerParent* aActor);
 
 // PServiceWorkerRegistration
 
+class IPCClientInfo;
 class IPCServiceWorkerRegistrationDescriptor;
 class PServiceWorkerRegistrationParent;
 
 void InitServiceWorkerRegistrationParent(
     PServiceWorkerRegistrationParent* aActor,
-    const IPCServiceWorkerRegistrationDescriptor& aDescriptor);
+    const IPCServiceWorkerRegistrationDescriptor& aDescriptor,
+    const IPCClientInfo& aForClient);
 
 }  // namespace mozilla::dom
 

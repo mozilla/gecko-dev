@@ -1198,15 +1198,16 @@ BackgroundParentImpl::RecvPServiceWorkerContainerConstructor(
 
 already_AddRefed<PServiceWorkerRegistrationParent>
 BackgroundParentImpl::AllocPServiceWorkerRegistrationParent(
-    const IPCServiceWorkerRegistrationDescriptor&) {
+    const IPCServiceWorkerRegistrationDescriptor&, const IPCClientInfo&) {
   return MakeAndAddRef<mozilla::dom::ServiceWorkerRegistrationParent>();
 }
 
 mozilla::ipc::IPCResult
 BackgroundParentImpl::RecvPServiceWorkerRegistrationConstructor(
     PServiceWorkerRegistrationParent* aActor,
-    const IPCServiceWorkerRegistrationDescriptor& aDescriptor) {
-  dom::InitServiceWorkerRegistrationParent(aActor, aDescriptor);
+    const IPCServiceWorkerRegistrationDescriptor& aDescriptor,
+    const IPCClientInfo& aForClient) {
+  dom::InitServiceWorkerRegistrationParent(aActor, aDescriptor, aForClient);
   return IPC_OK();
 }
 

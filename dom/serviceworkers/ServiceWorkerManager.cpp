@@ -2482,19 +2482,19 @@ void ServiceWorkerManager::SoftUpdateInternal(
 }
 
 void ServiceWorkerManager::Update(
-    nsIPrincipal* aPrincipal, const nsACString& aScope,
-    nsCString aNewestWorkerScriptUrl,
+    const ClientInfo& aClientInfo, nsIPrincipal* aPrincipal,
+    const nsACString& aScope, nsCString aNewestWorkerScriptUrl,
     ServiceWorkerUpdateFinishCallback* aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!aNewestWorkerScriptUrl.IsEmpty());
 
-  UpdateInternal(aPrincipal, aScope, std::move(aNewestWorkerScriptUrl),
-                 aCallback);
+  UpdateInternal(aClientInfo, aPrincipal, aScope,
+                 std::move(aNewestWorkerScriptUrl), aCallback);
 }
 
 void ServiceWorkerManager::UpdateInternal(
-    nsIPrincipal* aPrincipal, const nsACString& aScope,
-    nsCString&& aNewestWorkerScriptUrl,
+    const ClientInfo& aClientInfo, nsIPrincipal* aPrincipal,
+    const nsACString& aScope, nsCString&& aNewestWorkerScriptUrl,
     ServiceWorkerUpdateFinishCallback* aCallback) {
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(aCallback);

@@ -309,11 +309,13 @@ class BackgroundParentImpl : public PBackgroundParent {
 
   already_AddRefed<PServiceWorkerRegistrationParent>
   AllocPServiceWorkerRegistrationParent(
-      const IPCServiceWorkerRegistrationDescriptor&) final;
+      const IPCServiceWorkerRegistrationDescriptor&,
+      const IPCClientInfo&) final;
 
   mozilla::ipc::IPCResult RecvPServiceWorkerRegistrationConstructor(
       PServiceWorkerRegistrationParent* aActor,
-      const IPCServiceWorkerRegistrationDescriptor& aDescriptor) override;
+      const IPCServiceWorkerRegistrationDescriptor& aDescriptor,
+      const IPCClientInfo& aForClient) override;
 
   PEndpointForReportParent* AllocPEndpointForReportParent(
       const nsAString& aGroupName,

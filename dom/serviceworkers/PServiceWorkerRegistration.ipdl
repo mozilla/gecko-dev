@@ -4,6 +4,7 @@
 
 include protocol PBackground;
 
+include ClientIPCTypes;
 include IPCNavigationPreloadState;
 include IPCServiceWorkerRegistrationDescriptor;
 
