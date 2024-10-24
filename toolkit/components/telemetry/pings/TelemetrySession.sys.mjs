@@ -1107,7 +1107,6 @@ var Impl = {
     // inactivity, because it is just the start of this active tick.
     if (needsUpdate) {
       this._sessionActiveTicks++;
-      Services.telemetry.scalarAdd("browser.engagement.active_ticks", 1);
       Glean.browserEngagement.activeTicks.add(1);
     }
   },

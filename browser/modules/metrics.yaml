@@ -43,6 +43,7 @@ browser.engagement:
       - baseline
       - metrics
       - dau-reporting
+    telemetry_mirror: BROWSER_ENGAGEMENT_ACTIVE_TICKS
     no_lint:
       - BASELINE_PING
 
@@ -77,6 +78,28 @@ browser.engagement:
       - dau-reporting
     no_lint:
       - BASELINE_PING
+    telemetry_mirror: BROWSER_ENGAGEMENT_TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE
+
+  uri_count_normal_mode:
+    type: counter
+    description: >
+      The count of the total non-unique http(s) URIs visited in a
+      subsession, including page reloads, after the session has been
+      restored. URIs on minimized or background tabs may also be counted
+      towards this. Private browsing is not included in this count.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.total_uri_count.
+    bugs:
+      - https://bugzil.la/1271313
+      - https://bugzil.la/1529232
+    data_reviews:
+      - https://bugzil.la/1271313
+      - https://bugzil.la/1529232
+    notification_emails:
+      - rweiss@mozilla.com
+      - loines@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_TOTAL_URI_COUNT
 
   profile_count:
     type: quantity
@@ -99,6 +122,7 @@ browser.engagement:
     send_in_pings:
       - metrics
     expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_PROFILE_COUNT
 
 installation.first_seen:
   failure_reason:

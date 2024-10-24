@@ -83,11 +83,8 @@ const WINDOW_OPEN_EVENT_COUNT_SCALAR_NAME =
   "browser.engagement.window_open_event_count";
 const UNIQUE_DOMAINS_COUNT_SCALAR_NAME =
   "browser.engagement.unique_domains_count";
-const TOTAL_URI_COUNT_SCALAR_NAME = "browser.engagement.total_uri_count";
 const UNFILTERED_URI_COUNT_SCALAR_NAME =
   "browser.engagement.unfiltered_uri_count";
-const TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE_SCALAR_NAME =
-  "browser.engagement.total_uri_count_normal_and_private_mode";
 
 export const MINIMUM_TAB_COUNT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes, in ms
 
@@ -394,10 +391,6 @@ export let URICountListener = {
     }
 
     // Update total URI count, including when in private mode.
-    Services.telemetry.scalarAdd(
-      TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE_SCALAR_NAME,
-      1
-    );
     Glean.browserEngagement.uriCount.add(1);
 
     if (!shouldCountURI) {
@@ -405,7 +398,7 @@ export let URICountListener = {
     }
 
     // Update the URI counts.
-    Services.telemetry.scalarAdd(TOTAL_URI_COUNT_SCALAR_NAME, 1);
+    Glean.browserEngagement.uriCountNormalMode.add(1);
 
     // Update tab count
     BrowserUsageTelemetry._recordTabCounts(getOpenTabsAndWinsCounts());
@@ -1392,11 +1385,6 @@ export let BrowserUsageTelemetry = {
       valueToReport = 0;
     }
 
-    Services.telemetry.scalarSet(
-      "browser.engagement.profile_count",
-      valueToReport
-    );
-    // Manually mirror to Glean
     Glean.browserEngagement.profileCount.set(valueToReport);
   },
 
