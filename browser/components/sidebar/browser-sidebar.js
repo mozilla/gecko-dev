@@ -405,8 +405,12 @@ var SidebarController = {
     }
 
     requestIdleCallback(() => {
-      if (!this.uiStateInitialized) {
-        // UI state has not been set by SessionStore. Use backup state for now.
+      const shouldLoadBackupState =
+        !window.opener || this.windowPrivacyMatches(window.opener, window);
+      // If other sources (like session store or source window) haven't set the
+      // UI state at this point, load the backup state. (Do not load the backup
+      // state if we are coming from a window of a different privacy level.)
+      if (!this.uiStateInitialized && shouldLoadBackupState) {
         const backupState = this.SidebarManager.getBackupState();
         this.setUIState(backupState);
       }
@@ -489,8 +493,12 @@ var SidebarController = {
       // Wait this out to ensure that it is connected to the DOM before making
       // any changes.
       await this.promiseInitialized;
-      this.toggleExpanded(state.expanded);
-      this.sidebarContainer.hidden = state.hidden;
+      if (typeof state.expanded === "boolean") {
+        this.toggleExpanded(state.expanded);
+      }
+      if (typeof state.hidden === "boolean") {
+        this.sidebarContainer.hidden = state.hidden;
+      }
       this.updateToolbarButton();
     }
     this.uiStateInitialized = true;

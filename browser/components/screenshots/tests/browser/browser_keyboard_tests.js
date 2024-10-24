@@ -3,8 +3,6 @@
 
 "use strict";
 
-requestLongerTimeout(2);
-
 const KEY_TO_EXPECTED_POSITION_ARRAY = [
   [
     "ArrowRight",
@@ -138,10 +136,6 @@ const SHIFT_PLUS_KEY_TO_EXPECTED_POSITION_ARRAY = [
     },
   ],
 ];
-
-add_setup(() =>
-  SidebarController.setUIState({ expanded: false, hidden: false })
-);
 
 async function doKeyPress(key, options, window) {
   let { repeat } = options;
