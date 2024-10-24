@@ -34,6 +34,15 @@
 
 using namespace mozilla;
 
+#ifdef MOZ_LOGGING
+#  include "mozilla/Logging.h"
+LazyLogModule gGIOServiceLog("GIOService");
+#  define LOG(...) \
+    MOZ_LOG(gGIOServiceLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+#else
+#  define LOG(...)
+#endif /* MOZ_LOGGING */
+
 class nsFlatpakHandlerApp : public nsIHandlerApp {
  public:
   NS_DECL_ISUPPORTS
@@ -590,14 +599,20 @@ nsGIOService::GetMimeTypeFromExtension(const nsACString& aExtension,
 }
 // used in nsGNOMERegistry
 // -----------------------------------------------------------------------------
+#define OPENURI_BUS_NAME "org.freedesktop.portal.Desktop"
+#define OPENURI_OBJECT_PATH "/org/freedesktop/portal/desktop"
+#define OPENURI_INTERFACE_NAME "org.freedesktop.portal.OpenURI"
+#define SCHEME_SUPPORTED_METHOD "SchemeSupported"
+
 NS_IMETHODIMP
 nsGIOService::GetAppForURIScheme(const nsACString& aURIScheme,
                                  nsIHandlerApp** aApp) {
   *aApp = nullptr;
 
   // Application in flatpak sandbox does not have access to the list
-  // of installed applications on the system. We use generic
-  // nsFlatpakHandlerApp which forwards launch call to the system.
+  // of installed applications on the system. We use SchemeSupported
+  // method to check if the URI scheme is supported and then use
+  // generic nsFlatpakHandlerApp which forwards launch call to the system.
   if (widget::ShouldUsePortal(widget::PortalKind::MimeHandler)) {
     if (mozilla::net::IsLoopbackHostname(aURIScheme)) {
       // When the user writes foo:1234, we try to handle it natively using
@@ -607,6 +622,52 @@ nsGIOService::GetAppForURIScheme(const nsACString& aURIScheme,
       // apps, and we're much better off returning an error here instead.
       return NS_ERROR_FAILURE;
     }
+    GUniquePtr<GError> error;
+    RefPtr<GDBusProxy> proxy;
+    RefPtr<GVariant> result;
+
+    proxy = g_dbus_proxy_new_for_bus_sync(
+        G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, nullptr, OPENURI_BUS_NAME,
+        OPENURI_OBJECT_PATH, OPENURI_INTERFACE_NAME,
+        nullptr,  // cancellable
+        getter_Transfers(error));
+    if (error) {
+      g_warning("Failed to create proxy: %s\n", error->message);
+      return NS_ERROR_FAILURE;
+    }
+    // Construct the dictionary of options (empty in current implementaiton)
+    GVariantBuilder builder;
+    g_variant_builder_init(&builder, G_VARIANT_TYPE_VARDICT);
+
+    result = dont_AddRef(g_dbus_proxy_call_sync(
+        proxy, SCHEME_SUPPORTED_METHOD,
+        g_variant_new("(sa{sv})", PromiseFlatCString(aURIScheme).get(),
+                      &builder),
+        G_DBUS_CALL_FLAGS_NONE,
+        -1,       // timeout
+        nullptr,  // cancellable
+        getter_Transfers(error)));
+    if (error) {
+      if (error->code == G_DBUS_ERROR_UNKNOWN_METHOD) {
+        // The method "SchemeSupported" not available, seems like we're running
+        // older portal. Be optimistic about supported scheme handler
+        LOG("SchemeSupported method not found, fallback to flatpak handler");
+        RefPtr<nsFlatpakHandlerApp> mozApp = new nsFlatpakHandlerApp();
+        mozApp.forget(aApp);
+        return NS_OK;
+      }
+      g_warning("Failed to call SchemeSupported method: %s\n", error->message);
+      return NS_ERROR_FAILURE;
+    }
+
+    gboolean supported;
+    g_variant_get(result, "(b)", &supported);
+    if (!supported) {
+      LOG("Scheme '%s' is NOT supported.\n",
+          PromiseFlatCString(aURIScheme).get());
+      return NS_ERROR_FAILURE;
+    }
+    LOG("Scheme '%s' is supported.\n", PromiseFlatCString(aURIScheme).get());
     RefPtr<nsFlatpakHandlerApp> mozApp = new nsFlatpakHandlerApp();
     mozApp.forget(aApp);
     return NS_OK;
