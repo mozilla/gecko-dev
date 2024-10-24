@@ -415,10 +415,12 @@ class WorkerPrivate final
   void ReportError(JSContext* aCx, JS::ConstUTF8CharsZ aToStringResult,
                    JSErrorReport* aReport);
 
-  static void ReportErrorToConsole(const char* aMessage);
-
-  static void ReportErrorToConsole(const char* aMessage,
-                                   const nsTArray<nsString>& aParams);
+  static void ReportErrorToConsole(
+      uint32_t aErrorFlags, const nsCString& aCategory,
+      nsContentUtils::PropertiesFile aFile, const nsCString& aMessageName,
+      const nsTArray<nsString>& aParams = nsTArray<nsString>(),
+      const mozilla::SourceLocation& aLocation =
+          mozilla::JSCallingLocation::Get());
 
   int32_t SetTimeout(JSContext* aCx, TimeoutHandler* aHandler, int32_t aTimeout,
                      bool aIsInterval, Timeout::Reason aReason,

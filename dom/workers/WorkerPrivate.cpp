@@ -550,13 +550,14 @@ class PropagateStorageAccessPermissionGrantedRunnable final
 };
 
 class ReportErrorToConsoleRunnable final : public WorkerParentThreadRunnable {
-  const char* mMessage;
-  const nsTArray<nsString> mParams;
-
  public:
   // aWorkerPrivate is the worker thread we're on (or the main thread, if null)
-  static void Report(WorkerPrivate* aWorkerPrivate, const char* aMessage,
-                     const nsTArray<nsString>& aParams) {
+  static void Report(WorkerPrivate* aWorkerPrivate, uint32_t aErrorFlags,
+                     const nsCString& aCategory,
+                     nsContentUtils::PropertiesFile aFile,
+                     const nsCString& aMessageName,
+                     const nsTArray<nsString>& aParams,
+                     const mozilla::SourceLocation& aLocation) {
     if (aWorkerPrivate) {
       aWorkerPrivate->AssertIsOnWorkerThread();
     } else {
@@ -566,24 +567,32 @@ class ReportErrorToConsoleRunnable final : public WorkerParentThreadRunnable {
     // Now fire a runnable to do the same on the parent's thread if we can.
     if (aWorkerPrivate) {
       RefPtr<ReportErrorToConsoleRunnable> runnable =
-          new ReportErrorToConsoleRunnable(aWorkerPrivate, aMessage, aParams);
+          new ReportErrorToConsoleRunnable(aWorkerPrivate, aErrorFlags,
+                                           aCategory, aFile, aMessageName,
+                                           aParams, aLocation);
       runnable->Dispatch(aWorkerPrivate);
       return;
     }
 
     // Log a warning to the console.
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
-                                    nullptr, nsContentUtils::eDOM_PROPERTIES,
-                                    aMessage, aParams);
+    nsContentUtils::ReportToConsole(aErrorFlags, aCategory, nullptr, aFile,
+                                    aMessageName.get(), aParams, aLocation);
   }
 
  private:
   ReportErrorToConsoleRunnable(WorkerPrivate* aWorkerPrivate,
-                               const char* aMessage,
-                               const nsTArray<nsString>& aParams)
+                               uint32_t aErrorFlags, const nsCString& aCategory,
+                               nsContentUtils::PropertiesFile aFile,
+                               const nsCString& aMessageName,
+                               const nsTArray<nsString>& aParams,
+                               const mozilla::SourceLocation& aLocation)
       : WorkerParentThreadRunnable("ReportErrorToConsoleRunnable"),
-        mMessage(aMessage),
-        mParams(aParams.Clone()) {}
+        mErrorFlags(aErrorFlags),
+        mCategory(aCategory),
+        mFile(aFile),
+        mMessageName(aMessageName),
+        mParams(aParams.Clone()),
+        mLocation(aLocation) {}
 
   virtual void PostDispatch(WorkerPrivate* aWorkerPrivate,
                             bool aDispatchResult) override {
@@ -597,9 +606,17 @@ class ReportErrorToConsoleRunnable final : public WorkerParentThreadRunnable {
                          WorkerPrivate* aWorkerPrivate) override {
     WorkerPrivate* parent = aWorkerPrivate->GetParent();
     MOZ_ASSERT_IF(!parent, NS_IsMainThread());
-    Report(parent, mMessage, mParams);
+    Report(parent, mErrorFlags, mCategory, mFile, mMessageName, mParams,
+           mLocation);
     return true;
   }
+
+  const uint32_t mErrorFlags;
+  const nsCString mCategory;
+  const nsContentUtils::PropertiesFile mFile;
+  const nsCString mMessageName;
+  const nsTArray<nsString> mParams;
+  const mozilla::SourceLocation mLocation;
 };
 
 class RunExpiredTimoutsRunnable final : public WorkerThreadRunnable,
@@ -5398,20 +5415,18 @@ void WorkerPrivate::ReportError(JSContext* aCx,
 }
 
 // static
-void WorkerPrivate::ReportErrorToConsole(const char* aMessage) {
-  nsTArray<nsString> emptyParams;
-  WorkerPrivate::ReportErrorToConsole(aMessage, emptyParams);
-}
-
-// static
-void WorkerPrivate::ReportErrorToConsole(const char* aMessage,
-                                         const nsTArray<nsString>& aParams) {
+void WorkerPrivate::ReportErrorToConsole(
+    uint32_t aErrorFlags, const nsCString& aCategory,
+    nsContentUtils::PropertiesFile aFile, const nsCString& aMessageName,
+    const nsTArray<nsString>& aParams,
+    const mozilla::SourceLocation& aLocation) {
   WorkerPrivate* wp = nullptr;
   if (!NS_IsMainThread()) {
     wp = GetCurrentThreadWorkerPrivate();
   }
 
-  ReportErrorToConsoleRunnable::Report(wp, aMessage, aParams);
+  ReportErrorToConsoleRunnable::Report(wp, aErrorFlags, aCategory, aFile,
+                                       aMessageName, aParams, aLocation);
 }
 
 int32_t WorkerPrivate::SetTimeout(JSContext* aCx, TimeoutHandler* aHandler,

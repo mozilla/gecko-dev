@@ -1685,6 +1685,15 @@ mozilla::dom::StorageManager* nsGlobalWindowInner::GetStorageManager() {
 // * a Window object whose associated Document is fully active
 bool nsGlobalWindowInner::IsEligibleForMessaging() { return IsFullyActive(); }
 
+void nsGlobalWindowInner::ReportToConsole(
+    uint32_t aErrorFlags, const nsCString& aCategory,
+    nsContentUtils::PropertiesFile aFile, const nsCString& aMessageName,
+    const nsTArray<nsString>& aParams,
+    const mozilla::SourceLocation& aLocation) {
+  nsContentUtils::ReportToConsole(aErrorFlags, aCategory, mDoc, aFile,
+                                  aMessageName.get(), aParams, aLocation);
+}
+
 nsresult nsGlobalWindowInner::EnsureScriptEnvironment() {
   // NOTE: We can't use FORWARD_TO_OUTER here because we don't want to fail if
   // we're called on an inactive inner window.

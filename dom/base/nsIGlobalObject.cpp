@@ -494,3 +494,15 @@ bool nsIGlobalObject::ShouldResistFingerprinting(CallerType aCallerType,
   return aCallerType != CallerType::System &&
          ShouldResistFingerprinting(aTarget);
 }
+
+void nsIGlobalObject::ReportToConsole(
+    uint32_t aErrorFlags, const nsCString& aCategory,
+    nsContentUtils::PropertiesFile aFile, const nsCString& aMessageName,
+    const nsTArray<nsString>& aParams,
+    const mozilla::SourceLocation& aLocation) {
+  // We pass nullptr for the document because nsGlobalWindowInner handles the
+  // case where it should be non-null.  We also expect the worker impl to
+  // override.
+  nsContentUtils::ReportToConsole(aErrorFlags, aCategory, nullptr, aFile,
+                                  aMessageName.get(), aParams, aLocation);
+}

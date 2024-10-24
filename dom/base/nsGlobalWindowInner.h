@@ -258,6 +258,12 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   bool IsEligibleForMessaging() override;
 
+  void ReportToConsole(uint32_t aErrorFlags, const nsCString& aCategory,
+                       nsContentUtils::PropertiesFile aFile,
+                       const nsCString& aMessageName,
+                       const nsTArray<nsString>& aParams,
+                       const mozilla::SourceLocation& aLocation) override;
+
   void TraceGlobalJSObject(JSTracer* aTrc);
 
   virtual nsresult EnsureScriptEnvironment() override;

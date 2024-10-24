@@ -315,6 +315,41 @@ class nsIGlobalObject : public nsISupports {
 
   virtual bool IsXPCSandbox() { return false; }
 
+  /**
+   * Report a localized error message to the error console.  Currently this
+   * amounts to a wrapper around nsContentUtils::ReportToConsole for window
+   * globals and a runnable bounced to the main thread to call
+   * nsContentUtils::ReportToConsole for workers but the intent is to migrate
+   * towards logging the messages to the `dom::Console` for the global.  See
+   * bug 1900706 for more context.
+   *
+   * This method returns void because there is no reasonable action for a caller
+   * for dynamic failure and we can assert on things like erroneous message
+   * names.
+   *
+   *   @param aErrorFlags See nsIScriptError.
+   *   @param aCategory Name of module reporting error.
+   *   @param aFile Properties file containing localized message.
+   *   @param aMessageName Name of localized message.
+   *   @param [aParams=empty-array] (Optional) Parameters to be substituted into
+   *          localized message.
+   *   @param [aURI=nullptr] (Optional) URI of resource containing error; if
+   *          omitted, an attempt will be made to use the URI associated with
+   *          the global (ex: the document URI).
+   *   @param [aSourceLine=u""_ns] (Optional) The text of the line that
+   *          contains the error (may be empty).
+   *   @param [aLineNumber=0] (Optional) Line number within resource
+   *          containing error.
+   *   @param [aColumnNumber=0] (Optional) Column number within resource
+   *          containing error.
+   */
+  virtual void ReportToConsole(
+      uint32_t aErrorFlags, const nsCString& aCategory,
+      nsContentUtils::PropertiesFile aFile, const nsCString& aMessageName,
+      const nsTArray<nsString>& aParams = nsTArray<nsString>(),
+      const mozilla::SourceLocation& aLocation =
+          mozilla::JSCallingLocation::Get());
+
  protected:
   virtual ~nsIGlobalObject();
 

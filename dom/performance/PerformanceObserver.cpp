@@ -46,12 +46,9 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PerformanceObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-const char UnsupportedEntryTypesIgnoredMsgId[] = "UnsupportedEntryTypesIgnored";
-const char AllEntryTypesIgnoredMsgId[] = "AllEntryTypesIgnored";
-
 PerformanceObserver::PerformanceObserver(nsPIDOMWindowInner* aOwner,
                                          PerformanceObserverCallback& aCb)
-    : mOwner(aOwner),
+    : mOwner(aOwner->AsGlobal()),
       mCallback(&aCb),
       mObserverType(ObserverTypeUndefined),
       mConnected(false) {
@@ -61,8 +58,11 @@ PerformanceObserver::PerformanceObserver(nsPIDOMWindowInner* aOwner,
 
 PerformanceObserver::PerformanceObserver(WorkerPrivate* aWorkerPrivate,
                                          PerformanceObserverCallback& aCb)
-    : mCallback(&aCb), mObserverType(ObserverTypeUndefined), mConnected(false) {
-  MOZ_ASSERT(aWorkerPrivate);
+    : mOwner(aWorkerPrivate->GlobalScope()),
+      mCallback(&aCb),
+      mObserverType(ObserverTypeUndefined),
+      mConnected(false) {
+  MOZ_ASSERT(aWorkerPrivate->GlobalScope());
   mPerformance = aWorkerPrivate->GlobalScope()->GetPerformance();
 }
 
@@ -137,29 +137,13 @@ static constexpr nsLiteralString kValidTypeNames[5] = {
     u"mark"_ns, u"measure"_ns, u"navigation"_ns, u"paint"_ns, u"resource"_ns,
 };
 
-void PerformanceObserver::ReportUnsupportedTypesErrorToConsole(
-    bool aIsMainThread, const char* msgId, const nsString& aInvalidTypes) {
-  if (!aIsMainThread) {
-    nsTArray<nsString> params;
-    params.AppendElement(aInvalidTypes);
-    WorkerPrivate::ReportErrorToConsole(msgId, params);
-  } else {
-    nsCOMPtr<nsPIDOMWindowInner> ownerWindow = do_QueryInterface(mOwner);
-    Document* document = ownerWindow->GetExtantDoc();
-    AutoTArray<nsString, 1> params = {aInvalidTypes};
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
-                                    document, nsContentUtils::eDOM_PROPERTIES,
-                                    msgId, params);
-  }
-}
-
 void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
                                   ErrorResult& aRv) {
   const Optional<Sequence<nsString>>& maybeEntryTypes = aOptions.mEntryTypes;
   const Optional<nsString>& maybeType = aOptions.mType;
   const Optional<bool>& maybeBuffered = aOptions.mBuffered;
 
-  if (!mPerformance) {
+  if (!mPerformance || !mOwner) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -241,16 +225,18 @@ void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
     }
 
     if (!invalidTypesJoined.IsEmpty()) {
-      ReportUnsupportedTypesErrorToConsole(NS_IsMainThread(),
-                                           UnsupportedEntryTypesIgnoredMsgId,
-                                           invalidTypesJoined);
+      AutoTArray<nsString, 1> params = {invalidTypesJoined};
+      mOwner->ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                              nsContentUtils::eDOM_PROPERTIES,
+                              "UnsupportedEntryTypesIgnored"_ns, params);
+      // (we don't return because we're ignoring and we keep going)
     }
 
     /* 3.3.1.5.3 */
     if (validEntryTypes.IsEmpty()) {
-      nsString errorString;
-      ReportUnsupportedTypesErrorToConsole(
-          NS_IsMainThread(), AllEntryTypesIgnoredMsgId, errorString);
+      mOwner->ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                              nsContentUtils::eDOM_PROPERTIES,
+                              "AllEntryTypesIgnored"_ns);
       return;
     }
 
@@ -289,8 +275,10 @@ void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
     }
 
     if (!typeValid) {
-      ReportUnsupportedTypesErrorToConsole(
-          NS_IsMainThread(), UnsupportedEntryTypesIgnoredMsgId, type);
+      AutoTArray<nsString, 1> params = {type};
+      mOwner->ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                              nsContentUtils::eDOM_PROPERTIES,
+                              "UnsupportedEntryTypesIgnored"_ns, params);
       return;
     }
 

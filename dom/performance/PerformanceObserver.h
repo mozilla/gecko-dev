@@ -63,12 +63,9 @@ class PerformanceObserver final : public nsISupports, public nsWrapperCache {
   bool ObservesTypeOfEntry(PerformanceEntry* aEntry);
 
  private:
-  void ReportUnsupportedTypesErrorToConsole(bool aIsMainThread,
-                                            const char* msgId,
-                                            const nsString& aInvalidTypes);
   ~PerformanceObserver();
 
-  nsCOMPtr<nsISupports> mOwner;
+  nsCOMPtr<nsIGlobalObject> mOwner;
   RefPtr<PerformanceObserverCallback> mCallback;
   RefPtr<Performance> mPerformance;
   nsTArray<nsString> mEntryTypes;

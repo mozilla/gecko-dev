@@ -1154,7 +1154,9 @@ bool RuntimeService::RegisterWorker(WorkerPrivate& aWorkerPrivate) {
 
       // Worker spawn gets queued due to hitting max workers per domain
       // limit so let's log a warning.
-      WorkerPrivate::ReportErrorToConsole("HittingMaxWorkersPerDomain2");
+      WorkerPrivate::ReportErrorToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                                          nsContentUtils::eDOM_PROPERTIES,
+                                          "HittingMaxWorkersPerDomain2"_ns);
 
       if (isServiceWorker) {
         Telemetry::Accumulate(Telemetry::SERVICE_WORKER_SPAWN_GETS_QUEUED, 1);
