@@ -2609,6 +2609,10 @@ already_AddRefed<Promise> CanonicalBrowsingContext::GetRestorePromise() {
 }
 
 void CanonicalBrowsingContext::ClearRestoreState() {
+  if (IsDiscarded()) {
+    return;
+  }
+
   if (!mRestoreState) {
     MOZ_DIAGNOSTIC_ASSERT(!GetHasRestoreData());
     return;
@@ -2617,6 +2621,7 @@ void CanonicalBrowsingContext::ClearRestoreState() {
     mRestoreState->mPromise->MaybeRejectWithUndefined();
   }
   mRestoreState = nullptr;
+
   MOZ_ALWAYS_SUCCEEDS(SetHasRestoreData(false));
 }
 
