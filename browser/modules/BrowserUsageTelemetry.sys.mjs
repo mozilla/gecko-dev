@@ -952,8 +952,10 @@ export let BrowserUsageTelemetry = {
 
     if (item && source) {
       this.recordInteractionEvent(item, source);
-      let scalar = `browser.ui.interaction.${source.replace(/-/g, "_")}`;
-      Services.telemetry.keyedScalarAdd(scalar, telemetryId(item), 1);
+      let name = source
+        .replace(/-/g, "_")
+        .replace(/_([a-z])/g, (m, p) => p.toUpperCase());
+      Glean.browserUiInteraction[name]?.[telemetryId(item)].add(1);
       if (SET_USAGECOUNT_PREF_BUTTONS.includes(item)) {
         let pref = `browser.engagement.${item}.used-count`;
         Services.prefs.setIntPref(pref, Services.prefs.getIntPref(pref, 0) + 1);
@@ -970,10 +972,10 @@ export let BrowserUsageTelemetry = {
       );
       if (triggerContainer) {
         this.recordInteractionEvent(item, contextMenu);
-        let scalar = `browser.ui.interaction.${contextMenu.replace(/-/g, "_")}`;
-        Services.telemetry.keyedScalarAdd(
-          scalar,
-          telemetryId(triggerContainer),
+        let name = contextMenu
+          .replace(/-/g, "_")
+          .replace(/_([a-z])/g, (m, p) => p.toUpperCase());
+        Glean.browserUiInteraction[name]?.[telemetryId(triggerContainer)].add(
           1
         );
       }

@@ -642,3 +642,441 @@ partner_link:
     expires: never
     extra_keys: *partner_link_attribution_extra
     telemetry_mirror: Partner_link_Attribution_Abort
+
+browser.ui.interaction:
+  menu_bar:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the menu bar. See
+      https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.menu_bar.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_MENU_BAR
+
+  tabs_bar:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the tab bar. See
+      https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.tabs_bar.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_TABS_BAR
+
+  vertical_tabs_container:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the vertical tab bar.
+      See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.vertical_tabs_container.
+    bugs:
+      - https://bugzil.la/1921789
+    data_reviews:
+      - https://bugzil.la/1921789
+    notification_emails:
+      - vsabino@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_VERTICAL_TABS_CONTAINER
+
+  nav_bar:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the nav bar. See
+      https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.nav_bar.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_NAV_BAR
+
+  bookmarks_bar:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the bookmarks bar. See
+      https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.bookmarks_bar.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_BOOKMARKS_BAR
+
+  app_menu:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the app menu. See
+      https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.app_menu.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_APP_MENU
+
+  tabs_context:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the tab context menu.
+      See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.tabs_context.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_TABS_CONTEXT
+
+  tabs_context_entrypoint:
+    type: labeled_counter
+    description: >
+      Records a count for each entrypoint (the container of the trigger
+      node) when an item from the tabs context menu is selected. See
+      https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.tabs_context_entrypoint.
+    bugs:
+      - https://bugzil.la/1804722
+    data_reviews:
+      - https://bugzil.la/1804722
+    notification_emails:
+      - shong@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_TABS_CONTEXT_ENTRYPOINT
+
+  content_context:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the content context
+      menu. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.content_context.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_CONTENT_CONTEXT
+
+  overflow_menu:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the overflow menu. See
+      https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.overflow_menu.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_OVERFLOW_MENU
+
+  unified_extensions_area:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the Unified Extensions
+      area. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.unified_extensions_area.
+    bugs:
+      - https://bugzil.la/1800114
+    data_reviews:
+      - https://bugzil.la/1800114
+    notification_emails:
+      - dtownsend@mozilla.com
+      - mconley@mozilla.com
+      - wdurand@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_UNIFIED_EXTENSIONS_AREA
+
+  pinned_overflow_menu:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with items in the pinned area of the
+      overflow menu. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.pinned_overflow_menu.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PINNED_OVERFLOW_MENU
+
+  pageaction_urlbar:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with page action items in the url
+      bar. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.pageaction_urlbar.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PAGEACTION_URLBAR
+
+  pageaction_panel:
+    type: labeled_counter
+    description: >
+      Records a count of interactions with page action items in the panel.
+      See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.pageaction_panel.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PAGEACTION_PANEL
+
+  preferences_pane_home:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the Home section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneHome.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANEHOME
+
+  preferences_pane_general:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the General section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneGeneral.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANEGENERAL
+
+  preferences_pane_privacy:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the Privacy section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_panePrivacy.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANEPRIVACY
+
+  preferences_pane_search:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the Search section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneSearch.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANESEARCH
+
+  preferences_pane_search_results:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the Search results section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneSearchResults.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANESEARCHRESULTS
+
+  preferences_pane_sync:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the Sync section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneSync.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANESYNC
+
+  preferences_pane_containers:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the Containers section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneContainers.
+    bugs:
+      - https://bugzil.la/1620358
+    data_reviews:
+      - https://bugzil.la/1620358
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANECONTAINERS
+
+  preferences_pane_experimental:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the Experimental section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneExperimental.
+    bugs:
+      - https://bugzil.la/1620358
+      - https://bugzil.la/1651986
+    data_reviews:
+      - https://bugzil.la/1620358
+      - https://bugzil.la/1651986
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANEEXPERIMENTAL
+
+  preferences_pane_more_from_mozilla:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in the More From Mozilla section
+      of preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneMoreFromMozilla.
+    bugs:
+      - https://bugzil.la/1738187
+    data_reviews:
+      - https://bugzil.la/1738187
+    notification_emails:
+      - shong@mozilla.com
+      - pdahiya@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANEMOREFROMMOZILLA
+
+  preferences_pane_unknown:
+    type: labeled_counter
+    description: >
+      Records the items interacted with in any other section of
+      preferences. See https://firefox-source-
+      docs.mozilla.org/browser/BrowserUsageTelemetry.html
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.preferences_paneUnknown.
+    bugs:
+      - https://bugzil.la/1620358
+      - https://bugzil.la/1651986
+    data_reviews:
+      - https://bugzil.la/1620358
+      - https://bugzil.la/1651986
+    notification_emails:
+      - shong@mozilla.com
+      - dtownsend@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_PREFERENCES_PANEUNKNOWN
