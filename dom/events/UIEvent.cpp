@@ -225,7 +225,7 @@ bool UIEvent::Deserialize(IPC::MessageReader* aReader) {
 
 // XXX Following struct and array are used only in
 //     UIEvent::ComputeModifierState(), but if we define them in it,
-//     we fail to build on Mac at calling mozilla::ArrayLength().
+//     we fail to build on Mac at calling std::size().
 struct ModifierPair {
   Modifier modifier;
   const char* name;
@@ -263,7 +263,7 @@ Modifiers UIEvent::ComputeModifierState(const nsAString& aModifiersList) {
   aModifiersList.BeginReading(listStart);
   aModifiersList.EndReading(listEnd);
 
-  for (uint32_t i = 0; i < ArrayLength(kPairs); i++) {
+  for (uint32_t i = 0; i < std::size(kPairs); i++) {
     nsAString::const_iterator start(listStart), end(listEnd);
     if (!FindInReadable(NS_ConvertASCIItoUTF16(kPairs[i].name), start, end)) {
       continue;

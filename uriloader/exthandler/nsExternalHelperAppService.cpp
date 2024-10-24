@@ -852,7 +852,7 @@ NS_IMETHODIMP nsExternalHelperAppService::ApplyDecodingForExtension(
     bool* aApplyDecoding) {
   *aApplyDecoding = true;
   uint32_t i;
-  for (i = 0; i < ArrayLength(nonDecodableExtensions); ++i) {
+  for (i = 0; i < std::size(nonDecodableExtensions); ++i) {
     if (aExtension.LowerCaseEqualsASCII(
             nonDecodableExtensions[i].mFileExtension) &&
         aEncodingType.LowerCaseEqualsASCII(
@@ -1483,7 +1483,7 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel* aChannel) {
                  NS_ERROR_UNEXPECTED);
 
   // Strip off the ".part" from mTempLeafName
-  mTempLeafName.Truncate(mTempLeafName.Length() - ArrayLength(".part") + 1);
+  mTempLeafName.Truncate(mTempLeafName.Length() - std::size(".part") + 1);
 
   MOZ_ASSERT(!mSaver, "Output file initialization called more than once!");
   mSaver =
@@ -2581,7 +2581,7 @@ nsresult nsExternalAppHandler::ContinueSave(nsIFile* aNewFileLocation) {
         mFinalFileDestination->GetPath(path);
         CheckedInt<uint16_t> fullPathLength =
             CheckedInt<uint16_t>(path.Length()) + 1 + randomChars.Length() +
-            ArrayLength(".part");
+            std::size(".part");
         if (!fullPathLength.isValid()) {
           leafName.Truncate();
         } else if (fullPathLength.value() > MAX_PATH) {
@@ -3208,7 +3208,7 @@ bool nsExternalHelperAppService::GetTypeFromExtras(const nsACString& aExtension,
 
   // Look for default entry with matching extension.
   nsDependentCString::const_iterator start, end, iter;
-  int32_t numEntries = ArrayLength(extraMimeEntries);
+  int32_t numEntries = std::size(extraMimeEntries);
   for (int32_t index = 0; index < numEntries; index++) {
     nsDependentCString extList(extraMimeEntries[index].mFileExtensions);
     extList.BeginReading(start);

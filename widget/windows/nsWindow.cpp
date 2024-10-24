@@ -543,7 +543,7 @@ class TIPMessageHandler {
     MSG* msg = reinterpret_cast<MSG*>(aLParam);
     UINT& msgCode = msg->message;
 
-    for (uint32_t i = 0; i < ArrayLength(sInstance->mMessages); ++i) {
+    for (uint32_t i = 0; i < std::size(sInstance->mMessages); ++i) {
       if (msgCode == sInstance->mMessages[i]) {
         A11yInstantiationBlocker block;
         return ::CallNextHookEx(nullptr, aCode, aWParam, aLParam);

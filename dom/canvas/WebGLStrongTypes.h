@@ -185,13 +185,13 @@ bool operator!=(StrongGLenum<Details> a, GLenum b) {
 #define STRONG_GLENUM_BEGIN(NAME) const uint16_t NAME##Values[] = {
 #define STRONG_GLENUM_VALUE(VALUE) LOCAL_GL_##VALUE
 
-#define STRONG_GLENUM_END(NAME)                                            \
-  }                                                                        \
-  ;                                                                        \
-  struct NAME##Details {                                                   \
-    static size_t valuesCount() { return MOZ_ARRAY_LENGTH(NAME##Values); } \
-    static const uint16_t* values() { return NAME##Values; }               \
-  };                                                                       \
+#define STRONG_GLENUM_END(NAME)                                     \
+  }                                                                 \
+  ;                                                                 \
+  struct NAME##Details {                                            \
+    static size_t valuesCount() { return std::size(NAME##Values); } \
+    static const uint16_t* values() { return NAME##Values; }        \
+  };                                                                \
   typedef StrongGLenum<NAME##Details> NAME;
 
 ////////////////////////////////////////////////////////////////////////////////

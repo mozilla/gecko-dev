@@ -3593,7 +3593,7 @@ nsresult Http2Session::WriteSegmentsAgain(nsAHttpSegmentWriter* writer,
   if (mInputFrameDataRead != mInputFrameDataSize) return NS_OK;
 
   MOZ_ASSERT(mInputFrameType != FRAME_TYPE_DATA);
-  if (mInputFrameType < ArrayLength(sControlFunctions)) {
+  if (mInputFrameType < std::size(sControlFunctions)) {
     rv = sControlFunctions[mInputFrameType](this);
   } else {
     // Section 4.1 requires this to be ignored; though protocol_error would

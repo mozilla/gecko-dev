@@ -113,7 +113,7 @@ void MouseScrollHandler::MaybeLogKeyState() {
   }
   BYTE keyboardState[256];
   if (::GetKeyboardState(keyboardState)) {
-    for (size_t i = 0; i < ArrayLength(keyboardState); i++) {
+    for (size_t i = 0; i < std::size(keyboardState); i++) {
       if (keyboardState[i]) {
         MOZ_LOG(gMouseScrollLog, LogLevel::Debug,
                 ("    Current key state: keyboardState[0x%02zX]=0x%02X (%s)", i,
@@ -1212,7 +1212,7 @@ bool MouseScrollHandler::Device::Elantech::IsHelperWindow(HWND aWnd) {
 
   bool result = false;
   wchar_t path[256] = {L'\0'};
-  if (::GetProcessImageFileNameW(hProcess, path, ArrayLength(path))) {
+  if (::GetProcessImageFileNameW(hProcess, path, std::size(path))) {
     int pathLength = lstrlenW(path);
     if (pathLength >= filenameSuffixLength) {
       if (lstrcmpiW(path + pathLength - filenameSuffixLength, filenameSuffix) ==

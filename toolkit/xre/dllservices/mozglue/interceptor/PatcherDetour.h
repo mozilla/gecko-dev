@@ -959,7 +959,7 @@ class WindowsDllDetourPatcher final
           DetourResultCode::DETOUR_PATCHER_CREATE_TRAMPOLINE_ERROR);
       DetourError& lastError = *this->mVMPolicy.mLastError;
       size_t bytesToCapture = std::min(
-          ArrayLength(lastError.mOrigBytes),
+          std::size(lastError.mOrigBytes),
           static_cast<size_t>(PrimitiveT::GetWorstCaseRequiredBytesToPatch()));
 #  if defined(_M_ARM64)
       size_t numInstructionsToCapture = bytesToCapture / sizeof(uint32_t);

@@ -1698,7 +1698,7 @@ static __attribute__((noinline)) bool GetAndCheckStackTrace(
   const int MAX_TEST_FRAMES = 64;
   uintptr_t framePCs[MAX_TEST_FRAMES];
   uintptr_t frameSPs[MAX_TEST_FRAMES];
-  size_t framesAvail = mozilla::ArrayLength(framePCs);
+  size_t framesAvail = std::size(framePCs);
   size_t framesUsed = 0;
   size_t framePointerFramesAcquired = 0;
   aLUL->Unwind(&framePCs[0], &frameSPs[0], &framesUsed,

@@ -242,7 +242,7 @@ class BenchCollections : public ::testing::Test {
     }
 
     printf("\n");
-    for (size_t i = 0; i < ArrayLength(gParamsList); i++) {
+    for (size_t i = 0; i < std::size(gParamsList); i++) {
       const Params* params = &gParamsList[i];
       printf("%14s", params->mConfigName);
     }
@@ -254,7 +254,7 @@ class BenchCollections : public ::testing::Test {
     StaticMutexAutoLock lock(sValsMutex);
 
     double total = 0;
-    for (size_t i = 0; i < ArrayLength(gParamsList); i++) {
+    for (size_t i = 0; i < std::size(gParamsList); i++) {
       const Params* params = &gParamsList[i];
       TimeStamp t1 = TimeStamp::Now();
       aBench(params, sVals, VALS_LEN);

@@ -1645,7 +1645,7 @@ nsresult HTMLEditor::ParseCFHTML(const nsCString& aCfhtml,
     if (endHTML == -1) {
       return NS_OK;
     }
-    endHTML += ArrayLength(endFragmentMarker) - 1;
+    endHTML += std::size(endFragmentMarker) - 1;
   }
 
   // create context string
@@ -2734,7 +2734,7 @@ bool HTMLEditor::CanPaste(nsIClipboard::ClipboardType aClipboardType) const {
   // Use the flavors depending on the current editor mask
   if (IsPlaintextMailComposer() ||
       editingHost->IsContentEditablePlainTextOnly()) {
-    AutoTArray<nsCString, ArrayLength(textEditorFlavors)> flavors;
+    AutoTArray<nsCString, std::size(textEditorFlavors)> flavors;
     flavors.AppendElements<const char*>(Span<const char*>(textEditorFlavors));
     bool haveFlavors;
     nsresult rv = clipboard->HasDataMatchingFlavors(flavors, aClipboardType,
@@ -2744,7 +2744,7 @@ bool HTMLEditor::CanPaste(nsIClipboard::ClipboardType aClipboardType) const {
     return NS_SUCCEEDED(rv) && haveFlavors;
   }
 
-  AutoTArray<nsCString, ArrayLength(textHtmlEditorFlavors)> flavors;
+  AutoTArray<nsCString, std::size(textHtmlEditorFlavors)> flavors;
   flavors.AppendElements<const char*>(Span<const char*>(textHtmlEditorFlavors));
   bool haveFlavors;
   rv = clipboard->HasDataMatchingFlavors(flavors, aClipboardType, &haveFlavors);
@@ -2778,10 +2778,10 @@ bool HTMLEditor::CanPasteTransferable(nsITransferable* aTransferable) {
   if (IsPlaintextMailComposer() ||
       editingHost->IsContentEditablePlainTextOnly()) {
     flavors = textEditorFlavors;
-    length = ArrayLength(textEditorFlavors);
+    length = std::size(textEditorFlavors);
   } else {
     flavors = textHtmlEditorFlavors;
-    length = ArrayLength(textHtmlEditorFlavors);
+    length = std::size(textHtmlEditorFlavors);
   }
 
   for (size_t i = 0; i < length; i++, flavors++) {

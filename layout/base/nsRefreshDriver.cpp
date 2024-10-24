@@ -2555,7 +2555,7 @@ void nsRefreshDriver::CancelIdleTask(Task* aTask) {
 }
 
 bool nsRefreshDriver::TickObserverArray(uint32_t aIdx, TimeStamp aNowTime) {
-  MOZ_ASSERT(aIdx < ArrayLength(mObservers));
+  MOZ_ASSERT(aIdx < std::size(mObservers));
   for (RefPtr<nsARefreshObserver> obs : mObservers[aIdx].EndLimitedRange()) {
     obs->WillRefresh(aNowTime);
 

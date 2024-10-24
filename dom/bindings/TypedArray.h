@@ -163,12 +163,12 @@ namespace mozilla::dom {
  *       … // Getting offset value from somewhere.
  *       uint32_t data[3];
  *       if (!aUint32Array.CopyDataTo(data, [&](const size_t& aLength) {
- *         if (aLength - offset != ArrayLength(data)) {
+ *         if (aLength - offset != std::size(data)) {
  *           aError.ThrowTypeError("Typed array doesn't contain the right"
  *                                 " amount of data");
  *           return Maybe<std::pair<size_t, size_t>>();
  *         }
- *         return Some(std::make_pair(offset, ArrayLength(data)));
+ *         return Some(std::make_pair(offset, std::size(data)));
  *       }) {
  *         return;
  *       }
@@ -213,12 +213,12 @@ namespace mozilla::dom {
  *       Maybe<Buffer<uint8_t>> buffer =
  *         aUint8Array.CreateFromData<Buffer<uint8_t>>([&](
  *             const size_t& aLength) {
- *         if (aLength - offset != ArrayLength(data)) {
+ *         if (aLength - offset != std::size(data)) {
  *           aError.ThrowTypeError(
  *               "Typed array doesn't contain the right amount" of data");
  *           return Maybe<std::pair<size_t, size_t>>();
  *         }
- *         return Some(std::make_pair(offset, ArrayLength(data)));
+ *         return Some(std::make_pair(offset, std::size(data)));
  *       });
  *       if (buffer.isNothing()) {
  *         return;

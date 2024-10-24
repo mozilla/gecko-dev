@@ -95,7 +95,7 @@ static void delete_from_cursor_cb(GtkWidget* w, GtkDeleteType del_type,
   }
 
   gHandled = true;
-  if (uint32_t(del_type) >= ArrayLength(sDeleteCommands)) {
+  if (uint32_t(del_type) >= std::size(sDeleteCommands)) {
     // unsupported deletion type
     return;
   }
@@ -178,7 +178,7 @@ static void move_cursor_cb(GtkWidget* w, GtkMovementStep step, gint count,
 
   gHandled = true;
   bool forward = count > 0;
-  if (uint32_t(step) >= ArrayLength(sMoveCommands)) {
+  if (uint32_t(step) >= std::size(sMoveCommands)) {
     // unsupported movement type
     return;
   }

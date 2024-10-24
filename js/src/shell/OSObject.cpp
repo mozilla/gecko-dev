@@ -999,14 +999,14 @@ UniqueChars SystemErrorMessage(JSContext* cx, int errnum) {
 #if defined(XP_WIN)
   wchar_t buffer[200];
   const wchar_t* errstr = buffer;
-  if (_wcserror_s(buffer, mozilla::ArrayLength(buffer), errnum) != 0) {
+  if (_wcserror_s(buffer, std::size(buffer), errnum) != 0) {
     errstr = L"unknown error";
   }
   return JS::EncodeWideToUtf8(cx, errstr);
 #else
   char buffer[200];
-  const char* errstr = strerror_message(
-      strerror_r(errno, buffer, mozilla::ArrayLength(buffer)), buffer);
+  const char* errstr =
+      strerror_message(strerror_r(errno, buffer, std::size(buffer)), buffer);
   if (!errstr) {
     errstr = "unknown error";
   }

@@ -240,7 +240,7 @@ static void AddVoices(nsISpeechService* aService, const VoiceDetails* aVoices,
 
 void nsFakeSynthServices::Init() {
   mSynthService = new FakeSpeechSynth();
-  AddVoices(mSynthService, sVoices, ArrayLength(sVoices));
+  AddVoices(mSynthService, sVoices, std::size(sVoices));
 }
 
 // nsIObserver

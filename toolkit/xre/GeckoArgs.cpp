@@ -20,8 +20,8 @@ static int gInitialFileHandles[]{3,  4,  5,  6,  7,  8,  9, 10,
                                  11, 12, 13, 14, 15, 16, 17};
 
 void SetPassedFileHandles(Span<int> aFiles) {
-  MOZ_RELEASE_ASSERT(aFiles.Length() <= ArrayLength(gInitialFileHandles));
-  for (size_t i = 0; i < ArrayLength(gInitialFileHandles); ++i) {
+  MOZ_RELEASE_ASSERT(aFiles.Length() <= std::size(gInitialFileHandles));
+  for (size_t i = 0; i < std::size(gInitialFileHandles); ++i) {
     if (i < aFiles.Length()) {
       gInitialFileHandles[i] = aFiles[i];
     } else {
@@ -31,8 +31,8 @@ void SetPassedFileHandles(Span<int> aFiles) {
 }
 
 void SetPassedFileHandles(std::vector<UniqueFileHandle>&& aFiles) {
-  MOZ_RELEASE_ASSERT(aFiles.size() <= ArrayLength(gInitialFileHandles));
-  for (size_t i = 0; i < ArrayLength(gInitialFileHandles); ++i) {
+  MOZ_RELEASE_ASSERT(aFiles.size() <= std::size(gInitialFileHandles));
+  for (size_t i = 0; i < std::size(gInitialFileHandles); ++i) {
     if (i < aFiles.size()) {
       gInitialFileHandles[i] = aFiles[i].release();
     } else {
@@ -43,7 +43,7 @@ void SetPassedFileHandles(std::vector<UniqueFileHandle>&& aFiles) {
 
 void AddToFdsToRemap(const ChildProcessArgs& aArgs,
                      std::vector<std::pair<int, int>>& aFdsToRemap) {
-  MOZ_RELEASE_ASSERT(aArgs.mFiles.size() <= ArrayLength(gInitialFileHandles));
+  MOZ_RELEASE_ASSERT(aArgs.mFiles.size() <= std::size(gInitialFileHandles));
   for (size_t i = 0; i < aArgs.mFiles.size(); ++i) {
     aFdsToRemap.push_back(
         std::pair{aArgs.mFiles[i].get(), gInitialFileHandles[i]});
@@ -56,7 +56,7 @@ void AddToFdsToRemap(const ChildProcessArgs& aArgs,
 static mach_port_t gMachSendRights[kMaxPassedMachSendRights] = {MACH_PORT_NULL};
 
 void SetPassedMachSendRights(std::vector<UniqueMachSendRight>&& aSendRights) {
-  MOZ_RELEASE_ASSERT(aSendRights.size() <= ArrayLength(gMachSendRights));
+  MOZ_RELEASE_ASSERT(aSendRights.size() <= std::size(gMachSendRights));
   for (size_t i = 0; i < aSendRights.size(); ++i) {
     gMachSendRights[i] = aSendRights[i].release();
   }
@@ -77,7 +77,7 @@ Maybe<UniqueFileHandle> CommandLineArg<UniqueFileHandle>::GetCommon(
 #else
     // See the comment on gInitialFileHandles for an explanation of the
     // behaviour here.
-    MOZ_RELEASE_ASSERT(*arg < ArrayLength(gInitialFileHandles));
+    MOZ_RELEASE_ASSERT(*arg < std::size(gInitialFileHandles));
     return Some(UniqueFileHandle{std::exchange(gInitialFileHandles[*arg], -1)});
 #endif
   }
@@ -111,7 +111,7 @@ Maybe<UniqueMachSendRight> CommandLineArg<UniqueMachSendRight>::GetCommon(
     const char* aMatch, int& aArgc, char** aArgv, const CheckArgFlag aFlags) {
   if (Maybe<uint32_t> arg =
           CommandLineArg<uint32_t>::GetCommon(aMatch, aArgc, aArgv, aFlags)) {
-    MOZ_RELEASE_ASSERT(*arg < ArrayLength(gMachSendRights));
+    MOZ_RELEASE_ASSERT(*arg < std::size(gMachSendRights));
     return Some(UniqueMachSendRight{
         std::exchange(gMachSendRights[*arg], MACH_PORT_NULL)});
   }

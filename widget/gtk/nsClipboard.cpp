@@ -523,7 +523,7 @@ static bool TransferableSetHTML(nsITransferable* aTransferable,
 
   // Remove kHTMLMarkupPrefix again, it won't necessarily cause any
   // issues, but might confuse other users.
-  const size_t prefixLen = ArrayLength(kHTMLMarkupPrefix) - 1;
+  const size_t prefixLen = std::size(kHTMLMarkupPrefix) - 1;
   if (aData.Length() >= prefixLen && nsDependentCSubstring(aData.To(prefixLen))
                                          .EqualsLiteral(kHTMLMarkupPrefix)) {
     aData = aData.From(prefixLen);
@@ -1215,7 +1215,7 @@ void nsClipboard::SelectionGetEvent(GtkClipboard* aClipboard,
                                                  kJPGImageMime, kGIFImageMime};
     nsCOMPtr<nsISupports> imageItem;
     nsCOMPtr<imgIContainer> image;
-    for (uint32_t i = 0; i < ArrayLength(imageMimeTypes); i++) {
+    for (uint32_t i = 0; i < std::size(imageMimeTypes); i++) {
       rv = trans->GetTransferData(imageMimeTypes[i], getter_AddRefs(imageItem));
       if (NS_FAILED(rv)) {
         MOZ_CLIPBOARD_LOG("    %s is missing at GetTransferData()\n",

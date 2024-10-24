@@ -3136,7 +3136,7 @@ bool nsGlobalWindowInner::ResolveComponentsShim(
 
   // Define a bunch of shims from the Ci.nsIDOMFoo to window.Foo for DOM
   // interfaces with constants.
-  for (uint32_t i = 0; i < ArrayLength(kInterfaceShimMap); ++i) {
+  for (uint32_t i = 0; i < std::size(kInterfaceShimMap); ++i) {
     // Grab the names from the table.
     const char* geckoName = kInterfaceShimMap[i].geckoName;
     const char* domName = kInterfaceShimMap[i].domName;

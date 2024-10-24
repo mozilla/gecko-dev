@@ -115,7 +115,7 @@ int registerCollations(sqlite3* aDB, Service* aService) {
   };
 
   int rv = SQLITE_OK;
-  for (size_t i = 0; SQLITE_OK == rv && i < ArrayLength(collations); ++i) {
+  for (size_t i = 0; SQLITE_OK == rv && i < std::size(collations); ++i) {
     struct Collations* p = &collations[i];
     rv = ::sqlite3_create_collation(aDB, p->zName, p->enc, aService,
                                     p->xCompare);

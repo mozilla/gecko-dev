@@ -21,7 +21,7 @@ class RunNextTest : public mozilla::Runnable {
   RunNextTest() : mozilla::Runnable("RunNextTest") {}
   NS_IMETHOD Run() override {
     MOZ_RELEASE_ASSERT(NS_IsMainThread(), "Not running on the main thread?");
-    if (gTestsIndex < int(mozilla::ArrayLength(gTests))) {
+    if (gTestsIndex < int(std::size(gTests))) {
       do_test_pending();
       Test& test = gTests[gTestsIndex++];
       (void)fprintf(stderr, TEST_INFO_STR "Running %s.\n", test.name);

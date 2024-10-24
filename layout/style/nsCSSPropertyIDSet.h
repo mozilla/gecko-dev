@@ -114,7 +114,7 @@ class nsCSSPropertyIDSet {
   }
 
   bool Intersects(const nsCSSPropertyIDSet& aOther) const {
-    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+    for (size_t i = 0; i < std::size(mProperties); ++i) {
       if (mProperties[i] & aOther.mProperties[i]) {
         return true;
       }
@@ -125,7 +125,7 @@ class nsCSSPropertyIDSet {
   void Empty() { memset(mProperties, 0, sizeof(mProperties)); }
 
   void AssertIsEmpty(const char* aText) const {
-    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+    for (size_t i = 0; i < std::size(mProperties); ++i) {
       NS_ASSERTION(mProperties[i] == 0, aText);
     }
   }
@@ -135,7 +135,7 @@ class nsCSSPropertyIDSet {
   }
 
   bool IsEmpty() const {
-    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+    for (size_t i = 0; i < std::size(mProperties); ++i) {
       if (mProperties[i] != 0) {
         return false;
       }
@@ -151,7 +151,7 @@ class nsCSSPropertyIDSet {
   // this set and |aOther|.
   nsCSSPropertyIDSet Intersect(const nsCSSPropertyIDSet& aOther) const {
     nsCSSPropertyIDSet result;
-    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+    for (size_t i = 0; i < std::size(mProperties); ++i) {
       result.mProperties[i] = mProperties[i] & aOther.mProperties[i];
     }
     return result;
@@ -161,14 +161,14 @@ class nsCSSPropertyIDSet {
   // this set or |aOther| but not both.
   nsCSSPropertyIDSet Xor(const nsCSSPropertyIDSet& aOther) const {
     nsCSSPropertyIDSet result;
-    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+    for (size_t i = 0; i < std::size(mProperties); ++i) {
       result.mProperties[i] = mProperties[i] ^ aOther.mProperties[i];
     }
     return result;
   }
 
   nsCSSPropertyIDSet& operator|=(const nsCSSPropertyIDSet& aOther) {
-    for (size_t i = 0; i < mozilla::ArrayLength(mProperties); ++i) {
+    for (size_t i = 0; i < std::size(mProperties); ++i) {
       mProperties[i] |= aOther.mProperties[i];
     }
     return *this;

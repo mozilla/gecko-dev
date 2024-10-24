@@ -1404,7 +1404,7 @@ bool SkeletonState::DecodeFisbone(ogg_packet* aPacket) {
   while (msgLength > 1) {
     if (*msgProbe == '\r' && *(msgProbe + 1) == '\n') {
       nsAutoCString strMsg(msgHead, msgProbe - msgHead);
-      for (size_t i = 0; i < ArrayLength(kFieldTypeMaps); i++) {
+      for (size_t i = 0; i < std::size(kFieldTypeMaps); i++) {
         if (strMsg.Find(kFieldTypeMaps[i].mPatternToRecognize) != -1) {
           // The content of message header fields follows [RFC2822], and the
           // mandatory message field must be encoded in US-ASCII, others

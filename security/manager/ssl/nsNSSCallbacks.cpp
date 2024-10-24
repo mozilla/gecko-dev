@@ -764,7 +764,7 @@ static void PreliminaryHandshakeDone(PRFileDesc* fd) {
   unsigned int npnlen;
 
   if (SSL_GetNextProto(fd, &state, npnbuf, &npnlen,
-                       AssertedCast<unsigned int>(ArrayLength(npnbuf))) ==
+                       AssertedCast<unsigned int>(std::size(npnbuf))) ==
       SECSuccess) {
     if (state == SSL_NEXT_PROTO_NEGOTIATED ||
         state == SSL_NEXT_PROTO_SELECTED) {

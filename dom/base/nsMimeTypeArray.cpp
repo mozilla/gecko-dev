@@ -43,7 +43,7 @@ nsPIDOMWindowInner* nsMimeTypeArray::GetParentObject() const {
 }
 
 nsMimeType* nsMimeTypeArray::IndexedGetter(uint32_t aIndex, bool& aFound) {
-  if (!ForceNoPlugins() && aIndex < ArrayLength(mMimeTypes)) {
+  if (!ForceNoPlugins() && aIndex < std::size(mMimeTypes)) {
     aFound = true;
     return mMimeTypes[aIndex];
   }

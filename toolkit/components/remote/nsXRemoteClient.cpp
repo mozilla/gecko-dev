@@ -85,7 +85,7 @@ static const char* XAtomNames[] = {
     MOZILLA_VERSION_PROP, MOZILLA_LOCK_PROP,       MOZILLA_RESPONSE_PROP,
     "WM_STATE",           MOZILLA_USER_PROP,       MOZILLA_PROFILE_PROP,
     MOZILLA_PROGRAM_PROP, MOZILLA_COMMANDLINE_PROP};
-static Atom XAtoms[MOZ_ARRAY_LENGTH(XAtomNames)];
+static Atom XAtoms[std::size(XAtomNames)];
 
 nsresult nsXRemoteClient::Init() {
   MOZ_LOG(sRemoteLm, LogLevel::Debug, ("nsXRemoteClient::Init"));
@@ -97,8 +97,8 @@ nsresult nsXRemoteClient::Init() {
   if (!mDisplay) return NS_ERROR_FAILURE;
 
   // get our atoms
-  XInternAtoms(mDisplay, const_cast<char**>(XAtomNames),
-               MOZ_ARRAY_LENGTH(XAtomNames), False, XAtoms);
+  XInternAtoms(mDisplay, const_cast<char**>(XAtomNames), std::size(XAtomNames),
+               False, XAtoms);
 
   int i = 0;
   mMozVersionAtom = XAtoms[i++];

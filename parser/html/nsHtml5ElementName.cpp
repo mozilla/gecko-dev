@@ -308,7 +308,7 @@ static int32_t const ELEMENT_HASHES_DATA[] = {
     1935549734, 1939219752, 1941221172, 1965115924, 1966223078, 1967760215,
     1967795910, 1968053806, 1971461414};
 staticJArray<int32_t, int32_t> nsHtml5ElementName::ELEMENT_HASHES = {
-    ELEMENT_HASHES_DATA, MOZ_ARRAY_LENGTH(ELEMENT_HASHES_DATA)};
+    ELEMENT_HASHES_DATA, std::size(ELEMENT_HASHES_DATA)};
 void nsHtml5ElementName::initializeStatics() {
   ELT_ANNOTATION_XML = new nsHtml5ElementName(
       nsGkAtoms::annotation_xml_, nsGkAtoms::annotation_xml_,

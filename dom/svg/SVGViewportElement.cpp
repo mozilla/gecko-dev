@@ -309,7 +309,7 @@ SVGViewBox SVGViewportElement::GetViewBoxWithSynthesis(
 
 SVGElement::LengthAttributesInfo SVGViewportElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              std::size(sLengthInfo));
 }
 
 }  // namespace mozilla::dom

@@ -1531,7 +1531,7 @@ uint8_t aria::GetFirstValidRoleMapIndexExcluding(
       return Compare(role, aEntry.ARIARoleString(),
                      nsCaseInsensitiveStringComparator);
     };
-    if (BinarySearchIf(sWAIRoleMaps, 0, ArrayLength(sWAIRoleMaps), comparator,
+    if (BinarySearchIf(sWAIRoleMaps, 0, std::size(sWAIRoleMaps), comparator,
                        &idx)) {
       return idx;
     }
@@ -1581,7 +1581,7 @@ bool aria::IsRoleMapIndexValid(uint8_t aRoleMapIndex) {
     case LANDMARK_ROLE_MAP_ENTRY_INDEX:
       return true;
   }
-  return aRoleMapIndex < ArrayLength(sWAIRoleMaps);
+  return aRoleMapIndex < std::size(sWAIRoleMaps);
 }
 
 uint64_t aria::UniversalStatesFor(mozilla::dom::Element* aElement) {
@@ -1593,7 +1593,7 @@ uint64_t aria::UniversalStatesFor(mozilla::dom::Element* aElement) {
 }
 
 uint8_t aria::AttrCharacteristicsFor(nsAtom* aAtom) {
-  for (uint32_t i = 0; i < ArrayLength(gWAIUnivAttrMap); i++) {
+  for (uint32_t i = 0; i < std::size(gWAIUnivAttrMap); i++) {
     if (gWAIUnivAttrMap[i].attributeName == aAtom) {
       return gWAIUnivAttrMap[i].characteristics;
     }
@@ -1615,7 +1615,7 @@ const nsRoleMapEntry* aria::GetRoleMap(const nsStaticAtom* aAriaRole) {
     return Compare(role, aEntry.ARIARoleString());
   };
   size_t idx;
-  if (BinarySearchIf(sWAIRoleMaps, 0, ArrayLength(sWAIRoleMaps), comparator,
+  if (BinarySearchIf(sWAIRoleMaps, 0, std::size(sWAIRoleMaps), comparator,
                      &idx)) {
     return GetRoleMapFromIndex(idx);
   }

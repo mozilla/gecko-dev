@@ -885,8 +885,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
     // to actual nscoord values.
     static const nscoord kBorderWidths[] = {
         CSSPixelsToAppUnits(1), CSSPixelsToAppUnits(3), CSSPixelsToAppUnits(5)};
-    MOZ_ASSERT(size_t(aBorderWidthKeyword) <
-               mozilla::ArrayLength(kBorderWidths));
+    MOZ_ASSERT(size_t(aBorderWidthKeyword) < std::size(kBorderWidths));
 
     return kBorderWidths[aBorderWidthKeyword];
   }

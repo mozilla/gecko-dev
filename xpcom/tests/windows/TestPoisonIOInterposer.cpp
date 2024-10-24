@@ -19,7 +19,7 @@ class TempFile final {
  public:
   TempFile() : mFullPath{0} {
     wchar_t tempDir[MAX_PATH + 1];
-    DWORD len = ::GetTempPathW(ArrayLength(tempDir), tempDir);
+    DWORD len = ::GetTempPathW(std::size(tempDir), tempDir);
     if (!len) {
       return;
     }

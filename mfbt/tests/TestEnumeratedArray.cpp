@@ -22,7 +22,7 @@ using TestArray = EnumeratedArray<AnimalSpecies, int>;
 void TestInitialValueByConstructor() {
   // Style 1
   TestArray headCount(1, 2, 3);
-  MOZ_RELEASE_ASSERT(mozilla::ArrayLength(headCount) == 3);
+  MOZ_RELEASE_ASSERT(std::size(headCount) == 3);
   MOZ_RELEASE_ASSERT(headCount[AnimalSpecies::Cow] == 1);
   MOZ_RELEASE_ASSERT(headCount[AnimalSpecies::Sheep] == 2);
   MOZ_RELEASE_ASSERT(headCount[AnimalSpecies::Pig] == 3);

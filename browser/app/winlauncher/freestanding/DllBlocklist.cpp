@@ -117,10 +117,10 @@ void NativeNtBlockSet::Write(WritableBuffer& aBuffer) {
         parts[1] = (entry->mVersion >> 32) & 0xFFFF;
         parts[2] = (entry->mVersion >> 16) & 0xFFFF;
         parts[3] = entry->mVersion & 0xFFFF;
-        for (size_t p = 0; p < mozilla::ArrayLength(parts); ++p) {
+        for (size_t p = 0; p < std::size(parts); ++p) {
           _ltoa_s(parts[p], buf, sizeof(buf), 10);
           aBuffer.Write(buf, strlen(buf));
-          if (p != mozilla::ArrayLength(parts) - 1) {
+          if (p != std::size(parts) - 1) {
             aBuffer.Write(".", 1);
           }
         }

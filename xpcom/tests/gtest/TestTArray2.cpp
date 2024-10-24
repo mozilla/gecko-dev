@@ -197,25 +197,25 @@ static bool test_basic_array(ElementType* data, size_t dataLen,
 TEST(TArray, test_int_array)
 {
   int data[] = {4, 6, 8, 2, 4, 1, 5, 7, 3};
-  ASSERT_TRUE(test_basic_array(data, ArrayLength(data), int(14)));
+  ASSERT_TRUE(test_basic_array(data, std::size(data), int(14)));
 }
 
 TEST(TArray, test_int64_array)
 {
   int64_t data[] = {4, 6, 8, 2, 4, 1, 5, 7, 3};
-  ASSERT_TRUE(test_basic_array(data, ArrayLength(data), int64_t(14)));
+  ASSERT_TRUE(test_basic_array(data, std::size(data), int64_t(14)));
 }
 
 TEST(TArray, test_char_array)
 {
   char data[] = {4, 6, 8, 2, 4, 1, 5, 7, 3};
-  ASSERT_TRUE(test_basic_array(data, ArrayLength(data), char(14)));
+  ASSERT_TRUE(test_basic_array(data, std::size(data), char(14)));
 }
 
 TEST(TArray, test_uint32_array)
 {
   uint32_t data[] = {4, 6, 8, 2, 4, 1, 5, 7, 3};
-  ASSERT_TRUE(test_basic_array(data, ArrayLength(data), uint32_t(14)));
+  ASSERT_TRUE(test_basic_array(data, std::size(data), uint32_t(14)));
 }
 
 //----
@@ -251,17 +251,17 @@ TEST(TArray, test_object_array)
   nsTArray<Object> objArray;
   const char kdata[] = "hello world";
   size_t i;
-  for (i = 0; i < ArrayLength(kdata); ++i) {
+  for (i = 0; i < std::size(kdata); ++i) {
     char x[] = {kdata[i], '\0'};
     objArray.AppendElement(Object(x, i));
   }
-  for (i = 0; i < ArrayLength(kdata); ++i) {
+  for (i = 0; i < std::size(kdata); ++i) {
     ASSERT_EQ(objArray[i].Str()[0], kdata[i]);
     ASSERT_EQ(objArray[i].Num(), i);
   }
   objArray.Sort();
   const char ksorted[] = "\0 dehllloorw";
-  for (i = 0; i < ArrayLength(kdata) - 1; ++i) {
+  for (i = 0; i < std::size(kdata) - 1; ++i) {
     ASSERT_EQ(objArray[i].Str()[0], ksorted[i]);
   }
 }
@@ -663,12 +663,12 @@ TEST(TArray, test_string_array)
   nsTArray<nsCString> strArray;
   const char kdata[] = "hello world";
   size_t i;
-  for (i = 0; i < ArrayLength(kdata); ++i) {
+  for (i = 0; i < std::size(kdata); ++i) {
     nsCString str;
     str.Assign(kdata[i]);
     strArray.AppendElement(str);
   }
-  for (i = 0; i < ArrayLength(kdata); ++i) {
+  for (i = 0; i < std::size(kdata); ++i) {
     ASSERT_EQ(strArray[i].CharAt(0), kdata[i]);
   }
 
@@ -685,7 +685,7 @@ TEST(TArray, test_string_array)
 
   strArray.Sort();
   const char ksorted[] = "\0 dehllloorw";
-  for (i = ArrayLength(kdata); i--;) {
+  for (i = std::size(kdata); i--;) {
     ASSERT_EQ(strArray[i].CharAt(0), ksorted[i]);
     if (i > 0 && strArray[i] == strArray[i - 1]) strArray.RemoveElementAt(i);
   }
@@ -695,12 +695,12 @@ TEST(TArray, test_string_array)
   auto no_index = strArray.NoIndex;  // Fixes gtest compilation error
   ASSERT_EQ(strArray.BinaryIndexOf(""_ns), no_index);
 
-  nsCString rawArray[MOZ_ARRAY_LENGTH(kdata) - 1];
-  for (i = 0; i < ArrayLength(rawArray); ++i)
+  nsCString rawArray[std::size(kdata) - 1];
+  for (i = 0; i < std::size(rawArray); ++i)
     rawArray[i].Assign(kdata + i);  // substrings of kdata
 
   ASSERT_TRUE(
-      test_basic_array(rawArray, ArrayLength(rawArray), nsCString("foopy")));
+      test_basic_array(rawArray, std::size(rawArray), nsCString("foopy")));
 }
 
 //----
@@ -724,7 +724,7 @@ TEST(TArray, test_comptr_array)
   const char* kNames[] = {"foo.txt", "bar.html", "baz.gif"};
   nsTArray<FilePointer> fileArray;
   size_t i;
-  for (i = 0; i < ArrayLength(kNames); ++i) {
+  for (i = 0; i < std::size(kNames); ++i) {
     FilePointer f;
     tmpDir->Clone(getter_AddRefs(f));
     ASSERT_TRUE(f);
@@ -917,18 +917,17 @@ TEST(TArray, test_ptrarray)
 TEST(TArray, test_autoarray)
 {
   uint32_t data[] = {4, 6, 8, 2, 4, 1, 5, 7, 3};
-  AutoTArray<uint32_t, MOZ_ARRAY_LENGTH(data)> array;
+  AutoTArray<uint32_t, std::size(data)> array;
 
   void* hdr = array.DebugGetHeader();
   ASSERT_NE(hdr, nsTArray<uint32_t>().DebugGetHeader());
-  ASSERT_NE(hdr,
-            (AutoTArray<uint32_t, MOZ_ARRAY_LENGTH(data)>().DebugGetHeader()));
+  ASSERT_NE(hdr, (AutoTArray<uint32_t, std::size(data)>().DebugGetHeader()));
 
   array.AppendElement(1u);
   ASSERT_EQ(hdr, array.DebugGetHeader());
 
   array.RemoveElement(1u);
-  array.AppendElements(data, ArrayLength(data));
+  array.AppendElements(data, std::size(data));
   ASSERT_EQ(hdr, array.DebugGetHeader());
 
   array.AppendElement(2u);
@@ -937,7 +936,7 @@ TEST(TArray, test_autoarray)
   array.Clear();
   array.Compact();
   ASSERT_EQ(hdr, array.DebugGetHeader());
-  array.AppendElements(data, ArrayLength(data));
+  array.AppendElements(data, std::size(data));
   ASSERT_EQ(hdr, array.DebugGetHeader());
 
   nsTArray<uint32_t> array2;
@@ -946,21 +945,21 @@ TEST(TArray, test_autoarray)
   ASSERT_NE(emptyHdr, array.DebugGetHeader());
   ASSERT_NE(hdr, array2.DebugGetHeader());
   size_t i;
-  for (i = 0; i < ArrayLength(data); ++i) {
+  for (i = 0; i < std::size(data); ++i) {
     ASSERT_EQ(array2[i], data[i]);
   }
   ASSERT_TRUE(array.IsEmpty());
 
   array.Compact();
-  array.AppendElements(data, ArrayLength(data));
+  array.AppendElements(data, std::size(data));
   uint32_t data3[] = {5, 7, 11};
-  AutoTArray<uint32_t, MOZ_ARRAY_LENGTH(data3)> array3;
-  array3.AppendElements(data3, ArrayLength(data3));
+  AutoTArray<uint32_t, std::size(data3)> array3;
+  array3.AppendElements(data3, std::size(data3));
   array.SwapElements(array3);
-  for (i = 0; i < ArrayLength(data); ++i) {
+  for (i = 0; i < std::size(data); ++i) {
     ASSERT_EQ(array3[i], data[i]);
   }
-  for (i = 0; i < ArrayLength(data3); ++i) {
+  for (i = 0; i < std::size(data3); ++i) {
     ASSERT_EQ(array[i], data3[i]);
   }
 }
@@ -1027,12 +1026,12 @@ static bool is_heap(const Array& ary, size_t len) {
     ASSERT_EQ((actual), (expected));   \
   } while (0)
 
-#define CHECK_ARRAY(arr, data)                               \
-  do {                                                       \
-    CHECK_EQ_INT((arr).Length(), (size_t)ArrayLength(data)); \
-    for (size_t _i = 0; _i < ArrayLength(data); _i++) {      \
-      CHECK_EQ_INT((arr)[_i], (data)[_i]);                   \
-    }                                                        \
+#define CHECK_ARRAY(arr, data)                             \
+  do {                                                     \
+    CHECK_EQ_INT((arr).Length(), (size_t)std::size(data)); \
+    for (size_t _i = 0; _i < std::size(data); _i++) {      \
+      CHECK_EQ_INT((arr)[_i], (data)[_i]);                 \
+    }                                                      \
   } while (0)
 
 TEST(TArray, test_swap)
@@ -1046,8 +1045,8 @@ TEST(TArray, test_swap)
     AutoTArray<int, 8> a;
     AutoTArray<int, 6> b;
 
-    a.AppendElements(data1, ArrayLength(data1));
-    b.AppendElements(data2, ArrayLength(data2));
+    a.AppendElements(data1, std::size(data1));
+    b.AppendElements(data2, std::size(data2));
     CHECK_IS_USING_AUTO(a);
     CHECK_IS_USING_AUTO(b);
 
@@ -1065,9 +1064,9 @@ TEST(TArray, test_swap)
     AutoTArray<int, 3> a;
     AutoTArray<int, 3> b;
 
-    a.AppendElements(data1, ArrayLength(data1));
+    a.AppendElements(data1, std::size(data1));
     a.RemoveElementAt(3);
-    b.AppendElements(data2, ArrayLength(data2));
+    b.AppendElements(data2, std::size(data2));
 
     // Here and elsewhere, we assert that if we start with an auto array
     // capable of storing N elements, we store N+1 elements into the array, and
@@ -1097,10 +1096,10 @@ TEST(TArray, test_swap)
   {
     AutoTArray<int, 3> a;
     AutoTArray<int, 2> b;
-    a.AppendElements(data1, ArrayLength(data1));
+    a.AppendElements(data1, std::size(data1));
     a.RemoveElementAt(3);
 
-    b.AppendElements(data2, ArrayLength(data2));
+    b.AppendElements(data2, std::size(data2));
     b.RemoveElementAt(2);
 
     CHECK_NOT_USING_AUTO(a);
@@ -1122,8 +1121,8 @@ TEST(TArray, test_swap)
     AutoTArray<int, 1> a;
     AutoTArray<int, 3> b;
 
-    a.AppendElements(data1, ArrayLength(data1));
-    b.AppendElements(data2, ArrayLength(data2));
+    a.AppendElements(data1, std::size(data1));
+    b.AppendElements(data2, std::size(data2));
 
     a.SwapElements(b);
 
@@ -1136,7 +1135,7 @@ TEST(TArray, test_swap)
     nsTArray<int> a;
     AutoTArray<int, 3> b;
 
-    b.AppendElements(data2, ArrayLength(data2));
+    b.AppendElements(data2, std::size(data2));
     CHECK_IS_USING_AUTO(b);
 
     a.SwapElements(b);
@@ -1179,7 +1178,7 @@ TEST(TArray, test_swap)
   {
     nsTArray<int> a;
     nsTArray<int> b;
-    b.AppendElements(data2, ArrayLength(data2));
+    b.AppendElements(data2, std::size(data2));
 
     CHECK_EQ_INT(a.Capacity(), size_t(0));
     size_t bCapacity = b.Capacity();
@@ -1199,7 +1198,7 @@ TEST(TArray, test_swap)
     nsTArray<int> a;
     AutoTArray<int, 3> b;
 
-    a.AppendElements(data1, ArrayLength(data1));
+    a.AppendElements(data1, std::size(data1));
 
     a.SwapElements(b);
 
@@ -1217,7 +1216,7 @@ TEST(TArray, test_swap)
     AutoTArray<int, 16> a;
     AutoTArray<int, 3> b;
 
-    a.AppendElements(data1, ArrayLength(data1));
+    a.AppendElements(data1, std::size(data1));
 
     a.SwapElements(b);
 
@@ -1249,7 +1248,7 @@ TEST(TArray, test_swap)
     AutoTArray<int, 2> a;
     AutoTArray<int, 1> b;
 
-    a.AppendElements(data1, ArrayLength(data1));
+    a.AppendElements(data1, std::size(data1));
 
     a.SwapElements(b);
 
@@ -1264,7 +1263,7 @@ TEST(TArray, test_swap)
     nsTArray<int> a;
     nsTArray<int> b;
 
-    a.AppendElements(data1, ArrayLength(data1));
+    a.AppendElements(data1, std::size(data1));
 
     ASSERT_TRUE(a.SwapElements(b, fallible));
 
@@ -1277,7 +1276,7 @@ TEST(TArray, test_swap)
     FallibleTArray<int> a;
     FallibleTArray<int> b;
 
-    ASSERT_TRUE(a.AppendElements(data1, ArrayLength(data1), fallible));
+    ASSERT_TRUE(a.AppendElements(data1, std::size(data1), fallible));
 
     ASSERT_TRUE(a.SwapElements(b, fallible));
 
@@ -1290,7 +1289,7 @@ TEST(TArray, test_swap)
     FallibleTArray<int> a;
     AutoTArray<int, 8192> b;
 
-    ASSERT_TRUE(a.AppendElements(data1, ArrayLength(data1), fallible));
+    ASSERT_TRUE(a.AppendElements(data1, std::size(data1), fallible));
 
     ASSERT_TRUE(a.SwapElements(b, fallible));
 
@@ -1458,7 +1457,7 @@ bool TestCompareMethods(const Comparator& aComp) {
   ary.Sort(aComp);
 
   const int sorted[] = {3, 4, 5, 12, 16, 17, 57, 96};
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(sorted); i++) {
+  for (size_t i = 0; i < std::size(sorted); i++) {
     if (sorted[i] != ary[i]) {
       return false;
     }

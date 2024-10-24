@@ -5383,7 +5383,7 @@ typedef HMODULE replace_malloc_handle_t;
 static replace_malloc_handle_t replace_malloc_handle() {
   wchar_t replace_malloc_lib[1024];
   if (GetEnvironmentVariableW(L"MOZ_REPLACE_MALLOC_LIB", replace_malloc_lib,
-                              ArrayLength(replace_malloc_lib)) > 0) {
+                              std::size(replace_malloc_lib)) > 0) {
     return LoadLibraryW(replace_malloc_lib);
   }
   return nullptr;
