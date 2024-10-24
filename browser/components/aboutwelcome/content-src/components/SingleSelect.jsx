@@ -137,6 +137,7 @@ export const SingleSelect = ({
                     className={`select-item ${type}`}
                     title={value}
                     onKeyDown={e => handleKeyDown(e)}
+                    style={icon?.width ? { minWidth: icon.width } : {}}
                   >
                     {flair ? (
                       <Localized text={valOrObj(flair.text)}>

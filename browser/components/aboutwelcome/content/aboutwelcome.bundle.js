@@ -1635,7 +1635,10 @@ const SingleSelect = ({
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
       className: `select-item ${type}`,
       title: value,
-      onKeyDown: e => handleKeyDown(e)
+      onKeyDown: e => handleKeyDown(e),
+      style: icon?.width ? {
+        minWidth: icon.width
+      } : {}
     }, flair ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: valOrObj(flair.text)
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
