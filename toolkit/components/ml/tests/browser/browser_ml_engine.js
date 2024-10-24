@@ -101,7 +101,7 @@ add_task(async function test_ml_engine_pick_feature_id() {
       id: "74a71cfd-1734-44e6-85c0-69cf3e874138",
     },
     {
-      featureId: "myCoolFeature",
+      featureId: "pdfjs-alt-text",
       taskName: "moz-echo",
       modelId: "mozilla/distilvit",
       processorId: "mozilla/distilvit",
@@ -118,7 +118,7 @@ add_task(async function test_ml_engine_pick_feature_id() {
 
   info("Get the engine");
   const engineInstance = await createEngine({
-    featureId: "myCoolFeature",
+    featureId: "pdfjs-alt-text",
     taskName: "moz-echo",
   });
 
@@ -282,35 +282,6 @@ add_task(async function test_pref_is_off() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.ml.enable", true]],
   });
-});
-
-/**
- * Tests that we verify the task name is valid
- */
-add_task(async function test_invalid_task_name() {
-  const { cleanup, remoteClients } = await setup();
-
-  const options = new PipelineOptions({ taskName: "inv#alid" });
-  const mlEngineParent = await EngineProcess.getMLEngineParent();
-  const engineInstance = await mlEngineParent.getEngine(options);
-
-  let error;
-
-  try {
-    const res = engineInstance.run({ data: "This gets echoed." });
-    await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
-    await res;
-  } catch (e) {
-    error = e;
-  }
-  is(
-    error?.message,
-    "Invalid task name. Task name should contain only alphanumeric characters and underscores/dashes.",
-    "The error is correctly surfaced."
-  );
-
-  await EngineProcess.destroyMLEngine();
-  await cleanup();
 });
 
 /**
@@ -714,7 +685,7 @@ add_task(async function test_ml_engine_get_status() {
         device: null,
         dtype: "q8",
         numThreads: null,
-        executionPriority: "NORMAL",
+        executionPriority: null,
       },
       engineId: "default-engine",
     },
@@ -759,4 +730,234 @@ add_task(async function test_ml_engine_not_enough_memory() {
 
   await EngineProcess.destroyMLEngine();
   await cleanup();
+});
+
+/**
+ * Helper function to create a basic set of valid options
+ */
+function getValidOptions(overrides = {}) {
+  return Object.assign(
+    {
+      engineId: "validEngine1",
+      featureId: "pdfjs-alt-text",
+      taskName: "valid_task",
+      modelHubRootUrl: "https://example.com",
+      modelHubUrlTemplate: "https://example.com/{modelId}",
+      timeoutMS: 5000,
+      modelId: "validModel",
+      modelRevision: "v1",
+      tokenizerId: "validTokenizer",
+      tokenizerRevision: "v1",
+      processorId: "validProcessor",
+      processorRevision: "v1",
+      logLevel: null,
+      runtimeFilename: "runtime.wasm",
+      device: InferenceDevice.GPU,
+      numThreads: 4,
+      executionPriority: ExecutionPriority.NORMAL,
+    },
+    overrides
+  );
+}
+
+/**
+ * A collection of test cases for invalid and valid values.
+ */
+const commonInvalidCases = [
+  { description: "Invalid value (special characters)", value: "org1/my!value" },
+  {
+    description: "Invalid value (special characters in organization)",
+    value: "org@1/my-value",
+  },
+  { description: "Invalid value (missing name part)", value: "org1/" },
+  {
+    description: "Invalid value (invalid characters in name)",
+    value: "my$value",
+  },
+];
+
+const commonValidCases = [
+  { description: "Valid organization/name", value: "org1/my-value" },
+  { description: "Valid name only", value: "my-value" },
+  {
+    description: "Valid name with underscores and dashes",
+    value: "my_value-123",
+  },
+  {
+    description: "Valid organization with underscores and dashes",
+    value: "org_123/my-value",
+  },
+];
+
+const pipelineOptionsCases = [
+  // Invalid cases for various fields
+  ...commonInvalidCases.map(test => ({
+    description: `Invalid processorId (${test.description})`,
+    options: { processorId: test.value },
+    expectedError: /Invalid value/,
+  })),
+  ...commonInvalidCases.map(test => ({
+    description: `Invalid tokenizerId (${test.description})`,
+    options: { tokenizerId: test.value },
+    expectedError: /Invalid value/,
+  })),
+  ...commonInvalidCases.map(test => ({
+    description: `Invalid modelId (${test.description})`,
+    options: { modelId: test.value },
+    expectedError: /Invalid value/,
+  })),
+
+  // Valid cases for various fields
+  ...commonValidCases.map(test => ({
+    description: `Valid processorId (${test.description})`,
+    options: { processorId: test.value },
+    expected: { processorId: test.value },
+  })),
+  ...commonValidCases.map(test => ({
+    description: `Valid tokenizerId (${test.description})`,
+    options: { tokenizerId: test.value },
+    expected: { tokenizerId: test.value },
+  })),
+  ...commonValidCases.map(test => ({
+    description: `Valid modelId (${test.description})`,
+    options: { modelId: test.value },
+    expected: { modelId: test.value },
+  })),
+
+  // Invalid dtype, device, executionPriority, featureId and logLevel cases
+  {
+    description: "Invalid featureId",
+    options: { featureId: "unknown" },
+    expectedError: /Invalid value/,
+  },
+  {
+    description: "Invalid dtype",
+    options: { dtype: "invalid_dtype" },
+    expectedError: /Invalid value/,
+  },
+  {
+    description: "Invalid device",
+    options: { device: "invalid_device" },
+    expectedError: /Invalid value/,
+  },
+  {
+    description: "Invalid executionPriority",
+    options: { executionPriority: "invalid_priority" },
+    expectedError: /Invalid value/,
+  },
+  {
+    description: "Invalid logLevel",
+    options: { logLevel: "invalid_log_level" },
+    expectedError: /Invalid value/,
+  },
+
+  // Valid cases for dtype, device, executionPriority, and logLevel
+  {
+    description: "Valid dtype",
+    options: { dtype: QuantizationLevel.FP16 },
+    expected: { dtype: QuantizationLevel.FP16 },
+  },
+  {
+    description: "Valid device",
+    options: { device: InferenceDevice.WASM },
+    expected: { device: InferenceDevice.WASM },
+  },
+  {
+    description: "Valid executionPriority",
+    options: { executionPriority: ExecutionPriority.HIGH },
+    expected: { executionPriority: ExecutionPriority.HIGH },
+  },
+  {
+    description: "Valid logLevel (Info)",
+    options: { logLevel: LogLevel.INFO },
+    expected: { logLevel: LogLevel.INFO },
+  },
+  {
+    description: "Valid logLevel (Critical)",
+    options: { logLevel: LogLevel.CRITICAL },
+    expected: { logLevel: LogLevel.CRITICAL },
+  },
+  {
+    description: "Valid logLevel (All)",
+    options: { logLevel: LogLevel.ALL },
+    expected: { logLevel: LogLevel.ALL },
+  },
+
+  // Invalid revision cases
+  {
+    description: "Invalid revision (random string)",
+    options: { modelRevision: "invalid_revision" },
+    expectedError: /Invalid value/,
+  },
+  {
+    description: "Invalid revision (too many version numbers)",
+    options: { tokenizerRevision: "v1.0.3.4.5" },
+    expectedError: /Invalid value/,
+  },
+  {
+    description: "Invalid revision (unknown suffix)",
+    options: { processorRevision: "v1.0.0-unknown" },
+    expectedError: /Invalid value/,
+  },
+
+  // Valid revision cases with new format
+  {
+    description: "Valid revision (main)",
+    options: { modelRevision: "main" },
+    expected: { modelRevision: "main" },
+  },
+  {
+    description: "Valid revision (v-prefixed version with alpha)",
+    options: { tokenizerRevision: "v1.2.3-alpha1" },
+    expected: { tokenizerRevision: "v1.2.3-alpha1" },
+  },
+  {
+    description:
+      "Valid revision (v-prefixed version with beta and dot separator)",
+    options: { tokenizerRevision: "v1.2.3.beta2" },
+    expected: { tokenizerRevision: "v1.2.3.beta2" },
+  },
+  {
+    description:
+      "Valid revision (non-prefixed version with rc and dash separator)",
+    options: { processorRevision: "1.0.0-rc3" },
+    expected: { processorRevision: "1.0.0-rc3" },
+  },
+  {
+    description:
+      "Valid revision (non-prefixed version with pre and dot separator)",
+    options: { processorRevision: "1.0.0.pre4" },
+    expected: { processorRevision: "1.0.0.pre4" },
+  },
+  {
+    description: "Valid revision (version without suffix)",
+    options: { modelRevision: "1.0.0" },
+    expected: { modelRevision: "1.0.0" },
+  },
+];
+
+/**
+ * Testing PipelineOption validation
+ */
+add_task(async function test_pipeline_options_validation() {
+  pipelineOptionsCases.forEach(testCase => {
+    if (testCase.expectedError) {
+      Assert.throws(
+        () => new PipelineOptions(getValidOptions(testCase.options)),
+        testCase.expectedError,
+        `${testCase.description} throws the expected error`
+      );
+    } else {
+      const pipelineOptions = new PipelineOptions(
+        getValidOptions(testCase.options)
+      );
+      Object.keys(testCase.expected).forEach(key => {
+        is(
+          pipelineOptions[key],
+          testCase.expected[key],
+          `${testCase.description} sets ${key} correctly`
+        );
+      });
+    }
+  });
 });

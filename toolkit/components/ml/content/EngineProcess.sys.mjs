@@ -17,6 +17,38 @@ ChromeUtils.defineESModuleGetters(
  */
 
 /**
+ * Lists Firefox internal features
+ */
+const FEATURES = ["pdfjs-alt-text"];
+
+/**
+ * Custom error class for validation errors.
+ *
+ * This error is thrown when a field fails validation, providing additional context such as
+ * the name of the field that caused the error.
+ *
+ * @augments Error
+ */
+class PipelineOptionsValidationError extends Error {
+  /**
+   * Create a PipelineOptionsValidationError.
+   *
+   * @param {string} field - The name of the field that caused the validation error.
+   * @param {any} value - The invalid value provided for the field.
+   * @param {string} [tips=null] - Optional tips or suggestions for valid values.
+   */
+  constructor(field, value, tips = null) {
+    const baseMessage = `Invalid value "${value}" for field "${field}".`;
+    const message = tips ? `${baseMessage} ${tips}` : baseMessage;
+    super(message);
+
+    this.name = this.constructor.name;
+    this.field = field;
+    this.value = value;
+  }
+}
+
+/**
  * Enum for execution priority.
  *
  * Defines the priority of the task:
@@ -29,14 +61,64 @@ ChromeUtils.defineESModuleGetters(
  * @enum {string}
  */
 export const ExecutionPriority = {
-  /** High priority, needed for Firefox */
   HIGH: "HIGH",
-
-  /** Normal priority, default */
   NORMAL: "NORMAL",
-
-  /** Low priority, used for 3rd party calls */
   LOW: "LOW",
+};
+
+/**
+ * Enum for quantization levels.
+ *
+ * Defines the quantization level of the task:
+ *
+ * - 'fp32': Full precision 32-bit floating point (`''`)
+ * - 'fp16': Half precision 16-bit floating point (`'_fp16'`)
+ * - 'q8': Quantized 8-bit (`'_quantized'`)
+ * - 'int8': Integer 8-bit quantization (`'_int8'`)
+ * - 'uint8': Unsigned integer 8-bit quantization (`'_uint8'`)
+ * - 'q4': Quantized 4-bit (`'_q4'`)
+ * - 'bnb4': Binary/Boolean 4-bit quantization (`'_bnb4'`)
+ * - 'q4f16': 16-bit floating point model with 4-bit block weight quantization (`'_q4f16'`)
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const QuantizationLevel = {
+  FP32: "fp32",
+  FP16: "fp16",
+  Q8: "q8",
+  INT8: "int8",
+  UINT8: "uint8",
+  Q4: "q4",
+  BNB4: "bnb4",
+  Q4F16: "q4f16",
+};
+
+/**
+ * Enum for the device used for inference.
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const InferenceDevice = {
+  GPU: "gpu",
+  WASM: "wasm",
+};
+
+/**
+ * Enum for log levels.
+ *
+ * @readonly
+ * @enum {string}
+ */
+export const LogLevel = {
+  TRACE: "Trace",
+  INFO: "Info",
+  DEBUG: "Debug",
+  WARN: "Warn",
+  ERROR: "Error",
+  CRITICAL: "Critical",
+  ALL: "All",
 };
 
 /**
@@ -138,7 +220,7 @@ export class PipelineOptions {
   /**
    * The log level used in the worker
    *
-   * @type {?string}
+   * @type {LogLevel | null}
    */
   logLevel = null;
 
@@ -152,24 +234,14 @@ export class PipelineOptions {
   /**
    * Device used for inference
    *
-   * @type {"gpu" | "wasm" | null}
+   * @type {InferenceDevice | null}
    */
   device = null;
 
   /**
    * Quantization level
    *
-   * - name : description (onnx file suffix)
-   * - 'fp32': Full precision 32-bit floating point (`''`)
-   * - 'fp16': Half precision 16-bit floating point (`'_fp16'`)
-   * - 'q8': Quantized 8-bit (`'_quantized'`)
-   * - 'int8': Integer 8-bit quantization (`'_int8'`)
-   * - 'uint8': Unsigned integer 8-bit quantization (`'_uint8'`)
-   * - 'q4': Quantized 4-bit (`'_q4'`)
-   * - 'bnb4': Binary/Boolean 4-bit quantization (`'_bnb4'`)
-   * - 'q4f16': 16-bit floating point model with 4-bit block weight quantization (`'_q4f16'`)
-   *
-   * @type {"fp32" | "fp16" | "q8" | "int8" | "uint8" | "q4" | "bnb4" | "q4f16" | null}
+   * @type {QuantizationLevel | null}
    */
   dtype = null;
 
@@ -187,7 +259,7 @@ export class PipelineOptions {
    *
    * @type {ExecutionPriority}
    */
-  executionPriority = ExecutionPriority.NORMAL;
+  executionPriority = null;
 
   /**
    * Create a PipelineOptions instance.
@@ -196,6 +268,122 @@ export class PipelineOptions {
    */
   constructor(options) {
     this.updateOptions(options);
+  }
+
+  /**
+   * Private method to validate enum fields.
+   *
+   * @param {string} field - The field being validated (e.g., 'dtype', 'device', 'executionPriority').
+   * @param {*} value - The value being checked against the enum.
+   * @throws {Error} Throws an error if the value is not valid.
+   * @private
+   */
+  #validateEnum(field, value) {
+    const enums = {
+      dtype: QuantizationLevel,
+      device: InferenceDevice,
+      executionPriority: ExecutionPriority,
+      logLevel: LogLevel,
+    };
+    // Check if the value is part of the enum or null
+    if (!Object.values(enums[field]).includes(value)) {
+      throw new PipelineOptionsValidationError(field, value);
+    }
+  }
+
+  /**
+   * Validates the taskName field, ensuring it contains only alphanumeric characters, underscores, and dashes.
+   * Slashes are not allowed in the taskName.
+   *
+   * @param {string} field - The name of the field being validated (e.g., taskName).
+   * @param {string} value - The value of the field to validate.
+   * @throws {Error} Throws an error if the taskName contains invalid characters.
+   * @private
+   */
+  #validateTaskName(field, value) {
+    // Define a regular expression to verify taskName pattern (alphanumeric, underscores, and dashes, no slashes)
+    const validTaskNamePattern = /^[a-zA-Z0-9_\-]+$/;
+
+    // Check if the value matches the pattern
+    if (!validTaskNamePattern.test(value)) {
+      throw new PipelineOptionsValidationError(
+        field,
+        value,
+        "Should contain only alphanumeric characters, underscores, or dashes."
+      );
+    }
+  }
+
+  /**
+   * Validates a taskName or ID.
+   *
+   * The ID can optionally be in the form `organization/name`, where both `organization` and `name`
+   * follow the `taskName` pattern (alphanumeric characters, underscores, and dashes).
+   *
+   * Throws an exception if the name or ID is invalid.
+   *
+   * @param {string} field - The name of the field being validated (e.g., taskName, engineId).
+   * @param {string} value - The value of the field to validate.
+   * @throws {PipelineOptionsValidationError} Throws a validation error if the ID is invalid.
+   * @private
+   */
+  #validateId(field, value) {
+    // Define a regular expression to match the optional organization and required name
+    // `organization/` part is optional, and both parts should follow the taskName pattern.
+    const validPattern = /^(?:[a-zA-Z0-9_\-]+\/)?[a-zA-Z0-9_\-]+$/;
+
+    // Check if the value matches the pattern
+    if (!validPattern.test(value)) {
+      throw new PipelineOptionsValidationError(
+        field,
+        value,
+        "Should follow the format 'organization/name' or 'name', where both parts contain only alphanumeric characters, underscores, or dashes."
+      );
+    }
+  }
+
+  /**
+   * Generic method to validate an integer within a specified range.
+   *
+   * @param {string} field - The name of the field being validated.
+   * @param {number} value - The integer value to validate.
+   * @param {number} min - The minimum allowed value (inclusive).
+   * @param {number} max - The maximum allowed value (inclusive).
+   * @throws {Error} Throws an error if the value is not a valid integer within the range.
+   * @private
+   */
+  #validateIntegerRange(field, value, min, max) {
+    if (!Number.isInteger(value) || value < min || value > max) {
+      throw new PipelineOptionsValidationError(
+        field,
+        value,
+        `Should be an integer between ${min} and ${max}.`
+      );
+    }
+  }
+
+  /**
+   * Validates the revision field.
+   * The revision can be `main` or a version following a pattern like `v1.0.0`, `1.0.0-beta1`, `1.0.0.alpha2`, `1.0.0.rc1`, etc.
+   *
+   * @param {string} field - The name of the field being validated (e.g., modelRevision, tokenizerRevision).
+   * @param {string} value - The value of the revision field to validate.
+   * @throws {Error} Throws an error if the revision does not follow the expected pattern.
+   * @private
+   */
+  #validateRevision(field, value) {
+    // Regular expression to match `main` or a version like `v1`, `v1.0.0`, `1.0.0-alpha1`, `1.0.0.alpha2`, `1.0.0.rc1`, etc.
+    const revisionPattern =
+      /^v?(\d+(\.\d+){0,2})([-\.](alpha\d*|beta\d*|pre\d*|post\d*|rc\d*))?$|^main$/;
+
+    // Check if the value matches the pattern
+    if (!revisionPattern.test(value)) {
+      throw new PipelineOptionsValidationError(
+        field,
+        value,
+        `Should be 'main' or follow a versioning pattern like 'v1.0.0', '1.0.0-beta1', '1.0.0.alpha2', '1.0.0.rc1', etc.`
+      );
+    }
   }
 
   /**
@@ -238,13 +426,49 @@ export class PipelineOptions {
       if (!optionsKeys.includes(key) || options[key] == null) {
         return;
       }
+      if (key === "featureId" && !FEATURES.includes(options[key])) {
+        throw new PipelineOptionsValidationError(
+          key,
+          options[key],
+          `Should be one of ${FEATURES.join(", ")}`
+        );
+      }
+      // Validating values.
+      if (["taskName", "engineId"].includes(key)) {
+        this.#validateTaskName(key, options[key]);
+      }
+
+      if (["modelId", "tokenizerId", "processorId"].includes(key)) {
+        this.#validateId(key, options[key]);
+      }
+
+      if (
+        ["modelRevision", "tokenizerRevision", "processorRevision"].includes(
+          key
+        )
+      ) {
+        this.#validateRevision(key, options[key]);
+      }
+
+      if (["dtype", "device", "executionPriority", "logLevel"].includes(key)) {
+        this.#validateEnum(key, options[key]);
+      }
+
+      if (key === "numThreads") {
+        this.#validateIntegerRange(key, options[key], 0, 100);
+      }
+
+      if (key === "timeoutMS") {
+        this.#validateIntegerRange(key, options[key], 0, 120000);
+      }
+
       this[key] = options[key];
     });
   }
 
   /**
    * Returns an object containing all current options.
-
+   *
    * @returns {object} An object with the current options.
    */
   getOptions() {
