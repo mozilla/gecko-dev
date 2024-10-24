@@ -1423,6 +1423,18 @@ address-autofill-feature:
         pref: extensions.formautofill.addresses.experiments.enabled
       description: If true, we will allow user to use address autofill
 
+creditcards-autofill-enabled:
+  description: Credit card autofill is enabled in all regions
+  owner: issozi@mozilla.com
+  hasExposure: false
+  variables:
+   creditcardsSupported:
+      description: Enable credit card autofill in all regions
+      type: string
+      setPref:
+        branch: default
+        pref: extensions.formautofill.creditCards.supported
+
 shellService:
   description: "Interface with OS, e.g., pinning and set default"
   owner: desktop-integrations@mozilla.com
