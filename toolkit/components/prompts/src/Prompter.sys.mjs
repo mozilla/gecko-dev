@@ -1214,7 +1214,7 @@ class ModalPrompter {
     // differentiate between the different prompts.
     let id = "id" + Services.uuid.generateUUID().toString();
 
-    args._remoteId = id;
+    args._remoteId = args.promptID ?? id;
 
     let returnedArgs;
     try {
@@ -1729,9 +1729,11 @@ class ModalPrompter {
       return result.then(bag => {
         let ok = bag.getProperty("ok");
         if (ok) {
-          let username = bag.getProperty("user");
-          let password = bag.getProperty("pass");
-          InternalPromptUtils.setAuthInfo(authInfo, username, password);
+          InternalPromptUtils.setAuthInfo(
+            authInfo,
+            bag.getProperty("user"),
+            bag.getProperty("pass")
+          );
         }
         return ok;
       });
