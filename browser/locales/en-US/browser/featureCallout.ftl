@@ -70,3 +70,8 @@ split-dismiss-button-dont-show-option-label = Don’t show this recommendation a
 split-dismiss-button-show-fewer-option-label = Show fewer recommendations
 # Opens about:preferences#general-cfrfeatures
 split-dismiss-button-manage-settings-option-label = Manage settings
+
+## Sidebar Strings
+
+sidebar-button-callout-title = Show tab titles in the sidebar
+sidebar-button-callout-subtitle = Use the sidebar button to expand the sidebar, so you can see tab titles.
