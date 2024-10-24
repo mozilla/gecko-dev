@@ -53,7 +53,11 @@ body {
 
     /* stylelint-disable-next-line media-query-no-invalid */
     @media (-moz-bool-pref: "sidebar.verticalTabs") {
-      min-width: 670px;
+      min-width: 800px;
+
+      @media (-moz-platform: macos) {
+        min-width: 670px;
+      }
     }
   }
 
