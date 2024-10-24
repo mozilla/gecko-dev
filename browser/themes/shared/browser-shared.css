@@ -273,8 +273,8 @@ body {
   display: none;
 }
 
-/* Only show the titlebar buttons and spacers in the first visible toolbar */
-#nav-bar:not([tabs-hidden]) > :is(.titlebar-buttonbox-container, .titlebar-spacer) {
+/* Only show the titlebar buttons and spacers in the first visible toolbar. */
+#navigator-toolbox:not([tabs-hidden]) > #nav-bar > :is(.titlebar-buttonbox-container, .titlebar-spacer) {
   display: none;
 }
 
@@ -298,6 +298,19 @@ body {
 #toolbar-menubar {
   &[autohide="true"] {
     overflow: hidden;
+
+    /* For linux and windows, when temporarily showing the menu bar, make it at least
+       as tall as the tab toolbar such that the window controls don't appear to move up. 
+       For MacOS, autohide is never true on the menubar.
+    */
+    :root[tabsintitlebar] #navigator-toolbox:not([tabs-hidden]) > & {
+      min-height: calc(var(--tab-min-height) + 2 * var(--tab-block-margin));
+    }
+    /* adjust the height of the auto-hiding toolbar menubar when the tabstrip is
+       hidden and we need to match the height of the nav-bar. */
+    :root[tabsintitlebar] #navigator-toolbox[tabs-hidden] > & {
+      min-height: calc(var(--urlbar-min-height) + 2 * var(--urlbar-padding-block));
+    }
 
     &[inactive]:not([customizing]) {
       min-height: 0 !important;

@@ -7910,7 +7910,7 @@ var TabBarVisibility = {
       TabsInTitlebar.allowedBy("tabs-visible", !hideTabstrip);
     }
 
-    navbar.toggleAttribute("tabs-hidden", hideTabstrip);
+    gNavToolbox.toggleAttribute("tabs-hidden", hideTabstrip);
     // Should the nav-bar look and function like a titlebar?
     navbar.classList.toggle(
       "browser-titlebar",

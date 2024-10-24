@@ -37,12 +37,6 @@
 :root[tabsintitlebar] {
   background-color: transparent;
 
-  /* When temporarily showing the menu bar, make it at least as tall as the tab
-   * bar such that the window controls don't appear to move up. */
-  #toolbar-menubar[autohide="true"] {
-    height: calc(var(--tab-min-height) + 2 * var(--tab-block-margin));
-  }
-
   &[sizemode="normal"]:not([gtktiledwindow="true"]) {
     /* This takes care of drawing our window decorations on X11 */
     -moz-default-appearance: -moz-window-decorations;

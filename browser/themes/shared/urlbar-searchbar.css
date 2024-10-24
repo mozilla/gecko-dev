@@ -7,6 +7,7 @@
 :root {
   --urlbar-container-padding: 1px;
   --urlbar-margin-inline: 5px;
+  --urlbar-padding-block: 4px;
 }
 
 #urlbar[actiontype="switchtab"][action-override] > .urlbar-input-container > #urlbar-label-box,
@@ -36,7 +37,7 @@
 
 #urlbar-container,
 #search-container {
-  padding-block: 4px;
+  padding-block: var(--urlbar-padding-block);
   margin-inline: var(--urlbar-margin-inline);
 
   :root[uidensity=touch] & {
