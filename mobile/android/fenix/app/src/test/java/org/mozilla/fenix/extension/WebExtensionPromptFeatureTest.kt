@@ -397,10 +397,9 @@ class WebExtensionPromptFeatureTest {
     fun `WHEN clicking Learn More on the Permissions Dialog THEN open the correct SUMO page in a custom tab`() {
         val addon: Addon = mockk(relaxed = true)
 
-        // Bug 1920564 - add finalized Learn More SUMO link for the install dialog
         val expectedUrl = SupportUtils.getSumoURLForTopic(
             testContext,
-            SupportUtils.SumoTopic.MANAGE_OPTIONAL_EXTENSION_PERMISSIONS,
+            SupportUtils.SumoTopic.EXTENSION_PERMISSIONS,
         )
 
         val dialog = PermissionsDialogFragment.newInstance(

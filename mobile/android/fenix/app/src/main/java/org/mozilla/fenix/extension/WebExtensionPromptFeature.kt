@@ -294,10 +294,9 @@ class WebExtensionPromptFeature(
             },
             onLearnMoreClicked = {
                 onLinkClicked.invoke(
-                    // Bug 1920564 - add finalized Learn More SUMO link for the install dialog
                     SupportUtils.getSumoURLForTopic(
                         context,
-                        SupportUtils.SumoTopic.MANAGE_OPTIONAL_EXTENSION_PERMISSIONS,
+                        SupportUtils.SumoTopic.EXTENSION_PERMISSIONS,
                     ),
                     false,
                 )
@@ -331,10 +330,9 @@ class WebExtensionPromptFeature(
                 store.state.webExtensionPromptRequest?.let { promptRequest ->
                     if (promptRequest is WebExtensionPromptRequest.AfterInstallation.Permissions) {
                         onLinkClicked.invoke(
-                            // Bug 1920564 - add finalized Learn More SUMO link for the install dialog
                             SupportUtils.getSumoURLForTopic(
                                 context,
-                                SupportUtils.SumoTopic.MANAGE_OPTIONAL_EXTENSION_PERMISSIONS,
+                                SupportUtils.SumoTopic.EXTENSION_PERMISSIONS,
                             ),
                             false,
                         )

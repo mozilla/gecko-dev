@@ -66,6 +66,7 @@ object SupportUtils {
         FX_SUGGEST("search-suggestions-firefox"),
         TRANSLATIONS("android-translation"),
         MANAGE_OPTIONAL_EXTENSION_PERMISSIONS("manage-optional-permissions-android-extensions"),
+        EXTENSION_PERMISSIONS("extension-permissions"),
         FIND_INSTALL_ADDONS("add-ons-firefox-android"),
     }
 
