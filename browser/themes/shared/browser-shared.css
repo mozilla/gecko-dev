@@ -300,7 +300,7 @@ body {
     overflow: hidden;
 
     /* For linux and windows, when temporarily showing the menu bar, make it at least
-       as tall as the tab toolbar such that the window controls don't appear to move up. 
+       as tall as the tab toolbar such that the window controls don't appear to move up.
        For MacOS, autohide is never true on the menubar.
     */
     :root[tabsintitlebar] #navigator-toolbox:not([tabs-hidden]) > & {
