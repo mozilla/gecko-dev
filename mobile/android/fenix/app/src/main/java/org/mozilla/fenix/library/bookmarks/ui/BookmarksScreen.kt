@@ -326,6 +326,9 @@ private fun BookmarksListTopBar(
 ) {
     val selectedItems by store.observeAsState(store.state.selectedItems) { it.selectedItems }
     val recursiveCount by store.observeAsState(store.state.recursiveSelectedCount) { it.recursiveSelectedCount }
+    val isCurrentFolderMobileRoot by store.observeAsState(store.state.currentFolder.isMobileRoot) {
+        store.state.currentFolder.isMobileRoot
+    }
     val isCurrentFolderDesktopRoot by store.observeAsState(store.state.currentFolder.isDesktopRoot) {
         store.state.currentFolder.isDesktopRoot
     }
@@ -387,6 +390,18 @@ private fun BookmarksListTopBar(
                                         R.string.bookmark_select_folder_new_folder_button_title,
                                     ),
                                     tint = iconColor,
+                                )
+                            }
+                        }
+
+                        if (!isCurrentFolderMobileRoot) {
+                            IconButton(onClick = { store.dispatch(CloseClicked) }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.mozac_ic_cross_24),
+                                    contentDescription = stringResource(
+                                        R.string.content_description_close_button,
+                                    ),
+                                    tint = FirefoxTheme.colors.iconPrimary,
                                 )
                             }
                         }

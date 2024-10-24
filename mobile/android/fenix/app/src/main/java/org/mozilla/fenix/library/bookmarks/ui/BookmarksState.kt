@@ -206,5 +206,8 @@ internal val BookmarkItem.Folder.isDesktopFolder: Boolean
         else -> false
     }
 
+internal val BookmarkItem.Folder.isMobileRoot: Boolean
+    get() = guid == BookmarkRoot.Mobile.id
+
 internal val BookmarkItem.Folder.isDesktopRoot: Boolean
     get() = guid == BookmarkRoot.Root.id

@@ -546,6 +546,20 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN current screen is a subfolder WHEN close is clicked THEN exit bookmarks `() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        var navigated = false
+        exitBookmarks = { navigated = true }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(CloseClicked)
+
+        assertTrue(navigated)
+    }
+
+    @Test
     fun `GIVEN current screen is list and a sub-level folder is loaded WHEN back is clicked THEN load the parent level`() = runTestOnMain {
         val tree = generateBookmarkTree()
         val firstFolderNode = tree.children!!.first { it.type == BookmarkNodeType.FOLDER }
