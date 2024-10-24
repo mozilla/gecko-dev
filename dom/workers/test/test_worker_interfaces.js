@@ -276,6 +276,8 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "MessagePort", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "NavigationPreloadManager",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "NetworkInformation", insecureContext: true, disabled: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Notification", insecureContext: true },
@@ -310,6 +312,11 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "PromiseRejectionEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  "PushManager",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "PushSubscription",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "PushSubscriptionOptions",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "ReadableByteStreamController", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
@@ -336,6 +343,10 @@ let interfaceNamesInGlobalScope = [
   { name: "RTCTransformEvent", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Scheduler", insecureContext: true, nightly: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ServiceWorker",
+  // IMPORTANT: Do not change this list without review from a DOM peer!
+  "ServiceWorkerRegistration",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "StorageManager", fennec: false },
   // IMPORTANT: Do not change this list without review from a DOM peer!

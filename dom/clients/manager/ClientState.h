@@ -7,15 +7,26 @@
 #ifndef _mozilla_dom_ClientState_h
 #define _mozilla_dom_ClientState_h
 
-#include "mozilla/dom/DocumentBinding.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/StorageAccess.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Variant.h"
 #include "nsContentUtils.h"
 
+namespace mozilla {
+// We forward-declare this because including StorageAccess.h causes cbindgen to
+// have problems due to StorageAccess.h's include of BrowsingContext.h which
+// includes SyncedContext.h.
+enum class StorageAccess;
+}  // namespace mozilla
+
 namespace mozilla::dom {
+
+// We forward-declare this because otherwise we get an include cycle through
+// DocumentBinding.h including ShadowRoot.h including DOMEventTargetHelper.h
+// including GlobalTeardownObserver.h including nsIGlobalObject.h which needs
+// to include this file.
+enum class VisibilityState : uint8_t;
 
 class IPCClientState;
 class IPCClientWindowState;

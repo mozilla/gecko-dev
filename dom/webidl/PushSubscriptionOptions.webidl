@@ -7,7 +7,7 @@
 * https://w3c.github.io/push-api/
 */
 
-[Exposed=(Window,Worker), Func="ServiceWorkerVisible"]
+[Exposed=(Window,Worker), Func="ServiceWorkersEnabled"]
 interface PushSubscriptionOptions
 {
   [SameObject, Throws]

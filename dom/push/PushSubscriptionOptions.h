@@ -9,6 +9,7 @@
 
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
+#include "mozilla/dom/ServiceWorkerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsTArray.h"
@@ -21,8 +22,6 @@ namespace mozilla {
 class ErrorResult;
 
 namespace dom {
-
-bool ServiceWorkerVisible(JSContext* aCx, JSObject* aGlobal);
 
 class PushSubscriptionOptions final : public nsISupports,
                                       public nsWrapperCache {

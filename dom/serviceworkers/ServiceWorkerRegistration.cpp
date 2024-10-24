@@ -638,11 +638,8 @@ void ServiceWorkerRegistration::UpdateStateInternal(
   });
 
   // Clear all workers if the registration has been detached from the global.
-  // Also, we cannot expose ServiceWorker objects on worker threads yet, so
-  // do the same on when off-main-thread.  This main thread check should be
-  // removed as part of bug 1113522.
   nsCOMPtr<nsIGlobalObject> global = GetParentObject();
-  if (!global || !NS_IsMainThread()) {
+  if (!global) {
     return;
   }
 

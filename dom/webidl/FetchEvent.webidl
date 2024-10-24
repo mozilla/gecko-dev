@@ -7,7 +7,7 @@
  * http://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html
  */
 
-[Func="ServiceWorkerVisible",
+[Func="ServiceWorkersEnabled",
  Exposed=(ServiceWorker)]
 interface FetchEvent : ExtendableEvent {
   constructor(DOMString type, FetchEventInit eventInitDict);

@@ -15,6 +15,7 @@
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Response.h"
+#include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/WorkerCommon.h"
 
 #include "nsProxyRelease.h"
@@ -33,9 +34,6 @@ class Request;
 class ResponseOrPromise;
 class ServiceWorker;
 class ServiceWorkerRegistrationInfo;
-
-// Defined in ServiceWorker.cpp
-bool ServiceWorkerVisible(JSContext* aCx, JSObject* aObj);
 
 class CancelChannelRunnable final : public Runnable {
   nsMainThreadPtrHandle<nsIInterceptedChannel> mChannel;

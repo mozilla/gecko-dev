@@ -69,6 +69,7 @@
 #include "mozilla/dom/WebTaskSchedulerWorker.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/SerializedStackHolder.h"
+#include "mozilla/dom/ServiceWorker.h"
 #include "mozilla/dom/ServiceWorkerDescriptor.h"
 #include "mozilla/dom/ServiceWorkerGlobalScopeBinding.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
@@ -301,6 +302,16 @@ StorageAccess WorkerGlobalScopeBase::GetStorageAccess() {
 
 Maybe<ClientInfo> WorkerGlobalScopeBase::GetClientInfo() const {
   return Some(mClientSource->Info());
+}
+
+Maybe<ClientState> WorkerGlobalScopeBase::GetClientState() const {
+  Result<ClientState, ErrorResult> res = mClientSource->SnapshotState();
+  if (res.isOk()) {
+    return Some(res.unwrap());
+  }
+
+  res.unwrapErr().SuppressException();
+  return Nothing();
 }
 
 Maybe<ServiceWorkerDescriptor> WorkerGlobalScopeBase::GetController() const {
@@ -831,6 +842,27 @@ WorkerGlobalScope::GetExistingDebuggerNotificationManager() {
 Maybe<EventCallbackDebuggerNotificationType>
 WorkerGlobalScope::GetDebuggerNotificationType() const {
   return Some(EventCallbackDebuggerNotificationType::Global);
+}
+
+RefPtr<ServiceWorker> WorkerGlobalScope::GetOrCreateServiceWorker(
+    const ServiceWorkerDescriptor& aDescriptor) {
+  RefPtr<ServiceWorker> ref;
+  ForEachGlobalTeardownObserver(
+      [&](GlobalTeardownObserver* aObserver, bool* aDoneOut) {
+        RefPtr<ServiceWorker> sw = do_QueryObject(aObserver);
+        if (!sw || !sw->Descriptor().Matches(aDescriptor)) {
+          return;
+        }
+
+        ref = std::move(sw);
+        *aDoneOut = true;
+      });
+
+  if (!ref) {
+    ref = ServiceWorker::Create(this, aDescriptor);
+  }
+
+  return ref;
 }
 
 RefPtr<ServiceWorkerRegistration>

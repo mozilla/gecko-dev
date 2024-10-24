@@ -132,6 +132,7 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
   StorageAccess GetStorageAccess() final;
 
   Maybe<ClientInfo> GetClientInfo() const final;
+  Maybe<ClientState> GetClientState() const final;
 
   Maybe<ServiceWorkerDescriptor> GetController() const final;
 
@@ -233,6 +234,9 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   void NoteShuttingDown();
 
   // nsIGlobalObject implementation
+  RefPtr<ServiceWorker> GetOrCreateServiceWorker(
+      const ServiceWorkerDescriptor& aDescriptor) final;
+
   RefPtr<ServiceWorkerRegistration> GetServiceWorkerRegistration(
       const ServiceWorkerRegistrationDescriptor& aDescriptor) const final;
 

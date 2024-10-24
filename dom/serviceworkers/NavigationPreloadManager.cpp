@@ -33,7 +33,7 @@ bool NavigationPreloadManager::IsValidHeader(const nsACString& aHeader) {
 
 bool NavigationPreloadManager::IsEnabled(JSContext* aCx, JSObject* aGlobal) {
   return StaticPrefs::dom_serviceWorkers_navigationPreload_enabled() &&
-         ServiceWorkerVisible(aCx, aGlobal);
+         ServiceWorkersEnabled(aCx, aGlobal);
 }
 
 NavigationPreloadManager::NavigationPreloadManager(

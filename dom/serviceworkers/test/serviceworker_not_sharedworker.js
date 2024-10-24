@@ -1,6 +1,7 @@
 function OnMessage(e) {
   if (e.data.msg == "whoareyou") {
-    if ("ServiceWorker" in self) {
+    // ("ServiceWorker" is now exposed in workers.)
+    if ("ServiceWorkerGlobalScope" in self) {
       self.clients.matchAll().then(function (clients) {
         clients[0].postMessage({ result: "serviceworker" });
       });

@@ -39,6 +39,7 @@ using mozilla::MicroTaskRunnable;
 using mozilla::dom::BlobURLProtocolHandler;
 using mozilla::dom::CallerType;
 using mozilla::dom::ClientInfo;
+using mozilla::dom::ClientState;
 using mozilla::dom::Report;
 using mozilla::dom::ReportingObserver;
 using mozilla::dom::ServiceWorker;
@@ -279,6 +280,12 @@ Maybe<ClientInfo> nsIGlobalObject::GetClientInfo() const {
   // By default globals do not expose themselves as a client.  Only real
   // window and worker globals are currently considered clients.
   return Maybe<ClientInfo>();
+}
+
+Maybe<ClientState> nsIGlobalObject::GetClientState() const {
+  // By default globals do not expose themselves as a client.  Only real
+  // window and worker globals are currently considered clients.
+  return Maybe<ClientState>();
 }
 
 Maybe<nsID> nsIGlobalObject::GetAgentClusterId() const {

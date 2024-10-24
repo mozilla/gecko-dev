@@ -416,7 +416,7 @@ already_AddRefed<PushManager> PushManager::Constructor(GlobalObject& aGlobal,
 }
 
 bool PushManager::IsEnabled(JSContext* aCx, JSObject* aGlobal) {
-  return StaticPrefs::dom_push_enabled() && ServiceWorkerVisible(aCx, aGlobal);
+  return StaticPrefs::dom_push_enabled() && ServiceWorkersEnabled(aCx, aGlobal);
 }
 
 already_AddRefed<Promise> PushManager::Subscribe(

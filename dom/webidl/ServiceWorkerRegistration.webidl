@@ -10,7 +10,7 @@
  * https://wicg.github.io/cookie-store/#idl-index
  */
 
-[Func="ServiceWorkerVisible",
+[Func="ServiceWorkersEnabled",
  Exposed=(Window,Worker)]
 interface ServiceWorkerRegistration : EventTarget {
   readonly attribute ServiceWorker? installing;

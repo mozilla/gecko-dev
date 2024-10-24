@@ -54,7 +54,7 @@ addEventListener("message", function workerWrapperOnMessage(e) {
     }
   }
 
-  if ("ServiceWorker" in self) {
+  if ("ServiceWorkerGlobalScope" in self) {
     // Fetch requests from a service worker are not intercepted.
     self.isSWPresent = false;
 

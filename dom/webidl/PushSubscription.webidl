@@ -41,7 +41,7 @@ dictionary PushSubscriptionInit
   EpochTimeStamp? expirationTime = null;
 };
 
-[Exposed=(Window,Worker), Func="ServiceWorkerVisible"]
+[Exposed=(Window,Worker), Func="ServiceWorkersEnabled"]
 interface PushSubscription
 {
   [Throws, ChromeOnly]

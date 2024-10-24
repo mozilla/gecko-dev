@@ -10,6 +10,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/dom/ClientInfo.h"
+#include "mozilla/dom/ClientState.h"
 #include "mozilla/dom/ServiceWorkerDescriptor.h"
 #include "mozilla/OriginTrials.h"
 #include "nsContentUtils.h"
@@ -194,6 +195,7 @@ class nsIGlobalObject : public nsISupports {
   }
 
   virtual mozilla::Maybe<mozilla::dom::ClientInfo> GetClientInfo() const;
+  virtual mozilla::Maybe<mozilla::dom::ClientState> GetClientState() const;
 
   virtual mozilla::Maybe<nsID> GetAgentClusterId() const;
 

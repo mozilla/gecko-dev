@@ -68,7 +68,7 @@ class ServiceWorker final : public DOMEventTargetHelper {
   void RevokeActor(ServiceWorkerChild* aActor);
 
  private:
-  ServiceWorker(nsIGlobalObject* aWindow,
+  ServiceWorker(nsIGlobalObject* aGlobal,
                 const ServiceWorkerDescriptor& aDescriptor);
 
   // This class is reference-counted and will be destroyed from Release().

@@ -57,8 +57,6 @@ void ServiceWorkerScopeAndScriptAreValid(const ClientInfo& aClientInfo,
 
 bool ServiceWorkersEnabled(JSContext* aCx, JSObject* aGlobal);
 
-bool ServiceWorkerVisible(JSContext* aCx, JSObject* aGlobal);
-
 }  // namespace dom
 }  // namespace mozilla
 

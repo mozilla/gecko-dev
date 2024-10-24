@@ -51,7 +51,6 @@ ServiceWorker::ServiceWorker(nsIGlobalObject* aGlobal,
       mDescriptor(aDescriptor),
       mShutdown(false),
       mLastNotifiedState(ServiceWorkerState::Installing) {
-  MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(aGlobal);
 
   PBackgroundChild* parentActor =
@@ -118,10 +117,7 @@ ServiceWorker::ServiceWorker(nsIGlobalObject* aGlobal,
   }
 }
 
-ServiceWorker::~ServiceWorker() {
-  MOZ_ASSERT(NS_IsMainThread());
-  Shutdown();
-}
+ServiceWorker::~ServiceWorker() { Shutdown(); }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(ServiceWorker, DOMEventTargetHelper,
                                    mRegistration);
@@ -135,8 +131,6 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 JSObject* ServiceWorker::WrapObject(JSContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
-  MOZ_ASSERT(NS_IsMainThread());
-
   return ServiceWorker_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -181,28 +175,31 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     return;
   }
 
-  nsPIDOMWindowInner* window = GetOwnerWindow();
-  if (NS_WARN_IF(!window || !window->GetExtantDoc())) {
+  nsIGlobalObject* global = GetOwnerGlobal();
+  if (NS_WARN_IF(!global)) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
-  auto storageAllowed = StorageAllowedForWindow(window);
-  if (storageAllowed != StorageAccess::eAllow &&
-      (!StaticPrefs::privacy_partition_serviceWorkers() ||
-       !StoragePartitioningEnabled(
-           storageAllowed, window->GetExtantDoc()->CookieJarSettings()))) {
+  Maybe<ClientInfo> clientInfo = global->GetClientInfo();
+  Maybe<ClientState> clientState = global->GetClientState();
+  if (NS_WARN_IF(clientInfo.isNothing() || clientState.isNothing())) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return;
+  }
+
+  auto storageAllowed = clientState.ref().GetStorageAccess();
+  // This check should be removed as part of bug 1776271 when we should be able
+  // to have a stronger invariant about how content should not be able to see
+  // a ServiceWorker instance if there is no access to storage.  For now we
+  // retain this check as a defense-in-depth mechanism at runtime and a
+  // non-diagnostic assert for test purposes.
+  MOZ_ASSERT(storageAllowed != StorageAccess::eDeny);
+  if (storageAllowed == StorageAccess::eDeny) {
     ServiceWorkerManager::LocalizeAndReportToAllClients(
         mDescriptor.Scope(), "ServiceWorkerPostMessageStorageError",
         nsTArray<nsString>{NS_ConvertUTF8toUTF16(mDescriptor.Scope())});
     aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return;
-  }
-
-  Maybe<ClientInfo> clientInfo = window->GetClientInfo();
-  Maybe<ClientState> clientState = window->GetClientState();
-  if (NS_WARN_IF(clientInfo.isNothing() || clientState.isNothing())) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
   }
 
@@ -221,7 +218,7 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   // deserialization and sharing memory objects are not propagated to the other
   // process.
   JS::CloneDataPolicy clonePolicy;
-  if (nsGlobalWindowInner::Cast(window)->IsSharedMemoryAllowed()) {
+  if (global->IsSharedMemoryAllowed()) {
     clonePolicy.allowSharedMemoryObjects();
   }
 
@@ -232,15 +229,17 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   }
 
   // The value of CloneScope() is set while StructuredCloneData::Write(). If the
-  // aValue contiains a shared memory object, then the scope will be restricted
+  // aValue contains a shared memory object, then the scope will be restricted
   // and thus return SameProcess. If not, it will return DifferentProcess.
   //
-  // When we postMessage a shared memory object from a window to a service
-  // worker, the object must be sent from a cross-origin isolated process to
-  // another one. So, we mark mark this data as an error message data if the
-  // scope is limited to same process.
+  // We know that an attempt to postMessage a shared memory object will result
+  // in an error if the source and target aren't in the same agent cluster and
+  // ServiceWorkers are inherently in a different agent cluster from windows,
+  // so convert to an error if this binding is attached to a window (which must
+  // be the case if this is the main thread).
   if (data->CloneScope() ==
-      StructuredCloneHolder::StructuredCloneScope::SameProcess) {
+          StructuredCloneHolder::StructuredCloneScope::SameProcess &&
+      NS_IsMainThread()) {
     data->SetAsErrorMessageData();
   }
 

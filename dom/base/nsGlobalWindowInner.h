@@ -343,7 +343,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   GetExistingDebuggerNotificationManager() override;
 
   mozilla::Maybe<mozilla::dom::ClientInfo> GetClientInfo() const override;
-  mozilla::Maybe<mozilla::dom::ClientState> GetClientState() const;
+  mozilla::Maybe<mozilla::dom::ClientState> GetClientState() const final;
   mozilla::Maybe<mozilla::dom::ServiceWorkerDescriptor> GetController()
       const override;
 

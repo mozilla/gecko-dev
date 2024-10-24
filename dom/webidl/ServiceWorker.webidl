@@ -8,10 +8,7 @@
  *
  */
 
-// Still unclear what should be subclassed.
-// https://github.com/slightlyoff/ServiceWorker/issues/189
-[Func="ServiceWorkerVisible",
- // FIXME(nsm): Bug 1113522. This is exposed to satisfy webidl constraints, but it won't actually work.
+[Func="ServiceWorkersEnabled",
  Exposed=(Window,Worker)]
 interface ServiceWorker : EventTarget {
   readonly attribute USVString scriptURL;

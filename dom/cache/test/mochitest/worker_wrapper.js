@@ -110,7 +110,7 @@ addEventListener("message", function workerWrapperOnMessage(e) {
       });
     }
   }
-  if ("ServiceWorker" in self) {
+  if ("ServiceWorkerGlobalScope" in self) {
     self.clients
       .matchAll({ includeUncontrolled: true })
       .then(function (clients) {
