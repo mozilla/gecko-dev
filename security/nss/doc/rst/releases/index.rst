@@ -8,6 +8,7 @@ Releases
    :glob:
    :hidden:
 
+   nss_3_106.rst
    nss_3_104.rst
    nss_3_103.rst
    nss_3_102_1.rst
@@ -76,44 +77,32 @@ Releases
 
 .. note::
 
-   **NSS 3.104** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_104_release_notes`
+   **NSS 3.106** is the latest version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_106_release_notes`
 
    **NSS 3.101.2 (ESR)** is the latest ESR version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_1_release_notes`
 
 .. container::
 
-   Changes in 3.104 included in this release:
+   Changes in 3.106 included in this release:
 
-   - Bug 1910071 - Copy original corpus to heap-allocated buffer
-   - Bug 1910079 - Fix min ssl version for DTLS client fuzzer
-   - Bug 1908990 - Remove OS2 support just like we did on NSPR
-   - Bug 1910605 - clang-format NSS improvements
-   - Bug 1902078 - Adding basicutil.h to use HexString2SECItem function
-   - Bug 1908990 - removing dirent.c from build
-   - Bug 1902078 - Allow handing in keymaterial to shlibsign to make the output reproducible (
-   - Bug 1908990 - remove nec4.3, sunos4, riscos and SNI references
-   - Bug 1908990 - remove other old OS (BSDI, old HP UX, NCR, openunix, sco, unixware or reliantUnix
-   - Bug 1908990 - remove mentions of WIN95
-   - Bug 1908990 - remove mentions of WIN16
-   - Bug 1913750 - More explicit directory naming
-   - Bug 1913755 - Add more options to TLS server fuzz target
-   - Bug 1913675 - Add more options to TLS client fuzz target
-   - Bug 1835240 - Use OSS-Fuzz corpus in NSS CI
-   - Bug 1908012 - set nssckbi version number to 2.70.
-   - Bug 1914499 - Remove Email Trust bit from ACCVRAIZ1 root cert.
-   - Bug 1908009 - Remove Email Trust bit from certSIGN ROOT CA.
-   - Bug 1908006 - Add Cybertrust Japan Roots to NSS.
-   - Bug 1908004 - Add Taiwan CA Roots to NSS.
-   - Bug 1911354 - remove search by decoded serial in nssToken_FindCertificateByIssuerAndSerialNumber.
-   - Bug 1913132 - Fix tstclnt CI build failure
-   - Bug 1913047 - vfyserv: ensure peer cert chain is in db for CERT_VerifyCertificateNow.
-   - Bug 1912427 - Enable all supported protocol versions for UDP
-   - Bug 1910361 - Actually use random PSK hash type
-   - Bug 1911576: Initialize NSS DB once
-   - Bug 1910361 - Additional ECH cipher suites and PSK hash types
-   - Bug 1903604: Automate corpus file generation for TLS client Fuzzer
-   - Bug 1910364 - Fix crash with UNSAFE_FUZZER_MODE
-   - Bug 1910605 - clang-format shlibsign.c
+   - Bug 1925975 - NSS 3.106 should be distributed with NSPR 4.36.
+   - Bug 1923767 - pk12util: improve error handling in p12U_ReadPKCS12File.
+   - Bug 1899402 - Correctly destroy bulkkey in error scenario.
+   - Bug 1919997 - PKCS7 fuzz target, r=djackson,nss-reviewers.
+   - Bug 1923002 - Extract certificates with handshake collection script.
+   - Bug 1923006 - Specify len_control for fuzz targets.
+   - Bug 1923280 - Fix memory leak in dumpCertificatePEM.
+   - Bug 1102981 - Fix UBSan errors for SECU_PrintCertificate and SECU_PrintCertificateBasicInfo.
+   - Bug 1921528 - add new error codes to mozilla::pkix for Firefox to use.
+   - Bug 1921768 - allow null phKey in NSC_DeriveKey.
+   - Bug 1921801 - Only create seed corpus zip from existing corpus.
+   - Bug 1826035 - Use explicit allowlist for for KDF PRFS.
+   - Bug 1920138 - Increase optimization level for fuzz builds.
+   - Bug 1920470 - Remove incorrect assert.
+   - Bug 1914870 - Use libFuzzer options from fuzz/options/\*.options in CI.
+   - Bug 1920945 - Polish corpus collection for automation.
+   - Bug 1917572 - Detect new and unfuzzed SSL options.
+   - Bug 1804646 - PKCS12 fuzzing target.
 

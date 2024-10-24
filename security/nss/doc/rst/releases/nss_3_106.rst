@@ -1,0 +1,52 @@
+.. _mozilla_projects_nss_nss_3_106_release_notes:
+
+NSS 3.106 release notes
+========================
+
+`Introduction <#introduction>`__
+--------------------------------
+
+.. container::
+
+   Network Security Services (NSS) 3.106 was released on *24 October 2024**.
+
+`Distribution Information <#distribution_information>`__
+--------------------------------------------------------
+
+.. container::
+
+   The HG tag is NSS_3_106_RTM. NSS 3.106 requires NSPR 4.35 or newer. The latest version of NSPR is 4.36.
+
+   NSS 3.106 source distributions are available on ftp.mozilla.org for secure HTTPS download:
+
+   -  Source tarballs:
+      https://ftp.mozilla.org/pub/mozilla.org/security/nss/releases/NSS_3_106_RTM/src/
+
+   Other releases are available :ref:`mozilla_projects_nss_releases`.
+
+.. _changes_in_nss_3.106:
+
+`Changes in NSS 3.106 <#changes_in_nss_3.106>`__
+------------------------------------------------------------------
+
+.. container::
+
+   - Bug 1925975 - NSS 3.106 should be distributed with NSPR 4.36.
+   - Bug 1923767 - pk12util: improve error handling in p12U_ReadPKCS12File.
+   - Bug 1899402 - Correctly destroy bulkkey in error scenario.
+   - Bug 1919997 - PKCS7 fuzz target, r=djackson,nss-reviewers.
+   - Bug 1923002 - Extract certificates with handshake collection script.
+   - Bug 1923006 - Specify len_control for fuzz targets.
+   - Bug 1923280 - Fix memory leak in dumpCertificatePEM.
+   - Bug 1102981 - Fix UBSan errors for SECU_PrintCertificate and SECU_PrintCertificateBasicInfo.
+   - Bug 1921528 - add new error codes to mozilla::pkix for Firefox to use.
+   - Bug 1921768 - allow null phKey in NSC_DeriveKey.
+   - Bug 1921801 - Only create seed corpus zip from existing corpus.
+   - Bug 1826035 - Use explicit allowlist for for KDF PRFS.
+   - Bug 1920138 - Increase optimization level for fuzz builds.
+   - Bug 1920470 - Remove incorrect assert.
+   - Bug 1914870 - Use libFuzzer options from fuzz/options/\*.options in CI.
+   - Bug 1920945 - Polish corpus collection for automation.
+   - Bug 1917572 - Detect new and unfuzzed SSL options.
+   - Bug 1804646 - PKCS12 fuzzing target.
+
