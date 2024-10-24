@@ -68,6 +68,9 @@ body {
   --browser-area-z-index-tabbox: 2;
   --browser-area-z-index-sidebar-splitter: 3;
 
+  /* on macOS the animation of the toolbox in fullscreen needs the toolbox to be higher */
+  --browser-area-z-index-toolbox-while-animating: 4;
+
   --toolbarbutton-border-radius: 4px;
   --identity-box-margin-inline: 4px;
   --urlbar-min-height: max(32px, 1.4em);
@@ -143,6 +146,17 @@ body {
 
   &[fullscreenShouldAnimate] {
     transition: 0.8s margin-top ease-out;
+  }
+
+  /* While we are animating / have animated in the titlebar from macOS,
+   * the z-indices are subtly different to accommodate the sidebar better.
+   *
+   * We also give the toolbox a shadow and border in this case.
+   */
+  &.fullscreen-with-menubar {
+    z-index: var(--browser-area-z-index-toolbox-while-animating);
+    box-shadow: var(--content-area-shadow);
+    border-bottom-color: var(--chrome-content-separator-color);
   }
 
   :root[customizing] & {
