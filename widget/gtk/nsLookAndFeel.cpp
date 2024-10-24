@@ -201,9 +201,9 @@ bool nsLookAndFeel::RecomputeDBusAppearanceSetting(const nsACString& aKey,
   return false;
 }
 
-void nsLookAndFeel::RecomputeDBusSettings() {
+bool nsLookAndFeel::RecomputeDBusSettings() {
   if (!mDBusSettingsProxy) {
-    return;
+    return false;
   }
 
   GVariantBuilder namespacesBuilder;
@@ -218,7 +218,7 @@ void nsLookAndFeel::RecomputeDBusSettings() {
       getter_Transfers(error)));
   if (!variant) {
     LOGLNF("dbus settings query error: %s\n", error->message);
-    return;
+    return false;
   }
 
   LOGLNF("dbus settings query result: %s\n", GVariantToString(variant).get());
@@ -228,9 +228,10 @@ void nsLookAndFeel::RecomputeDBusSettings() {
          GVariantToString(variant).get());
   if (!variant || !g_variant_is_of_type(variant, G_VARIANT_TYPE_DICTIONARY)) {
     MOZ_ASSERT(false, "Unexpected dbus settings query return value");
-    return;
+    return false;
   }
 
+  bool changed = false;
   // We expect one dictionary with (right now) one namespace for appearance,
   // with another dictionary inside for the actual values.
   {
@@ -247,15 +248,17 @@ void nsLookAndFeel::RecomputeDBusSettings() {
                                    &innerValue)) {
           LOGLNF(" > %s: %s", appearanceKey,
                  GVariantToString(innerValue).get());
-          RecomputeDBusAppearanceSetting(nsDependentCString(appearanceKey),
-                                         innerValue);
+          changed |= RecomputeDBusAppearanceSetting(
+              nsDependentCString(appearanceKey), innerValue);
         }
       }
     }
   }
+  return changed;
 }
 
 void nsLookAndFeel::WatchDBus() {
+  LOGLNF("nsLookAndFeel::WatchDBus");
   GUniquePtr<GError> error;
   mDBusSettingsProxy = dont_AddRef(g_dbus_proxy_new_for_bus_sync(
       G_BUS_TYPE_SESSION, G_DBUS_PROXY_FLAGS_NONE, nullptr,
@@ -269,21 +272,21 @@ void nsLookAndFeel::WatchDBus() {
   g_signal_connect(mDBusSettingsProxy, "g-signal",
                    G_CALLBACK(settings_changed_signal_cb), this);
 
-  RecomputeDBusSettings();
-
   // DBus interface was started after L&F init so we need to load our settings
   // from DBus explicitly.
-  if (!sIgnoreChangedSettings) {
+  if (RecomputeDBusSettings()) {
     OnSettingsChange();
   }
 }
 
 void nsLookAndFeel::UnwatchDBus() {
-  if (mDBusSettingsProxy) {
-    g_signal_handlers_disconnect_by_func(
-        mDBusSettingsProxy, FuncToGpointer(settings_changed_signal_cb), this);
-    mDBusSettingsProxy = nullptr;
+  if (!mDBusSettingsProxy) {
+    return;
   }
+  LOGLNF("nsLookAndFeel::UnwatchDBus");
+  g_signal_handlers_disconnect_by_func(
+      mDBusSettingsProxy, FuncToGpointer(settings_changed_signal_cb), this);
+  mDBusSettingsProxy = nullptr;
 }
 
 nsLookAndFeel::nsLookAndFeel() {
@@ -1558,12 +1561,13 @@ void nsLookAndFeel::ConfigureAndInitializeAltTheme() {
 }
 
 void nsLookAndFeel::ClearRoundedCornerProvider() {
-  if (mRoundedCornerProvider) {
-    gtk_style_context_remove_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(mRoundedCornerProvider.get()));
-    mRoundedCornerProvider = nullptr;
+  if (!mRoundedCornerProvider) {
+    return;
   }
+  gtk_style_context_remove_provider_for_screen(
+      gdk_screen_get_default(),
+      GTK_STYLE_PROVIDER(mRoundedCornerProvider.get()));
+  mRoundedCornerProvider = nullptr;
 }
 
 void nsLookAndFeel::UpdateRoundedBottomCornerStyles() {

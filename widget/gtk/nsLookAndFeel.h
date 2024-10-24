@@ -52,7 +52,8 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
 
   static const nscolor kBlack = NS_RGB(0, 0, 0);
   static const nscolor kWhite = NS_RGB(255, 255, 255);
-  void RecomputeDBusSettings();
+  // Returns whether any setting changed.
+  bool RecomputeDBusSettings();
   // Returns whether the setting really changed.
   bool RecomputeDBusAppearanceSetting(const nsACString& aKey, GVariant* aValue);
 
