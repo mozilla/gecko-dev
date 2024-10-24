@@ -683,3 +683,59 @@ os.environment:
       - shong@mozilla.com
     expires: never
     telemetry_mirror: OS_ENVIRONMENT_IS_TASKBAR_PINNED_PRIVATE
+
+security:
+  https_only_mode_enabled:
+    type: quantity
+    description: >
+      Measures user retention of the HTTPS-Only Mode. 0 = never enabled, 1
+      = enabled, 2 = disabled (but was enabled)
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar security.https_only_mode_enabled.
+    bugs:
+      - https://bugzil.la/1620244
+    data_reviews:
+      - https://bugzil.la/1620244
+    notification_emails:
+      - julianwels@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    unit: unknown
+    telemetry_mirror: SECURITY_HTTPS_ONLY_MODE_ENABLED
+
+  https_only_mode_enabled_pbm:
+    type: quantity
+    description: >
+      Measures user retention of the HTTPS-Only Mode in Private Browsing.
+      0 = https-only never enabled in PBM, 1 = https-only enabled in PBM,
+      2 = https-only disabled in PBM (but was enabled)
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar security.https_only_mode_enabled_pbm.
+    bugs:
+      - https://bugzil.la/1647719
+    data_reviews:
+      - https://bugzil.la/1647719
+    notification_emails:
+      - julianwels@mozilla.com
+      - ckerschb@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    unit: unknown
+    telemetry_mirror: SECURITY_HTTPS_ONLY_MODE_ENABLED_PBM
+
+  global_privacy_control_enabled:
+    type: quantity
+    description: >
+      Measures user retention of the Global Privacy Control. 0 = never
+      enabled, 1 = enabled, 2 = disabled (but was enabled)
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar security.global_privacy_control_enabled.
+    bugs:
+      - https://bugzil.la/1734185
+    data_reviews:
+      - https://bugzil.la/1734185
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    unit: unknown
+    telemetry_mirror: SECURITY_GLOBAL_PRIVACY_CONTROL_ENABLED

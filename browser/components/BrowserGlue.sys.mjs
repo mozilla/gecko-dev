@@ -2343,7 +2343,7 @@ BrowserGlue.prototype = {
       } else if (was_enabled) {
         value = 2;
       }
-      Services.telemetry.scalarSet("security.https_only_mode_enabled", value);
+      Glean.security.httpsOnlyModeEnabled.set(value);
     };
 
     Services.prefs.addObserver(PREF_ENABLED, _checkHTTPSOnlyPref);
@@ -2366,10 +2366,7 @@ BrowserGlue.prototype = {
       } else if (was_enabledPBM) {
         valuePBM = 2;
       }
-      Services.telemetry.scalarSet(
-        "security.https_only_mode_enabled_pbm",
-        valuePBM
-      );
+      Glean.security.httpsOnlyModeEnabledPbm.set(valuePBM);
     };
 
     Services.prefs.addObserver(PREF_PBM_ENABLED, _checkHTTPSOnlyPBMPref);
@@ -2398,10 +2395,7 @@ BrowserGlue.prototype = {
       } else if (was_enabled) {
         value = 2;
       }
-      Services.telemetry.scalarSet(
-        "security.global_privacy_control_enabled",
-        value
-      );
+      Glean.security.globalPrivacyControlEnabled.set(value);
     };
 
     Services.prefs.addObserver(FEATURE_PREF_ENABLED, _checkGPCPref);
