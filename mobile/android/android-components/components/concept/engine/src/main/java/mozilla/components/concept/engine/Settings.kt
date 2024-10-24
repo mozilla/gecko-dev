@@ -294,6 +294,16 @@ abstract class Settings {
      * Setting to control whether network.fetchpriority.enabled is enabled.
      */
     open var fetchPriorityEnabled: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control the cookie behavior opt-in partitioning.
+     */
+    open var cookieBehaviorOptInPartitioning: Boolean by UnsupportedSetting()
+
+    /**
+     * Setting to control the cookie behavior opt-in partitioning in private browsing mode.
+     */
+    open var cookieBehaviorOptInPartitioningPBM: Boolean by UnsupportedSetting()
 }
 
 /**
@@ -353,6 +363,8 @@ data class DefaultSettings(
         WebContentIsolationStrategy.ISOLATE_HIGH_VALUE,
     override var fetchPriorityEnabled: Boolean = true,
     val getDesktopMode: () -> Boolean = { false },
+    override var cookieBehaviorOptInPartitioning: Boolean = false,
+    override var cookieBehaviorOptInPartitioningPBM: Boolean = false,
 ) : Settings() {
     override val desktopModeEnabled: Boolean
         get() = getDesktopMode()

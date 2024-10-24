@@ -179,6 +179,18 @@ class Core(
             },
             webContentIsolationStrategy = WebContentIsolationStrategy.ISOLATE_HIGH_VALUE,
             fetchPriorityEnabled = FxNimbus.features.networking.value().fetchPriorityEnabled,
+            cookieBehaviorOptInPartitioning =
+            if (FxNimbus.features.thirdPartyCookieBlocking.value().enabled) {
+                FxNimbus.features.thirdPartyCookieBlocking.value().enabledNormal
+            } else {
+                context.settings().cookieBehaviorOptInPartitioning
+            },
+            cookieBehaviorOptInPartitioningPBM =
+            if (FxNimbus.features.thirdPartyCookieBlocking.value().enabled) {
+                FxNimbus.features.thirdPartyCookieBlocking.value().enabledPrivate
+            } else {
+                context.settings().cookieBehaviorOptInPartitioningPBM
+            },
         )
 
         // Apply fingerprinting protection overrides if the feature is enabled in Nimbus
