@@ -52,6 +52,7 @@
 #include "mozilla/SharedThreadPool.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/TaskQueue.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/ipc/BrowserProcessSubThread.h"
@@ -825,10 +826,9 @@ bool GeckoChildProcessHost::AsyncLaunch(
                                  .get());
                   telemetryKey.Truncate(72);
                 }
-                Telemetry::ScalarAdd(
-                    Telemetry::ScalarID::
-                        DOM_PARENTPROCESS_PROCESS_LAUNCH_ERRORS,
-                    NS_ConvertUTF8toUTF16(telemetryKey), 1);
+                glean::dom_parentprocess::process_launch_errors
+                    .Get(telemetryKey)
+                    .Add(1);
                 {
                   MonitorAutoLock lock(mMonitor);
                   mProcessState = PROCESS_ERROR;

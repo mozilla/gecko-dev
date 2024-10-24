@@ -578,3 +578,155 @@ security:
           If the principal is a ContentPrincipal, we also collect the scheme
         type: string
     telemetry_mirror: Security_Fissionprincipals_Contentparent
+
+mathml:
+  doc_count:
+    type: counter
+    description: >
+      The number of documents that contained enabled MathML elements.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar mathml.doc_count.
+    bugs:
+      - https://bugzil.la/1362187
+      - https://bugzil.la/1538985
+      - https://bugzil.la/1590350
+    data_reviews:
+      - https://bugzil.la/1362187
+      - https://bugzil.la/1538985
+      - https://bugzil.la/1590350
+    notification_emails:
+      - emilio@mozilla.com
+      - fred.wang@free.fr
+      - dev-tech-layout@lists.mozilla.org
+    expires: never
+    telemetry_mirror: MATHML_DOC_COUNT
+
+dom.contentprocess:
+  build_id_mismatch:
+    type: counter
+    description: >
+      The number of times the about:restartrequired page appeared due to a
+      buildID mismatch between the parent and the content processes.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar dom.contentprocess.buildID_mismatch.
+    bugs:
+      - https://bugzil.la/1366808
+    data_reviews:
+      - https://bugzil.la/1366808
+    notification_emails:
+      - spohl@mozilla.com
+    expires: never
+    telemetry_mirror: DOM_CONTENTPROCESS_BUILDID_MISMATCH
+
+  build_id_mismatch_false_positive:
+    type: counter
+    description: >
+      The number of times a process crashed early but we could verify it
+      was not because of buildID mismatch between the parent and the
+      content processes.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar dom.contentprocess.buildID_mismatch_false_positive.
+    bugs:
+      - https://bugzil.la/1651133
+      - https://bugzil.la/1730045
+      - https://bugzil.la/1754658
+      - https://bugzil.la/1777404
+      - https://bugzil.la/1817104
+      - https://bugzil.la/1866197
+    data_reviews:
+      - https://bugzil.la/1651133
+      - https://bugzil.la/1730045
+      - https://bugzil.la/1754658
+      - https://bugzil.la/1777404
+      - https://bugzil.la/1817104
+      - https://bugzil.la/1866197
+    notification_emails:
+      - alissy@mozilla.com
+    expires: 135
+    telemetry_mirror: DOM_CONTENTPROCESS_BUILDID_MISMATCH_FALSE_POSITIVE
+
+  os_priority_lowered:
+    type: counter
+    description: >
+      The number of times a content process has had its OS priority
+      lowered due to only containing background tabs without audible media
+      playing.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar dom.contentprocess.os_priority_lowered.
+    bugs:
+      - https://bugzil.la/1538987
+    data_reviews:
+      - https://bugzil.la/1538987
+    notification_emails:
+      - mconley@mozilla.com
+      - gsvelto@mozilla.com
+    expires: never
+    telemetry_mirror: DOM_CONTENTPROCESS_OS_PRIORITY_LOWERED
+
+  os_priority_raised:
+    type: counter
+    description: >
+      The number of times a content process has had its OS priority raised
+      due to containing at least one foregrounded tab, or a tab with
+      audible media has started playing in it.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar dom.contentprocess.os_priority_raised.
+    bugs:
+      - https://bugzil.la/1538987
+    data_reviews:
+      - https://bugzil.la/1538987
+    notification_emails:
+      - mconley@mozilla.com
+      - gsvelto@mozilla.com
+    expires: never
+    telemetry_mirror: DOM_CONTENTPROCESS_OS_PRIORITY_RAISED
+
+  os_priority_change_considered:
+    type: counter
+    description: >
+      The number of times we've had the opportunity to change content
+      process priority due to a tab switch or a tab being opened.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar dom.contentprocess.os_priority_change_considered.
+    bugs:
+      - https://bugzil.la/1538987
+    data_reviews:
+      - https://bugzil.la/1538987
+    notification_emails:
+      - mconley@mozilla.com
+      - gsvelto@mozilla.com
+    expires: never
+    telemetry_mirror: DOM_CONTENTPROCESS_OS_PRIORITY_CHANGE_CONSIDERED
+
+dom.parentprocess:
+  private_window_used:
+    type: boolean
+    description: >
+      Whether a private browsing window has been used in the session.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar dom.parentprocess.private_window_used.
+    bugs:
+      - https://bugzil.la/1491047
+    data_reviews:
+      - https://bugzil.la/1491047
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - ehsan+telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: DOM_PARENTPROCESS_PRIVATE_WINDOW_USED
+
+  process_launch_errors:
+    type: labeled_counter
+    description: >
+      Collect precise set of error code and calling site upon process
+      creation failure path.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar dom.parentprocess.process_launch_errors.
+    bugs:
+      - https://bugzil.la/1819311
+    data_reviews:
+      - https://bugzil.la/1819311
+    notification_emails:
+      - alissy@mozilla.com
+    expires: never
+    telemetry_mirror: DOM_PARENTPROCESS_PROCESS_LAUNCH_ERRORS

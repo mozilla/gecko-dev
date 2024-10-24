@@ -19,7 +19,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_threads.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Unused.h"
 #include "mozilla/Logging.h"
 #include "nsPrintfCString.h"
@@ -525,8 +525,7 @@ void ProcessPriorityManagerImpl::BrowserPriorityChanged(
     return;
   }
 
-  Telemetry::ScalarAdd(
-      Telemetry::ScalarID::DOM_CONTENTPROCESS_OS_PRIORITY_CHANGE_CONSIDERED, 1);
+  glean::dom_contentprocess::os_priority_change_considered.Add(1);
 
   aBC->SetPriorityActive(aPriority);
 
@@ -550,9 +549,7 @@ void ProcessPriorityManagerImpl::BrowserPriorityChanged(
 
   if (RefPtr pppm =
           GetParticularProcessPriorityManager(aBrowserParent->Manager())) {
-    Telemetry::ScalarAdd(
-        Telemetry::ScalarID::DOM_CONTENTPROCESS_OS_PRIORITY_CHANGE_CONSIDERED,
-        1);
+    glean::dom_contentprocess::os_priority_change_considered.Add(1);
     pppm->BrowserPriorityChanged(aBrowserParent, aPriority);
   }
 }
@@ -811,11 +808,9 @@ void ParticularProcessPriorityManager::SetPriorityNow(
   // transitioning from the PROCESS_PRIORITY_UNKNOWN level, which is where
   // we initialize at.
   if (oldPriority < mPriority && oldPriority != PROCESS_PRIORITY_UNKNOWN) {
-    Telemetry::ScalarAdd(
-        Telemetry::ScalarID::DOM_CONTENTPROCESS_OS_PRIORITY_RAISED, 1);
+    glean::dom_contentprocess::os_priority_raised.Add(1);
   } else if (oldPriority > mPriority) {
-    Telemetry::ScalarAdd(
-        Telemetry::ScalarID::DOM_CONTENTPROCESS_OS_PRIORITY_LOWERED, 1);
+    glean::dom_contentprocess::os_priority_lowered.Add(1);
   }
 
   ProcessPriorityManagerImpl::SetProcessPriorityIfEnabled(Pid(), mPriority);

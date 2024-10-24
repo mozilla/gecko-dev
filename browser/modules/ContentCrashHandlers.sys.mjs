@@ -522,7 +522,7 @@ export var TabCrashHandler = {
     // Make sure to only count once even if there are multiple windows
     // that will all show about:restartrequired.
     if (this._crashedTabCount == 1) {
-      Services.telemetry.scalarAdd("dom.contentprocess.buildID_mismatch", 1);
+      Glean.domContentprocess.buildIdMismatch.add(1);
     }
   },
 

@@ -141,7 +141,7 @@
 #endif
 
 #if defined(MOZ_TELEMETRY_REPORTING)
-#  include "mozilla/Telemetry.h"
+#  include "mozilla/glean/GleanMetrics.h"
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
 
 using namespace mozilla;
@@ -3722,9 +3722,7 @@ void nsFrameLoader::MaybeNotifyCrashed(BrowsingContext* aBrowsingContext,
 
 #if defined(MOZ_TELEMETRY_REPORTING)
   if (sendTelemetry) {
-    Telemetry::ScalarAdd(
-        Telemetry::ScalarID::DOM_CONTENTPROCESS_BUILDID_MISMATCH_FALSE_POSITIVE,
-        1);
+    glean::dom_contentprocess::build_id_mismatch_false_positive.Add(1);
   }
 #endif  // defined(MOZ_TELEMETRY_REPORTING)
 

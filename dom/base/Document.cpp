@@ -2377,7 +2377,7 @@ Document::~Document() {
     // don't report for about: pages
     if (!IsAboutPage()) {
       if (MOZ_UNLIKELY(mMathMLEnabled)) {
-        ScalarAdd(Telemetry::ScalarID::MATHML_DOC_COUNT, 1);
+        glean::mathml::doc_count.Add(1);
       }
     }
   }

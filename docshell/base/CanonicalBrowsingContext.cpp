@@ -39,7 +39,7 @@
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_docshell.h"
 #include "mozilla/StaticPrefs_fission.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "nsILayoutHistoryState.h"
 #include "nsIPrintSettings.h"
 #include "nsIPrintSettingsService.h"
@@ -93,9 +93,7 @@ static void IncreasePrivateCount() {
   static bool sHasSeenPrivateContext = false;
   if (!sHasSeenPrivateContext) {
     sHasSeenPrivateContext = true;
-    mozilla::Telemetry::ScalarSet(
-        mozilla::Telemetry::ScalarID::DOM_PARENTPROCESS_PRIVATE_WINDOW_USED,
-        true);
+    mozilla::glean::dom_parentprocess::private_window_used.Set(true);
   }
 }
 
