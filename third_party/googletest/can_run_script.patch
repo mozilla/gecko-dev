@@ -1,16 +1,16 @@
 diff --git a/googletest/include/gtest/gtest.h b/googletest/include/gtest/gtest.h
 --- a/googletest/include/gtest/gtest.h
 +++ b/googletest/include/gtest/gtest.h
-@@ -70,6 +70,8 @@
- #include "gtest/gtest-test-part.h"
- #include "gtest/gtest-typed-test.h"
+@@ -73,6 +73,8 @@
+ #include "gtest/internal/gtest-internal.h"
+ #include "gtest/internal/gtest-string.h"
  
 +#include "mozilla/Attributes.h"
 +
  GTEST_DISABLE_MSC_WARNINGS_PUSH_(4251 \
  /* class A needs to have dll-interface to be used by clients of class B */)
  
-@@ -491,7 +493,7 @@ class GTEST_API_ Test {
+@@ -325,7 +327,7 @@
    //
    // DO NOT OVERRIDE THIS FUNCTION DIRECTLY IN A USER PROGRAM.
    // Instead, use the TEST or TEST_F macro.
