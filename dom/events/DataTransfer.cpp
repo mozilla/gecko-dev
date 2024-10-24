@@ -16,12 +16,14 @@
 #include "nsIScriptSecurityManager.h"
 #include "mozilla/dom/DOMStringList.h"
 #include "nsArray.h"
+#include "nsBaseClipboard.h"
 #include "nsError.h"
 #include "nsIDragService.h"
 #include "nsIClipboard.h"
 #include "nsIXPConnect.h"
 #include "nsContentUtils.h"
 #include "nsIContent.h"
+#include "nsIContentAnalysis.h"
 #include "nsIObjectInputStream.h"
 #include "nsIObjectOutputStream.h"
 #include "nsIStorageStream.h"
@@ -33,6 +35,8 @@
 #include "nsIScriptGlobalObject.h"
 #include "nsQueryObject.h"
 #include "nsVariant.h"
+#include "mozilla/ClipboardContentAnalysisChild.h"
+#include "mozilla/ClipboardReadRequestChild.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/DataTransferBinding.h"
 #include "mozilla/dom/DataTransferItemList.h"
@@ -632,6 +636,55 @@ static constexpr nsLiteralCString kNonPlainTextExternalFormats[] = {
     nsLiteralCString(kTextMime),        nsLiteralCString(kPNGImageMime),
     nsLiteralCString(kPDFJSMime)};
 
+namespace {
+nsresult GetClipboardDataSnapshotWithContentAnalysisSync(
+    const nsTArray<nsCString>& aFormats,
+    const nsIClipboard::ClipboardType& aClipboardType,
+    WindowContext* aWindowContext,
+    nsIClipboardDataSnapshot** aClipboardDataSnapshot) {
+  MOZ_ASSERT(aWindowContext);
+  MOZ_ASSERT(nsIContentAnalysis::MightBeActive());
+  nsresult rv;
+  nsCOMPtr<nsITransferable> trans =
+      do_CreateInstance("@mozilla.org/widget/transferable;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+  trans->Init(nullptr);
+  // Before anything reads the clipboard contents, do a full
+  // content analysis on the clipboard contents (and cache it). This
+  // prevents multiple content analysis dialogs from appearing
+  // when multiple formats are read (see bug 1915351)
+  RefPtr<ClipboardContentAnalysisChild> contentAnalysis =
+      ClipboardContentAnalysisChild::GetOrCreate();
+  IPCTransferableDataOrError ipcTransferableDataOrError;
+  bool result = contentAnalysis->SendGetAllClipboardDataSync(
+      aFormats, aClipboardType, aWindowContext->InnerWindowId(),
+      &ipcTransferableDataOrError);
+  NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
+  if (ipcTransferableDataOrError.type() ==
+      IPCTransferableDataOrError::Tnsresult) {
+    rv = ipcTransferableDataOrError.get_nsresult();
+    // This class expects clipboardDataSnapshot to be non-null, so
+    // return an empty one
+    if (rv == NS_ERROR_CONTENT_BLOCKED) {
+      auto emptySnapshot =
+          mozilla::MakeRefPtr<nsBaseClipboard::ClipboardPopulatedDataSnapshot>(
+              trans);
+      emptySnapshot.forget(aClipboardDataSnapshot);
+    }
+    return rv;
+  }
+  rv = nsContentUtils::IPCTransferableDataToTransferable(
+      ipcTransferableDataOrError.get_IPCTransferableData(),
+      true /* aAddDataFlavor */, trans, false /* aFilterUnknownFlavors */);
+  NS_ENSURE_SUCCESS(rv, rv);
+  auto snapshot =
+      mozilla::MakeRefPtr<nsBaseClipboard::ClipboardPopulatedDataSnapshot>(
+          trans);
+  snapshot.forget(aClipboardDataSnapshot);
+  return rv;
+}
+}  // namespace
+
 void DataTransfer::GetExternalClipboardFormats(const bool& aPlainTextOnly,
                                                nsTArray<nsCString>& aResult) {
   // NOTE: When you change this method, you may need to change
@@ -658,20 +711,40 @@ void DataTransfer::GetExternalClipboardFormats(const bool& aPlainTextOnly,
   }
 
   nsresult rv = NS_ERROR_FAILURE;
+  // If we're in the parent process already this content is exempt from
+  // content analysis (i.e. pasting into the URL bar)
+  bool doContentAnalysis = MOZ_UNLIKELY(nsIContentAnalysis::MightBeActive()) &&
+                           XRE_IsContentProcess();
+
   nsCOMPtr<nsIClipboardDataSnapshot> clipboardDataSnapshot;
   if (aPlainTextOnly) {
-    rv = clipboard->GetDataSnapshotSync(
-        AutoTArray<nsCString, 1>{nsLiteralCString(kTextMime)}, *mClipboardType,
-        wc, getter_AddRefs(clipboardDataSnapshot));
+    AutoTArray<nsCString, 1> formats{nsLiteralCString(kTextMime)};
+    if (doContentAnalysis) {
+      rv = GetClipboardDataSnapshotWithContentAnalysisSync(
+          formats, *mClipboardType, wc, getter_AddRefs(clipboardDataSnapshot));
+    } else {
+      rv = clipboard->GetDataSnapshotSync(
+          formats, *mClipboardType, wc, getter_AddRefs(clipboardDataSnapshot));
+    }
   } else {
     AutoTArray<nsCString, ArrayLength(kNonPlainTextExternalFormats)> formats;
     formats.AppendElements(
         Span<const nsLiteralCString>(kNonPlainTextExternalFormats));
-    rv = clipboard->GetDataSnapshotSync(formats, *mClipboardType, wc,
-                                        getter_AddRefs(clipboardDataSnapshot));
+    if (doContentAnalysis) {
+      rv = GetClipboardDataSnapshotWithContentAnalysisSync(
+          formats, *mClipboardType, wc, getter_AddRefs(clipboardDataSnapshot));
+    } else {
+      rv = clipboard->GetDataSnapshotSync(
+          formats, *mClipboardType, wc, getter_AddRefs(clipboardDataSnapshot));
+    }
   }
 
   if (NS_FAILED(rv) || !clipboardDataSnapshot) {
+    if (rv == NS_ERROR_CONTENT_BLOCKED) {
+      // Use the empty snapshot created in
+      // GetClipboardDataSnapshotWithContentAnalysisSync()
+      mClipboardDataSnapshot = clipboardDataSnapshot;
+    }
     return;
   }
 
