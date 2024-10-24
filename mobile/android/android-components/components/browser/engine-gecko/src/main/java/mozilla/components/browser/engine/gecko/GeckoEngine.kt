@@ -1373,14 +1373,6 @@ class GeckoEngine(
         override var fetchPriorityEnabled: Boolean
             get() = runtime.settings.fetchPriorityEnabled
             set(value) { runtime.settings.setFetchPriorityEnabled(value) }
-
-        override var cookieBehaviorOptInPartitioning: Boolean
-            get() = runtime.settings.cookieBehaviorOptInPartitioning
-            set(value) { runtime.settings.setCookieBehaviorOptInPartitioning(value) }
-
-        override var cookieBehaviorOptInPartitioningPBM: Boolean
-            get() = runtime.settings.cookieBehaviorOptInPartitioningPBM
-            set(value) { runtime.settings.setCookieBehaviorOptInPartitioningPBM(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1414,8 +1406,6 @@ class GeckoEngine(
             this.userCharacteristicPingCurrentVersion = it.userCharacteristicPingCurrentVersion
             this.webContentIsolationStrategy = it.webContentIsolationStrategy
             this.fetchPriorityEnabled = it.fetchPriorityEnabled
-            this.cookieBehaviorOptInPartitioning = it.cookieBehaviorOptInPartitioning
-            this.cookieBehaviorOptInPartitioningPBM = it.cookieBehaviorOptInPartitioningPBM
         }
     }
 

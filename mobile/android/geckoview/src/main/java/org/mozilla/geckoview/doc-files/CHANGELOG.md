@@ -25,7 +25,6 @@ exclude: true
 - Added [`InstallException.extensionVersion`][133.11], which indicates the version of the extension that caused the exception.
 - Added [`WebExtensionController.INSTALLATION_METHOD_ONBOARDING`][133.12], which should be used when a `WebExtension` is installed from the embedder's onboarding feature.
 - Added support for controlling `network.fetchpriority.enabled` via [`GeckoRuntimeSettings.setFetchPriorityEnabled`][133.13]
-- Added [`GeckoRuntimeSettings.setCookieBehaviorOptInPartitioning`][133.14] and [`GeckoRuntimeSettings.setCookieBehaviorOptInPartitioningPBM`][133.15] to control the cookie behavior opt-in partitioning.
 
 [133.1]: {{javadoc_uri}}/GeckoSession.html#getWebCompatInfo()
 [133.2]: {{javadoc_uri}}/GeckoRuntime.html#isInteractiveWidgetDefaultResizesVisual()
@@ -40,8 +39,6 @@ exclude: true
 [133.11]: {{javadoc_uri}}/WebExtension.InstallException.html#extensionVersion
 [133.12]: {{javadoc_uri}}/WebExtensionController.html#INSTALLATION_METHOD_ONBOARDING
 [133.13]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setFetchPriorityEnabled
-[133.14]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setCookieBehaviorOptInPartitioning
-[133.15]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setCookieBehaviorOptInPartitioningPBM
 
 ## v132
 -Added [`getDisableShip`][132.1] to get the setting for Session History in Parent (SHIP)) and [`disableShip`][132.2] to set the status of SHIP on the `GeckoRuntimeSettings` builder.
@@ -1645,4 +1642,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: d77f77d8fff207115cd11ba469872d42c8950018
+[api-version]: 14bb009beb6b3d6c98d9a5cfa1845b239a01125e

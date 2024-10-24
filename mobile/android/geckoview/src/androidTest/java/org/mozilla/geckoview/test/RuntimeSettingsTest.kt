@@ -645,41 +645,4 @@ class RuntimeSettingsTest : BaseSessionTest() {
             equalTo(false),
         )
     }
-
-    @Test
-    fun cookieBehaviorOptInPartitioning() {
-        val geckoRuntimeSettings = sessionRule.runtime.settings
-
-        geckoRuntimeSettings.setCookieBehaviorOptInPartitioning(true)
-        geckoRuntimeSettings.setCookieBehaviorOptInPartitioningPBM(true)
-
-        assertThat(
-            "CookieBehaviorOptInPartitioning runtime settings should return expected value",
-            geckoRuntimeSettings.cookieBehaviorOptInPartitioning,
-            equalTo(true),
-        )
-
-        assertThat(
-            "CookieBehaviorOptInPartitioningPBM runtime settings should return expected value",
-            geckoRuntimeSettings.cookieBehaviorOptInPartitioningPBM,
-            equalTo(true),
-        )
-
-        val cookieBehaviorOptInPartitioning =
-            (sessionRule.getPrefs("network.cookie.cookieBehavior.optInPartitioning").get(0)) as Boolean
-        val cookieBehaviorOptInPartitioningPBM =
-            (sessionRule.getPrefs("network.cookie.cookieBehavior.optInPartitioning.pbmode").get(0)) as Boolean
-
-        assertThat(
-            "CookieBehaviorOptInPartitioning pref should return expected value",
-            cookieBehaviorOptInPartitioning,
-            equalTo(true),
-        )
-
-        assertThat(
-            "CookieBehaviorOptInPartitioningPBM pref should return expected value",
-            cookieBehaviorOptInPartitioningPBM,
-            equalTo(true),
-        )
-    }
 }
