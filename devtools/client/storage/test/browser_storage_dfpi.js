@@ -63,7 +63,18 @@ add_task(async function () {
     );
   }
   ok(origins.includes(ORIGIN), `${ORIGIN} is added`);
-  ok(origins.includes(ORIGIN_PARTITIONED), `${ORIGIN_PARTITIONED} is added`);
+  if (
+    Services.prefs.getBoolPref(
+      "dom.storage.enable_migration_from_unsupported_legacy_implementation"
+    )
+  ) {
+    ok(origins.includes(ORIGIN_PARTITIONED), `${ORIGIN_PARTITIONED} is added`);
+  } else {
+    ok(
+      !origins.includes(ORIGIN_PARTITIONED),
+      `${ORIGIN_PARTITIONED} is not added`
+    );
+  }
 
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
