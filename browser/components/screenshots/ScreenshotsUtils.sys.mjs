@@ -734,10 +734,8 @@ export var ScreenshotsUtils = {
   },
 
   /**
-   * Get a reference to the buttons panel for the given browser.
-   * If the panel doesn't exist in this window or is in use on a different browser
-   * element, will create and if necessary re-parent the panel so it's associated
-   * to the browser reference passed in.
+   * Returns the buttons panel for the given browser if the panel exists.
+   * Otherwise creates the buttons panel and returns the buttons panel.
    * @param browser The current browser
    * @returns The buttons panel
    */
@@ -751,9 +749,9 @@ export var ScreenshotsUtils = {
       let fragmentClone = template.content.cloneNode(true);
       buttonsPanel = fragmentClone.firstElementChild;
       template.replaceWith(buttonsPanel);
-    }
-    if (browser.parentNode != buttonsPanel.parentNode) {
-      browser.before(buttonsPanel);
+
+      let anchor = browser.ownerDocument.querySelector("#navigator-toolbox");
+      anchor.appendChild(buttonsPanel);
     }
 
     return (
