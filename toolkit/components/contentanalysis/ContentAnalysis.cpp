@@ -2472,6 +2472,28 @@ void ContentAnalysis::CheckClipboardContentAnalysis(
                                        flavors, &action, &isValid);
     if (isValid) {
       LOGD("Content analysis returning cached clipboard response %d", action);
+      if (aForFullClipboard) {
+        // The user is pasting the exact same clipboard contents again. If
+        // we blocked it the first time let the JS code know so it can show
+        // a block dialog again.
+        if (action == nsIContentAnalysisResponse::Action::eBlock) {
+          nsCOMPtr<nsIObserverService> obsServ =
+              mozilla::services::GetObserverService();
+          // Create a fake request that just has enough info for the JS code
+          // to keep track of it.
+          auto fakeRequest = MakeRefPtr<ContentAnalysisRequest>(
+              ContentAnalysisRequest::AnalysisType::eBulkDataEntry, u""_ns,
+              false, ""_ns, currentURI,
+              ContentAnalysisRequest::OperationType::eClipboard, aWindow);
+          obsServ->NotifyObservers(fakeRequest, "dlp-request-made", nullptr);
+          nsCString requestToken;
+          DebugOnly<nsresult> rv = fakeRequest->GetRequestToken(requestToken);
+          MOZ_ASSERT(NS_SUCCEEDED(rv));
+          RefPtr<ContentAnalysisResponse> fakeResponse =
+              ContentAnalysisResponse::FromAction(action, requestToken);
+          obsServ->NotifyObservers(fakeResponse, "dlp-response", nullptr);
+        }
+      }
       aResolver->Callback(ContentAnalysisResult::FromAction(action));
       return;
     }
