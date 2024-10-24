@@ -849,9 +849,9 @@ void SharedContextWebgl::SetTexFilter(WebGLTexture* aTex, bool aFilter) {
 
 void SharedContextWebgl::InitTexParameters(WebGLTexture* aTex, bool aFilter) {
   mWebgl->TexParameter_base(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S,
-                            FloatOrInt(LOCAL_GL_CLAMP_TO_EDGE));
+                            FloatOrInt(LOCAL_GL_REPEAT));
   mWebgl->TexParameter_base(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T,
-                            FloatOrInt(LOCAL_GL_CLAMP_TO_EDGE));
+                            FloatOrInt(LOCAL_GL_REPEAT));
   SetTexFilter(aTex, aFilter);
 }
 
@@ -1673,6 +1673,24 @@ static inline bool SupportsDrawOptions(const DrawOptions& aOptions) {
   }
 }
 
+static inline bool SupportsExtendMode(const SurfacePattern& aPattern) {
+  switch (aPattern.mExtendMode) {
+    case ExtendMode::CLAMP:
+      return true;
+    case ExtendMode::REPEAT:
+    case ExtendMode::REPEAT_X:
+    case ExtendMode::REPEAT_Y:
+      if ((!aPattern.mSurface ||
+           aPattern.mSurface->GetType() == SurfaceType::WEBGL) &&
+          !aPattern.mSamplingRect.IsEmpty()) {
+        return false;
+      }
+      return true;
+    default:
+      return false;
+  }
+}
+
 // Whether a pattern can be mapped to an available WebGL shader.
 bool SharedContextWebgl::SupportsPattern(const Pattern& aPattern) {
   switch (aPattern.GetType()) {
@@ -1680,7 +1698,7 @@ bool SharedContextWebgl::SupportsPattern(const Pattern& aPattern) {
       return true;
     case PatternType::SURFACE: {
       auto surfacePattern = static_cast<const SurfacePattern&>(aPattern);
-      if (surfacePattern.mExtendMode != ExtendMode::CLAMP) {
+      if (!SupportsExtendMode(surfacePattern)) {
         return false;
       }
       if (surfacePattern.mSurface) {
@@ -2296,7 +2314,9 @@ bool SharedContextWebgl::DrawRectAccel(
       if (handle && handle->IsValid() &&
           (surfacePattern.mSamplingRect.IsEmpty() ||
            handle->GetSamplingRect().IsEqualEdges(
-               surfacePattern.mSamplingRect))) {
+               surfacePattern.mSamplingRect)) &&
+          (surfacePattern.mExtendMode == ExtendMode::CLAMP ||
+           handle->GetType() == TextureHandle::STANDALONE)) {
         texSize = handle->GetSize();
         format = handle->GetFormat();
         offset = handle->GetSamplingOffset();
@@ -2366,7 +2386,9 @@ bool SharedContextWebgl::DrawRectAccel(
         // There is no existing handle. Try to allocate a new one. If the
         // surface size may change via a forced update, then don't allocate
         // from a shared texture page.
-        handle = AllocateTextureHandle(format, texSize, !aForceUpdate);
+        handle = AllocateTextureHandle(
+            format, texSize,
+            !aForceUpdate && surfacePattern.mExtendMode == ExtendMode::CLAMP);
         if (!handle) {
           MOZ_ASSERT(false);
           break;
@@ -2501,6 +2523,24 @@ bool SharedContextWebgl::DrawRectAccel(
           (bounds.XMost() - 0.5f) / backingSizeF.width,
           (bounds.YMost() - 0.5f) / backingSizeF.height,
       };
+      switch (surfacePattern.mExtendMode) {
+        case ExtendMode::REPEAT:
+          texBounds[0] = -1e16f;
+          texBounds[1] = -1e16f;
+          texBounds[2] = 1e16f;
+          texBounds[3] = 1e16f;
+          break;
+        case ExtendMode::REPEAT_X:
+          texBounds[0] = -1e16f;
+          texBounds[2] = 1e16f;
+          break;
+        case ExtendMode::REPEAT_Y:
+          texBounds[1] = -1e16f;
+          texBounds[3] = 1e16f;
+          break;
+        default:
+          break;
+      }
       MaybeUniformData(LOCAL_GL_FLOAT_VEC4, mImageProgramTexBounds, texBounds,
                        mImageProgramUniformState.mTexBounds);
 
