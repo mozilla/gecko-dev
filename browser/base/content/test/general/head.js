@@ -289,13 +289,31 @@ function promiseOnBookmarkItemAdded(aExpectedURI) {
   });
 }
 
-async function loadBadCertPage(url) {
+async function loadBadCertPage(url, feltPrivacy = false) {
   let loaded = BrowserTestUtils.waitForErrorPage(gBrowser.selectedBrowser);
   BrowserTestUtils.startLoadingURIString(gBrowser.selectedBrowser, url);
   await loaded;
 
-  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
-    content.document.getElementById("exceptionDialogButton").click();
-  });
+  await SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [feltPrivacy],
+    async isFeltPrivacy => {
+      if (isFeltPrivacy) {
+        let netErrorCard =
+          content.document.querySelector("net-error-card").wrappedJSObject;
+        await netErrorCard.getUpdateComplete();
+        netErrorCard.advancedButton.click();
+        await ContentTaskUtils.waitForCondition(() => {
+          return (
+            netErrorCard.exceptionButton &&
+            !netErrorCard.exceptionButton.disabled
+          );
+        }, "Waiting for exception button");
+        netErrorCard.exceptionButton.click();
+      } else {
+        content.document.getElementById("exceptionDialogButton").click();
+      }
+    }
+  );
   await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 }
