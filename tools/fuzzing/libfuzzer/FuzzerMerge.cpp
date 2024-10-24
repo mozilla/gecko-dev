@@ -232,7 +232,7 @@ int Fuzzer::CrashResistantMergeInternalStep(const std::string &CFPath) {
     OF.flush();  // Flush is important since Command::Execute may crash.
     // Run.
     TPC.ResetMaps();
-    if (ExecuteCallback(U.data(), U.size()) > 0) {
+    if (ExecuteCallback(U.data(), U.size())) {
       continue;
     }
     // Collect coverage. We are iterating over the files in this order:

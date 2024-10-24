@@ -41,7 +41,7 @@ diff --git a/FuzzerLoop.cpp b/FuzzerLoop.cpp
      return false;
  
 -  ExecuteCallback(Data, Size);
-+  if (ExecuteCallback(Data, Size) > 0) {
++  if (ExecuteCallback(Data, Size)) {
 +    return false;
 +  }
  
@@ -90,7 +90,6 @@ diff --git a/FuzzerLoop.cpp b/FuzzerLoop.cpp
      UnitStopTime = system_clock::now();
 -    (void)Res;
 -    assert(Res == 0);
-+    assert(Res >= 0);
      HasMoreMallocsThanFrees = AllocTracer.Stop();
    }
    if (!LooseMemeq(DataCopy, Data, Size))
@@ -119,7 +118,7 @@ diff --git a/FuzzerMerge.cpp b/FuzzerMerge.cpp
      // Run.
      TPC.ResetMaps();
 -    ExecuteCallback(U.data(), U.size());
-+    if (ExecuteCallback(U.data(), U.size()) > 0) {
++    if (ExecuteCallback(U.data(), U.size())) {
 +      continue;
 +    }
      // Collect coverage. We are iterating over the files in this order:

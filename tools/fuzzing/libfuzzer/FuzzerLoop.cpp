@@ -476,7 +476,7 @@ bool Fuzzer::RunOne(const uint8_t *Data, size_t Size, bool MayDeleteFile,
   if (!Size)
     return false;
 
-  if (ExecuteCallback(Data, Size) > 0) {
+  if (ExecuteCallback(Data, Size)) {
     return false;
   }
 
@@ -570,7 +570,6 @@ int Fuzzer::ExecuteCallback(const uint8_t *Data, size_t Size) {
     Res = CB(DataCopy, Size);
     RunningUserCallback = false;
     UnitStopTime = system_clock::now();
-    assert(Res >= 0);
     HasMoreMallocsThanFrees = AllocTracer.Stop();
   }
   if (!LooseMemeq(DataCopy, Data, Size))
