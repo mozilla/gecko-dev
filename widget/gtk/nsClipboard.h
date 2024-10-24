@@ -114,6 +114,9 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
   void OwnerChangedEvent(GtkClipboard* aGtkClipboard,
                          GdkEventOwnerChange* aEvent);
 
+  mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
+      ClipboardType aWhichClipboard) override;
+
  protected:
   // Implement the native clipboard behavior.
   NS_IMETHOD SetNativeClipboardData(nsITransferable* aTransferable,
@@ -124,8 +127,6 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
                                    ClipboardType aWhichClipboard,
                                    GetDataCallback&& aCallback) override;
   nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) override;
-  mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
-      ClipboardType aWhichClipboard) override;
   mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
       const nsTArray<nsCString>& aFlavorList,
       ClipboardType aWhichClipboard) override;

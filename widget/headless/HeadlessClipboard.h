@@ -19,6 +19,8 @@ class HeadlessClipboard final : public nsBaseClipboard {
   HeadlessClipboard();
 
   NS_DECL_ISUPPORTS_INHERITED
+  mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
+      ClipboardType aWhichClipboard) override;
 
  protected:
   ~HeadlessClipboard() = default;
@@ -29,8 +31,6 @@ class HeadlessClipboard final : public nsBaseClipboard {
   NS_IMETHOD GetNativeClipboardData(nsITransferable* aTransferable,
                                     ClipboardType aWhichClipboard) override;
   nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) override;
-  mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
-      ClipboardType aWhichClipboard) override;
   mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
       const nsTArray<nsCString>& aFlavorList,
       ClipboardType aWhichClipboard) override;

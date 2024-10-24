@@ -64,6 +64,8 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
   static UINT GetClipboardFileDescriptorFormatW();
   static UINT GetHtmlClipboardFormat();
   static UINT GetCustomClipboardFormat();
+  mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
+      ClipboardType aWhichClipboard) override;
 
  protected:
   // @param aDataObject must be non-nullptr.
@@ -76,8 +78,6 @@ class nsClipboard : public nsBaseClipboard, public nsIObserver {
   NS_IMETHOD GetNativeClipboardData(nsITransferable* aTransferable,
                                     ClipboardType aWhichClipboard) override;
   nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) override;
-  mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
-      ClipboardType aWhichClipboard) override;
   mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
       const nsTArray<nsCString>& aFlavorList,
       ClipboardType aWhichClipboard) override;

@@ -39,6 +39,8 @@ class nsClipboard : public nsBaseClipboard {
   static NSString* WrapHtmlForSystemPasteboard(NSString* aString);
   static nsresult TransferableFromPasteboard(nsITransferable* aTransferable,
                                              NSPasteboard* pboard);
+  mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
+      ClipboardType aWhichClipboard) override;
 
  protected:
   // Implement the native clipboard behavior.
@@ -47,8 +49,6 @@ class nsClipboard : public nsBaseClipboard {
   NS_IMETHOD GetNativeClipboardData(nsITransferable* aTransferable,
                                     ClipboardType aWhichClipboard) override;
   nsresult EmptyNativeClipboardData(ClipboardType aWhichClipboard) override;
-  mozilla::Result<int32_t, nsresult> GetNativeClipboardSequenceNumber(
-      ClipboardType aWhichClipboard) override;
   mozilla::Result<bool, nsresult> HasNativeClipboardDataMatchingFlavors(
       const nsTArray<nsCString>& aFlavorList,
       ClipboardType aWhichClipboard) override;
