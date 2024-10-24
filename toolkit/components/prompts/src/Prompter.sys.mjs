@@ -6,7 +6,6 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 // This is redefined below, for strange and unfortunate reasons.
 import { PromptUtils } from "resource://gre/modules/PromptUtils.sys.mjs";
-import { BrowserUtils } from "resource://gre/modules/BrowserUtils.sys.mjs";
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -1150,14 +1149,13 @@ class ModalPrompter {
      */
     if (args.channel) {
       try {
-        // Bug 1767292: Display scheme if it is HTTP, otherwise omit it.
-        args.authOrigin = BrowserUtils.formatURIForDisplay(args.channel.URI, {
-          showInsecureHTTP: true,
-        });
+        args.authOrigin = args.channel.URI.hostPort;
       } catch (ex) {
         args.authOrigin = args.channel.URI.prePath;
       }
-      args.isInsecureAuth = args.channel.URI.schemeIs("http");
+      args.isInsecureAuth =
+        args.channel.URI.schemeIs("http") &&
+        !args.channel.loadInfo.isTopLevelLoad;
       // whether we are going to prompt the user for their credentials for a different base domain.
       // When true, auth prompt spoofing protection mechanisms will be triggered (see bug 791594).
       args.isTopLevelCrossDomainAuth = false;
