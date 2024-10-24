@@ -377,7 +377,10 @@ function initPage() {
       const openInNewWindowButton = document.getElementById(
         "openInNewWindowButton"
       );
-      openInNewWindowButton.href = document.location.href;
+      openInNewWindowButton.addEventListener("click", function () {
+        const url = document.location.href;
+        window.open(url, "_blank", "noopener,noreferrer");
+      });
 
       // Add a learn more link
       learnMore.hidden = false;
