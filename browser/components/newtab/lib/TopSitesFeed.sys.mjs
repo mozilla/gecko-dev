@@ -35,6 +35,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
+  PersistentCache: "resource://activity-stream/lib/PersistentCache.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   Sampling: "resource://gre/modules/components-utils/Sampling.sys.mjs",
@@ -71,6 +72,7 @@ const PINNED_FAVICON_PROPS_TO_MIGRATE = [
   "faviconSize",
 ];
 const SECTION_ID = "topsites";
+const CACHE_KEY = "contile";
 const ROWS_PREF = "topSitesRows";
 const SHOW_SPONSORED_PREF = "showSponsoredTopSites";
 // The default total number of sponsored top sites to fetch from Contile
@@ -122,7 +124,6 @@ const CONTILE_UPDATE_INTERVAL = 15 * 60 * 1000; // 15 minutes
 // The maximum number of sponsored top sites to fetch from Contile.
 const CONTILE_MAX_NUM_SPONSORED = 3;
 const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
-const CONTILE_CACHE_PREF = "browser.topsites.contile.cachedTiles";
 const CONTILE_CACHE_VALID_FOR_PREF = "browser.topsites.contile.cacheValidFor";
 const CONTILE_CACHE_LAST_FETCH_PREF = "browser.topsites.contile.lastFetch";
 const CONTILE_CACHE_VALID_FOR_FALLBACK = 3 * 60 * 60; // 3 hours in seconds
@@ -336,6 +337,7 @@ export class ContileIntegration {
     this._sites = [];
     // The Share-of-Voice object managed by Shepherd and sent via Contile.
     this._sov = null;
+    this.cache = this.PersistentCache(CACHE_KEY, true);
   }
 
   get sites() {
@@ -363,12 +365,14 @@ export class ContileIntegration {
   }
 
   /**
-   * Clear Contile Cache Prefs.
+   * Clear Contile Cache.
    */
-  _resetContileCachePrefs() {
-    Services.prefs.clearUserPref(CONTILE_CACHE_PREF);
+  _resetContileCache() {
     Services.prefs.clearUserPref(CONTILE_CACHE_LAST_FETCH_PREF);
     Services.prefs.clearUserPref(CONTILE_CACHE_VALID_FOR_PREF);
+
+    // This can be async, but in this case we don't need to wait.
+    this.cache.set("contile", []);
   }
 
   /**
@@ -411,7 +415,7 @@ export class ContileIntegration {
   /**
    * Load Tiles from Contile Cache Prefs
    */
-  _loadTilesFromCache() {
+  async _loadTilesFromCache() {
     lazy.log.info("Contile client is trying to load tiles from local cache.");
     const now = Math.round(Date.now() / 1000);
     const lastFetch = Services.prefs.getIntPref(
@@ -425,9 +429,8 @@ export class ContileIntegration {
     this._topSitesFeed._telemetryUtility.setSponsoredTilesConfigured();
     if (now <= lastFetch + validFor) {
       try {
-        let cachedTiles = JSON.parse(
-          Services.prefs.getStringPref(CONTILE_CACHE_PREF)
-        );
+        const cachedData = (await this.cache.get()) || {};
+        let cachedTiles = cachedData.contile;
         this._topSitesFeed._telemetryUtility.setTiles(cachedTiles);
         cachedTiles = this._filterBlockedSponsors(cachedTiles);
         this._topSitesFeed._telemetryUtility.determineFilteredTilesAndSetToDismissed(
@@ -564,7 +567,7 @@ export class ContileIntegration {
           `${serviceName} endpoint returned unexpected status: ${response.status}`
         );
         if (response.status === 304 || response.status >= 500) {
-          return this._loadTilesFromCache();
+          return await this._loadTilesFromCache();
         }
       }
 
@@ -581,10 +584,7 @@ export class ContileIntegration {
         );
         if (this._sites.length) {
           this._sites = [];
-          Services.prefs.setStringPref(
-            CONTILE_CACHE_PREF,
-            JSON.stringify(this._sites)
-          );
+          await this.cache.set("contile", this._sites);
           return true;
         }
         return false;
@@ -630,10 +630,8 @@ export class ContileIntegration {
           );
         }
         this._sites = tiles;
-        Services.prefs.setStringPref(
-          CONTILE_CACHE_PREF,
-          JSON.stringify(this._sites)
-        );
+
+        await this.cache.set("contile", this._sites);
 
         if (!unifiedAdsTilesEnabled) {
           Services.prefs.setIntPref(
@@ -656,11 +654,19 @@ export class ContileIntegration {
       lazy.log.warn(
         `Failed to fetch data from ${serviceName} server: ${error.message}`
       );
-      return this._loadTilesFromCache();
+      return await this._loadTilesFromCache();
     }
     return false;
   }
 }
+
+/**
+ * Creating a thin wrapper around PersistentCache.
+ * This makes it easier for us to write automated tests that simulate responses.
+ */
+ContileIntegration.prototype.PersistentCache = (...args) => {
+  return new lazy.PersistentCache(...args);
+};
 
 export class TopSitesFeed {
   constructor() {
@@ -672,6 +678,7 @@ export class TopSitesFeed {
       "_currentSearchHostname",
       getShortHostnameForCurrentSearch
     );
+
     this.dedupe = new Dedupe(this._dedupeKey);
     this.frecentCache = new lazy.LinksCache(
       lazy.NewTabUtils.activityStreamLinks,
@@ -2052,7 +2059,7 @@ export class TopSitesFeed {
               this.refresh({ broadcast: true });
             }
             if (!action.data.value) {
-              this._contile._resetContileCachePrefs();
+              this._contile._resetContileCache();
             }
 
             break;

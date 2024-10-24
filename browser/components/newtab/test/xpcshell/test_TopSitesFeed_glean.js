@@ -3,16 +3,18 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+const { TopSitesFeed, ContileIntegration } = ChromeUtils.importESModule(
+  "resource://activity-stream/lib/TopSitesFeed.sys.mjs"
+);
+
 ChromeUtils.defineESModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
   SearchService: "resource://gre/modules/SearchService.sys.mjs",
-  TopSitesFeed: "resource://activity-stream/lib/TopSitesFeed.sys.mjs",
 });
 
 const SHOW_SPONSORED_PREF = "showSponsoredTopSites";
 const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
-const CONTILE_CACHE_PREF = "browser.topsites.contile.cachedTiles";
 const CONTILE_CACHE_VALID_FOR_PREF = "browser.topsites.contile.cacheValidFor";
 const CONTILE_CACHE_LAST_FETCH_PREF = "browser.topsites.contile.lastFetch";
 const NIMBUS_VARIABLE_MAX_SPONSORED = "topSitesMaxSponsored";
@@ -67,6 +69,11 @@ let mozSalesTile = [
 ];
 
 function getTopSitesFeedForTest(sandbox) {
+  sandbox.stub(ContileIntegration.prototype, "PersistentCache").returns({
+    set: sandbox.stub(),
+    get: sandbox.stub(),
+  });
+
   let feed = new TopSitesFeed();
   const storage = {
     init: sandbox.stub().resolves(),
@@ -1349,7 +1356,7 @@ add_task(
       },
     ];
 
-    Services.prefs.setStringPref(CONTILE_CACHE_PREF, JSON.stringify(tiles));
+    feed._contile.cache.get.returns({ contile: tiles });
     Services.prefs.setIntPref(CONTILE_CACHE_VALID_FOR_PREF, 60 * 15);
     Services.prefs.setIntPref(
       CONTILE_CACHE_LAST_FETCH_PREF,
@@ -1614,7 +1621,7 @@ add_task(async function test_update_tile_count_sourced_from_cache() {
     },
   ];
 
-  Services.prefs.setStringPref(CONTILE_CACHE_PREF, JSON.stringify(tiles));
+  feed._contile.cache.get.returns({ contile: tiles });
   Services.prefs.setIntPref(CONTILE_CACHE_VALID_FOR_PREF, 60 * 15);
   Services.prefs.setIntPref(
     CONTILE_CACHE_LAST_FETCH_PREF,

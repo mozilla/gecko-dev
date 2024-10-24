@@ -3,9 +3,10 @@
 
 "use strict";
 
-const { TopSitesFeed, DEFAULT_TOP_SITES } = ChromeUtils.importESModule(
-  "resource://activity-stream/lib/TopSitesFeed.sys.mjs"
-);
+const { TopSitesFeed, ContileIntegration, DEFAULT_TOP_SITES } =
+  ChromeUtils.importESModule(
+    "resource://activity-stream/lib/TopSitesFeed.sys.mjs"
+  );
 
 const { actionCreators: ac, actionTypes: at } = ChromeUtils.importESModule(
   "resource://activity-stream/common/Actions.mjs"
@@ -44,7 +45,6 @@ const SEARCH_SHORTCUTS_HAVE_PINNED_PREF =
 const SHOWN_ON_NEWTAB_PREF = "feeds.topsites";
 const SHOW_SPONSORED_PREF = "showSponsoredTopSites";
 const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
-const CONTILE_CACHE_PREF = "browser.topsites.contile.cachedTiles";
 
 // This pref controls how long the contile cache is valid for in seconds.
 const CONTILE_CACHE_VALID_FOR_SECONDS_PREF =
@@ -67,6 +67,11 @@ let gSearchServiceInitStub;
 let gGetTopSitesStub;
 
 function getTopSitesFeedForTest(sandbox) {
+  sandbox.stub(ContileIntegration.prototype, "PersistentCache").returns({
+    set: sandbox.stub(),
+    get: sandbox.stub(),
+  });
+
   let feed = new TopSitesFeed();
   const storage = {
     init: sandbox.stub().resolves(),
@@ -129,13 +134,23 @@ add_setup(async () => {
 });
 
 add_task(async function test_construction() {
+  let sandbox = sinon.createSandbox();
+  sandbox.stub(ContileIntegration.prototype, "PersistentCache").returns({
+    set: sandbox.stub(),
+    get: sandbox.stub(),
+  });
   let feed = new TopSitesFeed();
   Assert.ok(feed, "Could construct a TopSitesFeed");
   Assert.ok(feed._currentSearchHostname, "_currentSearchHostname defined");
+  sandbox.restore();
 });
 
 add_task(async function test_refreshDefaults() {
   let sandbox = sinon.createSandbox();
+  sandbox.stub(ContileIntegration.prototype, "PersistentCache").returns({
+    set: sandbox.stub(),
+    get: sandbox.stub(),
+  });
   let feed = new TopSitesFeed();
   Assert.ok(
     !DEFAULT_TOP_SITES.length,
@@ -796,6 +811,7 @@ add_task(
       "getLinksWithDefaults concurrent calls should get screenshots once per link"
     );
 
+    sandbox.restore();
     feed = getTopSitesFeedForTest(sandbox);
     feed.store.state.Prefs.values[SHOWN_ON_NEWTAB_PREF] = true;
 
@@ -1677,7 +1693,7 @@ add_task(async function test_onAction_part_3() {
     "TopSitesFeed.onAction should reset Contile cache prefs " +
       "when SHOW_SPONSORED_PREF is false"
   );
-  Services.prefs.setStringPref(CONTILE_CACHE_PREF, "[]");
+  feed._contile.cache.get.returns({ contile: [] });
   Services.prefs.setIntPref(
     CONTILE_CACHE_LAST_FETCH_PREF,
     Math.round(Date.now() / 1000)
@@ -1691,7 +1707,7 @@ add_task(async function test_onAction_part_3() {
   feed._contile.refresh.resetHistory();
 
   feed.onAction(prefChangeAction);
-  Assert.ok(!Services.prefs.prefHasUserValue(CONTILE_CACHE_PREF));
+  Assert.ok(feed._contile.cache.set.calledWith("contile", []));
   Assert.ok(!Services.prefs.prefHasUserValue(CONTILE_CACHE_LAST_FETCH_PREF));
   Assert.ok(
     !Services.prefs.prefHasUserValue(CONTILE_CACHE_VALID_FOR_SECONDS_PREF)
@@ -1702,14 +1718,18 @@ add_task(async function test_onAction_part_3() {
 
 add_task(async function test_insert_part_1() {
   let sandbox = sinon.createSandbox();
-  sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+
+  let prepFeed = feed => {
+    sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+    return feed;
+  };
 
   {
     info(
       "TopSitesFeed.insert should pin site in first slot of empty pinned list"
     );
 
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     Screenshots.getScreenshotForURL.resolves(Promise.resolve(null));
     await feed.getScreenshotPreview("custom", 1234);
 
@@ -1727,6 +1747,7 @@ add_task(async function test_insert_part_1() {
     );
 
     Screenshots.getScreenshotForURL.resolves(FAKE_SCREENSHOT);
+    sandbox.restore();
   }
 
   {
@@ -1735,7 +1756,7 @@ add_task(async function test_insert_part_1() {
         "empty first slot"
     );
 
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox
       .stub(NewTabUtils.pinnedLinks, "links")
       .get(() => [null, { url: "example.com" }]);
@@ -1747,6 +1768,7 @@ add_task(async function test_insert_part_1() {
     );
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 0));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -1756,7 +1778,7 @@ add_task(async function test_insert_part_1() {
     );
     let site1 = { url: "example.com" };
     sandbox.stub(NewTabUtils.pinnedLinks, "links").get(() => [site1]);
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     let site = { url: "foo.bar", label: "foo" };
 
     await feed.insert({ data: { site } });
@@ -1767,6 +1789,7 @@ add_task(async function test_insert_part_1() {
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 0));
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site1, 1));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -1780,7 +1803,7 @@ add_task(async function test_insert_part_1() {
       .stub(NewTabUtils.pinnedLinks, "links")
       .get(() => [site1, null, site2]);
     let site = { url: "foo.bar", label: "foo" };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     await feed.insert({ data: { site } });
     Assert.ok(
       NewTabUtils.pinnedLinks.pin.calledTwice,
@@ -1789,14 +1812,17 @@ add_task(async function test_insert_part_1() {
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 0));
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site1, 1));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
-
-  sandbox.restore();
 });
 
 add_task(async function test_insert_part_2() {
   let sandbox = sinon.createSandbox();
-  sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+
+  let prepFeed = feed => {
+    sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+    return feed;
+  };
 
   {
     info(
@@ -1814,7 +1840,7 @@ add_task(async function test_insert_part_2() {
     sandbox
       .stub(NewTabUtils.pinnedLinks, "links")
       .get(() => [site1, site2, site3, site4, site5, site6, site7, site8]);
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     feed.store.state.Prefs.values.topSitesRows = 1;
     let site = { url: "foo.bar", label: "foo" };
     await feed.insert({ data: { site } });
@@ -1832,11 +1858,12 @@ add_task(async function test_insert_part_2() {
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site6, 6));
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site7, 7));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
     info("TopSitesFeed.insert should trigger refresh on TOP_SITES_INSERT");
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.stub(feed, "refresh");
     let addAction = {
       type: at.TOP_SITES_INSERT,
@@ -1846,6 +1873,7 @@ add_task(async function test_insert_part_2() {
     await feed.insert(addAction);
 
     Assert.ok(feed.refresh.calledOnce, "feed.refresh called once");
+    sandbox.restore();
   }
 
   {
@@ -1853,7 +1881,7 @@ add_task(async function test_insert_part_2() {
     let index = -1;
     let site = { url: "foo.bar", label: "foo" };
     let action = { data: { index, site } };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
 
     await feed.insert(action);
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 0));
@@ -1863,14 +1891,17 @@ add_task(async function test_insert_part_2() {
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 0));
 
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
-
-  sandbox.restore();
 });
 
 add_task(async function test_insert_part_3() {
   let sandbox = sinon.createSandbox();
-  sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+
+  let prepFeed = feed => {
+    sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+    return feed;
+  };
 
   {
     info("TopSitesFeed.insert should pin site in specified slot that is free");
@@ -1879,7 +1910,7 @@ add_task(async function test_insert_part_3() {
       .get(() => [null, { url: "example.com" }]);
 
     let site = { url: "foo.bar", label: "foo" };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
 
     await feed.insert({ data: { index: 2, site, draggedFromIndex: 0 } });
     Assert.ok(
@@ -1889,6 +1920,7 @@ add_task(async function test_insert_part_3() {
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 2));
 
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -1901,7 +1933,7 @@ add_task(async function test_insert_part_3() {
       .get(() => [null, null, { url: "example.com" }]);
 
     let site = { url: "foo.bar", label: "foo" };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
 
     await feed.insert({ data: { index: 2, site, draggedFromIndex: 3 } });
     Assert.ok(
@@ -1914,6 +1946,7 @@ add_task(async function test_insert_part_3() {
     );
 
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -1928,7 +1961,7 @@ add_task(async function test_insert_part_3() {
       .stub(NewTabUtils.pinnedLinks, "links")
       .get(() => [null, null, site2]);
 
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
 
     await feed.insert({ data: { index: 2, site: site1, draggedFromIndex: 0 } });
     Assert.ok(
@@ -1947,12 +1980,13 @@ add_task(async function test_insert_part_3() {
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site1, 2));
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site2, 3));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
     info("TopSitesFeed.insert should not insert past the visible top sites");
 
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     let site1 = { url: "foo.bar", label: "foo" };
     await feed.insert({
       data: { index: 42, site: site1, draggedFromIndex: 0 },
@@ -1963,14 +1997,17 @@ add_task(async function test_insert_part_3() {
     );
 
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
-
-  sandbox.restore();
 });
 
 add_task(async function test_pin_part_1() {
   let sandbox = sinon.createSandbox();
-  sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+
+  let prepFeed = feed => {
+    sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+    return feed;
+  };
 
   {
     info(
@@ -1982,7 +2019,7 @@ add_task(async function test_pin_part_1() {
       label: "foo",
       customScreenshotURL: "screenshot",
     };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     await feed.pin({ data: { index: 2, site } });
     Assert.ok(
       NewTabUtils.pinnedLinks.pin.calledOnce,
@@ -1990,6 +2027,7 @@ add_task(async function test_pin_part_1() {
     );
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 2));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2002,7 +2040,7 @@ add_task(async function test_pin_part_1() {
       label: "foo",
       customScreenshotURL: "screenshot",
     };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.spy(feed.pinnedCache, "request");
     await feed.pin({ data: { index: 2, site } });
 
@@ -2011,6 +2049,7 @@ add_task(async function test_pin_part_1() {
       "feed.pinnedCache.request called once"
     );
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2023,7 +2062,7 @@ add_task(async function test_pin_part_1() {
       label: "foo",
       customScreenshotURL: null,
     };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.spy(feed.pinnedCache, "request");
     await feed.pin({ data: { index: 2, site } });
 
@@ -2032,6 +2071,7 @@ add_task(async function test_pin_part_1() {
       "feed.pinnedCache.request called once"
     );
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2040,7 +2080,7 @@ add_task(async function test_pin_part_1() {
         "screenshot field is not set"
     );
     let site = { url: "foo.bar", label: "foo" };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.spy(feed.pinnedCache, "request");
     await feed.pin({ data: { index: 2, site } });
 
@@ -2049,6 +2089,7 @@ add_task(async function test_pin_part_1() {
       "feed.pinnedCache.request never called"
     );
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2061,7 +2102,7 @@ add_task(async function test_pin_part_1() {
       .get(() => [null, { url: "example.com" }]);
 
     let site = { url: "foo.bar", label: "foo" };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     await feed.pin({ data: { index: 2, site } });
     Assert.ok(
       NewTabUtils.pinnedLinks.pin.calledOnce,
@@ -2069,14 +2110,17 @@ add_task(async function test_pin_part_1() {
     );
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 2));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
-
-  sandbox.restore();
 });
 
 add_task(async function test_pin_part_2() {
   let sandbox = sinon.createSandbox();
-  sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+
+  let prepFeed = feed => {
+    sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+    return feed;
+  };
 
   {
     info("TopSitesFeed.pin should save the searchTopSite attribute if set");
@@ -2085,7 +2129,7 @@ add_task(async function test_pin_part_2() {
       .get(() => [null, { url: "example.com" }]);
 
     let site = { url: "foo.bar", label: "foo", searchTopSite: true };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     await feed.pin({ data: { index: 2, site } });
     Assert.ok(
       NewTabUtils.pinnedLinks.pin.calledOnce,
@@ -2093,6 +2137,7 @@ add_task(async function test_pin_part_2() {
     );
     Assert.ok(NewTabUtils.pinnedLinks.pin.firstCall.args[0].searchTopSite);
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2105,7 +2150,7 @@ add_task(async function test_pin_part_2() {
       .get(() => [null, null, { url: "example.com" }]);
 
     let site = { url: "foo.bar", label: "foo" };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     await feed.pin({ data: { index: 2, site } });
     Assert.ok(
       NewTabUtils.pinnedLinks.pin.calledOnce,
@@ -2113,6 +2158,7 @@ add_task(async function test_pin_part_2() {
     );
     Assert.ok(NewTabUtils.pinnedLinks.pin.calledWith(site, 2));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2124,7 +2170,7 @@ add_task(async function test_pin_part_2() {
       .stub(NewTabUtils.pinnedLinks, "links")
       .get(() => [{ url: "https://foo.com/" }]);
 
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     let pinnedLinks = await feed.pinnedCache.request();
     Assert.equal(pinnedLinks.length, 1);
     feed.pinnedCache.expire();
@@ -2140,43 +2186,48 @@ add_task(async function test_pin_part_2() {
 
     pinnedLinks = await feed.pinnedCache.request();
     Assert.equal(pinnedLinks[0].screenshot, "bar");
+    sandbox.restore();
   }
-
-  sandbox.restore();
 });
 
 add_task(async function test_pin_part_3() {
   let sandbox = sinon.createSandbox();
-  sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+
+  let prepFeed = feed => {
+    sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+    return feed;
+  };
 
   {
     info("TopSitesFeed.pin should call insert if index < 0");
     let site = { url: "foo.bar", label: "foo" };
     let action = { data: { index: -1, site } };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.spy(feed, "insert");
     await feed.pin(action);
 
     Assert.ok(feed.insert.calledOnce, "feed.insert called once");
     Assert.ok(feed.insert.calledWithExactly(action));
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
     info("TopSitesFeed.pin should not call insert if index == 0");
     let site = { url: "foo.bar", label: "foo" };
     let action = { data: { index: 0, site } };
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.spy(feed, "insert");
     await feed.pin(action);
 
     Assert.ok(!feed.insert.called, "feed.insert not called");
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
 
   {
     info("TopSitesFeed.pin should trigger refresh on TOP_SITES_PIN");
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     sandbox.stub(feed, "refresh");
     let pinExistingAction = {
       type: at.TOP_SITES_PIN,
@@ -2187,9 +2238,8 @@ add_task(async function test_pin_part_3() {
 
     Assert.ok(feed.refresh.calledOnce, "feed.refresh called once");
     NewTabUtils.pinnedLinks.pin.resetHistory();
+    sandbox.restore();
   }
-
-  sandbox.restore();
 });
 
 add_task(async function test_integration() {
@@ -2238,16 +2288,19 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
   let sandbox = sinon.createSandbox();
   const NO_DEFAULT_SEARCH_TILE_PREF = "improvesearch.noDefaultSearchTile";
 
-  sandbox.stub(SearchService.prototype, "getDefault").resolves({
-    identifier: "google",
-  });
+  let prepFeed = feed => {
+    sandbox.stub(SearchService.prototype, "getDefault").resolves({
+      identifier: "google",
+    });
+    return feed;
+  };
 
   {
     info(
       "TopSitesFeed.getLinksWithDefaults should filter out alexa top 5 " +
         "search from the default sites"
     );
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     feed.store.state.Prefs.values[NO_DEFAULT_SEARCH_TILE_PREF] = true;
     let top5Test = [
       "https://google.com",
@@ -2275,6 +2328,7 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
     );
 
     gGetTopSitesStub.resolves(FAKE_LINKS);
+    sandbox.restore();
   }
 
   {
@@ -2282,7 +2336,7 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
       "TopSitesFeed.getLinksWithDefaults should not filter out alexa, default " +
         "search from the query results if the experiment pref is off"
     );
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     feed.store.state.Prefs.values[NO_DEFAULT_SEARCH_TILE_PREF] = false;
 
     gGetTopSitesStub.resolves([
@@ -2296,6 +2350,7 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
 
     Assert.ok(urlsReturned.includes("https://google.com"));
     gGetTopSitesStub.resolves(FAKE_LINKS);
+    sandbox.restore();
   }
 
   {
@@ -2303,7 +2358,7 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
       "TopSitesFeed.getLinksWithDefaults should filter out the current " +
         "default search from the default sites"
     );
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     feed.store.state.Prefs.values[NO_DEFAULT_SEARCH_TILE_PREF] = true;
 
     sandbox.stub(feed, "_currentSearchHostname").get(() => "amazon");
@@ -2319,6 +2374,7 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
     Assert.ok(!urlsReturned.includes("https://amazon.com"));
 
     gGetTopSitesStub.resolves(FAKE_LINKS);
+    sandbox.restore();
   }
 
   {
@@ -2327,7 +2383,7 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
         "default search from pinned sites even if it matches the current " +
         "default search"
     );
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
     feed.store.state.Prefs.values[NO_DEFAULT_SEARCH_TILE_PREF] = true;
 
     sandbox
@@ -2341,9 +2397,8 @@ add_task(async function test_improvesearch_noDefaultSearchTile_experiment() {
     Assert.ok(urlsReturned.includes("google.com"));
 
     gGetTopSitesStub.resolves(FAKE_LINKS);
+    sandbox.restore();
   }
-
-  sandbox.restore();
 });
 
 add_task(
@@ -2351,9 +2406,12 @@ add_task(
     let sandbox = sinon.createSandbox();
     const NO_DEFAULT_SEARCH_TILE_PREF = "improvesearch.noDefaultSearchTile";
 
-    sandbox.stub(SearchService.prototype, "getDefault").resolves({
-      identifier: "google",
-    });
+    let prepFeed = feed => {
+      sandbox.stub(SearchService.prototype, "getDefault").resolves({
+        identifier: "google",
+      });
+      return feed;
+    };
 
     {
       info(
@@ -2361,7 +2419,7 @@ add_task(
           "._currentSearchHostname to the new engine hostname when the " +
           "default search engine has been set"
       );
-      let feed = getTopSitesFeedForTest(sandbox);
+      let feed = prepFeed(getTopSitesFeedForTest(sandbox));
       feed.store.state.Prefs.values[NO_DEFAULT_SEARCH_TILE_PREF] = true;
       sandbox.stub(feed, "refresh");
 
@@ -2370,6 +2428,7 @@ add_task(
       Assert.ok(feed.refresh.calledOnce, "feed.refresh called once");
 
       gGetTopSitesStub.resolves(FAKE_LINKS);
+      sandbox.restore();
     }
 
     {
@@ -2377,7 +2436,7 @@ add_task(
         "TopSitesFeed.getLinksWithDefaults should call refresh when the " +
           "experiment pref has changed"
       );
-      let feed = getTopSitesFeedForTest(sandbox);
+      let feed = prepFeed(getTopSitesFeedForTest(sandbox));
       feed.store.state.Prefs.values[NO_DEFAULT_SEARCH_TILE_PREF] = true;
       sandbox.stub(feed, "refresh");
 
@@ -2394,9 +2453,8 @@ add_task(
       Assert.ok(feed.refresh.calledTwice, "feed.refresh was called twice");
 
       gGetTopSitesStub.resolves(FAKE_LINKS);
+      sandbox.restore();
     }
-
-    sandbox.restore();
   }
 );
 
@@ -2404,14 +2462,14 @@ add_task(
 add_task(async function test_improvesearch_topSitesSearchShortcuts() {
   let sandbox = sinon.createSandbox();
   let searchEngines = [{ aliases: ["@google"] }, { aliases: ["@amazon"] }];
-  sandbox
-    .stub(SearchService.prototype, "getAppProvidedEngines")
-    .resolves(searchEngines);
-  sandbox.stub(NewTabUtils.pinnedLinks, "pin").callsFake((site, index) => {
-    NewTabUtils.pinnedLinks.links[index] = site;
-  });
 
   let prepFeed = feed => {
+    sandbox
+      .stub(SearchService.prototype, "getAppProvidedEngines")
+      .resolves(searchEngines);
+    sandbox.stub(NewTabUtils.pinnedLinks, "pin").callsFake((site, index) => {
+      NewTabUtils.pinnedLinks.links[index] = site;
+    });
     feed.store.state.Prefs.values[SEARCH_SHORTCUTS_EXPERIMENT_PREF] = true;
     feed.store.state.Prefs.values[SEARCH_SHORTCUTS_SEARCH_ENGINES_PREF] =
       "google,amazon";
@@ -2438,6 +2496,7 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
       feed.updateCustomSearchShortcuts.calledOnce,
       "feed.updateCustomSearchShortcuts called once"
     );
+    sandbox.restore();
   }
 
   {
@@ -2458,6 +2517,7 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
       link => link.url
     );
     Assert.ok(!urlsReturned.includes("https://amazon.ca"));
+    sandbox.restore();
   }
 
   {
@@ -2479,6 +2539,7 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
     Assert.equal(defaultSearchTopsite.tippyTopIcon, "icon.png");
     Assert.equal(defaultSearchTopsite.backgroundColor, "#fff");
     gGetTopSitesStub.resolves(FAKE_LINKS);
+    sandbox.restore();
   }
 
   {
@@ -2504,6 +2565,7 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
     Assert.equal(defaultSearchTopsite.tippyTopIcon, "icon.png");
     Assert.equal(defaultSearchTopsite.backgroundColor, "#fff");
     gGetTopSitesStub.resolves(FAKE_LINKS);
+    sandbox.restore();
   }
 
   {
@@ -2557,17 +2619,22 @@ add_task(async function test_improvesearch_topSitesSearchShortcuts() {
   sandbox.restore();
 });
 
+// eslint-disable-next-line max-statements
 add_task(async function test_updatePinnedSearchShortcuts() {
   let sandbox = sinon.createSandbox();
-  sandbox.stub(NewTabUtils.pinnedLinks, "pin");
-  sandbox.stub(NewTabUtils.pinnedLinks, "unpin");
+
+  let prepFeed = feed => {
+    sandbox.stub(NewTabUtils.pinnedLinks, "pin");
+    sandbox.stub(NewTabUtils.pinnedLinks, "unpin");
+    return feed;
+  };
 
   {
     info(
       "TopSitesFeed.updatePinnedSearchShortcuts should unpin a " +
         "shortcut in deletedShortcuts"
     );
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
 
     let deletedShortcuts = [
       {
@@ -2606,6 +2673,7 @@ add_task(async function test_updatePinnedSearchShortcuts() {
 
     NewTabUtils.pinnedLinks.pin.resetHistory();
     NewTabUtils.pinnedLinks.unpin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2613,7 +2681,7 @@ add_task(async function test_updatePinnedSearchShortcuts() {
       "TopSitesFeed.updatePinnedSearchShortcuts should pin a shortcut " +
         "in addedShortcuts"
     );
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
 
     let addedShortcuts = [
       {
@@ -2658,6 +2726,7 @@ add_task(async function test_updatePinnedSearchShortcuts() {
 
     NewTabUtils.pinnedLinks.pin.resetHistory();
     NewTabUtils.pinnedLinks.unpin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2665,7 +2734,7 @@ add_task(async function test_updatePinnedSearchShortcuts() {
       "TopSitesFeed.updatePinnedSearchShortcuts should pin and unpin " +
         "in the same action"
     );
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
 
     let addedShortcuts = [
       {
@@ -2713,6 +2782,7 @@ add_task(async function test_updatePinnedSearchShortcuts() {
 
     NewTabUtils.pinnedLinks.pin.resetHistory();
     NewTabUtils.pinnedLinks.unpin.resetHistory();
+    sandbox.restore();
   }
 
   {
@@ -2720,7 +2790,7 @@ add_task(async function test_updatePinnedSearchShortcuts() {
       "TopSitesFeed.updatePinnedSearchShortcuts should pin a shortcut in " +
         "addedShortcuts even if pinnedLinks is full"
     );
-    let feed = getTopSitesFeedForTest(sandbox);
+    let feed = prepFeed(getTopSitesFeedForTest(sandbox));
 
     let addedShortcuts = [
       {
@@ -2748,9 +2818,8 @@ add_task(async function test_updatePinnedSearchShortcuts() {
 
     NewTabUtils.pinnedLinks.pin.resetHistory();
     NewTabUtils.pinnedLinks.unpin.resetHistory();
+    sandbox.restore();
   }
-
-  sandbox.restore();
 });
 
 // eslint-disable-next-line max-statements
@@ -2760,9 +2829,9 @@ add_task(async function test_ContileIntegration() {
     TOP_SITES_BLOCKED_SPONSORS_PREF,
     `["foo","bar"]`
   );
-  sandbox.stub(NimbusFeatures.newtab, "getVariable").returns(true);
 
   let prepFeed = feed => {
+    sandbox.stub(NimbusFeatures.newtab, "getVariable").returns(true);
     feed.store.state.Prefs.values[SHOW_SPONSORED_PREF] = true;
     let fetchStub = sandbox.stub(feed, "fetch");
     return { feed, fetchStub };
@@ -2802,6 +2871,7 @@ add_task(async function test_ContileIntegration() {
 
     Assert.ok(fetched);
     Assert.equal(feed._contile.sites.length, 2);
+    sandbox.restore();
   }
 
   {
@@ -2814,6 +2884,7 @@ add_task(async function test_ContileIntegration() {
       feed.allocatePositions.calledOnce,
       "feed.allocatePositions called once"
     );
+    sandbox.restore();
   }
 
   {
@@ -2887,6 +2958,7 @@ add_task(async function test_ContileIntegration() {
     Assert.ok(fetched);
     Assert.deepEqual(feed._contile.sov, sov);
     Assert.equal(feed._contile.sites.length, 2);
+    sandbox.restore();
   }
 
   {
@@ -2903,6 +2975,7 @@ add_task(async function test_ContileIntegration() {
     Assert.ok(fetchStub.notCalled, "TopSitesFeed.fetch was not called");
     Assert.ok(!fetched);
     Assert.equal(feed._contile.sites.length, 0);
+    sandbox.restore();
   }
 
   {
@@ -2972,6 +3045,7 @@ add_task(async function test_ContileIntegration() {
     Assert.equal(feed._contile.sites[0].url, "https://www.test.com");
     Assert.equal(feed._contile.sites[1].url, "https://test1.com");
     Assert.equal(feed._contile.sites[2].url, "https://test2.com");
+    sandbox.restore();
   }
 
   {
@@ -3025,13 +3099,14 @@ add_task(async function test_ContileIntegration() {
     Assert.equal(feed._contile.sites.length, 2);
     Assert.equal(feed._contile.sites[0].url, "https://www.test.com");
     Assert.equal(feed._contile.sites[1].url, "https://test1.com");
+    sandbox.restore();
   }
 
   {
     info("TopSitesFeed._fetchSites should filter the blocked sponsors");
-    NimbusFeatures.newtab.getVariable.returns(true);
 
     let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
+    NimbusFeatures.newtab.getVariable.returns(true);
 
     fetchStub.resolves({
       ok: true,
@@ -3073,6 +3148,7 @@ add_task(async function test_ContileIntegration() {
     // Both "foo" and "bar" should be filtered
     Assert.equal(feed._contile.sites.length, 1);
     Assert.equal(feed._contile.sites[0].url, "https://www.test.com");
+    sandbox.restore();
   }
 
   {
@@ -3080,11 +3156,11 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should return false when Contile returns " +
         "with error status and no values are stored in cache prefs"
     );
+    let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
     NimbusFeatures.newtab.getVariable.returns(true);
-    Services.prefs.setStringPref(CONTILE_CACHE_PREF, "[]");
+    feed._contile.cache.get.returns({ contile: [] });
     Services.prefs.setIntPref(CONTILE_CACHE_LAST_FETCH_PREF, 0);
 
-    let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
     fetchStub.resolves({
       ok: false,
       status: 500,
@@ -3094,6 +3170,7 @@ add_task(async function test_ContileIntegration() {
 
     Assert.ok(!fetched);
     Assert.ok(!feed._contile.sites.length);
+    sandbox.restore();
   }
 
   {
@@ -3101,8 +3178,9 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should return false when Contile " +
         "returns with error status and cached tiles are expried"
     );
+    let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
     NimbusFeatures.newtab.getVariable.returns(true);
-    Services.prefs.setStringPref(CONTILE_CACHE_PREF, "[]");
+    feed._contile.cache.get.returns({ contile: [] });
     const THIRTY_MINUTES_AGO_IN_SECONDS =
       Math.round(Date.now() / 1000) - 60 * 30;
     Services.prefs.setIntPref(
@@ -3111,8 +3189,6 @@ add_task(async function test_ContileIntegration() {
     );
     Services.prefs.setIntPref(CONTILE_CACHE_VALID_FOR_SECONDS_PREF, 60 * 15);
 
-    let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
-
     fetchStub.resolves({
       ok: false,
       status: 500,
@@ -3122,6 +3198,7 @@ add_task(async function test_ContileIntegration() {
 
     Assert.ok(!fetched);
     Assert.ok(!feed._contile.sites.length);
+    sandbox.restore();
   }
 
   {
@@ -3129,9 +3206,9 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should handle invalid payload " +
         "properly from Contile"
     );
-    NimbusFeatures.newtab.getVariable.returns(true);
-
     let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
+
+    NimbusFeatures.newtab.getVariable.returns(true);
     fetchStub.resolves({
       ok: true,
       status: 200,
@@ -3145,6 +3222,7 @@ add_task(async function test_ContileIntegration() {
 
     Assert.ok(!fetched);
     Assert.ok(!feed._contile.sites.length);
+    sandbox.restore();
   }
 
   {
@@ -3152,9 +3230,9 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should handle empty payload properly " +
         "from Contile"
     );
+    let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
     NimbusFeatures.newtab.getVariable.returns(true);
 
-    let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
     fetchStub.resolves({
       ok: true,
       status: 200,
@@ -3171,6 +3249,7 @@ add_task(async function test_ContileIntegration() {
 
     Assert.ok(fetched);
     Assert.ok(!feed._contile.sites.length);
+    sandbox.restore();
   }
 
   {
@@ -3178,15 +3257,16 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should handle no content properly " +
         "from Contile"
     );
+    let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
     NimbusFeatures.newtab.getVariable.returns(true);
 
-    let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
     fetchStub.resolves({ ok: true, status: 204 });
 
     let fetched = await feed._contile._fetchSites();
 
     Assert.ok(!fetched);
     Assert.ok(!feed._contile.sites.length);
+    sandbox.restore();
   }
 
   {
@@ -3194,8 +3274,8 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should set Caching Prefs after " +
         "a successful request"
     );
-    NimbusFeatures.newtab.getVariable.returns(true);
     let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
+    NimbusFeatures.newtab.getVariable.returns(true);
 
     let tiles = [
       {
@@ -3227,14 +3307,12 @@ add_task(async function test_ContileIntegration() {
 
     let fetched = await feed._contile._fetchSites();
     Assert.ok(fetched);
-    Assert.equal(
-      Services.prefs.getStringPref(CONTILE_CACHE_PREF),
-      JSON.stringify(tiles)
-    );
+    Assert.ok(feed._contile.cache.set.calledWith("contile", tiles));
     Assert.equal(
       Services.prefs.getIntPref(CONTILE_CACHE_VALID_FOR_SECONDS_PREF),
       11322
     );
+    sandbox.restore();
   }
 
   {
@@ -3242,8 +3320,9 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should return cached valid tiles " +
         "when Contile returns error status"
     );
-    NimbusFeatures.newtab.getVariable.returns(true);
     let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
+    NimbusFeatures.newtab.getVariable.returns(true);
+
     let tiles = [
       {
         url: "https://www.test-cached.com",
@@ -3261,7 +3340,7 @@ add_task(async function test_ContileIntegration() {
       },
     ];
 
-    Services.prefs.setStringPref(CONTILE_CACHE_PREF, JSON.stringify(tiles));
+    feed._contile.cache.get.returns({ contile: tiles });
     Services.prefs.setIntPref(CONTILE_CACHE_VALID_FOR_SECONDS_PREF, 60 * 15);
     Services.prefs.setIntPref(
       CONTILE_CACHE_LAST_FETCH_PREF,
@@ -3277,6 +3356,7 @@ add_task(async function test_ContileIntegration() {
     Assert.equal(feed._contile.sites.length, 2);
     Assert.equal(feed._contile.sites[0].url, "https://www.test-cached.com");
     Assert.equal(feed._contile.sites[1].url, "https://www.test1-cached.com");
+    sandbox.restore();
   }
 
   {
@@ -3284,9 +3364,10 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should not be successful when contile " +
         "returns an error and no valid tiles are cached"
     );
-    NimbusFeatures.newtab.getVariable.returns(true);
     let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
-    Services.prefs.setStringPref(CONTILE_CACHE_PREF, "[]");
+    NimbusFeatures.newtab.getVariable.returns(true);
+
+    feed._contile.cache.get.returns({ contile: [] });
     Services.prefs.setIntPref(CONTILE_CACHE_VALID_FOR_SECONDS_PREF, 0);
     Services.prefs.setIntPref(CONTILE_CACHE_LAST_FETCH_PREF, 0);
 
@@ -3296,6 +3377,7 @@ add_task(async function test_ContileIntegration() {
 
     let fetched = await feed._contile._fetchSites();
     Assert.ok(!fetched);
+    sandbox.restore();
   }
 
   {
@@ -3303,8 +3385,8 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should return cached valid tiles " +
         "filtering blocked tiles when Contile returns error status"
     );
-    NimbusFeatures.newtab.getVariable.returns(true);
     let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
+    NimbusFeatures.newtab.getVariable.returns(true);
 
     let tiles = [
       {
@@ -3322,7 +3404,7 @@ add_task(async function test_ContileIntegration() {
         name: "test1",
       },
     ];
-    Services.prefs.setStringPref(CONTILE_CACHE_PREF, JSON.stringify(tiles));
+    feed._contile.cache.get.returns({ contile: tiles });
     Services.prefs.setIntPref(CONTILE_CACHE_VALID_FOR_SECONDS_PREF, 60 * 15);
     Services.prefs.setIntPref(
       CONTILE_CACHE_LAST_FETCH_PREF,
@@ -3337,6 +3419,7 @@ add_task(async function test_ContileIntegration() {
     Assert.ok(fetched);
     Assert.equal(feed._contile.sites.length, 1);
     Assert.equal(feed._contile.sites[0].url, "https://www.test1-cached.com");
+    sandbox.restore();
   }
 
   {
@@ -3344,8 +3427,8 @@ add_task(async function test_ContileIntegration() {
       "TopSitesFeed._fetchSites should still return 3 tiles when nimbus " +
         "variable overrides max num of sponsored contile tiles"
     );
-    NimbusFeatures.newtab.getVariable.returns(true);
     let { feed, fetchStub } = prepFeed(getTopSitesFeedForTest(sandbox));
+    NimbusFeatures.newtab.getVariable.returns(true);
 
     sandbox.stub(NimbusFeatures.pocketNewtab, "getVariable").returns(3);
     fetchStub.resolves({
@@ -3389,8 +3472,8 @@ add_task(async function test_ContileIntegration() {
     Assert.equal(feed._contile.sites[0].url, "https://www.test.com");
     Assert.equal(feed._contile.sites[1].url, "https://test1.com");
     Assert.equal(feed._contile.sites[2].url, "https://test2.com");
+    sandbox.restore();
   }
 
   Services.prefs.clearUserPref(TOP_SITES_BLOCKED_SPONSORS_PREF);
-  sandbox.restore();
 });
