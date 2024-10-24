@@ -2,6 +2,62 @@
   "data": [
     {
       "stash": {
+        "blocked": [
+          "webextensions@dsdf848hdb327:1.1",
+          "webextensions@dsdf848hdb327:1.2",
+          "webextensions@dsdf848hdb327:1.5"
+        ],
+        "unblocked": []
+      },
+      "schema": 1729622166881,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1729686905031,
+      "id": "ed393d5a-07b5-460e-86b7-fec867e4419d",
+      "last_modified": 1729686966879
+    },
+    {
+      "stash": {
+        "blocked": [
+          "webextension@871326hdbs26:12.5",
+          "webextension@871326hdbs26:1.3",
+          "webextension@871326hdbs26:1.2",
+          "webextension@871326hdbs26:1.4"
+        ],
+        "unblocked": []
+      },
+      "schema": 1729535765666,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1729622105235,
+      "id": "e316a36b-5fdf-457f-b85a-2fd224d4e846",
+      "last_modified": 1729622166737
+    },
+    {
+      "stash": {
+        "blocked": [
+          "ITHitEditDocOpener5a@webdavsystem.com:6.0.8734.2",
+          "ITHitEditDocOpener5a@webdavsystem.com:6.0.8736.2",
+          "weather-addona-books@6e7bdb7d2ghdb327:1.8",
+          "weather-addona-books@6e7bdb7d2ghdb327:1.9",
+          "weather-addona-books@6e7bdb7d2ghdb327:1.5",
+          "ITHitEditDocOpener5a@webdavsystem.com:6.0.8735.2",
+          "weather-addona-books@6e7bdb7d2ghdb327:12.1",
+          "weather-addona-books@6e7bdb7d2ghdb327:1.4",
+          "weather-addona-books@6e7bdb7d2ghdb327:1.3",
+          "weather-addona-books@6e7bdb7d2ghdb327:1.6",
+          "weather-addona-books@6e7bdb7d2ghdb327:12.0",
+          "weather-addona-books@6e7bdb7d2ghdb327:1.7",
+          "ITHitEditDocOpener5a@webdavsystem.com:6.0.8733.2"
+        ],
+        "unblocked": []
+      },
+      "schema": 1729276567278,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1729535705092,
+      "id": "86d02f7c-d06f-4910-a5f4-73757c3f7c9f",
+      "last_modified": 1729535765477
+    },
+    {
+      "stash": {
         "blocked": [],
         "unblocked": [
           "{1e0ef38e-0496-4a23-b463-e591c43a4d41}:1.0"
@@ -542,5 +598,5 @@
       "last_modified": 1724351846412
     }
   ],
-  "timestamp": 1729276567076
+  "timestamp": 1729686966879
 }

@@ -1,6 +1,24 @@
 {
   "data": [
     {
+      "schema": 1729519383776,
+      "derHash": "jbzv2JfUllMIXokU5xZklDwrxnRAUZOzr6s/Zukq2WE=",
+      "subject": "CN=SZAFIR Trusted CA6,O=Krajowa Izba Rozliczeniowa S.A.,C=PL",
+      "subjectDN": "MFQxCzAJBgNVBAYTAlBMMSgwJgYDVQQKDB9LcmFqb3dhIEl6YmEgUm96bGljemVuaW93YSBTLkEuMRswGQYDVQQDDBJTWkFGSVIgVHJ1c3RlZCBDQTY=",
+      "whitelist": false,
+      "attachment": {
+        "hash": "6d3d1ac97ce641fc26847ca4bd0fe1f258439b6db0c5281c3b37cc792ec59bf5",
+        "size": 1999,
+        "filename": "GiMESp8Ku729pOVng-Vo3_RwenkeGpT9iDpIb91vAKk=.pem",
+        "location": "security-state-staging/intermediates/53166826-5e9e-4775-afcb-681fea7281e9.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "pubKeyHash": "GiMESp8Ku729pOVng+Vo3/RwenkeGpT9iDpIb91vAKk=",
+      "crlite_enrolled": false,
+      "id": "515b5465-041a-408e-a778-6c9e9a3cb95b",
+      "last_modified": 1729522622684
+    },
+    {
       "schema": 1729130569273,
       "derHash": "yvitaX972nEqsSeorYuD90qRoN4XhKG0g/75rHm2dRM=",
       "subject": "CN=DigiCert Global Root G2,OU=www.digicert.com,O=DigiCert Inc,C=US",
@@ -10655,24 +10673,6 @@
       "crlite_enrolled": false,
       "id": "5db685fc-9b69-480f-8fc6-f5e4386636ad",
       "last_modified": 1666727874516
-    },
-    {
-      "schema": 1666727347154,
-      "derHash": "9cLyPGUY+dGbbzm+rqT7rhADG6ncmFzhVjpSDaCtQRY=",
-      "subject": "CN=Entrust Certification Authority - L1K,OU=See www.entrust.net/legal-terms+OU=(c) 2012 Entrust\\, Inc. - for authorized use only,O=Entrust\\, Inc.,C=US",
-      "subjectDN": "MIG6MQswCQYDVQQGEwJVUzEWMBQGA1UEChMNRW50cnVzdCwgSW5jLjEoMCYGA1UECxMfU2VlIHd3dy5lbnRydXN0Lm5ldC9sZWdhbC10ZXJtczE5MDcGA1UECxMwKGMpIDIwMTIgRW50cnVzdCwgSW5jLiAtIGZvciBhdXRob3JpemVkIHVzZSBvbmx5MS4wLAYDVQQDEyVFbnRydXN0IENlcnRpZmljYXRpb24gQXV0aG9yaXR5IC0gTDFL",
-      "whitelist": false,
-      "attachment": {
-        "hash": "fe5ad678578f0f457c9742e59bdd7a274fc2a2703d89bb47f109be35c9fb47c2",
-        "size": 1796,
-        "filename": "980Ionqp3wkYtN9SZVgMzuWQzJta1nfxNPwTem1X0uc=.pem",
-        "location": "security-state-staging/intermediates/a8904bd0-aa03-46a0-bade-1596b9597a4c.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "980Ionqp3wkYtN9SZVgMzuWQzJta1nfxNPwTem1X0uc=",
-      "crlite_enrolled": false,
-      "id": "9e54305c-cd5d-4716-a6ac-2c9ac161fb04",
-      "last_modified": 1666727874460
     },
     {
       "schema": 1666727428816,
@@ -30727,5 +30727,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1729436222555
+  "timestamp": 1729695422530
 }

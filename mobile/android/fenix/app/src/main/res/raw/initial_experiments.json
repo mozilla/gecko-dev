@@ -141,6 +141,83 @@
     },
     {
       "schemaVersion": "1.12.0",
+      "slug": "change-app-color-icon-android",
+      "id": "change-app-color-icon-android",
+      "arguments": {},
+      "application": "org.mozilla.firefox",
+      "appName": "fenix",
+      "appId": "org.mozilla.firefox",
+      "channel": "release",
+      "userFacingName": "Change App Color Icon - Android for New Users",
+      "userFacingDescription": "Testing a white app background to make Firefox easier to spot on your home screen.",
+      "isEnrollmentPaused": false,
+      "isRollout": false,
+      "bucketConfig": {
+        "randomizationUnit": "nimbus_id",
+        "namespace": "fenix-alternative-app-launcher-icon-release-2",
+        "start": 0,
+        "count": 10000,
+        "total": 10000
+      },
+      "featureIds": [
+        "alternative-app-launcher-icon"
+      ],
+      "probeSets": [],
+      "outcomes": [],
+      "branches": [
+        {
+          "slug": "control",
+          "ratio": 1,
+          "feature": {
+            "featureId": "this-is-included-for-mobile-pre-96-support",
+            "enabled": false,
+            "value": {}
+          },
+          "features": [
+            {
+              "featureId": "alternative-app-launcher-icon",
+              "enabled": true,
+              "value": {
+                "enabled": false,
+                "reset-to-default": false
+              }
+            }
+          ]
+        },
+        {
+          "slug": "treatment-a",
+          "ratio": 1,
+          "feature": {
+            "featureId": "this-is-included-for-mobile-pre-96-support",
+            "enabled": false,
+            "value": {}
+          },
+          "features": [
+            {
+              "featureId": "alternative-app-launcher-icon",
+              "enabled": true,
+              "value": {
+                "enabled": true,
+                "reset-to-default": false
+              }
+            }
+          ]
+        }
+      ],
+      "targeting": "((is_already_enrolled) || ((isFirstRun == 'true') && (app_version|versionCompare('132.!') >= 0)))",
+      "startDate": "2024-10-22",
+      "enrollmentEndDate": null,
+      "endDate": null,
+      "proposedDuration": 49,
+      "proposedEnrollment": 14,
+      "referenceBranch": "control",
+      "featureValidationOptOut": false,
+      "localizations": null,
+      "locales": null,
+      "publishedDate": "2024-10-22T18:43:28.679357Z"
+    },
+    {
+      "schemaVersion": "1.12.0",
       "slug": "long-term-holdback-2024-h2-velocity-android",
       "id": "long-term-holdback-2024-h2-velocity-android",
       "arguments": {},
