@@ -17,7 +17,7 @@ support-files = ["focusableContent.html"]
 ["browser_toolbarButtonKeyPress.js"]
 skip-if = [
   "os == 'linux' && (asan || tsan || debug)", # Bug 1775712
-   "os == 'mac' && debug", # Bug 1775712
+   "os == 'mac'", # Bug 1775712
    "os == 'win'", # Bug 1775712
 ]
 
