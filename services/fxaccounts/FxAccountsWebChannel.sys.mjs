@@ -524,6 +524,11 @@ FxAccountsWebChannelHelpers.prototype = {
     );
 
     if (lazy.oauthEnabled) {
+      // XXX - work around a server issue - we should never be handed these items in oauth flows.
+      // Fixed in https://github.com/mozilla/fxa/pull/17892, so this can probably be made more
+      // aggressive (eg, refuse to connect if they are present or similar)
+      delete accountData.keyFetchToken;
+      delete accountData.unwrapBKey;
       await this._fxAccounts._internal.setSignedInUser(accountData);
     } else {
       const xps = await this._initializeSync();

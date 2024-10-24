@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { CommonUtils } from "resource://services-common/utils.sys.mjs";
 
 import { CryptoUtils } from "resource://services-crypto/utils.sys.mjs";
@@ -25,6 +26,20 @@ const DEPRECATED_DERIVED_KEYS_NAMES = [
   "ecosystemUserId",
   "ecosystemAnonId",
 ];
+
+const lazy = {};
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "oauthEnabled",
+  "identity.fxaccounts.oauth.enabled",
+  true
+);
+
+// Is key fetching enabled/possible in the current configuration?
+function keyFetchingEnabled() {
+  return !lazy.oauthEnabled;
+}
 
 // This scope and its associated key material were used by the old Kinto webextension
 // storage backend, but has since been decommissioned. It's here entirely so that we
@@ -66,6 +81,12 @@ const DEPRECATED_KEY_SCOPES = [
  * detail of the `FxAccountsKeys` class and should prefer `getKeyForScope` where
  * possible.  We intend to remove support for Firefox ever directly handling `kB`
  * at some point in the future.
+ *
+ * Note that Desktop is now slowly moving to these newer oauth flows - so all this
+ * key fetching and use of the keyFetchToken should be considered deprecated, and
+ * must not be used when the OAuth is in use. This code remains behind just for
+ * this transition and should be removed once we are committed to never rolling
+ * the flows back to the pre-oauth days.
  */
 export class FxAccountsKeys {
   constructor(fxAccountsInternal) {
@@ -96,6 +117,13 @@ export class FxAccountsKeys {
 
       // If we have a `keyFetchToken` we can fetch `kB`.
       if (userData.keyFetchToken) {
+        // this is a kind of defense-in-depth for our oauth flows in case something is confused.
+        if (!keyFetchingEnabled()) {
+          log.error(
+            "Key management confusion: we should never have a keyFetchToken in oauth flows; ignoring it"
+          );
+          return false;
+        }
         return true;
       }
 
