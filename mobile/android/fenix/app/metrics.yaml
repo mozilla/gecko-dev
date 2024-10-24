@@ -9599,6 +9599,8 @@ awesomebar:
     metadata:
       tags:
         - Search
+
+urlbar:
   engagement:
     type: event
     description: |
@@ -9606,6 +9608,7 @@ awesomebar:
       or entering a URL or a search term.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1878434
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926723
     data_reviews:
       - https://github.com/mozilla-mobile/firefox-android/pull/5438#issuecomment-1930970336
     data_sensitivity:
@@ -9625,6 +9628,7 @@ awesomebar:
       The user dismissed the awesomebar without completing their search.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1878434
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1926723
     data_reviews:
       - https://github.com/mozilla-mobile/firefox-android/pull/5438#issuecomment-1930970336
     data_sensitivity:

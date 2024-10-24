@@ -28,10 +28,10 @@ import mozilla.telemetry.glean.internal.TimerId
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.GleanMetrics.Addons
-import org.mozilla.fenix.GleanMetrics.Awesomebar
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.Metrics
 import org.mozilla.fenix.GleanMetrics.Translations
+import org.mozilla.fenix.GleanMetrics.Urlbar
 import org.mozilla.fenix.components.metrics.Event
 import org.mozilla.fenix.components.metrics.MetricController
 import org.mozilla.fenix.ext.components
@@ -151,9 +151,9 @@ class TelemetryMiddleware(
             }
             is AwesomeBarAction.EngagementFinished -> {
                 if (action.abandoned) {
-                    Awesomebar.abandonment.record()
+                    Urlbar.abandonment.record()
                 } else {
-                    Awesomebar.engagement.record()
+                    Urlbar.engagement.record()
                 }
             }
             is TranslationsAction.TranslateOfferAction -> {
