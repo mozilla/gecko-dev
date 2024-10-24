@@ -721,7 +721,9 @@ def real_target(value, host, shell, project, application):
             }.get(host.cpu, ("arm", "androideabi"))
             return split_triplet(f"{target_cpu}-unknown-linux-{target_system}")
         if project == "mobile/ios":
-            return split_triplet("aarch64-apple-ios")
+            if (host.cpu, host.os) == ("x86_64", "OSX"):
+                return split_triplet(f"x86_64-apple-ios")
+            return split_triplet(f"aarch64-apple-ios-sim")
         return host
     # If --target was only given a cpu arch, expand it with the
     # non-cpu part of the host. For mobile/android, expand it with
@@ -733,7 +735,8 @@ def real_target(value, host, shell, project, application):
             if target.startswith("arm"):
                 rest += "eabi"
         elif project == "mobile/ios":
-            rest = "apple-ios"
+            sim_suffix = "" if target == "x86_64" else "-sim"
+            rest = f"apple-ios{sim_suffix}"
         else:
             cpu, rest = host.alias.split("-", 1)
         target = "-".join((target, rest))

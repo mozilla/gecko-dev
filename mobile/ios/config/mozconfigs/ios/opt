@@ -1,4 +1,5 @@
 ac_add_options --enable-project=mobile/ios
+ac_add_options --target=aarch64-apple-ios
 ac_add_options --enable-clang-plugin
 
 . "$topsrcdir/build/mozconfig.cache"
