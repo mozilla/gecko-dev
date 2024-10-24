@@ -333,13 +333,20 @@ with only_when(target_is_ios):
         help="Location of platform SDK to use",
     )
 
+    @depends(target)
+    def target_is_ios_simulator(target):
+        # x86_64-apple-ios is simulator
+        # aarch64-apple-ios is iphone
+        # aarch64-apple-ios-sim is simulator
+        return target.cpu == "x86_64" or target.raw_os == "ios-sim"
+
     def ios_sdk_min_version():
         return "17.4"
 
-    @depends(target)
-    def ios_sdk_name(target):
+    @depends(target_is_ios_simulator)
+    def ios_sdk_name(target_is_ios_simulator):
         return "iPhone{}{}.sdk".format(
-            "Simulator" if target.raw_os == "ios-sim" else "OS",
+            "Simulator" if target_is_ios_simulator else "OS",
             ios_sdk_min_version(),
         )
 
@@ -347,15 +354,16 @@ with only_when(target_is_ios):
         "--with-ios-sdk",
         host,
         target,
+        target_is_ios_simulator,
         bootstrap_path(ios_sdk_name, when=depends("--with-ios-sdk")(lambda x: not x)),
     )
     @imports(_from="__builtin__", _import="Exception")
     @imports(_from="os.path", _import="isdir")
     @imports(_from="os", _import="listdir")
-    def ios_sdk(sdk, host, target, bootstrapped):
+    def ios_sdk(sdk, host, target, target_is_ios_simulator, bootstrapped):
         if bootstrapped:
             sdk = [bootstrapped]
-        sdk_name = "iphonesimulator" if target.raw_os == "ios-sim" else "iphoneos"
+        sdk_name = "iphonesimulator" if target_is_ios_simulator else "iphoneos"
         if sdk:
             sdk = sdk[0]
             try:
