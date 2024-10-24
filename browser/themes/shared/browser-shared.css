@@ -524,6 +524,7 @@ menupopup::part(drop-indicator) {
 #screenshotsPagePanel {
   position: relative;
   max-height: 0;
+  z-index: 1; /* Above the web content in this stack. */
 }
 
 /* Override theme colors since the picker uses extra colors that
