@@ -205,8 +205,10 @@ export const MenuMessage = {
       let clonedPrimaryAction = structuredClone(message.content.primaryAction);
       if (source === MenuMessage.SOURCES.APP_MENU) {
         clonedPrimaryAction.data.entrypoint = "fxa_app_menu";
+        clonedPrimaryAction.data.extraParams.utm_content += "-app_menu";
       } else if (source === MenuMessage.SOURCES.PXI_MENU) {
         clonedPrimaryAction.data.entrypoint = "fxa_avatar_menu";
+        clonedPrimaryAction.data.extraParams.utm_content += "-avatar";
       }
 
       lazy.SpecialMessageActions.handleAction(

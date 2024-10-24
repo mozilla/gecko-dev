@@ -532,8 +532,10 @@ add_task(async function test_fxa_cta_actions() {
       );
       if (source === MenuMessage.SOURCES.APP_MENU) {
         clonedPrimaryAction.data.entrypoint = "fxa_app_menu";
+        clonedPrimaryAction.data.extraParams.utm_content += "-app_menu";
       } else if (source === MenuMessage.SOURCES.PXI_MENU) {
         clonedPrimaryAction.data.entrypoint = "fxa_avatar_menu";
+        clonedPrimaryAction.data.extraParams.utm_content += "-avatar";
       }
 
       Assert.ok(
