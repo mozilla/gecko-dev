@@ -1015,20 +1015,14 @@ class HomeScreenRobot {
             return BrowserRobot.Transition()
         }
 
-        fun clickPocketDiscoverMoreButton(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
+        fun clickPocketDiscoverMoreButton(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             Log.i(TAG, "clickPocketDiscoverMoreButton: Trying to scroll into view the \"Discover more\" button")
-            pocketStoriesList()
-                .scrollIntoView(UiSelector().text("Discover more"))
+            pocketStoriesList().scrollToEnd(3)
             Log.i(TAG, "clickPocketDiscoverMoreButton: Scrolled into view the \"Discover more\" button")
 
-            mDevice.findObject(UiSelector().text("Discover more")).also {
-                Log.i(TAG, "clickPocketDiscoverMoreButton: Waiting for $waitingTime ms for \"Discover more\" button to exist")
-                it.waitForExists(waitingTimeShort)
-                Log.i(TAG, "clickPocketDiscoverMoreButton: Waited for $waitingTime ms for \"Discover more\" button to exist")
-                Log.i(TAG, "clickPocketDiscoverMoreButton: Trying to click \"Discover more\" button")
-                it.click()
-                Log.i(TAG, "clickPocketDiscoverMoreButton: Clicked \"Discover more\" button")
-            }
+            Log.i(TAG, "clickPocketDiscoverMoreButton: Trying to click the \"Discover more\" button")
+            composeTestRule.onNodeWithTag("pocket.discover.more.story").performClick()
+            Log.i(TAG, "clickPocketDiscoverMoreButton: Clicked the \"Discover more\" button")
 
             BrowserRobot().interact()
             return BrowserRobot.Transition()
