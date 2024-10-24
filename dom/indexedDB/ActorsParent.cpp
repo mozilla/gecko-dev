@@ -16977,7 +16977,11 @@ void GetDatabasesOp::SendResults() {
   NoteActorDestroyed();
 #endif
 
-  mResolver(mDatabaseMetadataArray);
+  if (HasFailed()) {
+    mResolver(ClampResultCode(ResultCode()));
+  } else {
+    mResolver(mDatabaseMetadataArray);
+  }
 
   SafeDropDirectoryLock(mDirectoryLock);
 
