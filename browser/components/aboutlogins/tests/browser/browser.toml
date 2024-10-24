@@ -14,11 +14,11 @@ skip-if = [
   "ccov",
   "debug",
   "os == 'win' && !debug", # bug 1605494 is more prevalent on linux, Bug 1627419
-  "os == 'linux' && bits == 64 && !debug", # Bug 1648862
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1648862
 ]
 
 ["browser_alertDismissedAfterChangingPassword.js"]
-skip-if = ["apple_catalina && !debug"] # Bug 1684513
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt"] # Bug 1684513
 
 ["browser_breachAlertShowingForAddedLogin.js"]
 
@@ -42,7 +42,7 @@ skip-if = ["debug"] # Bug 1577710
 ["browser_loginListChanges.js"]
 
 ["browser_loginSortOrderRestored.js"]
-skip-if = ["os == 'linux' && bits == 64 && os_version == '18.04'"] # Bug 1587625; Bug 1587626 for linux1804
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1587625; Bug 1587626 for linux1804
 
 ["browser_noLoginsView.js"]
 
@@ -63,13 +63,13 @@ run-if = [
 ["browser_openPreferencesExternal.js"]
 
 ["browser_openSite.js"]
-skip-if = ["os == 'linux' && bits == 64"] # Bug 1581889
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1581889
 
 ["browser_osAuthDialog.js"]
-skip-if = ["os == 'linux'"] # bug 1527745
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # bug 1527745
 
 ["browser_primaryPassword.js"]
-skip-if = ["os == 'linux'"] # bug 1569789
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # bug 1569789
 
 ["browser_removeAllDialog.js"]
 

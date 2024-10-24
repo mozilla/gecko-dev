@@ -1,7 +1,7 @@
 [DEFAULT]
 subsuite = "media-bc"
 tags = "mediacontrol"
-skip-if = ["os == 'linux'"] # Bug 1673527
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1673527
 support-files = [
   "file_autoplay.html",
   "file_audio_and_inaudible_media.html",
@@ -43,12 +43,12 @@ tags = "os_integration"
 ["browser_media_control_metadata.js"]
 
 ["browser_media_control_non_eligible_media.js"]
-skip-if = ["verify && os == 'mac'"] # bug 1673509
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify"] # bug 1673509
 
 ["browser_media_control_playback_state.js"]
 
 ["browser_media_control_position_state.js"]
-skip-if = ["apple_catalina && !debug"] # Bug 1775892
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt"] # Bug 1775892
 
 ["browser_media_control_seek.js"]
 
@@ -57,7 +57,7 @@ skip-if = ["apple_catalina && !debug"] # Bug 1775892
 ["browser_media_control_supported_keys.js"]
 
 ["browser_nosrc_and_error_media.js"]
-skip-if = ["verify && os == 'mac'"] # bug 1673509
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify"] # bug 1673509
 
 ["browser_only_control_non_real_time_media.js"]
 

@@ -6,7 +6,7 @@ skip-if = [
    "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1775881
    "os == 'win' && os_version == '11.2009' && debug", # Bug 1775881
    "os == 'win' && os_version == '11.2009' && asan", # Bug 1775881
-   "apple_catalina && debug", # Bug 1775881
+   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1775881
 ]
 
 ["browser_errorpage_no_timeout.js"]
@@ -17,7 +17,6 @@ support-files = ["file_errorpage_timeout_server.sjs"]
 
 ["browser_errorpage_www_suggestion.js"]
 support-files = ["file_errorpage_www_suggestion.html"]
-skip-if = ["os == 'android'"] # no https-only errorpage support in android
 
 ["browser_exception.js"]
 support-files = ["file_upgrade_insecure_server.sjs"]

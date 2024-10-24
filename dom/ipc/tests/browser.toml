@@ -16,7 +16,6 @@ run-if = ["crashreporter"]
 # However, you can still run browser_ProcessPriorityManager.js locally on other
 # OSes. This will test the priority manager infrastructure but not actually
 # change the priority.
-skip-if = ["os == 'android'"]
 support-files = [
   "file_cross_frame.html",
   "file_dummy.html",
@@ -88,10 +87,9 @@ skip-if = [
 support-files = ["browser_wpi_base.js"]
 
 ["browser_wpi_isolate_high_value.js"]
-run-if = ["fission"] # Only relevant for fission
 support-files = ["browser_wpi_base.js"]
 
 ["browser_wpi_isolate_nothing.js"]
-skip-if = ["apple_catalina && debug"] # Bug 1741763; high frequency intermittent; leaked 2 windows
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug"] # Bug 1741763; high frequency intermittent; leaked 2 windows
 
 support-files = ["browser_wpi_base.js"]

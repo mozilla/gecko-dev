@@ -32,7 +32,7 @@ skip-if = [
   "asan",
   "debug",
   "os == 'win'", # Bug 1775626
-  "os == 'linux' && socketprocess_networking", # Bug 1382809, bug 1369959
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && socketprocess_networking", # Bug 1382809, bug 1369959
 ]
 
 ["browser_hidden_browser_vsync.js"]
@@ -46,7 +46,7 @@ support-files = ["!/browser/components/downloads/test/browser/head.js"]
 https_first_disabled = true
 run-if = ["debug"]
 skip-if = [
-  "apple_catalina",  # platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",  # platform migration
   "socketprocess_networking",
 ]
 
@@ -70,8 +70,9 @@ run-if = [
 
 ["browser_tabclose.js"]
 skip-if = [
-  "os == 'linux' && devedition", # Bug 1737131
-  "os == 'mac'", # Bug 1531417
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && devedition", # Bug 1737131
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1531417
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1531417
   "os == 'win'", # Bug 1488537, Bug 1497713
 ]
 
@@ -81,9 +82,9 @@ skip-if = [
 
 ["browser_tabopen.js"]
 skip-if = [
-  "apple_catalina", # Bug 1594274
-  "os == 'mac' && !debug", # Bug 1705492
-  "os == 'linux' && !debug", # Bug 1705492
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1594274
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1705492
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1705492
 ]
 
 ["browser_tabopen_squeeze.js"]

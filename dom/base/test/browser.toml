@@ -41,8 +41,9 @@ support-files = [
 
 ["browser_aboutnewtab_process_selection.js"]
 skip-if = [
-  "os == 'linux' && bits == 64", #Bug 1618098
-  "os == 'mac' && fission", # Bug 1618098
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", #Bug 1618098
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # bug 1618098
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # bug 1618098
 ]
 
 ["browser_blocking_image.js"]
@@ -55,7 +56,7 @@ tags = "mcb"
 ["browser_bug1058164.js"]
 
 ["browser_bug1303838.js"]
-skip-if = ["os == 'mac' && os_version == '10.15' && !debug"] # Bug 1703712
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt"] # Bug 1703712
 
 ["browser_bug1554070.js"]
 support-files = [
@@ -100,12 +101,12 @@ skip-if = [
 ["browser_messagemanager_targetframeloader.js"]
 
 ["browser_messagemanager_unload.js"]
-skip-if = ["fission"] # Fails with Fission, and we're unlikely to spend time to fix it. (bug 1587490)
+skip-if = ["true"] # Fails with Fission, and we're unlikely to spend time to fix it. (bug 1587490)
 
 ["browser_multiple_popups.js"]
 skip-if = [
-  "os == 'win' && !debug", # Bug 1505235
-  "apple_catalina", # Bug 1661132 (osx), Bug 1866073
+  "os == 'win' && opt", # Bug 1505235
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1661132 (osx), Bug 1866073
   "socketprocess_networking",
 ]
 support-files = ["browser_multiple_popups.html"]

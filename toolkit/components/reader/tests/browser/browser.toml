@@ -61,7 +61,7 @@ support-files = [
 
 ["browser_readerMode_refresh.js"]
 skip-if = [
-   "apple_catalina", # Bug 1776032
+   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1776032
 ]
 
 support-files = [

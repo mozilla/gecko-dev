@@ -83,7 +83,7 @@ support-files = ["file_empty.html"]
 ["browser_hasActivePeerConnections.js"]
 support-files = ["create_webrtc_peer_connection.html"]
 skip-if = [
-  "os == 'linux' && bits == 64", # Bug 1742012
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1742012
   "os == 'win' && debug", # Bug 1742012
 ]
 
@@ -96,7 +96,7 @@ skip-if = ["true"]
 
 ["browser_localStorage_e10s.js"]
 https_first_disabled = true
-fail-if = ["fission"]
+fail-if = ["true"]
 skip-if = [
   "verify",
   "tsan", # Times out on TSan intermittently.
@@ -115,7 +115,7 @@ skip-if = [
 ["browser_navigate_replace_browsingcontext.js"]
 
 ["browser_noopener.js"]
-skip-if = ["verify && debug && os == 'linux'"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && verify"]
 support-files = [
   "test_noopener_source.html",
   "test_noopener_target.html",
@@ -139,8 +139,8 @@ support-files = ["test_mixed_content_image.html"]
 
 ["browser_pointerlock_popup.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && !debug", # Bug 1907085
-  "apple_catalina", # Bug 1907085
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1907085
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1907085
 ]
 
 ["browser_pointerlock_warning.js"]
@@ -164,7 +164,7 @@ support-files = [
 ]
 
 ["browser_sessionStorage_navigation.js"]
-skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1712961
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt"] # Bug 1712961
 support-files = [
   "file_empty.html",
   "file_coop_coep.html",
@@ -179,7 +179,7 @@ support-files = ["focus_after_prompt.html"]
 tags = "openwindow"
 skip-if = [
   "os == 'android'",
-  "os == 'linux' && debug", # see bug 1261495 for Linux debug time outs
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # see bug 1261495 for Linux debug time outs
 ]
 support-files = ["test_new_window_from_content_child.html"]
 
