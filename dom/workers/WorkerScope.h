@@ -133,6 +133,8 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
 
   nsICookieJarSettings* GetCookieJarSettings() final;
 
+  nsIURI* GetBaseURI() const final;
+
   Maybe<ClientInfo> GetClientInfo() const final;
   Maybe<ClientState> GetClientState() const final;
 

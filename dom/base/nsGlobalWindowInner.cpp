@@ -5771,6 +5771,8 @@ CallState nsGlobalWindowInner::CallOnInProcessDescendantsInternal(
   return state;
 }
 
+nsIURI* nsGlobalWindowInner::GetBaseURI() const { return GetDocBaseURI(); }
+
 Maybe<ClientInfo> nsGlobalWindowInner::GetClientInfo() const {
   MOZ_ASSERT(NS_IsMainThread());
   if (mDoc && mDoc->IsStaticDocument()) {

@@ -305,6 +305,10 @@ nsICookieJarSettings* WorkerGlobalScopeBase::GetCookieJarSettings() {
   return mWorkerPrivate->CookieJarSettings();
 }
 
+nsIURI* WorkerGlobalScopeBase::GetBaseURI() const {
+  return mWorkerPrivate->GetBaseURI();
+}
+
 Maybe<ClientInfo> WorkerGlobalScopeBase::GetClientInfo() const {
   return Some(mClientSource->Info());
 }

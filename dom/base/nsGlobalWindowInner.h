@@ -343,6 +343,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   mozilla::dom::DebuggerNotificationManager*
   GetExistingDebuggerNotificationManager() override;
 
+  nsIURI* GetBaseURI() const final;
+
   mozilla::Maybe<mozilla::dom::ClientInfo> GetClientInfo() const override;
   mozilla::Maybe<mozilla::dom::ClientState> GetClientState() const final;
   mozilla::Maybe<mozilla::dom::ServiceWorkerDescriptor> GetController()

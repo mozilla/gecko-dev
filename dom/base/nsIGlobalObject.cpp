@@ -276,6 +276,8 @@ void nsIGlobalObject::NotifyGlobalThawed() {
       });
 }
 
+nsIURI* nsIGlobalObject::GetBaseURI() const { return nullptr; }
+
 Maybe<ClientInfo> nsIGlobalObject::GetClientInfo() const {
   // By default globals do not expose themselves as a client.  Only real
   // window and worker globals are currently considered clients.
