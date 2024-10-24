@@ -518,8 +518,8 @@ private fun AlertDialogDeletionWarning(
                 onClick = onDeleteTapped,
             ) {
                 Text(
-                    text = stringResource(R.string.bookmark_menu_delete_button),
-                    color = FirefoxTheme.colors.actionPrimary,
+                    text = stringResource(R.string.bookmark_menu_delete_button).uppercase(),
+                    color = FirefoxTheme.colors.textAccent,
                 )
             }
         },
@@ -528,8 +528,8 @@ private fun AlertDialogDeletionWarning(
                 onClick = onCancelTapped,
             ) {
                 Text(
-                    text = stringResource(R.string.bookmark_delete_negative),
-                    color = FirefoxTheme.colors.actionPrimary,
+                    text = stringResource(R.string.bookmark_delete_negative).uppercase(),
+                    color = FirefoxTheme.colors.textAccent,
                 )
             }
         },
