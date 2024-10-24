@@ -63,8 +63,7 @@ static nsresult ReadInternetOption(uint32_t aOption, uint32_t& aFlags,
   DWORD connFlags = 0;
   WCHAR connName[RAS_MaxEntryName + 1];
   MOZ_SEH_TRY {
-    InternetGetConnectedStateExW(&connFlags, connName,
-                                 mozilla::ArrayLength(connName), 0);
+    InternetGetConnectedStateExW(&connFlags, connName, std::size(connName), 0);
   }
   MOZ_SEH_EXCEPT(EXCEPTION_EXECUTE_HANDLER) { return NS_ERROR_FAILURE; }
 
@@ -76,7 +75,7 @@ static nsresult ReadInternetOption(uint32_t aOption, uint32_t& aFlags,
   list.dwSize = sizeof(INTERNET_PER_CONN_OPTION_LISTW);
   list.pszConnection =
       connFlags & INTERNET_CONNECTION_MODEM ? connName : nullptr;
-  list.dwOptionCount = mozilla::ArrayLength(options);
+  list.dwOptionCount = std::size(options);
   list.dwOptionError = 0;
   list.pOptions = options;
 

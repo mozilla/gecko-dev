@@ -520,7 +520,7 @@ void ParseManifest(NSLocationType aType, FileLocation& aFile, char* aBuf,
 
     const ManifestDirective* directive = nullptr;
     for (const ManifestDirective* d = kParsingTable;
-         d < ArrayEnd(kParsingTable); ++d) {
+         d < std::end(kParsingTable); ++d) {
       if (!strcmp(d->directive, token)) {
         directive = d;
         break;

@@ -29,7 +29,7 @@ static const char* sCrashGuardNames[] = {
     "glcontext",
     "wmfvpxvideo",
 };
-static_assert(MOZ_ARRAY_LENGTH(sCrashGuardNames) == NUM_CRASH_GUARD_TYPES,
+static_assert(std::size(sCrashGuardNames) == NUM_CRASH_GUARD_TYPES,
               "CrashGuardType updated without a name string");
 
 static inline void BuildCrashGuardPrefName(CrashGuardType aType,

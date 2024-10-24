@@ -547,7 +547,7 @@ const ProfilingCategoryPairInfo sProfilingCategoryPairInfo[] = {
 JS_PUBLIC_API const ProfilingCategoryPairInfo& GetProfilingCategoryPairInfo(
     ProfilingCategoryPair aCategoryPair) {
   static_assert(
-      MOZ_ARRAY_LENGTH(sProfilingCategoryPairInfo) ==
+      std::size(sProfilingCategoryPairInfo) ==
           uint32_t(ProfilingCategoryPair::COUNT),
       "sProfilingCategoryPairInfo and ProfilingCategory need to have the "
       "same order and the same length");

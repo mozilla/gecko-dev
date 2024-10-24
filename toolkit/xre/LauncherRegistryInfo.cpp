@@ -469,8 +469,7 @@ LauncherResult<bool> LauncherRegistryInfo::IsTelemetryEnabled() {
 const std::wstring& LauncherRegistryInfo::ResolveLauncherValueName() {
   if (mLauncherValueName.empty()) {
     mLauncherValueName.assign(mBinPath);
-    mLauncherValueName.append(kLauncherSuffix,
-                              ArrayLength(kLauncherSuffix) - 1);
+    mLauncherValueName.append(kLauncherSuffix, std::size(kLauncherSuffix) - 1);
   }
 
   return mLauncherValueName;
@@ -479,7 +478,7 @@ const std::wstring& LauncherRegistryInfo::ResolveLauncherValueName() {
 const std::wstring& LauncherRegistryInfo::ResolveBrowserValueName() {
   if (mBrowserValueName.empty()) {
     mBrowserValueName.assign(mBinPath);
-    mBrowserValueName.append(kBrowserSuffix, ArrayLength(kBrowserSuffix) - 1);
+    mBrowserValueName.append(kBrowserSuffix, std::size(kBrowserSuffix) - 1);
   }
 
   return mBrowserValueName;
@@ -489,7 +488,7 @@ const std::wstring& LauncherRegistryInfo::ResolveImageTimestampValueName() {
   if (mImageValueName.empty()) {
     mImageValueName.assign(mBinPath);
     mImageValueName.append(kImageTimestampSuffix,
-                           ArrayLength(kImageTimestampSuffix) - 1);
+                           std::size(kImageTimestampSuffix) - 1);
   }
 
   return mImageValueName;
@@ -499,7 +498,7 @@ const std::wstring& LauncherRegistryInfo::ResolveTelemetryValueName() {
   if (mTelemetryValueName.empty()) {
     mTelemetryValueName.assign(mBinPath);
     mTelemetryValueName.append(kTelemetrySuffix,
-                               ArrayLength(kTelemetrySuffix) - 1);
+                               std::size(kTelemetrySuffix) - 1);
   }
 
   return mTelemetryValueName;
@@ -509,7 +508,7 @@ const std::wstring& LauncherRegistryInfo::ResolveBlocklistValueName() {
   if (mBlocklistValueName.empty()) {
     mBlocklistValueName.assign(mBinPath);
     mBlocklistValueName.append(kBlocklistSuffix,
-                               ArrayLength(kBlocklistSuffix) - 1);
+                               std::size(kBlocklistSuffix) - 1);
   }
 
   return mBlocklistValueName;

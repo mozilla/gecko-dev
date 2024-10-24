@@ -310,7 +310,7 @@ static const char* const kTestFileExtensions[] = {
 
 #define CheckListSorted(_list)                                   \
   {                                                              \
-    for (size_t i = 1; i < mozilla::ArrayLength(_list); ++i) {   \
+    for (size_t i = 1; i < std::size(_list); ++i) {              \
       nsDependentCString str1((_list)[i - 1]);                   \
       nsDependentCString str2((_list)[i]);                       \
       EXPECT_LE(Compare(str1, str2), -1)                         \
@@ -341,8 +341,7 @@ bool _IsInList(const char* ext, const char* const _list[], const size_t len) {
   return false;
 }
 
-#define IsInList(_ext, _list) \
-  _IsInList(_ext, _list, mozilla::ArrayLength(_list))
+#define IsInList(_ext, _list) _IsInList(_ext, _list, std::size(_list))
 
 TEST(TestExecutableLists, NonBinariesInExecutablesList)
 {

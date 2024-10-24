@@ -548,7 +548,7 @@ nsresult ExtensionProtocolHandler::SubstituteChannel(nsIURI* aURI,
   } else if (readyPromise) {
     size_t matchIdx;
     if (BinarySearchIf(
-            sStaticFileExtensions, 0, ArrayLength(sStaticFileExtensions),
+            sStaticFileExtensions, 0, std::size(sStaticFileExtensions),
             [&ext](const char* aOther) {
               return Compare(ext, nsDependentCString(aOther));
             },

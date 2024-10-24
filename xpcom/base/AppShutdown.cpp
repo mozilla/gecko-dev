@@ -458,7 +458,7 @@ void AppShutdown::AdvanceShutdownPhase(
 }
 
 ShutdownPhase AppShutdown::GetShutdownPhaseFromTopic(const char* aTopic) {
-  for (size_t i = 0; i < ArrayLength(sPhaseObserverKeys); ++i) {
+  for (size_t i = 0; i < std::size(sPhaseObserverKeys); ++i) {
     if (sPhaseObserverKeys[i] && !strcmp(sPhaseObserverKeys[i], aTopic)) {
       return static_cast<ShutdownPhase>(i);
     }

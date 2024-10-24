@@ -324,7 +324,7 @@ bool NetAddr::operator==(const NetAddr& other) const {
   }
   if (this->raw.family == AF_LOCAL) {
     return strncmp(this->local.path, other.local.path,
-                   ArrayLength(this->local.path));
+                   std::size(this->local.path));
 #endif
   }
   return false;

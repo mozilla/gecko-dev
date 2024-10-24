@@ -54,7 +54,7 @@ static SECStatus DigestLength(UniquePK11Context& context, uint32_t length) {
   array[0] = length & 255;
   array[1] = (length >> 8) & 255;
 
-  return PK11_DigestOp(context.get(), array, MOZ_ARRAY_LENGTH(array));
+  return PK11_DigestOp(context.get(), array, std::size(array));
 }
 
 // Let derIssuer be the DER encoding of the issuer of certID.

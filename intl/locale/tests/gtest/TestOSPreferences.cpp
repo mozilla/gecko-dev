@@ -71,7 +71,7 @@ TEST(Intl_Locale_OSPreferences, GetDateTimePattern)
 
                   {4, 1, ""},   {3, 2, "cs"}, {2, 3, ""},      {1, 4, "ja"}};
 
-  for (unsigned i = 0; i < mozilla::ArrayLength(tests); i++) {
+  for (unsigned i = 0; i < std::size(tests); i++) {
     const Test& t = tests[i];
     if (NS_SUCCEEDED(osprefs->GetDateTimePattern(
             t.dateStyle, t.timeStyle, nsDependentCString(t.locale), pattern))) {

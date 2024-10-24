@@ -101,16 +101,16 @@ TEST(CombinedStacks, Combine)
   combined2.AddStack(testStacks[2]);
   combined2.AddStack(testStacks[3]);
 
-  EXPECT_EQ(combined1.GetModuleCount(), mozilla::ArrayLength(moduleSet1));
+  EXPECT_EQ(combined1.GetModuleCount(), std::size(moduleSet1));
   EXPECT_EQ(combined1.GetStackCount(), 2u);
-  EXPECT_EQ(combined2.GetModuleCount(), mozilla::ArrayLength(moduleSet2) - 1);
+  EXPECT_EQ(combined2.GetModuleCount(), std::size(moduleSet2) - 1);
   EXPECT_EQ(combined2.GetStackCount(), 2u);
 
   // combined1 <-- combined1 + combined2
   combined1.AddStacks(combined2);
 
   EXPECT_EQ(combined1.GetModuleCount(), 5u);  // {mod1, mod2, modX, modZ, base}
-  EXPECT_EQ(combined1.GetStackCount(), mozilla::ArrayLength(testStacks));
+  EXPECT_EQ(combined1.GetStackCount(), std::size(testStacks));
 
   for (size_t i = 0; i < combined1.GetStackCount(); ++i) {
     const auto& expectedStack = testStacks[i];

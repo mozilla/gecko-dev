@@ -1022,13 +1022,13 @@ bool nsContentUtils::InitializeEventTable() {
       {nullptr}};
 
   sAtomEventTable =
-      new nsTHashMap<RefPtr<nsAtom>, EventNameMapping>(ArrayLength(eventArray));
-  sStringEventTable = new nsTHashMap<nsStringHashKey, EventNameMapping>(
-      ArrayLength(eventArray));
+      new nsTHashMap<RefPtr<nsAtom>, EventNameMapping>(std::size(eventArray));
+  sStringEventTable =
+      new nsTHashMap<nsStringHashKey, EventNameMapping>(std::size(eventArray));
   sUserDefinedEvents = new nsTArray<RefPtr<nsAtom>>(64);
 
   // Subtract one from the length because of the trailing null
-  for (uint32_t i = 0; i < ArrayLength(eventArray) - 1; ++i) {
+  for (uint32_t i = 0; i < std::size(eventArray) - 1; ++i) {
     MOZ_ASSERT(!sAtomEventTable->Contains(eventArray[i].mAtom),
                "Double-defining event name; fix your EventNameList.h");
     sAtomEventTable->InsertOrUpdate(eventArray[i].mAtom, eventArray[i]);
@@ -1053,7 +1053,7 @@ void nsContentUtils::InitializeTouchEventTable() {
 #undef EVENT
         {nullptr}};
     // Subtract one from the length because of the trailing null
-    for (uint32_t i = 0; i < ArrayLength(touchEventArray) - 1; ++i) {
+    for (uint32_t i = 0; i < std::size(touchEventArray) - 1; ++i) {
       sAtomEventTable->InsertOrUpdate(touchEventArray[i].mAtom,
                                       touchEventArray[i]);
       sStringEventTable->InsertOrUpdate(
@@ -6149,7 +6149,7 @@ const nsDependentString nsContentUtils::GetLocalizedEllipsis() {
       nsAutoString tmp;
       Preferences::GetLocalizedString("intl.ellipsis", tmp);
       uint32_t len =
-          std::min(uint32_t(tmp.Length()), uint32_t(ArrayLength(sBuf) - 1));
+          std::min(uint32_t(tmp.Length()), uint32_t(std::size(sBuf) - 1));
       CopyUnicodeTo(tmp, 0, sBuf, len);
     }
     if (!sBuf[0]) sBuf[0] = char16_t(0x2026);
@@ -9455,8 +9455,8 @@ static void AppendEncodedCharacters(const nsTextFragment* aText,
     // eg < in it. We subtract 1 for the null terminator, then 1 more for the
     // existing character that will be replaced.
     constexpr uint32_t maxCharExtraSpace =
-        std::max({ArrayLength("&lt;"), ArrayLength("&gt;"),
-                  ArrayLength("&amp;"), ArrayLength("&nbsp;")}) -
+        std::max({std::size("&lt;"), std::size("&gt;"), std::size("&amp;"),
+                  std::size("&nbsp;")}) -
         2;
     static_assert(maxCharExtraSpace < 100, "Possible underflow");
     CheckedInt<uint32_t> maxExtraSpace =
@@ -9496,8 +9496,7 @@ static CheckedInt<uint32_t> ExtraSpaceNeededForAttrEncoding(
   // & in it. We subtract 1 for the null terminator, then 1 more for the
   // existing character that will be replaced.
   constexpr uint32_t maxCharExtraSpace =
-      std::max({ArrayLength("&quot;"), ArrayLength("&amp;"),
-                ArrayLength("&nbsp;")}) -
+      std::max({std::size("&quot;"), std::size("&amp;"), std::size("&nbsp;")}) -
       2;
   static_assert(maxCharExtraSpace < 100, "Possible underflow");
   return CheckedInt<uint32_t>(numEncodedChars) * maxCharExtraSpace;

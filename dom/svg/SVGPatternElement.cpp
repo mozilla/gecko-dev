@@ -138,11 +138,11 @@ bool SVGPatternElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGPatternElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              std::size(sLengthInfo));
 }
 
 SVGElement::EnumAttributesInfo SVGPatternElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
 }
 
 SVGAnimatedViewBox* SVGPatternElement::GetAnimatedViewBox() {
@@ -156,7 +156,7 @@ SVGPatternElement::GetAnimatedPreserveAspectRatio() {
 
 SVGElement::StringAttributesInfo SVGPatternElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              std::size(sStringInfo));
 }
 
 }  // namespace mozilla::dom

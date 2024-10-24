@@ -108,7 +108,7 @@ bool SVGRectElement::HasValidDimensions() const {
 
 SVGElement::LengthAttributesInfo SVGRectElement::GetLengthInfo() {
   return LengthAttributesInfo(mLengthAttributes, sLengthInfo,
-                              ArrayLength(sLengthInfo));
+                              std::size(sLengthInfo));
 }
 
 //----------------------------------------------------------------------

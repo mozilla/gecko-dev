@@ -63,9 +63,8 @@ bool AppendCrossOriginWhitelistedPropNames(JSContext* cx,
     MOZ_ASSERT(!props[n].isSymbol(), "Unexpected existing symbol-name prop");
   }
 #endif
-  if (!props.reserve(
-          props.length() +
-          mozilla::ArrayLength(sCrossOriginWhitelistedSymbolCodes))) {
+  if (!props.reserve(props.length() +
+                     std::size(sCrossOriginWhitelistedSymbolCodes))) {
     return false;
   }
 

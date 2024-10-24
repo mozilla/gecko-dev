@@ -25,7 +25,6 @@
 
 #include "content_decryption_module.h"
 
-#include "ArrayUtils.h"
 #include "ClearKeyUtils.h"
 
 using namespace cdm;

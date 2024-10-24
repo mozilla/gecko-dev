@@ -23,7 +23,7 @@ namespace TestUTF {
 
 TEST(UTF, Valid)
 {
-  for (unsigned int i = 0; i < ArrayLength(ValidStrings); ++i) {
+  for (unsigned int i = 0; i < std::size(ValidStrings); ++i) {
     nsDependentCString str8(ValidStrings[i].m8);
     nsDependentString str16(ValidStrings[i].m16);
 
@@ -45,7 +45,7 @@ TEST(UTF, Valid)
 
 TEST(UTF, Invalid16)
 {
-  for (unsigned int i = 0; i < ArrayLength(Invalid16Strings); ++i) {
+  for (unsigned int i = 0; i < std::size(Invalid16Strings); ++i) {
     nsDependentString str16(Invalid16Strings[i].m16);
     nsDependentCString str8(Invalid16Strings[i].m8);
 
@@ -61,7 +61,7 @@ TEST(UTF, Invalid16)
 
 TEST(UTF, Invalid8)
 {
-  for (unsigned int i = 0; i < ArrayLength(Invalid8Strings); ++i) {
+  for (unsigned int i = 0; i < std::size(Invalid8Strings); ++i) {
     nsDependentString str16(Invalid8Strings[i].m16);
     nsDependentCString str8(Invalid8Strings[i].m8);
 
@@ -77,7 +77,7 @@ TEST(UTF, Invalid8)
 
 TEST(UTF, Malformed8)
 {
-  for (unsigned int i = 0; i < ArrayLength(Malformed8Strings); ++i) {
+  for (unsigned int i = 0; i < std::size(Malformed8Strings); ++i) {
     nsDependentString str16(Malformed8Strings[i].m16);
     nsDependentCString str8(Malformed8Strings[i].m8);
 
@@ -93,7 +93,7 @@ TEST(UTF, Malformed8)
 
 TEST(UTF, Hash16)
 {
-  for (unsigned int i = 0; i < ArrayLength(ValidStrings); ++i) {
+  for (unsigned int i = 0; i < std::size(ValidStrings); ++i) {
     nsDependentCString str8(ValidStrings[i].m8);
     bool err;
     EXPECT_EQ(HashString(ValidStrings[i].m16),
@@ -101,14 +101,14 @@ TEST(UTF, Hash16)
     EXPECT_FALSE(err);
   }
 
-  for (unsigned int i = 0; i < ArrayLength(Invalid8Strings); ++i) {
+  for (unsigned int i = 0; i < std::size(Invalid8Strings); ++i) {
     nsDependentCString str8(Invalid8Strings[i].m8);
     bool err;
     EXPECT_EQ(HashUTF8AsUTF16(str8.get(), str8.Length(), &err), 0u);
     EXPECT_TRUE(err);
   }
 
-  for (unsigned int i = 0; i < ArrayLength(Malformed8Strings); ++i) {
+  for (unsigned int i = 0; i < std::size(Malformed8Strings); ++i) {
     nsDependentCString str8(Malformed8Strings[i].m8);
     bool err;
     EXPECT_EQ(HashUTF8AsUTF16(str8.get(), str8.Length(), &err), 0u);

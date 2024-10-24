@@ -26,7 +26,7 @@ static const char* sAlignStrings[] = {
 static const char* sMeetOrSliceStrings[] = {"meet", "slice"};
 
 static uint16_t GetAlignForString(const nsAString& aAlignString) {
-  for (uint32_t i = 0; i < ArrayLength(sAlignStrings); i++) {
+  for (uint32_t i = 0; i < std::size(sAlignStrings); i++) {
     if (aAlignString.EqualsASCII(sAlignStrings[i])) {
       return (i + SVG_ALIGN_MIN_VALID);
     }
@@ -36,7 +36,7 @@ static uint16_t GetAlignForString(const nsAString& aAlignString) {
 }
 
 static uint16_t GetMeetOrSliceForString(const nsAString& aMeetOrSlice) {
-  for (uint32_t i = 0; i < ArrayLength(sMeetOrSliceStrings); i++) {
+  for (uint32_t i = 0; i < std::size(sMeetOrSliceStrings); i++) {
     if (aMeetOrSlice.EqualsASCII(sMeetOrSliceStrings[i])) {
       return (i + SVG_MEETORSLICE_MIN_VALID);
     }

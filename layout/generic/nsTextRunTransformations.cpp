@@ -832,7 +832,7 @@ bool nsCaseTransformTextRunFactory::TransformString(
           // clang-format on
 
           size_t index;
-          const uint16_t len = MOZ_ARRAY_LENGTH(kSmallKanas);
+          const uint16_t len = std::size(kSmallKanas);
           if (mozilla::BinarySearch(kSmallKanas, 0, len, ch, &index)) {
             ch = kFullSizeKanas[index];
           }

@@ -69,7 +69,7 @@ bool ConvertSample(uint16_t aChannelCount, uint8_t aFrequencyIndex,
   header[6] = 0xfc;
 
   UniquePtr<MediaRawDataWriter> writer(aSample->CreateWriter());
-  if (!writer->Prepend(&header[0], ArrayLength(header))) {
+  if (!writer->Prepend(&header[0], std::size(header))) {
     return false;
   }
 
@@ -176,7 +176,7 @@ bool FrameHeader::Parse(const Span<const uint8_t>& aData) {
   static const uint32_t SAMPLE_RATES[] = {96000, 88200, 64000, 48000, 44100,
                                           32000, 24000, 22050, 16000, 12000,
                                           11025, 8000,  7350};
-  if (mSamplingIndex >= ArrayLength(SAMPLE_RATES)) {
+  if (mSamplingIndex >= std::size(SAMPLE_RATES)) {
     LOG(("ADTS: Init() failure: invalid sample-rate index value: %" PRIu32 ".",
          mSamplingIndex));
     // This marks the header as invalid.

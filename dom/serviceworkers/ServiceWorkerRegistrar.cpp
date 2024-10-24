@@ -1095,7 +1095,7 @@ void ServiceWorkerRegistrar::MaybeResetGeneration() {
 
 bool ServiceWorkerRegistrar::IsSupportedVersion(
     const nsACString& aVersion) const {
-  uint32_t numVersions = ArrayLength(gSupportedRegistrarVersions);
+  uint32_t numVersions = std::size(gSupportedRegistrarVersions);
   for (uint32_t i = 0; i < numVersions; i++) {
     if (aVersion.EqualsASCII(gSupportedRegistrarVersions[i])) {
       return true;

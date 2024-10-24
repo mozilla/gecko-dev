@@ -99,7 +99,7 @@ static void NSResultToNameAndMessage(nsresult aNSResult, nsCString& aName,
   aName.Truncate();
   aMessage.Truncate();
   *aCode = 0;
-  for (uint32_t idx = 0; idx < ArrayLength(sDOMErrorMsgMap); idx++) {
+  for (uint32_t idx = 0; idx < std::size(sDOMErrorMsgMap); idx++) {
     if (aNSResult == sDOMErrorMsgMap[idx].mNSResult) {
       aName.Rebind(sDOMErrorMsgMap[idx].mName,
                    strlen(sDOMErrorMsgMap[idx].mName));
@@ -355,7 +355,7 @@ already_AddRefed<DOMException> DOMException::Constructor(
 
   if (aName.WasPassed()) {
     CopyUTF16toUTF8(aName.Value(), name);
-    for (uint32_t idx = 0; idx < ArrayLength(sDOMErrorMsgMap); idx++) {
+    for (uint32_t idx = 0; idx < std::size(sDOMErrorMsgMap); idx++) {
       if (name.EqualsASCII(sDOMErrorMsgMap[idx].mName)) {
         exceptionResult = sDOMErrorMsgMap[idx].mNSResult;
         exceptionCode = sDOMErrorMsgMap[idx].mCode;

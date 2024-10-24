@@ -18,7 +18,7 @@ TEST(ContainerParser, MIMETypes)
   const char* containerTypes[] = {"video/webm", "audio/webm", "video/mp4",
                                   "audio/mp4", "audio/aac"};
   UniquePtr<ContainerParser> parser;
-  for (size_t i = 0; i < ArrayLength(containerTypes); ++i) {
+  for (size_t i = 0; i < std::size(containerTypes); ++i) {
     Maybe<MediaContainerType> containerType =
         MakeMediaContainerType(containerTypes[i]);
     ASSERT_TRUE(containerType.isSome());
@@ -30,7 +30,7 @@ TEST(ContainerParser, MIMETypes)
 already_AddRefed<MediaByteBuffer> make_adts_header() {
   const uint8_t test[] = {0xff, 0xf1, 0x50, 0x80, 0x03, 0x1f, 0xfc};
   RefPtr<MediaByteBuffer> buffer(new MediaByteBuffer);
-  buffer->AppendElements(test, ArrayLength(test));
+  buffer->AppendElements(test, std::size(test));
   return buffer.forget();
 }
 

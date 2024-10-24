@@ -46,7 +46,7 @@ using namespace mozilla::widget;
 
 static const char header_footer_tags[][4] = {"", "&T", "&U", "&D", "&P", "&PT"};
 
-#define CUSTOM_VALUE_INDEX gint(ArrayLength(header_footer_tags))
+#define CUSTOM_VALUE_INDEX gint(std::size(header_footer_tags))
 
 static GtkWindow* get_gtk_window_for_nsiwidget(nsIWidget* widget) {
   return GTK_WINDOW(widget->GetNativeData(NS_NATIVE_SHELLWIDGET));
@@ -267,7 +267,7 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   aSettings->GetHeaderStrCenter(header_footer_str[1]);
   aSettings->GetHeaderStrRight(header_footer_str[2]);
 
-  for (unsigned int i = 0; i < ArrayLength(header_dropdown); i++) {
+  for (unsigned int i = 0; i < std::size(header_dropdown); i++) {
     header_dropdown[i] =
         ConstructHeaderFooterDropdown(header_footer_str[i].get());
     // Those 4 magic numbers in the middle provide the position in the table.
@@ -278,7 +278,7 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   }
 
   const char labelKeys[][7] = {"left", "center", "right"};
-  for (unsigned int i = 0; i < ArrayLength(labelKeys); i++) {
+  for (unsigned int i = 0; i < std::size(labelKeys); i++) {
     gtk_table_attach(GTK_TABLE(header_footer_table),
                      gtk_label_new(GetUTF8FromBundle(labelKeys[i]).get()), i,
                      (i + 1), 1, 2, (GtkAttachOptions)0, (GtkAttachOptions)0, 2,
@@ -289,7 +289,7 @@ nsPrintDialogWidgetGTK::nsPrintDialogWidgetGTK(nsPIDOMWindowOuter* aParent,
   aSettings->GetFooterStrCenter(header_footer_str[1]);
   aSettings->GetFooterStrRight(header_footer_str[2]);
 
-  for (unsigned int i = 0; i < ArrayLength(footer_dropdown); i++) {
+  for (unsigned int i = 0; i < std::size(footer_dropdown); i++) {
     footer_dropdown[i] =
         ConstructHeaderFooterDropdown(header_footer_str[i].get());
     gtk_table_attach(GTK_TABLE(header_footer_table), footer_dropdown[i], i,
@@ -468,7 +468,7 @@ GtkWidget* nsPrintDialogWidgetGTK::ConstructHeaderFooterDropdown(
                                  "headerFooterPage",  "headerFooterPageTotal",
                                  "headerFooterCustom"};
 
-  for (unsigned int i = 0; i < ArrayLength(hf_options); i++) {
+  for (unsigned int i = 0; i < std::size(hf_options); i++) {
     gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(dropdown), nullptr,
                               GetUTF8FromBundle(hf_options[i]).get());
   }
@@ -476,7 +476,7 @@ GtkWidget* nsPrintDialogWidgetGTK::ConstructHeaderFooterDropdown(
   bool shouldBeCustom = true;
   NS_ConvertUTF16toUTF8 currentStringUTF8(currentString);
 
-  for (unsigned int i = 0; i < ArrayLength(header_footer_tags); i++) {
+  for (unsigned int i = 0; i < std::size(header_footer_tags); i++) {
     if (!strcmp(currentStringUTF8.get(), header_footer_tags[i])) {
       gtk_combo_box_set_active(GTK_COMBO_BOX(dropdown), i);
       g_object_set_data(G_OBJECT(dropdown), "previous-active",

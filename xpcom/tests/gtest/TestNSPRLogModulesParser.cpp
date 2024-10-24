@@ -56,7 +56,7 @@ TEST(NSPRLogModulesParser, LevelSpecified)
 
   auto* currTest = expected;
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(expected); i++) {
+  for (size_t i = 0; i < std::size(expected); i++) {
     bool callbackInvoked = false;
     mozilla::NSPRLogModulesParser(
         currTest->first,
@@ -80,7 +80,7 @@ TEST(NSPRLogModulesParser, Multiple)
       {"Qux", mozilla::LogLevel::Verbose},
   };
 
-  const size_t kExpectedCount = MOZ_ARRAY_LENGTH(expected);
+  const size_t kExpectedCount = std::size(expected);
 
   auto* currTest = expected;
 
@@ -106,7 +106,7 @@ TEST(NSPRLogModulesParser, Characters)
       {"invalid", mozilla::LogLevel::Error},
   };
 
-  const size_t kExpectedCount = MOZ_ARRAY_LENGTH(expected);
+  const size_t kExpectedCount = std::size(expected);
 
   auto* currTest = expected;
 
@@ -148,7 +148,7 @@ TEST(NSPRLogModulesParser, RustModules)
       {"crate::mod::*", mozilla::LogLevel::Info},
   };
 
-  const size_t kExpectedCount = MOZ_ARRAY_LENGTH(expected);
+  const size_t kExpectedCount = std::size(expected);
 
   auto* currTest = expected;
 

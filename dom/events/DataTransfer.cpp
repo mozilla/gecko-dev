@@ -287,7 +287,7 @@ void DataTransfer::SetEffectAllowed(const nsAString& aEffectAllowed) {
   static_assert(nsIDragService::DRAGDROP_ACTION_LINK == 4,
                 "DRAGDROP_ACTION_LINK constant is wrong");
 
-  for (uint32_t e = 0; e < ArrayLength(sEffects); e++) {
+  for (uint32_t e = 0; e < std::size(sEffects); e++) {
     if (aEffectAllowed.EqualsASCII(sEffects[e])) {
       mEffectAllowed = e;
       break;
@@ -727,7 +727,7 @@ void DataTransfer::GetExternalClipboardFormats(const bool& aPlainTextOnly,
           formats, *mClipboardType, wc, getter_AddRefs(clipboardDataSnapshot));
     }
   } else {
-    AutoTArray<nsCString, ArrayLength(kNonPlainTextExternalFormats)> formats;
+    AutoTArray<nsCString, std::size(kNonPlainTextExternalFormats)> formats;
     formats.AppendElements(
         Span<const nsLiteralCString>(kNonPlainTextExternalFormats));
     if (doContentAnalysis) {
@@ -750,7 +750,7 @@ void DataTransfer::GetExternalClipboardFormats(const bool& aPlainTextOnly,
 
   // Order is important for DataTransfer; ensure the returned list items follow
   // the sequence specified in kNonPlainTextExternalFormats.
-  AutoTArray<nsCString, ArrayLength(kNonPlainTextExternalFormats)> flavors;
+  AutoTArray<nsCString, std::size(kNonPlainTextExternalFormats)> flavors;
   clipboardDataSnapshot->GetFlavorList(flavors);
   for (const auto& format : kNonPlainTextExternalFormats) {
     if (flavors.Contains(format)) {
@@ -1443,7 +1443,7 @@ void DataTransfer::CacheExternalDragFormats() {
       FillInExternalCustomTypes(c, sysPrincipal);
     }
 
-    for (uint32_t f = 0; f < ArrayLength(formats); f++) {
+    for (uint32_t f = 0; f < std::size(formats); f++) {
       // IsDataFlavorSupported doesn't take an index as an argument and just
       // checks if any of the items support a particular flavor, even though
       // the GetData method does take an index. Here, we just assume that

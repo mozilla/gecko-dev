@@ -28,7 +28,7 @@ void SVGPointList::GetValueAsString(nsAString& aValue) const {
   for (uint32_t i = 0; i < mItems.Length(); ++i) {
     // Would like to use aValue.AppendPrintf("%f,%f", item.mX, item.mY),
     // but it's not possible to always avoid trailing zeros.
-    nsTextFormatter::snprintf(buf, ArrayLength(buf), u"%g,%g",
+    nsTextFormatter::snprintf(buf, std::size(buf), u"%g,%g",
                               double(mItems[i].mX), double(mItems[i].mY));
     // We ignore OOM, since it's not useful for us to return an error.
     aValue.Append(buf);

@@ -554,7 +554,7 @@ class MOZ_RAII PEHeaders final {
     WORD wLength;
     WORD wValueLength;
     WORD wType;
-    WCHAR szKey[16];  // ArrayLength(L"VS_VERSION_INFO")
+    WCHAR szKey[16];  // std::size(L"VS_VERSION_INFO")
     // Additional data goes here, aligned on a 4-byte boundary
   };
 
@@ -1030,8 +1030,8 @@ class MOZ_RAII PEHeaders final {
 
     const wchar_t kVersionInfoKey[] = L"VS_VERSION_INFO";
     if (::RtlCompareMemory(aVerInfo->szKey, kVersionInfoKey,
-                           ArrayLength(kVersionInfoKey)) !=
-        ArrayLength(kVersionInfoKey)) {
+                           std::size(kVersionInfoKey)) !=
+        std::size(kVersionInfoKey)) {
       return nullptr;
     }
 

@@ -103,12 +103,12 @@ nsresult SVGFEBlendElement::BindToTree(BindContext& aCtx, nsINode& aParent) {
 // SVGElement methods
 
 SVGElement::EnumAttributesInfo SVGFEBlendElement::GetEnumInfo() {
-  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, ArrayLength(sEnumInfo));
+  return EnumAttributesInfo(mEnumAttributes, sEnumInfo, std::size(sEnumInfo));
 }
 
 SVGElement::StringAttributesInfo SVGFEBlendElement::GetStringInfo() {
   return StringAttributesInfo(mStringAttributes, sStringInfo,
-                              ArrayLength(sStringInfo));
+                              std::size(sStringInfo));
 }
 
 }  // namespace mozilla::dom

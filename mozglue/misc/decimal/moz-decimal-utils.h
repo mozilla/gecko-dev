@@ -61,7 +61,7 @@ double mozToDouble(const String &aStr, bool *valid) {
 
 String mozToString(double aNum) {
   char buffer[64];
-  int buffer_length = mozilla::ArrayLength(buffer);
+  int buffer_length = std::size(buffer);
   const double_conversion::DoubleToStringConverter& converter =
     double_conversion::DoubleToStringConverter::EcmaScriptConverter();
   double_conversion::StringBuilder builder(buffer, buffer_length);

@@ -203,7 +203,7 @@ NSSSocketControl::GetAlpnEarlySelection(nsACString& aAlpnSelected) {
   unsigned char chosenAlpn[MAX_ALPN_LENGTH];
   unsigned int chosenAlpnLen;
   rv = SSL_GetNextProto(mFd, &alpnState, chosenAlpn, &chosenAlpnLen,
-                        AssertedCast<unsigned int>(ArrayLength(chosenAlpn)));
+                        AssertedCast<unsigned int>(std::size(chosenAlpn)));
 
   if (rv != SECSuccess) {
     return NS_ERROR_NOT_AVAILABLE;

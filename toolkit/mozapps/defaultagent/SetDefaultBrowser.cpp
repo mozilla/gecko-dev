@@ -266,9 +266,9 @@ using LaunchExeResult =
 static LaunchExeResult LaunchExecutable(const wchar_t* exePath, int aArgsLength,
                                         const wchar_t* const* aArgs) {
   const wchar_t* args[] = {exePath};
-  mozilla::UniquePtr<wchar_t[]> cmdLine(mozilla::MakeCommandLine(
-      mozilla::ArrayLength(args), const_cast<wchar_t**>(args), aArgsLength,
-      const_cast<wchar_t**>(aArgs)));
+  mozilla::UniquePtr<wchar_t[]> cmdLine(
+      mozilla::MakeCommandLine(std::size(args), const_cast<wchar_t**>(args),
+                               aArgsLength, const_cast<wchar_t**>(aArgs)));
 
   PROCESS_INFORMATION pi;
   STARTUPINFOW si = {sizeof(si)};
@@ -302,7 +302,7 @@ static bool LaunchPowershell(const wchar_t* command,
       command,
   };
 
-  return LaunchExecutable(powershellPath, mozilla::ArrayLength(args), args)
+  return LaunchExecutable(powershellPath, std::size(args), args)
       .map([](auto result) {
         auto& [exitCode, regCmdLine] = result;
         bool success = (exitCode == 0);

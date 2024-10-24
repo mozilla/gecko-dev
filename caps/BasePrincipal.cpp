@@ -372,7 +372,7 @@ nsresult BasePrincipal::ToJSON(nsACString& aJSON) {
 }
 
 nsresult BasePrincipal::ToJSON(JSONWriter& aWriter) {
-  static_assert(eKindMax < ArrayLength(JSONEnumKeyStrings));
+  static_assert(eKindMax < std::size(JSONEnumKeyStrings));
 
   aWriter.Start(JSONWriter::CollectionStyle::SingleLineStyle);
 

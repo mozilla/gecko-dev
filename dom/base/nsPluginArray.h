@@ -39,7 +39,7 @@ class nsPluginArray final : public nsSupportsWeakReference,
   nsMimeTypeArray* MimeTypeArray() { return mMimeTypeArray; }
 
   // PluginArray WebIDL methods
-  uint32_t Length() { return ForceNoPlugins() ? 0 : ArrayLength(mPlugins); }
+  uint32_t Length() { return ForceNoPlugins() ? 0 : std::size(mPlugins); }
 
   nsPluginElement* Item(uint32_t aIndex) {
     bool unused;

@@ -19,7 +19,7 @@ static nsReturnRef<HANDLE> CreateProcessWrapper(const wchar_t* aPath) {
 
   const wchar_t* childArgv[] = {aPath, kChildArg};
   mozilla::UniquePtr<wchar_t[]> cmdLine(
-      mozilla::MakeCommandLine(mozilla::ArrayLength(childArgv), childArgv));
+      mozilla::MakeCommandLine(std::size(childArgv), childArgv));
 
   STARTUPINFOW si = {sizeof(si)};
   PROCESS_INFORMATION pi;

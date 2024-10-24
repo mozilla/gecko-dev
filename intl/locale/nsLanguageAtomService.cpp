@@ -110,7 +110,7 @@ already_AddRefed<nsAtom> nsLanguageAtomService::LookupCharSet(
   aEncoding->Name(charset);
   nsAutoCString group;
   if (NS_FAILED(nsUConvPropertySearch::SearchPropertyValue(
-          encodingsGroups, ArrayLength(encodingsGroups), charset, group))) {
+          encodingsGroups, std::size(encodingsGroups), charset, group))) {
     return RefPtr<nsAtom>(nsGkAtoms::Unicode).forget();
   }
   return NS_Atomize(group);
@@ -223,7 +223,7 @@ nsStaticAtom* nsLanguageAtomService::GetUncachedLanguageGroup(
       Span<const char> scriptAsSpan = loc.Script().Span();
       nsDependentCSubstring script(scriptAsSpan.data(), scriptAsSpan.size());
       if (BinarySearchIf(
-              kScriptLangGroup, 0, ArrayLength(kScriptLangGroup),
+              kScriptLangGroup, 0, std::size(kScriptLangGroup),
               [script](const auto& entry) -> int {
                 return Compare(script, nsDependentCString(entry.mTag));
               },

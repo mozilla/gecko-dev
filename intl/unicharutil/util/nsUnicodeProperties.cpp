@@ -190,7 +190,7 @@ uint32_t CountGraphemeClusters(Span<const char16_t> aText) {
 
 uint32_t GetNaked(uint32_t aCh) {
   uint32_t index = aCh >> 8;
-  if (index >= MOZ_ARRAY_LENGTH(BASE_CHAR_MAPPING_BLOCK_INDEX)) {
+  if (index >= std::size(BASE_CHAR_MAPPING_BLOCK_INDEX)) {
     return aCh;
   }
   index = BASE_CHAR_MAPPING_BLOCK_INDEX[index];

@@ -298,10 +298,10 @@ static int ContentionNoDeadlock_Child() MOZ_NO_THREAD_SAFETY_ANALYSIS {
   for (uint32_t i = 0; i < kMutexCount; ++i)
     locks.AppendElement(new MUTEX("dd.cnd.ms"));
 
-  for (int32_t i = 0; i < (int32_t)ArrayLength(threads); ++i)
+  for (int32_t i = 0; i < (int32_t)std::size(threads); ++i)
     threads[i] = spawn(ContentionNoDeadlock_thread, states + i);
 
-  for (uint32_t i = 0; i < ArrayLength(threads); ++i) PR_JoinThread(threads[i]);
+  for (uint32_t i = 0; i < std::size(threads); ++i) PR_JoinThread(threads[i]);
 
   for (uint32_t i = 0; i < locks.Length(); ++i) delete locks[i];
 

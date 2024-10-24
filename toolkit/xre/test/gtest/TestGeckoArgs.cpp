@@ -40,7 +40,7 @@ TEST(GeckoArgs, const_char_ptr)
 
   {
     char* argv[] = {kFirefox, kCharParamStr, kCharParamValue, nullptr};
-    int argc = ArrayLength(argv);
+    int argc = std::size(argv);
     EXPECT_EQ(argc, 4);
 
     Maybe<const char*> charParam = kCharParam.Get(argc, argv);
@@ -53,7 +53,7 @@ TEST(GeckoArgs, const_char_ptr)
   {
     char kBlahBlah[] = "-blahblah";
     char* argv[] = {kFirefox, kCharParamStr, kBlahBlah, nullptr};
-    int argc = ArrayLength(argv);
+    int argc = std::size(argv);
     EXPECT_EQ(argc, 4);
 
     Maybe<const char*> charParam = kCharParam.Get(argc, argv);
@@ -79,7 +79,7 @@ TEST(GeckoArgs, uint64)
 
   {
     char* argv[] = {kFirefox, kUint64ParamStr, nullptr};
-    int argc = ArrayLength(argv);
+    int argc = std::size(argv);
     EXPECT_EQ(argc, 3);
 
     Maybe<uint64_t> uint64Param = kUint64Param.Get(argc, argv);
@@ -90,7 +90,7 @@ TEST(GeckoArgs, uint64)
   }
   {
     char* argv[] = {kFirefox, nullptr};
-    int argc = ArrayLength(argv);
+    int argc = std::size(argv);
     EXPECT_EQ(argc, 2);
 
     Maybe<uint64_t> uint64Param = kUint64Param.Get(argc, argv);
@@ -102,7 +102,7 @@ TEST(GeckoArgs, uint64)
   {
     char kUint64ParamValue[] = "42";
     char* argv[] = {kFirefox, kUint64ParamStr, kUint64ParamValue, nullptr};
-    int argc = ArrayLength(argv);
+    int argc = std::size(argv);
     EXPECT_EQ(argc, 4);
 
     Maybe<uint64_t> uint64Param = kUint64Param.Get(argc, argv);
@@ -115,7 +115,7 @@ TEST(GeckoArgs, uint64)
   {
     char kUint64ParamValue[] = "aa";
     char* argv[] = {kFirefox, kUint64ParamStr, kUint64ParamValue, nullptr};
-    int argc = ArrayLength(argv);
+    int argc = std::size(argv);
     EXPECT_EQ(argc, 4);
 
     Maybe<uint64_t> uint64Param = kUint64Param.Get(argc, argv);
@@ -141,7 +141,7 @@ TEST(GeckoArgs, bool)
 
   {
     char* argv[] = {kFirefox, kFlagStr, nullptr};
-    int argc = ArrayLength(argv);
+    int argc = std::size(argv);
     EXPECT_EQ(argc, 3);
 
     Maybe<bool> Flag = kFlag.Get(argc, argv);
@@ -153,7 +153,7 @@ TEST(GeckoArgs, bool)
   }
   {
     char* argv[] = {kFirefox, nullptr};
-    int argc = ArrayLength(argv);
+    int argc = std::size(argv);
     EXPECT_EQ(argc, 2);
 
     Maybe<bool> Flag = kFlag.Get(argc, argv);

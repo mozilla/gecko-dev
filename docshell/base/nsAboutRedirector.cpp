@@ -212,7 +212,7 @@ static const RedirEntry kRedirMap[] = {
          nsIAboutModule::URI_MUST_LOAD_IN_CHILD},
     {"crashgpu", "about:blank", nsIAboutModule::HIDE_FROM_ABOUTABOUT},
     {"crashextensions", "about:blank", nsIAboutModule::HIDE_FROM_ABOUTABOUT}};
-static const int kRedirTotal = mozilla::ArrayLength(kRedirMap);
+static const int kRedirTotal = std::size(kRedirMap);
 
 NS_IMETHODIMP
 nsAboutRedirector::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,

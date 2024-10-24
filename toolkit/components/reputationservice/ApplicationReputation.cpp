@@ -60,7 +60,6 @@
 
 #include "ApplicationReputationTelemetryUtils.h"
 
-using mozilla::ArrayLength;
 using mozilla::BasePrincipal;
 using mozilla::OriginAttributes;
 using mozilla::Preferences;
@@ -938,7 +937,7 @@ static const char* GetFileExt(const nsACString& aFilename,
 }
 
 static const char* GetFileExt(const nsACString& aFilename) {
-#define _GetFileExt(_f, _l) GetFileExt(_f, _l, ArrayLength(_l))
+#define _GetFileExt(_f, _l) GetFileExt(_f, _l, std::size(_l))
   const char* ext = _GetFileExt(
       aFilename, ApplicationReputationService::kBinaryFileExtensions);
   if (ext == nullptr &&
@@ -957,15 +956,13 @@ static bool IsFileType(const nsACString& aFilename,
 }
 
 static bool IsBinary(const nsACString& aFilename) {
-  return IsFileType(aFilename,
-                    ApplicationReputationService::kBinaryFileExtensions,
-                    ArrayLength(
-                        ApplicationReputationService::kBinaryFileExtensions)) ||
+  return IsFileType(
+             aFilename, ApplicationReputationService::kBinaryFileExtensions,
+             std::size(ApplicationReputationService::kBinaryFileExtensions)) ||
          (!IsFileType(
               aFilename, ApplicationReputationService::kNonBinaryExecutables,
-              ArrayLength(
-                  ApplicationReputationService::kNonBinaryExecutables)) &&
-          IsFileType(aFilename, sExecutableExts, ArrayLength(sExecutableExts)));
+              std::size(ApplicationReputationService::kNonBinaryExecutables)) &&
+          IsFileType(aFilename, sExecutableExts, std::size(sExecutableExts)));
 }
 
 ClientDownloadRequest::DownloadType PendingLookup::GetDownloadType(
@@ -1060,12 +1057,12 @@ nsresult PendingLookup::LookupNext() {
           mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_BINARY_TYPE::
               BinaryFile);
     } else if (IsFileType(mFileName, kSafeFileExtensions,
-                          ArrayLength(kSafeFileExtensions))) {
+                          std::size(kSafeFileExtensions))) {
       AccumulateCategorical(
           mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_BINARY_TYPE::
               NonBinaryFile);
     } else if (IsFileType(mFileName, kMozNonBinaryExecutables,
-                          ArrayLength(kMozNonBinaryExecutables))) {
+                          std::size(kMozNonBinaryExecutables))) {
       AccumulateCategorical(
           mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_BINARY_TYPE::
               MozNonBinaryFile);
@@ -1081,17 +1078,17 @@ nsresult PendingLookup::LookupNext() {
   }
 
   if (IsFileType(mFileName, kDmgFileExtensions,
-                 ArrayLength(kDmgFileExtensions))) {
+                 std::size(kDmgFileExtensions))) {
     AccumulateCategorical(
         mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_BINARY_ARCHIVE::
             DmgFile);
   } else if (IsFileType(mFileName, kRarFileExtensions,
-                        ArrayLength(kRarFileExtensions))) {
+                        std::size(kRarFileExtensions))) {
     AccumulateCategorical(
         mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_BINARY_ARCHIVE::
             RarFile);
   } else if (IsFileType(mFileName, kZipFileExtensions,
-                        ArrayLength(kZipFileExtensions))) {
+                        std::size(kZipFileExtensions))) {
     AccumulateCategorical(
         mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_BINARY_ARCHIVE::
             ZipFile);
@@ -1561,7 +1558,7 @@ nsresult PendingLookup::ParseCertificates(
 nsresult PendingLookup::SendRemoteQuery() {
   MOZ_ASSERT(!IsFileType(
       mFileName, ApplicationReputationService::kNonBinaryExecutables,
-      ArrayLength(ApplicationReputationService::kNonBinaryExecutables)));
+      std::size(ApplicationReputationService::kNonBinaryExecutables)));
   Reason reason = Reason::NotSet;
   nsresult rv = SendRemoteQueryInternal(reason);
   if (NS_FAILED(rv)) {
@@ -1982,6 +1979,6 @@ nsresult ApplicationReputationService::IsBinary(const nsACString& aFileName,
 nsresult ApplicationReputationService::IsExecutable(const nsACString& aFileName,
                                                     bool* aExecutable) {
   *aExecutable =
-      ::IsFileType(aFileName, sExecutableExts, ArrayLength(sExecutableExts));
+      ::IsFileType(aFileName, sExecutableExts, std::size(sExecutableExts));
   return NS_OK;
 }

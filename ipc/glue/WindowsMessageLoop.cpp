@@ -133,8 +133,8 @@ void CALLBACK WinEventHook(HWINEVENTHOOK aWinEventHook, DWORD aEvent,
         return;
       }
       wchar_t classBuf[256] = {0};
-      int result = ::GetClassNameW(aHwnd, classBuf, MOZ_ARRAY_LENGTH(classBuf));
-      if (result != (MOZ_ARRAY_LENGTH(kCOMWindowClassName) - 1) ||
+      int result = ::GetClassNameW(aHwnd, classBuf, std::size(classBuf));
+      if (result != (std::size(kCOMWindowClassName) - 1) ||
           wcsncmp(kCOMWindowClassName, classBuf, result)) {
         // Not a class we're interested in
         return;

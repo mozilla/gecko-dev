@@ -188,7 +188,7 @@ bool ScrollbarDrawingWin11::PaintScrollbarButton(
   const float polygonSize = style == Style::Overlay
                                 ? float(kDefaultWinOverlayScrollbarSize)
                                 : float(kDefaultWinScrollbarSize);
-  const int32_t arrowNumPoints = ArrayLength(arrowPolygonX);
+  const int32_t arrowNumPoints = std::size(arrowPolygonX);
 
   if (aElementState.HasState(ElementState::ACTIVE)) {
     arrowX = arrowPolygonXActive;

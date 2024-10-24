@@ -210,7 +210,7 @@ bool LazyInstantiator::IsBlockedInjection() {
     return false;
   }
 
-  for (size_t index = 0, len = ArrayLength(gBlockedInprocDlls); index < len;
+  for (size_t index = 0, len = std::size(gBlockedInprocDlls); index < len;
        ++index) {
     const DllBlockInfo& blockedDll = gBlockedInprocDlls[index];
     HMODULE module = ::GetModuleHandleW(blockedDll.mName);
@@ -247,8 +247,7 @@ bool LazyInstantiator::ShouldInstantiate(const DWORD aClientPid) {
     nsAutoString leafName;
     rv = clientExe->GetLeafName(leafName);
     if (NS_SUCCEEDED(rv)) {
-      for (size_t i = 0, len = ArrayLength(gBlockedRemoteClients); i < len;
-           ++i) {
+      for (size_t i = 0, len = std::size(gBlockedRemoteClients); i < len; ++i) {
         if (leafName.EqualsIgnoreCase(gBlockedRemoteClients[i])) {
           // If client exe is in our blocklist, do not instantiate.
           return false;

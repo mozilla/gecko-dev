@@ -53,38 +53,38 @@ char16_t nsHtml5Tokenizer::UBLIC[] = {'u', 'b', 'l', 'i', 'c'};
 char16_t nsHtml5Tokenizer::YSTEM[] = {'y', 's', 't', 'e', 'm'};
 static char16_t const TITLE_ARR_DATA[] = {'t', 'i', 't', 'l', 'e'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::TITLE_ARR = {
-    TITLE_ARR_DATA, MOZ_ARRAY_LENGTH(TITLE_ARR_DATA)};
+    TITLE_ARR_DATA, std::size(TITLE_ARR_DATA)};
 static char16_t const SCRIPT_ARR_DATA[] = {'s', 'c', 'r', 'i', 'p', 't'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::SCRIPT_ARR = {
-    SCRIPT_ARR_DATA, MOZ_ARRAY_LENGTH(SCRIPT_ARR_DATA)};
+    SCRIPT_ARR_DATA, std::size(SCRIPT_ARR_DATA)};
 static char16_t const STYLE_ARR_DATA[] = {'s', 't', 'y', 'l', 'e'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::STYLE_ARR = {
-    STYLE_ARR_DATA, MOZ_ARRAY_LENGTH(STYLE_ARR_DATA)};
+    STYLE_ARR_DATA, std::size(STYLE_ARR_DATA)};
 static char16_t const PLAINTEXT_ARR_DATA[] = {'p', 'l', 'a', 'i', 'n',
                                               't', 'e', 'x', 't'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::PLAINTEXT_ARR = {
-    PLAINTEXT_ARR_DATA, MOZ_ARRAY_LENGTH(PLAINTEXT_ARR_DATA)};
+    PLAINTEXT_ARR_DATA, std::size(PLAINTEXT_ARR_DATA)};
 static char16_t const XMP_ARR_DATA[] = {'x', 'm', 'p'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::XMP_ARR = {
-    XMP_ARR_DATA, MOZ_ARRAY_LENGTH(XMP_ARR_DATA)};
+    XMP_ARR_DATA, std::size(XMP_ARR_DATA)};
 static char16_t const TEXTAREA_ARR_DATA[] = {'t', 'e', 'x', 't',
                                              'a', 'r', 'e', 'a'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::TEXTAREA_ARR = {
-    TEXTAREA_ARR_DATA, MOZ_ARRAY_LENGTH(TEXTAREA_ARR_DATA)};
+    TEXTAREA_ARR_DATA, std::size(TEXTAREA_ARR_DATA)};
 static char16_t const IFRAME_ARR_DATA[] = {'i', 'f', 'r', 'a', 'm', 'e'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::IFRAME_ARR = {
-    IFRAME_ARR_DATA, MOZ_ARRAY_LENGTH(IFRAME_ARR_DATA)};
+    IFRAME_ARR_DATA, std::size(IFRAME_ARR_DATA)};
 static char16_t const NOEMBED_ARR_DATA[] = {'n', 'o', 'e', 'm', 'b', 'e', 'd'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::NOEMBED_ARR = {
-    NOEMBED_ARR_DATA, MOZ_ARRAY_LENGTH(NOEMBED_ARR_DATA)};
+    NOEMBED_ARR_DATA, std::size(NOEMBED_ARR_DATA)};
 static char16_t const NOSCRIPT_ARR_DATA[] = {'n', 'o', 's', 'c',
                                              'r', 'i', 'p', 't'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::NOSCRIPT_ARR = {
-    NOSCRIPT_ARR_DATA, MOZ_ARRAY_LENGTH(NOSCRIPT_ARR_DATA)};
+    NOSCRIPT_ARR_DATA, std::size(NOSCRIPT_ARR_DATA)};
 static char16_t const NOFRAMES_ARR_DATA[] = {'n', 'o', 'f', 'r',
                                              'a', 'm', 'e', 's'};
 staticJArray<char16_t, int32_t> nsHtml5Tokenizer::NOFRAMES_ARR = {
-    NOFRAMES_ARR_DATA, MOZ_ARRAY_LENGTH(NOFRAMES_ARR_DATA)};
+    NOFRAMES_ARR_DATA, std::size(NOFRAMES_ARR_DATA)};
 
 nsHtml5Tokenizer::nsHtml5Tokenizer(nsHtml5TreeBuilder* tokenHandler,
                                    bool viewingXmlSource)

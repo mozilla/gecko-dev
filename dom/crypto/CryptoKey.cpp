@@ -358,7 +358,7 @@ nsresult CryptoKey::AddPublicKeyData(SECKEYPublicKey* aPublicKey) {
   };
 
   mPrivateKey =
-      PrivateKeyFromPrivateKeyTemplate(keyTemplate, ArrayLength(keyTemplate));
+      PrivateKeyFromPrivateKeyTemplate(keyTemplate, std::size(keyTemplate));
   NS_ENSURE_TRUE(mPrivateKey, NS_ERROR_DOM_OPERATION_ERR);
 
   return NS_OK;
@@ -716,7 +716,7 @@ UniqueSECKEYPrivateKey CryptoKey::PrivateKeyFromJwk(const JsonWebKey& aJwk) {
     };
 
     return PrivateKeyFromPrivateKeyTemplate(keyTemplate,
-                                            ArrayLength(keyTemplate));
+                                            std::size(keyTemplate));
   }
 
   if (aJwk.mKty.EqualsLiteral(JWK_TYPE_RSA)) {
@@ -757,7 +757,7 @@ UniqueSECKEYPrivateKey CryptoKey::PrivateKeyFromJwk(const JsonWebKey& aJwk) {
     };
 
     return PrivateKeyFromPrivateKeyTemplate(keyTemplate,
-                                            ArrayLength(keyTemplate));
+                                            std::size(keyTemplate));
   }
 
   if (aJwk.mKty.EqualsLiteral(JWK_TYPE_OKP)) {
@@ -823,7 +823,7 @@ UniqueSECKEYPrivateKey CryptoKey::PrivateKeyFromJwk(const JsonWebKey& aJwk) {
     };
 
     return PrivateKeyFromPrivateKeyTemplate(keyTemplate,
-                                            ArrayLength(keyTemplate));
+                                            std::size(keyTemplate));
   }
 
   return nullptr;

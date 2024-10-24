@@ -74,7 +74,7 @@ static void EnableLogging(const char* aModulesStr) {
   const char* token = aModulesStr;
   while (*token != '\0') {
     size_t tokenLen = strcspn(token, ",");
-    for (unsigned int idx = 0; idx < ArrayLength(sModuleMap); idx++) {
+    for (unsigned int idx = 0; idx < std::size(sModuleMap); idx++) {
       if (strncmp(token, sModuleMap[idx].mStr, tokenLen) == 0) {
 #if !defined(MOZ_PROFILING) && (!defined(DEBUG) || defined(MOZ_OPTIMIZE))
         // Stack tracing on profiling enabled or debug not optimized builds.
@@ -977,7 +977,7 @@ bool logging::IsEnabledAll(uint32_t aModules) {
 }
 
 bool logging::IsEnabled(const nsAString& aModuleStr) {
-  for (unsigned int idx = 0; idx < ArrayLength(sModuleMap); idx++) {
+  for (unsigned int idx = 0; idx < std::size(sModuleMap); idx++) {
     if (aModuleStr.EqualsASCII(sModuleMap[idx].mStr)) {
       return sModules & sModuleMap[idx].mModule;
     }

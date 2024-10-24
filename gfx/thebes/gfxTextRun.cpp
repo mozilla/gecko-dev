@@ -2928,9 +2928,9 @@ gfxTextRun* gfxFontGroup::GetEllipsisTextRun(
   RefPtr<gfxFont> firstFont = GetFirstValidFont();
   nsString ellipsis =
       firstFont->HasCharacter(kEllipsisChar[0])
-          ? nsDependentString(kEllipsisChar, ArrayLength(kEllipsisChar) - 1)
+          ? nsDependentString(kEllipsisChar, std::size(kEllipsisChar) - 1)
           : nsDependentString(kASCIIPeriodsChar,
-                              ArrayLength(kASCIIPeriodsChar) - 1);
+                              std::size(kASCIIPeriodsChar) - 1);
 
   RefPtr<DrawTarget> refDT = aRefDrawTargetGetter.GetRefDrawTarget();
   Parameters params = {refDT,   nullptr, nullptr,

@@ -782,9 +782,8 @@ CCRunnerStep CCGCScheduler::AdvanceCCRunner(TimeStamp aDeadline, TimeStamp aNow,
       {false, false},  /* CCRunnerState::StartCycleCollection */
       {false, false},  /* CCRunnerState::CycleCollecting */
       {false, false}}; /* CCRunnerState::Canceled */
-  static_assert(
-      ArrayLength(stateDescriptors) == size_t(CCRunnerState::NumStates),
-      "need one state descriptor per state");
+  static_assert(std::size(stateDescriptors) == size_t(CCRunnerState::NumStates),
+                "need one state descriptor per state");
   const StateDescriptor& desc = stateDescriptors[int(mCCRunnerState)];
 
   // Make sure we initialized the state machine.

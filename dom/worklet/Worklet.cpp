@@ -67,7 +67,7 @@ static bool LoadLocalizedStrings(nsTArray<nsString>& aStrings) {
                            ResolveError::InvalidBareSpecifier};
 
   static_assert(
-      ArrayLength(errors) == static_cast<size_t>(ResolveError::Length),
+      std::size(errors) == static_cast<size_t>(ResolveError::Length),
       "The array 'errors' has missing entries in the enum class ResolveError.");
 
   for (auto i : errors) {

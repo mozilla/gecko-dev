@@ -357,7 +357,7 @@ const StaticProtocolHandler* StaticProtocolHandler::Lookup(const nsACString& aSc
 /* static */ already_AddRefed<nsIUTF8StringEnumerator>
 StaticComponents::GetComponentJSMs() {
 #ifdef HAS_COMPONENT_JSMS
-  auto jsms = MakeUnique<nsTArray<nsCString>>(MOZ_ARRAY_LENGTH(gComponentJSMs));
+  auto jsms = MakeUnique<nsTArray<nsCString>>(std::size(gComponentJSMs));
 
   for (const auto& entry : gComponentJSMs) {
     jsms->AppendElement(GetString(entry));
@@ -374,7 +374,7 @@ StaticComponents::GetComponentJSMs() {
 
 /* static */ already_AddRefed<nsIUTF8StringEnumerator>
 StaticComponents::GetComponentESModules() {
-  auto esModules = MakeUnique<nsTArray<nsCString>>(MOZ_ARRAY_LENGTH(gComponentESModules));
+  auto esModules = MakeUnique<nsTArray<nsCString>>(std::size(gComponentESModules));
 
   for (const auto& entry : gComponentESModules) {
     esModules->AppendElement(GetString(entry));
@@ -387,7 +387,7 @@ StaticComponents::GetComponentESModules() {
 }
 
 /* static */ Span<const JSServiceEntry> StaticComponents::GetJSServices() {
-  return { gJSServices, ArrayLength(gJSServices) };
+  return { gJSServices, std::size(gJSServices) };
 }
 
 /* static */ void StaticComponents::Shutdown() {

@@ -333,7 +333,7 @@ static const struct {
 NS_IMETHODIMP
 nsUrlClassifierUtils::ConvertThreatTypeToListNames(uint32_t aThreatType,
                                                    nsACString& aListNames) {
-  for (uint32_t i = 0; i < ArrayLength(THREAT_TYPE_CONV_TABLE); i++) {
+  for (uint32_t i = 0; i < std::size(THREAT_TYPE_CONV_TABLE); i++) {
     if (aThreatType == THREAT_TYPE_CONV_TABLE[i].mThreatType) {
       if (!aListNames.IsEmpty()) {
         aListNames.AppendLiteral(",");
@@ -348,7 +348,7 @@ nsUrlClassifierUtils::ConvertThreatTypeToListNames(uint32_t aThreatType,
 NS_IMETHODIMP
 nsUrlClassifierUtils::ConvertListNameToThreatType(const nsACString& aListName,
                                                   uint32_t* aThreatType) {
-  for (uint32_t i = 0; i < ArrayLength(THREAT_TYPE_CONV_TABLE); i++) {
+  for (uint32_t i = 0; i < std::size(THREAT_TYPE_CONV_TABLE); i++) {
     if (aListName.EqualsASCII(THREAT_TYPE_CONV_TABLE[i].mListName)) {
       *aThreatType = THREAT_TYPE_CONV_TABLE[i].mThreatType;
       return NS_OK;

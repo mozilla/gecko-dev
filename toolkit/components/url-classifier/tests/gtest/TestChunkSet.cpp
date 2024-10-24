@@ -40,11 +40,11 @@ TEST(UrlClassifierChunkSet, Main)
 
   mozilla::safebrowsing::ChunkSet chunkSet;
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     chunkSet.Set(testVals[i]);
   }
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     ASSERT_TRUE(chunkSet.Has(testVals[i]));
   }
 
@@ -53,7 +53,7 @@ TEST(UrlClassifierChunkSet, Main)
   ASSERT_FALSE(chunkSet.Has(9));
   ASSERT_FALSE(chunkSet.Has(11));
 
-  ASSERT_TRUE(chunkSet.Length() == MOZ_ARRAY_LENGTH(testVals));
+  ASSERT_TRUE(chunkSet.Length() == std::size(testVals));
 }
 
 TEST(UrlClassifierChunkSet, Merge)
@@ -64,26 +64,26 @@ TEST(UrlClassifierChunkSet, Merge)
   mozilla::safebrowsing::ChunkSet chunkSet;
   mozilla::safebrowsing::ChunkSet mergeSet;
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     chunkSet.Set(testVals[i]);
   }
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals); i++) {
+  for (size_t i = 0; i < std::size(mergeVals); i++) {
     mergeSet.Set(mergeVals[i]);
   }
 
   chunkSet.Merge(mergeSet);
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     ASSERT_TRUE(chunkSet.Has(testVals[i]));
   }
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals); i++) {
+  for (size_t i = 0; i < std::size(mergeVals); i++) {
     ASSERT_TRUE(chunkSet.Has(mergeVals[i]));
   }
 
   // -1 because 14 is duplicated in both sets
   ASSERT_TRUE(chunkSet.Length() ==
-              MOZ_ARRAY_LENGTH(testVals) + MOZ_ARRAY_LENGTH(mergeVals) - 1);
+              std::size(testVals) + std::size(mergeVals) - 1);
 
   ASSERT_FALSE(chunkSet.Has(11));
   ASSERT_FALSE(chunkSet.Has(15));
@@ -102,27 +102,27 @@ TEST(UrlClassifierChunkSet, Merge2)
   mozilla::safebrowsing::ChunkSet mergeSet;
   mozilla::safebrowsing::ChunkSet mergeSet2;
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     chunkSet.Set(testVals[i]);
   }
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals); i++) {
+  for (size_t i = 0; i < std::size(mergeVals); i++) {
     mergeSet.Set(mergeVals[i]);
   }
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals2); i++) {
+  for (size_t i = 0; i < std::size(mergeVals2); i++) {
     mergeSet2.Set(mergeVals2[i]);
   }
 
   chunkSet.Merge(mergeSet);
   chunkSet.Merge(mergeSet2);
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     ASSERT_TRUE(chunkSet.Has(testVals[i]));
   }
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals); i++) {
+  for (size_t i = 0; i < std::size(mergeVals); i++) {
     ASSERT_TRUE(chunkSet.Has(mergeVals[i]));
   }
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals2); i++) {
+  for (size_t i = 0; i < std::size(mergeVals2); i++) {
     ASSERT_TRUE(chunkSet.Has(mergeVals2[i]));
   }
 
@@ -226,28 +226,28 @@ TEST(UrlClassifierChunkSet, RemoveClear)
   mozilla::safebrowsing::ChunkSet mergeSet;
   mozilla::safebrowsing::ChunkSet removeSet;
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     chunkSet.Set(testVals[i]);
     removeSet.Set(testVals[i]);
   }
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals); i++) {
+  for (size_t i = 0; i < std::size(mergeVals); i++) {
     mergeSet.Set(mergeVals[i]);
   }
 
   ASSERT_TRUE(chunkSet.Merge(mergeSet) == NS_OK);
   ASSERT_TRUE(chunkSet.Remove(removeSet) == NS_OK);
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals); i++) {
+  for (size_t i = 0; i < std::size(mergeVals); i++) {
     ASSERT_TRUE(chunkSet.Has(mergeVals[i]));
   }
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     ASSERT_FALSE(chunkSet.Has(testVals[i]));
   }
 
   chunkSet.Clear();
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals); i++) {
+  for (size_t i = 0; i < std::size(mergeVals); i++) {
     ASSERT_FALSE(chunkSet.Has(mergeVals[i]));
   }
 }
@@ -260,11 +260,11 @@ TEST(UrlClassifierChunkSet, Serialize)
   mozilla::safebrowsing::ChunkSet chunkSet;
   mozilla::safebrowsing::ChunkSet mergeSet;
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(testVals); i++) {
+  for (size_t i = 0; i < std::size(testVals); i++) {
     chunkSet.Set(testVals[i]);
   }
 
-  for (size_t i = 0; i < MOZ_ARRAY_LENGTH(mergeVals); i++) {
+  for (size_t i = 0; i < std::size(mergeVals); i++) {
     mergeSet.Set(mergeVals[i]);
   }
 
