@@ -55,8 +55,11 @@
       this.arrowScrollbox._getScrollableElements = () => {
         return this.allTabs.filter(this.arrowScrollbox._canScrollToElement);
       };
+      let arePositioningPinnedTabs = () => {
+        return this.hasAttribute("positionpinnedtabs");
+      };
       this.arrowScrollbox._canScrollToElement = tab => {
-        return !tab._pinnedUnscrollable && tab.visible;
+        return (!tab.pinned || !arePositioningPinnedTabs()) && tab.visible;
       };
 
       this.baseConnect();
@@ -1713,7 +1716,6 @@
             -(width + layoutData.scrollStartOffset) + "px",
             "important"
           );
-          tab._pinnedUnscrollable = true;
         }
         this.style.setProperty(
           "--tab-overflow-pinned-tabs-width",
@@ -1723,7 +1725,6 @@
         for (let i = 0; i < numPinned; i++) {
           let tab = tabs[i];
           tab.style.marginInlineStart = "";
-          tab._pinnedUnscrollable = false;
         }
 
         this.style.removeProperty("--tab-overflow-pinned-tabs-width");
