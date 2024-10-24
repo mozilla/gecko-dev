@@ -40,7 +40,7 @@
       </div>
     </div>
 
-    <div class="main-content" id="content">
+    <div class="main-content">
       <div class="header">
         <h1
           id="sectionTitle"
@@ -61,202 +61,204 @@
           message=""
         ></moz-message-bar>
       </div>
+      <div id="content">
+        <!-- local tab -->
+        <div id="local-inference" class="tab active">
+          <div class="fieldset-container">
+            <fieldset>
+              <legend>Inference Pad</legend>
 
-      <!-- local tab -->
-      <div id="local-inference" class="tab active">
-        <div class="fieldset-container">
-          <fieldset>
-            <legend>Inference Pad</legend>
-
-            Predefined example:
-            <select id="predefined"></select>
-            <hr />
-            <div class="form-container">
-              <div>
-                Pick a Model Hub to use:
-                <span class="tooltip"
-                  >ℹ️
-                  <span class="tooltiptext">
-                    If you want to use Hugging Face, start Firefox with
-                    MOZ_ALLOW_EXTERNAL_ML_HUB=1
+              Predefined example:
+              <select id="predefined"></select>
+              <hr />
+              <div class="form-container">
+                <div>
+                  Pick a Model Hub to use:
+                  <span class="tooltip"
+                    >ℹ️
+                    <span class="tooltiptext">
+                      If you want to use Hugging Face, start Firefox with
+                      MOZ_ALLOW_EXTERNAL_ML_HUB=1
+                    </span>
                   </span>
-                </span>
 
-                <select id="modelHub">
-                  <option value="mozilla">Mozilla</option>
-                  <option value="hf">Hugging Face</option>
-                </select>
-              </div>
+                  <select id="modelHub">
+                    <option value="mozilla">Mozilla</option>
+                    <option value="hf">Hugging Face</option>
+                  </select>
+                </div>
 
-              <div>
-                <label for="taskName">Task:</label>
-                <select id="taskName"></select>
-              </div>
-              <div>
-                <label for="modelId">Model id:</label>
-                <span class="tooltip"
-                  >ℹ️
-                  <span class="tooltiptext">
-                    The model needs to be compatible with Transformers.js
+                <div>
+                  <label for="taskName">Task:</label>
+                  <select id="taskName"></select>
+                </div>
+                <div>
+                  <label for="modelId">Model id:</label>
+                  <span class="tooltip"
+                    >ℹ️
+                    <span class="tooltiptext">
+                      The model needs to be compatible with Transformers.js
+                    </span>
                   </span>
-                </span>
 
-                <input
-                  type="text"
-                  id="modelId"
-                  value="mozilla/text_summarization"
-                />
-              </div>
-              <div>
-                <label for="modelRevision">Model Revision:</label>
-                <span class="tooltip"
-                  >ℹ️
-                  <span class="tooltiptext">
-                    This is typically the branch of the model repository.
+                  <input
+                    type="text"
+                    id="modelId"
+                    value="mozilla/text_summarization"
+                  />
+                </div>
+                <div>
+                  <label for="modelRevision">Model Revision:</label>
+                  <span class="tooltip"
+                    >ℹ️
+                    <span class="tooltiptext">
+                      This is typically the branch of the model repository.
+                    </span>
                   </span>
-                </span>
 
-                <input type="text" id="modelRevision" value="main" />
-              </div>
-              <div>
-                <label for="quantization">Quantization:</label>
-                <select id="dtype"></select>
-              </div>
-              <div>
-                <label for="device">Device:</label>
-                <select id="device">
-                  <option value="wasm" selected>cpu</option>
-                  <option value="gpu">gpu</option>
-                </select>
-              </div>
-              <div>
-                <label for="numRuns">Number of runs:</label>
-                <span class="tooltip"
-                  >ℹ️
-                  <span class="tooltiptext">Number of times to run</span>
-                </span>
-                <input id="numRuns" type="number" min="1" value="1" />
-              </div>
-
-              <div>
-                <label for="numThreads">Number of threads:</label>
-                <span class="tooltip"
-                  >ℹ️
-                  <span class="tooltiptext">1 means no multi-threading</span>
-                </span>
-                <select id="numThreads"></select>
-              </div>
-              <div>
-                <label for="inferencePad">Input data:</label>
-                <span class="tooltip"
-                  >ℹ️
-                  <span class="tooltiptext">
-                    Keep the JSON valid, with the provided keys.
+                  <input type="text" id="modelRevision" value="main" />
+                </div>
+                <div>
+                  <label for="quantization">Quantization:</label>
+                  <select id="dtype"></select>
+                </div>
+                <div>
+                  <label for="device">Device:</label>
+                  <select id="device">
+                    <option value="wasm" selected>cpu</option>
+                    <option value="gpu">gpu</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="numRuns">Number of runs:</label>
+                  <span class="tooltip"
+                    >ℹ️
+                    <span class="tooltiptext">Number of times to run</span>
                   </span>
-                </span>
+                  <input id="numRuns" type="number" min="1" value="1" />
+                </div>
 
-                <textarea id="inferencePad"></textarea>
-              </div>
-              <div>
-                <input
-                  type="button"
-                  id="inferenceButton"
-                  value="Run Inference"
-                />
-              </div>
-            </div>
-          </fieldset>
+                <div>
+                  <label for="numThreads">Number of threads:</label>
+                  <span class="tooltip"
+                    >ℹ️
+                    <span class="tooltiptext">1 means no multi-threading</span>
+                  </span>
+                  <select id="numThreads"></select>
+                </div>
+                <div>
+                  <label for="inferencePad">Input data:</label>
+                  <span class="tooltip"
+                    >ℹ️
+                    <span class="tooltiptext">
+                      Keep the JSON valid, with the provided keys.
+                    </span>
+                  </span>
 
-          <fieldset>
-            <legend data-l10n-id="about-inference-processes-title"></legend>
-            <div id="statusTableContainer"></div>
-            <hr />
-            <div id="procInfoTableContainer"></div>
-            <h3>Downloads</h3>
-            <div id="downloads"></div>
-            <h3>Console</h3>
-            <textarea readonly id="console"></textarea>
-          </fieldset>
+                  <textarea id="inferencePad"></textarea>
+                </div>
+                <div>
+                  <input
+                    type="button"
+                    id="inferenceButton"
+                    value="Run Inference"
+                  />
+                </div>
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend data-l10n-id="about-inference-processes-title"></legend>
+              <div id="statusTableContainer"></div>
+              <hr />
+              <div id="procInfoTableContainer"></div>
+              <h3>Downloads</h3>
+              <div id="downloads"></div>
+              <h3>Console</h3>
+              <textarea readonly id="console"></textarea>
+            </fieldset>
+          </div>
         </div>
-      </div>
 
-      <!-- http tab -->
-      <div id="http-inference" class="tab" hidden="true">
-        <div class="fieldset-container">
-          <fieldset>
-            <legend>HTTP Inference Pad</legend>
-            <div class="form-container">
-              <div>
-                <label for="http.endpoint">HTTP endpoint:</label>
-                <input
-                  id="http.endpoint"
-                  type="text"
-                  value="http://localhost:8080/v1/chat/completions"
-                />
-              </div>
-              <div>
-                <label for="http.model">Model:</label>
-                <span class="tooltip"
-                  >ℹ️
-                  <span class="tooltiptext">
-                    Some endpoints require a specific model.
+        <!-- http tab -->
+        <div id="http-inference" class="tab" hidden="true">
+          <div class="fieldset-container">
+            <fieldset>
+              <legend>HTTP Inference Pad</legend>
+              <div class="form-container">
+                <div>
+                  <label for="http.endpoint">HTTP endpoint:</label>
+                  <input
+                    id="http.endpoint"
+                    type="text"
+                    value="http://localhost:8080/v1/chat/completions"
+                  />
+                </div>
+                <div>
+                  <label for="http.model">Model:</label>
+                  <span class="tooltip"
+                    >ℹ️
+                    <span class="tooltiptext">
+                      Some endpoints require a specific model.
+                    </span>
                   </span>
-                </span>
-                <input id="http.model" type="text" />
-              </div>
-              <div>
-                <label for="http.bearer">Bearer token:</label>
-                <span class="tooltip"
-                  >ℹ️
-                  <span class="tooltiptext">
-                    Some endpoints require a token for access.
+                  <input id="http.model" type="text" />
+                </div>
+                <div>
+                  <label for="http.bearer">Bearer token:</label>
+                  <span class="tooltip"
+                    >ℹ️
+                    <span class="tooltiptext">
+                      Some endpoints require a token for access.
+                    </span>
                   </span>
-                </span>
-                <input id="http.bearer" type="text" />
-              </div>
-              <div>
-                <label for="http.prompt">Prompt:</label>
-                <textarea id="http.prompt">
+                  <input id="http.bearer" type="text" />
+                </div>
+                <div>
+                  <label for="http.prompt">Prompt:</label>
+                  <textarea id="http.prompt">
                   Suggest a story from %stories% to read after "%tabTitle%"
-                </textarea>
+                </textarea
+                  >
+                </div>
+                <div>
+                  <input
+                    id="http.button"
+                    type="button"
+                    value="Run HTTP Inference"
+                  />
+                </div>
               </div>
-              <div>
+            </fieldset>
+
+            <fieldset>
+              <legend>HTTP Inference Data</legend>
+              <h3>
+                Context
                 <input
-                  id="http.button"
-                  type="button"
-                  value="Run HTTP Inference"
+                  id="http.limit"
+                  max="120"
+                  min="1"
+                  type="range"
+                  value="10"
                 />
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset>
-            <legend>HTTP Inference Data</legend>
-            <h3>
-              Context
-              <input
-                id="http.limit"
-                max="120"
-                min="1"
-                type="range"
-                value="10"
-              />
-            </h3>
-            <div id="http.context"></div>
-            <h3>Output</h3>
-            <textarea id="http.output" readonly></textarea>
-          </fieldset>
+              </h3>
+              <div id="http.context"></div>
+              <h3>Output</h3>
+              <textarea id="http.output" readonly></textarea>
+            </fieldset>
+          </div>
         </div>
-      </div>
 
-      <!-- model tab -->
-      <div id="models-storage" class="tab" hidden="true">
-        <div class="fieldset-container">
-          <fieldset class="large">
-            <legend data-l10n-id="about-inference-models-title"></legend>
-            <p data-l10n-id="about-inference-downloads-description"></p>
-            <div id="modelFiles"></div>
-          </fieldset>
+        <!-- model tab -->
+        <div id="models-storage" class="tab" hidden="true">
+          <div class="fieldset-container">
+            <fieldset class="large">
+              <legend data-l10n-id="about-inference-models-title"></legend>
+              <p data-l10n-id="about-inference-downloads-description"></p>
+              <div id="modelFiles"></div>
+            </fieldset>
+          </div>
         </div>
       </div>
     </div>
