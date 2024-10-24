@@ -13,7 +13,7 @@ var testPage =
 let mockCA = makeMockContentAnalysis();
 
 add_setup(async function test_setup() {
-  mockCA = mockContentAnalysisService(mockCA);
+  mockCA = await mockContentAnalysisService(mockCA);
 });
 
 async function testClipboardWithContentAnalysis(allowPaste) {
@@ -85,24 +85,26 @@ async function testClipboardWithContentAnalysis(allowPaste) {
             let clipboardData = event.clipboardData;
             Assert.equal(
               clipboardData.mozItemCount,
-              1,
-              "One item on clipboard"
+              allowPaste ? 1 : 0,
+              "Items on clipboard"
             );
             Assert.equal(
               clipboardData.types.length,
-              2,
-              "Two types on clipboard"
+              allowPaste ? 2 : 0,
+              "Types on clipboard"
             );
-            Assert.equal(
-              clipboardData.types[0],
-              "text/html",
-              "text/html on clipboard"
-            );
-            Assert.equal(
-              clipboardData.types[1],
-              "text/plain",
-              "text/plain on clipboard"
-            );
+            if (allowPaste) {
+              Assert.equal(
+                clipboardData.types[0],
+                "text/html",
+                "text/html on clipboard"
+              );
+              Assert.equal(
+                clipboardData.types[1],
+                "text/plain",
+                "text/plain on clipboard"
+              );
+            }
             Assert.equal(
               clipboardData.getData("text/html"),
               allowPaste
@@ -129,11 +131,11 @@ async function testClipboardWithContentAnalysis(allowPaste) {
   await pastePromise;
   // 3 calls because there are three formats on the clipboard
   is(mockCA.calls.length, 3, "Correct number of calls to Content Analysis");
+  assertContentAnalysisRequest(mockCA.calls[0], "t Bold");
   assertContentAnalysisRequest(
-    mockCA.calls[0],
+    mockCA.calls[1],
     htmlPrefix + "t <b>Bold</b>" + htmlPostfix
   );
-  assertContentAnalysisRequest(mockCA.calls[1], "t Bold");
   assertContentAnalysisRequest(mockCA.calls[2], null);
   // This is a complicated format, just make sure it has the text we expect
   ok(
@@ -192,24 +194,26 @@ async function testClipboardWithContentAnalysis(allowPaste) {
             let clipboardData = event.clipboardData;
             Assert.equal(
               clipboardData.mozItemCount,
-              1,
-              "One item on clipboard 2"
+              allowPaste ? 1 : 0,
+              "Items on clipboard 2"
             );
             Assert.equal(
               clipboardData.types.length,
-              2,
-              "Two types on clipboard 2"
+              allowPaste ? 2 : 0,
+              "Types on clipboard 2"
             );
-            Assert.equal(
-              clipboardData.types[0],
-              "text/html",
-              "text/html on clipboard 2"
-            );
-            Assert.equal(
-              clipboardData.types[1],
-              "text/plain",
-              "text/plain on clipboard 2"
-            );
+            if (allowPaste) {
+              Assert.equal(
+                clipboardData.types[0],
+                "text/html",
+                "text/html on clipboard 2"
+              );
+              Assert.equal(
+                clipboardData.types[1],
+                "text/plain",
+                "text/plain on clipboard 2"
+              );
+            }
             Assert.equal(
               clipboardData.getData("text/html"),
               allowPaste
@@ -236,11 +240,11 @@ async function testClipboardWithContentAnalysis(allowPaste) {
   await pastePromise;
   // 3 calls because there are three formats on the clipboard
   is(mockCA.calls.length, 3, "Correct number of calls to Content Analysis");
+  assertContentAnalysisRequest(mockCA.calls[0], "Some text");
   assertContentAnalysisRequest(
-    mockCA.calls[0],
+    mockCA.calls[1],
     htmlPrefix + "<i>Italic</i> " + htmlPostfix
   );
-  assertContentAnalysisRequest(mockCA.calls[1], "Some text");
   assertContentAnalysisRequest(mockCA.calls[2], null);
   // This is a complicated format, just make sure it has the text we expect
   ok(

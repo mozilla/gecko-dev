@@ -8,7 +8,7 @@ const { PromptTestUtils } = ChromeUtils.importESModule(
 let mockCA = makeMockContentAnalysis();
 
 add_setup(async function test_setup() {
-  mockCA = mockContentAnalysisService(mockCA);
+  mockCA = await mockContentAnalysisService(mockCA);
 });
 
 // Using an external page so the test can checks that the URL matches in the nsIContentAnalysisRequest

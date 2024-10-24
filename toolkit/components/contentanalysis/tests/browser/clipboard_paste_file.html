@@ -25,11 +25,13 @@ async function checkPasteHelper(event) {
   let filePasteAllowed = document.getElementById("pasteAllowed").checked;
   let pasteIsDir = document.getElementById("pasteIsDir").checked;
 
-  is(dt.types.length, 2, "Correct number of types");
+  is(dt.types.length, filePasteAllowed ? 2 : 0, "Correct number of types");
 
-  // TODO: Remove application/x-moz-file from content.
-  is(dt.types[0], "application/x-moz-file", "First type")
-  is(dt.types[1], "Files", "Last type must be Files");
+  if (filePasteAllowed) {
+    // TODO: Remove application/x-moz-file from content.
+    is(dt.types[0], "application/x-moz-file", "First type")
+    is(dt.types[1], "Files", "Last type must be Files");
+  }
 
   is(dt.getData("text/plain"), "", "text/plain found with getData");
   is(dt.getData("application/x-moz-file"), "", "application/x-moz-file found with getData");
@@ -44,20 +46,23 @@ async function checkPasteHelper(event) {
       is(dt.files[0].type, "text/plain", "Correct file type");
     }
   }
-  is(dt.items.length, 1, "Correct number of items");
-  is(dt.items[0].kind, "file", "Correct item kind");
-  if (!filePasteAllowed) {
-    is(dt.items[0].type, "application/x-moz-file", "Correct item type");
-    return "";
+  is(dt.items.length, filePasteAllowed ? 1 : 0, "Correct number of items");
+  if (filePasteAllowed) {
+    is(dt.items[0].kind, "file", "Correct item kind");
+    if (!filePasteAllowed) {
+      is(dt.items[0].type, "application/x-moz-file", "Correct item type");
+      return "";
+    }
+    let file = dt.files[0];
+    if (pasteIsDir) {
+      is(dt.items[0].type, "", "Correct folder item type");
+    } else {
+      is(dt.items[0].type, "text/plain", "Correct file item type");
+      is(await file.text(), "Hello World!", "Pasted file contains right text");
+    }
+    return file.name;
   }
-  let file = dt.files[0];
-  if (pasteIsDir) {
-    is(dt.items[0].type, "", "Correct folder item type");
-  } else {
-    is(dt.items[0].type, "text/plain", "Correct file item type");
-    is(await file.text(), "Hello World!", "Pasted file contains right text");
-  }
-  return file.name;
+  return "";
 }
 </script>
 

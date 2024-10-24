@@ -4,7 +4,7 @@
 let mockCA = makeMockContentAnalysis();
 
 add_setup(async function test_setup() {
-  mockCA = mockContentAnalysisService(mockCA);
+  mockCA = await mockContentAnalysisService(mockCA);
 });
 
 const PAGE_URL =
@@ -20,8 +20,11 @@ async function testClipboardPaste(allowPaste) {
 
   await SpecialPowers.spawn(browser, [allowPaste], async allowPaste => {
     content.document.getElementById("pasteAllowed").checked = allowPaste;
+    content.document.getElementById("isEmptyPaste").checked = false;
   });
   await testPasteWithElementId("testInput", browser, allowPaste);
+  // Set the clipboard data again so we don't use a cached CA result
+  setClipboardData(CLIPBOARD_TEXT_STRING);
   await testPasteWithElementId("testTextArea", browser, allowPaste);
 
   BrowserTestUtils.removeTab(tab);
@@ -34,6 +37,10 @@ async function testEmptyClipboardPaste() {
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, PAGE_URL);
   let browser = tab.linkedBrowser;
+  await SpecialPowers.spawn(browser, [], async () => {
+    content.document.getElementById("pasteAllowed").checked = true;
+    content.document.getElementById("isEmptyPaste").checked = true;
+  });
 
   let resultPromise = SpecialPowers.spawn(browser, [], () => {
     return new Promise(resolve => {
@@ -103,11 +110,8 @@ async function testPasteWithElementId(elementId, browser, allowPaste) {
   let result = await resultPromise;
   is(result, undefined, "Got unexpected result from page");
 
-  // Because we call event.clipboardData.getData in the test, this causes another call to
-  // content analysis.
-  is(mockCA.calls.length, 2, "Correct number of calls to Content Analysis");
+  is(mockCA.calls.length, 1, "Correct number of calls to Content Analysis");
   assertContentAnalysisRequest(mockCA.calls[0], CLIPBOARD_TEXT_STRING);
-  assertContentAnalysisRequest(mockCA.calls[1], CLIPBOARD_TEXT_STRING);
   mockCA.clearCalls();
   let value = await getElementValue(browser, elementId);
   is(
