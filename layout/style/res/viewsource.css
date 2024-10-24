@@ -8,6 +8,7 @@
   -moz-control-character-visibility: visible;
   height: 100%;
 }
+
 #viewsource {
   font-family: -moz-fixed;
   font-weight: normal;
@@ -17,19 +18,22 @@
   box-sizing: border-box;
   margin: 0;
   padding: 8px;
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "view_source.wrap_long_lines") {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
 }
-#viewsource.wrap {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
+
 pre {
   font: inherit;
   color: inherit;
   white-space: inherit;
   margin: 0 0 0 5ch;
 }
-pre[id]:before,
-span[id]:before {
+
+pre[id]::before,
+span[id]::before {
   content: counter(line) " ";
   counter-increment: line;
   user-select: none;
@@ -41,73 +45,56 @@ span[id]:before {
   font-weight: normal;
   font-style: normal;
 }
-.highlight .start-tag,
-.highlight .end-tag {
-  color: purple;
-  font-weight: bold;
+
+/* stylelint-disable-next-line media-query-no-invalid */
+@media (-moz-bool-pref: "view_source.syntax_highlight") {
+  .start-tag,
+  .end-tag {
+    color: light-dark(purple, #f55e5e);
+    font-weight: bold;
+  }
+  .comment {
+    color: light-dark(green, lightgreen);
+    font-style: italic;
+  }
+  .cdata {
+    color: light-dark(#CC0066, #f068ac);
+  }
+  .doctype,
+  .markupdeclaration {
+    color: light-dark(steelblue, lightgray);
+    font-style: italic;
+  }
+  .pi {
+    color: orchid;
+    font-style: italic;
+  }
+  .entity {
+    color: light-dark(#FF4500, #f18a65);
+  }
+  .text {
+    font-weight: normal;
+  }
+  .attribute-name {
+    font-weight: bold;
+  }
+  .attribute-value {
+    color: light-dark(blue, #97bbff);
+    font-weight: normal;
+  }
+  .error {
+    color: revert;
+    font-weight: bold;
+    background-color: rgba(231, 116, 113, 0.3);
+    text-decoration: underline wavy red 0.5px;
+  }
 }
-.highlight .comment {
-  color: green;
-  font-style: italic;
-}
-.highlight .cdata {
-  color: #CC0066;
-}
-.highlight .doctype,
-.highlight .markupdeclaration {
-  color: steelblue;
-  font-style: italic;
-}
-.highlight .pi {
-  color: orchid;
-  font-style: italic;
-}
-.highlight .entity {
-  color: #FF4500;
-  font-weight: normal;
-}
-.highlight .text {
-  font-weight: normal;
-}
-.highlight .attribute-name {
-  font-weight: bold;
-}
-.highlight .attribute-value {
-  color: blue;
-  font-weight: normal;
-}
+
 span:not(.error),
 a:not(.error) {
   unicode-bidi: embed;
 }
+
 span[id] {
   unicode-bidi: isolate;
-}
-.highlight .error {
-  color: revert;
-  font-weight: bold;
-  background-color: rgba(231, 116, 113, 0.3);
-  text-decoration: underline wavy red 0.5px;
-}
-@media (prefers-color-scheme: dark) {
-  .highlight .start-tag,
-  .highlight .end-tag {
-    color: #f55e5e;
-  }
-  .highlight .comment {
-    color: lightgreen;
-  }
-  .highlight .cdata {
-    color: #f068ac;
-  }
-  .highlight .doctype,
-  .highlight .markupdeclaration {
-    color: lightgray;
-  }
-  .highlight .entity {
-    color: #f18a65;
-  }
-  .highlight .attribute-value {
-    color: #97bbff;
-  }
 }

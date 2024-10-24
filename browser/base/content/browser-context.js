@@ -21,14 +21,16 @@ document.addEventListener(
             .promptAndGoToLine();
           break;
         case "context-viewsource-wrapLongLines":
-          gViewSourceUtils
-            .getPageActor(gContextMenu.browser)
-            .sendAsyncMessage("ViewSource:ToggleWrapping");
+          Services.prefs.setBoolPref(
+            "view_source.wrap_long_lines",
+            !Services.prefs.getBoolPref("view_source.wrap_long_lines", false)
+          );
           break;
         case "context-viewsource-highlightSyntax":
-          gViewSourceUtils
-            .getPageActor(gContextMenu.browser)
-            .sendAsyncMessage("ViewSource:ToggleSyntaxHighlighting");
+          Services.prefs.setBoolPref(
+            "view_source.syntax_highlight",
+            !Services.prefs.getBoolPref("view_source.syntax_highlight", false)
+          );
           break;
         case "spell-add-to-dictionary":
           InlineSpellCheckerUI.addToDictionary();

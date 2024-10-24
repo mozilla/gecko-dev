@@ -1290,7 +1290,7 @@ export class nsContextMenu {
       if (!onViewSource) {
         return;
       }
-      check().then(checked => this.setItemAttr(fullId, "checked", checked));
+      this.setItemAttr(fullId, "checked", check());
       this.setItemAttr(fullId, "label", getString(`context_${id}_label`));
       if (accesskey) {
         this.setItemAttr(
@@ -1303,14 +1303,12 @@ export class nsContextMenu {
 
     const onViewSource = this.browser.currentURI.schemeIs("view-source");
 
-    showViewSourceItem("goToLine", async () => false, true);
+    showViewSourceItem("goToLine", () => false, true);
     showViewSourceItem("wrapLongLines", () =>
-      this.window.gViewSourceUtils.getPageActor(this.browser).queryIsWrapping()
+      Services.prefs.getBoolPref("view_source.wrap_long_lines", false)
     );
     showViewSourceItem("highlightSyntax", () =>
-      this.window.gViewSourceUtils
-        .getPageActor(this.browser)
-        .queryIsSyntaxHighlighting()
+      Services.prefs.getBoolPref("view_source.syntax_highlight", false)
     );
   }
 

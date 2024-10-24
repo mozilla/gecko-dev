@@ -46,16 +46,6 @@ export class ViewSourcePageChild extends JSWindowActorChild {
       case "ViewSource:GoToLine":
         this.goToLine(msg.data.lineNumber);
         break;
-      case "ViewSource:IsWrapping":
-        return this.isWrapping;
-      case "ViewSource:IsSyntaxHighlighting":
-        return this.isSyntaxHighlighting;
-      case "ViewSource:ToggleWrapping":
-        this.toggleWrapping();
-        break;
-      case "ViewSource:ToggleSyntaxHighlighting":
-        this.toggleSyntaxHighlighting();
-        break;
     }
     return undefined;
   }
@@ -333,41 +323,6 @@ export class ViewSourcePageChild extends JSWindowActorChild {
     }
 
     return found || "range" in result;
-  }
-
-  /**
-   * @return {boolean} whether the "wrap" class exists on the document body.
-   */
-  get isWrapping() {
-    return this.document.body.classList.contains("wrap");
-  }
-
-  /**
-   * @return {boolean} whether the "highlight" class exists on the document body.
-   */
-  get isSyntaxHighlighting() {
-    return this.document.body.classList.contains("highlight");
-  }
-
-  /**
-   * Toggles the "wrap" class on the document body, which sets whether
-   * or not long lines are wrapped.  Notifies parent to update the pref.
-   */
-  toggleWrapping() {
-    let body = this.document.body;
-    let state = body.classList.toggle("wrap");
-    this.sendAsyncMessage("ViewSource:StoreWrapping", { state });
-  }
-
-  /**
-   * Toggles the "highlight" class on the document body, which sets whether
-   * or not syntax highlighting is displayed.  Notifies parent to update the
-   * pref.
-   */
-  toggleSyntaxHighlighting() {
-    let body = this.document.body;
-    let state = body.classList.toggle("highlight");
-    this.sendAsyncMessage("ViewSource:StoreSyntaxHighlighting", { state });
   }
 
   /**

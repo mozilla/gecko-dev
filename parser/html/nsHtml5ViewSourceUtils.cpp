@@ -14,18 +14,6 @@ nsHtml5HtmlAttributes* nsHtml5ViewSourceUtils::NewBodyAttributes() {
   nsHtml5String id = nsHtml5Portability::newStringFromLiteral("viewsource");
   bodyAttrs->addAttribute(nsHtml5AttributeName::ATTR_ID, id, -1);
 
-  nsString klass;
-  if (mozilla::StaticPrefs::view_source_wrap_long_lines()) {
-    klass.AppendLiteral(u"wrap ");
-  }
-  if (mozilla::StaticPrefs::view_source_syntax_highlight()) {
-    klass.AppendLiteral(u"highlight");
-  }
-  if (!klass.IsEmpty()) {
-    bodyAttrs->addAttribute(nsHtml5AttributeName::ATTR_CLASS,
-                            nsHtml5String::FromString(klass), -1);
-  }
-
   int32_t tabSize = mozilla::StaticPrefs::view_source_tab_size();
   if (tabSize > 0) {
     nsString style;
