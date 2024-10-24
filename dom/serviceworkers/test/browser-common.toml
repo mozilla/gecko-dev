@@ -22,6 +22,8 @@ support-files = [
   "redirect.sjs",
   "simple_fetch_worker.js",
   "storage_recovery_worker.sjs",
+  "sw_always_updating_inter_sw_postmessage.sjs",
+  "sw_inter_sw_postmessage.js",
   "sw_respondwith_serviceworker.js",
   "sw_with_navigationPreload.js",
   "utils.js",
@@ -56,5 +58,7 @@ skip-if = ["verify"] # Bug 1603340
 skip-if = ["true"] # Crashes: @ mozilla::dom::ServiceWorkerManagerService::PropagateUnregister(unsigned long, mozilla::ipc::PrincipalInfo const&, nsTSubstring<char16_t> const&), #Bug 1578337
 
 ["browser_storage_recovery.js"]
+
+#["browser_sw_lifetime_extension.js"]
 
 ["browser_unregister_with_containers.js"]

@@ -832,6 +832,12 @@ class WorkerPrivate final
     return mLoadInfo.mServiceWorkerRegistrationDescriptor.ref();
   }
 
+  const ClientInfo& GetSourceInfo() const {
+    MOZ_DIAGNOSTIC_ASSERT(IsServiceWorker());
+    MOZ_DIAGNOSTIC_ASSERT(mLoadInfo.mSourceInfo.isSome());
+    return mLoadInfo.mSourceInfo.ref();
+  }
+
   void UpdateServiceWorkerState(ServiceWorkerState aState) {
     MOZ_DIAGNOSTIC_ASSERT(IsServiceWorker());
     MOZ_DIAGNOSTIC_ASSERT(mLoadInfo.mServiceWorkerDescriptor.isSome());

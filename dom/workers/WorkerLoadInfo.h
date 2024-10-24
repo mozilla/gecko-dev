@@ -120,6 +120,7 @@ struct WorkerLoadInfoData {
   Maybe<ServiceWorkerDescriptor> mServiceWorkerDescriptor;
   Maybe<ServiceWorkerRegistrationDescriptor>
       mServiceWorkerRegistrationDescriptor;
+  Maybe<ClientInfo> mSourceInfo;
 
   Maybe<ServiceWorkerDescriptor> mParentController;
 

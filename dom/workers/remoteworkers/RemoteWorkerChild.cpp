@@ -323,14 +323,18 @@ nsresult RemoteWorkerChild::ExecWorkerOnMainThread(RemoteWorkerData&& aData) {
 
   nsresult rv = NS_OK;
 
-  if (clientInfo.isSome()) {
-    Maybe<mozilla::ipc::CSPInfo> cspInfo = clientInfo.ref().GetCspInfo();
-    if (cspInfo.isSome()) {
-      info.mCSP = CSPInfoToCSP(cspInfo.ref(), nullptr);
-      info.mCSPInfo = MakeUnique<CSPInfo>();
-      rv = CSPToCSPInfo(info.mCSP, info.mCSPInfo.get());
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
+  if (mIsServiceWorker) {
+    info.mSourceInfo = clientInfo;
+  } else {
+    if (clientInfo.isSome()) {
+      Maybe<mozilla::ipc::CSPInfo> cspInfo = clientInfo.ref().GetCspInfo();
+      if (cspInfo.isSome()) {
+        info.mCSP = CSPInfoToCSP(cspInfo.ref(), nullptr);
+        info.mCSPInfo = MakeUnique<CSPInfo>();
+        rv = CSPToCSPInfo(info.mCSP, info.mCSPInfo.get());
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          return rv;
+        }
       }
     }
   }

@@ -11,6 +11,7 @@
 
 #include "mozilla/dom/IPCNavigationPreloadState.h"
 #include "mozilla/dom/ServiceWorkerInfo.h"
+#include "mozilla/dom/ServiceWorkerLifetimeExtension.h"
 #include "mozilla/dom/ServiceWorkerRegistrationBinding.h"
 #include "mozilla/dom/ServiceWorkerRegistrationDescriptor.h"
 #include "nsProxyRelease.h"
@@ -141,11 +142,14 @@ class ServiceWorkerRegistrationInfo final
 
   bool IsCorrupt() const;
 
-  void TryToActivateAsync(TryToActivateCallback&& aCallback = nullptr);
+  void TryToActivateAsync(
+      const ServiceWorkerLifetimeExtension& aLifetimeExtension,
+      TryToActivateCallback&& aCallback = nullptr);
 
-  void TryToActivate(TryToActivateCallback&& aCallback);
+  void TryToActivate(ServiceWorkerLifetimeExtension&& aLifetimeExtension,
+                     TryToActivateCallback&& aCallback);
 
-  void Activate();
+  void Activate(const ServiceWorkerLifetimeExtension& aLifetimeExtension);
 
   void FinishActivate(bool aSuccess);
 
@@ -169,6 +173,8 @@ class ServiceWorkerRegistrationInfo final
 
   ServiceWorkerInfo* GetByDescriptor(
       const ServiceWorkerDescriptor& aDescriptor) const;
+
+  ServiceWorkerInfo* GetByClientInfo(const ClientInfo& aClientInfo) const;
 
   // Set the given worker as the evaluating service worker.  The worker
   // state is not changed.

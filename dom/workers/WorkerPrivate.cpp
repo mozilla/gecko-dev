@@ -3750,11 +3750,18 @@ UniquePtr<ClientSource> WorkerPrivate::CreateClientSource() {
   auto data = mWorkerThreadAccessible.Access();
   MOZ_ASSERT(!data->mScope, "Client should be created before the global");
 
-  auto clientSource = ClientManager::CreateSource(
-      GetClientType(), mWorkerHybridEventTarget,
-      StoragePrincipalHelper::ShouldUsePartitionPrincipalForServiceWorker(this)
-          ? GetPartitionedPrincipalInfo()
-          : GetPrincipalInfo());
+  UniquePtr<ClientSource> clientSource;
+  if (IsServiceWorker()) {
+    clientSource = ClientManager::CreateSourceFromInfo(
+        GetSourceInfo(), mWorkerHybridEventTarget);
+  } else {
+    clientSource = ClientManager::CreateSource(
+        GetClientType(), mWorkerHybridEventTarget,
+        StoragePrincipalHelper::ShouldUsePartitionPrincipalForServiceWorker(
+            this)
+            ? GetPartitionedPrincipalInfo()
+            : GetPrincipalInfo());
+  }
   MOZ_DIAGNOSTIC_ASSERT(clientSource);
 
   clientSource->SetAgentClusterId(mAgentClusterId);

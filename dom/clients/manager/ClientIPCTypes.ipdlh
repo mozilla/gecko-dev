@@ -26,9 +26,12 @@ namespace dom {
 struct ClientSourceConstructorArgs
 {
   nsID id;
+  nsID? agentClusterId;
   ClientType type;
   PrincipalInfo principalInfo;
   TimeStamp creationTime;
+  nsCString url;
+  FrameType frameType;
 };
 
 [Comparable] struct IPCClientInfo

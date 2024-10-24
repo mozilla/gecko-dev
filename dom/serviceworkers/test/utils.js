@@ -134,3 +134,94 @@ async function fillStorage(cacheBytes, idbBytes) {
     };
   });
 }
+
+const messagingChannels = {};
+
+// This method should ideally be called during a setup phase of the test to make
+// sure our BroadcastChannel is fully connected before anything that could cause
+// something to send a message to the channel can happen.  Because IPC ordering
+// is more predictable these days (single channel per process pair), this is
+// primarily an issue of:
+// - Helping you not have to worry about there being a race here at all.
+// - Potentially be able to refactor this to run on the WPT infrastructure in
+//   the future which likely cannot provide the same ordering guarantees.
+function setupMessagingChannel(name) {
+  if (messagingChannels[name]) {
+    return;
+  }
+
+  messagingChannels[name] = new BroadcastChannel(name);
+}
+
+function waitForBroadcastMessage(channelName, messageToWaitFor) {
+  if (!messagingChannels[channelName]) {
+    throw new Error(`You forgot to call setupMessagingChannel(${channelName})`);
+  }
+  return new Promise((resolve, reject) => {
+    const channel = messagingChannels[channelName];
+    const listener = evt => {
+      // Add `--setpref="devtools.console.stdout.content=true"` to your mach
+      // invocation to get this to stdout for extra debugging.
+      console.log("Helper seeing message", evt.data, "on channel", channelName);
+      if (evt.data === messageToWaitFor) {
+        resolve();
+        channel.removeEventListener("message", listener);
+      } else if (evt.data?.error) {
+        // Anything reporting an error means we should fail fast.
+        reject(evt.data);
+        channel.removeEventListener("message", listener);
+      }
+    };
+    channel.addEventListener("message", listener);
+  });
+}
+
+async function postMessageScopeAndWaitFor(
+  channelName,
+  scope,
+  messageToSend,
+  messageToWaitFor
+) {
+  // This will throw for us if the channel does not exist.
+  const waitPromise = waitForBroadcastMessage(channelName, messageToWaitFor);
+  const channel = messagingChannels[channelName];
+
+  const reg = await navigator.serviceWorker.getRegistration(scope);
+  if (!reg) {
+    throw new Error(`Unable to find registration for scope: ${scope}`);
+  }
+  if (!reg.active) {
+    throw new Error(`There is no active SW on the reg for scope: ${scope}`);
+  }
+  reg.active.postMessage(messageToSend);
+
+  await waitPromise;
+}
+
+async function broadcastAndWaitFor(
+  channelName,
+  messageToBroadcast,
+  messageToWaitFor
+) {
+  // This will throw for us if the channel does not exist.
+  const waitPromise = waitForBroadcastMessage(channelName, messageToWaitFor);
+  const channel = messagingChannels[channelName];
+
+  channel.postMessage(messageToBroadcast);
+
+  await waitPromise;
+}
+
+async function updateScopeAndWaitFor(channelName, scope, messageToWaitFor) {
+  // This will throw for us if the channel does not exist.
+  const waitPromise = waitForBroadcastMessage(channelName, messageToWaitFor);
+  const channel = messagingChannels[channelName];
+
+  const reg = await navigator.serviceWorker.getRegistration(scope);
+  if (!reg) {
+    throw new Error(`Unable to find registration for scope: ${scope}`);
+  }
+  reg.update();
+
+  await waitPromise;
+}

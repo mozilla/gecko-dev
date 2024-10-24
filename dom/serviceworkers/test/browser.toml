@@ -3,3 +3,6 @@ prefs = ["sidebar.revamp=false"]
 dupe-manifest = true
 
 ["include:browser-common.toml"]
+
+# remove this in favor of the common thing.
+["browser_sw_lifetime_extension.js"]

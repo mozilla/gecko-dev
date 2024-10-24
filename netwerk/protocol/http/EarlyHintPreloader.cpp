@@ -352,8 +352,9 @@ void EarlyHintPreloader::MaybeCreateAndInsertPreload(
     mozilla::ipc::PrincipalInfo principalInfo;
     rv = PrincipalToPrincipalInfo(aPrincipal, &principalInfo);
     NS_ENSURE_SUCCESS_VOID(rv);
-    dom::ClientInfo clientInfo(nsID::GenerateUUID(), dom::ClientType::Window,
-                               principalInfo, TimeStamp::Now());
+    dom::ClientInfo clientInfo(nsID::GenerateUUID(), Nothing(),
+                               dom::ClientType::Window, principalInfo,
+                               TimeStamp::Now(), ""_ns, dom::FrameType::None);
 
     // Our newly-created CSP is set on the ClientInfo via the indirect route of
     // first serializing to CSPInfo

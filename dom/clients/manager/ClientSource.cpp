@@ -163,8 +163,9 @@ ClientSource::ClientSource(ClientManager* aManager,
     : mManager(aManager),
       mEventTarget(aEventTarget),
       mOwner(AsVariant(Nothing())),
-      mClientInfo(aArgs.id(), aArgs.type(), aArgs.principalInfo(),
-                  aArgs.creationTime()) {
+      mClientInfo(aArgs.id(), aArgs.agentClusterId(), aArgs.type(),
+                  aArgs.principalInfo(), aArgs.creationTime(), aArgs.url(),
+                  aArgs.frameType()) {
   MOZ_ASSERT(mManager);
   MOZ_ASSERT(mEventTarget);
 }
@@ -186,9 +187,10 @@ void ClientSource::Activate(PClientManagerChild* aActor) {
     return;
   }
 
-  ClientSourceConstructorArgs args(mClientInfo.Id(), mClientInfo.Type(),
-                                   mClientInfo.PrincipalInfo(),
-                                   mClientInfo.CreationTime());
+  ClientSourceConstructorArgs args(
+      mClientInfo.Id(), Nothing(), mClientInfo.Type(),
+      mClientInfo.PrincipalInfo(), mClientInfo.CreationTime(), VoidCString(),
+      FrameType::None);
   RefPtr<ClientSourceChild> actor = new ClientSourceChild(args);
   if (!aActor->SendPClientSourceConstructor(actor, args)) {
     Shutdown();

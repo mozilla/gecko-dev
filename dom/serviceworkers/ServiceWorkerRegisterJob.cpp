@@ -14,9 +14,11 @@ namespace mozilla::dom {
 
 ServiceWorkerRegisterJob::ServiceWorkerRegisterJob(
     nsIPrincipal* aPrincipal, const nsACString& aScope,
-    const nsACString& aScriptSpec, ServiceWorkerUpdateViaCache aUpdateViaCache)
+    const nsACString& aScriptSpec, ServiceWorkerUpdateViaCache aUpdateViaCache,
+    const ServiceWorkerLifetimeExtension& aLifetimeExtension)
     : ServiceWorkerUpdateJob(Type::Register, aPrincipal, aScope,
-                             nsCString(aScriptSpec), aUpdateViaCache) {}
+                             nsCString(aScriptSpec), aUpdateViaCache,
+                             aLifetimeExtension) {}
 
 void ServiceWorkerRegisterJob::AsyncExecute() {
   MOZ_ASSERT(NS_IsMainThread());

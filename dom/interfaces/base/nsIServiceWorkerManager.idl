@@ -54,6 +54,12 @@ interface nsIServiceWorkerInfo : nsISupports
   readonly attribute AString scriptSpec;
   readonly attribute AString cacheName;
 
+  // How many times has this ServiceWorker been launched since the registration
+  // was loaded?  This value is not persistent and starts at 0 every time the
+  // browser restarts.  The value also inherently starts at 0 for a freshly
+  // installed or updated ServiceWorker.
+  readonly attribute unsigned long launchCount;
+
   readonly attribute unsigned short state;
 
   readonly attribute nsIWorkerDebugger debugger;
@@ -66,6 +72,15 @@ interface nsIServiceWorkerInfo : nsISupports
   readonly attribute PRTime installedTime;
   readonly attribute PRTime activatedTime;
   readonly attribute PRTime redundantTime;
+
+  // Returns the lifetime deadline of the ServiceWorker as the number of
+  // milliseconds since the (parent) process was created or 0 if there is no
+  // current deadline.  This is primarily intended to allow tests to compare
+  // consistent values, not be useful in general.  But note that
+  // `Components.utils.now()` operates in the same units (milliseconds since
+  // current process startup), and so can be used to hackily translate to wall
+  // clock time.
+  readonly attribute double lifetimeDeadline;
 
   // Total number of navigation faults experienced by this ServiceWorker since
   // it was loaded from disk at startup or was installed.
@@ -80,6 +95,17 @@ interface nsIServiceWorkerInfo : nsISupports
   void attachDebugger();
 
   void detachDebugger();
+
+  // Forcibly terminate the ServiceWorker if it is running, returning a promise
+  // that will be resolved when the worker is fully terminated.  If the
+  // ServiceWorker was not running, the promise will be resolved immediately.
+  //
+  // For the purposes of the ServiceWorkerManager, it's as if the ServiceWorker
+  // is already dead when the call completes and returns the Promise.  Any new
+  // functional events dispatched at the ServiceWorker will result in a new
+  // instance/global being spun up.
+  [implicit_jscontext]
+  Promise terminateWorker();
 };
 
 [scriptable, uuid(87e63548-d440-4b8a-b158-65ad1de0211E)]

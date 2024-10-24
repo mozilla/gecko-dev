@@ -6,11 +6,13 @@
 
 #include "ServiceWorkerInfo.h"
 
+#include "ServiceWorkerManager.h"
 #include "ServiceWorkerUtils.h"
 #include "ServiceWorkerPrivate.h"
 #include "ServiceWorkerScriptCache.h"
 #include "mozilla/dom/ClientIPCTypes.h"
 #include "mozilla/dom/ClientState.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/RemoteWorkerTypes.h"
 #include "mozilla/dom/WorkerPrivate.h"
 
@@ -71,6 +73,14 @@ ServiceWorkerInfo::GetCacheName(nsAString& aCacheName) {
 }
 
 NS_IMETHODIMP
+ServiceWorkerInfo::GetLaunchCount(uint32_t* aLaunchCount) {
+  MOZ_ASSERT(aLaunchCount);
+  MOZ_ASSERT(NS_IsMainThread());
+  *aLaunchCount = mServiceWorkerPrivate->GetLaunchCount();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 ServiceWorkerInfo::GetState(uint16_t* aState) {
   MOZ_ASSERT(aState);
   MOZ_ASSERT(NS_IsMainThread());
@@ -125,6 +135,20 @@ ServiceWorkerInfo::GetRedundantTime(PRTime* _retval) {
 }
 
 NS_IMETHODIMP
+ServiceWorkerInfo::GetLifetimeDeadline(double* aLifetimeDeadline) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aLifetimeDeadline);
+  TimeStamp deadline = mServiceWorkerPrivate->GetLifetimeDeadline();
+  if (deadline.IsNull()) {
+    *aLifetimeDeadline = 0;
+    return NS_OK;
+  }
+  *aLifetimeDeadline =
+      (deadline - TimeStamp::ProcessCreation()).ToMilliseconds();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 ServiceWorkerInfo::GetNavigationFaultCount(uint32_t* aNavigationFaultCount) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aNavigationFaultCount);
@@ -157,6 +181,24 @@ ServiceWorkerInfo::AttachDebugger() {
 NS_IMETHODIMP
 ServiceWorkerInfo::DetachDebugger() {
   return mServiceWorkerPrivate->DetachDebugger();
+}
+
+NS_IMETHODIMP
+ServiceWorkerInfo::TerminateWorker(JSContext* aCx,
+                                   mozilla::dom::Promise** aPromise) {
+  nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
+  if (NS_WARN_IF(!global)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  ErrorResult rv;
+  RefPtr<Promise> outer = Promise::Create(global, rv);
+  if (NS_WARN_IF(rv.Failed())) {
+    return rv.StealNSResult();
+  }
+
+  mServiceWorkerPrivate->TerminateWorker(Some(outer));
+  return NS_OK;
 }
 
 void ServiceWorkerInfo::UpdateState(ServiceWorkerState aState) {
@@ -241,7 +283,37 @@ uint64_t ServiceWorkerInfo::GetNextID() const {
 
 void ServiceWorkerInfo::PostMessage(RefPtr<ServiceWorkerCloneData>&& aData,
                                     const PostMessageSource& aSource) {
-  mServiceWorkerPrivate->SendMessageEvent(std::move(aData), aSource);
+  RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+  if (NS_WARN_IF(!swm)) {
+    return;
+  }
+
+  ServiceWorkerLifetimeExtension lifetime =
+      ServiceWorkerLifetimeExtension(NoLifetimeExtension{});
+
+  switch (aSource.type()) {
+    case PostMessageSource::TClientInfoAndState:
+      lifetime = swm->DetermineLifetimeForClient(
+          ClientInfo(aSource.get_ClientInfoAndState().info()));
+      break;
+    case PostMessageSource::TIPCServiceWorkerDescriptor:
+      lifetime = swm->DetermineLifetimeForServiceWorker(
+          ServiceWorkerDescriptor(aSource.get_IPCServiceWorkerDescriptor()));
+      break;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected source type");
+      return;
+  }
+
+  mServiceWorkerPrivate->SendMessageEvent(std::move(aData), lifetime, aSource);
+}
+
+Maybe<ClientInfo> ServiceWorkerInfo::GetClientInfo() {
+  return mServiceWorkerPrivate->GetClientInfo();
+}
+
+TimeStamp ServiceWorkerInfo::LifetimeDeadline() {
+  return mServiceWorkerPrivate->GetLifetimeDeadline();
 }
 
 void ServiceWorkerInfo::UpdateInstalledTime() {

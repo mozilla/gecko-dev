@@ -164,10 +164,8 @@ void ServiceWorkerJob::InvokeResultCallbacks(nsresult aRv) {
 void ServiceWorkerJob::Finish(ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  // Avoid double-completion because it can result on operating on cleaned
-  // up data.  This should not happen, though, so also assert to try to
-  // narrow down the causes.
-  MOZ_DIAGNOSTIC_ASSERT(mState == State::Started);
+  // Finishing a job is idempotent and potentially expected by the error
+  // handling path for ServiceWorkerUpdateJob, so this is not an error.
   if (mState != State::Started) {
     return;
   }

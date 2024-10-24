@@ -322,11 +322,13 @@ ServiceWorkerRegistrationInfo::GetServiceWorkerInfoById(uint64_t aId) {
 }
 
 void ServiceWorkerRegistrationInfo::TryToActivateAsync(
+    const ServiceWorkerLifetimeExtension& aLifetimeExtension,
     TryToActivateCallback&& aCallback) {
   MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(
-      NewRunnableMethod<StoreCopyPassByRRef<TryToActivateCallback>>(
+      NewRunnableMethod<StoreCopyPassByRRef<ServiceWorkerLifetimeExtension>,
+                        StoreCopyPassByRRef<TryToActivateCallback>>(
           "ServiceWorkerRegistrationInfo::TryToActivate", this,
-          &ServiceWorkerRegistrationInfo::TryToActivate,
+          &ServiceWorkerRegistrationInfo::TryToActivate, aLifetimeExtension,
           std::move(aCallback))));
 }
 
@@ -334,13 +336,17 @@ void ServiceWorkerRegistrationInfo::TryToActivateAsync(
  * TryToActivate should not be called directly, use TryToActivateAsync instead.
  */
 void ServiceWorkerRegistrationInfo::TryToActivate(
+    ServiceWorkerLifetimeExtension&& aLifetimeExtension,
     TryToActivateCallback&& aCallback) {
   MOZ_ASSERT(NS_IsMainThread());
   bool controlling = IsControllingClients();
   bool skipWaiting = mWaitingWorker && mWaitingWorker->SkipWaitingFlag();
   bool idle = IsIdle();
   if (idle && (!controlling || skipWaiting)) {
-    Activate();
+    if (controlling) {
+      aLifetimeExtension.emplace<FullLifetimeExtension>();
+    }
+    Activate(aLifetimeExtension);
   }
 
   if (aCallback) {
@@ -348,7 +354,8 @@ void ServiceWorkerRegistrationInfo::TryToActivate(
   }
 }
 
-void ServiceWorkerRegistrationInfo::Activate() {
+void ServiceWorkerRegistrationInfo::Activate(
+    const ServiceWorkerLifetimeExtension& aLifetimeExtension) {
   if (!mWaitingWorker) {
     return;
   }
@@ -375,7 +382,8 @@ void ServiceWorkerRegistrationInfo::Activate() {
 
   ServiceWorkerPrivate* workerPrivate = mActiveWorker->WorkerPrivate();
   MOZ_ASSERT(workerPrivate);
-  nsresult rv = workerPrivate->SendLifeCycleEvent(u"activate"_ns, callback);
+  nsresult rv = workerPrivate->SendLifeCycleEvent(u"activate"_ns,
+                                                  aLifetimeExtension, callback);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     nsCOMPtr<nsIRunnable> failRunnable = NewRunnableMethod<bool>(
         "dom::ServiceWorkerRegistrationInfo::FinishActivate", this,
@@ -574,6 +582,35 @@ ServiceWorkerInfo* ServiceWorkerRegistrationInfo::GetByDescriptor(
   if (mEvaluatingWorker &&
       mEvaluatingWorker->Descriptor().Matches(aDescriptor)) {
     return mEvaluatingWorker;
+  }
+  return nullptr;
+}
+
+ServiceWorkerInfo* ServiceWorkerRegistrationInfo::GetByClientInfo(
+    const ClientInfo& aClientInfo) const {
+  if (mActiveWorker) {
+    auto clientRef = mActiveWorker->GetClientInfo();
+    if (clientRef && *clientRef == aClientInfo) {
+      return mActiveWorker;
+    }
+  }
+  if (mWaitingWorker) {
+    auto clientRef = mWaitingWorker->GetClientInfo();
+    if (clientRef && *clientRef == aClientInfo) {
+      return mWaitingWorker;
+    }
+  }
+  if (mInstallingWorker) {
+    auto clientRef = mInstallingWorker->GetClientInfo();
+    if (clientRef && *clientRef == aClientInfo) {
+      return mInstallingWorker;
+    }
+  }
+  if (mEvaluatingWorker) {
+    auto clientRef = mEvaluatingWorker->GetClientInfo();
+    if (clientRef && *clientRef == aClientInfo) {
+      return mEvaluatingWorker;
+    }
   }
   return nullptr;
 }

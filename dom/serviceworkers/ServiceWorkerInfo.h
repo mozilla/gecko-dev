@@ -10,6 +10,7 @@
 #include "MainThreadUtils.h"
 #include "mozilla/dom/ServiceWorkerBinding.h"  // For ServiceWorkerState
 #include "mozilla/dom/ServiceWorkerDescriptor.h"
+#include "mozilla/dom/ServiceWorkerLifetimeExtension.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/OriginAttributes.h"
 #include "mozilla/TimeStamp.h"
@@ -17,6 +18,7 @@
 
 namespace mozilla::dom {
 
+class ClientInfo;
 class PostMessageSource;
 class ServiceWorkerCloneData;
 class ServiceWorkerPrivate;
@@ -90,6 +92,12 @@ class ServiceWorkerInfo final : public nsIServiceWorkerInfo {
 
   const nsCString& Scope() const { return mDescriptor.Scope(); }
 
+  Maybe<ClientInfo> GetClientInfo();
+
+  // Pass-through of ServiceWorkerPrivate::GetLifetimeDeadline(); note that
+  // we have an XPCOM variation that returns a double for testing purposes.
+  TimeStamp LifetimeDeadline();
+
   bool SkipWaitingFlag() const {
     MOZ_ASSERT(NS_IsMainThread());
     return mSkipWaitingFlag;
@@ -108,7 +116,7 @@ class ServiceWorkerInfo final : public nsIServiceWorkerInfo {
   ServiceWorkerInfo(nsIPrincipal* aPrincipal, const nsACString& aScope,
                     uint64_t aRegistrationId, uint64_t aRegistrationVersion,
                     const nsACString& aScriptSpec, const nsAString& aCacheName,
-                    nsLoadFlags aLoadFlags);
+                    nsLoadFlags aImportsLoadFlags);
 
   ServiceWorkerState State() const { return mDescriptor.State(); }
 

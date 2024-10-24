@@ -19,6 +19,7 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/ClientHandle.h"
 #include "mozilla/dom/ClientOpPromise.h"
+#include "mozilla/dom/ServiceWorkerLifetimeExtension.h"
 #include "mozilla/dom/ServiceWorkerRegistrationBinding.h"
 #include "mozilla/dom/ServiceWorkerRegistrationInfo.h"
 #include "mozilla/dom/ServiceWorkerUtils.h"
@@ -101,6 +102,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
                                    public nsIObserver {
   friend class GetRegistrationsRunnable;
   friend class GetRegistrationRunnable;
+  friend class ServiceWorkerInfo;
   friend class ServiceWorkerJob;
   friend class ServiceWorkerRegistrationInfo;
   friend class ServiceWorkerShutdownBlocker;
@@ -112,6 +114,18 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   NS_DECL_ISUPPORTS
   NS_DECL_NSISERVICEWORKERMANAGER
   NS_DECL_NSIOBSERVER
+
+  // Determine the correct lifetime extension to use for a given client.  This
+  // will work for ServiceWorker clients, but ideally you should have a
+  // ServiceWorkerDescriptor in that case.
+  ServiceWorkerLifetimeExtension DetermineLifetimeForClient(
+      const ClientInfo& aClientInfo);
+
+  // Determine the correct lifetime extension to use for a given client.  This
+  // will work for ServiceWorker clients, but ideally you should have a
+  // ServiceWorkerDescriptor in that case.
+  ServiceWorkerLifetimeExtension DetermineLifetimeForServiceWorker(
+      const ServiceWorkerDescriptor& aServiceWorker);
 
   // Return true if the given principal and URI matches a registered service
   // worker which handles fetch event.
@@ -316,22 +330,43 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
   ServiceWorkerInfo* GetActiveWorkerInfoForScope(
       const OriginAttributes& aOriginAttributes, const nsACString& aScope);
 
+  // Given the ClientInfo for a ServiceWorker global, return the corresponding
+  // ServiceWorkerInfo, nullptr otherwise.  Do not use this for clients for
+  // globals that are not ServiceWorkers (and ideally you should be using
+  // GetServiceWorkerByDescriptor instead).
+  ServiceWorkerInfo* GetServiceWorkerByClientInfo(
+      const ClientInfo& aClientInfo) const;
+
+  // Given the ServiceWorkerDescriptor for a ServiceWorker, return the
+  // corresponding nullptr otherwise.
+  ServiceWorkerInfo* GetServiceWorkerByDescriptor(
+      const ServiceWorkerDescriptor& aServiceWorker) const;
+
   void StopControllingRegistration(
       ServiceWorkerRegistrationInfo* aRegistration);
 
+  // Find the ServiceWorkerRegistration whose scope best matches the URL of the
+  // given window or worker client (for the origin of the client based on its
+  // principal).  This cannot be used with ServiceWorker ClientInfos.
   already_AddRefed<ServiceWorkerRegistrationInfo>
   GetServiceWorkerRegistrationInfo(const ClientInfo& aClientInfo) const;
 
+  // Find the ServiceWorkerRegistration whose scope best matches the provided
+  // URL (for the origin of the given principal).
+  //
+  // Note that `GetRegistration` should be used in cases where you already have
+  // an exact scope.
   already_AddRefed<ServiceWorkerRegistrationInfo>
   GetServiceWorkerRegistrationInfo(nsIPrincipal* aPrincipal,
                                    nsIURI* aURI) const;
 
+  // Find the ServiceWorkerRegistration whose scope best matches the provided
+  // URL for the origin encoded as a scope key that has been obtained from
+  // PrincipToScopeKey.
   already_AddRefed<ServiceWorkerRegistrationInfo>
   GetServiceWorkerRegistrationInfo(const nsACString& aScopeKey,
                                    nsIURI* aURI) const;
 
-  // This method generates a key using isInElementBrowser from the principal. We
-  // don't use the origin because it can change during the loading.
   static nsresult PrincipalToScopeKey(nsIPrincipal* aPrincipal,
                                       nsACString& aKey);
 

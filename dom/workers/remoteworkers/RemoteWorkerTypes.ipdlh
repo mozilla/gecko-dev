@@ -67,6 +67,14 @@ struct RemoteWorkerData
 
   bool isSecureContext;
 
+  // For SharedWorkers this serves as the loadingClientInfo for the script loads
+  // and the basis for CSP for the global.
+  //
+  // For ServiceWorkers this is pre-created ClientSource information which
+  // should be used instead of a freshly created ClientSource.  This is done so
+  // that a ServiceWorker's client id can have a mapping established in the
+  // parent so that the keepalive contribution of ServiceWorkers to other
+  // ServiceWorkers is limited to their own keepalive lifetime.
   IPCClientInfo? clientInfo;
 
   nullable nsIReferrerInfo referrerInfo;
