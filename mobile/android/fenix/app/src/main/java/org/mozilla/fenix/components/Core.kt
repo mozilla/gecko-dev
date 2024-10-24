@@ -187,6 +187,15 @@ class Core(
                 FxNimbus.features.fingerprintingProtection.value().overrides
         }
 
+        // Apply third-party cookie blocking settings if the Nimbus feature is
+        // enabled.
+        if (FxNimbus.features.thirdPartyCookieBlocking.value().enabled) {
+            defaultSettings.cookieBehaviorOptInPartitioning =
+                FxNimbus.features.thirdPartyCookieBlocking.value().enabledNormal
+            defaultSettings.cookieBehaviorOptInPartitioningPBM =
+                FxNimbus.features.thirdPartyCookieBlocking.value().enabledPrivate
+        }
+
         GeckoEngine(
             context,
             defaultSettings,

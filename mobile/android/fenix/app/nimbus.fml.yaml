@@ -516,6 +516,24 @@ features:
         type: Boolean
         default: false
 
+  third-party-cookie-blocking:
+    description: Control third-party cookie blocking.
+    variables:
+      enabled:
+        description: If true, the feature is active.
+        type: Boolean
+        default: false
+      enabled-normal:
+        description: >
+          Enables / disables third-party cookie blocking in normal browsing mode.
+        type: Boolean
+        default: false
+      enabled-private:
+        description: >
+          Enables / disables third-party cookie blocking in private browsing mode.
+        type: Boolean
+        default: true
+
   menu-redesign:
     description: Control the new menu redesign.
     variables:

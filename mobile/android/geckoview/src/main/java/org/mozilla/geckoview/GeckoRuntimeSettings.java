@@ -675,6 +675,10 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new PrefWithoutDefault<Boolean>("fission.disableSessionHistoryInParent");
   /* package */ final Pref<Boolean> mFetchPriorityEnabled =
       new Pref<Boolean>("network.fetchpriority.enabled", false);
+  /* package */ final Pref<Boolean> mCookieBehaviorOptInPartitioning =
+      new Pref<Boolean>("network.cookie.cookieBehavior.optInPartitioning", false);
+  /* package */ final Pref<Boolean> mCookieBehaviorOptInPartitioningPBM =
+      new Pref<Boolean>("network.cookie.cookieBehavior.optInPartitioning.pbmode", false);
 
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
@@ -895,6 +899,47 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public boolean getFdlibmMathEnabled() {
     return mFdlibmMathEnabled.get();
+  }
+
+  /**
+   * Set the pref to control the cookie behavior opt-in partitioning.
+   *
+   * @param enabled Whether we set the pref to true or false
+   * @return This GeckoRuntimeSettings instance
+   */
+  public @NonNull GeckoRuntimeSettings setCookieBehaviorOptInPartitioning(final boolean enabled) {
+    mCookieBehaviorOptInPartitioning.commit(enabled);
+    return this;
+  }
+
+  /**
+   * Set the pref to control the cookie behavior opt-in partitioning in private browsing mode.
+   *
+   * @param enabled Whether we set the pref to true or false
+   * @return This GeckoRuntimeSettings instance
+   */
+  public @NonNull GeckoRuntimeSettings setCookieBehaviorOptInPartitioningPBM(
+      final boolean enabled) {
+    mCookieBehaviorOptInPartitioningPBM.commit(enabled);
+    return this;
+  }
+
+  /**
+   * Get whether the cookie behavior opt-in partitioning is enabled.
+   *
+   * @return Whether the cookie behavior opt-in partitioning is enabled.
+   */
+  public boolean getCookieBehaviorOptInPartitioning() {
+    return mCookieBehaviorOptInPartitioning.get();
+  }
+
+  /**
+   * Get whether the cookie behavior opt-in partitioning in private browsing mode is enabled.
+   *
+   * @return Whether the cookie behavior opt-in partitioning in private browsing mode is enabled.
+   */
+  public boolean getCookieBehaviorOptInPartitioningPBM() {
+    return mCookieBehaviorOptInPartitioningPBM.get();
   }
 
   /**
