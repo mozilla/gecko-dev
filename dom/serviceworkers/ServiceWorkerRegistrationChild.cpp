@@ -34,7 +34,7 @@ IPCResult ServiceWorkerRegistrationChild::RecvUpdateState(
 
 IPCResult ServiceWorkerRegistrationChild::RecvFireUpdateFound() {
   if (mOwner) {
-    mOwner->MaybeDispatchUpdateFoundRunnable();
+    mOwner->FireUpdateFound();
   }
   return IPC_OK();
 }

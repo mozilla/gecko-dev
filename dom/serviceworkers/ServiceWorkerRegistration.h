@@ -105,11 +105,9 @@ class ServiceWorkerRegistration final : public DOMEventTargetHelper {
   void WhenVersionReached(uint64_t aVersion,
                           ServiceWorkerBoolCallback&& aCallback);
 
-  void MaybeDispatchUpdateFoundRunnable();
-
   void RevokeActor(ServiceWorkerRegistrationChild* aActor);
 
-  void FireUpdateFound();
+  void FireUpdateFound() { MaybeDispatchUpdateFound(); }
 
  private:
   ServiceWorkerRegistration(
