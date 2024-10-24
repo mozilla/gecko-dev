@@ -90,7 +90,6 @@ fun AddOnsOnboardingPage(pageState: OnboardingPageState) {
                 text = primaryButton.text,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
                     .semantics { testTag = title + "onboarding_card.positive_button" },
                 onClick = primaryButton.onClick,
             )
