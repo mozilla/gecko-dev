@@ -56,6 +56,7 @@
 class nsIArray;
 class nsIBaseWindow;
 class nsIContent;
+class nsICookieJarSettings;
 class nsICSSDeclaration;
 class nsIDocShellTreeOwner;
 class nsIDOMWindowUtils;
@@ -364,6 +365,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       override;
 
   mozilla::StorageAccess GetStorageAccess() final;
+
+  nsICookieJarSettings* GetCookieJarSettings() final;
 
   void NoteCalledRegisterForServiceWorkerScope(const nsACString& aScope);
 

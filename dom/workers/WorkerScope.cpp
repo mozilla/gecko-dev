@@ -300,6 +300,11 @@ StorageAccess WorkerGlobalScopeBase::GetStorageAccess() {
   return mWorkerPrivate->StorageAccess();
 }
 
+nsICookieJarSettings* WorkerGlobalScopeBase::GetCookieJarSettings() {
+  AssertIsOnWorkerThread();
+  return mWorkerPrivate->CookieJarSettings();
+}
+
 Maybe<ClientInfo> WorkerGlobalScopeBase::GetClientInfo() const {
   return Some(mClientSource->Info());
 }

@@ -329,6 +329,10 @@ mozilla::StorageAccess nsIGlobalObject::GetStorageAccess() {
   return mozilla::StorageAccess::eDeny;
 }
 
+nsICookieJarSettings* nsIGlobalObject::GetCookieJarSettings() {
+  return nullptr;
+}
+
 nsPIDOMWindowInner* nsIGlobalObject::GetAsInnerWindow() {
   if (MOZ_LIKELY(mIsInnerWindow)) {
     return static_cast<nsPIDOMWindowInner*>(

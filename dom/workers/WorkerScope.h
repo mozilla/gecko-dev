@@ -131,6 +131,8 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
 
   StorageAccess GetStorageAccess() final;
 
+  nsICookieJarSettings* GetCookieJarSettings() final;
+
   Maybe<ClientInfo> GetClientInfo() const final;
   Maybe<ClientState> GetClientState() const final;
 

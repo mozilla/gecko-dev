@@ -5919,6 +5919,14 @@ StorageAccess nsGlobalWindowInner::GetStorageAccess() {
   return StorageAllowedForWindow(this);
 }
 
+nsICookieJarSettings* nsGlobalWindowInner::GetCookieJarSettings() {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mDoc) {
+    return mDoc->CookieJarSettings();
+  }
+  return nullptr;
+}
+
 nsresult nsGlobalWindowInner::FireDelayedDOMEvents(bool aIncludeSubWindows) {
   // Fires an offline status event if the offline status has changed
   FireOfflineStatusEventIfChanged();

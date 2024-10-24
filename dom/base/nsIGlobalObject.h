@@ -31,6 +31,7 @@
   }
 
 class nsCycleCollectionTraversalCallback;
+class nsICookieJarSettings;
 class nsIPrincipal;
 class nsPIDOMWindowInner;
 
@@ -231,6 +232,10 @@ class nsIGlobalObject : public nsISupports {
    * this method in your subclass of this class!
    */
   virtual mozilla::StorageAccess GetStorageAccess();
+
+  // For globals with cookie jars (windows, workers), the cookie jar settings;
+  // will likely be null on other global types.
+  virtual nsICookieJarSettings* GetCookieJarSettings();
 
   // Returns the set of active origin trials for this global.
   virtual mozilla::OriginTrials Trials() const = 0;
