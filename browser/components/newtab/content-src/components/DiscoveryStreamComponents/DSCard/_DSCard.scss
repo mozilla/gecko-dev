@@ -390,3 +390,62 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     margin: 0;
   }
 }
+
+.ds-card-grid {
+  &.ad-sizing-variant-a .ds-card.ds-spoc-rectangle,
+  &.ad-sizing-variant-b .ds-card.ds-spoc-rectangle {
+    box-shadow: none;
+
+    .ds-image {
+      padding-block-start: 83.4%;
+    }
+
+    .card-stp-button-hover-background {
+      padding-block-start: 83.4%;
+    }
+  }
+
+  &.ad-sizing-variant-a .ds-card.ds-spoc-rectangle {
+    background: none;
+
+    .img-wrapper .ds-image img {
+      border-radius: var(--border-radius-medium);
+    }
+
+    .meta {
+      padding-inline: 0;
+      padding-block: var(--space-medium);
+
+      .title {
+        // Contrast fix for users who have wallpapers set
+        @include wallpaper-contrast-fix;
+
+        text-transform: uppercase;
+        font-size: var(--font-size-small);
+        font-weight: normal;
+        color: var(--newtab-contextual-text-secondary-color);
+      }
+
+      .excerpt {
+        display: none;
+      }
+    }
+
+    .card-stp-button-hover-background {
+      border-radius: var(--border-radius-medium);
+    }
+  }
+
+  &.ad-sizing-variant-b .ds-card.ds-spoc-rectangle {
+    border: var(--border-width) solid var(--border-color-deemphasized);
+
+    .meta {
+      padding-block-start: var(--space-small);
+      padding-block-end: var(--space-medium);
+
+      .title {
+        text-transform: capitalize;
+      }
+    }
+  }
+}

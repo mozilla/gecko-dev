@@ -1098,8 +1098,11 @@ pocket:
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       is_sponsored: &is_sponsored_pocket
-        description: Whether the pocket tile was sponsored (has an ad shim).
+        description: Whether the pocket tile was sponsored (has an ad callback).
         type: boolean
+      format: &format
+        description: For sponsored content only, was it a standard spoc, or a new IAB rectangle spoc. Can be "spoc" or "rectangle"
+        type: string
       position: &pocket_position
         description: The position (0-index) of the pocket tile.
         type: quantity
@@ -1171,6 +1174,7 @@ pocket:
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       is_sponsored: *is_sponsored_pocket
+      format: *format
       position: *pocket_position
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id
@@ -1212,6 +1216,7 @@ pocket:
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       is_sponsored: *is_sponsored_pocket
+      format: *format
       position: *pocket_position
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id
@@ -1254,6 +1259,7 @@ pocket:
     extra_keys:
       newtab_visit_id: *newtab_visit_id
       is_sponsored: *is_sponsored_pocket
+      format: *format
       position: *pocket_position
       recommendation_id: *recommendation_id
       tile_id: *pocket_tile_id

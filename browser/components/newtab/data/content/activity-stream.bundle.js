@@ -1632,6 +1632,7 @@ const LinkMenuOptions = {
         ...(site.sponsored_tile_id ? { tile_id: site.sponsored_tile_id } : {}),
         is_pocket_card: site.type === "CardGrid",
         is_list_card: site.is_list_card,
+        ...(site.format ? { format: site.format } : {}),
       })),
     }),
     impression: actionCreators.ImpressionStats({
@@ -2139,7 +2140,10 @@ class DSLinkMenu extends (external_React_default()).PureComponent {
         scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
         recommended_at: this.props.recommended_at,
         received_rank: this.props.received_rank,
-        is_list_card: this.props.is_list_card
+        is_list_card: this.props.is_list_card,
+        ...(this.props.format ? {
+          format: this.props.format
+        } : {})
       }
     })));
   }
@@ -2297,7 +2301,10 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
             recommended_at: link.recommended_at,
             received_rank: link.received_rank,
             topic: link.topic,
-            is_list_card: link.is_list_card
+            is_list_card: link.is_list_card,
+            ...(link.format ? {
+              format: link.format
+            } : {})
           })),
           firstVisibleTimestamp: this.props.firstVisibleTimestamp
         }));
@@ -2935,23 +2942,28 @@ const DefaultMeta = ({
   onThumbsUpClick,
   onThumbsDownClick,
   isListCard,
-  state
+  state,
+  format
 }) => /*#__PURE__*/external_React_default().createElement("div", {
   className: "meta"
 }, /*#__PURE__*/external_React_default().createElement("div", {
   className: "info-wrap"
-}, ctaButtonVariant !== "variant-b" && /*#__PURE__*/external_React_default().createElement(DSSource, {
+}, ctaButtonVariant !== "variant-b" && format !== "rectangle" && /*#__PURE__*/external_React_default().createElement(DSSource, {
   source: source,
   timeToRead: timeToRead,
   newSponsoredLabel: newSponsoredLabel,
   context: context,
   sponsor: sponsor,
   sponsored_by_override: sponsored_by_override
-}), /*#__PURE__*/external_React_default().createElement("header", {
+}), format !== "rectangle" && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("header", {
   className: "title clamp"
 }, title), excerpt && /*#__PURE__*/external_React_default().createElement("p", {
   className: "excerpt clamp"
-}, excerpt)), !isListCard && mayHaveThumbsUpDown && /*#__PURE__*/external_React_default().createElement(DSThumbsUpDownButtons, {
+}, excerpt)), format === "rectangle" && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("header", {
+  className: "title clamp"
+}, "Sponsored"), /*#__PURE__*/external_React_default().createElement("p", {
+  className: "excerpt clamp"
+}, "Sponsored content supports our mission to build a better web."))), !isListCard && format !== "rectangle" && mayHaveThumbsUpDown && /*#__PURE__*/external_React_default().createElement(DSThumbsUpDownButtons, {
   onThumbsDownClick: onThumbsDownClick,
   onThumbsUpClick: onThumbsUpClick,
   sponsor: sponsor,
@@ -3076,7 +3088,10 @@ class _DSCard extends (external_React_default()).PureComponent {
             topic: this.props.topic,
             matches_selected_topic: matchesSelectedTopic,
             selected_topics: this.props.selectedTopics,
-            is_list_card: this.props.isListCard
+            is_list_card: this.props.isListCard,
+            ...(this.props.format ? {
+              format: this.props.format
+            } : {})
           }
         }));
         this.props.dispatch(actionCreators.ImpressionStats({
@@ -3094,7 +3109,10 @@ class _DSCard extends (external_React_default()).PureComponent {
             recommendation_id: this.props.recommendation_id,
             topic: this.props.topic,
             selected_topics: this.props.selectedTopics,
-            is_list_card: this.props.isListCard
+            is_list_card: this.props.isListCard,
+            ...(this.props.format ? {
+              format: this.props.format
+            } : {})
           }]
         }));
       }
@@ -3131,7 +3149,10 @@ class _DSCard extends (external_React_default()).PureComponent {
           topic: this.props.topic,
           matches_selected_topic: matchesSelectedTopic,
           selected_topics: this.props.selectedTopics,
-          is_list_card: this.props.isListCard
+          is_list_card: this.props.isListCard,
+          ...(this.props.format ? {
+            format: this.props.format
+          } : {})
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -3146,7 +3167,10 @@ class _DSCard extends (external_React_default()).PureComponent {
           recommendation_id: this.props.recommendation_id,
           topic: this.props.topic,
           selected_topics: this.props.selectedTopics,
-          is_list_card: this.props.isListCard
+          is_list_card: this.props.isListCard,
+          ...(this.props.format ? {
+            format: this.props.format
+          } : {})
         }]
       }));
     }
@@ -3320,7 +3344,9 @@ class _DSCard extends (external_React_default()).PureComponent {
       DiscoveryStream,
       saveToPocketCard,
       isListCard,
-      isFakespot
+      isFakespot,
+      format,
+      alt_text
     } = this.props;
     if (this.props.placeholder || !this.state.isSeen) {
       // placeholder-seen is used to ensure the loading animation is only used if the card is visible.
@@ -3372,6 +3398,7 @@ class _DSCard extends (external_React_default()).PureComponent {
     const fakespotClassName = isFakespot ? `fakespot` : ``;
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
+    const spocFormatClassName = format === "rectangle" ? `ds-spoc-rectangle` : ``;
     let stpButton = () => {
       return /*#__PURE__*/external_React_default().createElement("button", {
         className: "card-stp-button",
@@ -3391,7 +3418,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       })));
     };
     return /*#__PURE__*/external_React_default().createElement("article", {
-      className: `ds-card ${listCardClassName} ${fakespotClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
+      className: `ds-card ${listCardClassName} ${fakespotClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
       ref: this.setContextMenuButtonHostRef
     }, this.props.showTopics && this.props.topic && !isListCard && /*#__PURE__*/external_React_default().createElement("span", {
       className: "ds-card-topic",
@@ -3405,7 +3432,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       sizes: isListCard ? this.listCardImageSizes : this.dsImageSizes,
       url: this.props.url,
       title: this.props.title,
-      isRecentSave: isRecentSave
+      isRecentSave: isRecentSave,
+      alt_text: alt_text
     })), /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
       className: "ds-card-link",
       dispatch: this.props.dispatch,
@@ -3427,6 +3455,9 @@ class _DSCard extends (external_React_default()).PureComponent {
         received_rank: this.props.received_rank,
         topic: this.props.topic,
         is_list_card: isListCard,
+        ...(format ? {
+          format
+        } : {}),
         isFakespot,
         category: this.props.category
       }],
@@ -3460,7 +3491,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       onThumbsUpClick: this.onThumbsUpClick,
       onThumbsDownClick: this.onThumbsDownClick,
       state: this.state,
-      isListCard: isListCard
+      isListCard: isListCard,
+      format: format
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -3490,7 +3522,8 @@ class _DSCard extends (external_React_default()).PureComponent {
       scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
       recommended_at: this.props.recommended_at,
       received_rank: this.props.received_rank,
-      is_list_card: this.props.isListCard
+      is_list_card: this.props.isListCard,
+      format: format
     }))));
   }
 }
@@ -4181,10 +4214,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const prefs = this.props.Prefs.values;
     const {
       items,
-      hybridLayout,
-      hideCardBackground,
       fourCardLayout,
-      compactGrid,
       essentialReadsHeader,
       editorsPicksHeader,
       onboardingExperience,
@@ -4193,7 +4223,6 @@ class _CardGrid extends (external_React_default()).PureComponent {
       spocMessageVariant,
       widgets,
       recentSavesEnabled,
-      hideDescriptions,
       DiscoveryStream
     } = this.props;
     const {
@@ -4256,7 +4285,9 @@ class _CardGrid extends (external_React_default()).PureComponent {
         mayHaveThumbsUpDown: mayHaveThumbsUpDown,
         scheduled_corpus_item_id: rec.scheduled_corpus_item_id,
         recommended_at: rec.recommended_at,
-        received_rank: rec.received_rank
+        received_rank: rec.received_rank,
+        format: rec.format,
+        alt_text: rec.alt_text
       }));
     }
     if (widgets?.positions?.length && widgets?.data?.length) {
@@ -4313,12 +4344,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
         editorsPicksCards = [...cards.splice(0, cards.length)];
       }
     }
-    const hideCardBackgroundClass = hideCardBackground ? `ds-card-grid-hide-background` : ``;
-    const fourCardLayoutClass = fourCardLayout ? `ds-card-grid-four-card-variant` : ``;
-    const hideDescriptionsClassName = !hideDescriptions ? `ds-card-grid-include-descriptions` : ``;
-    const compactGridClassName = compactGrid ? `ds-card-grid-compact` : ``;
-    const hybridLayoutClassName = hybridLayout ? `ds-card-grid-hybrid-layout` : ``;
-    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName}`;
+    const gridClassName = this.renderGridClassName();
     return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, !isOnboardingExperienceDismissed && onboardingExperience && /*#__PURE__*/external_React_default().createElement(OnboardingExperience, {
       dispatch: this.props.dispatch
     }), essentialReadsCards?.length > 0 && /*#__PURE__*/external_React_default().createElement("div", {
@@ -4357,6 +4383,31 @@ class _CardGrid extends (external_React_default()).PureComponent {
       dispatch: this.props.dispatch
     });
     return listFeed;
+  }
+  renderGridClassName() {
+    const prefs = this.props.Prefs.values;
+    const {
+      hybridLayout,
+      hideCardBackground,
+      fourCardLayout,
+      compactGrid,
+      hideDescriptions
+    } = this.props;
+    const adSizingVariantAEnabled = prefs["newtabAdSize.variant-a"];
+    const adSizingVariantBEnabled = prefs["newtabAdSize.variant-b"];
+    const adSizingVariantEnabled = adSizingVariantAEnabled || adSizingVariantBEnabled;
+    let adSizingVariantClassName = "";
+    if (adSizingVariantEnabled) {
+      // Ad sizing experiment variant, we want to ensure only 1 of these is ever enabled.
+      adSizingVariantClassName = adSizingVariantAEnabled ? `ad-sizing-variant-a` : `ad-sizing-variant-b`;
+    }
+    const hideCardBackgroundClass = hideCardBackground ? `ds-card-grid-hide-background` : ``;
+    const fourCardLayoutClass = fourCardLayout ? `ds-card-grid-four-card-variant` : ``;
+    const hideDescriptionsClassName = !hideDescriptions ? `ds-card-grid-include-descriptions` : ``;
+    const compactGridClassName = compactGrid ? `ds-card-grid-compact` : ``;
+    const hybridLayoutClassName = hybridLayout ? `ds-card-grid-hybrid-layout` : ``;
+    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName} ${adSizingVariantClassName}`;
+    return gridClassName;
   }
   render() {
     const {

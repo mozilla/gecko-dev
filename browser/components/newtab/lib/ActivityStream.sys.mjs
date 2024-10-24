@@ -401,6 +401,20 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "newtabAdSize.variant-a",
+    {
+      title: "Boolean flag to turn ad size variant A on and off",
+      value: false,
+    },
+  ],
+  [
+    "newtabAdSize.variant-b",
+    {
+      title: "Boolean flag to turn ad size variant B on and off",
+      value: false,
+    },
+  ],
+  [
     "newtabLayouts.variant-a",
     {
       title: "Boolean flag to turn layout variant A on and off",

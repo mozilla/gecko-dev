@@ -328,10 +328,7 @@ export class _CardGrid extends React.PureComponent {
     const prefs = this.props.Prefs.values;
     const {
       items,
-      hybridLayout,
-      hideCardBackground,
       fourCardLayout,
-      compactGrid,
       essentialReadsHeader,
       editorsPicksHeader,
       onboardingExperience,
@@ -340,9 +337,9 @@ export class _CardGrid extends React.PureComponent {
       spocMessageVariant,
       widgets,
       recentSavesEnabled,
-      hideDescriptions,
       DiscoveryStream,
     } = this.props;
+
     const { saveToPocketCard, topicsLoading } = DiscoveryStream;
     const showRecentSaves = prefs.showRecentSaves && recentSavesEnabled;
     const isOnboardingExperienceDismissed =
@@ -359,6 +356,7 @@ export class _CardGrid extends React.PureComponent {
       .filter(item => !item.feedName)
       .slice(0, items);
     const cards = [];
+
     let essentialReadsCards = [];
     let editorsPicksCards = [];
 
@@ -412,6 +410,8 @@ export class _CardGrid extends React.PureComponent {
             scheduled_corpus_item_id={rec.scheduled_corpus_item_id}
             recommended_at={rec.recommended_at}
             received_rank={rec.received_rank}
+            format={rec.format}
+            alt_text={rec.alt_text}
           />
         )
       );
@@ -485,21 +485,7 @@ export class _CardGrid extends React.PureComponent {
       }
     }
 
-    const hideCardBackgroundClass = hideCardBackground
-      ? `ds-card-grid-hide-background`
-      : ``;
-    const fourCardLayoutClass = fourCardLayout
-      ? `ds-card-grid-four-card-variant`
-      : ``;
-    const hideDescriptionsClassName = !hideDescriptions
-      ? `ds-card-grid-include-descriptions`
-      : ``;
-    const compactGridClassName = compactGrid ? `ds-card-grid-compact` : ``;
-    const hybridLayoutClassName = hybridLayout
-      ? `ds-card-grid-hybrid-layout`
-      : ``;
-
-    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName}`;
+    const gridClassName = this.renderGridClassName();
 
     return (
       <>
@@ -557,6 +543,47 @@ export class _CardGrid extends React.PureComponent {
       />
     );
     return listFeed;
+  }
+
+  renderGridClassName() {
+    const prefs = this.props.Prefs.values;
+    const {
+      hybridLayout,
+      hideCardBackground,
+      fourCardLayout,
+      compactGrid,
+      hideDescriptions,
+    } = this.props;
+
+    const adSizingVariantAEnabled = prefs["newtabAdSize.variant-a"];
+    const adSizingVariantBEnabled = prefs["newtabAdSize.variant-b"];
+    const adSizingVariantEnabled =
+      adSizingVariantAEnabled || adSizingVariantBEnabled;
+
+    let adSizingVariantClassName = "";
+    if (adSizingVariantEnabled) {
+      // Ad sizing experiment variant, we want to ensure only 1 of these is ever enabled.
+      adSizingVariantClassName = adSizingVariantAEnabled
+        ? `ad-sizing-variant-a`
+        : `ad-sizing-variant-b`;
+    }
+
+    const hideCardBackgroundClass = hideCardBackground
+      ? `ds-card-grid-hide-background`
+      : ``;
+    const fourCardLayoutClass = fourCardLayout
+      ? `ds-card-grid-four-card-variant`
+      : ``;
+    const hideDescriptionsClassName = !hideDescriptions
+      ? `ds-card-grid-include-descriptions`
+      : ``;
+    const compactGridClassName = compactGrid ? `ds-card-grid-compact` : ``;
+    const hybridLayoutClassName = hybridLayout
+      ? `ds-card-grid-hybrid-layout`
+      : ``;
+
+    const gridClassName = `ds-card-grid ${hybridLayoutClassName} ${hideCardBackgroundClass} ${fourCardLayoutClass} ${hideDescriptionsClassName} ${compactGridClassName} ${adSizingVariantClassName}`;
+    return gridClassName;
   }
 
   render() {

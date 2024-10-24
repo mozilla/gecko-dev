@@ -130,6 +130,12 @@ $col4-header-font-size: 14;
     grid-gap: 20px;
   }
 
+  &.ad-sizing-variant-a,
+  &.ad-sizing-variant-b {
+    row-gap: 24px;
+    column-gap: 18px;
+  }
+
   &.ds-card-grid-recent-saves {
     .ds-card {
       // Hide the second row orphan on narrow screens.

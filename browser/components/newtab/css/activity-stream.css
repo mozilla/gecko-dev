@@ -4146,6 +4146,10 @@ main section {
 .ds-card-grid.ds-card-grid-compact {
   grid-gap: 20px;
 }
+.ds-card-grid.ad-sizing-variant-a, .ds-card-grid.ad-sizing-variant-b {
+  row-gap: 24px;
+  column-gap: 18px;
+}
 @media (min-width: 610px) and (max-width: 866px) {
   .ds-card-grid.ds-card-grid-recent-saves .ds-card:last-child:nth-child(2n-1) {
     display: none;
@@ -5120,6 +5124,54 @@ main section {
   line-height: 20px;
   color: var(--newtab-text-primary-color);
   margin: 0;
+}
+
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle, .ds-card-grid.ad-sizing-variant-b .ds-card.ds-spoc-rectangle {
+  box-shadow: none;
+}
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .ds-image, .ds-card-grid.ad-sizing-variant-b .ds-card.ds-spoc-rectangle .ds-image {
+  padding-block-start: 83.4%;
+}
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .card-stp-button-hover-background, .ds-card-grid.ad-sizing-variant-b .ds-card.ds-spoc-rectangle .card-stp-button-hover-background {
+  padding-block-start: 83.4%;
+}
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle {
+  background: none;
+}
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .img-wrapper .ds-image img {
+  border-radius: var(--border-radius-medium);
+}
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .meta {
+  padding-inline: 0;
+  padding-block: var(--space-medium);
+}
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .meta .title {
+  text-transform: uppercase;
+  font-size: var(--font-size-small);
+  font-weight: normal;
+  color: var(--newtab-contextual-text-secondary-color);
+}
+.lightWallpaper .ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .meta .title {
+  color-scheme: light;
+}
+.darkWallpaper .ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .meta .title {
+  color-scheme: dark;
+}
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .meta .excerpt {
+  display: none;
+}
+.ds-card-grid.ad-sizing-variant-a .ds-card.ds-spoc-rectangle .card-stp-button-hover-background {
+  border-radius: var(--border-radius-medium);
+}
+.ds-card-grid.ad-sizing-variant-b .ds-card.ds-spoc-rectangle {
+  border: var(--border-width) solid var(--border-color-deemphasized);
+}
+.ds-card-grid.ad-sizing-variant-b .ds-card.ds-spoc-rectangle .meta {
+  padding-block-start: var(--space-small);
+  padding-block-end: var(--space-medium);
+}
+.ds-card-grid.ad-sizing-variant-b .ds-card.ds-spoc-rectangle .meta .title {
+  text-transform: capitalize;
 }
 
 .story-footer {

@@ -1009,22 +1009,24 @@ export class DiscoveryStreamFeed {
     if (unifiedAdsEnabled) {
       return {
         items: spocs.map(spoc => ({
-          id: spoc.caps.cap_key,
+          format: spoc.format,
+          alt_text: spoc.alt_text,
+          id: spoc.caps?.cap_key,
           flight_id: spoc.block_key,
           block_key: spoc.block_key,
           shim: spoc.callbacks,
           caps: {
             flight: {
-              count: spoc.caps.day,
+              count: spoc.caps?.day,
               period: SPOCS_CAP_DURATION,
             },
           },
           domain: spoc.domain,
           excerpt: spoc.excerpt,
           raw_image_src: spoc.image_url,
-          priority: spoc.ranking.priority,
-          personalization_models: spoc.ranking.personalization_models,
-          item_score: spoc.ranking.item_score,
+          priority: spoc.ranking?.priority || 1,
+          personalization_models: spoc.ranking?.personalization_models,
+          item_score: spoc.ranking?.item_score,
           sponsor: spoc.sponsor,
           title: spoc.title,
           url: spoc.url,
@@ -1071,6 +1073,7 @@ export class DiscoveryStreamFeed {
       this.store.getState().Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED];
     let spocsState = cachedData.spocs;
     let placements = this.getPlacements();
+    let unifiedAdsPlacements = [];
 
     if (
       this.showSpocs &&
@@ -1137,15 +1140,17 @@ export class DiscoveryStreamFeed {
             .filter(item => item)
             .map(item => parseInt(item, 10));
 
+          unifiedAdsPlacements = placementsArray.map((placement, index) => ({
+            placement,
+            count: countsArray[index],
+          }));
+
           const blockedSponsors =
             this.store.getState().Prefs.values[PREF_UNIFIED_ADS_BLOCKED_LIST];
 
           body = {
             context_id: lazy.contextId,
-            placements: placementsArray.map((placement, index) => ({
-              placement,
-              count: countsArray[index],
-            })),
+            placements: unifiedAdsPlacements,
             blocks: blockedSponsors.split(","),
           };
         }
@@ -1184,7 +1189,18 @@ export class DiscoveryStreamFeed {
 
           const spocsResultPromises = this.getPlacements().map(
             async placement => {
-              const freshSpocs = spocsState.spocs[placement.name];
+              let freshSpocs = spocsState.spocs[placement.name];
+
+              if (unifiedAdsEnabled) {
+                freshSpocs = unifiedAdsPlacements.reduce(
+                  (accumulator, currentValue) => {
+                    return accumulator.concat(
+                      spocsState.spocs[currentValue.placement]
+                    );
+                  },
+                  []
+                );
+              }
 
               if (!freshSpocs) {
                 return;

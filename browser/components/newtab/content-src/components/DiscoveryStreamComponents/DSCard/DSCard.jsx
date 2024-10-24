@@ -91,10 +91,11 @@ export const DefaultMeta = ({
   onThumbsDownClick,
   isListCard,
   state,
+  format,
 }) => (
   <div className="meta">
     <div className="info-wrap">
-      {ctaButtonVariant !== "variant-b" && (
+      {ctaButtonVariant !== "variant-b" && format !== "rectangle" && (
         <DSSource
           source={source}
           timeToRead={timeToRead}
@@ -104,10 +105,23 @@ export const DefaultMeta = ({
           sponsored_by_override={sponsored_by_override}
         />
       )}
-      <header className="title clamp">{title}</header>
-      {excerpt && <p className="excerpt clamp">{excerpt}</p>}
+      {format !== "rectangle" && (
+        <>
+          <header className="title clamp">{title}</header>
+          {excerpt && <p className="excerpt clamp">{excerpt}</p>}
+        </>
+      )}
+      {/* Rectangle format is returned for English clients only.*/}
+      {format === "rectangle" && (
+        <>
+          <header className="title clamp">Sponsored</header>
+          <p className="excerpt clamp">
+            Sponsored content supports our mission to build a better web.
+          </p>
+        </>
+      )}
     </div>
-    {!isListCard && mayHaveThumbsUpDown && (
+    {!isListCard && format !== "rectangle" && mayHaveThumbsUpDown && (
       <DSThumbsUpDownButtons
         onThumbsDownClick={onThumbsDownClick}
         onThumbsUpClick={onThumbsUpClick}
@@ -268,6 +282,7 @@ export class _DSCard extends React.PureComponent {
               matches_selected_topic: matchesSelectedTopic,
               selected_topics: this.props.selectedTopics,
               is_list_card: this.props.isListCard,
+              ...(this.props.format ? { format: this.props.format } : {}),
             },
           })
         );
@@ -289,6 +304,7 @@ export class _DSCard extends React.PureComponent {
                 topic: this.props.topic,
                 selected_topics: this.props.selectedTopics,
                 is_list_card: this.props.isListCard,
+                ...(this.props.format ? { format: this.props.format } : {}),
               },
             ],
           })
@@ -329,6 +345,7 @@ export class _DSCard extends React.PureComponent {
             matches_selected_topic: matchesSelectedTopic,
             selected_topics: this.props.selectedTopics,
             is_list_card: this.props.isListCard,
+            ...(this.props.format ? { format: this.props.format } : {}),
           },
         })
       );
@@ -348,6 +365,7 @@ export class _DSCard extends React.PureComponent {
               topic: this.props.topic,
               selected_topics: this.props.selectedTopics,
               is_list_card: this.props.isListCard,
+              ...(this.props.format ? { format: this.props.format } : {}),
             },
           ],
         })
@@ -556,6 +574,8 @@ export class _DSCard extends React.PureComponent {
       saveToPocketCard,
       isListCard,
       isFakespot,
+      format,
+      alt_text,
     } = this.props;
     if (this.props.placeholder || !this.state.isSeen) {
       // placeholder-seen is used to ensure the loading animation is only used if the card is visible.
@@ -619,6 +639,8 @@ export class _DSCard extends React.PureComponent {
     const fakespotClassName = isFakespot ? `fakespot` : ``;
     const titleLinesName = `ds-card-title-lines-${titleLines}`;
     const descLinesClassName = `ds-card-desc-lines-${descLines}`;
+    const spocFormatClassName =
+      format === "rectangle" ? `ds-spoc-rectangle` : ``;
 
     let stpButton = () => {
       return (
@@ -647,7 +669,7 @@ export class _DSCard extends React.PureComponent {
     };
     return (
       <article
-        className={`ds-card ${listCardClassName} ${fakespotClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
+        className={`ds-card ${listCardClassName} ${fakespotClassName} ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${spocFormatClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
         ref={this.setContextMenuButtonHostRef}
       >
         {this.props.showTopics && this.props.topic && !isListCard && (
@@ -665,6 +687,7 @@ export class _DSCard extends React.PureComponent {
             url={this.props.url}
             title={this.props.title}
             isRecentSave={isRecentSave}
+            alt_text={alt_text}
           />
         </div>
         <SafeAnchor
@@ -690,6 +713,7 @@ export class _DSCard extends React.PureComponent {
                 received_rank: this.props.received_rank,
                 topic: this.props.topic,
                 is_list_card: isListCard,
+                ...(format ? { format } : {}),
                 isFakespot,
                 category: this.props.category,
               },
@@ -729,6 +753,7 @@ export class _DSCard extends React.PureComponent {
             onThumbsDownClick={this.onThumbsDownClick}
             state={this.state}
             isListCard={isListCard}
+            format={format}
           />
         )}
 
@@ -766,6 +791,7 @@ export class _DSCard extends React.PureComponent {
                 recommended_at={this.props.recommended_at}
                 received_rank={this.props.received_rank}
                 is_list_card={this.props.isListCard}
+                format={format}
               />
             )}
           </div>

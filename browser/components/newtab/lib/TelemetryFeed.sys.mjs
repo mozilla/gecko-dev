@@ -787,6 +787,7 @@ export class TelemetryFeed {
           matches_selected_topic,
           selected_topics,
           is_list_card,
+          format,
         } = action.data.value ?? {};
         if (
           action.data.source === "POPULAR_TOPICS" ||
@@ -805,6 +806,7 @@ export class TelemetryFeed {
           Glean.pocket.click.record({
             newtab_visit_id: session.session_id,
             is_sponsored: card_type === "spoc",
+            ...(format ? { format } : {}),
             matches_selected_topic,
             selected_topics,
             topic,
@@ -889,10 +891,12 @@ export class TelemetryFeed {
           matches_selected_topic,
           selected_topics,
           is_list_card,
+          format,
         } = action.data.value ?? {};
         Glean.pocket.save.record({
           newtab_visit_id: session.session_id,
           is_sponsored: card_type === "spoc",
+          ...(format ? { format } : {}),
           topic,
           matches_selected_topic,
           selected_topics,
@@ -1302,6 +1306,7 @@ export class TelemetryFeed {
         Glean.pocket.dismiss.record({
           newtab_visit_id: session.session_id,
           is_sponsored: datum.card_type === "spoc",
+          ...(datum.format ? { format: datum.format } : {}),
           position: datum.pos,
           tile_id: datum.id || datum.tile_id,
           is_list_card: datum.is_list_card,
@@ -1371,6 +1376,7 @@ export class TelemetryFeed {
         Glean.pocket.impression.record({
           newtab_visit_id: session.session_id,
           is_sponsored: tile.type === "spoc",
+          ...(tile.format ? { format: tile.format } : {}),
           position: tile.pos,
           tile_id: tile.id,
           topic: tile.topic,

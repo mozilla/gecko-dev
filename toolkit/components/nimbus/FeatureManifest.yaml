@@ -856,6 +856,27 @@ newtabSpocsCache:
       description: >-
         Controls if spocs should be included in startup cache.
 
+newtabAdSizingExperiment:
+  description: >-
+    Change the default ad size and UI for certain ad formats.
+  owner: achurchwell@mozilla.com, sdowne@mozilla.com
+  hasExposure: false
+  variables:
+    variantA:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabAdSize.variant-a
+      description: >-
+        Variant A ad size and UI.
+    variantB:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.newtabAdSize.variant-b
+      description: >-
+        Variant B ad size and UI.
+
 newtabLayoutExperiment:
   description: >-
     Change the default layout of new tab by adjusting sizes and spacing of elements.
