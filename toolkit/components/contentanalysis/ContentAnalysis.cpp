@@ -1274,28 +1274,6 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
       ConvertToProtobuf(aRequest, GetUserActionId(), aRequestCount, &pbRequest);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // This is a very simple cache to avoid the case of making multiple
-  // consecutive DLP requests to the agent for the same text data. This has
-  // been an issue on Google Docs and OneDrive (bug 1912384)
-  nsCOMPtr<nsIContentAnalysisRequest> requestToCache;
-  CachedData::CacheResult cacheMatchResult =
-      mCachedData.CompareWithRequest(aRequest);
-  if (cacheMatchResult == CachedData::CacheResult::Matches) {
-    auto action = mCachedData.ResultAction();
-    MOZ_ASSERT(action.isSome());
-    LOGD("Found existing request in cache for token %s with action %d",
-         requestToken.get(), *action);
-    mCachedData.SetExpirationTimer();
-    auto response = ContentAnalysisResponse::FromAction(*action, requestToken);
-    response->DoNotAcknowledge();
-    response->SetIsCachedResponse();
-    IssueResponse(response);
-    return NS_OK;
-  }
-  if (cacheMatchResult != CachedData::CacheResult::CannotBeCached) {
-    // We will use the cache
-    requestToCache = aRequest;
-  }
   LOGD("Issuing ContentAnalysisRequest for token %s", requestToken.get());
   LogRequest(&pbRequest);
   nsCOMPtr<nsIObserverService> obsServ =
@@ -1317,18 +1295,15 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
 
   mCaClientPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
-      [requestToken, pbRequest = std::move(pbRequest),
-       requestToCache = std::move(requestToCache)](
+      [requestToken, pbRequest = std::move(pbRequest)](
           std::shared_ptr<content_analysis::sdk::Client> client) mutable {
         // The content analysis call is synchronous so run in the background.
         NS_DispatchBackgroundTask(
             NS_NewCancelableRunnableFunction(
                 __func__,
                 [requestToken, pbRequest = std::move(pbRequest),
-                 requestToCache = std::move(requestToCache),
                  client = std::move(client)]() mutable {
-                  DoAnalyzeRequest(requestToken, std::move(pbRequest),
-                                   std::move(requestToCache), client);
+                  DoAnalyzeRequest(requestToken, std::move(pbRequest), client);
                 }),
             NS_DISPATCH_EVENT_MAY_BLOCK);
       },
@@ -1348,14 +1323,8 @@ nsresult ContentAnalysis::RunAnalyzeRequestTask(
 void ContentAnalysis::DoAnalyzeRequest(
     nsCString aRequestToken,
     content_analysis::sdk::ContentAnalysisRequest&& aRequest,
-    nsCOMPtr<nsIContentAnalysisRequest> aRequestToCache,
     const std::shared_ptr<content_analysis::sdk::Client>& aClient) {
   MOZ_ASSERT(!NS_IsMainThread());
-  auto threadsafeErrorHandler = MakeScopeExit([&]() {
-    // Make sure the cache request is destroyed on the main thread.
-    NS_DispatchToMainThread(NS_NewCancelableRunnableFunction(
-        "CARequestErrorCleanup", [aRTC = std::move(aRequestToCache)]() {}));
-  });
   RefPtr<ContentAnalysis> owner =
       ContentAnalysis::GetContentAnalysisFromService();
   if (!owner) {
@@ -1410,8 +1379,7 @@ void ContentAnalysis::DoAnalyzeRequest(
   LogResponse(&pbResponse);
   NS_DispatchToMainThread(NS_NewCancelableRunnableFunction(
       "ContentAnalysis::RunAnalyzeRequestTask::HandleResponse",
-      [pbResponse = std::move(pbResponse),
-       aRequestToCache = std::move(aRequestToCache)]() mutable {
+      [pbResponse = std::move(pbResponse)]() mutable {
         LOGD("RunAnalyzeRequestTask on main thread about to send response");
         RefPtr<ContentAnalysis> owner = GetContentAnalysisFromService();
         if (!owner) {
@@ -1425,37 +1393,8 @@ void ContentAnalysis::DoAnalyzeRequest(
           LOGE("Content analysis got invalid response!");
           return;
         }
-        if (aRequestToCache) {
-          [&]() {
-            nsIContentAnalysisResponse::Action action;
-            if (NS_FAILED(response->GetAction(&action))) {
-              LOGE("Content analysis couldn't get action from response!");
-              return;
-            }
-            nsCString responseRequestToken;
-            nsresult requestRv =
-                response->GetRequestToken(responseRequestToken);
-            if (NS_FAILED(requestRv)) {
-              LOGE(
-                  "Content analysis couldn't get request token from response!");
-              return;
-            }
-            {
-              auto callbackMap = owner->mCallbackMap.Lock();
-              auto maybeCallbackData =
-                  callbackMap->MaybeGet(responseRequestToken);
-              // This prevents caching cancelled results to avoid issues like
-              // bug 1918028.
-              if (maybeCallbackData.isSome() &&
-                  !maybeCallbackData->Canceled()) {
-                owner->mCachedData.SetData(std::move(aRequestToCache), action);
-              }
-            }
-          }();
-        }
         owner->IssueResponse(response);
       }));
-  threadsafeErrorHandler.release();
 }
 
 void ContentAnalysis::SendWarnResponse(
@@ -1915,18 +1854,6 @@ ContentAnalysis::RespondToWarnDialog(const nsACString& aRequestToken,
         nsIContentAnalysisResponse::Action action;
         DebugOnly<nsresult> rv = entry->mResponse->GetAction(&action);
         MOZ_ASSERT(NS_SUCCEEDED(rv));
-        {
-          auto request = self->mCachedData.Request();
-          if (request) {
-            nsCString cachedRequestToken;
-            DebugOnly<nsresult> tokenRv =
-                request->GetRequestToken(cachedRequestToken);
-            MOZ_ASSERT(NS_SUCCEEDED(tokenRv));
-            if (cachedRequestToken.Equals(requestToken)) {
-              self->mCachedData.UpdateWarnAction(action);
-            }
-          }
-        }
         if (entry->mCallbackData.AutoAcknowledge()) {
           RefPtr<ContentAnalysisAcknowledgement> acknowledgement =
               new ContentAnalysisAcknowledgement(
@@ -2790,91 +2717,6 @@ NS_IMETHODIMP ContentAnalysisDiagnosticInfo::GetRequestCount(
     int64_t* aRequestCount) {
   *aRequestCount = mRequestCount;
   return NS_OK;
-}
-
-ContentAnalysis::CachedData::CacheResult
-ContentAnalysis::CachedData::CompareWithRequest(
-    const RefPtr<nsIContentAnalysisRequest>& aRequest) {
-  MOZ_ASSERT(NS_IsMainThread());
-  nsIContentAnalysisRequest::AnalysisType analysisType;
-  if (NS_FAILED(aRequest->GetAnalysisType(&analysisType)) ||
-      analysisType != nsIContentAnalysisRequest::AnalysisType::eBulkDataEntry) {
-    return CacheResult::CannotBeCached;
-  }
-  nsString requestTextContent;
-  if (NS_FAILED(aRequest->GetTextContent(requestTextContent)) ||
-      requestTextContent.IsEmpty()) {
-    return CacheResult::CannotBeCached;
-  }
-  nsCOMPtr<nsIURI> requestUri;
-  if (NS_FAILED(aRequest->GetUrl(getter_AddRefs(requestUri)))) {
-    return CacheResult::CannotBeCached;
-  }
-  RefPtr<dom::WindowGlobalParent> windowGlobalParent;
-  if (NS_FAILED(aRequest->GetWindowGlobalParent(
-          getter_AddRefs(windowGlobalParent)))) {
-    return CacheResult::CannotBeCached;
-  }
-
-  nsCOMPtr<nsIContentAnalysisRequest> cachedRequest = Request();
-  if (!cachedRequest) {
-    return CacheResult::DoesNotMatchExisting;
-  }
-  nsCOMPtr<nsIURI> cachedUri;
-  bool uriEquals = false;
-  if (NS_FAILED(cachedRequest->GetUrl(getter_AddRefs(cachedUri))) ||
-      NS_FAILED(cachedUri->Equals(requestUri, &uriEquals)) || !uriEquals) {
-    return CacheResult::DoesNotMatchExisting;
-  }
-  nsString cachedTextContent;
-  if (NS_FAILED(cachedRequest->GetTextContent(cachedTextContent)) ||
-      !cachedTextContent.Equals(requestTextContent)) {
-    return CacheResult::DoesNotMatchExisting;
-  }
-  RefPtr<dom::WindowGlobalParent> cachedWindowGlobalParent;
-  if (NS_FAILED(cachedRequest->GetWindowGlobalParent(
-          getter_AddRefs(cachedWindowGlobalParent)))) {
-    return CacheResult::DoesNotMatchExisting;
-  }
-  if (cachedWindowGlobalParent && windowGlobalParent &&
-      cachedWindowGlobalParent->InnerWindowId() !=
-          windowGlobalParent->InnerWindowId()) {
-    return CacheResult::DoesNotMatchExisting;
-  }
-  return CacheResult::Matches;
-}
-
-void ContentAnalysis::CachedData::SetExpirationTimer() {
-  MOZ_ASSERT(NS_IsMainThread());
-  if (mExpirationTimer) {
-    mExpirationTimer->Cancel();
-  } else {
-    mExpirationTimer = NS_NewTimer();
-  }
-  mExpirationTimer->InitWithNamedFuncCallback(
-      [](nsITimer* func, void* closure) {
-        LOGD("Clearing content analysis cache (dispatching to main thread)");
-        NS_DispatchToMainThread(
-            NS_NewCancelableRunnableFunction("Clear ContentAnalysis cache", [] {
-              LOGD("Clearing content analysis cache");
-              RefPtr<ContentAnalysis> contentAnalysis =
-                  ContentAnalysis::GetContentAnalysisFromService();
-              if (contentAnalysis) {
-                contentAnalysis->mCachedData.Clear();
-              }
-            }));
-      },
-      nullptr, mClearTimeout, nsITimer::TYPE_ONE_SHOT,
-      "ContentAnalysis::CachedData::SetExpirationTimer");
-  LOGD("Set content analysis cached data clear timer with timeout %d",
-       mClearTimeout);
-}
-
-void ContentAnalysis::SetCachedDataTimeoutForTesting(uint32_t aNewTimeout) {
-  mCachedData.mClearTimeout = aNewTimeout;
-}
-void ContentAnalysis::ResetCachedDataTimeoutForTesting() {
-  mCachedData.mClearTimeout = kDefaultCachedDataTimeoutInMs;
 }
 
 #undef LOGD
