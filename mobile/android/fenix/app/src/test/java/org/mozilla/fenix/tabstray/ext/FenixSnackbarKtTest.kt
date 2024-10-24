@@ -62,10 +62,11 @@ class FenixSnackbarKtTest {
 
     @Test
     fun `WHEN bookmarkMessage is called with different parameters THEN correct text will be set`() {
+        val parentFolderTitle = "title"
         val mockContext: Context = mockk {
-            every { getString(R.string.bookmark_saved_snackbar) }
+            every { getString(R.string.bookmark_saved_in_folder_snackbar, eq(parentFolderTitle)) }
                 .answers { "Bookmark saved in title!" }
-            every { getString(R.string.snackbar_message_bookmarks_saved) }
+            every { getString(R.string.snackbar_message_bookmarks_saved_in, eq(parentFolderTitle)) }
                 .answers { "Bookmarks saved in title!" }
         }
         val snackbar: FenixSnackbar = mockk {
@@ -73,8 +74,8 @@ class FenixSnackbarKtTest {
         }
         every { snackbar.setText(any()) }.answers { snackbar }
 
-        snackbar.bookmarkMessage(1)
-        snackbar.bookmarkMessage(2)
+        snackbar.bookmarkMessage(1, parentFolderTitle)
+        snackbar.bookmarkMessage(2, parentFolderTitle)
 
         verifyOrder {
             snackbar.setText("Bookmark saved in title!")

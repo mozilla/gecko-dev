@@ -384,7 +384,7 @@ private fun BookmarksListTopBar(
                                 Icon(
                                     painter = painterResource(R.drawable.mozac_ic_folder_add_24),
                                     contentDescription = stringResource(
-                                        R.string.bookmark_add_folder,
+                                        R.string.bookmark_select_folder_new_folder_button_title,
                                     ),
                                     tint = iconColor,
                                 )
@@ -505,11 +505,10 @@ private fun AlertDialogDeletionWarning(
     onCancelTapped: () -> Unit,
     onDeleteTapped: () -> Unit,
 ) {
-    val appName = stringResource(R.string.app_name)
     AlertDialog(
         title = {
             Text(
-                text = stringResource(R.string.bookmark_delete_multiple_folders_confirmation_dialog, appName),
+                text = stringResource(R.string.bookmark_delete_folders_confirmation_dialog),
                 color = FirefoxTheme.colors.textPrimary,
             )
         },
@@ -595,7 +594,7 @@ private fun SelectFolderScreen(
             if (showNewFolderButton) {
                 item {
                     IconListItem(
-                        label = stringResource(R.string.bookmark_add_folder),
+                        label = stringResource(R.string.bookmark_select_folder_new_folder_button_title),
                         labelTextColor = FirefoxTheme.colors.textAccent,
                         beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_add_24),
                         beforeIconTint = FirefoxTheme.colors.textAccent,

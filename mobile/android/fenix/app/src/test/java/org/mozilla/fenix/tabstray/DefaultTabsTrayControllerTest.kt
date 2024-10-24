@@ -1186,7 +1186,7 @@ class DefaultTabsTrayControllerTest {
         every { trayStore.state.mode.selectedTabs } returns setOf(createTab(url = "https://mozilla.org"))
 
         createController(
-            showBookmarkSnackbar = { _ ->
+            showBookmarkSnackbar = { _, _ ->
                 showBookmarkSnackbarInvoked = true
             },
         ).handleBookmarkSelectedTabsClicked()
@@ -1211,7 +1211,7 @@ class DefaultTabsTrayControllerTest {
         every { trayStore.state.mode.selectedTabs } returns setOf(createTab(url = "https://mozilla.org"))
 
         createController(
-            showBookmarkSnackbar = { _ ->
+            showBookmarkSnackbar = { _, _ ->
                 showBookmarkSnackbarInvoked = true
             },
         ).handleBookmarkSelectedTabsClicked()
@@ -1234,7 +1234,7 @@ class DefaultTabsTrayControllerTest {
         every { trayStore.state.mode.selectedTabs } returns setOf(createTab(url = "https://mozilla.org"), createTab(url = "https://mozilla2.org"))
 
         createController(
-            showBookmarkSnackbar = { _ ->
+            showBookmarkSnackbar = { _, _ ->
                 showBookmarkSnackbarInvoked = true
             },
         ).handleBookmarkSelectedTabsClicked()
@@ -1259,7 +1259,7 @@ class DefaultTabsTrayControllerTest {
         every { trayStore.state.mode.selectedTabs } returns setOf(createTab(url = "https://mozilla.org"), createTab(url = "https://mozilla2.org"))
 
         createController(
-            showBookmarkSnackbar = { _ ->
+            showBookmarkSnackbar = { _, _ ->
                 showBookmarkSnackbarInvoked = true
             },
         ).handleBookmarkSelectedTabsClicked()
@@ -1348,7 +1348,7 @@ class DefaultTabsTrayControllerTest {
         showUndoSnackbarForSyncedTab: (CloseTabsUseCases.UndoableOperation) -> Unit = { _ -> },
         showCancelledDownloadWarning: (Int, String?, String?) -> Unit = { _, _, _ -> },
         showCollectionSnackbar: (Int, Boolean) -> Unit = { _, _ -> },
-        showBookmarkSnackbar: (Int) -> Unit = { _ -> },
+        showBookmarkSnackbar: (Int, String?) -> Unit = { _, _ -> },
     ): DefaultTabsTrayController {
         return DefaultTabsTrayController(
             activity = activity,

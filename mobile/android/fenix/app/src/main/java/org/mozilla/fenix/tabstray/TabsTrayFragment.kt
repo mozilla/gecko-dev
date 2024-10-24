@@ -844,10 +844,11 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     @VisibleForTesting
     internal fun showBookmarkSnackbar(
         tabSize: Int,
+        parentFolderTitle: String?,
     ) {
         FenixSnackbar
             .make(requireView())
-            .bookmarkMessage(tabSize)
+            .bookmarkMessage(tabSize, parentFolderTitle)
             .anchorWithAction(getSnackbarAnchor()) {
                 findNavController().navigate(
                     TabsTrayFragmentDirections.actionGlobalBookmarkFragment(BookmarkRoot.Mobile.id),

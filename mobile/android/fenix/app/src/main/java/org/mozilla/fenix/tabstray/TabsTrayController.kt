@@ -224,7 +224,7 @@ class DefaultTabsTrayController(
     private val showUndoSnackbarForInactiveTab: (Int) -> Unit,
     private val showUndoSnackbarForSyncedTab: (CloseTabsUseCases.UndoableOperation) -> Unit,
     internal val showCancelledDownloadWarning: (downloadCount: Int, tabId: String?, source: String?) -> Unit,
-    private val showBookmarkSnackbar: (tabSize: Int) -> Unit,
+    private val showBookmarkSnackbar: (tabSize: Int, parentFolderTitle: String?) -> Unit,
     private val showCollectionSnackbar: (
         tabSize: Int,
         isNewCollection: Boolean,
@@ -442,7 +442,7 @@ class DefaultTabsTrayController(
                     )
                 }
                 withContext(Dispatchers.Main) {
-                    showBookmarkSnackbar(tabs.size)
+                    showBookmarkSnackbar(tabs.size, parentNode?.title)
                 }
             }.getOrElse {
                 // silently fail
