@@ -279,15 +279,11 @@ class BrowserSearchTelemetryHandler {
 
   _recordSearch(browser, engine, source, action = null) {
     let scalarSource = KNOWN_SEARCH_SOURCES.get(source);
-
     lazy.SearchSERPTelemetry.recordBrowserSource(browser, scalarSource);
 
-    let scalarKey = action ? "search_" + action : "search";
-    Services.telemetry.keyedScalarAdd(
-      "browser.engagement.navigation." + scalarSource,
-      scalarKey,
-      1
-    );
+    let label = action ? "search_" + action : "search";
+    let name = scalarSource.replace(/_([a-z])/g, (m, p) => p.toUpperCase());
+    Glean.browserEngagementNavigation[name][label].add(1);
   }
 
   /**

@@ -567,3 +567,157 @@ search_with:
     expires: never
     send_in_pings:
       - search-with
+
+browser.engagement.navigation:
+  urlbar:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from the urlbar,
+      broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.urlbar.
+    bugs:
+      - https://bugzil.la/1271313
+    data_reviews:
+      - https://bugzil.la/1271313
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_URLBAR
+
+  urlbar_handoff:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from the urlbar via
+      handoff, broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.urlbar_handoff.
+    bugs:
+      - https://bugzil.la/1732429
+    data_reviews:
+      - https://bugzil.la/1732429
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_URLBAR_HANDOFF
+
+  urlbar_persisted:
+    type: labeled_counter
+    description: >
+      The count of URI loads triggered in a subsession from the urlbar
+      after the search term was shown in the urlbar, broken down by the
+      originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.urlbar_persisted.
+    bugs:
+      - https://bugzil.la/1779471
+    data_reviews:
+      - https://bugzil.la/1779471
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_URLBAR_PERSISTED
+
+  urlbar_searchmode:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from the urlbar's
+      search mode, broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.urlbar_searchmode.
+    bugs:
+      - https://bugzil.la/1654680
+    data_reviews:
+      - https://bugzil.la/1654680
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_URLBAR_SEARCHMODE
+
+  searchbar:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from the searchbar,
+      broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.searchbar.
+    bugs:
+      - https://bugzil.la/1271313
+    data_reviews:
+      - https://bugzil.la/1271313
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_SEARCHBAR
+
+  about_home:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from about:home,
+      broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.about_home.
+    bugs:
+      - https://bugzil.la/1271313
+    data_reviews:
+      - https://bugzil.la/1271313
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_ABOUT_HOME
+
+  about_newtab:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from about:newtab,
+      broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.about_newtab.
+    bugs:
+      - https://bugzil.la/1271313
+    data_reviews:
+      - https://bugzil.la/1271313
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_ABOUT_NEWTAB
+
+  contextmenu:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from the contextmenu,
+      broken down by the originating action.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.contextmenu.
+    bugs:
+      - https://bugzil.la/1271313
+    data_reviews:
+      - https://bugzil.la/1271313
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_CONTEXTMENU
+
+  webextension:
+    type: labeled_counter
+    description: >
+      The count URI loads triggered in a subsession from a webextension.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.engagement.navigation.webextension.
+    bugs:
+      - https://bugzil.la/1492233
+    data_reviews:
+      - https://bugzil.la/1492233
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - rev-data@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_ENGAGEMENT_NAVIGATION_WEBEXTENSION
