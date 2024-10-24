@@ -431,7 +431,7 @@
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon.
     The parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description_1">Motor de búsqueda: %s</string>
+    <string name="search_engine_icon_content_description_1">Buscador: %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->

@@ -426,7 +426,11 @@
     <string name="search_header_menu_item_2">Desta vez, pesquisar em:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description">Mecanismo de pesquisa %s</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Mecanismo de pesquisa %s</string>
+
+    <!-- Content description (not visible, for screen readers etc.): Search engine icon.
+    The parameter is the search engine name (for example: DuckDuckGo). -->
+    <string name="search_engine_icon_content_description_1">Mecanismo de pesquisa: %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -524,7 +528,7 @@
     <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
     <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Joia contra rastreamento. Bloqueia elementos de rastreamento invisíveis e anúncios que espionam você.</string>
+    <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Uma preciosidade contra rastreamento. Bloqueia elementos de rastreamento invisíveis e anúncios que espionam você.</string>
     <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
     <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
     <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -1338,6 +1342,10 @@
     <string name="bookmark_navigate_back_button_content_description">Voltar</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Adicionar nova pasta</string>
+    <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+    <string name="bookmark_delete_bookmark_content_description">Excluir favorito</string>
+    <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+    <string name="bookmark_delete_folder_content_description">Excluir pasta</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Pesquisar nos favoritos</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->

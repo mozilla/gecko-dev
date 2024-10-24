@@ -110,8 +110,6 @@
     <string name="navbar_cfr_title">Naviger hurtigere med det nye navigationssystem</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Når du scroller ned bliver denne linje bliver gemt for at give dig mere plads.</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">På websteder bliver denne linje skjult, når du scroller ned (for at give dig mere plads).</string>
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
@@ -208,9 +206,14 @@
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Gør %s til din egen</string>
+    <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_header">Du har udvidelser installeret, men ikke aktiveret</string>
     <!-- Browser menu banner body text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_body">Udvidelser forbedrer din browsing, fra hvordan %s ser ud og fungerer til at beskytte dit privatliv og øge din sikkerhed.</string>
+    <!-- Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
+     The first parameter is the name of the button that opens extension manager (for example "Manage extensions"). -->
+    <string name="browser_menu_disabled_extensions_banner_onboarding_body">For at bruge udvidelser, aktiver dem i indstillingerne ved at vælge “%s” nedenfor.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Læs mere</string>
     <!-- Browser menu button that opens the extensions manager -->
@@ -220,8 +223,6 @@
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
       The first parameter is the name of the extension (for example: ClearURLs). -->
     <string name="browser_menu_extension_plus_icon_content_description_2">Tilføj %1$s</string>
-    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Tilføj udvidelse</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Opdag flere udvidelser</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -316,6 +317,10 @@
     <string name="browser_menu_tools">Funktioner</string>
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Tilbage til hovedmenuen</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
+    <string name="browser_main_menu_handlebar_content_description">Luk hovedmenuen</string>
+    <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
+    <string name="browser_extensions_menu_handlebar_content_description">Luk menuen udvidelser</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Læsevisning, Oversæt, Udskriv, Del, Åbn app</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -385,7 +390,9 @@
 
     <!-- Search Fragment -->
     <!-- Button in the search view that lets a user search by scanning a QR code -->
-    <string name="search_scan_button">Skan</string>
+    <string name="search_scan_button" moz:removedIn="133" tools:ignore="UnusedResources">Skan</string>
+    <!-- Button in the search view that lets a user search by scanning a QR code -->
+    <string name="search_scan_button_2">Skan QR-kode</string>
     <!-- Button in the search view when shortcuts are displayed that takes a user to the search engine settings -->
     <string name="search_shortcuts_engine_settings">Indstillinger for søgetjenester</string>
     <!-- Button in the search view that lets a user navigate to the site in their clipboard -->
@@ -411,7 +418,7 @@
     <string name="search_header_menu_item_2">Søg denne gang i:</string>
 
     <!-- Content description (not visible, for screen readers etc.): Search engine icon. The first parameter is the search engine name (for example: DuckDuckGo). -->
-    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources">Søgetjenesten %s</string>
+    <string name="search_engine_icon_content_description" tools:ignore="UnusedResources" moz:removedIn="133">Søgetjenesten %s</string>
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
@@ -436,18 +443,6 @@
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
     <string name="onboarding_home_content_description_close_button">Luk</string>
 
-    <!-- Notification pre-permission dialog -->
-    <!-- Enable notification pre permission dialog title
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_title" moz:removedIn="124" tools:ignore="UnusedResources">Meddelelser hjælper dig med at gøre mere med %s</string>
-    <!-- Enable notification pre permission dialog description with rationale
-        The first parameter is the name of the app defined in app_name (for example: Fenix) -->
-    <string name="onboarding_home_enable_notifications_description" moz:removedIn="124" tools:ignore="UnusedResources">Synkroniser dine faneblade mellem enheder, håndter filhentninger, få tips til at få mest muligt ud af privatlivsbeskyttelse i %s og meget mere.</string>
-    <!-- Text for the button to request notification permission on the device -->
-    <string name="onboarding_home_enable_notifications_positive_button" moz:removedIn="124" tools:ignore="UnusedResources">Fortsæt</string>
-    <!-- Text for the button to not request notification permission on the device and dismiss the dialog -->
-    <string name="onboarding_home_enable_notifications_negative_button" moz:removedIn="124" tools:ignore="UnusedResources">Ikke nu</string>
-
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
     <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Privatlivserklæring for Firefox</string>
@@ -464,20 +459,12 @@
     <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Mere end 100 millioner mennesker beskytter deres privatliv ved at vælge en browser, der er støttet af en nonprofit-organisation.</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Kendte sporings-mekanismer? Blokeret automatisk. Udvidelser? Prøv alle 700. PDF-filer? Vores indbyggede læser gør det nemt at håndtere dem.</string>
-    <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-    <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">Vores non-profit-støttede browser hjælper med at forhindre virksomheder i at følge dig rundt på nettet i hemmelighed.\n\nLæs mere i vores privatlivserklæring.</string>
-    <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
-    This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">privatlivserklæring</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Angiv som standard-browser</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">Ikke nu</string>
     <!-- Title for sign in to sync screen. -->
     <string name="juno_onboarding_sign_in_title_2">Krypter dine data, når du skifter mellem enheder</string>
-    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
-     Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Du er mere sikker, når du er logget ind og har synkroniseret dine data. Firefox krypterer dine adgangskoder, bogmærker med mere.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox krypterer dine adgangskoder, bogmærker med mere, når du er synkroniseret.</string>
@@ -507,6 +494,38 @@
     <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Tilføj Firefox-widget</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Ikke nu</string>
+
+    <!-- Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated -->
+    <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Tilpas din Firefox med udvidelser</string>
+    <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Tilføj tredjepartsudvidelser for at forbedre din sikkerhed, produktivitet og meget mere.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions" tools:ignore="UnusedResources" moz:removedIn="133">Udforsk flere udvidelser.</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button" tools:ignore="UnusedResources" moz:removedIn="133">Afslut rundvisningen.</string>
+    <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_explore_more_extensions_2">Udforsk flere udvidelser</string>
+    <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_start_browsing_button_2">Afslut rundvisningen</string>
+    <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+    <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+    <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Bloker reklamer effektivt.</string>
+    <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+    <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
+    <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
+    <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
+    <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
+    <string name="onboarding_add_on_reviews_label">Anmeldelser: %1$s</string>
+    <!-- Content description for the add-on icon. -->
+    <string name="onboarding_add_on_icon_content_description">Tilføjelses-ikon</string>
+    <!-- Content description for the add add-on button. -->
+    <string name="onboarding_add_on_add_button_content_description">Tilføj tilføjelsesknap</string>
+    <!-- Content description for the star rating group. -->
+    <string name="onboarding_add_on_star_rating_content_description">Bedømt %1$s ud af 5</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
@@ -560,7 +579,9 @@
     <!-- Preference category for privacy and security settings -->
     <string name="preferences_category_privacy_security">Privatliv og sikkerhed</string>
     <!-- Preference for advanced site permissions -->
-    <string name="preferences_site_permissions">Websteds-indstillinger</string>
+    <string name="preferences_site_permissions" moz:removedIn="133" tools:ignore="UnusedResources">Websteds-indstillinger</string>
+    <!-- Preference for advanced site settings -->
+    <string name="preferences_site_settings">Webstedsindstillinger</string>
     <!-- Preference for private browsing options -->
     <string name="preferences_private_browsing_options">Privat browsing</string>
     <!-- Preference for opening links in a private tab-->
@@ -1138,8 +1159,6 @@
     <string name="collection_open_tabs">Åbn faneblade</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Samlingens navn</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Omdøb</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Fjern</string>
 
@@ -1225,6 +1244,8 @@
     <string name="bookmark_saved_in_folder_snackbar">Gemt i “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">REDIGER</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">Flyt</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Rediger</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1282,6 +1303,10 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">FORTRYD</string>
 
+    <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
+    <string name="bookmark_delete_single_item">%s blev slettet</string>
+    <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
+    <string name="bookmark_delete_multiple_items" tools:ignore="UnusedResources">Slettede elementer: %s</string>
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Indtast søgestrenge</string>
 
@@ -1289,8 +1314,6 @@
     <string name="bookmark_navigate_back_button_content_description">Gå tilbage</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Tilføj en ny mappe</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Luk bogmærker</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Søg i bogmærker</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -1306,6 +1329,9 @@
     <string name="bookmark_empty_list_authenticated_description">Gem websteder, mens du browser. Vi henter også bogmærker fra andre synkroniserede enheder.</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
     <string name="bookmark_empty_list_folder_description">Tilføj bogmærker, mens du browser, så du kan finde dine foretrukne websteder senere.</string>
+
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title" tools:ignore="UnusedResources">Ny mappe</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1389,6 +1415,13 @@
     <string name="studies_on">Til</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Fra</string>
+
+    <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+    <string name="preferences_category_permissions">Tilladelser</string>
+    <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+    <string name="preferences_category_content">Indhold</string>
+    <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+    <string name="preference_feature_desktop_mode_default">Bed altid om desktop-version</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -1496,17 +1529,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Luk private faneblade</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Hverken/eller</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Meget utilfreds</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Utilfreds</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Tilfreds</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Meget tilfreds</string>
-
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Luk private faneblade?</string>
 
@@ -1559,6 +1581,8 @@
     <string name="snackbar_num_tabs_closed">Faneblade lukket: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Bogmærker gemt!</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs. Parameter will be replaced by the name of the folder the bookmark was saved into.-->
+    <string name="snackbar_message_bookmarks_saved_in" tools:ignore="UnusedResources">Bogmærker gemt i “%s”!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
     <string name="snackbar_added_to_shortcuts">Føjet til genveje!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
@@ -1586,8 +1610,6 @@
     <string name="tab_collection_dialog_message">Er du sikker på, at du vil slette %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Slet</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Fuldskærmstilstand aktiveret</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL kopieret</string>
     <!-- Sample text for accessibility font size -->
@@ -1637,8 +1659,6 @@
 
     <!-- Title text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_title">Tidsinterval der skal slettes</string>
-    <!-- Body text of a delete browsing data dialog. -->
-    <string name="delete_history_prompt_body" moz:RemovedIn="130" tools:ignore="UnusedResources">Fjerner historik (herunder historik synkroniseret fra andre enheder), cookies og andre browserdata.</string>
     <!-- Body text of a delete browsing data dialog. -->
     <string name="delete_history_prompt_body_2">Fjerner historik (herunder historik synkroniseret fra andre enheder)</string>
     <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1756,8 +1776,6 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Cryptominers</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Fingerprinters</string>
-    <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Kendte fingerprinters</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Detaljer</string>
@@ -1781,10 +1799,6 @@
     <string name="etp_cryptominers_title">Cryptominers</string>
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Forhindrer ondsindede scripts i at få adgang til din enhed for at udvinde digitale valutaer.</string>
-    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Fingerprinters</string>
-    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Stopper indsamling af unikt identificerbare data om din enhed med henblik på at spore dig rundt på nettet.</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_description">Stopper indsamling af unikt identificerbare data om din enhed, der kan bruges til at spore dig rundt på nettet.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2251,8 +2265,6 @@
     <string name="shortcut_name_hint">Genvejsnavn</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">Genvejs-URL</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Annuller</string>
 
@@ -2318,7 +2330,7 @@
     <string name="radio_preference_info_content_description">Tryk for at se flere detaljer</string>
 
     <!-- Content description for the action bar "up" button -->
-    <string name="action_bar_up_description" moz:removedIn="124" tools:ignore="UnusedResources">Naviger op</string>
+    <string name="action_bar_up_description">Naviger op</string>
 
     <!-- Content description for privacy content close button -->
     <string name="privacy_content_close_button_content_description">Luk</string>
@@ -2462,8 +2474,6 @@
     <!-- Clickable text from the contextual onboarding card that links to review quality check support article. -->
     <string name="review_quality_check_contextual_onboarding_learn_more_link">Læs mere</string>
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
-    <string name="review_quality_check_contextual_onboarding_caption_3" moz:RemovedIn="124" tools:ignore="UnusedResources">Ved at vælge “Ja, prøv det” accepterer du %1$s\' %2$s og %3$ss %4$s.</string>
-    <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">Ved at vælge “Ja, prøv det” accepterer du %1$s\' %2$s og %3$ss %4$s.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
     <string name="review_quality_check_contextual_onboarding_privacy_policy_3">privatlivserklæring</string>
@@ -2481,8 +2491,6 @@
     <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Er disse anmeldelser pålidelige? Tjek nu for at se en justeret bedømmelse.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Åbn verificering af anmeldelser</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Åbn verificering af anmeldelser</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2509,7 +2517,7 @@
 
     <!-- Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback. -->
     <!-- Action label for elements that can be collapsed if interacting with them. Talkback will append this to say "Double tap to collapse". -->
-    <string name="a11y_action_label_collapse">folde sammen</string>
+    <string name="a11y_action_label_collapse">sammenfolde</string>
     <!-- Current state for elements that can be collapsed if interacting with them. Talkback will dictate this after a state change. -->
     <string name="a11y_state_label_collapsed">sammenfoldet</string>
     <!-- Action label for elements that can be expanded if interacting with them. Talkback will append this to say "Double tap to expand". -->
@@ -2673,8 +2681,6 @@
     <string name="never_translate_site_dialog_cancel_preference">Annuller</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Hent sprog</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">Hent sprog</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2733,14 +2739,6 @@
     <string name="delete_language_file_dialog_positive_button_text">Slet</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Annuller</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Annuller hentning af %1$s?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ja</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Nej</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2837,8 +2835,6 @@
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Jeg bruger ikke søgefunktionen i Firefox</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">Jeg bruger ikke synkroniseringsfunktionen</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Hvor tilfreds er du med din startside i Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Hjælp med at gøre udskrivning i Firefox bedre. Det tager kun et øjeblik</string>
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2858,8 +2854,6 @@
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox-logo</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Ikon for undersøgelsesfunktion</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Åbn undersøgelse</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Luk undersøgelse</string>
     <!-- Content description for "X" button that is closing microsurvey. -->

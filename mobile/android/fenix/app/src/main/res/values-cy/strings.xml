@@ -533,13 +533,13 @@
     <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Modd tywyll cyfaddas ar gyfer y we symudol.</string>
 
     <!-- Label for the number of reviews for an add-on. The parameter is for the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
-    <string name="onboarding_add_on_reviews_label">Sgôr: %1$s</string>
+    <string name="onboarding_add_on_reviews_label">Adolygiadau: %1$s</string>
     <!-- Content description for the add-on icon. -->
-    <string name="onboarding_add_on_icon_content_description">Eicon ychwanegiad</string>
+    <string name="onboarding_add_on_icon_content_description">Eicon ychwanegyn</string>
     <!-- Content description for the add add-on button. -->
-    <string name="onboarding_add_on_add_button_content_description">Ychwanegu botwm ychwanegu</string>
+    <string name="onboarding_add_on_add_button_content_description">Ychwanegu botwm ychwanegyn</string>
     <!-- Content description for the star rating group. -->
-    <string name="onboarding_add_on_star_rating_content_description">Wedi graddio %1$s allan o 5</string>
+    <string name="onboarding_add_on_star_rating_content_description">Graddiwyd %1$s allan o 5</string>
 
     <!-- Search Widget -->
     <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
