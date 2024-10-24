@@ -1080,6 +1080,77 @@ NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetData(
   return NS_OK;
 }
 
+NS_IMETHODIMP nsBaseClipboard::ClipboardDataSnapshot::GetDataSync(
+    nsITransferable* aTransferable) {
+  MOZ_CLIPBOARD_LOG("ClipboardDataSnapshot::GetDataSync: %p", this);
+
+  if (!aTransferable) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  nsTArray<nsCString> flavors;
+  nsresult rv = aTransferable->FlavorsTransferableCanImport(flavors);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  // If the requested flavor is not in the list, throw an error.
+  for (const auto& flavor : flavors) {
+    if (!mFlavors.Contains(flavor)) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  if (!IsValid()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  MOZ_ASSERT(mClipboard);
+
+  if (mFromCache) {
+    const auto* clipboardCache =
+        mClipboard->GetClipboardCacheIfValid(mClipboardType);
+    // `IsValid()` above ensures we should get a valid cache and matched
+    // sequence number here.
+    MOZ_DIAGNOSTIC_ASSERT(clipboardCache);
+    MOZ_DIAGNOSTIC_ASSERT(clipboardCache->GetSequenceNumber() ==
+                          mSequenceNumber);
+    if (NS_SUCCEEDED(clipboardCache->GetData(aTransferable))) {
+      bool shouldAllowContent = mozilla::contentanalysis::ContentAnalysis::
+          CheckClipboardContentAnalysisSync(
+              mClipboard,
+              mRequestingWindowContext ? mRequestingWindowContext->Canonical()
+                                       : nullptr,
+              aTransferable, mClipboardType);
+      if (shouldAllowContent) {
+        return NS_OK;
+      }
+      aTransferable->ClearAllData();
+      return NS_ERROR_CONTENT_BLOCKED;
+    }
+
+    // At this point we can't satisfy the request from cache data so let's look
+    // for things other people put on the system clipboard.
+  }
+
+  rv = mClipboard->GetNativeClipboardData(aTransferable, mClipboardType);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  bool shouldAllowContent = mozilla::contentanalysis::ContentAnalysis::
+      CheckClipboardContentAnalysisSync(
+          mClipboard,
+          mRequestingWindowContext ? mRequestingWindowContext->Canonical()
+                                   : nullptr,
+          aTransferable, mClipboardType);
+  if (shouldAllowContent) {
+    return NS_OK;
+  }
+  aTransferable->ClearAllData();
+  return NS_ERROR_CONTENT_BLOCKED;
+}
+
 bool nsBaseClipboard::ClipboardDataSnapshot::IsValid() {
   if (!mClipboard) {
     return false;

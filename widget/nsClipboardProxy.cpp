@@ -204,6 +204,52 @@ NS_IMETHODIMP ClipboardDataSnapshotProxy::GetData(
   return NS_OK;
 }
 
+NS_IMETHODIMP ClipboardDataSnapshotProxy::GetDataSync(
+    nsITransferable* aTransferable) {
+  if (!aTransferable) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  // Get a list of flavors this transferable can import
+  nsTArray<nsCString> flavors;
+  nsresult rv = aTransferable->FlavorsTransferableCanImport(flavors);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  MOZ_ASSERT(mActor);
+  // If the requested flavor is not in the list, throw an error.
+  for (const auto& flavor : flavors) {
+    if (!mActor->FlavorList().Contains(flavor)) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  if (!mActor->CanSend()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  IPCTransferableDataOrError ipcTransferableDataOrError;
+  bool success = mActor->SendGetDataSync(flavors, &ipcTransferableDataOrError);
+  if (!success) {
+    return NS_ERROR_FAILURE;
+  }
+  if (ipcTransferableDataOrError.type() ==
+      IPCTransferableDataOrError::Tnsresult) {
+    MOZ_ASSERT(NS_FAILED(ipcTransferableDataOrError.get_nsresult()));
+    return ipcTransferableDataOrError.get_nsresult();
+  }
+  rv = nsContentUtils::IPCTransferableDataToTransferable(
+      ipcTransferableDataOrError.get_IPCTransferableData(),
+      false /* aAddDataFlavor */, aTransferable,
+      false /* aFilterUnknownFlavors */);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  return NS_OK;
+}
+
 static Result<RefPtr<ClipboardDataSnapshotProxy>, nsresult>
 CreateClipboardDataSnapshotProxy(
     ClipboardReadRequestOrError&& aClipboardReadRequestOrError) {

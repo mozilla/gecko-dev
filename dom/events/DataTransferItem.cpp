@@ -172,21 +172,12 @@ void DataTransferItem::FillInExternalData() {
         return;
       }
 
-      nsCOMPtr<nsIClipboard> clipboard =
-          do_GetService("@mozilla.org/widget/clipboard;1");
-      if (!clipboard) {
+      nsCOMPtr<nsIClipboardDataSnapshot> clipboardDataSnapshot =
+          mDataTransfer->GetClipboardDataSnapshot();
+      if (!clipboardDataSnapshot) {
         return;
       }
-
-      nsCOMPtr<nsIGlobalObject> global = mDataTransfer->GetGlobal();
-      WindowContext* windowContext = nullptr;
-      if (global) {
-        const auto* innerWindow = global->GetAsInnerWindow();
-        windowContext = innerWindow ? innerWindow->GetWindowContext() : nullptr;
-      }
-      MOZ_ASSERT(windowContext);
-      nsresult rv = clipboard->GetData(trans, *mDataTransfer->ClipboardType(),
-                                       windowContext);
+      nsresult rv = clipboardDataSnapshot->GetDataSync(trans);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         if (rv == NS_ERROR_CONTENT_BLOCKED) {
           // If the load of this content was blocked by Content Analysis,

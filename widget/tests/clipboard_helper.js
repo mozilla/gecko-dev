@@ -238,3 +238,32 @@ function asyncClipboardRequestGetData(aRequest, aFlavor, aThrows = false) {
     }
   });
 }
+
+function syncClipboardRequestGetData(aRequest, aFlavor, aThrows = false) {
+  var trans = Cc["@mozilla.org/widget/transferable;1"].createInstance(
+    Ci.nsITransferable
+  );
+  trans.init(null);
+  trans.addDataFlavor(aFlavor);
+  let error = undefined;
+  try {
+    aRequest.getDataSync(trans);
+    try {
+      var data = SpecialPowers.createBlankObject();
+      trans.getTransferData(aFlavor, data);
+      return data.value.QueryInterface(Ci.nsISupportsString).data;
+    } catch (ex) {
+      // should widget set empty string to transferable when there no
+      // data in system clipboard?
+      return "";
+    }
+  } catch (e) {
+    error = e;
+    return error;
+  } finally {
+    ok(
+      aThrows === (error !== undefined),
+      `nsIAsyncGetClipboardData.getData should ${aThrows ? "throw" : "success"}`
+    );
+  }
+}
