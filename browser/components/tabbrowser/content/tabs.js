@@ -695,10 +695,7 @@
       event.stopPropagation();
 
       if (fromTabList) {
-        Services.telemetry.scalarAdd(
-          "browser.ui.interaction.all_tabs_panel_dragstart_tab_event_count",
-          1
-        );
+        Glean.browserUiInteraction.allTabsPanelDragstartTabEventCount.add(1);
       }
     }
 

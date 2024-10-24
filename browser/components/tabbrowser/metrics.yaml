@@ -1,0 +1,51 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Tabbed Browser'
+
+browser.ui.interaction:
+  all_tabs_panel_dragstart_tab_event_count:
+    type: counter
+    description: >
+      Records a count of how many times a drag event started for a tab
+      within the All Tabs panel.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar
+      browser.ui.interaction.all_tabs_panel_dragstart_tab_event_count.
+    bugs:
+      - https://bugzil.la/1804722
+    data_reviews:
+      - https://bugzil.la/1804722
+    notification_emails:
+      - shong@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_ALL_TABS_PANEL_DRAGSTART_TAB_EVENT_COUNT
+    no_lint:
+      - COMMON_PREFIX
+
+  all_tabs_panel_entrypoint:
+    type: labeled_counter
+    description: >
+      Records a count of how many times the All Tabs Panel was opened,
+      keyed on a string describing the entrypoint.
+      This metric was generated to correspond to the Legacy Telemetry
+      scalar browser.ui.interaction.all_tabs_panel_entrypoint.
+    bugs:
+      - https://bugzil.la/1804722
+    data_reviews:
+      - https://bugzil.la/1804722
+    notification_emails:
+      - shong@mozilla.com
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: BROWSER_UI_INTERACTION_ALL_TABS_PANEL_ENTRYPOINT
+    no_lint:
+      - COMMON_PREFIX

@@ -184,11 +184,7 @@ var gTabsPanel = {
     }
     this.init();
     if (this.canOpen) {
-      Services.telemetry.keyedScalarAdd(
-        "browser.ui.interaction.all_tabs_panel_entrypoint",
-        entrypoint,
-        1
-      );
+      Glean.browserUiInteraction.allTabsPanelEntrypoint[entrypoint].add(1);
       BrowserUsageTelemetry.recordInteractionEvent(
         entrypoint,
         "all-tabs-panel-entrypoint"
