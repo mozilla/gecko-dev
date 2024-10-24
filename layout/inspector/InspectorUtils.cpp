@@ -62,8 +62,7 @@ namespace mozilla {
 namespace dom {
 
 static already_AddRefed<const ComputedStyle> GetCleanComputedStyleForElement(
-    dom::Element* aElement, PseudoStyleType aPseudo,
-    nsAtom* aFunctionalPseudoParameter) {
+    dom::Element* aElement, const PseudoStyleRequest& aPseudo) {
   MOZ_ASSERT(aElement);
 
   Document* doc = aElement->GetComposedDoc();
@@ -83,8 +82,7 @@ static already_AddRefed<const ComputedStyle> GetCleanComputedStyleForElement(
 
   presContext->EnsureSafeToHandOutCSSRules();
 
-  return nsComputedDOMStyle::GetComputedStyle(aElement, aPseudo,
-                                              aFunctionalPseudoParameter);
+  return nsComputedDOMStyle::GetComputedStyle(aElement, aPseudo);
 }
 
 /* static */
@@ -312,10 +310,9 @@ void InspectorUtils::GetMatchingCSSRules(GlobalObject& aGlobalObject,
                                          bool aIncludeVisitedStyle,
                                          bool aWithStartingStyle,
                                          nsTArray<RefPtr<css::Rule>>& aResult) {
-  auto [type, functionalPseudoParameter] =
-      nsCSSPseudoElements::ParsePseudoElement(aPseudo,
-                                              CSSEnabledState::ForAllContent);
-  if (!type) {
+  auto pseudo = nsCSSPseudoElements::ParsePseudoElement(
+      aPseudo, CSSEnabledState::ForAllContent);
+  if (!pseudo) {
     return;
   }
 
@@ -328,8 +325,7 @@ void InspectorUtils::GetMatchingCSSRules(GlobalObject& aGlobalObject,
   // inside @starting-style. For this case, we would like to return the primay
   // rules of this element.
   if (!computedStyle) {
-    computedStyle = GetCleanComputedStyleForElement(&aElement, *type,
-                                                    functionalPseudoParameter);
+    computedStyle = GetCleanComputedStyleForElement(&aElement, *pseudo);
   }
 
   if (!computedStyle) {

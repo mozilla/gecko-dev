@@ -4313,6 +4313,29 @@ void Element::GetImplementedPseudoElement(nsAString& aPseudo) const {
   aPseudo.Append(pseudo);
 }
 
+const Element* Element::GetPseudoElement(
+    const PseudoStyleRequest& aRequest) const {
+  switch (aRequest.mType) {
+    case PseudoStyleType::NotPseudo:
+      return this;
+    case PseudoStyleType::before:
+      return nsLayoutUtils::GetBeforePseudo(this);
+    case PseudoStyleType::after:
+      return nsLayoutUtils::GetAfterPseudo(this);
+    case PseudoStyleType::marker:
+      return nsLayoutUtils::GetMarkerPseudo(this);
+    case PseudoStyleType::viewTransition:
+    case PseudoStyleType::viewTransitionGroup:
+    case PseudoStyleType::viewTransitionImagePair:
+    case PseudoStyleType::viewTransitionOld:
+    case PseudoStyleType::viewTransitionNew:
+      // FIXME: Bug 1919347: Support these when working on getComputedStyle(),
+      // or Web Animation APIs.
+    default:
+      return nullptr;
+  }
+}
+
 ReferrerPolicy Element::GetReferrerPolicyAsEnum() const {
   if (IsHTMLElement()) {
     return ReferrerPolicyFromAttr(GetParsedAttr(nsGkAtoms::referrerpolicy));

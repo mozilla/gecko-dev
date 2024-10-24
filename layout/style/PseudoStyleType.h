@@ -7,11 +7,17 @@
 #ifndef mozilla_PseudoStyleType_h
 #define mozilla_PseudoStyleType_h
 
+#include "mozilla/RefPtr.h"
+#include "nsAtom.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
 
 namespace mozilla {
+namespace dom {
+class Element;
+}  // namespace dom
 
 // The kind of pseudo-style that we have. This can be:
 //
@@ -107,6 +113,29 @@ class PseudoStyle final {
     return aType >= Type::WrapperAnonBoxesStart &&
            aType < Type::WrapperAnonBoxesEnd;
   }
+};
+
+/*
+ * The psuedo style request is used to get the pseudo style of an element. This
+ * include a pseudo style type and an identidier which is used for functional
+ * pseudo style.
+ */
+struct PseudoStyleRequest {
+  PseudoStyleRequest() = default;
+  PseudoStyleRequest(PseudoStyleRequest&&) = default;
+  PseudoStyleRequest& operator=(PseudoStyleRequest&&) = default;
+
+  explicit PseudoStyleRequest(PseudoStyleType aType) : mType(aType) {}
+  PseudoStyleRequest(PseudoStyleType aType, nsAtom* aIdentifier)
+      : mType(aType), mIdentifier(aIdentifier) {}
+
+  bool IsPseudoElementOrNotPseudo() const {
+    return mType == PseudoStyleType::NotPseudo ||
+           PseudoStyle::IsPseudoElement(mType);
+  }
+
+  PseudoStyleType mType = PseudoStyleType::NotPseudo;
+  RefPtr<nsAtom> mIdentifier;
 };
 
 }  // namespace mozilla

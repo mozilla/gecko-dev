@@ -39,15 +39,14 @@ nsAtom* nsCSSPseudoElements::GetPseudoAtom(Type aType) {
 }
 
 /* static */
-std::tuple<mozilla::Maybe<PseudoStyleType>, RefPtr<nsAtom>>
-nsCSSPseudoElements::ParsePseudoElement(const nsAString& aPseudoElement,
-                                        CSSEnabledState aEnabledState) {
+Maybe<PseudoStyleRequest> nsCSSPseudoElements::ParsePseudoElement(
+    const nsAString& aPseudoElement, CSSEnabledState aEnabledState) {
   if (DOMStringIsNull(aPseudoElement) || aPseudoElement.IsEmpty()) {
-    return {Some(PseudoStyleType::NotPseudo), nullptr};
+    return Some(PseudoStyleRequest());
   }
 
   if (aPseudoElement.First() != char16_t(':')) {
-    return {};
+    return Nothing();
   }
 
   // deal with two-colon forms of aPseudoElt
@@ -74,13 +73,13 @@ nsCSSPseudoElements::ParsePseudoElement(const nsAString& aPseudoElement,
   Maybe<uint32_t> index = nsStaticAtomUtils::Lookup(pseudo, GetAtomBase(),
                                                     kAtomCount_PseudoElements);
   if (index.isNothing()) {
-    return {};
+    return Nothing();
   }
   auto type = static_cast<Type>(*index);
   RefPtr<nsAtom> functionalPseudoParameter;
   if (hasParameter) {
     if (type != PseudoStyleType::highlight) {
-      return {};
+      return Nothing();
     }
     functionalPseudoParameter =
         [&aPseudoElement, parameterPosition]() -> already_AddRefed<nsAtom> {
@@ -97,19 +96,19 @@ nsCSSPseudoElements::ParsePseudoElement(const nsAString& aPseudoElement,
 
   if (!haveTwoColons &&
       !PseudoElementHasFlags(type, CSS_PSEUDO_ELEMENT_IS_CSS2)) {
-    return {};
+    return Nothing();
   }
   if (IsEnabled(type, aEnabledState)) {
-    return {Some(type), functionalPseudoParameter};
+    return Some(PseudoStyleRequest{type, functionalPseudoParameter});
   }
-  return {};
+  return Nothing();
 }
 
 /* static */
 mozilla::Maybe<PseudoStyleType> nsCSSPseudoElements::GetPseudoType(
     const nsAString& aPseudoElement, CSSEnabledState aEnabledState) {
-  auto [pseudoType, _] = ParsePseudoElement(aPseudoElement, aEnabledState);
-  return pseudoType;
+  return ParsePseudoElement(aPseudoElement, aEnabledState)
+      .map([](const auto& r) { return r.mType; });
 }
 
 /* static */

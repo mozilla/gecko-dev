@@ -3301,7 +3301,8 @@ nsDOMWindowUtils::GetUnanimatedComputedStyle(Element* aElement,
     return NS_ERROR_FAILURE;
   }
   RefPtr<const ComputedStyle> computedStyle =
-      nsComputedDOMStyle::GetUnanimatedComputedStyleNoFlush(aElement, *pseudo);
+      nsComputedDOMStyle::GetUnanimatedComputedStyleNoFlush(
+          aElement, PseudoStyleRequest(*pseudo));
   if (!computedStyle) {
     return NS_ERROR_FAILURE;
   }

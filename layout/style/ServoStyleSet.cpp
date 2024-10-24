@@ -1208,8 +1208,8 @@ void ServoStyleSet::ClearNonInheritingComputedStyles() {
 }
 
 already_AddRefed<ComputedStyle> ServoStyleSet::ResolveStyleLazily(
-    const Element& aElement, PseudoStyleType aPseudoType,
-    nsAtom* aFunctionalPseudoParameter, StyleRuleInclusion aRuleInclusion) {
+    const Element& aElement, const PseudoStyleRequest& aPseudoRequest,
+    StyleRuleInclusion aRuleInclusion) {
   PreTraverseSync();
   MOZ_ASSERT(!StylistNeedsUpdate());
 
@@ -1227,18 +1227,18 @@ already_AddRefed<ComputedStyle> ServoStyleSet::ResolveStyleLazily(
    * style of the pseudo-element if it exists instead.
    */
   const Element* elementForStyleResolution = &aElement;
-  PseudoStyleType pseudoTypeForStyleResolution = aPseudoType;
-  if (aPseudoType == PseudoStyleType::before) {
+  PseudoStyleType pseudoTypeForStyleResolution = aPseudoRequest.mType;
+  if (aPseudoRequest.mType == PseudoStyleType::before) {
     if (Element* pseudo = nsLayoutUtils::GetBeforePseudo(&aElement)) {
       elementForStyleResolution = pseudo;
       pseudoTypeForStyleResolution = PseudoStyleType::NotPseudo;
     }
-  } else if (aPseudoType == PseudoStyleType::after) {
+  } else if (aPseudoRequest.mType == PseudoStyleType::after) {
     if (Element* pseudo = nsLayoutUtils::GetAfterPseudo(&aElement)) {
       elementForStyleResolution = pseudo;
       pseudoTypeForStyleResolution = PseudoStyleType::NotPseudo;
     }
-  } else if (aPseudoType == PseudoStyleType::marker) {
+  } else if (aPseudoRequest.mType == PseudoStyleType::marker) {
     if (Element* pseudo = nsLayoutUtils::GetMarkerPseudo(&aElement)) {
       elementForStyleResolution = pseudo;
       pseudoTypeForStyleResolution = PseudoStyleType::NotPseudo;
@@ -1253,7 +1253,7 @@ already_AddRefed<ComputedStyle> ServoStyleSet::ResolveStyleLazily(
                            pc->PresShell()->DidInitialize();
   return Servo_ResolveStyleLazily(
              elementForStyleResolution, pseudoTypeForStyleResolution,
-             aFunctionalPseudoParameter, aRuleInclusion,
+             aPseudoRequest.mIdentifier.get(), aRuleInclusion,
              &restyleManager->Snapshots(),
              restyleManager->GetUndisplayedRestyleGeneration(), canUseCache,
              mRawData.get())
