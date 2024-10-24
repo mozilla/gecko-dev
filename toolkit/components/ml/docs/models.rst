@@ -14,7 +14,7 @@ been tested.
 To do this, follow these steps:
 
 - make sure your model is published in Hugging Face with PyTorch or SafeTensor weights.
-- clone https://github.com/xenova/transformers.js and checkout branch `v3`
+- clone https://github.com/xenova/transformers.js and checkout branch `v3`
 - go into `scripts/`
 - create a virtualenv there and install requirements from the local `requirements.txt` file
 
@@ -27,7 +27,7 @@ Then you can run:
 You will get a new directory in `models/organizationId/modelId` that includes an `onnx` directory and
 other files. Upload everything into Hugging Face.
 
-Congratulations! you have a Firefox-compatible model. You can now try it in `about:inference`.
+Congratulations! you have a Firefox-compatible model. You can now try it in `about:inference`.
 
 Notice that for the encoder-decoder models with two files, you may need to rename `decoder_model_quantized.onnx`
 to `decoder_model_merged_quantized.onnx`, and make similar changes to the fp16, q4 versions.
@@ -61,7 +61,33 @@ This is also how we can update a model without changing Firefox's code:
 setting a new revision for a model in Remote Settings will trigger a new download for our users.
 
 Records in `ml-inference-options` are uniquely identified by `featureId`. When not provided,
-it falls back to `taskName`.
+it falls back to `taskName`. This collection will provide all the options required for that
+feature.
+
+For example, the PDF.js image-to-text record is:
+
+.. code-block:: json
+
+   {
+   "featureId": "pdfjs-alt-text"
+   "dtype":"q8",
+   "modelId":"mozilla/distilvit",
+   "taskName":"image-to-text",
+   "processorId":"mozilla/distilvit",
+   "tokenizerId":"mozilla/distilvit",
+   "modelRevision":"v0.5.0",
+   "processorRevision":"v0.5.0"
+   }
+
+
+If you are adding in Firefox a new inference call, create a new unique `featureId` in `FEATURES <https://searchfox.org/mozilla-central/source/toolkit/components/ml/content/EngineProcess.sys.mjs>`_ and add a record in `ml-inference-options` with the task settings.
+
+By doing this, you will be able to create an engine with this simple call:
+
+.. code-block:: javascript
+
+  const engine = await createEngine({featureId: "pdfjs-alt-text"});
+
 
 
 2. Model Hub
@@ -133,3 +159,30 @@ This allows the Hugging Face library to reconstruct the model exactly as it was 
 
 - ``merges.txt``: For byte pair encoding (BPE) tokenizers, this file contains the merge operations used to split words into subwords.
 - ``preprocessor_config.json``: Contains configuration details for any pre-processing or feature extraction steps applied to the input before passing it to the model.
+
+
+Versioning
+::::::::::
+
+The `revision` field is used to determine what version of the model should be downloaded from the hub.
+You can start by serving the `main` branch but once you publish your model, you should start to version it.
+
+The `version` scheme we use is pretty loose. It can be can be `main` or a version following a extended semver:
+
+.. code-block:: text
+
+   [v]MAJOR.MINOR[.PATCH][.(alpha|beta|pre|post|rc|)NUMBER]
+
+We don't provide any sorting function.
+
+Examples:
+
+- v1.0
+- v2.3.4
+- 1.2.1
+- 1.0.0-beta1
+- 1.0.0.alpha2
+- 1.0.0.rc1
+
+To version a model, you can push a tag on Hugging Face using `git tag v1.0 && git push --tags` and on the GCP
+bucket, create a new directory where you copy the model files.
