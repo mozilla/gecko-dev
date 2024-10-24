@@ -59,6 +59,7 @@ interface nsIContentAnalysisResponse : nsISupports
     eNoAgent = 1,
     eInvalidAgentSignature = 2,
     eErrorOther = 3,
+    eOtherRequestInGroupCancelled = 4
   };
 
   readonly attribute nsIContentAnalysisResponse_Action action;
@@ -316,4 +317,38 @@ interface nsIContentAnalysis : nsISupports
    * handles iframes.
    */
   nsIURI getURIForDropEvent(in DragEvent aEvent);
+
+  /**
+   * Sets the cached response from analyzing the whole clipboard.
+   *
+   * @param aURI
+   *        The URI of the page that requested the clipboard.
+   * @param aSequenceNumber
+   *        The native sequence number of the clipboard.
+   * @param aFlavors
+   *        The flavors requested for analysis. (note that some of these
+   *        may not be present in the actual clipboard data)
+   * @param aAction
+   *        The Content Analysis result from analyzing the clipboard data.
+   */
+  void setCachedResponse(in nsIURI aURI, in int32_t aSequenceNumber, in Array<ACString> aFlavors,
+    in nsIContentAnalysisResponse_Action aAction);
+
+  /**
+   * Gets the cached response from analyzing the whole clipboard.
+   *
+   * @param aURI
+   *        The URI of the page that requested the clipboard.
+   * @param aSequenceNumber
+   *        The native sequence number of the clipboard.
+   * @param aFlavors
+   *        The flavors requested for analysis. (note that some of these
+   *        may not be present in the actual clipboard data)
+   * @param aAction
+   *        The Content Analysis result from analyzing the clipboard data.
+   * @param aIsValid
+   *        Whether aAction is valid. (i.e. whether we have cached data)
+   */
+  void getCachedResponse(in nsIURI aURI, in int32_t aSequenceNumber, in Array<ACString> aFlavors,
+    out nsIContentAnalysisResponse_Action aAction, out boolean aIsValid);
 };

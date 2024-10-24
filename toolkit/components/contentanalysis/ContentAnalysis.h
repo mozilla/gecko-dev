@@ -14,9 +14,11 @@
 #include "mozilla/dom/Promise.h"
 #include "nsIClipboard.h"
 #include "nsIContentAnalysis.h"
+#include "nsITransferable.h"
 #include "nsProxyRelease.h"
 #include "nsString.h"
 #include "nsTHashMap.h"
+#include "nsTHashSet.h"
 
 #include <atomic>
 #include <regex>
@@ -229,12 +231,18 @@ class ContentAnalysis final : public nsIContentAnalysis {
       nsBaseClipboard* aClipboard, mozilla::dom::WindowGlobalParent* aWindow,
       nsITransferable* aTransferable,
       nsIClipboard::ClipboardType aClipboardType,
-      SafeContentAnalysisResultCallback* aResolver);
+      SafeContentAnalysisResultCallback* aResolver,
+      bool aForFullClipboard = false);
+  static RefPtr<ContentAnalysis> GetContentAnalysisFromService();
+  nsresult CancelWithError(nsCString aRequestToken, nsresult aResult);
 
   // Duration the cache holds requests for. This holds strong references
   // to the elements of the request, such as the WindowGlobalParent,
   // for that period.
   static constexpr uint32_t kDefaultCachedDataTimeoutInMs = 5000;
+  // These are the MIME types that Content Analysis can analyze.
+  static constexpr const char* kKnownClipboardTypes[] = {
+      kTextMime, kHTMLMime, kNativeHTMLMime, kCustomTypesMime, kFileMime};
 
  private:
   ~ContentAnalysis();
@@ -255,9 +263,7 @@ class ContentAnalysis final : public nsIContentAnalysis {
   nsresult RunAcknowledgeTask(
       nsIContentAnalysisAcknowledgement* aAcknowledgement,
       const nsACString& aRequestToken);
-  nsresult CancelWithError(nsCString aRequestToken, nsresult aResult);
   void GenerateUserActionId();
-  static RefPtr<ContentAnalysis> GetContentAnalysisFromService();
   static void DoAnalyzeRequest(
       nsCString aRequestToken,
       content_analysis::sdk::ContentAnalysisRequest&& aRequest,
@@ -372,6 +378,68 @@ class ContentAnalysis final : public nsIContentAnalysis {
   };
   // Must only be accessed from the main thread
   CachedData mCachedData;
+
+  class CachedClipboardResponse {
+   public:
+    CachedClipboardResponse() = default;
+    Maybe<nsIContentAnalysisResponse::Action> GetCachedResponse(
+        nsIURI* aURI, int32_t aClipboardSequenceNumber,
+        const nsTArray<nsCString>& aFlavors) {
+      MOZ_ASSERT(NS_IsMainThread(),
+                 "Expecting main thread access only to avoid synchronization");
+      if (Some(aClipboardSequenceNumber) != mClipboardSequenceNumber) {
+        return Nothing();
+      }
+      Maybe<nsIContentAnalysisResponse::Action> possibleAction;
+      for (const auto& entry : mData) {
+        bool uriEquals = false;
+        if (NS_SUCCEEDED(aURI->Equals(entry.first, &uriEquals)) && uriEquals) {
+          possibleAction = Some(entry.second);
+          break;
+        }
+      }
+      if (possibleAction.isNothing()) {
+        return Nothing();
+      }
+      // Make sure the flavors we have checked are a subset of the ones we
+      // checked before
+      for (const auto& flavor : aFlavors) {
+        if (!mFlavors.Contains(flavor)) {
+          // This only matters if it's a flavor that we check for content
+          // analysis
+          for (const char* knownType : kKnownClipboardTypes) {
+            if (flavor.EqualsASCII(knownType)) {
+              return Nothing();
+            }
+          }
+        }
+      }
+      return possibleAction;
+    }
+    void SetCachedResponse(const nsCOMPtr<nsIURI>& aURI,
+                           int32_t aClipboardSequenceNumber,
+                           const nsTArray<nsCString>& aFlavors,
+                           nsIContentAnalysisResponse::Action aAction) {
+      MOZ_ASSERT(NS_IsMainThread(),
+                 "Expecting main thread access only to avoid synchronization");
+      if (mClipboardSequenceNumber != Some(aClipboardSequenceNumber)) {
+        mData.Clear();
+        mClipboardSequenceNumber = Some(aClipboardSequenceNumber);
+      }
+      mFlavors.Clear();
+      for (const auto& flavor : aFlavors) {
+        mFlavors.Insert(flavor);
+      }
+      mData.AppendElement(std::make_pair(aURI, aAction));
+    }
+
+   private:
+    Maybe<int32_t> mClipboardSequenceNumber;
+    nsTArray<std::pair<nsCOMPtr<nsIURI>, nsIContentAnalysisResponse::Action>>
+        mData;
+    nsTHashSet<nsCString> mFlavors;
+  };
+  CachedClipboardResponse mCachedClipboardResponse;
 
   struct WarnResponseData {
     WarnResponseData(CallbackData&& aCallbackData,
