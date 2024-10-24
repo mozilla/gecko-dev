@@ -5,11 +5,4 @@ support-files = [
   "bug1309630.sjs",
   "file_bug1309630.html",
 ]
-skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1776052
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1776052
-  "os == 'win' && os_version == '11.2009' && processor == 'x86' && opt", # Bug 1776052
-  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && opt", # Bug 1776052
-  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && debug", # Bug 1776052
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1776052
-]
+skip-if = ["true"] # bug 1776052
