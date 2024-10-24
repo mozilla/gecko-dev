@@ -16,14 +16,7 @@ const { ModelHub, IndexedDBCache } = ChromeUtils.importESModule(
   "chrome://global/content/ml/ModelHub.sys.mjs"
 );
 
-const {
-  createEngine,
-  PipelineOptions,
-  QuantizationLevel,
-  ExecutionPriority,
-  InferenceDevice,
-  LogLevel,
-} = ChromeUtils.importESModule(
+const { createEngine, PipelineOptions } = ChromeUtils.importESModule(
   "chrome://global/content/ml/EngineProcess.sys.mjs"
 );
 

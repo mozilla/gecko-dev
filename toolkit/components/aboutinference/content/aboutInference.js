@@ -580,7 +580,7 @@ async function runInference() {
     tokenizerId: modelId,
     processorId: modelId,
     taskName,
-    engineId: "about-inference",
+    engineId: "about:inference",
     modelHubRootUrl,
     modelHubUrlTemplate,
     device,
